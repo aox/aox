@@ -68,7 +68,7 @@ actions together Doc2 {
     qdoc -m ../doc/man/man3 -w ../doc/html $(>)
 }
 
-Doc qdoc : imap message logd database server lib ;
+Doc doc : imap message logd database server lib ;
 
 # the programs. these need to be last. magic. all Program calls need
 # to be after all Build calls, since the Build puts object files into
