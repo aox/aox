@@ -56,6 +56,7 @@ private:
 private:
     class MessageData * d;
     friend class MessageHeaderFetcher;
+    friend class MessageBodyFetcher;
 };
 
 
@@ -75,6 +76,8 @@ private:
     class BodyPartData * d;
     friend class Message;
     friend class MessageData;
+    friend class MessageHeaderFetcher;
+    friend class MessageBodyFetcher;
 };
 
 
