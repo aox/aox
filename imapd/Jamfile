@@ -62,11 +62,12 @@ Build runtestsmain : runtests.cpp ;
 
 rule Doc {
     Depends exe : $(<) ; # run this rule whenever "all executables" are built
-    Depends $(<) : runtests ; # build documentation only after compiling
+    Depends $(<) : $(set-$(>):S=.o) ; # doc after compiling
     Doc2 $(<) : $(set-$(>):S=.cpp) ;
 }
 
 actions together Doc2 {
+    mkdir -p ../doc/man/man3 ../doc/html
     qdoc -m ../doc/man/man3 -w ../doc/html $(>)
 }
 
