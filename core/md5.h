@@ -7,6 +7,7 @@
 class String;
 class Buffer;
 
+
 class MD5 {
 public:
     MD5();
@@ -28,5 +29,6 @@ private:
     void init();
     void transform();
 };
+
 
 #endif
