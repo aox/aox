@@ -11,9 +11,19 @@
 
 #include "postgres.h"
 
+// time_t, time
+#include <time.h>
+
 
 List< Query > *Database::queries;
 static List< Database > *handles;
+static time_t lastCreated;
+
+
+static void newHandle()
+{
+    (void)new Postgres;
+}
 
 
 /*! \class Database database.h
@@ -33,6 +43,7 @@ Database::Database()
 {
     setType( Connection::DatabaseClient );
     setState( Database::Connecting );
+    lastCreated = time( 0 );
 }
 
 
@@ -65,8 +76,8 @@ void Database::setup()
         return;
     }
 
-    // For now, we just create a single handle at startup.
-    (void)new Postgres;
+    // We create a single handle at startup, and others as needed.
+    newHandle();
 }
 
 
@@ -87,6 +98,13 @@ void Database::submit( Query *q )
         }
         ++it;
     }
+
+    // We didn't find an idle handle. Should we create a new one?
+    uint max = Configuration::scalar( Configuration::DbMaxHandles );
+    int interval = Configuration::scalar( Configuration::DbHandleInterval );
+    if ( handles->count() < max &&
+         time(0) - lastCreated >= interval )
+        newHandle();
 }
 
 
