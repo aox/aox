@@ -13,12 +13,24 @@
 #include "fieldcache.h"
 #include "addresscache.h"
 #include "transaction.h"
+#include "allocator.h"
 #include "md5.h"
 #include "utf.h"
 #include "log.h"
 #include "scope.h"
 
 #include <time.h>
+
+
+static PreparedStatement *lockUidnext;
+static PreparedStatement *incrUidnext;
+static PreparedStatement *idBodypart;
+static PreparedStatement *intoBodyparts;
+static PreparedStatement *intoMessages;
+static PreparedStatement *intoRecent;
+static PreparedStatement *intoPartnumbers;
+static PreparedStatement *intoHeaderfields;
+static PreparedStatement *intoAddressfields;
 
 
 // These structs represent one part of each entry in the header_fields
@@ -114,6 +126,67 @@ public:
 
 void Injector::setup()
 {
+    lockUidnext =
+        new PreparedStatement(
+            "select uidnext from mailboxes where id=$1 for update"
+        );
+    Allocator::addEternal( lockUidnext, "lockUidnext" );
+
+    incrUidnext =
+        new PreparedStatement(
+            "update mailboxes set uidnext=uidnext+1 where id=$1"
+        );
+    Allocator::addEternal( incrUidnext, "incrUidnext" );
+
+    idBodypart =
+        new PreparedStatement(
+            "select id from bodyparts where hash=$1"
+        );
+    Allocator::addEternal( idBodypart, "idBodypart" );
+
+    intoBodyparts =
+        new PreparedStatement(
+            "insert into bodyparts (bytes,lines,hash,text,data) "
+            "select $1,$2,$3,$4,$5 where not exists "
+            "(select id from bodyparts where hash=$3)"
+        );
+    Allocator::addEternal( intoBodyparts, "intoBodyparts" );
+
+    intoMessages =
+        new PreparedStatement(
+            "insert into messages (mailbox,uid,idate,rfc822size) "
+            "values ($1,$2,$3,$4)"
+        );
+    Allocator::addEternal( intoMessages, "intoMessages" );
+
+    intoRecent =
+        new PreparedStatement(
+            "insert into recent_messages (mailbox,uid) values ($1,$2)"
+        );
+    Allocator::addEternal( intoRecent, "intoRecent" );
+
+    intoPartnumbers =
+        new PreparedStatement(
+            "insert into part_numbers (mailbox,uid,part,bodypart) "
+            "values ($1,$2,$3,$4)"
+        );
+    Allocator::addEternal( intoPartnumbers, "intoPartnumbers" );
+
+    intoHeaderfields =
+        new PreparedStatement(
+            "insert into header_fields "
+            "(mailbox,uid,part,field,value) values "
+            "($1,$2,$3,$4,$5)"
+        );
+    Allocator::addEternal( intoHeaderfields, "intoHeaderfields" );
+
+    intoAddressfields =
+        new PreparedStatement(
+            "insert into address_fields "
+            "(mailbox,uid,field,address) values "
+            "($1,$2,$3,$4)"
+        );
+    Allocator::addEternal( intoAddressfields, "intoAddressfields" );
 }
 
 
@@ -283,14 +356,12 @@ void Injector::selectUids()
         // The mailbox list must be sorted, so that Injectors always try
         // to acquire locks in the same order, thus avoiding deadlocks.
 
-        q = new Query( "select uidnext from mailboxes "
-                       "where id=$1 for update", helper );
+        q = new Query( *lockUidnext, helper );
         q->bind( 1, it->id() );
         d->transaction->enqueue( q );
         queries->append( q );
 
-        q = new Query( "update mailboxes set uidnext=uidnext+1 where id=$1",
-                       helper );
+        q = new Query( *incrUidnext, helper );
         q->bind( 1, it->id() );
         d->transaction->enqueue( q );
         queries->append( q );
@@ -450,10 +521,7 @@ void Injector::insertBodyparts()
         else
             hash = MD5::hash( b->data() ).hex();
 
-        i = new Query( "insert into bodyparts (bytes,lines,hash,text,data) "
-                       "select $1,$2,$3,$4,$5 where not exists "
-                       "(select id from bodyparts where hash=$3)", helper );
-
+        i = new Query( *intoBodyparts, helper );
         i->bind( 1, b->numBytes() );
         i->bind( 2, b->numLines() );
         i->bind( 3, hash );
@@ -480,7 +548,7 @@ void Injector::insertBodyparts()
 
         d->transaction->enqueue( i );
 
-        s = new Query( "select id from bodyparts where hash=$1", helper );
+        s = new Query( *idBodypart, helper );
         s->bind( 1, hash );
         d->transaction->enqueue( s );
         queries->append( s );
@@ -504,16 +572,14 @@ void Injector::insertMessages()
         ++uids;
         ++mb;
 
-        q = new Query( "insert into messages (mailbox,uid,idate,rfc822size) "
-                       "values ($1,$2,$3,$4)", 0 );
+        q = new Query( *intoMessages, 0 );
         q->bind( 1, m->id() );
         q->bind( 2, uid );
         q->bind( 3, d->idate );
         q->bind( 4, d->message->rfc822Size() );
         d->transaction->enqueue( q );
 
-        q = new Query( "insert into recent_messages (mailbox,uid) "
-                        "values ($1,$2)", 0 );
+        q = new Query( *intoRecent, 0 );
         q->bind( 1, m->id() );
         q->bind( 2, uid );
         d->transaction->enqueue( q );
@@ -565,8 +631,7 @@ void Injector::insertPartNumber( int mailbox, int uid, const String &part,
 {
     Query *q;
 
-    q = new Query( "insert into part_numbers (mailbox,uid,part,bodypart) "
-                   "values ($1,$2,$3,$4)", 0 );
+    q = new Query( *intoPartnumbers, 0 );
     q->bind( 1, mailbox );
     q->bind( 2, uid );
     q->bind( 3, part );
@@ -603,9 +668,7 @@ void Injector::linkHeaderFields()
             if ( t >= HeaderField::Other )
                 t = FieldNameCache::translate( link->hf->name() );
 
-            q = new Query( "insert into header_fields "
-                           "(mailbox,uid,part,field,value) values "
-                           "($1,$2,$3,$4,$5)", 0 );
+            q = new Query( *intoHeaderfields, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, uid );
             q->bind( 3, link->part );
@@ -640,9 +703,7 @@ void Injector::linkAddresses()
         while ( it ) {
             AddressLink *link = it;
 
-            q = new Query( "insert into address_fields "
-                           "(mailbox,uid,field,address) values "
-                           "($1,$2,$3,$4)", 0 );
+            q = new Query( *intoAddressfields, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, uid );
             q->bind( 3, link->type );
