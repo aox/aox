@@ -12,6 +12,8 @@
 #include <qptrdict.h>
 #include <qlayout.h>
 #include <qlabel.h>
+#include <qaccel.h>
+#include <qapplication.h>
 
 
 class ConsoleData
@@ -47,6 +49,11 @@ Console::Console()
     l->addWidget( new QLabel( tr( "Categories" ), w ) );
     l->addWidget( d->paneList );
     l->addWidget( new SearchEdit( tr( "(Search)" ), w ) );
+
+    QAccel * quit = new QAccel( this, "Quit" );
+    quit->insertItem( QKeySequence( CTRL + Key_Q ) );
+    connect( quit, SIGNAL( activated( int ) ),
+             qApp, SLOT( quit() ) );
 
     d->stack = new QWidgetStack( this );
 
