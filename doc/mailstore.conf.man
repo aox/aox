@@ -40,6 +40,9 @@ Either an IPv4 or IPv6 address may be used.
 .IP db-port
 The port number of the database server. The default is
 .IR 5432 .
+.IP db-name
+The name of the database to use. The default is
+.IR mailstore .
 .IP db-user
 The user name Mailstore should use to connect to the database. The
 default is
