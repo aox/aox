@@ -89,7 +89,7 @@ Program logd : logd logdmain server lib ;
 LINKLIBS on logd = ;
 
 Program imapd : imap imapdmain database message server lib ;
-LINKLIBS on imapd = -lcrypt ;
+LINKLIBS on imapd = cryptlib/libcl.a -lcrypt -lpthread ;
 
 Program runtests : runtestsmain imap logd database message server lib ;
 LINKLIBS on runtests = -lcrypt ;

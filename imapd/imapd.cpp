@@ -31,6 +31,9 @@ int main( int, char *[] )
     Database::setup();
     Mailbox::setup();
 
+    cryptInit();
+    atexit( (void(*)())cryptEnd );
+
     Log l;
     global.setLog( &l );
 
