@@ -25,18 +25,12 @@ int main( int, char *[] )
     s.setup( Server::Secure );
 
     Configuration::Toggle useSmtp( "use-smtp", false );
-    if ( useSmtp ) {
-        Configuration::Scalar port( "smtp-port", 25 );
-        Configuration::Text address( "smtp-host", "" );
-        Listener< SMTP >::create( "SMTP", address, port );
-    }
+    if ( useSmtp )
+        Listener< SMTP >::create( "SMTP", "", 25 );
 
     Configuration::Toggle useLmtp( "use-lmtp", true );
-    if ( useLmtp ) {
-        Configuration::Scalar port( "lmtp-port", 2026 );
-        Configuration::Text address( "lmtp-host", "127.0.0.1" );
-        Listener< LMTP >::create( "LMTP", address, port );
-    }
+    if ( useLmtp )
+        Listener< LMTP >::create( "LMTP", "127.0.0.1", 2026 );
 
     s.setup( Server::Finish );
 

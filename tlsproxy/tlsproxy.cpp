@@ -85,7 +85,7 @@ TlsProxy::TlsProxy( int socket )
 }
 
 
-/*! \remp */
+/*! \reimp */
 
 void TlsProxy::react( Event e )
 {
@@ -122,8 +122,8 @@ void TlsProxy::react( Event e )
 }
 
 
-/*!
-
+/*! Parses the incoming request from other mailstore servers and
+    starts setting up the TLS proxy.
 */
 
 void TlsProxy::parse()
@@ -195,7 +195,7 @@ void TlsProxy::parse()
     protocol.
 */
 
-void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & proto )
+void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & protocol )
 {
     int p1 = fork();
     if ( p1 < 0 ) {
@@ -226,15 +226,13 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     // it's the child!
     Loop::killAllExcept( this, other );
     LogClient::setup();
-    log( "Starting TLS proxy for for " + proto + " client " + client.string() +
+    log( "Starting TLS proxy for for " + protocol + " client " + client.string() +
          " (host " + Configuration::hostname() + ") (pid " +
          String::fromNumber( getpid() ) + ")" );
 }
 
 
-/*!
-
-*/
+/*! Encrypts and forwards the cleartext which is available on the socket. */
 
 void TlsProxy::encrypt()
 {
@@ -242,9 +240,7 @@ void TlsProxy::encrypt()
 }
 
 
-/*!
-
-*/
+/*! Decrypts and forwards the ciphertext which is available on the socket. */
 
 void TlsProxy::decrypt()
 {

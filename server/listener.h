@@ -2,9 +2,11 @@
 #define LISTENER_H
 
 #include "connection.h"
+#include "configuration.h"
 #include "string.h"
 #include "loop.h"
 #include "log.h"
+
 
 template< class T >
 class Listener
@@ -57,25 +59,39 @@ public:
     {
         Listener<T> * l;
 
-        if ( address.isEmpty() ) {
-            l = new Listener<T>( Endpoint( "::", port ), svc );
+        Configuration::Text a( svc.lower() + "-address", address );
+        Configuration::Scalar p( svc.lower() + "-port", port );
+        if ( !a.valid() && !p.valid() ) {
+            log( Log::Error,
+                 svc + ": Cannot be started due to configuration problems with " +
+                 ( a.valid() ? p.name() : a.name() ) );
+        }
+        else if ( ((String)a).isEmpty() ) {
+            l = new Listener<T>( Endpoint( "::", p ), svc );
             if ( l->state() == Listening )
                 log( "Started: " + l->description() );
             else
                 delete l;
 
-            l = new Listener<T>( Endpoint( "0.0.0.0", port ), svc );
+            l = new Listener<T>( Endpoint( "0.0.0.0", p ), svc );
             if ( l->state() == Listening )
                 log( "Started: " + l->description() );
             else
                 delete l;
         }
         else {
-            l = new Listener<T>( Endpoint( address, port ), svc );
-            if ( l->state() == Listening )
-                log( "Started: " + l->description() );
-            else
-                delete l;
+            Endpoint e( a, p );
+            if ( !e.valid() ) {
+                log( Log::Error, "Cannot parse desired endpoint for " + svc +
+                     ", " + a + " port " + String::fromNumber( p ) );
+            }
+            else {
+                l = new Listener<T>( Endpoint( a, p ), svc );
+                if ( l->state() == Listening )
+                    log( "Started: " + l->description() );
+                else
+                    delete l;
+            }
         }
     }
 

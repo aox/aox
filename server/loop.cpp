@@ -66,8 +66,8 @@ void Loop::removeConnection( Connection *c )
 }
 
 
-/*!
-
+/*! Kills all the Connection objects except \a c1 and \a c2 brutally,
+    without flushing their buffers. Used for TlsProxy.
 */
 
 void Loop::killAllExcept( Connection * c1, Connection * c2 )

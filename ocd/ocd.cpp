@@ -20,8 +20,8 @@ int main()
     s.setup( Server::Report );
     LogClient::setup();
     s.setup( Server::Secure );
-    Listener< OCServer >::create( "Cluster coordination", "", 2050 );
-    Listener< OCAdmin >::create( "Cluster administration", "", 2051 );
+    Listener< OCServer >::create( "ocd", "127.0.0.1", 2050 );
+    Listener< OCAdmin >::create( "ocadmin", "", 2051 );
 
     s.execute();
 }

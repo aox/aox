@@ -46,11 +46,11 @@ void Database::setup()
     Scope x( &dbArena );
 
     Configuration::Text db("db", "postgres" );
-    Configuration::Text dbUser( "dbuser", "oryx" );
-    Configuration::Text dbPass( "dbpass", "" );
-    Configuration::Text dbName( "dbname", "mailstore" );
-    Configuration::Text dbHost( "dbhost", "127.0.0.1" );
-    Configuration::Scalar dbPort( "dbport", 5432 );
+    Configuration::Text dbUser( "db-user", "oryx" );
+    Configuration::Text dbPass( "db-pass", "" );
+    Configuration::Text dbName( "db-name", "mailstore" );
+    Configuration::Text dbHost( "db-address", "127.0.0.1" );
+    Configuration::Scalar dbPort( "db-port", 5432 );
 
     t = new String( db );
     u = new String( dbUser );
@@ -59,7 +59,7 @@ void Database::setup()
     srv = new Endpoint( dbHost, dbPort );
 
     if ( !srv->valid() ) {
-        log( Log::Disaster, "Invalid dbhost address <" + dbHost + "> port <" +
+        log( Log::Disaster, "Invalid db-address <" + dbHost + "> port <" +
              String::fromNumber( dbPort ) + ">" );
         return;
     }
