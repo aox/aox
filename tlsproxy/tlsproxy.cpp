@@ -528,6 +528,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     // it's the child!
     Loop::closeAllExcept( this, other );
     enqueue( "ok\r\n" );
+    write();
     log( "Starting TLS proxy for for " + protocol + " client " +
          client.string() + " (host " + Configuration::hostname() + ") (pid " +
          fn( getpid() ) + ")" );
