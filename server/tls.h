@@ -5,24 +5,20 @@
 
 class String;
 class EventHandler;
+class Endpoint;
 
 
 class TlsServer
 {
 public:
-    TlsServer( EventHandler * );
+    TlsServer( EventHandler *, const Endpoint &, const String & );
 
     bool done() const;
     bool ok() const;
 
-    int userSideSocket() const;
-    int serverSideSocket() const;
+    static void setup();
 
-private:
-    void parent( int );
-    void intermediate();
-    void child();
-    void bad();
+    static bool available();
 
 private:
     class TlsServerData * d;

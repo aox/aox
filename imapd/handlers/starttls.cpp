@@ -36,7 +36,7 @@ void StartTLS::execute()
     }
 
     if ( !tlsServer )
-        tlsServer = new TlsServer( this );
+        tlsServer = new TlsServer( this, imap()->peer(), "IMAP" );
 
     if ( !tlsServer->done() )
         return;

@@ -5,6 +5,7 @@
 #include "stringlist.h"
 #include "log.h"
 #include "mechanism.h"
+#include "tls.h"
 
 
 static bool drafts = false;
@@ -77,7 +78,7 @@ String Capability::capabilities( IMAP * i )
     c.append( "NAMESPACE" );
     if ( ::drafts )
         c.append( "SASL-IR" );
-    if ( !i->hasTls() )
+    if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
     c.append( "UNSELECT" );
 

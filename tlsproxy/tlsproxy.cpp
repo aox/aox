@@ -34,7 +34,7 @@ int main( int, char *[] )
     s.setup( Server::Report );
     LogClient::setup();
     s.setup( Server::Secure );
-    Listener< TlsProxy >::create( "TLS proxy", "", 2061 );
+    Listener< TlsProxy >::create( "tls-proxy", "", 2061 );
     s.setup( Server::Finish );
 
     s.execute();
@@ -126,7 +126,13 @@ void TlsProxy::react( Event e )
 
 
 /*! Parses the incoming request from other mailstore servers and
-    starts setting up the TLS proxy.
+    starts setting up the TLS proxy. This Connection will be the
+    plaintext (server-side) and the other the encrypted one
+    (user-side) one.
+
+    The syntax is a single line terminated by crlf. The line contains
+    foud space-separated fields: partner tag, protocol, client address
+    and client port.
 */
 
 void TlsProxy::parse()
@@ -194,7 +200,7 @@ void TlsProxy::parse()
 
 
 /*! Starts TLS proxying with this object on the cleartext side and \a
-    other on the encrupted side. \a client is logged as client using \a
+    other on the encrypted side. \a client is logged as client using \a
     protocol.
 */
 
@@ -232,6 +238,9 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     log( "Starting TLS proxy for for " + protocol + " client " + client.string() +
          " (host " + Configuration::hostname() + ") (pid " +
          String::fromNumber( getpid() ) + ")" );
+
+    d->state = TlsProxyData::PlainSide;
+    other->d->state = TlsProxyData::EncryptedSide;
 }
 
 

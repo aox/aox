@@ -9,6 +9,7 @@ class String;
 class Endpoint {
 public:
     Endpoint();
+    Endpoint( const Endpoint & );
     Endpoint( const String &, uint );
     Endpoint( const struct sockaddr * );
 
@@ -23,6 +24,8 @@ public:
     uint sockaddrSize() const;
 
     String string() const;
+
+    Endpoint & operator=( const Endpoint & );
 
 private:
     class EndpointData * d;

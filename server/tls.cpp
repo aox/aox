@@ -4,78 +4,92 @@
 #include "string.h"
 #include "configuration.h"
 #include "buffer.h"
+#include "event.h"
+#include "log.h"
 
-// socketpair
-#include <sys/types.h>
-#include <sys/socket.h>
-// fork, execl
-#include <unistd.h>
-// waitpid
-#include <sys/wait.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-// exit
-#include <stdlib.h>
+
+static Endpoint * tlsProxy = 0;
 
 
 class TlsServerData
 {
 public:
-    TlsServerData(): handler( 0 ), done( false ), ok( false ) {
-        userside[0] = -1;
-        userside[1] = -1;
-        serverside[0] = -1;
-        serverside[1] = -1;
-        control[0] = -1;
-        control[1] = -1;
-    }
+    TlsServerData(): handler( 0 ), userside( 0 ), serverside( 0 ), done( false ) {}
 
     EventHandler * handler;
-    int userside[2];
-    int serverside[2];
-    int control[2];
-    bool done;
-    bool ok;
 
     class Client: public Connection
     {
     public:
-        Client( int, TlsServerData * );
+        Client( TlsServerData * );
         void react( Event );
+        void read( Event );
 
         class TlsServerData * d;
+
+        String tag;
+        bool done;
+        bool ok;
     };
+
+    Client * userside;
+    Client * serverside;
+
+    Endpoint client;
+    String protocol;
+
+    bool done;
 };
 
 
-TlsServerData::Client::Client( int fd, TlsServerData * data )
-    : Connection( fd, Connection::Client ), d( data )
+TlsServerData::Client::Client( TlsServerData * data )
+    : Connection( Connection::connect( *tlsProxy ), Connection::Client ),
+      d( data ), done( false ), ok( false )
 {
 }
 
 
 void TlsServerData::Client::react( Event e )
 {
-    if ( e == Read ) {
-        String * s = readBuffer()->removeLine();
-        if ( s ) {
-            String l = s->simplified();
-            if ( l == "ok" ) {
-                d->done = true;
-                d->ok = true;
-            }
-            else {
-                d->done = true;
-                d->ok = false;
-            }
-        }
+    read( e );
+    if ( d->done || !d->userside->done || !d->serverside->done )
+        return;
+
+    d->done = true;
+    if ( !d->serverside->ok || !d->userside->ok )
+        return;
+
+    // we're there! fine!
+    d->userside->enqueue( d->serverside->tag + " " +
+                          d->protocol + " " +
+                          d->client.address() + " " +
+                          String::fromNumber( d->client.port() ) + "\r\n" );
+    d->handler->notify();
+
+}
+
+void TlsServerData::Client::read( Event e )
+{
+    if ( e == Connect ) {
+        return;
     }
-    else if ( e != Connect ) {
-        if ( !d->done ) {
-            d->done = true;
-            d->ok = false;
-        }
+    else if ( e != Read ) {
+        done = true;
+        return;
     }
+
+    String * s = readBuffer()->removeLine();
+    if ( !s )
+        return;
+
+    done = true;
+
+    String l = s->simplified();
+    if ( !l.startsWith( "tlsproxy " ) )
+        return;
+
+    tag = l.mid( 9 );
+    ok = true;
 }
 
 
@@ -91,101 +105,21 @@ void TlsServerData::Client::react( Event e )
 
 /*! Constructs a TlsServer and starts setting up the proxy server. It
     returns quickly, and later notifies \a handler when setup as
-    compleed.
+    compleed. In the log files, the TlsServer will refer to \a client
+    as client using \a protocol.
 */
 
-TlsServer::TlsServer( EventHandler * handler )
+TlsServer::TlsServer( EventHandler * handler, const Endpoint & client,
+                      const String & protocol )
     : d( new TlsServerData )
 {
     d->handler = handler;
 
-    if ( socketpair( AF_UNIX, SOCK_STREAM, 0, d->userside ) < 0 ||
-         socketpair( AF_UNIX, SOCK_STREAM, 0, d->serverside ) < 0 ||
-         socketpair( AF_UNIX, SOCK_STREAM, 0, d->control ) < 0 ) {
-        d->done = true;
-        return;
-    }
+    d->serverside = new TlsServerData::Client( d );
+    d->userside = new TlsServerData::Client( d );
 
-    int p1 = fork();
-    if ( p1 < 0 ) {
-        d->done = true;
-        return;
-    }
-
-    if ( p1 > 0 )
-        parent( p1 );
-    else
-        intermediate();
-}
-
-
-/*! This private helper performs all parent-related tasks. */
-
-void TlsServer::parent( int wpid )
-{
-    ::close( d->userside[1] );
-    ::close( d->serverside[1] );
-    ::close( d->control[1] );
-    int status = 0;
-    waitpid( wpid, &status, WNOHANG ); // we'll have a zombie if shit happens
-}
-
-
-/*! This private function implements the short-lived bounce
-    process. That process exists only so that the TLS proxy will not
-    need to be waited upon by the running servers.
-*/
-
-void TlsServer::intermediate()
-{
-    int p2 = fork();
-    if ( p2 == 0 )
-        child();
-    if ( p2 < 0 )
-        bad();
-    exit( 0 );
-}
-
-
-/*! This privat helpers implements all that must be done in the child
-    in order to start the TLS proxy.
-*/
-
-void TlsServer::child()
-{
-    int s = getdtablesize();
-    while ( s > 0 ) {
-        s--;
-        if ( s == d->userside[1] ||
-             s == d->serverside[1] ||
-             s == d->control[1] ) {
-            // we leave those three alone
-        } else {
-            close( s );
-        }
-    }
-    String userside = String::fromNumber( d->userside[1] );
-    String serverside = String::fromNumber( d->userside[1] );
-    String control = String::fromNumber( d->userside[1] );
-    String tlsproxy = Configuration::compiledIn( Configuration::BinDir );
-    tlsproxy.append( "/tlsproxy" );
-    (void)execl( tlsproxy.cstr(),
-                 "tlsproxy",
-                 "server",
-                 userside.cstr(),
-                 serverside.cstr(),
-                 control.cstr(),
-                 0 );
-    bad();
-    exit( 0 );
-}
-
-
-/*! Notifies the parent process that something isn't at all good. */
-
-void TlsServer::bad()
-{
-    ::write( d->control[1], "bad\n", 4 );
+    d->protocol = protocol;
+    d->client = client;
 }
 
 
@@ -203,33 +137,45 @@ bool TlsServer::done() const
 
 bool TlsServer::ok() const
 {
-    return d->done && d->ok;
+    return d->done;// ALSO CHECK WHETHER IT SUCCEEEEEDED
 }
 
 
-/*! Returns the file descriptor which talks to the user side
-    (encrypted side) of the TLS proxy. If an error occured during
-    setup, this function returns -1.
-*/
+static bool tlsAvailable;
 
-int TlsServer::userSideSocket() const
+
+/*! Initializes the TLS subsystem. */
+
+void TlsServer::setup()
 {
-    if ( !ok() )
-        return -1;
+    Configuration::Toggle atAll( "tls", true );
+    ::tlsAvailable = atAll;
+    if ( !tlsAvailable )
+        return;
 
-    return d->userside[0];
+    Configuration::Text proxy( "tls-proxy-address", "127.0.0.1" );
+    Configuration::Scalar port( "tls-proxy-port", 2061 );
+    if ( !proxy.valid() || !port.valid() ) {
+        log( Log::Error, "TLS Support disabled" );
+        ::tlsAvailable = false;
+        return;
+    }
+    Endpoint * e = new Endpoint( proxy, port );
+    if ( !e->valid() ) {
+        log( Log::Info, "tls-proxy-address and/or tls-proxy-port are bad." );
+        log( Log::Error, "TLS Support disabled" );
+        return;
+    }
+    ::tlsAvailable = true;
+    ::tlsProxy = e;
 }
 
 
-/*! Returns the file descriptor which talks to the server side
-    (cleartext side) of the TLS proxy. If an error occured during
-    setup, this function returns -1.
+/*! Returns true if the server is convigured to support TLS, and false
+    if it isn't, or if there's something wrong about the configuration.
 */
 
-int TlsServer::serverSideSocket() const
+bool TlsServer::available()
 {
-    if ( !ok() )
-        return -1;
-
-    return d->serverside[0];
+    return ::tlsAvailable;
 }

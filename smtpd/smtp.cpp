@@ -460,7 +460,7 @@ void SMTP::starttls()
     }
     if ( !d->tlsServer ) {
         d->tlsHelper = new SmtpTlsStarter( this );
-        d->tlsServer = new TlsServer( d->tlsHelper );
+        d->tlsServer = new TlsServer( d->tlsHelper, peer(), "SMTP" ); // ? LMTP?
     }
     respond( 200, "Start negotiating TLS now." );
     sendResponses();
