@@ -1,19 +1,20 @@
+#include "idle.h"
+
+#include "imap.h"
+#include "buffer.h"
+
+
 /*! \class Idle idle.h
-    Implements the RFC 2177 IDLE extension
+    Implements the RFC 2177 IDLE extension.
 
     The IDLE extension permits IMAP clients to remain idle, while the
     IMAP server may send EXPUNGE, EXISTS and flag updates at any time.
 
     This implementation differs from that implied by the RFC in that
-    +/DONE is not actually part of the command; Idle prints the + itself
-    and waits for DONE during command execution. Thus, "parse errors" are
-    not done in parse().
+    +/DONE is not actually part of the command; Idle prints the +
+    itself and waits for DONE during command execution. Thus, "parse
+    errors" are not done in parse().
 */
-
-#include "idle.h"
-
-#include "imap.h"
-#include "buffer.h"
 
 
 /*! Switches to IDLE mode and grabs the input, such that the DONE can
