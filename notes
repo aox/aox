@@ -28,17 +28,6 @@ Signal handling
   Other known signals?
 
 
-Reopen logfile when logd receives SIGHUP
-
-  Preliminary course of action: Run chrooted to the directory where
-  the logfile is, and reopen the logfile when SIGHUPPED. Document the
-  need for JAILUSER to have write rights to that file.
-
-  Possibly have logd listen to a unix-domain socket by default.
-
-  Notify hs@schlittermann.de
-
-
 Schema documentation
 
   I've done all I want to sql-schema.html and postgres.schema; I'll have
