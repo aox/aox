@@ -2,6 +2,7 @@
 #include "scope.h"
 #include "configuration.h"
 #include "connection.h"
+#include "logclient.h"
 #include "listener.h"
 #include "loop.h"
 #include "log.h"
@@ -26,6 +27,12 @@ int main( int, char *[] )
 {
     Arena firstArena;
     Scope global( &firstArena );
+
+    Configuration::makeGlobal( "/dev/null" );
+    
+    Log l( Log::Immediate );
+    global.setLog( &l );
+    LogClient::setup();
 
     Listener< TLSProxy >::create( "TLS proxy", "127.0.0.1", 2443 );
     Loop::start();
