@@ -22,5 +22,4 @@ Build imap :
     store.cpp
     subscribe.cpp
     unselect.cpp
-    unsubscribe.cpp
     ;
