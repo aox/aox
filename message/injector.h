@@ -24,6 +24,8 @@ public:
 
     static void setup();
 
+    uint uid( Mailbox * ) const;
+
 private:
     class InjectorData *d;
 

@@ -68,9 +68,9 @@ public:
     Transaction * transaction;
 
     uint totalUids;
-    List< int > * uids;
+    List< uint > * uids;
     uint totalBodyparts;
-    List< int > * bodypartIds;
+    List< uint > * bodypartIds;
     List< Bodypart > * bodyparts;
     List< AddressLink > * addressLinks;
     List< FieldLink > * fieldLinks;
@@ -83,17 +83,17 @@ public:
 
 class IdHelper : public EventHandler {
 protected:
-    List< int > * list;
+    List< uint > * list;
     List< Query > * queries;
     EventHandler * owner;
 
 public:
-    IdHelper( List< int > *l, List< Query > *q, EventHandler *ev )
+    IdHelper( List< uint > *l, List< Query > *q, EventHandler *ev )
         : list( l ), queries( q ), owner( ev )
     {}
 
     virtual void processResults( Query *q ) {
-        list->append( new int( q->nextRow()->getInt( 0 ) ) );
+        list->append( new uint( q->nextRow()->getInt( 0 ) ) );
     }
 
     void execute() {
@@ -340,7 +340,7 @@ void Injector::execute()
 void Injector::selectUids()
 {
     Query *q;
-    d->uids = new List< int >;
+    d->uids = new List< uint >;
     List< Query > * queries = new List< Query >;
     IdHelper * helper = new IdHelper( d->uids, queries, this );
 
@@ -500,7 +500,7 @@ void Injector::insertBodyparts()
 {
     Query *i, *s;
     Codec *c = new Utf8Codec;
-    d->bodypartIds = new List< int >;
+    d->bodypartIds = new List< uint >;
     List< Query > * queries = new List< Query >;
     IdHelper * helper = new IdHelper( d->bodypartIds, queries, this );
 
@@ -572,7 +572,7 @@ void Injector::insertMessages()
 {
     Query *q;
 
-    List< int >::Iterator uids( d->uids->first() );
+    List< uint >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
     while ( uids ) {
         Mailbox *m = mb;
@@ -601,7 +601,7 @@ void Injector::insertMessages()
 
 void Injector::linkBodyparts()
 {
-    List< int >::Iterator uids( d->uids->first() );
+    List< uint >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
     while ( uids ) {
         Mailbox *m = mb;
@@ -611,7 +611,7 @@ void Injector::linkBodyparts()
 
         insertPartNumber( m->id(), uid, "", -1 );
 
-        List< int >::Iterator bids( d->bodypartIds->first() );
+        List< uint >::Iterator bids( d->bodypartIds->first() );
         List< Bodypart >::Iterator it( d->bodyparts->first() );
         while ( it ) {
             int bid = *bids;
@@ -660,7 +660,7 @@ void Injector::linkHeaderFields()
 {
     Query *q;
 
-    List< int >::Iterator uids( d->uids->first() );
+    List< uint >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
     while ( uids ) {
         Mailbox *m = mb;
@@ -699,7 +699,7 @@ void Injector::linkAddresses()
 {
     Query *q;
 
-    List< int >::Iterator uids( d->uids->first() );
+    List< uint >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
     while ( uids ) {
         Mailbox *m = mb;
@@ -747,4 +747,28 @@ void Injector::logMessageDetails()
         log( "Injecting message " + id + "into mailbox " + it->name() );
         ++it;
     }
+}
+
+
+/*! When the Injector injects a message into \a mailbox, it selects/learns
+  the UID of the message. This function returns that UID. It returns 0
+  in case the message hasn't been inserted into \a m, or if the uid
+  isn't known yet.
+
+  A nonzero return value does not imply that the injection is
+  complete, or even that it will complete, only that injection has
+  progressed far enough to select a UID.
+*/
+
+uint Injector::uid( Mailbox * mailbox ) const
+{
+    List<Mailbox>::Iterator m( d->mailboxes->first() );
+    List<uint>::Iterator u( d->uids->first() );
+    while ( m && u && m != mailbox ) {
+        ++m;
+        ++u;
+    }
+    if ( !u )
+        return 0;
+    return *u;
 }
