@@ -4,15 +4,18 @@
 #include "string.h"
 #include "list.h"
 #include "message.h"
+#include "injector.h"
+#include "imap.h"
 
 
 class AppendData
 {
 public:
-    AppendData() : message( 0 ) {}
+    AppendData() : message( 0 ), injector( 0 ) {}
 
     Date date;
     Message * message;
+    Injector * injector;
     List< String > flags;
 };
 
@@ -20,11 +23,10 @@ public:
 /*! \class Append append.h
     Adds a message to a mailbox (RFC 3501, §6.3.11)
 
-    APPEND is one of several ways to inject mail into the mailstore. In
-    theory. In practice it's the only one so far, or arguably there is
-    no way. Some of the code in here will need to be split off and put
-    into an class shared by the SMTP/LMTP server, APPEND and who knows
-    what else.
+    Parsing mostly relies on the Message class, execution on the
+    Injector. There is no way to insert anything but conformant
+    messages, unlike some other IMAP servers. How could we do
+    that? Not at all, I think.
 
     The MULTIAPPEND extension is probably not supportable. Append on
     its own uses much more memory than other commands, and in a
@@ -101,8 +103,8 @@ void Append::parse()
 }
 
 
-/*! This new reimplementation of number() demands \a n digits and
-    returns the number.
+/*! This new version of number() demands \a n digits and returns the
+    number.
 */
 
 uint Append::number( uint n )
@@ -116,7 +118,10 @@ uint Append::number( uint n )
 
 void Append::execute()
 {
-    respond( "BAD Cannot actually append, but it was a nice thought",
-             Untagged );
-    setState( Finished );
+    if ( !d->injector )
+        d->injector = new Injector( d->message, 
+                                    imap()->mailbox(),
+                                    this );
+    if ( d->injector->done() )
+        setState( Finished );
 }
