@@ -24,8 +24,8 @@ private:
     class InjectorData *d;
 
     void selectUids();
-    void updateAddresses();
-    void updateFieldNames();
+    void buildAddressLinks();
+    void buildFieldLinks();
     void insertBodyparts();
     void insertMessages();
     void linkHeaders();

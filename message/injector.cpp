@@ -150,8 +150,8 @@ void Injector::execute()
 
         selectUids();
         insertBodyparts();
-        updateAddresses();
-        updateFieldNames();
+        buildAddressLinks();
+        buildFieldLinks();
 
         d->transaction->execute();
         d->step = 1;
@@ -171,7 +171,7 @@ void Injector::execute()
     }
 
     if ( d->step == 2 ) {
-        // We expect updateFieldNames() to have completed immediately.
+        // We expect buildFieldLinks() to have completed immediately.
         // Once insertBodyparts() is completed, we can start adding to
         // the header_fields and part_numbers tables.
 
@@ -241,7 +241,7 @@ void Injector::selectUids()
     called when every address in d->addressLinks has been resolved.
 */
 
-void Injector::updateAddresses()
+void Injector::buildAddressLinks()
 {
     d->addressLinks = new List< AddressLink >;
     List< Address > * addresses = new List< Address >;
@@ -292,11 +292,11 @@ void Injector::updateAddresses()
     resolved.
 */
 
-void Injector::updateFieldNames()
+void Injector::buildFieldLinks()
 {
     // This function isn't correctly implemented yet. It needs to look
     // at all the MIME headers in the message and its constituent body
-    // parts, build a list of unique fields (as updateAddresses() does
+    // parts, build a list of unique fields (as buildAddressLinks does
     // above), and pass it to FieldCache::lookup() after building the
     // d->fieldLinks list.
     //
