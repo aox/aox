@@ -7,6 +7,7 @@
 #include "allocator.h"
 #include "configuration.h"
 #include "query.h"
+#include "file.h"
 #include "log.h"
 
 #include "postgres.h"
@@ -110,7 +111,10 @@ void Database::submit( Query *q )
     }
 
     uint max = Configuration::scalar( Configuration::DbMaxHandles );
-    if ( !found && handles->count() < max && now - lastCreated >= interval )
+    if ( !found &&
+         handles->count() < max && now - lastCreated >= interval &&
+         ( server().protocol() != Endpoint::Unix ||
+           server().address().startsWith( File::root() ) ) )
         newHandle();
 }
 
