@@ -1,3 +1,7 @@
+SubInclude TOP server ;
 SubDir TOP db ;
 
-Build database : database.cpp postgres.cpp pgmessage.cpp ;
+Build database : database.cpp postgres.cpp pgmessage.cpp cache.cpp
+    query.cpp transaction.cpp ;
+
+HDRS += [ FDirName $(TOP) db ] ;

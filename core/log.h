@@ -1,8 +1,7 @@
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef LOG_H
+#define LOG_H
 
 #include "global.h"
-#include "connection.h"
 
 class String;
 

@@ -8,7 +8,6 @@
 #include "database.h"
 #include "mailbox.h"
 #include "listener.h"
-#include "imap.h"
 #include "smtp.h"
 #include "loop.h"
 #include "tls.h"
@@ -23,9 +22,8 @@ int main( int, char *[] )
 
     Test::runTests();
 
-    Configuration::makeGlobal( ".imapdrc" );
+    Configuration::makeGlobal( ".smtpdrc" );
 
-    Log::setup();
     TLS::setup();
     OCClient::setup();
     Database::setup();
@@ -34,11 +32,9 @@ int main( int, char *[] )
     Log l;
     global.setLog( &l );
 
-    log( "IMAP server started" );
+    log( "SMTP server started" );
     log( Test::report() );
 
-    // should we pick this up from the config file?
-    Listener<IMAP>::create( "IMAP", "", 2052 );
     Listener<SMTP>::create( "SMTP", "", 2025 );
     Listener<LMTP>::create( "LMTP", "", 2026 );
 

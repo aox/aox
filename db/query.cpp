@@ -2,7 +2,6 @@
 
 #include "scope.h"
 #include "string.h"
-#include "command.h"
 #include "database.h"
 #include "event.h"
 #include "transaction.h"

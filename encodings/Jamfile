@@ -1,3 +1,4 @@
 SubDir TOP encodings ;
+HDRS += [ FDirName $(TOP) encodings ] ;
 
-Build lib : codec.cpp iso8859.cpp cp.cpp koi.cpp mac.cpp utf.cpp ;
+Build encodings : codec.cpp iso8859.cpp cp.cpp koi.cpp mac.cpp utf.cpp ;

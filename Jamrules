@@ -17,8 +17,6 @@ else {
 
 LINK = $(C++) ;
 
-HDRS += [ FDirName $(TOP) core ] ;
-
 rule SubInclude
 {
     if ! $($(<[1]))

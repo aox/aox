@@ -4,6 +4,8 @@ SubInclude TOP core ;
 
 HDRS += [ FDirName $(TOP) server ] ;
 
+SubInclude TOP db ;
+
 SubDir TOP server ;
 
 Build server : connection.cpp listener.cpp loop.cpp endpoint.cpp

@@ -1,9 +1,11 @@
 SubDir TOP smtpd ;
 
 SubInclude TOP server ;
+SubInclude TOP message ;
 
 SubDir TOP smtpd ;
 
 Build smtp : smtp.cpp smtpd.cpp ;
 
-Program smtpd : smtp message server core ;
+Program smtpd : smtp database message server core encodings ;
+LINKLIBS on smtpd = -lcrypt ;

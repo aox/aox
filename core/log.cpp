@@ -1,61 +1,21 @@
 #include "log.h"
 
-#include "arena.h"
-#include "scope.h"
+#include "logger.h"
 #include "string.h"
-#include "buffer.h"
-#include "endpoint.h"
-#include "configuration.h"
-#include "loop.h"
+#include "scope.h"
 
-// exit
-#include <stdlib.h>
-// *printf, stderr
-#include <stdio.h>
-// EX_UNAVAILABLE
-#include <sysexits.h>
 // gettimeofday
 #include <sys/time.h>
 // localtime
 #include <time.h>
+// sprintf
+#include <stdio.h>
 
 
 static Log * globalLog = 0;
 static bool disasters = false;
-static class LogClient * client = 0;
-static Arena logArena;
 static uint loggers = 0;
 static String time();
-
-
-// This is our persistent connection to the log server.
-class LogClient
-    : public Connection
-{
-public:
-    LogClient( int s )
-        : Connection( s )
-    {}
-
-    ~LogClient() {
-        client = 0;
-    }
-
-    // The log server isn't supposed to send us anything.
-    void react( Event e ) {
-        switch ( e ) {
-        case Connect:
-        case Timeout:
-        case Shutdown:
-            break;
-        case Read:
-        case Close:
-        case Error:
-            Loop::shutdown();
-            break;
-        }
-    }
-};
 
 
 /*! \class Log log.h
@@ -72,37 +32,6 @@ public:
     Log::global()->log( "..." ) is useful for server-global messages.
 */
 
-/*! This function creates a LogClient and connects to the Log server,
-    such that logging can work.
-*/
-
-void Log::setup()
-{
-    Scope x( &logArena );
-    Configuration::Text logHost( "loghost", "127.0.0.1" );
-    Configuration::Scalar logPort( "logport", 2054 );
-    Endpoint e( logHost, logPort );
-
-    if ( !e.valid() ) {
-        fprintf( stderr, "LogClient: Unable to parse address <%s> port %d\n",
-                 ((String)logHost).cstr(), (int)logPort );
-        exit( EX_USAGE );
-    }
-
-    client = new LogClient( Connection::socket( e.protocol() ) );
-    client->setBlocking( true );
-    if ( client->connect(e) < 0 ) {
-        fprintf( stderr, "LogClient: Unable to connect to log server %s\n",
-                 String(e).cstr() );
-        perror( "LogClient: connect() returned" );
-        exit( EX_UNAVAILABLE );
-    }
-
-    client->setBlocking( false );
-    Loop::addConnection( client );
-}
-
-
 /*! Constructs an empty Log object that can write to the Log. */
 
 Log::Log()
@@ -117,7 +46,8 @@ Log::Log()
 
 void Log::log( Severity s, const String &l )
 {
-    if ( client == 0 )
+    Logger * logger = Logger::logger();
+    if ( logger == 0 )
         return;
 
     if ( s == Disaster )
@@ -125,10 +55,9 @@ void Log::log( Severity s, const String &l )
 
     // XXX: what we really want is to get rid of CRLF, not call
     // String::simplified(). maybe later
-    client->enqueue( String::fromNumber( id, 36 ) + " " +
-                     severity( s ) + " " + time() + " " +
-                     l.simplified() + "\r\n" );
-    client->write();
+    logger->send( String::fromNumber( id, 36 ) + " " +
+                  severity( s ) + " " + time() + " " +
+                  l.simplified() + "\r\n" );
 }
 
 
@@ -137,12 +66,12 @@ void Log::log( Severity s, const String &l )
 
 void Log::commit( Severity s )
 {
-    if ( client == 0 )
+    Logger * logger = Logger::logger();
+    if ( logger == 0 )
         return;
 
-    client->enqueue( String::fromNumber( id, 36 ) + " commit " +
-                     severity( s ) + "\r\n" );
-    client->write();
+    logger->send( String::fromNumber( id, 36 ) + " commit " +
+                  severity( s ) + "\r\n" );
 }
 
 
@@ -163,10 +92,6 @@ Log::~Log()
 
 Log * Log::global()
 {
-    if ( !globalLog ) {
-        Scope x( &logArena );
-        globalLog = new Log();
-    }
     return globalLog;
 }
 
