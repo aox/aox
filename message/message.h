@@ -37,8 +37,10 @@ public:
 
 private:
     List<BodyPart> * parseMultipart( uint, uint, const String &,
-                                     const String &, bool );
-    BodyPart * parseBodypart( uint, uint, const String &, Header * );
+                                     const String &, bool,
+                                     const String & );
+    BodyPart * parseBodypart( uint, uint, const String &, Header *,
+                              const String & );
     Header * header( uint &, uint, const String &, Header::Mode );
 
 private:
