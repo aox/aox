@@ -459,9 +459,14 @@ static String sectionResponse( FetchData::Section *s,
     }
 
     else if ( s->id.isEmpty() ) {
-        BodyPart *bp = m->bodyPart( s->part, false );
-        if ( bp )
-            data = bp->asText();
+        if ( s->part.isEmpty() ) {
+            data = m->rfc822();
+        }
+        else {
+            BodyPart *bp = m->bodyPart( s->part, false );
+            if ( bp )
+                data = bp->asText();
+        }
         item = "BODY[" + s->part + "]";
     }
 

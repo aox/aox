@@ -113,6 +113,8 @@ public:
     void setNumLines( uint );
     uint numLines() const;
 
+    String asText() const;
+
 private:
     static void parseMultiPart( uint, uint, const String &,
                                 const String &, bool,
