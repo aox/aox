@@ -1,16 +1,21 @@
 #include "imapsession.h"
 
+#include "event.h"
 #include "mailbox.h"
 
 
 class SessionData {
 public:
     SessionData()
-        : mailbox( 0 ), readOnly( false )
+        : loaded( false ), failed( false ), readOnly( false ),
+          mailbox( 0 ), handler( 0 )
     {}
 
-    Mailbox *mailbox;
+    bool loaded;
+    bool failed;
     bool readOnly;
+    Mailbox *mailbox;
+    EventHandler *handler;
 };
 
 
@@ -23,13 +28,22 @@ public:
 
 /*! Creates a new ImapSession for the Mailbox \a m.
     If \a readOnly is true, the session is read-only.
+    The handler \a eh is notified of completion.
 */
 
-ImapSession::ImapSession( Mailbox *m, bool readOnly )
+ImapSession::ImapSession( const String &m, bool readOnly, EventHandler *eh )
     : d( new SessionData )
 {
-    d->mailbox = m;
+    d->handler = eh;
+    d->mailbox = Mailbox::lookup( m );
     d->readOnly = readOnly;
+
+    if ( !d->mailbox ) {
+        d->failed = true;
+        return;
+    }
+
+    begin();
 }
 
 
@@ -38,6 +52,45 @@ ImapSession::ImapSession( Mailbox *m, bool readOnly )
 
 ImapSession::~ImapSession()
 {
+    end();
+}
+
+
+/*! Acquires whatever resources are needed to start a new session.
+*/
+
+void ImapSession::begin()
+{
+    d->loaded = true;
+}
+
+
+/*! Does whatever is needed to end a session.
+*/
+
+void ImapSession::end()
+{
+}
+
+
+/*! Returns true if this ImapSession could not be successfully started
+    (probably because the mailbox does not exist).
+*/
+
+bool ImapSession::failed() const
+{
+    return d->failed;
+}
+
+
+/*! Returns true if this ImapSession has successfully acquired session
+    data from the database, or has failed to do so; or false if it is
+    still awaiting completion.
+*/
+
+bool ImapSession::loaded() const
+{
+    return d->loaded || d->failed;
 }
 
 

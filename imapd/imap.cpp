@@ -535,17 +535,33 @@ void IMAP::setUid( uint id )
 }
 
 
-/*! This function associates a new ImapSession in \a readOnly mode for
-    the Mailbox \a m with this IMAP server, whose state() it then sets
-    to Selected. It must not be called if there is already a session()
-    associated with this server.
+/*! This function is used by SELECT/EXAMINE to begin a new IMAP session,
+    opening the mailbox \a m in \a readOnly mode. If \a m is not a fully
+    qualified mailbox name, the user's login() is used to qualify it.
+
+    If the session is successfully created, the IMAP server's state() is
+    set to Selected. If not, its state() is not changed. In either case,
+    the Select \a cmd is notified of completion.
+
+    Do not call this function if there is already an session() defined.
 */
 
-void IMAP::newSession( Mailbox *m, bool readOnly )
+void IMAP::beginSession( const String &m, bool readOnly, Command *cmd )
 {
-    setState( Selected );
-    d->session = new ImapSession( m, readOnly );
-    d->logger->log( "Using mailbox " + m->name() );
+    String name;
+    if ( m[0] != '/' )
+        name = "/users/" + login() + "/";
+
+    if ( m.lower() == "inbox" )
+        name.append( "INBOX" );
+    else
+        name.append( m );
+
+    d->session = new ImapSession( name, readOnly, cmd );
+    if ( !d->session->failed() ) {
+        setState( Selected );
+        d->logger->log( "Using mailbox " + name );
+    }
 }
 
 

@@ -16,7 +16,7 @@ public:
 private:
     String name;
     bool readOnly;
-    class Mailbox *m;
+    class ImapSession *session;
 };
 
 

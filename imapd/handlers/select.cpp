@@ -2,6 +2,7 @@
 
 #include "imap.h"
 #include "mailbox.h"
+#include "imapsession.h"
 
 static inline String fn( uint n ) { return String::fromNumber( n ); }
 
@@ -13,13 +14,12 @@ static inline String fn( uint n ) { return String::fromNumber( n ); }
     to tell execute() what to do by setting the readOnly flag.
 */
 
-
 /*! Creates a Select object to handle SELECT if \a ro if false, and to
     handle EXAMINE if \a ro is true.
 */
 
 Select::Select( bool ro )
-    : readOnly( ro ), m( 0 )
+    : readOnly( ro ), session( 0 )
 {
 }
 
@@ -30,6 +30,15 @@ Select::Select( bool ro )
     This class merely inherits from Select and sets the readOnly flag.
     It has no code of its own.
 */
+
+/*! Constructs an Examine handler, which is the same as a Select
+    handler, except that it always is read-only.
+*/
+
+Examine::Examine()
+    : Select( true )
+{
+}
 
 
 /*! \reimp */
@@ -46,27 +55,23 @@ void Select::parse()
 
 void Select::execute()
 {
-    if ( !m ) {
-        m = new Mailbox( name, this );
-        m->setReadOnly( readOnly );
+    if ( !session ) {
+        if ( imap()->session() )
+            imap()->endSession();
+        imap()->beginSession( name, readOnly, this );
+        session = imap()->session();
     }
 
-    if ( !m->done() )
-        m->select();
-
-    if ( !m->done() )
+    if ( !session->loaded() )
         return;
 
-    if ( imap()->session() )
-        imap()->endSession();
-
-    if ( m->state() == Mailbox::Failed ) {
+    if ( session->failed() ) {
         error( No, "Can't select " + name );
         finish();
         return;
     }
 
-    imap()->newSession( m, readOnly );
+    Mailbox *m = session->mailbox();
 
     respond( "FLAGS " + m->flags() );
     respond( fn( m->count() ) + " EXISTS" );
@@ -79,14 +84,4 @@ void Select::execute()
              Tagged );
 
     finish();
-}
-
-
-/*! Constructs an Examine handler, which is the same as a Select
-    handler, except that it always is read-only.
-*/
-
-Examine::Examine()
-    : Select( true )
-{
 }
