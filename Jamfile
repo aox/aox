@@ -21,7 +21,10 @@ SubInclude TOP sasl ;
 SubInclude TOP schema ;
 SubInclude TOP scripts ;
 SubInclude TOP tlsproxy ;
-SubInclude TOP udoc ;
+
+if ( $(BUILDDOC) ) {
+    SubInclude TOP udoc ;
+}
 
 SubInclude TOP closed ;
 
