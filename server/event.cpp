@@ -13,8 +13,7 @@
     execute() function.
 
     Objects of that class may then pass their "this" pointers to code
-    that promises to notify() them of events. When the event occurs,
-    notify() calls execute(). Maybe we should get rid of notify().
+    that promises to execute() them when the relevant even occurs.
 
     There is currently no way to indicate the type or originator of an
     event. Furthermore, the Loop/Connection framework uses an entirely
@@ -43,8 +42,8 @@ void EventHandler::setLog( Log *log )
 
 /*! \fn void EventHandler::execute()
 
-    This pure virtual function is called by notify() when there's
-    something the EventHandler needs to do to process an event.
+    This pure virtual function is called when there's something the
+    EventHandler needs to do to process an event.
 */
 
 
