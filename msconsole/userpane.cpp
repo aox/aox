@@ -4,6 +4,10 @@
 
 #include "userpane.h"
 
+#include "event.h"
+#include "user.h"
+#include "address.h"
+
 #include <qlayout.h>
 #include <qlabel.h>
 #include <qlistbox.h>
@@ -15,12 +19,25 @@
 #include <pwd.h> // ditto
 
 
+class UserRefreshHelper: public EventHandler
+{
+public:
+    UserRefreshHelper( UserPane * up ): owner( up ) {}
+    void execute() { owner->refreshFromDatabase(); }
+
+    UserPane * owner;
+};
+
+
 class UserPaneData
 {
 public:
     UserPaneData(): users( 0 ), login( 0 ), realName( 0 ),
                     password1( 0 ), password2( 0 ), passwordError( 0 ),
-                    address( 0 ), aliases( 0 ) {}
+                    address( 0 ), aliases( 0 ),
+                    user( 0 ),
+                    refreshUserDetails( 0 )
+    {}
     QListBox * users;
     QLineEdit * login;
     QLineEdit * realName;
@@ -29,6 +46,9 @@ public:
     QLabel * passwordError;
     QLineEdit * address;
     QListBox * aliases;
+
+    User * user;
+    UserRefreshHelper * refreshUserDetails;
 };
 
 
@@ -185,7 +205,88 @@ void UserPane::updateExceptLogin()
     QListBoxItem * i = d->users->findItem( d->login->text(), ExactMatch );
     d->users->setCurrentItem( i );
 
-    // more goes here
+    // if it's a known user, refresh from database
+    if ( i ) {
+        if ( !d->user ||
+             d->user->login() != d->login->text().utf8() ) {
+            d->user = new User;
+            d->user->setLogin( d->login->text().utf8().data() );
+            d->realName->clear();
+            d->realName->clearModified();
+            d->password1->clear();
+            d->password1->clearModified();
+            d->password2->clear();
+            d->password2->clearModified();
+        }
+        if ( !d->refreshUserDetails )
+            d->refreshUserDetails = new UserRefreshHelper( this );
+        d->user->refresh( d->refreshUserDetails );
+    }
+
+    // if it's not a known user, pick a name from /etc/passwd just in
+    // case
+    if ( !i && !d->realName->isModified() ) {
+        struct passwd * pw = getpwnam( d->login->text().utf8() );
+        if ( pw ) {
+            QString g = QString::fromLocal8Bit( pw->pw_gecos );
+            g = g.lower().section( ',', 0, 0 );
+            d->realName->setText( g );
+            d->realName->setCursorPosition( g.length() );
+            d->realName->selectAll();
+        }
+    }
+}
+
+
+/*! This is the second step of updateExceptLogin(), and updates those
+    fields that may/should be updated based on the login, assuming no
+    typing has happened in the mean time. With luck, we can refresh
+    from the database faster than anyone can type.
+*/
+
+void UserPane::refreshFromDatabase()
+{
+    QString realName;
+    if ( d->user->address() )
+        realName = QString::fromUtf8( d->user->address()->name().cstr() );
+    if ( !realName.isEmpty() && realName != d->realName->text() ) {
+        // if the real name from the database is different from that
+        // on-screen, we may want to modify that on-screen. we do so
+        // in two cases:
+        uint cp = d->realName->cursorPosition();
+        if ( !d->realName->isModified() ) {
+            // if the on-screen name is one we put in, not modified by
+            // the user, we change it, and probably move the cursor to
+            // the end.
+            bool move = false;
+            if ( focusWidget() != d->realName )
+                move = true;
+            if ( cp == d->realName->text().length() )
+                move = true;
+            d->realName->setText( realName );
+            if ( move )
+                d->realName->setCursorPosition( realName.length() );
+        }
+        else if ( realName.startsWith( d->realName->text() ) &&
+                  focusWidget() == d->realName &&
+                  d->realName->selectedText().isEmpty() &&
+                  cp == d->realName->text().length() ) {
+            // if the name on-screen is a proper prefix of the one in
+            // the database and the cursor is at the end of the field,
+            // we extend the field with a selected text from the
+            // database.
+            d->realName->setText( realName );
+            d->realName->setSelection( cp, realName.length() );
+        }
+    }
+
+    QString password = QString::fromUtf8( d->user->secret().cstr() );
+    if ( !d->password1->isModified() ) {
+        d->password1->setText( password );
+        d->password2->setText( password );
+        d->password1->deselect();
+        d->password2->deselect();
+    }
 }
 
 
@@ -253,10 +354,11 @@ static QString unixLogin( const QString & s ) {
     do {
         p = getpwent();
         if ( p ) {
-            QString g = p->pw_gecos;
+            QString g = QString::fromLocal8Bit( p->pw_gecos );
             g = g.lower().section( ',', 0, 0 );
             if ( l == g )
                 r = p->pw_name;
+
         }
     } while ( r.isEmpty() && p );
     endpwent();

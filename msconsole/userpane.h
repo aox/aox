@@ -12,6 +12,8 @@ class UserPane: public QWidget
 public:
     UserPane( QWidget * );
 
+    void refreshFromDatabase();
+
 private slots:
     void addAlias();
     void removeAlias();
