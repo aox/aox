@@ -25,12 +25,12 @@ echo '#include "cstring.h"' > $(<) ; for i in $(>) ; do ( cd `dirname $i` ; moc 
 }
 
 
-Build msconsole : console.cpp userpane.cpp msconsole.cpp consoleloop.cpp
-    searchedit.cpp .msconsole.moc.cpp ;
+Build msconsole : console.cpp userpane.cpp mailboxpane.cpp msconsole.cpp
+    consoleloop.cpp searchedit.cpp .msconsole.moc.cpp ;
 
 Program msconsole :
     msconsole database server mailbox message user core encodings admintools ;
 
-Moc .msconsole.moc.cpp : console.h userpane.h ;
+Moc .msconsole.moc.cpp : console.h userpane.h mailboxpane.h ;
 
 LINKLIBS on msconsole = -lqt -lcrypt ;

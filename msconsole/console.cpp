@@ -5,6 +5,7 @@
 #include "console.h"
 #include "userpane.h"
 #include "searchedit.h"
+#include "mailboxpane.h"
 
 #include <qlistview.h>
 #include <qheader.h>
@@ -75,10 +76,16 @@ Console::Console()
     d->panes->insert( i, w );
     d->items->insert( w, i );
 
+    w = new MailboxPane( this );
+    d->stack->addWidget( w );
+    i = new QListViewItem( d->paneList, tr( "Mailboxes" ) );
+    d->panes->insert( i, w );
+    d->items->insert( w, i );
+
 #if 0
     w = new UserPane( this );
-    d->stack->addWidget( w, i );
-    i = new QListViewItem( d->paneList, tr( "&Users" ) );
+    d->stack->addWidget( w );
+    i = new QListViewItem( d->paneList, tr( "Users" ) );
     d->panes->insert( i, w );
     d->items->insert( w, i );
 #endif
