@@ -6,20 +6,7 @@ Schema documentation
 
 Installation script
 
-  What does it need to do?
-
-    1. Copy files(?)
-    2. Set up the database.
-    3. Generate a configuration file.
-
-  Is it okay for it to be interactive? (No, I guess not.)
-
-
-Fix shutdown
-
-  Right now, rcmailstore uses killall to kill the servers, not the pid
-  files. there's no practical way to shutdown using ocd/ocadmin. both
-  need fixing.
+  First working draft submitted. A few minor tweaks are necessary.
 
 
 Injector fixes:
@@ -50,6 +37,13 @@ Field name synchronisation
   is greater than or equal to Other.
 
   And we need to synchronise the in-memory maps via ocd anyway.
+
+
+Fix shutdown
+
+  Right now, rcmailstore uses killall to kill the servers, not the pid
+  files. there's no practical way to shutdown using ocd/ocadmin. both
+  need fixing.
 
 
 inject a large number of messages, collect query statistics
