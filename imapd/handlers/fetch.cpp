@@ -2,6 +2,8 @@
 
 #include "set.h"
 
+#include "test.h"
+
 // fetch           = "FETCH" SP set SP ("ALL" / "FULL" / "FAST" / fetch-att /
 //                   "(" fetch-att *(SP fetch-att) ")")
 // fetch-att       = "ENVELOPE" / "FLAGS" / "INTERNALDATE" /
@@ -21,14 +23,28 @@
 class FetchData {
 public:
     FetchData()
-        : seen( false ),
+        : peek( true ),
           uid( false ), flags( false ), envelope( false ), body( false ),
-          bodystructure( false ), internaldate( false ), rfc822size( false )
+          bodystructure( false ), internaldate( false ), rfc822size( false ),
+          needHeader( false ), needBody( false )
     {}
 
+    class Section {
+    public:
+        Section()
+            : partial( false ), offset( 0 ), length( UINT_MAX ) {}
+
+        String id;
+        List<String> fields;
+        bool partial;
+        uint offset;
+        uint length;
+    };
+
     Set set;
-    bool seen;
+    bool peek;
     // we want to ask for...
+    List<Section> sections;
     bool uid;
     bool flags;
     bool envelope;
@@ -36,20 +52,30 @@ public:
     bool bodystructure;
     bool internaldate;
     bool rfc822size;
+    // and the sections imply that we
+    bool needHeader;
+    bool needBody;
 };
 
 
 /*! \class Fetch fetch.h
-    Returns message data (RFC 3501, §6.4.5)
+    Returns message data (RFC 3501, section 6.4.5).
+
+    Our implementation is slightly more permissive than the RFC; it
+    permits FETCH BODY[MIME] and perhaps more.
+
+    The flag update is slavishly followed, including that for
+    read-only mailboxes, flags aren't changed. (Well, that's how it
+    will be, anyway.)
 */
 
 
-/*! Creates a new handler for FETCH if \a u is false, or UID FETCH if it
-    is true.
+/*! Creates a new handler for FETCH if \a u is false, or for UID FETCH
+    if \a u is true.
 */
 
 Fetch::Fetch( bool u )
-    : uid( u )
+    : Command(), uid( u ), d( new FetchData )
 {
 }
 
@@ -59,7 +85,6 @@ Fetch::Fetch( bool u )
 void Fetch::parse()
 {
     space();
-    d->uid = uid;
     d->set = set( !uid );
     space();
     if ( nextChar() == '(' ) {
@@ -70,9 +95,7 @@ void Fetch::parse()
             step();
             parseAttribute( false );
         }
-        if ( nextChar() != ')' )
-            error( Bad, "closing paren missing, saw " + following() );
-        step();
+        require( ")" );
     }
     else {
         // single fetch-att, or the macros
@@ -91,11 +114,8 @@ void Fetch::execute()
 
 
 /*! This helper is responsible for parsing a single attriute from the
-    fetch arguments.
-
-    The command line consists of either a macro, a single attribute or
-    a list of attribute in parens. If \a alsoMacro is true, either of
-    the three cases are handled, if not only the latter two.
+    fetch arguments. If \a alsoMacro is true, this function parses a
+    macro as well as a single attribute.
 */
 
 void Fetch::parseAttribute( bool alsoMacro )
@@ -132,22 +152,27 @@ void Fetch::parseAttribute( bool alsoMacro )
         d->internaldate = true;
     }
     else if ( keyword == "rfc822" ) {
-        d->seen = true;
+        d->peek = false;
+        // ###
     }
     else if ( keyword == "rfc822.header" ) {
+        // ###
     }
     else if ( keyword == "rfc822.size" ) {
         d->rfc822size = true;
     }
     else if ( keyword == "rfc822.text" ) {
+        // ###
     }
-    else if ( keyword == "body.peek" ) {
+    else if ( keyword == "body.peek" && nextChar() == '[' ) {
+        step();
         parseBody();
     }
     else if ( keyword == "body" ) {
         if ( nextChar() == '[' ) {
+            d->peek = false;
+            step();
             parseBody();
-            d->seen = true;
         }
         else {
             d->body = true;
@@ -183,7 +208,7 @@ void Fetch::parseAttribute( bool alsoMacro )
 String Fetch::dotLetters( uint min, uint max )
 {
     String r = letters( 1, max );
-    while ( r.length() + 1 < min && nextChar() == '.' ) {
+    while ( r.length() + 1 < max && nextChar() == '.' ) {
         step();
         r.append( "." );
         r.append( letters( 1, max - r.length() ) );
@@ -192,74 +217,81 @@ String Fetch::dotLetters( uint min, uint max )
 }
 
 
-/*! Parses a bodypart description - the bit following "body[". */
+/*! Parses a bodypart description - the bit following "body[" in an
+    attribute. The cursor must be after '[' on entry, and is left
+    after the trailing ']'.
+*/
 
 void Fetch::parseBody()
 {
-    if ( nextChar() != '[' )
-        error( Bad, "Need [ following body/body.peek" );
     step();
 
     //section-spec    = section-msgtext / (section-part ["." section-text])
-    //section-msgtext = "HEADER" / "HEADER.FIELDS" [".NOT"] SP header-list / "TEXT"
+    //section-msgtext = "HEADER" /
+    //                  "HEADER.FIELDS" [".NOT"] SP header-list /
+    //                  "TEXT"
     //section-part    = nz-number *("." nz-number)
     //section-text    = section-msgtext / "MIME"
-    bool dot = false;
-    String section;
-    while ( ( section.isEmpty() || dot ) && nextChar() <= '9' ) {
-        if ( dot )
-            section.append( "." );
-        dot = false;
-        section.append( String::fromNumber( nzNumber() ) );
+    FetchData::Section * s = new FetchData::Section;
+
+    bool sectionValid = true;
+    while ( sectionValid && nextChar() >= '0' && nextChar() <= '9' ) {
+        s->id.append( String::fromNumber( nzNumber() ) );
         if ( nextChar() == '.' ) {
-            dot = true;
-            step();
-        }
-    }
-    if ( section.isEmpty() || dot ) {
-        String tmp = dotLetters( 4, 17 ).lower();
-        if ( tmp == "text" ) {
-        }
-        else if ( tmp == "mime" ) {
-        }
-        else if ( tmp == "header" ) {
-        }
-        else if ( tmp == "header.fields" ||
-                  tmp == "header.fields.not" ) {
-            bool hfn = (tmp == "header.fields.not");
-            hfn = hfn; // ### hack to kill warning
-            space();
-            if ( nextChar() != '(' )
-                error( Bad, "Expected header field list" );
-            step();
-            List<String> fields;
-            fields.append( new String( astring() ) );
-            while ( nextChar() == ' ' ) {
-                space();
-                fields.append( new String( astring() ) );
-            }
-            if ( nextChar() != ')' )
-                error( Bad, "Expected header field list" );
+            s->id.append( "." );
             step();
         }
         else {
-            error( Bad, "expected text, header, header.fields etc, "
-                   "not " + tmp );
+            sectionValid = false;
         }
     }
-    if ( nextChar() == '<' ) {
-        step();
-        uint n = number();
-        n = n; // ### hack to kill warning
-        if ( nextChar() != '.' )
-            error( Bad, "Must have '.' in range specification, not " +
-                   following() );
-        step();
-        uint r = nzNumber();
-        r = r; // ### hack to kill warning
-        if ( nextChar() != '>' )
-            error( Bad, "Must end range specification with '>', not " +
-                   following() );
-        step();
+
+    if ( sectionValid ) {
+        String tmp = dotLetters( 4, 17 ).lower();
+        s->id.append( tmp );
+        if ( tmp == "text" || tmp == "mime" || tmp == "header" ) {
+            if ( tmp == s->id )
+                d->needHeader = true;
+            else
+                d->needBody = true;
+        }
+        else if ( tmp == "header.fields" || tmp == "header.fields.not" ) {
+            space();
+            require( "(" );
+            s->fields.append( new String( astring().headerCased() ) );
+            while ( nextChar() == ' ' ) {
+                space();
+                s->fields.append( new String( astring().headerCased() ) );
+            }
+            require( ")" );
+        }
+        else {
+            error( Bad, "expected text, header, header.fields etc, "
+                   "not " + tmp + following() );
+        }
     }
+
+    if ( nextChar() == '<' ) {
+        s->partial = true;
+        step();
+        s->offset = number();
+        require( "." );
+        s->length = nzNumber();
+        require( ">" );
+    }
+
+    require( "]" );
+
+    d->sections.append( s );
 }
+
+
+static class FetchTest: public Test {
+public:
+    FetchTest(): Test( 610 ) {}
+    void test() {
+        setContext( "Testing Fetch" );
+        
+    }
+} fetchTest;
+
