@@ -91,27 +91,13 @@ void Authenticate::execute()
 }
 
 
-/*! Handles reading (and handling) responses, and possibly issuing new
-    challenges. Basically all the interesting parts of authentication.
+/*! Tries to read a single response line from the client into r, which
+    is left unmodified if a complete response cannot be read.
 */
 
 void Authenticate::read()
 {
-    Buffer * b = imap()->readBuffer();
-
-    uint i = 0;
-    while ( i < b->size() && (*b)[i] != 10 )
-        i++;
-    if ( (*b)[i] == 10 ) {
-        i++;
-        // since we cannot cause database access in read(), we need to
-        // store the response here and use it later, in execute(). the
-        // length if r is magic: zero means "no response received",
-        // nonzero means "response received".
-        r.append( *b->string( i ) );
-        {
-            Scope x( imap()->arena() );
-            b->remove( i );
-        }
-    }
+    String * s = imap()->readBuffer()->removeLine();
+    if ( s )
+        r.append( *s );
 }
