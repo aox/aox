@@ -24,8 +24,13 @@ tlsproxy doesn't handle eof (or errors) well
 
 What to do about EventHandlers whose targets have died?
 
-  For example, smtpd usually segfaults when we interrupt deliver, when
-  SmtpDbClient tries to execute() a non-existent SMTP server.
+  At the moment, our basic policy is to never delete a Connection or
+  EventHandler while it's working. If a Connection dies, we remove it
+  from the event loop's list and don't write to the fd any ore. When
+  noone has pointers to it any more, Allocator will reclaim the space
+  used by the Connection and its minion.
+
+  That should work, but we'll have to see whether it's a complete fix.
 
 
 ocd needs work

@@ -296,7 +296,7 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
     if ( c->state() == Connection::Closing && !c->canWrite() )
         c->close();
     if ( !c->valid() )
-        delete c;
+        removeConnection( c );
 }
 
 
