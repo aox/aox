@@ -38,3 +38,21 @@ rule SubInclude
 	}
 }
 
+
+rule Build
+{
+	Objects $(>) ;
+	set-$(<) += [ FGristFiles $(>:S=$(SUFOBJ)) ] ;
+}
+
+
+rule Program
+{
+	local target ;
+	Depends exe : $(<) ;
+	Depends $(<) : $(set-$(>)) ;
+	MakeLocate $(<) : $(LOCATE_TARGET) ;
+
+	Clean clean : $(<) ;
+	Link $(<) : $(set-$(>)) ;
+}
