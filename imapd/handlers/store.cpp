@@ -14,22 +14,16 @@
 #include "mailbox.h"
 
 
-class StoreData
-{
+class StoreData {
 public:
-    StoreData() : op( Replace ),
-                  silent( false ), uid( false ),
-                  modifyAnsweredFlag( false ),
-                  modifyFlaggedFlag( false ),
-                  modifyDeletedFlag( false ),
-                  modifySeenFlag( false ),
-                  modifyDraftFlag( false ),
-                  system( false ),
-                  fetching( false ),
-                  transaction( 0 ),
-                  fetchSystem( 0 ), fetchExtra( 0 ),
-                  flagCreator( 0 )
-        {}
+    StoreData()
+        : op( Replace ), silent( false ), uid( false ),
+          modifyAnsweredFlag( false ), modifyFlaggedFlag( false ),
+          modifyDeletedFlag( false ), modifySeenFlag( false ),
+          modifyDraftFlag( false ), system( false ), fetching( false ),
+          transaction( 0 ), fetchSystem( 0 ), fetchExtra( 0 ),
+          flagCreator( 0 )
+    {}
     MessageSet s;
     StringList flagNames;
 
@@ -62,8 +56,8 @@ public:
     although Annotate may be able to do the same.
 */
 
-/*!  Constructs a Store handler. If \a u is set, the first argument is
-     presumed to be a UID set, otherwise it's an MSN set.
+/*! Constructs a Store handler. If \a u is set, the first argument is
+    presumed to be a UID set, otherwise it's an MSN set.
 */
 
 Store::Store( bool u )
@@ -89,6 +83,7 @@ void Store::parse()
     space();
 
     if ( present( "(" ) ) {
+        d->flagNames.append( flag() );
         while ( present( " " ) )
             d->flagNames.append( flag() );
         require( ")" );
