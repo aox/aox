@@ -12,7 +12,8 @@ public:
     enum Access {
         Read, Write, Append
     };
-    File( const String &, File::Access, uint = 0 );
+    File( const String &, uint = 0 );
+    File( const String &, File::Access, uint = 0644 );
     ~File();
 
     bool valid() const;
@@ -32,6 +33,7 @@ public:
 
 private:
     class FileData * d;
+    void init( const String &, File::Access, uint, uint );
 };
 
 

@@ -95,7 +95,7 @@ Configuration::Configuration()
 
 void Configuration::read( const String & file )
 {
-    File f( file, File::Read );
+    File f( file );
     if ( !f.valid() ) {
         log( "Error reading configuration file " + file,
              Log::Disaster );

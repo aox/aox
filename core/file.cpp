@@ -16,11 +16,11 @@
 // open
 #include <fcntl.h>
 
+
 extern "C" void *memcpy(void *, const void *, uint);
 
 
-class FileData
-{
+class FileData {
 public:
     FileData(): fd( -1 ), t( 0 ), ok( false ) {}
     int fd;
@@ -46,21 +46,43 @@ public:
     recently modified/created files, name() returns the file's name
     and valid() returns true or false depending on whether everything
     is okay.
-
-    That's all. A small class.
 */
 
 
-/*! Creates a new File object representing \a name. If \a a is Read,
-    the file is opened and up to \a maxLength bytes are read, or the
-    entire file if \a maxLength is 0. If \a name is an empty string,
-    stdin is read instead. If \a a is Write, the file is opened for
-    writing and truncated. If \a a is Append, the file is created if
-    it does not exist, and then opened for append.
+/*! Creates a new File object representing \a name, and tries to open it
+    and read up to \a maxLength bytes, or the whole file if \a maxLength
+    is 0. If \a name is an empty string, stdin is read instead.
 */
 
-File::File( const String &name, File::Access a, uint maxLength )
+File::File( const String &name, uint maxLength )
     : d( new FileData )
+{
+    init( name, File::Read, 0, maxLength );
+}
+
+
+/*! Creates a new File object representing \a name. If \a a is Read, the
+    contents of the file are read. If \a a is Write, the file is opened
+    for writing and truncated. If \a a is Append, the file is opened for
+    append. In the latter cases, the file is created with the specified
+    \a mode if it does not exist.
+*/
+
+File::File( const String &name, File::Access a, uint mode )
+    : d( new FileData )
+{
+    init( name, a, mode, 0 );
+}
+
+
+/*! Initialises a file object to represent \a name, which is opened for
+    the specified \a mode. If \a mode is Read, \a maxLength specifies
+    the number of bytes to read; and if \a mode is Write or Append, the
+    \a mode is used if the file is to be created.
+*/
+
+void File::init( const String &name, File::Access a,
+                 uint mode, uint maxLength )
 {
     d->n = name;
 
@@ -73,10 +95,10 @@ File::File( const String &name, File::Access a, uint maxLength )
             d->fd = ::open( chn.cstr(), O_RDONLY );
         break;
     case Write:
-        d->fd = ::open( chn.cstr(), O_WRONLY|O_CREAT|O_TRUNC, 0644 );
+        d->fd = ::open( chn.cstr(), O_WRONLY|O_CREAT|O_TRUNC, mode );
         break;
     case Append:
-        d->fd = ::open( chn.cstr(), O_APPEND|O_WRONLY|O_CREAT, 0644 );
+        d->fd = ::open( chn.cstr(), O_APPEND|O_WRONLY|O_CREAT, mode );
         break;
     }
 
@@ -264,5 +286,3 @@ void  File::unlink( String s )
 {
     ::unlink( s.cstr() );
 }
-
-

@@ -94,7 +94,7 @@ Server::Server( const char * name, int argc, char * argv[] )
             }
             else {
                 d->configFile = optarg;
-                File tmp( d->configFile, File::Read );
+                File tmp( d->configFile );
                 if ( !tmp.valid() ) {
                     fprintf( stderr,
                              "%s: Config file %s not accessible/readable\n",
