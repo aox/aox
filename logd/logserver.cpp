@@ -317,14 +317,21 @@ void LogServer::reopen( int )
 {
     if ( !logFile )
         return;
+
+    File * l = new File( logFile->name(), File::Append );
+    if ( !l->valid() ) {
+        ::log( "SIGHUP handler was unable to open new log file" +
+               l->name(),
+               Log::Disaster );
+        ::commit();
+        Loop::shutdown(); // XXX: perhaps better to switch to syslog
+    }
     ::log( "SIGHUP caught. Closing and reopening log file " + logFile->name(),
            Log::Info );
     ::commit();
-    String n = logFile->name();
     delete logFile;
-    logFile = 0;
-    setLogFile( n );
-    ::log( "SIGHUP caught. Reopening log file " + logFile->name(),
+    logFile = l;
+    ::log( "SIGHUP caught. Reopened log file " + logFile->name(),
            Log::Info );
     ::commit();
 }

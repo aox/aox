@@ -235,3 +235,20 @@ SASL NTLM authentication
 
   http://www.innovation.ch/java/ntlm.html seems to be a reasonable
   description. Cyrus also implements it.
+
+
+Keeping stderr open
+
+  Maybe we should keep it open forever. Maybe that should be a
+  command-line option - but what should the default be?
+
+
+Logging to syslog
+
+  logfile=syslog:local2 could mean "log to syslog with the local2
+  facility". that's ugly syntax. parsing and blah.
+
+  if we implement this, the logd HUP handler can switch to syslog if
+  it can't reopen the logfile.
+
+

@@ -20,6 +20,7 @@ int main( int argc, char * argv[] )
     Scope global( &firstArena );
 
     Server s( "logd", argc, argv );
+    s.setChrootMode( Server::LogDir );
 
     s.setup( Server::LogSetup );
     (void)new SelfLogger;
