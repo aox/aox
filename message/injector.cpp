@@ -6,6 +6,7 @@
 #include "query.h"
 #include "address.h"
 #include "message.h"
+#include "ustring.h"
 #include "bodypart.h"
 #include "mailbox.h"
 #include "mimefields.h"
