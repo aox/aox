@@ -12,19 +12,21 @@ fi
 # Pull in the compile-time configuration
 . $BINDIR/.config.sh
 
+CONFIG=$CONFIGDIR/mailstore.conf
+
 # If we're upgrading from an older version, we probably don't want to
 # overwrite anything. That mailstore.conf may contain a custom
 # db-user, etc.
-if [ -f $CONFIGDIR/mailstore.conf ]; then
-    echo $CONFIGDIR/mailstore.conf already exists -- exiting without changes.
+if [ -f $CONFIG ]; then
+    echo $CONFIG already exists -- exiting without changes.
     echo " - not creating PostgreSQL user" $DBUSER
     echo " - not creating PostgreSQL database" $DBNAME
-    echo " - not creating stub configuration file" $CONFIGDIR/mailstore.conf
+    echo " - not creating stub configuration file" $CONFIG
     exit 0
 fi
 
 # Find psql and pg_ctl
-if [ "$PGBIN" = "" ];
+if [ "$PGBIN" = "" ]; then
     PSQL=psql
     PGCTL=pg_ctl
 else

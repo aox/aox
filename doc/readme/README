@@ -5,6 +5,11 @@ Linux/BSD distributions.
 To run Mailstore you need PostgreSQL, version 7.4.5 or any later
 version.
 
+In this version, you also need Qt 3.0 or later. Rather pointless,
+since the code that uses Qt is the barest outline so far. For the
+moment, the only way to build without Qt is to remove the line
+"SubInclude msconsole ;" in mailstore-0.90/Jamfile.
+
 Building and installing Mailstore is a five-step process:
 
 1. Edit Jamsettings to reflect your preferences. Note that in Jam,
@@ -25,8 +30,8 @@ Building and installing Mailstore is a five-step process:
 
        ms create user nirmala pw nirmala@example.org
 
-   to create a user with login 'nirmala', password 'pw' and email
-   address nirmala@example.org.
+   to create a user with login "nirmala", password "pw" and email
+   address "nirmala@example.org".
 
 At this point, you're ready to run "BINDIR/rcmailstore start" to start
 Mailstore. After a change, "rcmailstore restart" restarts.
