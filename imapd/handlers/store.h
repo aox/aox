@@ -19,11 +19,11 @@ private:
     class StoreData * d;
 
 private:
-    bool addExtraFlagNames();
-    void splitSystemExtra();
-    void updateSystemFlags();
-    void killSuperfluousRows();
-    void addExtraFlags();
+    bool processFlagNames();
+    void removeFlags( bool opposite = false );
+    void addFlags();
+    void replaceFlags();
+    void recordFlags();
     void pretendToFetch();
     void sendFetches();
     bool dumpFetchResponses();

@@ -48,7 +48,7 @@ public:
     bool hasFlags() const;
     bool hasHeaders() const;
     bool hasBodies() const;
-    void setFlagsFetched();
+    void setFlagsFetched( bool );
     void setHeadersFetched();
     void setBodiesFetched();
 

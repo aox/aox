@@ -2,27 +2,23 @@
 
 #include "store.h"
 
-#include "messageset.h"
-#include "string.h"
-#include "list.h"
-#include "messageset.h"
 #include "transaction.h"
+#include "imapsession.h"
+#include "messageset.h"
+#include "mailbox.h"
+#include "message.h"
+#include "string.h"
 #include "query.h"
 #include "flag.h"
+#include "list.h"
 #include "imap.h"
-#include "imapsession.h"
-#include "mailbox.h"
 
 
 class StoreData {
 public:
     StoreData()
-        : op( Replace ), silent( false ), uid( false ),
-          modifyAnsweredFlag( false ), modifyFlaggedFlag( false ),
-          modifyDeletedFlag( false ), modifySeenFlag( false ),
-          modifyDraftFlag( false ), system( false ), fetching( false ),
-          transaction( 0 ), fetchSystem( 0 ), fetchExtra( 0 ),
-          flagCreator( 0 )
+        : op( Replace ), silent( false ), uid( false ), fetching( false ),
+          transaction( 0 ), flagCreator( 0 )
     {}
     MessageSet s;
     StringList flagNames;
@@ -32,19 +28,10 @@ public:
     bool silent;
     bool uid;
 
-    bool modifyAnsweredFlag;
-    bool modifyFlaggedFlag;
-    bool modifyDeletedFlag;
-    bool modifySeenFlag;
-    bool modifyDraftFlag;
-    bool system;
-
     bool fetching;
 
     Transaction * transaction;
-    Query * fetchSystem;
-    Query * fetchExtra;
-    List<Flag> extra;
+    List<Flag> flags;
     FlagCreator * flagCreator;
 };
 
@@ -105,15 +92,22 @@ void Store::parse()
 
 void Store::execute()
 {
-    if ( !addExtraFlagNames() )
+    if ( !processFlagNames() )
         return;
 
     if ( !d->transaction ) {
         d->transaction = new Transaction( this );
-        splitSystemExtra();
-        updateSystemFlags();
-        killSuperfluousRows();
-        addExtraFlags();
+        switch( d->op ) {
+        case StoreData::Replace:
+            replaceFlags();
+            break;
+        case StoreData::Add:
+            addFlags();
+            break;
+        case StoreData::Remove:
+            removeFlags();
+            break;
+        }
         d->transaction->commit();
     }
 
@@ -125,193 +119,46 @@ void Store::execute()
             finish();
             return;
         }
+        else {
+            recordFlags();
+        }
+        if ( d->op != StoreData::Replace && !d->silent )
+            sendFetches();
         d->fetching = true;
     }
 
     if ( d->fetching && !d->silent ) {
-        if ( d->op == StoreData::Replace ) {
+        if ( d->op == StoreData::Replace )
             pretendToFetch();
-        }
-        else {
-            if ( !d->fetchSystem )
-                sendFetches();
-            if ( !dumpFetchResponses() )
-                return;
-        }
+        else if ( !dumpFetchResponses() )
+            return;
     }
     finish();
 }
 
 
-/*! Adds any necessary flag names to the database and return true once
+/*! Adds any necessary flag names to the database and returns true once
     everything is in order.
 */
 
-bool Store::addExtraFlagNames()
+bool Store::processFlagNames()
 {
     StringList::Iterator it = d->flagNames.first();
     StringList unknown;
+    d->flags.clear();
     while ( it ) {
         Flag * f = Flag::find( *it );
-        if ( (*it)[0] != '\\' && !f )
+        if ( f )
+            d->flags.append( f );
+        else
             unknown.append( *it );
         ++it;
     }
-    if ( unknown.isEmpty() )
+    if ( unknown.isEmpty() ) 
         return true;
     else if ( !d->flagCreator )
         d->flagCreator = new FlagCreator( this, unknown );
     return false;
-}
-
-
-/*! Splits the argument flags into system and user-defined flags. */
-
-void Store::splitSystemExtra()
-{
-    StringList::Iterator it = d->flagNames.first();
-    while ( it ) {
-        String n = it->lower();
-        if ( n[0] != '\\' )
-            d->extra.append( Flag::find( *it ) );
-        else if ( n == "\\answered" )
-            d->modifyAnsweredFlag = true;
-        else if ( n == "\\flagged" )
-            d->modifyFlaggedFlag = true;
-        else if ( n == "\\deleted" )
-            d->modifyDeletedFlag = true;
-        else if ( n == "\\seen" )
-            d->modifySeenFlag = true;
-        else if ( n == "\\draft" )
-            d->modifyDraftFlag = true;
-        ++it;
-    }
-    if ( d->modifyAnsweredFlag || d->modifyFlaggedFlag ||
-         d->modifyFlaggedFlag || d->modifyDeletedFlag ||
-         d->modifyDraftFlag )
-        d->system = true;
-}
-
-
-static void addToList( StringList & f, const String & n,
-                       bool m, StoreData::Op op )
-{
-    if ( m && ( op == StoreData::Add || op == StoreData::Replace ) )
-        f.append( n + "='t'" );
-    else if ( ( op == StoreData::Remove && m ) ||
-              ( op == StoreData::Replace && !m ) )
-        f.append( n + "='f'" );
-}
-
-
-static PreparedStatement * prepared[96];
-
-/*! Sends update statements to update the six system flags. */
-
-void Store::updateSystemFlags()
-{
-
-    StringList f;
-    addToList( f, "answered", d->modifyAnsweredFlag, d->op );
-    addToList( f, "flagged", d->modifyFlaggedFlag, d->op );
-    addToList( f, "deleted", d->modifyDeletedFlag, d->op );
-    addToList( f, "seen", d->modifySeenFlag, d->op );
-    addToList( f, "draft", d->modifyDraftFlag, d->op );
-    Query * q;
-    if ( d->s.isRange() ) {
-        uint n = 0;
-        if ( d->modifyDraftFlag )
-            n += 1;
-        if ( d->modifySeenFlag )
-            n += 2;
-        if ( d->modifyDeletedFlag )
-            n += 4;
-        if ( d->modifyFlaggedFlag )
-            n += 8;
-        if ( d->modifyAnsweredFlag )
-            n += 16;
-        if ( d->op == StoreData::Remove )
-            n += 32;
-        if ( d->op == StoreData::Replace )
-            n += 64;
-        if ( !prepared[n] )
-            prepared[n] = new PreparedStatement( "update messages "
-                                                 "set " + f.join("," ) + " " +
-                                                 "where "
-                                                 "mailbox=$1 and "
-                                                 "uid>=$2 and uid<=$3" );
-        q = new Query( *prepared[n], this );
-        q->bind( 1, imap()->session()->mailbox()->id() );
-        q->bind( 2, d->s.smallest() );
-        q->bind( 2, d->s.largest() );
-    }
-    else {
-    q = new Query( "update messages set " + f.join( "," ) +
-                   " where " + d->s.where(), this );
-    }
-    d->transaction->enqueue( q );
-}
-
-
-/*! Issues database commands to kill any rows we may not want at the
-    end. At the moment this is a little too harsh - some rows are
-    killed by this function and reinserted by addExtraFlags() a moment
-    later. Is that a problem? Only time and profiling will show.
-*/
-
-void Store::killSuperfluousRows()
-{
-    Query * q = 0;
-    if ( d->op == StoreData::Remove && !d->extra.isEmpty() ) {
-        StringList cond;
-        List<Flag>::Iterator it( d->extra.first() );
-        while ( it ) {
-            cond.append( "flag=" + fn( it->id() ) );
-            ++it;
-        }
-        q = new Query( "delete from extra_flags where " + d->s.where() +
-                       " and (" + cond.join( " or " ) + ")", this);
-    }
-    else if ( d->op == StoreData::Replace ) {
-        // this is the too-harsh bit. very harsh.
-        q = new Query( "delete from extra_flags where " + d->s.where(),
-                       this);
-    }
-    if ( q )
-        d->transaction->enqueue( q );
-
-}
-
-
-/*! Adds rows for all flags that should be there/should be added. See
-    killSuperfluousRows().
-*/
-
-void Store::addExtraFlags()
-{
-    if ( d->op != StoreData::Remove )
-        return;
-    if ( d->extra.isEmpty() )
-        return;
-
-    Mailbox * m = imap()->session()->mailbox();
-    uint msn = d->s.count();
-    while ( msn > 0 ) {
-        msn--;
-        uint uid = d->s.value( msn );
-        List<Flag>::Iterator it( d->extra.first() );
-        Query * q;
-        while ( it ) {
-            q = new Query( "insert into extra_flags "
-                           "(mailbox,uid,flag) values ($1,$2,$3)",
-                           this );
-            q->bind( 1, m->id() );
-            q->bind( 2, uid );
-            q->bind( 3, it->id() );
-            d->transaction->enqueue( q );
-            ++it;
-        }
-    }
 }
 
 
@@ -340,74 +187,166 @@ void Store::pretendToFetch()
 
 
 /*! Sends a command to the database to get all the flags for the
-    messages we just touched. This makes sure to get them in order of
-    UID. dumpFetchResponses() depends on that.
+    messages we just touched.
 */
 
 void Store::sendFetches()
 {
-    d->fetchSystem
-        = new Query( "select uid, seen, draft, flagged, answered, deleted "
-                     "from messages where mailbox=$1 and " + d->s.where() +
-                     " order by uid",
-                     this );
-    d->fetchExtra
-        = new Query( "select flag, uid from extra_flags "
-                     "where mailbox=$1 and " + d->s.where() +
-                     " order by uid",
-                     this );
-    d->fetchSystem->bind( 1, imap()->session()->mailbox()->id() );
-    d->fetchExtra->bind( 1, imap()->session()->mailbox()->id() );
-    d->fetchSystem->execute();
-    d->fetchExtra->execute();
+    MessageSet s;
+    Mailbox * mb = imap()->session()->mailbox();
+    uint i = d->s.count();
+    while ( i ) {
+        uint uid = d->s.value( i );
+        i--;
+        Message * m = mb->message( uid, false );
+        if ( !m || !m->hasFlags() )
+            s.add( uid );
+    }
+    if ( !s.isEmpty() )
+        mb->fetchFlags( s, this );
 }
 
 
 /*! Dumps all the flags for all the relevant messages, as fetched from
-    the database. Does not update any cached Message objects for lack
-    of an API. Later.
-
-    Returns true if it did all its work and false if there's more to do.
+    the database or known by earlier commands.  Returns true if it did
+    all its work and false if there's more to do.
 */
 
 bool Store::dumpFetchResponses()
 {
-    if ( !d->fetchExtra->done() || !d->fetchSystem->done() )
-        return false;
-
-    Row * extra = d->fetchExtra->nextRow();
-    uint extraUid = 0;
-    if ( extra )
-        extraUid = extra->getInt( "uid" );
-    Row * system = 0;
+    bool all = true;
     ImapSession * s = imap()->session();
-    while ( (system=d->fetchSystem->nextRow()) != 0 ) {
-        uint uid = system->getInt( "uid" );
-        StringList r;
-        if ( system->getBoolean( "answered" ) )
-            r.append( "\\answered" );
-        if ( system->getBoolean( "deleted" ) )
-            r.append( "\\deleted" );
-        if ( system->getBoolean( "draft" ) )
-            r.append( "\\draft" );
-        if ( system->getBoolean( "flagged" ) )
-            r.append( "\\flagged" );
-        if ( s->isRecent( uid ) )
-            r.append( "\\recent" );
-        if ( system->getBoolean( "seen" ) )
-            r.append( "\\seen" );
-        while ( extra && extraUid == uid ) {
-            Flag * f = Flag::find( extra->getInt( "flag" ) );
-            if ( f )
-                r.append( f->name() );
-            extra = d->fetchExtra->nextRow();
-            if ( extra )
-                extraUid = extra->getInt( "uid" );
+    Mailbox * mb = s->mailbox();
+    uint i = d->s.count();
+    while ( i ) {
+        uint uid = d->s.value( i );
+        i--;
+        Message * m = mb->message( uid, false );
+        if ( m && m->hasFlags() ) {
+            String r;
+
+            if ( s->isRecent( uid ) )
+                r = "\\recent";
+
+            List<Flag> * f = m->flags();
+            if ( f && !f->isEmpty() ) {
+                List<Flag>::Iterator it( f->first() );
+                while ( it ) {
+                    if ( !r.isEmpty() )
+                        r.append( " " );
+                    r.append( it->name() );
+                    ++it;
+                }
+            }
+
+            uint msn = s->msn( uid );
+            respond( fn( msn ) + " FETCH (UID " +
+                     fn( uid ) + " FLAGS (" + r + "))" );
+            d->s.remove( uid );
         }
-        uint msn = s->msn( uid );
-        respond( fn( msn ) + " FETCH (UID " +
-                 fn( uid ) + " FLAGS (" +
-                 r.join( " " ) + "))" );
+        else {
+            all = false;
+        }
     }
-    return true;
+    return all;
+}
+
+
+/*! Removes the specified flags from the relevant messages in the
+    database. If \a opposite, removes all other flags, but leaves the
+    specified flags.
+  
+    This is a not ideal for the case where a single flag is removed
+    from a single messages or from a simple range of messages. In that
+    case, we could use a PreparedStatement. Later.
+*/
+
+void Store::removeFlags( bool opposite )
+{
+    List<Flag>::Iterator it( d->flags.first() );
+    String flags;
+    String sep( "(flag=" );
+    if ( opposite )
+        sep = "not(flag=";
+    while( it ) {
+        flags.append( sep );
+        flags.append( fn( it->id() ) );
+        if ( sep[0] != ' ' )
+            sep = " or flag=";
+        ++it;
+    }
+    flags.append( ")" );
+    
+    Query * q = new Query( "delete from flags where mailbox=$1 and " +
+                           flags + " and (" + d->s.where() + ")",
+                           this );
+    q->bind( 1, imap()->session()->mailbox()->id() );
+    d->transaction->enqueue( q );
+}
+
+
+/*! Adds all the necessary flags to the database. Like removeFlags(),
+    this could be optimized by the use of PreparedStatement for the
+    most common case.
+*/
+
+void Store::addFlags()
+{
+    String w = d->s.where();
+    List<Flag>::Iterator it( d->flags.first() );
+    while ( it ) {
+        Query * q = new Query( "insert into flags (flag,uid,mailbox) "
+                               "select $1,uid,$2 from messages where "
+                               "mailbox=$1 and (" + w + ") and uid not in "
+                               "(select uid from flags where "
+                               "mailbox=$2 and (" + w + ") and flag=$1)",
+                               this );
+        q->bind( 1, it->id() );
+        q->bind( 2, imap()->session()->mailbox()->id() );
+        d->transaction->enqueue( q );
+        ++it;
+    }
+}
+
+
+/*! Ensures that the specified flags, and no others, are set for all
+    the specified messages.
+*/
+
+void Store::replaceFlags()
+{
+    removeFlags( true );
+    addFlags();
+}
+
+
+/*! Records the flag changes in the affected messags. In some cases,
+    this just dumps the cached flags, in others it updates the cache.
+*/
+
+void Store::recordFlags()
+{
+    Mailbox * mb = imap()->session()->mailbox();
+    uint i = d->s.count();
+    while ( i ) {
+        uint uid = d->s.value( i );
+        i--;
+        Message * m = mb->message( uid, false );
+        if ( m && m->hasFlags() ) {
+            if ( d->op == StoreData::Replace ) {
+                // we have a correct value, so remember it
+                m->setFlagsFetched( true );
+                List<Flag> * current = m->flags();
+                current->clear();
+                List<Flag>::Iterator it( d->flags.first() );
+                while ( it ) {
+                    current->append( it );
+                    ++it;
+                }
+            }
+            else {
+                m->setFlagsFetched( false );
+            }
+        }
+    }
 }

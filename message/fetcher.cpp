@@ -307,7 +307,7 @@ void MessageHeaderFetcher::setDone( Message * m )
 
 void MessageFlagFetcher::setDone( Message * m )
 {
-    m->setFlagsFetched();
+    m->setFlagsFetched( true );
 
 }
 
