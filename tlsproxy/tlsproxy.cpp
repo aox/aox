@@ -585,12 +585,10 @@ void TlsProxy::encrypt()
 
     Buffer * r = readBuffer();
     String s = *r->string( r->size() );
-    log( "Sending " + fn( r->size() ) + " bytes: <" + s.simplified() + ">" );
     int len;
     int status = cryptPushData( cs, s.data(), s.length(), &len );
     handleError( status, "cryptPushData" );
     if ( status == CRYPT_OK ) {
-        log( "Sent " + fn( len ) + " bytes" );
         r->remove( len );
         status = cryptFlushData( cs );
         handleError( status, "cryptFlushData" );
@@ -612,9 +610,6 @@ void TlsProxy::decrypt()
         len = 0;
         status = cryptPopData( cs, buffer, 4096, &len );
         handleError( status, "cryptPopData" );
-        log( "Received " + fn( len ) + " bytes: <" +
-             fn( buffer[0] ) + " " + fn( buffer[1] ) + " " +
-             fn( buffer[2] ) + ">" );
         if ( len > 0 )
             serverside->writeBuffer()->append( buffer, len );
     } while ( len > 0 && status == CRYPT_OK );
