@@ -254,6 +254,8 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
     Mailbox * parent = ::root;
     if ( i > 0 )
         parent = obtain( name.mid( 0, i ), create );
+    else if ( ::root->name() == name )
+        return ::root;
     if ( !parent )
         return 0;
     if ( !create && !parent->children() )
