@@ -38,6 +38,8 @@ public:
     static void removeRoot( void * );
     static void removeRoot( const void * );
 
+    static void setReporting( bool );
+    
 private:
     uint base;
     uint step;
