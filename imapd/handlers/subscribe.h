@@ -11,7 +11,7 @@ public:
     enum Mode { Add, Remove };
 
     Subscribe( Mode m = Add )
-        : mode( m ), q( 0 )
+        : mode( m ), selected( false ), q( 0 )
     {}
 
     void parse();
@@ -20,6 +20,7 @@ public:
 private:
     String m;
     Mode mode;
+    bool selected;
     class Query *q;
 };
 

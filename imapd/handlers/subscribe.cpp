@@ -2,7 +2,8 @@
     Adds a mailbox to the subscription list (RFC 3501, §6.3.6)
 
     This class implements both Subscribe and Unsubscribe. The required
-    mode is set by the constructor, and used in execute().
+    mode is set by the constructor, and is used by execute() to decide
+    what to do.
 */
 
 
@@ -35,13 +36,44 @@ void Subscribe::parse()
 void Subscribe::execute()
 {
     if ( !q ) {
-        q = new Query( "select id from subscriptions where "+
-                       String( "owner=" ) + String::fromNumber( imap()->uid() ) +
+        q = new Query( "select id from subscriptions where "
+                       "owner=" + String::fromNumber( imap()->uid() ) +
                        " and mailbox='"+ m +"'", this );
         q->submit();
         return;
     }
 
-    error( No, "unimplemented command" );
+    if ( !q->done() )
+        return;
+
+    if ( q->failed() ) {
+        error( No, "" );
+        finish();
+        return;
+    }
+
+    if ( !selected ) {
+        selected = true;
+
+        if ( mode == Add && q->rows() == 0 ) {
+            q = new Query( "insert into subscriptions (owner, mailbox) values "
+                           "("+ String::fromNumber( imap()->uid() ) +", '"+
+                           m +"')", this );
+        }
+        else if ( mode == Remove && q->rows() == 1 ) {
+            int id = *q->nextRow()->getInt( "id" );
+            q = new Query( "delete from subscriptions where id=" +
+                           String::fromNumber( id ), this );
+        }
+        else {
+            q = 0;
+        }
+
+        if ( q ) {
+            q->submit();
+            return;
+        }
+    }
+
     finish();
 }
