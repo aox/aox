@@ -22,7 +22,8 @@ public:
     InjectorData()
         : step( 0 ), failed( false ),
           owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
-          uids( 0 ), bodypartIds( 0 ), bodyparts( 0 ), addressLinks( 0 )
+          uids( 0 ), bodypartIds( 0 ), bodyparts( 0 ), addressLinks( 0 ),
+          messageIds( 0 )
     {}
 
     int step;
@@ -40,6 +41,7 @@ public:
     List< int > * bodypartIds;
     List< BodyPart > * bodyparts;
     List< AddressLink > * addressLinks;
+    List< int > * messageIds;
 };
 
 
@@ -148,6 +150,19 @@ void Injector::execute()
     }
 
     if ( d->step == 1 ) {
+        // Now that we have obtained UIDs, we can insert rows into the
+        // messages table. (And since we have bodypart IDs as well, we
+        // can populate part_numbers and header_fields too. Later.)
+
+        if ( !d->messageIds ) {
+            insertMessages();
+            return;
+        }
+        
+        // Wait for all the message IDs before going on.
+        if ( d->messageIds->count() != d->totalUids )
+            return;
+        
         d->step = 2;
     }
 
@@ -240,7 +255,7 @@ void Injector::updateAddresses()
 
 
 /*! This private function inserts an entry into bodyparts for every MIME
-    bodypart in the message, and puts the resulting ids in d->bodyparts.
+    bodypart in the message. The IDs are then stored in d->bodypartIds.
 */
 
 void Injector::insertBodyparts()
@@ -259,7 +274,7 @@ void Injector::insertBodyparts()
         Query *i, *s;
 
         i = new Query( "insert into bodyparts (data) values ($1)", helper );
-        i->bind( 1, b->data() );
+        i->bind( 1, "fake message data" );
 
         s = new Query( "select currval('bodypart_ids')::integer as id",
                        helper );
@@ -268,4 +283,40 @@ void Injector::insertBodyparts()
         queries->append( s );
         selects->append( s );
     }
+
+    Database::query( queries );
+}
+
+
+/*! This private function inserts one row per mailbox into the messages
+    table, and puts the resulting ids in d->messageIds.
+*/
+
+void Injector::insertMessages()
+{
+    d->messageIds = new List< int >;
+    List< Query > * queries = new List< Query >;
+    List< Query > * selects = new List< Query >;
+    IdHelper * helper = new IdHelper( d->messageIds, selects, this );
+
+    List< Mailbox >::Iterator it( d->mailboxes->first() );
+    List< int >::Iterator uids( d->uids->first() );
+    while ( it ) {
+        Mailbox *m = it++;
+        int uid = *uids++;
+
+        Query *i = new Query( "insert into messages (mailbox,uid) values "
+                              "($1,$2)", helper );
+        i->bind( 1, m->id() );
+        i->bind( 2, uid );
+
+        Query *s = new Query( "select currval('mailbox_ids')::integer as id",
+                              helper );
+
+        queries->append( i );
+        queries->append( s );
+        selects->append( i );
+    }
+
+    Database::query( queries );
 }

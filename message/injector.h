@@ -26,6 +26,7 @@ private:
     void selectUids();
     void updateAddresses();
     void insertBodyparts();
+    void insertMessages();
 };
 
 
