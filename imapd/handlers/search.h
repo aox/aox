@@ -2,7 +2,7 @@
 #define SEARCH_H
 
 #include "command.h"
-#include "squery.h"
+#include "messageset.h"
 
 
 class Search
@@ -18,20 +18,64 @@ private:
     void parseKey( bool alsoCharset = false );
 
 private:
-    NotQuery::Condition * add( NotQuery::Field, NotQuery::Action,
-                            const String & = 0, const String & = 0 );
-    NotQuery::Condition * add( NotQuery::Field, NotQuery::Action, uint );
-    NotQuery::Condition * add( const MessageSet & );
+    enum Action {
+        OnDate,
+        SinceDate,
+        BeforeDate,
+        Contains,
+        Larger,
+        Smaller,
+        And,
+        Or,
+        Not,
+        All,
+        None
+    };
+    enum Field { // moves? here for the moment
+        InternalDate,
+        Sent,
+        Header,
+        Body,
+        Rfc822Size,
+        Flags,
+        Uid,
+        NoField
+    };
 
-    NotQuery::Condition * push( NotQuery::Action );
+    struct Condition
+    { // everything here is public. this may need changing at some point.
+    public:
+        Condition() : f( NoField ), a( All ), n( 0 ), l( 0 ) {}
+
+        Field f;
+        Action a;
+        String a1;
+        String a2;
+        MessageSet s;
+        uint n;
+        List<Condition> * l;
+
+        String debugString() const;
+        void simplify();
+    };
+
+    Condition * add( Field, Action,
+                     const String & = 0, const String & = 0 );
+    Condition * add( Field, Action, uint );
+    Condition * add( const MessageSet & );
+
+    Condition * push( Action );
     void pop();
 
     void prepare();
+
+    String debugString();
 
     String date();
 
 private:
     class SearchD * d;
+    friend class SearchD;
 };
 
 

@@ -1,27 +1,33 @@
+#include "search.h"
+
+#include "list.h"
+#include "imap.h"
+#include "messageset.h"
+#include "codec.h"
+
+
 /*! \class Search search.h
     Finds messages matching some criteria (RFC 3501, §6.4.4)
 
     The entirety of the basic syntax is handled. CONDSTORE, SEARCHM
     and other extensions are currently not handled. SEARCHM probably
     will need to be implemented as a subclass of Search.
+
+    Searches are first run against the RAM cache, rudimentarily. If
+    the comparison is difficult, expensive or unsuccessful, it gives
+    up and uses the database.
 */
-
-#include "search.h"
-
-#include "list.h"
-#include "imap.h"
-#include "messageset.h"
-
 
 class SearchD
 {
 public:
-    SearchD() : uid( false ), query( 0 ), conditions( 0 ) {}
+    SearchD() : uid( false ), conditions( 0 ), root( 0 ), codec( 0 ) {}
 
     bool uid;
-    NotQuery * query;
-    List<NotQuery::Condition> * conditions;
+    List<Search::Condition> * conditions;
+    Search::Condition * root;
     String charset;
+    Codec * codec;
 };
 
 /*! Constructs an empty Search. If \a u is true, it's an UID SEARCH,
@@ -54,10 +60,9 @@ void Search::parse()
     end();
 
     prepare();
-    d->query = new NotQuery( d->conditions->last() );
-    respond( "OK original: " + d->query->debugString() );
-    d->query->simplify();
-    respond( "OK simplified: " + d->query->debugString() );
+    respond( "OK debug: query as parsed: " + d->root->debugString() );
+    d->root->simplify();
+    respond( "OK debug: simplified query: " + d->root->debugString() );
 }
 
 
@@ -72,7 +77,7 @@ void Search::parseKey( bool alsoCharset )
     char c = nextChar();
     if ( c == '(' ) {
         // it's an "and" list.
-        push( NotQuery::And );
+        push( And );
         do {
             step();
             parseKey();
@@ -91,123 +96,124 @@ void Search::parseKey( bool alsoCharset )
         // first comes a keyword. they all are letters only, so:
         String keyword = letters( 2, 15 ).lower();
         if ( keyword == "all" ) {
-            add( NotQuery::NoField, NotQuery::All );
+            add( NoField, All );
         }
         else if ( keyword == "answered" ) {
-            add( NotQuery::Flags, NotQuery::Contains, "answered" );
+            add( Flags, Contains, "answered" );
         }
         else if ( keyword == "deleted" ) {
-            add( NotQuery::Flags, NotQuery::Contains, "deleted" );
+            add( Flags, Contains, "deleted" );
         }
         else if ( keyword == "flagged" ) {
-            add( NotQuery::Flags, NotQuery::Contains, "flagged" );
+            add( Flags, Contains, "flagged" );
         }
         else if ( keyword == "new" ) {
-            add( NotQuery::Flags, NotQuery::Contains, "recent" );
-            add( NotQuery::Flags, NotQuery::Contains, "seen" );
+            add( Flags, Contains, "recent" );
+            add( Flags, Contains, "seen" );
         }
         else if ( keyword == "old" ) {
-            push( NotQuery::Not );
-            add( NotQuery::Flags, NotQuery::Contains, "recent" );
+            push( Not );
+            add( Flags, Contains, "recent" );
             pop();
         }
         else if ( keyword == "recent" ) {
-            add( NotQuery::Flags, NotQuery::Contains, "recent" );
+            add( Flags, Contains, "recent" );
         }
         else if ( keyword == "seen" ) {
-            add( NotQuery::Flags, NotQuery::Contains, "seen" );
+            add( Flags, Contains, "seen" );
         }
         else if ( keyword == "unanswered" ) {
-            push( NotQuery::Not );
-            add( NotQuery::Flags, NotQuery::Contains, "answered" );
+            push( Not );
+            add( Flags, Contains, "answered" );
             pop();
         }
         else if ( keyword == "undeleted" ) {
-            push( NotQuery::Not );
-            add( NotQuery::Flags, NotQuery::Contains, "deleted" );
+            push( Not );
+            add( Flags, Contains, "deleted" );
             pop();
         }
         else if ( keyword == "unflagged" ) {
-            push( NotQuery::Not );
-            add( NotQuery::Flags, NotQuery::Contains, "flagged" );
+            push( Not );
+            add( Flags, Contains, "flagged" );
             pop();
         }
         else if ( keyword == "unseen" ) {
-            push( NotQuery::Not );
-            add( NotQuery::Flags, NotQuery::Contains, "seen" );
+            push( Not );
+            add( Flags, Contains, "seen" );
             pop();
         }
         else if ( keyword == "draft" ) {
-            add( NotQuery::Flags, NotQuery::Contains, "draft" );
+            add( Flags, Contains, "draft" );
         }
         else if ( keyword == "undraft" ) {
-            push( NotQuery::Not );
-            add( NotQuery::Flags, NotQuery::Contains, "draft" );
+            push( Not );
+            add( Flags, Contains, "draft" );
             pop();
         }
         else if ( keyword == "on" ) {
             space();
-            add( NotQuery::InternalDate, NotQuery::OnDate, date() );
+            add( InternalDate, OnDate, date() );
         }
         else if ( keyword == "before" ) {
-            add( NotQuery::InternalDate, NotQuery::BeforeDate, date() );
+            add( InternalDate, BeforeDate, date() );
         }
         else if ( keyword == "since" ) {
             space();
-            add( NotQuery::InternalDate, NotQuery::SinceDate, date() );
+            add( InternalDate, SinceDate, date() );
         }
         else if ( keyword == "sentbefore" ) {
             space();
-            add( NotQuery::Sent, NotQuery::BeforeDate, date() );
+            add( Sent, BeforeDate, date() );
         }
         else if ( keyword == "senton" ) {
             space();
-            add( NotQuery::Sent, NotQuery::OnDate, date() );
+            add( Sent, OnDate, date() );
         }
         else if ( keyword == "sentsince" ) {
             space();
-            add( NotQuery::Sent, NotQuery::SinceDate, date() );
+            add( Sent, SinceDate, date() );
         }
         else if ( keyword == "from" ) {
             space();
-            add( NotQuery::Header, NotQuery::Contains, "from", astring() );
+            add( Header, Contains, "from", astring() );
         }
         else if ( keyword == "to" ) {
             space();
-            add( NotQuery::Header, NotQuery::Contains, "to", astring() );
+            add( Header, Contains, "to", astring() );
         }
         else if ( keyword == "cc" ) {
             space();
-            add( NotQuery::Header, NotQuery::Contains, "cc", astring() );
+            add( Header, Contains, "cc", astring() );
         }
         else if ( keyword == "bcc" ) {
             space();
-            add( NotQuery::Header, NotQuery::Contains, "bcc", astring() );
+            add( Header, Contains, "bcc", astring() );
         }
         else if ( keyword == "subject" ) {
             space();
-            add( NotQuery::Header, NotQuery::Contains, "subject", astring() );
+            add( Header, Contains, "subject", astring() );
         }
         else if ( keyword == "body" ) {
             space();
-            add( NotQuery::Body, NotQuery::Contains, astring() );
+            add( Body, Contains, astring() );
         }
         else if ( keyword == "text" ) {
             space();
             String a = astring();
-            push( NotQuery::Or );
-            add( NotQuery::Body, NotQuery::Contains, a );
-            add( NotQuery::Header, NotQuery::Contains, 0, a ); // field name is null
+            push( Or );
+            add( Body, Contains, a );
+            // field name is null for any-field searches
+            add( Header, Contains, 0, a );
             pop();
         }
         else if ( keyword == "keyword" ) {
             space();
-            add( NotQuery::Flags, NotQuery::Contains, atom() );
+            add( Flags, Contains, atom() );
         }
         else if ( keyword == "unkeyword" ) {
             space();
-            push( NotQuery::Not );
-            add( NotQuery::Flags, NotQuery::Contains, atom() );
+            push( Not );
+            add( Flags, Contains, atom() );
             pop();
         }
         else if ( keyword == "header" ) {
@@ -215,7 +221,7 @@ void Search::parseKey( bool alsoCharset )
             String s1 = astring();
             space();
             String s2 = astring();
-            add( NotQuery::Header, NotQuery::Contains, s1, s2 );
+            add( Header, Contains, s1, s2 );
         }
         else if ( keyword == "uid" ) {
             space();
@@ -223,7 +229,7 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "or" ) {
             space();
-            push( NotQuery::Or );
+            push( Or );
             parseKey();
             space();
             parseKey();
@@ -231,25 +237,27 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "not" ) {
             space();
-            push( NotQuery::Not );
+            push( Not );
             parseKey();
             pop();
         }
         else if ( keyword == "larger" ) {
             space();
-            add( NotQuery::Rfc822Size, NotQuery::Larger, number() );
+            add( Rfc822Size, Larger, number() );
         }
         else if ( keyword == "smaller" ) {
             space();
-            add( NotQuery::Rfc822Size, NotQuery::Smaller, number() );
+            add( Rfc822Size, Smaller, number() );
         }
         else if ( alsoCharset && keyword == "charset" ) {
             space();
             d->charset = astring();
-            // xxx: check that the name is valid
+            d->codec = Codec::byName( d->charset );
+            if ( d->codec == 0 )
+                error( No, "Unknown character encoding: " + d->charset );
         }
         else {
-            error( Bad, "unknown search-key: " + keyword );
+            error( Bad, "unknown search key: " + keyword );
         }
     }
 
@@ -323,11 +331,11 @@ String Search::date()
     or Not.
 */
 
-NotQuery::Condition * Search::add( NotQuery::Field f, NotQuery::Action a,
-                                const String & a1, const String & a2 )
+Search::Condition * Search::add( Field f, Action a,
+                                   const String & a1, const String & a2 )
 {
     prepare();
-    NotQuery::Condition * c = new NotQuery::Condition;
+    Condition * c = new Condition;
     c->f = f;
     c->a = a;
     c->a1 = a1;
@@ -344,10 +352,10 @@ NotQuery::Condition * Search::add( NotQuery::Field f, NotQuery::Action a,
     or Not.
 */
 
-NotQuery::Condition * Search::add( NotQuery::Field f, NotQuery::Action a, uint n )
+Search::Condition * Search::add( Field f, Action a, uint n )
 {
     prepare();
-    NotQuery::Condition * c = new NotQuery::Condition;
+    Condition * c = new Condition;
     c->f = f;
     c->a = a;
     c->n = n;
@@ -361,12 +369,12 @@ NotQuery::Condition * Search::add( NotQuery::Field f, NotQuery::Action a, uint n
 
 */
 
-NotQuery::Condition * Search::add( const MessageSet & set )
+Search::Condition * Search::add( const MessageSet & set )
 {
     prepare();
-    NotQuery::Condition * c = new NotQuery::Condition;
-    c->f = NotQuery::Uid;
-    c->a = NotQuery::Contains;
+    Condition * c = new Condition;
+    c->f = Uid;
+    c->a = Contains;
     c->s = set;
     d->conditions->first()->l->append( c );
     return c;
@@ -379,12 +387,12 @@ NotQuery::Condition * Search::add( const MessageSet & set )
     \a a must be And, Or or Not. This isn't checked.
 */
 
-NotQuery::Condition * Search::push( NotQuery::Action a )
+Search::Condition * Search::push( Action a )
 {
     prepare();
-    NotQuery::Condition * c = new NotQuery::Condition;
+    Condition * c = new Condition;
     c->a = a;
-    c->l = new List<NotQuery::Condition>;
+    c->l = new List<Condition>;
     if ( d->conditions->first() )
         d->conditions->first()->l->append( c );
     d->conditions->prepend( c );
@@ -405,19 +413,249 @@ void Search::pop()
 
 /*! This private helper takes care that invariants aren't broken. It
     should mostly be a noop, but in cases of syntax errors, it is
-    perhaps possible that we might segfault without this function. Any
-    inefficiency caused by this function is repaired by
-    NotQuery::simplify().
+    perhaps possible that we might segfault without this function.
 */
 
 void Search::prepare()
 {
     if ( !d->conditions )
-        d->conditions = new List<NotQuery::Condition>;
-    if ( d->conditions->isEmpty() ) {
-        NotQuery::Condition * c = new NotQuery::Condition;
-        c->a = NotQuery::And;
-        c->l = new List<NotQuery::Condition>;
-        d->conditions->prepend( c );
+        d->conditions = new List<Condition>;
+    if ( !d->conditions->isEmpty() )
+        return;
+
+    Condition * c = new Condition;
+    c->a = And;
+    c->l = new List<Condition>;
+    d->conditions->prepend( c );
+
+    if ( !d->root )
+        d->root = c;
+}
+
+
+/*! \class Search::Condition search.h
+
+    The Search::Condition class represents a single condition in a
+    search, which is either a leaf condition or an AND/OR operator.
+
+    The class can simplify() and regularize itself, such that all
+    equivalent search inputs give the same result, and and it can
+    express itself in a form amenable to testing. Rather simple.
+*/
+
+
+/*! This helper transforms this search conditions and all its children
+    into a simpler form, if possible. There are two goals to this:
+
+    1. Provide a regular search expression, so that we can eventually
+    detect and prepare statements for often-repeated searches.
+
+    2. Ditto, so that we can test that equivalent input gives
+    identical output.
+
+*/
+
+void Search::Condition::simplify()
+{
+    // not (not x) -> x
+    if ( a == Not && l->first()->a == Not ) {
+        Condition * again = l->first()->l->first();
+
+        f = again->f;
+        a = again->a;
+        a1 = again->a1;
+        a2 = again->a2;
+        s = again->s;
+        n = again->n;
+        l = again->l;
     }
+
+    if ( a == Larger && n == 0 ) {
+        // > 0 matches everything
+        a = All;
+    }
+    else if ( a == Contains && f != Uid && a1.isEmpty() ) {
+        // contains empty string too
+        a = All;
+    }
+    else if ( a == Contains && f == Uid ) {
+        if ( s.isEmpty() )
+            a = None; // contains a set of nonexistent messages
+        else if ( s.where() == "uid>=1" )
+            a = All; // contains any messages at all
+    }
+    else if ( a == And ) {
+        // zero-element and becomes all, "none and x" becomes none
+        List< Condition >::Iterator i = l->first();
+        while ( i && a == And ) {
+            List< Condition >::Iterator p = i;
+            ++i;
+            p->simplify();
+            if ( p->a == All )
+                l->take( p );
+            else if ( p->a == None )
+                a = None;
+        }
+        if ( a == And && l->isEmpty() )
+            a = All;
+
+    }
+    else if ( a == Or ) {
+        // zero-element or becomes all, "all or x" becomes all
+        List< Condition >::Iterator i = l->first();
+        while ( i && a == Or ) {
+            List< Condition >::Iterator p = i;
+            ++i;
+            p->simplify();
+            if ( p->a == None )
+                l->take( p );
+            else if ( p->a == All )
+                a = All;
+        }
+        if ( a == And && l->isEmpty() )
+            a = All;
+
+    }
+    if ( a != And && a != Or )
+        return;
+
+    // an empty and/or means everything matches
+    if ( l->isEmpty() ) {
+        a = All;
+        return;
+    }
+
+    // or (a or (b c)) -> or (a b c). ditto and.
+    if ( l ) {
+        List< Condition >::Iterator i = l->first();
+        while ( i ) {
+            List< Condition >::Iterator p = i;
+            ++i;
+            if ( p->a == a ) {
+                List<Condition>::Iterator c = p->l->first();
+                while ( c ) {
+                    l->prepend( c );
+                    c++;
+                }
+                l->take( p );
+            }
+        }
+    }
+
+    // a single-element and/or can be removed and its argument substituted
+    if ( l->count() == 1 ) {
+        List< Condition >::Iterator p = l->first();
+        f = p->f;
+        a = p->a;
+        a1 = p->a1;
+        a2 = p->a2;
+        s = p->s;
+        l = p->l;
+        return;
+    }
+
+    // at this point, for proper uniqueness, we ought to sort the
+    // children, killing any duplicates in the process. then we'll
+    // have a single query for each job. but that can wait. this will
+    // do for testing.
+}
+
+
+/*! Give an ASCII representatation of this object, suitable for debug
+    output or for equality testing.
+*/
+
+String Search::Condition::debugString() const
+{
+    String r;
+
+    String o, w;
+
+    switch ( a ) {
+    case OnDate:
+        o = "on";
+        break;
+    case SinceDate:
+        o = "since";
+        break;
+    case BeforeDate:
+        o = "before";
+        break;
+    case Contains:
+        o = "contains";
+        break;
+    case Larger:
+        o = "larger";
+        break;
+    case Smaller:
+        o = "smaller";
+        break;
+    case And:
+    case Or:
+        break;
+    case Not:
+        return "not " + l->first()->debugString();
+    case All:
+        return "all";
+        break;
+    case None:
+        return "none";
+        break;
+    };
+
+    if ( o.isEmpty() ) {
+        r = "(";
+        List< Condition >::Iterator i = l->first();
+        while ( i ) {
+            r += i->debugString();
+            ++i;
+            if ( i ) {
+                if ( a == And )
+                    r += " and ";
+                else
+                    r += " or ";
+            }
+        }
+        r += ")";
+        return r;
+    }
+
+    switch( f ) {
+    case InternalDate:
+        w = "delivery";
+        break;
+    case Sent:
+        w = "sent";
+        break;
+    case Header:
+        if ( a1.isEmpty() )
+            w = "header";
+        else
+            w = "header field " + a1;
+        break;
+    case Body:
+        w = "body";
+        break;
+    case Rfc822Size:
+        w = "rfc822 size";
+        break;
+    case Flags:
+        w = "set of flags";
+        break;
+    case NoField:
+        w = "none";
+        break;
+    case Uid:
+        return s.where();
+        break;
+    };
+
+    r = w + " " + o + " ";
+    if ( a2.isEmpty() )
+        r.append( a1 );
+    else
+        r.append( a2 );
+
+    return r;
+
 }
