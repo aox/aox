@@ -32,7 +32,7 @@ void Login::parse()
 
 void Login::execute()
 {
-    Plain plain;
+    Plain plain( this );
     plain.setLogin( n );
     if ( plain.loginExists() && plain.secret() == p )
         imap()->setLogin( n );

@@ -53,7 +53,7 @@ void Authenticate::execute()
     // First, create a mechanism handler.
 
     if ( !a ) {
-        a = Authenticator::create( t );
+        a = Authenticator::create( t, this );
         if ( !a ) {
             error( Bad, "Mechanism " + t + " not supported" );
             return;
