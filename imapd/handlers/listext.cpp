@@ -61,6 +61,8 @@ void Listext::parse()
 {
     // list = "LIST" [SP list-select-opts] SP mailbox SP mbox_or_pat
 
+    space();
+
     if ( present( "(" ) ) {
         d->extended = true;
         // list-select-opts = "(" [list-select-option
@@ -71,6 +73,7 @@ void Listext::parse()
         while ( present( " " ) )
             addSelectOption( atom().lower() );
         require( ")" );
+        space();
     }
 
     d->mailbox = astring();
