@@ -8,13 +8,17 @@
 # Note: Jamsettings variables are evaluated at build time.
 cd $BINDIR
 
-for a in logd ocd tlsproxy imapd pop3d smtpd ; do
+SERVERS="logd ocd tlsproxy imapd smtpd"
+
+REVERSE=`echo $SERVERS | fmt -1 | rev | fmt -666 | rev`
+
+for a in $SERVERS ; do
     test -x ${a} || exit 0
 done
 
 start() {
     echo -n "Starting Oryx Mailstore:"
-    for a in logd ocd tlsproxy imapd pop3d smtpd ; do
+    for a in $SERVERS ; do
         ./${a} -f && echo -n " $a" || exit 0
     done
     echo "."
@@ -22,7 +26,7 @@ start() {
 
 stop() {
     echo -n "Stopping Oryx Mailstore:"
-    for a in smtpd pop3d imapd tlsproxy ocd logd ; do
+    for a in $REVERSE ; do
 	P=$PIDFILEDIR/${a}.pid
 	if [ -f $P ]; then
 	    kill `cat $P` 2>/dev/null
