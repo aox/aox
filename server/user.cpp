@@ -148,7 +148,7 @@ void User::refresh( EventHandler * user )
     d->user = user;
     if ( !psl ) {
         psl = new PreparedStatement( "select "
-                                     "users.id, users.address, users.inbox,"
+                                     "users.id, users.address, users.inbox, "
                                      "users.parentspace, "
                                      "users.login, users.secret, "
                                      "addresses.name, addresses.localpart, "
@@ -164,8 +164,8 @@ void User::refresh( EventHandler * user )
                                      "addresses.domain "
                                      "from users,addresses where "
                                      "users.address=addresses.id and "
-                                     "addresses.name=$1 and"
-                                     "addresses.localpart=$2 and"
+                                     "addresses.name=$1 and "
+                                     "addresses.localpart=$2 and "
                                      "lower(addresses.domain)=$3" );
     }
     if ( !d->login.isEmpty() ) {
