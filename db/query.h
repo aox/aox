@@ -93,6 +93,7 @@ public:
     void append( Column * );
     String *getString( const String & );
     int *getInt( const String & );
+    bool *getBoolean( const String & );
 
 private:
     List< Column > columns;

@@ -412,6 +412,28 @@ int *Row::getInt( const String &field )
 }
 
 
+/*! If this Row contains a Column of boolean type named \a field, this
+    function returns a pointer to its value, and 0 if the field is NULL,
+    unknown, or not a boolean value.
+
+    XXX: This may need changing.
+*/
+
+bool *Row::getBoolean( const String &field )
+{
+    List< Column >::Iterator c = findColumn( field );
+
+    if ( c && c->type == Database::Boolean && c->length == 1 ) {
+        String s = c->value;
+        if ( s == "t" )
+            return new bool( true );
+        else if ( s == "f" )
+            return new bool( false );
+    }
+    return 0;
+}
+
+
 
 /*! \class PreparedStatement query.h
     This class represents an SQL prepared statement.

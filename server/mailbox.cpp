@@ -70,7 +70,7 @@ void Mailbox::setup()
 
                 Mailbox *m = new Mailbox( *r->getString( "name" ) );
                 m->d->id = *r->getInt( "id" );
-                m->d->deleted = *r->getInt( "deleted" );
+                m->d->deleted = *r->getBoolean( "deleted" );
                 m->d->uidvalidity = *r->getInt( "uidvalidity" );
                 insert( m );
             }
