@@ -278,10 +278,12 @@ void IMAP::addCommand()
 
     tag = s->mid( 0, i );
 
-
-    // Parse the command name (a single atom).
+    // Parse the command name (a single atom possibly prefixed by "uid ").
 
     uint j = ++i;
+
+    if ( s->mid( j, 4 ).lower() == "uid " )
+        i = j + 4;
 
     while ( i < s->length() && ( c = (*s)[i] ) > ' ' && c < 127 &&
             c != '(' && c != ')' && c != '{' && c != '%' && c != '*' &&
@@ -299,7 +301,8 @@ void IMAP::addCommand()
 
     // Try to create a command handler.
 
-    Command *cmd = Command::create( this, command, tag, d->args, d->cmdArena );
+    Command *cmd 
+        = Command::create( this, command, tag, d->args, d->cmdArena );
 
     if ( !cmd ) {
         log( "Unknown command '" + command + "' (tag '" +
@@ -309,12 +312,10 @@ void IMAP::addCommand()
         return;
     }
 
-
     // Use this Command to parse the command line.
 
     cmd->step( i );
     cmd->parse();
-
 
     // Then add it to our list of Commands.
 
@@ -343,7 +344,7 @@ void IMAP::addCommand()
                 cmd->setState( Command::Blocked );
                 cmd->logger()->log( Log::Debug,
                                     "Blocking execution of " + tag +
-                                    " until it can be exectuted" );
+                                    " until it can be executed" );
             }
         }
     }
