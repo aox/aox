@@ -131,9 +131,6 @@ actions WriteShellConfig
     else
         echo PGUSER='postgres' >> $(<)
     fi
-    if [ $(PGDATA) ]; then
-        echo PGDATA="'"$(PGDATA)"'" >> $(<)
-    fi
     if [ $(PGBIN) ]; then
         echo PGBIN="'"$(PGBIN)"'" >> $(<)
     fi

@@ -46,11 +46,6 @@ EXEMODE = 555 ;
 #
 #PGUSER = pgsql ;
 
-# The server's PGDATA directory. You don't need to set this if the value
-# can be derived from the PGUSER's environment (which it usually can).
-#
-#PGDATA = /opt/postgres/data ;
-
 # The directory in which psql and pg_ctl live. You can ignore this
 # setting in most cases, because psql and pg_ctl are usually in the
 # PGUSER's PATH.

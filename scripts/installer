@@ -80,68 +80,6 @@ SET client_min_messages TO 'ERROR';
 PSQL
 fi
 
-# Reconfigure and restart the server if required and possible.
-
-# XXX: shouldn't we do this only if we made at least one change above?
-
-# The PGDATA usage in the next two lines is tricky. The key is that $X
-# is evaluated at compile time, while ${X} is evaluated at runtime.
-PGDATA=$PGDATA
-PGDATA=${PGDATA:-$(su - $PGUSER -c 'echo ${PGDATA}')}
-
-TS=$(date +%Y%m%d%H%M%S)
-if [ "$PGDATA" -a -d $PGDATA -a \
-     -f $PGDATA/pg_hba.conf -a -f $PGDATA/postgresql.conf ];
-then
-    # Add our host entry to pg_hba.conf if necessary.
-    ENTRY="host $DBNAME $DBUSER 127.0.0.1/32 md5";
-    awk "                                                           \
-    /^host $DB $USER/ { X=1 }                                       \
-    /^host/ { if(X==0){ print \"$ENTRY\"; X=2 } }                   \
-    //      { print }                                               \
-    END     { if(X==0){ print \"$ENTRY\"; } exit X } "              \
-    $PGDATA/pg_hba.conf > /tmp/pg_hba.conf.oryx
-
-    if [ $? != "1" ]; then
-        cp $PGDATA/pg_hba.conf $PGDATA/pg_hba.conf.oryx-backup.$TS
-        cat /tmp/pg_hba.conf.oryx > $PGDATA/pg_hba.conf
-        HBA=1
-    fi
-
-    # Make sure postgresql.conf sets tcpip_socket = true.
-    awk '                                                           \
-    /^tcpip_socket[\t ]*=[\t ]*false/ { print "# "$0; next }        \
-    /^tcpip_socket[\t ]*=[\t ]*true/  { X=1 }                       \
-    //                                { print }                     \
-    END { if (X==0){ print "\ntcpip_socket=true"; } exit X } '      \
-    $PGDATA/postgresql.conf > /tmp/postgresql.conf.oryx
-
-    if [ $? != "1" ]; then
-        cp $PGDATA/postgresql.conf $PGDATA/postgresql.conf.oryx-backup.$TS
-        cat /tmp/postgresql.conf.oryx > $PGDATA/postgresql.conf
-        CONF=1
-    fi
-
-    # If possible, restart or reload the server as required.
-
-    if [ $CONF ];
-    then
-        RC=/etc/init.d/postgresql
-        if [ -f $RC ];
-        then
-            $RC restart
-        else
-            echo "Please restart the PostgreSQL server."
-        fi
-    else
-        if [ $HBA ]; then
-            su - $PGUSER -c "$PGCTL -D $PGDATA reload"
-        fi
-    fi
-else
-    echo "Please allow user $DBUSER to connect to database $DBNAME via TCP/IP."
-fi
-
 
 # Write a stub configuration file.
 
@@ -156,7 +94,7 @@ cat <<CONFIG > $CONFIG
 
 # Specify the hostname if mailstore gets it wrong. We suggest not
 # using the name "localhost".
-# hostname = (fully-qualified hostname here)
+# hostname = fully.qualified.hostname
 
 ## This database was initialized during server installation.
 
