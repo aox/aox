@@ -7,9 +7,10 @@
 #include "messageset.h"
 #include "imapsession.h"
 #include "transaction.h"
+#include "message.h"
 #include "query.h"
 #include "flag.h"
-#include "message.h"
+#include "user.h"
 
 
 class SelectData {
@@ -67,11 +68,19 @@ void Select::execute()
             error( No, d->name + " is not in the database" );
         else if ( d->mailbox->deleted() )
             error( No, d->name + " is deleted" );
+
+        Mailbox * home = imap()->user()->home();
+        if ( home && d->mailbox && home != d->mailbox &&
+             !d->mailbox->name().startsWith( home->name() + "/" ) )
+            error( No, "No access (is outside " + home->name() + ")" );
+
         if ( !ok() ) {
             finish();
             return;
         }
     }
+
+
     if ( !d->setup ) {
         // this should expunge, shouldn't it? how? think later
         if ( imap()->session() )
