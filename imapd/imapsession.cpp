@@ -2,14 +2,15 @@
 
 #include "imapsession.h"
 
-#include "global.h"
-#include "mailbox.h"
-#include "event.h"
-#include "messageset.h"
-#include "message.h"
-#include "query.h"
 #include "transaction.h"
+#include "messageset.h"
+#include "mailbox.h"
+#include "message.h"
+#include "global.h"
+#include "event.h"
+#include "query.h"
 #include "imap.h"
+#include "flag.h"
 #include "log.h"
 
 
@@ -271,9 +272,8 @@ class ImapSessionInitializerData
 public:
     ImapSessionInitializerData()
         : session( 0 ), owner( 0 ),
-          t( 0 ), recent( 0 ), messages( 0 ),
+          t( 0 ), recent( 0 ), messages( 0 ), seen( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
-          firstUnseen( UINT_MAX ),
           done( false )
         {}
 
@@ -283,10 +283,10 @@ public:
     Transaction * t;
     Query * recent;
     Query * messages;
+    Query * seen;
 
     uint oldUidnext;
     uint newUidnext;
-    uint firstUnseen;
 
     bool done;
 };
@@ -350,7 +350,7 @@ void ImapSessionInitializer::execute()
         d->t->commit();
 
         d->messages
-            = new Query( "select uid,seen "
+            = new Query( "select uid "
                          "from messages where mailbox=$1 and "
                          "uid>=$2 and uid<$3",
                          this );
@@ -358,6 +358,17 @@ void ImapSessionInitializer::execute()
         d->messages->bind( 2, d->oldUidnext );
         d->messages->bind( 3, d->newUidnext );
         d->messages->execute();
+
+        d->seen 
+            = new Query( "select uid from messages "
+                         "where mailbox=$1 and not(uid in ("
+                         "select uid from flags where "
+                         "mailbox=$1 and flag="
+                         "(select id from flag_names where name='\\Seen'))) "
+                         "order by uid limit 1",
+                         this );
+        d->seen->bind( 1, d->session->mailbox()->id() );
+        d->seen->execute();
     }
 
     Row * r = 0;
@@ -366,25 +377,22 @@ void ImapSessionInitializer::execute()
 
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );
-        bool seen = r->getBoolean( "seen" );
         d->session->insert( uid );
-        if ( !seen && d->firstUnseen > uid )
-            d->firstUnseen = uid;
     }
-    if ( !d->messages->done() || !d->recent->done() )
+
+    while( (r=d->seen->nextRow()) )
+        d->session->setFirstUnseen( r->getInt( "uid" ) );
+
+    if ( !d->messages->done() || !d->recent->done() || !d->seen->done() ||
+         !d->t->done() )
         return;
 
-    if ( d->t->done() && d->messages->done() ) {
-        log( "Saw " + fn( d->messages->rows() ) + " new messages, " +
-             fn( d->recent->rows() ) + " recent ones",
-             Log::Debug );
-        d->done = true;
-        if ( d->session->firstUnseen() > d->firstUnseen ||
-             !d->session->firstUnseen() )
-            d->session->setFirstUnseen( d->firstUnseen );
-        if ( d->owner )
-            d->owner->execute();
-    }
+    log( "Saw " + fn( d->messages->rows() ) + " new messages, " +
+         fn( d->recent->rows() ) + " recent ones",
+         Log::Debug );
+    d->done = true;
+    if ( d->owner )
+        d->owner->execute();
 }
 
 

@@ -83,12 +83,16 @@ void Select::execute()
     if ( !d->setup->done() )
         return;
 
-    String flags = "\\Answered \\Flagged \\Deleted \\Seen \\Draft";
     const List<Flag> * l = Flag::flags();
     List<Flag>::Iterator i( l->first() );
-    while ( i ) {
-        flags = flags + " " + i->name();
-        ++i;
+    String flags;
+    if ( i ) {
+        flags = i->name();
+        i++;
+        while ( i ) {
+            flags = flags + " " + i->name();
+            ++i;
+        }
     }
 
     respond( "FLAGS (" + flags + ")" );
