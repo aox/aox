@@ -385,8 +385,8 @@ void Postgres::unknown( char type )
     switch ( type ) {
     case 'S':
         {
-            PgParameterStatus msg( readBuffer() );
             d->unknownMessage = false;
+            PgParameterStatus msg( readBuffer() );
             d->params.insert( msg.name(), new String( msg.value() ) );
         }
         break;
@@ -394,6 +394,7 @@ void Postgres::unknown( char type )
     case 'N':
     case 'E':
         {
+            d->unknownMessage = false;
             PgMessage msg( readBuffer() );
 
             switch ( msg.severity() ) {
@@ -414,8 +415,6 @@ void Postgres::unknown( char type )
                 log( msg.message() );
                 break;
             }
-
-            d->unknownMessage = false;
         }
         break;
 
