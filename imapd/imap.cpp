@@ -1,10 +1,10 @@
 /*! \class IMAP imap.h
-    \brief The IMAP class implements the IMAP server seen by clients.
+    \brief This class implements the IMAP server as seen by clients.
 
-    Most of IMAP functionality is in the command handlers, but this
-    class contains the top-level responsibility and functionality. This
-    class reads commands from its network connection, does basic
-    parsing and creates command handlers as necessary.
+    This class is responsible for interacting with IMAP clients, and for
+    overseeing the operation of individual command handlers. It looks at
+    client input to decide which Command to defer the real work to, and
+    ensures that the handler is called at the appropriate times.
 
     The IMAP state (RFC 3501 section 3) and Idle state (RFC 2177) are
     both encoded here, exactly as in the specification.
@@ -12,42 +12,50 @@
 
 #include "imap.h"
 
-#include "command.h"
-#include "mailbox.h"
-#include "string.h"
-#include "buffer.h"
 #include "arena.h"
 #include "scope.h"
+#include "string.h"
+#include "buffer.h"
 #include "list.h"
+#include "mailbox.h"
+#include "command.h"
 #include "handlers/capability.h"
 #include "log.h"
 
 #include <time.h>
 
 
+static bool endsWithLiteral( const String *, uint *, bool * );
+
+
 class IMAPData {
 public:
-    IMAPData():
-        logger( 0 ), cmdArena( 0 ),
-        readingLiteral( false ), literalSize( 0 ),
-        args( 0 ),
-        state( IMAP::NotAuthenticated ),
-        grabber( 0 ),
-        mailbox( 0 ),
-        idle( false )
+    IMAPData()
+        : state( IMAP::NotAuthenticated ),
+          logger( new Log ), cmdArena( 0 ), args( 0 ),
+          readingLiteral( false ), literalSize( 0 ),
+          reader( 0 ), mailbox( 0 ),
+          idle( false )
     {}
-    ~IMAPData() { delete cmdArena; }
+    ~IMAPData() {
+        delete cmdArena;
+    }
+
+    IMAP::State state;
 
     Log * logger;
     Arena * cmdArena;
+    List< String > * args;
+
     bool readingLiteral;
     uint literalSize;
-    List<String> * args;
-    IMAP::State state;
-    Command * grabber;
-    List<Command> commands;
+
+    Command * reader;
+    List< Command > commands;
+
     Mailbox *mailbox;
     String login;
+
     bool idle;
 };
 
@@ -62,7 +70,6 @@ IMAP::IMAP( int s )
     if ( s < 0 )
         return;
 
-    d->logger = new Log;
     d->logger->log( "Accepted IMAP connection from " + peer() );
 
     writeBuffer()->append( String( "* OK [CAPABILITY " ) +
@@ -81,7 +88,7 @@ IMAP::~IMAP()
 
 /*! Handles incoming data and timeouts. */
 
-void IMAP::react(Event e)
+void IMAP::react( Event e )
 {
     switch ( e ) {
     case Read:
@@ -117,71 +124,68 @@ void IMAP::react(Event e)
 }
 
 
+/*! Reads input from the client, and feeds it to the appropriate Command
+    handlers.
+*/
+
 void IMAP::parse()
 {
     Scope s;
     Buffer * r = readBuffer();
 
     while ( true ) {
+        // We allocate and donate a new arena to each command we create,
+        // and use it to allocate anything command-related in this loop.
 
-        if ( !d->cmdArena ) {
-            d->cmdArena = new Arena;
-            s.setArena( d->cmdArena );
-        }
+        if ( !d->cmdArena )
+            s.setArena( d->cmdArena = new Arena );
+        if ( !d->args )
+            d->args = new List< String >;
 
-        if ( !d->args ) {
-            d->args = new List<String>;
-        }
+        // We read a line of client input, possibly including literals,
+        // and create a Command to deal with it.
 
-        if ( d->grabber ) {
-            d->grabber->read();
-            // still grabbed? must wait for more.
-            if ( d->grabber )
-                return;
-        }
-        else if ( d->readingLiteral ) {
-            if ( r->size() < d->literalSize )
-                return;
-            d->args->append( r->string( d->literalSize ) );
-            r->remove( d->literalSize );
-            d->readingLiteral = false;
-        }
-        else {
-            String * s = r->removeLine();
+        if ( !d->readingLiteral && !d->reader ) {
+            uint n;
+            bool plus;
+            String * s;
 
+            // Do we have a complete line yet?
+            
+            s = r->removeLine();
             if ( !s )
                 return;
 
             d->args->append( s );
 
-            if ( s->endsWith( "}" ) ) {
-                uint i = s->length()-2;
-                bool plus = false;
-                if ( (*s)[i] == '+' ) {
-                    plus = true;
-                    i--;
-                }
+            if ( endsWithLiteral( s, &n, &plus ) ) {
+                d->readingLiteral = true;
+                d->literalSize = n;
 
-                uint j = i;
-                while ( i > 0 && (*s)[i] >= '0' && (*s)[i] <= '9' )
-                    i--;
-
-                if ( (*s)[i] == '{' ) {
-                    bool ok;
-                    d->literalSize = s->mid( i+1, j-i+1 ).number( &ok );
-                    if ( ok )
-                        d->readingLiteral = true;
-                    if ( ok && !plus )
-                        writeBuffer()->append( "+\r\n" );
-                }
+                if ( !plus )
+                    writeBuffer()->append( "+\r\n" );
             }
+
+            // Have we finished reading the entire command?
+
             if ( !d->readingLiteral ) {
-                // we're done reading the entire command.
                 addCommand();
-                // get ready for another command
-                d->args = 0;
                 d->cmdArena = 0;
+                d->args = 0;
             }
+        }
+        else if ( d->readingLiteral ) {
+            // Have we finished reading a complete literal?
+            if ( r->size() < d->literalSize )
+                return;
+
+            d->args->append( r->string( d->literalSize ) );
+            r->remove( d->literalSize );
+            d->readingLiteral = false;
+        }
+        else if ( d->reader ) {
+            // If a Command has reserve()d input, we just feed it.
+            d->reader->read();
         }
     }
 }
@@ -440,7 +444,7 @@ void IMAP::setMailbox( Mailbox *m )
 
 void IMAP::reserve( Command * command )
 {
-    d->grabber = command;
+    d->reader = command;
 }
 
 
@@ -488,4 +492,35 @@ void IMAP::runCommands()
             more = true;
         }
     }
+}
+
+
+/*! This static helper function returns true if \a s ends with an IMAP
+    literal specification. If so, it sets \a *n to the number of bytes
+    in the literal, and \a *plus to true if the number had a trailing
+    '+' (for LITERAL+). Returns false if it couldn't find a literal.
+*/
+
+static bool endsWithLiteral( const String *s, uint *n, bool *plus )
+{
+    if ( !s->endsWith( "}" ) )
+        return false;
+
+    uint i = s->length() - 2;
+    if ( (*s)[i] == '+' ) {
+        *plus = true;
+        i--;
+    }
+
+    uint j = i;
+    while ( i > 0 && (*s)[i] >= '0' && (*s)[i] <= '9' )
+        i--;
+
+    if ( (*s)[i] != '{' )
+        return false;
+
+    bool ok;
+    *n = s->mid( i+1, j-i+1 ).number( &ok );
+
+    return ok;
 }

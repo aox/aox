@@ -3,22 +3,21 @@
 
 #include "connection.h"
 
-
 class String;
 class Command;
 class Mailbox;
 
 
-class IMAP : public Connection {
+class IMAP
+    : public Connection
+{
 public:
-    IMAP(int s);
+    IMAP( int );
     ~IMAP();
 
-    void react(Event e);
-
     void parse();
-    void addCommand();
-    void runCommands();
+    void react( Event );
+    void reserve( Command * );
 
     enum State { NotAuthenticated, Authenticated, Selected, Logout };
     State state() const;
@@ -30,13 +29,14 @@ public:
     String login();
     void setLogin( const String & );
 
-    void reserve( Command * );
-
     Mailbox *mailbox();
     void setMailbox( Mailbox * );
 
 private:
     class IMAPData *d;
+
+    void addCommand();
+    void runCommands();
 };
 
 #endif
