@@ -472,7 +472,7 @@ Row::Row( uint num, Column *c )
 
 bool Row::isNull( uint i ) const
 {
-    if ( badFetch( i ) || columns[i].length == -1 )
+    if ( columns[i].length == -1 || badFetch( i ) )
         return true;
     return false;
 }
@@ -606,7 +606,7 @@ int Row::findColumn( const String &f ) const
         i++;
     }
 
-    log( "Unknown column " + f, Log::Disaster );
+    log( "Unknown column " + f, Log::Error );
     return -1;
 }
 
@@ -632,7 +632,7 @@ bool Row::badFetch( uint i, Column::Type t ) const
     else
         return false;
 
-    log( s, Log::Disaster );
+    log( s, Log::Error );
     return true;
 }
 
