@@ -46,6 +46,7 @@ private:
 
     void addCommand();
     void runCommands();
+    void run( Command * );
 };
 
 #endif

@@ -339,41 +339,11 @@ void IMAP::addCommand()
     cmd->step( i );
     cmd->parse();
 
-    // Then add it to our list of Commands.
+    // If we're already working, block this. Otherwise, run
+    // it. runCommands() will unblock it (at once or later).
 
-    if ( cmd->ok() &&
-         cmd->state() == Command::Executing &&
-         !d->commands.isEmpty() )
-    {
-        // We're already executing d->commands. Can we start cmd now?
-
-        if ( cmd->group() == 0 ) {
-            // No, we can't.
-            cmd->setState( Command::Blocked );
-            cmd->logger()->log( Log::Debug,
-                                "Blocking execution of " + tag +
-                                " (concurrency not allowed for " +
-                                command + ")" );
-        }
-        else {
-            // Do the other d->commands belong to the same group?
-            List< Command >::Iterator it;
-
-            it = d->commands.first();
-            while ( it &&
-                    it->group() == cmd->group() &&
-                    it->state() == Command::Executing )
-                it++;
-
-            if ( it ) {
-                cmd->setState( Command::Blocked );
-                cmd->logger()->log( Log::Debug,
-                                    "Blocking execution of " + tag +
-                                    " until it can be executed" );
-            }
-        }
-    }
-
+    if ( !d->commands.isEmpty() && cmd->state() == Command::Executing )
+        cmd->setState( Command::Blocked );
     d->commands.append( cmd );
 }
 
@@ -521,36 +491,21 @@ void IMAP::runCommands()
     // run all currently executing commands once
     i = d->commands.first();
     while ( i ) {
-        c = i;
+        run( i );
         i++;
-        Scope x( c->arena() );
-
-        if ( c->ok() && c->state() == Command::Executing )
-            c->execute();
-        if ( !c->ok() )
-            c->setState( Command::Finished );
-        if ( c->state() == Command::Finished )
-            c->emitResponses();
     }
 
-    // retire all finished commands
-    i = d->commands.first();
-    while ( i ) {
-        if ( i->state() == Command::Finished )
-            delete d->commands.take(i);
-        else
-            i++;
-    }
-
-    // if no commands are running, start the oldest command and all
-    // others in its group.
+    // if no commands are running, start the oldest blocked command
+    // and all others in its group.
 
     i = d->commands.first();
     while ( i && i->state() != Command::Executing )
         i++;
-    if ( !i && !d->commands.isEmpty() && 
-         d->commands.first()->state() == Command::Blocked )
+    if ( !i ) {
         i = d->commands.first();
+        while ( i && i->state() != Command::Blocked )
+            i++;
+    }
     if ( !i )
         return;
 
@@ -558,12 +513,41 @@ void IMAP::runCommands()
     do {
         if ( i->group() == c->group() &&
              i->state() == Command::Blocked && i->ok() ) {
-            Scope x( i->arena() );
             i->setState( Command::Executing );
-            i->execute();
+            run( i );
         }
         i++;
     } while ( c->group() > 0 && i );
+
+    // retire all finished commands
+
+    i = d->commands.first();
+    while ( i ) {
+        if ( i->state() == Command::Finished )
+            delete d->commands.take( i );
+        else
+            i++;
+    }
+}
+
+
+/*! Executes \a c once, provided it's in the right state, and emits its
+    responses.
+*/
+
+void IMAP::run( Command * c )
+{
+    if ( c->state() != Command::Executing )
+        return;
+
+    Scope x( c->arena() );
+
+    if ( c->ok() && c->state() == Command::Executing )
+        c->execute();
+    if ( !c->ok() )
+        c->setState( Command::Finished );
+    if ( c->state() == Command::Finished )
+        c->emitResponses();
 }
 
 
