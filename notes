@@ -1,6 +1,8 @@
 Fix startup and shutdown (and log disasters to stderr)
 
+
 we need an install script that generates a config file
+
 
 Complete the schema documentation
 
@@ -8,15 +10,18 @@ Complete the schema documentation
   2. Must update comments/types in the schema.
   3. Must submit final version of schema.
 
+
 Injector fixes:
 
   1. We need to share entries for identical bodyparts.
   2. Must fix the header_fields->part_numbers FK reference.
   3. ...
 
+
 FETCH fixes:
 
   1. PEEK is silently ignored right now.
+
 
 EXPUNGE fixes:
 
@@ -24,34 +29,58 @@ EXPUNGE fixes:
   2. Can we use on delete cascade?
   3. Other brokenness.
 
+
+Field name synchronisation
+
+  If we ever need to add values to HeaderField::Type, new values must go
+  AFTER ::Other, because we can't insert entries into the middle of the
+  field_names table. So the type translation has to be done if the type
+  is greater than or equal to Other.
+
+  And we need to synchronise the in-memory maps via ocd anyway.
+
+
 inject a large number of messages, collect query statistics
 
+
 test with more imap clients (corp/docs/misc/mua-list)
-make sure mailutil works with us
+
 
 tlsproxy doesn't handle eof (or errors) well
 
+
 move tests to another program
+
 
 resource limits on memory allocation
 
+
 make sure ocd works
+
 
 the gui should do something
 
+
 configuration overhaul
+
 
 archives.oryx.com
 
+
 top-level message/rfc822 support
+
 
 rfc2047 encoding
 
+
 tls client support (smtp, postgresql)
+
 
 What to do about EventHandlers whose targets have died?
 
+
 garbage collection (~/imapd.valgrind)
+
 
 logging cleanups
 
@@ -59,6 +88,7 @@ logging cleanups
   various Logs are created in the right context. Furthermore, the Loop
   should not be calling commit() for every Connection; and they should
   each set their Log/Arena correctly in their Scope.
+
 
 Miscellaneous cleanups:
 
