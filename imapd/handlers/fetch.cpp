@@ -285,6 +285,7 @@ void Fetch::parseBody()
     d->needHeader = true; // need that for the boundary, if nothing else
     d->needBody = true;
 
+    // Parse any section-text.
     String item = dotLetters( 0, 17 ).lower();
     if ( item == "text" ) {
         if ( s->part.isEmpty() )
@@ -320,6 +321,7 @@ void Fetch::parseBody()
     s->id = item;
     require( "]" );
 
+    // Parse any range specification.
     if ( nextChar() == '<' ) {
         s->partial = true;
         step();
@@ -453,8 +455,8 @@ static String sectionResponse( FetchData::Section *s,
         data.append( "\r\n" );
     }
 
-    else if ( s->id[0] > '0' && s->id[0] <= '9' ) {
-        BodyPart *bp = m->bodyPart( s->id, false );
+    else if ( s->id.isEmpty() ) {
+        BodyPart *bp = m->bodyPart( s->part, false );
         if ( bp )
             // "Cruel, evil bug."
             data = bp->data();
