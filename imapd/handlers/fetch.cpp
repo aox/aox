@@ -44,6 +44,7 @@ public:
             : partial( false ), offset( 0 ), length( UINT_MAX ) {}
 
         String id;
+        String part;
         StringList fields;
         bool partial;
         uint offset;
@@ -250,61 +251,73 @@ String Fetch::dotLetters( uint min, uint max )
 
 void Fetch::parseBody()
 {
+    FetchData::Section * s = new FetchData::Section;
+
     //section-spec    = section-msgtext / (section-part ["." section-text])
     //section-msgtext = "HEADER" /
     //                  "HEADER.FIELDS" [".NOT"] SP header-list /
     //                  "TEXT"
     //section-part    = nz-number *("." nz-number)
     //section-text    = section-msgtext / "MIME"
-    FetchData::Section * s = new FetchData::Section;
 
-    bool sectionValid = true;
-    while ( sectionValid && nextChar() >= '0' && nextChar() <= '9' ) {
-        s->id.append( fn( nzNumber() ) );
-        if ( nextChar() == '.' ) {
-            s->id.append( "." );
+    // Parse a section-part.
+    bool dot = false;
+    if ( nextChar() >= '0' && nextChar() <= '9' ) {
+        String part;
+        part.append( fn( nzNumber() ) );
+        while ( nextChar() == '.' ) {
             step();
+            if ( nextChar() >= '0' && nextChar() <= '9' ) {
+                part.append( "." );
+                part.append( fn( nzNumber() ) );
+                if ( nextChar() != '.' &&
+                     nextChar() != ']' )
+                    error( Bad, "" );
+            }
+            else {
+                dot = true;
+                break;
+            }
         }
-        else {
-            sectionValid = false;
-        }
+        s->part = part;
     }
 
     d->needHeader = true; // need that for the boundary, if nothing else
     d->needBody = true;
 
-    if ( sectionValid ) {
-        String tmp = dotLetters( 0, 17 ).lower();
-        if ( tmp == "text" ) {
-            if ( s->id.isEmpty() )
-                d->needHeader = false;
-        }
-        else if ( tmp == "mime" || tmp == "header" ) {
-            if ( s->id.isEmpty() )
-                d->needBody = false;
-        }
-        else if ( tmp == "header.fields" || tmp == "header.fields.not" ) {
-            if ( s->id.isEmpty() )
-                d->needBody = false;
+    String item = dotLetters( 0, 17 ).lower();
+    if ( item == "text" ) {
+        if ( s->part.isEmpty() )
+            d->needHeader = false;
+    }
+    else if ( item == "header" ) {
+        if ( s->part.isEmpty() )
+            d->needBody = false;
+    }
+    else if ( item == "header.fields" ||
+              item == "header.fields.not" )
+    {
+        if ( s->part.isEmpty() )
+            d->needBody = false;
+        space();
+        require( "(" );
+        s->fields.append( new String( astring().headerCased() ) );
+        while ( nextChar() == ' ' ) {
             space();
-            require( "(" );
             s->fields.append( new String( astring().headerCased() ) );
-            while ( nextChar() == ' ' ) {
-                space();
-                s->fields.append( new String( astring().headerCased() ) );
-            }
-            require( ")" );
         }
-        else if ( tmp.isEmpty() && s->id.isEmpty() ) {
-            // it's okay
-        }
-        else {
-            error( Bad, "expected text, header, header.fields etc, "
-                   "not " + tmp + following() );
-        }
-        s->id.append( tmp );
+        require( ")" );
+    }
+    else if ( item == "mime" ) {
+        if ( s->part.isEmpty() )
+            error( Bad, "MIME requires a section-part." );
+    }
+    else if ( !item.isEmpty() || dot ) {
+        error( Bad, "expected text, header, header.fields etc, "
+               "not " + item + following() );
     }
 
+    s->id = item;
     require( "]" );
 
     if ( nextChar() == '<' ) {
@@ -409,7 +422,17 @@ static String sectionResponse( FetchData::Section *s,
         bool exclude = s->id.endsWith( ".not" );
 
         Header *hdr = m->header();
-        List< HeaderField >::Iterator it( hdr->fields()->first() );
+        if ( !s->part.isEmpty() ) {
+            BodyPart *bp = m->bodyPart( s->part, false );
+            if ( bp && bp->header() )
+                hdr = bp->header();
+            else
+                hdr = 0;
+        }
+
+        List< HeaderField >::Iterator it = 0;
+        if ( hdr )
+            it = hdr->fields()->first();
         while ( it ) {
             if ( !fields ||
                  ( !exclude && s->fields.find( it->name() ) ) ||
