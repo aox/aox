@@ -39,7 +39,7 @@ Struct addresses.inc : addresses.test ;
 # build the .o files in this directory
 
 Build imap : imapd.cpp imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp 
-	query.cpp address.cpp ;
+	query.cpp address.cpp db.cpp ;
 
 Build logd : logd.cpp logserver.cpp ;
 
