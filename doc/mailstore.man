@@ -164,24 +164,30 @@ warranty. There are also extra services. Contact info@oryx.com for
 more details, or see http://www.oryx.com/mailstore/commercial.html.
 .SH DEFAULTS
 The configurable file and directory names in this build are as follows:
-BINDIR
+.IP BINDIR
 (where executables live) is
 .IR $BINDIR .
-MANDIR (where manpages live) is 
+.IP MANDIR
+(where manpages live) is 
 .IR $MANDIR .
-PIDFILEDIR (where pidfiles live) is 
+.IP PIDFILEDIR
+(where pidfiles live) is 
 .IR $PIDFILEDIR .
-LIBDIR (where supporting files live) is 
+.IP LIBDIR
+(where supporting files live) is 
 .IR $LIBDIR .
-JAILDIR (the working directory of the servers) is 
+.IP JAILDIR
+(the working directory of the servers) is 
 .IR $JAILDIR ,
 and can be overridden using the
 .I jail-directory
 variable in
 .BR mailstore.conf (5).
-CONFIGDIR (where the configuration files live) is 
+.IP CONFIGDIR
+(where the configuration files live) is 
 .IR $CONFIGDIR .
-LOGFILE (the full name of the logfile) is 
+.IP LOGFILE
+(the full name of the logfile) is 
 .IR $LOGFILE ,
 and can be overridden using the
 .I logfile

@@ -29,6 +29,7 @@ public:
         PidFileDir,
         BinDir,
         ManDir,
+        LibDir,
         JailDir,
         DbUser,
         DbName,
