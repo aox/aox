@@ -69,6 +69,17 @@ default.
 The maximum number of database handles that Mailstore may open. The
 default is
 .IR 4 .
+.IP
+The server creates one handle at startup, and may create others if the
+load justifies it (and as controlled by
+.IR db-handle-interval ).
+Note, however, that when running with
+.IR security=on ,
+new database handles can be created only if you connect to the server
+using TCP/IP, not via Unix sockets. In the latter case, the server must
+use the first handle throughout its lifetime, since the socket is no
+longer accessible after
+.IR chroot .
 .IP db-handle-interval
 The minimum interval (in seconds) between the creation of new database
 handles. The default is
