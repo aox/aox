@@ -9,15 +9,10 @@ OrdinaryDEFINES = $(DEFINES) ;
 DEFINES = DATA_LITTLEENDIAN NDEBUG OSVERSION=2 USE_ASM _REENTRANT __UNIX__ ;
 
 
-# ORYX_STRIPPED strips down cryptlib. it's used in our version of
-# cryptini.h. defining ORYX_STRIPPED makes testlib fail. (testlib also
-# needs three files to be wriable: cryptlib/test/key_dual.p15,
+# Comment next line out to build a testable cryptlib. (testlib also
+# needs three files to be writable: cryptlib/test/key_dual.p15,
 # cryptlib/test/key_ren.p15 and cryptlib/test/key_test.p15).
-
-# build a small cryptlib:
 ORYX_STRIPPED = 1 ;
-# ... or a testable one:
-# ORYX_STRIPPED = ;
 
 if $(ORYX_STRIPPED) {
     DEFINES += ORYX_STRIPPED ;
@@ -50,11 +45,20 @@ SubInclude TOP cryptlib test ;
 if ! $(ORYX_STRIPPED) {
     Program testlib : cryptlib cryptlib-test ;
 }
+else {
+    MakeLocate testlib : [ FDirName $(TOP) bin ] ;
+    Clean clean : testlib ;
+}
 
 # recover the normal oryx variables
 HDRS = $(OrdinaryHDRS) ;
 DEFINES = $(OrdinaryDEFINES) ;
 CCFLAGS = $(OrdinaryFLAGS) ;
 
-# everyone who uses cryptlib must use -lpthread for the time being
-LINKLIBS += -lpthread ;
+# everyone who uses cryptlib must use threading for the time being
+if ( $(OS) = FREEBSD ) {
+    LINKLIBS += -lc_r ;
+}
+else {
+    LINKLIBS += -lpthread ;
+}

@@ -4,3 +4,6 @@ Build cryptlib-test : certutil.c testcert.c testdev.c testenv.c testhl.c
     testkeyd.c testkeyf.c testll.c testscrt.c testsess.c testsreq.c
     testlib.c ;
 
+Build certutil : certalone.c ;
+
+Program certutil : cryptlib certutil ;
