@@ -63,6 +63,8 @@ public:
     String parseContentLocation();
     void parseMimeVersion();
 
+    static const char *fieldName( HeaderField::Type );
+
 private:
     class HeaderFieldData * d;
 };
