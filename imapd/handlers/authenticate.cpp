@@ -90,7 +90,7 @@ void Authenticate::execute()
             String c = m->challenge().e64();
 
             if ( !m->done() ) {
-                imap()->writeBuffer()->append( "+ "+ c +"\r\n" );
+                imap()->enqueue( "+ "+ c +"\r\n" );
                 m->setState( SaslMechanism::AwaitingResponse );
                 r = 0;
                 return;

@@ -84,9 +84,8 @@ IMAP::IMAP( int s )
 
     d->logger->log( "Accepted IMAP connection from " + peer() );
 
-    writeBuffer()->append( String( "* OK [CAPABILITY " ) +
-                           Capability::capabilities() + "] " +
-                           Configuration::hostname() + " IMAP Server\r\n");
+    enqueue( String( "* OK [CAPABILITY " ) + Capability::capabilities() + "] " +
+                     Configuration::hostname() + " IMAP Server\r\n" );
     setTimeout( time(0) + 1800 );
 }
 
@@ -109,7 +108,7 @@ void IMAP::react( Event e )
         break;
 
     case Timeout:
-        writeBuffer()->append( "* BYE autologout\r\n" );
+        enqueue( "* BYE autologout\r\n" );
         d->logger->log( "autologout" );
         Connection::setState( Closing );
         break;
@@ -122,7 +121,7 @@ void IMAP::react( Event e )
         break;
 
     case Shutdown:
-        writeBuffer()->append( "* BYE server shutdown\r\n" );
+        enqueue( "* BYE server shutdown\r\n" );
         break;
     }
 
@@ -176,7 +175,7 @@ void IMAP::parse()
                 d->literalSize = n;
 
                 if ( !plus )
-                    writeBuffer()->append( "+\r\n" );
+                    enqueue( "+\r\n" );
             }
 
             // Have we finished reading the entire command?
@@ -230,7 +229,7 @@ void IMAP::addCommand()
         i++;
 
     if ( i < 1 || c != ' ' ) {
-        writeBuffer()->append( "* BAD tag\r\n" );
+        enqueue( "* BAD tag\r\n" );
         d->logger->log( "Unable to parse tag. Line: " + *s );
 parseError:
         delete d->cmdArena;
@@ -250,7 +249,7 @@ parseError:
         i++;
 
     if ( i == j ) {
-        writeBuffer()->append( "* BAD no command\r\n" );
+        enqueue( "* BAD no command\r\n" );
         d->logger->log( "Unable to parse command. Line: " + *s );
         goto parseError;
     }
@@ -265,8 +264,7 @@ parseError:
     if ( !cmd ) {
         d->logger->log( "Unknown command '" + command + "' (tag '" +
                         tag + "')" );
-        writeBuffer()->append( tag + " BAD unknown command: " + command +
-                               "\r\n" );
+        enqueue( tag + " BAD unknown command: " + command + "\r\n" );
         goto parseError;
     }
 
