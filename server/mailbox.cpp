@@ -4,6 +4,8 @@
 #include "event.h"
 #include "query.h"
 #include "string.h"
+#include "eventloop.h"
+#include "log.h"
 
 
 class MailboxData {
@@ -20,6 +22,7 @@ public:
     Mailbox *parent;
     List< Mailbox > *children;
 };
+
 
 static Mailbox *root = 0;
 
@@ -45,34 +48,25 @@ static Mailbox *root = 0;
 */
 
 
-/*! Creates a Mailbox named \a name. */
-
-Mailbox::Mailbox( const String &name )
-    : d( new MailboxData )
-{
-    d->name = name;
-}
-
-
-static Query *q = 0;
+static Query *query;
+static EventLoop *loop;
 
 
 /*! This static function is responsible for building a tree of Mailboxes
-    from the contents of the mailboxes table.
+    from the contents of the mailboxes table. It expects to be called by
+    ::main().
 */
 
 void Mailbox::setup()
 {
-    class MailboxReader
-        : public EventHandler
-    {
+    class MailboxReader : public EventHandler {
     public:
         void execute() {
-            if ( !q->done() )
+            if ( !query->done() )
                 return;
 
-            while ( q->hasResults() ) {
-                Row *r = q->nextRow();
+            while ( query->hasResults() ) {
+                Row *r = query->nextRow();
 
                 Mailbox *m = new Mailbox( *r->getString( "name" ) );
                 m->d->id = *r->getInt( "id" );
@@ -80,13 +74,31 @@ void Mailbox::setup()
                 m->d->uidvalidity = *r->getInt( "uidvalidity" );
                 insert( m );
             }
+
+            if ( query->failed() )
+                log( Log::Disaster, "Couldn't create mailbox tree." );
+            loop->stop();
         }
     };
 
     root = new Mailbox( "/" );
+    
+    Database *db = Database::handle();
+    if ( !db ) {
+        log( Log::Disaster, "Couldn't acquire a database handle." );
+        return;
+    }
 
-    q = new Query( "select * from mailboxes", new MailboxReader );
-    q->execute();
+    query = new Query( "select * from mailboxes", new MailboxReader );
+    db->enqueue( query );
+    db->execute();
+
+    // The main event loop hasn't been started yet, so we create one for
+    // our database handle, and stop it when they query is completed.
+    
+    loop = new EventLoop;
+    loop->addConnection( db );
+    loop->start();
 }
 
 
@@ -178,6 +190,15 @@ Mailbox *Mailbox::find( const String &name, bool deleted )
     } while ( (uint)slash < name.length() );
 
     return 0;
+}
+
+
+/*! Creates a Mailbox named \a name. */
+
+Mailbox::Mailbox( const String &name )
+    : d( new MailboxData )
+{
+    d->name = name;
 }
 
 
