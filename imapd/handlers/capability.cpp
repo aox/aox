@@ -21,9 +21,10 @@ Capability::~Capability()
 // time.
 #define CAPA \
 /* base */ "IMAP4rev1 " \
-/* authentication */ "AUTH=ANONYMOUS AUTH=PLAIN " \
-/* RFC 2195 - SASL CRAM-MD5 */ "AUTH=CRAM-MD5 " \
-/* RFC 2831 - SASL DIGEST-MD5 */ "AUTH=DIGEST-MD5 " \
+/* RFC 2245 */ "AUTH=ANONYMOUS " \
+/* RFC 2595 */ "AUTH=PLAIN " \
+/* RFC 2195 */ "AUTH=CRAM-MD5 " \
+/* RFC 2831 */ "AUTH=DIGEST-MD5 " \
 /* draft-gulbrandsen */ "COMPRESS=DEFLATE " \
 /* draft-siemborski-imap-sasl-initial-response */ "SASL-IR " \
 /* RFC 2177 */ "IDLE " \
