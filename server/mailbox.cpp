@@ -59,6 +59,38 @@ static Map<Mailbox> * mailboxes = 0;
 */
 
 
+class MailboxReader : public EventHandler {
+public:
+    void execute() {
+        if ( !query->done() )
+            return;
+
+        if ( !::mailboxes ) {
+            ::mailboxes = new Map<Mailbox>;
+            Allocator::addRoot( ::mailboxes );
+        }
+
+        while ( query->hasResults() ) {
+            Row *r = query->nextRow();
+
+            Mailbox * m = Mailbox::obtain( r->getString( "name" ) );
+            m->d->id = r->getInt( "id" );
+            m->d->deleted = r->getBoolean( "deleted" );
+            m->d->uidnext = r->getInt( "uidnext" );
+            m->d->uidvalidity = r->getInt( "uidvalidity" );
+
+            if ( m->d->id )
+                ::mailboxes->insert( m->d->id, m );
+        }
+
+        /*
+        if ( query->failed() )
+            log( Log::Disaster, "Couldn't create mailbox tree." );
+        */
+    }
+};
+
+
 /*! This static function is responsible for building a tree of
     Mailboxes from the contents of the mailboxes table. It expects to
     be called by ::main().
@@ -69,46 +101,30 @@ static Map<Mailbox> * mailboxes = 0;
 
 void Mailbox::setup()
 {
-    class MailboxReader : public EventHandler {
-    public:
-        void execute() {
-            if ( !query->done() )
-                return;
-
-            if ( !::mailboxes ) {
-                ::mailboxes = new Map<Mailbox>;
-                Allocator::addRoot( ::mailboxes );
-            }
-
-            while ( query->hasResults() ) {
-                Row *r = query->nextRow();
-
-                Mailbox * m = obtain( r->getString( "name" ) );
-                m->d->id = r->getInt( "id" );
-                m->d->deleted = r->getBoolean( "deleted" );
-                m->d->uidnext = r->getInt( "uidnext" );
-                m->d->uidvalidity = r->getInt( "uidvalidity" );
-
-                if ( m->d->id )
-                    ::mailboxes->insert( m->d->id, m );
-            }
-
-            /*
-            if ( query->failed() )
-                log( Log::Disaster, "Couldn't create mailbox tree." );
-            */
-        }
-    };
-
     ::root = new Mailbox( "/" );
     Allocator::addRoot( ::root );
 
-    // the query and MailboxReader uses this Arena. The startup arena
-    // will see a lot of activity...
     query = new Query( "select * from mailboxes", new MailboxReader );
+    Allocator::addRoot( ::query );
+
     query->setStartUpQuery( true );
     query->execute();
-    Allocator::addRoot( ::query );
+}
+
+
+/*! This function reloads this mailbox from the database.
+    (This is still a hack.)
+*/
+
+void Mailbox::refresh()
+{
+    query = new Query( "select * from mailboxes where name=$1",
+                       new MailboxReader );
+    query->bind( 1, name() );
+    query->execute();
+
+    // XXX: Is this correct?
+    Allocator::addRoot( query );
 }
 
 

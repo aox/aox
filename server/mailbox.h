@@ -43,8 +43,11 @@ public:
     Query *create( EventHandler * );
     Query *remove( EventHandler * );
 
+    void refresh();
+
 private:
     class MailboxData *d;
+    friend class MailboxReader;
 };
 
 
