@@ -1,3 +1,5 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 #ifndef ADDRESSCACHE_H
 #define ADDRESSCACHE_H
 

@@ -1,3 +1,5 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 /*! \class Unselect unselect.h
     Implements the RFC 3691 UNSELECT extension
 

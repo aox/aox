@@ -1,3 +1,5 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 /*! \class Close close.h
     Performs a silent EXPUNGE+UNSELECT (RFC 3501, §6.4.2)
 

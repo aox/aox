@@ -1,3 +1,5 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 #include "sourcefile.h"
 #include "intro.h"
 #include "class.h"

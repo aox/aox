@@ -1,3 +1,5 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 #ifndef FIELDCACHE_H
 #define FIELDCACHE_H
 

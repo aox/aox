@@ -1,3 +1,5 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 #ifndef SMTPCLIENT_H
 #define SMTPCLIENT_H
 
