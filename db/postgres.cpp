@@ -274,6 +274,7 @@ void Postgres::backendStartup( char type )
         setTimeout( 0 );
         log( "PostgreSQL: Ready for queries" );
         d->startup = false;
+        updateSchema();
         break;
 
     case 'K':
@@ -638,20 +639,23 @@ private:
     int revision;
     Transaction *t;
     Query *lock, *seq, *update, *q;
+    Database *db;
     Log *l;
 
 public:
-    UpdateSchema()
-        : state( 0 ), substate( 0 ), l( new Log( Log::Database ) )
+    UpdateSchema( Database *d )
+        : state( 0 ), substate( 0 ), db( d ),
+          l( new Log( Log::Database ) )
     {}
 
     void execute();
 };
 
+
 void UpdateSchema::execute() {
     // Find and lock the current schema revision.
     if ( state == 0 ) {
-        t = new Transaction( this );
+        t = new Transaction( this, db );
         lock = new Query( "select revision from mailstore for update",
                           this );
         t->enqueue( lock );
@@ -794,12 +798,20 @@ void UpdateSchema::execute() {
 }
 
 
+static bool schemaUpdated = false;
+
+
 /*! This static function determines the current schema version, and if
-    required, updates it to the current version.
+    required, updates it to the current version. After being called once
+    in a process, it does nothing on subsequent calls.
 */
 
 void Postgres::updateSchema()
 {
-    UpdateSchema *s = new UpdateSchema;
+    if ( schemaUpdated )
+        return;
+
+    schemaUpdated = true;
+    UpdateSchema *s = new UpdateSchema( this );
     s->execute();
 }

@@ -4,13 +4,14 @@
 #define TRANSACTION_H
 
 class Query;
-class EventHandler;
 class String;
+class Database;
+class EventHandler;
 
 
 class Transaction {
 public:
-    Transaction( EventHandler * );
+    Transaction( EventHandler *, Database * = 0 );
 
     enum State { Inactive, Executing, Completed, Failed };
     void setState( State );

@@ -35,12 +35,17 @@ public:
 */
 
 
-/*! Creates a new Transaction object owned by \a ev. */
+/*! Creates a new Transaction object owned by \a ev, and using the
+    Database handle \a db. (The default value of 0 for \a db causes
+    a random Database::handle() to be used.)
+*/
 
-Transaction::Transaction( EventHandler *ev )
+Transaction::Transaction( EventHandler *ev, Database *db )
     : d( new TransactionData )
 {
-    d->db = Database::handle();
+    d->db = db;
+    if ( !d->db )
+        d->db = Database::handle();
     d->owner = ev;
 }
 

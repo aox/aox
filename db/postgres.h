@@ -21,8 +21,6 @@ public:
 
     void react( Event e );
 
-    static void updateSchema();
-
 private:
     class PgData *d;
 
@@ -34,6 +32,7 @@ private:
 
     bool haveMessage();
     void processQueue( bool = false );
+    void updateSchema();
 };
 
 
