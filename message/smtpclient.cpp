@@ -1,21 +1,24 @@
 #include "smtpclient.h"
 
-#include "message.h"
-#include "address.h"
 #include "log.h"
 #include "buffer.h"
 #include "configuration.h"
 #include "loop.h"
 
 
-class SmtpClientData
-{
+class SmtpClientData {
 public:
-    SmtpClientData() {}
+    SmtpClientData()
+        : failed( false ), owner( 0 )
+    {}
 
-    Message * m;
-    Address * a;
+    bool failed;
+    
     String sent;
+    String sender;
+    String message;
+    String recipient;
+    EventHandler *owner;
 };
 
 
@@ -29,15 +32,23 @@ public:
     server.
 */
 
-/*!  Constructs an SMTP client to send \a m to address \a a. */
+/*! Constructs an SMTP client to send \a message to \a recipient from
+    \a sender, on behalf of \a owner.
+*/
 
-SmtpClient::SmtpClient( Message * m, Address * a )
+SmtpClient::SmtpClient( const String &sender,
+                        const String &message,
+                        const String &recipient,
+                        EventHandler *owner )
     : Connection( Connection::socket( Endpoint::IPv4 ),
                   Connection::SmtpClient ),
       d( new SmtpClientData )
 {
-    d->a = a;
-    d->m = m;
+    d->owner = owner;
+    d->sender = sender;
+    d->message = message;
+    d->recipient = recipient;
+
     connect( Endpoint( "127.0.0.1", 2026 ) );
     Loop::addConnection( this );
 }
@@ -81,6 +92,16 @@ void SmtpClient::react( Event e )
 }
 
 
+/*! Returns true if this client encountered an error while attempting
+    delivery, and false otherwise.
+*/
+
+bool SmtpClient::failed() const
+{
+    return d->failed;
+}
+
+
 /*! Reads and reacts to SMTP/LMTP responses. Sends new commands. */
 
 void SmtpClient::parse()
@@ -101,7 +122,7 @@ void SmtpClient::parse()
             if ( (*s)[0] == '3' ) {
                 ok = true;
                 log( Log::Debug, "Sending body." );
-                enqueue( dotted( d->m->rfc822() ) );
+                enqueue( dotted( d->message ) );
                 d->sent = "body";
             }
         }
@@ -112,6 +133,7 @@ void SmtpClient::parse()
             }
         }
         if ( !ok ) {
+            d->failed = true;
             log( Log::Error, "SMTP/LMTP error for command " + d->sent );
             log( Log::Error, "Response: " + *s );
         }
@@ -135,10 +157,10 @@ void SmtpClient::sendCommand()
     case 'e':
     case 'h':
     case 'l':
-        send = "mail from:<foo@oryx.com>"; // ###
+        send = "mail from:<" + d->sender + ">";
         break;
     case 'm':
-        send = "rcpt to:<" + d->a->localpart() + "@" + d->a->domain() + ">";
+        send = "rcpt to:<" + d->recipient + ">";
         break;
     case 'r':
         send = "data";
@@ -149,6 +171,7 @@ void SmtpClient::sendCommand()
     case 'q':
     default:
         setState( Closing );
+        d->owner->notify();
         return;
         break;
     }

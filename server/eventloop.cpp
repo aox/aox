@@ -184,7 +184,8 @@ void EventLoop::start()
                     c->react( Connection::Shutdown );
                     c->write();
                 }
-                delete c;
+                if ( c->type() != Connection::LoggingClient )
+                    delete c;
             }
         }
     }

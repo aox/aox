@@ -25,10 +25,11 @@ private:
 
     void selectUids();
     void updateAddresses();
+    void updateFieldNames();
     void insertBodyparts();
     void insertMessages();
-    void insertHeaders();
-    void insertParts();
+    void linkHeaders();
+    void linkBodyparts();
     void linkAddresses();
 };
 

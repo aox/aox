@@ -11,15 +11,17 @@
 #include "transaction.h"
 
 
+// These structs represent one part of each entry in the header_fields
+// and address_fields tables. (The other part being mailbox and UID.)
+
+struct FieldLink {
+    HeaderField *hf;
+    String part;
+};
+
 struct AddressLink {
     Address * address;
     HeaderField::Type type;
-};
-
-
-struct HeaderLink {
-    HeaderField *hf;
-    String part;
 };
 
 
@@ -29,7 +31,8 @@ public:
         : step( 0 ), failed( false ),
           owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
           totalUids( 0 ), uids( 0 ), totalBodyparts( 0 ), bodypartIds( 0 ),
-          bodyparts( 0 ), addressLinks( 0 ), messageIds( 0 )
+          bodyparts( 0 ), addressLinks( 0 ), messageIds( 0 ),
+          fieldLookup( 0 ), addressLookup( 0 )
     {}
 
     int step;
@@ -47,7 +50,11 @@ public:
     List< int > * bodypartIds;
     List< BodyPart > * bodyparts;
     List< AddressLink > * addressLinks;
+    List< FieldLink > * fieldLinks;
     List< int > * messageIds;
+
+    CacheLookup * fieldLookup;
+    CacheLookup * addressLookup;
 };
 
 
@@ -101,7 +108,7 @@ Injector::Injector( const Message * message, List< Mailbox > * mailboxes,
 }
 
 
-/*! Cleans up after injection. (We're pretty clean already.) */
+/*! Cleans up after injection. (We're already pretty clean.) */
 
 Injector::~Injector()
 {
@@ -138,51 +145,50 @@ void Injector::execute()
         // We begin by obtaining a UID for each mailbox we are injecting
         // a message into, and simultaneously inserting entries into the
         // bodyparts table. At the same time, we can begin to lookup and
-        // insert addresses used in the message.
+        // insert the addresses and field names used in the message.
 
-        if ( !d->uids && !d->bodyparts && !d->addressLinks ) {
-            selectUids();
-            insertBodyparts();
-            updateAddresses();
-            return;
-        }
-
-        // Wait for at least the first two to complete before moving on.
-        if ( d->uids->count() != d->totalUids ||
-             d->bodypartIds->count() != d->totalBodyparts )
-            return;
+        selectUids();
+        insertBodyparts();
+        updateAddresses();
+        updateFieldNames();
 
         d->step = 1;
     }
 
     if ( d->step == 1 ) {
-        // Now that we have UIDs for every Mailbox, we can insert rows
-        // into messages, recent_messages, and address_fields. Because
-        // we also have bodypart IDs, we can populate part_numbers and
-        // header_fields at the same time.
+        // Once we have UIDs for each Mailbox, we can insert rows into
+        // messages and recent_messages.
 
-        if ( !d->messageIds ) {
-            insertMessages();
-            insertHeaders();
-            insertParts();
-        }
-
-        linkAddresses();
-
-        // Wait for the message IDs and AddressLinks before going on.
-        // (Do we really need the message IDs anywhere?)
-        if ( d->messageIds->count() != d->totalUids ||
-             !d->addressLinks->isEmpty() )
+        if ( d->uids->count() != d->totalUids )
             return;
 
+        insertMessages();
         d->step = 2;
     }
 
     if ( d->step == 2 ) {
+        // We expect updateFieldNames() to have completed immediately.
+        // Once insertBodyparts() is completed, we can start adding to
+        // the header_fields and part_numbers tables.
+
+        if ( !d->fieldLookup->done() ||
+             d->bodypartIds->count() != d->totalBodyparts )
+            return;
+
+        linkHeaders();
+        linkBodyparts();
         d->step = 3;
     }
 
     if ( d->step == 3 ) {
+        // Fill in address_fields once the address lookup is complete.
+        // (We could have done this without waiting for the bodyparts
+        // to be inserted, but it didn't seem worthwhile.)
+
+        if ( !d->addressLookup->done() )
+            return;
+
+        linkAddresses();
         d->step = 4;
     }
 
@@ -262,7 +268,44 @@ void Injector::updateAddresses()
         }
     }
 
-    AddressCache::lookup( addresses, this );
+    d->addressLookup = AddressCache::lookup( addresses, this );
+}
+
+
+/*! This private function builds a list of FieldLinks containing every
+    header field used in the message, and uses FieldCache::lookup() to
+    associate each unknown HeaderField with an ID. It causes execute()
+    to be called when every field name in d->fieldLinks has been
+    resolved.
+*/
+
+void Injector::updateFieldNames()
+{
+    d->fieldLinks = new List< FieldLink >;
+
+    Header *h = d->message->header();
+    HeaderField::Type types[] = {
+        HeaderField::ReturnPath, HeaderField::From, HeaderField::To,
+        HeaderField::Cc, HeaderField::Bcc, HeaderField::ReplyTo,
+        HeaderField::Subject, HeaderField::Date, HeaderField::MessageId
+    };
+    int n = sizeof (types) / sizeof (types[0]);
+
+    int i = 0;
+    while ( i < n ) {
+        HeaderField::Type t = types[ i++ ];
+
+        FieldLink *link = new FieldLink;
+        link->hf = h->field( t );
+        link->part = "";
+
+        if ( link->hf )
+            d->fieldLinks->append( link );
+    }
+
+    // d->fieldLookup = FieldCache::lookup( fields, this );
+    d->fieldLookup = new CacheLookup;
+    d->fieldLookup->setState( CacheLookup::Completed );
 }
 
 
@@ -311,10 +354,10 @@ void Injector::insertMessages()
     List< Query > * selects = new List< Query >;
     IdHelper * helper = new IdHelper( d->messageIds, selects, this );
 
-    List< Mailbox >::Iterator it( d->mailboxes->first() );
     List< int >::Iterator uids( d->uids->first() );
-    while ( it ) {
-        Mailbox *m = it++;
+    List< Mailbox >::Iterator mb( d->mailboxes->first() );
+    while ( uids ) {
+        Mailbox *m = mb++;
         int uid = *uids++;
 
         Query *i = new Query( "insert into messages (mailbox,uid) values "
@@ -340,44 +383,23 @@ void Injector::insertMessages()
 }
 
 
-/*! This private function inserts rows into the header_fields table.
+/*! This private function inserts entries into the header_fields table
+    for each new message.
 */
 
-void Injector::insertHeaders()
+void Injector::linkHeaders()
 {
-    List< HeaderLink > headerLinks;
     List< Query > *queries = new List< Query >;
 
-    Header *h = d->message->header();
-    HeaderField::Type types[] = {
-        HeaderField::ReturnPath, HeaderField::From, HeaderField::To,
-        HeaderField::Cc, HeaderField::Bcc, HeaderField::ReplyTo,
-        HeaderField::Subject, HeaderField::Date, HeaderField::MessageId
-    };
-    int n = sizeof (types) / sizeof (types[0]);
-
-    int i = 0;
-    while ( i < n ) {
-        HeaderField::Type t = types[ i++ ];
-
-        HeaderLink *link = new HeaderLink;
-        headerLinks.append( link );
-        link->hf = h->field( t );
-        link->part = "";
-    }
-
-    List< Mailbox >::Iterator mb( d->mailboxes->first() );
     List< int >::Iterator uids( d->uids->first() );
-    while ( mb ) {
+    List< Mailbox >::Iterator mb( d->mailboxes->first() );
+    while ( uids ) {
         Mailbox *m = mb++;
         int uid = *uids++;
 
-        List< HeaderLink >::Iterator it( headerLinks.first() );
+        List< FieldLink >::Iterator it( d->fieldLinks->first() );
         while ( it ) {
-            HeaderLink *link = it++;
-
-            if ( !link->hf )
-                continue;
+            FieldLink *link = it++;
 
             Query *q;
             q = new Query( "insert into header_fields "
@@ -397,24 +419,25 @@ void Injector::insertHeaders()
 }
 
 
-/*! This private function inserts rows into the part_numbers table.
+/*! This private function inserts rows into the part_numbers table for
+    each new message.
 */
 
-void Injector::insertParts()
+void Injector::linkBodyparts()
 {
     List< Query > * queries = new List< Query >;
 
-    List< BodyPart >::Iterator it( d->bodyparts->first() );
-    List< int >::Iterator bids( d->bodypartIds->first() );
-    while ( it ) {
-        BodyPart *b = it++;
-        int bid = *bids++;
+    List< int >::Iterator uids( d->uids->first() );
+    List< Mailbox >::Iterator mb( d->mailboxes->first() );
+    while ( uids ) {
+        Mailbox *m = mb++;
+        int uid = *uids++;
 
-        List< Mailbox >::Iterator mb( d->mailboxes->first() );
-        List< int >::Iterator uids( d->uids->first() );
-        while ( mb ) {
-            Mailbox *m = mb++;
-            int uid = *uids++;
+        List< int >::Iterator bids( d->bodypartIds->first() );
+        List< BodyPart >::Iterator it( d->bodyparts->first() );
+        while ( it ) {
+            int bid = *bids++;
+            BodyPart *b = it++;
 
             Query *q;
             q = new Query( "insert into part_numbers "
@@ -434,39 +457,33 @@ void Injector::insertParts()
 
 
 /*! This private function inserts one entry per AddressLink into the
-    address_fields table.
+    address_fields table for each new message.
 */
 
 void Injector::linkAddresses()
 {
-    List< AddressLink >::Iterator it( d->addressLinks->first() );
-    if ( !it )
-        return;
-
     List< Query > *queries = new List< Query >;
 
-    while ( it ) {
-        if ( it->address->id() != 0 ) {
-            AddressLink *link = d->addressLinks->take( it );
-            List< Mailbox >::Iterator mb( d->mailboxes->first() );
-            List< int >::Iterator uids( d->uids->first() );
-            while ( mb ) {
-                Mailbox *m = mb++;
-                int uid = *uids++;
+    List< int >::Iterator uids( d->uids->first() );
+    List< Mailbox >::Iterator mb( d->mailboxes->first() );
+    while ( uids ) {
+        Mailbox *m = mb++;
+        int uid = *uids++;
 
-                Query *q;
-                q = new Query( "insert into address_fields "
-                               "(mailbox,uid,field,address) values "
-                               "($1,$2,$3,$4)", 0 );
-                q->bind( 1, m->id() );
-                q->bind( 2, uid );
-                q->bind( 3, link->type );
-                q->bind( 4, link->address->id() );
-                queries->append( q );
-            }
-        }
-        else {
-            it++;
+        List< AddressLink >::Iterator it( d->addressLinks->first() );
+        while ( it ) {
+            AddressLink *link = it++;
+
+            Query *q;
+            q = new Query( "insert into address_fields "
+                           "(mailbox,uid,field,address) values "
+                           "($1,$2,$3,$4)", 0 );
+            q->bind( 1, m->id() );
+            q->bind( 2, uid );
+            q->bind( 3, link->type );
+            q->bind( 4, link->address->id() );
+
+            queries->append( q );
         }
     }
 

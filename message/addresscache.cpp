@@ -71,14 +71,16 @@ class LookupHelper
 protected:
     Query *q;
     Address *address;
+    CacheLookup *status;
     EventHandler *owner;
     List< Query > *queries;
 
 public:
     LookupHelper() {}
 
-    LookupHelper( Address *a, List< Query > *l, EventHandler *ev )
-        : address( a ), owner( ev ), queries( l )
+    LookupHelper( Address *a, List< Query > *l, CacheLookup *st,
+                  EventHandler *ev )
+        : address( a ), status( st ), owner( ev ), queries( l )
     {
         q = new Query( *addressLookup, this );
         q->bind( 1, a->name() );
@@ -142,8 +144,10 @@ void LookupHelper::execute() {
         nameCache->insert( a->toString(), a );
     }
 
-    if ( queries->isEmpty() )
+    if ( queries->isEmpty() ) {
+        status->setState( CacheLookup::Completed );
         owner->notify();
+    }
 }
 
 
@@ -156,24 +160,29 @@ void LookupHelper::execute() {
     (We assume, for the moment, that none of the queries will fail.)
 */
 
-void AddressCache::lookup( List< Address > *l, EventHandler *ev )
+CacheLookup *AddressCache::lookup( List< Address > *l, EventHandler *ev )
 {
     // We step through l, resolving cached addresses, and adding queries
     // for the others to this List:
     List< Query > * lookups = new List< Query >;
+    CacheLookup * status = new CacheLookup;
 
     List< Address >::Iterator it( l->first() );
     while ( it ) {
         Address *a = nameCache->find( it->toString() );
 
         if ( !a )
-            (void)new LookupHelper( it, lookups, ev );
+            (void)new LookupHelper( it, lookups, status, ev );
         else
             it->setId( a->id() );
 
         it++;
     }
 
-    if ( !lookups->isEmpty() )
+    if ( lookups->isEmpty() )
+        status->setState( CacheLookup::Completed );
+    else
         Database::query( lookups );
+
+    return status;
 }

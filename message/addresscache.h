@@ -2,6 +2,7 @@
 #define ADDRESSCACHE_H
 
 #include "list.h"
+#include "cache.h"
 
 class Address;
 class EventHandler;
@@ -11,7 +12,7 @@ class AddressCache
 {
 public:
     static void setup();
-    static void lookup( List< Address > *, EventHandler * );
+    static CacheLookup *lookup( List< Address > *, EventHandler * );
 };
 
 
