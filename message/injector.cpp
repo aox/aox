@@ -279,10 +279,8 @@ void Injector::insertBodyparts()
 
         Query *i, *s;
 
-        String data = b->data();
-        
         i = new Query( "insert into bodyparts (data) values ($1)", helper );
-        i->bind( 1, "fake message data" );
+        i->bind( 1, b->data(), Query::Binary );
 
         s = new Query( "select currval('bodypart_ids')::integer as id",
                        helper );

@@ -174,12 +174,13 @@ void Query::bind( uint n, int s )
 
 
 /*! \overload
-    Binds the String value \a s to the parameter \a n of this Query.
+    Binds the String value \a s to the parameter \a n of this Query in
+    the specified format \a f (Binary or Text; Text by default).
 */
 
-void Query::bind( uint n, const String &s )
+void Query::bind( uint n, const String &s, Format f )
 {
-    Value *v = new Value( n, s );
+    Value *v = new Value( n, s, f );
     d->values.insert( v );
 }
 
@@ -325,22 +326,6 @@ Row *Query::nextRow()
         return d->rows.take( r );
     return 0;
 }
-
-
-
-/*! \class Query::Value query.h
-    Represents a single value bound to a prepared statement.
-*/
-
-
-/*! Returns the String representation of this value.
-*/
-
-String Query::Value::data() const
-{
-    return d;
-}
-
 
 
 /*! \class Row query.h

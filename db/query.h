@@ -33,25 +33,29 @@ public:
     Transaction *transaction() const;
     void setTransaction( Transaction * );
 
+    enum Format { Text, Binary };
+
     void bind( uint, int );
-    void bind( uint, const String & );
+    void bind( uint, const String &, Format = Text );
     void execute();
 
     class Value {
+    private:
+        int n;
+        String d;
+        Query::Format f;
+
     public:
-        Value( int p, const String &s )
-            : n( p ), d( s )
+        Value( int p, const String &s, Query::Format fmt )
+            : n( p ), d( s ), f( fmt )
         {}
 
-        String data() const;
+        String data() const { return d; }
+        Query::Format format() const { return f; }
 
         bool operator <=( const Value &b ) {
             return n <= b.n;
         }
-
-    private:
-        int n;
-        String d;
     };
 
     virtual String name() const;
