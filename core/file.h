@@ -8,7 +8,7 @@
 class File {
 public:
     enum Access {
-        Read, Write
+        Read, Write, Append
     };
     File( const String &, File::Access, uint = 0 );
     ~File();
