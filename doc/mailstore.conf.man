@@ -76,8 +76,9 @@ listens, and to which the other servers connect. The default is
 .IP logfile
 is the name of the file to which
 .BR logd (8)
-writes log events. The file name must be absolute, and the default is
-.IR /tmp/mailstore.log .
+writes log events. The file name must be absolute (start with '/'),
+and the default is
+.IR $LOGFILE .
 .IP
 logfile is only valid in
 .IR logd.conf .
