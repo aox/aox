@@ -313,8 +313,9 @@ void SMTP::ehlo()
     }
     setHeloString();
     respond( 250, Configuration::hostname() );
-    respond( 250, "STARTTLS" );
-    respond( 250, "PIPELINING" );
+    //for the moment not
+    //respond( 250, "STARTTLS" );
+    //respond( 250, "PIPELINING" );
     respond( 250, "DSN" );
     d->state = MailFrom;
     d->pipelining = true;
