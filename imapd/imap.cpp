@@ -60,9 +60,9 @@ public:
     client input to decide which Command to defer the real work to, and
     ensures that the handler is called at the appropriate times.
 
-    The IMAP state is kept here, including the current mailbox(),
-    login() and IMAP state() (RFC 3501 section 3). The Idle state (RFC
-    2177) is also kept here.
+    Each IMAP object has a state() (RFC 3501, §3), and may possess other
+    state information, such as the login() name or a session(). The Idle
+    state (RFC 2177) is also kept here.
 
     The IMAP class parses incoming commands as soon as possible and
     may keep several commands executing at a time, if the client
