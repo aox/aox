@@ -122,7 +122,8 @@ create table part_numbers (
     part        text not null,
     bodypart    integer references bodyparts(id),
     foreign key (mailbox, uid)
-                references messages(mailbox, uid),
+                references messages(mailbox, uid)
+                on delete cascade,
     primary key (mailbox, uid, part)
 );
 
@@ -143,10 +144,11 @@ create table header_fields (
     mailbox     integer not null,
     uid         integer not null,
     part        text,
-    foreign key (mailbox, uid, part)
-                references part_numbers(mailbox, uid, part),
     field       integer not null references field_names(id),
-    value       text
+    value       text,
+    foreign key (mailbox, uid, part)
+                references part_numbers(mailbox, uid, part)
+                on delete cascade
 );
 
 
@@ -166,9 +168,11 @@ create table addresses (
 create table address_fields (
     mailbox     integer not null,
     uid         integer not null,
-    foreign key (mailbox, uid) references messages(mailbox, uid),
     field       integer not null references field_names(id),
-    address     integer not null references addresses(id)
+    address     integer not null references addresses(id),
+    foreign key (mailbox, uid)
+                references messages(mailbox, uid)
+                on delete cascade
 );
 
 
@@ -177,8 +181,10 @@ create table address_fields (
 create table recent_messages (
     mailbox     integer not null,
     uid         integer not null,
-    foreign key (mailbox, uid) references messages(mailbox, uid),
-    primary key (mailbox, uid)
+    foreign key (mailbox, uid)
+                references messages(mailbox, uid)
+                on delete cascade,
+    primary key (mailbox,uid)
 );
 
 
@@ -196,8 +202,10 @@ create table flag_names (
 create table extra_flags (
     mailbox     integer not null,
     uid         integer not null,
-    foreign key (mailbox, uid) references messages(mailbox, uid),
-    flag        integer not null references flag_names(id)
+    flag        integer not null references flag_names(id),
+    foreign key (mailbox, uid)
+                references messages(mailbox, uid)
+                on delete cascade
 );
 
 
