@@ -33,6 +33,8 @@ public:
     uint group() const;
     void setGroup( uint );
 
+    void wait( int );
+    
     Arena * arena() const;
 
     Log * logger() const;
