@@ -52,8 +52,10 @@ void Create::execute()
             // I'll think about it after we know how to manage the tree.
         }
         else if ( m->deleted() ) {
-            q = new Query( "update mailboxes set deleted=0,"
-                           "uidvalidity=uidvalidity+1 where id=$1", this );
+            q = new Query( "update mailboxes set deleted=0"
+                           /* ",uidvalidity=uidvalidity+1,uidnext=1" */
+                           " "
+                           "where id=$1", this );
             q->bind( 1, m->id() );
         }
 
