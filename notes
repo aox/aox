@@ -10,7 +10,7 @@ Fix the extra \r\n in the bodypart for o/1
 Make sure ocd announces new users and new mail
 
 
-Fix the horrible LIST/LSUB fixes:
+Fix the horrible LIST/LSUB problems:
 
   There's lots of horrible breakage here (for example, the reference
   name is apparently just ignored).
@@ -33,6 +33,9 @@ Schema documentation
   I've done all I want to sql-schema.html and postgres.schema; I'll have
   to wait for Sujai's diagram to complete schema.html, but until then, I
   have done all I can to it.
+
+
+Set up and play with Tsearch2
 
 
 Per-MTA installation and use
