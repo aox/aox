@@ -63,7 +63,16 @@ default is
 The password Mailstore should use to connect to the database. The
 default is an empty password.
 .IP
-During installation, Mailstore usually chooses a password at random.
+During installation, Mailstore sets up a randomly-chosen password by
+default.
+.IP db-max-handles
+The maximum number of database handles that Mailstore may open. The
+default is
+.IR 4 .
+.IP db-handle-interval
+The minimum interval (in seconds) between the creation of new database
+handles. The default is
+.IR 120 .
 .SS Logging
 .IP log-address
 The address of the log server. The default is

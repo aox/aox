@@ -42,6 +42,8 @@ public:
         SmtpPort,
         LmtpPort,
         HttpPort,
+        DbMaxHandles,
+        DbHandleInterval,
         // additional scalars go ABOVE THIS LINE
         NumScalars
     };

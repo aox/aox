@@ -140,7 +140,9 @@ static struct {
     { "imaps-port", Configuration::ImapsPort, 993 },
     { "smtp-port", Configuration::SmtpPort, 25 },
     { "lmtp-port", Configuration::LmtpPort, 2026 },
-    { "http-port", Configuration::HttpPort, 8808 }
+    { "http-port", Configuration::HttpPort, 8808 },
+    { "db-max-handles", Configuration::DbMaxHandles, 4 },
+    { "db-handle-interval", Configuration::DbHandleInterval, 120 },
 };
 
 
