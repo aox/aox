@@ -105,7 +105,7 @@ public:
 
 private:
     void add( const String & );
-    void read( const String & );
+    void read( const String &, bool );
 
     class ConfigurationData * d;
     friend class Configuration::Variable;

@@ -85,16 +85,18 @@ Configuration::Configuration()
 
 
 /*! Reads \a file, adding to the previous configuration data held by
-    the object. In case of error, \a file is not read. Unknown
-    configuration variables are logged and ignored.
+    the object. In case of error, \a file is not read, and if \a
+    required is true, an error is logged. Unknown configuration
+    variables are logged and ignored.
 */
 
-void Configuration::read( const String & file )
+void Configuration::read( const String & file, bool required )
 {
     d->f = file;
     File f( file, File::Read );
     if ( !f.valid() ) {
-        d->log( "Error reading configuration file " + file );
+        if ( required )
+            d->log( "Error reading configuration file " + file );
         return;
     }
 
@@ -542,9 +544,9 @@ void Configuration::setup( const String & global, const String & server )
     String d = compiledIn( ConfigDir );
 
     ::global = new Configuration;
-    ::global->read( d + "/" + global );
+    ::global->read( d + "/" + global, true );
     if ( !server.isEmpty() )
-        ::global->read( d + "/" + server );
+        ::global->read( d + "/" + server, false );
 
     String host = osHostname();
     Configuration::Text hn( "hostname", host );
