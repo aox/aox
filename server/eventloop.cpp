@@ -155,9 +155,9 @@ void EventLoop::start()
             commit();
             exit( 0 );
         }
-        if ( now - gc > 3 ) {
+        if ( now - gc > 60 ) {
             Allocator::free();
-            gc = now;
+            gc = time( 0 );
         }
 
         // Figure out what each connection cares about.
