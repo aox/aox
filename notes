@@ -98,6 +98,8 @@ top-level message/rfc822 support
 
 What to do about EventHandlers whose targets have died?
 
+  This will almost Just Work once we're in a GC world.
+
 
 garbage collection (~/imapd.valgrind)
 
@@ -224,4 +226,16 @@ Web page appearance/voice
   pages" headline called, "pages" or "links", and is the second word
   capitalized?
 
+
 HTML tidy fixes: suppress empty <p>, duplicate anchor names.
+
+
+SASL NTLM authentication
+
+  It may be odd and undocumented, and it may not be as strong as
+  DIGEST-MD5, but it's implemented in Certain Clients ;)
+
+  http://www.innovation.ch/java/ntlm.html seems to be a reasonable
+  description. Cyrus also implements it.
+
+
