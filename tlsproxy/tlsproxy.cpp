@@ -25,12 +25,12 @@
 #include <stdlib.h>
 
 
+static void setupKey();
+static void generateKey( String, String, String );
 static void handleError( int, const String & );
 static String cryptlibError( int );
 static String cryptlibLocus( int );
 static String cryptlibType( int );
-static void generateKey();
-static void setupKey();
 
 
 int main( int, char *[] )
@@ -60,7 +60,20 @@ static void setupKey()
 {
     Configuration::Text keyFile( "tls-certificate", "" );
     if ( ((String)keyFile).isEmpty() ) {
-        generateKey();
+        int status;
+        CRYPT_KEYSET keyset;
+
+        String file( "/tmp/mailstore.key" );
+        String label( "Mailstore private key" );
+        String secret( "secret" );
+
+        status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
+                                  file.cstr(), CRYPT_KEYOPT_NONE );
+        if ( status == CRYPT_OK )
+            status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
+                                         label.cstr(), secret.cstr() );
+        if ( status != CRYPT_OK )
+            generateKey( file, label, secret );
         return;
     }
 
@@ -68,13 +81,11 @@ static void setupKey()
 }
 
 
-static void generateKey()
+static void generateKey( String file, String label, String secret )
 {
     int status = 0;
 
     // Generate an RSA private key.
-    String label = "Mailstore on-demand key";
-
     status = cryptCreateContext( &privateKey, CRYPT_UNUSED, CRYPT_ALGO_RSA );
     handleError( status, "cryptCreateContext" );
     status = cryptSetAttributeString( privateKey, CRYPT_CTXINFO_LABEL,
@@ -86,9 +97,9 @@ static void generateKey()
     // Save it to a keyset file.
     CRYPT_KEYSET keyset;
     status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
-                              "/tmp/keyset", CRYPT_KEYOPT_CREATE );
+                              file.cstr(), CRYPT_KEYOPT_CREATE );
     handleError( status, "cryptKeysetOpen" );
-    status = cryptAddPrivateKey( keyset, privateKey, "secret" );
+    status = cryptAddPrivateKey( keyset, privateKey, secret.cstr() );
     handleError( status, "cryptAddPrivateKey" );
 
     // Create a self-signed CA certificate.
@@ -129,18 +140,14 @@ static void generateKey()
     handleError( status, "cryptAddPublicKey" );
 
     // Keep the privateKey around for later use.
-    // status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
-    //                           "/tmp/keyset", CRYPT_KEYOPT_NONE );
-    // handleError( status, "cryptKeysetOpen" );
     status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
-                                 "Mailstore on-demand key", "secret" );
+                                 label.cstr(), secret.cstr() );
     handleError( status, "cryptGetPrivateKey" );
 
     // Clean up
     cryptKeysetClose( keyset );
     cryptDestroyCert( cert );
 }
-
 
 
 static List<TlsProxy> * proxies;
