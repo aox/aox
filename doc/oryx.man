@@ -1,0 +1,65 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH oryx 7 2004-07-20 www.oryx.com "Mailstore Documentation"
+.SH NAME
+Oryx Mail Systems GmbH - the company behind Mailstore
+.SH SYNOPSIS
+.B telnet oryx.com 25
+.SH DESCRIPTION
+.nh
+There are too many disclaimers in the software world, and there's too
+much broken software. Too much software is not "fit for a particular
+purpose", according to its own authors.
+.PP
+Oryx Mail Systems GmbH <info@oryx.com> is a small virtual company,
+founded (and funded) by two arrogant programmers who believe that, in
+the right niche, it's possible to make a living from software that
+works as advertised.
+.PP
+We think the need to manage and use large archives of electronic mail
+constitutes one such niche.
+.SH "CONTACT DETAILS"
+We prefer communication by email, to info@oryx.com. Faxes may be sent to
++49 89 32356409, and paper mail to
+.IP
+Oryx Mail Systems GmbH
+.br
+Joseph-Dollinger-Bogen 14
+.br
+D-80807 Munich
+.br
+Germany
+.SH "PRODUCTS AND SERVICES"
+All future Oryx products are based on or connected with Oryx Mailstore.
+.PP
+Our emphasis for the first releases is to get Mailstore tested in the
+field. Until Mailstore is battle-hardened, we do not wish to accept
+money for it.
+.PP
+However, enquiries are always welcome.
+.SH "MISSION STATEMENT"
+To develop and market scalable, reliable software for handling and
+archiving large volumes of email.
+.PP
+The company will specialize and be known for high competence in its
+chosen area.
+.PP
+The company will survive and thrive over the long term. It will take care
+to avoid employee burnout, so that a stable, long-term team of exceptional
+quality can build stable, reliable products.
+.SH AUTHOR
+.PP
+The Oryx Mailstore developers, info@oryx.com.
+.SH VERSION
+This man page covers Oryx Mailstore version 0.90, released 2004-09-15,
+http://www.oryx.com/mailstore/0.90.html.
+.SH SEE ALSO
+.BR mailstore (7),
+.BR mailstore.conf (5),
+.BR deliver (8),
+.BR imapd (8),
+.BR logd (8),
+.BR ocd (8),
+.BR pop3d (8),
+.BR smtpd (8),
+.BR tlsproxy (8),
+http://www.oryx.com/mailstore/

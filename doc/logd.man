@@ -1,0 +1,77 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH imapd 8 2004-07-20 www.oryx.com "Mailstore Documentation"
+.SH NAME
+logd - logging server for Oryx Mailstore.
+.SH SYNOPSIS
+.B /usr/mailstore/bin/logd
+.SH DESCRIPTION
+.nh
+.PP
+The Oryx Mailstore
+.B logd
+is an internal server which receives, buffers and filters
+log entries from other parts of Mailstore so useful messages are
+logged while noise is suppressed.
+.PP
+Mailstore's log system uses transactions and four log levels,
+.IR Disaster ,
+.IR Error ,
+.I Info
+and
+.IR Debug .
+Each program in Mailstore sends all its log output to
+.BR logd ,
+which stores it in RAM until a transaction ends.
+.PP
+When a transaction ends,
+.B logd
+checks whether an
+.I Error
+or a
+.I Disaster
+was logged as part of this transaction. If so,
+.B logd
+logs everything. If nothing bad happened,
+.I Debug
+output is suppressed.
+.PP
+If a process dies unexpectedly, all of its open transactions are
+logged as if a disaster happened.
+.SH OPTIONS
+There are no command-line options.
+.PP
+The
+.I logfile
+option in
+.BR logd.conf (5)
+decides where
+.B logd
+writes its log output.
+.PP
+.B logd
+listens to the address given by
+.I loghost
+and
+.I logport
+(see
+.BR mailstore.conf (5))
+.SH FILES
+/etc/mailstore/mailstore.conf
+.br
+/etc/mailstore/logd.conf
+.SH AUTHOR
+The Oryx Mailstore developers, info@oryx.com.
+.SH VERSION
+This man page covers Oryx Mailstore version 0.90, released 2004-09-15,
+http://www.oryx.com/mailstore/0.90.html.
+.SH SEE ALSO
+.BR mailstore (7),
+.BR mailstore.conf (5),
+.BR deliver (8),
+.BR imapd (8),
+.BR ocd (8),
+.BR pop3d (8),
+.BR smtpd (8),
+.BR tlsproxy (8),
+.BR oryx (7),
+http://www.oryx.com/mailstore/

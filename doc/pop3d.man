@@ -1,0 +1,39 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH pop3d 8 2004-07-20 www.oryx.com "Mailstore Documentation"
+.SH NAME
+pop3d - POP3 server for Oryx Mailstore.
+.SH SYNOPSIS
+.B /usr/mailstore/bin/pop3d
+.SH DESCRIPTION
+.nh
+.PP
+This
+.B pop3d
+is the POP3 server from Oryx Mailstore, a fast, high-capacity mail
+server which uses a database for mail storage.
+.SH OPTIONS
+.B imapd
+is configured using
+.IR mailstore.conf (5)
+and
+.IR imapd.conf (5).
+There are no command-line options.
+.SH BUGS
+The POP3 service in Mailstore is currently more or less nonexistent.
+It will be made usable towards the end of 2004.
+.SH AUTHOR
+The Oryx Mailstore developers, info@oryx.com.
+.SH VERSION
+This man page covers Oryx Mailstore version 0.90, released 2004-09-15,
+http://www.oryx.com/mailstore/0.90.html.
+.SH SEE ALSO
+.BR mailstore (7),
+.BR mailstore.conf (5),
+.BR deliver (8),
+.BR imapd (8),
+.BR logd (8),
+.BR ocd (8),
+.BR smtpd (8),
+.BR tlsproxy (8),
+.BR oryx (7),
+http://www.oryx.com/mailstore/

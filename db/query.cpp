@@ -86,7 +86,9 @@ Query::Query( const PreparedStatement &ps, EventHandler *ev )
 
 
 /*! \fn Query::~Query()
-    This virtual destructor exists only so that subclasses can define their own.
+  
+    This virtual destructor exists only so that subclasses can define
+    their own.
 */
 
 

@@ -1,0 +1,33 @@
+SubDir TOP doc ;
+
+actions Man2 {
+sed -e 's!$BINDIR!'$(BINDIR)'!' \
+    -e 's!$MANDIR!'$(MANDIR)'!' \
+    -e 's!$PIDFILEDIR!'$(PIDFILEDIR)'!' \
+    -e 's!$JAILDIR!'$(JAILDIR)'!' \
+    -e 's!$CONFIGDIR!'$(CONFIGDIR)'!' \
+    -e 's!LOGFILE!'$(LOGFILE)'!' < $(>) > $(<)
+}
+
+rule Man {
+    local s t d ;
+    d = [ FDirName $(TOP) doc man man$(<) ] ;
+    for s in $(>) {
+        t = $(s:S=.$(<)) ;
+        Clean clean : $(t) ;
+        MakeLocate $(t) : $(d) ;
+        Man2 $(t) : $(s) ;
+        Depends $(t) : $(s) ;
+        Depends exe : $(t) ;
+    }
+}
+
+Man 5 : deliver.conf.man imapd.conf.man logd.conf.man
+    mailstore.conf.man ocd.conf.man pop3d.conf.man smtpd.conf.man
+    tlsproxy.conf.man mailstore.7 oryx.7 ;
+
+Man 7 : oryx.man mailstore.man ;
+
+Man 8 : deliver.man imapd.man logd.man ocd.man pop3d.man smtpd.man
+    tlsproxy.man ;
+

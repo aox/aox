@@ -1,0 +1,178 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH mailstore 7 2004-07-20 www.oryx.com "Mailstore Documentation"
+.SH NAME
+Overview of Oryx Mailstore.
+.SH SYNOPSIS
+.B /etc/init.d/mailstore {start,stop}
+.PP
+.B /etc/mailstore/*.conf
+.SH DESCRIPTION
+.nh
+.PP
+Oryx Mailstore is a mail server system optimised for long-term storage
+and heavy access. It comprises a set of server programs that provide
+access to mail stored in a relational database (PostgreSQL).
+.SH "GETTING STARTED"
+The following five steps should suffice to install Mailstore. If they
+don't, or if anything is unclear, more detailed instructions are
+available at http://www.oryx.com/mailstore/installation.html.
+.SS "1. Install Mailstore"
+Usually, this is as simple as:
+.IP
+.B "apt-get install mailstore"
+(on Debian)
+.br
+.B "portinstall mailstore"
+(on FreeBSD)
+.PP
+http://www.oryx.com/mailstore/installation.html explains what to do in
+other cases.
+.PP
+Installing Mailstore normally starts all the necessary services using
+the default configuration.
+.SS "2. Add a user"
+Run
+.BR mailbench (8)
+to create a username and password interactively.
+.SS "3. Inject some test mail"
+.BR mailbench (8)
+can inject some test messages for you, or you can use
+.BR deliver (8)
+to inject some mail you already have.
+.PP
+This command injects all the messages from a berkeley mbox file: formail
+-s deliver yourname@domain
+.SS "4. Check that you can read mail"
+The mail you just delivered is in your inbox, and you can read it with
+any IMAP or POP3 client. You can also use
+.BR mailbench (8)
+to verify that you have access to it.
+.SS "5. Configure your MTA"
+The normal way to deliver mail from your MTA into Mailstore is via LMTP.
+By default, Mailstore listens on 127.0.0.1 port 2026.
+.BR smtpd.conf (5)
+explains how to change that.
+.SH ARCHITECTURE
+.PP
+Mailstore consists of a number of frontend servers, each of which uses
+four backend servers:
+.IP RDBMS
+The RDBMS is where all the mail is stored. At present only PostgreSQL
+is supported.
+.IP logd
+The log server is an internal server which filters log entries so
+useful messages are logged while noise is suppressed.
+.IP ocd
+The Oryx coordination daemon performs miscellaneous coordination
+duties on behalf of the frontend servers.
+.IP tlsproxy
+This proxy performs TLS certificate and encryption services for the
+other servers. It's based on Cryptlib.
+.PP
+Each server is described more fully in its own man page:
+.BR logd (8),
+.BR ocd (8),
+.BR postgres (1)
+and
+.BR tlsproxy (8)
+for the backends, and
+.BR imapd (8),
+.BR popd (8)
+and
+.BR smtpd (8)
+for the frontend servers:
+.IP imapd
+The IMAP daemon provides IMAP4rev1 access to the mailstore, with numerous
+extensions. Each server process can provide access to a few hundred
+clients.
+.IP pop3d
+POP3 access to the mailstore is also possible. Each server process can
+provide access to a few hundred clients.
+.IP smtpd/lmtpd
+is used to inject mail into the database.
+.PP
+Normally, there is one
+.BR ocd (8)
+and one
+.BR logd (8)
+process running. In addition there will be at least one
+.BR postgres (1)
+process running. There may be an arbitrary number of frontend server
+and tlsproxy processes.
+.PP
+The servers use TCP to communicate internally, so they can be
+distributed across a server cluster. Generally, one host will run the
+database backend, one host (perhaps the same) will run
+.BR ocd (8)
+and
+.BR logd (8)
+and as many as required will run the frontends.
+.PP
+The man pages for each server explain the use and configuration of
+each. See
+.BR mailstore.conf (5)
+for more about configuring Mailstore in general.
+.SH SECURITY
+All Mailstore servers run in jail directories.
+.PP
+Each server is started as root. Before it accepts any connections from
+clients, it closes all open files, switches to a jail directory and
+drops root privileges.
+.PP
+The jail directory, user and group are configured in
+.BR mailstore.conf (5).
+The directory should be empty, and the user/group should not even have
+read access to this directory.
+.SH MAIL STORAGE
+Oryx Mailstore does not store mail in the RFC-822 format. It parses each
+message upon delivery, and stores a normalized representation, optimized
+for fast and reliable search and categorization.
+.PP
+This offers the following advantages, among others:
+.IP Performance
+One example: Each address is stored exactly once, as Unicode and with
+RFC-2047 encoding undone. Finding all messages sent from/to a given
+name is extremely fast, because only a single SQL SELECT is necessary,
+and it accesses just two small tables.
+.IP "Long-term Stability"
+Mailstore handles today's common syntax problems and stores the
+correct form in the database. Because of that, the mail reader which
+looks at old mail in the year 2020 will not need to be bug compatible
+with today's version of Microsoft Outlook.
+.IP "Scalability and Flexibility"
+Only the database size limits Mailstore's capacity. Many other servers
+limit individual folders to 2GB (or less), or cannot support more than
+a few thousand subfolders/messages in a folder. With Mailstore, you
+don't need to invent workarounds for such artificial limitations.
+.IP Robustness
+Because mail is stored normalized and parsed, large attachments are
+generally stored only once, and mail parsing exploits are rendered
+harmless before reaching the MUA. A movie clip sent to a hundred
+recipients is not a problem, because it's stored just once.
+.SH LICENSING
+Starting with version 1.0, Oryx Mailstore will be available under two
+licences: Either the OSL 2.1 license or a commercial software license.
+.PP
+The OSL 2.1 (see http://www.oryx.com/mailstore/opensource.html) is a
+fairly restrictive open source license similar to the more well-known
+GNU licenses. It includes a disclaimer of responsibility.
+.PP
+Our commercial license offers more flexibility than the OSL and a full
+warranty. There are also extra services. Contact info@oryx.com for
+more details, or see http://www.oryx.com/mailstore/commercial.html.
+.SH AUTHOR
+The Oryx Mailstore developers, info@oryx.com.
+.SH VERSION
+This man page covers Oryx Mailstore version 0.90, released 2004-09-15,
+http://www.oryx.com/mailstore/0.90.html.
+.SH SEE ALSO
+.BR mailstore.conf (5),
+.BR deliver (8),
+.BR imapd (8),
+.BR logd (8),
+.BR ocd (8),
+.BR pop3d (8),
+.BR smtpd (8),
+.BR tlsproxy (8),
+.BR oryx (7),
+http://www.oryx.com/mailstore/

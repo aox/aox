@@ -1,0 +1,52 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH tlsproxy 8 2004-07-20 www.oryx.com "Mailstore Documentation"
+.SH NAME
+tlsproxy - TLS/SSL helper for Oryx Mailstore.
+.SH SYNOPSIS
+.B /usr/mailstore/bin/tlsproxy
+.SH DESCRIPTION
+.nh
+.PP
+The Oryx Mailstore
+.B tlsproxy
+is a separate process which performs TLS and SSLv3 processing on behalf of
+.BR imapd (8),
+.BR pop3d (8)
+and
+.BR smtpd (8).
+TLS processing is kept separate from these other servers for
+architectural reasons
+.PP
+TLS occasionally causes processing delays, for example while
+regenerating keys. Since most of Mailstore is event-driven, these
+delays would block other users.
+.PP
+Further, there is a lot of code in cryptlib, which we prefer not to
+link into all of our servers.
+.PP
+.B tlsproxy
+should always be running when Mailstore is in use, but you should
+never need to interact with it directly.
+.SH OPTIONS
+.B tlsproxy
+is configured using
+.IR mailstore.conf (5)
+and
+.IR tlsproxy.conf (5).
+There are no command-line options.
+.SH AUTHOR
+The Oryx Mailstore developers, info@oryx.com.
+.SH VERSION
+This man page covers Oryx Mailstore version 0.90, released 2004-09-15,
+http://www.oryx.com/mailstore/0.90.html.
+.SH SEE ALSO
+.BR mailstore (7),
+.BR mailstore.conf (5),
+.BR deliver (8),
+.BR imapd (8),
+.BR logd (8),
+.BR ocd (8),
+.BR pop3d (8),
+.BR smtpd (8),
+.BR oryx (7),
+http://www.oryx.com/mailstore/

@@ -1,0 +1,316 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH mailstore.conf 5 2004-07-20 www.oryx.com "Mailstore Documentation"
+.SH NAME
+mailstore.conf - overall configuration for Oryx Mailstore.
+.SH SYNOPSIS
+.B /etc/mailstore/mailstore.conf
+.br
+.B /etc/mailstore/imapd.conf
+.br
+.B /etc/mailstore/pop3d.conf
+.br
+.B /etc/mailstore/smtpd.conf
+.br
+.B /etc/mailstore/logd.conf
+.br
+.B /etc/mailstore/ocd.conf
+.br
+.B /etc/mailstore/tlsproxy.conf
+.br
+.B /etc/mailstore/deliver.conf
+.SH DESCRIPTION
+.nh
+.PP
+The
+.I mailstore.conf
+file contains all global configuration settings for Oryx Mailstore. Each
+individual server also has a separate configuration file, whose settings
+override the global file.
+.PP
+The files are read when the servers start up. Syntax errors, unknown
+variables etc. are logged via
+.BR logd (8).
+.SH SETTINGS
+.PP
+All settings share a common format:
+.IP
+name = value # comment
+.PP
+Except where noted, each variable can be defined either inn
+.I mailstore.conf
+or
+.IR <server>.conf .
+.SS "General Settings"
+.IP hostname
+Most of the servers need to know the fully-qualified hostname. The
+default is computed at runtime and is normally acceptable.
+.SS "Database Access"
+.IP db
+The type of database. The default,
+.IR postgres ,
+is currently the only supported value.
+.IP db-address
+The IP address of the database server. The default is
+.IR 127.0.0.1 .
+Either an IPv4 or IPv6 address may be used.
+.IP db-port
+The port number of the database server. The default is
+.IR 5432 .
+.IP db-user
+The user name Mailstore should use to connect to the database. The
+default is
+.IR oryx .
+.IP db-password
+The password Mailstore should use to connect to the database. The
+default is an empty password.
+.SS Logging
+.IP log-address
+The IP address of the log server. The default is
+.IR 127.0.0.1 .
+Either an IPv4 or IPv6 address may be used.
+.IP log-port
+The port number at which
+.BR logd (8)
+listens, and to which the other servers connect. The default is
+.IR 2054 .
+.IP logfile
+is the name of the file to which
+.BR logd (8)
+writes log events. The file name must be absolute, and the default is
+.IR /tmp/mailstore.log .
+.IP
+logfile is only valid in
+.IR logd.conf .
+.SS Security
+.IP security
+is enabled by default, and should be enabled whenever Mailstore
+is used in production. If security is disabled, the servers do not
+need to be started ar root, and do not try to lose privileges.
+Turning security off has exactly one advantage: it simplifies
+debugging.
+.IP jail-directory
+is the directory where the servers jail themselves. On startup, each
+server uses
+.BR chroot (2)
+into this directory, which should be empty.
+.I jail-directory
+should be empty and unreadable to
+.IR jail-user .
+.IP jail-user
+is the user name under which the servers run, and is
+.I nobody
+by default. On startup, the servers change UID to this user. This user
+should not have read or write access to the jail directory.
+.IP jail-group
+is the group name under which the servers run, and is
+.I nogroup
+by default. On startup, the servers change GID to this user.
+.SS "Cluster Configuration"
+.IP ocd-address
+The IP address where
+.BR ocd (8)
+listens for connections from other Mailstore servers. The default is
+.IR 127.0.0.1 .
+Either an IPv4 or IPv6 address may be used.
+.IP ocd-port
+The port number at which
+.BR ocd (8)
+listens, and to which the other servers connect,
+.I 2050
+by default.
+.IP ocadmin-address
+The IP address where
+.BR ocd (8)
+listens for admin requests. The default is
+.IR 127.0.0.1 .
+Either an IPv4 or IPv6 address may be used.
+.IP ocadmin-port
+The port number at which
+.BR ocd (8)
+listens for admin requests.
+.I 2050
+by default.
+.SS "User Authentication"
+http://www.oryx.com/mailstore/sasl.html describes SASL and
+authentication in more detail.
+.IP allow-plaintext
+controls whether the servers permit plaintext passwords, and how such
+passwords are handled.
+May be set to
+.I always
+(which is the default) or
+.IR never .
+(Future versions of Mailstore will offer more settings.)
+.IP auth-digest-md5
+controls whether the servers offer the digest-md5 SASL mechanism.
+.I Enabled
+by default.
+.IP auth-cram-md5
+controls whether the servers offer the cram-md5 SASL mechanism.
+.I Enabled
+by default.
+.IP auth-plain
+controls whether the servers offer the plain-text SASL
+mechanism.
+.I Enabled
+by default.
+.IP
+Note that disabling auth-plain doesn't disable all plaintext
+passwords, since SASL isn't always used. To disable plaintext
+passwords, use the
+.I allow-plaintext
+variable above.
+.IP auth-anonymous
+controls whether the servers offer anonymous login. Disabled by
+default.
+.SS "Mail delivery"
+.IP use-lmtp
+controls whether the
+.BR smtpd (8)
+should accept mail via LMTP (RFC 2033). The default is
+.IR enabled .
+.IP lmtp-address
+specifies the IP address where
+.BR smtpd (8)
+should listen for LMTP connections, and to which
+.BR deliver (8)
+should connect. The default is
+.IR 127.0.0.1 .
+.IP lmtp-port
+specifies which port the
+.BR smtpd (8)
+should listen to, and which port
+.BR deliver (8)
+should connect to. The default is
+.IR 2026 .
+.IP use-smtp
+controls whether the
+.BR smtpd (8)
+should accept mail via SMTP (RFC 2033). SMTP is
+.I disabled
+by default.
+.IP smtp-address
+specifies the IP address where
+.BR smtpd (8)
+should listen for SMTP connections The default is an empty string,
+which means all available IPv4 and IPv6 interfaces.
+.IP smtp-port
+specifies which port the
+.BR smtpd (8)
+should listen to. The default is
+.I 25
+(but since
+.I use-smtp
+is normally disabled,
+.I smtp-port
+is unused.)
+.SS IMAP
+.IP imap-address
+is the address where the IMAP server listens for new connections. The
+default, an empty string, means to listen on all available IPv4 and
+IPv6 addresses.
+.IP imap-port
+is the port where the IMAP server accepts connections,
+.I 143
+by default.
+.IP announce-draft-support
+is enabled if the IMAP server should advertise support for
+drafts. Oryx tracks the draft versions of several IMAP extensions
+etc. Since these drafts are subject to change without notice, their
+support is
+.I disabled
+by default, and can be enabled using this toggle.
+.PP
+These variables are only valid in
+.IR imapd.conf .
+.SS POP
+.IP pop-address
+is the address where the POP server listens for new connections. The
+default, an empty string, means to listen on all available IPv4 and
+IPv6 addresses.
+.IP pop-port
+is the port where the POP server accepts connections,
+.I 110
+by default.
+.PP
+pop-address and pop-port are only valid in
+.IR popd.conf .
+.SS TLS
+There are no TLS-specific settings yet. They'll be described here as
+soon as they exist.
+.SH SYNTAX
+.PP
+The name is case insensitive, as shown:
+.IP
+hostname = test1.example.com
+.br
+HOSTNAME = mailserver.example.org
+.PP
+The value is case insensitive wherever possible. (Exceptions
+include logfile, db-user and db-pass.)
+.PP
+There are three datatypes: Strings, numbers and toggles.
+.PP
+Strings may be written as a single unquoted word or quoted with either
+single or double quotes, as shown in these three examples:
+.IP
+dbpass = single.word
+.br
+dbpass = "rock'n'roll" # a 12-characters password
+.br
+dbpass = 'two words, quoted' # a 17-character one
+.PP
+Only single-line strings can be used.
+.PP
+Numbers are integers not smaller than 0 and not larger than 2147483647
+(ie. 31-bit unsigned integers).
+.PP
+Toggles are written as a single word.
+.IR Yes ,
+.IR true ,
+.IR on ,
+.I 1
+and
+.I enabled
+all
+mean that the toggle is enabled, while
+.IR no ,
+.IR false ,
+.IR off ,
+.I 0
+and
+.I disabled
+unsurprisingly mean disabled. Toggles are case-insensitive.
+.IP
+use-lmtp = yes
+.br
+crash-and-delete-all-the-mail = off
+.PP
+Spaces are allowed at the start of the line, before and after '=', and
+after the value. Comments extend from '#' to the end of the line.
+.IP
+# this is a comment
+.br
+hostname=stuff.nonsense.example.com # also a comment
+.br
+ logfile    =   /dev/null# and this is a comment
+.br
+
+.br
+# empty lines are ignored
+.SH AUTHOR
+The Oryx Mailstore developers, info@oryx.com.
+.SH VERSION
+This man page covers Oryx Mailstore version 0.90, released 2004-09-15,
+http://www.oryx.com/mailstore/0.90.html.
+.SH SEE ALSO
+.BR mailstore (7),
+.BR deliver (8),
+.BR imapd (8),
+.BR logd (8),
+.BR ocd (8),
+.BR pop3d (8),
+.BR smtpd (8),
+.BR tlsproxy (8),
+.BR oryx (7),
+http://www.oryx.com/mailstore/
