@@ -3,6 +3,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+#include "multipart.h"
 #include "string.h"
 #include "ustring.h"
 #include "header.h"
@@ -13,24 +14,6 @@
 class Bodypart;
 class Mailbox;
 class Flag;
-
-
-class Multipart {
-public:
-    Multipart();
-
-    Header *header() const;
-    void setHeader( Header * );
-
-    Multipart *parent() const;
-    void setParent( Multipart * );
-    List< Bodypart > *children() const;
-
-private:
-    Header *h;
-    Multipart *p;
-    List< Bodypart > *parts;
-};
 
 
 class Message
