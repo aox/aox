@@ -281,7 +281,7 @@ void Configuration::parseScalar( uint n, const String & line )
 
 void Configuration::parseText( uint n, const String & line )
 {
-    String name( scalarDefaults[n].name );
+    String name( textDefaults[n].name );
     uint i = 0;
     if ( line[0] == '"' || line[0] == '\'' ) {
         // quoted, either with ' or "
