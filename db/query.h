@@ -30,6 +30,10 @@ public:
     bool failed() const;
     bool done() const;
 
+    void setStartUpQuery( bool );
+    bool isStartUpQuery() const;
+    static bool isStartingUp();
+
     Transaction *transaction() const;
     void setTransaction( Transaction * );
 

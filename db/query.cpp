@@ -12,7 +12,7 @@ class QueryData {
 public:
     QueryData()
         : type( Query::Execute ), state( Query::Inactive ),
-          transaction( 0 ), owner( 0 ), totalRows( 0 )
+          transaction( 0 ), owner( 0 ), totalRows( 0 ), startup( false )
     {}
 
     Query::Type type;
@@ -28,6 +28,8 @@ public:
     uint totalRows;
 
     String error;
+
+    bool startup;
 };
 
 
@@ -48,6 +50,10 @@ public:
     there are any rows, which can be read and removed from the list by
     calling nextRow().  The query keeps track of the total number of
     rows() received.
+
+    Most queries are normal queries, but some can be startup queries
+    (see setStartUpQuery()), ie. queries that are necessary for the
+    server to start up. If such a query fails, Query logs a disaster.
 
     A Query can be part of a Transaction.
 */
@@ -117,6 +123,8 @@ Query::State Query::state() const
 }
 
 
+static uint startup;
+
 /*! Sets the state of this object to \a s.
     The initial state of each Query is Inactive, and the Database changes
     it to indicate the query's progress.
@@ -124,7 +132,12 @@ Query::State Query::state() const
 
 void Query::setState( State s )
 {
+    if ( ( s == Completed || s == Failed ) && !done() )
+        ::startup--;
     d->state = s;
+    if ( d->startup && failed() )
+        log( Log::Disaster,
+             "Necessary startup query failed: " "(query text here)" );
 }
 
 
@@ -146,6 +159,46 @@ bool Query::done() const
 bool Query::failed() const
 {
     return d->state == Query::Failed;
+}
+
+
+/*! Notifies this query that it's necessary to start the server if \a
+    necessary is true, and that it's an ordinary query if \a necessary
+    is false.
+
+    The isStartingUp() function returns true if at least one such
+    query is unfinished.
+*/
+
+void Query::setStartUpQuery( bool necessary )
+{
+    if ( done() )
+        ;
+    else if ( necessary && !d->startup )
+        ::startup++;
+    else if ( d->startup && !necessary )
+        ::startup--;
+    d->startup = necessary;
+}
+
+
+/*! Returns true if this Query is a startup query, that is, if the
+    server hasn't finished initializing until this Query is complete.
+*/
+
+bool Query::isStartUpQuery() const
+{
+    return d->startup;
+}
+
+
+/*! Returns true if at least one startup query is queued or running,
+    and false if all such queries have finished.
+*/
+
+bool Query::isStartingUp()
+{
+    return ::startup > 0;
 }
 
 
@@ -279,7 +332,7 @@ String Query::error() const
 void Query::setError( const String &s )
 {
     d->error = s;
-    d->state = Query::Failed;
+    setState( Failed );
 
     if ( d->transaction )
         d->transaction->setState( Transaction::Failed );
