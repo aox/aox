@@ -51,6 +51,7 @@ SmtpClient::SmtpClient( const String &sender,
 
     connect( Endpoint( "127.0.0.1", 2026 ) );
     Loop::addConnection( this );
+    setTimeoutAfter( 10 );
 }
 
 
@@ -115,6 +116,7 @@ void SmtpClient::parse()
         String * s = r->removeLine();
         if ( !s )
             return;
+        extendTimeout( 10 );
         log( Log::Debug, "Received: " + *s );
         bool ok = false;
         if ( (*s)[3] == '-' ) {
