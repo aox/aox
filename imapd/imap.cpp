@@ -86,8 +86,6 @@ void IMAP::react(Event e)
     case Connection::Read:
         if ( !d->cmdArena )
             d->cmdArena = new Arena;
-        if ( !d->args )
-            d->args = new List<String>;
         Arena::push( d->cmdArena );
         parse();
         Arena::pop();
@@ -108,7 +106,7 @@ void IMAP::react(Event e)
     d->logger->commit();
     runCommands();
     d->logger->commit();
-    setTimeout( time(0) + 20 );
+    setTimeout( time(0) + 1800 );
     if ( state() == Logout )
         close();
 }
@@ -118,6 +116,8 @@ void IMAP::parse()
 {
     Buffer * r = readBuffer();
     while( true ) {
+	if ( !d->args )
+	    d->args = new List<String>;
         if ( d->grabber ) {
             d->grabber->read();
             // still grabbed? must wait for more.
@@ -175,6 +175,7 @@ void IMAP::parse()
                 addCommand();
                 Arena::pop();
                 d->cmdArena = new Arena;
+		d->args = 0;
                 Arena::push( d->cmdArena );
             }
         }
