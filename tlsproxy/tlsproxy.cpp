@@ -223,11 +223,6 @@ void TlsProxy::react( Event e )
         }
         else {
             try {
-                // XXX: since neither Cryptlib nor Buffer will detect
-                // EOF, we have a look here... a bandaid if ever there
-                // was one.
-                if ( fcntl( fd(), F_GETFL, 0 ) < 0 )
-                    react( Close );
                 if ( d->state == TlsProxyData::PlainSide )
                     encrypt();
                 else
@@ -398,6 +393,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     other->d->state = TlsProxyData::PlainSide;
     ::serverside = other;
     ::userside = this;
+    userside->setBlocking( true );
 
     int status;
     status = cryptCreateSession( &cs, CRYPT_UNUSED,
