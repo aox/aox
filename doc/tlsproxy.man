@@ -58,7 +58,7 @@ Oryx strongly recommends getting a proper signed certificate. Using
 the dynamically generated certificate preserves some of the advantages
 of TLS, but far from all.
 .SH FILES
-.IP $CONFIGDIR/automatic-key.p15
+.IP $LIBDIR/automatic-key.p15
 is used to store the automatically generated key and certificate.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
