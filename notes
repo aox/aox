@@ -1,14 +1,13 @@
+Schema documentation
+
+  I've done all I want to sql-schema.html and postgres.schema; I'll have
+  to wait for Sujai's diagram (later tonight) to complete schema.html.
+
+
 Fix startup and shutdown (and log disasters to stderr)
 
 
 we need an install script that generates a config file
-
-
-Complete the schema documentation
-
-  1. Sujai will give me a PNG soon.
-  2. Must update comments/types in the schema.
-  3. Must submit final version of schema.
 
 
 Injector fixes:
