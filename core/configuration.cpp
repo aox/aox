@@ -222,6 +222,9 @@ String Configuration::compiledIn( CompileTimeSetting setting )
     case LibDir:
         return LIBDIR;
         break;
+    case InitDir:
+        return INITDIR;
+        break;
     case JailDir:
         return JAILDIR;
         break;

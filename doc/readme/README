@@ -18,8 +18,8 @@ Building and installing Mailstore is a five-step process:
 
    Create the PostgreSQL user, mailstore and tables needed, as well as
    the mailstore.conf file. You can do this automatically using the
-   script BINDIR/installer (/usr/local/mailstore/bin/installer by
-   default), or you can do it by hand. If you run BINDIR/installer -n,
+   script LIBDIR/installer (/usr/local/mailstore/lib/installer by
+   default), or you can do it by hand. If you run LIBDIR/installer -n,
    it does nothing except tell you exactly what needs to be done.
 
 3. If mailstore.conf was created automatically for you, you may want
@@ -35,7 +35,7 @@ Building and installing Mailstore is a five-step process:
    to create a user with login "nirmala", password "pw" and email
    address "nirmala@example.org".
 
-At this point, you're ready to run "BINDIR/rcmailstore start" to start
+At this point, you're ready to run "INITDIR/rcmailstore start" to start
 Mailstore. After a change, "rcmailstore restart" restarts.
 
 There are mailing lists for Mailstore users and announcements. To

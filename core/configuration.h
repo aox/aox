@@ -30,6 +30,7 @@ public:
         BinDir,
         ManDir,
         LibDir,
+        InitDir,
         JailDir,
         DbAddress,
         DbUser,

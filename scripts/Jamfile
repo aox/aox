@@ -4,22 +4,22 @@ SubDir TOP scripts ;
 rule ShellScript {
     local s t ;
 
-    t = $(<) ;
+    t = $(1) ;
     MakeLocate $(t) : [ FDirName $(TOP) bin ] ;
     Depends exe : $(t) ;
 
-    s = $(<:G=<$SUBDIR>) ;
+    s = $(1:G=<$SUBDIR>) ;
     SEARCH on $(s) = $(SEARCH_SOURCE) ;
 
     Depends $(t) : $(s) <>Jamsettings ;
     EngraveConfig $(t) : $(s) ;
 
-    InstallBin $(BINDIR) : $(t) ;
+    InstallBin $(2) : $(t) ;
 
     Clean clean : $(t) ;
 }
 
 
-ShellScript rcmailstore ;
-ShellScript installer ;
+ShellScript rcmailstore : $(INITDIR) ;
+ShellScript installer : $(LIBDIR) ;
 

@@ -2,26 +2,57 @@
 # these are compiled into the binaries. A few may be overridden at
 # runtime using mailstore.conf.
 #
-# These variables may be overwritten using the environment, e.g.
-#    PREFIX=$HOME/tmp/mailstore jam install
-# to install in your home directory.
-#
 # Remember the spaces around '=' and before ';'.
 
 
-# Files and directories. The directory names MUST NOT end with /.
+## Files and directories. The directory names MUST NOT end with /.
 
-INSTALLROOT = "" ;
+# Prepended to directory names during installation, but not during use.
+#
+INSTALLROOT = "" ; 
 
+# A convenient prefix used by most directory and file names,.
+#
 PREFIX = /usr/local/mailstore ;
+
+# The directory for user and sysadmin tools
+#
 BINDIR = $(PREFIX)/bin ;
+
+# The directory where the servers are installed
+#
 SBINDIR = $(PREFIX)/sbin ;
+
+# The directory where the man pages are installed
+#
 MANDIR = $(PREFIX)/man ;
+
+# Supporting files
+# 
 LIBDIR = $(PREFIX)/lib ;
+
+# The startup/shutdown script's directory
+#
+INITDIR = $(LIBDIR) ;
+
+# Where to write pid files for the servers
+#
 PIDFILEDIR = /var/run ;
+
+# The servers chroot to an empty, unreadable jail directory at
+# startup.
+#
 JAILDIR = $(PREFIX)/jail ;
+
+# The directory where the configuration file is located.
+#
 CONFIGDIR = $(PREFIX) ;
+
+# The log file's default name. (This is the only configurable file
+# name, all the others are directory names.)
+#
 LOGFILE = $(PREFIX)/logfile ;
+
 
 # The user and group needed.
 
@@ -48,7 +79,7 @@ EXEMODE = 555 ;
 ## Database settings.
 
 # The Unix username of the PostgreSQL superuser. You need to set this if
-# your superuser's username is not "postgres".
+# your PostgreSQL superuser's username is not "postgres".
 #
 # PGUSER = pgsql ;
 
@@ -58,10 +89,10 @@ EXEMODE = 555 ;
 #
 #PGBIN = /opt/postgres/bin ;
 
-# The address of the Postgres server. This corresponds to the db-address
-# variable in mailstore.conf, and may be the fully-qualified Unix socket
-# path, or an IPv4/6 address.
-
+# The address of the Postgres server. This is the default value of the
+# db-address variable in mailstore.conf, and may be the
+# fully-qualified Unix socket path, or an IPv4/6 address.
+#
 DBADDRESS = /tmp/.s.PGSQL.5432 ;
 
 # A Postgres user and database for Mailstore to use. If necessary, these
@@ -77,7 +108,7 @@ DBADDRESS = /tmp/.s.PGSQL.5432 ;
 #
 # These settings correspond to the db-name, db-user, and db-password
 # variables in mailstore.conf.
-
+#
 DBNAME = mailstore ;
 DBUSER = oryx ;
 #DBPASS = foo ;
