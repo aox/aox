@@ -44,16 +44,15 @@ Console::Console()
     : QSplitter( 0, "mailstore console" ), d( new ConsoleData )
 {
     QWidget * w = new QWidget( this );
+
+    QLabel * label = new QLabel( tr( "&Categories" ), w );
     d->paneList = new QListView( w);
+    label->setBuddy( d->paneList );
+
     QBoxLayout * l = new QBoxLayout( w, QBoxLayout::TopToBottom, 6 );
-    l->addWidget( new QLabel( tr( "Categories" ), w ) );
+    l->addWidget( label );
     l->addWidget( d->paneList );
     l->addWidget( new SearchEdit( tr( "(Search)" ), w ) );
-
-    QAccel * quit = new QAccel( this, "Quit" );
-    quit->insertItem( QKeySequence( CTRL + Key_Q ) );
-    connect( quit, SIGNAL( activated( int ) ),
-             qApp, SLOT( quit() ) );
 
     d->stack = new QWidgetStack( this );
 
@@ -80,6 +79,11 @@ Console::Console()
     d->panes->insert( i, w );
     d->items->insert( w, i );
 #endif
+
+    QAccel * quit = new QAccel( this, "Quit" );
+    quit->insertItem( QKeySequence( CTRL + Key_Q ) );
+    connect( quit, SIGNAL( activated( int ) ),
+             qApp, SLOT( quit() ) );
 }
 
 
@@ -90,7 +94,7 @@ Console::Console()
 void Console::keyPressEvent( QKeyEvent * ke )
 {
     QWidget * f = focusWidget();
-    if ( ke && f &&
+    if ( ke && ke->key() == Key_Enter && f &&
          ( f->inherits( "QLineEdit" ) ||
            f->inherits( "QListView" ) ||
            f->inherits( "QListBox" ) ) ) {
