@@ -9,6 +9,7 @@
 #include "logclient.h"
 #include "loop.h"
 #include "log.h"
+#include "syslogger.h"
 #include "database.h"
 #include "console.h"
 #include "consoleloop.h"
@@ -58,7 +59,7 @@ int main( int argc, char *argv[] )
 
     Log l( Log::Immediate );
     global.setLog( &l );
-    LogClient::setup();
+    (void)new Syslogger( "msconsole" );
 
     Database::setup();
     AddressCache::setup();

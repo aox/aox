@@ -5,6 +5,6 @@ Build msconsole : console.cpp userpane.cpp msconsole.cpp consoleloop.cpp
     searchedit.cpp ;
 
 Program msconsole :
-    msconsole database server mailbox message user core encodings ;
+    msconsole database server mailbox message user core encodings admintools ;
 
 LINKLIBS on msconsole = -lqt -lcrypt ;
