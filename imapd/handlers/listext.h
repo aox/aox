@@ -8,11 +8,6 @@
 class Mailbox;
 
 
-// this file is misnamed. the only way out seems to be calling the
-// handlers something longer, e.g. ImapCList for this class. but let's
-// delay that until we have more than one problem.
-
-
 class Listext
     : public Command
 {
@@ -28,7 +23,8 @@ private:
     void addSelectOption( const String & );
 
     void list( Mailbox *, const String & );
-    void sendListResponse( Mailbox * );
+    void listChildren( Mailbox *, const String & );
+    void sendListResponse( Mailbox *, const String & );
 
 private:
     class ListextData * d;

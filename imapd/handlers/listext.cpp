@@ -5,6 +5,7 @@
 #include "string.h"
 #include "stringlist.h"
 #include "mailbox.h"
+#include "user.h"
 
 
 class ListextData
@@ -20,6 +21,7 @@ public:
 
     String mailbox;
     StringList patterns;
+    String homePrefix;
 
     uint responses;
 
@@ -113,13 +115,19 @@ void Listext::execute()
         return;
     }
 
+    Mailbox * home = imap()->user()->home();
     Mailbox * root = Mailbox::root();
+
+    d->homePrefix = home->name() + "/";
+
     StringList::Iterator it( d->patterns.first() );
     while ( it ) {
         if ( it->isEmpty() )
             respond( "LIST \"/\" \"\"" );
+        else if ( (*it)[0] == '/' )
+            listChildren( root, *it );
         else
-            list( root, *it );
+            listChildren( home, *it );
         ++it;
     }
 
@@ -214,6 +222,10 @@ static uint match( const String & pattern, uint p,
                 i--;
             }
         }
+        else if ( p >= pattern.length() && n >= name.length() ) {
+            // ran out of pattern and name at the same time. success.
+            return 2;
+        }
         else if ( pattern[p] == name[n] ) {
             // nothing. proceed.
         }
@@ -249,7 +261,11 @@ void Listext::list( Mailbox *m, const String &p )
     bool matches = false;
     bool matchChildren = false;
 
-    switch( match( p, 0, m->name(), 0 ) ) {
+    String name = m->name();
+    if ( p[0] != '/' && name.startsWith( d->homePrefix ) )
+        name = name.mid( d->homePrefix.length() );
+
+    switch( match( p, 0, name, 0 ) ) {
     case 0:
         break;
     case 1:
@@ -263,29 +279,38 @@ void Listext::list( Mailbox *m, const String &p )
 
     uint responses = d->responses;
 
-    if ( matchChildren ) {
-        List<Mailbox> * c = m->children();
-        if ( c ) {
-            List<Mailbox>::Iterator it( c->first() );
-            while ( it ) {
-                list( it, p );
-                it++;
-            }
-        }
-    }
+    if ( matchChildren )
+        listChildren( m, p );
 
     if ( matches )
-        sendListResponse( m ); // simple case
+        sendListResponse( m, name ); // simple case
     else if ( responses < d->responses && d->selectMatchParent )
-        sendListResponse( m ); // some child matched and we matchparent
+        sendListResponse( m, name ); // some child matched and we matchparent
     else if ( responses < d->responses && m->deleted() )
-        sendListResponse( m ); // some child matched and it's deleted
+        sendListResponse( m, name ); // some child matched and it's deleted
 }
 
 
-/*! Sends a list response for \a mailbox. */
+/*! Calls list() for each child of \a mailbox using \a pattern. */
 
-void Listext::sendListResponse( Mailbox * mailbox )
+void Listext::listChildren( Mailbox * mailbox, const String & pattern )
+{
+    List<Mailbox> * c = mailbox->children();
+    if ( c ) {
+        List<Mailbox>::Iterator it( c->first() );
+        while ( it ) {
+            list( it, pattern );
+            it++;
+        }
+    }
+}
+
+
+/*! Sends a list response for \a mailbox, which we pretent has
+    \a name. For /users/billg/inbox, \a name is usually either InBox or
+    /users/billg/inbox. */
+
+void Listext::sendListResponse( Mailbox * mailbox, const String & name )
 {
     if ( !mailbox )
         return;
@@ -309,6 +334,6 @@ void Listext::sendListResponse( Mailbox * mailbox )
     else
         a.append( "\\hasnochildren" );
 
-    respond( "LIST (" + a.join( " " ) + ") \"/\" " + mailbox->name() );
+    respond( "LIST (" + a.join( " " ) + ") \"/\" " + name );
     d->responses++;
 }
