@@ -2,5 +2,6 @@ SubDir TOP logd ;
 
 SubInclude TOP server ;
 
-Build logd : logd.cpp logserver.cpp selflogger.cpp ;
-Program logd : logd server core ;
+Build logd : logserver.cpp selflogger.cpp ;
+Build logdmain : logd.cpp ;
+Program logd : logdmain logd server core ;

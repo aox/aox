@@ -142,7 +142,6 @@ void ConsoleLoop::shutdown()
         i--;
         if ( r[i] ) {
             Connection * c = r[i]->connection();
-            Scope x( c->arena() );
             c->react( Connection::Shutdown );
             c->write();
         }

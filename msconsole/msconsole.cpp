@@ -2,7 +2,6 @@
 
 #include "cstring.h"
 
-#include "arena.h"
 #include "scope.h"
 #include "configuration.h"
 #include "addresscache.h"
@@ -68,8 +67,7 @@ static QSize goodDefaultSize()
 
 int main( int argc, char *argv[] )
 {
-    Arena firstArena;
-    Scope global( &firstArena );
+    Scope global;
 
     // typical mailstore crud
     Configuration::setup( "mailstore.conf" );

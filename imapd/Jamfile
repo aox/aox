@@ -8,9 +8,12 @@ SubInclude TOP message ;
 HDRS += [ FDirName $(TOP) imapd ] ;
 SubInclude TOP imapd handlers ;
 
-Build imap : imapd.cpp imap.cpp imapsession.cpp command.cpp
+Build imap : imap.cpp imapsession.cpp command.cpp
     messageset.cpp ;
 
-Program imapd : imap database message server sasl mailbox core encodings
-    user ;
+Build imapd : imapd.cpp ;
+
+Program imapd : imap imapd database message server sasl mailbox core
+    encodings user ;
+
 LINKLIBS on imapd = -lcrypt ;

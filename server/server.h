@@ -15,7 +15,6 @@ public:
     void setChrootMode( ChrootMode );
 
     enum Stage {
-        Test, // MUST BE FIRST
         Configuration,
         Files,
         LogSetup,
@@ -34,7 +33,6 @@ public:
 private:
     class ServerData * d;
 
-    void test();
     void configuration();
     void files();
     void loop();

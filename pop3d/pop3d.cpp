@@ -1,6 +1,5 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "arena.h"
 #include "scope.h"
 #include "logclient.h"
 #include "pop3.h"
@@ -14,8 +13,7 @@
 
 int main( int argc, char * argv[] )
 {
-    Arena firstArena;
-    Scope global( &firstArena );
+    Scope global;
 
     Server s( "pop3d", argc, argv );
     s.setup( Server::Report );
