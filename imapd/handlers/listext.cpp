@@ -113,55 +113,16 @@ void Listext::execute()
         return;
     }
 
-    // find the common bits of the patterns
-
-    String prefix;
-    bool first = true;
+    Mailbox * root = Mailbox::root();
     StringList::Iterator it( d->patterns.first() );
     while ( it ) {
-        String pattern = *it;
-        ++it;
-        if ( first ) {
-            prefix = pattern;
-            first = false;
-        }
-        else if ( !pattern.startsWith( prefix ) ) {
-            uint i = 0;
-            while ( pattern[i] == prefix[i] )
-                i++;
-            prefix = prefix.mid( 0, i );
-        }
-    }
-
-    // only components before the first wildcard may be used
-
-    if ( !prefix.isEmpty() ) {
-        int i = prefix.find( '%' );
-        int j = prefix.find( '*' );
-        if ( i < 0 )
-            i = j;
-        if ( j < i && j >= 0 )
-            i = j;
-        while ( i > 0 && prefix[i] != '/' )
-            i--;
-        if ( i == 0 )
-            prefix = "/";
+        if ( it->isEmpty() )
+            respond( "LIST \"/\" \"\"" );
         else
-            prefix = prefix.mid( 0, i );
+            list( root, *it );
+        ++it;
     }
 
-    // good. we're ready to start listing mailboxes.
-    Mailbox * root = Mailbox::find( prefix );
-    if ( root ) {
-        List<Mailbox> * c = root->children();
-        if ( c ) {
-            List<Mailbox>::Iterator it( c->first() );
-            while ( it ) {
-                list( it );
-                ++it;
-            }
-        }
-    }
     finish();
 }
 
@@ -174,26 +135,18 @@ String Listext::listMailbox()
 {
     String result;
     char c = nextChar();
+    if ( c == '"' || c == '{' )
+        return string();
     while ( c > ' ' && c < 127 &&
             c != '(' && c != ')' && c != '{' &&
             c != '"' && c != '\\' )
-        {
-            result.append( c );
-            step();
-            c = nextChar();
-        }
+    {
+        result.append( c );
+        step();
+        c = nextChar();
+    }
     if ( result.isEmpty() )
         error( Bad, "list-mailbox expected, saw: " + following() );
-
-    // make sure the pattern is fully qualified
-    if ( result[0] != '/' ) {
-        if ( d->mailbox.isEmpty() )
-            result = "/" + result;
-        else if ( d->mailbox[d->mailbox.length()-1] == '/' )
-            result = d->mailbox + result;
-        else
-            result = d->mailbox + "/" + result;
-    }
     return result;
 }
 
@@ -283,53 +236,50 @@ static uint match( const String & pattern, uint p,
 }
 
 
-/*! Considers whether \a mailbox or any of its children may match any
-    of the specified patterns, and if so, emits list responses. (Calls
-    itself recursively to handle children.)
+/*! Considers whether the mailbox \a m or any of its children may match
+    the pattern \a p, and if so, emits list responses. (Calls itself
+    recursively to handle children.)
 */
 
-void Listext::list( Mailbox * mailbox )
+void Listext::list( Mailbox *m, const String &p )
 {
-    if ( !mailbox )
+    if ( !m )
         return;
-    String name = mailbox->name();
-    StringList::Iterator it( d->patterns.first() );
-    bool matchChildren = false;
+
     bool matches = false;
-    while ( it && !matches ) {
-        String pattern = *it;
-        ++it;
-        switch( match( pattern, 0, name, 0 ) ) {
-        case 0:
-            break;
-        case 1:
-            matchChildren = true;
-            break;
-        default:
-            matches = true;
-            matchChildren = true;
-            break;
-        }
+    bool matchChildren = false;
+
+    switch( match( p, 0, m->name(), 0 ) ) {
+    case 0:
+        break;
+    case 1:
+        matchChildren = true;
+        break;
+    default:
+        matches = true;
+        matchChildren = true;
+        break;
     }
+
     uint responses = d->responses;
 
     if ( matchChildren ) {
-        List<Mailbox> * c = mailbox->children();
+        List<Mailbox> * c = m->children();
         if ( c ) {
             List<Mailbox>::Iterator it( c->first() );
             while ( it ) {
-                list( it );
+                list( it, p );
                 it++;
             }
         }
     }
 
     if ( matches )
-        sendListResponse( mailbox ); // simple case
+        sendListResponse( m ); // simple case
     else if ( responses < d->responses && d->selectMatchParent )
-        sendListResponse( mailbox ); // some child matched and we matchparent
-    else if ( responses < d->responses && mailbox->deleted() )
-        sendListResponse( mailbox ); // some child matched and it's deleted
+        sendListResponse( m ); // some child matched and we matchparent
+    else if ( responses < d->responses && m->deleted() )
+        sendListResponse( m ); // some child matched and it's deleted
 }
 
 

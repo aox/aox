@@ -27,7 +27,7 @@ private:
     void addReturnOption( const String & );
     void addSelectOption( const String & );
 
-    void list( Mailbox * );
+    void list( Mailbox *, const String & );
     void sendListResponse( Mailbox * );
 
 private:

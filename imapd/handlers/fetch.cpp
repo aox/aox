@@ -553,7 +553,7 @@ String Fetch::internalDate( Message * m )
 {
     Date date;
     date.setUnixTime( m->internalDate() );
-    return date.imap();
+    return "\"" + date.imap() + "\"";
 }
 
 
