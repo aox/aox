@@ -10,7 +10,6 @@ public:
     ~IMAP();
 
     bool react(Event e);
-    bool wants(Event e) const;
 
     void parse();
 

@@ -3,67 +3,65 @@
 #include "test.h"
 #include "buffer.h"
 
+
 class IMAPData {
 public:
-    Buffer readBuf, writeBuf;
+    // nothing for now
 };
 
+
+/*! \class IMAP
+
+  \brief The IMAP class implements the IMAP server seen by clients.
+
+  Most of IMAP functionality is in the command handlers, but this
+  class contains the top-level responsibility and functionality. This
+  class reads commands from its network connection, does basic
+  parsing and creates command handlers as necessary.
+*/
+
+
+/*! Creates a basic IMAP connection */
+
 IMAP::IMAP(int s)
-    : Connection(s)
+    : Connection(s), d(0)
 {
-    d = new IMAPData;
-    d->writeBuf.append("* PREAUTH\r\n");
+    setReadBuffer( new Buffer );
+    setWriteBuffer( new Buffer );
+    writeBuffer()->append("* PREAUTH\r\n");
 }
+
+
+/*! Destroys the object and closes its network connection. */
 
 IMAP::~IMAP()
 {
     delete d;
 }
 
-bool IMAP::wants(Event e) const
-{
-    switch (e) {
-    case Connection::Read:
-        return true;
-        break;
-    case Connection::Write:
-        if (d->writeBuf.size() != 0)
-            return true;
-        break;
-    case Connection::Timeout:
-        if (timeout() != 0)
-            return true;
-        break;
-    }
-    return false;
-}
+
+/*! Handles incoming data and timeouts. */
 
 bool IMAP::react(Event e)
 {
     switch (e) {
     case Connection::Read: {
-        uint sz = d->readBuf.size(); /* XXX */
-        d->readBuf.read(fd());
-        if (sz == d->readBuf.size())
-            /* close */
-            return false;
         parse();
         break;
     }
-    case Connection::Write:
-        d->writeBuf.write(fd());
-        break;
     case Connection::Timeout:
         break;
     }
     return true;
 }
 
+
 void IMAP::parse()
 {
-    d->readBuf.remove(d->readBuf.size());
-    d->writeBuf.append("* BAD parsefeil\r\n");
+    readBuffer()->remove(readBuffer()->size());
+    writeBuffer()->append("* BAD parsefeil\r\n");
 }
+
 
 static class IMAPTest : public Test {
 public:
