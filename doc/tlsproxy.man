@@ -15,7 +15,7 @@ is a separate process which performs TLS and SSLv3 processing on behalf of
 and
 .BR smtpd (8).
 TLS processing is kept separate from these other servers for
-architectural reasons
+architectural reasons:
 .PP
 TLS occasionally causes processing delays, for example while
 regenerating keys. Since most of Mailstore is event-driven, these
@@ -46,14 +46,20 @@ In case of error,
 exits with exit code 1, an error message on stderr and (usually more
 detailed) information in the log file.
 .SH "CERTIFICATE HANDLING"
-Tlsproxy can use a proper certificate signed by a CA, as usual. If you
-do not have one, tlsproxy will generate a self-signed certificate at
-runtime. No clients trust this certificate, but we think it's better
-to have a dynamically generated certificate than to not use TLS.
-
+.B Tlsproxy
+can use a proper certificate signed by a CA, as usual. If you
+do not have one,
+.B tlsproxy
+will generate a self-signed certificate at runtime. No clients trust
+this certificate, but we think it's better to have a self-signed
+certificate than to not use TLS.
+.PP
 Oryx strongly recommends getting a proper signed certificate. Using
 the dynamically generated certificate preserves some of the advantages
 of TLS, but far from all.
+.SH FILES
+.IP $CONFIGDIR/automatic-key.p15
+is used to store the automatically generated key and certificate.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION

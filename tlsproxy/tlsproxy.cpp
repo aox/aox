@@ -66,21 +66,22 @@ static void setupKey()
 
     Configuration::Text keyFile( "tls-certificate", "" );
     if ( ((String)keyFile).isEmpty() ) {
-        String file =
-            Configuration::compiledIn( Configuration::ConfigDir ) +
-            "/" + "automatic-key.p15" ;
+        String file = Configuration::compiledIn( Configuration::LibDir ) +
+                      "/" + "automatic-key.p15" ;
 
         status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
                                   file.cstr(), CRYPT_KEYOPT_NONE );
         if ( status == CRYPT_OK )
-            status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
+            status = cryptGetPrivateKey( keyset, &privateKey,
+                                         CRYPT_KEYID_NAME,
                                          label.cstr(), secret.cstr() );
         if ( status != CRYPT_OK )
             generateKey( file, label, secret );
         return;
     }
 
-    status = cryptCreateContext( &privateKey, CRYPT_UNUSED, CRYPT_ALGO_RSA );
+    status = cryptCreateContext( &privateKey, CRYPT_UNUSED,
+                                 CRYPT_ALGO_RSA );
     handleError( status, "cryptCreateContext" );
     status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
                               ((String)keyFile).cstr(), CRYPT_KEYOPT_NONE );
@@ -96,7 +97,8 @@ static void generateKey( String file, String label, String secret )
     int status = 0;
 
     // Generate an RSA private key.
-    status = cryptCreateContext( &privateKey, CRYPT_UNUSED, CRYPT_ALGO_RSA );
+    status = cryptCreateContext( &privateKey, CRYPT_UNUSED,
+                                 CRYPT_ALGO_RSA );
     handleError( status, "cryptCreateContext" );
     status = cryptSetAttributeString( privateKey, CRYPT_CTXINFO_LABEL,
                                       label.cstr(), label.length() );
@@ -116,7 +118,8 @@ static void generateKey( String file, String label, String secret )
     CRYPT_CERTIFICATE cert;
     String hostname = Configuration::hostname();
 
-    status = cryptCreateCert( &cert, CRYPT_UNUSED, CRYPT_CERTTYPE_CERTIFICATE  );
+    status = cryptCreateCert( &cert, CRYPT_UNUSED,
+                              CRYPT_CERTTYPE_CERTIFICATE  );
     handleError( status, "cryptCreateCert" );
 
     CRYPT_CONTEXT publicKey;
@@ -385,8 +388,8 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     enqueue( "ok\r\n" );
     write();
     log( "Starting TLS proxy for for " + protocol + " client " +
-         client.string() + " (host " + Configuration::hostname() + ") (pid " +
-         fn( getpid() ) + ")" );
+         client.string() + " (host " + Configuration::hostname() +
+         ") (pid " + fn( getpid() ) + ")" );
 
     d->state = TlsProxyData::EncryptedSide;
     other->d->state = TlsProxyData::PlainSide;
@@ -394,7 +397,8 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     ::userside = this;
 
     int status;
-    status = cryptCreateSession( &cs, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER );
+    status = cryptCreateSession( &cs, CRYPT_UNUSED,
+                                 CRYPT_SESSION_SSL_SERVER );
     handleError( status, "cryptCreateSession" );
     userside->setBlocking( true );
     status = cryptSetAttribute( cs, CRYPT_SESSINFO_NETWORKSOCKET,
@@ -431,7 +435,9 @@ void TlsProxy::encrypt()
 }
 
 
-/*! Decrypts and forwards the ciphertext which is available on the socket. */
+/*! Decrypts and forwards the ciphertext which is available on the
+    socket.
+*/
 
 void TlsProxy::decrypt()
 {
@@ -481,7 +487,8 @@ static void handleError( int cryptError, const String & function )
     errorString.reserve( 1024 );
 
     cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
-                             (char*)errorString.data(), &errorStringLength );
+                             (char*)errorString.data(),
+                             &errorStringLength );
     if ( errorStringLength > 1000 )
         exit( 0 ); // I'm too polite for the sort of comment needed here
     errorString.truncate( errorStringLength );
