@@ -86,6 +86,8 @@ UserPane::UserPane( QWidget * parent )
     d->users = new QListBox( this, "user list" );
     l->setBuddy( d->users );
     tll->addMultiCellWidget( d->users, 1, 9, 0, 0 );
+    connect( d->users, SIGNAL(selected(int)),
+             this, SLOT(handleUserSelection()) );
 
     QPushButton * pb = new QPushButton( tr( "&Refresh",
                                             "Refresh list all users" ),
@@ -205,23 +207,9 @@ void UserPane::updateExceptLogin()
     QListBoxItem * i = d->users->findItem( d->login->text(), ExactMatch );
     d->users->setCurrentItem( i );
 
-    // if it's a known user, refresh from database
-    if ( i ) {
-        if ( !d->user ||
-             d->user->login() != d->login->text().utf8() ) {
-            d->user = new User;
-            d->user->setLogin( d->login->text().utf8().data() );
-            d->realName->clear();
-            d->realName->clearModified();
-            d->password1->clear();
-            d->password1->clearModified();
-            d->password2->clear();
-            d->password2->clearModified();
-        }
-        if ( !d->refreshUserDetails )
-            d->refreshUserDetails = new UserRefreshHelper( this );
-        d->user->refresh( d->refreshUserDetails );
-    }
+    // if it's a known user, update from database
+    if ( i )
+        handleUserSelection();
 
     // if it's not a known user, pick a name from /etc/passwd just in
     // case
@@ -235,6 +223,33 @@ void UserPane::updateExceptLogin()
             d->realName->selectAll();
         }
     }
+}
+
+
+/*! When a user is selected using the listbox, update from the database. */
+
+void UserPane::handleUserSelection()
+{
+    QListBoxItem * i = d->users->selectedItem();
+    if ( i && i->text() != d->login->text() ) {
+        d->login->setText( i->text() );
+        d->login->clearModified();
+        d->login->deselect();
+    }
+    if ( !d->user ||
+         d->user->login() != d->login->text().utf8() ) {
+        d->user = new User;
+        d->user->setLogin( d->login->text().utf8().data() );
+        d->realName->clear();
+        d->realName->clearModified();
+        d->password1->clear();
+        d->password1->clearModified();
+        d->password2->clear();
+        d->password2->clearModified();
+    }
+    if ( !d->refreshUserDetails )
+        d->refreshUserDetails = new UserRefreshHelper( this );
+    d->user->refresh( d->refreshUserDetails );
 }
 
 

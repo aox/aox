@@ -19,7 +19,7 @@ private slots:
     void removeAlias();
     void updateExceptLogin();
     void perhapsUpdateLogin();
-
+    void handleUserSelection();
 
 private:
     class UserPaneData * d;
