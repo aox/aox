@@ -7,8 +7,7 @@ LIST/LSUB fixes.
 Injector fixes:
 
   1. We need to share entries for identical bodyparts.
-  2. Must fix the header_fields->part_numbers FK reference.
-  3. Better error handling is urgently required.
+  2. Better error handling is urgently required.
 
 
 FETCH fixes:

@@ -499,13 +499,13 @@ void Injector::insertMessages()
 
 void Injector::linkBodyparts()
 {
-    Query *q;
-
     List< int >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
     while ( uids ) {
         Mailbox *m = mb++;
         int uid = *uids++;
+
+        insertPartNumber( m->id(), uid, "" );
 
         List< int >::Iterator bids( d->bodypartIds->first() );
         List< Bodypart >::Iterator it( d->bodyparts->first() );
@@ -514,27 +514,34 @@ void Injector::linkBodyparts()
             Bodypart *b = it++;
             String pn = d->message->partNumber( b );
 
-            q = new Query( "insert into part_numbers "
-                           "(mailbox,uid,bodypart,part) values "
-                           "($1,$2,$3,$4)", 0 );
-            q->bind( 1, m->id() );
-            q->bind( 2, uid );
-            q->bind( 3, bid );
-            q->bind( 4, pn );
-            d->transaction->enqueue( q );
-
-            if ( b->rfc822() ) {
-                q = new Query( "insert into part_numbers "
-                               "(mailbox,uid,bodypart,part) values "
-                               "($1,$2,$3,$4)", 0 );
-                q->bind( 1, m->id() );
-                q->bind( 2, uid );
-                q->bind( 3, bid );
-                q->bind( 4, pn + ".rfc822" );
-                d->transaction->enqueue( q );
-            }
+            insertPartNumber( m->id(), uid, pn, bid );
+            if ( b->rfc822() )
+                insertPartNumber( m->id(), uid, pn + ".rfc822", bid );
         }
     }
+}
+
+
+/*! This private helper is used by linkBodyparts() to add a single row
+    to part_numbers for \a mailbox, \a uid, \a part, and \a bodypart.
+*/
+
+void Injector::insertPartNumber( int mailbox, int uid, const String &part,
+                                 int bodypart )
+{
+    Query *q;
+
+    q = new Query( "insert into part_numbers (mailbox,uid,part,bodypart) "
+                   "values ($1,$2,$3,$4)", 0 );
+    q->bind( 1, mailbox );
+    q->bind( 2, uid );
+    q->bind( 3, part );
+    if ( bodypart > 0 )
+        q->bind( 4, bodypart );
+    else
+        q->bindNull( 4 );
+
+    d->transaction->enqueue( q );
 }
 
 

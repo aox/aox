@@ -31,6 +31,7 @@ private:
     void buildAddressLinks();
     void buildLinksForHeader( Header *, const String & );
     void buildFieldLinks();
+    void insertPartNumber( int, int, const String &, int = -1 );
     void insertBodyparts();
     void insertMessages();
     void linkBodyparts();

@@ -119,9 +119,10 @@ create table binary_parts (
 create table part_numbers (
     mailbox     integer not null,
     uid         integer not null,
-    foreign key (mailbox, uid) references messages(mailbox, uid),
-    bodypart    integer not null references bodyparts(id),
     part        text not null,
+    bodypart    integer references bodyparts(id),
+    foreign key (mailbox, uid)
+                references messages(mailbox, uid),
     primary key (mailbox, uid, part)
 );
 
