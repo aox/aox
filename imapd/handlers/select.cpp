@@ -24,9 +24,16 @@ void Select::execute()
         imap()->setMailbox( 0 );
         imap()->setState( IMAP::Authenticated );
         error( No, "Can't select mailbox " + m );
+        return;
     }
 
     // Send mailbox data here.
-    respond( "OK" );
+    respond( "EXISTS 0" );
+
+    String ok = "OK [READ-";
+    ok.append( readOnly ? "ONLY" : "WRITE" );
+    ok.append( "]" );
+    respond( ok, Tagged );
+
     setState( Finished );
 }

@@ -409,8 +409,11 @@ void IMAP::setMailbox( Mailbox *m )
 {
     if ( m == d->mailbox )
         return;
+
     d->mailbox = m;
-    d->logger->log( "now using mailbox " + m->name() );
+    
+    if ( m )
+        d->logger->log( "now using mailbox " + m->name() );
 }
 
 /*! Reserves input from the connection for \a command.
