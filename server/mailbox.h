@@ -18,15 +18,20 @@ public:
     bool deleted() const;
     bool synthetic() const;
 
+    void setUidnext( uint );
+    void setDeleted( bool );
+
     Mailbox *parent() const;
     List< Mailbox > *children() const;
 
     static void setup();
     static Mailbox *find( const String &, bool = false );
-    static void update( const String & );
+    static Mailbox *obtain( const String &, bool create = true );
 
     bool operator <=( const Mailbox &b ) {
-        return id() <= b.id();
+        if ( id() && b.id() )
+            return id() <= b.id();
+        return name() <= b.name();
     }
 
 private:

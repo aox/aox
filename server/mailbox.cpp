@@ -1,12 +1,12 @@
 #include "mailbox.h"
 
 #include "dict.h"
+#include "arena.h"
 #include "scope.h"
 #include "event.h"
 #include "query.h"
 #include "string.h"
 #include "stringlist.h"
-#include "eventloop.h"
 #include "log.h"
 
 
@@ -26,6 +26,8 @@ public:
 
 
 static Mailbox *root = 0;
+static Arena * arena = 0;
+static Query *query = 0;
 
 
 /*! \class Mailbox mailbox.h
@@ -49,13 +51,12 @@ static Mailbox *root = 0;
 */
 
 
-static Query *query;
-static EventLoop *loop;
+/*! This static function is responsible for building a tree of
+    Mailboxes from the contents of the mailboxes table. It expects to
+    be called by ::main().
 
-
-/*! This static function is responsible for building a tree of Mailboxes
-    from the contents of the mailboxes table. It expects to be called by
-    ::main().
+    All Mailbox objects are allocated on the Arena used while setup()
+    is called.
 */
 
 void Mailbox::setup()
@@ -66,60 +67,29 @@ void Mailbox::setup()
             if ( !query->done() )
                 return;
 
-            // We'll compose an ocd-like message for each Mailbox, and
-            // use update() to build the in-memory tree representation
-            // of the mailboxes table.
-
             while ( query->hasResults() ) {
                 Row *r = query->nextRow();
 
-                String m = r->getString( "name" );
-                StringList data;
-
-                String id = fn( r->getInt( "id" ) );
-                data.append( "id=" + id );
-
-                String deleted = "f";
-                if ( r->getBoolean( "deleted" ) )
-                    deleted = "t";
-                data.append( "deleted=" + deleted );
-
-                String uidnext = fn( r->getInt( "uidnext" ) );
-                data.append( "uidnext=" + uidnext );
-
-                String uidvalidity = fn( r->getInt( "uidvalidity" ) );
-                data.append( "uidvalidity=" + uidvalidity );
-
-                m.append( ' ' );
-                m.append( data.join( "," ) );
-
-                update( m );
+                Mailbox * m = obtain( r->getString( "name" ) );
+                m->d->id = r->getInt( "id" );
+                m->d->deleted = r->getBoolean( "deleted" );
+                m->d->uidnext = r->getInt( "uidnext" );
+                m->d->uidvalidity = r->getInt( "uidvalidity" );
             }
 
             if ( query->failed() )
                 log( Log::Disaster, "Couldn't create mailbox tree." );
-            loop->stop();
         }
     };
 
-    root = new Mailbox( "/" );
+    ::arena = Scope::current()->arena();
+    ::root = new Mailbox( "/" );
 
-    Database *db = Database::handle();
-    if ( !db ) {
-        log( Log::Disaster, "Couldn't acquire a database handle." );
-        return;
-    }
-
+    // the query and MailboxReader uses this Arena. The startup arena
+    // will see a lot of activity...
     query = new Query( "select * from mailboxes", new MailboxReader );
-    db->enqueue( query );
-    db->execute();
-
-    // The main event loop hasn't been started yet, so we create one for
-    // our database handle, and stop it when they query is completed.
-
-    loop = new EventLoop;
-    loop->addConnection( db );
-    loop->start();
+    query->setStartUpQuery( true );
+    query->execute();
 }
 
 
@@ -216,16 +186,6 @@ List< Mailbox > *Mailbox::children() const
 }
 
 
-static int nextComponent( const String &name, uint slash, String &s )
-{
-    int next = name.find( '/', slash );
-    if ( next == -1 )
-        next = name.length();
-    s = name.mid( 0, next );
-    return next+1;
-}
-
-
 /*! Returns a pointer to a Mailbox named \a name, or 0 if the named
     mailbox doesn't exist. If \a deleted is true, deleted mailboxes
     are included in the search. The \a name must be fully-qualified.
@@ -233,121 +193,77 @@ static int nextComponent( const String &name, uint slash, String &s )
 
 Mailbox *Mailbox::find( const String &name, bool deleted )
 {
-    if ( name[0] != '/' )
+    Mailbox * m = obtain( name, false );
+    if ( !m )
         return 0;
-
-    // Search for a Mailbox corresponding to each component of the name.
-
-    Mailbox *m = root;
-    int slash = 1;
-
-    do {
-        String s;
-        slash = nextComponent( name, slash, s );
-
-        if ( s.length() == 0 )
-            break;
-
-        List< Mailbox > *children = m->children();
-        if ( !children )
-            break;
-
-        List< Mailbox >::Iterator it = children->first();
-        while ( it ) {
-            if ( it->name() == s ) {
-                m = it;
-                if ( (uint)slash > name.length() )
-                    return m;
-                break;
-            }
-            it++;
-        }
-        if ( !it )
-            break;
-    } while ( (uint)slash < name.length() );
-
-    return 0;
+    if ( m->deleted() && !deleted )
+        return 0;
+    if ( m->synthetic() )
+        return 0;
+    return m;
 }
 
 
-/*! This function uses the string \a s to update the Mailbox tree.
-    (This description is inadequate. Will be fixed when the picture
-    clears sufficiently.)
+/*! Obtain a mailbox with \a name, creating Mailbox objects as
+    necessary and permitted.
+
+    if \a create is true (this is the default) and there is no such Mailbox,
+    obtain() creates one, including parents, etc.
+
+    If \a create is false and there is no such Mailbox, obtain()
+    returns null without creating anything.
 */
 
-void Mailbox::update( const String &s )
+Mailbox * Mailbox::obtain( const String & name, bool create )
 {
-    int i = s.find( ' ' );
-    String name = s.mid( 0, i );
-    Dict< String > data;
+    if ( name[0] != '/' )
+        return 0;
 
-    int last = i+1;
-    do {
-        i = s.find( ',', last );
+    uint i = name.length();
+    while ( i > 0 && name[i] != '/' )
+        i--;
+    Mailbox * parent = root;
+    if ( i > 0 )
+        parent = obtain( name.mid( 0, i ), create );
+    if ( !parent )
+        return 0;
 
-        String datum;
-        if ( i > 0 ) {
-            datum = s.mid( last, i-last );
-            last = i+1;
-        }
-        else {
-            datum = s.mid( last );
-        }
-
-        int eq = datum.find( '=' );
-        data.insert( datum.mid( 0, eq ),
-                     new String( datum.mid( eq+1 ) ) );
-    } while ( i > 0 );
-
-    Mailbox *m = root;
-    int slash = 1;
-
-    do {
-        String s;
-        slash = nextComponent( name, slash, s );
-
-        List< Mailbox > *children = m->children();
-        if ( !children )
-            children = m->d->children = new List< Mailbox >;
-
-        List< Mailbox >::Iterator it = children->first();
-        while ( it ) {
-            if ( it->name() == s ) {
-                m = it;
-                break;
-            }
-            it++;
-        }
-        if ( !it ) {
-            if ( (uint)slash > name.length() )
-                m = new Mailbox( name );
-            else
-                m = new Mailbox( name.mid( 0, slash-1 ) );
-            children->append( m );
-        }
-    } while ( (uint)slash < name.length() );
-
-    if ( data.contains( "id" ) ) {
-        uint id = data.find( "id" )->number( 0 );
-        m->d->id = id;
+    List<Mailbox>::Iterator it( parent->children()->first() );
+    while ( it ) {
+        if ( it->name() == name )
+            return it;
+        ++it;
     }
+    if ( !create )
+        return 0;
 
-    if ( data.contains( "deleted" ) ) {
-        String deleted = *data.find( "deleted" );
+    Scope x( ::arena );
+    Mailbox * m = new Mailbox( name );
+    parent->d->children->append( m );
+    return m;
+}
 
-        if ( deleted == "t" )
-            m->d->deleted = true;
-        else
-            m->d->deleted = false;
-    }
 
-    if ( data.contains( "uidnext" ) ) {
-        uint uidnext = data.find( "uidnext" )->number( 0 );
-        m->d->uidnext = uidnext;
-    }
+/*! Changes this Mailbox's uidnext value to \a n. No checks are
+    performed - although uidnext should monotonically increase, this
+    function gives you total liberty.
 
-    if ( data.contains( "uidvalidity" ) ) {
-        uint uidvalidity = data.find( "uidvalidity" )->number( 0 );
-        m->d->uidvalidity = uidvalidity;
-    }
+    Only OCClient is meant to call this function. Calling it elsewhere
+    will likely disturb either OCClient, ocd, ImapSession or Arnt.
+*/
+
+void Mailbox::setUidnext( uint n )
+{
+    d->uidnext = n;
+}
+
+
+/*! Changes this Mailbox's deletedness to \a del.
+
+    Only OCClient is meant to call this function -- see setUidnext().
+*/
+
+void Mailbox::setDeleted( bool del )
+{
+    d->deleted = del;
 }
