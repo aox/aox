@@ -274,7 +274,7 @@ void Postgres::backendStartup( char type )
         setTimeout( 0 );
         log( "PostgreSQL: Ready for queries" );
         d->startup = false;
-        updateSchema();
+        // updateSchema();
         break;
 
     case 'K':
