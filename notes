@@ -272,14 +272,6 @@ Logging to syslog
   it can't reopen the logfile.
 
 
-Don't depend on md5sum
-
-  Right now our installer expects md5sum to be present. However, only
-  linux comes with md5sum universally.
-
-  That's a rather bad reason to be linux-only.
-
-
 We need a SIEVE interpreter.
 
 

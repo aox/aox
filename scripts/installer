@@ -40,6 +40,15 @@ else
     PGCTL=$PGBIN/pg_ctl
 fi
 
+if [ -x /sbin/md5 ]; then
+    MD5=/sbin/md5;
+elif [ -x /usr/bin/md5sum ]; then
+    MD5=/usr/bin/md5sum
+else
+    echo "Cannot find md5 or md5sum"
+    exit 1;
+fi
+
 ## Set up the database.
 #
 # Do we need to create the oryx user?
@@ -48,7 +57,7 @@ EXISTS="select usename from pg_catalog.pg_user where usename = '$DBUSER'"
 EXISTS=$(su - $PGUSER -c "$PSQL -d template1 -Atqc \"$EXISTS\"")
 if [ ! $EXISTS ]; then
     if [ ! $DBPASS ]; then
-        DBPASS=$(dd if=/dev/urandom bs=1 count=8 2>/dev/null|md5sum|cut -b-32)
+        DBPASS=$(dd if=/dev/urandom bs=8 count=1 2>/dev/null|$(MD5)|cut -b-32)
     fi
     CREATE="create user $DBUSER with encrypted password '$DBPASS'"
     if [ $TELL = no ]; then
