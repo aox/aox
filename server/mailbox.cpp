@@ -220,7 +220,11 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
         parent = obtain( name.mid( 0, i ), create );
     if ( !parent )
         return 0;
+    if ( !create && !parent->children() )
+        return 0;
 
+    if ( !parent->children() )
+        parent->d->children = new List<Mailbox>;
     List<Mailbox>::Iterator it( parent->children()->first() );
     while ( it ) {
         if ( it->name() == name )
