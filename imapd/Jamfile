@@ -42,13 +42,18 @@ Struct datefields.inc : datefields.test ;
 
 # build the .o files in this directory
 
-Build imapdmain : imapd.cpp ;
-Build imap : imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp
-    squery.cpp smtp.cpp imapsession.cpp ;
-Build message : address.cpp parser.cpp date.cpp header.cpp mimefields.cpp
-    message.cpp ;
+Build ocdmain : ocd.cpp ;
+Build ocd : ocserver.cpp ocadmin.cpp ;
+
 Build logdmain : logd.cpp ;
 Build logd : logserver.cpp ;
+
+Build imapdmain : imapd.cpp ;
+Build imap : imap.cpp command.cpp occlient.cpp set.cpp mailbox.cpp
+    squery.cpp smtp.cpp imapsession.cpp cccp.cpp ;
+
+Build message : address.cpp parser.cpp date.cpp header.cpp
+    mimefields.cpp message.cpp ;
 
 Build database : dbclient.cpp cache.cpp query.cpp addressquery.cpp
     injector.cpp ;
@@ -71,18 +76,20 @@ actions together Doc2 {
     qdoc -m ../doc/man/man3 -w ../doc/html $(>)
 }
 
-Doc doc : imap message logd database server lib ;
+Doc doc : imap message ocd logd database server lib ;
 
 # the programs. these need to be last. magic. all Program calls need
 # to be after all Build calls, since the Build puts object files into
 # the sets used by Build.
 
-Program imapd : imap message imapdmain database server lib ;
-LINKLIBS on imapd = -lcrypt ;
+Program ocd : ocd ocdmain server lib ;
+LINKLIBS on ocd = ;
 
 Program logd : logd logdmain server lib ;
 LINKLIBS on logd = ;
 
-Program runtests : imap message logd database server lib runtestsmain ;
-LINKLIBS on runtests = -lcrypt ;
+Program imapd : imap imapdmain database message server lib ;
+LINKLIBS on imapd = -lcrypt ;
 
+Program runtests : runtestsmain imap logd database message server lib ;
+LINKLIBS on runtests = -lcrypt ;

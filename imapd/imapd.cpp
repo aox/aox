@@ -1,16 +1,17 @@
-#include "test.h"
+#include "global.h"
 #include "arena.h"
 #include "scope.h"
+#include "test.h"
+#include "configuration.h"
+#include "log.h"
+#include "occlient.h"
+#include "database.h"
+#include "mailbox.h"
 #include "listener.h"
-#include "loop.h"
-#include "global.h"
 #include "imap.h"
 #include "cccp.h"
 #include "smtp.h"
-#include "log.h"
-#include "configuration.h"
-#include "database.h"
-#include "mailbox.h"
+#include "loop.h"
 
 #include <stdlib.h>
 
@@ -24,6 +25,7 @@ int main( int, char *[] )
     Configuration::makeGlobal( ".imapdrc" );
 
     Log::setup();
+    OCClient::setup();
     Database::setup();
     Mailbox::setup();
 
