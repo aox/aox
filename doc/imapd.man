@@ -18,6 +18,35 @@ is configured using
 and
 .BR imapd.conf (5).
 There are no command-line options.
+.SH IMAP
+.B imapd
+supports IMAP4rev1 as specified in RFC 3501, with
+extensions from the following documents.
+.IP
+RFC 3501: STARTTLS, LOGINDISABLED.
+.IP
+RFC 2088: LITERAL+.
+.IP
+RFC 2177: IDLE.
+.IP
+RFC 2971: ID.
+.IP
+RFC 2342: NAMESPACE.
+.IP
+RFC 3691: UNSELECT.
+.IP
+RFC 2245: AUTH=ANONYMOUS.
+.IP
+RFC 2595: AUTH=PLAIN.
+.IP
+RFC 2195: AUTH=CRAM-MD5.
+.IP
+RFC 2831: AUTH=DIGEST-MD5.
+.IP
+draft-siemborski-imap-sasl-initial-response: SASL-IR.
+.PP
+http://www.oryx.com/mailstore/imap.html elaborates more on the IMAP
+support in Mailstore.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
