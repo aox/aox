@@ -438,137 +438,177 @@ Row *Query::nextRow()
 Row::Row( uint num, Column *c )
     : n( num ), columns( c )
 {
+    // One could build a Dict< Column > here to supplant findColumn, but
+    // for a handful of columns, who cares?
 }
 
 
-/*! This private function returns a pointer to the Column named \a field
-    in this Row, or 0 if there is no such column.
+/*! Returns true if the column at index \a i exists and is NULL, and
+    false in all other cases.
 */
 
-Row::Column *Row::findColumn( const String &field ) const
+bool Row::isNull( uint i ) const
 {
-    uint i = 0;
-    while ( i < n ) {
-        if ( columns[i].name == field )
-            return &columns[i];
-        i++;
-    }
-    return 0;
-}
-
-
-/*! This helper function logs an error message complaining that a
-    search for \a field either did not succeed or that the \a result
-    was not of the right \a type.
-*/
-
-void Row::logDisaster( Column * result, const String & field,
-                       Database::Type type ) const
-{
-    if ( !result )
-        log( Log::Disaster, "Schema mismatch: Did not find Field " + field +
-             " (of type " + Database::typeName( type ) + ")" );
-    else
-        log( Log::Disaster, "Schema mismatch: Field " +
-             field + " has type " + Database::typeName( result->type ) +
-             ", while the caller expects " + 
-             Database::typeName( type ) );
-}
-
-
-/*! Returns true if \a field exists and is null, and false in all
-    other cases. Logs a disaster if \a field does not exist.
-*/
-
-bool Row::isNull( const String & field ) const
-{
-    Column *c = findColumn( field );
-
-    if ( !c )
-        log( Log::Disaster, "Did not find Field " + field );
-    else if ( c->length == -1 )
-        return true;
-
-    return false;
-}
-
-
-/*! If this Row contains a Column of boolean type named \a field, this
-    function returns its value. It returns false iif the field is NULL,
-    unknown, or not a boolean value.
-*/
-
-bool Row::getBoolean( const String &field ) const
-{
-    Column *c = findColumn( field );
-
-    if ( !c || c->type != Database::Boolean ) {
-        logDisaster( c, field, Database::Boolean );
+    if ( badFetch( i ) || columns[i].length != -1 )
         return false;
-    }
-    else if ( c->length == -1 ) {
-        log( Log::Error, "Boolean Field " + field + " is unexpectedly null" );
-        return false;
-    }
-
-    if ( c->value[0] != 0 )
-        return true;
-    return false;
+    return true;
 }
 
 
-/*! If this Row contains a Column of integer type named \a field, this
-    function returns its value. It returns 0 if the field is NULL,
-    unknown, or not an integer.
+/*! \overload
+    As above, but returns true only if the column named \a f is NULL.
 */
 
-int Row::getInt( const String &field ) const
+bool Row::isNull( const String &f ) const
 {
-    Column *c = findColumn( field );
+    int i = findColumn( f );
+    if ( i < 0 )
+        return false;
+    return isNull( i );
+}
 
-    if ( !c || c->type != Database::Integer ) {
-        logDisaster( c, field, Database::Integer );
+
+/*! Returns the boolean value of the column at index \a i if it exists
+    and is NOT NULL, and false otherwise.
+*/
+
+bool Row::getBoolean( uint i ) const
+{
+    if ( badFetch( i, Database::Boolean ) )
+        return false;
+    return columns[i].value[0];
+}
+
+
+/*! \overload
+    As above, but returns the boolean value of the column named \a f.
+*/
+
+bool Row::getBoolean( const String &f ) const
+{
+    int i = findColumn( f );
+    if ( i < 0 )
+        return false;
+    return getBoolean( i );
+}
+
+
+/*! Returns the integer value of the column at index \a i if it exists
+    and is NOT NULL, and 0 otherwise.
+*/
+
+int Row::getInt( uint i ) const
+{
+    if ( badFetch( i, Database::Integer ) )
         return 0;
-    }
-    else if ( c->length == -1 ) {
-        log( Log::Error, "Integer Field " + field + " is unexpectedly null" );
-        return 0;
-    }
 
     int n;
+    Column *c = &columns[i];
+
     switch ( c->length ) {
     case 1:
         n = c->value[0];
         break;
+
     case 2:
         n = c->value[0] << 8 | c->value[1];
         break;
+
     case 4:
         n = c->value[0] << 24 | c->value[1] << 16 |
             c->value[2] << 8  | c->value[3];
         break;
+
     default:
-        log( Log::Error, "Integer field " + field + " has invalid length " +
+        log( Log::Disaster,
+             "Integer field " + c->name + " has invalid length " +
              fn( c->length ) );
         break;
     }
+
     return n;
 }
 
 
-/*! If this Row contains a Column of string type named \a field, this
-    function returns its String value, and an empty string if the
-    field is NULL, unknown, or not a string.
+/*! \overload
+    As above, but returns the integer value of the column named \a f.
 */
 
-String Row::getString( const String &field ) const
+int Row::getInt( const String &f ) const
 {
-    Column *c = findColumn( field );
-    if ( c && c->type == Database::Bytes )
-        return c->value;
+    int i = findColumn( f );
+    if ( i < 0 )
+        return 0;
+    return getInt( i );
+}
 
-    logDisaster( c, field, Database::Bytes );
-    return "";
+
+/*! Returns the string value of the column at index \a i if it exists
+    and is NOT NULL, and an empty string otherwise.
+*/
+
+String Row::getString( uint i ) const
+{
+    if ( badFetch( i, Database::Bytes ) )
+        return "";
+    return columns[i].value;
+}
+
+
+/*! \overload
+    As above, but returns the string value of the column named \a f.
+*/
+
+String Row::getString( const String &f ) const
+{
+    int i = findColumn( f );
+    if ( i < 0 )
+        return "";
+    return getString( i );
+}
+
+
+/*! This private function returns the index of the column named \a f, if
+    if exists, and -1 if it does not.
+*/
+
+int Row::findColumn( const String &f ) const
+{
+    uint i = 0;
+    while ( i < n ) {
+        if ( columns[i].name == f )
+            return i;
+        i++;
+    }
+
+    log( Log::Disaster, "Unknown column " + f );
+    return -1;
+}
+
+
+/*! This private method returns false only if the column at index \a i
+    exists, is NOT NULL, and (optionally) if its type matches \a t. If
+    not, it logs a disaster and returns true.
+*/
+
+bool Row::badFetch( uint i, Database::Type t ) const
+{
+    String s;
+
+    if ( i >= n )
+        s = "No column at index #" + fn( i );
+    else if ( columns[i].length == -1 )
+        s = "Column " + columns[i].name + " is NULL.";
+    else if ( t != Database::Unknown &&
+              columns[i].type != t )
+        s = "Column " + columns[i].name + " is of type " +
+            Database::typeName( columns[i].type ) + ", not " +
+            Database::typeName( t );
+    else
+        return false;
+
+    log( Log::Disaster, s );
+    return true;
 }
 
 

@@ -121,8 +121,8 @@ private:
     uint n;
     Column *columns;
 
-    Column *findColumn( const String & ) const;
-    void logDisaster( Column *, const String &, Database::Type ) const;
+    int findColumn( const String & ) const;
+    bool badFetch( uint, Database::Type = Database::Unknown ) const;
 };
 
 
