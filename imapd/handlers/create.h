@@ -15,7 +15,7 @@ public:
 
 private:
     String name;
-    class Query *q, *q2;
+    class Query *q;
 };
 
 
