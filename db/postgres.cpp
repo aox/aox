@@ -27,6 +27,7 @@ public:
         : status( Idle ),
           active( false ), startup( false ), authenticated( false ),
           reserved( false ), unknownMessage( false ),
+          identBreakageSeen( false ),
           keydata( 0 ), description( 0 ), transaction( 0 )
     {}
 
@@ -38,6 +39,7 @@ public:
 
     bool reserved;
     bool unknownMessage;
+    bool identBreakageSeen;
 
     PgKeyData *keydata;
     Dict< String > params;
@@ -428,9 +430,31 @@ void Postgres::unknown( char type )
                     int b = s.find( '"' );
                     int e = s.find( '"', b+1 );
                     s = s.mid( b+1, e-b-1 ); // rest-of-string if e==-1 ;)
-                    log( "PostgreSQL refuses authentication because this "
-                         "process is not running as user " + s,
-                         Log::Disaster );
+                    if ( s == Configuration::text(Configuration::JailUser) &&
+                         self().protocol() != Endpoint::Unix &&
+                         Configuration::toggle( Configuration::Security ) &&
+                         !d->identBreakageSeen ) {
+                        // If we connected via ipv4 or ipv6, and we
+                        // did it so early that postgres had a chance
+                        // to reject us, we can try again. We do that
+                        // only once, and only if we believe it may
+                        // succeed.
+                        d->identBreakageSeen = true;
+                        log( "PostgreSQL demanded IDENT, "
+                             "which did not match during startup. Retrying.",
+                             Log::Info );
+                        Endpoint pg( peer() );
+                        close();
+                        connect( pg );
+                    }
+                    else {
+                        log( "PostgreSQL refuses authentication because this "
+                             "process is not running as user " + s,
+                             Log::Disaster );
+                        log( "See "
+                             "http://www.oryx.com/faq/mailstore.html#ident",
+                             Log::Info );
+                    }
                 }
                 else {
                     error( msg.message() );
