@@ -28,4 +28,7 @@ int main( int, char *[] )
     Configuration::global()->report();
 
     Loop::start();
+
+    Logger::global()->log( "IMAP server stopped" );
+    Logger::global()->commit();
 }
