@@ -83,6 +83,14 @@ Postgres::Postgres()
 
 /*! \reimp */
 
+Postgres::~Postgres()
+{
+    Loop::removeConnection( this );
+}
+
+
+/*! \reimp */
+
 bool Postgres::ready()
 {
     return d->pending.count() <= 5 && !d->reserved;

@@ -5,6 +5,7 @@
 #include "buffer.h"
 #include "list.h"
 #include "file.h"
+#include "loop.h"
 #include "log.h"
 
 // fprintf, stderr
@@ -61,6 +62,15 @@ LogServer::LogServer( int s )
     : Connection( s, Connection::LogServer ), d( new LogServerData )
 {
     d->a = new Arena;
+    Loop::addConnection( this );
+}
+
+
+/*! \reimp */
+
+LogServer::~LogServer()
+{
+    Loop::removeConnection( this );
 }
 
 

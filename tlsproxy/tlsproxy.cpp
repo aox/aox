@@ -16,7 +16,14 @@ class TLSProxy
 public:
     TLSProxy( int fd )
         : Connection( fd, Connection::TLSProxy )
-    {}
+    {
+        Loop::addConnection( this );
+    }
+
+    ~TLSProxy()
+    {
+        Loop::removeConnection( this );
+    }
 
     void react( Event ) {
     }

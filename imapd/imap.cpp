@@ -8,6 +8,7 @@
 #include "mailbox.h"
 #include "command.h"
 #include "handlers/capability.h"
+#include "loop.h"
 #include "log.h"
 #include "configuration.h"
 #include "imapsession.h"
@@ -85,6 +86,8 @@ IMAP::IMAP( int s )
     enqueue( "* OK [CAPABILITY " + Capability::capabilities( this ) + "] " +
              Configuration::hostname() + " IMAP Server\r\n" );
     setTimeoutAfter( 1800 );
+
+    Loop::addConnection( this );
 }
 
 
@@ -92,7 +95,9 @@ IMAP::IMAP( int s )
 
 IMAP::~IMAP()
 {
+    Loop::removeConnection( this );
     delete d;
+    d = 0;
 }
 
 

@@ -18,7 +18,14 @@ class LogClientHelper
 public:
     LogClientHelper( int fd, LogClient *client )
         : Connection( fd, Connection::LoggingClient ), owner( client )
-    {}
+    {
+        Loop::addConnection( this );
+    }
+
+    ~LogClientHelper()
+    {
+        Loop::removeConnection( this );
+    }
 
     // The log server isn't supposed to send us anything.
     void react( Event e ) {
@@ -96,7 +103,5 @@ void LogClient::setup()
         perror( "LogClient: connect() returned" );
         exit( -1 );
     }
-
     client->c->setBlocking( false );
-    Loop::addConnection( client->c );
 }

@@ -3,6 +3,7 @@
 #include "list.h"
 #include "string.h"
 #include "buffer.h"
+#include "loop.h"
 
 
 class OCSData {
@@ -27,6 +28,16 @@ OCServer::OCServer( int s )
     : Connection( s, Connection::OryxServer ), d( new OCSData )
 {
     servers.append( this );
+    Loop::addConnection( this );
+}
+
+
+/*! \reimp */
+
+OCServer::~OCServer()
+{
+    servers.take( servers.find( this ) );
+    Loop::removeConnection( this );
 }
 
 
@@ -37,10 +48,6 @@ void OCServer::react( Event e )
     switch ( e ) {
     case Read:
         parse();
-        break;
-
-    case Close:
-        servers.take( servers.find( this ) );
         break;
 
     default:

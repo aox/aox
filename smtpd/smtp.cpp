@@ -12,6 +12,7 @@
 #include "header.h"
 #include "injector.h"
 #include "mailbox.h"
+#include "loop.h"
 
 
 class SmtpDbClient: public EventHandler
@@ -37,21 +38,6 @@ void SmtpDbClient::execute()
         owner->reportInjection();
 }
 
-
-
-/*! \class SMTP smtp.h
-    The SMTP class implements a basic SMTP server.
-
-    This is not a full MTA, merely an SMTP server that can be used for
-    message injection. It will not relay to any other server.
-
-    There is also a closely related LMTP class, a subclass of this.
-
-    This class implements SMTP as specified by RFC 2821, with the
-    extensions specified by RFC 1651 (EHLO), RFC 1652 (8BITMIME), RFC
-    2197 (pipelining) and RFC 2487 (STARTTLS). In some ways, this parser
-    is a little too lax.
-*/
 
 class SMTPData
 {
@@ -86,6 +72,20 @@ public:
 };
 
 
+/*! \class SMTP smtp.h
+    The SMTP class implements a basic SMTP server.
+
+    This is not a full MTA, merely an SMTP server that can be used for
+    message injection. It will not relay to any other server.
+
+    There is also a closely related LMTP class, a subclass of this.
+
+    This class implements SMTP as specified by RFC 2821, with the
+    extensions specified by RFC 1651 (EHLO), RFC 1652 (8BITMIME), RFC
+    2197 (pipelining) and RFC 2487 (STARTTLS). In some ways, this parser
+    is a little too lax.
+*/
+
 /*!  Constructs an (E)SMTP server for socket \a s. */
 
 SMTP::SMTP( int s )
@@ -98,6 +98,8 @@ SMTP::SMTP( int s )
 
     respond( 220, "ESMTP " + Configuration::hostname() );
     sendResponses();
+
+    Loop::addConnection( this );
 }
 
 
@@ -105,6 +107,7 @@ SMTP::SMTP( int s )
 
 SMTP::~SMTP()
 {
+    Loop::removeConnection( this );
     delete d->injector;
     delete d->helper;
     d = 0;

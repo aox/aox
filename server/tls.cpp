@@ -9,7 +9,7 @@
 
 
 static Arena tlsArena;
-static class TLSClient *client = 0;
+static class TLSClient *client;
 
 
 // This is our persistent connection to the TLS proxy.
@@ -19,9 +19,12 @@ class TLSClient
 public:
     TLSClient( int s )
         : Connection( s, Connection::TLSClient )
-    {}
+    {
+        Loop::addConnection( this );
+    }
 
     ~TLSClient() {
+        Loop::removeConnection( this );
         client = 0;
     }
 
@@ -38,6 +41,7 @@ public:
 */
 
 /*! This function connects to the TLS proxy server.
+    It expects to be called by ::main().
 */
 
 void TLS::setup()
@@ -54,5 +58,4 @@ void TLS::setup()
     }
 
     client->setBlocking( false );
-    Loop::addConnection( client );
 }

@@ -3,6 +3,7 @@
 #include "string.h"
 #include "buffer.h"
 #include "ocserver.h"
+#include "loop.h"
 
 
 class OCAData {
@@ -23,6 +24,15 @@ public:
 OCAdmin::OCAdmin( int s )
     : Connection( s, Connection::OryxConsole ), d( new OCAData )
 {
+    Loop::addConnection( this );
+}
+
+
+/*! \reimp */
+
+OCAdmin::~OCAdmin()
+{
+    Loop::removeConnection( this );
 }
 
 

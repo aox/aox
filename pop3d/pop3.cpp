@@ -2,6 +2,7 @@
 
 #include "string.h"
 #include "buffer.h"
+#include "loop.h"
 #include "log.h"
 
 
@@ -37,6 +38,8 @@ POP3::POP3( int s )
 {
     ok( "POP3 server ready." );
     setTimeoutAfter( 600 );
+
+    Loop::addConnection( this );
 }
 
 
@@ -44,6 +47,7 @@ POP3::POP3( int s )
 
 POP3::~POP3()
 {
+    Loop::removeConnection( this );
 }
 
 

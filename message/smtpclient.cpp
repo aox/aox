@@ -45,6 +45,14 @@ SmtpClient::SmtpClient( Message * m, Address * a )
 
 /*! \reimp */
 
+SmtpClient::~SmtpClient()
+{
+    Loop::removeConnection( this );
+}
+
+
+/*! \reimp */
+
 void SmtpClient::react( Event e )
 {
     switch ( e ) {

@@ -19,6 +19,11 @@ public:
             Loop::addConnection( this );
     }
 
+    ~Listener()
+    {
+        Loop::removeConnection( this );
+    }
+
     void read() {}
     void write() {}
     bool canRead() { return true; }
@@ -45,7 +50,6 @@ public:
         if ( s >= 0 ) {
             Connection *c = new T(s);
             c->setState( Connected );
-            Loop::addConnection( c );
         }
     }
 

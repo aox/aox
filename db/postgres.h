@@ -11,6 +11,7 @@ class Postgres
 {
 public:
     Postgres();
+    ~Postgres();
 
     bool ready();
     void enqueue( class Query * );

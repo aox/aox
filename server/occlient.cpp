@@ -29,6 +29,15 @@ static class OCClient *client = 0;
 OCClient::OCClient( int s )
     : Connection( s, Connection::OryxClient ), d( new OCCData )
 {
+    Loop::addConnection( this );
+}
+
+
+/*! \reimp */
+
+OCClient::~OCClient()
+{
+    Loop::removeConnection( this );
 }
 
 
@@ -57,7 +66,6 @@ void OCClient::setup()
     }
 
     client->setBlocking( false );
-    Loop::addConnection( client );
 }
 
 
