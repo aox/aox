@@ -8,9 +8,6 @@ ocd needs work (mike@waspfactory.org)
   3. Should synchronise field names etc.
 
 
-APPEND doesn't work (mike@waspfactory.org)
-
-
 We need top-level message/rfc822 support
 
 
@@ -30,6 +27,9 @@ We need a mechanism to open more than one database handle.
   enormous amount of data before we can start responding to the client.
 
   In this case, we might also want to use a cursor. Discuss.
+
+
+APPEND doesn't handle an empty flag list correctly.
 
 
 User/Mailbox need a bit of an overhaul.
