@@ -802,7 +802,12 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
     }
 
     if ( extended ) {
-        l.append( "NIL" ); // MD5.
+        String md5;
+        HeaderField *f = hdr->field( HeaderField::ContentMD5 );
+        if ( f )
+            md5 = f->value();
+
+        l.append( imapQuoted( md5, NString ) );
         l.append( dispositionString( hdr->contentDisposition() ) );
         l.append( languageString( hdr->contentLanguage() ) );
         l.append( imapQuoted( hdr->contentLocation(), NString ) );
