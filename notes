@@ -1,9 +1,3 @@
-LIST/LSUB fixes.
-
-  There's lots of horrible breakage here (for example, the reference
-  name is apparently just ignored).
-
-
 Injector fixes:
 
   1. Better error handling is urgently required.
@@ -14,15 +8,10 @@ Message fixes:
   1. Extra \r\n in the bodypart for o/1
 
 
-FETCH fixes:
+LIST/LSUB fixes.
 
-  Currently we're always peeking; "fetch 1 body[1]" does not change
-  the seen flag.
-
-
-EXPUNGE fixes:
-
-  1. Other brokenness.
+  There's lots of horrible breakage here (for example, the reference
+  name is apparently just ignored).
 
 
 Schema documentation
@@ -47,6 +36,17 @@ Fix shutdown
   there's no practical way to shutdown using ocd/ocadmin.
 
 
+FETCH fixes:
+
+  Currently we're always peeking; "fetch 1 body[1]" does not change
+  the seen flag.
+
+
+EXPUNGE fixes:
+
+  We need to do what RFC2180 says.
+
+
 Bodypart sharing
 
   We're doing an in-memory Dict< hash > right now.
@@ -56,7 +56,7 @@ Bodypart sharing
   now. A great pity, but there it is.
 
 
-Using SHA-1 to hash bodyparts instead of MD5.
+Use SHA-1 to hash bodyparts instead of MD5.
 
   MD5 is broken, and we should be moving away from it.
   AMS needs to take code from RFC 3174 and make core/sha1.cpp.
