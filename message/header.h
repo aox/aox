@@ -25,6 +25,7 @@ public:
     bool valid() const;
     String error() const;
 
+    void add( HeaderField * );
     void add( const String &, const String & );
     void removeField( HeaderField::Type );
 
