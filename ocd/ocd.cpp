@@ -25,10 +25,11 @@ int main()
     global.setLog( &l );
     LogClient::setup();
 
+    log( Test::report() );
+
     Listener< OCServer >::create( "Cluster coordination", "", 2050 );
     Listener< OCAdmin >::create( "Cluster administration", "", 2051 );
 
-    log( Test::report() );
     Configuration::global()->report();
     l.commit();
 

@@ -97,17 +97,17 @@ void LogServer::parse()
 {
     Scope x( d->a );
 
-    String *s = readBuffer()->removeLine();
-    if ( s )
+    String *s;
+    while ( ( s = readBuffer()->removeLine() ) != 0 )
         processLine( *s );
 }
 
 
 /*! Adds a single \a line to the log output.
 
-    The line must consist of a client identifier followed
-    by the message severity, followed by a log message,
-    separated by spaces.
+    The line must consist of a client identifier (numbers and slashes)
+    followed by a space, the message facility, a slash and a severity,
+    followed by a space and the log message.
 */
 
 void LogServer::processLine( const String &line )
@@ -224,30 +224,32 @@ void LogServer::commit( String tag,
 }
 
 
-/*! Saves \a line under \a tag, \a facility, and \a severity, for later
-    logging by commit(). With one exception: If \a tag is 0, \a line is
-    logged immediately.
+/*! Saves \a line with tag \a t, facility \a f, and severity \a s in the
+    list of pending output lines. If \a f is Immediate, however, \a line
+    is logged immediately.
 */
 
-void LogServer::log( String tag, Log::Facility facility, Log::Severity severity,
+void LogServer::log( String t, Log::Facility f, Log::Severity s,
                      const String &line )
 {
-    // d->pending.append( new LogServerData::Line( tag, facility, severity, line ) );
-    output( tag, facility, severity, line );
+    if ( f == Log::Immediate )
+        output( t, f, s, line );
+    else
+        d->pending.append( new LogServerData::Line( t, f, s, line ) );
 }
 
 
-/*! This private function actually writes to the log file, reopening
-    it if necessary. \a tag, \a facility, and \a severity are converted
-    to text representations, \a line is logged as-is.
+/*! This private function actually writes \a line to the log file with
+    the \a tag, facility \a f, and severity \a s converted into their
+    textual representations.
 */
 
-void LogServer::output( String tag, Log::Facility facility,
-                        Log::Severity severity, const String &line )
+void LogServer::output( String tag, Log::Facility f, Log::Severity s,
+                        const String &line )
 {
     String msg;
 
-    msg.append( Log::facility( facility ) + "/" + Log::severity( severity ) );
+    msg.append( Log::facility( f ) + "/" + Log::severity( s ) );
     msg.append( ": " );
     msg.append( String::fromNumber( d->id, 36 ) + "/" + tag );
     msg.append( ": " );

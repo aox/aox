@@ -39,6 +39,7 @@ int main( int, char *[] )
 
     log( Test::report() );
     Configuration::global()->report();
+    l.commit();
 
     Loop::start();
 }

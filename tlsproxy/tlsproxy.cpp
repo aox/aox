@@ -29,11 +29,15 @@ int main( int, char *[] )
     Scope global( &firstArena );
 
     Configuration::makeGlobal( "/dev/null" );
-    
+
     Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();
 
     Listener< TLSProxy >::create( "TLS proxy", "127.0.0.1", 2443 );
+
+    Configuration::global()->report();
+    l.commit();
+
     Loop::start();
 }

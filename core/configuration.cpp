@@ -194,7 +194,7 @@ void Configuration::report()
     }
 
     if ( d->fileExists )
-        log( Log::Info, "While reading config file " + d->f + ":" );
+        log( Log::Debug, "While reading config file " + d->f + ":" );
     else if ( e )
         log( Log::Info, "Unable to open config file " + d->f );
 
@@ -210,7 +210,7 @@ void Configuration::report()
         j++;
     }
 
-    l.commit( Log::Info );
+    l.commit();
 }
 
 
@@ -488,7 +488,7 @@ void Configuration::makeGlobal( const String & s )
                             Log::Disaster );
     else if ( host == hn )
         ::global->d->error( "Using inferred hostname " + host,
-                            Log::Info );
+                            Log::Debug );
 
     ::hostname = new String( hn );
 }
