@@ -40,6 +40,14 @@ tls client support (smtp, postgresql)
 Bodypart sharing: How to serialise multiple duplicate-part injectors?
 
 
+Set up automatic injection regression/speed testing on penne after the
+Injector becomes stable again.
+
+
+Discuss the ever-present problem of content in unlabelled charsets and
+encodings.
+
+
 It would be nice if we could connect to the database as an unprivileged
 user, and have "ms migrate" ask for a different username and password to
 perform schema upgrades.
