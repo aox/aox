@@ -76,6 +76,10 @@ Console::Console()
     d->panes->insert( i, w );
     d->items->insert( w, i );
 
+    // select a pane to start with
+    d->paneList->setSelected( i, true );
+    d->paneList->setCurrentItem( i );
+
     w = new MailboxPane( this );
     d->stack->addWidget( w );
     i = new QListViewItem( d->paneList, tr( "Mailboxes" ) );
@@ -89,9 +93,6 @@ Console::Console()
     d->panes->insert( i, w );
     d->items->insert( w, i );
 #endif
-
-    d->paneList->setSelected( i, true ); // select a pane to start with
-    d->paneList->setCurrentItem( i );
 
     QAccel * quit = new QAccel( this, "Quit" );
     quit->insertItem( QKeySequence( CTRL + Key_Q ) );
