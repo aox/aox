@@ -74,6 +74,7 @@ void SmtpClient::react( Event e )
     case Timeout:
         log( Log::Error, "SMTP/LMTP server timed out" );
         Connection::setState( Closing );
+        d->owner->notify();
         break;
 
     case Connect:
@@ -81,8 +82,10 @@ void SmtpClient::react( Event e )
 
     case Error:
     case Close:
-        if ( d->sent != "quit" )
+        if ( d->sent != "quit" ) {
             log( Log::Error, "Unexpected close by server" );
+            d->owner->notify();
+        }
         break;
 
     case Shutdown:
