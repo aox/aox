@@ -483,26 +483,6 @@ String Fetch::envelope( Message * m )
     // envelope        = "(" env-date SP env-subject SP env-from SP
     //                   env-sender SP env-reply-to SP env-to SP env-cc SP
     //                   env-bcc SP env-in-reply-to SP env-message-id ")"
-    // 
-    // env-bcc         = "(" 1*address ")" / nil
-    // 
-    // env-cc          = "(" 1*address ")" / nil
-    // 
-    // env-date        = nstring
-    // 
-    // env-from        = "(" 1*address ")" / nil
-    // 
-    // env-in-reply-to = nstring
-    // 
-    // env-message-id  = nstring
-    // 
-    // env-reply-to    = "(" 1*address ")" / nil
-    // 
-    // env-sender      = "(" 1*address ")" / nil
-    // 
-    // env-subject     = nstring
-    // 
-    // env-to          = "(" 1*address ")" / nil
 }
 
 
@@ -513,5 +493,89 @@ String Fetch::envelope( Message * m )
 
 String Fetch::bodystructure( Message * m, bool extended )
 {
-    return ""; // just compile. I'll go on in a moment.
+    Header * h = m->header();
+    StringList l;
+
+    // body            = "(" (body-type-1part / body-type-mpart) ")"
+
+    ContentType * ct = h->contentType();
+
+    if ( ct->type() == "multipart" ) {
+        // body-type-mpart = 1*body SP media-subtype
+        //                   [SP body-ext-mpart]
+    }
+    else {
+        // body-type-1part=(body-type-basic / body-type-msg / body-type-text)
+        // body-type-basic = media-basic SP body-fields
+        //                     ; MESSAGE subtype MUST NOT be "RFC822"
+        // body-type-msg   = media-message SP body-fields SP envelope
+        //                   SP body SP body-fld-lines
+        // body-type-text  = media-text SP body-fields SP body-fld-lines
+
+        // media-basic, media-message and media-text are all the same:
+        l.append( imapQuoted( ct->type() ) );
+        l.append( imapQuoted( ct->subtype() ) );
+        
+        // body-fields = body-fld-param SP body-fld-id SP body-fld-desc SP
+        //               body-fld-enc SP body-fld-octets
+
+        // body-fld-param  = "(" string SP string *(SP string SP string) ")"
+        //                    / nil
+        StringList * params = ct->parameterList();
+        if ( !params || params->isEmpty() ) {
+            l.append( "NIL" );
+        }
+        else {
+            StringList p;
+            StringList::Iterator i( params->first() );
+            while ( i ) {
+                p.append( imapQuoted( *i ) );
+                p.append( imapQuoted( ct->parameter( *i ) ) );
+                ++i;
+            }
+            l.append( "(" + p.join( " " ) + ")" );
+        }
+
+        // body-fld-id     = nstring
+        // body-fld-desc   = nstring
+        l.append( imapQuoted( h->messageId( HeaderField::ContentId ) ) );
+        l.append( imapQuoted( h->contentDescription() ) );
+
+        // body-fld-enc    = (DQUOTE ("7BIT" / "8BIT" / "BINARY" / "BASE64"/
+        //                   "QUOTED-PRINTABLE") DQUOTE) / string
+        if ( h->contentTransferEncoding() ) {
+            switch( h->contentTransferEncoding()->encoding() ) {
+            case ContentTransferEncoding::Binary:
+                l.append( "\"8BIT\"" ); // hm. is this entirely sound?
+                break;
+            case ContentTransferEncoding::Base64:
+                l.append( "\"BASE64\"" );
+                break;
+            case ContentTransferEncoding::QuotedPrintable:
+                l.append( "\"QUOTED-PRINTABLE\"" );
+                break;
+            }
+        }
+        else {
+            l.append( "\"7BIT\"" );
+        }
+
+        // body-fld-octets = number
+        l.append( fn( m->numBytes() ) );
+
+        if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
+            // body-type-msg   = media-message SP body-fields SP envelope
+            //                   SP body SP body-fld-lines
+
+            l.append( envelope( m->bodyPart( 1 )->rfc822() ) );
+            l.append( bodystructure( m->bodyPart( 1 )->rfc822(), extended ) );
+            l.append( fn( m->numLines() ) );
+        }
+        else if ( ct->type() == "text" ) {
+            // body-type-text  = media-text SP body-fields SP body-fld-lines
+            l.append( fn( m->numLines() ) );
+        }
+    }
+
+    return "(" + l.join( " " ) + ")";
 }

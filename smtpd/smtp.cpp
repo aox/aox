@@ -637,7 +637,7 @@ void SMTP::inject()
                       "by " + Configuration::hostname() + " " +
                       "with " + d->protocol + "; " + now.rfc822() + "\r\n";
 
-    Message * m = new Message( received + d->body, false );
+    Message * m = new Message( received + d->body );
     m->header()->removeField( HeaderField::ReturnPath );
     m->header()->add( "Return-Path", d->from->toString() );
     if ( !m->valid() ) {

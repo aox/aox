@@ -328,7 +328,8 @@ void Injector::buildFieldLinks()
 
     List< BodyPart >::Iterator it( d->message->bodyParts()->first() );
     while ( it ) {
-        buildLinksForHeader( it->header(), it->partNumber() );
+        buildLinksForHeader( it->header(),
+                             d->message->partNumber( it ) );
         it++;
     }
 
@@ -495,7 +496,7 @@ void Injector::linkBodyparts()
             q->bind( 1, m->id() );
             q->bind( 2, uid );
             q->bind( 3, bid );
-            q->bind( 4, b->partNumber() );
+            q->bind( 4, d->message->partNumber( b ) );
 
             d->transaction->enqueue( q );
         }

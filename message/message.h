@@ -15,11 +15,10 @@ class Flag;
 class Message {
 public:
     Message();
-    Message( const String &, bool );
+    Message( const String & );
 
     bool valid() const;
     String error() const;
-    bool strict() const;
 
     String rfc822() const;
 
@@ -31,6 +30,7 @@ public:
     void setMailbox( Mailbox * );
     Mailbox * mailbox() const;
 
+    class BodyPart * bodyPart( uint ) const;
     class BodyPart * bodyPart( const String & ) const;
     String partNumber( class BodyPart * ) const;
 
@@ -40,6 +40,10 @@ public:
     uint internalDate() const;
     void setRfc822Size( uint );
     uint rfc822Size() const;
+    void setNumBytes( uint );
+    uint numBytes() const;
+    void setNumLines( uint );
+    uint numLines() const;
 
     enum BuiltinFlag {
         AnsweredFlag,
@@ -63,16 +67,13 @@ public:
     void fetchBodies( EventHandler * );
 
 private:
-    void parseMultipart( uint, uint, const String &, const String &, bool,
-                         const String & );
-    void parseBodypart( uint, uint, const String &, Header *,
-                        const String & );
-    Header * header( uint &, uint, const String &, Header::Mode );
+    static Header * header( uint &, uint, const String &, Header::Mode );
 
 private:
     class MessageData * d;
     friend class MessageHeaderFetcher;
     friend class MessageBodyFetcher;
+    friend class BodyPart;
 };
 
 
@@ -85,8 +86,15 @@ public:
     ContentTransferEncoding::Encoding encoding() const;
     String data() const;
     UString text() const;
-    String partNumber() const;
     Message * rfc822() const;
+    
+private:
+    static void parseMultiPart( uint, uint, const String &,
+                                const String &, bool,
+                                List<BodyPart> *,
+                                String & );
+    static BodyPart * parseBodyPart( uint, uint, const String &, Header *,
+                                     String & );
 
 private:
     class BodyPartData * d;
@@ -94,32 +102,6 @@ private:
     friend class MessageData;
     friend class MessageHeaderFetcher;
     friend class MessageBodyFetcher;
-};
-
-
-class MessageHeaderFetcher: public EventHandler {
-public:
-    MessageHeaderFetcher( Message *, EventHandler * );
-
-    void execute();
-
-private:
-    class MessageHeaderFetcherData * d;
-
-    static class PreparedStatement * ps;
-};
-
-
-class MessageBodyFetcher: public EventHandler {
-public:
-    MessageBodyFetcher( Message *, EventHandler * );
-
-    void execute();
-
-private:
-    class MessageBodyFetcherData * d;
-
-    static class PreparedStatement * ps;
 };
 
 
