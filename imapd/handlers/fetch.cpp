@@ -91,8 +91,11 @@ void Fetch::execute()
 
 
 /*! This helper is responsible for parsing a single attriute from the
-    fetch arguments. (The command line consists of either a single
-    attribute or a list of attribute in parens.)
+    fetch arguments.
+
+    The command line consists of either a macro, a single attribute or
+    a list of attribute in parens. If \a alsoMacro is true, either of
+    the three cases are handled, if not only the latter two.
 */
 
 void Fetch::parseAttribute( bool alsoMacro )

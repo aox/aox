@@ -62,7 +62,9 @@ void Search::parse()
 
 
 /*! Parse one search key (IMAP search-key). Leaves the cursor on the
-    first character following the search-key.
+    first character following the search-key. If \a alsoCharset is
+    specified and true, the CHARSET modifier is handled. The default
+    is to not handle CHARSET, since it's illegal except at the start.
 */
 
 void Search::parseKey( bool alsoCharset )
@@ -315,7 +317,7 @@ String Search::date()
 
 
 /*! This private helper adds a new Condition to the current list. \a
-    f, \a a and \a a1 are used as-is.
+    f, \a a, \a a1 and \a a2 are used as-is.
 
     This function isn't well-defined for cases where \a a is And, Or
     or Not.
