@@ -54,15 +54,16 @@ private:
 };
 
 
-class IMAP993: public IMAP
+class IMAPS
+    : public IMAP
 {
 public:
-    IMAP993( int );
+    IMAPS( int );
 
     void finish();
 
 private:
-    class IMAP993Data * d;
+    class IMAPSData * d;
 };
 
 

@@ -233,13 +233,13 @@ IPv6 addresses.
 is the port where the IMAP server accepts connections,
 .I 143
 by default.
-.IP use-imap-993
+.IP use-imaps
 is enabled if the IMAP server should also accept SSL-wrapped
 connections. The default is no.
-.IP imap-993-address
+.IP imaps-address
 is the address where the IMAP server listens for new SSL-wrapped connections.
-.IP imap-993-port
-is the port where the IMAP server accepts connections,
+.IP imaps-port
+is the port where the IMAP server accepts SSL-wrapped connections,
 .I 993
 by default.
 .IP announce-draft-support
