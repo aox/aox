@@ -3,6 +3,8 @@
 #include "imap.h"
 #include "mailbox.h"
 #include "imapsession.h"
+#include "flag.h"
+
 
 static inline String fn( uint n ) { return String::fromNumber( n ); }
 
@@ -74,6 +76,12 @@ void Select::execute()
     Mailbox *m = session->mailbox();
 
     String flags = "\\Answered \\Flagged \\Deleted \\Seen \\Draft";
+    const List<Flag> * l = Flag::flags();
+    List<Flag>::Iterator i( l->first() );
+    while ( i ) {
+        flags = flags + " " + i->name();
+        i++;
+    }
 
     respond( "FLAGS " + flags );
     respond( fn( session->count() ) + " EXISTS" );

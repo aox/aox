@@ -10,6 +10,7 @@
 #include "fieldcache.h"
 #include "addresscache.h"
 #include "server.h"
+#include "flag.h"
 #include "tls.h"
 
 /*! \nodoc */
@@ -33,7 +34,8 @@ int main( int, char *[] )
     Capability::setup();
     AddressCache::setup();
     FieldNameCache::setup();
+    Flag::setup();
     IMAP::setup();
-
+    
     s.execute();
 }
