@@ -22,8 +22,8 @@ int main( int, char *[] )
     Server s( "imapd" );
     s.setup( Server::Report );
     LogClient::setup();
-    s.setup( Server::Secure );
     Listener< IMAP >::create( "IMAP", "", 2052 );
+    s.setup( Server::Secure );
     s.setup( Server::Finish );
 
     TlsServer::setup();

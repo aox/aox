@@ -17,8 +17,7 @@ int main( int, char *[] )
     Server s( "pop3d" );
     s.setup( Server::Report );
     LogClient::setup();
-    s.setup( Server::Secure );
     Listener< POP3 >::create( "POP3", "", 2056 );
-
+    s.setup( Server::Secure );
     s.execute();
 }

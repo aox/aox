@@ -22,7 +22,6 @@ int main( int, char *[] )
     Server s( "smtpd" );
     s.setup( Server::Report );
     LogClient::setup();
-    s.setup( Server::Secure );
 
     Configuration::Toggle useSmtp( "use-smtp", false );
     if ( useSmtp )
@@ -32,6 +31,7 @@ int main( int, char *[] )
     if ( useLmtp )
         Listener< LMTP >::create( "LMTP", "127.0.0.1", 2026 );
 
+    s.setup( Server::Secure );
     s.setup( Server::Finish );
 
     OCClient::setup();
@@ -40,5 +40,5 @@ int main( int, char *[] )
     AddressCache::setup();
     FieldNameCache::setup();
 
-    Loop::start();
+    s.execute();
 }

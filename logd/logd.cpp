@@ -14,17 +14,16 @@ int main( int, char *[] )
 {
     Arena firstArena;
     Scope global( &firstArena );
-    Server s( "logd" );
 
-    s.setup( Server::Loop );
+    Server s( "logd" );
+    s.setup( Server::Report );
 
     (void)new SelfLogger;
     Configuration::Text logName( "logfile", Configuration::LogFile );
     LogServer::setLogFile( logName );
 
-    s.setup( Server::Secure );
-
     Listener< LogServer >::create( "log", "", 2054 );
 
+    s.setup( Server::Secure );
     s.execute();
 }
