@@ -263,7 +263,8 @@ void SMTP::parse()
                 respond( 500, "Unknown command (" + cmd.upper() + ")" );
         }
 
-        if ( state() != Body && state() != Injecting && !d->negotiatingTls )
+        if ( d->state != Verifying && d->state != Body &&
+             d->state != Injecting && !d->negotiatingTls )
             sendResponses();
     }
 }
@@ -380,6 +381,7 @@ void SMTP::rcpt()
     d->user = new User;
     d->user->setAddress( to );
     d->user->refresh( new SmtpUserHelper( this, d->user ) );
+    d->state = Verifying;
 }
 
 
@@ -399,6 +401,7 @@ void SMTP::rcptAnswer()
         respond( 550, a + " is not a legal destination address" );
     }
     d->user = 0;
+    sendResponses();
 }
 
 
@@ -606,6 +609,7 @@ void SMTP::sendResponses()
     } while ( it != d->response.end() );
 
     enqueue( r );
+    write();
 
     d->code = 0;
     d->response.clear();

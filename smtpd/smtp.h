@@ -44,6 +44,7 @@ public:
         Initial,
         MailFrom,
         RcptTo,
+        Verifying,
         Data,
         Body,
         Injecting
