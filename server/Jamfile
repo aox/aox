@@ -5,6 +5,7 @@ HDRS += [ FDirName $(TOP) server ] ;
 SubInclude TOP core ;
 SubInclude TOP message ;
 SubInclude TOP db ;
+SubInclude TOP message ;
 
 Build server :
     connection.cpp listener.cpp endpoint.cpp event.cpp logclient.cpp
