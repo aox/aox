@@ -52,7 +52,7 @@ void Store::parse()
     bool parens = present( "(" );
 
     flags.append( new String( flag() ) );
-    while ( present( " " ) ) {
+    while ( nextChar() == ' ' ) {
         space();
         flags.append( new String( flag() ) );
     }
