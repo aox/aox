@@ -10,6 +10,7 @@
 #include "query.h"
 #include "log.h"
 #include "message.h"
+#include "mailbox.h"
 
 
 /*! \class Search search.h
@@ -323,7 +324,7 @@ void Search::considerCache()
     uint c = 1;
     while ( c <= msn && !needDb ) {
         uint uid = s->uid( c );
-        Message * m = s->message( uid );
+        Message * m = s->mailbox()->message( uid, false );
         switch ( d->root->match( m, uid ) ) {
         case Search::Condition::Yes:
             d->matches.append( new uint( uid ) );
@@ -332,7 +333,8 @@ void Search::considerCache()
             break;
         case Search::Condition::Punt:
             log( "Search must go to database: message " + fn( uid ) +
-                 " could not be tested in RAM", Log::Debug );
+                 " could not be tested in RAM",
+                 Log::Debug );
             needDb = true;
             break;
         }

@@ -95,18 +95,7 @@ void Select::execute()
 
     respond( fn( d->session->count() ) + " EXISTS" );
     respond( fn( d->session->recent().count() ) + " RECENT" );
-
-    uint unseen = 0;
-    uint msn = 1;
-    while ( msn <= d->session->count() && unseen == 0 ) {
-        Message * m = d->session->message( d->session->uid( msn ) );
-        if ( m && !m->flag( Message::SeenFlag ) )
-            unseen = msn;
-        msn++;
-    }
-
-    respond( "OK [UNSEEN " + fn( unseen ) + "]" );
-
+    respond( "OK [UNSEEN " + fn( d->session->firstUnseen() ) + "]" );
     respond( "OK [UIDNEXT " + fn( d->session->uidnext() ) + "]" );
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]" );
     respond( "OK [PERMANENTFLAGS (" + flags +" \\*)]" );

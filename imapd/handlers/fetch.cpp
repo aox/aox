@@ -8,6 +8,7 @@
 #include "imapsession.h"
 #include "mimefields.h"
 #include "address.h"
+#include "mailbox.h"
 #include "message.h"
 #include "bodypart.h"
 #include "imap.h"
@@ -342,7 +343,7 @@ void Fetch::execute()
     uint i = 1;
     while ( i <= d->set.count() ) {
         uint uid = d->set.value( i );
-        Message * m = s->message( uid );
+        Message * m = s->mailbox()->message( uid );
         if ( ( !d->needHeader || m->hasHeaders() ) &&
              ( !d->needBody || m->hasBodies() ) &&
              ( !d->flags || m->hasExtraFlags() ) )
@@ -362,6 +363,8 @@ void Fetch::execute()
 
 /*! Removes any UIDs from d->set that do not refer to a valid message in
     this session.
+
+    If MessageSet learns set arithmetic, this can become a lot faster.
 */
 
 void Fetch::removeInvalidUids()
@@ -371,8 +374,7 @@ void Fetch::removeInvalidUids()
     uint i = d->set.count();
     while ( i > 0 ) {
         uint uid = d->set.value( i );
-        Message * m = s->message( uid );
-        if ( !m )
+        if ( !s->msn( i ) )
             d->set.remove( uid );
         i--;
     }
@@ -389,7 +391,7 @@ void Fetch::sendFetchQueries()
     uint i = 1;
     while ( i <= d->set.count() ) {
         uint uid = d->set.value( i );
-        Message * m = s->message( uid );
+        Message * m = s->mailbox()->message( uid );
         if ( d->needHeader && !m->hasHeaders() )
             m->fetchHeaders( this );
         if ( d->needBody && !m->hasBodies() )

@@ -11,6 +11,7 @@
 #include "stringlist.h"
 #include "log.h"
 #include "map.h"
+#include "message.h"
 
 
 class MailboxData {
@@ -19,7 +20,7 @@ public:
         : id( 0 ),
           uidnext( 0 ), uidvalidity( 0 ),
           deleted( false ),
-          parent( 0 ), children( 0 )
+          parent( 0 ), children( 0 ), messages( 0 )
     {}
 
     String name;
@@ -30,6 +31,7 @@ public:
 
     Mailbox *parent;
     List< Mailbox > *children;
+    Map<Message> * messages;
 };
 
 
@@ -342,4 +344,31 @@ Query *Mailbox::remove( EventHandler *ev )
     Query *q = new Query( ev );
     q->setState( Query::Completed );
     return q;
+}
+
+
+/*! Returns a pointer to the message with \a uid in this Mailbox. If
+    there is no such message and \a create is true, message() creates
+    one dynamically. \a create is true by default. If this Mailbox
+    cannot contain messages, message() returns a null pointer.
+
+    This is a bit of a memory leak - messages are never deleted. When
+    the last session on a Mailbox is closed, we should drop these
+    messages. But we don't, yet.
+*/
+
+Message * Mailbox::message( uint uid, bool create ) const
+{
+    if ( synthetic() || deleted() )
+        return 0;
+    if ( !d->messages )
+        d->messages = new Map<Message>;
+    Message * m = d->messages->find( uid );
+    if ( create && !m ) {
+        m = new Message;
+        m->setUid( uid );
+        m->setMailbox( this );
+        d->messages->insert( uid, m );
+    }
+    return m;
 }

@@ -30,8 +30,8 @@ public:
     void setUid( uint );
     uint uid() const;
 
-    void setMailbox( Mailbox * );
-    Mailbox * mailbox() const;
+    void setMailbox( const Mailbox * );
+    const Mailbox * mailbox() const;
 
     Bodypart * bodypart( const String &, bool create = false );
     String partNumber( Bodypart * ) const;

@@ -167,7 +167,8 @@ void IMAP::react( Event e )
     if ( state() == Logout )
         Connection::setState( Closing );
 
-    commit();
+    if ( state() == Logout || d->commands.isEmpty() )
+        commit();
 }
 
 
@@ -396,7 +397,7 @@ bool IMAP::idle() const
 void IMAP::authenticated( User * user )
 {
     d->login = user;
-    log( "Logged in as " + user->login(), Log::Debug );
+    log( "Logged in as " + user->login() );
     setState( Authenticated );
 }
 
@@ -588,7 +589,7 @@ void IMAP::beginSession( ImapSession * s )
 {
     d->session = s;
     setState( Selected );
-    log( "Starting session on " + s->mailbox()->name(), Log::Debug );
+    log( "Starting session on mailbox " + s->mailbox()->name() );
 }
 
 
@@ -704,7 +705,7 @@ void IMAPS::finish()
     if ( !d->tlsServer->done() )
         return;
     if ( !d->tlsServer->ok() ) {
-        log( "Cannot negotiate TLS" );
+        log( "Cannot negotiate TLS", Log::Error );
         close();
         return;
     }

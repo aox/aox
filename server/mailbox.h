@@ -8,6 +8,7 @@
 class Query;
 class String;
 class EventHandler;
+class Message;
 
 
 class Mailbox {
@@ -26,6 +27,8 @@ public:
 
     Mailbox *parent() const;
     List< Mailbox > *children() const;
+
+    Message * message( uint, bool = true ) const;
 
     static void setup();
     static Mailbox *find( const String &, bool = false );

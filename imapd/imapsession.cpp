@@ -7,7 +7,6 @@
 #include "event.h"
 #include "messageset.h"
 #include "message.h"
-#include "map.h"
 #include "query.h"
 #include "transaction.h"
 #include "imap.h"
@@ -17,7 +16,9 @@
 class SessionData {
 public:
     SessionData()
-        : readOnly( true ), mailbox( 0 ), uidnext( 1 ), imap( 0 )
+        : readOnly( true ), mailbox( 0 ),
+          uidnext( 1 ), firstUnseen( 0 ), 
+          imap( 0 )
     {}
 
     bool readOnly;
@@ -25,8 +26,8 @@ public:
     MessageSet msns;
     MessageSet recent;
     MessageSet expunges;
-    Map<Message> messages;
     uint uidnext;
+    uint firstUnseen;
     IMAP * imap;
 };
 
@@ -137,23 +138,28 @@ uint ImapSession::count() const
 }
 
 
-/*! Returns a pointer to message \a uid, or a null pointer if there is
-    no such message.
+/*! Returns the UOD of the first unseen message in this session, or 0
+    if the number isn't known.
 */
 
-Message * ImapSession::message( uint uid ) const
+uint ImapSession::firstUnseen() const
 {
-    return d->messages.find( uid );
+    return d->firstUnseen;
 }
 
 
-/*! Inserts \a m into this session using \a uid. This should only be
-    called by ImapSessionInitializer... and perhaps the OCD?
-*/
+/*! Notifies this session that its first unseen message has \a uid. */
 
-void ImapSession::insert( uint uid, Message * m )
+void ImapSession::setFirstUnseen( uint uid )
 {
-    d->messages.insert( uid, m );
+    d->firstUnseen = uid;
+}
+
+
+/*! Notifies this session that it contains a message with \a uid. */
+
+void ImapSession::insert( uint uid )
+{
     d->msns.add( uid );
 }
 
@@ -165,7 +171,6 @@ void ImapSession::insert( uint uid, Message * m )
 
 void ImapSession::remove( uint uid )
 {
-    d->messages.remove( uid );
     d->msns.remove( uid );
 }
 
@@ -268,6 +273,7 @@ public:
         : session( 0 ), owner( 0 ),
           t( 0 ), recent( 0 ), messages( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
+          firstUnseen( UINT_MAX ),
           done( false )
         {}
 
@@ -280,6 +286,7 @@ public:
 
     uint oldUidnext;
     uint newUidnext;
+    uint firstUnseen;
 
     bool done;
 };
@@ -306,11 +313,9 @@ ImapSessionInitializer::ImapSessionInitializer( ImapSession * session,
     d->oldUidnext = d->session->uidnext();
     d->newUidnext = d->session->mailbox()->uidnext();
     d->session->updateUidnext();
-    /*
     log( "Updating session on " + d->session->mailbox()->name() +
          " for UIDs [" + fn( d->oldUidnext ) + "," +
          fn( d->newUidnext ) + ">" );
-    */
 
     execute();
 }
@@ -345,9 +350,7 @@ void ImapSessionInitializer::execute()
         d->t->commit();
 
         d->messages
-            = new Query( "select uid,"
-                         "seen,draft,flagged,answered,deleted,"
-                         "idate,rfc822size "
+            = new Query( "select uid,seen "
                          "from messages where mailbox=$1 and "
                          "uid>=$2 and uid<$3",
                          this );
@@ -357,46 +360,28 @@ void ImapSessionInitializer::execute()
         d->messages->execute();
     }
 
-    if ( d->recent->done() ) {
-        Row * r = 0;
-        while ( (r = d->recent->nextRow()) != 0 )
-            d->session->addRecent( r->getInt( "uid" ) );
+    Row * r = 0;
+    while ( (r = d->recent->nextRow()) != 0 )
+        d->session->addRecent( r->getInt( "uid" ) );
+
+    while ( (r=d->messages->nextRow()) != 0 ) {
+        uint uid = r->getInt( "uid" );
+        bool seen = r->getBoolean( "seen" );
+        d->session->insert( uid );
+        if ( !seen && d->firstUnseen > uid )
+            d->firstUnseen = uid;
     }
-
-    if ( d->messages->done() ) {
-        Row * r = 0;
-        while ( (r=d->messages->nextRow()) != 0 ) {
-            uint uid = r->getInt( "uid" );
-            Message * m = 0;
-            // this is where we check whether we already have that
-            // message
-            if ( true ) {
-                // and if we don't, we create one
-                m = new Message;
-                m->setUid( uid );
-                m->setMailbox( d->session->mailbox() );
-            }
-
-            d->session->insert( uid, m );
-
-            m->setFlag( Message::SeenFlag, r->getBoolean( "seen" ) );
-            m->setFlag( Message::DraftFlag, r->getBoolean( "draft" ) );
-            m->setFlag( Message::FlaggedFlag, r->getBoolean( "flagged" ) );
-            m->setFlag( Message::AnsweredFlag, r->getBoolean( "answered" ) );
-            m->setFlag( Message::DeletedFlag, r->getBoolean( "deleted" ) );
-
-            m->setRfc822Size( r->getInt( "rfc822size" ) );
-            m->setInternalDate( r->getInt( "idate" ) );
-        }
-    }
+    if ( !d->messages->done() || !d->recent->done() )
+        return;
 
     if ( d->t->done() && d->messages->done() ) {
-        /*
-        log( Log::Debug,
-             "Saw " + fn( d->messages->rows() ) + " new messages, " +
-             fn( d->recent->rows() ) + " recent ones" );
-        */
+        log( "Saw " + fn( d->messages->rows() ) + " new messages, " +
+             fn( d->recent->rows() ) + " recent ones",
+             Log::Debug );
         d->done = true;
+        if ( d->session->firstUnseen() > d->firstUnseen ||
+             !d->session->firstUnseen() )
+            d->session->setFirstUnseen( d->firstUnseen );
         if ( d->owner )
             d->owner->execute();
     }
@@ -421,3 +406,4 @@ MessageSet ImapSession::expunged() const
 {
     return d->expunges;
 }
+

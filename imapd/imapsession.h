@@ -29,9 +29,10 @@ public:
     uint msn( uint ) const;
     uint count() const;
 
-    Message * message( uint ) const;
+    uint firstUnseen() const;
+    void setFirstUnseen( uint );
 
-    void insert( uint, Message * );
+    void insert( uint );
     void remove( uint );
 
     MessageSet recent() const;
