@@ -19,6 +19,8 @@ public:
 
     void react( Event e );
 
+    static void updateSchema();
+
 private:
     class PgData *d;
 

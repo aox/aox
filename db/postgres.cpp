@@ -1,5 +1,6 @@
 #include "postgres.h"
 
+#include "event.h"
 #include "query.h"
 #include "string.h"
 #include "buffer.h"
@@ -599,4 +600,88 @@ Row *Postgres::composeRow( const PgDataRow &r )
     }
 
     return row;
+}
+
+
+static int currentRevision = 3;
+
+class UpdateSchema : public EventHandler {
+private:
+    int state;
+    int revision;
+    Transaction *t;
+    Query *lock, *seq, *update;
+
+public:
+    UpdateSchema()
+        : state( 0 )
+    {}
+
+    void execute() {
+        // Find and lock the current schema revision.
+        if ( state == 0 ) {
+            t = new Transaction( this );
+            lock = new Query( "select revision from mailstore for update",
+                              this );
+            t->enqueue( lock );
+            t->execute();
+            state = 1;
+        }
+        if ( state == 1 ) {
+            if ( !lock->done() )
+                return;
+            revision = lock->nextRow()->getInt( "revision" );
+            state = 2;
+        }
+
+        while ( revision < currentRevision ) {
+            if ( state == 2 ) {
+                seq = new Query( "select nextval('revisions')::integer as seq",
+                                 this );
+                t->enqueue( seq );
+                t->execute();
+                state = 3;
+            }
+            if ( state == 3 ) {
+                if ( !seq->done() )
+                    return;
+                int gap = seq->nextRow()->getInt( "seq" ) - revision;
+                if ( gap > 1 ) {
+                    // This is a disaster indicating a previous failure.
+                    state = 9;
+                    break;
+                }
+                state = 4;
+            }
+            if ( state == 4 ) {
+                // Do update stuff here.
+                state = 5;
+            }
+            if ( state == 5 ) {
+                update = new Query( "update mailstore set revision=revision+1",
+                                    this );
+                t->enqueue( update );
+                state = 6;
+            }
+            if ( state == 6 ) {
+                if ( !update->done() )
+                    return;
+                revision = revision+1;
+                state = 2;
+            }
+        }
+
+        t->commit();
+    }
+};
+
+
+/*! This static function determines the current schema version, and if
+    required, updates it to the current version.
+*/
+
+void Postgres::updateSchema()
+{
+    UpdateSchema *s = new UpdateSchema;
+    s->execute();
 }
