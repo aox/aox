@@ -12,7 +12,7 @@ class UserData
 {
 public:
     UserData(): id( 0 ), inbox( 0 ), address( 0 ),
-                q( 0 ), t( 0 ), user( 0 ),
+                q( 0 ), createQuery( 0 ), t( 0 ), user( 0 ),
                 mode( LoungingAround )
         {}
     String login;
@@ -21,6 +21,7 @@ public:
     Mailbox * inbox;
     Address * address;
     Query * q;
+    Query *createQuery;
     Transaction * t;
     EventHandler * user;
     String error;
@@ -232,25 +233,24 @@ void User::execute()
     what went wrong.
 */
 
-void User::create( EventHandler * user )
+Query *User::create( EventHandler * user )
 {
-    if ( !user )
-        return;
+    Query *q = new Query( user );
+
+    if ( !user || !valid() )
+        return 0;
 
     if ( exists() ) {
-        d->error = "User exists already";
-        user->notify();
-        return;
-    }
-
-    if ( !valid() ) {
-        user->notify();
-        return;
+        q->setError( "User exists already" );
+        return q;
     }
 
     d->t = new Transaction( this );
     d->mode = UserData::Creating;
+    d->user = user;
+    d->createQuery = q;
     createHelper();
+    return q;
 }
 
 
@@ -286,7 +286,7 @@ void User::createHelper()
                          " (select name from namespaces where id="
                          "   (select max(id) from namespaces)) ||"
                          "  '/' || $2 || '/inbox' ),"
-                         "(select name from namespaces where id="
+                         "(select id from namespaces where id="
                          "   (select max(id) from namespaces)),"
                          "$2,$3)",
                          this );
@@ -294,12 +294,14 @@ void User::createHelper()
         q2->bind( 2, d->login );
         q2->bind( 4, d->secret );
         d->t->enqueue( q2 );
-        d->t->execute();
+        d->t->commit();
     }
     if ( !d->t->done() )
         return;
     if ( d->t->failed() )
-        d->error = "SQL error: " + d->t->error();
+        d->createQuery->setError( d->t->error() );
+    else
+        d->createQuery->setState( Query::Completed );
     d->user->notify();
 }
 

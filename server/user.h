@@ -29,7 +29,7 @@ public:
     Address * address();
 
     void refresh( EventHandler * user );
-    void create( EventHandler * user );
+    Query *create( EventHandler * user );
     void rename( const String & newLogin, EventHandler * user );
     void changeSecret( const String & newSecret, EventHandler * user );
     void remove( EventHandler * user );
