@@ -19,12 +19,12 @@
 
 /*! \nodoc */
 
-int main( int, char *[] )
+int main( int argc, char *argv[] )
 {
     Arena firstArena;
     Scope global( &firstArena );
 
-    Server s( "imapd" );
+    Server s( "imapd", argc, argv );
     s.setup( Server::Report );
     Listener< IMAP >::create( "IMAP", "", 2052 );
     s.setup( Server::Finish );

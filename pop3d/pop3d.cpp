@@ -12,12 +12,12 @@
 
 /*! \nodoc */
 
-int main( int, char *[] )
+int main( int argc, char * argv[] )
 {
     Arena firstArena;
     Scope global( &firstArena );
 
-    Server s( "pop3d" );
+    Server s( "pop3d", argc, argv );
     s.setup( Server::Report );
     Listener< POP3 >::create( "POP3", "", 2056 );
     s.setup( Server::Finish );

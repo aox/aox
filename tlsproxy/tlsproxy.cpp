@@ -32,12 +32,12 @@ static String cryptlibLocus( int );
 static String cryptlibType( int );
 
 
-int main( int, char *[] )
+int main( int argc, char *argv[] )
 {
     Arena firstArena;
     Scope global( &firstArena );
 
-    Server s( "tlsproxy" );
+    Server s( "tlsproxy", argc, argv );
     s.setup( Server::Report );
 
     // let cryptlib set up while still root, so it can read files etc.

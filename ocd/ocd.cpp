@@ -13,12 +13,12 @@
 
 /*! \nodoc */
 
-int main()
+int main( int argc, char * argv[] )
 {
     Arena firstArena;
     Scope global( &firstArena );
 
-    Server s( "ocd" );
+    Server s( "ocd", argc, argv );
 
     s.setup( Server::Report );
     Listener< OCServer >::create( "ocd", "127.0.0.1", 2050 );

@@ -12,12 +12,12 @@
 
 /*! \nodoc */
 
-int main( int, char *[] )
+int main( int argc, char * argv[] )
 {
     Arena firstArena;
     Scope global( &firstArena );
 
-    Server s( "logd" );
+    Server s( "logd", argc, argv );
 
     s.setup( Server::LogSetup );
     (void)new SelfLogger;

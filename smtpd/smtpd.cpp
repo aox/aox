@@ -18,12 +18,12 @@
 
 /*! \nodoc */
 
-int main( int, char *[] )
+int main( int argc, char * argv[] )
 {
     Arena firstArena;
     Scope global( &firstArena );
 
-    Server s( "smtpd" );
+    Server s( "smtpd", argc, argv );
 
     s.setup( Server::Report );
 

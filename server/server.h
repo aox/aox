@@ -6,7 +6,7 @@
 
 class Server {
 public:
-    Server( const char * );
+    Server( const char *, int, char *[] );
 
     enum Stage {
         Test, // MUST BE FIRST
@@ -15,6 +15,7 @@ public:
         LogSetup,
         Loop,
         Report,
+        Fork,
         PidFile,
         LogStartup,
         Secure,
@@ -32,6 +33,7 @@ private:
     void files();
     void loop();
     void logSetup();
+    void fork();
     void pidFile();
     void logStartup();
     void secure();
