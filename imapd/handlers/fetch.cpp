@@ -604,7 +604,7 @@ String Fetch::envelope( Message * m )
     r.append( hf( h, HeaderField::Cc ) );
     r.append( hf( h, HeaderField::Bcc ) );
     r.append( imapQuoted( h->inReplyTo(), NString ) + " " );
-    r.append( imapQuoted( h->messageId(), NString ) + " " );
+    r.append( imapQuoted( h->messageId(), NString ) );
 
     r.append( ")" );
     return r;
@@ -721,7 +721,7 @@ String Fetch::singlePartStructure( BodyPart *bp, bool extended )
 
         l.append( envelope( bp->rfc822() ) );
         l.append( bodyStructure( bp->rfc822(), extended ) );
-        l.append( fn( bp->numBytes() ) );
+        l.append( fn( bp->numLines() ) );
     }
     else if ( ct->type() == "text" ) {
         // body-type-text  = media-text SP body-fields SP body-fld-lines
