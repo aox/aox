@@ -134,8 +134,6 @@ IMAP::~IMAP()
 
 void IMAP::react( Event e )
 {
-    Scope x;
-
     switch ( e ) {
     case Read:
         setTimeoutAfter( 1800 );
@@ -168,6 +166,8 @@ void IMAP::react( Event e )
         setTimeoutAfter( 1800 );
     if ( state() == Logout )
         Connection::setState( Closing );
+
+    commit();
 }
 
 

@@ -182,6 +182,7 @@ void EventLoop::start()
         SortedList< Connection >::Iterator it( d->connections.first() );
         while ( it ) {
             try {
+                Scope x( it->log() );
                 if ( it->state() == Connection::Connected )
                     it->react( Connection::Shutdown );
                 if ( it->state() == Connection::Connected )
@@ -208,6 +209,7 @@ void EventLoop::start()
 void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
 {
     try {
+        Scope x( c->log() );
         if ( c->timeout() != 0 && now >= c->timeout() ) {
             c->setTimeout( 0 );
             c->react( Connection::Timeout );
@@ -286,9 +288,6 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
 
     if ( c->state() == Connection::Closing && !c->canWrite() )
         c->close();
-    // Should we really do this?
-    c->commit();
-
     if ( !c->valid() )
         delete c;
 }

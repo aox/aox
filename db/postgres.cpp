@@ -24,13 +24,11 @@
 class PgData {
 public:
     PgData()
-        : l( new Log( Log::Database ) ), status( Idle ),
+        : status( Idle ),
           active( false ), startup( false ), authenticated( false ),
           reserved( false ), unknownMessage( false ),
           keydata( 0 ), description( 0 ), transaction( 0 )
     {}
-
-    Log *l;
 
     Status status;
 
@@ -79,10 +77,11 @@ public:
 Postgres::Postgres()
     : Database(), d( new PgData )
 {
+    log()->setFacility( Log::Database );
     connect( Database::server() );
     log( "Connecting to PostgreSQL server at " +
          Database::server().string(),
-         Log::Info );
+         Log::Debug );
     Loop::addConnection( this );
     Database::addHandle( this );
     setTimeoutAfter( 60 );
