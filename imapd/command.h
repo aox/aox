@@ -36,6 +36,7 @@ public:
     uint number();
     uint nzNumber();
     String astring();
+    String atom();
     String quoted();
     String literal();
     char nextChar();
