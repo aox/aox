@@ -2,6 +2,8 @@
 
 #include "user.h"
 
+#include "arena.h"
+#include "scope.h"
 #include "address.h"
 #include "mailbox.h"
 #include "query.h"
@@ -138,6 +140,7 @@ Address * User::address()
 }
 
 
+static Arena userArena;
 static PreparedStatement * psl;
 static PreparedStatement * psa;
 
@@ -152,6 +155,7 @@ void User::refresh( EventHandler * user )
         return;
     d->user = user;
     if ( !psl ) {
+        Scope x( &userArena );
         psl = new PreparedStatement(
             "select u.id, u.address, u.inbox, n.name as parentspace, "
             "u.login, u.id, u.secret, a.name, a.localpart, a.domain "
