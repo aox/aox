@@ -28,6 +28,7 @@ public:
 
     T * find( uint i ) { return (T*)(t.find( i )); }
     void insert( uint i, T* r ) { t.insert( i, r ); }
+    void remove( uint i ) { t.insert( i, 0 ); }
     bool contains( uint i ) { return find( i ) != 0; }
     uint count() const { return t.count( sizeof(uint)*8/MapTable::Slice ); }
 
