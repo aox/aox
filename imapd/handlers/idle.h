@@ -7,7 +7,6 @@
 class Idle: public Command
 {
 public:
-    Idle();
     void execute();
     void read();
 };

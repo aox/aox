@@ -16,14 +16,6 @@
 */
 
 
-/*! Constructs an IDLE handler. */
-
-Idle::Idle()
-{
-    setState( Executing );
-}
-
-
 /*! Switches to IDLE mode and grabs the input, such that the DONE can
   be properly processed.
 */
@@ -38,7 +30,6 @@ void Idle::execute()
     imap()->reserve( this );
     imap()->setIdle( true );
     imap()->writeBuffer()->append( "+\r\n" );
-    setState( Finished );
 }
 
 
