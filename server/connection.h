@@ -9,11 +9,29 @@ class Buffer;
 
 class Connection {
 public:
+    enum Type {
+        Client,
+        DatabaseClient,
+        ImapServer, 
+        LogServer,
+        LoggingClient,
+        OryxServer,
+        OryxClient,
+        OryxConsole,
+        SmtpServer,
+        SmtpClient,
+        TLSProxy,
+        TLSClient,
+        Listener,
+        Pipe
+    };
     Connection();
-    Connection( int );
+    Connection( int, Type );
     virtual ~Connection();
 
-    enum State { Invalid, Inactive, Listening, Connecting, Connected, Closing };
+    enum State { Invalid,
+                 Inactive,
+                 Listening, Connecting, Connected, Closing };
     void setState( Connection::State );
     State state() const;
     bool active() const;
@@ -27,8 +45,10 @@ public:
     Buffer * writeBuffer() const;
     Buffer * readBuffer() const;
     Arena * arena() const;
-    Endpoint self();
-    Endpoint peer();
+    Endpoint self() const;
+    Endpoint peer() const;
+    Type type() const;
+    virtual String description() const;
 
     void startTLS();
     bool hasTLS() const;

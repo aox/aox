@@ -14,7 +14,7 @@ class TLSProxy
 {
 public:
     TLSProxy( int fd )
-        : Connection( fd )
+        : Connection( fd, Connection::TLSProxy )
     {}
 
     void react( Event ) {

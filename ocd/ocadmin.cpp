@@ -21,7 +21,7 @@ public:
 /*! \reimp */
 
 OCAdmin::OCAdmin( int s )
-    : Connection( s ), d( new OCAData )
+    : Connection( s, Connection::OryxConsole ), d( new OCAData )
 {
 }
 

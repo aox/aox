@@ -77,7 +77,7 @@ public:
 */
 
 IMAP::IMAP( int s )
-    : Connection( s ), d( new IMAPData )
+    : Connection( s, Connection::ImapServer ), d( new IMAPData )
 {
     if ( s < 0 )
         return;

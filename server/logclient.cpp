@@ -17,7 +17,7 @@ class LogClientHelper
 {
 public:
     LogClientHelper( int fd, LogClient *client )
-        : Connection( fd ), owner( client )
+        : Connection( fd, Connection::LoggingClient ), owner( client )
     {}
 
     // The log server isn't supposed to send us anything.

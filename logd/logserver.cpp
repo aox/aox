@@ -55,7 +55,7 @@ public:
 /*! Constructs an empty LogServer, listening on socket \a s. */
 
 LogServer::LogServer( int s )
-    : Connection( s ), d( new LogServerData )
+    : Connection( s, Connection::LogServer ), d( new LogServerData )
 {
     d->a = new Arena;
 }
@@ -128,7 +128,7 @@ void LogServer::processLine( const String & line )
 }
 
 
-/*! This private function processes a log line beloging to \a
+/*! This private function processes a log line belonging to \a
     transaction, of type \a priority and with \a parameters.
 */
 

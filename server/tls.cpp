@@ -18,7 +18,7 @@ class TLSClient
 {
 public:
     TLSClient( int s )
-        : Connection( s )
+        : Connection( s, Connection::TLSClient )
     {}
 
     ~TLSClient() {

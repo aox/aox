@@ -89,7 +89,7 @@ public:
 /*!  Constructs an (E)SMTP server for socket \a s. */
 
 SMTP::SMTP( int s )
-    : Connection( s ), d( new SMTPData )
+    : Connection( s, Connection::SmtpServer ), d( new SMTPData )
 {
     if ( s < 0 )
         return;

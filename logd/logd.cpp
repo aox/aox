@@ -22,6 +22,8 @@ int main( int, char *[] )
     Configuration::makeGlobal( ".logdrc" );
 
     (void)new SelfLogger;
+    Log l;
+    global.setLog( &l );
     Listener<LogServer>::create( "Log Server", "", 2054 );
 
     log( Test::report() );

@@ -12,10 +12,9 @@ class Listener
 {
 public:
     Listener( const Endpoint &e, const String & s )
-        : Connection()
+        : Connection(), svc( s )
     {
-        svc = s;
-        if ( listen(e) >= 0 )
+        if ( listen( e ) >= 0 )
             Loop::addConnection( this );
     }
 
@@ -23,6 +22,9 @@ public:
     void write() {}
     bool canRead() { return true; }
     bool canWrite() { return false; }
+    String description() const {
+        return svc + " " + Connection::description();
+    }
 
     void react( Event e )
     {
@@ -30,9 +32,7 @@ public:
         case Read:
             break;
         default:
-            // XXX: This should be log(), but it segfaults.
-            // Will investigate later. -- AMS 20040330
-            log( svc + " listener stopped" );
+            log( "Stopped: " + description() );
             setState( Closing );
             break;
         }
@@ -75,7 +75,7 @@ public:
         }
 
         if ( listening )
-            log( svc + " listener started" );
+            log( "Started: " + l->description() );
     }
 
 private:

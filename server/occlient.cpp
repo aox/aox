@@ -16,7 +16,7 @@ static class OCClient *client = 0;
 
 
 /*! \class OCClient occlient.h
-    This class is responsible for interacting with the CCServer.
+    This class is responsible for interacting with the OCServer.
 
     Every IMAP server initiates a connection to the cluster coordination
     server by calling the static setup() function at startup. This class
@@ -27,7 +27,7 @@ static class OCClient *client = 0;
 /*! \reimp */
 
 OCClient::OCClient( int s )
-    : Connection( s ), d( new OCCData )
+    : Connection( s, Connection::OryxClient ), d( new OCCData )
 {
 }
 

@@ -24,7 +24,7 @@ static List< OCServer > servers;
 /*! \reimp */
 
 OCServer::OCServer( int s )
-    : Connection( s ), d( new OCSData )
+    : Connection( s, Connection::OryxServer ), d( new OCSData )
 {
     servers.append( this );
 }
