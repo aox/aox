@@ -1,34 +1,31 @@
 #ifndef INJECTOR_H
 #define INJECTOR_H
 
-#include "event.h"
 #include "header.h"
-
+#include "event.h"
+#include "list.h"
 
 class Message;
 class Mailbox;
 
 
-class Injector: public EventHandler
+class Injector
+    : public EventHandler
 {
 public:
-    Injector( const Message *, List<Mailbox> *, EventHandler * );
+    Injector( const Message *, List< Mailbox > *, EventHandler * );
     virtual ~Injector();
 
     void execute();
 
     bool done() const;
     bool failed() const;
-
+    
 private:
-    void addAddresses( HeaderField::Type );
+    class InjectorData *d;
+
     void addAddresses();
-    String addressQuery() const;
-    String bodypartQuery() const;
-    String messageQuery() const;
-
-private:
-    class InjectorData * d;
+    void addAddresses( HeaderField::Type );
 };
 
 

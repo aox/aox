@@ -11,6 +11,7 @@
 #include "loop.h"
 #include "tls.h"
 #include "handlers/capability.h"
+#include "addresscache.h"
 
 #include <stdlib.h>
 
@@ -35,6 +36,7 @@ int main( int, char *[] )
     Database::setup();
     Mailbox::setup();
     Capability::setup();
+    AddressCache::setup();
 
     log( Test::report() );
 

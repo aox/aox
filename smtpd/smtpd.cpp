@@ -11,6 +11,7 @@
 #include "listener.h"
 #include "smtp.h"
 #include "loop.h"
+#include "addresscache.h"
 
 // exit
 #include <stdlib.h>
@@ -35,6 +36,7 @@ int main( int, char *[] )
     OCClient::setup();
     Database::setup();
     Mailbox::setup();
+    AddressCache::setup();
 
     log( "SMTP server started" );
     log( Test::report() );

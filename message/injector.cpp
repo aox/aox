@@ -1,101 +1,187 @@
 #include "injector.h"
 
+#include "arena.h"
+#include "scope.h"
+#include "dict.h"
+#include "address.h"
 #include "message.h"
 #include "mailbox.h"
-#include "address.h"
-#include "addressquery.h"
-#include "dict.h"
-#include "scope.h"
+#include "addresscache.h"
+#include "transaction.h"
 
 
 class InjectorData {
 public:
-    InjectorData();
+    InjectorData()
+        : message( 0 ), mailboxes( 0 ), owner( 0 ),
+          step( 0 ), failed( false ), transaction( 0 ),
+          addresses( new List< Address > )
+    {}
+
+    const Message * message;
+    List< Mailbox > * mailboxes;
+    EventHandler * owner;
 
     uint step;
     bool failed;
 
-    const Message * message;
-    List<Mailbox> * mailboxes;
+    Transaction * transaction;
 
-    // working variables
-    List<Address> * addresses;
-
-    AddressQuery * addressQuery;
-    Query * addressInsertion;
-    Query * bodypartInsertion;
-    Query * messageInsertion;
-
-    EventHandler * owner;
+    List< Address > * addresses;
 };
 
 
-InjectorData::InjectorData()
-    : step( 0 ), failed( false ),
-      message( 0 ), mailboxes( 0 ),
-      addresses( new List<Address> ),
-      addressQuery( 0 ), addressInsertion( 0 ),
-      bodypartInsertion( 0 ), messageInsertion( 0 ),
-      owner( 0 )
-{
-}
-
-
 /*! \class Injector injector.h
-  The Injector class performs all mail injection into the database.
+    This class is responsible for injecting mail into the database.
 
-  It assumes ownership of a single Message object, which is silently
-  assumed to be valid, and does all necessary database operations to
-  store this message.
-
-  At present this class is more or less unusable, since it has no way
-  of informing its caller/owner that it's done. That has to be fixed.
+    It assumes ownership of a single Message object, which is silently
+    assumed to be valid, and does all necessary database operations to
+    store this message.
 */
 
+/*! Creates a new Injector object to deliver the \a message into each of
+    the \a mailboxes on behalf of the \a owner, which is notified when
+    the delivery attempt is completed. Message delivery commences when
+    the execute() function is called.
 
-
-/*! Constructs an Injector for \a message and immediately starts
-    injecting the message into each of \a mailboxes concurrently. When
-    injection is complete, Injector will call the
-    EventHandler::execute() function of \a owner.
-
-    Injector assumes ownership of \a mailboxes, so the caller may not
-    delete or change the list.
+    The caller must not change \a mailboxes.
 */
 
-Injector::Injector( const Message * message, List<Mailbox> * mailboxes,
+Injector::Injector( const Message * message, List< Mailbox > * mailboxes,
                     EventHandler * owner )
     : d( new InjectorData )
 {
     d->mailboxes = mailboxes;
     d->message = message;
     d->owner = owner;
-    execute();
+    setArena( Scope::current()->arena() );
 }
 
 
-/*! Cleans up after injection. */
+/*! Cleans up after injection. (We're pretty clean already.) */
 
 Injector::~Injector()
 {
-    delete d->addressQuery;
-    d = 0;
 }
 
 
-/*! This is the gut function of Injector: It sets up a series of
-    queries, one after another, to inject the message.
+/*! This function creates and executes the series of database queries
+    needed to perform message delivery.
 */
 
 void Injector::execute()
 {
     if ( d->step == 0 ) {
-        if ( d->addresses->isEmpty() )
-            addAddresses();
-        if ( !d->addressQuery )
-            d->addressQuery = new AddressQuery( d->addresses, this );
-        if ( d->addressQuery->done() )
-            d->step = 1;
+        addAddresses();
+        AddressCache::lookup( d->addresses, this );
+        d->step = 1;
+    }
+    if ( d->step == 1 ) {
+        int remaining = 0;
+
+        List< Address >::Iterator it( d->addresses->first() );
+        while ( it ) {
+            if ( it->id() == 0 )
+                remaining++;
+            it++;
+        }
+
+        if ( remaining == 0 )
+            d->step = 2;
+    }
+    if ( d->step == 2 ) {
+        d->step = 3;
+    }
+    if ( d->step == 3 ) {
+        d->step = 4;
+    }
+    if ( d->step == 4 ) {
+        d->owner->notify();
+    }
+}
+
+
+/*! Returns true if this injector has finished its work, and false if it
+    hasn't started or is currently working.
+*/
+
+bool Injector::done() const
+{
+    return d->step >= 4;
+}
+
+
+/*! Returns true if this injection failed, and false if it has succeeded
+    or is in progress.
+*/
+
+bool Injector::failed() const
+{
+    return d->failed;
+}
+
+
+/*! This private helper adds all the addresses in header fields of
+    type \a t into the working list of addresses.
+*/
+
+void Injector::addAddresses( HeaderField::Type t )
+{
+    List< Address > * a = d->message->header()->addresses( t );
+    if ( !a || a->isEmpty() )
+        return;
+
+    List< Address >::Iterator it( a->first() );
+    while ( it )
+        d->addresses->append( it++ );
+}
+
+
+/*! This private helper makes a list of addresses used in the message,
+    for inserting into the database.
+*/
+
+void Injector::addAddresses()
+{
+    addAddresses( HeaderField::From );
+    addAddresses( HeaderField::ResentFrom );
+    addAddresses( HeaderField::Sender );
+    addAddresses( HeaderField::ResentSender );
+    addAddresses( HeaderField::ReturnPath );
+    addAddresses( HeaderField::ReplyTo );
+    addAddresses( HeaderField::To );
+    addAddresses( HeaderField::Cc );
+    addAddresses( HeaderField::Bcc );
+    addAddresses( HeaderField::ResentTo );
+    addAddresses( HeaderField::ResentCc );
+    addAddresses( HeaderField::ResentBcc );
+
+    // Remove repeated addresses from the list, hackily.
+    // (XXX: This wrongly treats the domain as case-sensitive.)
+
+    uint hack;
+    Dict< uint > tmp;
+    List< Address >::Iterator it( d->addresses->first() );
+    while ( it ) {
+        String k = it->toString();
+
+        if ( tmp.contains( k ) ) {
+            d->addresses->take( it );
+        }
+        else {
+            tmp.insert( k, &hack );
+            it++;
+        }
+    }
+}
+
+
+
+#if 0
+
+void Injector::execute()
+{
+    if ( d->step == 0 ) {
     }
     if ( d->step == 1 ) {
         String q = addressQuery();
@@ -129,71 +215,6 @@ void Injector::execute()
         if ( d->owner ) {
             Scope tmp ( d->owner->arena() );
             d->owner->execute();
-        }
-    }
-}
-
-
-/*! Returns true if the injector has finished its work, and false if
-    it hasn't started or is currently working.
-*/
-
-bool Injector::done() const
-{
-    return d->step >= 4;
-}
-
-
-/*! This private helper adds all the addresses in header fields of
-    type \a t into the working list of addresses.
-*/
-
-void Injector::addAddresses( HeaderField::Type t )
-{
-    List<Address> * a = d->message->header()->addresses( t );
-    if ( !a || a->isEmpty() )
-        return;
-    List<Address>::Iterator it( a->first() );
-    while ( it != a->end() ) {
-        d->addresses->append( it );
-        ++it;
-    }
-}
-
-
-/*! This private helper makes a list of addresses used in the message,
-    for inserting into the database.
-*/
-
-void Injector::addAddresses()
-{
-    addAddresses( HeaderField::From );
-    addAddresses( HeaderField::ResentFrom );
-    addAddresses( HeaderField::Sender );
-    addAddresses( HeaderField::ResentSender );
-    addAddresses( HeaderField::ReturnPath );
-    addAddresses( HeaderField::ReplyTo );
-    addAddresses( HeaderField::To );
-    addAddresses( HeaderField::Cc );
-    addAddresses( HeaderField::Bcc );
-    addAddresses( HeaderField::ResentTo );
-    addAddresses( HeaderField::ResentCc );
-    addAddresses( HeaderField::ResentBcc );
-
-    // now, hackily, make sure there are no repeated strings. this
-    // is somehow wrong, because the domain is treated as if it
-    // were case sensitive.
-    List<Address>::Iterator it( d->addresses->first() );
-    Dict<uint> tmp;
-    uint hack;
-    while ( it != d->addresses->end() ) {
-        String k = (*it).toString();
-        if ( tmp.contains( k ) ) {
-            d->addresses->take( it );
-        }
-        else {
-            tmp.insert( k, &hack );
-            ++it;
         }
     }
 }
@@ -270,12 +291,4 @@ String Injector::messageQuery() const
     return r;
 }
 
-
-/*! Returns true if injection has failed, and false if it has
-    succeeded or is in progress.
-*/
-
-bool Injector::failed() const
-{
-    return d->failed;
-}
+#endif

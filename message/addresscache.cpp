@@ -27,11 +27,11 @@ static PreparedStatement *addressInsertId;
     a new row into the table and retrieving its id.
 
     (...We want to describe the id-lookups here...)
-    
+
     (...We need a note about serialised insertions here...)
-    
+
     (...We need to talk about synchronisation through ocd here...)
-    
+
     This class is used only by the Injector at present.
 */
 
@@ -53,7 +53,7 @@ void AddressCache::setup()
     // The first query is used to resolve cache misses. If the address
     // doesn't exist in the table, the other two queries insert it and
     // find its id.
-    
+
     addressLookup =
         new PreparedStatement( "select id from addresses where "
                                "name=$1 and localpart=$2 and domain=$3" );
@@ -68,14 +68,16 @@ void AddressCache::setup()
 class LookupHelper
     : public EventHandler
 {
-private:
+protected:
     Query *q;
     Address *address;
     EventHandler *owner;
     List< Query > *queries;
 
 public:
-    LookupHelper( Address *a, List< Query > * l, EventHandler *ev )
+    LookupHelper() {}
+
+    LookupHelper( Address *a, List< Query > *l, EventHandler *ev )
         : address( a ), owner( ev ), queries( l )
     {
         q = new Query( *addressLookup, this );
@@ -85,32 +87,61 @@ public:
         l->append( q );
     }
 
-    void execute() {
-        if ( !q->done() )
-            return;
+    void execute();
+};
 
-        Row *r = q->nextRow();
-        
-        if ( r ) {
-            uint id = *r->getInt( "id" );
-            address->setId( id );
-            delete queries->take( queries->find( q ) );
-            {
-                Scope x( &acArena );
-                Address *a = new Address( *address );
 
-                idCache->insert( a->id(), a );
-                nameCache->insert( a->toString(), a );
-            }
-        }
-        else {
-            // (void)new InsertHelper( address, queries, owner );
-        }
+class InsertHelper
+    : public LookupHelper
+{
+public:
+    InsertHelper( Address *a, List< Query > *l, EventHandler *ev )
+    {
+        address = a;
+        owner = ev;
+        queries = l;
 
-        if ( queries->isEmpty() )
-            owner->notify();
+        Query *i = new Query( *addressInsert, this );
+        i->bind( 1, a->name() );
+        i->bind( 2, a->localpart() );
+        i->bind( 3, a->domain() );
+
+        q = new Query( *addressInsertId, this );
+        l->append( q );
+
+        Database *db = Database::handle();
+        db->enqueue( i );
+        db->enqueue( q );
+        db->execute();
     }
 };
+
+
+void LookupHelper::execute() {
+    if ( !q->done() )
+        return;
+
+    Row *r = q->nextRow();
+    delete queries->take( queries->find( q ) );
+
+    if ( !r ) {
+        (void)new InsertHelper( address, queries, owner );
+        return;
+    }
+
+    uint id = *r->getInt( "id" );
+    address->setId( id );
+    {
+        Scope x( &acArena );
+        Address *a = new Address( *address );
+
+        idCache->insert( a->id(), a );
+        nameCache->insert( a->toString(), a );
+    }
+
+    if ( queries->isEmpty() )
+        owner->notify();
+}
 
 
 /*! This function accepts the List \a l of Address objects, and notifies
@@ -133,7 +164,7 @@ void AddressCache::lookup( List< Address > *l, EventHandler *ev )
         Address *a = nameCache->find( it->toString() );
 
         if ( !a )
-            (void)new LookupHelper( a, lookups, ev );
+            (void)new LookupHelper( it, lookups, ev );
         else
             it->setId( a->id() );
 
@@ -142,8 +173,7 @@ void AddressCache::lookup( List< Address > *l, EventHandler *ev )
 
     if ( lookups->isEmpty() )
         return;
-    
-    // What if we can't get a handle? Surely we want to fail gracefully.
+
     Database *db = Database::handle();
     List< Query >::Iterator q( lookups->first() );
     while ( q )
