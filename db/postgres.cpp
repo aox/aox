@@ -629,7 +629,13 @@ void UpdateSchema::execute() {
     if ( state == 1 ) {
         if ( !lock->done() )
             return;
-        revision = lock->nextRow()->getInt( "revision" );
+        Row * r = lock->nextRow();
+        if ( r == 0 ) {
+            l->log( "Database inconsistent: The mailstore table is empty.",
+                    Log::Disaster );
+            return;
+        }
+        revision = r->getInt( "revision" );
 
         if ( revision == currentRevision ) {
             state = 7;
