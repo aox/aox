@@ -12,6 +12,7 @@ public:
         Test, // MUST BE FIRST
         Configuration,
         Files,
+        LogSetup,
         Loop,
         Report,
         PidFile,
@@ -30,7 +31,7 @@ private:
     void configuration();
     void files();
     void loop();
-    void report();
+    void logSetup();
     void pidFile();
     void logStartup();
     void secure();

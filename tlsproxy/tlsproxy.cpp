@@ -327,8 +327,6 @@ int main( int, char *[] )
     Scope global( &firstArena );
 
     Server s( "tlsproxy" );
-    s.setup( Server::Report );
-    LogClient::setup();
     s.setup( Server::Secure );
     // let cryptlib set up while still root, so it can read files etc.
     cryptInit();
