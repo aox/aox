@@ -85,13 +85,13 @@ void Database::setup()
 
 
     ::user = new String( dbUser );
-    Allocator::addRoot( ::user, "db-user" );
+    Allocator::addEternal( ::user, "db-user" );
     ::password = new String( dbPass );
-    Allocator::addRoot( ::password, "db-password" );
+    Allocator::addEternal( ::password, "db-password" );
     ::name = new String( dbName );
-    Allocator::addRoot( ::name, "db-name" );
+    Allocator::addEternal( ::name, "db-name" );
     srv = new Endpoint( dbHost, dbPort );
-    Allocator::addRoot( srv, "database server" );
+    Allocator::addEternal( srv, "database server" );
 
     if ( !srv->valid() ) {
         ::log( "Invalid db-address <" + dbHost + "> port " + fn( dbPort ),
@@ -269,7 +269,7 @@ void Database::addHandle( Database * d )
 {
     if ( !handles ) {
         handles = new List<Database>;
-        Allocator::addRoot( handles, "list of database handles" );
+        Allocator::addEternal( handles, "list of database handles" );
     }
     handles->append( d );
 }

@@ -25,7 +25,7 @@ static Logger *logger = 0;
 Logger::Logger()
 {
     ::logger = this;
-    Allocator::addRoot( this, "logger" );
+    Allocator::addEternal( this, "logger" );
 }
 
 

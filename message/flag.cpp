@@ -53,7 +53,7 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
         d->q->setStartUpQuery( true );
     d->q->execute();
     ::flags = new List<Flag>;
-    Allocator::addRoot( ::flags, "list of existing flags" );
+    Allocator::addEternal( ::flags, "list of existing flags" );
 }
 
 

@@ -561,7 +561,7 @@ void Configuration::setup( const String & global )
     String d = compiledIn( ConfigDir );
 
     ::global = new Configuration;
-    Allocator::addRoot( ::global, "global configuration" );
+    Allocator::addEternal( ::global, "global configuration" );
     if ( global[0] == '/' )
         ::global->read( global );
     else
@@ -578,7 +578,7 @@ void Configuration::setup( const String & global )
                           Log::Debug );
 
     ::hostname = new String( hn );
-    Allocator::addRoot( ::hostname, "inferred host name" );
+    Allocator::addEternal( ::hostname, "inferred host name" );
 }
 
 

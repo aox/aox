@@ -249,7 +249,7 @@ void LogServer::setLogFile( const String & name )
         return;
     }
     logFile = l;
-    Allocator::addRoot( logFile, "logfile name" );
+    Allocator::addEternal( logFile, "logfile name" );
 }
 
 

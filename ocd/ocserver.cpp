@@ -32,7 +32,7 @@ OCServer::OCServer( int s )
 {
     if ( !servers ) {
         servers = new List<OCServer>;
-        Allocator::addRoot( servers, "list of OCServer objects" );
+        Allocator::addEternal( servers, "list of OCServer objects" );
     }
     servers->append( this );
     Loop::addConnection( this );

@@ -46,10 +46,10 @@ void FieldNameCache::setup()
                                "select $1 where not exists "
                                "(select id from field_names where name=$1)" );
 
-    Allocator::addRoot( idCache, "field name cache by id" );
-    Allocator::addRoot( nameCache, "field name cache by name" );
-    Allocator::addRoot( fieldLookup, "field name lookup statement" );
-    Allocator::addRoot( fieldInsert, "field inserter" );
+    Allocator::addEternal( idCache, "field name cache by id" );
+    Allocator::addEternal( nameCache, "field name cache by name" );
+    Allocator::addEternal( fieldLookup, "field name lookup statement" );
+    Allocator::addEternal( fieldInsert, "field inserter" );
 }
 
 

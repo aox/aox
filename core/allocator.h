@@ -32,9 +32,9 @@ public:
     void operator delete( void * );
 
     static void free();
-    static void addRoot( void *, const char * );
-    static void addRoot( const void * p, const char * c ) {
-        addRoot( (void*)p, c );
+    static void addEternal( void *, const char * );
+    static void addEternal( const void * p, const char * c ) {
+        addEternal( (void*)p, c );
     }
 
     static void removeRoot( void * );

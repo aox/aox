@@ -67,7 +67,7 @@ public:
 
         if ( !::mailboxes ) {
             ::mailboxes = new Map<Mailbox>;
-            Allocator::addRoot( ::mailboxes, "mailbox tree" );
+            Allocator::addEternal( ::mailboxes, "mailbox tree" );
         }
 
         while ( query->hasResults() ) {
@@ -102,10 +102,10 @@ public:
 void Mailbox::setup()
 {
     ::root = new Mailbox( "/" );
-    Allocator::addRoot( ::root, "root mailbox" );
+    Allocator::addEternal( ::root, "root mailbox" );
 
     query = new Query( "select * from mailboxes", new MailboxReader );
-    Allocator::addRoot( ::query, "query to find all mailboxes" );
+    Allocator::addEternal( ::query, "query to find all mailboxes" );
 
     query->setStartUpQuery( true );
     query->execute();

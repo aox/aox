@@ -240,8 +240,8 @@ void User::refresh( EventHandler * user )
             "u.address=a.id and a.localpart=$1 and lower(a.domain)=$2 "
             "and n.id=u.parentspace"
         );
-        Allocator::addRoot( psl, "select user by login" );
-        Allocator::addRoot( psa, "select user by account" );
+        Allocator::addEternal( psl, "select user by login" );
+        Allocator::addEternal( psa, "select user by account" );
     }
     if ( !d->login.isEmpty() ) {
         d->q = new Query( *psl, this );
