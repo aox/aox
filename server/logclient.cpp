@@ -18,12 +18,10 @@ class LogClientHelper
     : public Connection
 {
 public:
-    LogClientHelper( const Endpoint & e, Logger *client )
-        : Connection(), owner( client ), logServer( e )
+    LogClientHelper( int fd, const Endpoint & e, Logger *client )
+        : Connection( fd, Connection::LogClient ),
+          logServer( e ), owner( client )
     {
-        setType( Connection::LoggingClient );
-        connect( logServer );
-        Loop::addConnection( this );
     }
 
     ~LogClientHelper()
@@ -64,8 +62,8 @@ public:
     }
 
 private:
-    Logger *owner;
     Endpoint logServer;
+    Logger *owner;
 };
 
 
@@ -77,10 +75,12 @@ private:
     LogClient::setup() at startup.
 */
 
-/*! Creates a new LogClient. This constructor is usable only via setup(). */
+/*! Creates a new LogClient.
+    This constructor is usable only via setup().
+*/
 
 LogClient::LogClient()
-    : Logger(), c( 0 )
+    : Logger()
 {
 }
 
@@ -112,6 +112,15 @@ void LogClient::setup()
         exit( -1 );
     }
 
-    LogClient *client = new LogClient;
-    client->c = new LogClientHelper( e, client );
+    LogClient *client = new LogClient();
+    client->c = new LogClientHelper( Connection::socket( e.protocol() ),
+                                     e, client );
+    client->c->setBlocking( true );
+    if ( client->c->connect( e ) < 0 ) {
+        fprintf( stderr, "LogClient: Unable to connect to server %s\n",
+                 e.string().cstr() );
+        exit( -1 );
+    }
+    client->c->setBlocking( false );
+    Loop::addConnection( client->c );
 }

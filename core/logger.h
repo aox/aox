@@ -5,6 +5,7 @@
 
 class String;
 
+
 class Logger {
 protected:
     Logger();

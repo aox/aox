@@ -2,6 +2,7 @@
 
 #include "tls.h"
 
+#include "scope.h"
 #include "connection.h"
 #include "string.h"
 #include "configuration.h"
@@ -162,11 +163,10 @@ void TlsServer::setup()
     Configuration::Scalar port( "tlsproxy-port", 2061 );
     Endpoint * e = new Endpoint( proxy, port );
     if ( !e->valid() ) {
-        /*
-        log( Log::Error,
-             "tlsproxy-address and/or tlsproxy-port is/are bad." );
-        log( Log::Info, "TLS Support disabled" );
-        */
+        ::log( "Invalid tlsproxy-address/port " +
+               proxy + "(:" + fn( port ) + ")",
+               Log::Error );
+        ::log( "TLS Support disabled" );
         return;
     }
     ::tlsAvailable = true;

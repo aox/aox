@@ -38,9 +38,9 @@ POP3::POP3( int s )
     : Connection( s, Connection::Pop3Server ),
       d( new PopData )
 {
+    log( "Accepted POP3 connection from " + peer().string() );
     ok( "POP3 server ready." );
     setTimeoutAfter( 600 );
-
     Loop::addConnection( this );
 }
 
@@ -79,13 +79,13 @@ void POP3::react( Event e )
 
     case Timeout:
         // May we send a response here?
+        log( "Idle timeout" );
         Connection::setState( Closing );
         break;
 
     case Connect:
     case Error:
     case Close:
-        //log( "Unexpected close by client." );
         break;
 
     case Shutdown:
@@ -109,6 +109,8 @@ void POP3::parse()
         String *s = b->removeLine( 255 );
 
         if ( !s ) {
+            log( "Connection closed due to overlong line (" +
+                 fn( b->size() ) + " bytes)", Log::Error );
             err( "Line too long. Closing connection." );
             Connection::setState( Closing );
             return;
@@ -132,6 +134,7 @@ void POP3::parse()
             unknown = true;
         }
         else if ( cmd == "quit" && args.isEmpty() ) {
+            log( "Closing connection due to QUIT command", Log::Debug );
             ok( "Goodbye" );
             setState( Update );
         }

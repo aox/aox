@@ -149,7 +149,8 @@ void Postgres::react( Event e )
 
             char msg = (*readBuffer())[0];
             try {
-                //log( "Received '" + String( &msg, 1 ) + "' message" );
+                log( "Received '" + String( &msg, 1 ) + "' message",
+                     Log::Debug );
                 if ( d->startup ) {
                     if ( !d->authenticated )
                         authentication( msg );
@@ -267,7 +268,7 @@ void Postgres::backendStartup( char type )
         // this message unparsed, so that process() can handle it like
         // any other PgReady.
         setTimeout( 0 );
-        //log( "PostgreSQL: Ready for queries" );
+        log( "PostgreSQL: Ready for queries" );
         d->startup = false;
         break;
 
@@ -361,7 +362,7 @@ void Postgres::process( char type )
             }
 
             if ( q ) {
-                //log( "Dequeueing query " + q->string() );
+                log( "Dequeueing query " + q->string(), Log::Debug );
                 if ( !q->done() )
                     q->setState( Query::Completed );
                 q->notify();
@@ -441,7 +442,7 @@ void Postgres::unknown( char type )
                     s.append( msg.message() );
                     if ( msg.detail() != "" )
                         s.append( " (" + msg.detail() + ")" );
-                    //log( Log::Error, s );
+                    log( s, Log::Error );
 
                     // Has this query failed?
                     if ( msg.severity() == PgMessage::Error )
@@ -450,7 +451,7 @@ void Postgres::unknown( char type )
                 break;
 
             default:
-                //log( msg.message() );
+                log( msg.message(), Log::Debug );
                 break;
             }
         }
@@ -488,7 +489,7 @@ void Postgres::unknown( char type )
 void Postgres::error( const String &s )
 {
     d->active = false;
-    //log( Log::Error, s );
+    log( s, Log::Error );
     d->l->commit();
 
     List< Query >::Iterator q( d->queries.first() );
@@ -585,7 +586,7 @@ void Postgres::processQueue( bool userContext )
         PgSync e;
         e.enqueue( writeBuffer() );
         s.append( "execute" );
-        //log( "Sent " + s + " for " + q->string() );
+        log( "Sent " + s + " for " + q->string(), Log::Debug );
     }
 
     if ( writeBuffer()->size() > 0 )
@@ -604,10 +605,11 @@ private:
     int revision;
     Transaction *t;
     Query *lock, *seq, *update, *q;
+    Log *l;
 
 public:
     UpdateSchema()
-        : state( 0 ), substate( 0 )
+        : state( 0 ), substate( 0 ), l( new Log( Log::Database ) )
     {}
 
     void execute();
@@ -633,10 +635,8 @@ void UpdateSchema::execute() {
             t->commit();
         }
         else if ( revision > currentRevision ) {
-            /*
-            log( Log::Disaster,
-                 "The schema is newer than this server expected. Upgrade." );
-            */
+            l->log( "The schema is newer than this server expected. Upgrade.",
+                    Log::Disaster );
             state = 8;
             return;
         }
@@ -659,10 +659,8 @@ void UpdateSchema::execute() {
                 return;
             int gap = seq->nextRow()->getInt( "seq" ) - revision;
             if ( gap > 1 ) {
-                /*
-                log( Log::Disaster,
-                     "Can't update, because an earlier schema update failed." );
-                */
+                l->log( "Can't update because an earlier schema update failed.",
+                        Log::Disaster );
                 state = 8;
                 break;
             }
@@ -734,12 +732,10 @@ void UpdateSchema::execute() {
             return;
 
         if ( t->failed() ) {
-            /*
-            log( Log::Disaster,
-                 "The schema update transaction failed unexpectedly." );
-            */
+            l->log( "The schema update transaction failed.", Log::Disaster );
             state = 8;
         }
+        l->log( "Schema updated to revision " + fn( currentRevision ) );
     }
 
     if ( state == 8 ) {

@@ -131,23 +131,16 @@ void LogServer::parse()
 
 void LogServer::processLine( const String &line )
 {
-    uint i = 0;
-    while ( line[i] > ' ' )
-        i++;
-    bool ok = true;
-    if ( line[i] != ' ' )
-        ok = false;
-    i++;
-    uint command = i;
-    while ( line[i] > ' ' )
-        i++;
-    if ( line[i] != ' ' )
-        ok = false;
-    i++;
-    if ( ok && line[i] > ' ' )
-        process( line.mid( 0, command-1 ),
-                 line.mid( command, i-1-command ),
-                 line.mid( i ).simplified() );
+    uint cmd = 0;
+    uint msg = 0;
+
+    cmd = line.find( ' ' );
+    if ( cmd > 0 )
+        msg = line.find( ' ', cmd+1 );
+    if ( msg > cmd+1 )
+        process( line.mid( 0, cmd ),
+                 line.mid( cmd+1, msg-cmd-1 ),
+                 line.mid( msg+1 ).simplified() );
 }
 
 
@@ -172,7 +165,7 @@ void LogServer::process( String transaction,
         return;
 
     String facility = priority.mid( 0, n );
-    Log::Facility f;
+    Log::Facility f = Log::General;
     if ( facility == "immediate" )
         f = Log::Immediate;
     else if ( facility == "configuration" )
@@ -185,8 +178,8 @@ void LogServer::process( String transaction,
         f = Log::IMAP;
     else if ( facility == "smtp" )
         f = Log::SMTP;
-    else
-        return;
+    else if ( facility == "server" )
+        f = Log::Server;
 
     String severity = priority.mid( n+1 );
     Log::Severity s;
@@ -209,6 +202,21 @@ void LogServer::process( String transaction,
             s = Log::Debug;
         commit( transaction, f, s );
     }
+}
+
+
+/*! Saves \a line with tag \a t, facility \a f, and severity \a s in the
+    list of pending output lines. If \a f is Immediate, however, \a line
+    is logged immediately.
+*/
+
+void LogServer::log( String t, Log::Facility f, Log::Severity s,
+                     const String &line )
+{
+    if ( f == Log::Immediate )
+        output( t, f, s, line );
+    else
+        d->pending.append( new LogServerData::Line( t, f, s, line ) );
 }
 
 
@@ -246,21 +254,6 @@ void LogServer::commit( String tag,
 }
 
 
-/*! Saves \a line with tag \a t, facility \a f, and severity \a s in the
-    list of pending output lines. If \a f is Immediate, however, \a line
-    is logged immediately.
-*/
-
-void LogServer::log( String t, Log::Facility f, Log::Severity s,
-                     const String &line )
-{
-    if ( f == Log::Immediate )
-        output( t, f, s, line );
-    else
-        d->pending.append( new LogServerData::Line( t, f, s, line ) );
-}
-
-
 /*! This private function actually writes \a line to the log file with
     the \a tag, facility \a f, and severity \a s converted into their
     textual representations.
@@ -293,8 +286,6 @@ void LogServer::setLogFile( const String & name )
     File * l = new File( name, File::Append );
     if ( l->valid() )
         ::logFile = l;
-    /*
     else
-        ::log( Log::Error, "Could not open log file " + name );
-    */
+        ::log( "Could not open log file " + name, Log::Error );
 }

@@ -18,7 +18,7 @@ public:
         DatabaseClient,
         ImapServer,
         LogServer,
-        LoggingClient,
+        LogClient,
         OryxServer,
         OryxClient,
         OryxConsole,
@@ -83,6 +83,9 @@ public:
     bool operator <=( const Connection &b ) {
         return fd() <= b.fd();
     }
+
+    void log( const String &, Log::Severity = Log::Info );
+    void commit( Log::Severity = Log::Info );
 
 private:
     class ConnectionData *d;

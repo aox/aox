@@ -2,6 +2,7 @@
 
 #include "occlient.h"
 
+#include "scope.h"
 #include "string.h"
 #include "configuration.h"
 #include "endpoint.h"
@@ -53,11 +54,8 @@ void OCClient::setup()
     Endpoint e( ocdHost, ocdPort );
 
     if ( !e.valid() ) {
-        /*
-        log( Log::Disaster,
-             "Invalid ocdhost address <" + ocdHost + "> port <" +
-             fn( ocdPort ) + ">\n" );
-        */
+        ::log( "Invalid ocdhost address <" + ocdHost + "> port <" +
+               fn( ocdPort ) + ">\n", Log::Disaster );
         return;
     }
 
@@ -65,7 +63,8 @@ void OCClient::setup()
     client->setBlocking( true );
 
     if ( client->connect( e ) < 0 ) {
-        //log( Log::Disaster, "Unable to connect to ocdhost " + e.string() + "\n" );
+        ::log( "Unable to connect to ocdhost " + e.string() + "\n",
+               Log::Disaster );
         return;
     }
 
@@ -108,11 +107,8 @@ void OCClient::parse()
     String msg = s->mid( i, j-1 ).lower().stripCRLF();
     String arg = s->mid( j+1 ).stripCRLF();
 
-    /*
-    log( Log::Debug,
-         "OCClient received tag " + tag + " message " + msg +
-         " arguments <<" + arg + ">>" );
-    */
+    log( "OCClient received tag " + tag + " message " + msg +
+         " arguments <<" + arg + ">>", Log::Debug );
 
     if ( msg == "shutdown" )
         Loop::shutdown();
@@ -148,52 +144,41 @@ void OCClient::updateMailbox( const String & arg )
     i++;
     String mailboxName = arg.mid( 0, i );
     if ( !mailboxName.isQuoted() ) {
-        //log( Log::Error, "Mailbox name not quoted: " + mailboxName );
+        log( "Mailbox name not quoted: " + mailboxName, Log::Error );
         return;
     }
     Mailbox * m = Mailbox::obtain( mailboxName.unquoted() );
     if ( !m ) {
-        /*
-        log( Log::Error,
-             "Mailbox name syntactically invalid: " +
-             mailboxName.unquoted() );
-        */
+        log( "Mailbox name syntactically invalid: " + mailboxName.unquoted(),
+             Log::Error );
         return;
     }
     String rest = arg.mid( i );
     if ( rest == " deleted=t" ) {
-        /*
         if ( !m->deleted() )
-            log( "OCClient deleted mailbox " + m->name() );
-        */
+            log( "OCClient deleted mailbox " + m->name(), Log::Debug );
         m->setDeleted( true );
     }
     else if ( rest == " deleted=f" ) {
-        /*
         if ( m->deleted() )
-            log( "OCClient deleted mailbox " + m->name() );
-        */
+            log( "OCClient undeleted mailbox " + m->name(), Log::Debug );
         m->setDeleted( false );
     }
     if ( rest.startsWith( " uidnext=" ) ) {
         bool ok;
         uint n = rest.mid( 9 ).number( &ok );
         if ( !ok ) {
-            /*
-            log( Log::Error,
-                 "Unable to parse UIDNEXT value: " + rest.mid( 9 ) );
-            */
+            log( "Unable to parse UIDNEXT value: " + rest.mid( 9 ),
+                 Log::Error );
         }
         else {
-            /*
             if ( m->uidnext() != n )
                 log( "OCClient set mailbox " + m->name() +
-                     " to uidnext " + fn( n ) );
-            */
+                     " to uidnext " + fn( n ), Log::Debug );
             m->setUidnext( n );
         }
     }
     else {
-        //log( Log::Error, "Unable to parse mailbox changes: " + rest );
+        log( "Unable to parse mailbox changes: " + rest, Log::Error );
     }
 }

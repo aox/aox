@@ -92,14 +92,12 @@ class SMTPData
 {
 public:
     SMTPData():
-        log( new Log( Log::SMTP ) ),
         code( 0 ), state( SMTP::Initial ),
         pipelining( false ), from( 0 ), user( 0 ), protocol( "smtp" ),
         injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false )
     {}
 
-    Log *log;
     int code;
     StringList response;
     SMTP::State state;
@@ -139,14 +137,10 @@ public:
 SMTP::SMTP( int s )
     : Connection( s, Connection::SmtpServer ), d( new SMTPData )
 {
-    if ( s < 0 )
-        return;
-
-    //log( "Accepted SMTP connection from " + peer().string() );
-
+    log( "Accepted SMTP connection from " + peer().string() );
     respond( 220, "ESMTP + LMTP " + Configuration::hostname() );
     sendResponses();
-
+    setTimeoutAfter( 1800 );
     Loop::addConnection( this );
 }
 
@@ -165,40 +159,38 @@ SMTP::~SMTP()
 void SMTP::react( Event e )
 {
     switch ( e ) {
-    case Connect:
-        // hm. what?
-        break;
     case Read:
         setTimeoutAfter( 1800 );
         parse();
         break;
+
     case Timeout:
+        log( "Idle timeout" );
         enqueue( String( "421 Timeout\r\n" ) );
-        //log( "autologout" );
         Connection::setState( Closing );
         break;
-    case Error: // fall through
+
+    case Connect:
+    case Error:
     case Close:
         break;
+
     case Shutdown:
         enqueue( String( "421 Server must shut down\r\n" ) );
-        //log( "connection closing due to server shutdown" );
         Connection::setState( Closing );
         break;
     }
-
-    d->log->commit();
 }
 
 
 /*! Parses the SMTP/LMTP command stream and calls execution commands
-  as necessary.
+    as necessary.
 
-  Line length is limited to 2048: RFC 2821 section 4.5.3 says 512 is
-  acceptable and various SMTP extensions may increase it. RFC 2822
-  declares that line lengths shoudl be limited to 998 characters.
+    Line length is limited to 2048: RFC 2821 section 4.5.3 says 512 is
+    acceptable and various SMTP extensions may increase it. RFC 2822
+    declares that line lengths shoudl be limited to 998 characters.
 
-  I spontaneously declare 32768 to be big enough.
+    I spontaneously declare 32768 to be big enough.
 */
 
 void SMTP::parse()
@@ -209,10 +201,8 @@ void SMTP::parse()
         while ( i < r->size() && (*r)[i] != 10 )
             i++;
         if ( i >= 32768 ) {
-            /*
             log( "Connection closed due to overlong line (" +
-                 fn( i ) + " bytes)" );
-            */
+                 fn( i ) + " bytes)", Log::Error );
             respond( 500, "Line too long (maximum is 32768 bytes)" );
             Connection::setState( Closing );
             return;
@@ -486,7 +476,7 @@ void SMTP::help()
 
 void SMTP::quit()
 {
-    //log( "Closing connection due to QUIT command" );
+    log( "Closing connection due to QUIT command", Log::Debug );
     respond( 221, "Have a nice day." );
     Connection::setState( Closing );
 }
@@ -513,7 +503,7 @@ void SMTP::starttls()
     respond( 200, "Start negotiating TLS now." );
     sendResponses();
     d->negotiatingTls = true;
-    //log( "Negotiating TLS" );
+    log( "Negotiating TLS", Log::Debug );
     startTls( d->tlsServer );
 }
 
@@ -706,12 +696,12 @@ void SMTP::reportInjection()
 
 
 /*! \class LMTP smtp.h
-  The LMTP class a slightly modified SMTP to provide LMTP.
+    The LMTP class a slightly modified SMTP to provide LMTP.
 
-  Most of the logic is in SMTP; LMTP merely modifies the logic a
-  little by reimplementating a few functions.
+    Most of the logic is in SMTP; LMTP merely modifies the logic a
+    little by reimplementating a few functions.
 
-  LMTP is defined in RFC 2033. Note that it has no specified port number.
+    LMTP is defined in RFC 2033. Note that it has no specified port number.
 */
 
 /*!  Constructs a plain LMTP server answering file descriptor \a s. */

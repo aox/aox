@@ -46,10 +46,8 @@ void ByteForwarder::react( Event e )
     case Connect:
     case Error:
     case Close:
-        /*
         log( String("Shutting down byte forwarder due to ") +
              ( e == Close ? "peer close." : "error." ) );
-        */
         setState( Closing );
         s->close();
         break;

@@ -4,10 +4,9 @@
 #define SERVER_H
 
 
-class Server
-{
+class Server {
 public:
-    Server( const char * name );
+    Server( const char * );
 
     enum Stage {
         Test, // MUST BE FIRST
@@ -22,21 +21,19 @@ public:
     };
 
     void setup( Stage );
-
     void execute();
 
 private:
+    class ServerData * d;
+
     void test();
     void configuration();
+    void files();
     void loop();
     void report();
     void pidFile();
-    void files();
     void logStartup();
     void secure();
-
-private:
-    class ServerData * d;
 };
 
 

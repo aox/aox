@@ -2,6 +2,7 @@
 
 #include "capability.h"
 
+#include "scope.h"
 #include "configuration.h"
 #include "imap.h"
 #include "stringlist.h"
@@ -87,8 +88,6 @@ void Capability::setup()
 {
     Configuration::Toggle d( "announce-draft-support", true );
     ::drafts = d;
-    /*
     if ( ::drafts )
-        log( "Announcing support for draft IMAP extensions" );
-    */
+        ::log( "Announcing support for draft IMAP extensions" );
 }

@@ -5,8 +5,6 @@
 
 class Connection;
 
-#include "list.h"
-
 
 class EventLoop {
 public:
@@ -19,7 +17,7 @@ public:
     virtual void removeConnection( Connection * );
     void closeAllExcept( Connection *, Connection * );
     void flushAll();
-    
+
     void dispatch( Connection *, bool, bool, int );
 
 private:

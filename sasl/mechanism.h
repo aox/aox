@@ -42,6 +42,8 @@ public:
 
     static SaslMechanism * create( const String &, EventHandler * );
 
+    void log( const String &, Log::Severity = Log::Info );
+
 private:
     class SaslData *d;
 };

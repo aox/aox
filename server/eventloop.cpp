@@ -25,16 +25,17 @@
 #include <unistd.h>
 
 
-
 class LoopData {
 public:
     LoopData()
-        : arena( new Arena ), stop( false ), shutdown( false )
+        : arena( new Arena ), stop( false ), shutdown( false ),
+          l( new Log( Log::Server ) )
     {}
 
     Arena *arena;
     bool stop, shutdown;
     SortedList< Connection > connections;
+    Log *l;
 };
 
 
@@ -62,14 +63,16 @@ EventLoop::EventLoop()
 void EventLoop::addConnection( Connection *c )
 {
     Scope x( d->arena );
-    if ( d->connections.find( c ) )
+
+    if ( d->connections.find( c ) ) {
+        d->l->log( "Ignored attempt to add existing connection " +
+                   c->description() );
         return;
+    }
 
     d->connections.insert( c );
-    /*
-    if ( c->type() != Connection::LoggingClient ) // recursion is boring
-        log( Log::Debug, "added: " + c->description() );
-    */
+    if ( c->type() != Connection::LogClient )
+        d->l->log( "Added " + c->description(), Log::Debug );
 }
 
 
@@ -78,37 +81,17 @@ void EventLoop::addConnection( Connection *c )
 void EventLoop::removeConnection( Connection *c )
 {
     Scope x( d->arena );
-    SortedList<Connection>::Iterator it = d->connections.find( c );
-    if ( !it )
+
+    SortedList< Connection >::Iterator it( d->connections.find( c ) );
+    if ( !it ) {
+        d->l->log( "Ignored attempt to remove unknown connection " +
+                   c->description() );
         return;
+    }
 
     d->connections.take( it );
-    /*
-    if ( c->type() != Connection::LoggingClient )
-        log( Log::Debug, "removed: " + c->description() );
-    */
-}
-
-
-/*! Instructs this EventLoop to stop immediately, leaving participating
-    Connections unchanged.
-*/
-
-void EventLoop::stop()
-{
-    d->stop = true;
-}
-
-
-/*! Instructs this EventLoop to perform an orderly shutdown, by sending
-    each participating Connection a Shutdown event before closing, and
-    then deleting each one.
-*/
-
-void EventLoop::shutdown()
-{
-    d->shutdown = true;
-    d->stop = true;
+    if ( c->type() != Connection::LogClient )
+        d->l->log( "Removed " + c->description(), Log::Debug );
 }
 
 
@@ -117,6 +100,8 @@ void EventLoop::shutdown()
 void EventLoop::start()
 {
     Scope x( d->arena );
+
+    d->l->log( "Starting event loop", Log::Debug );
 
     while ( !d->stop ) {
         SortedList< Connection >::Iterator it;
@@ -177,7 +162,8 @@ void EventLoop::start()
             if ( errno == EINTR )
                 return;
 
-            //log( "Main loop: select() broke" );
+            d->l->log( "EventLoop: select() returned errno " + fn( errno ),
+                       Log::Disaster );
             exit( 0 );
         }
 
@@ -195,6 +181,7 @@ void EventLoop::start()
         // while later call this. Note that there is similar code in
         // ConsoleLoop.
         if ( d->shutdown ) {
+            d->l->log( "Shutting down event loop", Log::Debug );
             it = d->connections.last();
             while ( it ) {
                 c = d->connections.take( it-- );
@@ -203,11 +190,15 @@ void EventLoop::start()
                     c->react( Connection::Shutdown );
                     c->write();
                 }
-                if ( c->type() != Connection::LoggingClient )
+                if ( c->type() != Connection::LogClient )
                     delete c;
             }
         }
+        d->l->commit();
     }
+
+    d->l->log( "Event loop stopped", Log::Debug );
+    d->l->commit();
 }
 
 
@@ -282,30 +273,55 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
             c->write();
     }
     catch ( Exception e ) {
-        /*
-        log( Log::Error, "While processing " + c->description() + ":" );
+        String s;
         switch (e) {
         case Range:
-            log( Log::Error, "Out-of-range memory access." );
+            s = "Out-of-range memory access";
             break;
         case Memory:
-            log( Log::Error, "Out of memory." );
+            s = "Out of memory";
             break;
         case FD:
-            log( Log::Error, "FD error." );
+            s = "FD error";
             break;
         };
-        */
+        s.append( " while processing " + c->description() );
+        d->l->log( s, Log::Error );
         c->close();
     }
 
     if ( c->state() == Connection::Closing && !c->canWrite() )
         c->close();
+    c->commit();
 
     if ( !c->valid() ) {
+        // XXX: This is on crack, somehow. The Connection subclasses all
+        // call removeConnection( this ); but which call to kill? -- AMS
         removeConnection( c );
         delete c;
     }
+}
+
+
+/*! Instructs this EventLoop to stop immediately, leaving participating
+    Connections unchanged.
+*/
+
+void EventLoop::stop()
+{
+    d->stop = true;
+}
+
+
+/*! Instructs this EventLoop to perform an orderly shutdown, by sending
+    each participating Connection a Shutdown event before closing, and
+    then deleting each one.
+*/
+
+void EventLoop::shutdown()
+{
+    d->shutdown = true;
+    d->stop = true;
 }
 
 

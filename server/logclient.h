@@ -6,6 +6,7 @@
 #include "logger.h"
 
 class String;
+class Endpoint;
 
 
 class LogClient

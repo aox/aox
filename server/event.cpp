@@ -30,6 +30,7 @@
 EventHandler::EventHandler()
 {
     a = Scope::current()->arena();
+    l = Scope::current()->log();
 }
 
 
@@ -52,6 +53,15 @@ void EventHandler::setArena( Arena *arena )
 }
 
 
+/*! Sets this object's Log to \a log.
+*/
+
+void EventHandler::setLog( Log *log )
+{
+    l = log;
+}
+
+
 /*! This function calls execute() with the correct arena().
 */
 
@@ -67,3 +77,14 @@ void EventHandler::notify()
     This pure virtual function is called by notify() when there's
     something the EventHandler needs to do to process an event.
 */
+
+
+/*! Logs the message \a m with severity \a s using this EventHandler's
+    Log, as specified with setLog().
+*/
+
+void EventHandler::log( const String &m, Log::Severity s )
+{
+    if ( l )
+        l->log( m, s );
+}

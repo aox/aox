@@ -17,7 +17,8 @@ class SaslData {
 public:
     SaslData()
         : state( SaslMechanism::IssuingChallenge ),
-          command( 0 ), q( 0 ), qd( false ), uid( 0 )
+          command( 0 ), q( 0 ), qd( false ), uid( 0 ),
+          l( 0 )
     {}
 
     SaslMechanism::State state;
@@ -29,6 +30,7 @@ public:
     String login;
     String secret;
     String storedSecret;
+    Log *l;
 };
 
 
@@ -92,6 +94,7 @@ SaslMechanism *SaslMechanism::create( const String &mechanism,
 SaslMechanism::SaslMechanism( EventHandler *cmd )
     : d( new SaslData )
 {
+    d->l = new Log( Log::Authentication );
     d->command = cmd;
 }
 
@@ -320,4 +323,13 @@ void SaslMechanism::setStoredSecret( const String &s )
 
 void SaslMechanism::setChallenge( const String & )
 {
+}
+
+
+/*! Logs message \a m with severity \a s.
+*/
+
+void SaslMechanism::log( const String &m, Log::Severity s )
+{
+    d->l->log( m, s );
 }

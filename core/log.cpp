@@ -18,6 +18,14 @@ static bool disasters = false;
 static String time();
 
 
+void log( const String &m, Log::Severity s )
+{
+    Log *l = Scope::current()->log();
+    if ( l )
+        l->log( m, s );
+}
+
+
 /*! \class Log log.h
     The Log class sends log messages to the Log server.
 
@@ -46,11 +54,19 @@ Log::Log( Facility f )
 }
 
 
-/*! Logs \a l using severity \a s. \a l may not be written to disk
-    right away; that depends on the log daemon's preferences.
+/*! Changes this Log's facility to \a f. */
+
+void Log::setFacility( Facility f )
+{
+    fc = f;
+}
+
+
+/*! Logs \a m using severity \a s. What happens to the message depends
+    on the type of Logger used, and the log server configuration.
 */
 
-void Log::log( Severity s, const String &l )
+void Log::log( const String &m, Severity s )
 {
     Logger * logger = Logger::logger();
     if ( logger == 0 )
@@ -60,13 +76,8 @@ void Log::log( Severity s, const String &l )
         disasters = true;
 
     logger->send( id + " " + facility( fc ) + "/" + severity( s ) + " " +
-                  time() + " " + l.stripCRLF() + "\r\n" );
+                  time() + " " + m.stripCRLF() + "\r\n" );
 }
-
-
-/*! \fn void Log::log( const String &s )
-    \overload Logs \a s at the default priority of Info.
-*/
 
 
 /*! Requests the log server to commit all log statements with severity
@@ -160,6 +171,12 @@ String Log::facility( Facility f )
         break;
     case SMTP:
         i = "smtp";
+        break;
+    case Server:
+        i = "server";
+        break;
+    case General:
+        i = "general";
         break;
     }
 

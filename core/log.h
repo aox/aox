@@ -11,17 +11,18 @@ class String;
 
 class Log {
 public:
-    enum Severity { Debug, Info, Error, Disaster };
     enum Facility {
-        Immediate, Configuration, Database, Authentication, IMAP, SMTP
+        General,
+        Configuration, Database, Authentication, IMAP, SMTP, Server,
+        Immediate
     };
+    enum Severity { Debug, Info, Error, Disaster };
 
     Log( Facility );
-    ~Log();
-
-    void log( Severity, const String & );
-    void log( const String & s ) { log( Info, s ); }
+    void setFacility( Facility );
+    void log( const String &, Severity = Info );
     void commit( Severity = Info );
+    ~Log();
 
     static String severity( Severity );
     static String facility( Facility );
@@ -32,6 +33,9 @@ private:
     Facility fc;
     uint children;
 };
+
+
+void log( const String &, Log::Severity = Log::Info );
 
 
 #endif
