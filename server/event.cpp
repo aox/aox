@@ -10,11 +10,11 @@
 
     Classes that want to be notified of events (e.g. the completion of
     a database query) must inherit from EventHandler and implement the
-    execute() function, and may also provide an arena() for its use.
+    execute() function.
 
     Objects of that class may then pass their "this" pointers to code
     that promises to notify() them of events. When the event occurs,
-    notify() calls execute() with the correct arena() set.
+    notify() calls execute(). Maybe we should get rid of notify().
 
     There is currently no way to indicate the type or originator of an
     event. Furthermore, the Loop/Connection framework uses an entirely
@@ -38,15 +38,6 @@ EventHandler::EventHandler()
 void EventHandler::setLog( Log *log )
 {
     l = log;
-}
-
-
-/*! This function calls execute() with the correct arena().
-*/
-
-void EventHandler::notify()
-{
-    execute();
 }
 
 

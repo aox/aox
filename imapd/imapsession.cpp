@@ -398,7 +398,7 @@ void ImapSessionInitializer::execute()
         */
         d->done = true;
         if ( d->owner )
-            d->owner->notify();
+            d->owner->execute();
     }
 }
 

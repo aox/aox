@@ -82,7 +82,7 @@ void SmtpClient::react( Event e )
         Connection::setState( Closing );
         d->error = "Server timeout.";
         d->failed = true;
-        d->owner->notify();
+        d->owner->execute();
         break;
 
     case Connect:
@@ -94,7 +94,7 @@ void SmtpClient::react( Event e )
             log( "Unexpected close by server", Log::Error );
             d->error = "Unexpected close by server.";
             d->failed = true;
-            d->owner->notify();
+            d->owner->execute();
         }
         break;
 
@@ -159,7 +159,7 @@ void SmtpClient::parse()
         if ( !ok ) {
             d->error = *s;
             d->failed = true;
-            d->owner->notify();
+            d->owner->execute();
             log( "L/SMTP error for command " + d->sent + ": " + *s,
                  Log::Error );
         }
@@ -197,7 +197,7 @@ void SmtpClient::sendCommand()
     case 'q':
     default:
         setState( Closing );
-        d->owner->notify();
+        d->owner->execute();
         return;
         break;
     }

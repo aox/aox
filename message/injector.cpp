@@ -93,7 +93,7 @@ public:
 
         queries->take( queries->first() );
         if ( queries->isEmpty() )
-            owner->notify();
+            owner->execute();
     }
 };
 
@@ -237,7 +237,7 @@ void Injector::execute()
         if ( !d->transaction->done() )
             return;
         d->failed = d->transaction->failed();
-        d->owner->notify();
+        d->owner->execute();
     }
 }
 

@@ -69,7 +69,7 @@ void TlsServerData::Client::react( Event e )
     }
     else if ( e != Read ) {
         d->done = true;
-        d->handler->notify();
+        d->handler->execute();
         d->serverside->close();
         d->userside->close();
         Loop::removeConnection( d->serverside );
@@ -99,7 +99,7 @@ void TlsServerData::Client::react( Event e )
     else if ( l == "ok" ) {
         d->done = true;
         d->ok = true;
-        d->handler->notify();
+        d->handler->execute();
     }
 }
 

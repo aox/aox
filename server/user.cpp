@@ -184,7 +184,7 @@ void User::refresh( EventHandler * user )
         d->mode = UserData::Refreshing;
     }
     else {
-        user->notify();
+        user->execute();
     }
 }
 
@@ -214,7 +214,7 @@ void User::refreshHelper()
         d->state = Refreshed;
     }
     if ( d->user )
-        d->user->notify();
+        d->user->execute();
 }
 
 
@@ -313,7 +313,7 @@ void User::createHelper()
         d->createQuery->setError( d->t->error() );
     else
         d->createQuery->setState( Query::Completed );
-    d->user->notify();
+    d->user->execute();
 }
 
 
@@ -370,7 +370,7 @@ void User::renameHelper()
         d->error = "SQL error during user update: " + d->q->error();
         refresh( d->user );
     }
-    d->user->notify();
+    d->user->execute();
 }
 
 

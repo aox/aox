@@ -122,7 +122,7 @@ void FieldLookup::execute() {
 
     if ( queries->isEmpty() ) {
         status->setState( CacheLookup::Completed );
-        owner->notify();
+        owner->execute();
     }
 }
 

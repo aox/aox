@@ -69,7 +69,7 @@ void FlagFetcher::execute()
         r = d->q->nextRow();
     }
     if ( d->o )
-        d->o->notify();
+        d->o->execute();
 }
 
 
