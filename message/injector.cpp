@@ -376,13 +376,25 @@ void Injector::insertBodyparts()
         d->totalBodyparts++;
         BodyPart *b = it++;
 
+        bool text = b->contentType()->type() == "text";
+
         i = new Query( "insert into bodyparts (text) values ($1)", helper );
-        i->bind( 1, b->data(), Query::Binary );
+        if ( text )
+            i->bind( 1, b->data(), Query::Binary );
+        d->transaction->enqueue( i );
+
+        if ( !text ) {
+            Query *i;
+
+            i = new Query( "insert into binary_parts (id, data) "
+                           "values (select currval('bodypart_ids'),$1)",
+                           helper );
+            i->bind( 1, b->data(), Query::Binary );
+            d->transaction->enqueue( i );
+        }
 
         s = new Query( "select currval('bodypart_ids')::integer as id",
                        helper );
-
-        d->transaction->enqueue( i );
         d->transaction->enqueue( s );
         queries->append( s );
     }
