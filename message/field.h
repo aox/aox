@@ -5,6 +5,7 @@
 
 #include "list.h"
 
+
 class String;
 class Address;
 class ContentType;
@@ -14,16 +15,9 @@ class ContentLanguage;
 class Date;
 
 
-class HeaderField
-{
+class HeaderField {
 public:
-    HeaderField( const String & name, const String & value );
-
-    String name();
-    String value();
-
-    bool valid() const;
-    String error() const;
+    HeaderField( const String &, const String & );
 
     // The contents of this enum must be kept in sync with the data in
     // src/schema/field-names. Furthermore, new entries MUST be added
@@ -49,6 +43,12 @@ public:
     };
 
     Type type() const;
+
+    String name() const;
+    String value() const;
+
+    bool valid() const;
+    String error() const;
 
     List<Address> * parseMailboxList();
     List<Address> * parseMailbox();
