@@ -234,7 +234,7 @@ public:
 
     Iterator &insert( T *d )
     {
-        Iterator it = first();
+        Iterator it = List<T>::first();
         while ( it && *it <= *d )
             it++;
 
