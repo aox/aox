@@ -13,6 +13,7 @@
 #include "addresscache.h"
 #include "server.h"
 #include "injector.h"
+#include "tls.h"
 
 
 /*! \nodoc */
@@ -37,6 +38,7 @@ int main( int, char *[] )
     s.setup( Server::Secure );
     s.setup( Server::Finish );
 
+    TlsServer::setup();
     OCClient::setup();
     Database::setup();
     Mailbox::setup();
