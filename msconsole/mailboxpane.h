@@ -5,12 +5,17 @@
 
 #include <qwidget.h>
 
+class Mailbox;
+class QListViewItem;
+
 
 class MailboxPane: public QWidget
 {
     Q_OBJECT
 public:
     MailboxPane( QWidget * );
+
+    int addChildren( Mailbox *, QListViewItem * );
 
 private slots:
 

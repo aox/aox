@@ -3,17 +3,13 @@
 #include "cstring.h"
 
 #include "mailboxpane.h"
+#include "mailbox.h"
 
 #include <qlayout.h>
 #include <qlabel.h>
 #include <qheader.h>
-#include <qlistview.h>
-#include <qlineedit.h>
 #include <qpushbutton.h>
-#include <qapplication.h>
-
-#include <sys/types.h> // getpwent, endpwent
-#include <pwd.h> // ditto
+#include <qlistview.h>
 
 
 class MailboxPaneData
@@ -63,4 +59,61 @@ MailboxPane::MailboxPane( QWidget * parent )
     /* tll->setColSpacing( 2, strut() ); */
     /* tll->setRowStretch( 9, 2 ); */
     /* tll->setColStretch( 3, 2 ); */
+
+    (void)addChildren( Mailbox::find( "/" ), 0 );
+}
+
+
+class MailboxItem: public QListViewItem
+{
+public:
+    MailboxItem( Mailbox * mailbox, QListViewItem * parent )
+        : QListViewItem( parent ), m( mailbox )
+    {
+    }
+    MailboxItem( Mailbox * mailbox, QListView * parent )
+        : QListViewItem( parent ), m( mailbox )
+    {
+    }
+    QString text ( int column ) const
+    {
+        if ( column > 0 )
+            return "";
+        return QString::fromUtf8( m->name().cstr() );
+    }
+
+private:
+    Mailbox * m;
+};
+
+
+/*! Adds all children of \a parent to the mailboxes listview, showing
+    them as children of \a item. Recursively calls itself.
+
+    If \a parent is null, this function does nothing. If \a item is
+    null, the children are added to the listview as top-level items.
+*/
+
+int MailboxPane::addChildren( Mailbox * parent, QListViewItem * item )
+{
+    if ( !parent )
+        return 0;
+    List<Mailbox> * children = parent->children();
+    if ( !children )
+        return 0;
+    List<Mailbox>::Iterator i( children->first() );
+    uint n = 0;
+    while ( i ) {
+        MailboxItem * mi = 0;
+        if ( item )
+            mi = new MailboxItem( i, item );
+        else
+            mi = new MailboxItem( i, d->mailboxes );
+        n++;
+        n += addChildren( i, mi );
+        ++i;
+    }
+    if ( item && item->firstChild() )
+        item->setOpen( n < 3 );
+    return n;
 }
