@@ -21,6 +21,11 @@ Authenticate::Authenticate()
 void Authenticate::parse()
 {
     t = atom().lower();
+    if ( nextChar() == ' ' ) {
+        // SASL-IR
+        space();
+        r = atom(); // wrong. only base64 is legal.
+    }
     end();
 }
 
@@ -39,6 +44,7 @@ void Authenticate::execute()
             return;
         }
         imap()->reserve( this );
+        a->setLogger( logger() );
     }
 
     // Perform C/R roundtrips until we can make up our mind.

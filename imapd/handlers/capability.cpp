@@ -22,12 +22,15 @@ Capability::~Capability()
 #define CAPA \
 /* base */ "IMAP4rev1 " \
 /* authentication */ "AUTH=ANONYMOUS AUTH=PLAIN " \
+/* RFC 2195 - SASL CRAM-MD5 */ "AUTH=CRAM-MD5 " \
+/* RFC 2831 - SASL DIGEST-MD5 */ "AUTH=DIGEST-MD5 " \
 /* draft-gulbrandsen */ "COMPRESS=DEFLATE " \
+/* draft-siemborski-imap-sasl-initial-response */ "SASL-IR " \
 /* RFC 2177 */ "IDLE " \
 /* RFC 2971 */ "ID " \
-/* RFC 2088 - no trailing space */ "LITERAL+ " \
-/* RFC 2195 - SASL CRAM-MD5 */ "AUTH=CRAM-MD5 " \
-/* RFC 2831 - SASL DIGEST-MD5 */ "AUTH=DIGEST-MD5"
+/* RFC 2088 - no trailing space */ "LITERAL+"
+// add nothing after LITERAL+
+// everything should be before, and have a trailing space
 
 
 /*! Prints the capability response. */
