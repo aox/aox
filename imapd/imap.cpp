@@ -535,12 +535,11 @@ void IMAP::setUid( uint id )
 }
 
 
-/*! This function returns a pointer to the Mailbox named \a m, or 0 if
-    no such mailbox exists. If \a m is not a fully-qualified name, the
-    current user's login() name is used to qualify it.
+/*! This function returns the fully-qualified name of the mailbox \a m,
+    using the current user's login() name to qualify it if necessary.
 */
 
-Mailbox *IMAP::mailboxNamed( const String &m )
+String IMAP::mailboxName( const String &m )
 {
     String name;
 
@@ -551,7 +550,7 @@ Mailbox *IMAP::mailboxNamed( const String &m )
     else
         name.append( m );
 
-    return Mailbox::lookup( name );
+    return name;
 }
 
 
@@ -571,7 +570,7 @@ Mailbox *IMAP::mailboxNamed( const String &m )
 
 void IMAP::beginSession( const String &mbx, bool readOnly, Command *cmd )
 {
-    Mailbox *m = mailboxNamed( mbx );
+    Mailbox *m = Mailbox::find( mailboxName( mbx ) );
 
     if ( m ) {
         setState( Selected );

@@ -36,7 +36,7 @@ public:
     ImapSession *session() const;
     void endSession();
 
-    Mailbox *mailboxNamed( const String & );
+    String mailboxName( const String & );
 
 private:
     class IMAPData *d;

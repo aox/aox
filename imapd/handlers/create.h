@@ -8,16 +8,14 @@ class Create
     : public Command
 {
 public:
-    Create()
-        : m( 0 )
-    {}
+    Create();
 
     void parse();
     void execute();
 
 private:
     String name;
-    class Mailbox *m;
+    class Query *q;
 };
 
 

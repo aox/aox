@@ -61,7 +61,7 @@ void Status::parse()
 void Status::execute()
 {
     if ( !m ) {
-        m = imap()->mailboxNamed( name );
+        m = Mailbox::find( imap()->mailboxName( name ) );
         if ( !m ) {
             error( No, "Can't open " + name );
             finish();
