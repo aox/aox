@@ -13,6 +13,9 @@ public:
     UserPane( QWidget * );
 
     void refreshFromDatabase();
+    void fetchUserList();
+
+    void showEvent( QShowEvent * );
 
 private slots:
     void addAlias();

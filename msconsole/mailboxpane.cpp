@@ -15,10 +15,12 @@
 class MailboxPaneData
 {
 public:
-    MailboxPaneData()
+    MailboxPaneData() 
+        : mailboxes( 0 ), shown( false )
     {}
 
     QListView * mailboxes;
+    bool shown;
 };
 
 
@@ -120,6 +122,10 @@ int MailboxPane::addChildren( Mailbox * parent, QListViewItem * item )
 
 void MailboxPane::showEvent( QShowEvent *show )
 {
-    (void)addChildren( Mailbox::root(), 0 );
+    if ( !d->shown ) {
+        (void)addChildren( Mailbox::root(), 0 );
+        if ( d->mailboxes->childCount() > 0 )
+            d->shown = true;
+    }
     QWidget::showEvent( show );
 }

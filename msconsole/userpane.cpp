@@ -4,12 +4,13 @@
 
 #include "userpane.h"
 
-#include "event.h"
 #include "user.h"
+#include "event.h"
+#include "query.h"
 #include "address.h"
 
-#include <qlayout.h>
 #include <qlabel.h>
+#include <qlayout.h>
 #include <qlistbox.h>
 #include <qlineedit.h>
 #include <qpushbutton.h>
@@ -29,6 +30,16 @@ public:
 };
 
 
+class UserListHelper: public EventHandler
+{
+public:
+    UserListHelper( UserPane * up ): owner( up ) {}
+    void execute() { owner->fetchUserList(); }
+
+    UserPane * owner;
+};
+
+
 class UserPaneData
 {
 public:
@@ -36,7 +47,8 @@ public:
                     password1( 0 ), password2( 0 ), passwordError( 0 ),
                     address( 0 ), aliases( 0 ),
                     user( 0 ),
-                    refreshUserDetails( 0 )
+                    refreshUserDetails( 0 ),
+                    userListQuery( 0 )
     {}
     QListBox * users;
     QLineEdit * login;
@@ -49,6 +61,7 @@ public:
 
     User * user;
     UserRefreshHelper * refreshUserDetails;
+    Query * userListQuery;
 };
 
 
@@ -94,6 +107,8 @@ UserPane::UserPane( QWidget * parent )
                                         this, "refresh user list" );
     tll->addWidget( pb, 10, 0, AlignLeft ); // writing...
     pb->setFocusPolicy( NoFocus );
+    connect( pb, SIGNAL(clicked()),
+             this, SLOT(fetchUserList()) );
 
     // the fields on the left: login
     l = new QLabel( tr( "User &Login" ), this );
@@ -217,7 +232,7 @@ void UserPane::updateExceptLogin()
         struct passwd * pw = getpwnam( d->login->text().utf8() );
         if ( pw ) {
             QString g = QString::fromLocal8Bit( pw->pw_gecos );
-            g = g.lower().section( ',', 0, 0 );
+            g = g.section( ',', 0, 0 );
             d->realName->setText( g );
             d->realName->setCursorPosition( g.length() );
             if ( d->realName == focusWidget() )
@@ -371,7 +386,7 @@ static QString unixLogin( const QString & s ) {
         p = getpwent();
         if ( p ) {
             QString g = QString::fromLocal8Bit( p->pw_gecos );
-            g = g.lower().section( ',', 0, 0 );
+            g = g.lower().section( ',', 0, 0 ).simplifyWhiteSpace();
             if ( l == g )
                 r = p->pw_name;
 
@@ -413,4 +428,42 @@ void UserPane::perhapsUpdateLogin()
         }
         ++it;
     }
+}
+
+
+/*! Fetches the list of users from the database and updates the list
+    box appropriately.
+*/
+
+void UserPane::fetchUserList()
+{
+    if ( !d->userListQuery ) {
+        d->userListQuery = new Query( "select login from users",
+                                      new UserListHelper( this ) );
+        d->userListQuery->execute();
+    }
+    Row * r = d->userListQuery->nextRow();
+    bool inserted = false;
+    while ( r ) {
+        String login = r->getString( "login" );
+        QListBoxItem * i 
+            = d->users->findItem( QString::fromUtf8( login.cstr() ),
+                                  Qt::ExactMatch );
+        if ( !i ) {
+            d->users->insertItem( QString::fromUtf8( login.cstr() ) );
+            inserted = true;
+        }
+        r = d->userListQuery->nextRow();
+    };
+    if ( inserted )
+        d->users->sort();
+    if ( d->userListQuery->done() )
+        d->userListQuery = 0;
+}
+
+
+void UserPane::showEvent( QShowEvent * e )
+{
+    QWidget::showEvent( e );
+    fetchUserList();
 }
