@@ -22,7 +22,6 @@
 Authenticate::Authenticate()
         : m( 0 ), r( 0 )
 {
-    
 }
 
 

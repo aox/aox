@@ -29,10 +29,10 @@ public:
     enum State { Blocked, Executing, Finished };
     State state() const;
     void setState( State );
-    
+
     uint group() const;
     void setGroup( uint );
-    
+
     Log * logger() const;
     IMAP * imap() const;
 

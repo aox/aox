@@ -13,9 +13,8 @@
 
 
 /*! \reimp
-  
-  This reimplementation logs the client details, which
-  strictly speaking part of execution.
+    This reimplementation logs the client details, which strictly
+    speaking is part of execution.
 */
 
 void Id::parse()
