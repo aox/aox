@@ -765,8 +765,9 @@ void UpdateSchema::execute() {
                         t->enqueue( u );
                     }
 
-                    if ( q->done() )
-                        substate = 2;
+                    if ( !q->done() )
+                        return;
+                    substate = 2;
                 }
 
                 if ( substate == 2 ) {
