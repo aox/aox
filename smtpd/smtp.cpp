@@ -391,14 +391,16 @@ void SMTP::rcpt()
 
 void SMTP::rcptAnswer()
 {
-    String a = d->user->address()->toString();
+    Address *a = d->user->address();
+    String to = a->localpart() + "@" + a->domain();
+
     if ( d->user && d->user->valid() ) {
-        respond( 250, "Will send to " + a );
         d->state = Data;
         d->to.append( d->user );
+        respond( 250, "Will send to " + to );
     }
     else {
-        respond( 550, a + " is not a legal destination address" );
+        respond( 550, to + " is not a legal destination address" );
     }
     d->user = 0;
     sendResponses();
