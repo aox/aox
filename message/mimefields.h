@@ -3,29 +3,33 @@
 #ifndef MIMEFIELDS_H
 #define MIMEFIELDS_H
 
+#include "field.h"
+#include "string.h"
 #include "stringlist.h"
 
+
 class Parser822;
-class HeaderField;
 
 
-class MimeField {
+class MimeField
+    : public HeaderField
+{
+protected:
+    MimeField( HeaderField::Type );
+
 public:
-    MimeField();
-
-    void parse( Parser822 * );
-
-    StringList * parameterList() const;
+    StringList *parameters() const;
+    String parameterString() const;
     String parameter( const String & ) const;
-
-    bool valid() const;
-    void setValid( bool );
-
-    void removeParameter( const String & );
     void addParameter( const String &, const String & );
+    void removeParameter( const String & );
+    void parseParameters( Parser822 * );
+
+    String value() const;
+    String data() const;
 
 private:
-    class MimeFieldData * d;
+    class MimeFieldData *d;
 };
 
 
@@ -33,7 +37,11 @@ class ContentType
     : public MimeField
 {
 public:
-    ContentType( const String & );
+    ContentType();
+    virtual ~ContentType();
+
+    void parse();
+
     String type() const;
     String subtype() const;
 
@@ -46,8 +54,11 @@ class ContentTransferEncoding
     : public MimeField
 {
 public:
-    ContentTransferEncoding( const String & );
-    void setEncoding( String::Encoding, HeaderField * );
+    ContentTransferEncoding();
+
+    void parse();
+
+    void setEncoding( String::Encoding );
     String::Encoding encoding() const;
 
 private:
@@ -59,13 +70,11 @@ class ContentDisposition
     : public MimeField
 {
 public:
-    ContentDisposition( const String & );
+    ContentDisposition();
 
-    enum Disposition {
-        Inline,
-        Attachment
-    };
+    void parse();
 
+    enum Disposition { Inline, Attachment };
     Disposition disposition() const;
 
 private:
@@ -77,7 +86,11 @@ class ContentLanguage
     : public MimeField
 {
 public:
-    ContentLanguage( const String & );
+    ContentLanguage();
+    virtual ~ContentLanguage();
+
+    void parse();
+
     const StringList *languages() const;
 
 private:

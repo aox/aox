@@ -11,8 +11,6 @@
 class MimeFieldData
 {
 public:
-    MimeFieldData() : valid( false ) {}
-
     struct Parameter {
         bool operator<=( const Parameter & other ) const {
             return name <= other.name;
@@ -21,63 +19,33 @@ public:
         String value;
     };
     SortedList<Parameter> parameters;
-    bool valid;
 };
 
 
 /*! \class MimeField mimefields.h
-    The MimeField class models the typical characteristics of the
-    MIME-defined header fields.
-
-    Said typical characteristics are, well, singular: Is the ;a=b;c=d
-    series of arguments at the end.
+    This is a base class for the complex MIME header fields. It inherits
+    from HeaderField, and provides methods to parse and maintain a list
+    of MIME parameters.
 */
 
 
-/*!  Constructs an empty MimeField object. */
+/*! Constructs a new MimeField of type \a t. Only for use by subclasses.
+    Users should obtain MimeFields from HeaderField::create().
+*/
 
-MimeField::MimeField()
-    : d( new MimeFieldData )
+MimeField::MimeField( HeaderField::Type t )
+    : HeaderField( t ),
+      d( new MimeFieldData )
 {
 }
 
 
-/*! Parses \a p, which is expected to refer to a string whose next
-    characters form the RFC 2045 production '*(";"parameter)'.
-*/
+/*! Returns a pointer to a list of the parameters for this MimeField. */
 
-void MimeField::parse( Parser822 * p )
+StringList *MimeField::parameters() const
 {
-    p->whitespace();
-
-    while ( p->next() == ';' ) {
-        String n;
-        p->step();
-        p->whitespace();
-        n = p->mimeToken().lower();
-        p->whitespace();
-        if ( n.isEmpty() || p->next() != '=' )
-            return;
-
-        p->step();
-        String v = p->mimeValue();
-        addParameter( n, v );
-        p->whitespace();
-    }
-
-    if ( p->atEnd() )
-        d->valid = true;
-}
-
-
-/*! Allocates and returns a list of parameters. The list is on the
-    current arena, and each item is lowercased.
-*/
-
-StringList * MimeField::parameterList() const
-{
-    StringList * l = new StringList;
-    List<MimeFieldData::Parameter>::Iterator it( d->parameters.first() );
+    StringList *l = new StringList;
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters.first() );
     while ( it ) {
         l->append( new String( it->name ) );
         ++it;
@@ -86,15 +54,41 @@ StringList * MimeField::parameterList() const
 }
 
 
-/*! Returns the argument named \a n. The comparison is case
-    insensitive. If there is no such item, parameter() returns an
+/*! Returns the canonical string representation of this MimeField's
+    parameters() (including the leading ";"), or an empty string if
+    there are no parameters.
+*/
+
+String MimeField::parameterString() const
+{
+    String s;
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters.first() );
+    while ( it ) {
+        s.append( "; " );
+        s.append( it->name );
+        s.append( "=" );
+
+        String v = it->value;
+        if ( v.boring( String::MIME ) )
+            s.append( v );
+        else
+            s.append( v.quoted() );
+        ++it;
+    }
+
+    return s;
+}
+
+
+/*! Returns the value of the parameter named \a n (ignoring the case of
+    the name). If there is no such parameter, this function returns an
     empty string.
 */
 
-String MimeField::parameter( const String & n ) const
+String MimeField::parameter( const String &n ) const
 {
     String s = n.lower();
-    List<MimeFieldData::Parameter>::Iterator it( d->parameters.first() );
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters.first() );
     while ( it && s != it->name )
         ++it;
     if ( it )
@@ -103,25 +97,11 @@ String MimeField::parameter( const String & n ) const
 }
 
 
-/*! Removes the parameter named \a n, or does nothing if there is no
-    such parameter.
-*/
-
-void MimeField::removeParameter( const String & n )
-{
-    List<MimeFieldData::Parameter>::Iterator it( d->parameters.first() );
-    while ( it && n != it->name )
-        ++it;
-    if ( it )
-        d->parameters.take( it );
-}
-
-
 /*! Adds a parameter named \a n with value \a v, replacing any
     previous setting.
 */
 
-void MimeField::addParameter( const String & n, const String & v )
+void MimeField::addParameter( const String &n, const String &v )
 {
     removeParameter( n );
     MimeFieldData::Parameter *pm = new MimeFieldData::Parameter;
@@ -131,29 +111,73 @@ void MimeField::addParameter( const String & n, const String & v )
 }
 
 
-/*! Returns true if this object has been completely parsed and found
-    to be valid, and false if not.
+/*! Removes the parameter named \a n (without regard to case), or does
+    nothing if there is no such parameter.
 */
 
-bool MimeField::valid() const
+void MimeField::removeParameter( const String &n )
 {
-    return d->valid;
+    String s = n.lower();
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters.first() );
+    while ( it && s != it->name )
+        ++it;
+    if ( it )
+        d->parameters.take( it );
 }
 
 
-/*! Notifies this object that it's valid if \a v is true, and invalid
-    if it's false. The object simply believes what it's told.
+/*! Parses \a p, which is expected to refer to a string whose next
+    characters form the RFC 2045 production '*(";"parameter)'.
 */
 
-void MimeField::setValid( bool v )
+void MimeField::parseParameters( Parser822 *p )
 {
-    d->valid = v;
+    p->whitespace();
+
+    while ( p->next() == ';' ) {
+        p->step();
+        p->whitespace();
+        String n = p->mimeToken().lower();
+        p->whitespace();
+
+        if ( n.isEmpty() ) {
+            setError( "Empty parameter" );
+            return;
+        }
+        else if ( p->next() != '=' ) {
+            setError( "Bad parameter: '" + n.simplified() + "'" );
+            return;
+        }
+
+        p->step();
+        String v = p->mimeValue();
+        addParameter( n, v );
+        p->whitespace();
+    }
+
+    if ( !p->atEnd() )
+        setError( "Junk at the end of parameter list" );
+}
+
+
+String MimeField::value() const
+{
+    String s = HeaderField::value();
+    s.append( parameterString() );
+    return s;
+}
+
+
+String MimeField::data() const
+{
+    String s = HeaderField::data();
+    s.append( parameterString() );
+    return s;
 }
 
 
 
 /*! \class ContentType mimefields.h
-    Parses Content-Type header fields.
 
     The Content-Type field is defined in RFC 2045, §5. It contains the
     media type of an entity body, along with any auxiliary information
@@ -161,29 +185,47 @@ void MimeField::setValid( bool v )
 */
 
 
-/*! Constructs a ContentType object with the value \a s. */
+/*! Constructs a new ContentType object. */
 
-ContentType::ContentType( const String &s )
+ContentType::ContentType()
+    : MimeField( HeaderField::ContentType )
 {
-    Parser822 p( s );
+}
+
+
+/*! This function exists to workaround an incorrect gcc warning about
+    ContentType having virtual functions (it doesn't), but not a
+    virtual destructor.
+*/
+
+ContentType::~ContentType()
+{
+}
+
+
+void ContentType::parse()
+{
+    String s = string();
 
     // Tolerate elm's "Content-Type: text".
-    if ( s.simplified() == "text" ) {
-        setValid( true );
-        t = "text";
-        st = "plain";
-        return;
-    }
+    if ( s.simplified() == "text" )
+        s = "text/plain";
+
+    Parser822 p( s );
 
     // Parse: type "/" subtype *( ";" attribute = value )
-    // We treat tokens as atoms, but they really aren't.
-
     if ( ( t = p.mimeToken().lower() ) != "" && p.character() == '/' &&
          ( st = p.mimeToken().lower() ) != "" )
-        parse( &p );
+        parseParameters( &p );
+    else
+        setError( "Invalid Content-Type: '" + s + "'" );
 
-    if ( t == "multipart" && valid() && parameter( "boundary" ).isEmpty() )
-        setValid( false );
+    if ( valid() && t == "multipart" && parameter( "boundary" ).isEmpty() )
+        setError( "Multipart entities must have a boundary parameter." );
+
+    String v = t + "/" + st;
+    setValue( v );
+    setData( v );
 }
 
 
@@ -205,7 +247,6 @@ String ContentType::subtype() const
 
 
 /*! \class ContentTransferEncoding mimefields.h
-    Parses Content-Transfer-Encoding header fields.
 
     The Content-Transfer-Encoding field is defined in RFC 2045,
     section 6. If present, it specifies the transfer encoding applied
@@ -216,59 +257,64 @@ String ContentType::subtype() const
 */
 
 
-/*! Creates a ContentTransferEncoding object with the value \a s. */
+/*! Constructs a new ContentTransferEncoding object. */
 
-ContentTransferEncoding::ContentTransferEncoding( const String &s )
+ContentTransferEncoding::ContentTransferEncoding()
+    : MimeField( HeaderField::ContentTransferEncoding )
 {
+}
+
+
+void ContentTransferEncoding::parse()
+{
+    String s = string();
     Parser822 p( s );
 
     String t = p.mimeToken().lower();
     p.comment();
 
-    setValid( false );
-
-    if ( t == "7bit" || t == "8bit" || t == "binary" )
+    if ( t == "8bit" || t == "binary" )
+        t = "7bit";
+    if ( t == "7bit" )
         e = String::Binary;
     else if ( t == "quoted-printable" )
         e = String::QP;
     else if ( t == "base64" )
         e = String::Base64;
     else
-        return;
+        setError( "Invalid c-t-e value: '" + t + "'" );
 
-    if ( !p.atEnd() )
-        return;
+    if ( valid() && !p.atEnd() )
+        setError( "Junk at the end of c-t-e: '" + s.simplified() + "'" );
 
-    setValid( true );
+    setValue( t );
+    setData( t );
 }
 
 
-/*! Sets the encoding of this ContentTransferEncoding object to \a en,
-    and updates the contents of \a hf.
-
+/*! Sets the encoding of this ContentTransferEncoding object to \a en.
     This is a special hack for use by Bodypart::parseBodypart() in an
     attempt to preserve field order.
 */
 
-void ContentTransferEncoding::setEncoding( String::Encoding en,
-                                           HeaderField *hf )
+void ContentTransferEncoding::setEncoding( String::Encoding en )
 {
     e = en;
 
-    String r;
+    String s;
     switch ( e ) {
     case String::Binary:
-        r = "7bit";
+        s = "7bit";
         break;
     case String::QP:
-        r = "quoted-printable";
+        s = "quoted-printable";
         break;
     case String::Base64:
-        r = "base64";
+        s = "base64";
         break;
     }
-    hf->setValue( r );
-    hf->setData( r );
+    setValue( s );
+    setData( s );
 }
 
 
@@ -289,21 +335,34 @@ String::Encoding ContentTransferEncoding::encoding() const
     "inline" and "attachment".
 */
 
+/*! Constructs a new ContentDisposition object. */
 
-/*! Creates a ContentDisposition object with the value \a s. */
-
-ContentDisposition::ContentDisposition( const String &s )
+ContentDisposition::ContentDisposition()
+    : MimeField( HeaderField::ContentDisposition )
 {
+}
+
+
+/*! Parses a Content-Disposition field. */
+
+void ContentDisposition::parse()
+{
+    String s = string();
     Parser822 p( s );
+
     String t;
+    if ( ( t = p.mimeToken().lower() ) != "" ) {
+        if ( t == "inline" )
+            d = Inline;
+        else // if ( t == "attachment" )
+            d = Attachment;
+        parseParameters( &p );
+        setValue( t );
+        setData( t );
+        return;
+    }
 
-    if ( ( t = p.mimeToken().lower() ) != "" )
-        parse( &p );
-
-    if ( t == "inline" )
-        d = Inline;
-    else // if ( t == "attachment" )
-        d = Attachment;
+    setError( "Invalid disposition: '" + s.simplified() + "'" );
 }
 
 
@@ -325,12 +384,30 @@ ContentDisposition::Disposition ContentDisposition::disposition() const
 */
 
 
-/*! Creates a ContentLanguage object with the value \a s. */
+/*! Creates a new ContentLanguage object. */
 
-ContentLanguage::ContentLanguage( const String &s )
+ContentLanguage::ContentLanguage()
+    : MimeField( HeaderField::ContentLanguage )
 {
+}
+
+
+/*! This function exists to workaround an incorrect gcc warning about
+    ContentLanguage having virtual functions (it doesn't), but not a
+    virtual destructor.
+*/
+
+ContentLanguage::~ContentLanguage()
+{
+}
+
+
+/*! Parses a Content-Language field. */
+
+void ContentLanguage::parse()
+{
+    String s = string();
     Parser822 p( s );
-    setValid( false );
 
     do {
         // We're not going to bother trying to validate language tags.
@@ -342,9 +419,10 @@ ContentLanguage::ContentLanguage( const String &s )
     } while ( p.character() == ',' );
 
     if ( !p.atEnd() || l.count() == 0 )
-        return;
+        setError( "Unparseable value: '" + s.simplified() + "'" );
 
-    setValid( true );
+    setValue( s );
+    setData( s );
 }
 
 
@@ -354,5 +432,3 @@ const StringList *ContentLanguage::languages() const
 {
     return &l;
 }
-
-

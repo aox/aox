@@ -629,7 +629,7 @@ static String parameterString( MimeField *mf )
     StringList *p = 0;
 
     if ( mf )
-        p = mf->parameterList();
+        p = mf->parameters();
     if ( !mf || !p || p->isEmpty() )
         return "NIL";
 

@@ -58,21 +58,10 @@ public:
     {}
 
     HeaderField::Type type;
-
-    String name;
-    String string;
-
-    String data;
-    String value;
+    String name, data, value, string, error;
 
     ::Date *date;
     List< ::Address > *addresses;
-    ::ContentType *contentType;
-    ::ContentTransferEncoding *cte;
-    ::ContentDisposition *cd;
-    ::ContentLanguage *cl;
-
-    String error;
 };
 
 
@@ -99,7 +88,30 @@ HeaderField *HeaderField::create( const String &name, const String &value )
     while ( fieldNames[i].name && n != fieldNames[i].name )
         i++;
 
-    HeaderField *hf = new HeaderField( fieldNames[i].type );
+    HeaderField::Type t = fieldNames[i].type;
+    HeaderField *hf;
+
+    switch ( t ) {
+    default:
+        hf = new HeaderField( fieldNames[i].type );
+        break;
+
+    case ContentType:
+        hf = new ::ContentType;
+        break;
+
+    case ContentTransferEncoding:
+        hf = new ::ContentTransferEncoding;
+        break;
+
+    case ContentDisposition:
+        hf = new ::ContentDisposition;
+        break;
+
+    case ContentLanguage:
+        hf = new ::ContentLanguage;
+        break;
+    }
 
     hf->setName( n );
     hf->setString( value );
@@ -115,46 +127,6 @@ HeaderField::HeaderField( HeaderField::Type t )
     : d( new HeaderFieldData )
 {
     d->type = t;
-}
-
-
-/*! Sets the name of this HeaderField to \a n. */
-
-void HeaderField::setName( const String &n )
-{
-    d->name = n;
-}
-
-
-/*! Sets the data of this HeaderField to \a s. */
-
-void HeaderField::setData( const String &s )
-{
-    d->data = s;
-}
-
-
-/*! Sets the value of this HeaderField to \a s. */
-
-void HeaderField::setValue( const String &s )
-{
-    d->value = s;
-}
-
-
-/*! Records the error text \a s encountered during parsing. */
-
-void HeaderField::setError( const String &s )
-{
-    d->error = s;
-}
-
-
-/*! Sets the unparsed contents of this HeaderField to \a s. */
-
-void HeaderField::setString( const String &s )
-{
-    d->string = s;
 }
 
 
@@ -176,13 +148,29 @@ String HeaderField::name() const
 }
 
 
-/*! Returns the canonical, unfolded, UTF-8 encoded version of value().
-    This is the value we store in the database.
+/*! Sets the name of this HeaderField to \a n. */
+
+void HeaderField::setName( const String &n )
+{
+    d->name = n;
+}
+
+
+/*! Returns the unparsed contents of this HeaderField. This is the
+    string we extract from mail to be parsed.
 */
 
-String HeaderField::data() const
+String HeaderField::string() const
 {
-    return d->data;
+    return d->string;
+}
+
+
+/*! Sets the unparsed contents of this HeaderField to \a s. */
+
+void HeaderField::setString( const String &s )
+{
+    d->string = s;
 }
 
 
@@ -194,6 +182,32 @@ String HeaderField::data() const
 String HeaderField::value() const
 {
     return d->value;
+}
+
+
+/*! Sets the value of this HeaderField to \a s. */
+
+void HeaderField::setValue( const String &s )
+{
+    d->value = s;
+}
+
+
+/*! Returns the canonical, unfolded, UTF-8 encoded version of value().
+    This is the value we store in the database.
+*/
+
+String HeaderField::data() const
+{
+    return d->data;
+}
+
+
+/*! Sets the data of this HeaderField to \a s. */
+
+void HeaderField::setData( const String &s )
+{
+    d->data = s;
 }
 
 
@@ -219,6 +233,14 @@ String HeaderField::error() const
 }
 
 
+/*! Records the error text \a s encountered during parsing. */
+
+void HeaderField::setError( const String &s )
+{
+    d->error = s;
+}
+
+
 /*! Returns a pointer to the Date value of this header field, or 0 if
     this is not a Date field.
 */
@@ -239,57 +261,9 @@ List< Address > *HeaderField::addresses() const
 }
 
 
-/*! Returns a pointer to the ContentType object contained in this header
-    field.
-
-    (This function will go away once MimeField inherits HeaderField.)
-*/
-
-ContentType *HeaderField::contentType() const
-{
-    return d->contentType;
-}
-
-
-/*! Returns a pointer to the ContentTransferEncoding object contained in
-    this header field.
-
-    (This function will go away once MimeField inherits HeaderField.)
-*/
-
-ContentTransferEncoding *HeaderField::contentTransferEncoding() const
-{
-    return d->cte;
-}
-
-
-/*! Returns a pointer to the ContentDisposition object contained in this
-    header field.
-
-    (This function will go away once MimeField inherits HeaderField.)
-*/
-
-ContentDisposition *HeaderField::contentDisposition() const
-{
-    return d->cd;
-}
-
-
-/*! Returns a pointer to the ContentLanguage object contained in this
-    header field.
-
-    (This function will go away once MimeField inherits HeaderField.)
-*/
-
-ContentLanguage *HeaderField::contentLanguage() const
-{
-    return d->cl;
-}
-
-
-/*! This private function decides how to parse this header field based
-    on the type() assigned by the constructor. It calls an appropriate
-    function to do the actual parsing (e.g., parseMailbox()).
+/*! This function decides how to parse this header field based on the
+    type() assigned by the constructor. It leaves the actual parsing
+    to functions like parseMailbox().
 */
 
 void HeaderField::parse()
@@ -352,24 +326,15 @@ void HeaderField::parse()
         parseMimeVersion();
         break;
 
-    case HeaderField::ContentType:
-        parseContentType();
-        break;
-
-    case HeaderField::ContentTransferEncoding:
-        parseContentTransferEncoding();
-        break;
-
-    case HeaderField::ContentDisposition:
-        parseContentDisposition();
-        break;
-
-    case HeaderField::ContentLanguage:
-        parseContentLanguage();
-        break;
-
     case HeaderField::ContentLocation:
         parseContentLocation();
+        break;
+
+    case HeaderField::ContentType:
+    case HeaderField::ContentTransferEncoding:
+    case HeaderField::ContentDisposition:
+    case HeaderField::ContentLanguage:
+        // We should never be called for these.
         break;
 
     case HeaderField::Other:
@@ -493,54 +458,6 @@ void HeaderField::parseMimeVersion()
 }
 
 
-/*! Parses the Content-Type header field and records the first problem
-    found.
-*/
-
-void HeaderField::parseContentType()
-{
-    d->contentType = new ::ContentType( value() );
-    if ( !d->contentType->valid() )
-        setError( "Could not parse '" + value().simplified() + "'" );
-}
-
-
-/*! Parses the Content-Transfer-Encoding header field and records the
-    first problem found.
-*/
-
-void HeaderField::parseContentTransferEncoding()
-{
-    d->cte = new ::ContentTransferEncoding( value() );
-    if ( !d->cte->valid() )
-        setError( "Could not parse '" + value().simplified() + "'" );
-}
-
-
-/*! Parses the Content-Disposition header field and records the first
-    problem found.
-*/
-
-void HeaderField::parseContentDisposition()
-{
-    d->cd = new ::ContentDisposition( value() );
-    if ( !d->cd->valid() )
-        setError( "Could not parse '" + value().simplified() + "'" );
-}
-
-
-/*! Parses the Content-Language header field and records the first
-    problem found.
-*/
-
-void HeaderField::parseContentLanguage()
-{
-    d->cl = new ::ContentLanguage( value() );
-    if ( !d->cl->valid() )
-        setError( "Could not parse '" + value().simplified() + "'" );
-}
-
-
 /*! Parses the Content-Location header field and records the first
     problem found.
 */
@@ -575,5 +492,3 @@ const char *HeaderField::fieldName( HeaderField::Type t )
         i++;
     return fieldNames[i].name;
 }
-
-

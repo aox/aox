@@ -295,10 +295,8 @@ List< Address > *Header::addresses( HeaderField::Type t ) const
 
 ContentType *Header::contentType() const
 {
-    HeaderField *hf = field( HeaderField::ContentType );
-    if ( !hf )
-        return 0;
-    return hf->contentType();
+    return (ContentType *)
+        field( HeaderField::ContentType );
 }
 
 
@@ -308,10 +306,8 @@ ContentType *Header::contentType() const
 
 ContentTransferEncoding *Header::contentTransferEncoding() const
 {
-    HeaderField *hf = field( HeaderField::ContentTransferEncoding );
-    if ( !hf )
-        return 0;
-    return hf->contentTransferEncoding();
+    return (ContentTransferEncoding *)
+        field( HeaderField::ContentTransferEncoding );
 }
 
 
@@ -321,10 +317,8 @@ ContentTransferEncoding *Header::contentTransferEncoding() const
 
 ContentDisposition *Header::contentDisposition() const
 {
-    HeaderField *hf = field( HeaderField::ContentDisposition );
-    if ( !hf )
-        return 0;
-    return hf->contentDisposition();
+    return (ContentDisposition *)
+        field( HeaderField::ContentDisposition );
 }
 
 
@@ -361,10 +355,8 @@ String Header::contentLocation() const
 
 ContentLanguage *Header::contentLanguage() const
 {
-    HeaderField *hf = field( HeaderField::ContentLanguage );
-    if ( !hf )
-        return 0;
-    return hf->contentLanguage();
+    return (ContentLanguage *)
+        field( HeaderField::ContentLanguage );
 }
 
 
@@ -490,40 +482,32 @@ static bool sameAddresses( HeaderField *a, HeaderField *b )
 void Header::simplify()
 {
     HeaderField *cde = field( HeaderField::ContentDescription );
-    if ( cde && cde->value().isEmpty() )
-    {
+    if ( cde && cde->value().isEmpty() ) {
         removeField( HeaderField::ContentDescription );
         cde = 0;
     }
 
-    HeaderField *cte = field( HeaderField::ContentTransferEncoding );
-    if ( cte &&
-         cte->contentTransferEncoding()->encoding() == String::Binary )
-    {
+    ContentTransferEncoding *cte = contentTransferEncoding();
+    if ( cte && cte->encoding() == String::Binary )
         removeField( HeaderField::ContentTransferEncoding );
-    }
 
-    HeaderField *cdi = field( HeaderField::ContentDisposition );
+    ContentDisposition *cdi = contentDisposition();
     if ( cdi ) {
-        ContentDisposition *cd = cdi->contentDisposition();
-        HeaderField *ct = field( HeaderField::ContentType );
+        ContentType *ct = contentType();
 
-        if ( d->mode == Rfc2822 &&
-             ( !ct || ct->contentType()->type() == "text" ) &&
-             cd->disposition() == ContentDisposition::Inline &&
-             cd->parameterList()->isEmpty() )
+        if ( d->mode == Rfc2822 && ( !ct || ct->type() == "text" ) &&
+             cdi->disposition() == ContentDisposition::Inline &&
+             cdi->parameters()->isEmpty() )
         {
             removeField( HeaderField::ContentDisposition );
             cdi = 0;
         }
     }
 
-    HeaderField *ct = field( HeaderField::ContentType );
+    ContentType *ct = contentType();
     if ( ct ) {
-        ContentType *c = ct->contentType();
-
-        if ( c->type() == "text" && c->subtype() == "plain" &&
-             c->parameterList()->isEmpty() &&
+        if ( ct->type() == "text" && ct->subtype() == "plain" &&
+             ct->parameters()->isEmpty() &&
              cte == 0 && cdi == 0 && cde == 0 )
         {
             removeField( HeaderField::ContentType );
@@ -633,7 +617,7 @@ void Header::appendField( String &r, HeaderField *hf ) const
         r.append( hf->value() );
     }
     else if ( t == HeaderField::ContentType ) {
-        ContentType * ct = hf->contentType();
+        ContentType *ct = (ContentType *)hf;
         if ( !ct || !ct->valid() )
             return;
         r.append( hf->name() );
@@ -641,7 +625,7 @@ void Header::appendField( String &r, HeaderField *hf ) const
         mf = ct;
     }
     else if ( t == HeaderField::ContentDisposition ) {
-        ContentDisposition *cd = hf->contentDisposition();
+        ContentDisposition *cd = (ContentDisposition *)hf;
         if ( !cd || !cd->valid() )
             return;
         switch( cd->disposition() ) {
@@ -655,7 +639,8 @@ void Header::appendField( String &r, HeaderField *hf ) const
         mf = cd;
     }
     else if ( t == HeaderField::ContentTransferEncoding ) {
-        ContentTransferEncoding * cte = hf->contentTransferEncoding();
+        ContentTransferEncoding *cte =
+            (ContentTransferEncoding *)hf;
         if ( !cte || !cte->valid() )
             return;
         r.append( hf->name() + ": " + hf->value() );
@@ -679,24 +664,8 @@ void Header::appendField( String &r, HeaderField *hf ) const
     }
 
     // Which MIME header fields can have parameters?
-    if ( mf ) {
-        StringList * l = mf->parameterList();
-        if ( l ) {
-            StringList::Iterator it( l->first() );
-            while ( it ) {
-                String name = *it;
-                String value = mf->parameter( name );
-                r.append( "; " + name + "=" );
-                if ( value.boring( String::MIME ) )
-                    r.append( value );
-                else
-                    r.append( value.quoted() );
-                ++it;
-            }
-        }
-    }
+    if ( mf )
+        r.append( mf->parameterString() );
 
     r.append( "\015\012" );
 }
-
-

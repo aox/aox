@@ -358,12 +358,12 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bp->d->numBytes = bp->d->text.length();
 
         bool qp = s.needsQP();
-        HeaderField *hf = h->field( HeaderField::ContentTransferEncoding );
-        if ( hf ) {
+        ContentTransferEncoding *cte = h->contentTransferEncoding();
+        if ( cte ) {
             if ( !qp )
                 h->removeField( HeaderField::ContentTransferEncoding );
-            else if ( hf->contentTransferEncoding()->encoding() != String::QP )
-                hf->contentTransferEncoding()->setEncoding( String::QP, hf );
+            else if ( cte->encoding() != String::QP )
+                cte->setEncoding( String::QP );
         }
         else if ( qp ) {
             h->add( "Content-Transfer-Encoding", "quoted-printable" );
@@ -372,11 +372,10 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     }
     else {
         if ( ct->type() != "multipart" && ct->type() != "message" ) {
-            HeaderField *hf = h->field( HeaderField::ContentTransferEncoding );
-            if ( hf ) {
-                ContentTransferEncoding *cte = hf->contentTransferEncoding();
+            ContentTransferEncoding *cte = h->contentTransferEncoding();
+            if ( cte ) {
                 if ( cte->encoding() != String::Base64 )
-                    cte->setEncoding( String::Base64, hf );
+                    cte->setEncoding( String::Base64 );
             }
             else {
                 h->add( "Content-Transfer-Encoding", "base64" );

@@ -170,34 +170,30 @@ static String headerSummary( Header *h )
 {
     StringList l;
 
-    List< HeaderField >::Iterator it( h->fields()->first() );
-    while ( it ) {
-        HeaderField::Type t = it->type();
+    ContentType *ct = h->contentType();
+    if ( ct )
+        l.append( ct->type() + "/" + ct->subtype() );
 
-        if ( t == HeaderField::ContentType ) {
-            ContentType *ct = it->contentType();
-            l.append( ct->type() + "/" + ct->subtype() );
+    ContentTransferEncoding *cte = h->contentTransferEncoding();
+    if ( cte ) {
+        String s;
+        switch ( cte->encoding() ) {
+        case String::QP:
+            s = "quoted-printable";
+            break;
+        case String::Base64:
+            s = "base64";
+            break;
+        case String::Binary:
+            s = "7bit";
+            break;
         }
-        else if ( t == HeaderField::ContentTransferEncoding ) {
-            String s;
-            switch ( it->contentTransferEncoding()->encoding() ) {
-            case String::QP:
-                s = "quoted-printable";
-                break;
-            case String::Base64:
-                s = "base64";
-                break;
-            case String::Binary:
-                s = "7bit";
-                break;
-            }
-            l.append( s );
-        }
-        else if ( t == HeaderField::ContentDescription ) {
-            l.append( it->value() );
-        }
-        ++it;
+        l.append( s );
     }
+
+    HeaderField *cd = h->field( HeaderField::ContentDescription );
+    if ( cd )
+        l.append( cd->value() );
 
     return l.join( ";" );
 }

@@ -6,13 +6,9 @@
 #include "list.h"
 
 
+class Date;
 class String;
 class Address;
-class ContentType;
-class ContentTransferEncoding;
-class ContentDisposition;
-class ContentLanguage;
-class Date;
 
 
 class HeaderField {
@@ -49,33 +45,31 @@ public:
     Type type() const;
 
     String name() const;
-    String data() const;
-    String value() const;
+    void setName( const String & );
+
+    String string() const;
+    void setString( const String & );
+
+    virtual String value() const;
+    void setValue( const String & );
+
+    virtual String data() const;
+    void setData( const String & );
 
     bool valid() const;
     String error() const;
+    void setError( const String & );
+
+    virtual void parse();
 
     ::Date *date() const;
     List< ::Address > *addresses() const;
-    ::ContentType *contentType() const;
-    ::ContentTransferEncoding *contentTransferEncoding() const;
-    ::ContentDisposition *contentDisposition() const;
-    ::ContentLanguage *contentLanguage() const;
 
     static const char *fieldName( HeaderField::Type );
 
 private:
     class HeaderFieldData *d;
 
-    friend class ContentTransferEncoding;
-
-    void setName( const String & );
-    void setData( const String & );
-    void setValue( const String & );
-    void setError( const String & );
-    void setString( const String & );
-
-    void parse();
     void parseText();
     void parseMailboxList();
     void parseMailbox();
@@ -83,10 +77,6 @@ private:
     void parseMessageId();
     void parseReferences();
     void parseDate();
-    void parseContentType();
-    void parseContentTransferEncoding();
-    void parseContentDisposition();
-    void parseContentLanguage();
     void parseContentLocation();
     void parseMimeVersion();
 };
