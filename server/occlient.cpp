@@ -92,7 +92,7 @@ void OCClient::react( Event e )
 }
 
 
-/*! Parses messages from the CCServer. */
+/*! Parses messages from the OCServer. */
 
 void OCClient::parse()
 {
@@ -105,4 +105,13 @@ void OCClient::parse()
 
     if ( r == "shutdown" )
         Loop::shutdown();
+}
+
+
+/*! This static function sends the message \a s to the OCServer. */
+
+void OCClient::send( const String &s )
+{
+    client->enqueue( "* " + s + "\r\n" );
+    client->write();
 }
