@@ -24,8 +24,8 @@ LOGFILE = $(PREFIX)/logfile ;
 
 # the user and group needed.
 
-ORYXUSER = "oryx" ;
-ORYXGROUP = "oryx" ;
+ORYXUSER = "nobody" ;
+ORYXGROUP = "nobody" ;
 
 # How to compile
 

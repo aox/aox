@@ -13,13 +13,16 @@ Building and installing Mailstore is a five-step process:
 
 2. Type 'jam install' to build and install the programs and other files.
 
-3. Create the PostgreSQL user, mailstore and tables needed, as well as
+3. If you configured ORYXUSER and ORYXGROUP to something special, make
+   sure that user and that group exist.
+
+   Create the PostgreSQL user, mailstore and tables needed, as well as
    the mailstore.conf file. You can do this automatically using the
    script BINDIR/installer (/usr/local/mailstore/bin/installer by
    default), or you can do it by hand. If you run BINDIR/installer -n,
    it does nothing except tell you exactly what needs to be done.
 
-4. If mailstore.conf was created automatically for you, you may want
+3. If mailstore.conf was created automatically for you, you may want
    to have a look at it and perhaps change something. It's not
    necessary.
 

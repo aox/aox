@@ -9,6 +9,11 @@ if [ `id -u` != 0 ]; then
     exit 1
 fi
 
+TELL=no
+if [ "$1" = "-n" ]; then
+    TELL=yes;
+fi
+
 # Pull in the compile-time configuration
 . $LIBDIR/.config.sh
 
@@ -17,7 +22,7 @@ CONFIG=$CONFIGDIR/mailstore.conf
 # If we're upgrading from an older version, we probably don't want to
 # overwrite anything. That mailstore.conf may contain a custom
 # db-user, etc.
-if [ -f $CONFIG ]; then
+if [ -f $CONFIG -a $TELL = no ]; then
     echo $CONFIG already exists -- exiting without changes.
     echo " - not creating PostgreSQL user" $DBUSER
     echo " - not creating PostgreSQL database" $DBNAME
@@ -41,12 +46,23 @@ fi
 EXISTS="select usename from pg_catalog.pg_user where usename = '$DBUSER'"
 EXISTS=$(su - $PGUSER -c "$PSQL -d template1 -Atqc \"$EXISTS\"")
 if [ ! $EXISTS ]; then
-    echo "Creating PostgreSQL user" $DBNAME
     if [ ! $DBPASS ]; then
         DBPASS=$(dd if=/dev/urandom bs=1 count=8 2>/dev/null|md5sum|cut -b-32)
     fi
     CREATE="create user $DBUSER with encrypted password '$DBPASS'"
-    su - $PGUSER -c "$PSQL -d template1 -qc \"$CREATE\"" || exit
+    if [ $TELL = no ]; then
+        echo "Creating PostgreSQL user" $DBNAME
+        su - $PGUSER -c "$PSQL -d template1 -qc \"$CREATE\"" || exit
+    else
+        echo "Need to create PostgreSQL user" $DBNAME
+        echo "As $PGUSER, run this:"
+	echo "    $PSQL -d template1 -qc \"$CREATE\""
+    fi
+elif [ $TELL = yes ]; then
+    echo "PostgreSQL user $DBUSER already exists, no action necessary."
+    if [ ! $DBPASS ]; then
+        DBPASS="(password for $PGUSER here)"
+    fi
 fi
 
 
@@ -59,9 +75,17 @@ fi
 EXISTS="select datname from pg_catalog.pg_database where datname = '$DBNAME'"
 EXISTS=$(su - $PGUSER -c "$PSQL -d template1 -Atqc \"$EXISTS\"")
 if [ ! $EXISTS ]; then
-    echo "Creating PostgreSQL database" $DBNAME
     CREATE="create database $DBNAME with owner $DBUSER encoding 'UNICODE'"
-    su - $PGUSER -c "$PSQL -d template1 -qc \"$CREATE\"" || exit
+    if [ $TELL = no ]; then
+        echo "Creating PostgreSQL database" $DBNAME
+        su - $PGUSER -c "$PSQL -d template1 -qc \"$CREATE\"" || exit
+    else
+        echo "Need to create PostgreSQL database" $DBNAME
+        echo "As $PGUSER, run this:"
+        echo "    $PSQL -d template1 -qc \"$CREATE\""
+    fi
+elif [ $TELL = yes ]; then
+    echo "PostgreSQL database $DBNAME already exists, no action necessary."
 fi
 
 
@@ -70,22 +94,43 @@ fi
 EXISTS="select relname from pg_catalog.pg_class where relname='mailstore'"
 EXISTS=$(su - $PGUSER -c "$PSQL -d $DBNAME -Atqc \"$EXISTS\"")
 if [ ! $EXISTS ]; then
-    echo "Loading Mailstore schema"
-cat <<PSQL | su - $PGUSER -c "$PSQL -q -d $DBNAME -f -" || exit
+    if [ $TELL = no ]; then
+        echo "Loading Mailstore schema"
+        cat <<PSQL | su - $PGUSER -c "$PSQL -q -d $DBNAME -f -" || exit
 \set ON_ERROR_STOP
 SET SESSION AUTHORIZATION $DBUSER;
 SET client_min_messages TO 'ERROR';
 \i $LIBDIR/schema.pg
 \i $LIBDIR/field-names
 PSQL
+    else
+        echo "Need to load Mailstore schema"
+        echo "As $PGUSER, run this:"
+        echo "    $PSQL -q -d $DBNAME -f -"
+        echo "\\set ON_ERROR_STOP"
+        echo "SET SESSION AUTHORIZATION $DBUSER;"
+        echo "SET client_min_messages TO 'ERROR';"
+        echo "\\i $LIBDIR/schema.pg"
+        echo "\\i $LIBDIR/field-names"
+    fi
+elif [ $TELL = yes ]; then
+    echo "Mailstore schema already exists, no action necessary."
 fi
 
 
 # Write a stub configuration file.
 
-touch $CONFIG
-chmod 0600 $CONFIG
-cat <<CONFIG > $CONFIG
+if [ $TELL = no ]; then
+    touch $CONFIG
+    chmod 0600 $CONFIG
+    exec > $CONFIG
+else
+    echo "Create $CONFIG with mode 600:"
+    echo "    touch $CONFIG"
+    echo "    chmod 0600 $CONFIG"
+    echo "Insert e.g. the following into $CONFIG:"
+fi
+cat <<CONFIG
 # Mailstore configuration. For more about this, see the mailstore.conf
 # man page.
 
