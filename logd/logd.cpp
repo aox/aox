@@ -6,9 +6,8 @@
 #include "global.h"
 #include "logserver.h"
 #include "configuration.h"
+#include "selflogger.h"
 
-// fprintf()
-#include <stdio.h>
 
 int main( int, char *[] )
 {
@@ -20,18 +19,11 @@ int main( int, char *[] )
     // this carefully doesn't log anything.
     Configuration::makeGlobal( ".logdrc" );
 
-    // this essentially has to be the first action. if not, the
-    // logging of whatever comes before will die a horrible death.
+    (void)new SelfLogger;
     Listener<LogServer>::create( "Log Server", "", 2054 );
 
-    // this logs.
-    // Log::global()->log( Test::report() );
-    // Configuration::global()->report();
-
-    // and if it caused errors, we should quit. bad stuff. but we must
-    // try to log the error, so we soldier on.
-    if ( Log::disastersYet() )
-        fprintf( stderr, "logd: Severe errors on startup! See log files.\n" );
+    Log::global()->log( Test::report() );
+    Configuration::global()->report();
 
     Loop::start();
 }

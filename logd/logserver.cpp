@@ -98,8 +98,16 @@ void LogServer::parse()
     if ( !s )
         return;
 
-    String line = s->simplified();
+    processLine( s->simplified() );
+}
 
+
+/*! Processes the single \a line, adding it to the log output as
+    appropriate.
+*/
+
+void LogServer::processLine( const String & line )
+{
     uint i = 0;
     while ( line[i] > ' ' )
         i++;

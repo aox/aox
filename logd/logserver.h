@@ -12,6 +12,8 @@ public:
 
     void react(Event e);
 
+    void processLine( const String & );
+
 private:
     void parse();
     void process( String, String, String );
