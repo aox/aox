@@ -28,6 +28,7 @@ int main( int argc, char *argv[] )
     String recipient;
     String filename;
     bool error = false;
+    int verbose = 0;
 
     int n = 1;
     while ( n < argc ) {
@@ -36,6 +37,10 @@ int main( int argc, char *argv[] )
             case 'f':
                 if ( argc - n > 1 )
                     sender = argv[++n];
+                break;
+
+            case 'v':
+                verbose++;
                 break;
 
             default:
@@ -57,7 +62,7 @@ int main( int argc, char *argv[] )
 
     if ( error || recipient.isEmpty() ) {
         fprintf( stderr,
-                 "Syntax: deliver [ -f sender ] recipient [ filename ]\n" );
+                 "Syntax: deliver [-v] [-f sender] recipient [filename]\n" );
         exit( -1 );
     }
 
@@ -91,8 +96,9 @@ int main( int argc, char *argv[] )
             sender = sender.mid( 1, sender.length()-2 );
     }
 
-    fprintf( stderr, "Using recipient %s and sender %s\n",
-             recipient.cstr(), sender.cstr() );
+    if ( verbose > 0 )
+        fprintf( stderr, "Using recipient %s and sender %s\n",
+                 recipient.cstr(), sender.cstr() );
 
     Configuration::setup( "mailstore.conf" );
 
