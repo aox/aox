@@ -40,7 +40,7 @@ class SearchData {
 public:
     SearchData()
         : uid( false ), done( false ), root( 0 ), conditions( 0 ),
-          codec( 0 ), query( 0 ),
+          codec( 0 ), query( 0 ), argc( 0 ),
           usesHeaderFieldsTable( false ),
           usesFieldNamesTable( false ),
           usesAddressFieldsTable( false ),
@@ -385,9 +385,10 @@ void Search::considerCache()
     ImapSession * s = imap()->session();
     uint msn = s->count();
     bool needDb = false;
-    uint c = 1;
-    String matches = "* SEARCH";
-    while ( c <= msn && !needDb ) {
+    uint c = 0;
+    String matches = "SEARCH";
+    while ( c < msn && !needDb ) {
+        c++;
         uint uid = s->uid( c );
         Message * m = s->mailbox()->message( uid, false );
         switch ( d->root->match( m, uid ) ) {
@@ -407,8 +408,6 @@ void Search::considerCache()
             needDb = true;
             break;
         }
-        if ( !needDb )
-            c++;
     }
     log( "Search considered " + fn( c ) + " of " + fn( c ) +
          " messages using cache", Log::Debug );
@@ -991,7 +990,7 @@ String Search::Condition::whereFlags() const
 
 String Search::Condition::whereUid() const
 {
-    return s.where();
+    return s.where( "messages" );
 }
 
 
