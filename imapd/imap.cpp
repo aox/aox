@@ -236,16 +236,10 @@ void IMAP::addCommand()
     }
     String command = s->mid( j, i-j );
 
-    // evil hack: skip past a space if there is one, for ease of
-    // parsing by the Command classes.
-    if ( (*s)[i] == ' ' )
-        i++;
-
-    // write the new string into the one in the list
-    *s = s->mid( i );
-
     Command * cmd = Command::create( this, command, tag, args, d->cmdArena );
     if ( cmd ) {
+        cmd->step( i );
+        cmd->space(); // skip past tag, command and first space
         cmd->parse();
         if ( cmd->ok() && cmd->state() == Command::Executing &&
             !d->commands.isEmpty() ) {
