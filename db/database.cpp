@@ -19,6 +19,23 @@ static String *t, *n, *u, *p;
 static List< Database > handles;
 
 
+static Database *newHandle( Database::Interface i )
+{
+    Database *db = 0;
+
+    switch ( i ) {
+    case Database::Pg:
+        db = new Postgres;
+        break;
+
+    case Database::Unknown:
+        break;
+    }
+
+    return db;
+}
+
+
 /*! \class Database database.h
     This class represents a connection to the database server.
 
@@ -71,6 +88,16 @@ void Database::setup()
         return;
     }
 
+    if ( srv->protocol() == Endpoint::Unix ) {
+        // We can't reconnect to a Unix socket after a chroot(), so we
+        // create four handles right away.
+        int i = 0;
+        while ( i < 4 ) {
+            (void)newHandle( interface() );
+            i++;
+        }
+    }
+
     // XXX: It is not clear to me where and how this should be called,
     // but it seems quite wrong to call it from here. But I need to do
     // this to step through the code right now.
@@ -103,16 +130,8 @@ Database *Database::handle()
     }
 
     // XXX: We should do some sort of rate limiting here.
-    if ( !db ) {
-        switch ( interface() ) {
-        case Pg:
-            db = new Postgres;
-            break;
-
-        case Unknown:
-            break;
-        }
-    }
+    if ( !db )
+        db = newHandle( interface() );
 
     return db;
 }

@@ -35,11 +35,12 @@ int main( int argc, char * argv[] )
     if ( useLmtp )
         Listener< LMTP >::create( "LMTP", "127.0.0.1", 2026 );
 
+    Database::setup();
+
     s.setup( Server::Finish );
 
     TlsServer::setup();
     OCClient::setup();
-    Database::setup();
     Mailbox::setup();
     AddressCache::setup();
     FieldNameCache::setup();

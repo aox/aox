@@ -27,11 +27,11 @@ int main( int argc, char *argv[] )
     Server s( "imapd", argc, argv );
     s.setup( Server::Report );
     Listener< IMAP >::create( "IMAP", "", 143 );
+    Database::setup();
     s.setup( Server::Finish );
 
     TlsServer::setup();
     OCClient::setup();
-    Database::setup();
     Mailbox::setup();
     Capability::setup();
     AddressCache::setup();
