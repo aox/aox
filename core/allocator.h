@@ -11,11 +11,10 @@ extern void * alloc( uint );
 
 class Allocator
 {
-private:
+public:
     Allocator( uint );
     ~Allocator();
 
-public:
     void * allocate( uint size );
 
     void * block( uint );
