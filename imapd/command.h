@@ -4,6 +4,7 @@
 #include "global.h"
 #include "string.h"
 #include "list.h"
+#include "dbclient.h"
 
 class IMAP;
 class Arena;
@@ -11,7 +12,9 @@ class Log;
 class Set;
 
 
-class Command {
+class Command
+    : public DatabaseClient
+{
 public:
     Command();
     virtual ~Command();
@@ -20,7 +23,6 @@ public:
                              List<String> *, Arena * );
 
     virtual void parse();
-    virtual void execute() = 0;
     virtual void read();
     bool ok() const;
 
