@@ -14,7 +14,6 @@
 #include <stdio.h>
 
 
-static Log * globalLog = 0;
 static bool disasters = false;
 static String time();
 
@@ -107,9 +106,6 @@ void Log::commit( Severity s )
 Log::~Log()
 {
     commit( Debug );
-
-    if ( this == globalLog )
-        globalLog = 0;
 }
 
 
