@@ -41,21 +41,32 @@ public:
 
     void bind( uint, int );
     void bind( uint, const String &, Format = Text );
+    void bindNull( uint );
     void execute();
 
     class Value {
     private:
         int n;
-        String d;
-        Query::Format f;
+        bool null;
+        String str;
+        Query::Format fmt;
 
     public:
-        Value( int p, const String &s, Query::Format fmt )
-            : n( p ), d( s ), f( fmt )
+        Value( int p )
+            : n( p ), null( true )
         {}
 
-        String data() const { return d; }
-        Query::Format format() const { return f; }
+        Value( int p, const String &s, Query::Format f )
+            : n( p ), null( false ), str( s ), fmt( f )
+        {}
+
+        int length() const {
+            if ( null )
+                return -1;
+            return str.length();
+        }
+        String data() const { return str; }
+        Query::Format format() const { return fmt; }
 
         bool operator <=( const Value &b ) {
             return n <= b.n;

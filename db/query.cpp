@@ -263,6 +263,16 @@ void Query::bind( uint n, const String &s, Format f )
 }
 
 
+/*! \overload
+    Binds NULL to the parameter \a n of this Query.
+*/
+
+void Query::bindNull( uint n )
+{
+    d->values.insert( new Value( n ) );
+}
+
+
 /*! This function submits this Query to the Database for processing. The
     owner() of the query will be informed of any activity via notify().
 */

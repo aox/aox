@@ -381,6 +381,8 @@ void Injector::insertBodyparts()
         i = new Query( "insert into bodyparts (text) values ($1)", helper );
         if ( text )
             i->bind( 1, b->data(), Query::Binary );
+        else
+            i->bindNull( 1 );
         d->transaction->enqueue( i );
 
         if ( !text ) {
