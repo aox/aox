@@ -267,14 +267,11 @@ String Database::typeName( Type type )
     case Database::Boolean:
         n = "boolean";
         break;
-    case Database::Character:
-        n = "character";
-        break;
     case Database::Integer:
         n = "integer";
         break;
-    case Database::Varchar:
-        n = "varchar";
+    case Database::Bytes:
+        n = "string";
         break;
     }
     return n;

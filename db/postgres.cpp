@@ -568,16 +568,21 @@ Row *Postgres::composeRow( const PgDataRow &r )
 
         Database::Type t;
         switch ( c->type ) {
-        case 16:
-            t = Database::Boolean; break;
-        case 18:
-            t = Database::Character; break;
-        case 23:
-            t = Database::Integer; break;
-        case 1043:
-            t = Database::Varchar; break;
+        case 16:    // BOOL
+            t = Database::Boolean;
+            break;
+        case 21:    // INT2
+        case 23:    // INT4
+            t = Database::Integer;
+            break;
+        case 17:    // BYTEA
+        case 18:    // CHAR
+        case 1043:  // VARCHAR
+            t = Database::Bytes;
+            break;
         default:
-            t = Database::Unknown; break;
+            t = Database::Unknown;
+            break;
         }
 
         cv->name = c->name;
@@ -594,7 +599,7 @@ Row *Postgres::composeRow( const PgDataRow &r )
 }
 
 
-static int currentRevision = 2;
+static int currentRevision = 3;
 
 class UpdateSchema : public EventHandler {
 private:
@@ -694,8 +699,13 @@ void UpdateSchema::execute() {
                 if ( substate == 1 ) {
                     if ( !q->done() )
                         return;
+                    substate = 0;
                 }
             }
+
+            if ( revision == 2 ) {
+            }
+
             state = 5;
         }
         if ( state == 5 ) {

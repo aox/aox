@@ -16,9 +16,9 @@ public:
     enum Interface {
         Invalid, Pg
     };
-    
+
     enum Type {
-        Unknown, Boolean, Character, Integer, Varchar
+        Unknown, Boolean, Integer, Bytes
     };
 
     static String typeName( Type );

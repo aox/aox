@@ -491,10 +491,10 @@ String Row::getString( const String &field ) const
 {
     List< Column >::Iterator c = findColumn( field );
 
-    if ( c && c->type == Database::Varchar )
+    if ( c && c->type == Database::Bytes )
         return c->value;
 
-    logDisaster( c, field, Database::Varchar );
+    logDisaster( c, field, Database::Bytes );
     return "";
 }
 
