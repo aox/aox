@@ -13,18 +13,23 @@ class Address;
 class StringList;
 
 
-class HTTP : public Connection {
+class HTTP: public Connection {
 public:
     HTTP( int s );
 
     void react( Event e );
 
+    enum State {
+        Request, Header, Done
+    };
+    State state() const;
+    void parseRequest( String );
+    void parseHeader( const String & );
+    void respond();
+    StringList * response();
+
 private:
     void parse();
-
-    void parseRequest();
-    void parseHeader();
-    void respond();
 
     void parseAccept( const String &, uint );
     void parseAcceptCharset( const String &, uint );
