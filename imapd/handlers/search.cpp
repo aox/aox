@@ -10,6 +10,7 @@
 #include "query.h"
 #include "date.h"
 #include "imap.h"
+#include "flag.h"
 #include "list.h"
 #include "log.h"
 #include "utf.h"
@@ -126,57 +127,57 @@ void Search::parseKey( bool alsoCharset )
             add( NoField, All );
         }
         else if ( keyword == "answered" ) {
-            add( Flags, Contains, "answered" );
+            add( Flags, Contains, "\\answered" );
         }
         else if ( keyword == "deleted" ) {
-            add( Flags, Contains, "deleted" );
+            add( Flags, Contains, "\\deleted" );
         }
         else if ( keyword == "flagged" ) {
-            add( Flags, Contains, "flagged" );
+            add( Flags, Contains, "\\flagged" );
         }
         else if ( keyword == "new" ) {
             push( And );
-            add( Flags, Contains, "recent" );
-            add( Flags, Contains, "seen" );
+            add( Flags, Contains, "\\recent" );
+            add( Flags, Contains, "\\seen" );
             pop();
         }
         else if ( keyword == "old" ) {
             push( Not );
-            add( Flags, Contains, "recent" );
+            add( Flags, Contains, "\\recent" );
             pop();
         }
         else if ( keyword == "recent" ) {
-            add( Flags, Contains, "recent" );
+            add( Flags, Contains, "\\recent" );
         }
         else if ( keyword == "seen" ) {
-            add( Flags, Contains, "seen" );
+            add( Flags, Contains, "\\seen" );
         }
         else if ( keyword == "unanswered" ) {
             push( Not );
-            add( Flags, Contains, "answered" );
+            add( Flags, Contains, "\\answered" );
             pop();
         }
         else if ( keyword == "undeleted" ) {
             push( Not );
-            add( Flags, Contains, "deleted" );
+            add( Flags, Contains, "\\deleted" );
             pop();
         }
         else if ( keyword == "unflagged" ) {
             push( Not );
-            add( Flags, Contains, "flagged" );
+            add( Flags, Contains, "\\flagged" );
             pop();
         }
         else if ( keyword == "unseen" ) {
             push( Not );
-            add( Flags, Contains, "seen" );
+            add( Flags, Contains, "\\seen" );
             pop();
         }
         else if ( keyword == "draft" ) {
-            add( Flags, Contains, "draft" );
+            add( Flags, Contains, "\\draft" );
         }
         else if ( keyword == "undraft" ) {
             push( Not );
-            add( Flags, Contains, "draft" );
+            add( Flags, Contains, "\\draft" );
             pop();
         }
         else if ( keyword == "on" ) {
@@ -305,7 +306,10 @@ void Search::execute()
             return;
 
         d->query = new SearchQuery( this );
-        d->query->s = d->root->where();
+        d->query->s = "select uid from "
+                      "messages, header_fields, field_names, address_fields, "
+                      "addresses, part_numbers, bodyparts, flags, flag_names "
+                      "where " + d->root->where();
         d->query->execute();
     }
 
@@ -706,14 +710,19 @@ String Search::Condition::where() const
             return whereHeaderField();
         break;
     case Body:
+        return whereBody();
         break;
     case Rfc822Size:
+        return whereRfc822Size();
         break;
     case Flags:
+        return whereFlags();
         break;
     case Uid:
+        return whereUid();
         break;
     case NoField:
+        return "true";
         break;
     }
     c->error( Command::No, "Internal error for " + debugString() );
@@ -788,11 +797,11 @@ String Search::Condition::whereHeaderField() const
     d->query->bind( fnum, a1 );
     uint like = d->argument();
     d->query->bind( like, q( a2 ) );
-    return "(header_fields.mailbox=messages.mailbox and "
+    return "header_fields.mailbox=messages.mailbox and "
         "header_fields.uid=messages.uid and "
         "header_fields.field=field_names.id and "
         "field_names.name=$" + fn( fnum ) + " and "
-        "value like '%' || $" + fn( like ) + " || '%' )";
+        "value like '%' || $" + fn( like ) + " || '%'";
 }
 
 
@@ -809,7 +818,7 @@ String Search::Condition::whereAddressField( const String & field ) const
     uint lp = d->argument();
     uint dom = d->argument();
     String r;
-    r.append( "(address_fields.mailbox=messages.mailbox and "
+    r.append( "address_fields.mailbox=messages.mailbox and "
               "address_fields.uid=messages.uid and " );
     if ( !field.isEmpty() ) {
         uint fnum = d->argument();
@@ -833,7 +842,7 @@ String Search::Condition::whereAddressField( const String & field ) const
         if ( at == (int)raw.length() - 1 )
             r.append( "or addresses.domain like $" + fn( dom ) + "||'%'" );
     }
-    r.append( "))" );
+    r.append( ")" );
     return r;
 }
 
@@ -844,11 +853,121 @@ String Search::Condition::whereHeader() const
 {
     uint like = d->argument();
     d->query->bind( like, "%" + q( a2 ) + "%" );
-    return "((header_fields.mailbox=messages.mailbox and "
+    return "(header_fields.mailbox=messages.mailbox and "
         "header_fields.uid=messages.uid and "
         "header_fields.field=field_names.id and "
-        "value like $" + fn( like ) + ") or " +
+        "value like $" + fn( like ) + ") or (" +
         whereAddressField( "" ) + ")";
+}
+
+
+/*! This implements searches on (text) bodyparts. We cannot and will
+    not do "full-text" search on the contents of e.g. jpeg
+    pictures. (For some formats we search on the text part, because
+    the injector sets bodyparts.text based on bodyparts.data.)
+*/
+
+String Search::Condition::whereBody() const
+{
+    uint bt = d->argument();
+    d->query->bind( bt, q( a2 ) );
+    return "messages.mailbox=part_numbers.mailbox and "
+        "messages.uid=part_numbers.uid and "
+        "part_numbers.bodypart=bodyparts.id and "
+        "bodyparts.text like '%'||$" + fn( bt ) + "||'%'";
+}
+
+
+/*! This implements searches on the rfc822size of messages.
+*/
+
+String Search::Condition::whereRfc822Size() const
+{
+    uint s = d->argument();
+    d->query->bind( s, n );
+    if ( a == Smaller )
+        return "messages.rfc822size<$" + fn( s );
+    else if ( a == Larger )
+        return "messages.rfc822size>$" + fn( s );
+    c->error( Command::No, "Internal error: " + debugString() );
+    return "";
+}
+
+
+/*! This implements searches on whether a message has/does not have
+    flags.
+*/
+
+String Search::Condition::whereFlags() const
+{
+    if ( a1 == "\\recent" )
+        // recent is not in the database, so we tell the database
+        // which uids will match.
+        return c->imap()->session()->recent().where();
+
+    // the database can look in the ordinary way. we make it easy, if we can.
+    Flag * f = Flag::find( a1 );
+    uint name = d->argument();
+    if ( f ) {
+        d->query->bind( name, f->id() );
+        return "messages.mailbox=flags.mailbox and "
+            "messages.uid=flags.uid and "
+            "flags.flag=$1";
+    }
+    d->query->bind( name, a1 ); // do we need to smash case on flags?
+    return "messages.mailbox=flags.mailbox and messages.uid=flags.uid and "
+        "flags.flag=flag_names.id and flag_names.name=$1";
+}
+
+
+/*! This implements searches on whether a message has the right UID.
+*/
+
+String Search::Condition::whereUid() const
+{
+    return s.where();
+}
+
+
+/*! This implements any search that's not bound to a specific field,
+    generally booleans and "all".
+*/
+
+String Search::Condition::whereNoField() const
+{
+    if ( a == And || a == Or ) {
+        if ( l->isEmpty() ) {
+            if ( a == And )
+                return "true";
+            return "false";
+        }
+        List<Condition>::Iterator i( l->first() );
+        String r = "(" + i->where();
+        ++i;
+        String sep;
+        if ( a == And )
+            sep = ") and (";
+        else
+            sep = ") or (";
+        while ( i ) {
+            r.append( sep );
+            r.append( i->where() );
+            ++i;
+        }
+        r.append( ")" );
+        return r;
+    }
+    else if ( a == Not ) {
+        return "not (" + l->first()->where() + ")";
+    }
+    else if ( a == All ) {
+        return "true";
+    }
+    else if ( a == None ) {
+        return "false";
+    }
+    c->error( Command::No, "Internal error: " + debugString() );
+    return "";
 }
 
 

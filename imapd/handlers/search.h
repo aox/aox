@@ -79,6 +79,11 @@ private:
         String whereHeader() const;
         String whereHeaderField() const;
         String whereAddressField( const String & ) const;
+        String whereBody() const;
+        String whereRfc822Size() const;
+        String whereFlags() const;
+        String whereUid() const;
+        String whereNoField() const;
     };
 
     Condition * add( Field, Action,
