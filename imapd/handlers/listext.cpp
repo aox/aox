@@ -22,7 +22,6 @@ public:
 
     Mailbox * reference;
     StringList patterns;
-    String homePrefix;
 
     uint responses;
 
@@ -119,8 +118,6 @@ void Listext::execute()
         error( Bad, "MATCH-PARENT is not valid on its own" );
         return;
     }
-
-    d->homePrefix = imap()->user()->home()->name() + "/";
 
     StringList::Iterator it( d->patterns.first() );
     while ( it ) {
@@ -242,10 +239,12 @@ void Listext::list( Mailbox *m, const String &p )
     bool matchChildren = false;
 
     String name = m->name();
-    if ( p[0] != '/' && p[0] != '*' && name.startsWith( d->homePrefix ) )
-        name = name.mid( d->homePrefix.length() );
 
-    switch( match( p, 0, name, 0 ) ) {
+    uint s = 0;
+    if ( p[0] != '/' && p[0] != '*' )
+        s = d->reference->name().length() + 1;
+
+    switch( match( p, 0, name, s ) ) {
     case 0:
         break;
     case 1:
@@ -261,7 +260,7 @@ void Listext::list( Mailbox *m, const String &p )
 
     bool reported = false;
     if ( matches ) {
-        sendListResponse( m, name ); // simple case: send in the "right" order
+        sendListResponse( m ); // simple case: send in the "right" order
         reported = true;
     }
 
@@ -271,9 +270,9 @@ void Listext::list( Mailbox *m, const String &p )
     if ( reported )
         ; // no need to repeat it
     else if ( responses < d->responses && d->selectMatchParent )
-        sendListResponse( m, name ); // some child matched and we matchparent
+        sendListResponse( m ); // some child matched and we matchparent
     else if ( responses < d->responses && m->deleted() )
-        sendListResponse( m, name ); // some child matched and it's deleted
+        sendListResponse( m ); // some child matched and it's deleted
 }
 
 
@@ -292,12 +291,14 @@ void Listext::listChildren( Mailbox * mailbox, const String & pattern )
 }
 
 
-/*! Sends a LIST response for \a mailbox, which we pretend has \a name.
-    For /users/billg/INBOX, \a name is usually either INBOX or
-    /users/billg/INBOX.
+/*! Sends a LIST response for \a mailbox.
+
+    Open issue: If \a mailbox is the inbox, what should we send?
+    INBOX, or the fully qualified name, or the name relative to the
+    user's home directory?
 */
 
-void Listext::sendListResponse( Mailbox * mailbox, const String & name )
+void Listext::sendListResponse( Mailbox * mailbox )
 {
     if ( !mailbox )
         return;
@@ -321,26 +322,24 @@ void Listext::sendListResponse( Mailbox * mailbox, const String & name )
     else
         a.append( "\\hasnochildren" );
 
-    respond( "LIST (" + a.join( " " ) + ") \"/\" " + name );
+    respond( "LIST (" + a.join( " " ) + ") \"/\" " + mailbox->name() );
     d->responses++;
 }
 
 
 /*! Parses a reference name and returns a pointer to the relevant
-    mailbox, and logs an error if something is wrong.
-
-    If the reference name is empty, reference() returns a null pointer
-    without logging any error.
+    mailbox. Returns a null pointer and logs an error if something is
+    wrong.
 */
 
 Mailbox * Listext::reference()
 {
     String name = astring();
-    if ( name.isEmpty() )
-        return 0;
     Mailbox * m;
     if ( name[0] == '/' )
         m = Mailbox::obtain( name, false );
+    else if ( name.isEmpty() )
+        m = imap()->user()->home();
     else
         m = Mailbox::obtain( imap()->user()->home()->name() + "/" + name,
                              false );

@@ -32,7 +32,7 @@ private:
 
     void list( Mailbox *, const String & );
     void listChildren( Mailbox *, const String & );
-    void sendListResponse( Mailbox *, const String & );
+    void sendListResponse( Mailbox * );
 
 private:
     class ListextData * d;
