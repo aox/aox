@@ -14,7 +14,10 @@ static Endpoint * tlsProxy = 0;
 class TlsServerData
 {
 public:
-    TlsServerData(): handler( 0 ), userside( 0 ), serverside( 0 ), done( false ) {}
+    TlsServerData()
+        : handler( 0 ),
+          userside( 0 ), serverside( 0 ),
+          done( false ), ok( false ) {}
 
     EventHandler * handler;
 
@@ -39,6 +42,7 @@ public:
     String protocol;
 
     bool done;
+    bool ok;
 };
 
 
@@ -51,30 +55,12 @@ TlsServerData::Client::Client( TlsServerData * data )
 
 void TlsServerData::Client::react( Event e )
 {
-    read( e );
-    if ( d->done || !d->userside->done || !d->serverside->done )
-        return;
-
-    d->done = true;
-    if ( !d->serverside->ok || !d->userside->ok )
-        return;
-
-    // we're there! fine!
-    d->userside->enqueue( d->serverside->tag + " " +
-                          d->protocol + " " +
-                          d->client.address() + " " +
-                          String::fromNumber( d->client.port() ) + "\r\n" );
-    d->handler->notify();
-
-}
-
-void TlsServerData::Client::read( Event e )
-{
     if ( e == Connect ) {
         return;
     }
     else if ( e != Read ) {
         done = true;
+        d->handler->notify();
         return;
     }
 
@@ -85,27 +71,39 @@ void TlsServerData::Client::read( Event e )
     done = true;
 
     String l = s->simplified();
-    if ( !l.startsWith( "tlsproxy " ) )
-        return;
+    if ( l.startsWith( "tlsproxy " ) ) {
+        tag = l.mid( 9 );
+        ok = true;
+        if ( !d->serverside->ok || !d->userside->ok )
+            return;
 
-    tag = l.mid( 9 );
-    ok = true;
+        d->userside->enqueue( d->serverside->tag + " " +
+                              d->protocol + " " +
+                              d->client.address() + " " +
+                              String::fromNumber( d->client.port() ) +
+                              "\r\n" );
+    }
+    else if ( l == "ok" ) {
+        d->done = true;
+        d->ok = true;
+        d->handler->notify();
+    }
 }
 
 
 /*! \class TlsServer tls.h
   The TlsServer class provides an interface to server-side TLS.
 
-  On construction, it forks and executes a TlsProxy, and eventually
-  verifies that the proxy is available to work as a server. Once its
+  On construction, it connects to a TlsProxy, and eventually verifies
+  that the proxy is available to work as a server. Once its
   availability has been probed, done() returns true and ok() returns
   either a meaningful result.
 */
 
 
 /*! Constructs a TlsServer and starts setting up the proxy server. It
-    returns quickly, and later notifies \a handler when setup as
-    compleed. In the log files, the TlsServer will refer to \a client
+    returns quickly, and later notifies \a handler when setup has
+    completed. In the log files, the TlsServer will refer to \a client
     as client using \a protocol.
 */
 
@@ -137,7 +135,7 @@ bool TlsServer::done() const
 
 bool TlsServer::ok() const
 {
-    return d->done;// ALSO CHECK WHETHER IT SUCCEEEEEDED
+    return d->done && d->ok;
 }
 
 
@@ -155,15 +153,11 @@ void TlsServer::setup()
 
     Configuration::Text proxy( "tls-proxy-address", "127.0.0.1" );
     Configuration::Scalar port( "tls-proxy-port", 2061 );
-    if ( !proxy.valid() || !port.valid() ) {
-        log( Log::Error, "TLS Support disabled" );
-        ::tlsAvailable = false;
-        return;
-    }
     Endpoint * e = new Endpoint( proxy, port );
     if ( !e->valid() ) {
-        log( Log::Info, "tls-proxy-address and/or tls-proxy-port are bad." );
-        log( Log::Error, "TLS Support disabled" );
+        log( Log::Error,
+             "tls-proxy-address and/or tls-proxy-port is/are bad." );
+        log( Log::Info, "TLS Support disabled" );
         return;
     }
     ::tlsAvailable = true;
@@ -178,4 +172,20 @@ void TlsServer::setup()
 bool TlsServer::available()
 {
     return ::tlsAvailable;
+}
+
+
+/*! Returns the Configuration to be used for the server (plaintext) side. */
+
+Connection * TlsServer::serverSide() const
+{
+    return d->serverside;
+}
+
+
+/*! Returns the Connection to be used for the user (encrypted) side. */
+
+Connection * TlsServer::userSide() const
+{
+    return d->userside;
 }

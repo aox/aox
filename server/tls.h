@@ -6,6 +6,7 @@
 class String;
 class EventHandler;
 class Endpoint;
+class Connection;
 
 
 class TlsServer
@@ -15,6 +16,9 @@ public:
 
     bool done() const;
     bool ok() const;
+
+    Connection * serverSide() const;
+    Connection * userSide() const;
 
     static void setup();
 

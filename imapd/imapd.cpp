@@ -10,7 +10,7 @@
 #include "fieldcache.h"
 #include "addresscache.h"
 #include "server.h"
-
+#include "tls.h"
 
 /*! \nodoc */
 
@@ -26,6 +26,7 @@ int main( int, char *[] )
     Listener< IMAP >::create( "IMAP", "", 2052 );
     s.setup( Server::Finish );
 
+    TlsServer::setup();
     OCClient::setup();
     Database::setup();
     Mailbox::setup();

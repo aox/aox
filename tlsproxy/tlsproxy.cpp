@@ -174,7 +174,6 @@ void TlsProxy::parse()
         ok = false;
 
     if ( !ok ) {
-        enqueue( "Syntax error\r\n" );
         log( "syntax error: " + *l );
         setState( Closing );
         return;
@@ -189,7 +188,6 @@ void TlsProxy::parse()
             other = c;
     }
     if ( !other ) {
-        enqueue( "Did not find partner\r\n" );
         log( "did not find partner" );
         setState( Closing );
         return;
@@ -234,9 +232,10 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
 
     // it's the child!
     Loop::killAllExcept( this, other );
+    enqueue( "ok\r\n" );
     LogClient::setup();
-    log( "Starting TLS proxy for for " + protocol + " client " + client.string() +
-         " (host " + Configuration::hostname() + ") (pid " +
+    log( "Starting TLS proxy for for " + protocol + " client " +
+         client.string() + " (host " + Configuration::hostname() + ") (pid " +
          String::fromNumber( getpid() ) + ")" );
 
     d->state = TlsProxyData::PlainSide;
