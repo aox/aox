@@ -238,8 +238,11 @@ void IMAP::addCommand()
 
     Command * cmd = Command::create( this, command, tag, args, d->cmdArena );
     if ( cmd ) {
+         // skip past tag, command and first space
         cmd->step( i );
-        cmd->space(); // skip past tag, command and first space
+        if ( cmd->nextChar() == ' ' )
+            cmd->space();
+        // then parse the rest
         cmd->parse();
         if ( cmd->ok() && cmd->state() == Command::Executing &&
             !d->commands.isEmpty() ) {

@@ -12,7 +12,7 @@ public:
     void execute();
 
 private:
-    uint number( uint, uint );
+    uint number( uint );
 
     class AppendData * d;
 };
