@@ -30,6 +30,8 @@ public:
 
     void setName( const String & );
 
+    void addToList( List<Address> * );
+
 private:
     class AddressData * d;
 
