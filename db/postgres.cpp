@@ -520,7 +520,7 @@ bool Postgres::haveMessage()
     Buffer * b = readBuffer();
 
     if ( b->size() < 5 ||
-         b->size() < 1+( (uint)(*b)[1]>>24|(*b)[2]>>16|(*b)[3]>>8|(*b)[4] ) )
+         b->size() < 1+( (uint)(*b)[1]<<24|(*b)[2]<<16|(*b)[3]<<8|(*b)[4] ) )
         return false;
     return true;
 }
