@@ -3,6 +3,7 @@
 #include "eventloop.h"
 
 #include "scope.h"
+#include "allocator.h"
 #include "list.h"
 #include "connection.h"
 #include "buffer.h"
@@ -161,6 +162,13 @@ void EventLoop::start()
                  Log::Disaster );
             commit();
             exit( 0 );
+        }
+        else if ( n == 0 ) {
+            // if we ran out of time, let's do some garbage
+            // collection.  this needs to become smarter, so we
+            // allocate everyo 10-60 seconds, ideally whenever nothing
+            // has happened for 2-3 seconds.
+            Allocator::free();
         }
 
         // Figure out what each connection cares about.
