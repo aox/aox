@@ -6,6 +6,7 @@
 #include "test.h"
 #include "buffer.h"
 #include "arena.h"
+#include "scope.h"
 #include "list.h"
 #include "handlers/capability.h"
 #include "logger.h"
@@ -85,9 +86,10 @@ void IMAP::react(Event e)
     case Connection::Read:
         if ( !d->cmdArena )
             d->cmdArena = new Arena;
-        Arena::push( d->cmdArena );
-        parse();
-        Arena::pop();
+        {
+            Scope x( d->cmdArena );
+            parse();
+        }
         break;
     case Connection::Timeout:
         writeBuffer()->append( "* BYE autologout\r\n" );
@@ -172,10 +174,12 @@ void IMAP::parse()
             }
             if ( !d->readingLiteral ) {
                 addCommand();
-                Arena::pop();
-                d->cmdArena = new Arena;
 		d->args = 0;
-                Arena::push( d->cmdArena );
+
+                /* XXX: *WTF* is happening here?
+                   Arena::pop();
+                   d->cmdArena = new Arena;
+                   Arena::push( d->cmdArena ); */
             }
         }
     }
@@ -452,35 +456,39 @@ void IMAP::runCommands()
 {
     Command * c;
     bool more = true;
-    while( more ) {
+
+    while ( more ) {
         more = false;
-        d->commands.first();
-        while( (c=d->commands.current()) != 0 ) {
-                Arena::push( c->arena() );
-                if ( c->ok() && c->state() == Command::Executing )
-                    c->execute();
-                if ( !c->ok() )
-                    c->setState( Command::Finished );
-                if ( c->state() == Command::Finished )
-                    c->emitResponses();
-                Arena::pop();
-                d->commands.next();
+
+        c = d->commands.first();
+        while ( c != 0 ) {
+            Scope x( c->arena() );
+
+            if ( c->ok() && c->state() == Command::Executing )
+                c->execute();
+            if ( !c->ok() )
+                c->setState( Command::Finished );
+            if ( c->state() == Command::Finished )
+                c->emitResponses();
+
+            c = d->commands.next();
+        }
+
+        c = d->commands.first();
+        while ( c != 0 ) {
+            if ( c->state() == Command::Finished ) {
+                delete d->commands.take();
+                c = d->commands.current();
             }
-            d->commands.first();
-            while( (c=d->commands.current()) != 0 ) {
-                if ( c->state() == Command::Finished ) {
-                    d->commands.take();
-                    delete c;
-                }
-                else {
-                    d->commands.next();
-                }
+            else {
+                c = d->commands.next();
             }
+        }
+
         c = d->commands.first();
         if ( c && c->ok() && c->state() == Command::Blocked ) {
             c->setState( Command::Executing );
             more = true;
         }
-    };
-
+    }
 }

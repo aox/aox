@@ -4,7 +4,7 @@
 #include "auth/authenticator.h"
 #include "buffer.h"
 #include "arena.h"
-
+#include "scope.h"
 
 /*! Constructs an generic Authenticate handler, for any mechanism. */
 
@@ -95,8 +95,9 @@ void Authenticate::read()
         // length if r is magic: zero means "no response received",
         // nonzero means "response received".
         r.append( *b->string( i ) );
-        Arena::push( imap()->arena() );
-        b->remove( i );
-        Arena::pop();
+        {
+            Scope x( imap()->arena() );
+            b->remove( i );
+        }
     }
 }

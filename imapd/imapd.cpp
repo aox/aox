@@ -1,5 +1,6 @@
 #include "test.h"
 #include "arena.h"
+#include "scope.h"
 #include "listener.h"
 #include "loop.h"
 #include "global.h"
@@ -11,7 +12,7 @@
 int main( int, char *[] )
 {
     Arena firstArena;
-    Arena::push( &firstArena );
+    Scope global( &firstArena );
 
     Test::runTests();
 
