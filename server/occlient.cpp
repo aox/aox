@@ -153,18 +153,23 @@ void OCClient::updateMailbox( const String & arg )
              Log::Error );
         return;
     }
-    String rest = arg.mid( i );
-    if ( rest == " deleted=t" ) {
+
+    String rest = arg.mid( i+1 );
+    if ( rest == "new" ) {
+        log( "OCClient announced mailbox " + m->name(), Log::Debug );
+        m->refresh();
+    }
+    else if ( rest == "deleted=t" ) {
         if ( !m->deleted() )
             log( "OCClient deleted mailbox " + m->name(), Log::Debug );
         m->setDeleted( true );
     }
-    else if ( rest == " deleted=f" ) {
+    else if ( rest == "deleted=f" ) {
         if ( m->deleted() )
             log( "OCClient undeleted mailbox " + m->name(), Log::Debug );
         m->setDeleted( false );
     }
-    else if ( rest.startsWith( " uidnext=" ) ) {
+    else if ( rest.startsWith( "uidnext=" ) ) {
         bool ok;
         uint n = rest.mid( 9 ).number( &ok );
         if ( !ok ) {

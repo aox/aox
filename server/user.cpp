@@ -378,8 +378,7 @@ void User::createHelper()
     else {
         d->createQuery->setState( Query::Completed );
 
-        OCClient::send( "mailbox " + d->inbox->name().quoted() +
-                        " deleted=f" );
+        OCClient::send( "mailbox " + d->inbox->name().quoted() + " new" );
     }
 
     d->user->execute();
