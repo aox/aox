@@ -43,7 +43,7 @@ Struct datefields.inc : datefields.test ;
 
 Build imapdmain : imapd.cpp ;
 Build imap : imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp 
-	query.cpp address.cpp parser.cpp date.cpp ;
+	query.cpp address.cpp parser.cpp date.cpp header.cpp ;
 
 Build logdmain : logd.cpp ;
 Build logd : logserver.cpp ;
