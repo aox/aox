@@ -86,7 +86,7 @@ void Authenticate::execute()
             imap()->setLogin( a->login() );
 
         imap()->reserve( 0 );
-        setState( Finished );
+        finish();
     }
 }
 

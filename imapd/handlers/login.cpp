@@ -45,6 +45,6 @@ void Login::execute()
             error( No, "LOGIN failed for '" + n + "'" );
         else
             imap()->setLogin( n );
-        setState( Finished );
+        finish();
     }
 }
