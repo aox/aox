@@ -4,10 +4,11 @@ Add support for RFC 2047 encoding
 Investigate the segfaults in "ms create user" on Debian.
 
 
-Fix the horrible LIST/LSUB problems:
+Implement listext
 
-  There's lots of horrible breakage here (for example, the reference
-  name is apparently just ignored).
+  List and lsub are basically good now, but listext is only partially
+  implemented, and not advertised. The implementation also trails the
+  listext draft. Update and complete that.
 
 
 Signal handling
