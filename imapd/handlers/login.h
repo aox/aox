@@ -10,7 +10,6 @@ class Login: public Command
 {
 public:
     Login();
-    ~Login();
     void parse();
     void execute();
 private:

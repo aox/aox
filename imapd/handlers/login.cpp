@@ -3,19 +3,11 @@
 #include "../imap.h"
 
 
-/*!  Constructs an simple Login handler. */
+/*!  Constructs a simple Login handler. */
 
 Login::Login()
     : Command()
 {
-}
-
-
-/*! Destroys the Login handler. */
-
-Login::~Login()
-{
-    // nothing
 }
 
 
