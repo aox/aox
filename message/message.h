@@ -74,7 +74,9 @@ private:
     friend class Bodypart;
     friend class MessageBodyFetcher;
     friend class MessageFlagFetcher;
-    friend class MessageHeaderFetcher;
+
+    void fetchedExtraFlags();
+    void fetchedBodies();
 };
 
 
