@@ -64,6 +64,8 @@ void TlsServerData::Client::react( Event e )
     else if ( e != Read ) {
         done = true;
         d->handler->notify();
+        d->serverside->close();
+        d->userside->close();
         return;
     }
 
@@ -74,7 +76,6 @@ void TlsServerData::Client::react( Event e )
     done = true;
 
     String l = s->simplified();
-    log( "Received: " + l );
     if ( l.startsWith( "tlsproxy " ) ) {
         tag = l.mid( 9 );
         ok = true;

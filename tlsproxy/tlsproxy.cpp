@@ -25,6 +25,12 @@
 #include <stdlib.h>
 
 
+static CRYPT_SESSION cs;
+static TlsProxy * userside;
+static TlsProxy * serverside;
+
+
+
 int main( int, char *[] )
 {
     Arena firstArena;
@@ -72,7 +78,7 @@ static List<TlsProxy> * proxies = 0;
 */
 
 
-/*!  Constructs an empty
+/*!  Constructs an empty TlsProxy listening to \a socket.
 
 */
 
@@ -110,16 +116,15 @@ void TlsProxy::react( Event e )
         break;
 
     case Timeout:
-        enqueue( "Timeout\r\n" );
-        log( "timeout" );
+    case Error:
+    case Close:
         setState( Closing );
+        if ( d->state != TlsProxyData::Initial )
+            Loop::shutdown();
         break;
 
     case Connect:
-    case Error:
-    case Close:
     case Shutdown:
-        setState( Closing );
         break;
     }
 }
@@ -235,6 +240,15 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
 
     d->state = TlsProxyData::PlainSide;
     other->d->state = TlsProxyData::EncryptedSide;
+    ::serverside = this;
+    ::userside = other;
+
+    String server = Configuration::hostname();
+
+    cryptCreateSession( &cs, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER );
+    cryptSetAttributeString( cs, CRYPT_SESSINFO_SERVER_NAME,
+                             server.data(), server.length() );
+    cryptSetAttribute( cs, CRYPT_SESSINFO_NETWORKSOCKET, userside->fd() );
 }
 
 
@@ -242,7 +256,15 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
 
 void TlsProxy::encrypt()
 {
+    Arena a;
+    Scope b( &a );
 
+    Buffer * r = readBuffer();
+
+    String s = *r->string( r->size() );
+    int len;
+    cryptPushData( cs, s.data(), s.length(), &len );
+    r->remove( len );
 }
 
 
@@ -250,5 +272,14 @@ void TlsProxy::encrypt()
 
 void TlsProxy::decrypt()
 {
+    Arena a;
+    Scope b( &a );
 
+    int len;
+    char buffer[4096];
+    do {
+        cryptPopData( cs, buffer, 4096, &len );
+        if ( len > 0 )
+            serverside->writeBuffer()->append( buffer, len );
+    } while ( len > 0 );
 }
