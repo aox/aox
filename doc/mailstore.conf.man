@@ -33,6 +33,12 @@ name = value # comment
 .IP hostname
 Most of the servers need to know the fully-qualified hostname. The
 default is computed at runtime and is normally acceptable.
+.IP
+Note that if the name is "localhost", there may be problems with
+TLS. An IMAP/POP/SMTP client may refuse a server certificate for
+"localhost" if it already has a different certificate for
+"localhost". We strongly suggest using a different
+.IR hostname .
 .SS "Database Access"
 .IP db
 The type of database. The default,

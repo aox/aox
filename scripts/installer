@@ -154,11 +154,9 @@ cat <<CONFIG > $CONFIG
 # Security Note: Anyone who can see the password in this file can do
 # anything to your mail database, even delete all the mail.
 
-## Specify the hostname if mailstore gets it wrong.
+# Specify the hostname if mailstore gets it wrong. We suggest not
+# using the name "localhost".
 # hostname = (fully-qualified hostname here)
-
-## Turn security off to debug the servers. Strongly discouraged.
-# security = off
 
 ## This database was initialized during server installation.
 
