@@ -143,7 +143,7 @@ void Injector::execute()
 
         // Wait for at least the first two to complete before moving on.
         if ( d->uids->count() != d->totalUids ||
-             d->bodyparts->count() != d->totalBodyparts )
+             d->bodypartIds->count() != d->totalBodyparts )
             return;
 
         d->step = 1;
@@ -347,6 +347,34 @@ void Injector::insertHeaders()
 
 void Injector::insertParts()
 {
+    List< Query > * queries = new List< Query >;
+
+    List< BodyPart >::Iterator it( d->bodyparts->first() );
+    List< int >::Iterator bids( d->bodypartIds->first() );
+    while ( it ) {
+        BodyPart *b = it++;
+        int bid = *bids++;
+
+        List< Mailbox >::Iterator mb( d->mailboxes->first() );
+        List< int >::Iterator uids( d->uids->first() );
+        while ( mb ) {
+            Mailbox *m = mb++;
+            int uid = *uids++;
+
+            Query *q;
+            q = new Query( "insert into part_numbers "
+                           "(mailbox,uid,bodypart,partno) values "
+                           "($1,$2,$3,$4)", 0 );
+            q->bind( 1, m->id() );
+            q->bind( 2, uid );
+            q->bind( 3, bid );
+            q->bind( 4, b->partNumber() );
+
+            queries->append( q );
+        }
+    }
+
+    Database::query( queries );
 }
 
 
