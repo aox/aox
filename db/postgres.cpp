@@ -359,9 +359,7 @@ void Postgres::process( char type )
                 if ( d->status == Idle ) {
                     d->transaction->setState( Transaction::Completed );
                     d->reserved = false;
-                    d->queries.take( q );
                     d->transaction = 0;
-                    return;
                 }
                 else if ( d->status == Failed ) {
                     d->transaction->setState( Transaction::Failed );
