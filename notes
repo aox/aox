@@ -1,9 +1,6 @@
 Add support for RFC 2047 encoding
 
 
-Investigate the segfaults in "ms create user" on Debian.
-
-
 Schema documentation
 
   I've done all I want to sql-schema.html and postgres.schema; I'll have
@@ -61,6 +58,12 @@ Per-MTA installation and use
 
 
 tlsproxy doesn't handle eof (or errors) well
+
+
+Investigate the segfaults in "ms create user" on Debian.
+
+
+"pg_ctl -m immediate stop" makes us segfault because of the Warning.
 
 
 Write to the alistapart chap who wrote about @media after 0.91.
