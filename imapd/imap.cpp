@@ -34,7 +34,8 @@ public:
         state( IMAP::NotAuthenticated ),
         grabber( 0 ),
         mailbox( 0 ),
-        idle( false )
+        idle( false ),
+        waitingCommands( false )
     {}
     ~IMAPData() { delete cmdArena; }
 
@@ -49,6 +50,7 @@ public:
     Mailbox *mailbox;
     String login;
     bool idle;
+    bool waitingCommands;
 };
 
 
@@ -89,9 +91,14 @@ void IMAP::react(Event e)
         break;
 
     case Timeout:
-        writeBuffer()->append( "* BYE autologout\r\n" );
-        d->logger->log( "autologout" );
-        Connection::setState( Closing );
+        if ( d->waitingCommands ) {
+            runCommands();
+        }
+        else {
+            writeBuffer()->append( "* BYE autologout\r\n" );
+            d->logger->log( "autologout" );
+            Connection::setState( Closing );
+        }
         break;
 
     case Connect:
