@@ -81,7 +81,8 @@ public:
             else
                 delete six;
 
-            Listener<T> * four = new Listener<T>( Endpoint( "::", p ), svc );
+            Listener<T> * four
+                = new Listener<T>( Endpoint( "0.0.0.0", p ), svc );
             if ( four->state() == Listening )
                 l = four;
             else
