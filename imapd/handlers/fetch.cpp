@@ -530,7 +530,8 @@ String Fetch::flagList( Message * m, uint uid )
     if ( f && !f->isEmpty() ) {
         List<Flag>::Iterator it( f->first() );
         while ( it ) {
-            r.append( " " );
+            if ( !r.isEmpty() )
+                r.append( " " );
             r.append( it->name() );
             ++it;
         }
