@@ -35,8 +35,7 @@ void Select::execute()
 {
     if ( !m ) {
         m = new Mailbox( name, this );
-        if ( readOnly )
-            m->setReadOnly( true );
+        m->setReadOnly( readOnly );
     }
 
     if ( !m->done() )
