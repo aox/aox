@@ -10,7 +10,7 @@ class Authenticate
 {
 public:
     Authenticate()
-        : a( 0 ), r( 0 )
+        : m( 0 ), r( 0 )
     {}
 
     void parse();
@@ -18,9 +18,10 @@ public:
     void read();
 
 private:
-    class Authenticator *a;
+    class SaslMechanism *m;
     String *r;
     String t;
 };
+
 
 #endif

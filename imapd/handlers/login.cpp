@@ -32,20 +32,20 @@ void Login::parse()
 
 void Login::execute()
 {
-    if ( !a ) {
-        a = new Plain( this );
-        a->setLogin( n );
-        a->setSecret( p );
+    if ( !m ) {
+        m = new Plain( this );
+        m->setLogin( n );
+        m->setSecret( p );
     }
 
-    a->verify();
+    m->verify();
 
-    if ( a->done() ) {
-        if ( a->state() == Authenticator::Failed ) {
+    if ( m->done() ) {
+        if ( m->state() == SaslMechanism::Failed ) {
             error( No, "LOGIN failed for '" + n + "'" );
         }
         else {
-            imap()->setUid( a->uid() );
+            imap()->setUid( m->uid() );
             imap()->setLogin( n );
         }
         finish();

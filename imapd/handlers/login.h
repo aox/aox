@@ -11,7 +11,7 @@ class Login
 {
 public:
     Login()
-        : a( 0 )
+        : m( 0 )
     {}
 
     void parse();
@@ -19,7 +19,7 @@ public:
 
 private:
     String n, p;
-    Plain *a;
+    Plain *m;
 };
 
 

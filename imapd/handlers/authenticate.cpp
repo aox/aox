@@ -55,9 +55,9 @@ void Authenticate::execute()
 {
     // First, create a mechanism handler.
 
-    if ( !a ) {
-        a = Authenticator::create( t, this );
-        if ( !a ) {
+    if ( !m ) {
+        m = SaslMechanism::create( t, this );
+        if ( !m ) {
             error( Bad, "Mechanism " + t + " not supported" );
             return;
         }
@@ -66,35 +66,35 @@ void Authenticate::execute()
 
     // Now, feed the handler until it can make up its mind.
 
-    if ( a->state() == Authenticator::AwaitingInitialResponse ) {
+    if ( m->state() == SaslMechanism::AwaitingInitialResponse ) {
         if ( r )
-            a->readResponse( r->de64() );
+            m->readResponse( r->de64() );
         else
-            a->setState( Authenticator::IssuingChallenge );
+            m->setState( SaslMechanism::IssuingChallenge );
         r = 0;
     }
 
-    if ( a->state() == Authenticator::IssuingChallenge ) {
-        imap()->writeBuffer()->append( "+ "+ a->challenge().e64() +"\r\n" );
-        a->setState( Authenticator::AwaitingResponse );
+    if ( m->state() == SaslMechanism::IssuingChallenge ) {
+        imap()->writeBuffer()->append( "+ "+ m->challenge().e64() +"\r\n" );
+        m->setState( SaslMechanism::AwaitingResponse );
         r = 0;
         return;
     }
-    else if ( a->state() == Authenticator::AwaitingResponse && r ) {
-        a->readResponse( r->de64() );
+    else if ( m->state() == SaslMechanism::AwaitingResponse && r ) {
+        m->readResponse( r->de64() );
         r = 0;
     }
 
-    if ( !a->done() )
-        a->verify();
+    if ( !m->done() )
+        m->verify();
 
-    if ( a->done() ) {
-        if ( a->state() == Authenticator::Failed ) {
+    if ( m->done() ) {
+        if ( m->state() == SaslMechanism::Failed ) {
             error( No, "Sorry" );
         }
         else {
-            imap()->setUid( a->uid() );
-            imap()->setLogin( a->login() );
+            imap()->setUid( m->uid() );
+            imap()->setLogin( m->login() );
         }
 
         imap()->reserve( 0 );
