@@ -722,6 +722,7 @@ void SMTP::reportInjection()
     else
         respond( 250, "Done" );
 
+    commit();
     d->to.clear();
 }
 
