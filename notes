@@ -1,3 +1,7 @@
+Fix startup and shutdown (and log disasters to stderr)
+
+we need an install script that generates a config file
+
 must clean up the logging stuff
 
   Mostly done now. I need to do another quick sweep to ensure that the
@@ -5,76 +9,45 @@ must clean up the logging stuff
   should not be calling commit() for every Connection; and they should
   each set their Log/Arena correctly in their Scope.
 
-documentation and manual page updates
-check that the listener addresses in the code match the manpages
-
-  I changed tlsproxy's default address to 127.0.0.1. Is anything else
-  needed?
-
-bodystructure needs to send extended information
-
-  Done. It was rather more work than I expected it would be.
-  Needs a bit of testing (coming up).
-
-string needs encode/decode + CTE enum
-
-  Done. A bit of a hack wrt e64's line-length parameter. Can QP use it
-  too? (I seem to recall something about QP and line length.)
-
-tlsproxy must support real certificates
-
-  Done. This is a horrible nightmare because of OpenSSL's non-standard
-  private key storage format and cryptlib's inability to read it. Must
-  talk to Arnt about how to do the right thing for the sysadmin.
-
-tlsproxy doesn't handle eof (or errors) well
-
-  I'll look into this again later.
-
 schema diagram with sujai
-
-Fix startup and shutdown (and log disasters to stderr).
-
-we need an install script that generates a config file
-
-tls client support (smtp, postgresql)
 
 move tests to another program
 
-member-ify some of the static functions in message
-
-get rid of some friends
-
-the injector must share bodyparts
-
-make sure ocd works
-
-test with more imap clients (corp/docs/misc/mua-list)
-
-the gui should do something
-
 resource limits on memory allocation
-
-more testing
-
-configuration overhaul
-
-rfc2047 encoding
-
-inject a large number of messages, collect query statistics
-
-archives.oryx.com
-
-make sure mailutil works with us
-
-EXPUNGE is horribly broken
-
-top-level message/rfc822 support
-
-What to do about EventHandlers whose targets have died?
 
 How does .PEEK work?
 
-~/imapd.valgrind
+the injector must share bodyparts
 
-Get rid of Blah::setup wherever possible.
+EXPUNGE is horribly broken
+
+inject a large number of messages, collect query statistics
+
+test with more imap clients (corp/docs/misc/mua-list)
+make sure mailutil works with us
+
+tlsproxy doesn't handle eof (or errors) well
+
+make sure ocd works
+
+the gui should do something
+
+configuration overhaul
+
+archives.oryx.com
+
+top-level message/rfc822 support
+
+rfc2047 encoding
+
+tls client support (smtp, postgresql)
+
+What to do about EventHandlers whose targets have died?
+
+garbage collection (~/imapd.valgrind)
+
+Small cleanups:
+
+  * get rid of Blah::setup wherever possible
+  * member-ify some of the static functions in message
+  * get rid of some friends
