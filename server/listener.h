@@ -21,7 +21,6 @@ public:
         setType( Connection::Listener );
         if ( listen( e ) >= 0 ) {
             Loop::addConnection( this );
-            ::log( "Started: " + description() );
         }
     }
 
