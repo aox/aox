@@ -58,7 +58,8 @@ class SMTPData
 {
 public:
     SMTPData():
-        log( 0 ), code( 0 ), state( SMTP::Initial ),
+        log( new Log ),
+        code( 0 ), state( SMTP::Initial ),
         pipelining( false ), from( 0 ), protocol( "smtp" ),
         injector( 0 ), helper( 0 ), negotiatingTLS( false )
     {}
@@ -94,7 +95,6 @@ SMTP::SMTP( int s )
     if ( s < 0 )
         return;
 
-    d->log = new Log;
     log( "Accepted SMTP connection from " + peer() );
 
     respond( 220, "ESMTP " + Configuration::hostname() );

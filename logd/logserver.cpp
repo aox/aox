@@ -1,3 +1,15 @@
+#include "logserver.h"
+
+#include "arena.h"
+#include "scope.h"
+#include "buffer.h"
+#include "list.h"
+#include "log.h"
+
+
+static uint id = 0;
+
+
 /*! \class LogServer logserver.h
     The LogServer listens for log items on a TCP socket and commits
     them to file intelligently.
@@ -15,22 +27,7 @@
     to disk.
 */
 
-#include "logserver.h"
-
-#include "buffer.h"
-#include "log.h"
-#include "list.h"
-#include "arena.h"
-#include "scope.h"
-
-#include <stdio.h> // fprintf, stderr. replace this somehow.
-
-
-static uint id = 0;
-
-
-class LogServerData
-{
+class LogServerData {
 public:
     LogServerData(): a( 0 ), w( 0 ), id( ::id++ ) {}
 
@@ -38,12 +35,11 @@ public:
     Buffer * w;
     uint id;
 
-    class Line
-    {
+    class Line {
     public:
-        Line( uint t, Log::Severity s, const String & l )
+        Line( String t, Log::Severity s, const String & l )
             : tag( t ), severity( s ), line( l ) {}
-        uint tag;
+        String tag;
         Log::Severity severity;
         String line;
     };
@@ -88,25 +84,26 @@ void LogServer::react( Event e )
 }
 
 
-/*! Parses messages from the log client. */
+/*! Parses log messages from the input buffer. */
 
 void LogServer::parse()
 {
     Scope x( d->a );
 
     String *s = readBuffer()->removeLine();
-    if ( !s )
-        return;
-
-    processLine( *s );
+    if ( s )
+        processLine( *s );
 }
 
 
-/*! Processes the single \a line, adding it to the log output as
-    appropriate.
+/*! Adds a single \a line to the log output.
+
+    The line must consist of a client identifier followed
+    by the message severity, followed by a log message,
+    separated by spaces.
 */
 
-void LogServer::processLine( const String & line )
+void LogServer::processLine( const String &line )
 {
     uint i = 0;
     while ( line[i] > ' ' )
@@ -156,14 +153,13 @@ void LogServer::process( String transaction,
         return;
 
     bool ok = true;
-    uint tag = transaction.number( &ok, 36 );
     if ( !ok )
         return;
 
     if ( !c )
-        log( tag, s, parameters );
-    else if ( tag > 0 )
-        commit( tag, s );
+        log( transaction, s, parameters );
+    else
+        commit( transaction, s );
 }
 
 
@@ -173,7 +169,7 @@ void LogServer::process( String transaction,
     If \a tag is 0, everything is logged. Absolutely everything.
 */
 
-void LogServer::commit( uint tag, Log::Severity severity )
+void LogServer::commit( String tag, Log::Severity severity )
 {
     List< LogServerData::Line >::Iterator i;
 
@@ -181,9 +177,9 @@ void LogServer::commit( uint tag, Log::Severity severity )
     while ( i ) {
         LogServerData::Line *l = i;
 
-        if ( tag == 0 || tag == l->tag ) {
+        if ( tag == l->tag ) {
             d->pending.take(i);
-            if ( tag == 0 || l->severity >= severity )
+            if ( l->severity >= severity )
                 output( l->tag, l->severity, l->line );
         }
         else {
@@ -208,15 +204,11 @@ void LogServer::commit( uint tag, Log::Severity severity )
     immediately.
 */
 
-void LogServer::log( uint tag, Log::Severity severity, const String & line )
+void LogServer::log( String tag, Log::Severity severity, const String & line )
 {
-    if ( tag > 0 ) {
-        d->pending.append( new LogServerData::Line( tag, severity, line ) );
-    }
-    else {
-        output( tag, severity, line );
-        d->w->write( 2 );
-    }
+    // d->pending.append( new LogServerData::Line( tag, severity, line ) );
+    output( tag, severity, line );
+    d->w->write( 2 );
 }
 
 
@@ -225,9 +217,7 @@ void LogServer::log( uint tag, Log::Severity severity, const String & line )
     representations, \a line is logged as-is.
 */
 
-void LogServer::output( uint tag,
-                       Log::Severity severity,
-                       const String &line )
+void LogServer::output( String tag, Log::Severity severity, const String &line )
 {
     if ( d->w == 0 )
         d->w = new Buffer;
@@ -235,7 +225,7 @@ void LogServer::output( uint tag,
     d->w->append( ": " );
     d->w->append( String::fromNumber( d->id, 36 ) );
     d->w->append( "/" );
-    d->w->append( String::fromNumber( tag, 36 ) );
+    d->w->append( tag );
     d->w->append( ": " );
     d->w->append( line );
     d->w->append( "\n" );

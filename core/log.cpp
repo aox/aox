@@ -14,7 +14,6 @@
 
 static Log * globalLog = 0;
 static bool disasters = false;
-static uint loggers = 0;
 static String time();
 
 
@@ -48,11 +47,18 @@ void log( Log::Severity s, const String &t )
     are committed to disk by the log server.
 */
 
-/*! Constructs an empty Log object that can write to the Log. */
+/*! Constructs an empty Log object.
+*/
 
 Log::Log()
-    : id( loggers++ )
 {
+    Log *l = Scope::current()->log();
+
+    if ( !l )
+        id = "1";
+    else
+        id = l->id + "/" + String::fromNumber( l->children++ );
+    children = 1;
 }
 
 
@@ -69,11 +75,8 @@ void Log::log( Severity s, const String &l )
     if ( s == Disaster )
         disasters = true;
 
-    // XXX: what we really want is to get rid of CRLF, not call
-    // String::simplified(). maybe later
-    logger->send( String::fromNumber( id, 36 ) + " " +
-                  severity( s ) + " " + time() + " " +
-                  l.simplified() + "\r\n" );
+    logger->send( id + " " + severity( s ) + " " +
+                  time() + " " + l.stripCRLF() + "\r\n" );
 }
 
 
@@ -91,8 +94,7 @@ void Log::commit( Severity s )
     if ( logger == 0 )
         return;
 
-    logger->send( String::fromNumber( id, 36 ) + " commit " +
-                  severity( s ) + "\r\n" );
+    logger->send( id + " commit " + severity( s ) + "\r\n" );
 }
 
 
@@ -131,8 +133,8 @@ static String time()
 
 String Log::severity( Severity s )
 {
-    // make the logd protocol independent of the enum values
     String i;
+
     switch ( s ) {
     case Log::Debug:
         i = "debug";
@@ -147,6 +149,7 @@ String Log::severity( Severity s )
         i = "disaster";
         break;
     }
+
     return i;
 }
 

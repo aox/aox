@@ -2,27 +2,28 @@
 #define LOG_H
 
 #include "global.h"
+#include "string.h"
 
 class String;
 
 
 class Log {
 public:
+    enum Severity { Debug, Info, Error, Disaster };
+
     Log();
     ~Log();
-
-    enum Severity { Debug, Info, Error, Disaster };
 
     void log( Severity, const String & );
     void log( const String & s ) { log( Info, s ); }
     void commit( Severity = Info );
 
     static String severity( Severity );
-
     static bool disastersYet();
 
 private:
-    uint id;
+    String id;
+    uint children;
 };
 
 

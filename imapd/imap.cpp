@@ -21,26 +21,28 @@ static bool endsWithLiteral( const String *, uint *, bool * );
 class IMAPData {
 public:
     IMAPData()
-        : state( IMAP::NotAuthenticated ),
-          log( new Log ), cmdArena( 0 ), args( 0 ),
+        : log( new Log ),
+          state( IMAP::NotAuthenticated ),
+          cmdArena( 0 ), args( 0 ), reader( 0 ),
           readingLiteral( false ), literalSize( 0 ),
-          reader( 0 ), session( 0 ), mailbox( 0 ), uid( 0 ),
+          session( 0 ), mailbox( 0 ), uid( 0 ),
           idle( false )
     {}
     ~IMAPData() {
         delete cmdArena;
     }
 
+    Log *log;
+
     IMAP::State state;
 
-    Log *log;
     Arena * cmdArena;
     List< String > * args;
+    Command * reader;
 
     bool readingLiteral;
     uint literalSize;
 
-    Command * reader;
     List< Command > commands;
 
     ImapSession *session;
