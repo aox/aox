@@ -16,7 +16,7 @@
 /*!  Constructs a SelfLogger logging and a log server to help it. */
 
 SelfLogger::SelfLogger()
-    : ls( new LogServer( 0 ) )
+    : Logger(), ls( new LogServer( 0 ) )
 {
 }
 

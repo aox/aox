@@ -4,10 +4,15 @@
 #include "scope.h"
 #include "buffer.h"
 #include "list.h"
+#include "file.h"
 #include "log.h"
+
+// fprintf, stderr
+#include <stdio.h>
 
 
 static uint id = 0;
+extern File *logFile;
 
 
 /*! \class LogServer logserver.h
@@ -29,10 +34,9 @@ static uint id = 0;
 
 class LogServerData {
 public:
-    LogServerData(): a( 0 ), w( 0 ), id( ::id++ ) {}
+    LogServerData(): a( 0 ), id( ::id++ ) {}
 
     Arena * a;
-    Buffer * w;
     uint id;
 
     class Line {
@@ -211,13 +215,10 @@ void LogServer::commit( String tag,
         }
     }
 
-    if ( d->w )
-        d->w->write( 2 );
     if ( d->pending.isEmpty() ) {
         // we've just flushed the buffer and all pending
         // transactions. time to drop the old arena and free up some
         // memory.
-        d->w = 0;
         d->a->clear();
     }
 }
@@ -233,7 +234,6 @@ void LogServer::log( String tag, Log::Facility facility, Log::Severity severity,
 {
     // d->pending.append( new LogServerData::Line( tag, facility, severity, line ) );
     output( tag, facility, severity, line );
-    d->w->write( 2 );
 }
 
 
@@ -245,16 +245,15 @@ void LogServer::log( String tag, Log::Facility facility, Log::Severity severity,
 void LogServer::output( String tag, Log::Facility facility,
                         Log::Severity severity, const String &line )
 {
-    if ( d->w == 0 )
-        d->w = new Buffer;
-    d->w->append( Log::facility( facility ) );
-    d->w->append( "/" );
-    d->w->append( Log::severity( severity ) );
-    d->w->append( ": " );
-    d->w->append( String::fromNumber( d->id, 36 ) );
-    d->w->append( "/" );
-    d->w->append( tag );
-    d->w->append( ": " );
-    d->w->append( line );
-    d->w->append( "\n" );
+    String msg;
+
+    msg.append( Log::facility( facility ) + "/" + Log::severity( severity ) );
+    msg.append( ": " );
+    msg.append( String::fromNumber( d->id, 36 ) + "/" + tag );
+    msg.append( ": " );
+    msg.append( line + "\n" );
+
+    if ( logFile )
+        logFile->write( msg );
+    fprintf( stderr, "%s", msg.cstr() );
 }
