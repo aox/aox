@@ -25,13 +25,13 @@ stop() {
     for a in smtpd pop3d imapd tlsproxy ocd logd ; do
 	P=$PIDFILEDIR/${a}.pid
 	if [ -f $P ]; then
-	    kill `cat $P`
+	    kill `cat $P` 2>/dev/null
 	    rm $P
+	    echo -n " $a";
 	else
 	    # hm. this is dubious.
 	    killall $a 2>/dev/null
 	fi
-        echo -n " $a";
     done
     echo "."
 }
