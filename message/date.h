@@ -12,6 +12,7 @@ public:
     void setRfc822( const String & );
     String rfc822() const;
     void setCurrentTime();
+    void setUnixTime( uint );
 
     String imap() const;
 
