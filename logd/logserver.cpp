@@ -204,7 +204,7 @@ void LogServer::commit( String tag,
             if ( first )
                 log( 0, Log::Immediate, Log::Error,
                      "Log client unexpectedly died. "
-                     "Open transactions follow." );
+                     "All messages in unfinished transactions follow." );
             first = false;
             d->pending.take( i );
             output( l->tag, l->facility, l->severity, l->line );
