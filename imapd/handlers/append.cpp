@@ -53,10 +53,12 @@ void Append::parse()
 
     if ( present( "(" ) ) {
         step();
-        d->flags.append( new String( flag() ) );
-        while( nextChar() == ' ' ) {
-            space();
+        if ( nextChar() != ')' ) {
             d->flags.append( new String( flag() ) );
+            while( nextChar() == ' ' ) {
+                space();
+                d->flags.append( new String( flag() ) );
+            }
         }
         require( ")" );
         space();
