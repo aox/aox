@@ -5,6 +5,7 @@
 
 class Arena;
 class Buffer;
+class TlsServer;
 
 
 class Connection {
@@ -21,8 +22,8 @@ public:
         SmtpServer,
         SmtpClient,
         Pop3Server,
-        TLSProxy,
-        TLSClient,
+        TlsProxy,
+        TlsClient,
         Listener,
         Pipe
     };
@@ -54,8 +55,8 @@ public:
     Type type() const;
     virtual String description() const;
 
-    void startTLS();
-    bool hasTLS() const;
+    void startTls( TlsServer * );
+    bool hasTls() const;
 
     void close();
     virtual void read();

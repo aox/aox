@@ -630,7 +630,7 @@ bool IMAP::supports( const String &s ) const
     if ( ::supportsCramMd5 && s == "cram-md5" )
         return true;
 
-    if ( ::allowPlaintext || hasTLS() ) {
+    if ( ::allowPlaintext || hasTls() ) {
         if ( ::supportsPlain && s == "plain" )
             return true;
         if ( ::supportsAnonymous && s == "anonymous" )

@@ -3,22 +3,48 @@
 #include "tls.h"
 #include "imap.h"
 #include "capability.h"
+#include "tls.h"
 
 
 /*! \class StartTLS starttls.h
+
     Initiates TLS negotiation (RFC 3501, §6.2.1)
 */
+
+
+/*! \reimp
+
+    This implementation hacks to ensure that no other command can be
+    parsed meanwhile.
+*/
+
+void StartTLS::parse()
+{
+    end();
+    imap()->reserve( this );
+}
 
 /*! \reimp */
 
 void StartTLS::execute()
 {
-    if ( imap()->hasTLS() ) {
+    if ( imap()->hasTls() ) {
+        imap()->reserve( 0 );
         error( Bad, "Nested STARTTLS" );
         finish();
         return;
     }
 
-    imap()->startTLS();
+    if ( !tlsServer )
+        tlsServer = new TlsServer( this );
+
+    if ( !tlsServer->done() )
+        return;
+
+    if ( !tlsServer->ok() )
+        error( No, "Internal error starting TLS engine" );
+
+    imap()->reserve( 0 );
+    imap()->startTls( tlsServer );
     finish();
 }

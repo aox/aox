@@ -9,7 +9,6 @@
 #include "listener.h"
 #include "imap.h"
 #include "loop.h"
-#include "tls.h"
 #include "handlers/capability.h"
 #include "fieldcache.h"
 #include "addresscache.h"
@@ -35,7 +34,6 @@ int main( int, char *[] )
     global.setLog( &l );
     LogClient::setup();
 
-    TLS::setup();
     OCClient::setup();
     Database::setup();
     Mailbox::setup();

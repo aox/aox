@@ -2,6 +2,11 @@ SubDir TOP tlsproxy ;
 SubInclude TOP server ;
 SubInclude TOP cryptlib ;
 
-Build tls : tlsproxy.cpp ;
+OrigHDRS = $(HDRS) ;
+HDRS += [ FDirName $(TOP) cryptlib ] ;
+
+Build tls : tlsproxy.cpp encrypter.cpp decrypter.cpp ;
 
 Program tlsproxy : tls server core cryptlib ;
+
+HDRS = $(OrigHDRS) ;

@@ -35,7 +35,6 @@ int main( int, char *[] )
     global.setLog( &l );
     LogClient::setup();
 
-    TLS::setup();
     OCClient::setup();
     Database::setup();
     Mailbox::setup();

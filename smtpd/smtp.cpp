@@ -13,6 +13,7 @@
 #include "injector.h"
 #include "mailbox.h"
 #include "loop.h"
+#include "tls.h"
 
 
 class SmtpDbClient: public EventHandler
@@ -39,6 +40,28 @@ void SmtpDbClient::execute()
 }
 
 
+class SmtpTlsStarter: public EventHandler
+{
+public:
+    SmtpTlsStarter( SMTP * s );
+    void execute();
+
+    SMTP * owner;
+};
+
+
+SmtpTlsStarter::SmtpTlsStarter( SMTP * s )
+    : EventHandler(), owner( s )
+{
+}
+
+
+void SmtpTlsStarter::execute()
+{
+    owner->starttls();
+}
+
+
 class SMTPData
 {
 public:
@@ -46,7 +69,8 @@ public:
         log( new Log( Log::SMTP ) ),
         code( 0 ), state( SMTP::Initial ),
         pipelining( false ), from( 0 ), protocol( "smtp" ),
-        injector( 0 ), helper( 0 ), negotiatingTLS( false )
+        injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
+        negotiatingTls( false )
     {}
 
     Log *log;
@@ -67,8 +91,10 @@ public:
     String protocol;
     Injector * injector;
     SmtpDbClient * helper;
+    TlsServer * tlsServer;
+    SmtpTlsStarter * tlsHelper;
     String messageError;
-    bool negotiatingTLS;
+    bool negotiatingTls;
 };
 
 
@@ -173,7 +199,7 @@ void SMTP::parse()
             return;
 
         // if we can read something, TLS isn't eating our bytes
-        d->negotiatingTLS = false;
+        d->negotiatingTls = false;
 
         // we have a line; read it
         String line = *(r->string( ++i ));
@@ -219,7 +245,7 @@ void SMTP::parse()
                 respond( 500, "Unknown command (" + cmd.upper() + ")" );
         }
 
-        if ( state() != Body && state() != Injecting && !d->negotiatingTLS )
+        if ( state() != Body && state() != Injecting && !d->negotiatingTls )
             sendResponses();
     }
 }
@@ -423,20 +449,24 @@ void SMTP::quit()
     Note the evil case sensitivity: This function is called
     starttls(), similar to the other smtp-verb functions in SMTP,
     while the Connection function that does the heavy lifting is
-    called startTLS().
+    called startTls().
 */
 
 void SMTP::starttls()
 {
-    if ( hasTLS() ) {
+    if ( hasTls() ) {
         respond( 502, "Already using TLS" );
         return;
     }
+    if ( !d->tlsServer ) {
+        d->tlsHelper = new SmtpTlsStarter( this );
+        d->tlsServer = new TlsServer( d->tlsHelper );
+    }
     respond( 200, "Start negotiating TLS now." );
     sendResponses();
-    d->negotiatingTLS = true;
+    d->negotiatingTls = true;
     log( "Negotiating TLS" );
-    startTLS();
+    startTls( d->tlsServer );
 }
 
 

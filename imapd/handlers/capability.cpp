@@ -77,7 +77,7 @@ String Capability::capabilities( IMAP * i )
     c.append( "NAMESPACE" );
     if ( ::drafts )
         c.append( "SASL-IR" );
-    if ( !i->hasTLS() )
+    if ( !i->hasTls() )
         c.append( "STARTTLS" );
     c.append( "UNSELECT" );
 
