@@ -1,5 +1,3 @@
-# Decide what compiler and flags we're using.
-
 OPTIM = ;
 RANLIB = ;
 C++FLAGS = -g -Werror -funsigned-char ;
@@ -19,10 +17,7 @@ else {
 
 LINK = $(C++) ;
 
-# our lib and codecs directories contain additional include files
-HDRS += [ FDirName $(TOP) lib ] ;
-HDRS += [ FDirName $(TOP) codecs ] ;
-HDRS += [ FDirName $(TOP) cryptlib ] ;
+HDRS += [ FDirName $(TOP) core ] ;
 
 rule SubInclude
 {

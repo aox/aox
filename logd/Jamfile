@@ -1,105 +1,12 @@
-# declare directory, so we can build by running 'jam' in this directory
-SubDir TOP imapd ;
+SubDir TOP logd ;
 
-# Pull in the directories we need to build the programs named at the bottom:
-# - lib
+SubInclude TOP core ;
+SubInclude TOP server ;
 
-SubInclude TOP lib ;
-SubInclude TOP codecs ;
-SubInclude TOP cryptlib ;
-
-# - qdoc, so we can build documentation
-SubInclude TOP qdoc ;
-
-# - our own subdirectories, with a -I pointing here
-HDRS += [ FDirName $(TOP) imapd ] ;
-HDRS += [ FDirName $(TOP) imapd db ] ;
-SubInclude TOP imapd handlers ;
-SubInclude TOP imapd sasl ;
-SubInclude TOP imapd db ;
-
-# declare our own directory again, for the benefit of the Build rules below
-
-SubDir TOP imapd ;
-
-# a rule to build the address-testing file, and maybe others later?
-
-rule Struct
-{
-    Depends $(<) : $(>) ;
-    Clean clean : $(<) ;
-    SEARCH on $(>) = $(SEARCH_SOURCE) ;
-    MakeLocate $(<) : $(LOCATE_SOURCE) ;
-}
-
-actions Struct
-{
-    sed -e 's/##.*//' -e 's/[\\"]/\\&/g' < $(>) | \
-	grep . | \
-	sed -e 's/^/{ "/' -e 's/	/", "/g' -e 's/$/" },/'> $(<)
-}
-
-# build the struct file for address testing
-
-Struct addresses.inc : addresses.test ;
-Struct datefields.inc : datefields.test ;
-
-# build the .o files in this directory
-
-Build ocdmain : ocd.cpp ;
-Build ocd : ocserver.cpp ocadmin.cpp ;
+SubDir TOP logd ;
 
 Build logdmain : logd.cpp ;
 Build logd : logserver.cpp ;
 
-Build imapdmain : imapd.cpp ;
-Build imap : imap.cpp command.cpp occlient.cpp set.cpp mailbox.cpp
-    squery.cpp smtp.cpp imapsession.cpp tls.cpp ;
-
-Build message : address.cpp parser.cpp date.cpp header.cpp
-    mimefields.cpp message.cpp ;
-
-Build database : event.cpp cache.cpp query.cpp addressquery.cpp
-    injector.cpp transaction.cpp ;
-
-Build server : connection.cpp listener.cpp loop.cpp endpoint.cpp log.cpp
-    configuration.cpp table.cpp ;
-
-Build runtestsmain : runtests.cpp ;
-
-Build tlsproxymain : tlsproxy.cpp ;
-
-# the documentation groups. for the moment, the target is just a dummy
-
-rule Doc {
-    Depends exe : $(<) ; # run this rule whenever "all executables" are built
-    Depends $(<) : $(set-$(>):S=.o) ; # doc after compiling
-    Depends $(<) : qdoc ; # build qdoc before we call it
-    Doc2 $(<) : $(set-$(>):S=.cpp) ;
-}
-
-actions together Doc2 {
-    mkdir -p ../doc/man/man3 ../doc/html
-    qdoc -m ../doc/man/man3 -w ../doc/html $(>)
-}
-
-Doc doc : imap message ocd logd database server lib ;
-
-# the programs. these need to be last. magic. all Program calls need
-# to be after all Build calls, since the Build puts object files into
-# the sets used by Build.
-
-Program ocd : ocd ocdmain server lib ;
-LINKLIBS on ocd = ;
-
 Program logd : logd logdmain server lib ;
 LINKLIBS on logd = ;
-
-Program imapd : imap imapdmain database message server lib cryptlib ;
-LINKLIBS on imapd = -lcrypt ;
-
-Program tlsproxy : tlsproxymain server lib ;
-LINKLIBS on tlsproxy = ;
-
-Program runtests : runtestsmain imap logd database message server lib ;
-LINKLIBS on runtests = -lcrypt ;

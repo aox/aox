@@ -1,4 +1,6 @@
-SubDir TOP imapd sasl ;
+SubDir TOP sasl ;
 
-Build imap : mechanism.cpp plain.cpp anonymous.cpp cram-md5.cpp
+HDRS += [ FDirName $(TOP) sasl ] ;
+
+Build sasl : mechanism.cpp plain.cpp anonymous.cpp cram-md5.cpp
              digest-md5.cpp ;
