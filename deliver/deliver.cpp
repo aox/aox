@@ -20,6 +20,7 @@
 #include "loop.h"
 
 #include <time.h> // XXX this needs to go. fix setTimeout().
+#include <stdlib.h>
 
 
 class DeliveryDbClient: public EventHandler
@@ -69,11 +70,12 @@ int main( int argc, char ** argv )
     if ( Log::disastersYet() )
         exit( 1 );
 
-    File input( "/prov/fd/self/stdin", File::Read ); // ### evil hack
+    File input( "/proc/fd/self/stdin", File::Read ); // ### evil hack
     String contents = input.contents(); // ### use Buffer instead
     Message * m = new Message( contents, true ); // <- be strict? really?
     Mailbox * inbox = Mailbox::find( argv[1] );
     if ( !inbox ) {
+        exit( -1 );
     }
     List<Mailbox> * inboxes = new List<Mailbox>;
     inboxes->append( inbox );
