@@ -4,6 +4,7 @@
 #include "event.h"
 #include "query.h"
 #include "configuration.h"
+#include "user.h"
 
 // Supported authentication mechanisms, for create().
 // (Keep these alphabetical.)
@@ -17,16 +18,15 @@ class SaslData {
 public:
     SaslData()
         : state( SaslMechanism::IssuingChallenge ),
-          command( 0 ), q( 0 ), qd( false ), uid( 0 ),
+          command( 0 ), qd( false ), user( 0 ),
           l( 0 )
     {}
 
     SaslMechanism::State state;
     EventHandler *command;
-    Query *q;
     bool qd;
 
-    uint uid;
+    User * user;
     String login;
     String secret;
     String storedSecret;
@@ -161,12 +161,13 @@ String SaslMechanism::challenge()
 */
 
 
-/*! This function expects to be called after setLogin() and setSecret(),
-    which are typically called during readResponse(). It issues a Query
-    to retrieve the record corresponding to the login() name, and enters
-    the Authenticating state. It expects its parent Command to call it
-    each time a Query notification occurs. It remains in the same state
-    until it has enough data to make a decision.
+/*! This function expects to be called after setLogin() and
+    setSecret(), which are typically called during readResponse(). It
+    obtains the user's data from the database, checks the
+    user-submitted password against the correct one, and enters the
+    Authenticating state. It expects its parent Command to call it
+    each time a Query notification occurs. It remains in the same
+    state until it has enough data to make a decision.
 
     If the login() name does not exist, this function sets the state to
     Failed. Otherwise, it calls verify(), which is expected to validate
@@ -175,37 +176,19 @@ String SaslMechanism::challenge()
 
 void SaslMechanism::query()
 {
-    if ( d->qd ) {
+    if ( !d->user ) {
+        d->user = new User;
+        d->user->setLogin( d->login );
+        d->user->refresh( command() );
+    }
+
+    // ick. how to preserve testability and still use the database nicely?
+    d->storedSecret = d->user->secret();
+    if ( d->user->state() == User::Nonexistent )
+        d->storedSecret = d->secret + " is not correct";
+
+    if ( d->user->state() != User::Unverified )
         verify();
-        return;
-    }
-
-    if ( !d->q ) {
-        if ( d->login.length() == 0 ) {
-            setState( Failed );
-            return;
-        }
-
-        setState( Authenticating );
-        d->q = new Query( "select * from users where login=$1", command() );
-        d->q->bind( 1, d->login );
-        d->q->execute();
-        return;
-    }
-
-    if ( !d->q->done() )
-        return;
-
-    if ( d->q->failed() || d->q->rows() != 1 ) {
-        setState( Failed );
-        return;
-    }
-
-    Row *r = d->q->nextRow();
-    d->uid = r->getInt( "id" );
-    d->storedSecret = r->getString( "secret" );
-
-    verify();
 }
 
 
@@ -235,16 +218,6 @@ void SaslMechanism::verify()
 bool SaslMechanism::done() const
 {
     return ( d->state == Failed || d->state == Succeeded );
-}
-
-
-/*! Returns the user id corresponding to login() or 0 if we don't know
-    what it is yet.
-*/
-
-uint SaslMechanism::uid() const
-{
-    return d->uid;
 }
 
 
@@ -332,4 +305,16 @@ void SaslMechanism::setChallenge( const String & )
 void SaslMechanism::log( const String &m, Log::Severity s )
 {
     d->l->log( m, s );
+}
+
+
+/*! Returns the user logged in by this mechanism, or a null pointer if
+    authentication has not succeeded (yet).
+*/
+
+User * SaslMechanism::user() const
+{
+    if ( state() == Succeeded )
+        return d->user;
+    return 0;
 }

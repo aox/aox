@@ -8,6 +8,7 @@
 class String;
 class Command;
 class ImapSession;
+class User;
 
 
 class IMAP
@@ -28,9 +29,8 @@ public:
     bool idle() const;
     void setIdle( bool );
 
-    uint uid() const;
-    String login() const;
-    void authenticated( uint, const String & );
+    User * user() const;
+    void authenticated( User * );
 
     void beginSession( ImapSession * );
     ImapSession *session() const;

@@ -30,6 +30,8 @@ public:
     void setAddress( Address * );
     Address * address();
 
+    uint id() const;
+
     void refresh( EventHandler * user );
     Query *create( EventHandler * user );
     void rename( const String & newLogin, EventHandler * user );
@@ -43,7 +45,13 @@ public:
 
     static List<User> * users();
 
+    Mailbox * home() const;
+
     void execute();
+
+    enum State { Refreshed, Nonexistent, Unverified };
+    State state() const;
+
 private:
     void createHelper();
     void renameHelper();

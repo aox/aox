@@ -7,6 +7,7 @@
 #include "string.h"
 
 class EventHandler;
+class User;
 
 
 class SaslMechanism {
@@ -30,8 +31,8 @@ public:
     virtual void verify();
 
     bool done() const;
-    uint uid() const;
 
+    User * user() const;
     String login() const;
     void setLogin( const String & );
     String secret() const;

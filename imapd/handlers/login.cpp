@@ -55,7 +55,7 @@ void Login::execute()
         return;
 
     if ( m->state() == SaslMechanism::Succeeded )
-        imap()->authenticated( m->uid(), n );
+        imap()->authenticated( m->user() );
     else
         error( No, "LOGIN failed for '" + n + "'" );
 

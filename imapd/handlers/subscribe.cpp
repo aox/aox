@@ -4,6 +4,7 @@
 
 #include "imap.h"
 #include "query.h"
+#include "user.h"
 
 
 /*! \class Subscribe subscribe.h
@@ -53,7 +54,7 @@ void Subscribe::execute()
     if ( !q ) {
         q = new Query( "select id from subscriptions where owner=$1 "
                        "and mailbox=$2", this );
-        q->bind( 1, imap()->uid() );
+        q->bind( 1, imap()->user()->id() );
         q->bind( 2, m );
         q->execute();
         return;
@@ -74,7 +75,7 @@ void Subscribe::execute()
         if ( mode == Add && q->rows() == 0 ) {
             q = new Query( "insert into subscriptions (owner, mailbox) "
                            "values ($1, $2)", this );
-            q->bind( 1, imap()->uid() );
+            q->bind( 1, imap()->user()->id() );
             q->bind( 2, m );
         }
         else if ( mode == Remove && q->rows() == 1 ) {

@@ -3,6 +3,8 @@
 #include "namespace.h"
 
 #include "imap.h"
+#include "user.h"
+#include "mailbox.h"
 
 /*! \class Namespace namespace.h
     Implements the NAMESPACE extension specified in RFC 2342.
@@ -18,8 +20,9 @@ void Namespace::execute()
 {
     String personal, other, shared;
 
-    personal = "((\"\" \"/\") (\"/users/"+ imap()->login() +"/\" \"/\"))";
-    other    = "((\"/users/\" \"/\"))";
+    personal = "((\"\" \"/\")"
+               " (\"" + imap()->user()->home()->name() + "/\" \"/\"))";
+    other    = "((\"/users/\" \"/\"))"; // XXX: hardcoded still
     shared   = "((\"/\" \"/\"))";
 
     respond( "NAMESPACE " + personal + " " + other + " " + shared );

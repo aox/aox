@@ -7,5 +7,6 @@ SubInclude TOP message ;
 
 Build pop3 : pop3.cpp pop3d.cpp ;
 
-Program pop3d : pop3 database message server sasl mailbox core encodings ;
+Program pop3d : pop3 database message server sasl mailbox core encodings
+    user ;
 LINKLIBS on pop3d = -lcrypt ;

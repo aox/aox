@@ -14,6 +14,7 @@
 #include "log.h"
 #include "configuration.h"
 #include "imapsession.h"
+#include "user.h"
 
 
 static bool endsWithLiteral( const String *, uint *, bool * );
@@ -32,7 +33,7 @@ public:
         : state( IMAP::NotAuthenticated ),
           cmdArena( 0 ), args( 0 ), reader( 0 ),
           readingLiteral( false ), literalSize( 0 ),
-          session( 0 ), mailbox( 0 ), uid( 0 ),
+          session( 0 ), mailbox( 0 ), login( 0 ),
           idle( false )
     {}
     ~IMAPData() {
@@ -52,8 +53,7 @@ public:
 
     ImapSession *session;
     Mailbox *mailbox;
-    String login;
-    uint uid;
+    User * login;
 
     bool idle;
 };
@@ -67,9 +67,9 @@ public:
     client input to decide which Command to defer the real work to, and
     ensures that the handler is called at the appropriate times.
 
-    Each IMAP object has a state() (RFC 3501, §3), and may possess other
-    state information, such as the login() name or a session(). The Idle
-    state (RFC 2177) is also kept here.
+    Each IMAP object has a state() (RFC 3501, §3), and may possess
+    other state information, such as the user() logged in or a
+    session(). The Idle state (RFC 2177) is also kept here.
 
     The IMAP class parses incoming commands as soon as possible and
     may keep several commands executing at a time, if the client
@@ -398,40 +398,26 @@ bool IMAP::idle() const
 }
 
 
-/*! Notifies the IMAP object that the user \a name with uid \a n, was
-    successfully authenticated. This changes the state() of the IMAP
-    object to Authenticated.
+/*! Notifies the IMAP object that \a user was successfully
+    authenticated. This changes the state() of the IMAP object to
+    Authenticated.
 */
 
-void IMAP::authenticated( uint n, const String & name )
+void IMAP::authenticated( User * user )
 {
-    d->uid = n;
-    d->login = name;
-    log( "Logged in as " + name, Log::Debug );
+    d->login = user;
+    log( "Logged in as " + user->login(), Log::Debug );
     setState( Authenticated );
 }
 
 
-/*! Returns the current login name. Initially, the login name is an
-    empty string.
-
-    The return value is meaningful only in Authenticated and Selected
-    states.
+/*! Returns the currently logged in user, or a null pointer if no user
+    is logged in.
 */
 
-String IMAP::login() const
+User * IMAP::user() const
 {
     return d->login;
-}
-
-
-/*! Returns the user ID corresponding to the login() name set for this
-    IMAP session, or 0 if none has been set.
-*/
-
-uint IMAP::uid() const
-{
-    return d->uid;
 }
 
 
@@ -574,21 +560,19 @@ static bool endsWithLiteral( const String *s, uint *n, bool *plus )
 
 
 /*! This function returns the fully-qualified name of the mailbox \a m,
-    using the current user's login() name to qualify it if necessary.
+    using the current user() to qualify it if necessary.
 */
 
 String IMAP::mailboxName( const String &m ) const
 {
     String name;
 
-    if ( m[0] != '/' )
-        name = "/users/" + login() + "/";
-    if ( m.lower() == "inbox" )
-        name.append( "INBOX" );
-    else
-        name.append( m );
+    if ( m[0] == '/' || !d->login )
+        return m;
 
-    return name;
+    if ( m.lower() == "inbox" )
+        return user()->inbox()->name();
+    return user()->home()->name() + "/" + m;
 }
 
 

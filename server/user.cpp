@@ -13,20 +13,23 @@
 class UserData
 {
 public:
-    UserData(): id( 0 ), inbox( 0 ), address( 0 ),
+    UserData(): id( 0 ), inbox( 0 ), home( 0 ), address( 0 ),
                 q( 0 ), createQuery( 0 ), t( 0 ), user( 0 ),
+                state( User::Unverified ),
                 mode( LoungingAround )
         {}
     String login;
     String secret;
     uint id;
     Mailbox * inbox;
+    Mailbox * home;
     Address * address;
     Query * q;
     Query *createQuery;
     Transaction * t;
     EventHandler * user;
     String error;
+    User::State state;
 
     enum Operation {
         LoungingAround,
@@ -150,17 +153,18 @@ void User::refresh( EventHandler * user )
     d->user = user;
     if ( !psl ) {
         psl = new PreparedStatement(
-            "select u.id, u.address, u.inbox, u.parentspace, u.login, "
-            "u.secret, a.name, a.localpart, a.domain "
-            "from users u, addresses a where "
-            "u.login=$1 and u.id=a.id"
+            "select u.id, u.address, u.inbox, n.name as parentspace, "
+            "u.login, u.id, u.secret, a.name, a.localpart, a.domain "
+            "from users u, addresses a, namespaces n where "
+            "u.login=$1 and u.id=a.id and n.id=u.parentspace"
         );
 
         psa = new PreparedStatement(
-            "select u.id, u.address, u.inbox, u.parentspace, u.login, "
-            "u.secret, a.name, a.localpart, a.domain "
-            "from users u, addresses a where "
-            "u.address=a.id and a.localpart=$1 and lower(a.domain)=$2"
+            "select u.id, u.address, u.inbox, n.name as parentspace, "
+            "u.login, u,id, u.secret, a.name, a.localpart, a.domain "
+            "from users u, addresses a, namespaces n where "
+            "u.address=a.id and a.localpart=$1 and lower(a.domain)=$2 "
+            "and n.id=u.parentspace"
         );
     }
     if ( !d->login.isEmpty() ) {
@@ -189,17 +193,22 @@ void User::refreshHelper()
     if ( !d->q || !d->q->done() )
         return;
 
+    d->state = Nonexistent;
     Row *r = d->q->nextRow();
     if ( r ) {
         d->id = r->getInt( "id" );
         d->login = r->getString( "login" );
         d->secret = r->getString( "secret" );
+        d->id = r->getInt( "id" );
         d->inbox = Mailbox::find( r->getInt( "inbox" ) );
-        // ignore parentspace for now
+        d->home = Mailbox::obtain( r->getString( "parentspace" ) + "/" +
+                                   d->login,
+                                   true );
         String n = r->getString( "name" );
         String l = r->getString( "localpart" );
         String h = r->getString( "domain" );
         d->address = new Address( n, l, h );
+        d->state = Refreshed;
     }
     if ( d->user )
         d->user->notify();
@@ -419,4 +428,44 @@ void User::removeHelper()
 {
     if ( d->q->done() )
         d->id = 0;
+}
+
+
+/*! Returns the user's "home directory" - the mailbox under which all
+    of the user's mailboxes reside.
+
+    This is read-only since at the moment, the mailstore servers only
+    permit one setting: "/users/" + login. However, the database
+    permits more namespaces than just "/users", so one day this may
+    change.
+*/
+
+Mailbox * User::home() const
+{
+    return d->home;
+}
+
+
+/*! Returns the user's ID, ie. the primary key from the database, used
+    to link various other tables to this user.
+*/
+
+uint User::id() const
+{
+    return d->id;
+}
+
+
+/*! Returns the user's state, which is either Unverified (the object
+  has made no attempt to refresh itself from the database), Refreshed
+  (the object was successfully refreshed) or Nonexistent (the object
+  tried to refresh itself, but there was no corresponsing user in the
+  database).
+
+  The state is Unverified initially and is changed by refresh().
+*/
+
+User::State User::state() const
+{
+    return d->state;
 }

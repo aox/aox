@@ -11,5 +11,6 @@ SubInclude TOP imapd handlers ;
 Build imap : imapd.cpp imap.cpp imapsession.cpp command.cpp
     messageset.cpp ;
 
-Program imapd : imap database message server sasl mailbox core encodings ;
+Program imapd : imap database message server sasl mailbox core encodings
+    user ;
 LINKLIBS on imapd = -lcrypt ;

@@ -115,7 +115,7 @@ void Authenticate::execute()
     }
 
     if ( m->state() == SaslMechanism::Succeeded )
-        imap()->authenticated( m->uid(), m->login() );
+        imap()->authenticated( m->user() );
     else
         error( No, "Sorry" );
 
