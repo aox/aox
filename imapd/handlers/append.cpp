@@ -85,6 +85,8 @@ void Append::parse()
         require( "\"" );
         space();
         d->date.setDate( year, month, day, hour, minute, second, zone );
+        if ( !d->date.valid() )
+            error( Bad, "Date supplied is not valid" );
     }
 
     d->message = literal();
