@@ -598,7 +598,7 @@ void Postgres::processQueue( bool userContext )
              !d->prepared.contains( q->name() ) )
         {
             PgParse a( q->string(), q->name() );
-            a.bindTypes( a->types() );
+            a.bindTypes( q->types() );
             a.enqueue( writeBuffer() );
 
             if ( q->name() != "" )
