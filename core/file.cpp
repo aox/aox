@@ -76,9 +76,9 @@ File::File( const String &name, File::Access a, uint mode )
 
 
 /*! Initialises a file object to represent \a name, which is opened for
-    the specified \a mode. If \a mode is Read, \a maxLength specifies
-    the number of bytes to read; and if \a mode is Write or Append, the
-    \a mode is used if the file is to be created.
+    the specified \a mode. If \a a is Read, \a maxLength specifies the
+    number of bytes to read; and if \a a is Write or Append, the \a mode
+    is used if the file is to be created.
 */
 
 void File::init( const String &name, File::Access a,
