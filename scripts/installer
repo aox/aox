@@ -61,7 +61,7 @@ if [ ! $EXISTS ]; then
 elif [ $TELL = yes ]; then
     echo "PostgreSQL user $DBUSER already exists, no action necessary."
     if [ ! $DBPASS ]; then
-        DBPASS="(password for $PGUSER here)"
+        DBPASS="(PostgreSQL password for $DBUSER here)"
     fi
 fi
 
