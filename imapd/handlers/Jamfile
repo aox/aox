@@ -7,11 +7,14 @@ Build imap :
     create.cpp
     delete.cpp
     expunge.cpp
+    fetch.cpp
+    id.cpp
     idle.cpp
     login.cpp
     logout.cpp
     noop.cpp
     rename.cpp
+    search.cpp
     select.cpp
     subscribe.cpp unsubscribe.cpp
     ;

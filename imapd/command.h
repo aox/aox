@@ -46,10 +46,13 @@ public:
     void emitResponses();
 
     void end();
+    void nil();
     void space();
     uint number();
     uint nzNumber();
+    String nstring();
     String astring();
+    String string();
     String atom();
     String quoted();
     String literal();
