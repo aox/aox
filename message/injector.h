@@ -13,7 +13,7 @@ class Injector
     : public EventHandler
 {
 public:
-    Injector( const Message *, List< Mailbox > *, EventHandler * );
+    Injector( const Message *, SortedList< Mailbox > *, EventHandler * );
     virtual ~Injector();
 
     bool done() const;

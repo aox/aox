@@ -120,7 +120,7 @@ uint Append::number( uint n )
 void Append::execute()
 {
     if ( !d->injector ) {
-        List<Mailbox> * m = new List<Mailbox>;
+        SortedList<Mailbox> * m = new SortedList<Mailbox>;
         m->append( imap()->session()->mailbox() );
         d->injector = new Injector( d->message, m, this );
     }

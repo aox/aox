@@ -24,6 +24,10 @@ public:
     static void insert( Mailbox * );
     static Mailbox *find( const String &, bool = false );
 
+    bool operator <=( const Mailbox &b ) {
+        return id() <= b.id();
+    }
+
 private:
     class MailboxData *d;
 };

@@ -633,10 +633,10 @@ void SMTP::inject()
         return;
     }
 
-    List<Mailbox> * mailboxes = new List<Mailbox>;
+    SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
     List<SMTPData::Recipient>::Iterator it( d->to.first() );
-    while ( it != d->to.end() ) {
-        mailboxes->append( (*it).m );
+    while ( it ) {
+        mailboxes->insert( it->m );
         ++it;
     }
 

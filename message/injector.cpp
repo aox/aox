@@ -41,7 +41,7 @@ public:
 
     EventHandler * owner;
     const Message * message;
-    List< Mailbox > * mailboxes;
+    SortedList< Mailbox > * mailboxes;
 
     Transaction * transaction;
 
@@ -88,7 +88,8 @@ public:
 
     The Injector takes a Message object, and performs all the database
     operations necessary to inject it into each of a List of Mailboxes.
-    The message is assumed to be valid.
+    The message is assumed to be valid. The list of mailboxes must be
+    sorted.
 */
 
 /*! Creates a new Injector object to deliver the \a message into each of
@@ -99,7 +100,8 @@ public:
     The caller must not change \a mailboxes after this call.
 */
 
-Injector::Injector( const Message * message, List< Mailbox > * mailboxes,
+Injector::Injector( const Message * message,
+                    SortedList< Mailbox > * mailboxes,
                     EventHandler * owner )
     : d( new InjectorData )
 {
