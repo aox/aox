@@ -57,16 +57,16 @@ void Select::execute()
     if ( !m->done() )
         return;
 
+    if ( imap()->session() )
+        imap()->endSession();
+
     if ( m->state() == Mailbox::Failed ) {
-        imap()->setMailbox( 0 );
-        imap()->setState( IMAP::Authenticated );
         error( No, "Can't select " + name );
         finish();
         return;
     }
 
-    imap()->setMailbox( m );
-    imap()->setState( IMAP::Selected );
+    imap()->newSession( m );
 
     respond( "FLAGS " + m->flags() );
     respond( fn( m->count() ) + " EXISTS" );

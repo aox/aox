@@ -15,7 +15,6 @@
 
 void Unselect::execute()
 {
-    imap()->setMailbox( 0 );
-    imap()->setState( IMAP::Authenticated );
-    setState( Finished );
+    imap()->endSession();
+    finish();
 }

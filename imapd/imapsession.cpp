@@ -20,28 +20,29 @@ public:
 */
 
 
-/*! Creates an empty ImapSession.
+/*! Creates an ImapSession for the Mailbox \a m.
 */
 
-ImapSession::ImapSession()
+ImapSession::ImapSession( Mailbox *m )
     : d( new SessionData )
+{
+    d->mailbox = m;
+}
+
+
+/*! Destroys an ImapSession.
+*/
+
+ImapSession::~ImapSession()
 {
 }
 
 
-/*! Returns a pointer to the Mailbox currently selected in this session,
-    or 0 if there isn't one.
+/*! Returns a pointer to the currently selected Mailbox, or 0 if there
+    isn't one.
 */
 
 Mailbox *ImapSession::mailbox() const
 {
     return d->mailbox;
-}
-
-
-/*! Sets this session's Mailbox to \a m. */
-
-void ImapSession::setMailbox( Mailbox *m )
-{
-    d->mailbox = m;
 }

@@ -6,6 +6,7 @@
 #include "message.h"
 #include "injector.h"
 #include "imap.h"
+#include "imapsession.h"
 
 
 class AppendData
@@ -120,7 +121,7 @@ void Append::execute()
 {
     if ( !d->injector ) {
         List<Mailbox> * m = new List<Mailbox>;
-        m->append( imap()->mailbox() );
+        m->append( imap()->session()->mailbox() );
         d->injector = new Injector( d->message, m, this );
     }
     if ( d->injector->done() )

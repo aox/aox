@@ -411,31 +411,6 @@ String IMAP::login()
 }
 
 
-/*! Returns the currently-selected Mailbox. */
-
-Mailbox *IMAP::mailbox()
-{
-    return d->mailbox;
-}
-
-
-/*! Sets the currently-selected Mailbox to \a m. Note that the new
-    mailbox must not need expunges. If it needs expunges, IMAP SELECT
-    might return Expunge responses, which would be very bad.
-*/
-
-void IMAP::setMailbox( Mailbox *m )
-{
-    if ( m == d->mailbox )
-        return;
-
-    d->mailbox = m;
-
-    if ( m )
-        d->logger->log( "now using mailbox " + m->name() );
-}
-
-
 /*! Reserves input from the connection for \a command.
 
     When more input is available, Command::read() is called, and as
@@ -560,11 +535,38 @@ void IMAP::setUid( uint id )
 }
 
 
+/*! This function associates a new ImapSession for the Mailbox \a m with
+    this IMAP server, whose state() changes to Selected. It must not be
+    called if the server already has a session().
+*/
+
+void IMAP::newSession( Mailbox *m )
+{
+    setState( Selected );
+    d->session = new ImapSession( m );
+    d->logger->log( "Using mailbox " + m->name() );
+}
+
+
 /*! Returns a pointer to the ImapSession object associated with this
-    IMAP server, or 0 if there is none.
+    IMAP server, or 0 if there is none (which should happen only if
+    the server is not in the Selected state).
 */
 
 ImapSession *IMAP::session() const
 {
     return d->session;
+}
+
+
+/*! This function deletes any existing ImapSession associated with this
+    server, whose state changes to Authenticated. It must not be called
+    unless the server has a session().
+*/
+
+void IMAP::endSession()
+{
+    setState( Authenticated );
+    delete d->session;
+    d->session = 0;
 }

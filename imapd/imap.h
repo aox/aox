@@ -32,10 +32,9 @@ public:
     void setUid( uint );
     void setLogin( const String & );
 
-    Mailbox *mailbox();
-    void setMailbox( Mailbox * );
-
+    void newSession( Mailbox * );
     ImapSession *session() const;
+    void endSession();
 
 private:
     class IMAPData *d;

@@ -6,10 +6,10 @@ class Mailbox;
 
 class ImapSession {
 public:
-    ImapSession();
+    ImapSession( Mailbox * );
+    ~ImapSession();
 
     Mailbox *mailbox() const;
-    void setMailbox( Mailbox * );
 
 private:
     class SessionData *d;
