@@ -147,6 +147,7 @@ void Postgres::react( Event e )
 
             char msg = (*readBuffer())[0];
             try {
+                log( "Received '" + String( &msg, 1 ) + "' message" );
                 if ( d->startup ) {
                     if ( !d->authenticated )
                         authentication( msg );
@@ -358,7 +359,9 @@ void Postgres::process( char type )
             }
 
             if ( q ) {
-                q->setState( Query::Completed );
+                log( "Dequeueing query " + q->string() );
+                if ( !q->done() )
+                    q->setState( Query::Completed );
                 q->notify();
                 d->queries.take( q );
             }
@@ -397,7 +400,7 @@ void Postgres::unknown( char type )
         {
             d->unknownMessage = false;
             PgMessage msg( readBuffer() );
-            List< Query >::Iterator q( d->queries.first() );
+            Query *q = d->queries.first();
 
             switch ( msg.severity() ) {
             case PgMessage::Panic:
@@ -407,44 +410,40 @@ void Postgres::unknown( char type )
 
             case PgMessage::Error:
             case PgMessage::Warning:
-                // There *should* always be an outstanding query when we
-                // get here, but that doesn't always seem to hold. Must
-                // investigate later. -- AMS 20041125
                 {
                     String s;
-                    if ( q ) {
-                        int i = 0;
-                        StringList p;
-                        List< Query::Value >::Iterator v( q->values()->first() );
-                        while ( v ) {
-                            i++;
-                            String s;
-                            int n = v->length();
-                            if ( n == -1 )
-                                s = "NULL";
-                            else if ( n <= 16 && v->format() != Query::Binary )
-                                s = "'" + v->data() + "'";
-                            else
-                                s = "...{" + fn( n ) + "}";
-                            p.append( fn(i) + "=" + s );
-                            v++;
-                        }
-                        s.append( "Query \"" + q->string() + "\"" );
-                        if ( i > 0 )
-                            s.append( " (" + p.join(",") + ")" );
-                        s.append( " failed: " );
+                    int i = 0;
+                    StringList p;
+                    List< Query::Value >::Iterator v( q->values()->first() );
+                    while ( v ) {
+                        i++;
+                        String s;
+                        int n = v->length();
+                        if ( n == -1 )
+                            s = "NULL";
+                        else if ( n <= 16 && v->format() != Query::Binary )
+                            s = "'" + v->data() + "'";
+                        else
+                            s = "...{" + fn( n ) + "}";
+                        p.append( fn(i) + "=" + s );
+                        v++;
                     }
+                    if ( msg.severity() == PgMessage::Warning )
+                        s.append( "WARNING: " );
+                    else
+                        s.append( "ERROR: " );
+                    s.append( "Query \"" + q->string() + "\"" );
+                    if ( i > 0 )
+                        s.append( " (" + p.join(",") + ")" );
+                    s.append( ": " );
                     s.append( msg.message() );
                     if ( msg.detail() != "" )
                         s.append( " (" + msg.detail() + ")" );
                     log( Log::Error, s );
 
                     // Has this query failed?
-                    if ( q && msg.severity() == PgMessage::Error ) {
-                        Query *e = d->queries.take( q );
-                        e->setError( msg.message() );
-                        e->notify();
-                    }
+                    if ( msg.severity() == PgMessage::Error )
+                        q->setError( msg.message() );
                 }
                 break;
 
@@ -541,6 +540,7 @@ void Postgres::processQueue( bool userContext )
         if ( !userContext && it->state() != Query::Submitted )
             break;
 
+        String s;
         Query *q = d->pending.take( it );
         q->setState( Query::Executing );
         d->queries.append( q );
@@ -556,6 +556,7 @@ void Postgres::processQueue( bool userContext )
 
             PgExecute c;
             c.enqueue( writeBuffer() );
+            s.append( "begin/");
         }
 
         if ( q->name() == "" ||
@@ -566,6 +567,7 @@ void Postgres::processQueue( bool userContext )
 
             if ( q->name() != "" )
                 d->prepared.insert( q->name(), 0 );
+            s.append( "parse/" );
         }
 
         PgBind b( q->name() );
@@ -580,6 +582,8 @@ void Postgres::processQueue( bool userContext )
 
         PgSync e;
         e.enqueue( writeBuffer() );
+        s.append( "execute" );
+        log( "Sent " + s + " for " + q->string() );
     }
 
     if ( writeBuffer()->size() > 0 )
