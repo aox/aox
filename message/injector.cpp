@@ -204,6 +204,8 @@ Injector::Injector( const Message * message,
                     EventHandler * owner )
     : d( new InjectorData )
 {
+    if ( !lockUidnext )
+        setup();
     d->owner = owner;
     d->message = message;
     d->mailboxes = mailboxes;

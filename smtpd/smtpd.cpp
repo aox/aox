@@ -45,7 +45,6 @@ int main( int argc, char * argv[] )
     Mailbox::setup();
     AddressCache::setup();
     FieldNameCache::setup();
-    Injector::setup();
 
     s.execute();
 }

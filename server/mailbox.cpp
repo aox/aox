@@ -102,9 +102,6 @@ public:
 /*! This static function is responsible for building a tree of
     Mailboxes from the contents of the mailboxes table. It expects to
     be called by ::main().
-
-    All Mailbox objects are allocated on the Arena used while setup()
-    is called.
 */
 
 void Mailbox::setup()

@@ -22,13 +22,13 @@ public:
     bool failed() const;
     void execute();
 
-    static void setup();
-
     void announce();
     uint uid( Mailbox * ) const;
 
 private:
     class InjectorData *d;
+
+    static void setup();
 
     void selectUids();
     void buildAddressLinks();
