@@ -22,8 +22,11 @@ void Create::parse()
 
 void Create::execute()
 {
-    if ( !m )
+    if ( !m ) {
         m = new Mailbox( name, this );
+        if ( name.lower() == "inbox" )
+            m->setState( Mailbox::Failed );
+    }
 
     if ( !m->done() )
         m->create();
