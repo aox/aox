@@ -377,7 +377,7 @@ void Fetch::removeInvalidUids()
         uint uid = d->set.value( i );
         Message * m = s->message( uid );
         if ( !m )
-            d->set.remove( i );
+            d->set.remove( uid );
         i--;
     }
 }
