@@ -1,0 +1,10 @@
+SubDir TOP cryptlib test ;
+SubInclude TOP cryptlib ;
+
+HDRS = [ FDirName $(TOP) cryptlib ] ;
+
+DEFINES += STANDALONE_PROGRAM strnicmp=strncasecmp ;
+
+Build certutil : certutil.c ;
+
+Program certutil : certutil cryptlib ;
