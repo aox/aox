@@ -48,7 +48,7 @@ void Database::setup()
     Configuration::Text db("db", "postgres" );
     Configuration::Text dbUser( "dbuser", "oryx" );
     Configuration::Text dbPass( "dbpass", "" );
-    Configuration::Text dbName( "dbname", "imap" );
+    Configuration::Text dbName( "dbname", "mailstore" );
     Configuration::Text dbHost( "dbhost", "127.0.0.1" );
     Configuration::Scalar dbPort( "dbport", 5432 );
 
