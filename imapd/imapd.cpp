@@ -19,6 +19,7 @@ int main( int, char *[] )
 
     Configuration::makeGlobal( ".imapdrc" );
     Logger::global()->log( "IMAP server started" );
+    Logger::global()->log( Test::report() );
 
     // should we pick this up from the config file?
     Listener<IMAP>::create( "IMAP", "", 2052 );
