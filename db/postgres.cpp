@@ -638,7 +638,7 @@ void UpdateSchema::execute() {
         else if ( revision > currentRevision ) {
             l->log( "The schema is newer than this server expected. Upgrade.",
                     Log::Disaster );
-            state = 8;
+            state = 9;
             return;
         }
         else {
@@ -662,7 +662,7 @@ void UpdateSchema::execute() {
             if ( gap > 1 ) {
                 l->log( "Can't update because an earlier schema update failed.",
                         Log::Disaster );
-                state = 8;
+                state = 9;
                 break;
             }
             state = 4;
@@ -721,25 +721,27 @@ void UpdateSchema::execute() {
             revision = revision+1;
             if ( revision == currentRevision ) {
                 t->commit();
-                state = 7;
+                state = 8;
                 break;
             }
             state = 2;
         }
     }
 
-    if ( state == 7 ) {
+    if ( state == 7 || state == 8 ) {
         if ( !t->done() )
             return;
 
         if ( t->failed() ) {
             l->log( "The schema update transaction failed.", Log::Disaster );
-            state = 8;
+            state = 9;
         }
-        l->log( "Schema updated to revision " + fn( currentRevision ) );
+        else if ( state == 8 ) {
+            l->log( "Schema updated to revision " + fn( currentRevision ) );
+        }
     }
 
-    if ( state == 8 ) {
+    if ( state == 9 ) {
         // This is a disaster. But do we need to do anything here?
     }
 }
