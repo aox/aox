@@ -96,7 +96,6 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
 
 rule WriteShellConfig
 {
-    Clean clean : $(<) ;
     Depends [ FGristFiles $(<) ] : <>Jamsettings ;
     Depends install : $(<) ;
     Depends $(<) : $(LIBDIR) ;
@@ -148,11 +147,19 @@ actions WriteShellConfig
 rule Doc {
     Depends exe : <doc>.made.$(<) ;
 
+    RemoveDoc docclean ;
+    Depends clean : docclean ;
+
     Clean clean : <doc>.made.$(<) ;
     Depends <doc>.made.$(<) : $(set-$(>):S=.cpp) ;
     Doc2 <doc>.made.$(<) : $(set-$(>):S=.cpp) ;
     Depends <doc>.made.$(<) : $(UDOCBIN) ;
     UDOCBIN = udoc ;
+}
+
+actions together RemoveDoc {
+    echo rm -rf doc/man/man3
+    echo rm -rf doc/html
 }
 
 actions together Doc2 bind UDOCBIN {

@@ -55,9 +55,6 @@ Resource limits on memory allocation
 tlsproxy doesn't handle eof (or errors) well
 
 
-Non-default IMAPS Listener support (mike@waspfactory.org)
-
-
 tls client support (smtp, postgresql)
 
 
