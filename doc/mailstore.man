@@ -231,8 +231,8 @@ contains a private key and self-signed certificate used by
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 0.91, released 2005-02-19,
-http://www.oryx.com/mailstore/0.91.html.
+This man page covers Oryx Mailstore version 0.92, released 2005-03-19,
+http://www.oryx.com/mailstore/0.92.html.
 .SH SEE ALSO
 .BR mailstore.conf (5),
 .BR deliver (8),
