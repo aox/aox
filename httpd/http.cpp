@@ -153,7 +153,7 @@ String HTTP::line()
     String l;
     if ( !i )
         return l;
-    l = *r->string( i );
+    l = r->string( i );
     if ( l.endsWith( "\r" ) )
         l.truncate( l.length() - 1 );
     r->remove( i+1 ); // eat the LF too

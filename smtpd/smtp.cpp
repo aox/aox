@@ -203,7 +203,7 @@ void SMTP::parse()
         d->negotiatingTls = false;
 
         // we have a line; read it
-        String line = *(r->string( ++i ));
+        String line = r->string( ++i );
         r->remove( i );
         if ( state() == Body ) {
             body( line );

@@ -523,7 +523,7 @@ public:
     void react( Event e ) {
         if ( e == Read ) {
             uint n = readBuffer()->size();
-            String data = *readBuffer()->string( n );
+            String data = readBuffer()->string( n );
             partner->enqueue( data );
             partner->write();
             readBuffer()->remove( n );

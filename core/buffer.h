@@ -23,7 +23,7 @@ public:
     uint size() const;
     void remove( uint );
     char at( uint ) const;
-    String * string( uint ) const;
+    String string( uint ) const;
     String * removeLine( uint = 0 );
 
     char operator[]( uint i ) const {

@@ -417,7 +417,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
 void TlsProxy::encrypt()
 {
     Buffer * r = readBuffer();
-    String s = *r->string( r->size() );
+    String s = r->string( r->size() );
     if ( s.isEmpty() )
         return;
     int len = 0;

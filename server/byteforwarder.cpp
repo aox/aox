@@ -32,7 +32,7 @@ void ByteForwarder::react( Event e )
     case Read:
         if ( s ) {
             Buffer * r = readBuffer();
-            String bytes = *r->string( r->size() );
+            String bytes( r->string( r->size() ) );
             s->writeBuffer()->append( bytes );
             r->remove( bytes.length() );
         }

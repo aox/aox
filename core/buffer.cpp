@@ -278,16 +278,16 @@ char Buffer::at( uint i ) const
     This function does not remove() the returned data.
 */
 
-String * Buffer::string( uint num ) const
+String Buffer::string( uint num ) const
 {
-    String * result = new String;
+    String result;
     uint n = size();
 
     if ( n == 0 )
         return result;
     if ( num < n )
         n = num;
-    result->reserve( n );
+    result.reserve( n );
 
     List< struct iovec >::Iterator it( d->vecs.first() );
     struct iovec *v = it;
@@ -302,14 +302,14 @@ String * Buffer::string( uint num ) const
     if ( copied > n )
         copied = n;
 
-    result->append( (const char *)v->iov_base + d->firstused, copied );
+    result.append( (const char *)v->iov_base + d->firstused, copied );
 
     while ( copied < n ) {
         v = ++it;
         uint l = v->iov_len;
         if ( copied + l > n )
             l = n - copied;
-        result->append( (const char *)v->iov_base, l );
+        result.append( (const char *)v->iov_base, l );
         copied += l;
     }
 
@@ -320,16 +320,15 @@ String * Buffer::string( uint num ) const
 /*! This function removes a line (terminated by LF or CRLF) of at most
     \a s bytes from the Buffer, and returns a pointer to a String with
     the line ending removed. If the Buffer does not contain a complete
-    line less than \a s bytes long, this function returns 0 and leaves
-    the Buffer unmodified.
+    line less than \a s bytes long, this function a null pointer.
 
     If \a s has its default value of 0, the entire Buffer is searched.
 */
 
-String *Buffer::removeLine( uint s )
+String * Buffer::removeLine( uint s )
 {
     uint i = 0, n = 0;
-    String *r = 0;
+    String * r;
 
     if ( s == 0 )
         s = size();
@@ -344,10 +343,11 @@ String *Buffer::removeLine( uint s )
         i++;
     }
 
-    if ( n > 0 ) {
-        r = string( i );
-        remove( i+n );
-    }
+    if ( !n )
+        return 0;
+
+    r = new String( string( i ) );
+    remove( i+n );
     return r;
 }
 

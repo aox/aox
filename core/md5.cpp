@@ -172,7 +172,7 @@ String MD5::hash( const String &s )
 
 String MD5::hash( const Buffer &s )
 {
-    return hash( *s.string(s.size()) );
+    return hash( s.string(s.size()) );
 }
 
 

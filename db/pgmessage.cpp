@@ -114,7 +114,7 @@ int PgServerMessage::decodeInt32()
 
 String PgServerMessage::decodeString()
 {
-    String * s;
+    String s;
 
     uint i = 0;
     while ( i < buf->size() && i < l-n &&
@@ -128,7 +128,7 @@ String PgServerMessage::decodeString()
     buf->remove( i+1 );
     n += i+1;
 
-    return *s;
+    return s;
 }
 
 
@@ -160,11 +160,11 @@ String PgServerMessage::decodeByten( uint x )
     if ( buf->size() < 1 || n+x > l )
         throw Syntax;
 
-    String * s = buf->string( x );
+    String s = buf->string( x );
     buf->remove( x );
     n += x;
 
-    return *s;
+    return s;
 }
 
 
