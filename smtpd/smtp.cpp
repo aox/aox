@@ -344,6 +344,11 @@ void SMTP::mail()
         respond( 503, "Bad sequence of commands" );
         return;
     }
+    if ( d->arg.mid( 0,2 ) == "<>" ) {
+        respond( 250, "Accepted message from mailer-daemon" );
+        d->state = RcptTo;
+        return;
+    }
     d->from = address();
     if ( ok() && d->from ) {
         respond( 250, "Accepted message from " + d->from->toString() );
@@ -365,6 +370,7 @@ void SMTP::rcpt()
     Address * to = address();
     if ( !to || !to->valid() ) {
         respond( 550, "Unknown address: " + to->toString() );
+        to = 0;
         return;
     }
     if ( d->user ) {
@@ -662,7 +668,8 @@ void SMTP::inject()
 
     Message * m = new Message( received + d->body );
     m->header()->removeField( HeaderField::ReturnPath );
-    m->header()->add( "Return-Path", d->from->toString() );
+    if ( d->from )
+        m->header()->add( "Return-Path", d->from->toString() );
 
     d->messageError = "";
     d->injector = 0;
