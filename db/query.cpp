@@ -341,8 +341,6 @@ void Query::setError( const String &s )
 {
     d->error = s;
     setState( Failed );
-    log( Log::Debug, "Database error message: " + s );
-
     if ( d->transaction )
         d->transaction->setError( s );
 }
