@@ -15,6 +15,8 @@
 #include "md5.h"
 #include "utf.h"
 
+#include <time.h>
+
 
 static Dict< int > * bodyHashes;
 
@@ -36,7 +38,7 @@ struct AddressLink {
 class InjectorData {
 public:
     InjectorData()
-        : step( 0 ), failed( false ),
+        : step( 0 ), failed( false ), idate( time( 0 ) ),
           owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
           totalUids( 0 ), uids( 0 ), totalBodyparts( 0 ), bodypartIds( 0 ),
           bodyparts( 0 ), addressLinks( 0 ), fieldLinks( 0 ), otherFields( 0 ),
@@ -46,6 +48,7 @@ public:
     int step;
     bool failed;
 
+    int idate;
     EventHandler * owner;
     const Message * message;
     SortedList< Mailbox > * mailboxes;
@@ -494,10 +497,12 @@ void Injector::insertMessages()
         Mailbox *m = mb++;
         int uid = *uids++;
 
-        q = new Query( "insert into messages (mailbox,uid) values "
-                       "($1,$2)", 0 );
+        q = new Query( "insert into messages (mailbox,uid,idate,rfc822size) "
+                       "values ($1,$2,$3,$4)", 0 );
         q->bind( 1, m->id() );
         q->bind( 2, uid );
+        q->bind( 3, d->idate );
+        q->bind( 4, d->message->rfc822Size() );
         d->transaction->enqueue( q );
 
         q = new Query( "insert into recent_messages (mailbox,uid) "

@@ -457,7 +457,7 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
     if ( d->uid )
         l.append( "UID " + fn( uid ) );
     if ( d->rfc822size )
-        l.append( "RFC822.SIZE " + fn( d->rfc822size ) );
+        l.append( "RFC822.SIZE " + fn( m->rfc822Size() ) );
     if ( d->flags )
         l.append( "FLAGS (" + flagList( m, uid ) + ")" );
     if ( d->internaldate )
