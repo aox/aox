@@ -50,32 +50,28 @@ public:
 
     static void create( const String &svc, const String &address, uint port )
     {
-        bool listening = false;
         Listener<T> * l;
 
         if ( address.isEmpty() ) {
             l = new Listener<T>( Endpoint( "::", port ), svc );
-            if ( l->state() != Listening )
-                delete l;
+            if ( l->state() == Listening )
+                log( "Started: " + l->description() );
             else
-                listening = true;
+                delete l;
 
             l = new Listener<T>( Endpoint( "0.0.0.0", port ), svc );
-            if ( l->state() != Listening )
-                delete l;
+            if ( l->state() == Listening )
+                log( "Started: " + l->description() );
             else
-                listening = true;
+                delete l;
         }
         else {
             l = new Listener<T>( Endpoint( address, port ), svc );
-            if ( l->state() != Listening )
-                delete l;
+            if ( l->state() == Listening )
+                log( "Started: " + l->description() );
             else
-                listening = true;
+                delete l;
         }
-
-        if ( listening )
-            log( "Started: " + l->description() );
     }
 
 private:
