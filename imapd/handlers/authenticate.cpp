@@ -31,8 +31,11 @@ void Authenticate::parse()
         space();
         while ( ( ( c = nextChar() ) >= '0' && c <= '9' ) ||
                 ( c >= 'A' && c <= 'Z' ) || ( c >= 'a' && c <= 'z' ) ||
-                c == '+' || c == '/' )
+                c == '+' || c == '/' || c == '=' )
+        {
+            step();
             r.append( c );
+        }
     }
 
     end();
