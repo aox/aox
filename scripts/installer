@@ -57,7 +57,7 @@ EXISTS="select usename from pg_catalog.pg_user where usename = '$DBUSER'"
 EXISTS=$(su - $PGUSER -c "$PSQL -d template1 -Atqc \"$EXISTS\"")
 if [ ! $EXISTS ]; then
     if [ ! $DBPASS ]; then
-        DBPASS=$(dd if=/dev/urandom bs=8 count=1 2>/dev/null|$(MD5)|cut -b-32)
+        DBPASS=$(dd if=/dev/urandom bs=8 count=1 2>/dev/null|${MD5}|cut -b-32)
     fi
     CREATE="create user $DBUSER with encrypted password '$DBPASS'"
     if [ $TELL = no ]; then

@@ -46,7 +46,7 @@ The type of database. The default,
 is currently the only supported value.
 .IP db-address
 The address of the database server. The default is
-.IR /tmp/.s.PGSQL.5432 .
+.IR $DBADDRESS .
 You may use an IPv4 or IPv6 address, or the fully-qualified path to a
 Unix socket.
 .IP db-port
