@@ -1,7 +1,8 @@
+# No user-serviceable parts below this line. And none above it either ;)
+
+PGUSER = postgres ;
 JAMSETTINGS = Jamsettings ;
 include $(JAMSETTINGS:D=$(TOP)) ;
-
-# no user-serviceable parts below this line
 
 VERSION = 0.90 ;
 
@@ -86,6 +87,8 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
     -e 's!$JAILDIR!'$(JAILDIR)'!' \
     -e 's!$CONFIGDIR!'$(CONFIGDIR)'!' \
     -e 's!$LOGFILE!'$(LOGFILE)'!' \
+    -e 's!$DBNAME!'$(DBNAME)'!' \
+    -e 's!$DBUSER!'$(DBUSER)'!' \
     < $(>) > $(<)
 }
 
@@ -94,29 +97,44 @@ rule WriteShellConfig
 {
     Clean clean : $(<) ;
     Depends [ FGristFiles $(<) ] : <>Jamsettings ;
+    Depends install : $(<) ;
 }
 
 actions WriteShellConfig
 {
-    echo PREFIX="'"$(PREFIX)"'" > $(<)
+    echo "#!/bin/sh" >> $(<)
+    echo "#" >> $(<)
+    echo "# This file contains copies of some compile-time settings." >> $(<)
+    echo "# It is sourced by some shell scripts. Many of the values" >> $(<)
+    echo "# here are also compiled into binaries and other files, so" >> $(<)
+    echo "# this file should not be changed." >> $(<)
+    echo "#" >> $(<)
+    echo "# To make changes, you can edit mailstore-"$(VERSION)"/Jamsettings" >> $(<)
+    echo "# and recompile." >> $(<)
+    echo "#" >> $(<)
+    echo "# In case of questions, send mail to info@oryx.com." >> $(<)
+    echo "#" >> $(<)
+
+    echo PREFIX="'"$(PREFIX)"'" >> $(<)
     echo BINDIR="'"$(BINDIR)"'" >> $(<)
     echo MANDIR="'"$(MANDIR)"'" >> $(<)
     echo PIDFILEDIR="'"$(PIDFILEDIR)"'" >> $(<)
     echo JAILDIR="'"$(JAILDIR)"'" >> $(<)
     echo CONFIGDIR="'"$(CONFIGDIR)"'" >> $(<)
+    echo "# To move the logfile, edit $(CONFIGDIR)/mailstore.conf" >> $(<)
+    echo "# Type 'man mailstore.conf' for details." >> $(<)
     echo LOGFILE="'"$(LOGFILE)"'" >> $(<)
 
     if [ $(PGUSER) ]; then
         echo PGUSER="'"$(PGUSER)"'" >> $(<)
+    else
+        echo PGUSER='postgres' >> $(<)
     fi
     if [ $(PGDATA) ]; then
         echo PGDATA="'"$(PGDATA)"'" >> $(<)
     fi
-    if [ $(PSQL) ]; then
-        echo PSQL="'"$(PSQL)"'" >> $(<)
-    fi
-    if [ $(PGCTL) ]; then
-        echo PGCTL="'"$(PGCTL)"'" >> $(<)
+    if [ $(PGBIN) ]; then
+        echo PGBIN="'"$(PGBIN)"'" >> $(<)
     fi
 
     echo DBNAME="'"$(DBNAME)"'" >> $(<)

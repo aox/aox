@@ -46,9 +46,11 @@ void Database::setup()
     Scope x( &dbArena );
 
     Configuration::Text db("db", "postgres" );
-    Configuration::Text dbUser( "db-user", "oryx" );
+    Configuration::Text dbUser( "db-user",
+                        Configuration::compiledIn( Configuration::DbUser ) );
     Configuration::Text dbPass( "db-password", "" );
-    Configuration::Text dbName( "db-name", "mailstore" );
+    Configuration::Text dbName( "db-name",
+                        Configuration::compiledIn( Configuration::DbName ) );
     Configuration::Text dbHost( "db-address", "127.0.0.1" );
     Configuration::Scalar dbPort( "db-port", 5432 );
 

@@ -9,41 +9,39 @@ if [ `id -u` != 0 ]; then
     exit 1
 fi
 
-if [ ! -f ../Jamsettings ]; then
-    echo Please cd to the directory in which the install script is located, then rerun.
-    exit 1
+# Pull in the compile-time configuration
+. $BINDIR/.config.sh
+
+# If we're upgrading from an older version, we probably don't want to
+# overwrite anything. That mailstore.conf may contain a custom
+# db-user, etc.
+if [ -f $CONFIGDIR/mailstore.conf ]; then
+    echo $CONFIGDIR/mailstore.conf already exists -- exiting without changes.
+    echo " - not creating PostgreSQL user" $DBUSER
+    echo " - not creating PostgreSQL database" $DBNAME
+    echo " - not creating stub configuration file" $CONFIGDIR/mailstore.conf
+    exit 0
 fi
 
-# Aefaults, overwritten by Jamsettings
-PREFIX=/tmp/mailstore
-
-PGUSER=postgres
-DBNAME=mailstore
-DBUSER=oryx
-
-( cd .. ; jam config >/dev/null 2>/dev/null )
-source ../.config.sh
-rm ../.config.sh
-
-CONFIG=$PREFIX/mailstore.conf
-
-# We'll assume that psql is in our path, unless told otherwise.
-PSQL=${PSQL:-psql}
-PGCTL=${PGCTL:-pg_ctl}
-
-# Actually, this isn't overwritten by Jamsettings.
-SCHEMA=`pwd`/../schema
+# Find psql and pg_ctl
+if [ "$PGBIN" = "" ];
+    PSQL=psql
+    PGCTL=pg_ctl
+else
+    PSQL=$PGBIN/psql
+    PGCTL=$PGBIN/pg_ctl
+fi
 
 ## Set up the database.
 #
 # Do we need to create the oryx user?
 
-DBUSER=${DBUSER:-oryx}
 EXISTS="select usename from pg_catalog.pg_user where usename = '$DBUSER'"
 EXISTS=$(su - $PGUSER -c "$PSQL -d template1 -Atqc \"$EXISTS\"")
 if [ ! $EXISTS ]; then
+    echo "Creating PostgreSQL user" $DBNAME
     if [ ! $DBPASS ]; then
-        DBPASS=$(dd if=/dev/urandom bs=1 count=8 2>/dev/null|md5sum|cut -b-8)
+        DBPASS=$(dd if=/dev/urandom bs=1 count=8 2>/dev/null|md5sum|cut -b-32)
     fi
     CREATE="create user $DBUSER with encrypted password '$DBPASS'"
     su - $PGUSER -c "$PSQL -d template1 -qc \"$CREATE\"" || exit
@@ -56,16 +54,18 @@ fi
 # user we either found or created above... but in that case, what can
 # we do anyway?
 
-DBNAME=${DBNAME:-mailstore}
 EXISTS="select datname from pg_catalog.pg_database where datname = '$DBNAME'"
 EXISTS=$(su - $PGUSER -c "$PSQL -d template1 -Atqc \"$EXISTS\"")
 if [ ! $EXISTS ]; then
+    echo "Creating PostgreSQL database" $DBNAME
     CREATE="create database $DBNAME with owner $DBUSER encoding 'UNICODE'"
     su - $PGUSER -c "$PSQL -d template1 -qc \"$CREATE\"" || exit
 fi
 
 
 # Feed the schema to the database.
+
+# XXX: shouldn't we skip this step if the database already exists?
 
 cat <<PSQL | su - $PGUSER -c "$PSQL -q -d template1 -f -" || exit
 \set ON_ERROR_STOP
@@ -76,10 +76,16 @@ SET client_min_messages TO 'ERROR';
 \i $SCHEMA/field-names
 PSQL
 
-# Reconfigure and restart the server if required.
+# Reconfigure and restart the server if required and possible.
+
+# XXX: shouldn't we do this only if we made at least one change above?
+
+# The PGDATA usage in the next two lines is tricky. The key is that $X
+# is evaluated at compile time, while ${X} is evaluated at runtime.
+PGDATA=$PGDATA
+PGDATA=${PGDATA:-$(su - $PGUSER -c 'echo ${PGDATA}')}
 
 TS=$(date +%Y%m%d%H%M%S)
-PGDATA=${PGDATA:-$(su - $PGUSER -c 'echo $PGDATA')}
 if [ "$PGDATA" -a -d $PGDATA -a \
      -f $PGDATA/pg_hba.conf -a -f $PGDATA/postgresql.conf ];
 then
@@ -147,7 +153,7 @@ cat <<CONFIG > $CONFIG
 ## Turn security off to debug the servers. Strongly discouraged.
 # security = off
 
-## Which database should we use?
+## This database was initialized during server installation.
 
 db-address  = 127.0.0.1
 db-name     = $DBNAME

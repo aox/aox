@@ -30,6 +30,8 @@ public:
         BinDir,
         ManDir,
         JailDir,
+        DbUser,
+        DbName,
         // additional settings go ABOVE THIS LINE
         Version, LastSetting = Version
     };

@@ -38,14 +38,16 @@ The port number of the database server. The default is
 .IR 5432 .
 .IP db-name
 The name of the database to use. The default is
-.IR mailstore .
+.IR $DBNAME .
 .IP db-user
 The user name Mailstore should use to connect to the database. The
 default is
-.IR oryx .
+.IR $DBUSER .
 .IP db-password
 The password Mailstore should use to connect to the database. The
-default is an empty password.
+default is an empty password. Note that the mailstore installation
+script writes a random password to
+.IR mailstore.conf .
 .SS Logging
 .IP log-address
 The IP address of the log server. The default is

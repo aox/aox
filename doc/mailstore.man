@@ -151,7 +151,7 @@ harmless before reaching the MUA. A movie clip sent to a hundred
 recipients is not a problem, because it's stored just once.
 .SH LICENSING
 Starting with version 1.0, Oryx Mailstore will be available under two
-licences: Either the OSL 2.1 license or a commercial software license.
+licences, namely the OSL 2.1 license and a commercial software license.
 .PP
 The OSL 2.1 (see http://www.oryx.com/mailstore/opensource.html) is a
 fairly restrictive open source license similar to the more well-known
@@ -161,7 +161,8 @@ Our commercial license offers more flexibility than the OSL and a full
 warranty. There are also extra services. Contact info@oryx.com for
 more details, or see http://www.oryx.com/mailstore/commercial.html.
 .SH DEFAULTS
-This Mailstore build uses the following compile-time settings: BINDIR
+The configurable file and directory names in this build are as follows:
+BINDIR
 (where executables live) is
 .IR $BINDIR .
 MANDIR (where manpages live) is 
@@ -169,14 +170,25 @@ MANDIR (where manpages live) is
 PIDFILEDIR (where pidfiles live) is 
 .IR $PIDFILEDIR .
 JAILDIR (the working directory of the servers) is 
-.IR $JAILDIR .
+.IR $JAILDIR ,
+and can be overridden using the
+.I jail-directory
+variable in
+.BR mailstore.conf (5).
 CONFIGDIR (where the configuration files live) is 
 .IR $CONFIGDIR .
 LOGFILE (the full name of the logfile) is 
-.IR $LOGFILE .
-.PP
-Most of these can be overridden using
+.IR $LOGFILE ,
+and can be overridden using the
+.I logfile
+variable in
 .BR mailstore.conf (5).
+.PP
+These variables can be changed only by editing the file Jamsettings
+and recompiling Mailstore. Jamsettings also contains some variables
+used only during compilation and/or installation. The file 
+.I $BINDIR/.config.sh
+contains the values of the installation-related variables.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION

@@ -1,8 +1,10 @@
-# build settings here. these may be changed at will.
+# This file contains compile-time configuration variables. Most of
+# these are compiled into the binaries. A few may be overridden at
+# runtime using mailstore.conf.
 #
-# remember the spaces around = and before ;.
+# Remember the spaces around = and before ;.
 
-# files and directories. the directory names MUST NOT end with /.
+# Files and directories. The directory names MUST NOT end with /.
 
 PREFIX = /usr/local/mailstore ;
 BINDIR = $(PREFIX)/bin ;
@@ -12,19 +14,19 @@ JAILDIR = $(PREFIX)/jail ;
 CONFIGDIR = $(PREFIX) ;
 LOGFILE = $(PREFIX)/logfile ;
 
-# how to compile
+# How to compile
 
 C++FLAGS = -g -Werror -funsigned-char ;
 LINKFLAGS = -g ;
 
-# mode for installed binaries
+# Mode for installed binaries
 
 EXEMODE = 555 ;
 
-# uncomment the next line to use a cryptlib from the system. the
+# Uncomment the next line to use a cryptlib from the system. The
 # default is to use the one bundled with the mailstore source.
 # USE_SYSTEM_CRYPTLIB = yes ;
-# you may also need to add/change something in tlsproxy/Jamfile.
+# You may also need to add/change something in tlsproxy/Jamfile.
 
 
 ## Database settings.
@@ -39,15 +41,14 @@ EXEMODE = 555 ;
 #
 #PGDATA = /opt/postgres/data ;
 
-# You can ignore these settings if psql and pg_ctl are in the PGUSER's
-# PATH (which they usually are).
+# The directory in which psql and pg_ctl live. You can ignore this
+# setting in most cases, because psql and pg_ctl are usually in the
+# PGUSER's PATH.
 #
 #PGBIN = /opt/postgres/bin ;
-#PSQL = $(PGBIN)/psql ;
-#PGCTL = $(PGBIN)/pg_ctl ;
 
 # A Postgres user and database for Mailstore to use. If necessary, these
-# are created during the installation. To use an existing user/database,
+# are created by BINDIR/installer. To use an existing user/database,
 # change these values and set DBPASS below. (Note: DBUSER must own the
 # DBNAME database.)
 #
