@@ -205,7 +205,7 @@ void IMAP::addCommand()
 
     // pick up the tag
     uint i = (uint)-1;
-    uchar c;
+    char c;
     do {
         i++;
         c = (*s)[i];
