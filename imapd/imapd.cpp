@@ -10,6 +10,7 @@
 #include "log.h"
 #include "configuration.h"
 #include "database.h"
+#include "mailbox.h"
 
 #include <stdlib.h>
 
@@ -24,6 +25,7 @@ int main( int, char *[] )
 
     Log::setup();
     Database::setup();
+    Mailbox::setup();
 
     Log l;
     global.setLog( &l );
