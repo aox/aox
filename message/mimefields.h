@@ -65,8 +65,7 @@ public:
 
     enum Disposition {
         Inline,
-        Attachment,
-        Unknown
+        Attachment
     };
 
     Disposition disposition() const;

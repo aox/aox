@@ -20,8 +20,7 @@ public:
 
 private:
     void parseMultipart( uint, uint, const String &, const String & );
-    void parseBodypart( uint, uint, const String &,
-                        ContentType *, ContentTransferEncoding::Encoding );
+    void parseBodypart( uint, uint, const String &, Header * );
     Header * header( uint &, uint, const String &, Header::Mode );
 
 private:
