@@ -102,7 +102,7 @@ int main( int argc, char *argv[] )
 
     Loop::setup();
 
-    Log l( Log::Immediate );
+    Log l( Log::General );
     global.setLog( &l );
     LogClient::setup();
 

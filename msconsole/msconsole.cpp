@@ -77,7 +77,7 @@ int main( int argc, char *argv[] )
     // our own event loop, merging qt's and ours
     (void)new ConsoleLoop;
 
-    Log l( Log::Immediate );
+    Log l( Log::General );
     global.setLog( &l );
     LogClient::setup();
 
