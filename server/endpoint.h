@@ -15,7 +15,7 @@ public:
     Endpoint( const String &, uint );
     Endpoint( const struct sockaddr * );
 
-    enum Protocol { IPv4, IPv6 };
+    enum Protocol { Unix, IPv4, IPv6 };
 
     bool valid() const;
     Protocol protocol() const;
