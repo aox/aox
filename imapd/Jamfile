@@ -8,8 +8,7 @@ SubInclude TOP message ;
 HDRS += [ FDirName $(TOP) imapd ] ;
 SubInclude TOP imapd handlers ;
 
-Build imap : imap.cpp imapsession.cpp command.cpp
-    messageset.cpp ;
+Build imap : imap.cpp imapsession.cpp command.cpp ;
 
 Build imapd : imapd.cpp ;
 
