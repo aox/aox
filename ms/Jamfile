@@ -1,0 +1,9 @@
+SubDir TOP ms ;
+SubInclude TOP encodings ;
+SubInclude TOP message ;
+SubInclude TOP server ;
+
+Build ms : ms.cpp ;
+Program ms :
+    ms database server mailbox message user core encodings ;
+LINKLIBS on ms = -lcrypt ;
