@@ -1,11 +1,13 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
-#include "command.h"
+#include "imapcommand.h"
 #include "squery.h"
 
 
-class Search: public Command {
+class Search
+    : public ImapCommand
+{
 public:
     Search( bool u );
 
@@ -31,5 +33,6 @@ private:
 private:
     class SearchD * d;
 };
+
 
 #endif

@@ -1,15 +1,15 @@
 #ifndef LOGOUT_H
 #define LOGOUT_H
 
-#include "command.h"
+#include "imapcommand.h"
 
 
-class Logout: public Command {
+class Logout
+    : public ImapCommand
+{
 public:
-    Logout();
-    ~Logout();
-
     void execute();
 };
+
 
 #endif

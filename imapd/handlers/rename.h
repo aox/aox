@@ -1,11 +1,11 @@
 #ifndef RENAME_H
 #define RENAME_H
 
-#include "command.h"
+#include "imapcommand.h"
 
 
 class Rename
-    : public Command
+    : public ImapCommand
 {
 public:
     Rename()

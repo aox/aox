@@ -1,23 +1,8 @@
+#include "capability.h"
+
 /*! \class Capability capability.h
     Announces supported features (RFC 3501, §6.1.1)
 */
-
-#include "capability.h"
-
-
-/*! Constructs an empty Capability object. */
-
-Capability::Capability()
-    : Command()
-{
-}
-
-
-/*! Destroys the object and frees any allocated resources. */
-
-Capability::~Capability()
-{
-}
 
 
 // how very evil. this macro thing is used to return the same

@@ -4,9 +4,12 @@
 #include "expunge.h"
 
 
-class Close: public Expunge {
+class Close
+    : public Expunge
+{
 public:
     void execute();
 };
+
 
 #endif

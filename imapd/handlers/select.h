@@ -1,11 +1,11 @@
 #ifndef SELECT_H
 #define SELECT_H
 
-#include "command.h"
+#include "imapcommand.h"
 
 
 class Select
-    : public Command
+    : public ImapCommand
 {
 public:
     Select( bool ro = false )

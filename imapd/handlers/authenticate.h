@@ -1,12 +1,12 @@
 #ifndef AUTHENTICATE_H
 #define AUTHENTICATE_H
 
-#include "command.h"
+#include "imapcommand.h"
 #include "string.h"
 
 
 class Authenticate
-    : public Command
+    : public ImapCommand
 {
 public:
     Authenticate()

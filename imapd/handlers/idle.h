@@ -1,10 +1,12 @@
 #ifndef IDLE_H
 #define IDLE_H
 
-#include "command.h"
+#include "imapcommand.h"
 
 
-class Idle: public Command {
+class Idle
+    : public ImapCommand
+{
 public:
     void execute();
     void read();

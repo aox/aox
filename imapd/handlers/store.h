@@ -1,14 +1,14 @@
 #ifndef STORE_H
 #define STORE_H
 
-#include "command.h"
+#include "imapcommand.h"
 #include "string.h"
 #include "list.h"
 #include "set.h"
 
 
 class Store
-    : public Command
+    : public ImapCommand
 {
 public:
     Store( bool u );

@@ -1,12 +1,12 @@
 #ifndef STATUS_H
 #define STATUS_H
 
-#include "command.h"
+#include "imapcommand.h"
 #include "string.h"
 
 
 class Status
-    : public Command
+    : public ImapCommand
 {
 public:
     Status()

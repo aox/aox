@@ -1,13 +1,16 @@
 #ifndef ID_H
 #define ID_H
 
-#include "command.h"
+#include "imapcommand.h"
 
 
-class Id: public Command {
+class Id
+    : public ImapCommand
+{
 public:
     void parse();
     void execute();
 };
+
 
 #endif

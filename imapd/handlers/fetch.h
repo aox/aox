@@ -1,10 +1,12 @@
 #ifndef FETCH_H
 #define FETCH_H
 
-#include "command.h"
+#include "imapcommand.h"
 
 
-class Fetch: public Command {
+class Fetch
+    : public ImapCommand
+{
 public:
     Fetch( bool u ): uid( u ) {}
 
@@ -21,5 +23,5 @@ private:
     class FetchData * d;
 };
 
-#endif
 
+#endif
