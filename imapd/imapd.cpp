@@ -39,5 +39,8 @@ int main( int, char *[] )
     Configuration::global()->report();
     l.commit();
 
+    if ( Log::disastersYet() )
+        exit( 1 );
+
     Loop::start();
 }
