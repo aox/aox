@@ -593,7 +593,7 @@ Row *Postgres::composeRow( const PgDataRow &r )
 }
 
 
-static int currentRevision = 3;
+static int currentRevision = 2;
 
 class UpdateSchema : public EventHandler {
 private:
@@ -601,7 +601,7 @@ private:
     int substate;
     int revision;
     Transaction *t;
-    Query *lock, *seq, *update;
+    Query *lock, *seq, *update, *q;
 
 public:
     UpdateSchema()
@@ -664,7 +664,36 @@ void UpdateSchema::execute() {
         }
         if ( state == 4 ) {
             if ( revision == 1 ) {
-                // Do update stuff here.
+                if ( substate == 0 ) {
+                    q = new Query( "alter table users add login2 text", this );
+                    t->enqueue( q );
+                    q = new Query( "update users set login2=login", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table users drop login", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table users rename login2 to login",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "alter table users add unique(login)",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "alter table users add secret2 text", this );
+                    t->enqueue( q );
+                    q = new Query( "update users set secret2=secret", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table users drop secret", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table users rename secret2 to secret",
+                                   this );
+                    t->enqueue( q );
+                    t->execute();
+                    substate = 1;
+                }
+                
+                if ( substate == 1 ) {
+                    if ( !q->done() )
+                        return;
+                }
             }
             state = 5;
         }
