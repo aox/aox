@@ -544,9 +544,12 @@ void Configuration::setup( const String & global, const String & server )
     String d = compiledIn( ConfigDir );
 
     ::global = new Configuration;
-    ::global->read( d + "/" + global, true );
+    if ( global[0] == '/' )
+        ::global->read( global, true );
+    else
+        ::global->read( d + "/" + global, true );
     if ( !server.isEmpty() )
-        ::global->read( d + "/" + server, false );
+        ::global->read( d + server, false );
 
     String host = osHostname();
     Configuration::Text hn( "hostname", host );
