@@ -13,7 +13,6 @@
 extern "C" {
     void exit( int );
     unsigned int strlen( const char * );
-    void *memcpy( void *, const void *, unsigned int );
     void *memmove( void *, const void *, unsigned int );
     int memcmp( const void *, const void *, unsigned int );
     void memset( void *, int, unsigned int );
