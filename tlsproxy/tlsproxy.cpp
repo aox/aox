@@ -220,16 +220,30 @@ void TlsProxy::react( Event e )
             parse();
             break;
         case TlsProxyData::PlainSide:
-            encrypt();
+            try {
+                encrypt();
+            } catch( Exception ) {
+                // at all costs, don't let EventLoop close one of the two
+                // connections. close both.
+                exit( 0 );
+            }
             break;
         case TlsProxyData::EncryptedSide:
-            decrypt();
+            try {
+                decrypt();
+            } catch( Exception ) {
+                // as above.
+                exit( 0 );
+            }
             break;
         }
         break;
 
-    case Timeout:
     case Error:
+        exit( 0 );
+        break;
+
+    case Timeout:
     case Close:
         setState( Closing );
         if ( d->state != TlsProxyData::Initial ) {
