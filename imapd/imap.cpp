@@ -1,5 +1,5 @@
 /*! \class IMAP imap.h
-    \brief This class implements the IMAP server as seen by clients.
+    This class implements the IMAP server as seen by clients.
 
     This class is responsible for interacting with IMAP clients, and for
     overseeing the operation of individual command handlers. It looks at
@@ -151,7 +151,7 @@ void IMAP::parse()
             String * s;
 
             // Do we have a complete line yet?
-            
+
             s = r->removeLine();
             if ( !s )
                 return;
@@ -203,7 +203,7 @@ void IMAP::addCommand()
                     "-line command: " + *s );
 
     String tag, command;
-    
+
     // Parse the tag: A nonzero sequence of any ASTRING-CHAR except '+'.
 
     char c;
@@ -263,7 +263,7 @@ parseError:
 
 
     // Then add it to our list of Commands.
-    
+
     if ( cmd->ok() && cmd->state() == Command::Executing &&
          !d->commands.isEmpty() )
     {
@@ -495,7 +495,7 @@ void IMAP::runCommands()
 }
 
 
-/*! This static helper function returns true if \a s ends with an IMAP
+/*  This static helper function returns true if \a s ends with an IMAP
     literal specification. If so, it sets \a *n to the number of bytes
     in the literal, and \a *plus to true if the number had a trailing
     '+' (for LITERAL+). Returns false if it couldn't find a literal.

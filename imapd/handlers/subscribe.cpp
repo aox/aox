@@ -1,5 +1,5 @@
 /*! \class Subscribe subscribe.h
-    \brief Adds a mailbox to the subscription list (RFC 3501, §6.3.6)
+    Adds a mailbox to the subscription list (RFC 3501, §6.3.6)
 */
 
 #include "subscribe.h"

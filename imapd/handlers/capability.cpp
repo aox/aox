@@ -1,5 +1,5 @@
 /*! \class Capability capability.h
-    \brief Announces supported features (RFC 3501, §6.1.1)
+    Announces supported features (RFC 3501, §6.1.1)
 */
 
 #include "capability.h"

@@ -1,5 +1,5 @@
 /*! \class Append append.h
-    \brief Adds a message to a mailbox (RFC 3501, §6.3.11)
+    Adds a message to a mailbox (RFC 3501, §6.3.11)
 
     APPEND is one of several ways to inject mail into the mailstore. In
     theory. In practice it's the only one so far, or arguably there is

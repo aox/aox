@@ -1,5 +1,5 @@
 /*! \class Id id.h
-    \brief Implements the RFC 2971 ID extension
+    Implements the RFC 2971 ID extension
 
     This extension lets IMAP clients and servers tell each other which
     version of which program they are, which can be helpful for

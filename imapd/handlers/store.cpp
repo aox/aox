@@ -1,5 +1,5 @@
 /*! \class Store store.h
-    \brief Alters message flags (RFC 3501, §6.4.6).
+    Alters message flags (RFC 3501, §6.4.6).
 
     The Store command is the principal means of altering flags,
     although Annotate can do the same.

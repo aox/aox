@@ -1,5 +1,5 @@
 /*! \class Logout logout.h
-    \brief Terminates an IMAP session (RFC 3501, §6.1.3)
+    Terminates an IMAP session (RFC 3501, §6.1.3)
 */
 
 #include "logout.h"

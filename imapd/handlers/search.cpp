@@ -1,5 +1,5 @@
 /*! \class Search search.h
-    \brief Finds messages matching some criteria (RFC 3501, §6.4.4)
+    Finds messages matching some criteria (RFC 3501, §6.4.4)
 
     The entirety of the basic syntax is handled. CONDSTORE, SEARCHM
     and other extensions are currently not handled. SEARCHM probably

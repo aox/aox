@@ -1,5 +1,5 @@
 /*! \class Close close.h
-    \brief Performs a silent EXPUNGE+UNSELECT (RFC 3501, §6.4.2)
+    Performs a silent EXPUNGE+UNSELECT (RFC 3501, §6.4.2)
 
     Four lines of code and seemingly correct.
 

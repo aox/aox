@@ -1,5 +1,5 @@
 /*! \class Idle idle.h
-    \brief Implements the RFC 2177 IDLE extension
+    Implements the RFC 2177 IDLE extension
 
     The IDLE extension permits IMAP clients to remain idle, while the
     IMAP server may send EXPUNGE, EXISTS and flag updates at any time.
