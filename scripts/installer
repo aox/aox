@@ -12,6 +12,7 @@ fi
 TELL=no
 if [ "$1" = "-n" ]; then
     TELL=yes;
+    echo "Reporting what needs to be done."
 fi
 
 # Pull in the compile-time configuration
@@ -54,8 +55,8 @@ if [ ! $EXISTS ]; then
         echo "Creating PostgreSQL user" $DBNAME
         su - $PGUSER -c "$PSQL -d template1 -qc \"$CREATE\"" || exit
     else
-        echo "Need to create PostgreSQL user" $DBNAME
-        echo "As $PGUSER, run this:"
+        echo
+        echo "Need to create PostgreSQL user $DBNAME. As $PGUSER, run this:"
 	echo "    $PSQL -d template1 -qc \"$CREATE\""
     fi
 elif [ $TELL = yes ]; then
@@ -80,9 +81,10 @@ if [ ! $EXISTS ]; then
         echo "Creating PostgreSQL database" $DBNAME
         su - $PGUSER -c "$PSQL -d template1 -qc \"$CREATE\"" || exit
     else
-        echo "Need to create PostgreSQL database" $DBNAME
-        echo "As $PGUSER, run this:"
+        echo
+        echo "Need to create PostgreSQL database $DBNAME. As $PGUSER, run this:"
         echo "    $PSQL -d template1 -qc \"$CREATE\""
+        NEEDSCHEMA=yes
     fi
 elif [ $TELL = yes ]; then
     echo "PostgreSQL database $DBNAME already exists, no action necessary."
@@ -91,10 +93,10 @@ fi
 
 # Feed the schema to the database if necessary.
 
-EXISTS="select relname from pg_catalog.pg_class where relname='mailstore'"
-EXISTS=$(su - $PGUSER -c "$PSQL -d $DBNAME -Atqc \"$EXISTS\"")
-if [ ! $EXISTS ]; then
-    if [ $TELL = no ]; then
+if [ $TELL = no ]; then
+    EXISTS="select relname from pg_catalog.pg_class where relname='mailstore'"
+    EXISTS=$(su - $PGUSER -c "$PSQL -d $DBNAME -Atqc \"$EXISTS\"")
+    if [ ! $EXISTS ]; then
         echo "Loading Mailstore schema"
         cat <<PSQL | su - $PGUSER -c "$PSQL -q -d $DBNAME -f -" || exit
 \set ON_ERROR_STOP
@@ -103,17 +105,18 @@ SET client_min_messages TO 'ERROR';
 \i $LIBDIR/schema.pg
 \i $LIBDIR/field-names
 PSQL
-    else
-        echo "Need to load Mailstore schema"
-        echo "As $PGUSER, run this:"
-        echo "    $PSQL -q -d $DBNAME -f -"
-        echo "\\set ON_ERROR_STOP"
-        echo "SET SESSION AUTHORIZATION $DBUSER;"
-        echo "SET client_min_messages TO 'ERROR';"
-        echo "\\i $LIBDIR/schema.pg"
-        echo "\\i $LIBDIR/field-names"
     fi
+elif [ -n "$NEEDSCHEMA" ]; then
+    echo
+    echo "Need to load Mailstore schema. As $PGUSER, run this:"
+    echo "    $PSQL -q -d $DBNAME"
+    echo "    \\set ON_ERROR_STOP"
+    echo "    SET SESSION AUTHORIZATION $DBUSER;"
+    echo "    SET client_min_messages TO 'ERROR';"
+    echo "    \\i $LIBDIR/schema.pg"
+    echo "    \\i $LIBDIR/field-names"
 elif [ $TELL = yes ]; then
+    echo
     echo "Mailstore schema already exists, no action necessary."
 fi
 
@@ -125,9 +128,11 @@ if [ $TELL = no ]; then
     chmod 0600 $CONFIG
     exec > $CONFIG
 else
+    echo
     echo "Create $CONFIG with mode 600:"
     echo "    touch $CONFIG"
     echo "    chmod 0600 $CONFIG"
+    echo
     echo "Insert e.g. the following into $CONFIG:"
 fi
 cat <<CONFIG
