@@ -370,3 +370,13 @@ Miscellaneous cleanups:
   * Do the "uint characters[256]" thing to simplify parsing.
 
 
+Iterators use postfix ++/-- heavily
+
+  postfix ++/-- cause memory to be allocated because the old iterator
+  has to remain valid, and we usually don't depend on that.
+
+  If we change to using prefix ++/-- except where we really need the
+  side effect, we'll place much less wear and tear on the memory
+  allocation system.
+
+
