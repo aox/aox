@@ -184,8 +184,12 @@ void LogServer::process( String transaction,
 
     if ( !c )
         log( transaction, f, s, parameters );
-    else
+
+    if ( c || s > Log::Error ) {
+        if ( s > Log::Error )
+            s = Log::Debug;
         commit( transaction, f, s );
+    }
 }
 
 
@@ -216,9 +220,8 @@ void LogServer::commit( String tag,
     }
 
     if ( d->pending.isEmpty() ) {
-        // we've just flushed the buffer and all pending
-        // transactions. time to drop the old arena and free up some
-        // memory.
+        // we've just flushed the buffer and all pending transactions.
+        // time to drop the old arena and free up some memory.
         d->a->clear();
     }
 }
