@@ -97,12 +97,12 @@ void Select::execute()
     respond( fn( d->session->recent().count() ) + " RECENT" );
 
     uint unseen = 0;
-    uint msn = d->session->count();
-    while ( msn ) {
+    uint msn = 1;
+    while ( msn <= d->session->count() && unseen == 0 ) {
         Message * m = d->session->message( d->session->uid( msn ) );
-        msn--;
         if ( m && !m->flag( Message::SeenFlag ) )
-            unseen++;
+            unseen = msn;
+        msn++;
     }
 
     respond( "OK [UNSEEN " + fn( unseen ) + "]" );
