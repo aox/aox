@@ -639,6 +639,11 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
             r.append( "" );
         r.append( ")" );
     }
+    else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
+        // XXX: This doesn't handle the case where the top-level message
+        // has Content-Type: message/rfc822.
+        r = singlePartStructure( (BodyPart *)m, extended );
+    }
     else {
         /* If we get here, m is either a single-part leaf BodyPart, or a
            Message. In the former case, it will have no children(), but
