@@ -31,7 +31,7 @@ public:
         : step( 0 ), failed( false ),
           owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
           totalUids( 0 ), uids( 0 ), totalBodyparts( 0 ), bodypartIds( 0 ),
-          bodyparts( 0 ), addressLinks( 0 ), messageIds( 0 ),
+          bodyparts( 0 ), addressLinks( 0 ),
           fieldLookup( 0 ), addressLookup( 0 )
     {}
 
@@ -51,7 +51,6 @@ public:
     List< BodyPart > * bodyparts;
     List< AddressLink > * addressLinks;
     List< FieldLink > * fieldLinks;
-    List< int > * messageIds;
 
     CacheLookup * fieldLookup;
     CacheLookup * addressLookup;
@@ -344,15 +343,12 @@ void Injector::insertBodyparts()
 
 
 /*! This private function inserts one row per mailbox into the messages
-    table, and puts the resulting ids in d->messageIds.
+    table.
 */
 
 void Injector::insertMessages()
 {
-    d->messageIds = new List< int >;
     List< Query > * queries = new List< Query >;
-    List< Query > * selects = new List< Query >;
-    IdHelper * helper = new IdHelper( d->messageIds, selects, this );
 
     List< int >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
@@ -360,23 +356,18 @@ void Injector::insertMessages()
         Mailbox *m = mb++;
         int uid = *uids++;
 
-        Query *i = new Query( "insert into messages (mailbox,uid) values "
-                              "($1,$2)", helper );
-        i->bind( 1, m->id() );
-        i->bind( 2, uid );
+        Query *q = new Query( "insert into messages (mailbox,uid) values "
+                              "($1,$2)", 0 );
+        q->bind( 1, m->id() );
+        q->bind( 2, uid );
 
-        Query *i2 = new Query( "insert into recent_messages (mailbox,uid) "
-                               "values ($1,$2)", helper );
-        i2->bind( 1, m->id() );
-        i2->bind( 2, uid );
+        Query *q2 = new Query( "insert into recent_messages (mailbox,uid) "
+                               "values ($1,$2)", 0 );
+        q2->bind( 1, m->id() );
+        q2->bind( 2, uid );
 
-        Query *s = new Query( "select currval('message_ids')::integer as id",
-                              helper );
-
-        queries->append( i );
-        queries->append( i2 );
-        queries->append( s );
-        selects->append( s );
+        queries->append( q );
+        queries->append( q2 );
     }
 
     Database::query( queries );
