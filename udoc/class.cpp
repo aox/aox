@@ -147,7 +147,6 @@ void Class::generateOutput()
     }
 
     SortedList<Function>::Iterator it( m.first() );
-    it = m.first();
     Function * f;
     while ( (f=it) != 0 ) {
         ++it;

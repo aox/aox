@@ -79,6 +79,7 @@ public:
             return newRef(p);
         }
 
+
         T &operator *() {
             ok();
             if ( !cur->data )
@@ -127,7 +128,7 @@ public:
         if ( cur == tail )
             tail = cur->prev;
 
-        i++;
+        ++i;
 
         T *d = cur->data;
         delete cur;
@@ -210,8 +211,9 @@ public:
         Iterator it = first();
 
         while ( it ) {
-            const String &s = *it++;
+            const String &s = *it;
             r.append( "(" + s + ")" );
+            ++it;
         }
 
         return r;
@@ -236,9 +238,9 @@ public:
 
     Iterator &insert( T *d )
     {
-        Iterator it = List<T>::first();
+        Iterator it( List< T >::first() );
         while ( it && *it <= *d )
-            it++;
+            ++it;
 
         return List< T >::insert( it, d );
     }

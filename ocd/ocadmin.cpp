@@ -65,7 +65,7 @@ void OCAdmin::parse()
         List< OCServer >::Iterator it( servers->first() );
         while ( it ) {
             enqueue( it->peer().string() + "\r\n" );
-            it++;
+            ++it;
         }
     }
     else if ( r == "shutdown" ) {

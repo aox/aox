@@ -88,7 +88,7 @@ void Select::execute()
     List<Flag>::Iterator i( l->first() );
     while ( i ) {
         flags = flags + " " + i->name();
-        i++;
+        ++i;
     }
 
     respond( "FLAGS (" + flags + ")" );

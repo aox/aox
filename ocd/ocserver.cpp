@@ -90,7 +90,7 @@ void OCServer::send( const String &s )
     while ( it ) {
         it->enqueue( msg );
         it->write();
-        it++;
+        ++it;
     }
 }
 

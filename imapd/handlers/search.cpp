@@ -630,7 +630,7 @@ void Search::Condition::simplify()
                 List<Condition>::Iterator c( p->l->first() );
                 while ( c ) {
                     l->prepend( c );
-                    c++;
+                    ++c;
                 }
                 l->take( p );
             }

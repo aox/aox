@@ -187,10 +187,9 @@ void LogServer::log( String t, Log::Facility f, Log::Severity s,
 void LogServer::commit( String tag,
                         Log::Facility facility, Log::Severity severity )
 {
-    List< LogServerData::Line >::Iterator i;
     bool first = true;
 
-    i = d->pending.first();
+    List< LogServerData::Line >::Iterator i( d->pending.first() );
     while ( i ) {
         LogServerData::Line *l = i;
 
@@ -209,7 +208,7 @@ void LogServer::commit( String tag,
                 output( l->tag, l->facility, l->severity, l->line );
         }
         else {
-            i++;
+            ++i;
         }
     }
 }

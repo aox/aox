@@ -119,7 +119,7 @@ void Postgres::execute()
     if ( !d->active || d->startup ) {
         while ( it ) {
             it->setState( Query::Submitted );
-            it++;
+            ++it;
         }
         return;
     }
@@ -447,7 +447,7 @@ void Postgres::unknown( char type )
                         else
                             s = "...{" + fn( n ) + "}";
                         p.append( fn(i) + "=" + s );
-                        v++;
+                        ++v;
                     }
                     if ( msg.severity() == PgMessage::Warning )
                         s.append( "WARNING: " );
@@ -514,14 +514,14 @@ void Postgres::error( const String &s )
     while ( q ) {
         q->setError( s );
         q->notify();
-        q++;
+        ++q;
     }
 
     q = d->pending.first();
     while ( q ) {
         q->setError( s );
         q->notify();
-        q++;
+        ++q;
     }
 
     writeBuffer()->remove( writeBuffer()->size() );

@@ -183,7 +183,7 @@ CacheLookup *AddressCache::lookup( List< Address > *l, EventHandler *ev )
         else
             it->setId( a->id() );
 
-        it++;
+        ++it;
     }
 
     if ( lookups->isEmpty() )

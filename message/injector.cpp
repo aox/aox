@@ -287,7 +287,7 @@ void Injector::selectUids()
         d->transaction->enqueue( q );
         queries->append( q );
 
-        it++;
+        ++it;
     }
 }
 
@@ -319,7 +319,7 @@ void Injector::buildAddressLinks()
         if ( a && !a->isEmpty() ) {
             List< Address >::Iterator it( a->first() );
             while ( it ) {
-                Address *a = it++;
+                Address *a = it;
                 String k = a->toString();
 
                 if ( unique.contains( k ) ) {
@@ -334,6 +334,8 @@ void Injector::buildAddressLinks()
                 d->addressLinks->append( link );
                 link->address = a;
                 link->type = t;
+
+                ++it;
             }
         }
     }
@@ -362,7 +364,7 @@ void Injector::buildFieldLinks()
         buildLinksForHeader( it->header(), pn );
         if ( it->rfc822() )
             buildLinksForHeader( it->rfc822()->header(), pn + ".rfc822" );
-        it++;
+        ++it;
     }
 
     d->fieldLookup = FieldNameCache::lookup( d->otherFields, this );
@@ -378,7 +380,7 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
 {
     List< HeaderField >::Iterator it( hdr->fields()->first() );
     while ( it ) {
-        HeaderField *hf = it++;
+        HeaderField *hf = it;
 
         FieldLink *link = new FieldLink;
         link->hf = hf;
@@ -388,6 +390,8 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
             d->otherFields->append( new String ( hf->name() ) );
 
         d->fieldLinks->append( link );
+
+        ++it;
     }
 }
 
@@ -423,7 +427,8 @@ void Injector::insertBodyparts()
     List< Bodypart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
         d->totalBodyparts++;
-        Bodypart *b = it++;
+        Bodypart *b = it;
+        ++it;
 
         bool text = true;
         bool data = true;
@@ -497,8 +502,10 @@ void Injector::insertMessages()
     List< int >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
     while ( uids ) {
-        Mailbox *m = mb++;
-        int uid = *uids++;
+        Mailbox *m = mb;
+        int uid = *uids;
+        ++uids;
+        ++mb;
 
         q = new Query( "insert into messages (mailbox,uid,idate,rfc822size) "
                        "values ($1,$2,$3,$4)", 0 );
@@ -526,16 +533,21 @@ void Injector::linkBodyparts()
     List< int >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
     while ( uids ) {
-        Mailbox *m = mb++;
-        int uid = *uids++;
+        Mailbox *m = mb;
+        int uid = *uids;
+        ++uids;
+        ++mb;
 
         insertPartNumber( m->id(), uid, "", -1 );
 
         List< int >::Iterator bids( d->bodypartIds->first() );
         List< Bodypart >::Iterator it( d->bodyparts->first() );
         while ( it ) {
-            int bid = *bids++;
-            Bodypart *b = it++;
+            int bid = *bids;
+            Bodypart *b = it;
+            ++bids;
+            ++it;
+
             String pn = d->message->partNumber( b );
 
             insertPartNumber( m->id(), uid, pn, bid );
@@ -581,12 +593,14 @@ void Injector::linkHeaderFields()
     List< int >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
     while ( uids ) {
-        Mailbox *m = mb++;
-        int uid = *uids++;
+        Mailbox *m = mb;
+        int uid = *uids;
+        ++uids;
+        ++mb;
 
         List< FieldLink >::Iterator it( d->fieldLinks->first() );
         while ( it ) {
-            FieldLink *link = it++;
+            FieldLink *link = it;
 
             HeaderField::Type t = link->hf->type();
             if ( t >= HeaderField::Other )
@@ -602,6 +616,8 @@ void Injector::linkHeaderFields()
             q->bind( 5, link->hf->data() );
 
             d->transaction->enqueue( q );
+
+            ++it;
         }
     }
 }
@@ -618,12 +634,14 @@ void Injector::linkAddresses()
     List< int >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
     while ( uids ) {
-        Mailbox *m = mb++;
-        int uid = *uids++;
+        Mailbox *m = mb;
+        int uid = *uids;
+        ++uids;
+        ++mb;
 
         List< AddressLink >::Iterator it( d->addressLinks->first() );
         while ( it ) {
-            AddressLink *link = it++;
+            AddressLink *link = it;
 
             q = new Query( "insert into address_fields "
                            "(mailbox,uid,field,address) values "
@@ -634,6 +652,8 @@ void Injector::linkAddresses()
             q->bind( 4, link->address->id() );
 
             d->transaction->enqueue( q );
+
+            ++it;
         }
     }
 }

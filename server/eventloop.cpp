@@ -99,7 +99,6 @@ void EventLoop::start()
     log( "Starting event loop", Log::Debug );
 
     while ( !d->stop ) {
-        SortedList< Connection >::Iterator it;
         Connection *c;
 
         int timeout = INT_MAX;
@@ -113,9 +112,9 @@ void EventLoop::start()
 
         // Figure out what events each connection wants.
 
-        it = d->connections.first();
+        SortedList< Connection >::Iterator it( d->connections.first() );
         while ( it ) {
-            c = it++;
+            c = it;
 
             if ( !c->active() )
                 continue;
@@ -136,6 +135,8 @@ void EventLoop::start()
                 FD_SET( fd, &w );
             if ( c->timeout() > 0 && c->timeout() < timeout )
                 timeout = c->timeout();
+
+            ++it;
         }
 
         // Look for interesting input
@@ -173,10 +174,11 @@ void EventLoop::start()
 
         it = d->connections.first();
         while ( it ) {
-            c = it++;
+            c = it;
             int fd = c->fd();
             if ( fd >= 0 )
                 dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
+            ++it;
         }
         commit();
     }
@@ -187,7 +189,7 @@ void EventLoop::start()
     // ConsoleLoop.
     if ( d->shutdown ) {
         log( "Shutting down event loop", Log::Debug );
-        SortedList< Connection >::Iterator it = d->connections.first();
+        SortedList< Connection >::Iterator it( d->connections.first() );
         while ( it ) {
             try {
                 if ( it->state() == Connection::Connected )
@@ -336,11 +338,12 @@ void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 {
     SortedList< Connection >::Iterator it( d->connections.first() );
     while ( it ) {
-        Connection * c = it++;
+        Connection *c = it;
         if ( c != c1 && c != c2 ) {
             removeConnection( c );
             c->close();
         }
+        ++it;
     }
 }
 
@@ -351,8 +354,7 @@ void EventLoop::flushAll()
 {
     SortedList< Connection >::Iterator it( d->connections.first() );
     while ( it ) {
-        Connection * c = it;
-        it++;
-        c->write();
+        it->write();
+        ++it;
     }
 }

@@ -678,8 +678,10 @@ static String languageString( ContentLanguage *cl )
     StringList m;
     const StringList *l = cl->languages();
     StringList::Iterator it( l->first() );
-    while ( it )
-        m.append( Command::imapQuoted( *it++ ) );
+    while ( it ) {
+        m.append( Command::imapQuoted( *it ) );
+        ++it;
+    }
 
     if ( l->count() == 1 )
         return *m.first();

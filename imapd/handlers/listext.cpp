@@ -281,7 +281,7 @@ void Listext::listChildren( Mailbox * mailbox, const String & pattern )
         List<Mailbox>::Iterator it( c->first() );
         while ( it ) {
             list( it, pattern );
-            it++;
+            ++it;
         }
     }
 }

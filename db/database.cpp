@@ -133,7 +133,7 @@ Database *Database::handle()
         while ( it ) {
             if ( it->ready() )
                 return it;
-            it++;
+            ++it;
         }
     }
 
@@ -207,13 +207,15 @@ void Database::query( List< Query > *l )
     if ( !db ) {
         while ( it ) {
             it->setError( "No database handle available." );
-            it++;
+            ++it;
         }
         return;
     }
 
-    while ( it )
-        db->enqueue( it++ );
+    while ( it ) {
+        db->enqueue( it );
+        ++it;
+    }
     db->execute();
 }
 

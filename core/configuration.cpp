@@ -269,21 +269,11 @@ void Configuration::report()
 
     ::global->d->reported = true;
 
-    List< ConfigurationData::E >::Iterator i( ::global->d->errors.first() );
-    while ( i ) {
-        ::log( i->m, i->s );
-        i++;
+    List< ConfigurationData::E >::Iterator it( ::global->d->errors.first() );
+    while ( it ) {
+        ::log( it->m, it->s );
+        ++it;
     }
-
-#if 0
-    // don't want to write a dict iterator just now
-    List< Configuration::Something >::Iterator j
-        = ::global->d->unparsed.first();
-    while ( j ) {
-        log( Log::Error, "Unknown configuration variable: " + j->s1 );
-        j++;
-    }
-#endif
 
     l.commit();
 }

@@ -123,10 +123,12 @@ CacheLookup *FieldNameCache::lookup( List< String > *l, EventHandler *ev )
 
     List< String >::Iterator it( l->first() );
     while ( it ) {
-        String field = *it++;
+        String field = *it;
 
         if ( nameCache->find( field ) == 0 )
             (void)new FieldLookup( field, lookups, status, ev );
+
+        ++it;
     }
 
     if ( lookups->isEmpty() )

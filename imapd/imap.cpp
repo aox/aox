@@ -457,8 +457,6 @@ void IMAP::unblockCommands()
 
 void IMAP::runCommands()
 {
-    List< Command >::Iterator i;
-
     d->runningCommands = true;
     bool done = false;
 
@@ -466,10 +464,10 @@ void IMAP::runCommands()
         done = true;
 
         // run all currently executing commands once
-        i = d->commands.first();
+        List< Command >::Iterator i( d->commands.first() );
         while ( i ) {
             run( i );
-            i++;
+            ++i;
         }
 
         // if no commands are running, start the oldest blocked command
@@ -477,11 +475,11 @@ void IMAP::runCommands()
 
         i = d->commands.first();
         while ( i && i->state() != Command::Executing )
-            i++;
+            ++i;
         if ( !i ) {
             i = d->commands.first();
             while ( i && i->state() != Command::Blocked )
-                i++;
+                ++i;
         }
         if ( i ) {
             Command *c = i;
@@ -492,7 +490,7 @@ void IMAP::runCommands()
                     i->setState( Command::Executing );
                     done = false;
                 }
-                i++;
+                ++i;
             } while ( c->group() > 0 && i );
         }
     }
@@ -511,7 +509,7 @@ void IMAP::expireCommands()
         if ( i->state() == Command::Finished )
             delete d->commands.take( i );
         else
-            i++;
+            ++i;
     }
 }
 
@@ -655,7 +653,7 @@ uint IMAP::activeCommands() const
     while ( i ) {
         if ( i->state() != Command::Finished )
             n++;
-        i++;
+        ++i;
     }
     return n;
 }
