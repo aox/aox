@@ -1,0 +1,58 @@
+ 1. must clean up the logging stuff
+
+    Mostly done now. I need to do another quick sweep to ensure that the
+    various Logs are created in the right context. Furthermore, the Loop
+    should not be calling commit() for every Connection; and they should
+    each set their Log/Arena correctly in their Scope.
+
+ 2. documentation and manual page updates
+ 3. check that the listener addresses in the code match the manpages
+
+    I changed tlsproxy's default address to 127.0.0.1. Is anything else
+    needed?
+
+ 4. bodystructure needs to send extended information
+
+    Done. It was rather more work than I expected it would be.
+    Needs a bit of testing (coming up).
+
+ 5. string needs encode/decode + CTE enum
+
+    Done. A bit of a hack wrt e64's line-length parameter. Can QP use it
+    too? (I seem to recall something about QP and line length.)
+
+ 6. tlsproxy must support real certificates
+
+    Done. This is a horrible nightmare because of OpenSSL's non-standard
+    private key storage format and cryptlib's inability to read it. Must
+    talk to Arnt about how to do the right thing for the sysadmin.
+
+ 7. tlsproxy doesn't handle eof (or errors) well
+
+    I'll look into this again later.
+
+ 8. schema diagram with sujai
+ 9. Fix startup and shutdown (and log disasters to stderr).
+10. we need an install script that generates a config file
+11. tls client support (smtp, postgresql)
+12. move tests to another program
+13. member-ify some of the static functions in message
+14. get rid of some friends
+15. the injector must share bodyparts
+16. make sure ocd works
+17. test with more imap clients (mutt, outlook, thunderbird, kmail, pine,
+    evolution)
+18. the gui should do something
+19. resource limits on memory allocation
+20. more testing
+21. configuration overhaul
+22. rfc2047 encoding
+23. inject a large number of messages, collect query statistics
+24. archives.oryx.com
+25. make sure mailutil works with us
+26. EXPUNGE is horribly broken
+27. top-level message/rfc822 support
+28. What to do about EventHandlers whose targets have died?
+29. How does .PEEK work?
+30. ~/imapd.valgrind
+31. Get rid of Blah::setup wherever possible.
