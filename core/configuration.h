@@ -41,6 +41,7 @@ public:
         ImapsPort,
         SmtpPort,
         LmtpPort,
+        HttpPort,
         // additional scalars go ABOVE THIS LINE
         NumScalars
     };
@@ -69,6 +70,7 @@ public:
         ImapsAddress,
         SmtpAddress,
         LmtpAddress,
+        HttpAddress,
         TlsCertFile,
         LogLevel,
         // additional texts go ABOVE THIS LINE
@@ -84,6 +86,7 @@ public:
         UseSmtp,
         UseLmtp,
         UseImaps,
+        UseHttp,
         AuthPlain,
         AuthCramMd5,
         AuthDigestMd5,

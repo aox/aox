@@ -24,6 +24,7 @@ public:
         SmtpServer,
         SmtpClient,
         Pop3Server,
+        HttpServer,
         TlsProxy,
         TlsClient,
         Listener,

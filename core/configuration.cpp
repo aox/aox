@@ -139,7 +139,8 @@ static struct {
     { "imap-port", Configuration::ImapPort, 143 },
     { "imaps-port", Configuration::ImapsPort, 993 },
     { "smtp-port", Configuration::SmtpPort, 25 },
-    { "lmtp-port", Configuration::LmtpPort, 2026 }
+    { "lmtp-port", Configuration::LmtpPort, 2026 },
+    { "http-port", Configuration::HttpPort, 8808 }
 };
 
 
@@ -169,6 +170,7 @@ static struct {
     { "imaps-address", Configuration::ImapsAddress, "" },
     { "smtp-address", Configuration::SmtpAddress, "" },
     { "lmtp-address", Configuration::LmtpAddress, "127.0.0.1" },
+    { "http-address", Configuration::HttpAddress, "127.0.0.1" },
     { "tls-certificate", Configuration::TlsCertFile, "" },
     { "log-level", Configuration::LogLevel, "info" }
 };
@@ -184,6 +186,7 @@ static struct {
     { "use-smtp", Configuration::UseSmtp, false },
     { "use-lmtp", Configuration::UseLmtp, true },
     { "use-imaps", Configuration::UseImaps, false },
+    { "use-http", Configuration::UseHttp, false },
     { "auth-plain", Configuration::AuthPlain, true },
     { "auth-cram-md5", Configuration::AuthCramMd5, true },
     { "auth-digest-md5", Configuration::AuthDigestMd5, true },
