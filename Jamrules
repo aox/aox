@@ -98,6 +98,7 @@ rule WriteShellConfig
     Clean clean : $(<) ;
     Depends [ FGristFiles $(<) ] : <>Jamsettings ;
     Depends install : $(<) ;
+    Depends $(<) : $(LIBDIR) ;
 }
 
 actions WriteShellConfig
