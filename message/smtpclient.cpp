@@ -11,10 +11,11 @@
 class SmtpClientData {
 public:
     SmtpClientData()
-        : failed( false ), owner( 0 )
+        : failed( false ), connected( false ), owner( 0 )
     {}
 
     bool failed;
+    bool connected;
 
     String sent;
     String error;
@@ -86,11 +87,17 @@ void SmtpClient::react( Event e )
         break;
 
     case Connect:
+        d->connected = true;
         break; // we'll get a banner
 
     case Error:
     case Close:
-        if ( d->sent != "quit" ) {
+        if ( !d->connected ) {
+            d->error = "Connection refused by SMTP/LMTP server";
+            d->failed = true;
+            d->owner->execute();
+        }
+        else if ( d->sent != "quit" ) {
             log( "Unexpected close by server", Log::Error );
             d->error = "Unexpected close by server.";
             d->failed = true;
