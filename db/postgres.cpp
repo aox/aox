@@ -351,7 +351,7 @@ void Postgres::process( char type )
                     d->reserved = false;
                     d->transaction = 0;
                 }
-                else if ( d->status == Failed ) {
+                else if ( d->status == FailedTransaction ) {
                     d->transaction->setState( Transaction::Failed );
                 }
             }

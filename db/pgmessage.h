@@ -9,7 +9,7 @@
 class Buffer;
 
 
-enum Status { Idle, InTransaction, Failed };
+enum Status { Idle, InTransaction, FailedTransaction };
 
 
 class PgServerMessage {
