@@ -14,9 +14,9 @@ public:
     IMAP(int s);
     ~IMAP();
 
-    int react(Event e);
+    void react(Event e);
 
-    int parse();
+    void parse();
     void addCommand();
     void runCommands();
 

@@ -63,8 +63,6 @@ IMAP::IMAP(int s)
     d->logger = new Logger;
     d->logger->log( "accepted IMAP connection" ); // XXX: from where?
 
-    setReadBuffer( new Buffer( fd() ) );
-    setWriteBuffer( new Buffer( fd() ) );
     writeBuffer()->append("* OK [CAPABILITY ");
     writeBuffer()->append( Capability::capabilities() );
     writeBuffer()->append( "]\r\n");
@@ -82,48 +80,48 @@ IMAP::~IMAP()
 
 /*! Handles incoming data and timeouts. */
 
-int IMAP::react(Event e)
+void IMAP::react(Event e)
 {
-    int result = 1;
     switch (e) {
     case Connection::Read:
-        result = parse();
+        if ( !d->cmdArena )
+            d->cmdArena = new Arena;
+        if ( !d->args )
+            d->args = new List<String>;
+        Arena::push( d->cmdArena );
+        parse();
+        Arena::pop();
         break;
     case Connection::Timeout:
-        writeBuffer()->append("* BYE autologout\r\n");
+        writeBuffer()->append( "* BYE autologout\r\n" );
         d->logger->log( "autologout" );
-        result = 0;
+        break;
+    case Connection::Close:
+        if ( state() != Logout )
+            d->logger->log( "Unexpected close by client" );
+        break;
+    case Connection::Shutdown:
+        writeBuffer()->append( "* BYE server shutdown\r\n" );
         break;
     }
     d->logger->commit();
     runCommands();
     d->logger->commit();
+    setTimeout( time(0) + 20 );
     if ( state() == Logout )
-        result = 0;
-    if ( result )
-        setTimeout( time(0) + 20 );
-    else
-        writeBuffer()->write();
-    if ( result == 0 )
-        d->logger->commit();
-    return result;
+        close();
 }
 
 
-int IMAP::parse()
+void IMAP::parse()
 {
-    if ( !d->cmdArena )
-        d->cmdArena = new Arena;
-    if ( !d->args )
-        d->args = new List<String>;
-    Arena::push( d->cmdArena );
     Buffer * r = readBuffer();
     while( true ) {
         if ( d->grabber ) {
             d->grabber->read();
             // still grabbed? must wait for more.
             if ( d->grabber )
-                return true;
+                return;
         }
         else if ( d->readingLiteral ) {
             if ( r->size() >= d->literalSize ) {
@@ -132,59 +130,54 @@ int IMAP::parse()
                 d->readingLiteral = false;
             }
             else {
-                return true; // better luck next time
+                return;
             }
         }
         else {
-            // this is a little evil, isn't it? Buffer::canReadLine()
-            // sounds like a good idea after all.
             uint i = 0;
             while( i < r->size() && (*r)[i] != 10 )
                 i++;
-            if ( (*r)[i] == 10 ) {
-                // we have a line; read it and consider literals
-                uint j = i;
-                if ( i > 0 && (*r)[i-1] == 13 )
-                    j--;
-                String * s = r->string( j );
-                d->args->append( s );
-                r->remove( i + 1 ); // string + trailing lf
-                if ( s->endsWith( "}" ) ) {
-                    i = s->length()-2;
-                    bool plus = false;
-                    if ( (*s)[i] == '+' ) {
-                        plus = true;
-                        i--;
-                    }
-                    j = i;
-                    while( i > 0 && (*s)[i] >= '0' && (*s)[i] <= '9' )
-                        i--;
-                    if ( (*s)[i] == '{' ) {
-                        d->readingLiteral = true;
-                        bool ok;
-                        d->literalSize = s->mid( i+1, j-i+1 ).number( &ok );
-                        // if ( ok && size > 99999999 ) ok = false; ? perhaps?
-                        if ( !ok ) {
-                            writeBuffer()->append( "* BAD literal, BAD\r\n" );
-                            return false;
-                        }
-                        if ( ok && !plus )
-                            writeBuffer()->append( "+\r\n" );
-                    }
+            if ( (*r)[i] != 10 )
+                return; // better luck next time
+
+            // we have a line; read it and consider literals
+            uint j = i;
+            if ( i > 0 && (*r)[i-1] == 13 )
+                j--;
+            String * s = r->string( j );
+            d->args->append( s );
+            r->remove( i + 1 ); // string + trailing lf
+            if ( s->endsWith( "}" ) ) {
+                i = s->length()-2;
+                bool plus = false;
+                if ( (*s)[i] == '+' ) {
+                    plus = true;
+                    i--;
                 }
-                if ( !d->readingLiteral ) {
-                    addCommand();
-                    Arena::pop();
-                    d->cmdArena = new Arena;
-                    Arena::push( d->cmdArena );
+                j = i;
+                while( i > 0 && (*s)[i] >= '0' && (*s)[i] <= '9' )
+                    i--;
+                if ( (*s)[i] == '{' ) {
+                    d->readingLiteral = true;
+                    bool ok;
+                    d->literalSize = s->mid( i+1, j-i+1 ).number( &ok );
+                    if ( !ok ) {
+                        writeBuffer()->append( "* BAD literal, BAD\r\n" );
+                        close();
+                        return;
+                    }
+                    if ( ok && !plus )
+                        writeBuffer()->append( "+\r\n" );
                 }
             }
-            else {
-                return true; // better luck next time
+            if ( !d->readingLiteral ) {
+                addCommand();
+                Arena::pop();
+                d->cmdArena = new Arena;
+                Arena::push( d->cmdArena );
             }
         }
     }
-    Arena::pop();
 }
 
 
