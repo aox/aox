@@ -8,6 +8,7 @@
 #include <arena.h>
 #include <list.h>
 #include "handlers/capability.h"
+#include "logger.h"
 
 #include <time.h>
 
@@ -15,7 +16,7 @@
 class IMAPData {
 public:
     IMAPData():
-        cmdArena( 0 ),
+        logger( 0 ), cmdArena( 0 ),
         readingLiteral( false ), literalSize( 0 ),
         args( 0 ),
         state( IMAP::NotAuthenticated ),
@@ -24,6 +25,7 @@ public:
         idle( false )
     {}
 
+    Logger * logger;
     Arena * cmdArena;
     bool readingLiteral;
     uint literalSize;
@@ -56,6 +58,8 @@ IMAP::IMAP(int s)
     : Connection(s), d(0)
 {
     d = new IMAPData;
+
+    d->logger = new Logger( "IMAP Server for ... what?" );
 
     setReadBuffer( new Buffer( fd() ) );
     setWriteBuffer( new Buffer( fd() ) );

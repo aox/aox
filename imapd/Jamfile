@@ -13,12 +13,17 @@ SubDir TOP imapd ;
 
 # build the .o files in this directory
 
-Build imap : imapd.cpp connection.cpp listener.cpp loop.cpp imap.cpp 
-	command.cpp cccp.cpp set.cpp mailbox.cpp ;
+Build imap : imapd.cpp imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp ;
+
+Build logd : logd.cpp logserver.cpp ;
+
+Build server : connection.cpp listener.cpp loop.cpp endpoint.cpp logger.cpp ;
 
 # the programs. these need to be last. magic. all Program calls need
 # to be after all Build calls, since the Build puts object files into
 # the sets used by Build.
 
-Program imapd : imap lib ;
+Program imapd : imap server lib ;
 LINKLIBS on imapd = -lz ;
+
+Program logd : logd server lib ;

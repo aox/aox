@@ -4,6 +4,10 @@
 #include "loop.h"
 #include <global.h>
 
+#include "imap.h"
+#include "cccp.h"
+#include "logger.h"
+
 extern Arena *arena;
 
 int main( int, char *[] )
@@ -13,7 +17,10 @@ int main( int, char *[] )
 
     Test::runTests();
 
-    Listener::setup();
+    Logger::global()->log( "IMAP server started" );
+
+    Listener<IMAP>::createListener( "IMAP", 2052 );
+    Listener<CCCP>::createListener( "CCCP", 2053 );
 
     Loop::start();
 }
