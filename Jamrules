@@ -5,13 +5,16 @@ LINKFLAGS = -g ;
 
 if $(ICC) {
     C++ = icc ;
+    BUILD = build/icc ;
 }
 else {
     C++ = g++ ;
     C++FLAGS += -Wall ;
+    BUILD = build/gcc ;
 
     if $(COV) {
         C++FLAGS += -fprofile-arcs -ftest-coverage ;
+        BUILD = build/gcov ;
     }
 }
 
@@ -44,6 +47,7 @@ rule SubInclude
 
 rule Build
 {
+    LOCATE_TARGET = [ FDirName $(TOP) $(BUILD) $(SUBDIR_TOKENS) ] ;
     Objects $(>) ;
     set-$(<) += [ FGristFiles $(>:S=$(SUFOBJ)) ] ;
 }
