@@ -65,7 +65,7 @@ Program imapd : imap message imapdmain database server lib ;
 LINKLIBS on imapd = -lz -lcrypt ;
 
 Program logd : logd logdmain server lib ;
-LINKLIBS on logd = -lcrypt ;
+LINKLIBS on logd = ;
 
 Program runtests : imap message logd database server lib runtestsmain ;
 LINKLIBS on runtests = -lz -lcrypt ;
