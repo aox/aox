@@ -3,8 +3,9 @@
 #include "subscribe.h"
 
 #include "imap.h"
-#include "query.h"
 #include "user.h"
+#include "query.h"
+#include "mailbox.h"
 
 
 /*! \class Subscribe subscribe.h
@@ -15,12 +16,12 @@
     what to do.
 */
 
-/*! Creates a subscribe handler in mode \a m, which may be Add or Remove
+/*! Creates a subscribe handler in mode \a n, which may be Add or Remove
     according to the desired function. The default is Add.
 */
 
-Subscribe::Subscribe( Mode m )
-    : mode( m ), selected( false ), q( 0 )
+Subscribe::Subscribe( Mode n )
+    : mode( n ), selected( false ), q( 0 ), m( 0 )
 {}
 
 
@@ -40,7 +41,7 @@ Unsubscribe::Unsubscribe()
 void Subscribe::parse()
 {
     space();
-    m = astring();
+    name = astring();
     end();
 }
 
@@ -52,10 +53,17 @@ void Subscribe::execute()
     // table, remove it, or do nothing.
 
     if ( !q ) {
+        m = Mailbox::find( imap()->mailboxName( name ) );
+        if ( !m ) {
+            error( No, "Can't subscribe to non-existent mailbox " + name );
+            finish();
+            return;
+        }
+
         q = new Query( "select id from subscriptions where owner=$1 "
                        "and mailbox=$2", this );
         q->bind( 1, imap()->user()->id() );
-        q->bind( 2, imap()->mailboxName( m ) );
+        q->bind( 2, m->id() );
         q->execute();
         return;
     }
@@ -76,7 +84,7 @@ void Subscribe::execute()
             q = new Query( "insert into subscriptions (owner, mailbox) "
                            "values ($1, $2)", this );
             q->bind( 1, imap()->user()->id() );
-            q->bind( 2, imap()->mailboxName( m ) );
+            q->bind( 2, m->id() );
         }
         else if ( mode == Remove && q->rows() == 1 ) {
             int id = q->nextRow()->getInt( "id" );

@@ -18,10 +18,11 @@ public:
     void execute();
 
 private:
-    String m;
     Mode mode;
+    String name;
     bool selected;
     class Query *q;
+    class Mailbox *m;
 };
 
 

@@ -206,7 +206,7 @@ create table extra_flags (
 create table subscriptions (
     id          serial primary key,
     owner       integer not null references users(id),
-    mailbox     text
+    mailbox     integer not null references mailboxes(id)
 );
 
 -- The name's Bond, James Bond.
