@@ -354,7 +354,7 @@ void SMTP::rcpt()
         to = 0;
         d->state = Data;
     }
-    else if ( to->valid() ) {
+    else if ( to && to->valid() ) {
         respond( 550, "Unknown address: " + to->toString() );
     }
     else if ( ok() ) {
@@ -482,7 +482,7 @@ Address * SMTP::address()
 
     p.whitespace(); // to be flexible - it's not strictly legal
     if ( p.next() != '<' ) {
-        respond( 503, "Must have '<' before the source address " + d->arg );
+        respond( 503, "Must have '<' before address " + d->arg );
         return 0;
     }
     p.step();
@@ -502,13 +502,25 @@ Address * SMTP::address()
         return 0;
     }
     if ( p.next() != '>' ) {
-        respond( 503, "Need @ between localpart and domain" );
+        respond( 503, "Need > after address " + d->arg );
         return 0;
     }
     p.step();
     p.whitespace();
 
-    return new Address( 0, localpart, domain );
+    AddressParser a( localpart + "@" + domain );
+    if ( !a.error().isEmpty() ) {
+        respond( 503, "Parse error: " + a.error() );
+        return 0;
+    }
+    if ( a.addresses()->count() != 1 ) {
+        respond( 503, "Internal error: That parsed as " +
+                 String::fromNumber( a.addresses()->count() ) +
+                 " addresses, not 1" );
+        return 0;
+    }
+
+    return new Address( *a.addresses()->first() );
 }
 
 
