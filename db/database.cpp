@@ -159,8 +159,8 @@ Database *Database::handle()
 
     This function sends enqueue()d queries to the database server in the
     same order that they were enqueued. The Query::state() is changed to
-    either Query::Submitted (if the query will only be sent later) or to
-    Query::Executing or Query::Preparing (if it was sent immediately).
+    either Query::Submitted if the query will only be sent later, or to
+    Query::Executing if it was sent immediately.
 */
 
 

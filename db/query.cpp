@@ -10,12 +10,12 @@
 class QueryData {
 public:
     QueryData()
-        : state( Query::Inactive ), operation( Query::Execute ),
+        : type( Query::Execute ), state( Query::Inactive ),
           transaction( 0 ), command( 0 ), totalRows( 0 )
     {}
 
+    Query::Type type;
     Query::State state;
-    Query::Operation operation;
 
     String name;
     String query;
@@ -35,7 +35,7 @@ public:
 
     A Query is typically created by (or for, or with) a EventHandler,
     has parameter values bound to it with bind(), and is execute()d
-    (or prepare()d, or enqueue()d as part of a Transaction).
+    (or enqueue()d as part of a Transaction).
 
     Once the Query is executed, the Database informs its owner() of any
     interesting events (e.g. the arrival of results, timeouts, failures,
@@ -81,6 +81,7 @@ Query::Query( const PreparedStatement &ps, EventHandler *cmd )
     : d( new QueryData )
 {
     d->name = ps.name();
+    d->query = ps.query();
     d->command = cmd;
 }
 
@@ -90,14 +91,13 @@ Query::Query( const PreparedStatement &ps, EventHandler *cmd )
 */
 
 
-/*! This function returns the operation that this query represents,
-    which may be any of Begin, Execute, Prepare, Commit, or Rollback
-    (as defined in Query::Operation).
+/*! Returns the type of this Query, which may be any of Begin, Execute,
+    Commit, or Rollback (as defined in Query::Type).
 */
 
-Query::Operation Query::operation() const
+Query::Type Query::type() const
 {
-    return d->operation;
+    return d->type;
 }
 
 
@@ -184,18 +184,6 @@ void Query::bind( uint n, const String &s )
 {
     Value *v = new Value( n, s );
     d->values.insert( v );
-}
-
-
-/*! This functions submits this Query to the database as a request to
-    prepare the statement \a name from the query string.
-*/
-
-void Query::prepare( const String &name )
-{
-    d->name = name;
-    d->operation = Prepare;
-    execute();
 }
 
 
@@ -441,19 +429,23 @@ int *Row::getInt( const String &field )
 
 
 /*! \class PreparedStatement query.h
-    This subclass of Query is ...
+    This class represents an SQL prepared statement.
+
+    A PreparedStatement has a name() and an associated query(). Its only
+    purpose is to be used to construct Query objects. Each object has a
+    unique name.
 */
 
 
-/*! Creates a PreparedStatement named \a name, containing \a statement
-    on behalf of \a cmd.
+static int prepareCounter = 0;
+
+
+/*! Creates a PreparedStatement containing the SQL statement \a s, and
+    generates a unique name for it.
 */
 
-PreparedStatement::PreparedStatement( const String &name,
-                                      const String &statement,
-                                      EventHandler *cmd )
-    : Query( statement, cmd ),
-      n( name )
+PreparedStatement::PreparedStatement( const String &s )
+    : n( String::fromNumber( prepareCounter++ ) ), q( s )
 {
 }
 
@@ -464,4 +456,13 @@ PreparedStatement::PreparedStatement( const String &name,
 String PreparedStatement::name() const
 {
     return n;
+}
+
+
+/*! Returns the text of this PreparedStatement.
+*/
+
+String PreparedStatement::query() const
+{
+    return q;
 }

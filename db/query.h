@@ -19,10 +19,12 @@ public:
     Query( const PreparedStatement &, EventHandler * );
     virtual ~Query() {}
 
-    enum Operation { Begin, Execute, Prepare, Commit, Rollback };
-    Operation operation() const;
+    enum Type { Begin, Execute, Commit, Rollback };
+    Type type() const;
 
-    enum State { Inactive, Submitted, Executing, Completed, Failed };
+    enum State {
+        Inactive, Submitted, Executing, Completed, Failed
+    };
     void setState( State );
     State state() const;
     bool failed() const;
@@ -33,7 +35,6 @@ public:
 
     void bind( uint, int );
     void bind( uint, const String & );
-    void prepare( const String & );
     void execute();
 
     class Value {
@@ -95,15 +96,14 @@ private:
 };
 
 
-class PreparedStatement
-    : public Query
-{
+class PreparedStatement {
 public:
-    PreparedStatement( const String &, const String &, EventHandler * );
+    PreparedStatement( const String & );
     String name() const;
+    String query() const;
 
 private:
-    String n;
+    String n, q;
 };
 
 

@@ -39,6 +39,7 @@ public:
     PgKeyData *keydata;
     Dict< String > params;
     PgRowDescription *description;
+    Dict< int > prepared;
 
     List< Query > queries;
     List< Query > pending;
@@ -309,6 +310,8 @@ void Postgres::process( char type )
     case '1':
         {
             PgParseComplete msg( readBuffer() );
+            if ( q->name() != "" )
+                d->prepared.insert( q->name(), 0 );
         }
         break;
 
@@ -531,14 +534,7 @@ void Postgres::processQueue( bool userContext )
         q->setState( Query::Executing );
         d->queries.append( q );
 
-        if ( q->operation() == Query::Prepare ) {
-            PgParse a( q->string(), q->name() );
-            a.enqueue( writeBuffer() );
-
-            PgSync b;
-            b.enqueue( writeBuffer() );
-        }
-        else if ( !q->values()->isEmpty() ) {
+        if ( !q->values()->isEmpty() ) {
             if ( d->transaction == 0 && q->transaction() != 0 ) {
                 d->transaction = q->transaction();
                 d->transaction->setState( Transaction::Executing );
@@ -552,8 +548,10 @@ void Postgres::processQueue( bool userContext )
                 c.enqueue( writeBuffer() );
             }
 
-            if ( q->name() == "" ) {
-                PgParse a( q->string() );
+            if ( q->name() == "" ||
+                 !d->prepared.contains( q->name() ) )
+            {
+                PgParse a( q->string(), q->name() );
                 a.enqueue( writeBuffer() );
             }
 
