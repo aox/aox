@@ -79,6 +79,23 @@ rule Program
     Link $(<) : $(set-$(>)) ;
 }
 
+rule WriteShellConfig
+{
+    Clean clean : $(<) ;
+    Depends [ FGristFiles $(<) ] : <>Jamsettings ;
+}
+
+actions WriteShellConfig
+{
+    echo PREFIX="'"$(PREFIX)"'" > $(<)
+    echo BINDIR="'"$(BINDIR)"'" >> $(<)
+    echo MANDIR="'"$(MANDIR)"'" >> $(<)
+    echo PIDFILEDIR="'"$(PIDFILEDIR)"'" >> $(<)
+    echo JAILDIR="'"$(JAILDIR)"'" >> $(<)
+    echo CONFIGDIR="'"$(CONFIGDIR)"'" >> $(<)
+    echo LOGFILE="'"$(LOGFILE)"'" >> $(<)
+}
+
 
 rule Doc {
     Depends exe : <doc>.made.$(<) ;
