@@ -63,6 +63,7 @@ LogClient::LogClient()
 void LogClient::send( const String &s )
 {
     c->enqueue( s );
+    c->write();
 }
 
 
