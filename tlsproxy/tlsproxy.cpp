@@ -300,6 +300,14 @@ static void setupCert()
     status = cryptSetAttributeString( cert, CRYPT_CERTINFO_COMMONNAME,
                                       hostname.cstr(), hostname.length() );
     handleError( status, "cryptSetAttribute(COMMONNAME)" );
+    status = cryptSetAttribute( cert, CRYPT_CERTINFO_KEYUSAGE,
+                                CRYPT_KEYUSAGE_DIGITALSIGNATURE |
+                                CRYPT_KEYUSAGE_KEYCERTSIGN |
+                                CRYPT_KEYUSAGE_KEYENCIPHERMENT );
+    handleError( status, "cryptSetAttribute(KEYUSAGE)" );
+    status = cryptSetAttribute( cert, CRYPT_CERTINFO_EXTKEY_SERVERAUTH,
+                                CRYPT_UNUSED );
+    handleError( status, "cryptSetAttribute(EXTKEY)" );
 
     // Sign it with the private key and update the keyset.
     status = cryptSignCert( cert, privateKey );
