@@ -18,7 +18,7 @@ int main()
 
     Configuration::makeGlobal( ".ocdrc" );
 
-    Log::setup();
+    // Log::setup();
 
     Listener< OCServer >::create( "Cluster coordination", "", 2050 );
     Listener< OCAdmin >::create( "Cluster administration", "", 2051 );

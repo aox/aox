@@ -1,12 +1,6 @@
 SubDir TOP ocd ;
-
-SubInclude TOP core ;
 SubInclude TOP server ;
-
 SubDir TOP ocd ;
 
-Build ocdmain : ocd.cpp ;
-Build ocd : ocserver.cpp ocadmin.cpp ;
-
-Program ocd : ocd ocdmain server lib ;
-LINKLIBS on ocd = ;
+Build ocd : ocd.cpp ocserver.cpp ocadmin.cpp ;
+Program ocd : ocd server core ;
