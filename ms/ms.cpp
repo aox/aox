@@ -138,6 +138,7 @@ int main( int argc, char *argv[] )
     Database::setup();
     AddressCache::setup();
     Configuration::report();
+    Mailbox::setup();
 
     // check each combination
     if ( verb == "create" && noun == "user" ) {
