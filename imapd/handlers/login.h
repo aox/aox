@@ -10,9 +10,7 @@ class Login
     : public Command
 {
 public:
-    Login()
-        : m( 0 )
-    {}
+    Login();
 
     void parse();
     void execute();

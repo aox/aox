@@ -32,6 +32,9 @@ public:
     void setUid( uint );
     void setLogin( const String & );
 
+    void startTLS();
+    bool hasTLS() const;
+    
     void beginSession( const String &, bool, Command * );
     ImapSession *session() const;
     void endSession();

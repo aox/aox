@@ -25,7 +25,7 @@ public:
           logger( new Log ), cmdArena( 0 ), args( 0 ),
           readingLiteral( false ), literalSize( 0 ),
           reader( 0 ), session( 0 ), mailbox( 0 ), uid( 0 ),
-          idle( false )
+          idle( false ), tls( false )
     {}
     ~IMAPData() {
         delete cmdArena;
@@ -49,6 +49,7 @@ public:
     uint uid;
 
     bool idle;
+    bool tls;
 };
 
 
@@ -601,4 +602,23 @@ void IMAP::endSession()
     setState( Authenticated );
     delete d->session;
     d->session = 0;
+}
+
+
+/*! Returns true only if TLS has been negotiated for this connection.
+*/
+
+bool IMAP::hasTLS() const
+{
+    return d->tls;
+}
+
+
+/*! Informs this IMAP server that TLS has been successfully negotiated
+    for its connection.
+*/
+
+void IMAP::startTLS()
+{
+    d->tls = true;
 }
