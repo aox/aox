@@ -33,14 +33,11 @@ void Store::parse()
             step();
 
         String * flag = new String;
+
+        if ( skip( '\\' ) )
+            flag->append( '\\' );
+
         char c = nextChar();
-
-        if ( c == '\\' ) {
-            step();
-            flag->append( c );
-            c = nextChar();
-        }
-
         while ( c > ' ' && c < 127 &&
                 c != '(' && c != ')' && c != '{' &&
                 c != ']' &&
