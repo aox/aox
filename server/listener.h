@@ -16,18 +16,18 @@ class Listener
 {
 public:
     Listener( const Endpoint &e, const String & s )
-        : Connection(), svc( s ), listening( false )
+        : Connection(), svc( s )
     {
         setType( Connection::Listener );
         if ( listen( e ) >= 0 ) {
-            listening = true;
             Loop::addConnection( this );
+            ::log( "Started: " + description() );
         }
     }
 
     ~Listener()
     {
-        if ( listening )
+        if ( state() == Listening )
             Loop::removeConnection( this );
     }
 
@@ -64,7 +64,7 @@ public:
 
     static void create( const String &svc, const String &address, uint port )
     {
-        Listener<T> * l;
+        Listener<T> * l = 0;
 
         Configuration::Text a( svc.lower() + "-address", address );
         Configuration::Scalar p( svc.lower() + "-port", port );
@@ -72,40 +72,43 @@ public:
             ::log( svc +
                    ": Cannot be started due to configuration problems with " +
                    ( a.valid() ? p.name() : a.name() ),
-                   Log::Error );
+                   Log::Disaster );
         }
         else if ( ((String)a).isEmpty() ) {
-            l = new Listener<T>( Endpoint( "::", p ), svc );
-            if ( l->state() == Listening )
-                ::log( "Started: " + l->description() );
+            Listener<T> * six = new Listener<T>( Endpoint( "::", p ), svc );
+            if ( six->state() == Listening )
+                l = six;
             else
-                delete l;
+                delete six;
 
-            l = new Listener<T>( Endpoint( "0.0.0.0", p ), svc );
-            if ( l->state() == Listening )
-                ::log( "Started: " + l->description() );
+            Listener<T> * four = new Listener<T>( Endpoint( "::", p ), svc );
+            if ( four->state() == Listening )
+                l = four;
             else
-                delete l;
+                delete four;
+
+            if ( !l )
+                ::log( "Cannot listen for " + svc + " on port " + fn( p ) +
+                       " (tried IPv4 and IPv6)",
+                       Log::Disaster );
         }
         else {
             Endpoint e( a, p );
-            if ( !e.valid() ) {
+            l = new Listener<T>( e, svc );
+            if ( !e.valid() )
                 ::log( "Cannot parse desired endpoint for " + svc + ", " +
-                       a + " port " + fn( p ), Log::Error );
-            }
-            else {
-                l = new Listener<T>( Endpoint( a, p ), svc );
-                if ( l->state() == Listening )
-                    ::log( "Started: " + l->description() );
-                else
-                    delete l;
-            }
+                       a + " port " + fn( p ),
+                       Log::Disaster );
+            else if ( l->state() != Listening )
+                ::log( "Cannot listen for " + svc + " on " + e.address(),
+                       Log::Disaster );
+            else
+                ::log( "Started: " + l->description() );
         }
     }
 
 private:
     String svc;
-    bool listening;
 };
 
 #endif
