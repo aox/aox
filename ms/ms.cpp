@@ -1,5 +1,6 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include "allocator.h"
 #include "scope.h"
 #include "event.h"
 #include "query.h"
@@ -175,6 +176,7 @@ int main( int argc, char *argv[] )
         error( "Sorry, not implemented: " + verb + " " + noun );
     }
 
+    Allocator::addRoot( query );
     Loop::start();
     return status;
 }

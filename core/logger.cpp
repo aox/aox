@@ -2,6 +2,8 @@
 
 #include "logger.h"
 
+#include "allocator.h"
+
 
 static Logger *logger = 0;
 
@@ -23,6 +25,7 @@ static Logger *logger = 0;
 Logger::Logger()
 {
     ::logger = this;
+    Allocator::addRoot( this );
 }
 
 

@@ -4,7 +4,7 @@
 
 #include "string.h"
 #include "query.h"
-#include "scope.h"
+#include "allocator.h"
 #include "log.h"
 
 
@@ -53,6 +53,7 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
         d->q->setStartUpQuery( true );
     d->q->execute();
     ::flags = new List<Flag>;
+    Allocator::addRoot( ::flags );
 }
 
 

@@ -8,12 +8,11 @@
 #include "log.h"
 #include "test.h"
 #include "scope.h"
+#include "allocator.h"
 
 #include <unistd.h> // gethostname()
 #include <netdb.h> // gethostbyname()
 
-// this needs to be last because sys.h sneakily includes lots of
-// system header files.
 #include "sys.h" // memmove()
 
 class ConfigurationData
@@ -569,6 +568,7 @@ void Configuration::setup( const String & global )
     String d = compiledIn( ConfigDir );
 
     ::global = new Configuration;
+    Allocator::addRoot( ::global );
     if ( global[0] == '/' )
         ::global->read( global );
     else
@@ -585,6 +585,7 @@ void Configuration::setup( const String & global )
                           Log::Debug );
 
     ::hostname = new String( hn );
+    Allocator::addRoot( ::hostname );
 }
 
 

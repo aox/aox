@@ -2,6 +2,7 @@
 
 #include "logserver.h"
 
+#include "allocator.h"
 #include "buffer.h"
 #include "list.h"
 #include "file.h"
@@ -244,10 +245,12 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
 void LogServer::setLogFile( const String & name )
 {
     File * l = new File( name, File::Append );
-    if ( l->valid() )
-        logFile = l;
-    else
+    if ( !l->valid() ) {
         ::log( "Could not open log file " + name, Log::Disaster );
+        return;
+    }
+    logFile = l;
+    Allocator::addRoot( logFile );
 }
 
 

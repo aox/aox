@@ -3,9 +3,10 @@
 #include "loop.h"
 
 #include "eventloop.h"
+#include "allocator.h"
 
 
-static EventLoop *loop;
+static EventLoop * loop;
 
 
 /*! \class Loop loop.h
@@ -20,7 +21,7 @@ static EventLoop *loop;
 */
 
 /*! Creates the global EventLoop object, or uses one supplied by the
-    called, \a l.  This function expects to be called by ::main().
+    caller, \a l.  This function expects to be called by ::main().
 */
 
 void Loop::setup( EventLoop * l )
@@ -28,6 +29,7 @@ void Loop::setup( EventLoop * l )
     ::loop = l;
     if ( !l )
         ::loop = new EventLoop;
+    Allocator::addRoot( ::loop );
 }
 
 

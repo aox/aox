@@ -6,13 +6,14 @@
 #include "string.h"
 #include "buffer.h"
 #include "loop.h"
+#include "allocator.h"
 
 
 class OCSData {
 public:
 };
 
-static List< OCServer > servers;
+static List< OCServer > * servers;
 
 
 /*! \class OCServer ocserver.h
@@ -29,14 +30,18 @@ static List< OCServer > servers;
 OCServer::OCServer( int s )
     : Connection( s, Connection::OryxServer ), d( new OCSData )
 {
-    servers.append( this );
+    if ( !servers ) {
+        servers = new List<OCServer>;
+        Allocator::addRoot( servers );
+    }
+    servers->append( this );
     Loop::addConnection( this );
 }
 
 
 OCServer::~OCServer()
 {
-    servers.take( servers.find( this ) );
+    servers->take( servers->find( this ) );
     Loop::removeConnection( this );
 }
 
@@ -76,9 +81,12 @@ void OCServer::parse()
 
 void OCServer::send( const String &s )
 {
+    if ( !servers )
+        return;
+
     String msg = "* " + s + "\n";
 
-    List< OCServer >::Iterator it( servers.first() );
+    List< OCServer >::Iterator it( servers->first() );
     while ( it ) {
         it->enqueue( msg );
         it->write();
@@ -89,7 +97,7 @@ void OCServer::send( const String &s )
 
 /*! Returns a pointer to the list of active client connections. */
 
-List< OCServer > *OCServer::connections()
+List< OCServer > * OCServer::connections()
 {
-    return &servers;
+    return servers;
 }

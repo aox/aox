@@ -2,7 +2,7 @@
 
 #include "fieldcache.h"
 
-#include "scope.h"
+#include "allocator.h"
 #include "event.h"
 #include "query.h"
 #include "dict.h"
@@ -43,6 +43,11 @@ void FieldNameCache::setup()
 
     fieldInsert =
         new PreparedStatement( "insert into field_names (name) values ($1)" );
+
+    Allocator::addRoot( idCache );
+    Allocator::addRoot( nameCache );
+    Allocator::addRoot( fieldLookup );
+    Allocator::addRoot( fieldInsert );
 }
 
 
