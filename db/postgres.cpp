@@ -340,7 +340,7 @@ void Postgres::process( char type )
 
     case 'I':
         {
-            PgEmptyQueryResponse m( readBuffer() );
+            PgEmptyQueryResponse msg( readBuffer() );
         }
         break;
 
@@ -356,7 +356,7 @@ void Postgres::process( char type )
             d->status = msg.status();
 
             if ( d->transaction ) {
-                if ( d->status == Idle ) {
+                if ( d->status == Idle && q->transaction() != 0 ) {
                     d->transaction->setState( Transaction::Completed );
                     d->reserved = false;
                     d->transaction = 0;
@@ -518,48 +518,41 @@ void Postgres::processQueue( bool userContext )
         q->setState( Query::Executing );
         d->queries.append( q );
 
-        if ( !q->values()->isEmpty() ) {
-            if ( d->transaction == 0 && q->transaction() != 0 ) {
-                d->transaction = q->transaction();
-                d->transaction->setState( Transaction::Executing );
-                PgParse a( "begin" );
-                a.enqueue( writeBuffer() );
+        if ( d->transaction == 0 && q->transaction() != 0 ) {
+            d->transaction = q->transaction();
+            d->transaction->setState( Transaction::Executing );
+            PgParse a( "begin" );
+            a.enqueue( writeBuffer() );
 
-                PgBind b;
-                b.enqueue( writeBuffer() );
-
-                PgExecute c;
-                c.enqueue( writeBuffer() );
-            }
-
-            if ( q->name() == "" ||
-                 !d->prepared.contains( q->name() ) )
-            {
-                PgParse a( q->string(), q->name() );
-                a.enqueue( writeBuffer() );
-
-                if ( q->name() != "" )
-                    d->prepared.insert( q->name(), 0 );
-            }
-
-            PgBind b( q->name() );
-            b.bind( q->values() );
+            PgBind b;
             b.enqueue( writeBuffer() );
 
-            PgDescribe c;
+            PgExecute c;
             c.enqueue( writeBuffer() );
-
-            PgExecute d;
-            d.enqueue( writeBuffer() );
-
-            PgSync e;
-            e.enqueue( writeBuffer() );
         }
-        else {
-            PgQuery pq( q->string() );
-            pq.enqueue( writeBuffer() );
-            q->setState( Query::Executing );
+
+        if ( q->name() == "" ||
+             !d->prepared.contains( q->name() ) )
+        {
+            PgParse a( q->string(), q->name() );
+            a.enqueue( writeBuffer() );
+
+            if ( q->name() != "" )
+                d->prepared.insert( q->name(), 0 );
         }
+
+        PgBind b( q->name() );
+        b.bind( q->values() );
+        b.enqueue( writeBuffer() );
+
+        PgDescribe c;
+        c.enqueue( writeBuffer() );
+
+        PgExecute d;
+        d.enqueue( writeBuffer() );
+
+        PgSync e;
+        e.enqueue( writeBuffer() );
     }
 
     if ( writeBuffer()->size() > 0 )
