@@ -677,22 +677,12 @@ static String languageString( ContentLanguage *cl )
     StringList m;
     const StringList *l = cl->languages();
     StringList::Iterator it( l->first() );
-    while ( it ) {
-        m.append( Command::imapQuoted( *it, Command::PlainString ) );
-        ++it;
-    }
+    while ( it )
+        m.append( Command::imapQuoted( *it++ ) );
 
     if ( l->count() == 1 )
         return *m.first();
     return "(" + m.join( " " ) + ")";
-}
-
-
-static String locationString( const String &s )
-{
-    if ( s.isEmpty() )
-        return "NIL";
-    return Command::imapQuoted( s, Command::NString );
 }
 
 
@@ -727,7 +717,7 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
             r.append( " " );
             r.append( languageString( hdr->contentLanguage() ) );
             r.append( " " );
-            r.append( locationString( hdr->contentLocation() ) );
+            r.append( imapQuoted( hdr->contentLocation(), NString ) );
         }
 
         r.append( ")" );
@@ -815,7 +805,7 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
         l.append( "NIL" ); // MD5.
         l.append( dispositionString( hdr->contentDisposition() ) );
         l.append( languageString( hdr->contentLanguage() ) );
-        l.append( locationString( hdr->contentLocation() ) );
+        l.append( imapQuoted( hdr->contentLocation(), NString ) );
     }
 
     return "(" + l.join( " " ) + ")";
