@@ -23,14 +23,13 @@ public:
         Request, Header, Done
     };
     State state() const;
+    void parse();
     void parseRequest( String );
     void parseHeader( const String & );
     void respond();
     StringList * response();
 
 private:
-    void parse();
-
     void parseAccept( const String &, uint );
     void parseAcceptCharset( const String &, uint );
     void parseAcceptEncoding( const String &, uint );
