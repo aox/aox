@@ -535,32 +535,48 @@ void IMAP::setUid( uint id )
 }
 
 
-/*! This function is used by SELECT/EXAMINE to begin a new IMAP session,
-    opening the mailbox \a m in \a readOnly mode. If \a m is not a fully
-    qualified mailbox name, the user's login() is used to qualify it.
-
-    If the session is successfully created, the IMAP server's state() is
-    set to Selected. If not, its state() is not changed. In either case,
-    the Select \a cmd is notified of completion.
-
-    Do not call this function if there is already an session() defined.
+/*! This function returns a pointer to the Mailbox named \a m, or 0 if
+    no such mailbox exists. If \a m is not a fully-qualified name, the
+    current user's login() name is used to qualify it.
 */
 
-void IMAP::beginSession( const String &m, bool readOnly, Command *cmd )
+Mailbox *IMAP::mailboxNamed( const String &m )
 {
     String name;
+
     if ( m[0] != '/' )
         name = "/users/" + login() + "/";
-
     if ( m.lower() == "inbox" )
         name.append( "INBOX" );
     else
         name.append( m );
 
-    d->session = new ImapSession( name, readOnly, cmd );
-    if ( !d->session->failed() ) {
+    return Mailbox::lookup( name );
+}
+
+
+/*! This function creates a new ImapSession for the Mailbox named \a mbx
+    in \a readOnly mode, and associates it with an IMAP server, changing
+    its state() to Selected. It is used by Select and Examine.
+
+    If \a mbx does not exist, or cannot be opened, this function returns
+    immediately without creating a session() or changing the state() of
+    the server. Otherwise it creates a session, sets the server's state
+    to Selected, and returns. The originating \a cmd is notified when
+    the ImapSession has acquired any session data it may need.
+
+    This function may be called only when the server is in Authenticated
+    state (and thus does not have a session() already defined).
+*/
+
+void IMAP::beginSession( const String &mbx, bool readOnly, Command *cmd )
+{
+    Mailbox *m = mailboxNamed( mbx );
+
+    if ( m ) {
         setState( Selected );
-        d->logger->log( "Using mailbox " + name );
+        d->session = new ImapSession( m, readOnly, cmd );
+        d->logger->log( "Using mailbox " + m->name() );
     }
 }
 

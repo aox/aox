@@ -8,10 +8,9 @@ class EventHandler;
 
 class ImapSession {
 public:
-    ImapSession( const String &, bool, EventHandler * );
+    ImapSession( Mailbox *, bool, EventHandler * );
     ~ImapSession();
 
-    bool failed() const;
     bool loaded() const;
     Mailbox *mailbox() const;
 

@@ -8,12 +8,11 @@
 class SessionData {
 public:
     SessionData()
-        : loaded( false ), failed( false ), readOnly( false ),
+        : loaded( false ), readOnly( false ),
           mailbox( 0 ), handler( 0 )
     {}
 
     bool loaded;
-    bool failed;
     bool readOnly;
     Mailbox *mailbox;
     EventHandler *handler;
@@ -32,17 +31,12 @@ public:
     The handler \a eh is notified of completion.
 */
 
-ImapSession::ImapSession( const String &m, bool readOnly, EventHandler *eh )
+ImapSession::ImapSession( Mailbox *m, bool readOnly, EventHandler *eh )
     : d( new SessionData )
 {
+    d->mailbox = m;
     d->handler = eh;
-    d->mailbox = Mailbox::lookup( m );
     d->readOnly = readOnly;
-
-    if ( !d->mailbox ) {
-        d->failed = true;
-        return;
-    }
 
     begin();
 }
@@ -74,16 +68,6 @@ void ImapSession::end()
 }
 
 
-/*! Returns true if this ImapSession could not be successfully started
-    (probably because the mailbox does not exist).
-*/
-
-bool ImapSession::failed() const
-{
-    return d->failed;
-}
-
-
 /*! Returns true if this ImapSession has successfully acquired session
     data from the database, or has failed to do so; or false if it is
     still awaiting completion.
@@ -91,7 +75,7 @@ bool ImapSession::failed() const
 
 bool ImapSession::loaded() const
 {
-    return d->loaded || d->failed;
+    return d->loaded;
 }
 
 
