@@ -21,7 +21,7 @@ static bool endsWithLiteral( const String *, uint *, bool * );
 class IMAPData {
 public:
     IMAPData()
-        : log( new Log ),
+        : log( new Log( Log::IMAP ) ),
           state( IMAP::NotAuthenticated ),
           cmdArena( 0 ), args( 0 ), reader( 0 ),
           readingLiteral( false ), literalSize( 0 ),

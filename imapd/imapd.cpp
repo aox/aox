@@ -25,7 +25,7 @@ int main( int, char *[] )
 
     Configuration::makeGlobal( ".imapdrc" );
 
-    Log l;
+    Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();
 
@@ -34,7 +34,6 @@ int main( int, char *[] )
     Database::setup();
     Mailbox::setup();
 
-    log( "IMAP server started" );
     log( Test::report() );
 
     Listener< IMAP >::create( "IMAP", "", 2052 );

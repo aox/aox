@@ -173,9 +173,9 @@ void Configuration::clear()
 
 void Configuration::report()
 {
-    d->reported = true;
-    Log l;
+    Log l( Log::Configuration );
 
+    d->reported = true;
     if ( d->unparsed.isEmpty() && d->errors.isEmpty() )
         return;
 

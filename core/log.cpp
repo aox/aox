@@ -47,10 +47,11 @@ void log( Log::Severity s, const String &t )
     are committed to disk by the log server.
 */
 
-/*! Constructs an empty Log object.
+/*! Constructs an empty Log object with facility \a f.
 */
 
-Log::Log()
+Log::Log( Facility f )
+    : fc( f )
 {
     Log *l = Scope::current()->log();
 
@@ -75,7 +76,7 @@ void Log::log( Severity s, const String &l )
     if ( s == Disaster )
         disasters = true;
 
-    logger->send( id + " " + severity( s ) + " " +
+    logger->send( id + " " + facility( fc ) + "/" + severity( s ) + " " +
                   time() + " " + l.stripCRLF() + "\r\n" );
 }
 
@@ -94,7 +95,8 @@ void Log::commit( Severity s )
     if ( logger == 0 )
         return;
 
-    logger->send( id + " commit " + severity( s ) + "\r\n" );
+    logger->send( id + " commit " +
+                  facility( fc ) + "/" + severity( s ) + "\r\n" );
 }
 
 
@@ -147,6 +149,37 @@ String Log::severity( Severity s )
         break;
     case Log::Disaster:
         i = "disaster";
+        break;
+    }
+
+    return i;
+}
+
+
+/*! This static function returns a string describing \a f. */
+
+String Log::facility( Facility f )
+{
+    String i;
+
+    switch ( f ) {
+    case Immediate:
+        i = "immediate";
+        break;
+    case Configuration:
+        i = "configuration";
+        break;
+    case Database:
+        i = "database";
+        break;
+    case Authentication:
+        i = "authentication";
+        break;
+    case IMAP:
+        i = "imap";
+        break;
+    case SMTP:
+        i = "smtp";
         break;
     }
 

@@ -21,7 +21,7 @@ int main()
 
     Configuration::makeGlobal( ".ocdrc" );
 
-    Log l;
+    Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();
 

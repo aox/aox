@@ -58,7 +58,7 @@ class SMTPData
 {
 public:
     SMTPData():
-        log( new Log ),
+        log( new Log( Log::SMTP ) ),
         code( 0 ), state( SMTP::Initial ),
         pipelining( false ), from( 0 ), protocol( "smtp" ),
         injector( 0 ), helper( 0 ), negotiatingTLS( false )

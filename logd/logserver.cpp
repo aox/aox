@@ -37,14 +37,17 @@ public:
 
     class Line {
     public:
-        Line( String t, Log::Severity s, const String & l )
-            : tag( t ), severity( s ), line( l ) {}
+        Line( String t, Log::Facility f, Log::Severity s, const String &l )
+            : tag( t ), facility( f ), severity( s ), line( l )
+        {}
+
         String tag;
+        Log::Facility facility;
         Log::Severity severity;
         String line;
     };
 
-    List<Line> pending;
+    List< Line > pending;
 };
 
 
@@ -68,16 +71,16 @@ void LogServer::react( Event e )
     case Timeout:
         // Timeout never should happen
     case Shutdown:
-        log( 0, Log::Debug, "log server shutdown" );
-        commit( 0, Log::Debug );
+        log( 0, Log::Immediate, Log::Debug, "log server shutdown" );
+        commit( 0, Log::Immediate, Log::Debug );
         break;
     case Connect:
     case Error:
     case Close:
         if ( !d->pending.isEmpty() ) {
-            log( 0, Log::Error,
+            log( 0, Log::Immediate, Log::Error,
                  "log client unexpectedly died. open transactions follow." );
-            commit( 0, Log::Debug );
+            commit( 0, Log::Immediate, Log::Debug );
         }
         break;
     };
@@ -134,42 +137,63 @@ void LogServer::process( String transaction,
                          String parameters )
 {
     bool c = false;
+
     if ( priority == "commit" ) {
         priority = parameters;
         parameters = "";
         c = true;
     }
 
+    int n = priority.find( '/' );
+    if ( n < 0 )
+        return;
+
+    String facility = priority.mid( 0, n );
+    Log::Facility f;
+    if ( facility == "immediate" )
+        f = Log::Immediate;
+    else if ( facility == "configuration" )
+        f = Log::Configuration;
+    else if ( facility == "database" )
+        f = Log::Database;
+    else if ( facility == "authentication" )
+        f = Log::Authentication;
+    else if ( facility == "imap" )
+        f = Log::IMAP;
+    else if ( facility == "smtp" )
+        f = Log::SMTP;
+    else
+        return;
+
+    String severity = priority.mid( n+1 );
     Log::Severity s;
-    if ( priority == "debug" )
+    if ( severity == "debug" )
         s = Log::Debug;
-    else if ( priority == "info" )
+    else if ( severity == "info" )
         s = Log::Info;
-    else if ( priority == "error" )
+    else if ( severity == "error" )
         s = Log::Error;
-    else if ( priority == "disaster" )
+    else if ( severity == "disaster" )
         s = Log::Disaster;
     else
         return;
 
-    bool ok = true;
-    if ( !ok )
-        return;
-
     if ( !c )
-        log( transaction, s, parameters );
+        log( transaction, f, s, parameters );
     else
-        commit( transaction, s );
+        commit( transaction, f, s );
 }
 
 
 /*! Commits all log lines of \a severity or higher from transaction \a
-    tag to the log file, and discards lines of lower severity.
+    tag to the log file, and discards lines of lower severity. It does
+    nothing with the \a facility yet.
 
     If \a tag is 0, everything is logged. Absolutely everything.
 */
 
-void LogServer::commit( String tag, Log::Severity severity )
+void LogServer::commit( String tag,
+                        Log::Facility facility, Log::Severity severity )
 {
     List< LogServerData::Line >::Iterator i;
 
@@ -180,7 +204,7 @@ void LogServer::commit( String tag, Log::Severity severity )
         if ( tag == l->tag ) {
             d->pending.take(i);
             if ( l->severity >= severity )
-                output( l->tag, l->severity, l->line );
+                output( l->tag, l->facility, l->severity, l->line );
         }
         else {
             i++;
@@ -199,28 +223,32 @@ void LogServer::commit( String tag, Log::Severity severity )
 }
 
 
-/*! Saves \a line under \a tag, \a severity, for later logging by
-    commit(). With one exception: If \a tag is 0, \a line is logged
-    immediately.
+/*! Saves \a line under \a tag, \a facility, and \a severity, for later
+    logging by commit(). With one exception: If \a tag is 0, \a line is
+    logged immediately.
 */
 
-void LogServer::log( String tag, Log::Severity severity, const String & line )
+void LogServer::log( String tag, Log::Facility facility, Log::Severity severity,
+                     const String &line )
 {
-    // d->pending.append( new LogServerData::Line( tag, severity, line ) );
-    output( tag, severity, line );
+    // d->pending.append( new LogServerData::Line( tag, facility, severity, line ) );
+    output( tag, facility, severity, line );
     d->w->write( 2 );
 }
 
 
 /*! This private function actually writes to the log file, reopening
-    it if necessary. \a tag and \a severity are converted to text
-    representations, \a line is logged as-is.
+    it if necessary. \a tag, \a facility, and \a severity are converted
+    to text representations, \a line is logged as-is.
 */
 
-void LogServer::output( String tag, Log::Severity severity, const String &line )
+void LogServer::output( String tag, Log::Facility facility,
+                        Log::Severity severity, const String &line )
 {
     if ( d->w == 0 )
         d->w = new Buffer;
+    d->w->append( Log::facility( facility ) );
+    d->w->append( "/" );
     d->w->append( Log::severity( severity ) );
     d->w->append( ": " );
     d->w->append( String::fromNumber( d->id, 36 ) );

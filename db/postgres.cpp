@@ -19,7 +19,7 @@
 class PgData {
 public:
     PgData()
-        : l( new Log ),
+        : l( new Log( Log::Database ) ),
           active( false ), startup( false ), authenticated( false ),
           unknownMessage( false ), transaction( 0 ),
           transactionSubmitted( false )

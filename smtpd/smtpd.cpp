@@ -27,7 +27,7 @@ int main( int, char *[] )
 
     Configuration::makeGlobal( ".smtpdrc" );
 
-    Log l;
+    Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();
 

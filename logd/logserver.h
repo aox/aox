@@ -17,9 +17,9 @@ public:
 private:
     void parse();
     void process( String, String, String );
-    void commit( String, Log::Severity );
-    void log( String, Log::Severity, const String & );
-    void output( String, Log::Severity, const String & );
+    void commit( String, Log::Facility, Log::Severity );
+    void log( String, Log::Facility, Log::Severity, const String & );
+    void output( String, Log::Facility, Log::Severity, const String & );
 
 private:
     class LogServerData *d;
