@@ -36,6 +36,7 @@ private:
 
 
 void log( const String &, Log::Severity = Log::Info );
+void commit( Log::Severity = Log::Info );
 
 
 #endif

@@ -7,14 +7,12 @@ class String;
 
 
 class Logger {
-protected:
-    Logger();
-
 public:
+    Logger();
+    virtual void send( const String & ) = 0;
     virtual ~Logger();
 
-    virtual void send( const String & ) = 0;
-    static Logger *logger();
+    static Logger *global();
 };
 
 

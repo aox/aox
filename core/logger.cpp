@@ -9,18 +9,16 @@ static Logger *logger = 0;
 /*! \class Logger logger.h
     Abstract base class for things that log messages.
 
-    Log uses this class to send its messages to the log server, and
-    different programs provide different subclasses of Logger to
-    communicate with the right server in the right way.
+    All subclasses of Logger must implement the send() virtual function,
+    and take responsibility for correctly logging the lines of text that
+    are passed to it.
 
-    All subclasses must implement the virtual function send(), which
-    sends a single line to the log server.
+    A program creates one instance of a Logger subclass at startup and
+    uses Logger::global() to process any messages sent to a Log object
+    thereafter.
 */
 
-
-
-/*! Stores the address of the newly-created Logger for logger().
-*/
+/*! Stores the address of the newly-created Logger for global(). */
 
 Logger::Logger()
 {
@@ -28,7 +26,14 @@ Logger::Logger()
 }
 
 
-/*! This virtual destructor exists only to ensure that logger() doesn't
+/*! \fn void Logger::send( const String &s )
+
+    This virtual function logs \a s in a manner decided by the
+    subclass. \a s is assumed to already have a trailing CRLF.
+*/
+
+
+/*! This virtual destructor exists only to ensure that global() doesn't
     return a bad pointer.
 */
 
@@ -38,17 +43,9 @@ Logger::~Logger()
 }
 
 
-/*! \fn void Logger::send( const String &s )
+/*! Returns a pointer to the global Logger. */
 
-    This virtual function logs \a s in a manner decided by the
-    subclass. \a s already has a trailing CRLF.
-*/
-
-
-/*! Returns a pointer to the global Logger.
-*/
-
-Logger *Logger::logger()
+Logger *Logger::global()
 {
     return ::logger;
 }

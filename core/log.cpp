@@ -26,6 +26,14 @@ void log( const String &m, Log::Severity s )
 }
 
 
+void commit( Log::Severity s )
+{
+    Log *l = Scope::current()->log();
+    if ( l )
+        l->commit( s );
+}
+
+
 /*! \class Log log.h
     The Log class sends log messages to the Log server.
 
@@ -38,18 +46,16 @@ void log( const String &m, Log::Severity s )
     are committed to disk by the log server.
 */
 
-/*! Constructs an empty Log object with facility \a f.
-*/
+/*! Constructs an empty Log object with facility \a f. */
 
 Log::Log( Facility f )
     : fc( f )
 {
     Log *l = Scope::current()->log();
-
-    if ( !l )
-        id = "1";
-    else
+    if ( l )
         id = l->id + "/" + fn( l->children++ );
+    else
+        id = "1";
     children = 1;
 }
 
@@ -68,29 +74,29 @@ void Log::setFacility( Facility f )
 
 void Log::log( const String &m, Severity s )
 {
-    Logger * logger = Logger::logger();
-    if ( logger == 0 )
+    Logger *l = Logger::global();
+    if ( !l )
         return;
 
     if ( s == Disaster )
         disasters = true;
 
-    logger->send( id + " " + facility( fc ) + "/" + severity( s ) + " " +
-                  time() + " " + m.stripCRLF() + "\r\n" );
+    l->send( id + " " + facility( fc ) + "/" + severity( s ) + " " +
+             time() + " " + m.stripCRLF() + "\r\n" );
 }
 
 
 /*! Requests the log server to commit all log statements with severity
-    \a s or more to disk. */
+    \a s or more to disk.
+*/
 
 void Log::commit( Severity s )
 {
-    Logger * logger = Logger::logger();
-    if ( logger == 0 )
+    Logger *l = Logger::global();
+    if ( !l )
         return;
 
-    logger->send( id + " commit " +
-                  facility( fc ) + "/" + severity( s ) + "\r\n" );
+    l->send( id + " commit " + facility( fc ) + "/" + severity( s ) + "\r\n" );
 }
 
 
