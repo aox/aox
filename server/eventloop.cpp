@@ -60,8 +60,12 @@ EventLoop::EventLoop()
 void EventLoop::addConnection( Connection *c )
 {
     Scope x( d->arena );
-    if ( !d->connections.find( c ) )
-        d->connections.insert( c );
+    if ( d->connections.find( c ) )
+        return;
+
+    d->connections.insert( c );
+    if ( c->type() != Connection::LoggingClient ) // recursion is boring
+        log( Log::Debug, "added: " + c->description() );
 }
 
 
@@ -71,8 +75,12 @@ void EventLoop::removeConnection( Connection *c )
 {
     Scope x( d->arena );
     SortedList<Connection>::Iterator it = d->connections.find( c );
-    if ( it )
-        d->connections.take( it );
+    if ( !it )
+        return;
+
+    d->connections.take( it );
+    if ( c->type() != Connection::LoggingClient )
+        log( Log::Debug, "removed: " + c->description() );
 }
 
 
