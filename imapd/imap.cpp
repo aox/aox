@@ -533,12 +533,11 @@ void IMAP::run( Command * c )
 
     if ( !c->validIn( d->state ) )
         c->error( Command::Bad, "Not permitted in this state" );
-    if ( c->ok() && c->state() == Command::Executing )
+
+    if ( c->ok() )
         c->execute();
-    if ( !c->ok() )
-        c->setState( Command::Finished );
-    if ( c->state() == Command::Finished )
-        c->emitResponses();
+    else
+        c->finish();
 }
 
 
