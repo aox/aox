@@ -312,3 +312,14 @@ Miscellaneous cleanups:
   * Do the "uint characters[256]" thing to simplify parsing.
 
 
+GC speedups
+
+  At the moment, sweep() tends to look at all of RAM. if we move the
+  .marked bits into a bitmap like the "allocated" bitmap, we can avoid
+  that.
+
+  It would also be very good if we could avoid sweeping every
+  Allocator during every sweep. Perhaps we should sweep only
+  Allocators that are full or have seen some activity. Or something.
+
+
