@@ -40,13 +40,18 @@ void Authenticate::parse()
 
 
 /*! Creates a SaslMechanism corresponding to the selected mechanism, and
-    allows it to participate in the challenge-response negotiation until
-    it reaches a decision we can act upon.
+    uses it to participate in a challenge-response negotiation until we
+    reach a decision.
+
+    Typically, we create a handler and issue a challenge, and are called
+    again to read the response, which we accept or reject after a quick
+    chat with the database.
 */
 
 void Authenticate::execute()
 {
     // First, create a mechanism handler.
+
     if ( !a ) {
         a = Authenticator::create( t );
         if ( !a ) {
