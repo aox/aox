@@ -10,6 +10,7 @@
 #include "buffer.h"
 #include "message.h"
 #include "configuration.h"
+#include "stringlist.h"
 #include "date.h"
 #include "header.h"
 #include "injector.h"

@@ -4,15 +4,13 @@
 #define MESSAGE_H
 
 #include "multipart.h"
-#include "string.h"
-#include "ustring.h"
 #include "header.h"
-#include "mimefields.h"
-#include "event.h"
 
 
+class EventHandler;
 class Bodypart;
 class Mailbox;
+class String;
 class Flag;
 
 

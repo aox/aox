@@ -6,6 +6,7 @@
 #include "messageset.h"
 #include "stringlist.h"
 #include "imapsession.h"
+#include "mimefields.h"
 #include "address.h"
 #include "message.h"
 #include "bodypart.h"

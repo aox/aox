@@ -5,6 +5,7 @@
 #include "message.h"
 #include "bodypart.h"
 #include "mimefields.h"
+#include "ustring.h"
 #include "codec.h"
 
 

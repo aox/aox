@@ -3,9 +3,9 @@
 #ifndef HEADER_H
 #define HEADER_H
 
-#include "string.h"
 #include "list.h"
 
+class String;
 class Address;
 class ContentType;
 class ContentTransferEncoding;

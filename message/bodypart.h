@@ -4,10 +4,9 @@
 #define BODYPART_H
 
 #include "multipart.h"
-// #include "ustring.h"
-#include "string.h"
 
 
+class String;
 class UString;
 class Header;
 class Message;

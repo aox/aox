@@ -155,6 +155,7 @@ logging cleanups
 Miscellaneous cleanups:
 
   * get rid of Blah::setup wherever possible
+  * avoid unnecessary header file inclusion
 
 
 Inbox lifetime/mailbox reuse

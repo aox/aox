@@ -9,6 +9,7 @@
 #include "message.h"
 #include "bodypart.h"
 #include "mailbox.h"
+#include "mimefields.h"
 #include "fieldcache.h"
 #include "addresscache.h"
 #include "transaction.h"
