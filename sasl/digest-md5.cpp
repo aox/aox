@@ -300,9 +300,9 @@ void DigestMD5::setChallenge( const String &s )
 }
 
 
-/*! RFC 2831 defines n#m( expr ) as a list containing at least n, and at
-    most m repetitions of expr, separated by commas, and optional linear
-    white space:
+/*! RFC 2831 defines "n#m( expr )" as a list containing at least n, and
+    at most m repetitions of expr, separated by commas, and optional
+    linear white space:
 
         ( *LWS expr *( *LWS "," *LWS expr ) )
 

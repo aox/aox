@@ -49,6 +49,10 @@ void Plain::readResponse( const String & response )
 }
 
 
+/*! Parses an AUTH=PLAIN \a response to extract the \a authenticateId,
+    \a authorizeId, and \a pw.
+*/
+
 bool Plain::parse( String & authenticateId,
                    String & authorizeId,
                    String & pw,
