@@ -6,10 +6,10 @@
 #include "global.h"
 #include "stringlist.h"
 #include "event.h"
+#include "imap.h"
 
-class IMAP;
-class Arena;
 class Log;
+class Arena;
 class MessageSet;
 
 
@@ -30,6 +30,8 @@ public:
     enum State { Blocked, Executing, Finished };
     State state() const;
     void setState( State );
+
+    bool validIn( IMAP::State ) const;
 
     uint group() const;
     void setGroup( uint );

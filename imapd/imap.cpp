@@ -305,25 +305,9 @@ void IMAP::addCommand()
         = Command::create( this, command, tag, d->args, d->cmdArena );
 
     if ( !cmd ) {
-        String st;
-        switch( d->state ) {
-        case NotAuthenticated:
-            st = "unauthenticated";
-            break;
-        case Authenticated:
-            st = "authenticated";
-            break;
-        case Selected:
-            st = "selected";
-            break;
-        case Logout:
-            st = "logout";
-            break;
-        }
-        log( "Unknown command '" + command +
-             "' (tag '" + tag + "', state " + st + ")", Log::Error );
-        enqueue( tag + " BAD No such command in " + st + " state: " +
-                 command + "\r\n" );
+        log( "Unknown command '" + command + "' (tag '" + tag + "')",
+             Log::Error );
+        enqueue( tag + " BAD No such command: " + command + "\r\n" );
         delete d->cmdArena;
         return;
     }
@@ -547,6 +531,8 @@ void IMAP::run( Command * c )
 
     Scope x( c->arena() );
 
+    if ( !c->validIn( d->state ) )
+        c->error( Command::Bad, "Not permitted in this state" );
     if ( c->ok() && c->state() == Command::Executing )
         c->execute();
     if ( !c->ok() )
