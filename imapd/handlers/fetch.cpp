@@ -347,7 +347,7 @@ void Fetch::execute()
              ( !d->needBody || m->hasBodies() ) &&
              ( !d->flags || m->hasFlags() ) )
         {
-            respond( fetchResponse( m, uid, s->msn( uid ) ), Untagged );
+            imap()->enqueue( fetchResponse( m, uid, s->msn( uid ) ) );
             d->set.remove( uid );
         }
         else {
@@ -510,7 +510,7 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
         ++it;
     }
 
-    String r = fn( msn ) + " FETCH (" + l.join( " " ) + ")";
+    String r = "* " + fn( msn ) + " FETCH (" + l.join( " " ) + ")\r\n";
     return r;
 }
 
