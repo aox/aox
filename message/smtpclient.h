@@ -23,6 +23,7 @@ public:
     void react( Event );
 
     bool failed() const;
+    String error() const;
 
 private:
     class SmtpClientData * d;

@@ -17,6 +17,7 @@ public:
     bool failed;
 
     String sent;
+    String error;
     String sender;
     String message;
     String recipient;
@@ -79,6 +80,7 @@ void SmtpClient::react( Event e )
     case Timeout:
         log( "SMTP/LMTP server timed out", Log::Error );
         Connection::setState( Closing );
+        d->error = "Server timeout.";
         d->failed = true;
         d->owner->notify();
         break;
@@ -90,6 +92,7 @@ void SmtpClient::react( Event e )
     case Close:
         if ( d->sent != "quit" ) {
             log( "Unexpected close by server", Log::Error );
+            d->error = "Unexpected close by server.";
             d->failed = true;
             d->owner->notify();
         }
@@ -109,6 +112,16 @@ void SmtpClient::react( Event e )
 bool SmtpClient::failed() const
 {
     return d->failed;
+}
+
+
+/*! Returns the last error seen, or an empty string if no error has been
+    encountered. Will be set if failed() is true.
+*/
+
+String SmtpClient::error() const
+{
+    return d->error;
 }
 
 
@@ -144,6 +157,7 @@ void SmtpClient::parse()
             }
         }
         if ( !ok ) {
+            d->error = *s;
             d->failed = true;
             d->owner->notify();
             log( "L/SMTP error for command " + d->sent + ": " + *s,

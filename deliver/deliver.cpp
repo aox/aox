@@ -17,6 +17,7 @@
 
 static int status;
 static SmtpClient *client;
+static const char *errstr;
 
 
 int main( int argc, char *argv[] )
@@ -97,7 +98,7 @@ int main( int argc, char *argv[] )
     }
 
     if ( verbose > 0 )
-        fprintf( stderr, "Using recipient %s and sender %s\n",
+        fprintf( stderr, "Sending to <%s> from <%s>\n",
                  recipient.cstr(), sender.cstr() );
 
     Configuration::setup( "mailstore.conf" );
@@ -113,8 +114,10 @@ int main( int argc, char *argv[] )
     class DeliveryHelper : public EventHandler {
     public:
         void execute() {
-            if ( client->failed() )
+            if ( client->failed() ) {
+                errstr = client->error().cstr();
                 status = -1;
+            }
             Loop::shutdown();
         }
     };
@@ -122,5 +125,8 @@ int main( int argc, char *argv[] )
     client = new SmtpClient( sender, contents, recipient,
                              new DeliveryHelper );
     Loop::start();
+
+    if ( verbose > 0 && status < 0 )
+        fprintf( stderr, "Error: %s\n", errstr );
     return status;
 }
