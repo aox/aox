@@ -3,6 +3,8 @@
 
 #include "connection.h"
 
+class Query;
+
 
 class Database
     : public Connection
@@ -18,10 +20,10 @@ public:
     static Database *handle();
 
     virtual bool ready() = 0;
-    virtual void reserve() = 0;
-    virtual void release() = 0;
-    virtual void enqueue( class Query * ) = 0;
+    virtual void enqueue( Query * ) = 0;
     virtual void execute() = 0;
+
+    static void query( Query * );
 
 protected:
     static String type();

@@ -193,14 +193,7 @@ void Query::bind( uint n, const String &s )
 
 void Query::execute()
 {
-    Database *db = Database::handle();
-    if ( !db ) {
-        setError( "No available database handle." );
-        return;
-    }
-
-    db->enqueue( this );
-    db->execute();
+    Database::query( this );
 }
 
 

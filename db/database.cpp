@@ -4,6 +4,7 @@
 #include "scope.h"
 #include "list.h"
 #include "string.h"
+#include "query.h"
 #include "configuration.h"
 #include "log.h"
 
@@ -110,33 +111,8 @@ Database *Database::handle()
 /*! \fn bool Database::ready()
 
     This function returns true when a database object is ready to accept
-    a Query via enqueue(). It will return false after reserve() has been
-    has been called, or, for example, if it has too many pending queries
-    already.
-
-    Each Database subclass must implement this function.
-*/
-
-/*! \fn void Database::reserve()
-
-    This function reserves a database handle for use by the caller. That
-    is, it will not be ready() to accept queries until it is release()d.
-    For example, one could reserve a handle(), then enqueue() a sequence
-    of queries, and execute() them all at once before releasing it. This
-    is how Transaction objects work.
-
-    Handles may be reserved only if they are ready(). Reserving a handle
-    that has already been reserved does nothing.
-
-    Each Database subclass must implement this function.
-*/
-
-/*! \fn void Database::release()
-
-    This function releases a previously reserved database handle, making
-    it ready() to accept queries again. A handle should be released only
-    by the object that reserved it. Releasing an unreserved handle does
-    nothing.
+    a Query via enqueue(). It may return false when, for example, it has
+    too many pending queries already.
 
     Each Database subclass must implement this function.
 */
@@ -148,9 +124,9 @@ Database *Database::handle()
     changed. The query will be sent to the server only when execute() is
     called.
 
-    Enqueuing a query with a Query::transaction() set will automatically
-    reserve() the handle until the end of the transaction. An enqueue()d
-    query SHOULD be immediately executed unless the handle is reserved.
+    Enqueuing a query with a Query::transaction() set will cause ready()
+    to return false, so that non-transaction queries are not enqueued in
+    between ones belonging to the transaction.
 
     Don't enqueue() a Query unless the Database is ready() for one.
 */
@@ -162,6 +138,25 @@ Database *Database::handle()
     either Query::Submitted if the query will only be sent later, or to
     Query::Executing if it was sent immediately.
 */
+
+
+/*! This static function acquires a database handle, enqueue()s a single
+    \a query, and execute()s it. If it cannot find a database handle, it
+    calls Query::setError() and returns.
+*/
+
+void Database::query( Query *query )
+{
+    Database *db = handle();
+
+    if ( !db ) {
+        query->setError( "No database handle available." );
+        return;
+    }
+
+    db->enqueue( query );
+    db->execute();
+}
 
 
 /*! Returns the text of the "db" configuration variable, which tells the

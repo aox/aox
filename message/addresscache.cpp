@@ -143,13 +143,10 @@ void AddressCache::lookup( List< Address > *l, EventHandler *ev )
     if ( lookups->isEmpty() )
         return;
     
-    // XXX: I have got to make it easier to do the following.
-
+    // What if we can't get a handle? Surely we want to fail gracefully.
     Database *db = Database::handle();
-    db->reserve();
     List< Query >::Iterator q( lookups->first() );
     while ( q )
         db->enqueue( q++ );
     db->execute();
-    db->release();
 }

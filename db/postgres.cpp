@@ -91,22 +91,6 @@ bool Postgres::ready()
 
 /*! \reimp */
 
-void Postgres::reserve()
-{
-    d->reserved = true;
-}
-
-
-/*! \reimp */
-
-void Postgres::release()
-{
-    d->reserved = false;
-}
-
-
-/*! \reimp */
-
 void Postgres::enqueue( Query *q )
 {
     if ( q->transaction() != 0 )

@@ -13,8 +13,6 @@ public:
     Postgres();
 
     bool ready();
-    void reserve();
-    void release();
     void enqueue( class Query * );
     void execute();
 
