@@ -346,7 +346,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
 
         bp->d->text = c->toUnicode( body );
         if ( !c->valid() && error.isEmpty() )
-            error = "Error converting body to Unicode";
+            error = "Error converting body from " + c->name() + " to Unicode";
 
         // Is there a better codec for this data?
         if ( ct )
