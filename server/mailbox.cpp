@@ -8,6 +8,7 @@
 #include "string.h"
 #include "stringlist.h"
 #include "log.h"
+#include "map.h"
 
 
 class MailboxData {
@@ -33,6 +34,7 @@ public:
 static Mailbox *root = 0;
 static Arena * arena = 0;
 static Query *query = 0;
+static Map<Mailbox> * mailboxes = 0;
 
 
 /*! \class Mailbox mailbox.h
@@ -72,6 +74,9 @@ void Mailbox::setup()
             if ( !query->done() )
                 return;
 
+            if ( !::mailboxes )
+                ::mailboxes = new Map<Mailbox>;
+
             while ( query->hasResults() ) {
                 Row *r = query->nextRow();
 
@@ -80,6 +85,9 @@ void Mailbox::setup()
                 m->d->deleted = r->getBoolean( "deleted" );
                 m->d->uidnext = r->getInt( "uidnext" );
                 m->d->uidvalidity = r->getInt( "uidvalidity" );
+
+                if ( m->d->id )
+                    ::mailboxes->insert( m->d->id, m );
             }
 
             if ( query->failed() )
@@ -176,6 +184,18 @@ Mailbox *Mailbox::parent() const
 List< Mailbox > *Mailbox::children() const
 {
     return d->children;
+}
+
+
+/*! Returns a pointer to the Mailbox with \a id, or a null pointer if
+    there is no such (known) Mailbox.
+*/
+
+Mailbox * Mailbox::find( uint id )
+{
+    if ( !::mailboxes )
+        return 0;
+    return ::mailboxes->find( id );
 }
 
 

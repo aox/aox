@@ -27,6 +27,8 @@ public:
     static Mailbox *find( const String &, bool = false );
     static Mailbox *obtain( const String &, bool create = true );
 
+    static Mailbox * find( uint );
+
     bool operator <=( const Mailbox &b ) {
         if ( id() && b.id() )
             return id() <= b.id();
