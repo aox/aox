@@ -43,10 +43,12 @@ void Loop::start()
     while ( !armageddon ) {
         Connection *c;
 
-        fd_set r, w;
-        int maxfd = connections.last()->fd();
         int timeout = INT_MAX;
+        int maxfd = -1;
+        if ( connections.count() > 0 )
+            maxfd = connections.last()->fd();
 
+        fd_set r, w;
         FD_ZERO( &r );
         FD_ZERO( &w );
 
