@@ -75,11 +75,11 @@ Doc qdoc : imap message logd database server lib ;
 # the sets used by Build.
 
 Program imapd : imap message imapdmain database server lib ;
-LINKLIBS on imapd = -lz -lcrypt ;
+LINKLIBS on imapd = -lcrypt ;
 
 Program logd : logd logdmain server lib ;
 LINKLIBS on logd = ;
 
 Program runtests : imap message logd database server lib runtestsmain ;
-LINKLIBS on runtests = -lz -lcrypt ;
+LINKLIBS on runtests = -lcrypt ;
 
