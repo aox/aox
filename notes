@@ -6,8 +6,7 @@ LIST/LSUB fixes.
 
 Injector fixes:
 
-  1. We need to share entries for identical bodyparts.
-  2. Better error handling is urgently required.
+  1. Better error handling is urgently required.
 
 
 Message fixes:
@@ -46,6 +45,12 @@ Field name synchronisation
 Fix shutdown
 
   there's no practical way to shutdown using ocd/ocadmin.
+
+
+Bodypart sharing
+
+  We're doing an in-memory Dict< hash > right now.
+  We could do better, but it would involve waiting.
 
 
 Using SHA-1 to hash bodyparts instead of MD5.

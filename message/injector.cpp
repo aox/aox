@@ -406,6 +406,7 @@ void Injector::insertBodyparts()
     };
 
     Query *i, *s;
+    Codec *c = new Utf8Codec;
     d->bodypartIds = new List< int >;
     List< Query > * queries = new List< Query >;
     IdHelper * helper = new BodypartHelper( d->bodypartIds, queries, this );
@@ -428,6 +429,22 @@ void Injector::insertBodyparts()
                 data = false;
         }
 
+        String hash;
+        if ( text )
+            hash = MD5::hash( c->fromUnicode( b->text() ) ).hex();
+        else
+            hash = MD5::hash( b->data() ).hex();
+
+        // This is a terrible hack. -- AMS 20050113
+        int *id = bodyHashes->find( hash );
+        if ( id ) {
+            s = new Query( "select " + fn( *id ) + " as id, "
+                           "'" + hash + "'::text as hash", helper );
+            d->transaction->enqueue( s );
+            queries->append( s );
+            continue;
+        }
+
         i = new Query( "insert into bodyparts (bytes,lines,text) "
                        "values ($1,$2,$3)", helper );
 
@@ -436,7 +453,6 @@ void Injector::insertBodyparts()
 
         if ( text ) {
             data = false;
-            Codec *c = new Utf8Codec;
             i->bind( 3, c->fromUnicode( b->text() ), Query::Binary );
         }
         else {
@@ -453,7 +469,6 @@ void Injector::insertBodyparts()
             d->transaction->enqueue( i );
         }
 
-        String hash = MD5::hash( b->data() ).hex();
         s = new Query( "select currval('bodypart_ids')::integer as id, "
                        "'" + hash + "'::text as hash", helper );
         d->transaction->enqueue( s );
