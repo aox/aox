@@ -41,7 +41,6 @@ int main( int argc, char *argv[] )
     FieldNameCache::setup();
     Flag::setup();
     IMAP::setup();
-    Injector::setup();
 
     s.execute();
 }
