@@ -38,7 +38,7 @@ void Login::execute()
         m->setSecret( p );
     }
 
-    m->verify();
+    m->query();
 
     if ( m->done() ) {
         if ( m->state() == SaslMechanism::Failed ) {
