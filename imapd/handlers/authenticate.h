@@ -10,7 +10,7 @@ class Authenticate
 {
 public:
     Authenticate()
-        : a( 0 )
+        : a( 0 ), r( 0 )
     {}
 
     void parse();
@@ -19,7 +19,8 @@ public:
 
 private:
     class Authenticator *a;
-    String t, r;
+    String *r;
+    String t;
 };
 
 #endif

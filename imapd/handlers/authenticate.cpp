@@ -27,14 +27,14 @@ void Authenticate::parse()
     // Accept a Base64-encoded SASL initial response.
     if ( nextChar() == ' ' ) {
         char c;
-
         space();
+        r = new String;
         while ( ( ( c = nextChar() ) >= '0' && c <= '9' ) ||
                 ( c >= 'A' && c <= 'Z' ) || ( c >= 'a' && c <= 'z' ) ||
                 c == '+' || c == '/' || c == '=' )
         {
             step();
-            r.append( c );
+            r->append( c );
         }
     }
 
@@ -64,19 +64,25 @@ void Authenticate::execute()
         imap()->reserve( this );
     }
 
-    // Feed the handler until it can make up its mind.
+    // Now, feed the handler until it can make up its mind.
+
+    if ( a->state() == Authenticator::AwaitingInitialResponse ) {
+        if ( r )
+            a->readResponse( r->de64() );
+        else
+            a->setState( Authenticator::IssuingChallenge );
+        r = 0;
+    }
 
     if ( a->state() == Authenticator::IssuingChallenge ) {
         imap()->writeBuffer()->append( "+ "+ a->challenge().e64() +"\r\n" );
         a->setState( Authenticator::AwaitingResponse );
-        r.truncate( 0 );
+        r = 0;
         return;
     }
-    else if ( a->state() == Authenticator::AwaitingResponse &&
-              !r.isEmpty() )
-    {
-        a->readResponse( r.de64() );
-        r.truncate( 0 );
+    else if ( a->state() == Authenticator::AwaitingResponse && r ) {
+        a->readResponse( r->de64() );
+        r = 0;
     }
 
     if ( !a->done() )
@@ -97,13 +103,11 @@ void Authenticate::execute()
 }
 
 
-/*! Tries to read a single response line from the client into r, which
-    is left unmodified if a complete response cannot be read.
+/*! Tries to read a single response line from the client. Upon return,
+    r points to the response, or is 0 if no response could be read.
 */
 
 void Authenticate::read()
 {
-    String * s = imap()->readBuffer()->removeLine();
-    if ( s )
-        r.append( *s );
+    r = imap()->readBuffer()->removeLine();
 }
