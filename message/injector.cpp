@@ -439,7 +439,7 @@ void Injector::buildFieldLinks()
     buildLinksForHeader( d->message->header(), "" );
 
     // Since the MIME header fields belonging to the first-child of a
-    // single-part Message are physically collocated with the RFC 822
+    // single-part Message are physically colocated with the RFC 822
     // header, we don't need to inject them into the database again.
     bool skip = false;
     HeaderField *hf =
