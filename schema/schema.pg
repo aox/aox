@@ -109,8 +109,12 @@ create table bodyparts (
 -- A non-canonical textual representation may also be stored above.
 
 create table binary_parts (
-    bodypart    integer not null references bodyparts(id) primary key,
-    data        bytea
+    bodypart    integer not null,
+    data        bytea,
+    foreign key (bodypart)
+                references bodyparts(id)
+                on delete cascade,
+    primary key (bodypart)
 );
 
 
