@@ -26,7 +26,7 @@ private:
 class LogClientHelper: public Connection
 {
 private:
-    friend LogClient;
+    friend class LogClient;
     LogClientHelper( int fd ): Connection( fd ) {}
 
     void react( Event );
