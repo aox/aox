@@ -220,7 +220,8 @@ void UserPane::updateExceptLogin()
             g = g.lower().section( ',', 0, 0 );
             d->realName->setText( g );
             d->realName->setCursorPosition( g.length() );
-            d->realName->selectAll();
+            if ( d->realName == focusWidget() )
+                d->realName->selectAll();
         }
     }
 }
