@@ -36,10 +36,10 @@ public:
 
     List<BodyPart> * bodyParts() const;
 
-    void setInternalDate( uint );
-    uint internalDate() const;
     void setRfc822Size( uint );
     uint rfc822Size() const;
+    void setInternalDate( uint );
+    uint internalDate() const;
     void setNumBytes( uint );
     uint numBytes() const;
     void setNumLines( uint );
@@ -71,8 +71,9 @@ private:
 
 private:
     class MessageData * d;
-    friend class MessageHeaderFetcher;
     friend class MessageBodyFetcher;
+    friend class MessageFlagFetcher;
+    friend class MessageHeaderFetcher;
     friend class BodyPart;
 };
 
