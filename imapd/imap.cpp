@@ -265,12 +265,14 @@ void IMAP::addCommand()
             }
             else {
                 // do all other commands belong to the same command group?
-                d->commands.first();
-                while ( d->commands.current() &&
-                        d->commands.current()->group() == cmd->group() )
-                    d->commands.next();
-                if ( d->commands.current() ) {
-                    // no, d->commands.current() does not
+                List< Command >::Iterator i;
+
+                i = d->commands.first();
+                while ( i && i->group() == cmd->group() )
+                    i++;
+
+                if ( i ) {
+                    // no, *i does not
                     cmd->setState( Command::Blocked );
                     cmd->logger()->log( Logger::Debug,
                                         "Blocking execution of " + tag +
@@ -460,8 +462,11 @@ void IMAP::runCommands()
     while ( more ) {
         more = false;
 
-        c = d->commands.first();
-        while ( c != 0 ) {
+        List< Command >::Iterator i;
+
+        i = d->commands.first();
+        while ( i ) {
+            c = i++;
             Scope x( c->arena() );
 
             if ( c->ok() && c->state() == Command::Executing )
@@ -470,19 +475,14 @@ void IMAP::runCommands()
                 c->setState( Command::Finished );
             if ( c->state() == Command::Finished )
                 c->emitResponses();
-
-            c = d->commands.next();
         }
 
-        c = d->commands.first();
-        while ( c != 0 ) {
-            if ( c->state() == Command::Finished ) {
-                delete d->commands.take();
-                c = d->commands.current();
-            }
-            else {
-                c = d->commands.next();
-            }
+        i = d->commands.first();
+        while ( i ) {
+            if ( i->state() == Command::Finished )
+                delete d->commands.take(i);
+            else
+                i++;
         }
 
         c = d->commands.first();
