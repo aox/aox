@@ -4,12 +4,6 @@ Add support for RFC 2047 encoding
 Investigate the segfaults in "ms create user" on Debian.
 
 
-Fix the extra \r\n in the bodypart for o/1
-
-
-Make sure ocd announces new users and new mail
-
-
 Fix the horrible LIST/LSUB problems:
 
   There's lots of horrible breakage here (for example, the reference
@@ -36,6 +30,9 @@ Schema documentation
 
 
 Set up and play with Tsearch2
+
+
+ocd needs to announce new mail.
 
 
 Per-MTA installation and use
@@ -140,6 +137,12 @@ Bodypart sharing
     select id from bodyparts where hash=$2
 
   And then fetch the resulting id back. That's it.
+
+
+ocd/OC* need a bit of an overhaul.
+
+
+User/Mailbox need a bit of an overhaul.
 
 
 inject a large number of messages, collect query statistics
