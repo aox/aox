@@ -34,6 +34,7 @@ public:
         Date, OrigDate, ResentDate,
         Subject, Comments, Keywords,
         ContentType, ContentTransferEncoding, ContentDisposition,
+        ContentDescription, ContentId,
         MimeVersion,
         Received,
         Other // Other must be last
@@ -80,6 +81,7 @@ public:
     ContentType * contentType() const;
     ContentTransferEncoding * contentTransferEncoding() const;
     ContentDisposition * contentDisposition() const;
+    String contentDescription() const;
 
     List<Address> * addresses( HeaderField::Type ) const;
 
