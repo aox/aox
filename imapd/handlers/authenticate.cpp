@@ -15,16 +15,8 @@
 #include "sasl/mechanism.h"
 
 
-/*! Constructs an generic Authenticate handler, for any mechanism. */
-
-Authenticate::Authenticate()
-    : a(0)
-{
-}
-
-
-/*! Parses the initial bits of Authenticate, that is, the type. The
-    rest is left for read().
+/*! Parses the initial arguments to AUTHENTICATE (at least a mechanism
+    name, and perhaps a SASL initial response as well).
 */
 
 void Authenticate::parse()
@@ -32,29 +24,36 @@ void Authenticate::parse()
     space();
     t = atom().lower();
 
-    // Accept a SASL initial response.
+    // Accept a Base64-encoded SASL initial response.
     if ( nextChar() == ' ' ) {
+        char c;
+
         space();
-        r = atom(); // wrong. only base64 is legal.
+        while ( ( ( c = nextChar() ) >= '0' && c <= '9' ) ||
+                ( c >= 'A' && c <= 'Z' ) || ( c >= 'a' && c <= 'z' ) ||
+                c == '+' || c == '/' )
+            r.append( c );
     }
 
     end();
 }
 
 
-/*! Verifies the authentication mechanism and offers the challenge.
-    Later calls do nothing.
+/*! Creates a SaslMechanism corresponding to the selected mechanism, and
+    allows it to participate in the challenge-response negotiation until
+    it reaches a decision we can act upon.
 */
 
 void Authenticate::execute()
 {
+    // First, create a mechanism handler.
     if ( !a ) {
-        // first time. look for an authenticator and fail if there's none.
-        a = Authenticator::authenticator( t );
+        a = Authenticator::create( t );
         if ( !a ) {
             error( Bad, "Mechanism " + t + " not supported" );
             return;
         }
+
         imap()->reserve( this );
         a->setLogger( logger() );
     }
