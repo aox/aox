@@ -36,7 +36,7 @@ private:
     void startPage( const String &, const String & );
 
 private:
-    bool para;
+    String para;
     int fd;
     String directory;
     String fn;

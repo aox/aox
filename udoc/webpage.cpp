@@ -26,7 +26,7 @@ static WebPage * wp = 0;
     directory \a dir. */
 
 WebPage::WebPage( const char * dir )
-    : para( false ), fd( -1 ), directory( dir )
+    : fd( -1 ), directory( dir )
 {
     wp = this;
 }
@@ -65,7 +65,8 @@ void WebPage::startHeadline( Class * c )
 {
     endPage();
     startPage( c->name().lower(), c->name() + " Documentation" );
-    output( "<p class=classh>" );
+    output( "<h1 class=\"classh\">" );
+    para = "</h1>\n";
 }
 
 
@@ -73,9 +74,9 @@ void WebPage::startHeadline( Class * c )
 
 void WebPage::startHeadline( Function * f )
 {
-    output( "<p class=functionh>"
+    output( "<h2 class=\"functionh\">"
             "<a name=\"" + anchor( f ) + "\"></a>");
-    para = true;
+    para = "</h2>\n";
 }
 
 
@@ -83,9 +84,10 @@ void WebPage::startHeadline( Function * f )
 
 void WebPage::endParagraph()
 {
-    if ( para )
-        output( "\n" );
-    para = false;
+    if ( para.isEmpty() )
+        return;
+    output( para );
+    para = "";
 }
 
 
@@ -93,9 +95,9 @@ void WebPage::endParagraph()
 
 void WebPage::addText( const String & text )
 {
-    if ( !para ) {
-        output( "<p class=text>" );
-        para = true;
+    if ( para.isEmpty() ) {
+        output( "<p class=\"text\">" );
+        para = "\n";
     }
 
     String s;
@@ -249,8 +251,8 @@ void WebPage::endPage()
 
     endParagraph();
     
-    para = true;
-    output( "<p class=rights>"
+    para = "\n";
+    output( "<p class=\"rights\">"
             "This web page based on source code belonging to " );
     if ( !Output::ownerHome().isEmpty() ) {
         output( "<a href=\"" + Output::ownerHome() + "\">" );
@@ -278,7 +280,7 @@ void WebPage::startPage( const String & name, const String & title )
     output( "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\">\n"
             "<html lang=en><head>" );
     output( "<title>" );
-    para = true;
+    para = "\n";
     addText( title );
     output( "</title>\n" );
     output( "<link rel=stylesheet href=\"udoc.css\" type=\"text/css\">\n"
