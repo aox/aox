@@ -280,6 +280,15 @@ void Injector::updateAddresses()
 
 void Injector::updateFieldNames()
 {
+    // This function isn't correctly implemented yet. It needs to look
+    // at all the MIME headers in the message and its constituent body
+    // parts, build a list of unique fields (as updateAddresses() does
+    // above), and pass it to FieldCache::lookup() after building the
+    // d->fieldLinks list.
+    //
+    // But first, it needs a way to iterate over all the fields in any
+    // message header.
+
     d->fieldLinks = new List< FieldLink >;
 
     Header *h = d->message->header();
