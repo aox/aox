@@ -171,12 +171,6 @@ void AddressCache::lookup( List< Address > *l, EventHandler *ev )
         it++;
     }
 
-    if ( lookups->isEmpty() )
-        return;
-
-    Database *db = Database::handle();
-    List< Query >::Iterator q( lookups->first() );
-    while ( q )
-        db->enqueue( q++ );
-    db->execute();
+    if ( !lookups->isEmpty() )
+        Database::query( lookups );
 }
