@@ -16,20 +16,22 @@ public:
 
 
 /*! \class POP3 pop3.h
-    Implements a POP3 server.
+    This class implements a POP3 server.
 
-    The Post Office Protocol is described in RFC 1939, as updated by RFC
-    1957 and 2449. RFC 1734 describes the AUTH mechanism, while RFC 2595
-    defines STARTTLS for POP3.
+    The Post Office Protocol is defined by RFC 1939, and updated by RFCs
+    1957 (which doesn't say much) and 2449, which defines CAPA and other
+    extensions. RFC 1734 defines an AUTH command for SASL authentication
+    support, and RFC 2595 defines STARTTLS for POP3.
 */
 
-/*! Creates a POP3 server object for the fd \a s. */
+/*! Creates a POP3 server for the fd \a s, and sends the initial banner.
+*/
 
 POP3::POP3( int s )
     : Connection( s, Connection::Pop3Server ),
       d( new PopData )
 {
-    ok( "POP3" );
+    ok( "POP3 server ready." );
     setTimeoutAfter( 600 );
 }
 
@@ -41,7 +43,8 @@ POP3::~POP3()
 }
 
 
-/*! Sets the server's state to \a s, which may be any of:
+/*! Sets this server's state to \a s, which may be one of Authorization,
+    Transaction, or Update (as defined in POP3::State).
 */
 
 void POP3::setState( State s )
@@ -69,6 +72,7 @@ void POP3::react( Event e )
         break;
 
     case Timeout:
+        // May we send a response here?
         Connection::setState( Closing );
         break;
 
@@ -93,11 +97,18 @@ void POP3::react( Event e )
 
 void POP3::parse()
 {
-    String *s;
+    Buffer *b = readBuffer();
 
-    while ( ( s = readBuffer()->removeLine() ) != 0 ) {
-        String cmd;
-        String args;
+    while ( b->size() > 0 ) {
+        String *s = b->removeLine( 255 );
+
+        if ( !s ) {
+            err( "Line too long. Closing connection." );
+            Connection::setState( Closing );
+            return;
+        }
+
+        String cmd, args;
 
         int n = s->find( ' ' );
         if ( n < 0 ) {
@@ -108,10 +119,39 @@ void POP3::parse()
             args = s->mid( n );
         }
 
-        if ( cmd == "quit" )
-            quit();
-        else
-            err( "Bad command" );
+        bool unknown = false;
+        
+        if ( cmd == "quit" && args.isEmpty() ) {
+            ok( "Goodbye" );
+            setState( Update );
+        }
+        else if ( cmd == "capa" && args.isEmpty() ) {
+            // We make no attempt here to use the capabilities defined
+            // in imapd/handlers/capability.cpp.
+            ok( "Supported capabilities:" );
+            enqueue( "USER\r\n" );
+            enqueue( "RESP-CODES\r\n" );
+            enqueue( "PIPELINING\r\n" );
+            enqueue( "IMPLEMENTATION Oryx POP3 Server.\r\n" );
+            enqueue( ".\r\n" );
+        }
+        else if ( d->state == Authorization ) {
+            unknown = true;
+        }
+        else if ( d->state == Transaction ) {
+            if ( cmd == "noop" && args.isEmpty() ) {
+                ok( "Done." );
+            }
+            else {
+                unknown = true;
+            }
+        }
+        else {
+            unknown = true;
+        }
+
+        if ( unknown )
+            err( "Bad command." );
     }
 }
 
@@ -129,13 +169,4 @@ void POP3::ok( const String &s )
 void POP3::err( const String &s )
 {
     enqueue( "-ERR " + s + "\r\n" );
-}
-
-
-/*! Handles the QUIT command. */
-
-void POP3::quit()
-{
-    ok( "Goodbye" );
-    setState( Update );
 }

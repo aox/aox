@@ -25,7 +25,6 @@ private:
 
     void ok( const String & );
     void err( const String & );
-    void quit();
 };
 
 
