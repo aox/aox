@@ -32,14 +32,14 @@ public:
 /*!  Constructs an SMTP client to send \a m to address \a a. */
 
 SmtpClient::SmtpClient( Message * m, Address * a )
-    : d( new SmtpClientData )
+    : Connection( Connection::socket( Endpoint::IPv4 ),
+                  Connection::SmtpClient ),
+      d( new SmtpClientData )
 {
     d->a = a;
     d->m = m;
-    Loop::addConnection( this );
-    setBlocking( true ); // fsck. this will not do.
     connect( Endpoint( "127.0.0.1", 2026 ) );
-    setBlocking( false );
+    Loop::addConnection( this );
 }
 
 
@@ -83,6 +83,7 @@ void SmtpClient::parse()
         String * s = r->removeLine();
         if ( !s )
             return;
+        log( Log::Debug, "Received: " + *s );
         bool ok = false;
         if ( (*s)[3] == '-' ) {
             // it's a continuation line
@@ -91,7 +92,9 @@ void SmtpClient::parse()
         else if ( d->sent == "data" ) {
             if ( (*s)[0] == '3' ) {
                 ok = true;
+                log( Log::Debug, "Sending body." );
                 enqueue( dotted( d->m->rfc822() ) );
+                d->sent = "body";
             }
         }
         else {
@@ -124,7 +127,7 @@ void SmtpClient::sendCommand()
     case 'e':
     case 'h':
     case 'l':
-        send = "mail from:<>"; // ###
+        send = "mail from:<foo@oryx.com>"; // ###
         break;
     case 'm':
         send = "rcpt to:<" + d->a->localpart() + "@" + d->a->domain() + ">";
@@ -132,7 +135,7 @@ void SmtpClient::sendCommand()
     case 'r':
         send = "data";
         break;
-    case 'd':
+    case 'b':
         send = "quit";
         break;
     case 'q':
@@ -141,6 +144,7 @@ void SmtpClient::sendCommand()
         return;
         break;
     }
+    log( Log::Debug, "Sending: " + send );
     enqueue( send + "\r\n" );
     d->sent = send;
 }
