@@ -119,6 +119,7 @@ void Append::execute()
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
         m->append( imap()->session()->mailbox() );
         d->injector = new Injector( d->message, m, this );
+        d->injector->execute();
     }
     if ( d->injector->done() )
         finish();
