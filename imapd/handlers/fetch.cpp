@@ -305,6 +305,8 @@ void Fetch::parseBody()
         s->id.append( tmp );
     }
 
+    require( "]" );
+
     if ( nextChar() == '<' ) {
         s->partial = true;
         step();
@@ -313,8 +315,6 @@ void Fetch::parseBody()
         s->length = nzNumber();
         require( ">" );
     }
-
-    require( "]" );
 
     d->sections.append( s );
 }
