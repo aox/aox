@@ -60,7 +60,7 @@ Build runtestsmain : runtests.cpp ;
 # the documentation groups. for the moment, the target is just a dummy
 
 rule Doc {
-    Depends exe : $(<) ; # run this rule whenever "all executables" are built
+    # Depends exe : $(<) ; # run this rule whenever "all executables" are built
     Doc2 $(<) : $(set-$(>):S=.cpp) ;
 }
 
