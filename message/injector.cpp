@@ -165,7 +165,8 @@ void Injector::execute()
 
         // Wait for the message IDs and AddressLinks before going on.
         // (Do we really need the message IDs anywhere?)
-        if ( d->messageIds->count() != d->totalUids )
+        if ( d->messageIds->count() != d->totalUids ||
+             !d->addressLinks->isEmpty() )
             return;
 
         d->step = 2;
@@ -357,4 +358,36 @@ void Injector::insertParts()
 
 void Injector::linkAddresses()
 {
+    List< AddressLink >::Iterator it( d->addressLinks->first() );
+    if ( !it )
+        return;
+
+    List< Query > *queries = new List< Query >;
+
+    while ( it ) {
+        if ( it->address->id() != 0 ) {
+            AddressLink *link = d->addressLinks->take( it );
+            List< Mailbox >::Iterator mb( d->mailboxes->first() );
+            List< int >::Iterator uids( d->uids->first() );
+            while ( mb ) {
+                Mailbox *m = mb++;
+                int uid = *uids++;
+
+                Query *q;
+                q = new Query( "insert into address_fields "
+                               "(mailbox,uid,field,address) values "
+                               "($1,$2,$3,$4)", 0 );
+                q->bind( 1, m->id() );
+                q->bind( 2, uid );
+                q->bind( 3, link->type );
+                q->bind( 4, link->address->id() );
+                queries->append( q );
+            }
+        }
+        else {
+            it++;
+        }
+    }
+
+    Database::query( queries );
 }
