@@ -66,7 +66,10 @@ static void setupKey()
 
     Configuration::Text keyFile( "tls-certificate", "" );
     if ( ((String)keyFile).isEmpty() ) {
-        String file( "/tmp/mailstore.key" );
+        String file =
+            Configuration::compiledIn( Configuration::ConfigDir ) +
+            "/" + "selfsigned-cert.p15" ;
+
         status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
                                   file.cstr(), CRYPT_KEYOPT_NONE );
         if ( status == CRYPT_OK )

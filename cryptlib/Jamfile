@@ -6,7 +6,7 @@ CCFLAGS = -fomit-frame-pointer -O3 ; # -mtune=pentium ;
 OrdinaryHDRS = $(HDRS) ;
 HDRS = [ FDirName $(TOP) cryptlib ] ;
 OrdinaryDEFINES = $(DEFINES) ;
-DEFINES = DATA_LITTLEENDIAN NO_THREADS NDEBUG OSVERSION=2 USE_ASM
+DEFINES = DATA_LITTLEENDIAN NDEBUG OSVERSION=2 USE_ASM
     _REENTRANT __UNIX__ ;
 
 # Comment next line out to build a testable cryptlib. (testlib also
@@ -54,3 +54,11 @@ else {
 HDRS = $(OrdinaryHDRS) ;
 DEFINES = $(OrdinaryDEFINES) ;
 CCFLAGS = $(OrdinaryFLAGS) ;
+
+# everyone who uses cryptlib must use threading for the time being
+if ( $(OS) = FREEBSD ) {
+    LINKFLAGS on tlsproxy testlib certutil += -pthread ;
+}
+else {
+    LINKLIBS on tlsproxy testlib certutil += -lpthread ;
+}
