@@ -66,6 +66,17 @@ LogServer::LogServer( int s )
 }
 
 
+/*! Constructs a LogServer which listens nowhere. This can effectively
+    only be used by SelfLogger.
+*/
+
+LogServer::LogServer()
+    : Connection(), d( new LogServerData )
+{
+    d->a = new Arena;
+}
+
+
 /*! \reimp */
 
 LogServer::~LogServer()

@@ -9,6 +9,7 @@
 class LogServer : public Connection {
 public:
     LogServer(int s);
+    LogServer();
     ~LogServer();
 
     void react(Event e);
