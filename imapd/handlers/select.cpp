@@ -48,7 +48,7 @@ void Select::execute()
         imap()->setMailbox( 0 );
         imap()->setState( IMAP::Authenticated );
         error( No, "Can't select mailbox " + name );
-        return;
+        goto done;
     }
 
     imap()->setMailbox( m );
@@ -63,5 +63,6 @@ void Select::execute()
     respond( "OK [PERMANENTFLAGS " + m->permanentFlags() + "]" );
     respond( "OK [READ-" + String( m->readOnly() ? "ONLY" : "WRITE" ) + "]", Tagged );
 
+done:
     finish();
 }
