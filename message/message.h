@@ -81,6 +81,7 @@ public:
     BodyPart();
 
     Header * header() const;
+    List< BodyPart > *children() const;
     ContentType * contentType() const;
     ContentTransferEncoding::Encoding encoding() const;
     String data() const;

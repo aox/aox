@@ -7,6 +7,8 @@
 
 
 class Message;
+class BodyPart;
+
 
 class Fetch
     : public Command
@@ -29,7 +31,9 @@ private:
     String flagList( Message *, uint );
     String internalDate( Message * );
     String envelope( Message * );
-    String bodystructure( Message *, bool );
+    String messageStructure( Message *, bool );
+    String bodyPartStructure( BodyPart *, bool );
+    String singlePartStructure( BodyPart *, bool );
     void removeInvalidUids();
     void sendFetchQueries();
 

@@ -497,9 +497,9 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
     if ( d->envelope )
         l.append( "ENVELOPE " + envelope( m ) );
     if ( d->body )
-        l.append( "BODY " + bodystructure( m, false ) );
+        l.append( "BODY " + messageStructure( m, false ) );
     if ( d->bodystructure )
-        l.append( "BODYSTRUCTURE " + bodystructure( m, true ) );
+        l.append( "BODYSTRUCTURE " + messageStructure( m, true ) );
 
     List< FetchData::Section >::Iterator it( d->sections.first() );
     while ( it ) {
@@ -616,97 +616,135 @@ String Fetch::envelope( Message * m )
     false, BODY.
 */
 
-String Fetch::bodystructure( Message * m, bool extended )
+String Fetch::messageStructure( Message * m, bool extended )
 {
-    Header * h = m->header();
-    StringList l;
+    String r;
 
-    // body            = "(" (body-type-1part / body-type-mpart) ")"
-
-    ContentType * ct = h->contentType();
+    Header *hdr = m->header();
+    ContentType *ct = hdr->contentType();
 
     if ( ct->type() == "multipart" ) {
-        // body-type-mpart = 1*body SP media-subtype
-        //                   [SP body-ext-mpart]
+        StringList children;
+        List< BodyPart >::Iterator it( m->bodyParts()->first() );
+        while ( it ) {
+            children.append( bodyPartStructure( it, extended ) );
+            ++it;
+        }
+
+        r = "(" + children.join( "" ) +
+            " " + imapQuoted( ct->subtype() );
+        if ( extended )
+            r.append( "" );
+        r.append( ")" );
     }
     else {
-        // body-type-1part=(body-type-basic / body-type-msg / body-type-text)
-        // body-type-basic = media-basic SP body-fields
-        //                     ; MESSAGE subtype MUST NOT be "RFC822"
+        r = singlePartStructure( m->bodyPart(1), extended );
+    }
+
+    return r;
+}
+
+
+/*! Returns the structure of a single bodypart \a bp. If \a extended is
+    true, extended BODYSTRUCTURE attributes are included.
+*/
+
+String Fetch::bodyPartStructure( BodyPart *bp, bool extended )
+{
+    String r;
+
+    Header *hdr = bp->header();
+    ContentType *ct = hdr->contentType();
+
+    if ( ct->type() == "multipart" ) {
+        StringList children;
+        List< BodyPart >::Iterator it( bp->children()->first() );
+        while ( it ) {
+            children.append( bodyPartStructure( it, extended ) );
+            ++it;
+        }
+
+        r = "(" + children.join( "" ) +
+            " " + imapQuoted( ct->subtype() );
+        if ( extended )
+            r.append( "" );
+        r.append( ")" );
+    }
+    else {
+        r = singlePartStructure( bp, extended );
+    }
+
+    return r;
+}
+
+
+/*! Returns the structure of the single-part bodypart \a bp. If
+    \a extended is true, extended BODYSTRUCTURE attributes are
+    included.
+*/
+
+String Fetch::singlePartStructure( BodyPart *bp, bool extended )
+{
+    StringList l;
+
+    if ( !bp )
+        return "";
+    
+    Header *hdr = bp->header();
+    ContentType *ct = hdr->contentType();
+
+    l.append( imapQuoted( ct->type() ) );
+    l.append( imapQuoted( ct->subtype() ) );
+
+    StringList *params = ct->parameterList();
+    if ( !params || params->isEmpty() ) {
+        l.append( "NIL" );
+    }
+    else {
+        StringList p;
+        StringList::Iterator i( params->first() );
+        while ( i ) {
+            p.append( imapQuoted( *i ) );
+            p.append( imapQuoted( ct->parameter( *i ) ) );
+            ++i;
+        }
+        l.append( "(" + p.join( " " ) + ")" );
+    }
+
+    l.append( imapQuoted( hdr->messageId( HeaderField::ContentId ), NString ) );
+    l.append( imapQuoted( hdr->contentDescription(), NString ) );
+
+    if ( hdr->contentTransferEncoding() ) {
+        switch( hdr->contentTransferEncoding()->encoding() ) {
+        case ContentTransferEncoding::Binary:
+            l.append( "\"8BIT\"" ); // hm. is this entirely sound?
+            break;
+        case ContentTransferEncoding::Base64:
+            l.append( "\"BASE64\"" );
+            break;
+        case ContentTransferEncoding::QuotedPrintable:
+            l.append( "\"QUOTED-PRINTABLE\"" );
+            break;
+        }
+    }
+    else {
+        l.append( "\"7BIT\"" );
+    }
+
+    l.append( fn( bp->numBytes() ) );
+
+    if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // body-type-msg   = media-message SP body-fields SP envelope
         //                   SP body SP body-fld-lines
+
+        l.append( envelope( bp->rfc822() ) );
+        l.append( messageStructure( bp->rfc822(), extended ) );
+        l.append( fn( bp->numBytes() ) );
+    }
+    else if ( ct->type() == "text" ) {
         // body-type-text  = media-text SP body-fields SP body-fld-lines
 
-        // media-basic, media-message and media-text are all the same:
-        l.append( imapQuoted( ct->type() ) );
-        l.append( imapQuoted( ct->subtype() ) );
-
-        // body-fields = body-fld-param SP body-fld-id SP body-fld-desc SP
-        //               body-fld-enc SP body-fld-octets
-
-        // body-fld-param  = "(" string SP string *(SP string SP string) ")"
-        //                    / nil
-        StringList * params = ct->parameterList();
-        if ( !params || params->isEmpty() ) {
-            l.append( "NIL" );
-        }
-        else {
-            StringList p;
-            StringList::Iterator i( params->first() );
-            while ( i ) {
-                p.append( imapQuoted( *i ) );
-                p.append( imapQuoted( ct->parameter( *i ) ) );
-                ++i;
-            }
-            l.append( "(" + p.join( " " ) + ")" );
-        }
-
-        // body-fld-id     = nstring
-        // body-fld-desc   = nstring
-        l.append( imapQuoted( h->messageId( HeaderField::ContentId ) ) );
-        l.append( imapQuoted( h->contentDescription() ) );
-
-        // body-fld-enc    = (DQUOTE ("7BIT" / "8BIT" / "BINARY" / "BASE64"/
-        //                   "QUOTED-PRINTABLE") DQUOTE) / string
-        if ( h->contentTransferEncoding() ) {
-            switch( h->contentTransferEncoding()->encoding() ) {
-            case ContentTransferEncoding::Binary:
-                l.append( "\"8BIT\"" ); // hm. is this entirely sound?
-                break;
-            case ContentTransferEncoding::Base64:
-                l.append( "\"BASE64\"" );
-                break;
-            case ContentTransferEncoding::QuotedPrintable:
-                l.append( "\"QUOTED-PRINTABLE\"" );
-                break;
-            }
-        }
-        else {
-            l.append( "\"7BIT\"" );
-        }
-
-        BodyPart * bp = m->bodyPart( 1 );
-
-        // body-fld-octets = number
-        if ( bp )
-            l.append( fn( bp->numBytes() ) );
-
-        if ( !bp ) {
-            // what to do? hard to know.
-        }
-        else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
-            // body-type-msg   = media-message SP body-fields SP envelope
-            //                   SP body SP body-fld-lines
-
-            l.append( envelope( bp->rfc822() ) );
-            l.append( bodystructure( bp->rfc822(), extended ) );
-            l.append( fn( bp->numBytes() ) );
-        }
-        else if ( ct->type() == "text" ) {
-            // body-type-text  = media-text SP body-fields SP body-fld-lines
-
-            l.append( fn( bp->numLines() ) );
-        }
+        l.append( fn( bp->numLines() ) );
     }
 
     return "(" + l.join( " " ) + ")";
