@@ -117,7 +117,8 @@ void IMAP::react(Event e)
     runCommands();
     d->logger->commit();
 
-    setTimeout( time(0) + 1800 );
+    if ( timeout() == 0 )
+        setTimeout( time(0) + 1800 );
     if ( state() == Logout )
         Connection::setState( Closing );
 }
