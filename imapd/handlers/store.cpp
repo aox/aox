@@ -1,11 +1,23 @@
 /*! \class Store store.h
-    \brief STORE (RFC 3501, §6.4.6)
+    \brief STORE alters message metadata (RFC 3501, §6.4.6).
 */
 
 #include "store.h"
 
 #include "set.h"
 
+
+/*  store           = "STORE" SP set SP store-att-flags
+    store-att-flags = (["+" / "-"] "FLAGS" [".SILENT"]) SP
+                      (flag-list / (flag *(SP flag)))
+
+    flag-list       = "(" [flag *(SP flag)] ")"
+    flag            = "\Answered" / "\Flagged" / "\Deleted" / "\Seen" /
+                      "\Draft" / flag-keyword / flag-extension
+
+    flag-keyword    = atom
+    flag-extension  = "\" atom
+*/
 
 void Store::parse()
 {
