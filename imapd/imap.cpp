@@ -141,6 +141,9 @@ IMAP::~IMAP()
 
 void IMAP::react( Event e )
 {
+    Scope x;
+    x.setLog( d->log );
+
     switch ( e ) {
     case Read:
         setTimeoutAfter( 1800 );
@@ -301,7 +304,7 @@ void IMAP::addCommand()
 
     // Try to create a command handler.
 
-    Command *cmd 
+    Command *cmd
         = Command::create( this, command, tag, d->args, d->cmdArena );
 
     if ( !cmd ) {
