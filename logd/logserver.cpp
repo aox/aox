@@ -103,11 +103,8 @@ void LogServer::react( Event e )
     case Connect:
     case Error:
     case Close:
-        if ( !d->pending.isEmpty() ) {
-            log( 0, Log::Immediate, Log::Error,
-                 "log client unexpectedly died. open transactions follow." );
+        if ( !d->pending.isEmpty() )
             commit( 0, Log::Immediate, Log::Debug );
-        }
         break;
     };
 }
@@ -197,13 +194,23 @@ void LogServer::commit( String tag,
                         Log::Facility facility, Log::Severity severity )
 {
     List< LogServerData::Line >::Iterator i;
+    bool first = true;
 
     i = d->pending.first();
     while ( i ) {
         LogServerData::Line *l = i;
 
-        if ( tag == l->tag ) {
-            d->pending.take(i);
+        if ( tag.isEmpty() ) {
+            if ( first )
+                log( 0, Log::Immediate, Log::Error,
+                     "Log client unexpectedly died. "
+                     "Open transactions follow." );
+            first = false;
+            d->pending.take( i );
+            output( l->tag, l->facility, l->severity, l->line );
+        }
+        else if ( tag == l->tag ) {
+            d->pending.take( i );
             if ( l->severity >= severity )
                 output( l->tag, l->facility, l->severity, l->line );
         }
