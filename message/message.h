@@ -37,6 +37,7 @@ public:
     String partNumber( class BodyPart * ) const;
 
     List<BodyPart> * bodyParts() const;
+    List<BodyPart> * allBodyParts() const;
 
     void setRfc822Size( uint );
     uint rfc822Size() const;
@@ -96,7 +97,7 @@ public:
 private:
     static void parseMultiPart( uint, uint, const String &,
                                 const String &, bool,
-                                List<BodyPart> *,
+                                List<BodyPart> *, BodyPart *,
                                 String & );
     static BodyPart * parseBodyPart( uint, uint, const String &, Header *,
                                      String & );

@@ -177,6 +177,7 @@ void Injector::execute()
         // insert the addresses and field names used in the message.
 
         d->transaction = new Transaction( this );
+        d->bodyparts = d->message->allBodyParts();
 
         selectUids();
         insertBodyparts();
@@ -346,7 +347,7 @@ void Injector::buildFieldLinks()
 
     buildLinksForHeader( d->message->header(), "" );
 
-    List< BodyPart >::Iterator it( d->message->bodyParts()->first() );
+    List< BodyPart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
         buildLinksForHeader( it->header(),
                              d->message->partNumber( it ) );
@@ -407,7 +408,6 @@ void Injector::insertBodyparts()
     List< Query > * queries = new List< Query >;
     IdHelper * helper = new BodypartHelper( d->bodypartIds, queries, this );
 
-    d->bodyparts = d->message->bodyParts();
     List< BodyPart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
         d->totalBodyparts++;
