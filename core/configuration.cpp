@@ -174,7 +174,8 @@ static struct {
     { "lmtp-address", Configuration::LmtpAddress, "127.0.0.1" },
     { "http-address", Configuration::HttpAddress, "127.0.0.1" },
     { "tls-certificate", Configuration::TlsCertFile, "" },
-    { "log-level", Configuration::LogLevel, "info" }
+    { "log-level", Configuration::LogLevel, "info" },
+    { "logfile-mode", Configuration::LogfileMode, LOGFILEMODE }
 };
 
 

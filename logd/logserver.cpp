@@ -254,9 +254,9 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
     from now on.
 */
 
-void LogServer::setLogFile( const String & name )
+void LogServer::setLogFile( const String &name, uint mode )
 {
-    File * l = new File( name, File::Append );
+    File * l = new File( name, File::Append, mode );
     if ( !l->valid() ) {
         ::log( "Could not open log file " + name, Log::Disaster );
         return;

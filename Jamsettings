@@ -53,6 +53,9 @@ CONFIGDIR = $(PREFIX) ;
 #
 LOGFILE = $(PREFIX)/logfile ;
 
+# The default mode for the log file.
+#
+LOGFILEMODE = 400 ;
 
 # The user and group needed.
 

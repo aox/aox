@@ -102,6 +102,7 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
     -e 's!$PIDFILEDIR!'$(PIDFILEDIR)'!' \
     -e 's!$JAILDIR!'$(JAILDIR)'!' \
     -e 's!$CONFIGDIR!'$(CONFIGDIR)'!' \
+    -e 's!$LOGFILEMODE!'$(LOGFILEMODE)'!' \
     -e 's!$LOGFILE!'$(LOGFILE)'!' \
     -e 's!$DBNAME!'$(DBNAME)'!' \
     -e 's!$DBUSER!'$(DBUSER)'!' \
@@ -145,6 +146,7 @@ actions WriteShellConfig
     echo "# To move the logfile, edit $(CONFIGDIR)/mailstore.conf" >> $(<)
     echo "# Type 'man mailstore.conf' for details." >> $(<)
     echo LOGFILE="'"$(LOGFILE)"'" >> $(<)
+    echo LOGFILEMODE="'"$(LOGFILEMODE)"'" >> $(<)
 
     if [ $(PGUSER) ]; then
         echo PGUSER="'"$(PGUSER)"'" >> $(<)

@@ -167,14 +167,6 @@ Logging to syslog
   it can't reopen the logfile.
 
 
-Logfile mode
-
-  logfile-mode = 400
-
-  logd.cpp can call negate the mode and call umask(). Jamsettings can
-  express distribution policy.
-
-
 Can we use COPY to speed up bulk mail insertion?
 
 

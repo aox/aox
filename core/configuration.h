@@ -75,6 +75,7 @@ public:
         HttpAddress,
         TlsCertFile,
         LogLevel,
+        LogfileMode,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };

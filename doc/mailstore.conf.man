@@ -101,6 +101,13 @@ is the name of the file to which
 writes log events. The file name must be absolute (start with '/'),
 and the default is
 .IR $LOGFILE .
+.IP logfile-mode
+The mode (three octal digits) that
+.BR logd (8)
+should use if it creates
+.IR logfile .
+The default is
+.IR $LOGFILEMODE .
 .IP loglevel
 can be
 .IR debug ,

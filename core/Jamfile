@@ -20,6 +20,7 @@ ObjectDefines configuration.cpp :
      CONFIGDIR='\"$(CONFIGDIR)\"'
      PIDFILEDIR='\"$(PIDFILEDIR)\"'
      LOGFILE='\"$(LOGFILE)\"'
+     LOGFILEMODE='\"$(LOGFILEMODE)\"'
      DBADDRESS='\"$(DBADDRESS)\"'
      ORYXUSER='\"$(ORYXUSER)\"'
      ORYXGROUP='\"$(ORYXGROUP)\"'
