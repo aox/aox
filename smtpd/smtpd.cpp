@@ -26,7 +26,7 @@ int main( int, char *[] )
 
     Test::runTests();
 
-    Configuration::setup( "mailstore.conf", "lmtp.conf" );
+    Configuration::setup( "mailstore.conf", "smtpd.conf" );
 
     Loop::setup();
 
@@ -48,7 +48,8 @@ int main( int, char *[] )
     Configuration::Toggle useSmtp( "use-smtp", false );
     if ( useSmtp ) {
         Configuration::Scalar port( "smtp-port", 25 );
-        Listener< SMTP >::create( "SMTP", "", port );
+        Configuration::Text address( "smtp-host", "" );
+        Listener< SMTP >::create( "SMTP", address, port );
     }
 
     Configuration::Toggle useLmtp( "use-lmtp", true );
