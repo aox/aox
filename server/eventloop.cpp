@@ -94,6 +94,7 @@ void EventLoop::removeConnection( Connection *c )
 void EventLoop::start()
 {
     Scope x( d->log );
+    time_t gc = 0;
 
     log( "Starting event loop", Log::Debug );
 
@@ -145,8 +146,8 @@ void EventLoop::start()
 
         if ( tv.tv_sec < 1 )
             tv.tv_sec = 1;
-        if ( tv.tv_sec > 1800 )
-            tv.tv_sec = 1800;
+        if ( tv.tv_sec > 60 )
+            tv.tv_sec = 60;
 
         int n = select( maxfd+1, &r, &w, 0, &tv );
         time_t now = time( 0 );
@@ -163,10 +164,11 @@ void EventLoop::start()
             commit();
             exit( 0 );
         }
-        // this needs to become smarter, so we allocate everyo 10-60
-        // seconds, ideally whenever nothing has happened for 2-3
-        // seconds.
-        Allocator::free();
+        if ( ( now - gc > 180 ) ||
+             ( now -gc > 30 && n == 0 ) ) {
+            Allocator::free();
+            gc = now;
+        }
 
         // Figure out what each connection cares about.
 
