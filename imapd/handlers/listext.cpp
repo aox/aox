@@ -259,11 +259,17 @@ void Listext::list( Mailbox *m, const String &p )
 
     uint responses = d->responses;
 
+    bool reported = false;
+    if ( matches ) {
+        sendListResponse( m, name ); // simple case: send in the "right" order
+        reported = true;
+    }
+
     if ( matchChildren )
         listChildren( m, p );
 
-    if ( matches )
-        sendListResponse( m, name ); // simple case
+    if ( reported )
+        ; // no need to repeat it
     else if ( responses < d->responses && d->selectMatchParent )
         sendListResponse( m, name ); // some child matched and we matchparent
     else if ( responses < d->responses && m->deleted() )
