@@ -17,6 +17,8 @@ extern "C" {
     int memcmp( const void *, const void *, unsigned int );
     void memset( void *, int, unsigned int );
     void bzero( void *, unsigned int );
+    void *malloc( uint );
+    void free( void * );
 }
 
 
