@@ -266,7 +266,7 @@ single or double quotes, as shown in these three examples:
 .IP
 dbpass = single.word
 .br
-dbpass = "rock'n'roll" # a 12-characters password
+dbpass = "rock'n'roll" # a 12-character password
 .br
 dbpass = 'two words, quoted' # a 17-character one
 .PP
