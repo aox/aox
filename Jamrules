@@ -53,7 +53,7 @@ rule Program
     local target ;
     Depends exe : $(<) ;
     Depends $(<) : $(set-$(>)) ;
-    MakeLocate $(<) : $(LOCATE_TARGET) ;
+    MakeLocate $(<) : [ FDirName $(TOP) bin ] ;
 
     Clean clean : $(<) ;
     Link $(<) : $(set-$(>)) ;
