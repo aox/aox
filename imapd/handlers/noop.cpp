@@ -19,38 +19,21 @@
 
 void Noop::execute()
 {
-    switch ( st ) {
-    case Started:
+    if ( !q ) {
         q = new Query( "select foo,bar from test" );
         Database::query( q );
-        st = Waiting;
-        wait( 5 );
-        break;
+        return;
+    }
 
-    case Waiting:
-        // We're here because something either happened, or went too
-        // long without happening.
-        if ( q->state() == Query::Running &&
-             ( !q->hasResults() || n == 0 ) )
-        {
-            respond( "NO timeout" );
-            setState( Finished );
-            return;
-        }
+    while ( q->hasResults() ) {
+        // Snarf and process a single row.
+        n++;
+    }
+    
+    if ( q->state() == Query::Completed ) {
+        if ( n == 0 )
+            respond( "NO results obtained" );
 
-        while ( q->hasResults() ) {
-            // Snarf a single row and respond.
-            n++;
-        }
-
-        if ( q->state() == Query::Completed ) {
-            if ( n == 0 ) {
-                respond( "NO results obtained" );
-            }
-
-            setState( Finished );
-        }
-
-        break;
+        setState( Finished );
     }
 }

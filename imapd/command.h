@@ -25,7 +25,7 @@ public:
     virtual void read();
     bool ok() const;
 
-    enum State { Blocked, Executing, Waiting, Finished };
+    enum State { Blocked, Executing, Finished };
 
     State state() const;
     void setState( State );
@@ -33,8 +33,6 @@ public:
     uint group() const;
     void setGroup( uint );
 
-    void wait( int );
-    
     Arena * arena() const;
 
     Log * logger() const;

@@ -34,8 +34,7 @@ public:
         state( IMAP::NotAuthenticated ),
         grabber( 0 ),
         mailbox( 0 ),
-        idle( false ),
-        waitingCommands( false )
+        idle( false )
     {}
     ~IMAPData() { delete cmdArena; }
 
@@ -50,7 +49,6 @@ public:
     Mailbox *mailbox;
     String login;
     bool idle;
-    int waitingCommands;
 };
 
 
@@ -91,14 +89,9 @@ void IMAP::react(Event e)
         break;
 
     case Timeout:
-        if ( d->waitingCommands > 0 ) {
-            runCommands();
-        }
-        else {
-            writeBuffer()->append( "* BYE autologout\r\n" );
-            d->logger->log( "autologout" );
-            Connection::setState( Closing );
-        }
+        writeBuffer()->append( "* BYE autologout\r\n" );
+        d->logger->log( "autologout" );
+        Connection::setState( Closing );
         break;
 
     case Connect:
@@ -451,21 +444,6 @@ void IMAP::reserve( Command * command )
 }
 
 
-/*! Schedules a command timeout \a n seconds later.
-    (Do we need to keep track of which command is waiting until when?
-    We'll see.)
-*/
-
-void IMAP::wait( int n )
-{
-    int t = time(0) + n;
-
-    d->waitingCommands++;
-    if ( timeout() == 0 || timeout() > t )
-        setTimeout( t );
-}
-
-
 /*! Calls execute() on all currently operating commands, and if
     possible calls emitResponses() and retires those which can be
     retired.
@@ -487,10 +465,6 @@ void IMAP::runCommands()
             Scope x( c->arena() );
 
             if ( c->ok() ) {
-                if ( c->state() == Command::Waiting ) {
-                    c->setState( Command::Executing );
-                    d->waitingCommands--;
-                }
                 if ( c->state() == Command::Executing )
                     c->execute();
             }
