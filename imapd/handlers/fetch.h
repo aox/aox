@@ -15,6 +15,8 @@ class Fetch
 public:
     Fetch( bool = false );
 
+    enum State { Initial, Responding };
+    
     void parse();
     void execute();
 
@@ -29,6 +31,8 @@ private:
     String internalDate( Message * );
     String envelope( Message * );
     String bodystructure( Message *, bool );
+    void removeInvalidUids();
+    void sendFetchQueries();
 
 private:
     bool uid;

@@ -32,7 +32,7 @@
 class FetchData {
 public:
     FetchData()
-        : peek( true ),
+        : state( Fetch::Initial ), peek( true ),
           uid( false ), flags( false ), envelope( false ), body( false ),
           bodystructure( false ), internaldate( false ), rfc822size( false ),
           needHeader( false ), needBody( false )
@@ -50,6 +50,7 @@ public:
         uint length;
     };
 
+    Fetch::State state;
     MessageSet set;
     bool peek;
     // we want to ask for...
@@ -322,36 +323,71 @@ void Fetch::parseBody()
 void Fetch::execute()
 {
     ImapSession * s = imap()->session();
-    uint i = 0;
-    bool done = true;
-    while ( i < d->set.count() ) {
-        i++;
+
+    if ( d->state == Initial ) {
+        d->state = Responding;
+        removeInvalidUids();
+        sendFetchQueries();
+    }
+
+    uint i = 1;
+    while ( i <= d->set.count() ) {
         uint uid = d->set.value( i );
         Message * m = s->message( uid );
-        bool ok = false;
-        if ( m ) {
-            ok = true;
-            if ( d->needHeader && !m->hasHeaders() ) {
-                m->fetchHeaders( this );
-                ok = false;
-            }
-            if ( d->needBody && !m->hasBodies() ) {
-                m->fetchBodies( this );
-                ok = false;
-            }
-            if ( d->flags && !m->hasExtraFlags() ) {
-                m->fetchExtraFlags( this );
-                ok = false;
-            }
-            if ( ok )
-                respond( fetchResponse( m, uid, s->msn( uid ) ),
-                         Untagged );
-            else
-                done = false;
+        if ( ( !d->needHeader || m->hasHeaders() ) &&
+             ( !d->needBody || m->hasBodies() ) &&
+             ( !d->flags || m->hasExtraFlags() ) )
+        {
+            respond( fetchResponse( m, uid, s->msn( uid ) ), Untagged );
+            d->set.remove( uid );
+        }
+        else {
+            i++;
         }
     }
-    if ( done )
+
+    if ( d->set.isEmpty() )
         finish();
+}
+
+
+/*! Removes any UIDs from d->set that do not have an associated message.
+*/
+
+void Fetch::removeInvalidUids()
+{
+    ImapSession * s = imap()->session();
+
+    uint i = d->set.count();
+    while ( i > 0 ) {
+        uint uid = d->set.value( i );
+        Message * m = s->message( uid );
+        if ( !m )
+            d->set.remove( i );
+        i--;
+    }
+}
+
+
+/*! Issues queries to resolve any questions this FETCH needs to answer.
+*/
+
+void Fetch::sendFetchQueries()
+{
+    ImapSession * s = imap()->session();
+
+    uint i = 1;
+    while ( i <= d->set.count() ) {
+        uint uid = d->set.value( i );
+        Message * m = s->message( uid );
+        if ( d->needHeader && !m->hasHeaders() )
+            m->fetchHeaders( this );
+        if ( d->needBody && !m->hasBodies() )
+            m->fetchBodies( this );
+        if ( d->flags && !m->hasExtraFlags() )
+            m->fetchExtraFlags( this );
+        i++;
+    }
 }
 
 
