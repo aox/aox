@@ -95,6 +95,7 @@ void IMAP::react(Event e)
     case Connection::Timeout:
         writeBuffer()->append( "* BYE autologout\r\n" );
         d->logger->log( "autologout" );
+        close();
         break;
     case Connection::Close:
         if ( state() != Logout )
@@ -411,7 +412,7 @@ void IMAP::setMailbox( Mailbox *m )
         return;
 
     d->mailbox = m;
-    
+
     if ( m )
         d->logger->log( "now using mailbox " + m->name() );
 }
