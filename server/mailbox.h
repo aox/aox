@@ -5,7 +5,9 @@
 
 #include "list.h"
 
+class Query;
 class String;
+class EventHandler;
 
 
 class Mailbox {
@@ -36,6 +38,9 @@ public:
             return id() <= b.id();
         return name() <= b.name();
     }
+
+    Query *create( EventHandler * );
+    Query *remove( EventHandler * );
 
 private:
     class MailboxData *d;

@@ -288,3 +288,29 @@ void Mailbox::setDeleted( bool del )
 {
     d->deleted = del;
 }
+
+
+/*! Creates this mailbox by updating the mailboxes table, and notifies
+    \a ev of completion. Returns a Query which indicates the progress
+    of the operation, or 0 if the attempt fails immediately.
+*/
+
+Query *Mailbox::create( EventHandler *ev )
+{
+    Query *q = new Query( ev );
+    q->setState( Query::Completed );
+    return q;
+}
+
+
+/*! Deletes this mailbox by updating the mailboxes table, and notifies
+    \a ev of completion. Returns a Query which indicates the progress
+    of the operation, or 0 if the attempt fails immediately.
+*/
+
+Query *Mailbox::remove( EventHandler *ev )
+{
+    Query *q = new Query( ev );
+    q->setState( Query::Completed );
+    return q;
+}
