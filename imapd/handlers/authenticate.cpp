@@ -62,44 +62,48 @@ void Authenticate::execute()
             return;
         }
         imap()->reserve( this );
+
+        // Does it accept a SASL initial response? Do we have one?
+        if ( m->state() == SaslMechanism::AwaitingInitialResponse ) {
+            if ( r )
+                m->readResponse( r->de64() );
+            else
+                m->setState( SaslMechanism::IssuingChallenge );
+            r = 0;
+        }
     }
 
     // Now, feed the handler until it can make up its mind.
 
-    if ( m->state() == SaslMechanism::AwaitingInitialResponse ) {
-        if ( r )
+    while ( !m->done() ) {
+        if ( m->state() == SaslMechanism::IssuingChallenge ) {
+            imap()->writeBuffer()->append( "+ "+ m->challenge().e64() +"\r\n" );
+            m->setState( SaslMechanism::AwaitingResponse );
+            r = 0;
+            return;
+        }
+        else if ( m->state() == SaslMechanism::AwaitingResponse && r ) {
             m->readResponse( r->de64() );
-        else
-            m->setState( SaslMechanism::IssuingChallenge );
-        r = 0;
-    }
-
-    if ( m->state() == SaslMechanism::IssuingChallenge ) {
-        imap()->writeBuffer()->append( "+ "+ m->challenge().e64() +"\r\n" );
-        m->setState( SaslMechanism::AwaitingResponse );
-        r = 0;
-        return;
-    }
-    else if ( m->state() == SaslMechanism::AwaitingResponse && r ) {
-        m->readResponse( r->de64() );
-        r = 0;
-    }
-
-    if ( !m->done() )
-        m->query();
-
-    if ( m->done() ) {
-        if ( m->state() == SaslMechanism::Failed ) {
-            error( No, "Sorry" );
-        }
-        else {
-            imap()->setUid( m->uid() );
-            imap()->setLogin( m->login() );
+            r = 0;
         }
 
-        imap()->reserve( 0 );
-        finish();
+        if ( !m->done() ) {
+            m->query();
+            if ( m->state() == SaslMechanism::Authenticating )
+                return;
+        }
     }
+
+    if ( m->state() == SaslMechanism::Succeeded ) {
+        imap()->setUid( m->uid() );
+        imap()->setLogin( m->login() );
+    }
+    else {
+        error( No, "Sorry" );
+    }
+
+    imap()->reserve( 0 );
+    finish();
 }
 
 
