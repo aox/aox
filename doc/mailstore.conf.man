@@ -192,7 +192,7 @@ should connect to. The default is
 .IP use-smtp
 controls whether the
 .BR smtpd (8)
-should accept mail via SMTP (RFC 2033). SMTP is
+should accept mail via SMTP/ESMTP (RFC 2821/1869). SMTP is
 .I disabled
 by default.
 .IP smtp-address
