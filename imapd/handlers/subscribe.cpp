@@ -34,6 +34,14 @@ void Subscribe::parse()
 
 void Subscribe::execute()
 {
+    if ( !q ) {
+        q = new Query( "select id from subscriptions where "+
+                       String( "owner=" ) + String::fromNumber( imap()->uid() ) +
+                       "and mailbox='"+ m +"'", this );
+        q->submit();
+        return;
+    }
+
     error( No, "unimplemented command" );
     setState( Finished );
 }
