@@ -3,6 +3,8 @@
 
 #include "command.h"
 
+class Mailbox;
+
 
 // this file is misnamed. the only way out seems to be calling the
 // handlers something longer, e.g. ImapCList for this class. but let's
@@ -22,6 +24,9 @@ private:
     String listMailbox();
     void addReturnOption( const String & );
     void addSelectOption( const String & );
+
+    void list( Mailbox * );
+    void sendListResponse( Mailbox * );
 
 private:
     class ListextData * d;
