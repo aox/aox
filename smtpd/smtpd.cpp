@@ -10,6 +10,7 @@
 #include "fieldcache.h"
 #include "addresscache.h"
 #include "server.h"
+#include "injector.h"
 
 
 /*! \nodoc */
@@ -39,6 +40,7 @@ int main( int, char *[] )
     Mailbox::setup();
     AddressCache::setup();
     FieldNameCache::setup();
+    Injector::setup();
 
     s.execute();
 }

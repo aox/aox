@@ -12,6 +12,8 @@
 #include "server.h"
 #include "flag.h"
 #include "tls.h"
+#include "injector.h"
+
 
 /*! \nodoc */
 
@@ -36,6 +38,7 @@ int main( int, char *[] )
     FieldNameCache::setup();
     Flag::setup();
     IMAP::setup();
-    
+    Injector::setup();
+
     s.execute();
 }

@@ -426,7 +426,10 @@ void Injector::insertBodyparts()
             continue;
         }
 
-        bool text = b->contentType()->type() == "text";
+        bool text = true;
+        if ( b->contentType() && 
+             b->contentType()->type() != "text" )
+            text = false;
         
         i = new Query( "insert into bodyparts (text) values ($1)", helper );
         if ( text )
