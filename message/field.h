@@ -28,6 +28,7 @@ public:
         ReturnPath,
         ReplyTo,
         To, Cc, Bcc, ResentTo, ResentCc, ResentBcc,
+        LastAddressField = ResentBcc,
         MessageId, ResentMessageId,
         InReplyTo,
         References,
