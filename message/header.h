@@ -43,7 +43,7 @@ public:
         ContentDescription, ContentId,
         MimeVersion,
         Received,
-        ContentLanguage,
+        ContentLanguage, ContentLocation,
         // Other must be last
         Other
     };
@@ -92,6 +92,7 @@ public:
     ContentDisposition * contentDisposition() const;
     ContentLanguage * contentLanguage() const;
     String contentDescription() const;
+    String contentLocation() const;
 
     List<Address> * addresses( HeaderField::Type ) const;
 
