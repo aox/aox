@@ -397,14 +397,17 @@ void Postgres::process( char type )
         {
             PgReady msg( readBuffer() );
 
-            if ( state() == InTransaction ) {
-                if ( msg.state() == Idle ) {
-                    d->transaction->setState( Transaction::Completed );
+            if ( state() == InTransaction ||
+                 state() == FailedTransaction )
+            {
+                if ( msg.state() == FailedTransaction ) {
+                    d->transaction->setState( Transaction::Failed );
+                }
+                else if ( msg.state() == Idle ) {
+                    if ( !d->transaction->failed() )
+                        d->transaction->setState( Transaction::Completed );
                     d->transaction->notify();
                     d->transaction = 0;
-                }
-                else if ( msg.state() == FailedTransaction ) {
-                    d->transaction->setState( Transaction::Failed );
                 }
             }
 
