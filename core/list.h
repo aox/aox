@@ -80,7 +80,7 @@ public:
         T &operator *() {
             ok();
             if ( !cur->data )
-                throw Range;
+                die( Range );
             return *(cur->data);
         }
 
@@ -97,7 +97,7 @@ public:
 
         void ok() {
             if ( !cur )
-                throw Range;
+                die( Range );
         }
 
         Node *cur;
