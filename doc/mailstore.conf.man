@@ -44,6 +44,10 @@ or
 .IP hostname
 Most of the servers need to know the fully-qualified hostname. The
 default is computed at runtime and is normally acceptable.
+.IP pid-directory
+tells the servers where to write their pid files,
+.I $PIDFILEDIR
+by default.
 .SS "Database Access"
 .IP db
 The type of database. The default,
@@ -86,12 +90,12 @@ logfile is only valid in
 .IP security
 is enabled by default, and should be enabled whenever Mailstore
 is used in production. If security is disabled, the servers do not
-need to be started ar root, and do not try to lose privileges.
+need to be started o root, and do not try to lose privileges.
 Turning security off has exactly one advantage: it simplifies
 debugging.
 .IP jail-directory
 is the directory where the servers jail themselves,
-$JAILDIR
+.I $JAILDIR
 by default. On startup, each server uses
 .BR chroot (2)
 into this directory, which should be empty.
@@ -277,7 +281,8 @@ dbpass = "rock'n'roll" # a 12-characters password
 .br
 dbpass = 'two words, quoted' # a 17-character one
 .PP
-Only single-line strings can be used.
+Only single-line strings can be used. Single-word strings may contain
+the characters a-z, A-Z, 0-9, dot, hyphen and slash.
 .PP
 Numbers are integers not smaller than 0 and not larger than 2147483647
 (ie. 31-bit unsigned integers).

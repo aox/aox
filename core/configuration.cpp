@@ -17,7 +17,10 @@
 class ConfigurationData
 {
 public:
-    ConfigurationData(): reported( false ), fileExists( false ) {}
+    ConfigurationData()
+        : reported( false ), fileExists( false ),
+          a( Scope::current()->arena() )
+        {}
 
     Dict<Configuration::Something> unparsed;
     struct E {
@@ -29,8 +32,10 @@ public:
     String f;
     bool reported;
     bool fileExists;
+    Arena * a;
 
     void log( const String & m, Log::Severity s = Log::Disaster ) {
+        Scope x( a );
         E * e = new E;
         e->m = m;
         e->s = s;
@@ -517,6 +522,7 @@ bool Configuration::Text::setValue( const String & line )
                 ( ( line[i] >= '0' && line[i] <= '9' ) ||
                   ( line[i] >= 'a' && line[i] <= 'z' ) ||
                   ( line[i] >= 'A' && line[i] <= 'Z' ) ||
+                  line[i] == '/' ||
                   line[i] == '.' ||
                   line[i] == '-' ) )
             i++;
