@@ -35,7 +35,7 @@ public:
     IMAP::State state;
 
     Arena * cmdArena;
-    List< String > * args;
+    StringList * args;
     Command * reader;
 
     bool readingLiteral;
@@ -151,7 +151,7 @@ void IMAP::parse()
         if ( !d->cmdArena )
             s.setArena( d->cmdArena = new Arena );
         if ( !d->args )
-            d->args = new List< String >;
+            d->args = new StringList;
 
         // We read a line of client input, possibly including literals,
         // and create a Command to deal with it.
@@ -254,7 +254,6 @@ parseError:
     }
 
     command = s->mid( j, i-j );
-
 
     // Try to create a command handler.
 

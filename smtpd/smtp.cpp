@@ -65,7 +65,7 @@ public:
 
     Log *log;
     int code;
-    List<String> response;
+    StringList response;
     SMTP::State state;
     bool pipelining;
     Address * from;
@@ -508,7 +508,7 @@ void SMTP::sendResponses()
 
     String n = String::fromNumber( d->code );
     String r;
-    List<String>::Iterator it( d->response.first() );
+    StringList::Iterator it( d->response.first() );
     do {
         String l = *it;
         ++it;

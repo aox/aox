@@ -9,6 +9,7 @@ class StringList: public List<String>
 public:
     StringList();
 
+    void append( String * s ) { List<String>::append( s ); }
     void append( const String & );
     void append( const char * );
 

@@ -1,8 +1,7 @@
 #ifndef MIMEFIELDS_H
 #define MIMEFIELDS_H
 
-#include "string.h"
-#include "list.h"
+#include "stringlist.h"
 
 class Parser822;
 
@@ -13,7 +12,7 @@ public:
 
     void parse( Parser822 * );
 
-    List<String> * parameterList() const;
+    StringList * parameterList() const;
     String parameter( const String & ) const;
 
     bool valid() const;

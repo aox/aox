@@ -2,8 +2,7 @@
 #define COMMAND_H
 
 #include "global.h"
-#include "string.h"
-#include "list.h"
+#include "stringlist.h"
 #include "event.h"
 
 class IMAP;
@@ -20,7 +19,7 @@ public:
     virtual ~Command();
 
     static Command * create( IMAP *, const String &, const String &,
-                             List<String> *, Arena * );
+                             StringList *, Arena * );
 
     virtual void parse();
     virtual void read();
