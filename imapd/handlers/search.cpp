@@ -822,6 +822,9 @@ Search::Condition::MatchResult Search::Condition::match( Message * m,
         else
             return Yes;
     }
+    else if ( a == All ) {
+        return Yes;
+    }
 
     return Punt;
 }
