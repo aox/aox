@@ -257,7 +257,7 @@ void IMAP::addCommand()
 
     // Parse the tag: A nonzero sequence of any ASTRING-CHAR except '+'.
 
-    char c;
+    char c = 0;
     uint i = 0;
 
     while ( i < s->length() && ( c = (*s)[i] ) > ' ' && c < 127 &&
