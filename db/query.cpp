@@ -606,7 +606,7 @@ int Row::findColumn( const String &f ) const
         i++;
     }
 
-    log( Log::Disaster, "Unknown column " + f );
+    log( "Unknown column " + f, Log::Disaster );
     return -1;
 }
 
