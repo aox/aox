@@ -26,6 +26,7 @@ void Login::parse()
     n = astring();
     space();
     p = astring();
+    end();
 }
 
 
