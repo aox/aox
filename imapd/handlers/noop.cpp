@@ -1,5 +1,7 @@
 #include "noop.h"
 
+#include "transaction.h"
+#include "query.h"
 
 /*! \class Noop noop.h
     NOOP does nothing (RFC 3501, §6.1.2)
@@ -8,13 +10,41 @@
     The side effects need to be handled somehow.
 */
 
-
 /*! \reimp */
+
+Noop::Noop()
+    : q1( 0 ), q2( 0 ), t( 0 )
+{
+}
+
+
+/*! \reimp
+    This has again become my pet testing ground. AMS 20040621
+*/
 
 void Noop::execute()
 {
+    if ( !t ) {
+        t = new Transaction;
+        q2 = new Query( "select currval('foo_id_seq')::integer as id", this );
+        q1 = new Query( "insert into foo (bar) values ($1)", this );
+        q1->bind( 1, "Foo" );
+        t->execute( q1 );
+        t->execute( q2 );
+        t->end();
+    }
+
+    if ( !q2->done() )
+        return;
+
+    if ( t->state() != Transaction::Failed ) {
+        int n = *(q2->nextRow()->getInt( "id" ));
+        respond( "OK " + String::fromNumber( n ) );
+    }
+
     finish();
 }
+
 
 
 /*! \class Check noop.h
@@ -22,7 +52,6 @@ void Noop::execute()
 
     This command needs to do nothing in our implementation.
 */
-
 
 /*! \reimp */
 
