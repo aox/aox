@@ -55,7 +55,7 @@ WebPage * WebPage::current()
 void WebPage::startHeadline( Intro * i )
 {
     endPage();
-    startPage( i->name().lower(), "" );
+    startPage( i->name().lower(), i->name() );
 }
 
 
@@ -161,7 +161,7 @@ void WebPage::addFunction( const String & text, Function * f )
         i++;
     }
     if ( space )
-        output( "<nobr>" );
+        output( "<span class=nobr>" );
     addText( text.mid( 0, ls ) );
     output( "<a href=\"" );
     String target = f->parent()->name().lower() + ".html";
@@ -172,7 +172,7 @@ void WebPage::addFunction( const String & text, Function * f )
     output( "</a>" );
     addText( text.mid( ls + ll ) );
     if ( space )
-        output( "</nobr>" );
+        output( "</span>" );
 }
 
 
@@ -198,7 +198,7 @@ void WebPage::addClass( const String & text, Class * c )
         i++;
     }
     if ( space )
-        output( "<nobr>" );
+        output( "<span class=nobr>" );
     addText( text.mid( 0, ls ) );
     bool link = true;
     String target = c->name().lower() + ".html";
@@ -211,7 +211,7 @@ void WebPage::addClass( const String & text, Class * c )
         output( "</a>" );
     addText( text.mid( ls + ll ) );
     if ( space )
-        output( "</nobr>" );
+        output( "</span>" );
 }
 
 
@@ -267,7 +267,7 @@ void WebPage::endPage()
 
 
 /*! Starts a new web page with base name \a name and title tag \a
-    title. If \a title is empty, no title tag is emitted.
+    title. The \a title must not be empty per the HTML standard.
 */
 
 void WebPage::startPage( const String & name, const String & title )
@@ -275,14 +275,12 @@ void WebPage::startPage( const String & name, const String & title )
     fn = name + ".html";
     String filename = directory + "/" + fn;
     fd = ::open( filename.cstr(), O_CREAT|O_WRONLY|O_TRUNC, 0644 );
-    output( "<!doctype html public \"-//W3C//DTD HTML 4.0//EN\">\n"
+    output( "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\">\n"
             "<html lang=en><head>" );
-    if ( !title.isEmpty() ) {
-        output( "<title>" );
-        para = true;
-        addText( title );
-        output( "</title>\n" );
-    }
+    output( "<title>" );
+    para = true;
+    addText( title );
+    output( "</title>\n" );
     output( "<link rel=stylesheet href=\"udoc.css\" type=\"text/css\">\n"
             "<link rel=generator href=\"http://www.oryx.com/udoc/\">\n"
             "</head><body>\n" );

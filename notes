@@ -226,9 +226,3 @@ Web page appearance/voice
   pages to use that, and only that. For example, what's the "related
   pages" headline called, "pages" or "links", and is the second word
   capitalized?
-
-
-<nobr> is not standard html
-
-  Udoc uses it in output. Change that to a <span>, and update our
-  style sheet to match.
