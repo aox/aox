@@ -367,7 +367,7 @@ bool IMAP::idle() const
 }
 
 
-/*! Notifis the IMAP object that it's logged in as \a name. */
+/*! Notifies the IMAP object that it's logged in as \a name. */
 
 void IMAP::setLogin( const String & name )
 {
@@ -487,6 +487,7 @@ void IMAP::runCommands()
                 i++;
         }
 
+        // XXX: Don't we need to check the group here?
         c = d->commands.first();
         if ( c && c->ok() && c->state() == Command::Blocked ) {
             c->setState( Command::Executing );
