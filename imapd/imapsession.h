@@ -1,6 +1,8 @@
 #ifndef IMAPSESSION_H
 #define IMAPSESSION_H
 
+#include "global.h"
+
 class String;
 class Mailbox;
 class EventHandler;
@@ -14,7 +16,7 @@ public:
     bool loaded() const;
     Mailbox *mailbox() const;
 
-    unsigned int uid( uint ) const;
+    uint uid( uint ) const;
 
 private:
     class SessionData *d;
