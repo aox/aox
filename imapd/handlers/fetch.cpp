@@ -665,7 +665,26 @@ static String dispositionString( ContentDisposition *cd )
         break;
     }
 
-    return "(" + s + " " + parameterString( cd ) + ")";
+    return "(\"" + s + "\" " + parameterString( cd ) + ")";
+}
+
+
+static String languageString( ContentLanguage *cl )
+{
+    if ( !cl )
+        return "NIL";
+
+    StringList m;
+    const StringList *l = cl->languages();
+    StringList::Iterator it( l->first() );
+    while ( it ) {
+        m.append( Command::imapQuoted( *it, Command::PlainString ) );
+        ++it;
+    }
+
+    if ( l->count() == 1 )
+        return *m.first();
+    return "(" + m.join( " " ) + ")";
 }
 
 
@@ -698,7 +717,7 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
             r.append( " " );
             r.append( dispositionString( hdr->contentDisposition() ) );
             r.append( " " );
-            r.append( "NIL" ); // Content-Language.
+            r.append( languageString( hdr->contentLanguage() ) );
             r.append( " " );
             r.append( "NIL" ); // Content-Location.
         }
@@ -787,7 +806,7 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
     if ( extended ) {
         l.append( "NIL" ); // MD5.
         l.append( dispositionString( hdr->contentDisposition() ) );
-        l.append( "NIL" ); // Content-Language.
+        l.append( languageString( hdr->contentLanguage() ) );
         l.append( "NIL" ); // Content-Location.
     }
 
