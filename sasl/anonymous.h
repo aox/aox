@@ -8,7 +8,7 @@ class Anonymous
     : public SaslMechanism
 {
 public:
-    Anonymous( Command * );
+    Anonymous( EventHandler * );
 
     void readResponse( const String & );
 };

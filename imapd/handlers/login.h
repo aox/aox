@@ -3,7 +3,7 @@
 
 #include "command.h"
 #include "string.h"
-#include "sasl/plain.h"
+#include "plain.h"
 
 
 class Login

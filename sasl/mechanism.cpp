@@ -1,5 +1,5 @@
 #include "mechanism.h"
-#include "command.h"
+#include "event.h"
 #include "query.h"
 
 // Supported authentication mechanisms, for create().
@@ -18,7 +18,7 @@ public:
     {}
 
     SaslMechanism::State state;
-    Command *command;
+    EventHandler *command;
     Query *q;
     bool qd;
 
@@ -66,7 +66,7 @@ public:
 */
 
 SaslMechanism *SaslMechanism::create( const String &mechanism,
-                                      Command *command )
+                                      EventHandler *command )
 {
     String s( mechanism.lower() );
 
@@ -86,7 +86,7 @@ SaslMechanism *SaslMechanism::create( const String &mechanism,
     \a cmd.
 */
 
-SaslMechanism::SaslMechanism( Command *cmd )
+SaslMechanism::SaslMechanism( EventHandler *cmd )
     : d( new SaslData )
 {
     d->command = cmd;
@@ -95,7 +95,7 @@ SaslMechanism::SaslMechanism( Command *cmd )
 
 /*! Returns a pointer to the Command that created this SaslMechanism. */
 
-Command *SaslMechanism::command() const
+EventHandler *SaslMechanism::command() const
 {
     return d->command;
 }
@@ -109,8 +109,8 @@ Command *SaslMechanism::command() const
 
 void SaslMechanism::log( Log::Severity s, const String &m )
 {
-    if ( d->command && d->command->logger() )
-        d->command->logger()->log( s, m );
+//    if ( d->command && d->command->logger() )
+//        d->command->logger()->log( s, m );
 }
 
 

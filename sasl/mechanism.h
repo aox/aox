@@ -4,12 +4,12 @@
 #include "string.h"
 #include "log.h"
 
-class Command;
+class EventHandler;
 
 
 class SaslMechanism {
 public:
-    SaslMechanism( Command * );
+    SaslMechanism( EventHandler * );
     virtual ~SaslMechanism() {}
 
     enum State {
@@ -20,7 +20,7 @@ public:
     State state() const;
     void setState( State );
 
-    Command *command() const;
+    EventHandler *command() const;
     void log( Log::Severity, const String & );
     void log( const String & );
 
@@ -40,7 +40,7 @@ public:
     void setStoredSecret( const String & );
     virtual void setChallenge( const String & );
 
-    static SaslMechanism * create( const String &, Command * );
+    static SaslMechanism * create( const String &, EventHandler * );
 
 private:
     class SaslData *d;

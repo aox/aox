@@ -8,7 +8,7 @@ class CramMD5
     : public SaslMechanism
 {
 public:
-    CramMD5( Command * );
+    CramMD5( EventHandler * );
 
     String challenge();
     void setChallenge( const String & );

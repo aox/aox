@@ -3,11 +3,15 @@ SubDir TOP imapd ;
 SubInclude TOP db ;
 SubInclude TOP sasl ;
 SubInclude TOP server ;
+SubInclude TOP message ;
+
+HDRS += [ FDirName $(TOP) imapd ] ;
+SubInclude TOP imapd handlers ;
 
 SubDir TOP imapd ;
 
-Build imapdmain : imapd.cpp ;
-Build imap : imap.cpp command.cpp set.cpp squery.cpp imapsession.cpp ;
+Build imap : imapd.cpp imap.cpp imapsession.cpp command.cpp
+    set.cpp squery.cpp ;
 
-Program imapd : imap imapdmain database message server mailbox core ;
+Program imapd : imap database message server sasl mailbox core encodings ;
 LINKLIBS on imapd = -lcrypt ;

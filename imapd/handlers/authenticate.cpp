@@ -4,7 +4,7 @@
 #include "scope.h"
 #include "buffer.h"
 #include "imap.h"
-#include "sasl/mechanism.h"
+#include "mechanism.h"
 
 
 /*! \class Authenticate authenticate.h
