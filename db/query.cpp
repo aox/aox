@@ -94,7 +94,7 @@ Query::Query( const PreparedStatement &ps, EventHandler *ev )
 
 
 /*! \fn Query::~Query()
-  
+
     This virtual destructor exists only so that subclasses can define
     their own.
 */
@@ -316,7 +316,7 @@ void Query::notify()
     // Transactions may create COMMIT/ROLLBACK queries without handlers.
     if ( !d->owner )
         return;
-    
+
     Scope( d->owner->arena() );
     d->owner->execute();
 }

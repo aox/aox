@@ -15,7 +15,7 @@ public:
     {}
 
     bool failed;
-    
+
     String sent;
     String sender;
     String message;

@@ -688,7 +688,7 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
 
     if ( !bp )
         return "";
-    
+
     Header *hdr = bp->header();
     ContentType *ct = hdr->contentType();
     StringList *params = 0;

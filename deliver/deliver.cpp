@@ -73,7 +73,7 @@ int main( int argc, char *argv[] )
 
     String contents = message.contents();
 
-    if ( sender.isEmpty() && 
+    if ( sender.isEmpty() &&
          ( contents.startsWith( "From " ) ||
            contents.startsWith( "Return-Path:" ) ) ) {
         int i = contents.find( '\n' );
@@ -97,7 +97,7 @@ int main( int argc, char *argv[] )
 
     fprintf( stderr, "Using recipient %s and sender %s\n",
              recipient.cstr(), sender.cstr() );
-    
+
     Configuration::setup( "mailstore.conf", "deliver.conf" );
 
     Loop::setup();

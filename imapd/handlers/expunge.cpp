@@ -25,7 +25,7 @@ public:
 
 /*! \class Expunge expunge.h
     This command is responsible for removing "\Deleted" messages.
-    
+
     It implements EXPUNGE, as specified in RFC 3501 section 6.4.3, and
     helps Close.
 */

@@ -504,7 +504,7 @@ void IMAP::runCommands()
             } while ( c->group() > 0 && i );
         }
     }
-    
+
     d->runningCommands = false;
 }
 

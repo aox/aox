@@ -257,7 +257,7 @@ static void handleError( int cryptError, const String & function )
 static void setupCert()
 {
     int status = 0;
-    
+
     // Generate an RSA private key.
     CRYPT_CONTEXT privateKey;
     String label = "Mailstore on-demand key";

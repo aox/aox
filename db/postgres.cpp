@@ -694,7 +694,7 @@ void UpdateSchema::execute() {
                     t->execute();
                     substate = 1;
                 }
-                
+
                 if ( substate == 1 ) {
                     if ( !q->done() )
                         return;
