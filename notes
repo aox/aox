@@ -11,7 +11,17 @@ Schema documentation
   have done all I can to it.
 
 
-We need an IMAP test suite.
+Make smtpclient and deliver a lot more robust
+
+  They work for now, but they don't work well. We need a -v -v, at
+  least. Better code wouldn't be a bad thing either.
+
+
+We need an IMAP test suite
+
+  Of course we will both remember what Arnt wrote in email, and our
+  thoughts concerning this subject. Therefore there's no point in making
+  notes. ;)
 
 
 Implement listext
