@@ -4,6 +4,8 @@
 
 #include "imap.h"
 #include "buffer.h"
+#include "mailbox.h"
+#include "imapsession.h"
 
 
 /*! \class Idle idle.h
@@ -25,15 +27,30 @@
 
 void Idle::execute()
 {
-    // if we're already finished, or if we've already enabled idle and
-    // printed the +, just quit.
-    if ( state() == Finished || imap()->idle() )
+    // find the mailbox we're looking at, if any
+    Mailbox * m = 0;
+    if ( imap()->session() )
+        m = imap()->session()->mailbox();
+
+    // if we're already idling, emit possible reponses and
+    if ( idling && m )
+        imap()->session()->emitResponses();
+
+    // if the connection went away while we were idling, finish off.
+    if ( m && imap()->Connection::state() != Connection::Connected )
+        read();
+
+    if ( idling )
         return;
 
+    // if we have to set up idling, do it
+    if ( m )
+        m->addWatcher( this );
+
     imap()->reserve( this );
-    imap()->setIdle( true );
     imap()->enqueue( "+\r\n" );
     imap()->write();
+    idling = true;
 }
 
 
@@ -46,8 +63,7 @@ void Idle::read()
         return;
     String r = s->lower();
     if ( r != "done" )
-        error( Bad, "Expected DONE, saw: " + r );
-    imap()->setIdle( false );
+        error( Bad, "Leaving idle mode due to syntax error: " + r );
     imap()->reserve( 0 );
     finish();
 }

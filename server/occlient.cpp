@@ -25,6 +25,8 @@ static class OCClient * client;
     Every IMAP server initiates a connection to the cluster coordination
     server by calling the static setup() function at startup. This class
     assumes responsibility for interacting with the rest of the cluster.
+
+
 */
 
 
@@ -161,9 +163,9 @@ void OCClient::updateMailbox( const String & arg )
     }
     else if ( rest.startsWith( "uidnext=" ) ) {
         bool ok;
-        uint n = rest.mid( 9 ).number( &ok );
+        uint n = rest.mid( 8 ).number( &ok );
         if ( !ok ) {
-            log( "Unable to parse UIDNEXT value: " + rest.mid( 9 ),
+            log( "Unable to parse UIDNEXT value: " + rest.mid( 8 ),
                  Log::Error );
         }
         else {
@@ -174,8 +176,13 @@ void OCClient::updateMailbox( const String & arg )
         }
     }
     else if ( rest.startsWith( "message=" ) ) {
-        // We take the easy way out for new mail notifications.
-        m->refresh();
+        bool ok;
+        uint n = rest.mid( 8 ).number( &ok );
+        if ( !ok )
+            log( "Unable to parse message UID: " + rest.mid( 8 ),
+                 Log::Error );
+        else if ( n >= m->uidnext() )
+            m->setUidnext( n+1 );
     }
     else {
         log( "Unable to parse mailbox changes: " + rest, Log::Error );

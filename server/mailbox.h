@@ -55,6 +55,9 @@ public:
     void fetchFlags( const MessageSet &, EventHandler * );
     void forget( Fetcher * );
 
+    void addWatcher( EventHandler * );
+    void removeWatcher( EventHandler * );
+
 private:
     class MailboxData *d;
     friend class MailboxReader;

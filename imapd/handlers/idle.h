@@ -10,8 +10,13 @@ class Idle
     : public Command
 {
 public:
+    Idle(): idling( false ) {}
+
     void execute();
     void read();
+
+private:
+    bool idling;
 };
 
 

@@ -22,7 +22,8 @@ public:
           uidnext( 0 ), uidvalidity( 0 ),
           deleted( false ),
           parent( 0 ), children( 0 ), messages( 0 ),
-          flagFetcher( 0 ), headerFetcher( 0 ), bodyFetcher( 0 )
+          flagFetcher( 0 ), headerFetcher( 0 ), bodyFetcher( 0 ),
+          watchers( 0 )
     {}
 
     String name;
@@ -37,6 +38,7 @@ public:
     Fetcher * flagFetcher;
     Fetcher * headerFetcher;
     Fetcher * bodyFetcher;
+    List<EventHandler> * watchers;
 };
 
 
@@ -83,17 +85,16 @@ public:
             Mailbox * m = Mailbox::obtain( r->getString( "name" ) );
             m->d->id = r->getInt( "id" );
             m->d->deleted = r->getBoolean( "deleted" );
-            m->d->uidnext = r->getInt( "uidnext" );
             m->d->uidvalidity = r->getInt( "uidvalidity" );
+            m->setUidnext( r->getInt( "uidnext" ) );
 
             if ( m->d->id )
                 ::mailboxes->insert( m->d->id, m );
         }
 
-        /*
+        // XXX: why was the next line commented out?
         if ( query->failed() )
-            log( Log::Disaster, "Couldn't create mailbox tree." );
-        */
+            log( "Couldn't create mailbox tree.", Log::Disaster );
     }
 };
 
@@ -311,7 +312,17 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
 
 void Mailbox::setUidnext( uint n )
 {
+    if ( n == d->uidnext )
+        return;
     d->uidnext = n;
+    if ( !d->watchers )
+        return;
+    List<EventHandler>::Iterator it( d->watchers->first() );
+    while ( it ) {
+        EventHandler * h = it;
+        ++it;
+        h->execute();
+    }
 }
 
 
@@ -431,4 +442,36 @@ void Mailbox::forget( Fetcher * f )
         d->flagFetcher = 0;
     else if ( d->bodyFetcher == f )
         d->bodyFetcher = 0;
+}
+
+
+/*! Adds \a eh to the list of event handlers that should be notified
+    whenever new messags are injected into this mailbox. In the future
+    other changes may also be communicated via this interface.
+
+    If \a eh watches this mailbox already, addWatcher() does nothing.
+*/
+
+void Mailbox::addWatcher( EventHandler * eh )
+{
+    if ( !d->watchers )
+        d->watchers = new List<EventHandler>;
+    if ( eh && !d->watchers->find( eh ) )
+        d->watchers->append( eh );
+}
+
+
+/*! Removes \a eh from the list of watchers for this mailbox, or does
+    nothing if \a eh doesn't watch this mailbox.
+*/
+
+void Mailbox::removeWatcher( EventHandler * eh )
+{
+    if ( !d->watchers || !eh )
+        return;
+    List<EventHandler>::Iterator it( d->watchers->find( eh ) );
+    if ( it )
+        d->watchers->take( it );
+    if ( d->watchers->isEmpty() )
+        d->watchers = 0;
 }
