@@ -73,6 +73,8 @@ rule Program
     Depends $(<) : $(set-$(>)) ;
     MakeLocate $(<) : [ FDirName $(TOP) bin ] ;
 
+    InstallBin $(BINDIR) : $(<) ;
+
     Clean clean : $(<) ;
     Link $(<) : $(set-$(>)) ;
 }

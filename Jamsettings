@@ -16,4 +16,8 @@ LOGFILE = /tmp/mailstore.log ;
 C++FLAGS = -g -Werror -funsigned-char ;
 LINKFLAGS = -g ;
 
+# mode for installed binaries
+
+EXEMODE = 555 ;
+
 # this file is included from Jamrules.
