@@ -1,6 +1,10 @@
 #include "fetch.h"
 
 #include "set.h"
+#include "stringlist.h"
+#include "arena.h"
+#include "scope.h"
+#include "imap.h"
 
 #include "test.h"
 
@@ -35,7 +39,7 @@ public:
             : partial( false ), offset( 0 ), length( UINT_MAX ) {}
 
         String id;
-        List<String> fields;
+        StringList fields;
         bool partial;
         uint offset;
         uint length;
@@ -44,7 +48,6 @@ public:
     Set set;
     bool peek;
     // we want to ask for...
-    List<Section> sections;
     bool uid;
     bool flags;
     bool envelope;
@@ -52,7 +55,8 @@ public:
     bool bodystructure;
     bool internaldate;
     bool rfc822size;
-    // and the sections imply that we
+    List<Section> sections;
+    // and the sections imply that we...
     bool needHeader;
     bool needBody;
 };
@@ -77,6 +81,7 @@ public:
 Fetch::Fetch( bool u )
     : Command(), uid( u ), d( new FetchData )
 {
+    d->uid = u;
 }
 
 
@@ -84,7 +89,6 @@ Fetch::Fetch( bool u )
 
 void Fetch::parse()
 {
-    space();
     d->set = set( !uid );
     space();
     if ( nextChar() == '(' ) {
@@ -109,11 +113,16 @@ void Fetch::parse()
 
 void Fetch::execute()
 {
-    setState( Finished );
+    if ( d->set.isEmpty() ) {
+        setState( Finished );
+        return;
+    }
+
+
 }
 
 
-/*! This helper is responsible for parsing a single attriute from the
+/*! This helper is responsible for parsing a single attribute from the
     fetch arguments. If \a alsoMacro is true, this function parses a
     macro as well as a single attribute.
 */
@@ -286,12 +295,83 @@ void Fetch::parseBody()
 }
 
 
+
+/*! Returns an SQL query string to fetch
+
+*/
+
+String Fetch::query() const
+{
+    if ( !d->uid &&
+         !d->flags &&
+         !d->envelope &&
+         !d->body &&
+         !d->bodystructure &&
+         !d->internaldate &&
+         !d->rfc822size &&
+         !d->needHeader &&
+         !d->needBody )
+        return "";
+
+
+    StringList bools;
+    if ( d->body || d->bodystructure )
+        bools.append( "bodystructure" );
+    if ( d->envelope )
+        bools.append( "envelope" );
+    if ( d->flags )
+        bools.append( "flags" );
+    if ( d->internaldate )
+        bools.append( "internaldate" );
+    if ( d->rfc822size )
+        bools.append( "rfc822size" );
+    if ( d->uid )
+        bools.append( "uid" );
+
+    String q = "select (" + bools.join( "," ) + ") from messages where " +
+               d->set.where();
+    return q;
+}
+
+
+static struct {
+    const char * args;
+    const char * query;
+} fetches[] = {
+    { "1,2,3 flags",
+      "select (flags,uid) from messages where uid<4" },
+    { "2,3 flags",
+      "select (flags,uid) from messages where uid>=2 and uid<4" },
+    { "2,3 (flags)",
+      "select (flags,uid) from messages where uid>=2 and uid<4" },
+    { "2,3 (flags uid)",
+      "select (flags,uid) from messages where uid>=2 and uid<4" },
+    { 0, 0 }
+};
+
+
 static class FetchTest: public Test {
 public:
     FetchTest(): Test( 610 ) {}
     void test() {
         setContext( "Testing Fetch" );
-        
+
+        IMAP imap( -1 );
+        imap.setState( IMAP::Selected );
+        String tag = "a";
+        uint i = 0;
+        while ( fetches[i].args != 0 ) {
+            Arena a;
+            Scope s( &a );
+            StringList l;
+            l.append( fetches[i].args );
+            Fetch * f
+                = (Fetch *)Command::create( &imap, "uid fetch", tag, &l, &a );
+            if ( f )
+                f->parse();
+            verify( "Fetch parsing broke",
+                    !f, !f->ok(), f->query() != fetches[i].query );
+            i++;
+        }
     }
 } fetchTest;
-

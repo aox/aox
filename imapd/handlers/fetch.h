@@ -18,6 +18,8 @@ public:
 
     String dotLetters( uint, uint );
 
+    String query() const;
+
 private:
     bool uid;
     class FetchData * d;
