@@ -49,8 +49,8 @@ OCClient::~OCClient()
 
 void OCClient::setup()
 {
-    Configuration::Text ocdHost( "ocdhost", "127.0.0.1" );
-    Configuration::Scalar ocdPort( "ocdport", 2050 );
+    Configuration::Text ocdHost( "ocd-address", "127.0.0.1" );
+    Configuration::Scalar ocdPort( "ocd-port", 2050 );
     Endpoint e( ocdHost, ocdPort );
 
     if ( !e.valid() ) {
