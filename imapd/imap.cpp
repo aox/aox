@@ -251,6 +251,11 @@ void IMAP::addCommand()
          "-line command: " + *s, Log::Debug );
 
     String tag, command;
+    
+    // Be kind to the old man Arnt, who cannot unlearn his SMTP habits
+
+    if ( * s == "quit" )
+        *s = "arnt logout";
 
     // Parse the tag: A nonzero sequence of any ASTRING-CHAR except '+'.
 
