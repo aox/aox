@@ -9,6 +9,7 @@
 
 
 class Mailbox;
+class Flag;
 
 
 class Message {
@@ -50,6 +51,16 @@ public:
 
     bool flag( BuiltinFlag ) const;
     void setFlag( BuiltinFlag, bool );
+
+    List<Flag> * customFlags() const;
+
+    bool hasCustomFlags() const;
+    bool hasHeaders() const;
+    bool hasBodies() const;
+
+    void fetchCustomFlags( EventHandler * );
+    void fetchHeaders( EventHandler * );
+    void fetchBodies( EventHandler * );
 
 private:
     void parseMultipart( uint, uint, const String &, const String &, bool,
