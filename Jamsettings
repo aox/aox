@@ -24,5 +24,6 @@ EXEMODE = 555 ;
 # uncomment the next line to use a cryptlib from the system. the
 # default is to use the one bundled with the mailstore source.
 # USE_SYSTEM_CRYPTLIB = yes ;
+# you may also need to add/change something in tlsproxy/Jamfile.
 
 # this file is included from Jamrules.

@@ -4,7 +4,9 @@ SubInclude TOP server ;
 OrigHDRS = $(HDRS) ;
 
 if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
-    # nothing
+    # this is the directory where cryptlib's header files are, if they
+    # aren't in the compiler's include path.
+    HDRS += /usr/local/include ;
 }
 else {
     SubInclude TOP cryptlib ;
@@ -17,6 +19,10 @@ Build tls : tlsproxy.cpp ;
 Program tlsproxy : tls server core cryptlib ;
 
 if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
+    # additional flags that may be needed to link against cryptlib, 
+    # e.g. "-pthread -L/usr/local/lib" for freebsd 5.3.
+    LINKFLAGS on tlsproxy += -pthread -L/usr/local/lib ;
+    # and the library itself
     LINKLIBS on tlsproxy = -lcl ;
 }
 else {
