@@ -2,7 +2,7 @@
 #define SEARCH_H
 
 #include "command.h"
-#include "query.h"
+#include "squery.h"
 
 
 class Search: public Command {
