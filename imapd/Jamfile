@@ -1,4 +1,4 @@
 SubDir TOP imapd ;
 
-Main imapd : main.cpp ;
+Main imapd : main.cpp connection.cpp listener.cpp loop.cpp imap.cpp ;
 LinkLibraries imapd : liboryx ;
