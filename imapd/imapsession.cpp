@@ -1,7 +1,8 @@
 #include "imapsession.h"
 
-#include "event.h"
+#include "global.h"
 #include "mailbox.h"
+#include "event.h"
 
 
 class SessionData {
@@ -101,4 +102,13 @@ bool ImapSession::loaded() const
 Mailbox *ImapSession::mailbox() const
 {
     return d->mailbox;
+}
+
+
+/*! Returns the UID of the message with MSN \a msn.
+*/
+
+uint ImapSession::uid( uint msn ) const
+{
+    return 0;
 }

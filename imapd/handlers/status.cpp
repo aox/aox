@@ -55,6 +55,7 @@ void Status::parse()
 
 void Status::execute()
 {
+#if 0
     if ( !m ) {
         m = new Mailbox( name, this );
         m->setReadOnly( true );
@@ -87,5 +88,6 @@ void Status::execute()
 
     status.truncate( status.length()-1 );
     respond( "STATUS " + name + " (" + status + ")" );
+#endif
     finish();
 }

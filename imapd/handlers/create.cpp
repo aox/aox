@@ -27,6 +27,7 @@ void Create::parse()
 
 void Create::execute()
 {
+#if 0
     if ( !m ) {
         m = new Mailbox( name, this );
         if ( name.lower() == "inbox" )
@@ -41,5 +42,6 @@ void Create::execute()
 
     if ( m->state() == Mailbox::Failed )
         error( No, "Couldn't create " + name );
+#endif
     finish();
 }

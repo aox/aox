@@ -15,6 +15,8 @@ public:
     bool loaded() const;
     Mailbox *mailbox() const;
 
+    unsigned int uid( unsigned int ) const;
+
 private:
     class SessionData *d;
 

@@ -71,6 +71,7 @@ void Select::execute()
         return;
     }
 
+#if 0
     Mailbox *m = session->mailbox();
 
     respond( "FLAGS " + m->flags() );
@@ -82,6 +83,7 @@ void Select::execute()
     respond( "OK [PERMANENTFLAGS " + m->permanentFlags() + "]" );
     respond( "OK [READ-" + String( m->readOnly() ? "ONLY" : "WRITE" ) + "]",
              Tagged );
+#endif
 
     finish();
 }
