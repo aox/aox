@@ -1,15 +1,14 @@
-/*! \class Store store.h
-    Alters message flags (RFC 3501, §6.4.6).
-
-    The Store command is the principal means of altering flags,
-    although Annotate can do the same.
-*/
-
 #include "store.h"
 
 #include "messageset.h"
 
 
+/*! \class Store store.h
+    Alters message flags (RFC 3501, §6.4.6).
+
+    The Store command is the principal means of altering message flags,
+    although Annotate may be able to do the same.
+*/
 
 /*!  Constructs a Store handler. If \a u is set, the first argument is
      presumed to be a UID set, otherwise it's an MSN set.
@@ -18,21 +17,7 @@
 Store::Store( bool u )
     : op( Replace), silent( false ), uid( u )
 {
-    // nothing
 }
-
-
-/*  store           = "STORE" SP set SP store-att-flags
-    store-att-flags = (["+" / "-"] "FLAGS" [".SILENT"]) SP
-                      (flag-list / (flag *(SP flag)))
-
-    flag-list       = "(" [flag *(SP flag)] ")"
-    flag            = "\Answered" / "\Flagged" / "\Deleted" / "\Seen" /
-                      "\Draft" / flag-keyword / flag-extension
-
-    flag-keyword    = atom
-    flag-extension  = "\" atom
-*/
 
 
 /*! \reimp */
@@ -55,11 +40,11 @@ void Store::parse()
 
     bool parens = present( "(" );
 
-    flags.append( new String( flag() ) );
-    while ( nextChar() == ' ' ) {
-        space();
+    // XXX: This is broken. flag() (via atom()) will die when it sees an
+    // empty list. I don't see how to handle that case nicely.
+    do {
         flags.append( new String( flag() ) );
-    }
+    } while ( present( " " ) );
 
     if ( parens )
         require( ")" );
