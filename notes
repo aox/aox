@@ -1,19 +1,8 @@
-Schema documentation
-
-  I've done all I want to sql-schema.html and postgres.schema; I'll have
-  to wait for Sujai's diagram (later tonight) to complete schema.html.
-
-
-Installation script
-
-  First working draft submitted. A few minor tweaks are necessary.
-
-
 Injector fixes:
 
   1. We need to share entries for identical bodyparts.
   2. Must fix the header_fields->part_numbers FK reference.
-  3. ...
+  3. Better error handling is urgently required.
 
 
 FETCH fixes:
@@ -27,6 +16,13 @@ EXPUNGE fixes:
   1. Must know about shared bodyparts.
   2. Can we use on delete cascade?
   3. Other brokenness.
+
+
+Schema documentation
+
+  I've done all I want to sql-schema.html and postgres.schema; I'll have
+  to wait for Sujai's diagram to complete schema.html, but until then, I
+  have done all I can to it.
 
 
 Field name synchronisation
