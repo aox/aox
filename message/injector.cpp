@@ -75,6 +75,9 @@ public:
             return;
 
         if ( q->hasResults() ) {
+            // XXX: Perhaps this should fetch the first column instead
+            // of one named "id", so as to not require nextuid to be
+            // renamed to id in the selectUids query below. -- AMS
             int *id = new int( q->nextRow()->getInt( "id" ) ); // ### ick.
             list->append( id );
         }
@@ -234,8 +237,8 @@ void Injector::selectUids()
     while ( it ) {
         d->totalUids++;
 
-        q = new Query( "select uidnext from mailboxes where id=$1 for update",
-                       helper );
+        q = new Query( "select uidnext as id from mailboxes "
+                       "where id=$1 for update", helper );
         q->bind( 1, it->id() );
         d->transaction->enqueue( q );
         queries->append( q );
