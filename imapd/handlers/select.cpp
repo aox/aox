@@ -66,7 +66,7 @@ void Select::execute()
         return;
     }
 
-    imap()->newSession( m );
+    imap()->newSession( m, readOnly );
 
     respond( "FLAGS " + m->flags() );
     respond( fn( m->count() ) + " EXISTS" );
