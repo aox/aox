@@ -315,7 +315,8 @@ void IMAP::addCommand()
     if ( !d->commands.isEmpty() &&
          cmd->state() == Command::Executing && cmd->ok() )
     {
-        cmd->log( "Blocking command '" + tag + " " + command, Log::Debug );
+        cmd->log( "Blocking command '" + tag + " " + command + "'",
+                  Log::Debug );
         cmd->setState( Command::Blocked );
     }
     d->commands.append( cmd );
