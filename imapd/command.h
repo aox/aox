@@ -61,8 +61,11 @@ public:
     String literal();
     Set set( bool );
     char nextChar();
-    void step();
+    void step( uint = 1 );
     const String following() const;
+    void require( String );
+    bool skip( String );
+    bool skip( char );
 
     IMAP * imap() const;
 

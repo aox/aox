@@ -19,26 +19,14 @@ void Store::parse()
         step();
     }
 
-    item = letters( 5, 5 );
-    if ( item != "flags" )
-        error( Bad, "Unknown item: " + item );
-
-    if ( nextChar() == '.' ) {
-        step();
-        String suffix = letters( 6, 6 );
-        if ( suffix == "silent" )
-            silent = true;
-        else
-            error( Bad, "Unknown suffix: " + suffix );
-    }
-    
+    require( "flags" );
+    if ( skip( ".silent" ) )
+        silent = true;
     space();
 
     bool parens = false;
-    if ( nextChar() == '(' ) {
+    if ( skip( '(' ) )
         parens = true;
-        step();
-    }
 
     do {
         if ( flags.count() > 0 )
@@ -66,11 +54,9 @@ void Store::parse()
 
         flags.append( flag );
     } while ( nextChar() == ' ' );
-    
-    if ( parens && nextChar() != ')' )
+
+    if ( parens && !skip( ')' ) )
         error( Bad, "" );
-    else
-        step();
 
     end();
 }
@@ -92,7 +78,7 @@ void Store::execute()
         break;
     }
 
-    response.append( " " + item + " " );
+    response.append( " flags " );
 
     List< String >::Iterator it = flags.first();
     while ( it ) {

@@ -17,7 +17,6 @@ public:
 private:
     Set s;
     enum { Add, Replace, Remove } op;
-    String item;
     bool silent;
     List< String > flags;
 };
