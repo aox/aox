@@ -32,10 +32,19 @@ public:
     void emitResponses();
 
     void end();
+    void space();
     uint number();
     uint nzNumber();
+    String astring();
+    String quoted();
+    String literal();
+    char nextChar();
+    void step();
 
     IMAP * imap() const;
+
+private:
+    const String following() const;
 
 private:
     CommandData * d;

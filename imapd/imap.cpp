@@ -12,7 +12,7 @@
 
 class IMAPData {
 public:
-    IMAPData(): parsedCommandArena( 0 ), 
+    IMAPData(): parsedCommandArena( 0 ),
                 readingLiteral( false ), literalSize( 0 ),
                 args( 0 ),
                 state( IMAP::NotAuthenticated )
@@ -46,7 +46,7 @@ IMAP::IMAP(int s)
 
     setReadBuffer( new Buffer );
     setWriteBuffer( new Buffer );
-    writeBuffer()->append("* PREAUTH\r\n");
+    writeBuffer()->append("* OK - ne plus ultra imapd\r\n");
     setTimeout( time(0) + 20 );
 }
 
