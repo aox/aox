@@ -263,7 +263,7 @@ static void setupCert()
     String label = "Mailstore on-demand key";
 
     status = cryptCreateContext( &privateKey, CRYPT_UNUSED, CRYPT_ALGO_RSA );
-    handleError( status, "cryptGenerateKey" );
+    handleError( status, "cryptCreateContext" );
     status = cryptSetAttributeString( privateKey, CRYPT_CTXINFO_LABEL,
                                       label.cstr(), label.length() );
     handleError( status, "cryptSetAttributeString(LABEL)" );
@@ -284,8 +284,7 @@ static void setupCert()
 
     status = cryptCreateCert( &cert, CRYPT_UNUSED, CRYPT_CERTTYPE_CERTIFICATE  );
     handleError( status, "cryptCreateCert" );
-    /*status = cryptSetAttribute( cert, CRYPT_CERTINFO_XYZZY, 1 );
-    handleError( status, "cryptSetAttribute" );*/
+
     CRYPT_CONTEXT publicKey;
     status = cryptGetPublicKey( keyset, &publicKey, CRYPT_KEYID_NAME,
                                 label.cstr() );
@@ -293,6 +292,7 @@ static void setupCert()
     status = cryptSetAttribute( cert, CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO,
                                 publicKey );
     handleError( status, "cryptSetAttribute(PUBLICKEYINFO)" );
+
     status = cryptSetAttribute( cert, CRYPT_CERTINFO_SELFSIGNED, 1 );
     handleError( status, "cryptSetAttribute(SELFSIGNED)" );
     status = cryptSetAttribute( cert, CRYPT_CERTINFO_CA, 1 );
