@@ -9,6 +9,9 @@
 class Buffer;
 
 
+enum Status { Idle, Transaction, Failed };
+
+
 class PgServerMessage {
 public:
     PgServerMessage( Buffer *b );
@@ -308,8 +311,7 @@ class PgReady
 public:
     PgReady( Buffer * );
 
-    enum Status { Idle, Transaction, Failed };
-    Status status() const { return s; }
+    Status status() const;
 
 private:
     Status s;
