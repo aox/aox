@@ -722,5 +722,5 @@ void IMAP993::finish()
     }
 
     startTls( d->tlsServer );
-    enqueue( d->banner );
+    enqueue( d->banner + "\r\n" );
 }
