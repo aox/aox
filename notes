@@ -8,6 +8,16 @@ We need to preserve the order of trace fields in the header.
   the right thing to do is to add a separate trace_fields table with
   relative position numbers.
 
+  Update: no, we'll just preserve the order of fields during Injection
+  (i.e., order on the header_fields.id).
+
+
+We should not duplicate the contents of address_fields in header_fields.
+
+  The Injector should avoid inserting address fields into header_fields,
+  and the HeaderFetcher should assemble addresses from address_fields.
+  (If we split trace_fields out, then it should do the same for them.)
+
 
 tlsproxy doesn't handle eof (or errors) well
 
@@ -31,6 +41,9 @@ ocd needs work
 User/Mailbox need a bit of an overhaul.
 
 
+We must optimise Row composition.
+
+
 We need top-level message/rfc822 support
 
 
@@ -45,13 +58,6 @@ We need an IMAP test suite
   Of course we will both remember what Arnt wrote in email, and our
   thoughts concerning this subject. Therefore there's no point in making
   notes. ;)
-
-
-We should not duplicate the contents of address_fields in header_fields.
-
-  The Injector should avoid inserting address fields into header_fields,
-  and the HeaderFetcher should assemble addresses from address_fields.
-  (If we split trace_fields out, then it should do the same for them.)
 
 
 ms password user ams newpassword
@@ -81,25 +87,13 @@ Implement listext
 Resource limits on memory allocation
 
 
-Signal handling
-
-  What is the appropriate way to handle unknown signals?  (Or
-  generally, any unpredictable occurence in untested circumstances.)
-  Arnt sez: Follow the system default.
-
-  SIGHUP is known: Users use it to mean "reopen the logfile" or
-  "reread the config".
-
-  Other known signals?
+Collect EXPLAIN ANALYZE output for our common queries.
 
 
-inject a large number of messages, collect query statistics
+Set up and play with PITR and tsearch2
 
 
 The GUI should do something
-
-
-Set up and play with Tsearch2
 
 
 Inbox lifetime/mailbox reuse
@@ -159,14 +153,6 @@ Consider RFC2231:
   Arnt's opinion: We're better off doing that at parse time. There's
   also some outlook breakage to support - it uses 2047 when it
   shouldn't.
-
-
-logging cleanups
-
-  Mostly done now. I need to do another quick sweep to ensure that the
-  various Logs are created in the right context. Furthermore, the Loop
-  should not be calling commit() for every Connection; and they should
-  each set their Log/Arena correctly in their Scope.
 
 
 Keeping stderr open
