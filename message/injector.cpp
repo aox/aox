@@ -10,6 +10,10 @@
 #include "fieldcache.h"
 #include "addresscache.h"
 #include "transaction.h"
+#include "md5.h"
+
+
+static Dict< int > * bodyHashes;
 
 
 // These structs represent one part of each entry in the header_fields
@@ -60,27 +64,31 @@ public:
 
 
 class IdHelper : public EventHandler {
-private:
+protected:
     List< int > * list;
     List< Query > * queries;
     EventHandler * owner;
+
 public:
     IdHelper( List< int > *l, List< Query > *q, EventHandler *ev )
         : list( l ), queries( q ), owner( ev )
     {}
+
+    virtual void processResults( Query *q ) {
+        // XXX: Perhaps this should fetch the first column instead of
+        // one named "id", so as to not require nextuid to be renamed
+        // to id in the selectUids query below. -- AMS
+        int *id = new int( q->nextRow()->getInt( "id" ) ); // ### ick.
+        list->append( id );
+    }
 
     void execute() {
         Query *q = queries->first();
         if ( !q->done() )
             return;
 
-        if ( q->hasResults() ) {
-            // XXX: Perhaps this should fetch the first column instead
-            // of one named "id", so as to not require nextuid to be
-            // renamed to id in the selectUids query below. -- AMS
-            int *id = new int( q->nextRow()->getInt( "id" ) ); // ### ick.
-            list->append( id );
-        }
+        if ( q->hasResults() )
+            processResults( q );
 
         queries->take( queries->first() );
         if ( queries->isEmpty() )
@@ -97,6 +105,16 @@ public:
     The message is assumed to be valid. The list of mailboxes must be
     sorted.
 */
+
+/*! This setup function expects to be called by ::main() to perform what
+    little initialisation is required by the Injector.
+*/
+
+void Injector::setup()
+{
+    bodyHashes = new Dict< int >;
+}
+
 
 /*! Creates a new Injector object to deliver the \a message into each of
     the \a mailboxes on behalf of the \a owner, which is notified when
@@ -366,10 +384,26 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
 
 void Injector::insertBodyparts()
 {
+    class BodypartHelper : public IdHelper {
+    public:
+        BodypartHelper( List< int > *l, List< Query > *q, EventHandler *ev )
+            : IdHelper( l, q, ev )
+        {}
+
+        void processResults( Query *q ) {
+            Row *r = q->nextRow();
+            int *id = new int( r->getInt( "id" ) );
+            String hash = r->getString( "hash" );
+
+            list->append( id );
+            bodyHashes->insert( hash, id );
+        }
+    };
+
     Query *i, *s;
     d->bodypartIds = new List< int >;
     List< Query > * queries = new List< Query >;
-    IdHelper * helper = new IdHelper( d->bodypartIds, queries, this );
+    IdHelper * helper = new BodypartHelper( d->bodypartIds, queries, this );
 
     d->bodyparts = d->message->bodyParts();
     List< BodyPart >::Iterator it( d->bodyparts->first() );
@@ -377,8 +411,23 @@ void Injector::insertBodyparts()
         d->totalBodyparts++;
         BodyPart *b = it++;
 
-        bool text = b->contentType()->type() == "text";
+        // If we've seen the text of this body part before, we already
+        // know its bodypart id. If not, we need to insert a new entry
+        // into bodyparts.
 
+        String hash = MD5::hash( b->data() );
+        int *id = bodyHashes->find( hash );
+        if ( id ) {
+            // This is a terrible hack. Must fix later. -- AMS
+            s = new Query( "select " + fn( *id ) + " as id, "
+                           "'" + hash + "' as hash", helper );
+            d->transaction->enqueue( s );
+            queries->append( s );
+            continue;
+        }
+
+        bool text = b->contentType()->type() == "text";
+        
         i = new Query( "insert into bodyparts (text) values ($1)", helper );
         if ( text )
             i->bind( 1, b->data(), Query::Binary );
@@ -396,8 +445,8 @@ void Injector::insertBodyparts()
             d->transaction->enqueue( i );
         }
 
-        s = new Query( "select currval('bodypart_ids')::integer as id",
-                       helper );
+        s = new Query( "select currval('bodypart_ids')::integer as id, "
+                       "'" + hash + "' as hash", helper );
         d->transaction->enqueue( s );
         queries->append( s );
     }

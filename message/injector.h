@@ -20,6 +20,8 @@ public:
     bool failed() const;
     void execute();
 
+    static void setup();
+
 private:
     class InjectorData *d;
 
