@@ -3,21 +3,21 @@
 .SH NAME
 mailstore.conf - overall configuration for Oryx Mailstore.
 .SH SYNOPSIS
-.B /etc/mailstore/mailstore.conf
+.B $CONFIGDIR/mailstore.conf
 .br
-.B /etc/mailstore/imapd.conf
+.B $CONFIGDIR/imapd.conf
 .br
-.B /etc/mailstore/pop3d.conf
+.B $CONFIGDIR/pop3d.conf
 .br
-.B /etc/mailstore/smtpd.conf
+.B $CONFIGDIR/smtpd.conf
 .br
-.B /etc/mailstore/logd.conf
+.B $CONFIGDIR/logd.conf
 .br
-.B /etc/mailstore/ocd.conf
+.B $CONFIGDIR/ocd.conf
 .br
-.B /etc/mailstore/tlsproxy.conf
+.B $CONFIGDIR/tlsproxy.conf
 .br
-.B /etc/mailstore/deliver.conf
+.B $CONFIGDIR/deliver.conf
 .SH DESCRIPTION
 .nh
 .PP
@@ -89,8 +89,9 @@ need to be started ar root, and do not try to lose privileges.
 Turning security off has exactly one advantage: it simplifies
 debugging.
 .IP jail-directory
-is the directory where the servers jail themselves. On startup, each
-server uses
+is the directory where the servers jail themselves,
+$JAILDIR
+by default. On startup, each server uses
 .BR chroot (2)
 into this directory, which should be empty.
 .I jail-directory

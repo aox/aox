@@ -3,7 +3,7 @@
 .SH NAME
 tlsproxy - TLS/SSL helper for Oryx Mailstore.
 .SH SYNOPSIS
-.B /usr/mailstore/bin/tlsproxy
+.B $BINDIR/tlsproxy
 .SH DESCRIPTION
 .nh
 .PP

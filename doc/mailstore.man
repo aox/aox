@@ -5,7 +5,7 @@ Overview of Oryx Mailstore.
 .SH SYNOPSIS
 .B /etc/init.d/mailstore {start,stop}
 .PP
-.B /etc/mailstore/*.conf
+.B $CONFIGDIR/*.conf
 .SH DESCRIPTION
 .nh
 .PP
@@ -160,6 +160,23 @@ GNU licenses. It includes a disclaimer of responsibility.
 Our commercial license offers more flexibility than the OSL and a full
 warranty. There are also extra services. Contact info@oryx.com for
 more details, or see http://www.oryx.com/mailstore/commercial.html.
+.SH DEFAULTS
+This compilation of Mailstore uses the following compile-time settings:
+BINDIR (where executables live) is 
+.IR $BINDIR .
+MANDIR (where manpages live) is 
+.IR $MANDIR .
+PIDFILEDIR (where pidfiles live) is 
+.IR $PIDFILEDIR .
+JAILDIR (the working directory of the servers) is 
+.IR $JAILDIR .
+CONFIGDIR (where the configuration files live) is 
+.IR $CONFIGDIR .
+LOGFILE (the full name of the logfile) is 
+.IR $LOGFILE .
+.PP
+Most of these can be overridden using
+.BR mailstore.conf (5).
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION

@@ -3,7 +3,7 @@
 .SH NAME
 logd - logging server for Oryx Mailstore.
 .SH SYNOPSIS
-.B /usr/mailstore/bin/logd
+.B $BINDIR/logd
 .SH DESCRIPTION
 .nh
 .PP
@@ -56,9 +56,9 @@ and
 (see
 .BR mailstore.conf (5))
 .SH FILES
-/etc/mailstore/mailstore.conf
+$CONFIGDIR/mailstore.conf
 .br
-/etc/mailstore/logd.conf
+$CONFIGDIR/logd.conf
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION

@@ -3,7 +3,7 @@
 .SH NAME
 imapd - IMAP4rev1 server for Oryx Mailstore.
 .SH SYNOPSIS
-.B /usr/mailstore/bin/imapd
+.B $BINDIR/imapd
 .SH DESCRIPTION
 .nh
 .PP

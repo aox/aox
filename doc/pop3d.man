@@ -3,7 +3,7 @@
 .SH NAME
 pop3d - POP3 server for Oryx Mailstore.
 .SH SYNOPSIS
-.B /usr/mailstore/bin/pop3d
+.B $BINDIR/pop3d
 .SH DESCRIPTION
 .nh
 .PP
