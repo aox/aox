@@ -167,9 +167,6 @@ What to do about EventHandlers whose targets have died?
   This will almost Just Work once we're in a GC world.
 
 
-garbage collection (~/imapd.valgrind)
-
-
 logging cleanups
 
   Mostly done now. I need to do another quick sweep to ensure that the
