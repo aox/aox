@@ -5,6 +5,7 @@
 #include "event.h"
 #include "query.h"
 #include "configuration.h"
+#include "occlient.h"
 #include "logclient.h"
 #include "address.h"
 #include "addresscache.h"
@@ -135,6 +136,7 @@ int main( int argc, char *argv[] )
     global.setLog( &l );
     LogClient::setup();
 
+    OCClient::setup();
     Database::setup();
     AddressCache::setup();
     Configuration::report();
