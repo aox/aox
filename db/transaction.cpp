@@ -97,8 +97,10 @@ String Transaction::error() const
 
 void Transaction::setError( const String &s )
 {
+    // We want to keep only the first recorded error.
+    if ( d->state != Failed )
+        d->error = s;
     d->state = Failed;
-    d->error = s;
 }
 
 
