@@ -34,7 +34,7 @@ public:
     PgKeyData *keydata;
     Dict< String > params;
     PgRowDescription *description;
-    PgReady::Status status;
+    Status status;
 
     List< Query > queries;
     Transaction *transaction;
@@ -351,14 +351,14 @@ void Postgres::process( char type )
             d->status = msg.status();
 
             if ( d->transaction ) {
-                if ( d->status == PgReady::Idle ) {
+                if ( d->status == Idle ) {
                     d->transaction->setState( Transaction::Completed );
                     d->transactionSubmitted = false;
                     d->queries.take( q );
                     d->transaction = 0;
                     return;
                 }
-                else if ( d->status == PgReady::Failed ) {
+                else if ( d->status == Failed ) {
                     d->transaction->setState( Transaction::Failed );
                 }
             }
