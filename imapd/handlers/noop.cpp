@@ -16,7 +16,7 @@
 void Noop::execute()
 {
     if ( !q ) {
-        q = new Query( "select foo,bar from test" );
+        q = new Query( this, "select foo,bar from test" );
         q->submit();
         return;
     }
