@@ -70,7 +70,7 @@ void OCServer::parse()
 
     int i = s->find( ' ' );
     String tag = s->mid( 0, i );
-    String msg = s->mid( i+1 ).stripCRLF().lower();
+    String msg = s->mid( i+1 ).stripCRLF();
 
     if ( tag == "*" )
         OCServer::send( msg );
