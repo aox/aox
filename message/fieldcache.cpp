@@ -2,7 +2,6 @@
 
 #include "fieldcache.h"
 
-#include "arena.h"
 #include "scope.h"
 #include "event.h"
 #include "query.h"
@@ -11,7 +10,6 @@
 #include "map.h"
 
 
-static Arena fcArena;
 static Map< String > *idCache;
 static Dict< uint > *nameCache;
 static PreparedStatement *fieldLookup;
@@ -37,8 +35,6 @@ static PreparedStatement *fieldInsert;
 
 void FieldNameCache::setup()
 {
-    Scope x( &fcArena );
-
     idCache = new Map< String >;
     nameCache = new Dict< uint >;
 
@@ -120,14 +116,9 @@ void FieldLookup::execute() {
     }
 
     uint id = r->getInt( "id" );
-    {
-        Scope x( &fcArena );
-
-        // XXX: Is this really necessary?
-        String *name = new String( field );
-        idCache->insert( id, name );
-        nameCache->insert( *name, new uint( id ) );
-    }
+    String *name = new String( field );
+    idCache->insert( id, name );
+    nameCache->insert( *name, new uint( id ) );
 
     if ( queries->isEmpty() ) {
         status->setState( CacheLookup::Completed );

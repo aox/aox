@@ -5,7 +5,6 @@
 
 #include "global.h"
 
-class Arena;
 class String;
 
 
@@ -43,7 +42,6 @@ private:
     uint len, max;
     int idx;
     int *str;
-    Arena * a;
 };
 
 

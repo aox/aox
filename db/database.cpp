@@ -2,7 +2,6 @@
 
 #include "database.h"
 
-#include "arena.h"
 #include "scope.h"
 #include "list.h"
 #include "string.h"
@@ -13,7 +12,6 @@
 #include "postgres.h"
 
 
-static Arena dbArena;
 static Endpoint *srv;
 static String *t, *n, *u, *p;
 static List< Database > handles;
@@ -60,8 +58,6 @@ Database::Database()
 
 void Database::setup()
 {
-    Scope x( &dbArena );
-
     Configuration::Text
         db( "db", "postgres" ),
         dbHost( "db-address",
@@ -119,8 +115,6 @@ void Database::setup()
 
 Database *Database::handle()
 {
-    Scope x( &dbArena );
-
     Database *db = 0;
     List< Database >::Iterator it( handles.first() );
     while ( it ) {
@@ -266,7 +260,6 @@ String Database::password()
 
 void Database::addHandle( Database * d )
 {
-    Scope x( &dbArena );
     handles.append( d );
 }
 
@@ -275,7 +268,6 @@ void Database::addHandle( Database * d )
 
 void Database::removeHandle( Database * d )
 {
-    Scope x( &dbArena );
     handles.take( handles.find( d ) );
 }
 

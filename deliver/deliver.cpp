@@ -1,6 +1,5 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "arena.h"
 #include "scope.h"
 #include "event.h"
 #include "string.h"
@@ -25,8 +24,7 @@ static const char *errstr;
 
 int main( int argc, char *argv[] )
 {
-    Arena firstArena;
-    Scope global( &firstArena );
+    Scope global;
 
     String sender;
     String recipient;

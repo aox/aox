@@ -3,8 +3,6 @@
 #include "sourcefile.h"
 #include "intro.h"
 #include "class.h"
-#include "scope.h"
-#include "arena.h"
 #include "error.h"
 #include "webpage.h"
 #include "manpage.h"
@@ -19,9 +17,6 @@
 
 int main( int argc, char ** argv )
 {
-    Arena arena;
-    Scope global( &arena );
-
     ManPage * mp = 0;
     WebPage * wp = 0;
     Postscript * ps = 0;

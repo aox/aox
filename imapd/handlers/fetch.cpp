@@ -2,7 +2,6 @@
 
 #include "fetch.h"
 
-#include "arena.h"
 #include "scope.h"
 #include "messageset.h"
 #include "stringlist.h"

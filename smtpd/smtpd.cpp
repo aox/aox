@@ -1,6 +1,5 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "arena.h"
 #include "scope.h"
 #include "configuration.h"
 #include "logclient.h"
@@ -20,8 +19,7 @@
 
 int main( int argc, char * argv[] )
 {
-    Arena firstArena;
-    Scope global( &firstArena );
+    Scope global;
 
     Server s( "smtpd", argc, argv );
 

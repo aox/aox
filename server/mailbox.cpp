@@ -3,7 +3,6 @@
 #include "mailbox.h"
 
 #include "dict.h"
-#include "arena.h"
 #include "scope.h"
 #include "event.h"
 #include "query.h"
@@ -34,7 +33,6 @@ public:
 
 
 static Mailbox *root = 0;
-static Arena * arena = 0;
 static Query *query = 0;
 static Map<Mailbox> * mailboxes = 0;
 
@@ -99,7 +97,6 @@ void Mailbox::setup()
         }
     };
 
-    ::arena = Scope::current()->arena();
     ::root = new Mailbox( "/" );
 
     // the query and MailboxReader uses this Arena. The startup arena
@@ -268,7 +265,6 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
     if ( !create )
         return 0;
 
-    Scope x( ::arena );
     Mailbox * m = new Mailbox( name );
     parent->d->children->append( m );
     return m;

@@ -2,7 +2,6 @@
 
 #include "imap.h"
 
-#include "arena.h"
 #include "scope.h"
 #include "string.h"
 #include "buffer.h"
@@ -32,18 +31,14 @@ class IMAPData {
 public:
     IMAPData()
         : state( IMAP::NotAuthenticated ),
-          cmdArena( 0 ), args( 0 ), reader( 0 ),
+          args( 0 ), reader( 0 ),
           runningCommands( false ), readingLiteral( false ),
           literalSize( 0 ), session( 0 ), mailbox( 0 ), login( 0 ),
           idle( false )
     {}
-    ~IMAPData() {
-        delete cmdArena;
-    }
 
     IMAP::State state;
 
-    Arena * cmdArena;
     StringList * args;
     Command * reader;
 
@@ -192,8 +187,6 @@ void IMAP::parse()
         // We allocate and donate a new arena to each command we create,
         // and use it to allocate anything command-related in this loop.
 
-        if ( !d->cmdArena )
-            s.setArena( d->cmdArena = new Arena );
         if ( !d->args )
             d->args = new StringList;
 
@@ -225,7 +218,6 @@ void IMAP::parse()
 
             if ( !d->readingLiteral ) {
                 addCommand();
-                d->cmdArena = 0;
                 d->args = 0;
             }
         }
@@ -273,7 +265,6 @@ void IMAP::addCommand()
     if ( i < 1 || c != ' ' ) {
         enqueue( "* BAD tag\r\n" );
         log( "Bad tag. Line: '" + *s + "'", Log::Error );
-        delete d->cmdArena;
         return;
     }
 
@@ -294,7 +285,6 @@ void IMAP::addCommand()
     if ( i == j ) {
         enqueue( "* BAD no command\r\n" );
         log( "Bad command. Line: '" + *s + "'", Log::Error );
-        delete d->cmdArena;
         return;
     }
 
@@ -303,12 +293,11 @@ void IMAP::addCommand()
     // Try to create a command handler.
 
     Command *cmd
-        = Command::create( this, command, tag, d->args, d->cmdArena );
+        = Command::create( this, command, tag, d->args );
 
     if ( !cmd ) {
         log( "Unknown command. Line: '" + *s + "'", Log::Error );
         enqueue( tag + " BAD No such command: " + command + "\r\n" );
-        delete d->cmdArena;
         return;
     }
 
@@ -530,8 +519,6 @@ void IMAP::run( Command * c )
 {
     if ( c->state() != Command::Executing )
         return;
-
-    Scope x( c->arena() );
 
     if ( !c->validIn( d->state ) )
         c->error( Command::Bad, "Not permitted in this state" );

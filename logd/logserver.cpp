@@ -2,8 +2,6 @@
 
 #include "logserver.h"
 
-#include "arena.h"
-#include "scope.h"
 #include "buffer.h"
 #include "list.h"
 #include "file.h"
@@ -40,9 +38,8 @@ static Log::Severity severity( const String & );
 
 class LogServerData {
 public:
-    LogServerData(): a( 0 ), id( ::id++ ) {}
+    LogServerData(): id( ::id++ ) {}
 
-    Arena * a;
     uint id;
 
     class Line {
@@ -66,7 +63,6 @@ public:
 LogServer::LogServer( int s )
     : Connection( s, Connection::LogServer ), d( new LogServerData )
 {
-    d->a = new Arena;
     Loop::addConnection( this );
 }
 
@@ -78,7 +74,6 @@ LogServer::LogServer( int s )
 LogServer::LogServer()
     : Connection(), d( new LogServerData )
 {
-    d->a = new Arena;
 }
 
 
@@ -114,8 +109,6 @@ void LogServer::react( Event e )
 
 void LogServer::parse()
 {
-    Scope x( d->a );
-
     String *s;
     while ( ( s = readBuffer()->removeLine() ) != 0 )
         processLine( *s );
@@ -217,12 +210,6 @@ void LogServer::commit( String tag,
         else {
             i++;
         }
-    }
-
-    if ( d->pending.isEmpty() ) {
-        // we've just flushed the buffer and all pending transactions.
-        // time to drop the old arena and free up some memory.
-        d->a->clear();
     }
 }
 

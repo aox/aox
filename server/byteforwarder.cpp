@@ -2,8 +2,6 @@
 
 #include "byteforwarder.h"
 
-#include "arena.h"
-#include "scope.h"
 #include "buffer.h"
 #include "log.h"
 
@@ -33,8 +31,6 @@ void ByteForwarder::react( Event e )
     switch( e ) {
     case Read:
         if ( s ) {
-            Arena a;
-            Scope b( &a );
             Buffer * r = readBuffer();
             String bytes = *r->string( r->size() );
             s->writeBuffer()->append( bytes );

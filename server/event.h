@@ -5,7 +5,6 @@
 
 #include "log.h"
 
-class Arena;
 class String;
 
 
@@ -13,8 +12,6 @@ class EventHandler {
 public:
     EventHandler();
 
-    Arena *arena() const;
-    void setArena( Arena * );
     void setLog( Log * );
 
     virtual void notify();
@@ -23,7 +20,6 @@ public:
     virtual void commit( Log::Severity = Log::Info );
 
 private:
-    Arena *a;
     Log *l;
 };
 

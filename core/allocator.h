@@ -6,11 +6,16 @@
 #include "global.h"
 
 
+extern void * alloc( uint );
+
+
 class Allocator
 {
-public:
+private:
     Allocator( uint );
+    ~Allocator();
 
+public:
     void * allocate( uint size );
 
     void * block( uint );
@@ -28,11 +33,12 @@ public:
     void operator delete( void * );
 
     static void free();
-    static void addRoot( void ** );
+    static void addRoot( void * );
+    static void addRoot( const void * );
 
 private:
     uint step;
-    uint num;
+    uint taken;
     uint capacity;
     uint * bitmap;
     void * buffer;

@@ -5,12 +5,10 @@
 #include "string.h"
 #include "query.h"
 #include "scope.h"
-#include "arena.h"
 #include "log.h"
 
 
 static List<Flag> * flags;
-static Arena * arena;
 
 
 class FlagFetcherData
@@ -40,8 +38,6 @@ public:
 FlagFetcher::FlagFetcher( EventHandler * owner )
     : d( new FlagFetcherData )
 {
-    if ( !::arena )
-        ::arena = Scope::current()->arena();
     uint n = 0;
     if ( ::flags ) {
         List<Flag>::Iterator it( ::flags->first() );
@@ -69,10 +65,7 @@ void FlagFetcher::execute()
     while ( r ) {
         String n = r->getString( "name" );
         uint i = r->getInt( "id" );
-        {
-            Scope x( ::arena );
-            (void)new Flag( n, i );
-        }
+        (void)new Flag( n, i );
         r = d->q->nextRow();
     }
     if ( d->o )

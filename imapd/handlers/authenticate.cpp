@@ -2,7 +2,6 @@
 
 #include "authenticate.h"
 
-#include "arena.h"
 #include "scope.h"
 #include "buffer.h"
 #include "imap.h"

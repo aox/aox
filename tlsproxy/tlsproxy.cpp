@@ -1,6 +1,5 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "arena.h"
 #include "scope.h"
 #include "configuration.h"
 #include "logclient.h"
@@ -34,8 +33,7 @@ static String cryptlibType( int );
 
 int main( int argc, char *argv[] )
 {
-    Arena firstArena;
-    Scope global( &firstArena );
+    Scope global;
 
     Server s( "tlsproxy", argc, argv );
     s.setup( Server::Report );
@@ -413,9 +411,6 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
 
 void TlsProxy::encrypt()
 {
-    Arena a;
-    Scope b( &a );
-
     Buffer * r = readBuffer();
     String s = *r->string( r->size() );
     int len;
@@ -435,9 +430,6 @@ void TlsProxy::encrypt()
 
 void TlsProxy::decrypt()
 {
-    Arena a;
-    Scope b( &a );
-
     int status;
     int len;
     char buffer[4096];

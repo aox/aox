@@ -9,7 +9,6 @@
 #include "imap.h"
 
 class Log;
-class Arena;
 class MessageSet;
 
 
@@ -21,7 +20,7 @@ public:
     virtual ~Command();
 
     static Command * create( IMAP *, const String &, const String &,
-                             StringList *, Arena * );
+                             StringList * );
 
     virtual void parse();
     virtual void read();

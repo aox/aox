@@ -2,7 +2,6 @@
 
 #include "eventloop.h"
 
-#include "arena.h"
 #include "scope.h"
 #include "list.h"
 #include "connection.h"
@@ -28,12 +27,11 @@
 class LoopData {
 public:
     LoopData()
-        : log( new Log( Log::Server ) ), arena( new Arena ),
+        : log( new Log( Log::Server ) ),
           stop( false ), shutdown( false )
     {}
 
     Log *log;
-    Arena *arena;
     bool stop, shutdown;
     SortedList< Connection > connections;
 };
@@ -62,7 +60,7 @@ EventLoop::EventLoop()
 
 void EventLoop::addConnection( Connection *c )
 {
-    Scope x( d->arena, d->log );
+    Scope x( d->log );
 
     if ( d->connections.find( c ) )
         // if we're going to be silent, let's be honest about it
@@ -78,7 +76,7 @@ void EventLoop::addConnection( Connection *c )
 
 void EventLoop::removeConnection( Connection *c )
 {
-    Scope x( d->arena, d->log );
+    Scope x( d->log );
 
     SortedList< Connection >::Iterator it( d->connections.find( c ) );
     if ( !it )
@@ -94,7 +92,7 @@ void EventLoop::removeConnection( Connection *c )
 
 void EventLoop::start()
 {
-    Scope x( d->arena, d->log );
+    Scope x( d->log );
 
     log( "Starting event loop", Log::Debug );
 
@@ -186,7 +184,6 @@ void EventLoop::start()
         SortedList< Connection >::Iterator it = d->connections.first();
         while ( it ) {
             try {
-                Scope x( it->arena() );
                 if ( it->state() == Connection::Connected )
                     it->react( Connection::Shutdown );
                 if ( it->state() == Connection::Connected )
@@ -212,8 +209,6 @@ void EventLoop::start()
 
 void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
 {
-    Scope x( c->arena() );
-
     try {
         if ( c->timeout() != 0 && now >= c->timeout() ) {
             c->setTimeout( 0 );

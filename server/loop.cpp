@@ -2,8 +2,6 @@
 
 #include "loop.h"
 
-#include "arena.h"
-#include "scope.h"
 #include "eventloop.h"
 
 

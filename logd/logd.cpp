@@ -1,6 +1,5 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "arena.h"
 #include "scope.h"
 #include "listener.h"
 #include "file.h"
@@ -16,8 +15,7 @@
 
 int main( int argc, char * argv[] )
 {
-    Arena firstArena;
-    Scope global( &firstArena );
+    Scope global;
 
     Server s( "logd", argc, argv );
     s.setChrootMode( Server::LogDir );

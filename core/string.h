@@ -5,8 +5,6 @@
 
 #include "global.h"
 
-class Arena;
-
 
 class String {
 public:
@@ -90,9 +88,8 @@ private:
     void init();
 
 private:
-    uint len, max;
     char *str;
-    Arena * a;
+    uint len, max;
 };
 
 

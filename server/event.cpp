@@ -2,7 +2,6 @@
 
 #include "event.h"
 
-#include "arena.h"
 #include "scope.h"
 
 
@@ -29,27 +28,7 @@
 
 EventHandler::EventHandler()
 {
-    a = Scope::current()->arena();
     l = Scope::current()->log();
-}
-
-
-/*! Returns this object's arena. This arena must be current before
-    execute() is called.
-*/
-
-Arena *EventHandler::arena() const
-{
-    return a;
-}
-
-
-/*! Sets this object's Arena to \a arena.
-*/
-
-void EventHandler::setArena( Arena *arena )
-{
-    a = arena;
 }
 
 
@@ -67,7 +46,6 @@ void EventHandler::setLog( Log *log )
 
 void EventHandler::notify()
 {
-    Scope x( a );
     execute();
 }
 

@@ -5,7 +5,6 @@
 
 #include "global.h"
 
-class Arena;
 class String;
 
 
@@ -30,8 +29,6 @@ public:
     char operator[]( uint i ) const {
         return at( i );
     }
-
-    Arena * arena() const;
 
 private:
     class BufferData *d;

@@ -20,8 +20,7 @@ class ConfigurationData
 {
 public:
     ConfigurationData()
-        : reported( false ), fileExists( false ),
-          a( Scope::current()->arena() )
+        : reported( false ), fileExists( false )
         {}
 
     Dict<Configuration::Something> unparsed;
@@ -34,10 +33,8 @@ public:
     String f;
     bool reported;
     bool fileExists;
-    Arena * a;
 
     void log( const String & m, Log::Severity s = Log::Disaster ) {
-        Scope x( a );
         E * e = new E;
         e->m = m;
         e->s = s;

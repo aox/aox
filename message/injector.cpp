@@ -2,8 +2,7 @@
 
 #include "injector.h"
 
-#include "arena.h"
-#include "scope.h"
+#include "allocator.h"
 #include "dict.h"
 #include "query.h"
 #include "address.h"
@@ -115,6 +114,7 @@ public:
 void Injector::setup()
 {
     bodyHashes = new Dict< int >;
+    Allocator::addRoot( bodyHashes );
 }
 
 

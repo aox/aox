@@ -2,7 +2,7 @@
 
 #include "addresscache.h"
 
-#include "arena.h"
+#include "allocator.h"
 #include "scope.h"
 #include "event.h"
 #include "query.h"
@@ -12,7 +12,6 @@
 #include "map.h"
 
 
-static Arena acArena;
 static Map< Address > *idCache;
 static Dict< Address > *nameCache;
 static PreparedStatement *addressLookup;
@@ -45,14 +44,14 @@ static PreparedStatement *addressInsert;
 
 void AddressCache::setup()
 {
-    Scope x( &acArena );
-
     // The idCache maps numeric ids to their corresponding Addresses,
     // and the nameCache maps a string representation of each address
     // to the same set of objects.
 
     idCache = new Map< Address >;
+    Allocator::addRoot( idCache );
     nameCache = new Dict< Address >;
+    Allocator::addRoot( nameCache );
 
     // The first query is used to resolve cache misses. If the address
     // doesn't exist in the table, the other query inserts it.
@@ -63,6 +62,9 @@ void AddressCache::setup()
     addressInsert =
         new PreparedStatement( "insert into addresses(name,localpart,domain) "
                                "values ($1,$2,$3)" );
+
+    Allocator::addRoot( addressInsert );
+    Allocator::addRoot( addressLookup );
 }
 
 
@@ -142,15 +144,12 @@ void AddressLookup::execute() {
 
     uint id = r->getInt( "id" );
     address->setId( id );
-    {
-        Scope x( &acArena );
-        Address *a = new Address( address->name(), address->localpart(),
-                                  address->domain() );
-        a->setId( id );
+    Address *a = new Address( address->name(), address->localpart(),
+                              address->domain() );
+    a->setId( id );
 
-        idCache->insert( a->id(), a );
-        nameCache->insert( a->toString(), a );
-    }
+    idCache->insert( a->id(), a );
+    nameCache->insert( a->toString(), a );
 
     if ( queries->isEmpty() ) {
         status->setState( CacheLookup::Completed );

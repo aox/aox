@@ -6,7 +6,6 @@
 #include "log.h"
 #include "endpoint.h"
 
-class Arena;
 class Buffer;
 class TlsServer;
 
@@ -51,7 +50,6 @@ public:
 
     Buffer * writeBuffer() const;
     Buffer * readBuffer() const;
-    Arena * arena() const;
     Endpoint self() const;
     Endpoint peer() const;
     void setType( Type );

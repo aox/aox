@@ -20,7 +20,10 @@ static String time();
 
 void log( const String &m, Log::Severity s )
 {
-    Log *l = Scope::current()->log();
+    Scope * cs = Scope::current();
+    Log *l = 0;
+    if ( cs )
+        l = cs->log();
     if ( l )
         l->log( m, s );
 }
@@ -28,7 +31,10 @@ void log( const String &m, Log::Severity s )
 
 void commit( Log::Severity s )
 {
-    Log *l = Scope::current()->log();
+    Scope * cs = Scope::current();
+    Log *l = 0;
+    if ( cs )
+        l = cs->log();
     if ( l )
         l->commit( s );
 }
@@ -51,7 +57,10 @@ void commit( Log::Severity s )
 Log::Log( Facility f )
     : fc( f )
 {
-    Log *l = Scope::current()->log();
+    Scope * cs = Scope::current();
+    Log *l = 0;
+    if ( cs )
+        l = cs->log();
     if ( l )
         id = l->id + "/" + fn( l->children++ );
     else
@@ -74,18 +83,13 @@ void Log::setFacility( Facility f )
 
 void Log::log( const String &m, Severity s )
 {
-    Logger *l = Logger::global();
-    if ( !l )
-        return;
-
     if ( s == Disaster )
-        disasters = true;
-
-    if ( disasters )
         fprintf( stderr, "Mailstore: %s\n", m.simplified().cstr() );
 
-    l->send( id + " " + facility( fc ) + "/" + severity( s ) + " " +
-             time() + " " + m.stripCRLF() + "\r\n" );
+    Logger *l = Logger::global();
+    if ( l )
+        l->send( id + " " + facility( fc ) + "/" + severity( s ) + " " +
+                 time() + " " + m.stripCRLF() + "\r\n" );
 }
 
 
@@ -96,10 +100,9 @@ void Log::log( const String &m, Severity s )
 void Log::commit( Severity s )
 {
     Logger *l = Logger::global();
-    if ( !l )
-        return;
-
-    l->send( id + " commit " + facility( fc ) + "/" + severity( s ) + "\r\n" );
+    if ( l )
+        l->send( id + " commit " + facility( fc ) + "/" + severity( s ) +
+                 "\r\n" );
 }
 
 
