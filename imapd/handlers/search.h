@@ -49,7 +49,7 @@ private:
     struct Condition
     { // everything here is public. this may need changing at some point.
     public:
-        Condition() : f( NoField ), a( All ), n( 0 ), l( 0 ) {}
+        Condition() : f( NoField ), a( All ), n( 0 ), l( 0 ), c( 0 ) {}
 
         Field f;
         Action a;
@@ -58,6 +58,7 @@ private:
         MessageSet s;
         uint n;
         List<Condition> * l;
+        Command * c;
 
         String debugString() const;
         void simplify();
@@ -66,7 +67,7 @@ private:
             No,
             Punt // really "ThrowHandsUpInAirAndDespair"
         };
-        MatchResult match( Message * );
+        MatchResult match( Message *, uint );
     };
 
     Condition * add( Field, Action,

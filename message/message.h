@@ -35,6 +35,17 @@ public:
 
     List<BodyPart> * bodyParts() const;
 
+    enum BuiltinFlag {
+        AnsweredFlag,
+        DeletedFlag,
+        DraftFlag,
+        FlaggedFlag,
+        SeenFlag // THIS GOES LAST
+    };
+
+    bool flag( BuiltinFlag ) const;
+    bool hasFlags() const;
+
 private:
     void parseMultipart( uint, uint, const String &, const String &, bool,
                          const String & );

@@ -7,6 +7,7 @@
 #include "codec.h"
 #include "query.h"
 #include "log.h"
+#include "message.h"
 
 
 /*! \class Search search.h
@@ -117,8 +118,10 @@ void Search::parseKey( bool alsoCharset )
             add( Flags, Contains, "flagged" );
         }
         else if ( keyword == "new" ) {
+            push( And );
             add( Flags, Contains, "recent" );
             add( Flags, Contains, "seen" );
+            pop();
         }
         else if ( keyword == "old" ) {
             push( Not );
@@ -325,7 +328,7 @@ void Search::considerCache()
     while ( c <= msn && !needDb ) {
         uint uid = s->uid( c );
         Message * m = s->message( uid );
-        switch ( d->root->match( m ) ) {
+        switch ( d->root->match( m, uid ) ) {
         case Search::Condition::Yes:
             d->matches.append( new uint( uid ) );
             break;
@@ -404,6 +407,7 @@ Search::Condition * Search::add( Field f, Action a,
 {
     prepare();
     Condition * c = new Condition;
+    c->c = this;
     c->f = f;
     c->a = a;
     c->a1 = a1;
@@ -424,6 +428,7 @@ Search::Condition * Search::add( Field f, Action a,
 {
     prepare();
     Condition * c = new Condition;
+    c->c = this;
     c->f = f;
     c->a = a;
     c->a1 = a1;
@@ -444,6 +449,7 @@ Search::Condition * Search::add( Field f, Action a, uint n )
 {
     prepare();
     Condition * c = new Condition;
+    c->c = this;
     c->f = f;
     c->a = a;
     c->n = n;
@@ -461,6 +467,7 @@ Search::Condition * Search::add( const MessageSet & set )
 {
     prepare();
     Condition * c = new Condition;
+    c->c = this;
     c->f = Uid;
     c->a = Contains;
     c->s = set;
@@ -479,6 +486,7 @@ Search::Condition * Search::push( Action a )
 {
     prepare();
     Condition * c = new Condition;
+    c->c = this;
     c->a = a;
     c->l = new List<Condition>;
     if ( d->conditions->first() )
@@ -512,6 +520,7 @@ void Search::prepare()
         return;
 
     Condition * c = new Condition;
+    c->c = this;
     c->a = And;
     c->l = new List<Condition>;
     d->conditions->prepend( c );
@@ -755,12 +764,13 @@ String Search::Condition::debugString() const
     available) Punt.
 */
 
-Search::Condition::MatchResult Search::Condition::match( Message * m )
+Search::Condition::MatchResult Search::Condition::match( Message * m,
+                                                         uint uid )
 {
     if ( a == And || a == Or ) {
         List< Condition >::Iterator i = l->first();
         while ( i ) {
-            MatchResult sub = i->match( m );
+            MatchResult sub = i->match( m, uid );
             if ( sub == Punt )
                 return Punt;
             if ( a == And && sub == No )
@@ -774,11 +784,37 @@ Search::Condition::MatchResult Search::Condition::match( Message * m )
         else
             return No;
     }
+    else if ( a == Contains && f == Uid ) {
+        if ( !uid )
+            return Punt;
+        if ( s.contains( uid ) )
+            return Yes;
+        return No;
+    }
     else if ( a == Contains && f == Flags ) {
-        // hm. where to store?
+        if ( uid > 0 && a2 == "recent" ) {
+            ImapSession * s = c->imap()->session();
+            if ( s->isRecent( uid ) )
+                return Yes;
+            return No;
+        }
+        else if ( m && m->hasFlags() ) {
+            if ( a2 == "answered" )
+                return m->flag( Message::AnsweredFlag ) ? Yes : No;
+            if ( a2 == "deleted" )
+                return m->flag( Message::DeletedFlag ) ? Yes : No;
+            if ( a2 == "draft" )
+                return m->flag( Message::DraftFlag ) ? Yes : No;
+            if ( a2 == "flagged" )
+                return m->flag( Message::FlaggedFlag ) ? Yes : No;
+            if ( a2 == "seen" )
+                return m->flag( Message::SeenFlag ) ? Yes : No;
+        }
+
+        return Punt;
     }
     else if ( a == Not ) {
-        MatchResult sub = l->first()->match( m );
+        MatchResult sub = l->first()->match( m, uid );
         if ( sub == Punt )
             return Punt;
         else if ( sub == Yes )
