@@ -57,6 +57,19 @@ Build server : connection.cpp listener.cpp loop.cpp endpoint.cpp log.cpp
 
 Build runtestsmain : runtests.cpp ;
 
+# the documentation groups. for the moment, the target is just a dummy
+
+rule Doc {
+    Depends exe : $(<) ; # run this rule whenever "all executables" are built
+    Doc2 $(<) : $(set-$(>):S=.cpp) ;
+}
+
+actions together Doc2 {
+    qdoc $(>)
+}
+
+Doc qdoc : imap message logd database server lib ;
+
 # the programs. these need to be last. magic. all Program calls need
 # to be after all Build calls, since the Build puts object files into
 # the sets used by Build.
@@ -69,3 +82,4 @@ LINKLIBS on logd = ;
 
 Program runtests : imap message logd database server lib runtestsmain ;
 LINKLIBS on runtests = -lz -lcrypt ;
+
