@@ -90,16 +90,20 @@ int IMAP::react(Event e)
         break;
     case Connection::Timeout:
         writeBuffer()->append("* BYE autologout\r\n");
+        d->logger->log( "autologout" );
         result = 0;
         break;
     }
     runCommands();
+    d->logger->commit();
     if ( state() == Logout )
         result = 0;
     if ( result )
         setTimeout( time(0) + 20 );
     else
         writeBuffer()->write();
+    if ( result == 0 )
+        d->logger->commit();
     return result;
 }
 
@@ -195,6 +199,7 @@ void IMAP::addCommand()
     d->args = new List<String>;
 
     String * s = args->first();
+    d->logger->log( Logger::Debug, "Received %d-line command: " + *s );
 
     // pick up the tag
     uint i = (uint)-1;
@@ -208,6 +213,7 @@ void IMAP::addCommand()
              c != '%' && c != '%' );
     if ( i < 1 || c != ' ' ) {
         writeBuffer()->append( "* BAD tag\r\n" );
+        d->logger->log( "Unable to parse tag. Line: " + *s );
         return;
     }
     String tag = s->mid( 0, i );
@@ -227,6 +233,7 @@ void IMAP::addCommand()
              c != ']' );
     if ( i == j ) {
         writeBuffer()->append( "* BAD no command\r\n" );
+        d->logger->log( "Unable to parse command. Line: " + *s );
         return;
     }
     String command = s->mid( j, i-j );
@@ -249,6 +256,10 @@ void IMAP::addCommand()
             if ( cmd->group() == 0 ) {
                 // no, it can't.
                 cmd->setState( Command::Blocked );
+                cmd->logger()->log( Logger::Debug,
+                                    "Blocking execution of " + tag +
+                                    " (concurrency not allowed for " +
+                                    command + ")" );
             }
             else {
                 // do all other commands belong to the same command group?
@@ -256,14 +267,22 @@ void IMAP::addCommand()
                 while( d->commands.current() &&
                        d->commands.current()->group() == cmd->group() )
                     d->commands.next();
-                if ( d->commands.current() )
+                if ( d->commands.current() ) {
                     // no, d->commands.current() does not
                     cmd->setState( Command::Blocked );
+                    cmd->logger()->log( Logger::Debug,
+                                        "Blocking execution of " + tag +
+                                        " until it can be exectuted" );
+                    // evil. we really want to say something about why
+                    // it can't. but what?
+                }
             }
         }
         d->commands.append( cmd );
     }
     else {
+        d->logger->log( "Unable to parse command '" + command + "' (tag '" +
+                        tag + "')" );
         String tmp( tag );
         tmp += " BAD command unknown: ";
         tmp += command;

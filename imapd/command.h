@@ -8,6 +8,7 @@
 class String;
 class IMAP;
 class Arena;
+class Logger;
 
 
 class CommandData;
@@ -34,6 +35,8 @@ public:
     void setGroup( uint );
 
     Arena * arena() const;
+
+    Logger * logger() const;
 
     enum Response { Tagged, Untagged };
     void respond( const String &, Response = Untagged );
