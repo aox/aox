@@ -67,6 +67,12 @@ public:
     void end();
     const String following() const;
 
+    enum QuoteMode {
+        AString, NString, PlainString
+    };
+    static String imapQuoted( const String &,
+                              const QuoteMode = PlainString );
+
 private:
     class CommandData *d;
 
