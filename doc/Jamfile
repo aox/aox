@@ -1,4 +1,5 @@
 SubDir TOP doc ;
+SubInclude TOP core ;
 
 actions Man1 {
 sed -e 's!$BINDIR!'$(BINDIR)'!' \
@@ -19,7 +20,7 @@ rule Man {
 
         MakeLocate $(t) : $(d) ;
         Man1 $(t) : $(s) ;
-        Depends $(t) : $(s) ;
+        Depends $(t) : $(s) <>Jamsettings ;
         Depends exe : $(t) ;
         SEARCH on $(s) = $(SEARCH_SOURCE) ;
 
