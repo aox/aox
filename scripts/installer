@@ -51,6 +51,12 @@ else
     exit 1;
 fi
 
+# a hack to notify people of debian's change
+if [ "$DBADDRESS" = /tmp/.s.PGSQL.5432 -a -f /etc/debian_version -a -S /var/run/postgresql/.s.PGSQL.5432 ];
+    echo "DBADDRESS is $DBADDRESS, which may be wrong."
+    echo "On Debian, maybe it should be /var/run/postgresql/.s.PGSQL.5432"
+fi
+
 ## Set up the database.
 #
 # Do we need to create the oryx user?
