@@ -108,12 +108,6 @@ Add support for "ms restart now" and "ms restart gracefully"
   JAILDIR, and by default listen only to a unix socket.
 
 
-FETCH fixes:
-
-  Currently we're always peeking; "fetch 1 body[1]" does not change
-  the seen flag.
-
-
 EXPUNGE fixes:
 
   Crab says: We need to do what RFC2180 says.

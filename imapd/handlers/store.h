@@ -3,6 +3,10 @@
 #ifndef STORE_H
 #define STORE_H
 
+class Flag;
+class Query;
+class Mailbox;
+
 #include "command.h"
 
 
@@ -14,6 +18,9 @@ public:
 
     void parse();
     void execute();
+
+    static Query * addFlagsQuery( Flag * f, Mailbox * m,
+                                  const MessageSet & s, EventHandler * h );
 
 private:
     class StoreData * d;

@@ -1,5 +1,5 @@
-insert into flag_names (name) values ('\Deleted');
-insert into flag_names (name) values ('\Answered');
-insert into flag_names (name) values ('\Flagged');
-insert into flag_names (name) values ('\Draft');
-insert into flag_names (name) values ('\Seen');
+insert into flag_names (name) values ('\\Deleted');
+insert into flag_names (name) values ('\\Answered');
+insert into flag_names (name) values ('\\Flagged');
+insert into flag_names (name) values ('\\Draft');
+insert into flag_names (name) values ('\\Seen');

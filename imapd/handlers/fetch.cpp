@@ -2,15 +2,17 @@
 
 #include "fetch.h"
 
-#include "scope.h"
+#include "imapsession.h"
 #include "messageset.h"
 #include "stringlist.h"
-#include "imapsession.h"
 #include "mimefields.h"
+#include "bodypart.h"
 #include "address.h"
 #include "mailbox.h"
 #include "message.h"
-#include "bodypart.h"
+#include "scope.h"
+#include "store.h"
+#include "query.h"
 #include "imap.h"
 #include "flag.h"
 #include "date.h"
@@ -335,6 +337,8 @@ void Fetch::execute()
     ImapSession * s = imap()->session();
 
     if ( d->state == 0 ) {
+        if ( !d->peek && s->readOnly() )
+            d->peek = true;
         sendFetchQueries();
         d->state = 1;
     }
@@ -386,6 +390,17 @@ void Fetch::sendFetchQueries()
     mb->fetchHeaders( headers, this );
     mb->fetchBodies( bodies, this );
     mb->fetchFlags( flags, this );
+
+    // if we're not peeking, send off a query to set \seen, and don't
+    // wait for any results.
+    if ( d->peek )
+        return;
+    Flag * seen = Flag::find( "\\seen" );
+    if ( !seen )
+        return;
+    Query * q = Store::addFlagsQuery( seen, imap()->session()->mailbox(),
+                                      d->set, 0 );
+    q->execute();
 }
 
 

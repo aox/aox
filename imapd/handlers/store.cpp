@@ -285,24 +285,39 @@ void Store::removeFlags( bool opposite )
 }
 
 
-/*! Adds all the necessary flags to the database. Like removeFlags(),
-    this could be optimized by the use of PreparedStatement for the
-    most common case.
+/*! Returns a Query which will ensure that all messages in \a s in \a
+    m have the \a f flag set. The query will notify event handler \a h
+    when it's done.
+
+    Like removeFlags(), this could be optimized by the use of
+    PreparedStatement for the most common case.
+*/
+
+Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
+                              EventHandler * h )
+{
+    String w = s.where();
+    Query * q = new Query( "insert into flags (flag,uid,mailbox) "
+                           "select $1,uid,$2 from messages where "
+                           "mailbox=$1 and (" + w + ") and uid not in "
+                           "(select uid from flags where "
+                           "mailbox=$2 and (" + w + ") and flag=$1)",
+                           h );
+    q->bind( 1, f->id() );
+    q->bind( 2, m->id() );
+    return q;
+}
+
+
+/*! Adds all the necessary flags to the database.
 */
 
 void Store::addFlags()
 {
-    String w = d->s.where();
     List<Flag>::Iterator it( d->flags.first() );
     while ( it ) {
-        Query * q = new Query( "insert into flags (flag,uid,mailbox) "
-                               "select $1,uid,$2 from messages where "
-                               "mailbox=$1 and (" + w + ") and uid not in "
-                               "(select uid from flags where "
-                               "mailbox=$2 and (" + w + ") and flag=$1)",
-                               this );
-        q->bind( 1, it->id() );
-        q->bind( 2, imap()->session()->mailbox()->id() );
+        Query * q = addFlagsQuery( it, imap()->session()->mailbox(),
+                                   d->s, this );
         d->transaction->enqueue( q );
         ++it;
     }
