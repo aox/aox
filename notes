@@ -59,9 +59,6 @@ easier parsing. It's well worth it now (cf. tspecials vs. especials).
 Resource limits on memory allocation
 
 
-What should the logfile permissions be? What sort of knob is needed?
-
-
 tls client support (smtp, postgresql)
 
 
