@@ -74,7 +74,8 @@ void Loop::start()
             }
 
             int fd = c->fd();
-            FD_SET( fd, &r );
+            if ( c->canRead() && c->state() != Connection::Closing )
+                FD_SET( fd, &r );
             if ( c->canWrite() || c->state() == Connection::Connecting )
                 FD_SET( fd, &w );
             if ( c->timeout() > 0 && c->timeout() < timeout )
