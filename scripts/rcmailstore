@@ -9,13 +9,13 @@
 cd $BINDIR
 
 for a in logd ocd tlsproxy imapd pop3d smtpd ; do
-    test -x bin/${a} || exit 0
+    test -x ${a} || exit 0
 done
 
 start() {
     echo -n "Starting Oryx Mailstore:"
     for a in logd ocd tlsproxy imapd pop3d smtpd ; do
-        bin/${a} -f && echo -n " $a" || exit 0
+        ./${a} -f && echo -n " $a" || exit 0
     done
     echo "."
 }
