@@ -412,7 +412,10 @@ Mailbox *IMAP::mailbox()
     return d->mailbox;
 }
 
-/*! Sets the currently-selected Mailbox to \a m. */
+/*! Sets the currently-selected Mailbox to \a m. Note that the new
+    mailbox must not need expunges. If it needs expunges, IMAP SELECT
+    might return Expunge responses, which would be very bad. */
+
 void IMAP::setMailbox( Mailbox *m )
 {
     if ( m == d->mailbox )
