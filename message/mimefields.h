@@ -46,6 +46,7 @@ class ContentTransferEncoding
 {
 public:
     ContentTransferEncoding( const String & );
+    void setEncoding( String::Encoding );
     String::Encoding encoding() const;
 
 private:

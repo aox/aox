@@ -355,11 +355,20 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             ct->addParameter( "charset", c->name().lower() );
 
         String s = c->fromUnicode( bp->d->text );
-        h->removeField( HeaderField::ContentTransferEncoding );
-        if ( s.needsQP() )
-            h->add( "Content-Transfer-Encoding", "quoted-printable" );
-        h->simplify();
         bp->d->numBytes = bp->d->text.length();
+
+        bool qp = s.needsQP();
+        HeaderField *hf = h->field( HeaderField::ContentTransferEncoding );
+        if ( hf ) {
+            if ( !qp )
+                h->removeField( HeaderField::ContentTransferEncoding );
+            else if ( hf->contentTransferEncoding()->encoding() != String::QP )
+                hf->contentTransferEncoding()->setEncoding( String::QP );
+        }
+        else if ( qp ) {
+            h->add( "Content-Transfer-Encoding", "quoted-printable" );
+        }
+        h->simplify();
     }
     else {
         if ( ct->type() != "multipart" && ct->type() != "message" ) {

@@ -775,7 +775,7 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
         case String::Base64:
             l.append( "\"BASE64\"" );
             break;
-        case String::QuotedPrintable:
+        case String::QP:
             l.append( "\"QUOTED-PRINTABLE\"" );
             break;
         }
