@@ -150,7 +150,7 @@ Injector::~Injector()
 
 bool Injector::done() const
 {
-    return ( d->step >= 4 || d->failed );
+    return ( d->step >= 5 || d->failed );
 }
 
 
@@ -229,14 +229,17 @@ void Injector::execute()
             return;
 
         linkAddresses();
-
-        // Now we just wait for everything to finish.
-
-        d->transaction->commit();
         d->step = 4;
     }
 
     if ( d->step == 4 || d->transaction->failed() ) {
+        // Now we just wait for everything to finish.
+        if ( d->step < 5 )
+            d->transaction->commit();
+        d->step = 5;
+    }
+
+    if ( d->step == 5 ) {
         if ( !d->transaction->done() )
             return;
         d->failed = d->transaction->failed();
