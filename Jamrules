@@ -18,6 +18,7 @@ Depends exe : $(PIDFILEDIR) $(JAILDIR) $(CONFIGDIR) $(LOGFILE:D) ;
 
 if $(ICC) {
     C++ = icc ;
+    C++FLAGS += -wd1476 ;
     BUILD = build/icc ;
 }
 else {
