@@ -1,10 +1,11 @@
+#include "rename.h"
+
+#include "mailbox.h"
+
+
 /*! \class Rename rename.h
     Renames a mailbox (RFC 3501, §6.3.5)
 */
-
-#include "rename.h"
-
-#include "imap.h"
 
 
 /*! \reimp */

@@ -1,10 +1,11 @@
+#include "create.h"
+
+#include "mailbox.h"
+
+
 /*! \class Create create.h
     Creates a new mailbox (RFC 3501, §6.3.3)
 */
-
-#include "create.h"
-
-#include "imap.h"
 
 
 /*! \reimp */
@@ -12,7 +13,7 @@
 void Create::parse()
 {
     space();
-    m = astring();
+    name = astring();
     end();
 }
 

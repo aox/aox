@@ -4,13 +4,21 @@
 #include "command.h"
 
 
-class Create: public Command {
+class Create
+    : public Command
+{
 public:
+    Create()
+        : m( 0 )
+    {}
+
     void parse();
     void execute();
 
 private:
-    String m;
+    String name;
+    class Mailbox *m;
 };
+
 
 #endif
