@@ -1,0 +1,72 @@
+SubDir TOP ;
+
+SubInclude TOP core ;
+SubInclude TOP deliver ;
+SubInclude TOP doc ;
+SubInclude TOP encodings ;
+SubInclude TOP ocd ;
+SubInclude TOP httpd ;
+SubInclude TOP logd ;
+SubInclude TOP imapd ;
+SubInclude TOP ms ;
+# in 0.90, msconsole and pop3d aren't worth compiling
+SubInclude TOP msconsole ;
+# SubInclude TOP pop3d ;
+# pop3d is actually fairly close to working. let's say it's the
+# "hello" part of "hello world".
+SubInclude TOP smtpd ;
+SubInclude TOP server ;
+SubInclude TOP db ;
+SubInclude TOP sasl ;
+SubInclude TOP schema ;
+SubInclude TOP scripts ;
+SubInclude TOP tlsproxy ;
+SubInclude TOP udoc ;
+
+SubInclude TOP closed ;
+
+Doc oryxdoc : core database encodings imap logd mailbox message ocd sasl
+    server smtp tls user http ;
+
+if ( $(BUILDDOC) ) {
+    Depends all : doc ;
+    Depends doc : exe ;
+}
+
+WriteShellConfig $(INSTALLROOT)$(LIBDIR)/.config.sh : ;
+
+
+MkDir $(BINDIR) ;
+MkDir $(MANDIR) ;
+MkDir $(LIBDIR) ;
+MkDir $(PIDFILEDIR) ;
+MkDir $(JAILDIR) ;
+MkDir $(CONFIGDIR) ;
+MkDir $(LOGFILE:D) ;
+Depends install : $(PIDFILEDIR) $(JAILDIR) $(CONFIGDIR) $(LOGFILE:D) ;
+
+# if we make JAILDIR, we should chmod it so noone can read it:
+MODE on $(JAILDIR) = 700 ;
+Chmod $(JAILDIR) ;
+
+actions Message {
+fmt <<EOM | sed 's/^/  /'
+
+To set up the database user and schema automatically, run
+$(LIBDIR)/installer as root.
+
+$(LIBDIR)/installer -n shows what it would do, without making any
+changes.
+
+Mailstore's configuration is in $(CONFIGDIR)/mailstore.conf and its
+logfile is $(LOGFILE) by default. The man pages are in $(MANDIR).
+
+If you have any problems, the FAQ is at http://www.oryx.com/faq/ and
+our email address is info@oryx.com.
+
+EOM
+}
+
+Message install ;
+
+

@@ -1,0 +1,14 @@
+SubDir TOP httpd ;
+SubInclude TOP server ;
+SubInclude TOP message ;
+SubInclude TOP encodings ;
+
+HDRS += [ FDirName $(TOP) httpd ] ;
+
+Build http : http.cpp ;
+Build httpmain : httpd.cpp ;
+
+Server httpd : http httpmain database message server mailbox core
+    encodings user ;
+LINKLIBS on httpd = -lcrypt ;
+
