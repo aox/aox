@@ -22,6 +22,8 @@ int main( int, char *[] )
     Configuration::setup( "mailstore.conf", "logd.conf" );
     Configuration::Text logName( "logfile", "logfile" );
 
+    Loop::setup();
+
     (void)new SelfLogger;
     Log l( Log::Immediate );
     global.setLog( &l );

@@ -28,6 +28,8 @@ int main( int, char *[] )
 
     Configuration::setup( "mailstore.conf", "smtpd.conf" );
 
+    Loop::setup();
+
     Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();

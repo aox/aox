@@ -30,6 +30,8 @@ int main( int, char *[] )
 
     Configuration::setup( "/dev/null" );
 
+    Loop::setup();
+
     Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();

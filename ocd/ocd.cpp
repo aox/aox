@@ -21,6 +21,8 @@ int main()
 
     Configuration::setup( "mailstore.conf", "ocd.conf" );
 
+    Loop::setup();
+
     Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();

@@ -23,6 +23,8 @@ int main( int, char *[] )
 
     Configuration::setup( "mailstore.conf", "pop3d.conf" );
 
+    Loop::setup();
+
     Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();
