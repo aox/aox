@@ -40,6 +40,11 @@ tls client support (smtp, postgresql)
 Bodypart sharing: How to serialise multiple duplicate-part injectors?
 
 
+It would be nice if we could connect to the database as an unprivileged
+user, and have "ms migrate" ask for a different username and password to
+perform schema upgrades.
+
+
 We need an IMAP test suite
 
   Of course we will both remember what Arnt wrote in email, and our
