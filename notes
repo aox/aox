@@ -10,6 +10,15 @@ ocd needs work (mike@waspfactory.org)
 We need top-level message/rfc822 support
 
 
+bodyparts.lines isn't always set correctly
+
+  The bodyparts entry for the application/octet-stream "Foobar." and the
+  text/plain "Foobar." is shared, but if the former is stored first, the
+  text part doesn't have the correct number of lines upon retrieval. I'm
+  not sure how to fix that. Perhaps calculate and store a line count if
+  the data doesn't contain NULs? (No, that's not very good.) Always?
+
+
 tlsproxy doesn't handle eof (or errors) well
 
 
