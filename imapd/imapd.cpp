@@ -14,8 +14,6 @@
 
 #include <stdlib.h>
 
-#include "cryptlib.h"
-
 
 int main( int, char *[] )
 {
@@ -30,10 +28,6 @@ int main( int, char *[] )
     OCClient::setup();
     Database::setup();
     Mailbox::setup();
-
-    cryptInit();
-    atexit( (void(*)())cryptEnd );
-    cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
 
     Log l;
     global.setLog( &l );
