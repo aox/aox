@@ -68,7 +68,7 @@ static void setupKey()
     if ( ((String)keyFile).isEmpty() ) {
         String file =
             Configuration::compiledIn( Configuration::ConfigDir ) +
-            "/" + "selfsigned-cert.p15" ;
+            "/" + "automatic-key.p15" ;
 
         status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
                                   file.cstr(), CRYPT_KEYOPT_NONE );
