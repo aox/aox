@@ -148,12 +148,17 @@ EXPUNGE fixes:
   is processed before we spread the word about the expunged message.
 
 
-Consider RFC2231, §6:
+Consider RFC2231:
 
-  «IMAP4 [RFC-2060] servers SHOULD decode parameter value continuations
-  when generating the BODY and BODYSTRUCTURE fetch attributes.»
+  2231 says: IMAP4 [RFC-2060] servers SHOULD decode parameter value
+  continuations when generating the BODY and BODYSTRUCTURE fetch
+  attributes.
 
   Hopefully we don't need to care about this at all.
+
+  Arnt's opinion: We're better off doing that at parse time. There's
+  also some outlook breakage to support - it uses 2047 when it
+  shouldn't.
 
 
 logging cleanups
