@@ -318,12 +318,16 @@ void Search::execute()
     // correct:
     if ( !d->query ) {
         considerCache();
-        if ( d->done )
+        if ( d->done ) {
+            finish();
             return;
+        }
 
         d->query = new SearchQuery( this );
         d->query->s = "select messages.uid from messages";
         String w( d->root->where() );
+        if ( !ok() )
+            return;
         if ( d->usesHeaderFieldsTable )
             d->query->s.append( ", header_fields" );
         if ( d->usesFieldNamesTable )
@@ -615,7 +619,7 @@ void Search::prepare()
 
 
 /*! This helper transforms this search conditions and all its children
-    into a simpler form, if possible. There are two goals to this:
+    into a simpler form, if possible. There are three goals to this:
 
     1. Provide a regular search expression, so that we can eventually
     detect and prepare statements for often-repeated searches.
@@ -623,6 +627,8 @@ void Search::prepare()
     2. Ditto, so that we can test that equivalent input gives
     identical output.
 
+    3. Avoid search expressions which would be horribly inefficient or
+    just plain impossible for the RDBMS.
 */
 
 void Search::Condition::simplify()
@@ -652,7 +658,7 @@ void Search::Condition::simplify()
         // > 0 matches everything
         a = All;
     }
-    else if ( a == Contains && f != Uid && a1.isEmpty() ) {
+    else if ( a == Contains && f != Uid && a2.isEmpty() ) {
         // contains empty string too
         a = All;
     }
