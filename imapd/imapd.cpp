@@ -32,7 +32,4 @@ int main( int, char *[] )
     Configuration::global()->report();
 
     Loop::start();
-
-    log( "IMAP server stopped" );
-    l.commit();
 }
