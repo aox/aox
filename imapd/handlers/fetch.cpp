@@ -335,20 +335,26 @@ String Fetch::headerQuery() const
 {
     String q;
     if ( d->needHeader )
-        q = "select (*) from headerfields where " + d->set.where();
+        q = "select (*) from header_fields where mailbox=" +
+            fn( 1 ) + " and " + d->set.where();
     return q;
 }
 
 
-/*! Returns a query stirng to fetch the body, or an empty string if
+/*! Returns a query string to fetch the body, or an empty string if
     this Fetch does not need the body.
 */
 
 String Fetch::bodyQuery() const
 {
     String q;
-    if ( d->needBody )
-        q = "select (*) from bodies where " + d->set.where();
+    if ( !d->needBody )
+        return q;
+    q = "select (part_numbers.uid,part_numbers.partno,bodypart_ids.data) "
+        "from part_numbers, bodypart_ids where "
+        "bodypart_ids.id=part_numbers.bodypart and "
+        "part_numbers.mailbox=" + fn( 1 ) +
+        " and " + d->set.where();
     return q;
 }
 
@@ -360,23 +366,17 @@ String Fetch::bodyQuery() const
 
 String Fetch::coreQuery() const
 {
-    if ( !d->uid &&
-         !d->flags &&
-         !d->internaldate &&
-         !d->rfc822size )
+    if ( !d->internaldate && !d->rfc822size )
         return "";
 
     StringList bools;
-    if ( d->flags )
-        bools.append( "flags" );
     if ( d->internaldate )
         bools.append( "internaldate" );
     if ( d->rfc822size )
         bools.append( "rfc822size" );
-    if ( d->uid )
-        bools.append( "uid" );
 
-    String q = "select (" + bools.join( "," ) + ") from messages where " +
+    String q = "select (uid," + bools.join( "," ) + ") from messages where " +
+               "mailbox=" + fn( 1 ) + " and " +
                d->set.where();
 
     return q;
