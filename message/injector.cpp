@@ -448,13 +448,20 @@ void Injector::insertBodyparts()
         }
 
         bool text = true;
-        if ( b->contentType() &&
-             b->contentType()->type() != "text" )
-            text = false;
+        bool data = true;
+
+        ContentType *ct = b->contentType();
+        if ( ct ) {
+            if ( ct->type() != "text" )
+                text = false;
+            if ( ct->type() == "multipart" && ct->subtype() != "signed" )
+                data = false;
+        }
 
         i = new Query( "insert into bodyparts (text,bytes,lines) "
                        "values ($1,$2,$3)", helper );
         if ( text ) {
+            data = false;
             Codec *c = new Utf8Codec;
             i->bind( 1, c->fromUnicode( b->text() ), Query::Binary );
         }
@@ -465,7 +472,7 @@ void Injector::insertBodyparts()
         i->bind( 3, b->numLines() );
         d->transaction->enqueue( i );
 
-        if ( !text ) {
+        if ( data ) {
             Query *i;
 
             i = new Query( "insert into binary_parts (bodypart, data) "
