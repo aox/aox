@@ -8,6 +8,15 @@ static Logger *logger = 0;
     Abstract base class for things that log messages.
 */
 
+/*! Stores the address of the newly-created Logger for logger().
+*/
+
+Logger::Logger()
+{
+    ::logger = this;
+}
+
+
 /*! This virtual destructor exists only to ensure that logger() doesn't
     return a bad pointer.
 */

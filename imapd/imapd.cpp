@@ -3,7 +3,7 @@
 #include "scope.h"
 #include "test.h"
 #include "configuration.h"
-#include "log.h"
+#include "logclient.h"
 #include "occlient.h"
 #include "database.h"
 #include "mailbox.h"
@@ -24,7 +24,8 @@ int main( int, char *[] )
 
     Configuration::makeGlobal( ".imapdrc" );
 
-    // Log::setup();
+    LogClient::setup();
+
     TLS::setup();
     OCClient::setup();
     Database::setup();

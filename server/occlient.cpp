@@ -6,9 +6,10 @@
 #include "buffer.h"
 #include "loop.h"
 
+// exit
 #include <stdlib.h>
+// fprintf, stderr
 #include <stdio.h>
-#include <sysexits.h>
 
 
 class OCCData {
@@ -52,7 +53,7 @@ void OCClient::setup()
     if ( !e.valid() ) {
         fprintf( stderr, "OCClient: Unable to parse address <%s> port %d\n",
                  ((String)ocdHost).cstr(), (int)ocdPort );
-        exit( EX_USAGE );
+        exit( -1 );
     }
 
     client = new OCClient( Connection::socket( e.protocol() ) );
@@ -61,7 +62,7 @@ void OCClient::setup()
         fprintf( stderr, "OCClient: Unable to connect to OCD %s\n",
                  String(e).cstr() );
         perror( "OCClient: connect() returned" );
-        exit( EX_UNAVAILABLE );
+        exit( -1 );
     }
 
     client->setBlocking( false );

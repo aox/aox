@@ -25,8 +25,8 @@ int main( int, char *[] )
     Listener<LogServer>::create( "Log Server", "", 2054 );
 
     // this logs.
-    Log::global()->log( Test::report() );
-    Configuration::global()->report();
+    // Log::global()->log( Test::report() );
+    // Configuration::global()->report();
 
     // and if it caused errors, we should quit. bad stuff. but we must
     // try to log the error, so we soldier on.

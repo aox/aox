@@ -10,8 +10,6 @@
 #include <stdlib.h>
 // *printf, stderr
 #include <stdio.h>
-// EX_UNAVAILABLE
-#include <sysexits.h>
 
 
 static Arena tlsArena;
@@ -58,7 +56,7 @@ void TLS::setup()
         fprintf( stderr, "TLSClient: Unable to connect to TLS proxy %s\n",
                  String(e).cstr() );
         perror( "TLSClient: connect() returned" );
-        exit( EX_UNAVAILABLE );
+        exit( -1 );
     }
 
     client->setBlocking( false );
