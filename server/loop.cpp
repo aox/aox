@@ -14,10 +14,11 @@
 #include <time.h>
 // errno
 #include <errno.h>
-// struct timeval, fd_set, select
+// struct timeval, fd_set
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/select.h>
+// read, select
 #include <unistd.h>
 
 
@@ -150,14 +151,31 @@ void Loop::dispatch( Connection *c, bool r, bool w, int now )
         }
 
         if ( c->state() == Connection::Connecting ) {
+            bool error = false;
+            bool connected = false;
+
             if ( ( w && !r ) || c->isPending( Connection::Connect ) ) {
+                connected = true;
+            }
+            else if ( c->isPending( Connection::Error ) ) {
+                error = true;
+            }
+            else if ( w && r ) {
+                // This might indicate a connection error, or a successful
+                // connection with outstanding data. (Stevens suggests the
+                // zero-length read to disambiguate, cf. UNPv1 15.4.)
+                if ( ::read( c->fd(), 0, 0 ) == 0 )
+                    connected = true;
+                else
+                    error = true;
+            }
+
+            if ( connected ) {
                 c->setState( Connection::Connected );
                 c->react( Connection::Connect );
                 w = true;
             }
-            else if ( ( w && r ) || c->isPending( Connection::Error ) ) {
-                // If there's a pending error, we assume there aren't
-                // going to be any legitimate r/w events to lose here.
+            else if ( error ) {
                 c->react( Connection::Error );
                 c->setState( Connection::Closing );
                 w = r = false;
