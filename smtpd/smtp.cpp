@@ -13,8 +13,6 @@
 #include "injector.h"
 #include "mailbox.h"
 
-#include <time.h> // XXX this needs to go. fix setTimeout().
-
 
 class SmtpDbClient: public EventHandler
 {
@@ -122,7 +120,7 @@ void SMTP::react( Event e )
         // hm. what?
         break;
     case Read:
-        setTimeout( time(0) + 1800 );
+        setTimeoutAfter( 1800 );
         parse();
         break;
     case Timeout:

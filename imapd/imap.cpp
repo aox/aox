@@ -12,8 +12,6 @@
 #include "configuration.h"
 #include "imapsession.h"
 
-#include <time.h>
-
 
 static bool endsWithLiteral( const String *, uint *, bool * );
 
@@ -86,7 +84,7 @@ IMAP::IMAP( int s )
 
     enqueue( "* OK [CAPABILITY " + Capability::capabilities( this ) + "] " +
              Configuration::hostname() + " IMAP Server\r\n" );
-    setTimeout( time(0) + 1800 );
+    setTimeoutAfter( 1800 );
 }
 
 
@@ -104,7 +102,7 @@ void IMAP::react( Event e )
 {
     switch ( e ) {
     case Read:
-        setTimeout( time(0) + 1800 );
+        setTimeoutAfter( 1800 );
         parse();
         break;
 
@@ -131,7 +129,7 @@ void IMAP::react( Event e )
     d->log->commit();
 
     if ( timeout() == 0 )
-        setTimeout( time(0) + 1800 );
+        setTimeoutAfter( 1800 );
     if ( state() == Logout )
         Connection::setState( Closing );
 }

@@ -10,8 +10,11 @@
 #include "test.h"
 #include "sys.h"
 
+// time
 #include <time.h>
+// errno
 #include <errno.h>
+// struct timeval, fd_set, select
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/select.h>

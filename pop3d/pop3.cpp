@@ -4,8 +4,6 @@
 #include "buffer.h"
 #include "log.h"
 
-#include <time.h>
-
 
 class PopData {
 public:
@@ -32,7 +30,7 @@ POP3::POP3( int s )
       d( new PopData )
 {
     ok( "POP3" );
-    setTimeout( time(0) + 600 );
+    setTimeoutAfter( 600 );
 }
 
 
@@ -66,7 +64,7 @@ void POP3::react( Event e )
 {
     switch ( e ) {
     case Read:
-        setTimeout( time(0) + 600 );
+        setTimeoutAfter( 600 );
         parse();
         break;
 

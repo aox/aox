@@ -41,6 +41,8 @@ public:
     int fd() const;
     int timeout() const;
     void setTimeout( int );
+    void setTimeoutAfter( int );
+    void extendTimeout( int );
     void setBlocking( bool );
 
     Buffer * writeBuffer() const;

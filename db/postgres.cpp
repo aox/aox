@@ -12,7 +12,6 @@
 #include "transaction.h"
 
 #define _XOPEN_SOURCE
-#include <time.h>
 #include <unistd.h>
 
 
@@ -74,7 +73,7 @@ Postgres::Postgres()
     connect( Database::server() );
     Loop::addConnection( this );
     Database::addHandle( this );
-    setTimeout( time(0) + 10 );
+    setTimeoutAfter( 10 );
 }
 
 
@@ -292,8 +291,7 @@ void Postgres::process( char type )
 {
     List< Query >::Iterator q = d->queries.first();
 
-    if ( timeout() != 0 )
-        setTimeout( timeout() + 5 );
+    extendTimeout( 5 );
 
     switch ( type ) {
     case '1':
@@ -550,8 +548,7 @@ void Postgres::processQuery( Query *query )
         pq.enqueue( writeBuffer() );
     }
 
-    if ( timeout() == 0 )
-        setTimeout( time(0) + 5 );
+    extendTimeout( 5 );
 }
 
 
