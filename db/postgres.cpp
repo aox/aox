@@ -574,7 +574,7 @@ void Postgres::error( const String &s )
 }
 
 
-static int currentRevision = 4;
+static int currentRevision = 5;
 
 
 class UpdateSchema
@@ -896,6 +896,31 @@ void UpdateSchema::execute() {
                     q = new Query( "alter table messages drop draft", this );
                     t->enqueue( q );
                     q = new Query( "alter table messages drop seen", this );
+                    t->enqueue( q );
+                    t->execute();
+                    substate = 1;
+                }
+
+                if ( substate == 1 ) {
+                    if ( !q->done() )
+                        return;
+                    l->log( "Done.", Log::Debug );
+                    substate = 0;
+                }
+            }
+
+            if ( revision == 4 ) {
+                if ( substate == 0 ) {
+                    l->log( "Adding hf_mup, af_mu, fl_mu indices.",
+                            Log::Debug );
+                    q = new Query( "create index hf_mup on "
+                                   "header_fields (mailbox,uid,part)", this );
+                    t->enqueue( q );
+                    q = new Query( "create index af_mu on "
+                                   "address_fields (mailbox,uid)", this );
+                    t->enqueue( q );
+                    q = new Query( "create index fl_mu on "
+                                   "flags (mailbox,uid)", this );
                     t->enqueue( q );
                     t->execute();
                     substate = 1;
