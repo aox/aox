@@ -31,16 +31,19 @@ public:
 
     Message * message( uint ) const;
 
+    void insert( uint, Message * );
+    void remove( uint );
+
     MessageSet recent() const;
     bool isRecent( uint ) const;
     void addRecent( uint );
 
     bool responsesNeeded() const;
     void emitResponses();
+    void updateUidnext();
 
 private:
     class SessionData *d;
-    friend class ImapSessionInitializer;
 };
 
 
@@ -52,7 +55,7 @@ public:
 
     void execute();
 private:
-    class ImapSessionInitializerDataExtraLong * d;
+    class ImapSessionInitializerData * d;
 };
 
 

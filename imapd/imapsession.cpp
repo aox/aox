@@ -147,6 +147,29 @@ Message * ImapSession::message( uint uid ) const
 }
 
 
+/*! Inserts \a m into this session using \a uid. This should only be
+    called by ImapSessionInitializer... and perhaps the OCD?
+*/
+
+void ImapSession::insert( uint uid, Message * m )
+{
+    d->messages.insert( uid, m );
+    d->msns.add( uid );
+}
+
+
+/*! Removes the message with \a uid from this session, adjusting MSNs
+    as needed. This function does not emit any responses, nor does it
+    cause responses to be emitted.
+*/
+
+void ImapSession::remove( uint uid )
+{
+    d->messages.remove( uid );
+    d->msns.remove( uid );
+}
+
+
 /*! Returns a MessageSet containing all messages marked "\Recent" in
     this session.
 */
@@ -228,10 +251,20 @@ void ImapSession::emitResponses()
 }
 
 
-class ImapSessionInitializerDataExtraLong
+/*! Copies the uidnext value from the mailbox, doing nothing else and
+    emitting no responses.
+*/
+
+void ImapSession::updateUidnext()
+{
+    d->uidnext = mailbox()->uidnext();
+}
+
+
+class ImapSessionInitializerData
 {
 public:
-    ImapSessionInitializerDataExtraLong()
+    ImapSessionInitializerData()
         : session( 0 ), owner( 0 ),
           t( 0 ), recent( 0 ), messages( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
@@ -266,13 +299,13 @@ public:
 
 ImapSessionInitializer::ImapSessionInitializer( ImapSession * session,
                                                 EventHandler * owner )
-    : EventHandler(), d( new ImapSessionInitializerDataExtraLong )
+    : EventHandler(), d( new ImapSessionInitializerData )
 {
     d->session = session;
     d->owner = owner;
     d->oldUidnext = d->session->uidnext();
     d->newUidnext = d->session->mailbox()->uidnext();
-    d->session->d->uidnext = d->newUidnext;
+    d->session->updateUidnext();
     /*
     log( "Updating session on " + d->session->mailbox()->name() +
          " for UIDs [" + fn( d->oldUidnext ) + "," +
@@ -344,8 +377,7 @@ void ImapSessionInitializer::execute()
                 m->setMailbox( d->session->mailbox() );
             }
 
-            d->session->d->messages.insert( uid, m );
-            d->session->d->msns.add( uid );
+            d->session->insert( uid, m );
 
             m->setFlag( Message::SeenFlag, r->getBoolean( "seen" ) );
             m->setFlag( Message::DraftFlag, r->getBoolean( "draft" ) );
