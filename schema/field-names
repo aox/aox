@@ -23,5 +23,7 @@ insert into field_names (name) values ('Keywords');
 insert into field_names (name) values ('Content-Type');
 insert into field_names (name) values ('Content-Transfer-Encoding');
 insert into field_names (name) values ('Content-Disposition');
+insert into field_names (name) values ('Content-Description');
+insert into field_names (name) values ('Content-Id');
 insert into field_names (name) values ('Mime-Version');
 insert into field_names (name) values ('Received');

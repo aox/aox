@@ -24,6 +24,9 @@ public:
     bool valid() const;
     String error() const;
 
+    // The contents of this enum must be kept in sync with the data in
+    // src/schema/field-names. Furthermore, new entries MUST be added
+    // only at the end.
     enum Type {
         From = 1, ResentFrom,
         Sender, ResentSender,
@@ -39,7 +42,8 @@ public:
         ContentDescription, ContentId,
         MimeVersion,
         Received,
-        Other // Other must be last
+        // Other must be last
+        Other
     };
 
     Type type() const;
