@@ -57,7 +57,7 @@ of TLS, but far from all.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 0.90, released 2004-09-15,
+This man page covers Oryx Mailstore version 0.90, released 2005-01-15,
 http://www.oryx.com/mailstore/0.90.html.
 .SH SEE ALSO
 .BR mailstore (7),
