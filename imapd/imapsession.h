@@ -2,6 +2,7 @@
 #define IMAPSESSION_H
 
 #include "global.h"
+#include "messageset.h"
 
 class Mailbox;
 class Message;
@@ -20,6 +21,10 @@ public:
     uint count() const;
 
     Message * message( uint ) const;
+
+    MessageSet recent() const;
+    bool isRecent( uint ) const;
+    void addRecent( uint );
 
 private:
     class SessionData *d;

@@ -2,11 +2,30 @@
 
 #include "imap.h"
 #include "mailbox.h"
+#include "messageset.h"
 #include "imapsession.h"
+#include "transaction.h"
+#include "query.h"
 #include "flag.h"
 
 
 static inline String fn( uint n ) { return String::fromNumber( n ); }
+
+
+class SelectData {
+public:
+    SelectData()
+        : session( 0 ), m( 0 ), t( 0 ), recent( 0 )
+    {}
+
+    String name;
+    bool readOnly;
+    class ImapSession *session;
+    Mailbox *m;
+
+    Transaction *t;
+    Query *recent;
+};
 
 
 /*! \class Select select.h
@@ -21,8 +40,93 @@ static inline String fn( uint n ) { return String::fromNumber( n ); }
 */
 
 Select::Select( bool ro )
-    : readOnly( ro ), session( 0 )
+    : d( new SelectData )
 {
+    d->readOnly = ro;
+}
+
+
+/*! \reimp */
+
+void Select::parse()
+{
+    space();
+    d->name = astring();
+    end();
+}
+
+
+/*! \reimp */
+
+void Select::execute()
+{
+    if ( !d->session ) {
+        if ( imap()->session() )
+            imap()->endSession();
+
+        Mailbox *m = Mailbox::find( imap()->mailboxName( d->name ) );
+        if ( !m || m->id() == 0 ) {
+            error( No, "Can't select " + d->name );
+            finish();
+            return;
+        }
+
+        imap()->beginSession( m, d->readOnly );
+        d->session = imap()->session();
+        d->m = m;
+    }
+
+    if ( !d->t ) {
+        d->recent = new Query( "select * from recent_messages where "
+                               "mailbox=$1 for update", this );
+        d->recent->bind( 1, d->m->id() );
+
+        Query *q = new Query( "delete from recent_messages where "
+                              "mailbox=$1", this );
+        q->bind( 1, d->m->id() );
+
+        d->t = new Transaction( this );
+        d->t->enqueue( d->recent );
+        if ( !d->readOnly )
+            d->t->enqueue( q );
+        d->t->commit();
+        return;
+    }
+    else {
+        if ( !d->t->done() )
+            return;
+
+        while ( d->recent->hasResults() ) {
+            Row *r = d->recent->nextRow();
+            d->session->addRecent( r->getInt( "uid" ) );
+        }
+    }
+
+    String flags = "\\Answered \\Flagged \\Deleted \\Seen \\Draft";
+    const List<Flag> * l = Flag::flags();
+    List<Flag>::Iterator i( l->first() );
+    while ( i ) {
+        flags = flags + " " + i->name();
+        i++;
+    }
+
+    respond( "FLAGS " + flags );
+    respond( fn( d->session->count() ) + " EXISTS" );
+
+    respond( fn( d->session->recent().count() ) + " RECENT" );
+
+    // ditto UNSEEN
+    respond( "OK [UNSEEN 0]" );
+
+    respond( "OK [UIDNEXT " + fn( d->m->uidnext() ) + "]" );
+    respond( "OK [UIDVALIDITY " + fn( d->m->uidvalidity() ) + "]" );
+    respond( "OK [PERMANENTFLAGS " + flags +" \\*]" );
+    if ( d->session->readOnly() )
+        respond( "OK [READ-ONLY]", Tagged );
+    else
+        respond( "OK [READ-WRITE]", Tagged );
+
+    finish();
 }
 
 
@@ -40,65 +144,4 @@ Select::Select( bool ro )
 Examine::Examine()
     : Select( true )
 {
-}
-
-
-/*! \reimp */
-
-void Select::parse()
-{
-    space();
-    name = astring();
-    end();
-}
-
-
-/*! \reimp */
-
-void Select::execute()
-{
-    if ( !session ) {
-        if ( imap()->session() )
-            imap()->endSession();
-
-        Mailbox *m = Mailbox::find( imap()->mailboxName( name ) );
-        if ( m ) {
-            imap()->beginSession( m, readOnly );
-            session = imap()->session();
-        }
-        else {
-            error( No, "Can't select " + name );
-            finish();
-            return;
-        }
-    }
-
-    Mailbox *m = session->mailbox();
-
-    String flags = "\\Answered \\Flagged \\Deleted \\Seen \\Draft";
-    const List<Flag> * l = Flag::flags();
-    List<Flag>::Iterator i( l->first() );
-    while ( i ) {
-        flags = flags + " " + i->name();
-        i++;
-    }
-
-    respond( "FLAGS " + flags );
-    respond( fn( session->count() ) + " EXISTS" );
-
-    // the RECENT response is wrong. needs expensive select. what to do?
-    respond( "0 RECENT" );
-
-    // ditto UNSEEN
-    respond( "OK [UNSEEN 0]" );
-
-    respond( "OK [UIDNEXT " + fn( m->uidnext() ) + "]" );
-    respond( "OK [UIDVALIDITY " + fn( m->uidvalidity() ) + "]" );
-    respond( "OK [PERMANENTFLAGS " + flags +" \\*]" );
-    if ( session->readOnly() )
-        respond( "OK [READ-ONLY]", Tagged );
-    else
-        respond( "OK [READ-WRITE]", Tagged );
-
-    finish();
 }

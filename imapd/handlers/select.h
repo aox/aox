@@ -14,9 +14,7 @@ public:
     void execute();
 
 private:
-    String name;
-    bool readOnly;
-    class ImapSession *session;
+    class SelectData *d;
 };
 
 

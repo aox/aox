@@ -15,6 +15,7 @@ public:
     bool readOnly;
     Mailbox *mailbox;
     MessageSet messages;
+    MessageSet recent;
 };
 
 
@@ -102,4 +103,33 @@ Message * ImapSession::message( uint uid ) const
     if ( uid )
         ;
     return 0;
+}
+
+
+/*! Returns a MessageSet containing all messages marked "\Recent" in
+    this session.
+*/
+
+MessageSet ImapSession::recent() const
+{
+    return d->recent;
+}
+
+
+/*! Returns true only if the message \a uid is marked as "\Recent" in
+    this session.
+*/
+
+bool ImapSession::isRecent( uint uid ) const
+{
+    // return d->recent.contains( uid );
+    return false;
+}
+
+
+/*! Marks the message \a uid as "\Recent" in this session. */
+
+void ImapSession::addRecent( uint uid )
+{
+    d->recent.add( uid );
 }
