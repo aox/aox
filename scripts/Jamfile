@@ -1,5 +1,4 @@
 SubDir TOP scripts ;
-SubInclude TOP core ;
 
 
 rule ShellScript {
