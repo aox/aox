@@ -849,9 +849,11 @@ void UpdateSchema::execute() {
                         }
                     }
 
-                    q = new Query( "delete from bodyparts where id in "
-                                   "(" + ids.join(",") + ")", this );
-                    t->enqueue( q );
+                    if ( !ids.isEmpty() ) {
+                        q = new Query( "delete from bodyparts where id in "
+                                       "(" + ids.join(",") + ")", this );
+                        t->enqueue( q );
+                    }
                     q = new Query( "drop table binary_parts", this );
                     t->enqueue( q );
                     t->execute();
