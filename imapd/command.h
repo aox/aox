@@ -60,6 +60,7 @@ public:
     String quoted();
     String literal();
     Set set( bool );
+    String flag();
     char nextChar();
     void step( uint = 1 );
     const String following() const;

@@ -11,6 +11,8 @@ class Store
     : public Command
 {
 public:
+    Store( bool u );
+
     void parse();
     void execute();
 
@@ -18,6 +20,7 @@ private:
     Set s;
     enum { Add, Replace, Remove } op;
     bool silent;
+    bool uid;
     List< String > flags;
 };
 

@@ -1,10 +1,25 @@
 /*! \class Store store.h
-    \brief STORE alters message metadata (RFC 3501, §6.4.6).
+    \brief Store alters message flags (RFC 3501, §6.4.6).
+
+    The Store command is the principal means of altering flags,
+    although Annotate can do the same.
 */
 
 #include "store.h"
 
 #include "set.h"
+
+
+
+/*!  Constructs a Store handler. If \a u is set, the first argument is
+     presumed to be a UID set, otherwise it's an MSN set.
+*/
+
+Store::Store( bool u )
+    : op( Replace), silent( false ), uid( u )
+{
+    // nothing
+}
 
 
 /*  store           = "STORE" SP set SP store-att-flags
@@ -21,55 +36,37 @@
 
 void Store::parse()
 {
-    s = set( true );
+    s = set( uid );
     space();
 
     op = Replace;
-    char pm = nextChar();
-    if ( pm == '-' || pm == '+' ) {
-        op = ( pm == '+' ) ? Add : Remove ;
-        step();
-    }
+    if ( present( "-" ) )
+        op = Remove;
+    else if ( present( "+" ) )
+        op = Add;
 
     require( "flags" );
-    if ( present( ".silent" ) )
-        silent = true;
+    silent = present( ".silent" );
     space();
 
-    bool parens = false;
-    if ( present( "(" ) )
-        parens = true;
+    bool parens = present( "(" );
 
-    do {
-        if ( flags.count() > 0 )
-            step();
+    flags.append( new String( flag() ) );
+    while ( present( " " ) ) {
+        space();
+        flags.append( new String( flag() ) );
+    }
 
-        String * flag = new String;
-
-        if ( present( "\\" ) )
-            flag->append( '\\' );
-
-        char c = nextChar();
-        while ( c > ' ' && c < 127 &&
-                c != '(' && c != ')' && c != '{' &&
-                c != ']' &&
-                c != '"' && c != '\\' &&
-                c != '%' && c != '*' )
-        {
-            flag->append( c );
-            step();
-            c = nextChar();
-        }
-
-        flags.append( flag );
-    } while ( nextChar() == ' ' );
-
-    if ( parens && !present( ")" ) )
-        error( Bad, "" );
+    if ( parens )
+        require( ")" );
 
     end();
 }
 
+
+/*! Reports the operation that would be performed, but does nothing so
+    far.
+*/
 
 void Store::execute()
 {
