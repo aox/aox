@@ -73,8 +73,8 @@ cat <<PSQL | su - $PGUSER -c "$PSQL -q -d $DBNAME -f -" || exit
 \set ON_ERROR_STOP
 SET SESSION AUTHORIZATION $DBUSER;
 SET client_min_messages TO 'ERROR';
-\i $SCHEMA/schema.pg
-\i $SCHEMA/field-names
+\i $CONFIGDIR/schema.pg
+\i $CONFIGDIR/field-names
 PSQL
 fi
 

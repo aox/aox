@@ -1,0 +1,13 @@
+SubDir TOP schema ;
+
+
+rule SchemaFile {
+    local s ;
+    s = $(<) ;
+    SEARCH on $(s) = $(SEARCH_SOURCE) ;
+
+    InstallFile $(CONFIGDIR) : $(<) ;
+}
+
+SchemaFile field-names ;
+SchemaFile schema.pg ;
