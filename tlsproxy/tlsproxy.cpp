@@ -553,6 +553,8 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     status = cryptSetAttribute( cs, CRYPT_SESSINFO_NETWORKSOCKET,
                                 userside->fd() );
     handleError( status, "cryptSetAttribute(NETWORKSOCKET)" );
+    status = cryptSetAttribute( cs, CRYPT_SESSINFO_VERSION, 1 );
+    handleError( status, "cryptSetAttribute(VERSION)" );
     status = cryptSetAttribute( cs, CRYPT_SESSINFO_PRIVATEKEY, privateKey );
     handleError( status, "cryptSetAttribute(PRIVATEKEY)" );
     status = cryptSetAttribute( cs, CRYPT_SESSINFO_ACTIVE, 1 );

@@ -495,13 +495,19 @@ void SMTP::starttls()
         respond( 502, "Already using TLS" );
         return;
     }
+
+    d->negotiatingTls = true;
+
     if ( !d->tlsServer ) {
         d->tlsHelper = new SmtpTlsStarter( this );
         d->tlsServer = new TlsServer( d->tlsHelper, peer(), "SMTP" ); // ? LMTP?
     }
-    respond( 200, "Start negotiating TLS now." );
+
+    if ( !d->tlsServer->done() )
+        return;
+
+    respond( 220, "Start negotiating TLS now." );
     sendResponses();
-    d->negotiatingTls = true;
     log( "Negotiating TLS", Log::Debug );
     startTls( d->tlsServer );
 }
