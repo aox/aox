@@ -4,6 +4,12 @@ Switch to using the Gulbrand-sen GC
 Add support for RFC 2047 encoding
 
 
+Consider RFC2231, §6:
+
+  «IMAP4 [RFC-2060] servers SHOULD decode parameter value continuations
+  when generating the BODY and BODYSTRUCTURE fetch attributes.»
+
+
 Fix the extra \r\n in the bodypart for o/1
 
 
