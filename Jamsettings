@@ -2,7 +2,7 @@
 #
 # remember the spaces around = and before ;.
 
-# files and directories.
+# files and directories. the directory names MUST NOT end with /.
 
 BINDIR = /usr/mailstore/bin ;
 MANDIR = /usr/mailstore/man ;
