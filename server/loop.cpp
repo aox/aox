@@ -18,6 +18,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/select.h>
+// getsockopt, SOL_SOCKET, SO_ERROR
+#include <sys/socket.h>
 // read, select
 #include <unistd.h>
 
@@ -163,8 +165,13 @@ void Loop::dispatch( Connection *c, bool r, bool w, int now )
             else if ( w && r ) {
                 // This might indicate a connection error, or a successful
                 // connection with outstanding data. (Stevens suggests the
-                // zero-length read to disambiguate, cf. UNPv1 15.4.)
-                if ( ::read( c->fd(), 0, 0 ) == 0 )
+                // getsockopt to disambiguate the two, cf. UNPv1 15.4.)
+                int errval;
+                int errlen = sizeof( int );
+                ::getsockopt( c->fd(), SOL_SOCKET, SO_ERROR, (void *)&errval,
+                              (socklen_t *)&errlen );
+
+                if ( errval == 0 )
                     connected = true;
                 else
                     error = true;
