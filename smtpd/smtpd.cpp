@@ -11,6 +11,7 @@
 #include "listener.h"
 #include "smtp.h"
 #include "loop.h"
+#include "fieldcache.h"
 #include "addresscache.h"
 
 // exit
@@ -39,6 +40,7 @@ int main( int, char *[] )
     Database::setup();
     Mailbox::setup();
     AddressCache::setup();
+    FieldNameCache::setup();
 
     log( "SMTP server version " +
          Configuration::compiledIn( Configuration::Version ) +

@@ -11,6 +11,7 @@
 #include "loop.h"
 #include "tls.h"
 #include "handlers/capability.h"
+#include "fieldcache.h"
 #include "addresscache.h"
 #include "mechanism.h"
 
@@ -40,6 +41,7 @@ int main( int, char *[] )
     Mailbox::setup();
     Capability::setup();
     AddressCache::setup();
+    FieldNameCache::setup();
     SaslMechanism::setup();
 
     log( Test::report() );
