@@ -3,6 +3,9 @@
 #include "imap.h"
 #include "mailbox.h"
 
+static inline String fn( uint n ) { return String::fromNumber( n ); }
+
+
 /*! \class Select select.h
     Opens a mailbox for read-write access (RFC 3501, §6.3.1)
 
@@ -47,22 +50,23 @@ void Select::execute()
     if ( m->state() == Mailbox::Failed ) {
         imap()->setMailbox( 0 );
         imap()->setState( IMAP::Authenticated );
-        error( No, "Can't select mailbox " + name );
-        goto done;
+        error( No, "Can't select " + name );
+        finish();
+        return;
     }
 
     imap()->setMailbox( m );
     imap()->setState( IMAP::Selected );
 
     respond( "FLAGS " + m->flags() );
-    respond( String::fromNumber( m->count() ) + " EXISTS" );
-    respond( String::fromNumber( m->recent() ) + " RECENT" );
-    respond( "OK [UNSEEN " + String::fromNumber( m->unseen() ) + "]" );
-    respond( "OK [UIDNEXT " + String::fromNumber( m->uidnext() ) + "]" );
-    respond( "OK [UIDVALIDITY " + String::fromNumber( m->uidvalidity() ) + "]" );
+    respond( fn( m->count() ) + " EXISTS" );
+    respond( fn( m->recent() ) + " RECENT" );
+    respond( "OK [UNSEEN " + fn( m->unseen() ) + "]" );
+    respond( "OK [UIDNEXT " + fn( m->uidnext() ) + "]" );
+    respond( "OK [UIDVALIDITY " + fn( m->uidvalidity() ) + "]" );
     respond( "OK [PERMANENTFLAGS " + m->permanentFlags() + "]" );
-    respond( "OK [READ-" + String( m->readOnly() ? "ONLY" : "WRITE" ) + "]", Tagged );
+    respond( "OK [READ-" + String( m->readOnly() ? "ONLY" : "WRITE" ) + "]",
+             Tagged );
 
-done:
     finish();
 }
