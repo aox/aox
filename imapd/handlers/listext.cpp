@@ -135,30 +135,6 @@ void Listext::execute()
 }
 
 
-/*! Parses and returns a list-mailbox. This is the same as an atom(),
-    except that the three exceptions %, * and ] are accepted.
-*/
-
-String Listext::listMailbox()
-{
-    String result;
-    char c = nextChar();
-    if ( c == '"' || c == '{' )
-        return string();
-    while ( c > ' ' && c < 127 &&
-            c != '(' && c != ')' && c != '{' &&
-            c != '"' && c != '\\' )
-    {
-        result.append( c );
-        step();
-        c = nextChar();
-    }
-    if ( result.isEmpty() )
-        error( Bad, "list-mailbox expected, saw: " + following() );
-    return result;
-}
-
-
 /*! Parses and remembers the return \a option, or emits a suitable
     error. \a option must be in lower case.*/
 

@@ -64,6 +64,7 @@ public:
     String string();
     String nstring();
     String astring();
+    String listMailbox();
     MessageSet set( bool );
     uint msn();
     String flag();
