@@ -737,7 +737,11 @@ void UpdateSchema::execute() {
                                    "binary_parts b where id=b.bodypart",
                                    this );
                     t->enqueue( q );
-                    q = new Query( "select id,text,data from bodyparts", this );
+                    q = new Query( "declare parts cursor for "
+                                   "select id,text,data from bodyparts",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "fetch 512 from parts", this );
                     t->enqueue( q );
                     t->execute();
                     substate = 1;
@@ -767,7 +771,17 @@ void UpdateSchema::execute() {
 
                     if ( !q->done() )
                         return;
-                    substate = 2;
+
+                    if ( q->rows() != 0 ) {
+                        q = new Query( "fetch 512 from parts", this );
+                        t->enqueue( q );
+                        t->execute();
+                        return;
+                    }
+                    else {
+                        substate = 2;
+                        t->enqueue( new Query( "close parts", this ) );
+                    }
                 }
 
                 if ( substate == 2 ) {
