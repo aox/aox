@@ -83,25 +83,22 @@ public:
 
 void IMAP::setup()
 {
-    Configuration::Text plaintext( "allow-plaintext-passwords", "always" );
+    ::supportsPlain = Configuration::toggle( Configuration::AuthPlain );
+    ::supportsCramMd5 =
+          Configuration::toggle( Configuration::AuthCramMd5 );
+    ::supportsDigestMd5 =
+          Configuration::toggle( Configuration::AuthDigestMd5 );
+    ::supportsAnonymous =
+          Configuration::toggle( Configuration::AuthAnonymous );
 
-    Configuration::Toggle plain( "auth-plain", true );
-    Configuration::Toggle cramMd5( "auth-cram-md5", true );
-    Configuration::Toggle digestMd5( "auth-digest-md5", true );
-    Configuration::Toggle anonymous( "auth-anonymous", false );
-
-    ::supportsPlain = plain;
-    ::supportsCramMd5 = cramMd5;
-    ::supportsDigestMd5 = digestMd5;
-    ::supportsAnonymous = anonymous;
-
-    String s = plaintext;
-    if ( s.lower() == "always" )
+    String s =
+        Configuration::text( Configuration::AllowPlaintextPasswords ).lower();
+    if ( s == "always" )
         ::allowPlaintext = true;
-    else if ( s.lower() == "never" )
+    else if ( s == "never" )
         ::allowPlaintext = false;
     else
-        ::log( "Unknown value for allow-plaintext-passwords.",
+        ::log( "Unknown value for allow-plaintext-passwords: " + s,
                Log::Disaster );
 }
 
@@ -251,7 +248,7 @@ void IMAP::addCommand()
          "-line command: " + *s, Log::Debug );
 
     String tag, command;
-    
+
     // Be kind to the old man Arnt, who cannot unlearn his SMTP habits
 
     if ( * s == "quit" )

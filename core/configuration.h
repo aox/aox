@@ -3,7 +3,8 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include <string.h>
+#include "string.h"
+#include "log.h"
 
 
 class Configuration
@@ -12,29 +13,15 @@ private:
     Configuration();
 public:
     static void setup( const String & );
-
-    static String hostname();
-    static String osHostname();
-
     static void report();
 
-    static void ignore( const char * s1    , const char * s2 = 0,
-                        const char * s3 = 0, const char * s4 = 0,
-                        const char * s5 = 0, const char * s6 = 0,
-                        const char * s7 = 0, const char * s8 = 0 );
-
     enum CompileTimeSetting {
-        LogFile,
         ConfigDir,
         PidFileDir,
         BinDir,
         ManDir,
         LibDir,
         InitDir,
-        JailDir,
-        DbAddress,
-        DbUser,
-        DbName,
         OryxUser,
         OryxGroup,
         // additional settings go ABOVE THIS LINE
@@ -43,82 +30,87 @@ public:
 
     static String compiledIn( CompileTimeSetting );
 
-    class Variable {
-    public:
-        Variable(): ok( true ), s( false ) {}
-        virtual ~Variable() {}
-
-        bool valid() const { return ok || !s; }
-        bool supplied() const { return s; }
-
-        String name() const { return n; }
-
-    protected:
-        void init( const String & );
-        void log( const String & );
-
-    private:
-        virtual bool setValue( const String & ) = 0;
-
-    private:
-        String n;
-        bool ok;
-        bool s;
+    enum Scalar {
+        DbPort,
+        TlsProxyPort,
+        LogPort,
+        OcdPort,
+        OcAdminPort,
+        Pop3Port,
+        ImapPort,
+        ImapsPort,
+        SmtpPort,
+        LmtpPort,
+        // additional scalars go ABOVE THIS LINE
+        NumScalars
     };
+    static uint scalar( Scalar );
+    static bool present( Scalar );
+    static const char * name( Scalar );
 
-    class Scalar: public Variable {
-    public:
-        Scalar( const String &, int );
-
-        operator int() const { return value; }
-        operator uint() const { return (uint)value; }
-
-    private:
-        bool setValue( const String & );
-        int value;
+    enum Text {
+        Db,
+        DbUser,
+        DbName,
+        DbPassword,
+        DbAddress,
+        Hostname,
+        JailUser,
+        JailGroup,
+        JailDir,
+        AllowPlaintextPasswords,
+        LogFile,
+        TlsProxyAddress,
+        LogAddress,
+        OcdAddress,
+        OcAdminAddress,
+        Pop3Address,
+        ImapAddress,
+        ImapsAddress,
+        SmtpAddress,
+        LmtpAddress,
+        TlsCertFile,
+        LogLevel,
+        // additional texts go ABOVE THIS LINE
+        NumTexts
     };
+    static String text( Text );
+    static bool present( Text );
+    static const char * name( Text );
 
-    class Toggle: public Variable {
-    public:
-        Toggle( const String &, bool );
-
-        operator bool() const { return value; }
-
-    private:
-        bool setValue( const String & );
-
-    private:
-        bool value;
+    enum Toggle {
+        Security,
+        UseTls,
+        UseSmtp,
+        UseLmtp,
+        UseImaps,
+        AuthPlain,
+        AuthCramMd5,
+        AuthDigestMd5,
+        AuthAnonymous,
+        AnnounceDraftSupport,
+        // additional toggles go ABOVE THIS LINE
+        NumToggles
     };
+    static bool toggle( Toggle );
+    static bool present( Toggle );
+    static const char * name( Toggle );
 
-    class Text: public Variable {
-    public:
-        Text( const String &, const String & );
-        Text( const String &, CompileTimeSetting );
-
-        operator ::String() const { return value; }
-
-    private:
-        bool setValue( const String & );
-
-    private:
-        String value;
-    };
-
-    class Something {
-    public:
-        Something( const String & s3, const String & s4 )
-            : s1( s3 ), s2( s4 ) {}
-        String s1;
-        String s2;
-    };
+    static String hostname() { return text( Hostname ); }
 
 private:
-    void add( const String & );
-    void read( const String & );
+    static String osHostname();
 
-    class ConfigurationData * d;
-    friend class Configuration::Variable;
+    static void add( const String & );
+    static void read( const String & );
+
+    static void log( const String &, Log::Severity );
+
+    static void parseScalar( uint, const String & );
+    static void parseText( uint, const String & );
+    static void parseToggle( uint, const String & );
+
+    static class ConfigurationData * d;
 };
 
 

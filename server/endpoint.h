@@ -4,6 +4,7 @@
 #define ENDPOINT_H
 
 #include "global.h"
+#include "configuration.h"
 
 class String;
 
@@ -14,6 +15,7 @@ public:
     Endpoint( const Endpoint & );
     Endpoint( const String &, uint );
     Endpoint( const struct sockaddr * );
+    Endpoint( Configuration::Text, Configuration::Scalar );
 
     enum Protocol { Unix, IPv4, IPv6 };
 

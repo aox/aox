@@ -22,13 +22,15 @@ int main( int argc, char * argv[] )
 
     s.setup( Server::LogSetup );
     (void)new SelfLogger;
-    Configuration::Text logName( "logfile", Configuration::LogFile );
+    String logName( Configuration::text( Configuration::LogFile ) );
     LogServer::setLogFile( logName );
-    Configuration::Text logLevel( "loglevel", "info" );
+    String logLevel( Configuration::text( Configuration::LogLevel ) );
     LogServer::setLogLevel( logLevel );
 
     s.setup( Server::Report );
-    Listener< LogServer >::create( "log", "127.0.0.1", 2054 );
+    Listener< LogServer >::create( "log",
+                                   Configuration::LogAddress,
+                                   Configuration::LogPort );
     s.setup( Server::Finish );
 
     signal( SIGHUP, LogServer::reopen );

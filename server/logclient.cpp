@@ -103,13 +103,12 @@ void LogClient::send( const String &s )
 
 void LogClient::setup()
 {
-    Configuration::Text logHost( "log-address", "127.0.0.1" );
-    Configuration::Scalar logPort( "log-port", 2054 );
-    Endpoint e( logHost, logPort );
-
+    Endpoint e( Configuration::LogAddress, Configuration::LogPort );
     if ( !e.valid() ) {
-        fprintf( stderr, "LogClient: Unable to parse address <%s> port %d\n",
-                 ((String)logHost).cstr(), (int)logPort );
+        fprintf( stderr,
+                 "LogClient: Unable to parse log server address %s:%d\n",
+                 Configuration::text( Configuration::LogAddress ).cstr(),
+                 Configuration::scalar( Configuration::LogPort ) );
         exit( -1 );
     }
 

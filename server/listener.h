@@ -62,19 +62,16 @@ public:
         }
     }
 
-    static void create( const String &svc, const String &address, uint port )
+    static void create( const String & svc,
+                        Configuration::Text address,
+                        Configuration::Scalar port )
     {
         Listener<T> * l = 0;
 
-        Configuration::Text a( svc.lower() + "-address", address );
-        Configuration::Scalar p( svc.lower() + "-port", port );
-        if ( !a.valid() && !p.valid() ) {
-            ::log( svc +
-                   ": Cannot be started due to configuration problems with " +
-                   ( a.valid() ? p.name() : a.name() ),
-                   Log::Disaster );
-        }
-        else if ( ((String)a).isEmpty() ) {
+        String a( Configuration::text( address ) );
+        uint p = Configuration::scalar( port );
+
+        if ( a.isEmpty() ) {
             Listener<T> * six = new Listener<T>( Endpoint( "::", p ), svc );
             if ( six->state() == Listening )
                 l = six;
@@ -94,13 +91,9 @@ public:
                        Log::Disaster );
         }
         else {
-            Endpoint e( a, p );
+            Endpoint e( address, port );
             l = new Listener<T>( e, svc );
-            if ( !e.valid() )
-                ::log( "Cannot parse desired endpoint for " + svc + ", " +
-                       a + " port " + fn( p ),
-                       Log::Disaster );
-            else if ( l->state() != Listening )
+            if ( !e.valid() || l->state() != Listening )
                 ::log( "Cannot listen for " + svc + " on " + e.address(),
                        Log::Disaster );
             else

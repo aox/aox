@@ -49,15 +49,10 @@ OCClient::~OCClient()
 
 void OCClient::setup()
 {
-    Configuration::Text ocdHost( "ocd-address", "127.0.0.1" );
-    Configuration::Scalar ocdPort( "ocd-port", 2050 );
-    Endpoint e( ocdHost, ocdPort );
+    Endpoint e( Configuration::OcdAddress, Configuration::OcdPort );
 
-    if ( !e.valid() ) {
-        ::log( "Invalid ocdhost address <" + ocdHost + "> port <" +
-               fn( ocdPort ) + ">\n", Log::Disaster );
+    if ( !e.valid() )
         return;
-    }
 
     client = new OCClient( Connection::socket( e.protocol() ) );
     client->setBlocking( true );

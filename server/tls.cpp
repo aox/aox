@@ -159,18 +159,13 @@ static bool tlsAvailable;
 
 void TlsServer::setup()
 {
-    Configuration::Toggle atAll( "use-tls", true );
-    ::tlsAvailable = atAll;
+    ::tlsAvailable = Configuration::toggle( Configuration::UseTls );
     if ( !tlsAvailable )
         return;
 
-    Configuration::Text proxy( "tlsproxy-address", "127.0.0.1" );
-    Configuration::Scalar port( "tlsproxy-port", 2061 );
-    Endpoint * e = new Endpoint( proxy, port );
+    Endpoint * e = new Endpoint( Configuration::TlsProxyAddress,
+                                 Configuration::TlsProxyPort );
     if ( !e->valid() ) {
-        ::log( "Invalid tlsproxy-address/port " +
-               proxy + "(:" + fn( port ) + ")",
-               Log::Error );
         ::log( "TLS Support disabled" );
         return;
     }

@@ -156,6 +156,7 @@ void User::setAddress( Address * a )
 Address * User::address()
 {
     if ( !d->address ) {
+        // XXX: This does not match the documentation above.
         String dom = Configuration::hostname();
         uint i = dom.find( '.' );
         if ( i > 0 )

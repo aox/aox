@@ -24,10 +24,13 @@ int main( int argc, char *argv[] )
 
     Server s( "imapd", argc, argv );
     s.setup( Server::Report );
-    Listener< IMAP >::create( "IMAP", "", 143 );
-    Configuration::Toggle use993( "use-imaps", false );
-    if ( use993 )
-        Listener< IMAPS >::create( "IMAPS", "", 993 );
+    Listener< IMAP >::create( "IMAP",
+                              Configuration::ImapAddress,
+                              Configuration::ImapPort );
+    if ( Configuration::toggle( Configuration::UseImaps ) )
+        Listener< IMAPS >::create( "IMAPS",
+                                   Configuration::ImapsAddress,
+                                   Configuration::ImapsPort );
     Database::setup();
     s.setup( Server::Finish );
 

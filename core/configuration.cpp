@@ -4,71 +4,71 @@
 
 #include "file.h"
 #include "list.h"
-#include "dict.h"
 #include "log.h"
-#include "test.h"
 #include "scope.h"
 #include "allocator.h"
+#include "stringlist.h"
 
 #include <unistd.h> // gethostname()
 #include <netdb.h> // gethostbyname()
 
 #include "sys.h" // memmove()
 
+
 class ConfigurationData
 {
 public:
-    ConfigurationData()
-        : reported( false ), fileExists( false )
-        {}
+    ConfigurationData(): errors( 0 ) {}
 
-    Dict<Configuration::Something> unparsed;
-    struct E {
-        E(): s( Log::Error ) {}
-        String m;
+    uint scalar[Configuration::NumScalars];
+    String text[Configuration::NumTexts];
+    bool toggle[Configuration::NumToggles];
+
+    struct Error {
+        Error() : s( Log::Info ) {}
+
+        String e;
         Log::Severity s;
     };
-    List<E> errors;
-    String f;
-    bool reported;
-    bool fileExists;
-
-    void log( const String & m, Log::Severity s = Log::Disaster ) {
-        E * e = new E;
-        e->m = m;
-        e->s = s;
-        errors.append( e );
+    List<Error> * errors;
+    StringList seen;
+    bool contains( const String & s )
+    {
+        StringList::Iterator i = seen.first();
+        while ( i && *i != s )
+            ++i;
+        if ( i )
+            return true;
+        return false;
     }
 };
-
-
-static String * hostname = 0;
-static Configuration * global = 0;
 
 
 /*! \class Configuration configuration.h
     The Configuration class contains all configuration variables.
 
-    There are three kinds of variables, more or less. Ordinary, the
-    hostname, and compiled-time settings.
+    Some configuration variables are set at compile time and are
+    available via compiledIn(). These include the path of the
+    configuration filename.
 
-    The simplest are compile-time settings. The compiledIn() function
-    offers access to a number of such strings, e.g. the directory
-    where configuration files are to be found.
+    Others are available by calling text(), scalar() or toggle() for
+    the relevant variable. To add new configuration variables, the
+    Configuration class needs extending.
 
-    The hostname is an ordinary configuration variable whose default
-    value is established at program startup.
+    As a matter of policy, we check the configuration completely at
+    startup. Configuration knows the type and name of all legal
+    variables, so it can log errors as appropriate. Other classes must
+    perform supplementary sanity checking, if possible at startup.
+    (For example, if one variable setting makes another variable
+    meaningless, the responsible class should check that and give an
+    error message.)
 
-    Ordinary variables come from either of two configuration files,
-    one global and one per-server. setup() reads both files, and must
-    be called at program startup.
-
-    Each configuration file contains an arbitrary number of
+    The configuration file contains an arbitrary number of
     single-line variable assignments, each of which specifies an
     integer, a toggle, or a string.
 
     Comments extend from a '#' sign until the end of the line. In
-    quoted strings, '#' may be used.
+    quoted strings '#' may be used.
 
     During initialization, create a number of Configuration::String,
     Configuration::Scalar or Configuration::Toggle objects naming the
@@ -85,7 +85,6 @@ static Configuration * global = 0;
 
 Configuration::Configuration()
 {
-    d = new ConfigurationData;
 }
 
 
@@ -96,17 +95,15 @@ Configuration::Configuration()
 
 void Configuration::read( const String & file )
 {
-    d->f = file;
     File f( file, File::Read );
     if ( !f.valid() ) {
-        d->log( "Error reading configuration file " + file,
-                Log::Disaster );
+        log( "Error reading configuration file " + file,
+             Log::Disaster );
         return;
     }
 
-    d->log( "Using configuration file " + file, Log::Debug );
+    log( "Using configuration file " + file, Log::Debug );
 
-    d->fileExists = true;
     String buffer( f.contents() );
     // we now want to loop across buffer, picking up entire lines and
     // parsing them as variables.
@@ -123,6 +120,77 @@ void Configuration::read( const String & file )
         i++;
     }
 }
+
+
+ConfigurationData * Configuration::d;
+
+
+static struct {
+    const char * name;
+    Configuration::Scalar variable;
+    uint value;
+} scalarDefaults[Configuration::NumScalars] = {
+    { "db-port", Configuration::DbPort, 5432 },
+    { "tlsproxy-port", Configuration::TlsProxyPort, 2061 },
+    { "log-port", Configuration::LogPort, 2054 },
+    { "ocd-port", Configuration::OcdPort, 2050 },
+    { "ocadmin-port", Configuration::OcAdminPort, 2051 },
+    { "pop3-port", Configuration::Pop3Port, 110 },
+    { "imap-port", Configuration::ImapPort, 143 },
+    { "imaps-port", Configuration::ImapsPort, 993 },
+    { "smtp-port", Configuration::SmtpPort, 25 },
+    { "lmtp-port", Configuration::LmtpPort, 2026 }
+};
+
+
+static struct {
+    const char * name;
+    Configuration::Text variable;
+    const char * value;
+} textDefaults[Configuration::NumTexts] = {
+    { "db", Configuration::Db, "postgres" },
+    { "db-user", Configuration::DbUser, DBUSER },
+    { "db-name", Configuration::DbName, DBNAME },
+    { "db-password", Configuration::DbPassword, "" },
+    { "db-address", Configuration::DbAddress, DBADDRESS },
+    { "hostname", Configuration::Hostname, "" },
+    { "jail-user", Configuration::JailUser, ORYXUSER },
+    { "jail-group", Configuration::JailGroup, ORYXGROUP },
+    { "jail-dir", Configuration::JailDir, JAILDIR },
+    { "allow-plaintext-passwords", Configuration::AllowPlaintextPasswords,
+      "always" },
+    { "logfile", Configuration::LogFile, LOGFILE },
+    { "tlsproxy-address", Configuration::TlsProxyAddress, "127.0.0.1" },
+    { "log-address", Configuration::LogAddress, "127.0.0.1" },
+    { "ocd-address", Configuration::OcdAddress, "127.0.0.1" },
+    { "ocadmin-address", Configuration::OcAdminAddress, "" },
+    { "pop3-address", Configuration::Pop3Address, "" },
+    { "imap-address", Configuration::ImapAddress, "" },
+    { "imaps-address", Configuration::ImapsAddress, "" },
+    { "smtp-address", Configuration::SmtpAddress, "" },
+    { "lmtp-address", Configuration::LmtpAddress, "127.0.0.1" },
+    { "tls-certificate", Configuration::TlsCertFile, "" },
+    { "log-level", Configuration::LogLevel, "info" }
+};
+
+
+static struct {
+    const char * name;
+    Configuration::Toggle variable;
+    bool value;
+} toggleDefaults[Configuration::NumToggles] = {
+    { "security", Configuration::Security, true },
+    { "use-tls", Configuration::UseTls, true },
+    { "use-smtp", Configuration::UseSmtp, false },
+    { "use-lmtp", Configuration::UseLmtp, true },
+    { "use-imaps", Configuration::UseImaps, false },
+    { "auth-plain", Configuration::AuthPlain, true },
+    { "auth-cram-md5", Configuration::AuthCramMd5, true },
+    { "auth-digest-md5", Configuration::AuthDigestMd5, true },
+    { "auth-anonymous", Configuration::AuthAnonymous, false },
+    { "announce-draft-support", Configuration::AnnounceDraftSupport, true },
+};
+
 
 
 /*! Adds \a l to the list of unparsed variable lines, provided it's
@@ -147,55 +215,133 @@ void Configuration::add( const String & l )
     while ( l[i] == ' ' || l[i] == '\t' )
         i++;
     if ( l[i] == '#' ) {
-        d->log( "comment immediately after variable name: " + l );
+        log( "comment immediately after variable name: " + l, Log::Disaster );
         return;
     }
     if ( l[i] != '=' ) {
-        d->log( "no '=' after variable name: " + l );
+        log( "no '=' after variable name: " + l, Log::Disaster );
         return;
     }
     i++;
     while ( l[i] == ' ' || l[i] == '\t' )
         i++;
-    if ( d->unparsed.contains( name ) )
-        d->log( "Variable specified twice: " + name );
-    d->unparsed.insert( name, new Something( name, l.mid( i, l.length() ) ) );
+    if ( d->contains( name ) )
+        log( "Variable specified twice: " + name, Log::Disaster );
+    d->seen.append( name );
+
+    uint n = 0;
+    while ( n < NumScalars && name != scalarDefaults[n].name )
+        n++;
+    if ( n < NumScalars ) {
+        parseScalar( n, l.mid( i ) );
+        return;
+    }
+    n = 0;
+    while ( n < NumTexts && name != textDefaults[n].name )
+        n++;
+    if ( n < NumTexts ) {
+        parseText( n, l.mid( i ) );
+        return;
+    }
+    n = 0;
+    while ( n < NumToggles && name != toggleDefaults[n].name )
+        n++;
+    if ( n < NumToggles ) {
+        parseToggle( n, l.mid( i ) );
+        return;
+    }
+
+    log( "Unknown variable: " + name, Log::Disaster );
 }
 
 
-/*! Tells the Configuration that if \a s1, \a s2, \a s3, \a s4, \a s5,
-    \a s6, \a s7 or \a s8 are unused, report() should not bicker.
-
-    This function exists to work around variables that are used in
-    almost all programs, but unused in one. For example, the database
-    settings are not used in the logd. In order to avoid warnings
-    about the logd configuration, logd can ignore() the variables it
-    knows it won't want.
-
-    This function takes eight arguments, but only one, \a s1, is mandatory.
-*/
-
-void Configuration::ignore( const char * s1, const char * s2,
-                            const char * s3, const char * s4,
-                            const char * s5, const char * s6,
-                            const char * s7, const char * s8 )
+void Configuration::parseScalar( uint n, const String & line )
 {
-    if ( s1 && *s1 )
-        ::global->d->unparsed.take( s1 );
-    if ( s2 && *s2 )
-        ::global->d->unparsed.take( s2 );
-    if ( s3 && *s3 )
-        ::global->d->unparsed.take( s3 );
-    if ( s4 && *s4 )
-        ::global->d->unparsed.take( s4 );
-    if ( s5 && *s5 )
-        ::global->d->unparsed.take( s5 );
-    if ( s6 && *s6 )
-        ::global->d->unparsed.take( s6 );
-    if ( s7 && *s7 )
-        ::global->d->unparsed.take( s7 );
-    if ( s8 && *s8 )
-        ::global->d->unparsed.take( s8 );
+    uint i = 0;
+    while ( i < line.length() && line[i] >= '0' && line[i] <= '9' )
+        i++;
+
+    String name( scalarDefaults[n].name );
+    bool ok = true;
+    d->scalar[n] = line.mid( 0, i ).number( &ok );
+    if ( !ok )
+        log( "Bad number (too big?) for " + name + ": " + line.mid( 0, i ),
+             Log::Disaster );
+    else if ( d->scalar[n] > 0x7fffffff )
+        log( name + " is too large, maximum is" + fn( 0x7fffffff ),
+             Log::Disaster );
+
+    while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
+        i++;
+    if ( i < line.length() && line[i] != '#' )
+        log( "trailing garbage after " + name + " = " + fn( d->scalar[n] ),
+             Log::Error );
+}
+
+
+void Configuration::parseText( uint n, const String & line )
+{
+    String name( scalarDefaults[n].name );
+    uint i = 0;
+    if ( line[0] == '"' || line[0] == '\'' ) {
+        // quoted, either with ' or "
+        i++;
+        while ( i < line.length() && line[i] != line[0] )
+            i++;
+        if ( i >= line.length() )
+            log( name + ": Quoted value ran off the end of the line",
+                 Log::Disaster );
+        d->text[n] = line.mid( 1, i-1 );
+        i++;
+    }
+    else {
+        // not quoted - a single word
+        while ( i < line.length() &&
+                ( ( line[i] >= '0' && line[i] <= '9' ) ||
+                  ( line[i] >= 'a' && line[i] <= 'z' ) ||
+                  ( line[i] >= 'A' && line[i] <= 'Z' ) ||
+                  line[i] == '/' ||
+                  line[i] == '.' ||
+                  line[i] == '-' ) )
+            i++;
+        d->text[n] = line.mid( 0, i );
+    }
+
+    // followed by whitespace and possibly a comment?
+    while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
+        i++;
+    if ( i < line.length() && line[i] != '#' )
+        log( "trailing garbage after " + name + " = " + d->text[n],
+             Log::Disaster );
+}
+
+
+void Configuration::parseToggle( uint n, const String & line )
+{
+    String name( scalarDefaults[n].name );
+    uint i = 0;
+    while ( i < line.length() &&
+            ( ( line[i] >= '0' && line[i] <= '9' ) ||
+              ( line[i] >= 'a' && line[i] <= 'z' ) ||
+              ( line[i] >= 'A' && line[i] <= 'Z' ) ) )
+        i++;
+    String v = line.mid( 0, i ).lower();
+
+    while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
+        i++;
+    if ( i < line.length() && line[i] != '#' )
+        log( "trailing garbage after " + name + " = " + v,
+             Log::Disaster );
+
+    if ( v == "0" || v == "off" || v == "no" || v == "false" ||
+         v == "disabled" )
+        d->toggle[n] = false;
+    else if ( v == "1" || v == "on" || v == "yes" || v == "true" ||
+              v == "enabled" )
+        d->toggle[n] = true;
+    else
+        log( "Invalid value for toggle " + name + ": " + v,
+             Log::Disaster );
 }
 
 
@@ -204,9 +350,6 @@ void Configuration::ignore( const char * s1, const char * s2,
 String Configuration::compiledIn( CompileTimeSetting setting )
 {
     switch( setting ) {
-    case LogFile:
-        return LOGFILE;
-        break;
     case ConfigDir:
         return CONFIGDIR;
         break;
@@ -225,18 +368,6 @@ String Configuration::compiledIn( CompileTimeSetting setting )
     case InitDir:
         return INITDIR;
         break;
-    case JailDir:
-        return JAILDIR;
-        break;
-    case DbAddress:
-        return DBADDRESS;
-        break;
-    case DbUser:
-        return DBUSER;
-        break;
-    case DbName:
-        return DBNAME;
-        break;
     case OryxUser:
         return ORYXUSER;
         break;
@@ -251,6 +382,104 @@ String Configuration::compiledIn( CompileTimeSetting setting )
 }
 
 
+/*! Returns the configured value of the scalar variable \a s, or its
+    default value if it hasn't been configured.
+*/
+
+uint Configuration::scalar( Scalar s )
+{
+    if ( present( s ) )
+        return d->scalar[s];
+    return scalarDefaults[s].value;
+}
+
+
+/*! Returns true of scalar variable \a s has been configured, and false if
+    the default value is to be used.
+*/
+
+bool Configuration::present( Scalar s )
+{
+    if ( d )
+        return d->contains( scalarDefaults[s].name );
+    return false;
+}
+
+
+/*! Returns the configured value of the text variable \a t, or its default
+    value if it hasn't been configured.
+*/
+
+String Configuration::text( Text t )
+{
+    if ( present( t ) )
+        return d->text[t];
+    if ( t == Hostname )
+        return osHostname();
+    return textDefaults[t].value;
+}
+
+
+/*! Returns true of text variable \a t has been configured, and false if
+    the default value is to be used.
+*/
+
+bool Configuration::present( Text t )
+{
+    if ( d )
+        return d->contains( textDefaults[t].name );
+    return false;
+}
+
+
+/*! Returns the configured value of the toggle \a t, or its default value
+    if it hasn't been configured.
+*/
+
+bool Configuration::toggle( Toggle t )
+{
+    if ( present( t ) )
+        return d->toggle[t];
+    return toggleDefaults[t].value;
+}
+
+
+/*! Returns true of toggle \a s has been configured, and false if
+    the default value is to be used.
+*/
+
+bool Configuration::present( Toggle t )
+{
+    if ( d )
+        return d->contains( toggleDefaults[t].name );
+    return false;
+}
+
+
+/*! Returns the variable name of configuration variable \a v. */
+
+const char * Configuration::name( Text v )
+{
+    return textDefaults[v].name;
+}
+
+
+/*! Returns the variable name of configuration variable \a v. */
+
+const char * Configuration::name( Scalar v )
+{
+    return scalarDefaults[v].name;
+}
+
+
+/*! Returns the variable name of configuration variable \a v. */
+
+const char * Configuration::name( Toggle v )
+{
+    return toggleDefaults[v].name;
+}
+
+
 /*! Reports all errors seen so far. Most functions do not report
     errors themselves, because the Logger may not have read its
     configuration data yet by the time most of this code runs, and
@@ -262,290 +491,20 @@ String Configuration::compiledIn( CompileTimeSetting setting )
 
 void Configuration::report()
 {
+    if ( !d->errors )
+        return;
+
     Log l( Log::Configuration );
+    Scope x( &l );
 
-    Scope x;
-    x.setLog( &l );
-
-    ::global->d->reported = true;
-
-    List< ConfigurationData::E >::Iterator it( ::global->d->errors.first() );
+    List<ConfigurationData::Error>::Iterator it( d->errors->first() );
     while ( it ) {
-        ::log( it->m, it->s );
+        ::log( it->e, it->s );
         ++it;
     }
-
     l.commit();
-}
 
-
-/*! \class Configuration::Variable configuration.h
-
-    The Configuration::Variable class is the base class of configuration
-    variables.
-
-    Like all good base classes, it does little itself, merely
-    remembers whether the instantiated object was supplied() in a
-    configuration file or was left default, and whether the supplied
-    value was valid().
-*/
-
-
-/*! \fn bool Configuration::Variable::valid() const
-
-    Returns true if this configuration variable has a valid value,
-    either from a configuration file or from a default.
-*/
-
-
-/*! \fn bool Configuration::Variable::supplied() const
-
-    Returns true if this configuration variable was set by a
-    configuration file.
-*/
-
-/*! \fn bool Configuration::Variable::setValue( const String & s )
-
-    This pure virtual function is responsible for parsing \a s into a
-    value commensurate with \a s and the variable type. (The class
-    documentation for Configuration::String, Configuration::Scalar and
-    Configuration::Toggle specifies the expected input formats.)
-*/
-
-/*! This is really the constructor, but it's called by the subclass
-    constructor instead of being in the syntactical constructor.
-
-    A gross hack for a good reason: This way, the virtual function
-    setValue() can be called.
-
-    \a name is the name of this variable.
-*/
-
-void Configuration::Variable::init( const String &name )
-{
-    Something *x = ::global->d->unparsed.take( name );
-
-    n = name;
-
-    if ( ::global->d->reported ) {
-        // we're already up and running
-        ::log( "Configuration variable created after parsing finished: " +
-               name, Log::Error );
-    }
-    if ( !x ) {
-        // nothing - we keep the default value
-        ::global->d->log( "Using default value for " + name, Log::Debug );
-        return;
-    }
-
-    ::global->d->log( "Parsing " + name + " = " + x->s2, Log::Debug );
-    if ( setValue( x->s2 ) )
-        s = true;
-    else
-        ok = false;
-}
-
-
-
-/*! Logs \a s as a parse error for this variable.
-
-    At present this merely logs \a s, maybe it should also log some
-    context?
-*/
-
-void Configuration::Variable::log( const String & s )
-{
-    if ( ::global )
-        ::global->d->log( s );
-}
-
-
-/*! \fn bool Configuration::setValue( const String & s )
-
-    This virtual function is called to set the variable's value to \a
-    s. It must return true if \a s is syntactically valid (perhaps
-    with trailing whitespace or comments), and false if not. If it
-    returns false, the object must not be changed.
-*/
-
-
-/*! \class Configuration::Scalar configuration.h
-  The Configuration::Scalar class keeps scalar configuration variables.
-
-  A scalar is integer within the range 0 to 2147483647 inclusive.
-*/
-
-
-/*! Creates a new scalar configuration value named \a name whose
-    default value is \a defaultValue.
-
-    The scalar must be a nonnegative integer less than 2147483648.
-*/
-
-Configuration::Scalar::Scalar( const String & name, int defaultValue )
-    : Variable(), value( defaultValue )
-{
-    init( name );
-}
-
-
-bool Configuration::Scalar::setValue( const String & line )
-{
-    uint i = 0;
-    while ( i < line.length() && line[i] >= '0' && line[i] <= '9' )
-        i++;
-
-    bool ok = true;
-    uint n = line.mid( 0, i ).number( &ok );
-    if ( !ok ) {
-        log( "Syntax error for " + name() );
-        return false;
-    }
-    if ( n > 0x7fffffff ) {
-        log( name() + " is out of range" );
-        return false;
-    }
-
-    while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
-        i++;
-    if ( i < line.length() && line[i] != '#' ) {
-        log( "trailing garbage after " + name() + " = " + fn( n ) );
-        return false;
-    }
-
-    value = n;
-    return true;
-}
-
-
-/*! \class Configuration::Toggle configuration.h
-  The Configuration::Scalar class keeps boolean configuration variables.
-
-  A toggle is yes/no, true/false etc. In the API it is represented as
-  a bool, in the configuration file it can be "enabled", "yes", "true", "on", "1"
-  on the one and and "disabled", "no", "false", "off" or "0".
-*/
-
-
-/*! Creates a new toggle configuration value named \a name whose
-    default value is \a defaultValue.
-*/
-
-Configuration::Toggle::Toggle( const String & name, bool defaultValue )
-    : Variable(), value( defaultValue )
-{
-    init( name );
-}
-
-
-bool Configuration::Toggle::setValue( const String & line )
-{
-    uint i = 0;
-    while ( i < line.length() &&
-            ( ( line[i] >= '0' && line[i] <= '9' ) ||
-              ( line[i] >= 'a' && line[i] <= 'z' ) ||
-              ( line[i] >= 'A' && line[i] <= 'Z' ) ) )
-        i++;
-    String v = line.mid( 0, i ).lower();
-
-    while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
-        i++;
-    if ( i < line.length() && line[i] != '#' ) {
-        log( "trailing garbage after " + name() + " = " + v );
-        return false;
-    }
-
-    if ( v == "0" || v == "off" || v == "no" || v == "false" ||
-         v == "disabled" ) {
-        value = false;
-    }
-    else if ( v == "1" || v == "on" || v == "yes" || v == "true" ||
-              v == "enabled" ) {
-        value = true;
-    }
-    else {
-        log( "Invalid value for toggle " + name() + ": " + v );
-        return false;
-    }
-
-    return true;
-
-}
-
-
-/*! \class Configuration::Text configuration.h
-  The Configuration::Text class keeps textual configuration variables.
-
-  Such a variable must be a single-line string. If it's a single word
-  it can be stored just like that, if not it must be quoted either
-  with " or '.
-*/
-
-
-/*! Creates a new toggle configuration text named \a name whose
-    default value is \a defaultValue.
-
-    All Texts must have single-lined values.
-*/
-
-Configuration::Text::Text( const String & name, const String & defaultValue )
-    : Variable(), value( defaultValue )
-{
-    init( name );
-}
-
-
-/*! Creates a new toggle configuration text named \a name whose
-    default value is fetched from the compile-time \a setting.
-
-    All Texts must have single-lined values.
-*/
-
-Configuration::Text::Text( const String & name, CompileTimeSetting setting )
-    : Variable(), value( compiledIn( setting ) )
-{
-    init( name );
-}
-
-
-bool Configuration::Text::setValue( const String & line )
-{
-    uint i = 0;
-    String v;
-    if ( line[0] == '"' || line[0] == '\'' ) {
-        // quoted, either with ' or "
-        i++;
-        while ( i < line.length() && line[i] != line[0] )
-            i++;
-        if ( i >= line.length() )
-            return false;
-        v = line.mid( 1, i-1 );
-        i++;
-    }
-    else {
-        // not quoted - a single word
-        while ( i < line.length() &&
-                ( ( line[i] >= '0' && line[i] <= '9' ) ||
-                  ( line[i] >= 'a' && line[i] <= 'z' ) ||
-                  ( line[i] >= 'A' && line[i] <= 'Z' ) ||
-                  line[i] == '/' ||
-                  line[i] == '.' ||
-                  line[i] == '-' ) )
-            i++;
-        v = line.mid( 0, i );
-    }
-
-    // followed by whitespace and possibly a comment?
-    while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
-        i++;
-    if ( i < line.length() && line[i] != '#' ) {
-        log( "trailing garbage after " + name() + " = " + v );
-        return false; // no
-    }
-
-    value = v;
-    return true;
-
+    d->errors = 0;
 }
 
 
@@ -558,32 +517,23 @@ bool Configuration::Text::setValue( const String & line )
 
 void Configuration::setup( const String & global )
 {
-    String d = compiledIn( ConfigDir );
+    d = new ConfigurationData;
 
-    ::global = new Configuration;
-    Allocator::addEternal( ::global, "global configuration" );
     if ( global[0] == '/' )
-        ::global->read( global );
+        read( global );
     else
-        ::global->read( d + "/" + global );
+        read( compiledIn( ConfigDir ) + "/" + global );
 
-    String host = osHostname();
-    Configuration::Text hn( "hostname", host );
-    if ( !hn.valid() )
-        ::global->d->log( "Syntax error in hostname" );
-    else if ( ((String)hn).find( '.' ) < 0 )
-        ::global->d->log( "Hostname does not contain a dot: " + hn );
-    else if ( host == hn )
-        ::global->d->log( "Using inferred hostname " + host,
-                          Log::Debug );
-
-    ::hostname = new String( hn );
-    Allocator::addEternal( ::hostname, "inferred host name" );
+    String hn = text( Hostname );
+    if ( hn.find( '.' ) < 0 )
+        log( "Hostname does not contain a dot: " + hn, Log::Error );
+    if ( hn.lower() == "localhost" || hn.lower().startsWith( "localhost." ) )
+        log( "Using localhost as hostname", Log::Error );
 }
 
 
 /*! Returns the best hostname we can find based on the operating
-    systems functions.
+    system's functions.
 */
 
 String Configuration::osHostname()
@@ -614,196 +564,16 @@ String Configuration::osHostname()
 }
 
 
-/*! Returns the hostname, as configured in our server or the operating
-    system. If no hostname is avalable, this function returns an empty
-    string.
+/*! Logs \a m as a message of severity \a s, but not yet. report()
+    does it later, when the log subsystem is ready.
 */
 
-String Configuration::hostname()
+void Configuration::log( const String & m, Log::Severity s )
 {
-    if ( ::hostname )
-        return *::hostname;
-    return "";
+    if ( !d->errors )
+        d->errors = new List<ConfigurationData::Error>;
+    ConfigurationData::Error * e = new ConfigurationData::Error;
+    e->e = m;
+    e->s = s;
+    d->errors->append( e );
 }
-
-
-// this contains only good stuff... we don't test that bad stuff
-// breaks. at least not yet.
-static const char * conf =
-"# comment\n"
-"    # comment\n"
-"i1 = 1\n"
-"i2 = 2\n"
-"i3 = 10\n"
-"i4 = 2147483647\n"
-"i5 = 2147483646\n"
-"i6 = 2147483645\n"
-"i7 = 0\n"
-"\n"
-"b1 = enabled\n"
-"b2 = on\n"
-"b3 = yes\n"
-"b4 = true\n"
-"b5 = 1\n"
-"b6 = disabled\n"
-"b7 = off\n"
-"b8 = no\n"
-"b9 = false\n"
-"b0 = 0\n"
-"\n"
-"s1 = shrutipriya\n"
-"s2 = \"shrutipriya\"\n"
-"s3 = \"shrutipriya ' shrutipriya\"\n"
-"s4 = 'shrutipriya'\n"
-"s5 = 'shrutipriya \" shrutipriya'\n"
-"\n"
-"# comment again\n"
-"\n"
-"c1=sex#comment\n"
-"c2 = sex#comment\n"
-"c3=sex #comment\n"
-"c4='sex'#comment\n"
-"c-5='sex'";
-
-
-static class ConfigurationTest : public Test {
-public:
-    ConfigurationTest() : Test( 250 ) {}
-    void test() {
-        setContext( "Testing Configuration" );
-
-        verify( "osHostname() didn't return a dotted string",
-                Configuration::osHostname().find( "." ) < 0 );
-
-        verify( "hostname() didn't return a sane value for tests.",
-                Configuration::hostname() != "" );
-
-        // that setup works
-        verify( "Incorrect initial value for global()",
-                ::global );
-        Configuration::setup( "/dev/null" );
-        verify( "setup() did not",
-                !::global );
-        ::global = 0;
-        ::hostname = 0;
-
-        {
-            File f( "/tmp/oryx-config-test.cf", File::Write );
-            verify( "could not open test config file",
-                    !f.valid() );
-            f.write( String( conf, strlen( conf ) ) );
-        }
-
-        Configuration::setup( "/tmp/oryx-config-test.cf" );
-        File::unlink( "/tmp/oryx-config-test.cf" );
-
-        Configuration::Scalar i1( "i1", 0 );
-        Configuration::Scalar i2( "i2", 0 );
-        Configuration::Scalar i3( "i3", 0 );
-        Configuration::Scalar i4( "i4", 0 );
-        Configuration::Scalar i5( "i5", 0 );
-        Configuration::Scalar i6( "i6", 0 );
-        Configuration::Scalar i7( "i7", 1 );
-        Configuration::Scalar i8( "i8", 42 ); // default
-
-        verify(  "At least one supplied scalar was mishandled",
-                 !i1.supplied(), !i2.supplied(),
-                 !i3.supplied(), !i4.supplied(),
-                 !i5.supplied(), !i6.supplied(),
-                 !i7.supplied() );
-
-        verify( "At least one supplied scalar was set to invalid",
-                !i1.valid(), !i2.valid(), !i3.valid(), !i4.valid(),
-                !i5.valid(), !i6.valid(), !i7.valid() );
-
-        verify( "Scalar configuration broke for value 1",
-                (int)i1 != 1 );
-        verify( "Scalar configuration broke for value 2",
-                (int)i2 != 2 );
-        verify( "Scalar configuration broke for value 10",
-                (int)i3 != 10 );
-        verify( "Scalar configuration broke for value 2147483647",
-                (int)i4 != 2147483647 );
-        verify( "Scalar configuration broke for value 2147483646",
-                (int)i5 != 2147483646 );
-        verify( "Scalar configuration broke for value 2147483645",
-                (int)i6 != 2147483645 );
-        verify( "Scalar configuration broke for value 1",
-                (int)i7 != 0 );
-        verify( "Scalar configuration broke for value 42",
-                (int)i8 != 42 );
-
-        verify( "Default-valued scalar recorded as supplied", i8.supplied() );
-        verify( "Default-valued scalar recorded as not OK", !i1.valid() );
-
-        Configuration::Toggle b1( "b1", false );
-        Configuration::Toggle b2( "b2", false );
-        Configuration::Toggle b3( "b3", false );
-        Configuration::Toggle b4( "b4", false );
-        Configuration::Toggle b5( "b5", false );
-        Configuration::Toggle b6( "b6", true );
-        Configuration::Toggle b7( "b7", true );
-        Configuration::Toggle b8( "b8", true );
-        Configuration::Toggle b9( "b9", true );
-        Configuration::Toggle b0( "b0", true );
-
-        verify( "At least one supplied toggle was misparsed",
-                !b1.valid(), !b2.valid(), !b3.valid(), !b4.valid(),
-                !b5.valid(), !b6.valid(), !b7.valid(), !b8.valid(),
-                !b9.valid(), !b0.valid() );
-
-        verify( "At least one supplied toggle was recorded as default",
-                !b1.supplied(), !b2.supplied(), !b3.supplied(),
-                !b4.supplied(), !b5.supplied(), !b6.supplied(),
-                !b7.supplied(), !b8.supplied(), !b9.supplied(),
-                !b0.supplied() );
-
-
-        verify( "At least one enabled toggle was misparsed",
-                !b1, !b2, !b3, !b4, !b5 );
-
-        verify( "At least one disabled toggle was misparsed",
-                b6, b7, b8, b9, b0 );
-
-        Configuration::Text s1( "s1", "abhijit" );
-        Configuration::Text s2( "s2", "abhijit" );
-        Configuration::Text s3( "s3", "abhijit" );
-        Configuration::Text s4( "s4", "abhijit" );
-        Configuration::Text s5( "s5", "abhijit" );
-        verify( "At least one supplied text was misparsed",
-                !s1.valid(), !s2.valid(), !s3.valid(), !s4.valid(),
-                !s5.valid() );
-
-        verify( "At least one supplied text was recorded as default",
-                !s1.supplied(), !s2.supplied(), !s3.supplied(),
-                !s4.supplied(), !s5.supplied() );
-
-
-        verify( "At least one supplied string was misparsed",
-                s1 != "shrutipriya",
-                s2 != "shrutipriya",
-                s3 != "shrutipriya ' shrutipriya",
-                s4 != "shrutipriya",
-                s5 != "shrutipriya \" shrutipriya" );
-
-        Configuration::Text c1( "c1", "abstinence" );
-        Configuration::Text c2( "c2", "abstinence" );
-        Configuration::Text c3( "c3", "abstinence" );
-        Configuration::Text c4( "c4", "abstinence" );
-        Configuration::Text c5( "c5", "abstinence" );
-        verify( "At least one comment was mishandle",
-                !c1.valid(), !c2.valid(), !c3.valid(), !c4.valid(),
-                !c5.valid() );
-
-        verify( "At least one comment caused default/set problems",
-                !c1.supplied(), !c2.supplied(), !c3.supplied(),
-                !c4.supplied(), c5.supplied() );
-
-        verify( "At least one comment caused wrong valued-result",
-                c1 != "sex", c2 != "sex", c3 != "sex", c4 != "sex",
-                c5 != "abstinence" );
-
-        ::global = 0;
-        ::hostname = 0;
-    }
-} configurationTest;

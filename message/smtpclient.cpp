@@ -56,10 +56,14 @@ SmtpClient::SmtpClient( const String &sender,
     d->message = message;
     d->recipient = recipient;
 
-    Configuration::Text lmtpServer( "lmtp-server", "127.0.0.1" );
-    Configuration::Scalar lmtpPort( "lmtp-port", 2026 );
-
-    connect( Endpoint( lmtpServer, lmtpPort ) );
+    Endpoint e( Configuration::LmtpAddress, Configuration::LmtpPort );
+    if ( !e.valid() ) {
+        d->error = "Invalid server";
+        d->failed = true;
+        d->owner->execute();
+        return;
+    }
+    connect( e );
     Loop::addConnection( this );
     setTimeoutAfter( 10 ); // ### not RFC-compliant
 }

@@ -15,6 +15,7 @@
 #include "md5.h"
 #include "utf.h"
 #include "log.h"
+#include "scope.h"
 
 #include <time.h>
 
@@ -40,7 +41,8 @@ public:
           owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
           totalUids( 0 ), uids( 0 ), totalBodyparts( 0 ), bodypartIds( 0 ),
           bodyparts( 0 ), addressLinks( 0 ), fieldLinks( 0 ), otherFields( 0 ),
-          fieldLookup( 0 ), addressLookup( 0 )
+          fieldLookup( 0 ), addressLookup( 0 ),
+          log( new Log( Log::General ) )
     {}
 
     int step;
@@ -64,6 +66,7 @@ public:
 
     CacheLookup * fieldLookup;
     CacheLookup * addressLookup;
+    Log * log;
 };
 
 
@@ -167,6 +170,7 @@ bool Injector::failed() const
 
 void Injector::execute()
 {
+    Scope s( d->log );
     if ( d->step == 0 ) {
         // We begin by obtaining a UID for each mailbox we are injecting
         // a message into, and simultaneously inserting entries into the

@@ -61,45 +61,29 @@ Database::Database()
 
 void Database::setup()
 {
-    Configuration::Text
-        db( "db", "postgres" ),
-        dbHost( "db-address",
-                Configuration::compiledIn( Configuration::DbAddress ) ),
-        dbName( "db-name",
-                Configuration::compiledIn( Configuration::DbName ) ),
-        dbUser( "db-user",
-                Configuration::compiledIn( Configuration::DbUser ) ),
-        dbPass( "db-password", "" );
-    Configuration::Scalar dbPort( "db-port", 5432 );
+    String db = Configuration::text( Configuration::Db ).lower();
 
-    String t = db;
-    t = t.lower();
-    if ( t == "pg" || t == "pgsql" || t == "postgres" ) {
+    if ( db == "pg" || db == "pgsql" || db == "postgres" ) {
         ::type = Pg;
     }
     else {
-        ::log( "Unsupported database type <" + (String)db + ">",
+        ::log( "Unsupported database type: " + db,
                Log::Disaster );
         return;
     }
 
 
-    ::user = new String( dbUser );
+    ::user = new String( Configuration::text( Configuration::DbUser ) );
     Allocator::addEternal( ::user, "db-user" );
-    ::password = new String( dbPass );
+    ::password
+          = new String( Configuration::text( Configuration::DbPassword ) );
     Allocator::addEternal( ::password, "db-password" );
-    ::name = new String( dbName );
+    ::name = new String( Configuration::text( Configuration::DbName ) );
     Allocator::addEternal( ::name, "db-name" );
-    srv = new Endpoint( dbHost, dbPort );
+    srv = new Endpoint(  Configuration::DbAddress, Configuration::DbPort );
     Allocator::addEternal( srv, "database server" );
 
-    if ( !srv->valid() ) {
-        ::log( "Invalid db-address <" + dbHost + "> port " + fn( dbPort ),
-               Log::Disaster );
-        return;
-    }
-
-    if ( srv->protocol() == Endpoint::Unix ) {
+    if ( srv->valid() && srv->protocol() == Endpoint::Unix ) {
         ::log( "Creating four database handles", Log::Info );
         // We can't connect to a Unix socket after a chroot(), so we
         // create four handles right away.

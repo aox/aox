@@ -95,7 +95,7 @@ public:
     SMTPData():
         code( 0 ), state( SMTP::Initial ),
         pipelining( false ), from( 0 ), user( 0 ), protocol( "smtp" ),
-        injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
+        log( 0 ), injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false )
     {}
 
@@ -110,6 +110,7 @@ public:
     String arg;
     String helo;
     String protocol;
+    Log * log;
     Injector * injector;
     SmtpDbClient * helper;
     TlsServer * tlsServer;
@@ -158,6 +159,8 @@ SMTP::~SMTP()
 
 void SMTP::react( Event e )
 {
+    Scope s( d->log );
+
     switch ( e ) {
     case Read:
         setTimeoutAfter( 1800 );
@@ -188,7 +191,7 @@ void SMTP::react( Event e )
 
     Line length is limited to 2048: RFC 2821 section 4.5.3 says 512 is
     acceptable and various SMTP extensions may increase it. RFC 2822
-    declares that line lengths shoudl be limited to 998 characters.
+    declares that line lengths should be limited to 998 characters.
 
     I spontaneously declare 32768 to be big enough.
 */
@@ -203,7 +206,7 @@ void SMTP::parse()
         if ( i >= 32768 ) {
             log( "Connection closed due to overlong line (" +
                  fn( i ) + " bytes)", Log::Error );
-            respond( 500, "Line too long (maximum is 32768 bytes)" );
+            respond( 500, "Line too long (legal maximum is 998 bytes)" );
             Connection::setState( Closing );
             return;
         }

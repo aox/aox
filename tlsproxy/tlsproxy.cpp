@@ -43,7 +43,9 @@ int main( int argc, char *argv[] )
     cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
     setupKey();
 
-    Listener< TlsProxy >::create( "tlsproxy", "127.0.0.1", 2061 );
+    Listener< TlsProxy >::create( "tlsproxy",
+                                  Configuration::TlsProxyAddress,
+                                  Configuration::TlsProxyPort );
 
     s.execute();
 }
@@ -62,8 +64,8 @@ static void setupKey()
     String label( "Mailstore private key" );
     String secret( "secret" );
 
-    Configuration::Text keyFile( "tls-certificate", "" );
-    if ( ((String)keyFile).isEmpty() ) {
+    String keyFile( Configuration::text( Configuration::TlsCertFile ) );
+    if ( keyFile.isEmpty() ) {
         String file = Configuration::compiledIn( Configuration::LibDir ) +
                       "/" + "automatic-key.p15" ;
 

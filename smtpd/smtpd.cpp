@@ -13,6 +13,7 @@
 #include "server.h"
 #include "injector.h"
 #include "tls.h"
+#include "configuration.h"
 
 
 /*! \nodoc */
@@ -25,13 +26,15 @@ int main( int argc, char * argv[] )
 
     s.setup( Server::Report );
 
-    Configuration::Toggle useSmtp( "use-smtp", false );
-    if ( useSmtp )
-        Listener< SMTP >::create( "SMTP", "", 25 );
+    if ( Configuration::toggle( Configuration::UseSmtp ) )
+        Listener< SMTP >::create( "SMTP",
+                                  Configuration::SmtpAddress,
+                                  Configuration::SmtpPort );
 
-    Configuration::Toggle useLmtp( "use-lmtp", true );
-    if ( useLmtp )
-        Listener< LMTP >::create( "LMTP", "127.0.0.1", 2026 );
+    if ( Configuration::toggle( Configuration::UseLmtp ) )
+        Listener< LMTP >::create( "LMTP",
+                                  Configuration::LmtpAddress,
+                                  Configuration::LmtpPort );
 
     Database::setup();
 
