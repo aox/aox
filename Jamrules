@@ -15,7 +15,7 @@ VERSION = 0.91 ;
 
 MKDIR = mkdir -p ;
 
-OPTIM = -O3 ;
+OPTIM = ;
 RANLIB = ;
 
 if $(ICC) {

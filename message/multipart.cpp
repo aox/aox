@@ -8,6 +8,8 @@
 #include "ustring.h"
 #include "codec.h"
 
+#include <stdio.h>
+
 
 static const char * crlf = "\015\012";
 
@@ -154,4 +156,38 @@ void Multipart::appendTextPart( String & r, const Bodypart * bp,
     String body = c->fromUnicode( bp->text() );
 
     r.append( body.encode( e, 72 ) );
+}
+
+
+void mimeStructure( Message * );
+
+void bpStructure( Message *m, Bodypart *bp, uint n )
+{
+    List< Bodypart >::Iterator it( bp->children()->first() );
+    while ( it ) {
+        uint j = n;
+        while ( j > 0 ) {
+            fprintf( stderr, " " );
+            j--;
+        }
+        fprintf( stderr, "%s\n", m->partNumber( it ).cstr() );
+        bpStructure( m, it, n+1 );
+        if ( it->rfc822() )
+            mimeStructure( it->rfc822() );
+        ++it;
+    }
+}
+
+
+void mimeStructure( Message *m )
+{
+    List< Bodypart > *c = m->children();
+
+    if ( c->count() > 1 )
+        fprintf( stderr, "%d children.\n", c->count() );
+    List< Bodypart >::Iterator it( c->first() );
+    while ( it ) {
+        bpStructure( m, it, 1 );
+        ++it;
+    }
 }

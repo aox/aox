@@ -50,8 +50,6 @@ public:
     String asText() const;
     String mimeFields() const;
 
-    Header *mime() const;
-
 private:
     class HeaderData * d;
 
