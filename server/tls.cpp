@@ -11,8 +11,6 @@
 #include "log.h"
 #include "loop.h"
 
-#include <stdio.h>
-
 
 static Endpoint * tlsProxy = 0;
 
@@ -55,7 +53,6 @@ TlsServerData::Client::Client( TlsServerData * data )
     : Connection(),
       d( data ), done( false ), connected( false )
 {
-    fprintf( stderr, "stuff!\n" );
     setTimeoutAfter( 10 );
     connect( *tlsProxy );
     Loop::addConnection( this );
@@ -142,17 +139,29 @@ bool TlsServer::done() const
 }
 
 
+static bool tlsAvailable;
+
+
 /*! Returns true if the TLS proxy is available for use, and false is
     an error happened or setup is still going on.
+
+    If TLS negotiation fails, available() starts returning false. This
+    is a decent policy for a while -- the only sensible reason why TLS
+    negotiation would fail is a bug on our part. Sometime before 1.0
+    we probably need to change that.
 */
 
 bool TlsServer::ok() const
 {
-    return d->done && d->ok;
+    if ( !d->done )
+        return false;
+    if ( d->ok )
+        return true;
+    if ( ::tlsAvailable )
+        ::log( "Disabling TLS support due to unexpected error" );
+    ::tlsAvailable = false;
+    return false;
 }
-
-
-static bool tlsAvailable;
 
 
 /*! Initializes the TLS subsystem. */
