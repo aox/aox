@@ -856,6 +856,9 @@ void UpdateSchema::execute() {
                     }
                     q = new Query( "drop table binary_parts", this );
                     t->enqueue( q );
+                    q = new Query( "alter table bodyparts add unique(hash)",
+                                   this );
+                    t->enqueue( q );
                     t->execute();
                 }
             }
