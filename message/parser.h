@@ -31,6 +31,7 @@ public:
     String domain();
     String atom();
     String mimeToken();
+    String mimeValue();
 
     char next() const { return s[i]; }
 
