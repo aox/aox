@@ -433,9 +433,13 @@ void Postgres::unknown( char type )
             case PgMessage::Warning:
                 {
                     String s;
-                    int i = 0;
                     StringList p;
-                    List< Query::Value >::Iterator v( q->values()->first() );
+
+                    List< Query::Value >::Iterator v;
+                    if ( q )
+                        v = q->values()->first();
+
+                    int i = 0;
                     while ( v ) {
                         i++;
                         String s;
@@ -449,21 +453,26 @@ void Postgres::unknown( char type )
                         p.append( fn(i) + "=" + s );
                         ++v;
                     }
+
                     if ( msg.severity() == PgMessage::Warning )
                         s.append( "WARNING: " );
                     else
                         s.append( "ERROR: " );
-                    s.append( "Query \"" + q->string() + "\"" );
-                    if ( i > 0 )
-                        s.append( " (" + p.join(",") + ")" );
-                    s.append( ": " );
+
+                    if ( q ) {
+                        s.append( "Query \"" + q->string() + "\"" );
+                        if ( i > 0 )
+                            s.append( " (" + p.join(",") + ")" );
+                        s.append( ": " );
+                    }
+
                     s.append( msg.message() );
                     if ( msg.detail() != "" )
                         s.append( " (" + msg.detail() + ")" );
                     log( s, Log::Error );
 
-                    // Has this query failed?
-                    if ( msg.severity() == PgMessage::Error )
+                    // Has the current query failed?
+                    if ( q && msg.severity() == PgMessage::Error )
                         q->setError( msg.message() );
                 }
                 break;

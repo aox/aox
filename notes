@@ -21,9 +21,6 @@ What to do about EventHandlers whose targets have died?
 Investigate the segfaults in "ms create user" on Debian.
 
 
-"pg_ctl -m immediate stop" makes us segfault because of the Warning.
-
-
 ocd needs work
 
   1. Must announce new mail.
