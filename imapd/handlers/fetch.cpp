@@ -455,16 +455,13 @@ static String sectionResponse( FetchData::Section *s,
             item = "BODY[" + item;
         if ( fields )
             item.append( " (" + s->fields.join( " " ) + ")]" );
-        // Do we need the blank line for RFC822.HEADER?
         data.append( "\r\n" );
     }
 
     else if ( s->id.isEmpty() ) {
         BodyPart *bp = m->bodyPart( s->part, false );
         if ( bp )
-            // "Cruel, evil bug."
-            data = bp->data();
-
+            data = bp->asText();
         item = "BODY[" + s->part + "]";
     }
 
