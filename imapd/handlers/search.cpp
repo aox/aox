@@ -56,8 +56,6 @@ Search::Search( bool u )
 
 void Search::parse()
 {
-    prepare();
-
     space();
     parseKey( true );
     if ( !d->charset.isEmpty() ) {
@@ -186,33 +184,33 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "from" ) {
             space();
-            add( Header, Contains, "from", astring() );
+            add( Header, Contains, "from", uastring() );
         }
         else if ( keyword == "to" ) {
             space();
-            add( Header, Contains, "to", astring() );
+            add( Header, Contains, "to", uastring() );
         }
         else if ( keyword == "cc" ) {
             space();
-            add( Header, Contains, "cc", astring() );
+            add( Header, Contains, "cc", uastring() );
         }
         else if ( keyword == "bcc" ) {
             space();
-            add( Header, Contains, "bcc", astring() );
+            add( Header, Contains, "bcc", uastring() );
         }
         else if ( keyword == "subject" ) {
             space();
-            add( Header, Contains, "subject", astring() );
+            add( Header, Contains, "subject", uastring() );
         }
         else if ( keyword == "body" ) {
             space();
-            add( Body, Contains, astring() );
+            add( Body, Contains, "", uastring() );
         }
         else if ( keyword == "text" ) {
             space();
-            String a = astring();
+            UString a = uastring();
             push( Or );
-            add( Body, Contains, a );
+            add( Body, Contains, "", a );
             // field name is null for any-field searches
             add( Header, Contains, 0, a );
             pop();
@@ -231,7 +229,7 @@ void Search::parseKey( bool alsoCharset )
             space();
             String s1 = astring();
             space();
-            String s2 = astring();
+            UString s2 = uastring();
             add( Header, Contains, s1, s2 );
         }
         else if ( keyword == "uid" ) {
@@ -265,7 +263,8 @@ void Search::parseKey( bool alsoCharset )
             d->charset = astring();
             d->codec = Codec::byName( d->charset );
             if ( d->codec == 0 )
-                error( No, "Unknown character encoding: " + d->charset );
+                error( No, "[BADCHARSET] Unknown character encoding: " +
+                       d->charset );
         }
         else {
             error( Bad, "unknown search key: " + keyword );
@@ -394,6 +393,26 @@ String Search::date()
 
 
 /*! This private helper adds a new Condition to the current list. \a
+    f, \a a and \a a1 are used as-is. a2 is set to an empty string.
+
+    This function isn't well-defined for cases where \a a is And, Or
+    or Not.
+*/
+
+Search::Condition * Search::add( Field f, Action a,
+                                 const String & a1 )
+{
+    prepare();
+    Condition * c = new Condition;
+    c->f = f;
+    c->a = a;
+    c->a1 = a1;
+    d->conditions->first()->l->append( c );
+    return c;
+}
+
+
+/*! This private helper adds a new Condition to the current list. \a
     f, \a a, \a a1 and \a a2 are used as-is.
 
     This function isn't well-defined for cases where \a a is And, Or
@@ -401,7 +420,7 @@ String Search::date()
 */
 
 Search::Condition * Search::add( Field f, Action a,
-                                   const String & a1, const String & a2 )
+                                 const String & a1, const UString & a2 )
 {
     prepare();
     Condition * c = new Condition;
@@ -723,7 +742,7 @@ String Search::Condition::debugString() const
     if ( a2.isEmpty() )
         r.append( a1 );
     else
-        r.append( a2 );
+        r.append( a2.ascii() );
 
     return r;
 
@@ -774,4 +793,23 @@ Search::Condition::MatchResult Search::Condition::match( Message * m )
     }
 
     return Punt;
+}
+
+
+/*! Reads an astring and returns it as unicode, using the charset
+    specified in the CHARSET argument to SEARCH.
+*/
+
+UString Search::uastring()
+{
+    if ( !d->codec )
+        d->codec = new AsciiCodec;
+
+    String raw = astring();
+    UString canon = d->codec->toUnicode( raw );
+    if ( d->codec->valid() )
+        error( Bad,
+               "astring not valid under encoding " + d->codec->name() +
+               ": " + raw );
+    return canon;
 }

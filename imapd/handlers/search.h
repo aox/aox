@@ -3,6 +3,8 @@
 
 #include "command.h"
 #include "messageset.h"
+#include "ustring.h"
+
 
 class Message;
 
@@ -52,7 +54,7 @@ private:
         Field f;
         Action a;
         String a1;
-        String a2;
+        UString a2;
         MessageSet s;
         uint n;
         List<Condition> * l;
@@ -68,7 +70,9 @@ private:
     };
 
     Condition * add( Field, Action,
-                     const String & = 0, const String & = 0 );
+                     const String & = 0 );
+    Condition * add( Field, Action,
+                     const String &, const UString & );
     Condition * add( Field, Action, uint );
     Condition * add( const MessageSet & );
 
@@ -82,6 +86,8 @@ private:
     String date();
 
     void considerCache();
+
+    UString uastring();
 
 private:
     class SearchD * d;

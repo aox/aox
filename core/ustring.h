@@ -4,6 +4,7 @@
 #include "global.h"
 
 class Arena;
+class String;
 
 
 class UString {
@@ -32,6 +33,8 @@ public:
     void truncate( uint );
 
     friend inline bool operator==( const UString &, const UString & );
+
+    String ascii() const;
 
 private:
     uint len, max;
