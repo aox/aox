@@ -150,17 +150,25 @@ Per-MTA installation and use
   Notify mike@waspfactory.org
 
 
+Signal handling
+
+  What is the appropriate way to handle unknown signals?  (Or
+  generally, any unpredictable occurence in untested circumstances.)
+  Arnt sez: Follow the system default.
+
+  SIGHUP is known: Users use it to mean "reopen the logfile" or
+  "reread the config".
+
+  Other known signals?
+
+
 Reopen logfile when logd receives SIGHUP
 
-  Requires a little bit of cleverness, since currently the logfile is
-  outside the logd's jail.
+  Preliminary course of action: Run chrooted to the directory where
+  the logfile is, and reopen the logfile when SIGHUPPED. Document the
+  need for JAILUSER to have write rights to that file.
 
-  Similarly, users might assume that HUPing other servers would reread
-  the configration. I don't think it should, since it would require
-  quite a bit of cleverness e.g. in the listener, and the imapd might
-  not have the rights to the port number in the new configution.
-
-  I suppose we should at least ignore SIGHUP.
+  Possibly have logd listen to a unix-domain socket by default.
 
   Notify hs@schlittermann.de
 
@@ -170,6 +178,9 @@ Add support for "ms restart now" and "ms restart gracefully"
   Complications include: Some daemon must run as root, outside the
   jail. ocd perhaps? For cluster use, things grow complicated very
   quickly.
+
+  Preliminary approach: Have ocd run chrooted in BINDIR instead of
+  JAILDIR, and by default listen only to a unix socket.
 
 
 Fix shutdown
@@ -181,3 +192,10 @@ Fix shutdown
 Web site proofreading
 
   Need a comprehensive proofreading session.
+
+
+Unix socket support
+
+  Connecting to default postgres and to possibly more paranoid
+  instantations of ocd/logd require that.
+
