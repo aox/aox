@@ -49,7 +49,7 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
             ++it;
         }
     }
-    d->q = new Query( "select (id,name) from flag_names where id>" + fn( n ),
+    d->q = new Query( "select id,name from flag_names where id>" + fn( n ),
                       this );
     if ( !::flags )
         d->q->setStartUpQuery( true );
