@@ -26,7 +26,7 @@ int main( int, char *[] )
 
     Test::runTests();
 
-    Configuration::setup( "mailstore.conf", "smtpd.conf" );
+    Configuration::setup( "mailstore.conf", "lmtp.conf" );
 
     Loop::setup();
 
@@ -40,11 +40,23 @@ int main( int, char *[] )
     Mailbox::setup();
     AddressCache::setup();
 
-    log( "SMTP server started" );
+    log( "SMTP server version " +
+         Configuration::compiledIn( Configuration::Version ) +
+         " started" );
     log( Test::report() );
 
-    Listener< SMTP >::create( "SMTP", "", 2025 );
-    Listener< LMTP >::create( "LMTP", "", 2026 );
+    Configuration::Toggle useSmtp( "use-smtp", false );
+    if ( useSmtp ) {
+        Configuration::Scalar port( "smtp-port", 25 );
+        Listener< SMTP >::create( "SMTP", "", port );
+    }
+
+    Configuration::Toggle useLmtp( "use-lmtp", true );
+    if ( useLmtp ) {
+        Configuration::Scalar port( "lmtp-port", 2026 );
+        Configuration::Text address( "lmtp-host", "127.0.0.1" );
+        Listener< LMTP >::create( "LMTP", address, port );
+    }
 
     Configuration::report();
     l.commit();

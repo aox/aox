@@ -49,7 +49,7 @@ int main( int argc, char *argv[] )
         exit( -1 );
     }
 
-    Configuration::setup( "mailstore.conf", "deliver.conf" );
+    Configuration::setup( "mailstore.conf", "lmtp.conf" );
 
     Loop::setup();
 
