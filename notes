@@ -137,3 +137,8 @@ mailstore.conf protection
   I suggest that we add a setting to check that the file is readable
   only as root and refuse to start else, and turn this on by default.
   Or we could use the security setting for this.
+
+
+Documentation fixes
+
+  - We need to have per-MTA text in mailstore(7) and on the web site.
