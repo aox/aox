@@ -5,11 +5,7 @@
 #include "endpoint.h"
 #include "buffer.h"
 #include "loop.h"
-
-// exit
-#include <stdlib.h>
-// fprintf, stderr
-#include <stdio.h>
+#include "log.h"
 
 
 class OCCData {
@@ -51,18 +47,17 @@ void OCClient::setup()
     Endpoint e( ocdHost, ocdPort );
 
     if ( !e.valid() ) {
-        fprintf( stderr, "OCClient: Unable to parse address <%s> port %d\n",
-                 ((String)ocdHost).cstr(), (int)ocdPort );
-        exit( -1 );
+        log( Log::Disaster, "Invalid ocdhost address <" + ocdHost + "> port <" +
+             String::fromNumber( ocdPort ) + ">\n" );
+        return;
     }
 
     client = new OCClient( Connection::socket( e.protocol() ) );
     client->setBlocking( true );
+
     if ( client->connect( e ) < 0 ) {
-        fprintf( stderr, "OCClient: Unable to connect to OCD %s\n",
-                 String(e).cstr() );
-        perror( "OCClient: connect() returned" );
-        exit( -1 );
+        log( Log::Disaster, "Unable to connect to ocdhost " + e + "\n" );
+        return;
     }
 
     client->setBlocking( false );

@@ -106,29 +106,6 @@ EventHandler *SaslMechanism::command() const
 }
 
 
-/*! If this object has a parent command() (which it should, except
-    while we're testing) and that Command has a Command::logger(), we
-    use it to log the message \a m at severity \a s. Otherwise, we do
-    nothing.
-*/
-
-void SaslMechanism::log( Log::Severity s, const String &m )
-{
-//    if ( d->command && d->command->logger() )
-//        d->command->logger()->log( s, m );
-}
-
-
-/*! \overload
-    This calls log( Log::Info, \a m ).
-*/
-
-void SaslMechanism::log( const String &m )
-{
-    log( Log::Info, m );
-}
-
-
 /*! Returns this SaslMechanism's state, which is one of the following:
 
     1. IssuingChallenge: Wants the server to issue another challenge().

@@ -1,8 +1,8 @@
 #ifndef MECHANISM_H
 #define MECHANISM_H
 
-#include "string.h"
 #include "log.h"
+#include "string.h"
 
 class EventHandler;
 
@@ -21,8 +21,6 @@ public:
     void setState( State );
 
     EventHandler *command() const;
-    void log( Log::Severity, const String & );
-    void log( const String & );
 
     void query();
     virtual String challenge();

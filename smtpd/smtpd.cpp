@@ -1,17 +1,18 @@
-#include "global.h"
 #include "arena.h"
 #include "scope.h"
 #include "test.h"
 #include "configuration.h"
+#include "logclient.h"
 #include "log.h"
+#include "tls.h"
 #include "occlient.h"
 #include "database.h"
 #include "mailbox.h"
 #include "listener.h"
 #include "smtp.h"
 #include "loop.h"
-#include "tls.h"
 
+// exit
 #include <stdlib.h>
 
 
@@ -26,19 +27,20 @@ int main( int, char *[] )
 
     Configuration::makeGlobal( ".smtpdrc" );
 
+    Log l;
+    global.setLog( &l );
+    LogClient::setup();
+
     TLS::setup();
     OCClient::setup();
     Database::setup();
     Mailbox::setup();
 
-    Log l;
-    global.setLog( &l );
-
     log( "SMTP server started" );
     log( Test::report() );
 
-    Listener<SMTP>::create( "SMTP", "", 2025 );
-    Listener<LMTP>::create( "LMTP", "", 2026 );
+    Listener< SMTP >::create( "SMTP", "", 2025 );
+    Listener< LMTP >::create( "LMTP", "", 2026 );
 
     Configuration::global()->report();
     l.commit();

@@ -174,6 +174,7 @@ void Configuration::clear()
 void Configuration::report()
 {
     d->reported = true;
+    Log l;
 
     if ( d->unparsed.isEmpty() && d->errors.isEmpty() )
         return;
@@ -188,24 +189,23 @@ void Configuration::report()
         i++;
     }
     
-    Log l;
     if ( d->fileExists )
-        l.log( Log::Info, "While reading config file " + d->f + ":" );
+        log( Log::Info, "While reading config file " + d->f + ":" );
     else if ( e )
-        l.log( Log::Info, "Unable to open config file " + d->f );
+        log( Log::Info, "Unable to open config file " + d->f );
 
     i = d->errors.first();
     while ( i ) {
-        l.log( i->s, (*i).m );
+        log( i->s, i->m );
         i++;
     }
 
     List< Configuration::Something >::Iterator j = d->unparsed.first();
     while ( j ) {
-        l.log( Log::Error,
-               "Unknown configuration variable: " + j->s1 );
+        log( Log::Error, "Unknown configuration variable: " + j->s1 );
         j++;
     }
+
     l.commit( Log::Info );
 }
 
@@ -265,11 +265,8 @@ void Configuration::Variable::init( Configuration * c, const String &name )
 
     if ( c->d->reported ) {
         // we're already up and running
-        Log l;
-        l.log( Log::Error,
-               "Program error! "
-               "Configuration variable created after parsing finished: " +
-               name );
+        log( Log::Error,
+             "Configuration variable created after parsing finished: " + name );
     }
     if ( x == 0 ) {
         // nothing - we keep the default value

@@ -268,7 +268,7 @@ void Postgres::backendStartup( char type )
         // this message unparsed, so that process() can handle it like
         // any other PgReady.
         setTimeout( 0 );
-        d->l->log( "PostgreSQL: Ready for queries" );
+        log( "PostgreSQL: Ready for queries" );
         d->startup = false;
         break;
 
@@ -427,7 +427,7 @@ void Postgres::unknown( char type )
                 break;
 
             default:
-                d->l->log( msg.message() );
+                log( msg.message() );
                 break;
             }
         }
@@ -465,7 +465,7 @@ void Postgres::unknown( char type )
 void Postgres::error( const String &s )
 {
     d->active = false;
-    d->l->log( Log::Error, s );
+    log( Log::Error, s );
     d->l->commit();
 
     List< Query >::Iterator q = d->queries.first();

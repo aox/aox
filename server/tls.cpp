@@ -5,11 +5,7 @@
 #include "string.h"
 #include "connection.h"
 #include "loop.h"
-
-// exit
-#include <stdlib.h>
-// *printf, stderr
-#include <stdio.h>
+#include "log.h"
 
 
 static Arena tlsArena;
@@ -53,10 +49,8 @@ void TLS::setup()
     client->setBlocking( true );
 
     if ( client->connect( e ) < 0 ) {
-        fprintf( stderr, "TLSClient: Unable to connect to TLS proxy %s\n",
-                 String(e).cstr() );
-        perror( "TLSClient: connect() returned" );
-        exit( -1 );
+        log( Log::Disaster, "Unable to connect to TLS proxy " + e + "\n" );
+        return;
     }
 
     client->setBlocking( false );

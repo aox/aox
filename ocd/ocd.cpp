@@ -21,6 +21,8 @@ int main()
 
     Configuration::makeGlobal( ".ocdrc" );
 
+    Log l;
+    global.setLog( &l );
     LogClient::setup();
 
     Listener< OCServer >::create( "Cluster coordination", "", 2050 );
@@ -28,6 +30,7 @@ int main()
 
     log( Test::report() );
     Configuration::global()->report();
+    l.commit();
 
     if ( Log::disastersYet() )
         exit( 1 );

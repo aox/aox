@@ -1,4 +1,3 @@
-#include "global.h"
 #include "arena.h"
 #include "scope.h"
 #include "test.h"
@@ -26,6 +25,8 @@ int main( int, char *[] )
 
     Configuration::makeGlobal( ".imapdrc" );
 
+    Log l;
+    global.setLog( &l );
     LogClient::setup();
 
     TLS::setup();
@@ -33,13 +34,10 @@ int main( int, char *[] )
     Database::setup();
     Mailbox::setup();
 
-    Log l;
-    global.setLog( &l );
-
     log( "IMAP server started" );
     log( Test::report() );
 
-    Listener<IMAP>::create( "IMAP", "", 2052 );
+    Listener< IMAP >::create( "IMAP", "", 2052 );
 
     Configuration::global()->report();
     l.commit();
@@ -49,6 +47,3 @@ int main( int, char *[] )
 
     Loop::start();
 }
-
-
-

@@ -22,7 +22,7 @@ class IMAPData {
 public:
     IMAPData()
         : state( IMAP::NotAuthenticated ),
-          logger( new Log ), cmdArena( 0 ), args( 0 ),
+          log( new Log ), cmdArena( 0 ), args( 0 ),
           readingLiteral( false ), literalSize( 0 ),
           reader( 0 ), session( 0 ), mailbox( 0 ), uid( 0 ),
           idle( false )
@@ -33,7 +33,7 @@ public:
 
     IMAP::State state;
 
-    Log * logger;
+    Log *log;
     Arena * cmdArena;
     List< String > * args;
 
@@ -82,7 +82,7 @@ IMAP::IMAP( int s )
     if ( s < 0 )
         return;
 
-    d->logger->log( "Accepted IMAP connection from " + peer() );
+    log( "Accepted IMAP connection from " + peer() );
 
     enqueue( String( "* OK [CAPABILITY " ) + Capability::capabilities() + "] " +
                      Configuration::hostname() + " IMAP Server\r\n" );
@@ -109,7 +109,7 @@ void IMAP::react( Event e )
 
     case Timeout:
         enqueue( "* BYE autologout\r\n" );
-        d->logger->log( "autologout" );
+        log( "autologout" );
         Connection::setState( Closing );
         break;
 
@@ -117,7 +117,7 @@ void IMAP::react( Event e )
     case Error:
     case Close:
         if ( state() != Logout )
-            d->logger->log( "Unexpected close by client" );
+            log( "Unexpected close by client" );
         break;
 
     case Shutdown:
@@ -125,9 +125,9 @@ void IMAP::react( Event e )
         break;
     }
 
-    d->logger->commit();
+    d->log->commit();
     runCommands();
-    d->logger->commit();
+    d->log->commit();
 
     if ( timeout() == 0 )
         setTimeout( time(0) + 1800 );
@@ -212,7 +212,7 @@ void IMAP::parse()
 void IMAP::addCommand()
 {
     String * s = d->args->first();
-    d->logger->log( Log::Debug, "Received " +
+    log( Log::Debug, "Received " +
                     String::fromNumber( (d->args->count() + 1)/2 ) +
                     "-line command: " + *s );
 
@@ -230,7 +230,7 @@ void IMAP::addCommand()
 
     if ( i < 1 || c != ' ' ) {
         enqueue( "* BAD tag\r\n" );
-        d->logger->log( "Unable to parse tag. Line: " + *s );
+        log( "Unable to parse tag. Line: " + *s );
 parseError:
         delete d->cmdArena;
         return;
@@ -250,7 +250,7 @@ parseError:
 
     if ( i == j ) {
         enqueue( "* BAD no command\r\n" );
-        d->logger->log( "Unable to parse command. Line: " + *s );
+        log( "Unable to parse command. Line: " + *s );
         goto parseError;
     }
 
@@ -262,7 +262,7 @@ parseError:
     Command *cmd = Command::create( this, command, tag, d->args, d->cmdArena );
 
     if ( !cmd ) {
-        d->logger->log( "Unknown command '" + command + "' (tag '" +
+        log( "Unknown command '" + command + "' (tag '" +
                         tag + "')" );
         enqueue( tag + " BAD unknown command: " + command + "\r\n" );
         goto parseError;
@@ -345,7 +345,7 @@ void IMAP::setState( State s )
         name = "logout";
         break;
     };
-    d->logger->log( "Changed to " + name + " state" );
+    log( "Changed to " + name + " state" );
 }
 
 
@@ -362,9 +362,9 @@ void IMAP::setIdle( bool i )
         return;
     d->idle = i;
     if ( i )
-        d->logger->log( "entered idle mode" );
+        log( "entered idle mode" );
     else
-        d->logger->log( "left idle mode" );
+        log( "left idle mode" );
 }
 
 
@@ -386,12 +386,12 @@ void IMAP::setLogin( const String & name )
         // not sure whether I like this... on one hand, it does
         // prevent change of login. on the other, how could that
         // possibly happen?
-        d->logger->log( Log::Error,
+        log( Log::Error,
                         "ignored setLogin("+name+") due to wrong state" );
         return;
     }
     d->login = name;
-    d->logger->log( "logged in as " + name );
+    log( "logged in as " + name );
     setState( Authenticated );
 }
 
@@ -573,7 +573,7 @@ void IMAP::beginSession( const String &mbx, bool readOnly, Command *cmd )
     if ( m ) {
         setState( Selected );
         d->session = new ImapSession( m, readOnly, cmd );
-        d->logger->log( "Using mailbox " + m->name() );
+        log( "Using mailbox " + m->name() );
     }
 }
 

@@ -4,18 +4,15 @@
 
 #include "database.h"
 
-#include "list.h"
+#include "arena.h"
+#include "scope.h"
 #include "string.h"
 #include "query.h"
+#include "list.h"
 #include "log.h"
 #include "configuration.h"
-#include "scope.h"
-#include "arena.h"
 
 #include "postgres.h"
-
-#include <stdio.h>
-#include <stdlib.h>
 
 
 static Arena dbArena;
@@ -52,14 +49,14 @@ void Database::setup()
     srv = new Endpoint( dbHost, dbPort );
 
     if ( !srv->valid() ) {
-        fprintf( stderr, "Invalid database server address: '%s', port: %d.\n",
-                 ((String)dbHost).cstr(), (int)dbPort );
-        exit( -1 );
+        log( Log::Disaster, "Invalid dbhost address <" + dbHost + "> port <" +
+             String::fromNumber( dbPort ) + ">\n" );
+        return;
     }
 
     if ( Database::handle() == 0 ) {
-        fprintf( stderr, "Unsupported database type: '%s'.\n", t->cstr() );
-        exit( -1 );
+        log( Log::Disaster, "Unsupported database <" + *t + ">\n" );
+        return;
     }
 }
 
