@@ -9,18 +9,16 @@ class Status
     : public Command
 {
 public:
-    Status()
-        : messages( false ), recent( false ), uidnext( false ),
-          uidvalidity( false ), unseen( false ), m( 0 )
-    {}
+    Status();
 
     void parse();
     void execute();
 
 private:
     String name;
-    bool messages, recent, uidnext, uidvalidity, unseen;
+    bool messages, uidnext, uidvalidity, recent, unseen;
     class Mailbox *m;
+    class ImapSession *session;
 };
 
 

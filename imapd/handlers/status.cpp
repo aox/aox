@@ -1,6 +1,8 @@
 #include "status.h"
 
+#include "imap.h"
 #include "mailbox.h"
+#include "imapsession.h"
 
 static inline String fn( uint n ) { return String::fromNumber( n ); }
 
@@ -9,10 +11,13 @@ static inline String fn( uint n ) { return String::fromNumber( n ); }
     Returns the status of the specified mailbox (RFC 3501, §6.3.10)
 */
 
+/*! \reimp */
 
-/*! \fn Status::Status()
-    \reimp
-*/
+Status::Status()
+    : messages( false ), uidnext( false ), uidvalidity( false ),
+      recent( false ), unseen( false ),
+      m( 0 ), session( 0 )
+{}
 
 
 /*! \reimp */
@@ -55,24 +60,22 @@ void Status::parse()
 
 void Status::execute()
 {
-#if 0
     if ( !m ) {
-        m = new Mailbox( name, this );
-        m->setReadOnly( true );
+        m = imap()->mailboxNamed( name );
+        if ( !m ) {
+            error( No, "Can't open " + name );
+            finish();
+            return;
+        }
+
+        if ( unseen || recent )
+            session = new ImapSession( m, true, this );
     }
 
-    if ( !m->done() )
-        m->select();
-
-    if ( !m->done() )
+    if ( session && !session->loaded() )
         return;
 
-    if ( m->state() == Mailbox::Failed ) {
-        error( No, "Can't open " + name );
-        finish();
-        return;
-    }
-
+#if 0
     String status;
 
     if ( messages )
@@ -89,5 +92,6 @@ void Status::execute()
     status.truncate( status.length()-1 );
     respond( "STATUS " + name + " (" + status + ")" );
 #endif
+
     finish();
 }
