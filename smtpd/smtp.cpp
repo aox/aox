@@ -106,6 +106,8 @@ SMTP::SMTP( int s )
 
 SMTP::~SMTP()
 {
+    delete d->injector;
+    delete d->helper;
     d = 0;
 }
 

@@ -74,6 +74,15 @@ Injector::Injector( const Message * message, List<Mailbox> * mailboxes,
 }
 
 
+/*! Cleans up after injection. */
+
+Injector::~Injector()
+{
+    delete d->addressQuery;
+    d = 0;
+}
+
+
 /*! This is the gut function of Injector: It sets up a series of
     queries, one after another, to inject the message.
 */
