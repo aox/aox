@@ -51,7 +51,7 @@ private:
     struct Condition
     { // everything here is public. this may need changing at some point.
     public:
-        Condition() : f( NoField ), a( All ), n( 0 ), l( 0 ), c( 0 ) {}
+        Condition() : f( NoField ), a( All ), n( 0 ), l( 0 ), c( 0 ), d( 0 ) {}
 
         Field f;
         Action a;
@@ -61,7 +61,9 @@ private:
         uint n;
         List<Condition> * l;
         Command * c;
+        class SearchData * d;
 
+        String where( class SearchData * ) const;
         String debugString() const;
         void simplify();
         enum MatchResult {
@@ -70,6 +72,13 @@ private:
             Punt // really "ThrowHandsUpInAirAndDespair"
         };
         MatchResult match( Message *, uint );
+
+    private:
+        String whereInternalDate() const;
+        String whereSent() const;
+        String whereHeader() const;
+        String whereHeaderField() const;
+        String whereAddressField( const String & ) const;
     };
 
     Condition * add( Field, Action,

@@ -2,15 +2,17 @@
 
 #include "search.h"
 
-#include "list.h"
-#include "imap.h"
-#include "messageset.h"
 #include "imapsession.h"
+#include "messageset.h"
+#include "mailbox.h"
+#include "message.h"
 #include "codec.h"
 #include "query.h"
+#include "date.h"
+#include "imap.h"
+#include "list.h"
 #include "log.h"
-#include "message.h"
-#include "mailbox.h"
+#include "utf.h"
 
 
 /*! \class Search search.h
@@ -41,6 +43,12 @@ public:
 
     Codec * codec;
     Query * query;
+
+    uint argc;
+    uint argument() {
+        ++argc;
+        return argc;
+    };
 };
 
 /*! Constructs an empty Search. If \a u is true, it's an UID SEARCH,
@@ -286,6 +294,7 @@ void Search::execute()
     if ( !d->query ) {
         considerCache();
         if ( !d->done ) {
+            d->query = new Query( "", this );
             //d->query = new Query( d->root->where( this ) );
             // this is where I do clever d->query->bind() stuff and then
             // execute
@@ -408,6 +417,7 @@ Search::Condition * Search::add( Field f, Action a,
     prepare();
     Condition * c = new Condition;
     c->c = this;
+    c->d = d;
     c->f = f;
     c->a = a;
     c->a1 = a1;
@@ -429,9 +439,13 @@ Search::Condition * Search::add( Field f, Action a,
     prepare();
     Condition * c = new Condition;
     c->c = this;
+    c->d = d;
     c->f = f;
     c->a = a;
-    c->a1 = a1;
+    if ( f == Header )
+        c->a1 = a1.headerCased();
+    else
+        c->a1 = a1;
     c->a2 = a2;
     d->conditions->first()->l->append( c );
     return c;
@@ -450,6 +464,7 @@ Search::Condition * Search::add( Field f, Action a, uint n )
     prepare();
     Condition * c = new Condition;
     c->c = this;
+    c->d = d;
     c->f = f;
     c->a = a;
     c->n = n;
@@ -468,6 +483,7 @@ Search::Condition * Search::add( const MessageSet & set )
     prepare();
     Condition * c = new Condition;
     c->c = this;
+    c->d = d;
     c->f = Uid;
     c->a = Contains;
     c->s = set;
@@ -487,6 +503,7 @@ Search::Condition * Search::push( Action a )
     prepare();
     Condition * c = new Condition;
     c->c = this;
+    c->d = d;
     c->a = a;
     c->l = new List<Condition>;
     if ( d->conditions->first() )
@@ -521,6 +538,7 @@ void Search::prepare()
 
     Condition * c = new Condition;
     c->c = this;
+    c->d = d;
     c->a = And;
     c->l = new List<Condition>;
     d->conditions->prepend( c );
@@ -655,6 +673,177 @@ void Search::Condition::simplify()
     // children, killing any duplicates in the process. then we'll
     // have a single query for each job. but that can wait. this will
     // do for testing.
+}
+
+
+/*! Gives an SQL string representing this condition.
+
+    The string may include $n placeholders; where() will add them to
+    \a d as required.
+*/
+
+String Search::Condition::where( SearchData * d ) const
+{
+    switch( f ) {
+    case InternalDate:
+        return whereInternalDate();
+        break;
+    case Sent:
+        return whereSent();
+        break;
+    case Header:
+        if ( a1.isEmpty() )
+            return whereHeader();
+        else
+            return whereHeaderField();
+        break;
+    case Body:
+        break;
+    case Rfc822Size:
+        break;
+    case Flags:
+        break;
+    case Uid:
+        break;
+    case NoField:
+        break;
+    }
+    c->error( Command::No, "Internal error for " + debugString() );
+    return "";
+}
+
+/*! This implements the INTERNALDATE part of where().
+*/
+
+String Search::Condition::whereInternalDate() const
+{
+    uint day = a1.mid( 0, 2 ).number( 0 );
+    String month = a1.mid( 3, 3 );
+    uint year = a1.mid( 7 ).number( 0 );
+    // XXX: local time zone is ignored here
+    Date d1;
+    d1.setDate( year, month, day, 0, 0, 0, 0 );
+    Date d2;
+    d2.setDate( year, month, day, 23, 59, 59, 0 );
+    uint n1 = d->argument();
+    d->query->bind( n1, d1.unixTime() );
+    uint n2 = d->argument();
+    d->query->bind( n2, d2.unixTime() );
+            
+    if ( a == OnDate ) {
+        return "messages.idate>=$" + fn( n1 ) +
+            " and messages.idate<=$" + fn( n2 );
+    }
+    else if ( a == SinceDate ) {
+        return "messages.idate>=$" + fn( n1 );
+    }
+    else if ( a == BeforeDate ) {
+        return "messages.idate<=$" + fn( n2 );
+    }
+    c->error( Command::No, "Cannot search for: " + debugString() );
+    return "";
+}
+
+/*! This implements the SENTON/SENTBEFORE/SENTSINCE part of where().
+*/
+
+String Search::Condition::whereSent() const
+{
+    c->error( Command::No,
+              "Searching on the Date field unimplemented, sorry" );
+    return "";
+}
+
+
+static String q( const UString & orig )
+{
+    Utf8Codec c;
+    String r( c.fromUnicode( orig ) );
+    // escape % somehow
+    return r;
+}
+
+
+/*! This implements searches on a single header field.
+*/
+
+String Search::Condition::whereHeaderField() const
+{
+    uint f = 1;
+    while ( f <= HeaderField::LastAddressField &&
+            HeaderField::fieldName( (HeaderField::Type)f ) != a1 )
+        f++;
+    if ( f <= HeaderField::LastAddressField )
+        return whereAddressField( a1 );
+
+    uint fnum = d->argument();
+    d->query->bind( fnum, a1 );
+    uint like = d->argument();
+    d->query->bind( like, "%" + q( a2 ) + "%" );
+    return "(header_fields.mailbox=messages.mailbox and "
+        "header_fields.uid=messages.uid and "
+        "header_fields.field=field_names.id and "
+        "field_names.name=$" + fn( fnum ) + " and "
+        "value like $" + fn( like ) + ")";
+}
+
+
+/*! This implements searches on the single address field \a field, or
+    on all address fields if \a field is empty. \a d as usual.
+*/
+
+String Search::Condition::whereAddressField( const String & field ) const
+{
+    String raw( q( a2 ) );
+    int at = raw.find( '@' );
+    uint name = d->argument();
+    d->query->bind( name, "%" + raw + "%" );
+    uint lp = d->argument();
+    uint dom = d->argument();
+    String r;
+    if ( at < 0 ) {
+        d->query->bind( lp, "%" + raw + "%" );
+        d->query->bind( dom, "%" + raw + "%" );
+    }
+    else if ( at == 0 ) {
+        d->query->bind( lp, "" );
+        d->query->bind( dom, raw.mid( at+1 ) + "%" );
+    }
+    else if ( at == (int)raw.length() - 1 ) {
+        d->query->bind( lp, "%" + raw.mid( 0, at ) );
+        d->query->bind( dom, "" );
+    }
+    else {
+        d->query->bind( lp, "%" + raw.mid( 0, at ) );
+        d->query->bind( dom, raw.mid( at+1 ) + "%" );
+    }
+    r.append( "(address_fields.mailbox=messages.mailbox and "
+              "address_fields.uid=messages.uid and " );
+    if ( !field.isEmpty() ) {
+        uint fnum = d->argument();
+        d->query->bind( fnum, a1 );
+        r.append( "address_fields.field=field_names.id and "
+                  "field_names.name=$" + fn( fnum ) + " and " );
+    }
+    r.append( "address_fields.address=addresses.id and "
+              "(addresses.name like $" + fn( name ) +
+              " or addresses.localpart like $" + fn( lp ) + 
+              " or addresses.domain like $" + fn( dom ) + "))" );
+    return r;
+}
+
+/*! This implements searches on all header fields.
+*/
+
+String Search::Condition::whereHeader() const
+{
+    uint like = d->argument();
+    d->query->bind( like, "%" + q( a2 ) + "%" );
+    return "((header_fields.mailbox=messages.mailbox and "
+        "header_fields.uid=messages.uid and "
+        "header_fields.field=field_names.id and "
+        "value like $" + fn( like ) + ") or " +
+        whereAddressField( "" ) + ")";
 }
 
 
