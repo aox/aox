@@ -4,6 +4,8 @@
 #include "command.h"
 #include "messageset.h"
 
+class Message;
+
 
 class Search
     : public Command
@@ -57,6 +59,12 @@ private:
 
         String debugString() const;
         void simplify();
+        enum MatchResult {
+            Yes,
+            No,
+            Punt // really "ThrowHandsUpInAirAndDespair"
+        };
+        MatchResult match( Message * );
     };
 
     Condition * add( Field, Action,
@@ -72,6 +80,8 @@ private:
     String debugString();
 
     String date();
+
+    void considerCache();
 
 private:
     class SearchD * d;

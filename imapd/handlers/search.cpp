@@ -3,7 +3,10 @@
 #include "list.h"
 #include "imap.h"
 #include "messageset.h"
+#include "imapsession.h"
 #include "codec.h"
+#include "query.h"
+#include "log.h"
 
 
 /*! \class Search search.h
@@ -21,13 +24,21 @@
 class SearchD
 {
 public:
-    SearchD() : uid( false ), conditions( 0 ), root( 0 ), codec( 0 ) {}
+    SearchD() : uid( false ), done( false ),
+                conditions( 0 ), root( 0 ),
+                codec( 0 ),
+                query( 0 )
+    {}
 
     bool uid;
+    bool done;
     List<Search::Condition> * conditions;
     Search::Condition * root;
     String charset;
+    List<uint> matches;
     Codec * codec;
+
+    Query * query;
 };
 
 /*! Constructs an empty Search. If \a u is true, it's an UID SEARCH,
@@ -273,11 +284,69 @@ void Search::execute()
 {
     // for now, we know there are no messages in there, so this is
     // correct:
-    respond( "SEARCH " );
-    // easy.
+    if ( !d->query ) {
+        considerCache();
+        if ( !d->done ) {
+            //d->query = new Query( d->root->where( this ) );
+            // this is where I do clever d->query->bind() stuff and then
+            // execute
+        }
+    }
+
+    if ( !d->done )
+        return;
+
+    ImapSession * s = imap()->session();
+    String r( "SEARCH" );
+    List<uint>::Iterator it = d->matches.first();
+    while ( it ) {
+        r.append( " " );
+        uint n = *it;
+        ++it;
+        if ( !d->uid )
+            n = s->msn( n );
+        r.append( String::fromNumber( n ) );
+    }
+    respond( r );
     setState( Finished );
 }
 
+
+
+/*! Considers whether this search can and should be solved using this
+    cache, and if so, finds all the matches.
+*/
+
+void Search::considerCache()
+{
+    ImapSession * s = imap()->session();
+    uint msn = s->count();
+    bool needDb = false;
+    uint c = 1;
+    while ( c <= msn && !needDb ) {
+        uint uid = s->uid( c );
+        Message * m = s->message( uid );
+        switch ( d->root->match( m ) ) {
+        case Search::Condition::Yes:
+            d->matches.append( new uint( uid ) );
+            break;
+        case Search::Condition::No:
+            break;
+        case Search::Condition::Punt:
+            needDb = true;
+            break;
+        }
+        if ( !needDb )
+            c++;
+    }
+    log( Log::Debug, "search considered " + String::fromNumber( c ) +
+         " of " + String::fromNumber( c ) + " messages using cache, " +
+         String::fromNumber( d->matches.count() ) + " matches" );
+    if ( needDb )
+        d->matches.clear();
+    else
+        d->done = true;
+}
 
 
 
@@ -658,4 +727,51 @@ String Search::Condition::debugString() const
 
     return r;
 
+}
+
+
+/*! Matches \a m against this condition, provided the match is
+    reasonably simple and quick, and returns either Yes, No, or (if
+    the match is difficult, expensive or depends on data that isn't
+    available) Punt.
+
+    If \a m is null, No is returned.
+*/
+
+Search::Condition::MatchResult Search::Condition::match( Message * m )
+{
+    if ( !m )
+        return No;
+
+    if ( a == And || a == Or ) {
+        List< Condition >::Iterator i = l->first();
+        while ( i ) {
+            MatchResult sub = i->match( m );
+            if ( sub == Punt )
+                return Punt;
+            if ( a == And && sub == No )
+                return No;
+            if ( a == Or && sub == Yes )
+                return Yes;
+        }
+        ++i;
+        if ( a == And )
+            return Yes;
+        else
+            return No;
+    }
+    else if ( a == Contains && f == Flags ) {
+        // hm. where to store?
+    }
+    else if ( a == Not ) {
+        MatchResult sub = l->first()->match( m );
+        if ( sub == Punt )
+            return Punt;
+        else if ( sub == Yes )
+             return No;
+        else
+            return Yes;
+    }
+
+    return Punt;
 }

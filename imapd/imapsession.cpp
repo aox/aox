@@ -3,6 +3,7 @@
 #include "global.h"
 #include "mailbox.h"
 #include "event.h"
+#include "messageset.h"
 
 
 class SessionData {
@@ -13,6 +14,7 @@ public:
 
     bool readOnly;
     Mailbox *mailbox;
+    MessageSet messages;
 };
 
 
@@ -63,10 +65,41 @@ bool ImapSession::readOnly() const
 }
 
 
-/*! Returns the UID of the message with MSN \a msn.
+/*! Returns the UID of the message with MSN \a msn, or 0 if there is
+    no such message.
 */
 
 uint ImapSession::uid( uint msn ) const
 {
+    return d->messages.value( msn );
+}
+
+
+/*! Returns the MSN of the message with UID \a uid, or 0 if there is
+    no such message.
+*/
+
+uint ImapSession::msn( uint uid ) const
+{
+    return d->messages.index( uid );
+}
+
+
+/*! Returns the number of messages visible in this session. */
+
+uint ImapSession::count() const
+{
+    return d->messages.count();
+}
+
+
+/*! Returns a pointer to message \a uid, or a null pointer if there is
+    no such message.
+*/
+
+Message * ImapSession::message( uint uid ) const
+{
+    if ( uid )
+        ;
     return 0;
 }

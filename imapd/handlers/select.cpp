@@ -71,19 +71,26 @@ void Select::execute()
         }
     }
 
-#if 0
     Mailbox *m = session->mailbox();
 
-    respond( "FLAGS " + m->flags() );
-    respond( fn( m->count() ) + " EXISTS" );
-    respond( fn( m->recent() ) + " RECENT" );
-    respond( "OK [UNSEEN " + fn( m->unseen() ) + "]" );
+    String flags = "\\Answered \\Flagged \\Deleted \\Seen \\Draft";
+
+    respond( "FLAGS " + flags );
+    respond( fn( session->count() ) + " EXISTS" );
+
+    // the RECENT response is wrong. needs expensive select. what to do?
+    respond( "0 RECENT" );
+
+    // ditto UNSEEN
+    respond( "OK [UNSEEN 0]" );
+
     respond( "OK [UIDNEXT " + fn( m->uidnext() ) + "]" );
     respond( "OK [UIDVALIDITY " + fn( m->uidvalidity() ) + "]" );
-    respond( "OK [PERMANENTFLAGS " + m->permanentFlags() + "]" );
-    respond( "OK [READ-" + String( m->readOnly() ? "ONLY" : "WRITE" ) + "]",
-             Tagged );
-#endif
+    respond( "OK [PERMANENTFLAGS " + flags +" \\*]" );
+    if ( session->readOnly() )
+        respond( "OK [READ-ONLY]", Tagged );
+    else
+        respond( "OK [READ-WRITE]", Tagged );
 
     finish();
 }
