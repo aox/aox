@@ -104,6 +104,7 @@ void IMAP::react( Event e )
 {
     switch ( e ) {
     case Read:
+        setTimeout( time(0) + 1800 );
         parse();
         break;
 
