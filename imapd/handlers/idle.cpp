@@ -1,7 +1,7 @@
 #include "idle.h"
 
 #include "imap.h"
-#include <buffer.h>
+#include "buffer.h"
 
 
 /*! \class Idle

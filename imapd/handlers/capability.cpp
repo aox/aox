@@ -1,7 +1,5 @@
 #include "capability.h"
 
-#include <string.h>
-
 
 /*! Constructs an empty Capability object. */
 

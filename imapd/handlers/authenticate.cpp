@@ -2,8 +2,8 @@
 
 #include "imap.h"
 #include "auth/authenticator.h"
-#include <buffer.h>
-#include <arena.h>
+#include "buffer.h"
+#include "arena.h"
 
 
 /*! Constructs an generic Authenticate handler, for any mechanism. */

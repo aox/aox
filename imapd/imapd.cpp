@@ -2,13 +2,11 @@
 #include "arena.h"
 #include "listener.h"
 #include "loop.h"
-#include <global.h>
-
+#include "global.h"
 #include "imap.h"
 #include "cccp.h"
 #include "logger.h"
 
-extern Arena *arena;
 
 int main( int, char *[] )
 {
