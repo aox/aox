@@ -583,15 +583,8 @@ void Postgres::processQueue( bool userContext )
         if ( !d->transaction && q->transaction() ) {
             d->transaction = q->transaction();
             d->transaction->setState( Transaction::Executing );
-            PgParse a( "begin" );
+            PgQuery a( "begin" );
             a.enqueue( writeBuffer() );
-
-            PgBind b;
-            b.enqueue( writeBuffer() );
-
-            PgExecute c;
-            c.enqueue( writeBuffer() );
-            s.append( "begin/");
         }
 
         if ( q->name() == "" ||
