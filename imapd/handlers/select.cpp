@@ -77,6 +77,10 @@ void Select::execute()
     }
 
     if ( !d->t ) {
+        // We select and delete the rows in recent_messages that refer
+        // to our mailbox. Concurrent Selects of the same mailbox will
+        // block until this transaction has committed.
+
         d->recent = new Query( "select * from recent_messages where "
                                "mailbox=$1 for update", this );
         d->recent->bind( 1, d->m->id() );
