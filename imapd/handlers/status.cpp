@@ -60,6 +60,7 @@ void Status::parse()
 
 void Status::execute()
 {
+#if 0
     if ( !m ) {
         m = Mailbox::find( imap()->mailboxName( name ) );
         if ( !m ) {
@@ -75,7 +76,6 @@ void Status::execute()
     if ( session && !session->loaded() )
         return;
 
-#if 0
     String status;
 
     if ( messages )

@@ -8,14 +8,11 @@
 class SessionData {
 public:
     SessionData()
-        : loaded( false ), readOnly( false ),
-          mailbox( 0 ), handler( 0 )
+        : readOnly( false ), mailbox( 0 )
     {}
 
-    bool loaded;
     bool readOnly;
     Mailbox *mailbox;
-    EventHandler *handler;
 };
 
 
@@ -28,17 +25,13 @@ public:
 
 /*! Creates a new ImapSession for the Mailbox \a m.
     If \a readOnly is true, the session is read-only.
-    The handler \a eh is notified of completion.
 */
 
-ImapSession::ImapSession( Mailbox *m, bool readOnly, EventHandler *eh )
+ImapSession::ImapSession( Mailbox *m, bool readOnly )
     : d( new SessionData )
 {
     d->mailbox = m;
-    d->handler = eh;
     d->readOnly = readOnly;
-
-    begin();
 }
 
 
@@ -47,35 +40,6 @@ ImapSession::ImapSession( Mailbox *m, bool readOnly, EventHandler *eh )
 
 ImapSession::~ImapSession()
 {
-    end();
-}
-
-
-/*! Acquires whatever resources are needed to start a new session.
-*/
-
-void ImapSession::begin()
-{
-    d->loaded = true;
-}
-
-
-/*! Does whatever is needed to end a session.
-*/
-
-void ImapSession::end()
-{
-}
-
-
-/*! Returns true if this ImapSession has successfully acquired session
-    data from the database, or has failed to do so; or false if it is
-    still awaiting completion.
-*/
-
-bool ImapSession::loaded() const
-{
-    return d->loaded;
 }
 
 

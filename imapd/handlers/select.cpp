@@ -59,18 +59,17 @@ void Select::execute()
         if ( imap()->session() )
             imap()->endSession();
 
-        imap()->beginSession( name, readOnly, this );
-
-        session = imap()->session();
-        if ( !session ) {
+        Mailbox *m = Mailbox::find( imap()->mailboxName( name ) );
+        if ( m ) {
+            imap()->beginSession( m, readOnly );
+            session = imap()->session();
+        }
+        else {
             error( No, "Can't select " + name );
             finish();
             return;
         }
     }
-
-    if ( !session->loaded() )
-        return;
 
 #if 0
     Mailbox *m = session->mailbox();

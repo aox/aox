@@ -543,35 +543,24 @@ String IMAP::mailboxName( const String &m )
 }
 
 
-/*! This function creates a new ImapSession for the Mailbox named \a mbx
-    in \a readOnly mode, and associates it with an IMAP server, changing
-    its state() to Selected. It is used by Select and Examine.
-
-    If \a mbx does not exist, or cannot be opened, this function returns
-    immediately without creating a session() or changing the state() of
-    the server. Otherwise it creates a session, sets the server's state
-    to Selected, and returns. The originating \a cmd is notified when
-    the ImapSession has acquired any session data it may need.
+/*! This function creates an ImapSession for Mailbox \a m in \a readOnly
+    mode, and associates it with an IMAP server, changing its state() to
+    Selected. It is used by Select and Examine.
 
     This function may be called only when the server is in Authenticated
     state (and thus does not have a session() already defined).
 */
 
-void IMAP::beginSession( const String &mbx, bool readOnly, Command *cmd )
+void IMAP::beginSession( Mailbox *m, bool readOnly )
 {
-    Mailbox *m = Mailbox::find( mailboxName( mbx ) );
-
-    if ( m ) {
-        setState( Selected );
-        d->session = new ImapSession( m, readOnly, cmd );
-        log( "Using mailbox " + m->name() );
-    }
+    d->session = new ImapSession( m, readOnly );
+    setState( Selected );
 }
 
 
 /*! Returns a pointer to the ImapSession object associated with this
-    IMAP server, or 0 if there is none (which should happen only if
-    the server is not in the Selected state).
+    IMAP server, or 0 if there is none (which can happen only if the
+    server is not in the Selected state).
 */
 
 ImapSession *IMAP::session() const

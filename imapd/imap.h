@@ -31,7 +31,7 @@ public:
     String login();
     void authenticated( uint, const String & );
 
-    void beginSession( const String &, bool, Command * );
+    void beginSession( Mailbox *, bool );
     ImapSession *session() const;
     void endSession();
 
