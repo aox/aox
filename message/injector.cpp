@@ -465,8 +465,8 @@ void Injector::insertBodyparts()
         if ( !text ) {
             Query *i;
 
-            i = new Query( "insert into binary_parts (id, data) "
-                           "values (select currval('bodypart_ids'),$1)",
+            i = new Query( "insert into binary_parts (bodypart, data) "
+                           "values ((select currval('bodypart_ids')),$1)",
                            helper );
             i->bind( 1, b->data(), Query::Binary );
             d->transaction->enqueue( i );
