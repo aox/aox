@@ -372,3 +372,6 @@ ms password usser ams newpassword
   Must add that. Notify mike@waspfactory.org.
 
 
+The ifdeffed-out tests
+
+  Add them back in. We do want to test.
