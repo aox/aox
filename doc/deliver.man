@@ -72,8 +72,8 @@ There is no command-line option to set the configuration file.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 0.92, released 2005-03-21,
-http://www.oryx.com/mailstore/0.92.html.
+This man page covers Oryx Mailstore version 0.93, released 2005-04-18,
+http://www.oryx.com/mailstore/0.93.html.
 .SH SEE ALSO
 .BR mailstore (7),
 .BR mailstore.conf (5),
