@@ -299,3 +299,11 @@ Message arrival tag
   something like that.
 
 
+Clean up SubDir/SubInclude
+
+  Rename them as Modules. Module X, Use X. Tie library use and headers
+  to modules, so users get just the -I and -l arguments needed from
+  the modules used (even if the entire tree is being compiled).
+
+  Also give Program a third argument, so it takes the result name, the
+  file sets to compile, and (new ->) the file containing main()
