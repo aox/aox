@@ -328,11 +328,22 @@ Web Style Guide
   Must add a section about the phrasing, what sort of language we
   used. Added by request of the CTO.
 
+  Also a section on terminology. Manpage, man page or manual page?
 
-Retention Policy Framework
+
+Message Retention Policy Framework
 
   A lot of sites will want explicit policies regarding what mail may
   not be deleted, what may be deleted, and what must be deleted. We
   can support that well.
+
+
+"Writing Secure Code"
+
+  We have a page about security, /mailstore/security.html, and a
+  section of the mailstore.7 man page mentions it too.
+
+  We need to look at ISBN 0735617228 and improve security.html with
+  points from it. It could also be that we'll improve the code itself.
 
 
