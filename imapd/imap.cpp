@@ -9,6 +9,7 @@
 #include "command.h"
 #include "handlers/capability.h"
 #include "log.h"
+#include "configuration.h"
 
 #include <time.h>
 
@@ -81,7 +82,8 @@ IMAP::IMAP( int s )
     d->logger->log( "Accepted IMAP connection from " + peer() );
 
     writeBuffer()->append( String( "* OK [CAPABILITY " ) +
-                           Capability::capabilities() + "]\r\n");
+                           Capability::capabilities() + "] " +
+                           Configuration::hostname() + " IMAP Server\r\n");
     setTimeout( time(0) + 1800 );
 }
 
