@@ -72,7 +72,7 @@ Fetcher::Fetcher( Mailbox * m )
             "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
             "order by h.uid, h.part";
         ::header = new PreparedStatement( q );
-        q = "select p.part, b.text, b.data, b.bytes, b.lines "
+        q = "select p.uid, p.part, b.text, b.data, b.bytes, b.lines "
             "from part_numbers p, bodyparts b where "
             "p.bodypart=b.id and "
             "p.uid>=$1 and p.uid<=$2 and p.mailbox=$3 "
@@ -240,7 +240,7 @@ PreparedStatement * MessageFlagFetcher::query() const
 }
 
 
-void MessageFlagFetcher::decode( Message * m, Row * r )
+void MessageBodyFetcher::decode( Message * m, Row * r )
 {
     String part = r->getString( "part" );
 
@@ -277,7 +277,7 @@ PreparedStatement * MessageBodyFetcher::query() const
 }
 
 
-void MessageBodyFetcher::decode( Message * m, Row * r )
+void MessageFlagFetcher::decode( Message * m, Row * r )
 {
     Flag * f = Flag::find( r->getInt( "flag" ) );
     if ( f ) {
