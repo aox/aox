@@ -118,10 +118,11 @@ uint Append::number( uint n )
 
 void Append::execute()
 {
-    if ( !d->injector )
-        d->injector = new Injector( d->message, 
-                                    imap()->mailbox(),
-                                    this );
+    if ( !d->injector ) {
+        List<Mailbox> * m = new List<Mailbox>;
+        m->append( imap()->mailbox() );
+        d->injector = new Injector( d->message, m, this );
+    }
     if ( d->injector->done() )
         setState( Finished );
 }
