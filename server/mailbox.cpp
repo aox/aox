@@ -191,6 +191,16 @@ List< Mailbox > *Mailbox::children() const
 }
 
 
+/*! Returns a pointer to the Mailbox object at the root of the global
+    hierarchy.
+*/
+
+Mailbox *Mailbox::root()
+{
+    return ::root;
+}
+
+
 /*! Returns a pointer to the Mailbox with \a id, or a null pointer if
     there is no such (known) Mailbox.
 */
@@ -239,7 +249,7 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
     uint i = name.length();
     while ( i > 0 && name[i] != '/' )
         i--;
-    Mailbox * parent = root;
+    Mailbox * parent = ::root;
     if ( i > 0 )
         parent = obtain( name.mid( 0, i ), create );
     if ( !parent )

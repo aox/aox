@@ -16,6 +16,7 @@ public:
     MailboxPane( QWidget * );
 
     int addChildren( Mailbox *, QListViewItem * );
+    void showEvent( QShowEvent * );
 
 private slots:
 

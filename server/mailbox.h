@@ -31,6 +31,7 @@ public:
     static Mailbox *find( const String &, bool = false );
     static Mailbox *obtain( const String &, bool create = true );
 
+    static Mailbox * root();
     static Mailbox * find( uint );
 
     bool operator <=( const Mailbox &b ) {

@@ -40,6 +40,7 @@ MailboxPane::MailboxPane( QWidget * parent )
     tll->addWidget( l, 0, 0 );
 
     d->mailboxes = new QListView( this, "mailbox list" );
+    d->mailboxes->setRootIsDecorated( true );
     d->mailboxes->addColumn( " " );
     d->mailboxes->header()->hide();
     tll->addWidget( d->mailboxes, 1, 0 );
@@ -59,8 +60,6 @@ MailboxPane::MailboxPane( QWidget * parent )
     /* tll->setColSpacing( 2, strut() ); */
     /* tll->setRowStretch( 9, 2 ); */
     /* tll->setColStretch( 3, 2 ); */
-
-    (void)addChildren( Mailbox::find( "/" ), 0 );
 }
 
 
@@ -116,4 +115,11 @@ int MailboxPane::addChildren( Mailbox * parent, QListViewItem * item )
     if ( item && item->firstChild() )
         item->setOpen( n < 3 );
     return n;
+}
+
+
+void MailboxPane::showEvent( QShowEvent *show )
+{
+    (void)addChildren( Mailbox::root(), 0 );
+    QWidget::showEvent( show );
 }
