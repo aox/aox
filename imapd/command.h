@@ -1,15 +1,15 @@
 #ifndef __COMMAND_H__
 #define __COMMAND_H__
 
-#include "list.h"
 #include "global.h"
-#include "set.h"
+#include "string.h"
+#include "list.h"
 
 
-class String;
 class IMAP;
 class Arena;
 class Logger;
+class Set;
 
 
 class Command {

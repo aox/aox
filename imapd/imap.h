@@ -2,9 +2,9 @@
 #define __IMAP_H__
 
 #include "connection.h"
-#include "string.h"
 
 
+class String;
 class Command;
 class Mailbox;
 
