@@ -155,8 +155,6 @@ logging cleanups
 Miscellaneous cleanups:
 
   * get rid of Blah::setup wherever possible
-  * member-ify some of the static functions in message
-  * get rid of some friends
 
 
 Inbox lifetime/mailbox reuse

@@ -34,6 +34,9 @@ public:
     void setNumLines( uint );
     uint numLines() const;
 
+    void setText( const UString & );
+    void setData( const String & );
+
     String asText() const;
 
 private:
@@ -43,15 +46,10 @@ private:
                                 String & );
     static Bodypart * parseBodypart( uint, uint, const String &, Header *,
                                      String & );
-    void setText( const UString & );
-    void setData( const String & );
 
 private:
     class BodypartData * d;
     friend class Message;
-    friend class MessageData;
-    friend class MessageHeaderFetcher;
-    friend class MessageBodyFetcher;
 };
 
 
