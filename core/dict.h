@@ -10,6 +10,7 @@ class DictBase
 protected:
     DictBase();
 
+    bool contains( const String & ) const;
     void * find( const String & ) const;
     void insert( const String & s, void* r );
     void * take( const String & );
@@ -34,7 +35,7 @@ public:
     void insert( const String & s, T* r ) { DictBase::insert( s, r ); }
     T* take( const String & s ) { return (T*)DictBase::take( s ); }
     bool contains( const String & s ) const {
-        return DictBase::find( s ) != 0;
+        return DictBase::contains( s );
     }
 
 private:

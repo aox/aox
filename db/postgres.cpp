@@ -311,7 +311,7 @@ void Postgres::process( char type )
         {
             PgParseComplete msg( readBuffer() );
             if ( q->name() != "" )
-                d->prepared.insert( q->name(), (int *)1 );
+                d->prepared.insert( q->name(), 0 );
         }
         break;
 
