@@ -515,7 +515,7 @@ void Injector::linkBodyparts()
             String pn = d->message->partNumber( b );
 
             q = new Query( "insert into part_numbers "
-                           "(mailbox,uid,bodypart,partno) values "
+                           "(mailbox,uid,bodypart,part) values "
                            "($1,$2,$3,$4)", 0 );
             q->bind( 1, m->id() );
             q->bind( 2, uid );
@@ -525,7 +525,7 @@ void Injector::linkBodyparts()
 
             if ( b->rfc822() ) {
                 q = new Query( "insert into part_numbers "
-                               "(mailbox,uid,bodypart,partno) values "
+                               "(mailbox,uid,bodypart,part) values "
                                "($1,$2,$3,$4)", 0 );
                 q->bind( 1, m->id() );
                 q->bind( 2, uid );
