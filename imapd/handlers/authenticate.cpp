@@ -1,9 +1,9 @@
 /*! \class Authenticate authenticate.h
     \brief Initiates SASL authentication (RFC 3501, §6.2.2)
 
-    This class oversees the challenge-response negotiation, leaving the
-    details of the client-selected SASL mechanism one of the subclasses
-    of Authenticator.
+    This class oversees the SASL challenge-response negotiation, using a
+    SaslMechanism subclass to handle the details of the client-selected
+    authentication mechanism.
 */
 
 #include "authenticate.h"
@@ -30,11 +30,13 @@ Authenticate::Authenticate()
 void Authenticate::parse()
 {
     t = atom().lower();
+
+    // Accept a SASL initial response.
     if ( nextChar() == ' ' ) {
-        // SASL-IR
         space();
         r = atom(); // wrong. only base64 is legal.
     }
+
     end();
 }
 
