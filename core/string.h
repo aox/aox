@@ -11,6 +11,8 @@ private:
     StringData(): str( 0 ), len( 0 ), max( 0 ) {}
 
     friend class String;
+    friend bool operator==( const class String &, const class String & );
+    friend bool operator==( const class String &, const char * );
     char * str;
     uint len;
     uint max;
@@ -30,7 +32,7 @@ public:
     String & operator+=( const String & str ) { append( str ); return *this; }
 
     // const, returns zero when used beyond the end
-    char operator[]( uint i ) const {
+    inline char operator[]( uint i ) const {
         if ( !d )
             return 0;
         if ( i >= d->len )
@@ -38,11 +40,11 @@ public:
         return d->str[i];
     }
 
-    char at( uint i ) const { return (*this)[i]; }
+    inline char at( uint i ) const { return (*this)[i]; }
 
-    bool isEmpty() const { return length() == 0; }
-    uint length() const { if ( !d ) return 0; return d->len; }
-    const char *data() const { if (!d) return 0; return (const char*)d->str; }
+    inline bool isEmpty() const { return !d || !d->len; }
+    inline uint length() const { return d ? d->len : 0; }
+    inline const char *data() const { return d ? (const char*)d->str : 0; }
     const char *cstr();
 
     String lower() const;
@@ -99,7 +101,7 @@ public:
 
     int compare( const String & ) const;
 
-    void detach() { if ( !modifiable() ) reserve( length() ); }
+    inline void detach() { if ( !modifiable() ) reserve( length() ); }
 
     bool modifiable() const { return d && d->max > 0; }
 
@@ -110,27 +112,34 @@ private:
 
 // since operator== is called so often, we provide fastish inlines
 inline bool operator==( const String & a, const String & b ) {
-    if ( a.length() != b.length() )
+    uint al = a.length();
+    uint bl = b.length();
+    if ( !al && !bl )
+        return true;
+    if ( !al || !bl || al != bl )
         return false;
+    if ( a.d == b.d )
+        return true;
     uint i = 0;
-    while ( i < a.length() && a[i] == b[i] )
+    while ( i < al && i < bl && a.d->str[i] == b.d->str[i] )
         i++;
-    if ( i < a.length() )
+    if ( i < al )
         return false;
     return true;
 }
 
 
 inline bool operator==( const String & a, const char * b ) {
-    if ( !b ) {
-        if ( a.length() == 0 )
+    uint al = a.length();
+    if ( !b || !*b ) {
+        if ( al == 0 )
             return true;
         return false;
     }
     uint i = 0;
-    while ( i < a.length() && a[i] == b[i] && b[i] != '\0' )
+    while ( i < al && a.d->str[i] == b[i] && b[i] != '\0' )
         i++;
-    if ( i < a.length() )
+    if ( i < al )
         return false;
     if ( b[i] != '\0' )
         return false;
