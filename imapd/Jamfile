@@ -1,11 +1,8 @@
 SubDir TOP imapd ;
 
-TESTS = tests/set.c tests/fetch.c tests/tokens.c tests/flags.c
-        tests/datetime.c ;
+Main imapd : main.cpp ;
+LinkLibraries imapd : liboryx ;
 
-Main imapd : set.c misc.c flags.c datetime.c config.c tokens.c
-             mailbox.c main.c tables.c
-             handlers.c handlers/append.c handlers/auth.c
-             handlers/fetch.c handlers/list.c handlers/mbox.c
-             handlers/select.c handlers/store.c handlers/misc.c
-             $(TESTS) .tests.c ;
+# include the lib directory so that we can build from here, and the
+# lib/* files are built correctly.
+SubInclude TOP lib ;

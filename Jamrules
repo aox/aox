@@ -1,3 +1,6 @@
-OPTIM    = -g ;
-HDRS     = . ../lib handlers /usr/include/mysql ;
-CCFLAGS  = -D_BSD_SOURCE -Wall -Werror -ansi -pedantic ;
+# we optimise... or do we?
+OPTIM    = ;
+# we always build with debugging and stop on error
+CCFLAGS  = -g -Wall -Werror -ansi -pedantic ;
+# our lib directory contains additional include files
+HDRS    += [ FDirName $(TOP) lib ] ;
