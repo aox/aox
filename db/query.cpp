@@ -433,20 +433,11 @@ Row *Query::nextRow()
 */
 
 
-/*! Creates an empty row of data. */
+/*! Creates a row of data with \a num columns from the array \a c. */
 
-Row::Row()
+Row::Row( int num, Column *c )
+    : n( num ), columns( c )
 {
-}
-
-
-/*! This helper function is used by Postgres::composeRow() to append a
-    Column \a cv to this Row of data, as it parses a DataRow response.
-*/
-
-void Row::append( Row::Column *cv )
-{
-    columns.append( cv );
 }
 
 
@@ -454,12 +445,15 @@ void Row::append( Row::Column *cv )
     in this Row, or 0 if there is no such column.
 */
 
-List< Row::Column >::Iterator Row::findColumn( const String &field ) const
+Row::Column *Row::findColumn( const String &field ) const
 {
-    List< Column >::Iterator c = columns.first();
-    while ( c && c->name != field )
-        c++;
-    return c;
+    int i = 0;
+    while ( i < n ) {
+        if ( columns[i].name == field )
+            return &columns[i];
+        i++;
+    }
+    return 0;
 }
 
 
@@ -489,8 +483,7 @@ void Row::logDisaster( Column * result, const String & field,
 
 String Row::getString( const String &field ) const
 {
-    List< Column >::Iterator c = findColumn( field );
-
+    Column *c = findColumn( field );
     if ( c && c->type == Database::Bytes )
         return c->value;
 
@@ -506,7 +499,7 @@ String Row::getString( const String &field ) const
 
 int Row::getInt( const String &field ) const
 {
-    List< Column >::Iterator c = findColumn( field );
+    Column *c = findColumn( field );
 
     if ( !c || c->type != Database::Integer ) {
         logDisaster( c, field, Database::Integer );
@@ -545,7 +538,7 @@ int Row::getInt( const String &field ) const
 
 bool Row::getBoolean( const String &field ) const
 {
-    List< Column >::Iterator c = findColumn( field );
+    Column *c = findColumn( field );
 
     if ( !c || c->type != Database::Boolean ) {
         logDisaster( c, field, Database::Boolean );
@@ -568,7 +561,7 @@ bool Row::getBoolean( const String &field ) const
 
 bool Row::null( const String & field ) const
 {
-    List< Column >::Iterator c = findColumn( field );
+    Column *c = findColumn( field );
 
     if ( !c )
         log( Log::Disaster, "Did not find Field " + field );

@@ -557,14 +557,17 @@ void Postgres::processQueue( bool userContext )
 
 Row *Postgres::composeRow( const PgDataRow &r )
 {
+    int n = d->description->columns.count();
     List< PgRowDescription::Column >::Iterator c;
     List< PgDataRow::Value >::Iterator v;
-    Row *row = new Row();
 
+    Row::Column *columns = new Row::Column[n];
+
+    int i = 0;
     c = d->description->columns.first();
     v = r.columns.first();
     while ( c ) {
-        Row::Column *cv = new Row::Column;
+        Row::Column *cv = &columns[i];
 
         Database::Type t;
         switch ( c->type ) {
@@ -589,13 +592,13 @@ Row *Postgres::composeRow( const PgDataRow &r )
         cv->type = t;
         cv->length = v->length;
         cv->value = v->value;
-        row->append( cv );
 
+        i++;
         c++;
         v++;
     }
 
-    return row;
+    return new Row( n, columns );
 }
 
 

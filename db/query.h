@@ -95,8 +95,6 @@ private:
 
 class Row {
 public:
-    Row();
-
     class Column {
     public:
         String name;
@@ -104,6 +102,8 @@ public:
         int length;
         String value;
     };
+
+    Row( int, Column * );
 
     void append( Column * );
     String getString( const String & ) const;
@@ -113,12 +113,11 @@ public:
     bool null( const String & ) const;
 
 private:
-    void logDisaster( Column *, const String &, Database::Type ) const;
-    List< Column >::Iterator findColumn( const String & ) const;
-    
-private:
-    List< Column > columns;
+    int n;
+    Column *columns;
 
+    Column *findColumn( const String & ) const;
+    void logDisaster( Column *, const String &, Database::Type ) const;
 };
 
 
