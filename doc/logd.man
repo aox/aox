@@ -9,29 +9,29 @@ logd - logging server for Oryx Mailstore.
 .PP
 The Oryx Mailstore
 .B logd
-is an internal server which receives, buffers and filters
-log entries from other parts of Mailstore so useful messages are
-logged while noise is suppressed.
+is an internal server which receives, buffers and filters log entries
+from other parts of Mailstore, so that useful messages are logged, while
+noise is suppressed.
 .PP
-Mailstore's log system uses transactions and four log levels,
+Mailstore's log system uses transactions and four log levels:
 .IR Disaster ,
 .IR Error ,
 .I Info
 and
 .IR Debug .
-Each program in Mailstore sends all its log output to
+Each program in Mailstore sends its log messages to
 .BR logd ,
-which stores it in RAM until a transaction ends.
+which stores them in RAM until a transaction ends.
 .PP
-When a transaction ends,
-.B logd
-checks whether an
-.I Error
-or a
-.I Disaster
-was logged as part of this transaction. If so,
-.B logd
-logs everything. If nothing bad happened,
+If a message is logged with severity
+.IR loglevel
+(usually set to
+.IR Error )
+or greater, it is immediately written to the log file. If the severity
+is
+.IR Error
+or greater, all preceding messages of lower severity are also logged.
+Otherwise, when a transaction ends, 
 .I Debug
 output is suppressed.
 .PP

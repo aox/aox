@@ -94,7 +94,11 @@ or
 .IR disaster ,
 besides the default value of 
 .IR info .
-The log server immediately logs messages above the given severity.
+If a message is logged with this severity or above, the log server
+immediately writes it to the log file. Messages with lower severity
+are considered only when the transaction is commited, or when a message
+is logged with a severity greater than
+.IR error .
 .SS Security
 .IP security
 is enabled by default, and should be enabled whenever Mailstore
