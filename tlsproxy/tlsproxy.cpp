@@ -226,12 +226,12 @@ static void handleError( int cryptError, const String & function )
     cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORLOCUS, &locus );
     cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORTYPE, &type );
 
-    ::log( function + " reported error: " + cryptlibError( cryptError ),
-           Log::Error );
+    String s = function + " reported error: " + cryptlibError( cryptError );
     if ( locus )
-        ::log( function + " error locus: " + cryptlibLocus( locus ) );
+        s.append( ", locus: " + cryptlibLocus( locus ) );
     if ( type )
-        ::log( function + " error type: " + cryptlibType( type ) );
+        s.append( ", type: " + cryptlibType( type ) );
+    ::log( s, Log::Error );
 
     int errorStringLength;
     String errorString;
@@ -416,7 +416,7 @@ void TlsProxy::react( Event e )
     (server-side) one.
 
     The syntax is a single line terminated by crlf. The line contains
-    foud space-separated fields: partner tag, protocol, client address
+    four space-separated fields: partner tag, protocol, client address
     and client port.
 */
 
@@ -538,11 +538,10 @@ void TlsProxy::encrypt()
     Scope b( &a );
 
     Buffer * r = readBuffer();
-
     String s = *r->string( r->size() );
     int len;
     int status = cryptPushData( cs, s.data(), s.length(), &len );
-    handleError( status, "crypePushData" );
+    handleError( status, "cryptPushData" );
     if ( status == CRYPT_OK )
         r->remove( len );
 }
