@@ -16,7 +16,8 @@ public:
 
     void enqueue( Query * );
     void execute();
-    void end();
+    void rollback();
+    void commit();
 
 private:
     class TransactionData *d;

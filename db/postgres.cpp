@@ -460,9 +460,6 @@ void Postgres::error( const String &s )
 
     List< Query >::Iterator q( d->queries.first() );
     while ( q ) {
-        Transaction *t = q->transaction();
-        if ( t )
-            t->setState( Transaction::Failed );
         q->setError( s );
         q->notify();
         q++;

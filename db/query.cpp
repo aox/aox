@@ -11,7 +11,7 @@ class QueryData {
 public:
     QueryData()
         : type( Query::Execute ), state( Query::Inactive ),
-          transaction( 0 ), command( 0 ), totalRows( 0 )
+          transaction( 0 ), owner( 0 ), totalRows( 0 )
     {}
 
     Query::Type type;
@@ -21,8 +21,8 @@ public:
     String query;
     SortedList< Query::Value > values;
 
-    Transaction * transaction;
-    EventHandler * command;
+    Transaction *transaction;
+    EventHandler *owner;
     List< Row > rows;
     uint totalRows;
 
@@ -51,38 +51,35 @@ public:
 */
 
 
-/*! Constructs a new empty Query for \a cmd.
+/*! Constructs a new empty Query handled by \a ev.
     (This form is provided for use by subclasses.)
 */
 
-Query::Query( EventHandler * cmd )
+Query::Query( EventHandler *ev )
     : d( new QueryData )
 {
-    d->command = cmd;
+    d->owner = ev;
 }
 
 
-/*! Constructs a new Query containing the SQL statement \a s on behalf
-    of \a cmd.
-*/
+/*! Constructs a Query for \a ev containing the SQL statement \a s. */
 
-Query::Query( const String &s, EventHandler *cmd )
+Query::Query( const String &s, EventHandler *ev )
     : d( new QueryData )
 {
     d->query = s;
-    d->command = cmd;
+    d->owner = ev;
 }
 
 
-/*! Constructs a Query for \a cmd from the PreparedStatement \a ps.
-*/
+/*! Constructs a Query for \a ev from the prepared statement \a ps. */
 
-Query::Query( const PreparedStatement &ps, EventHandler *cmd )
+Query::Query( const PreparedStatement &ps, EventHandler *ev )
     : d( new QueryData )
 {
     d->name = ps.name();
     d->query = ps.query();
-    d->command = cmd;
+    d->owner = ev;
 }
 
 
@@ -237,7 +234,7 @@ List< Query::Value > *Query::values() const
 
 EventHandler *Query::owner() const
 {
-    return d->command;
+    return d->owner;
 }
 
 
@@ -248,8 +245,12 @@ EventHandler *Query::owner() const
 
 void Query::notify()
 {
-    Scope( d->command->arena() );
-    d->command->execute();
+    // Transactions may create COMMIT/ROLLBACK queries without handlers.
+    if ( !d->owner )
+        return;
+    
+    Scope( d->owner->arena() );
+    d->owner->execute();
 }
 
 
@@ -264,14 +265,19 @@ String Query::error() const
 
 
 /*! Stores the error message \a s in response to this Query, and sets
-    the Query state to Failed. This function is intended for use by
-    the Database.
+    the Query state to Failed. If the Query belongs to a Transaction,
+    the Transaction::state() is set to Failed too.
+
+    This function is intended for use by the Database.
 */
 
 void Query::setError( const String &s )
 {
     d->error = s;
     d->state = Query::Failed;
+
+    if ( d->transaction )
+        d->transaction->setState( Transaction::Failed );
 }
 
 
