@@ -13,7 +13,6 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <stdio.h>
 
 
 WriteNotifier::WriteNotifier( int socket, Connection * connection )
@@ -54,7 +53,6 @@ ReadNotifier::ReadNotifier( int socket, Connection * connection )
 }
 
 void ReadNotifier::dispatch() {
-    fprintf( stderr, "Saw a read notification\n" );
     Loop::loop()->dispatch( c, true, false, time( 0 ) );
 }
 
