@@ -284,3 +284,25 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
         delete c;
     }
 }
+
+
+/*!
+
+*/
+
+void EventLoop::killAllExcept( Connection * c1, Connection * c2 )
+{
+    SortedList< Connection >::Iterator it = d->connections.first();
+    while ( it ) {
+        Connection * c = it;
+        it++;
+        if ( c == c1 || c == c2 ) {
+            // we keep those two.
+        }
+        else {
+            removeConnection( c );
+            delete c;
+        }
+    }
+    
+}

@@ -13,6 +13,7 @@ public:
     void shutdown();
     void addConnection( Connection * );
     void removeConnection( Connection * );
+    void killAllExcept( Connection *, Connection * );
 
 private:
     class LoopData *d;

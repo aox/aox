@@ -5,7 +5,7 @@ SubInclude TOP cryptlib ;
 OrigHDRS = $(HDRS) ;
 HDRS += [ FDirName $(TOP) cryptlib ] ;
 
-Build tls : tlsproxy.cpp encrypter.cpp decrypter.cpp ;
+Build tls : tlsproxy.cpp ;
 
 Program tlsproxy : tls server core cryptlib ;
 

@@ -16,7 +16,7 @@ class LogClientHelper
     : public Connection
 {
 public:
-    LogClientHelper( int fd, LogClient *client )
+    LogClientHelper( int fd, Logger *client )
         : Connection( fd, Connection::LoggingClient ), owner( client )
     {
         Loop::addConnection( this );
@@ -25,6 +25,8 @@ public:
     ~LogClientHelper()
     {
         Loop::removeConnection( this );
+        delete owner;
+        owner = 0;
     }
 
     // The log server isn't supposed to send us anything.
@@ -45,7 +47,7 @@ public:
     }
 
 private:
-    LogClient *owner;
+    Logger *owner;
 };
 
 
@@ -99,7 +101,7 @@ void LogClient::setup()
     client->c->setBlocking( true );
     if ( client->c->connect( e ) < 0 ) {
         fprintf( stderr, "LogClient: Unable to connect to log server %s\n",
-                 String(e).cstr() );
+                 e.string().cstr() );
         perror( "LogClient: connect() returned" );
         exit( -1 );
     }

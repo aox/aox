@@ -61,7 +61,7 @@ void OCClient::setup()
     client->setBlocking( true );
 
     if ( client->connect( e ) < 0 ) {
-        log( Log::Disaster, "Unable to connect to ocdhost " + e + "\n" );
+        log( Log::Disaster, "Unable to connect to ocdhost " + e.string() + "\n" );
         return;
     }
 

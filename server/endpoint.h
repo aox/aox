@@ -22,7 +22,7 @@ public:
     struct sockaddr *sockaddr() const;
     uint sockaddrSize() const;
 
-    operator String();
+    String string() const;
 
 private:
     class EndpointData * d;

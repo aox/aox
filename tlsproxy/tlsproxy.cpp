@@ -1,94 +1,252 @@
 #include "arena.h"
 #include "scope.h"
 #include "configuration.h"
-#include "connection.h"
 #include "logclient.h"
 #include "listener.h"
-#include "loop.h"
 #include "log.h"
-#include "decrypter.h"
-#include "encrypter.h"
-
-// write()
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <unistd.h>
+#include "tlsproxy.h"
+#include "server.h"
+#include "occlient.h"
+#include "entropy.h"
+#include "buffer.h"
+#include "list.h"
 
 // cryptlib
 #include "cryptlib.h"
 
-// exit()
-#include <stdlib.h>
+// fork()
+#include <sys/types.h>
+#include <unistd.h>
+
+// errno
+#include <errno.h>
 
 
-/*! \nodoc */
-
-
-CRYPT_SESSION cryptSession;
-
-
-int main( int argc, char *argv[] )
+int main( int, char *[] )
 {
     Arena firstArena;
     Scope global( &firstArena );
 
-    int e = 0;
+    Server s( "tlsproxy" );
+    s.setup( Server::Report );
+    LogClient::setup();
+    s.setup( Server::Secure );
+    Listener< TlsProxy >::create( "TLS proxy", "", 2061 );
+    s.setup( Server::Finish );
 
-    if ( argc != 5 )
-        e = 1;
-    else if ( String( argv[1] ) != "server" )
-        e = 2;
+    s.execute();
+}
 
-    uint fd1, fd2, fd3;
-    bool ok = true;
 
-    if ( ok && !e )
-        fd1 = String( argv[2] ).number( &ok );
-    if ( ok && !e )
-        fd2 = String( argv[3] ).number( &ok );
-    if ( ok && !e )
-        fd3 = String( argv[4] ).number( &ok );
 
-    if ( !ok )
-        e = 3;
+class TlsProxyData
+{
+public:
+    TlsProxyData(): key( Entropy::asString( 9 ) ), state( Initial ) {}
 
-    if ( fd1 == fd2 || fd1 == fd3 || fd2 == fd3 )
-        e = 4;
+    String key;
+    enum State {
+        Initial,
+        PlainSide,
+        EncryptedSide
+    };
+    State state;
+};
 
-    if ( e ) {
-        String s( "Usage: tlsproxy server fd1 fd2 fd3\n" );
-        write( 2, s.data(), s.length() );
-        exit( e );
+
+static List<TlsProxy> * proxies = 0;
+
+
+/*! \class TlsProxy tlsproxy.h
+  The TlsProxy class provides half a tls proxy.
+
+  It answers a request from another Mailstore server, hands out an
+  identification number, and can build a complete proxy.
+
+  The proxy needs two connections, one plaintext and one
+  encrupted. Data comes in on one end, is encrypted/decrypted, is sent
+  out on the other.
+*/
+
+
+/*!  Constructs an empty
+
+*/
+
+TlsProxy::TlsProxy( int socket )
+    : Connection( socket, Connection::TlsProxy ), d( new TlsProxyData )
+{
+    Loop::addConnection( this );
+    if ( !proxies )
+        proxies = new List<TlsProxy>;
+    proxies->append( this );
+
+    enqueue( "tlsproxy " + d->key.e64() + "\r\n" );
+}
+
+
+/*! \remp */
+
+void TlsProxy::react( Event e )
+{
+    switch ( e ) {
+    case Read:
+        switch( d->state ) {
+        case TlsProxyData::Initial:
+            parse();
+            break;
+        case TlsProxyData::PlainSide:
+            encrypt();
+            break;
+        case TlsProxyData::EncryptedSide:
+            decrypt();
+            break;
+        }
+        break;
+
+    case Timeout:
+        enqueue( "Timeout\r\n" );
+        log( "timeout" );
+        setState( Closing );
+        break;
+
+    case Connect:
+    case Error:
+    case Close:
+    case Shutdown:
+        setState( Closing );
+        break;
     }
 
-    // simply assume that all three fds are okay.
-
-    // tell the user that we've started up.
-    ::write( fd3, "ok\n", 3 );
-    ::close( fd3 );
+    setTimeoutAfter( 1800 );
+}
 
 
-    Configuration::setup( "mailstore.conf", "tlsproxy.conf" );
+/*!
 
-    String server = Configuration::hostname();
+*/
 
-    /* Create the session and add the server name */
-    cryptCreateSession( &cryptSession, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER );
-    cryptSetAttributeString( cryptSession, CRYPT_SESSINFO_SERVER_NAME,
-                             server.data(), server.length() );
-    cryptSetAttribute( cryptSession, CRYPT_SESSINFO_NETWORKSOCKET, fd1 );
+void TlsProxy::parse()
+{
+    String * l = readBuffer()->removeLine();
+    if ( !l )
+        return;
+    String cmd = l->simplified();
+    
+    int i = cmd.find( ' ' );
+    bool ok = true;
+    if ( i <= 0 )
+        ok = false;
 
-    Encrypter * tmp = new Encrypter( fd1, cryptSession );
-    (void)new Decrypter( fd2, tmp );
+    String tag = cmd.mid( 0, i-1 ).de64();
+    cmd = cmd.mid( i+1 );
+    i = cmd.find( ' ' );
+    if ( i <= 0 )
+        ok = false;
 
-    Loop::setup();
+    String proto = cmd.mid( 0, i-1 );
+    cmd = cmd.mid( i+1 );
+    i = cmd.find( ' ' );
+    if ( i <= 0 )
+        ok = false;
 
-    Log l( Log::Immediate );
-    global.setLog( &l );
+    String addr = cmd.mid( 0, i-1 );
+    cmd = cmd.mid( i+1 );
+    i = cmd.find( ' ' );
+    if ( i <= 0 )
+        ok = false;
+
+    uint port = 0;
+    if ( ok )
+        port = cmd.mid( i+1 ).number( &ok );
+
+    Endpoint client( addr, port );
+    if ( !client.valid() )
+        ok = false;
+
+    if ( !ok ) {
+        enqueue( "Syntax error\r\n" );
+        log( "syntax error: " + *l );
+        setState( Closing );
+        return;
+    }
+
+    TlsProxy * other = 0;
+    List<TlsProxy>::Iterator it = proxies->first();
+    while ( other == 0 && it != proxies->end() ) {
+        TlsProxy * c = it;
+        ++it;
+        if ( c->d->key == tag )
+            other = c;
+    }
+    if ( !other ) {
+        enqueue( "Did not find partner\r\n" );
+        log( "did not find partner" );
+        setState( Closing );
+        return;
+    }
+
+    start( other, client, proto );
+}
+
+
+/*! Starts TLS proxying with this object on the cleartext side and \a
+    other on the encrupted side. \a client is logged as client using \a
+    protocol.
+*/
+
+void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & proto )
+{
+    int p1 = fork();
+    if ( p1 < 0 ) {
+        // error
+        log( "fork failed: " + String::fromNumber( errno ) );
+        setState( Closing );
+        return;
+    }
+    else if ( p1 > 0 ) {
+        // it's the parent
+        Loop::removeConnection( this );
+        Loop::removeConnection( other );
+        delete other;
+        delete this;
+        return;
+    }
+
+    int p2 = fork();
+    if ( p2 < 0 ) {
+        // an error halfway through. hm. what to do?
+        exit( 0 );
+    }
+    else if ( p2 > 0 ) {
+        // it's the intermediate. it can exit.
+        exit( 0 );
+    }
+
+    // it's the child!
+    Loop::killAllExcept( this, other );
     LogClient::setup();
+    log( "Starting TLS proxy for for " + proto + " client " + client.string() +
+         " (host " + Configuration::hostname() + ") (pid " +
+         String::fromNumber( getpid() ) + ")" );
+}
 
-    Configuration::report();
-    l.commit();
 
-    Loop::start();
+/*!
+
+*/
+
+void TlsProxy::encrypt()
+{
+    
+}
+
+
+/*!
+
+*/
+
+void TlsProxy::decrypt()
+{
+    
 }

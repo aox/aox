@@ -64,3 +64,14 @@ void Loop::removeConnection( Connection *c )
     if ( ::loop )
         ::loop->removeConnection( c );
 }
+
+
+/*!
+
+*/
+
+void Loop::killAllExcept( Connection * c1, Connection * c2 )
+{
+    if ( ::loop )
+        ::loop->killAllExcept( c1, c2 );
+}

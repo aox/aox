@@ -6,9 +6,10 @@ class String;
 class Logger {
 protected:
     Logger();
-    virtual ~Logger();
 
 public:
+    virtual ~Logger();
+
     virtual void send( const String & ) = 0;
     static Logger *logger();
 };

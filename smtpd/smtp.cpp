@@ -120,7 +120,7 @@ SMTP::SMTP( int s )
     if ( s < 0 )
         return;
 
-    log( "Accepted SMTP connection from " + peer() );
+    log( "Accepted SMTP connection from " + peer().string() );
 
     respond( 220, "ESMTP " + Configuration::hostname() );
     sendResponses();
