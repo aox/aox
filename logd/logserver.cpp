@@ -12,7 +12,7 @@
 
 
 static uint id = 0;
-extern File *logFile;
+File *logFile;
 
 
 /*! \class LogServer logserver.h
@@ -260,5 +260,20 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
 
     if ( logFile )
         logFile->write( msg );
-    fprintf( stderr, "%s", msg.cstr() );
+    else
+        fprintf( stderr, "%s", msg.cstr() );
+}
+
+
+/*! Tells all LogServer object to write log information to \a name
+    from now on.
+*/
+
+void LogServer::setLogFile( const String & name )
+{
+    File * l = new File( name, File::Append );
+    if ( l->valid() )
+        ::logFile = l;
+    else
+        ::log( Log::Error, "Could not open log file " + name );
 }

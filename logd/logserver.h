@@ -14,6 +14,8 @@ public:
 
     void processLine( const String & );
 
+    static void setLogFile( const String & );
+
 private:
     void parse();
     void process( String, String, String );

@@ -10,9 +10,6 @@
 #include "selflogger.h"
 
 
-File *logFile = 0;
-
-
 /*! \nodoc */
 
 int main( int, char *[] )
@@ -29,11 +26,7 @@ int main( int, char *[] )
     Log l( Log::Immediate );
     global.setLog( &l );
 
-    logFile = new File( logName, File::Append );
-    if ( !logFile->valid() ) {
-        logFile = 0;
-        log( Log::Error, "Could not open log file " + logName );
-    }
+    LogServer::setLogFile( logName );
 
     Listener< LogServer >::create( "Log Server", "", 2054 );
 
