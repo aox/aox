@@ -12,6 +12,9 @@
 #include <qsocketnotifier.h>
 #include <qapplication.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
 
 class WriteNotifier: public QSocketNotifier
 {
@@ -22,11 +25,26 @@ public:
     }
 
     void activated() {
-        // XXX: check whether the connections is okay, and if not,
-        // dispatch an error. but for now, we just assume all is in
-        // working order.
-        Loop::loop()->dispatch( c, false, true, time( 0 ) );
-        setEnabled( c->canWrite() || c->state() == Connection::Connecting );
+        if ( c->state() == Connection::Connecting ) {
+            int errval;
+            int errlen = sizeof( int );
+            ::getsockopt( c->fd(), SOL_SOCKET, SO_ERROR, (void *)&errval,
+                          (socklen_t *)&errlen );
+            if ( errval == 0 ) {
+                c->setState( Connection::Connected );
+                c->react( Connection::Connect );
+            }
+            else {
+                c->react( Connection::Error );
+                c->setState( Connection::Closing );
+            }
+            setEnabled( false );
+        }
+        else {
+            Loop::loop()->dispatch( c, false, true, time( 0 ) );
+            setEnabled( c->canWrite() &&
+                        c->state() == Connection::Connected );
+        }
     }
 
     Connection * c;
