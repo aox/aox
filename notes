@@ -4,10 +4,18 @@ Schema documentation
   to wait for Sujai's diagram (later tonight) to complete schema.html.
 
 
+Installation script
+
+  What does it need to do?
+
+    1. Copy files(?)
+    2. Set up the database.
+    3. Generate a configuration file.
+
+  Is it okay for it to be interactive? (No, I guess not.)
+
+
 Fix startup and shutdown (and log disasters to stderr)
-
-
-we need an install script that generates a config file
 
 
 Injector fixes:
