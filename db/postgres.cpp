@@ -385,7 +385,7 @@ void Postgres::process( char type )
             }
 
             processQueue();
-            if ( d->queries.count() == 0 )
+            if ( d->queries.isEmpty() )
                 setTimeout( 0 );
         }
         break;
