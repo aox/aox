@@ -14,6 +14,7 @@ public:
     Listener( const Endpoint &e, const String & s )
         : Connection(), svc( s )
     {
+        setType( Connection::Listener );
         if ( listen( e ) >= 0 )
             Loop::addConnection( this );
     }

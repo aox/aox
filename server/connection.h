@@ -47,6 +47,7 @@ public:
     Arena * arena() const;
     Endpoint self() const;
     Endpoint peer() const;
+    void setType( Type );
     Type type() const;
     virtual String description() const;
 
