@@ -198,3 +198,33 @@ Field name synchronisation
   is greater than or equal to Other.
 
   And we need to synchronise the in-memory maps via ocd anyway.
+
+
+Udoc nested classes
+
+  Udoc should support a single level of nested classes. Several levels
+  aren't necessary.
+
+  Unsure what file names to use for output.
+
+
+Udoc enums
+
+  Not supported now. That needs fixing eventually.
+
+
+Udoc web pages chores
+
+  Add "Related Pages" etc. Clarify where background.html
+  fits. usage.html is an orphan now; should it become a manpage?
+
+
+Web page appearance/voice
+
+  Right now, our pages look much the same, but differ in detail. It'd
+  be good to have a formally decided look and feel, and update the
+  pages to use that, and only that. For example, what's the "related
+  pages" headline called, "pages" or "links", and is the second word
+  capitalized?
+
+
