@@ -17,6 +17,12 @@ struct AddressLink {
 };
 
 
+struct HeaderLink {
+    HeaderField *hf;
+    String part;
+};
+
+
 class InjectorData {
 public:
     InjectorData()
@@ -339,6 +345,55 @@ void Injector::insertMessages()
 
 void Injector::insertHeaders()
 {
+    List< HeaderLink > headerLinks;
+    List< Query > *queries = new List< Query >;
+
+    Header *h = d->message->header();
+    HeaderField::Type types[] = {
+        HeaderField::ReturnPath, HeaderField::From, HeaderField::To,
+        HeaderField::Cc, HeaderField::Bcc, HeaderField::ReplyTo,
+        HeaderField::Subject, HeaderField::Date, HeaderField::MessageId
+    };
+    int n = sizeof (types) / sizeof (types[0]);
+
+    int i = 0;
+    while ( i < n ) {
+        HeaderField::Type t = types[ i++ ];
+
+        HeaderLink *link = new HeaderLink;
+        headerLinks.append( link );
+        link->hf = h->field( t );
+        link->part = "";
+    }
+
+    List< Mailbox >::Iterator mb( d->mailboxes->first() );
+    List< int >::Iterator uids( d->uids->first() );
+    while ( mb ) {
+        Mailbox *m = mb++;
+        int uid = *uids++;
+
+        List< HeaderLink >::Iterator it( headerLinks.first() );
+        while ( it ) {
+            HeaderLink *link = it++;
+
+            if ( !link->hf )
+                continue;
+
+            Query *q;
+            q = new Query( "insert into header_fields "
+                           "(mailbox,uid,part,field,value) values "
+                           "($1,$2,$3,$4,$5)", 0 );
+            q->bind( 1, m->id() );
+            q->bind( 2, uid );
+            q->bind( 3, link->part );
+            q->bind( 4, link->hf->type() );
+            q->bind( 5, link->hf->value() );
+
+            queries->append( q );
+        }
+    }
+
+    Database::query( queries );
 }
 
 
