@@ -34,7 +34,7 @@ rule SubInclude
     local a b ;
     for a in $(IncludedDirectories) {
         if $(a) = $(SUBDIR) {
-        b = true ;
+            b = true ;
         }
     }
 
