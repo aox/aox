@@ -148,7 +148,7 @@ int IMAP::parse()
                     if ( (*s)[i] == '{' ) {
                         d->readingLiteral = true;
                         bool ok;
-                        d->literalSize = s->mid( i+1, j-i-1 ).number( &ok );
+                        d->literalSize = s->mid( i+1, j-i+1 ).number( &ok );
                         // if ( ok && size > 99999999 ) ok = false; ? perhaps?
                         if ( !ok ) {
                             writeBuffer()->append( "* BAD literal, BAD\r\n" );
