@@ -339,8 +339,8 @@ void Fetch::execute()
                 m->fetchBodies( this );
                 ok = false;
             }
-            if ( d->flags && !m->hasCustomFlags() ) {
-                m->fetchCustomFlags( this );
+            if ( d->flags && !m->hasExtraFlags() ) {
+                m->fetchExtraFlags( this );
                 ok = false;
             }
             if ( ok )
@@ -408,7 +408,7 @@ String Fetch::flagList( Message * m, uint uid )
     if ( imap()->session()->isRecent( uid ) )
         r.append( "\\recent" );
 
-    List<Flag> * f = m->customFlags();
+    List<Flag> * f = m->extraFlags();
     if ( f && !f->isEmpty() ) {
         List<Flag>::Iterator it = f->first();
         while ( it ) {

@@ -54,13 +54,13 @@ public:
     bool flag( BuiltinFlag ) const;
     void setFlag( BuiltinFlag, bool );
 
-    List<Flag> * customFlags() const;
+    List<Flag> * extraFlags() const;
 
-    bool hasCustomFlags() const;
+    bool hasExtraFlags() const;
     bool hasHeaders() const;
     bool hasBodies() const;
 
-    void fetchCustomFlags( EventHandler * );
+    void fetchExtraFlags( EventHandler * );
     void fetchHeaders( EventHandler * );
     void fetchBodies( EventHandler * );
 

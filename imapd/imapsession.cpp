@@ -338,9 +338,12 @@ void ImapSessionInitializer::execute()
             Message * m = 0;
             // this is where we check whether we already have that
             // message
-            if ( true )
+            if ( true ) {
                 // and if we don't, we create one
                 m = new Message;
+                m->setUid( uid );
+                m->setMailbox( d->session->mailbox() );
+            }
 
             d->session->d->messages.insert( uid, m );
             d->session->d->msns.add( uid, uid );
