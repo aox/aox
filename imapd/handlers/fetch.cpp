@@ -45,6 +45,7 @@ public:
 
 void Fetch::parse()
 {
+    space();
     d->uid = uid;
     d->set = set( !uid );
     space();

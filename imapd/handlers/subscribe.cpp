@@ -8,6 +8,7 @@
 
 void Subscribe::parse()
 {
+    space();
     m = astring();
     end();
 }

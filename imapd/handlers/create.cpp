@@ -8,6 +8,7 @@
 
 void Create::parse()
 {
+    space();
     m = astring();
     end();
 }

@@ -20,6 +20,7 @@ Login::Login()
 
 void Login::parse()
 {
+    space();
     n = astring();
     space();
     p = astring();

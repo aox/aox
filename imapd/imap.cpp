@@ -259,8 +259,6 @@ parseError:
     // Use this Command to parse the command line.
 
     cmd->step( i );
-    if ( cmd->nextChar() == ' ' )
-        cmd->space();
     cmd->parse();
 
 

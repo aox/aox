@@ -29,6 +29,7 @@ Authenticate::Authenticate()
 
 void Authenticate::parse()
 {
+    space();
     t = atom().lower();
 
     // Accept a SASL initial response.

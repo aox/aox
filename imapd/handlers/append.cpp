@@ -40,9 +40,9 @@ Append::Append()
 
 void Append::parse()
 {
-
     // the grammar used is:
     // append = "APPEND" SP mailbox SP [flag-list SP] [date-time SP] literal
+    space();
     String mailbox = astring();
     space();
 

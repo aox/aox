@@ -9,6 +9,7 @@
 
 void Select::parse()
 {
+    space();
     m = astring();
     end();
 }

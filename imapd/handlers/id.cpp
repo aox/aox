@@ -13,6 +13,7 @@
 
 void Id::parse()
 {
+    space();
     if ( nextChar() == '(' ) {
         step();
         while ( nextChar() != ')' ) {

@@ -8,6 +8,7 @@
 
 void Rename::parse()
 {
+    space();
     a = astring();
     space();
     b = astring();

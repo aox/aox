@@ -36,6 +36,7 @@ Store::Store( bool u )
 
 void Store::parse()
 {
+    space();
     s = set( uid );
     space();
 

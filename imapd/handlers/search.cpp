@@ -39,6 +39,7 @@ void Search::parse()
 {
     prepare();
 
+    space();
     parseKey( true );
     if ( !d->charset.isEmpty() ) {
         space();
