@@ -3,6 +3,7 @@
 
 #include <list.h>
 #include <global.h>
+#include "set.h"
 
 class String;
 class IMAP;
@@ -50,6 +51,7 @@ public:
     String atom();
     String quoted();
     String literal();
+    Set set();
     char nextChar();
     void step();
 
@@ -60,6 +62,8 @@ private:
 
 private:
     CommandData * d;
+
+    friend class CommandTest;
 };
 
 #endif
