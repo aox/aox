@@ -33,11 +33,6 @@ static void generateKey();
 static void setupKey();
 
 
-static CRYPT_SESSION cs;
-static TlsProxy * userside;
-static TlsProxy * serverside;
-
-
 int main( int, char *[] )
 {
     Arena firstArena;
@@ -57,6 +52,10 @@ int main( int, char *[] )
 }
 
 
+static CRYPT_SESSION cs;
+static CRYPT_CONTEXT privateKey;
+
+
 static void setupKey()
 {
     Configuration::Text keyFile( "tls-certificate", "" );
@@ -74,7 +73,6 @@ static void generateKey()
     int status = 0;
 
     // Generate an RSA private key.
-    CRYPT_CONTEXT privateKey;
     String label = "Mailstore on-demand key";
 
     status = cryptCreateContext( &privateKey, CRYPT_UNUSED, CRYPT_ALGO_RSA );
@@ -130,6 +128,14 @@ static void generateKey()
     status = cryptAddPublicKey( keyset, cert );
     handleError( status, "cryptAddPublicKey" );
 
+    // Keep the privateKey around for later use.
+    // status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
+    //                           "/tmp/keyset", CRYPT_KEYOPT_NONE );
+    // handleError( status, "cryptKeysetOpen" );
+    status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
+                                 "Mailstore on-demand key", "secret" );
+    handleError( status, "cryptGetPrivateKey" );
+
     // Clean up
     cryptKeysetClose( keyset );
     cryptDestroyCert( cert );
@@ -138,6 +144,8 @@ static void generateKey()
 
 
 static List<TlsProxy> * proxies;
+static TlsProxy * userside;
+static TlsProxy * serverside;
 
 
 class TlsProxyData
@@ -347,14 +355,6 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     ::userside = this;
 
     int status;
-    CRYPT_KEYSET keyset;
-    CRYPT_CONTEXT privateKey;
-    status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
-                              "/tmp/keyset", CRYPT_KEYOPT_NONE );
-    handleError( status, "cryptKeysetOpen" );
-    status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
-                                 "Mailstore on-demand key", "secret" );
-    handleError( status, "cryptGetPrivateKey" );
     status = cryptCreateSession( &cs, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER );
     handleError( status, "cryptCreateSession" );
     userside->setBlocking( true );
@@ -368,7 +368,6 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     status = cryptSetAttribute( cs, CRYPT_SESSINFO_ACTIVE, 1 );
     handleError( status, "cryptSetAttribute(ACTIVE)" );
     cryptDestroyContext( privateKey );
-    cryptKeysetClose( keyset );
 }
 
 
