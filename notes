@@ -10,6 +10,11 @@ Injector fixes:
   2. Better error handling is urgently required.
 
 
+Message fixes:
+
+  1. Extra \r\n in the bodypart for o/1
+
+
 FETCH fixes:
 
   Currently we're always peeking; "fetch 1 body[1]" does not change
