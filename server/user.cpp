@@ -9,16 +9,18 @@
 #include "configuration.h"
 #include "transaction.h"
 #include "addresscache.h"
+#include "occlient.h"
 
 
-class UserData
-{
+class UserData {
 public:
-    UserData(): id( 0 ), inbox( 0 ), home( 0 ), address( 0 ),
-                q( 0 ), createQuery( 0 ), t( 0 ), user( 0 ),
-                state( User::Unverified ),
-                mode( LoungingAround )
-        {}
+    UserData()
+        : id( 0 ), inbox( 0 ), home( 0 ), address( 0 ),
+          q( 0 ), createQuery( 0 ), t( 0 ), user( 0 ),
+          state( User::Unverified ),
+          mode( LoungingAround )
+    {}
+
     String login;
     String secret;
     uint id;
@@ -58,6 +60,31 @@ User::User()
     : d( new UserData )
 {
     // nothing
+}
+
+
+/*! Returns the user's state, which is either Unverified (the object has
+    made no attempt to refresh itself from the database), Refreshed (the
+    object was successfully refreshed) or Nonexistent (the object tried
+    to refresh itself, but there was no corresponsing user in the
+    database).
+
+    The state is Unverified initially and is changed by refresh().
+*/
+
+User::State User::state() const
+{
+    return d->state;
+}
+
+
+/*! Returns the user's ID, ie. the primary key from the database, used
+    to link various other tables to this user.
+*/
+
+uint User::id() const
+{
+    return d->id;
 }
 
 
@@ -136,6 +163,52 @@ Address * User::address()
         d->address = new Address( "", d->login, dom );
     }
     return d->address;
+}
+
+
+/*! Returns the user's "home directory" - the mailbox under which all
+    of the user's mailboxes reside.
+
+    This is read-only since at the moment, the mailstore servers only
+    permit one setting: "/users/" + login. However, the database
+    permits more namespaces than just "/users", so one day this may
+    change.
+*/
+
+Mailbox * User::home() const
+{
+    return d->home;
+}
+
+
+/*! Returns true if this user is known to exist in the database, and
+    false if it's unknown or doesn't exist.
+*/
+
+bool User::exists()
+{
+    return d->id > 0;
+}
+
+
+void User::execute()
+{
+    switch( d->mode ) {
+    case UserData::Creating:
+        createHelper();
+        break;
+    case UserData::Renaming:
+        renameHelper();
+        break;
+    case UserData::Refreshing:
+        refreshHelper();
+        break;
+    case UserData::Removing:
+        removeHelper();
+        break;
+    case UserData::LoungingAround:
+        break;
+    }
 }
 
 
@@ -218,27 +291,6 @@ void User::refreshHelper()
 }
 
 
-void User::execute()
-{
-    switch( d->mode ) {
-    case UserData::Creating:
-        createHelper();
-        break;
-    case UserData::Renaming:
-        renameHelper();
-        break;
-    case UserData::Refreshing:
-        refreshHelper();
-        break;
-    case UserData::Removing:
-        removeHelper();
-        break;
-    case UserData::LoungingAround:
-        break;
-    }
-}
-
-
 /*! Creates this user in the database notifies \a user afterwards. If
     the user could not be created, error() returns a message about
     what went wrong.
@@ -272,48 +324,139 @@ Query *User::create( EventHandler * user )
 void User::createHelper()
 {
     Address * a = address();
-    if ( !a->id() ) {
-        // note: this doesn't wrap the address insert in our transaction
-        List<Address> l;
-        l.append( a );
-        AddressCache::lookup( &l, this );
-        return;
-    }
 
     if ( !d->q ) {
-        d->q = new Query( "insert into mailboxes (name) values "
-                          "( (select name from namespaces where id="
-                          "   (select max(id) from namespaces)) ||"
-                          "  '/' || $1 || '/INBOX' )",
+        if ( !a->id() ) {
+            // note: this doesn't wrap the address insert in our transaction
+            List<Address> l;
+            l.append( a );
+            AddressCache::lookup( &l, this );
+        }
+
+        d->q = new Query( "select name from namespaces where id="
+                          "(select max(id) from namespaces)", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+    }
+
+    if ( d->q->done() && a->id() && !d->inbox ) {
+        Row *r = d->q->nextRow();
+        if ( !r ) {
+            d->t->commit();
+            return;
+        }
+
+        String m = r->getString( "name" ) + "/" + d->login + "/INBOX";
+        d->inbox = Mailbox::obtain( m, true );
+
+        // XXX: Should this use Mailbox::create, or is it "trivial"?
+        d->q = new Query( "insert into mailboxes (name) values ($1)",
                           this );
-        d->q->bind( 1, d->login );
+        d->q->bind( 1, m );
         d->t->enqueue( d->q );
 
         Query * q2
             = new Query( "insert into users "
-                         "(address,inbox,parentspace,login,secret)"
-                         "values ($1,"
-                         "(select id from mailboxes where name="
-                         " (select name from namespaces where id="
-                         "   (select max(id) from namespaces)) ||"
-                         "  '/' || $2 || '/INBOX' ),"
-                         "(select id from namespaces where id="
-                         "   (select max(id) from namespaces)),"
-                         "$2,$3)",
+                         "(address,inbox,parentspace,login,secret) values "
+                         "($1,(select id from mailboxes where name=$2),"
+                         "(select max(id) from namespaces),$3,$4)",
                          this );
         q2->bind( 1, a->id() );
-        q2->bind( 2, d->login );
+        q2->bind( 2, m );
+        q2->bind( 3, d->login );
         q2->bind( 4, d->secret );
         d->t->enqueue( q2 );
         d->t->commit();
     }
+
     if ( !d->t->done() )
         return;
-    if ( d->t->failed() )
+
+    if ( d->t->failed() ) {
         d->createQuery->setError( d->t->error() );
-    else
+    }
+    else {
         d->createQuery->setState( Query::Completed );
+
+        OCClient::send( "mailbox " + d->inbox->name().quoted() +
+                        " deleted=f" );
+    }
+
     d->user->execute();
+}
+
+
+/*! Renames this User to \a newLogin and notifies \a user when the
+    operation is complete. exists() must be true to call this
+    function.
+*/
+
+void User::rename( const String & newLogin, EventHandler * user  )
+{
+    if ( !exists() ) {
+        d->error = "Cannot rename nonexistent user";
+        return;
+    }
+    d->q = new Query( "update users set login=$1 where id=$2", this );
+    d->q->bind( 1, newLogin );
+    d->q->bind( 2, d->id );
+    d->q->execute();
+    d->login = newLogin;
+}
+
+
+/*! Finishes the work of rename(). */
+
+void User::renameHelper()
+{
+    if ( !d->q->done() )
+        return;
+    if ( d->q->failed() ) {
+        d->error = "SQL error during user update: " + d->q->error();
+        refresh( d->user );
+    }
+    d->user->execute();
+}
+
+
+/*! Removes this user from the database and notifies \a user when the
+    operation is complete.
+*/
+
+void User::remove( EventHandler * user )
+{
+    if ( !exists() )
+        return;
+    d->q = new Query( "delete from users where id=$1", this );
+    d->q->bind( 1, d->id );
+}
+
+
+/*! Finishes the work of remove(). */
+
+void User::removeHelper()
+{
+    if ( d->q->done() )
+        d->id = 0;
+}
+
+
+/*! Renames the password of this User to \a newSecret and notifies \a
+    user when the operation is complete. exists() must be true to call
+    this function.
+*/
+
+void User::changeSecret( const String & newSecret, EventHandler * user )
+{
+    if ( !exists() ) {
+        d->error = "Cannot set password for nonexistent user";
+        return;
+    }
+    d->q = new Query( "update users set secret=$1 where id=$2", this );
+    d->q->bind( 1, newSecret );
+    d->q->bind( 2, d->id );
+    d->q->execute();
+    d->secret = newSecret;
 }
 
 
@@ -347,128 +490,4 @@ bool User::valid()
 String User::error() const
 {
     return d->error;
-}
-
-
-/*! Returns true if this user is known to exist in the database, and
-    false if it's unknown or doesn't exist.
-*/
-
-bool User::exists()
-{
-    return d->id > 0;
-}
-
-
-/*! Finishes the work of rename(). */
-
-void User::renameHelper()
-{
-    if ( !d->q->done() )
-        return;
-    if ( d->q->failed() ) {
-        d->error = "SQL error during user update: " + d->q->error();
-        refresh( d->user );
-    }
-    d->user->execute();
-}
-
-
-/*! Renames this User to \a newLogin and notifies \a user when the
-    operation is complete. exists() must be true to call this
-    function.
-*/
-
-void User::rename( const String & newLogin, EventHandler * user  )
-{
-    if ( !exists() ) {
-        d->error = "Cannot rename nonexistent user";
-        return;
-    }
-    d->q = new Query( "update users set login=$1 where id=$2", this );
-    d->q->bind( 1, newLogin );
-    d->q->bind( 2, d->id );
-    d->q->execute();
-    d->login = newLogin;
-}
-
-
-/*! Renames the password of this User to \a newSecret and notifies \a
-    user when the operation is complete. exists() must be true to call
-    this function.
-*/
-
-void User::changeSecret( const String & newSecret, EventHandler * user )
-{
-    if ( !exists() ) {
-        d->error = "Cannot set password for nonexistent user";
-        return;
-    }
-    d->q = new Query( "update users set secret=$1 where id=$2", this );
-    d->q->bind( 1, newSecret );
-    d->q->bind( 2, d->id );
-    d->q->execute();
-    d->secret = newSecret;
-}
-
-
-/*! Removes this user from the database and notifies \a user when the
-    operation is complete.
-*/
-
-void User::remove( EventHandler * user )
-{
-    if ( !exists() )
-        return;
-    d->q = new Query( "delete from users where id=$1", this );
-    d->q->bind( 1, d->id );
-}
-
-
-/*! Finishes the work of remove(). */
-
-void User::removeHelper()
-{
-    if ( d->q->done() )
-        d->id = 0;
-}
-
-
-/*! Returns the user's "home directory" - the mailbox under which all
-    of the user's mailboxes reside.
-
-    This is read-only since at the moment, the mailstore servers only
-    permit one setting: "/users/" + login. However, the database
-    permits more namespaces than just "/users", so one day this may
-    change.
-*/
-
-Mailbox * User::home() const
-{
-    return d->home;
-}
-
-
-/*! Returns the user's ID, ie. the primary key from the database, used
-    to link various other tables to this user.
-*/
-
-uint User::id() const
-{
-    return d->id;
-}
-
-
-/*! Returns the user's state, which is either Unverified (the object
-  has made no attempt to refresh itself from the database), Refreshed
-  (the object was successfully refreshed) or Nonexistent (the object
-  tried to refresh itself, but there was no corresponsing user in the
-  database).
-
-  The state is Unverified initially and is changed by refresh().
-*/
-
-User::State User::state() const
-{
-    return d->state;
 }

@@ -13,10 +13,16 @@ class Address;
 class Query;
 
 
-class User: public EventHandler
+class User
+    : public EventHandler
 {
 public:
     User();
+
+    enum State { Refreshed, Nonexistent, Unverified };
+    State state() const;
+
+    uint id() const;
 
     void setLogin( const String & );
     String login() const;
@@ -30,27 +36,20 @@ public:
     void setAddress( Address * );
     Address * address();
 
-    uint id() const;
+    Mailbox * home() const;
+
+    bool exists();
 
     void refresh( EventHandler * user );
     Query *create( EventHandler * user );
     void rename( const String & newLogin, EventHandler * user );
-    void changeSecret( const String & newSecret, EventHandler * user );
     void remove( EventHandler * user );
-
-    bool valid();
-    bool exists();
-
-    String error() const;
-
-    static List<User> * users();
-
-    Mailbox * home() const;
+    void changeSecret( const String & newSecret, EventHandler * user );
 
     void execute();
 
-    enum State { Refreshed, Nonexistent, Unverified };
-    State state() const;
+    bool valid();
+    String error() const;
 
 private:
     void createHelper();
