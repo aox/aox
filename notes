@@ -126,11 +126,20 @@ Use SHA-1 to hash bodyparts instead of MD5.
 
 Bodypart sharing
 
-  We're doing an in-memory Dict< hash > right now.
-  We could do better, but it might involve waiting.
+  We're doing an in-memory Dict< hash > right now. We can do better.
 
-  And, after some thought, I've decided that it doesn't belong in 0.90
-  now. A great pity, but there it is.
+  The distinction between bodyparts and binary_parts needs to go away.
+  The documentation says so, the schema diagram says so, and AndrewSN
+  and Dennis both say so too.
+
+  Then we have to send this to the server:
+
+    insert into bodyparts
+      select $1 where not exists
+        (select id from bodyparts where hash=$2)
+    select id from bodyparts where hash=$2
+
+  And then fetch the resulting id back. That's it.
 
 
 inject a large number of messages, collect query statistics
