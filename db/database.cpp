@@ -38,8 +38,7 @@ Database::Database()
 
     It reads and validates the database configuration variables to the
     best of its limited ability (since connection negotiation must be
-    left to each subclass), and tries to create the first handle. It
-    logs a disaster if it fails.
+    left to each subclass). It logs a disaster if it fails.
 */
 
 void Database::setup()
@@ -62,11 +61,6 @@ void Database::setup()
     if ( !srv->valid() ) {
         log( Log::Disaster, "Invalid dbhost address <" + dbHost + "> port <" +
              String::fromNumber( dbPort ) + ">\n" );
-        return;
-    }
-
-    if ( Database::handle() == 0 ) {
-        log( Log::Disaster, "Unsupported database <" + *t + ">\n" );
         return;
     }
 }
