@@ -38,6 +38,7 @@ public:
     String mid( uint, uint = UINT_MAX ) const;
     String simplified() const;
     String stripWSP() const;
+    String stripCRLF() const;
     String hex() const;
     bool isQuoted( char = '"', char = '\\' ) const;
     String unquoted( char = '"', char = '\\' ) const;
