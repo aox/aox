@@ -66,8 +66,8 @@ void EventLoop::addConnection( Connection *c )
 
     if ( d->connections.find( c ) ) {
         if ( c->type() != Connection::LogClient )
-            d->l->log( "Ignored attempt to add existing connection " +
-                       c->description() );
+            // d->l->log( "Ignored attempt to add existing connection " +
+            //           c->description() );
         return;
     }
 
@@ -86,8 +86,8 @@ void EventLoop::removeConnection( Connection *c )
     SortedList< Connection >::Iterator it( d->connections.find( c ) );
     if ( !it ) {
         if ( c->type() != Connection::LogClient )
-            d->l->log( "Ignored attempt to remove unknown connection " +
-                       c->description() );
+            // d->l->log( "Ignored attempt to remove unknown connection " +
+            //           c->description() );
         return;
     }
 
