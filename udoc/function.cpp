@@ -210,6 +210,10 @@ bool Function::hasArgument( const String & s ) const
             i += s.length();
             while ( args[i] == ' ' )
                 i++;
+            if ( args[i] == '[' && args[i+1] == ']' )
+                i += 2;
+            while ( args[i] == ' ' )
+                i++;
             if ( args[i] == ')' || args[i] == ',' )
                 return true;
         }
