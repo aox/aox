@@ -52,7 +52,7 @@ create table mailboxes (
     owner       integer references users(id),
 
     -- The UID that will be assigned to the next delivered message.
-    -- Incremented after each successful delivery.</span>
+    -- Incremented after each successful delivery.
     uidnext     integer not null default 1,
 
     -- The IMAP mailbox UIDVALIDITY value, which, along with a message UID,
@@ -207,11 +207,11 @@ create table subscriptions (
     mailbox     integer not null references mailboxes(id)
 );
 
--- The name's Bond, James Bond.
-
 alter table users add address integer references addresses(id);
 alter table users alter address set not null;
 alter table users add inbox integer references mailboxes(id);
 alter table users alter inbox set not null;
 alter table users add parentspace integer references namespaces(id);
 alter table users alter parentspace set not null;
+
+-- Why is the users table before addresses and namespaces?
