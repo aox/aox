@@ -54,12 +54,9 @@ any IMAP or POP3 client.
 .SS "5. Configure your MTA"
 The normal way to deliver mail from your MTA into Mailstore is via LMTP.
 By default, Mailstore listens on 127.0.0.1 port 2026.
-.BR smtpd.conf (5)
-explains how to change that.
 .PP
-On www.oryx.com you can find instructions for how to configure some
-common MTAs to work with Mailstore. e.g. 
-http://www.oryx.com/mailstore/postfix.html for
+On www.oryx.com we describe configuring some common MTAs to work with
+Mailstore. See e.g.  http://www.oryx.com/mailstore/postfix.html for
 .BR postfix (1).
 .SH ARCHITECTURE
 .PP
