@@ -40,7 +40,7 @@ public:
     virtual bool canWrite();
 
     void enqueue( const String & );
-    
+
     enum Event { Error, Connect, Read, Timeout, Close, Shutdown };
     virtual void react( Event ) = 0;
 

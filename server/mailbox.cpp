@@ -152,7 +152,7 @@ Mailbox *Mailbox::find( const String &name, bool deleted )
 
         if ( s.length() == 0 )
             break;
-        
+
         List< Mailbox > *children = m->children();
         if ( !children )
             break;
