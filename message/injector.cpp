@@ -505,7 +505,7 @@ void Injector::linkBodyparts()
         Mailbox *m = mb++;
         int uid = *uids++;
 
-        insertPartNumber( m->id(), uid, "" );
+        insertPartNumber( m->id(), uid, "", -1 );
 
         List< int >::Iterator bids( d->bodypartIds->first() );
         List< Bodypart >::Iterator it( d->bodyparts->first() );
@@ -524,6 +524,7 @@ void Injector::linkBodyparts()
 
 /*! This private helper is used by linkBodyparts() to add a single row
     to part_numbers for \a mailbox, \a uid, \a part, and \a bodypart.
+    If bodypart is smaller than 0, a NULL value is inserted instead.
 */
 
 void Injector::insertPartNumber( int mailbox, int uid, const String &part,
