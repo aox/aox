@@ -826,7 +826,7 @@ UString Search::uastring()
 
     String raw = astring();
     UString canon = d->codec->toUnicode( raw );
-    if ( d->codec->valid() )
+    if ( !d->codec->valid() )
         error( Bad,
                "astring not valid under encoding " + d->codec->name() +
                ": " + raw );
