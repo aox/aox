@@ -19,6 +19,7 @@ Build imap :
     rename.cpp
     search.cpp
     select.cpp
+    store.cpp
     subscribe.cpp
     unselect.cpp
     unsubscribe.cpp
