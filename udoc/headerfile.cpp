@@ -166,7 +166,7 @@ HeaderFile * HeaderFile::find( const String & s )
     List<HeaderFile>::Iterator it( headers->first() );
     HeaderFile * h = 0;
     String hack = "/" + s;
-    while ( (h=it) != headers->end() &&
+    while ( (h=it) != 0 &&
             h->name() != s &&
             !h->name().endsWith( hack ) )
         ++it;

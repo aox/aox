@@ -62,7 +62,7 @@ void OCAdmin::parse()
 
     if ( r == "ls" ) {
         List< OCServer > *servers = OCServer::connections();
-        List< OCServer >::Iterator it = servers->first();
+        List< OCServer >::Iterator it( servers->first() );
         while ( it ) {
             enqueue( it->peer().string() + "\r\n" );
             it++;

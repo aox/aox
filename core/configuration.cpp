@@ -253,7 +253,7 @@ void Configuration::report()
 
     ::global->d->reported = true;
 
-    List< ConfigurationData::E >::Iterator i = ::global->d->errors.first();
+    List< ConfigurationData::E >::Iterator i( ::global->d->errors.first() );
     while ( i ) {
         ::log( i->m, i->s );
         i++;

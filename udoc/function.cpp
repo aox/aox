@@ -70,12 +70,12 @@ Function * Function::find( const String & name,
     List<Function>::Iterator it( functions->first() );
     Function * f = 0;
     if ( arguments.isEmpty() ) {
-        while ( (f=it) != functions->end() && f->n != name )
+        while ( (f=it) != 0 && f->n != name )
             ++it;
     }
     else {
         String t = typesOnly( arguments );
-        while ( (f=it) != functions->end() &&
+        while ( (f=it) != 0 &&
                 !( f->n == name && f->a == t ) )
             ++it;
     }

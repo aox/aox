@@ -235,7 +235,7 @@ void FlagCreator::execute()
 {
     List<Query>::Iterator it( d->queries.first() );
     while ( it ) {
-        List<Query>::Iterator q = it;
+        List<Query>::Iterator q( it );
         ++it;
         if ( q->done() )
             d->queries.take( q );

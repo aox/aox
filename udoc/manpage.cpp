@@ -159,7 +159,7 @@ void ManPage::addClass( const String & text, Class * c )
 {
     addText( text );
     String n = c->name() + "(3oryx)";
-    if ( references.find( n ) == references.end() )
+    if ( !references.find( n ) )
         references.insert( new String( n ) );
 }
 
@@ -184,11 +184,11 @@ void ManPage::addReferences()
     endParagraph();
     output( ".SH SEE ALSO\n.ad l\n" );
     SortedList<String>::Iterator it( references.first() );
-    while ( it != references.end() ) {
+    while ( it ) {
         String s( *it );
         ++it;
         addText( s );
-        if ( it == references.end() )
+        if ( !it )
             addText( "." );
         else if ( it == references.last() )
             addText( " and " );

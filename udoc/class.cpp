@@ -57,7 +57,7 @@ Class * Class::find( const String & s )
 
     List<Class>::Iterator it( classes->first() );
     Class * c = 0;
-    while ( (c=it) != classes->end() && c->n != s )
+    while ( (c=it) != 0 && c->n != s )
         ++it;
     return c;
 }
@@ -106,7 +106,7 @@ void Class::output()
         return;
 
     SortedList<Class>::Iterator it( classes->first() );
-    while ( it != classes->end() ) {
+    while ( it ) {
         Class * c = it;
         ++it;
         if ( !c->done )
@@ -149,7 +149,7 @@ void Class::generateOutput()
     SortedList<Function>::Iterator it( m.first() );
     it = m.first();
     Function * f;
-    while ( (f=it) != m.end() ) {
+    while ( (f=it) != 0 ) {
         ++it;
         if ( f->docBlock() )
             f->docBlock()->generate();
@@ -186,7 +186,7 @@ void Class::buildHierarchy()
 
     List<Class>::Iterator it( classes->first() );
     Class * c = 0;
-    while ( (c=it) != classes->end() ) {
+    while ( (c=it) != 0 ) {
         ++it;
         String n = c->superclassName;
         int i = n.find( '<' );

@@ -349,7 +349,7 @@ void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 
 void EventLoop::flushAll()
 {
-    SortedList< Connection >::Iterator it = d->connections.first();
+    SortedList< Connection >::Iterator it( d->connections.first() );
     while ( it ) {
         Connection * c = it;
         it++;

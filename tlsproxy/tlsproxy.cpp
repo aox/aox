@@ -485,8 +485,8 @@ void TlsProxy::parse()
     }
 
     TlsProxy * other = 0;
-    List<TlsProxy>::Iterator it = proxies->first();
-    while ( other == 0 && it != proxies->end() ) {
+    List<TlsProxy>::Iterator it( proxies->first() );
+    while ( other == 0 && it ) {
         TlsProxy * c = it;
         ++it;
         if ( c->d->key == tag )

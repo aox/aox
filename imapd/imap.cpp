@@ -662,7 +662,7 @@ bool IMAP::supports( const String &s ) const
 uint IMAP::activeCommands() const
 {
     uint n = 0;
-    List<Command>::Iterator i = d->commands.first();
+    List<Command>::Iterator i( d->commands.first() );
     while ( i ) {
         if ( i->state() != Command::Finished )
             n++;

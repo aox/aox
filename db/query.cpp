@@ -386,11 +386,10 @@ void Query::addRow( Row *r )
 
 Row *Query::nextRow()
 {
-    List< Row >::Iterator r = d->rows.first();
-
-    if ( r )
-        return d->rows.take( r );
-    return 0;
+    List< Row >::Iterator r( d->rows.first() );
+    if ( !r )
+        return 0;
+    return d->rows.take( r );
 }
 
 

@@ -601,13 +601,13 @@ void SMTP::sendResponses()
         String l = *it;
         ++it;
         r.append( n );
-        if ( it == d->response.end() )
+        if ( !it )
             r.append( " " );
         else
             r.append( "-" );
         r.append( l );
         r.append( "\r\n" );
-    } while ( it != d->response.end() );
+    } while ( it );
 
     enqueue( r );
     write();
@@ -753,7 +753,7 @@ void LMTP::reportInjection()
     d->state = MailFrom;
 
     List<User>::Iterator it( d->to.first() );
-    while ( it != d->to.end() ) {
+    while ( it ) {
         Address * a = it->address();
         String prefix = a->localpart() + "@" + a->domain() + ": ";
         if ( !d->injector )
