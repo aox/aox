@@ -12,7 +12,6 @@ public:
 
     String name() const;
     uint id() const;
-    uint count() const;
     uint uidnext() const;
     uint uidvalidity() const;
     bool deleted() const;

@@ -13,11 +13,16 @@
 class MailboxData {
 public:
     MailboxData()
-        : deleted( false ), parent( 0 ), children( 0 )
+        : id( 0 ),
+          uidnext( 0 ), uidvalidity( 0 ),
+          deleted( false ),
+          parent( 0 ), children( 0 )
     {}
 
     String name;
-    uint id, count, uidnext, uidvalidity;
+    uint id;
+    uint uidnext;
+    uint uidvalidity;
     bool deleted;
 
     Mailbox *parent;
@@ -35,7 +40,7 @@ static Query *query = 0;
 
     Every Mailbox has a unique name() within the hierarchy. Any
     Mailbox that can contain messages has a non-zero numeric id() and
-    attributes like uidvalidity() and count(). Mailboxes have a
+    attributes like uidvalidity() and uidnext(). Mailboxes have a
     parent() and may have a number of children().
 
     Some mailboxes aren't quite real. A Mailbox can be deleted(), in
@@ -116,18 +121,6 @@ String Mailbox::name() const
 uint Mailbox::id() const
 {
     return d->id;
-}
-
-
-/*! Returns the number of messages in this Mailbox, or 0 if this
-    Mailbox is deleted() or synthetic().
-
-    Is this in RAM or in the database? Can it lag behind reality?
-*/
-
-uint Mailbox::count() const
-{
-    return d->count;
 }
 
 
