@@ -226,3 +226,5 @@ Web page appearance/voice
   pages to use that, and only that. For example, what's the "related
   pages" headline called, "pages" or "links", and is the second word
   capitalized?
+
+HTML tidy fixes: suppress empty <p>, duplicate anchor names.
