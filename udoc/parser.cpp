@@ -17,7 +17,7 @@
     at the beginning of \a s. */
 
 Parser::Parser( const String & s )
-    : t( s ), i( 0 )
+    : t( s ), i( 0 ), ln( 0 ), li( 0 )
 {
     // nothing necessary
 }
@@ -40,17 +40,19 @@ character. This implies that if the parser's cursor is at the end of a
 line, then the line number returned is that of the next nonempty line.
 */
 
-uint Parser::line() const
+uint Parser::line()
 {
-    uint l = 1;
-    uint j = 0;
-    while ( j < i ||
-            ( t[j] == 32 || t[j] == 9 || t[j] == 13 || t[j] == 10 ) ) {
-        if ( t[j] == 10 )
-            l++;
-        j++;
+    if ( li > i ) {
+        ln = 1;
+        li = 0;
     }
-    return l;
+    while ( li < i ||
+            ( t[li] == 32 || t[li] == 9 || t[li] == 13 || t[li] == 10 ) ) {
+        if ( t[li] == 10 )
+            ln++;
+        li++;
+    }
+    return ln;
 }
 
 

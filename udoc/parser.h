@@ -17,7 +17,7 @@ public:
     Parser( const String & );
 
     bool atEnd() const;
-    uint line() const;
+    uint line();
 
     void step();
     bool lookingAt( const String & );
@@ -40,6 +40,7 @@ private:
 private:
     String t;
     uint i;
+    uint ln, li;
 };
 
 

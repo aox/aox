@@ -250,7 +250,7 @@ void WebPage::endPage()
         return;
 
     endParagraph();
-    
+
     para = "\n";
     output( "<p class=\"rights\">"
             "This web page based on source code belonging to " );
