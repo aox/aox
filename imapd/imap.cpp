@@ -10,6 +10,7 @@
 #include "handlers/capability.h"
 #include "log.h"
 #include "configuration.h"
+#include "imapsession.h"
 
 #include <time.h>
 
@@ -23,7 +24,7 @@ public:
         : state( IMAP::NotAuthenticated ),
           logger( new Log ), cmdArena( 0 ), args( 0 ),
           readingLiteral( false ), literalSize( 0 ),
-          reader( 0 ), mailbox( 0 ), uid( 0 ),
+          reader( 0 ), session( 0 ), mailbox( 0 ), uid( 0 ),
           idle( false )
     {}
     ~IMAPData() {
@@ -42,6 +43,7 @@ public:
     Command * reader;
     List< Command > commands;
 
+    ImapSession *session;
     Mailbox *mailbox;
     String login;
     uint uid;
@@ -555,4 +557,14 @@ uint IMAP::uid()
 void IMAP::setUid( uint id )
 {
     d->uid = id;
+}
+
+
+/*! Returns a pointer to the ImapSession object associated with this
+    IMAP server, or 0 if there is none.
+*/
+
+ImapSession *IMAP::session() const
+{
+    return d->session;
 }

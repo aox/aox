@@ -6,6 +6,7 @@
 class String;
 class Command;
 class Mailbox;
+class ImapSession;
 
 
 class IMAP
@@ -33,6 +34,8 @@ public:
 
     Mailbox *mailbox();
     void setMailbox( Mailbox * );
+
+    ImapSession *session() const;
 
 private:
     class IMAPData *d;
