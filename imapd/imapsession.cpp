@@ -17,7 +17,7 @@ class SessionData {
 public:
     SessionData()
         : readOnly( true ), mailbox( 0 ),
-          uidnext( 1 ), firstUnseen( 0 ), 
+          uidnext( 1 ), firstUnseen( 0 ),
           imap( 0 )
     {}
 
@@ -402,8 +402,19 @@ bool ImapSessionInitializer::done() const
     expunged in the database, but not yet reported to the client.
 */
 
-MessageSet ImapSession::expunged() const
+const MessageSet & ImapSession::expunged() const
 {
     return d->expunges;
 }
 
+
+
+/*! Returns a message set containing all the messages that are
+    currently valid in this session. This may include expunged
+    messages.
+*/
+
+const MessageSet & ImapSession::messages() const
+{
+    return d->msns;
+}

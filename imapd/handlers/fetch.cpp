@@ -335,7 +335,6 @@ void Fetch::execute()
     ImapSession * s = imap()->session();
 
     if ( d->state == 0 ) {
-        removeInvalidUids();
         sendFetchQueries();
         d->state = 1;
     }
@@ -358,26 +357,6 @@ void Fetch::execute()
 
     if ( d->set.isEmpty() )
         finish();
-}
-
-
-/*! Removes any UIDs from d->set that do not refer to a valid message in
-    this session.
-
-    If MessageSet learns set arithmetic, this can become a lot faster.
-*/
-
-void Fetch::removeInvalidUids()
-{
-    ImapSession * s = imap()->session();
-
-    uint i = d->set.count();
-    while ( i > 0 ) {
-        uint uid = d->set.value( i );
-        if ( !s->msn( i ) )
-            d->set.remove( uid );
-        i--;
-    }
 }
 
 

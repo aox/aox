@@ -39,7 +39,8 @@ public:
     bool isRecent( uint ) const;
     void addRecent( uint );
 
-    MessageSet expunged() const;
+    const MessageSet & expunged() const;
+    const MessageSet & messages() const;
 
     bool responsesNeeded() const;
     void emitResponses();

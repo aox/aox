@@ -23,7 +23,6 @@ public:
 private:
     void parseAttribute( bool );
     void parseBody();
-    void removeInvalidUids();
     void sendFetchQueries();
     String dotLetters( uint, uint );
     String flagList( Message *, uint );
