@@ -438,19 +438,27 @@ void Injector::buildFieldLinks()
 
     buildLinksForHeader( d->message->header(), "" );
 
-    bool first = true;
+    // Since the MIME header fields belonging to the first-child of a
+    // single-part Message are physically collocated with the RFC 822
+    // header, we don't need to inject them into the database again.
+    bool skip = false;
+    HeaderField *hf =
+        d->message->header()->field( HeaderField::ContentType );
+    if ( !hf || hf->contentType()->type() != "multipart" )
+        skip = true;
+
     List< Bodypart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
         String pn = d->message->partNumber( it );
-        // Since the (MIME) fields belonging to the first-child of any
-        // Message are physically collocated with the RFC 822 header,
-        // we don't need to inject them into the database again.
-        if ( !first )
+
+        if ( !skip )
             buildLinksForHeader( it->header(), pn );
         else
-            first = false;
+            skip = false;
+
         if ( it->rfc822() )
             buildLinksForHeader( it->rfc822()->header(), pn + ".rfc822" );
+
         ++it;
     }
 
