@@ -68,7 +68,7 @@ void Database::setup()
     Configuration::Text dbPass( "db-password", "" );
     Configuration::Text dbName( "db-name",
                         Configuration::compiledIn( Configuration::DbName ) );
-    Configuration::Text dbHost( "db-address", "127.0.0.1" );
+    Configuration::Text dbHost( "db-address", "/tmp/.s.PGSQL.5432" );
     Configuration::Scalar dbPort( "db-port", 5432 );
 
     t = new String( db );

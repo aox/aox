@@ -45,9 +45,10 @@ The type of database. The default,
 .IR postgres ,
 is currently the only supported value.
 .IP db-address
-The IP address of the database server. The default is
-.IR 127.0.0.1 .
-Either an IPv4 or IPv6 address may be used.
+The address of the database server. The default is
+.IR /tmp/.s.PGSQL.5432 .
+You may use an IPv4 or IPv6 address, or the fully-qualified path to a
+Unix socket.
 .IP db-port
 The port number of the database server. The default is
 .IR 5432 .
