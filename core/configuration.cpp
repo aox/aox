@@ -409,8 +409,8 @@ bool Configuration::Scalar::setValue( const String & line )
   The Configuration::Scalar class keeps boolean configuration variables.
 
   A toggle is yes/no, true/false etc. In the API it is represented as
-  a bool, in the configuration file it can be "yes", "true", "on", "1"
-  on the one and and "no", "false", "off" or "0".
+  a bool, in the configuration file it can be "enabled", "yes", "true", "on", "1"
+  on the one and and "disabled", "no", "false", "off" or "0".
 */
 
 
