@@ -598,13 +598,14 @@ static int currentRevision = 3;
 class UpdateSchema : public EventHandler {
 private:
     int state;
+    int substate;
     int revision;
     Transaction *t;
     Query *lock, *seq, *update;
 
 public:
     UpdateSchema()
-        : state( 0 )
+        : state( 0 ), substate( 0 )
     {}
 
     void execute() {
@@ -644,7 +645,9 @@ public:
                 state = 4;
             }
             if ( state == 4 ) {
-                // Do update stuff here.
+                if ( revision == 1 ) {
+                    // Do update stuff here.
+                }
                 state = 5;
             }
             if ( state == 5 ) {

@@ -66,6 +66,11 @@ void Database::setup()
         log( Log::Disaster, "Unsupported database type <" + *t + ">" );
         return;
     }
+
+    // XXX: It is not clear to me where and how this should be called,
+    // but it seems quite wrong to call it from here. But I need to do
+    // this to step through the code right now.
+    Postgres::updateSchema();
 }
 
 
