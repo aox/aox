@@ -7,21 +7,25 @@
 #include "transaction.h"
 #include "query.h"
 #include "flag.h"
+#include "message.h"
 
 
 class SelectData {
 public:
     SelectData()
-        : session( 0 ), m( 0 ), t( 0 ), recent( 0 )
+        : mailbox( 0 ), session( 0 ), setup( 0 ),
+          t( 0 ), recent( 0 ), messages( 0 )
     {}
 
     String name;
     bool readOnly;
-    class ImapSession *session;
-    Mailbox *m;
+    Mailbox * mailbox;
+    ImapSession *session;
+    ImapSessionInitializer * setup;
 
-    Transaction *t;
-    Query *recent;
+    Transaction * t;
+    Query * recent;
+    Query * messages;
 };
 
 
@@ -57,53 +61,29 @@ void Select::parse()
 
 void Select::execute()
 {
-    if ( !d->session ) {
-        if ( imap()->session() )
-            imap()->endSession();
-
-        Mailbox *m = Mailbox::find( imap()->mailboxName( d->name ) );
-        if ( !m || m->id() == 0 ) {
-            error( No, "Can't select " + d->name );
+    if ( !d->mailbox ) {
+        d->mailbox = Mailbox::find( imap()->mailboxName( d->name ) );
+        if ( !d->mailbox )
+            error( No, d->name + " does not exist" );
+        else if ( d->mailbox->synthetic() )
+            error( No, d->name + " is not in the database" );
+        else if ( d->mailbox->deleted() )
+            error( No, d->name + " is deleted" );
+        if ( !ok() ) {
             finish();
             return;
         }
-
-        imap()->beginSession( m, d->readOnly );
-        d->session = imap()->session();
-        d->m = m;
+    }
+    if ( !d->setup ) {
+        // this should expunge, shouldn't it? how? think later
+        if ( imap()->session() )
+            imap()->endSession();
+        d->session = new ImapSession( d->mailbox, imap(), d->readOnly );
+        d->setup = new ImapSessionInitializer( d->session, this );
     }
 
-    if ( !d->t ) {
-        // We select and delete the rows in recent_messages that refer
-        // to our mailbox. Concurrent Selects of the same mailbox will
-        // block until this transaction has committed.
-
-        d->t = new Transaction( this );
-
-        d->recent = new Query( "select * from recent_messages where "
-                               "mailbox=$1 for update", this );
-        d->recent->bind( 1, d->m->id() );
-        d->t->enqueue( d->recent );
-
-        if ( !d->readOnly ) {
-            Query *q = new Query( "delete from recent_messages where "
-                                  "mailbox=$1", this );
-            q->bind( 1, d->m->id() );
-            d->t->enqueue( q );
-        }
-
-        d->t->commit();
+    if ( !d->setup->done() )
         return;
-    }
-    else {
-        if ( !d->t->done() )
-            return;
-
-        while ( d->recent->hasResults() ) {
-            Row *r = d->recent->nextRow();
-            d->session->addRecent( r->getInt( "uid" ) );
-        }
-    }
 
     String flags = "\\Answered \\Flagged \\Deleted \\Seen \\Draft";
     const List<Flag> * l = Flag::flags();
@@ -114,15 +94,23 @@ void Select::execute()
     }
 
     respond( "FLAGS (" + flags + ")" );
-    respond( fn( d->session->count() ) + " EXISTS" );
 
+    respond( fn( d->session->count() ) + " EXISTS" );
     respond( fn( d->session->recent().count() ) + " RECENT" );
 
-    // ditto UNSEEN
-    respond( "OK [UNSEEN 0]" );
+    uint unseen = 0;
+    Message * m = 0;
+    // fetch a message
+    while ( m ) {
+        if ( !m->flag( Message::SeenFlag ) )
+            unseen++;
+        // next message
+    }
 
-    respond( "OK [UIDNEXT " + fn( d->m->uidnext() ) + "]" );
-    respond( "OK [UIDVALIDITY " + fn( d->m->uidvalidity() ) + "]" );
+    respond( "OK [UNSEEN " + fn( unseen ) + "]" );
+
+    respond( "OK [UIDNEXT " + fn( d->mailbox->uidnext() ) + "]" );
+    respond( "OK [UIDVALIDITY " + fn( d->mailbox->uidvalidity() ) + "]" );
     respond( "OK [PERMANENTFLAGS (" + flags +" \\*)]" );
     if ( d->session->readOnly() )
         respond( "OK [READ-ONLY]", Tagged );

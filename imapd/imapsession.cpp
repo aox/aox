@@ -202,9 +202,9 @@ void ImapSession::emitResponses()
         uint msn = d->msns.index( i );
         if ( msn )
             imap()->enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
-        d->msns.remove( uid );
         i--;
         change = true;
+        d->msns.remove( uid );
     }
     uint u = d->mailbox->uidnext();
     if ( d->uidnext < u ) {
@@ -216,6 +216,7 @@ void ImapSession::emitResponses()
         d->msns.add( d->uidnext, u - 1 );
         d->uidnext = u;
         change = true;
+        (void)new ImapSessionInitializer( this, 0 );
     }
 
     if ( change )
@@ -229,7 +230,8 @@ class ImapSessionInitializerDataExtraLong
 public:
     ImapSessionInitializerDataExtraLong()
         : session( 0 ), owner( 0 ),
-          t( 0 ), recent( 0 ), messages( 0 )
+          t( 0 ), recent( 0 ), messages( 0 ),
+          done( false )
         {}
 
     ImapSession * session;
@@ -238,6 +240,8 @@ public:
     Transaction * t;
     Query * recent;
     Query * messages;
+
+    bool done;
 };
 
 
@@ -340,5 +344,18 @@ void ImapSessionInitializer::execute()
             m->setFlag( Message::AnsweredFlag, r->getBoolean( "answered" ) );
             m->setFlag( Message::DeletedFlag, r->getBoolean( "deleted" ) );
         }
+        d->done = true;
+        if ( d->owner )
+            d->owner->notify();
     }
+}
+
+
+/*! Returns true once the initializer has done its job, and false
+    until then.
+*/
+
+bool ImapSessionInitializer::done() const
+{
+    return d->done;
 }

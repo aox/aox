@@ -46,6 +46,8 @@ class ImapSessionInitializer: public EventHandler {
 public:
     ImapSessionInitializer( ImapSession *, EventHandler * );
 
+    bool done() const;
+
     void execute();
 private:
     class ImapSessionInitializerDataExtraLong * d;

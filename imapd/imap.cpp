@@ -529,6 +529,9 @@ void IMAP::runCommands()
     i = d->commands.first();
     while ( i && i->state() != Command::Executing )
         i++;
+    if ( !i && !d->commands.isEmpty() && 
+         d->commands.first()->state() == Command::Blocked )
+        i = d->commands.first();
     if ( !i )
         return;
 
@@ -595,17 +598,15 @@ String IMAP::mailboxName( const String &m )
 }
 
 
-/*! This function creates an ImapSession for Mailbox \a m in \a readOnly
-    mode, and associates it with an IMAP server, changing its state() to
-    Selected. It is used by Select and Examine.
+/*! Switches to Selected state and operates on the mailbox session \a s.
 
     This function may be called only when the server is in Authenticated
     state (and thus does not have a session() already defined).
 */
 
-void IMAP::beginSession( Mailbox *m, bool readOnly )
+void IMAP::beginSession( ImapSession * s )
 {
-    d->session = new ImapSession( m, this, readOnly );
+    d->session = s;
     setState( Selected );
 }
 

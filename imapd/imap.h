@@ -5,7 +5,6 @@
 
 class String;
 class Command;
-class Mailbox;
 class ImapSession;
 
 
@@ -31,7 +30,7 @@ public:
     String login();
     void authenticated( uint, const String & );
 
-    void beginSession( Mailbox *, bool );
+    void beginSession( ImapSession * );
     ImapSession *session() const;
     void endSession();
 
