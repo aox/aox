@@ -28,7 +28,7 @@ void Select::execute()
     }
 
     // Send mailbox data here.
-    respond( "EXISTS 0" );
+    respond( "EXISTS " + String::fromNumber( mbox->count() ) );
 
     String ok = "OK [READ-";
     ok.append( readOnly ? "ONLY" : "WRITE" );

@@ -52,13 +52,14 @@ public:
     void space();
     uint number();
     uint nzNumber();
+    uint msn();
     String nstring();
     String astring();
     String string();
     String atom();
     String quoted();
     String literal();
-    Set set();
+    Set set( bool );
     char nextChar();
     void step();
     const String following() const;

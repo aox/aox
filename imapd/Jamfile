@@ -17,7 +17,8 @@ SubDir TOP imapd ;
 
 # build the .o files in this directory
 
-Build imap : imapd.cpp imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp ;
+Build imap : imapd.cpp imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp 
+	query.cpp ;
 
 Build logd : logd.cpp logserver.cpp ;
 

@@ -60,6 +60,8 @@ IMAP::IMAP(int s)
     : Connection(s), d(0)
 {
     d = new IMAPData;
+    if ( s < 0 )
+        return;
 
     d->logger = new Logger;
     d->logger->log( "accepted IMAP connection" ); // XXX: from where?
