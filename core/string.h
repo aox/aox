@@ -45,7 +45,9 @@ public:
     bool isQuoted( char = '"', char = '\\' ) const;
     String unquoted( char = '"', char = '\\' ) const;
     String quoted( char = '"', char = '\\' ) const;
-    bool boring() const;
+
+    enum Boring { Totally, IMAP, MIME };
+    bool boring( Boring = Totally ) const;
 
     bool startsWith( const String & ) const;
     bool endsWith( const String & ) const;
