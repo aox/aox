@@ -204,21 +204,6 @@ public:
         return Iterator::newRef( cur );
     }
 
-
-    String string() const
-    {
-        String r;
-        Iterator it = first();
-
-        while ( it ) {
-            const String &s = *it;
-            r.append( "(" + s + ")" );
-            ++it;
-        }
-
-        return r;
-    }
-
 private:
     Node *head, *tail;
 
@@ -228,6 +213,7 @@ private:
     bool operator ==( const List< T > & ) const { return false; }
     bool operator !=( const List< T > & ) const { return false; }
 };
+
 
 template< class T >
 class SortedList
