@@ -367,10 +367,17 @@ void Injector::buildFieldLinks()
 
     buildLinksForHeader( d->message->header(), "" );
 
+    bool first = true;
     List< Bodypart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
         String pn = d->message->partNumber( it );
-        buildLinksForHeader( it->header(), pn );
+        // Since the (MIME) fields belonging to the first-child of any
+        // Message are physically collocated with the RFC 822 header,
+        // we don't need to inject them into the database again.
+        if ( !first )
+            buildLinksForHeader( it->header(), pn );
+        else
+            first = false;
         if ( it->rfc822() )
             buildLinksForHeader( it->rfc822()->header(), pn + ".rfc822" );
         ++it;
