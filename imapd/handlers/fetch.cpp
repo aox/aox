@@ -387,9 +387,9 @@ void Fetch::sendFetchQueries()
         i++;
     }
 
+    mb->fetchFlags( flags, this );
     mb->fetchHeaders( headers, this );
     mb->fetchBodies( bodies, this );
-    mb->fetchFlags( flags, this );
 
     // if we're not peeking, send off a query to set \seen, and don't
     // wait for any results.

@@ -103,7 +103,6 @@ void Fetcher::execute()
         while ( (r=d->query->nextRow()) != 0 ) {
             d->uid = r->getInt( "uid" );
             setDone();
-            d->results.add( d->uid );
             decode( d->message, r );
         }
         if ( d->query->done() ) {
@@ -169,7 +168,7 @@ void Fetcher::execute()
     d->smallest = merged.smallest();
     d->notified = d->smallest - 1;
     uint i = 1;
-    while ( i <= merged.count() &&
+    while ( i <= merged.count() && i < 512 &&
             merged.value( i ) - d->smallest < i + 4 )
         d->largest = merged.value( i++ );
     d->query = new Query( *query(), this );
@@ -297,6 +296,7 @@ void Fetcher::setDone()
         d->message = d->mailbox->message( d->notified );
         if ( d->message )
             setDone( d->message );
+        d->results.add( d->uid );
     }
 }
 
