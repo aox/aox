@@ -63,8 +63,8 @@ public:
     char nextChar();
     void step( uint = 1 );
     const String following() const;
-    void require( String );
-    bool present( String );
+    void require( const String & );
+    bool present( const String & );
 
     IMAP * imap() const;
 
