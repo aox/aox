@@ -263,6 +263,7 @@ ImapSessionInitializer::ImapSessionInitializer( ImapSession * session,
 {
     d->session = session;
     d->owner = owner;
+    execute();
 }
 
 
