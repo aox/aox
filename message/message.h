@@ -87,10 +87,10 @@ private:
 
 private:
     class MessageData * d;
+    friend class BodyPart;
     friend class MessageBodyFetcher;
     friend class MessageFlagFetcher;
     friend class MessageHeaderFetcher;
-    friend class BodyPart;
 };
 
 
@@ -112,8 +112,6 @@ public:
     uint numBytes() const;
     void setNumLines( uint );
     uint numLines() const;
-
-    // BodyPart * child( uint ) const;
 
 private:
     static void parseMultiPart( uint, uint, const String &,
