@@ -105,6 +105,7 @@ void EventLoop::start()
     log( "Starting event loop", Log::Debug );
 
     while ( !d->stop ) {
+        commit();
         Connection *c;
 
         int timeout = INT_MAX;
@@ -158,7 +159,6 @@ void EventLoop::start()
             // XXX: And this is highly suboptimal, too. (Why?)
             log( "EventLoop: select() returned errno " + fn( errno ),
                  Log::Disaster );
-            commit();
             exit( 0 );
         }
         if ( now - gc > 60 ) {
@@ -176,7 +176,6 @@ void EventLoop::start()
                 dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
             ++it;
         }
-        commit();
     }
 
     // This is for event loop shutdown. A little brutal. Proper
