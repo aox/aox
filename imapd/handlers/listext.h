@@ -17,6 +17,15 @@ public:
     void parse();
     void execute();
 
+    Mailbox * reference();
+
+    String combinedName( Mailbox *, const String & );
+
+    static uint match( const String & pattern, uint p,
+                       const String & name, uint n );
+
+    String listMailbox();
+
 private:
     void addReturnOption( const String & );
     void addSelectOption( const String & );

@@ -28,7 +28,7 @@ Lsub::Lsub()
 void Lsub::parse()
 {
     space();
-    ref = imap()->mailboxName( astring() );
+    ref = reference();
     space();
     pat = listMailbox();
     end();
@@ -39,30 +39,29 @@ void Lsub::execute()
 {
     if ( !q ) {
         q = new Query( "select * from subscriptions where owner=$1 and "
-                       "mailbox like $2 order by mailbox", this );
+                       "mailbox like $2", this );
         q->bind( 1, imap()->user()->id() );
-        String like = ref;
-        if ( pat[0] == '/' ) {
-            uint n = 0;
-            while ( n < pat.length() &&
-                    ( pat[n] != '*' && pat[n] != '%' ) )
-                n++;
-            like = pat.mid( 0, n-1 );
+        String like = combinedName( ref, pat );
+        uint slash = 0;
+        uint i = 0;
+        while ( i < like.length() && like[i] != '%' && like[i] != '*' ) {
+            if ( like[i] == '/' )
+                slash = i;
+            i++;
         }
+        like = like.mid( i ) + "/%";
         q->bind( 2, like + "%" );
         q->execute();
     }
 
     while ( q->hasResults() ) {
-        Row *r = q->nextRow();
-        String m = r->getString( "mailbox" );
-        String name = m.mid( ref.length() );
+        Row * r = q->nextRow();
+        String name = r->getString( "mailbox" );
 
-        if ( match( name, pat ) ) {
+        if ( match( name, 0, pat, 0 ) == 2 ) {
             String flags = "";
-            Mailbox *mbx = Mailbox::find( m );
-
-            if ( !mbx )
+            Mailbox * m = Mailbox::find( name );
+            if ( !m )
                 flags = "\\noselect";
 
             respond( "LSUB (" + flags + ") \"/\" " + name );
@@ -72,12 +71,4 @@ void Lsub::execute()
     if ( !q->done() )
         return;
     finish();
-}
-
-
-/*! Returns true only if \a name matches the supplied \a pattern. */
-
-bool Lsub::match( const String &name, const String &pattern )
-{
-    return true;
 }

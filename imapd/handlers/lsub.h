@@ -3,12 +3,12 @@
 #ifndef LSUB_H
 #define LSUB_H
 
-#include "command.h"
+#include "listext.h"
 #include "string.h"
 
 
 class Lsub
-    : public Command
+    : public Listext
 {
 public:
     Lsub();
@@ -17,10 +17,8 @@ public:
     void execute();
 
 private:
-    bool match( const String &, const String & );
-
     class Query *q;
-    String ref;
+    class Mailbox * ref;
     String pat;
 };
 

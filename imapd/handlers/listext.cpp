@@ -12,6 +12,7 @@ class ListextData
 {
 public:
     ListextData():
+        reference( 0 ),
         responses( 0 ),
         extended( false ),
         returnSubscribed( false ), returnChildren( false ),
@@ -19,7 +20,7 @@ public:
         selectMatchParent( false )
     {}
 
-    String mailbox;
+    Mailbox * reference;
     StringList patterns;
     String homePrefix;
 
@@ -44,6 +45,10 @@ public:
 
     Mailstore does not support remote mailboxes, so the listext option
     to show remote mailboxes is silently ignored.
+
+    This class contains a few utility functions used by Lsub, since
+    the two share so much behaviour, namely match(), reference() and
+    combinedName().
 */
 
 
@@ -61,7 +66,7 @@ Listext::Listext()
 
 void Listext::parse()
 {
-    // list = "LIST" [SP list-select-opts] SP mailbox SP mbox_or_pat
+    // list = "LIST" [SP list-select-opts] SP mailbox SP mbox-or-pat
 
     space();
 
@@ -78,11 +83,11 @@ void Listext::parse()
         space();
     }
 
-    d->mailbox = astring();
+    d->reference = reference();
     space();
 
-    // mbox_or_pat = list-mailbox / patterns
-    // patterns = "(" list-mailbox *(list-mailbox) ")"
+    // mbox-or-pat = list-mailbox / patterns
+    // patterns = "(" list-mailbox *(SP list-mailbox) ")"
     if ( present( "(" ) ) {
         d->extended = true;
 
@@ -115,19 +120,18 @@ void Listext::execute()
         return;
     }
 
-    Mailbox * home = imap()->user()->home();
-    Mailbox * root = Mailbox::root();
-
-    d->homePrefix = home->name() + "/";
+    d->homePrefix = imap()->user()->home()->name() + "/";
 
     StringList::Iterator it( d->patterns.first() );
     while ( it ) {
         if ( it->isEmpty() )
             respond( "LIST \"/\" \"\"" );
         else if ( (*it)[0] == '/' )
-            listChildren( root, *it );
+            listChildren( Mailbox::root(), *it );
+        else if ( d->reference )
+            listChildren( d->reference, *it );
         else
-            listChildren( home, *it );
+            listChildren( imap()->user()->home(), *it );
         ++it;
     }
 
@@ -165,14 +169,14 @@ void Listext::addSelectOption( const String & option )
 }
 
 
-/* this slow-as-hell pattern matching helper checks that pattern
-   (starting at p) matches name (starting at n), and returns 2 in case
-   of match, 1 if a child of name might match, and 0 if neither is the
-   case.
+/*! This extremely slow pattern matching helper checks that \a pattern
+    (starting at character \a p) matches \a name (starting at
+    character \a n), and returns 2 in case of match, 1 if a child of
+    \a name might match, and 0 if neither is the case.
 */
 
-static uint match( const String & pattern, uint p,
-                   const String & name, uint n )
+uint Listext::match( const String & pattern, uint p,
+                     const String & name, uint n )
 {
     bool one = false;
     while ( p < pattern.length() ) {
@@ -238,7 +242,7 @@ void Listext::list( Mailbox *m, const String &p )
     bool matchChildren = false;
 
     String name = m->name();
-    if ( p[0] != '/' && name.startsWith( d->homePrefix ) )
+    if ( p[0] != '/' && p[0] != '*' && name.startsWith( d->homePrefix ) )
         name = name.mid( d->homePrefix.length() );
 
     switch( match( p, 0, name, 0 ) ) {
@@ -313,4 +317,72 @@ void Listext::sendListResponse( Mailbox * mailbox, const String & name )
 
     respond( "LIST (" + a.join( " " ) + ") \"/\" " + name );
     d->responses++;
+}
+
+
+/*! Parses a reference name and returns a pointer to the relevant
+    mailbox, and logs an error if something is wrong.
+
+    If the reference name is empty, reference() returns a null pointer
+    without logging any error.
+*/
+
+Mailbox * Listext::reference()
+{
+    String name = astring();
+    if ( name.isEmpty() )
+        return 0;
+    Mailbox * m;
+    if ( name[0] == '/' )
+        m = Mailbox::obtain( name, false );
+    else
+        m = Mailbox::obtain( imap()->user()->home()->name() + "/" + name,
+                             false );
+    if ( !m )
+        error( No, "Cannot find reference name " + name );
+    return m;
+}
+
+
+/*! Returns the combined name formed by interpreting the mailbox \a
+    name in the context of the \a reference mailbox.
+
+    If \a name starts with a slash, \a reference isn't dereferenceds,
+    so it can be a null pointer. \a name need not be a valid mailbox
+    name, it can also be e.g. a pattern.
+*/
+
+String Listext::combinedName( Mailbox * reference, const String & name )
+{
+    if ( name.startsWith( "/" ) )
+        return name;
+    else if ( reference )
+        return reference->name() + "/" + name;
+
+    return imap()->user()->home()->name() + "/" + name;
+}
+
+
+/*! Parses and returns a list-mailbox. This is the same as an atom(),
+    except that the three additional characters %, * and ] are
+    accepted.
+*/
+
+String Listext::listMailbox()
+{
+    String result;
+    char c = nextChar();
+    if ( c == '"' || c == '{' )
+        return string();
+    while ( c > ' ' && c < 127 &&
+            c != '(' && c != ')' && c != '{' &&
+            c != '"' && c != '\\' )
+    {
+        result.append( c );
+        step();
+        c = nextChar();
+    }
+    if ( result.isEmpty() )
+        error( Bad, "list-mailbox expected, saw: " + following() );
+    return result;
 }
