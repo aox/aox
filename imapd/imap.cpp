@@ -56,7 +56,7 @@ IMAP::IMAP(int s)
 
     setReadBuffer( new Buffer( fd() ) );
     setWriteBuffer( new Buffer( fd() ) );
-    writeBuffer()->append("* OK [");
+    writeBuffer()->append("* OK [CAPABILITY ");
     writeBuffer()->append( Capability::capabilities() );
     writeBuffer()->append( "]\r\n");
     setTimeout( time(0) + 20 );
