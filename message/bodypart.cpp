@@ -372,8 +372,15 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     }
     else {
         if ( ct->type() != "multipart" && ct->type() != "message" ) {
-            h->removeField( HeaderField::ContentTransferEncoding );
-            h->add( "Content-Transfer-Encoding", "base64" );
+            HeaderField *hf = h->field( HeaderField::ContentTransferEncoding );
+            if ( hf ) {
+                ContentTransferEncoding *cte = hf->contentTransferEncoding();
+                if ( cte->encoding() != String::Base64 )
+                    cte->setEncoding( String::Base64 );
+            }
+            else {
+                h->add( "Content-Transfer-Encoding", "base64" );
+            }
             h->simplify();
         }
         bp->d->data = body;
