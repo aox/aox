@@ -624,15 +624,15 @@ void Postgres::processQueue( bool userContext )
         PgExecute d;
         d.enqueue( writeBuffer() );
 
+        PgSync e;
+        e.enqueue( writeBuffer() );
+
         s.append( "execute" );
         log( "Sent " + s + " for " + q->string(), Log::Debug );
     }
 
-    if ( writeBuffer()->size() > 0 ) {
-        PgSync e;
-        e.enqueue( writeBuffer() );
+    if ( writeBuffer()->size() > 0 )
         extendTimeout( 5 );
-    }
     write();
 }
 
