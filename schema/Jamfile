@@ -10,4 +10,5 @@ rule SchemaFile {
 }
 
 SchemaFile field-names ;
+SchemaFile flag-names ;
 SchemaFile schema.pg ;

@@ -125,6 +125,7 @@ elif [ -n "$NEEDSCHEMA" ]; then
     echo "    SET client_min_messages TO 'ERROR';"
     echo "    \\i $LIBDIR/schema.pg"
     echo "    \\i $LIBDIR/field-names"
+    echo "    \\i $LIBDIR/flag-names"
 elif [ $TELL = yes ]; then
     echo "Mailstore schema already exists, no action necessary."
 fi
