@@ -7,6 +7,7 @@
 
 class Header;
 class Bodypart;
+class ContentType;
 
 
 class Multipart {
@@ -19,6 +20,10 @@ public:
     Multipart *parent() const;
     void setParent( Multipart * );
     List< Bodypart > *children() const;
+
+    void appendMultipart( String &, List< Bodypart > *, Header * ) const;
+    void appendAnyPart( String &, const Bodypart *, ContentType * ) const;
+    void appendTextPart( String &, const Bodypart *, ContentType * ) const;
 
 private:
     Header *h;

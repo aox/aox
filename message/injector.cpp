@@ -7,6 +7,7 @@
 #include "query.h"
 #include "address.h"
 #include "message.h"
+#include "bodypart.h"
 #include "mailbox.h"
 #include "fieldcache.h"
 #include "addresscache.h"

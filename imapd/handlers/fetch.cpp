@@ -8,6 +8,7 @@
 #include "imapsession.h"
 #include "address.h"
 #include "message.h"
+#include "bodypart.h"
 #include "imap.h"
 #include "flag.h"
 #include "date.h"
