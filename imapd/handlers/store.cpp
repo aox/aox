@@ -76,7 +76,7 @@ Store::Store( bool u )
 void Store::parse()
 {
     space();
-    d->s = set( d->uid );
+    d->s = set( !d->uid );
     space();
 
     if ( present( "-" ) )

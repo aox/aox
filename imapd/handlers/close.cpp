@@ -21,7 +21,8 @@
 
 void Close::execute()
 {
-    expunge( false );
+    if ( !expunge( false ) )
+        return;
     imap()->endSession();
     finish();
 }

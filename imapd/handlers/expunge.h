@@ -10,8 +10,13 @@ class Expunge
     : public Command
 {
 public:
+    Expunge();
+
     void execute();
-    void expunge( bool );
+    bool expunge( bool );
+
+private:
+    class ExpungeData *d;
 };
 
 
