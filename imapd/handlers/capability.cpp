@@ -2,7 +2,7 @@
 
 #include "configuration.h"
 #include "imap.h"
-#include "list.h"
+#include "stringlist.h"
 #include "log.h"
 
 
@@ -51,37 +51,29 @@ void Capability::execute()
 
 String Capability::capabilities( IMAP * i )
 {
-    SortedList<String> c;
-    c.insert( new String( "IMAP4rev1" ) );
-    c.insert( new String( "LITERAL+" ) );
-    c.insert( new String( "IDLE" ) );
-    c.insert( new String( "ID" ) );
-    c.insert( new String( "NAMESPACE" ) );
-    c.insert( new String( "UNSELECT" ) );
-    c.insert( new String( "AUTH=ANONYMOUS" ) );
-    c.insert( new String( "AUTH=CRAM-MD5" ) );
-    c.insert( new String( "AUTH=DIGEST-MD5" ) );
+    StringList c;
 
-    if ( ::drafts ) {
-        c.insert( new String( "LISTEXT" ) );
-        c.insert( new String( "SASL-IR" ) );
-    }
+    c.append( "IMAP4rev1" );
 
+    // the remainder of the capabilities are kept sorted by name
+    c.append( "AUTH=ANONYMOUS" );
+    c.append( "AUTH=CRAM-MD5" );
+    c.append( "AUTH=DIGEST-MD5" );
     if ( i->hasTLS() )
-        c.insert( new String( "AUTH=PLAIN" ) );
-    else
-        c.insert( new String( "STARTTLS" ) );
+        c.append( "AUTH=PLAIN" );
+    c.append( "ID" );
+    c.append( "IDLE" );
+    if ( ::drafts )
+        c.append( "LISTEXT" );
+    c.append( "LITERAL+" );
+    c.append( "NAMESPACE" );
+    if ( ::drafts )
+        c.append( "SASL-IR" );
+    if ( !i->hasTLS() )
+        c.append( "STARTTLS" );
+    c.append( "UNSELECT" );
 
-    // all this just to join... how many string lists will we need?
-    String r;
-    SortedList<String>::Iterator it( c.first() );
-    while ( it != c.end() ) {
-        r.append( *it );
-        if ( it != c.last() )
-            r.append( " " );
-        ++it;
-    }
-    return r;
+    return c.join( " " );
 }
 
 
