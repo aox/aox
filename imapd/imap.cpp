@@ -32,8 +32,8 @@ public:
     IMAPData()
         : state( IMAP::NotAuthenticated ),
           cmdArena( 0 ), args( 0 ), reader( 0 ),
-          readingLiteral( false ), literalSize( 0 ),
-          session( 0 ), mailbox( 0 ), login( 0 ),
+          runningCommands( false ), readingLiteral( false ),
+          literalSize( 0 ), session( 0 ), mailbox( 0 ), login( 0 ),
           idle( false )
     {}
     ~IMAPData() {
@@ -46,6 +46,7 @@ public:
     StringList * args;
     Command * reader;
 
+    bool runningCommands;
     bool readingLiteral;
     uint literalSize;
 
@@ -447,6 +448,16 @@ void IMAP::reserve( Command * command )
 }
 
 
+/*! Causes any blocked commands to be executed if possible.
+*/
+
+void IMAP::unblockCommands()
+{
+    if ( !d->runningCommands )
+        runCommands();
+}
+
+
 /*! Calls Command::execute() on all currently operating commands, and
     if possible calls Command::emitResponses() and retires those which
     can be retired.
@@ -456,6 +467,8 @@ void IMAP::runCommands()
 {
     Command * c;
     List< Command >::Iterator i;
+
+    d->runningCommands = true;
 
     // run all currently executing commands once
     i = d->commands.first();
@@ -475,19 +488,20 @@ void IMAP::runCommands()
         while ( i && i->state() != Command::Blocked )
             i++;
     }
-    if ( !i )
-        return;
+    if ( i ) {
+        c = i;
+        do {
+            if ( i->group() == c->group() &&
+                 i->state() == Command::Blocked && i->ok() )
+            {
+                i->setState( Command::Executing );
+                run( i );
+            }
+            i++;
+        } while ( c->group() > 0 && i );
+    }
 
-    c = i;
-    do {
-        if ( i->group() == c->group() &&
-             i->state() == Command::Blocked && i->ok() )
-        {
-            i->setState( Command::Executing );
-            run( i );
-        }
-        i++;
-    } while ( c->group() > 0 && i );
+    d->runningCommands = false;
 }
 
 

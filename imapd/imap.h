@@ -42,6 +42,7 @@ public:
     bool supports( const String & ) const;
 
     uint activeCommands() const;
+    void unblockCommands();
 
 private:
     class IMAPData *d;
