@@ -444,7 +444,7 @@ bool Configuration::toggle( Toggle t )
 }
 
 
-/*! Returns true of toggle \a s has been configured, and false if
+/*! Returns true of toggle \a t has been configured, and false if
     the default value is to be used.
 */
 
@@ -531,6 +531,12 @@ void Configuration::setup( const String & global )
     if ( hn.lower() == "localhost" || hn.lower().startsWith( "localhost." ) )
         log( "Using localhost as hostname", Log::Error );
 }
+
+
+/*! \fn String Configuration::hostname()
+    Returns the configured hostname (or our best guess, if no hostname
+    has been specified in the configuration).
+*/
 
 
 /*! Returns the best hostname we can find based on the operating
