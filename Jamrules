@@ -17,6 +17,8 @@ LINKFLAGS = -g ;
 
 # no user-serviceable parts below this line
 
+VERSION = 0.90 ;
+
 OPTIM = ;
 RANLIB = ;
 

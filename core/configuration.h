@@ -26,7 +26,9 @@ public:
         ConfigDir,
         PidFileDir,
         BinDir,
-        ManDir
+        ManDir,
+        // additional settings go ABOVE THIS LINE
+        Version, LastSetting = Version
     };
 
     static String compiledIn( CompileTimeSetting );

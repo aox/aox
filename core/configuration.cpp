@@ -212,6 +212,9 @@ String Configuration::compiledIn( CompileTimeSetting setting )
     case ManDir:
         return MANDIR;
         break;
+    case Version:
+        return VERSION;
+        break;
     }
     return "";
 }
