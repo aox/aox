@@ -15,7 +15,7 @@
 
 
 static uint id = 0;
-File *logFile;
+static File *logFile;
 
 
 /*! \class LogServer logserver.h
@@ -197,8 +197,8 @@ void LogServer::process( String transaction,
     if ( !c )
         log( transaction, f, s, parameters );
 
-    if ( c || s > Log::Error ) {
-        if ( s > Log::Error )
+    if ( c || s >= Log::Error ) {
+        if ( s >= Log::Error )
             s = Log::Debug;
         commit( transaction, f, s );
     }
@@ -288,4 +288,11 @@ void LogServer::setLogFile( const String & name )
         ::logFile = l;
     else
         ::log( "Could not open log file " + name, Log::Error );
+}
+
+
+/*! Does nothing for now. */
+
+void LogServer::setLogLevel( const String & )
+{
 }

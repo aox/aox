@@ -19,6 +19,7 @@ public:
     void processLine( const String & );
 
     static void setLogFile( const String & );
+    static void setLogLevel( const String & );
 
 private:
     void parse();

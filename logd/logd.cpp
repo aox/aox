@@ -23,6 +23,8 @@ int main( int, char *[] )
     (void)new SelfLogger;
     Configuration::Text logName( "logfile", Configuration::LogFile );
     LogServer::setLogFile( logName );
+    Configuration::Text logLevel( "loglevel", "info" );
+    LogServer::setLogLevel( logLevel );
 
     Listener< LogServer >::create( "log", "127.0.0.1", 2054 );
 
