@@ -191,111 +191,112 @@ void IMAP::parse()
 }
 
 
-/*! Does preliminary parsing and adds a new Command object. At some
-    point, that object may be executed - we don't care about that for
-    the moment.
-
-    During execution of this function, the command's Arena must be used.
+/*! This function parses enough of the command line to create a Command,
+    and then uses it to parse the rest of the input.
 */
 
 void IMAP::addCommand()
 {
-    List<String> * args = d->args;
-    d->args = new List<String>;
-
-    String * s = args->first();
+    String * s = d->args->first();
     d->logger->log( Log::Debug, "Received " +
-                    String::fromNumber( (args->count() + 1)/2 ) +
+                    String::fromNumber( (d->args->count() + 1)/2 ) +
                     "-line command: " + *s );
 
-    // pick up the tag
-    uint i = (uint)-1;
+    String tag, command;
+    
+    // Parse the tag: A nonzero sequence of any ASTRING-CHAR except '+'.
+
     char c;
-    do {
+    uint i = 0;
+
+    while ( i < s->length() && ( c = (*s)[i] ) > ' ' && c < 127 &&
+            c != '(' && c != ')' && c != '{' && c != '%' && c != '*' &&
+            c != '"' && c != '\\' && c != '+' )
         i++;
-        c = (*s)[i];
-    } while ( i < s->length() &&
-              c < 128 && c > ' ' && c != '+' &&
-              c != '(' && c != ')' && c != '{' &&
-              c != '%' && c != '%' );
+
     if ( i < 1 || c != ' ' ) {
         writeBuffer()->append( "* BAD tag\r\n" );
         d->logger->log( "Unable to parse tag. Line: " + *s );
+parseError:
+        delete d->cmdArena;
         return;
     }
-    String tag = s->mid( 0, i );
 
-    // pick up the command
-    uint j = i+1;
-    do {
+    tag = s->mid( 0, i );
+
+
+    // Parse the command name (a single atom).
+
+    uint j = ++i;
+
+    while ( i < s->length() && ( c = (*s)[i] ) > ' ' && c < 127 &&
+            c != '(' && c != ')' && c != '{' && c != '%' && c != '*' &&
+            c != '"' && c != '\\' && c != ']' )
         i++;
-        c = (*s)[i];
-    } while ( i < s->length() &&
-              c < 128 &&
-              ( c > ' ' ||
-                ( c == ' ' && s->mid( j, i-j ).lower() == "uid" ) ) &&
-              c != '(' && c != ')' && c != '{' &&
-              c != '%' && c != '%' &&
-              c != '"' && c != '\\' &&
-              c != ']' );
+
     if ( i == j ) {
         writeBuffer()->append( "* BAD no command\r\n" );
         d->logger->log( "Unable to parse command. Line: " + *s );
-        return;
+        goto parseError;
     }
-    String command = s->mid( j, i-j );
 
-    Command * cmd = Command::create( this, command, tag, args, d->cmdArena );
-    if ( cmd ) {
-         // skip past tag, command and first space
-        cmd->step( i );
-        if ( cmd->nextChar() == ' ' )
-            cmd->space();
-        // then parse the rest
-        cmd->parse();
-        if ( cmd->ok() && cmd->state() == Command::Executing &&
-            !d->commands.isEmpty() ) {
-            // we're already executing one or more commands. can this
-            // one be started concurrently?
-            if ( cmd->group() == 0 ) {
-                // no, it can't.
+    command = s->mid( j, i-j );
+
+
+    // Try to create a command handler.
+
+    Command *cmd = Command::create( this, command, tag, d->args, d->cmdArena );
+
+    if ( !cmd ) {
+        d->logger->log( "Unknown command '" + command + "' (tag '" +
+                        tag + "')" );
+        writeBuffer()->append( tag + " BAD unknown command: " + command +
+                               "\r\n" );
+        goto parseError;
+    }
+
+
+    // Use this Command to parse the command line.
+
+    cmd->step( i );
+    if ( cmd->nextChar() == ' ' )
+        cmd->space();
+    cmd->parse();
+
+
+    // Then add it to our list of Commands.
+    
+    if ( cmd->ok() && cmd->state() == Command::Executing &&
+         !d->commands.isEmpty() )
+    {
+        // We're already executing d->commands. Can we start cmd now?
+
+        if ( cmd->group() == 0 ) {
+            // No, we can't.
+            cmd->setState( Command::Blocked );
+            cmd->logger()->log( Log::Debug,
+                                "Blocking execution of " + tag +
+                                " (concurrency not allowed for " +
+                                command + ")" );
+        }
+        else {
+            // Do the other d->commands belong to the same group?
+            List< Command >::Iterator it;
+
+            it = d->commands.first();
+            while ( it && it->group() == cmd->group() )
+                it++;
+
+            if ( it ) {
                 cmd->setState( Command::Blocked );
                 cmd->logger()->log( Log::Debug,
                                     "Blocking execution of " + tag +
-                                    " (concurrency not allowed for " +
-                                    command + ")" );
-            }
-            else {
-                // do all other commands belong to the same command group?
-                List< Command >::Iterator i;
-
-                i = d->commands.first();
-                while ( i && i->group() == cmd->group() )
-                    i++;
-
-                if ( i ) {
-                    // no, *i does not
-                    cmd->setState( Command::Blocked );
-                    cmd->logger()->log( Log::Debug,
-                                        "Blocking execution of " + tag +
-                                        " until it can be exectuted" );
-                    // evil. we really want to say something about why
-                    // it can't. but what?
-                }
+                                    " until it can be exectuted" );
             }
         }
-        d->commands.append( cmd );
     }
-    else {
-        d->logger->log( "Unknown command '" + command + "' (tag '" +
-                        tag + "')" );
-        String tmp( tag );
-        tmp += " BAD command unknown: ";
-        tmp += command;
-        tmp += "\r\n";
-        writeBuffer()->append( tmp );
-        delete d->cmdArena;
-    }
+
+    d->commands.append( cmd );
 }
 
 
