@@ -1,5 +1,7 @@
 SubDir TOP imapd handlers ;
 
+HDRS += [ FDirName $(TOP) imapd db ] ;
+
 Build imap :
     authenticate.cpp
     capability.cpp
