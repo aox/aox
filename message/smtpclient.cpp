@@ -216,16 +216,29 @@ String SmtpClient::dotted( const String & s )
 {
     String r;
     uint i = 0;
+    uint sol = true;
     while ( i < s.length() ) {
-        if ( s[i] == '.' &&
-             ( i == 0 || s[i-1] == '\r' || s[i-1] == '\n' ) )
-            r.append( "." );
-        r.append( s[i] );
+        if ( s[i] == '\r' ) {
+            sol = true;
+            r.append( "\r\n" );
+            if ( s[i+1] == '\n' )
+                i++;
+        }
+        else if ( s[i] == '\n' ) {
+            sol = true;
+            r.append( "\r\n" );
+        }
+        else {
+            if ( sol && s[i] == '.' )
+                r.append( '.' );
+            r.append( s[i] );
+            sol = false;
+        }
         i++;
     }
-    i = r.length();
-    if ( i < 2 || r[i-2] != '\r' || r[i-1] != '\n' )
+    if ( !sol )
         r.append( "\r\n" );
     r.append( ".\r\n" );
+
     return r;
 }
