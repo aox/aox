@@ -11,6 +11,7 @@
 #include "configuration.h"
 #include "database.h"
 
+#include <stdlib.h>
 
 int main( int, char *[] )
 {
