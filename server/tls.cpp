@@ -47,9 +47,10 @@ public:
 
 
 TlsServerData::Client::Client( TlsServerData * data )
-    : Connection( Connection::connect( *tlsProxy ), Connection::Client ),
+    : Connection(),
       d( data ), done( false ), ok( false )
 {
+    connect( *tlsProxy );
 }
 
 

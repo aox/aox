@@ -12,6 +12,14 @@
 */
 
 
+/*! Constructs a regular StartTLS parser. */
+
+StartTLS::StartTLS()
+    : tlsServer( 0 )
+{
+}
+
+
 /*! \reimp
 
     This implementation hacks to ensure that no other command can be
@@ -45,6 +53,6 @@ void StartTLS::execute()
         error( No, "Internal error starting TLS engine" );
 
     imap()->reserve( 0 );
-    imap()->startTls( tlsServer );
     finish();
+    imap()->startTls( tlsServer );
 }

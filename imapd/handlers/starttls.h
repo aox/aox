@@ -8,6 +8,8 @@ class StartTLS
     : public Command
 {
 public:
+    StartTLS();
+
     void parse();
     void execute();
 
