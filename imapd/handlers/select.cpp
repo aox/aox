@@ -9,9 +9,6 @@
 #include "flag.h"
 
 
-static inline String fn( uint n ) { return String::fromNumber( n ); }
-
-
 class SelectData {
 public:
     SelectData()
