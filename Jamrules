@@ -147,7 +147,7 @@ actions WriteShellConfig
 
 
 rule Doc {
-    Depends exe : <doc>.made.$(<) ;
+    Depends doc : <doc>.made.$(<) ;
 
     RemoveDoc docclean ;
     Depends clean : docclean ;
