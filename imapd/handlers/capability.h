@@ -13,8 +13,6 @@ public:
     void execute();
 
     static String capabilities( IMAP * );
-
-    static void setup();
 };
 
 

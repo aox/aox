@@ -37,7 +37,6 @@ int main( int argc, char *argv[] )
     TlsServer::setup();
     OCClient::setup();
     Mailbox::setup();
-    Capability::setup();
     AddressCache::setup();
     FieldNameCache::setup();
     Flag::setup();

@@ -11,9 +11,6 @@
 #include "tls.h"
 
 
-static bool drafts = false;
-
-
 /*! \class Capability capability.h
     Announces supported features (RFC 3501, §6.1.1)
 
@@ -72,21 +69,11 @@ String Capability::capabilities( IMAP * i )
     if ( !i->supports( "login" ) )
         c.append( "LOGINDISABLED" );
     c.append( "NAMESPACE" );
-    if ( ::drafts )
+    if ( Configuration::toggle( Configuration::AnnounceDraftSupport ) )
         c.append( "SASL-IR" );
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
     c.append( "UNSELECT" );
 
     return c.join( " " );
-}
-
-
-/*! Sets up all configuration variables. */
-
-void Capability::setup()
-{
-    ::drafts = Configuration::toggle( Configuration::AnnounceDraftSupport );
-    if ( ::drafts )
-        ::log( "Announcing support for draft IMAP extensions" );
 }
