@@ -123,7 +123,7 @@ static String time()
 
     // yuck.
     char result[32];
-    sprintf( result, "%04d:%02d:%02d %02d:%02d:%02d.%03d",
+    sprintf( result, "%04d-%02d-%02d %02d:%02d:%02d.%03d",
              t->tm_year + 1900, t->tm_mon+1, t->tm_mday,
              t->tm_hour, t->tm_min, t->tm_sec,
              (int)tv.tv_usec/1000 );
