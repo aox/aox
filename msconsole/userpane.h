@@ -15,6 +15,9 @@ public:
 private slots:
     void addAlias();
     void removeAlias();
+    void updateExceptLogin();
+    void perhapsUpdateLogin();
+
 
 private:
     class UserPaneData * d;
