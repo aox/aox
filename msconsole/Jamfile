@@ -31,6 +31,7 @@ Build msconsole : console.cpp userpane.cpp mailboxpane.cpp msconsole.cpp
 Program msconsole :
     msconsole database server mailbox message user core encodings admintools ;
 
-Moc .msconsole.moc.cpp : console.h userpane.h mailboxpane.h searchedit.h ;
+Moc .msconsole.moc.cpp : console.h userpane.h mailboxpane.h searchedit.h
+    consoleloop.h ;
 
 LINKLIBS on msconsole = -lqt -lcrypt ;

@@ -4,9 +4,11 @@
 #define CONSOLELOOP_H
 
 #include "eventloop.h"
+#include <qsocketnotifier.h>
 
 
-class ConsoleLoop: public EventLoop
+class ConsoleLoop
+    : public EventLoop
 {
 public:
     ConsoleLoop();
@@ -20,6 +22,38 @@ private:
     class ConsoleLoopData * d;
 };
 
+
+class WriteNotifier
+    : public QSocketNotifier
+{
+    Q_OBJECT
+
+public:
+    WriteNotifier( int, Connection * );
+
+public slots:
+    void dispatch();
+
+private:
+    Connection * c;
+};
+
+
+class ReadNotifier
+    : public QSocketNotifier
+{
+    Q_OBJECT
+
+public:
+    ReadNotifier( int, Connection * );
+    Connection *connection() const;
+
+public slots:
+    void dispatch();
+
+private:
+    Connection * c;
+};
 
 
 #endif
