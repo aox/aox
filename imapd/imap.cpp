@@ -230,7 +230,6 @@ void IMAP::addCommand()
     if ( i < 1 || c != ' ' ) {
         enqueue( "* BAD tag\r\n" );
         log( "Unable to parse tag. Line: " + *s );
-parseError:
         delete d->cmdArena;
         return;
     }
@@ -250,7 +249,8 @@ parseError:
     if ( i == j ) {
         enqueue( "* BAD no command\r\n" );
         log( "Unable to parse command. Line: " + *s );
-        goto parseError;
+        delete d->cmdArena;
+        return;
     }
 
     command = s->mid( j, i-j );
@@ -263,7 +263,8 @@ parseError:
         log( "Unknown command '" + command + "' (tag '" +
                         tag + "')" );
         enqueue( tag + " BAD unknown command: " + command + "\r\n" );
-        goto parseError;
+        delete d->cmdArena;
+        return;
     }
 
 
