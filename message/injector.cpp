@@ -471,7 +471,7 @@ void Injector::insertBodyparts()
         }
 
         s = new Query( "select currval('bodypart_ids')::integer as id, "
-                       "'" + hash + "' as hash", helper );
+                       "'" + hash + "'::text as hash", helper );
         d->transaction->enqueue( s );
         queries->append( s );
     }
