@@ -214,51 +214,45 @@ TlsProxy::TlsProxy( int socket )
 
 void TlsProxy::react( Event e )
 {
-    setTimeoutAfter( 1800 );
-
     switch ( e ) {
     case Read:
-        switch( d->state ) {
-        case TlsProxyData::Initial:
+        if ( d->state  == TlsProxyData::Initial ) {
             parse();
-            break;
-        case TlsProxyData::PlainSide:
+        }
+        else {
             try {
-                encrypt();
+                if ( d->state == TlsProxyData::PlainSide )
+                    encrypt();
+                else
+                    decrypt();
             } catch( Exception ) {
                 // at all costs, don't let EventLoop close one of the two
                 // connections. close both.
                 exit( 0 );
             }
-            break;
-        case TlsProxyData::EncryptedSide:
-            try {
-                decrypt();
-            } catch( Exception ) {
-                // as above.
-                exit( 0 );
-            }
-            break;
         }
         break;
 
     case Error:
+    case Timeout:
         exit( 0 );
         break;
 
-    case Timeout:
     case Close:
         setState( Closing );
         if ( d->state != TlsProxyData::Initial ) {
             log( "Shutting down TLS proxy due to client close" );
             Loop::shutdown();
         }
+        exit( 0 );
         break;
 
     case Connect:
     case Shutdown:
         break;
     }
+
+    setTimeoutAfter( 1800 );
 
     if ( d->state == TlsProxyData::Initial )
         return;
@@ -500,7 +494,7 @@ static void handleError( int cryptError, const String & function )
     userside->close();
     serverside->close();
 
-    Loop::shutdown();
+    exit( 0 );
 }
 
 
