@@ -44,6 +44,7 @@ public:
     String error() const;
 
     String rfc822() const;
+    String body() const;
 
     void setUid( uint );
     uint uid() const;

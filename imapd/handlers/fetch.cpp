@@ -475,6 +475,20 @@ static String sectionResponse( FetchData::Section *s,
         item = "BODY[" + s->part + "]";
     }
 
+    else if ( s->id == "text" ) {
+        if ( s->part.isEmpty() ) {
+            item = "TEXT";
+            data = m->body();
+        }
+        else {
+            item = s->part + ".TEXT";
+            BodyPart *bp = m->bodyPart( s->part, false );
+            if ( bp && bp->rfc822() )
+                data = bp->rfc822()->body();
+        }
+        item = "BODY[" + item + "]";
+    }
+
     if ( s->partial ) {
         item.append( "<" + fn( s->offset ) + ">" );
         data = data.mid( s->offset, s->length );
