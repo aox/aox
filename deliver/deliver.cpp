@@ -76,7 +76,7 @@ int main( int argc, char *argv[] )
     if ( sender.isEmpty() && 
          ( contents.startsWith( "From " ) ||
            contents.startsWith( "Return-Path:" ) ) ) {
-        uint i = contents.find( '\n' );
+        int i = contents.find( '\n' );
         if ( i < 0 ) {
             fprintf( stderr, "Message contains no LF\n" );
             exit( -2 );

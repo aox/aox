@@ -30,7 +30,6 @@ public:
     public:
         Client( TlsServerData * );
         void react( Event );
-        void read( Event );
 
         class TlsServerData * d;
 

@@ -35,7 +35,7 @@ void Syslogger::send( const String & s )
 {
     String tmp( s.stripCRLF() );
     int priority = LOG_ALERT;
-    uint i = s.find( " " );
+    int i = s.find( " " );
     if ( i >= 0 ) {
         i++;
         if ( tmp[i] == 'i' )

@@ -136,8 +136,8 @@ void Listext::execute()
     // only components before the first wildcard may be used
 
     if ( !prefix.isEmpty() ) {
-        uint i = prefix.find( '%' );
-        uint j = prefix.find( '*' );
+        int i = prefix.find( '%' );
+        int j = prefix.find( '*' );
         if ( i < 0 )
             i = j;
         if ( j < i && j >= 0 )
