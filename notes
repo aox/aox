@@ -1,17 +1,38 @@
 Add support for RFC 2047 encoding
 
 
-Schema documentation
-
-  I've done all I want to sql-schema.html and postgres.schema; I'll have
-  to wait for Sujai's diagram to complete schema.html, but until then, I
-  have done all I can to it.
+tlsproxy doesn't handle eof (or errors) well
 
 
-Make smtpclient and deliver a lot more robust
+What to do about EventHandlers whose targets have died?
 
-  They work for now, but they don't work well. We need a -v -v, at
-  least. Better code wouldn't be a bad thing either.
+  For example, smtpd usually segfaults when we interrupt deliver, when
+  SmtpDbClient tries to execute() a non-existent SMTP server.
+
+
+Investigate the segfaults in "ms create user" on Debian.
+
+
+"pg_ctl -m immediate stop" makes us segfault because of the Warning.
+
+
+ocd needs work
+
+  1. Must announce new mail.
+  2. The code needs cleaning up.
+  3. Should synchronise field names etc.
+
+
+User/Mailbox need a bit of an overhaul.
+
+
+We need top-level message/rfc822 support
+
+
+tls client support (smtp, postgresql)
+
+
+configuration overhaul
 
 
 We need an IMAP test suite
@@ -21,11 +42,49 @@ We need an IMAP test suite
   notes. ;)
 
 
+Bodypart sharing
+
+  We're doing an in-memory Dict< hash > right now. We can do better.
+
+  The distinction between bodyparts and binary_parts needs to go away.
+  The documentation says so, the schema diagram says so, and AndrewSN
+  and Dennis both say so too.
+
+  Then we have to send this to the server:
+
+    insert into bodyparts
+      select $1 where not exists
+        (select id from bodyparts where hash=$2)
+    select id from bodyparts where hash=$2
+
+  And then fetch the resulting id back. That's it.
+
+
+ms password user ams newpassword
+
+  Must add that. Notify mike@waspfactory.org.
+
+
+Fix shutdown
+
+  There's no practical way to shutdown using ocd/ocadmin. Perhaps this
+  is another aspect of the problem above.
+
+
+Make smtpclient and deliver a lot more robust
+
+  They work for now, but they don't work well. We need a -v -v, at
+  least. Better code wouldn't be a bad thing either.
+
+
 Implement listext
 
   List and lsub are basically good now, but listext is only partially
   implemented, and not advertised. The implementation also trails the
   listext draft. Update and complete that.
+
+
+Resource limits on memory allocation
 
 
 Signal handling
@@ -40,71 +99,37 @@ Signal handling
   Other known signals?
 
 
+inject a large number of messages, collect query statistics
+
+
+The GUI should do something
+
+
 Set up and play with Tsearch2
 
 
-ocd needs to announce new mail.
+Inbox lifetime/mailbox reuse
+
+  A newly created used needs an inbox. Since the user name may be the
+  same as a former user, the mailbox may exist already, and may
+  contain messages belonging to the former user.
+
+  This behaviour has the benefit that "ms create user" is a perfect
+  undelete for "ms delete user", but if the new user has no relation
+  to the previous homonymous user, our behaviour is less desirable.
+
+  I assume ms create user needs a command-line argument and msconsole
+  needs to prompt its user.
 
 
-Per-MTA installation and use
+Add support for "ms restart now" and "ms restart gracefully"
 
-  We need http://www.oryx.com/mailstore/exim.html and friends, plus a
-  section in src/doc/mailstore.man.
+  Complications include: Some daemon must run as root, outside the
+  jail. ocd perhaps? For cluster use, things grow complicated very
+  quickly.
 
-  MTAs worth documenting in this way: Postfix, sendmail, exim,
-  qmail/netqmail. More?
-
-  Notify mike@waspfactory.org
-
-
-tlsproxy doesn't handle eof (or errors) well
-
-
-Investigate the segfaults in "ms create user" on Debian.
-
-
-"pg_ctl -m immediate stop" makes us segfault because of the Warning.
-
-
-Write to the alistapart chap who wrote about @media after 0.91.
-
-
-I want a "uint characters[256]" with a pre-computed property bitmask for
-easier parsing. It's well worth it now (cf. tspecials vs. especials).
-
-
-Resource limits on memory allocation
-
-
-tls client support (smtp, postgresql)
-
-
-Web site proofreading
-
-  Need a comprehensive proofreading session.
-
-
-test with more imap clients (corp/docs/misc/mua-list)
-
-  Why do we have one list in mua-list and another in imap.html?
-
-
-the gui should do something
-
-
-configuration overhaul
-
-
-archives.oryx.com
-
-
-top-level message/rfc822 support
-
-
-Consider RFC2231, §6:
-
-  «IMAP4 [RFC-2060] servers SHOULD decode parameter value continuations
-  when generating the BODY and BODYSTRUCTURE fetch attributes.»
+  Preliminary approach: Have ocd run chrooted in BINDIR instead of
+  JAILDIR, and by default listen only to a unix socket.
 
 
 FETCH fixes:
@@ -129,42 +154,12 @@ EXPUNGE fixes:
   is processed before we spread the word about the expunged message.
 
 
-Use SHA-1 to hash bodyparts instead of MD5.
+Consider RFC2231, §6:
 
-  MD5 is broken, and we should be moving away from it.
-  AMS needs to take code from RFC 3174 and make core/sha1.cpp.
+  «IMAP4 [RFC-2060] servers SHOULD decode parameter value continuations
+  when generating the BODY and BODYSTRUCTURE fetch attributes.»
 
-
-Bodypart sharing
-
-  We're doing an in-memory Dict< hash > right now. We can do better.
-
-  The distinction between bodyparts and binary_parts needs to go away.
-  The documentation says so, the schema diagram says so, and AndrewSN
-  and Dennis both say so too.
-
-  Then we have to send this to the server:
-
-    insert into bodyparts
-      select $1 where not exists
-        (select id from bodyparts where hash=$2)
-    select id from bodyparts where hash=$2
-
-  And then fetch the resulting id back. That's it.
-
-
-ocd/OC* need a bit of an overhaul.
-
-
-User/Mailbox need a bit of an overhaul.
-
-
-inject a large number of messages, collect query statistics
-
-
-What to do about EventHandlers whose targets have died?
-
-  This will almost Just Work once we're in a GC world.
+  Hopefully we don't need to care about this at all.
 
 
 logging cleanups
@@ -173,88 +168,6 @@ logging cleanups
   various Logs are created in the right context. Furthermore, the Loop
   should not be calling commit() for every Connection; and they should
   each set their Log/Arena correctly in their Scope.
-
-
-Miscellaneous cleanups:
-
-  * get rid of Blah::setup wherever possible
-  * avoid unnecessary header file inclusion
-
-
-Inbox lifetime/mailbox reuse
-
-  A newly created used needs an inbox. Since the user name may be the
-  same as a former user, the mailbox may exist already, and may
-  contain messages belonging to the former user.
-
-  This behaviour has the benefit that "ms create user" is a perfect
-  undelete for "ms delete user", but if the new user has no relation
-  to the previous homonymous user, our behaviour is less desirable.
-
-  I assume ms create user needs a command-line argument and msconsole
-  needs to prompt its user.
-
-
-Fix shutdown
-
-  There's no practical way to shutdown using ocd/ocadmin. Perhaps this
-  is another aspect of the problem above.
-
-
-Add support for "ms restart now" and "ms restart gracefully"
-
-  Complications include: Some daemon must run as root, outside the
-  jail. ocd perhaps? For cluster use, things grow complicated very
-  quickly.
-
-  Preliminary approach: Have ocd run chrooted in BINDIR instead of
-  JAILDIR, and by default listen only to a unix socket.
-
-
-Field name synchronisation via ocd.
-
-
-Udoc nested classes
-
-  Udoc should support a single level of nested classes. Several levels
-  aren't necessary.
-
-  Unsure what file names to use for output.
-
-
-Udoc enums
-
-  Not supported now. That needs fixing eventually.
-
-
-Udoc web pages chores
-
-  Add "Related Pages" etc. Clarify where background.html
-  fits. usage.html is an orphan now; should it become a manpage?
-
-
-Web page appearance/voice
-
-  Right now, our pages look much the same, but differ in detail. It'd
-  be good to have a formally decided look and feel, and update the
-  pages to use that, and only that. For example, what's the "related
-  pages" headline called, "pages" or "links", and is the second word
-  capitalized?
-
-
-Can we use COPY to speed up bulk mail insertion?
-
-
-HTML tidy fixes: suppress empty <p>, duplicate anchor names.
-
-
-SASL NTLM authentication
-
-  It may be odd and undocumented, and it may not be as strong as
-  DIGEST-MD5, but it's implemented in Certain Clients ;)
-
-  http://www.innovation.ch/java/ntlm.html seems to be a reasonable
-  description. Cyrus also implements it.
 
 
 Keeping stderr open
@@ -272,7 +185,28 @@ Logging to syslog
   it can't reopen the logfile.
 
 
+Logfile mode
+
+  logfile-mode = 400
+
+  logd.cpp can call negate the mode and call umask(). Jamsettings can
+  express distribution policy.
+
+
+Can we use COPY to speed up bulk mail insertion?
+
+
 We need a SIEVE interpreter.
+
+
+Clean up SubDir/SubInclude
+
+  Rename them as Modules. Module X, Use X. Tie library use and headers
+  to modules, so users get just the -I and -l arguments needed from
+  the modules used (even if the entire tree is being compiled).
+
+  Also give Program a third argument, so it takes the result name, the
+  file sets to compile, and (new ->) the file containing main()
 
 
 Autoresponder
@@ -322,14 +256,51 @@ Message arrival tag
   something like that.
 
 
-Clean up SubDir/SubInclude
+Message Retention Policy Framework
 
-  Rename them as Modules. Module X, Use X. Tie library use and headers
-  to modules, so users get just the -I and -l arguments needed from
-  the modules used (even if the entire tree is being compiled).
+  A lot of sites will want explicit policies regarding what mail may
+  not be deleted, what may be deleted, and what must be deleted. We
+  can support that well.
 
-  Also give Program a third argument, so it takes the result name, the
-  file sets to compile, and (new ->) the file containing main()
+
+SASL NTLM authentication
+
+  It may be odd and undocumented, and it may not be as strong as
+  DIGEST-MD5, but it's implemented in Certain Clients ;)
+
+  http://www.innovation.ch/java/ntlm.html seems to be a reasonable
+  description. Cyrus also implements it.
+
+
+Use an unbreakable hash function to hash bodyparts!
+
+  MD5 is broken, and we should be moving away from it.
+  SHA-1 is broken, just in time to save us from moving to it.
+
+  Since we know no unbreakable hash functions, we'll do nothing.
+
+
+Per-MTA installation and use
+
+  We need http://www.oryx.com/mailstore/exim.html and friends, plus a
+  section in src/doc/mailstore.man.
+
+  MTAs worth documenting in this way: Postfix, sendmail, exim,
+  qmail/netqmail. More?
+
+  Notify mike@waspfactory.org
+
+
+Schema documentation
+
+  I've done all I want to sql-schema.html and postgres.schema; I'll have
+  to wait for Sujai's diagram to complete schema.html, but until then, I
+  have done all I can to it.
+
+
+Web site proofreading
+
+  Need a comprehensive proofreading session.
 
 
 Web Style Guide
@@ -340,11 +311,13 @@ Web Style Guide
   Also a section on terminology. Manpage, man page or manual page?
 
 
-Message Retention Policy Framework
+Web page appearance/voice
 
-  A lot of sites will want explicit policies regarding what mail may
-  not be deleted, what may be deleted, and what must be deleted. We
-  can support that well.
+  Right now, our pages look much the same, but differ in detail. It'd
+  be good to have a formally decided look and feel, and update the
+  pages to use that, and only that. For example, what's the "related
+  pages" headline called, "pages" or "links", and is the second word
+  capitalized?
 
 
 "Writing Secure Code"
@@ -356,19 +329,44 @@ Message Retention Policy Framework
   points from it. It could also be that we'll improve the code itself.
 
 
-Logfile mode
-
-  logfile-mode = 400
-
-  logd.cpp can call negate the mode and call umask(). Jamsettings can
-  express distribution policy.
+Write to the alistapart chap who wrote about @media after 0.91.
 
 
-ms password usser ams newpassword
+Udoc nested classes
 
-  Must add that. Notify mike@waspfactory.org.
+  Udoc should support a single level of nested classes. Several levels
+  aren't necessary.
+
+  Unsure what file names to use for output.
 
 
-The ifdeffed-out tests
+Udoc enums
 
-  Add them back in. We do want to test.
+  Not supported now. That needs fixing eventually.
+
+
+Udoc web pages chores
+
+  Add "Related Pages" etc. Clarify where background.html
+  fits. usage.html is an orphan now; should it become a manpage?
+
+
+HTML tidy fixes: suppress empty <p>, duplicate anchor names.
+
+
+archives.oryx.com
+
+
+test with more imap clients (corp/docs/misc/mua-list)
+
+  Why do we have one list in mua-list and another in imap.html?
+
+
+Miscellaneous cleanups:
+
+  * Get rid of Blah::setup wherever possible
+  * Avoid unnecessary header file inclusion
+  * Enable the #ifdef'ed out tests
+  * Do the "uint characters[256]" thing to simplify parsing.
+
+
