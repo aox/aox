@@ -26,8 +26,10 @@
 */
 
 EventHandler::EventHandler()
+    : l( 0 )
 {
-    l = Scope::current()->log();
+    if ( Scope::current() )
+        l = Scope::current()->log();
 }
 
 
