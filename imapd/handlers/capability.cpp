@@ -18,6 +18,7 @@
 /* RFC 2177 */ "IDLE " \
 /* RFC 2971 */ "ID " \
 /* draft-ietf-imapext-list-extensions */ "LISTEXT " \
+/* RFC 2342 */ "NAMESPACE " \
 /* RFC 3691 */ "UNSELECT " \
 /* RFC 2088 - no trailing space */ "LITERAL+"
 // add nothing after LITERAL+

@@ -16,6 +16,7 @@ Build imap :
     ls.cpp
     login.cpp
     logout.cpp
+    namespace.cpp
     noop.cpp
     rename.cpp
     search.cpp
