@@ -58,7 +58,7 @@ void Authenticate::execute()
     if ( !m ) {
         m = SaslMechanism::create( t, this );
         if ( !m ) {
-            error( Bad, "Mechanism " + t + " not supported" );
+            error( No, "Mechanism " + t + " not supported" );
             return;
         }
         imap()->reserve( this );
@@ -83,6 +83,11 @@ void Authenticate::execute()
             return;
         }
         else if ( m->state() == SaslMechanism::AwaitingResponse && r ) {
+            if ( *r == "*" ) {
+                error( Bad, "authentication terminated" );
+                finish();
+                return;
+            }
             m->readResponse( r->de64() );
             r = 0;
         }
