@@ -21,7 +21,7 @@ void Id::parse()
             space();
             String value = nstring();
             if ( nextChar() == ' ' )
-                space(); // wrong by the RFC2971 grammar, but must be right
+                space();
             if ( ok() && !name.isEmpty() && !value.isEmpty() )
                 logger()->log( Logger::Info, 
                                "Client ID: " + 
@@ -29,8 +29,8 @@ void Id::parse()
                                value.simplified() );
         }
     }
-    else if ( atom().lower() != "nil" ) {
-        error( Bad, "no list and no nil?" );
+    else {
+        nil();
     }
 }
 
