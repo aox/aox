@@ -61,6 +61,10 @@ tlsproxy doesn't handle eof (or errors) well
 Write to the alistapart chap who wrote about @media after 0.91.
 
 
+I want a "uint characters[256]" with a pre-computed property bitmask for
+easier parsing. It's well worth it now (cf. tspecials vs. especials).
+
+
 Resource limits on memory allocation
 
 
