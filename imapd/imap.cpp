@@ -30,8 +30,6 @@ bool IMAP::wants(Event e) const
         if (d->writeBuf.size() != 0)
             return true;
         break;
-    case Connection::Except:
-        break;
     case Connection::Timeout:
         if (timeout() != 0)
             return true;
@@ -56,8 +54,6 @@ bool IMAP::react(Event e)
         d->writeBuf.write(fd());
         break;
     case Connection::Timeout:
-        break;
-    case Connection::Except:
         break;
     }
     return true;
