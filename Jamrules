@@ -79,6 +79,17 @@ rule Program
     Link $(<) : $(set-$(>)) ;
 }
 
+actions EngraveConfig {
+sed -e 's!$BINDIR!'$(BINDIR)'!' \
+    -e 's!$MANDIR!'$(MANDIR)'!' \
+    -e 's!$PIDFILEDIR!'$(PIDFILEDIR)'!' \
+    -e 's!$JAILDIR!'$(JAILDIR)'!' \
+    -e 's!$CONFIGDIR!'$(CONFIGDIR)'!' \
+    -e 's!$LOGFILE!'$(LOGFILE)'!' \
+    < $(>) > $(<)
+}
+
+
 rule WriteShellConfig
 {
     Clean clean : $(<) ;

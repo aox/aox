@@ -1,15 +1,6 @@
 SubDir TOP doc ;
 SubInclude TOP core ;
 
-actions Man1 {
-sed -e 's!$BINDIR!'$(BINDIR)'!' \
-    -e 's!$MANDIR!'$(MANDIR)'!' \
-    -e 's!$PIDFILEDIR!'$(PIDFILEDIR)'!' \
-    -e 's!$JAILDIR!'$(JAILDIR)'!' \
-    -e 's!$CONFIGDIR!'$(CONFIGDIR)'!' \
-    -e 's!$LOGFILE!'$(LOGFILE)'!' \
-    < $(>) > $(<)
-}
 
 rule Man {
     local s t d ;
@@ -19,7 +10,7 @@ rule Man {
         t = $(s:S=.$(<)) ;
 
         MakeLocate $(t) : $(d) ;
-        Man1 $(t) : $(s) ;
+        EngraveConfig $(t) : $(s) ;
         Depends $(t) : $(s) <>Jamsettings ;
         Depends exe : $(t) ;
         SEARCH on $(s) = $(SEARCH_SOURCE) ;

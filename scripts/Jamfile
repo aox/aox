@@ -1,4 +1,31 @@
 SubDir TOP scripts ;
 SubInclude TOP core ;
 
-# nothing yet - will add in the second step
+
+rule ShellScript {
+    local s t ;
+
+    t = $(<) ;
+    MakeLocate $(t) : [ FDirName $(TOP) bin ] ;
+    Depends exe : $(t) ;
+
+    s = $(<:G=<$SUBDIR>) ;
+    SEARCH on $(s) = $(SEARCH_SOURCE) ;
+
+    Depends $(t) : $(s) <>Jamsettings ;
+    EngraveConfig $(t) : $(s) ;
+
+    InstallBin $(BINDIR) : $(t) ;
+
+    Clean clean : $(t) ;
+}
+
+
+ShellScript rcmailstore ;
+
+# doing anything to ./install won't work - it makes 'jam install'
+# ambiguous and poor jam becomes horribly confused. must rename. to
+# what?
+
+# ShellScript install ;
+

@@ -5,9 +5,9 @@
 # See http://www.oryx.com/mailstore/ for more about Oryx Mailstore, or
 # write to info@oryx.com.
 
-ORYXDIR=/home/$USER/oryx/src
-
-cd $ORYXDIR
+# Jamsettings variables such as BINDIR are evaluated while building
+# Mailstore.
+cd $BINDIR
 
 for a in logd ocd tlsproxy imapd pop3d smtpd ; do
     test -x bin/${a} || exit 0
