@@ -308,9 +308,26 @@ void IMAP::addCommand()
         = Command::create( this, command, tag, d->args, d->cmdArena );
 
     if ( !cmd ) {
-        log( "Unknown command '" + command + "' (tag '" +
-                        tag + "')" );
-        enqueue( tag + " BAD unknown command: " + command + "\r\n" );
+        String st;
+        switch( d->state ) {
+        case NotAuthenticated:
+            st = "unauthenticated";
+            break;
+        case Authenticated:
+            st = "authenticated";
+            break;
+        case Selected:
+            st = "selected";
+            break;
+        case Logout:
+            st = "logout";
+            break;
+        }
+        log( Log::Debug,
+             "Unknown command '" + command +
+             "' (tag '" + tag + "', state " + st + ")" );
+        enqueue( tag + " BAD No such command in " + st + " state: " +
+                 command + "\r\n" );
         delete d->cmdArena;
         return;
     }
