@@ -23,7 +23,6 @@ public:
     The entirety of the basic syntax is handled. CONDSTORE, SEARCHM
     and other extensions are currently not handled. SEARCHM probably
     will need to be implemented as a subclass of Search.
-
 */
 
 
@@ -401,7 +400,9 @@ void Search::pop()
 
 /*! This private helper takes care that invariants aren't broken. It
     should mostly be a noop, but in cases of syntax errors, it is
-    perhaps possible that we might segfault without this function.
+    perhaps possible that we might segfault without this function. Any
+    inefficiency caused by this function is repaired by
+    Query::simplify().
 */
 
 void Search::prepare()
