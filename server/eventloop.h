@@ -8,7 +8,8 @@ class EventLoop {
 public:
     EventLoop();
 
-    void start();
+    void run();
+    void step( bool = false );
     void stop();
     void shutdown();
     void addConnection( Connection * );

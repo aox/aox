@@ -15,7 +15,8 @@ static EventLoop *loop;
     single global EventLoop object. It used to be the event loop itself,
     until we needed multiple event loops, especially during startup.
 
-    Should we get rid of this class and store the current Loop in Scope?
+    Should we get rid of this class and store the current Loop in
+    Scope? A resounding yes from arnt, and a no.
 */
 
 /*! Creates the global EventLoop object.
@@ -28,11 +29,11 @@ void Loop::setup()
 }
 
 
-/*! Calls EventLoop::start() on the global EventLoop object. */
+/*! Calls EventLoop::run() on the global EventLoop object. */
 
 void Loop::start()
 {
-    ::loop->start();
+    ::loop->run();
 }
 
 

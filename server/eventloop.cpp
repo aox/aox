@@ -106,97 +106,114 @@ void EventLoop::shutdown()
 }
 
 
-/*! Starts the EventLoop. */
+/*! Starts the EventLoop and runs it until stop() is called. */
 
-void EventLoop::start()
+void EventLoop::run()
 {
     Scope x( d->arena );
 
-    while ( !d->stop ) {
-        SortedList< Connection >::Iterator it;
-        Connection *c;
+    while ( !d->stop )
+        step( true );
+}
 
-        int timeout = INT_MAX;
-        int maxfd = -1;
-        if ( d->connections.count() > 0 )
-            maxfd = d->connections.last()->fd();
 
-        fd_set r, w;
-        FD_ZERO( &r );
-        FD_ZERO( &w );
+/*! Handles a single iteration of the event loop. Dispatches all Oryx
+    events.
 
-        // Figure out what events each connection wants.
+    If \a sleeping is supplied and true, step() waits for events. If
+    \a sleeping is false (the default), step() returns more or less
+    immediately.
+*/
 
-        it = d->connections.first();
+void EventLoop::step( bool sleeping )
+{
+    Scope x( d->arena );
+
+    SortedList< Connection >::Iterator it;
+    Connection *c;
+
+    int timeout = INT_MAX;
+    int maxfd = -1;
+    if ( d->connections.count() > 0 )
+        maxfd = d->connections.last()->fd();
+
+    fd_set r, w;
+    FD_ZERO( &r );
+    FD_ZERO( &w );
+
+    // Figure out what events each connection wants.
+
+    it = d->connections.first();
+    while ( it ) {
+        c = it++;
+
+        if ( !c->active() )
+            continue;
+
+        // This is so that Halfpipes can be closed by their partner.
+        if ( c->state() == Connection::Closing &&
+             !c->canWrite() )
+        {
+            removeConnection( c );
+            delete c;
+            continue;
+        }
+
+        int fd = c->fd();
+        if ( c->canRead() && c->state() != Connection::Closing )
+            FD_SET( fd, &r );
+        if ( c->canWrite() || c->state() == Connection::Connecting )
+            FD_SET( fd, &w );
+        if ( c->timeout() > 0 && c->timeout() < timeout )
+            timeout = c->timeout();
+    }
+
+    // Look for interesting input
+
+    struct timeval tv;
+    tv.tv_sec = timeout - time( 0 );
+    tv.tv_usec = 0;
+
+    if ( tv.tv_sec < 1 )
+        tv.tv_sec = 1;
+    if ( tv.tv_sec > 1800 )
+        tv.tv_sec = 1800;
+    if ( !sleeping )
+        tv.tv_sec = 0;
+
+    int n = select( maxfd+1, &r, &w, 0, &tv );
+    time_t now = time( 0 );
+
+    if ( n < 0 ) {
+        // XXX: We should handle signals appropriately.
+        if ( errno == EINTR )
+            return;
+
+        log( "Main loop: select() broke" );
+        exit( 0 );
+    }
+
+    // Figure out what each connection cares about.
+
+    it = d->connections.first();
+    while ( it ) {
+        c = it++;
+        int fd = c->fd();
+        dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
+    }
+
+    // XXX: We should handle armageddon better.
+    if ( d->shutdown ) {
+        it = d->connections.last();
         while ( it ) {
-            c = it++;
-
-            if ( !c->active() )
-                continue;
-
-            // This is so that Halfpipes can be closed by their partner.
-            if ( c->state() == Connection::Closing &&
-                 !c->canWrite() )
+            c = d->connections.take( it-- );
             {
-                removeConnection( c );
+                Scope x( c->arena() );
+                c->react( Connection::Shutdown );
+                c->write();
+            }
+            if ( c->type() != Connection::LoggingClient )
                 delete c;
-                continue;
-            }
-
-            int fd = c->fd();
-            if ( c->canRead() && c->state() != Connection::Closing )
-                FD_SET( fd, &r );
-            if ( c->canWrite() || c->state() == Connection::Connecting )
-                FD_SET( fd, &w );
-            if ( c->timeout() > 0 && c->timeout() < timeout )
-                timeout = c->timeout();
-        }
-
-        // Wait for something interesting to happen.
-
-        struct timeval tv;
-        tv.tv_sec = timeout - time( 0 );
-        tv.tv_usec = 0;
-
-        if ( tv.tv_sec < 1 )
-            tv.tv_sec = 1;
-        if ( tv.tv_sec > 1800 )
-            tv.tv_sec = 1800;
-
-        int n = select( maxfd+1, &r, &w, 0, &tv );
-        time_t now = time( 0 );
-
-        if ( n < 0 ) {
-            // XXX: We should handle signals appropriately.
-            if ( errno == EINTR )
-                continue;
-
-            log( "Main loop: select() broke" );
-            exit( 0 );
-        }
-
-        // Figure out what each connection cares about.
-
-        it = d->connections.first();
-        while ( it ) {
-            c = it++;
-            int fd = c->fd();
-            dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
-        }
-
-        // XXX: We should handle armageddon better.
-        if ( d->shutdown ) {
-            it = d->connections.last();
-            while ( it ) {
-                c = d->connections.take( it-- );
-                {
-                    Scope x( c->arena() );
-                    c->react( Connection::Shutdown );
-                    c->write();
-                }
-                if ( c->type() != Connection::LoggingClient )
-                    delete c;
-            }
         }
     }
 }
