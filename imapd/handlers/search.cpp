@@ -195,11 +195,6 @@ void Search::parseKey( bool alsoCharset )
             String a = astring();
             push( Query::Or );
             add( Query::Body, Query::Contains, a );
-            //add( Query::Header, Query::Contains, "from", a );
-            //add( Query::Header, Query::Contains, "to", a );
-            //add( Query::Header, Query::Contains, "cc", a );
-            //add( Query::Header, Query::Contains, "bcc", a );
-            //add( Query::Header, Query::Contains, "subject", a );
             add( Query::Header, Query::Contains, 0, a ); // field name is null
             pop();
         }
@@ -249,6 +244,7 @@ void Search::parseKey( bool alsoCharset )
         else if ( alsoCharset && keyword == "charset" ) {
             space();
             d->charset = astring();
+            // xxx: check that the name is valid
         }
         else {
             error( Bad, "unknown search-key: " + keyword );
@@ -293,7 +289,7 @@ String Search::date()
         error( Bad, "expected -, saw " + following() );
     result.append( "-" );
     step();
-    String month = atom().lower();
+    String month = letters( 3, 3 ).lower();
     if ( month == "jan" || month == "feb" || month == "mar" ||
          month == "apr" || month == "may" || month == "jun" ||
          month == "jul" || month == "aug" || month == "sep" ||
@@ -323,7 +319,7 @@ String Search::date()
     or Not.
 */
 
-Query::Condition * Search::add( Query::Field f, Query::Action a, 
+Query::Condition * Search::add( Query::Field f, Query::Action a,
                                 const String & a1, const String & a2 )
 {
     prepare();
