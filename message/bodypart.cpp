@@ -212,7 +212,7 @@ String Bodypart::asText() const
         c = new AsciiCodec;
 
     if ( !children()->isEmpty() )
-        appendMultipart( r, children(), header() );
+        appendMultipart( r );
     else if ( !d->text.isEmpty() )
         r = c->fromUnicode( d->text );
     else if ( header()->contentType() &&

@@ -72,21 +72,17 @@ List< Bodypart > *Multipart::children() const
 }
 
 
-/*! This function appends the text of a multipart MIME bodypart
-    containing \a parts, with the Header \a h, to the string \a r.
-
-    The details of this function are certain to change.
+/*! Appends the text of this multipart MIME entity to the string \a r.
 */
 
-void Multipart::appendMultipart( String & r, List< Bodypart > *parts,
-                                 Header *h ) const
+void Multipart::appendMultipart( String &r ) const
 {
-    ContentType * ct = h->contentType();
+    ContentType *ct = header()->contentType();
     String delim = ct->parameter( "boundary" );
-    List<Bodypart>::Iterator it( parts->first() );
+    List<Bodypart>::Iterator it( children()->first() );
     r.append( "--" + delim + crlf );
     while ( it ) {
-        Bodypart * bp = it;
+        Bodypart *bp = it;
         ++it;
 
         r.append( bp->header()->mimeFields() );
@@ -124,7 +120,7 @@ void Multipart::appendAnyPart( String &r, const Bodypart *bp,
     }
 
     else if ( childct->type() == "multipart" ) {
-        appendMultipart( r, bp->children(), bp->header() );
+        bp->appendMultipart( r );
     }
 
     else {

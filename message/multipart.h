@@ -21,7 +21,7 @@ public:
     void setParent( Multipart * );
     List< Bodypart > *children() const;
 
-    void appendMultipart( String &, List< Bodypart > *, Header * ) const;
+    void appendMultipart( String & ) const;
     void appendAnyPart( String &, const Bodypart *, ContentType * ) const;
     void appendTextPart( String &, const Bodypart *, ContentType * ) const;
 
