@@ -28,7 +28,7 @@ public:
     virtual PreparedStatement * query() const = 0;
     virtual void decode( Message *, Row * ) = 0;
     virtual void setDone( Message * ) = 0;
-    void setDone();
+    void setDone( uint );
 
 private:
     class FetcherData * d;

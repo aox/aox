@@ -102,13 +102,15 @@ void Fetcher::execute()
         Row * r;
         while ( (r=d->query->nextRow()) != 0 ) {
             d->uid = r->getInt( "uid" );
-            setDone();
+            d->message = d->mailbox->message( d->uid );
+            d->results.add( d->uid );
             decode( d->message, r );
+            setDone( d->uid );
         }
         if ( d->query->done() ) {
             d->query = 0;
-            d->uid = d->largest + 1;
-            setDone();
+            setDone( d->largest + 1 );
+            d->notified = 0;
         }
     }
 
@@ -166,7 +168,6 @@ void Fetcher::execute()
     // magic and take the lowest-numbered message and a few more.
     // later, we'll want to be smarter.
     d->smallest = merged.smallest();
-    d->notified = d->smallest - 1;
     uint i = 1;
     while ( i <= merged.count() && i < 512 &&
             merged.value( i ) - d->smallest < i + 4 )
@@ -285,18 +286,20 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
 }
 
 
-/*! Notifies all messages up to and including the current that they've
-    been completed.
+/*! Notifies all messages up to but not including \a uid that they've
+    been completely fetched.
 */
 
-void Fetcher::setDone()
+void Fetcher::setDone( uint uid )
 {
-    while ( d->notified < d->uid ) {
+    if ( d->notified == 0 )
+        d->notified = d->smallest;
+
+    while ( d->notified < uid ) {
+        Message *m = d->mailbox->message( d->notified );
+        if ( m )
+            setDone( m );
         d->notified++;
-        d->message = d->mailbox->message( d->notified );
-        if ( d->message )
-            setDone( d->message );
-        d->results.add( d->uid );
     }
 }
 
