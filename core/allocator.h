@@ -37,6 +37,7 @@ public:
     static void addRoot( const void * );
 
 private:
+    uint base;
     uint step;
     uint taken;
     uint capacity;
