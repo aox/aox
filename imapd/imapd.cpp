@@ -18,8 +18,12 @@ int main( int, char *[] )
     Test::runTests();
 
     Configuration::makeGlobal( ".imapdrc" );
-    Log::global()->log( "IMAP server started" );
-    Log::global()->log( Test::report() );
+
+    Log l;
+    global.setLog( &l );
+
+    log( "IMAP server started" );
+    log( Test::report() );
 
     // should we pick this up from the config file?
     Listener<IMAP>::create( "IMAP", "", 2052 );
@@ -29,6 +33,6 @@ int main( int, char *[] )
 
     Loop::start();
 
-    Log::global()->log( "IMAP server stopped" );
-    Log::global()->commit();
+    log( "IMAP server stopped" );
+    l.commit();
 }
