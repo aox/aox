@@ -301,6 +301,12 @@ void Injector::buildFieldLinks()
 
     buildLinksForHeader( d->message->header(), "" );
 
+    List< BodyPart >::Iterator it( d->message->bodyParts()->first() );
+    while ( it ) {
+        buildLinksForHeader( it->header(), it->partNumber() );
+        it++;
+    }
+
     d->fieldLookup = FieldNameCache::lookup( d->otherFields, this );
 }
 
