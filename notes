@@ -304,3 +304,9 @@ Clean up SubDir/SubInclude
 
   Also give Program a third argument, so it takes the result name, the
   file sets to compile, and (new ->) the file containing main()
+
+
+Web Style Guide
+
+  Must add a section about the phrasing, what sort of language we
+  used. Added by request of the CTO.
