@@ -6,18 +6,18 @@ C++FLAGS = -g -Werror ;
 LINKFLAGS = -g ;
 
 if $(ICC) {
-    C++ = /opt/intel/compiler70/ia32/bin/icc ;
-    LINK = /opt/intel/compiler70/ia32/bin/icc ;
+    C++ = icc ;
 }
 else {
     C++ = g++ ;
-    LINK = g++ ;
     C++FLAGS += -Wall -Werror -funsigned-char ;
 
     if $(COV) {
         C++FLAGS += -fprofile-arcs -ftest-coverage ;
     }
 }
+
+LINK = $(C++) ;
 
 # our lib directory contains additional include files
 HDRS += [ FDirName $(TOP) lib ] ;
