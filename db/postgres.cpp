@@ -784,9 +784,6 @@ void UpdateSchema::execute() {
                 }
 
                 if ( substate == 1 ) {
-                    if ( !q->done() )
-                        return;
-
                     while ( q->hasResults() ) {
                         Row *r = q->nextRow();
                         String text, data;
@@ -808,6 +805,11 @@ void UpdateSchema::execute() {
                         t->enqueue( u );
                     }
 
+                    if ( q->done() )
+                        substate = 2;
+                }
+
+                if ( substate == 2 ) {
                     q = new Query( "alter table bodyparts drop text", this );
                     t->enqueue( q );
                     q = new Query( "alter table bodyparts rename text2 to text",
@@ -818,10 +820,10 @@ void UpdateSchema::execute() {
                                    " having count(*) > 1)", this );
                     t->enqueue( q );
                     t->execute();
-                    substate = 2;
+                    substate = 3;
                 }
-
-                if ( substate == 2 ) {
+                
+                if ( substate == 3 ) {
                     if ( !q->done() )
                         return;
 
