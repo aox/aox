@@ -221,24 +221,17 @@ static void handleError( int cryptError, const String & function )
     if ( cryptStatusOK( cryptError ) )
         return;
 
-    int locus;
-    int type;
+    int locus = 0;
+    int type = 0;
     cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORLOCUS, &locus );
     cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORTYPE, &type );
 
-    /*log( Log::Error,
-         function + " reported error: " + cryptlibError( cryptError ) );
+    ::log( function + " reported error: " + cryptlibError( cryptError ),
+           Log::Error );
     if ( locus )
-        log( Log::Info,
-             function + " error locus: " + cryptlibLocus( locus ) );
+        ::log( function + " error locus: " + cryptlibLocus( locus ) );
     if ( type )
-        log( Log::Info,
-             function + " error type: " + cryptlibType( type ) );
-    */
-    // Ugh.
-    String s = cryptlibError( cryptError );
-    s.append( cryptlibLocus( locus ) );
-    s.append( cryptlibType( type ) );
+        ::log( function + " error type: " + cryptlibType( type ) );
 
     int errorStringLength;
     String errorString;
@@ -250,11 +243,9 @@ static void handleError( int cryptError, const String & function )
         exit( 0 ); // I'm too polite for the sort of comment needed here
     errorString.truncate( errorStringLength );
 
-    /*
     errorString = errorString.simplified();
     if ( !errorString.isEmpty() > 0 )
-        log( Log::Info, "cryptlib's own message: " + errorString );
-    */
+        ::log( "cryptlib's own message: " + errorString );
 
     userside->close();
     serverside->close();
@@ -265,79 +256,55 @@ static void handleError( int cryptError, const String & function )
 
 static void setupCert()
 {
-    CRYPT_CERTIFICATE cert;
-    CRYPT_KEYSET keyset;
-    CRYPT_CONTEXT rsaKey;
-
-    String hn = Configuration::hostname();
-
-    int cret;
-
+    int status = 0;
+    
+    // Generate an RSA private key.
+    CRYPT_CONTEXT privateKey;
     String label = "Mailstore on-demand key";
 
-    // Create a new RSA key
-    cryptCreateContext( &rsaKey, CRYPT_UNUSED, CRYPT_ALGO_RSA );
-    cryptSetAttributeString( rsaKey, CRYPT_CTXINFO_LABEL,
-                             label.cstr(), label.length() );
-    cret = cryptGenerateKey( rsaKey );
-    handleError( cret, "cryptGenerateKey" );
+    status = cryptCreateContext( &privateKey, CRYPT_UNUSED, CRYPT_ALGO_RSA );
+    handleError( status, "cryptGenerateKey" );
+    status = cryptSetAttributeString( privateKey, CRYPT_CTXINFO_LABEL,
+                                      label.cstr(), label.length() );
+    handleError( status, "cryptSetAttributeString(LABEL)" );
+    status = cryptGenerateKey( privateKey );
+    handleError( status, "cryptGenerateKey" );
 
-    // Write the key to the file keyset
-    cret = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
-                            "/tmp/keyset", CRYPT_KEYOPT_CREATE );
-    if( cryptStatusOK( cret ) ) {
-        cret = cryptAddPrivateKey( keyset, rsaKey, "" );
-        handleError( cret, "cryptAddPrivateKey" );
-        cryptKeysetClose( keyset );
-    }
+    // Save it to a keyset file.
+    CRYPT_KEYSET keyset;
+    status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
+                              "/tmp/keyset", CRYPT_KEYOPT_CREATE );
+    handleError( status, "cryptKeysetOpen" );
+    status = cryptAddPrivateKey( keyset, privateKey, "secret" );
+    handleError( status, "cryptAddPrivateKey" );
 
-    // Create the certification request/certificate
-    cryptCreateCert( &cert, CRYPT_UNUSED, CRYPT_CERTTYPE_CERTIFICATE  );
-    cret = cryptSetAttribute( cert, CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO,
-                              rsaKey );
-    handleError( cret, "cryptSetAttribute(SUBJECTPUBLICKEYINFO)" );
+    // Create a self-signed CA certificate.
+    CRYPT_CERTIFICATE cert;
+    String hostname = Configuration::hostname();
 
-    cryptSetAttributeString( cert, CRYPT_CERTINFO_COMMONNAME, "", 0 );
-    cryptSetAttributeString( cert, CRYPT_CERTINFO_COUNTRYNAME, "", 0 );
-    cryptSetAttributeString( cert, CRYPT_CERTINFO_RFC822NAME, "", 0 );
-    cryptSetAttributeString( cert, CRYPT_CERTINFO_LOCALITYNAME, "", 0 );
-    cryptSetAttributeString( cert, CRYPT_CERTINFO_ORGANIZATIONALUNITNAME,
-                             "", 0 );
-    cryptSetAttributeString( cert, CRYPT_CERTINFO_ORGANIZATIONNAME, "", 0 );
-    cryptSetAttributeString( cert, CRYPT_CERTINFO_STATEORPROVINCENAME,
-                             "", 0 );
-    cryptSetAttributeString( cert, CRYPT_CERTINFO_UNIFORMRESOURCEIDENTIFIER,
-                             "", 0 );
+    status = cryptCreateCert( &cert, CRYPT_UNUSED, CRYPT_CERTTYPE_CERTIFICATE  );
+    handleError( status, "cryptCreateCert" );
+    status = cryptSetAttribute( cert, CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO,
+                                privateKey );
+    handleError( status, "cryptSetAttribute(PUBLICKEYINFO)" );
+    status = cryptSetAttribute( cert, CRYPT_CERTINFO_SELFSIGNED, 1 );
+    handleError( status, "cryptSetAttribute(SELFSIGNED)" );
+    status = cryptSetAttribute( cert, CRYPT_CERTINFO_CA, 1 );
+    handleError( status, "cryptSetAttribute(CA)" );
+    status = cryptSetAttributeString( cert, CRYPT_CERTINFO_COMMONNAME,
+                                      hostname.cstr(), hostname.length() );
+    handleError( status, "cryptSetAttribute(COMMONNAME)" );
 
-    // Make it a self-signed CA cert
-    cret = cryptSetAttribute( cert, CRYPT_CERTINFO_SELFSIGNED, true );
-    handleError( cret, "cryptSetAttribute(SELFSIGNED)" );
-
-    cret = cryptSetAttribute( cert, CRYPT_CERTINFO_KEYUSAGE,
-                              CRYPT_KEYUSAGE_KEYCERTSIGN |
-                              CRYPT_KEYUSAGE_CRLSIGN );
-    handleError( cret, "cryptSetAttribute(KEYUSAGE)" );
-    cret = cryptSetAttribute( cert, CRYPT_CERTINFO_CA, true );
-    handleError( cret, "cryptSetAttribute(CA)" );
-    cret = cryptSignCert( cert, rsaKey );
-    handleError( cret, "cryptSignCert" );
-
-    // Update the private key keyset with the cert request/certificate
-    cret = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
-                            "/tmp/keyset", CRYPT_KEYOPT_NONE );
-    handleError( cret, "cryptKeysetOpen(NONE)" );
-
-    cret = cryptGetPrivateKey( keyset, NULL, CRYPT_KEYID_NONE,
-                               NULL, NULL );
-    handleError( cret, "cryptGetPrivateKey" );
-
-    cryptAddPrivateKey( keyset, cert, NULL );
-    cryptKeysetClose( keyset );
+    // Sign it with the private key and update the keyset.
+    status = cryptSignCert( cert, privateKey );
+    handleError( status, "cryptSignCert" );
+    status = cryptAddPublicKey( keyset, cert );
+    handleError( status, "cryptAddPublicKey" );
 
     // Clean up
+    cryptKeysetClose( keyset );
     cryptDestroyCert( cert );
 }
-
 
 
 int main( int, char *[] )
@@ -356,7 +323,6 @@ int main( int, char *[] )
     Listener< TlsProxy >::create( "tlsproxy", "", 2061 );
     // chroot and do the rest
     s.setup( Server::Finish );
-
     s.execute();
 }
 
@@ -432,7 +398,7 @@ void TlsProxy::react( Event e )
     case Close:
         setState( Closing );
         if ( d->state != TlsProxyData::Initial ) {
-            //log( "Shutting down TLS proxy due to client close" );
+            log( "Shutting down TLS proxy due to client close" );
             Loop::shutdown();
         }
         break;
@@ -488,7 +454,7 @@ void TlsProxy::parse()
         ok = false;
 
     if ( !ok ) {
-        //log( "syntax error: " + *l );
+        log( "syntax error: " + *l );
         setState( Closing );
         return;
     }
@@ -502,7 +468,7 @@ void TlsProxy::parse()
             other = c;
     }
     if ( !other || other == this ) {
-        //log( "did not find partner" );
+        log( "did not find partner" );
         setState( Closing );
         return;
     }
@@ -522,7 +488,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     int p1 = fork();
     if ( p1 < 0 ) {
         // error
-        //log( "fork failed: " + fn( errno ) );
+        log( "fork failed: " + fn( errno ) );
         setState( Closing );
         return;
     }
@@ -548,11 +514,9 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     // it's the child!
     Loop::closeAllExcept( this, other );
     enqueue( "ok\r\n" );
-    /*
     log( "Starting TLS proxy for for " + protocol + " client " +
          client.string() + " (host " + Configuration::hostname() + ") (pid " +
          fn( getpid() ) + ")" );
-    */
 
     d->state = TlsProxyData::EncryptedSide;
     other->d->state = TlsProxyData::PlainSide;
@@ -577,9 +541,9 @@ void TlsProxy::encrypt()
 
     String s = *r->string( r->size() );
     int len;
-    int cret = cryptPushData( cs, s.data(), s.length(), &len );
-    handleError( cret, "crypePushData" );
-    if ( cret == CRYPT_OK )
+    int status = cryptPushData( cs, s.data(), s.length(), &len );
+    handleError( status, "crypePushData" );
+    if ( status == CRYPT_OK )
         r->remove( len );
 }
 
@@ -591,14 +555,14 @@ void TlsProxy::decrypt()
     Arena a;
     Scope b( &a );
 
-    int cret;
+    int status;
     int len;
     char buffer[4096];
     do {
         len = 0;
-        cret = cryptPopData( cs, buffer, 4096, &len );
-        handleError( cret, "cryptPopData" );
+        status = cryptPopData( cs, buffer, 4096, &len );
+        handleError( status, "cryptPopData" );
         if ( len > 0 )
             serverside->writeBuffer()->append( buffer, len );
-    } while ( len > 0 && cret == CRYPT_OK );
+    } while ( len > 0 && status == CRYPT_OK );
 }
