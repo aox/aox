@@ -517,12 +517,22 @@ int Row::getInt( const String &field ) const
         return 0;
     }
 
-    bool ok;
-    int n = String( c->value ).number( &ok );
-    if ( !ok ) {
-        log( Log::Error, "Field " + field + " has value " + c->value +
-             ", which is not a legal integer" );
-        return 0;
+    int n;
+    switch ( c->length ) {
+    case 1:
+        n = c->value[0];
+        break;
+    case 2:
+        n = c->value[0] << 8 | c->value[1];
+        break;
+    case 4:
+        n = c->value[0] << 24 | c->value[1] << 16 |
+            c->value[2] << 8  | c->value[3];
+        break;
+    default:
+        log( Log::Error, "Integer field " + field + " has invalid length " +
+             fn( c->length ) );
+        break;
     }
     return n;
 }
@@ -546,12 +556,8 @@ bool Row::getBoolean( const String &field ) const
         return false;
     }
 
-    String s = c->value;
-    if ( s == "t" )
+    if ( c->value[0] != 0 )
         return true;
-    else if ( s != "f" )
-        log( Log::Error, "Boolean Field " + field + 
-             " has unexpected value " + s );
     return false;
 }
 
