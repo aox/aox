@@ -6,7 +6,7 @@
 #include "global.h"
 
 
-extern void * alloc( uint );
+extern void * alloc( uint, uint = UINT_MAX );
 
 
 class Allocator
@@ -15,7 +15,7 @@ public:
     Allocator( uint );
     ~Allocator();
 
-    void * allocate( uint size );
+    void * allocate( uint size, uint pointers );
 
     void * block( uint );
 
