@@ -10,7 +10,11 @@
 /*! \class Lsub lsub.h
     LIST for subscribed mailboxes (RFC 3501, §6.3.9)
 
-    I wish LSUB had never existed independently of LIST.
+    Everyone wishes that LSUB had never existed independently of LIST,
+    paving the way for horrors like RLSUB. With Listext, one can treat
+    LSUB as a special case of LIST (SUBSCRIBED). But we decided not to
+    do that, because Listext is still (2005-01) a moving target, and
+    adding a wart of this size to such a complex class feels wrong.
 */
 
 /*! Constructs an empty LSUB handler. */
