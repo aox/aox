@@ -75,8 +75,10 @@ void Mailbox::setup()
             if ( !query->done() )
                 return;
 
-            if ( !::mailboxes )
+            if ( !::mailboxes ) {
                 ::mailboxes = new Map<Mailbox>;
+                Allocator::addRoot( ::mailboxes );
+            }
 
             while ( query->hasResults() ) {
                 Row *r = query->nextRow();
