@@ -274,7 +274,7 @@ void Postgres::backendStartup( char type )
         setTimeout( 0 );
         log( "PostgreSQL: Ready for queries" );
         d->startup = false;
-        // updateSchema();
+        updateSchema();
         break;
 
     case 'K':
@@ -343,32 +343,12 @@ void Postgres::process( char type )
         break;
 
     case 'I':
-        {
-            PgEmptyQueryResponse msg( readBuffer() );
-        }
-        break;
-
     case 'C':
         {
-            PgCommandComplete msg( readBuffer() );
-        }
-        break;
-
-    case 'Z':
-        {
-            PgReady msg( readBuffer() );
-            d->status = msg.status();
-
-            if ( d->transaction ) {
-                if ( d->status == Idle && q->transaction() ) {
-                    d->transaction->setState( Transaction::Completed );
-                    d->reserved = false;
-                    d->transaction = 0;
-                }
-                else if ( d->status == FailedTransaction ) {
-                    d->transaction->setState( Transaction::Failed );
-                }
-            }
+            if ( type == 'C' )
+                PgCommandComplete msg( readBuffer() );
+            else
+                PgEmptyQueryResponse msg( readBuffer() );
 
             if ( q ) {
                 log( "Dequeueing query " + q->string(), Log::Debug );
@@ -377,6 +357,25 @@ void Postgres::process( char type )
                 q->notify();
                 d->queries.take( q );
             }
+        }
+        break;
+
+    case 'Z':
+        {
+            PgReady msg( readBuffer() );
+
+            if ( d->status == InTransaction ) {
+                if ( msg.status() == Idle ) {
+                    d->transaction->setState( Transaction::Completed );
+                    d->reserved = false;
+                    d->transaction = 0;
+                }
+                else if ( msg.status() == FailedTransaction ) {
+                    d->transaction->setState( Transaction::Failed );
+                }
+            }
+
+            d->status = msg.status();
 
             processQueue();
             if ( d->queries.isEmpty() )
@@ -579,7 +578,6 @@ void Postgres::processQueue( bool userContext )
         String s;
         Query *q = d->pending.take( it );
         q->setState( Query::Executing );
-        d->queries.append( q );
 
         if ( !d->transaction && q->transaction() ) {
             d->transaction = q->transaction();
@@ -592,8 +590,12 @@ void Postgres::processQueue( bool userContext )
 
             PgExecute c;
             c.enqueue( writeBuffer() );
+
             s.append( "begin/");
+            d->queries.append( new Query( "begin", 0 ) );
         }
+
+        d->queries.append( q );
 
         if ( q->name() == "" ||
              !d->prepared.contains( q->name() ) )
@@ -617,14 +619,15 @@ void Postgres::processQueue( bool userContext )
         PgExecute d;
         d.enqueue( writeBuffer() );
 
-        PgSync e;
-        e.enqueue( writeBuffer() );
         s.append( "execute" );
         log( "Sent " + s + " for " + q->string(), Log::Debug );
     }
 
-    if ( writeBuffer()->size() > 0 )
+    if ( writeBuffer()->size() > 0 ) {
+        PgSync e;
+        e.enqueue( writeBuffer() );
         extendTimeout( 5 );
+    }
     write();
 }
 
@@ -644,8 +647,8 @@ private:
 
 public:
     UpdateSchema( Database *d )
-        : state( 0 ), substate( 0 ), db( d ),
-          l( new Log( Log::Database ) )
+        : state( 0 ), substate( 0 ), revision( 0 ),
+          db( d ), l( new Log( Log::Database ) )
     {}
 
     void execute();
@@ -662,6 +665,7 @@ void UpdateSchema::execute() {
         t->execute();
         state = 1;
     }
+
     if ( state == 1 ) {
         if ( !lock->done() )
             return;
