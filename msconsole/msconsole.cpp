@@ -13,12 +13,32 @@
 #include "database.h"
 #include "console.h"
 #include "consoleloop.h"
+#include "mailbox.h"
 
 #include <qapplication.h>
 #include <qeventloop.h>
 
 
 /*! \nodoc */
+
+static void errorHandler( QtMsgType t, const char * message )
+{
+    if ( message && *message ) {
+        Log::Severity s = Log::Info;
+        switch ( t ) {
+        case QtDebugMsg:
+            s = Log::Debug;
+            break;
+        case QtWarningMsg:
+            s = Log::Info;
+            break;
+        case QtFatalMsg:
+            s = Log::Disaster;
+            break;
+        }
+        ::log( message, s );
+    }
+}
 
 
 static QSize goodDefaultSize()
@@ -59,13 +79,18 @@ int main( int argc, char *argv[] )
 
     Log l( Log::Immediate );
     global.setLog( &l );
-    (void)new Syslogger( "msconsole" );
+    LogClient::setup();
 
     Database::setup();
     AddressCache::setup();
     Configuration::report();
+    Mailbox::setup();
+
+    l.log( "Starting up" );
+    l.commit();
 
     // typical Qt crud
+    qInstallMsgHandler( errorHandler );
     QApplication a( argc, argv );
     a.connect( qApp, SIGNAL(lastWindowClosed()),
                qApp, SLOT(quit()) );
