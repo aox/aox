@@ -1,11 +1,5 @@
 #include "noop.h"
 
-#include "transaction.h"
-#include "query.h"
-
-
-static PreparedStatement * fooInsert;
-
 
 /*! \class Noop noop.h
     NOOP does nothing (RFC 3501, §6.1.2)
@@ -16,40 +10,8 @@ static PreparedStatement * fooInsert;
 
 /*! \reimp */
 
-Noop::Noop()
-    : q1( 0 ), q2( 0 ), t( 0 )
-{
-    if ( !fooInsert )
-        fooInsert = new PreparedStatement( "insert into foo (bar) values ($1)" );
-}
-
-
-/*! \reimp
-    This has again become my pet testing ground. AMS 20040621
-*/
-
 void Noop::execute()
 {
-    if ( !t ) {
-        t = new Transaction;
-
-        q1 = new Query( *fooInsert, this );
-        q1->bind( 1, "Bar" );
-        q2 = new Query( "select currval('foo_id_seq')::integer as id", this );
-
-        t->enqueue( q1 );
-        t->enqueue( q2 );
-        t->end();
-    }
-
-    if ( !q2->done() )
-        return;
-
-    if ( !t->failed() ) {
-        int n = *(q2->nextRow()->getInt( "id" ));
-        respond( "OK " + String::fromNumber( n ) );
-    }
-
     finish();
 }
 
