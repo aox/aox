@@ -1,0 +1,51 @@
+#!/bin/sh
+#
+# No copyright is claimed for this file.
+#
+# See http://www.oryx.com/mailstore/ for more about Oryx Mailstore, or
+# write to info@oryx.com.
+
+ORYXDIR=/home/$USER/oryx/src
+
+cd $ORYXDIR
+
+for a in logd ocd tlsproxy imapd pop3d smtpd ; do
+    test -x bin/${a} || exit 0
+done
+
+start() {
+    echo -n "Starting Oryx Mailstore:"
+    for a in logd ocd tlsproxy imapd pop3d smtpd ; do
+        bin/${a} -f && echo -n " $a" || exit 0
+    done
+    echo "."
+}
+
+stop() {
+    echo -n "Stopping Oryx Mailstore:"
+    for a in smtpd pop3d imapd tlsproxy ocd logd ; do
+	# it would be good to check the pid files here. but getting at them...
+	killall $a 2>/dev/null
+        echo -n " $a";
+    done
+    echo "."
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: mailstore {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0

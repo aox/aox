@@ -1,0 +1,4 @@
+SubDir TOP scripts ;
+SubInclude TOP core ;
+
+# nothing yet - will add in the second step
