@@ -121,7 +121,6 @@ IMAP::IMAP( int s )
     enqueue( "* OK [CAPABILITY " + Capability::capabilities( this ) + "] " +
              Configuration::hostname() + " IMAP Server\r\n" );
     setTimeoutAfter( 1800 );
-
     Loop::addConnection( this );
 }
 

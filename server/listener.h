@@ -57,6 +57,8 @@ public:
         if ( s >= 0 ) {
             Connection *c = new T(s);
             c->setState( Connected );
+            log( "Accepted new " + svc + " connection from " +
+                 c->peer().string() );
         }
     }
 

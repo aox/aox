@@ -137,7 +137,6 @@ public:
 SMTP::SMTP( int s )
     : Connection( s, Connection::SmtpServer ), d( new SMTPData )
 {
-    log( "Accepted SMTP connection from " + peer().string() );
     respond( 220, "ESMTP + LMTP " + Configuration::hostname() );
     sendResponses();
     setTimeoutAfter( 1800 );

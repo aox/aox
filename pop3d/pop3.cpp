@@ -38,7 +38,6 @@ POP3::POP3( int s )
     : Connection( s, Connection::Pop3Server ),
       d( new PopData )
 {
-    log( "Accepted POP3 connection from " + peer().string() );
     ok( "POP3 server ready." );
     setTimeoutAfter( 600 );
     Loop::addConnection( this );
