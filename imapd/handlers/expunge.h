@@ -7,6 +7,8 @@
 class Expunge: public Command {
 public:
     void execute();
+
+    void expunge( bool );
 };
 
 #endif
