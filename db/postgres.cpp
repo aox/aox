@@ -10,6 +10,7 @@
 #include "md5.h"
 #include "log.h"
 #include "pgmessage.h"
+#include "stringlist.h"
 #include "transaction.h"
 
 // crypt
@@ -96,7 +97,7 @@ bool Postgres::ready()
 
 void Postgres::enqueue( Query *q )
 {
-    if ( q->transaction() != 0 )
+    if ( q->transaction() )
         d->reserved = true;
     d->pending.append( q );
 }
@@ -144,9 +145,8 @@ void Postgres::react( Event e )
                messages, and setting d->unknownMessage for messages that
                it can't or won't handle. */
 
+            char msg = (*readBuffer())[0];
             try {
-                char msg = (*readBuffer())[0];
-
                 if ( d->startup ) {
                     if ( !d->authenticated )
                         authentication( msg );
@@ -161,7 +161,8 @@ void Postgres::react( Event e )
                     unknown( msg );
             }
             catch ( PgServerMessage::Error e ) {
-                error( "Malformed message received." );
+                error( "Malformed '" +
+                       String( &msg, 1 ) + "' message received." );
             }
         }
         break;
@@ -285,7 +286,7 @@ void Postgres::backendStartup( char type )
 
 void Postgres::process( char type )
 {
-    List< Query >::Iterator q = d->queries.first();
+    List< Query >::Iterator q( d->queries.first() );
 
     extendTimeout( 5 );
 
@@ -346,7 +347,7 @@ void Postgres::process( char type )
             d->status = msg.status();
 
             if ( d->transaction ) {
-                if ( d->status == Idle && q->transaction() != 0 ) {
+                if ( d->status == Idle && q->transaction() ) {
                     d->transaction->setState( Transaction::Completed );
                     d->reserved = false;
                     d->transaction = 0;
@@ -396,6 +397,7 @@ void Postgres::unknown( char type )
         {
             d->unknownMessage = false;
             PgMessage msg( readBuffer() );
+            List< Query >::Iterator q( d->queries.first() );
 
             switch ( msg.severity() ) {
             case PgMessage::Panic:
@@ -404,15 +406,44 @@ void Postgres::unknown( char type )
                 break;
 
             case PgMessage::Error:
+            case PgMessage::Warning:
+                // There *should* always be an outstanding query when we
+                // get here, but that doesn't always seem to hold. Must
+                // investigate later. -- AMS 20041125
                 {
-                    Query * q = d->queries.take( d->queries.first() );
-                    // There *should* always be an outstanding query for
-                    // this error, but I get inexplicable segfaults when
-                    // I assume that queries and errors match exactly.
-                    // Will investigate later. -- AMS 20041124
+                    String s;
                     if ( q ) {
-                        q->setError( msg.message() );
-                        q->notify();
+                        int i = 0;
+                        StringList p;
+                        List< Query::Value >::Iterator v( q->values()->first() );
+                        while ( v ) {
+                            i++;
+                            String s;
+                            int n = v->length();
+                            if ( n == -1 )
+                                s = "NULL";
+                            else if ( n <= 16 && v->format() != Query::Binary )
+                                s = "'" + v->data() + "'";
+                            else
+                                s = "...{" + fn( n ) + "}";
+                            p.append( fn(i) + "=" + s );
+                            v++;
+                        }
+                        s.append( "Query \"" + q->string() + "\"" );
+                        if ( i > 0 )
+                            s.append( " (" + p.join(",") + ")" );
+                        s.append( " failed: " );
+                    }
+                    s.append( msg.message() );
+                    if ( msg.detail() != "" )
+                        s.append( " (" + msg.detail() + ")" );
+                    log( Log::Error, s );
+
+                    // Has this query failed?
+                    if ( q && msg.severity() == PgMessage::Error ) {
+                        Query *e = d->queries.take( q );
+                        e->setError( msg.message() );
+                        e->notify();
                     }
                 }
                 break;
@@ -514,7 +545,7 @@ void Postgres::processQueue( bool userContext )
         q->setState( Query::Executing );
         d->queries.append( q );
 
-        if ( d->transaction == 0 && q->transaction() != 0 ) {
+        if ( !d->transaction && q->transaction() ) {
             d->transaction = q->transaction();
             d->transaction->setState( Transaction::Executing );
             PgParse a( "begin" );
