@@ -106,7 +106,8 @@ void Select::execute()
         }
     }
 
-    String flags = "\\Answered \\Flagged \\Deleted \\Seen \\Draft";
+    String baseflags = "\\Answered \\Flagged \\Deleted \\Seen \\Draft";
+    String flags = baseflags;
     const List<Flag> * l = Flag::flags();
     List<Flag>::Iterator i( l->first() );
     while ( i ) {
@@ -114,7 +115,7 @@ void Select::execute()
         i++;
     }
 
-    respond( "FLAGS " + flags );
+    respond( "FLAGS (" + flags + ")" );
     respond( fn( d->session->count() ) + " EXISTS" );
 
     respond( fn( d->session->recent().count() ) + " RECENT" );
@@ -124,7 +125,7 @@ void Select::execute()
 
     respond( "OK [UIDNEXT " + fn( d->m->uidnext() ) + "]" );
     respond( "OK [UIDVALIDITY " + fn( d->m->uidvalidity() ) + "]" );
-    respond( "OK [PERMANENTFLAGS " + flags +" \\*]" );
+    respond( "OK [PERMANENTFLAGS (" + baseflags +" \\*)]" );
     if ( d->session->readOnly() )
         respond( "OK [READ-ONLY]", Tagged );
     else
