@@ -17,7 +17,7 @@
 #include "log.h"
 
 // crypt
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE 4
 #include <unistd.h>
 
 
