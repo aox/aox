@@ -33,6 +33,7 @@ public:
     void truncate( uint );
 
     friend inline bool operator==( const UString &, const UString & );
+    friend inline bool operator==( const UString &, const char * );
 
     String ascii() const;
 
@@ -59,6 +60,28 @@ inline bool operator==( const UString & s1, const UString & s2 )
 
 
 inline bool operator!=( const UString & s1, const UString & s2 )
+{
+    return !( s1 == s2 );
+}
+
+
+inline bool operator==( const UString & s1, const char * s2 )
+{
+    if ( !s2 )
+        return false;
+    uint i = 0;
+    while ( i < s1.length() ) {
+        if ( s2[i] < 32 || s2[i] >= 127 || s1[i] != s2[i] )
+            return false;
+        i++;
+    }
+    if ( s2[i] )
+        return false;
+    return true;
+}
+
+
+inline bool operator!=( const UString & s1, const char * s2 )
 {
     return !( s1 == s2 );
 }
