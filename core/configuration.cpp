@@ -518,6 +518,7 @@ void Configuration::report()
 void Configuration::setup( const String & global )
 {
     d = new ConfigurationData;
+    Allocator::addEternal( d, "configuration data" );
 
     if ( global[0] == '/' )
         read( global );
