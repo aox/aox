@@ -14,6 +14,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+// time, ctime
+#include <time.h>
+
 
 static int status;
 static SmtpClient *client;
@@ -41,7 +44,15 @@ int main( int argc, char *argv[] )
                 break;
 
             case 'v':
-                verbose++;
+                {
+                    int i = 1;
+                    while ( argv[n][i] == 'v' ) {
+                        verbose++;
+                        i++;
+                    }
+                    if ( argv[n][i] != '\0' )
+                        error = true;
+                }
                 break;
 
             default:
@@ -128,7 +139,17 @@ int main( int argc, char *argv[] )
                              new DeliveryHelper );
     Loop::start();
 
-    if ( verbose > 0 && status < 0 )
+    if ( verbose > 0 && status < 0 ) {
         fprintf( stderr, "Error: %s\n", errstr );
+
+        if ( verbose > 1 ) {
+            File f( "/tmp/delivery.errors", File::Append );
+            if ( f.valid() ) {
+                time_t t = time(0);
+                f.write( "From " + sender + " " + ctime(&t) );
+                f.write( contents + "\n" );
+            }
+        }
+    }
     return status;
 }
