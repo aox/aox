@@ -5,30 +5,14 @@ mailstore.conf - overall configuration for Oryx Mailstore.
 .SH SYNOPSIS
 .B $CONFIGDIR/mailstore.conf
 .br
-.B $CONFIGDIR/imapd.conf
-.br
-.B $CONFIGDIR/pop3d.conf
-.br
-.B $CONFIGDIR/smtpd.conf
-.br
-.B $CONFIGDIR/logd.conf
-.br
-.B $CONFIGDIR/ocd.conf
-.br
-.B $CONFIGDIR/tlsproxy.conf
-.br
-.B $CONFIGDIR/deliver.conf
 .SH DESCRIPTION
 .nh
 .PP
 The
 .I mailstore.conf
-file contains all global configuration settings for Oryx Mailstore. Each
-individual server also has a separate configuration file, whose settings
-override the global file.
-.PP
-The files are read when the servers start up. Syntax errors, unknown
-variables etc. are logged via
+file contains all global configuration settings for Oryx Mailstore. It
+is read by each server at startup. Syntax errors, unknown variables
+etc. are logged via
 .BR logd (8).
 .SH SETTINGS
 .PP
@@ -36,10 +20,6 @@ All settings share a common format:
 .IP
 name = value # comment
 .PP
-Except where noted, each variable can be defined either inn
-.I mailstore.conf
-or
-.IR <server>.conf .
 .SS "General Settings"
 .IP hostname
 Most of the servers need to know the fully-qualified hostname. The
@@ -83,9 +63,6 @@ is the name of the file to which
 writes log events. The file name must be absolute (start with '/'),
 and the default is
 .IR $LOGFILE .
-.IP
-logfile is only valid in
-.IR logd.conf .
 .IP loglevel
 can be
 .IR debug ,
@@ -239,9 +216,6 @@ etc. Since these drafts are subject to change without notice, their
 support is
 .I disabled
 by default, and can be enabled using this toggle.
-.PP
-These variables are only valid in
-.IR imapd.conf .
 .SS POP
 .IP pop-address
 is the address where the POP server listens for new connections. The
@@ -251,9 +225,6 @@ IPv6 addresses.
 is the port where the POP server accepts connections,
 .I 110
 by default.
-.PP
-pop-address and pop-port are only valid in
-.IR popd.conf .
 .SS TLS
 .IP use-tls
 regulates whether Mailstore supports TLS at all. The default is

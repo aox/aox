@@ -3,7 +3,7 @@
 .SH NAME
 imapd - IMAP4rev1 server for Oryx Mailstore.
 .SH SYNOPSIS
-.B $BINDIR/imapd
+.B $BINDIR/imapd [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP
@@ -12,12 +12,23 @@ This
 is the IMAP4rev1 server from Oryx Mailstore, a fast, high-capacity
 mail server which uses a database for mail storage.
 .SH OPTIONS
+Mostly, 
 .B imapd
 is configured using
-.BR mailstore.conf (5)
-and
-.BR imapd.conf (5).
-There are no command-line options.
+.BR mailstore.conf (5).
+The only command-line options at present are:
+.IP "-c filename"
+Read configuration variables from
+.I filename
+instead of from
+.IR $CONFIGDIR/mailstore.conf .
+.IP -f
+Fork into background during startup.
+.SH DIAGNOSTICS
+In case of error,
+.B imapd
+exits with exit code 1, an error message on stderr and (usually more
+detailed) information in the log file.
 .SH IMAP
 .B imapd
 supports IMAP4rev1 as specified in RFC 3501, with

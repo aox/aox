@@ -3,7 +3,7 @@
 .SH NAME
 smtpd - SMTP and LMTP server for Oryx Mailstore.
 .SH SYNOPSIS
-.B $BINDIR/smtpd
+.B $BINDIR/smtpd [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP
@@ -15,12 +15,23 @@ mail server which uses a database for mail storage.
 .B smtpd
 only accepts mail for local delivery; it will not relay or forward mail.
 .SH OPTIONS
+Mostly, 
 .B smtpd
 is configured using
-.BR mailstore.conf (5)
-and
-.BR smtpd.conf (5).
-There are no command-line options.
+.BR mailstore.conf (5).
+The only command-line options at present are:
+.IP "-c filename"
+Read configuration variables from
+.I filename
+instead of from
+.IR $CONFIGDIR/mailstore.conf .
+.IP -f
+Fork into background during startup.
+.SH DIAGNOSTICS
+In case of error,
+.B smtpd
+exits with exit code 1, an error message on stderr and (usually more
+detailed) information in the log file.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION

@@ -98,7 +98,7 @@ int main( int argc, char *argv[] )
     fprintf( stderr, "Using recipient %s and sender %s\n",
              recipient.cstr(), sender.cstr() );
 
-    Configuration::setup( "mailstore.conf", "deliver.conf" );
+    Configuration::setup( "mailstore.conf" );
 
     Loop::setup();
 

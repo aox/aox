@@ -3,7 +3,7 @@
 .SH NAME
 ocd - cluster coordination server for Oryx Mailstore.
 .SH SYNOPSIS
-.B $BINDIR/ocd
+.B $BINDIR/ocd [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP
@@ -12,12 +12,23 @@ is responsible for message passing, cache updates and various other
 houskeeping tasks for Oryx Mailstore. It must always be running while
 Mailstore runs, but should never be visible to the user.
 .SH OPTIONS
+Mostly, 
 .B ocd
 is configured using
-.BR mailstore.conf (5)
-and
-.BR ocd.conf (5).
-There are no command-line options.
+.BR mailstore.conf (5).
+The only command-line options at present are:
+.IP "-c filename"
+Read configuration variables from
+.I filename
+instead of from
+.IR $CONFIGDIR/mailstore.conf .
+.IP -f
+Fork into background during startup.
+.SH DIAGNOSTICS
+In case of error,
+.B ocd
+exits with exit code 1, an error message on stderr and (usually more
+detailed) information in the log file.
 .SH BUGS
 At some future date,
 .B ocd

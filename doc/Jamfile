@@ -30,9 +30,7 @@ rule Man {
     }
 }
 
-Man 5 : deliver.conf.man imapd.conf.man logd.conf.man
-    mailstore.conf.man ocd.conf.man pop3d.conf.man smtpd.conf.man
-    tlsproxy.conf.man ;
+Man 5 : mailstore.conf.man ;
 
 Man 7 : oryx.man mailstore.man ;
 

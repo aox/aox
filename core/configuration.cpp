@@ -94,18 +94,16 @@ Configuration::Configuration()
 
 
 /*! Reads \a file, adding to the previous configuration data held by
-    the object. In case of error, \a file is not read, and if \a
-    required is true, an error is logged. Unknown configuration
-    variables are logged and ignored.
+    the object. In case of error, \a file is not read and an error is
+    logged. Unknown configuration variables are logged and ignored.
 */
 
-void Configuration::read( const String & file, bool required )
+void Configuration::read( const String & file )
 {
     d->f = file;
     File f( file, File::Read );
     if ( !f.valid() ) {
-        if ( required )
-            d->log( "Error reading configuration file " + file );
+        d->log( "Error reading configuration file " + file );
         return;
     }
 
@@ -543,25 +541,22 @@ bool Configuration::Text::setValue( const String & line )
 }
 
 
-/*! Creates a new Configuration from file \a global and optionally
-    also from \a server.
+/*! Creates a new Configuration from file \a global.
 
-    If neither \a global nor \a server contains a textual variable
-    called "hostname", this function tries to find a suitable default,
-    and logs a disaster if nothing is satisfactory.
+    If \a global does not contain a textual variable called
+    "hostname", this function tries to find a suitable default, and
+    logs a disaster if nothing is satisfactory.
 */
 
-void Configuration::setup( const String & global, const String & server )
+void Configuration::setup( const String & global )
 {
     String d = compiledIn( ConfigDir );
 
     ::global = new Configuration;
     if ( global[0] == '/' )
-        ::global->read( global, true );
+        ::global->read( global );
     else
-        ::global->read( d + "/" + global, true );
-    if ( !server.isEmpty() )
-        ::global->read( d + "/" + server, false );
+        ::global->read( d + "/" + global );
 
     String host = osHostname();
     Configuration::Text hn( "hostname", host );

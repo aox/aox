@@ -3,7 +3,7 @@
 .SH NAME
 pop3d - POP3 server for Oryx Mailstore.
 .SH SYNOPSIS
-.B $BINDIR/pop3d
+.B $BINDIR/pop3d [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP
@@ -12,15 +12,26 @@ This
 is the POP3 server from Oryx Mailstore, a fast, high-capacity mail
 server which uses a database for mail storage.
 .SH OPTIONS
-.B imapd
+Mostly, 
+.B pop3d
 is configured using
-.IR mailstore.conf (5)
-and
-.IR imapd.conf (5).
-There are no command-line options.
+.BR mailstore.conf (5).
+The only command-line options at present are:
+.IP "-c filename"
+Read configuration variables from
+.I filename
+instead of from
+.IR $CONFIGDIR/mailstore.conf .
+.IP -f
+Fork into background during startup.
+.SH DIAGNOSTICS
+In case of error,
+.B pop3d
+exits with exit code 1, an error message on stderr and (usually more
+detailed) information in the log file.
 .SH BUGS
 The POP3 service in Mailstore is currently more or less nonexistent.
-It will be made usable towards the end of 2004.
+It will be made usable towards the end of the 0.9x releases.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION

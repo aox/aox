@@ -67,6 +67,8 @@ should report which messages could be delivered and which could not.
 .PP
 The return codes may be wrong in a few cases. This man page probably
 is right and the code wrong. Low priority.
+.PP
+There is no command-line option to set the configuration file.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION

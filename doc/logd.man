@@ -3,7 +3,7 @@
 .SH NAME
 logd - logging server for Oryx Mailstore.
 .SH SYNOPSIS
-.B $BINDIR/logd
+.B $BINDIR/logd [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP
@@ -38,27 +38,25 @@ output is suppressed.
 If a process dies unexpectedly, all of its open transactions are
 logged as if a disaster happened.
 .SH OPTIONS
-There are no command-line options.
-.PP
-The
-.I logfile
-option in
-.BR logd.conf (5)
-decides where
-.B logd
-writes its log output.
-.PP
-.B logd
-listens to the address given by
-.I loghost
-and
-.I logport
-(see
-.BR mailstore.conf (5))
+Mostly, 
+.B smtpd
+is configured using
+.BR mailstore.conf (5).
+The only command-line options at present are:
+.IP "-c filename"
+Read configuration variables from
+.I filename
+instead of from
+.IR $CONFIGDIR/mailstore.conf .
+.IP -f
+Fork into background during startup.
+.SH DIAGNOSTICS
+In case of error,
+.B smtpd
+exits with exit code 1, an error message on stderr and (usually more
+detailed) information in the log file.
 .SH FILES
 $CONFIGDIR/mailstore.conf
-.br
-$CONFIGDIR/logd.conf
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION

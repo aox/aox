@@ -3,7 +3,7 @@
 .SH NAME
 tlsproxy - TLS/SSL helper for Oryx Mailstore.
 .SH SYNOPSIS
-.B $BINDIR/tlsproxy
+.B $BINDIR/tlsproxy [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP
@@ -28,12 +28,23 @@ link into all of our servers.
 should always be running when Mailstore is in use, but you should
 never need to interact with it directly.
 .SH OPTIONS
+Mostly, 
 .B tlsproxy
 is configured using
-.IR mailstore.conf (5)
-and
-.IR tlsproxy.conf (5).
-There are no command-line options.
+.BR mailstore.conf (5).
+The only command-line options at present are:
+.IP "-c filename"
+Read configuration variables from
+.I filename
+instead of from
+.IR $CONFIGDIR/mailstore.conf .
+.IP -f
+Fork into background during startup.
+.SH DIAGNOSTICS
+In case of error,
+.B tlsproxy
+exits with exit code 1, an error message on stderr and (usually more
+detailed) information in the log file.
 .SH "CERTIFICATE HANDLING"
 Tlsproxy can use a proper certificate signed by a CA, as usual. If you
 do not have one, tlsproxy will generate a self-signed certificate at

@@ -11,7 +11,7 @@ class Configuration
 private:
     Configuration();
 public:
-    static void setup( const String &, const String & = "" );
+    static void setup( const String & );
 
     static String hostname();
     static String osHostname();
@@ -108,7 +108,7 @@ public:
 
 private:
     void add( const String & );
-    void read( const String &, bool );
+    void read( const String & );
 
     class ConfigurationData * d;
     friend class Configuration::Variable;
