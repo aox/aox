@@ -272,9 +272,13 @@ void Postgres::backendStartup( char type )
         // this message unparsed, so that process() can handle it like
         // any other PgReady.
         setTimeout( 0 );
-        log( "PostgreSQL: Ready for queries" );
         d->startup = false;
-        updateSchema();
+        static bool first = true;
+        if ( first ) {
+            first = false;
+            updateSchema();
+            log( "PostgreSQL: Ready for queries" );
+        }
         break;
 
     case 'K':
