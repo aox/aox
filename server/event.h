@@ -8,14 +8,14 @@ class EventHandler {
 public:
     EventHandler();
 
+    Arena *arena() const;
+    void setArena( Arena * );
+
     virtual void notify();
     virtual void execute() = 0;
 
-    Arena * arena() const;
-    void setArena( Arena * );
-
 private:
-    class DCData *d;
+    Arena *a;
 };
 
 

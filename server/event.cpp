@@ -4,65 +4,64 @@
 #include "scope.h"
 
 
-class DCData {
-public:
-    DCData()
-        : arena( 0 )
-    {}
-
-    Arena *arena;
-};
-
-
 /*! \class EventHandler event.h
-    This is a base class for anything that needs to Query the Database.
+    An abstract base class for anything that wants event notifications.
 
-    XXX: This class is poorly named. It is actually a base class for any
-    objects that need to be notified of external events. Rename it when
-    we think of a better name.
+    Classes that want to be notified of events (e.g. the completion of
+    a database query) must inherit from EventHandler and implement the
+    execute() function, and may also provide an arena() for its use.
+
+    Objects of that class may then pass their "this" pointers to code
+    that promises to notify() them of events. When the event occurs,
+    notify() calls execute() with the correct arena() set.
+
+    There is currently no way to indicate the type or originator of an
+    event. Furthermore, the Loop/Connection framework uses an entirely
+    different scheme for event notifications.
 */
 
 
-/*! Creates a new EventHandler object.
+/*! Creates a new EventHandler object, and sets its arena to the current
+    arena.
 */
 
 EventHandler::EventHandler()
-    : d( new DCData )
 {
+    a = Scope::current()->arena();
 }
 
 
-/*! Returns this object's arena.
-    execute() expects this arena to be current before it is called.
+/*! Returns this object's arena. This arena must be current before
+    execute() is called.
 */
 
 Arena *EventHandler::arena() const
 {
-    return d->arena;
+    return a;
 }
 
 
-/*! Sets this object's Arena to \a a.
+/*! Sets this object's Arena to \a arena.
 */
 
-void EventHandler::setArena( Arena *a )
+void EventHandler::setArena( Arena *arena )
 {
-    d->arena = a;
+    a = arena;
+}
+
+
+/*! This function calls execute() with the correct arena().
+*/
+
+void EventHandler::notify()
+{
+    Scope x( a );
+    execute();
 }
 
 
 /*! \fn void EventHandler::execute()
 
-    This pure virtual function is called by Query::notify() when there's
-    something the client needs to do to process the Query.
+    This pure virtual function is called by notify() when there's
+    something the EventHandler needs to do to process an event.
 */
-
-
-/*! This function sets the correct arena() and calls execute().
-*/
-
-void EventHandler::notify()
-{
-    Scope x( d->arena );
-    execute();
-}

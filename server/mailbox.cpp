@@ -79,7 +79,6 @@ void Mailbox::setup()
     root = new Mailbox( "/" );
 
     q = new Query( "select * from mailboxes", new MailboxReader );
-    q->owner()->setArena( Scope::current()->arena() );
     q->execute();
 }
 

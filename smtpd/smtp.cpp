@@ -611,7 +611,6 @@ void SMTP::inject()
 
     d->state = Injecting;
     d->helper = new SmtpDbClient( this );
-    d->helper->setArena( Scope::current()->arena() );
     d->injector = new Injector( m, mailboxes, d->helper );
     d->helper->injector = d->injector;
     d->injector->execute();
