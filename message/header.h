@@ -75,6 +75,8 @@ public:
     Date * date( HeaderField::Type = HeaderField::Date ) const;
     String messageId( HeaderField::Type = HeaderField::MessageId ) const;
     String references() const;
+    String subject() const;
+    String inReplyTo() const;
     ContentType * contentType() const;
     ContentTransferEncoding * contentTransferEncoding() const;
     ContentDisposition * contentDisposition() const;
