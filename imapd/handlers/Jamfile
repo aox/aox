@@ -1,15 +1,17 @@
 SubDir TOP imapd handlers ;
 
 Build imap :
-    append.cpp authenticate.cpp
-    capability.cpp compress.cpp create.cpp check.cpp
+    authenticate.cpp
+    capability.cpp
+    compress.cpp
+    create.cpp
     delete.cpp
-    examine.cpp expunge.cpp
-    fetch.cpp
+    expunge.cpp
     idle.cpp
-    list.cpp login.cpp logout.cpp lsub.cpp
+    login.cpp
+    logout.cpp
     noop.cpp
     rename.cpp
-    search.cpp select.cpp starttls.cpp status.cpp store.cpp subscribe.cpp
-    unsubscribe.cpp
+    select.cpp
+    subscribe.cpp unsubscribe.cpp
     ;
