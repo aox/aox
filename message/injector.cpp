@@ -150,7 +150,7 @@ Injector::~Injector()
 
 bool Injector::done() const
 {
-    return d->step >= 4;
+    return ( d->step >= 4 || d->failed );
 }
 
 
@@ -191,7 +191,7 @@ void Injector::execute()
         d->step = 1;
     }
 
-    if ( d->step == 1 ) {
+    if ( d->step == 1 && !d->transaction->failed() ) {
         // Once we have UIDs for each Mailbox, we can insert rows into
         // messages and recent_messages.
 
@@ -204,7 +204,7 @@ void Injector::execute()
         d->step = 2;
     }
 
-    if ( d->step == 2 ) {
+    if ( d->step == 2 && !d->transaction->failed() ) {
         // We expect buildFieldLinks() to have completed immediately.
         // Once insertBodyparts() is completed, we can start adding to
         // the part_numbers and header_fields tables.
@@ -220,7 +220,7 @@ void Injector::execute()
         d->step = 3;
     }
 
-    if ( d->step == 3 ) {
+    if ( d->step == 3 && !d->transaction->failed() ) {
         // Fill in address_fields once the address lookup is complete.
         // (We could have done this without waiting for the bodyparts
         // to be inserted, but it didn't seem worthwhile.)
@@ -236,15 +236,22 @@ void Injector::execute()
         d->step = 4;
     }
 
-    if ( d->step == 4 ) {
+    if ( d->step == 4 || d->transaction->failed() ) {
         if ( !d->transaction->done() )
             return;
         d->failed = d->transaction->failed();
-        if ( d->failed ) // this isn't an error for us, only for the client
-            d->owner->log( "Injection failed: " + d->transaction->error() );
-        else
-            d->owner->log( "Injection succeeded" );
-        d->owner->execute();
+
+        // XXX: If we fail early in the transaction, we'll continue to
+        // be notified of individual query failures. We don't want to
+        // pass them on, because d->owner would have killed itself.
+        if ( d->owner ) {
+            if ( d->failed )
+                d->owner->log( "Injection failed: " + d->transaction->error() );
+            else
+                d->owner->log( "Injection succeeded" );
+            d->owner->execute();
+            d->owner = 0;
+        }
     }
 }
 
