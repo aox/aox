@@ -15,7 +15,6 @@ static Map< Address > *idCache;
 static Dict< Address > *nameCache;
 static PreparedStatement *addressLookup;
 static PreparedStatement *addressInsert;
-static PreparedStatement *addressInsertId;
 
 
 /*! \class AddressCache addresscache.h
@@ -28,7 +27,10 @@ static PreparedStatement *addressInsertId;
 
     (...We want to describe the id-lookups here...)
 
-    (...We need a note about serialised insertions here...)
+    Each entry in the addresses table must be unique. Instead of using
+    an explicit lock to serialise insertions by multiple Injectors, we
+    simply add a UNIQUE(name, address, localpart) clause to the table,
+    and allow duplicate INSERTs to fail.
 
     (...We need to talk about synchronisation through ocd here...)
 
@@ -51,8 +53,7 @@ void AddressCache::setup()
     nameCache = new Dict< Address >;
 
     // The first query is used to resolve cache misses. If the address
-    // doesn't exist in the table, the other two queries insert it and
-    // find its id.
+    // doesn't exist in the table, the other query inserts it.
 
     addressLookup =
         new PreparedStatement( "select id from addresses where "
@@ -60,8 +61,6 @@ void AddressCache::setup()
     addressInsert =
         new PreparedStatement( "insert into addresses(name,localpart,domain) "
                                "values ($1,$2,$3)" );
-    addressInsertId =
-        new PreparedStatement( "select currval('address_ids')::integer as id" );
 }
 
 
@@ -110,7 +109,10 @@ public:
         i->bind( 2, a->localpart() );
         i->bind( 3, a->domain() );
 
-        q = new Query( *addressInsertId, this );
+        q = new Query( *addressLookup, this );
+        q->bind( 1, a->name() );
+        q->bind( 2, a->localpart() );
+        q->bind( 3, a->domain() );
         l->append( q );
 
         Database *db = Database::handle();
