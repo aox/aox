@@ -44,7 +44,7 @@ Struct datefields.inc : datefields.test ;
 
 Build imapdmain : imapd.cpp ;
 Build imap : imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp 
-    squery.cpp ;
+    squery.cpp smtp.cpp ;
 Build message : address.cpp parser.cpp date.cpp header.cpp mimefields.cpp
     message.cpp ;
 Build logdmain : logd.cpp ;

@@ -6,6 +6,7 @@
 #include "global.h"
 #include "imap.h"
 #include "cccp.h"
+#include "smtp.h"
 #include "log.h"
 #include "configuration.h"
 #include "database.h"
@@ -32,6 +33,8 @@ int main( int, char *[] )
     // should we pick this up from the config file?
     Listener<IMAP>::create( "IMAP", "", 2052 );
     Listener<CCCP>::create( "CCCP", "", 2053 );
+    Listener<SMTP>::create( "SMTP", "", 2025 );
+    Listener<LMTP>::create( "LMTP", "", 2026 );
 
     Configuration::global()->report();
     l.commit();
