@@ -4,6 +4,6 @@ Linux/BSD distributions.
 
 Simply edit Jamsettings to reflect your preferences and type 'jam' or
 'jam install' to build. Note that in Jam, variable assignments require
-spaces: "A = b ;" is good, "A=b;" is a syntax errors.
+spaces: "A = b ;" is good, "A=b;" is a syntax error.
 
 If you encounter any problems, please write to info@oryx.com.
