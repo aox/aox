@@ -4,12 +4,13 @@
 
 # files and directories. the directory names MUST NOT end with /.
 
-BINDIR = /usr/mailstore/bin ;
-MANDIR = /usr/mailstore/man ;
-PIDFILEDIR = /tmp/mailstore/pid ;
-JAILDIR = /tmp/mailstore/jail ;
-CONFIGDIR = /etc/mailstore ;
-LOGFILE = /tmp/mailstore.log ;
+PREFIX = /usr/local/mailstore ;
+BINDIR = $(PREFIX)/bin ;
+MANDIR = $(PREFIX)/man ;
+PIDFILEDIR = /var/run ;
+JAILDIR = $(PREFIX)/jail ;
+CONFIGDIR = $(PREFIX) ;
+LOGFILE = $(PREFIX)/logfile ;
 
 # how to compile
 
