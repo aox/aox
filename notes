@@ -353,3 +353,11 @@ Message Retention Policy Framework
   points from it. It could also be that we'll improve the code itself.
 
 
+Logfile mode
+
+  logfile-mode = 400
+
+  logd.cpp can call negate the mode and call umask(). Jamsettings can
+  express distribution policy.
+
+
