@@ -52,11 +52,17 @@ static void error( String m )
     exit( -1 );
 }
 
+static void addRoot( void * v )
+{
+    Allocator::addRoot( v );
+}
+
 
 static void createUser( const char * login, const char * password,
                         const char * address = 0 )
 {
     User * u = new User;
+    addRoot( u );
     u->setLogin( login );
     u->setSecret( password );
     if ( !u->valid() )
@@ -82,6 +88,7 @@ static void createUser( const char * login, const char * password,
 static void deleteUser( const char * login )
 {
     User * u = new User;
+    addRoot( u );
     u->setLogin( login );
     if ( !u->valid() )
         error( u->error() );
@@ -158,6 +165,7 @@ int main( int argc, char *argv[] )
             error( "Unknown argument following mailbox name." );
 
         Mailbox *m = new Mailbox( argv[3] );
+        addRoot( m );
         if ( verb == "create" )
             query = m->create( new AdminHelper );
         else if ( verb == "delete" )
@@ -176,7 +184,7 @@ int main( int argc, char *argv[] )
         error( "Sorry, not implemented: " + verb + " " + noun );
     }
 
-    Allocator::addRoot( query );
+    addRoot( query );
     Loop::start();
     return status;
 }
