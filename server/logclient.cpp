@@ -19,8 +19,8 @@ public:
     LogClientHelper( const Endpoint & e, Logger *client )
         : Connection(), owner( client ), logServer( e )
     {
-        Loop::addConnection( this );
         setType( Connection::LoggingClient );
+        Loop::addConnection( this );
         connect( logServer );
     }
 
