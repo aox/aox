@@ -408,15 +408,15 @@ void Postgres::unknown( char type )
                     Query * q = d->queries.take( d->queries.first() );
                     q->setError( msg.message() );
                     q->notify();
-                    d->unknownMessage = false;
                 }
                 break;
 
             default:
                 log( msg.message() );
-                d->unknownMessage = false;
                 break;
             }
+
+            d->unknownMessage = false;
         }
         break;
 
