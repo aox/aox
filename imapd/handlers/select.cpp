@@ -81,18 +81,20 @@ void Select::execute()
         // to our mailbox. Concurrent Selects of the same mailbox will
         // block until this transaction has committed.
 
+        d->t = new Transaction( this );
+
         d->recent = new Query( "select * from recent_messages where "
                                "mailbox=$1 for update", this );
         d->recent->bind( 1, d->m->id() );
-
-        Query *q = new Query( "delete from recent_messages where "
-                              "mailbox=$1", this );
-        q->bind( 1, d->m->id() );
-
-        d->t = new Transaction( this );
         d->t->enqueue( d->recent );
-        if ( !d->readOnly )
+
+        if ( !d->readOnly ) {
+            Query *q = new Query( "delete from recent_messages where "
+                                  "mailbox=$1", this );
+            q->bind( 1, d->m->id() );
             d->t->enqueue( q );
+        }
+
         d->t->commit();
         return;
     }

@@ -326,6 +326,8 @@ void Store::addExtraFlags()
     responses. This function is used to tell the client "yes, your
     store flags command was processed as submitted" without bothering
     the database.
+
+    This function mishandles the "\recent" flag.
 */
 
 void Store::pretendToFetch()
@@ -397,8 +399,11 @@ bool Store::dumpFetchResponses()
             r.append( "\\draft" );
         if ( system->getBoolean( "flagged" ) )
             r.append( "\\flagged" );
-        if ( system->getBoolean( "seen" ) )
+        if ( system->getBoolean( "seen" ) ) {
             r.append( "\\seen" );
+            if ( s->isRecent( uid ) )
+                r.append( "\\recent" );
+        }
         while ( extra && extraUid == uid ) {
             Flag * f = Flag::find( extra->getInt( "flag" ) );
             if ( f )
