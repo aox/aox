@@ -5,6 +5,7 @@ SubDir TOP imapd ;
 # - lib
 
 SubInclude TOP lib ;
+SubInclude TOP codecs ;
 
 # - our own subdirectories, with a -I pointing here
 HDRS += [ FDirName $(TOP) imapd ] ;
