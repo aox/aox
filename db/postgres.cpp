@@ -453,7 +453,6 @@ void Postgres::unknown( char type )
 
 void Postgres::error( const String &s )
 {
-    uint list = 0;
     d->active = false;
     log( Log::Error, s );
     d->l->commit();
@@ -463,13 +462,16 @@ void Postgres::error( const String &s )
         q->setError( s );
         q->notify();
         q++;
-
-        if ( !q && list == 0 ) {
-            q = d->pending.first();
-            list = 1;
-        }
     }
 
+    q = d->pending.first();
+    while ( q ) {
+        q->setError( s );
+        q->notify();
+        q++;
+    }
+
+    writeBuffer()->remove( writeBuffer()->size() );
     writeBuffer()->remove( writeBuffer()->size() );
     Database::removeHandle( this );
     setState( Closing );
