@@ -15,7 +15,11 @@ Installation script
   Is it okay for it to be interactive? (No, I guess not.)
 
 
-Fix startup and shutdown (and log disasters to stderr)
+Fix shutdown
+
+  Right now, rcmailstore uses killall to kill the servers, not the pid
+  files. there's no practical way to shutdown using ocd/ocadmin. both
+  need fixing.
 
 
 Injector fixes:
@@ -27,7 +31,8 @@ Injector fixes:
 
 FETCH fixes:
 
-  1. PEEK is silently ignored right now.
+  Currently we're always peeking; "fetch 1 body[1]" does not change
+  the seen flag.
 
 
 EXPUNGE fixes:
