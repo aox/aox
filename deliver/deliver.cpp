@@ -61,10 +61,6 @@ int main( int argc, char *argv[] )
         exit( -1 );
     }
 
-    // ### teach File to read from stdin properly
-    if ( filename.isEmpty() )
-        filename = "/proc/self/fd/0";
-
     File message( filename, File::Read );
     if ( !message.valid() ) {
         fprintf( stderr, "Unable to open message file %s\n", filename.cstr() );
