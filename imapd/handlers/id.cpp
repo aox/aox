@@ -23,8 +23,7 @@ void Id::parse()
             if ( nextChar() == ' ' )
                 space();
             if ( ok() && !name.isEmpty() && !value.isEmpty() )
-                logger()->log( Log::Info, 
-                               "Client ID: " + 
+                logger()->log( "Client ID: " + 
                                name.simplified() + ": " + 
                                value.simplified() );
         }
