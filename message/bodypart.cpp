@@ -363,7 +363,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             if ( !qp )
                 h->removeField( HeaderField::ContentTransferEncoding );
             else if ( hf->contentTransferEncoding()->encoding() != String::QP )
-                hf->contentTransferEncoding()->setEncoding( String::QP );
+                hf->contentTransferEncoding()->setEncoding( String::QP, hf );
         }
         else if ( qp ) {
             h->add( "Content-Transfer-Encoding", "quoted-printable" );
@@ -376,7 +376,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             if ( hf ) {
                 ContentTransferEncoding *cte = hf->contentTransferEncoding();
                 if ( cte->encoding() != String::Base64 )
-                    cte->setEncoding( String::Base64 );
+                    cte->setEncoding( String::Base64, hf );
             }
             else {
                 h->add( "Content-Transfer-Encoding", "base64" );

@@ -6,6 +6,7 @@
 #include "stringlist.h"
 
 class Parser822;
+class HeaderField;
 
 
 class MimeField {
@@ -46,7 +47,7 @@ class ContentTransferEncoding
 {
 public:
     ContentTransferEncoding( const String & );
-    void setEncoding( String::Encoding );
+    void setEncoding( String::Encoding, HeaderField * );
     String::Encoding encoding() const;
 
 private:

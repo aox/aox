@@ -67,6 +67,8 @@ public:
 private:
     class HeaderFieldData *d;
 
+    friend class ContentTransferEncoding;
+
     void setName( const String & );
     void setData( const String & );
     void setValue( const String & );
