@@ -1,6 +1,17 @@
+Add support for RFC 2047 encoding
+
+
+Web site proofreading
+
+  Need a comprehensive proofreading session.
+
+
 Message fixes:
 
   1. Extra \r\n in the bodypart for o/1
+
+
+Make sure ocd works
 
 
 LIST/LSUB fixes.
@@ -14,16 +25,6 @@ Schema documentation
   I've done all I want to sql-schema.html and postgres.schema; I'll have
   to wait for Sujai's diagram to complete schema.html, but until then, I
   have done all I can to it.
-
-
-Field name synchronisation
-
-  If we ever need to add values to HeaderField::Type, new values must go
-  AFTER ::Other, because we can't insert entries into the middle of the
-  field_names table. So the type translation has to be done if the type
-  is greater than or equal to Other.
-
-  And we need to synchronise the in-memory maps via ocd anyway.
 
 
 FETCH fixes:
@@ -48,6 +49,24 @@ EXPUNGE fixes:
   is processed before we spread the word about the expunged message.
 
 
+Resource limits on memory allocation
+
+
+tlsproxy doesn't handle eof (or errors) well
+
+
+Non-default IMAPS Listener support (mike@waspfactory.org)
+
+
+tls client support (smtp, postgresql)
+
+
+Use SHA-1 to hash bodyparts instead of MD5.
+
+  MD5 is broken, and we should be moving away from it.
+  AMS needs to take code from RFC 3174 and make core/sha1.cpp.
+
+
 Bodypart sharing
 
   We're doing an in-memory Dict< hash > right now.
@@ -55,12 +74,6 @@ Bodypart sharing
 
   And, after some thought, I've decided that it doesn't belong in 0.90
   now. A great pity, but there it is.
-
-
-Use SHA-1 to hash bodyparts instead of MD5.
-
-  MD5 is broken, and we should be moving away from it.
-  AMS needs to take code from RFC 3174 and make core/sha1.cpp.
 
 
 inject a large number of messages, collect query statistics
@@ -71,16 +84,7 @@ test with more imap clients (corp/docs/misc/mua-list)
   Why do we have one list in mua-list and another in imap.html?
 
 
-tlsproxy doesn't handle eof (or errors) well
-
-
 move tests to another program
-
-
-resource limits on memory allocation
-
-
-make sure ocd works
 
 
 the gui should do something
@@ -93,15 +97,6 @@ archives.oryx.com
 
 
 top-level message/rfc822 support
-
-
-Non-default IMAPS Listener support (mike@waspfactory.org)
-
-
-rfc2047 encoding
-
-
-tls client support (smtp, postgresql)
 
 
 What to do about EventHandlers whose targets have died?
@@ -189,12 +184,17 @@ Fix shutdown
   is another aspect of the problem above.
 
 
-Web site proofreading
-
-  Need a comprehensive proofreading session.
-
-
 We should log a useful error if we want to open anything after chroot().
 
 
 Write to the alistapart chap who wrote about @media after 0.91.
+
+
+Field name synchronisation
+
+  If we ever need to add values to HeaderField::Type, new values must go
+  AFTER ::Other, because we can't insert entries into the middle of the
+  field_names table. So the type translation has to be done if the type
+  is greater than or equal to Other.
+
+  And we need to synchronise the in-memory maps via ocd anyway.
