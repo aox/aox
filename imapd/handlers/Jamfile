@@ -1,3 +1,3 @@
 SubDir TOP imapd handlers ;
 
-Library libhandlers : logout.cpp ;
+Library libhandlers : logout.cpp capability.cpp noop.cpp ;
