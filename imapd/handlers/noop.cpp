@@ -10,18 +10,14 @@
 
 #include "noop.h"
 
-// XXX: We should only need to include one header (database) here.
-#include "imap.h"
 #include "query.h"
-#include "database.h"
-
 #include "string.h"
 
 void Noop::execute()
 {
     if ( !q ) {
         q = new Query( "select foo,bar from test" );
-        Database::query( q );
+        q->submit();
         return;
     }
 
