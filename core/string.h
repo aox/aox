@@ -9,6 +9,7 @@
 class StringData {
 private:
     StringData(): str( 0 ), len( 0 ), max( 0 ) {}
+    StringData( int );
 
     friend class String;
     friend bool operator==( const class String &, const class String & );
