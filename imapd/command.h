@@ -45,6 +45,7 @@ public:
 
     void emitResponses();
 
+    String digits( uint );
     void end();
     void nil();
     void space();
@@ -59,11 +60,9 @@ public:
     Set set();
     char nextChar();
     void step();
+    const String following() const;
 
     IMAP * imap() const;
-
-private:
-    const String following() const;
 
 private:
     class CommandData * d;
