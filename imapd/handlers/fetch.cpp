@@ -345,7 +345,7 @@ void Fetch::execute()
         Message * m = s->mailbox()->message( uid );
         if ( ( !d->needHeader || m->hasHeaders() ) &&
              ( !d->needBody || m->hasBodies() ) &&
-             ( !d->flags || m->hasExtraFlags() ) )
+             ( !d->flags || m->hasFlags() ) )
         {
             respond( fetchResponse( m, uid, s->msn( uid ) ), Untagged );
             d->set.remove( uid );
@@ -365,20 +365,25 @@ void Fetch::execute()
 
 void Fetch::sendFetchQueries()
 {
-    ImapSession * s = imap()->session();
+    MessageSet headers, bodies, flags;
+    Mailbox * mb = imap()->session()->mailbox();
 
     uint i = 1;
     while ( i <= d->set.count() ) {
         uint uid = d->set.value( i );
-        Message * m = s->mailbox()->message( uid );
+        Message * m = mb->message( uid );
         if ( d->needHeader && !m->hasHeaders() )
-            m->fetchHeaders( this );
+            headers.add( uid );
         if ( d->needBody && !m->hasBodies() )
-            m->fetchBodies( this );
-        if ( d->flags && !m->hasExtraFlags() )
-            m->fetchExtraFlags( this );
+            bodies.add( uid );
+        if ( d->flags && !m->hasFlags() )
+            flags.add( uid );
         i++;
     }
+
+    mb->fetchHeaders( headers, this );
+    mb->fetchBodies( bodies, this );
+    mb->fetchFlags( flags, this );
 }
 
 
@@ -516,32 +521,22 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
 
 String Fetch::flagList( Message * m, uint uid )
 {
-    StringList r;
-
-    if ( m->flag( Message::AnsweredFlag ) )
-        r.append( "\\answered" );
-    if ( m->flag( Message::DeletedFlag ) )
-        r.append( "\\deleted" );
-    if ( m->flag( Message::DraftFlag ) )
-        r.append( "\\draft" );
-    if ( m->flag( Message::FlaggedFlag ) )
-        r.append( "\\flagged" );
-    if ( m->flag( Message::SeenFlag ) )
-        r.append( "\\seen" );
+    String r;
 
     if ( imap()->session()->isRecent( uid ) )
-        r.append( "\\recent" );
+        r = "\\recent";
 
-    List<Flag> * f = m->extraFlags();
+    List<Flag> * f = m->flags();
     if ( f && !f->isEmpty() ) {
         List<Flag>::Iterator it( f->first() );
         while ( it ) {
+            r.append( " " );
             r.append( it->name() );
             ++it;
         }
     }
 
-    return r.join( " " );
+    return r;
 }
 
 

@@ -9,6 +9,8 @@ class Query;
 class String;
 class EventHandler;
 class Message;
+class Fetcher;
+class MessageSet;
 
 
 class Mailbox {
@@ -47,6 +49,11 @@ public:
     Query *remove( EventHandler * );
 
     void refresh();
+
+    void fetchHeaders( const MessageSet &, EventHandler * );
+    void fetchBodies( const MessageSet &, EventHandler * );
+    void fetchFlags( const MessageSet &, EventHandler * );
+    void forget( Fetcher * );
 
 private:
     class MailboxData *d;

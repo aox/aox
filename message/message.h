@@ -43,26 +43,11 @@ public:
     void setInternalDate( uint );
     uint internalDate() const;
 
-    enum BuiltinFlag {
-        AnsweredFlag,
-        DeletedFlag,
-        DraftFlag,
-        FlaggedFlag,
-        SeenFlag // THIS GOES LAST
-    };
+    List<Flag> * flags() const;
 
-    bool flag( BuiltinFlag ) const;
-    void setFlag( BuiltinFlag, bool );
-
-    List<Flag> * extraFlags() const;
-
-    bool hasExtraFlags() const;
+    bool hasFlags() const;
     bool hasHeaders() const;
     bool hasBodies() const;
-
-    void fetchExtraFlags( EventHandler * );
-    void fetchHeaders( EventHandler * );
-    void fetchBodies( EventHandler * );
 
 private:
     static Header * parseHeader( uint &, uint, const String &, Header::Mode );

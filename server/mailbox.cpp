@@ -12,6 +12,7 @@
 #include "log.h"
 #include "map.h"
 #include "message.h"
+#include "fetcher.h"
 
 
 class MailboxData {
@@ -20,7 +21,8 @@ public:
         : id( 0 ),
           uidnext( 0 ), uidvalidity( 0 ),
           deleted( false ),
-          parent( 0 ), children( 0 ), messages( 0 )
+          parent( 0 ), children( 0 ), messages( 0 ),
+          flagFetcher( 0 ), headerFetcher( 0 ), bodyFetcher( 0 )
     {}
 
     String name;
@@ -32,6 +34,9 @@ public:
     Mailbox *parent;
     List< Mailbox > *children;
     Map<Message> * messages;
+    Fetcher * flagFetcher;
+    Fetcher * headerFetcher;
+    Fetcher * bodyFetcher;
 };
 
 
@@ -371,4 +376,59 @@ Message * Mailbox::message( uint uid, bool create ) const
         d->messages->insert( uid, m );
     }
     return m;
+}
+
+
+/*! Starts retrieving the header fields of \a messages, and will
+    notify \a handler whenever at least one message becomes available.
+*/
+
+void Mailbox::fetchHeaders( const MessageSet & messages,
+                            EventHandler * handler )
+{
+    if ( !d->flagFetcher )
+        d->flagFetcher = new MessageFlagFetcher( this );
+    d->flagFetcher->insert( messages, handler );
+}
+
+
+/*! Starts retrieving the body parts fields of \a messages, and will
+    notify \a handler whenever at least one message becomes available.
+*/
+
+void Mailbox::fetchBodies( const MessageSet & messages,
+                           EventHandler * handler )
+{
+    if ( !d->flagFetcher )
+        d->flagFetcher = new MessageFlagFetcher( this );
+    d->flagFetcher->insert( messages, handler );
+
+}
+
+
+/*! Starts retrieving the flags of \a messages, and will notify \a handler
+    whenever at least one message becomes available.
+*/
+
+void Mailbox::fetchFlags( const MessageSet & messages,
+                          EventHandler * handler )
+{
+    if ( !d->flagFetcher )
+        d->flagFetcher = new MessageFlagFetcher( this );
+    d->flagFetcher->insert( messages, handler );
+}
+
+
+/*! Makes the Mailbox forget that \a f exists. The next time the
+    Mailbox needs a suitable Fetcher, it will create one.
+*/
+
+void Mailbox::forget( Fetcher * f )
+{
+    if ( d->headerFetcher == f )
+        d->headerFetcher = 0;
+    else if ( d->flagFetcher == f )
+        d->flagFetcher = 0;
+    else if ( d->bodyFetcher == f )
+        d->bodyFetcher = 0;
 }

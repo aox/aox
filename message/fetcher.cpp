@@ -1,0 +1,263 @@
+#include "fetcher.h"
+
+#include "messageset.h"
+#include "allocator.h"
+#include "bodypart.h"
+#include "mailbox.h"
+#include "message.h"
+#include "ustring.h"
+#include "query.h"
+#include "flag.h"
+#include "utf.h"
+
+
+class FetcherData {
+public:
+    FetcherData()
+        : mailbox( 0 ), query( 0 ),
+          smallest( 0 ), largest( 0 )
+    {}
+    struct Handler {
+        Handler(): o( 0 ) {}
+        MessageSet s;
+        EventHandler * o;
+    };
+
+    List<Handler> handlers;
+    Mailbox * mailbox;
+    Query * query;
+    uint smallest;
+    uint largest;
+};
+
+
+static PreparedStatement * header;
+static PreparedStatement * flags;
+static PreparedStatement * body;
+
+
+/*! \class Fetcher fetcher.h
+
+    The Fetcher class retrieves Message data for some/all messages in
+    a Mailbox. It's an abstract base class that manages the Message
+    and Mailbox aspects of the job; subclasses provide the Query or
+    PreparedStatement necessary to fetch specific data.
+
+    A Fetcher lives for a while, fetching data about a range of
+    messages. Whenever it finishes its current retrieval, it finds the
+    largest range of messages currently needing retrieval, and issues
+    an SQL select for them. Typically the select ends with "uid>=x and
+    uid<=y". When the Fetcher isn't useful any more, its Mailbox drops
+    it on the floor.
+
+    In consequence, we have at most one outstanding Query per Mailbox
+    and type of query, and when it finishes a new is issued.
+*/
+
+
+/*! Constructs an empty Fetcher which will fetch messages in mailbox \a m. */
+
+Fetcher::Fetcher( Mailbox * m )
+    : EventHandler(), d( new FetcherData )
+{
+    d->mailbox = m;
+    if ( !::header ) {
+        const char * q =
+            "select h.uid, h.part, f.name, h.value from "
+            "header_fields h, field_names f where "
+            "h.field = f.id and "
+            "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3";
+        ::header = new PreparedStatement( q );
+        q = "select p.part, b.text, b.data, b.bytes, b.lines "
+            "from part_numbers p, bodyparts b where "
+            "p.bodypart=b.id and "
+            "p.uid>=$1 and p.uid<=$2 and p.mailbox=$3 "
+            "order by part";
+        ::body = new PreparedStatement( q );
+        q = "select uid, flag from flags "
+            "where uid>=$1 and uid<=$2 and mailbox=$3";
+        ::flags = new PreparedStatement( q );
+        Allocator::addEternal( header, "statement to fetch headers" );
+        Allocator::addEternal( body, "statement to fetch bodies" );
+        Allocator::addEternal( flags, "statement to fetch flags" );
+    }
+}
+
+
+/*! This reimplementation of execute() calls decode() to decode data
+    about each message, then notifies its owners that something was
+    fetched.
+*/
+
+void Fetcher::execute()
+{
+    bool any = false;
+    if ( d->query ) {
+        Row * r;
+        while ( (r=d->query->nextRow()) != 0 ) {
+            Message * m = d->mailbox->message( r->getInt( "uid" ) );
+            decode( m, r );
+            any = true;
+        }
+    }
+
+    if ( any ) {
+        List<FetcherData::Handler>::Iterator it( d->handlers.first() );
+        MessageSet s;
+        s.add( d->smallest, d->largest );
+        while ( it ) {
+            FetcherData::Handler * h = it;
+            ++it;
+            uint c = h->s.count();
+            h->s.remove( s );
+            if ( h->s.count() < c )
+                h->o->execute();
+        }
+    }
+
+    if ( d->query->done() ) {
+        MessageSet merged;
+        List<FetcherData::Handler>::Iterator it( d->handlers.first() );
+        while ( it ) {
+            merged.add( it->s );
+            ++it;
+        }
+        if ( merged.isEmpty() ) {
+            d->mailbox->forget( this );
+            return;
+        }
+        // now, what to do. for the moment, we avoid even more
+        // messageset magic and take the lowest-numbered message and a
+        // few more. later, we'll want to be smarter.
+        d->smallest = merged.smallest();
+        uint i = 1;
+        while ( i <= merged.count() &&
+                merged.value( i ) - d->smallest < i + 4 )
+            d->largest = merged.value( i++ );
+        d->query = new Query( *query(), this );
+        d->query->bind( 1, d->smallest );
+        d->query->bind( 2, d->largest );
+        d->query->bind( 3, d->mailbox->id() );
+        d->query->execute();
+    }
+}
+
+
+/*! Tells this Fetcher to start fetching \a messages, and to notify \a
+    handler when some/all of them have been fetched.
+*/
+
+void Fetcher::insert( const MessageSet & messages, EventHandler * handler )
+{
+    if ( messages.isEmpty() )
+        return;
+    FetcherData::Handler * h = new FetcherData::Handler;
+    h->o = handler;
+    h->s = messages;
+    d->handlers.append( h );
+    if ( !d->query )
+        execute();
+}
+
+
+/*! \fn PreparedStatement * Fetcher::query() const
+
+    Returns a prepared statement to fetch the appropriate sort of
+    message data. The result must demand exactly three Query::bind()
+    values, in order: The smallest UID for which data should be
+    fetched, the largest, and the mailbox ID.
+*/
+
+
+/*! \fn void Fetcher::decode( Row * )
+
+    Decodes a single Row prepared using the query() for the same
+    object and updates the Message object.
+*/
+
+
+PreparedStatement * MessageHeaderFetcher::query() const
+{
+    return ::header;
+}
+
+
+void MessageHeaderFetcher::decode( Message * m, Row * r )
+{
+    String part = r->getString( "part" );
+    String name = r->getString( "name" );
+    String value = r->getString( "value" );
+
+    if ( part.isEmpty() ) {
+        m->header()->add( name, value );
+    }
+    else if ( part.endsWith( ".rfc822" ) ) {
+        Bodypart * bp =
+            m->bodypart( part.mid( 0, part.length()-7 ), true );
+        if ( !bp->rfc822() )
+            bp->setRfc822( new Message );
+        bp->rfc822()->header()->add( name, value );
+    }
+    else {
+        Bodypart * bp = m->bodypart( part, true );
+        bp->header()->add( name, value );
+    }
+}
+
+
+PreparedStatement * MessageFlagFetcher::query() const
+{
+    return ::flags;
+}
+
+
+void MessageFlagFetcher::decode( Message * m, Row * r )
+{
+    String part = r->getString( "part" );
+
+    if ( part.endsWith( ".rfc822" ) ) {
+        Bodypart *bp = m->bodypart( part.mid( 0, part.length()-7 ),
+                                    true );
+        if ( !bp->rfc822() )
+            bp->setRfc822( new Message );
+
+        List< Bodypart >::Iterator it( bp->children()->first() );
+        while ( it ) {
+            bp->rfc822()->children()->append( it );
+            ++it;
+        }
+    }
+    else {
+        Bodypart * bp = m->bodypart( part, true );
+        bp->setNumBytes( r->getInt( "bytes" ) );
+        bp->setNumLines( r->getInt( "lines" ) );
+        if ( r->isNull( "data" ) ) {
+            Utf8Codec u;
+            bp->setText( u.toUnicode( r->getString( "text" ) ) );
+        }
+        else {
+            bp->setData( r->getString( "data" ) );
+        }
+    }
+}
+
+
+PreparedStatement * MessageBodyFetcher::query() const
+{
+    return ::body;
+}
+
+
+void MessageBodyFetcher::decode( Message * m, Row * r )
+{
+    Flag * f = Flag::find( r->getInt( "flag" ) );
+    if ( f ) {
+        m->flags()->append( f );
+    }
+    else {
+        // XXX: consider this. best course of action may be to
+        // silently ignore this flag for now. it's new, so we didn't
+        // announce it in the select response, either. maybe we should
+        // read the new flags, then invoke another MessageFlagFetcher.
+    }
+}
