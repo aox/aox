@@ -1,5 +1,5 @@
-#ifndef __RENAME_H__
-#define __RENAME_H__
+#ifndef RENAME_H
+#define RENAME_H
 
 #include "command.h"
 

@@ -1,5 +1,5 @@
-#ifndef __COMMAND_H__
-#define __COMMAND_H__
+#ifndef COMMAND_H
+#define COMMAND_H
 
 #include "global.h"
 #include "string.h"

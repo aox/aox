@@ -1,5 +1,5 @@
-#ifndef __LOGIN_H__
-#define __LOGIN_H__
+#ifndef LOGIN_H
+#define LOGIN_H
 
 #include "command.h"
 #include "string.h"

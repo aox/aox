@@ -1,5 +1,5 @@
-#ifndef __IDLE_H__
-#define __IDLE_H__
+#ifndef IDLE_H
+#define IDLE_H
 
 #include "command.h"
 

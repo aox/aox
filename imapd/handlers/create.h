@@ -1,5 +1,5 @@
-#ifndef __CREATE_H__
-#define __CREATE_H__
+#ifndef CREATE_H
+#define CREATE_H
 
 #include "command.h"
 

@@ -1,5 +1,5 @@
-#ifndef __IMAP_H__
-#define __IMAP_H__
+#ifndef IMAP_H
+#define IMAP_H
 
 #include "connection.h"
 

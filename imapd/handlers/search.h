@@ -1,5 +1,5 @@
-#ifndef __SEARCH_H__
-#define __SEARCH_H__
+#ifndef SEARCH_H
+#define SEARCH_H
 
 #include "command.h"
 #include "query.h"

@@ -1,5 +1,5 @@
-#ifndef __STORE_H__
-#define __STORE_H__
+#ifndef STORE_H
+#define STORE_H
 
 #include "command.h"
 #include "string.h"

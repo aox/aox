@@ -1,5 +1,5 @@
-#ifndef __SELECT_H__
-#define __SELECT_H__
+#ifndef SELECT_H
+#define SELECT_H
 
 #include "command.h"
 

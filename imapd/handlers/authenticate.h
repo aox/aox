@@ -1,5 +1,5 @@
-#ifndef __AUTHENTICATE_H__
-#define __AUTHENTICATE_H__
+#ifndef AUTHENTICATE_H
+#define AUTHENTICATE_H
 
 #include "command.h"
 #include "string.h"

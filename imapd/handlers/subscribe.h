@@ -1,5 +1,5 @@
-#ifndef __SUBSCRIBE_H__
-#define __SUBSCRIBE_H__
+#ifndef SUBSCRIBE_H
+#define SUBSCRIBE_H
 
 #include "command.h"
 

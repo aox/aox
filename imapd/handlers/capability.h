@@ -1,5 +1,5 @@
-#ifndef __CAPABILITY_H__
-#define __CAPABILITY_H__
+#ifndef CAPABILITY_H
+#define CAPABILITY_H
 
 #include "command.h"
 

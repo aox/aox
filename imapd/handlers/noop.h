@@ -1,5 +1,5 @@
-#ifndef __NOOP_H__
-#define __NOOP_H__
+#ifndef NOOP_H
+#define NOOP_H
 
 #include "command.h"
 

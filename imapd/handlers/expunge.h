@@ -1,5 +1,5 @@
-#ifndef __EXPUNGE_H__
-#define __EXPUNGE_H__
+#ifndef EXPUNGE_H
+#define EXPUNGE_H
 
 #include "command.h"
 
