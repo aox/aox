@@ -157,7 +157,7 @@ void User::refresh( EventHandler * user )
             "select u.id, u.address, u.inbox, n.name as parentspace, "
             "u.login, u.id, u.secret, a.name, a.localpart, a.domain "
             "from users u, addresses a, namespaces n where "
-            "u.login=$1 and u.id=a.id and n.id=u.parentspace"
+            "u.login=$1 and u.address=a.id and n.id=u.parentspace"
         );
 
         psa = new PreparedStatement(
