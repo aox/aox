@@ -33,6 +33,7 @@ void Idle::execute()
     imap()->reserve( this );
     imap()->setIdle( true );
     imap()->enqueue( "+\r\n" );
+    imap()->write();
 }
 
 
