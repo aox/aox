@@ -164,8 +164,7 @@ void EventLoop::start()
             commit();
             exit( 0 );
         }
-        if ( ( now - gc > 180 ) ||
-             ( now -gc > 30 && n == 0 ) ) {
+        if ( now - gc > 3 ) {
             Allocator::free();
             gc = now;
         }
