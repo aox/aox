@@ -55,9 +55,11 @@ bool Expunge::expunge( bool chat )
 
         // Find all referenced bodyparts.
         d->q2 =
-            new Query( "select bodypart from part_numbers p, messages m "
+            new Query( "select distinct(bodypart) "
+                       "from part_numbers p, messages m "
                        "where m.mailbox=p.mailbox and m.uid=p.uid and "
-                       "p.mailbox=$1 and m.deleted='t'", this );
+                       "m.deleted='t' and p.mailbox=$1 and "
+                       "p.bodypart is not null", this );
         d->q2->bind( 1, imap()->session()->mailbox()->id() );
         d->t->enqueue( d->q2 );
         d->t->execute();
@@ -97,7 +99,8 @@ bool Expunge::expunge( bool chat )
         // Delete unreferenced bodyparts.
         if ( !parts.isEmpty() ) {
             Query *q;
-            q = new Query( "delete from bodyparts where id not in "
+            q = new Query( "delete from bodyparts where id in (" + parts + ") "
+                           "and id not in "
                            "(select bodypart from part_numbers where"
                            " bodypart in (" + parts + "))", this );
             d->t->enqueue( q );
