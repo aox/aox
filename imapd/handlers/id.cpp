@@ -1,3 +1,8 @@
+#include "id.h"
+
+#include "log.h"
+
+
 /*! \class Id id.h
     Implements the RFC 2971 ID extension
 
@@ -6,10 +11,11 @@
     debugging.
 */
 
-#include "id.h"
 
-#include "log.h"
-
+/*! \reimp
+  
+  This reimplementation logs the client details, which
+  strictly speaking part of execution..*/
 
 void Id::parse()
 {
