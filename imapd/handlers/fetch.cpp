@@ -803,7 +803,7 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
 
     if ( extended ) {
         String md5;
-        HeaderField *f = hdr->field( HeaderField::ContentMD5 );
+        HeaderField *f = hdr->field( HeaderField::ContentMd5 );
         if ( f )
             md5 = f->value();
 
