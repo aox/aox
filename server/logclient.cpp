@@ -20,8 +20,8 @@ public:
         : Connection(), owner( client ), logServer( e )
     {
         setType( Connection::LoggingClient );
-        Loop::addConnection( this );
         connect( logServer );
+        Loop::addConnection( this );
     }
 
     ~LogClientHelper()
@@ -35,8 +35,10 @@ public:
         if ( state() != Invalid && state() != Inactive )
             return;
 
-        connect( logServer );
+        // XXX: Should this connection still be in the Loop?
+        // I don't think so. -- AMS
         Loop::removeConnection( this );
+        connect( logServer );
         Loop::addConnection( this );
     }
 
@@ -51,6 +53,8 @@ public:
         case Close:
         case Error:
             // If it does, we shutdown after deactivating the LogClient.
+            // XXX: We shouldn't be doing this if reconnect() is to do
+            // something useful. Should fix later. -- AMS
             delete owner;
             Loop::shutdown();
             break;
