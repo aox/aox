@@ -49,7 +49,7 @@ public:
         Scalar( const String &, int );
 
         operator int() const { return value; }
-        operator unsigned int() const { return (uint)value; }
+        operator uint() const { return (uint)value; }
 
     private:
         bool setValue( const String & );

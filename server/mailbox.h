@@ -11,9 +11,9 @@ public:
     Mailbox( const String & );
 
     String name() const;
-    unsigned int id() const;
-    unsigned int count() const;
-    unsigned int uidvalidity() const;
+    uint id() const;
+    uint count() const;
+    uint uidvalidity() const;
     bool deleted() const;
 
     Mailbox *parent() const;

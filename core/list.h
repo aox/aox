@@ -29,9 +29,9 @@ public:
         return head == 0;
     }
 
-    unsigned int count() const
+    uint count() const
     {
-        unsigned int n = 0;
+        uint n = 0;
         Node *cur = head;
 
         while ( cur ) {
