@@ -80,6 +80,9 @@ Postgres::Postgres()
     : Database(), d( new PgData )
 {
     connect( Database::server() );
+    log( "Connecting to PostgreSQL server at " +
+         Database::server().string(),
+         Log::Info );
     Loop::addConnection( this );
     Database::addHandle( this );
     setTimeoutAfter( 60 );
