@@ -86,7 +86,7 @@ void Authenticate::execute()
     }
 
     if ( !m->done() )
-        m->verify();
+        m->query();
 
     if ( m->done() ) {
         if ( m->state() == SaslMechanism::Failed ) {
