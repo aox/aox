@@ -17,28 +17,23 @@ class Fetch
 public:
     Fetch( bool = false );
 
-    enum State { Initial, Responding };
-
     void parse();
     void execute();
 
-    void parseAttribute( bool alsoMacro );
-    void parseBody();
-
-    String dotLetters( uint, uint );
-
 private:
-    String fetchResponse( Message *, uint, uint );
+    void parseAttribute( bool );
+    void parseBody();
+    void removeInvalidUids();
+    void sendFetchQueries();
+    String dotLetters( uint, uint );
     String flagList( Message *, uint );
     String internalDate( Message * );
     String envelope( Message * );
     String bodyStructure( Multipart *, bool );
     String singlePartStructure( Bodypart *, bool );
-    void removeInvalidUids();
-    void sendFetchQueries();
+    String fetchResponse( Message *, uint, uint );
 
 private:
-    bool uid;
     class FetchData * d;
 };
 

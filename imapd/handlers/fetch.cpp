@@ -2,16 +2,80 @@
 
 #include "fetch.h"
 
+#include "arena.h"
+#include "scope.h"
 #include "messageset.h"
 #include "stringlist.h"
 #include "imapsession.h"
 #include "address.h"
 #include "message.h"
-#include "arena.h"
-#include "scope.h"
 #include "imap.h"
 #include "flag.h"
 #include "date.h"
+
+
+class FetchData {
+public:
+    FetchData()
+        : state( 0 ), peek( true ), uid( false ),
+          flags( false ), envelope( false ),
+          body( false ), bodystructure( false ),
+          internaldate( false ), rfc822size( false ),
+          needHeader( false ), needBody( false )
+    {}
+
+    class Section {
+    public:
+        Section()
+            : partial( false ), offset( 0 ), length( UINT_MAX )
+        {}
+
+        String id;
+        String part;
+        StringList fields;
+        bool partial;
+        uint offset;
+        uint length;
+    };
+
+    int state;
+    bool peek;
+    MessageSet set;
+
+    // we want to ask for...
+    bool uid;
+    bool flags;
+    bool envelope;
+    bool body;
+    bool bodystructure;
+    bool internaldate;
+    bool rfc822size;
+    List<Section> sections;
+
+    // and the sections imply that we...
+    bool needHeader;
+    bool needBody;
+};
+
+
+/*! \class Fetch fetch.h
+    Returns message data (RFC 3501, section 6.4.5).
+
+    Our parser used to be slightly more permissive than the RFC. This is
+    a bug, and many of the problems have been corrected.
+*/
+
+
+/*! Creates a new handler for FETCH if \a u is false, or for UID FETCH
+    if \a u is true.
+*/
+
+Fetch::Fetch( bool u )
+    : Command(), d( new FetchData )
+{
+    d->uid = u;
+}
+
 
 // fetch           = "FETCH" SP set SP ("ALL" / "FULL" / "FAST" / fetch-att /
 //                   "(" fetch-att *(SP fetch-att) ")")
@@ -29,72 +93,10 @@
 // header-fld-name = astring
 
 
-class FetchData {
-public:
-    FetchData()
-        : state( Fetch::Initial ), peek( true ),
-          uid( false ), flags( false ), envelope( false ), body( false ),
-          bodystructure( false ), internaldate( false ), rfc822size( false ),
-          needHeader( false ), needBody( false )
-    {}
-
-    class Section {
-    public:
-        Section()
-            : partial( false ), offset( 0 ), length( UINT_MAX ) {}
-
-        String id;
-        String part;
-        StringList fields;
-        bool partial;
-        uint offset;
-        uint length;
-    };
-
-    Fetch::State state;
-    MessageSet set;
-    bool peek;
-    // we want to ask for...
-    bool uid;
-    bool flags;
-    bool envelope;
-    bool body;
-    bool bodystructure;
-    bool internaldate;
-    bool rfc822size;
-    List<Section> sections;
-    // and the sections imply that we...
-    bool needHeader;
-    bool needBody;
-};
-
-
-/*! \class Fetch fetch.h
-    Returns message data (RFC 3501, section 6.4.5).
-
-    Our implementation is slightly more permissive than the RFC.
-
-    The flag update is slavishly followed, including that for
-    read-only mailboxes, flags aren't changed. (Well, that's how it
-    will be, anyway.)
-*/
-
-
-/*! Creates a new handler for FETCH if \a u is false, or for UID FETCH
-    if \a u is true.
-*/
-
-Fetch::Fetch( bool u )
-    : Command(), uid( u ), d( new FetchData )
-{
-    d->uid = u;
-}
-
-
 void Fetch::parse()
 {
     space();
-    d->set = set( !uid );
+    d->set = set( !d->uid );
     space();
     if ( nextChar() == '(' ) {
         // "(" fetch-att *(SP fetch-att) ")")
@@ -205,14 +207,6 @@ void Fetch::parseAttribute( bool alsoMacro )
     else {
         error( Bad, "expected fetch attribute, saw word " + keyword );
     }
-
-// fetch           = "FETCH" SP set SP ("ALL" / "FULL" / "FAST" / fetch-att /
-//                   "(" fetch-att *(SP fetch-att) ")")
-// fetch-att       = "ENVELOPE" / "FLAGS" / "INTERNALDATE" /
-//                   "RFC822" [".HEADER" / ".SIZE" / ".TEXT"] /
-//                   "BODY" ["STRUCTURE"] / "UID" /
-//                   "BODY" [".PEEK"] section ["<" number "." nz-number ">"]
-
 }
 
 
@@ -338,10 +332,10 @@ void Fetch::execute()
 {
     ImapSession * s = imap()->session();
 
-    if ( d->state == Initial ) {
-        d->state = Responding;
+    if ( d->state == 0 ) {
         removeInvalidUids();
         sendFetchQueries();
+        d->state = 1;
     }
 
     uint i = 1;
@@ -365,7 +359,8 @@ void Fetch::execute()
 }
 
 
-/*! Removes any UIDs from d->set that do not have an associated message.
+/*! Removes any UIDs from d->set that do not refer to a valid message in
+    this session.
 */
 
 void Fetch::removeInvalidUids()
@@ -599,19 +594,25 @@ static String hf( Header * f, HeaderField::Type t )
     return r;
 }
 
+
 /*! Returns the IMAP envelope for \a m. */
 
 String Fetch::envelope( Message * m )
 {
     Header * h = m->header();
 
+    // envelope = "(" env-date SP env-subject SP env-from SP
+    //                env-sender SP env-reply-to SP env-to SP env-cc SP
+    //                env-bcc SP env-in-reply-to SP env-message-id ")"
+
     String r( "(" );
 
     Date * date = h->date();
     if ( date )
-        r.append( imapQuoted( date->rfc822(), NString ) + " " );
+        r.append( imapQuoted( date->rfc822(), NString ) );
     else
-        r.append( "NIL " );
+        r.append( "NIL" );
+    r.append( " " );
 
     r.append( imapQuoted( h->subject(), NString ) + " " );
     r.append( hf( h, HeaderField::From ) );
@@ -625,10 +626,6 @@ String Fetch::envelope( Message * m )
 
     r.append( ")" );
     return r;
-
-    // envelope        = "(" env-date SP env-subject SP env-from SP
-    //                   env-sender SP env-reply-to SP env-to SP env-cc SP
-    //                   env-bcc SP env-in-reply-to SP env-message-id ")"
 }
 
 
