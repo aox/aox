@@ -10,7 +10,7 @@ if [ `id -u` != 0 ]; then
 fi
 
 # Pull in the compile-time configuration
-. $BINDIR/.config.sh
+. $LIBDIR/.config.sh
 
 CONFIG=$CONFIGDIR/mailstore.conf
 
@@ -75,8 +75,8 @@ cat <<PSQL | su - $PGUSER -c "$PSQL -q -d $DBNAME -f -" || exit
 \set ON_ERROR_STOP
 SET SESSION AUTHORIZATION $DBUSER;
 SET client_min_messages TO 'ERROR';
-\i $CONFIGDIR/schema.pg
-\i $CONFIGDIR/field-names
+\i $LIBDIR/schema.pg
+\i $LIBDIR/field-names
 PSQL
 fi
 

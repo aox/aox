@@ -11,9 +11,12 @@
 
 # Files and directories. The directory names MUST NOT end with /.
 
+INSTALLROOT = "" ;
+
 PREFIX = /usr/local/mailstore ;
 BINDIR = $(PREFIX)/bin ;
 MANDIR = $(PREFIX)/man ;
+MANDIR = $(PREFIX)/lib ;
 PIDFILEDIR = /var/run ;
 JAILDIR = $(PREFIX)/jail ;
 CONFIGDIR = $(PREFIX) ;

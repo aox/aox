@@ -4,7 +4,7 @@ PGUSER = postgres ;
 JAMSETTINGS = Jamsettings ;
 include $(JAMSETTINGS:D=$(TOP)) ;
 
-VERSION = 0.90 ;
+VERSION = 0.91 ;
 
 MKDIR = mkdir -p ;
 
@@ -73,7 +73,7 @@ rule Program
     Depends $(<) : $(set-$(>)) ;
     MakeLocate $(<) : [ FDirName $(TOP) bin ] ;
 
-    InstallBin $(BINDIR) : $(<) ;
+    InstallBin $(INSTALLROOT)$(BINDIR) : $(<) ;
 
     Clean clean : $(<) ;
     Link $(<) : $(set-$(>)) ;
@@ -82,6 +82,7 @@ rule Program
 actions EngraveConfig {
 sed -e 's!$BINDIR!'$(BINDIR)'!' \
     -e 's!$MANDIR!'$(MANDIR)'!' \
+    -e 's!$LIBDIR!'$(LIBDIR)'!' \
     -e 's!$PIDFILEDIR!'$(PIDFILEDIR)'!' \
     -e 's!$JAILDIR!'$(JAILDIR)'!' \
     -e 's!$CONFIGDIR!'$(CONFIGDIR)'!' \

@@ -6,7 +6,7 @@ rule SchemaFile {
     s = $(<) ;
     SEARCH on $(s) = $(SEARCH_SOURCE) ;
 
-    InstallFile $(CONFIGDIR) : $(<) ;
+    InstallFile $(INSTALLROOT)$(LIBDIR) : $(<) ;
 }
 
 SchemaFile field-names ;

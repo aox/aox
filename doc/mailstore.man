@@ -171,6 +171,8 @@ MANDIR (where manpages live) is
 .IR $MANDIR .
 PIDFILEDIR (where pidfiles live) is 
 .IR $PIDFILEDIR .
+LIBDIR (where supporting files live) is 
+.IR $LIBDIR .
 JAILDIR (the working directory of the servers) is 
 .IR $JAILDIR ,
 and can be overridden using the
@@ -189,7 +191,7 @@ variable in
 These variables can be changed only by editing the file Jamsettings
 and recompiling Mailstore. Jamsettings also contains some variables
 used only during compilation and/or installation. The file 
-.I $BINDIR/.config.sh
+.I $LIBDIR/.config.sh
 contains the values of the installation-related variables.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
