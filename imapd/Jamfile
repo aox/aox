@@ -1,13 +1,17 @@
 # declare directory, so we can build by running 'jam' in this directory
 SubDir TOP imapd ;
 
-# pull in the directories we need to build the programs named at the bottom
+# pull in the directories we need to build the programs named at the bottom:
+# - lib
 
-SubInclude TOP imapd handlers ;
-SubInclude TOP imapd auth ;
 SubInclude TOP lib ;
 
-# declare our own directory, for the benefit of the Build ruls below
+# - our own subdirectories, with a -I pointing here
+HDRS += [ FDirName $(TOP) imapd ] ;
+SubInclude TOP imapd handlers ;
+SubInclude TOP imapd auth ;
+
+# declare our own directory again, for the benefit of the Build ruls below
 
 SubDir TOP imapd ;
 

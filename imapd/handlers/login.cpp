@@ -1,7 +1,7 @@
 #include "login.h"
 
-#include "../imap.h"
-#include "../auth/plain.h"
+#include "imap.h"
+#include "auth/plain.h"
 
 
 /*!  Constructs a simple Login handler. */

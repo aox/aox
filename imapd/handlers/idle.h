@@ -1,7 +1,7 @@
 #ifndef IDLE_H
 #define IDLE_H
 
-#include "../command.h"
+#include "command.h"
 
 
 class Idle: public Command

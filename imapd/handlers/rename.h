@@ -1,7 +1,7 @@
 #ifndef __RENAME_H__
 #define __RENAME_H__
 
-#include "../command.h"
+#include "command.h"
 
 class Rename: public Command
 {

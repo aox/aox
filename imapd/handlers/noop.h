@@ -1,7 +1,7 @@
 #ifndef NOOP_H
 #define NOOP_H
 
-#include "../command.h"
+#include "command.h"
 
 
 class Noop: public Command

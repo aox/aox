@@ -1,7 +1,7 @@
 #include "select.h"
 
-#include "../imap.h"
-#include "../mailbox.h"
+#include "imap.h"
+#include "mailbox.h"
 
 void Select::parse()
 {

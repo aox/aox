@@ -1,6 +1,6 @@
 #include "logout.h"
 
-#include "../imap.h"
+#include "imap.h"
 
 
 /*!  Constructs an empty

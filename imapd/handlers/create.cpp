@@ -1,6 +1,6 @@
 #include "create.h"
 
-#include "../imap.h"
+#include "imap.h"
 
 void Create::parse()
 {

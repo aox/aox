@@ -1,6 +1,6 @@
 #include "idle.h"
 
-#include "../imap.h"
+#include "imap.h"
 #include <buffer.h>
 
 

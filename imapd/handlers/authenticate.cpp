@@ -1,7 +1,7 @@
 #include "authenticate.h"
 
-#include "../imap.h"
-#include "../auth/authenticator.h"
+#include "imap.h"
+#include "auth/authenticator.h"
 #include <buffer.h>
 
 

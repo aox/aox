@@ -1,7 +1,7 @@
 #ifndef LOGOUT_H
 #define LOGOUT_H
 
-#include "../command.h"
+#include "command.h"
 
 
 class Logout: public Command

@@ -1,7 +1,7 @@
 #ifndef __CREATE_H__
 #define __CREATE_H__
 
-#include "../command.h"
+#include "command.h"
 
 class Create: public Command
 {

@@ -1,7 +1,7 @@
 #ifndef AUTHENTICATE_H
 #define AUTHENTICATE_H
 
-#include "../command.h"
+#include "command.h"
 
 #include <string.h>
 

@@ -1,6 +1,6 @@
 #include "rename.h"
 
-#include "../imap.h"
+#include "imap.h"
 
 void Rename::parse()
 {

@@ -1,7 +1,7 @@
 #ifndef __SELECT_H__
 #define __SELECT_H__
 
-#include "../command.h"
+#include "command.h"
 
 class Mailbox;
 

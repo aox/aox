@@ -1,7 +1,7 @@
 #ifndef __SUBSCRIBE_H__
 #define __SUBSCRIBE_H__
 
-#include "../command.h"
+#include "command.h"
 
 class Subscribe: public Command
 {

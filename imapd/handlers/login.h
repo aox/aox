@@ -1,7 +1,7 @@
 #ifndef LOGIN_H
 #define LOGIN_H
 
-#include "../command.h"
+#include "command.h"
 
 #include <string.h>
 

@@ -1,6 +1,6 @@
 #include "subscribe.h"
 
-#include "../imap.h"
+#include "imap.h"
 
 void Subscribe::parse()
 {

@@ -1,6 +1,6 @@
 #include "expunge.h"
 
-#include "../imap.h"
+#include "imap.h"
 
 void Expunge::execute()
 {
