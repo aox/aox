@@ -58,8 +58,6 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
 }
 
 
-/*! \reimp */
-
 void FlagFetcher::execute()
 {
     if ( !d->q->done() )
@@ -230,8 +228,6 @@ FlagCreator::FlagCreator( EventHandler * owner, const StringList & flags )
     }
 }
 
-
-/*! \reimp */
 
 void FlagCreator::execute()
 {

@@ -34,8 +34,6 @@ OCClient::OCClient( int s )
 }
 
 
-/*! \reimp */
-
 OCClient::~OCClient()
 {
     Loop::removeConnection( this );
@@ -70,8 +68,6 @@ void OCClient::setup()
     client->setBlocking( false );
 }
 
-
-/*! \reimp */
 
 void OCClient::react( Event e )
 {

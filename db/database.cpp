@@ -25,8 +25,6 @@ static List< Database > handles;
     through the Query or Transaction classes.
 */
 
-/*! \reimp */
-
 Database::Database()
     : Connection()
 {

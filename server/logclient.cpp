@@ -83,8 +83,6 @@ LogClient::LogClient()
 }
 
 
-/*! \reimp */
-
 void LogClient::send( const String &s )
 {
     c->reconnect();

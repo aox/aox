@@ -82,23 +82,17 @@ Postgres::Postgres()
 }
 
 
-/*! \reimp */
-
 Postgres::~Postgres()
 {
     Loop::removeConnection( this );
 }
 
 
-/*! \reimp */
-
 bool Postgres::ready()
 {
     return d->pending.count() <= 5 && !d->reserved;
 }
 
-
-/*! \reimp */
 
 void Postgres::enqueue( Query *q )
 {
@@ -107,8 +101,6 @@ void Postgres::enqueue( Query *q )
     d->pending.append( q );
 }
 
-
-/*! \reimp */
 
 void Postgres::execute()
 {
@@ -128,8 +120,6 @@ void Postgres::execute()
     processQueue( true );
 }
 
-
-/*! \reimp */
 
 void Postgres::react( Event e )
 {

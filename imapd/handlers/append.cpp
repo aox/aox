@@ -34,16 +34,12 @@ public:
     different way. MULTIAPPEND would worsen that.
 */
 
-/*! \reimp */
-
 Append::Append()
     : Command(), d( new AppendData )
 {
     // nothing more needed
 }
 
-
-/*! \reimp */
 
 void Append::parse()
 {
@@ -114,8 +110,6 @@ uint Append::number( uint n )
     return tmp.number( 0 );
 }
 
-
-/*! \reimp */
 
 void Append::execute()
 {

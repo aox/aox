@@ -28,15 +28,11 @@ Subscribe::Subscribe( Mode m )
     a subscription mode of Subscribe::Remove. It has no other code.
 */
 
-/*! \reimp */
-
 Unsubscribe::Unsubscribe()
     : Subscribe( Subscribe::Remove )
 {
 }
 
-
-/*! \reimp */
 
 void Subscribe::parse()
 {
@@ -45,8 +41,6 @@ void Subscribe::parse()
     end();
 }
 
-
-/*! \reimp */
 
 void Subscribe::execute()
 {

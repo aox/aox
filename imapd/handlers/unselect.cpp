@@ -11,8 +11,6 @@
 #include "imap.h"
 
 
-/*! \reimp */
-
 void Unselect::execute()
 {
     imap()->endSession();

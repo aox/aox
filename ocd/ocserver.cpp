@@ -32,16 +32,12 @@ OCServer::OCServer( int s )
 }
 
 
-/*! \reimp */
-
 OCServer::~OCServer()
 {
     servers.take( servers.find( this ) );
     Loop::removeConnection( this );
 }
 
-
-/*! \reimp */
 
 void OCServer::react( Event e )
 {

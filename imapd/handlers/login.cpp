@@ -11,15 +11,11 @@
     this mechanism until after STARTTLS.)
 */
 
-/*! \reimp */
-
 Login::Login()
     : m( 0 )
 {
 }
 
-
-/*! \reimp */
 
 void Login::parse()
 {

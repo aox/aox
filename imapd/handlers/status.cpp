@@ -9,16 +9,12 @@
     Returns the status of the specified mailbox (RFC 3501, §6.3.10)
 */
 
-/*! \reimp */
-
 Status::Status()
     : messages( false ), uidnext( false ), uidvalidity( false ),
       recent( false ), unseen( false ),
       m( 0 ), session( 0 )
 {}
 
-
-/*! \reimp */
 
 void Status::parse()
 {
@@ -53,8 +49,6 @@ void Status::parse()
     end();
 }
 
-
-/*! \reimp */
 
 void Status::execute()
 {

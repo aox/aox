@@ -8,8 +8,6 @@
     The side effects need to be handled somehow.
 */
 
-/*! \reimp */
-
 void Noop::execute()
 {
     finish();
@@ -22,8 +20,6 @@ void Noop::execute()
 
     This command needs to do nothing in our implementation.
 */
-
-/*! \reimp */
 
 void Check::execute()
 {

@@ -53,8 +53,6 @@ Search::Search( bool u )
 }
 
 
-/*! \reimp */
-
 void Search::parse()
 {
     space();
@@ -281,8 +279,6 @@ void Search::parseKey( bool alsoCharset )
 
 
 
-
-/*! \reimp */
 
 void Search::execute()
 {

@@ -8,13 +8,6 @@
 */
 
 
-/*! \fn Rename::Rename()
-    \reimp
-*/
-
-
-/*! \reimp */
-
 void Rename::parse()
 {
     space();
@@ -24,8 +17,6 @@ void Rename::parse()
     end();
 }
 
-
-/*! \reimp */
 
 void Rename::execute()
 {

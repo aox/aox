@@ -28,15 +28,11 @@ OCAdmin::OCAdmin( int s )
 }
 
 
-/*! \reimp */
-
 OCAdmin::~OCAdmin()
 {
     Loop::removeConnection( this );
 }
 
-
-/*! \reimp */
 
 void OCAdmin::react( Event e )
 {

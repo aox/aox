@@ -21,8 +21,6 @@ SelfLogger::SelfLogger()
 }
 
 
-/*! \reimp */
-
 void SelfLogger::send( const String & s )
 {
     ls->processLine( s );

@@ -51,9 +51,7 @@ Listext::Listext()
 }
 
 
-/*! \reimp
-
-    Note that the extensions are always parsed, even if the no
+/*! Note that the extensions are always parsed, even if the no
     extension has been advertised using CAPABILITY.
 */
 
@@ -102,8 +100,6 @@ void Listext::parse()
     end();
 }
 
-
-/*! \reimp */
 
 void Listext::execute()
 {

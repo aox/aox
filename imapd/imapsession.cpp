@@ -279,8 +279,6 @@ ImapSessionInitializer::ImapSessionInitializer( ImapSession * session,
 }
 
 
-/*! \reimp */
-
 void ImapSessionInitializer::execute()
 {
     if ( !d->t ) {

@@ -20,9 +20,7 @@ StartTLS::StartTLS()
 }
 
 
-/*! \reimp
-
-    This implementation hacks to ensure that no other command can be
+/*! This implementation hacks to ensure that no other command can be
     parsed meanwhile.
 */
 
@@ -31,8 +29,6 @@ void StartTLS::parse()
     end();
     imap()->reserve( this );
 }
-
-/*! \reimp */
 
 void StartTLS::execute()
 {

@@ -12,8 +12,6 @@
 */
 
 
-/*! \reimp */
-
 void Expunge::execute()
 {
     expunge( true );

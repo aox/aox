@@ -17,8 +17,6 @@
     (The details of SASL-IR probably are handled here still, aren't they?)
 */
 
-/*! \reimp */
-
 Authenticate::Authenticate()
         : m( 0 ), r( 0 )
 {

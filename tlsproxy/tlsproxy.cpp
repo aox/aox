@@ -399,8 +399,6 @@ TlsProxy::TlsProxy( int socket )
 }
 
 
-/*! \reimp */
-
 void TlsProxy::react( Event e )
 {
     setTimeoutAfter( 1800 );

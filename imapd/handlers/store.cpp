@@ -71,8 +71,6 @@ Store::Store( bool u )
 }
 
 
-/*! \reimp */
-
 void Store::parse()
 {
     space();

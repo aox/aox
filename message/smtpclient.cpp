@@ -61,15 +61,11 @@ SmtpClient::SmtpClient( const String &sender,
 }
 
 
-/*! \reimp */
-
 SmtpClient::~SmtpClient()
 {
     Loop::removeConnection( this );
 }
 
-
-/*! \reimp */
 
 void SmtpClient::react( Event e )
 {

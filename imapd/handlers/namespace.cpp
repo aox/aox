@@ -12,8 +12,6 @@
 */
 
 
-/*! \reimp */
-
 void Namespace::execute()
 {
     String personal, other, shared;

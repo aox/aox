@@ -88,8 +88,6 @@ Fetch::Fetch( bool u )
 }
 
 
-/*! \reimp */
-
 void Fetch::parse()
 {
     d->set = set( !uid );
@@ -318,8 +316,6 @@ void Fetch::parseBody()
 }
 
 
-/*! \reimp */
-
 void Fetch::execute()
 {
     ImapSession * s = imap()->session();
@@ -347,7 +343,7 @@ void Fetch::execute()
             if ( ok )
                 respond( fetchResponse( m, uid, s->msn( uid ) ),
                          Untagged );
-            else 
+            else
                 done = false;
         }
     }
@@ -479,7 +475,7 @@ String Fetch::envelope( Message * m )
 
     r.append( ")" );
     return r;
-    
+
     // envelope        = "(" env-date SP env-subject SP env-from SP
     //                   env-sender SP env-reply-to SP env-to SP env-cc SP
     //                   env-bcc SP env-in-reply-to SP env-message-id ")"
@@ -515,7 +511,7 @@ String Fetch::bodystructure( Message * m, bool extended )
         // media-basic, media-message and media-text are all the same:
         l.append( imapQuoted( ct->type() ) );
         l.append( imapQuoted( ct->subtype() ) );
-        
+
         // body-fields = body-fld-param SP body-fld-id SP body-fld-desc SP
         //               body-fld-enc SP body-fld-octets
 

@@ -37,8 +37,6 @@ static bool drafts = false;
     the 1.0 release, we'll change its default to false.
 */
 
-/*! \reimp */
-
 void Capability::execute()
 {
     respond( "CAPABILITY " + capabilities( imap() ) );

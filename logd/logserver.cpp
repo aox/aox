@@ -77,15 +77,11 @@ LogServer::LogServer()
 }
 
 
-/*! \reimp */
-
 LogServer::~LogServer()
 {
     Loop::removeConnection( this );
 }
 
-
-/*! \reimp */
 
 void LogServer::react( Event e )
 {

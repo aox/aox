@@ -47,8 +47,6 @@ Select::Select( bool ro )
 }
 
 
-/*! \reimp */
-
 void Select::parse()
 {
     space();
@@ -56,8 +54,6 @@ void Select::parse()
     end();
 }
 
-
-/*! \reimp */
 
 void Select::execute()
 {

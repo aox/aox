@@ -13,15 +13,11 @@
     new entry, or resurrects a previously deleted one.
 */
 
-/*! \reimp */
-
 Create::Create()
     : q( 0 )
 {
 }
 
-
-/*! \reimp */
 
 void Create::parse()
 {
@@ -30,8 +26,6 @@ void Create::parse()
     end();
 }
 
-
-/*! \reimp */
 
 void Create::execute()
 {

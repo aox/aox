@@ -43,8 +43,6 @@ POP3::POP3( int s )
 }
 
 
-/*! \reimp */
-
 POP3::~POP3()
 {
     Loop::removeConnection( this );
@@ -68,8 +66,6 @@ POP3::State POP3::state() const
     return d->state;
 }
 
-
-/*! \reimp */
 
 void POP3::react( Event e )
 {
@@ -128,7 +124,7 @@ void POP3::parse()
         }
 
         bool unknown = false;
-        
+
         if ( d->sawUser && ( cmd != "quit" && cmd != "pass" ) ) {
             d->sawUser = false;
             unknown = true;

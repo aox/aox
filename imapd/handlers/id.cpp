@@ -12,8 +12,7 @@
 */
 
 
-/*! \reimp
-    This reimplementation logs the client details, which strictly
+/*! This reimplementation logs the client details, which strictly
     speaking is part of execution.
 */
 
@@ -38,8 +37,6 @@ void Id::parse()
     }
 }
 
-
-/*! \reimp */
 
 void Id::execute()
 {

@@ -140,8 +140,6 @@ SMTP::~SMTP()
 }
 
 
-/*! \reimp */
-
 void SMTP::react( Event e )
 {
     switch ( e ) {
@@ -724,8 +722,6 @@ void LMTP::lhlo()
     d->protocol = "lmtp";
 }
 
-
-/*! \reimp */
 
 void LMTP::reportInjection()
 {

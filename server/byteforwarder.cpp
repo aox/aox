@@ -26,8 +26,6 @@ ByteForwarder::ByteForwarder( int s )
 }
 
 
-/*! \reimp */
-
 void ByteForwarder::react( Event e )
 {
     switch( e ) {
