@@ -85,7 +85,7 @@ IMAP::~IMAP()
 void IMAP::react(Event e)
 {
     switch ( e ) {
-    case Connection::Read:
+    case Read:
         if ( !d->cmdArena )
             d->cmdArena = new Arena;
         {
@@ -93,16 +93,18 @@ void IMAP::react(Event e)
             parse();
         }
         break;
-    case Connection::Timeout:
+    case Timeout:
         writeBuffer()->append( "* BYE autologout\r\n" );
         d->logger->log( "autologout" );
-        close();
+        Connection::setState( Closing );
         break;
-    case Connection::Close:
+    case Connect:
+    case Error:
+    case Close:
         if ( state() != Logout )
             d->logger->log( "Unexpected close by client" );
         break;
-    case Connection::Shutdown:
+    case Shutdown:
         writeBuffer()->append( "* BYE server shutdown\r\n" );
         break;
     }
@@ -111,7 +113,7 @@ void IMAP::react(Event e)
     d->logger->commit();
     setTimeout( time(0) + 1800 );
     if ( state() == Logout )
-        close();
+        Connection::setState( Closing );
 }
 
 
@@ -167,7 +169,7 @@ void IMAP::parse()
                     d->literalSize = s->mid( i+1, j-i+1 ).number( &ok );
                     if ( !ok ) {
                         writeBuffer()->append( "* BAD literal, BAD\r\n" );
-                        close();
+                        Connection::setState( Closing );
                         return;
                     }
                     if ( ok && !plus )
