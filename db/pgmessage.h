@@ -311,6 +311,17 @@ private:
 };
 
 
+class PgFlush
+    : public PgClientMessage
+{
+public:
+    PgFlush() : PgClientMessage( 'H' ) {}
+
+private:
+    void encodeData();
+};
+
+
 class PgReady
     : public PgServerMessage
 {
