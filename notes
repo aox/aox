@@ -174,5 +174,10 @@ Add support for "ms restart now" and "ms restart gracefully"
 
 Fix shutdown
 
-  There's no practical way to shutdown using ocd/ocadmin. Perhap this
+  There's no practical way to shutdown using ocd/ocadmin. Perhaps this
   is another aspect of the problem above.
+
+
+Web site proofreading
+
+  Need a comprehensive proofreading session.
