@@ -294,8 +294,6 @@ void Postgres::process( char type )
     case '1':
         {
             PgParseComplete msg( readBuffer() );
-            if ( q->name() != "" )
-                d->prepared.insert( q->name(), 0 );
         }
         break;
 
@@ -534,6 +532,9 @@ void Postgres::processQueue( bool userContext )
             {
                 PgParse a( q->string(), q->name() );
                 a.enqueue( writeBuffer() );
+
+                if ( q->name() != "" )
+                    d->prepared.insert( q->name(), 0 );
             }
 
             PgBind b( q->name() );
