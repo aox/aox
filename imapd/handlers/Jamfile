@@ -1,8 +1,3 @@
-# when building here, build whatever is in src/imapd instead
-SubDir TOP imapd handlers ;
-SubInclude TOP imapd ;
-# what we need for building here comes below:
-
 SubDir TOP imapd handlers ;
 
 Build imap :
