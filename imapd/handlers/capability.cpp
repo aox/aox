@@ -28,7 +28,7 @@ Capability::~Capability()
 /* RFC 2245 */ "AUTH=ANONYMOUS " \
 /* RFC 2595 */ "AUTH=PLAIN " \
 /* RFC 2195 */ "AUTH=CRAM-MD5 " \
-/* RFC 2831 */ /* "AUTH=DIGEST-MD5 " */ \
+/* RFC 2831 */ "AUTH=DIGEST-MD5 " \
 /* draft-siemborski-imap-sasl-initial-response */ "SASL-IR " \
 /* RFC 2177 */ "IDLE " \
 /* RFC 2971 */ "ID " \
