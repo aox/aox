@@ -13,6 +13,7 @@ Build imap :
     fetch.cpp
     id.cpp
     idle.cpp
+    ls.cpp
     login.cpp
     logout.cpp
     noop.cpp
