@@ -306,7 +306,7 @@ void Search::execute()
         r.append( fn( n ) );
     }
     respond( r );
-    setState( Finished );
+    finish();
 }
 
 

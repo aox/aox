@@ -23,5 +23,5 @@ void Rename::parse()
 void Rename::execute()
 {
     error( No, "unimplemented command" );
-    setState( Finished );
+    finish();
 }

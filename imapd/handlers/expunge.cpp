@@ -17,7 +17,7 @@
 void Expunge::execute()
 {
     expunge( true );
-    setState( Finished );
+    finish();
 }
 
 

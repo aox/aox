@@ -121,5 +121,5 @@ void Append::execute()
         d->injector = new Injector( d->message, m, this );
     }
     if ( d->injector->done() )
-        setState( Finished );
+        finish();
 }

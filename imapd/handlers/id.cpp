@@ -48,5 +48,5 @@ void Id::execute()
              "\"compile-time\" \"" __DATE__ " " __TIME__ "\" "
              "\"support-url\" \"http://www.oryx.com\" "
              "\"vendor\" \"Oryx Mail Systems GmbH\")" );
-    setState( Finished );
+    finish();
 }
