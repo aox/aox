@@ -14,7 +14,7 @@ static List<Function> * functions = 0;
 /*! \class Function function.h
   The Function class models a member function.
 
-  Member functions are the only functions in qdoc's world.
+  Member functions are the only functions in udoc's world.
 
   Each function has a file() and line() number, which consequently are
   the ones in the class declaration, and it should have a docBlock().
@@ -131,7 +131,7 @@ bool Function::operator<=( const Function & other ) const
 
 /*! Returns a pointer to the function which this function
     reimplements, or a null pointer if this function isn't a
-    reimplementation (or if it is, but qdoc can't see it.)
+    reimplementation (or if it is, but udoc can't see it.)
 */
 
 Function * Function::super() const
@@ -226,7 +226,7 @@ bool Function::hasArgument( const String & s ) const
     arguments, contrary to what it may previously have believed.
 
     It is legal to have different parameter names in the .h and .cpp
-    file names. In that case, qdoc needs to see and remember the names
+    file names. In that case, udoc needs to see and remember the names
     in the .cpp file, even if the Function was originally created
     based on the .h file.
 */

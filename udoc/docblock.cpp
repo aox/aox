@@ -203,7 +203,7 @@ void DocBlock::word( uint & i, uint l, uint n )
         overload( l, n );
     }
     else {
-        (void)new Error( file, l, "qdoc directive unknown: " + w );
+        (void)new Error( file, l, "udoc directive unknown: " + w );
     }
 }
 
@@ -217,7 +217,7 @@ void DocBlock::checkEndState( uint l )
 {
     if ( s != Plain )
         (void)new Error( file, l,
-                         "qdoc directive hanging at end of paragraph" );
+                         "udoc directive hanging at end of paragraph" );
 }
 
 
@@ -326,11 +326,11 @@ void DocBlock::setState( State newState, const String & w, uint l )
 {
     if ( s != Plain && newState != Plain )
         (void)new Error( file, l,
-                         "qdoc directive " + w +
+                         "udoc directive " + w +
                          " negates preceding directive" );
     if ( s == Introduces && !i )
         (void)new Error( file, l,
-                         "qdoc directive " + w +
+                         "udoc directive " + w +
                          " is only valid with \\chapter" );
     s = newState;
 }

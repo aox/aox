@@ -121,7 +121,7 @@ void SourceFile::parse()
             (void)new DocBlock( this, l, d, c );
         else if ( i )
             (void)new DocBlock( this, l, d, i );
-        p.scan( "/" /* qdoc must not see that as one string */ "*!" );
+        p.scan( "/" /* udoc must not see that as one string */ "*!" );
     }
     if ( !any ) {
         Parser p( contents() );

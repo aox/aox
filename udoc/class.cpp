@@ -67,7 +67,7 @@ Class * Class::find( const String & s )
     value is an empty string, corresponding to a class that inherits
     nothing.
 
-    Note that qdoc does not support multiple or non-public inheritance.
+    Note that udoc does not support multiple or non-public inheritance.
 */
 
 void Class::setParent( const String & cn )

@@ -10,7 +10,7 @@
 
 static const char * prologue =
     "%!PS-Adobe-3.0\n"
-    "%%Creator: qdoc, http://www.oryx.com/qdoc/\n"
+    "%%Creator: udoc, http://www.oryx.com/udoc/\n"
     "%%PageOrder: Ascend\n"
     "%%DocumentMedia:\n"
     "%%BoundingBox: 0 0 595 841\n"

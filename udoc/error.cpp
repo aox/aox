@@ -16,7 +16,7 @@ static SortedList<Error> * errors = 0;
 
   The Error class contains and outputs error messages.
 
-  In qdoc, errors are reported by creating an Error object. Later, the
+  In udoc, errors are reported by creating an Error object. Later, the
   static function Error::report() will sort the error messages such
   that the most interesting messages are reported first, limit the
   total number of reports, and output it all.
