@@ -57,8 +57,8 @@ CCFLAGS = $(OrdinaryFLAGS) ;
 
 # everyone who uses cryptlib must use threading for the time being
 if ( $(OS) = FREEBSD ) {
-    LINKLIBS += -lc_r ;
+    LINKFLAGS on tlsproxy testlib certutil += -pthread ;
 }
 else {
-    LINKLIBS += -lpthread ;
+    LINKLIBS on tlsproxy testlib certutil += -lpthread ;
 }
