@@ -13,12 +13,13 @@
 class ExpungeData {
 public:
     ExpungeData()
-        : stage( 0 ), t( 0 ), q1( 0 ), q2( 0 )
+        : stage( 0 ), q( 0 ), t( 0 )
     {}
 
     int stage;
+    Query *q;
     Transaction *t;
-    Query *q1, *q2;
+    String uidlist;
     MessageSet uids;
 };
 
@@ -34,7 +35,7 @@ public:
     message early, so that when we tell the expunging client that a
     message is gone, it really is. Seems advisable from a
     confidentiality point of view.
-    
+
     The UID of an expunged message may still exist in different
     sessions, although the message itself is no longer accessible.
 */
@@ -54,52 +55,55 @@ Expunge::Expunge()
 
 bool Expunge::expunge( bool chat )
 {
-    if ( !d->t ) {
+    if ( d->stage == 0 ) {
         d->t = new Transaction( this );
-        d->q1 =
-            new Query( "select uid from messages where deleted='t' "
-                       "and mailbox=$1 for update", this );
-        d->q1->bind( 1, imap()->session()->mailbox()->id() );
-        d->t->enqueue( d->q1 );
-
-        // Find all referenced bodyparts.
-        d->q2 =
-            new Query( "select distinct(bodypart) "
-                       "from part_numbers p, messages m "
-                       "where m.mailbox=p.mailbox and m.uid=p.uid and "
-                       "m.deleted='t' and p.mailbox=$1 and "
-                       "p.bodypart is not null", this );
-        d->q2->bind( 1, imap()->session()->mailbox()->id() );
-        d->t->enqueue( d->q2 );
+        d->q =
+            new Query( "select uid from flags where mailbox=$1 and flag="
+                       "(select id from flag_names where name='\\\\Deleted')",
+                       this );
+        d->q->bind( 1, imap()->session()->mailbox()->id() );
+        d->t->enqueue( d->q );
         d->t->execute();
         d->stage = 1;
     }
 
-    if ( d->stage == 1 && d->q1->done() ) {
+    if ( d->stage == 1 && d->q->done() ) {
         Row *r;
-        String uids;
-        while ( ( r = d->q1->nextRow() ) != 0 ) {
+        while ( ( r = d->q->nextRow() ) != 0 ) {
             uint n = r->getInt( "uid" );
-            uids.append( "," + fn( n ) );
+            d->uidlist.append( "," + fn( n ) );
             d->uids.add( n );
         }
-        uids = uids.mid( 1 );
+        d->uidlist = d->uidlist.mid( 1 );
 
-        if ( !uids.isEmpty() ) {
-            Query *q;
-            q = new Query( "delete from messages where mailbox=$1 and "
-                           "uid in (" + uids + ")", this );
-            q->bind( 1, imap()->session()->mailbox()->id() );
-            d->t->enqueue( q );
-            d->t->execute();
-        }
         d->stage = 2;
+        if ( d->uids.isEmpty() ) {
+            d->stage = 4;
+            d->t->commit();
+        }
     }
 
-    if ( d->stage == 2 && d->q2->done() ) {
+    if ( d->stage == 2 ) {
+        Query *q =
+            new Query( "delete from messages where mailbox=$1 and "
+                       "uid in (" + d->uidlist + ")", this );
+        q->bind( 1, imap()->session()->mailbox()->id() );
+        d->t->enqueue( q );
+
+        d->q =
+            new Query( "select distinct(bodypart) from part_numbers "
+                       "where mailbox=$1 and bodypart is not null and "
+                       "uid in (" + d->uidlist + ")", this );
+        d->q->bind( 1, imap()->session()->mailbox()->id() );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->stage = 3;
+    }
+
+    if ( d->stage == 3 && d->q->done() ) {
         Row *r;
         String parts;
-        while ( ( r = d->q2->nextRow() ) != 0 ) {
+        while ( ( r = d->q->nextRow() ) != 0 ) {
             uint n = r->getInt( "bodypart" );
             parts.append( "," + fn( n ) );
         }
@@ -115,7 +119,7 @@ bool Expunge::expunge( bool chat )
             d->t->enqueue( q );
         }
         d->t->commit();
-        d->stage = 3;
+        d->stage = 4;
     }
 
     if ( d->t->done() ) {

@@ -7,9 +7,6 @@ We should not duplicate the contents of address_fields in header_fields.
   and the HeaderFetcher should assemble addresses from address_fields.
 
 
-EXPUNGE is broken after the removal of flag fields from messages
-
-
 We need top-level message/rfc822 support
 
 
