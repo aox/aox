@@ -52,7 +52,8 @@ void Loop::shutdown()
 
 void Loop::addConnection( Connection *c )
 {
-    ::loop->addConnection( c );
+    if ( ::loop )
+        ::loop->addConnection( c );
 }
 
 
@@ -62,5 +63,6 @@ void Loop::addConnection( Connection *c )
 
 void Loop::removeConnection( Connection *c )
 {
-    ::loop->removeConnection( c );
+    if ( ::loop )
+        ::loop->removeConnection( c );
 }
