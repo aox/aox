@@ -43,13 +43,11 @@ void Create::execute()
             // We don't need to test this, because the user's INBOX must
             // exist, and cannot be deleted.
         }
-        else if ( !m ) {
+        else if ( !m || m->synthetic() ) {
             q = new Query( "insert into mailboxes (name) values ($1)", this );
             q->bind( 1, mbx );
-        }
-        else if ( m->id() == 0 ) {
-            // We don't allow synthetic mailboxes to be created. Yet.
-            // I'll think about it after we know how to manage the tree.
+            // the Mailbox object now does not know its ID. bad. ocd
+            // must fix that.
         }
         else if ( m->deleted() ) {
             q = new Query( "update mailboxes set deleted=0"
