@@ -116,7 +116,7 @@ void IMAP::react(Event e)
 void IMAP::parse()
 {
     Buffer * r = readBuffer();
-    while( true ) {
+    while ( true ) {
 	if ( !d->args )
 	    d->args = new List<String>;
         if ( d->grabber ) {
@@ -137,7 +137,7 @@ void IMAP::parse()
         }
         else {
             uint i = 0;
-            while( i < r->size() && (*r)[i] != 10 )
+            while ( i < r->size() && (*r)[i] != 10 )
                 i++;
             if ( (*r)[i] != 10 )
                 return; // better luck next time
@@ -157,7 +157,7 @@ void IMAP::parse()
                     i--;
                 }
                 j = i;
-                while( i > 0 && (*s)[i] >= '0' && (*s)[i] <= '9' )
+                while ( i > 0 && (*s)[i] >= '0' && (*s)[i] <= '9' )
                     i--;
                 if ( (*s)[i] == '{' ) {
                     d->readingLiteral = true;
@@ -209,10 +209,10 @@ void IMAP::addCommand()
     do {
         i++;
         c = (*s)[i];
-    } while( i < s->length() &&
-             c < 128 && c > ' ' && c != '+' &&
-             c != '(' && c != ')' && c != '{' &&
-             c != '%' && c != '%' );
+    } while ( i < s->length() &&
+              c < 128 && c > ' ' && c != '+' &&
+              c != '(' && c != ')' && c != '{' &&
+              c != '%' && c != '%' );
     if ( i < 1 || c != ' ' ) {
         writeBuffer()->append( "* BAD tag\r\n" );
         d->logger->log( "Unable to parse tag. Line: " + *s );
@@ -225,14 +225,14 @@ void IMAP::addCommand()
     do {
         i++;
         c = (*s)[i];
-    } while( i < s->length() &&
-             c < 128 &&
-             ( c > ' ' ||
-               ( c == ' ' && s->mid( j, i-j ).lower() == "uid" ) ) &&
-             c != '(' && c != ')' && c != '{' &&
-             c != '%' && c != '%' &&
-             c != '"' && c != '\\' &&
-             c != ']' );
+    } while ( i < s->length() &&
+              c < 128 &&
+              ( c > ' ' ||
+                ( c == ' ' && s->mid( j, i-j ).lower() == "uid" ) ) &&
+              c != '(' && c != ')' && c != '{' &&
+              c != '%' && c != '%' &&
+              c != '"' && c != '\\' &&
+              c != ']' );
     if ( i == j ) {
         writeBuffer()->append( "* BAD no command\r\n" );
         d->logger->log( "Unable to parse command. Line: " + *s );
@@ -266,8 +266,8 @@ void IMAP::addCommand()
             else {
                 // do all other commands belong to the same command group?
                 d->commands.first();
-                while( d->commands.current() &&
-                       d->commands.current()->group() == cmd->group() )
+                while ( d->commands.current() &&
+                        d->commands.current()->group() == cmd->group() )
                     d->commands.next();
                 if ( d->commands.current() ) {
                     // no, d->commands.current() does not

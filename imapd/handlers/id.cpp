@@ -16,7 +16,7 @@ void Id::parse()
 {
     if ( nextChar() == '(' ) {
         step();
-        while( nextChar() != ')' ) {
+        while ( nextChar() != ')' ) {
             String name = string();
             space();
             String value = nstring();

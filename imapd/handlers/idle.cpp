@@ -40,7 +40,7 @@ void Idle::read()
     Buffer * b = imap()->readBuffer();
 
     uint i = 0;
-    while( i < b->size() && (*b)[i] != 10 )
+    while ( i < b->size() && (*b)[i] != 10 )
         i++;
     if ( (*b)[i] == 10 ) {
         i++;
