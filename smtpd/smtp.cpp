@@ -663,6 +663,7 @@ void SMTP::inject()
     m->header()->removeField( HeaderField::ReturnPath );
     m->header()->add( "Return-Path", d->from->toString() );
     if ( !m->valid() ) {
+        d->messageError = m->error();
         reportInjection();
         return;
     }
