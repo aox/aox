@@ -53,8 +53,6 @@ public:
 
     List<HeaderField> * fields() const;
 
-    static HeaderField::Type fieldType( const String & );
-
     String asText() const;
 
 private:
