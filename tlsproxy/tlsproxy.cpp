@@ -12,19 +12,25 @@
 #include "entropy.h"
 #include "buffer.h"
 #include "list.h"
+#include "file.h"
 
 // cryptlib
 #include "cryptlib.h"
-
 // fork()
 #include <sys/types.h>
 #include <unistd.h>
-
 // errno
 #include <errno.h>
-
 // exit()
 #include <stdlib.h>
+
+
+static void handleError( int, const String & );
+static String cryptlibError( int );
+static String cryptlibLocus( int );
+static String cryptlibType( int );
+static void generateKey();
+static void setupKey();
 
 
 static CRYPT_SESSION cs;
@@ -32,229 +38,38 @@ static TlsProxy * userside;
 static TlsProxy * serverside;
 
 
-static String cryptlibError( int cryptError ) {
-    String e;
-    switch( cryptError ) {
-
-    // The comments and strings below are copied from cryptlib.h (and
-    // slightly modified).
-
-    // Error in parameters passed to function
-    case CRYPT_ERROR_PARAM1:
-        e = "-1: CRYPT_ERROR_PARAM1: Bad argument, parameter 1";
-        break;
-    case CRYPT_ERROR_PARAM2:
-        e = "-2: CRYPT_ERROR_PARAM2: Bad argument, parameter 2";
-        break;
-    case CRYPT_ERROR_PARAM3:
-        e = "-3: CRYPT_ERROR_PARAM3: Bad argument, parameter 3";
-        break;
-    case CRYPT_ERROR_PARAM4:
-        e = "-4: CRYPT_ERROR_PARAM4: Bad argument, parameter 4";
-        break;
-    case CRYPT_ERROR_PARAM5:
-        e = "-5: CRYPT_ERROR_PARAM5: Bad argument, parameter 5";
-        break;
-    case CRYPT_ERROR_PARAM6:
-        e = "-6: CRYPT_ERROR_PARAM6: Bad argument, parameter 6";
-        break;
-    case CRYPT_ERROR_PARAM7:
-        e = "-7: CRYPT_ERROR_PARAM7: Bad argument, parameter 7";
-        break;
-
-    //Errors due to insufficient resources
-    case CRYPT_ERROR_MEMORY:
-        e = "-10: CRYPT_ERROR_MEMORY: Out of memory";
-        break;
-    case CRYPT_ERROR_NOTINITED:
-        e = "-11: CRYPT_ERROR_NOTINITED: Data has not been initialised";
-        break;
-    case CRYPT_ERROR_INITED:
-        e = "-12: CRYPT_ERROR_INITED: Data has already been init'd";
-        break;
-    case CRYPT_ERROR_NOSECURE:
-        e = "-13: CRYPT_ERROR_NOSECURE: Opn.not avail.at requested sec.level";
-        break;
-    case CRYPT_ERROR_RANDOM:
-        e = "-14: CRYPT_ERROR_RANDOM: No reliable random data available";
-        break;
-    case CRYPT_ERROR_FAILED:
-        e = "-15: CRYPT_ERROR_FAILED: Operation failed";
-        break;
-
-    // Security violations
-    case CRYPT_ERROR_NOTAVAIL:
-        e = "-20:CRYPT_ERROR_NOTAVAIL: "
-            "This type of opn.not available";
-        break;
-    case CRYPT_ERROR_PERMISSION:
-        e = "-21:CRYPT_ERROR_PERMISSION: "
-            "No permission to perform this operation";
-        break;
-    case CRYPT_ERROR_WRONGKEY:
-        e = "-22:CRYPT_ERROR_WRONGKEY: "
-            "Incorrect key used to decrypt data";
-        break;
-    case CRYPT_ERROR_INCOMPLETE:
-        e = "-23:CRYPT_ERROR_INCOMPLETE: "
-            "Operation incomplete/still in progress";
-        break;
-    case CRYPT_ERROR_COMPLETE:
-        e = "-24: CRYPT_ERROR_COMPLETE: Operation complete/can't continue";
-        break;
-    case CRYPT_ERROR_TIMEOUT:
-        e = "-25: CRYPT_ERROR_TIMEOUT: Operation timed out before completion";
-        break;
-    case CRYPT_ERROR_INVALID:
-        e = "-26: CRYPT_ERROR_INVALID: Invalid/inconsistent information";
-        break;
-    case CRYPT_ERROR_SIGNALLED:
-        e = "-27: CRYPT_ERROR_SIGNALLED: Resource destroyed by extnl.event";
-        break;
-
-    // High-level function errors
-    case CRYPT_ERROR_OVERFLOW:
-        e = "-30: CRYPT_ERROR_OVERFLOW: Resources/space exhausted";
-        break;
-    case CRYPT_ERROR_UNDERFLOW:
-        e = "-31: CRYPT_ERROR_UNDERFLOW: Not enough data available";
-        break;
-    case CRYPT_ERROR_BADDATA:
-        e = "-32: CRYPT_ERROR_BADDATA: Bad/unrecognised data format";
-        break;
-    case CRYPT_ERROR_SIGNATURE:
-        e = "-33: CRYPT_ERROR_SIGNATURE: Signature/integrity check failed";
-        break;
-
-    // Data access function errors
-    case CRYPT_ERROR_OPEN:
-        e = "-40: CRYPT_ERROR_OPEN: Cannot open object";
-        break;
-    case CRYPT_ERROR_READ:
-        e = "-41: CRYPT_ERROR_READ: Cannot read item from object";
-        break;
-    case CRYPT_ERROR_WRITE:
-        e = "-42: CRYPT_ERROR_WRITE: Cannot write item to object";
-        break;
-    case CRYPT_ERROR_NOTFOUND:
-        e = "-43: CRYPT_ERROR_NOTFOUND: Requested item not found in object";
-        break;
-    case CRYPT_ERROR_DUPLICATE:
-        e = "-44: CRYPT_ERROR_DUPLICATE: Item already present in object";
-        break;
-
-    // Data enveloping errors
-    case CRYPT_ENVELOPE_RESOURCE:
-        e = "-50: CRYPT_ENVELOPE_RESOURCE: Need resource to proceed";
-        break;
-
-    // Should Not Happen[tm]
-    default:
-        e = fn( cryptError ) + ": Unknown error";
-        break;
-    }
-
-    return e;
-}
-
-
-static String cryptlibLocus( int locus ) {
-    String r = fn( locus );
-
-    // there are so many attributes. too much work to specify them
-    // all.
-    return r;
-}
-
-
-static String cryptlibType( int type ) {
-    String r = fn( type ) + ": ";
-    switch( type ) {
-    // The comments and strings below are copied from cryptlib.h (and
-    // slightly modified).
-    case CRYPT_ERRTYPE_NONE:
-        r.append( "CRYPT_ERRTYPE_NONE: "
-                  "No error information" );
-        break;
-    case CRYPT_ERRTYPE_ATTR_SIZE:
-        r.append( "CRYPT_ERRTYPE_ATTR_SIZE: "
-                  "Attribute data too small or large" );
-        break;
-    case CRYPT_ERRTYPE_ATTR_VALUE:
-        r.append( "CRYPT_ERRTYPE_ATTR_VALUE: "
-                  "Attribute value is invalid" );
-        break;
-    case CRYPT_ERRTYPE_ATTR_ABSENT:
-        r.append( "CRYPT_ERRTYPE_ATTR_ABSENT: "
-                  "Required attribute missing" );
-        break;
-    case CRYPT_ERRTYPE_ATTR_PRESENT:
-        r.append( "CRYPT_ERRTYPE_ATTR_PRESENT: "
-                  "Non-allowed attribute present" );
-        break;
-    case CRYPT_ERRTYPE_CONSTRAINT:
-        r.append( "CRYPT_ERRTYPE_CONSTRAINT: "
-                  "Cert: Constraint violation in object" );
-        break;
-    case CRYPT_ERRTYPE_ISSUERCONSTRAINT:
-        r.append( "CRYPT_ERRTYPE_ISSUERCONSTRAINT: "
-                  "Cert: Constraint viol.in issuing cert" );
-        break;
-    default:
-        r.append( "Unknown error type" );
-        break;
-    }
-    return r;
-}
-
-
-/* Logs \a cryptError suitably, or does nothing if its value is
-   CRYPT_OK. \a function is the name of the cryptlib function which
-   returned \a cryptError.
-*/
-
-static void handleError( int cryptError, const String & function )
+int main( int, char *[] )
 {
-    if ( cryptError == CRYPT_OK )
-        return;
+    Arena firstArena;
+    Scope global( &firstArena );
 
-    if ( cryptStatusOK( cryptError ) )
-        return;
+    Server s( "tlsproxy" );
+    s.setup( Server::Report );
 
-    int locus = 0;
-    int type = 0;
-    cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORLOCUS, &locus );
-    cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORTYPE, &type );
+    // let cryptlib set up while still root, so it can read files etc.
+    cryptInit();
+    cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
+    setupKey();
 
-    String s = function + " reported error: " + cryptlibError( cryptError );
-    if ( locus )
-        s.append( ", locus: " + cryptlibLocus( locus ) );
-    if ( type )
-        s.append( ", type: " + cryptlibType( type ) );
-    ::log( s, Log::Error );
+    Listener< TlsProxy >::create( "tlsproxy", "127.0.0.1", 2061 );
 
-    int errorStringLength;
-    String errorString;
-    errorString.reserve( 1024 );
-
-    cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
-                             (char*)errorString.data(), &errorStringLength );
-    if ( errorStringLength > 1000 )
-        exit( 0 ); // I'm too polite for the sort of comment needed here
-    errorString.truncate( errorStringLength );
-
-    errorString = errorString.simplified();
-    if ( !errorString.isEmpty() > 0 )
-        ::log( "cryptlib's own message: " + errorString );
-
-    userside->close();
-    serverside->close();
-
-    Loop::shutdown();
+    s.execute();
 }
 
 
-static void setupCert()
+static void setupKey()
+{
+    Configuration::Text keyFile( "tls-certificate", "" );
+    if ( ((String)keyFile).isEmpty() ) {
+        generateKey();
+        return;
+    }
+
+    log( "Don't know how to use an existing key.", Log::Disaster );
+}
+
+
+static void generateKey()
 {
     int status = 0;
 
@@ -321,41 +136,26 @@ static void setupCert()
 }
 
 
-int main( int, char *[] )
-{
-    Arena firstArena;
-    Scope global( &firstArena );
 
-    Server s( "tlsproxy" );
-    s.setup( Server::Secure );
-    // let cryptlib set up while still root, so it can read files etc.
-    cryptInit();
-    cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
-    setupCert();
-    Listener< TlsProxy >::create( "tlsproxy", "127.0.0.1", 2061 );
-    // chroot and do the rest
-    s.setup( Server::Finish );
-    s.execute();
-}
-
+static List<TlsProxy> * proxies;
 
 
 class TlsProxyData
 {
 public:
-    TlsProxyData(): key( Entropy::asString( 9 ) ), state( Initial ) {}
+    TlsProxyData()
+        : key( Entropy::asString( 9 ) ), state( Initial )
+    {}
 
-    String key;
     enum State {
         Initial,
         PlainSide,
         EncryptedSide
     };
+
+    String key;
     State state;
 };
-
-
-static List<TlsProxy> * proxies = 0;
 
 
 /*! \class TlsProxy tlsproxy.h
@@ -370,9 +170,7 @@ static List<TlsProxy> * proxies = 0;
 */
 
 
-/*!  Constructs an empty TlsProxy listening to \a socket.
-
-*/
+/*! Constructs a new TlsProxy listening to \a socket. */
 
 TlsProxy::TlsProxy( int socket )
     : Connection( socket, Connection::TlsProxy ), d( new TlsProxyData )
@@ -505,7 +303,8 @@ void TlsProxy::parse()
     protocol.
 */
 
-void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & protocol )
+void TlsProxy::start( TlsProxy * other, const Endpoint & client,
+                      const String & protocol )
 {
     Loop::flushAll();
     int p1 = fork();
@@ -611,4 +410,232 @@ void TlsProxy::decrypt()
         if ( len > 0 )
             serverside->writeBuffer()->append( buffer, len );
     } while ( len > 0 && status == CRYPT_OK );
+}
+
+
+/* Logs \a cryptError suitably, or does nothing if its value is
+   CRYPT_OK. \a function is the name of the cryptlib function which
+   returned \a cryptError.
+*/
+
+static void handleError( int cryptError, const String & function )
+{
+    if ( cryptError == CRYPT_OK )
+        return;
+
+    if ( cryptStatusOK( cryptError ) )
+        return;
+
+    int locus = 0;
+    int type = 0;
+    cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORLOCUS, &locus );
+    cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORTYPE, &type );
+
+    String s = function + " reported error: " + cryptlibError( cryptError );
+    if ( locus )
+        s.append( ", locus: " + cryptlibLocus( locus ) );
+    if ( type )
+        s.append( ", type: " + cryptlibType( type ) );
+    ::log( s, Log::Error );
+
+    int errorStringLength;
+    String errorString;
+    errorString.reserve( 1024 );
+
+    cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
+                             (char*)errorString.data(), &errorStringLength );
+    if ( errorStringLength > 1000 )
+        exit( 0 ); // I'm too polite for the sort of comment needed here
+    errorString.truncate( errorStringLength );
+
+    errorString = errorString.simplified();
+    if ( !errorString.isEmpty() > 0 )
+        ::log( "cryptlib's own message: " + errorString );
+
+    userside->close();
+    serverside->close();
+
+    Loop::shutdown();
+}
+
+
+static String cryptlibError( int cryptError )
+{
+    String e;
+
+    // The comments and strings below are copied from cryptlib.h (and
+    // slightly modified).
+
+    switch( cryptError ) {
+
+    // Error in parameters passed to function
+    case CRYPT_ERROR_PARAM1:
+        e = "-1: CRYPT_ERROR_PARAM1: Bad argument, parameter 1";
+        break;
+    case CRYPT_ERROR_PARAM2:
+        e = "-2: CRYPT_ERROR_PARAM2: Bad argument, parameter 2";
+        break;
+    case CRYPT_ERROR_PARAM3:
+        e = "-3: CRYPT_ERROR_PARAM3: Bad argument, parameter 3";
+        break;
+    case CRYPT_ERROR_PARAM4:
+        e = "-4: CRYPT_ERROR_PARAM4: Bad argument, parameter 4";
+        break;
+    case CRYPT_ERROR_PARAM5:
+        e = "-5: CRYPT_ERROR_PARAM5: Bad argument, parameter 5";
+        break;
+    case CRYPT_ERROR_PARAM6:
+        e = "-6: CRYPT_ERROR_PARAM6: Bad argument, parameter 6";
+        break;
+    case CRYPT_ERROR_PARAM7:
+        e = "-7: CRYPT_ERROR_PARAM7: Bad argument, parameter 7";
+        break;
+
+    //Errors due to insufficient resources
+    case CRYPT_ERROR_MEMORY:
+        e = "-10: CRYPT_ERROR_MEMORY: Out of memory";
+        break;
+    case CRYPT_ERROR_NOTINITED:
+        e = "-11: CRYPT_ERROR_NOTINITED: Data has not been initialised";
+        break;
+    case CRYPT_ERROR_INITED:
+        e = "-12: CRYPT_ERROR_INITED: Data has already been init'd";
+        break;
+    case CRYPT_ERROR_NOSECURE:
+        e = "-13: CRYPT_ERROR_NOSECURE: Opn.not avail.at requested sec.level";
+        break;
+    case CRYPT_ERROR_RANDOM:
+        e = "-14: CRYPT_ERROR_RANDOM: No reliable random data available";
+        break;
+    case CRYPT_ERROR_FAILED:
+        e = "-15: CRYPT_ERROR_FAILED: Operation failed";
+        break;
+
+    // Security violations
+    case CRYPT_ERROR_NOTAVAIL:
+        e = "-20:CRYPT_ERROR_NOTAVAIL: "
+            "This type of opn.not available";
+        break;
+    case CRYPT_ERROR_PERMISSION:
+        e = "-21:CRYPT_ERROR_PERMISSION: "
+            "No permission to perform this operation";
+        break;
+    case CRYPT_ERROR_WRONGKEY:
+        e = "-22:CRYPT_ERROR_WRONGKEY: "
+            "Incorrect key used to decrypt data";
+        break;
+    case CRYPT_ERROR_INCOMPLETE:
+        e = "-23:CRYPT_ERROR_INCOMPLETE: "
+            "Operation incomplete/still in progress";
+        break;
+    case CRYPT_ERROR_COMPLETE:
+        e = "-24: CRYPT_ERROR_COMPLETE: Operation complete/can't continue";
+        break;
+    case CRYPT_ERROR_TIMEOUT:
+        e = "-25: CRYPT_ERROR_TIMEOUT: Operation timed out before completion";
+        break;
+    case CRYPT_ERROR_INVALID:
+        e = "-26: CRYPT_ERROR_INVALID: Invalid/inconsistent information";
+        break;
+    case CRYPT_ERROR_SIGNALLED:
+        e = "-27: CRYPT_ERROR_SIGNALLED: Resource destroyed by extnl.event";
+        break;
+
+    // High-level function errors
+    case CRYPT_ERROR_OVERFLOW:
+        e = "-30: CRYPT_ERROR_OVERFLOW: Resources/space exhausted";
+        break;
+    case CRYPT_ERROR_UNDERFLOW:
+        e = "-31: CRYPT_ERROR_UNDERFLOW: Not enough data available";
+        break;
+    case CRYPT_ERROR_BADDATA:
+        e = "-32: CRYPT_ERROR_BADDATA: Bad/unrecognised data format";
+        break;
+    case CRYPT_ERROR_SIGNATURE:
+        e = "-33: CRYPT_ERROR_SIGNATURE: Signature/integrity check failed";
+        break;
+
+    // Data access function errors
+    case CRYPT_ERROR_OPEN:
+        e = "-40: CRYPT_ERROR_OPEN: Cannot open object";
+        break;
+    case CRYPT_ERROR_READ:
+        e = "-41: CRYPT_ERROR_READ: Cannot read item from object";
+        break;
+    case CRYPT_ERROR_WRITE:
+        e = "-42: CRYPT_ERROR_WRITE: Cannot write item to object";
+        break;
+    case CRYPT_ERROR_NOTFOUND:
+        e = "-43: CRYPT_ERROR_NOTFOUND: Requested item not found in object";
+        break;
+    case CRYPT_ERROR_DUPLICATE:
+        e = "-44: CRYPT_ERROR_DUPLICATE: Item already present in object";
+        break;
+
+    // Data enveloping errors
+    case CRYPT_ENVELOPE_RESOURCE:
+        e = "-50: CRYPT_ENVELOPE_RESOURCE: Need resource to proceed";
+        break;
+
+    // Should Not Happen[tm]
+    default:
+        e = fn( cryptError ) + ": Unknown error";
+        break;
+    }
+
+    return e;
+}
+
+
+static String cryptlibLocus( int locus )
+{
+    String r = fn( locus );
+
+    // There are too many attributes to specify them all here.
+    return r;
+}
+
+
+static String cryptlibType( int type )
+{
+    String r = fn( type ) + ": ";
+
+    // The comments and strings below are copied from cryptlib.h (and
+    // slightly modified).
+
+    switch( type ) {
+    case CRYPT_ERRTYPE_NONE:
+        r.append( "CRYPT_ERRTYPE_NONE: "
+                  "No error information" );
+        break;
+    case CRYPT_ERRTYPE_ATTR_SIZE:
+        r.append( "CRYPT_ERRTYPE_ATTR_SIZE: "
+                  "Attribute data too small or large" );
+        break;
+    case CRYPT_ERRTYPE_ATTR_VALUE:
+        r.append( "CRYPT_ERRTYPE_ATTR_VALUE: "
+                  "Attribute value is invalid" );
+        break;
+    case CRYPT_ERRTYPE_ATTR_ABSENT:
+        r.append( "CRYPT_ERRTYPE_ATTR_ABSENT: "
+                  "Required attribute missing" );
+        break;
+    case CRYPT_ERRTYPE_ATTR_PRESENT:
+        r.append( "CRYPT_ERRTYPE_ATTR_PRESENT: "
+                  "Non-allowed attribute present" );
+        break;
+    case CRYPT_ERRTYPE_CONSTRAINT:
+        r.append( "CRYPT_ERRTYPE_CONSTRAINT: "
+                  "Cert: Constraint violation in object" );
+        break;
+    case CRYPT_ERRTYPE_ISSUERCONSTRAINT:
+        r.append( "CRYPT_ERRTYPE_ISSUERCONSTRAINT: "
+                  "Cert: Constraint viol.in issuing cert" );
+        break;
+    default:
+        r.append( "Unknown error type" );
+        break;
+    }
+
+    return r;
 }
