@@ -1,8 +1,8 @@
 #include "log.h"
 
+#include "scope.h"
 #include "logger.h"
 #include "string.h"
-#include "scope.h"
 
 // gettimeofday
 #include <sys/time.h>
@@ -16,6 +16,24 @@ static Log * globalLog = 0;
 static bool disasters = false;
 static uint loggers = 0;
 static String time();
+
+
+void log( const String &s )
+{
+    Log *l = Scope::current()->log();
+
+    if ( l )
+        l->log(s);
+}
+
+
+void log( Log::Severity s, const String &t )
+{
+    Log *l = Scope::current()->log();
+
+    if ( l )
+        l->log( s, t );
+}
 
 
 /*! \class Log log.h
@@ -138,15 +156,4 @@ String Log::severity( Severity s )
 bool Log::disastersYet()
 {
     return disasters;
-}
-
-
-/* Uses the current scope log to log the message \a s. */
-
-void log( const String & s )
-{
-    Log * l = Scope::current()->log();
-
-    if ( l )
-        l->log(s);
 }
