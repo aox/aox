@@ -391,6 +391,44 @@ void Fetch::sendFetchQueries()
 }
 
 
+/* This function returns the response data for an element in
+   d->sections, to be included in the FETCH response by
+   fetchResponses() below.
+*/
+
+static String sectionResponse( FetchData::Section *s,
+                               Message *m )
+{
+    String item, data;
+
+    if ( s->id == "header.fields" ) {
+        Header *hdr = m->header();
+        String fields = s->fields.join( " " );
+        StringList::Iterator it( s->fields.first() );
+        while ( it ) {
+            // XXX: Should we fetch fields() instead?
+            // (And what about X-Favourite-Soft-Drink?)
+            HeaderField *hf = hdr->field( hdr->fieldType( *it ) );
+            if ( hf )
+                data.append( hf->name() + ": " + hf->value() + "\r\n" );
+            ++it;
+        }
+
+        item = "BODY[HEADER.FIELDS (" + fields + ")]";
+        data.append( "\r\n" );
+    }
+
+    if ( s->partial ) {
+        item.append( "<" + fn( s->offset ) + ">" );
+        data = data.mid( s->offset, s->length );
+        if ( s->id.startsWith( "header" ) )
+            data.append( "\r\n" );
+    }
+
+    return item + " " + Command::imapQuoted( data, Command::NString );
+}
+
+
 /*! Emits a single FETCH response for the messae \a m, which is
     trusted to have UID \a uid and MSN \a msn.
 
@@ -415,7 +453,11 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
     if ( d->bodystructure )
         l.append( "BODYSTRUCTURE " + bodystructure( m, true ) );
 
-    // deal with the sections here
+    List< FetchData::Section >::Iterator it( d->sections.first() );
+    while ( it ) {
+        l.append( sectionResponse( it, m ) );
+        ++it;
+    }
 
     String r = fn( msn ) + " FETCH (" + l.join( " " ) + ")";
     return r;
@@ -600,7 +642,7 @@ String Fetch::bodystructure( Message * m, bool extended )
         // body-fld-octets = number
         if ( bp )
             l.append( fn( bp->numBytes() ) );
-        
+
         if ( !bp ) {
             // what to do? hard to know.
         }

@@ -99,6 +99,8 @@ public:
 
     List<HeaderField> * fields() const;
 
+    static HeaderField::Type fieldType( const String & );
+
 private:
     void verify() const;
 

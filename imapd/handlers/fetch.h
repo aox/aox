@@ -8,7 +8,6 @@
 
 class Message;
 
-
 class Fetch
     : public Command
 {
@@ -16,7 +15,7 @@ public:
     Fetch( bool = false );
 
     enum State { Initial, Responding };
-    
+
     void parse();
     void execute();
 
