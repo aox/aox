@@ -33,38 +33,38 @@ int main( int argc, char ** argv )
             switch( argv[i][1] ) {
             case 'm':
                 if ( mp )
-                    fprintf( stderr, "rdoc: -m specified twice\n" );
+                    fprintf( stderr, "udoc: -m specified twice\n" );
                 mp = new ManPage( argv[++i] );
                 break;
             case 'w':
                 if ( wp )
-                    fprintf( stderr, "rdoc: -w specified twice\n" );
+                    fprintf( stderr, "udoc: -w specified twice\n" );
                 wp = new WebPage( argv[++i] );
                 break;
             case 'p':
                 if ( ps )
-                    fprintf( stderr, "rdoc: -p specified twice\n" );
+                    fprintf( stderr, "udoc: -p specified twice\n" );
                 ps = new Postscript( argv[++i] );
                 break;
             case 'o':
                 if ( !Output::owner().isEmpty() )
-                    fprintf( stderr, "rdoc: -o specified twice" );
+                    fprintf( stderr, "udoc: -o specified twice" );
                 Output::setOwner( argv[++i] );
                 break;
             case 'u':
                 if ( !Output::ownerHome().isEmpty() )
-                    fprintf( stderr, "rdoc: -u specified twice" );
+                    fprintf( stderr, "udoc: -u specified twice" );
                 Output::setOwnerHome( argv[++i] );
                 break;
             default:
-                fprintf( stderr, "rdoc: don't understand %s\n",
+                fprintf( stderr, "udoc: don't understand %s\n",
                          argv[i] );
                 exit( 1 );
                 break;
             }
         }
         else {
-            fprintf( stderr, "rdoc: cannot parse option %d: %s\n",
+            fprintf( stderr, "udoc: cannot parse option %d: %s\n",
                      i, argv[i] );
             exit( 1 );
         }
@@ -72,7 +72,7 @@ int main( int argc, char ** argv )
     }
 
     if ( !mp && !wp && !ps ) {
-        fprintf( stderr, "rdoc: no output specified\n" );
+        fprintf( stderr, "udoc: no output specified\n" );
         exit( 1 );
     }
 

@@ -85,9 +85,11 @@ rule Doc {
     Clean clean : <doc>.made.$(<) ;
     Depends <doc>.made.$(<) : $(set-$(>):S=.cpp) ;
     Doc2 <doc>.made.$(<) : $(set-$(>):S=.cpp) ;
+    Depends <doc>.made.$(<) : $(UDOCBIN) ;
+    UDOCBIN = udoc ;
 }
 
-actions together Doc2 {
-    bin/rdoc -o 'Oryx Mail Systems GmbH' -u 'http://www.oryx.com' -m doc/man/man3 -w doc/html $(>)
+actions together Doc2 bind UDOCBIN {
+    $(UDOCBIN) -o 'Oryx Mail Systems GmbH' -u 'http://www.oryx.com' -m doc/man/man3 -w doc/html $(>)
     touch $(<)
 }

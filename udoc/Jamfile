@@ -1,10 +1,10 @@
-SubDir TOP rdoc ;
+SubDir TOP udoc ;
 SubInclude TOP core ;
 
-Build rdoc : qdoc.cpp error.cpp parser.cpp class.cpp function.cpp docblock.cpp
+Build udoc : qdoc.cpp error.cpp parser.cpp class.cpp function.cpp docblock.cpp
     headerfile.cpp sourcefile.cpp output.cpp webpage.cpp manpage.cpp
     postscript.cpp singleton.cpp intro.cpp ;
 
-Doc rdocdoc : rdoc core ;
+Doc udocdoc : udoc core ;
 
-Program rdoc : rdoc core ;
+Program udoc : udoc core ;

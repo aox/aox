@@ -81,8 +81,8 @@ void WebPage::startHeadline( Class * c )
     para = true;
     addText( c->name() );
     output( " Documentation</title>\n"
-            "<link rel=stylesheet href=\"qdoc.css\" type=\"text/css\">\n"
-            "<link rel=generator href=\"http://www.oryx.com/rdoc/\">\n"
+            "<link rel=stylesheet href=\"udoc.css\" type=\"text/css\">\n"
+            "<link rel=generator href=\"http://www.oryx.com/udoc/\">\n"
             "</head><body>\n" );
     output( "<p class=classh>" );
 }
