@@ -204,8 +204,8 @@ void Injector::execute()
              d->bodypartIds->count() != d->totalBodyparts )
             return;
 
-        linkHeaderFields();
         linkBodyparts();
+        linkHeaderFields();
 
         d->transaction->execute();
         d->step = 3;
