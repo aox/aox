@@ -176,7 +176,7 @@ uint Listext::match( const String & pattern, uint p,
                      const String & name, uint n )
 {
     uint r = 0;
-    while ( p < pattern.length() ) {
+    while ( p <= pattern.length() ) {
         if ( pattern[p] == '*' || pattern[p] == '%' ) {
             bool star = false;
             while ( pattern[p] == '*' || pattern[p] == '%' ) {
@@ -190,7 +190,7 @@ uint Listext::match( const String & pattern, uint p,
             else
                 while ( i < name.length() && name[i] != '/' )
                     i++;
-            while ( i >= n && i > 0 ) {
+            while ( i >= n ) {
                 uint s = match( pattern, p, name, i );
                 if ( s == 2 )
                     return 2;
@@ -199,14 +199,15 @@ uint Listext::match( const String & pattern, uint p,
                 i--;
             }
         }
-        else if ( p >= pattern.length() && n >= name.length() ) {
+        else if ( p == pattern.length() && n == name.length() ) {
             // ran out of pattern and name at the same time. success.
             return 2;
         }
         else if ( pattern[p] == name[n] ) {
             // nothing. proceed.
+            p++;
         }
-        else if ( pattern[p] == '/' && n >= name.length() ) {
+        else if ( pattern[p] == '/' && n == name.length() ) {
             // we ran out of name and the pattern wants a child.
             return 1;
         }
@@ -214,11 +215,8 @@ uint Listext::match( const String & pattern, uint p,
             // plain old mismatch.
             return r;
         }
-        p++;
         n++;
     }
-    if ( n >= name.length() )
-        return 2;
     return r;
 }
 
