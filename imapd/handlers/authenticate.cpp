@@ -58,41 +58,35 @@ void Authenticate::execute()
             error( Bad, "Mechanism " + t + " not supported" );
             return;
         }
-
         imap()->reserve( this );
-        a->setLogger( logger() );
     }
 
-    // Perform C/R roundtrips until we can make up our mind.
+    // Feed the handler until it can make up its mind.
 
-    while ( !a->decided() ) {
-        if ( a->state() == Authenticator::ChallengeNeeded ) {
-            imap()->writeBuffer()->append( "+ "+ a->challenge().e64() +"\r\n" );
-            a->setState( Authenticator::ChallengeIssued );
-            r.truncate( 0 );
-            return;
-        }
-        else if ( a->state() == Authenticator::ChallengeIssued &&
-                  !r.isEmpty() )
-        {
-            // XXX: this may be buggy - if the response can be multiline
-            // this can, depending on luck and the weather, consider any
-            // integer number of lines to be the response. but can the
-            // response be multiline? look into that later.
-            a->respond( r.de64() );
-            r.truncate( 0 );
-        }
+    if ( a->state() == Authenticator::IssuingChallenge ) {
+        imap()->writeBuffer()->append( "+ "+ a->challenge().e64() +"\r\n" );
+        a->setState( Authenticator::AwaitingResponse );
+        r.truncate( 0 );
+        return;
+    }
+    else if ( a->state() == Authenticator::AwaitingResponse &&
+              !r.isEmpty() )
+    {
+        a->readResponse( r.de64() );
+        r.truncate( 0 );
+    }
 
-        // Have we made up our mind yet?
-        if ( a->state() == Authenticator::ResponseRejected ) {
-            imap()->reserve( 0 );
+    if ( !a->done() )
+        a->verify();
+
+    if ( a->done() ) {
+        if ( a->state() == Authenticator::Failed )
             error( No, "Sorry" );
-        }
-        else if ( a->state() == Authenticator::ResponseAccepted ) {
-            setState( Finished );
-            imap()->reserve( 0 );
+        else
             imap()->setLogin( a->login() );
-        }
+
+        imap()->reserve( 0 );
+        setState( Finished );
     }
 }
 

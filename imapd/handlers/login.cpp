@@ -1,22 +1,17 @@
 /*! \class Login login.h
     Performs plaintext authentication (RFC 3501, §6.2.3)
+
+    The client supplies us with a plaintext username and password, and
+    we treat it as we would an AUTH=PLAIN request. (We should disallow
+    this mechanism until after STARTTLS.)
 */
 
 #include "login.h"
 
 #include "imap.h"
-#include "sasl/plain.h"
 
 
-/*! Constructs a simple Login handler. */
-
-Login::Login()
-    : Command()
-{
-}
-
-
-/*! Parses arguments for the login command. */
+/*! \reimp */
 
 void Login::parse()
 {
@@ -28,17 +23,28 @@ void Login::parse()
 }
 
 
-/*! Verifies that names and passwords match perfectly. */
+/*! This function creates a Plain SaslMechanism, bypasses CR negotiation
+    by feeding it the data it would otherwise issue a challenge for, and
+    waits for its verdict.
+
+    \sa Authenticate::execute()
+*/
 
 void Login::execute()
 {
-    Plain plain( this );
-    plain.setLogin( n );
-    if ( plain.loginExists() && plain.secret() == p )
-        imap()->setLogin( n );
-    else if ( n.isEmpty() )
-        error( No, "login failed " );
-    else
-        error( No, "login failed for " + n );
-    setState( Finished );
+    if ( !a ) {
+        a = new Plain( this );
+        a->setLogin( n );
+        a->setSecret( p );
+    }
+
+    a->verify();
+
+    if ( a->done() ) {
+        if ( a->state() == Authenticator::Failed )
+            error( No, "LOGIN failed for '" + n + "'" );
+        else
+            imap()->setLogin( n );
+        setState( Finished );
+    }
 }
