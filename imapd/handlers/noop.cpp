@@ -11,6 +11,7 @@
 #include "noop.h"
 
 // XXX: We should only need to include one header (database) here.
+#include "imap.h"
 #include "cache.h"
 #include "database.h"
 
@@ -22,11 +23,20 @@ void Noop::execute()
     case Started:
         q = new Query( "" );
         Database::query( q );
+        st = Waiting;
+        wait( 5 );
         break;
 
     case Waiting:
-        if ( q->state() == Query::Submitted )
+        // We're here because something either happened, or went too
+        // long without happening.
+        if ( q->state() == Query::Running &&
+             ( !q->hasResults() || n == 0 ) )
+        {
+            respond( "NO timeout" );
+            setState( Finished );
             return;
+        }
 
         while ( q->hasResults() ) {
             // Snarf a single row and respond.
@@ -35,7 +45,7 @@ void Noop::execute()
 
         if ( q->state() == Query::Completed ) {
             if ( n == 0 ) {
-                // Send an error message.
+                respond( "NO results obtained" );
             }
 
             setState( Finished );
