@@ -18,9 +18,7 @@ FETCH fixes:
 
 EXPUNGE fixes:
 
-  1. Must know about shared bodyparts.
-  2. Can we use on delete cascade?
-  3. Other brokenness.
+  1. Other brokenness.
 
 
 Schema documentation

@@ -53,7 +53,7 @@ bool Expunge::expunge( bool chat )
         d->q1->bind( 1, imap()->session()->mailbox()->id() );
         d->t->enqueue( d->q1 );
 
-        // XXX: We should exclude any bodyparts that are shared.
+        // Find all referenced bodyparts.
         d->q2 =
             new Query( "select bodypart from part_numbers p, messages m "
                        "where m.mailbox=p.mailbox and m.uid=p.uid and "
@@ -76,26 +76,6 @@ bool Expunge::expunge( bool chat )
 
         if ( !uids.isEmpty() ) {
             Query *q;
-            q = new Query( "delete from part_numbers where mailbox=$1 and "
-                           "uid in (" + uids + ")", this );
-            q->bind( 1, imap()->session()->mailbox()->id() );
-            d->t->enqueue( q );
-
-            q = new Query( "delete from header_fields where mailbox=$1 and "
-                           "uid in (" + uids + ")", this );
-            q->bind( 1, imap()->session()->mailbox()->id() );
-            d->t->enqueue( q );
-
-            q = new Query( "delete from address_fields where mailbox=$1 and "
-                           "uid in (" + uids + ")", this );
-            q->bind( 1, imap()->session()->mailbox()->id() );
-            d->t->enqueue( q );
-
-            q = new Query( "delete from extra_flags where mailbox=$1 and "
-                           "uid in (" + uids + ")", this );
-            q->bind( 1, imap()->session()->mailbox()->id() );
-            d->t->enqueue( q );
-
             q = new Query( "delete from messages where mailbox=$1 and "
                            "uid in (" + uids + ")", this );
             q->bind( 1, imap()->session()->mailbox()->id() );
@@ -114,14 +94,12 @@ bool Expunge::expunge( bool chat )
         }
         parts = parts.mid( 1 );
 
+        // Delete unreferenced bodyparts.
         if ( !parts.isEmpty() ) {
             Query *q;
-            q = new Query( "delete from binary_parts where bodypart in (" +
-                           parts + ")", this );
-            d->t->enqueue( q );
-
-            q = new Query( "delete from bodyparts where id in (" +
-                           parts + ")", this );
+            q = new Query( "delete from bodyparts where id not in "
+                           "(select bodypart from part_numbers where"
+                           " bodypart in (" + parts + "))", this );
             d->t->enqueue( q );
         }
         d->t->commit();
