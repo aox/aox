@@ -1,7 +1,7 @@
 #include "search.h"
 
 /*! \class Search
-  
+
   search          = "SEARCH" [SP "CHARSET" SP astring] 1*(SP search-key)
 search-key      = "ALL" / "ANSWERED" / "DELETED" / "FLAGGED" / "NEW" / "OLD" /
                   "RECENT" / "SEEN" / "UNANSWERED" / "UNDELETED" / "UNFLAGGED" /
