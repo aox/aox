@@ -1,16 +1,26 @@
-TlsLINKLIBS = $(LINKLIBS) ;
-
 SubDir TOP tlsproxy ;
 SubInclude TOP server ;
-SubInclude TOP cryptlib ;
 
 OrigHDRS = $(HDRS) ;
-HDRS += [ FDirName $(TOP) cryptlib ] ;
+
+if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
+    # nothing
+}
+else {
+    SubInclude TOP cryptlib ;
+
+    HDRS += [ FDirName $(TOP) cryptlib ] ;
+}
 
 Build tls : tlsproxy.cpp ;
 
 Program tlsproxy : tls server core cryptlib ;
 
-HDRS = $(OrigHDRS) ;
-LINKLIBS = $(TlsLINKLIBS) ;
+if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
+    LINKLIBS on tlsproxy = -lcl ;
+}
+else {
+    # nothing here
+}
 
+HDRS = $(OrigHDRS) ;
