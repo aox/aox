@@ -106,7 +106,9 @@ public:
     ContentTransferEncoding::Encoding encoding() const;
     String data() const;
     UString text() const;
+
     Message * rfc822() const;
+    void setRfc822( Message * );
 
     void setNumBytes( uint );
     uint numBytes() const;
