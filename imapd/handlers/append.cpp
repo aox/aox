@@ -97,7 +97,8 @@ void Append::parse()
 }
 
 
-/*! This new number() demands \a n digits and returns the number.
+/*! This new reimplementation of number() demands \a n digits and
+    returns the number.
 */
 
 uint Append::number( uint n )
@@ -109,6 +110,7 @@ uint Append::number( uint n )
 
 void Append::execute()
 {
-    respond( "Ignoring unimplemented command", Untagged );
+    respond( "Cannot actually execute that append, but it was a nice thought",
+             Untagged );
     setState( Finished );
 }
