@@ -65,9 +65,7 @@ void Authenticate::execute()
 
     // Perform C/R roundtrips until we can make up our mind.
 
-    while ( a->state() != Authenticator::ResponseAccepted &&
-            a->state() != Authenticator::ResponseRejected )
-    {
+    while ( !a->decided() ) {
         if ( a->state() == Authenticator::ChallengeNeeded ) {
             imap()->writeBuffer()->append( "+ "+ a->challenge().e64() +"\r\n" );
             a->setState( Authenticator::ChallengeIssued );
