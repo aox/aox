@@ -141,12 +141,14 @@ int main( int argc, char *argv[] )
                  recipient.cstr(), sender.cstr() );
 
     Loop::setup();
-    Log l( Log::General );
-    global.setLog( &l );
+    Log * l = new Log( Log::General );
+    Allocator::addEternal( l, "delivery log" );
+    global.setLog( l );
     LogClient::setup();
 
     Configuration::report();
     Deliverator *d = new Deliverator( sender, contents, recipient );
+    Allocator::addEternal( d, "delivery object" );
     Loop::start();
 
     if ( verbose > 0 && d->status < 0 ) {
