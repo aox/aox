@@ -1,6 +1,7 @@
 #include "mechanism.h"
 #include "event.h"
 #include "query.h"
+#include "configuration.h"
 
 // Supported authentication mechanisms, for create().
 // (Keep these alphabetical.)
@@ -70,6 +71,9 @@ SaslMechanism *SaslMechanism::create( const String &mechanism,
 {
     String s( mechanism.lower() );
 
+    if ( !allowed( mechanism ) )
+        return 0;
+
     if ( s == "anonymous" )
         return new Anonymous( command );
     else if ( s == "plain" )
@@ -79,6 +83,49 @@ SaslMechanism *SaslMechanism::create( const String &mechanism,
     else if ( s == "digest-md5" )
         return new DigestMD5( command );
     return 0;
+}
+
+
+static bool supportsPlain;
+static bool supportsAnon;
+static bool supportsCramMd5;
+static bool supportsDigestMd5;
+
+
+/*! This static method handles all configuration options. */
+
+void SaslMechanism::setup()
+{
+    Configuration::Toggle anon( "auth-anonymous", false );
+
+    Configuration::Toggle plain( "auth-plain", true );
+    Configuration::Toggle cramMd5( "auth-cram-md5", true );
+    Configuration::Toggle digestMd5( "auth-digest-md5", true );
+
+    ::supportsPlain = plain;
+    ::supportsAnon = anon;
+    ::supportsCramMd5 = cramMd5;
+    ::supportsDigestMd5 = digestMd5;
+}
+
+
+/*! Returns true if \a mechanism is an allowed mechanism name, and
+    false if \a mechanism is disallowed or unknown.
+
+    \a mechanism must be all in lower case.
+*/
+
+bool SaslMechanism::allowed( const String & mechanism )
+{
+    if ( ::supportsDigestMd5 && mechanism == "digest-md5" )
+        return true;
+    else if ( ::supportsCramMd5 && mechanism == "cram-md5" )
+        return true;
+    else if ( ::supportsPlain && mechanism == "plain" )
+        return true;
+    else if ( ::supportsAnon && mechanism == "anonymous" )
+        return true;
+    return false;
 }
 
 

@@ -4,6 +4,7 @@
 #include "imap.h"
 #include "stringlist.h"
 #include "log.h"
+#include "mechanism.h"
 
 
 static bool drafts = false;
@@ -56,10 +57,13 @@ String Capability::capabilities( IMAP * i )
     c.append( "IMAP4rev1" );
 
     // the remainder of the capabilities are kept sorted by name
-    c.append( "AUTH=ANONYMOUS" );
-    c.append( "AUTH=CRAM-MD5" );
-    c.append( "AUTH=DIGEST-MD5" );
-    if ( i->hasTLS() )
+    if ( SaslMechanism::allowed( "anonymous" ) )
+        c.append( "AUTH=ANONYMOUS" );
+    if ( SaslMechanism::allowed( "cram-md5" ) )
+        c.append( "AUTH=CRAM-MD5" );
+    if ( SaslMechanism::allowed( "digest-md5" ) )
+        c.append( "AUTH=DIGEST-MD5" );
+    if ( SaslMechanism::allowed( "plain" ) ) // we don't care about tls
         c.append( "AUTH=PLAIN" );
     c.append( "ID" );
     c.append( "IDLE" );
