@@ -16,6 +16,7 @@ private:
     void encrypt();
     void decrypt();
     void start( TlsProxy *, const Endpoint &, const String & );
+    void handleError( int, const String & );
 
 private:
     class TlsProxyData * d;
