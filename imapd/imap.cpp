@@ -44,9 +44,9 @@ IMAP::IMAP(int s)
 {
     d = new IMAPData;
 
-    setReadBuffer( new Buffer );
-    setWriteBuffer( new Buffer );
-    writeBuffer()->append("* OK - ne plus ultra imapd\r\n");
+    setReadBuffer( new Buffer( fd() ) );
+    setWriteBuffer( new Buffer( fd() ) );
+    writeBuffer()->append("* OK - ne plus ultra\r\n");
     setTimeout( time(0) + 20 );
 }
 
@@ -63,22 +63,22 @@ IMAP::~IMAP()
 
 int IMAP::react(Event e)
 {
-    bool result = true;
+    int result = 1;
     switch (e) {
     case Connection::Read:
         result = parse();
         break;
     case Connection::Timeout:
         writeBuffer()->append("* BAD autologout\r\n");
-        result = false;
+        result = 0;
         break;
     }
     if ( state() == Logout )
-        result = false;
+        result = 0;
     if ( result )
         setTimeout( time(0) + 20 );
     else
-        writeBuffer()->write(fd());
+        writeBuffer()->write();
     return result;
 }
 
@@ -224,6 +224,7 @@ static class IMAPTest : public Test {
 public:
     IMAPTest() : Test( 500 ) {}
     void test() {
+        
     }
 } imapTest;
 
