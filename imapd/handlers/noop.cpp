@@ -22,7 +22,7 @@ void Noop::execute()
     }
 
     while ( q->hasResults() ) {
-        // Snarf and process a single row.
+        (void)q->nextRow();
         n++;
     }
 
