@@ -22,6 +22,16 @@ void Create::parse()
 
 void Create::execute()
 {
-    error( No, "unimplemented command" );
-    setState( Finished );
+    if ( !m )
+        m = new Mailbox( name, this );
+
+    if ( !m->done() )
+        m->create();
+
+    if ( !m->done() )
+        return;
+    
+    if ( m->state() == Mailbox::Failed )
+        error( No, "Couldn't create " + name );
+    finish();
 }
