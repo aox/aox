@@ -6,24 +6,27 @@
 class Arena;
 class Log;
 
+
 class Scope {
 public:
     Scope();
-    Scope( Arena *a );
+    Scope( Arena * );
+    Scope( Arena *, Log * );
     ~Scope();
 
     static Scope *current();
 
     Arena *arena() const;
-    void setArena( Arena *a );
+    void setArena( Arena * );
 
     Log *log() const;
-    void setLog( Log *l );
+    void setLog( Log * );
 
 private:
     Scope *parent;
     Arena *currentArena;
     Log   *currentLog;
 };
+
 
 #endif
