@@ -31,7 +31,7 @@ public:
     Mailbox * mailbox() const;
 
     class BodyPart * bodyPart( uint ) const;
-    class BodyPart * bodyPart( const String & ) const;
+    class BodyPart * bodyPart( const String &, bool create = false );
     String partNumber( class BodyPart * ) const;
 
     List<BodyPart> * bodyParts() const;
