@@ -2,3 +2,4 @@ SubDir TOP cryptlib envelope ;
 
 Build cryptlib : denv_cms.c denv_pgp.c env_cms.c env_dec.c env_enc.c
 	env_pgp.c pgp_misc.c resource.c ;
+

@@ -1,11 +1,10 @@
 SubDir TOP cryptlib crypt ;
 
-Build cryptlib : b-out.s c-out.s d-out.s r4-out.s r5-out.s m5-out.s
-	rm-out.s s1-out.s
-	aescrypt.c aeskey.c aestab.c bfecb.c bfenc.c bfskey.c
-	castecb.c castenc.c castskey.c descbc.c desecb.c desecb3.c
-	desenc.c desskey.c icbc.c iecb.c iskey.c rc2cbc.c rc2ecb.c
-	rc2skey.c rc4enc.c rc4skey.c rc5ecb.c rc5enc.c rc5skey.c
-	skipjack.c 
-	md2dgst.c md4dgst.c md5dgst.c rmddgst.c sha1dgst.c ;
+Build cryptlib : b-elf.s c-elf.s d-elf.s m5-elf.s r4-elf.s r5-elf.s
+	rm-elf.s s1-elf.s aescrypt.c aeskey.c aestab.c bfecb.c
+	bfskey.c castecb.c castskey.c descbc.c desecb.c desecb3.c
+	desskey.c icbc.c iecb.c iskey.c md2dgst.c md4dgst.c md5dgst.c
+	rc2cbc.c rc2ecb.c rc2skey.c rc4skey.c rc5ecb.c rc5skey.c
+	rmddgst.c sha1dgst.c skipjack.c ;
+
 

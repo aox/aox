@@ -2,5 +2,5 @@ SubDir TOP cryptlib cert ;
 
 Build cryptlib : certcget.c certchk.c certchn.c certcset.c certdn.c
 	certechk.c certedef.c certexrd.c certext.c certexwr.c certio.c
-	certrd.c certrev.c certsig.c certstr.c certrust.c certval.c
+	certrd.c certrev.c certrust.c certsig.c certstr.c certval.c
 	certwr.c ;
