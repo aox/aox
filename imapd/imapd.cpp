@@ -33,6 +33,7 @@ int main( int, char *[] )
 
     cryptInit();
     atexit( (void(*)())cryptEnd );
+    cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
 
     Log l;
     global.setLog( &l );
