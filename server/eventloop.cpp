@@ -153,11 +153,12 @@ void EventLoop::start()
         time_t now = time( 0 );
 
         if ( n < 0 ) {
-            // XXX: We should handle signals appropriately.
+            // XXX: We should handle signals appropriately. (How is
+            // that, exactly? We don't use the things at all.)
             if ( errno == EINTR )
                 return;
 
-            // XXX: And this is highly suboptimal, too.
+            // XXX: And this is highly suboptimal, too. (Why?)
             log( "EventLoop: select() returned errno " + fn( errno ),
                  Log::Disaster );
             exit( 0 );
