@@ -1,0 +1,37 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH msconsole 8 2004-07-20 www.oryx.com "Mailstore Documentation"
+.SH NAME
+msconsole - Oryx Mailstore management console.
+.SH SYNOPSIS
+.B $BINDIR/msconsole
+.SH DESCRIPTION
+.nh
+.PP
+.B msconsole
+is a tool to do GUI-based management of Oryx Mailstore, including
+tasks such as creating users. There is also a command-line tool, see
+.BR mailstore (8)
+for more information.
+.PP
+Documentation is provided within the program; press Shift-F1 anywhere
+in any field to get help for that particular field, etc.
+.SH OPTIONS
+On X11, most normal options are supported, see the
+.BR X (7X)
+manual page for details.
+.SH AUTHOR
+The Oryx Mailstore developers, info@oryx.com.
+.SH VERSION
+This man page covers Oryx Mailstore version 0.90, released 2004-09-15,
+http://www.oryx.com/mailstore/0.90.html.
+.SH SEE ALSO
+.BR mailstore (7),
+.BR mailstore.conf (5),
+.BR deliver (8),
+.BR logd (8),
+.BR ocd (8),
+.BR pop3d (8),
+.BR smtpd (8),
+.BR tlsproxy (8),
+.BR oryx (7),
+http://www.oryx.com/mailstore/
