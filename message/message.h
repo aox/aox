@@ -104,7 +104,7 @@ public:
 
     uint number() const;
     ContentType * contentType() const;
-    ContentTransferEncoding::Encoding encoding() const;
+    String::Encoding encoding() const;
     String data() const;
     UString text() const;
 

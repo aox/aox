@@ -46,17 +46,10 @@ class ContentTransferEncoding
 {
 public:
     ContentTransferEncoding( const String & );
-
-    enum Encoding {
-        Binary,
-        Base64,
-        QuotedPrintable
-    };
-
-    Encoding encoding() const;
+    String::Encoding encoding() const;
 
 private:
-    Encoding e;
+    String::Encoding e;
 };
 
 

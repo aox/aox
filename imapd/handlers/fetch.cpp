@@ -645,7 +645,7 @@ static String parameterString( MimeField *mf )
         l.append( Command::imapQuoted( mf->parameter( *it ) ) );
         ++it;
     }
-    
+
     return "(" + l.join( " " ) + ")";
 }
 
@@ -772,13 +772,13 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
 
     if ( hdr->contentTransferEncoding() ) {
         switch( hdr->contentTransferEncoding()->encoding() ) {
-        case ContentTransferEncoding::Binary:
+        case String::Binary:
             l.append( "\"8BIT\"" ); // hm. is this entirely sound?
             break;
-        case ContentTransferEncoding::Base64:
+        case String::Base64:
             l.append( "\"BASE64\"" );
             break;
-        case ContentTransferEncoding::QuotedPrintable:
+        case String::QuotedPrintable:
             l.append( "\"QUOTED-PRINTABLE\"" );
             break;
         }
