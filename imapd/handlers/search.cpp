@@ -15,6 +15,14 @@
 #include "utf.h"
 
 
+class SearchQuery: public Query {
+public:
+    SearchQuery( EventHandler * e ): Query( e ) {}
+    String string() const { return s; }
+    String s;
+};
+
+
 /*! \class Search search.h
     Finds messages matching some criteria (RFC 3501, §6.4.4)
 
@@ -42,7 +50,7 @@ public:
     List< uint > matches;
 
     Codec * codec;
-    Query * query;
+    SearchQuery * query;
 
     uint argc;
     uint argument() {
@@ -293,29 +301,29 @@ void Search::execute()
     // correct:
     if ( !d->query ) {
         considerCache();
-        if ( !d->done ) {
-            d->query = new Query( "", this );
-            //d->query = new Query( d->root->where( this ) );
-            // this is where I do clever d->query->bind() stuff and then
-            // execute
-        }
+        if ( d->done )
+            return;
+
+        d->query = new SearchQuery( this );
+        d->query->s = d->root->where();
+        d->query->execute();
     }
 
-    if ( !d->done )
+    if ( !d->query->done() )
         return;
 
     ImapSession * s = imap()->session();
-    String r( "SEARCH" );
-    List<uint>::Iterator it( d->matches.first() );
-    while ( it ) {
-        r.append( " " );
-        uint n = *it;
-        ++it;
+    Row * r;
+    String result( "SEARCH" );
+    while ( (r=d->query->nextRow()) != 0 ) {
+        uint n = r->getInt( "uid" );
         if ( !d->uid )
             n = s->msn( n );
-        r.append( fn( n ) );
+        result.append( " " );
+        result.append( fn( n ) );
     }
-    respond( r );
+
+    respond( result );
     finish();
 }
 
@@ -678,11 +686,11 @@ void Search::Condition::simplify()
 
 /*! Gives an SQL string representing this condition.
 
-    The string may include $n placeholders; where() will add them to
-    \a d as required.
+    The string may include $n placeholders; where() and its helpers
+    will bind them as required.
 */
 
-String Search::Condition::where( SearchData * d ) const
+String Search::Condition::where() const
 {
     switch( f ) {
     case InternalDate:
@@ -729,7 +737,7 @@ String Search::Condition::whereInternalDate() const
     d->query->bind( n1, d1.unixTime() );
     uint n2 = d->argument();
     d->query->bind( n2, d2.unixTime() );
-            
+
     if ( a == OnDate ) {
         return "messages.idate>=$" + fn( n1 ) +
             " and messages.idate<=$" + fn( n2 );
@@ -779,12 +787,12 @@ String Search::Condition::whereHeaderField() const
     uint fnum = d->argument();
     d->query->bind( fnum, a1 );
     uint like = d->argument();
-    d->query->bind( like, "%" + q( a2 ) + "%" );
+    d->query->bind( like, q( a2 ) );
     return "(header_fields.mailbox=messages.mailbox and "
         "header_fields.uid=messages.uid and "
         "header_fields.field=field_names.id and "
         "field_names.name=$" + fn( fnum ) + " and "
-        "value like $" + fn( like ) + ")";
+        "value like '%' || $" + fn( like ) + " || '%' )";
 }
 
 
@@ -797,26 +805,10 @@ String Search::Condition::whereAddressField( const String & field ) const
     String raw( q( a2 ) );
     int at = raw.find( '@' );
     uint name = d->argument();
-    d->query->bind( name, "%" + raw + "%" );
+    d->query->bind( name, raw );
     uint lp = d->argument();
     uint dom = d->argument();
     String r;
-    if ( at < 0 ) {
-        d->query->bind( lp, "%" + raw + "%" );
-        d->query->bind( dom, "%" + raw + "%" );
-    }
-    else if ( at == 0 ) {
-        d->query->bind( lp, "" );
-        d->query->bind( dom, raw.mid( at+1 ) + "%" );
-    }
-    else if ( at == (int)raw.length() - 1 ) {
-        d->query->bind( lp, "%" + raw.mid( 0, at ) );
-        d->query->bind( dom, "" );
-    }
-    else {
-        d->query->bind( lp, "%" + raw.mid( 0, at ) );
-        d->query->bind( dom, raw.mid( at+1 ) + "%" );
-    }
     r.append( "(address_fields.mailbox=messages.mailbox and "
               "address_fields.uid=messages.uid and " );
     if ( !field.isEmpty() ) {
@@ -826,9 +818,22 @@ String Search::Condition::whereAddressField( const String & field ) const
                   "field_names.name=$" + fn( fnum ) + " and " );
     }
     r.append( "address_fields.address=addresses.id and "
-              "(addresses.name like $" + fn( name ) +
-              " or addresses.localpart like $" + fn( lp ) + 
-              " or addresses.domain like $" + fn( dom ) + "))" );
+              "(addresses.name like '%' || $" + fn( name ) + " || '%' " );
+    if ( at < 0 ) {
+        d->query->bind( lp, raw );
+        d->query->bind( dom, raw );
+        r.append( "or addresses.localpart like '%'||$" + fn( lp ) + "||'%' "
+                  "or addresses.domain like '%'||$" + fn( dom ) + "||'%'" );
+    }
+    else {
+        d->query->bind( lp, raw.mid( 0, at ) );
+        d->query->bind( dom, raw.mid( at+1 ) + "%" );
+        if ( at > 0 )
+            r.append( "or addresses.localpart like '%'||$" + fn( lp ) + " " );
+        if ( at == (int)raw.length() - 1 )
+            r.append( "or addresses.domain like $" + fn( dom ) + "||'%'" );
+    }
+    r.append( "))" );
     return r;
 }
 

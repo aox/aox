@@ -63,7 +63,7 @@ private:
         Command * c;
         class SearchData * d;
 
-        String where( class SearchData * ) const;
+        String where() const;
         String debugString() const;
         void simplify();
         enum MatchResult {
