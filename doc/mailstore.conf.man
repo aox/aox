@@ -176,7 +176,7 @@ by default.
 Note that disabling auth-plain doesn't disable all plaintext
 passwords, since SASL isn't always used. To disable plaintext
 passwords, use the
-.I allow-plaintext
+.I allow-plaintext-passwords
 variable above.
 .IP auth-anonymous
 controls whether the servers offer anonymous login. Disabled by
