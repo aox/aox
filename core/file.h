@@ -10,7 +10,7 @@ public:
     enum Access {
         Read, Write
     };
-    File( const String &, Access, uint = 0 );
+    File( const String &, File::Access, uint = 0 );
     ~File();
 
     bool valid() const;

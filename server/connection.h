@@ -14,7 +14,7 @@ public:
     virtual ~Connection();
 
     enum State { Invalid, Inactive, Listening, Connecting, Connected, Closing };
-    void setState( State );
+    void setState( Connection::State );
     State state() const;
     bool active() const;
     bool valid() const;

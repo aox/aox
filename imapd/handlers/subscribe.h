@@ -10,7 +10,7 @@ class Subscribe
 public:
     enum Mode { Add, Remove };
 
-    Subscribe( Mode m = Add )
+    Subscribe( Subscribe::Mode m = Add )
         : mode( m ), selected( false ), q( 0 )
     {}
 
