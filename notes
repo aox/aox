@@ -1,16 +1,26 @@
 Add support for RFC 2047 encoding
 
 
-We should not duplicate the contents of address_fields in header_fields.
+ocd needs work (mike@waspfactory.org)
 
-  The Injector should avoid inserting address fields into header_fields,
-  and the HeaderFetcher should assemble addresses from address_fields.
+  1. Must announce new mail.
+  2. The code needs cleaning up.
+  3. Should synchronise field names etc.
+
+
+APPEND doesn't work (mike@waspfactory.org)
 
 
 We need top-level message/rfc822 support
 
 
 tlsproxy doesn't handle eof (or errors) well
+
+
+We should not duplicate the contents of address_fields in header_fields.
+
+  The Injector should avoid inserting address fields into header_fields,
+  and the HeaderFetcher should assemble addresses from address_fields.
 
 
 We need a mechanism to open more than one database handle.
@@ -20,13 +30,6 @@ We need a mechanism to open more than one database handle.
   enormous amount of data before we can start responding to the client.
 
   In this case, we might also want to use a cursor. Discuss.
-
-
-ocd needs work
-
-  1. Must announce new mail.
-  2. The code needs cleaning up.
-  3. Should synchronise field names etc.
 
 
 User/Mailbox need a bit of an overhaul.
