@@ -69,6 +69,7 @@ rule Program
 {
     local target ;
     Depends exe : $(<) ;
+    Depends install : $(<) ;
     Depends $(<) : $(set-$(>)) ;
     MakeLocate $(<) : [ FDirName $(TOP) bin ] ;
 
