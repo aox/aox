@@ -497,9 +497,9 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
     if ( d->envelope )
         l.append( "ENVELOPE " + envelope( m ) );
     if ( d->body )
-        l.append( "BODY " + messageStructure( m, false ) );
+        l.append( "BODY " + bodyStructure( m, false ) );
     if ( d->bodystructure )
-        l.append( "BODYSTRUCTURE " + messageStructure( m, true ) );
+        l.append( "BODYSTRUCTURE " + bodyStructure( m, true ) );
 
     List< FetchData::Section >::Iterator it( d->sections.first() );
     while ( it ) {
@@ -616,7 +616,7 @@ String Fetch::envelope( Message * m )
     false, BODY.
 */
 
-String Fetch::messageStructure( Message * m, bool extended )
+String Fetch::bodyStructure( Multipart * m, bool extended )
 {
     String r;
 
@@ -627,7 +627,7 @@ String Fetch::messageStructure( Message * m, bool extended )
         StringList children;
         List< BodyPart >::Iterator it( m->children()->first() );
         while ( it ) {
-            children.append( bodyPartStructure( it, extended ) );
+            children.append( bodyStructure( it, extended ) );
             ++it;
         }
 
@@ -638,39 +638,12 @@ String Fetch::messageStructure( Message * m, bool extended )
         r.append( ")" );
     }
     else {
-        r = singlePartStructure( m->bodyPart(1), extended );
-    }
-
-    return r;
-}
-
-
-/*! Returns the structure of a single bodypart \a bp. If \a extended is
-    true, extended BODYSTRUCTURE attributes are included.
-*/
-
-String Fetch::bodyPartStructure( BodyPart *bp, bool extended )
-{
-    String r;
-
-    Header *hdr = bp->header();
-    ContentType *ct = hdr->contentType();
-
-    if ( ct->type() == "multipart" ) {
-        StringList children;
-        List< BodyPart >::Iterator it( bp->children()->first() );
-        while ( it ) {
-            children.append( bodyPartStructure( it, extended ) );
-            ++it;
-        }
-
-        r = "(" + children.join( "" ) +
-            " " + imapQuoted( ct->subtype() );
-        if ( extended )
-            r.append( "" );
-        r.append( ")" );
-    }
-    else {
+        /* If we get here, m is either a single-part leaf BodyPart, or a
+           Message. In the former case, it will have no children(), but
+           the Message will have one child. */
+        BodyPart *bp = m->children()->first();
+        if ( !bp )
+            bp = (BodyPart *)m;
         r = singlePartStructure( bp, extended );
     }
 
@@ -738,7 +711,7 @@ String Fetch::singlePartStructure( BodyPart *bp, bool extended )
         //                   SP body SP body-fld-lines
 
         l.append( envelope( bp->rfc822() ) );
-        l.append( messageStructure( bp->rfc822(), extended ) );
+        l.append( bodyStructure( bp->rfc822(), extended ) );
         l.append( fn( bp->numBytes() ) );
     }
     else if ( ct->type() == "text" ) {

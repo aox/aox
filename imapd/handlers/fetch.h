@@ -8,6 +8,7 @@
 
 class Message;
 class BodyPart;
+class Multipart;
 
 
 class Fetch
@@ -31,8 +32,7 @@ private:
     String flagList( Message *, uint );
     String internalDate( Message * );
     String envelope( Message * );
-    String messageStructure( Message *, bool );
-    String bodyPartStructure( BodyPart *, bool );
+    String bodyStructure( Multipart *, bool );
     String singlePartStructure( BodyPart *, bool );
     void removeInvalidUids();
     void sendFetchQueries();
