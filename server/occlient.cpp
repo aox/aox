@@ -32,18 +32,14 @@ OCClient::OCClient( int s )
 }
 
 
-/*! Connects to OCD if the ocdhost configuration variable is set.
+/*! Connects to the configured OCD server on ocdhost.
     Expects to be called from ::main().
 */
 
 void OCClient::setup()
 {
-    Configuration::Text ocdHost( "ocdhost", "" );
+    Configuration::Text ocdHost( "ocdhost", "127.0.0.1" );
     Configuration::Scalar ocdPort( "ocdport", 2050 );
-
-    if ( ((String)ocdHost).isEmpty() )
-        return;
-
     Endpoint e( ocdHost, ocdPort );
 
     if ( !e.valid() ) {
