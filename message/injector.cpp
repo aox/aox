@@ -41,8 +41,7 @@ public:
           owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
           totalUids( 0 ), uids( 0 ), totalBodyparts( 0 ), bodypartIds( 0 ),
           bodyparts( 0 ), addressLinks( 0 ), fieldLinks( 0 ), otherFields( 0 ),
-          fieldLookup( 0 ), addressLookup( 0 ),
-          log( new Log( Log::General ) )
+          fieldLookup( 0 ), addressLookup( 0 ), log( 0 )
     {}
 
     int step;
@@ -66,6 +65,7 @@ public:
 
     CacheLookup * fieldLookup;
     CacheLookup * addressLookup;
+
     Log * log;
 };
 
@@ -134,6 +134,7 @@ Injector::Injector( const Message * message,
     d->owner = owner;
     d->message = message;
     d->mailboxes = mailboxes;
+    d->log = Scope::current()->log();
 }
 
 
@@ -170,7 +171,7 @@ bool Injector::failed() const
 
 void Injector::execute()
 {
-    Scope s( d->log );
+    Scope x( d->log );
     if ( d->step == 0 ) {
         // We begin by obtaining a UID for each mailbox we are injecting
         // a message into, and simultaneously inserting entries into the
@@ -249,9 +250,9 @@ void Injector::execute()
         // pass them on, because d->owner would have killed itself.
         if ( d->owner ) {
             if ( d->failed )
-                d->owner->log( "Injection failed: " + d->transaction->error() );
+                log( "Injection failed: " + d->transaction->error() );
             else
-                d->owner->log( "Injection succeeded" );
+                log( "Injection succeeded" );
             d->owner->execute();
             d->owner = 0;
         }
@@ -660,8 +661,7 @@ void Injector::logMessageDetails()
     if ( h )
         id = h->messageId();
     if ( id.isEmpty() ) {
-        d->owner->log( "Injecting message without message-id",
-                       Log::Debug );
+        log( "Injecting message without message-id", Log::Debug );
         // should we log x-mailer? from? neither?
     }
     else {
@@ -669,8 +669,7 @@ void Injector::logMessageDetails()
     }
     List<Mailbox>::Iterator it( d->mailboxes->first() );
     while ( it ) {
-        d->owner->log( "Injecting message " + id +
-                       "into mailbox " + it->name() );
+        log( "Injecting message " + id + "into mailbox " + it->name() );
         ++it;
     }
 }

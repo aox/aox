@@ -34,7 +34,6 @@ public:
 SmtpDbClient::SmtpDbClient( SMTP * s )
     : EventHandler(), owner( s ), injector( 0 )
 {
-    setLog( Scope::current()->log() );
 }
 
 
