@@ -15,10 +15,31 @@ SubInclude TOP imapd auth ;
 
 SubDir TOP imapd ;
 
+# a rule to build the address-testing file, and maybe others later?
+
+rule Struct
+{
+    Depends $(<) : $(>) ;
+    Clean clean : $(<) ;
+    SEARCH on $(>) = $(SEARCH_SOURCE) ;
+    MakeLocate $(<) : $(LOCATE_SOURCE) ;
+}
+
+actions Struct
+{
+    sed -e 's/##.*//' -e 's/[\\"]/\\&/g' < $(>) | \
+	grep . | \
+	sed -e 's/^/{ "/' -e 's/	/", "/g' -e 's/$/" },/'> $(<)
+}
+
+# build the struct file for address testing
+
+Struct addresses.inc : addresses.test ;
+
 # build the .o files in this directory
 
 Build imap : imapd.cpp imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp 
-	query.cpp ;
+	query.cpp address.cpp ;
 
 Build logd : logd.cpp logserver.cpp ;
 
