@@ -22,7 +22,7 @@ public:
     InjectorData()
         : step( 0 ), failed( false ),
           owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
-          uids( 0 ), bodyparts( 0 ), addressLinks( 0 )
+          uids( 0 ), bodypartIds( 0 ), bodyparts( 0 ), addressLinks( 0 )
     {}
 
     int step;
@@ -34,8 +34,11 @@ public:
 
     Transaction * transaction;
 
+    uint totalUids;
     List< int > * uids;
-    List< int > * bodyparts;
+    uint totalBodyparts;
+    List< int > * bodypartIds;
+    List< BodyPart > * bodyparts;
     List< AddressLink > * addressLinks;
 };
 
@@ -125,16 +128,23 @@ void Injector::execute()
 {
     if ( d->step == 0 ) {
         // We begin by obtaining a UID for each mailbox we are injecting
-        // a message into. At the same time, we can begin to look up and
-        // insert addresses used in the message. We also start inserting
-        // entries into the bodyparts table here.
+        // a message into, and simultaneously inserting entries into the
+        // bodyparts table. At the same time, we can begin to lookup and
+        // insert addresses used in the message.
 
-        selectUids();
-        updateAddresses();
-        insertBodyparts();
+        if ( !d->uids && !d->bodyparts && !d->addressLinks ) {
+            selectUids();
+            insertBodyparts();
+            updateAddresses();
+            return;
+        }
 
+        // Wait for at least the first two to complete before moving on.
+        if ( d->uids->count() != d->totalUids ||
+             d->bodyparts->count() != d->totalBodyparts )
+            return;
+        
         d->step = 1;
-        return;
     }
 
     if ( d->step == 1 ) {
@@ -168,6 +178,7 @@ void Injector::selectUids()
 
     List< Mailbox >::Iterator it( d->mailboxes->first() );
     while ( it ) {
+        d->totalUids++;
         String seq( "mailbox_" + String::fromNumber( it->id() ) );
         queries->append( new Query( "select nexval('"+seq+"')::integer as id",
                                     helper ) );
@@ -234,14 +245,15 @@ void Injector::updateAddresses()
 
 void Injector::insertBodyparts()
 {
-    d->bodyparts = new List< int >;
+    d->bodypartIds = new List< int >;
     List< Query > * queries = new List< Query >;
     List< Query > * selects = new List< Query >;
-    IdHelper * helper = new IdHelper( d->bodyparts, selects, this );
+    IdHelper * helper = new IdHelper( d->bodypartIds, selects, this );
 
-    List< BodyPart > * bodyparts = d->message->bodyParts();
-    List< BodyPart >::Iterator it( bodyparts->first() );
+    d->bodyparts = d->message->bodyParts();
+    List< BodyPart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
+        d->totalBodyparts++;
         BodyPart *b = it++;
 
         Query *i, *s;
