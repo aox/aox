@@ -17,6 +17,9 @@
 // cryptlib
 #include "cryptlib.h"
 
+// exit()
+#include <stdlib.h>
+
 
 /*! \nodoc */
 
@@ -64,17 +67,17 @@ int main( int argc, char *argv[] )
     ::write( fd3, "ok\n", 3 );
     ::close( fd3 );
 
-    
+
     Configuration::setup( "mailstore.conf", "tlsproxy.conf" );
 
     String server = Configuration::hostname();
 
     /* Create the session and add the server name */
     cryptCreateSession( &cryptSession, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER );
-    cryptSetAttributeString( cryptSession, CRYPT_SESSINFO_SERVER_NAME, 
+    cryptSetAttributeString( cryptSession, CRYPT_SESSINFO_SERVER_NAME,
                              server.data(), server.length() );
     cryptSetAttribute( cryptSession, CRYPT_SESSINFO_NETWORKSOCKET, fd1 );
-    
+
     Encrypter * tmp = new Encrypter( fd1, cryptSession );
     (void)new Decrypter( fd2, tmp );
 

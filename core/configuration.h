@@ -27,12 +27,13 @@ public:
         PidFileDir,
         BinDir,
         ManDir,
+        JailDir,
         // additional settings go ABOVE THIS LINE
         Version, LastSetting = Version
     };
 
     static String compiledIn( CompileTimeSetting );
-    
+
     class Variable {
     public:
         Variable(): ok( true ), s( false ) {}

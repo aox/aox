@@ -1,11 +1,10 @@
 #include "arena.h"
 #include "scope.h"
-#include "test.h"
-#include "configuration.h"
 #include "listener.h"
 #include "ocserver.h"
 #include "ocadmin.h"
 #include "logclient.h"
+#include "server.h"
 
 #include <stdlib.h>
 
@@ -17,26 +16,12 @@ int main()
     Arena firstArena;
     Scope global( &firstArena );
 
-    Test::runTests();
-
-    Configuration::setup( "mailstore.conf", "ocd.conf" );
-
-    Loop::setup();
-
-    Log l( Log::Immediate );
-    global.setLog( &l );
+    Server s( "ocd" );
+    s.setup( Server::Report );
     LogClient::setup();
-
-    log( Test::report() );
-
+    s.setup( Server::Secure );
     Listener< OCServer >::create( "Cluster coordination", "", 2050 );
     Listener< OCAdmin >::create( "Cluster administration", "", 2051 );
 
-    Configuration::report();
-    l.commit();
-
-    if ( Log::disastersYet() )
-        exit( 1 );
-
-    Loop::start();
+    s.execute();
 }

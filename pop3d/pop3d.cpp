@@ -1,15 +1,10 @@
 #include "arena.h"
 #include "scope.h"
-#include "test.h"
-#include "configuration.h"
 #include "logclient.h"
-#include "log.h"
 #include "pop3.h"
 #include "listener.h"
 #include "loop.h"
-
-// exit
-#include <stdlib.h>
+#include "server.h"
 
 
 /*! \nodoc */
@@ -19,22 +14,11 @@ int main( int, char *[] )
     Arena firstArena;
     Scope global( &firstArena );
 
-    Test::runTests();
-
-    Configuration::setup( "mailstore.conf", "pop3d.conf" );
-
-    Loop::setup();
-
-    Log l( Log::Immediate );
-    global.setLog( &l );
+    Server s( "pop3d" );
+    s.setup( Server::Report );
     LogClient::setup();
-
-    Configuration::report();
-
+    s.setup( Server::Secure );
     Listener< POP3 >::create( "POP3", "", 2056 );
 
-    if ( Log::disastersYet() )
-        exit( -1 );
-
-    Loop::start();
+    s.execute();
 }

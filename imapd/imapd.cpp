@@ -1,20 +1,15 @@
 #include "arena.h"
 #include "scope.h"
-#include "test.h"
-#include "configuration.h"
 #include "logclient.h"
 #include "occlient.h"
 #include "database.h"
 #include "mailbox.h"
 #include "listener.h"
 #include "imap.h"
-#include "loop.h"
 #include "handlers/capability.h"
 #include "fieldcache.h"
 #include "addresscache.h"
-#include "mechanism.h"
-
-#include <stdlib.h>
+#include "server.h"
 
 
 /*! \nodoc */
@@ -24,15 +19,12 @@ int main( int, char *[] )
     Arena firstArena;
     Scope global( &firstArena );
 
-    Test::runTests();
-
-    Configuration::setup( "mailstore.conf", "imapd.conf" );
-
-    Loop::setup();
-
-    Log l( Log::Immediate );
-    global.setLog( &l );
+    Server s( "imapd" );
+    s.setup( Server::Report );
     LogClient::setup();
+    s.setup( Server::Secure );
+    Listener< IMAP >::create( "IMAP", "", 2052 );
+    s.setup( Server::Finish );
 
     OCClient::setup();
     Database::setup();
@@ -42,15 +34,5 @@ int main( int, char *[] )
     FieldNameCache::setup();
     IMAP::setup();
 
-    log( Test::report() );
-
-    Listener< IMAP >::create( "IMAP", "", 2052 );
-
-    Configuration::report();
-    l.commit();
-
-    if ( Log::disastersYet() )
-        exit( 1 );
-
-    Loop::start();
+    s.execute();
 }

@@ -5,6 +5,6 @@ HDRS += [ FDirName $(TOP) server ] ;
 SubInclude TOP db ;
 
 Build server : connection.cpp listener.cpp endpoint.cpp event.cpp logclient.cpp
-    tls.cpp loop.cpp eventloop.cpp byteforwarder.cpp ;
+    tls.cpp loop.cpp eventloop.cpp byteforwarder.cpp server.cpp ;
 
 Build mailbox : occlient.cpp mailbox.cpp ;

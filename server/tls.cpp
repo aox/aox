@@ -14,6 +14,8 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+// exit
+#include <stdlib.h>
 
 
 class TlsServerData

@@ -1,21 +1,15 @@
 #include "arena.h"
 #include "scope.h"
-#include "test.h"
 #include "configuration.h"
 #include "logclient.h"
-#include "log.h"
-#include "tls.h"
 #include "occlient.h"
 #include "database.h"
 #include "mailbox.h"
 #include "listener.h"
 #include "smtp.h"
-#include "loop.h"
 #include "fieldcache.h"
 #include "addresscache.h"
-
-// exit
-#include <stdlib.h>
+#include "server.h"
 
 
 /*! \nodoc */
@@ -25,26 +19,10 @@ int main( int, char *[] )
     Arena firstArena;
     Scope global( &firstArena );
 
-    Test::runTests();
-
-    Configuration::setup( "mailstore.conf", "smtpd.conf" );
-
-    Loop::setup();
-
-    Log l( Log::Immediate );
-    global.setLog( &l );
+    Server s( "smtpd" );
+    s.setup( Server::Report );
     LogClient::setup();
-
-    OCClient::setup();
-    Database::setup();
-    Mailbox::setup();
-    AddressCache::setup();
-    FieldNameCache::setup();
-
-    log( "SMTP server version " +
-         Configuration::compiledIn( Configuration::Version ) +
-         " started" );
-    log( Test::report() );
+    s.setup( Server::Secure );
 
     Configuration::Toggle useSmtp( "use-smtp", false );
     if ( useSmtp ) {
@@ -60,11 +38,13 @@ int main( int, char *[] )
         Listener< LMTP >::create( "LMTP", address, port );
     }
 
-    Configuration::report();
-    l.commit();
+    s.setup( Server::Finish );
 
-    if ( Log::disastersYet() )
-        exit( 1 );
+    OCClient::setup();
+    Database::setup();
+    Mailbox::setup();
+    AddressCache::setup();
+    FieldNameCache::setup();
 
     Loop::start();
 }
