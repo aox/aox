@@ -29,6 +29,18 @@ public:
 };
 
 
+static uint strut()
+{
+    uint h = QApplication::globalStrut().height();
+    uint w = QApplication::globalStrut().width();
+    if ( w > h * 8 / 5 )
+        return w;
+    if ( h < 9 )
+        return 15;
+    return h * 8 / 5;
+}
+
+
 
 /*! \class UserPane userpane.h
 
@@ -42,7 +54,7 @@ public:
 UserPane::UserPane( QWidget * parent )
     : QWidget( parent, "user pane" ), d( new UserPaneData )
 {
-    QGridLayout * tll = new QGridLayout( this );
+    QGridLayout * tll = new QGridLayout( this, 12, 4, 6 );
 
     QLabel * l = new QLabel( tr( "&Users" ),
                              this );
@@ -58,7 +70,7 @@ UserPane::UserPane( QWidget * parent )
     tll->addWidget( pb, 10, 0, AlignLeft ); // writing...
 
     // the fields on the left: login
-    l = new QLabel( tr( "User Login" ), this );
+    l = new QLabel( tr( "User &Login" ), this );
     tll->addMultiCellWidget( l, 0, 0, 2, 3 );
 
     d->login = new QLineEdit( this, "login editor" );
@@ -66,7 +78,7 @@ UserPane::UserPane( QWidget * parent )
     l->setBuddy( d->login );
 
     // real name
-    l = new QLabel( tr( "Real Name" ), this );
+    l = new QLabel( tr( "Real &Name" ), this );
     tll->addMultiCellWidget( l, 2, 2, 2, 3 );
 
     d->realName = new QLineEdit( this, "real-name editor" );
@@ -114,13 +126,14 @@ UserPane::UserPane( QWidget * parent )
              this, SLOT(removeAlias()) );
     h->addWidget( pb, 1 );
     h->addStretch( 2 );
-    tll->addLayout( h, 9, 3 );
+    tll->addLayout( h, 10, 3 );
 
     // finally, tell the master grid where it can stretch, and where
     // it must have space.
     tll->setColSpacing( 1, 0 );
     //tll->setColSpacing( 1, QApplication::globalStrut() );
-    tll->setColSpacing( 2, QApplication::globalStrut().width() );
+    tll->setColSpacing( 1, strut() );
+    tll->setColSpacing( 2, strut() );
     tll->setColStretch( 3, 2 );
 
     tll->setRowStretch( 9, 2 );
