@@ -21,6 +21,16 @@ public:
                         const char * s5 = 0, const char * s6 = 0,
                         const char * s7 = 0, const char * s8 = 0 );
 
+    enum CompileTimeSetting {
+        LogFile,
+        ConfigDir,
+        PidFileDir,
+        BinDir,
+        ManDir
+    };
+
+    static String compiledIn( CompileTimeSetting );
+    
     class Variable {
     public:
         Variable(): ok( true ), s( false ) {}
@@ -72,6 +82,7 @@ public:
     class Text: public Variable {
     public:
         Text( const String &, const String & );
+        Text( const String &, CompileTimeSetting );
 
         operator ::String() const { return value; }
 

@@ -46,29 +46,33 @@ static Configuration * global = 0;
 /*! \class Configuration configuration.h
     The Configuration class contains all configuration variables.
 
-    The file contains an arbitrary number of single-line variable
-    assignments, each of which specifies an integer, a toggle, or
-    a string.
+    There are three kinds of variables, more or less. Ordinary, the
+    hostname, and compiled-time settings.
+
+    The simplest are compile-time settings. The compiledIn() function
+    offers access to a number of such strings, e.g. the directory
+    where configuration files are to be found.
+
+    The hostname is an ordinary configuration variable whose default
+    value is established at program startup.
+
+    Ordinary variables come from either of two configuration files,
+    one global and one per-server. setup() reads both files, and must
+    be called at program startup.
+
+    Each configuration file contains an arbitrary number of
+    single-line variable assignments, each of which specifies an
+    integer, a toggle, or a string.
 
     Comments extend from a '#' sign until the end of the line. In
     quoted strings, '#' may be used.
 
-    To use this class, create a Configuration object naming the file
-    and subsequently a number of Configuration::Scalar or
-    Configuration::Toggle objects naming the variable. When all
-    configuration variable objects have been created, you call
-    report(), and all errors are reported via the log server. Note
-    that if you don't call report(), a typo may result in a variable
-    silently being reverted to default.
-
-    There is one "global" configuration, which is used for the sort of
-    things all our servers must have, e.g. the address of the log
-    server.
-
-    In addition to its normal variables, Configuration also contains a
-    single magic variable, the hostname. The hostname can be set in
-    the global configuration file, if not Configuration attempts to
-    find a name.
+    During initialization, create a number of Configuration::String,
+    Configuration::Scalar or Configuration::Toggle objects naming the
+    variables. When all configuration variable objects have been
+    created, call report(), and all errors are reported via the log
+    server. Note that if you don't call report(), a typo may result in
+    a variable silently being reverted to default.
 */
 
 
@@ -185,6 +189,31 @@ void Configuration::ignore( const char * s1, const char * s2,
         ::global->d->unparsed.take( s7 );
     if ( s8 && *s8 )
         ::global->d->unparsed.take( s8 );
+}
+
+
+/*! Returns the compile-time \a setting. */
+
+String Configuration::compiledIn( CompileTimeSetting setting )
+{
+    switch( setting ) {
+    case LogFile:
+        return LOGFILE;
+        break;
+    case ConfigDir:
+        return CONFIGDIR;
+        break;
+    case PidFileDir:
+        return PIDFILEDIR;
+        break;
+    case BinDir:
+        return BINDIR;
+        break;
+    case ManDir:
+        return MANDIR;
+        break;
+    }
+    return "";
 }
 
 
@@ -444,6 +473,19 @@ Configuration::Text::Text( const String & name, const String & defaultValue )
 }
 
 
+/*! Creates a new toggle configuration text named \a name whose
+    default value is fetched from the compile-time \a setting.
+
+    All Texts must have single-lined values.
+*/
+
+Configuration::Text::Text( const String & name, CompileTimeSetting setting )
+    : Variable(), value( compiledIn( setting ) )
+{
+    init( name );
+}
+
+
 bool Configuration::Text::setValue( const String & line )
 {
     uint i = 0;
@@ -494,10 +536,12 @@ bool Configuration::Text::setValue( const String & line )
 
 void Configuration::setup( const String & global, const String & server )
 {
+    String d = compiledIn( ConfigDir );
+
     ::global = new Configuration;
-    ::global->read( global );
+    ::global->read( d + "/" + global );
     if ( !server.isEmpty() )
-        ::global->read( server );
+        ::global->read( d + "/" + server );
 
     String host = osHostname();
     Configuration::Text hn( "hostname", host );

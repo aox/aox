@@ -20,7 +20,7 @@ int main( int, char *[] )
     Test::runTests();
 
     Configuration::setup( "mailstore.conf", "logd.conf" );
-    Configuration::Text logName( "logfile", "logfile" );
+    Configuration::Text logName( "logfile", Configuration::LogFile );
 
     Loop::setup();
 
