@@ -88,7 +88,7 @@ public:
 
 void IMAP::setup()
 {
-    Configuration::Text plaintext( "allow-plaintext", "always" );
+    Configuration::Text plaintext( "allow-plaintext-passwords", "always" );
 
     Configuration::Toggle plain( "auth-plain", true );
     Configuration::Toggle cramMd5( "auth-cram-md5", true );
@@ -106,7 +106,8 @@ void IMAP::setup()
     else if ( s.lower() == "never" )
         ::allowPlaintext = false;
     else
-        ::log( "Unknown value for allow-plaintext.", Log::Disaster );
+        ::log( "Unknown value for allow-plaintext-passwords.",
+               Log::Disaster );
 }
 
 

@@ -151,7 +151,7 @@ by default.
 .SS "User Authentication"
 http://www.oryx.com/mailstore/sasl.html describes SASL and
 authentication in more detail.
-.IP allow-plaintext
+.IP allow-plaintext-passwords
 controls whether the servers permit plaintext passwords, and how such
 passwords are handled.
 May be set to
