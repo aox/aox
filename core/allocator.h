@@ -35,6 +35,8 @@ public:
     static void free();
     static void addRoot( void * );
     static void addRoot( const void * );
+    static void removeRoot( void * );
+    static void removeRoot( const void * );
 
 private:
     uint base;
