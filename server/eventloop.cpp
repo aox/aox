@@ -344,3 +344,13 @@ void EventLoop::flushAll()
         c->write();
     }
 }
+
+
+/*! Returns a pointer to a list containing all active Connection
+    objects. The returned list should not be modified in any way.
+*/
+
+List<Connection> * EventLoop::connections() const
+{
+    return &d->connections;
+}

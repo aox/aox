@@ -85,3 +85,15 @@ void Loop::flushAll()
     if ( ::loop )
         ::loop->flushAll();
 }
+
+
+/*! Returns a list of all active Connection objects, or perchance an
+    empty list or a null pointer, should there be none.
+*/
+
+List<Connection> * Loop::connections()
+{
+    if ( ::loop )
+        return ::loop->connections();
+    return 0;
+}

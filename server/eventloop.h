@@ -3,6 +3,8 @@
 
 class Connection;
 
+#include "list.h"
+
 
 class EventLoop {
 public:
@@ -16,6 +18,9 @@ public:
     void removeConnection( Connection * );
     void closeAllExcept( Connection *, Connection * );
     void flushAll();
+
+    List<Connection> * connections() const;
+
 
 private:
     class LoopData *d;

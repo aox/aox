@@ -3,6 +3,8 @@
 
 class Connection;
 
+#include "list.h"
+
 
 class Loop {
 public:
@@ -13,6 +15,7 @@ public:
     static void removeConnection( Connection * );
     static void closeAllExcept( Connection *, Connection * );
     static void flushAll();
+    static List<Connection> * connections();
 };
 
 
