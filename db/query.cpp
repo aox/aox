@@ -6,6 +6,7 @@
 #include "string.h"
 #include "database.h"
 #include "event.h"
+#include "stringlist.h"
 #include "transaction.h"
 #include "loop.h"
 #include "log.h"
@@ -30,6 +31,7 @@ public:
     List< Row > rows;
     uint totalRows;
 
+    String description;
     String error;
 
     bool startup;
@@ -327,6 +329,43 @@ void Query::notify()
     // Transactions may create COMMIT/ROLLBACK queries without handlers.
     if ( d->owner )
         d->owner->execute();
+}
+
+
+/*! Returns a description of this query and its parameters, if any, that
+    is suitable for logging and debugging. (The description is generated
+    and stored the first time this function is called, and later calls
+    just return the old value.)
+*/
+
+String Query::description()
+{
+    if ( d->description.isEmpty() ) {
+        StringList p;
+
+        int i = 0;
+        List< Query::Value >::Iterator v( values()->first() );
+        while ( v ) {
+            i++;
+            
+            String r;
+            int n = v->length();
+            if ( n == -1 )
+                r = "NULL";
+            else if ( n <= 16 && v->format() != Query::Binary )
+                r = "'" + v->data() + "'";
+            else
+                r = "...{" + fn( n ) + "}";
+            p.append( fn(i) + "=" + r );
+            ++v;
+        }
+
+        d->description.append( "\"" + string() + "\"" );
+        if ( i > 0 )
+            d->description.append( " (" + p.join(",") + ")" );
+    }
+
+    return d->description;
 }
 
 

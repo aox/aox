@@ -83,6 +83,8 @@ public:
     EventHandler *owner() const;
     void notify();
 
+    String description();
+
     String error() const;
     void setError( const String & );
 

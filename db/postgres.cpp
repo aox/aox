@@ -144,7 +144,7 @@ void Postgres::processQueue()
         e.enqueue( writeBuffer() );
 
         s.append( "execute" );
-        log( "Sent " + s + " for " + q->string(), Log::Debug );
+        log( "Sent " + s + " for " + q->description(), Log::Debug );
         n++;
     }
 
@@ -384,7 +384,11 @@ void Postgres::process( char type )
                 PgEmptyQueryResponse msg( readBuffer() );
 
             if ( q ) {
-                log( "Dequeueing query " + q->string(), Log::Debug );
+                String s;
+                s.append( "Dequeueing query " + q->description() );
+                if ( q->rows() > 0 )
+                    s.append( " (with " + fn( q->rows() ) + " rows)" );
+                log( s, Log::Debug );
                 if ( !q->done() )
                     q->setState( Query::Completed );
                 q->notify();
@@ -434,6 +438,8 @@ void Postgres::process( char type )
 
 void Postgres::unknown( char type )
 {
+    String s;
+
     switch ( type ) {
     case 'S':
         {
@@ -494,52 +500,24 @@ void Postgres::unknown( char type )
 
             case PgMessage::Error:
             case PgMessage::Warning:
-                {
-                    String s;
-                    StringList p;
+                if ( msg.severity() == PgMessage::Warning )
+                    s.append( "WARNING: " );
+                else
+                    s.append( "ERROR: " );
 
-                    List< Query::Value >::Iterator v;
-                    if ( q )
-                        v = q->values()->first();
+                if ( q )
+                    s.append( "Query " + q->description() + ": " );
 
-                    int i = 0;
-                    while ( v ) {
-                        i++;
-                        String s;
-                        int n = v->length();
-                        if ( n == -1 )
-                            s = "NULL";
-                        else if ( n <= 16 && v->format() != Query::Binary )
-                            s = "'" + v->data() + "'";
-                        else
-                            s = "...{" + fn( n ) + "}";
-                        p.append( fn(i) + "=" + s );
-                        ++v;
-                    }
+                s.append( msg.message() );
+                if ( msg.detail() != "" )
+                    s.append( " (" + msg.detail() + ")" );
+                log( s, Log::Error );
 
-                    if ( msg.severity() == PgMessage::Warning )
-                        s.append( "WARNING: " );
-                    else
-                        s.append( "ERROR: " );
-
-                    if ( q ) {
-                        s.append( "Query \"" + q->string() + "\"" );
-                        if ( i > 0 )
-                            s.append( " (" + p.join(",") + ")" );
-                        s.append( ": " );
-                    }
-
-                    s.append( msg.message() );
-                    if ( msg.detail() != "" )
-                        s.append( " (" + msg.detail() + ")" );
-                    log( s, Log::Error );
-
-                    // Has the current query failed?
-                    if ( q && msg.severity() == PgMessage::Error ) {
-                        d->queries.take( d->queries.first() );
-                        q->setError( msg.message() );
-                        q->notify();
-                    }
+                // Has the current query failed?
+                if ( q && msg.severity() == PgMessage::Error ) {
+                    d->queries.take( d->queries.first() );
+                    q->setError( msg.message() );
+                    q->notify();
                 }
                 break;
 
