@@ -8,6 +8,7 @@
 #include "cccp.h"
 #include "log.h"
 #include "configuration.h"
+#include "database.h"
 
 
 int main( int, char *[] )
@@ -20,6 +21,7 @@ int main( int, char *[] )
     Configuration::makeGlobal( ".imapdrc" );
 
     Log::setup();
+    Database::setup();
 
     Log l;
     global.setLog( &l );

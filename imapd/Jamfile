@@ -9,6 +9,7 @@ SubInclude TOP codecs ;
 
 # - our own subdirectories, with a -I pointing here
 HDRS += [ FDirName $(TOP) imapd ] ;
+HDRS += [ FDirName $(TOP) imapd db ] ;
 SubInclude TOP imapd handlers ;
 SubInclude TOP imapd auth ;
 SubInclude TOP imapd db ;
