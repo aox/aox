@@ -4,6 +4,7 @@
 
 #include "allocator.h"
 #include "buffer.h"
+#include "dict.h"
 #include "list.h"
 #include "file.h"
 #include "loop.h"
@@ -19,6 +20,7 @@ static Log::Severity logLevel;
 
 static Log::Facility facility( const String & );
 static Log::Severity severity( const String & );
+
 
 /*! \class LogServer logserver.h
     The LogServer listens for log items on a TCP socket and commits
@@ -45,17 +47,18 @@ public:
 
     class Line {
     public:
-        Line( String t, Log::Facility f, Log::Severity s, const String &l )
-            : tag( t ), facility( f ), severity( s ), line( l )
+        Line( Log::Facility f, Log::Severity s, const String &l )
+            : facility( f ), severity( s ), line( l )
         {}
 
-        String tag;
         Log::Facility facility;
         Log::Severity severity;
         String line;
     };
 
-    List< Line > pending;
+    typedef List<Line> Queue;
+
+    Dict<Queue> pending;
 };
 
 
@@ -94,13 +97,12 @@ void LogServer::react( Event e )
         // Timeout never should happen
     case Shutdown:
         log( 0, Log::Immediate, Log::Debug, "log server shutdown" );
-        commit( 0, Log::Immediate, Log::Debug );
+        commitAll();
         break;
     case Connect:
     case Error:
     case Close:
-        if ( !d->pending.isEmpty() )
-            commit( 0, Log::Immediate, Log::Debug );
+        commitAll();
         break;
     };
 }
@@ -170,10 +172,17 @@ void LogServer::processLine( const String &line )
 void LogServer::log( String t, Log::Facility f, Log::Severity s,
                      const String &line )
 {
-    if ( f == Log::Immediate )
+    if ( f == Log::Immediate ) {
         output( t, f, s, line );
-    else
-        d->pending.append( new LogServerData::Line( t, f, s, line ) );
+        return;
+    }
+
+    LogServerData::Queue * q = d->pending.find( t );
+    if ( !q ) {
+        q = new LogServerData::Queue;
+        d->pending.insert( t, q );
+    }
+    q->append( new LogServerData::Line( f, s, line ) );
 }
 
 
@@ -187,29 +196,39 @@ void LogServer::log( String t, Log::Facility f, Log::Severity s,
 void LogServer::commit( String tag,
                         Log::Facility facility, Log::Severity severity )
 {
-    bool first = true;
-
-    List< LogServerData::Line >::Iterator i( d->pending.first() );
+    LogServerData::Queue * q = d->pending.find( tag );
+    if ( !q || q->isEmpty() )
+        return;
+    
+    List< LogServerData::Line >::Iterator i( q->first() );
     while ( i ) {
-        LogServerData::Line *l = i;
+        if ( i->severity >= severity )
+            output( tag, i->facility, i->severity, i->line );
+        ++i;
+    }
+    q->clear();
+}
 
-        if ( tag.isEmpty() ) {
-            if ( first )
-                log( 0, Log::Immediate, Log::Error,
-                     "Log client unexpectedly died. "
-                     "All messages in unfinished transactions follow." );
-            first = false;
-            d->pending.take( i );
-            output( l->tag, l->facility, l->severity, l->line );
-        }
-        else if ( tag == l->tag ) {
-            d->pending.take( i );
-            if ( l->severity >= severity )
-                output( l->tag, l->facility, l->severity, l->line );
-        }
-        else {
-            ++i;
-        }
+
+
+/*! Commits all messages made to all transactions. */
+
+void LogServer::commitAll()
+{
+    StringList keys( d->pending.keys() );
+    StringList::Iterator i( keys.first() );
+    while ( i && d->pending.find( *i )->isEmpty() )
+        ++i;
+    if ( !i )
+        return;
+
+    log( 0, Log::Immediate, Log::Error,
+         "Log client unexpectedly died. "
+         "All messages in unfinished transactions follow." );
+    i = keys.first();
+    while ( i ) {
+        commit( *i, Log::General, Log::Debug );
+        ++i;
     }
 }
 
