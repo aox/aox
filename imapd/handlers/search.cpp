@@ -71,8 +71,10 @@ void Search::parse()
 
     prepare();
     respond( "OK debug: query as parsed: " + d->root->debugString() );
+    log( "OK debug: query as parsed: " + d->root->debugString() );
     d->root->simplify();
     respond( "OK debug: simplified query: " + d->root->debugString() );
+    log( "OK debug: simplified query: " + d->root->debugString() );
 }
 
 
@@ -335,6 +337,9 @@ void Search::considerCache()
         case Search::Condition::No:
             break;
         case Search::Condition::Punt:
+            log( Log::Debug,
+                 "Search must go to database: message " + fn( uid ) +
+                 " could not be tested in RAM" );
             needDb = true;
             break;
         }
@@ -777,37 +782,35 @@ Search::Condition::MatchResult Search::Condition::match( Message * m,
                 return No;
             if ( a == Or && sub == Yes )
                 return Yes;
+            ++i;
         }
-        ++i;
         if ( a == And )
             return Yes;
         else
             return No;
     }
     else if ( a == Contains && f == Uid ) {
-        if ( !uid )
-            return Punt;
         if ( s.contains( uid ) )
             return Yes;
         return No;
     }
     else if ( a == Contains && f == Flags ) {
-        if ( uid > 0 && a2 == "recent" ) {
+        if ( uid > 0 && a1 == "recent" ) {
             ImapSession * s = c->imap()->session();
             if ( s->isRecent( uid ) )
                 return Yes;
             return No;
         }
         else if ( m ) {
-            if ( a2 == "answered" )
+            if ( a1 == "answered" )
                 return m->flag( Message::AnsweredFlag ) ? Yes : No;
-            if ( a2 == "deleted" )
+            if ( a1 == "deleted" )
                 return m->flag( Message::DeletedFlag ) ? Yes : No;
-            if ( a2 == "draft" )
+            if ( a1 == "draft" )
                 return m->flag( Message::DraftFlag ) ? Yes : No;
-            if ( a2 == "flagged" )
+            if ( a1 == "flagged" )
                 return m->flag( Message::FlaggedFlag ) ? Yes : No;
-            if ( a2 == "seen" )
+            if ( a1 == "seen" )
                 return m->flag( Message::SeenFlag ) ? Yes : No;
         }
 
@@ -818,7 +821,7 @@ Search::Condition::MatchResult Search::Condition::match( Message * m,
         if ( sub == Punt )
             return Punt;
         else if ( sub == Yes )
-             return No;
+            return No;
         else
             return Yes;
     }
