@@ -50,7 +50,10 @@ Fix shutdown
 Bodypart sharing
 
   We're doing an in-memory Dict< hash > right now.
-  We could do better, but it would involve waiting.
+  We could do better, but it might involve waiting.
+
+  And, after some thought, I've decided that it doesn't belong in 0.90
+  now. A great pity, but there it is.
 
 
 Using SHA-1 to hash bodyparts instead of MD5.
