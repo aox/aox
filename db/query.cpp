@@ -157,8 +157,10 @@ void Query::setState( State s )
     }
     if ( d->startup && failed() )
         log( Log::Disaster, "Necessary startup query failed: " + string() );
-    else 
+    else
         log( Log::Debug, action + " query " + string() );
+    if ( s == Failed )
+        log( Log::Debug, "Database error message: " + d->error );
 }
 
 
