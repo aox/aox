@@ -278,6 +278,11 @@ String Parser::argumentList()
                 i++;
             whitespace();
         }
+        else if ( t[i] == '[' && t[i+1] == ']' ) { // this argument is an array
+            i = i + 2;
+            r.append( "[]" );
+            whitespace();
+        }
         s = ", ";
         if ( t[i] == ',' ) {
             more = true;
