@@ -63,18 +63,20 @@ if [ ! $EXISTS ]; then
 fi
 
 
-# Feed the schema to the database.
+# Feed the schema to the database if necessary.
 
-# XXX: shouldn't we skip this step if the database already exists?
-
-cat <<PSQL | su - $PGUSER -c "$PSQL -q -d template1 -f -" || exit
+EXISTS="select relname from pg_catalog.pg_class where relname='mailstore'"
+EXISTS=$(su - $PGUSER -c "$PSQL -d $DBNAME -Atqc \"$EXISTS\"")
+if [ ! $EXISTS ]; then
+    echo "Loading Mailstore schema"
+cat <<PSQL | su - $PGUSER -c "$PSQL -q -d $DBNAME -f -" || exit
 \set ON_ERROR_STOP
-\c $DBNAME
 SET SESSION AUTHORIZATION $DBUSER;
 SET client_min_messages TO 'ERROR';
 \i $SCHEMA/schema.pg
 \i $SCHEMA/field-names
 PSQL
+fi
 
 # Reconfigure and restart the server if required and possible.
 
