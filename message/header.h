@@ -98,8 +98,6 @@ public:
     List<Address> * addresses( HeaderField::Type ) const;
 
     HeaderField * field( HeaderField::Type, uint=0 ) const;
-
-    void appendField( String &, HeaderField::Type ) const;
     String mimeFields() const;
 
     void simplify();
@@ -110,8 +108,11 @@ public:
 
     static HeaderField::Type fieldType( const String & );
 
+    String asText() const;
+
 private:
     void verify() const;
+    void appendField( String &, HeaderField::Type ) const;
 
 private:
     class HeaderData * d;
