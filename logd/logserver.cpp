@@ -14,9 +14,12 @@
 #include <stdio.h>
 
 
-static uint id = 0;
+static uint id;
 static File *logFile;
+static Log::Severity logLevel;
 
+static Log::Facility facility( const String & );
+static Log::Severity severity( const String & );
 
 /*! \class LogServer logserver.h
     The LogServer listens for log items on a TCP socket and commits
@@ -137,23 +140,14 @@ void LogServer::processLine( const String &line )
     cmd = line.find( ' ' );
     if ( cmd > 0 )
         msg = line.find( ' ', cmd+1 );
-    if ( msg > cmd+1 )
-        process( line.mid( 0, cmd ),
-                 line.mid( cmd+1, msg-cmd-1 ),
-                 line.mid( msg+1 ).simplified() );
-}
+    if ( msg <= cmd+1 )
+        return;
 
+    String transaction = line.mid( 0, cmd );
+    String priority = line.mid( cmd+1, msg-cmd-1 );
+    String parameters = line.mid( msg+1 ).simplified();
 
-/*! This private function processes a log line belonging to \a
-    transaction, of type \a priority and with \a parameters.
-*/
-
-void LogServer::process( String transaction,
-                         String priority,
-                         String parameters )
-{
     bool c = false;
-
     if ( priority == "commit" ) {
         priority = parameters;
         parameters = "";
@@ -164,40 +158,12 @@ void LogServer::process( String transaction,
     if ( n < 0 )
         return;
 
-    String facility = priority.mid( 0, n );
-    Log::Facility f = Log::General;
-    if ( facility == "immediate" )
-        f = Log::Immediate;
-    else if ( facility == "configuration" )
-        f = Log::Configuration;
-    else if ( facility == "database" )
-        f = Log::Database;
-    else if ( facility == "authentication" )
-        f = Log::Authentication;
-    else if ( facility == "imap" )
-        f = Log::IMAP;
-    else if ( facility == "smtp" )
-        f = Log::SMTP;
-    else if ( facility == "server" )
-        f = Log::Server;
-
-    String severity = priority.mid( n+1 );
-    Log::Severity s;
-    if ( severity == "debug" )
-        s = Log::Debug;
-    else if ( severity == "info" )
-        s = Log::Info;
-    else if ( severity == "error" )
-        s = Log::Error;
-    else if ( severity == "disaster" )
-        s = Log::Disaster;
-    else
-        return;
+    Log::Facility f = facility( priority.mid( 0, n ) );
+    Log::Severity s = severity( priority.mid( n+1 ) );
 
     if ( !c )
         log( transaction, f, s, parameters );
-
-    if ( c || s >= Log::Error ) {
+    if ( c || s >= logLevel ) {
         if ( s >= Log::Error )
             s = Log::Debug;
         commit( transaction, f, s );
@@ -285,14 +251,54 @@ void LogServer::setLogFile( const String & name )
 {
     File * l = new File( name, File::Append );
     if ( l->valid() )
-        ::logFile = l;
+        logFile = l;
     else
         ::log( "Could not open log file " + name, Log::Error );
 }
 
 
-/*! Does nothing for now. */
+/*! Sets the log level to the Severity corresponding to \a l. */
 
-void LogServer::setLogLevel( const String & )
+void LogServer::setLogLevel( const String &l )
 {
+    logLevel = severity( l );
+}
+
+
+static Log::Facility facility( const String &l )
+{
+    Log::Facility f = Log::General;
+
+    String p = l.lower();
+    if ( p == "immediate" )
+        f = Log::Immediate;
+    else if ( p == "configuration" )
+        f = Log::Configuration;
+    else if ( p == "database" )
+        f = Log::Database;
+    else if ( p == "authentication" )
+        f = Log::Authentication;
+    else if ( p == "imap" )
+        f = Log::IMAP;
+    else if ( p == "smtp" )
+        f = Log::SMTP;
+    else if ( p == "server" )
+        f = Log::Server;
+    return f;
+}
+
+static Log::Severity severity( const String &l )
+{
+    Log::Severity s = Log::Info;
+
+    String p = l.lower();
+    if ( p == "debug" )
+        s = Log::Debug;
+    else if ( p == "info" )
+        s = Log::Info;
+    else if ( p == "error" )
+        s = Log::Error;
+    else if ( p == "disaster" )
+        s = Log::Disaster;
+    return s;
 }

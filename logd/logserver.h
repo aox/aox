@@ -23,7 +23,6 @@ public:
 
 private:
     void parse();
-    void process( String, String, String );
     void commit( String, Log::Facility, Log::Severity );
     void log( String, Log::Facility, Log::Severity, const String & );
     void output( String, Log::Facility, Log::Severity, const String & );
