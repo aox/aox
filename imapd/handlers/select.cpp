@@ -16,7 +16,7 @@ void Select::execute()
     if ( readOnly )
         mbox->setReadOnly( true );
     
-    if (mbox->load()) {
+    if ( mbox->load() ) {
         imap()->setMailbox( mbox );
         imap()->setState( IMAP::Selected );
     }

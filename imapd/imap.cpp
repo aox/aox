@@ -82,7 +82,7 @@ IMAP::~IMAP()
 
 void IMAP::react(Event e)
 {
-    switch (e) {
+    switch ( e ) {
     case Connection::Read:
         if ( !d->cmdArena )
             d->cmdArena = new Arena;
@@ -325,7 +325,7 @@ void IMAP::setState( State s )
         return;
     d->state = s;
     String name;
-    switch( s ) {
+    switch ( s ) {
     case NotAuthenticated:
         name = "not authenticated";
         break;
