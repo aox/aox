@@ -1,23 +1,42 @@
+Switch to using the Gulbrand-sen GC
+
+
 Add support for RFC 2047 encoding
 
 
-Web site proofreading
-
-  Need a comprehensive proofreading session.
+Fix the extra \r\n in the bodypart for o/1
 
 
-Message fixes:
-
-  1. Extra \r\n in the bodypart for o/1
+Make sure ocd announces new users and new mail
 
 
-Make sure ocd works
-
-
-LIST/LSUB fixes.
+Fix the horrible LIST/LSUB fixes:
 
   There's lots of horrible breakage here (for example, the reference
   name is apparently just ignored).
+
+
+Signal handling
+
+  What is the appropriate way to handle unknown signals?  (Or
+  generally, any unpredictable occurence in untested circumstances.)
+  Arnt sez: Follow the system default.
+
+  SIGHUP is known: Users use it to mean "reopen the logfile" or
+  "reread the config".
+
+  Other known signals?
+
+
+Reopen logfile when logd receives SIGHUP
+
+  Preliminary course of action: Run chrooted to the directory where
+  the logfile is, and reopen the logfile when SIGHUPPED. Document the
+  need for JAILUSER to have write rights to that file.
+
+  Possibly have logd listen to a unix-domain socket by default.
+
+  Notify hs@schlittermann.de
 
 
 Schema documentation
@@ -25,6 +44,54 @@ Schema documentation
   I've done all I want to sql-schema.html and postgres.schema; I'll have
   to wait for Sujai's diagram to complete schema.html, but until then, I
   have done all I can to it.
+
+
+Per-MTA installation and use
+
+  We need http://www.oryx.com/mailstore/exim.html and friends, plus a
+  section in src/doc/mailstore.man.
+
+  MTAs worth documenting in this way: Postfix, sendmail, exim,
+  qmail/netqmail. More?
+
+  Notify mike@waspfactory.org
+
+
+tlsproxy doesn't handle eof (or errors) well
+
+
+Write to the alistapart chap who wrote about @media after 0.91.
+
+
+Resource limits on memory allocation
+
+
+tls client support (smtp, postgresql)
+
+
+Web site proofreading
+
+  Need a comprehensive proofreading session.
+
+
+test with more imap clients (corp/docs/misc/mua-list)
+
+  Why do we have one list in mua-list and another in imap.html?
+
+
+move tests to another program
+
+
+the gui should do something
+
+
+configuration overhaul
+
+
+archives.oryx.com
+
+
+top-level message/rfc822 support
 
 
 FETCH fixes:
@@ -49,15 +116,6 @@ EXPUNGE fixes:
   is processed before we spread the word about the expunged message.
 
 
-Resource limits on memory allocation
-
-
-tlsproxy doesn't handle eof (or errors) well
-
-
-tls client support (smtp, postgresql)
-
-
 Use SHA-1 to hash bodyparts instead of MD5.
 
   MD5 is broken, and we should be moving away from it.
@@ -74,26 +132,6 @@ Bodypart sharing
 
 
 inject a large number of messages, collect query statistics
-
-
-test with more imap clients (corp/docs/misc/mua-list)
-
-  Why do we have one list in mua-list and another in imap.html?
-
-
-move tests to another program
-
-
-the gui should do something
-
-
-configuration overhaul
-
-
-archives.oryx.com
-
-
-top-level message/rfc822 support
 
 
 What to do about EventHandlers whose targets have died?
@@ -133,38 +171,10 @@ Inbox lifetime/mailbox reuse
   needs to prompt its user.
 
 
-Per-MTA installation and use
+Fix shutdown
 
-  We need http://www.oryx.com/mailstore/exim.html and friends, plus a
-  section in src/doc/mailstore.man.
-
-  MTAs worth documenting in this way: Postfix, sendmail, exim,
-  qmail/netqmail. More?
-
-  Notify mike@waspfactory.org
-
-
-Signal handling
-
-  What is the appropriate way to handle unknown signals?  (Or
-  generally, any unpredictable occurence in untested circumstances.)
-  Arnt sez: Follow the system default.
-
-  SIGHUP is known: Users use it to mean "reopen the logfile" or
-  "reread the config".
-
-  Other known signals?
-
-
-Reopen logfile when logd receives SIGHUP
-
-  Preliminary course of action: Run chrooted to the directory where
-  the logfile is, and reopen the logfile when SIGHUPPED. Document the
-  need for JAILUSER to have write rights to that file.
-
-  Possibly have logd listen to a unix-domain socket by default.
-
-  Notify hs@schlittermann.de
+  There's no practical way to shutdown using ocd/ocadmin. Perhaps this
+  is another aspect of the problem above.
 
 
 Add support for "ms restart now" and "ms restart gracefully"
@@ -175,18 +185,6 @@ Add support for "ms restart now" and "ms restart gracefully"
 
   Preliminary approach: Have ocd run chrooted in BINDIR instead of
   JAILDIR, and by default listen only to a unix socket.
-
-
-Fix shutdown
-
-  There's no practical way to shutdown using ocd/ocadmin. Perhaps this
-  is another aspect of the problem above.
-
-
-We should log a useful error if we want to open anything after chroot().
-
-
-Write to the alistapart chap who wrote about @media after 0.91.
 
 
 Field name synchronisation
@@ -237,5 +235,3 @@ SASL NTLM authentication
 
   http://www.innovation.ch/java/ntlm.html seems to be a reasonable
   description. Cyrus also implements it.
-
-
