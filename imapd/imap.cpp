@@ -288,6 +288,7 @@ void IMAP::addCommand()
         tmp += command;
         tmp += "\r\n";
         writeBuffer()->append( tmp );
+        delete d->cmdArena;
     }
 }
 
