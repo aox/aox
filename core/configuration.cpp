@@ -265,8 +265,7 @@ void Configuration::report()
     A gross hack for a good reason: This way, the virtual function
     setValue() can be called.
 
-    \a c is the Configuration object to which this value belongs, and
-    \a name is the name of this value.
+    \a name is the name of this variable.
 */
 
 void Configuration::Variable::init( const String &name )
@@ -311,10 +310,8 @@ void Configuration::Variable::init( const String &name )
 */
 
 
-/*! Creates a new scalar configuration value named \a name in
-    configuration file \a c (the file defaults to
-    Configuration::global()), and whose default value is \a
-    defaultValue.
+/*! Creates a new scalar configuration value named \a name whose
+    default value is \a defaultValue.
 
     The scalar must be a nonnegative integer less than 2147483648.
 */
@@ -356,10 +353,8 @@ bool Configuration::Scalar::setValue( const String & line )
 */
 
 
-/*! Creates a new toggle configuration value named \a name in
-    configuration file \a c (the file defaults to
-    Configuration::global()), and whose default value is \a
-    defaultValue.
+/*! Creates a new toggle configuration value named \a name whose
+    default value is \a defaultValue.
 */
 
 Configuration::Toggle::Toggle( const String & name, bool defaultValue )
@@ -407,10 +402,8 @@ bool Configuration::Toggle::setValue( const String & line )
 */
 
 
-/*! Creates a new toggle configuration text named \a name in
-    configuration file \a c (the file defaults to
-    Configuration::global()), and whose default value is \a
-    defaultValue.
+/*! Creates a new toggle configuration text named \a name whose
+    default value is \a defaultValue.
 
     All Texts must have single-lined values.
 */
@@ -461,8 +454,7 @@ bool Configuration::Text::setValue( const String & line )
 
 
 /*! Creates a new Configuration from file \a global and optionally
-    also from \a server. Later, global() returns a pointer to this
-    Configuration object.
+    also from \a server.
 
     If neither \a global nor \a server contains a textual variable
     called "hostname", this function tries to find a suitable default,
