@@ -349,8 +349,10 @@ void Injector::buildFieldLinks()
 
     List< BodyPart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
-        buildLinksForHeader( it->header(),
-                             d->message->partNumber( it ) );
+        String pn = d->message->partNumber( it );
+        buildLinksForHeader( it->header(), pn );
+        if ( it->rfc822() )
+            buildLinksForHeader( it->rfc822()->header(), pn + ".rfc822" );
         it++;
     }
 
@@ -413,40 +415,6 @@ void Injector::insertBodyparts()
         d->totalBodyparts++;
         BodyPart *b = it++;
 
-        // If we've seen the text of this body part before, we already
-        // know its bodypart id. If not, we need to insert a new entry
-        // into bodyparts.
-
-        String hash = MD5::hash( b->data() ).hex();
-        int *id = bodyHashes->find( hash );
-        if ( id ) {
-            // We'll construct a fake result for this query, and pretend
-            // that it completed successfully, giving us an id and hash.
-            //
-            // s = new Query( "select " + fn( *id ) + ", "
-            //                "'" + hash.hex() + "' as hash", helper );
-            // d->transaction->enqueue( s );
-
-            Row::Column *c = new Row::Column[2];
-            c[0].name = "id";
-            c[0].type = Database::Integer;
-            c[0].length = 4;
-            c[0].value.append( (char)((*id >> 24) & 0xff) );
-            c[0].value.append( (char)((*id >> 16) & 0xff) );
-            c[0].value.append( (char)((*id >> 8) & 0xff) );
-            c[0].value.append( (char)(*id & 0xff) );
-            c[1].name = "hash";
-            c[1].type = Database::Bytes;
-            c[1].value = hash;
-            c[1].length = 32;
-
-            s = new Query( "select id,hash from cache", helper );
-            s->addRow( new Row( 2, c ) );
-            s->setState( Query::Completed );
-            queries->append( s );
-            continue;
-        }
-
         bool text = true;
         bool data = true;
 
@@ -456,25 +424,28 @@ void Injector::insertBodyparts()
                 text = false;
             if ( ct->type() == "multipart" && ct->subtype() != "signed" )
                 data = false;
+            if ( ct->type() == "message" && ct->subtype() == "rfc822" )
+                data = false;
         }
 
-        i = new Query( "insert into bodyparts (text,bytes,lines) "
+        i = new Query( "insert into bodyparts (bytes,lines,text) "
                        "values ($1,$2,$3)", helper );
+
+        i->bind( 1, b->numBytes() );
+        i->bind( 2, b->numLines() );
+
         if ( text ) {
             data = false;
             Codec *c = new Utf8Codec;
-            i->bind( 1, c->fromUnicode( b->text() ), Query::Binary );
+            i->bind( 3, c->fromUnicode( b->text() ), Query::Binary );
         }
         else {
-            i->bindNull( 1 );
+            i->bindNull( 3 );
         }
-        i->bind( 2, b->numBytes() );
-        i->bind( 3, b->numLines() );
+
         d->transaction->enqueue( i );
 
         if ( data ) {
-            Query *i;
-
             i = new Query( "insert into binary_parts (bodypart, data) "
                            "values ((select currval('bodypart_ids')),$1)",
                            helper );
@@ -482,6 +453,7 @@ void Injector::insertBodyparts()
             d->transaction->enqueue( i );
         }
 
+        String hash = MD5::hash( b->data() ).hex();
         s = new Query( "select currval('bodypart_ids')::integer as id, "
                        "'" + hash + "'::text as hash", helper );
         d->transaction->enqueue( s );
@@ -540,6 +512,7 @@ void Injector::linkBodyparts()
         while ( it ) {
             int bid = *bids++;
             BodyPart *b = it++;
+            String pn = d->message->partNumber( b );
 
             q = new Query( "insert into part_numbers "
                            "(mailbox,uid,bodypart,partno) values "
@@ -547,9 +520,19 @@ void Injector::linkBodyparts()
             q->bind( 1, m->id() );
             q->bind( 2, uid );
             q->bind( 3, bid );
-            q->bind( 4, d->message->partNumber( b ) );
-
+            q->bind( 4, pn );
             d->transaction->enqueue( q );
+
+            if ( b->rfc822() ) {
+                q = new Query( "insert into part_numbers "
+                               "(mailbox,uid,bodypart,partno) values "
+                               "($1,$2,$3,$4)", 0 );
+                q->bind( 1, m->id() );
+                q->bind( 2, uid );
+                q->bind( 3, bid );
+                q->bind( 4, pn + ".rfc822" );
+                d->transaction->enqueue( q );
+            }
         }
     }
 }
