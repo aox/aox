@@ -1,10 +1,19 @@
+/*! \class Authenticate authenticate.h
+    \brief Initiates SASL authentication (RFC 3501, §6.2.2)
+
+    This class oversees the challenge-response negotiation, leaving the
+    details of the client-selected SASL mechanism one of the subclasses
+    of Authenticator.
+*/
+
 #include "authenticate.h"
 
-#include "imap.h"
-#include "auth/authenticator.h"
-#include "buffer.h"
 #include "arena.h"
 #include "scope.h"
+#include "buffer.h"
+#include "imap.h"
+#include "sasl/mechanism.h"
+
 
 /*! Constructs an generic Authenticate handler, for any mechanism. */
 

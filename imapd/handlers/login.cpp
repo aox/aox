@@ -5,7 +5,7 @@
 #include "login.h"
 
 #include "imap.h"
-#include "auth/plain.h"
+#include "sasl/plain.h"
 
 
 /*! Constructs a simple Login handler. */

@@ -11,7 +11,7 @@ SubInclude TOP codecs ;
 HDRS += [ FDirName $(TOP) imapd ] ;
 HDRS += [ FDirName $(TOP) imapd db ] ;
 SubInclude TOP imapd handlers ;
-SubInclude TOP imapd auth ;
+SubInclude TOP imapd sasl ;
 SubInclude TOP imapd db ;
 
 # declare our own directory again, for the benefit of the Build rules below
