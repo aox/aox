@@ -81,3 +81,24 @@ Console::Console()
     d->items->insert( w, i );
 #endif
 }
+
+
+/*! This reimplementation helps ensure that enter works appropriately
+    in all the lineedits etc.
+*/
+
+void Console::keyPressEvent( QKeyEvent * ke )
+{
+    QWidget * f = focusWidget();
+    if ( ke && f &&
+         ( f->inherits( "QLineEdit" ) ||
+           f->inherits( "QListView" ) ||
+           f->inherits( "QListBox" ) ) ) {
+        (void)focusNextPrevChild( true );
+        ke->accept();
+    }
+    else {
+        QWidget::keyPressEvent( ke );
+    }
+    return;
+}

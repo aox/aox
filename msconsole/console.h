@@ -10,6 +10,8 @@ class Console: public QSplitter {
 public:
     Console();
 
+    void keyPressEvent( QKeyEvent * );
+
 private:
     class ConsoleData * d;
 };

@@ -68,6 +68,7 @@ UserPane::UserPane( QWidget * parent )
                                             "Refresh list all users" ),
                                         this, "refresh user list" );
     tll->addWidget( pb, 10, 0, AlignLeft ); // writing...
+    pb->setFocusPolicy( NoFocus );
 
     // the fields on the left: login
     l = new QLabel( tr( "User &Login" ), this );
