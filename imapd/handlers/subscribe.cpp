@@ -1,3 +1,9 @@
+#include "subscribe.h"
+
+#include "imap.h"
+#include "query.h"
+
+
 /*! \class Subscribe subscribe.h
     Adds a mailbox to the subscription list (RFC 3501, §6.3.6)
 
@@ -15,12 +21,6 @@
 */
 
 
-#include "subscribe.h"
-
-#include "imap.h"
-#include "query.h"
-
-
 /*! \reimp */
 
 void Subscribe::parse()
@@ -35,6 +35,10 @@ void Subscribe::parse()
 
 void Subscribe::execute()
 {
+    // We check if the user has already subscribed to the mailbox, and
+    // depending on what we want, add the mailbox to the subscriptions
+    // table, remove it, or do nothing.
+
     if ( !q ) {
         q = new Query( "select id from subscriptions where "
                        "owner=" + String::fromNumber( imap()->uid() ) +
@@ -66,6 +70,8 @@ void Subscribe::execute()
                            String::fromNumber( id ), this );
         }
         else {
+            // Do nothing if we're subscribing twice, or unsubscribing
+            // without subscribing. (We don't report either an error.)
             q = 0;
         }
 
