@@ -146,11 +146,14 @@ void Injector::execute()
         // bodyparts table. At the same time, we can begin to lookup and
         // insert the addresses and field names used in the message.
 
+        d->transaction = new Transaction( this );
+
         selectUids();
         insertBodyparts();
         updateAddresses();
         updateFieldNames();
 
+        d->transaction->execute();
         d->step = 1;
     }
 
@@ -162,6 +165,8 @@ void Injector::execute()
             return;
 
         insertMessages();
+
+        d->transaction->execute();
         d->step = 2;
     }
 
@@ -176,6 +181,8 @@ void Injector::execute()
 
         linkHeaders();
         linkBodyparts();
+
+        d->transaction->execute();
         d->step = 3;
     }
 
@@ -188,10 +195,16 @@ void Injector::execute()
             return;
 
         linkAddresses();
+
+        // Now we just wait for everything to finish.
+
+        d->transaction->commit();
         d->step = 4;
     }
 
     if ( d->step == 4 ) {
+        if ( !d->transaction->done() )
+            return;
         d->owner->notify();
     }
 }
@@ -204,6 +217,7 @@ void Injector::execute()
 
 void Injector::selectUids()
 {
+    Query *q;
     d->uids = new List< int >;
     List< Query > * queries = new List< Query >;
     IdHelper * helper = new IdHelper( d->uids, queries, this );
@@ -212,12 +226,11 @@ void Injector::selectUids()
     while ( it ) {
         d->totalUids++;
         String seq( "mailbox_" + String::fromNumber( it->id() ) );
-        queries->append( new Query( "select nextval('"+seq+"')::integer as id",
-                                    helper ) );
+        q = new Query( "select nextval('"+seq+"')::integer as id", helper );
+        d->transaction->enqueue( q );
+        queries->append( q );
         it++;
     }
-
-    Database::query( queries );
 }
 
 
@@ -323,10 +336,10 @@ void Injector::updateFieldNames()
 
 void Injector::insertBodyparts()
 {
+    Query *i, *s;
     d->bodypartIds = new List< int >;
     List< Query > * queries = new List< Query >;
-    List< Query > * selects = new List< Query >;
-    IdHelper * helper = new IdHelper( d->bodypartIds, selects, this );
+    IdHelper * helper = new IdHelper( d->bodypartIds, queries, this );
 
     d->bodyparts = d->message->bodyParts();
     List< BodyPart >::Iterator it( d->bodyparts->first() );
@@ -334,20 +347,16 @@ void Injector::insertBodyparts()
         d->totalBodyparts++;
         BodyPart *b = it++;
 
-        Query *i, *s;
-
         i = new Query( "insert into bodyparts (data) values ($1)", helper );
         i->bind( 1, b->data(), Query::Binary );
 
         s = new Query( "select currval('bodypart_ids')::integer as id",
                        helper );
 
-        queries->append( i );
+        d->transaction->enqueue( i );
+        d->transaction->enqueue( s );
         queries->append( s );
-        selects->append( s );
     }
-
-    Database::query( queries );
 }
 
 
@@ -357,7 +366,7 @@ void Injector::insertBodyparts()
 
 void Injector::insertMessages()
 {
-    List< Query > * queries = new List< Query >;
+    Query *q;
 
     List< int >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
@@ -365,21 +374,18 @@ void Injector::insertMessages()
         Mailbox *m = mb++;
         int uid = *uids++;
 
-        Query *q = new Query( "insert into messages (mailbox,uid) values "
-                              "($1,$2)", 0 );
+        q = new Query( "insert into messages (mailbox,uid) values "
+                       "($1,$2)", 0 );
         q->bind( 1, m->id() );
         q->bind( 2, uid );
+        d->transaction->enqueue( q );
 
-        Query *q2 = new Query( "insert into recent_messages (mailbox,uid) "
-                               "values ($1,$2)", 0 );
-        q2->bind( 1, m->id() );
-        q2->bind( 2, uid );
-
-        queries->append( q );
-        queries->append( q2 );
+        q = new Query( "insert into recent_messages (mailbox,uid) "
+                        "values ($1,$2)", 0 );
+        q->bind( 1, m->id() );
+        q->bind( 2, uid );
+        d->transaction->enqueue( q );
     }
-
-    Database::query( queries );
 }
 
 
@@ -389,7 +395,7 @@ void Injector::insertMessages()
 
 void Injector::linkHeaders()
 {
-    List< Query > *queries = new List< Query >;
+    Query *q;
 
     List< int >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
@@ -401,7 +407,6 @@ void Injector::linkHeaders()
         while ( it ) {
             FieldLink *link = it++;
 
-            Query *q;
             q = new Query( "insert into header_fields "
                            "(mailbox,uid,part,field,value) values "
                            "($1,$2,$3,$4,$5)", 0 );
@@ -411,11 +416,9 @@ void Injector::linkHeaders()
             q->bind( 4, link->hf->type() );
             q->bind( 5, link->hf->value() );
 
-            queries->append( q );
+            d->transaction->enqueue( q );
         }
     }
-
-    Database::query( queries );
 }
 
 
@@ -425,7 +428,7 @@ void Injector::linkHeaders()
 
 void Injector::linkBodyparts()
 {
-    List< Query > * queries = new List< Query >;
+    Query *q;
 
     List< int >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
@@ -439,7 +442,6 @@ void Injector::linkBodyparts()
             int bid = *bids++;
             BodyPart *b = it++;
 
-            Query *q;
             q = new Query( "insert into part_numbers "
                            "(mailbox,uid,bodypart,partno) values "
                            "($1,$2,$3,$4)", 0 );
@@ -448,11 +450,9 @@ void Injector::linkBodyparts()
             q->bind( 3, bid );
             q->bind( 4, b->partNumber() );
 
-            queries->append( q );
+            d->transaction->enqueue( q );
         }
     }
-
-    Database::query( queries );
 }
 
 
@@ -462,7 +462,7 @@ void Injector::linkBodyparts()
 
 void Injector::linkAddresses()
 {
-    List< Query > *queries = new List< Query >;
+    Query *q;
 
     List< int >::Iterator uids( d->uids->first() );
     List< Mailbox >::Iterator mb( d->mailboxes->first() );
@@ -474,7 +474,6 @@ void Injector::linkAddresses()
         while ( it ) {
             AddressLink *link = it++;
 
-            Query *q;
             q = new Query( "insert into address_fields "
                            "(mailbox,uid,field,address) values "
                            "($1,$2,$3,$4)", 0 );
@@ -483,9 +482,7 @@ void Injector::linkAddresses()
             q->bind( 3, link->type );
             q->bind( 4, link->address->id() );
 
-            queries->append( q );
+            d->transaction->enqueue( q );
         }
     }
-
-    Database::query( queries );
 }
