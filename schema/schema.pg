@@ -4,8 +4,8 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (4);
-create sequence revisions start with 4;
+insert into mailstore (revision) values (5);
+create sequence revisions start with 5;
 
 
 -- One entry per Mailstore user.
@@ -138,6 +138,7 @@ create table header_fields (
                 references part_numbers(mailbox, uid, part)
                 on delete cascade
 );
+create index hf_mup on header_fields (mailbox, uid, part);
 
 
 -- One entry for each unique address we've encountered.
@@ -162,6 +163,7 @@ create table address_fields (
                 references messages(mailbox, uid)
                 on delete cascade
 );
+create index af_mu on address_fields (mailbox, uid);
 
 
 -- One entry for each message to be announced as \Recent.
@@ -194,6 +196,7 @@ create table flags (
                 references messages(mailbox, uid)
                 on delete cascade
 );
+create index fl_mu on flags (mailbox, uid);
 
 
 -- One entry per subscribed mailbox per user.
