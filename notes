@@ -50,9 +50,6 @@ We need top-level message/rfc822 support
 tls client support (smtp, postgresql)
 
 
-configuration overhaul
-
-
 We need an IMAP test suite
 
   Of course we will both remember what Arnt wrote in email, and our
