@@ -24,6 +24,8 @@ int main( int argc, char *argv[] )
 
     String sender;
     String recipient;
+    String filename;
+    bool error = false;
 
     int n = 1;
     while ( n < argc ) {
@@ -35,21 +37,66 @@ int main( int argc, char *argv[] )
                 break;
 
             default:
+                error = true;
                 break;
             }
         }
-        else {
+        else if ( recipient.isEmpty() ) {
             recipient = argv[n];
+        }
+        else if ( filename.isEmpty() ) {
+            filename = argv[n];
+        }
+        else {
+            error = true;
         }
         n++;
     }
 
-    if ( sender == "" || recipient == "" ) {
-        fprintf( stderr, "Syntax: deliver -f sender recipient ...\n" );
+    if ( error || recipient.isEmpty() ) {
+        fprintf( stderr,
+                 "Syntax: deliver [ -f sender ] recipient [ filename ]\n" );
         exit( -1 );
     }
 
-    Configuration::setup( "mailstore.conf", "lmtp.conf" );
+    // ### teach File to read from stdin properly
+    if ( filename.isEmpty() )
+        filename = "/proc/self/fd/0";
+
+    File message( filename, File::Read );
+    if ( !message.valid() ) {
+        fprintf( stderr, "Unable to open message file %s\n", filename.cstr() );
+        exit( -1 );
+    }
+
+    String contents = message.contents();
+
+    if ( sender.isEmpty() && 
+         ( contents.startsWith( "From " ) ||
+           contents.startsWith( "Return-Path:" ) ) ) {
+        uint i = contents.find( '\n' );
+        if ( i < 0 ) {
+            fprintf( stderr, "Message contains no LF\n" );
+            exit( -2 );
+        }
+        sender = contents.mid( 0, i );
+        contents = contents.mid( i+1 );
+        if ( sender[0] == 'R' )
+            i = sender.find( ':' );
+        else
+            i = sender.find( ' ' );
+        sender = sender.mid( i+1 ).simplified();
+            i = sender.find( ' ' );
+        if ( i > 0 )
+            sender.truncate( i );
+        if ( sender.startsWith( "<" ) && sender.endsWith( ">" ) )
+            sender = sender.mid( 1, sender.length()-2 );
+    }
+
+    fprintf( stderr, "Using recipient %s and sender %s\n",
+             recipient.cstr(), sender.cstr() );
+    
+    Configuration::setup( "mailstore.conf", "deliver.conf" );
 
     Loop::setup();
 
@@ -68,8 +115,7 @@ int main( int argc, char *argv[] )
         }
     };
 
-    File message( "/proc/self/fd/0", File::Read );
-    client = new SmtpClient( sender, message.contents(), recipient,
+    client = new SmtpClient( sender, contents, recipient,
                              new DeliveryHelper );
     Loop::start();
     return status;

@@ -52,9 +52,12 @@ SmtpClient::SmtpClient( const String &sender,
     d->message = message;
     d->recipient = recipient;
 
-    connect( Endpoint( "127.0.0.1", 2026 ) );
+    Configuration::Text lmtpServer( "lmtp-server", "127.0.0.1" );
+    Configuration::Scalar lmtpPort( "lmtp-port", 2026 );
+
+    connect( Endpoint( lmtpServer, lmtpPort ) );
     Loop::addConnection( this );
-    setTimeoutAfter( 10 );
+    setTimeoutAfter( 10 ); // ### not RFC-compliant
 }
 
 
