@@ -97,9 +97,11 @@ class InsertHelper
     : public LookupHelper
 {
 public:
-    InsertHelper( Address *a, List< Query > *l, EventHandler *ev )
+    InsertHelper( Address *a, List< Query > *l, CacheLookup *st,
+                  EventHandler *ev )
     {
         address = a;
+        status = st;
         owner = ev;
         queries = l;
 
@@ -130,7 +132,7 @@ void LookupHelper::execute() {
         // It may be better to collect INSERTs and execute them together
         // on one database handle after processing the SELECTs. We don't
         // bother yet.
-        (void)new InsertHelper( address, queries, owner );
+        (void)new InsertHelper( address, queries, status, owner );
         return;
     }
 
