@@ -40,11 +40,11 @@ public:
 
     bool exists();
 
-    void refresh( EventHandler * user );
-    Query *create( EventHandler * user );
-    void rename( const String & newLogin, EventHandler * user );
-    void remove( EventHandler * user );
-    void changeSecret( const String & newSecret, EventHandler * user );
+    void refresh( EventHandler * );
+    Query *create( EventHandler * );
+    void rename( const String &, EventHandler * );
+    void remove( EventHandler * );
+    Query *changeSecret( EventHandler * );
 
     void execute();
 

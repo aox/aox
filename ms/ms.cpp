@@ -25,6 +25,7 @@ static const char * name;
 
 /*! \nodoc */
 
+
 class AdminHelper: public EventHandler {
 public:
     void execute() {
@@ -68,6 +69,7 @@ static void error( String m )
     exit( -1 );
 }
 
+
 static void addEternal( void * v, const char * t )
 {
     Allocator::addEternal( v, t );
@@ -95,7 +97,8 @@ static void createUser( const char * login, const char * password,
 
     query = u->create( new AdminHelper );
     if ( !query || query->failed() ) {
-        fprintf( stderr, "%s: Internal error. Couldn't create user.", name );
+        fprintf( stderr, "%s: Internal error. Couldn't create user.\n",
+                 name );
         Loop::shutdown();
     }
 }
@@ -115,7 +118,13 @@ void changePassword( const char * login, const char * password )
     User * u = new User;
     addEternal( u, "user" );
     u->setLogin( login );
-    u->changeSecret( password, new AdminHelper );
+    u->setSecret( password );
+    query = u->changeSecret( new AdminHelper );
+    if ( !query || query->failed() ) {
+        fprintf( stderr, "%s: Internal error. "
+                 "Couldn't change password for user %s.\n", name, login );
+        Loop::shutdown();
+    }
 }
 
 
@@ -230,7 +239,7 @@ int main( int argc, char *argv[] )
             query = m->remove( new AdminHelper );
 
         if ( !query || query->failed() ) {
-            fprintf( stderr, "%s: Internal error. Couldn't create mailbox.",
+            fprintf( stderr, "%s: Internal error. Couldn't create mailbox.\n",
                      argv[3] );
             exit( -1 );
         }

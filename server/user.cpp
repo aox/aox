@@ -440,22 +440,21 @@ void User::removeHelper()
 }
 
 
-/*! Renames the password of this User to \a newSecret and notifies \a
-    user when the operation is complete. exists() must be true to call
-    this function.
+/*! Changes the password of this User to the current secret() and
+    notifies \a user when the operation is complete.
 */
 
-void User::changeSecret( const String & newSecret, EventHandler * user )
+Query *User::changeSecret( EventHandler * user )
 {
-    if ( !exists() ) {
-        d->error = "Cannot set password for nonexistent user";
-        return;
-    }
-    d->q = new Query( "update users set secret=$1 where login=$2", this );
-    d->q->bind( 1, newSecret );
+    if ( !user || !valid() )
+        return 0;
+
+    d->q = new Query( "update users set secret=$1 where login=$2", user );
+    d->q->bind( 1, d->secret );
     d->q->bind( 2, d->login );
     d->q->execute();
-    d->secret = newSecret;
+
+    return d->q;
 }
 
 
