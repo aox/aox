@@ -199,7 +199,9 @@ void IMAP::addCommand()
     d->args = new List<String>;
 
     String * s = args->first();
-    d->logger->log( Logger::Debug, "Received %d-line command: " + *s );
+    d->logger->log( Logger::Info, "Received " +
+                    String::fromNumber( (args->count() + 1)/2 ) +
+                    "-line command: " + *s );
 
     // pick up the tag
     uint i = (uint)-1;
