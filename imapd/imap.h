@@ -26,15 +26,15 @@ public:
     bool idle() const;
     void setIdle( bool );
 
-    uint uid();
-    String login();
+    uint uid() const;
+    String login() const;
     void authenticated( uint, const String & );
 
     void beginSession( ImapSession * );
     ImapSession *session() const;
     void endSession();
 
-    String mailboxName( const String & );
+    String mailboxName( const String & ) const;
 
     static void setup();
     bool supports( const String & ) const;

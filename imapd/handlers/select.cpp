@@ -117,6 +117,7 @@ void Select::execute()
     else
         respond( "OK [READ-WRITE]", Tagged );
 
+    imap()->beginSession( d->session );
     finish();
 }
 

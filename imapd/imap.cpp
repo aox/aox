@@ -464,7 +464,7 @@ void IMAP::authenticated( uint n, const String & name )
     states.
 */
 
-String IMAP::login()
+String IMAP::login() const
 {
     return d->login;
 }
@@ -474,7 +474,7 @@ String IMAP::login()
     IMAP session, or 0 if none has been set.
 */
 
-uint IMAP::uid()
+uint IMAP::uid() const
 {
     return d->uid;
 }
@@ -600,7 +600,7 @@ static bool endsWithLiteral( const String *s, uint *n, bool *plus )
     using the current user's login() name to qualify it if necessary.
 */
 
-String IMAP::mailboxName( const String &m )
+String IMAP::mailboxName( const String &m ) const
 {
     String name;
 
@@ -625,6 +625,7 @@ void IMAP::beginSession( ImapSession * s )
 {
     d->session = s;
     setState( Selected );
+    log( "Starting session on " + s->mailbox()->name() );
 }
 
 
