@@ -412,13 +412,32 @@ void Injector::insertBodyparts()
         // know its bodypart id. If not, we need to insert a new entry
         // into bodyparts.
 
-        String hash = MD5::hash( b->data() );
+        String hash = MD5::hash( b->data() ).hex();
         int *id = bodyHashes->find( hash );
         if ( id ) {
-            // This is a terrible hack. Must fix later. -- AMS
-            s = new Query( "select " + fn( *id ) + ", "
-                           "'" + hash.hex() + "' as hash", helper );
-            d->transaction->enqueue( s );
+            // We'll construct a fake result for this query, and pretend
+            // that it completed successfully, giving us an id and hash.
+            //
+            // s = new Query( "select " + fn( *id ) + ", "
+            //                "'" + hash.hex() + "' as hash", helper );
+            // d->transaction->enqueue( s );
+
+            Row::Column *c = new Row::Column[2];
+            c[0].name = "id";
+            c[0].type = Database::Integer;
+            c[0].length = 4;
+            c[0].value.append( (char)((*id >> 24) & 0xff) );
+            c[0].value.append( (char)((*id >> 16) & 0xff) );
+            c[0].value.append( (char)((*id >> 8) & 0xff) );
+            c[0].value.append( (char)(*id & 0xff) );
+            c[1].name = "hash";
+            c[1].type = Database::Bytes;
+            c[1].value = hash;
+            c[1].length = 32;
+
+            s = new Query( "select id,hash from cache", helper );
+            s->addRow( new Row( 2, c ) );
+            s->setState( Query::Completed );
             queries->append( s );
             continue;
         }
