@@ -750,14 +750,14 @@ void Injector::logMessageDetails()
 }
 
 
-/*! When the Injector injects a message into \a mailbox, it selects/learns
-  the UID of the message. This function returns that UID. It returns 0
-  in case the message hasn't been inserted into \a m, or if the uid
-  isn't known yet.
+/*! When the Injector injects a message into \a mailbox, it
+    selects/learns the UID of the message. This function returns that
+    UID. It returns 0 in case the message hasn't been inserted into
+    \a mailbox, or if the uid isn't known yet.
 
-  A nonzero return value does not imply that the injection is
-  complete, or even that it will complete, only that injection has
-  progressed far enough to select a UID.
+    A nonzero return value does not imply that the injection is
+    complete, or even that it will complete, only that injection has
+    progressed far enough to select a UID.
 */
 
 uint Injector::uid( Mailbox * mailbox ) const
