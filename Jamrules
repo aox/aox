@@ -65,22 +65,31 @@ rule Build
     set-$(<) += [ FGristFiles $(>:S=$(SUFOBJ)) ] ;
 }
 
-rule Program
+rule Executable
 {
     local target ;
     Depends exe : $(<) ;
-    Depends install : $(<) ;
     Depends $(<) : $(set-$(>)) ;
     MakeLocate $(<) : [ FDirName $(TOP) bin ] ;
-
-    InstallBin $(INSTALLROOT)$(BINDIR) : $(<) ;
-
     Clean clean : $(<) ;
     Link $(<) : $(set-$(>)) ;
 }
 
+rule Program
+{
+    Executable $(<) : $(>) ;
+    InstallBin $(INSTALLROOT)$(BINDIR) : $(<) ;
+}
+
+rule Server
+{
+    Executable $(<) : $(>) ;
+    InstallBin $(INSTALLROOT)$(SBINDIR) : $(<) ;
+}
+
 actions EngraveConfig {
 sed -e 's!$BINDIR!'$(BINDIR)'!' \
+    -e 's!$SBINDIR!'$(SBINDIR)'!' \
     -e 's!$MANDIR!'$(MANDIR)'!' \
     -e 's!$LIBDIR!'$(LIBDIR)'!' \
     -e 's!$PIDFILEDIR!'$(PIDFILEDIR)'!' \
@@ -120,6 +129,7 @@ actions WriteShellConfig
 
     echo PREFIX="'"$(PREFIX)"'" >> $(<)
     echo BINDIR="'"$(BINDIR)"'" >> $(<)
+    echo SBINDIR="'"$(SBINDIR)"'" >> $(<)
     echo MANDIR="'"$(MANDIR)"'" >> $(<)
     echo PIDFILEDIR="'"$(PIDFILEDIR)"'" >> $(<)
     echo JAILDIR="'"$(JAILDIR)"'" >> $(<)

@@ -43,7 +43,7 @@ SubInclude TOP cryptlib test ;
 
 # we only build the tests if there's reason to believe they'll work
 if ! $(ORYX_STRIPPED) {
-    Program testlib : cryptlib cryptlib-test ;
+    Executable testlib : cryptlib cryptlib-test ;
 }
 else {
     MakeLocate testlib : [ FDirName $(TOP) bin ] ;

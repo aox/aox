@@ -7,4 +7,4 @@ Build udoc : qdoc.cpp error.cpp parser.cpp class.cpp function.cpp docblock.cpp
 
 Doc udocdoc : udoc core ;
 
-Program udoc : udoc core ;
+Executable udoc : udoc core ;

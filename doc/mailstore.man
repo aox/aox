@@ -177,8 +177,11 @@ warranty. There are also extra services. Contact info@oryx.com for
 more details, or see http://www.oryx.com/mailstore/commercial.html.
 .SH DEFAULTS
 The configurable file and directory names in this build are as follows:
+.IP SBINDIR
+(where servers live) is
+.IR $SBINDIR .
 .IP BINDIR
-(where executables live) is
+(where other executables live) is
 .IR $BINDIR .
 .IP MANDIR
 (where manpages live) is 

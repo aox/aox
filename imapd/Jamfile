@@ -13,7 +13,7 @@ Build imap : imap.cpp imapsession.cpp command.cpp
 
 Build imapd : imapd.cpp ;
 
-Program imapd : imap imapd database message server sasl mailbox core
+Server imapd : imap imapd database message server sasl mailbox core
     encodings user ;
 
 LINKLIBS on imapd = -lcrypt ;

@@ -4,4 +4,4 @@ SubInclude TOP server ;
 
 Build logd : logserver.cpp selflogger.cpp ;
 Build logdmain : logd.cpp ;
-Program logd : logdmain logd server core ;
+Server logd : logdmain logd server core ;

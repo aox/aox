@@ -15,6 +15,7 @@ INSTALLROOT = "" ;
 
 PREFIX = /usr/local/mailstore ;
 BINDIR = $(PREFIX)/bin ;
+SBINDIR = $(PREFIX)/sbin ;
 MANDIR = $(PREFIX)/man ;
 LIBDIR = $(PREFIX)/lib ;
 PIDFILEDIR = /var/run ;

@@ -6,7 +6,7 @@
 # write to info@oryx.com.
 
 # Note: Jamsettings variables are evaluated at build time.
-cd $BINDIR
+cd $SBINDIR
 
 SERVERS="logd ocd tlsproxy imapd smtpd"
 
@@ -16,10 +16,26 @@ for a in $SERVERS ; do
     test -x ${a} || exit 0
 done
 
+startserver() {
+    ./$1 -f && echo -n " $1" || exit 0
+}
+
+stopserver() {
+    P=$PIDFILEDIR/$1.pid
+    if [ -f $P ]; then
+        kill `cat $P` 2>/dev/null
+        rm $P
+        echo -n " $1";
+    else
+        # hm. this is dubious.
+        killall $1 2>/dev/null
+    fi
+}
+
 start() {
     echo -n "Starting Oryx Mailstore:"
     for a in $SERVERS ; do
-        ./${a} -f && echo -n " $a" || exit 0
+        startserver $a
     done
     echo "."
 }
@@ -27,15 +43,7 @@ start() {
 stop() {
     echo -n "Stopping Oryx Mailstore:"
     for a in $REVERSE ; do
-	P=$PIDFILEDIR/${a}.pid
-	if [ -f $P ]; then
-	    kill `cat $P` 2>/dev/null
-	    rm $P
-	    echo -n " $a";
-	else
-	    # hm. this is dubious.
-	    killall $a 2>/dev/null
-	fi
+        stopserver $a
     done
     echo "."
 }

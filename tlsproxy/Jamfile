@@ -16,10 +16,10 @@ else {
 
 Build tls : tlsproxy.cpp ;
 
-Program tlsproxy : tls server core cryptlib ;
+Server tlsproxy : tls server core cryptlib ;
 
 if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
-    # additional flags that may be needed to link against cryptlib, 
+    # additional flags that may be needed to link against cryptlib,
     # e.g. "-pthread -L/usr/local/lib" for freebsd 5.3.
     LINKFLAGS on tlsproxy += -pthread -L/usr/local/lib ;
     # and the library itself
