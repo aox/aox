@@ -343,7 +343,7 @@ void IMAP::addCommand()
     // it. runCommands() will unblock it (at once or later).
 
     if ( !d->commands.isEmpty() && cmd->state() == Command::Executing ) {
-        log( Log::Debug, "Blocking command '" + tag + " " + command + 
+        log( Log::Debug, "Blocking command '" + tag + " " + command +
              " because other commands are queued" );
         cmd->setState( Command::Blocked );
     }
@@ -551,6 +551,7 @@ void IMAP::run( Command * c )
         c->setState( Command::Finished );
     if ( c->state() == Command::Finished )
         c->emitResponses();
+    d->log->commit();
 }
 
 
