@@ -29,7 +29,6 @@ Capability::~Capability()
 /* RFC 2595 */ "AUTH=PLAIN " \
 /* RFC 2195 */ "AUTH=CRAM-MD5 " \
 /* RFC 2831 */ "AUTH=DIGEST-MD5 " \
-/* draft-gulbrandsen */ "COMPRESS=DEFLATE " \
 /* draft-siemborski-imap-sasl-initial-response */ "SASL-IR " \
 /* RFC 2177 */ "IDLE " \
 /* RFC 2971 */ "ID " \
