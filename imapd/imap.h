@@ -32,6 +32,8 @@ public:
 
     void reserve( Command * );
 
+    void wait( int );
+
     Mailbox *mailbox();
     void setMailbox( Mailbox * );
 

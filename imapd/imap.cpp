@@ -50,7 +50,7 @@ public:
     Mailbox *mailbox;
     String login;
     bool idle;
-    bool waitingCommands;
+    int waitingCommands;
 };
 
 
@@ -91,7 +91,7 @@ void IMAP::react(Event e)
         break;
 
     case Timeout:
-        if ( d->waitingCommands ) {
+        if ( d->waitingCommands > 0 ) {
             runCommands();
         }
         else {
@@ -450,6 +450,20 @@ void IMAP::reserve( Command * command )
 }
 
 
+/*! Schedules a command timeout \a n seconds later.
+    (Do we need to keep track of which command is waiting until when?
+    We'll see.)
+*/
+
+void IMAP::wait( int n )
+{
+    int t = time(0) + n;
+
+    d->waitingCommands++;
+    if ( timeout() == 0 || timeout() > t )
+        setTimeout( t );
+}
+
 
 /*! Calls execute() on all currently operating commands, and if
     possible calls emitResponses() and retires those which can be
@@ -471,8 +485,14 @@ void IMAP::runCommands()
             c = i++;
             Scope x( c->arena() );
 
-            if ( c->ok() && c->state() == Command::Executing )
-                c->execute();
+            if ( c->ok() ) {
+                if ( c->state() == Command::Waiting ) {
+                    c->setState( Command::Executing );
+                    d->waitingCommands--;
+                }
+                if ( c->state() == Command::Executing )
+                    c->execute();
+            }
             if ( !c->ok() )
                 c->setState( Command::Finished );
             if ( c->state() == Command::Finished )
