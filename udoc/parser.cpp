@@ -157,10 +157,13 @@ uint Parser::simpleIdentifier( uint j )
 
 uint Parser::complexIdentifier( uint j )
 {
-    uint k = simpleIdentifier( j );
-    if ( k == j )
+    uint k = whitespace( j );
+    if ( t[k] == ':' && t[k+1] == ':' )
+        k = whitespace( k + 2 );
+    uint l = simpleIdentifier( k );
+    if ( l == k )
         return j;
-    j = whitespace( k );
+    j = whitespace( l );
 
     while ( t[j] == ':' && t[j+1] == ':' ) {
         if ( t.mid( j+2, 8 ) == "operator" )

@@ -295,8 +295,6 @@ udoc stuff:
 
   1. Support a single level of nested classes. (What file names to use
      for output?)
-  2. Support "::ContentType *HeaderField::contentType() const" in the
-     source file (it seems to be handled in the include file).
   3. Support enum annotation.
 
 
