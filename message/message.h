@@ -86,7 +86,7 @@ public:
     String data() const;
     UString text() const;
     Message * rfc822() const;
-    
+
     void setNumBytes( uint );
     uint numBytes() const;
     void setNumLines( uint );
