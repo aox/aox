@@ -102,18 +102,21 @@ void Fetcher::execute()
         while ( (r=d->query->nextRow()) != 0 ) {
             uint uid = r->getInt( "uid" );
             if ( uid != d->uid ) {
-                if ( d->uid && d->message )
+                if ( d->uid && d->message ) {
                     setDone( d->message );
+                    any = true;
+                }
                 d->uid = uid;
                 d->message = d->mailbox->message( d->uid );
             }
             decode( d->message, r );
-            any = true;
         }
         if ( d->query->done() ) {
             d->query = 0;
-            if ( d->message )
+            if ( d->message ) {
                 setDone( d->message );
+                any = true;
+            }
         }
     }
 
@@ -298,7 +301,7 @@ void MessageHeaderFetcher::setDone( Message * m )
 void MessageFlagFetcher::setDone( Message * m )
 {
     m->setFlagsFetched();
-    
+
 }
 
 
