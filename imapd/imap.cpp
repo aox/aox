@@ -25,7 +25,7 @@ public:
         idle( false )
     {}
 
-    Logger * logger;
+    Log * logger;
     Arena * cmdArena;
     bool readingLiteral;
     uint literalSize;
@@ -62,7 +62,7 @@ IMAP::IMAP(int s)
     if ( s < 0 )
         return;
 
-    d->logger = new Logger;
+    d->logger = new Log;
     d->logger->log( "accepted IMAP connection" ); // XXX: from where?
 
     writeBuffer()->append( String( "* OK [CAPABILITY " ) +
@@ -199,7 +199,7 @@ void IMAP::addCommand()
     d->args = new List<String>;
 
     String * s = args->first();
-    d->logger->log( Logger::Debug, "Received " +
+    d->logger->log( Log::Debug, "Received " +
                     String::fromNumber( (args->count() + 1)/2 ) +
                     "-line command: " + *s );
 
@@ -258,7 +258,7 @@ void IMAP::addCommand()
             if ( cmd->group() == 0 ) {
                 // no, it can't.
                 cmd->setState( Command::Blocked );
-                cmd->logger()->log( Logger::Debug,
+                cmd->logger()->log( Log::Debug,
                                     "Blocking execution of " + tag +
                                     " (concurrency not allowed for " +
                                     command + ")" );
@@ -274,7 +274,7 @@ void IMAP::addCommand()
                 if ( i ) {
                     // no, *i does not
                     cmd->setState( Command::Blocked );
-                    cmd->logger()->log( Logger::Debug,
+                    cmd->logger()->log( Log::Debug,
                                         "Blocking execution of " + tag +
                                         " until it can be exectuted" );
                     // evil. we really want to say something about why
@@ -371,7 +371,7 @@ void IMAP::setLogin( const String & name )
         // not sure whether I like this... on one hand, it does
         // prevent change of login. on the other, how could that
         // possibly happen?
-        d->logger->log( Logger::Error,
+        d->logger->log( Log::Error,
                         "ignored setLogin("+name+") due to wrong state" );
         return;
     }
