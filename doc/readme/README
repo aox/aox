@@ -11,7 +11,8 @@ Building and installing Mailstore is a five-step process:
    variable assignments require spaces: "A = b ;" is good, "A=b;" is a
    syntax error.
 
-2. Type 'jam install' to build and install the programs and other files.
+2. Type 'jam' to build and 'jam install' as root to install the
+   programs and other files.
 
 3. If you configured ORYXUSER and ORYXGROUP to something special, make
    sure that user and that group exist.
