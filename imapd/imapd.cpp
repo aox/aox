@@ -24,7 +24,7 @@ int main( int, char *[] )
 
     Test::runTests();
 
-    Configuration::makeGlobal( ".imapdrc" );
+    Configuration::setup( "mailstore.conf", "imapd.conf" );
 
     Log l( Log::Immediate );
     global.setLog( &l );
@@ -40,7 +40,7 @@ int main( int, char *[] )
 
     Listener< IMAP >::create( "IMAP", "", 2052 );
 
-    Configuration::global()->report();
+    Configuration::report();
     l.commit();
 
     if ( Log::disastersYet() )

@@ -19,7 +19,7 @@ int main()
 
     Test::runTests();
 
-    Configuration::makeGlobal( ".ocdrc" );
+    Configuration::setup( "mailstore.conf", "ocd.conf" );
 
     Log l( Log::Immediate );
     global.setLog( &l );
@@ -30,7 +30,7 @@ int main()
     Listener< OCServer >::create( "Cluster coordination", "", 2050 );
     Listener< OCAdmin >::create( "Cluster administration", "", 2051 );
 
-    Configuration::global()->report();
+    Configuration::report();
     l.commit();
 
     if ( Log::disastersYet() )

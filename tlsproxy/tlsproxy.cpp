@@ -28,7 +28,7 @@ int main( int, char *[] )
     Arena firstArena;
     Scope global( &firstArena );
 
-    Configuration::makeGlobal( "/dev/null" );
+    Configuration::setup( "/dev/null" );
 
     Log l( Log::Immediate );
     global.setLog( &l );
@@ -36,7 +36,7 @@ int main( int, char *[] )
 
     Listener< TLSProxy >::create( "TLS proxy", "127.0.0.1", 2443 );
 
-    Configuration::global()->report();
+    Configuration::report();
     l.commit();
 
     Loop::start();

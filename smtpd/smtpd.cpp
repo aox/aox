@@ -25,7 +25,7 @@ int main( int, char *[] )
 
     Test::runTests();
 
-    Configuration::makeGlobal( ".smtpdrc" );
+    Configuration::setup( "mailstore.conf", "smtpd.conf" );
 
     Log l( Log::Immediate );
     global.setLog( &l );
@@ -42,7 +42,7 @@ int main( int, char *[] )
     Listener< SMTP >::create( "SMTP", "", 2025 );
     Listener< LMTP >::create( "LMTP", "", 2026 );
 
-    Configuration::global()->report();
+    Configuration::report();
     l.commit();
 
     if ( Log::disastersYet() )

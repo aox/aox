@@ -6,18 +6,20 @@
 
 class Configuration
 {
-public:
+private:
     Configuration();
-    Configuration( const String & );
-
-    static Configuration * global();
-    static void makeGlobal( const String & );
+public:
+    static void setup( const String &, const String & = "" );
 
     static String hostname();
     static String osHostname();
 
-    void read( const String & );
-    void report();
+    static void report();
+
+    static void ignore( const char * s1    , const char * s2 = 0,
+                        const char * s3 = 0, const char * s4 = 0,
+                        const char * s5 = 0, const char * s6 = 0,
+                        const char * s7 = 0, const char * s8 = 0 );
 
     class Variable {
     public:
@@ -28,7 +30,7 @@ public:
         bool supplied() const { return s; }
 
     protected:
-        void init( Configuration * c, const String & );
+        void init( const String & );
 
     private:
         virtual bool setValue( const String & ) = 0;
@@ -39,12 +41,8 @@ public:
     };
 
     class Scalar: public Variable {
-    private:
-
-
     public:
-        Scalar( const String &, int,
-                Configuration * = Configuration::global() );
+        Scalar( const String &, int );
 
         operator int() const { return value; }
         operator unsigned int() const { return (uint)value; }
@@ -56,8 +54,7 @@ public:
 
     class Toggle: public Variable {
     public:
-        Toggle( const String &, bool,
-                Configuration * = Configuration::global() );
+        Toggle( const String &, bool );
 
         operator bool() const { return value; }
 
@@ -70,8 +67,7 @@ public:
 
     class Text: public Variable {
     public:
-        Text( const String &, const String &,
-              Configuration * = Configuration::global() );
+        Text( const String &, const String & );
 
         operator ::String() const { return value; }
 
@@ -92,7 +88,7 @@ public:
 
 private:
     void add( const String & );
-    void clear();
+    void read( const String & );
 
     class ConfigurationData * d;
     friend class Configuration::Variable;

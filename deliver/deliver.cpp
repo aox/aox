@@ -20,11 +20,13 @@ int main( int argc, char *argv[] )
     Arena firstArena;
     Scope global( &firstArena );
 
-    Configuration::makeGlobal( ".deliverrc" );
+    Configuration::setup( "mailstore.conf", "deliver.conf" );
 
     Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();
+
+    Configuration::report();
 
     File input( "/proc/self/fd/0", File::Read );
     String contents = input.contents();

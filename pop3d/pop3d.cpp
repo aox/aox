@@ -21,11 +21,13 @@ int main( int, char *[] )
 
     Test::runTests();
 
-    Configuration::makeGlobal( ".pop3drc" );
+    Configuration::setup( "mailstore.conf", "pop3d.conf" );
 
     Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();
+
+    Configuration::report();
 
     Listener< POP3 >::create( "POP3", "", 2056 );
 

@@ -22,7 +22,7 @@ int main( int, char *[] )
 
     Test::runTests();
 
-    Configuration::makeGlobal( ".logdrc" );
+    Configuration::setup( "mailstore.conf", "logd.conf" );
     Configuration::Text logName( "logfile", "logfile" );
 
     (void)new SelfLogger;
@@ -38,7 +38,7 @@ int main( int, char *[] )
     Listener< LogServer >::create( "Log Server", "", 2054 );
 
     log( Test::report() );
-    Configuration::global()->report();
+    Configuration::report();
     l.commit();
 
     Loop::start();
