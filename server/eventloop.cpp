@@ -251,8 +251,6 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
             if ( connected ) {
                 c->setState( Connection::Connected );
                 c->react( Connection::Connect );
-                // any debugging prior to connect can now be flushed
-                c->commit();
                 w = true;
             }
             else if ( error ) {
