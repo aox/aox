@@ -22,5 +22,5 @@ Capability::~Capability()
 
 void Capability::execute()
 {
-    respond( "CAPABILITY IMAP4rev1 LITERAL+" );
+    respond( "CAPABILITY IMAP4rev1 LITERAL+ COMPRESS=DEFLATE" );
 }
