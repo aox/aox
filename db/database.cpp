@@ -2,7 +2,7 @@
 
 #include "database.h"
 
-#include "scope.h"
+#include "allocator.h"
 #include "list.h"
 #include "string.h"
 #include "query.h"
@@ -12,9 +12,12 @@
 #include "postgres.h"
 
 
-static Endpoint *srv;
-static String *t, *n, *u, *p;
-static List< Database > handles;
+static Endpoint * srv;
+static Database::Interface type;
+static String * name;
+static String * user;
+static String * password;
+static List< Database > * handles;
 
 
 static Database *newHandle( Database::Interface i )
@@ -69,11 +72,26 @@ void Database::setup()
         dbPass( "db-password", "" );
     Configuration::Scalar dbPort( "db-port", 5432 );
 
-    t = new String( db );
-    u = new String( dbUser );
-    p = new String( dbPass );
-    n = new String( dbName );
+    String t = db;
+    t = t.lower();
+    if ( t == "pg" || t == "pgsql" || t == "postgres" ) {
+        ::type = Pg;
+    }
+    else {
+        ::log( "Unsupported database type <" + (String)db + ">",
+               Log::Disaster );
+        return;
+    }
+
+
+    ::user = new String( dbUser );
+    Allocator::addRoot( ::user );
+    ::password = new String( dbPass );
+    Allocator::addRoot( ::password );
+    ::name = new String( dbName );
+    Allocator::addRoot( ::name );
     srv = new Endpoint( dbHost, dbPort );
+    Allocator::addRoot( srv );
 
     if ( !srv->valid() ) {
         ::log( "Invalid db-address <" + dbHost + "> port " + fn( dbPort ),
@@ -81,13 +99,9 @@ void Database::setup()
         return;
     }
 
-    if ( interface() == Invalid ) {
-        ::log( "Unsupported database type <" + *t + ">", Log::Disaster );
-        return;
-    }
-
     if ( srv->protocol() == Endpoint::Unix ) {
-        // We can't reconnect to a Unix socket after a chroot(), so we
+        ::log( "Creating four database handles", Log::Info );
+        // We can't connect to a Unix socket after a chroot(), so we
         // create four handles right away.
         int i = 0;
         while ( i < 4 ) {
@@ -95,11 +109,6 @@ void Database::setup()
             i++;
         }
     }
-
-    // XXX: It is not clear to me where and how this should be called,
-    // but it seems quite wrong to call it from here. But I need to do
-    // this to step through the code right now.
-    Postgres::updateSchema();
 }
 
 
@@ -111,25 +120,27 @@ void Database::setup()
     Note: Although the handle says it is ready(), it may not be usable
     until it has successfully negotiated a connection. This might be a
     bug, but it's not clear where.
+
+    There's a BIG BAD BUG when we're using Unix sockets, as this
+    function assumes it can create as many sockets as it wants,
+    whenever.
 */
 
 Database *Database::handle()
 {
-    Database *db = 0;
-    List< Database >::Iterator it( handles.first() );
-    while ( it ) {
-        if ( it->ready() ) {
-            db = it;
-            break;
+    if ( handles ) {
+        List< Database >::Iterator it( handles->first() );
+        while ( it ) {
+            if ( it->ready() )
+                return it;
+            it++;
         }
-        it++;
     }
 
-    // XXX: We should do some sort of rate limiting here.
-    if ( !db )
-        db = newHandle( interface() );
+    // XXX: compare the number of handles to some configurable
+    // maximum, and return null if we've reached the ceiling.
 
-    return db;
+    return newHandle( interface() );
 }
 
 
@@ -214,13 +225,7 @@ void Database::query( List< Query > *l )
 
 Database::Interface Database::interface()
 {
-    Interface i = Invalid;
-    String type = t->lower();
-
-    if ( type == "pg" || type == "pgsql" || type == "postgres" )
-        i = Pg;
-
-    return i;
+    return ::type;
 }
 
 
@@ -236,7 +241,7 @@ Endpoint Database::server()
 
 String Database::name()
 {
-    return *n;
+    return *::name;
 }
 
 
@@ -244,7 +249,7 @@ String Database::name()
 
 String Database::user()
 {
-    return *u;
+    return *::user;
 }
 
 
@@ -252,7 +257,7 @@ String Database::user()
 
 String Database::password()
 {
-    return *p;
+    return *::password;
 }
 
 
@@ -260,7 +265,11 @@ String Database::password()
 
 void Database::addHandle( Database * d )
 {
-    handles.append( d );
+    if ( !handles ) {
+        handles = new List<Database>;
+        Allocator::addRoot( handles );
+    }
+    handles->append( d );
 }
 
 
@@ -268,7 +277,8 @@ void Database::addHandle( Database * d )
 
 void Database::removeHandle( Database * d )
 {
-    handles.take( handles.find( d ) );
+    if ( handles )
+        handles->take( handles->find( d ) );
 }
 
 

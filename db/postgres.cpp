@@ -14,6 +14,7 @@
 #include "pgmessage.h"
 #include "stringlist.h"
 #include "transaction.h"
+#include "configuration.h"
 
 // crypt
 #define _XOPEN_SOURCE
@@ -64,7 +65,7 @@ public:
     The version implemented here is used by PostgreSQL 7.4 and later.
 
     At the time of writing, there do not seem to be any other suitable
-    PostgreSQL client libraries freely available. For example, libpqxx
+    PostgreSQL client libraries available. For example, libpqxx
     doesn't support asynchronous operation or prepared statements. Its
     interface would be difficult to wrap in a database-agnostic manner,
     and it depends on the untested libpq. The others aren't much better.
@@ -93,7 +94,7 @@ Postgres::~Postgres()
 
 bool Postgres::ready()
 {
-    return d->pending.count() <= 5 && !d->reserved;
+    return d->pending.count() <= 5 && !d->reserved; // XXX: && !d->startup?
 }
 
 
@@ -408,7 +409,21 @@ void Postgres::unknown( char type )
             switch ( msg.severity() ) {
             case PgMessage::Panic:
             case PgMessage::Fatal:
-                error( msg.message() );
+                // special-case IDENT query failures since they can be
+                // so off-putting to novices.
+                if ( msg.message().startsWith( "IDENT authentication "
+                                               "failed for user \"") ) {
+                    String s = msg.message();
+                    int b = s.find( '"' );
+                    int e = s.find( '"', b+1 );
+                    s = s.mid( b+1, e-b-1 ); // rest-of-string if e==-1 ;)
+                    log( "PostgreSQL refuses authentication because this "
+                         "process is not running as user " + s,
+                         Log::Disaster );
+                }
+                else {
+                    error( msg.message() );
+                }
                 break;
 
             case PgMessage::Error:
@@ -644,7 +659,12 @@ void UpdateSchema::execute() {
             t->commit();
         }
         else if ( revision > currentRevision ) {
-            l->log( "The schema is newer than this server expected. Upgrade.",
+            l->log( "The schema is newer than this server expected. "
+                    "Schema revision " + fn( revision ) +
+                    ", supported revision " + fn( currentRevision ) +
+                    ", server version " +
+                    Configuration::compiledIn( Configuration::Version ) +
+                    ". Please upgrade or consult support.",
                     Log::Disaster );
             state = 9;
             return;
@@ -656,6 +676,8 @@ void UpdateSchema::execute() {
 
     // Perform successive updates towards the current revision.
     while ( revision < currentRevision ) {
+        l->log( "Updating schema from revision " + fn( revision ) +
+                " to revision " + fn( revision ) );
         if ( state == 2 ) {
             seq = new Query( "select nextval('revisions')::integer as seq",
                              this );
