@@ -1,8 +1,9 @@
 SubDir TOP server ;
-SubInclude TOP core ;
-SubInclude TOP message ;
 
 HDRS += [ FDirName $(TOP) server ] ;
+
+SubInclude TOP core ;
+SubInclude TOP message ;
 SubInclude TOP db ;
 
 Build server :
