@@ -6,6 +6,9 @@
 #include "string.h"
 
 
+class UString;
+
+
 class Parser822
 {
 public:
@@ -23,6 +26,7 @@ public:
 
     void stepPast( const char *, const char * );
     void whitespace();
+
     String comment();
     String string();
     String dotAtom();
@@ -32,6 +36,7 @@ public:
     String atom();
     String mimeToken();
     String mimeValue();
+    UString encodedWord();
 
     char next() const { return s[i]; }
 
