@@ -19,8 +19,9 @@ else {
 
 LINK = $(C++) ;
 
-# our lib directory contains additional include files
+# our lib and codecs directories contain additional include files
 HDRS += [ FDirName $(TOP) lib ] ;
+HDRS += [ FDirName $(TOP) codecs ] ;
 
 rule SubInclude
 {
