@@ -8,10 +8,14 @@
 class PopData {
 public:
     PopData()
-        : state( POP3::Authorization )
+        : state( POP3::Authorization ), sawUser( false )
     {}
 
     POP3::State state;
+
+    bool sawUser;
+    String user;
+    String pass;
 };
 
 
@@ -121,7 +125,11 @@ void POP3::parse()
 
         bool unknown = false;
         
-        if ( cmd == "quit" && args.isEmpty() ) {
+        if ( d->sawUser && ( cmd != "quit" && cmd != "pass" ) ) {
+            d->sawUser = false;
+            unknown = true;
+        }
+        else if ( cmd == "quit" && args.isEmpty() ) {
             ok( "Goodbye" );
             setState( Update );
         }
@@ -136,7 +144,19 @@ void POP3::parse()
             enqueue( ".\r\n" );
         }
         else if ( d->state == Authorization ) {
-            unknown = true;
+            if ( cmd == "user" && !args.isEmpty() ) {
+                d->sawUser = true;
+                d->user = args.mid( 1 );
+                ok( "Send PASS." );
+            }
+            else if ( d->sawUser && cmd == "pass" && !args.isEmpty() ) {
+                d->sawUser = false;
+                d->pass = args.mid( 1 );
+                err( "Authentication failed." );
+            }
+            else {
+                unknown = true;
+            }
         }
         else if ( d->state == Transaction ) {
             if ( cmd == "noop" && args.isEmpty() ) {
