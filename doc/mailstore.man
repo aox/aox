@@ -114,17 +114,21 @@ each. See
 .BR mailstore.conf (5)
 for more about configuring Mailstore in general.
 .SH SECURITY
-All Mailstore servers run in jail directories.
+All Mailstore servers run in chroot directories.
 .PP
-Each server is started as root. Before it accepts any connections from
-clients, it closes all open files, switches to a jail directory and
-drops root privileges.
 .PP
-The jail directory, user and group are configured in
-.BR mailstore.conf (5).
-The directory should be empty, and the user/group should not even have
-read access to this directory. The servers refuse to start unless the
-permissions are secure.
+The user-facing servers run in a special jail directory. They have
+neither read nor write access to this directory.
+.PP
+The internal servers, ie.
+.BR logd (8)
+and
+.BR ocd (8),
+run chrooted to other directories. All of the servers close all open
+files at startup and drop root privileges.
+.PP
+The servers check that all this works, and refuse to start if
+something doesn't work.
 .SH MAIL STORAGE
 Oryx Mailstore does not store mail in the RFC-822 format. It parses each
 message upon delivery, and stores a normalized representation, optimized
@@ -196,9 +200,18 @@ variable in
 .PP
 These variables can be changed only by editing the file Jamsettings
 and recompiling Mailstore. Jamsettings also contains some variables
-used only during compilation and/or installation. The file 
-.I $LIBDIR/.config.sh
-contains the values of the installation-related variables.
+used only during compilation and/or installation.
+.SH FILES
+.IP $CONFIGDIR/mailstore.conf
+contains the Mailstore configuration.
+.PP
+.IP $LIBDIR/.config.sh
+contains a copy of the compiled-in configuration file/directory names.
+.PP
+.IP $LIBDIR/automatic-key.p15
+contains a private key and self-signed certificate used by
+.BR tlsproxy (8)
+(and indirectly by the other servers).
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION

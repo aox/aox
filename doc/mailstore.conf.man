@@ -255,10 +255,13 @@ regulates whether Mailstore supports TLS at all. The default is
 .IR enabled .
 .IP tls-certificate
 is the absolute file name of the TLS private key and signed certificate,
-e.g. /usr/local/mailstore/imap.p15. If
+e.g.
+.IR $CONFIGDIR/imap.p15 .
+If
 .I tls-certificate
 is not specified, tlsproxy generates a private key and a self-signed
-certificate at runtime.
+certificate at runtime and stores both in
+.IR $CONFIGDIR/automatic-key.p15 .
 .IP tlsproxy-address
 is the address where the tlsproxy listens for new connections. The
 default is

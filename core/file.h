@@ -24,6 +24,10 @@ public:
 
     void write( const String & );
 
+    static void setRoot( const String & );
+    static String root();
+    static String chrooted( const String & );
+
     static void unlink( String );
 
 private:
