@@ -125,6 +125,9 @@ void LookupHelper::execute() {
     delete queries->take( queries->find( q ) );
 
     if ( !r ) {
+        // It may be better to collect INSERTs and execute them together
+        // on one database handle after processing the SELECTs. We don't
+        // bother yet.
         (void)new InsertHelper( address, queries, owner );
         return;
     }
@@ -150,7 +153,7 @@ void LookupHelper::execute() {
     database lookup, and possibly an insert followed by a select, before
     being added to the cache.
 
-    (We assume, for the moment, that insertions cannot fail.)
+    (We assume, for the moment, that none of the queries will fail.)
 */
 
 void AddressCache::lookup( List< Address > *l, EventHandler *ev )
