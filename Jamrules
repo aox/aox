@@ -22,6 +22,7 @@ LINK = $(C++) ;
 # our lib and codecs directories contain additional include files
 HDRS += [ FDirName $(TOP) lib ] ;
 HDRS += [ FDirName $(TOP) codecs ] ;
+HDRS += [ FDirName $(TOP) cryptlib ] ;
 
 rule SubInclude
 {

@@ -1,11 +1,12 @@
 # declare directory, so we can build by running 'jam' in this directory
 SubDir TOP imapd ;
 
-# pull in the directories we need to build the programs named at the bottom:
+# Pull in the directories we need to build the programs named at the bottom:
 # - lib
 
 SubInclude TOP lib ;
 SubInclude TOP codecs ;
+SubInclude TOP cryptlib ;
 
 # - our own subdirectories, with a -I pointing here
 HDRS += [ FDirName $(TOP) imapd ] ;
