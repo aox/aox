@@ -10,7 +10,7 @@
 Logout::Logout()
     : Command()
 {
-    
+
 }
 
 
@@ -28,4 +28,5 @@ Logout::~Logout()
 void Logout::execute()
 {
     imap()->setState( IMAP::Logout );
+    setState( Finished );
 }

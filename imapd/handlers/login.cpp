@@ -1,6 +1,7 @@
 #include "login.h"
 
 #include "../imap.h"
+#include "../auth/plain.h"
 
 
 /*!  Constructs a simple Login handler. */
@@ -26,10 +27,10 @@ void Login::parse()
 
 void Login::execute()
 {
-    if ( n == "arnt" && p == "trish" )
+    Plain plain;
+    if ( plain.loginExists( n ) && plain.password( n ) == p )
         imap()->setState( IMAP::Authenticated );
-    else if ( n == "ams" )
-        error( No, "no login until the database auth is there!" );
     else
-        error( No, "no such user" );
+        error( No, "login failed" );
+    setState( Finished );
 }

@@ -11,6 +11,8 @@ public:
     ~Capability();
 
     void execute();
+    
+    static const char * capabilities();
 };
 
 #endif

@@ -6,6 +6,7 @@
 
 class String;
 class IMAP;
+class Arena;
 
 
 class CommandData;
@@ -17,11 +18,18 @@ public:
     virtual ~Command();
 
     static Command * create( IMAP *, const String &, const String &,
-                             List<String> * );
+                             List<String> *, Arena * );
 
     virtual void parse();
     virtual void execute() = 0;
+    virtual void read();
     bool ok() const;
+
+    enum State { Blocked, Executing, Finished };
+    void setState( State );
+    State state() const;
+
+    Arena * arena() const;
 
     enum Response { Tagged, Untagged };
     void respond( const String &, Response = Untagged );

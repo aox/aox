@@ -1,4 +1,4 @@
 SubDir TOP imapd handlers ;
 
 Build imap : capability.cpp login.cpp logout.cpp noop.cpp
-	compress.cpp ;
+	compress.cpp idle.cpp authenticate.cpp ;

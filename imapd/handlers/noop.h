@@ -7,9 +7,6 @@
 class Noop: public Command
 {
 public:
-    Noop();
-    ~Noop();
-
     void execute();
 };
 

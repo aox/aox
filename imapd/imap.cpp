@@ -6,16 +6,20 @@
 #include <buffer.h>
 #include <arena.h>
 #include <list.h>
+#include "handlers/capability.h"
 
 #include <time.h>
 
 
 class IMAPData {
 public:
-    IMAPData(): cmdArena( 0 ),
-                readingLiteral( false ), literalSize( 0 ),
-                args( 0 ),
-                state( IMAP::NotAuthenticated )
+    IMAPData():
+        cmdArena( 0 ),
+        readingLiteral( false ), literalSize( 0 ),
+        args( 0 ),
+        state( IMAP::NotAuthenticated ),
+        grabber( 0 ),
+        idle( false )
     {}
 
     Arena * cmdArena;
@@ -23,6 +27,9 @@ public:
     uint literalSize;
     List<String> * args;
     IMAP::State state;
+    Command * grabber;
+    List<Command> commands;
+    bool idle;
 };
 
 
@@ -46,7 +53,9 @@ IMAP::IMAP(int s)
 
     setReadBuffer( new Buffer( fd() ) );
     setWriteBuffer( new Buffer( fd() ) );
-    writeBuffer()->append("* OK - ne plus ultra\r\n");
+    writeBuffer()->append("* OK [");
+    writeBuffer()->append( Capability::capabilities() );
+    writeBuffer()->append( "]\r\n");    
     setTimeout( time(0) + 20 );
 }
 
@@ -73,6 +82,7 @@ int IMAP::react(Event e)
         result = 0;
         break;
     }
+    runCommands();
     if ( state() == Logout )
         result = 0;
     if ( result )
@@ -92,7 +102,13 @@ int IMAP::parse()
     Arena::push( d->cmdArena );
     Buffer * r = readBuffer();
     while( true ) {
-        if ( d->readingLiteral ) {
+        if ( d->grabber ) {
+            d->grabber->read();
+            // still grabbed? must wait for more.
+            if ( d->grabber )
+                return true;
+        }
+        else if ( d->readingLiteral ) {
             if ( r->size() >= d->literalSize ) {
                 d->args->append( r->string( d->literalSize ) );
                 r->remove( d->literalSize );
@@ -210,16 +226,12 @@ void IMAP::addCommand()
     // write the new string into the one in the list
     *s = s->mid( i );
 
-    Command * cmd = Command::create( this, command, tag, args );
+    Command * cmd = Command::create( this, command, tag, args, d->cmdArena );
     if ( cmd ) {
-        // at this point, d->cmdArena is in use. as soon as we have
-        // multiple concurrently active commands, that Arena has to be
-        // copied into Command. copied, not moved, or else the parsing
-        // prior to Command::create leaks memory. *sigh*
         cmd->parse();
         if ( cmd->ok() )
             cmd->execute();
-        cmd->emitResponses();
+        d->commands.append( cmd );
     }
     else {
         String tmp( tag );
@@ -259,4 +271,72 @@ IMAP::State IMAP::state() const
 void IMAP::setState( State s )
 {
     d->state = s;
+}
+
+
+/*! Notifies this IMAP connection that it is idle if \a i is true, and
+  not idle if \a i is false. An idle connection (see RFC 2177) is one
+  in which e.g. EXPUNGE/EXISTS responses may be sent at any time. If a
+  connection is not idle, such responses must be delayed until the
+  client can listen to them.
+*/
+
+void IMAP::setIdle( bool i )
+{
+    d->idle = i;
+}
+
+
+/*! Returns true if this connection is idle, and false if it is
+  not. The initial (and normal) state is false.
+*/
+
+bool IMAP::idle() const
+{
+    return d->idle;
+}
+
+
+/*! Reserves input from the connection for \a command.
+
+  When more input is available, \a Command::read() is called, and as
+  soon as the command has read enough, it must call reserve( 0 ) to
+  hand the connection back to the general IMAP parser.
+
+  Most commands should never need to call this; it is provided for
+  commands that need to read more input after parsing has completed,
+  such as IDLE and AUTHENTICATE.
+*/
+
+void IMAP::reserve( Command * command )
+{
+    d->grabber = command;
+}
+
+
+/*! Calls execute() on all currently operating commands, and if
+  possible calls emitResponses() and retires those which can be
+  retired.
+*/
+
+void IMAP::runCommands()
+{
+    Command * c;
+    d->commands.first();
+    while( (c=d->commands.current()) != 0 ) {
+        Arena::push( c->arena() );
+        if ( c->ok() )
+            c->execute();
+        if ( c->state() == Command::Finished )
+            c->emitResponses();
+        Arena::pop();
+        d->commands.next();
+    }
+    d->commands.first();
+    while( (c=d->commands.current()) != 0 ) {
+        if ( c->state() == Command::Finished )
+            d->commands.take();
+        else
+            d->commands.next();
+    }
 }
