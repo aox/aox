@@ -19,6 +19,8 @@ public:
     bool failed() const;
     bool done() const;
 
+    EventHandler *owner() const;
+
     String error() const;
     void setError( const String & );
 

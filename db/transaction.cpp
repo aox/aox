@@ -88,6 +88,15 @@ bool Transaction::done() const
 }
 
 
+/*! Returns a pointer to the EventHandler that owns this transaction.
+*/
+
+EventHandler *Transaction::owner() const
+{
+    return d->owner;
+}
+
+
 /*! Returns the error message associated with this Transaction. This
     value is meaningful only if the Transaction has failed().
 */

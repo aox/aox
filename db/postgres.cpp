@@ -321,7 +321,7 @@ void Postgres::process( char type )
     case 't':
         (void)new PgParameterDescription( readBuffer() );
         break;
-        
+
     case 'T':
         d->description = new PgRowDescription( readBuffer() );
         break;
@@ -368,6 +368,8 @@ void Postgres::process( char type )
                 if ( msg.status() == Idle ) {
                     d->transaction->setState( Transaction::Completed );
                     d->reserved = false;
+                    if ( d->transaction->owner() )
+                        d->transaction->owner()->execute();
                     d->transaction = 0;
                 }
                 else if ( msg.status() == FailedTransaction ) {
@@ -695,14 +697,14 @@ void UpdateSchema::execute() {
             return;
         }
         else {
+            l->log( "Updating schema from revision " + fn( revision ) +
+                    " to revision " + fn( currentRevision ) );
             state = 2;
         }
     }
 
     // Perform successive updates towards the current revision.
     while ( revision < currentRevision ) {
-        l->log( "Updating schema from revision " + fn( revision ) +
-                " to revision " + fn( revision ) );
         if ( state == 2 ) {
             seq = new Query( "select nextval('revisions')::integer as seq",
                              this );
