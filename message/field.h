@@ -17,7 +17,7 @@ class Date;
 
 class HeaderField {
 public:
-    HeaderField( const String &, const String & );
+    static HeaderField *create( const String &, const String & );
 
     // The contents of this enum must be kept in sync with the data in
     // src/schema/field-names. Furthermore, new entries MUST be added
@@ -42,33 +42,51 @@ public:
         Other
     };
 
+protected:
+    HeaderField( HeaderField::Type );
+
+public:
     Type type() const;
 
     String name() const;
-    String value() const;
     String data() const;
+    String value() const;
 
     bool valid() const;
     String error() const;
 
-    void parseText();
-    List<Address> * parseMailboxList();
-    List<Address> * parseMailbox();
-    List<Address> * parseAddressList();
-    List<Address> * parseMessageId();
-    List<Address> * parseReferences();
-    ::Date * parseDate();
-    ::ContentType * parseContentType();
-    ::ContentTransferEncoding * parseContentTransferEncoding();
-    ::ContentDisposition * parseContentDisposition();
-    ::ContentLanguage * parseContentLanguage();
-    String parseContentLocation();
-    void parseMimeVersion();
+    ::Date *date() const;
+    List< ::Address > *addresses() const;
+    ::ContentType *contentType() const;
+    ::ContentTransferEncoding *contentTransferEncoding() const;
+    ::ContentDisposition *contentDisposition() const;
+    ::ContentLanguage *contentLanguage() const;
 
     static const char *fieldName( HeaderField::Type );
 
 private:
-    class HeaderFieldData * d;
+    class HeaderFieldData *d;
+
+    void setName( const String & );
+    void setData( const String & );
+    void setValue( const String & );
+    void setError( const String & );
+    void setString( const String & );
+
+    void parse();
+    void parseText();
+    void parseMailboxList();
+    void parseMailbox();
+    void parseAddressList();
+    void parseMessageId();
+    void parseReferences();
+    void parseDate();
+    void parseContentType();
+    void parseContentTransferEncoding();
+    void parseContentDisposition();
+    void parseContentLanguage();
+    void parseContentLocation();
+    void parseMimeVersion();
 };
 
 
