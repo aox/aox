@@ -10,6 +10,11 @@ static inline String fn( uint n ) { return String::fromNumber( n ); }
 */
 
 
+/*! \fn Status::Status()
+    \reimp
+*/
+
+
 /*! \reimp */
 
 void Status::parse()

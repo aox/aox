@@ -11,9 +11,11 @@
     this mechanism until after STARTTLS.)
 */
 
+
 /*! \fn Login::Login()
     \reimp
 */
+
 
 /*! \reimp */
 
@@ -31,7 +33,7 @@ void Login::parse()
     by feeding it the data it would otherwise issue a challenge for, and
     waits for its verdict.
 
-    \sa Authenticate::execute()
+    \sa Authenticate
 */
 
 void Login::execute()

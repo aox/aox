@@ -8,6 +8,11 @@
 */
 
 
+/*! \fn Rename::Rename()
+    \reimp
+*/
+
+
 /*! \reimp */
 
 void Rename::parse()
