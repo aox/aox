@@ -23,7 +23,7 @@ public:
     void remove( uint );
     char operator[]( uint ) const;
     String * string( uint ) const;
-    String * removeLine();
+    String * removeLine( uint = 0 );
 
     Arena * arena() const;
 
