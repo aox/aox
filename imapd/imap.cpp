@@ -342,8 +342,11 @@ void IMAP::addCommand()
     // If we're already working, block this. Otherwise, run
     // it. runCommands() will unblock it (at once or later).
 
-    if ( !d->commands.isEmpty() && cmd->state() == Command::Executing )
+    if ( !d->commands.isEmpty() && cmd->state() == Command::Executing ) {
+        log( Log::Debug, "Blocking command '" + tag + " " + command + 
+             " because other commands are queued" );
         cmd->setState( Command::Blocked );
+    }
     d->commands.append( cmd );
 }
 
