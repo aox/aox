@@ -38,6 +38,8 @@ public:
     bool isRecent( uint ) const;
     void addRecent( uint );
 
+    MessageSet expunged() const;
+
     bool responsesNeeded() const;
     void emitResponses();
     void updateUidnext();

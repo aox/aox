@@ -39,7 +39,12 @@ FETCH fixes:
 
 EXPUNGE fixes:
 
-  We need to do what RFC2180 says.
+  Crab says: We need to do what RFC2180 says.
+
+  Arnt says: RFC 2180 gives four possible approaches for FETCH and as
+  many for STORE. IMO, as of this change our handling of STORE and
+  FETCH is as good as any of those four. Less advanced, but a lot
+  simpler.
 
 
 Bodypart sharing
@@ -61,6 +66,8 @@ inject a large number of messages, collect query statistics
 
 
 test with more imap clients (corp/docs/misc/mua-list)
+
+  Why do we have one list in mua-list and another in imap.html?
 
 
 tlsproxy doesn't handle eof (or errors) well

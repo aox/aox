@@ -411,3 +411,13 @@ bool ImapSessionInitializer::done() const
 {
     return d->done;
 }
+
+
+/*! Returns a message set containing all the UIDs that have been
+    expunged in the database, but not yet reported to the client.
+*/
+
+MessageSet ImapSession::expunged() const
+{
+    return d->expunges;
+}

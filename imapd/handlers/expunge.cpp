@@ -28,6 +28,15 @@ public:
 
     It implements EXPUNGE, as specified in RFC 3501 section 6.4.3, and
     helps Close.
+
+    RFC 2180 discusses expunging in situations where multiple users
+    may access the mailbox. Our present approach is to delete the
+    message early, so that when we tell the expunging client that a
+    message is gone, it really is. Seems advisable from a
+    confidentiality point of view.
+    
+    The UID of an expunged message may still exist in different
+    sessions, although the message itself is no longer accessible.
 */
 
 /*! Creates a new Expunge handler.
