@@ -43,6 +43,12 @@ Fix shutdown
   there's no practical way to shutdown using ocd/ocadmin.
 
 
+Using SHA-1 to hash bodyparts instead of MD5.
+
+  MD5 is broken, and we should be moving away from it.
+  AMS needs to take code from RFC 3174 and make core/sha1.cpp.
+
+
 inject a large number of messages, collect query statistics
 
 
