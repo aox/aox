@@ -120,6 +120,9 @@ void Fetcher::execute()
         }
     }
 
+    if ( d->query )
+        return;
+
     if ( any ) {
         List<FetcherData::Handler>::Iterator it( d->handlers.first() );
         MessageSet s;
@@ -136,9 +139,6 @@ void Fetcher::execute()
         }
     }
 
-    if ( d->query )
-        return;
-
     MessageSet merged;
     List<FetcherData::Handler>::Iterator it( d->handlers.first() );
     while ( it ) {
@@ -154,7 +154,7 @@ void Fetcher::execute()
     // later, we'll want to be smarter.
     d->smallest = merged.smallest();
     uint i = 1;
-    while ( i <= merged.count() &&
+    while ( i <= merged.count() && i < 512 &&
             merged.value( i ) - d->smallest < i + 4 )
         d->largest = merged.value( i++ );
     d->query = new Query( *query(), this );
@@ -180,6 +180,13 @@ void Fetcher::insert( const MessageSet & messages, EventHandler * handler )
     if ( !d->query )
         execute();
 }
+
+
+/*! \fn void Fetcher::decode( Message * m, Row * r )
+  
+    This pure virtual function is responsible for decoding \a r and
+    updating \a m with the results.
+*/
 
 
 /*! \fn PreparedStatement * Fetcher::query() const
@@ -287,7 +294,7 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
 
 /*! \fn void Fetcher::setDone( Message * m )
 
-    This pure virtual function notifies \a that this Fetcher has
+    This pure virtual function notifies \a m that this Fetcher has
     fetched all of the relevant data.
 */
 
@@ -309,3 +316,27 @@ void MessageBodyFetcher::setDone( Message * m )
 {
     m->setBodiesFetched();
 }
+
+
+/*! \class MessageHeaderFetcher fetcher.h
+
+    The MessageHeaderFetcher class is an implementation class
+    responsible for fetching the headers of messages. It has no API of
+    its own; Fetcher is the entire API.
+*/
+
+
+/*! \class MessageFlagFetcher fetcher.h
+
+    The MessageFlagFetcher class is an implementation class
+    responsible for fetching the headers of messages. It has no API of
+    its own; Fetcher is the entire API.
+*/
+
+
+/*! \class MessageBodyFetcher fetcher.h
+
+    The MessageBodyFetcher class is an implementation class
+    responsible for fetching the headers of messages. It has no API of
+    its own; Fetcher is the entire API.
+*/
