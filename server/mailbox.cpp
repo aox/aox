@@ -27,18 +27,25 @@ static Mailbox *root = 0;
 /*! \class Mailbox mailbox.h
     This class represents a node in the global mailbox hierarchy.
 
-    Every Mailbox has a unique name() within the hierarchy. Leaf nodes
-    have a non-zero numeric id() and attributes like uidvalidity() and
-    count() (and knows whether or not it is deleted()). Mailboxes have
-    a parent() and may have a number of children().
+    Every Mailbox has a unique name() within the hierarchy. Any
+    Mailbox that can contain messages has a non-zero numeric id() and
+    attributes like uidvalidity() and count(). Mailboxes have a
+    parent() and may have a number of children().
+
+    Some mailboxes aren't quite real. A Mailbox can be deleted(), in
+    which case it can contain no messags. If recreated, a deleted()
+    mailbox preserves its uidvalidity() and uid series. It can also be
+    synthetic(), meaning that it exists only in RAM, not in the database.
 
     This class maintains a tree of mailboxes, based on the contents of
     the mailboxes table and descriptive messages from the OCServer. It
-    can find() a named mailbox in this hierarchy.
+    can find() a named mailbox in this hierarchy. Synthetic messages
+    are internal nodes in the tree, necessary to connect the root to
+    the leaves.
 */
 
-/*! Creates a Mailbox named \a name.
-*/
+
+/*! Creates a Mailbox named \a name. */
 
 Mailbox::Mailbox( const String &name )
     : d( new MailboxData )
@@ -174,8 +181,7 @@ Mailbox *Mailbox::find( const String &name, bool deleted )
 }
 
 
-/*! Returns the name of this Mailbox.
-*/
+/*! Returns the fully qualified name of this Mailbox. */
 
 String Mailbox::name() const
 {
@@ -183,8 +189,8 @@ String Mailbox::name() const
 }
 
 
-/*! Returns the ID of this Mailbox.
-*/
+/*! Returns the database ID of this Mailbox, or 0 if this Mailbox is
+    synthetic(). */
 
 uint Mailbox::id() const
 {
@@ -192,7 +198,10 @@ uint Mailbox::id() const
 }
 
 
-/*! Returns the number of messages in this Mailbox.
+/*! Returns the number of messages in this Mailbox, or 0 if this
+    Mailbox is deleted() or synthetic().
+
+    Is this in RAM or in the database? Can it lag behind reality?
 */
 
 uint Mailbox::count() const
@@ -201,8 +210,7 @@ uint Mailbox::count() const
 }
 
 
-/*! Returns the UIDVALIDITY value of this Mailbox.
-*/
+/*! Returns the UIDVALIDITY value of this Mailbox. This never changes. */
 
 uint Mailbox::uidvalidity() const
 {
@@ -210,12 +218,22 @@ uint Mailbox::uidvalidity() const
 }
 
 
-/*! Returns true if this mailbox is deleted.
-*/
+/*! Returns true if this mailbox is currently deleted. */
 
 bool Mailbox::deleted() const
 {
     return d->deleted;
+}
+
+
+/*! Returns true if this Mailbox has been synthesized in-RAM in order
+    to fully connect the mailbox tree, and false if the Mailbox exists
+    in the database.
+*/
+
+bool Mailbox::synthetic() const
+{
+    return !id();
 }
 
 

@@ -15,6 +15,7 @@ public:
     uint count() const;
     uint uidvalidity() const;
     bool deleted() const;
+    bool synthetic() const;
 
     Mailbox *parent() const;
     List< Mailbox > *children() const;
