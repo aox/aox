@@ -88,6 +88,6 @@ rule Doc {
 }
 
 actions together Doc2 {
-    bin/rdoc -m doc/man/man3 -w doc/html $(>)
+    bin/rdoc -o 'Oryx Mail Systems GmbH' -u 'http://www.oryx.com' -m doc/man/man3 -w doc/html $(>)
     touch $(<)
 }

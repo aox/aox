@@ -191,7 +191,7 @@ bool ImapSession::responsesNeeded() const
 /*! Sends all necessary EXPUNGE, EXISTS and OK[UIDNEXT] responses and
     updates this ImapSession accordingly.
 
-    emitResponses() uses IMAP::writeBuffer() directly.
+    emitResponses() uses Connection::writeBuffer() directly.
 */
 
 void ImapSession::emitResponses()

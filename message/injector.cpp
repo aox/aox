@@ -331,10 +331,10 @@ void Injector::buildAddressLinks()
 
 
 /*! This private function builds a list of FieldLinks containing every
-    header field used in the message, and uses FieldCache::lookup() to
-    associate each unknown HeaderField with an ID. It causes execute()
-    to be called when every field name in d->fieldLinks has been
-    resolved.
+    header field used in the message, and uses
+    FieldNameCache::lookup() to associate each unknown HeaderField
+    with an ID. It causes execute() to be called when every field name
+    in d->fieldLinks has been resolved.
 */
 
 void Injector::buildFieldLinks()
@@ -427,10 +427,10 @@ void Injector::insertBodyparts()
         }
 
         bool text = true;
-        if ( b->contentType() && 
+        if ( b->contentType() &&
              b->contentType()->type() != "text" )
             text = false;
-        
+
         i = new Query( "insert into bodyparts (text,bytes,lines) "
                        "values ($1,$2,$3)", helper );
         if ( text )
