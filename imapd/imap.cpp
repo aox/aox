@@ -322,7 +322,8 @@ void IMAP::addCommand()
 
     // Then add it to our list of Commands.
 
-    if ( cmd->ok() && cmd->state() == Command::Executing &&
+    if ( cmd->ok() &&
+         cmd->state() == Command::Executing &&
          !d->commands.isEmpty() )
     {
         // We're already executing d->commands. Can we start cmd now?
@@ -340,7 +341,9 @@ void IMAP::addCommand()
             List< Command >::Iterator it;
 
             it = d->commands.first();
-            while ( it && it->group() == cmd->group() )
+            while ( it &&
+                    it->group() == cmd->group() &&
+                    it->state() == Command::Executing )
                 it++;
 
             if ( it ) {
@@ -494,43 +497,51 @@ void IMAP::reserve( Command * command )
 void IMAP::runCommands()
 {
     Command * c;
-    bool more = true;
+    List< Command >::Iterator i;
 
-    while ( more ) {
-        more = false;
+    // run all currently executing commands once
+    i = d->commands.first();
+    while ( i ) {
+        c = i;
+        i++;
+        Scope x( c->arena() );
 
-        List< Command >::Iterator i;
-
-        i = d->commands.first();
-        while ( i ) {
-            c = i++;
-            Scope x( c->arena() );
-
-            if ( c->ok() ) {
-                if ( c->state() == Command::Executing )
-                    c->execute();
-            }
-            if ( !c->ok() )
-                c->setState( Command::Finished );
-            if ( c->state() == Command::Finished )
-                c->emitResponses();
-        }
-
-        i = d->commands.first();
-        while ( i ) {
-            if ( i->state() == Command::Finished )
-                delete d->commands.take(i);
-            else
-                i++;
-        }
-
-        // XXX: Don't we need to check the group here?
-        c = d->commands.first();
-        if ( c && c->ok() && c->state() == Command::Blocked ) {
-            c->setState( Command::Executing );
-            more = true;
-        }
+        if ( c->ok() && c->state() == Command::Executing )
+            c->execute();
+        if ( !c->ok() )
+            c->setState( Command::Finished );
+        if ( c->state() == Command::Finished )
+            c->emitResponses();
     }
+
+    // retire all finished commands
+    i = d->commands.first();
+    while ( i ) {
+        if ( i->state() == Command::Finished )
+            delete d->commands.take(i);
+        else
+            i++;
+    }
+
+    // if no commands are running, start the oldest command and all
+    // others in its group.
+
+    i = d->commands.first();
+    while ( i && i->state() != Command::Executing )
+        i++;
+    if ( !i )
+        return;
+
+    c = i;
+    do {
+        if ( i->group() == c->group() &&
+             i->state() == Command::Blocked && i->ok() ) {
+            Scope x( i->arena() );
+            i->setState( Command::Executing );
+            i->execute();
+        }
+        i++;
+    } while ( c->group() > 0 && i );
 }
 
 
@@ -645,4 +656,19 @@ bool IMAP::supports( const String &s ) const
     }
 
     return false;
+}
+
+
+/*! Returns the total number of unfinished commands. */
+
+uint IMAP::activeCommands() const
+{
+    uint n = 0;
+    List<Command>::Iterator i = d->commands.first();
+    while ( i ) {
+        if ( i->state() != Command::Finished )
+            n++;
+        i++;
+    }
+    return n;
 }

@@ -40,6 +40,8 @@ public:
     static void setup();
     bool supports( const String & ) const;
 
+    uint activeCommands() const;
+
 private:
     class IMAPData *d;
 
