@@ -425,6 +425,15 @@ static String sectionResponse( FetchData::Section *s,
         data.append( "\r\n" );
     }
 
+    else if ( s->id[0] > '0' && s->id[0] <= '9' ) {
+        BodyPart *bp = m->bodyPart( s->id, false );
+        if ( bp )
+            // "Cruel, evil bug."
+            data = bp->data();
+
+        item = "BODY[" + s->id + "]";
+    }
+
     if ( s->partial ) {
         item.append( "<" + fn( s->offset ) + ">" );
         data = data.mid( s->offset, s->length );
