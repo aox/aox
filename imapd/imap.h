@@ -53,4 +53,17 @@ private:
     void run( Command * );
 };
 
+
+class IMAP993: public IMAP
+{
+public:
+    IMAP993( int );
+
+    void finish();
+
+private:
+    class IMAP993Data * d;
+};
+
+
 #endif

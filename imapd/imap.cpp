@@ -15,6 +15,7 @@
 #include "configuration.h"
 #include "imapsession.h"
 #include "user.h"
+#include "tls.h"
 
 
 static bool endsWithLiteral( const String *, uint *, bool * );
@@ -664,4 +665,62 @@ uint IMAP::activeCommands() const
         i++;
     }
     return n;
+}
+
+
+class IMAP993Data
+{
+public:
+    IMAP993Data() : tlsServer( 0 ), helper( 0 ) {}
+    TlsServer * tlsServer;
+    String banner;
+    class Imap993Helper * helper;
+};
+
+class Imap993Helper: public EventHandler
+{
+public:
+    Imap993Helper( IMAP993 * connection ) : c( connection ) {}
+    void execute() { c->finish(); }
+
+private:
+    IMAP993 * c;
+};
+
+/*! \class IMAP993 imap.h
+
+    The IMAP993 class implements the old wrapper trick still commonly
+    used on port 993. As befits a hack, it is a bit of a hack, and
+    depends on the ability to empty its writeBuffer().
+*/
+
+/*! Constructs an empty IMAP993 object. Immediately starts negotiating
+    TLS.
+*/
+
+IMAP993::IMAP993( int s )
+    : IMAP( s ), d( new IMAP993Data )
+{
+    String * tmp = writeBuffer()->removeLine();
+    if ( tmp )
+        d->banner = *tmp;
+    d->helper = new Imap993Helper( this );
+    d->tlsServer = new TlsServer( d->helper, peer(), "IMAP-993" );
+}
+
+
+/*! Handles completion of TLS negotiation and sends the banner. */
+
+void IMAP993::finish()
+{
+    if ( !d->tlsServer->done() )
+        return;
+    if ( !d->tlsServer->ok() ) {
+        log( "Cannot negotiate TLS" );
+        close();
+        return;
+    }
+
+    startTls( d->tlsServer );
+    enqueue( d->banner );
 }

@@ -233,6 +233,15 @@ IPv6 addresses.
 is the port where the IMAP server accepts connections,
 .I 143
 by default.
+.IP use-imap-993
+is enabled if the IMAP server should also accept SSL-wrapped
+connections. The default is no.
+.IP imap-993-address
+is the address where the IMAP server listens for new SSL-wrapped connections.
+.IP imap-993-port
+is the port where the IMAP server accepts connections,
+.I 993
+by default.
 .IP announce-draft-support
 is enabled if the IMAP server should advertise support for
 drafts. Oryx tracks the draft versions of several IMAP extensions

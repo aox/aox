@@ -56,6 +56,9 @@ RFC 2831: AUTH=DIGEST-MD5.
 .IP
 draft-siemborski-imap-sasl-initial-response: SASL-IR.
 .PP
+.B imapd
+also supports SSL wrapping on port 993, as Netscape once made popular.
+.PP
 http://www.oryx.com/mailstore/imap.html elaborates more on the IMAP
 support in Mailstore.
 .SH AUTHOR

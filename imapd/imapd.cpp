@@ -27,6 +27,9 @@ int main( int argc, char *argv[] )
     Server s( "imapd", argc, argv );
     s.setup( Server::Report );
     Listener< IMAP >::create( "IMAP", "", 143 );
+    Configuration::Toggle use993( "use-imap-993", false );
+    if ( use993 )
+        Listener< IMAP993 >::create( "IMAP-993", "", 993 );
     Database::setup();
     s.setup( Server::Finish );
 
