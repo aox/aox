@@ -662,6 +662,11 @@ void SMTP::inject()
     Message * m = new Message( received + d->body );
     m->header()->removeField( HeaderField::ReturnPath );
     m->header()->add( "Return-Path", d->from->toString() );
+
+    d->messageError = "";
+    d->injector = 0;
+    d->body = "";
+
     if ( !m->valid() ) {
         d->messageError = m->error();
         reportInjection();
@@ -699,6 +704,8 @@ void SMTP::reportInjection()
         respond( 451, "Unable to inject" );
     else
         respond( 250, "Done" );
+
+    d->to.clear();
 }
 
 
@@ -769,4 +776,6 @@ void LMTP::reportInjection()
         ++it;
         sendResponses();
     }
+
+    d->to.clear();
 }
