@@ -41,10 +41,13 @@ void Login::execute()
     a->verify();
 
     if ( a->done() ) {
-        if ( a->state() == Authenticator::Failed )
+        if ( a->state() == Authenticator::Failed ) {
             error( No, "LOGIN failed for '" + n + "'" );
-        else
+        }
+        else {
+            imap()->setUid( a->uid() );
             imap()->setLogin( n );
+        }
         finish();
     }
 }

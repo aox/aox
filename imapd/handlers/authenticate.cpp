@@ -80,10 +80,13 @@ void Authenticate::execute()
         a->verify();
 
     if ( a->done() ) {
-        if ( a->state() == Authenticator::Failed )
+        if ( a->state() == Authenticator::Failed ) {
             error( No, "Sorry" );
-        else
+        }
+        else {
+            imap()->setUid( a->uid() );
             imap()->setLogin( a->login() );
+        }
 
         imap()->reserve( 0 );
         finish();

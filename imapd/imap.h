@@ -26,7 +26,9 @@ public:
     bool idle() const;
     void setIdle( bool );
 
+    uint uid();
     String login();
+    void setUid( uint );
     void setLogin( const String & );
 
     Mailbox *mailbox();

@@ -23,7 +23,7 @@ public:
         : state( IMAP::NotAuthenticated ),
           logger( new Log ), cmdArena( 0 ), args( 0 ),
           readingLiteral( false ), literalSize( 0 ),
-          reader( 0 ), mailbox( 0 ),
+          reader( 0 ), mailbox( 0 ), uid( 0 ),
           idle( false )
     {}
     ~IMAPData() {
@@ -44,6 +44,7 @@ public:
 
     Mailbox *mailbox;
     String login;
+    uint uid;
 
     bool idle;
 };
@@ -535,4 +536,23 @@ static bool endsWithLiteral( const String *s, uint *n, bool *plus )
     *n = s->mid( i+1, j-i+1 ).number( &ok );
 
     return ok;
+}
+
+
+/*! Returns the user ID corresponding to the login() name set for this
+    IMAP session, or 0 if none has been set.
+*/
+
+uint IMAP::uid()
+{
+    return d->uid;
+}
+
+
+/*! Sets the user ID for this IMAP session to \a id.
+*/
+
+void IMAP::setUid( uint id )
+{
+    d->uid = id;
 }
