@@ -41,22 +41,13 @@ void Idle::execute()
 
 void Idle::read()
 {
-    Buffer * b = imap()->readBuffer();
-
-    uint i = 0;
-    while ( i < b->size() && (*b)[i] != 10 )
-        i++;
-    if ( (*b)[i] == 10 ) {
-        i++;
-        String r( b->string( i )->simplified() );
-        b->remove( i );
-        // if we get something other than done, we must respond with
-        // an error, but that's all, isn't it? we don't need to
-        // actually do anything. either way, the idleness is over.
-        if ( r.lower() != "done" )
-            error( Bad, "Expected DONE, saw: " + r );
-        imap()->setIdle( false );
-        imap()->reserve( 0 );
-        setState( Finished );
-    }
+    String *s = imap()->readBuffer()->removeLine();
+    if ( !s )
+        return;
+    String r = s->lower();
+    if ( r != "done" )
+        error( Bad, "Expected DONE, saw: " + r );
+    imap()->setIdle( false );
+    imap()->reserve( 0 );
+    finish();
 }
