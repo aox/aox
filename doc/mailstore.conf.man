@@ -238,8 +238,23 @@ by default.
 pop-address and pop-port are only valid in
 .IR popd.conf .
 .SS TLS
-There are no TLS-specific settings yet. They'll be described here as
-soon as they exist.
+.IP use-tls
+regulates whether Mailstore supports TLS at all. The default is
+.IR enabled .
+.IP tls-certificate
+is the absolute file name of the TLS private key,
+e.g. /etc/ssl/privatekey.pem. If
+.I tls-certificate
+is not specified, tlsproxy generates a self-signed
+certificate at runtime.
+.IP tlsproxy-address
+is the address where the tlsproxy listens for new connections. The
+default is
+.IR 127.0.0.1 .
+.IP tlsproxy-port
+is the port where the tlsproxy accepts connections,
+.I 2061
+by default.
 .SH SYNTAX
 .PP
 The name is case insensitive, as shown:
