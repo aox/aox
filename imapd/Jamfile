@@ -8,6 +8,9 @@ SubInclude TOP lib ;
 SubInclude TOP codecs ;
 SubInclude TOP cryptlib ;
 
+# - qdoc, so we can build documentation
+SubInclude TOP qdoc ;
+
 # - our own subdirectories, with a -I pointing here
 HDRS += [ FDirName $(TOP) imapd ] ;
 HDRS += [ FDirName $(TOP) imapd db ] ;
