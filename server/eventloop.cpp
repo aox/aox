@@ -175,7 +175,8 @@ void EventLoop::start()
         while ( it ) {
             c = it++;
             int fd = c->fd();
-            dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
+            if ( fd >= 0 )
+                dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
         }
 
         // This is for event loop shutdown. A little brutal. Proper
