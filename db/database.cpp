@@ -60,7 +60,12 @@ void Database::setup()
 
     if ( !srv->valid() ) {
         log( Log::Disaster, "Invalid dbhost address <" + dbHost + "> port <" +
-             String::fromNumber( dbPort ) + ">\n" );
+             String::fromNumber( dbPort ) + ">" );
+        return;
+    }
+
+    if ( interface() == Invalid ) {
+        log( Log::Disaster, "Unsupported database type <" + *t + ">" );
         return;
     }
 }
@@ -92,10 +97,14 @@ Database *Database::handle()
 
     // XXX: We should do some sort of rate limiting here.
     if ( !db ) {
-        String type = Database::type().lower();
-
-        if ( type == "postgres" )
+        switch ( interface() ) {
+        case Pg:
             db = new Postgres;
+            break;
+
+        case Unknown:
+            break;
+        }
     }
 
     return db;
@@ -176,13 +185,20 @@ void Database::query( List< Query > *l )
 }
 
 
-/*! Returns the text of the "db" configuration variable, which tells the
+/*! Returns the configured Database::Interface type. This is derived
+    from the text of the "db" configuration variable, and tells the
     handle() function which Database subclass to instantiate.
 */
 
-String Database::type()
+Database::Interface Database::interface()
 {
-    return *t;
+    Interface i = Invalid;
+    String type = t->lower();
+
+    if ( type == "pg" || type == "pgsql" || type == "postgres" )
+        i = Pg;
+
+    return i;
 }
 
 

@@ -13,6 +13,10 @@ class Database
 public:
     Database();
 
+    enum Interface {
+        Invalid, Pg
+    };
+    
     enum Type {
         Unknown, Boolean, Character, Integer, Varchar
     };
@@ -28,7 +32,7 @@ public:
     static void query( List< Query > * );
 
 protected:
-    static String type();
+    static Interface interface();
     static String name();
     static String user();
     static String password();
