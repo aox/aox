@@ -21,8 +21,8 @@ int main( int, char *[] )
     Logger::global()->log( "IMAP server started" );
 
     // should we pick this up from the config file?
-    Listener<IMAP>::createListener( "IMAP", 2052 );
-    Listener<CCCP>::createListener( "CCCP", 2053 );
+    Listener<IMAP>::create( "IMAP", "", 2052 );
+    Listener<CCCP>::create( "CCCP", "", 2053 );
 
     Configuration::global()->report();
 
