@@ -384,17 +384,9 @@ void Injector::buildAddressLinks()
     List< Address > * addresses = new List< Address >;
     Dict< Address > unique;
 
-    HeaderField::Type types[] = {
-        HeaderField::ReturnPath, HeaderField::Sender, HeaderField::ResentSender,
-        HeaderField::From, HeaderField::To, HeaderField::Cc, HeaderField::Bcc,
-        HeaderField::ResentFrom, HeaderField::ResentTo, HeaderField::ResentCc,
-        HeaderField::ResentBcc, HeaderField::ReplyTo
-    };
-    int n = sizeof (types) / sizeof( types[0] );
-
     int i = 0;
-    while ( i < n ) {
-        HeaderField::Type t = types[ i++ ];
+    while ( i <= HeaderField::LastAddressField ) {
+        HeaderField::Type t = (HeaderField::Type)i++;
         List< Address > * a = d->message->header()->addresses( t );
         if ( a && !a->isEmpty() ) {
             List< Address >::Iterator it( a->first() );
