@@ -556,20 +556,27 @@ String Fetch::bodystructure( Message * m, bool extended )
             l.append( "\"7BIT\"" );
         }
 
-        // body-fld-octets = number
-        l.append( fn( m->numBytes() ) );
+        BodyPart * bp = m->bodyPart( 1 );
 
-        if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
+        // body-fld-octets = number
+        if ( bp )
+            l.append( fn( bp->numBytes() ) );
+        
+        if ( !bp ) {
+            // what to do? hard to know.
+        }
+        else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
             // body-type-msg   = media-message SP body-fields SP envelope
             //                   SP body SP body-fld-lines
 
-            l.append( envelope( m->bodyPart( 1 )->rfc822() ) );
-            l.append( bodystructure( m->bodyPart( 1 )->rfc822(), extended ) );
-            l.append( fn( m->numLines() ) );
+            l.append( envelope( bp->rfc822() ) );
+            l.append( bodystructure( bp->rfc822(), extended ) );
+            l.append( fn( bp->numBytes() ) );
         }
         else if ( ct->type() == "text" ) {
             // body-type-text  = media-text SP body-fields SP body-fld-lines
-            l.append( fn( m->numLines() ) );
+
+            l.append( fn( bp->numLines() ) );
         }
     }
 

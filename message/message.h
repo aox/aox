@@ -40,10 +40,6 @@ public:
     uint rfc822Size() const;
     void setInternalDate( uint );
     uint internalDate() const;
-    void setNumBytes( uint );
-    uint numBytes() const;
-    void setNumLines( uint );
-    uint numLines() const;
 
     enum BuiltinFlag {
         AnsweredFlag,
@@ -89,6 +85,11 @@ public:
     UString text() const;
     Message * rfc822() const;
     
+    void setNumBytes( uint );
+    uint numBytes() const;
+    void setNumLines( uint );
+    uint numLines() const;
+
 private:
     static void parseMultiPart( uint, uint, const String &,
                                 const String &, bool,

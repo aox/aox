@@ -431,11 +431,14 @@ void Injector::insertBodyparts()
              b->contentType()->type() != "text" )
             text = false;
         
-        i = new Query( "insert into bodyparts (text) values ($1)", helper );
+        i = new Query( "insert into bodyparts (text,bytes,lines) "
+                       "values ($1,$2,$3)", helper );
         if ( text )
-            i->bind( 1, b->data(), Query::Binary );
+            i->bind( 1, b->data(), Query::Binary ); // XXX why data not text?
         else
             i->bindNull( 1 );
+        i->bind( 2, b->numBytes() );
+        i->bind( 3, b->numLines() );
         d->transaction->enqueue( i );
 
         if ( !text ) {
