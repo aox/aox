@@ -50,14 +50,10 @@ void Login::execute()
     if ( !m->done() )
         return;
 
-    if ( m->state() == SaslMechanism::Succeeded ) {
-        imap()->setUid( m->uid() );
-        imap()->setLogin( n );
-    }
-    else {
-        respond( "BAD Raise your knees two inches" );
+    if ( m->state() == SaslMechanism::Succeeded )
+        imap()->authenticated( m->uid(), n );
+    else
         error( No, "LOGIN failed for '" + n + "'" );
-    }
 
     finish();
 }

@@ -376,20 +376,16 @@ bool IMAP::idle() const
 }
 
 
-/*! Notifies the IMAP object that it's logged in as \a name. */
+/*! Notifies the IMAP object that the user \a name with uid \a n, was
+    successfully authenticated. This changes the state() of the IMAP
+    object to Authenticated.
+*/
 
-void IMAP::setLogin( const String & name )
+void IMAP::authenticated( uint n, const String & name )
 {
-    if ( state() != NotAuthenticated ) {
-        // not sure whether I like this... on one hand, it does
-        // prevent change of login. on the other, how could that
-        // possibly happen?
-        log( Log::Error,
-                        "ignored setLogin("+name+") due to wrong state" );
-        return;
-    }
+    d->uid = n;
     d->login = name;
-    log( "logged in as " + name );
+    log( "Logged in as " + name );
     setState( Authenticated );
 }
 
@@ -404,6 +400,16 @@ void IMAP::setLogin( const String & name )
 String IMAP::login()
 {
     return d->login;
+}
+
+
+/*! Returns the user ID corresponding to the login() name set for this
+    IMAP session, or 0 if none has been set.
+*/
+
+uint IMAP::uid()
+{
+    return d->uid;
 }
 
 
@@ -509,25 +515,6 @@ static bool endsWithLiteral( const String *s, uint *n, bool *plus )
     *n = s->mid( i+1, j-i+1 ).number( &ok );
 
     return ok;
-}
-
-
-/*! Returns the user ID corresponding to the login() name set for this
-    IMAP session, or 0 if none has been set.
-*/
-
-uint IMAP::uid()
-{
-    return d->uid;
-}
-
-
-/*! Sets the user ID for this IMAP session to \a id.
-*/
-
-void IMAP::setUid( uint id )
-{
-    d->uid = id;
 }
 
 

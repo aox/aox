@@ -29,8 +29,7 @@ public:
 
     uint uid();
     String login();
-    void setUid( uint );
-    void setLogin( const String & );
+    void authenticated( uint, const String & );
 
     void beginSession( const String &, bool, Command * );
     ImapSession *session() const;

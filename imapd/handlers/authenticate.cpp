@@ -113,13 +113,10 @@ void Authenticate::execute()
         }
     }
 
-    if ( m->state() == SaslMechanism::Succeeded ) {
-        imap()->setUid( m->uid() );
-        imap()->setLogin( m->login() );
-    }
-    else {
+    if ( m->state() == SaslMechanism::Succeeded )
+        imap()->authenticated( m->uid(), m->login() );
+    else
         error( No, "Sorry" );
-    }
 
     imap()->reserve( 0 );
     finish();
