@@ -59,7 +59,7 @@ public:
     List< int > * uids;
     uint totalBodyparts;
     List< int > * bodypartIds;
-    List< BodyPart > * bodyparts;
+    List< Bodypart > * bodyparts;
     List< AddressLink > * addressLinks;
     List< FieldLink > * fieldLinks;
     List< String > * otherFields;
@@ -177,7 +177,7 @@ void Injector::execute()
         // insert the addresses and field names used in the message.
 
         d->transaction = new Transaction( this );
-        d->bodyparts = d->message->allBodyParts();
+        d->bodyparts = d->message->allBodyparts();
 
         selectUids();
         insertBodyparts();
@@ -347,7 +347,7 @@ void Injector::buildFieldLinks()
 
     buildLinksForHeader( d->message->header(), "" );
 
-    List< BodyPart >::Iterator it( d->bodyparts->first() );
+    List< Bodypart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
         String pn = d->message->partNumber( it );
         buildLinksForHeader( it->header(), pn );
@@ -410,10 +410,10 @@ void Injector::insertBodyparts()
     List< Query > * queries = new List< Query >;
     IdHelper * helper = new BodypartHelper( d->bodypartIds, queries, this );
 
-    List< BodyPart >::Iterator it( d->bodyparts->first() );
+    List< Bodypart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
         d->totalBodyparts++;
-        BodyPart *b = it++;
+        Bodypart *b = it++;
 
         bool text = true;
         bool data = true;
@@ -508,10 +508,10 @@ void Injector::linkBodyparts()
         int uid = *uids++;
 
         List< int >::Iterator bids( d->bodypartIds->first() );
-        List< BodyPart >::Iterator it( d->bodyparts->first() );
+        List< Bodypart >::Iterator it( d->bodyparts->first() );
         while ( it ) {
             int bid = *bids++;
-            BodyPart *b = it++;
+            Bodypart *b = it++;
             String pn = d->message->partNumber( b );
 
             q = new Query( "insert into part_numbers "

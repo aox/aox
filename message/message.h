@@ -10,7 +10,7 @@
 #include "event.h"
 
 
-class BodyPart;
+class Bodypart;
 class Mailbox;
 class Flag;
 
@@ -24,12 +24,12 @@ public:
 
     Multipart *parent() const;
     void setParent( Multipart * );
-    List< BodyPart > *children() const;
+    List< Bodypart > *children() const;
 
 private:
     Header *h;
     Multipart *p;
-    List< BodyPart > *parts;
+    List< Bodypart > *parts;
 };
 
 
@@ -52,10 +52,10 @@ public:
     void setMailbox( Mailbox * );
     Mailbox * mailbox() const;
 
-    BodyPart * bodyPart( const String &, bool create = false );
-    String partNumber( BodyPart * ) const;
+    Bodypart * bodypart( const String &, bool create = false );
+    String partNumber( Bodypart * ) const;
 
-    List<BodyPart> * allBodyParts() const;
+    List<Bodypart> * allBodyparts() const;
 
     void setRfc822Size( uint );
     uint rfc822Size() const;
@@ -88,19 +88,19 @@ private:
 
 private:
     class MessageData * d;
-    friend class BodyPart;
+    friend class Bodypart;
     friend class MessageBodyFetcher;
     friend class MessageFlagFetcher;
     friend class MessageHeaderFetcher;
 };
 
 
-class BodyPart
+class Bodypart
     : public Multipart
 {
 public:
-    BodyPart();
-    BodyPart( uint, Multipart * );
+    Bodypart();
+    Bodypart( uint, Multipart * );
 
     uint number() const;
     ContentType * contentType() const;
@@ -121,13 +121,13 @@ public:
 private:
     static void parseMultiPart( uint, uint, const String &,
                                 const String &, bool,
-                                List<BodyPart> *, BodyPart *,
+                                List<Bodypart> *, Bodypart *,
                                 String & );
-    static BodyPart * parseBodyPart( uint, uint, const String &, Header *,
+    static Bodypart * parseBodypart( uint, uint, const String &, Header *,
                                      String & );
 
 private:
-    class BodyPartData * d;
+    class BodypartData * d;
     friend class Message;
     friend class MessageData;
     friend class MessageHeaderFetcher;

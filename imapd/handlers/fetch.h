@@ -7,7 +7,7 @@
 
 
 class Message;
-class BodyPart;
+class Bodypart;
 class Multipart;
 
 
@@ -33,7 +33,7 @@ private:
     String internalDate( Message * );
     String envelope( Message * );
     String bodyStructure( Multipart *, bool );
-    String singlePartStructure( BodyPart *, bool );
+    String singlePartStructure( Bodypart *, bool );
     void removeInvalidUids();
     void sendFetchQueries();
 

@@ -430,7 +430,7 @@ static String sectionResponse( FetchData::Section *s,
 
         Header *hdr = m->header();
         if ( !s->part.isEmpty() ) {
-            BodyPart *bp = m->bodyPart( s->part, false );
+            Bodypart *bp = m->bodypart( s->part, false );
             if ( bp && bp->header() )
                 hdr = bp->header();
             else
@@ -468,7 +468,7 @@ static String sectionResponse( FetchData::Section *s,
             data = m->rfc822();
         }
         else {
-            BodyPart *bp = m->bodyPart( s->part, false );
+            Bodypart *bp = m->bodypart( s->part, false );
             if ( bp )
                 data = bp->asText();
         }
@@ -482,7 +482,7 @@ static String sectionResponse( FetchData::Section *s,
         }
         else {
             item = s->part + ".TEXT";
-            BodyPart *bp = m->bodyPart( s->part, false );
+            Bodypart *bp = m->bodypart( s->part, false );
             if ( bp && bp->rfc822() )
                 data = bp->rfc822()->body();
         }
@@ -646,7 +646,7 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
 
     if ( ct && ct->type() == "multipart" ) {
         StringList children;
-        List< BodyPart >::Iterator it( m->children()->first() );
+        List< Bodypart >::Iterator it( m->children()->first() );
         while ( it ) {
             children.append( bodyStructure( it, extended ) );
             ++it;
@@ -661,15 +661,15 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
     else if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // XXX: This doesn't handle the case where the top-level message
         // has Content-Type: message/rfc822.
-        r = singlePartStructure( (BodyPart *)m, extended );
+        r = singlePartStructure( (Bodypart *)m, extended );
     }
     else {
-        /* If we get here, m is either a single-part leaf BodyPart, or a
+        /* If we get here, m is either a single-part leaf Bodypart, or a
            Message. In the former case, it will have no children(), but
            the Message will have one child. */
-        BodyPart *bp = m->children()->first();
+        Bodypart *bp = m->children()->first();
         if ( !bp )
-            bp = (BodyPart *)m;
+            bp = (Bodypart *)m;
         r = singlePartStructure( bp, extended );
     }
 
@@ -682,7 +682,7 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
     included.
 */
 
-String Fetch::singlePartStructure( BodyPart *bp, bool extended )
+String Fetch::singlePartStructure( Bodypart *bp, bool extended )
 {
     StringList l;
 
