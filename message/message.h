@@ -30,6 +30,11 @@ public:
     void setMailbox( Mailbox * );
     Mailbox * mailbox() const;
 
+    class BodyPart * bodyPart( const String & ) const;
+    String partNumber( class BodyPart * ) const;
+
+    List<BodyPart> * bodyParts() const;
+
 private:
     void parseMultipart( uint, uint, const String &, const String & );
     void parseBodypart( uint, uint, const String &, Header * );
