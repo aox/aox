@@ -87,6 +87,8 @@ public:
 
     void removeField( HeaderField::Type );
 
+    List<HeaderField> * fields() const;
+
 private:
     void verify() const;
 
