@@ -182,9 +182,9 @@ void IMAP::parse()
         // and create a Command to deal with it.
 
         if ( !d->readingLiteral && !d->reader ) {
-            uint n;
-            bool plus;
+            bool plus = false;
             String * s;
+            uint n;
 
             // Do we have a complete line yet?
 
@@ -547,7 +547,7 @@ static bool endsWithLiteral( const String *s, uint *n, bool *plus )
         return false;
 
     bool ok;
-    *n = s->mid( i+1, j-i+1 ).number( &ok );
+    *n = s->mid( i+1, j-i ).number( &ok );
 
     return ok;
 }
