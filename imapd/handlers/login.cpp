@@ -29,7 +29,7 @@ void Login::execute()
 {
     Plain plain;
     plain.setLogin( n );
-    if ( plain.loginExists() && plain.password() == p )
+    if ( plain.loginExists() && plain.secret() == p )
         imap()->setLogin( n );
     else if ( n.isEmpty() )
         error( No, "login failed " );
