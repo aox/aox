@@ -3,9 +3,8 @@ Add support for RFC 2047 encoding
 
 ocd needs work (mike@waspfactory.org)
 
-  1. Must announce new mail.
-  2. The code needs cleaning up.
-  3. Should synchronise field names etc.
+  1. The code (along with user/mailbox) needs cleaning up.
+  2. Should synchronise field names etc.
 
 
 We need top-level message/rfc822 support
@@ -30,9 +29,6 @@ We need a mechanism to open more than one database handle.
 
 
 APPEND doesn't handle an empty flag list correctly.
-
-
-User/Mailbox need a bit of an overhaul.
 
 
 AddressCache and FieldNameCache are utter crocks, and must die.

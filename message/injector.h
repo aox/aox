@@ -24,6 +24,7 @@ public:
 
     static void setup();
 
+    void announce();
     uint uid( Mailbox * ) const;
 
 private:

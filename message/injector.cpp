@@ -14,6 +14,7 @@
 #include "addresscache.h"
 #include "transaction.h"
 #include "allocator.h"
+#include "occlient.h"
 #include "md5.h"
 #include "utf.h"
 #include "log.h"
@@ -746,6 +747,24 @@ void Injector::logMessageDetails()
     while ( it ) {
         log( "Injecting message " + id + "into mailbox " + it->name() );
         ++it;
+    }
+}
+
+
+/*! This function announces the injection of a message into the relevant
+    mailboxes, using ocd. It should be called only when the Injector has
+    completed successfully (done(), but not failed()).
+*/
+
+void Injector::announce()
+{
+    List< Mailbox >::Iterator m( d->mailboxes->first() );
+    List< uint >::Iterator u( d->uids->first() );
+    while ( m ) {
+        OCClient::send( "mailbox " + m->name().quoted() + " "
+                        "message=" + fn( *u ) );
+        ++m;
+        ++u;
     }
 }
 

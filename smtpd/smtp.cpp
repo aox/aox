@@ -702,12 +702,16 @@ void SMTP::reportInjection()
 
     d->state = MailFrom;
 
-    if ( !d->injector )
+    if ( !d->injector ) {
         respond( 554, d->messageError );
-    else if ( d->injector->failed() )
+    }
+    else if ( d->injector->failed() ) {
         respond( 451, "Unable to inject" );
-    else
+    }
+    else {
+        d->injector->announce();
         respond( 250, "Done" );
+    }
 
     commit();
     d->to.clear();
@@ -781,6 +785,9 @@ void LMTP::reportInjection()
         ++it;
         sendResponses();
     }
+
+    if ( d->injector && !d->injector->failed() )
+        d->injector->announce();
 
     d->to.clear();
 }

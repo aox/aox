@@ -97,8 +97,8 @@ void OCClient::parse()
     String msg = s->mid( i+1, j-i-1 ).lower().stripCRLF();
     String arg = s->mid( j+1 ).stripCRLF();
 
-    log( "OCClient received tag " + tag + " message " + msg +
-         " arguments <<" + arg + ">>", Log::Debug );
+    log( "OCClient received " + tag + "/" + msg + " <<" + arg + ">>",
+         Log::Debug );
 
     if ( msg == "shutdown" )
         Loop::shutdown();
@@ -172,6 +172,10 @@ void OCClient::updateMailbox( const String & arg )
                      " to uidnext " + fn( n ), Log::Debug );
             m->setUidnext( n );
         }
+    }
+    else if ( rest.startsWith( "message=" ) ) {
+        // We take the easy way out for new mail notifications.
+        m->refresh();
     }
     else {
         log( "Unable to parse mailbox changes: " + rest, Log::Error );

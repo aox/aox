@@ -121,6 +121,9 @@ void Append::execute()
         d->injector = new Injector( d->message, m, this );
         d->injector->execute();
     }
-    if ( d->injector->done() )
+    if ( d->injector->done() ) {
+        if ( !d->injector->failed() )
+            d->injector->announce();
         finish();
+    }
 }
