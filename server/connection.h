@@ -3,6 +3,7 @@
 
 #include "endpoint.h"
 
+class Arena;
 class Buffer;
 
 
@@ -25,7 +26,7 @@ public:
 
     Buffer * writeBuffer() const;
     Buffer * readBuffer() const;
-    class Arena * arena() const;
+    Arena * arena() const;
     Endpoint self();
     Endpoint peer();
 
