@@ -41,6 +41,9 @@ public:
   class contains the top-level responsibility and functionality. This
   class reads commands from its network connection, does basic
   parsing and creates command handlers as necessary.
+
+  The IMAP state (RFC 3501 section 3) and Idle state (RFC 2177) are
+  both encoded here, exactly as in the specification.
 */
 
 
@@ -55,7 +58,7 @@ IMAP::IMAP(int s)
     setWriteBuffer( new Buffer( fd() ) );
     writeBuffer()->append("* OK [");
     writeBuffer()->append( Capability::capabilities() );
-    writeBuffer()->append( "]\r\n");    
+    writeBuffer()->append( "]\r\n");
     setTimeout( time(0) + 20 );
 }
 
@@ -207,7 +210,9 @@ void IMAP::addCommand()
         i++;
         c = (*s)[i];
     } while( i < s->length() &&
-             c < 128 && c > ' ' &&
+             c < 128 && 
+             ( c > ' ' || 
+               ( c == ' ' && s->mid( j, i-j ).lower() == "uid" ) ) &&
              c != '(' && c != ')' && c != '{' &&
              c != '%' && c != '%' &&
              c != '"' && c != '\\' &&
@@ -229,8 +234,25 @@ void IMAP::addCommand()
     Command * cmd = Command::create( this, command, tag, args, d->cmdArena );
     if ( cmd ) {
         cmd->parse();
-        if ( cmd->ok() )
-            cmd->execute();
+        if ( cmd->ok() && cmd->state() == Command::Executing &&
+            !d->commands.isEmpty() ) {
+            // we're already executing one or more commands. can this
+            // one be started concurrently?
+            if ( cmd->group() == 0 ) {
+                // no, it can't.
+                cmd->setState( Command::Blocked );
+            }
+            else {
+                // do all other commands belong to the same command group?
+                d->commands.first();
+                while( d->commands.current() && 
+                       d->commands.current()->group() == cmd->group() )
+                    d->commands.next();
+                if ( d->commands.current() )
+                    // no, d->commands.current() does not
+                    cmd->setState( Command::Blocked );
+            }
+        }
         d->commands.append( cmd );
     }
     else {
@@ -306,6 +328,15 @@ bool IMAP::idle() const
   Most commands should never need to call this; it is provided for
   commands that need to read more input after parsing has completed,
   such as IDLE and AUTHENTICATE.
+
+  There is a nasty gotcha: If a command reserves the input stream and
+  calls Command::error() while in Blocked state, the command is
+  deleted, but there is no way to hand the input stream back to the
+  IMAP object. Only the relevant Command knows when it can hand the
+  input stream back.
+  
+  Therefore, Commands that call reserve() simply must hand it back properly
+  before calling Command::error() or Command::setState().
 */
 
 void IMAP::reserve( Command * command )
@@ -322,21 +353,35 @@ void IMAP::reserve( Command * command )
 void IMAP::runCommands()
 {
     Command * c;
-    d->commands.first();
-    while( (c=d->commands.current()) != 0 ) {
-        Arena::push( c->arena() );
-        if ( c->ok() )
-            c->execute();
-        if ( c->state() == Command::Finished )
-            c->emitResponses();
-        Arena::pop();
-        d->commands.next();
-    }
-    d->commands.first();
-    while( (c=d->commands.current()) != 0 ) {
-        if ( c->state() == Command::Finished )
-            d->commands.take();
-        else
-            d->commands.next();
-    }
+    bool more = true;
+    while( more ) {
+        more = false;
+        d->commands.first();
+        while( (c=d->commands.current()) != 0 ) {
+                Arena::push( c->arena() );
+                if ( c->ok() && c->state() == Command::Executing )
+                    c->execute();
+                if ( !c->ok() )
+                    c->setState( Command::Finished );
+                if ( c->state() == Command::Finished )
+                    c->emitResponses();
+                Arena::pop();
+                d->commands.next();
+            }
+            d->commands.first();
+            while( (c=d->commands.current()) != 0 ) {
+                if ( c->state() == Command::Finished ) {
+                    d->commands.take();
+                    delete c;
+                }
+                else {
+                    d->commands.next();
+                }
+            }
+        c = d->commands.first();
+        if ( c && c->ok() && c->state() == Command::Blocked ) {
+            c->setState( Command::Executing );
+            more = true;
+        }
+    };
 }

@@ -29,6 +29,9 @@ public:
     void setState( State );
     State state() const;
 
+    uint group() const;
+    void setGroup( uint );
+
     Arena * arena() const;
 
     enum Response { Tagged, Untagged };
