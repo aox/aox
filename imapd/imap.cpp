@@ -121,14 +121,18 @@ void IMAP::parse()
 {
     Scope s;
     Buffer * r = readBuffer();
+
     while ( true ) {
+
         if ( !d->cmdArena ) {
             d->cmdArena = new Arena;
             s.setArena( d->cmdArena );
         }
+
         if ( !d->args ) {
             d->args = new List<String>;
         }
+
         if ( d->grabber ) {
             d->grabber->read();
             // still grabbed? must wait for more.
@@ -143,29 +147,25 @@ void IMAP::parse()
             d->readingLiteral = false;
         }
         else {
-            uint i = 0;
-            while ( i < r->size() && (*r)[i] != 10 )
-                i++;
-            if ( (*r)[i] != 10 )
-                return; // better luck next time
+            String * s = r->removeLine();
 
-            // we have a line; read it and consider literals
-            uint j = i;
-            if ( i > 0 && (*r)[i-1] == 13 )
-                j--;
-            String * s = r->string( j );
+            if ( !s )
+                return;
+
             d->args->append( s );
-            r->remove( i + 1 ); // string + trailing lf
+
             if ( s->endsWith( "}" ) ) {
-                i = s->length()-2;
+                uint i = s->length()-2;
                 bool plus = false;
                 if ( (*s)[i] == '+' ) {
                     plus = true;
                     i--;
                 }
-                j = i;
+
+                uint j = i;
                 while ( i > 0 && (*s)[i] >= '0' && (*s)[i] <= '9' )
                     i--;
+
                 if ( (*s)[i] == '{' ) {
                     bool ok;
                     d->literalSize = s->mid( i+1, j-i+1 ).number( &ok );
