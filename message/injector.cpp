@@ -11,6 +11,7 @@
 #include "addresscache.h"
 #include "transaction.h"
 #include "md5.h"
+#include "utf.h"
 
 
 static Dict< int > * bodyHashes;
@@ -433,10 +434,13 @@ void Injector::insertBodyparts()
 
         i = new Query( "insert into bodyparts (text,bytes,lines) "
                        "values ($1,$2,$3)", helper );
-        if ( text )
-            i->bind( 1, b->data(), Query::Binary ); // XXX why data not text?
-        else
+        if ( text ) {
+            Codec *c = new Utf8Codec;
+            i->bind( 1, c->fromUnicode( b->text() ), Query::Binary );
+        }
+        else {
             i->bindNull( 1 );
+        }
         i->bind( 2, b->numBytes() );
         i->bind( 3, b->numLines() );
         d->transaction->enqueue( i );
