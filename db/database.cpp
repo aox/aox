@@ -59,13 +59,15 @@ void Database::setup()
     srv = new Endpoint( dbHost, dbPort );
 
     if ( !srv->valid() ) {
+        /*
         log( Log::Disaster, "Invalid db-address <" + dbHost + "> port <" +
              fn( dbPort ) + ">" );
+        */
         return;
     }
 
     if ( interface() == Invalid ) {
-        log( Log::Disaster, "Unsupported database type <" + *t + ">" );
+        //log( Log::Disaster, "Unsupported database type <" + *t + ">" );
         return;
     }
 

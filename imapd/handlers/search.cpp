@@ -71,10 +71,10 @@ void Search::parse()
 
     prepare();
     respond( "OK debug: query as parsed: " + d->root->debugString() );
-    log( "OK debug: query as parsed: " + d->root->debugString() );
+    //log( "OK debug: query as parsed: " + d->root->debugString() );
     d->root->simplify();
     respond( "OK debug: simplified query: " + d->root->debugString() );
-    log( "OK debug: simplified query: " + d->root->debugString() );
+    //log( "OK debug: simplified query: " + d->root->debugString() );
 }
 
 
@@ -335,18 +335,22 @@ void Search::considerCache()
         case Search::Condition::No:
             break;
         case Search::Condition::Punt:
+            /*
             log( Log::Debug,
                  "Search must go to database: message " + fn( uid ) +
                  " could not be tested in RAM" );
+            */
             needDb = true;
             break;
         }
         if ( !needDb )
             c++;
     }
+    /*
     log( Log::Debug, "search considered " + fn( c ) +
          " of " + fn( c ) + " messages using cache, " +
          fn( d->matches.count() ) + " matches" );
+    */
     if ( needDb )
         d->matches.clear();
     else

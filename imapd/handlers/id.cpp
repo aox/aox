@@ -29,9 +29,11 @@ void Id::parse()
             String value = nstring();
             if ( nextChar() == ' ' )
                 space();
+            /*
             if ( ok() && !name.isEmpty() && !value.isEmpty() )
                 log( "Client ID: " + name.simplified() + ": " +
                      value.simplified() );
+            */
         }
     }
     else {

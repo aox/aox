@@ -18,24 +18,6 @@ static bool disasters = false;
 static String time();
 
 
-void log( const String &s )
-{
-    Log *l = Scope::current()->log();
-
-    if ( l )
-        l->log(s);
-}
-
-
-void log( Log::Severity s, const String &t )
-{
-    Log *l = Scope::current()->log();
-
-    if ( l )
-        l->log( s, t );
-}
-
-
 /*! \class Log log.h
     The Log class sends log messages to the Log server.
 

@@ -220,7 +220,7 @@ FlagCreator::FlagCreator( EventHandler * owner, const StringList & flags )
 
     StringList::Iterator it( flags.first() );
     while ( it ) {
-        log( Log::Info, "Adding new flag " + *it + " to the database" );
+        //log( Log::Info, "Adding new flag " + *it + " to the database" );
         Query * q = new Query( "insert into flag_names (name) values ($1)",
                                this );
         q->bind( 1, *it );

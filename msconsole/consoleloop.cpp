@@ -90,7 +90,7 @@ void ConsoleLoop::addConnection( Connection * c )
 {
     int fd = c->fd();
     if ( fd >= fdLimit ) {
-        log( Log::Disaster, "Too many sockets used" );
+        //log( Log::Disaster, "Too many sockets used" );
         shutdown();
     }
     r[fd] = new ReadNotifier( fd, c );

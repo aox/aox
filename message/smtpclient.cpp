@@ -77,7 +77,7 @@ void SmtpClient::react( Event e )
         break;
 
     case Timeout:
-        log( Log::Error, "SMTP/LMTP server timed out" );
+        //log( Log::Error, "SMTP/LMTP server timed out" );
         Connection::setState( Closing );
         d->failed = true;
         d->owner->notify();
@@ -89,7 +89,7 @@ void SmtpClient::react( Event e )
     case Error:
     case Close:
         if ( d->sent != "quit" ) {
-            log( Log::Error, "Unexpected close by server" );
+            //log( Log::Error, "Unexpected close by server" );
             d->failed = true;
             d->owner->notify();
         }
@@ -123,7 +123,7 @@ void SmtpClient::parse()
         if ( !s )
             return;
         extendTimeout( 10 );
-        log( Log::Debug, "Received: " + *s );
+        //log( Log::Debug, "Received: " + *s );
         bool ok = false;
         if ( (*s)[3] == '-' ) {
             // it's a continuation line
@@ -132,7 +132,7 @@ void SmtpClient::parse()
         else if ( d->sent == "data" ) {
             if ( (*s)[0] == '3' ) {
                 ok = true;
-                log( Log::Debug, "Sending body." );
+                //log( Log::Debug, "Sending body." );
                 enqueue( dotted( d->message ) );
                 d->sent = "body";
             }
@@ -146,8 +146,8 @@ void SmtpClient::parse()
         if ( !ok ) {
             d->failed = true;
             d->owner->notify();
-            log( Log::Error, "SMTP/LMTP error for command " + d->sent );
-            log( Log::Error, "Response: " + *s );
+            //log( Log::Error, "SMTP/LMTP error for command " + d->sent );
+            //log( Log::Error, "Response: " + *s );
         }
     }
 }
@@ -187,7 +187,7 @@ void SmtpClient::sendCommand()
         return;
         break;
     }
-    log( Log::Debug, "Sending: " + send );
+    //log( Log::Debug, "Sending: " + send );
     enqueue( send + "\r\n" );
     d->sent = send;
 }

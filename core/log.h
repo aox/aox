@@ -34,8 +34,4 @@ private:
 };
 
 
-void log( const String & );
-void log( Log::Severity, const String & );
-
-
 #endif

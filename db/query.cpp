@@ -497,9 +497,11 @@ int Row::getInt( uint i ) const
         break;
 
     default:
+        /*
         log( Log::Disaster,
              "Integer field " + c->name + " has invalid length " +
              fn( c->length ) );
+        */
         break;
     }
 
@@ -558,7 +560,7 @@ int Row::findColumn( const String &f ) const
         i++;
     }
 
-    log( Log::Disaster, "Unknown column " + f );
+    //log( Log::Disaster, "Unknown column " + f );
     return -1;
 }
 
@@ -584,7 +586,7 @@ bool Row::badFetch( uint i, Database::Type t ) const
     else
         return false;
 
-    log( Log::Disaster, s );
+    //log( Log::Disaster, s );
     return true;
 }
 

@@ -92,8 +92,10 @@ void Mailbox::setup()
                     ::mailboxes->insert( m->d->id, m );
             }
 
+            /*
             if ( query->failed() )
                 log( Log::Disaster, "Couldn't create mailbox tree." );
+            */
         }
     };
 

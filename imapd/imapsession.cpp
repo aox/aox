@@ -273,9 +273,11 @@ ImapSessionInitializer::ImapSessionInitializer( ImapSession * session,
     d->oldUidnext = d->session->uidnext();
     d->newUidnext = d->session->mailbox()->uidnext();
     d->session->d->uidnext = d->newUidnext;
+    /*
     log( "Updating session on " + d->session->mailbox()->name() +
          " for UIDs [" + fn( d->oldUidnext ) + "," +
          fn( d->newUidnext ) + ">" );
+    */
 
     execute();
 }
@@ -355,9 +357,11 @@ void ImapSessionInitializer::execute()
     }
 
     if ( d->recent->done() && d->messages->done() ) {
+        /*
         log( Log::Debug,
              "Saw " + fn( d->messages->rows() ) + " new messages, " +
              fn( d->recent->rows() ) + " recent ones" );
+        */
         d->done = true;
         if ( d->owner )
             d->owner->notify();

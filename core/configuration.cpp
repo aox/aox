@@ -255,7 +255,7 @@ void Configuration::report()
 
     List< ConfigurationData::E >::Iterator i = ::global->d->errors.first();
     while ( i ) {
-        log( i->s, i->m );
+        //log( i->s, i->m );
         i++;
     }
 
@@ -323,9 +323,11 @@ void Configuration::Variable::init( const String &name )
 
     if ( ::global->d->reported ) {
         // we're already up and running
+        /*
         ::log( Log::Error,
                "Configuration variable created after parsing finished: " +
                name );
+        */
     }
     if ( !x ) {
         // nothing - we keep the default value

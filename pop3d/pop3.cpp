@@ -85,7 +85,7 @@ void POP3::react( Event e )
     case Connect:
     case Error:
     case Close:
-        log( "Unexpected close by client." );
+        //log( "Unexpected close by client." );
         break;
 
     case Shutdown:

@@ -106,8 +106,10 @@ void IMAP::setup()
         ::allowPlaintext = true;
     else if ( s.lower() == "never" )
         ::allowPlaintext = false;
+    /*
     else
         log( Log::Disaster, "Unknown value for allow-plaintext." );
+    */
 }
 
 
@@ -154,15 +156,17 @@ void IMAP::react( Event e )
 
     case Timeout:
         enqueue( "* BYE autologout\r\n" );
-        log( "autologout" );
+        //log( "autologout" );
         Connection::setState( Closing );
         break;
 
     case Connect:
     case Error:
     case Close:
+        /*
         if ( state() != Logout )
             log( "Unexpected close by client" );
+        */
         Connection::setState( Closing );
         break;
 
@@ -260,9 +264,11 @@ void IMAP::addCommand()
     String * s = d->args->first();
     if ( s && s->simplified() == "quit" )
         s = new String( "quit logout\r\n" ); // arnt compatibility
+    /*
     log( Log::Debug, "Received " +
                     fn( (d->args->count() + 1)/2 ) +
                     "-line command: " + *s );
+    */
 
     String tag, command;
 
@@ -278,7 +284,7 @@ void IMAP::addCommand()
 
     if ( i < 1 || c != ' ' ) {
         enqueue( "* BAD tag\r\n" );
-        log( "Unable to parse tag. Line: " + *s );
+        //log( "Unable to parse tag. Line: " + *s );
         delete d->cmdArena;
         return;
     }
@@ -299,7 +305,7 @@ void IMAP::addCommand()
 
     if ( i == j ) {
         enqueue( "* BAD no command\r\n" );
-        log( "Unable to parse command. Line: " + *s );
+        //log( "Unable to parse command. Line: " + *s );
         delete d->cmdArena;
         return;
     }
@@ -327,9 +333,11 @@ void IMAP::addCommand()
             st = "logout";
             break;
         }
+        /*
         log( Log::Debug,
              "Unknown command '" + command +
              "' (tag '" + tag + "', state " + st + ")" );
+        */
         enqueue( tag + " BAD No such command in " + st + " state: " +
                  command + "\r\n" );
         delete d->cmdArena;
@@ -345,8 +353,10 @@ void IMAP::addCommand()
     // it. runCommands() will unblock it (at once or later).
 
     if ( !d->commands.isEmpty() && cmd->state() == Command::Executing ) {
+        /*
         log( Log::Debug, "Blocking command '" + tag + " " + command +
              " because other commands are queued" );
+        */
         cmd->setState( Command::Blocked );
     }
     d->commands.append( cmd );
@@ -387,7 +397,7 @@ void IMAP::setState( State s )
         name = "logout";
         break;
     };
-    log( "Changed to " + name + " state" );
+    //log( "Changed to " + name + " state" );
 }
 
 
@@ -403,10 +413,12 @@ void IMAP::setIdle( bool i )
     if ( i == d->idle )
         return;
     d->idle = i;
+    /*
     if ( i )
         log( "entered idle mode" );
     else
         log( "left idle mode" );
+    */
 }
 
 
@@ -429,7 +441,7 @@ void IMAP::authenticated( uint n, const String & name )
 {
     d->uid = n;
     d->login = name;
-    log( "Logged in as " + name );
+    //log( "Logged in as " + name );
     setState( Authenticated );
 }
 
@@ -617,7 +629,7 @@ void IMAP::beginSession( ImapSession * s )
 {
     d->session = s;
     setState( Selected );
-    log( "Starting session on " + s->mailbox()->name() );
+    //log( "Starting session on " + s->mailbox()->name() );
 }
 
 

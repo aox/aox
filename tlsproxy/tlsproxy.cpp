@@ -226,7 +226,7 @@ static void handleError( int cryptError, const String & function )
     cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORLOCUS, &locus );
     cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORTYPE, &type );
 
-    log( Log::Error,
+    /*log( Log::Error,
          function + " reported error: " + cryptlibError( cryptError ) );
     if ( locus )
         log( Log::Info,
@@ -234,6 +234,11 @@ static void handleError( int cryptError, const String & function )
     if ( type )
         log( Log::Info,
              function + " error type: " + cryptlibType( type ) );
+    */
+    // Ugh.
+    String s = cryptlibError( cryptError );
+    s.append( cryptlibLocus( locus ) );
+    s.append( cryptlibType( type ) );
 
     int errorStringLength;
     String errorString;
@@ -245,9 +250,11 @@ static void handleError( int cryptError, const String & function )
         exit( 0 ); // I'm too polite for the sort of comment needed here
     errorString.truncate( errorStringLength );
 
+    /*
     errorString = errorString.simplified();
     if ( !errorString.isEmpty() > 0 )
         log( Log::Info, "cryptlib's own message: " + errorString );
+    */
 
     userside->close();
     serverside->close();
@@ -425,7 +432,7 @@ void TlsProxy::react( Event e )
     case Close:
         setState( Closing );
         if ( d->state != TlsProxyData::Initial ) {
-            log( "Shutting down TLS proxy due to client close" );
+            //log( "Shutting down TLS proxy due to client close" );
             Loop::shutdown();
         }
         break;
@@ -481,7 +488,7 @@ void TlsProxy::parse()
         ok = false;
 
     if ( !ok ) {
-        log( "syntax error: " + *l );
+        //log( "syntax error: " + *l );
         setState( Closing );
         return;
     }
@@ -495,7 +502,7 @@ void TlsProxy::parse()
             other = c;
     }
     if ( !other || other == this ) {
-        log( "did not find partner" );
+        //log( "did not find partner" );
         setState( Closing );
         return;
     }
@@ -515,7 +522,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     int p1 = fork();
     if ( p1 < 0 ) {
         // error
-        log( "fork failed: " + fn( errno ) );
+        //log( "fork failed: " + fn( errno ) );
         setState( Closing );
         return;
     }
@@ -541,9 +548,11 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     // it's the child!
     Loop::closeAllExcept( this, other );
     enqueue( "ok\r\n" );
+    /*
     log( "Starting TLS proxy for for " + protocol + " client " +
          client.string() + " (host " + Configuration::hostname() + ") (pid " +
          fn( getpid() ) + ")" );
+    */
 
     d->state = TlsProxyData::EncryptedSide;
     other->d->state = TlsProxyData::PlainSide;

@@ -3,6 +3,7 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
+#include "log.h"
 #include "endpoint.h"
 
 class Arena;

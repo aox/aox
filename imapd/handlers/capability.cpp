@@ -87,6 +87,8 @@ void Capability::setup()
 {
     Configuration::Toggle d( "announce-draft-support", true );
     ::drafts = d;
+    /*
     if ( ::drafts )
         log( "Announcing support for draft IMAP extensions" );
+    */
 }

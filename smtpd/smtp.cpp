@@ -142,7 +142,7 @@ SMTP::SMTP( int s )
     if ( s < 0 )
         return;
 
-    log( "Accepted SMTP connection from " + peer().string() );
+    //log( "Accepted SMTP connection from " + peer().string() );
 
     respond( 220, "ESMTP + LMTP " + Configuration::hostname() );
     sendResponses();
@@ -174,7 +174,7 @@ void SMTP::react( Event e )
         break;
     case Timeout:
         enqueue( String( "421 Timeout\r\n" ) );
-        log( "autologout" );
+        //log( "autologout" );
         Connection::setState( Closing );
         break;
     case Error: // fall through
@@ -182,7 +182,7 @@ void SMTP::react( Event e )
         break;
     case Shutdown:
         enqueue( String( "421 Server must shut down\r\n" ) );
-        log( "connection closing due to server shutdown" );
+        //log( "connection closing due to server shutdown" );
         Connection::setState( Closing );
         break;
     }
@@ -209,8 +209,10 @@ void SMTP::parse()
         while ( i < r->size() && (*r)[i] != 10 )
             i++;
         if ( i >= 32768 ) {
+            /*
             log( "Connection closed due to overlong line (" +
                  fn( i ) + " bytes)" );
+            */
             respond( 500, "Line too long (maximum is 32768 bytes)" );
             Connection::setState( Closing );
             return;
@@ -484,7 +486,7 @@ void SMTP::help()
 
 void SMTP::quit()
 {
-    log( "Closing connection due to QUIT command" );
+    //log( "Closing connection due to QUIT command" );
     respond( 221, "Have a nice day." );
     Connection::setState( Closing );
 }
@@ -511,7 +513,7 @@ void SMTP::starttls()
     respond( 200, "Start negotiating TLS now." );
     sendResponses();
     d->negotiatingTls = true;
-    log( "Negotiating TLS" );
+    //log( "Negotiating TLS" );
     startTls( d->tlsServer );
 }
 

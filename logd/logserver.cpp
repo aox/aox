@@ -293,6 +293,8 @@ void LogServer::setLogFile( const String & name )
     File * l = new File( name, File::Append );
     if ( l->valid() )
         ::logFile = l;
+    /*
     else
         ::log( Log::Error, "Could not open log file " + name );
+    */
 }

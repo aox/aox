@@ -42,7 +42,7 @@ public:
         case Read:
             break;
         default:
-            log( "Stopped: " + description() );
+            //log( "Stopped: " + description() );
             setState( Closing );
             break;
         }
@@ -64,33 +64,36 @@ public:
         Configuration::Text a( svc.lower() + "-address", address );
         Configuration::Scalar p( svc.lower() + "-port", port );
         if ( !a.valid() && !p.valid() ) {
-            log( Log::Error,
-                 svc + ": Cannot be started due to configuration problems with " +
-                 ( a.valid() ? p.name() : a.name() ) );
+            //log( Log::Error,
+            //     svc + ": Cannot be started due to configuration problems with " +
+            //     ( a.valid() ? p.name() : a.name() ) );
         }
         else if ( ((String)a).isEmpty() ) {
             l = new Listener<T>( Endpoint( "::", p ), svc );
             if ( l->state() == Listening )
-                log( "Started: " + l->description() );
+                // log( "Started: " + l->description() );
+                ;
             else
                 delete l;
 
             l = new Listener<T>( Endpoint( "0.0.0.0", p ), svc );
             if ( l->state() == Listening )
-                log( "Started: " + l->description() );
+                // log( "Started: " + l->description() );
+                ;
             else
                 delete l;
         }
         else {
             Endpoint e( a, p );
             if ( !e.valid() ) {
-                log( Log::Error, "Cannot parse desired endpoint for " + svc +
-                     ", " + a + " port " + fn( p ) );
+                //log( Log::Error, "Cannot parse desired endpoint for " + svc +
+                //     ", " + a + " port " + fn( p ) );
             }
             else {
                 l = new Listener<T>( Endpoint( a, p ), svc );
                 if ( l->state() == Listening )
-                    log( "Started: " + l->description() );
+                    // log( "Started: " + l->description() );
+                    ;
                 else
                     delete l;
             }

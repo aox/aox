@@ -162,9 +162,11 @@ void TlsServer::setup()
     Configuration::Scalar port( "tlsproxy-port", 2061 );
     Endpoint * e = new Endpoint( proxy, port );
     if ( !e->valid() ) {
+        /*
         log( Log::Error,
              "tlsproxy-address and/or tlsproxy-port is/are bad." );
         log( Log::Info, "TLS Support disabled" );
+        */
         return;
     }
     ::tlsAvailable = true;

@@ -66,8 +66,10 @@ void EventLoop::addConnection( Connection *c )
         return;
 
     d->connections.insert( c );
+    /*
     if ( c->type() != Connection::LoggingClient ) // recursion is boring
         log( Log::Debug, "added: " + c->description() );
+    */
 }
 
 
@@ -81,8 +83,10 @@ void EventLoop::removeConnection( Connection *c )
         return;
 
     d->connections.take( it );
+    /*
     if ( c->type() != Connection::LoggingClient )
         log( Log::Debug, "removed: " + c->description() );
+    */
 }
 
 
@@ -173,7 +177,7 @@ void EventLoop::start()
             if ( errno == EINTR )
                 return;
 
-            log( "Main loop: select() broke" );
+            //log( "Main loop: select() broke" );
             exit( 0 );
         }
 
@@ -278,6 +282,7 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
             c->write();
     }
     catch ( Exception e ) {
+        /*
         log( Log::Error, "While processing " + c->description() + ":" );
         switch (e) {
         case Range:
@@ -290,6 +295,7 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
             log( Log::Error, "FD error." );
             break;
         };
+        */
         c->close();
     }
 
