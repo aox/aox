@@ -401,20 +401,27 @@ static String sectionResponse( FetchData::Section *s,
 {
     String item, data;
 
-    if ( s->id == "header.fields" ) {
+    if ( s->id.startsWith( "header" ) ) {
+        bool fields = s->id.startsWith( "header.fields" );
+        bool exclude = s->id.endsWith( ".not" );
+
         Header *hdr = m->header();
-        String fields = s->fields.join( " " );
-        StringList::Iterator it( s->fields.first() );
+        List< HeaderField > *headerFields = hdr->fields();
+        List< HeaderField >::Iterator it( headerFields->first() );
         while ( it ) {
-            // XXX: Should we fetch fields() instead?
-            // (And what about X-Favourite-Soft-Drink?)
-            HeaderField *hf = hdr->field( hdr->fieldType( *it ) );
-            if ( hf )
-                data.append( hf->name() + ": " + hf->value() + "\r\n" );
+            if ( !fields ||
+                 ( !exclude && s->fields.find( it->name() ) ) ||
+                 ( exclude && !s->fields.find( it->name() ) ) )
+            {
+                String n = it->name().headerCased();
+                data.append( n + ": " + it->value() + "\r\n" );
+            }
             ++it;
         }
 
-        item = "BODY[HEADER.FIELDS (" + fields + ")]";
+        item = "BODY[" + s->id;
+        if ( fields )
+            item.append( " (" + s->fields.join( " " ) + ")]" );
         data.append( "\r\n" );
     }
 
