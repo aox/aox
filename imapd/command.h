@@ -58,6 +58,7 @@ public:
     String astring();
     String string();
     String atom();
+    String listChars();
     String quoted();
     String literal();
     Set set( bool );
