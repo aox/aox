@@ -6,7 +6,7 @@
 /*! \class Close
 
     \brief The Close class implements the IMAP CLOSE command.
-    
+
     Four lines of code and seemingly correct.
 
     Since Close is a variant of Expunge, this class inherits Expunge

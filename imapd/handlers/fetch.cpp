@@ -140,14 +140,14 @@ void Fetch::parseAttribute( bool alsoMacro )
     else {
         error( Bad, "expected fetch attribute, saw word " + keyword );
     }
-    
+
 // fetch           = "FETCH" SP set SP ("ALL" / "FULL" / "FAST" / fetch-att /
 //                   "(" fetch-att *(SP fetch-att) ")")
 // fetch-att       = "ENVELOPE" / "FLAGS" / "INTERNALDATE" /
 //                   "RFC822" [".HEADER" / ".SIZE" / ".TEXT"] /
 //                   "BODY" ["STRUCTURE"] / "UID" /
 //                   "BODY" [".PEEK"] section ["<" number "." nz-number ">"]
-    
+
 }
 
 
