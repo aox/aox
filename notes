@@ -13,6 +13,15 @@ We need top-level message/rfc822 support
 tlsproxy doesn't handle eof (or errors) well
 
 
+We need a mechanism to open more than one database handle.
+
+  For example, the header_fields select and the flags select should be
+  on different connections, so that we don't have to read and store an
+  enormous amount of data before we can start responding to the client.
+
+  In this case, we might also want to use a cursor. Discuss.
+
+
 ocd needs work
 
   1. Must announce new mail.
