@@ -3,9 +3,7 @@
 #ifndef DICT_H
 #define DICT_H
 
-#include "string.h"
-#include "ustring.h"
-
+#include "stringlist.h"
 
 class DictBase
 {
@@ -19,6 +17,7 @@ protected:
 
 public:
     void resize( uint );
+    StringList keys() const;
 
 private:
     static uint hash( const String & );
