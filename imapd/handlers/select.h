@@ -3,10 +3,10 @@
 
 #include "command.h"
 
+
 class Mailbox;
 
-class Select: public Command
-{
+class Select: public Command {
 public:
     Select() { readOnly = false; }
 
@@ -20,8 +20,7 @@ private:
     String m;
 };
 
-class Examine: public Select
-{
+class Examine: public Select {
 public:
     Examine() { readOnly = true; }
 };

@@ -3,8 +3,8 @@
 
 #include "command.h"
 
-class Create: public Command
-{
+
+class Create: public Command {
 public:
     void parse();
     void execute();

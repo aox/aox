@@ -1,9 +1,10 @@
-#ifndef COMMAND_H
-#define COMMAND_H
+#ifndef __COMMAND_H__
+#define __COMMAND_H__
 
-#include <list.h>
-#include <global.h>
+#include "list.h"
+#include "global.h"
 #include "set.h"
+
 
 class String;
 class IMAP;
@@ -11,10 +12,7 @@ class Arena;
 class Logger;
 
 
-class CommandData;
-
-class Command
-{
+class Command {
 public:
     Command();
     virtual ~Command();
@@ -28,8 +26,9 @@ public:
     bool ok() const;
 
     enum State { Blocked, Executing, Finished };
-    void setState( State );
+
     State state() const;
+    void setState( State );
 
     uint group() const;
     void setGroup( uint );
@@ -64,7 +63,7 @@ private:
     const String following() const;
 
 private:
-    CommandData * d;
+    class CommandData * d;
 
     friend class CommandTest;
 };

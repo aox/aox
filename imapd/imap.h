@@ -24,11 +24,11 @@ public:
     State state() const;
     void setState( State );
 
-    void setIdle( bool );
     bool idle() const;
+    void setIdle( bool );
 
-    void setLogin( const String & );
     String login();
+    void setLogin( const String & );
 
     void reserve( Command * );
 

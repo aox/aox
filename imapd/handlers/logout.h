@@ -1,11 +1,10 @@
-#ifndef LOGOUT_H
-#define LOGOUT_H
+#ifndef __LOGOUT_H__
+#define __LOGOUT_H__
 
 #include "command.h"
 
 
-class Logout: public Command
-{
+class Logout: public Command {
 public:
     Logout();
     ~Logout();

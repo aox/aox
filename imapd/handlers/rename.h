@@ -3,8 +3,8 @@
 
 #include "command.h"
 
-class Rename: public Command
-{
+
+class Rename: public Command {
 public:
     void parse();
     void execute();

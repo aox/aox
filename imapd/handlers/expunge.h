@@ -3,8 +3,8 @@
 
 #include "command.h"
 
-class Expunge: public Command
-{
+
+class Expunge: public Command {
 public:
     void execute();
 };
