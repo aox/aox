@@ -688,6 +688,14 @@ static String languageString( ContentLanguage *cl )
 }
 
 
+static String locationString( const String &s )
+{
+    if ( s.isEmpty() )
+        return "NIL";
+    return Command::imapQuoted( s, Command::NString );
+}
+
+
 /*! Returns either the IMAP BODY or BODYSTRUCTURE production for \a
     m. If \a extended is true, BODYSTRUCTURE is returned. If it's
     false, BODY.
@@ -719,7 +727,7 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
             r.append( " " );
             r.append( languageString( hdr->contentLanguage() ) );
             r.append( " " );
-            r.append( "NIL" ); // Content-Location.
+            r.append( locationString( hdr->contentLocation() ) );
         }
 
         r.append( ")" );
@@ -807,7 +815,7 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
         l.append( "NIL" ); // MD5.
         l.append( dispositionString( hdr->contentDisposition() ) );
         l.append( languageString( hdr->contentLanguage() ) );
-        l.append( "NIL" ); // Content-Location.
+        l.append( locationString( hdr->contentLocation() ) );
     }
 
     return "(" + l.join( " " ) + ")";
