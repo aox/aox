@@ -187,3 +187,22 @@ String Database::password()
 {
     return Configuration::text( Configuration::DbPassword );
 }
+
+
+/*! Returns the number of database handles currently connected to the
+    database.
+*/
+
+uint Database::numHandles()
+{
+    if ( !::handles )
+        return 0;
+    uint n = 0;
+    List<Database>::Iterator it( ::handles->first() );
+    while ( it ) {
+        if ( it->state() != Connecting )
+            n++;
+        ++it;
+    }
+    return n;
+}

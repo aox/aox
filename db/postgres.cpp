@@ -213,7 +213,7 @@ void Postgres::react( Event e )
             error( "Timeout negotiating connection to PostgreSQL." );
         else if ( d->queries.count() > 0 )
             error( "Request timeout." );
-        else
+        else if ( numHandles() > 1 || server().protocol() != Endpoint::Unix )
             shutdown();
         break;
 

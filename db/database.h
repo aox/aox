@@ -23,6 +23,8 @@ public:
 
     virtual void processQueue() = 0;
 
+    static uint numHandles();
+
 protected:
     static List< Query > *queries;
 
