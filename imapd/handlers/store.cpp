@@ -119,7 +119,7 @@ void Store::execute()
         updateSystemFlags();
         killSuperfluousRows();
         addExtraFlags();
-        d->transaction->execute();
+        d->transaction->commit();
     }
 
     if ( !d->fetching ) {
@@ -127,11 +127,9 @@ void Store::execute()
             return;
         if ( d->transaction->failed() ) {
             error( No, "Database error. Rolling transaction back" );
-            d->transaction->rollback();
-            setState( Finished );
+            finish();
             return;
         }
-        d->transaction->commit();
         d->fetching = true;
     }
 
@@ -146,8 +144,7 @@ void Store::execute()
                 return;
         }
     }
-    respond( "OK" );
-    setState( Finished );
+    finish();
 }
 
 
@@ -205,10 +202,10 @@ static void addToList( StringList & f, const String & n,
                        bool m, StoreData::Op op )
 {
     if ( m && ( op == StoreData::Add || op == StoreData::Replace ) )
-        f.append( n + "=1" );
+        f.append( n + "='t'" );
     else if ( ( op == StoreData::Remove && m ) ||
               ( op == StoreData::Replace && !m ) )
-        f.append( n + "=0" );
+        f.append( n + "='f'" );
 }
 
 
@@ -244,7 +241,7 @@ void Store::updateSystemFlags()
             n += 64;
         if ( !prepared[n] )
             prepared[n] = new PreparedStatement( "update messages "
-                                                 "set " + f.join("," ) +
+                                                 "set " + f.join("," ) + " " +
                                                  "where "
                                                  "mailbox=$1 and "
                                                  "uid>=$2 and uid<=$3" );
@@ -269,7 +266,7 @@ void Store::updateSystemFlags()
 
 void Store::killSuperfluousRows()
 {
-    Query * q;
+    Query * q = 0;
     if ( d->op == StoreData::Remove && !d->extra.isEmpty() ) {
         StringList cond;
         List<Flag>::Iterator it( d->extra.first() );
@@ -285,7 +282,8 @@ void Store::killSuperfluousRows()
         q = new Query( "delete from extra_flags where " + d->s.where(),
                        this);
     }
-    d->transaction->enqueue( q );
+    if ( q )
+        d->transaction->enqueue( q );
 
 }
 
@@ -408,7 +406,8 @@ bool Store::dumpFetchResponses()
             if ( f )
                 r.append( f->name() );
             extra = d->fetchExtra->nextRow();
-            extraUid = extra->getInt( "uid" );
+            if ( extra )
+                extraUid = extra->getInt( "uid" );
         }
         uint msn = s->msn( uid );
         respond( fn( msn ) + " FETCH (UID " +
