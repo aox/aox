@@ -22,8 +22,8 @@ public:
     InjectorData()
         : step( 0 ), failed( false ),
           owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
-          uids( 0 ), bodypartIds( 0 ), bodyparts( 0 ), addressLinks( 0 ),
-          messageIds( 0 )
+          totalUids( 0 ), uids( 0 ), totalBodyparts( 0 ), bodypartIds( 0 ),
+          bodyparts( 0 ), addressLinks( 0 ), messageIds( 0 )
     {}
 
     int step;
@@ -151,16 +151,20 @@ void Injector::execute()
 
     if ( d->step == 1 ) {
         // Now that we have UIDs for every Mailbox, we can insert rows
-        // into messages, address_fields, and recent_messages. Because
+        // into messages, recent_messages, and address_fields. Because
         // we also have bodypart IDs, we can populate part_numbers and
         // header_fields at the same time.
 
         if ( !d->messageIds ) {
             insertMessages();
-            return;
+            insertHeaders();
+            insertParts();
         }
 
-        // Wait for all the message IDs before going on.
+        linkAddresses();
+
+        // Wait for the message IDs and AddressLinks before going on.
+        // (Do we really need the message IDs anywhere?)
         if ( d->messageIds->count() != d->totalUids )
             return;
 
@@ -196,7 +200,7 @@ void Injector::selectUids()
     while ( it ) {
         d->totalUids++;
         String seq( "mailbox_" + String::fromNumber( it->id() ) );
-        queries->append( new Query( "select nexval('"+seq+"')::integer as id",
+        queries->append( new Query( "select nextval('"+seq+"')::integer as id",
                                     helper ) );
         it++;
     }
@@ -274,6 +278,8 @@ void Injector::insertBodyparts()
 
         Query *i, *s;
 
+        String data = b->data();
+        
         i = new Query( "insert into bodyparts (data) values ($1)", helper );
         i->bind( 1, "fake message data" );
 
@@ -313,10 +319,10 @@ void Injector::insertMessages()
 
         Query *i2 = new Query( "insert into recent_messages (mailbox,uid) "
                                "values ($1,$2)", helper );
-        i->bind( 1, m->id() );
-        i->bind( 2, uid );
+        i2->bind( 1, m->id() );
+        i2->bind( 2, uid );
 
-        Query *s = new Query( "select currval('mailbox_ids')::integer as id",
+        Query *s = new Query( "select currval('message_ids')::integer as id",
                               helper );
 
         queries->append( i );
@@ -326,4 +332,29 @@ void Injector::insertMessages()
     }
 
     Database::query( queries );
+}
+
+
+/*! This private function inserts rows into the header_fields table.
+*/
+
+void Injector::insertHeaders()
+{
+}
+
+
+/*! This private function inserts rows into the part_numbers table.
+*/
+
+void Injector::insertParts()
+{
+}
+
+
+/*! This private function inserts one entry per AddressLink into the
+    address_fields table.
+*/
+
+void Injector::linkAddresses()
+{
 }

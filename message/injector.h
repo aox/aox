@@ -27,6 +27,9 @@ private:
     void updateAddresses();
     void insertBodyparts();
     void insertMessages();
+    void insertHeaders();
+    void insertParts();
+    void linkAddresses();
 };
 
 
