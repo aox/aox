@@ -55,6 +55,7 @@ void Login::execute()
         imap()->setLogin( n );
     }
     else {
+        respond( "BAD Raise your knees two inches" );
         error( No, "LOGIN failed for '" + n + "'" );
     }
 

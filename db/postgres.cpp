@@ -106,7 +106,7 @@ void Postgres::release()
 
 /*! \reimp */
 
-void Postgres::enqueue( class Query *q )
+void Postgres::enqueue( Query *q )
 {
     if ( q->transaction() != 0 )
         d->reserved = true;
