@@ -284,8 +284,14 @@ static void setupCert()
 
     status = cryptCreateCert( &cert, CRYPT_UNUSED, CRYPT_CERTTYPE_CERTIFICATE  );
     handleError( status, "cryptCreateCert" );
+    /*status = cryptSetAttribute( cert, CRYPT_CERTINFO_XYZZY, 1 );
+    handleError( status, "cryptSetAttribute" );*/
+    CRYPT_CONTEXT publicKey;
+    status = cryptGetPublicKey( keyset, &publicKey, CRYPT_KEYID_NAME,
+                                label.cstr() );
+    handleError( status, "cryptGetPublicKey" );
     status = cryptSetAttribute( cert, CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO,
-                                privateKey );
+                                publicKey );
     handleError( status, "cryptSetAttribute(PUBLICKEYINFO)" );
     status = cryptSetAttribute( cert, CRYPT_CERTINFO_SELFSIGNED, 1 );
     handleError( status, "cryptSetAttribute(SELFSIGNED)" );
@@ -523,9 +529,27 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     ::serverside = other;
     ::userside = this;
 
-    cryptCreateSession( &cs, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER );
-    cryptSetAttribute( cs, CRYPT_SESSINFO_NETWORKSOCKET, userside->fd() );
-    cryptSetAttribute( cs, CRYPT_SESSINFO_ACTIVE, 1 );
+    int status;
+    CRYPT_KEYSET keyset;
+    CRYPT_CONTEXT privateKey;
+    status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
+                              "/tmp/keyset", CRYPT_KEYOPT_NONE );
+    handleError( status, "cryptKeysetOpen" );
+    status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
+                                 "Mailstore on-demand key", "secret" );
+    handleError( status, "cryptGetPrivateKey" );
+    status = cryptCreateSession( &cs, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER );
+    handleError( status, "cryptCreateSession" );
+    userside->setBlocking( true );
+    status = cryptSetAttribute( cs, CRYPT_SESSINFO_NETWORKSOCKET,
+                                userside->fd() );
+    handleError( status, "cryptSetAttribute(NETWORKSOCKET)" );
+    status = cryptSetAttribute( cs, CRYPT_SESSINFO_PRIVATEKEY, privateKey );
+    handleError( status, "cryptSetAttribute(PRIVATEKEY)" );
+    status = cryptSetAttribute( cs, CRYPT_SESSINFO_ACTIVE, 1 );
+    handleError( status, "cryptSetAttribute(ACTIVE)" );
+    cryptDestroyContext( privateKey );
+    cryptKeysetClose( keyset );
 }
 
 
