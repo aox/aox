@@ -36,9 +36,9 @@ public:
     void respond( int, const String & );
     void sendResponses();
     bool ok() const;
-    bool rcptOk( Address * );
     void inject();
     virtual void reportInjection();
+    void rcptAnswer();
 
     enum State {
         Initial,

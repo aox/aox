@@ -14,6 +14,7 @@
 #include "mailbox.h"
 #include "loop.h"
 #include "tls.h"
+#include "user.h"
 
 
 class SmtpDbClient: public EventHandler
@@ -62,13 +63,36 @@ void SmtpTlsStarter::execute()
 }
 
 
+class SmtpUserHelper: public EventHandler
+{
+public:
+    SmtpUserHelper( SMTP * s, User * u );
+    void execute();
+
+    SMTP * owner;
+    User * user;
+};
+
+
+SmtpUserHelper::SmtpUserHelper( SMTP * s, User * u )
+    : EventHandler(), owner( s ), user( u )
+{
+}
+
+
+void SmtpUserHelper::execute()
+{
+    owner->rcptAnswer();
+}
+
+
 class SMTPData
 {
 public:
     SMTPData():
         log( new Log( Log::SMTP ) ),
         code( 0 ), state( SMTP::Initial ),
-        pipelining( false ), from( 0 ), protocol( "smtp" ),
+        pipelining( false ), from( 0 ), user( 0 ), protocol( "smtp" ),
         injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false )
     {}
@@ -79,12 +103,8 @@ public:
     SMTP::State state;
     bool pipelining;
     Address * from;
-    struct Recipient {
-        Recipient() : a( 0 ), m( 0 ) {}
-        Address * a;
-        Mailbox * m;
-    };
-    List<Recipient> to;
+    User * user;
+    List<User> to;
     String body;
     String arg;
     String helo;
@@ -347,17 +367,37 @@ void SMTP::rcpt()
         return;
     }
     Address * to = address();
-    if ( ok() && to && rcptOk( to ) ) {
-        respond( 250, "Will send to " + to->toString() );
-        to = 0;
-        d->state = Data;
-    }
-    else if ( to && to->valid() ) {
+    if ( !to || !to->valid() ) {
         respond( 550, "Unknown address: " + to->toString() );
+        return;
     }
-    else if ( ok() ) {
-        respond( 550, "Parse error, or something like that" );
+    if ( d->user ) {
+        respond( 550, "Cannot process two RCPT commands simultanously" );
+        return;
     }
+
+    d->user = new User;
+    d->user->setAddress( to );
+    d->user->refresh( new SmtpUserHelper( this, d->user ) );
+}
+
+
+/*! Delivers the SMTP answer, not based on the database lookup. Should
+    this use anything, e.g. from User::error()?
+*/
+
+void SMTP::rcptAnswer()
+{
+    String a = d->user->address()->toString();
+    if ( d->user && d->user->valid() ) {
+        respond( 250, "Will send to " + a );
+        d->state = Data;
+        d->to.append( d->user );
+    }
+    else {
+        respond( 550, a + " is not a legal destination address" );
+    }
+    d->user = 0;
 }
 
 
@@ -586,30 +626,6 @@ bool SMTP::ok() const
 }
 
 
-/*! Returns true if \a a points to an address we can deliver to, and
-    false if not. As a side effect, this function records the delivery
-    address.
-*/
-
-bool SMTP::rcptOk( Address * a )
-{
-    if ( !a || !a->valid() )
-        return false;
-    if ( a->domain() != "oryx.com" ) // hm.
-        return false;
-
-    Mailbox * u = Mailbox::find( "/users/" + a->localpart() + "/INBOX" );
-    if ( !u )
-        return false;
-
-    SMTPData::Recipient * r = new SMTPData::Recipient;
-    r->a = a;
-    r->m = u;
-    d->to.append( r );
-    return true;
-}
-
-
 /*! Returns the SMTP/LMTP state of this server. The state starts as
     Initial and proceeeds through the commands.*/
 
@@ -644,9 +660,9 @@ void SMTP::inject()
     }
 
     SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
-    List<SMTPData::Recipient>::Iterator it( d->to.first() );
+    List<User>::Iterator it( d->to.first() );
     while ( it ) {
-        mailboxes->insert( it->m );
+        mailboxes->insert( it->inbox() );
         ++it;
     }
 
@@ -730,18 +746,18 @@ void LMTP::reportInjection()
 
     d->state = MailFrom;
 
-    List<SMTPData::Recipient>::Iterator it( d->to.first() );
+    List<User>::Iterator it( d->to.first() );
     while ( it != d->to.end() ) {
-        Address * a = (*it).a;
+        Address * a = it->address();
         String prefix = a->localpart() + "@" + a->domain() + ": ";
         if ( !d->injector )
             respond( 554, prefix + d->messageError );
         else if ( d->injector->failed() )
             respond( 451, prefix + "Unable to inject into mailbox " +
-                     (*it).m->name() );
+                     it->inbox()->name() );
         else
             respond( 250, prefix + "injected into " +
-                     (*it).m->name() );
+                     it->inbox()->name() );
         ++it;
         sendResponses();
     }

@@ -4,5 +4,5 @@ SubInclude TOP message ;
 
 Build smtp : smtp.cpp smtpd.cpp ;
 
-Program smtpd : smtp database message server mailbox core encodings ;
+Program smtpd : smtp database message server mailbox core encodings user ;
 LINKLIBS on smtpd = -lcrypt ;
