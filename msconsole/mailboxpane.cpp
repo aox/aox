@@ -1,5 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include <limits.h> // Qt pulls it in and it has to be first
+
 #include "cstring.h"
 
 #include "mailboxpane.h"

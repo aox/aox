@@ -1,5 +1,9 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include <limits.h> // UINT_MAX, because Qt pulls it in
+#include <sys/types.h> // getpwent, endpwent
+#include <pwd.h> // ditto
+
 #include "cstring.h"
 
 #include "userpane.h"
@@ -15,9 +19,6 @@
 #include <qlineedit.h>
 #include <qpushbutton.h>
 #include <qapplication.h>
-
-#include <sys/types.h> // getpwent, endpwent
-#include <pwd.h> // ditto
 
 
 class UserRefreshHelper: public EventHandler
