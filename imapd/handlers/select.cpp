@@ -3,40 +3,19 @@
 #include "imap.h"
 #include "mailbox.h"
 
-
 /*! \class Select select.h
-    Opens a mailbox as specified in RFC 3501 section 6.3.1.
+    Opens a mailbox for read-write access (RFC 3501, §6.3.1)
 
-    This class also lends a helping hand to Examine. Normally, it
-    attempts to get write access, but if it's working for Select it
-    doesn't bother. In either case it reports whether the Mailbox is
-    read-write or read-only.
-
-    There may be a serious error here - what happens if we can't
-    select? Should we leave the client in Authenticated or Selected
-    state?
+    This class implements both Select and Examine. The constructor has
+    to tell execute() what to do by setting the readOnly flag.
 */
-
-
-/*! \fn Select::Select()
-
-    Creates a command handler which, if \a readOnly is supplied and true,
-    doesn't ask for write access.
-*/
-
 
 
 /*! \class Examine select.h
-    Opens a mailbox as specified in RFC 3501 section 6.3.2.
+    Opens a mailbox for read-only access (RFC 3501, §6.3.1)
 
-    The actual work is done by Select; this class has no code of its own.
-*/
-
-
-/*! \fn Examine::Examine()
-
-    Creates a command handler which calls Select while ensuring that
-    Select won't ask for write access.
+    This class merely inherits from Select and sets the readOnly flag.
+    It has no code of its own.
 */
 
 
@@ -45,7 +24,7 @@
 void Select::parse()
 {
     space();
-    m = astring();
+    name = astring();
     end();
 }
 
@@ -54,29 +33,35 @@ void Select::parse()
 
 void Select::execute()
 {
-    Mailbox *mbox = new Mailbox( m );
-
-    if ( readOnly )
-        mbox->setReadOnly( true );
-
-    if ( mbox->load() ) {
-        imap()->setMailbox( mbox );
-        imap()->setState( IMAP::Selected );
+    if ( !m ) {
+        m = new Mailbox( name, this );
+        if ( readOnly )
+            m->setReadOnly( true );
     }
-    else {
+
+    if ( !m->done() )
+        m->load();
+
+    if ( !m->done() )
+        return;
+
+    if ( m->state() == Mailbox::Failed ) {
         imap()->setMailbox( 0 );
         imap()->setState( IMAP::Authenticated );
-        error( No, "Can't select mailbox " + m );
+        error( No, "Can't select mailbox " + name );
         return;
     }
 
+    imap()->setMailbox( m );
+    imap()->setState( IMAP::Selected );
+
     // Send mailbox data here.
-    respond( "EXISTS " + String::fromNumber( mbox->count() ) );
+    respond( "EXISTS " + String::fromNumber( m->count() ) );
 
     String ok = "OK [READ-";
     ok.append( readOnly ? "ONLY" : "WRITE" );
     ok.append( "]" );
     respond( ok, Tagged );
 
-    setState( Finished );
+    finish();
 }

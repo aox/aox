@@ -4,26 +4,32 @@
 #include "command.h"
 
 
-class Mailbox;
-
-class Select: public Command {
+class Select
+    : public Command
+{
 public:
-    Select() { readOnly = false; }
+    Select( bool ro = false )
+        : readOnly( ro ), m( 0 )
+    {}
 
     void parse();
     void execute();
 
-protected:
-    bool readOnly;
-
 private:
-    String m;
+    String name;
+    bool readOnly;
+    class Mailbox *m;
 };
 
 
-class Examine: public Select {
+class Examine
+    : public Select
+{
 public:
-    Examine() { readOnly = true; }
+    Examine()
+        : Select( true )
+    {}
 };
+
 
 #endif
