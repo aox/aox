@@ -110,7 +110,8 @@ void SmtpClient::react( Event e )
         break;
 
     case Shutdown:
-        Connection::setState( Closing );
+        // I suppose we might send quit, but then again, it may not be
+        // legal at this point.
         break;
     }
 }

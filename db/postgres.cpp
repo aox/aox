@@ -194,7 +194,6 @@ void Postgres::react( Event e )
             PgTerminate msg;
             msg.enqueue( writeBuffer() );
             Database::removeHandle( this );
-            setState( Closing );
 
             d->active = false;
         }

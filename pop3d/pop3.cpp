@@ -77,7 +77,7 @@ void POP3::react( Event e )
         break;
 
     case Timeout:
-        // May we send a response here?
+        // We may not send any response.
         log( "Idle timeout" );
         Connection::setState( Closing );
         break;
@@ -88,8 +88,9 @@ void POP3::react( Event e )
         break;
 
     case Shutdown:
-        // Should we do something else here?
-        Connection::setState( Closing );
+        // RFC1939 says that if the server times out, it should close
+        // silently. It doesn't talk about server shutdown, so it
+        // sounds sensible to do nothing in that case as well.
         break;
     }
 

@@ -181,7 +181,6 @@ void SMTP::react( Event e )
 
     case Shutdown:
         enqueue( String( "421 Server must shut down\r\n" ) );
-        Connection::setState( Closing );
         break;
     }
 }
