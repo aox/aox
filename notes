@@ -37,9 +37,7 @@ Field name synchronisation
 
 Fix shutdown
 
-  Right now, rcmailstore uses killall to kill the servers, not the pid
-  files. there's no practical way to shutdown using ocd/ocadmin. both
-  need fixing.
+  there's no practical way to shutdown using ocd/ocadmin.
 
 
 inject a large number of messages, collect query statistics
@@ -97,3 +95,17 @@ Miscellaneous cleanups:
   * get rid of Blah::setup wherever possible
   * member-ify some of the static functions in message
   * get rid of some friends
+
+
+Inbox lifetime/mailbox reuse
+
+  A newly created used needs an inbox. Since the user name may be the
+  same as a former user, the mailbox may exist already, and may
+  contain messages belonging to the former user.
+
+  This behaviour has the benefit that "ms create user" is a perfect
+  undelete for "ms delete user", but if the new user has no relation
+  to the previous homonymous user, our behaviour is less desirable.
+
+  I assume ms create user needs a command-line argument and msconsole
+  needs to prompt its user.
