@@ -72,8 +72,7 @@ public:
 /*! \class Fetch fetch.h
     Returns message data (RFC 3501, section 6.4.5).
 
-    Our implementation is slightly more permissive than the RFC; it
-    permits FETCH BODY[MIME] and perhaps more.
+    Our implementation is slightly more permissive than the RFC.
 
     The flag update is slavishly followed, including that for
     read-only mailboxes, flags aren't changed. (Well, that's how it
@@ -417,7 +416,7 @@ static String sectionResponse( FetchData::Section *s,
     String item, data;
 
     if ( s->id == "rfc822" ) {
-        item = s->id->upper();
+        item = s->id.upper();
         data = m->rfc822();
     }
 
@@ -466,7 +465,7 @@ static String sectionResponse( FetchData::Section *s,
             // "Cruel, evil bug."
             data = bp->data();
 
-        item = "BODY[" + s->id.upper() + "]";
+        item = "BODY[" + s->part + "]";
     }
 
     if ( s->partial ) {
