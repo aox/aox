@@ -9,9 +9,7 @@ class Authenticate
     : public Command
 {
 public:
-    Authenticate()
-        : m( 0 ), r( 0 )
-    {}
+    Authenticate();
 
     void parse();
     void execute();

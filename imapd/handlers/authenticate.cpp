@@ -1,11 +1,3 @@
-/*! \class Authenticate authenticate.h
-    Initiates SASL authentication (RFC 3501, §6.2.2)
-
-    This class oversees the SASL challenge-response negotiation, using a
-    SaslMechanism subclass to handle the details of the client-selected
-    authentication mechanism.
-*/
-
 #include "authenticate.h"
 
 #include "arena.h"
@@ -13,6 +5,25 @@
 #include "buffer.h"
 #include "imap.h"
 #include "sasl/mechanism.h"
+
+
+/*! \class Authenticate authenticate.h
+    Initiates SASL authentication (RFC 3501, §6.2.2)
+
+    This class oversees the SASL challenge-response negotiation, using a
+    SaslMechanism subclass to handle the details of the client-selected
+    authentication mechanism.
+
+    (The details of SASL-IR probably are handled here still, aren't they?)
+*/
+
+/*! \reimp */
+
+Authenticate::Authenticate()
+        : m( 0 ), r( 0 )
+{
+    
+}
 
 
 /*! Parses the initial arguments to AUTHENTICATE (at least a mechanism

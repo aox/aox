@@ -29,9 +29,7 @@ class Unsubscribe
     : public Subscribe
 {
 public:
-    Unsubscribe()
-        : Subscribe( Subscribe::Remove )
-    {}
+    Unsubscribe();
 };
 
 

@@ -1,17 +1,3 @@
-/*! \class Append append.h
-    Adds a message to a mailbox (RFC 3501, §6.3.11)
-
-    APPEND is one of several ways to inject mail into the mailstore. In
-    theory. In practice it's the only one so far, or arguably there is
-    no way. Some of the code in here will need to be split off and put
-    into an class shared by the SMTP/LMTP server, APPEND and who knows
-    what else.
-
-    The MULTIAPPEND extension is probably not supportable. Append on its
-    own has a memory use characteristic rather different from other
-    commands, MULTIAPPEND would worsen that.
-*/
-
 #include "append.h"
 
 #include "date.h"
@@ -30,6 +16,22 @@ public:
     List< String > flags;
 };
 
+
+/*! \class Append append.h
+    Adds a message to a mailbox (RFC 3501, §6.3.11)
+
+    APPEND is one of several ways to inject mail into the mailstore. In
+    theory. In practice it's the only one so far, or arguably there is
+    no way. Some of the code in here will need to be split off and put
+    into an class shared by the SMTP/LMTP server, APPEND and who knows
+    what else.
+
+    The MULTIAPPEND extension is probably not supportable. Append on
+    its own uses much more memory than other commands, and in a
+    different way. MULTIAPPEND would worsen that.
+*/
+
+/*! \reimp */
 
 Append::Append()
     : Command(), d( new AppendData )

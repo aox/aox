@@ -80,3 +80,13 @@ void Select::execute()
 
     finish();
 }
+
+
+/*! Constructs an Examine handler, which is the same as a Select
+    handler, except that it always is read-only.
+*/
+
+Examine::Examine()
+    : Select( true )
+{
+}

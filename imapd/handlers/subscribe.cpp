@@ -83,3 +83,13 @@ void Subscribe::execute()
 
     finish();
 }
+
+
+/*! Constructs an Unsubscribe handler, which is a thin wrapper around
+    functionality in Subscribe.
+*/
+
+Unsubscribe::Unsubscribe()
+        : Subscribe( Subscribe::Remove )
+{
+}

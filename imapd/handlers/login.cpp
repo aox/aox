@@ -11,6 +11,10 @@
     this mechanism until after STARTTLS.)
 */
 
+/*! \fn Login::Login()
+    \reimp
+*/
+
 /*! \reimp */
 
 void Login::parse()

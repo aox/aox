@@ -24,9 +24,7 @@ class Examine
     : public Select
 {
 public:
-    Examine()
-        : Select( true )
-    {}
+    Examine();
 };
 
 
