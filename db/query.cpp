@@ -24,6 +24,7 @@ public:
     String name;
     String query;
     SortedList< Query::Value > values;
+    List< int > types;
 
     Transaction *transaction;
     EventHandler *owner;
@@ -296,6 +297,24 @@ String Query::string() const
 List< Query::Value > *Query::values() const
 {
     return &d->values;
+}
+
+
+/*! Returns a pointer to the list of pre-specified parameter types for
+    this query.
+*/
+
+List< int > *Query::types() const
+{
+    return &d->types;
+}
+
+
+/*! Appends the type \a n to the list of types to pre-specify. */
+
+void Query::appendType( int n )
+{
+    d->types.append( new int( n ) );
 }
 
 

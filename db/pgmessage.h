@@ -166,12 +166,14 @@ class PgParse
 {
 public:
     PgParse( const String &, const String & = "" );
+    void bindTypes( List< int > * );
 
 private:
     void encodeData();
 
     String name;
     String stmt;
+    List< int > *types;
 };
 
 
