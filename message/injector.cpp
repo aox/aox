@@ -145,24 +145,25 @@ void Injector::execute()
         if ( d->uids->count() != d->totalUids ||
              d->bodyparts->count() != d->totalBodyparts )
             return;
-        
+
         d->step = 1;
     }
 
     if ( d->step == 1 ) {
-        // Now that we have obtained UIDs, we can insert rows into the
-        // messages table. (And since we have bodypart IDs as well, we
-        // can populate part_numbers and header_fields too. Later.)
+        // Now that we have UIDs for every Mailbox, we can insert rows
+        // into messages, address_fields, and recent_messages. Because
+        // we also have bodypart IDs, we can populate part_numbers and
+        // header_fields at the same time.
 
         if ( !d->messageIds ) {
             insertMessages();
             return;
         }
-        
+
         // Wait for all the message IDs before going on.
         if ( d->messageIds->count() != d->totalUids )
             return;
-        
+
         d->step = 2;
     }
 
@@ -310,12 +311,18 @@ void Injector::insertMessages()
         i->bind( 1, m->id() );
         i->bind( 2, uid );
 
+        Query *i2 = new Query( "insert into recent_messages (mailbox,uid) "
+                               "values ($1,$2)", helper );
+        i->bind( 1, m->id() );
+        i->bind( 2, uid );
+
         Query *s = new Query( "select currval('mailbox_ids')::integer as id",
                               helper );
 
         queries->append( i );
+        queries->append( i2 );
         queries->append( s );
-        selects->append( i );
+        selects->append( s );
     }
 
     Database::query( queries );
