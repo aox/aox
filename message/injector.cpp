@@ -173,12 +173,13 @@ bool Injector::failed() const
 
 void Injector::execute()
 {
-    logMessageDetails();
     if ( d->step == 0 ) {
         // We begin by obtaining a UID for each mailbox we are injecting
         // a message into, and simultaneously inserting entries into the
         // bodyparts table. At the same time, we can begin to lookup and
         // insert the addresses and field names used in the message.
+
+        logMessageDetails();
 
         d->transaction = new Transaction( this );
         d->bodyparts = d->message->allBodyparts();
