@@ -12,6 +12,7 @@ public:
     ~ImapSession();
 
     Mailbox *mailbox() const;
+    bool readOnly() const;
 
     uint uid( uint ) const;
 

@@ -53,6 +53,16 @@ Mailbox *ImapSession::mailbox() const
 }
 
 
+/*! Returns true if this is a read-only session (as created by EXAMINE),
+    and false otherwise (SELECT).
+*/
+
+bool ImapSession::readOnly() const
+{
+    return d->readOnly;
+}
+
+
 /*! Returns the UID of the message with MSN \a msn.
 */
 
