@@ -332,7 +332,7 @@ int main( int, char *[] )
     cryptInit();
     cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
     setupCert();
-    Listener< TlsProxy >::create( "tlsproxy", "", 2061 );
+    Listener< TlsProxy >::create( "tlsproxy", "127.0.0.1", 2061 );
     // chroot and do the rest
     s.setup( Server::Finish );
     s.execute();
