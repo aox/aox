@@ -31,6 +31,7 @@ public:
     uint largest;
     uint uid;
     Message * message;
+    MessageSet results;
 };
 
 
@@ -96,7 +97,6 @@ Fetcher::Fetcher( Mailbox * m )
 
 void Fetcher::execute()
 {
-    bool any = false;
     if ( d->query ) {
         Row * r;
         while ( (r=d->query->nextRow()) != 0 ) {
@@ -104,7 +104,7 @@ void Fetcher::execute()
             if ( uid != d->uid ) {
                 if ( d->uid && d->message ) {
                     setDone( d->message );
-                    any = true;
+                    d->results.add( d->uid );
                 }
                 d->uid = uid;
                 d->message = d->mailbox->message( d->uid );
@@ -115,29 +115,32 @@ void Fetcher::execute()
             d->query = 0;
             if ( d->message ) {
                 setDone( d->message );
-                any = true;
+                d->results.add( d->uid );
+                d->message = 0;
             }
         }
     }
 
-    if ( d->query )
+    if ( d->query && d->results.count() < 64 )
         return;
 
-    if ( any ) {
+    if ( !d->results.isEmpty() ) {
         List<FetcherData::Handler>::Iterator it( d->handlers.first() );
-        MessageSet s;
-        s.add( d->smallest, d->largest );
         while ( it ) {
             List<FetcherData::Handler>::Iterator h( it );
             ++it;
             uint c = h->s.count();
-            h->s.remove( s );
+            h->s.remove( d->results );
             if ( h->s.count() < c )
                 h->o->execute();
             if ( h->s.isEmpty() )
                 d->handlers.take( h );
         }
+        d->results.remove( d->results );
     }
+
+    if ( d->query )
+        return;
 
     MessageSet merged;
     List<FetcherData::Handler>::Iterator it( d->handlers.first() );
@@ -154,7 +157,7 @@ void Fetcher::execute()
     // later, we'll want to be smarter.
     d->smallest = merged.smallest();
     uint i = 1;
-    while ( i <= merged.count() && i < 512 &&
+    while ( i <= merged.count() &&
             merged.value( i ) - d->smallest < i + 4 )
         d->largest = merged.value( i++ );
     d->query = new Query( *query(), this );
