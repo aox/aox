@@ -20,6 +20,7 @@ private:
     String m;
 };
 
+
 class Examine: public Select {
 public:
     Examine() { readOnly = true; }
