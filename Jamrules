@@ -8,6 +8,15 @@ VERSION = 0.90 ;
 OPTIM = ;
 RANLIB = ;
 
+MkDir $(BINDIR) ;
+MkDir $(MANDIR) ;
+MkDir $(PIDFILEDIR) ;
+MkDir $(JAILDIR) ;
+MkDir $(CONFIGDIR) ;
+MkDir $(LOGFILE:D) ;
+Depends exe : $(PIDFILEDIR) $(JAILDIR) $(CONFIGDIR) $(LOGFILE:D) ;
+Depends install : $(BINDIR) $(MANDIR) ;
+
 if $(ICC) {
     C++ = icc ;
     BUILD = build/icc ;
