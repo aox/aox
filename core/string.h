@@ -65,7 +65,7 @@ public:
     void truncate( uint );
 
     String de64() const;
-    String e64() const;
+    String e64( uint = 0 ) const;
     String deQP() const;
     String eQP() const;
     bool needQP() const;
