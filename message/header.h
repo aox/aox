@@ -60,6 +60,7 @@ public:
     ::ContentTransferEncoding * parseContentTransferEncoding();
     ::ContentDisposition * parseContentDisposition();
     ::ContentLanguage * parseContentLanguage();
+    String parseContentLocation();
     void parseMimeVersion();
 
 private:
