@@ -2,7 +2,6 @@
 #define LOGCLIENT_H
 
 #include "logger.h"
-#include "connection.h"
 
 class String;
 
@@ -10,26 +9,13 @@ class String;
 class LogClient
     : public Logger
 {
-private:
-    LogClient();
-
 public:
-    void send( const String & );
-
     static void setup();
+    void send( const String & );
 
 private:
     class LogClientHelper * c;
-};
-
-
-class LogClientHelper: public Connection
-{
-private:
-    friend class LogClient;
-    LogClientHelper( int fd ): Connection( fd ) {}
-
-    void react( Event );
+    LogClient();
 };
 
 
