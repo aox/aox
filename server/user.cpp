@@ -273,7 +273,7 @@ void User::createHelper()
         d->q = new Query( "insert into mailboxes (name) values "
                           "( (select name from namespaces where id="
                           "   (select max(id) from namespaces)) ||"
-                          "  '/' || $1 || '/inbox' )",
+                          "  '/' || $1 || '/INBOX' )",
                           this );
         d->q->bind( 1, d->login );
         d->t->enqueue( d->q );
@@ -285,7 +285,7 @@ void User::createHelper()
                          "(select id from mailboxes where name="
                          " (select name from namespaces where id="
                          "   (select max(id) from namespaces)) ||"
-                         "  '/' || $2 || '/inbox' ),"
+                         "  '/' || $2 || '/INBOX' ),"
                          "(select id from namespaces where id="
                          "   (select max(id) from namespaces)),"
                          "$2,$3)",
