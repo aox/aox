@@ -75,6 +75,7 @@ IMAP::IMAP(int s)
 
 IMAP::~IMAP()
 {
+    delete d->cmdArena;
     delete d;
 }
 
