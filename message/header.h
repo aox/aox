@@ -55,7 +55,7 @@ private:
     class HeaderData * d;
 
     void verify() const;
-    void appendField( String &, HeaderField::Type ) const;
+    void appendField( String &, HeaderField * ) const;
 };
 
 
