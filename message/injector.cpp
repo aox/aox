@@ -16,6 +16,7 @@ struct AddressLink {
     HeaderField::Type type;
 };
 
+
 class InjectorData {
 public:
     InjectorData()
@@ -36,6 +37,30 @@ public:
     List< int > * uids;
     List< int > * bodyparts;
     List< AddressLink > * addressLinks;
+};
+
+
+class IdHelper : public EventHandler {
+private:
+    List< int > * list;
+    List< Query > * queries;
+    EventHandler * owner;
+public:
+    IdHelper( List< int > *l, List< Query > *q, EventHandler *ev )
+        : list( l ), queries( q ), owner( ev )
+    {}
+
+    void execute() {
+        Query *q = queries->first();
+        if ( !q->done() )
+            return;
+
+        list->append( q->nextRow()->getInt( "id" ) );
+
+        queries->take( queries->first() );
+        if ( queries->isEmpty() )
+            owner->notify();
+    }
 };
 
 
@@ -137,38 +162,14 @@ void Injector::execute()
 
 void Injector::selectUids()
 {
-    class UidHelper : public EventHandler {
-    private:
-        List< int > * uids;
-        List< Query > * queries;
-        EventHandler * owner;
-
-    public:
-        UidHelper( List< int > *u, List< Query > *q, EventHandler *ev )
-            : uids( u ), queries( q ), owner( ev )
-        {}
-
-        void execute() {
-            Query *q = queries->first();
-            if ( !q->done() )
-                return;
-
-            uids->append( q->nextRow()->getInt( "uid" ) );
-
-            queries->take( queries->first() );
-            if ( queries->isEmpty() )
-                owner->notify();
-        }
-    };
-
     d->uids = new List< int >;
     List< Query > * queries = new List< Query >;
-    UidHelper * helper = new UidHelper( d->uids, queries, this );
+    IdHelper * helper = new IdHelper( d->uids, queries, this );
 
     List< Mailbox >::Iterator it( d->mailboxes->first() );
     while ( it ) {
         String seq( "mailbox_" + String::fromNumber( it->id() ) );
-        queries->append( new Query( "select nexval('"+seq+"')::integer as uid",
+        queries->append( new Query( "select nexval('"+seq+"')::integer as id",
                                     helper ) );
         it++;
     }
@@ -233,33 +234,10 @@ void Injector::updateAddresses()
 
 void Injector::insertBodyparts()
 {
-    class BodyPartHelper : public EventHandler {
-    private:
-        EventHandler * owner;
-        List< Query > * queries;
-        List< int > * bodyparts;
-    public:
-        BodyPartHelper( List< int > *b, List< Query > *q, EventHandler *ev )
-            : owner( ev ), queries( q ), bodyparts( b )
-        {}
-
-        void execute() {
-            Query *q = queries->first();
-            if ( !q->done() )
-                return;
-
-            bodyparts->append( q->nextRow()->getInt( "id" ) );
-
-            queries->take( queries->first() );
-            if ( queries->isEmpty() )
-                owner->notify();
-        }
-    };
-
     d->bodyparts = new List< int >;
     List< Query > * queries = new List< Query >;
     List< Query > * selects = new List< Query >;
-    BodyPartHelper * helper = new BodyPartHelper( d->bodyparts, selects, this );
+    IdHelper * helper = new IdHelper( d->bodyparts, selects, this );
 
     List< BodyPart > * bodyparts = d->message->bodyParts();
     List< BodyPart >::Iterator it( bodyparts->first() );
