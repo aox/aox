@@ -416,8 +416,13 @@ static String sectionResponse( FetchData::Section *s,
 {
     String item, data;
 
-    if ( s->id == "rfc822.header" ||
-         s->id.startsWith( "header" ) )
+    if ( s->id == "rfc822" ) {
+        item = s->id->upper();
+        data = m->rfc822();
+    }
+
+    else if ( s->id == "rfc822.header" ||
+              s->id.startsWith( "header" ) )
     {
         bool rfc822 = s->id == "rfc822.header";
         bool fields = s->id.startsWith( "header.fields" );
