@@ -91,28 +91,18 @@ void Database::submit( Query *q )
     queries->append( q );
     q->setState( Query::Submitted );
 
-    time_t now = time( 0 );
-    int interval = Configuration::scalar( Configuration::DbHandleInterval );
-
-    bool found = false;
     List< Database >::Iterator it( handles->first() );
     while ( it ) {
         if ( it->state() == Idle ) {
-            if ( !found ) {
-                found = true;
-                it->processQueue();
-            }
-            else {
-                // if ( <it has been idle for interval> )
-                //     it->react( Connection::Shutdown );
-            }
+            it->processQueue();
+            return;
         }
         ++it;
     }
 
     uint max = Configuration::scalar( Configuration::DbMaxHandles );
-    if ( !found &&
-         handles->count() < max && now - lastCreated >= interval &&
+    int interval = Configuration::scalar( Configuration::DbHandleInterval );
+    if ( handles->count() < max && time( 0 ) - lastCreated >= interval &&
          ( server().protocol() != Endpoint::Unix ||
            server().address().startsWith( File::root() ) ) )
         newHandle();
