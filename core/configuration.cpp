@@ -318,7 +318,7 @@ void Configuration::parseText( uint n, const String & line )
 
 void Configuration::parseToggle( uint n, const String & line )
 {
-    String name( scalarDefaults[n].name );
+    String name( toggleDefaults[n].name );
     uint i = 0;
     while ( i < line.length() &&
             ( ( line[i] >= '0' && line[i] <= '9' ) ||
