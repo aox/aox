@@ -3,9 +3,7 @@
 #include "imap.h"
 
 
-/*!  Constructs an empty
-
-*/
+/*! Constructs an empty Logout command. */
 
 Logout::Logout()
     : Command()
@@ -14,9 +12,7 @@ Logout::Logout()
 }
 
 
-/*! Destroys the object and frees any allocated resources.
-
-*/
+/*! Destroys the object and frees any allocated resources. */
 
 Logout::~Logout()
 {

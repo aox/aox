@@ -3,7 +3,7 @@
 #include <string.h>
 
 
-/*!  Constructs an empty Capability object. */
+/*! Constructs an empty Capability object. */
 
 Capability::Capability()
     : Command()
@@ -39,7 +39,7 @@ void Capability::execute()
 
 
 /*! This static function returns the capabilities, suitable for use in
-  a capability response or in a capability response code.
+    a capability response or in a capability response code.
 */
 
 const char * Capability::capabilities()

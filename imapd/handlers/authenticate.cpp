@@ -5,7 +5,7 @@
 #include <buffer.h>
 
 
-/*!  Constructs an generic Authenticate handler, for any mechanism. */
+/*! Constructs an generic Authenticate handler, for any mechanism. */
 
 Authenticate::Authenticate()
     : a(0)
@@ -14,7 +14,7 @@ Authenticate::Authenticate()
 
 
 /*! Parses the initial bits of Authenticate, that is, the type. The
-  rest is left for read().
+    rest is left for read().
 */
 
 void Authenticate::parse()
@@ -25,7 +25,7 @@ void Authenticate::parse()
 
 
 /*! Verifies the authentication mechanism and offers the challenge.
-  Later calls do nothing.
+    Later calls do nothing.
 */
 
 void Authenticate::execute()
@@ -68,7 +68,7 @@ void Authenticate::execute()
 
 
 /*! Handles reading (and handling) responses, and possibly issuing new
-  challenges. Basically all the interesting parts of authentication.
+    challenges. Basically all the interesting parts of authentication.
 */
 
 void Authenticate::read()

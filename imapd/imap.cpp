@@ -41,15 +41,15 @@ public:
 
 /*! \class IMAP
 
-  \brief The IMAP class implements the IMAP server seen by clients.
+    \brief The IMAP class implements the IMAP server seen by clients.
 
-  Most of IMAP functionality is in the command handlers, but this
-  class contains the top-level responsibility and functionality. This
-  class reads commands from its network connection, does basic
-  parsing and creates command handlers as necessary.
+    Most of IMAP functionality is in the command handlers, but this
+    class contains the top-level responsibility and functionality. This
+    class reads commands from its network connection, does basic
+    parsing and creates command handlers as necessary.
 
-  The IMAP state (RFC 3501 section 3) and Idle state (RFC 2177) are
-  both encoded here, exactly as in the specification.
+    The IMAP state (RFC 3501 section 3) and Idle state (RFC 2177) are
+    both encoded here, exactly as in the specification.
 */
 
 
@@ -182,10 +182,10 @@ void IMAP::parse()
 
 
 /*! Does preliminary parsing and adds a new Command object. At some
-  point, that object may be executed - we don't care about that for
-  the moment.
+    point, that object may be executed - we don't care about that for
+    the moment.
 
-  During execution of this function, the command's Arena must be used.
+    During execution of this function, the command's Arena must be used.
 */
 
 void IMAP::addCommand()
@@ -301,7 +301,7 @@ public:
 
 
 /*! Returns the current state of this IMAP session, which is one of
-  NotAuthenticated, Authenticated, Selected and Logout.
+    NotAuthenticated, Authenticated, Selected and Logout.
 */
 
 IMAP::State IMAP::state() const
@@ -311,7 +311,7 @@ IMAP::State IMAP::state() const
 
 
 /*! Sets this IMAP connection to be in state \a s. The initial value
-  is NotAuthenticated.
+    is NotAuthenticated.
 */
 
 void IMAP::setState( State s )
@@ -339,10 +339,10 @@ void IMAP::setState( State s )
 
 
 /*! Notifies this IMAP connection that it is idle if \a i is true, and
-  not idle if \a i is false. An idle connection (see RFC 2177) is one
-  in which e.g. EXPUNGE/EXISTS responses may be sent at any time. If a
-  connection is not idle, such responses must be delayed until the
-  client can listen to them.
+    not idle if \a i is false. An idle connection (see RFC 2177) is one
+    in which e.g. EXPUNGE/EXISTS responses may be sent at any time. If a
+    connection is not idle, such responses must be delayed until the
+    client can listen to them.
 */
 
 void IMAP::setIdle( bool i )
@@ -358,7 +358,7 @@ void IMAP::setIdle( bool i )
 
 
 /*! Returns true if this connection is idle, and false if it is
-  not. The initial (and normal) state is false.
+    not. The initial (and normal) state is false.
 */
 
 bool IMAP::idle() const
@@ -386,10 +386,10 @@ void IMAP::setLogin( const String & name )
 
 
 /*! Returns the current login name. Initially, the login name is an
-  empty string.
+    empty string.
 
-  The return value is meaningful only in Authenticated and Selected
-  states.
+    The return value is meaningful only in Authenticated and Selected
+    states.
 */
 
 String IMAP::login()
@@ -418,22 +418,22 @@ void IMAP::setMailbox( Mailbox *m )
 
 /*! Reserves input from the connection for \a command.
 
-  When more input is available, \a Command::read() is called, and as
-  soon as the command has read enough, it must call reserve( 0 ) to
-  hand the connection back to the general IMAP parser.
+    When more input is available, \a Command::read() is called, and as
+    soon as the command has read enough, it must call reserve( 0 ) to
+    hand the connection back to the general IMAP parser.
 
-  Most commands should never need to call this; it is provided for
-  commands that need to read more input after parsing has completed,
-  such as IDLE and AUTHENTICATE.
+    Most commands should never need to call this; it is provided for
+    commands that need to read more input after parsing has completed,
+    such as IDLE and AUTHENTICATE.
 
-  There is a nasty gotcha: If a command reserves the input stream and
-  calls Command::error() while in Blocked state, the command is
-  deleted, but there is no way to hand the input stream back to the
-  IMAP object. Only the relevant Command knows when it can hand the
-  input stream back.
+    There is a nasty gotcha: If a command reserves the input stream and
+    calls Command::error() while in Blocked state, the command is
+    deleted, but there is no way to hand the input stream back to the
+    IMAP object. Only the relevant Command knows when it can hand the
+    input stream back.
 
-  Therefore, Commands that call reserve() simply must hand it back properly
-  before calling Command::error() or Command::setState().
+    Therefore, Commands that call reserve() simply must hand it back properly
+    before calling Command::error() or Command::setState().
 */
 
 void IMAP::reserve( Command * command )
@@ -443,8 +443,8 @@ void IMAP::reserve( Command * command )
 
 
 /*! Calls execute() on all currently operating commands, and if
-  possible calls emitResponses() and retires those which can be
-  retired.
+    possible calls emitResponses() and retires those which can be
+    retired.
 */
 
 void IMAP::runCommands()

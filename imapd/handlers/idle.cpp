@@ -6,18 +6,18 @@
 
 /*! \class Idle
 
-  The IDLE extension permits IMAP clients to remain idle, while the
-  IMAP server may send expunge, exist and flag updates at any time.
+    The IDLE extension permits IMAP clients to remain idle, while the
+    IMAP server may send expunge, exist and flag updates at any time.
 
-  This implementation differs from that implied by the RFC in that
-  +/DONE is not actually part of the command; Idle prints the + itself
-  and waits for DONE during command execution. Thus, "parse errors" are
-  not done in parse().
+    This implementation differs from that implied by the RFC in that
+    +/DONE is not actually part of the command; Idle prints the + itself
+    and waits for DONE during command execution. Thus, "parse errors" are
+    not done in parse().
 */
 
 
 /*! Switches to IDLE mode and grabs the input, such that the DONE can
-  be properly processed.
+    be properly processed.
 */
 
 void Idle::execute()

@@ -4,7 +4,7 @@
 #include "auth/plain.h"
 
 
-/*!  Constructs a simple Login handler. */
+/*! Constructs a simple Login handler. */
 
 Login::Login()
     : Command()
