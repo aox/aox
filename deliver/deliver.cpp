@@ -3,6 +3,7 @@
 #include "scope.h"
 #include "event.h"
 #include "string.h"
+#include "allocator.h"
 #include "configuration.h"
 #include "smtpclient.h"
 #include "logclient.h"
@@ -17,9 +18,34 @@
 #include <time.h>
 
 
-static int status;
-static SmtpClient *client;
-static const char *errstr;
+class Deliverator
+    : public EventHandler
+{
+public:
+    String sender, contents, recipient;
+    SmtpClient *client;
+    const char *errstr;
+    int status;
+
+    Deliverator( const String &s, const String &c, const String &r )
+        : sender( s ), contents( c ), recipient( r ),
+          client( 0 ), errstr( 0 ), status( 0 )
+    {
+        Allocator::addRoot( this );
+        client = new SmtpClient( sender, contents, recipient,
+                                 this );
+    }
+
+    virtual ~Deliverator() {}
+
+    void execute() {
+        if ( client->failed() ) {
+            errstr = client->error().cstr();
+            status = -1;
+        }
+        Loop::shutdown();
+    }
+};
 
 
 int main( int argc, char *argv[] )
@@ -115,39 +141,26 @@ int main( int argc, char *argv[] )
                  recipient.cstr(), sender.cstr() );
 
     Loop::setup();
-
     Log l( Log::General );
     global.setLog( &l );
     LogClient::setup();
 
     Configuration::report();
-
-    class DeliveryHelper : public EventHandler {
-    public:
-        void execute() {
-            if ( client->failed() ) {
-                errstr = client->error().cstr();
-                status = -1;
-            }
-            Loop::shutdown();
-        }
-    };
-
-    client = new SmtpClient( sender, contents, recipient,
-                             new DeliveryHelper );
+    Deliverator *d = new Deliverator( sender, contents, recipient );
     Loop::start();
 
-    if ( verbose > 0 && status < 0 ) {
-        fprintf( stderr, "Error: %s\n", errstr );
+    if ( verbose > 0 && d->status < 0 ) {
+        fprintf( stderr, "Error: %s\n", d->errstr );
 
         if ( verbose > 1 ) {
             File f( "/tmp/delivery.errors", File::Append );
             if ( f.valid() ) {
                 time_t t = time(0);
-                f.write( "From " + sender + " " + ctime(&t) );
-                f.write( contents + "\n" );
+                f.write( "From " + d->sender + " " + ctime(&t) );
+                f.write( d->contents + "\n" );
             }
         }
     }
-    return status;
+
+    return d->status;
 }
