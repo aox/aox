@@ -2,6 +2,7 @@
 
 #include "fieldcache.h"
 
+#include "transaction.h"
 #include "allocator.h"
 #include "event.h"
 #include "query.h"
@@ -62,23 +63,26 @@ protected:
     CacheLookup *status;
     EventHandler *owner;
     List< Query > *queries;
+    Transaction *transaction;
 
 public:
     FieldLookup() {}
-    virtual ~FieldLookup() {}
-
-    FieldLookup( const String &f, List< Query > *l, CacheLookup *st,
-                       EventHandler *ev )
-        : field( f ), status( st ), owner( ev ), queries( l )
+    FieldLookup( Transaction *t, const String &f, List< Query > *l,
+                 CacheLookup *st, EventHandler *ev )
+        : field( f ), status( st ), owner( ev ), queries( l ),
+          transaction( t )
     {
         i = new Query( *fieldInsert, this );
         i->bind( 1, field );
+        transaction->enqueue( i );
         l->append( i );
 
         q = new Query( *fieldLookup, this );
         q->bind( 1, field );
+        transaction->enqueue( q );
         l->append( q );
     }
+    virtual ~FieldLookup() {}
 
     void execute();
 };
@@ -114,9 +118,12 @@ void FieldLookup::execute() {
 /*! This function takes a List \a l of field names, and notifies \a ev
     after it has updated its cache for each field therein. The caller
     may then use translate() to retrieve the id.
+
+    Any required queries will be run in the Transaction \a t.
 */
 
-CacheLookup *FieldNameCache::lookup( List< String > *l, EventHandler *ev )
+CacheLookup *FieldNameCache::lookup( Transaction *t, List< String > *l,
+                                     EventHandler *ev )
 {
     CacheLookup *status = new CacheLookup;
     List< Query > *lookups = new List< Query >;
@@ -126,7 +133,7 @@ CacheLookup *FieldNameCache::lookup( List< String > *l, EventHandler *ev )
         String field = *it;
 
         if ( nameCache->find( field ) == 0 )
-            (void)new FieldLookup( field, lookups, status, ev );
+            (void)new FieldLookup( t, field, lookups, status, ev );
 
         ++it;
     }
@@ -134,7 +141,7 @@ CacheLookup *FieldNameCache::lookup( List< String > *l, EventHandler *ev )
     if ( lookups->isEmpty() )
         status->setState( CacheLookup::Completed );
     else
-        Database::query( lookups );
+        t->execute();
 
     return status;
 }

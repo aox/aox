@@ -7,14 +7,17 @@
 #include "cache.h"
 #include "header.h"
 
+
 class String;
+class Transaction;
 class EventHandler;
 
 
 class FieldNameCache {
 public:
     static void setup();
-    static CacheLookup *lookup( List< String > *, EventHandler * );
+    static CacheLookup *lookup( Transaction *, List< String > *,
+                                EventHandler * );
     static HeaderField::Type translate( const String & );
 };
 

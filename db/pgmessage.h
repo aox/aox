@@ -3,15 +3,12 @@
 #ifndef PGMESSAGE_H
 #define PGMESSAGE_H
 
-#include "global.h"
+#include "database.h"
 #include "string.h"
-#include "list.h"
 #include "query.h"
+#include "list.h"
 
 class Buffer;
-
-
-enum Status { Idle, InTransaction, FailedTransaction };
 
 
 class PgServerMessage {
@@ -330,10 +327,10 @@ class PgReady
 public:
     PgReady( Buffer * );
 
-    Status status() const;
+    Database::State state() const;
 
 private:
-    Status s;
+    Database::State s;
 };
 
 

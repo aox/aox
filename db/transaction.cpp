@@ -11,12 +11,16 @@
 class TransactionData {
 public:
     TransactionData()
-        : db( 0 ), owner( 0 ), state( Transaction::Inactive )
+        : state( Transaction::Inactive ), owner( 0 ), db( 0 ),
+          queries( 0 )
     {}
 
-    Database *db;
-    EventHandler *owner;
     Transaction::State state;
+    EventHandler *owner;
+    Database *db;
+
+    List< Query > *queries;
+
     String error;
 };
 
@@ -24,29 +28,30 @@ public:
 /*! \class Transaction transaction.h
     This class manages a single database transaction.
 
-    A Transaction acquires a Database::handle() upon creation, making it
-    available to users through enqueue() and execute(). The commit() and
-    rollback() functions end a Transaction. The state() of a transaction
-    indicates its progress.
+    A Transaction accepts a series of queries via enqueue(), and sends
+    them to the server when execute() is called. It ends when commit()
+    or rollback() is called. Its state() indicates its progress.
 
-    The Database sends a BEGIN before the first Query enqueue()d through
-    a Transaction, and subsequently refuses to accept queries from other
-    sources until the transaction has ended.
+    During its lifetime, a Transaction commandeers a database handle.
 */
 
 
-/*! Creates a new Transaction object owned by \a ev, and using the
-    Database handle \a db. (The default value of 0 for \a db causes
-    a random Database::handle() to be used.)
-*/
+/*! Creates a new Transaction owned by \a ev (which MUST NOT be 0). */
 
-Transaction::Transaction( EventHandler *ev, Database *db )
+Transaction::Transaction( EventHandler *ev )
     : d( new TransactionData )
 {
-    d->db = db;
-    if ( !d->db )
-        d->db = Database::handle();
     d->owner = ev;
+}
+
+
+/*! Sets this Transaction's Database handle to \a db.
+    This function is used by the Database when the BEGIN is processed.
+*/
+
+void Transaction::setDatabase( Database *db )
+{
+    d->db = db;
 }
 
 
@@ -88,25 +93,6 @@ bool Transaction::done() const
 }
 
 
-/*! Returns a pointer to the EventHandler that owns this transaction.
-*/
-
-EventHandler *Transaction::owner() const
-{
-    return d->owner;
-}
-
-
-/*! Returns the error message associated with this Transaction. This
-    value is meaningful only if the Transaction has failed().
-*/
-
-String Transaction::error() const
-{
-    return d->error;
-}
-
-
 /*! Sets this Transaction's state() to Failed, and records the error
     message \a s.
 */
@@ -120,42 +106,103 @@ void Transaction::setError( const String &s )
 }
 
 
-/*! Enqueues the query \a q within this transaction. The BEGIN will be
-    sent by the database before the first such enqueue()d query.
+/*! Returns the error message associated with this Transaction. This
+    value is meaningful only if the Transaction has failed().
+*/
+
+String Transaction::error() const
+{
+    return d->error;
+}
+
+
+/*! Enqueues the query \a q within this Transaction, to be sent to the
+    server only after execute() is called. The BEGIN is automatically
+    enqueued before the first query in a Transaction.
 */
 
 void Transaction::enqueue( Query *q )
 {
+    if ( !d->queries ) {
+        d->queries = new List< Query >;
+        Query *begin = new Query( "BEGIN", 0 );
+        begin->setTransaction( this );
+
+        // If setDatabase() has already been called, we were probably
+        // started by updateSchema().
+        if ( !d->db )
+            Database::submit( begin );
+        else
+            d->queries->append( begin );
+    }
+
     q->setTransaction( this );
-    d->db->enqueue( q );
+    d->queries->append( q );
 }
 
 
-/*! Executes all the queries enqueue()d so far. */
-
-void Transaction::execute()
-{
-    d->db->execute();
-}
-
-
-/*! Abandons this Transaction. */
+/*! Issues a ROLLBACK to abandon the Transaction (after sending any
+    queries that were already enqueued). The owner is notified of
+    completion.
+*/
 
 void Transaction::rollback()
 {
-    Query *q = new Query( "rollback", d->owner );
+    Query *q = new Query( "ROLLBACK", d->owner );
     q->setTransaction( this );
-    d->db->enqueue( q );
-    d->db->execute();
+    d->queries->append( q );
+    execute();
 }
 
 
-/*! Commits this Transaction. */
+/*! Issues a COMMIT to complete the Transaction (after sending any
+    queries that were already enqueued). The owner is notified of
+    completion.
+
+    For a failed() Transaction, commit() is equivalent to rollback().
+*/
 
 void Transaction::commit()
 {
-    Query *q = new Query( "commit", d->owner );
+    Query *q = new Query( "COMMIT", d->owner );
     q->setTransaction( this );
-    d->db->enqueue( q );
-    d->db->execute();
+    d->queries->append( q );
+    execute();
+}
+
+
+/*! Executes the queries enqueued so far. */
+
+void Transaction::execute()
+{
+    List< Query >::Iterator it( d->queries->first() );
+    while ( it ) {
+        it->setState( Query::Submitted );
+        ++it;
+    }
+
+    // If our BEGIN has not yet been processed (and setDatabase() called
+    // as a result), the queue will eventually be processed anyway.
+    if ( d->db )
+        d->db->processQueue();
+}
+
+
+/*! Returns a pointer to the List of queries that have been enqueue()d
+    within this Transaction. The pointer will not be 0 after the first
+    query has been enqueued. The state of each Query will be Submitted
+    if execute() has been called after it was enqueued.
+*/
+
+List< Query > *Transaction::queries() const
+{
+    return d->queries;
+}
+
+
+/*! Notifies the owner of this Transaction about a significant event. */
+
+void Transaction::notify()
+{
+    d->owner->execute();
 }

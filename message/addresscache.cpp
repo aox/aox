@@ -2,6 +2,7 @@
 
 #include "addresscache.h"
 
+#include "transaction.h"
 #include "allocator.h"
 #include "scope.h"
 #include "event.h"
@@ -77,18 +78,20 @@ protected:
     CacheLookup *status;
     EventHandler *owner;
     List< Query > *queries;
+    Transaction *transaction;
 
 public:
     AddressLookup() {}
-
-    AddressLookup( Address *a, List< Query > *l, CacheLookup *st,
-                  EventHandler *ev )
-        : address( a ), status( st ), owner( ev ), queries( l )
+    AddressLookup( Transaction *t, Address *a, List< Query > *l,
+                   CacheLookup *st, EventHandler *ev )
+        : address( a ), status( st ), owner( ev ), queries( l ),
+          transaction( t )
     {
         q = new Query( *addressLookup, this );
         q->bind( 1, a->name() );
         q->bind( 2, a->localpart() );
         q->bind( 3, a->domain() );
+        transaction->enqueue( q );
         l->append( q );
     }
 
@@ -100,29 +103,29 @@ class AddressInsert
     : public AddressLookup
 {
 public:
-    AddressInsert( Address *a, List< Query > *l, CacheLookup *st,
-                  EventHandler *ev )
+    AddressInsert( Transaction *t, Address *a, List< Query > *l,
+                   CacheLookup *st, EventHandler *ev )
     {
         address = a;
         status = st;
         owner = ev;
         queries = l;
+        transaction = t;
 
         Query *i = new Query( *addressInsert, this );
         i->bind( 1, a->name() );
         i->bind( 2, a->localpart() );
         i->bind( 3, a->domain() );
+        transaction->enqueue( i );
 
         q = new Query( *addressLookup, this );
         q->bind( 1, a->name() );
         q->bind( 2, a->localpart() );
         q->bind( 3, a->domain() );
+        transaction->enqueue( q );
         l->append( q );
 
-        Database *db = Database::handle();
-        db->enqueue( i );
-        db->enqueue( q );
-        db->execute();
+        transaction->execute();
     }
 };
 
@@ -138,7 +141,8 @@ void AddressLookup::execute() {
         // It may be better to collect INSERTs and execute them together
         // on one database handle after processing the SELECTs. We don't
         // bother yet.
-        (void)new AddressInsert( address, queries, status, owner );
+        (void)new AddressInsert( transaction, address, queries, status,
+                                 owner );
         return;
     }
 
@@ -164,10 +168,13 @@ void AddressLookup::execute() {
     database lookup, and possibly an insert followed by a select, before
     being added to the cache.
 
+    Any required queries will be run in the Transaction \a t.
+
     (We assume, for the moment, that none of the queries will fail.)
 */
 
-CacheLookup *AddressCache::lookup( List< Address > *l, EventHandler *ev )
+CacheLookup *AddressCache::lookup( Transaction *t, List< Address > *l,
+                                   EventHandler *ev )
 {
     // We step through l, resolving cached addresses, and adding queries
     // for the others to this List:
@@ -179,7 +186,7 @@ CacheLookup *AddressCache::lookup( List< Address > *l, EventHandler *ev )
         Address *a = nameCache->find( it->toString() );
 
         if ( !a )
-            (void)new AddressLookup( it, lookups, status, ev );
+            (void)new AddressLookup( t, it, lookups, status, ev );
         else
             it->setId( a->id() );
 
@@ -189,7 +196,7 @@ CacheLookup *AddressCache::lookup( List< Address > *l, EventHandler *ev )
     if ( lookups->isEmpty() )
         status->setState( CacheLookup::Completed );
     else
-        Database::query( lookups );
+        t->execute();
 
     return status;
 }

@@ -338,7 +338,8 @@ void Injector::buildAddressLinks()
         }
     }
 
-    d->addressLookup = AddressCache::lookup( addresses, this );
+    d->addressLookup =
+        AddressCache::lookup( d->transaction, addresses, this );
 }
 
 
@@ -365,7 +366,8 @@ void Injector::buildFieldLinks()
         ++it;
     }
 
-    d->fieldLookup = FieldNameCache::lookup( d->otherFields, this );
+    d->fieldLookup =
+        FieldNameCache::lookup( d->transaction, d->otherFields, this );
 }
 
 

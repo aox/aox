@@ -328,10 +328,9 @@ void User::createHelper()
 
     if ( !d->q ) {
         if ( !a->id() ) {
-            // note: this doesn't wrap the address insert in our transaction
-            List<Address> l;
+            List< Address > l;
             l.append( a );
-            AddressCache::lookup( &l, this );
+            AddressCache::lookup( d->t, &l, this );
         }
 
         d->q = new Query( "select name from namespaces where id="

@@ -14,11 +14,10 @@
 class QueryData {
 public:
     QueryData()
-        : type( Query::Execute ), state( Query::Inactive ),
+        : state( Query::Inactive ),
           transaction( 0 ), owner( 0 ), totalRows( 0 ), startup( false )
     {}
 
-    Query::Type type;
     Query::State state;
 
     String name;
@@ -100,16 +99,6 @@ Query::Query( const PreparedStatement &ps, EventHandler *ev )
     This virtual destructor exists only so that subclasses can define
     their own.
 */
-
-
-/*! Returns the type of this Query, which may be any of Begin, Execute,
-    Commit, or Rollback (as defined in Query::Type).
-*/
-
-Query::Type Query::type() const
-{
-    return d->type;
-}
 
 
 /*! Returns the state of this object, which may be one of the following:
@@ -262,7 +251,7 @@ void Query::bindNull( uint n )
 
 void Query::execute()
 {
-    Database::query( this );
+    Database::submit( this );
 }
 
 
@@ -469,7 +458,7 @@ bool Row::isNull( const String &f ) const
 
 bool Row::getBoolean( uint i ) const
 {
-    if ( badFetch( i, Database::Boolean ) )
+    if ( badFetch( i, Column::Boolean ) )
         return false;
     return columns[i].value[0];
 }
@@ -494,7 +483,7 @@ bool Row::getBoolean( const String &f ) const
 
 int Row::getInt( uint i ) const
 {
-    if ( badFetch( i, Database::Integer ) )
+    if ( badFetch( i, Column::Integer ) )
         return 0;
 
     int n = 0;
@@ -546,7 +535,7 @@ int Row::getInt( const String &f ) const
 
 String Row::getString( uint i ) const
 {
-    if ( badFetch( i, Database::Bytes ) )
+    if ( badFetch( i, Column::Bytes ) )
         return "";
     return columns[i].value;
 }
@@ -588,7 +577,7 @@ int Row::findColumn( const String &f ) const
     not, it logs a disaster and returns true.
 */
 
-bool Row::badFetch( uint i, Database::Type t ) const
+bool Row::badFetch( uint i, Column::Type t ) const
 {
     String s;
 
@@ -596,11 +585,11 @@ bool Row::badFetch( uint i, Database::Type t ) const
         s = "No column at index #" + fn( i );
     else if ( columns[i].length == -1 )
         s = "Column " + columns[i].name + " is NULL.";
-    else if ( t != Database::Unknown &&
+    else if ( t != Column::Unknown &&
               columns[i].type != t )
         s = "Column " + columns[i].name + " is of type " +
-            Database::typeName( columns[i].type ) + ", not " +
-            Database::typeName( t );
+            Column::typeName( columns[i].type ) + ", not " +
+            Column::typeName( t );
     else
         return false;
 
@@ -648,3 +637,32 @@ String PreparedStatement::query() const
 {
     return q;
 }
+
+
+/*! \class Column query.h
+    This class represents a single column in a row.
+    Has no member functions or useful documentation yet.
+*/
+
+/*! Returns the name of \a type, mostly for logging purposes. */
+
+String Column::typeName( Column::Type type )
+{
+    String n;
+    switch( type ) {
+    case Unknown:
+        n = "unknown";
+        break;
+    case Boolean:
+        n = "boolean";
+        break;
+    case Integer:
+        n = "integer";
+        break;
+    case Bytes:
+        n = "string";
+        break;
+    }
+    return n;
+}
+

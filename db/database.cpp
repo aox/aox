@@ -2,248 +2,115 @@
 
 #include "database.h"
 
-#include "allocator.h"
 #include "list.h"
 #include "string.h"
-#include "query.h"
+#include "allocator.h"
 #include "configuration.h"
+#include "query.h"
 #include "log.h"
 
 #include "postgres.h"
 
 
-static Endpoint * srv;
-static Database::Interface type;
-static String * name;
-static String * user;
-static String * password;
-static List< Database > * handles;
-
-
-static Database *newHandle( Database::Interface i )
-{
-    Database *db = 0;
-
-    switch ( i ) {
-    case Database::Pg:
-        db = new Postgres;
-        break;
-
-    case Database::Unknown:
-        break;
-    }
-
-    return db;
-}
+List< Query > *Database::queries;
+static List< Database > *handles;
 
 
 /*! \class Database database.h
     This class represents a connection to the database server.
 
-    Callers are expected to acquire a handle(), enqueue() any number of
-    Query objects, and execute() them. Most people will use this class
-    through the Query or Transaction classes.
+    The Query and Transaction classes provide the recommended database
+    interface. You should never need to use this class directly.
+
+    This is the abstract base class for Postgres (and any other database
+    interface classes we implement). It's responsible for validating the
+    database configuration, maintaining a pool of database handles, and
+    accepting queries into a common queue via submit().
 */
 
 Database::Database()
     : Connection()
 {
     setType( Connection::DatabaseClient );
+    setState( Database::Connecting );
 }
 
 
-/*! This setup function expects to be called from ::main().
+/*! This setup function reads and validates the database configuration
+    to the best of its limited ability (since connection negotiation
+    must be left to subclasses). It logs a disaster if it fails.
 
-    It reads and validates the database configuration variables to the
-    best of its limited ability (since connection negotiation must be
-    left to each subclass). It logs a disaster if it fails.
+    It creates a single database handle at startup for now.
+
+    This function expects to be called from ::main().
 */
 
 void Database::setup()
 {
+    queries = new List< Query >;
+    Allocator::addEternal( queries, "list of queries" );
+
+    handles = new List< Database >;
+    Allocator::addEternal( handles, "list of database handles" );
+
     String db = Configuration::text( Configuration::Db ).lower();
-
-    if ( db == "pg" || db == "pgsql" || db == "postgres" ) {
-        ::type = Pg;
-    }
-    else {
-        ::log( "Unsupported database type: " + db,
-               Log::Disaster );
+    if ( !( db == "pg" || db == "pgsql" || db == "postgres" ) ) {
+        ::log( "Unsupported database type: " + db, Log::Disaster );
         return;
     }
 
-
-    ::user = new String( Configuration::text( Configuration::DbUser ) );
-    Allocator::addEternal( ::user, "db-user" );
-    ::password
-          = new String( Configuration::text( Configuration::DbPassword ) );
-    Allocator::addEternal( ::password, "db-password" );
-    ::name = new String( Configuration::text( Configuration::DbName ) );
-    Allocator::addEternal( ::name, "db-name" );
-    srv = new Endpoint(  Configuration::DbAddress, Configuration::DbPort );
-    Allocator::addEternal( srv, "database server" );
-
-    if ( srv->valid() && srv->protocol() == Endpoint::Unix ) {
-        ::log( "Creating four database handles", Log::Info );
-        // We can't connect to a Unix socket after a chroot(), so we
-        // create four handles right away.
-        int i = 0;
-        while ( i < 4 ) {
-            (void)newHandle( interface() );
-            i++;
-        }
-    }
-}
-
-
-/*! This static function returns a pointer to a Database object that's
-    ready() to accept queries. If it can't find an existing handle, it
-    creates a new one of the type specified in the configuration file.
-    It returns 0 if the database type is unsupported.
-
-    Note: Although the handle says it is ready(), it may not be usable
-    until it has successfully negotiated a connection. This might be a
-    bug, but it's not clear where.
-
-    There's a BIG BAD BUG when we're using Unix sockets, as this
-    function assumes it can create as many sockets as it wants,
-    whenever.
-*/
-
-Database *Database::handle()
-{
-    if ( handles ) {
-        List< Database >::Iterator it( handles->first() );
-        while ( it ) {
-            if ( it->ready() )
-                return it;
-            ++it;
-        }
-    }
-
-    // XXX: compare the number of handles to some configurable
-    // maximum, and return null if we've reached the ceiling.
-
-    return newHandle( interface() );
-}
-
-
-/*! \fn bool Database::ready()
-
-    This function returns true when a database object is ready to accept
-    a Query via enqueue(). It may return false when, for example, it has
-    too many pending queries already.
-
-    Each Database subclass must implement this function.
-*/
-
-/*! \fn void Database::enqueue( class Query *query )
-
-    This function adds \a query to the database handle's list of queries
-    pending submission to the database server. The Query::state() is not
-    changed. The query will be sent to the server only when execute() is
-    called.
-
-    Enqueuing a query with a Query::transaction() set will cause ready()
-    to return false, so that non-transaction queries are not enqueued in
-    between ones belonging to the transaction.
-
-    Don't enqueue() a Query unless the Database is ready() for one.
-*/
-
-/*! \fn void Database::execute()
-
-    This function sends enqueue()d queries to the database server in the
-    same order that they were enqueued. The Query::state() is changed to
-    either Query::Submitted if the query will only be sent later, or to
-    Query::Executing if it was sent immediately.
-*/
-
-
-/*! This static function acquires a database handle, enqueue()s a single
-    \a query, and execute()s it. If it cannot find a database handle, it
-    calls Query::setError() and returns.
-*/
-
-void Database::query( Query *query )
-{
-    Database *db = handle();
-
-    if ( !db ) {
-        query->setError( "No database handle available." );
+    Endpoint srv( Configuration::DbAddress, Configuration::DbPort );
+    if ( !srv.valid() ) {
+        ::log( "Invalid server address: " + srv.string(), Log::Disaster );
         return;
     }
 
-    db->enqueue( query );
-    db->execute();
+    // For now, we just create a single handle at startup.
+    (void)new Postgres;
 }
 
 
-/*! \overload
-    Executes a List \a l of queries on the same database handle().
+/*! Adds \a q to the queue of submitted queries and sets its state to
+    Query::Submitted.
 */
 
-void Database::query( List< Query > *l )
+void Database::submit( Query *q )
 {
-    Database *db = handle();
+    queries->append( q );
+    q->setState( Query::Submitted );
 
-    List< Query >::Iterator it( l->first() );
-    if ( !db ) {
-        while ( it ) {
-            it->setError( "No database handle available." );
-            ++it;
-        }
-        return;
-    }
-
+    List< Database >::Iterator it( handles->first() );
     while ( it ) {
-        db->enqueue( it );
+        if ( it->state() == Idle ) {
+            it->processQueue();
+            return;
+        }
         ++it;
     }
-    db->execute();
 }
 
 
-/*! Returns the configured Database::Interface type. This is derived
-    from the text of the "db" configuration variable, and tells the
-    handle() function which Database subclass to instantiate.
+/*! \fn virtual void Database::processQueue() = 0
+    Instructs the Database object to send any queries whose state is
+    Query::Submitted to the server.
 */
 
-Database::Interface Database::interface()
+
+/*! Sets the state of this Database handle to \a s, which must be one of
+    Connecting, Idle, InTransaction, FailedTransaction.
+*/
+
+void Database::setState( Database::State s )
 {
-    return ::type;
+    st = s;
 }
 
 
-/*! Returns the configured address of the database server. */
+/*! Returns the current state of this Database object. */
 
-Endpoint Database::server()
+Database::State Database::state() const
 {
-    return *srv;
-}
-
-
-/*! Returns the configured database name. */
-
-String Database::name()
-{
-    return *::name;
-}
-
-
-/*! Returns the configured database username. */
-
-String Database::user()
-{
-    return *::user;
-}
-
-
-/*! Returns the configured database password. */
-
-String Database::password()
-{
-    return *::password;
+    return st;
 }
 
 
@@ -251,10 +118,6 @@ String Database::password()
 
 void Database::addHandle( Database * d )
 {
-    if ( !handles ) {
-        handles = new List<Database>;
-        Allocator::addEternal( handles, "list of database handles" );
-    }
     handles->append( d );
 }
 
@@ -263,29 +126,45 @@ void Database::addHandle( Database * d )
 
 void Database::removeHandle( Database * d )
 {
-    if ( handles )
-        handles->take( handles->find( d ) );
+    handles->take( handles->find( d ) );
+    if ( handles->isEmpty() ) {
+        List< Query >::Iterator q( queries->first() );
+        while ( q ) {
+            q->setError( "No available database handles." );
+            q->notify();
+            ++q;
+        }
+    }
 }
 
 
-/*! Returns the name of \a type, mostly for logging purposes. */
+/*! Returns the configured address of the database server. */
 
-String Database::typeName( Type type )
+Endpoint Database::server()
 {
-    String n;
-    switch( type ) {
-    case Database::Unknown:
-        n = "unknown";
-        break;
-    case Database::Boolean:
-        n = "boolean";
-        break;
-    case Database::Integer:
-        n = "integer";
-        break;
-    case Database::Bytes:
-        n = "string";
-        break;
-    }
-    return n;
+    return Endpoint( Configuration::DbAddress, Configuration::DbPort );
+}
+
+
+/*! Returns the configured database name. */
+
+String Database::name()
+{
+    return Configuration::text( Configuration::DbName );
+}
+
+
+/*! Returns the configured database username. */
+
+String Database::user()
+{
+    return Configuration::text( Configuration::DbUser );
+}
+
+
+/*! Returns the configured database password. */
+
+String Database::password()
+{
+    return Configuration::text( Configuration::DbPassword );
 }

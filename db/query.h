@@ -8,6 +8,7 @@
 #include "list.h"
 #include "database.h"
 
+
 class Row;
 class Transaction;
 class EventHandler;
@@ -20,9 +21,6 @@ public:
     Query( const String &, EventHandler * );
     Query( const PreparedStatement &, EventHandler * );
     virtual ~Query() {}
-
-    enum Type { Begin, Execute, Commit, Rollback };
-    Type type() const;
 
     enum State {
         Inactive, Submitted, Executing, Completed, Failed
@@ -98,16 +96,21 @@ private:
 };
 
 
+class Column {
+public:
+    enum Type { Unknown, Boolean, Integer, Bytes };
+
+    String name;
+    Type type;
+    int length;
+    String value;
+
+    static String typeName( Type );
+};
+
+
 class Row {
 public:
-    class Column {
-    public:
-        String name;
-        Database::Type type;
-        int length;
-        String value;
-    };
-
     Row( uint, Column * );
 
     bool isNull( uint ) const;
@@ -127,7 +130,7 @@ private:
     Column *columns;
 
     int findColumn( const String & ) const;
-    bool badFetch( uint, Database::Type = Database::Unknown ) const;
+    bool badFetch( uint, Column::Type = Column::Unknown ) const;
 };
 
 

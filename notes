@@ -41,6 +41,9 @@ ocd needs work
 User/Mailbox need a bit of an overhaul.
 
 
+AddressCache and FieldNameCache are utter crocks, and must die.
+
+
 We must optimise Row composition.
 
 

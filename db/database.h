@@ -6,6 +6,7 @@
 #include "list.h"
 #include "connection.h"
 
+
 class Query;
 
 
@@ -15,35 +16,29 @@ class Database
 public:
     Database();
 
-    enum Interface {
-        Invalid, Pg
-    };
-
-    enum Type {
-        Unknown, Boolean, Integer, Bytes
-    };
-
-    static String typeName( Type );
+    enum State { Connecting, Idle, InTransaction, FailedTransaction };
 
     static void setup();
-    static Database *handle();
+    static void submit( Query * );
 
-    virtual bool ready() = 0;
-    virtual void enqueue( Query * ) = 0;
-    virtual void execute() = 0;
-
-    static void query( Query * );
-    static void query( List< Query > * );
+    virtual void processQueue() = 0;
 
 protected:
-    static Interface interface();
-    static String name();
-    static String user();
-    static String password();
-    static Endpoint server();
+    static List< Query > *queries;
+
+    void setState( State );
+    State state() const;
 
     static void addHandle( Database * );
     static void removeHandle( Database * );
+
+    static Endpoint server();
+    static String name();
+    static String user();
+    static String password();
+
+private:
+    State st;
 };
 
 

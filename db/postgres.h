@@ -5,8 +5,6 @@
 
 #include "database.h"
 
-class Row;
-
 
 class Postgres
     : public Database
@@ -15,11 +13,8 @@ public:
     Postgres();
     ~Postgres();
 
-    bool ready();
-    void enqueue( class Query * );
-    void execute();
-
-    void react( Event e );
+    void processQueue();
+    void react( Event );
 
 private:
     class PgData *d;
@@ -29,9 +24,6 @@ private:
     void process( char );
     void unknown( char );
     void error( const String & );
-
-    bool haveMessage();
-    void processQueue( bool = false );
     void updateSchema();
 };
 

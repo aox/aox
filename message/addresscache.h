@@ -6,7 +6,9 @@
 #include "list.h"
 #include "cache.h"
 
+
 class Address;
+class Transaction;
 class EventHandler;
 
 
@@ -14,7 +16,8 @@ class AddressCache
 {
 public:
     static void setup();
-    static CacheLookup *lookup( List< Address > *, EventHandler * );
+    static CacheLookup *lookup( Transaction *, List< Address > *,
+                                EventHandler * );
 };
 
 

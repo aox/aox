@@ -2,42 +2,39 @@
 
 #include "postgres.h"
 
-#include "event.h"
-#include "query.h"
+#include "dict.h"
+#include "list.h"
 #include "string.h"
 #include "buffer.h"
-#include "list.h"
-#include "dict.h"
+#include "configuration.h"
+#include "transaction.h"
+#include "stringlist.h"
+#include "pgmessage.h"
+#include "query.h"
+#include "event.h"
 #include "loop.h"
 #include "md5.h"
 #include "log.h"
-#include "pgmessage.h"
-#include "stringlist.h"
-#include "transaction.h"
-#include "configuration.h"
 
 // crypt
 #define _XOPEN_SOURCE
 #include <unistd.h>
 
 
+static bool hasMessage( Buffer * );
+
+
 class PgData {
 public:
     PgData()
-        : status( Idle ),
-          active( false ), startup( false ), authenticated( false ),
-          reserved( false ), unknownMessage( false ),
-          identBreakageSeen( false ),
+        : active( false ), startup( false ), authenticated( false ),
+          unknownMessage( false ), identBreakageSeen( false ),
           keydata( 0 ), description( 0 ), transaction( 0 )
     {}
-
-    Status status;
 
     bool active;
     bool startup;
     bool authenticated;
-
-    bool reserved;
     bool unknownMessage;
     bool identBreakageSeen;
 
@@ -47,7 +44,6 @@ public:
     Dict< int > prepared;
 
     List< Query > queries;
-    List< Query > pending;
     Transaction *transaction;
 };
 
@@ -65,10 +61,10 @@ public:
     The version implemented here is used by PostgreSQL 7.4 and later.
 
     At the time of writing, there do not seem to be any other suitable
-    PostgreSQL client libraries available. For example, libpqxx
-    doesn't support asynchronous operation or prepared statements. Its
-    interface would be difficult to wrap in a database-agnostic manner,
-    and it depends on the untested libpq. The others aren't much better.
+    PostgreSQL client libraries available. For example, libpqxx doesn't
+    support asynchronous operation or prepared statements. Its interface
+    would be difficult to wrap in a database-agnostic manner, and it
+    depends on the untested libpq. The others aren't much better.
 */
 
 /*! Creates a Postgres object, initiates a TCP connection to the server,
@@ -80,13 +76,12 @@ Postgres::Postgres()
     : Database(), d( new PgData )
 {
     log()->setFacility( Log::Database );
-    connect( Database::server() );
-    log( "Connecting to PostgreSQL server at " +
-         Database::server().string(),
+    log( "Connecting to PostgreSQL server at " + server().string(),
          Log::Debug );
-    Loop::addConnection( this );
-    Database::addHandle( this );
+    connect( server() );
     setTimeoutAfter( 60 );
+    Loop::addConnection( this );
+    addHandle( this );
 }
 
 
@@ -96,36 +91,67 @@ Postgres::~Postgres()
 }
 
 
-bool Postgres::ready()
+void Postgres::processQueue()
 {
-    return d->pending.count() <= 5 && !d->reserved; // XXX: && !d->startup?
-}
+    int n = 0;
 
+    List< Query > *l = Database::queries;
+    if ( d->transaction )
+        l = d->transaction->queries();
+    List< Query >::Iterator it( l->first() );
 
-void Postgres::enqueue( Query *q )
-{
-    if ( q->transaction() )
-        d->reserved = true;
-    d->pending.append( q );
-}
+    while ( it ) {
+        if ( it->state() != Query::Submitted )
+            break;
 
+        String s;
+        Query *q = l->take( it );
+        q->setState( Query::Executing );
 
-void Postgres::execute()
-{
-    List< Query >::Iterator it( d->pending.first() );
-
-    if ( !it )
-        return;
-
-    if ( !d->active || d->startup ) {
-        while ( it ) {
-            it->setState( Query::Submitted );
-            ++it;
+        if ( !d->transaction && q->transaction() ) {
+            d->transaction = q->transaction();
+            d->transaction->setState( Transaction::Executing );
+            d->transaction->setDatabase( this );
+            l = d->transaction->queries();
+            it = l->first();
         }
-        return;
+
+        d->queries.append( q );
+
+        if ( q->name() == "" ||
+             !d->prepared.contains( q->name() ) )
+        {
+            PgParse a( q->string(), q->name() );
+            a.bindTypes( q->types() );
+            a.enqueue( writeBuffer() );
+
+            if ( q->name() != "" )
+                d->prepared.insert( q->name(), 0 );
+            s.append( "parse/" );
+        }
+
+        PgBind b( q->name() );
+        b.bind( q->values() );
+        b.enqueue( writeBuffer() );
+
+        PgDescribe c;
+        c.enqueue( writeBuffer() );
+
+        PgExecute d;
+        d.enqueue( writeBuffer() );
+
+        PgSync e;
+        e.enqueue( writeBuffer() );
+
+        s.append( "execute" );
+        log( "Sent " + s + " for " + q->string(), Log::Debug );
+        n++;
     }
 
-    processQueue( true );
+    if ( n > 0 ) {
+        extendTimeout( 5 );
+        write();
+    }
 }
 
 
@@ -135,8 +161,8 @@ void Postgres::react( Event e )
     case Connect:
         {
             PgStartup msg;
-            msg.setOption( "user", Database::user() );
-            msg.setOption( "database", Database::name() );
+            msg.setOption( "user", user() );
+            msg.setOption( "database", name() );
             msg.enqueue( writeBuffer() );
 
             d->active = true;
@@ -145,7 +171,7 @@ void Postgres::react( Event e )
         break;
 
     case Read:
-        while ( d->active && haveMessage() ) {
+        while ( d->active && hasMessage( readBuffer() ) ) {
             /* We call a function to process every message we receive.
                This function is expected to parse and remove a message
                from the readBuffer, throwing an exception for malformed
@@ -170,8 +196,8 @@ void Postgres::react( Event e )
                     unknown( msg );
             }
             catch ( PgServerMessage::Error e ) {
-                error( "Malformed '" +
-                       String( &msg, 1 ) + "' message received." );
+                error( "Malformed '" + String( &msg, 1 ) +
+                       "' message received." );
             }
         }
         break;
@@ -195,7 +221,7 @@ void Postgres::react( Event e )
         {
             PgTerminate msg;
             msg.enqueue( writeBuffer() );
-            Database::removeHandle( this );
+            removeHandle( this );
 
             d->active = false;
         }
@@ -226,14 +252,14 @@ void Postgres::authentication( char type )
             case PgAuthRequest::Crypt:
             case PgAuthRequest::MD5:
                 {
-                    String pass = Database::password();
+                    String pass = password();
 
                     if ( r.type() == PgAuthRequest::Crypt )
                         pass = ::crypt( pass.cstr(), r.salt().cstr() );
                     else if ( r.type() == PgAuthRequest::MD5 )
                         pass = "md5" + MD5::hash(
                                            MD5::hash(
-                                               pass + Database::user()
+                                               pass + user()
                                            ).hex() + r.salt()
                                        ).hex();
 
@@ -266,17 +292,21 @@ void Postgres::backendStartup( char type )
 {
     switch ( type ) {
     case 'Z':
-        // This successfully concludes connection startup. We'll leave
-        // this message unparsed, so that process() can handle it like
-        // any other PgReady.
         setTimeout( 0 );
         d->startup = false;
+
+        // The first time we successfully negotiate a connection, we
+        // need to run updateSchema.
         static bool first = true;
         if ( first ) {
             first = false;
             updateSchema();
             log( "PostgreSQL: Ready for queries" );
         }
+
+        // This successfully concludes connection startup. We'll leave
+        // this message unparsed, so that process() can handle it like
+        // any other PgReady.
         commit();
         break;
 
@@ -367,20 +397,18 @@ void Postgres::process( char type )
         {
             PgReady msg( readBuffer() );
 
-            if ( d->status == InTransaction ) {
-                if ( msg.status() == Idle ) {
+            if ( state() == InTransaction ) {
+                if ( msg.state() == Idle ) {
                     d->transaction->setState( Transaction::Completed );
-                    d->reserved = false;
-                    if ( d->transaction->owner() )
-                        d->transaction->owner()->execute();
+                    d->transaction->notify();
                     d->transaction = 0;
                 }
-                else if ( msg.status() == FailedTransaction ) {
+                else if ( msg.state() == FailedTransaction ) {
                     d->transaction->setState( Transaction::Failed );
                 }
             }
 
-            d->status = msg.status();
+            setState( msg.state() );
 
             processQueue();
             if ( d->queries.isEmpty() )
@@ -560,127 +588,35 @@ void Postgres::error( const String &s )
         ++q;
     }
 
-    q = d->pending.first();
-    while ( q ) {
-        q->setError( s );
-        q->notify();
-        ++q;
-    }
-
     writeBuffer()->remove( writeBuffer()->size() );
     writeBuffer()->remove( writeBuffer()->size() );
-    Database::removeHandle( this );
-    setState( Closing );
-}
-
-
-/*! Returns true only if there is a complete message in our read buffer. */
-
-bool Postgres::haveMessage()
-{
-    Buffer * b = readBuffer();
-
-    if ( b->size() < 5 ||
-         b->size() < 1+( (uint)((*b)[1]<<24)|((*b)[2]<<16)|
-                               ((*b)[3]<<8)|((*b)[4]) ) )
-        return false;
-    return true;
-}
-
-
-/*! This is the function that actually composes queries and sends them
-    to the server. If \a userContext is true, it processes all pending
-    queries. If not, it stops at the first one whose Query::state() is
-    not Query::Submitted.
-*/
-
-void Postgres::processQueue( bool userContext )
-{
-    List< Query >::Iterator it( d->pending.first() );
-
-    if ( !it )
-        return;
-
-    while ( it ) {
-        if ( !userContext && it->state() != Query::Submitted )
-            break;
-
-        String s;
-        Query *q = d->pending.take( it );
-        q->setState( Query::Executing );
-
-        if ( !d->transaction && q->transaction() ) {
-            d->transaction = q->transaction();
-            d->transaction->setState( Transaction::Executing );
-            PgParse a( "begin" );
-            a.enqueue( writeBuffer() );
-
-            PgBind b;
-            b.enqueue( writeBuffer() );
-
-            PgExecute c;
-            c.enqueue( writeBuffer() );
-
-            s.append( "begin/");
-            d->queries.append( new Query( "begin", 0 ) );
-        }
-
-        d->queries.append( q );
-
-        if ( q->name() == "" ||
-             !d->prepared.contains( q->name() ) )
-        {
-            PgParse a( q->string(), q->name() );
-            a.bindTypes( q->types() );
-            a.enqueue( writeBuffer() );
-
-            if ( q->name() != "" )
-                d->prepared.insert( q->name(), 0 );
-            s.append( "parse/" );
-        }
-
-        PgBind b( q->name() );
-        b.bind( q->values() );
-        b.enqueue( writeBuffer() );
-
-        PgDescribe c;
-        c.enqueue( writeBuffer() );
-
-        PgExecute d;
-        d.enqueue( writeBuffer() );
-
-        PgSync e;
-        e.enqueue( writeBuffer() );
-
-        s.append( "execute" );
-        log( "Sent " + s + " for " + q->string(), Log::Debug );
-    }
-
-    if ( writeBuffer()->size() > 0 )
-        extendTimeout( 5 );
-    write();
+    Connection::setState( Closing );
+    removeHandle( this );
 }
 
 
 static int currentRevision = 3;
 
 
-class UpdateSchema : public EventHandler {
+class UpdateSchema
+    : public EventHandler
+{
 private:
     int state;
     int substate;
     int revision;
     Transaction *t;
     Query *lock, *seq, *update, *q;
-    Database *db;
     Log *l;
 
 public:
-    UpdateSchema( Database *d )
+    UpdateSchema()
         : state( 0 ), substate( 0 ), revision( 0 ),
-          db( d ), l( new Log( Log::Database ) )
+          t( new Transaction( this ) ),
+          l( new Log( Log::Database ) )
     {}
 
+    Transaction *transaction() const { return t; }
     void execute();
 };
 
@@ -688,7 +624,6 @@ public:
 void UpdateSchema::execute() {
     // Find and lock the current schema revision.
     if ( state == 0 ) {
-        t = new Transaction( this, db );
         lock = new Query( "select revision from mailstore for update",
                           this );
         t->enqueue( lock );
@@ -932,20 +867,25 @@ void UpdateSchema::execute() {
 }
 
 
-static bool schemaUpdated = false;
-
-
 /*! This static function determines the current schema version, and if
-    required, updates it to the current version. After being called once
-    in a process, it does nothing on subsequent calls.
+    required, updates it to the current version.
 */
 
 void Postgres::updateSchema()
 {
-    if ( schemaUpdated )
-        return;
+    UpdateSchema *s = new UpdateSchema;
 
-    schemaUpdated = true;
-    UpdateSchema *s = new UpdateSchema( this );
+    d->transaction = s->transaction();
+    d->transaction->setDatabase( this );
     s->execute();
+}
+
+
+static bool hasMessage( Buffer *b )
+{
+    if ( b->size() < 5 ||
+         b->size() < 1+( (uint)((*b)[1]<<24)|((*b)[2]<<16)|
+                               ((*b)[3]<<8)|((*b)[4]) ) )
+        return false;
+    return true;
 }
