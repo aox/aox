@@ -92,6 +92,8 @@ TlsProxy::TlsProxy( int socket )
 
 void TlsProxy::react( Event e )
 {
+    setTimeoutAfter( 1800 );
+
     switch ( e ) {
     case Read:
         switch( d->state ) {
@@ -120,8 +122,6 @@ void TlsProxy::react( Event e )
         setState( Closing );
         break;
     }
-
-    setTimeoutAfter( 1800 );
 }
 
 
@@ -147,24 +147,19 @@ void TlsProxy::parse()
     if ( i <= 0 )
         ok = false;
 
-    String tag = cmd.mid( 0, i-1 ).de64();
+    String tag = cmd.mid( 0, i ).de64();
     cmd = cmd.mid( i+1 );
     i = cmd.find( ' ' );
     if ( i <= 0 )
         ok = false;
 
-    String proto = cmd.mid( 0, i-1 );
+    String proto = cmd.mid( 0, i );
     cmd = cmd.mid( i+1 );
     i = cmd.find( ' ' );
     if ( i <= 0 )
         ok = false;
 
-    String addr = cmd.mid( 0, i-1 );
-    cmd = cmd.mid( i+1 );
-    i = cmd.find( ' ' );
-    if ( i <= 0 )
-        ok = false;
-
+    String addr = cmd.mid( 0, i );
     uint port = 0;
     if ( ok )
         port = cmd.mid( i+1 ).number( &ok );

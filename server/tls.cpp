@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "event.h"
 #include "log.h"
+#include "loop.h"
 
 
 static Endpoint * tlsProxy = 0;
@@ -51,6 +52,7 @@ TlsServerData::Client::Client( TlsServerData * data )
       d( data ), done( false ), ok( false )
 {
     connect( *tlsProxy );
+    Loop::addConnection( this );
 }
 
 
@@ -72,6 +74,7 @@ void TlsServerData::Client::react( Event e )
     done = true;
 
     String l = s->simplified();
+    log( "Received: " + l );
     if ( l.startsWith( "tlsproxy " ) ) {
         tag = l.mid( 9 );
         ok = true;
