@@ -125,7 +125,6 @@ IMAP::IMAP( int s )
 IMAP::~IMAP()
 {
     Loop::removeConnection( this );
-    delete d;
     d = 0;
 }
 
@@ -266,7 +265,7 @@ void IMAP::addCommand()
         i++;
 
     if ( i < 1 || c != ' ' ) {
-        enqueue( "* BAD tag\r\n" );
+        enqueue( "* BAD tag: " + s->mid( 0, i ) + "\r\n" );
         log( "Bad tag. Line: '" + *s + "'", Log::Error );
         return;
     }
@@ -506,7 +505,7 @@ void IMAP::expireCommands()
     List< Command >::Iterator i( d->commands.first() );
     while ( i ) {
         if ( i->state() == Command::Finished )
-            delete d->commands.take( i );
+            d->commands.take( i );
         else
             ++i;
     }
@@ -613,7 +612,6 @@ ImapSession *IMAP::session() const
 void IMAP::endSession()
 {
     setState( Authenticated );
-    delete d->session;
     d->session = 0;
 }
 
