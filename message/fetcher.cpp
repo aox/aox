@@ -197,13 +197,6 @@ void Fetcher::insert( const MessageSet & messages, EventHandler * handler )
 }
 
 
-/*! \fn void Fetcher::decode( Message * m, Row * r )
-
-    This pure virtual function is responsible for decoding \a r and
-    updating \a m with the results.
-*/
-
-
 /*! \fn PreparedStatement * Fetcher::query() const
 
     Returns a prepared statement to fetch the appropriate sort of
@@ -213,10 +206,44 @@ void Fetcher::insert( const MessageSet & messages, EventHandler * handler )
 */
 
 
-/*! \fn void Fetcher::decode( Row * )
+/*! \fn void Fetcher::decode( Message * m, Row * r )
 
-    Decodes a single Row prepared using the query() for the same
-    object and updates the Message object.
+    This pure virtual function is responsible for decoding \a r and
+    updating \a m with the results.
+*/
+
+
+/*! \fn void Fetcher::setDone( Message * m )
+
+    This pure virtual function notifies \a m that this Fetcher has
+    fetched all of the relevant data.
+*/
+
+
+/*! Notifies all messages up to but not including \a uid that they've
+    been completely fetched.
+*/
+
+void Fetcher::setDone( uint uid )
+{
+    if ( d->notified == 0 )
+        d->notified = d->smallest;
+
+    while ( d->notified < uid ) {
+        Message *m = d->mailbox->message( d->notified );
+        if ( m )
+            setDone( m );
+        d->notified++;
+    }
+}
+
+
+
+/*! \class MessageHeaderFetcher fetcher.h
+
+    The MessageHeaderFetcher class is an implementation class
+    responsible for fetching the headers of messages. It has no API of
+    its own; Fetcher is the entire API.
 */
 
 
@@ -249,9 +276,61 @@ void MessageHeaderFetcher::decode( Message * m, Row * r )
 }
 
 
+void MessageHeaderFetcher::setDone( Message * m )
+{
+    m->setHeadersFetched();
+}
+
+
+
+/*! \class MessageFlagFetcher fetcher.h
+
+    The MessageFlagFetcher class is an implementation class
+    responsible for fetching the headers of messages. It has no API of
+    its own; Fetcher is the entire API.
+*/
+
+
 PreparedStatement * MessageFlagFetcher::query() const
 {
     return ::flags;
+}
+
+
+void MessageFlagFetcher::decode( Message * m, Row * r )
+{
+    Flag * f = Flag::find( r->getInt( "flag" ) );
+    if ( f ) {
+        m->flags()->append( f );
+    }
+    else {
+        // XXX: consider this. best course of action may be to
+        // silently ignore this flag for now. it's new, so we didn't
+        // announce it in the select response, either. maybe we should
+        // read the new flags, then invoke another MessageFlagFetcher.
+    }
+}
+
+
+void MessageFlagFetcher::setDone( Message * m )
+{
+    m->setFlagsFetched( true );
+
+}
+
+
+
+/*! \class MessageBodyFetcher fetcher.h
+
+    The MessageBodyFetcher class is an implementation class
+    responsible for fetching the headers of messages. It has no API of
+    its own; Fetcher is the entire API.
+*/
+
+
+PreparedStatement * MessageBodyFetcher::query() const
+{
+    return ::body;
 }
 
 
@@ -286,90 +365,7 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
 }
 
 
-/*! Notifies all messages up to but not including \a uid that they've
-    been completely fetched.
-*/
-
-void Fetcher::setDone( uint uid )
-{
-    if ( d->notified == 0 )
-        d->notified = d->smallest;
-
-    while ( d->notified < uid ) {
-        Message *m = d->mailbox->message( d->notified );
-        if ( m )
-            setDone( m );
-        d->notified++;
-    }
-}
-
-
-PreparedStatement * MessageBodyFetcher::query() const
-{
-    return ::body;
-}
-
-
-void MessageFlagFetcher::decode( Message * m, Row * r )
-{
-    Flag * f = Flag::find( r->getInt( "flag" ) );
-    if ( f ) {
-        m->flags()->append( f );
-    }
-    else {
-        // XXX: consider this. best course of action may be to
-        // silently ignore this flag for now. it's new, so we didn't
-        // announce it in the select response, either. maybe we should
-        // read the new flags, then invoke another MessageFlagFetcher.
-    }
-}
-
-
-/*! \fn void Fetcher::setDone( Message * m )
-
-    This pure virtual function notifies \a m that this Fetcher has
-    fetched all of the relevant data.
-*/
-
-
-void MessageHeaderFetcher::setDone( Message * m )
-{
-    m->setHeadersFetched();
-}
-
-
-void MessageFlagFetcher::setDone( Message * m )
-{
-    m->setFlagsFetched( true );
-
-}
-
-
 void MessageBodyFetcher::setDone( Message * m )
 {
     m->setBodiesFetched();
 }
-
-
-/*! \class MessageHeaderFetcher fetcher.h
-
-    The MessageHeaderFetcher class is an implementation class
-    responsible for fetching the headers of messages. It has no API of
-    its own; Fetcher is the entire API.
-*/
-
-
-/*! \class MessageFlagFetcher fetcher.h
-
-    The MessageFlagFetcher class is an implementation class
-    responsible for fetching the headers of messages. It has no API of
-    its own; Fetcher is the entire API.
-*/
-
-
-/*! \class MessageBodyFetcher fetcher.h
-
-    The MessageBodyFetcher class is an implementation class
-    responsible for fetching the headers of messages. It has no API of
-    its own; Fetcher is the entire API.
-*/
