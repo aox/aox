@@ -49,7 +49,7 @@ EXEMODE = 555 ;
 # The Unix username of the PostgreSQL superuser. You need to set this if
 # your superuser's username is not "postgres".
 #
-PGUSER = pgsql ;
+# PGUSER = pgsql ;
 
 # The directory in which psql and pg_ctl live. You can ignore this
 # setting in most cases, because psql and pg_ctl are usually in the
