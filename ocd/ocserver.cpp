@@ -21,7 +21,7 @@ static List< OCServer > servers;
 */
 
 
-/*! \reimp */
+/*! Creates an OCServer for the fd \a s. */
 
 OCServer::OCServer( int s )
     : Connection( s, Connection::OryxServer ), d( new OCSData )

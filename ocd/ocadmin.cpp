@@ -18,7 +18,7 @@ public:
 */
 
 
-/*! \reimp */
+/*! Creates an OCAdmin object for the fd \a s. */
 
 OCAdmin::OCAdmin( int s )
     : Connection( s, Connection::OryxConsole ), d( new OCAData )

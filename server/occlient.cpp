@@ -24,7 +24,7 @@ static class OCClient *client = 0;
 */
 
 
-/*! \reimp */
+/*! Creates an OCClient object for the fd \a s. */
 
 OCClient::OCClient( int s )
     : Connection( s, Connection::OryxClient ), d( new OCCData )
