@@ -6,7 +6,7 @@
 #include "global.h"
 #include "imap.h"
 #include "cccp.h"
-#include "logger.h"
+#include "log.h"
 #include "configuration.h"
 
 

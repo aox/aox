@@ -8,7 +8,7 @@
 #include "scope.h"
 #include "list.h"
 #include "handlers/capability.h"
-#include "logger.h"
+#include "log.h"
 
 #include <time.h>
 
