@@ -6,3 +6,4 @@ Main imapd : imapd.cpp connection.cpp listener.cpp loop.cpp imap.cpp
 LinkLibraries imapd : liboryx libhandlers ;
 
 SubInclude TOP imapd handlers ;
+SubInclude TOP lib ;

@@ -14,3 +14,27 @@ RANLIB = "" ;
 
 # our lib directory contains additional include files
 HDRS    += [ FDirName $(TOP) lib ] ;
+
+
+rule SubInclude
+{
+	if ! $($(<[1]))
+	{
+	    Exit SubInclude $(<[1]) without prior SubDir $(<[1]) ;
+	}
+
+	SubDir $(<) ;
+
+	local a b ;
+	for a in $(IncludedDirectories) {
+	    if $(a) = $(SUBDIR) {
+		b = true ;
+	    }
+	}
+
+	if ! $(b) {
+	    IncludedDirectories += $(SUBDIR) ;
+	    include $(JAMFILE:D=$(SUBDIR)) ;
+	}
+}
+
