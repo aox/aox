@@ -15,7 +15,6 @@ MkDir $(JAILDIR) ;
 MkDir $(CONFIGDIR) ;
 MkDir $(LOGFILE:D) ;
 Depends exe : $(PIDFILEDIR) $(JAILDIR) $(CONFIGDIR) $(LOGFILE:D) ;
-Depends install : $(BINDIR) $(MANDIR) ;
 
 if $(ICC) {
     C++ = icc ;

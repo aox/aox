@@ -24,7 +24,7 @@ rule Man {
         Depends exe : $(t) ;
         SEARCH on $(s) = $(SEARCH_SOURCE) ;
 
-        InstallFile $(MANDIR) : $(t) ;
+        InstallFile $(MANDIR)/man$(<) : $(t) ;
 
         Clean clean : $(t) ;
     }
