@@ -92,16 +92,46 @@ int main( int argc, char ** argv )
 }
 
 
-/*! \chapter index
-
+/*! \chapter sourcecode
     \introduces HeaderFile SourceFile
 
-    \introduces ManPage Output Postscript WebPage
+    There are two udoc classes dealing with source code, namely
+    HeaderFile and SourceFile. The SourceFile class reads all source
+    files and parses documentation, HeaderFile helps by parsing class
+    declarations.
+*/
 
+/*! \chapter outputclasses
+    \introduces ManPage Output Postscript WebPage DocBlock
+
+    Each DocBlock represents a class, a function or an introduction
+    (such as this text) and is responsible for generating output to
+    document the relevant object.
+
+    DocBlock generates output by calling static functions in
+    Output. Each Output function calls its eponymous brethren in
+    Postscript, ManPage and WebPage as appopriate. For example, if
+    manpage output is enabled, Output::addText() calls
+    ManPage::addText().
+*/
+
+/*! \chapter toplevel
     \introduces Class Function Intro
 
-    \introduces DocBlock
+    There are three kinds of top-level objects in udoc: Class,
+    Function and Intro. An object of each kind has an associated
+    DocBlock and some knowledge of itself. For example, a Class knows
+    that it has member functions, and can check the member functions
+    seen in the header file against those documented. If something is
+    wrong, the Class object can use this knowledge to emit error
+    messages.
+*/
 
+/*! \chapter support
     \introduces Error Parser Singleton
 
+    Like all programs, udoc contains a few support classes. In this
+    case, one to emit Error messages (in a sensible order), one to
+    help with basic parsing (Parser) and Singleton, which helps ensure
+    that two objects don't share the same name.
 */

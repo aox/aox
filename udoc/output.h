@@ -8,11 +8,13 @@
 
 class Function;
 class Class;
+class Intro;
 
 
 class Output
 {
 public:
+    static void startHeadline( Intro * );
     static void startHeadline( Class * );
     static void startHeadline( Function * );
     static void endParagraph();

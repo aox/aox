@@ -23,9 +23,7 @@ static List<Intro> * intros = 0;
 
 
 
-/*!  Constructs an empty
-
-*/
+/*!  Constructs an Intro object to go into file \a name. */
 
 Intro::Intro( const String & name )
     : n( name )
@@ -72,4 +70,12 @@ void Intro::output()
             ++c;
         }
     }
+}
+
+
+/*! Returns the name supplied to the constructor. */
+
+String Intro::name() const
+{
+    return n;
 }

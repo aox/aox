@@ -109,6 +109,14 @@ Postscript * Postscript::current()
 }
 
 
+/*! As Output::startHeadline( \a i ) */
+
+void Postscript::startHeadline( Intro * i )
+{
+    endParagraph();
+}
+
+
 /*! As Output::startHeadline( \a c ). */
 
 void Postscript::startHeadline( Class * c )

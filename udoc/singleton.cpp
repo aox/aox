@@ -12,7 +12,7 @@ static Dict<Singleton> * refs = 0;
 
 /*! \class Singleton singleton.h
 
-    The Singleton class defines a singledton, ie. a word or phrase
+    The Singleton class defines a singleton, ie. a word or phrase
     which may only be mentioned once in the documentation. It is used
     to ensure that only one Intro introduces a given Class or other
     Intro.

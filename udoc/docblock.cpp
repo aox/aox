@@ -97,6 +97,8 @@ void DocBlock::generate()
         generateFunctionPreamble();
     else if ( c )
         generateClassPreamble();
+    else if ( i )
+        generateIntroPreamble();
 
     int n = 0;
     uint l = line;
@@ -138,7 +140,7 @@ void DocBlock::generate()
 }
 
 
-/*! Steps past whitespace, modifying the charactere index \a i and the
+/*! Steps past whitespace, modifying the character index \a i and the
   line number \a l.
 */
 
@@ -155,10 +157,10 @@ void DocBlock::whitespace( uint & i, uint & l )
         any = true;
     }
     if ( l > ol+1 ) {
-        checkEndState( ol );
-        Output::endParagraph();
         if ( s == Introduces )
             setState( Plain, "(end of paragraph)", l );
+        checkEndState( ol );
+        Output::endParagraph();
     }
     else if ( any && !first && s != Introduces ) {
         Output::addSpace();
@@ -181,7 +183,6 @@ void DocBlock::word( uint & i, uint l, uint n )
     i = j;
     if ( w[0] != '\\' ) {
         plainWord( w, l );
-        s = Plain;
     }
     else if ( w == "\\a" ) {
         if ( f )
@@ -191,7 +192,11 @@ void DocBlock::word( uint & i, uint l, uint n )
                              "\\a is only defined function documentation" );
     }
     else if ( w == "\\introduces" ) {
-        setState( Introduces, w, l );
+        if ( i )
+            setState( Introduces, w, l );
+        else
+            (void)new Error( file, l,
+                             "\\introduces is only valid after \\chapter" );
         introduces = true;
     }
     else if ( w == "\\overload" ) {
@@ -250,6 +255,7 @@ void DocBlock::plainWord( const String & w, uint l )
         else
             (void)new Error( file, l, "No such argument: " + name );
         Output::addArgument( w );
+        setState( Plain, "(after argument name)", l );
         return;
     }
     // is the word a plausible function name?
@@ -305,10 +311,6 @@ void DocBlock::plainWord( const String & w, uint l )
         // one "::", and give an error about undocumented classes if
         // not.
     }
-
-    if ( s == SeeAlso )
-        (void)new Error( file, l,
-                         "Unable to create link for " + w );
 
     // nothing doing. just add it as text.
     Output::addText( w );
@@ -462,4 +464,12 @@ void DocBlock::generateClassPreamble()
         while ( it )
             ++it;
     }
+}
+
+
+/*! Generates routine text to introduce an introduction. Yay! */
+
+void DocBlock::generateIntroPreamble()
+{
+    Output::startHeadline( i );
 }

@@ -4,6 +4,7 @@
 
 #include "class.h"
 #include "function.h"
+#include "intro.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -35,7 +36,7 @@ WebPage::WebPage( const char * dir )
 
 WebPage::~WebPage()
 {
-    startHeadline( (Class*)0 );
+    endPage();
     wp = 0;
 }
 
@@ -49,43 +50,21 @@ WebPage * WebPage::current()
 }
 
 
+/*! As Output::startHeadline(). \a i is used to derive a file name. */
+
+void WebPage::startHeadline( Intro * i )
+{
+    endPage();
+    startPage( i->name().lower(), "" );
+}
+
+
 /*! As Output::startHeadline(). \a c is used to derive a file name. */
 
 void WebPage::startHeadline( Class * c )
 {
-    endParagraph();
-
-    if ( fd >= 0 ) {
-        para = true;
-        output( "<p class=rights>"
-                "This web page based on source code belonging to " );
-        if ( !Output::ownerHome().isEmpty() ) {
-            output( "<a href=\"" + Output::ownerHome() + "\">" );
-            addText( Output::owner() );
-            output( "</a>. All rights reserved." );
-        }
-        else {
-            addText( Output::owner() );
-            output( ". All rights reserved." );
-        }
-        output( "</body></html>\n" );
-    if ( fd >= 0 )
-        ::close( fd );
-    }
-    if ( !c )
-        return;
-
-    fn = c->name().lower() + ".html";
-    String filename = directory + "/" + fn;
-    fd = ::open( filename.cstr(), O_CREAT|O_WRONLY|O_TRUNC, 0644 );
-    output( "<!doctype html public \"-//W3C//DTD HTML 4.0//EN\">\n"
-            "<html lang=en><head><title>" );
-    para = true;
-    addText( c->name() );
-    output( " Documentation</title>\n"
-            "<link rel=stylesheet href=\"udoc.css\" type=\"text/css\">\n"
-            "<link rel=generator href=\"http://www.oryx.com/udoc/\">\n"
-            "</head><body>\n" );
+    endPage();
+    startPage( c->name().lower(), c->name() + " Documentation" );
     output( "<p class=classh>" );
 }
 
@@ -258,4 +237,53 @@ String WebPage::anchor( Function * f )
     if ( i > 0 )
         return fn.mid( i + 1 );
     return fn;
+}
+
+
+/*! Emits any boilerplate to be emitted at the end of each page. */
+
+void WebPage::endPage()
+{
+    if ( fd < 0 )
+        return;
+
+    endParagraph();
+    
+    para = true;
+    output( "<p class=rights>"
+            "This web page based on source code belonging to " );
+    if ( !Output::ownerHome().isEmpty() ) {
+        output( "<a href=\"" + Output::ownerHome() + "\">" );
+        addText( Output::owner() );
+        output( "</a>. All rights reserved." );
+    }
+    else {
+        addText( Output::owner() );
+        output( ". All rights reserved." );
+    }
+    output( "</body></html>\n" );
+    ::close( fd );
+}
+
+
+/*! Starts a new web page with base name \a name and title tag \a
+    title. If \a title is empty, no title tag is emitted.
+*/
+
+void WebPage::startPage( const String & name, const String & title )
+{
+    fn = name + ".html";
+    String filename = directory + "/" + fn;
+    fd = ::open( filename.cstr(), O_CREAT|O_WRONLY|O_TRUNC, 0644 );
+    output( "<!doctype html public \"-//W3C//DTD HTML 4.0//EN\">\n"
+            "<html lang=en><head>" );
+    if ( !title.isEmpty() ) {
+        output( "<title>" );
+        para = true;
+        addText( title );
+        output( "</title>\n" );
+    }
+    output( "<link rel=stylesheet href=\"udoc.css\" type=\"text/css\">\n"
+            "<link rel=generator href=\"http://www.oryx.com/udoc/\">\n"
+            "</head><body>\n" );
 }

@@ -20,6 +20,7 @@ public:
 
     static WebPage * current();
 
+    void startHeadline( Intro * );
     void startHeadline( Class * );
     void startHeadline( Function * );
     void endParagraph();
@@ -31,6 +32,8 @@ public:
 private:
     void output( const String & );
     String anchor( Function * );
+    void endPage();
+    void startPage( const String &, const String & );
 
 private:
     bool para;

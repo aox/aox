@@ -29,7 +29,6 @@ public:
     enum State {
         Plain,
         Argument,
-        SeeAlso,
         Introduces
     };
 
@@ -42,6 +41,7 @@ private:
     void setState( State, const String &, uint );
     void generateFunctionPreamble();
     void generateClassPreamble();
+    void generateIntroPreamble();
 
 private:
     File * file;

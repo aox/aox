@@ -19,6 +19,22 @@ static bool needSpace = false;
 */
 
 
+/*! Starts a headline for \a i, with appropriate fonts etc. The
+    headline runs until endParagraph() is called.
+*/
+
+void Output::startHeadline( Intro * i )
+{
+    endParagraph();
+    if ( WebPage::current() )
+        WebPage::current()->startHeadline( i );
+    if ( ManPage::current() )
+        ManPage::current()->startHeadline( i );
+    if ( Postscript::current() )
+        Postscript::current()->startHeadline( i );
+}
+
+
 /*! Starts a headline for \a c, with appropriate fonts etc. The
     headline runs until endParagraph() is called.
 */

@@ -10,6 +10,7 @@
 
 class Function;
 class Class;
+class Intro;
 class File;
 
 
@@ -21,6 +22,7 @@ public:
 
     static Postscript * current();
 
+    void startHeadline( Intro * );
     void startHeadline( Class * );
     void startHeadline( Function * );
     void endParagraph();

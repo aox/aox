@@ -20,6 +20,8 @@ public:
     void addClass( Class * );
 
     static void output();
+    
+    String name() const;
 
 private:
     String n;

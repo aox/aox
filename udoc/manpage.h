@@ -10,6 +10,7 @@
 
 class Function;
 class Class;
+class Intro;
 
 
 class ManPage
@@ -20,6 +21,7 @@ public:
 
     static ManPage * current();
 
+    void startHeadline( Intro * );
     void startHeadline( Class * );
     void startHeadline( Function * );
     void endParagraph();
@@ -32,6 +34,7 @@ private:
     void output( const String & );
     void addAuthor();
     void addReferences();
+    void endPage();
 
 private:
     bool para;

@@ -37,11 +37,7 @@ ManPage::ManPage( const char * dir )
 
 ManPage::~ManPage()
 {
-    addAuthor();
-    addReferences();
-    endParagraph();
-    if ( fd >= 0 )
-        ::close( fd );
+    endPage();
     mp = 0;
 }
 
@@ -55,17 +51,24 @@ ManPage * ManPage::current()
 }
 
 
+/*! For the moment, we do not generate introductory manual
+    pages. Perhaps it would be possible. This function makes ManPage
+    discard output until startHeadline() is called for a Class.
+*/
+
+void ManPage::startHeadline( Intro * )
+{
+    endPage();
+}
+
+
 /*! As Output::startHeadline(). \a c is used only to generate a
     suitable man page named.
 */
 
 void ManPage::startHeadline( Class * c )
 {
-    if ( fd >= 0 ) {
-        addAuthor();
-        addReferences();
-        ::close( fd );
-    }
+    endPage();
     String filename = directory + "/" + c->name().lower() + ".3oryx";
     fd = ::open( filename.cstr(), O_CREAT|O_WRONLY|O_TRUNC, 0644 );
     para = true;
@@ -214,4 +217,18 @@ void ManPage::addAuthor()
     }
     addText( ". All rights reserved." );
     endParagraph();
+}
+
+
+/*! Emits the routing verbiage at the end of a manpage. */
+
+void ManPage::endPage()
+{
+    if ( fd < 0 )
+        return;
+
+    addAuthor();
+    addReferences();
+    endParagraph();
+    ::close( fd );
 }
