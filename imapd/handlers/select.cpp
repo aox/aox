@@ -99,18 +99,18 @@ void Select::execute()
     respond( fn( d->session->recent().count() ) + " RECENT" );
 
     uint unseen = 0;
-    Message * m = 0;
-    // fetch a message
-    while ( m ) {
-        if ( !m->flag( Message::SeenFlag ) )
+    uint msn = d->session->count();
+    while ( msn ) {
+        Message * m = d->session->message( d->session->uid( msn ) );
+        msn--;
+        if ( m && !m->flag( Message::SeenFlag ) )
             unseen++;
-        // next message
     }
 
     respond( "OK [UNSEEN " + fn( unseen ) + "]" );
 
-    respond( "OK [UIDNEXT " + fn( d->mailbox->uidnext() ) + "]" );
-    respond( "OK [UIDVALIDITY " + fn( d->mailbox->uidvalidity() ) + "]" );
+    respond( "OK [UIDNEXT " + fn( d->session->uidnext() ) + "]" );
+    respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]" );
     respond( "OK [PERMANENTFLAGS (" + flags +" \\*)]" );
     if ( d->session->readOnly() )
         respond( "OK [READ-ONLY]", Tagged );
