@@ -213,16 +213,12 @@ void Postgres::react( Event e )
             error( "Timeout negotiating connection to PostgreSQL." );
         else if ( d->queries.count() > 0 )
             error( "Request timeout." );
+        else
+            shutdown();
         break;
 
     case Shutdown:
-        {
-            PgTerminate msg;
-            msg.enqueue( writeBuffer() );
-            removeHandle( this );
-
-            d->active = false;
-        }
+        shutdown();
         break;
     }
 }
@@ -416,8 +412,11 @@ void Postgres::process( char type )
             setState( msg.state() );
 
             processQueue();
-            if ( d->queries.isEmpty() )
-                setTimeout( 0 );
+            if ( d->queries.isEmpty() ) {
+                uint interval =
+                    Configuration::scalar( Configuration::DbHandleInterval );
+                setTimeoutAfter( interval );
+            }
         }
         commit();
         break;
@@ -571,6 +570,20 @@ void Postgres::error( const String &s )
     writeBuffer()->remove( writeBuffer()->size() );
     Connection::setState( Closing );
     removeHandle( this );
+}
+
+
+/*! Sends a termination message and takes this database handle out of
+    circulation gracefully.
+*/
+
+void Postgres::shutdown()
+{
+    PgTerminate msg;
+    msg.enqueue( writeBuffer() );
+    removeHandle( this );
+
+    d->active = false;
 }
 
 

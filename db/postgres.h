@@ -24,6 +24,7 @@ private:
     void process( char );
     void unknown( char );
     void error( const String & );
+    void shutdown();
     void updateSchema();
 };
 
