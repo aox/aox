@@ -277,6 +277,7 @@ void Postgres::backendStartup( char type )
             updateSchema();
             log( "PostgreSQL: Ready for queries" );
         }
+        commit();
         break;
 
     case 'K':
@@ -385,6 +386,7 @@ void Postgres::process( char type )
             if ( d->queries.isEmpty() )
                 setTimeout( 0 );
         }
+        commit();
         break;
 
     default:
@@ -823,7 +825,7 @@ void UpdateSchema::execute() {
                     t->execute();
                     substate = 3;
                 }
-                
+
                 if ( substate == 3 ) {
                     if ( !q->done() )
                         return;
