@@ -22,10 +22,13 @@ public:
     Header *header() const;
     void setHeader( Header * );
 
+    Multipart *parent() const;
+    void setParent( Multipart * );
     List< BodyPart > *children() const;
 
 private:
     Header *h;
+    Multipart *p;
     List< BodyPart > *parts;
 };
 
@@ -42,17 +45,14 @@ public:
 
     String rfc822() const;
 
-    Header * header() const;
-
     void setUid( uint );
     uint uid() const;
 
     void setMailbox( Mailbox * );
     Mailbox * mailbox() const;
 
-    class BodyPart * bodyPart( uint ) const;
-    class BodyPart * bodyPart( const String &, bool create = false );
-    String partNumber( class BodyPart * ) const;
+    BodyPart * bodyPart( const String &, bool create = false );
+    String partNumber( BodyPart * ) const;
 
     List<BodyPart> * allBodyParts() const;
 
@@ -83,7 +83,7 @@ public:
     void fetchBodies( EventHandler * );
 
 private:
-    static Header * header( uint &, uint, const String &, Header::Mode );
+    static Header * parseHeader( uint &, uint, const String &, Header::Mode );
 
 private:
     class MessageData * d;
@@ -99,8 +99,9 @@ class BodyPart
 {
 public:
     BodyPart();
+    BodyPart( uint, Multipart * );
 
-    Header * header() const;
+    uint number() const;
     ContentType * contentType() const;
     ContentTransferEncoding::Encoding encoding() const;
     String data() const;
@@ -111,6 +112,8 @@ public:
     uint numBytes() const;
     void setNumLines( uint );
     uint numLines() const;
+
+    // BodyPart * child( uint ) const;
 
 private:
     static void parseMultiPart( uint, uint, const String &,
