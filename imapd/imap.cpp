@@ -72,8 +72,8 @@ public:
 */
 
 
-/*! Creates an IMAP server, and sends an initial CAPABILITY response to
-    the client.
+/*! Creates an IMAP server on file descriptor \a s, and sends an
+    initial OK[CAPABILITY...] response to the client.
 */
 
 IMAP::IMAP( int s )
@@ -99,7 +99,7 @@ IMAP::~IMAP()
 }
 
 
-/*! Handles incoming data and timeouts. */
+/*! Handles the incoming event \a e as appropriate for its type. */
 
 void IMAP::react( Event e )
 {
