@@ -194,10 +194,7 @@ Web site proofreading
   Need a comprehensive proofreading session.
 
 
-Unix socket support
-
-  Connecting to default postgres and to possibly more paranoid
-  instantations of ocd/logd require that.
+We should log a useful error if we want to open anything after chroot().
 
 
 Write to the alistapart chap who wrote about @media after 0.91.

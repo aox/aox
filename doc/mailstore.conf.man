@@ -66,9 +66,10 @@ default is an empty password.
 During installation, Mailstore usually chooses a password at random.
 .SS Logging
 .IP log-address
-The IP address of the log server. The default is
+The address of the log server. The default is
 .IR 127.0.0.1 .
-Either an IPv4 or IPv6 address may be used.
+You may use an IPv4 or IPv6 address, or the fully-qualified path to a
+Unix socket.
 .IP log-port
 The port number at which
 .BR logd (8)
@@ -122,11 +123,12 @@ is the group name under which the servers run, and is
 by default. On startup, the servers change GID to this user.
 .SS "Cluster Configuration"
 .IP ocd-address
-The IP address where
+The address where
 .BR ocd (8)
 listens for connections from other Mailstore servers. The default is
 .IR 127.0.0.1 .
-Either an IPv4 or IPv6 address may be used.
+You may use an IPv4 or IPv6 address, or the fully-qualified path to a
+Unix socket.
 .IP ocd-port
 The port number at which
 .BR ocd (8)
@@ -134,11 +136,12 @@ listens, and to which the other servers connect,
 .I 2050
 by default.
 .IP ocadmin-address
-The IP address where
+The address where
 .BR ocd (8)
 listens for admin requests. The default is
 .IR 127.0.0.1 .
-Either an IPv4 or IPv6 address may be used.
+You may use an IPv4 or IPv6 address, or the fully-qualified path to a
+Unix socket.
 .IP ocadmin-port
 The port number at which
 .BR ocd (8)
@@ -185,12 +188,14 @@ controls whether the
 should accept mail via LMTP (RFC 2033). The default is
 .IR enabled .
 .IP lmtp-address
-specifies the IP address where
+specifies the address where
 .BR smtpd (8)
 should listen for LMTP connections, and to which
 .BR deliver (8)
 should connect. The default is
 .IR 127.0.0.1 .
+You may use an IPv4 or IPv6 address, or the fully-qualified path to a
+Unix socket.
 .IP lmtp-port
 specifies which port the
 .BR smtpd (8)
@@ -205,7 +210,7 @@ should accept mail via SMTP/ESMTP (RFC 2821/1869). SMTP is
 .I disabled
 by default.
 .IP smtp-address
-specifies the IP address where
+specifies the address where
 .BR smtpd (8)
 should listen for SMTP connections The default is an empty string,
 which means all available IPv4 and IPv6 interfaces.
