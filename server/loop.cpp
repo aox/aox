@@ -31,7 +31,7 @@ void Loop::setup( EventLoop * l )
 }
 
 
-/*! Calls EventLoop::run() on the global EventLoop object. */
+/*! Calls EventLoop::start() on the global EventLoop object. */
 
 void Loop::start()
 {
