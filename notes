@@ -7,18 +7,13 @@ We should not duplicate the contents of address_fields in header_fields.
   and the HeaderFetcher should assemble addresses from address_fields.
 
 
+EXPUNGE is broken after the removal of flag fields from messages
+
+
+We need top-level message/rfc822 support
+
+
 tlsproxy doesn't handle eof (or errors) well
-
-
-What to do about EventHandlers whose targets have died?
-
-  At the moment, our basic policy is to never delete a Connection or
-  EventHandler while it's working. If a Connection dies, we remove it
-  from the event loop's list and don't write to the fd any ore. When
-  noone has pointers to it any more, Allocator will reclaim the space
-  used by the Connection and its minion.
-
-  That should work, but we'll have to see whether it's a complete fix.
 
 
 ocd needs work
@@ -35,9 +30,6 @@ AddressCache and FieldNameCache are utter crocks, and must die.
 
 
 We must optimise Row composition.
-
-
-We need top-level message/rfc822 support
 
 
 tls client support (smtp, postgresql)
@@ -132,6 +124,17 @@ Consider RFC2231:
   Arnt's opinion: We're better off doing that at parse time. There's
   also some outlook breakage to support - it uses 2047 when it
   shouldn't.
+
+
+What to do about EventHandlers whose targets have died?
+
+  At the moment, our basic policy is to never delete a Connection or
+  EventHandler while it's working. If a Connection dies, we remove it
+  from the event loop's list and don't write to the fd any ore. When
+  noone has pointers to it any more, Allocator will reclaim the space
+  used by the Connection and its minion.
+
+  That should work, but we'll have to see whether it's a complete fix.
 
 
 Keeping stderr open
