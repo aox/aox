@@ -481,7 +481,7 @@ int Row::getInt( uint i ) const
     if ( badFetch( i, Database::Integer ) )
         return 0;
 
-    int n;
+    int n = 0;
     Column *c = &columns[i];
 
     switch ( c->length ) {
