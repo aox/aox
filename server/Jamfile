@@ -1,5 +1,6 @@
 SubDir TOP server ;
 SubInclude TOP core ;
+SubInclude TOP message ;
 
 HDRS += [ FDirName $(TOP) server ] ;
 SubInclude TOP db ;
@@ -9,3 +10,5 @@ Build server :
     tls.cpp loop.cpp eventloop.cpp byteforwarder.cpp server.cpp ;
 
 Build mailbox : occlient.cpp mailbox.cpp ;
+
+Build user : user.cpp ;
