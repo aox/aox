@@ -627,7 +627,7 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
     Header *hdr = m->header();
     ContentType *ct = hdr->contentType();
 
-    if ( ct->type() == "multipart" ) {
+    if ( ct && ct->type() == "multipart" ) {
         StringList children;
         List< BodyPart >::Iterator it( m->children()->first() );
         while ( it ) {
@@ -641,7 +641,7 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
             r.append( "" );
         r.append( ")" );
     }
-    else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
+    else if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // XXX: This doesn't handle the case where the top-level message
         // has Content-Type: message/rfc822.
         r = singlePartStructure( (BodyPart *)m, extended );
@@ -674,11 +674,19 @@ String Fetch::singlePartStructure( BodyPart *bp, bool extended )
     
     Header *hdr = bp->header();
     ContentType *ct = hdr->contentType();
+    StringList *params = 0;
 
-    l.append( imapQuoted( ct->type() ) );
-    l.append( imapQuoted( ct->subtype() ) );
+    if ( ct ) {
+        l.append( imapQuoted( ct->type() ) );
+        l.append( imapQuoted( ct->subtype() ) );
+        params = ct->parameterList();
+    }
+    else {
+        // XXX: What happens to the default if this is a /digest?
+        l.append( "text" );
+        l.append( "plain" );
+    }
 
-    StringList *params = ct->parameterList();
     if ( !params || params->isEmpty() ) {
         l.append( "NIL" );
     }
@@ -715,7 +723,7 @@ String Fetch::singlePartStructure( BodyPart *bp, bool extended )
 
     l.append( fn( bp->numBytes() ) );
 
-    if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
+    if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // body-type-msg   = media-message SP body-fields SP envelope
         //                   SP body SP body-fld-lines
 
@@ -723,7 +731,7 @@ String Fetch::singlePartStructure( BodyPart *bp, bool extended )
         l.append( bodyStructure( bp->rfc822(), extended ) );
         l.append( fn( bp->numLines() ) );
     }
-    else if ( ct->type() == "text" ) {
+    else if ( !ct || ct->type() == "text" ) {
         // body-type-text  = media-text SP body-fields SP body-fld-lines
 
         l.append( fn( bp->numLines() ) );
