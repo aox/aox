@@ -3,7 +3,6 @@
 #include "command.h"
 #include "mailbox.h"
 #include "string.h"
-#include "test.h"
 #include "buffer.h"
 #include "arena.h"
 #include "scope.h"
@@ -121,8 +120,8 @@ void IMAP::parse()
 {
     Buffer * r = readBuffer();
     while ( true ) {
-	if ( !d->args )
-	    d->args = new List<String>;
+        if ( !d->args )
+            d->args = new List<String>;
         if ( d->grabber ) {
             d->grabber->read();
             // still grabbed? must wait for more.
@@ -178,7 +177,7 @@ void IMAP::parse()
             }
             if ( !d->readingLiteral ) {
                 addCommand();
-		d->args = 0;
+                d->args = 0;
                 d->cmdArena = new Arena;
                 Scope::current()->setArena( d->cmdArena );
             }
@@ -295,17 +294,6 @@ void IMAP::addCommand()
         writeBuffer()->append( tmp );
     }
 }
-
-
-static class IMAPTest : public Test {
-public:
-    IMAPTest() : Test( 500 ) {}
-    void test() {
-
-    }
-} imapTest;
-
-
 
 
 /*! Returns the current state of this IMAP session, which is one of
