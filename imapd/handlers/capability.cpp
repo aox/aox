@@ -27,17 +27,14 @@ static bool drafts = false;
     RFC 2195: AUTH=CRAM-MD5
     RFC 2831: AUTH=DIGEST-MD5
 
-    If the configuration variable announce-draft-support is set, we
-    additionally announce support for LISTEXT
-    (draft-ietf-imapext-list-extensions) and SASL-IR
-    (draft-siemborski-imap-sasl-initial-response).
+    The configuration variable announce-draft-support controls whether
+    or not we announce features described in Internet-Drafts. Only the
+    SASL-IR (draft-siemborski-imap-sasl-initial-response) extension is
+    supported, with LISTEXT (draft-ietf-imapext-list-extensions) to be
+    implemented soon.
 
     For the moment, announce-draft-support defaults to true. Before
     the 1.0 release, we'll change its default to false.
-
-    (At some point, we must create a configuration variable,
-    disable-plaintext-passwords, to announce LOGINDISABLED and refuse
-    the relevant SASL mechanisms.)
 */
 
 /*! \reimp */
@@ -70,8 +67,6 @@ String Capability::capabilities( IMAP * i )
 
     c.append( "ID" );
     c.append( "IDLE" );
-    if ( ::drafts )
-        c.append( "LISTEXT" );
     c.append( "LITERAL+" );
     if ( !i->supports( "login" ) )
         c.append( "LOGINDISABLED" );
