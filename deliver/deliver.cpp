@@ -22,6 +22,8 @@ int main( int argc, char *argv[] )
 
     Configuration::setup( "mailstore.conf", "deliver.conf" );
 
+    Loop::setup();
+
     Log l( Log::Immediate );
     global.setLog( &l );
     LogClient::setup();
