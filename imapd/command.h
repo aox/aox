@@ -33,7 +33,6 @@ public:
     uint group() const;
     void setGroup( uint );
     
-    Arena * arena() const;
     Log * logger() const;
     IMAP * imap() const;
 
