@@ -42,7 +42,7 @@ void Authenticate::execute()
 
     // let the authenticator's state machine work.
     if ( a->state() == Authenticator::ChallengeNeeded ) {
-        imap()->writeBuffer()->append( "+ "+a->challenge().e64()+"\r\n" );
+        imap()->append( "+ "+a->challenge().e64()+"\r\n" );
         a->setState( Authenticator::ChallengeIssued );
         r.truncate( 0 );
     }

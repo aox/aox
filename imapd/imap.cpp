@@ -63,10 +63,9 @@ IMAP::IMAP(int s)
     d->logger = new Logger;
     d->logger->log( "accepted IMAP connection" ); // XXX: from where?
 
-    writeBuffer()->append("* OK [CAPABILITY ");
-    writeBuffer()->append( Capability::capabilities() );
-    writeBuffer()->append( "]\r\n");
-    setTimeout( time(0) + 20 );
+    append( String( "* OK [CAPABILITY " ) +
+            Capability::capabilities() + "]\r\n");
+    setTimeout( time(0) + 1800 );
 }
 
 
@@ -91,7 +90,7 @@ void IMAP::react(Event e)
         Arena::pop();
         break;
     case Connection::Timeout:
-        writeBuffer()->append( "* BYE autologout\r\n" );
+        append( "* BYE autologout\r\n" );
         d->logger->log( "autologout" );
         close();
         break;
@@ -100,7 +99,7 @@ void IMAP::react(Event e)
             d->logger->log( "Unexpected close by client" );
         break;
     case Connection::Shutdown:
-        writeBuffer()->append( "* BYE server shutdown\r\n" );
+        append( "* BYE server shutdown\r\n" );
         break;
     }
     d->logger->commit();
@@ -163,12 +162,12 @@ void IMAP::parse()
                     bool ok;
                     d->literalSize = s->mid( i+1, j-i+1 ).number( &ok );
                     if ( !ok ) {
-                        writeBuffer()->append( "* BAD literal, BAD\r\n" );
+                        append( "* BAD literal, BAD\r\n" );
                         close();
                         return;
                     }
                     if ( ok && !plus )
-                        writeBuffer()->append( "+\r\n" );
+                        append( "+\r\n" );
                 }
             }
             if ( !d->readingLiteral ) {
@@ -211,7 +210,7 @@ void IMAP::addCommand()
              c != '(' && c != ')' && c != '{' &&
              c != '%' && c != '%' );
     if ( i < 1 || c != ' ' ) {
-        writeBuffer()->append( "* BAD tag\r\n" );
+        append( "* BAD tag\r\n" );
         d->logger->log( "Unable to parse tag. Line: " + *s );
         return;
     }
@@ -231,7 +230,7 @@ void IMAP::addCommand()
              c != '"' && c != '\\' &&
              c != ']' );
     if ( i == j ) {
-        writeBuffer()->append( "* BAD no command\r\n" );
+        append( "* BAD no command\r\n" );
         d->logger->log( "Unable to parse command. Line: " + *s );
         return;
     }
@@ -286,7 +285,7 @@ void IMAP::addCommand()
         tmp += " BAD command unknown: ";
         tmp += command;
         tmp += "\r\n";
-        writeBuffer()->append( tmp );
+        append( tmp );
     }
 }
 
