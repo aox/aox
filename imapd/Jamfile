@@ -21,7 +21,8 @@ Build imap : imapd.cpp imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp ;
 
 Build logd : logd.cpp logserver.cpp ;
 
-Build server : connection.cpp listener.cpp loop.cpp endpoint.cpp logger.cpp ;
+Build server : connection.cpp listener.cpp loop.cpp endpoint.cpp
+               logger.cpp die.cpp ;
 
 # the programs. these need to be last. magic. all Program calls need
 # to be after all Build calls, since the Build puts object files into
