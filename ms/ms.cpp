@@ -25,7 +25,7 @@ static const char * name;
 
 /*! \nodoc */
 
-class AdminHelper : public EventHandler {
+class AdminHelper: public EventHandler {
 public:
     void execute() {
         if ( query->failed() ) {
@@ -35,6 +35,21 @@ public:
         }
         if ( query->done() )
             Loop::shutdown();
+    }
+};
+
+
+class UserLister: public AdminHelper {
+public:
+    void execute() {
+        AdminHelper::execute();
+        if ( !query->done() )
+            return;
+        Row * r = query->nextRow();
+        while ( r ) {
+            fprintf( stdout, "%s\n", r->getString( "login" ).cstr() );
+            r = query->nextRow();
+        }
     }
 };
 
@@ -91,10 +106,34 @@ static void deleteUser( const char * login )
     User * u = new User;
     addEternal( u, "user" );
     u->setLogin( login );
-    if ( !u->valid() )
-        error( u->error() );
-
     u->remove( new AdminHelper );
+}
+
+
+void changePassword( const char * login, const char * password )
+{
+    User * u = new User;
+    addEternal( u, "user" );
+    u->setLogin( login );
+    u->changeSecret( password, new AdminHelper );
+}
+
+
+void listUsers( const char * pattern )
+{
+    String p;
+    uint i = 0;
+    while ( pattern[i] ) {
+        if ( pattern[i] == '*' )
+            p.append( '%' );
+        else
+            p.append( pattern[i] );
+        i++;
+    }
+    query = new Query( "select login from users where login like $1",
+                       new UserLister );
+    query->bind( 1, p );
+    query->execute();
 }
 
 
@@ -121,10 +160,12 @@ int main( int argc, char *argv[] )
     // get rid of illegal verbs and nouns
     if ( verb != "create" &&
          verb != "rename" &&
+         verb != "password" && // pretty crummy as a verb... but unix...
+         verb != "list" &&
          verb != "delete" )
         error( verb + ": unknown verb" );
 
-    if ( noun != "user" && noun != "mailbox" )
+    if ( noun != "user" && noun != "users" && noun != "mailbox" )
         error( noun + ": unknown noun" );
 
     // typical mailstore crud
@@ -158,6 +199,20 @@ int main( int argc, char *argv[] )
             error( "Too few arguments (need login)" );
         else
             deleteUser( argv[3] );
+    }
+    else if ( verb == "password" && noun == "user" ) {
+        if ( argc == 5 )
+            changePassword( argv[3], argv[4] );
+        else
+            error( "Wrong arguments (need login/address and password)" );
+    }
+    else if ( verb == "list" && noun == "users" ) {
+        if ( argc > 4 )
+            error( "Too many arguments (need login glob pattern)" );
+        else if ( argc == 4 )
+            listUsers( argv[3] );
+        else
+            listUsers( "*" );
     }
     else if ( ( verb == "create" || verb == "delete" ) &&
               noun == "mailbox" )
