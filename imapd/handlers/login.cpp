@@ -28,9 +28,12 @@ void Login::parse()
 void Login::execute()
 {
     Plain plain;
-    if ( plain.loginExists( n ) && plain.password( n ) == p )
-        imap()->setState( IMAP::Authenticated );
+    plain.setLogin( n );
+    if ( plain.loginExists() && plain.password() == p )
+        imap()->setLogin( n );
+    else if ( n.isEmpty() )
+        error( No, "login failed " );
     else
-        error( No, "login failed" );
+        error( No, "login failed for " + n );
     setState( Finished );
 }

@@ -2,9 +2,12 @@
 #define __IMAP_H__
 
 #include "connection.h"
+#include "string.h"
+
 
 class Command;
 class Mailbox;
+
 
 class IMAP : public Connection {
 public:
@@ -23,6 +26,9 @@ public:
 
     void setIdle( bool );
     bool idle() const;
+
+    void setLogin( const String & );
+    String login();
 
     void reserve( Command * );
 

@@ -62,7 +62,7 @@ void Authenticate::execute()
     else if ( a->state() == Authenticator::ResponseAccepted ) {
         setState( Finished );
         imap()->reserve( 0 );
-        imap()->setState( IMAP::Authenticated );
+        imap()->setLogin( a->login() );
     }
 }
 

@@ -34,6 +34,7 @@ public:
     Command * grabber;
     List<Command> commands;
     Mailbox *mailbox;
+    String login;
     bool idle;
 };
 
@@ -60,7 +61,7 @@ IMAP::IMAP(int s)
     d = new IMAPData;
 
     d->logger = new Logger;
-    d->logger->log( "IMAP: accepted connection" );
+    d->logger->log( "accepted IMAP connection" ); // XXX: from where?
 
     setReadBuffer( new Buffer( fd() ) );
     setWriteBuffer( new Buffer( fd() ) );
@@ -96,6 +97,7 @@ int IMAP::react(Event e)
     }
     d->logger->commit();
     runCommands();
+    d->logger->commit();
     if ( state() == Logout )
         result = 0;
     if ( result )
@@ -199,7 +201,7 @@ void IMAP::addCommand()
     d->args = new List<String>;
 
     String * s = args->first();
-    d->logger->log( Logger::Info, "Received " +
+    d->logger->log( Logger::Debug, "Received " +
                     String::fromNumber( (args->count() + 1)/2 ) +
                     "-line command: " + *s );
 
@@ -283,7 +285,7 @@ void IMAP::addCommand()
         d->commands.append( cmd );
     }
     else {
-        d->logger->log( "Unable to parse command '" + command + "' (tag '" +
+        d->logger->log( "Unknown command '" + command + "' (tag '" +
                         tag + "')" );
         String tmp( tag );
         tmp += " BAD command unknown: ";
@@ -321,7 +323,25 @@ IMAP::State IMAP::state() const
 
 void IMAP::setState( State s )
 {
+    if ( s == d->state )
+        return;
     d->state = s;
+    String name;
+    switch( s ) {
+    case NotAuthenticated:
+        name = "not authenticated";
+        break;
+    case Authenticated:
+        name = "authenticated";
+        break;
+    case Selected:
+        name = "selected";
+        break;
+    case Logout:
+        name = "logout";
+        break;
+    };
+    d->logger->log( "Changed to " + name + " state" );
 }
 
 
@@ -334,7 +354,13 @@ void IMAP::setState( State s )
 
 void IMAP::setIdle( bool i )
 {
+    if ( i == d->idle )
+        return;
     d->idle = i;
+    if ( i )
+        d->logger->log( "entered idle mode" );
+    else
+        d->logger->log( "left idle mode" );
 }
 
 
@@ -347,6 +373,38 @@ bool IMAP::idle() const
     return d->idle;
 }
 
+
+/*! Notifis the IMAP object that it's logged in as \a name. */
+
+void IMAP::setLogin( const String & name )
+{
+    if ( state() != NotAuthenticated ) {
+        // not sure whether I like this... on one hand, it does
+        // prevent change of login. on the other, how could that
+        // possibly happen?
+        d->logger->log( Logger::Error,
+                        "ignored setLogin("+name+") due to wrong state" );
+        return;
+    }
+    d->login = name;
+    d->logger->log( "logged in as " + name );
+    setState( Authenticated );
+}
+
+
+/*! Returns the current login name. Initially, the login name is an
+  empty string.
+
+  The return value is meaningful only in Authenticated and Selected
+  states.
+*/
+
+String IMAP::login()
+{
+    return d->login;
+}
+
+
 /*! Returns the currently-selected Mailbox. */
 Mailbox *IMAP::mailbox()
 {
@@ -356,7 +414,10 @@ Mailbox *IMAP::mailbox()
 /*! Sets the currently-selected Mailbox to \a m. */
 void IMAP::setMailbox( Mailbox *m )
 {
+    if ( m == d->mailbox )
+        return;
     d->mailbox = m;
+    d->logger->log( "now using mailbox " + m->name() );
 }
 
 /*! Reserves input from the connection for \a command.
