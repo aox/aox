@@ -26,7 +26,7 @@ int main( int argc, char *argv[] )
 
     Server s( "imapd", argc, argv );
     s.setup( Server::Report );
-    Listener< IMAP >::create( "IMAP", "", 2052 );
+    Listener< IMAP >::create( "IMAP", "", 143 );
     s.setup( Server::Finish );
 
     TlsServer::setup();
