@@ -1,6 +1,27 @@
-# hide the headers - we don't want cryptlib to see our header files
+SubDir TOP cryptlib ;
+
+# hide variables that cryptlib shouldn't see
+OrdinaryFLAGS = $(CCFLAGS) ;
+CCFLAGS = -fomit-frame-pointer -O3 -mcpu=pentium ;
 OrdinaryHDRS = $(HDRS) ;
 HDRS = [ FDirName $(TOP) cryptlib ] ;
+OrdinaryDEFINES = $(DEFINES) ;
+DEFINES = DATA_LITTLEENDIAN NDEBUG OSVERSION=2 USE_ASM _REENTRANT __UNIX__ ;
+
+
+# ORYX_STRIPPED strips down cryptlib. it's used in our version of
+# cryptini.h. defining ORYX_STRIPPED makes testlib fail. (testlib also
+# needs three files to be wriable: cryptlib/test/key_dual.p15,
+# cryptlib/test/key_ren.p15 and cryptlib/test/key_test.p15).
+
+# build a small cryptlib:
+ORYX_STRIPPED = 1 ;
+# ... or a testable one:
+# ORYX_STRIPPED = ;
+
+if $(ORYX_STRIPPED) {
+    DEFINES += ORYX_STRIPPED ;
+}
 
 # include all the subdirectories
 SubInclude TOP cryptlib bn ;
@@ -12,20 +33,28 @@ SubInclude TOP cryptlib keyset ;
 SubInclude TOP cryptlib libs ;
 SubInclude TOP cryptlib misc ;
 SubInclude TOP cryptlib session ;
-# SubInclude TOP cryptlib test ;
 SubInclude TOP cryptlib zlib ;
 
-# tell jam where to find this source
-SubDir TOP cryptlib ;
-
 Build cryptlib : cryptapi.c cryptcfg.c cryptcrt.c cryptctx.c cryptdbx.c
-	cryptdev.c cryptenv.c cryptkey.c cryptkrn.c cryptlib.c
-	cryptmch.c cryptmis.c cryptses.c cryptusr.c ;
+    cryptdev.c cryptenv.c cryptkey.c cryptkrn.c cryptlib.c cryptmch.c
+    cryptmis.c cryptses.c cryptusr.c ;
 
+# work around brokenness by including test last, with an extra define
+DEFINES += strnicmp=strncasecmp ;
+SubInclude TOP cryptlib test ;
 
-# recover the header files
+# we could wrap the above subinclude in the next if, but in that case
+# 'jam clean' might not clean in cryptlib/test
+
+# we only build the tests if there's reason to believe they'll work
+if ! $(ORYX_STRIPPED) {
+    Program testlib : cryptlib cryptlib-test ;
+}
+
+# recover the normal oryx variables
 HDRS = $(OrdinaryHDRS) ;
+DEFINES = $(OrdinaryDEFINES) ;
+CCFLAGS = $(OrdinaryFLAGS) ;
 
-# since CCFLAGS is an ordinary variable, we'll just set it on all the
-# cryptlib source files.
-CCFLAGS on $(set-cryptlib) = -DUSE_ASM -DOSVERSION=4 -D__UNIX__ -DNDEBUG  -DDATA_LITTLEENDIAN -DNO_THREADS ;
+# everyone who uses cryptlib must use -lpthread for the time being
+LINKLIBS += -lpthread ;

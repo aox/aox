@@ -1,8 +1,8 @@
 /****************************************************************************
-*																			*
-*						cryptlib Configuration Settings  					*
-*						Copyright Peter Gutmann 1992-2003					*
-*																			*
+*                                                                                                                                                       *
+*                                               cryptlib Configuration Settings                                         *
+*                                               Copyright Peter Gutmann 1992-2003                                       *
+*                                                                                                                                                       *
 ****************************************************************************/
 
 #ifndef _CRYPTINI_DEFINED
@@ -39,9 +39,14 @@
    algorithms, and USE_SLIGHTLY_OBSCURE_ALGORITHMS can be used to drop
    further little-used algorithms */
 
+#define USE_PATENTED_ALGORITHMS
+#define USE_OBSCURE_ALGORITHMS
+#define USE_SLIGHTLY_OBSCURE_ALGORITHMS
+#if defined(ORYX_STRIPPED)
 #undef USE_PATENTED_ALGORITHMS
 #undef USE_OBSCURE_ALGORITHMS
 #undef USE_SLIGHTLY_OBSCURE_ALGORITHMS
+#endif
 #ifdef USE_PATENTED_ALGORITHMS
   #define USE_IDEA
   #define USE_RC5
@@ -75,9 +80,13 @@
 
 /* Enveloping */
 
-#undef USE_CMS
+#define USE_CMS
 #define USE_COMPRESSION
+#define USE_PGP
+#if defined(ORYX_STRIPPED)
+#undef USE_CMS
 #undef USE_PGP
+#endif
 #if defined( USE_PGP ) && !defined( USE_ELGAMAL )
   #define USE_ELGAMAL
 #endif /* OpenPGP requires Elgamal */
@@ -89,19 +98,19 @@
 
 #ifdef __WINDOWS__
   #if !( defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x500 ) )
-	#define USE_ODBC
+        #define USE_ODBC
   #endif /* Old Borland C++ */
   #if !defined( NT_DRIVER )
-	#define USE_LDAP
+        #define USE_LDAP
   #endif /* !NT_DRIVER */
 #endif /* Windows */
 #if ( defined( USE_ODBC ) && ( defined( USE_MYSQL ) || defined( USE_ORACLE ) || defined( USE_POSTGRES ) ) ) || \
-	( defined( USE_MYSQL ) && ( defined( USE_ORACLE ) || defined( USE_POSTGRES ) ) ) || \
-	( defined( USE_ORACLE ) && defined( USE_POSTGRES ) )
+        ( defined( USE_MYSQL ) && ( defined( USE_ORACLE ) || defined( USE_POSTGRES ) ) ) || \
+        ( defined( USE_ORACLE ) && defined( USE_POSTGRES ) )
   #error You can only define one of USE_MYSQL, USE_ODBC, USE_ORACLE, or USE_POSTGRES
 #endif /* Conflicting USE_database defines */
 #if defined( USE_TCP ) || defined( USE_ODBC ) || defined( USE_MYSQL ) || \
-	defined( USE_ORACLE ) || defined( USE_POSTGRES )
+        defined( USE_ORACLE ) || defined( USE_POSTGRES )
   #define USE_DBMS
 #endif /* RDBMS types */
 #ifdef USE_TCP
@@ -123,7 +132,7 @@
 #define USE_PGPKEYS
 #define USE_PKCS15
 #if defined( USE_DBMS ) || defined( USE_HTTP ) || defined( USE_LDAP ) || \
-	defined( USE_PGPKEYS ) || defined( USE_PKCS12 ) || defined( USE_PKCS15 )
+        defined( USE_PGPKEYS ) || defined( USE_PKCS12 ) || defined( USE_PKCS15 )
   #define USE_KEYSETS
 #endif /* Keyset types */
 
@@ -140,8 +149,8 @@
   #define USE_TSP
 #endif /* USE_TCP */
 #if defined( USE_CMP ) || defined( USE_RTCS ) || defined( USE_OCSP ) || \
-	defined( USE_SCEP ) || defined( USE_SSH1 ) || defined( USE_SSH2 ) || \
-	defined( USE_SSL ) || defined( USE_TSP )
+        defined( USE_SCEP ) || defined( USE_SSH1 ) || defined( USE_SSH2 ) || \
+        defined( USE_SSL ) || defined( USE_TSP )
   #define USE_SESSIONS
 #endif /* Session types */
 
@@ -150,37 +159,42 @@
    and most Unixen) */
 
 #if defined( __UNIX__ ) && !defined( NO_THREADS ) && \
-	!( defined( sun ) && ( OSVERSION <= 4 ) )
+        !( defined( sun ) && ( OSVERSION <= 4 ) )
   #define USE_THREADS
 #endif /* __UNIX__ && !NO_THREADS */
 #if defined( __UNIX__ ) && \
-	!( ( defined( sun ) && OSVERSION < 5 ) || defined( __bsdi__ ) || \
-	   defined( __OpenBSD__ ) || defined( __SCO_VERSION__ ) || \
-	   defined( __CYGWIN__ ) || defined( __SYMBIAN32__ ) )
+        !( ( defined( sun ) && OSVERSION < 5 ) || defined( __bsdi__ ) || \
+           defined( __OpenBSD__ ) || defined( __SCO_VERSION__ ) || \
+           defined( __CYGWIN__ ) || defined( __SYMBIAN32__ ) )
   /* Try to include the wcXXX stuff by default, this should work for most
-	 recent Unixen */
+         recent Unixen */
   #define USE_WIDECHARS
 #endif /* __UNIX__ */
 #if defined( __WIN32__ ) && \
-	!( defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x500 ) )
+        !( defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x500 ) )
   #define USE_WIDECHARS
 #endif /* __WIN32__ */
 #if defined( __OS2__ ) || defined( __BEOS__ ) || defined( __MSDOS32__ )
   #define USE_WIDECHARS
 #endif /* OS/2 || BEOS */
 
-/* Anti-defines.  Rather than making everything even more complex and 
-   conditional than it already is, it's easier to undefine the features that 
-   we don't want in one place rather than trying to conditionally enable 
+/* Anti-defines.  Rather than making everything even more complex and
+   conditional than it already is, it's easier to undefine the features that
+   we don't want in one place rather than trying to conditionally enable
    them */
 
+#if defined(ORYX_STRIPPED)   /* Devices */
   #undef USE_PKCS11
   #undef USE_FORTEZZA
   #undef USE_CRYPTOAPI
+#endif /* 0 */
+#if defined(ORYX_STRIPPED)   /* Heavyweight keysets */
   #undef USE_HTTP
   #undef USE_LDAP
   #undef USE_ODBC
   #undef USE_DBMS
+#endif /* 0 */
+#if defined(ORYX_STRIPPED)   /* Networking */
   #undef USE_CMP
   #undef USE_RTCS
   #undef USE_OCSP
@@ -188,4 +202,5 @@
   #undef USE_SSH1
   #undef USE_SSH2
   #undef USE_TSP
+#endif /* 0 */
 #endif /* _CRYPTINI_DEFINED */
