@@ -43,6 +43,7 @@ public:
     enum Error { No, Bad };
     void error( Error, const String & );
 
+    void finish();
     void emitResponses();
 
     String digits( uint, uint );

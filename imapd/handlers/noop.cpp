@@ -34,6 +34,6 @@ void Noop::execute()
         else
             respond( "OK" );
 
-        setState( Finished );
+        finish();
     }
 }
