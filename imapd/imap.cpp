@@ -12,13 +12,13 @@
 
 class IMAPData {
 public:
-    IMAPData(): parsedCommandArena( 0 ),
+    IMAPData(): cmdArena( 0 ),
                 readingLiteral( false ), literalSize( 0 ),
                 args( 0 ),
                 state( IMAP::NotAuthenticated )
     {}
 
-    Arena * parsedCommandArena;
+    Arena * cmdArena;
     bool readingLiteral;
     uint literalSize;
     List<String> * args;
@@ -85,11 +85,11 @@ int IMAP::react(Event e)
 
 int IMAP::parse()
 {
-    if ( !d->parsedCommandArena )
-        d->parsedCommandArena = new Arena;
+    if ( !d->cmdArena )
+        d->cmdArena = new Arena;
     if ( !d->args )
         d->args = new List<String>;
-    // XXX: must set the right arena
+    Arena::push( d->cmdArena );
     Buffer * r = readBuffer();
     while( true ) {
         if ( d->readingLiteral ) {
@@ -139,20 +139,27 @@ int IMAP::parse()
                             writeBuffer()->append( "+\r\n" );
                     }
                 }
-                if ( !d->readingLiteral )
+                if ( !d->readingLiteral ) {
                     addCommand();
+                    Arena::pop();
+                    d->cmdArena = new Arena;
+                    Arena::push( d->cmdArena );
+                }
             }
             else {
                 return true; // better luck next time
             }
         }
     }
+    Arena::pop();
 }
 
 
 /*! Does preliminary parsing and adds a new Command object. At some
   point, that object may be executed - we don't care about that for
   the moment.
+
+  During execution of this function, the command's Arena must be used.
 */
 
 void IMAP::addCommand()
@@ -205,6 +212,10 @@ void IMAP::addCommand()
 
     Command * cmd = Command::create( this, command, tag, args );
     if ( cmd ) {
+        // at this point, d->cmdArena is in use. as soon as we have
+        // multiple concurrently active commands, that Arena has to be
+        // copied into Command. copied, not moved, or else the parsing
+        // prior to Command::create leaks memory. *sigh*
         cmd->parse();
         if ( cmd->ok() )
             cmd->execute();
@@ -224,7 +235,7 @@ static class IMAPTest : public Test {
 public:
     IMAPTest() : Test( 500 ) {}
     void test() {
-        
+
     }
 } imapTest;
 
