@@ -251,6 +251,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
 
     cryptCreateSession( &cs, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER );
     cryptSetAttribute( cs, CRYPT_SESSINFO_NETWORKSOCKET, userside->fd() );
+    cryptSetAttribute( cs, CRYPT_SESSINFO_ACTIVE, 1 );
 }
 
 
