@@ -128,17 +128,6 @@ Inbox lifetime/mailbox reuse
   needs to prompt its user.
 
 
-mailstore.conf protection
-
-  At the moment, we just require that mailstore.conf is readable by
-  the mailstore servers (effectively, readable as root). Since the
-  file contains a super-sensitive password, we should do more.
-
-  I suggest that we add a setting to check that the file is readable
-  only as root and refuse to start else, and turn this on by default.
-  Or we could use the security setting for this.
-
-
-Documentation fixes
+Little "fixes" not worthy of being in the first-level list
 
   - We need to have per-MTA text in mailstore(7) and on the web site.
