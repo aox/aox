@@ -374,7 +374,7 @@ Query::Condition * Search::add( const Set & set )
 /*! Creates a new logical Condition, adds it to the current list if
     there is one, and pushes a new current list on the stack.
 
-    \a must be And, Or or Not. This isn't checked.
+    \a a must be And, Or or Not. This isn't checked.
 */
 
 Query::Condition * Search::push( Query::Action a )

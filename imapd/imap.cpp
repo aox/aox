@@ -438,7 +438,7 @@ void IMAP::setMailbox( Mailbox *m )
 
 /*! Reserves input from the connection for \a command.
 
-    When more input is available, \a Command::read() is called, and as
+    When more input is available, Command::read() is called, and as
     soon as the command has read enough, it must call reserve( 0 ) to
     hand the connection back to the general IMAP parser.
 
