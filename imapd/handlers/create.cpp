@@ -1,3 +1,7 @@
+/*! \class Create create.h
+    \brief Creates a new mailbox (RFC 3501, §6.3.3)
+*/
+
 #include "create.h"
 
 #include "imap.h"

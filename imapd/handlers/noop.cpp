@@ -1,5 +1,5 @@
 /*! \class Noop noop.h
-    \brief NOOP (RFC 3501, §6.1.2)
+    \brief NOOP does nothing (RFC 3501, §6.1.2)
 
     One might surmise that this function is a true noop, but it's not.
     The side effects need to be handled somehow.

@@ -1,3 +1,7 @@
+/*! \class Select select.h
+    \brief Opens a mailbox (RFC 3501, §6.3.1)
+*/
+
 #include "select.h"
 
 #include "imap.h"

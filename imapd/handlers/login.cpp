@@ -1,3 +1,7 @@
+/*! \class Login login.h
+    \brief Performs plaintext authentication (RFC 3501, §6.2.3)
+*/
+
 #include "login.h"
 
 #include "imap.h"

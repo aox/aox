@@ -1,3 +1,7 @@
+/*! \class Fetch fetch.h
+    \brief Returns message data (RFC 3501, §6.4.5)
+*/
+
 #include "fetch.h"
 
 #include "set.h"

@@ -1,3 +1,7 @@
+/*! \class Expunge expunge.h
+    \brief Permanently removes \Deleted messages (RFC 3501, §6.4.3)
+*/
+
 #include "expunge.h"
 
 #include "imap.h"

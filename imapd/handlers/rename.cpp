@@ -1,3 +1,7 @@
+/*! \class Rename rename.h
+    \brief Renames a mailbox (RFC 3501, §6.3.5)
+*/
+
 #include "rename.h"
 
 #include "imap.h"

@@ -1,9 +1,9 @@
 /*! \class Unselect unselect.h
-    \brief The Unselect class implements the IMAP UNSELECT extension.
+    \brief Implements the RFC 3691 UNSELECT extension
 
-    The extension (specified in RFC 3691) is extremely simple: It adds
-    the single command "unselect" to change from Selected to
-    Authenticated state. Unlike Close, Unselect does not expunge.
+    The extension is extremely simple: It adds the single command
+    "unselect" to change from Selected to Authenticated state.
+    Unlike Close, Unselect does not expunge.
 */
 
 #include "unselect.h"
