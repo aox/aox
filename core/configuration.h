@@ -14,6 +14,7 @@ public:
     static void makeGlobal( const String & );
 
     static String hostname();
+    static String osHostname();
 
     void read( const String & );
     void report();

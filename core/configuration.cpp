@@ -188,7 +188,7 @@ void Configuration::report()
             e = true;
         i++;
     }
-    
+
     if ( d->fileExists )
         log( Log::Info, "While reading config file " + d->f + ":" );
     else if ( e )
@@ -474,9 +474,31 @@ Configuration * Configuration::global()
 void Configuration::makeGlobal( const String & s )
 {
     ::global = new Configuration( s );
+    String host = osHostname();
+    Configuration::Text hn( "hostname", host );
+    if ( !hn.valid() )
+        ::global->d->error( "Syntax error in hostname",
+                            Log::Disaster );
+    else if ( ((String)hn).find( '.' ) < 0 )
+        ::global->d->error( "Hostname does not contain a dot: " + hn,
+                            Log::Disaster );
+    else if ( host == hn )
+        ::global->d->error( "Using inferred hostname " + host,
+                            Log::Info );
+
+    ::hostname = new String( hn );
+}
+
+
+/*! Returns the best hostname we can find based on the operating
+    systems functions.
+*/
+
+String Configuration::osHostname()
+{
     char buffer[257];
-    buffer[256] = '\0';
     gethostname( buffer, 256 );
+    buffer[256] = '\0';
     String host( buffer );
     if ( host.find( '.' ) < 0 ) {
         struct hostent * he = gethostbyname( buffer );
@@ -496,18 +518,7 @@ void Configuration::makeGlobal( const String & s )
             } while ( !done && !candidate.isEmpty() );
         }
     }
-    Configuration::Text hn( "hostname", host );
-    if ( !hn.valid() )
-        ::global->d->error( "Syntax error in hostname",
-                            Log::Disaster );
-    else if ( ((String)hn).find( '.' ) < 0 )
-        ::global->d->error( "Hostname does not contain a dot: " + hn,
-                            Log::Disaster );
-    else if ( host == hn )
-        ::global->d->error( "Using inferred hostname " + host, 
-                            Log::Info );
-
-    ::hostname = new String( hn );
+    return host;
 }
 
 
@@ -570,6 +581,9 @@ public:
     ConfigurationTest() : Test( 250 ) {}
     void test() {
         setContext( "Testing Configuration" );
+
+        verify( "osHostname() didn't return a dotted string",
+                Configuration::osHostname().find( "." ) < 0 );
 
         verify( "hostname() didn't return a sane value for tests.",
                 Configuration::hostname() != "oryx.invalid" );
