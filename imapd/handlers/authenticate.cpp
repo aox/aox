@@ -66,12 +66,6 @@ void Authenticate::execute()
     // First, create a mechanism handler.
 
     if ( !m ) {
-        if ( t.lower() == "plain" && !imap()->hasTLS() ) {
-            error( Bad, "AUTHENTICATE after STARTTLS" );
-            finish();
-            return;
-        }
-
         m = SaslMechanism::create( t, this );
         if ( !m ) {
             error( No, "Mechanism " + t + " not supported" );
