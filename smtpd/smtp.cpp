@@ -122,7 +122,7 @@ SMTP::SMTP( int s )
 
     log( "Accepted SMTP connection from " + peer().string() );
 
-    respond( 220, "ESMTP " + Configuration::hostname() );
+    respond( 220, "ESMTP + LMTP " + Configuration::hostname() );
     sendResponses();
 
     Loop::addConnection( this );
