@@ -339,8 +339,8 @@ void Fetch::execute()
     if ( d->state == 0 ) {
         if ( !d->peek && s->readOnly() )
             d->peek = true;
-        sendFetchQueries();
         d->state = 1;
+        sendFetchQueries();
     }
 
     uint i = 1;
