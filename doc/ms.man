@@ -31,10 +31,10 @@ ms
 derives its entire configuration from
 .IR mailstore.conf (5).
 .SH EXAMPLES
-To add a user called "nirmala", whose password is "behenchod" and
+To add a user called "nirmala", whose password is "angstskrik" and
 whose main email address is "nirmala@example.com":
 .IP
-ms create user nirmala behenchod nirmala@example.com
+ms create user nirmala angstskrik nirmala@example.com
 .PP
 To remove that user again:
 .IP
