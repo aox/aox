@@ -10,6 +10,12 @@ void Select::parse()
 
 void Select::execute()
 {
-    error( No, "unimplemented command" );
+    if ( m == "inbox" ) {
+        imap()->setState( IMAP::Selected );
+    }
+    else {
+        imap()->setState( IMAP::Authenticated );
+        error( No, "Can't SELECT mailbox " + m );
+    }
     setState( Finished );
 }
