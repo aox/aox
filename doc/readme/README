@@ -2,7 +2,7 @@ To build Oryx Mailstore from source, you need the Jam build tool,
 available at http://www.perforce.com/jam/jam.html as well as in most
 Linux/BSD distributions.
 
-To run Mailstore you need PostgreSQL, version 7.4.7 or any later
+To run Mailstore you need PostgreSQL, version 7.4.5 or any later
 version.
 
 Building and installing Mailstore is a five-step process:
@@ -25,11 +25,10 @@ Building and installing Mailstore is a five-step process:
 
        ms create user nirmala pw nirmala@example.org
 
-   to create a user with login 'heidi', password 'pw' and email
+   to create a user with login 'nirmala', password 'pw' and email
    address nirmala@example.org.
 
-At this point, you're ready to run BINDIR/rcmailstore start to start
-Mailstore. After a change, rcmailstore restart restarts.
+At this point, you're ready to run "BINDIR/rcmailstore start" to start
+Mailstore. After a change, "rcmailstore restart" restarts.
 
 If you encounter any problems, please write to info@oryx.com.
-
