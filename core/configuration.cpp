@@ -103,7 +103,8 @@ void Configuration::read( const String & file )
     d->f = file;
     File f( file, File::Read );
     if ( !f.valid() ) {
-        d->log( "Error reading configuration file " + file );
+        d->log( "Error reading configuration file " + file,
+                Log::Disaster );
         return;
     }
 
