@@ -401,13 +401,15 @@ static String sectionResponse( FetchData::Section *s,
 {
     String item, data;
 
-    if ( s->id.startsWith( "header" ) ) {
+    if ( s->id == "rfc822.header" ||
+         s->id.startsWith( "header" ) )
+    {
+        bool rfc822 = s->id == "rfc822.header";
         bool fields = s->id.startsWith( "header.fields" );
         bool exclude = s->id.endsWith( ".not" );
 
         Header *hdr = m->header();
-        List< HeaderField > *headerFields = hdr->fields();
-        List< HeaderField >::Iterator it( headerFields->first() );
+        List< HeaderField >::Iterator it( hdr->fields()->first() );
         while ( it ) {
             if ( !fields ||
                  ( !exclude && s->fields.find( it->name() ) ) ||
@@ -419,9 +421,12 @@ static String sectionResponse( FetchData::Section *s,
             ++it;
         }
 
-        item = "BODY[" + s->id;
+        item = s->id.upper();
+        if ( !rfc822 )
+            item = "BODY[" + item;
         if ( fields )
             item.append( " (" + s->fields.join( " " ) + ")]" );
+        // Do we need the blank line for RFC822.HEADER?
         data.append( "\r\n" );
     }
 
@@ -431,14 +436,12 @@ static String sectionResponse( FetchData::Section *s,
             // "Cruel, evil bug."
             data = bp->data();
 
-        item = "BODY[" + s->id + "]";
+        item = "BODY[" + s->id.upper() + "]";
     }
 
     if ( s->partial ) {
         item.append( "<" + fn( s->offset ) + ">" );
         data = data.mid( s->offset, s->length );
-        if ( s->id.startsWith( "header" ) )
-            data.append( "\r\n" );
     }
 
     return item + " " + Command::imapQuoted( data, Command::NString );
