@@ -100,7 +100,9 @@ Console::Console()
 void Console::keyPressEvent( QKeyEvent * ke )
 {
     QWidget * f = focusWidget();
-    if ( ke && ke->key() == Key_Enter && f &&
+    if ( ke && f &&
+         ( ke->key() == Key_Enter ||
+           ke->key() == Key_Return ) &&
          ( f->inherits( "QLineEdit" ) ||
            f->inherits( "QListView" ) ||
            f->inherits( "QListBox" ) ) ) {
