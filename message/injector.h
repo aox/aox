@@ -31,8 +31,8 @@ private:
     void buildFieldLinks();
     void insertBodyparts();
     void insertMessages();
-    void linkHeaderFields();
     void linkBodyparts();
+    void linkHeaderFields();
     void linkAddresses();
 };
 

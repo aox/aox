@@ -507,6 +507,40 @@ void Injector::insertMessages()
 }
 
 
+/*! This private function inserts rows into the part_numbers table for
+    each new message.
+*/
+
+void Injector::linkBodyparts()
+{
+    Query *q;
+
+    List< int >::Iterator uids( d->uids->first() );
+    List< Mailbox >::Iterator mb( d->mailboxes->first() );
+    while ( uids ) {
+        Mailbox *m = mb++;
+        int uid = *uids++;
+
+        List< int >::Iterator bids( d->bodypartIds->first() );
+        List< BodyPart >::Iterator it( d->bodyparts->first() );
+        while ( it ) {
+            int bid = *bids++;
+            BodyPart *b = it++;
+
+            q = new Query( "insert into part_numbers "
+                           "(mailbox,uid,bodypart,partno) values "
+                           "($1,$2,$3,$4)", 0 );
+            q->bind( 1, m->id() );
+            q->bind( 2, uid );
+            q->bind( 3, bid );
+            q->bind( 4, d->message->partNumber( b ) );
+
+            d->transaction->enqueue( q );
+        }
+    }
+}
+
+
 /*! This private function inserts entries into the header_fields table
     for each new message.
 */
@@ -537,40 +571,6 @@ void Injector::linkHeaderFields()
             q->bind( 3, link->part );
             q->bind( 4, t );
             q->bind( 5, link->hf->value() );
-
-            d->transaction->enqueue( q );
-        }
-    }
-}
-
-
-/*! This private function inserts rows into the part_numbers table for
-    each new message.
-*/
-
-void Injector::linkBodyparts()
-{
-    Query *q;
-
-    List< int >::Iterator uids( d->uids->first() );
-    List< Mailbox >::Iterator mb( d->mailboxes->first() );
-    while ( uids ) {
-        Mailbox *m = mb++;
-        int uid = *uids++;
-
-        List< int >::Iterator bids( d->bodypartIds->first() );
-        List< BodyPart >::Iterator it( d->bodyparts->first() );
-        while ( it ) {
-            int bid = *bids++;
-            BodyPart *b = it++;
-
-            q = new Query( "insert into part_numbers "
-                           "(mailbox,uid,bodypart,partno) values "
-                           "($1,$2,$3,$4)", 0 );
-            q->bind( 1, m->id() );
-            q->bind( 2, uid );
-            q->bind( 3, bid );
-            q->bind( 4, d->message->partNumber( b ) );
 
             d->transaction->enqueue( q );
         }
