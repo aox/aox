@@ -55,13 +55,14 @@ void Select::execute()
     imap()->setMailbox( m );
     imap()->setState( IMAP::Selected );
 
-    // Send mailbox data here.
-    respond( "EXISTS " + String::fromNumber( m->count() ) );
-
-    String ok = "OK [READ-";
-    ok.append( readOnly ? "ONLY" : "WRITE" );
-    ok.append( "]" );
-    respond( ok, Tagged );
+    respond( "FLAGS " + m->flags() );
+    respond( String::fromNumber( m->count() ) + " EXISTS" );
+    respond( String::fromNumber( m->recent() ) + " RECENT" );
+    respond( "OK [UNSEEN " + String::fromNumber( m->unseen() ) + "]" );
+    respond( "OK [UIDNEXT " + String::fromNumber( m->uidnext() ) + "]" );
+    respond( "OK [UIDVALIDITY " + String::fromNumber( m->uidvalidity() ) + "]" );
+    respond( "OK [PERMANENTFLAGS " + m->permanentFlags() + "]" );
+    respond( "OK [READ-" + String( m->readOnly() ? "ONLY" : "WRITE" ) + "]", Tagged );
 
     finish();
 }
