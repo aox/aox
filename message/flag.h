@@ -4,8 +4,7 @@
 #include "global.h"
 #include "list.h"
 #include "event.h"
-
-class String;
+#include "stringlist.h"
 
 
 class Flag
@@ -16,8 +15,8 @@ public:
     String name() const;
     uint id() const;
 
-    static Flag * flag( const String & );
-    static Flag * flag( uint );
+    static Flag * find( const String & );
+    static Flag * find( uint );
 
     static const List<Flag> * flags();
     static void setup();
@@ -30,12 +29,25 @@ private:
 class FlagFetcher : public EventHandler
 {
 public:
-    FlagFetcher();
+    FlagFetcher( EventHandler * owner );
 
     void execute();
 
 private:
     class FlagFetcherData * d;
+    friend class Flag;
+};
+
+
+class FlagCreator : public EventHandler
+{
+public:
+    FlagCreator( EventHandler *, const StringList & );
+
+    void execute();
+
+private:
+    class FlagCreatorData * d;
     friend class Flag;
 };
 

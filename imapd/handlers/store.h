@@ -2,9 +2,6 @@
 #define STORE_H
 
 #include "command.h"
-#include "string.h"
-#include "list.h"
-#include "messageset.h"
 
 
 class Store
@@ -17,11 +14,17 @@ public:
     void execute();
 
 private:
-    MessageSet s;
-    enum { Add, Replace, Remove } op;
-    bool silent;
-    bool uid;
-    List< String > flags;
+    class StoreData * d;
+
+private:
+    bool addExtraFlagNames();
+    void splitSystemExtra();
+    void updateSystemFlags();
+    void killSuperfluousRows();
+    void addExtraFlags();
+    void pretendToFetch();
+    void sendFetches();
+    bool dumpFetchResponses();
 };
 
 
