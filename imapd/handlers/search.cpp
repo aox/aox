@@ -796,19 +796,6 @@ Search::Condition::MatchResult Search::Condition::match( Message * m,
                 return Yes;
             return No;
         }
-        else if ( m ) {
-            if ( a1 == "answered" )
-                return m->flag( Message::AnsweredFlag ) ? Yes : No;
-            if ( a1 == "deleted" )
-                return m->flag( Message::DeletedFlag ) ? Yes : No;
-            if ( a1 == "draft" )
-                return m->flag( Message::DraftFlag ) ? Yes : No;
-            if ( a1 == "flagged" )
-                return m->flag( Message::FlaggedFlag ) ? Yes : No;
-            if ( a1 == "seen" )
-                return m->flag( Message::SeenFlag ) ? Yes : No;
-        }
-
         return Punt;
     }
     else if ( a == Not ) {
