@@ -76,11 +76,7 @@ public:
     {}
 
     virtual void processResults( Query *q ) {
-        // XXX: Perhaps this should fetch the first column instead of
-        // one named "id", so as to not require nextuid to be renamed
-        // to id in the selectUids query below. -- AMS
-        int *id = new int( q->nextRow()->getInt( "id" ) ); // ### ick.
-        list->append( id );
+        list->append( new int( q->nextRow()->getInt( 0 ) ) );
     }
 
     void execute() {
@@ -264,7 +260,7 @@ void Injector::selectUids()
         // The mailbox list must be sorted, so that Injectors always try
         // to acquire locks in the same order, thus avoiding deadlocks.
 
-        q = new Query( "select uidnext as id from mailboxes "
+        q = new Query( "select uidnext from mailboxes "
                        "where id=$1 for update", helper );
         q->bind( 1, it->id() );
         d->transaction->enqueue( q );
@@ -420,7 +416,7 @@ void Injector::insertBodyparts()
         int *id = bodyHashes->find( hash );
         if ( id ) {
             // This is a terrible hack. Must fix later. -- AMS
-            s = new Query( "select " + fn( *id ) + " as id, "
+            s = new Query( "select " + fn( *id ) + ", "
                            "'" + hash.hex() + "' as hash", helper );
             d->transaction->enqueue( s );
             queries->append( s );
@@ -455,7 +451,7 @@ void Injector::insertBodyparts()
             d->transaction->enqueue( i );
         }
 
-        s = new Query( "select currval('bodypart_ids')::integer as id, "
+        s = new Query( "select currval('bodypart_ids')::integer, "
                        "'" + hash + "' as hash", helper );
         d->transaction->enqueue( s );
         queries->append( s );
