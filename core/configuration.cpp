@@ -581,6 +581,7 @@ public:
         verify( "global() incorrectly set up",
                 !Configuration::global() );
         ::global = 0;
+        ::hostname = 0;
 
         {
             File f( "/tmp/oryx-config-test.cf", File::Write );
