@@ -40,7 +40,15 @@ class SearchData {
 public:
     SearchData()
         : uid( false ), done( false ), root( 0 ), conditions( 0 ),
-          codec( 0 ), query( 0 )
+          codec( 0 ), query( 0 ),
+          usesHeaderFieldsTable( false ),
+          usesFieldNamesTable( false ),
+          usesAddressFieldsTable( false ),
+          usesAddressesTable( false ),
+          usesPartNumbersTable( false ),
+          usesBodypartsTable( false ),
+          usesFlagsTable( false ),
+          usesFlagNamesTable( false )
     {}
 
     bool uid;
@@ -48,7 +56,6 @@ public:
     String charset;
     Search::Condition * root;
     List< Search::Condition > * conditions;
-    List< uint > matches;
 
     Codec * codec;
     SearchQuery * query;
@@ -58,6 +65,15 @@ public:
         ++argc;
         return argc;
     };
+    
+    bool usesHeaderFieldsTable;
+    bool usesFieldNamesTable;
+    bool usesAddressFieldsTable;
+    bool usesAddressesTable;
+    bool usesPartNumbersTable;
+    bool usesBodypartsTable;
+    bool usesFlagsTable;
+    bool usesFlagNamesTable;
 };
 
 /*! Constructs an empty Search. If \a u is true, it's an UID SEARCH,
@@ -306,15 +322,38 @@ void Search::execute()
             return;
 
         d->query = new SearchQuery( this );
-        d->query->s = "select uid from "
-                      "messages, header_fields, field_names, address_fields, "
-                      "addresses, part_numbers, bodyparts, flags, flag_names "
-                      "where " + d->root->where();
+        d->query->s = "select messages.uid from messages";
+        String w( d->root->where() );
+        if ( d->usesHeaderFieldsTable )
+            d->query->s.append( ", header_fields" );
+        if ( d->usesFieldNamesTable )
+            d->query->s.append( ", field_names" );
+        if ( d->usesAddressFieldsTable )
+            d->query->s.append( ", address_fields" );
+        if ( d->usesAddressesTable )
+            d->query->s.append( ", addresses" );
+        if ( d->usesPartNumbersTable )
+            d->query->s.append( ", part_numbers" );
+        if ( d->usesBodypartsTable )
+            d->query->s.append( ", bodyparts" );
+        if ( d->usesFlagsTable )
+            d->query->s.append( ", flags" );
+        if ( d->usesFlagNamesTable )
+            d->query->s.append( ", flag_names" );
+        uint mbox = d->argument();
+        d->query->bind( mbox, imap()->session()->mailbox()->id() );
+        d->query->s.append( " where messages.mailbox=$" + fn( mbox ) + 
+                            " and (" + w + ") order by messages.uid" );
         d->query->execute();
     }
 
     if ( !d->query->done() )
         return;
+
+    if ( d->query->failed() ) {
+        error( No, "Database error: " + d->query->error() );
+        return;
+    }
 
     ImapSession * s = imap()->session();
     Row * r;
@@ -343,12 +382,17 @@ void Search::considerCache()
     uint msn = s->count();
     bool needDb = false;
     uint c = 1;
+    String matches = "* SEARCH";
     while ( c <= msn && !needDb ) {
         uint uid = s->uid( c );
         Message * m = s->mailbox()->message( uid, false );
         switch ( d->root->match( m, uid ) ) {
         case Search::Condition::Yes:
-            d->matches.append( new uint( uid ) );
+            matches.append( " " );
+            if ( d->uid )
+                matches.append( fn( c ) );
+            else
+                matches.append( fn( uid ) );
             break;
         case Search::Condition::No:
             break;
@@ -363,12 +407,11 @@ void Search::considerCache()
             c++;
     }
     log( "Search considered " + fn( c ) + " of " + fn( c ) +
-         " messages using cache, " + fn( d->matches.count() ) +
-         " matches", Log::Debug );
-    if ( needDb )
-        d->matches.clear();
-    else
+         " messages using cache", Log::Debug );
+    if ( !needDb ) {
+        respond( matches );
         d->done = true;
+    }
 }
 
 
@@ -597,6 +640,14 @@ void Search::Condition::simplify()
         l = again->l;
     }
 
+    if ( a == Contains && f == Flags && a1.lower() == "\\recent" ) {
+        // the database cannot look at UIDs, so we turn this query
+        // into a test for the relevant UIDs.
+        f = Uid;
+        s = c->imap()->session()->recent();
+        // later we may simplify this again
+    }
+
     if ( a == Larger && n == 0 ) {
         // > 0 matches everything
         a = All;
@@ -643,6 +694,9 @@ void Search::Condition::simplify()
             a = All;
 
     }
+    if ( a == All || a == None )
+        f = NoField;
+
     if ( a != And && a != Or )
         return;
 
@@ -722,7 +776,7 @@ String Search::Condition::where() const
         return whereUid();
         break;
     case NoField:
-        return "true";
+        return whereNoField();
         break;
     }
     c->error( Command::No, "Internal error for " + debugString() );
@@ -797,6 +851,8 @@ String Search::Condition::whereHeaderField() const
     d->query->bind( fnum, a1 );
     uint like = d->argument();
     d->query->bind( like, q( a2 ) );
+    d->usesHeaderFieldsTable = true;
+    d->usesFieldNamesTable = true;
     return "header_fields.mailbox=messages.mailbox and "
         "header_fields.uid=messages.uid and "
         "header_fields.field=field_names.id and "
@@ -817,17 +873,20 @@ String Search::Condition::whereAddressField( const String & field ) const
     d->query->bind( name, raw );
     uint lp = d->argument();
     uint dom = d->argument();
+    d->usesAddressFieldsTable = true;
+    d->usesAddressesTable = true;
     String r;
     r.append( "address_fields.mailbox=messages.mailbox and "
               "address_fields.uid=messages.uid and " );
     if ( !field.isEmpty() ) {
+        d->usesFieldNamesTable = true;
         uint fnum = d->argument();
         d->query->bind( fnum, a1 );
         r.append( "address_fields.field=field_names.id and "
                   "field_names.name=$" + fn( fnum ) + " and " );
     }
     r.append( "address_fields.address=addresses.id and "
-              "(addresses.name like '%' || $" + fn( name ) + " || '%' " );
+              "(addresses.name like '%'||$" + fn( name ) + "||'%' " );
     if ( at < 0 ) {
         d->query->bind( lp, raw );
         d->query->bind( dom, raw );
@@ -835,12 +894,14 @@ String Search::Condition::whereAddressField( const String & field ) const
                   "or addresses.domain like '%'||$" + fn( dom ) + "||'%'" );
     }
     else {
-        d->query->bind( lp, raw.mid( 0, at ) );
-        d->query->bind( dom, raw.mid( at+1 ) + "%" );
-        if ( at > 0 )
+        if ( at > 0 ) {
+            d->query->bind( lp, raw.mid( 0, at ) );
             r.append( "or addresses.localpart like '%'||$" + fn( lp ) + " " );
-        if ( at == (int)raw.length() - 1 )
+        }
+        if ( at < (int)raw.length() - 1 ) {
+            d->query->bind( dom, raw.mid( at+1 ) );
             r.append( "or addresses.domain like $" + fn( dom ) + "||'%'" );
+        }
     }
     r.append( ")" );
     return r;
@@ -852,12 +913,12 @@ String Search::Condition::whereAddressField( const String & field ) const
 String Search::Condition::whereHeader() const
 {
     uint like = d->argument();
-    d->query->bind( like, "%" + q( a2 ) + "%" );
+    d->query->bind( like, q( a2 ) );
+    d->usesHeaderFieldsTable = true;
     return "(header_fields.mailbox=messages.mailbox and "
         "header_fields.uid=messages.uid and "
-        "header_fields.field=field_names.id and "
-        "value like $" + fn( like ) + ") or (" +
-        whereAddressField( "" ) + ")";
+        "value like '%'||$" + fn( like ) + "||'%') or (" +
+        whereAddressField() + ")";
 }
 
 
@@ -871,6 +932,8 @@ String Search::Condition::whereBody() const
 {
     uint bt = d->argument();
     d->query->bind( bt, q( a2 ) );
+    d->usesPartNumbersTable = true;
+    d->usesBodypartsTable = true;
     return "messages.mailbox=part_numbers.mailbox and "
         "messages.uid=part_numbers.uid and "
         "part_numbers.bodypart=bodyparts.id and "
@@ -900,12 +963,8 @@ String Search::Condition::whereRfc822Size() const
 
 String Search::Condition::whereFlags() const
 {
-    if ( a1 == "\\recent" )
-        // recent is not in the database, so we tell the database
-        // which uids will match.
-        return c->imap()->session()->recent().where();
-
     // the database can look in the ordinary way. we make it easy, if we can.
+    d->usesFlagsTable = true;
     Flag * f = Flag::find( a1 );
     uint name = d->argument();
     if ( f ) {
@@ -914,6 +973,7 @@ String Search::Condition::whereFlags() const
             "messages.uid=flags.uid and "
             "flags.flag=$1";
     }
+    d->usesFlagNamesTable = true;
     d->query->bind( name, a1 ); // do we need to smash case on flags?
     return "messages.mailbox=flags.mailbox and messages.uid=flags.uid and "
         "flags.flag=flag_names.id and flag_names.name=$1";

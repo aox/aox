@@ -78,7 +78,7 @@ private:
         String whereSent() const;
         String whereHeader() const;
         String whereHeaderField() const;
-        String whereAddressField( const String & ) const;
+        String whereAddressField( const String & = "" ) const;
         String whereBody() const;
         String whereRfc822Size() const;
         String whereFlags() const;
