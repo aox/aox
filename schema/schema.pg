@@ -4,8 +4,8 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (3);
-create sequence revisions start with 3;
+insert into mailstore (revision) values (4);
+create sequence revisions start with 4;
 
 
 -- One entry per Mailstore user.
@@ -84,12 +84,6 @@ create table messages (
     idate       integer,
     -- Message size in bytes (to speed up FETCH).
     rfc822size  integer,
-    -- IMAP message flags (to speed up SEARCH).
-    seen        boolean not null default false,
-    draft       boolean not null default false,
-    flagged     boolean not null default false,
-    answered    boolean not null default false,
-    deleted     boolean not null default false,
     primary key (mailbox, uid)
 );
 
@@ -191,9 +185,8 @@ create table flag_names (
 
 
 -- One entry per user-defined IMAP message flag per message.
--- (The base IMAP flags are stored directly in messages.)
 
-create table extra_flags (
+create table flags (
     mailbox     integer not null,
     uid         integer not null,
     flag        integer not null references flag_names(id),

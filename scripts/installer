@@ -113,6 +113,7 @@ SET SESSION AUTHORIZATION $DBUSER;
 SET client_min_messages TO 'ERROR';
 \i $LIBDIR/schema.pg
 \i $LIBDIR/field-names
+\i $LIBDIR/flag-names
 PSQL
     fi
 elif [ -n "$NEEDSCHEMA" ]; then
