@@ -41,10 +41,10 @@ void FieldNameCache::setup()
     nameCache = new Dict< uint >;
 
     fieldLookup =
-        new PreparedStatement( "select id from field_names where field=$1" );
+        new PreparedStatement( "select id from field_names where name=$1" );
 
     fieldInsert =
-        new PreparedStatement( "insert into field_names (field) values ($1)" );
+        new PreparedStatement( "insert into field_names (name) values ($1)" );
 }
 
 
