@@ -55,7 +55,7 @@ void Subscribe::execute()
         q = new Query( "select id from subscriptions where owner=$1 "
                        "and mailbox=$2", this );
         q->bind( 1, imap()->user()->id() );
-        q->bind( 2, m );
+        q->bind( 2, imap()->mailboxName( m ) );
         q->execute();
         return;
     }
@@ -76,7 +76,7 @@ void Subscribe::execute()
             q = new Query( "insert into subscriptions (owner, mailbox) "
                            "values ($1, $2)", this );
             q->bind( 1, imap()->user()->id() );
-            q->bind( 2, m );
+            q->bind( 2, imap()->mailboxName( m ) );
         }
         else if ( mode == Remove && q->rows() == 1 ) {
             int id = q->nextRow()->getInt( "id" );
