@@ -1,7 +1,3 @@
-/*! \class Fetch fetch.h
-    Returns message data (RFC 3501, §6.4.5)
-*/
-
 #include "fetch.h"
 
 #include "set.h"
@@ -43,6 +39,12 @@ public:
 };
 
 
+/*! \class Fetch fetch.h
+    Returns message data (RFC 3501, §6.4.5)
+*/
+
+/*! \reimp */
+
 void Fetch::parse()
 {
     space();
@@ -75,8 +77,9 @@ void Fetch::execute()
 }
 
 
-/*!
-
+/*! This helper is responsible for parsing a single attriute from the
+    fetch arguments. (The command line consists of either a single
+    attribute or a list of attribute in parens.)
 */
 
 void Fetch::parseAttribute( bool alsoMacro )
@@ -156,8 +159,9 @@ void Fetch::parseAttribute( bool alsoMacro )
 }
 
 
-/*!
-
+/*! This utility function fetches at least \a min, at most \a max
+  characters, all of which must be a letter or dot. Two consecutive
+  dots aren't allowed.
 */
 
 String Fetch::dotLetters( uint min, uint max )
@@ -172,9 +176,7 @@ String Fetch::dotLetters( uint min, uint max )
 }
 
 
-/*!
-
-*/
+/*! Parses a bodypart description - the bit following "body[". */
 
 void Fetch::parseBody()
 {
