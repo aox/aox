@@ -657,6 +657,8 @@ void SMTP::inject()
                       "by " + Configuration::hostname() + " " +
                       "with " + d->protocol + "; " + now.rfc822() + "\r\n";
 
+    d->state = Injecting;
+
     Message * m = new Message( received + d->body );
     m->header()->removeField( HeaderField::ReturnPath );
     m->header()->add( "Return-Path", d->from->toString() );
@@ -672,7 +674,6 @@ void SMTP::inject()
         ++it;
     }
 
-    d->state = Injecting;
     d->helper = new SmtpDbClient( this );
     d->injector = new Injector( m, mailboxes, d->helper );
     d->helper->injector = d->injector;
