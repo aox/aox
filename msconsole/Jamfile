@@ -4,5 +4,6 @@ SubInclude TOP server ;
 Build msconsole : console.cpp userpane.cpp msconsole.cpp consoleloop.cpp ;
 
 Program msconsole :
-    console database server mailbox message user core encodings ;
+    msconsole database server mailbox message user core encodings ;
 
+LINKLIBS on msconsole = -lqt -lcrypt ;

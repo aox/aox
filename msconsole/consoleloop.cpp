@@ -2,6 +2,7 @@
 
 #include "consoleloop.h"
 
+#include "scope.h"
 #include "loop.h"
 #include "connection.h"
 #include "log.h"
@@ -23,8 +24,9 @@ public:
         // dispatch an error. but for now, we just assume all is in
         // working order.
         Loop::loop()->dispatch( c, false, true, time( 0 ) );
+        setEnabled( c->canWrite() || c->state() == Connection::Connecting );
     }
-private:
+
     Connection * c;
 };
 
@@ -40,7 +42,7 @@ public:
     void activated() {
         Loop::loop()->dispatch( c, true, false, time( 0 ) );
     }
-private:
+
     Connection * c;
 };
 
@@ -121,5 +123,15 @@ void ConsoleLoop::stop()
 
 void ConsoleLoop::shutdown()
 {
+    uint i = fdLimit;
+    while ( i ) {
+        i--;
+        if ( r[i] ) {
+            Connection * c = r[i]->c;
+            Scope x( c->arena() );
+            c->react( Connection::Shutdown );
+            c->write();
+        }
+    }
     qApp->exit( 0 );
 }

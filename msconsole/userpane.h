@@ -6,7 +6,7 @@
 
 class UserPane: public QWidget
 {
-    Q_OBJECT
+    //Q_OBJECT
 public:
     UserPane( QWidget * );
 
