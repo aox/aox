@@ -21,6 +21,8 @@
 #include <unistd.h>
 // errno
 #include <errno.h>
+// fcntl
+#include <fcntl.h>
 
 
 static void setupKey();
@@ -221,6 +223,11 @@ void TlsProxy::react( Event e )
         }
         else {
             try {
+                // XXX: since neither Cryptlib nor Buffer will detect
+                // EOF, we have a look here... a bandaid if ever there
+                // was one.
+                if ( fcntl( fd(), F_GETFL, 0 ) < 0 )
+                    react( Close );
                 if ( d->state == TlsProxyData::PlainSide )
                     encrypt();
                 else
@@ -243,8 +250,8 @@ void TlsProxy::react( Event e )
         if ( d->state != TlsProxyData::Initial ) {
             log( "Shutting down TLS proxy due to client close" );
             Loop::shutdown();
+            exit( 0 );
         }
-        exit( 0 );
         break;
 
     case Connect:
@@ -253,7 +260,7 @@ void TlsProxy::react( Event e )
     }
 
     setTimeoutAfter( 1800 );
-    
+
     commit();
 
     if ( d->state == TlsProxyData::Initial )
