@@ -219,6 +219,18 @@ bool ImapSession::responsesNeeded() const
 }
 
 
+/*! Records that \a uids has been expunged, and that the client should
+    be told about it at the earliest possible moment.
+*/
+
+void ImapSession::expunge( const MessageSet & uids )
+{
+    d->expunges.add( uids );
+    log( "Added " + fn( uids.count() ) + " expunged messages, " +
+         fn( d->expunges.count() ) + " in all" );
+}
+
+
 /*! Sends all necessary EXPUNGE, EXISTS and OK[UIDNEXT] responses and
     updates this ImapSession accordingly.
 
@@ -228,16 +240,18 @@ bool ImapSession::responsesNeeded() const
 void ImapSession::emitResponses()
 {
     bool change = false;
-    uint i = d->expunges.count();
-    while ( i > 0 ) {
+    uint i = 1;
+    while ( i < d->expunges.count() ) {
         uint uid = d->expunges.value( i );
-        uint msn = d->msns.index( i );
-        if ( msn )
+        uint msn = d->msns.index( uid );
+        if ( msn ) {
             imap()->enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
-        i--;
-        change = true;
-        d->msns.remove( uid );
+            change = true;
+            d->msns.remove( uid );
+        }
+        i++;
     }
+    d->expunges.clear();
     uint u = d->mailbox->uidnext();
     if ( d->uidnext < u ) {
         // this is gloriously cheap: we blithely assume that all those

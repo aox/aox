@@ -45,6 +45,7 @@ public:
     bool responsesNeeded() const;
     void emitResponses();
     void updateUidnext();
+    void expunge( const MessageSet & );
 
 private:
     class SessionData *d;

@@ -299,7 +299,7 @@ Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
     String w = s.where();
     Query * q = new Query( "insert into flags (flag,uid,mailbox) "
                            "select $1,uid,$2 from messages where "
-                           "mailbox=$1 and (" + w + ") and uid not in "
+                           "mailbox=$2 and (" + w + ") and uid not in "
                            "(select uid from flags where "
                            "mailbox=$2 and (" + w + ") and flag=$1)",
                            h );

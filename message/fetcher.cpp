@@ -129,7 +129,7 @@ void Fetcher::execute()
             if ( h->s.isEmpty() )
                 d->handlers.take( h );
         }
-        d->results.remove( d->results );
+        d->results.clear();
     }
 
     if ( d->query )
