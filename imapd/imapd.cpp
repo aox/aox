@@ -34,6 +34,7 @@ int main( int, char *[] )
     Listener<CCCP>::create( "CCCP", "", 2053 );
 
     Configuration::global()->report();
+    l.commit();
 
     Loop::start();
 }

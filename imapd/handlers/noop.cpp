@@ -21,7 +21,7 @@ void Noop::execute()
 {
     switch ( st ) {
     case Started:
-        q = new Query( "" );
+        q = new Query( "select foo,bar from test" );
         Database::query( q );
         st = Waiting;
         wait( 5 );
