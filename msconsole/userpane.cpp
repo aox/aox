@@ -167,13 +167,13 @@ UserPane::UserPane( QWidget * parent )
     l->setBuddy( d->aliases );
 
     h = new QBoxLayout( QBoxLayout::LeftToRight, 6 );
-    pb = new QPushButton( tr( "Add", "Add new user alias" ),
+    pb = new QPushButton( tr( "Add alias", "Add new user alias" ),
                           this, "add user alias" );
     connect( pb, SIGNAL(clicked()),
              this, SLOT(addAlias()) );
     h->addWidget( pb, 1 );
 
-    pb = new QPushButton( tr( "Remove", "Remove existing user alias" ),
+    pb = new QPushButton( tr( "Remove alias", "Remove existing user alias" ),
                           this, "remove user alias" );
     connect( pb, SIGNAL(clicked()),
              this, SLOT(removeAlias()) );
@@ -221,15 +221,14 @@ void UserPane::updateExceptLogin()
 {
     // choose the right login in the users list
     QListBoxItem * i = d->users->findItem( d->login->text(), ExactMatch );
-    d->users->setCurrentItem( i );
-
-    // if it's a known user, update from database
-    if ( i )
+    if ( i ) {
+        d->users->setSelected( i, true );
+        d->users->setCurrentItem( i );
         handleUserSelection();
-
-    // if it's not a known user, pick a name from /etc/passwd just in
-    // case
-    if ( !i && !d->realName->isModified() ) {
+    }
+    else {
+        d->users->clearSelection();
+        handleUserSelection();
         struct passwd * pw = getpwnam( d->login->text().utf8() );
         if ( pw ) {
             QString g = QString::fromLocal8Bit( pw->pw_gecos );
@@ -318,6 +317,13 @@ void UserPane::refreshFromDatabase()
         d->password2->setText( password );
         d->password1->deselect();
         d->password2->deselect();
+    }
+
+    if ( d->user->address() ) {
+        String a( d->user->address()->localpart() + "@" +
+                  d->user->address()->domain() );
+        QString b( QString::fromLatin1( a.cstr() ) );
+        d->address->setText( b );
     }
 }
 
