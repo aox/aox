@@ -13,6 +13,7 @@ public:
     EventHandler();
 
     void setLog( Log * );
+    Log *log() const;
 
     virtual void execute() = 0;
     virtual void log( const String &, Log::Severity = Log::Info );

@@ -42,6 +42,16 @@ void EventHandler::setLog( Log *log )
 }
 
 
+/*! Returns a pointer to this EventHandler's Log object, as inferred by
+    the constructor or set with setLog().
+*/
+
+Log *EventHandler::log() const
+{
+    return l;
+}
+
+
 /*! \fn void EventHandler::execute()
 
     This pure virtual function is called when there's something the
