@@ -1,6 +1,16 @@
 # we optimise... or do we?
 OPTIM    = ;
+
 # we always build with debugging and stop on error
-CCFLAGS  = -g -Wall -Werror -ansi -pedantic ;
+C++FLAGS  = -g -Wall -Werror -ansi -pedantic ;
+LINKFLAGS = -g ;
+
+# we always build and link with g++
+C++ = g++ ;
+LINK = g++ ;
+
+# ranlib is obsolete
+RANLIB = "" ;
+
 # our lib directory contains additional include files
 HDRS    += [ FDirName $(TOP) lib ] ;

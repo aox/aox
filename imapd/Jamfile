@@ -2,7 +2,3 @@ SubDir TOP imapd ;
 
 Main imapd : main.cpp ;
 LinkLibraries imapd : liboryx ;
-
-# include the lib directory so that we can build from here, and the
-# lib/* files are built correctly.
-SubInclude TOP lib ;
