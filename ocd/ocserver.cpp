@@ -56,6 +56,7 @@ void OCServer::react( Event e )
     default:
         break;
     }
+    commit();
 }
 
 

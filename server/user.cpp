@@ -452,9 +452,9 @@ void User::changeSecret( const String & newSecret, EventHandler * user )
         d->error = "Cannot set password for nonexistent user";
         return;
     }
-    d->q = new Query( "update users set secret=$1 where id=$2", this );
+    d->q = new Query( "update users set secret=$1 where login=$2", this );
     d->q->bind( 1, newSecret );
-    d->q->bind( 2, d->id );
+    d->q->bind( 2, d->login );
     d->q->execute();
     d->secret = newSecret;
 }

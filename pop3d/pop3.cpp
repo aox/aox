@@ -95,6 +95,7 @@ void POP3::react( Event e )
 
     if ( d->state == Update )
         Connection::setState( Closing );
+    commit();
 }
 
 

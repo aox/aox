@@ -73,7 +73,12 @@ void EventLoop::addConnection( Connection *c )
 }
 
 
-/*! Removes \a c from this EventLoop's list of active Connections. */
+/*! Removes \a c from this EventLoop's list of active
+    Connections.
+
+    Since this is the last time the Connection is reachable,
+    removeConnection() calls Connection::commit() as well.
+*/
 
 void EventLoop::removeConnection( Connection *c )
 {
@@ -83,6 +88,7 @@ void EventLoop::removeConnection( Connection *c )
     if ( !it )
         return;
 
+    c->commit();
     d->connections.take( it );
     if ( c->type() != Connection::LogClient )
         log( "Removed " + c->description(), Log::Debug );
@@ -244,6 +250,8 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
             if ( connected ) {
                 c->setState( Connection::Connected );
                 c->react( Connection::Connect );
+                // any debugging prior to connect can now be flushed
+                c->commit();
                 w = true;
             }
             else if ( error ) {

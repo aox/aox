@@ -253,6 +253,8 @@ void TlsProxy::react( Event e )
     }
 
     setTimeoutAfter( 1800 );
+    
+    commit();
 
     if ( d->state == TlsProxyData::Initial )
         return;

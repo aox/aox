@@ -84,6 +84,7 @@ void OCClient::react( Event e )
         Loop::shutdown();
         break;
     }
+    commit();
 }
 
 

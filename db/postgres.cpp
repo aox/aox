@@ -201,7 +201,7 @@ void Postgres::react( Event e )
         break;
     }
 
-    d->l->commit();
+    commit();
 }
 
 
@@ -529,7 +529,6 @@ void Postgres::error( const String &s )
 {
     d->active = false;
     log( s, Log::Error );
-    d->l->commit();
 
     List< Query >::Iterator q( d->queries.first() );
     while ( q ) {
