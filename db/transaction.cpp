@@ -15,6 +15,7 @@ public:
     Database *db;
     EventHandler *owner;
     Transaction::State state;
+    String error;
 };
 
 
@@ -77,6 +78,27 @@ bool Transaction::failed() const
 bool Transaction::done() const
 {
     return d->state == Completed || d->state == Failed;
+}
+
+
+/*! Returns the error message associated with this Transaction. This
+    value is meaningful only if the Transaction has failed().
+*/
+
+String Transaction::error() const
+{
+    return d->error;
+}
+
+
+/*! Sets this Transaction's state() to Failed, and records the error
+    message \a s.
+*/
+
+void Transaction::setError( const String &s )
+{
+    d->state = Failed;
+    d->error = s;
 }
 
 

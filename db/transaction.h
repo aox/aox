@@ -3,6 +3,7 @@
 
 class Query;
 class EventHandler;
+class String;
 
 
 class Transaction {
@@ -14,6 +15,9 @@ public:
     State state() const;
     bool failed() const;
     bool done() const;
+
+    String error() const;
+    void setError( const String & );
 
     void enqueue( Query * );
     void execute();

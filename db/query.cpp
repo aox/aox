@@ -357,7 +357,7 @@ void Query::setError( const String &s )
     log( Log::Debug, "Database error message: " + s );
 
     if ( d->transaction )
-        d->transaction->setState( Transaction::Failed );
+        d->transaction->setError( s );
 }
 
 
