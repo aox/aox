@@ -465,42 +465,46 @@ void IMAP::unblockCommands()
 
 void IMAP::runCommands()
 {
-    Command * c;
     List< Command >::Iterator i;
 
     d->runningCommands = true;
+    bool done = false;
 
-    // run all currently executing commands once
-    i = d->commands.first();
-    while ( i ) {
-        run( i );
-        i++;
-    }
+    while ( !done ) {
+        done = true;
 
-    // if no commands are running, start the oldest blocked command
-    // and all others in its group.
-
-    i = d->commands.first();
-    while ( i && i->state() != Command::Executing )
-        i++;
-    if ( !i ) {
+        // run all currently executing commands once
         i = d->commands.first();
-        while ( i && i->state() != Command::Blocked )
+        while ( i ) {
+            run( i );
             i++;
-    }
-    if ( i ) {
-        c = i;
-        do {
-            if ( i->group() == c->group() &&
-                 i->state() == Command::Blocked && i->ok() )
-            {
-                i->setState( Command::Executing );
-                run( i );
-            }
-            i++;
-        } while ( c->group() > 0 && i );
-    }
+        }
 
+        // if no commands are running, start the oldest blocked command
+        // and all others in its group.
+
+        i = d->commands.first();
+        while ( i && i->state() != Command::Executing )
+            i++;
+        if ( !i ) {
+            i = d->commands.first();
+            while ( i && i->state() != Command::Blocked )
+                i++;
+        }
+        if ( i ) {
+            Command *c = i;
+            do {
+                if ( i->group() == c->group() &&
+                     i->state() == Command::Blocked && i->ok() )
+                {
+                    i->setState( Command::Executing );
+                    done = false;
+                }
+                i++;
+            } while ( c->group() > 0 && i );
+        }
+    }
+    
     d->runningCommands = false;
 }
 

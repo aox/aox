@@ -310,15 +310,7 @@ void ImapSessionInitializer::execute()
         }
 
         d->t->commit();
-        return;
-    }
-    else if ( d->recent->done() ) {
-        Row * r = 0;
-        while ( (r = d->recent->nextRow()) != 0 )
-            d->session->addRecent( r->getInt( "uid" ) );
-    }
 
-    if ( !d->messages ) {
         d->messages
             = new Query( "select uid,"
                          "seen,draft,flagged,answered,deleted,"
@@ -331,7 +323,14 @@ void ImapSessionInitializer::execute()
         d->messages->bind( 3, d->newUidnext );
         d->messages->execute();
     }
-    else if ( d->messages->done() ) {
+
+    if ( d->recent->done() ) {
+        Row * r = 0;
+        while ( (r = d->recent->nextRow()) != 0 )
+            d->session->addRecent( r->getInt( "uid" ) );
+    }
+
+    if ( d->messages->done() ) {
         Row * r = 0;
         while ( (r=d->messages->nextRow()) != 0 ) {
             uint uid = r->getInt( "uid" );
@@ -346,7 +345,7 @@ void ImapSessionInitializer::execute()
             }
 
             d->session->d->messages.insert( uid, m );
-            d->session->d->msns.add( uid, uid );
+            d->session->d->msns.add( uid );
 
             m->setFlag( Message::SeenFlag, r->getBoolean( "seen" ) );
             m->setFlag( Message::DraftFlag, r->getBoolean( "draft" ) );
@@ -359,7 +358,7 @@ void ImapSessionInitializer::execute()
         }
     }
 
-    if ( d->recent->done() && d->messages->done() ) {
+    if ( d->t->done() && d->messages->done() ) {
         /*
         log( Log::Debug,
              "Saw " + fn( d->messages->rows() ) + " new messages, " +
