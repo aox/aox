@@ -288,6 +288,7 @@ void Postgres::authentication( char type )
 
 void Postgres::backendStartup( char type )
 {
+    static bool initialized = false;
     switch ( type ) {
     case 'Z':
         setTimeout( 0 );
@@ -295,9 +296,8 @@ void Postgres::backendStartup( char type )
 
         // The first time we successfully negotiate a connection, we
         // need to run updateSchema.
-        static bool first = true;
-        if ( first ) {
-            first = false;
+        if ( !initialized ) {
+            initialized = true;
             updateSchema();
             log( "PostgreSQL: Ready for queries" );
         }
