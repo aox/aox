@@ -4,6 +4,13 @@ PGUSER = postgres ;
 JAMSETTINGS = Jamsettings ;
 include $(JAMSETTINGS:D=$(TOP)) ;
 
+# If you need to do horrid or perverse things that shouldn't be
+# version-controlled, you can create a file called Jamhacks and do
+# them there.
+JAMHACKS = Jamhacks ;
+NOCARE $(JAMHACKS:D=$(TOP)) ;
+include $(JAMHACKS:D=$(TOP)) ;
+
 VERSION = 0.91 ;
 
 MKDIR = mkdir -p ;
