@@ -237,6 +237,14 @@ void Injector::selectUids()
     while ( it ) {
         d->totalUids++;
 
+        // We acquire a write lock on our mailbox, and hold it until the
+        // entire transaction has committed successfully. We use uidnext
+        // in lieu of a UID sequence to serialise Injectors, so that UID
+        // announcements are correctly ordered.
+        //
+        // The mailbox list must be sorted, so that Injectors always try
+        // to acquire locks in the same order, thus avoiding deadlocks.
+
         q = new Query( "select uidnext as id from mailboxes "
                        "where id=$1 for update", helper );
         q->bind( 1, it->id() );
@@ -431,7 +439,7 @@ void Injector::linkHeaderFields()
             HeaderField::Type t = link->hf->type();
             if ( t == HeaderField::Other )
                 t = FieldNameCache::translate( link->hf->name() );
-            
+
             q = new Query( "insert into header_fields "
                            "(mailbox,uid,part,field,value) values "
                            "($1,$2,$3,$4,$5)", 0 );
