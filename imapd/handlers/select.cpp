@@ -39,7 +39,7 @@ void Select::execute()
     }
 
     if ( !m->done() )
-        m->load();
+        m->select();
 
     if ( !m->done() )
         return;
