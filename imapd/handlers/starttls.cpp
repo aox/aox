@@ -13,6 +13,12 @@
 
 void StartTLS::execute()
 {
+    if ( imap()->hasTLS() ) {
+        error( Bad, "Nested STARTTLS" );
+        finish();
+        return;
+    }
+
     imap()->startTLS();
     finish();
 }
