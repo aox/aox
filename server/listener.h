@@ -83,7 +83,7 @@ public:
             Endpoint e( a, p );
             if ( !e.valid() ) {
                 log( Log::Error, "Cannot parse desired endpoint for " + svc +
-                     ", " + a + " port " + String::fromNumber( p ) );
+                     ", " + a + " port " + fn( p ) );
             }
             else {
                 l = new Listener<T>( Endpoint( a, p ), svc );

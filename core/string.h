@@ -141,4 +141,11 @@ inline bool operator!=( const String & a, const String & b ) {
 extern const String operator+( const String & a, const String & b );
 extern const String operator+=( const String & a, const String & b );
 
+
+inline String fn( uint n, uint b = 10 )
+{
+    return String::fromNumber( n, b );
+}
+
+
 #endif

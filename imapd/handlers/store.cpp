@@ -274,7 +274,7 @@ void Store::killSuperfluousRows()
         StringList cond;
         List<Flag>::Iterator it( d->extra.first() );
         while ( it ) {
-            cond.append( "flag=" + String::fromNumber( it->id() ) );
+            cond.append( "flag=" + fn( it->id() ) );
             ++it;
         }
         q = new Query( "delete from extra_flags where " + d->s.where() +
@@ -339,8 +339,8 @@ void Store::pretendToFetch()
         uint uid = d->s.value( i );
         uint msn = s->msn( uid );
         i++;
-        respond( String::fromNumber( msn ) + " FETCH (UID " +
-                 String::fromNumber( uid ) + " FLAGS (" +
+        respond( fn( msn ) + " FETCH (UID " +
+                 fn( uid ) + " FLAGS (" +
                  d->flagNames.join( " " ) + "))" );
     }
 }
@@ -411,8 +411,8 @@ bool Store::dumpFetchResponses()
             extraUid = extra->getInt( "uid" );
         }
         uint msn = s->msn( uid );
-        respond( String::fromNumber( msn ) + " FETCH (UID " +
-                 String::fromNumber( uid ) + " FLAGS (" +
+        respond( fn( msn ) + " FETCH (UID " +
+                 fn( uid ) + " FLAGS (" +
                  r.join( " " ) + "))" );
     }
     return true;

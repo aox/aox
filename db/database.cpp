@@ -60,7 +60,7 @@ void Database::setup()
 
     if ( !srv->valid() ) {
         log( Log::Disaster, "Invalid db-address <" + dbHost + "> port <" +
-             String::fromNumber( dbPort ) + ">" );
+             fn( dbPort ) + ">" );
         return;
     }
 

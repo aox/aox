@@ -307,7 +307,7 @@ void Search::execute()
         ++it;
         if ( !d->uid )
             n = s->msn( n );
-        r.append( String::fromNumber( n ) );
+        r.append( fn( n ) );
     }
     respond( r );
     setState( Finished );
@@ -341,9 +341,9 @@ void Search::considerCache()
         if ( !needDb )
             c++;
     }
-    log( Log::Debug, "search considered " + String::fromNumber( c ) +
-         " of " + String::fromNumber( c ) + " messages using cache, " +
-         String::fromNumber( d->matches.count() ) + " matches" );
+    log( Log::Debug, "search considered " + fn( c ) +
+         " of " + fn( c ) + " messages using cache, " +
+         fn( d->matches.count() ) + " matches" );
     if ( needDb )
         d->matches.clear();
     else
@@ -798,7 +798,7 @@ Search::Condition::MatchResult Search::Condition::match( Message * m,
                 return Yes;
             return No;
         }
-        else if ( m && m->hasFlags() ) {
+        else if ( m ) {
             if ( a2 == "answered" )
                 return m->flag( Message::AnsweredFlag ) ? Yes : No;
             if ( a2 == "deleted" )

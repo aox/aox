@@ -247,7 +247,7 @@ void Query::setTransaction( Transaction *t )
 
 void Query::bind( uint n, int s )
 {
-    bind( n, String::fromNumber( s ) );
+    bind( n, fn( s ) );
 }
 
 
@@ -579,7 +579,7 @@ static int prepareCounter = 0;
 */
 
 PreparedStatement::PreparedStatement( const String &s )
-    : n( String::fromNumber( prepareCounter++ ) ), q( s )
+    : n( fn( prepareCounter++ ) ), q( s )
 {
 }
 

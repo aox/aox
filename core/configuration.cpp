@@ -402,8 +402,7 @@ bool Configuration::Scalar::setValue( const String & line )
     while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
         i++;
     if ( i < line.length() && line[i] != '#' ) {
-        log( "trailing garbage after " + name() + " = " +
-             String::fromNumber( n ) );
+        log( "trailing garbage after " + name() + " = " + fn( n ) );
         return false;
     }
 

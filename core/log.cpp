@@ -58,7 +58,7 @@ Log::Log( Facility f )
     if ( !l )
         id = "1";
     else
-        id = l->id + "/" + String::fromNumber( l->children++ );
+        id = l->id + "/" + fn( l->children++ );
     children = 1;
 }
 

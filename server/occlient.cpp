@@ -52,8 +52,9 @@ void OCClient::setup()
     Endpoint e( ocdHost, ocdPort );
 
     if ( !e.valid() ) {
-        log( Log::Disaster, "Invalid ocdhost address <" + ocdHost + "> port <" +
-             String::fromNumber( ocdPort ) + ">\n" );
+        log( Log::Disaster,
+             "Invalid ocdhost address <" + ocdHost + "> port <" +
+             fn( ocdPort ) + ">\n" );
         return;
     }
 

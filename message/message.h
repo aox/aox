@@ -44,7 +44,7 @@ public:
     };
 
     bool flag( BuiltinFlag ) const;
-    bool hasFlags() const;
+    void setFlag( BuiltinFlag, bool );
 
 private:
     void parseMultipart( uint, uint, const String &, const String &, bool,

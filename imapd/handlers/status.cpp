@@ -4,8 +4,6 @@
 #include "mailbox.h"
 #include "imapsession.h"
 
-static inline String fn( uint n ) { return String::fromNumber( n ); }
-
 
 /*! \class Status status.h
     Returns the status of the specified mailbox (RFC 3501, §6.3.10)

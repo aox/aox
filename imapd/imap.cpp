@@ -257,7 +257,7 @@ void IMAP::addCommand()
 {
     String * s = d->args->first();
     log( Log::Debug, "Received " +
-                    String::fromNumber( (d->args->count() + 1)/2 ) +
+                    fn( (d->args->count() + 1)/2 ) +
                     "-line command: " + *s );
 
     String tag, command;

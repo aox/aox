@@ -148,7 +148,7 @@ static String cryptlibError( int cryptError ) {
 
     // Should Not Happen[tm]
     default:
-        e = String::fromNumber( cryptError ) + ": Unknown error";
+        e = fn( cryptError ) + ": Unknown error";
         break;
     }
 
@@ -157,7 +157,7 @@ static String cryptlibError( int cryptError ) {
 
 
 static String cryptlibLocus( int locus ) {
-    String r = String::fromNumber( locus );
+    String r = fn( locus );
 
     // there are so many attributes. too much work to specify them
     // all.
@@ -166,7 +166,7 @@ static String cryptlibLocus( int locus ) {
 
 
 static String cryptlibType( int type ) {
-    String r = String::fromNumber( type ) + ": ";
+    String r = fn( type ) + ": ";
     switch( type ) {
     // The comments and strings below are copied from cryptlib.h (and
     // slightly modified).
@@ -515,7 +515,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     int p1 = fork();
     if ( p1 < 0 ) {
         // error
-        log( "fork failed: " + String::fromNumber( errno ) );
+        log( "fork failed: " + fn( errno ) );
         setState( Closing );
         return;
     }
@@ -543,7 +543,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     enqueue( "ok\r\n" );
     log( "Starting TLS proxy for for " + protocol + " client " +
          client.string() + " (host " + Configuration::hostname() + ") (pid " +
-         String::fromNumber( getpid() ) + ")" );
+         fn( getpid() ) + ")" );
 
     d->state = TlsProxyData::EncryptedSide;
     other->d->state = TlsProxyData::PlainSide;

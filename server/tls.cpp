@@ -85,7 +85,7 @@ void TlsServerData::Client::react( Event e )
         d->userside->enqueue( d->serverside->tag + " " +
                               d->protocol + " " +
                               d->client.address() + " " +
-                              String::fromNumber( d->client.port() ) +
+                              fn( d->client.port() ) +
                               "\r\n" );
     }
     else if ( l == "ok" ) {

@@ -190,7 +190,7 @@ void SMTP::parse()
             i++;
         if ( i >= 32768 ) {
             log( "Connection closed due to overlong line (" +
-                 String::fromNumber( i ) + " bytes)" );
+                 fn( i ) + " bytes)" );
             respond( 500, "Line too long (maximum is 32768 bytes)" );
             Connection::setState( Closing );
             return;
@@ -380,7 +380,7 @@ void SMTP::data()
     }
     else {
         respond( 354, "Go ahead (sending to " +
-                 String::fromNumber( d->to.count() ) + " recipients)" );
+                 fn( d->to.count() ) + " recipients)" );
         d->state = Body;
         sendResponses();
     }
@@ -515,7 +515,7 @@ Address * SMTP::address()
     }
     if ( a.addresses()->count() != 1 ) {
         respond( 503, "Internal error: That parsed as " +
-                 String::fromNumber( a.addresses()->count() ) +
+                 fn( a.addresses()->count() ) +
                  " addresses, not 1" );
         return 0;
     }
@@ -551,7 +551,7 @@ void SMTP::sendResponses()
     if ( d->code < 100 )
         respond( 250, "OK" ); // to provide a good default
 
-    String n = String::fromNumber( d->code );
+    String n = fn( d->code );
     String r;
     StringList::Iterator it( d->response.first() );
     do {

@@ -435,7 +435,7 @@ void Postgres::unknown( char type )
             if ( type > 32 && type < 127 )
                 err.append( type );
             else
-                err.append( "%" + String::fromNumber( (int)type, 16 ) );
+                err.append( "%" + fn( (int)type, 16 ) );
 
             err.append( ") received" );
             if ( d->startup ) {

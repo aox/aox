@@ -11,7 +11,7 @@ Build imap :
     fetch.cpp
     id.cpp
     idle.cpp
-    imaplist.cpp
+    listext.cpp
     login.cpp
     logout.cpp
     namespace.cpp

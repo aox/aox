@@ -245,7 +245,7 @@ String Fetch::dotLetters( uint min, uint max )
         i++;
     }
     if ( i < min )
-        error( Bad, "Expected at least " + String::fromNumber( min-i ) +
+        error( Bad, "Expected at least " + fn( min-i ) +
                " more letters/digits/dots, saw " + following() );
     return r;
 }
@@ -268,7 +268,7 @@ void Fetch::parseBody()
 
     bool sectionValid = true;
     while ( sectionValid && nextChar() >= '0' && nextChar() <= '9' ) {
-        s->id.append( String::fromNumber( nzNumber() ) );
+        s->id.append( fn( nzNumber() ) );
         if ( nextChar() == '.' ) {
             s->id.append( "." );
             step();
