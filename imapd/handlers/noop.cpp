@@ -3,6 +3,10 @@
 #include "transaction.h"
 #include "query.h"
 
+
+static PreparedStatement * fooInsert;
+
+
 /*! \class Noop noop.h
     NOOP does nothing (RFC 3501, §6.1.2)
 
@@ -15,6 +19,8 @@
 Noop::Noop()
     : q1( 0 ), q2( 0 ), t( 0 )
 {
+    if ( !fooInsert )
+        fooInsert = new PreparedStatement( "insert into foo (bar) values ($1)" );
 }
 
 
@@ -26,9 +32,11 @@ void Noop::execute()
 {
     if ( !t ) {
         t = new Transaction;
+
+        q1 = new Query( *fooInsert, this );
+        q1->bind( 1, "Bar" );
         q2 = new Query( "select currval('foo_id_seq')::integer as id", this );
-        q1 = new Query( "insert into foo (bar) values ($1)", this );
-        q1->bind( 1, "Foo" );
+
         t->enqueue( q1 );
         t->enqueue( q2 );
         t->end();
