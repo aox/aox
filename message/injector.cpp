@@ -420,7 +420,7 @@ void Injector::insertBodyparts()
         if ( id ) {
             // This is a terrible hack. Must fix later. -- AMS
             s = new Query( "select " + fn( *id ) + " as id, "
-                           "'" + hash + "' as hash", helper );
+                           "'" + hash.hex() + "' as hash", helper );
             d->transaction->enqueue( s );
             queries->append( s );
             continue;
