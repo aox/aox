@@ -229,6 +229,14 @@ public:
 };
 
 
+class PgParameterDescription
+    : public PgServerMessage
+{
+public:
+    PgParameterDescription( Buffer * );
+};
+
+
 class PgRowDescription
     : public PgServerMessage
 {

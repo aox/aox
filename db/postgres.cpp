@@ -317,6 +317,10 @@ void Postgres::process( char type )
         }
         break;
 
+    case 't':
+        (void)new PgParameterDescription( readBuffer() );
+        break;
+        
     case 'T':
         d->description = new PgRowDescription( readBuffer() );
         break;
