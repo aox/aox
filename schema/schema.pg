@@ -103,7 +103,7 @@ create table bodyparts (
     bytes       integer not null,
     lines       integer not null,
     hash        text not null unique,
-    text        bytea,
+    text        text,
     data        bytea
 );
 

@@ -760,6 +760,100 @@ void UpdateSchema::execute() {
             }
 
             if ( revision == 2 ) {
+                if ( substate == 0 ) {
+                    q = new Query( "alter table bodyparts add hash text",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "alter table bodyparts add data bytea",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "alter table bodyparts add text2 text",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "update bodyparts set data=b.data from "
+                                   "binary_parts b where id=b.bodypart",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "select id,text,data from bodyparts", this );
+                    t->enqueue( q );
+                    t->execute();
+                    substate = 1;
+                }
+
+                if ( substate == 1 ) {
+                    if ( !q->done() )
+                        return;
+
+                    while ( q->hasResults() ) {
+                        Row *r = q->nextRow();
+                        String text, data;
+
+                        Query *u =
+                            new Query( "update bodyparts set "
+                                       "text2=$1,hash=$2 where id=$3", this );
+                        if ( r->isNull( "text" ) ) {
+                            data = r->getString( "data" );
+                            u->bindNull( 1 );
+                            u->bind( 2, MD5::hash( data ).hex() );
+                        }
+                        else {
+                            text = r->getString( "text" );
+                            u->bind( 1, text );
+                            u->bind( 2, MD5::hash( text ).hex() );
+                        }
+                        u->bind( 3, r->getInt( "id" ) );
+                        t->enqueue( u );
+                    }
+
+                    q = new Query( "alter table bodyparts drop text", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table bodyparts rename text2 to text",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "select id,hash from bodyparts where hash in "
+                                   "(select hash from bodyparts group by hash"
+                                   " having count(*) > 1)", this );
+                    t->enqueue( q );
+                    t->execute();
+                    substate = 2;
+                }
+
+                if ( substate == 2 ) {
+                    if ( !q->done() )
+                        return;
+
+                    StringList ids;
+                    Dict< uint > hashes;
+
+                    while ( q->hasResults() ) {
+                        Row *r = q->nextRow();
+                        uint id = r->getInt( "id" );
+                        String hash = r->getString( "hash" );
+
+                        uint *old = hashes.find( hash );
+                        if ( old ) {
+                            ids.append( fn( id ) );
+                            Query *u =
+                                new Query( "update part_numbers set "
+                                           "bodypart=$1 where bodypart=$2",
+                                           this );
+                            u->bind( 1, *old );
+                            u->bind( 2, id );
+                            t->enqueue( u );
+                        }
+                        else {
+                            hashes.insert( hash, new uint( id ) );
+                        }
+                    }
+
+                    q = new Query( "delete from bodyparts where id in "
+                                   "(" + ids.join(",") + ")", this );
+                    t->enqueue( q );
+                    q = new Query( "drop table binary_parts", this );
+                    t->enqueue( q );
+                    t->execute();
+                    substate = 2;
+                }
             }
 
             state = 5;
