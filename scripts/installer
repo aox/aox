@@ -42,6 +42,8 @@ fi
 
 if [ -x /sbin/md5 ]; then
     MD5=/sbin/md5;
+elif [ -x /usr/bin/md5 ]; then
+    MD5=/sbin/md5;
 elif [ -x /usr/bin/md5sum ]; then
     MD5=/usr/bin/md5sum
 else
