@@ -176,15 +176,16 @@ void Loop::dispatch( Connection *c, bool r, bool w, int now )
             c->write();
     }
     catch ( Exception e ) {
+        log( Log::Error, "While processing " + c->description() + ":" );
         switch (e) {
         case Range:
-            log( "Out-of-range memory access." );
+            log( Log::Error, "Out-of-range memory access." );
             break;
         case Memory:
-            log( "Out of memory." );
+            log( Log::Error, "Out of memory." );
             break;
         case FD:
-            log( "FD error." );
+            log( Log::Error, "FD error." );
             break;
         };
         c->close();
