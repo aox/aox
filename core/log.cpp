@@ -28,8 +28,6 @@ static String time();
 
     If a Log is destroyed (or the program dies), all pending messages
     are committed to disk by the log server.
-
-    Log::global()->log( "..." ) is useful for server-global messages.
 */
 
 /*! Constructs an empty Log object that can write to the Log. */
@@ -83,16 +81,6 @@ Log::~Log()
 
     if ( this == globalLog )
         globalLog = 0;
-}
-
-
-/*! Returns a pointer to the global logger, which is used for
-    server-global messages.
-*/
-
-Log * Log::global()
-{
-    return globalLog;
 }
 
 

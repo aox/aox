@@ -25,8 +25,6 @@ public:
 
     static String severity( Severity );
 
-    static Log * global();
-
     static bool disastersYet();
 
 private:

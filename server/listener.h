@@ -32,7 +32,7 @@ public:
         default:
             // XXX: This should be log(), but it segfaults.
             // Will investigate later. -- AMS 20040330
-            Log::global()->log( svc + " listener stopped" );
+            log( svc + " listener stopped" );
             setState( Closing );
             break;
         }

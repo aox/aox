@@ -95,7 +95,7 @@ void Loop::start()
             if ( errno == EINTR )
                 continue;
 
-            Log::global()->log( "Main loop: select() broke" );
+            log( "Main loop: select() broke" );
             exit( 0 );
         }
 
@@ -176,13 +176,13 @@ void Loop::dispatch( Connection *c, bool r, bool w, int now )
     catch ( Exception e ) {
         switch (e) {
         case Range:
-            Log::global()->log( "Out-of-range memory access." );
+            log( "Out-of-range memory access." );
             break;
         case Memory:
-            Log::global()->log( "Out of memory." );
+            log( "Out of memory." );
             break;
         case FD:
-            Log::global()->log( "FD error." );
+            log( "FD error." );
             break;
         };
         c->close();

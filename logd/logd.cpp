@@ -22,7 +22,7 @@ int main( int, char *[] )
     (void)new SelfLogger;
     Listener<LogServer>::create( "Log Server", "", 2054 );
 
-    Log::global()->log( Test::report() );
+    log( Test::report() );
     Configuration::global()->report();
 
     Loop::start();

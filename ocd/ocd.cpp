@@ -5,6 +5,7 @@
 #include "listener.h"
 #include "ocserver.h"
 #include "ocadmin.h"
+#include "logclient.h"
 
 #include <stdlib.h>
 
@@ -18,12 +19,12 @@ int main()
 
     Configuration::makeGlobal( ".ocdrc" );
 
-    // Log::setup();
+    LogClient::setup();
 
     Listener< OCServer >::create( "Cluster coordination", "", 2050 );
     Listener< OCAdmin >::create( "Cluster administration", "", 2051 );
 
-    Log::global()->log( Test::report() );
+    log( Test::report() );
     Configuration::global()->report();
 
     if ( Log::disastersYet() )

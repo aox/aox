@@ -98,7 +98,7 @@ void LogServer::parse()
     if ( !s )
         return;
 
-    processLine( s->simplified() );
+    processLine( *s );
 }
 
 
@@ -124,7 +124,7 @@ void LogServer::processLine( const String & line )
     if ( ok && line[i] > ' ' )
         process( line.mid( 0, command-1 ),
                  line.mid( command, i-1-command ),
-                 line.mid( i ) );
+                 line.mid( i ).simplified() );
 }
 
 
