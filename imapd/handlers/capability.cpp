@@ -24,8 +24,9 @@ Capability::~Capability()
 /* authentication */ "AUTH=ANONYMOUS AUTH=PLAIN " \
 /* draft-gulbrandsen */ "COMPRESS=DEFLATE " \
 /* RFC 2177 */ "IDLE " \
-/* RFC 2088 - no trailing space */ "LITERAL+" \
-/* RFC 2195 - SASL CRAM-MD5 */ "AUTH=CRAM-MD5" \
+/* RFC 2971 */ "ID " \
+/* RFC 2088 - no trailing space */ "LITERAL+ " \
+/* RFC 2195 - SASL CRAM-MD5 */ "AUTH=CRAM-MD5 " \
 /* RFC 2831 - SASL DIGEST-MD5 */ "AUTH=DIGEST-MD5"
 
 
