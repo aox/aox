@@ -91,7 +91,7 @@ void Append::parse()
             error( Bad, "Date supplied is not valid" );
     }
 
-    d->message = new Message( literal() );
+    d->message = new Message( literal(), false );
     if ( !d->message->valid() )
         error( Bad, d->message->error() );
 }
