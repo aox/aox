@@ -4,7 +4,7 @@
 #include "global.h"
 #include "string.h"
 #include "list.h"
-#include "dbclient.h"
+#include "event.h"
 
 class IMAP;
 class Arena;

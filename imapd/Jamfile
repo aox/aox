@@ -55,7 +55,7 @@ Build imap : imap.cpp command.cpp occlient.cpp set.cpp mailbox.cpp
 Build message : address.cpp parser.cpp date.cpp header.cpp
     mimefields.cpp message.cpp ;
 
-Build database : dbclient.cpp cache.cpp query.cpp addressquery.cpp
+Build database : event.cpp cache.cpp query.cpp addressquery.cpp
     injector.cpp transaction.cpp ;
 
 Build server : connection.cpp listener.cpp loop.cpp endpoint.cpp log.cpp
