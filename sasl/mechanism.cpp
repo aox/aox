@@ -177,6 +177,7 @@ String SaslMechanism::challenge()
 void SaslMechanism::query()
 {
     if ( !d->user ) {
+        setState( Authenticating );
         d->user = new User;
         d->user->setLogin( d->login );
         d->user->refresh( command() );
