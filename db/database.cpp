@@ -105,6 +105,8 @@ void Database::submit( Query *q )
     if ( handles->count() < max &&
          time(0) - lastCreated >= interval )
         newHandle();
+
+    // XXX: We should also find and close handles unused in interval.
 }
 
 
