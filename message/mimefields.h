@@ -28,19 +28,22 @@ private:
 };
 
 
-class ContentType: public MimeField {
+class ContentType
+    : public MimeField
+{
 public:
     ContentType( const String & );
-
     String type() const;
     String subtype() const;
 
 private:
-    class CTData *d;
+    String t, st;
 };
 
 
-class ContentTransferEncoding {
+class ContentTransferEncoding
+    : public MimeField
+{
 public:
     ContentTransferEncoding( const String & );
 
@@ -51,10 +54,9 @@ public:
     };
 
     Encoding encoding() const;
-    bool valid() const;
 
 private:
-    class CTEData *d;
+    Encoding e;
 };
 
 
@@ -72,7 +74,19 @@ public:
     Disposition disposition() const;
 
 private:
-    class CDData *d;
+    Disposition d;
+};
+
+
+class ContentLanguage
+    : public MimeField
+{
+public:
+    ContentLanguage( const String & );
+    const StringList *languages() const;
+
+private:
+    StringList l;
 };
 
 

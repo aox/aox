@@ -10,6 +10,7 @@ class Address;
 class ContentType;
 class ContentTransferEncoding;
 class ContentDisposition;
+class ContentLanguage;
 class Date;
 
 
@@ -42,6 +43,7 @@ public:
         ContentDescription, ContentId,
         MimeVersion,
         Received,
+        ContentLanguage,
         // Other must be last
         Other
     };
@@ -57,6 +59,7 @@ public:
     ::ContentType * parseContentType();
     ::ContentTransferEncoding * parseContentTransferEncoding();
     ::ContentDisposition * parseContentDisposition();
+    ::ContentLanguage * parseContentLanguage();
     void parseMimeVersion();
 
 private:
@@ -87,6 +90,7 @@ public:
     ContentType * contentType() const;
     ContentTransferEncoding * contentTransferEncoding() const;
     ContentDisposition * contentDisposition() const;
+    ContentLanguage * contentLanguage() const;
     String contentDescription() const;
 
     List<Address> * addresses( HeaderField::Type ) const;
