@@ -1,11 +1,12 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include "file.h"
 #include "scope.h"
 #include "listener.h"
-#include "file.h"
 #include "logserver.h"
 #include "configuration.h"
 #include "selflogger.h"
+#include "allocator.h"
 #include "server.h"
 
 #include <signal.h>
@@ -21,7 +22,7 @@ int main( int argc, char * argv[] )
     s.setChrootMode( Server::LogDir );
 
     s.setup( Server::LogSetup );
-    (void)new SelfLogger;
+    Allocator::addEternal( new SelfLogger, "the logger's logger" );
     String logName( Configuration::text( Configuration::LogFile ) );
     LogServer::setLogFile( logName );
     String logLevel( Configuration::text( Configuration::LogLevel ) );
