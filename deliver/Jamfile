@@ -1,0 +1,9 @@
+SubDir TOP deliver ;
+SubInclude TOP server ;
+SubInclude TOP message ;
+SubInclude TOP db ;
+
+Build deliver : deliver.cpp ;
+
+Program deliver : deliver database message server mailbox core encodings ;
+LINKLIBS on deliver = -lcrypt ;
