@@ -67,14 +67,14 @@ static List<TlsProxy> * proxies = 0;
 
 
 /*! \class TlsProxy tlsproxy.h
-  The TlsProxy class provides half a tls proxy.
+    The TlsProxy class provides half a tls proxy.
 
-  It answers a request from another Mailstore server, hands out an
-  identification number, and can build a complete proxy.
+    It answers a request from another Mailstore server, hands out an
+    identification number, and can build a complete proxy.
 
-  The proxy needs two connections, one plaintext and one
-  encrupted. Data comes in on one end, is encrypted/decrypted, is sent
-  out on the other.
+    The proxy needs two connections, one plaintext and one
+    encrupted. Data comes in on one end, is encrypted/decrypted, is sent
+    out on the other.
 */
 
 
@@ -119,8 +119,10 @@ void TlsProxy::react( Event e )
     case Error:
     case Close:
         setState( Closing );
-        if ( d->state != TlsProxyData::Initial )
+        if ( d->state != TlsProxyData::Initial ) {
+            log( "Shutting down TLS proxy due to client close" );
             Loop::shutdown();
+        }
         break;
 
     case Connect:
@@ -132,8 +134,8 @@ void TlsProxy::react( Event e )
 
 /*! Parses the incoming request from other mailstore servers and
     starts setting up the TLS proxy. This Connection will be the
-    plaintext (server-side) and the other the encrypted one
-    (user-side) one.
+    encrypted one (user-side) and the other the plaintext
+    (server-side) one.
 
     The syntax is a single line terminated by crlf. The line contains
     foud space-separated fields: partner tag, protocol, client address
@@ -238,10 +240,10 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
          client.string() + " (host " + Configuration::hostname() + ") (pid " +
          String::fromNumber( getpid() ) + ")" );
 
-    d->state = TlsProxyData::PlainSide;
-    other->d->state = TlsProxyData::EncryptedSide;
-    ::serverside = this;
-    ::userside = other;
+    d->state = TlsProxyData::EncryptedSide;
+    other->d->state = TlsProxyData::PlainSide;
+    ::serverside = other;
+    ::userside = this;
 
     String server = Configuration::hostname();
 

@@ -36,7 +36,9 @@ void ByteForwarder::react( Event e )
             Arena a;
             Scope b( &a );
             Buffer * r = readBuffer();
-            s->writeBuffer()->append( *r->string( r->size() ) );
+            String bytes = *r->string( r->size() );
+            s->writeBuffer()->append( bytes );
+            r->remove( bytes.length() );
         }
         break;
 
