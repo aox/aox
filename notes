@@ -228,3 +228,7 @@ Web page appearance/voice
   capitalized?
 
 
+<nobr> is not standard html
+
+  Udoc uses it in output. Change that to a <span>, and update our
+  style sheet to match.
