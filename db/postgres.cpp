@@ -625,7 +625,20 @@ void UpdateSchema::execute() {
         if ( !lock->done() )
             return;
         revision = lock->nextRow()->getInt( "revision" );
-        state = 2;
+
+        if ( revision == currentRevision ) {
+            state = 7;
+            t->commit();
+        }
+        else if ( revision > currentRevision ) {
+            log( Log::Disaster,
+                 "The schema is newer than this server expected. Upgrade." );
+            state = 8;
+            return;
+        }
+        else {
+            state = 2;
+        }
     }
 
     // Perform successive updates towards the current revision.
@@ -642,8 +655,9 @@ void UpdateSchema::execute() {
                 return;
             int gap = seq->nextRow()->getInt( "seq" ) - revision;
             if ( gap > 1 ) {
-                // This is a disaster indicating a previous failure.
-                state = 9;
+                log( Log::Disaster,
+                     "Can't update, because an earlier schema update failed." );
+                state = 8;
                 break;
             }
             state = 4;
@@ -664,14 +678,31 @@ void UpdateSchema::execute() {
         if ( state == 6 ) {
             if ( !update->done() )
                 return;
+
             revision = revision+1;
+            if ( revision == currentRevision ) {
+                t->commit();
+                state = 7;
+                break;
+            }
             state = 2;
         }
     }
 
-    // XXX: This is bandaid. Isn't it?
-    if ( !t->done() )
-        t->commit();
+    if ( state == 7 ) {
+        if ( !t->done() )
+            return;
+
+        if ( t->failed() ) {
+            log( Log::Disaster,
+                 "The schema update transaction failed unexpectedly." );
+            state = 8;
+        }
+    }
+
+    if ( state == 8 ) {
+        // This is a disaster. But do we need to do anything here?
+    }
 }
 
 
