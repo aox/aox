@@ -399,10 +399,10 @@ bool Store::dumpFetchResponses()
             r.append( "\\draft" );
         if ( system->getBoolean( "flagged" ) )
             r.append( "\\flagged" );
+        if ( s->isRecent( uid ) )
+            r.append( "\\recent" );
         if ( system->getBoolean( "seen" ) )
             r.append( "\\seen" );
-        else if ( s->isRecent( uid ) ) // recent only if unseen
-            r.append( "\\recent" );
         while ( extra && extraUid == uid ) {
             Flag * f = Flag::find( extra->getInt( "flag" ) );
             if ( f )
