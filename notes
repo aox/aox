@@ -273,6 +273,22 @@ Don't depend on md5sum
 We need a SIEVE interpreter.
 
 
+Autoresponder
+
+  We'll need one, nicely programmable, connected to our sieve.
+
+  I was reminded of this by Google's wording:
+
+  Thank you for writing to Google. This automated response is just to
+  let you know that we've received your email, and you'll hear from us
+  soon.
+
+  Thank you for using Google.
+
+  Regards,
+  The Google Team
+
+
 Search folders
 
   This gets more tricky each time I think about it. In particular, if
@@ -318,3 +334,12 @@ Web Style Guide
 
   Must add a section about the phrasing, what sort of language we
   used. Added by request of the CTO.
+
+
+Retention Policy Framework
+
+  A lot of sites will want explicit policies regarding what mail may
+  not be deleted, what may be deleted, and what must be deleted. We
+  can support that well.
+
+
