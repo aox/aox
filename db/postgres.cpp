@@ -378,10 +378,7 @@ void Postgres::process( char type )
                 }
             }
 
-            if ( !q )
-                return;
-
-            if ( q->state() == Query::Executing ) {
+            if ( q ) {
                 q->setState( Query::Completed );
                 q->notify();
                 d->queries.take( q );
