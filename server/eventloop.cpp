@@ -64,12 +64,9 @@ void EventLoop::addConnection( Connection *c )
 {
     Scope x( d->arena, d->log );
 
-    if ( d->connections.find( c ) ) {
-        // if ( c->type() != Connection::LogClient )
-        //     log( "Ignored attempt to add existing connection " +
-        //          c->description() );
+    if ( d->connections.find( c ) )
+        // if we're going to be silent, let's be honest about it
         return;
-    }
 
     d->connections.insert( c );
     if ( c->type() != Connection::LogClient )
@@ -84,12 +81,8 @@ void EventLoop::removeConnection( Connection *c )
     Scope x( d->arena, d->log );
 
     SortedList< Connection >::Iterator it( d->connections.find( c ) );
-    if ( !it ) {
-        // if ( c->type() != Connection::LogClient )
-        //     log( "Ignored attempt to remove unknown connection " +
-        //          c->description() );
+    if ( !it )
         return;
-    }
 
     d->connections.take( it );
     if ( c->type() != Connection::LogClient )
@@ -180,25 +173,27 @@ void EventLoop::start()
                 dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
         }
 
-        // This is for event loop shutdown. A little brutal. Proper
-        // shutdown should first get rid of listeners, then a (long)
-        // while later call this. Note that there is similar code in
-        // ConsoleLoop.
-        if ( d->shutdown ) {
-            log( "Shutting down event loop", Log::Debug );
-            it = d->connections.last();
-            while ( it ) {
-                c = d->connections.take( it-- );
-                {
-                    Scope x( c->arena() );
-                    c->react( Connection::Shutdown );
-                    c->write();
-                }
-                if ( c->type() != Connection::LogClient )
-                    delete c;
+    }
+
+    // This is for event loop shutdown. A little brutal. Proper
+    // shutdown should first get rid of listeners, then a (long)
+    // while later call this. Note that there is similar code in
+    // ConsoleLoop.
+    if ( d->shutdown ) {
+        log( "Shutting down event loop", Log::Debug );
+        SortedList< Connection >::Iterator it = d->connections.first();
+        while ( it ) {
+            try {
+                Scope x( it->arena() );
+                if ( it->state() == Connection::Connected )
+                    it->react( Connection::Shutdown );
+                if ( it->state() == Connection::Connected )
+                    it->write();
+            } catch ( Exception e ) {
+                // we don't really care at this point, do we?
             }
+            ++it;
         }
-        commit();
     }
 
     log( "Event loop stopped", Log::Debug );
