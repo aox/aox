@@ -180,8 +180,6 @@ void Postgres::react( Event e )
 
             char msg = (*readBuffer())[0];
             try {
-                log( "Received '" + String( &msg, 1 ) + "' message",
-                     Log::Debug );
                 if ( d->startup ) {
                     if ( !d->authenticated )
                         authentication( msg );
