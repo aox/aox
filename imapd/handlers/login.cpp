@@ -39,15 +39,16 @@ void Login::execute()
     }
 
     m->query();
+    if ( !m->done() )
+        return;
 
-    if ( m->done() ) {
-        if ( m->state() == SaslMechanism::Failed ) {
-            error( No, "LOGIN failed for '" + n + "'" );
-        }
-        else {
-            imap()->setUid( m->uid() );
-            imap()->setLogin( n );
-        }
-        finish();
+    if ( m->state() == SaslMechanism::Succeeded ) {
+        imap()->setUid( m->uid() );
+        imap()->setLogin( n );
     }
+    else {
+        error( No, "LOGIN failed for '" + n + "'" );
+    }
+
+    finish();
 }
