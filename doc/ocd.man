@@ -36,7 +36,7 @@ will offer a management console. It doesn't yet, though.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 0.92, released 2005-03-19,
+This man page covers Oryx Mailstore version 0.92, released 2005-03-21,
 http://www.oryx.com/mailstore/0.92.html.
 .SH SEE ALSO
 .BR mailstore (7),
