@@ -223,7 +223,7 @@ void SMTP::parse()
             body( line );
         }
         else {
-            log( "Received '" + line.stripCRLF() + "'", Log::Debug );
+            log( "Received: '" + line.stripCRLF() + "'", Log::Debug );
             i = 0;
             while ( i < line.length() &&
                     line[i] != ' ' && line[i] != 13 && line[i] != 10 )
