@@ -191,6 +191,7 @@ static struct {
     { "auth-cram-md5", Configuration::AuthCramMd5, true },
     { "auth-digest-md5", Configuration::AuthDigestMd5, true },
     { "auth-anonymous", Configuration::AuthAnonymous, false },
+    { "accept-any-http-host", Configuration::AcceptAnyHttpHost, true },
     { "announce-draft-support", Configuration::AnnounceDraftSupport, true },
 };
 

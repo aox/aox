@@ -91,6 +91,7 @@ public:
         AuthCramMd5,
         AuthDigestMd5,
         AuthAnonymous,
+        AcceptAnyHttpHost,
         AnnounceDraftSupport,
         // additional toggles go ABOVE THIS LINE
         NumToggles

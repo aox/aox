@@ -10,6 +10,7 @@ class String;
 class Command;
 class Mailbox;
 class Address;
+class StringList;
 
 
 class HTTP : public Connection {
@@ -25,10 +26,9 @@ private:
     void parseHeader();
     void respond();
 
-    void parseAccept( const String & );
-    void parseAcceptCharset( const String & );
-    void parseAcceptEncoding( const String & );
-    void parseCacheControl( const String & );
+    void parseAccept( const String &, uint );
+    void parseAcceptCharset( const String &, uint );
+    void parseAcceptEncoding( const String &, uint );
     void parseConnection( const String & );
     void parseHost( const String & );
     void parseIfMatch( const String & );
@@ -38,7 +38,12 @@ private:
     void parseReferer( const String & );
     void parseTransferEncoding( const String & );
     void parseUserAgent( const String & );
-    void parseVary( const String & );
+
+    void parseList( const String &, const String & );
+    void parseListItem( const String &, const String &, uint );
+    void skipValues( const String &, uint &, uint & );
+    void expect( const String & value, uint &, char );
+    bool isTokenChar( char );
 
     bool canReadHTTPLine() const;
     String line();
