@@ -94,6 +94,25 @@ actions WriteShellConfig
     echo JAILDIR="'"$(JAILDIR)"'" >> $(<)
     echo CONFIGDIR="'"$(CONFIGDIR)"'" >> $(<)
     echo LOGFILE="'"$(LOGFILE)"'" >> $(<)
+
+    if [ $(PGUSER) ]; then
+        echo PGUSER="'"$(PGUSER)"'" >> $(<)
+    fi
+    if [ $(PGDATA) ]; then
+        echo PGDATA="'"$(PGDATA)"'" >> $(<)
+    fi
+    if [ $(PSQL) ]; then
+        echo PSQL="'"$(PSQL)"'" >> $(<)
+    fi
+    if [ $(PGCTL) ]; then
+        echo PGCTL="'"$(PGCTL)"'" >> $(<)
+    fi
+
+    echo DBNAME="'"$(DBNAME)"'" >> $(<)
+    echo DBUSER="'"$(DBUSER)"'" >> $(<)
+    if [ $(DBPASS) ]; then
+        echo DBPASS="'"$(DBPASS)"'" >> $(<)
+    fi
 }
 
 

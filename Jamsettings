@@ -26,4 +26,37 @@ EXEMODE = 555 ;
 # USE_SYSTEM_CRYPTLIB = yes ;
 # you may also need to add/change something in tlsproxy/Jamfile.
 
+
+## Database settings.
+
+# The Unix username of the PostgreSQL superuser. You need to set this if
+# your superuser's username is not "postgres".
+#
+#PGUSER = pgsql ;
+
+# The server's PGDATA directory. You don't need to set this if the value
+# can be derived from the PGUSER's environment (which it usually can).
+#
+#PGDATA = /opt/postgres/data ;
+
+# You can ignore these settings if psql and pg_ctl are in the PGUSER's
+# PATH (which they usually are).
+#
+#PGBIN = /opt/postgres/bin ;
+#PSQL = $(PGBIN)/psql ;
+#PGCTL = $(PGBIN)/pg_ctl ;
+
+# A Postgres user and database for Mailstore to use. If necessary, these
+# are created during the installation. To use an existing user/database,
+# change these values and set DBPASS below. (Note: DBUSER must own the
+# DBNAME database.)
+#
+# A password is generated during installation for a new DBUSER, so you
+# don't need to set DBPASS unless you want to use an existing DBUSER.
+
+DBNAME = mailstore ;
+DBUSER = oryx ;
+#DBPASS = foo ;
+
+
 # this file is included from Jamrules.
