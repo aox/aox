@@ -4,18 +4,26 @@
 
 #include "console.h"
 #include "userpane.h"
+#include "searchedit.h"
 
-#include <qtabbar.h>
+#include <qlistview.h>
+#include <qheader.h>
 #include <qwidgetstack.h>
+#include <qptrdict.h>
 #include <qlayout.h>
+#include <qlabel.h>
 
 
 class ConsoleData
 {
 public:
-    ConsoleData(): tabs( 0 ), stack( 0 ) {}
-    QTabBar * tabs;
+    ConsoleData(): paneList( 0 ), stack( 0 ),
+                   panes( new QPtrDict<QWidget> ),
+                   items( new QPtrDict<QListViewItem> ) {}
+    QListView * paneList;
     QWidgetStack * stack;
+    QPtrDict<QWidget> * panes;
+    QPtrDict<QListViewItem> * items;
 };
 
 
@@ -31,23 +39,38 @@ public:
 /*! Constructs a mailstore console window. Does not show it. */
 
 Console::Console()
-    : QWidget( 0, "mailstore console" ), d( new ConsoleData )
+    : QSplitter( 0, "mailstore console" ), d( new ConsoleData )
 {
-    d->tabs = new QTabBar( this );
+    QWidget * w = new QWidget( this );
+    d->paneList = new QListView( w);
+    QBoxLayout * l = new QBoxLayout( w, QBoxLayout::TopToBottom, 6 );
+    l->addWidget( new QLabel( tr( "Categories" ), w ) );
+    l->addWidget( d->paneList );
+    l->addWidget( new SearchEdit( tr( "(Search)" ), w ) );
+
     d->stack = new QWidgetStack( this );
-    connect( d->tabs, SIGNAL(selected(int)),
-             d->stack, SLOT(raiseWidget(int)) );
 
-    QBoxLayout * tll = new QBoxLayout( this, QBoxLayout::TopToBottom, 0, 0 );
-    tll->addWidget( d->tabs );
-    tll->addWidget( d->stack, 2 );
+    setResizeMode( w, KeepSize );
+    setResizeMode( d->stack, Stretch );
+    connect( d->paneList, SIGNAL(selectionChanged()),
+             this, SLOT(changePane()) );
 
-    int i = d->tabs->addTab( new QTab( tr( "&Users" ) ) );
-    QWidget * w = new UserPane( d->stack );
+    d->paneList->addColumn( " " );
+    d->paneList->header()->hide();
+
+    QListViewItem * i;
+
+    w = new UserPane( this );
+    d->stack->addWidget( w );
+    i = new QListViewItem( d->paneList, tr( "User Management" ) );
+    d->panes->insert( i, w );
+    d->items->insert( w, i );
+
+#if 0
+    w = new UserPane( this );
     d->stack->addWidget( w, i );
-
-    //i = d->tabs->addTab( new QTab( tr( "&Config" ) ) );
-    //w = new ConfigPane( d->stack );
-    //d->stack->addWidget( w, i );
+    i = new QListViewItem( d->paneList, tr( "&Users" ) );
+    d->panes->insert( i, w );
+    d->items->insert( w, i );
+#endif
 }
-

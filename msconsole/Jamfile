@@ -1,7 +1,8 @@
 SubDir TOP msconsole ;
 SubInclude TOP server ;
 
-Build msconsole : console.cpp userpane.cpp msconsole.cpp consoleloop.cpp ;
+Build msconsole : console.cpp userpane.cpp msconsole.cpp consoleloop.cpp
+    searchedit.cpp ;
 
 Program msconsole :
     msconsole database server mailbox message user core encodings ;

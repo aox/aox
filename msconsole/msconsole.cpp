@@ -27,12 +27,13 @@ static QSize goodDefaultSize()
     uint h = dw->height();
 
     // return a size occupying most of the screen, but leaving a
-    // little if there's space, and not going beyong 1000*625.
+    // little if there's space, and not going beyong 800*600.
 
-    if ( w > 1000 )
-        w = 1000;
+    if ( w > 900 )
+        w = 800;
     else if ( w > 400 )
         w = w - 100;
+
     if ( h > w * 5 / 8 )
         h = w * 5 / 8;
     else if ( h > 400 )
@@ -65,9 +66,10 @@ int main( int argc, char *argv[] )
 
     // typical Qt crud
     QApplication a( argc, argv );
+    a.connect( qApp, SIGNAL(lastWindowClosed()),
+               qApp, SLOT(quit()) );
     QWidget * w = new Console;
     w->resize( goodDefaultSize() );
-    a.setMainWidget( w );
     w->show();
 
     // now do it.

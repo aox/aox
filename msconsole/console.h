@@ -3,9 +3,9 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#include "qwidget.h"
+#include "qsplitter.h"
 
-class Console: public QWidget {
+class Console: public QSplitter {
     //Q_OBJECT
 public:
     Console();
