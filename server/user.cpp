@@ -321,10 +321,8 @@ bool User::valid()
         d->error = "Login name <" + d->login + "> has no password";
         return false;
     }
-    if ( d->id )
-        return true;
 
-    return false;
+    return true;
 }
 
 
