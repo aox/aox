@@ -81,7 +81,7 @@ int IMAP::react(Event e)
         result = parse();
         break;
     case Connection::Timeout:
-        writeBuffer()->append("* BAD autologout\r\n");
+        writeBuffer()->append("* BYE autologout\r\n");
         result = 0;
         break;
     }
@@ -210,8 +210,8 @@ void IMAP::addCommand()
         i++;
         c = (*s)[i];
     } while( i < s->length() &&
-             c < 128 && 
-             ( c > ' ' || 
+             c < 128 &&
+             ( c > ' ' ||
                ( c == ' ' && s->mid( j, i-j ).lower() == "uid" ) ) &&
              c != '(' && c != ')' && c != '{' &&
              c != '%' && c != '%' &&
@@ -245,7 +245,7 @@ void IMAP::addCommand()
             else {
                 // do all other commands belong to the same command group?
                 d->commands.first();
-                while( d->commands.current() && 
+                while( d->commands.current() &&
                        d->commands.current()->group() == cmd->group() )
                     d->commands.next();
                 if ( d->commands.current() )
@@ -334,7 +334,7 @@ bool IMAP::idle() const
   deleted, but there is no way to hand the input stream back to the
   IMAP object. Only the relevant Command knows when it can hand the
   input stream back.
-  
+
   Therefore, Commands that call reserve() simply must hand it back properly
   before calling Command::error() or Command::setState().
 */
