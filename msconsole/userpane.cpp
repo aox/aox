@@ -11,6 +11,8 @@
 #include <qpushbutton.h>
 #include <qapplication.h>
 
+#include <sys/types.h> // getpwent, endpwent
+#include <pwd.h> // ditto
 
 
 class UserPaneData
@@ -244,6 +246,24 @@ static QString fmlast( const QString & s )
 }
 
 
+static QString unixLogin( const QString & s ) {
+    QString l = s.lower().simplifyWhiteSpace();
+    struct passwd * p = 0;
+    QString r;
+    do {
+        p = getpwent();
+        if ( p ) {
+            QString g = p->pw_gecos;
+            g = g.lower().section( ',', 0, 0 );
+            if ( l == g )
+                r = p->pw_name;
+        }
+    } while ( r.isEmpty() && p );
+    endpwent();
+    return r;
+}
+
+
 /*! If the login is empty, try and invent one matching the name. */
 
 void UserPane::perhapsUpdateLogin()
@@ -253,6 +273,7 @@ void UserPane::perhapsUpdateLogin()
 
     QStringList l;
     QString n = d->realName->text().lower();
+    l.append( unixLogin( n ) );
     if ( n.contains( " " ) ) {
         l.append( first( n ) );
         l.append( firstl( n ) );
