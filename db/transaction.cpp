@@ -2,6 +2,7 @@
 
 #include "database.h"
 #include "query.h"
+#include "event.h"
 
 
 class TransactionData {
@@ -75,7 +76,23 @@ void Transaction::execute( Query *q )
 
 void Transaction::end()
 {
-    Query *q = new Query( "commit", 0 );
+    class CommitHandler
+        : public EventHandler
+    {
+    private:
+        Transaction *tr;
+
+    public:
+        CommitHandler( Transaction *t ):
+            EventHandler(), tr( t )
+        {}
+
+        void execute() {
+            tr->setState( Transaction::Completed );
+        }
+    };
+
+    Query *q = new Query( "commit", new CommitHandler( this ) );
     q->setTransaction( this );
     d->db->submit( q );
 }
