@@ -78,9 +78,11 @@ is logged with a severity greater than
 .IR error .
 .SS Security
 .IP security
-is enabled by default, and should be enabled whenever Mailstore
-is used in production. If security is disabled, the servers do not
-need to be started o root, and do not try to lose privileges.
+is enabled by default, and should be enabled whenever Mailstore is
+used in production. If security is disabled, the servers do not need
+to be started as root, they keep stderr open, and they do not try to
+lose privileges.
+.IP
 Turning security off has exactly one advantage: it simplifies
 debugging.
 .IP jail-directory
