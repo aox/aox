@@ -30,7 +30,7 @@ public:
     bool reported;
     bool fileExists;
 
-    void log( const String & m, Log::Severity s = Log::Error ) {
+    void log( const String & m, Log::Severity s = Log::Disaster ) {
         E * e = new E;
         e->m = m;
         e->s = s;
@@ -71,8 +71,10 @@ static Configuration * global = 0;
     Configuration::Scalar or Configuration::Toggle objects naming the
     variables. When all configuration variable objects have been
     created, call report(), and all errors are reported via the log
-    server. Note that if you don't call report(), a typo may result in
-    a variable silently being reverted to default.
+    server. Most syntax errors prevent the server(s) from starting up.
+
+    Note that if you don't call report(), a typo may result in a
+    variable silently being reverted to default.
 */
 
 
@@ -558,11 +560,9 @@ void Configuration::setup( const String & global, const String & server )
     String host = osHostname();
     Configuration::Text hn( "hostname", host );
     if ( !hn.valid() )
-        ::global->d->log( "Syntax error in hostname",
-                          Log::Disaster );
+        ::global->d->log( "Syntax error in hostname" );
     else if ( ((String)hn).find( '.' ) < 0 )
-        ::global->d->log( "Hostname does not contain a dot: " + hn,
-                          Log::Disaster );
+        ::global->d->log( "Hostname does not contain a dot: " + hn );
     else if ( host == hn )
         ::global->d->log( "Using inferred hostname " + host,
                           Log::Debug );
