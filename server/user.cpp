@@ -158,8 +158,7 @@ void User::refresh( EventHandler * user )
             "select u.id, u.address, u.inbox, u.parentspace, u.login, "
             "u.secret, a.name, a.localpart, a.domain "
             "from users u, addresses a where "
-            "u.address=a.id and a.name=$1 and a.localpart=$2 "
-            "and lower(a.domain)=$3"
+            "u.address=a.id and a.localpart=$1 and lower(a.domain)=$2"
         );
     }
     if ( !d->login.isEmpty() ) {
@@ -168,9 +167,8 @@ void User::refresh( EventHandler * user )
     }
     else if ( d->address ) {
         d->q = new Query( *psa, this );
-        d->q->bind( 1, d->address->name() );
-        d->q->bind( 2, d->address->localpart() );
-        d->q->bind( 3, d->address->domain().lower() );
+        d->q->bind( 1, d->address->localpart() );
+        d->q->bind( 2, d->address->domain().lower() );
     }
     if ( d->q ) {
         d->q->execute();
