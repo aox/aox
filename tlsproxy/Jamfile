@@ -1,9 +1,6 @@
 SubDir TOP tlsproxy ;
-
 SubInclude TOP server ;
 SubInclude TOP cryptlib ;
-
-SubDir TOP tlsproxy ;
 
 Build tls : tlsproxy.cpp ;
 

@@ -1,9 +1,6 @@
 SubDir TOP smtpd ;
-
 SubInclude TOP server ;
 SubInclude TOP message ;
-
-SubDir TOP smtpd ;
 
 Build smtp : smtp.cpp smtpd.cpp ;
 

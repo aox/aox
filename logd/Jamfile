@@ -2,7 +2,5 @@ SubDir TOP logd ;
 
 SubInclude TOP server ;
 
-SubDir TOP logd ;
-
 Build logd : logd.cpp logserver.cpp ;
 Program logd : logd server core ;

@@ -24,6 +24,7 @@ rule SubInclude
         Exit SubInclude $(<[1]) without prior SubDir $(<[1]) ;
     }
 
+    local _tokens = $(SUBDIR_TOKENS) ;
     SubDir $(<) ;
 
     local a b ;
@@ -37,6 +38,8 @@ rule SubInclude
         IncludedDirectories += $(SUBDIR) ;
         include $(JAMFILE:D=$(SUBDIR)) ;
     }
+
+    SubDir TOP $(_tokens) ;
 }
 
 rule Build
