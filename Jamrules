@@ -58,3 +58,13 @@ rule Program
     Clean clean : $(<) ;
     Link $(<) : $(set-$(>)) ;
 }
+
+
+rule Doc {
+    Depends exe : $(<) ; # run this rule whenever "all executables" are built
+    Doc2 $(<) : $(set-$(>):S=.cpp) ;
+}
+
+actions together Doc2 {
+    qdoc -m doc/man/man3 -w doc/html $(>)
+}

@@ -10,6 +10,8 @@
 #include <stdlib.h>
 
 
+/*! \nodoc */
+
 int main()
 {
     Arena firstArena;

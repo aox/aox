@@ -9,6 +9,8 @@
 #include "selflogger.h"
 
 
+/*! \nodoc */
+
 int main( int, char *[] )
 {
     Arena firstArena;

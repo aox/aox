@@ -15,6 +15,8 @@
 #include <stdlib.h>
 
 
+/*! \nodoc */
+
 int main( int, char *[] )
 {
     Arena firstArena;
@@ -47,3 +49,6 @@ int main( int, char *[] )
 
     Loop::start();
 }
+
+
+

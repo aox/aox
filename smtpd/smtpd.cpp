@@ -15,6 +15,8 @@
 #include <stdlib.h>
 
 
+/*! \nodoc */
+
 int main( int, char *[] )
 {
     Arena firstArena;

@@ -51,7 +51,7 @@ void EventHandler::setArena( Arena *a )
 }
 
 
-/*! \fn void EventHandler::execute() = 0
+/*! \fn void EventHandler::execute()
 
     This pure virtual function is called by Query::notify() when there's
     something the client needs to do to process the Query.

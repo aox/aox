@@ -7,6 +7,8 @@
 #include "log.h"
 
 
+/*! \nodoc */
+
 class TLSProxy
     : public Connection
 {

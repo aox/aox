@@ -111,19 +111,19 @@ void Database::query( Query * q )
 }
 
 
-/*! \fn virtual bool Database::ready() = 0
+/*! \fn bool Database::ready()
 
     This function must be implemented by subclasses to return true if a
     Database handle is ready to accept a Query via submit().
 */
 
-/*! \fn virtual void Database::submit( Query *q ) = 0
+/*! \fn void Database::submit( Query *q )
 
     This function must be implemented by subclasses to accept the Query
     \a q for submission to the Database server.
 */
 
-/*! \fn virtual void Database::prepare( PreparedStatement *ps ) = 0
+/*! \fn void Database::prepare( PreparedStatement *ps )
 
     This function must be implemented by subclasses to accept the
     PreparedStatement \a ps for submission to the Database server.
