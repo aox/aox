@@ -249,11 +249,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     ::serverside = other;
     ::userside = this;
 
-    String server = Configuration::hostname();
-
     cryptCreateSession( &cs, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER );
-    cryptSetAttributeString( cs, CRYPT_SESSINFO_SERVER_NAME,
-                             server.data(), server.length() );
     cryptSetAttribute( cs, CRYPT_SESSINFO_NETWORKSOCKET, userside->fd() );
 }
 
@@ -493,10 +489,12 @@ void TlsProxy::handleError( int cryptError, const String & function )
 
     log( Log::Error, 
          function + " reported error: " + cryptlibError( cryptError ) );
-    log( Log::Info,
-         function + " error locus: " + cryptlibLocus( locus ) );
-    log( Log::Info,
-         function + " error type: " + cryptlibType( type ) );
+    if ( locus )
+        log( Log::Info,
+             function + " error locus: " + cryptlibLocus( locus ) );
+    if ( type )
+        log( Log::Info,
+             function + " error type: " + cryptlibType( type ) );
          
     int errorStringLength;
     String errorString;
