@@ -340,7 +340,7 @@ void Fetch::execute()
     }
 
     uint i = 1;
-    while ( i <= d->set.count() ) {
+    while ( ( d->state == 1 || i == 1 ) && i <= d->set.count() ) {
         uint uid = d->set.value( i );
         Message * m = s->mailbox()->message( uid );
         if ( ( !d->needHeader || m->hasHeaders() ) &&
@@ -354,6 +354,8 @@ void Fetch::execute()
             i++;
         }
     }
+
+    d->state = 2;
 
     if ( d->set.isEmpty() )
         finish();
