@@ -27,3 +27,6 @@ insert into field_names (name) values ('Content-Description');
 insert into field_names (name) values ('Content-Id');
 insert into field_names (name) values ('Mime-Version');
 insert into field_names (name) values ('Received');
+insert into field_names (name) values ('Content-Language');
+insert into field_names (name) values ('Content-Location');
+insert into field_names (name) values ('Content-Md5');
