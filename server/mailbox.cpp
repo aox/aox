@@ -11,13 +11,12 @@
 class MailboxData {
 public:
     MailboxData()
-        : deleted( false ), synthetic( false ),
-          parent( 0 ), children( 0 )
+        : deleted( false ), parent( 0 ), children( 0 )
     {}
 
     String name;
-    uint id, count, uidvalidity;
-    bool deleted, synthetic;
+    uint id, count, uidnext, uidvalidity;
+    bool deleted;
 
     Mailbox *parent;
     List< Mailbox > *children;
@@ -71,6 +70,7 @@ void Mailbox::setup()
                 Mailbox *m = new Mailbox( r->getString( "name" ) );
                 m->d->id = r->getInt( "id" );
                 m->d->deleted = r->getBoolean( "deleted" );
+                m->d->uidnext = r->getInt( "uidnext" );
                 m->d->uidvalidity = r->getInt( "uidvalidity" );
                 insert( m );
             }
@@ -228,6 +228,14 @@ uint Mailbox::id() const
 uint Mailbox::count() const
 {
     return d->count;
+}
+
+
+/*! Returns the next UID value that will be used for this mailbox. */
+
+uint Mailbox::uidnext() const
+{
+    return d->uidnext;
 }
 
 

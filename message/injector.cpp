@@ -74,7 +74,10 @@ public:
         if ( !q->done() )
             return;
 
-        list->append( new int( q->nextRow()->getInt( "id" ) ) ); // ### ick
+        if ( q->hasResults() ) {
+            int *id = new int( q->nextRow()->getInt( "id" ) ); // ### ick.
+            list->append( id );
+        }
 
         queries->take( queries->first() );
         if ( queries->isEmpty() )
@@ -230,10 +233,19 @@ void Injector::selectUids()
     List< Mailbox >::Iterator it( d->mailboxes->first() );
     while ( it ) {
         d->totalUids++;
-        String seq( "mailbox_" + String::fromNumber( it->id() ) );
-        q = new Query( "select nextval('"+seq+"')::integer as id", helper );
+
+        q = new Query( "select uidnext from mailboxes where id=$1 for update",
+                       helper );
+        q->bind( 1, it->id() );
         d->transaction->enqueue( q );
         queries->append( q );
+
+        q = new Query( "update mailboxes set uidnext=uidnext+1 where id=$1",
+                       helper );
+        q->bind( 1, it->id() );
+        d->transaction->enqueue( q );
+        queries->append( q );
+
         it++;
     }
 }
