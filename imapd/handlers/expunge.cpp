@@ -3,10 +3,10 @@
 #include "imap.h"
 
 /*! \class Expunge expunge.h
-  
+
   This IMAP command handler is responsible for permanently removeing
   "\deleted" messages.
-  
+
   It implements EXPUNGE, as specified in RFC 3501 section 6.4.3, and
   helps Close.
 */

@@ -33,7 +33,7 @@ void Create::execute()
 
     if ( !m->done() )
         return;
-    
+
     if ( m->state() == Mailbox::Failed )
         error( No, "Couldn't create " + name );
     finish();
