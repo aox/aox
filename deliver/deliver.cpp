@@ -73,6 +73,8 @@ int main( int argc, char *argv[] )
         exit( -1 );
     }
 
+    Configuration::setup( "mailstore.conf" );
+
     String contents = message.contents();
 
     if ( sender.isEmpty() &&
@@ -95,13 +97,13 @@ int main( int argc, char *argv[] )
             sender.truncate( i );
         if ( sender.startsWith( "<" ) && sender.endsWith( ">" ) )
             sender = sender.mid( 1, sender.length()-2 );
+        if ( sender.find( '@' ) < 0 )
+            sender = sender + "@" + Configuration::hostname();
     }
 
     if ( verbose > 0 )
         fprintf( stderr, "Sending to <%s> from <%s>\n",
                  recipient.cstr(), sender.cstr() );
-
-    Configuration::setup( "mailstore.conf" );
 
     Loop::setup();
 
