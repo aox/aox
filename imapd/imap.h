@@ -32,7 +32,7 @@ public:
     void setUid( uint );
     void setLogin( const String & );
 
-    void newSession( Mailbox * );
+    void newSession( Mailbox *, bool );
     ImapSession *session() const;
     void endSession();
 

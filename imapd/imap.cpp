@@ -535,15 +535,16 @@ void IMAP::setUid( uint id )
 }
 
 
-/*! This function associates a new ImapSession for the Mailbox \a m with
-    this IMAP server, whose state() changes to Selected. It must not be
-    called if the server already has a session().
+/*! This function associates a new ImapSession in \a readOnly mode for
+    the Mailbox \a m with this IMAP server, whose state() it then sets
+    to Selected. It must not be called if there is already a session()
+    associated with this server.
 */
 
-void IMAP::newSession( Mailbox *m )
+void IMAP::newSession( Mailbox *m, bool readOnly )
 {
     setState( Selected );
-    d->session = new ImapSession( m );
+    d->session = new ImapSession( m, readOnly );
     d->logger->log( "Using mailbox " + m->name() );
 }
 

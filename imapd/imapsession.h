@@ -6,7 +6,7 @@ class Mailbox;
 
 class ImapSession {
 public:
-    ImapSession( Mailbox * );
+    ImapSession( Mailbox *, bool );
     ~ImapSession();
 
     Mailbox *mailbox() const;

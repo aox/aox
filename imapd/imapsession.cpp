@@ -6,10 +6,11 @@
 class SessionData {
 public:
     SessionData()
-        : mailbox( 0 )
+        : mailbox( 0 ), readOnly( false )
     {}
 
     Mailbox *mailbox;
+    bool readOnly;
 };
 
 
@@ -20,13 +21,15 @@ public:
 */
 
 
-/*! Creates an ImapSession for the Mailbox \a m.
+/*! Creates a new ImapSession for the Mailbox \a m.
+    If \a readOnly is true, the session is read-only.
 */
 
-ImapSession::ImapSession( Mailbox *m )
+ImapSession::ImapSession( Mailbox *m, bool readOnly )
     : d( new SessionData )
 {
     d->mailbox = m;
+    d->readOnly = readOnly;
 }
 
 
