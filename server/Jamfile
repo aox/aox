@@ -9,4 +9,6 @@ SubInclude TOP db ;
 SubDir TOP server ;
 
 Build server : connection.cpp listener.cpp loop.cpp endpoint.cpp
-    event.cpp occlient.cpp tls.cpp mailbox.cpp ;
+    event.cpp tls.cpp ;
+
+Build mailbox : occlient.cpp mailbox.cpp ;

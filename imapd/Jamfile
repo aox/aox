@@ -9,5 +9,5 @@ SubDir TOP imapd ;
 Build imapdmain : imapd.cpp ;
 Build imap : imap.cpp command.cpp set.cpp squery.cpp imapsession.cpp ;
 
-Program imapd : imap imapdmain database message server core ;
+Program imapd : imap imapdmain database message server mailbox core ;
 LINKLIBS on imapd = -lcrypt ;

@@ -24,8 +24,6 @@ int main( int, char *[] )
     // logging of whatever comes before will die a horrible death.
     Listener<LogServer>::create( "Log Server", "", 2054 );
 
-    Log::setup();
-
     // this logs.
     Log::global()->log( Test::report() );
     Configuration::global()->report();

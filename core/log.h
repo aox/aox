@@ -27,8 +27,6 @@ public:
 
     static Log * global();
 
-    static void setup();
-
     static bool disastersYet();
 
 private:

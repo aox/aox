@@ -7,5 +7,5 @@ SubDir TOP smtpd ;
 
 Build smtp : smtp.cpp smtpd.cpp ;
 
-Program smtpd : smtp database message server core encodings ;
+Program smtpd : smtp database message server mailbox core encodings ;
 LINKLIBS on smtpd = -lcrypt ;

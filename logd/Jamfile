@@ -1,12 +1,8 @@
 SubDir TOP logd ;
 
-SubInclude TOP core ;
 SubInclude TOP server ;
 
 SubDir TOP logd ;
 
-Build logdmain : logd.cpp ;
-Build logd : logserver.cpp ;
-
-Program logd : logd logdmain server lib ;
-LINKLIBS on logd = ;
+Build logd : logd.cpp logserver.cpp ;
+Program logd : logd server core ;
