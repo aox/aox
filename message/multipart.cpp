@@ -4,6 +4,7 @@
 
 #include "message.h"
 #include "bodypart.h"
+#include "stringlist.h"
 #include "mimefields.h"
 #include "ustring.h"
 #include "codec.h"
@@ -156,4 +157,83 @@ void Multipart::appendTextPart( String & r, const Bodypart * bp,
     String body = c->fromUnicode( bp->text() );
 
     r.append( body.encode( e, 72 ) );
+}
+
+
+/* Debugging aids. */
+
+
+static void dumpBodypart( Message *, Bodypart *, int );
+
+
+static String headerSummary( Header *h )
+{
+    StringList l;
+
+    List< HeaderField >::Iterator it( h->fields()->first() );
+    while ( it ) {
+        HeaderField::Type t = it->type();
+
+        if ( t == HeaderField::ContentType ) {
+            ContentType *ct = it->contentType();
+            l.append( ct->type() + "/" + ct->subtype() );
+        }
+        else if ( t == HeaderField::ContentTransferEncoding ) {
+            String s;
+            switch ( it->contentTransferEncoding()->encoding() ) {
+            case String::QP:
+                s = "quoted-printable";
+                break;
+            case String::Base64:
+                s = "base64";
+                break;
+            case String::Binary:
+                s = "7bit";
+                break;
+            }
+            l.append( s );
+        }
+        else if ( t == HeaderField::ContentDescription ) {
+            l.append( it->value() );
+        }
+        ++it;
+    }
+
+    return l.join( ";" );
+}
+
+
+static void dumpMessage( Message *m, int n = 0 )
+{
+    int i = n;
+    while ( i-- > 0 )
+        fprintf( stderr, " " );
+    fprintf( stderr, "(%s\n\n", headerSummary( m->header() ).cstr() );
+    List< Bodypart >::Iterator it( m->children()->first() );
+    while ( it ) {
+        dumpBodypart( m, it, n+2 );
+        ++it;
+    }
+    i = n;
+    while ( i-- > 0 )
+        fprintf( stderr, " " );
+    fprintf( stderr, "(%d entries in children()))\n",
+             m->children()->count() );
+}
+
+
+static void dumpBodypart( Message *m, Bodypart *bp, int n )
+{
+    int i = n;
+    while ( i-- > 0 )
+        fprintf( stderr, " " );
+    fprintf( stderr, "%s: %s\n", m->partNumber( bp ).cstr(),
+             headerSummary( bp->header() ).cstr() );
+    if ( bp->rfc822() )
+        dumpMessage( bp->rfc822(), n+4 );
+    List< Bodypart >::Iterator it( bp->children()->first() );
+    while ( it ) {
+        dumpBodypart( m, it, n+2 );
+        ++it;
+    }
 }
