@@ -99,6 +99,9 @@ public:
 
     HeaderField * field( HeaderField::Type, uint=0 ) const;
 
+    void appendField( String &, HeaderField::Type ) const;
+    String mimeFields() const;
+
     void simplify();
 
     void removeField( HeaderField::Type );
