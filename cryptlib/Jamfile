@@ -28,4 +28,4 @@ HDRS = $(OrdinaryHDRS) ;
 
 # since CCFLAGS is an ordinary variable, we'll just set it on all the
 # cryptlib source files.
-CCFLAGS on $(set-cryptlib) = -DUSE_ASM -DOSVERSION=4 -D__UNIX__ -DNDEBUG  -DDATA_LITTLEENDIAN ;
+CCFLAGS on $(set-cryptlib) = -DUSE_ASM -DOSVERSION=4 -D__UNIX__ -DNDEBUG  -DDATA_LITTLEENDIAN -DNO_THREADS ;

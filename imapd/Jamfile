@@ -69,6 +69,7 @@ Build runtestsmain : runtests.cpp ;
 rule Doc {
     Depends exe : $(<) ; # run this rule whenever "all executables" are built
     Depends $(<) : $(set-$(>):S=.o) ; # doc after compiling
+    Depends $(<) : qdoc ; # build qdoc before we call it
     Doc2 $(<) : $(set-$(>):S=.cpp) ;
 }
 
@@ -90,7 +91,7 @@ Program logd : logd logdmain server lib ;
 LINKLIBS on logd = ;
 
 Program imapd : imap imapdmain database message server lib cryptlib ;
-LINKLIBS on imapd = -lcrypt -lpthread ;
+LINKLIBS on imapd = -lcrypt ;
 
 Program runtests : runtestsmain imap logd database message server lib ;
 LINKLIBS on runtests = -lcrypt ;
