@@ -8,16 +8,28 @@ class String;
 
 
 class LogClient
-    : public Logger, public Connection
+    : public Logger
 {
 private:
-    LogClient( int );
+    LogClient();
 
 public:
     void send( const String & );
-    void react( Event );
 
     static void setup();
+
+private:
+    class LogClientHelper * c;
+};
+
+
+class LogClientHelper: public Connection
+{
+private:
+    friend LogClient;
+    LogClientHelper( int fd ): Connection( fd ) {}
+
+    void react( Event );
 };
 
 

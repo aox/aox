@@ -12,33 +12,19 @@
 
 /*! \class LogClient logclient.h
     A Logger subclass that talks to our log server. (LogdClient)
+
+    This is the Logger that's used throughout most of the Oryx
+    system. All programs that want to use the regular log server must
+    call LogClient::setup() at startup.
+
+    The 
 */
 
-/*! Creates a new LogClient with the fd \a fd. */
+/*! Creates a new LogClient. This constructor is usable only via setup(). */
 
-LogClient::LogClient( int fd )
-    : Logger(), Connection( fd )
-
+LogClient::LogClient()
+    : Logger(), c( 0 )
 {
-}
-
-
-/*! \reimp */
-
-void LogClient::react( Event e )
-{
-    // The log server isn't supposed to send us anything.
-    switch ( e ) {
-    case Connect:
-    case Timeout:
-    case Shutdown:
-        break;
-    case Read:
-    case Close:
-    case Error:
-        Loop::shutdown();
-        break;
-    }
 }
 
 
@@ -46,8 +32,16 @@ void LogClient::react( Event e )
 
 void LogClient::send( const String &s )
 {
-    enqueue( s );
+    c->enqueue( s );
 }
+
+
+/*! Connects to the configured log server and creates a singleton
+    Logger talking to that server.
+
+    If setup() cannot connect to a log server, it brutally exits the
+    application.
+*/
 
 
 void LogClient::setup()
@@ -62,15 +56,49 @@ void LogClient::setup()
         exit( -1 );
     }
 
-    LogClient *client = new LogClient( Connection::socket( e.protocol() ) );
-    client->setBlocking( true );
-    if ( client->connect( e ) < 0 ) {
+    LogClient *client = new LogClient;
+    client->c = new LogClientHelper( Connection::socket( e.protocol() ) );
+    client->c->setBlocking( true );
+    if ( client->c->connect( e ) < 0 ) {
         fprintf( stderr, "LogClient: Unable to connect to log server %s\n",
                  String(e).cstr() );
         perror( "LogClient: connect() returned" );
         exit( -1 );
     }
 
-    client->setBlocking( false );
-    Loop::addConnection( client );
+    client->c->setBlocking( false );
+    Loop::addConnection( client->c );
 }
+
+
+/*! \class LogClientHelper logclient.h
+
+  The LogClientHelper is a simple write-only Connection used by the
+  LogClient. It's usable by no other class, and reacts to reads by
+  shutting down the application.
+
+  This class exists only so that LogClient can avoid multiple
+  inheritance.
+*/
+
+
+/*! \reimp */
+
+void LogClientHelper::react( Event e )
+{
+    // The log server isn't supposed to send us anything.
+    switch ( e ) {
+    case Connect:
+    case Timeout:
+    case Shutdown:
+        break;
+    case Read:
+    case Close:
+    case Error:
+        // perhaps we should log something first? but how?
+        Loop::shutdown();
+        break;
+    }
+}
+
+
