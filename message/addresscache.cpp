@@ -65,7 +65,7 @@ void AddressCache::setup()
 }
 
 
-class LookupHelper
+class AddressLookup
     : public EventHandler
 {
 protected:
@@ -76,9 +76,9 @@ protected:
     List< Query > *queries;
 
 public:
-    LookupHelper() {}
+    AddressLookup() {}
 
-    LookupHelper( Address *a, List< Query > *l, CacheLookup *st,
+    AddressLookup( Address *a, List< Query > *l, CacheLookup *st,
                   EventHandler *ev )
         : address( a ), status( st ), owner( ev ), queries( l )
     {
@@ -93,11 +93,11 @@ public:
 };
 
 
-class InsertHelper
-    : public LookupHelper
+class AddressInsert
+    : public AddressLookup
 {
 public:
-    InsertHelper( Address *a, List< Query > *l, CacheLookup *st,
+    AddressInsert( Address *a, List< Query > *l, CacheLookup *st,
                   EventHandler *ev )
     {
         address = a;
@@ -121,7 +121,7 @@ public:
 };
 
 
-void LookupHelper::execute() {
+void AddressLookup::execute() {
     if ( !q->done() )
         return;
 
@@ -132,7 +132,7 @@ void LookupHelper::execute() {
         // It may be better to collect INSERTs and execute them together
         // on one database handle after processing the SELECTs. We don't
         // bother yet.
-        (void)new InsertHelper( address, queries, status, owner );
+        (void)new AddressInsert( address, queries, status, owner );
         return;
     }
 
@@ -176,7 +176,7 @@ CacheLookup *AddressCache::lookup( List< Address > *l, EventHandler *ev )
         Address *a = nameCache->find( it->toString() );
 
         if ( !a )
-            (void)new LookupHelper( it, lookups, status, ev );
+            (void)new AddressLookup( it, lookups, status, ev );
         else
             it->setId( a->id() );
 

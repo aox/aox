@@ -48,7 +48,7 @@ void FieldNameCache::setup()
 }
 
 
-class FieldLookupHelper
+class FieldLookup
     : public EventHandler
 {
 protected:
@@ -59,10 +59,10 @@ protected:
     List< Query > *queries;
 
 public:
-    FieldLookupHelper() {}
-    virtual ~FieldLookupHelper() {}
+    FieldLookup() {}
+    virtual ~FieldLookup() {}
 
-    FieldLookupHelper( const String &f, List< Query > *l, CacheLookup *st,
+    FieldLookup( const String &f, List< Query > *l, CacheLookup *st,
                        EventHandler *ev )
         : field( f ), status( st ), owner( ev ), queries( l )
     {
@@ -75,11 +75,11 @@ public:
 };
 
 
-class FieldInsertHelper
-    : public FieldLookupHelper
+class FieldInsert
+    : public FieldLookup
 {
 public:
-    FieldInsertHelper( const String &f, List< Query > *l, CacheLookup *st,
+    FieldInsert( const String &f, List< Query > *l, CacheLookup *st,
                        EventHandler *ev )
     {
         field = f;
@@ -102,7 +102,7 @@ public:
 };
 
 
-void FieldLookupHelper::execute() {
+void FieldLookup::execute() {
     if ( !q->done() )
         return;
 
@@ -113,7 +113,7 @@ void FieldLookupHelper::execute() {
         // It may be better to collect INSERTs and execute them together
         // on one database handle after processing the SELECTs. We don't
         // bother yet.
-        (void)new FieldInsertHelper( field, queries, status, owner );
+        (void)new FieldInsert( field, queries, status, owner );
         return;
     }
 
@@ -149,7 +149,7 @@ CacheLookup *FieldNameCache::lookup( List< String > *l, EventHandler *ev )
         String field = *it++;
 
         if ( nameCache->find( field ) == 0 )
-            (void)new FieldLookupHelper( field, lookups, status, ev );
+            (void)new FieldLookup( field, lookups, status, ev );
     }
 
     if ( lookups->isEmpty() )
