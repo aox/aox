@@ -167,6 +167,7 @@ void IMAP::react( Event e )
     }
 
     runCommands();
+    expireCommands();
 
     if ( timeout() == 0 )
         setTimeoutAfter( 1800 );
@@ -335,7 +336,9 @@ void IMAP::addCommand()
     // If we're already working, block this. Otherwise, run
     // it. runCommands() will unblock it (at once or later).
 
-    if ( !d->commands.isEmpty() && cmd->state() == Command::Executing ) {
+    if ( !d->commands.isEmpty() &&
+         cmd->state() == Command::Executing && cmd->ok() )
+    {
         log( "Blocking command '" + tag + " " + command +
              " because other commands are queued", Log::Debug );
         cmd->setState( Command::Blocked );
@@ -508,16 +511,22 @@ void IMAP::runCommands()
     c = i;
     do {
         if ( i->group() == c->group() &&
-             i->state() == Command::Blocked && i->ok() ) {
+             i->state() == Command::Blocked && i->ok() )
+        {
             i->setState( Command::Executing );
             run( i );
         }
         i++;
     } while ( c->group() > 0 && i );
+}
 
-    // retire all finished commands
 
-    i = d->commands.first();
+/*! Removes all commands that have finished executing from d->commands.
+*/
+
+void IMAP::expireCommands()
+{
+    List< Command >::Iterator i( d->commands.first() );
     while ( i ) {
         if ( i->state() == Command::Finished )
             delete d->commands.take( i );
