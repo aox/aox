@@ -77,10 +77,14 @@ void Authenticate::execute()
 
     while ( !m->done() ) {
         if ( m->state() == SaslMechanism::IssuingChallenge ) {
-            imap()->writeBuffer()->append( "+ "+ m->challenge().e64() +"\r\n" );
-            m->setState( SaslMechanism::AwaitingResponse );
-            r = 0;
-            return;
+            String c = m->challenge().e64();
+
+            if ( !m->done() ) {
+                imap()->writeBuffer()->append( "+ "+ c +"\r\n" );
+                m->setState( SaslMechanism::AwaitingResponse );
+                r = 0;
+                return;
+            }
         }
         else if ( m->state() == SaslMechanism::AwaitingResponse && r ) {
             if ( *r == "*" ) {
