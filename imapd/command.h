@@ -13,7 +13,7 @@ class Set;
 
 
 class Command
-    : public DatabaseClient
+    : public EventHandler
 {
 public:
     Command();
