@@ -3,6 +3,7 @@
 #include "date.h"
 #include "string.h"
 #include "list.h"
+#include "message.h"
 
 
 /*! \class Append append.h
@@ -23,8 +24,10 @@
 class AppendData
 {
 public:
+    AppendData() : message( 0 ) {}
+
     Date date;
-    String message;
+    Message * message;
     List< String > flags;
 };
 
@@ -89,7 +92,9 @@ void Append::parse()
             error( Bad, "Date supplied is not valid" );
     }
 
-    d->message = literal();
+    d->message = new Message( literal() );
+    if ( !d->message->valid() )
+        error( Bad, d->message->error() );
 }
 
 

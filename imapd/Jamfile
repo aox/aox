@@ -43,8 +43,8 @@ Struct datefields.inc : datefields.test ;
 
 Build imapdmain : imapd.cpp ;
 Build imap : imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp 
-	query.cpp address.cpp parser.cpp date.cpp header.cpp ;
-
+    query.cpp ;
+Build message : address.cpp parser.cpp date.cpp header.cpp message.cpp ;
 Build logdmain : logd.cpp ;
 Build logd : logserver.cpp ;
 
@@ -57,10 +57,10 @@ Build runtestsmain : runtests.cpp ;
 # to be after all Build calls, since the Build puts object files into
 # the sets used by Build.
 
-Program imapd : imap imapdmain server lib ;
+Program imapd : imap message imapdmain server lib ;
 LINKLIBS on imapd = -lz ;
 
 Program logd : logd logdmain server lib ;
 
-Program runtests : imap logd server lib runtestsmain ;
+Program runtests : imap message logd server lib runtestsmain ;
 LINKLIBS on runtests = -lz ;
