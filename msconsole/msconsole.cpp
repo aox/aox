@@ -5,7 +5,8 @@
 #include "scope.h"
 #include "configuration.h"
 #include "addresscache.h"
-#include "logclient.h"
+#include "allocator.h"
+#include "guilog.h"
 #include "loop.h"
 #include "log.h"
 #include "syslogger.h"
@@ -54,8 +55,8 @@ static QSize goodDefaultSize()
     else if ( w > 400 )
         w = w - 100;
 
-    if ( h > w * 5 / 8 )
-        h = w * 5 / 8;
+    if ( h > w * 3 / 4 )
+        h = w * 3 / 4;
     else if ( h > 400 )
         h = h - 100;
     else if ( h > 300 )
@@ -73,11 +74,11 @@ int main( int argc, char *argv[] )
     Configuration::setup( "mailstore.conf" );
 
     // our own event loop, merging qt's and ours
-    (void)new ConsoleLoop;
+    Allocator::addEternal( new ConsoleLoop, "event loop" );
 
     Log l( Log::General );
     global.setLog( &l );
-    LogClient::setup();
+    Allocator::addEternal( new GuiLog, "log object" );
 
     Database::setup();
     AddressCache::setup();
