@@ -251,12 +251,37 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
 
 
 /*! Tells all LogServer object to write log information to \a name
-    from now on.
+    from now on. (If the file has to be created, \a mode is used.)
 */
 
-void LogServer::setLogFile( const String &name, uint mode )
+void LogServer::setLogFile( const String &name, const String &mode )
 {
-    File * l = new File( name, File::Append, mode );
+    uint m;
+    String s = mode;
+    bool ok = false;
+
+    if ( s.length() == 4 && s[0] == '0' )
+        s = s.mid( 1 );
+
+    if ( s.length() == 3 ) {
+        if ( s[0] >= '0' && s[0] <= '9' &&
+             s[1] >= '0' && s[1] <= '9' &&
+             s[2] >= '0' && s[2] <= '9' )
+        {
+            m = ( s[0] - '0' ) * 0100 +
+                ( s[1] - '0' ) * 010 +
+                ( s[2] - '0' );
+            ok = true;
+        }
+
+    }
+
+    if ( !ok ) {
+        ::log( "Invalid logfile-mode " + mode, Log::Disaster );
+        return;
+    }
+
+    File * l = new File( name, File::Append, m );
     if ( !l->valid() ) {
         ::log( "Could not open log file " + name, Log::Disaster );
         return;

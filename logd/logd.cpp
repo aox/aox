@@ -25,7 +25,7 @@ int main( int argc, char * argv[] )
     Allocator::addEternal( new SelfLogger, "the logger's logger" );
     String logName( Configuration::text( Configuration::LogFile ) );
     String logMode( Configuration::text( Configuration::LogfileMode ) );
-    LogServer::setLogFile( logName, 0400 );
+    LogServer::setLogFile( logName, logMode );
     String logLevel( Configuration::text( Configuration::LogLevel ) );
     LogServer::setLogLevel( logLevel );
 

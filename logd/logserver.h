@@ -17,7 +17,7 @@ public:
 
     void processLine( const String & );
 
-    static void setLogFile( const String &, uint );
+    static void setLogFile( const String &, const String & );
     static void setLogLevel( const String & );
 
     static void reopen( int );
