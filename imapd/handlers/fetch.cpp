@@ -105,6 +105,10 @@ void Fetch::parse()
         // single fetch-att, or the macros
         parseAttribute( true );
     }
+    if ( d->envelope || d->body || d->bodystructure )
+        d->needHeader = true;
+    if ( d->body || d->bodystructure )
+        d->needBody = true;
     end();
 }
 
@@ -162,16 +166,27 @@ void Fetch::parseAttribute( bool alsoMacro )
     }
     else if ( keyword == "rfc822" ) {
         d->peek = false;
-        // ###
+        d->needHeader = true;
+        d->needBody = true;
+        FetchData::Section * s = new FetchData::Section;
+        s->id = keyword;
+        d->sections.append( s );
     }
     else if ( keyword == "rfc822.header" ) {
-        // ###
+        d->needHeader = true;
+        FetchData::Section * s = new FetchData::Section;
+        s->id = keyword;
+        d->sections.append( s );
     }
     else if ( keyword == "rfc822.size" ) {
         d->rfc822size = true;
     }
     else if ( keyword == "rfc822.text" ) {
-        // ###
+        d->peek = false;
+        d->needBody = true;
+        FetchData::Section * s = new FetchData::Section;
+        s->id = keyword;
+        d->sections.append( s );
     }
     else if ( keyword == "body.peek" && nextChar() == '[' ) {
         step();
@@ -210,18 +225,28 @@ void Fetch::parseAttribute( bool alsoMacro )
 
 
 /*! This utility function fetches at least \a min, at most \a max
-  characters, all of which must be a letter or dot. Two consecutive
-  dots aren't allowed.
+    characters, all of which must be a letter, a digit or a dot.
+    Consecutive dots ARE allowed.
 */
 
 String Fetch::dotLetters( uint min, uint max )
 {
-    String r = letters( 1, max );
-    while ( r.length() + 1 < max && nextChar() == '.' ) {
+    String r;
+    uint i = 0;
+    char c = nextChar();
+    while ( i < max &&
+            ( ( c >= 'A' && c <= 'Z' ) ||
+              ( c >= 'a' && c <= 'z' ) ||
+              ( c >= '0' && c <= '9' ) ||
+              ( c == '.' ) ) ) {
         step();
-        r.append( "." );
-        r.append( letters( 1, max - r.length() ) );
+        r.append( c );
+        c = nextChar();
+        i++;
     }
+    if ( i < min )
+        error( Bad, "Expected at least " + String::fromNumber( min-i ) +
+               " more letters/digits/dots, saw " + following() );
     return r;
 }
 
@@ -233,8 +258,6 @@ String Fetch::dotLetters( uint min, uint max )
 
 void Fetch::parseBody()
 {
-    step();
-
     //section-spec    = section-msgtext / (section-part ["." section-text])
     //section-msgtext = "HEADER" /
     //                  "HEADER.FIELDS" [".NOT"] SP header-list /
@@ -256,7 +279,7 @@ void Fetch::parseBody()
     }
 
     if ( sectionValid ) {
-        String tmp = dotLetters( 4, 17 ).lower();
+        String tmp = dotLetters( 0, 17 ).lower();
         s->id.append( tmp );
         if ( tmp == "text" || tmp == "mime" || tmp == "header" ) {
             if ( tmp == s->id )
@@ -273,6 +296,9 @@ void Fetch::parseBody()
                 s->fields.append( new String( astring().headerCased() ) );
             }
             require( ")" );
+        }
+        else if ( s->id.isEmpty() ) {
+            // it's okay
         }
         else {
             error( Bad, "expected text, header, header.fields etc, "
@@ -315,10 +341,6 @@ String Fetch::query() const
 
 
     StringList bools;
-    if ( d->body || d->bodystructure )
-        bools.append( "bodystructure" );
-    if ( d->envelope )
-        bools.append( "envelope" );
     if ( d->flags )
         bools.append( "flags" );
     if ( d->internaldate )
@@ -346,6 +368,46 @@ static struct {
       "select (flags,uid) from messages where uid>=2 and uid<4" },
     { "2,3 (flags uid)",
       "select (flags,uid) from messages where uid>=2 and uid<4" },
+    { "1 uid",
+      "select (uid) from messages where uid=1" },
+    { "1 all",
+      "select (flags,internaldate,rfc822size,uid) from messages where uid=1" },
+    { "1 fast",
+      "select (flags,internaldate,rfc822size,uid) from messages where uid=1" },
+    { "1 full",
+      "select (flags,internaldate,rfc822size,uid) from messages where uid=1" },
+    { "1 (uid rfc822)",
+      "select (uid) from messages where uid=1" },
+    { "1 (uid rfc822.size)",
+      "select (rfc822size,uid) from messages where uid=1" },
+    { "1 (uid rfc822.text)",
+      "select (uid) from messages where uid=1" },
+    { "1 (uid rfc822.header)",
+      "select (uid) from messages where uid=1" },
+    { "1 (uid body.peek[])",
+      "select (uid) from messages where uid=1" },
+    { "1 (uid body.peek[1])",
+      "select (uid) from messages where uid=1" },
+    { "1 body.peek[1]",
+      "select (uid) from messages where uid=1" },
+    { "1 body.peek[mime]",
+      "select (uid) from messages where uid=1" },
+    { "1 body.peek[1.mime]",
+      "select (uid) from messages where uid=1" },
+    { "1 body.peek[1.2.mime]",
+      "select (uid) from messages where uid=1" },
+    { "1 body.peek[header]",
+      "select (uid) from messages where uid=1" },
+    { "1 body.peek[text]",
+      "select (uid) from messages where uid=1" },
+    { "1 body.peek[1.header]",
+      "select (uid) from messages where uid=1" },
+    { "1 body.peek[1.text]",
+      "select (uid) from messages where uid=1" },
+    { "1 body.peek[1.123456789.header]",
+      "select (uid) from messages where uid=1" },
+    { "1 body.peek[1.23456789.text]",
+      "select (uid) from messages where uid=1" },
     { 0, 0 }
 };
 
