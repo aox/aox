@@ -32,7 +32,7 @@ public:
 
 
 Append::Append()
-    : ImapCommand(), d( new AppendData )
+    : Command(), d( new AppendData )
 {
     // nothing more needed
 }

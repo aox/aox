@@ -2,6 +2,7 @@
 
 #include "imap.h"
 
+
 /*! \class Logout logout.h
     Terminates an IMAP session (RFC 3501, §6.1.3)
 */

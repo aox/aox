@@ -1,11 +1,11 @@
 #ifndef ID_H
 #define ID_H
 
-#include "imapcommand.h"
+#include "command.h"
 
 
 class Id
-    : public ImapCommand
+    : public Command
 {
 public:
     void parse();

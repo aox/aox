@@ -1,11 +1,11 @@
 #ifndef CREATE_H
 #define CREATE_H
 
-#include "imapcommand.h"
+#include "command.h"
 
 
 class Create
-    : public ImapCommand
+    : public Command
 {
 public:
     Create()

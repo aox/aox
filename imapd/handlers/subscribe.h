@@ -1,11 +1,11 @@
 #ifndef SUBSCRIBE_H
 #define SUBSCRIBE_H
 
-#include "imapcommand.h"
+#include "command.h"
 
 
 class Subscribe
-    : public ImapCommand
+    : public Command
 {
 public:
     enum Mode { Add, Remove };

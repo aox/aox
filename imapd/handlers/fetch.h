@@ -1,11 +1,11 @@
 #ifndef FETCH_H
 #define FETCH_H
 
-#include "imapcommand.h"
+#include "command.h"
 
 
 class Fetch
-    : public ImapCommand
+    : public Command
 {
 public:
     Fetch( bool u ): uid( u ) {}

@@ -1,16 +1,16 @@
 #ifndef CAPABILITY_H
 #define CAPABILITY_H
 
-#include "imapcommand.h"
+#include "command.h"
 
 
 class Capability
-    : public ImapCommand
+    : public Command
 {
 public:
     void execute();
-
     static const char * capabilities();
 };
+
 
 #endif

@@ -1,11 +1,11 @@
 #ifndef STARTTLS_H
 #define STARTTLS_H
 
-#include "imapcommand.h"
+#include "command.h"
 
 
 class StartTLS
-    : public ImapCommand
+    : public Command
 {
 public:
     void execute();

@@ -1,11 +1,11 @@
 #ifndef RENAME_H
 #define RENAME_H
 
-#include "imapcommand.h"
+#include "command.h"
 
 
 class Rename
-    : public ImapCommand
+    : public Command
 {
 public:
     Rename()
@@ -19,5 +19,6 @@ private:
     String a, b;
     class Mailbox *m;
 };
+
 
 #endif

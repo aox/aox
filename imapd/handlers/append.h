@@ -1,11 +1,12 @@
 #ifndef APPEND_H
 #define APPEND_H
 
-#include "imapcommand.h"
+#include "command.h"
 
 
 class Append
-    : public ImapCommand {
+    : public Command
+{
 public:
     Append();
 

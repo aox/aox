@@ -1,11 +1,11 @@
 #ifndef NOOP_H
 #define NOOP_H
 
-#include "imapcommand.h"
+#include "command.h"
 
 
 class Noop
-    : public ImapCommand
+    : public Command
 {
 public:
     void execute();
@@ -13,7 +13,7 @@ public:
 
 
 class Check
-    : public ImapCommand
+    : public Command
 {
 public:
     void execute();

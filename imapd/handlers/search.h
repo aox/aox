@@ -1,12 +1,12 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
-#include "imapcommand.h"
+#include "command.h"
 #include "squery.h"
 
 
 class Search
-    : public ImapCommand
+    : public Command
 {
 public:
     Search( bool u );

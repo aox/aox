@@ -1,11 +1,11 @@
 #ifndef UNSELECT_H
 #define UNSELECT_H
 
-#include "imapcommand.h"
+#include "command.h"
 
 
 class Unselect
-    : public ImapCommand
+    : public Command
 {
 public:
     void execute();
