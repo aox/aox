@@ -753,15 +753,10 @@ String Search::Condition::debugString() const
     reasonably simple and quick, and returns either Yes, No, or (if
     the match is difficult, expensive or depends on data that isn't
     available) Punt.
-
-    If \a m is null, No is returned.
 */
 
 Search::Condition::MatchResult Search::Condition::match( Message * m )
 {
-    if ( !m )
-        return No;
-
     if ( a == And || a == Or ) {
         List< Condition >::Iterator i = l->first();
         while ( i ) {
