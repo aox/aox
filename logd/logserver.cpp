@@ -260,7 +260,7 @@ void LogServer::setLogFile( const String & name )
     if ( l->valid() )
         logFile = l;
     else
-        ::log( "Could not open log file " + name, Log::Error );
+        ::log( "Could not open log file " + name, Log::Disaster );
 }
 
 
