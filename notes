@@ -75,9 +75,6 @@ Implement listext
 Resource limits on memory allocation
 
 
-Collect EXPLAIN ANALYZE output for our common queries.
-
-
 Set up and play with PITR and tsearch2
 
 
