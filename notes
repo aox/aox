@@ -1,3 +1,9 @@
+LIST/LSUB fixes.
+
+  There's lots of horrible breakage here (for example, the reference
+  name is apparently just ignored).
+
+
 Injector fixes:
 
   1. We need to share entries for identical bodyparts.
