@@ -406,8 +406,14 @@ void Postgres::unknown( char type )
             case PgMessage::Error:
                 {
                     Query * q = d->queries.take( d->queries.first() );
-                    q->setError( msg.message() );
-                    q->notify();
+                    // There *should* always be an outstanding query for
+                    // this error, but I get inexplicable segfaults when
+                    // I assume that queries and errors match exactly.
+                    // Will investigate later. -- AMS 20041124
+                    if ( q ) {
+                        q->setError( msg.message() );
+                        q->notify();
+                    }
                 }
                 break;
 
