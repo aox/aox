@@ -177,11 +177,8 @@ void IMAP::parse()
             if ( !d->readingLiteral ) {
                 addCommand();
 		d->args = 0;
-
-                /* XXX: *WTF* is happening here?
-                   Arena::pop();
-                   d->cmdArena = new Arena;
-                   Arena::push( d->cmdArena ); */
+                d->cmdArena = new Arena;
+                Scope::current()->setArena( d->cmdArena );
             }
         }
     }
