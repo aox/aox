@@ -17,7 +17,9 @@ Building and installing Mailstore is a five-step process:
    default). This will create the PostgreSQL infrastructure needed and
    write a stub configuration file.
 
-4. Edit CONFIGDIR/mailstore.conf to suit your needs. By default, that's
+4. This step can be skipped. Mailstore will work well without it.
+
+   Edit CONFIGDIR/mailstore.conf to suit your needs. By default, that's
    /usr/local/mailstore/mailstore.conf. The man page for mailstore.conf
    explains all the possible settings.
 
@@ -30,5 +32,20 @@ Building and installing Mailstore is a five-step process:
 
 At this point, you're ready to run "BINDIR/rcmailstore start" to start
 Mailstore. After a change, "rcmailstore restart" restarts.
+
+There are mailing lists for Mailstore users and announcements. To
+subscribe to the users list, send mail:
+
+    To: mailstore-users-request@oryx.com
+    Subject: subscribe
+
+    subscribe
+
+To subscribe to the low-volume announcements list, send mail:
+
+    To: mailstore-announce-request@oryx.com
+    Subject: subscribe
+
+    subscribe
 
 If you encounter any problems, please write to info@oryx.com.
