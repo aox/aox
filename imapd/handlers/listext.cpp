@@ -282,9 +282,10 @@ void Listext::listChildren( Mailbox * mailbox, const String & pattern )
 }
 
 
-/*! Sends a list response for \a mailbox, which we pretent has
-    \a name. For /users/billg/inbox, \a name is usually either InBox or
-    /users/billg/inbox. */
+/*! Sends a LIST response for \a mailbox, which we pretend has \a name.
+    For /users/billg/INBOX, \a name is usually either INBOX or
+    /users/billg/INBOX.
+*/
 
 void Listext::sendListResponse( Mailbox * mailbox, const String & name )
 {
