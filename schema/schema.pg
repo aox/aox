@@ -1,0 +1,218 @@
+-- This table contains information internal to mailstore.
+-- For now, its only purpose is to coordinate schema updates.
+
+create table mailstore (
+    revision    integer not null
+);
+insert into mailstore (revision) values (2);
+create sequence revisions start with 2;
+
+
+-- One entry per Mailstore user.
+-- Used for authentication, access control, and mail routing.
+
+create table users (
+    id          serial primary key,
+    login       text unique,
+    secret      text
+);
+
+
+-- One entry per "other users" namespace. Personal namespaces are
+-- implicitly created within these.
+
+create table namespaces (
+    id          serial primary key,
+    name        text not null unique
+);
+insert into namespaces (name) values ('/users');
+
+
+-- One entry per named group.
+
+create table groups (
+    id          serial primary key,
+    name        text
+);
+
+
+-- One entry for each group member.
+
+create table group_members (
+    groupname   integer not null references groups(id),
+    member      integer not null references users(id)
+);
+
+
+-- One entry per deliverable mailbox.
+
+create table mailboxes (
+    id          serial primary key,
+    name        text not null unique,
+    owner       integer references users(id),
+
+    -- The UID that will be assigned to the next delivered message.
+    -- Incremented after each successful delivery.</span>
+    uidnext     integer not null default 1,
+
+    -- The IMAP mailbox UIDVALIDITY value, which, along with a message UID,
+    -- is forever guaranteed to uniquely refer to a single message.
+    uidvalidity integer not null default 1,
+
+    -- When a mailbox is deleted, its entry is marked (not removed), so
+    -- that its UIDVALIDITY can be incremented if it is ever re-created.
+    deleted     boolean not null default false
+);
+
+
+-- One row per <identifier, right> entry for a mailbox.
+
+create table permissions (
+    mailbox     integer not null references mailboxes(id),
+    identifier  text not null,
+    rights      text not null
+);
+
+
+-- One (mailbox, uid) entry per delivered message.
+
+create table messages (
+    mailbox     integer not null references mailboxes(id),
+    -- Assigned from the mailbox uidnext value.
+    uid         integer not null,
+    -- Delivery time in seconds since the epoch.
+    idate       integer,
+    -- Message size in bytes (to speed up FETCH).
+    rfc822size  integer,
+    -- IMAP message flags (to speed up SEARCH).
+    seen        boolean not null default false,
+    draft       boolean not null default false,
+    flagged     boolean not null default false,
+    answered    boolean not null default false,
+    deleted     boolean not null default false,
+    primary key (mailbox, uid)
+);
+
+
+-- One entry for the text of each unique MIME body part.
+-- Entries here may be shared by more than one message.
+
+create sequence bodypart_ids;
+create table bodyparts (
+    id          integer default nextval('bodypart_ids') primary key,
+    bytes       integer not null,
+    lines       integer not null,
+    text        bytea
+);
+
+-- For convenience, non-text bodypart data is stored in this table.
+-- A non-canonical textual representation may also be stored above.
+
+create table binary_parts (
+    bodypart    integer not null references bodyparts(id) primary key,
+    data        bytea
+);
+
+
+-- A list of bodyparts belonging to each message, with IMAP part numbers.
+
+create table part_numbers (
+    mailbox     integer not null,
+    uid         integer not null,
+    foreign key (mailbox, uid) references messages(mailbox, uid),
+    bodypart    integer not null references bodyparts(id),
+    part        text not null,
+    primary key (mailbox, uid, part)
+);
+
+
+-- One entry for each field name we've seen (From, To, Subject, etc.).
+-- (This table is partially populated from the field-names file.)
+
+create table field_names (
+    id          serial primary key,
+    name        text unique
+);
+
+
+-- A list of the header fields associated with each bodypart in a message.
+
+create table header_fields (
+    id          serial primary key,
+    mailbox     integer not null,
+    uid         integer not null,
+    part        text,
+    foreign key (mailbox, uid, part)
+                references part_numbers(mailbox, uid, part),
+    field       integer not null references field_names(id),
+    value       text
+);
+
+
+-- One entry for each unique address we've encountered.
+
+create table addresses (
+    id          serial primary key,
+    name        text,
+    localpart   text,
+    domain      text,
+    unique (name, localpart, domain)
+);
+
+
+-- A list of addresses associated with each message.
+
+create table address_fields (
+    mailbox     integer not null,
+    uid         integer not null,
+    foreign key (mailbox, uid) references messages(mailbox, uid),
+    field       integer not null references field_names(id),
+    address     integer not null references addresses(id)
+);
+
+
+-- One entry for each message to be announced as \Recent.
+
+create table recent_messages (
+    mailbox     integer not null,
+    uid         integer not null,
+    foreign key (mailbox, uid) references messages(mailbox, uid),
+    primary key (mailbox, uid)
+);
+
+
+-- One entry per user-defined flag name to be used in extra_flags.
+
+create table flag_names (
+    id          serial primary key,
+    name        text unique
+);
+
+
+-- One entry per user-defined IMAP message flag per message.
+-- (The base IMAP flags are stored directly in messages.)
+
+create table extra_flags (
+    mailbox     integer not null,
+    uid         integer not null,
+    foreign key (mailbox, uid) references messages(mailbox, uid),
+    flag        integer not null references flag_names(id)
+);
+
+
+-- One entry per subscribed mailbox per user.
+
+create table subscriptions (
+    id          serial primary key,
+    owner       integer not null references users(id),
+    mailbox     text
+);
+
+-- The name's Bond, James Bond.
+
+alter table users add address integer references addresses(id);
+alter table users alter address set not null;
+alter table users add inbox integer references mailboxes(id);
+alter table users alter inbox set not null;
+alter table users add parentspace integer references namespaces(id);
+alter table users alter parentspace set not null;
