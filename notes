@@ -1,6 +1,14 @@
 Add support for RFC 2047 encoding
 
 
+We need to preserve the order of trace fields in the header.
+
+  The Return-Path and Received fields must be reproduced in the same
+  order that we saw them. We make no attempt to do this yet. Perhaps
+  the right thing to do is to add a separate trace_fields table with
+  relative position numbers.
+
+
 tlsproxy doesn't handle eof (or errors) well
 
 
@@ -40,6 +48,13 @@ We need an IMAP test suite
   Of course we will both remember what Arnt wrote in email, and our
   thoughts concerning this subject. Therefore there's no point in making
   notes. ;)
+
+
+We should not duplicate the contents of address_fields in header_fields.
+
+  The Injector should avoid inserting address fields into header_fields,
+  and the HeaderFetcher should assemble addresses from address_fields.
+  (If we split trace_fields out, then it should do the same for them.)
 
 
 Bodypart sharing
