@@ -6,6 +6,7 @@
 #include "list.h"
 #include "field.h"
 
+
 class String;
 class Address;
 class ContentType;
@@ -15,26 +16,27 @@ class ContentLanguage;
 class Date;
 
 
-class Header
-{
+class Header {
 public:
-    enum Mode {
-        Rfc2822,
-        Mime
-    };
+    enum Mode { Rfc2822, Mime };
     Header( Mode );
-
-    void add( const String & name, const String & value );
 
     Mode mode() const;
     bool valid() const;
     String error() const;
 
+    void add( const String &, const String & );
+    void removeField( HeaderField::Type );
+
+    List< HeaderField > *fields() const;
+    HeaderField * field( HeaderField::Type, uint=0 ) const;
+
     Date * date( HeaderField::Type = HeaderField::Date ) const;
-    String messageId( HeaderField::Type = HeaderField::MessageId ) const;
-    String references() const;
     String subject() const;
     String inReplyTo() const;
+    String messageId( HeaderField::Type = HeaderField::MessageId ) const;
+    String references() const;
+    List< Address > * addresses( HeaderField::Type ) const;
     ContentType * contentType() const;
     ContentTransferEncoding * contentTransferEncoding() const;
     ContentDisposition * contentDisposition() const;
@@ -42,25 +44,16 @@ public:
     String contentDescription() const;
     String contentLocation() const;
 
-    List<Address> * addresses( HeaderField::Type ) const;
-
-    HeaderField * field( HeaderField::Type, uint=0 ) const;
-    String mimeFields() const;
-
     void simplify();
 
-    void removeField( HeaderField::Type );
-
-    List<HeaderField> * fields() const;
-
     String asText() const;
-
-private:
-    void verify() const;
-    void appendField( String &, HeaderField::Type ) const;
+    String mimeFields() const;
 
 private:
     class HeaderData * d;
+
+    void verify() const;
+    void appendField( String &, HeaderField::Type ) const;
 };
 
 
