@@ -625,6 +625,7 @@ public:
             state = 2;
         }
 
+        // Perform successive updates towards the current revision.
         while ( revision < currentRevision ) {
             if ( state == 2 ) {
                 seq = new Query( "select nextval('revisions')::integer as seq",
@@ -654,6 +655,7 @@ public:
                 update = new Query( "update mailstore set revision=revision+1",
                                     this );
                 t->enqueue( update );
+                t->execute();
                 state = 6;
             }
             if ( state == 6 ) {
@@ -664,7 +666,9 @@ public:
             }
         }
 
-        t->commit();
+        // XXX: This is bandaid. Isn't it?
+        if ( !t->done() )
+            t->commit();
     }
 };
 
