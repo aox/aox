@@ -60,6 +60,17 @@ void OCServer::react( Event e )
 
 void OCServer::parse()
 {
+    String *s = readBuffer()->removeLine();
+
+    if ( !s )
+        return;
+
+    int i = s->find( ' ' );
+    String tag = s->mid( 0, i );
+    String msg = s->mid( i+1 ).stripCRLF().lower();
+
+    if ( tag == "*" )
+        OCServer::send( msg );
 }
 
 
@@ -67,10 +78,11 @@ void OCServer::parse()
 
 void OCServer::send( const String &s )
 {
-    List< OCServer >::Iterator it = servers.first();
+    String msg = "* " + s + "\n";
 
+    List< OCServer >::Iterator it( servers.first() );
     while ( it ) {
-        it->enqueue( s );
+        it->enqueue( msg );
         it->write();
         it++;
     }

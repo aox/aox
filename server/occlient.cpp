@@ -101,9 +101,11 @@ void OCClient::parse()
     if ( !s )
         return;
 
-    String r = s->lower();
+    int i = s->find( ' ' );
+    String tag = s->mid( 0, i );
+    String msg = s->mid( i+1 ).stripCRLF().lower();
 
-    if ( r == "shutdown" )
+    if ( msg == "shutdown" )
         Loop::shutdown();
 }
 
@@ -112,6 +114,6 @@ void OCClient::parse()
 
 void OCClient::send( const String &s )
 {
-    client->enqueue( "* " + s + "\r\n" );
+    client->enqueue( "* " + s + "\n" );
     client->write();
 }
