@@ -80,10 +80,14 @@ rule Program
 
 
 rule Doc {
-    Depends exe : $(<) ; # run this rule whenever "all executables" are built
-    Doc2 $(<) : $(set-$(>):S=.cpp) ;
+    Depends exe : <doc>.made.$(<) ;
+
+    Clean clean : <doc>.made.$(<) ;
+    Depends <doc>.made.$(<) : $(set-$(>):S=.cpp) ;
+    Doc2 <doc>.made.$(<) : $(set-$(>):S=.cpp) ;
 }
 
 actions together Doc2 {
     bin/rdoc -m doc/man/man3 -w doc/html $(>)
+    touch $(<)
 }
