@@ -414,6 +414,7 @@ void Postgres::unknown( char type )
 
             default:
                 log( msg.message() );
+                d->unknownMessage = false;
                 break;
             }
         }
