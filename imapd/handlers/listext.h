@@ -20,6 +20,8 @@ public:
 
 private:
     String listMailbox();
+    void addReturnOption( const String & );
+    void addSelectOption( const String & );
 
 private:
     class ListextData * d;

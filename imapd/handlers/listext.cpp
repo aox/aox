@@ -2,15 +2,28 @@
 
 #include "string.h"
 #include "stringlist.h"
+#include "mailbox.h"
 
 
 class ListextData
 {
 public:
-    StringList selections;
+    ListextData():
+        extended( false ),
+        returnSubscribed( false ), returnChildren( false ),
+        selectSubscribed( false ), selectRemote( false ),
+        selectMatchParent( false )
+    {}
+
     String mailbox;
     StringList patterns;
-    StringList returns;
+
+    bool extended;
+    bool returnSubscribed;
+    bool returnChildren;
+    bool selectSubscribed;
+    bool selectRemote;
+    bool selectMatchParent;
 };
 
 
@@ -21,6 +34,9 @@ public:
 
     The extension grammar is intentionally kept minimal, since it's
     still a draft. Currently based on draft-ietf-imapext-list-extensions-09.
+
+    Mailstore does not support remote mailboxes, so the listext option
+    to show remote mailboxes is silently ignored.
 */
 
 
@@ -43,13 +59,14 @@ void Listext::parse()
     // list = "LIST" [SP list-select-opts] SP mailbox SP mbox_or_pat
 
     if ( present( "(" ) ) {
-        // list-select-opts = "(" [list-select-option 
+        d->extended = true;
+        // list-select-opts = "(" [list-select-option
         //                    *(SP list-select-option)] ")"
         // list-select-option = "SUBSCRIBED" / "REMOTE" / "MATCHPARENT" /
         //                      option-extension
-        d->selections.append( atom() );
+        addSelectOption( atom().lower() );
         while ( present( " " ) )
-            d->selections.append( atom() );
+            addSelectOption( atom().lower() );
         require( ")" );
     }
 
@@ -59,6 +76,8 @@ void Listext::parse()
     // mbox_or_pat = list-mailbox / patterns
     // patterns = "(" list-mailbox *(list-mailbox) ")"
     if ( present( "(" ) ) {
+        d->extended = true;
+
         d->patterns.append( listMailbox() );
         while ( present( " " ) )
             d->patterns.append( listMailbox() );
@@ -70,9 +89,11 @@ void Listext::parse()
 
     // list-return-opts = "RETURN (" [return-option *(SP return-option)] ")"
     if ( present( "return (" ) ) {
-        d->returns.append( atom() );
+        d->extended = true;
+
+        addReturnOption( atom().lower() );
         while ( present( " " ) )
-            d->returns.append( atom() );
+            addReturnOption( atom().lower() );
         require( ")" );
     }
     end();
@@ -83,7 +104,9 @@ void Listext::parse()
 
 void Listext::execute()
 {
-    
+    String rootName = d->mailbox;
+    Mailbox * root = Mailbox::find( d->mailbox );
+    root = root;
 }
 
 
@@ -106,4 +129,34 @@ String Listext::listMailbox()
     if ( result.isEmpty() )
         error( Bad, "list-mailbox expected, saw: " + following() );
     return result;
+}
+
+
+/*! Parses and remembers the return \a option, or emits a suitable
+    error. \a option must be in lower case.*/
+
+void Listext::addReturnOption( const String & option )
+{
+    if ( option == "subscribed" )
+        d->returnSubscribed = true;
+    else if ( option == "children" )
+        d->returnChildren = true;
+    else
+        error( Bad, "Unknown return option: " + option );
+}
+
+
+/*! Parses the selection \a option, or emits a suitable error. \a
+    option must be lower-cased. */
+
+void Listext::addSelectOption( const String & option )
+{
+    if ( option == "subscribed" )
+        d->selectSubscribed = true;
+    else if ( option == "remote" )
+        d->selectRemote = true;
+    else if ( option == "matchparent" )
+        d->selectMatchParent = true;
+    else
+        error( Bad, "Unknown selection option: " + option );
 }
