@@ -5,10 +5,15 @@
 #include "ustring.h"
 #include "header.h"
 #include "mimefields.h"
+#include "event.h"
+
+
+class Mailbox;
 
 
 class Message {
 public:
+    Message();
     Message( const String &, bool );
 
     bool valid() const;
@@ -19,6 +24,12 @@ public:
 
     Header * header() const;
 
+    void setUid( uint );
+    uint uid() const;
+
+    void setMailbox( Mailbox * );
+    Mailbox * mailbox() const;
+
 private:
     void parseMultipart( uint, uint, const String &, const String & );
     void parseBodypart( uint, uint, const String &, Header * );
@@ -26,6 +37,7 @@ private:
 
 private:
     class MessageData * d;
+    friend class MessageHeaderFetcher;
 };
 
 
@@ -45,6 +57,32 @@ private:
     class BodyPartData * d;
     friend class Message;
     friend class MessageData;
+};
+
+
+class MessageHeaderFetcher: public EventHandler {
+public:
+    MessageHeaderFetcher( Message *, EventHandler * );
+
+    void execute();
+
+private:
+    class MessageHeaderFetcherData * d;
+
+    static class PreparedStatement * ps;
+};
+
+
+class MessageBodyFetcher: public EventHandler {
+public:
+    MessageBodyFetcher( Message *, EventHandler * );
+
+    void execute();
+
+private:
+    class MessageBodyFetcherData * d;
+
+    static class PreparedStatement * ps;
 };
 
 
