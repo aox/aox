@@ -1,0 +1,156 @@
+#!/bin/sh
+#
+# This script uses the Jamsettings to set up a database and write a stub
+# configuration file for Mailstore to use. (We assume that we're running
+# as root.)
+
+if [ `id -u` != 0 ]; then
+    echo Please run the install script as root.
+    exit 1
+fi
+
+if [ ! -f ../Jamsettings ]; then
+    echo Please cd to the directory in which the install script is located, then rerun.
+    exit 1
+fi
+
+# Aefaults, overwritten by Jamsettings
+PREFIX=/tmp/mailstore
+
+PGUSER=postgres
+DBNAME=mailstore
+DBUSER=oryx
+
+( cd .. ; jam config >/dev/null 2>/dev/null )
+source ../.config.sh
+rm ../.config.sh
+
+CONFIG=$PREFIX/mailstore.conf
+
+# We'll assume that psql is in our path, unless told otherwise.
+PSQL=${PSQL:-psql}
+PGCTL=${PGCTL:-pg_ctl}
+
+# Actually, this isn't overwritten by Jamsettings.
+SCHEMA=`pwd`/../schema
+
+## Set up the database.
+#
+# Do we need to create the oryx user?
+
+DBUSER=${DBUSER:-oryx}
+EXISTS="select usename from pg_catalog.pg_user where usename = '$DBUSER'"
+EXISTS=$(su - $PGUSER -c "$PSQL -d template1 -Atqc \"$EXISTS\"")
+if [ ! $EXISTS ]; then
+    if [ ! $DBPASS ]; then
+        DBPASS=$(dd if=/dev/urandom bs=1 count=8 2>/dev/null|md5sum|cut -b-8)
+    fi
+    CREATE="create user $DBUSER with encrypted password '$DBPASS'"
+    su - $PGUSER -c "$PSQL -d template1 -qc \"$CREATE\"" || exit
+fi
+
+
+# Do we need to create the mailstore database?
+#
+# Unfortunate problem: if the database exists, but is not owned by the
+# user we either found or created above... but in that case, what can
+# we do anyway?
+
+DBNAME=${DBNAME:-mailstore}
+EXISTS="select datname from pg_catalog.pg_database where datname = '$DBNAME'"
+EXISTS=$(su - $PGUSER -c "$PSQL -d template1 -Atqc \"$EXISTS\"")
+if [ ! $EXISTS ]; then
+    CREATE="create database $DBNAME with owner $DBUSER encoding 'UNICODE'"
+    su - $PGUSER -c "$PSQL -d template1 -qc \"$CREATE\"" || exit
+fi
+
+
+# Feed the schema to the database.
+
+cat <<PSQL | su - $PGUSER -c "$PSQL -q -d template1 -f -" || exit
+\set ON_ERROR_STOP
+\c $DBNAME
+SET SESSION AUTHORIZATION $DBUSER;
+SET client_min_messages TO 'ERROR';
+\i $SCHEMA/schema.pg
+\i $SCHEMA/field-names
+PSQL
+
+# Reconfigure and restart the server if required.
+
+TS=$(date +%Y%m%d%H%M%S)
+PGDATA=${PGDATA:-$(su - $PGUSER -c 'echo $PGDATA')}
+if [ "$PGDATA" -a -d $PGDATA -a \
+     -f $PGDATA/pg_hba.conf -a -f $PGDATA/postgresql.conf ];
+then
+    # Add our host entry to pg_hba.conf if necessary.
+    ENTRY="host $DBNAME $DBUSER 127.0.0.1/32 md5";
+    awk "                                                           \
+    /^host $DB $USER/ { X=1 }                                       \
+    /^host/ { if(X==0){ print \"$ENTRY\"; X=2 } }                   \
+    //      { print }                                               \
+    END     { if(X==0){ print \"$ENTRY\"; } exit X } "              \
+    $PGDATA/pg_hba.conf > /tmp/pg_hba.conf.oryx
+
+    if [ $? != "1" ]; then
+        cp $PGDATA/pg_hba.conf $PGDATA/pg_hba.conf.oryx-backup.$TS
+        cat /tmp/pg_hba.conf.oryx > $PGDATA/pg_hba.conf
+        HBA=1
+    fi
+
+    # Make sure postgresql.conf sets tcpip_socket = true.
+    awk '                                                           \
+    /^tcpip_socket[\t ]*=[\t ]*false/ { print "# "$0; next }        \
+    /^tcpip_socket[\t ]*=[\t ]*true/  { X=1 }                       \
+    //                                { print }                     \
+    END { if (X==0){ print "\ntcpip_socket=true"; } exit X } '      \
+    $PGDATA/postgresql.conf > /tmp/postgresql.conf.oryx
+
+    if [ $? != "1" ]; then
+        cp $PGDATA/postgresql.conf $PGDATA/postgresql.conf.oryx-backup.$TS
+        cat /tmp/postgresql.conf.oryx > $PGDATA/postgresql.conf
+        CONF=1
+    fi
+
+    # If possible, restart or reload the server as required.
+
+    if [ $CONF ];
+    then
+        RC=/etc/init.d/postgresql
+        if [ -f $RC ];
+        then
+            $RC restart
+        else
+            echo "Please restart the PostgreSQL server."
+        fi
+    else
+        if [ $HBA ]; then
+            su - $PGUSER -c "$PGCTL -D $PGDATA reload"
+        fi
+    fi
+else
+    echo "Please allow user $DBUSER to connect to database $DBNAME via TCP/IP."
+fi
+
+
+# Write a stub configuration file.
+
+touch $CONFIG
+chmod 0600 $CONFIG
+cat <<CONFIG > $CONFIG
+# Mailstore configuration. For more about this, see the mailstore.conf
+# man page.
+
+## Specify the hostname if mailstore gets it wrong.
+# hostname = (fully-qualified hostname here)
+
+## Turn security off to debug the servers. Strongly discouraged.
+# security = off
+
+## Which database should we use?
+
+db-address  = 127.0.0.1
+db-name     = $DBNAME
+db-user     = $DBUSER
+db-password = ${DBPASS:-'""'}
+CONFIG

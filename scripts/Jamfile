@@ -22,10 +22,5 @@ rule ShellScript {
 
 
 ShellScript rcmailstore ;
-
-# doing anything to ./install won't work - it makes 'jam install'
-# ambiguous and poor jam becomes horribly confused. must rename. to
-# what?
-
-# ShellScript install ;
+ShellScript installer ;
 
