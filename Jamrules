@@ -2,7 +2,7 @@
 
 OPTIM = ;
 RANLIB = ;
-C++FLAGS = -g -Werror ;
+C++FLAGS = -g -Werror -funsigned-char ;
 LINKFLAGS = -g ;
 
 if $(ICC) {
@@ -10,7 +10,7 @@ if $(ICC) {
 }
 else {
     C++ = g++ ;
-    C++FLAGS += -Wall -Werror -funsigned-char ;
+    C++FLAGS += -Wall ;
 
     if $(COV) {
         C++FLAGS += -fprofile-arcs -ftest-coverage ;
