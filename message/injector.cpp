@@ -599,7 +599,7 @@ void Injector::linkHeaderFields()
             q->bind( 2, uid );
             q->bind( 3, link->part );
             q->bind( 4, t );
-            q->bind( 5, link->hf->value() );
+            q->bind( 5, link->hf->data() );
 
             d->transaction->enqueue( q );
         }

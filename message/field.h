@@ -45,10 +45,12 @@ public:
 
     String name() const;
     String value() const;
+    String data() const;
 
     bool valid() const;
     String error() const;
 
+    void parseText();
     List<Address> * parseMailboxList();
     List<Address> * parseMailbox();
     List<Address> * parseAddressList();

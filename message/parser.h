@@ -37,10 +37,11 @@ public:
     String mimeToken();
     String mimeValue();
     UString encodedWord();
+    UString text();
 
     char next() const { return s[i]; }
 
-    bool isAtext() const;
+    bool isAtext( char ) const;
 
     bool atEnd() const { return i >= s.length(); }
 
