@@ -286,8 +286,8 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
 }
 
 
-/*!
-
+/*! Kills all Connections brutally except \a c1 and \a c2. This helps
+    TlsProxy do its work.
 */
 
 void EventLoop::killAllExcept( Connection * c1, Connection * c2 )
