@@ -47,10 +47,12 @@ void StartTLS::execute()
     if ( !tlsServer->done() )
         return;
 
-    if ( !tlsServer->ok() )
+    imap()->reserve( 0 );
+
+    if ( tlsServer->ok() )
+        imap()->startTls( tlsServer );
+    else
         error( No, "Internal error starting TLS engine" );
 
-    imap()->reserve( 0 );
     finish();
-    imap()->startTls( tlsServer );
 }

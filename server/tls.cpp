@@ -11,6 +11,8 @@
 #include "log.h"
 #include "loop.h"
 
+#include <stdio.h>
+
 
 static Endpoint * tlsProxy = 0;
 
@@ -35,7 +37,7 @@ public:
 
         String tag;
         bool done;
-        bool ok;
+        bool connected;
     };
 
     Client * userside;
@@ -51,8 +53,10 @@ public:
 
 TlsServerData::Client::Client( TlsServerData * data )
     : Connection(),
-      d( data ), done( false ), ok( false )
+      d( data ), done( false ), connected( false )
 {
+    fprintf( stderr, "stuff!\n" );
+    setTimeoutAfter( 10 );
     connect( *tlsProxy );
     Loop::addConnection( this );
 }
@@ -64,10 +68,12 @@ void TlsServerData::Client::react( Event e )
         return;
     }
     else if ( e != Read ) {
-        done = true;
+        d->done = true;
         d->handler->notify();
         d->serverside->close();
         d->userside->close();
+        Loop::removeConnection( d->serverside );
+        Loop::removeConnection( d->userside );
         return;
     }
 
@@ -80,8 +86,8 @@ void TlsServerData::Client::react( Event e )
     String l = s->simplified();
     if ( l.startsWith( "tlsproxy " ) ) {
         tag = l.mid( 9 );
-        ok = true;
-        if ( !d->serverside->ok || !d->userside->ok )
+        connected = true;
+        if ( !d->serverside->connected || !d->userside->connected )
             return;
 
         d->userside->enqueue( d->serverside->tag + " " +
