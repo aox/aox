@@ -77,6 +77,11 @@ void Log::log( Severity s, const String &l )
 }
 
 
+/*! \fn void Log::log( const String &s )
+    \overload Logs \a s at the default priority of Info.
+*/
+
+
 /*! Requests the log server to commit all log statements with severity
     \a s or more to disk. */
 

@@ -10,9 +10,7 @@ class Subscribe
 public:
     enum Mode { Add, Remove };
 
-    Subscribe( Subscribe::Mode m = Add )
-        : mode( m ), selected( false ), q( 0 )
-    {}
+    Subscribe( Mode = Add );
 
     void parse();
     void execute();

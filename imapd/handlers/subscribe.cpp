@@ -12,6 +12,14 @@
     what to do.
 */
 
+/*! Creates a subscribe handler in mode \a m, which may be Add or Remove
+    according to the desired function. The default is Add.
+*/
+
+Subscribe::Subscribe( Mode m )
+    : mode( m ), selected( false ), q( 0 )
+{}
+
 
 /*! \class Unsubscribe subscribe.h
     Removes a mailbox from the subscription list (RFC 3501, §6.3.7)
@@ -19,6 +27,13 @@
     This class inherits from Subscribe, and calls its constructor with
     a subscription mode of Subscribe::Remove. It has no other code.
 */
+
+/*! \reimp */
+
+Unsubscribe::Unsubscribe()
+    : Subscribe( Subscribe::Remove )
+{
+}
 
 
 /*! \reimp */
@@ -84,14 +99,4 @@ void Subscribe::execute()
     }
 
     finish();
-}
-
-
-/*! Constructs an Unsubscribe handler, which is a thin wrapper around
-    functionality in Subscribe.
-*/
-
-Unsubscribe::Unsubscribe()
-        : Subscribe( Subscribe::Remove )
-{
 }

@@ -83,6 +83,11 @@ Query::Query( const PreparedStatement &ps, EventHandler *cmd )
 }
 
 
+/*! \fn Query::~Query()
+    This virtual destructor exists only so that subclasses can define their own.
+*/
+
+
 /*! Returns the state of this object, which may be one of the following:
 
     Inactive: This query has not yet been submitted to the Database.
@@ -98,12 +103,12 @@ Query::State Query::state() const
 }
 
 
-/* Sets the state of this object to \a s.
-   The initial state of each Query is Inactive, and the Database changes
-   it to indicate the query's progress.
+/*! Sets the state of this object to \a s.
+    The initial state of each Query is Inactive, and the Database changes
+    it to indicate the query's progress.
 */
 
-void Query::setState( Query::State s )
+void Query::setState( State s )
 {
     d->state = s;
 }

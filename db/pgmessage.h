@@ -75,17 +75,17 @@ public:
     enum Severity {
         Unknown, Panic, Fatal, Error, Warning, Notice, Debug, Info, Log
     };
-    Severity severity() { return S; }
+    Severity severity() const { return S; }
 
-    String code()     { return C; }
-    String message()  { return M; }
-    String detail()   { return D; }
-    String hint()     { return H; }
-    String position() { return P; }
-    String where()    { return W; }
-    String file()     { return F; }
-    String line()     { return L; }
-    String routine()  { return R; }
+    String code()     const { return C; }
+    String message()  const { return M; }
+    String detail()   const { return D; }
+    String hint()     const { return H; }
+    String position() const { return P; }
+    String where()    const { return W; }
+    String file()     const { return F; }
+    String line()     const { return L; }
+    String routine()  const { return R; }
 
 private:
     Severity S;
@@ -106,8 +106,8 @@ public:
         Credential
     };
 
-    Type type()   { return t; }
-    String salt() { return s; }
+    Type type()   const { return t; }
+    String salt() const { return s; }
 
 private:
     Type t;
@@ -308,13 +308,8 @@ class PgReady
 public:
     PgReady( Buffer * );
 
-    enum Status {
-        Idle,
-        Transaction,
-        Failed
-    };
-
-    Status status() { return s; }
+    enum Status { Idle, Transaction, Failed };
+    Status status() const { return s; }
 
 private:
     Status s;

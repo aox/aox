@@ -93,6 +93,11 @@ SaslMechanism::SaslMechanism( EventHandler *cmd )
 }
 
 
+/*! \fn SaslMechanism::~SaslMechanism()
+    This virtual destructor exists only to facilitate safe inheritance.
+*/
+
+
 /*! Returns a pointer to the Command that created this SaslMechanism. */
 
 EventHandler *SaslMechanism::command() const
