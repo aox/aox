@@ -6,13 +6,13 @@ CCFLAGS = -fomit-frame-pointer -O3 ; # -mtune=pentium ;
 OrdinaryHDRS = $(HDRS) ;
 HDRS = [ FDirName $(TOP) cryptlib ] ;
 OrdinaryDEFINES = $(DEFINES) ;
-DEFINES = DATA_LITTLEENDIAN NDEBUG OSVERSION=2 USE_ASM _REENTRANT __UNIX__ ;
-
+DEFINES = DATA_LITTLEENDIAN NO_THREADS NDEBUG OSVERSION=2 USE_ASM
+    _REENTRANT __UNIX__ ;
 
 # Comment next line out to build a testable cryptlib. (testlib also
 # needs three files to be writable: cryptlib/test/key_dual.p15,
 # cryptlib/test/key_ren.p15 and cryptlib/test/key_test.p15).
-# ORYX_STRIPPED = 1 ;
+ORYX_STRIPPED = 1 ;
 
 if $(ORYX_STRIPPED) {
     DEFINES += ORYX_STRIPPED ;
@@ -54,11 +54,3 @@ else {
 HDRS = $(OrdinaryHDRS) ;
 DEFINES = $(OrdinaryDEFINES) ;
 CCFLAGS = $(OrdinaryFLAGS) ;
-
-# everyone who uses cryptlib must use threading for the time being
-if ( $(OS) = FREEBSD ) {
-    LINKFLAGS on tlsproxy testlib certutil += -pthread ;
-}
-else {
-    LINKLIBS on tlsproxy testlib certutil += -lpthread ;
-}
