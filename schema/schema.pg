@@ -4,8 +4,8 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (2);
-create sequence revisions start with 2;
+insert into mailstore (revision) values (3);
+create sequence revisions start with 3;
 
 
 -- One entry per Mailstore user.
@@ -102,19 +102,9 @@ create table bodyparts (
     id          integer default nextval('bodypart_ids') primary key,
     bytes       integer not null,
     lines       integer not null,
-    text        bytea
-);
-
--- For convenience, non-text bodypart data is stored in this table.
--- A non-canonical textual representation may also be stored above.
-
-create table binary_parts (
-    bodypart    integer not null,
-    data        bytea,
-    foreign key (bodypart)
-                references bodyparts(id)
-                on delete cascade,
-    primary key (bodypart)
+    hash        text not null,
+    text        bytea,
+    data        bytea
 );
 
 

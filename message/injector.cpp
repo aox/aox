@@ -20,9 +20,6 @@
 #include <time.h>
 
 
-static Dict< int > * bodyHashes;
-
-
 // These structs represent one part of each entry in the header_fields
 // and address_fields tables. (The other part being mailbox and UID.)
 
@@ -116,8 +113,6 @@ public:
 
 void Injector::setup()
 {
-    bodyHashes = new Dict< int >;
-    Allocator::addRoot( bodyHashes );
 }
 
 
@@ -137,6 +132,8 @@ Injector::Injector( const Message * message,
     d->owner = owner;
     d->message = message;
     d->mailboxes = mailboxes;
+
+    Allocator::addRoot( this );
 }
 
 
@@ -402,27 +399,11 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
 
 void Injector::insertBodyparts()
 {
-    class BodypartHelper : public IdHelper {
-    public:
-        BodypartHelper( List< int > *l, List< Query > *q, EventHandler *ev )
-            : IdHelper( l, q, ev )
-        {}
-
-        void processResults( Query *q ) {
-            Row *r = q->nextRow();
-            int *id = new int( r->getInt( "id" ) );
-            String hash = r->getString( "hash" );
-
-            list->append( id );
-            bodyHashes->insert( hash, id );
-        }
-    };
-
     Query *i, *s;
     Codec *c = new Utf8Codec;
     d->bodypartIds = new List< int >;
     List< Query > * queries = new List< Query >;
-    IdHelper * helper = new BodypartHelper( d->bodypartIds, queries, this );
+    IdHelper * helper = new IdHelper( d->bodypartIds, queries, this );
 
     List< Bodypart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
@@ -449,42 +430,38 @@ void Injector::insertBodyparts()
         else
             hash = MD5::hash( b->data() ).hex();
 
-        // This is a terrible hack. -- AMS 20050113
-        int *id = bodyHashes->find( hash );
-        if ( id ) {
-            s = new Query( "select " + fn( *id ) + " as id, "
-                           "'" + hash + "'::text as hash", helper );
-            d->transaction->enqueue( s );
-            queries->append( s );
-            continue;
-        }
-
-        i = new Query( "insert into bodyparts (bytes,lines,text) "
-                       "values ($1,$2,$3)", helper );
+        i = new Query( "insert into bodyparts (bytes,lines,hash,text,data) "
+                       "select $1,$2,$3,$4,$5 where not exists "
+                       "(select id from bodyparts where hash=$3)", helper );
 
         i->bind( 1, b->numBytes() );
         i->bind( 2, b->numLines() );
+        i->bind( 3, hash );
 
         if ( text ) {
-            data = false;
-            i->bind( 3, c->fromUnicode( b->text() ), Query::Binary );
+            i->bind( 4, c->fromUnicode( b->text() ), Query::Binary );
+            i->bindNull( 5 );
         }
         else {
-            i->bindNull( 3 );
+            i->bindNull( 4 );
+            i->bind( 5, b->data(), Query::Binary );
+        }
+
+        // XXX: The following block of type specifications is required
+        // to work around a Postgres bug that crashes INSERT .. SELECT
+        // in some circumstances if the types are left unspecified.
+        {
+            i->appendType( 23 );
+            i->appendType( 23 );
+            i->appendType( 25 );
+            i->appendType( 17 );
+            i->appendType( 17 );
         }
 
         d->transaction->enqueue( i );
 
-        if ( data ) {
-            i = new Query( "insert into binary_parts (bodypart, data) "
-                           "values ((select currval('bodypart_ids')),$1)",
-                           helper );
-            i->bind( 1, b->data(), Query::Binary );
-            d->transaction->enqueue( i );
-        }
-
-        s = new Query( "select currval('bodypart_ids')::integer as id, "
-                       "'" + hash + "'::text as hash", helper );
+        s = new Query( "select id from bodyparts where hash=$1", helper );
+        s->bind( 1, hash );
         d->transaction->enqueue( s );
         queries->append( s );
     }
