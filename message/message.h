@@ -10,11 +10,29 @@
 #include "event.h"
 
 
+class BodyPart;
 class Mailbox;
 class Flag;
 
 
-class Message {
+class Multipart {
+public:
+    Multipart();
+
+    Header *header() const;
+    void setHeader( Header * );
+
+    List< BodyPart > *children() const;
+
+private:
+    Header *h;
+    List< BodyPart > *parts;
+};
+
+
+class Message
+    : public Multipart
+{
 public:
     Message();
     Message( const String & );
@@ -36,7 +54,6 @@ public:
     class BodyPart * bodyPart( const String &, bool create = false );
     String partNumber( class BodyPart * ) const;
 
-    List<BodyPart> * bodyParts() const;
     List<BodyPart> * allBodyParts() const;
 
     void setRfc822Size( uint );
@@ -77,12 +94,13 @@ private:
 };
 
 
-class BodyPart {
+class BodyPart
+    : public Multipart
+{
 public:
     BodyPart();
 
     Header * header() const;
-    List< BodyPart > *children() const;
     ContentType * contentType() const;
     ContentTransferEncoding::Encoding encoding() const;
     String data() const;

@@ -625,7 +625,7 @@ String Fetch::messageStructure( Message * m, bool extended )
 
     if ( ct->type() == "multipart" ) {
         StringList children;
-        List< BodyPart >::Iterator it( m->bodyParts()->first() );
+        List< BodyPart >::Iterator it( m->children()->first() );
         while ( it ) {
             children.append( bodyPartStructure( it, extended ) );
             ++it;
