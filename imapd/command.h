@@ -64,8 +64,7 @@ public:
     void step( uint = 1 );
     const String following() const;
     void require( String );
-    bool skip( String );
-    bool skip( char );
+    bool present( String );
 
     IMAP * imap() const;
 

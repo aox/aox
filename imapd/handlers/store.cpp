@@ -32,12 +32,12 @@ void Store::parse()
     }
 
     require( "flags" );
-    if ( skip( ".silent" ) )
+    if ( present( ".silent" ) )
         silent = true;
     space();
 
     bool parens = false;
-    if ( skip( '(' ) )
+    if ( present( "(" ) )
         parens = true;
 
     do {
@@ -46,7 +46,7 @@ void Store::parse()
 
         String * flag = new String;
 
-        if ( skip( '\\' ) )
+        if ( present( "\\" ) )
             flag->append( '\\' );
 
         char c = nextChar();
@@ -64,7 +64,7 @@ void Store::parse()
         flags.append( flag );
     } while ( nextChar() == ' ' );
 
-    if ( parens && !skip( ')' ) )
+    if ( parens && !present( ")" ) )
         error( Bad, "" );
 
     end();
