@@ -67,6 +67,8 @@ Build server : connection.cpp listener.cpp loop.cpp endpoint.cpp log.cpp
 
 Build runtestsmain : runtests.cpp ;
 
+Build tlsproxymain : tlsproxy.cpp ;
+
 # the documentation groups. for the moment, the target is just a dummy
 
 rule Doc {
@@ -95,6 +97,9 @@ LINKLIBS on logd = ;
 
 Program imapd : imap imapdmain database message server lib cryptlib ;
 LINKLIBS on imapd = -lcrypt ;
+
+Program tlsproxy : tlsproxymain server lib ;
+LINKLIBS on tlsproxy = ;
 
 Program runtests : runtestsmain imap logd database message server lib ;
 LINKLIBS on runtests = -lcrypt ;
