@@ -608,69 +608,71 @@ public:
         : state( 0 ), substate( 0 )
     {}
 
-    void execute() {
-        // Find and lock the current schema revision.
-        if ( state == 0 ) {
-            t = new Transaction( this );
-            lock = new Query( "select revision from mailstore for update",
-                              this );
-            t->enqueue( lock );
+    void execute();
+};
+
+void UpdateSchema::execute() {
+    // Find and lock the current schema revision.
+    if ( state == 0 ) {
+        t = new Transaction( this );
+        lock = new Query( "select revision from mailstore for update",
+                          this );
+        t->enqueue( lock );
+        t->execute();
+        state = 1;
+    }
+    if ( state == 1 ) {
+        if ( !lock->done() )
+            return;
+        revision = lock->nextRow()->getInt( "revision" );
+        state = 2;
+    }
+
+    // Perform successive updates towards the current revision.
+    while ( revision < currentRevision ) {
+        if ( state == 2 ) {
+            seq = new Query( "select nextval('revisions')::integer as seq",
+                             this );
+            t->enqueue( seq );
             t->execute();
-            state = 1;
+            state = 3;
         }
-        if ( state == 1 ) {
-            if ( !lock->done() )
+        if ( state == 3 ) {
+            if ( !seq->done() )
                 return;
-            revision = lock->nextRow()->getInt( "revision" );
+            int gap = seq->nextRow()->getInt( "seq" ) - revision;
+            if ( gap > 1 ) {
+                // This is a disaster indicating a previous failure.
+                state = 9;
+                break;
+            }
+            state = 4;
+        }
+        if ( state == 4 ) {
+            if ( revision == 1 ) {
+                // Do update stuff here.
+            }
+            state = 5;
+        }
+        if ( state == 5 ) {
+            update = new Query( "update mailstore set revision=revision+1",
+                                this );
+            t->enqueue( update );
+            t->execute();
+            state = 6;
+        }
+        if ( state == 6 ) {
+            if ( !update->done() )
+                return;
+            revision = revision+1;
             state = 2;
         }
-
-        // Perform successive updates towards the current revision.
-        while ( revision < currentRevision ) {
-            if ( state == 2 ) {
-                seq = new Query( "select nextval('revisions')::integer as seq",
-                                 this );
-                t->enqueue( seq );
-                t->execute();
-                state = 3;
-            }
-            if ( state == 3 ) {
-                if ( !seq->done() )
-                    return;
-                int gap = seq->nextRow()->getInt( "seq" ) - revision;
-                if ( gap > 1 ) {
-                    // This is a disaster indicating a previous failure.
-                    state = 9;
-                    break;
-                }
-                state = 4;
-            }
-            if ( state == 4 ) {
-                if ( revision == 1 ) {
-                    // Do update stuff here.
-                }
-                state = 5;
-            }
-            if ( state == 5 ) {
-                update = new Query( "update mailstore set revision=revision+1",
-                                    this );
-                t->enqueue( update );
-                t->execute();
-                state = 6;
-            }
-            if ( state == 6 ) {
-                if ( !update->done() )
-                    return;
-                revision = revision+1;
-                state = 2;
-            }
-        }
-
-        // XXX: This is bandaid. Isn't it?
-        if ( !t->done() )
-            t->commit();
     }
-};
+
+    // XXX: This is bandaid. Isn't it?
+    if ( !t->done() )
+        t->commit();
+}
 
 
 /*! This static function determines the current schema version, and if
