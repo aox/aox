@@ -35,6 +35,11 @@ public:
 
     List<BodyPart> * bodyParts() const;
 
+    void setInternalDate( uint );
+    uint internalDate() const;
+    void setRfc822Size( uint );
+    uint rfc822Size() const;
+
     enum BuiltinFlag {
         AnsweredFlag,
         DeletedFlag,

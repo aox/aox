@@ -317,8 +317,10 @@ void ImapSessionInitializer::execute()
     }
 
     if ( !d->messages ) {
-        d->messages 
-            = new Query( "select uid,seen,draft,flagged,answered,deleted "
+        d->messages
+            = new Query( "select uid,"
+                         "seen,draft,flagged,answered,deleted,"
+                         "idate,rfc822size "
                          "from messages where mailbox=$1 and "
                          "uid>=$2 and uid<$3",
                          this );
@@ -340,12 +342,15 @@ void ImapSessionInitializer::execute()
 
             d->session->d->messages.insert( uid, m );
             d->session->d->msns.add( uid, uid );
-            
+
             m->setFlag( Message::SeenFlag, r->getBoolean( "seen" ) );
             m->setFlag( Message::DraftFlag, r->getBoolean( "draft" ) );
             m->setFlag( Message::FlaggedFlag, r->getBoolean( "flagged" ) );
             m->setFlag( Message::AnsweredFlag, r->getBoolean( "answered" ) );
             m->setFlag( Message::DeletedFlag, r->getBoolean( "deleted" ) );
+
+            m->setRfc822Size( r->getInt( "rfc822size" ) );
+            m->setInternalDate( r->getInt( "idate" ) );
         }
     }
 
