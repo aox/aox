@@ -19,15 +19,6 @@ We should not duplicate the contents of address_fields in header_fields.
   and the HeaderFetcher should assemble addresses from address_fields.
 
 
-We need a mechanism to open more than one database handle.
-
-  For example, the header_fields select and the flags select should be
-  on different connections, so that we don't have to read and store an
-  enormous amount of data before we can start responding to the client.
-
-  In this case, we might also want to use a cursor. Discuss.
-
-
 APPEND doesn't handle an empty flag list correctly.
 
 
