@@ -41,29 +41,38 @@ void Authenticate::execute()
         imap()->reserve( this );
     }
 
-    // let the authenticator's state machine work.
-    if ( a->state() == Authenticator::ChallengeNeeded ) {
-        imap()->writeBuffer()->append( "+ "+a->challenge().e64()+"\r\n" );
-        a->setState( Authenticator::ChallengeIssued );
-        r.truncate( 0 );
-    }
-    else if ( a->state() == Authenticator::ChallengeIssued && !r.isEmpty() ) {
-        // XXX: this may be buggy - if the response can be multiline
-        // this can, depending on luck and the weather, consider any
-        // integer number of lines to be the response. but can the
-        // response be multiline? look into that later.
-        a->respond( r.de64() );
-        r.truncate( 0 );
-    }
-    // note no else here: a->respond() above can change a->state()
-    if ( a->state() == Authenticator::ResponseRejected ) {
-        imap()->reserve( 0 );
-        error( No, "Sorry" );
-    }
-    else if ( a->state() == Authenticator::ResponseAccepted ) {
-        setState( Finished );
-        imap()->reserve( 0 );
-        imap()->setLogin( a->login() );
+    // Perform C/R roundtrips until we can make up our mind.
+
+    while ( a->state() != Authenticator::ResponseAccepted &&
+            a->state() != Authenticator::ResponseRejected )
+    {
+        if ( a->state() == Authenticator::ChallengeNeeded ) {
+            imap()->writeBuffer()->append( "+ "+ a->challenge().e64() +"\r\n" );
+            a->setState( Authenticator::ChallengeIssued );
+            r.truncate( 0 );
+            return;
+        }
+        else if ( a->state() == Authenticator::ChallengeIssued &&
+                  !r.isEmpty() )
+        {
+            // XXX: this may be buggy - if the response can be multiline
+            // this can, depending on luck and the weather, consider any
+            // integer number of lines to be the response. but can the
+            // response be multiline? look into that later.
+            a->respond( r.de64() );
+            r.truncate( 0 );
+        }
+
+        // Have we made up our mind yet?
+        if ( a->state() == Authenticator::ResponseRejected ) {
+            imap()->reserve( 0 );
+            error( No, "Sorry" );
+        }
+        else if ( a->state() == Authenticator::ResponseAccepted ) {
+            setState( Finished );
+            imap()->reserve( 0 );
+            imap()->setLogin( a->login() );
+        }
     }
 }
 
