@@ -21,6 +21,9 @@
 // errno
 #include <errno.h>
 
+// exit()
+#include <stdlib.h>
+
 
 int main( int, char *[] )
 {
@@ -132,7 +135,7 @@ void TlsProxy::parse()
     if ( !l )
         return;
     String cmd = l->simplified();
-    
+
     int i = cmd.find( ' ' );
     bool ok = true;
     if ( i <= 0 )
@@ -236,7 +239,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
 
 void TlsProxy::encrypt()
 {
-    
+
 }
 
 
@@ -244,5 +247,5 @@ void TlsProxy::encrypt()
 
 void TlsProxy::decrypt()
 {
-    
+
 }
