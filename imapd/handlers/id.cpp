@@ -22,8 +22,8 @@ void Id::parse()
             if ( nextChar() == ' ' )
                 space();
             if ( ok() && !name.isEmpty() && !value.isEmpty() )
-                logger()->log( "Client ID: " + 
-                               name.simplified() + ": " + 
+                logger()->log( "Client ID: " +
+                               name.simplified() + ": " +
                                value.simplified() );
         }
     }

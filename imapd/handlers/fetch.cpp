@@ -24,8 +24,8 @@
 
 class FetchData {
 public:
-    FetchData() 
-        : seen( false ), 
+    FetchData()
+        : seen( false ),
           uid( false ), flags( false ), envelope( false ), body( false ),
           bodystructure( false ), internaldate( false ), rfc822size( false )
     {}
@@ -133,7 +133,7 @@ void Fetch::parseAttribute( bool alsoMacro )
             d->body = true;
             // poor man's bodystructure
         }
-    }               
+    }
     else if ( keyword == "bodystructure" ) {
         d->bodystructure = true;
         // like body, but with bells and whistles
@@ -233,13 +233,13 @@ void Fetch::parseBody()
         uint n = number();
         n = n; // ### hack to kill warning
         if ( nextChar() != '.' )
-            error( Bad, "Must have '.' in range specification, not " + 
+            error( Bad, "Must have '.' in range specification, not " +
                    following() );
         step();
         uint r = nzNumber();
         r = r; // ### hack to kill warning
         if ( nextChar() != '>' )
-            error( Bad, "Must end range specification with '>', not " + 
+            error( Bad, "Must end range specification with '>', not " +
                    following() );
         step();
     }
