@@ -256,6 +256,8 @@ void IMAP::parse()
 void IMAP::addCommand()
 {
     String * s = d->args->first();
+    if ( s && s->simplified() == "quit" )
+        s = new String( "quit logout\r\n" ); // arnt compatibility
     log( Log::Debug, "Received " +
                     fn( (d->args->count() + 1)/2 ) +
                     "-line command: " + *s );
