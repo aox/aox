@@ -151,17 +151,19 @@ void EventLoop::start()
         time_t now = time( 0 );
 
         if ( n < 0 ) {
-            // XXX: We should handle signals appropriately. (How is
-            // that, exactly? We don't use the things at all.)
-            if ( errno == EINTR )
-                return;
-
-            // XXX: And this is highly suboptimal, too. (Why?)
-            log( "EventLoop: select() returned errno " + fn( errno ),
-                 Log::Disaster );
-            exit( 0 );
+            if ( errno == EINTR ) {
+                log( "EventLoop: Shutting down due to signal" );
+                commit();
+                shutdown();
+            }
+            else {
+                // XXX: This is highly suboptimal. (Why?)
+                log( "EventLoop: select() returned errno " + fn( errno ),
+                     Log::Disaster );
+                exit( 0 );
+            }
         }
-        if ( now - gc > 60 ) {
+        if ( now - gc > 60 && !d->stop ) {
             Allocator::free();
             gc = time( 0 );
         }
