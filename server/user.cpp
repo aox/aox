@@ -147,26 +147,20 @@ void User::refresh( EventHandler * user )
         return;
     d->user = user;
     if ( !psl ) {
-        psl = new PreparedStatement( "select "
-                                     "users.id, users.address, users.inbox, "
-                                     "users.parentspace, "
-                                     "users.login, users.secret, "
-                                     "addresses.name, addresses.localpart, "
-                                     "addresses.domain "
-                                     "from users,addresses where "
-                                     "users.login=$1 and"
-                                     "users.id=addresses.id" );
-        psa = new PreparedStatement( "select "
-                                     "users.id, users.address, users.inbox,"
-                                     "users.parentspace, "
-                                     "users.login, users.secret, "
-                                     "addresses.name, addresses.localpart, "
-                                     "addresses.domain "
-                                     "from users,addresses where "
-                                     "users.address=addresses.id and "
-                                     "addresses.name=$1 and "
-                                     "addresses.localpart=$2 and "
-                                     "lower(addresses.domain)=$3" );
+        psl = new PreparedStatement(
+            "select u.id, u.address, u.inbox, u.parentspace, u.login, "
+            "u.secret, a.name, a.localpart, a.domain "
+            "from users u, addresses a where "
+            "u.login=$1 and u.id=a.id"
+        );
+
+        psa = new PreparedStatement(
+            "select u.id, u.address, u.inbox, u.parentspace, u.login, "
+            "u.secret, a.name, a.localpart, a.domain "
+            "from users u, addresses a where "
+            "u.address=a.id and a.name=$1 and a.localpart=$2 "
+            "and lower(a.domain)=$3"
+        );
     }
     if ( !d->login.isEmpty() ) {
         d->q = new Query( *psl, this );
@@ -178,10 +172,13 @@ void User::refresh( EventHandler * user )
         d->q->bind( 2, d->address->localpart() );
         d->q->bind( 3, d->address->domain().lower() );
     }
-    if ( d->q )
+    if ( d->q ) {
         d->q->execute();
-    else
+        d->mode = UserData::Refreshing;
+    }
+    else {
         user->notify();
+    }
 }
 
 
@@ -191,16 +188,18 @@ void User::refreshHelper()
 {
     if ( !d->q || !d->q->done() )
         return;
-    Row * r;
-    bool any = false;
-    while ( (r=d->q->nextRow()) !=0 ) {
-        any = true;
-        d->id = r->getInt( "users.id" );
-        d->login = r->getString( "users.login" );
-        d->secret = r->getString( "users.secret" );
-        d->inbox = Mailbox::find( r->getInt( "users.inbox" ) );
+
+    Row *r = d->q->nextRow();
+    if ( r ) {
+        d->id = r->getInt( "id" );
+        d->login = r->getString( "login" );
+        d->secret = r->getString( "secret" );
+        d->inbox = Mailbox::find( r->getInt( "inbox" ) );
         // ignore parentspace for now
-        d->address = new Address;
+        String n = r->getString( "name" );
+        String l = r->getString( "localpart" );
+        String h = r->getString( "domain" );
+        d->address = new Address( n, l, h );
     }
     if ( d->user )
         d->user->notify();
