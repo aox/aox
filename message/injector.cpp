@@ -198,7 +198,7 @@ void Injector::execute()
     if ( d->step == 2 ) {
         // We expect buildFieldLinks() to have completed immediately.
         // Once insertBodyparts() is completed, we can start adding to
-        // the header_fields and part_numbers tables.
+        // the part_numbers and header_fields tables.
 
         if ( !d->fieldLookup->done() ||
              d->bodypartIds->count() != d->totalBodyparts )
