@@ -55,6 +55,8 @@ public:
     bool valid() const;
     String error() const;
 
+    bool isMime() const;
+
     ::Date *date() const;
     List< ::Address > *addresses() const;
     ::ContentType *contentType() const;
