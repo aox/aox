@@ -1,3 +1,11 @@
+/*! \class Search
+    \brief The Search class handles IMAP SEARCH commands.
+
+    The entirety of the basic syntax is handled. CONDSTORE, SEARCHM
+    and other extensions are currently not handled. SEARCHM probably
+    will need to be implemented as a subclass of Search.
+*/
+
 #include "search.h"
 
 #include "list.h"
@@ -15,16 +23,6 @@ public:
     List<Query::Condition> * conditions;
     String charset;
 };
-
-/*! \class Search
-
-    \brief The Search class handles IMAP SEARCH commands.
-
-    The entirety of the basic syntax is handled. CONDSTORE, SEARCHM
-    and other extensions are currently not handled. SEARCHM probably
-    will need to be implemented as a subclass of Search.
-*/
-
 
 /*! Constructs an empty Search. If \a u is true, it's an UID SEARCH,
     otherwise it's the MSN variety.

@@ -1,9 +1,3 @@
-#include "idle.h"
-
-#include "imap.h"
-#include "buffer.h"
-
-
 /*! \class Idle
 
     The IDLE extension permits IMAP clients to remain idle, while the
@@ -14,6 +8,11 @@
     and waits for DONE during command execution. Thus, "parse errors" are
     not done in parse().
 */
+
+#include "idle.h"
+
+#include "imap.h"
+#include "buffer.h"
 
 
 /*! Switches to IDLE mode and grabs the input, such that the DONE can

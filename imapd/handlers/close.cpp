@@ -1,10 +1,4 @@
-#include "close.h"
-
-#include "imap.h"
-
-
-/*! \class Close
-
+/*! \class Close close.h
     \brief The Close class implements the IMAP CLOSE command.
 
     Four lines of code and seemingly correct.
@@ -17,6 +11,11 @@
     Expunge. It doesn't really matter - at best we might save one line
     of code.
 */
+
+#include "close.h"
+
+#include "imap.h"
+
 
 void Close::execute()
 {

@@ -1,16 +1,15 @@
+/*! \class Id id.h
+    \brief The Id class implements the RFC2971 ID extension.
+
+    This extension lets IMAP clients and servers tell each other which
+    version of which program they are, which can be helpful for
+    debugging.
+*/
+
 #include "id.h"
 
 #include "log.h"
 
-
-/*! \class Id id.h
-
-  \brief The Id class implements the RFC2971 ID extension.
-
-  This extension lets IMAP clients and servers tell each other which
-  version of which program they are, which can be helpful for
-  debugging.
-*/
 
 void Id::parse()
 {

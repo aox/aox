@@ -1,3 +1,15 @@
+/*! \class IMAP imap.h
+    \brief The IMAP class implements the IMAP server seen by clients.
+
+    Most of IMAP functionality is in the command handlers, but this
+    class contains the top-level responsibility and functionality. This
+    class reads commands from its network connection, does basic
+    parsing and creates command handlers as necessary.
+
+    The IMAP state (RFC 3501 section 3) and Idle state (RFC 2177) are
+    both encoded here, exactly as in the specification.
+*/
+
 #include "imap.h"
 
 #include "command.h"
@@ -38,20 +50,6 @@ public:
     String login;
     bool idle;
 };
-
-
-/*! \class IMAP
-
-    \brief The IMAP class implements the IMAP server seen by clients.
-
-    Most of IMAP functionality is in the command handlers, but this
-    class contains the top-level responsibility and functionality. This
-    class reads commands from its network connection, does basic
-    parsing and creates command handlers as necessary.
-
-    The IMAP state (RFC 3501 section 3) and Idle state (RFC 2177) are
-    both encoded here, exactly as in the specification.
-*/
 
 
 /*! Creates a basic IMAP connection */
