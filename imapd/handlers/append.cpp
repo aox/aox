@@ -110,7 +110,7 @@ uint Append::number( uint n )
 
 void Append::execute()
 {
-    respond( "Cannot actually execute that append, but it was a nice thought",
+    respond( "BAD Cannot actually append, but it was a nice thought",
              Untagged );
     setState( Finished );
 }
