@@ -549,7 +549,7 @@ void Configuration::setup( const String & global, const String & server )
     else
         ::global->read( d + "/" + global, true );
     if ( !server.isEmpty() )
-        ::global->read( d + server, false );
+        ::global->read( d + "/" + server, false );
 
     String host = osHostname();
     Configuration::Text hn( "hostname", host );
