@@ -6,6 +6,8 @@ include $(JAMSETTINGS:D=$(TOP)) ;
 
 VERSION = 0.90 ;
 
+MKDIR = mkdir -p ;
+
 OPTIM = ;
 RANLIB = ;
 
@@ -155,3 +157,5 @@ actions together Doc2 bind UDOCBIN {
     $(UDOCBIN) -o 'Oryx Mail Systems GmbH' -u 'http://www.oryx.com' -m doc/man/man3 -w doc/html $(>)
     touch $(<)
 }
+
+
