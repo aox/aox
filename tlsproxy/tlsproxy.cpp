@@ -256,6 +256,14 @@ void TlsProxy::react( Event e )
     case Shutdown:
         break;
     }
+
+    if ( d->state == Initial )
+        return;
+
+    if ( !::serverside || !::userside ||
+         ::serverside->state() != Connection::Connected ||
+         ::userside->state() != Connection::Connected )
+        exit( 0 );
 }
 
 
