@@ -20,6 +20,7 @@ public:
         OryxConsole,
         SmtpServer,
         SmtpClient,
+        Pop3Server,
         TLSProxy,
         TLSClient,
         Listener,
