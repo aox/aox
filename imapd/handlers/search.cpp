@@ -66,7 +66,7 @@ void Search::parse()
 
 void Search::parseKey( bool alsoCharset )
 {
-    uchar c = nextChar();
+    char c = nextChar();
     if ( c == '(' ) {
         // it's an "and" list.
         push( Query::And );
@@ -275,7 +275,7 @@ void Search::execute()
 String Search::date()
 {
     // date-day "-" date-month "-" date-year
-    uchar c = nextChar();
+    char c = nextChar();
     bool q = false;
     if ( c == '"' ) {
         step();
