@@ -2,7 +2,7 @@
 
 #include "tls.h"
 
-#include "scope.h"
+#include "allocator.h"
 #include "connection.h"
 #include "string.h"
 #include "configuration.h"
@@ -176,6 +176,7 @@ void TlsServer::setup()
     }
     ::tlsAvailable = true;
     ::tlsProxy = e;
+    Allocator::addRoot( ::tlsProxy );
 }
 
 

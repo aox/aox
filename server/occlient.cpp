@@ -16,7 +16,7 @@ class OCCData {
 public:
 };
 
-static class OCClient *client;
+static class OCClient * client;
 
 
 /*! \class OCClient occlient.h

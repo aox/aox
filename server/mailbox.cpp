@@ -4,6 +4,7 @@
 
 #include "dict.h"
 #include "scope.h"
+#include "allocator.h"
 #include "event.h"
 #include "query.h"
 #include "string.h"
@@ -32,8 +33,8 @@ public:
 };
 
 
-static Mailbox *root = 0;
-static Query *query = 0;
+static Mailbox * root = 0;
+static Query * query = 0;
 static Map<Mailbox> * mailboxes = 0;
 
 
@@ -98,12 +99,14 @@ void Mailbox::setup()
     };
 
     ::root = new Mailbox( "/" );
+    Allocator::addRoot( ::root );
 
     // the query and MailboxReader uses this Arena. The startup arena
     // will see a lot of activity...
     query = new Query( "select * from mailboxes", new MailboxReader );
     query->setStartUpQuery( true );
     query->execute();
+    Allocator::addRoot( ::query );
 }
 
 
