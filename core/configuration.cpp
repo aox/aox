@@ -136,7 +136,8 @@ void Configuration::add( const String & l )
     while ( i < l.length() &&
             ( ( l[i] >= 'a' && l[i] <= 'z' ) ||
               ( l[i] >= 'A' && l[i] <= 'Z' ) ||
-              ( l[i] >= '0' && l[i] <= '9' ) ) )
+              ( l[i] >= '0' && l[i] <= '9' ) ||
+              ( l[i] == '-' ) ) )
         i++;
     String name = l.mid( 0, i ).lower().simplified();
     while ( l[i] == ' ' || l[i] == '\t' )
@@ -647,7 +648,8 @@ static const char * conf =
 "c1=sex#comment\n"
 "c2 = sex#comment\n"
 "c3=sex #comment\n"
-"c4='sex'#comment\n";
+"c4='sex'#comment\n"
+"c-5='sex'";
 
 
 static class ConfigurationTest : public Test {
