@@ -1,0 +1,3 @@
+OPTIM    = -g ;
+HDRS     = . ../lib handlers /usr/include/mysql ;
+CCFLAGS  = -D_BSD_SOURCE -Wall -Werror -ansi -pedantic ;
