@@ -63,9 +63,9 @@ void OCServer::parse()
 }
 
 
-/*! Distributes the message \a s to all connected servers. */
+/*! Sends the message \a s to all connected servers. */
 
-void OCServer::distribute( const String &s )
+void OCServer::send( const String &s )
 {
     List< OCServer >::Iterator it = servers.first();
 

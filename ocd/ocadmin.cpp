@@ -71,7 +71,7 @@ void OCAdmin::parse()
         }
     }
     else if ( r == "shutdown" ) {
-        OCServer::distribute( "shutdown\r\n" );
+        OCServer::send( "shutdown\r\n" );
     }
     else if ( r == "quit" || r == "exit" ) {
         setState( Closing );
