@@ -478,8 +478,11 @@ void Postgres::unknown( char type )
                     log( s, Log::Error );
 
                     // Has the current query failed?
-                    if ( q && msg.severity() == PgMessage::Error )
+                    if ( q && msg.severity() == PgMessage::Error ) {
+                        d->queries.take( d->queries.first() );
                         q->setError( msg.message() );
+                        q->notify();
+                    }
                 }
                 break;
 
@@ -852,7 +855,6 @@ void UpdateSchema::execute() {
                     q = new Query( "drop table binary_parts", this );
                     t->enqueue( q );
                     t->execute();
-                    substate = 2;
                 }
             }
 
