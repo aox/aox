@@ -44,7 +44,7 @@ void Subscribe::execute()
                        "and mailbox=$2", this );
         q->bind( 1, imap()->uid() );
         q->bind( 2, m );
-        q->submit();
+        q->execute();
         return;
     }
 
@@ -78,7 +78,7 @@ void Subscribe::execute()
         }
 
         if ( q ) {
-            q->submit();
+            q->execute();
             return;
         }
     }
