@@ -36,11 +36,12 @@ actions Struct
 # build the struct file for address testing
 
 Struct addresses.inc : addresses.test ;
+Struct datefields.inc : datefields.test ;
 
 # build the .o files in this directory
 
 Build imap : imapd.cpp imap.cpp command.cpp cccp.cpp set.cpp mailbox.cpp 
-	query.cpp address.cpp parser.cpp ;
+	query.cpp address.cpp parser.cpp date.cpp ;
 
 Build logd : logd.cpp logserver.cpp ;
 
