@@ -3,18 +3,25 @@
 
 #include "global.h"
 #include "messageset.h"
+#include "event.h"
 
 class Mailbox;
 class Message;
+class Select;
+class IMAP;
 
 
 class ImapSession {
 public:
-    ImapSession( Mailbox *, bool );
+    ImapSession( Mailbox *, IMAP *, bool );
     ~ImapSession();
 
-    Mailbox *mailbox() const;
+    IMAP * imap() const;
+    Mailbox * mailbox() const;
     bool readOnly() const;
+
+    uint uidnext() const;
+    uint uidvalidity() const;
 
     uint uid( uint ) const;
     uint msn( uint ) const;
@@ -26,8 +33,22 @@ public:
     bool isRecent( uint ) const;
     void addRecent( uint );
 
+    bool responsesNeeded() const;
+    void emitResponses();
+
 private:
     class SessionData *d;
+    friend class ImapSessionInitializer;
+};
+
+
+class ImapSessionInitializer: public EventHandler {
+public:
+    ImapSessionInitializer( ImapSession *, EventHandler * );
+
+    void execute();
+private:
+    class ImapSessionInitializerDataExtraLong * d;
 };
 
 

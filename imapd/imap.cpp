@@ -605,7 +605,7 @@ String IMAP::mailboxName( const String &m )
 
 void IMAP::beginSession( Mailbox *m, bool readOnly )
 {
-    d->session = new ImapSession( m, readOnly );
+    d->session = new ImapSession( m, this, readOnly );
     setState( Selected );
 }
 
