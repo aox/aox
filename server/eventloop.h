@@ -10,22 +10,18 @@ class EventLoop {
 public:
     EventLoop();
 
-    void run();
-    void step( bool = false );
-    void stop();
-    void shutdown();
-    void addConnection( Connection * );
-    void removeConnection( Connection * );
+    virtual void start();
+    virtual void stop();
+    virtual void shutdown();
+    virtual void addConnection( Connection * );
+    virtual void removeConnection( Connection * );
     void closeAllExcept( Connection *, Connection * );
     void flushAll();
-
-    List<Connection> * connections() const;
-
+    
+    void dispatch( Connection *, bool, bool, int );
 
 private:
     class LoopData *d;
-
-    void dispatch( Connection *, bool, bool, int );
 };
 
 

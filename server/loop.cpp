@@ -19,13 +19,15 @@ static EventLoop *loop;
     Scope? A resounding yes from arnt, and a no.
 */
 
-/*! Creates the global EventLoop object.
-    This function expects to be called by ::main().
+/*! Creates the global EventLoop object, or uses one supplied by the
+    called, \a l.  This function expects to be called by ::main().
 */
 
-void Loop::setup()
+void Loop::setup( EventLoop * l )
 {
-    ::loop = new EventLoop;
+    ::loop = l;
+    if ( !l )
+        ::loop = new EventLoop;
 }
 
 
@@ -33,7 +35,7 @@ void Loop::setup()
 
 void Loop::start()
 {
-    ::loop->run();
+    ::loop->start();
 }
 
 
@@ -87,13 +89,11 @@ void Loop::flushAll()
 }
 
 
-/*! Returns a list of all active Connection objects, or perchance an
-    empty list or a null pointer, should there be none.
+/*! Returns a pointer to the global event loop, or a null pointer if
+    there isn't any.
 */
 
-List<Connection> * Loop::connections()
+EventLoop * Loop::loop()
 {
-    if ( ::loop )
-        return ::loop->connections();
-    return 0;
+    return ::loop;
 }

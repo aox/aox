@@ -108,112 +108,98 @@ void EventLoop::shutdown()
 
 /*! Starts the EventLoop and runs it until stop() is called. */
 
-void EventLoop::run()
+void EventLoop::start()
 {
     Scope x( d->arena );
 
-    while ( !d->stop )
-        step( true );
-}
+    while ( !d->stop ) {
+        SortedList< Connection >::Iterator it;
+        Connection *c;
 
+        int timeout = INT_MAX;
+        int maxfd = -1;
+        if ( d->connections.count() > 0 )
+            maxfd = d->connections.last()->fd();
 
-/*! Handles a single iteration of the event loop. Dispatches all Oryx
-    events.
+        fd_set r, w;
+        FD_ZERO( &r );
+        FD_ZERO( &w );
 
-    If \a sleeping is supplied and true, step() waits for events. If
-    \a sleeping is false (the default), step() returns more or less
-    immediately.
-*/
+        // Figure out what events each connection wants.
 
-void EventLoop::step( bool sleeping )
-{
-    Scope x( d->arena );
+        it = d->connections.first();
+        while ( it ) {
+            c = it++;
 
-    SortedList< Connection >::Iterator it;
-    Connection *c;
+            if ( !c->active() )
+                continue;
 
-    int timeout = INT_MAX;
-    int maxfd = -1;
-    if ( d->connections.count() > 0 )
-        maxfd = d->connections.last()->fd();
+            // This is so that Halfpipes can be closed by their partner.
+            if ( c->state() == Connection::Closing &&
+                 !c->canWrite() )
+            {
+                removeConnection( c );
+                delete c;
+                continue;
+            }
 
-    fd_set r, w;
-    FD_ZERO( &r );
-    FD_ZERO( &w );
-
-    // Figure out what events each connection wants.
-
-    it = d->connections.first();
-    while ( it ) {
-        c = it++;
-
-        if ( !c->active() )
-            continue;
-
-        // This is so that Halfpipes can be closed by their partner.
-        if ( c->state() == Connection::Closing &&
-             !c->canWrite() )
-        {
-            removeConnection( c );
-            delete c;
-            continue;
+            int fd = c->fd();
+            if ( c->canRead() && c->state() != Connection::Closing )
+                FD_SET( fd, &r );
+            if ( c->canWrite() || c->state() == Connection::Connecting )
+                FD_SET( fd, &w );
+            if ( c->timeout() > 0 && c->timeout() < timeout )
+                timeout = c->timeout();
         }
 
-        int fd = c->fd();
-        if ( c->canRead() && c->state() != Connection::Closing )
-            FD_SET( fd, &r );
-        if ( c->canWrite() || c->state() == Connection::Connecting )
-            FD_SET( fd, &w );
-        if ( c->timeout() > 0 && c->timeout() < timeout )
-            timeout = c->timeout();
-    }
+        // Look for interesting input
 
-    // Look for interesting input
+        struct timeval tv;
+        tv.tv_sec = timeout - time( 0 );
+        tv.tv_usec = 0;
 
-    struct timeval tv;
-    tv.tv_sec = timeout - time( 0 );
-    tv.tv_usec = 0;
+        if ( tv.tv_sec < 1 )
+            tv.tv_sec = 1;
+        if ( tv.tv_sec > 1800 )
+            tv.tv_sec = 1800;
 
-    if ( tv.tv_sec < 1 )
-        tv.tv_sec = 1;
-    if ( tv.tv_sec > 1800 )
-        tv.tv_sec = 1800;
-    if ( !sleeping )
-        tv.tv_sec = 0;
+        int n = select( maxfd+1, &r, &w, 0, &tv );
+        time_t now = time( 0 );
 
-    int n = select( maxfd+1, &r, &w, 0, &tv );
-    time_t now = time( 0 );
+        if ( n < 0 ) {
+            // XXX: We should handle signals appropriately.
+            if ( errno == EINTR )
+                return;
 
-    if ( n < 0 ) {
-        // XXX: We should handle signals appropriately.
-        if ( errno == EINTR )
-            return;
+            log( "Main loop: select() broke" );
+            exit( 0 );
+        }
 
-        log( "Main loop: select() broke" );
-        exit( 0 );
-    }
+        // Figure out what each connection cares about.
 
-    // Figure out what each connection cares about.
-
-    it = d->connections.first();
-    while ( it ) {
-        c = it++;
-        int fd = c->fd();
-        dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
-    }
-
-    // XXX: We should handle armageddon better.
-    if ( d->shutdown ) {
-        it = d->connections.last();
+        it = d->connections.first();
         while ( it ) {
-            c = d->connections.take( it-- );
-            {
-                Scope x( c->arena() );
-                c->react( Connection::Shutdown );
-                c->write();
+            c = it++;
+            int fd = c->fd();
+            dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
+        }
+
+        // This is for event loop shutdown. A little brutal. Proper
+        // shutdown should first get rid of listeners, then a (long)
+        // while later call this. Note that there is similar code in
+        // ConsoleLoop.
+        if ( d->shutdown ) {
+            it = d->connections.last();
+            while ( it ) {
+                c = d->connections.take( it-- );
+                {
+                    Scope x( c->arena() );
+                    c->react( Connection::Shutdown );
+                    c->write();
+                }
+                if ( c->type() != Connection::LoggingClient )
+                    delete c;
             }
-            if ( c->type() != Connection::LoggingClient )
-                delete c;
         }
     }
 }
@@ -343,14 +329,4 @@ void EventLoop::flushAll()
         it++;
         c->write();
     }
-}
-
-
-/*! Returns a pointer to a list containing all active Connection
-    objects. The returned list should not be modified in any way.
-*/
-
-List<Connection> * EventLoop::connections() const
-{
-    return &d->connections;
 }
