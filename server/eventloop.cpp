@@ -65,8 +65,9 @@ void EventLoop::addConnection( Connection *c )
     Scope x( d->arena );
 
     if ( d->connections.find( c ) ) {
-        d->l->log( "Ignored attempt to add existing connection " +
-                   c->description() );
+        if ( c->type() != Connection::LogClient )
+            d->l->log( "Ignored attempt to add existing connection " +
+                       c->description() );
         return;
     }
 
@@ -84,8 +85,9 @@ void EventLoop::removeConnection( Connection *c )
 
     SortedList< Connection >::Iterator it( d->connections.find( c ) );
     if ( !it ) {
-        d->l->log( "Ignored attempt to remove unknown connection " +
-                   c->description() );
+        if ( c->type() != Connection::LogClient )
+            d->l->log( "Ignored attempt to remove unknown connection " +
+                       c->description() );
         return;
     }
 
@@ -331,10 +333,9 @@ void EventLoop::shutdown()
 
 void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 {
-    SortedList< Connection >::Iterator it = d->connections.first();
+    SortedList< Connection >::Iterator it( d->connections.first() );
     while ( it ) {
-        Connection * c = it;
-        it++;
+        Connection * c = it++;
         if ( c != c1 && c != c2 ) {
             removeConnection( c );
             c->close();
