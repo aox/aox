@@ -127,21 +127,22 @@ if [ $TELL = no ]; then
     echo "Creating stub configuration $CONFIG"
     touch $CONFIG
     chmod 0600 $CONFIG
+    chown $ORYXUSER $CONFIG
+    chgrp $ORYXGROUP $CONFIG
     exec > $CONFIG
 else
     echo
     echo "Create $CONFIG with mode 600:"
     echo "    touch $CONFIG"
     echo "    chmod 0600 $CONFIG"
+    echo "    chown $ORYXUSER $CONFIG"
+    echo "    chgrp $ORYXGROUP $CONFIG"
     echo
     echo "Insert e.g. the following into $CONFIG:"
 fi
 cat <<CONFIG
 # Mailstore configuration. For more about this, see the mailstore.conf
 # man page.
-
-# Security Note: Anyone who can see the password in this file can do
-# anything to your mail database, even delete all the mail.
 
 # Specify the hostname if mailstore gets it wrong. We suggest not
 # using the name "localhost".
@@ -153,5 +154,7 @@ cat <<CONFIG
 db-address  = $DBADDRESS
 db-name     = $DBNAME
 db-user     = $DBUSER
+# Security Note: Anyone who can read the password in this file can do
+# anything to your mail database, even delete all the mail.
 db-password = ${DBPASS:-'""'}
 CONFIG

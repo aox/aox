@@ -22,10 +22,10 @@ JAILDIR = $(PREFIX)/jail ;
 CONFIGDIR = $(PREFIX) ;
 LOGFILE = $(PREFIX)/logfile ;
 
-# the user and group needed.
+# The user and group needed.
 
-ORYXUSER = "nobody" ;
-ORYXGROUP = "nobody" ;
+ORYXUSER = oryx ;
+ORYXGROUP = oryx ;
 
 # How to compile
 
@@ -65,8 +65,11 @@ DBADDRESS = /tmp/.s.PGSQL.5432 ;
 
 # A Postgres user and database for Mailstore to use. If necessary, these
 # are created by BINDIR/installer. To use an existing user/database,
-# change these values and set DBPASS below. (Note: DBUSER must own the
-# DBNAME database.)
+# change these values and set DBPASS below.
+#
+# Notes: DBUSER must own the DBNAME database.  Because PostgreSQL
+# likes using IDENT, it's convenient if DBUSER is the same as
+# ORYXUSER.
 #
 # A password is generated during installation for a new DBUSER, so you
 # don't need to set DBPASS unless you want to use an existing DBUSER.
