@@ -89,6 +89,7 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
     -e 's!$LOGFILE!'$(LOGFILE)'!' \
     -e 's!$DBNAME!'$(DBNAME)'!' \
     -e 's!$DBUSER!'$(DBUSER)'!' \
+    -e 's!$VERSION!'$(VERSION)'!' \
     < $(>) > $(<)
 }
 

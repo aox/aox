@@ -96,7 +96,8 @@ cat <<CONFIG > $CONFIG
 # using the name "localhost".
 # hostname = fully.qualified.hostname
 
-## This database was initialized during server installation.
+# This database was initialized during Mailstore $VERSION installation.
+# Date: `date`
 
 db-address  = $DBADDRESS
 db-name     = $DBNAME
