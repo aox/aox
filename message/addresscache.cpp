@@ -134,26 +134,24 @@ void AddressLookup::execute() {
     if ( !q->done() )
         return;
 
-    Row *r = q->nextRow();
-    delete queries->take( queries->find( q ) );
+    queries->take( queries->find( q ) );
+    if ( !q->failed() ) {
+        Row *r = q->nextRow();
+        if ( !r ) {
+            (void)new AddressInsert( transaction, address, queries,
+                                     status, owner );
+            return;
+        }
 
-    if ( !r ) {
-        // It may be better to collect INSERTs and execute them together
-        // on one database handle after processing the SELECTs. We don't
-        // bother yet.
-        (void)new AddressInsert( transaction, address, queries, status,
-                                 owner );
-        return;
+        uint id = r->getInt( "id" );
+        address->setId( id );
+        Address *a = new Address( address->name(), address->localpart(),
+                                  address->domain() );
+        a->setId( id );
+
+        idCache->insert( a->id(), a );
+        nameCache->insert( a->toString(), a );
     }
-
-    uint id = r->getInt( "id" );
-    address->setId( id );
-    Address *a = new Address( address->name(), address->localpart(),
-                              address->domain() );
-    a->setId( id );
-
-    idCache->insert( a->id(), a );
-    nameCache->insert( a->toString(), a );
 
     if ( queries->isEmpty() ) {
         status->setState( CacheLookup::Completed );

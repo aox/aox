@@ -75,7 +75,6 @@ public:
         i = new Query( *fieldInsert, this );
         i->bind( 1, field );
         transaction->enqueue( i );
-        l->append( i );
 
         q = new Query( *fieldLookup, this );
         q->bind( 1, field );
@@ -92,21 +91,15 @@ void FieldLookup::execute() {
     if ( !i->done() || !q->done() )
         return;
 
+    queries->take( queries->find( q ) );
+
     Row *r = q->nextRow();
-    delete queries->take( queries->find( i ) );
-    delete queries->take( queries->find( q ) );
-
-    if ( !r ) {
-        // XXX: What do we do now? Returning will make smtpd hang.
-        log( "Couldn't insert field_names entry for " + field,
-             Log::Disaster );
-        return;
+    if ( r ) {
+        uint id = r->getInt( "id" );
+        String *name = new String( field );
+        idCache->insert( id, name );
+        nameCache->insert( *name, new uint( id ) );
     }
-
-    uint id = r->getInt( "id" );
-    String *name = new String( field );
-    idCache->insert( id, name );
-    nameCache->insert( *name, new uint( id ) );
 
     if ( queries->isEmpty() ) {
         status->setState( CacheLookup::Completed );
