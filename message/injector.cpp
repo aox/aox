@@ -3,6 +3,7 @@
 #include "arena.h"
 #include "scope.h"
 #include "dict.h"
+#include "query.h"
 #include "address.h"
 #include "message.h"
 #include "mailbox.h"
@@ -10,33 +11,40 @@
 #include "transaction.h"
 
 
+struct AddressLink {
+    Address * address;
+    HeaderField::Type type;
+};
+
 class InjectorData {
 public:
     InjectorData()
-        : message( 0 ), mailboxes( 0 ), owner( 0 ),
-          step( 0 ), failed( false ), transaction( 0 ),
-          addresses( new List< Address > )
+        : step( 0 ), failed( false ),
+          owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
+          uids( 0 ), bodyparts( 0 ), addressLinks( 0 )
     {}
 
+    int step;
+    bool failed;
+
+    EventHandler * owner;
     const Message * message;
     List< Mailbox > * mailboxes;
-    EventHandler * owner;
-
-    uint step;
-    bool failed;
 
     Transaction * transaction;
 
-    List< Address > * addresses;
+    List< int > * uids;
+    List< int > * bodyparts;
+    List< AddressLink > * addressLinks;
 };
 
 
 /*! \class Injector injector.h
-    This class is responsible for injecting mail into the database.
+    This class delivers a Message to a List of Mailboxes.
 
-    It assumes ownership of a single Message object, which is silently
-    assumed to be valid, and does all necessary database operations to
-    store this message.
+    The Injector takes a Message object, and performs all the database
+    operations necessary to inject it into each of a List of Mailboxes.
+    The message is assumed to be valid.
 */
 
 /*! Creates a new Injector object to deliver the \a message into each of
@@ -44,17 +52,16 @@ public:
     the delivery attempt is completed. Message delivery commences when
     the execute() function is called.
 
-    The caller must not change \a mailboxes.
+    The caller must not change \a mailboxes after this call.
 */
 
 Injector::Injector( const Message * message, List< Mailbox > * mailboxes,
                     EventHandler * owner )
     : d( new InjectorData )
 {
-    d->mailboxes = mailboxes;
-    d->message = message;
     d->owner = owner;
-    setArena( Scope::current()->arena() );
+    d->message = message;
+    d->mailboxes = mailboxes;
 }
 
 
@@ -62,42 +69,6 @@ Injector::Injector( const Message * message, List< Mailbox > * mailboxes,
 
 Injector::~Injector()
 {
-}
-
-
-/*! This function creates and executes the series of database queries
-    needed to perform message delivery.
-*/
-
-void Injector::execute()
-{
-    if ( d->step == 0 ) {
-        addAddresses();
-        AddressCache::lookup( d->addresses, this );
-        d->step = 1;
-    }
-    if ( d->step == 1 ) {
-        int remaining = 0;
-
-        List< Address >::Iterator it( d->addresses->first() );
-        while ( it ) {
-            if ( it->id() == 0 )
-                remaining++;
-            it++;
-        }
-
-        if ( remaining == 0 )
-            d->step = 2;
-    }
-    if ( d->step == 2 ) {
-        d->step = 3;
-    }
-    if ( d->step == 3 ) {
-        d->step = 4;
-    }
-    if ( d->step == 4 ) {
-        d->owner->notify();
-    }
 }
 
 
@@ -121,174 +92,190 @@ bool Injector::failed() const
 }
 
 
-/*! This private helper adds all the addresses in header fields of
-    type \a t into the working list of addresses.
+/*! This function creates and executes the series of database queries
+    needed to perform message delivery.
 */
-
-void Injector::addAddresses( HeaderField::Type t )
-{
-    List< Address > * a = d->message->header()->addresses( t );
-    if ( !a || a->isEmpty() )
-        return;
-
-    List< Address >::Iterator it( a->first() );
-    while ( it )
-        d->addresses->append( it++ );
-}
-
-
-/*! This private helper makes a list of addresses used in the message,
-    for inserting into the database.
-*/
-
-void Injector::addAddresses()
-{
-    addAddresses( HeaderField::From );
-    addAddresses( HeaderField::ResentFrom );
-    addAddresses( HeaderField::Sender );
-    addAddresses( HeaderField::ResentSender );
-    addAddresses( HeaderField::ReturnPath );
-    addAddresses( HeaderField::ReplyTo );
-    addAddresses( HeaderField::To );
-    addAddresses( HeaderField::Cc );
-    addAddresses( HeaderField::Bcc );
-    addAddresses( HeaderField::ResentTo );
-    addAddresses( HeaderField::ResentCc );
-    addAddresses( HeaderField::ResentBcc );
-
-    // Remove repeated addresses from the list, hackily.
-    // (XXX: This wrongly treats the domain as case-sensitive.)
-
-    uint hack;
-    Dict< uint > tmp;
-    List< Address >::Iterator it( d->addresses->first() );
-    while ( it ) {
-        String k = it->toString();
-
-        if ( tmp.contains( k ) ) {
-            d->addresses->take( it );
-        }
-        else {
-            tmp.insert( k, &hack );
-            it++;
-        }
-    }
-}
-
-
-
-#if 0
 
 void Injector::execute()
 {
     if ( d->step == 0 ) {
+        // We begin by obtaining a UID for each mailbox we are injecting
+        // a message into. At the same time, we can begin to look up and
+        // insert addresses used in the message. We also start inserting
+        // entries into the bodyparts table here.
+
+        selectUids();
+        updateAddresses();
+        insertBodyparts();
+
+        d->step = 1;
+        return;
     }
+
     if ( d->step == 1 ) {
-        String q = addressQuery();
-        if ( q.isEmpty() )
-            d->step = 2;
-        else {
-            if ( !d->addressInsertion )
-                d->addressInsertion = new Query( q, this );
-            if ( d->addressInsertion->done() ) {
-                // having injected, we step back to start to fetch the
-                // IDs we just injected.
-                d->step = 0;
-                d->addressInsertion = 0;
-                d->addressQuery = 0;
+        d->step = 2;
+    }
+
+    if ( d->step == 2 ) {
+        d->step = 3;
+    }
+
+    if ( d->step == 3 ) {
+        d->step = 4;
+    }
+
+    if ( d->step == 4 ) {
+        d->owner->notify();
+    }
+}
+
+
+/*! This private function issues queries to retrieve a UID for each of
+    the Mailboxes we are delivering the message into, adds each UID to
+    d->uids, and informs execute() when it's done.
+*/
+
+void Injector::selectUids()
+{
+    class UidHelper : public EventHandler {
+    private:
+        List< int > * uids;
+        List< Query > * queries;
+        EventHandler * owner;
+
+    public:
+        UidHelper( List< int > *u, List< Query > *q, EventHandler *ev )
+            : uids( u ), queries( q ), owner( ev )
+        {}
+
+        void execute() {
+            Query *q = queries->first();
+            if ( !q->done() )
+                return;
+
+            uids->append( q->nextRow()->getInt( "uid" ) );
+
+            queries->take( queries->first() );
+            if ( queries->isEmpty() )
+                owner->notify();
+        }
+    };
+
+    d->uids = new List< int >;
+    List< Query > * queries = new List< Query >;
+    UidHelper * helper = new UidHelper( d->uids, queries, this );
+
+    List< Mailbox >::Iterator it( d->mailboxes->first() );
+    while ( it ) {
+        String seq( "mailbox_" + String::fromNumber( it->id() ) );
+        queries->append( new Query( "select nexval('"+seq+"')::integer as uid",
+                                    helper ) );
+        it++;
+    }
+
+    Database::query( queries );
+}
+
+
+/*! This private function builds a list of AddressLinks containing every
+    address used in the message, and initiates an AddressCache::lookup()
+    after excluding any duplicate addresses. It causes execute() to be
+    called when every address in d->addressLinks has been resolved.
+*/
+
+void Injector::updateAddresses()
+{
+    d->addressLinks = new List< AddressLink >;
+    List< Address > * addresses = new List< Address >;
+    Dict< Address > unique;
+
+    HeaderField::Type types[] = {
+        HeaderField::ReturnPath, HeaderField::Sender, HeaderField::ResentSender,
+        HeaderField::From, HeaderField::To, HeaderField::Cc, HeaderField::Bcc,
+        HeaderField::ResentFrom, HeaderField::ResentTo, HeaderField::ResentCc,
+        HeaderField::ResentBcc, HeaderField::ReplyTo
+    };
+    int n = sizeof (types) / sizeof( types[0] );
+
+    int i = 0;
+    while ( i < n ) {
+        HeaderField::Type t = types[ i++ ];
+        List< Address > * a = d->message->header()->addresses( t );
+        if ( a && !a->isEmpty() ) {
+            List< Address >::Iterator it( a->first() );
+            while ( it ) {
+                Address *a = it++;
+                String k = a->toString();
+
+                if ( unique.contains( k ) ) {
+                    a = unique.find( k );
+                }
+                else {
+                    unique.insert( k, a );
+                    addresses->append( a );
+                }
+
+                AddressLink *link = new AddressLink;
+                d->addressLinks->append( link );
+                link->address = a;
+                link->type = t;
             }
         }
     }
-    if ( d->step == 2 ) {
-        if ( !d->messageInsertion )
-            d->messageInsertion = new Query( messageQuery(), this );
-        if ( d->messageInsertion->done() )
-            d->step = 3;
-    }
-    if ( d->step == 3 ) {
-        if ( !d->bodypartInsertion )
-            d->bodypartInsertion = new Query( bodypartQuery(), this );
-        if ( d->bodypartInsertion->done() )
-            d->step = 4;
-    }
-    if ( d->step == 4 ) {
-        if ( d->owner ) {
-            Scope tmp ( d->owner->arena() );
-            d->owner->execute();
+
+    AddressCache::lookup( addresses, this );
+}
+
+
+/*! This private function inserts an entry into bodyparts for every MIME
+    bodypart in the message, and puts the resulting ids in d->bodyparts.
+*/
+
+void Injector::insertBodyparts()
+{
+    class BodyPartHelper : public EventHandler {
+    private:
+        EventHandler * owner;
+        List< Query > * queries;
+        List< int > * bodyparts;
+    public:
+        BodyPartHelper( List< int > *b, List< Query > *q, EventHandler *ev )
+            : owner( ev ), queries( q ), bodyparts( b )
+        {}
+
+        void execute() {
+            Query *q = queries->first();
+            if ( !q->done() )
+                return;
+
+            bodyparts->append( q->nextRow()->getInt( "id" ) );
+
+            queries->take( queries->first() );
+            if ( queries->isEmpty() )
+                owner->notify();
         }
+    };
+
+    d->bodyparts = new List< int >;
+    List< Query > * queries = new List< Query >;
+    List< Query > * selects = new List< Query >;
+    BodyPartHelper * helper = new BodyPartHelper( d->bodyparts, selects, this );
+
+    List< BodyPart > * bodyparts = d->message->bodyParts();
+    List< BodyPart >::Iterator it( bodyparts->first() );
+    while ( it ) {
+        BodyPart *b = it++;
+
+        Query *i, *s;
+
+        i = new Query( "insert into bodyparts (data) values ($1)", helper );
+        i->bind( 1, b->data() );
+
+        s = new Query( "select currval('bodypart_ids')::integer as id",
+                       helper );
+
+        queries->append( i );
+        queries->append( s );
+        selects->append( s );
     }
 }
-
-
-static String insertString( Address * a )
-{
-    String r( "insert into addresses (name,localpart,domain) values ('" );
-    r.append( a->name().quoted( '\'', '\'' ) );
-    r.append( "','" );
-    r.append( a->localpart().quoted( '\'', '\'' ) );
-    r.append( "','" );
-    r.append( a->domain().quoted( '\'', '\'' ) );
-    r.append( "')" );
-    return r;
-}
-
-
-/*! This private helper returns a long string suitable to inject all
-    the uncached addresses into the addresses table. If there are no
-    uncached addresses, it returns an empty string.
-*/
-
-String Injector::addressQuery() const
-{
-    String q;
-    List<Address>::Iterator it( d->addresses->first() );
-    while ( it != d->addresses->end() ) {
-        Address * a = it;
-        ++it;
-        if ( a->id() == 0 ) {
-            if ( !q.isEmpty() )
-                q.append( ";" );
-            q.append( insertString( a ) );
-        }
-    }
-    return q;
-}
-
-
-/*! This private helper returns a string suitable to inject the
-    message's body into the bodyparts table. This is a big problem -
-    the bodyparts table needs an ID for the messages table, and where
-    do we get that?
-*/
-
-String Injector::bodypartQuery() const
-{
-    return "insert into bodyparts(message,partno)"
-        " values "
-        " (XXX,'1')";
-}
-
-
-/*! This private helper returns a string suitable to inject the
-    message into the messages table.
-*/
-
-String Injector::messageQuery() const
-{
-    String r = "insert into messages(sender,returnpath,subject,messageid)"
-               " values (";
-    Header * h = d->message->header();
-    Address * a = h->addresses( HeaderField::Sender )->first();
-    r.append( String::fromNumber( a->id() ) );
-    r.append( "," );
-    a = h->addresses( HeaderField::ReturnPath )->first();
-    r.append( String::fromNumber( a->id() ) );
-    r.append( ",'" );
-    r.append( h->field( HeaderField::Subject )->value().quoted( '\'', '\'' ) );
-    r.append( "','" );
-    r.append( h->messageId().quoted( '\'', '\'' ) );
-    r.append( "')" );
-    return r;
-}
-
-#endif

@@ -16,16 +16,16 @@ public:
     Injector( const Message *, List< Mailbox > *, EventHandler * );
     virtual ~Injector();
 
-    void execute();
-
     bool done() const;
     bool failed() const;
-    
+    void execute();
+
 private:
     class InjectorData *d;
 
-    void addAddresses();
-    void addAddresses( HeaderField::Type );
+    void selectUids();
+    void updateAddresses();
+    void insertBodyparts();
 };
 
 
