@@ -9,7 +9,10 @@ class Capability
 {
 public:
     void execute();
-    static const char * capabilities();
+
+    static String capabilities( IMAP * );
+
+    static void setup();
 };
 
 

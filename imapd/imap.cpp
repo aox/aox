@@ -84,10 +84,8 @@ IMAP::IMAP( int s )
     if ( s < 0 )
         return;
 
-    log( "Accepted IMAP connection from " + peer() );
-
-    enqueue( String( "* OK [CAPABILITY " ) + Capability::capabilities() + "] " +
-                     Configuration::hostname() + " IMAP Server\r\n" );
+    enqueue( "* OK [CAPABILITY " + Capability::capabilities( this ) + "] " +
+             Configuration::hostname() + " IMAP Server\r\n" );
     setTimeout( time(0) + 1800 );
 }
 

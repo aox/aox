@@ -10,6 +10,7 @@
 #include "imap.h"
 #include "loop.h"
 #include "tls.h"
+#include "handlers/capability.h"
 
 #include <stdlib.h>
 
@@ -33,6 +34,7 @@ int main( int, char *[] )
     OCClient::setup();
     Database::setup();
     Mailbox::setup();
+    Capability::setup();
 
     log( Test::report() );
 
