@@ -21,6 +21,7 @@ Build imap :
     search.cpp
     select.cpp
     starttls.cpp
+    status.cpp
     store.cpp
     subscribe.cpp
     unselect.cpp
