@@ -424,7 +424,6 @@ static String sectionResponse( FetchData::Section *s,
               s->id == "rfc822.header" ||
               s->id.startsWith( "header" ) )
     {
-        bool mime = s->id == "mime";
         bool rfc822 = s->id == "rfc822.header";
         bool fields = s->id.startsWith( "header.fields" );
         bool exclude = s->id.endsWith( ".not" );
@@ -453,10 +452,14 @@ static String sectionResponse( FetchData::Section *s,
         }
 
         item = s->id.upper();
-        if ( !rfc822 && !mime )
+        if ( !rfc822 ) {
+            if ( !s->part.isEmpty() )
+                item = s->part + "." + item;
             item = "BODY[" + item;
-        if ( fields )
-            item.append( " (" + s->fields.join( " " ) + ")]" );
+            if ( fields )
+                item.append( " (" + s->fields.join( " " ) + ")" );
+            item.append( "]" );
+        }
         data.append( "\r\n" );
     }
 
