@@ -29,7 +29,7 @@ void Idle::execute()
 
     imap()->reserve( this );
     imap()->setIdle( true );
-    imap()->append( "+\r\n" );
+    imap()->writeBuffer()->append( "+\r\n" );
 }
 
 

@@ -3,6 +3,7 @@
 #include "imap.h"
 #include "auth/authenticator.h"
 #include <buffer.h>
+#include <arena.h>
 
 
 /*! Constructs an generic Authenticate handler, for any mechanism. */
@@ -42,7 +43,7 @@ void Authenticate::execute()
 
     // let the authenticator's state machine work.
     if ( a->state() == Authenticator::ChallengeNeeded ) {
-        imap()->append( "+ "+a->challenge().e64()+"\r\n" );
+        imap()->writeBuffer()->append( "+ "+a->challenge().e64()+"\r\n" );
         a->setState( Authenticator::ChallengeIssued );
         r.truncate( 0 );
     }
@@ -85,6 +86,8 @@ void Authenticate::read()
         // length if r is magic: zero means "no response received",
         // nonzero means "response received".
         r.append( *b->string( i ) );
+        Arena::push( imap()->arena() );
         b->remove( i );
+        Arena::pop();
     }
 }
