@@ -40,9 +40,10 @@ void Subscribe::execute()
     // table, remove it, or do nothing.
 
     if ( !q ) {
-        q = new Query( "select id from subscriptions where "
-                       "owner=" + String::fromNumber( imap()->uid() ) +
-                       " and mailbox='"+ m +"'", this );
+        q = new Query( "select id from subscriptions where owner=$1 "
+                       "and mailbox=$2", this );
+        q->bind( 1, imap()->uid() );
+        q->bind( 2, m );
         q->submit();
         return;
     }
@@ -60,14 +61,15 @@ void Subscribe::execute()
         selected = true;
 
         if ( mode == Add && q->rows() == 0 ) {
-            q = new Query( "insert into subscriptions (owner, mailbox) values "
-                           "("+ String::fromNumber( imap()->uid() ) +", '"+
-                           m +"')", this );
+            q = new Query( "insert into subscriptions (owner, mailbox) "
+                           "values ($1, $2)", this );
+            q->bind( 1, imap()->uid() );
+            q->bind( 2, m );
         }
         else if ( mode == Remove && q->rows() == 1 ) {
             int id = *q->nextRow()->getInt( "id" );
-            q = new Query( "delete from subscriptions where id=" +
-                           String::fromNumber( id ), this );
+            q = new Query( "delete from subscriptions where id=$1", this );
+            q->bind( 1, id );
         }
         else {
             // Do nothing if we're subscribing twice, or unsubscribing
