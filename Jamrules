@@ -75,5 +75,5 @@ rule Doc {
 }
 
 actions together Doc2 {
-    bin/qdoc -m doc/man/man3 -w doc/html $(>)
+    bin/rdoc -m doc/man/man3 -w doc/html $(>)
 }
