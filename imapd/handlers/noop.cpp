@@ -12,7 +12,7 @@
 
 // XXX: We should only need to include one header (database) here.
 #include "imap.h"
-#include "cache.h"
+#include "query.h"
 #include "database.h"
 
 #include "string.h"
