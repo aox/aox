@@ -29,6 +29,7 @@ Capability::~Capability()
 /* draft-siemborski-imap-sasl-initial-response */ "SASL-IR " \
 /* RFC 2177 */ "IDLE " \
 /* RFC 2971 */ "ID " \
+/* RFC 3691 */ "UNSELECT " \
 /* RFC 2088 - no trailing space */ "LITERAL+"
 // add nothing after LITERAL+
 // everything should be before, and have a trailing space

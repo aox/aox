@@ -17,5 +17,7 @@ Build imap :
     rename.cpp
     search.cpp
     select.cpp
-    subscribe.cpp unsubscribe.cpp
+    subscribe.cpp
+    unselect.cpp
+    unsubscribe.cpp
     ;
