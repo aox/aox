@@ -48,6 +48,9 @@ public:
     bool hasFlags() const;
     bool hasHeaders() const;
     bool hasBodies() const;
+    void setFlagsFetched();
+    void setHeadersFetched();
+    void setBodiesFetched();
 
 private:
     static Header * parseHeader( uint &, uint, const String &, Header::Mode );

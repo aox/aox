@@ -27,6 +27,7 @@ public:
 
     virtual PreparedStatement * query() const = 0;
     virtual void decode( Message *, Row * ) = 0;
+    virtual void setDone( Message * ) = 0;
 
 private:
     class FetcherData * d;
@@ -42,6 +43,7 @@ public:
 
     PreparedStatement * query() const;
     void decode( Message *, Row * );
+    void setDone( Message * );
 };
 
 
@@ -53,6 +55,7 @@ public:
 
     PreparedStatement * query() const;
     void decode( Message *, Row * );
+    void setDone( Message * );
 };
 
 
@@ -64,6 +67,7 @@ public:
 
     PreparedStatement * query() const;
     void decode( Message *, Row * );
+    void setDone( Message * );
 };
 
 

@@ -386,9 +386,9 @@ Message * Mailbox::message( uint uid, bool create ) const
 void Mailbox::fetchHeaders( const MessageSet & messages,
                             EventHandler * handler )
 {
-    if ( !d->flagFetcher )
-        d->flagFetcher = new MessageFlagFetcher( this );
-    d->flagFetcher->insert( messages, handler );
+    if ( !d->headerFetcher )
+        d->headerFetcher = new MessageHeaderFetcher( this );
+    d->headerFetcher->insert( messages, handler );
 }
 
 
@@ -399,9 +399,9 @@ void Mailbox::fetchHeaders( const MessageSet & messages,
 void Mailbox::fetchBodies( const MessageSet & messages,
                            EventHandler * handler )
 {
-    if ( !d->flagFetcher )
-        d->flagFetcher = new MessageFlagFetcher( this );
-    d->flagFetcher->insert( messages, handler );
+    if ( !d->bodyFetcher )
+        d->bodyFetcher = new MessageBodyFetcher( this );
+    d->bodyFetcher->insert( messages, handler );
 
 }
 

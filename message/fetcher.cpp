@@ -15,7 +15,8 @@ class FetcherData {
 public:
     FetcherData()
         : mailbox( 0 ), query( 0 ),
-          smallest( 0 ), largest( 0 )
+          smallest( 0 ), largest( 0 ),
+          uid( 0 ), message( 0 )
     {}
     struct Handler {
         Handler(): o( 0 ) {}
@@ -28,6 +29,8 @@ public:
     Query * query;
     uint smallest;
     uint largest;
+    uint uid;
+    Message * message;
 };
 
 
@@ -66,16 +69,18 @@ Fetcher::Fetcher( Mailbox * m )
             "select h.uid, h.part, f.name, h.value from "
             "header_fields h, field_names f where "
             "h.field = f.id and "
-            "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3";
+            "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
+            "order by h.uid, h.part";
         ::header = new PreparedStatement( q );
         q = "select p.part, b.text, b.data, b.bytes, b.lines "
             "from part_numbers p, bodyparts b where "
             "p.bodypart=b.id and "
             "p.uid>=$1 and p.uid<=$2 and p.mailbox=$3 "
-            "order by part";
+            "order by p.uid, p.part";
         ::body = new PreparedStatement( q );
         q = "select uid, flag from flags "
-            "where uid>=$1 and uid<=$2 and mailbox=$3";
+            "where uid>=$1 and uid<=$2 and mailbox=$3 "
+            "order by uid";
         ::flags = new PreparedStatement( q );
         Allocator::addEternal( header, "statement to fetch headers" );
         Allocator::addEternal( body, "statement to fetch bodies" );
@@ -95,9 +100,20 @@ void Fetcher::execute()
     if ( d->query ) {
         Row * r;
         while ( (r=d->query->nextRow()) != 0 ) {
-            Message * m = d->mailbox->message( r->getInt( "uid" ) );
-            decode( m, r );
+            uint uid = r->getInt( "uid" );
+            if ( uid != d->uid ) {
+                if ( d->uid && d->message )
+                    setDone( d->message );
+                d->uid = uid;
+                d->message = d->mailbox->message( d->uid );
+            }
+            decode( d->message, r );
             any = true;
+        }
+        if ( d->query->done() ) {
+            d->query = 0;
+            if ( d->message )
+                setDone( d->message );
         }
     }
 
@@ -106,40 +122,43 @@ void Fetcher::execute()
         MessageSet s;
         s.add( d->smallest, d->largest );
         while ( it ) {
-            FetcherData::Handler * h = it;
+            List<FetcherData::Handler>::Iterator h( it );
             ++it;
             uint c = h->s.count();
             h->s.remove( s );
             if ( h->s.count() < c )
                 h->o->execute();
+            if ( h->s.isEmpty() )
+                d->handlers.take( h );
         }
     }
 
-    if ( d->query->done() ) {
-        MessageSet merged;
-        List<FetcherData::Handler>::Iterator it( d->handlers.first() );
-        while ( it ) {
-            merged.add( it->s );
-            ++it;
-        }
-        if ( merged.isEmpty() ) {
-            d->mailbox->forget( this );
-            return;
-        }
-        // now, what to do. for the moment, we avoid even more
-        // messageset magic and take the lowest-numbered message and a
-        // few more. later, we'll want to be smarter.
-        d->smallest = merged.smallest();
-        uint i = 1;
-        while ( i <= merged.count() &&
-                merged.value( i ) - d->smallest < i + 4 )
-            d->largest = merged.value( i++ );
-        d->query = new Query( *query(), this );
-        d->query->bind( 1, d->smallest );
-        d->query->bind( 2, d->largest );
-        d->query->bind( 3, d->mailbox->id() );
-        d->query->execute();
+    if ( d->query )
+        return;
+
+    MessageSet merged;
+    List<FetcherData::Handler>::Iterator it( d->handlers.first() );
+    while ( it ) {
+        merged.add( it->s );
+        ++it;
     }
+    if ( merged.isEmpty() ) {
+        d->mailbox->forget( this );
+        return;
+    }
+    // now, what to do. for the moment, we avoid even more messageset
+    // magic and take the lowest-numbered message and a few more.
+    // later, we'll want to be smarter.
+    d->smallest = merged.smallest();
+    uint i = 1;
+    while ( i <= merged.count() &&
+            merged.value( i ) - d->smallest < i + 4 )
+        d->largest = merged.value( i++ );
+    d->query = new Query( *query(), this );
+    d->query->bind( 1, d->smallest );
+    d->query->bind( 2, d->largest );
+    d->query->bind( 3, d->mailbox->id() );
+    d->query->execute();
 }
 
 
@@ -260,4 +279,30 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
         // announce it in the select response, either. maybe we should
         // read the new flags, then invoke another MessageFlagFetcher.
     }
+}
+
+
+/*! \fn void Fetcher::setDone( Message * m )
+
+    This pure virtual function notifies \a that this Fetcher has
+    fetched all of the relevant data.
+*/
+
+
+void MessageHeaderFetcher::setDone( Message * m )
+{
+    m->setHeadersFetched();
+}
+
+
+void MessageFlagFetcher::setDone( Message * m )
+{
+    m->setFlagsFetched();
+    
+}
+
+
+void MessageBodyFetcher::setDone( Message * m )
+{
+    m->setBodiesFetched();
 }
