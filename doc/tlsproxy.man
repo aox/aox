@@ -34,6 +34,15 @@ is configured using
 and
 .IR tlsproxy.conf (5).
 There are no command-line options.
+.SH "CERTIFICATE HANDLING"
+Tlsproxy can use a proper certificate signed by a CA, as usual. If you
+do not have one, tlsproxy will generate a self-signed certificate at
+runtime. No clients trust this certificate, but we think it's better
+to have a dynamically generated certificate than to not use TLS.
+
+Oryx strongly recommends getting a proper signed certificate. Using
+the dynamically generated certificate preserves some of the advantages
+of TLS, but far from all.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
