@@ -45,7 +45,8 @@ public:
 
     void emitResponses();
 
-    String digits( uint );
+    String digits( uint, uint );
+    String letters( uint, uint );
     void end();
     void nil();
     void space();
