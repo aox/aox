@@ -7,12 +7,18 @@
 #include "imap.h"
 #include "mailbox.h"
 
+
+/*! \reimp */
+
 void Select::parse()
 {
     space();
     m = astring();
     end();
 }
+
+
+/*! \reimp */
 
 void Select::execute()
 {

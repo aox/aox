@@ -6,12 +6,18 @@
 
 #include "imap.h"
 
+
+/*! \reimp */
+
 void Subscribe::parse()
 {
     space();
     m = astring();
     end();
 }
+
+
+/*! \reimp */
 
 void Subscribe::execute()
 {

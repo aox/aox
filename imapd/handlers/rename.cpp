@@ -6,6 +6,9 @@
 
 #include "imap.h"
 
+
+/*! \reimp */
+
 void Rename::parse()
 {
     space();
@@ -14,6 +17,9 @@ void Rename::parse()
     b = astring();
     end();
 }
+
+
+/*! \reimp */
 
 void Rename::execute()
 {

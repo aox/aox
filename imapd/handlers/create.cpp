@@ -6,12 +6,18 @@
 
 #include "imap.h"
 
+
+/*! \reimp */
+
 void Create::parse()
 {
     space();
     m = astring();
     end();
 }
+
+
+/*! \reimp */
 
 void Create::execute()
 {

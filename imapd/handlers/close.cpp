@@ -17,6 +17,8 @@
 #include "imap.h"
 
 
+/*! \reimp */
+
 void Close::execute()
 {
     expunge( false );

@@ -108,6 +108,8 @@ uint Append::number( uint n )
 }
 
 
+/*! \reimp */
+
 void Append::execute()
 {
     respond( "BAD Cannot actually append, but it was a nice thought",

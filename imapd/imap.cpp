@@ -1,15 +1,3 @@
-/*! \class IMAP imap.h
-    This class implements the IMAP server as seen by clients.
-
-    This class is responsible for interacting with IMAP clients, and for
-    overseeing the operation of individual command handlers. It looks at
-    client input to decide which Command to defer the real work to, and
-    ensures that the handler is called at the appropriate times.
-
-    The IMAP state (RFC 3501 section 3) and Idle state (RFC 2177) are
-    both encoded here, exactly as in the specification.
-*/
-
 #include "imap.h"
 
 #include "arena.h"
@@ -58,6 +46,26 @@ public:
 
     bool idle;
 };
+
+
+/*! \class IMAP imap.h
+    This class implements the IMAP server as seen by clients.
+
+    This class is responsible for interacting with IMAP clients, and for
+    overseeing the operation of individual command handlers. It looks at
+    client input to decide which Command to defer the real work to, and
+    ensures that the handler is called at the appropriate times.
+
+    The IMAP state is kept here, including the current mailbox(),
+    login() and IMAP state() (RFC 3501 section 3). The Idle state (RFC
+    2177) is also kept here.
+
+    The IMAP class parses incoming commands as soon as possible and
+    may keep several commands executing at a time, if the client
+    issues that. It depends on Command::group() to decide whether each
+    parsed Command can be executed concurrently with the already
+    running Command objects.
+*/
 
 
 /*! Creates an IMAP server, and sends an initial CAPABILITY response to
@@ -447,9 +455,9 @@ void IMAP::reserve( Command * command )
 }
 
 
-/*! Calls execute() on all currently operating commands, and if
-    possible calls emitResponses() and retires those which can be
-    retired.
+/*! Calls Command::execute() on all currently operating commands, and
+    if possible calls Command::emitResponses() and retires those which
+    can be retired.
 */
 
 void IMAP::runCommands()

@@ -255,6 +255,8 @@ void Search::parseKey( bool alsoCharset )
 
 
 
+/*! \reimp */
+
 void Search::execute()
 {
     // for now, we know there are no messages in there, so this is

@@ -1,3 +1,8 @@
+#include "login.h"
+
+#include "imap.h"
+
+
 /*! \class Login login.h
     Performs plaintext authentication (RFC 3501, §6.2.3)
 
@@ -5,11 +10,6 @@
     we treat it as we would an AUTH=PLAIN request. (We should disallow
     this mechanism until after STARTTLS.)
 */
-
-#include "login.h"
-
-#include "imap.h"
-
 
 /*! \reimp */
 

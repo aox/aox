@@ -71,6 +71,8 @@ void Fetch::parse()
 }
 
 
+/*! \reimp */
+
 void Fetch::execute()
 {
     setState( Finished );

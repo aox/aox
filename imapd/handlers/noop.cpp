@@ -13,6 +13,9 @@
 #include "query.h"
 #include "string.h"
 
+
+/*! \reimp */
+
 void Noop::execute()
 {
     if ( !q ) {
