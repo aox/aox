@@ -377,7 +377,7 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
         link->hf = hf;
         link->part = part;
 
-        if ( hf->type() == HeaderField::Other )
+        if ( hf->type() >= HeaderField::Other )
             d->otherFields->append( new String ( hf->name() ) );
 
         d->fieldLinks->append( link );
@@ -582,7 +582,7 @@ void Injector::linkHeaderFields()
             FieldLink *link = it++;
 
             HeaderField::Type t = link->hf->type();
-            if ( t == HeaderField::Other )
+            if ( t >= HeaderField::Other )
                 t = FieldNameCache::translate( link->hf->name() );
 
             q = new Query( "insert into header_fields "

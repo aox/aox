@@ -38,7 +38,6 @@ public:
         MimeVersion,
         Received,
         ContentLanguage, ContentLocation, ContentMd5,
-        // Other must be last
         Other
     };
 

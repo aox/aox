@@ -197,14 +197,7 @@ Add support for "ms restart now" and "ms restart gracefully"
   JAILDIR, and by default listen only to a unix socket.
 
 
-Field name synchronisation
-
-  If we ever need to add values to HeaderField::Type, new values must go
-  AFTER ::Other, because we can't insert entries into the middle of the
-  field_names table. So the type translation has to be done if the type
-  is greater than or equal to Other.
-
-  And we need to synchronise the in-memory maps via ocd anyway.
+Field name synchronisation via ocd.
 
 
 Udoc nested classes
