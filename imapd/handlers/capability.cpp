@@ -29,7 +29,7 @@ static bool drafts = false;
     additionally announce support for LISTEXT
     (draft-ietf-imapext-list-extensions) and SASL-IR
     (draft-siemborski-imap-sasl-initial-response).
-    
+
     For the moment, announce-draft-support defaults to true. Before
     the 1.0 release, we'll change its default to false.
 

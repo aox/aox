@@ -20,7 +20,7 @@ public:
 
 
 /*! \class SmtpClient smtpclient.h
-  
+
     The SmtpClient class provides an SMTP or LMTP client. It's a
     little in the primitive side, but enough to talk to our own LMTP
     server, or to the SMTP server of a smarthost.

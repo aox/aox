@@ -45,6 +45,6 @@ void Syslogger::send( const String & s )
         else if ( tmp[i] == 'd' && tmp[i+1] == 'i' )
             priority = LOG_CRIT;
     }
-    
+
     ::syslog( LOG_INFO, "%s", tmp.cstr() );
 }

@@ -12,7 +12,7 @@ public:
     enum Type {
         Client,
         DatabaseClient,
-        ImapServer, 
+        ImapServer,
         LogServer,
         LoggingClient,
         OryxServer,
