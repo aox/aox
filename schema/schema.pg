@@ -102,7 +102,7 @@ create table bodyparts (
     id          integer default nextval('bodypart_ids') primary key,
     bytes       integer not null,
     lines       integer not null,
-    hash        text not null,
+    hash        text not null unique,
     text        bytea,
     data        bytea
 );
