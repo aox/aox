@@ -12,7 +12,7 @@ if $(ICC) {
 else {
     C++ = g++ ;
     LINK = g++ ;
-    C++FLAGS += -Wall -Werror ;
+    C++FLAGS += -Wall -Werror -funsigned-char ;
 
     if $(COV) {
         C++FLAGS += -fprofile-arcs -ftest-coverage ;
