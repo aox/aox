@@ -606,7 +606,7 @@ int Row::findColumn( const String &f ) const
         i++;
     }
 
-    //log( Log::Disaster, "Unknown column " + f );
+    log( Log::Disaster, "Unknown column " + f );
     return -1;
 }
 
@@ -632,7 +632,7 @@ bool Row::badFetch( uint i, Column::Type t ) const
     else
         return false;
 
-    //log( Log::Disaster, s );
+    log( s, Log::Disaster );
     return true;
 }
 
