@@ -2,7 +2,7 @@
 OPTIM    = ;
 
 # we always build with debugging and stop on error
-C++FLAGS  = -g -Wall -Werror -ansi -pedantic ;
+C++FLAGS  = -g -Wall -Werror -W ;
 LINKFLAGS = -g ;
 
 # we always build and link with g++

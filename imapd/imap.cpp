@@ -44,7 +44,7 @@ bool IMAP::react(Event e)
 {
     switch (e) {
     case Connection::Read: {
-        int sz = d->readBuf.size(); /* XXX */
+        uint sz = d->readBuf.size(); /* XXX */
         d->readBuf.read(fd());
         if (sz == d->readBuf.size())
             /* close */
