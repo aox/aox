@@ -1,6 +1,7 @@
 #include "imap.h"
 
 #include "command.h"
+#include "mailbox.h"
 
 #include <test.h>
 #include <buffer.h>
@@ -19,6 +20,7 @@ public:
         args( 0 ),
         state( IMAP::NotAuthenticated ),
         grabber( 0 ),
+        mailbox( 0 ),
         idle( false )
     {}
 
@@ -29,6 +31,7 @@ public:
     IMAP::State state;
     Command * grabber;
     List<Command> commands;
+    Mailbox *mailbox;
     bool idle;
 };
 
@@ -318,6 +321,17 @@ bool IMAP::idle() const
     return d->idle;
 }
 
+/*! Returns the currently-selected Mailbox. */
+Mailbox *IMAP::mailbox()
+{
+    return d->mailbox;
+}
+
+/*! Sets the currently-selected Mailbox to \a m. */
+void IMAP::setMailbox( Mailbox *m )
+{
+    d->mailbox = m;
+}
 
 /*! Reserves input from the connection for \a command.
 

@@ -1,6 +1,7 @@
 #include "select.h"
 
 #include "../imap.h"
+#include "../mailbox.h"
 
 void Select::parse()
 {
@@ -10,12 +11,22 @@ void Select::parse()
 
 void Select::execute()
 {
-    if ( m == "inbox" ) {
+    Mailbox *mbox = new Mailbox( m );
+
+    if ( readOnly )
+        mbox->setReadOnly( true );
+    
+    if (mbox->load()) {
+        imap()->setMailbox( mbox );
         imap()->setState( IMAP::Selected );
     }
     else {
+        imap()->setMailbox( 0 );
         imap()->setState( IMAP::Authenticated );
-        error( No, "Can't SELECT mailbox " + m );
+        error( No, "Can't select mailbox " + m );
     }
+
+    // Send mailbox data here.
+    respond( "OK" );
     setState( Finished );
 }

@@ -14,7 +14,7 @@ SubDir TOP imapd ;
 # build the .o files in this directory
 
 Build imap : imapd.cpp connection.cpp listener.cpp loop.cpp imap.cpp 
-	command.cpp cccp.cpp set.cpp ;
+	command.cpp cccp.cpp set.cpp mailbox.cpp ;
 
 # the programs. these need to be last. magic. all Program calls need
 # to be after all Build calls, since the Build puts object files into

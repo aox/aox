@@ -4,9 +4,8 @@
 #include "connection.h"
 
 class Command;
+class Mailbox;
 
-
-class IMAPData;
 class IMAP : public Connection {
 public:
     IMAP(int s);
@@ -27,8 +26,11 @@ public:
 
     void reserve( Command * );
 
+    Mailbox *mailbox();
+    void setMailbox( Mailbox * );
+
 private:
-    IMAPData *d;
+    class IMAPData *d;
 };
 
 #endif
