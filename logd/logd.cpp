@@ -24,7 +24,7 @@ int main( int, char *[] )
     Configuration::Text logName( "logfile", Configuration::LogFile );
     LogServer::setLogFile( logName );
 
-    Listener< LogServer >::create( "log", "", 2054 );
+    Listener< LogServer >::create( "log", "127.0.0.1", 2054 );
 
     s.setup( Server::Secure );
     s.execute();
