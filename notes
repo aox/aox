@@ -28,9 +28,6 @@ What to do about EventHandlers whose targets have died?
   SmtpDbClient tries to execute() a non-existent SMTP server.
 
 
-Investigate the segfaults in "ms create user" on Debian.
-
-
 ocd needs work
 
   1. Must announce new mail.
