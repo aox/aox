@@ -37,7 +37,7 @@ cannot be delivered.
 .SH EXAMPLES
 To deliver an entire berkeley mbox into the inbox of user nirmala@example.com:
 .IP
-formail -s deliver nirmala@example.com
+formail -I 'From ' -s deliver nirmala@example.com < mbox
 .PP
 To deliver each message in the MH folder +blah into the
 inbox of user raj@example.net:
