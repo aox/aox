@@ -7,6 +7,7 @@
 #include "database.h"
 #include "event.h"
 #include "transaction.h"
+#include "loop.h"
 #include "log.h"
 
 
@@ -137,6 +138,8 @@ void Query::setState( State s )
     if ( d->startup && !done() &&
          ( s == Completed || s == Failed ) )
         ::startup--;
+    if ( d->startup && s == Failed )
+        Loop::shutdown();
     d->state = s;
 }
 
