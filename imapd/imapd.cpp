@@ -11,6 +11,7 @@
 #include "imap.h"
 #include "smtp.h"
 #include "loop.h"
+#include "tls.h"
 
 #include <stdlib.h>
 
@@ -25,6 +26,7 @@ int main( int, char *[] )
     Configuration::makeGlobal( ".imapdrc" );
 
     Log::setup();
+    TLS::setup();
     OCClient::setup();
     Database::setup();
     Mailbox::setup();
