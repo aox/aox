@@ -16,8 +16,6 @@ static EventLoop *loop;
     until we needed multiple event loops, especially during startup.
 
     Should we get rid of this class and store the current Loop in Scope?
-
-    \sa EventLoop
 */
 
 /*! Creates the global EventLoop object.

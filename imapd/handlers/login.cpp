@@ -35,7 +35,8 @@ void Login::parse()
     by feeding it the data it would otherwise issue a challenge for, and
     waits for its verdict.
 
-    \sa Authenticate
+    In general, Authenticate is much preferrable, but some clients
+    only implement Login.
 */
 
 void Login::execute()

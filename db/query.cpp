@@ -42,12 +42,13 @@ public:
     or successful completion) by calling notify(). The Query's state()
     reflects its progress, as do the done() and failed() functions.
 
-    Each Query contains a list of rows of data received in response to
-    itself. The hasResults() function tells you if there are any rows,
-    which can be read and removed from the list by calling nextRow().
-    The query keeps track of the total number of rows() received.
+    Each Query contains a list of rows (Row objects) of data received
+    in response to itself. The hasResults() function tells you if
+    there are any rows, which can be read and removed from the list by
+    calling nextRow().  The query keeps track of the total number of
+    rows() received.
 
-    \sa Row Transaction
+    A Query can be part of a Transaction.
 */
 
 

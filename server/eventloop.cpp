@@ -44,8 +44,6 @@ public:
     calls stop() or shutdown().
 
     The main user of this class is the global event Loop.
-
-    \sa Loop
 */
 
 /*! Creates a new EventLoop. */
