@@ -50,6 +50,9 @@ We need top-level message/rfc822 support
 tls client support (smtp, postgresql)
 
 
+Bodypart sharing: How to serialise multiple duplicate-part injectors?
+
+
 We need an IMAP test suite
 
   Of course we will both remember what Arnt wrote in email, and our
@@ -249,14 +252,6 @@ SASL NTLM authentication
   description. Cyrus also implements it.
 
 
-Use an unbreakable hash function to hash bodyparts!
-
-  MD5 is broken, and we should be moving away from it.
-  SHA-1 is broken, just in time to save us from moving to it.
-
-  Since we know no unbreakable hash functions, we'll do nothing.
-
-
 Per-MTA installation and use
 
   We need http://www.oryx.com/mailstore/exim.html and friends, plus a
@@ -306,9 +301,6 @@ Web page appearance/voice
   points from it. It could also be that we'll improve the code itself.
 
 
-Write to the alistapart chap who wrote about @media after 0.91.
-
-
 Udoc nested classes
 
   Udoc should support a single level of nested classes. Several levels
@@ -332,11 +324,6 @@ HTML tidy fixes: suppress empty <p>, duplicate anchor names.
 
 
 archives.oryx.com
-
-
-test with more imap clients (corp/docs/misc/mua-list)
-
-  Why do we have one list in mua-list and another in imap.html?
 
 
 Miscellaneous cleanups:
