@@ -7,6 +7,7 @@
 #include "address.h"
 #include "message.h"
 #include "mailbox.h"
+#include "fieldcache.h"
 #include "addresscache.h"
 #include "transaction.h"
 
@@ -31,7 +32,7 @@ public:
         : step( 0 ), failed( false ),
           owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
           totalUids( 0 ), uids( 0 ), totalBodyparts( 0 ), bodypartIds( 0 ),
-          bodyparts( 0 ), addressLinks( 0 ),
+          bodyparts( 0 ), addressLinks( 0 ), fieldLinks( 0 ), otherFields( 0 ),
           fieldLookup( 0 ), addressLookup( 0 )
     {}
 
@@ -51,6 +52,7 @@ public:
     List< BodyPart > * bodyparts;
     List< AddressLink > * addressLinks;
     List< FieldLink > * fieldLinks;
+    List< String > * otherFields;
 
     CacheLookup * fieldLookup;
     CacheLookup * addressLookup;
@@ -179,7 +181,7 @@ void Injector::execute()
              d->bodypartIds->count() != d->totalBodyparts )
             return;
 
-        linkHeaders();
+        linkHeaderFields();
         linkBodyparts();
 
         d->transaction->execute();
@@ -294,40 +296,35 @@ void Injector::buildAddressLinks()
 
 void Injector::buildFieldLinks()
 {
-    // This function isn't correctly implemented yet. It needs to look
-    // at all the MIME headers in the message and its constituent body
-    // parts, build a list of unique fields (as buildAddressLinks does
-    // above), and pass it to FieldCache::lookup() after building the
-    // d->fieldLinks list.
-    //
-    // But first, it needs a way to iterate over all the fields in any
-    // message header.
-
     d->fieldLinks = new List< FieldLink >;
+    d->otherFields = new List< String >;
 
-    Header *h = d->message->header();
-    HeaderField::Type types[] = {
-        HeaderField::ReturnPath, HeaderField::From, HeaderField::To,
-        HeaderField::Cc, HeaderField::Bcc, HeaderField::ReplyTo,
-        HeaderField::Subject, HeaderField::Date, HeaderField::MessageId
-    };
-    int n = sizeof (types) / sizeof (types[0]);
+    buildLinksForHeader( d->message->header(), "" );
 
-    int i = 0;
-    while ( i < n ) {
-        HeaderField::Type t = types[ i++ ];
+    d->fieldLookup = FieldNameCache::lookup( d->otherFields, this );
+}
+
+
+/*! This private function makes links in d->fieldLinks for each of the
+    fields in \a hdr (from the bodypart numbered \a part). It is used
+    by buildFieldLinks().
+*/
+
+void Injector::buildLinksForHeader( Header *hdr, const String &part )
+{
+    List< HeaderField >::Iterator it( hdr->fields()->first() );
+    while ( it ) {
+        HeaderField *hf = it++;
 
         FieldLink *link = new FieldLink;
-        link->hf = h->field( t );
-        link->part = "";
+        link->hf = hf;
+        link->part = part;
 
-        if ( link->hf )
-            d->fieldLinks->append( link );
+        if ( hf->type() == HeaderField::Other )
+            d->otherFields->append( new String ( hf->name() ) );
+
+        d->fieldLinks->append( link );
     }
-
-    // d->fieldLookup = FieldCache::lookup( fields, this );
-    d->fieldLookup = new CacheLookup;
-    d->fieldLookup->setState( CacheLookup::Completed );
 }
 
 
@@ -394,7 +391,7 @@ void Injector::insertMessages()
     for each new message.
 */
 
-void Injector::linkHeaders()
+void Injector::linkHeaderFields()
 {
     Query *q;
 
@@ -408,13 +405,17 @@ void Injector::linkHeaders()
         while ( it ) {
             FieldLink *link = it++;
 
+            HeaderField::Type t = link->hf->type();
+            if ( t == HeaderField::Other )
+                t = FieldNameCache::translate( link->hf->name() );
+            
             q = new Query( "insert into header_fields "
                            "(mailbox,uid,part,field,value) values "
                            "($1,$2,$3,$4,$5)", 0 );
             q->bind( 1, m->id() );
             q->bind( 2, uid );
             q->bind( 3, link->part );
-            q->bind( 4, link->hf->type() );
+            q->bind( 4, t );
             q->bind( 5, link->hf->value() );
 
             d->transaction->enqueue( q );

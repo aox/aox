@@ -25,10 +25,11 @@ private:
 
     void selectUids();
     void buildAddressLinks();
+    void buildLinksForHeader( Header *, const String & );
     void buildFieldLinks();
     void insertBodyparts();
     void insertMessages();
-    void linkHeaders();
+    void linkHeaderFields();
     void linkBodyparts();
     void linkAddresses();
 };
