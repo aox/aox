@@ -11,7 +11,8 @@ public:
     static void shutdown();
     static void addConnection( Connection * );
     static void removeConnection( Connection * );
-    static void killAllExcept( Connection *, Connection * );
+    static void closeAllExcept( Connection *, Connection * );
+    static void flushAll();
 };
 
 

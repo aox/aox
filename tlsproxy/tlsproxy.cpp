@@ -182,7 +182,7 @@ void TlsProxy::parse()
         if ( c->d->key == tag )
             other = c;
     }
-    if ( !other ) {
+    if ( !other || other == this ) {
         log( "did not find partner" );
         setState( Closing );
         return;
@@ -199,6 +199,7 @@ void TlsProxy::parse()
 
 void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & protocol )
 {
+    Loop::flushAll();
     int p1 = fork();
     if ( p1 < 0 ) {
         // error
@@ -210,8 +211,8 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
         // it's the parent
         Loop::removeConnection( this );
         Loop::removeConnection( other );
-        delete other;
-        delete this;
+        close();
+        other->close();
         return;
     }
 
@@ -226,9 +227,8 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client, const String & 
     }
 
     // it's the child!
-    Loop::killAllExcept( this, other );
+    Loop::closeAllExcept( this, other );
     enqueue( "ok\r\n" );
-    LogClient::setup();
     log( "Starting TLS proxy for for " + protocol + " client " +
          client.string() + " (host " + Configuration::hostname() + ") (pid " +
          String::fromNumber( getpid() ) + ")" );

@@ -20,7 +20,7 @@
 */
 
 ByteForwarder::ByteForwarder( int s )
-    : Connection( s, Pipe )
+    : Connection( s, Pipe ), s( 0 )
 {
 }
 

@@ -70,8 +70,17 @@ void Loop::removeConnection( Connection *c )
     without flushing their buffers. Used for TlsProxy.
 */
 
-void Loop::killAllExcept( Connection * c1, Connection * c2 )
+void Loop::closeAllExcept( Connection * c1, Connection * c2 )
 {
     if ( ::loop )
-        ::loop->killAllExcept( c1, c2 );
+        ::loop->closeAllExcept( c1, c2 );
+}
+
+
+/*! Flushes the write buffer for all connections. */
+
+void Loop::flushAll()
+{
+    if ( ::loop )
+        ::loop->flushAll();
 }

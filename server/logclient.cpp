@@ -16,10 +16,12 @@ class LogClientHelper
     : public Connection
 {
 public:
-    LogClientHelper( int fd, Logger *client )
-        : Connection( fd, Connection::LoggingClient ), owner( client )
+    LogClientHelper( const Endpoint & e, Logger *client )
+        : Connection(), owner( client ), logServer( e )
     {
         Loop::addConnection( this );
+        setType( Connection::LoggingClient );
+        connect( logServer );
     }
 
     ~LogClientHelper()
@@ -27,6 +29,15 @@ public:
         Loop::removeConnection( this );
         delete owner;
         owner = 0;
+    }
+
+    void reconnect() {
+        if ( state() != Invalid && state() != Inactive )
+            return;
+
+        connect( logServer );
+        Loop::removeConnection( this );
+        Loop::addConnection( this );
     }
 
     // The log server isn't supposed to send us anything.
@@ -48,6 +59,7 @@ public:
 
 private:
     Logger *owner;
+    Endpoint logServer;
 };
 
 
@@ -71,6 +83,7 @@ LogClient::LogClient()
 
 void LogClient::send( const String &s )
 {
+    c->reconnect();
     c->enqueue( s );
     c->write();
 }
@@ -85,8 +98,8 @@ void LogClient::send( const String &s )
 
 void LogClient::setup()
 {
-    Configuration::Text logHost( "loghost", "127.0.0.1" );
-    Configuration::Scalar logPort( "logport", 2054 );
+    Configuration::Text logHost( "log-address", "127.0.0.1" );
+    Configuration::Scalar logPort( "log-port", 2054 );
     Endpoint e( logHost, logPort );
 
     if ( !e.valid() ) {
@@ -96,14 +109,5 @@ void LogClient::setup()
     }
 
     LogClient *client = new LogClient;
-    client->c = new LogClientHelper( Connection::socket( e.protocol() ),
-                                     client );
-    client->c->setBlocking( true );
-    if ( client->c->connect( e ) < 0 ) {
-        fprintf( stderr, "LogClient: Unable to connect to log server %s\n",
-                 e.string().cstr() );
-        perror( "LogClient: connect() returned" );
-        exit( -1 );
-    }
-    client->c->setBlocking( false );
+    client->c = new LogClientHelper( e, client );
 }

@@ -24,7 +24,7 @@ int main( int, char *[] )
 
     s.setup( Server::Secure );
 
-    Listener< LogServer >::create( "Log Server", "", 2054 );
+    Listener< LogServer >::create( "log", "", 2054 );
 
     s.execute();
 }

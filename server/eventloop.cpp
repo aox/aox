@@ -23,6 +23,7 @@
 #include <unistd.h>
 
 
+
 class LoopData {
 public:
     LoopData()
@@ -59,7 +60,8 @@ EventLoop::EventLoop()
 void EventLoop::addConnection( Connection *c )
 {
     Scope x( d->arena );
-    d->connections.insert( c );
+    if ( !d->connections.find( c ) )
+        d->connections.insert( c );
 }
 
 
@@ -68,7 +70,9 @@ void EventLoop::addConnection( Connection *c )
 void EventLoop::removeConnection( Connection *c )
 {
     Scope x( d->arena );
-    d->connections.take( d->connections.find( c ) );
+    SortedList<Connection>::Iterator it = d->connections.find( c );
+    if ( it )
+        d->connections.take( it );
 }
 
 
@@ -286,23 +290,32 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
 }
 
 
-/*! Kills all Connections brutally except \a c1 and \a c2. This helps
-    TlsProxy do its work.
+/*! Closes all Connections except \a c1 and \a c2. This helps TlsProxy
+    do its work.
 */
 
-void EventLoop::killAllExcept( Connection * c1, Connection * c2 )
+void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 {
     SortedList< Connection >::Iterator it = d->connections.first();
     while ( it ) {
         Connection * c = it;
         it++;
-        if ( c == c1 || c == c2 ) {
-            // we keep those two.
-        }
-        else {
+        if ( c != c1 && c != c2 ) {
             removeConnection( c );
-            delete c;
+            c->close();
         }
     }
-    
+}
+
+
+/*! Flushes the write buffer of all connections. */
+
+void EventLoop::flushAll()
+{
+    SortedList< Connection >::Iterator it = d->connections.first();
+    while ( it ) {
+        Connection * c = it;
+        it++;
+        c->write();
+    }
 }
