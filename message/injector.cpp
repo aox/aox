@@ -205,6 +205,7 @@ void Injector::execute()
     if ( d->step == 4 ) {
         if ( !d->transaction->done() )
             return;
+        d->failed = d->transaction->failed();
         d->owner->notify();
     }
 }
