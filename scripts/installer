@@ -124,6 +124,7 @@ fi
 # Write a stub configuration file.
 
 if [ $TELL = no ]; then
+    echo "Creating stub configuration $CONFIG"
     touch $CONFIG
     chmod 0600 $CONFIG
     exec > $CONFIG
