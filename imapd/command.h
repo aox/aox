@@ -5,7 +5,6 @@
 #include "string.h"
 #include "list.h"
 
-
 class IMAP;
 class Arena;
 class Log;
@@ -26,16 +25,15 @@ public:
     bool ok() const;
 
     enum State { Blocked, Executing, Finished };
-
     State state() const;
     void setState( State );
-
+    
     uint group() const;
     void setGroup( uint );
-
+    
     Arena * arena() const;
-
     Log * logger() const;
+    IMAP * imap() const;
 
     enum Response { Tagged, Untagged };
     void respond( const String &, Response = Untagged );
@@ -46,9 +44,12 @@ public:
     void finish();
     void emitResponses();
 
+    char nextChar();
+    void step( uint = 1 );
+    bool present( const String & );
+    void require( const String & );
     String digits( uint, uint );
     String letters( uint, uint );
-    void end();
     void nil();
     void space();
     uint number();
@@ -63,18 +64,14 @@ public:
     String literal();
     Set set( bool );
     String flag();
-    char nextChar();
-    void step( uint = 1 );
+    void end();
     const String following() const;
-    void require( const String & );
-    bool present( const String & );
-
-    IMAP * imap() const;
 
 private:
-    class CommandData * d;
+    class CommandData *d;
 
     friend class CommandTest;
 };
+
 
 #endif
