@@ -1687,7 +1687,7 @@ static int findHostInfo( STREAM *stream, char *hostName, int *hostPort,
 	return( CRYPT_OK );
 	}
 
-#elif defined( __UNIX__ )
+#elif defined( __UNIX__ ) && 0
 
 #define SRV_PRIORITY_OFFSET	( NS_RRFIXEDSZ + 0 )
 #define SRV_WEIGHT_OFFSET	( NS_RRFIXEDSZ + 2 )
