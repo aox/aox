@@ -11,4 +11,13 @@ public:
     void execute();
 };
 
+
+class Check
+    : public Command
+{
+public:
+    void execute();
+};
+
+
 #endif

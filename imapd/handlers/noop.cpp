@@ -1,3 +1,6 @@
+#include "noop.h"
+
+
 /*! \class Noop noop.h
     NOOP does nothing (RFC 3501, §6.1.2)
 
@@ -6,12 +9,24 @@
 */
 
 
-#include "noop.h"
-
-
 /*! \reimp */
 
 void Noop::execute()
 {
-    setState( Finished );
+    finish();
+}
+
+
+/*! \class Check noop.h
+    Performs a checkpoint of the selected mailbox (RFC 3501, §6.4.1)
+
+    This command needs to do nothing in our implementation.
+*/
+
+
+/*! \reimp */
+
+void Check::execute()
+{
+    finish();
 }
