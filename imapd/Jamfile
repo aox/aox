@@ -50,7 +50,8 @@ Build message : address.cpp parser.cpp date.cpp header.cpp mimefields.cpp
 Build logdmain : logd.cpp ;
 Build logd : logserver.cpp ;
 
-Build database : dbclient.cpp cache.cpp query.cpp addressquery.cpp ;
+Build database : dbclient.cpp cache.cpp query.cpp addressquery.cpp
+    injector.cpp ;
 
 Build server : connection.cpp listener.cpp loop.cpp endpoint.cpp log.cpp
     configuration.cpp table.cpp ;
