@@ -13,6 +13,7 @@
 #include "buffer.h"
 #include "list.h"
 #include "file.h"
+#include "sys.h"
 
 // cryptlib
 #include "cryptlib.h"
@@ -21,8 +22,6 @@
 #include <unistd.h>
 // errno
 #include <errno.h>
-// exit()
-#include <stdlib.h>
 
 
 static void setupKey();
@@ -58,15 +57,16 @@ static CRYPT_CONTEXT privateKey;
 
 static void setupKey()
 {
+    int status;
+    CRYPT_KEYSET keyset;
+
+    // XXX: Should we be using hardcoded values here?
+    String label( "Mailstore private key" );
+    String secret( "secret" );
+
     Configuration::Text keyFile( "tls-certificate", "" );
     if ( ((String)keyFile).isEmpty() ) {
-        int status;
-        CRYPT_KEYSET keyset;
-
         String file( "/tmp/mailstore.key" );
-        String label( "Mailstore private key" );
-        String secret( "secret" );
-
         status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
                                   file.cstr(), CRYPT_KEYOPT_NONE );
         if ( status == CRYPT_OK )
@@ -77,7 +77,14 @@ static void setupKey()
         return;
     }
 
-    log( "Don't know how to use an existing key.", Log::Disaster );
+    status = cryptCreateContext( &privateKey, CRYPT_UNUSED, CRYPT_ALGO_RSA );
+    handleError( status, "cryptCreateContext" );
+    status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
+                              ((String)keyFile).cstr(), CRYPT_KEYOPT_NONE );
+    handleError( status, "cryptKeysetOpen" );
+    status = cryptGetPrivateKey( keyset, &privateKey, CRYPT_KEYID_NAME,
+                                 label.cstr(), secret.cstr() );
+    handleError( status, "cryptGetPrivateKey" );
 }
 
 
