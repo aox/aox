@@ -266,3 +266,36 @@ Don't depend on md5sum
 
 
 We need a SIEVE interpreter.
+
+
+Search folders
+
+  This gets more tricky each time I think about it. In particular, if
+  the search encompasses dynamic message attributes, then assigning
+  UIDs reliably requires us to store the UIDs in the database.
+
+
+ANNOTATE support
+
+  Annotations are good. We want them. They're easy for us. By now the
+  draft should be stable, so we can implement whenever we want to and
+  have the time.
+
+
+ANNOTATEMORE
+
+  Ditto. Separate point so that we can do one without the other.
+
+
+Message arrival tag
+
+  Once annotate is done, we want a tag, ie. a magic annotation which
+  stays glued to the message wherever it goes, even after copy/move.
+
+  We also want a way to store the original RFC822 format somewhere
+  inside and/or outside the database, indexed by the arrival tag
+  identifier. It's good if the tag is split, so we can have "x-y"
+  where X is the CD/DVD number and Y is the file on the CD/DVD. Or
+  something like that.
+
+
