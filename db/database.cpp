@@ -90,23 +90,28 @@ void Database::submit( Query *q )
     queries->append( q );
     q->setState( Query::Submitted );
 
+    time_t now = time( 0 );
+    int interval = Configuration::scalar( Configuration::DbHandleInterval );
+
+    bool found = false;
     List< Database >::Iterator it( handles->first() );
     while ( it ) {
         if ( it->state() == Idle ) {
-            it->processQueue();
-            return;
+            if ( !found ) {
+                found = true;
+                it->processQueue();
+            }
+            else {
+                // if ( <it has been idle for interval> )
+                //     it->react( Connection::Shutdown );
+            }
         }
         ++it;
     }
 
-    // We didn't find an idle handle. Should we create a new one?
     uint max = Configuration::scalar( Configuration::DbMaxHandles );
-    int interval = Configuration::scalar( Configuration::DbHandleInterval );
-    if ( handles->count() < max &&
-         time(0) - lastCreated >= interval )
+    if ( !found && handles->count() < max && now - lastCreated >= interval )
         newHandle();
-
-    // XXX: We should also find and close handles unused in interval.
 }
 
 

@@ -347,7 +347,7 @@ String Query::description()
         List< Query::Value >::Iterator v( values()->first() );
         while ( v ) {
             i++;
-            
+
             String r;
             int n = v->length();
             if ( n == -1 )
