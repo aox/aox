@@ -161,8 +161,8 @@ Our commercial license offers more flexibility than the OSL and a full
 warranty. There are also extra services. Contact info@oryx.com for
 more details, or see http://www.oryx.com/mailstore/commercial.html.
 .SH DEFAULTS
-This compilation of Mailstore uses the following compile-time settings:
-BINDIR (where executables live) is 
+This Mailstore build uses the following compile-time settings: BINDIR
+(where executables live) is
 .IR $BINDIR .
 MANDIR (where manpages live) is 
 .IR $MANDIR .
