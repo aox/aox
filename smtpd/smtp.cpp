@@ -1,6 +1,7 @@
 #include "smtp.h"
 
 #include "log.h"
+#include "scope.h"
 #include "string.h"
 #include "address.h"
 #include "parser.h"
@@ -217,7 +218,7 @@ void SMTP::parse()
                 respond( 500, "Unknown command (" + cmd.upper() + ")" );
         }
 
-        if ( state() != Body && !d->negotiatingTLS )
+        if ( state() != Body && state() != Injecting && !d->negotiatingTLS )
             sendResponses();
     }
 }
@@ -373,7 +374,6 @@ void SMTP::body( String & line )
     line.truncate( i );
     if ( i == 1 && line[0] == '.' ) {
         inject();
-        d->state = MailFrom;
     }
     else if ( line[0] == '.' ) {
         d->body.append( line.mid( 1 ) );
@@ -609,9 +609,12 @@ void SMTP::inject()
         ++it;
     }
 
+    d->state = Injecting;
     d->helper = new SmtpDbClient( this );
+    d->helper->setArena( Scope::current()->arena() );
     d->injector = new Injector( m, mailboxes, d->helper );
     d->helper->injector = d->injector;
+    d->injector->execute();
 }
 
 
@@ -702,7 +705,6 @@ void LMTP::reportInjection()
             respond( 250, prefix + "injected into " +
                      (*it).m->name() );
         ++it;
-        if ( it != d->to.end() )
-            sendResponses();
+        sendResponses();
     }
 }
