@@ -11,7 +11,12 @@ public:
 
     bool react(Event e);
 
-    void parse();
+    bool parse();
+    void addCommand();
+
+    enum State { NotAuthenticated, Authenticated, Selected, Logout };
+    State state() const;
+    void setState( State );
 
 private:
     IMAPData *d;
