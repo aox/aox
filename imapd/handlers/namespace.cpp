@@ -1,5 +1,6 @@
 #include "namespace.h"
 
+#include "imap.h"
 
 /*! \class Namespace namespace.h
     Implements the NAMESPACE extension specified in RFC 2342.
@@ -10,6 +11,12 @@
 
 void Namespace::execute()
 {
-    respond( "NAMESPACE NIL NIL NIL" );
+    String personal, other, shared;
+
+    personal = "((\"\" \"/\") (\"/users/"+ imap()->login() +"/\" \"/\"))";
+    other    = "((\"/users/\"  \"/\"))";
+    shared   = "((\"/\" \"/\"))";
+
+    respond( "NAMESPACE " + personal + " " + other + " " + shared );
     finish();
 }
