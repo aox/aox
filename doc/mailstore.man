@@ -32,27 +32,35 @@ Installing Mailstore normally starts all the necessary services using
 the default configuration.
 .SS "2. Add a user"
 Run
-.BR mailbench (8)
-to create a username and password interactively.
+.IP
+ms add user
+.I name
+.I password
+.I address@domain
+.PP
+to create a username and password.
 .SS "3. Inject some test mail"
-.BR mailbench (8)
-can inject some test messages for you, or you can use
+You can use
 .BR deliver (8)
 to inject some mail you already have.
 .PP
 This command injects all the messages from a berkeley mbox file:
 .IP
 formail -s deliver yourname@domain < mbox
+.PP
 .SS "4. Check that you can read mail"
 The mail you just delivered is in your inbox, and you can read it with
-any IMAP or POP3 client. You can also use
-.BR mailbench (8)
-to verify that you have access to it.
+any IMAP or POP3 client.
 .SS "5. Configure your MTA"
 The normal way to deliver mail from your MTA into Mailstore is via LMTP.
 By default, Mailstore listens on 127.0.0.1 port 2026.
 .BR smtpd.conf (5)
 explains how to change that.
+.PP
+On www.oryx.com you can find instructions for how to configure some
+common MTAs to work with Mailstore. e.g. 
+http://www.oryx.com/mailstore/postfix.html for
+.BR postfix (1).
 .SH ARCHITECTURE
 .PP
 Mailstore consists of a number of frontend servers, each of which uses
