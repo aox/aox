@@ -20,6 +20,7 @@ public:
     virtual void notify();
     virtual void execute() = 0;
     virtual void log( const String &, Log::Severity = Log::Info );
+    virtual void commit( Log::Severity = Log::Info );
 
 private:
     Arena *a;

@@ -88,3 +88,12 @@ void EventHandler::log( const String &m, Log::Severity s )
     if ( l )
         l->log( m, s );
 }
+
+
+/*! Commits any messages logged with severity above \a s. */
+
+void EventHandler::commit( Log::Severity s )
+{
+    if ( l )
+        l->commit( s );
+}

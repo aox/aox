@@ -36,8 +36,7 @@ public:
     uint group() const;
     void setGroup( uint );
 
-    Log * logger() const;
-    IMAP * imap() const;
+    IMAP *imap() const;
 
     enum Response { Tagged, Untagged };
     void respond( const String &, Response = Untagged );
