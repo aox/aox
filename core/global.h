@@ -25,5 +25,6 @@ enum Exception {
 };
 
 void *alloc( uint );
+void die( Exception );
 
 #endif
