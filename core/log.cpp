@@ -10,7 +10,7 @@
 #include <sys/time.h>
 // localtime
 #include <time.h>
-// sprintf
+// sprintf, fprintf
 #include <stdio.h>
 
 
@@ -80,6 +80,9 @@ void Log::log( const String &m, Severity s )
 
     if ( s == Disaster )
         disasters = true;
+
+    if ( disasters )
+        fprintf( stderr, "Mailstore: %s\n", m.simplified().cstr() );
 
     l->send( id + " " + facility( fc ) + "/" + severity( s ) + " " +
              time() + " " + m.stripCRLF() + "\r\n" );

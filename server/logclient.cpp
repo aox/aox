@@ -90,19 +90,6 @@ void LogClient::send( const String &s )
     c->reconnect();
     c->enqueue( s );
     c->write();
-
-    // slightly evil code here... do a quick "parse" to see whether
-    // we're logging a disaster, and if we are, copy the error message
-    // to stderr.
-    uint i = s.find( ' ' );
-    if ( i < 0 || s.mid( i+1, 7 ) == "commit " )
-        return;
-    i = s.find( '/', i );
-    if ( i < 0 || s.mid( i+1, 8 ) != "disaster" )
-        return;
-    fprintf( stderr,
-             "Mailstore: Disaster: %s\n",
-             s.mid( i+33 ).simplified().cstr() );
 }
 
 
