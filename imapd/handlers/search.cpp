@@ -19,8 +19,8 @@ public:
     SearchD() : uid( false ), query( 0 ), conditions( 0 ) {}
 
     bool uid;
-    Query * query;
-    List<Query::Condition> * conditions;
+    NotQuery * query;
+    List<NotQuery::Condition> * conditions;
     String charset;
 };
 
@@ -54,7 +54,7 @@ void Search::parse()
     end();
 
     prepare();
-    d->query = new Query( d->conditions->last() );
+    d->query = new NotQuery( d->conditions->last() );
     respond( "OK original: " + d->query->debugString() );
     d->query->simplify();
     respond( "OK simplified: " + d->query->debugString() );
@@ -72,7 +72,7 @@ void Search::parseKey( bool alsoCharset )
     char c = nextChar();
     if ( c == '(' ) {
         // it's an "and" list.
-        push( Query::And );
+        push( NotQuery::And );
         do {
             step();
             parseKey();
@@ -91,123 +91,123 @@ void Search::parseKey( bool alsoCharset )
         // first comes a keyword. they all are letters only, so:
         String keyword = letters( 2, 15 ).lower();
         if ( keyword == "all" ) {
-            add( Query::NoField, Query::All );
+            add( NotQuery::NoField, NotQuery::All );
         }
         else if ( keyword == "answered" ) {
-            add( Query::Flags, Query::Contains, "answered" );
+            add( NotQuery::Flags, NotQuery::Contains, "answered" );
         }
         else if ( keyword == "deleted" ) {
-            add( Query::Flags, Query::Contains, "deleted" );
+            add( NotQuery::Flags, NotQuery::Contains, "deleted" );
         }
         else if ( keyword == "flagged" ) {
-            add( Query::Flags, Query::Contains, "flagged" );
+            add( NotQuery::Flags, NotQuery::Contains, "flagged" );
         }
         else if ( keyword == "new" ) {
-            add( Query::Flags, Query::Contains, "recent" );
-            add( Query::Flags, Query::Contains, "seen" );
+            add( NotQuery::Flags, NotQuery::Contains, "recent" );
+            add( NotQuery::Flags, NotQuery::Contains, "seen" );
         }
         else if ( keyword == "old" ) {
-            push( Query::Not );
-            add( Query::Flags, Query::Contains, "recent" );
+            push( NotQuery::Not );
+            add( NotQuery::Flags, NotQuery::Contains, "recent" );
             pop();
         }
         else if ( keyword == "recent" ) {
-            add( Query::Flags, Query::Contains, "recent" );
+            add( NotQuery::Flags, NotQuery::Contains, "recent" );
         }
         else if ( keyword == "seen" ) {
-            add( Query::Flags, Query::Contains, "seen" );
+            add( NotQuery::Flags, NotQuery::Contains, "seen" );
         }
         else if ( keyword == "unanswered" ) {
-            push( Query::Not );
-            add( Query::Flags, Query::Contains, "answered" );
+            push( NotQuery::Not );
+            add( NotQuery::Flags, NotQuery::Contains, "answered" );
             pop();
         }
         else if ( keyword == "undeleted" ) {
-            push( Query::Not );
-            add( Query::Flags, Query::Contains, "deleted" );
+            push( NotQuery::Not );
+            add( NotQuery::Flags, NotQuery::Contains, "deleted" );
             pop();
         }
         else if ( keyword == "unflagged" ) {
-            push( Query::Not );
-            add( Query::Flags, Query::Contains, "flagged" );
+            push( NotQuery::Not );
+            add( NotQuery::Flags, NotQuery::Contains, "flagged" );
             pop();
         }
         else if ( keyword == "unseen" ) {
-            push( Query::Not );
-            add( Query::Flags, Query::Contains, "seen" );
+            push( NotQuery::Not );
+            add( NotQuery::Flags, NotQuery::Contains, "seen" );
             pop();
         }
         else if ( keyword == "draft" ) {
-            add( Query::Flags, Query::Contains, "draft" );
+            add( NotQuery::Flags, NotQuery::Contains, "draft" );
         }
         else if ( keyword == "undraft" ) {
-            push( Query::Not );
-            add( Query::Flags, Query::Contains, "draft" );
+            push( NotQuery::Not );
+            add( NotQuery::Flags, NotQuery::Contains, "draft" );
             pop();
         }
         else if ( keyword == "on" ) {
             space();
-            add( Query::InternalDate, Query::OnDate, date() );
+            add( NotQuery::InternalDate, NotQuery::OnDate, date() );
         }
         else if ( keyword == "before" ) {
-            add( Query::InternalDate, Query::BeforeDate, date() );
+            add( NotQuery::InternalDate, NotQuery::BeforeDate, date() );
         }
         else if ( keyword == "since" ) {
             space();
-            add( Query::InternalDate, Query::SinceDate, date() );
+            add( NotQuery::InternalDate, NotQuery::SinceDate, date() );
         }
         else if ( keyword == "sentbefore" ) {
             space();
-            add( Query::Sent, Query::BeforeDate, date() );
+            add( NotQuery::Sent, NotQuery::BeforeDate, date() );
         }
         else if ( keyword == "senton" ) {
             space();
-            add( Query::Sent, Query::OnDate, date() );
+            add( NotQuery::Sent, NotQuery::OnDate, date() );
         }
         else if ( keyword == "sentsince" ) {
             space();
-            add( Query::Sent, Query::SinceDate, date() );
+            add( NotQuery::Sent, NotQuery::SinceDate, date() );
         }
         else if ( keyword == "from" ) {
             space();
-            add( Query::Header, Query::Contains, "from", astring() );
+            add( NotQuery::Header, NotQuery::Contains, "from", astring() );
         }
         else if ( keyword == "to" ) {
             space();
-            add( Query::Header, Query::Contains, "to", astring() );
+            add( NotQuery::Header, NotQuery::Contains, "to", astring() );
         }
         else if ( keyword == "cc" ) {
             space();
-            add( Query::Header, Query::Contains, "cc", astring() );
+            add( NotQuery::Header, NotQuery::Contains, "cc", astring() );
         }
         else if ( keyword == "bcc" ) {
             space();
-            add( Query::Header, Query::Contains, "bcc", astring() );
+            add( NotQuery::Header, NotQuery::Contains, "bcc", astring() );
         }
         else if ( keyword == "subject" ) {
             space();
-            add( Query::Header, Query::Contains, "subject", astring() );
+            add( NotQuery::Header, NotQuery::Contains, "subject", astring() );
         }
         else if ( keyword == "body" ) {
             space();
-            add( Query::Body, Query::Contains, astring() );
+            add( NotQuery::Body, NotQuery::Contains, astring() );
         }
         else if ( keyword == "text" ) {
             space();
             String a = astring();
-            push( Query::Or );
-            add( Query::Body, Query::Contains, a );
-            add( Query::Header, Query::Contains, 0, a ); // field name is null
+            push( NotQuery::Or );
+            add( NotQuery::Body, NotQuery::Contains, a );
+            add( NotQuery::Header, NotQuery::Contains, 0, a ); // field name is null
             pop();
         }
         else if ( keyword == "keyword" ) {
             space();
-            add( Query::Flags, Query::Contains, atom() );
+            add( NotQuery::Flags, NotQuery::Contains, atom() );
         }
         else if ( keyword == "unkeyword" ) {
             space();
-            push( Query::Not );
-            add( Query::Flags, Query::Contains, atom() );
+            push( NotQuery::Not );
+            add( NotQuery::Flags, NotQuery::Contains, atom() );
             pop();
         }
         else if ( keyword == "header" ) {
@@ -215,7 +215,7 @@ void Search::parseKey( bool alsoCharset )
             String s1 = astring();
             space();
             String s2 = astring();
-            add( Query::Header, Query::Contains, s1, s2 );
+            add( NotQuery::Header, NotQuery::Contains, s1, s2 );
         }
         else if ( keyword == "uid" ) {
             space();
@@ -223,7 +223,7 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "or" ) {
             space();
-            push( Query::Or );
+            push( NotQuery::Or );
             parseKey();
             space();
             parseKey();
@@ -231,17 +231,17 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "not" ) {
             space();
-            push( Query::Not );
+            push( NotQuery::Not );
             parseKey();
             pop();
         }
         else if ( keyword == "larger" ) {
             space();
-            add( Query::Rfc822Size, Query::Larger, number() );
+            add( NotQuery::Rfc822Size, NotQuery::Larger, number() );
         }
         else if ( keyword == "smaller" ) {
             space();
-            add( Query::Rfc822Size, Query::Smaller, number() );
+            add( NotQuery::Rfc822Size, NotQuery::Smaller, number() );
         }
         else if ( alsoCharset && keyword == "charset" ) {
             space();
@@ -323,11 +323,11 @@ String Search::date()
     or Not.
 */
 
-Query::Condition * Search::add( Query::Field f, Query::Action a,
+NotQuery::Condition * Search::add( NotQuery::Field f, NotQuery::Action a,
                                 const String & a1, const String & a2 )
 {
     prepare();
-    Query::Condition * c = new Query::Condition;
+    NotQuery::Condition * c = new NotQuery::Condition;
     c->f = f;
     c->a = a;
     c->a1 = a1;
@@ -344,10 +344,10 @@ Query::Condition * Search::add( Query::Field f, Query::Action a,
     or Not.
 */
 
-Query::Condition * Search::add( Query::Field f, Query::Action a, uint n )
+NotQuery::Condition * Search::add( NotQuery::Field f, NotQuery::Action a, uint n )
 {
     prepare();
-    Query::Condition * c = new Query::Condition;
+    NotQuery::Condition * c = new NotQuery::Condition;
     c->f = f;
     c->a = a;
     c->n = n;
@@ -361,12 +361,12 @@ Query::Condition * Search::add( Query::Field f, Query::Action a, uint n )
 
 */
 
-Query::Condition * Search::add( const Set & set )
+NotQuery::Condition * Search::add( const Set & set )
 {
     prepare();
-    Query::Condition * c = new Query::Condition;
-    c->f = Query::Uid;
-    c->a = Query::Contains;
+    NotQuery::Condition * c = new NotQuery::Condition;
+    c->f = NotQuery::Uid;
+    c->a = NotQuery::Contains;
     c->s = set;
     d->conditions->first()->l->append( c );
     return c;
@@ -379,12 +379,12 @@ Query::Condition * Search::add( const Set & set )
     \a a must be And, Or or Not. This isn't checked.
 */
 
-Query::Condition * Search::push( Query::Action a )
+NotQuery::Condition * Search::push( NotQuery::Action a )
 {
     prepare();
-    Query::Condition * c = new Query::Condition;
+    NotQuery::Condition * c = new NotQuery::Condition;
     c->a = a;
-    c->l = new List<Query::Condition>;
+    c->l = new List<NotQuery::Condition>;
     if ( d->conditions->first() )
         d->conditions->first()->l->append( c );
     d->conditions->prepend( c );
@@ -407,17 +407,17 @@ void Search::pop()
     should mostly be a noop, but in cases of syntax errors, it is
     perhaps possible that we might segfault without this function. Any
     inefficiency caused by this function is repaired by
-    Query::simplify().
+    NotQuery::simplify().
 */
 
 void Search::prepare()
 {
     if ( !d->conditions )
-        d->conditions = new List<Query::Condition>;
+        d->conditions = new List<NotQuery::Condition>;
     if ( d->conditions->isEmpty() ) {
-        Query::Condition * c = new Query::Condition;
-        c->a = Query::And;
-        c->l = new List<Query::Condition>;
+        NotQuery::Condition * c = new NotQuery::Condition;
+        c->a = NotQuery::And;
+        c->l = new List<NotQuery::Condition>;
         d->conditions->prepend( c );
     }
 }
