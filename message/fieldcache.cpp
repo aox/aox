@@ -42,7 +42,9 @@ void FieldNameCache::setup()
         new PreparedStatement( "select id from field_names where name=$1" );
 
     fieldInsert =
-        new PreparedStatement( "insert into field_names (name) values ($1)" );
+        new PreparedStatement( "insert into field_names (name) "
+                               "select $1 where not exists "
+                               "(select id from field_names where name=$1)" );
 
     Allocator::addRoot( idCache );
     Allocator::addRoot( nameCache );
@@ -55,7 +57,7 @@ class FieldLookup
     : public EventHandler
 {
 protected:
-    Query *q;
+    Query *i, *q;
     String field;
     CacheLookup *status;
     EventHandler *owner;
@@ -69,6 +71,10 @@ public:
                        EventHandler *ev )
         : field( f ), status( st ), owner( ev ), queries( l )
     {
+        i = new Query( *fieldInsert, this );
+        i->bind( 1, field );
+        l->append( i );
+
         q = new Query( *fieldLookup, this );
         q->bind( 1, field );
         l->append( q );
@@ -78,45 +84,18 @@ public:
 };
 
 
-class FieldInsert
-    : public FieldLookup
-{
-public:
-    FieldInsert( const String &f, List< Query > *l, CacheLookup *st,
-                       EventHandler *ev )
-    {
-        field = f;
-        status = st;
-        owner = ev;
-        queries = l;
-
-        Query *i = new Query( *fieldInsert, this );
-        i->bind( 1, field );
-
-        q = new Query( *fieldLookup, this );
-        q->bind( 1, field );
-        l->append( q );
-
-        Database *db = Database::handle();
-        db->enqueue( i );
-        db->enqueue( q );
-        db->execute();
-    }
-};
-
-
 void FieldLookup::execute() {
-    if ( !q->done() )
+    if ( !i->done() || !q->done() )
         return;
 
     Row *r = q->nextRow();
+    delete queries->take( queries->find( i ) );
     delete queries->take( queries->find( q ) );
 
     if ( !r ) {
-        // It may be better to collect INSERTs and execute them together
-        // on one database handle after processing the SELECTs. We don't
-        // bother yet.
-        (void)new FieldInsert( field, queries, status, owner );
+        // XXX: What do we do now? Returning will make smtpd hang.
+        log( "Couldn't insert field_names entry for " + field,
+             Log::Disaster );
         return;
     }
 
