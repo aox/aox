@@ -18,7 +18,9 @@ public:
 
     String dotLetters( uint, uint );
 
-    String query() const;
+    String coreQuery() const;
+    String headerQuery() const;
+    String bodyQuery() const;
 
 private:
     bool uid;

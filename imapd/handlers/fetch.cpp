@@ -278,16 +278,22 @@ void Fetch::parseBody()
         }
     }
 
+    d->needHeader = true; // need that for the boundary, if nothing else
+    d->needBody = true;
+
     if ( sectionValid ) {
         String tmp = dotLetters( 0, 17 ).lower();
-        s->id.append( tmp );
-        if ( tmp == "text" || tmp == "mime" || tmp == "header" ) {
-            if ( tmp == s->id )
-                d->needHeader = true;
-            else
-                d->needBody = true;
+        if ( tmp == "text" ) {
+            if ( s->id.isEmpty() )
+                d->needHeader = false;
+        }
+        else if ( tmp == "mime" || tmp == "header" ) {
+            if ( s->id.isEmpty() )
+                d->needBody = false;
         }
         else if ( tmp == "header.fields" || tmp == "header.fields.not" ) {
+            if ( s->id.isEmpty() )
+                d->needBody = false;
             space();
             require( "(" );
             s->fields.append( new String( astring().headerCased() ) );
@@ -297,13 +303,14 @@ void Fetch::parseBody()
             }
             require( ")" );
         }
-        else if ( s->id.isEmpty() ) {
+        else if ( tmp.isEmpty() && s->id.isEmpty() ) {
             // it's okay
         }
         else {
             error( Bad, "expected text, header, header.fields etc, "
                    "not " + tmp + following() );
         }
+        s->id.append( tmp );
     }
 
     if ( nextChar() == '<' ) {
@@ -321,24 +328,43 @@ void Fetch::parseBody()
 }
 
 
+/*! Returns a query string to fetch the necessary header fields, or an
+    empty string if no neader fields are needed for this Fetch. */
 
-/*! Returns an SQL query string to fetch
+String Fetch::headerQuery() const
+{
+    String q;
+    if ( d->needHeader )
+        q = "select (*) from headerfields where " + d->set.where();
+    return q;
+}
 
+
+/*! Returns a query stirng to fetch the body, or an empty string if
+    this Fetch does not need the body.
 */
 
-String Fetch::query() const
+String Fetch::bodyQuery() const
+{
+    String q;
+    if ( d->needBody )
+        q = "select (*) from bodies where " + d->set.where();
+    return q;
+}
+
+
+
+/*! Returns an SQL query string to fetch the basic message attributes,
+    or an empty string if they aren't necessary for this Fetch.
+*/
+
+String Fetch::coreQuery() const
 {
     if ( !d->uid &&
          !d->flags &&
-         !d->envelope &&
-         !d->body &&
-         !d->bodystructure &&
          !d->internaldate &&
-         !d->rfc822size &&
-         !d->needHeader &&
-         !d->needBody )
+         !d->rfc822size )
         return "";
-
 
     StringList bools;
     if ( d->flags )
@@ -352,63 +378,114 @@ String Fetch::query() const
 
     String q = "select (" + bools.join( "," ) + ") from messages where " +
                d->set.where();
+
     return q;
 }
 
 
 static struct {
     const char * args;
-    const char * query;
+    const char * query1;
+    const char * query2;
+    const char * query3;
 } fetches[] = {
-    { "1,2,3 flags",
-      "select (flags,uid) from messages where uid<4" },
-    { "2,3 flags",
-      "select (flags,uid) from messages where uid>=2 and uid<4" },
-    { "2,3 (flags)",
-      "select (flags,uid) from messages where uid>=2 and uid<4" },
-    { "2,3 (flags uid)",
-      "select (flags,uid) from messages where uid>=2 and uid<4" },
-    { "1 uid",
-      "select (uid) from messages where uid=1" },
-    { "1 all",
-      "select (flags,internaldate,rfc822size,uid) from messages where uid=1" },
-    { "1 fast",
-      "select (flags,internaldate,rfc822size,uid) from messages where uid=1" },
-    { "1 full",
-      "select (flags,internaldate,rfc822size,uid) from messages where uid=1" },
-    { "1 (uid rfc822)",
-      "select (uid) from messages where uid=1" },
-    { "1 (uid rfc822.size)",
-      "select (rfc822size,uid) from messages where uid=1" },
-    { "1 (uid rfc822.text)",
-      "select (uid) from messages where uid=1" },
-    { "1 (uid rfc822.header)",
-      "select (uid) from messages where uid=1" },
-    { "1 (uid body.peek[])",
-      "select (uid) from messages where uid=1" },
-    { "1 (uid body.peek[1])",
-      "select (uid) from messages where uid=1" },
-    { "1 body.peek[1]",
-      "select (uid) from messages where uid=1" },
-    { "1 body.peek[mime]",
-      "select (uid) from messages where uid=1" },
-    { "1 body.peek[1.mime]",
-      "select (uid) from messages where uid=1" },
-    { "1 body.peek[1.2.mime]",
-      "select (uid) from messages where uid=1" },
-    { "1 body.peek[header]",
-      "select (uid) from messages where uid=1" },
-    { "1 body.peek[text]",
-      "select (uid) from messages where uid=1" },
-    { "1 body.peek[1.header]",
-      "select (uid) from messages where uid=1" },
-    { "1 body.peek[1.text]",
-      "select (uid) from messages where uid=1" },
-    { "1 body.peek[1.123456789.header]",
-      "select (uid) from messages where uid=1" },
-    { "1 body.peek[1.23456789.text]",
-      "select (uid) from messages where uid=1" },
-    { 0, 0 }
+    { "1,2,3 flags", // 0
+      "select (flags,uid) from messages where uid<4",
+      "",
+      "" },
+    { "2,3 flags", // 1
+      "select (flags,uid) from messages where uid>=2 and uid<4",
+      "",
+      "" },
+    { "2,3 (flags)", // 2
+      "select (flags,uid) from messages where uid>=2 and uid<4",
+      "",
+      "" },
+    { "2,3 (flags uid)", // 3
+      "select (flags,uid) from messages where uid>=2 and uid<4",
+      "",
+      "" },
+    { "1 uid", // 4
+      "select (uid) from messages where uid=1",
+      "",
+      "" },
+    { "1 all", // 5
+      "select (flags,internaldate,rfc822size,uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "" },
+    { "1 fast", // 6
+      "select (flags,internaldate,rfc822size,uid) from messages where uid=1",
+      "",
+      "" },
+    { "1 full", // 7
+      "select (flags,internaldate,rfc822size,uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { "1 (uid rfc822)", // 8
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { "1 (uid rfc822.size)", // 9
+      "select (rfc822size,uid) from messages where uid=1",
+      "",
+      "" },
+    { "1 (uid rfc822.text)", // 10
+      "select (uid) from messages where uid=1",
+      "",
+      "select (*) from bodies where uid=1" },
+    { "1 (uid rfc822.header)", // 11
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "" },
+    { "1 (uid body.peek[])", // 12
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { "1 (uid body.peek[1])", // 13
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { "1 body.peek[1]", // 14
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { "1 body.peek[mime]", // 15
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "" },
+    { "1 body.peek[1.mime]", // 16
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { "1 body.peek[1.2.mime]", // 17
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { "1 body.peek[header]", // 18
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "" },
+    { "1 body.peek[text]", // 19
+      "select (uid) from messages where uid=1",
+      "",
+      "select (*) from bodies where uid=1" },
+    { "1 body.peek[1.header]", // 20
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { "1 body.peek[1.text]", // 21
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { "1 body.peek[1.123456789.header]", // 22
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { "1 body.peek[1.23456789.text]", // 23
+      "select (uid) from messages where uid=1",
+      "select (*) from headerfields where uid=1",
+      "select (*) from bodies where uid=1" },
+    { 0, 0, 0, 0 }
 };
 
 
@@ -432,7 +509,11 @@ public:
             if ( f )
                 f->parse();
             verify( "Fetch parsing broke",
-                    !f, !f->ok(), f->query() != fetches[i].query );
+                    !f,
+                    !f->ok(),
+                    f->coreQuery() != fetches[i].query1,
+                    f->headerQuery() != fetches[i].query2,
+                    f->bodyQuery() != fetches[i].query3 );
             i++;
         }
     }
