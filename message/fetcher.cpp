@@ -16,7 +16,7 @@ public:
     FetcherData()
         : mailbox( 0 ), query( 0 ),
           smallest( 0 ), largest( 0 ),
-          uid( 0 ), message( 0 )
+          uid( 0 ), notified( 0 ), message( 0 )
     {}
     struct Handler {
         Handler(): o( 0 ) {}
@@ -30,6 +30,7 @@ public:
     uint smallest;
     uint largest;
     uint uid;
+    uint notified;
     Message * message;
     MessageSet results;
 };
@@ -100,24 +101,15 @@ void Fetcher::execute()
     if ( d->query ) {
         Row * r;
         while ( (r=d->query->nextRow()) != 0 ) {
-            uint uid = r->getInt( "uid" );
-            if ( uid != d->uid ) {
-                if ( d->uid && d->message ) {
-                    setDone( d->message );
-                    d->results.add( d->uid );
-                }
-                d->uid = uid;
-                d->message = d->mailbox->message( d->uid );
-            }
+            d->uid = r->getInt( "uid" );
+            setDone();
+            d->results.add( d->uid );
             decode( d->message, r );
         }
         if ( d->query->done() ) {
             d->query = 0;
-            if ( d->message ) {
-                setDone( d->message );
-                d->results.add( d->uid );
-                d->message = 0;
-            }
+            d->uid = d->largest + 1;
+            setDone();
         }
     }
 
@@ -125,6 +117,8 @@ void Fetcher::execute()
         return;
 
     if ( !d->results.isEmpty() ) {
+        // if we've fetched something, notify the event handlers that
+        // wait for that.
         List<FetcherData::Handler>::Iterator it( d->handlers.first() );
         while ( it ) {
             List<FetcherData::Handler>::Iterator h( it );
@@ -142,6 +136,23 @@ void Fetcher::execute()
     if ( d->query )
         return;
 
+    if ( d->smallest > 0 && d->largest >= d->smallest ) {
+        // if the query is done and some event handlers are still
+        // waiting for some data, forget that they asked for that
+        // data, and notify them so they understand that it isn't
+        // coming.
+        List<FetcherData::Handler>::Iterator it( d->handlers.first() );
+        MessageSet s;
+        s.add( d->smallest, d->largest );
+        while ( it ) {
+            List<FetcherData::Handler>::Iterator h( it );
+            ++it;
+            if ( !h->s.isEmpty() )
+                h->o->execute();
+            h->s.remove( s );
+        }
+    }
+
     MessageSet merged;
     List<FetcherData::Handler>::Iterator it( d->handlers.first() );
     while ( it ) {
@@ -156,6 +167,7 @@ void Fetcher::execute()
     // magic and take the lowest-numbered message and a few more.
     // later, we'll want to be smarter.
     d->smallest = merged.smallest();
+    d->notified = d->smallest - 1;
     uint i = 1;
     while ( i <= merged.count() &&
             merged.value( i ) - d->smallest < i + 4 )
@@ -186,7 +198,7 @@ void Fetcher::insert( const MessageSet & messages, EventHandler * handler )
 
 
 /*! \fn void Fetcher::decode( Message * m, Row * r )
-  
+
     This pure virtual function is responsible for decoding \a r and
     updating \a m with the results.
 */
@@ -270,6 +282,21 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
         else {
             bp->setData( r->getString( "data" ) );
         }
+    }
+}
+
+
+/*! Notifies all messages up to and including the current that they've
+    been completed.
+*/
+
+void Fetcher::setDone()
+{
+    while ( d->notified < d->uid ) {
+        d->notified++;
+        d->message = d->mailbox->message( d->notified );
+        if ( d->message )
+            setDone( d->message );
     }
 }
 
