@@ -236,7 +236,7 @@ public:
     class Column {
     public:
         String name;
-        uint table, column, type, size, mod, format;
+        int table, column, type, size, mod, format;
     };
 
     List< Column > columns;
@@ -261,15 +261,11 @@ class PgDataRow
     : public PgServerMessage
 {
 public:
-    PgDataRow( Buffer * );
+    PgDataRow( Buffer *, const PgRowDescription * );
+    Row *row() const;
 
-    class Value {
-    public:
-        int length;
-        String value;
-    };
-
-    List< Value > columns;
+private:
+    Row *r;
 };
 
 

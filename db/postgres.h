@@ -31,7 +31,6 @@ private:
     void error( const String & );
 
     bool haveMessage();
-    Row *composeRow( const class PgDataRow & );
     void processQueue( bool = false );
 };
 

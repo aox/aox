@@ -314,8 +314,6 @@ void Postgres::process( char type )
 
     case 'D':
         {
-            PgDataRow msg( readBuffer() );
-
             if ( !q || !d->description ) {
                 error( "Unexpected data row" );
                 return;
@@ -324,7 +322,8 @@ void Postgres::process( char type )
             // We could suppress this notification if we could somehow
             // infer that we will receive a completion message soon.
 
-            q->addRow( composeRow( msg ) );
+            PgDataRow msg( readBuffer(), d->description );
+            q->addRow( msg.row() );
             q->notify();
         }
         break;
@@ -553,56 +552,8 @@ void Postgres::processQueue( bool userContext )
 }
 
 
-/*! Returns a Row object constructed from the DataRow message \a r. */
-
-Row *Postgres::composeRow( const PgDataRow &r )
-{
-    uint n = d->description->columns.count();
-    List< PgRowDescription::Column >::Iterator c;
-    List< PgDataRow::Value >::Iterator v;
-
-    Row::Column *columns = new Row::Column[n];
-
-    int i = 0;
-    c = d->description->columns.first();
-    v = r.columns.first();
-    while ( c ) {
-        Row::Column *cv = &columns[i];
-
-        Database::Type t;
-        switch ( c->type ) {
-        case 16:    // BOOL
-            t = Database::Boolean;
-            break;
-        case 21:    // INT2
-        case 23:    // INT4
-            t = Database::Integer;
-            break;
-        case 17:    // BYTEA
-        case 18:    // CHAR
-        case 1043:  // VARCHAR
-            t = Database::Bytes;
-            break;
-        default:
-            t = Database::Unknown;
-            break;
-        }
-
-        cv->name = c->name;
-        cv->type = t;
-        cv->length = v->length;
-        cv->value = v->value;
-
-        i++;
-        c++;
-        v++;
-    }
-
-    return new Row( n, columns );
-}
-
-
 static int currentRevision = 3;
+
 
 class UpdateSchema : public EventHandler {
 private:
