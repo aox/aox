@@ -78,7 +78,7 @@ Postgres::Postgres()
     connect( Database::server() );
     Loop::addConnection( this );
     Database::addHandle( this );
-    setTimeoutAfter( 10 );
+    setTimeoutAfter( 60 );
 }
 
 
