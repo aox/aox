@@ -1,0 +1,33 @@
+body {
+    max-width: 37.2em;
+}
+
+p {
+    font-size: medium;
+    margin-left: 1em;
+}
+
+p.classh {
+    font-size: x-large;
+    line-height: x-large;
+    margin-left: 0;
+}
+
+p.functionh {
+    font-size: large;
+    margin-left: 6em;
+    text-indent: -6em;
+}
+
+a {
+    text-decoration: none;
+    color: #000000;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.nobr {
+    white-space: nowrap;
+}
