@@ -1,0 +1,30 @@
+#include "arena.h"
+#include "scope.h"
+#include "configuration.h"
+#include "connection.h"
+#include "listener.h"
+#include "loop.h"
+#include "log.h"
+
+
+class TLSProxy
+    : public Connection
+{
+public:
+    TLSProxy( int fd )
+        : Connection( fd )
+    {}
+
+    void react( Event ) {
+    }
+};
+
+
+int main( int, char *[] )
+{
+    Arena firstArena;
+    Scope global( &firstArena );
+
+    Listener< TLSProxy >::create( "TLS proxy", "127.0.0.1", 2443 );
+    Loop::start();
+}

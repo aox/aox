@@ -1,0 +1,4 @@
+SubDir TOP imapd sasl ;
+
+Build imap : mechanism.cpp plain.cpp anonymous.cpp cram-md5.cpp
+             digest-md5.cpp ;

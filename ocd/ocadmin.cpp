@@ -1,0 +1,72 @@
+#include "ocadmin.h"
+
+#include "string.h"
+#include "buffer.h"
+#include "ocserver.h"
+
+
+class OCAData {
+public:
+};
+
+
+/*! \class OCAdmin ocadmin.h
+    Oryx Cluster Administration server.
+
+    This server reads administrative commands, and uses OCServer to send
+    them to each participating server in the cluster.
+*/
+
+
+/*! \reimp */
+
+OCAdmin::OCAdmin( int s )
+    : Connection( s ), d( new OCAData )
+{
+}
+
+
+/*! \reimp */
+
+void OCAdmin::react( Event e )
+{
+    switch ( e ) {
+    case Read:
+        parse();
+        break;
+
+    default:
+        break;
+    }
+}
+
+
+/*! Parses administrative commands. */
+
+void OCAdmin::parse()
+{
+    String *s = readBuffer()->removeLine();
+
+    if ( !s )
+        return;
+
+    String r = s->lower();
+
+    if ( r == "ls" ) {
+        List< OCServer > *servers = OCServer::connections();
+        List< OCServer >::Iterator it = servers->first();
+        while ( it ) {
+            enqueue( it->peer() + "\r\n" );
+            it++;
+        }
+    }
+    else if ( r == "shutdown" ) {
+        OCServer::distribute( "shutdown\r\n" );
+    }
+    else if ( r == "quit" || r == "exit" ) {
+        setState( Closing );
+    }
+    else {
+        enqueue( "?\r\n" );
+    }
+}
