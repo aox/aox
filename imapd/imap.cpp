@@ -253,8 +253,6 @@ void IMAP::parse()
 void IMAP::addCommand()
 {
     String * s = d->args->first();
-    if ( s && s->simplified() == "quit" )
-        s = new String( "quit logout\r\n" ); // arnt compatibility
     log( "Received " + fn( (d->args->count() + 1)/2 ) +
          "-line command: " + *s, Log::Debug );
 
@@ -272,7 +270,7 @@ void IMAP::addCommand()
 
     if ( i < 1 || c != ' ' ) {
         enqueue( "* BAD tag\r\n" );
-        log( "Unable to parse tag. Line: " + *s, Log::Error );
+        log( "Bad tag. Line: '" + *s + "'", Log::Error );
         delete d->cmdArena;
         return;
     }
@@ -293,7 +291,7 @@ void IMAP::addCommand()
 
     if ( i == j ) {
         enqueue( "* BAD no command\r\n" );
-        log( "Unable to parse command. Line: " + *s, Log::Error );
+        log( "Bad command. Line: '" + *s + "'", Log::Error );
         delete d->cmdArena;
         return;
     }
@@ -306,8 +304,7 @@ void IMAP::addCommand()
         = Command::create( this, command, tag, d->args, d->cmdArena );
 
     if ( !cmd ) {
-        log( "Unknown command '" + command + "' (tag '" + tag + "')",
-             Log::Error );
+        log( "Unknown command. Line: '" + *s + "'", Log::Error );
         enqueue( tag + " BAD No such command: " + command + "\r\n" );
         delete d->cmdArena;
         return;
@@ -318,14 +315,13 @@ void IMAP::addCommand()
     cmd->step( i );
     cmd->parse();
 
-    // If we're already working, block this. Otherwise, run
-    // it. runCommands() will unblock it (at once or later).
+    // If we're already working, block this. Otherwise, run it.
+    // runCommands() will unblock it sooner or later.
 
     if ( !d->commands.isEmpty() &&
          cmd->state() == Command::Executing && cmd->ok() )
     {
-        log( "Blocking command '" + tag + " " + command +
-             " because other commands are queued", Log::Debug );
+        cmd->log( "Blocking command '" + tag + " " + command, Log::Debug );
         cmd->setState( Command::Blocked );
     }
     d->commands.append( cmd );
