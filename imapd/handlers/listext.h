@@ -21,8 +21,8 @@ public:
 
     String combinedName( Mailbox *, const String & );
 
-    static uint match( const String & pattern, uint p,
-                       const String & name, uint n );
+    uint match( const String & pattern, uint p,
+                const String & name, uint n );
 
     String listMailbox();
 

@@ -175,7 +175,7 @@ void Listext::addSelectOption( const String & option )
 uint Listext::match( const String & pattern, uint p,
                      const String & name, uint n )
 {
-    bool one = false;
+    uint r = 0;
     while ( p < pattern.length() ) {
         if ( pattern[p] == '*' || pattern[p] == '%' ) {
             bool star = false;
@@ -191,11 +191,11 @@ uint Listext::match( const String & pattern, uint p,
                 while ( i < name.length() && name[i] != '/' )
                     i++;
             while ( i >= n && i > 0 ) {
-                uint r = match( pattern, p, name, i );
-                if ( r == 2 )
+                uint s = match( pattern, p, name, i );
+                if ( s == 2 )
                     return 2;
-                if ( r == 1 )
-                    one = true;
+                if ( s == 1 )
+                    r = 1;
                 i--;
             }
         }
@@ -206,22 +206,20 @@ uint Listext::match( const String & pattern, uint p,
         else if ( pattern[p] == name[n] ) {
             // nothing. proceed.
         }
-        else if ( pattern[p] == '/' && n > name.length() ) {
+        else if ( pattern[p] == '/' && n >= name.length() ) {
             // we ran out of name and the pattern wants a child.
             return 1;
         }
         else {
             // plain old mismatch.
-            return 0;
+            return r;
         }
         p++;
         n++;
     }
     if ( n >= name.length() )
         return 2;
-    if ( one )
-        return 1;
-    return 0;
+    return r;
 }
 
 
