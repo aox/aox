@@ -629,6 +629,46 @@ String Fetch::envelope( Message * m )
 }
 
 
+static String parameterString( MimeField *mf )
+{
+    StringList *p = 0;
+
+    if ( mf )
+        p = mf->parameterList();
+    if ( !mf || !p || p->isEmpty() )
+        return "NIL";
+
+    StringList l;
+    StringList::Iterator it( p->first() );
+    while ( it ) {
+        l.append( Command::imapQuoted( *it ) );
+        l.append( Command::imapQuoted( mf->parameter( *it ) ) );
+        ++it;
+    }
+    
+    return "(" + l.join( " " ) + ")";
+}
+
+
+static String dispositionString( ContentDisposition *cd )
+{
+    if ( !cd )
+        return "NIL";
+
+    String s;
+    switch ( cd->disposition() ) {
+    case ContentDisposition::Inline:
+        s = "inline";
+        break;
+    case ContentDisposition::Attachment:
+        s = "attachment";
+        break;
+    }
+
+    return "(" + s + " " + parameterString( cd ) + ")";
+}
+
+
 /*! Returns either the IMAP BODY or BODYSTRUCTURE production for \a
     m. If \a extended is true, BODYSTRUCTURE is returned. If it's
     false, BODY.
@@ -651,8 +691,18 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
 
         r = "(" + children.join( "" ) +
             " " + imapQuoted( ct->subtype() );
-        if ( extended )
-            r.append( "" );
+
+        if ( extended ) {
+            r.append( " " );
+            r.append( parameterString( ct ) );
+            r.append( " " );
+            r.append( dispositionString( hdr->contentDisposition() ) );
+            r.append( " " );
+            r.append( "NIL" ); // Content-Language.
+            r.append( " " );
+            r.append( "NIL" ); // Content-Location.
+        }
+
         r.append( ")" );
     }
     else if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
@@ -688,12 +738,10 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
 
     Header *hdr = bp->header();
     ContentType *ct = hdr->contentType();
-    StringList *params = 0;
 
     if ( ct ) {
         l.append( imapQuoted( ct->type() ) );
         l.append( imapQuoted( ct->subtype() ) );
-        params = ct->parameterList();
     }
     else {
         // XXX: What happens to the default if this is a /digest?
@@ -701,20 +749,7 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
         l.append( "plain" );
     }
 
-    if ( !params || params->isEmpty() ) {
-        l.append( "NIL" );
-    }
-    else {
-        StringList p;
-        StringList::Iterator i( params->first() );
-        while ( i ) {
-            p.append( imapQuoted( *i ) );
-            p.append( imapQuoted( ct->parameter( *i ) ) );
-            ++i;
-        }
-        l.append( "(" + p.join( " " ) + ")" );
-    }
-
+    l.append( parameterString( ct ) );
     l.append( imapQuoted( hdr->messageId( HeaderField::ContentId ), NString ) );
     l.append( imapQuoted( hdr->contentDescription(), NString ) );
 
@@ -740,15 +775,20 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
     if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // body-type-msg   = media-message SP body-fields SP envelope
         //                   SP body SP body-fld-lines
-
         l.append( envelope( bp->rfc822() ) );
         l.append( bodyStructure( bp->rfc822(), extended ) );
         l.append( fn( bp->numLines() ) );
     }
     else if ( !ct || ct->type() == "text" ) {
         // body-type-text  = media-text SP body-fields SP body-fld-lines
-
         l.append( fn( bp->numLines() ) );
+    }
+
+    if ( extended ) {
+        l.append( "NIL" ); // MD5.
+        l.append( dispositionString( hdr->contentDisposition() ) );
+        l.append( "NIL" ); // Content-Language.
+        l.append( "NIL" ); // Content-Location.
     }
 
     return "(" + l.join( " " ) + ")";
