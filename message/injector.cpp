@@ -2,7 +2,6 @@
 
 #include "injector.h"
 
-#include "allocator.h"
 #include "dict.h"
 #include "query.h"
 #include "address.h"
@@ -132,8 +131,6 @@ Injector::Injector( const Message * message,
     d->owner = owner;
     d->message = message;
     d->mailboxes = mailboxes;
-
-    Allocator::addRoot( this );
 }
 
 
