@@ -46,7 +46,6 @@ EXEMODE = 555 ;
 #
 #PGUSER = pgsql ;
 
-
 # The server's PGDATA directory. You don't need to set this if the value
 # can be derived from the PGUSER's environment (which it usually can).
 #
@@ -58,6 +57,12 @@ EXEMODE = 555 ;
 #
 #PGBIN = /opt/postgres/bin ;
 
+# The address of the Postgres server. This corresponds to the db-address
+# variable in mailstore.conf, and may be the fully-qualified Unix socket
+# path, or an IPv4/6 address.
+
+DBADDRESS = /tmp/.s.PGSQL.5432 ;
+
 # A Postgres user and database for Mailstore to use. If necessary, these
 # are created by BINDIR/installer. To use an existing user/database,
 # change these values and set DBPASS below. (Note: DBUSER must own the
@@ -65,6 +70,9 @@ EXEMODE = 555 ;
 #
 # A password is generated during installation for a new DBUSER, so you
 # don't need to set DBPASS unless you want to use an existing DBUSER.
+#
+# These settings correspond to the db-name, db-user, and db-password
+# variables in mailstore.conf.
 
 DBNAME = mailstore ;
 DBUSER = oryx ;

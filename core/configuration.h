@@ -31,6 +31,7 @@ public:
         ManDir,
         LibDir,
         JailDir,
+        DbAddress,
         DbUser,
         DbName,
         // additional settings go ABOVE THIS LINE

@@ -229,6 +229,9 @@ String Configuration::compiledIn( CompileTimeSetting setting )
     case JailDir:
         return JAILDIR;
         break;
+    case DbAddress:
+        return DBADDRESS;
+        break;
     case DbUser:
         return DBUSER;
         break;

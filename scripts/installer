@@ -160,7 +160,7 @@ cat <<CONFIG > $CONFIG
 
 ## This database was initialized during server installation.
 
-db-address  = 127.0.0.1
+db-address  = $DBADDRESS
 db-name     = $DBNAME
 db-user     = $DBUSER
 db-password = ${DBPASS:-'""'}

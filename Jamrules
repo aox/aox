@@ -138,6 +138,7 @@ actions WriteShellConfig
         echo PGBIN="'"$(PGBIN)"'" >> $(<)
     fi
 
+    echo DBADDRESS="'"$(DBADDRESS)"'" >> $(<)
     echo DBNAME="'"$(DBNAME)"'" >> $(<)
     echo DBUSER="'"$(DBUSER)"'" >> $(<)
     if [ $(DBPASS) ]; then
