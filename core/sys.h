@@ -3,6 +3,13 @@
 #ifndef SYS_H
 #define SYS_H
 
+
+// Add a declaration to this file when all of the following are true:
+//   1. We need that function in several places.
+//   2. We don't want to include the system header file.
+//   3. The function is reasonably portable.
+
+
 extern "C" {
     void exit( int );
     unsigned int strlen( const char * );
@@ -12,5 +19,6 @@ extern "C" {
     void memset( void *, int, unsigned int );
     void bzero( void *, unsigned int );
 }
+
 
 #endif
