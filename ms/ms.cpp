@@ -48,7 +48,10 @@ public:
             return;
         Row * r = query->nextRow();
         while ( r ) {
-            fprintf( stdout, "%s\n", r->getString( "login" ).cstr() );
+            fprintf( stdout, "%-8s %s@%s\n",
+                     r->getString( "login" ).cstr(),
+                     r->getString( "localpart" ).cstr(),
+                     r->getString( "domain" ).cstr() );
             r = query->nextRow();
         }
     }
@@ -140,6 +143,12 @@ void listUsers( const char * pattern )
         i++;
     }
     query = new Query( "select login from users where login like $1",
+                       new UserLister );
+    query = new Query( "select "
+                       "users.login, addresses.localpart, addresses.domain "
+                       "from users, addresses "
+                       "where users.login like $1 "
+                       "and users.address=addresses.id",
                        new UserLister );
     query->bind( 1, p );
     query->execute();
