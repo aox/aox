@@ -14,6 +14,7 @@ public:
     void react( Event );
 
 private:
+    void read();
     void parse();
     void encrypt();
     void decrypt();
