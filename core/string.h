@@ -68,7 +68,7 @@ public:
     String e64( uint = 0 ) const;
     String deQP() const;
     String eQP() const;
-    bool needQP() const;
+    bool needsQP() const;
 
     friend inline bool operator==( const String &, const String & );
     friend bool operator==( const String &, const char * );
