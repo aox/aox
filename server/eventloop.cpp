@@ -161,6 +161,7 @@ void EventLoop::start()
             // XXX: And this is highly suboptimal, too. (Why?)
             log( "EventLoop: select() returned errno " + fn( errno ),
                  Log::Disaster );
+            commit();
             exit( 0 );
         }
 
@@ -173,7 +174,7 @@ void EventLoop::start()
             if ( fd >= 0 )
                 dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
         }
-
+        commit();
     }
 
     // This is for event loop shutdown. A little brutal. Proper
