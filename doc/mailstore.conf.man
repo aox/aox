@@ -24,10 +24,6 @@ name = value # comment
 .IP hostname
 Most of the servers need to know the fully-qualified hostname. The
 default is computed at runtime and is normally acceptable.
-.IP pid-directory
-tells the servers where to write their pid files,
-.I $PIDFILEDIR
-by default.
 .SS "Database Access"
 .IP db
 The type of database. The default,

@@ -5,8 +5,7 @@
 # See http://www.oryx.com/mailstore/ for more about Oryx Mailstore, or
 # write to info@oryx.com.
 
-# Jamsettings variables such as BINDIR are evaluated while building
-# Mailstore.
+# Note: Jamsettings variables are evaluated at build time.
 cd $BINDIR
 
 for a in logd ocd tlsproxy imapd pop3d smtpd ; do
@@ -24,8 +23,14 @@ start() {
 stop() {
     echo -n "Stopping Oryx Mailstore:"
     for a in smtpd pop3d imapd tlsproxy ocd logd ; do
-	# it would be good to check the pid files here. but getting at them...
-	killall $a 2>/dev/null
+	P=$PIDFILEDIR/${a}.pid
+	if [ -f $P ]; then
+	    kill `cat $P`
+	    rm $P
+	else
+	    # hm. this is dubious.
+	    killall $a 2>/dev/null
+	fi
         echo -n " $a";
     done
     echo "."
