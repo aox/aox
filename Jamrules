@@ -1,58 +1,62 @@
-# we optimise... or do we?
-OPTIM    = ;
+# Decide what compiler and flags we're using.
 
-# we always build with debugging and stop on error
-C++FLAGS  = -g -Wall -Werror -W ;
+OPTIM = ;
+RANLIB = ;
+C++FLAGS = -g -Werror ;
 LINKFLAGS = -g ;
 
-# we always build and link with g++
-C++ = g++ ;
-LINK = g++ ;
+if $(ICC) {
+    C++ = /opt/intel/compiler70/ia32/bin/icc ;
+    LINK = /opt/intel/compiler70/ia32/bin/icc ;
+}
+else {
+    C++ = g++ ;
+    LINK = g++ ;
+    C++FLAGS += -Wall -Werror ;
 
-# ranlib is obsolete
-RANLIB = "" ;
+    if $(COV) {
+        C++FLAGS += -fprofile-arcs -ftest-coverage ;
+    }
+}
 
 # our lib directory contains additional include files
-HDRS    += [ FDirName $(TOP) lib ] ;
-
+HDRS += [ FDirName $(TOP) lib ] ;
 
 rule SubInclude
 {
-	if ! $($(<[1]))
-	{
-	    Exit SubInclude $(<[1]) without prior SubDir $(<[1]) ;
-	}
+    if ! $($(<[1]))
+    {
+        Exit SubInclude $(<[1]) without prior SubDir $(<[1]) ;
+    }
 
-	SubDir $(<) ;
+    SubDir $(<) ;
 
-	local a b ;
-	for a in $(IncludedDirectories) {
-	    if $(a) = $(SUBDIR) {
-		b = true ;
-	    }
-	}
+    local a b ;
+    for a in $(IncludedDirectories) {
+        if $(a) = $(SUBDIR) {
+        b = true ;
+        }
+    }
 
-	if ! $(b) {
-	    IncludedDirectories += $(SUBDIR) ;
-	    include $(JAMFILE:D=$(SUBDIR)) ;
-	}
+    if ! $(b) {
+        IncludedDirectories += $(SUBDIR) ;
+        include $(JAMFILE:D=$(SUBDIR)) ;
+    }
 }
-
 
 rule Build
 {
-	Objects $(>) ;
-	set-$(<) += [ FGristFiles $(>:S=$(SUFOBJ)) ] ;
+    Objects $(>) ;
+    set-$(<) += [ FGristFiles $(>:S=$(SUFOBJ)) ] ;
 }
-
 
 rule Program
 {
-	local target ;
-	Depends exe : $(<) ;
-	Depends $(<) : $(set-$(>)) ;
-	MakeLocate $(<) : $(LOCATE_TARGET) ;
+    local target ;
+    Depends exe : $(<) ;
+    Depends $(<) : $(set-$(>)) ;
+    MakeLocate $(<) : $(LOCATE_TARGET) ;
 
-	Clean clean : $(<) ;
-	Link $(<) : $(set-$(>)) ;
+    Clean clean : $(<) ;
+    Link $(<) : $(set-$(>)) ;
 }
