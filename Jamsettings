@@ -6,29 +6,28 @@
 #    PREFIX=$HOME/tmp/mailstore jam install
 # to install in your home directory.
 #
-# Remember the spaces around '?=' and before ';'.
+# Remember the spaces around '=' and before ';'.
 
 
 # Files and directories. The directory names MUST NOT end with /.
 
-PREFIX ?= /usr/local/mailstore ;
-BINDIR ?= $(PREFIX)/bin ;
-MANDIR ?= $(PREFIX)/man ;
-PIDFILEDIR ?= /var/run ;
-JAILDIR ?= $(PREFIX)/jail ;
-CONFIGDIR ?= $(PREFIX) ;
-LOGFILE ?= $(PREFIX)/logfile ;
-
+PREFIX = /usr/local/mailstore ;
+BINDIR = $(PREFIX)/bin ;
+MANDIR = $(PREFIX)/man ;
+PIDFILEDIR = /var/run ;
+JAILDIR = $(PREFIX)/jail ;
+CONFIGDIR = $(PREFIX) ;
+LOGFILE = $(PREFIX)/logfile ;
 
 # How to compile
 
-C++FLAGS ?= -g -Werror -funsigned-char ;
-LINKFLAGS ?= -g ;
+C++FLAGS = -g -Werror -funsigned-char ;
+LINKFLAGS = -g ;
 
 
 # Mode for installed binaries
 
-EXEMODE ?= 555 ;
+EXEMODE = 555 ;
 
 
 # Uncomment the next line to use a cryptlib from the system. The
@@ -42,19 +41,19 @@ EXEMODE ?= 555 ;
 # The Unix username of the PostgreSQL superuser. You need to set this if
 # your superuser's username is not "postgres".
 #
-#PGUSER ?= pgsql ;
+#PGUSER = pgsql ;
 
 
 # The server's PGDATA directory. You don't need to set this if the value
 # can be derived from the PGUSER's environment (which it usually can).
 #
-#PGDATA ?= /opt/postgres/data ;
+#PGDATA = /opt/postgres/data ;
 
 # The directory in which psql and pg_ctl live. You can ignore this
 # setting in most cases, because psql and pg_ctl are usually in the
 # PGUSER's PATH.
 #
-#PGBIN ?= /opt/postgres/bin ;
+#PGBIN = /opt/postgres/bin ;
 
 # A Postgres user and database for Mailstore to use. If necessary, these
 # are created by BINDIR/installer. To use an existing user/database,
@@ -64,9 +63,9 @@ EXEMODE ?= 555 ;
 # A password is generated during installation for a new DBUSER, so you
 # don't need to set DBPASS unless you want to use an existing DBUSER.
 
-DBNAME ?= mailstore ;
-DBUSER ?= oryx ;
-#DBPASS ?= foo ;
+DBNAME = mailstore ;
+DBUSER = oryx ;
+#DBPASS = foo ;
 
 
 # this file is included from Jamrules.
