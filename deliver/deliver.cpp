@@ -31,7 +31,7 @@ public:
         : sender( s ), contents( c ), recipient( r ),
           client( 0 ), errstr( 0 ), status( 0 )
     {
-        Allocator::addRoot( this );
+        Allocator::addRoot( this, "deliver object" );
         client = new SmtpClient( sender, contents, recipient,
                                  this );
     }

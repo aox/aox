@@ -49,9 +49,9 @@ void AddressCache::setup()
     // to the same set of objects.
 
     idCache = new Map< Address >;
-    Allocator::addRoot( idCache );
+    Allocator::addRoot( idCache, "address cache (id)" );
     nameCache = new Dict< Address >;
-    Allocator::addRoot( nameCache );
+    Allocator::addRoot( nameCache, "address cache (name)" );
 
     // The first query is used to resolve cache misses. If the address
     // doesn't exist in the table, the other query inserts it.
@@ -63,8 +63,8 @@ void AddressCache::setup()
         new PreparedStatement( "insert into addresses(name,localpart,domain) "
                                "values ($1,$2,$3)" );
 
-    Allocator::addRoot( addressInsert );
-    Allocator::addRoot( addressLookup );
+    Allocator::addRoot( addressInsert, "address insertion statement" );
+    Allocator::addRoot( addressLookup, "address lookup statement" );
 }
 
 

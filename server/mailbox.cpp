@@ -67,7 +67,7 @@ public:
 
         if ( !::mailboxes ) {
             ::mailboxes = new Map<Mailbox>;
-            Allocator::addRoot( ::mailboxes );
+            Allocator::addRoot( ::mailboxes, "mailbox tree" );
         }
 
         while ( query->hasResults() ) {
@@ -102,10 +102,10 @@ public:
 void Mailbox::setup()
 {
     ::root = new Mailbox( "/" );
-    Allocator::addRoot( ::root );
+    Allocator::addRoot( ::root, "root mailbox" );
 
     query = new Query( "select * from mailboxes", new MailboxReader );
-    Allocator::addRoot( ::query );
+    Allocator::addRoot( ::query, "query to find all mailboxes" );
 
     query->setStartUpQuery( true );
     query->execute();
@@ -122,9 +122,9 @@ void Mailbox::refresh()
                        new MailboxReader );
     query->bind( 1, name() );
     query->execute();
-
-    // XXX: Is this correct?
-    Allocator::addRoot( query );
+    // don't add it as a new root - for as long as it's active, the
+    // database modules will keep a pointer to it, and after that, we
+    // want it to die. adding it as a new root would leak memory.
 }
 
 

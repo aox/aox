@@ -29,7 +29,7 @@ void Loop::setup( EventLoop * l )
     ::loop = l;
     if ( !l )
         ::loop = new EventLoop;
-    Allocator::addRoot( ::loop );
+    Allocator::addRoot( ::loop, "main event loop" );
 }
 
 

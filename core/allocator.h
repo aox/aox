@@ -32,13 +32,16 @@ public:
     void operator delete( void * );
 
     static void free();
-    static void addRoot( void * );
-    static void addRoot( const void * );
+    static void addRoot( void *, const char * );
+    static void addRoot( const void * p, const char * c ) {
+        addRoot( (void*)p, c );
+    }
+
     static void removeRoot( void * );
     static void removeRoot( const void * );
 
     static void setReporting( bool );
-    
+
 private:
     uint base;
     uint step;

@@ -176,7 +176,7 @@ void TlsServer::setup()
     }
     ::tlsAvailable = true;
     ::tlsProxy = e;
-    Allocator::addRoot( ::tlsProxy );
+    Allocator::addRoot( ::tlsProxy, "tls proxy name" );
 }
 
 
