@@ -4,6 +4,7 @@
 #include "list.h"
 #include "log.h"
 #include "test.h"
+#include "scope.h"
 
 #include <unistd.h> // gethostname()
 #include <netdb.h> // gethostbyname()
@@ -174,6 +175,9 @@ void Configuration::clear()
 void Configuration::report()
 {
     Log l( Log::Configuration );
+
+    Scope x;
+    x.setLog( &l );
 
     d->reported = true;
     if ( d->unparsed.isEmpty() && d->errors.isEmpty() )
