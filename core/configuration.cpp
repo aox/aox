@@ -272,25 +272,39 @@ void Configuration::Variable::init( const String &name )
 {
     Something *x = ::global->d->unparsed.take( name );
 
+    n = name;
+
     if ( ::global->d->reported ) {
         // we're already up and running
-        log( Log::Error,
-             "Configuration variable created after parsing finished: " +
-             name );
+        ::log( Log::Error,
+               "Configuration variable created after parsing finished: " +
+               name );
     }
-    if ( x == 0 ) {
+    if ( !x ) {
         // nothing - we keep the default value
+        ::global->d->log( "Using default value for " + name, Log::Debug );
+        return;
     }
-    else if ( setValue( x->s2 ) ) {
-        // setValue set the value, so we turn on the 'supplied()' bit
+
+    ::global->d->log( "Parsing " + name + " = " + x->s2, Log::Debug );
+    if ( setValue( x->s2 ) )
         s = true;
-    }
-    else {
-        // there was an error. log it later, when the logger is up,
-        // and keep the default value.
+    else
         ok = false;
-        ::global->d->log( "Parse error: " + x->s1 + " = " + x->s2 );
-    }
+}
+
+
+
+/*! Logs \a s as a parse error for this variable.
+
+    At present this merely logs \a s, maybe it should also log some
+    context?
+*/
+
+void Configuration::Variable::log( const String & s )
+{
+    if ( ::global )
+        ::global->d->log( s );
 }
 
 
@@ -331,13 +345,22 @@ bool Configuration::Scalar::setValue( const String & line )
 
     bool ok = true;
     uint n = line.mid( 0, i ).number( &ok );
-    if ( !ok || n > 0x7fffffff )
+    if ( !ok ) {
+        log( "Syntax error for " + name() );
         return false;
+    }
+    if ( n > 0x7fffffff ) {
+        log( name() + " is out of range" );
+        return false;
+    }
 
     while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
         i++;
-    if ( i < line.length() && line[i] != '#' )
+    if ( i < line.length() && line[i] != '#' ) {
+        log( "trailing garbage after " + name() + " = " +
+             String::fromNumber( n ) );
         return false;
+    }
 
     value = n;
     return true;
@@ -376,17 +399,23 @@ bool Configuration::Toggle::setValue( const String & line )
 
     while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
         i++;
-    if ( i < line.length() && line[i] != '#' )
+    if ( i < line.length() && line[i] != '#' ) {
+        log( "trailing garbage after " + name() + " = " + v );
         return false;
+    }
 
     if ( v == "0" || v == "off" || v == "no" || v == "false" ||
-         v == "disabled" )
+         v == "disabled" ) {
         value = false;
+    }
     else if ( v == "1" || v == "on" || v == "yes" || v == "true" ||
-              v == "enabled" )
+              v == "enabled" ) {
         value = true;
-    else
+    }
+    else {
+        log( "Invalid value for toggle " + name() + ": " + v );
         return false;
+    }
 
     return true;
 
@@ -444,8 +473,10 @@ bool Configuration::Text::setValue( const String & line )
     // followed by whitespace and possibly a comment?
     while ( i < line.length() && ( line[i] == ' ' || line[i] == '\t' ) )
         i++;
-    if ( i < line.length() && line[i] != '#' )
+    if ( i < line.length() && line[i] != '#' ) {
+        log( "trailing garbage after " + name() + " = " + v );
         return false; // no
+    }
 
     value = v;
     return true;
@@ -708,4 +739,3 @@ public:
         ::hostname = 0;
     }
 } configurationTest;
-

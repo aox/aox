@@ -29,13 +29,17 @@ public:
         bool valid() const { return ok || !s; }
         bool supplied() const { return s; }
 
+        String name() const { return n; }
+
     protected:
         void init( const String & );
+        void log( const String & );
 
     private:
         virtual bool setValue( const String & ) = 0;
 
     private:
+        String n;
         bool ok;
         bool s;
     };
