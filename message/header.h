@@ -48,7 +48,6 @@ public:
     void simplify();
 
     String asText() const;
-    String mimeFields() const;
 
 private:
     class HeaderData * d;

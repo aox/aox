@@ -87,7 +87,7 @@ void Multipart::appendMultipart( String &r ) const
         Bodypart *bp = it;
         ++it;
 
-        r.append( bp->header()->mimeFields() );
+        r.append( bp->header()->asText() );
         r.append( crlf );
         appendAnyPart( r, bp, ct );
 
