@@ -31,6 +31,10 @@ else {
         C++FLAGS += -fprofile-arcs -ftest-coverage ;
         BUILD = build/gcov ;
     }
+
+    if $(CCACHE) {
+        C++ = ccache ;
+    }
 }
 
 LINK = $(C++) ;
