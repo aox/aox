@@ -24,23 +24,21 @@
     up and uses the database.
 */
 
-class SearchD
-{
+class SearchData {
 public:
-    SearchD() : uid( false ), done( false ),
-                conditions( 0 ), root( 0 ),
-                codec( 0 ),
-                query( 0 )
+    SearchData()
+        : uid( false ), done( false ), root( 0 ), conditions( 0 ),
+          codec( 0 ), query( 0 )
     {}
 
     bool uid;
     bool done;
-    List<Search::Condition> * conditions;
-    Search::Condition * root;
     String charset;
-    List<uint> matches;
-    Codec * codec;
+    Search::Condition * root;
+    List< Search::Condition > * conditions;
+    List< uint > matches;
 
+    Codec * codec;
     Query * query;
 };
 
@@ -49,7 +47,7 @@ public:
 */
 
 Search::Search( bool u )
-    : d( new SearchD )
+    : d( new SearchData )
 {
     d->uid = u;
 }
@@ -278,8 +276,6 @@ void Search::parseKey( bool alsoCharset )
 
     alsoCharset = false;
 }
-
-
 
 
 void Search::execute()

@@ -93,8 +93,8 @@ private:
     UString uastring();
 
 private:
-    class SearchD * d;
-    friend class SearchD;
+    class SearchData * d;
+    friend class SearchData;
 };
 
 
