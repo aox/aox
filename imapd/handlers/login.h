@@ -10,6 +10,10 @@ class Login
     : public Command
 {
 public:
+    Login()
+        : a( 0 )
+    {}
+
     void parse();
     void execute();
 
