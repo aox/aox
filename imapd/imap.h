@@ -9,9 +9,9 @@ public:
     IMAP(int s);
     ~IMAP();
 
-    bool react(Event e);
+    int react(Event e);
 
-    bool parse();
+    int parse();
     void addCommand();
 
     enum State { NotAuthenticated, Authenticated, Selected, Logout };

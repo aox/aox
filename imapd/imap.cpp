@@ -61,7 +61,7 @@ IMAP::~IMAP()
 
 /*! Handles incoming data and timeouts. */
 
-bool IMAP::react(Event e)
+int IMAP::react(Event e)
 {
     bool result = true;
     switch (e) {
@@ -83,7 +83,7 @@ bool IMAP::react(Event e)
 }
 
 
-bool IMAP::parse()
+int IMAP::parse()
 {
     if ( !d->parsedCommandArena )
         d->parsedCommandArena = new Arena;
