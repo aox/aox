@@ -65,7 +65,7 @@ rule Doc {
 }
 
 actions together Doc2 {
-    qdoc $(>)
+    qdoc -m ../doc/man/man3 -w ../doc/html $(>)
 }
 
 Doc qdoc : imap message logd database server lib ;
