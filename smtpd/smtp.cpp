@@ -220,6 +220,7 @@ void SMTP::parse()
             body( line );
         }
         else {
+            log( "Received '" + line + "'", Log::Debug );
             i = 0;
             while ( i < line.length() &&
                     line[i] != ' ' && line[i] != 13 && line[i] != 10 )
@@ -345,12 +346,14 @@ void SMTP::mail()
         return;
     }
     if ( d->arg.mid( 0,2 ) == "<>" ) {
+        log( "Received message from <>" );
         respond( 250, "Accepted message from mailer-daemon" );
         d->state = RcptTo;
         return;
     }
     d->from = address();
     if ( ok() && d->from ) {
+        log( "Received message from " + d->from->toString() );
         respond( 250, "Accepted message from " + d->from->toString() );
         d->state = RcptTo;
     }
@@ -398,6 +401,7 @@ void SMTP::rcptAnswer()
         d->state = Data;
         d->to.append( d->user );
         respond( 250, "Will send to " + to );
+        log( "Delivering message to " + to );
     }
     else {
         respond( 550, to + " is not a legal destination address" );
@@ -602,9 +606,9 @@ void SMTP::sendResponses()
         respond( 250, "OK" ); // to provide a good default
 
     String n = fn( d->code );
-    String r;
     StringList::Iterator it( d->response.first() );
     do {
+        String r;
         String l = *it;
         ++it;
         r.append( n );
@@ -613,10 +617,12 @@ void SMTP::sendResponses()
         else
             r.append( "-" );
         r.append( l );
+        log( "Sending response '" + r + "'",
+             Log::Debug );
         r.append( "\r\n" );
+        enqueue( r );
     } while ( it );
 
-    enqueue( r );
     write();
 
     d->code = 0;

@@ -37,6 +37,7 @@ private:
     void linkBodyparts();
     void linkHeaderFields();
     void linkAddresses();
+    void logMessageDetails();
 };
 
 

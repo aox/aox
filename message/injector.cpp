@@ -15,6 +15,7 @@
 #include "transaction.h"
 #include "md5.h"
 #include "utf.h"
+#include "log.h"
 
 #include <time.h>
 
@@ -172,6 +173,7 @@ bool Injector::failed() const
 
 void Injector::execute()
 {
+    logMessageDetails();
     if ( d->step == 0 ) {
         // We begin by obtaining a UID for each mailbox we are injecting
         // a message into, and simultaneously inserting entries into the
@@ -239,6 +241,10 @@ void Injector::execute()
         if ( !d->transaction->done() )
             return;
         d->failed = d->transaction->failed();
+        if ( d->failed ) // this isn't an error for us, only for the client
+            d->owner->log( "Injection failed: " + d->transaction->error() );
+        else
+            d->owner->log( "Injection succeeded" );
         d->owner->execute();
     }
 }
@@ -628,5 +634,32 @@ void Injector::linkAddresses()
 
             d->transaction->enqueue( q );
         }
+    }
+}
+
+
+/*! Logs information about the message to be injected. Some debug,
+    some info.
+*/
+
+void Injector::logMessageDetails()
+{
+    String id;
+    Header * h = d->message->header();
+    if ( h )
+        id = h->messageId();
+    if ( id.isEmpty() ) {
+        d->owner->log( "Injecting message without message-id",
+                       Log::Debug );
+        // should we log x-mailer? from? neither?
+    }
+    else {
+        id = id + " ";
+    }
+    List<Mailbox>::Iterator it( d->mailboxes->first() );
+    while ( it ) {
+        d->owner->log( "Injecting message " + id +
+                       "into mailbox " + it->name() );
+        ++it;
     }
 }
