@@ -420,15 +420,15 @@ Row::Row( uint num, Column *c )
 }
 
 
-/*! Returns true if the column at index \a i exists and is NULL, and
-    false in all other cases.
+/*! Returns true if the column at index \a i is NULL or does not exist,
+    and false in all other cases.
 */
 
 bool Row::isNull( uint i ) const
 {
-    if ( badFetch( i ) || columns[i].length != -1 )
-        return false;
-    return true;
+    if ( badFetch( i ) || columns[i].length == -1 )
+        return true;
+    return false;
 }
 
 
