@@ -1,5 +1,5 @@
-#ifndef ID_H
-#define ID_H
+#ifndef __ID_H__
+#define __ID_H__
 
 #include "command.h"
 

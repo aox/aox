@@ -1,5 +1,5 @@
-#ifndef CLOSE_H
-#define CLOSE_H
+#ifndef __CLOSE_H__
+#define __CLOSE_H__
 
 #include "expunge.h"
 

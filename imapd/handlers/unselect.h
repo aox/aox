@@ -1,5 +1,5 @@
-#ifndef UNSELECT_H
-#define UNSELECT_H
+#ifndef __UNSELECT_H__
+#define __UNSELECT_H__
 
 #include "command.h"
 
