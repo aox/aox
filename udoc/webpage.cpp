@@ -261,7 +261,6 @@ void WebPage::endPage()
         addText( Output::owner() );
         output( ". All rights reserved." );
     }
-    output( "</div></div></div>" );
     output( "</body></html>\n" );
     ::close( fd );
 }
@@ -280,22 +279,9 @@ void WebPage::startPage( const String & name, const String & title )
             "<html lang=en><head>" );
     output( "<title>" );
     para = true;
-    addText( "Mailstore source code: " + title );
+    addText( title );
     output( "</title>\n" );
-    output( "<link rel=stylesheet media=\"handheld,all\" "
-            "href=\"../../oryx.css\" type=\"text/css\">\n"
-            "</head><body onload=\"if(top.frames.length!=0)"
-            "top.location=self.location;\">\n" );
-    output( "<div class=top><ul class=nav>\n"
-            "<li><a href=\"../../\">Home</a>"
-            "<li><a href=\"../../products/\">Products</a>"
-            "<li><a href=\"../../sitemap.html\">Sitemap</a>"
-            "<li><a href=\"../../company/\">Contact Us</a>"
-            "<li><a href=\"../../company/about.html\">About Us</a>"
-            "</ul></div>\n" );
-    output( "<div class=page><div class=left>"
-            "<div class=logo><a href=\"http://www.oryx.com\">Oryx</a></div>"
-            "<p>Generated using <a href=\"../../udoc/\">udoc</a>. "
-            "Our apologies for less than ideal formatting.</div>"
-            "<div class=container><div class=content>" );
+    output( "<link rel=stylesheet href=\"udoc.css\" type=\"text/css\">\n"
+            "<link rel=generator href=\"http://www.oryx.com/udoc/\">\n"
+            "</head><body>\n" );
 }
