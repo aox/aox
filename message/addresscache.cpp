@@ -140,7 +140,9 @@ void LookupHelper::execute() {
     address->setId( id );
     {
         Scope x( &acArena );
-        Address *a = new Address( *address );
+        Address *a = new Address( address->name(), address->localpart(),
+                                  address->domain() );
+        a->setId( id );
 
         idCache->insert( a->id(), a );
         nameCache->insert( a->toString(), a );
