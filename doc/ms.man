@@ -1,0 +1,72 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH ms 8 2005-01-06 www.oryx.com "Mailstore Documentation"
+.SH NAME
+ms - management tool for Oryx Mailstore.
+.SH SYNOPSIS
+.B $BINDIR/ms
+.SH DESCRIPTION
+.nh
+.PP
+.B ms
+is a command-line program to perform various system administration
+tasks for Oryx Mailstore.
+.PP
+Examples of such tasks are adding users, changing the access control
+for mailboxes, etc. In principle, everything one would want to do
+using a shell script should be doable using
+.BR ms .
+Both
+.B ms
+and
+.BR msconsole (8)
+are expected to grow a great many features during Mailstore's beta phase.
+.PP
+For the moment, the command-line grammar for
+.ms
+is entirely ad-hoc. Please use the examples below.
+.SH OPTIONS
+At present there no command-line switches.
+.B
+ms
+derives its entire configuration from
+.IR mailstore.conf (5).
+.SH EXAMPLES
+To add a user called "nirmala", whose password is "behenchod" and
+whose main email address is "nirmala@example.com":
+.IP
+ms create user nirmala behenchod nirmala@example.com
+.PP
+To remove that user again:
+.IP
+ms remove user nirmala
+.PP
+To change Nirmala's email address to nirmala@eksempel.no:
+.IP
+ms rename user normala nirmala@eksempel.no
+.SH DIAGNOSTICS
+The return code of
+.B ms
+is zero if all goes well, and a non-zero in case of errors.
+.PP
+Diagnostics are logged using Mailstore's
+.BR logd (8),
+just like the servers do. Disasters are also logged via stderr.
+returns 2.
+.SH BUGS
+There is no command-line option to set the configuration file.
+.SH AUTHOR
+The Oryx Mailstore developers, info@oryx.com.
+.SH VERSION
+This man page covers Oryx Mailstore version 0.90, released 2005-01-15,
+http://www.oryx.com/mailstore/0.90.html.
+.SH SEE ALSO
+.BR mailstore (7),
+.BR mailstore.conf (5),
+.BR imapd (8),
+.BR logd (8),
+.BR ocd (8),
+.BR pop3d (8),
+.BR smtpd (8),
+.BR tlsproxy (8),
+.BR oryx (7),
+http://www.oryx.com/mailstore/

@@ -35,5 +35,5 @@ Man 5 : mailstore.conf.man ;
 Man 7 : oryx.man mailstore.man ;
 
 Man 8 : deliver.man imapd.man logd.man ocd.man pop3d.man smtpd.man
-    tlsproxy.man ;
+    tlsproxy.man ms.man ;
 
