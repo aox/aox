@@ -40,7 +40,11 @@ int main( int, char *[] )
     s.setup( Server::Report );
     LogClient::setup();
     s.setup( Server::Secure );
+    // let cryptlib set up while still root, so it can read files etc.
+    cryptInit();
+    cryptAddRandom( NULL, CRYPT_ADD_RANDOM );
     Listener< TlsProxy >::create( "tls-proxy", "", 2061 );
+    // chroot and do the rest
     s.setup( Server::Finish );
 
     s.execute();
