@@ -9,10 +9,11 @@
 class TransactionData {
 public:
     TransactionData()
-        : db( 0 ), state( Transaction::Inactive )
+        : db( 0 ), owner( 0 ), state( Transaction::Inactive )
     {}
 
     Database *db;
+    EventHandler *owner;
     Transaction::State state;
 };
 
@@ -31,12 +32,13 @@ public:
 */
 
 
-/*! Creates a new Transaction object. */
+/*! Creates a new Transaction object owned by \a ev. */
 
-Transaction::Transaction()
+Transaction::Transaction( EventHandler *ev )
     : d( new TransactionData )
 {
     d->db = Database::handle();
+    d->owner = ev;
 }
 
 
@@ -101,7 +103,7 @@ void Transaction::execute()
 
 void Transaction::rollback()
 {
-    Query *q = new Query( "rollback", 0 );
+    Query *q = new Query( "rollback", d->owner );
     q->setTransaction( this );
     d->db->enqueue( q );
     d->db->execute();
@@ -112,7 +114,7 @@ void Transaction::rollback()
 
 void Transaction::commit()
 {
-    Query *q = new Query( "commit", 0 );
+    Query *q = new Query( "commit", d->owner );
     q->setTransaction( this );
     d->db->enqueue( q );
     d->db->execute();

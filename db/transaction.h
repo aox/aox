@@ -2,11 +2,12 @@
 #define TRANSACTION_H
 
 class Query;
+class EventHandler;
 
 
 class Transaction {
 public:
-    Transaction();
+    Transaction( EventHandler * );
 
     enum State { Inactive, Executing, Completed, Failed };
     void setState( State );
