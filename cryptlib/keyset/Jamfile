@@ -1,0 +1,5 @@
+SubDir TOP cryptlib keyset ;
+
+Build cryptlib : dbxdbms.c dbxdbx.c dbxdca.c dbxhttp.c dbxldap.c dbxmysql.c
+	dbxoracl.c dbxp12.c dbxp15.c dbxp15r.c dbxp15w.c dbxpgp.c dbxpostg.c ;
+

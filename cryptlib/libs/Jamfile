@@ -1,0 +1,6 @@
+SubDir TOP cryptlib libs ;
+
+Build cryptlib : lib_3des.c lib_aes.c lib_bf.c lib_cast.c lib_des.c
+	lib_dh.c lib_dsa.c lib_elg.c lib_hmd5.c lib_hrmd.c lib_hsha.c
+	lib_idea.c lib_kg.c lib_md2.c lib_md4.c lib_md5.c lib_rc2.c
+	lib_rc4.c lib_rc5.c lib_ripe.c lib_rsa.c lib_sha.c lib_skip.c ;

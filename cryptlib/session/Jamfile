@@ -1,0 +1,5 @@
+SubDir TOP cryptlib session ;
+
+Build cryptlib : cmp.c cmp_rd.c cmp_wr.c ocsp.c pnppki.c rtcs.c scep.c
+	ssh.c ssh1.c ssh2.c ssh2_cli.c ssh2_svr.c ssl.c ssl_cli.c
+	ssl_svr.c tsp.c ;

@@ -1,0 +1,3 @@
+SubDir TOP cryptlib device ;
+
+Build cryptlib : dev_fort.c dev_pk11.c dev_sys.c ;

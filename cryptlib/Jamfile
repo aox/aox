@@ -1,3 +1,29 @@
+# hide the headers - we don't want cryptlib to see our header files
+OrdinaryHDRS = $(HDRS) ;
+HDRS = [ FDirName $(TOP) cryptlib ] ;
+
+# include all the subdirectories
+SubInclude TOP cryptlib bn ;
+SubInclude TOP cryptlib cert ;
+SubInclude TOP cryptlib crypt ;
+SubInclude TOP cryptlib device ;
+SubInclude TOP cryptlib envelope ;
+SubInclude TOP cryptlib keyset ;
+SubInclude TOP cryptlib libs ;
+SubInclude TOP cryptlib misc ;
+SubInclude TOP cryptlib session ;
+SubInclude TOP cryptlib zlib ;
+
+# tell jam where to find this source
 SubDir TOP cryptlib ;
 
-Build cryptlib : ;
+Build cryptlib : cryptapi.c cryptcfg.c cryptcrt.c cryptctx.c cryptdbx.c
+	cryptdev.c cryptenv.c cryptkey.c cryptkrn.c cryptlib.c
+	cryptmch.c cryptmis.c cryptses.c cryptusr.c ;
+
+# recover the header files
+HDRS = $(OrdinaryHDRS) ;
+
+# since CCFLAGS is an ordinary variable, we'll just set it on all the
+# cryptlib source files.
+CCFLAGS on $(set-cryptlib) = -DUSE_ASM -DOSVERSION=4 -D__UNIX__ ;
