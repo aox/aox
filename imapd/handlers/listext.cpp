@@ -194,7 +194,6 @@ String Listext::listMailbox()
         else
             result = d->mailbox + "/" + result;
     }
-    respond( "Will match: " + result, Untagged );
     return result;
 }
 

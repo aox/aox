@@ -92,6 +92,7 @@ Fetch::Fetch( bool u )
 
 void Fetch::parse()
 {
+    space();
     d->set = set( !uid );
     space();
     if ( nextChar() == '(' ) {
