@@ -194,6 +194,8 @@ void IMAP::parse()
         else if ( d->reader ) {
             // If a Command has reserve()d input, we just feed it.
             d->reader->read();
+            if ( d->reader )
+                return;
         }
     }
 }
