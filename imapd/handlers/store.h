@@ -4,7 +4,7 @@
 #include "command.h"
 #include "string.h"
 #include "list.h"
-#include "set.h"
+#include "messageset.h"
 
 
 class Store
@@ -17,7 +17,7 @@ public:
     void execute();
 
 private:
-    Set s;
+    MessageSet s;
     enum { Add, Replace, Remove } op;
     bool silent;
     bool uid;

@@ -9,8 +9,8 @@
 #include "search.h"
 
 #include "list.h"
-#include "set.h"
 #include "imap.h"
+#include "messageset.h"
 
 
 class SearchD
@@ -361,7 +361,7 @@ NotQuery::Condition * Search::add( NotQuery::Field f, NotQuery::Action a, uint n
 
 */
 
-NotQuery::Condition * Search::add( const Set & set )
+NotQuery::Condition * Search::add( const MessageSet & set )
 {
     prepare();
     NotQuery::Condition * c = new NotQuery::Condition;

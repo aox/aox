@@ -21,7 +21,7 @@ private:
     NotQuery::Condition * add( NotQuery::Field, NotQuery::Action,
                             const String & = 0, const String & = 0 );
     NotQuery::Condition * add( NotQuery::Field, NotQuery::Action, uint );
-    NotQuery::Condition * add( const Set & );
+    NotQuery::Condition * add( const MessageSet & );
 
     NotQuery::Condition * push( NotQuery::Action );
     void pop();

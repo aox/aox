@@ -7,7 +7,7 @@
 
 #include "store.h"
 
-#include "set.h"
+#include "messageset.h"
 
 
 

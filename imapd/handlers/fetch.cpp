@@ -1,6 +1,6 @@
 #include "fetch.h"
 
-#include "set.h"
+#include "messageset.h"
 #include "stringlist.h"
 #include "arena.h"
 #include "scope.h"
@@ -45,7 +45,7 @@ public:
         uint length;
     };
 
-    Set set;
+    MessageSet set;
     bool peek;
     // we want to ask for...
     bool uid;

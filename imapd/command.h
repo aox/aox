@@ -8,7 +8,7 @@
 class IMAP;
 class Arena;
 class Log;
-class Set;
+class MessageSet;
 
 
 class Command
@@ -61,7 +61,7 @@ public:
     String string();
     String nstring();
     String astring();
-    Set set( bool );
+    MessageSet set( bool );
     uint msn();
     String flag();
     void end();
