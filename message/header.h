@@ -23,7 +23,7 @@ public:
     String error() const;
 
     enum Type {
-        From, ResentFrom,
+        From = 1, ResentFrom,
         Sender, ResentSender,
         ReturnPath,
         ReplyTo,
