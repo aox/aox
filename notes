@@ -241,17 +241,6 @@ SASL NTLM authentication
   description. Cyrus also implements it.
 
 
-Per-MTA installation and use
-
-  We need http://www.oryx.com/mailstore/exim.html and friends, plus a
-  section in src/doc/mailstore.man.
-
-  MTAs worth documenting in this way: Postfix, sendmail, exim,
-  qmail/netqmail. More?
-
-  Notify mike@waspfactory.org
-
-
 Schema documentation
 
   I've done all I want to sql-schema.html and postgres.schema; I'll have
