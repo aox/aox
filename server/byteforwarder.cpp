@@ -22,7 +22,6 @@
 ByteForwarder::ByteForwarder( int s )
     : Connection( s, Pipe )
 {
-    setBlocking( false );
 }
 
 
@@ -44,6 +43,8 @@ void ByteForwarder::react( Event e )
     case Connect:
     case Error:
     case Close:
+        setState( Closing );
+        s->setState( Closing );
         break;
 
     case Shutdown:
