@@ -94,8 +94,8 @@ int IMAP::react(Event e)
         result = 0;
         break;
     }
-    runCommands();
     d->logger->commit();
+    runCommands();
     if ( state() == Logout )
         result = 0;
     if ( result )
