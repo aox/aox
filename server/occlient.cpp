@@ -104,7 +104,7 @@ void OCClient::parse()
     int i = s->find( ' ' );
     String tag = s->mid( 0, i );
     int j = s->find( ' ', i+1 );
-    String msg = s->mid( i, j-1 ).lower().stripCRLF();
+    String msg = s->mid( i+1, j-i-1 ).lower().stripCRLF();
     String arg = s->mid( j+1 ).stripCRLF();
 
     log( "OCClient received tag " + tag + " message " + msg +
@@ -147,7 +147,7 @@ void OCClient::updateMailbox( const String & arg )
         log( "Mailbox name not quoted: " + mailboxName, Log::Error );
         return;
     }
-    Mailbox * m = Mailbox::obtain( mailboxName.unquoted() );
+    Mailbox * m = Mailbox::obtain( mailboxName.unquoted(), true );
     if ( !m ) {
         log( "Mailbox name syntactically invalid: " + mailboxName.unquoted(),
              Log::Error );
@@ -164,7 +164,7 @@ void OCClient::updateMailbox( const String & arg )
             log( "OCClient undeleted mailbox " + m->name(), Log::Debug );
         m->setDeleted( false );
     }
-    if ( rest.startsWith( " uidnext=" ) ) {
+    else if ( rest.startsWith( " uidnext=" ) ) {
         bool ok;
         uint n = rest.mid( 9 ).number( &ok );
         if ( !ok ) {
