@@ -14,6 +14,9 @@
 
 #include <stdlib.h>
 
+#include "cryptlib.h"
+
+
 int main( int, char *[] )
 {
     Arena firstArena;
