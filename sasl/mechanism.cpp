@@ -183,12 +183,16 @@ void SaslMechanism::query()
         d->user->refresh( command() );
     }
 
-    // ick. how to preserve testability and still use the database nicely?
-    d->storedSecret = d->user->secret();
-    if ( d->user->state() == User::Nonexistent )
-        d->storedSecret = d->secret + " is not correct";
+    // Stopgap hack to block the race condition whereby the User may
+    // refer to an inbox which isn't known by Mailbox.
+    if ( !d->user->inbox() && d->user->state() == User::Refreshed )
+        setState( Failed );
+    else if ( d->user->state() == User::Nonexistent )
+        setState( Failed );
+    else
+        d->storedSecret = d->user->secret();
 
-    if ( d->user->state() != User::Unverified )
+    if ( state() == Authenticating && d->user->state() != User::Unverified )
         verify();
 }
 
