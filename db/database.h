@@ -3,12 +3,6 @@
 
 #include "connection.h"
 
-class Query;
-class String;
-class Endpoint;
-class Transaction;
-class PreparedStatement;
-
 
 class Database
     : public Connection
@@ -21,12 +15,13 @@ public:
     };
 
     static void setup();
-    static Database * handle();
-    static void query( Query * );
+    static Database *handle();
 
     virtual bool ready() = 0;
-    virtual void prepare( PreparedStatement * ) = 0;
-    virtual void submit( Query * ) = 0;
+    virtual void reserve() = 0;
+    virtual void release() = 0;
+    virtual void enqueue( class Query * ) = 0;
+    virtual void execute() = 0;
 
 protected:
     static String type();
@@ -38,5 +33,6 @@ protected:
     static void addHandle( Database * );
     static void removeHandle( Database * );
 };
+
 
 #endif

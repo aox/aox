@@ -13,8 +13,11 @@ public:
     Postgres();
 
     bool ready();
-    void submit( Query * );
-    void prepare( PreparedStatement * );
+    void reserve();
+    void release();
+    void enqueue( class Query * );
+    void execute();
+
     void react( Event e );
 
 private:
@@ -28,7 +31,7 @@ private:
 
     bool haveMessage();
     Row *composeRow( const class PgDataRow & );
-    void processQuery( Query * );
 };
+
 
 #endif

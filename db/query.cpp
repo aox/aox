@@ -10,13 +10,12 @@
 class QueryData {
 public:
     QueryData()
-        : state( Query::Inactive ),
-          error( "" ), query( "" ),
+        : state( Query::Inactive ), operation( Query::Execute ),
           transaction( 0 ), command( 0 ), totalRows( 0 )
     {}
 
     Query::State state;
-    String error;
+    Query::Operation operation;
 
     String name;
     String query;
@@ -26,6 +25,8 @@ public:
     EventHandler * command;
     List< Row > rows;
     uint totalRows;
+
+    String error;
 };
 
 
@@ -33,7 +34,8 @@ public:
     This class represents a single database query.
 
     A Query is typically created by (or for, or with) a EventHandler,
-    has parameter values bound to it with bind(), and is execute()d.
+    has parameter values bound to it with bind(), and is execute()d
+    (or prepare()d, or enqueue()d as part of a Transaction).
 
     Once the Query is executed, the Database informs its owner() of any
     interesting events (e.g. the arrival of results, timeouts, failures,
@@ -45,7 +47,7 @@ public:
     which can be read and removed from the list by calling nextRow().
     The query keeps track of the total number of rows() received.
 
-    \sa Row
+    \sa Row Transaction
 */
 
 
@@ -86,6 +88,17 @@ Query::Query( const PreparedStatement &ps, EventHandler *cmd )
 /*! \fn Query::~Query()
     This virtual destructor exists only so that subclasses can define their own.
 */
+
+
+/*! This function returns the operation that this query represents,
+    which may be any of Begin, Execute, Prepare, Commit, or Rollback
+    (as defined in Query::Operation).
+*/
+
+Query::Operation Query::operation() const
+{
+    return d->operation;
+}
 
 
 /*! Returns the state of this object, which may be one of the following:
@@ -154,7 +167,17 @@ void Query::setTransaction( Transaction *t )
 }
 
 
-/*! Binds the String value \a s to the parameter \a n of this Query.
+/*! Binds the integer value \a s to the parameter \a n of this Query.
+*/
+
+void Query::bind( uint n, int s )
+{
+    bind( n, String::fromNumber( s ) );
+}
+
+
+/*! \overload
+    Binds the String value \a s to the parameter \a n of this Query.
 */
 
 void Query::bind( uint n, const String &s )
@@ -164,13 +187,15 @@ void Query::bind( uint n, const String &s )
 }
 
 
-/*! \overload
-    Binds the integer value \a s to the parameter \a n of this Query.
+/*! This functions submits this Query to the database as a request to
+    prepare the statement \a name from the query string.
 */
 
-void Query::bind( uint n, int s )
+void Query::prepare( const String &name )
 {
-    bind( n, String::fromNumber( s ) );
+    d->name = name;
+    d->operation = Prepare;
+    execute();
 }
 
 
@@ -180,7 +205,16 @@ void Query::bind( uint n, int s )
 
 void Query::execute()
 {
-    Database::query( this );
+    setState( Submitted );
+
+    Database *db = Database::handle();
+    if ( !db ) {
+        setError( "No available database handle." );
+        return;
+    }
+
+    db->enqueue( this );
+    db->execute();
 }
 
 

@@ -3,6 +3,7 @@
 #include "database.h"
 #include "query.h"
 #include "event.h"
+#include "list.h"
 
 
 class TransactionData {
@@ -13,6 +14,7 @@ public:
 
     Database *db;
     Transaction::State state;
+    List< Query > queries;
 };
 
 
@@ -31,6 +33,15 @@ Transaction::Transaction()
 }
 
 
+/*! Sets this Transaction's state to \a s.
+*/
+
+void Transaction::setState( State s )
+{
+    d->state = s;
+}
+
+
 /*! Returns the state of this Transaction, which may be Inactive (if it
     has not yet been begun), Executing, Completed, or Failed.
 */
@@ -41,12 +52,13 @@ Transaction::State Transaction::state() const
 }
 
 
-/*! Sets this Transaction's state to \a s.
+/*! Returns true only if this Transaction has failed, and false if it
+    succeeded, or is in progress.
 */
 
-void Transaction::setState( State s )
+bool Transaction::failed() const
 {
-    d->state = s;
+    return d->state == Failed;
 }
 
 
@@ -60,14 +72,27 @@ bool Transaction::done() const
 }
 
 
-/*! Executes the query \a q within this transaction.
+/*! Enqueues the query \a q within this transaction.
     The BEGIN will be sent before the first such query.
 */
 
-void Transaction::execute( Query *q )
+void Transaction::enqueue( Query *q )
 {
+    q->setState( Query::Submitted );
     q->setTransaction( this );
-    d->db->submit( q );
+    d->queries.append( q );
+}
+
+
+/*! Executes the queries enqueue()d so far.
+*/
+
+void Transaction::execute()
+{
+    List< Query >::Iterator it( d->queries.first() );
+    while ( it )
+        d->db->enqueue( it++ );
+    d->db->execute();
 }
 
 
@@ -93,6 +118,6 @@ void Transaction::end()
     };
 
     Query *q = new Query( "commit", new CommitHandler( this ) );
-    q->setTransaction( this );
-    d->db->submit( q );
+    enqueue( q );
+    execute();
 }

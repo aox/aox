@@ -9,11 +9,13 @@ public:
     Transaction();
 
     enum State { Inactive, Executing, Completed, Failed };
-    State state() const;
     void setState( State );
+    State state() const;
+    bool failed() const;
     bool done() const;
 
-    void execute( Query * );
+    void enqueue( Query * );
+    void execute();
     void end();
 
 private:

@@ -19,9 +19,10 @@ public:
     Query( const PreparedStatement &, EventHandler * );
     virtual ~Query() {}
 
-    enum State {
-        Inactive, Submitted, Preparing, Executing, Completed, Failed
-    };
+    enum Operation { Begin, Execute, Prepare, Commit, Rollback };
+    Operation operation() const;
+
+    enum State { Inactive, Submitted, Executing, Completed, Failed };
     void setState( State );
     State state() const;
     bool failed() const;
@@ -29,6 +30,11 @@ public:
 
     Transaction *transaction() const;
     void setTransaction( Transaction * );
+
+    void bind( uint, int );
+    void bind( uint, const String & );
+    void prepare( const String & );
+    void execute();
 
     class Value {
     public:
@@ -46,10 +52,6 @@ public:
         int n;
         String d;
     };
-
-    void bind( uint, const String & );
-    void bind( uint, int );
-    void execute();
 
     virtual String name() const;
     virtual String string() const;

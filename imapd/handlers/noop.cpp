@@ -29,15 +29,15 @@ void Noop::execute()
         q2 = new Query( "select currval('foo_id_seq')::integer as id", this );
         q1 = new Query( "insert into foo (bar) values ($1)", this );
         q1->bind( 1, "Foo" );
-        t->execute( q1 );
-        t->execute( q2 );
+        t->enqueue( q1 );
+        t->enqueue( q2 );
         t->end();
     }
 
     if ( !q2->done() )
         return;
 
-    if ( t->state() != Transaction::Failed ) {
+    if ( !t->failed() ) {
         int n = *(q2->nextRow()->getInt( "id" ));
         respond( "OK " + String::fromNumber( n ) );
     }

@@ -11,6 +11,7 @@
 #include "pgmessage.h"
 #include "transaction.h"
 
+// crypt
 #define _XOPEN_SOURCE
 #include <unistd.h>
 
@@ -18,27 +19,30 @@
 class PgData {
 public:
     PgData()
-        : l( new Log( Log::Database ) ),
+        : l( new Log( Log::Database ) ), status( Idle ),
           active( false ), startup( false ), authenticated( false ),
-          unknownMessage( false ), transaction( 0 ),
-          transactionSubmitted( false )
+          reserved( false ), unknownMessage( false ),
+          keydata( 0 ), description( 0 ), transaction( 0 )
     {}
 
     Log *l;
 
+    Status status;
+
     bool active;
     bool startup;
     bool authenticated;
+
+    bool reserved;
     bool unknownMessage;
 
     PgKeyData *keydata;
     Dict< String > params;
     PgRowDescription *description;
-    Status status;
 
     List< Query > queries;
+    List< Query > pending;
     Transaction *transaction;
-    bool transactionSubmitted;
 };
 
 
@@ -61,7 +65,6 @@ public:
     and it depends on the untested libpq. The others aren't much better.
 */
 
-
 /*! Creates a Postgres object, initiates a TCP connection to the server,
     registers with the main loop, and adds this Database to the list of
     available handles.
@@ -77,49 +80,109 @@ Postgres::Postgres()
 }
 
 
-/*! Returns true only if this object is ready to accept another query.
-*/
+/*! \reimp */
 
 bool Postgres::ready()
 {
-    /* We would prefer to accept queries only after connecting to the
-       server, but we accept them earlier in order to avoid orphaned
-       queries that will not be notified if we can't connect. */
-
-    return d->queries.count() <= 3 && !d->transactionSubmitted;
+    return d->pending.count() <= 5 && !d->reserved;
 }
 
 
-/*! This function adds a \a query to this object's queue, and sends it
-    to the database immediately if no other query is outstanding. The
-    state of \a query is set to Query::Executing if it was sent, and
-    to Query::Submitted if it was queued for later transmission.
+/*! \reimp */
 
-    Don't submit a query unless this Database is ready() for one.
-*/
-
-void Postgres::submit( Query *query )
+void Postgres::reserve()
 {
-    if ( query->transaction() != 0 )
-        d->transactionSubmitted = true;
-
-    d->queries.append( query );
-    query->setState( Query::Submitted );
-    if ( d->queries.count() == 1 )
-        processQuery( query );
+    d->reserved = true;
 }
 
 
-/*! This function adds \a ps to this object's queue and sets its state
-    to Query::Preparing. It behaves like submit().
-*/
+/*! \reimp */
 
-void Postgres::prepare( PreparedStatement *ps )
+void Postgres::release()
 {
-    d->queries.append( ps );
-    ps->setState( Query::Preparing );
-    if ( d->queries.count() == 1 )
-        processQuery( ps );
+    d->reserved = false;
+}
+
+
+/*! \reimp */
+
+void Postgres::enqueue( class Query *q )
+{
+    if ( q->transaction() != 0 )
+        d->reserved = true;
+    d->pending.append( q );
+}
+
+
+/*! \reimp */
+
+void Postgres::execute()
+{
+    List< Query >::Iterator it( d->pending.first() );
+
+    if ( !it )
+        return;
+
+    if ( !d->active || d->startup )
+        return;
+
+    while ( it ) {
+        if ( it->state() != Query::Submitted )
+            break;
+
+        Query *q = d->pending.take( it );
+        q->setState( Query::Executing );
+        d->queries.append( q );
+
+        if ( q->operation() == Query::Prepare ) {
+            PgParse a( q->string(), q->name() );
+            a.enqueue( writeBuffer() );
+
+            PgSync b;
+            b.enqueue( writeBuffer() );
+        }
+        else if ( !q->values()->isEmpty() ) {
+            if ( d->transaction == 0 && q->transaction() != 0 ) {
+                d->transaction = q->transaction();
+                d->transaction->setState( Transaction::Executing );
+                PgParse a( "begin" );
+                a.enqueue( writeBuffer() );
+
+                PgBind b;
+                b.enqueue( writeBuffer() );
+
+                PgExecute c;
+                c.enqueue( writeBuffer() );
+            }
+
+            if ( q->name() == "" ) {
+                PgParse a( q->string() );
+                a.enqueue( writeBuffer() );
+            }
+
+            PgBind b( q->name() );
+            b.bind( q->values() );
+            b.enqueue( writeBuffer() );
+
+            PgDescribe c;
+            c.enqueue( writeBuffer() );
+
+            PgExecute d;
+            d.enqueue( writeBuffer() );
+
+            PgSync e;
+            e.enqueue( writeBuffer() );
+        }
+        else {
+            PgQuery pq( q->string() );
+            pq.enqueue( writeBuffer() );
+            q->setState( Query::Executing );
+        }
+    }
+
+    if ( writeBuffer()->size() > 0 )
+        extendTimeout( 5 );
+    write();
 }
 
 
@@ -353,7 +416,7 @@ void Postgres::process( char type )
             if ( d->transaction ) {
                 if ( d->status == Idle ) {
                     d->transaction->setState( Transaction::Completed );
-                    d->transactionSubmitted = false;
+                    d->reserved = false;
                     d->queries.take( q );
                     d->transaction = 0;
                     return;
@@ -366,17 +429,14 @@ void Postgres::process( char type )
             if ( !q )
                 return;
 
-            if ( q->state() == Query::Executing ||
-                 q->state() == Query::Preparing )
-            {
+            if ( q->state() == Query::Executing ) {
                 q->setState( Query::Completed );
                 q->notify();
                 d->queries.take( q );
             }
 
-            if ( q )
-                processQuery( q );
-            else
+            execute();
+            if ( d->queries.count() == 0 )
                 setTimeout( 0 );
         }
         break;
@@ -462,11 +522,12 @@ void Postgres::unknown( char type )
 
 void Postgres::error( const String &s )
 {
+    uint list = 0;
     d->active = false;
     log( Log::Error, s );
     d->l->commit();
 
-    List< Query >::Iterator q = d->queries.first();
+    List< Query >::Iterator q( d->queries.first() );
     while ( q ) {
         Transaction *t = q->transaction();
         if ( t )
@@ -474,6 +535,11 @@ void Postgres::error( const String &s )
         q->setError( s );
         q->notify();
         q++;
+
+        if ( !q && list == 0 ) {
+            q = d->pending.first();
+            list = 1;
+        }
     }
 
     writeBuffer()->remove( writeBuffer()->size() );
@@ -492,63 +558,6 @@ bool Postgres::haveMessage()
          b->size() < 1+( (uint)(*b)[1]>>24|(*b)[2]>>16|(*b)[3]>>8|(*b)[4] ) )
         return false;
     return true;
-}
-
-
-/*! Translates \a query into a series of Postgres messages and sends
-    them to the server.
-*/
-
-void Postgres::processQuery( Query *query )
-{
-    if ( !d->active || d->startup )
-        return;
-
-    if ( query->state() == Query::Preparing ) {
-        PgParse a( query->string(), query->name() );
-        PgSync b;
-
-        a.enqueue( writeBuffer() );
-        b.enqueue( writeBuffer() );
-    }
-    else if ( !query->values()->isEmpty() ) {
-        query->setState( Query::Executing );
-
-        if ( d->transaction == 0 && query->transaction() != 0 ) {
-            d->transaction = query->transaction();
-            d->transaction->setState( Transaction::Executing );
-            PgParse a( "begin" );
-            PgBind b;
-            PgExecute c;
-
-            a.enqueue( writeBuffer() );
-            b.enqueue( writeBuffer() );
-            c.enqueue( writeBuffer() );
-        }
-
-        if ( query->name() == "" ) {
-            PgParse a( query->string() );
-            a.enqueue( writeBuffer() );
-        }
-
-        PgBind b( query->name() );
-        b.bind( query->values() );
-        PgDescribe c;
-        PgExecute d;
-        PgSync e;
-
-        b.enqueue( writeBuffer() );
-        c.enqueue( writeBuffer() );
-        d.enqueue( writeBuffer() );
-        e.enqueue( writeBuffer() );
-    }
-    else {
-        query->setState( Query::Executing );
-        PgQuery pq( query->string() );
-        pq.enqueue( writeBuffer() );
-    }
-
-    extendTimeout( 5 );
 }
 
 

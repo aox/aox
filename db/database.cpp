@@ -1,16 +1,11 @@
-/*! \class Database database.h
-    Database interface class.
-*/
-
 #include "database.h"
 
 #include "arena.h"
 #include "scope.h"
-#include "string.h"
-#include "query.h"
 #include "list.h"
-#include "log.h"
+#include "string.h"
 #include "configuration.h"
+#include "log.h"
 
 #include "postgres.h"
 
@@ -21,26 +16,41 @@ static String *t, *n, *u, *p;
 static List< Database > handles;
 
 
-/*! Creates a new Database object. */
+/*! \class Database database.h
+    This class represents a connection to the database server.
+
+    Callers are expected to acquire a handle(), enqueue() any number of
+    Query objects, and execute() them. Most people will use this class
+    through the Query or Transaction classes.
+*/
+
+/*! \reimp */
 
 Database::Database()
     : Connection()
 {
+    setType( Connection::DatabaseClient );
 }
 
 
-/*! Tries to create the first database handle, and exits if it can't.
-    Expects to be called from ::main().
+/*! This setup function expects to be called from ::main().
+
+    It reads and validates the database configuration variables to the
+    best of its limited ability (since connection negotiation must be
+    left to each subclass), and tries to create the first handle. It
+    logs a disaster if it fails.
 */
 
 void Database::setup()
 {
-    Configuration::Text   db(     "db",     "postgres" );
-    Configuration::Text   dbHost( "dbhost", "127.0.0.1" );
+    Scope x( &dbArena );
+
+    Configuration::Text db("db", "postgres" );
+    Configuration::Text dbUser( "dbuser", "oryx" );
+    Configuration::Text dbPass( "dbpass", "" );
+    Configuration::Text dbName( "dbname", "imap" );
+    Configuration::Text dbHost( "dbhost", "127.0.0.1" );
     Configuration::Scalar dbPort( "dbport", 5432 );
-    Configuration::Text   dbUser( "dbuser", "oryx" );
-    Configuration::Text   dbPass( "dbpass", "" );
-    Configuration::Text   dbName( "dbname", "imap" );
 
     t = new String( db );
     u = new String( dbUser );
@@ -61,19 +71,22 @@ void Database::setup()
 }
 
 
-/*! This function returns a pointer to a Database object that is ready()
-    to accept queries. If it can't find an existing handle, it creates a
-    new one of the type specified in the configuration file. Returns 0
-    if the database type is unsupported.
+/*! This static function returns a pointer to a Database object that's
+    ready() to accept queries. If it can't find an existing handle, it
+    creates a new one of the type specified in the configuration file.
+    It returns 0 if the database type is unsupported.
+
+    Note: Although the handle says it is ready(), it may not be usable
+    until it has successfully negotiated a connection. This might be a
+    bug, but it's not clear where.
 */
 
-Database * Database::handle()
+Database *Database::handle()
 {
     Scope x( &dbArena );
-    List< Database >::Iterator it;
-    Database *db = 0;
 
-    it = handles.first();
+    Database *db = 0;
+    List< Database >::Iterator it( handles.first() );
     while ( it ) {
         if ( it->ready() ) {
             db = it;
@@ -82,7 +95,7 @@ Database * Database::handle()
         it++;
     }
 
-    // XXX: We want to do some sort of rate limiting here.
+    // XXX: We should do some sort of rate limiting here.
     if ( !db ) {
         String type = Database::type().lower();
 
@@ -94,36 +107,60 @@ Database * Database::handle()
 }
 
 
-/*! Submits the Query \a q to the database. */
-
-void Database::query( Query * q )
-{
-    Database * db = handle();
-    if ( !db ) {
-        q->setState( Query::Failed );
-        q->setError( "Couldn't find a database connection." );
-        return;
-    }
-    db->submit( q );
-}
-
-
 /*! \fn bool Database::ready()
 
-    This function must be implemented by subclasses to return true if a
-    Database handle is ready to accept a Query via submit().
+    This function returns true when a database object is ready to accept
+    a Query via enqueue(). It will return false after reserve() has been
+    has been called, or, for example, if it has too many pending queries
+    already.
+
+    Each Database subclass must implement this function.
 */
 
-/*! \fn void Database::submit( Query *q )
+/*! \fn void Database::reserve()
 
-    This function must be implemented by subclasses to accept the Query
-    \a q for submission to the Database server.
+    This function reserves a database handle for use by the caller. That
+    is, it will not be ready() to accept queries until it is release()d.
+    For example, one could reserve a handle(), then enqueue() a sequence
+    of queries, and execute() them all at once before releasing it. This
+    is how Transaction objects work.
+
+    Handles may be reserved only if they are ready(). Reserving a handle
+    that has already been reserved does nothing.
+
+    Each Database subclass must implement this function.
 */
 
-/*! \fn void Database::prepare( PreparedStatement *ps )
+/*! \fn void Database::release()
 
-    This function must be implemented by subclasses to accept the
-    PreparedStatement \a ps for submission to the Database server.
+    This function releases a previously reserved database handle, making
+    it ready() to accept queries again. A handle should be released only
+    by the object that reserved it. Releasing an unreserved handle does
+    nothing.
+
+    Each Database subclass must implement this function.
+*/
+
+/*! \fn void Database::enqueue( class Query *query )
+
+    This function adds \a query to the database handle's list of queries
+    pending submission to the database server. The Query::state() is not
+    changed. The caller (usually Query::execute()) must set the state to
+    Query::Submitted before calling execute().
+
+    Enqueuing a query with a Query::transaction() set will automatically
+    reserve() the handle until the end of the transaction. An enqueue()d
+    query SHOULD be immediately executed unless the handle is reserved.
+
+    Don't enqueue() a Query unless the Database is ready() for one.
+*/
+
+/*! \fn void Database::execute()
+
+    This function sends enqueue()d queries to the database server in the
+    same order that they were enqueued, and stops when it encounters the
+    first query whose Query::state() is not Query::Submitted. The state
+    of each query that was sent is set to Query::Executing.
 */
 
 
@@ -131,23 +168,42 @@ void Database::query( Query * q )
     handle() function which Database subclass to instantiate.
 */
 
-String Database::type() { return *t; }
+String Database::type()
+{
+    return *t;
+}
+
 
 /*! Returns the configured address of the database server. */
 
-Endpoint Database::server() { return *srv; }
+Endpoint Database::server()
+{
+    return *srv;
+}
 
-/*! Returns our configured database name. */
 
-String Database::name() { return *n; }
+/*! Returns the configured database name. */
 
-/*! Returns our configured database username. */
+String Database::name()
+{
+    return *n;
+}
 
-String Database::user() { return *u; }
 
-/*! Returns our configured database password. */
+/*! Returns the configured database username. */
 
-String Database::password() { return *p; }
+String Database::user()
+{
+    return *u;
+}
+
+
+/*! Returns the configured database password. */
+
+String Database::password()
+{
+    return *p;
+}
 
 
 /*! Adds \a d to the pool of active database connections. */
@@ -155,7 +211,7 @@ String Database::password() { return *p; }
 void Database::addHandle( Database * d )
 {
     Scope x( &dbArena );
-    handles.append(d);
+    handles.append( d );
 }
 
 
@@ -164,5 +220,5 @@ void Database::addHandle( Database * d )
 void Database::removeHandle( Database * d )
 {
     Scope x( &dbArena );
-    handles.take( handles.find(d) );
+    handles.take( handles.find( d ) );
 }
