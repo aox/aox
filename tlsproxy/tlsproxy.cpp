@@ -257,7 +257,7 @@ void TlsProxy::react( Event e )
         break;
     }
 
-    if ( d->state == Initial )
+    if ( d->state == TlsProxyData::Initial )
         return;
 
     if ( !::serverside || !::userside ||

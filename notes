@@ -46,6 +46,12 @@ EXPUNGE fixes:
   FETCH is as good as any of those four. Less advanced, but a lot
   simpler.
 
+  Hm. There is a bit of a race condition, e.g. if store and expunge
+  are sent at the same time, or very nearly so. One of them will be
+  processed first. If that's expunge, store will fail with a "no -
+  database error". I suppose that's okay. It only happens if the store
+  is processed before we spread the word about the expunged message.
+
 
 Bodypart sharing
 
