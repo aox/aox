@@ -56,6 +56,7 @@ public:
             // XXX: We shouldn't be doing this if reconnect() is to do
             // something useful. Should fix later. -- AMS
             delete owner;
+            owner = 0;
             Loop::shutdown();
             break;
         }

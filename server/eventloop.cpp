@@ -119,15 +119,6 @@ void EventLoop::start()
             if ( !c->active() )
                 continue;
 
-            // This is so that Halfpipes can be closed by their partner.
-            if ( c->state() == Connection::Closing &&
-                 !c->canWrite() )
-            {
-                removeConnection( c );
-                delete c;
-                continue;
-            }
-
             int fd = c->fd();
             if ( c->canRead() && c->state() != Connection::Closing )
                 FD_SET( fd, &r );
@@ -299,12 +290,8 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
     // Should we really do this?
     c->commit();
 
-    if ( !c->valid() ) {
-        // XXX: This is on crack, somehow. The Connection subclasses all
-        // call removeConnection( this ); but which call to kill? -- AMS
-        removeConnection( c );
+    if ( !c->valid() )
         delete c;
-    }
 }
 
 
