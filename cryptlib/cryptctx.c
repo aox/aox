@@ -1,0 +1,2110 @@
+/****************************************************************************
+*																			*
+*					  cryptlib Encryption Context Routines					*
+*						Copyright Peter Gutmann 1992-2003					*
+*																			*
+****************************************************************************/
+
+/* "Modern cryptography is nothing more than a mathematical framework for
+	debating the implications of various paranoid delusions"
+												- Don Alvarez */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "crypt.h"
+#ifdef INC_ALL
+  #include "asn1_rw.h"
+  #include "context.h"
+#else
+  #include "misc/asn1_rw.h"
+  #include "misc/context.h"
+#endif /* Compiler-specific includes */
+
+/* The default size of the salt for PKCS #5v2 key derivation, needed when we
+   set the CRYPT_CTXINFO_KEYING_VALUE */
+
+#define PKCS5_SALT_SIZE		8	/* 64 bits */
+
+/* Prototypes for functions in cryptkey.c */
+
+void initKeyHandling( CONTEXT_INFO *contextInfoPtr );
+
+/* Prototypes for functions in lib_krw.c */
+
+void initKeyReadWrite( CONTEXT_INFO *contextInfoPtr );
+
+/****************************************************************************
+*																			*
+*								Utility Functions							*
+*																			*
+****************************************************************************/
+
+/* Exit after setting extended error information */
+
+static int exitError( CONTEXT_INFO *contextInfoPtr,
+					  const CRYPT_ATTRIBUTE_TYPE errorLocus,
+					  const CRYPT_ERRTYPE_TYPE errorType, const int status )
+	{
+	setErrorInfo( contextInfoPtr, errorLocus, errorType );
+	return( status );
+	}
+
+static int exitErrorInited( CONTEXT_INFO *contextInfoPtr,
+							const CRYPT_ATTRIBUTE_TYPE errorLocus )
+	{
+	return( exitError( contextInfoPtr, errorLocus, 
+					   CRYPT_ERRTYPE_ATTR_PRESENT, CRYPT_ERROR_INITED ) );
+	}
+
+static int exitErrorNotInited( CONTEXT_INFO *contextInfoPtr,
+							   const CRYPT_ATTRIBUTE_TYPE errorLocus )
+	{
+	return( exitError( contextInfoPtr, errorLocus, 
+					   CRYPT_ERRTYPE_ATTR_ABSENT, CRYPT_ERROR_NOTINITED ) );
+	}
+
+static int exitErrorNotFound( CONTEXT_INFO *contextInfoPtr,
+							  const CRYPT_ATTRIBUTE_TYPE errorLocus )
+	{
+	return( exitError( contextInfoPtr, errorLocus, 
+					   CRYPT_ERRTYPE_ATTR_ABSENT, CRYPT_ERROR_NOTFOUND ) );
+	}
+
+/* Check that a capability info record is consistent.  This is a complex
+   function which is called from an assert() macro, so we only need to define
+   it when we're building a debug version */
+
+#ifndef NDEBUG
+
+BOOLEAN capabilityInfoOK( const CAPABILITY_INFO *capabilityInfoPtr,
+						  const BOOLEAN asymmetricOK )
+	{
+	CRYPT_ALGO_TYPE cryptAlgo = capabilityInfoPtr->cryptAlgo;
+
+	/* Check the algorithm and mode parameters */
+	if( cryptAlgo <= CRYPT_ALGO_NONE || cryptAlgo >= CRYPT_ALGO_LAST_MAC || \
+		capabilityInfoPtr->algoName == NULL )
+		return( FALSE );
+
+	/* Make sure that the minimum functions are present */
+	if( isStreamCipher( cryptAlgo ) )
+		{
+		if( capabilityInfoPtr->encryptOFBFunction == NULL || \
+			capabilityInfoPtr->decryptOFBFunction == NULL )
+			return( FALSE );
+		}
+	else
+		if( asymmetricOK )
+			{
+			/* If asymmetric capabilities (eg decrypt but not encrypt,
+			   present in some tinkertoy tokens) are OK, we only check
+			   that there's at least one useful capability available */
+			if( capabilityInfoPtr->decryptFunction == NULL && \
+				capabilityInfoPtr->signFunction == NULL )
+				return( FALSE );
+			}
+		else
+			if( ( capabilityInfoPtr->encryptFunction == NULL || \
+				  capabilityInfoPtr->decryptFunction == NULL ) && \
+				( capabilityInfoPtr->signFunction == NULL || \
+				  capabilityInfoPtr->sigCheckFunction == NULL ) )
+				return( FALSE );
+
+	/* Make sure that the algorithm/mode names will fit inside the query
+	   information structure */
+	if( strlen( capabilityInfoPtr->algoName ) > CRYPT_MAX_TEXTSIZE - 1 )
+		return( FALSE );
+
+	/* Make sure that the algorithm/mode-specific parameters are
+	   consistent */
+	if( capabilityInfoPtr->minKeySize > capabilityInfoPtr->keySize || \
+		capabilityInfoPtr->maxKeySize < capabilityInfoPtr->keySize )
+		return( FALSE );
+	if( cryptAlgo >= CRYPT_ALGO_FIRST_CONVENTIONAL && \
+		cryptAlgo <= CRYPT_ALGO_LAST_CONVENTIONAL )
+		{
+		if( ( capabilityInfoPtr->blockSize < bitsToBytes( 8 ) || \
+        	  capabilityInfoPtr->blockSize > CRYPT_MAX_IVSIZE ) || \
+			( capabilityInfoPtr->minKeySize < bitsToBytes( 40 ) || \
+			  capabilityInfoPtr->maxKeySize > CRYPT_MAX_KEYSIZE ) )
+			return( FALSE );
+		if( capabilityInfoPtr->initKeyParamsFunction == NULL || \
+			!( isStreamCipher( cryptAlgo ) || \
+			   capabilityInfoPtr->blockSize >= bitsToBytes( 64 ) ) )
+			return( FALSE );
+		if( capabilityInfoPtr->initKeyFunction == NULL )
+			return( FALSE );
+		if( ( capabilityInfoPtr->encryptCBCFunction != NULL && \
+			  capabilityInfoPtr->decryptCBCFunction == NULL ) || \
+			( capabilityInfoPtr->encryptCBCFunction == NULL && \
+			  capabilityInfoPtr->decryptCBCFunction != NULL ) )
+			return( FALSE );
+		if( ( capabilityInfoPtr->encryptCFBFunction != NULL && \
+			  capabilityInfoPtr->decryptCFBFunction == NULL ) || \
+			( capabilityInfoPtr->encryptCFBFunction == NULL && \
+			  capabilityInfoPtr->decryptCFBFunction != NULL ) )
+			return( FALSE );
+		if( ( capabilityInfoPtr->encryptOFBFunction != NULL && \
+			  capabilityInfoPtr->decryptOFBFunction == NULL ) || \
+			( capabilityInfoPtr->encryptOFBFunction == NULL && \
+			  capabilityInfoPtr->decryptOFBFunction != NULL ) )
+			return( FALSE );
+		}
+	if( cryptAlgo >= CRYPT_ALGO_FIRST_PKC && \
+		cryptAlgo <= CRYPT_ALGO_LAST_PKC )
+		{
+		if( capabilityInfoPtr->blockSize || \
+			( capabilityInfoPtr->minKeySize < bitsToBytes( 512 ) || \
+			  capabilityInfoPtr->maxKeySize > CRYPT_MAX_PKCSIZE ) )
+			return( FALSE );
+		if( capabilityInfoPtr->initKeyFunction == NULL )
+			return( FALSE );
+		}
+	if( cryptAlgo >= CRYPT_ALGO_FIRST_HASH && \
+		cryptAlgo <= CRYPT_ALGO_LAST_HASH )
+		{
+		if( ( capabilityInfoPtr->blockSize < bitsToBytes( 64 ) || \
+			  capabilityInfoPtr->blockSize > 256 ) || \
+			( capabilityInfoPtr->minKeySize || capabilityInfoPtr->keySize || \
+			  capabilityInfoPtr->maxKeySize ) )
+			return( FALSE );
+		}
+	if( cryptAlgo >= CRYPT_ALGO_FIRST_MAC && \
+		cryptAlgo <= CRYPT_ALGO_LAST_MAC )
+		{
+		if( ( capabilityInfoPtr->blockSize < bitsToBytes( 64 ) || \
+			  capabilityInfoPtr->blockSize > 256 ) || \
+			( capabilityInfoPtr->minKeySize < bitsToBytes( 40 ) || \
+			  capabilityInfoPtr->maxKeySize > CRYPT_MAX_KEYSIZE ) )
+			return( FALSE );
+		if( capabilityInfoPtr->initKeyFunction == NULL )
+			return( FALSE );
+		}
+
+	return( TRUE );
+	}
+#endif /* !NDEBUG */
+
+/* Get information from a capability record */
+
+void getCapabilityInfo( CRYPT_QUERY_INFO *cryptQueryInfo,
+						const CAPABILITY_INFO FAR_BSS *capabilityInfoPtr )
+	{
+	memset( cryptQueryInfo, 0, sizeof( CRYPT_QUERY_INFO ) );
+	strcpy( cryptQueryInfo->algoName, capabilityInfoPtr->algoName );
+	cryptQueryInfo->blockSize = capabilityInfoPtr->blockSize;
+	cryptQueryInfo->minKeySize = capabilityInfoPtr->minKeySize;
+	cryptQueryInfo->keySize = capabilityInfoPtr->keySize;
+	cryptQueryInfo->maxKeySize = capabilityInfoPtr->maxKeySize;
+	}
+
+/* Find the capability record for a given encryption algorithm */
+
+const CAPABILITY_INFO FAR_BSS *findCapabilityInfo(
+					const CAPABILITY_INFO FAR_BSS *capabilityInfoList,
+					const CRYPT_ALGO_TYPE cryptAlgo )
+	{
+	const CAPABILITY_INFO *capabilityInfoPtr;
+
+	/* Find the capability corresponding to the requested algorithm/mode */
+	for( capabilityInfoPtr = capabilityInfoList;
+		 capabilityInfoPtr != NULL;
+		 capabilityInfoPtr = capabilityInfoPtr->next )
+		if( capabilityInfoPtr->cryptAlgo == cryptAlgo )
+			return( capabilityInfoPtr );
+
+	return( NULL );
+	}
+
+/* Initialise key parameters such as the IV and encryption mode, shared by
+   most capabilities.  This is never called directly, but is accessed
+   through function pointers in the capability lists */
+
+int initKeyParams( CONTEXT_INFO *contextInfoPtr, const void *iv,
+				   const int ivLength, const CRYPT_MODE_TYPE mode )
+	{
+	const int ivSize = ( ivLength == CRYPT_USE_DEFAULT ) ? \
+					   contextInfoPtr->capabilityInfo->blockSize : ivLength;
+
+	assert( ( iv != NULL && ( ivLength == CRYPT_USE_DEFAULT || ivLength > 0 ) ) || \
+			( mode != CRYPT_UNUSED ) );
+
+	/* Set the en/decryption mode if required */
+	if( mode != CRYPT_UNUSED )
+		{
+		const CAPABILITY_INFO *capabilityInfoPtr = contextInfoPtr->capabilityInfo;
+		int ( *encryptFunction )( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
+								  int length ) = NULL;
+		int ( *decryptFunction )( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
+								  int length ) = NULL;
+
+		switch( mode )
+			{
+			case CRYPT_MODE_ECB:
+				encryptFunction = capabilityInfoPtr->encryptFunction;
+				decryptFunction = capabilityInfoPtr->decryptFunction;
+				break;
+			case CRYPT_MODE_CBC:
+				encryptFunction = capabilityInfoPtr->encryptCBCFunction;
+				decryptFunction = capabilityInfoPtr->decryptCBCFunction;
+				break;
+			case CRYPT_MODE_CFB:
+				encryptFunction = capabilityInfoPtr->encryptCFBFunction;
+				decryptFunction = capabilityInfoPtr->decryptCFBFunction;
+				break;
+			case CRYPT_MODE_OFB:
+				encryptFunction = capabilityInfoPtr->encryptOFBFunction;
+				decryptFunction = capabilityInfoPtr->decryptOFBFunction;
+				break;
+			default:
+				assert( NOTREACHED );
+				return( CRYPT_ERROR );
+			}
+		if( encryptFunction == NULL )
+			return( CRYPT_ERROR_NOTAVAIL );
+		contextInfoPtr->ctxConv->mode = mode;
+		contextInfoPtr->encryptFunction = encryptFunction;
+		contextInfoPtr->decryptFunction = decryptFunction;
+		}
+
+	/* If there's no IV present, we're done */
+	if( iv == NULL )
+		return( CRYPT_OK );
+
+	/* Load an IV of the required length.  If the supplied IV size is less
+	   than the actual IV size, we pad it to the right with zeroes */
+	contextInfoPtr->ctxConv->ivLength = ivSize;
+	contextInfoPtr->ctxConv->ivCount = 0;
+	memset( contextInfoPtr->ctxConv->iv, 0, CRYPT_MAX_IVSIZE );
+	memcpy( contextInfoPtr->ctxConv->iv, iv, ivSize );
+	memcpy( contextInfoPtr->ctxConv->currentIV, contextInfoPtr->ctxConv->iv,
+			CRYPT_MAX_IVSIZE );
+	contextInfoPtr->flags |= CONTEXT_IV_SET;
+
+	return( CRYPT_OK );
+	}
+
+/* Determine the optimal size for the generated key.  This isn't as easy as
+   just taking the default key size since some algorithms have variable key
+   sizes (RCx) or alternative key sizes where the default isn't necessarily
+   the best choice (two-key vs three-key 3DES) */
+
+static int getKeysize( CONTEXT_INFO *contextInfoPtr,
+					   const int requestedKeyLength )
+	{
+	const CAPABILITY_INFO *capabilityInfoPtr = contextInfoPtr->capabilityInfo;
+	int keyLength, maxKeyLength = capabilityInfoPtr->maxKeySize;
+
+	assert( requestedKeyLength == 0 || \
+			( requestedKeyLength >= bitsToBytes( MIN_KEYSIZE_BITS ) && \
+			  requestedKeyLength <= bitsToBytes( MAX_PKCSIZE_BITS ) ) );
+
+	/* Determine the upper limit on the key size and make sure that the 
+	   requested length is valid */
+	if( requestedKeyLength == 0 )
+		{
+		/* For PKC contexts where we're generating a new key, we want to use
+		   the recommended (rather than the longest possible) key size,
+		   whereas for conventional contexts we want to use the longest
+		   possible size for the session key (this will be adjusted further
+		   down if necessary for those algorithms where it's excessively
+		   long) */
+		keyLength = ( contextInfoPtr->type == CONTEXT_PKC ) ? \
+					capabilityInfoPtr->keySize : maxKeyLength;
+
+		/* Although RC2 will handle keys of up to 1024 bits and RC4 up to 
+		   2048 bits, they're never used with this maximum size but (at 
+		   least in non-crippled implementations) always fixed at 128 bits, 
+		   so we limit them to the default rather than maximum possible 
+		   size */
+		if( capabilityInfoPtr->cryptAlgo == CRYPT_ALGO_RC2 || \
+			capabilityInfoPtr->cryptAlgo == CRYPT_ALGO_RC4 )
+			keyLength = capabilityInfoPtr->keySize;
+		}
+	else
+		{
+		if( requestedKeyLength < capabilityInfoPtr->minKeySize || \
+			requestedKeyLength > maxKeyLength )
+			{
+			setErrorInfo( contextInfoPtr, CRYPT_CTXINFO_KEY, 
+						  CRYPT_ERRTYPE_ATTR_SIZE );
+			return( CRYPT_ARGERROR_NUM1 );
+			}
+		keyLength = requestedKeyLength;
+		}
+
+	/* If we're generating a conventional/MAC key we need to limit the
+	   maximum length in order to make it exportable via the smallest normal
+	   (i.e. non-elliptic-curve) public key */
+	if( contextInfoPtr->type != CONTEXT_PKC && \
+		keyLength > bitsToBytes( MAX_KEYSIZE_BITS ) )
+		keyLength = bitsToBytes( MAX_KEYSIZE_BITS );
+
+	return( keyLength );
+	}
+
+/* Get object subtype-specific information.  This is a shared function that 
+   can be overridden on a per-object-type basis, usually individual values
+   are handled in the override function and anything that's left gets passed
+   down here */
+
+int getInfo( const CAPABILITY_INFO_TYPE type, 
+			 void *varParam, const int constParam )
+	{
+	switch( type )
+		{
+		case CAPABILITY_INFO_KEYSIZE:
+			return( getKeysize( varParam, constParam ) );
+
+		case CAPABILITY_INFO_STATESIZE:
+			return( 0 );
+		}
+
+	assert( NOTREACHED );
+	return( CRYPT_ERROR );
+	}
+
+/* Clear temporary bignum values used during PKC operations */
+
+void clearTempBignums( PKC_INFO *pkcInfo )
+	{
+	BN_clear( &pkcInfo->tmp1 );
+	BN_clear( &pkcInfo->tmp2 );
+	BN_clear( &pkcInfo->tmp3 );
+	BN_CTX_clear( &pkcInfo->bnCTX );
+	}
+
+/* Check that a context meets the given requirements */
+
+#define checkActionPerm( action, perms ) \
+		( MK_ACTION_PERM( ( action ), ACTION_PERM_ALL ) & ( perms ) )
+
+static int checkContext( CONTEXT_INFO *contextInfoPtr,
+						 const MESSAGE_CHECK_TYPE checkType )
+	{
+	const CAPABILITY_INFO *capabilityInfoPtr = contextInfoPtr->capabilityInfo;
+	const CRYPT_ALGO_TYPE cryptAlgo = capabilityInfoPtr->cryptAlgo;
+	int usageCount, actionPerms, status;
+
+	/* Make sure that the object's usage count is still valid.  The usage
+	   count is a type of meta-capability that overrides all other
+	   capabilities in that an object with an expired usage count isn't
+	   valid for anything no matter what the available capabilities are */
+	status = krnlSendMessage( contextInfoPtr->objectHandle,
+							  IMESSAGE_GETATTRIBUTE, &usageCount,
+							  CRYPT_PROPERTY_USAGECOUNT );
+	if( cryptStatusError( status ) || \
+		( usageCount != CRYPT_UNUSED && usageCount <= 0 ) )
+		return( exitError( contextInfoPtr, CRYPT_PROPERTY_USAGECOUNT,
+						   CRYPT_ERRTYPE_ATTR_VALUE, CRYPT_ERROR_PERMISSION ) );
+
+	/* Make sure that the object's action permissions allow the operation */
+	status = krnlSendMessage( contextInfoPtr->objectHandle,
+							  IMESSAGE_GETATTRIBUTE, &actionPerms,
+							  CRYPT_IATTRIBUTE_ACTIONPERMS );
+	if( cryptStatusError( status ) )
+		return( CRYPT_ARGERROR_OBJECT );
+
+	/* If it's a check for a key generation capability (which is algorithm-
+	   type independent), we check it before performing any algorithm-
+	   specific checks */
+	if( checkType == MESSAGE_CHECK_KEYGEN )
+		{
+		if( contextInfoPtr->type == CONTEXT_HASH )
+			return( CRYPT_ERROR_NOTAVAIL );	/* No key for hash algorithms */
+		if( !needsKey( contextInfoPtr ) )
+			return( exitErrorInited( contextInfoPtr, CRYPT_CTXINFO_KEY ) );
+		return( ( capabilityInfoPtr->generateKeyFunction != NULL && \
+				  !checkActionPerm( MESSAGE_CTX_GENKEY, actionPerms ) ) ? \
+				CRYPT_OK : CRYPT_ARGERROR_OBJECT );
+		}
+
+	/* Perform general checks */
+	if( contextInfoPtr->type != CONTEXT_HASH && needsKey( contextInfoPtr ) )
+		return( exitErrorNotInited( contextInfoPtr, CRYPT_CTXINFO_KEY ) );
+
+	/* Check for hash, MAC, and conventional encryption contexts */
+	if( checkType == MESSAGE_CHECK_HASH )
+		return( ( contextInfoPtr->type == CONTEXT_HASH && \
+				  checkActionPerm( MESSAGE_CTX_HASH, actionPerms ) ) ? \
+				CRYPT_OK : CRYPT_ARGERROR_OBJECT );
+	if( checkType == MESSAGE_CHECK_MAC )
+		return( ( contextInfoPtr->type == CONTEXT_MAC && \
+				  checkActionPerm( MESSAGE_CTX_HASH, actionPerms ) ) ? \
+				CRYPT_OK : CRYPT_ARGERROR_OBJECT );
+	if( checkType == MESSAGE_CHECK_CRYPT )
+		return( ( contextInfoPtr->type != CONTEXT_CONV && \
+				  !checkActionPerm( MESSAGE_CTX_ENCRYPT, actionPerms ) ) ? \
+				CRYPT_ARGERROR_OBJECT : CRYPT_OK );
+
+	/* Make sure that it's a PKC context */
+	if( contextInfoPtr->type != CONTEXT_PKC )
+		return( CRYPT_ARGERROR_OBJECT );
+	if( checkType == MESSAGE_CHECK_PKC )
+		return( CRYPT_OK );
+
+	/* Check for key-agreement algorithms */
+	if( isKeyxAlgo( cryptAlgo ) )
+		/* DH can never be used for encryption or signatures (if it is then
+		   we call it Elgamal) and KEA is explicitly for key agreement only.
+		   Note that the status of DH is a bit ambiguous in that every DH key
+		   is both a public and private key since it's a key-agreement
+		   algorithm, in order to avoid confusion in situations where we're
+		   checking for real private keys we always denote a DH context as
+		   key-agreement only without taking a side about whether it's a
+		   public or private key */
+		return( ( checkType == MESSAGE_CHECK_PKC_KA_EXPORT || \
+				  checkType == MESSAGE_CHECK_PKC_KA_IMPORT ) ? \
+				CRYPT_OK : CRYPT_ARGERROR_OBJECT );
+	if( ( checkType == MESSAGE_CHECK_PKC_KA_EXPORT || \
+		  checkType == MESSAGE_CHECK_PKC_KA_IMPORT ) )
+		return( CRYPT_ARGERROR_OBJECT );	/* Must be a key agreement algorithm */
+
+	/* Check that the algorithm complies and the capability is available */
+	switch( checkType )
+		{
+		case MESSAGE_CHECK_PKC_ENCRYPT:
+			if( cryptAlgo == CRYPT_ALGO_DSA )
+				/* Must be an encryption algorithm */
+				return( CRYPT_ARGERROR_OBJECT );
+			if( capabilityInfoPtr->encryptFunction == NULL || \
+				!checkActionPerm( MESSAGE_CTX_ENCRYPT, actionPerms ) )
+				return( CRYPT_ARGERROR_OBJECT );
+			break;
+
+		case MESSAGE_CHECK_PKC_DECRYPT:
+			if( cryptAlgo == CRYPT_ALGO_DSA )
+				/* Must be an encryption algorithm */
+				return( CRYPT_ARGERROR_OBJECT );
+			if( capabilityInfoPtr->decryptFunction == NULL || \
+				!checkActionPerm( MESSAGE_CTX_DECRYPT, actionPerms ) )
+				return( CRYPT_ARGERROR_OBJECT );
+			break;
+
+		case MESSAGE_CHECK_PKC_SIGN:
+			if( capabilityInfoPtr->signFunction == NULL || \
+				!checkActionPerm( MESSAGE_CTX_SIGN, actionPerms ) )
+				return( CRYPT_ARGERROR_OBJECT );
+			break;
+
+		case MESSAGE_CHECK_PKC_SIGCHECK:
+			if( capabilityInfoPtr->sigCheckFunction == NULL || \
+				!checkActionPerm( MESSAGE_CTX_SIGCHECK, actionPerms ) )
+				return( CRYPT_ARGERROR_OBJECT );
+			break;
+
+		case MESSAGE_CHECK_CA:
+			if( capabilityInfoPtr->signFunction == NULL && \
+				capabilityInfoPtr->sigCheckFunction == NULL )
+				return( CRYPT_ARGERROR_OBJECT );
+			if( !checkActionPerm( MESSAGE_CTX_SIGN, actionPerms ) && \
+				!checkActionPerm( MESSAGE_CTX_SIGCHECK, actionPerms ) )
+				return( CRYPT_ARGERROR_OBJECT );
+		}
+
+	/* Check that it's a private key if this is required */
+	if( ( checkType == MESSAGE_CHECK_PKC_PRIVATE || \
+		  checkType == MESSAGE_CHECK_PKC_DECRYPT || \
+		  checkType == MESSAGE_CHECK_PKC_SIGN ) && \
+		( contextInfoPtr->flags & CONTEXT_ISPUBLICKEY ) )
+		return( CRYPT_ARGERROR_OBJECT );
+
+	return( CRYPT_OK );
+	}
+
+/****************************************************************************
+*																			*
+*						Context Attribute Handling Functions				*
+*																			*
+****************************************************************************/
+
+/* Handle data sent to or read from a context */
+
+static int processGetAttribute( CONTEXT_INFO *contextInfoPtr,
+								void *messageDataPtr, const int messageValue )
+	{
+	const CAPABILITY_INFO *capabilityInfoPtr = contextInfoPtr->capabilityInfo;
+	const CONTEXT_TYPE contextType = contextInfoPtr->type;
+	int *valuePtr = ( int * ) messageDataPtr, value;
+
+	switch( messageValue )
+		{
+		case CRYPT_ATTRIBUTE_ERRORTYPE:
+			*valuePtr = contextInfoPtr->errorType;
+			return( CRYPT_OK );
+
+		case CRYPT_ATTRIBUTE_ERRORLOCUS:
+			*valuePtr = contextInfoPtr->errorLocus;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_ALGO:
+			*valuePtr = capabilityInfoPtr->cryptAlgo;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_MODE:
+			assert( contextType == CONTEXT_CONV );
+			*valuePtr = contextInfoPtr->ctxConv->mode;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_KEYSIZE:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_PKC || \
+					contextType == CONTEXT_MAC );
+			if( contextType == CONTEXT_CONV )
+				value = contextInfoPtr->ctxConv->userKeyLength;
+			else
+				if( contextType == CONTEXT_MAC )
+					value = contextInfoPtr->ctxMAC->userKeyLength;
+				else
+					value = bitsToBytes( contextInfoPtr->ctxPKC->keySizeBits );
+			if( !value )
+				/* If a key hasn't been loaded yet, we return the default
+				   key size */
+				value = capabilityInfoPtr->keySize;
+			*valuePtr = value;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_BLOCKSIZE:
+			if( contextType == CONTEXT_CONV && \
+				( contextInfoPtr->ctxConv->mode == CRYPT_MODE_CFB || \
+				  contextInfoPtr->ctxConv->mode == CRYPT_MODE_OFB ) )
+				*valuePtr = 1;	/* Block cipher in stream mode */
+			else
+				*valuePtr = capabilityInfoPtr->blockSize;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_IVSIZE:
+			assert( contextType == CONTEXT_CONV );
+			if( !needsIV( contextInfoPtr->ctxConv->mode ) || \
+				isStreamCipher( capabilityInfoPtr->cryptAlgo ) )
+				return( CRYPT_ERROR_NOTAVAIL );
+			*valuePtr = capabilityInfoPtr->blockSize;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_KEYING_ALGO:
+		case CRYPT_OPTION_KEYING_ALGO:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			if( contextType == CONTEXT_CONV )
+				value = contextInfoPtr->ctxConv->keySetupAlgorithm;
+			else
+				value = contextInfoPtr->ctxMAC->keySetupAlgorithm;
+			if( !value )
+				return( exitErrorNotInited( contextInfoPtr,
+											CRYPT_CTXINFO_KEYING_ALGO ) );
+			*valuePtr = value;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_KEYING_ITERATIONS:
+		case CRYPT_OPTION_KEYING_ITERATIONS:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			if( contextType == CONTEXT_CONV )
+				value = contextInfoPtr->ctxConv->keySetupIterations;
+			else
+				value = contextInfoPtr->ctxMAC->keySetupIterations;
+			if( !value )
+				return( exitErrorNotInited( contextInfoPtr,
+											CRYPT_CTXINFO_KEYING_ITERATIONS ) );
+			*valuePtr = value;
+			return( CRYPT_OK );
+
+		case CRYPT_IATTRIBUTE_KEYFEATURES:
+			assert( contextType == CONTEXT_PKC );
+			*valuePtr = ( contextInfoPtr->flags & CONTEXT_PBO ) ? 1 : 0;
+#ifdef USE_DEVICES
+			*valuePtr |= ( contextInfoPtr->deviceObject > 0 ) ? 2 : 0;
+#endif /* USE_DEVICES */
+			return( CRYPT_OK );
+
+#ifdef USE_DEVICES
+		case CRYPT_IATTRIBUTE_DEVICEOBJECT:
+			if( contextInfoPtr->deviceObject < 0 )
+				return( CRYPT_ERROR_NOTFOUND );
+			*valuePtr = ( int ) contextInfoPtr->deviceObject;
+			return( CRYPT_OK );
+#else
+		case CRYPT_IATTRIBUTE_DEVICEOBJECT:
+			return( CRYPT_ERROR_NOTFOUND );
+#endif /* USE_DEVICES */
+		}
+
+	assert( NOTREACHED );
+	return( CRYPT_ERROR );	/* Get rid of compiler warning */
+	}
+
+static int processGetAttributeS( CONTEXT_INFO *contextInfoPtr,
+								 void *messageDataPtr, const int messageValue )
+	{
+	const CAPABILITY_INFO *capabilityInfoPtr = contextInfoPtr->capabilityInfo;
+	const CONTEXT_TYPE contextType = contextInfoPtr->type;
+	RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+	STREAM stream;
+	int status;
+
+	switch( messageValue )
+		{
+		case CRYPT_CTXINFO_NAME_ALGO:
+			return( attributeCopy( msgData, capabilityInfoPtr->algoName,
+								   strlen( capabilityInfoPtr->algoName ) ) );
+
+		case CRYPT_CTXINFO_NAME_MODE:
+			assert( contextType == CONTEXT_CONV );
+			switch( contextInfoPtr->ctxConv->mode )
+				{
+				case CRYPT_MODE_ECB:
+					return( attributeCopy( msgData, "ECB", 3 ) );
+				case CRYPT_MODE_CBC:
+					return( attributeCopy( msgData, "CBC", 3 ) );
+				case CRYPT_MODE_CFB:
+					return( attributeCopy( msgData, "CFB", 3 ) );
+				case CRYPT_MODE_OFB:
+					return( attributeCopy( msgData, "OFB", 3 ) );
+				}
+			assert( NOTREACHED );
+			break;
+
+		case CRYPT_CTXINFO_KEYING_SALT:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			if( contextType == CONTEXT_CONV )
+				{
+				if( !contextInfoPtr->ctxConv->saltLength )
+					return( exitErrorInited( contextInfoPtr,
+											 CRYPT_CTXINFO_KEYING_SALT ) );
+				return( attributeCopy( msgData, contextInfoPtr->ctxConv->salt,
+									   contextInfoPtr->ctxConv->saltLength ) );
+				}
+			if( !contextInfoPtr->ctxMAC->saltLength )
+				return( exitErrorInited( contextInfoPtr,
+										 CRYPT_CTXINFO_KEYING_SALT ) );
+			return( attributeCopy( msgData, contextInfoPtr->ctxMAC->salt,
+								   contextInfoPtr->ctxMAC->saltLength ) );
+
+		case CRYPT_CTXINFO_IV:
+			assert( contextType == CONTEXT_CONV );
+			if( !needsIV( contextInfoPtr->ctxConv->mode ) || \
+				isStreamCipher( contextInfoPtr->capabilityInfo->cryptAlgo ) )
+				return( CRYPT_ERROR_NOTAVAIL );
+			if( !( contextInfoPtr->flags & CONTEXT_IV_SET ) )
+				return( exitErrorNotInited( contextInfoPtr, CRYPT_CTXINFO_IV ) );
+			return( attributeCopy( msgData, contextInfoPtr->ctxConv->iv,
+								   contextInfoPtr->ctxConv->ivLength ) );
+
+		case CRYPT_CTXINFO_HASHVALUE:
+			assert( contextType == CONTEXT_HASH || \
+					contextType == CONTEXT_MAC );
+			if( !( contextInfoPtr->flags & CONTEXT_HASH_INITED ) )
+				return( CRYPT_ERROR_NOTINITED );
+			if( !( contextInfoPtr->flags & CONTEXT_HASH_DONE ) )
+				return( CRYPT_ERROR_INCOMPLETE );
+			return( attributeCopy( msgData, ( contextType == CONTEXT_HASH ) ? \
+										contextInfoPtr->ctxHash->hash : \
+										contextInfoPtr->ctxMAC->mac,
+								   capabilityInfoPtr->blockSize ) );
+
+		case CRYPT_CTXINFO_LABEL:
+			if( !contextInfoPtr->labelSize )
+				return( exitErrorNotInited( contextInfoPtr,
+											CRYPT_CTXINFO_LABEL ) );
+			return( attributeCopy( msgData, contextInfoPtr->label,
+								   contextInfoPtr->labelSize ) );
+
+		case CRYPT_IATTRIBUTE_KEYID:
+			assert( contextType == CONTEXT_PKC );
+			return( attributeCopy( msgData, contextInfoPtr->ctxPKC->keyID,
+								   KEYID_SIZE ) );
+
+		case CRYPT_IATTRIBUTE_KEYID_PGP:
+			assert( contextType == CONTEXT_PKC );
+			if( contextInfoPtr->capabilityInfo->cryptAlgo != CRYPT_ALGO_RSA )
+				return( CRYPT_ERROR_NOTFOUND );
+			return( attributeCopy( msgData, contextInfoPtr->ctxPKC->pgpKeyID,
+								   PGP_KEYID_SIZE ) );
+
+		case CRYPT_IATTRIBUTE_KEYID_OPENPGP:
+			assert( contextType == CONTEXT_PKC );
+			assert( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA || \
+					contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA || \
+					contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_ELGAMAL );
+			return( attributeCopy( msgData, contextInfoPtr->ctxPKC->openPgpKeyID,
+								   PGP_KEYID_SIZE ) );
+
+#ifdef USE_KEA
+		case CRYPT_IATTRIBUTE_KEY_KEADOMAINPARAMS:
+			assert( contextType == CONTEXT_PKC );
+			return( attributeCopy( msgData, contextInfoPtr->ctxPKC->domainParamPtr,
+								   contextInfoPtr->ctxPKC->domainParamSize ) );
+
+		case CRYPT_IATTRIBUTE_KEY_KEAPUBLICVALUE:
+			assert( contextType == CONTEXT_PKC );
+			return( attributeCopy( msgData, contextInfoPtr->ctxPKC->publicValuePtr,
+								   contextInfoPtr->ctxPKC->publicValueSize ) );
+#else
+		case CRYPT_IATTRIBUTE_KEY_KEADOMAINPARAMS:
+		case CRYPT_IATTRIBUTE_KEY_KEAPUBLICVALUE:
+			return( CRYPT_ERROR_NOTFOUND );
+#endif /* USE_KEA */
+
+		case CRYPT_IATTRIBUTE_KEY_SPKI:
+			assert( contextType == CONTEXT_PKC );
+			assert( contextInfoPtr->flags & CONTEXT_KEY_SET );
+			if( contextInfoPtr->ctxPKC->publicKeyInfo != NULL )
+				/* If the data is available in pre-encoded form, copy it
+				   out */
+				return( attributeCopy( msgData, contextInfoPtr->ctxPKC->publicKeyInfo,
+									   contextInfoPtr->ctxPKC->publicKeyInfoSize ) );
+			/* Drop through */
+
+		case CRYPT_IATTRIBUTE_KEY_SSH1:
+		case CRYPT_IATTRIBUTE_KEY_SSH2:
+			assert( contextType == CONTEXT_PKC );
+			assert( contextInfoPtr->flags & CONTEXT_KEY_SET );
+
+			/* Write the appropriately-formatted key data from the context */
+			sMemOpen( &stream, msgData->data, msgData->length );
+			status = contextInfoPtr->ctxPKC->writePublicKeyFunction( &stream,
+						contextInfoPtr,
+							( messageValue == CRYPT_IATTRIBUTE_KEY_SPKI ) ? \
+								KEYFORMAT_CERT : \
+							( messageValue == CRYPT_IATTRIBUTE_KEY_SSH1 ) ? \
+								KEYFORMAT_SSH1 : KEYFORMAT_SSH2, "public" );
+			if( cryptStatusOK( status ) )
+				msgData->length = stell( &stream );
+			sMemDisconnect( &stream );
+			return( status );
+
+		case CRYPT_IATTRIBUTE_PGPVALIDITY:
+			assert( contextType == CONTEXT_PKC );
+			*( ( time_t * ) msgData->data ) = \
+									contextInfoPtr->ctxPKC->pgpCreationTime;
+			return( CRYPT_OK );
+		}
+
+	assert( NOTREACHED );
+	return( CRYPT_ERROR );	/* Get rid of compiler warning */
+	}
+
+static int processSetAttribute( CONTEXT_INFO *contextInfoPtr,
+								void *messageDataPtr, const int messageValue )
+	{
+	const CAPABILITY_INFO *capabilityInfoPtr = contextInfoPtr->capabilityInfo;
+	const CONTEXT_TYPE contextType = contextInfoPtr->type;
+	const int value = *( ( int * ) messageDataPtr );
+	CRYPT_ALGO_TYPE *algoValuePtr;
+	int *valuePtr;
+	int status;
+
+	switch( messageValue )
+		{
+		case CRYPT_CTXINFO_MODE:
+			assert( contextType == CONTEXT_CONV );
+
+			/* If the mode isn't set to the initial default, it's already
+			   been explicitly set and we can't change it again */
+			if( contextInfoPtr->ctxConv->mode != \
+						( isStreamCipher( capabilityInfoPtr->cryptAlgo ) ? \
+						CRYPT_MODE_OFB : CRYPT_MODE_CBC ) )
+				return( exitErrorInited( contextInfoPtr, CRYPT_CTXINFO_MODE ) );
+
+			/* Set the en/decryption mode */
+			assert( capabilityInfoPtr->initKeyParamsFunction != NULL );
+			return( capabilityInfoPtr->initKeyParamsFunction( contextInfoPtr,
+													NULL, 0, value ) );
+
+		case CRYPT_CTXINFO_KEYSIZE:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_PKC || \
+					contextType == CONTEXT_MAC );
+			assert( capabilityInfoPtr->getInfoFunction != NULL );
+			if( contextType == CONTEXT_CONV )
+				valuePtr = &contextInfoPtr->ctxConv->userKeyLength;
+			else
+				if( contextType == CONTEXT_MAC )
+					valuePtr = &contextInfoPtr->ctxMAC->userKeyLength;
+				else
+					valuePtr = &contextInfoPtr->ctxPKC->keySizeBits;
+			if( *valuePtr )
+				return( exitErrorInited( contextInfoPtr,
+										 CRYPT_CTXINFO_KEYSIZE ) );
+
+			/* Trim the user-supplied value to the correct shape, taking
+			   into account various issues such as limitations with the
+			   underlying crypto code/hardware and the (in)ability to export
+			   overly long keys using short public keys */
+			status = capabilityInfoPtr->getInfoFunction( CAPABILITY_INFO_KEYSIZE,
+														 contextInfoPtr, value );
+			if( cryptStatusError( status ) )
+				return( status );
+			*valuePtr = ( contextType == CONTEXT_PKC ) ? \
+						bytesToBits( status ) : status;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_KEYING_ALGO:
+		case CRYPT_OPTION_KEYING_ALGO:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			algoValuePtr = ( contextType == CONTEXT_CONV ) ? \
+						   &contextInfoPtr->ctxConv->keySetupAlgorithm : \
+						   &contextInfoPtr->ctxMAC->keySetupAlgorithm;
+			if( *algoValuePtr != CRYPT_ALGO_NONE )
+				return( exitErrorInited( contextInfoPtr,
+										 CRYPT_CTXINFO_KEYING_ALGO ) );
+			*algoValuePtr = value;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_KEYING_ITERATIONS:
+		case CRYPT_OPTION_KEYING_ITERATIONS:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			valuePtr = ( contextType == CONTEXT_CONV ) ? \
+					   &contextInfoPtr->ctxConv->keySetupIterations : \
+					   &contextInfoPtr->ctxMAC->keySetupIterations;
+			if( *valuePtr )
+				return( exitErrorInited( contextInfoPtr,
+										 CRYPT_CTXINFO_KEYING_ITERATIONS ) );
+			*valuePtr = value;
+			return( CRYPT_OK );
+
+		case CRYPT_IATTRIBUTE_INITIALISED:
+			return( CRYPT_OK );
+
+		case CRYPT_IATTRIBUTE_KEYSIZE:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_PKC || \
+					contextType == CONTEXT_MAC );
+
+			/* If the key is held outside the context (e.g. in a device), we
+			   need to manually supply key-related information needed by the
+			   context, which in this case is the key size.  Once this is
+			   set, there is (effectively) a key loaded, although the actual
+			   keying values are held anderswhere */
+			switch( contextType )
+				{
+				case CONTEXT_CONV:
+					contextInfoPtr->ctxConv->userKeyLength = value;
+					break;
+
+				case CONTEXT_PKC:
+					if( !contextInfoPtr->labelSize )
+						/* PKC context must have a key label set */
+						return( exitErrorNotInited( contextInfoPtr,
+													CRYPT_CTXINFO_LABEL ) );
+					contextInfoPtr->ctxPKC->keySizeBits = bytesToBits( value );
+					break;
+
+				case CONTEXT_MAC:
+					contextInfoPtr->ctxMAC->userKeyLength = value;
+					break;
+
+				default:
+					assert( NOTREACHED );
+				}
+			contextInfoPtr->flags |= CONTEXT_KEY_SET;
+			return( CRYPT_OK );
+
+		case CRYPT_IATTRIBUTE_DEVICEOBJECT:
+#ifdef USE_DEVICES
+			contextInfoPtr->deviceObject = value;
+#endif /* USE_DEVICES */
+			return( CRYPT_OK );
+		}
+
+	assert( NOTREACHED );
+	return( CRYPT_ERROR );	/* Get rid of compiler warning */
+	}
+
+static int processSetAttributeS( CONTEXT_INFO *contextInfoPtr,
+								 void *messageDataPtr, const int messageValue )
+	{
+	const CAPABILITY_INFO *capabilityInfoPtr = contextInfoPtr->capabilityInfo;
+	const CONTEXT_TYPE contextType = contextInfoPtr->type;
+	const RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+	int status;
+
+	switch( messageValue )
+		{
+		case CRYPT_CTXINFO_KEYING_SALT:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			if( contextType == CONTEXT_CONV )
+				{
+				if( contextInfoPtr->ctxConv->saltLength )
+					return( exitErrorInited( contextInfoPtr,
+											 CRYPT_CTXINFO_KEYING_SALT ) );
+				memcpy( contextInfoPtr->ctxConv->salt, msgData->data,
+						msgData->length );
+				contextInfoPtr->ctxConv->saltLength = msgData->length;
+				return( CRYPT_OK );
+				}
+			if( contextInfoPtr->ctxMAC->saltLength )
+				return( exitErrorInited( contextInfoPtr,
+										 CRYPT_CTXINFO_KEYING_SALT ) );
+			memcpy( contextInfoPtr->ctxMAC->salt, msgData->data,
+					msgData->length );
+			contextInfoPtr->ctxMAC->saltLength = msgData->length;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_KEYING_VALUE:
+			{
+			MECHANISM_DERIVE_INFO mechanismInfo;
+
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			assert( needsKey( contextInfoPtr ) );
+
+			/* Set up various parameters if they're not already set.  Since
+			   there's only one MUST MAC algorithm for PKCS #5v2, we always
+			   force the key derivation algorithm to this value to avoid
+			   interop problems */
+			if( contextType == CONTEXT_CONV )
+				{
+				if( !contextInfoPtr->ctxConv->saltLength )
+					{
+					RESOURCE_DATA nonceMsgData;
+
+					setMessageData( &nonceMsgData, contextInfoPtr->ctxConv->salt,
+									PKCS5_SALT_SIZE );
+					status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
+											  IMESSAGE_GETATTRIBUTE_S,
+											  &nonceMsgData,
+											  CRYPT_IATTRIBUTE_RANDOM_NONCE );
+					if( cryptStatusError( status ) )
+						return( status );
+					contextInfoPtr->ctxConv->saltLength = PKCS5_SALT_SIZE;
+					}
+				contextInfoPtr->ctxConv->keySetupAlgorithm = CRYPT_ALGO_HMAC_SHA;
+				setMechanismDeriveInfo( &mechanismInfo,
+					contextInfoPtr->ctxConv->userKey,
+						capabilityInfoPtr->getInfoFunction( CAPABILITY_INFO_KEYSIZE, 
+										contextInfoPtr,
+										contextInfoPtr->ctxConv->userKeyLength ),
+					msgData->data, msgData->length,
+					contextInfoPtr->ctxConv->keySetupAlgorithm,
+					contextInfoPtr->ctxConv->salt, contextInfoPtr->ctxConv->saltLength,
+					contextInfoPtr->ctxConv->keySetupIterations );
+				}
+			else
+				{
+				if( !contextInfoPtr->ctxMAC->saltLength )
+					{
+					RESOURCE_DATA nonceMsgData;
+
+					setMessageData( &nonceMsgData, contextInfoPtr->ctxMAC->salt,
+									PKCS5_SALT_SIZE );
+					status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
+											  IMESSAGE_GETATTRIBUTE_S,
+											  &nonceMsgData,
+											  CRYPT_IATTRIBUTE_RANDOM_NONCE );
+					if( cryptStatusError( status ) )
+						return( status );
+					contextInfoPtr->ctxMAC->saltLength = PKCS5_SALT_SIZE;
+					}
+				contextInfoPtr->ctxConv->keySetupAlgorithm = CRYPT_ALGO_HMAC_SHA;
+				setMechanismDeriveInfo( &mechanismInfo,
+					contextInfoPtr->ctxMAC->userKey,
+						capabilityInfoPtr->getInfoFunction( CAPABILITY_INFO_KEYSIZE, 
+										contextInfoPtr,
+										contextInfoPtr->ctxMAC->userKeyLength ),
+					msgData->data, msgData->length,
+					contextInfoPtr->ctxConv->keySetupAlgorithm,
+					contextInfoPtr->ctxMAC->salt, contextInfoPtr->ctxMAC->saltLength,
+					contextInfoPtr->ctxMAC->keySetupIterations );
+				}
+			if( !mechanismInfo.iterations )
+				{
+				krnlSendMessage( contextInfoPtr->ownerHandle,
+							IMESSAGE_GETATTRIBUTE, &mechanismInfo.iterations,
+							CRYPT_OPTION_KEYING_ITERATIONS );
+				if( contextType == CONTEXT_CONV )
+					contextInfoPtr->ctxConv->keySetupIterations = \
+												mechanismInfo.iterations;
+				else
+					contextInfoPtr->ctxMAC->keySetupIterations = \
+												mechanismInfo.iterations;
+				}
+
+			/* Turn the user key into an encryption context key and load the
+			   key into the context */
+			status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
+									  IMESSAGE_DEV_DERIVE, &mechanismInfo,
+									  MECHANISM_PKCS5 );
+			if( cryptStatusOK( status ) )
+				status = contextInfoPtr->loadKeyFunction( contextInfoPtr,
+											mechanismInfo.dataOut,
+											mechanismInfo.dataOutLength );
+			if( cryptStatusOK( status ) )
+				{
+				contextInfoPtr->flags |= CONTEXT_KEY_SET | CONTEXT_EPHEMERAL;
+				if( contextType == CONTEXT_MAC )
+					contextInfoPtr->flags |= CONTEXT_HASH_INITED;
+				}
+			return( status );
+			}
+
+		case CRYPT_CTXINFO_KEY:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			assert( needsKey( contextInfoPtr ) );
+
+			/* The kernel performs a general check on the size of this
+			   attribute but doesn't know about context subtype-specific
+			   limits, so we perform a context-specific check here */
+			if( msgData->length < capabilityInfoPtr->minKeySize || \
+				msgData->length > capabilityInfoPtr->maxKeySize )
+				return( CRYPT_ARGERROR_NUM1 );
+
+			/* Load the key into the context */
+			status = contextInfoPtr->loadKeyFunction( contextInfoPtr,
+										msgData->data, msgData->length );
+			if( cryptStatusOK( status ) )
+				{
+				contextInfoPtr->flags |= CONTEXT_KEY_SET | CONTEXT_EPHEMERAL;
+				if( contextType == CONTEXT_MAC )
+					contextInfoPtr->flags |= CONTEXT_HASH_INITED;
+				}
+			return( status );
+
+#ifndef USE_FIPS140
+		case CRYPT_CTXINFO_KEY_COMPONENTS:
+			assert( contextType == CONTEXT_PKC );
+			assert( needsKey( contextInfoPtr ) );
+
+			assert( msgData->length == sizeof( CRYPT_PKCINFO_RSA ) || \
+					msgData->length == sizeof( CRYPT_PKCINFO_DLP ) );
+
+			/* We need to have a key label set before we can continue */
+			if( !contextInfoPtr->labelSize )
+				return( exitErrorNotInited( contextInfoPtr,
+											CRYPT_CTXINFO_LABEL ) );
+
+			/* Load the key into the context */
+			status = contextInfoPtr->loadKeyFunction( contextInfoPtr,
+										msgData->data, msgData->length );
+			if( cryptStatusOK( status ) )
+				contextInfoPtr->flags |= CONTEXT_KEY_SET | CONTEXT_EPHEMERAL | \
+										 CONTEXT_PBO;
+			return( status );
+#endif /* USE_FIPS140 */
+
+		case CRYPT_CTXINFO_IV:
+			assert( contextType == CONTEXT_CONV );
+
+			/* If it's a mode that doesn't use an IV, the load IV operation
+			   is meaningless */
+			if( !needsIV( contextInfoPtr->ctxConv->mode ) || \
+				isStreamCipher( contextInfoPtr->capabilityInfo->cryptAlgo ) )
+				return( CRYPT_ERROR_NOTAVAIL );
+
+			/* Make sure that the data size is valid */
+			if( msgData->length != capabilityInfoPtr->blockSize )
+				return( CRYPT_ARGERROR_NUM1 );
+
+			/* Load the IV */
+			assert( capabilityInfoPtr->initKeyParamsFunction != NULL );
+			return( capabilityInfoPtr->initKeyParamsFunction( contextInfoPtr,
+								msgData->data, msgData->length, CRYPT_UNUSED ) );
+
+		case CRYPT_CTXINFO_LABEL:
+			if( contextInfoPtr->labelSize )
+				return( exitErrorInited( contextInfoPtr,
+										 CRYPT_CTXINFO_LABEL ) );
+
+			/* Check any device object the context is associated with to
+			   make sure that nothing with that label already exists in the
+			   device.  The semantics for keysets are somewhat different,
+			   the check for duplicates is performed when the context is
+			   explicitly added to the keyset but with devices the context
+			   is implicitly created within the device at some future point
+			   that depends on the device (at context creation, on key load/
+			   generation, or at some other point).  Because of this we
+			   perform a pre-emptive check for duplicates to avoid a
+			   potentially confusing error condition at some point in the
+			   future.  In addition, we can't send the message to the context
+			   because the kernel won't forward this message type (sending a
+			   get-key message to a context doesn't make sense) so we have to
+			   explicitly get the dependent device and send the get-key
+			   directly to it */
+			if( contextType == CONTEXT_PKC )
+				{
+				CRYPT_HANDLE cryptHandle;
+
+				status = krnlSendMessage( contextInfoPtr->objectHandle,
+										  IMESSAGE_GETDEPENDENT,
+										  &cryptHandle, OBJECT_TYPE_DEVICE );
+				if( cryptStatusOK( status ) )
+					{
+					MESSAGE_KEYMGMT_INFO getkeyInfo;
+
+					setMessageKeymgmtInfo( &getkeyInfo,
+										CRYPT_KEYID_NAME, msgData->data,
+										msgData->length, NULL, 0,
+										KEYMGMT_FLAG_CHECK_ONLY );
+					status = krnlSendMessage( contextInfoPtr->objectHandle,
+										MESSAGE_KEY_GETKEY, &getkeyInfo,
+										KEYMGMT_ITEM_PUBLICKEY );
+					if( cryptStatusError( status ) )
+						{
+						setMessageKeymgmtInfo( &getkeyInfo,
+										CRYPT_KEYID_NAME, msgData->data,
+										msgData->length, NULL, 0,
+										KEYMGMT_FLAG_CHECK_ONLY );
+						status = krnlSendMessage( contextInfoPtr->objectHandle,
+										MESSAGE_KEY_GETKEY, &getkeyInfo,
+										KEYMGMT_ITEM_PRIVATEKEY );
+						}
+					if( cryptStatusOK( status ) )
+						/* We found something with this label already 
+						   present, we can't use it again */
+						return( CRYPT_ERROR_DUPLICATE );
+					}
+				}
+
+			/* Set the label */
+			memcpy( contextInfoPtr->label, msgData->data, msgData->length );
+			contextInfoPtr->labelSize = msgData->length;
+			return( CRYPT_OK );
+
+		case CRYPT_IATTRIBUTE_KEYID_OPENPGP:
+			assert( contextType == CONTEXT_PKC );
+			assert( contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_RSA || \
+					contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_DSA || \
+					contextInfoPtr->capabilityInfo->cryptAlgo == CRYPT_ALGO_ELGAMAL );
+			assert( msgData->length == PGP_KEYID_SIZE );
+			memcpy( contextInfoPtr->ctxPKC->openPgpKeyID, msgData->data,
+					msgData->length );
+			contextInfoPtr->ctxPKC->openPgpKeyIDSet = TRUE;
+			return( CRYPT_OK );
+
+		case CRYPT_IATTRIBUTE_KEY_SPKI:
+			assert( contextType == CONTEXT_PKC );
+
+			/* If the keys are held externally (e.g. in a crypto device),
+			   copy the data in and set up any other information that we may 
+			   need from it.  This information is used when loading a 
+			   context from a key contained in a device, where the actual 
+			   key components aren't directly available in the context but 
+			   may be needed in the future for things like cert requests */
+			if( contextInfoPtr->flags & CONTEXT_DUMMY )
+				{
+				if( ( contextInfoPtr->ctxPKC->publicKeyInfo = \
+									clAlloc( "processSetAttributeS", \
+											 msgData->length ) ) == NULL )
+					return( CRYPT_ERROR_MEMORY );
+				memcpy( contextInfoPtr->ctxPKC->publicKeyInfo, msgData->data,
+						msgData->length );
+				contextInfoPtr->ctxPKC->publicKeyInfoSize = msgData->length;
+				return( calculateKeyID( contextInfoPtr ) );
+				}
+
+			/* Drop through */
+
+		case CRYPT_IATTRIBUTE_KEY_SSH1:
+		case CRYPT_IATTRIBUTE_KEY_SSH2:
+		case CRYPT_IATTRIBUTE_KEY_PGP:
+		case CRYPT_IATTRIBUTE_KEY_SPKI_PARTIAL:
+		case CRYPT_IATTRIBUTE_KEY_PGP_PARTIAL:
+			{
+			static const int actionFlags = \
+				MK_ACTION_PERM( MESSAGE_CTX_SIGCHECK, ACTION_PERM_NONE_EXTERNAL ) | \
+				MK_ACTION_PERM( MESSAGE_CTX_ENCRYPT, ACTION_PERM_NONE_EXTERNAL );
+			static const int actionFlagsDH = ACTION_PERM_NONE_EXTERNAL_ALL;
+			static const int actionFlagsPGP = \
+				MK_ACTION_PERM( MESSAGE_CTX_SIGCHECK, ACTION_PERM_ALL ) | \
+				MK_ACTION_PERM( MESSAGE_CTX_ENCRYPT, ACTION_PERM_ALL );
+			STREAM stream;
+
+			assert( contextType == CONTEXT_PKC );
+
+			/* Read the appropriately-formatted key data into the context,
+			   applying a lowest-common-denominator set of usage flags to
+			   the loaded key (more specific usage restrictions will be set
+			   by higher-level code) */
+			sMemConnect( &stream, msgData->data, msgData->length );
+			status = contextInfoPtr->ctxPKC->readPublicKeyFunction( &stream,
+						contextInfoPtr,
+						( messageValue == CRYPT_IATTRIBUTE_KEY_SPKI || \
+						  messageValue == CRYPT_IATTRIBUTE_KEY_SPKI_PARTIAL ) ? \
+							KEYFORMAT_CERT : \
+						( messageValue == CRYPT_IATTRIBUTE_KEY_SSH1 ) ? \
+							KEYFORMAT_SSH1 : \
+						( messageValue == CRYPT_IATTRIBUTE_KEY_SSH2 ) ? \
+							KEYFORMAT_SSH2 : KEYFORMAT_PGP );
+			sMemDisconnect( &stream );
+			if( cryptStatusError( status ) )
+				return( status );
+
+			/* If it's a partial load of the public portions of a private 
+			   key with further key component operations to follow, there's 
+			   nothing more to do at this point and we're done */
+			if( messageValue == CRYPT_IATTRIBUTE_KEY_SPKI_PARTIAL || \
+				messageValue == CRYPT_IATTRIBUTE_KEY_PGP_PARTIAL )
+				return( calculateKeyID( contextInfoPtr ) );
+
+			/* Perform an internal load that uses the key component values 
+			   that we've just read into the context */
+			contextInfoPtr->flags |= CONTEXT_ISPUBLICKEY;
+			status = contextInfoPtr->loadKeyFunction( contextInfoPtr, NULL, 0 );
+			if( cryptStatusError( status ) )
+				/* Map the status to a more appropriate code if necessary */
+				return( cryptArgError( status ) ? \
+						CRYPT_ERROR_BADDATA : status );
+			contextInfoPtr->flags |= CONTEXT_KEY_SET;
+
+			/* Restrict the key usage to public-key-only actions if 
+			   necessary.  For PGP key loads (which, apart from the 
+			   restrictions specified with the stored key data aren't 
+			   constrained by the presence of ACLs in the form of certs) we 
+			   allow external usage, for DH (whose keys can be both public 
+			   and private keys even though technically it's a public key)
+			   we allow both encryption and decryption usage, and for public 
+			   keys read from certs we  allow internal usage only */
+			status = krnlSendMessage( contextInfoPtr->objectHandle,
+							IMESSAGE_SETATTRIBUTE, 
+							( messageValue == CRYPT_IATTRIBUTE_KEY_PGP ) ? \
+								( void * ) &actionFlagsPGP : \
+							( capabilityInfoPtr->cryptAlgo == CRYPT_ALGO_DH ) ? \
+								( void * ) &actionFlagsDH : \
+								( void * ) &actionFlags,
+							CRYPT_IATTRIBUTE_ACTIONPERMS );
+			if( cryptStatusError( status ) )
+				return( status );
+			contextInfoPtr->flags |= CONTEXT_KEY_SET;
+			return( calculateKeyID( contextInfoPtr ) );
+			}
+
+		case CRYPT_IATTRIBUTE_PGPVALIDITY:
+			assert( contextType == CONTEXT_PKC );
+			contextInfoPtr->ctxPKC->pgpCreationTime = \
+									*( ( time_t * ) msgData->data );
+			return( CRYPT_OK );
+		}
+
+	assert( NOTREACHED );
+	return( CRYPT_ERROR );	/* Get rid of compiler warning */
+	}
+
+static int processDeleteAttribute( CONTEXT_INFO *contextInfoPtr,
+								   const int messageValue )
+	{
+	const CONTEXT_TYPE contextType = contextInfoPtr->type;
+
+	switch( messageValue )
+		{
+		case CRYPT_CTXINFO_KEYING_ALGO:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			if( contextType == CONTEXT_CONV )
+				{
+				if( contextInfoPtr->ctxConv->keySetupAlgorithm == CRYPT_ALGO_NONE )
+					return( exitErrorNotFound( contextInfoPtr,
+											   CRYPT_CTXINFO_KEYING_ALGO ) );
+				contextInfoPtr->ctxConv->keySetupAlgorithm = CRYPT_ALGO_NONE;
+				return( CRYPT_OK );
+				}
+			if( !contextInfoPtr->ctxMAC->keySetupAlgorithm )
+				return( exitErrorNotFound( contextInfoPtr,
+										   CRYPT_CTXINFO_KEYING_ALGO ) );
+			contextInfoPtr->ctxMAC->keySetupAlgorithm = CRYPT_ALGO_NONE;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_KEYING_ITERATIONS:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			if( contextType == CONTEXT_CONV )
+				{
+				if( !contextInfoPtr->ctxConv->keySetupIterations )
+					return( exitErrorNotFound( contextInfoPtr,
+											   CRYPT_CTXINFO_KEYING_ITERATIONS ) );
+				contextInfoPtr->ctxConv->keySetupIterations = 0;
+				return( CRYPT_OK );
+				}
+			if( !contextInfoPtr->ctxMAC->keySetupIterations )
+				return( exitErrorNotFound( contextInfoPtr,
+										   CRYPT_CTXINFO_KEYING_ITERATIONS ) );
+			contextInfoPtr->ctxMAC->keySetupIterations = 0;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_KEYING_SALT:
+			assert( contextType == CONTEXT_CONV || \
+					contextType == CONTEXT_MAC );
+			if( contextType == CONTEXT_CONV )
+				{
+				if( !contextInfoPtr->ctxConv->saltLength )
+					return( exitErrorNotFound( contextInfoPtr,
+											   CRYPT_CTXINFO_KEYING_SALT ) );
+				zeroise( contextInfoPtr->ctxConv->salt, CRYPT_MAX_HASHSIZE );
+				contextInfoPtr->ctxConv->saltLength = 0;
+				return( CRYPT_OK );
+				}
+			if( !contextInfoPtr->ctxMAC->saltLength )
+				return( exitErrorNotFound( contextInfoPtr,
+										   CRYPT_CTXINFO_KEYING_SALT ) );
+			zeroise( contextInfoPtr->ctxMAC->salt, CRYPT_MAX_HASHSIZE );
+			contextInfoPtr->ctxMAC->saltLength = 0;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_IV:
+			assert( contextType == CONTEXT_CONV );
+			if( !needsIV( contextInfoPtr->ctxConv->mode ) || \
+				isStreamCipher( contextInfoPtr->capabilityInfo->cryptAlgo ) )
+				return( exitErrorNotFound( contextInfoPtr,
+										   CRYPT_CTXINFO_IV ) );
+			contextInfoPtr->ctxConv->ivLength = \
+					contextInfoPtr->ctxConv->ivCount = 0;
+			contextInfoPtr->flags &= ~CONTEXT_IV_SET;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_LABEL:
+			if( !contextInfoPtr->labelSize )
+				return( exitErrorNotFound( contextInfoPtr,
+										   CRYPT_CTXINFO_LABEL ) );
+			zeroise( contextInfoPtr->label, contextInfoPtr->labelSize );
+			contextInfoPtr->labelSize = 0;
+			return( CRYPT_OK );
+
+		case CRYPT_CTXINFO_HASHVALUE:
+			assert( contextType == CONTEXT_HASH || \
+					contextType == CONTEXT_MAC );
+			if( contextType == CONTEXT_HASH )
+				zeroise( contextInfoPtr->ctxHash->hash, CRYPT_MAX_HASHSIZE );
+			else
+				zeroise( contextInfoPtr->ctxMAC->mac, CRYPT_MAX_HASHSIZE );
+			contextInfoPtr->flags &= ~( CONTEXT_HASH_INITED | \
+										CONTEXT_HASH_DONE );
+			return( CRYPT_OK );
+		}
+
+	assert( NOTREACHED );
+	return( CRYPT_ERROR );	/* Get rid of compiler warning */
+	}
+
+/****************************************************************************
+*																			*
+*								Context Message Handler						*
+*																			*
+****************************************************************************/
+
+/* Handle a message sent to an encryption context */
+
+static int contextMessageFunction( const void *objectInfoPtr,
+								   const MESSAGE_TYPE message,
+								   void *messageDataPtr,
+								   const int messageValue )
+	{
+	CONTEXT_INFO *contextInfoPtr = ( CONTEXT_INFO * ) objectInfoPtr;
+	const CAPABILITY_INFO *capabilityInfo = contextInfoPtr->capabilityInfo;
+	int status;
+
+	/* Process destroy object messages */
+	if( message == MESSAGE_DESTROY )
+		{
+		const CONTEXT_TYPE contextType = contextInfoPtr->type;
+
+#if 0	/* 9/12/02 We can never get here because we can't send a message to a
+				   busy object any more */
+		/* If the context is busy, abort the async.operation.  We do this by
+		   setting the abort flag (which is OK, since the context is about to
+		   be destroyed anyway) and then waiting for the busy flag to be
+		   cleared */
+		contextInfoPtr->flags |= CONTEXT_ASYNC_ABORT;
+		krnlSendMessage( cryptContext, IMESSAGE_GETATTRIBUTE, &status,
+						 CRYPT_IATTRIBUTE_STATUS );
+		if( status & OBJECT_FLAG_BUSY )
+			{
+			/* Unlock the object so the background thread can access it.
+			   Nothing else will get in because the object is in the
+			   signalled state */
+			unlockResource( contextInfoPtr );
+
+			/* Wait awhile and check whether we've left the busy state */
+			do
+				{
+				THREAD_SLEEP( 250 );	/* Wait 1/4s */
+				krnlSendMessage( cryptContext, IMESSAGE_GETATTRIBUTE,
+								 &status, CRYPT_IATTRIBUTE_STATUS );
+				}
+			while( status & OBJECT_FLAG_BUSY );
+
+			getCheckInternalResource( cryptContext, contextInfoPtr, OBJECT_TYPE_CONTEXT );
+			}
+#endif /* 0 */
+
+		/* Perform any algorithm-specific shutdown */
+		if( ( contextInfoPtr->flags & CONTEXT_KEYINFO_INITED ) && \
+			capabilityInfo->endFunction != NULL )
+			capabilityInfo->endFunction( contextInfoPtr );
+
+		/* Perform context-type-specific cleanup */
+		if( contextType == CONTEXT_PKC )
+			{
+			PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
+
+			BN_clear_free( &pkcInfo->param1 );
+			BN_clear_free( &pkcInfo->param2 );
+			BN_clear_free( &pkcInfo->param3 );
+			BN_clear_free( &pkcInfo->param4 );
+			BN_clear_free( &pkcInfo->param5 );
+			BN_clear_free( &pkcInfo->param6 );
+			BN_clear_free( &pkcInfo->param7 );
+			BN_clear_free( &pkcInfo->param8 );
+			if( contextInfoPtr->flags & CONTEXT_SIDECHANNELPROTECTION )
+				{
+				BN_clear_free( &pkcInfo->blind1 );
+				BN_clear_free( &pkcInfo->blind2 );
+				}
+			BN_clear_free( &pkcInfo->tmp1 );
+			BN_clear_free( &pkcInfo->tmp2 );
+			BN_clear_free( &pkcInfo->tmp3 );
+			BN_MONT_CTX_free( &pkcInfo->montCTX1 );
+			BN_MONT_CTX_free( &pkcInfo->montCTX2 );
+			BN_MONT_CTX_free( &pkcInfo->montCTX3 );
+			BN_CTX_free( &pkcInfo->bnCTX );
+			if( pkcInfo->publicKeyInfo != NULL )
+				clFree( "contextMessageFunction", pkcInfo->publicKeyInfo );
+			}
+
+		/* Delete the object itself */
+		endVarStruct( contextInfoPtr, CONTEXT_INFO );
+		if( needsSecureMemory( contextType ) )
+			krnlMemfree( ( void ** ) &contextInfoPtr );
+		else
+			clFree( "contextMessageFunction", contextInfoPtr );
+
+		return( CRYPT_OK );
+		}
+
+	/* Process attribute get/set/delete messages */
+	if( isAttributeMessage( message ) )
+		{
+		if( message == MESSAGE_GETATTRIBUTE )
+			return( processGetAttribute( contextInfoPtr, messageDataPtr,
+										 messageValue ) );
+		if( message == MESSAGE_GETATTRIBUTE_S )
+			return( processGetAttributeS( contextInfoPtr, messageDataPtr,
+										  messageValue ) );
+		if( message == MESSAGE_SETATTRIBUTE )
+			return( processSetAttribute( contextInfoPtr, messageDataPtr,
+										 messageValue ) );
+		if( message == MESSAGE_SETATTRIBUTE_S )
+			return( processSetAttributeS( contextInfoPtr, messageDataPtr,
+										  messageValue ) );
+		if( message == MESSAGE_DELETEATTRIBUTE )
+			return( processDeleteAttribute( contextInfoPtr, messageValue ) );
+
+		assert( NOTREACHED );
+		return( CRYPT_ERROR );	/* Get rid of compiler warning */
+		}
+
+	/* Process action messages */
+	if( isActionMessage( message ) )
+		{
+		switch( message )
+			{
+			case MESSAGE_CTX_ENCRYPT:
+				assert( contextInfoPtr->encryptFunction != NULL );
+
+				if( contextInfoPtr->type == CONTEXT_CONV )
+					{
+					BYTE data[ 8 ];
+
+					assert( isStreamCipher( capabilityInfo->cryptAlgo ) || \
+							!needsIV( contextInfoPtr->ctxConv->mode ) ||
+							( contextInfoPtr->flags & CONTEXT_IV_SET ) );
+
+					if( messageValue >= 8 )
+						memcpy( data, messageDataPtr, 8 );
+					status = contextInfoPtr->encryptFunction( contextInfoPtr,
+											messageDataPtr, messageValue );
+					if( cryptStatusOK( status ) && messageValue >= 8 )
+						{
+						/* Check for a catastrophic failure of the
+						   encryption.  This check unfortunately isn't 
+						   completely foolproof for ciphers in CBC mode
+						   because of the way the IV is applied to the
+						   input.  For the CBC encryption operation:
+					
+							out = enc( in ^ IV )
+						
+						   if out == IV the operation turns into a no-op.
+						   Consider the simple case where IV == in, so 
+						   IV ^ in == 0.  Then out = enc( 0 ) == IV, with
+						   the input appearing again at the output.  In fact 
+						   this can occur during normal operation once every
+						   2^32 blocks (for a 64-bit block cipher).  
+						   Although the chances of this happening are fairly 
+						   low (the collision would have to occur on the
+						   first encrypted block in a message, since that's
+						   the one we check), way may have to switch to
+						   checking the first two blocks if we're using a
+						   64-bit block cipher in CBC mode in order to
+						   reduce false positives */
+						if( !memcmp( data, messageDataPtr, 8 ) )
+							{
+							zeroise( messageDataPtr, messageValue );
+							status = CRYPT_ERROR_FAILED;
+							}
+						zeroise( data, 8 );
+						}
+					}
+				else
+					{
+					BYTE data[ 8 ];
+					const BOOLEAN isDLP = \
+								isDlpAlgo( capabilityInfo->cryptAlgo );
+					const BOOLEAN isKeyx = \
+								isKeyxAlgo( capabilityInfo->cryptAlgo );
+
+					assert( contextInfoPtr->type == CONTEXT_PKC );
+					assert( !isDLP ||
+							( isKeyx && messageValue == sizeof( KEYAGREE_PARAMS ) ) || \
+							( !isKeyx && messageValue == sizeof( DLP_PARAMS ) ) );
+
+					if( !isKeyx )
+						memcpy( data, isDLP ? \
+								( ( DLP_PARAMS * ) messageDataPtr )->inParam1 : \
+									messageDataPtr, 8 );
+					status = contextInfoPtr->encryptFunction( contextInfoPtr,
+											messageDataPtr, messageValue );
+					if( cryptStatusOK( status ) && !isKeyx )
+						{
+						/* Check for a catastrophic failure of the
+						   encryption */
+						if( isDLP )
+							{
+							DLP_PARAMS *dlpParams = \
+											( DLP_PARAMS * ) messageDataPtr;
+
+							if( !memcmp( data, dlpParams->outParam, 8 ) )
+								{
+								zeroise( dlpParams->outParam, \
+										 dlpParams->outLen );
+								status = CRYPT_ERROR_FAILED;
+								}
+							}
+						else
+							if( !memcmp( data, messageDataPtr, 8 ) )
+								{
+								zeroise( messageDataPtr, messageValue );
+								status = CRYPT_ERROR_FAILED;
+								}
+						zeroise( data, 8 );
+						}
+					clearTempBignums( contextInfoPtr->ctxPKC );
+					}
+				assert( cryptStatusOK( status ) );
+				break;
+
+			case MESSAGE_CTX_DECRYPT:
+				assert( contextInfoPtr->decryptFunction != NULL );
+
+				if( contextInfoPtr->type == CONTEXT_CONV )
+					{
+					assert( isStreamCipher( capabilityInfo->cryptAlgo ) || \
+							!needsIV( contextInfoPtr->ctxConv->mode ) ||
+							( contextInfoPtr->flags & CONTEXT_IV_SET ) );
+
+					status = contextInfoPtr->decryptFunction( contextInfoPtr,
+											messageDataPtr, messageValue );
+					}
+				else
+					{
+					/* Make sure that we're not trying to decrypt with a
+					   public key.  The kernel doesn't know about subtypes,
+					   so we have to perform the check at this level */
+					if( contextInfoPtr->flags & CONTEXT_ISPUBLICKEY )
+						return( CRYPT_ERROR_NOTAVAIL );
+					status = contextInfoPtr->decryptFunction( contextInfoPtr,
+											messageDataPtr, messageValue );
+					clearTempBignums( contextInfoPtr->ctxPKC );
+					}
+				break;
+
+			case MESSAGE_CTX_SIGN:
+				assert( capabilityInfo->signFunction != NULL );
+
+				/* Make sure that we're not trying to decrypt with a public
+				   key.  The kernel doesn't know about subtypes, so we have
+				   to perform the check at this level */
+				if( contextInfoPtr->flags & CONTEXT_ISPUBLICKEY )
+					return( CRYPT_ERROR_NOTAVAIL );
+				status = capabilityInfo->signFunction( contextInfoPtr,
+											messageDataPtr, messageValue );
+				clearTempBignums( contextInfoPtr->ctxPKC );
+				break;
+
+			case MESSAGE_CTX_SIGCHECK:
+				assert( capabilityInfo->sigCheckFunction != NULL );
+				status = capabilityInfo->sigCheckFunction( contextInfoPtr,
+											messageDataPtr, messageValue );
+				clearTempBignums( contextInfoPtr->ctxPKC );
+				break;
+
+			case MESSAGE_CTX_HASH:
+				assert( capabilityInfo->encryptFunction != NULL );
+
+				/* If we've already completed the hashing/MACing, we can't
+				   continue */
+				if( contextInfoPtr->flags & CONTEXT_HASH_DONE )
+					return( CRYPT_ERROR_COMPLETE );
+
+				status = capabilityInfo->encryptFunction( contextInfoPtr,
+											messageDataPtr, messageValue );
+				if( messageValue )
+					/* Usually the MAC initialisation happens when we load 
+					   the key, but if we've deleted the MAC value to process 
+					   another piece of data it'll happen on-demand, so we 
+					   have to set the flag here */
+					contextInfoPtr->flags |= CONTEXT_HASH_INITED;
+				else
+					contextInfoPtr->flags |= CONTEXT_HASH_DONE;
+				break;
+
+			default:
+				assert( NOTREACHED );
+			}
+		return( status );
+		}
+
+	/* Process messages that compare object properties or clone the object */
+	if( message == MESSAGE_COMPARE )
+		{
+		const RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+
+		assert( messageValue == MESSAGE_COMPARE_HASH || \
+				messageValue == MESSAGE_COMPARE_KEYID || \
+				messageValue == MESSAGE_COMPARE_KEYID_PGP || \
+				messageValue == MESSAGE_COMPARE_KEYID_OPENPGP );
+
+		switch( messageValue )
+			{
+			case MESSAGE_COMPARE_HASH:
+				/* If it's a hash or MAC context, compare the hash value */
+				if( !( contextInfoPtr->flags & CONTEXT_HASH_DONE ) )
+					return( CRYPT_ERROR_INCOMPLETE );
+				if( contextInfoPtr->type == CONTEXT_HASH && \
+					msgData->length == capabilityInfo->blockSize && \
+					!memcmp( msgData->data, contextInfoPtr->ctxHash->hash,
+							 msgData->length ) )
+						return( CRYPT_OK );
+				if( contextInfoPtr->type == CONTEXT_MAC && \
+					msgData->length == capabilityInfo->blockSize && \
+					!memcmp( msgData->data, contextInfoPtr->ctxMAC->mac,
+							 msgData->length ) )
+					return( CRYPT_OK );
+				break;
+
+			case MESSAGE_COMPARE_KEYID:
+				/* If it's a PKC context, compare the key ID */
+				if( contextInfoPtr->type == CONTEXT_PKC && \
+					msgData->length == KEYID_SIZE && \
+					!memcmp( msgData->data, contextInfoPtr->ctxPKC->keyID,
+							 KEYID_SIZE ) )
+					return( CRYPT_OK );
+				break;
+
+			case MESSAGE_COMPARE_KEYID_PGP:
+				/* If it's a PKC context, compare the PGP key ID */
+				if( contextInfoPtr->type == CONTEXT_PKC && \
+					msgData->length == PGP_KEYID_SIZE && \
+					!memcmp( msgData->data, contextInfoPtr->ctxPKC->pgpKeyID,
+							 PGP_KEYID_SIZE ) )
+					return( CRYPT_OK );
+				break;
+
+			case MESSAGE_COMPARE_KEYID_OPENPGP:
+				/* If it's a PKC context, compare the OpenPGP key ID */
+				if( contextInfoPtr->type == CONTEXT_PKC && \
+					contextInfoPtr->ctxPKC->openPgpKeyIDSet && \
+					msgData->length == PGP_KEYID_SIZE && \
+					!memcmp( msgData->data, contextInfoPtr->ctxPKC->openPgpKeyID,
+							 PGP_KEYID_SIZE ) )
+					return( CRYPT_OK );
+				break;
+
+			default:
+				assert( NOTREACHED );
+
+			}
+
+		/* The comparison failed */
+		return( CRYPT_ERROR );
+		}
+
+	/* Process messages that check a context */
+	if( message == MESSAGE_CHECK )
+		return( checkContext( contextInfoPtr, messageValue ) );
+
+	/* Process internal notification messages */
+	if( message == MESSAGE_CHANGENOTIFY )
+		{
+		if( messageValue == CRYPT_IATTRIBUTE_STATUS )
+			{
+			/* If the context is still busy and we're trying to reset its
+			   status from CRYPT_ERROR_TIMEOUT back to CRYPT_OK, set the
+			   abort flag to indicate that the operation which is keeping it
+			   busy should be cancelled, and return an error so that the
+			   busy status is maintained until the context has processed the
+			   abort */
+			if( !( contextInfoPtr->flags & CONTEXT_ASYNC_DONE ) )
+				{
+				contextInfoPtr->flags |= CONTEXT_ASYNC_ABORT;
+				return( CRYPT_ERROR_TIMEOUT );
+				}
+
+			/* The context finished whatever it was doing, reset the status
+			   back to normal */
+			return( CRYPT_OK );
+			}
+
+		if( messageValue == CRYPT_IATTRIBUTE_LOCKED )
+			return( CRYPT_OK );
+
+		assert( NOTREACHED );
+		return( CRYPT_ERROR );	/* Get rid of compiler warning */
+		}
+
+	/* Process object-specific messages */
+	if( message == MESSAGE_CTX_GENKEY )
+		{
+		assert( contextInfoPtr->type == CONTEXT_CONV || \
+				contextInfoPtr->type == CONTEXT_MAC ||
+				contextInfoPtr->type == CONTEXT_PKC );
+		assert( needsKey( contextInfoPtr ) );
+
+		/* If it's a private key context, we need to have a key label set
+		   before we can continue */
+		if( contextInfoPtr->type == CONTEXT_PKC && \
+			contextInfoPtr->labelSize <= 0 )
+			{
+			setErrorInfo( contextInfoPtr, CRYPT_CTXINFO_LABEL,
+						  CRYPT_ERRTYPE_ATTR_ABSENT );
+			return( CRYPT_ERROR_NOTINITED );
+			}
+
+		/* Generate a new key into the context */
+		status = contextInfoPtr->generateKeyFunction( contextInfoPtr,
+													  messageValue );
+		if( cryptStatusOK( status ) )
+			/* There's now a key loaded */
+			contextInfoPtr->flags |= CONTEXT_KEY_SET | CONTEXT_EPHEMERAL;
+		else
+			/* If the status is OK_SPECIAL, it's an async keygen that has
+			   begun, but that hasn't resulted in the context containing a 
+			   key yet */
+			if( status == OK_SPECIAL )
+				status = CRYPT_OK;
+		return( status );
+		}
+	if( message == MESSAGE_CTX_GENIV )
+		{
+		RESOURCE_DATA msgData;
+		BYTE buffer[ CRYPT_MAX_IVSIZE ];
+
+		assert( contextInfoPtr->type == CONTEXT_CONV );
+
+		/* If it's not a conventional encryption context, or a mode that
+		   doesn't use an IV, the generate IV operation is meaningless */
+		if( !needsIV( contextInfoPtr->ctxConv->mode ) || \
+			isStreamCipher ( capabilityInfo->cryptAlgo ) )
+			return( CRYPT_ERROR_NOTAVAIL );
+
+		/* Generate a new IV and load it */
+		setMessageData( &msgData, buffer, CRYPT_MAX_IVSIZE );
+		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
+								  &msgData, CRYPT_IATTRIBUTE_RANDOM_NONCE );
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->initKeyParamsFunction( contextInfoPtr,
+									buffer, CRYPT_USE_DEFAULT, CRYPT_UNUSED );
+		return( status );
+		}
+
+	assert( NOTREACHED );
+	return( CRYPT_ERROR );	/* Get rid of compiler warning */
+	}
+
+/* Create an encryption context based on an encryption capability template.
+   This is a common function called by devices to create a context once
+   they've got the appropriate capability template */
+
+int createContextFromCapability( CRYPT_CONTEXT *cryptContext,
+								 const CRYPT_USER cryptOwner,
+								 const CAPABILITY_INFO *capabilityInfoPtr,
+								 const int objectFlags )
+	{
+	const CRYPT_ALGO_TYPE cryptAlgo = capabilityInfoPtr->cryptAlgo;
+	const CONTEXT_TYPE contextType = \
+		( ( cryptAlgo >= CRYPT_ALGO_FIRST_CONVENTIONAL ) && \
+		  ( cryptAlgo <= CRYPT_ALGO_LAST_CONVENTIONAL ) ) ? CONTEXT_CONV : \
+		( ( cryptAlgo >= CRYPT_ALGO_FIRST_PKC ) && \
+		  ( cryptAlgo <= CRYPT_ALGO_LAST_PKC ) ) ? CONTEXT_PKC : \
+		( ( cryptAlgo >= CRYPT_ALGO_FIRST_HASH ) && \
+		  ( cryptAlgo <= CRYPT_ALGO_LAST_HASH ) ) ? CONTEXT_HASH : CONTEXT_MAC;
+	CONTEXT_INFO *contextInfoPtr;
+	BOOLEAN useSideChannelProtection;
+	const int createFlags = objectFlags | \
+							( needsSecureMemory( contextType ) ? \
+							CREATEOBJECT_FLAG_SECUREMALLOC : 0 );
+	int actionFlags = 0, actionPerms = ACTION_PERM_ALL;
+	int storageSize, stateStorageSize = 0, subType;
+	int initStatus = CRYPT_OK, status;
+
+	assert( cryptAlgo > CRYPT_ALGO_NONE && cryptAlgo < CRYPT_ALGO_LAST_MAC );
+
+	/* Clear the return values */
+	*cryptContext = CRYPT_ERROR;
+
+	/* Get general config information */
+	status = krnlSendMessage( cryptOwner, IMESSAGE_GETATTRIBUTE,
+							  &useSideChannelProtection,
+							  CRYPT_OPTION_MISC_SIDECHANNELPROTECTION );
+	if( cryptStatusError( status ) )
+		return( status );
+
+	/* Set up subtype-specific information */
+	switch( contextType )
+		{
+		case CONTEXT_CONV:
+			subType = SUBTYPE_CTX_CONV;
+			storageSize = sizeof( CONV_INFO );
+			stateStorageSize = \
+				capabilityInfoPtr->getInfoFunction( CAPABILITY_INFO_STATESIZE,
+													NULL, 0 );
+			if( capabilityInfoPtr->encryptFunction != NULL || \
+				capabilityInfoPtr->encryptCBCFunction != NULL || \
+				capabilityInfoPtr->encryptCFBFunction != NULL || \
+				capabilityInfoPtr->encryptOFBFunction != NULL )
+				actionFlags |= MK_ACTION_PERM( MESSAGE_CTX_ENCRYPT,
+											   ACTION_PERM_ALL );
+			if( capabilityInfoPtr->decryptFunction != NULL || \
+				capabilityInfoPtr->decryptCBCFunction != NULL || \
+				capabilityInfoPtr->decryptCFBFunction != NULL || \
+				capabilityInfoPtr->decryptOFBFunction != NULL )
+				actionFlags |= MK_ACTION_PERM( MESSAGE_CTX_DECRYPT,
+											   ACTION_PERM_ALL );
+			if( capabilityInfoPtr->generateKeyFunction != NULL )
+				actionFlags |= MK_ACTION_PERM( MESSAGE_CTX_GENKEY,
+											   ACTION_PERM_ALL );
+			break;
+
+		case CONTEXT_PKC:
+			subType = SUBTYPE_CTX_PKC;
+			storageSize = sizeof( PKC_INFO );
+			if( isDlpAlgo( cryptAlgo ) )
+				/* The DLP-based PKC's have somewhat specialised usage
+				   requirements so we don't allow direct access by users */
+				actionPerms = ACTION_PERM_NONE_EXTERNAL;
+			if( capabilityInfoPtr->encryptFunction != NULL )
+				actionFlags |= MK_ACTION_PERM( MESSAGE_CTX_ENCRYPT,
+											   actionPerms );
+			if( capabilityInfoPtr->decryptFunction != NULL )
+				actionFlags |= MK_ACTION_PERM( MESSAGE_CTX_DECRYPT,
+											   actionPerms );
+			if( capabilityInfoPtr->signFunction != NULL )
+				actionFlags |= MK_ACTION_PERM( MESSAGE_CTX_SIGN,
+											   actionPerms );
+			if( capabilityInfoPtr->sigCheckFunction != NULL )
+				actionFlags |= MK_ACTION_PERM( MESSAGE_CTX_SIGCHECK,
+											   actionPerms );
+			if( capabilityInfoPtr->generateKeyFunction != NULL )
+				actionFlags |= MK_ACTION_PERM( MESSAGE_CTX_GENKEY,
+											   actionPerms );
+			break;
+
+		case CONTEXT_HASH:
+			subType = SUBTYPE_CTX_HASH;
+			storageSize = sizeof( HASH_INFO );
+			stateStorageSize = \
+				capabilityInfoPtr->getInfoFunction( CAPABILITY_INFO_STATESIZE,
+													NULL, 0 );
+			actionFlags = \
+				MK_ACTION_PERM( MESSAGE_CTX_HASH, ACTION_PERM_ALL );
+			break;
+
+		case CONTEXT_MAC:
+			subType = SUBTYPE_CTX_MAC;
+			storageSize = sizeof( MAC_INFO );
+			stateStorageSize = \
+				capabilityInfoPtr->getInfoFunction( CAPABILITY_INFO_STATESIZE,
+													NULL, 0 );
+			actionFlags = \
+				MK_ACTION_PERM( MESSAGE_CTX_HASH, ACTION_PERM_ALL );
+			if( capabilityInfoPtr->generateKeyFunction != NULL )
+				actionFlags |= MK_ACTION_PERM( MESSAGE_CTX_GENKEY,
+											   ACTION_PERM_ALL );
+			break;
+
+		default:
+			assert( NOTREACHED );
+			return( CRYPT_ERROR );
+		}
+
+	/* Create the context and initialise the variables in it */
+	status = krnlCreateObject( ( void ** ) &contextInfoPtr,
+							   sizeof( CONTEXT_INFO ) + storageSize + stateStorageSize, 
+							   OBJECT_TYPE_CONTEXT, subType, createFlags, 
+							   cryptOwner, actionFlags, 
+							   contextMessageFunction );
+	if( cryptStatusError( status ) )
+		return( status );
+	*cryptContext = contextInfoPtr->objectHandle = status;
+	contextInfoPtr->ownerHandle = cryptOwner;
+	contextInfoPtr->capabilityInfo = capabilityInfoPtr;
+	contextInfoPtr->type = contextType;
+#ifdef USE_DEVICES
+	contextInfoPtr->deviceObject = CRYPT_ERROR;
+#endif /* USE_DEVICES */
+	switch( contextInfoPtr->type )
+		{
+		case CONTEXT_CONV:
+			contextInfoPtr->ctxConv = ( CONV_INFO * ) contextInfoPtr->storage;
+			contextInfoPtr->ctxConv->key = contextInfoPtr->storage + storageSize;
+			break;
+
+		case CONTEXT_HASH:
+			contextInfoPtr->ctxHash = ( HASH_INFO * ) contextInfoPtr->storage;
+			contextInfoPtr->ctxHash->hashInfo = contextInfoPtr->storage + storageSize;
+			break;
+
+		case CONTEXT_MAC:
+			contextInfoPtr->ctxMAC = ( MAC_INFO * ) contextInfoPtr->storage;
+			contextInfoPtr->ctxMAC->macInfo = contextInfoPtr->storage + storageSize;
+			break;
+
+		case CONTEXT_PKC:
+			contextInfoPtr->ctxPKC = ( PKC_INFO * ) contextInfoPtr->storage;
+			break;
+		}
+	contextInfoPtr->storageSize = storageSize + stateStorageSize;
+	if( useSideChannelProtection )
+		contextInfoPtr->flags |= CONTEXT_SIDECHANNELPROTECTION;
+	if( contextInfoPtr->type == CONTEXT_PKC && \
+		!( objectFlags & CREATEOBJECT_FLAG_DUMMY ) )
+		{
+		PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
+
+		/* Initialise the bignum information */
+		BN_init( &pkcInfo->param1 );
+		BN_init( &pkcInfo->param2 );
+		BN_init( &pkcInfo->param3 );
+		BN_init( &pkcInfo->param4 );
+		BN_init( &pkcInfo->param5 );
+		BN_init( &pkcInfo->param6 );
+		BN_init( &pkcInfo->param7 );
+		BN_init( &pkcInfo->param8 );
+		if( useSideChannelProtection )
+			{
+			BN_init( &pkcInfo->blind1 );
+			BN_init( &pkcInfo->blind2 );
+			}
+		BN_init( &pkcInfo->tmp1 );
+		BN_init( &pkcInfo->tmp2 );
+		BN_init( &pkcInfo->tmp3 );
+		BN_CTX_init( &pkcInfo->bnCTX );
+		BN_MONT_CTX_init( &pkcInfo->montCTX1 );
+		BN_MONT_CTX_init( &pkcInfo->montCTX2 );
+		BN_MONT_CTX_init( &pkcInfo->montCTX3 );
+		}
+	if( contextInfoPtr->type == CONTEXT_CONV )
+		{
+		/* Set the default encryption mode, which is always CBC if possible,
+		   and the corresponding en/decryption handler */
+		if( isStreamCipher( cryptAlgo ) )
+			{
+			contextInfoPtr->ctxConv->mode = CRYPT_MODE_OFB;
+			contextInfoPtr->encryptFunction = \
+									capabilityInfoPtr->encryptOFBFunction;
+			contextInfoPtr->decryptFunction = \
+									capabilityInfoPtr->decryptOFBFunction;
+			}
+		else
+			{
+			contextInfoPtr->ctxConv->mode = CRYPT_MODE_CBC;
+			contextInfoPtr->encryptFunction = \
+									capabilityInfoPtr->encryptCBCFunction;
+			contextInfoPtr->decryptFunction = \
+									capabilityInfoPtr->decryptCBCFunction;
+			}
+		}
+	else
+		{
+		/* There's only one possible en/decryption handler */
+		contextInfoPtr->encryptFunction = capabilityInfoPtr->encryptFunction;
+		contextInfoPtr->decryptFunction = capabilityInfoPtr->decryptFunction;
+		}
+	if( contextInfoPtr->type != CONTEXT_HASH )
+		/* Set up the key handling functions */
+		initKeyHandling( contextInfoPtr );
+	if( contextInfoPtr->type == CONTEXT_PKC )
+		/* Set up the key read/write functions */
+		initKeyReadWrite( contextInfoPtr );
+
+	assert( contextInfoPtr->type == CONTEXT_HASH || \
+			( contextInfoPtr->loadKeyFunction != NULL && \
+			  contextInfoPtr->generateKeyFunction != NULL ) );
+	assert( cryptAlgo == CRYPT_ALGO_DSA || \
+			( contextInfoPtr->encryptFunction != NULL && \
+			  contextInfoPtr->decryptFunction != NULL ) );
+	assert( contextInfoPtr->type != CONTEXT_PKC || \
+			( contextInfoPtr->ctxPKC->writePublicKeyFunction != NULL && \
+			  contextInfoPtr->ctxPKC->writePrivateKeyFunction != NULL && \
+			  contextInfoPtr->ctxPKC->readPublicKeyFunction != NULL && \
+			  contextInfoPtr->ctxPKC->readPrivateKeyFunction != NULL ) );
+
+	/* If this is a dummy object, remember that it's just a placeholder, 
+	   with actions handled externally */
+	if( objectFlags & CREATEOBJECT_FLAG_DUMMY )
+		contextInfoPtr->flags |= CONTEXT_DUMMY;
+
+	/* We've finished setting up the object-type-specific info, tell the
+	   kernel that the object is ready for use */
+	status = krnlSendMessage( *cryptContext, IMESSAGE_SETATTRIBUTE,
+							  MESSAGE_VALUE_OK, CRYPT_IATTRIBUTE_STATUS );
+	if( cryptStatusError( initStatus ) )
+		/* The initialisation failed, make the init error the returned status
+		   value */
+		status = initStatus;
+	if( cryptStatusError( status ) )
+		{
+		*cryptContext = CRYPT_ERROR;
+		return( status );
+		}
+	if( contextInfoPtr->type == CONTEXT_HASH )
+		/* If it's a hash context there's no explicit keygen or load so we
+		   need to send an "object initialised" message to get the kernel to
+		   move it into the high state.  If this isn't done, any attempt to
+		   use the context will be blocked */
+		krnlSendMessage( *cryptContext, IMESSAGE_SETATTRIBUTE,
+						 MESSAGE_VALUE_UNUSED, CRYPT_IATTRIBUTE_INITIALISED );
+	return( CRYPT_OK );
+	}
+
+/* Create an encryption context object */
+
+int createContext( MESSAGE_CREATEOBJECT_INFO *createInfo,
+				   const void *auxDataPtr, const int auxValue )
+	{
+	CRYPT_CONTEXT iCryptContext;
+	const CAPABILITY_INFO FAR_BSS *capabilityInfoPtr;
+	int status;
+
+	assert( auxDataPtr != NULL );
+
+	/* Perform basic error checking */
+	if( createInfo->arg1 <= CRYPT_ALGO_NONE || \
+		createInfo->arg1 >= CRYPT_ALGO_LAST )
+		return( CRYPT_ARGERROR_NUM1 );
+
+	/* Find the capability corresponding to the algorithm */
+	capabilityInfoPtr = findCapabilityInfo( auxDataPtr, createInfo->arg1 );
+	if( capabilityInfoPtr == NULL )
+		return( CRYPT_ERROR_NOTAVAIL );
+
+	/* Pass the call on to the lower-level create function */
+	status = createContextFromCapability( &iCryptContext,
+										  createInfo->cryptOwner,
+										  capabilityInfoPtr, auxValue );
+	if( cryptStatusOK( status ) )
+		createInfo->cryptHandle = iCryptContext;
+	return( status );
+	}
