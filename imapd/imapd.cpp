@@ -19,6 +19,8 @@ int main( int, char *[] )
 
     Configuration::makeGlobal( ".imapdrc" );
 
+    Log::setup();
+
     Log l;
     global.setLog( &l );
 
