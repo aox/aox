@@ -21,9 +21,13 @@ public:
     bool eof() const;
     uint size() const;
     void remove( uint );
-    char operator[]( uint ) const;
+    char at( uint ) const;
     String * string( uint ) const;
     String * removeLine( uint = 0 );
+
+    char operator[]( uint i ) const {
+        return at( i );
+    }
 
     Arena * arena() const;
 
