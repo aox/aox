@@ -17,6 +17,13 @@
 static bool endsWithLiteral( const String *, uint *, bool * );
 
 
+static bool allowPlaintext = true;
+static bool supportsPlain = true;
+static bool supportsCramMd5 = true;
+static bool supportsDigestMd5 = true;
+static bool supportsAnonymous = true;
+
+
 class IMAPData {
 public:
     IMAPData()
@@ -71,6 +78,35 @@ public:
     parsed Command can be executed concurrently with the already
     running Command objects.
 */
+
+/*! This setup function expects to be called from ::main().
+
+    It reads and validates any relevant configuration variables, and
+    logs a disaster if it encounters an error.
+*/
+
+void IMAP::setup()
+{
+    Configuration::Text plaintext( "allow-plaintext", "always" );
+
+    Configuration::Toggle plain( "auth-plain", true );
+    Configuration::Toggle cramMd5( "auth-cram-md5", true );
+    Configuration::Toggle digestMd5( "auth-digest-md5", true );
+    Configuration::Toggle anonymous( "auth-anonymous", false );
+
+    ::supportsPlain = plain;
+    ::supportsCramMd5 = cramMd5;
+    ::supportsDigestMd5 = digestMd5;
+    ::supportsAnonymous = anonymous;
+
+    String s = plaintext;
+    if ( s.lower() == "always" )
+        ::allowPlaintext = true;
+    else if ( s.lower() == "never" )
+        ::allowPlaintext = false;
+    else
+        log( Log::Disaster, "Unknown value for allow-plaintext." );
+}
 
 
 /*! Creates an IMAP server on file descriptor \a s, and sends an
@@ -579,4 +615,29 @@ void IMAP::endSession()
     setState( Authenticated );
     delete d->session;
     d->session = 0;
+}
+
+
+/*! Returns true only if this IMAP server supports the authentication
+    mechanism named \a s (which must be in lowercase).
+*/
+
+bool IMAP::supports( const String &s ) const
+{
+    if ( ::supportsDigestMd5 && s == "digest-md5" )
+        return true;
+
+    if ( ::supportsCramMd5 && s == "cram-md5" )
+        return true;
+
+    if ( ::allowPlaintext || hasTLS() ) {
+        if ( ::supportsPlain && s == "plain" )
+            return true;
+        if ( ::supportsAnonymous && s == "anonymous" )
+            return true;
+        if ( s == "login" )
+            return true;
+    }
+
+    return false;
 }

@@ -37,6 +37,9 @@ public:
 
     String mailboxName( const String & );
 
+    static void setup();
+    bool supports( const String & ) const;
+
 private:
     class IMAPData *d;
 

@@ -42,6 +42,11 @@ void Login::parse()
 void Login::execute()
 {
     if ( !m ) {
+        if ( !imap()->supports( "login" ) ) {
+            error( Bad, "LOGIN is disabled" );
+            finish();
+            return;
+        }
         m = new Plain( this );
         m->setLogin( n );
         m->setSecret( p );

@@ -39,8 +39,6 @@ public:
     virtual void setChallenge( const String & );
 
     static SaslMechanism * create( const String &, EventHandler * );
-    static void setup();
-    static bool allowed( const String & );
 
 private:
     class SaslData *d;

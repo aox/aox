@@ -42,7 +42,7 @@ int main( int, char *[] )
     Capability::setup();
     AddressCache::setup();
     FieldNameCache::setup();
-    SaslMechanism::setup();
+    IMAP::setup();
 
     log( Test::report() );
 

@@ -15,7 +15,7 @@ static bool drafts = false;
 
     We announce the following capabilities:
 
-    RFC 3501: IMAP4rev1, STARTTLS, (LOGINDISABLED).
+    RFC 3501: IMAP4rev1, STARTTLS, LOGINDISABLED.
     RFC 2088: LITERAL+
     RFC 2177: IDLE
     RFC 2971: ID
@@ -57,19 +57,23 @@ String Capability::capabilities( IMAP * i )
     c.append( "IMAP4rev1" );
 
     // the remainder of the capabilities are kept sorted by name
-    if ( SaslMechanism::allowed( "anonymous" ) )
+
+    if ( i->supports( "anonymous" ) )
         c.append( "AUTH=ANONYMOUS" );
-    if ( SaslMechanism::allowed( "cram-md5" ) )
+    if ( i->supports( "cram-md5" ) )
         c.append( "AUTH=CRAM-MD5" );
-    if ( SaslMechanism::allowed( "digest-md5" ) )
+    if ( i->supports( "digest-md5" ) )
         c.append( "AUTH=DIGEST-MD5" );
-    if ( SaslMechanism::allowed( "plain" ) ) // we don't care about tls
+    if ( i->supports( "plain" ) )
         c.append( "AUTH=PLAIN" );
+
     c.append( "ID" );
     c.append( "IDLE" );
     if ( ::drafts )
         c.append( "LISTEXT" );
     c.append( "LITERAL+" );
+    if ( !i->supports( "login" ) )
+        c.append( "LOGINDISABLED" );
     c.append( "NAMESPACE" );
     if ( ::drafts )
         c.append( "SASL-IR" );
