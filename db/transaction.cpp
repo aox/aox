@@ -14,7 +14,6 @@ public:
 
     Database *db;
     Transaction::State state;
-    List< Query > queries;
 };
 
 
@@ -78,9 +77,8 @@ bool Transaction::done() const
 
 void Transaction::enqueue( Query *q )
 {
-    q->setState( Query::Submitted );
     q->setTransaction( this );
-    d->queries.append( q );
+    d->db->enqueue( q );
 }
 
 
@@ -89,9 +87,6 @@ void Transaction::enqueue( Query *q )
 
 void Transaction::execute()
 {
-    List< Query >::Iterator it( d->queries.first() );
-    while ( it )
-        d->db->enqueue( it++ );
     d->db->execute();
 }
 

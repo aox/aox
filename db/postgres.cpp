@@ -123,66 +123,15 @@ void Postgres::execute()
     if ( !it )
         return;
 
-    if ( !d->active || d->startup )
+    if ( !d->active || d->startup ) {
+        while ( it ) {
+            it->setState( Query::Submitted );
+            it++;
+        }
         return;
-
-    while ( it ) {
-        if ( it->state() != Query::Submitted )
-            break;
-
-        Query *q = d->pending.take( it );
-        q->setState( Query::Executing );
-        d->queries.append( q );
-
-        if ( q->operation() == Query::Prepare ) {
-            PgParse a( q->string(), q->name() );
-            a.enqueue( writeBuffer() );
-
-            PgSync b;
-            b.enqueue( writeBuffer() );
-        }
-        else if ( !q->values()->isEmpty() ) {
-            if ( d->transaction == 0 && q->transaction() != 0 ) {
-                d->transaction = q->transaction();
-                d->transaction->setState( Transaction::Executing );
-                PgParse a( "begin" );
-                a.enqueue( writeBuffer() );
-
-                PgBind b;
-                b.enqueue( writeBuffer() );
-
-                PgExecute c;
-                c.enqueue( writeBuffer() );
-            }
-
-            if ( q->name() == "" ) {
-                PgParse a( q->string() );
-                a.enqueue( writeBuffer() );
-            }
-
-            PgBind b( q->name() );
-            b.bind( q->values() );
-            b.enqueue( writeBuffer() );
-
-            PgDescribe c;
-            c.enqueue( writeBuffer() );
-
-            PgExecute d;
-            d.enqueue( writeBuffer() );
-
-            PgSync e;
-            e.enqueue( writeBuffer() );
-        }
-        else {
-            PgQuery pq( q->string() );
-            pq.enqueue( writeBuffer() );
-            q->setState( Query::Executing );
-        }
     }
 
-    if ( writeBuffer()->size() > 0 )
-        extendTimeout( 5 );
-    write();
+    processQueue( true );
 }
 
 
@@ -435,7 +384,7 @@ void Postgres::process( char type )
                 d->queries.take( q );
             }
 
-            execute();
+            processQueue();
             if ( d->queries.count() == 0 )
                 setTimeout( 0 );
         }
@@ -558,6 +507,79 @@ bool Postgres::haveMessage()
          b->size() < 1+( (uint)(*b)[1]>>24|(*b)[2]>>16|(*b)[3]>>8|(*b)[4] ) )
         return false;
     return true;
+}
+
+
+/*! This is the function that actually composes queries and sends them
+    to the server. If \a userContext is true, it processes all pending
+    queries. If not, it stops at the first one whose Query::state() is
+    not Query::Submitted.
+*/
+
+void Postgres::processQueue( bool userContext )
+{
+    List< Query >::Iterator it( d->pending.first() );
+
+    if ( !it )
+        return;
+
+    while ( it ) {
+        if ( !userContext && it->state() != Query::Submitted )
+            break;
+
+        Query *q = d->pending.take( it );
+        q->setState( Query::Executing );
+        d->queries.append( q );
+
+        if ( q->operation() == Query::Prepare ) {
+            PgParse a( q->string(), q->name() );
+            a.enqueue( writeBuffer() );
+
+            PgSync b;
+            b.enqueue( writeBuffer() );
+        }
+        else if ( !q->values()->isEmpty() ) {
+            if ( d->transaction == 0 && q->transaction() != 0 ) {
+                d->transaction = q->transaction();
+                d->transaction->setState( Transaction::Executing );
+                PgParse a( "begin" );
+                a.enqueue( writeBuffer() );
+
+                PgBind b;
+                b.enqueue( writeBuffer() );
+
+                PgExecute c;
+                c.enqueue( writeBuffer() );
+            }
+
+            if ( q->name() == "" ) {
+                PgParse a( q->string() );
+                a.enqueue( writeBuffer() );
+            }
+
+            PgBind b( q->name() );
+            b.bind( q->values() );
+            b.enqueue( writeBuffer() );
+
+            PgDescribe c;
+            c.enqueue( writeBuffer() );
+
+            PgExecute d;
+            d.enqueue( writeBuffer() );
+
+            PgSync e;
+            e.enqueue( writeBuffer() );
+        }
+        else {
+            PgQuery pq( q->string() );
+            pq.enqueue( writeBuffer() );
+            q->setState( Query::Executing );
+        }
+    }
+
+    if ( writeBuffer()->size() > 0 )
+        extendTimeout( 5 );
+    write();
 }
 
 

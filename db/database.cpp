@@ -145,8 +145,8 @@ Database *Database::handle()
 
     This function adds \a query to the database handle's list of queries
     pending submission to the database server. The Query::state() is not
-    changed. The caller (usually Query::execute()) must set the state to
-    Query::Submitted before calling execute().
+    changed. The query will be sent to the server only when execute() is
+    called.
 
     Enqueuing a query with a Query::transaction() set will automatically
     reserve() the handle until the end of the transaction. An enqueue()d
@@ -158,9 +158,9 @@ Database *Database::handle()
 /*! \fn void Database::execute()
 
     This function sends enqueue()d queries to the database server in the
-    same order that they were enqueued, and stops when it encounters the
-    first query whose Query::state() is not Query::Submitted. The state
-    of each query that was sent is set to Query::Executing.
+    same order that they were enqueued. The Query::state() is changed to
+    either Query::Submitted (if the query will only be sent later) or to
+    Query::Executing or Query::Preparing (if it was sent immediately).
 */
 
 

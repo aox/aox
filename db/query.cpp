@@ -205,8 +205,6 @@ void Query::prepare( const String &name )
 
 void Query::execute()
 {
-    setState( Submitted );
-
     Database *db = Database::handle();
     if ( !db ) {
         setError( "No available database handle." );
