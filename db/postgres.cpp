@@ -595,7 +595,7 @@ void Postgres::error( const String &s )
 }
 
 
-static int currentRevision = 3;
+static int currentRevision = 4;
 
 
 class UpdateSchema
@@ -690,6 +690,7 @@ void UpdateSchema::execute() {
         if ( state == 4 ) {
             if ( revision == 1 ) {
                 if ( substate == 0 ) {
+                    l->log( "Changing users.login/secret to text", Log::Debug );
                     q = new Query( "alter table users add login2 text", this );
                     t->enqueue( q );
                     q = new Query( "update users set login2=login", this );
@@ -718,12 +719,14 @@ void UpdateSchema::execute() {
                 if ( substate == 1 ) {
                     if ( !q->done() )
                         return;
+                    l->log( "Done.", Log::Debug );
                     substate = 0;
                 }
             }
 
             if ( revision == 2 ) {
                 if ( substate == 0 ) {
+                    l->log( "Merging bodyparts and binary_parts", Log::Debug );
                     q = new Query( "alter table bodyparts add hash text",
                                    this );
                     t->enqueue( q );
@@ -837,6 +840,93 @@ void UpdateSchema::execute() {
                                    this );
                     t->enqueue( q );
                     t->execute();
+                    substate = 4;
+                }
+
+                if ( substate == 4 ) {
+                    if ( !q->done() )
+                        return;
+                    l->log( "Done.", Log::Debug );
+                    substate = 0;
+                }
+            }
+
+            if ( revision == 3 ) {
+                if ( substate == 0 ) {
+                    l->log( "Creating flags from messages/extra_flags.",
+                            Log::Debug );
+                    q = new Query( "alter table extra_flags rename to flags",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "insert into flag_names (name) values ($1)",
+                                   this );
+                    q->bind( 1, "\\Deleted" );
+                    t->enqueue( q );
+                    q = new Query( "insert into flag_names (name) values ($1)",
+                                   this );
+                    q->bind( 1, "\\Answered" );
+                    t->enqueue( q );
+                    q = new Query( "insert into flag_names (name) values ($1)",
+                                   this );
+                    q->bind( 1, "\\Flagged" );
+                    t->enqueue( q );
+                    q = new Query( "insert into flag_names (name) values ($1)",
+                                   this );
+                    q->bind( 1, "\\Draft" );
+                    t->enqueue( q );
+                    q = new Query( "insert into flag_names (name) values ($1)",
+                                   this );
+                    q->bind( 1, "\\Seen" );
+                    t->enqueue( q );
+                    q = new Query( "insert into flags (mailbox,uid,flag) "
+                                   "select mailbox,uid,"
+                                   "(select id from flag_names"
+                                   " where name='\\Deleted') from messages "
+                                   "where deleted", this );
+                    t->enqueue( q );
+                    q = new Query( "insert into flags (mailbox,uid,flag) "
+                                   "select mailbox,uid,"
+                                   "(select id from flag_names"
+                                   " where name='\\Answered') from messages "
+                                   "where answered", this );
+                    t->enqueue( q );
+                    q = new Query( "insert into flags (mailbox,uid,flag) "
+                                   "select mailbox,uid,"
+                                   "(select id from flag_names"
+                                   " where name='\\Flagged') from messages "
+                                   "where flagged", this );
+                    t->enqueue( q );
+                    q = new Query( "insert into flags (mailbox,uid,flag) "
+                                   "select mailbox,uid,"
+                                   "(select id from flag_names"
+                                   " where name='\\Draft') from messages "
+                                   "where draft", this );
+                    t->enqueue( q );
+                    q = new Query( "insert into flags (mailbox,uid,flag) "
+                                   "select mailbox,uid,"
+                                   "(select id from flag_names"
+                                   " where name='\\Seen') from messages "
+                                   "where seen", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table messages drop deleted", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table messages drop answered", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table messages drop flagged", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table messages drop draft", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table messages drop seen", this );
+                    t->enqueue( q );
+                    t->execute();
+                    substate = 1;
+                }
+
+                if ( substate == 1 ) {
+                    if ( !q->done() )
+                        return;
+                    l->log( "Done.", Log::Debug );
+                    substate = 0;
                 }
             }
 
