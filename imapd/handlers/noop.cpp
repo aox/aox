@@ -25,10 +25,14 @@ void Noop::execute()
         // Snarf and process a single row.
         n++;
     }
-    
-    if ( q->state() == Query::Completed ) {
-        if ( n == 0 )
+
+    if ( q->done() ) {
+        if ( q->failed() )
+            respond( "NO " + q->error() );
+        else if ( n == 0 )
             respond( "NO results obtained" );
+        else
+            respond( "OK" );
 
         setState( Finished );
     }
