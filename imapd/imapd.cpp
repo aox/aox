@@ -7,6 +7,7 @@
 #include "imap.h"
 #include "cccp.h"
 #include "logger.h"
+#include "configuration.h"
 
 
 int main( int, char *[] )
@@ -16,8 +17,11 @@ int main( int, char *[] )
 
     Test::runTests();
 
+    Configuration::makeGlobal( ".imapdrc" );
     Logger::global()->log( "IMAP server started" );
+    Configuration::global()->report();
 
+    // should we pick this up from the config file?
     Listener<IMAP>::createListener( "IMAP", 2052 );
     Listener<CCCP>::createListener( "CCCP", 2053 );
 
