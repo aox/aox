@@ -151,6 +151,9 @@ cat <<CONFIG > $CONFIG
 # Mailstore configuration. For more about this, see the mailstore.conf
 # man page.
 
+# Security Note: Anyone who can see the password in this file can do
+# anything to your mail database, even delete all the mail.
+
 ## Specify the hostname if mailstore gets it wrong.
 # hostname = (fully-qualified hostname here)
 

@@ -131,3 +131,14 @@ Inbox lifetime/mailbox reuse
 
   I assume ms create user needs a command-line argument and msconsole
   needs to prompt its user.
+
+
+mailstore.conf protection
+
+  At the moment, we just require that mailstore.conf is readable by
+  the mailstore servers (effectively, readable as root). Since the
+  file contains a super-sensitive password, we should do more.
+
+  I suggest that we add a setting to check that the file is readable
+  only as root and refuse to start else, and turn this on by default.
+  Or we could use the security setting for this.

@@ -14,6 +14,15 @@ file contains all global configuration settings for Oryx Mailstore. It
 is read by each server at startup. Syntax errors, unknown variables
 etc. are logged via
 .BR logd (8).
+.SH "SECURITY NOTE"
+Anyone who can read
+.I mailstore.conf
+can see the database password, and use this password to damage or
+destroy the mail database.
+.PP
+By default, 
+.I mailstore.conf
+is readable only by root.
 .SH SETTINGS
 .PP
 All settings share a common format:
@@ -45,9 +54,9 @@ default is
 .IR $DBUSER .
 .IP db-password
 The password Mailstore should use to connect to the database. The
-default is an empty password. Note that the mailstore installation
-script writes a random password to
-.IR mailstore.conf .
+default is an empty password.
+.IP
+During installation, Mailstore usually chooses a password at random.
 .SS Logging
 .IP log-address
 The IP address of the log server. The default is
