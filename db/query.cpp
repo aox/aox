@@ -132,12 +132,34 @@ static uint startup;
 
 void Query::setState( State s )
 {
+    if ( s == d->state )
+        return;
     if ( ( s == Completed || s == Failed ) && !done() )
         ::startup--;
     d->state = s;
+    String action;
+    switch( s ) {
+    case Inactive:
+        action = "Deactivated";
+        break;
+    case Submitted:
+        action = "Submitted";
+        break;
+    case Executing:
+        action = "Executing";
+        break;
+    case Completed:
+        action = "Completed";
+        break;
+    case Failed:
+        action = "Failed";
+        break;
+    }
     if ( d->startup && failed() )
         log( Log::Disaster,
-             "Necessary startup query failed: " "(query text here)" );
+             "Necessary startup query failed: " + string() );
+    else 
+        log( Log::Debug, action + " query " + string() );
 }
 
 
