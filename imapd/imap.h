@@ -16,7 +16,6 @@ class IMAP
 {
 public:
     IMAP( int );
-    ~IMAP();
 
     void parse();
     void react( Event );

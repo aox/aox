@@ -44,12 +44,6 @@ POP3::POP3( int s )
 }
 
 
-POP3::~POP3()
-{
-    Loop::removeConnection( this );
-}
-
-
 /*! Sets this server's state to \a s, which may be one of Authorization,
     Transaction, or Update (as defined in POP3::State).
 */

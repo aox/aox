@@ -69,12 +69,6 @@ SmtpClient::SmtpClient( const String &sender,
 }
 
 
-SmtpClient::~SmtpClient()
-{
-    Loop::removeConnection( this );
-}
-
-
 void SmtpClient::react( Event e )
 {
     switch ( e ) {

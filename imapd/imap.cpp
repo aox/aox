@@ -120,15 +120,6 @@ IMAP::IMAP( int s )
 }
 
 
-/*! Destroys the IMAP server. */
-
-IMAP::~IMAP()
-{
-    Loop::removeConnection( this );
-    d = 0;
-}
-
-
 /*! Handles the incoming event \a e as appropriate for its type. */
 
 void IMAP::react( Event e )

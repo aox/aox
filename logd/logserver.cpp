@@ -81,12 +81,6 @@ LogServer::LogServer()
 }
 
 
-LogServer::~LogServer()
-{
-    Loop::removeConnection( this );
-}
-
-
 void LogServer::react( Event e )
 {
     switch ( e ) {

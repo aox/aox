@@ -11,7 +11,6 @@ class OCAdmin
 {
 public:
     OCAdmin( int );
-    ~OCAdmin();
 
     void parse();
     void react( Event );

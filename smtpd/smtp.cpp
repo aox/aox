@@ -145,17 +145,6 @@ SMTP::SMTP( int s )
 }
 
 
-/*! Destroys the server without notifying the client in any way. */
-
-SMTP::~SMTP()
-{
-    Loop::removeConnection( this );
-    delete d->injector;
-    delete d->helper;
-    d = 0;
-}
-
-
 void SMTP::react( Event e )
 {
     switch ( e ) {

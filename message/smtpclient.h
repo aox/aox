@@ -18,7 +18,6 @@ class SmtpClient
 public:
     SmtpClient( const String &, const String &, const String &,
                 EventHandler * );
-    ~SmtpClient();
 
     void react( Event );
 

@@ -24,12 +24,6 @@ public:
         }
     }
 
-    ~Listener()
-    {
-        if ( state() == Listening )
-            Loop::removeConnection( this );
-    }
-
     void read() {}
     void write() {}
     bool canRead() { return true; }

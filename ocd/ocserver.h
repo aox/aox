@@ -14,7 +14,6 @@ class OCServer
 {
 public:
     OCServer( int );
-    ~OCServer();
 
     void parse();
     void react( Event );

@@ -39,13 +39,6 @@ OCServer::OCServer( int s )
 }
 
 
-OCServer::~OCServer()
-{
-    servers->take( servers->find( this ) );
-    Loop::removeConnection( this );
-}
-
-
 void OCServer::react( Event e )
 {
     switch ( e ) {

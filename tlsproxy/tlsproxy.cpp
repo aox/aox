@@ -223,10 +223,8 @@ void TlsProxy::react( Event e )
         }
         else {
             try {
-                if ( d->state == TlsProxyData::PlainSide )
-                    encrypt();
-                else
-                    decrypt();
+                encrypt();
+                decrypt();
             } catch( Exception ) {
                 // at all costs, don't let EventLoop close one of the two
                 // connections. close both.
@@ -420,10 +418,12 @@ void TlsProxy::encrypt()
 {
     Buffer * r = readBuffer();
     String s = *r->string( r->size() );
-    int len;
+    if ( s.isEmpty() )
+        return;
+    int len = 0;
     int status = cryptPushData( cs, s.data(), s.length(), &len );
     handleError( status, "cryptPushData" );
-    if ( status == CRYPT_OK ) {
+    if ( status == CRYPT_OK || status == CRYPT_ERROR_OVERFLOW ) {
         r->remove( len );
         status = cryptFlushData( cs );
         handleError( status, "cryptFlushData" );

@@ -30,12 +30,6 @@ OCAdmin::OCAdmin( int s )
 }
 
 
-OCAdmin::~OCAdmin()
-{
-    Loop::removeConnection( this );
-}
-
-
 void OCAdmin::react( Event e )
 {
     switch ( e ) {

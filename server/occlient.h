@@ -13,7 +13,6 @@ class OCClient
 {
 public:
     OCClient( int );
-    ~OCClient();
 
     void parse();
     void react( Event );

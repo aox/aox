@@ -15,7 +15,6 @@ class Address;
 class SMTP : public Connection {
 public:
     SMTP( int s );
-    ~SMTP();
 
     void react( Event e );
 

@@ -13,7 +13,6 @@ class POP3
 {
 public:
     POP3( int );
-    ~POP3();
 
     enum State { Authorization, Transaction, Update };
     void setState( State );

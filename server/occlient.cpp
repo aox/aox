@@ -37,12 +37,6 @@ OCClient::OCClient( int s )
 }
 
 
-OCClient::~OCClient()
-{
-    Loop::removeConnection( this );
-}
-
-
 /*! Connects to the configured OCD server on ocdhost.
     Expects to be called from ::main().
 */
