@@ -11,15 +11,16 @@ class Status
 public:
     Status()
         : messages( false ), recent( false ), uidnext( false ),
-          uidvalidity( false ), unseen( false )
+          uidvalidity( false ), unseen( false ), m( 0 )
     {}
 
     void parse();
     void execute();
 
 private:
-    String mailbox;
+    String name;
     bool messages, recent, uidnext, uidvalidity, unseen;
+    class Mailbox *m;
 };
 
 

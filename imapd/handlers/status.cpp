@@ -1,5 +1,9 @@
 #include "status.h"
 
+#include "mailbox.h"
+
+static inline String fn( uint n ) { return String::fromNumber( n ); }
+
 
 /*! \class Status status.h
     Returns the status of the specified mailbox (RFC 3501, §6.3.10)
@@ -11,7 +15,7 @@
 void Status::parse()
 {
     space();
-    mailbox = astring();
+    name = astring();
     space();
     require( "(" );
 
@@ -46,5 +50,37 @@ void Status::parse()
 
 void Status::execute()
 {
+    if ( !m ) {
+        m = new Mailbox( name, this );
+        m->setReadOnly( true );
+    }
+
+    if ( !m->done() )
+        m->select();
+
+    if ( !m->done() )
+        return;
+
+    if ( m->state() == Mailbox::Failed ) {
+        error( No, "Can't open " + name );
+        finish();
+        return;
+    }
+
+    String status;
+
+    if ( messages )
+        status.append( "MESSAGES " + fn( m->count() ) + " " );
+    if ( recent )
+        status.append( "RECENT " + fn( m->recent() ) + " " );
+    if ( uidnext )
+        status.append( "UIDNEXT " + fn( m->uidnext() ) + " " );
+    if ( uidvalidity )
+        status.append( "UIDVALIDITY " + fn( m->uidvalidity() ) + " " );
+    if ( unseen )
+        status.append( "UNSEEN " + fn( m->unseen() ) + " " );
+
+    status.truncate( status.length()-1 );
+    respond( "STATUS " + name + " (" + status + ")" );
     finish();
 }
