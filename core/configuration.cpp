@@ -6,6 +6,7 @@
 #include "test.h"
 
 #include <unistd.h> // gethostname()
+#include <netdb.h> // gethostbyname()
 
 // this needs to be last because sys.h sneakily includes lots of
 // system header files.
@@ -14,7 +15,7 @@
 class ConfigurationData
 {
 public:
-    ConfigurationData(): reported( false ) {}
+    ConfigurationData(): reported( false ), fileExists( false ) {}
 
     List<Configuration::Something> unparsed;
     struct E {
@@ -25,6 +26,7 @@ public:
     List<E> errors;
     String f;
     bool reported;
+    bool fileExists;
 
     void error( const String & m, Log::Severity s = Log::Error ) {
         E * e = new E;
@@ -95,11 +97,10 @@ void Configuration::read( const String & file )
     clear();
     d->f = file;
     File f( file, File::Read );
-    if ( !f.valid() ) {
-        d->error( "Unable to open file: " + file );
+    if ( !f.valid() )
         return;
-    }
 
+    d->fileExists = true;
     String buffer( f.contents() );
     // we now want to loop from 0 to offset, picking up entire
     // lines and parsing them as variables.
@@ -176,19 +177,30 @@ void Configuration::report()
 
     if ( d->unparsed.isEmpty() && d->errors.isEmpty() )
         return;
-    Log l;
-    l.log( Log::Error, "While reading config file " + d->f + ":" );
 
-    List< ConfigurationData::E >::Iterator i;
-    List< Configuration::Something >::Iterator j;
+    bool e = false;
+    if ( !d->unparsed.isEmpty() )
+        e = true;
+    List< ConfigurationData::E >::Iterator i = d->errors.first();
+    while ( i && !e ) {
+        if ( i->s == Log::Error || i->s == Log::Disaster )
+            e = true;
+        i++;
+    }
+    
+    Log l;
+    if ( d->fileExists )
+        l.log( Log::Info, "While reading config file " + d->f + ":" );
+    else if ( e )
+        l.log( Log::Info, "Unable to open config file " + d->f );
 
     i = d->errors.first();
     while ( i ) {
-        l.log( (*i).s, (*i).m );
+        l.log( i->s, (*i).m );
         i++;
     }
 
-    j = d->unparsed.first();
+    List< Configuration::Something >::Iterator j = d->unparsed.first();
     while ( j ) {
         l.log( Log::Error,
                "Unknown configuration variable: " + j->s1 );
@@ -468,15 +480,37 @@ void Configuration::makeGlobal( const String & s )
     char buffer[257];
     buffer[256] = '\0';
     gethostname( buffer, 256 );
-    Configuration::Text hn( "hostname", buffer );
+    String host( buffer );
+    if ( host.find( '.' ) < 0 ) {
+        struct hostent * he = gethostbyname( buffer );
+        if ( he ) {
+            String candidate = he->h_name;
+            int i = 0;
+            bool done = false;
+            do {
+                uint hl = host.length();
+                if ( candidate[hl] == '.' &&
+                     candidate.mid( 0, hl ).lower() == host.lower() ) {
+                    host = candidate;
+                    done = true;
+                }
+                candidate = he->h_aliases[i];
+                i++;
+            } while ( !done && !candidate.isEmpty() );
+        }
+    }
+    Configuration::Text hn( "hostname", host );
     if ( !hn.valid() )
         ::global->d->error( "Syntax error in hostname",
                             Log::Disaster );
     else if ( ((String)hn).find( '.' ) < 0 )
         ::global->d->error( "Hostname does not contain a dot: " + hn,
                             Log::Disaster );
-    else
-        ::hostname = new String( hn );
+    else if ( host == hn )
+        ::global->d->error( "Using inferred hostname " + host, 
+                            Log::Info );
+
+    ::hostname = new String( hn );
 }
 
 
