@@ -4,6 +4,16 @@ Add support for RFC 2047 encoding
 Investigate the segfaults in "ms create user" on Debian.
 
 
+Schema documentation
+
+  I've done all I want to sql-schema.html and postgres.schema; I'll have
+  to wait for Sujai's diagram to complete schema.html, but until then, I
+  have done all I can to it.
+
+
+We need an IMAP test suite.
+
+
 Implement listext
 
   List and lsub are basically good now, but listext is only partially
@@ -21,13 +31,6 @@ Signal handling
   "reread the config".
 
   Other known signals?
-
-
-Schema documentation
-
-  I've done all I want to sql-schema.html and postgres.schema; I'll have
-  to wait for Sujai's diagram to complete schema.html, but until then, I
-  have done all I can to it.
 
 
 Set up and play with Tsearch2
@@ -71,9 +74,6 @@ Web site proofreading
 test with more imap clients (corp/docs/misc/mua-list)
 
   Why do we have one list in mua-list and another in imap.html?
-
-
-move tests to another program
 
 
 the gui should do something
