@@ -91,13 +91,19 @@ public:
     };
 
     void append( Column * );
-    String *getString( const String & );
-    int *getInt( const String & );
-    bool *getBoolean( const String & );
+    String getString( const String & ) const;
+    int getInt( const String & ) const;
+    bool getBoolean( const String & ) const;
+
+    bool null( const String & ) const;
 
 private:
+    void logDisaster( Column *, const String &, Database::Type ) const;
+    List< Column >::Iterator findColumn( const String & ) const;
+    
+private:
     List< Column > columns;
-    List< Column >::Iterator findColumn( const String & );
+
 };
 
 

@@ -197,11 +197,8 @@ void SaslMechanism::query()
     }
 
     Row *r = d->q->nextRow();
-    d->uid = *r->getInt( "id" );
-    String *s = r->getString( "secret" );
-
-    if ( s )
-        d->storedSecret = *s;
+    d->uid = r->getInt( "id" );
+    d->storedSecret = r->getString( "secret" );
 
     verify();
 }

@@ -85,14 +85,14 @@ void Create::execute()
     // If we created a new entry, we have to create a new sequence for
     // it. We *really* assume that sequence creation cannot fail.
     if ( q2 ) {
-        uint id = *q2->nextRow()->getInt( "id" );
+        uint id = q2->nextRow()->getInt( "id" );
         q2 = 0;
         q = new Query( "create sequence mailbox_" +
                        String::fromNumber( id ), this );
         q->execute();
         return;
     }
-    
+
     // We need to tell the OCServer what we did.
 
     finish();

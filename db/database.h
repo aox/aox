@@ -21,6 +21,8 @@ public:
         Unknown, Boolean, Character, Integer, Varchar
     };
 
+    static String typeName( Type );
+
     static void setup();
     static Database *handle();
 

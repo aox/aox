@@ -5,6 +5,7 @@
 #include "database.h"
 #include "event.h"
 #include "transaction.h"
+#include "log.h"
 
 
 class QueryData {
@@ -366,7 +367,7 @@ void Row::append( Row::Column *cv )
     in this Row, or 0 if there is no such column.
 */
 
-List< Row::Column >::Iterator Row::findColumn( const String &field )
+List< Row::Column >::Iterator Row::findColumn( const String &field ) const
 {
     List< Column >::Iterator c = columns.first();
     while ( c && c->name != field )
@@ -374,65 +375,115 @@ List< Row::Column >::Iterator Row::findColumn( const String &field )
     return c;
 }
 
-/*! If this Row contains a Column of string type named \a field, this
-    function returns a pointer to its String value, and 0 if the field
-    is NULL, unknown, or not a string.
 
-    XXX: This may need changing.
+/*! This helper function logs an error message complaining that a
+    search for \a field either did not succeed or that the \a result
+    was not of the right \a type.
 */
 
-String *Row::getString( const String &field )
+void Row::logDisaster( Column * result, const String & field,
+                       Database::Type type ) const
+{
+    if ( !result )
+        log( Log::Disaster, "Schema mismatch: Did not find Field " + field +
+             " (of type " + Database::typeName( type ) + ")" );
+    else
+        log( Log::Disaster, "Schema mismatch: Field " +
+             field + " has type " + Database::typeName( result->type ) +
+             ", while the caller expects " + 
+             Database::typeName( type ) );
+}
+
+
+/*! If this Row contains a Column of string type named \a field, this
+    function returns its String value, and an empty string if the
+    field is NULL, unknown, or not a string.
+*/
+
+String Row::getString( const String &field ) const
 {
     List< Column >::Iterator c = findColumn( field );
 
-    if ( c && c->type == Database::Varchar && c->length != -1 )
-        return new String( c->value );
-    return 0;
+    if ( c && c->type == Database::Varchar )
+        return c->value;
+
+    logDisaster( c, field, Database::Varchar );
+    return "";
 }
 
 
 /*! If this Row contains a Column of integer type named \a field, this
-    function returns a pointer to its value, and 0 if the field is NULL,
+    function returns its value. It returns 0 if the field is NULL,
     unknown, or not an integer.
-
-    XXX: This may need changing. And what about uint/overflow?
 */
 
-int *Row::getInt( const String &field )
+int Row::getInt( const String &field ) const
 {
     List< Column >::Iterator c = findColumn( field );
 
-    if ( c && c->type == Database::Integer && c->length != -1 ) {
-        bool ok;
-        int n = String( c->value ).number( &ok );
-        if ( ok )
-            return new int( n );
+    if ( !c || c->type != Database::Integer ) {
+        logDisaster( c, field, Database::Integer );
+        return 0;
     }
-    return 0;
+    else if ( c->length == -1 ) {
+        log( Log::Error, "Integer Field " + field + " is unexpectedly null" );
+        return 0;
+    }
+
+    bool ok;
+    int n = String( c->value ).number( &ok );
+    if ( !ok ) {
+        log( Log::Error, "Field " + field + " has value " + c->value +
+             ", which is not a legal integer" );
+        return 0;
+    }
+    return n;
 }
 
 
 /*! If this Row contains a Column of boolean type named \a field, this
-    function returns a pointer to its value, and 0 if the field is NULL,
+    function returns its value. It returns false iif the field is NULL,
     unknown, or not a boolean value.
-
-    XXX: This may need changing.
 */
 
-bool *Row::getBoolean( const String &field )
+bool Row::getBoolean( const String &field ) const
 {
     List< Column >::Iterator c = findColumn( field );
 
-    if ( c && c->type == Database::Boolean && c->length == 1 ) {
-        String s = c->value;
-        if ( s == "t" )
-            return new bool( true );
-        else if ( s == "f" )
-            return new bool( false );
+    if ( !c || c->type != Database::Boolean ) {
+        logDisaster( c, field, Database::Boolean );
+        return false;
     }
-    return 0;
+    else if ( c->length == -1 ) {
+        log( Log::Error, "Boolean Field " + field + " is unexpectedly null" );
+        return false;
+    }
+
+    String s = c->value;
+    if ( s == "t" )
+        return true;
+    else if ( s != "f" )
+        log( Log::Error, "Boolean Field " + field + 
+             " has unexpected value " + s );
+    return false;
 }
 
+
+/*! Returns true if \a field exists and is null, and false in all
+    other cases. Logs a disaster if \a field does not exist.
+*/
+
+bool Row::null( const String & field ) const
+{
+    List< Column >::Iterator c = findColumn( field );
+
+    if ( !c )
+        log( Log::Disaster, "Did not find Field " + field );
+    else if ( c->length == -1 )
+        return true;
+
+    return false;
+}
 
 
 /*! \class PreparedStatement query.h

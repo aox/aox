@@ -74,7 +74,7 @@ public:
         if ( !q->done() )
             return;
 
-        list->append( q->nextRow()->getInt( "id" ) );
+        list->append( new int( q->nextRow()->getInt( "id" ) ) ); // ### ick
 
         queries->take( queries->first() );
         if ( queries->isEmpty() )

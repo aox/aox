@@ -138,7 +138,7 @@ void AddressLookup::execute() {
         return;
     }
 
-    uint id = *r->getInt( "id" );
+    uint id = r->getInt( "id" );
     address->setId( id );
     {
         Scope x( &acArena );

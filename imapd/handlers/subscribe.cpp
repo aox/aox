@@ -82,7 +82,7 @@ void Subscribe::execute()
             q->bind( 2, m );
         }
         else if ( mode == Remove && q->rows() == 1 ) {
-            int id = *q->nextRow()->getInt( "id" );
+            int id = q->nextRow()->getInt( "id" );
             q = new Query( "delete from subscriptions where id=$1", this );
             q->bind( 1, id );
         }

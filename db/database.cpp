@@ -250,3 +250,29 @@ void Database::removeHandle( Database * d )
     Scope x( &dbArena );
     handles.take( handles.find( d ) );
 }
+
+
+/*! Returns the name of \a type, mostly for logging purposes. */
+
+String Database::typeName( Type type )
+{
+    String n;
+    switch( type ) {
+    case Database::Unknown:
+        n = "unknown";
+        break;
+    case Database::Boolean:
+        n = "boolean";
+        break;
+    case Database::Character:
+        n = "character";
+        break;
+    case Database::Integer:
+        n = "integer";
+        break;
+    case Database::Varchar:
+        n = "varchar";
+        break;
+    }
+    return n;
+}

@@ -68,10 +68,10 @@ void Mailbox::setup()
             while ( query->hasResults() ) {
                 Row *r = query->nextRow();
 
-                Mailbox *m = new Mailbox( *r->getString( "name" ) );
-                m->d->id = *r->getInt( "id" );
-                m->d->deleted = *r->getBoolean( "deleted" );
-                m->d->uidvalidity = *r->getInt( "uidvalidity" );
+                Mailbox *m = new Mailbox( r->getString( "name" ) );
+                m->d->id = r->getInt( "id" );
+                m->d->deleted = r->getBoolean( "deleted" );
+                m->d->uidvalidity = r->getInt( "uidvalidity" );
                 insert( m );
             }
 
@@ -82,7 +82,7 @@ void Mailbox::setup()
     };
 
     root = new Mailbox( "/" );
-    
+
     Database *db = Database::handle();
     if ( !db ) {
         log( Log::Disaster, "Couldn't acquire a database handle." );
@@ -95,7 +95,7 @@ void Mailbox::setup()
 
     // The main event loop hasn't been started yet, so we create one for
     // our database handle, and stop it when they query is completed.
-    
+
     loop = new EventLoop;
     loop->addConnection( db );
     loop->start();

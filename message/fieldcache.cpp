@@ -117,7 +117,7 @@ void FieldLookup::execute() {
         return;
     }
 
-    uint id = *r->getInt( "id" );
+    uint id = r->getInt( "id" );
     {
         Scope x( &fcArena );
 
