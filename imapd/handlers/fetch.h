@@ -4,6 +4,9 @@
 #include "command.h"
 
 
+class Message;
+
+
 class Fetch
     : public Command
 {
@@ -18,9 +21,12 @@ public:
 
     String dotLetters( uint, uint );
 
-    String coreQuery() const;
-    String headerQuery() const;
-    String bodyQuery() const;
+private:
+    String fetchResponse( Message *, uint, uint );
+    String flagList( Message *, uint );
+    String internalDate( Message * );
+    String envelope( Message * );
+    String bodystructure( Message *, bool );
 
 private:
     bool uid;

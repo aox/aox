@@ -2,11 +2,14 @@
 
 #include "messageset.h"
 #include "stringlist.h"
+#include "imapsession.h"
+#include "address.h"
+#include "message.h"
 #include "arena.h"
 #include "scope.h"
 #include "imap.h"
-
-#include "test.h"
+#include "flag.h"
+#include "date.h"
 
 // fetch           = "FETCH" SP set SP ("ALL" / "FULL" / "FAST" / fetch-att /
 //                   "(" fetch-att *(SP fetch-att) ")")
@@ -110,19 +113,6 @@ void Fetch::parse()
     if ( d->body || d->bodystructure )
         d->needBody = true;
     end();
-}
-
-
-/*! \reimp */
-
-void Fetch::execute()
-{
-    if ( d->set.isEmpty() ) {
-        setState( Finished );
-        return;
-    }
-
-
 }
 
 
@@ -328,193 +318,200 @@ void Fetch::parseBody()
 }
 
 
-/*! Returns a query string to fetch the necessary header fields, or an
-    empty string if no neader fields are needed for this Fetch. */
+/*! \reimp */
 
-String Fetch::headerQuery() const
+void Fetch::execute()
 {
-    String q;
-    if ( d->needHeader )
-        q = "select (*) from header_fields where mailbox=" +
-            fn( 1 ) + " and " + d->set.where();
-    return q;
-}
-
-
-/*! Returns a query string to fetch the body, or an empty string if
-    this Fetch does not need the body.
-*/
-
-String Fetch::bodyQuery() const
-{
-    String q;
-    if ( !d->needBody )
-        return q;
-    q = "select (part_numbers.uid,part_numbers.partno,bodypart_ids.data) "
-        "from part_numbers, bodypart_ids where "
-        "bodypart_ids.id=part_numbers.bodypart and "
-        "part_numbers.mailbox=" + fn( 1 ) +
-        " and " + d->set.where();
-    return q;
-}
-
-
-
-/*! Returns an SQL query string to fetch the basic message attributes,
-    or an empty string if they aren't necessary for this Fetch.
-*/
-
-String Fetch::coreQuery() const
-{
-    if ( !d->internaldate && !d->rfc822size )
-        return "";
-
-    StringList bools;
-    if ( d->internaldate )
-        bools.append( "internaldate" );
-    if ( d->rfc822size )
-        bools.append( "rfc822size" );
-
-    String q = "select (uid," + bools.join( "," ) + ") from messages where " +
-               "mailbox=" + fn( 1 ) + " and " +
-               d->set.where();
-
-    return q;
-}
-
-
-static struct {
-    const char * args;
-    const char * query1;
-    const char * query2;
-    const char * query3;
-} fetches[] = {
-    { "1,2,3 flags", // 0
-      "select (flags,uid) from messages where uid<4",
-      "",
-      "" },
-    { "2,3 flags", // 1
-      "select (flags,uid) from messages where uid>=2 and uid<4",
-      "",
-      "" },
-    { "2,3 (flags)", // 2
-      "select (flags,uid) from messages where uid>=2 and uid<4",
-      "",
-      "" },
-    { "2,3 (flags uid)", // 3
-      "select (flags,uid) from messages where uid>=2 and uid<4",
-      "",
-      "" },
-    { "1 uid", // 4
-      "select (uid) from messages where uid=1",
-      "",
-      "" },
-    { "1 all", // 5
-      "select (flags,internaldate,rfc822size,uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "" },
-    { "1 fast", // 6
-      "select (flags,internaldate,rfc822size,uid) from messages where uid=1",
-      "",
-      "" },
-    { "1 full", // 7
-      "select (flags,internaldate,rfc822size,uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { "1 (uid rfc822)", // 8
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { "1 (uid rfc822.size)", // 9
-      "select (rfc822size,uid) from messages where uid=1",
-      "",
-      "" },
-    { "1 (uid rfc822.text)", // 10
-      "select (uid) from messages where uid=1",
-      "",
-      "select (*) from bodies where uid=1" },
-    { "1 (uid rfc822.header)", // 11
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "" },
-    { "1 (uid body.peek[])", // 12
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { "1 (uid body.peek[1])", // 13
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { "1 body.peek[1]", // 14
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { "1 body.peek[mime]", // 15
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "" },
-    { "1 body.peek[1.mime]", // 16
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { "1 body.peek[1.2.mime]", // 17
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { "1 body.peek[header]", // 18
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "" },
-    { "1 body.peek[text]", // 19
-      "select (uid) from messages where uid=1",
-      "",
-      "select (*) from bodies where uid=1" },
-    { "1 body.peek[1.header]", // 20
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { "1 body.peek[1.text]", // 21
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { "1 body.peek[1.123456789.header]", // 22
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { "1 body.peek[1.23456789.text]", // 23
-      "select (uid) from messages where uid=1",
-      "select (*) from headerfields where uid=1",
-      "select (*) from bodies where uid=1" },
-    { 0, 0, 0, 0 }
-};
-
-
-static class FetchTest: public Test {
-public:
-    FetchTest(): Test( 610 ) {}
-    void test() {
-        setContext( "Testing Fetch" );
-
-        IMAP imap( -1 );
-        imap.setState( IMAP::Selected );
-        String tag = "a";
-        uint i = 0;
-        while ( fetches[i].args != 0 ) {
-            Arena a;
-            Scope s( &a );
-            StringList l;
-            l.append( fetches[i].args );
-            Fetch * f
-                = (Fetch *)Command::create( &imap, "uid fetch", tag, &l, &a );
-            if ( f )
-                f->parse();
-            verify( "Fetch parsing broke",
-                    !f,
-                    !f->ok(),
-                    f->coreQuery() != fetches[i].query1,
-                    f->headerQuery() != fetches[i].query2,
-                    f->bodyQuery() != fetches[i].query3 );
-            i++;
+    ImapSession * s = imap()->session();
+    uint i = 0;
+    bool done = true;
+    while ( i < d->set.count() ) {
+        i++;
+        uint uid = d->set.value( i );
+        Message * m = s->message( uid );
+        bool ok = false;
+        if ( m ) {
+            ok = true;
+            if ( d->needHeader && !m->hasHeaders() ) {
+                m->fetchHeaders( this );
+                ok = false;
+            }
+            if ( d->needBody && !m->hasBodies() ) {
+                m->fetchBodies( this );
+                ok = false;
+            }
+            if ( d->flags && !m->hasCustomFlags() ) {
+                m->fetchCustomFlags( this );
+                ok = false;
+            }
+            if ( ok )
+                respond( fetchResponse( m, uid, s->msn( uid ) ),
+                         Untagged );
+            else 
+                done = false;
         }
     }
-} fetchTest;
+    if ( done )
+        finish();
+}
+
+
+/*! Emits a single FETCH response for the messae \a m, which is
+    trusted to have UID \a uid and MSN \a msn.
+
+    The message must have all necessary content.
+*/
+
+String Fetch::fetchResponse( Message * m, uint uid, uint msn )
+{
+    StringList l;
+    if ( d->uid )
+        l.append( "UID " + fn( uid ) );
+    if ( d->rfc822size )
+        l.append( "RFC822.SIZE " + fn( d->rfc822size ) );
+    if ( d->flags )
+        l.append( "FLAGS (" + flagList( m, uid ) + ")" );
+    if ( d->internaldate )
+        l.append( "INTERNALDATE " + internalDate( m ) );
+    if ( d->envelope )
+        l.append( "ENVELOPE " + envelope( m ) );
+    if ( d->body )
+        l.append( "BODY " + bodystructure( m, false ) );
+    if ( d->bodystructure )
+        l.append( "BODYSTRUCTURE " + bodystructure( m, true ) );
+
+    // deal with the sections here
+
+    String r = fn( msn ) + " FETCH (" + l.join( " " ) + ")";
+    return r;
+}
+
+
+/*! Returns a string containing all the flags that are set for message
+    \a m, which has UID \a uid.
+*/
+
+String Fetch::flagList( Message * m, uint uid )
+{
+    StringList r;
+
+    if ( m->flag( Message::AnsweredFlag ) )
+        r.append( "\\answered" );
+    if ( m->flag( Message::DeletedFlag ) )
+        r.append( "\\deleted" );
+    if ( m->flag( Message::DraftFlag ) )
+        r.append( "\\draft" );
+    if ( m->flag( Message::FlaggedFlag ) )
+        r.append( "\\flagged" );
+    if ( m->flag( Message::SeenFlag ) )
+        r.append( "\\seen" );
+
+    if ( imap()->session()->isRecent( uid ) )
+        r.append( "\\recent" );
+
+    List<Flag> * f = m->customFlags();
+    if ( f && !f->isEmpty() ) {
+        List<Flag>::Iterator it = f->first();
+        while ( it ) {
+            r.append( it->name() );
+            ++it;
+        }
+    }
+
+    return r.join( " " );
+}
+
+
+/*! Returns the internaldate of \a m in IMAP format. */
+
+String Fetch::internalDate( Message * m )
+{
+    Date date;
+    date.setUnixTime( m->internalDate() );
+    return date.imap();
+}
+
+
+static String hf( Header * f, HeaderField::Type t )
+{
+    List<Address> * a = f->addresses( t );
+    if ( !a || a->isEmpty() )
+        return "NIL ";
+    String r( "(" );
+    List<Address>::Iterator it( a->first() );
+    while ( it ) {
+        r.append( "(" );
+        r.append( Command::imapQuoted( it->name(), Command::NString ) );
+        r.append( " NIL " );
+        r.append( Command::imapQuoted( it->localpart(), Command::NString ) );
+        r.append( " " );
+        r.append( Command::imapQuoted( it->domain(), Command::NString ) );
+        r.append( ")" );
+        ++it;
+    }
+    r.append( ") " );
+    return r;
+}
+
+/*! Returns the IMAP envelope for \a m. */
+
+String Fetch::envelope( Message * m )
+{
+    Header * h = m->header();
+
+    String r( "(" );
+
+    Date * date = h->date();
+    if ( date )
+        r.append( imapQuoted( date->rfc822(), NString ) + " " );
+    else
+        r.append( "NIL " );
+
+    r.append( imapQuoted( h->subject(), NString ) + " " );
+    r.append( hf( h, HeaderField::From ) );
+    r.append( hf( h, HeaderField::Sender ) );
+    r.append( hf( h, HeaderField::ReplyTo ) );
+    r.append( hf( h, HeaderField::To ) );
+    r.append( hf( h, HeaderField::Cc ) );
+    r.append( hf( h, HeaderField::Bcc ) );
+    r.append( imapQuoted( h->inReplyTo(), NString ) + " " );
+    r.append( imapQuoted( h->messageId(), NString ) + " " );
+
+    r.append( ")" );
+    return r;
+    
+    // envelope        = "(" env-date SP env-subject SP env-from SP
+    //                   env-sender SP env-reply-to SP env-to SP env-cc SP
+    //                   env-bcc SP env-in-reply-to SP env-message-id ")"
+    // 
+    // env-bcc         = "(" 1*address ")" / nil
+    // 
+    // env-cc          = "(" 1*address ")" / nil
+    // 
+    // env-date        = nstring
+    // 
+    // env-from        = "(" 1*address ")" / nil
+    // 
+    // env-in-reply-to = nstring
+    // 
+    // env-message-id  = nstring
+    // 
+    // env-reply-to    = "(" 1*address ")" / nil
+    // 
+    // env-sender      = "(" 1*address ")" / nil
+    // 
+    // env-subject     = nstring
+    // 
+    // env-to          = "(" 1*address ")" / nil
+}
+
+
+/*! Returns either the IMAP BODY or BODYSTRUCTURE production for \a
+    m. If \a extended is true, BODYSTRUCTURE is returned. If it's
+    false, BODY.
+*/
+
+String Fetch::bodystructure( Message * m, bool extended )
+{
+    return ""; // just compile. I'll go on in a moment.
+}
