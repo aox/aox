@@ -59,7 +59,8 @@ IMAP::IMAP(int s)
 {
     d = new IMAPData;
 
-    d->logger = new Logger( "IMAP Server for ... what?" );
+    d->logger = new Logger;
+    d->logger->log( "IMAP: accepted connection" );
 
     setReadBuffer( new Buffer( fd() ) );
     setWriteBuffer( new Buffer( fd() ) );
@@ -402,4 +403,5 @@ void IMAP::runCommands()
             more = true;
         }
     };
+
 }
