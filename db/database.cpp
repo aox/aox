@@ -159,6 +159,29 @@ void Database::query( Query *query )
 }
 
 
+/*! \overload
+    Executes a List \a l of queries on the same database handle().
+*/
+
+void Database::query( List< Query > *l )
+{
+    Database *db = handle();
+
+    List< Query >::Iterator it( l->first() );
+    if ( !db ) {
+        while ( it ) {
+            it->setError( "No database handle available." );
+            it++;
+        }
+        return;
+    }
+
+    while ( it )
+        db->enqueue( it++ );
+    db->execute();
+}
+
+
 /*! Returns the text of the "db" configuration variable, which tells the
     handle() function which Database subclass to instantiate.
 */

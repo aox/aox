@@ -1,6 +1,7 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
+#include "list.h"
 #include "connection.h"
 
 class Query;
@@ -24,6 +25,7 @@ public:
     virtual void execute() = 0;
 
     static void query( Query * );
+    static void query( List< Query > * );
 
 protected:
     static String type();
