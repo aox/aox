@@ -95,7 +95,7 @@ public:
     SMTPData():
         code( 0 ), state( SMTP::Initial ),
         pipelining( false ), from( 0 ), user( 0 ), protocol( "smtp" ),
-        log( 0 ), injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
+        injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false )
     {}
 
@@ -110,7 +110,6 @@ public:
     String arg;
     String helo;
     String protocol;
-    Log * log;
     Injector * injector;
     SmtpDbClient * helper;
     TlsServer * tlsServer;
@@ -159,8 +158,6 @@ SMTP::~SMTP()
 
 void SMTP::react( Event e )
 {
-    Scope s( d->log );
-
     switch ( e ) {
     case Read:
         setTimeoutAfter( 1800 );
@@ -666,6 +663,7 @@ SMTP::State SMTP::state() const
 
 void SMTP::inject()
 {
+    Scope x( new Log( Log::SMTP ) );
     Date now;
     now.setCurrentTime();
     String received = "Received: from " +
