@@ -1,0 +1,18 @@
+# build settings here. these may be changed at will.
+#
+# remember: around = and before ;.
+
+# files and directories.
+
+BINDIR = /usr/mailstore/bin ;
+MANDIR = /usr/mailstore/man ;
+PIDFILEDIR = /tmp/mailstore/pid ;
+CONFIGDIR = /etc/mailstore ;
+LOGFILE = /tmp/mailstore.log ;
+
+# how to compile
+
+C++FLAGS = -g -Werror -funsigned-char ;
+LINKFLAGS = -g ;
+
+# this file is included from Jamrules.
