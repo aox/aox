@@ -457,7 +457,7 @@ void Injector::insertBodyparts()
             i->appendType( 23 );
             i->appendType( 23 );
             i->appendType( 25 );
-            i->appendType( 17 );
+            i->appendType( 25 );
             i->appendType( 17 );
         }
 
