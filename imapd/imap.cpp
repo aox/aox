@@ -24,6 +24,7 @@ public:
         mailbox( 0 ),
         idle( false )
     {}
+    ~IMAPData() { delete cmdArena; }
 
     Log * logger;
     Arena * cmdArena;
@@ -75,7 +76,6 @@ IMAP::IMAP(int s)
 
 IMAP::~IMAP()
 {
-    delete d->cmdArena;
     delete d;
 }
 
@@ -86,12 +86,7 @@ void IMAP::react(Event e)
 {
     switch ( e ) {
     case Read:
-        if ( !d->cmdArena )
-            d->cmdArena = new Arena;
-        {
-            Scope x( d->cmdArena );
-            parse();
-        }
+        parse();
         break;
     case Timeout:
         writeBuffer()->append( "* BYE autologout\r\n" );
@@ -119,10 +114,16 @@ void IMAP::react(Event e)
 
 void IMAP::parse()
 {
+    Scope s;
     Buffer * r = readBuffer();
     while ( true ) {
-        if ( !d->args )
+        if ( !d->cmdArena ) {
+            d->cmdArena = new Arena;
+            s.setArena( d->cmdArena );
+        }
+        if ( !d->args ) {
             d->args = new List<String>;
+        }
         if ( d->grabber ) {
             d->grabber->read();
             // still grabbed? must wait for more.
@@ -130,14 +131,11 @@ void IMAP::parse()
                 return;
         }
         else if ( d->readingLiteral ) {
-            if ( r->size() >= d->literalSize ) {
-                d->args->append( r->string( d->literalSize ) );
-                r->remove( d->literalSize );
-                d->readingLiteral = false;
-            }
-            else {
+            if ( r->size() < d->literalSize )
                 return;
-            }
+            d->args->append( r->string( d->literalSize ) );
+            r->remove( d->literalSize );
+            d->readingLiteral = false;
         }
         else {
             uint i = 0;
@@ -164,23 +162,20 @@ void IMAP::parse()
                 while ( i > 0 && (*s)[i] >= '0' && (*s)[i] <= '9' )
                     i--;
                 if ( (*s)[i] == '{' ) {
-                    d->readingLiteral = true;
                     bool ok;
                     d->literalSize = s->mid( i+1, j-i+1 ).number( &ok );
-                    if ( !ok ) {
-                        writeBuffer()->append( "* BAD literal, BAD\r\n" );
-                        Connection::setState( Closing );
-                        return;
-                    }
+                    if ( ok )
+                        d->readingLiteral = true;
                     if ( ok && !plus )
                         writeBuffer()->append( "+\r\n" );
                 }
             }
             if ( !d->readingLiteral ) {
+                // we're done reading the entire command.
                 addCommand();
+                // get ready for another command
                 d->args = 0;
-                d->cmdArena = new Arena;
-                Scope::current()->setArena( d->cmdArena );
+                d->cmdArena = 0;
             }
         }
     }
