@@ -2,39 +2,228 @@
 
 #include "bodypart.h"
 
-#include "message.h"
-#include "string.h"
-#include "ustring.h"
 #include "codec.h"
-#include "utf.h"
+#include "ustring.h"
 #include "header.h"
+#include "message.h"
 #include "mimefields.h"
-#include "address.h"
-#include "date.h"
-#include "query.h"
-#include "mailbox.h"
-#include "flag.h"
-
-#include "test.h"
 
 
-class BodypartData
-{
+class BodypartData {
 public:
     BodypartData()
-        : parent( 0 ), cte( String::Binary ),
-          number( 1 ), rfc822( 0 ), numBytes( 0 ), numLines( 0 )
+        : number( 1 ),
+          cte( String::Binary ), parent( 0 ), rfc822( 0 ),
+          numBytes( 0 ), numLines( 0 )
     {}
 
-    Multipart * parent;
-    String::Encoding cte;
-    String data;
-    UString text;
     uint number;
-    Message * rfc822;
+
+    String::Encoding cte;
+    Multipart *parent;
+    Message *rfc822;
+
     uint numBytes;
     uint numLines;
+
+    String data;
+    UString text;
 };
+
+
+/*! \class Bodypart bodypart.h
+
+    The Bodypart class models a single MIME body part. It is a subclass
+    of Multipart, and an adjunct to Message.
+
+    Every Bodypart has a number(), a contentType(), and an encoding().
+    Bodyparts contain text(), data(), or an rfc822() message, based on
+    their Content-Type. Each one knows the numBytes() and numLines() of
+    data that it contains, and it can present itself asText().
+
+    This class is also responsible for parsing bodyparts in messages.
+*/
+
+/*! Constructs an empty Bodypart.
+    This is meant to be used only by parseBodypart().
+*/
+
+Bodypart::Bodypart()
+    : d ( new BodypartData )
+{
+    setHeader( new Header( Header::Mime ) );
+}
+
+
+/*! Constructs a Bodypart with number \a n and parent \a p. */
+
+Bodypart::Bodypart( uint n, Multipart *p )
+    : d( new BodypartData )
+{
+    setHeader( new Header( Header::Mime ) );
+    d->number = n;
+    setParent( p );
+}
+
+
+/*! Returns a number that reflects this Bodypart's position within its
+    containing Multipart.
+*/
+
+uint Bodypart::number() const
+{
+    return d->number;
+}
+
+
+/*! Returns the ContentType of this Bodypart, which may be a null
+    pointer in case the Content-Type is the default one.
+
+    The Bodypart cannot find the default alone, since it depends on
+    the surrounding type.
+*/
+
+ContentType * Bodypart::contentType() const
+{
+    if ( !d || !header() )
+        return 0;
+    return header()->contentType();
+}
+
+
+/*! Returns this Bodypart's encoding. */
+
+String::Encoding Bodypart::encoding() const
+{
+    return d->cte;
+}
+
+
+/*! Returns this Bodypart's content in 8-bit form. If this Bodypart is
+    a text part, data() returns the UTF-encoded version of text().
+*/
+
+String Bodypart::data() const
+{
+    return d->data;
+}
+
+
+/*! Sets the data of this Bodypart to \a s. For use only by
+    MessageBodyFetcher for now.
+*/
+
+void Bodypart::setData( const String &s )
+{
+    d->data = s;
+}
+
+
+/*! Returns this Bodypart's content, provided it's a text part. If
+    it's not a text part, this function returns an empty string.
+*/
+
+UString Bodypart::text() const
+{
+    return d->text;
+}
+
+
+/*! Sets the text of this Bodypart to \a s. For use only by
+    MessageBodyFetcher for now.
+*/
+
+void Bodypart::setText( const UString &s )
+{
+    d->text = s;
+}
+
+
+/*! If this Bodypart is a message/rfc822, this function returns a
+    pointer to the subsidiary message. In all other cases, this
+    function returns a null pointer.
+*/
+
+Message *Bodypart::rfc822() const
+{
+    return d->rfc822;
+}
+
+
+/*! Sets the subsidiary rfc822() message of this Bodypart to \a m. */
+
+void Bodypart::setRfc822( Message *m )
+{
+    d->rfc822 = m;
+}
+
+
+/*! Notifies this Bodypart that it contains \a n bytes of data().
+    The initial value is 0.
+*/
+
+void Bodypart::setNumBytes( uint n )
+{
+    d->numBytes = n;
+}
+
+
+/*! Returns the number of bytes in this body part, as set using
+    setNumBytes().
+*/
+
+uint Bodypart::numBytes() const
+{
+    return d->numBytes;
+}
+
+
+/*! Notifies this Bodypart that it contains \a n lines of text().
+    The initial value is 0.
+*/
+
+void Bodypart::setNumLines( uint n )
+{
+    d->numLines = n;
+}
+
+
+/*! Returns the number of lines in this body part, as set using
+    setNumLines().
+*/
+
+uint Bodypart::numLines() const
+{
+    return d->numLines;
+}
+
+
+/*! Returns the text representation of this Bodypart. */
+
+String Bodypart::asText() const
+{
+    String r;
+    Codec *c = 0;
+
+    ContentType *ct = header()->contentType();
+    if ( ct && !ct->parameter( "charset" ).isEmpty() )
+        c = Codec::byName( ct->parameter( "charset" ) );
+    if ( !c )
+        c = new AsciiCodec;
+
+    if ( !children()->isEmpty() )
+        appendMultipart( r, children(), header() );
+    else if ( !d->text.isEmpty() )
+        r = c->fromUnicode( d->text );
+    else if ( header()->contentType() &&
+              header()->contentType()->type() != "text" )
+        r = d->data.e64( 72 );
+    else
+        r = d->data.encode( d->cte, 72 );
+
+    return r;
+}
+
 
 
 /*! Parses the part of \a rfc2822 from index \a i to (but not including)
@@ -213,207 +402,4 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     }
 
     return bp;
-}
-
-
-/*! \class Bodypart bodypart.h
-
-    The Bodypart class models a single IMAP body part. It's an adjunct
-    to Message, and hasn't quite decided what it wants to be yet. Some
-    of its present functions will probably die and others arise in
-    their stead.
-
-    The Bodypart class has its own text() or data() (depending on
-    whether its contentType() is text/whatever or something else), has
-    a MIME header(), and has an rfc822() message if it's a
-    message/rfc822 part. All of these are computed during parsing.
-
-    This code can use some cleaning-up.
-*/
-
-
-/*! Constructs an empty Bodypart. This is meant to be used by
-    Message, which is a friend and will then adjust this object to suit
-    its fancy.
-
-    (For friend read sugar daddy.)
-*/
-
-Bodypart::Bodypart()
-    : d ( new BodypartData )
-{
-    setHeader( new Header( Header::Mime ) );
-}
-
-
-/*! Constructs a Bodypart with number \a n and parent \a p. */
-
-Bodypart::Bodypart( uint n, Multipart *p )
-    : d( new BodypartData )
-{
-    setHeader( new Header( Header::Mime ) );
-    d->number = n;
-    setParent( p );
-}
-
-
-/*! Returns a number that reflects this Bodypart's position within its
-    containing Multipart.
-*/
-
-uint Bodypart::number() const
-{
-    return d->number;
-}
-
-
-/*! Returns the ContentType of this Bodypart, which may be a null
-    pointer in case the content-type is the default one.
-
-    The Bodypart cannot find the default alone, since it depends on
-    the surrounding type.
-*/
-
-ContentType * Bodypart::contentType() const
-{
-    if ( !d || !header() )
-        return 0;
-    return header()->contentType();
-}
-
-
-/*! Returns this Bodypart's Encoding. Care needed here. Talk to Arnt.
-*/
-
-String::Encoding Bodypart::encoding() const
-{
-    return d->cte;
-}
-
-
-/*! Returns this Bodypart's content in 8-bit form. If this Bodypart is
-    a text part, data() returns the UTF-encoded version of text().
-*/
-
-String Bodypart::data() const
-{
-    return d->data;
-}
-
-
-/*! Returns this Bodypart's content, provided it's a text part. If
-  it's not a text part, this function returns an empty string.
-*/
-
-UString Bodypart::text() const
-{
-    return d->text;
-}
-
-
-/*! If this Bodypart is a messsage/rfc822, this function returns a
-    pointer to the subsidiary message. In all other cases, this
-    function returns a null pointer.
-*/
-
-Message * Bodypart::rfc822() const
-{
-    return d->rfc822;
-}
-
-
-/*! Sets the subsidiary rfc822() message of this Bodypart to \a m.
-*/
-
-void Bodypart::setRfc822( Message *m )
-{
-    d->rfc822 = m;
-}
-
-
-/*! Notifies this Bodypart that it has \a n bytes. The initial value is
-    0.
-*/
-
-void Bodypart::setNumBytes( uint n )
-{
-    d->numBytes = n;
-}
-
-
-/*! Returns the number of bytes in this body part, as set using
-    setNumBytes().
-*/
-
-uint Bodypart::numBytes() const
-{
-    return d->numBytes;
-}
-
-
-/*! Notifies this Bodypart that it has \a n lines. The initial value is
-    0.
-*/
-
-void Bodypart::setNumLines( uint n )
-{
-    d->numLines = n;
-}
-
-
-/*! Returns the number of lines in this body part, as set using
-    setNumLines().
-*/
-
-uint Bodypart::numLines() const
-{
-    return d->numLines;
-}
-
-
-/*! Returns the text representation of this Bodypart.
-*/
-
-String Bodypart::asText() const
-{
-    String r;
-    Codec *c = 0;
-
-    ContentType *ct = header()->contentType();
-    if ( ct && !ct->parameter( "charset" ).isEmpty() )
-        c = Codec::byName( ct->parameter( "charset" ) );
-    if ( !c )
-        c = new AsciiCodec;
-
-    if ( !children()->isEmpty() )
-        appendMultipart( r, children(), header() );
-    else if ( !d->text.isEmpty() )
-        r = c->fromUnicode( d->text );
-    else if ( header()->contentType() &&
-              header()->contentType()->type() != "text" )
-        r = d->data.e64( 72 );
-    else
-        r = d->data.encode( d->cte, 72 );
-
-    return r;
-}
-
-
-/*! Sets the text of this Bodypart to \a s. For use only by
-    MessageBodyFetcher for now.
-*/
-
-void Bodypart::setText( const UString &s )
-{
-    d->text = s;
-}
-
-
-/*! Sets the data of this Bodypart to \a s. For use only by
-    MessageBodyFetcher for now.
-*/
-
-void Bodypart::setData( const String &s )
-{
-    d->data = s;
 }
