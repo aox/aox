@@ -9,12 +9,13 @@
 #include "query.h"
 #include "transaction.h"
 #include "imap.h"
+#include "log.h"
 
 
 class SessionData {
 public:
     SessionData()
-        : readOnly( false ), mailbox( 0 ), uidnext( 0 ), imap( 0 )
+        : readOnly( true ), mailbox( 0 ), uidnext( 1 ), imap( 0 )
     {}
 
     bool readOnly;
@@ -231,6 +232,7 @@ public:
     ImapSessionInitializerDataExtraLong()
         : session( 0 ), owner( 0 ),
           t( 0 ), recent( 0 ), messages( 0 ),
+          oldUidnext( 0 ), newUidnext( 0 ),
           done( false )
         {}
 
@@ -240,6 +242,9 @@ public:
     Transaction * t;
     Query * recent;
     Query * messages;
+
+    uint oldUidnext;
+    uint newUidnext;
 
     bool done;
 };
@@ -263,6 +268,13 @@ ImapSessionInitializer::ImapSessionInitializer( ImapSession * session,
 {
     d->session = session;
     d->owner = owner;
+    d->oldUidnext = d->session->uidnext();
+    d->newUidnext = d->session->mailbox()->uidnext();
+    d->session->d->uidnext = d->newUidnext;
+    log( "Updating session on " + d->session->mailbox()->name() +
+         " for UIDs [" + fn( d->oldUidnext ) + "," +
+         fn( d->newUidnext ) + ">" );
+
     execute();
 }
 
@@ -271,10 +283,6 @@ ImapSessionInitializer::ImapSessionInitializer( ImapSession * session,
 
 void ImapSessionInitializer::execute()
 {
-    uint oldUidnext = d->session->uidnext();
-    uint newUidnext = d->session->mailbox()->uidnext();
-    d->session->d->uidnext = newUidnext;
-
     if ( !d->t ) {
         // We select and delete the rows in recent_messages that refer
         // to our session's mailbox. Concurrent Selects of the same
@@ -286,26 +294,23 @@ void ImapSessionInitializer::execute()
                                "mailbox=$1 and uid>=$2 and uid<$3 for update",
                                this );
         d->recent->bind( 1, d->session->mailbox()->id() );
-        d->recent->bind( 2, oldUidnext );
-        d->recent->bind( 3, newUidnext );
+        d->recent->bind( 2, d->oldUidnext );
+        d->recent->bind( 3, d->newUidnext );
         d->t->enqueue( d->recent );
 
         if ( !d->session->readOnly() ) {
             Query *q = new Query( "delete from recent_messages where "
                                   "mailbox=$1 and uid>=$2 and uid<$3", this );
             q->bind( 1, d->session->mailbox()->id() );
-            q->bind( 2, oldUidnext );
-            q->bind( 3, newUidnext );
+            q->bind( 2, d->oldUidnext );
+            q->bind( 3, d->newUidnext );
             d->t->enqueue( q );
         }
 
         d->t->commit();
         return;
     }
-    else if ( !d->t->done() ) {
-        return;
-    }
-    else {
+    else if ( d->recent->done() ) {
         Row * r = 0;
         while ( (r = d->recent->nextRow()) != 0 )
             d->session->addRecent( r->getInt( "uid" ) );
@@ -318,14 +323,11 @@ void ImapSessionInitializer::execute()
                          "uid>=$2 and uid<$3",
                          this );
         d->messages->bind( 1, d->session->mailbox()->id() );
-        d->messages->bind( 2, oldUidnext );
-        d->messages->bind( 3, newUidnext );
+        d->messages->bind( 2, d->oldUidnext );
+        d->messages->bind( 3, d->newUidnext );
         d->messages->execute();
     }
-    else if ( !d->messages->done() ) {
-        return;
-    }
-    else {
+    else if ( d->messages->done() ) {
         Row * r = 0;
         while ( (r=d->messages->nextRow()) != 0 ) {
             uint uid = r->getInt( "uid" );
@@ -345,6 +347,12 @@ void ImapSessionInitializer::execute()
             m->setFlag( Message::AnsweredFlag, r->getBoolean( "answered" ) );
             m->setFlag( Message::DeletedFlag, r->getBoolean( "deleted" ) );
         }
+    }
+
+    if ( d->recent->done() && d->messages->done() ) {
+        log( Log::Debug,
+             "Saw " + fn( d->messages->rows() ) + " new messages, " +
+             fn( d->recent->rows() ) + " recent ones" );
         d->done = true;
         if ( d->owner )
             d->owner->notify();
