@@ -23,7 +23,7 @@ Capability::~Capability()
 // time.
 #define CAPA \
 /* base */ "IMAP4rev1 " \
-/* authentication */ "AUTH=ANONYMOUS " \
+/* authentication */ "AUTH=ANONYMOUS AUTH=PLAIN " \
 /* draft-gulbrandsen */ "COMPRESS=DEFLATE " \
 /* RFC 2177 */ "IDLE " \
 /* RFC 2088 - no trailing space */ "LITERAL+"
