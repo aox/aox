@@ -58,9 +58,10 @@ Build runtestsmain : runtests.cpp ;
 # the sets used by Build.
 
 Program imapd : imap message imapdmain server lib ;
-LINKLIBS on imapd = -lz ;
+LINKLIBS on imapd = -lz -lcrypt ;
 
 Program logd : logd logdmain server lib ;
+LINKLIBS on logd = -lcrypt ;
 
 Program runtests : imap message logd server lib runtestsmain ;
-LINKLIBS on runtests = -lz ;
+LINKLIBS on runtests = -lz -lcrypt ;
