@@ -139,3 +139,24 @@ UserPane::UserPane( QWidget * parent )
 
     tll->setRowStretch( 9, 2 );
 }
+
+
+/*! Adds an alias, except it doesn't. The alias functionality must
+  change and this function must go away.
+
+*/
+
+void UserPane::addAlias()
+{
+    debug( "addAlias" );
+}
+
+
+/*! As for addAlias().
+
+*/
+
+void UserPane::removeAlias()
+{
+    debug( "removeAlias" );
+}

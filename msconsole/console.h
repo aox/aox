@@ -6,11 +6,15 @@
 #include "qsplitter.h"
 
 class Console: public QSplitter {
-    //Q_OBJECT
+    Q_OBJECT
 public:
     Console();
 
     void keyPressEvent( QKeyEvent * );
+
+private slots:
+    void changePane();
+    void indicatePane( QWidget * );
 
 private:
     class ConsoleData * d;

@@ -8,9 +8,13 @@
 
 class UserPane: public QWidget
 {
-    //Q_OBJECT
+    Q_OBJECT
 public:
     UserPane( QWidget * );
+
+private slots:
+    void addAlias();
+    void removeAlias();
 
 private:
     class UserPaneData * d;

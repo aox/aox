@@ -64,6 +64,9 @@ Console::Console()
     d->paneList->addColumn( " " );
     d->paneList->header()->hide();
 
+    connect( d->stack, SIGNAL(aboutToShow(QWidget *)),
+             this, SLOT(indicatePane(QWidget *)) );
+
     QListViewItem * i;
 
     w = new UserPane( this );
@@ -79,6 +82,9 @@ Console::Console()
     d->panes->insert( i, w );
     d->items->insert( w, i );
 #endif
+
+    d->paneList->setSelected( i, true ); // select a pane to start with
+    d->paneList->setCurrentItem( i );
 
     QAccel * quit = new QAccel( this, "Quit" );
     quit->insertItem( QKeySequence( CTRL + Key_Q ) );
@@ -105,4 +111,34 @@ void Console::keyPressEvent( QKeyEvent * ke )
         QWidget::keyPressEvent( ke );
     }
     return;
+}
+
+
+/*! Changes to the pane currently indicated by the pane list view. */
+
+void Console::changePane()
+{
+    QListViewItem * i = d->paneList->selectedItem();
+    if ( !i )
+        return;
+    QWidget * w = d->panes->find( i );
+    if ( !i )
+        return;
+    d->stack->raiseWidget( w );
+}
+
+
+/*! Ensures that the list view shows the item corresponding to \a w. */
+
+void Console::indicatePane( QWidget * w )
+{
+    QListViewItem * i = 0;
+    if ( w )
+        i = d->items->find( w );
+    if ( i == d->paneList->selectedItem() )
+        return;
+    if ( i )
+        d->paneList->setSelected( i, true );
+    else
+        d->paneList->setSelected( d->paneList->selectedItem(), false );
 }

@@ -1,10 +1,36 @@
 SubDir TOP msconsole ;
 SubInclude TOP server ;
 
+rule Moc
+{
+    # o is the .o file, t is the target .cpp
+    local t = [ FGristFiles $(<) ] ;
+    local o = $(t:S=$(SUFOBJ)) ;
+
+    SEARCH on $(>) = $(SEARCH_SOURCE) ;
+    LOCATE on $(t) = $(LOCATE_TARGET) ;
+
+    Clean $(t) ;
+    RmTemps $(o) : $(t) ;
+    LEAVES $(o) ;
+
+    DEPENDS $(o) : $(t) ;
+    DEPENDS $(t) : $(>) ;
+    Moc2 $(t) : $(>) ;
+}
+
+actions Moc2
+{
+echo '#include "cstring.h"' > $(<) ; for i in $(>) ; do ( cd `dirname $i` ; moc `basename $i` ) ; done >> $(<)
+}
+
+
 Build msconsole : console.cpp userpane.cpp msconsole.cpp consoleloop.cpp
-    searchedit.cpp ;
+    searchedit.cpp .msconsole.moc.cpp ;
 
 Program msconsole :
     msconsole database server mailbox message user core encodings admintools ;
+
+Moc .msconsole.moc.cpp : console.h userpane.h ;
 
 LINKLIBS on msconsole = -lqt -lcrypt ;
