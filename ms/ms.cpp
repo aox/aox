@@ -169,12 +169,15 @@ int main( int argc, char *argv[] )
     // get rid of illegal verbs and nouns
     if ( verb != "create" &&
          verb != "rename" &&
-         verb != "password" && // pretty crummy as a verb... but unix...
+         verb != "change" &&
          verb != "list" &&
          verb != "delete" )
         error( verb + ": unknown verb" );
 
-    if ( noun != "user" && noun != "users" && noun != "mailbox" )
+    if ( noun != "user" &&
+         noun != "users" &&
+         noun != "mailbox" &&
+         noun != "password" )
         error( noun + ": unknown noun" );
 
     // typical mailstore crud
@@ -209,7 +212,7 @@ int main( int argc, char *argv[] )
         else
             deleteUser( argv[3] );
     }
-    else if ( verb == "password" && noun == "user" ) {
+    else if ( verb == "change" && noun == "password" ) {
         if ( argc == 5 )
             changePassword( argv[3], argv[4] );
         else

@@ -36,13 +36,17 @@ whose main email address is "nirmala@example.com":
 .IP
 ms create user nirmala angstskrik nirmala@example.com
 .PP
-To remove that user again:
-.IP
-ms remove user nirmala
-.PP
 To change Nirmala's email address to nirmala@eksempel.no:
 .IP
-ms rename user normala nirmala@eksempel.no
+ms rename user nirmala nirmala@eksempel.no
+.PP
+To change Nirmala's password to "temmelig hemmelig":
+.IP
+ms change password nirmala 'temmelig hemmelig'
+.PP
+To remove that user:
+.IP
+ms remove user nirmala
 .SH DIAGNOSTICS
 The return code of
 .B ms
