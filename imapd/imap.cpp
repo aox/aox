@@ -52,17 +52,18 @@ public:
 };
 
 
-/*! Creates a basic IMAP connection */
+/*! Creates an IMAP server, and sends an initial CAPABILITY response to
+    the client.
+*/
 
-IMAP::IMAP(int s)
-    : Connection(s), d(0)
+IMAP::IMAP( int s )
+    : Connection( s ), d( new IMAPData )
 {
-    d = new IMAPData;
     if ( s < 0 )
         return;
 
     d->logger = new Log;
-    d->logger->log( "accepted IMAP connection" ); // XXX: from where?
+    d->logger->log( "Accepted IMAP connection from " + peer() );
 
     writeBuffer()->append( String( "* OK [CAPABILITY " ) +
                            Capability::capabilities() + "]\r\n");
@@ -70,7 +71,7 @@ IMAP::IMAP(int s)
 }
 
 
-/*! Destroys the object and closes its network connection. */
+/*! Destroys the IMAP server. */
 
 IMAP::~IMAP()
 {
@@ -86,24 +87,29 @@ void IMAP::react(Event e)
     case Read:
         parse();
         break;
+
     case Timeout:
         writeBuffer()->append( "* BYE autologout\r\n" );
         d->logger->log( "autologout" );
         Connection::setState( Closing );
         break;
+
     case Connect:
     case Error:
     case Close:
         if ( state() != Logout )
             d->logger->log( "Unexpected close by client" );
         break;
+
     case Shutdown:
         writeBuffer()->append( "* BYE server shutdown\r\n" );
         break;
     }
+
     d->logger->commit();
     runCommands();
     d->logger->commit();
+
     setTimeout( time(0) + 1800 );
     if ( state() == Logout )
         Connection::setState( Closing );
@@ -387,14 +393,17 @@ String IMAP::login()
 
 
 /*! Returns the currently-selected Mailbox. */
+
 Mailbox *IMAP::mailbox()
 {
     return d->mailbox;
 }
 
+
 /*! Sets the currently-selected Mailbox to \a m. Note that the new
     mailbox must not need expunges. If it needs expunges, IMAP SELECT
-    might return Expunge responses, which would be very bad. */
+    might return Expunge responses, which would be very bad.
+*/
 
 void IMAP::setMailbox( Mailbox *m )
 {
@@ -406,6 +415,7 @@ void IMAP::setMailbox( Mailbox *m )
     if ( m )
         d->logger->log( "now using mailbox " + m->name() );
 }
+
 
 /*! Reserves input from the connection for \a command.
 
@@ -431,6 +441,7 @@ void IMAP::reserve( Command * command )
 {
     d->grabber = command;
 }
+
 
 
 /*! Calls execute() on all currently operating commands, and if
