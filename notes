@@ -26,11 +26,6 @@ Field name synchronisation
   And we need to synchronise the in-memory maps via ocd anyway.
 
 
-Fix shutdown
-
-  there's no practical way to shutdown using ocd/ocadmin.
-
-
 FETCH fixes:
 
   Currently we're always peeking; "fetch 1 body[1]" does not change
@@ -144,7 +139,40 @@ Inbox lifetime/mailbox reuse
   needs to prompt its user.
 
 
-Little "fixes" not worthy of being in the first-level list
+Per-MTA installation and use
 
-  - We need to have per-MTA text in mailstore(7) and on the web site.
-    (mike@waspfactory.org)
+  We need http://www.oryx.com/mailstore/exim.html and friends, plus a
+  section in src/doc/mailstore.man.
+
+  MTAs worth documenting in this way: Postfix, sendmail, exim,
+  qmail/netqmail. More?
+
+  Notify mike@waspfactory.org
+
+
+Reopen logfile when logd receives SIGHUP
+
+  Requires a little bit of cleverness, since currently the logfile is
+  outside the logd's jail.
+
+  Similarly, users might assume that HUPing other servers would reread
+  the configration. I don't think it should, since it would require
+  quite a bit of cleverness e.g. in the listener, and the imapd might
+  not have the rights to the port number in the new configution.
+
+  I suppose we should at least ignore SIGHUP.
+
+  Notify hs@schlittermann.de
+
+
+Add support for "ms restart now" and "ms restart gracefully"
+
+  Complications include: Some daemon must run as root, outside the
+  jail. ocd perhaps? For cluster use, things grow complicated very
+  quickly.
+
+
+Fix shutdown
+
+  There's no practical way to shutdown using ocd/ocadmin. Perhap this
+  is another aspect of the problem above.
