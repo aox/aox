@@ -20,52 +20,60 @@ class WriteNotifier: public QSocketNotifier
 {
 public:
     WriteNotifier( int socket, Connection * connection )
-        : QSocketNotifier( socket, Write, 0, 0 ), c( connection ) {
-        setEnabled( false );
+        : QSocketNotifier( socket, Write, 0, 0 ), c( connection )
+    {
+        if ( c->state() == Connection::Connecting )
+            setEnabled( true );
+        else
+            setEnabled( false );
     }
 
-    void activated() {
-        if ( c->state() == Connection::Connecting ) {
-            int errval;
-            int errlen = sizeof( int );
-            ::getsockopt( c->fd(), SOL_SOCKET, SO_ERROR, (void *)&errval,
-                          (socklen_t *)&errlen );
-            if ( errval == 0 ) {
-                c->setState( Connection::Connected );
-                c->react( Connection::Connect );
-            }
-            else {
-                c->react( Connection::Error );
-                c->setState( Connection::Closing );
-            }
-            setEnabled( false );
-        }
-        else {
-            Loop::loop()->dispatch( c, false, true, time( 0 ) );
-            setEnabled( c->canWrite() &&
-                        c->state() == Connection::Connected );
-        }
-    }
+    void activated();
 
     Connection * c;
 };
 
+
+void WriteNotifier::activated() {
+    if ( c->state() == Connection::Connecting ) {
+        int errval;
+        int errlen = sizeof( int );
+        ::getsockopt( c->fd(), SOL_SOCKET, SO_ERROR, (void *)&errval,
+                      (socklen_t *)&errlen );
+        if ( errval == 0 ) {
+            c->setState( Connection::Connected );
+            c->react( Connection::Connect );
+        }
+        else {
+            c->react( Connection::Error );
+            c->setState( Connection::Closing );
+        }
+        setEnabled( false );
+    }
+    else {
+        Loop::loop()->dispatch( c, false, true, time( 0 ) );
+        setEnabled( c->canWrite() &&
+                    c->state() == Connection::Connected );
+    }
+}
 
 class ReadNotifier: public QSocketNotifier
 {
 public:
     ReadNotifier( int socket, Connection * connection )
-        : QSocketNotifier( socket, Read, 0, 0 ), c( connection ) {
+        : QSocketNotifier( socket, Read, 0, 0 ), c( connection )
+    {
         setEnabled( true );
     }
 
-    void activated() {
-        Loop::loop()->dispatch( c, true, false, time( 0 ) );
-    }
+    void activated();
 
     Connection * c;
 };
 
+void ReadNotifier::activated() {
+    Loop::loop()->dispatch( c, true, false, time( 0 ) );
+}
 
 class ConsoleLoopData {
 };
