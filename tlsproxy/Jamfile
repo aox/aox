@@ -1,3 +1,5 @@
+TlsLINKLIBS = $(LINKLIBS) ;
+
 SubDir TOP tlsproxy ;
 SubInclude TOP server ;
 SubInclude TOP cryptlib ;
@@ -10,3 +12,5 @@ Build tls : tlsproxy.cpp ;
 Program tlsproxy : tls server core cryptlib ;
 
 HDRS = $(OrigHDRS) ;
+LINKLIBS = $(TlsLINKLIBS) ;
+
