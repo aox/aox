@@ -13,6 +13,7 @@ int main( int, char *[] )
     Test::runTests();
 
     (void)new Listener(Connection::IMAP, 2052);
+    (void)new Listener(Connection::CCCP, 2053);
 
     Loop::start();
 }

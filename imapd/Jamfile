@@ -1,7 +1,7 @@
 SubDir TOP imapd ;
 
 Main imapd : imapd.cpp connection.cpp listener.cpp loop.cpp imap.cpp 
-	command.cpp ;
+	command.cpp cccp.cpp ;
 
 LinkLibraries imapd : liboryx libhandlers ;
 
