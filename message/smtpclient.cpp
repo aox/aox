@@ -147,6 +147,7 @@ void SmtpClient::parse()
         }
         if ( !ok ) {
             d->failed = true;
+            d->owner->notify();
             log( Log::Error, "SMTP/LMTP error for command " + d->sent );
             log( Log::Error, "Response: " + *s );
         }
