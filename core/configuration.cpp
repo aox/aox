@@ -238,6 +238,12 @@ String Configuration::compiledIn( CompileTimeSetting setting )
     case DbName:
         return DBNAME;
         break;
+    case OryxUser:
+        return ORYXUSER;
+        break;
+    case OryxGroup:
+        return ORYXGROUP;
+        break;
     case Version:
         return VERSION;
         break;

@@ -309,3 +309,22 @@ static Log::Severity severity( const String &l )
         s = Log::Disaster;
     return s;
 }
+
+
+/*! Logs a final line in the logfile and reopens it. */
+
+void LogServer::reopen( int )
+{
+    if ( !logFile )
+        return;
+    ::log( "SIGHUP caught. Closing and reopening log file " + logFile->name(),
+           Log::Info );
+    ::commit();
+    String n = logFile->name();
+    delete logFile;
+    logFile = 0;
+    setLogFile( n );
+    ::log( "SIGHUP caught. Reopening log file " + logFile->name(),
+           Log::Info );
+    ::commit();
+}

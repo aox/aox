@@ -21,6 +21,8 @@ public:
     static void setLogFile( const String & );
     static void setLogLevel( const String & );
 
+    static void reopen( int );
+
 private:
     void parse();
     void commit( String, Log::Facility, Log::Severity );

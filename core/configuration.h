@@ -34,6 +34,8 @@ public:
         DbAddress,
         DbUser,
         DbName,
+        OryxUser,
+        OryxGroup,
         // additional settings go ABOVE THIS LINE
         Version, LastSetting = Version
     };

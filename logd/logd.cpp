@@ -9,6 +9,8 @@
 #include "selflogger.h"
 #include "server.h"
 
+#include <signal.h>
+
 
 /*! \nodoc */
 
@@ -29,6 +31,8 @@ int main( int argc, char * argv[] )
     s.setup( Server::Report );
     Listener< LogServer >::create( "log", "127.0.0.1", 2054 );
     s.setup( Server::Finish );
+
+    signal( SIGHUP, LogServer::reopen );
 
     s.execute();
 }

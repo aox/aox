@@ -22,6 +22,11 @@ JAILDIR = $(PREFIX)/jail ;
 CONFIGDIR = $(PREFIX) ;
 LOGFILE = $(PREFIX)/logfile ;
 
+# the user and group needed.
+
+ORYXUSER = "oryx" ;
+ORYXGROUP = "oryx" ;
+
 # How to compile
 
 C++FLAGS = -g -Werror -funsigned-char ;

@@ -89,6 +89,8 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
     -e 's!$LOGFILE!'$(LOGFILE)'!' \
     -e 's!$DBNAME!'$(DBNAME)'!' \
     -e 's!$DBUSER!'$(DBUSER)'!' \
+    -e 's!$ORYXUSER!'$(ORYXUSER)'!' \
+    -e 's!$ORYXGROUP!'$(ORYXGROUP)'!' \
     -e 's!$VERSION!'$(VERSION)'!' \
     < $(>) > $(<)
 }

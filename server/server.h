@@ -8,6 +8,12 @@ class Server {
 public:
     Server( const char *, int, char *[] );
 
+    enum ChrootMode {
+        JailDir, LogDir
+    };
+
+    void setChrootMode( ChrootMode );
+
     enum Stage {
         Test, // MUST BE FIRST
         Configuration,
