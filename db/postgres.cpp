@@ -199,8 +199,6 @@ void Postgres::react( Event e )
         }
         break;
     }
-
-    commit();
 }
 
 
