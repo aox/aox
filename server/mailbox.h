@@ -22,8 +22,8 @@ public:
     List< Mailbox > *children() const;
 
     static void setup();
-    static void insert( Mailbox * );
     static Mailbox *find( const String &, bool = false );
+    static void update( const String & );
 
     bool operator <=( const Mailbox &b ) {
         return id() <= b.id();

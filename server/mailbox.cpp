@@ -1,9 +1,11 @@
 #include "mailbox.h"
 
+#include "dict.h"
 #include "scope.h"
 #include "event.h"
 #include "query.h"
 #include "string.h"
+#include "stringlist.h"
 #include "eventloop.h"
 #include "log.h"
 
@@ -64,15 +66,34 @@ void Mailbox::setup()
             if ( !query->done() )
                 return;
 
+            // We'll compose an ocd-like message for each Mailbox, and
+            // use update() to build the in-memory tree representation
+            // of the mailboxes table.
+
             while ( query->hasResults() ) {
                 Row *r = query->nextRow();
 
-                Mailbox *m = new Mailbox( r->getString( "name" ) );
-                m->d->id = r->getInt( "id" );
-                m->d->deleted = r->getBoolean( "deleted" );
-                m->d->uidnext = r->getInt( "uidnext" );
-                m->d->uidvalidity = r->getInt( "uidvalidity" );
-                insert( m );
+                String m = r->getString( "name" );
+                StringList data;
+
+                String id = fn( r->getInt( "id" ) );
+                data.append( "id=" + id );
+
+                String deleted = "f";
+                if ( r->getBoolean( "deleted" ) )
+                    deleted = "t";
+                data.append( "deleted=" + deleted );
+
+                String uidnext = fn( r->getInt( "uidnext" ) );
+                data.append( "uidnext=" + uidnext );
+
+                String uidvalidity = fn( r->getInt( "uidvalidity" ) );
+                data.append( "uidvalidity=" + uidvalidity );
+
+                m.append( ' ' );
+                m.append( data.join( "," ) );
+
+                update( m );
             }
 
             if ( query->failed() )
@@ -99,97 +120,6 @@ void Mailbox::setup()
     loop = new EventLoop;
     loop->addConnection( db );
     loop->start();
-}
-
-
-static int nextComponent( const String &name, uint slash, String &s )
-{
-    int next = name.find( '/', slash );
-    if ( next == -1 )
-        next = name.length();
-    s = name.mid( 0, next );
-    return next+1;
-}
-
-
-/*! This private function inserts the Mailbox \a m into its proper place
-    in our tree.
-*/
-
-void Mailbox::insert( Mailbox *m )
-{
-    String name = m->name();
-    Mailbox *p = root;
-    int slash = 1;
-
-    do {
-        String s;
-        slash = nextComponent( name, slash, s );
-
-        List< Mailbox > *children = p->children();
-        if ( !children )
-            children = p->d->children = new List< Mailbox >;
-
-        List< Mailbox >::Iterator it = children->first();
-        while ( it ) {
-            if ( it->name() == s ) {
-                p = it;
-                break;
-            }
-            it++;
-        }
-        if ( !it ) {
-            if ( (uint)slash > name.length() )
-                p = m;
-            else
-                p = new Mailbox( name.mid( 0, slash-1 ) );
-            children->append( p );
-        }
-    } while ( (uint)slash < name.length() );
-}
-
-
-/*! Returns a pointer to a Mailbox named \a name, or 0 if the named
-    mailbox doesn't exist. If \a deleted is true, deleted mailboxes
-    are included in the search. The \a name must be fully-qualified.
-*/
-
-Mailbox *Mailbox::find( const String &name, bool deleted )
-{
-    if ( name[0] != '/' )
-        return 0;
-
-    // Search for a Mailbox corresponding to each component of the name.
-
-    Mailbox *m = root;
-    int slash = 1;
-
-    do {
-        String s;
-        slash = nextComponent( name, slash, s );
-
-        if ( s.length() == 0 )
-            break;
-
-        List< Mailbox > *children = m->children();
-        if ( !children )
-            break;
-
-        List< Mailbox >::Iterator it = children->first();
-        while ( it ) {
-            if ( it->name() == s ) {
-                m = it;
-                if ( (uint)slash > name.length() )
-                    return m;
-                break;
-            }
-            it++;
-        }
-        if ( !it )
-            break;
-    } while ( (uint)slash < name.length() );
-
-    return 0;
 }
 
 
@@ -283,4 +213,141 @@ Mailbox *Mailbox::parent() const
 List< Mailbox > *Mailbox::children() const
 {
     return d->children;
+}
+
+
+static int nextComponent( const String &name, uint slash, String &s )
+{
+    int next = name.find( '/', slash );
+    if ( next == -1 )
+        next = name.length();
+    s = name.mid( 0, next );
+    return next+1;
+}
+
+
+/*! Returns a pointer to a Mailbox named \a name, or 0 if the named
+    mailbox doesn't exist. If \a deleted is true, deleted mailboxes
+    are included in the search. The \a name must be fully-qualified.
+*/
+
+Mailbox *Mailbox::find( const String &name, bool deleted )
+{
+    if ( name[0] != '/' )
+        return 0;
+
+    // Search for a Mailbox corresponding to each component of the name.
+
+    Mailbox *m = root;
+    int slash = 1;
+
+    do {
+        String s;
+        slash = nextComponent( name, slash, s );
+
+        if ( s.length() == 0 )
+            break;
+
+        List< Mailbox > *children = m->children();
+        if ( !children )
+            break;
+
+        List< Mailbox >::Iterator it = children->first();
+        while ( it ) {
+            if ( it->name() == s ) {
+                m = it;
+                if ( (uint)slash > name.length() )
+                    return m;
+                break;
+            }
+            it++;
+        }
+        if ( !it )
+            break;
+    } while ( (uint)slash < name.length() );
+
+    return 0;
+}
+
+
+/*! This function uses the string \a s to update the Mailbox tree.
+    (This description is inadequate. Will be fixed when the picture
+    clears sufficiently.)
+*/
+
+void Mailbox::update( const String &s )
+{
+    int i = s.find( ' ' );
+    String name = s.mid( 0, i );
+    Dict< String > data;
+
+    int last = i+1;
+    do {
+        i = s.find( ',', last );
+
+        String datum;
+        if ( i > 0 ) {
+            datum = s.mid( last, i-last );
+            last = i+1;
+        }
+        else {
+            datum = s.mid( last );
+        }
+
+        int eq = datum.find( '=' );
+        data.insert( datum.mid( 0, eq ),
+                     new String( datum.mid( eq+1 ) ) );
+    } while ( i > 0 );
+
+    Mailbox *m = root;
+    int slash = 1;
+
+    do {
+        String s;
+        slash = nextComponent( name, slash, s );
+
+        List< Mailbox > *children = m->children();
+        if ( !children )
+            children = m->d->children = new List< Mailbox >;
+
+        List< Mailbox >::Iterator it = children->first();
+        while ( it ) {
+            if ( it->name() == s ) {
+                m = it;
+                break;
+            }
+            it++;
+        }
+        if ( !it ) {
+            if ( (uint)slash > name.length() )
+                m = new Mailbox( name );
+            else
+                m = new Mailbox( name.mid( 0, slash-1 ) );
+            children->append( m );
+        }
+    } while ( (uint)slash < name.length() );
+
+    if ( data.contains( "id" ) ) {
+        uint id = data.find( "id" )->number( 0 );
+        m->d->id = id;
+    }
+
+    if ( data.contains( "deleted" ) ) {
+        String deleted = *data.find( "deleted" );
+
+        if ( deleted == "t" )
+            m->d->deleted = true;
+        else
+            m->d->deleted = false;
+    }
+
+    if ( data.contains( "uidnext" ) ) {
+        uint uidnext = data.find( "uidnext" )->number( 0 );
+        m->d->uidnext = uidnext;
+    }
+
+    if ( data.contains( "uidvalidity" ) ) {
+        uint uidvalidity = data.find( "uidvalidity" )->number( 0 );
+        m->d->uidvalidity = uidvalidity;
+    }
 }
