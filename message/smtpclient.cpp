@@ -28,8 +28,11 @@ public:
     little in the primitive side, but enough to talk to our own LMTP
     server, or to the SMTP server of a smarthost.
 
-    Right now the constructor is hardwired to talk to our own LMTP
-    server.
+    Right now, this class is used only by bin/deliver. It is unable to
+    handle multiple recipients (or mailboxes), partly because it's not
+    needed, and partly because there's no sane way to indicate failure
+    with multiple recipients. It is also hardwired to talk to our own
+    LMTP server. (All this may change in the future.)
 */
 
 /*! Constructs an SMTP client to send \a message to \a recipient from
