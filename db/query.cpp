@@ -435,7 +435,7 @@ Row *Query::nextRow()
 
 /*! Creates a row of data with \a num columns from the array \a c. */
 
-Row::Row( int num, Column *c )
+Row::Row( uint num, Column *c )
     : n( num ), columns( c )
 {
 }
@@ -447,7 +447,7 @@ Row::Row( int num, Column *c )
 
 Row::Column *Row::findColumn( const String &field ) const
 {
-    int i = 0;
+    uint i = 0;
     while ( i < n ) {
         if ( columns[i].name == field )
             return &columns[i];
@@ -476,19 +476,44 @@ void Row::logDisaster( Column * result, const String & field,
 }
 
 
-/*! If this Row contains a Column of string type named \a field, this
-    function returns its String value, and an empty string if the
-    field is NULL, unknown, or not a string.
+/*! Returns true if \a field exists and is null, and false in all
+    other cases. Logs a disaster if \a field does not exist.
 */
 
-String Row::getString( const String &field ) const
+bool Row::isNull( const String & field ) const
 {
     Column *c = findColumn( field );
-    if ( c && c->type == Database::Bytes )
-        return c->value;
 
-    logDisaster( c, field, Database::Bytes );
-    return "";
+    if ( !c )
+        log( Log::Disaster, "Did not find Field " + field );
+    else if ( c->length == -1 )
+        return true;
+
+    return false;
+}
+
+
+/*! If this Row contains a Column of boolean type named \a field, this
+    function returns its value. It returns false iif the field is NULL,
+    unknown, or not a boolean value.
+*/
+
+bool Row::getBoolean( const String &field ) const
+{
+    Column *c = findColumn( field );
+
+    if ( !c || c->type != Database::Boolean ) {
+        logDisaster( c, field, Database::Boolean );
+        return false;
+    }
+    else if ( c->length == -1 ) {
+        log( Log::Error, "Boolean Field " + field + " is unexpectedly null" );
+        return false;
+    }
+
+    if ( c->value[0] != 0 )
+        return true;
+    return false;
 }
 
 
@@ -531,45 +556,21 @@ int Row::getInt( const String &field ) const
 }
 
 
-/*! If this Row contains a Column of boolean type named \a field, this
-    function returns its value. It returns false iif the field is NULL,
-    unknown, or not a boolean value.
+/*! If this Row contains a Column of string type named \a field, this
+    function returns its String value, and an empty string if the
+    field is NULL, unknown, or not a string.
 */
 
-bool Row::getBoolean( const String &field ) const
+String Row::getString( const String &field ) const
 {
     Column *c = findColumn( field );
+    if ( c && c->type == Database::Bytes )
+        return c->value;
 
-    if ( !c || c->type != Database::Boolean ) {
-        logDisaster( c, field, Database::Boolean );
-        return false;
-    }
-    else if ( c->length == -1 ) {
-        log( Log::Error, "Boolean Field " + field + " is unexpectedly null" );
-        return false;
-    }
-
-    if ( c->value[0] != 0 )
-        return true;
-    return false;
+    logDisaster( c, field, Database::Bytes );
+    return "";
 }
 
-
-/*! Returns true if \a field exists and is null, and false in all
-    other cases. Logs a disaster if \a field does not exist.
-*/
-
-bool Row::null( const String & field ) const
-{
-    Column *c = findColumn( field );
-
-    if ( !c )
-        log( Log::Disaster, "Did not find Field " + field );
-    else if ( c->length == -1 )
-        return true;
-
-    return false;
-}
 
 
 /*! \class PreparedStatement query.h

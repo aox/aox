@@ -103,17 +103,22 @@ public:
         String value;
     };
 
-    Row( int, Column * );
+    Row( uint, Column * );
 
-    void append( Column * );
-    String getString( const String & ) const;
+    bool isNull( uint ) const;
+    bool isNull( const String & ) const;
+
+    int getInt( uint ) const;
     int getInt( const String & ) const;
+
+    bool getBoolean( uint ) const;
     bool getBoolean( const String & ) const;
 
-    bool null( const String & ) const;
+    String getString( uint ) const;
+    String getString( const String & ) const;
 
 private:
-    int n;
+    uint n;
     Column *columns;
 
     Column *findColumn( const String & ) const;

@@ -557,7 +557,7 @@ void Postgres::processQueue( bool userContext )
 
 Row *Postgres::composeRow( const PgDataRow &r )
 {
-    int n = d->description->columns.count();
+    uint n = d->description->columns.count();
     List< PgRowDescription::Column >::Iterator c;
     List< PgDataRow::Value >::Iterator v;
 
