@@ -43,6 +43,17 @@ public:
     Returns message data (RFC 3501, §6.4.5)
 */
 
+
+/*! Creates a new handler for FETCH if \a u is false, or UID FETCH if it
+    is true.
+*/
+
+Fetch::Fetch( bool u )
+    : uid( u )
+{
+}
+
+
 /*! \reimp */
 
 void Fetch::parse()

@@ -34,6 +34,9 @@ Store::Store( bool u )
     flag-extension  = "\" atom
 */
 
+
+/*! \reimp */
+
 void Store::parse()
 {
     space();

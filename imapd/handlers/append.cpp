@@ -38,6 +38,8 @@ Append::Append()
 }
 
 
+/*! \reimp */
+
 void Append::parse()
 {
     // the grammar used is:

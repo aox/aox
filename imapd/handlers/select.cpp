@@ -14,6 +14,16 @@ static inline String fn( uint n ) { return String::fromNumber( n ); }
 */
 
 
+/*! Creates a Select object to handle SELECT if \a ro if false, and to
+    handle EXAMINE if \a ro is true.
+*/
+
+Select::Select( bool ro )
+    : readOnly( ro ), m( 0 )
+{
+}
+
+
 /*! \class Examine select.h
     Opens a mailbox for read-only access (RFC 3501, §6.3.1)
 

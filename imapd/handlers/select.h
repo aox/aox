@@ -8,9 +8,7 @@ class Select
     : public Command
 {
 public:
-    Select( bool ro = false )
-        : readOnly( ro ), m( 0 )
-    {}
+    Select( bool = false );
 
     void parse();
     void execute();

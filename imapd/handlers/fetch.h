@@ -8,7 +8,7 @@ class Fetch
     : public Command
 {
 public:
-    Fetch( bool u ): uid( u ) {}
+    Fetch( bool = false );
 
     void parse();
     void execute();

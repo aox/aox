@@ -35,6 +35,8 @@ Search::Search( bool u )
 }
 
 
+/*! \reimp */
+
 void Search::parse()
 {
     prepare();
