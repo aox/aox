@@ -2,6 +2,7 @@
 #define MESSAGE_H
 
 #include "string.h"
+#include "ustring.h"
 #include "header.h"
 #include "mimefields.h"
 
@@ -25,6 +26,25 @@ private:
 
 private:
     class MessageData * d;
+};
+
+
+class BodyPart {
+public:
+    BodyPart();
+
+    Header * header() const;
+    ContentType * contentType() const;
+    ContentTransferEncoding::Encoding encoding() const;
+    String data() const;
+    UString text() const;
+    String partNumber() const;
+    Message * rfc822() const;
+
+private:
+    class BodyPartData * d;
+    friend class Message;
+    friend class MessageData;
 };
 
 
