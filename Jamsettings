@@ -19,8 +19,6 @@ JAILDIR ?= $(PREFIX)/jail ;
 CONFIGDIR ?= $(PREFIX) ;
 LOGFILE ?= $(PREFIX)/logfile ;
 
-echo $(PREFIX) ;
-
 
 # How to compile
 
