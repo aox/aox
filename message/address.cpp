@@ -762,9 +762,11 @@ String AddressParser::phrase( int & i )
                 i--;
         }
         else if ( d->s[i] == '.' ) {
-            // obs-phrase allows a single dot as alternative to word
-            tmp = ".";
+            // obs-phrase allows a single dot as alternative to word.
+            // we allow atom "." as an alternative, too, to handle
+            // initials.
             i--;
+            tmp = atom( i ) + ".";
         }
         else {
             // single word
