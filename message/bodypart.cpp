@@ -117,10 +117,9 @@ void Bodypart::setData( const String &s )
 
 UString Bodypart::text() const
 {
-    // A text bodypart whose bodyparts entry was shared with an existing
-    // non-text entry (text/plain "Foobar." vs. application/octet-stream
-    // "Rm9vYmFyLg==") will be retrieved from the database with d->data
-    // set correctly, but not d->text or d->hasText.
+    // When retrieved from the database, a text bodypart will have the
+    // correct d->data, but d->text will not be set (because the text
+    // may be shared with an existing non-text bodyparts entry).
     if ( !d->hasText ) {
         Utf8Codec u;
         d->text = u.toUnicode( d->data );
