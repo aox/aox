@@ -22,7 +22,6 @@ public:
     uint number() const;
 
     ContentType * contentType() const;
-    String::Encoding encoding() const;
 
     String data() const;
     void setData( const String & );

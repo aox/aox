@@ -354,13 +354,10 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
         Bodypart * bp = m->bodypart( part, true );
         bp->setNumBytes( r->getInt( "bytes" ) );
         bp->setNumLines( r->getInt( "lines" ) );
-        if ( r->isNull( "data" ) ) {
-            Utf8Codec u;
-            bp->setText( u.toUnicode( r->getString( "text" ) ) );
-        }
-        else {
+        if ( r->isNull( "data" ) )
+            bp->setData( r->getString( "text" ) );
+        else
             bp->setData( r->getString( "data" ) );
-        }
     }
 }
 

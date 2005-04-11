@@ -2,6 +2,7 @@
 
 #include "bodypart.h"
 
+#include "utf.h"
 #include "codec.h"
 #include "ustring.h"
 #include "header.h"
@@ -12,14 +13,12 @@
 class BodypartData {
 public:
     BodypartData()
-        : number( 1 ),
-          cte( String::Binary ), parent( 0 ), rfc822( 0 ),
-          numBytes( 0 ), numLines( 0 )
+        : number( 1 ), parent( 0 ), rfc822( 0 ),
+          numBytes( 0 ), numLines( 0 ), hasText( false )
     {}
 
     uint number;
 
-    String::Encoding cte;
     Multipart *parent;
     Message *rfc822;
 
@@ -28,6 +27,7 @@ public:
 
     String data;
     UString text;
+    bool hasText;
 };
 
 
@@ -36,10 +36,10 @@ public:
     The Bodypart class models a single MIME body part. It is a subclass
     of Multipart, and an adjunct to Message.
 
-    Every Bodypart has a number(), a contentType(), and an encoding().
-    Bodyparts contain text(), data(), or an rfc822() message, based on
-    their Content-Type. Each one knows the numBytes() and numLines() of
-    data that it contains, and it can present itself asText().
+    Every Bodypart has a number(), and contains text(), data(), or an
+    rfc822() message, based on its contentType(). It knows how many
+    numBytes() and numLines() of data it contains, and can present
+    itself asText().
 
     This class is also responsible for parsing bodyparts in messages.
 */
@@ -91,14 +91,6 @@ ContentType * Bodypart::contentType() const
 }
 
 
-/*! Returns this Bodypart's encoding. */
-
-String::Encoding Bodypart::encoding() const
-{
-    return d->cte;
-}
-
-
 /*! Returns this Bodypart's content in 8-bit form. If this Bodypart is
     a text part, data() returns the UTF-encoded version of text().
 */
@@ -119,12 +111,22 @@ void Bodypart::setData( const String &s )
 }
 
 
-/*! Returns this Bodypart's content, provided it's a text part. If
-    it's not a text part, this function returns an empty string.
+/*! Returns the text of this Bodypart. MUST NOT be called for non-text
+    parts (whose contents are not known to be well-formed text).
 */
 
 UString Bodypart::text() const
 {
+    // A text bodypart whose bodyparts entry was shared with an existing
+    // non-text entry (text/plain "Foobar." vs. application/octet-stream
+    // "Rm9vYmFyLg==") will be retrieved from the database with d->data
+    // set correctly, but not d->text or d->hasText.
+    if ( !d->hasText ) {
+        Utf8Codec u;
+        d->text = u.toUnicode( d->data );
+        d->hasText = true;
+    }
+
     return d->text;
 }
 
@@ -213,13 +215,11 @@ String Bodypart::asText() const
 
     if ( !children()->isEmpty() )
         appendMultipart( r );
-    else if ( !d->text.isEmpty() )
-        r = c->fromUnicode( d->text );
-    else if ( header()->contentType() &&
-              header()->contentType()->type() != "text" )
-        r = d->data.e64( 72 );
+    else if ( !header()->contentType() ||
+              header()->contentType()->type() == "text" )
+        r = c->fromUnicode( text() );
     else
-        r = d->data.encode( d->cte, 72 );
+        r = d->data.e64( 72 );
 
     return r;
 }
@@ -344,6 +344,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         else
             c = new AsciiCodec;
 
+        bp->d->hasText = true;
         bp->d->text = c->toUnicode( body );
         if ( !c->valid() && error.isEmpty() )
             error = "Error converting body from " + c->name() + " to Unicode";
@@ -354,11 +355,10 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         if ( ct && c->name().lower() != "us-ascii" )
             ct->addParameter( "charset", c->name().lower() );
 
+        // XXX: Can we avoid this re-conversion?
         String s = c->fromUnicode( bp->d->text );
-        bp->d->numBytes = bp->d->text.length();
-
         bool qp = s.needsQP();
-        ContentTransferEncoding *cte = h->contentTransferEncoding();
+
         if ( cte ) {
             if ( !qp )
                 h->removeField( HeaderField::ContentTransferEncoding );
@@ -369,10 +369,11 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             h->add( "Content-Transfer-Encoding", "quoted-printable" );
         }
         h->simplify();
+        bp->d->numBytes = bp->d->text.length();
     }
     else {
+        bp->d->data = body;
         if ( ct->type() != "multipart" && ct->type() != "message" ) {
-            ContentTransferEncoding *cte = h->contentTransferEncoding();
             if ( cte ) {
                 if ( cte->encoding() != String::Base64 )
                     cte->setEncoding( String::Base64 );
@@ -382,11 +383,10 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             }
             h->simplify();
         }
-        bp->d->data = body;
         bp->d->numBytes = body.length();
     }
 
-    if ( !bp->d->text.isEmpty() ) {
+    if ( bp->d->hasText ) {
         uint i = 0;
         while ( i < bp->d->text.length() ) {
             if ( bp->d->text[i] == '\n' )
