@@ -849,7 +849,8 @@ String AddressParser::localpart( int & i )
 void AddressParser::error( const char * s, int i )
 {
     if ( d->e.isEmpty() )
-        d->e = String( s ) + " at position " + fn( i > 0 ? i : 0 );
+        d->e = String( s ) + " at position " + fn( i > 0 ? i : 0 ) +
+               " (text ...'" + d->s.mid( i, 20 ).simplified() + "'...)";
 }
 
 
