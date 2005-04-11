@@ -30,7 +30,7 @@ public:
 
     void setName( const String & );
 
-    void addToList( List<Address> * );
+    static void uniquify( List<Address> * );
 
 private:
     class AddressData * d;

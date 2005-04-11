@@ -2,6 +2,8 @@
 
 #include "address.h"
 
+#include "dict.h"
+
 
 class AddressData
 {
@@ -337,6 +339,7 @@ AddressParser::AddressParser( String s )
         if ( i < j && i >= 0 && s[i] == ',' )
             i--;
     }
+    Address::uniquify( &d->a );
     if ( i >= 0 ) {
         // there's stuff left over that we can't parse
     }
@@ -404,39 +407,6 @@ void AddressParser::add( String name,
 
     Address * a = new Address( name, localpart, domain );
     d->a.prepend( a );
-    //a->addToList( &d->a );
-}
-
-
-/*! Adds this address to \a list unless it's already there. If an
-    address very similar to this is there, addToList() merges the two.
-*/
-
-void Address::addToList( List<Address> * list )
-{
-    // if the address is there already, forget this one
-    if ( !localpart().isEmpty() && !domain().isEmpty() && !list->isEmpty() ) {
-        List<Address>::Iterator it( list->first() );
-        while ( it ) {
-            Address * a = it;
-            if ( a->localpart() == localpart() &&
-                 a->domain().lower() == domain().lower() ) {
-                // to be there, the domain has to match and EITHER
-                // one/both names are empty OR the names are the same.
-                if ( a->name().isEmpty() ) {
-                    a->setName( name() );
-                    return;
-                }
-                else {
-                    if ( name().isEmpty() ||
-                         name().lower() == a->name().lower() )
-                        return;
-                }
-            }
-            ++it;
-        }
-    }
-    list->prepend( this );
 }
 
 
@@ -854,3 +824,36 @@ void AddressParser::error( const char * s, int i )
 }
 
 
+static String key( Address * a )
+{
+    return a->name() + " " + a->localpart() + "@" + a->domain().lower();
+}
+
+
+/*! Removes any addresses from \a l that exist twice in the list. */
+
+void Address::uniquify( List<Address> * l )
+{
+    if ( !l || l->isEmpty() )
+        return;
+
+    Dict<Address> unique;
+    
+    List<Address>::Iterator it( l->first() );
+    while ( it ) {
+        Address *a = it;
+        ++it;
+        String k = key( a );
+        Address * other = unique.find( k );
+        if ( !other || 
+             ( !a->name().isEmpty() && other->name().isEmpty() ) )
+            unique.insert( k, a );
+    }
+    it = l->first();
+    while ( it ) {
+        List<Address>::Iterator a = it;
+        ++it;
+        if ( unique.find( key( a ) ) != a )
+            l->take( a );
+    }
+}

@@ -116,9 +116,9 @@ void Header::add( HeaderField *hf )
             List<Address> * old = other->addresses();
             while ( it ) {
                 old->append( it );
-                //it->addToList( old );
                 ++it;
             }
+            Address::uniquify( old );
             return;
         }
     }
@@ -584,20 +584,21 @@ void Header::appendField( String &r, HeaderField *hf ) const
             List<Address>::Iterator it( a->first() );
             while ( it ) {
                 String a = it->toString();
-                if ( c + a.length() > 72 ) {
+                if ( first ) {
+                    // we always put the first message the line with
+                    // the field name.
+                    first = false;
+                }
+                else if ( c + a.length() > 72 ) {
                     c = 4;
-                    if ( !first )
-                        r.append( "," );
-                    r.append( "\n    " );
+                    r.append( ",\n    " );
                 }
                 else {
-                    if ( !first )
-                        r.append( ", " );
+                    r.append( ", " );
                     c = c + 2;
                 }
                 r.append( a );
                 c = c + a.length();
-                first = false;
                 ++it;
             }
         }
