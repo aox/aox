@@ -403,7 +403,8 @@ void AddressParser::add( String name,
         name = "";
 
     Address * a = new Address( name, localpart, domain );
-    a->addToList( &d->a );
+    d->a.prepend( a );
+    //a->addToList( &d->a );
 }
 
 

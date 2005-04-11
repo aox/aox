@@ -115,7 +115,8 @@ void Header::add( HeaderField *hf )
             List<Address>::Iterator it( hf->addresses()->first() );
             List<Address> * old = other->addresses();
             while ( it ) {
-                it->addToList( old );
+                old->append( it );
+                //it->addToList( old );
                 ++it;
             }
             return;
@@ -560,24 +561,45 @@ void Header::appendField( String &r, HeaderField *hf ) const
         return;
 
     HeaderField::Type t = hf->type();
-    MimeField *mf = 0;
-
-    if ( t <= HeaderField::LastAddressField ) {
+    
+    if ( t == HeaderField::ReturnPath ) {
+        List< Address > *a = hf->addresses();
+        if ( a && !a->isEmpty() ) {
+            List<Address>::Iterator it( a->first() );
+            r.append( hf->name() );
+            r.append( ": <" );
+            r.append( it->localpart() );
+            r.append( "@" );
+            r.append( it->domain() );
+            r.append( ">" );
+        }
+    }
+    else if ( t <= HeaderField::LastAddressField ) {
         List< Address > *a = hf->addresses();
         if ( a && !a->isEmpty() ) {
             r.append( hf->name() );
-            String sep = ": ";
-            if ( t == HeaderField::ReturnPath )
-                sep += "<";
+            r.append( ": " );
+            uint c = hf->name().length() + 2;
+            bool first = true;
             List<Address>::Iterator it( a->first() );
             while ( it ) {
-                r.append( sep );
-                r.append( it->toString() );
-                sep = ", ";
+                String a = it->toString();
+                if ( c + a.length() > 1 ) {
+                    c = 4;
+                    if ( !first )
+                        r.append( "," );
+                    r.append( "\n    " );
+                }
+                else {
+                    if ( !first )
+                        r.append( ", " );
+                    c = c + 2;
+                }
+                r.append( a );
+                c = c + a.length();
+                first = false;
                 ++it;
             }
-            if ( t == HeaderField::ReturnPath )
-                r.append( ">" );
         }
     }
     else if ( t == HeaderField::MessageId ||
@@ -601,71 +623,18 @@ void Header::appendField( String &r, HeaderField *hf ) const
         r.append( ": " );
         r.append( dt->rfc822() );
     }
-    else if ( t == HeaderField::Subject ||
-              t == HeaderField::Comments ||
-              t == HeaderField::Keywords ||
-              t == HeaderField::InReplyTo ||
-              t == HeaderField::ContentDescription ||
-              t == HeaderField::ContentLanguage ||
-              t == HeaderField::ContentLocation ||
-              t == HeaderField::ContentMd5 )
-    {
-        if ( hf->value().isEmpty() )
-            return;
-        r.append( hf->name() );
-        r.append( ": " );
-        r.append( hf->value() );
-    }
-    else if ( t == HeaderField::ContentType ) {
-        ContentType *ct = (ContentType *)hf;
-        if ( !ct || !ct->valid() )
-            return;
-        r.append( hf->name() );
-        r.append( ": " + ct->type() + "/" + ct->subtype() );
-        mf = ct;
-    }
-    else if ( t == HeaderField::ContentDisposition ) {
-        ContentDisposition *cd = (ContentDisposition *)hf;
-        if ( !cd || !cd->valid() )
-            return;
-        switch( cd->disposition() ) {
-        case ContentDisposition::Inline:
-            r.append( "Content-Disposition: inline" );
-            break;
-        case ContentDisposition::Attachment:
-            r.append( "Content-Disposition: attachment" );
-            break;
-        }
-        mf = cd;
-    }
-    else if ( t == HeaderField::ContentTransferEncoding ) {
-        ContentTransferEncoding *cte =
-            (ContentTransferEncoding *)hf;
-        if ( !cte || !cte->valid() )
-            return;
-        r.append( hf->name() + ": " + hf->value() );
-    }
-    else if ( t == HeaderField::MimeVersion ) {
-        r.append( hf->name() );
-        r.append( ": 1.0" );
-    }
     else if ( t == HeaderField::References ) {
         r.append( hf->name() );
         r.append( ": " );
         r.append( references() );
     }
     else {
-        // don't know what else to do.
         r.append( hf->name() );
         r.append( ": " );
         r.append( hf->value() );
         r.append( crlf );
         return;
     }
-
-    // Which MIME header fields can have parameters?
-    if ( mf )
-        r.append( mf->parameterString() );
 
     r.append( "\015\012" );
 }
