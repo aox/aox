@@ -844,10 +844,13 @@ void Address::uniquify( List<Address> * l )
         Address *a = it;
         ++it;
         String k = key( a );
-        Address * other = unique.find( k );
-        if ( !other || 
-             ( !a->name().isEmpty() && other->name().isEmpty() ) )
+        if ( !unique.contains( k ) ) {
             unique.insert( k, a );
+            if ( !a->name().isEmpty() ) {
+                k = " " + a->localpart() + "@" + a->domain().lower();
+                unique.insert( k, a );
+            }
+        }
     }
     it = l->first();
     while ( it ) {
