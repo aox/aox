@@ -584,7 +584,7 @@ void Header::appendField( String &r, HeaderField *hf ) const
             List<Address>::Iterator it( a->first() );
             while ( it ) {
                 String a = it->toString();
-                if ( c + a.length() > 1 ) {
+                if ( c + a.length() > 72 ) {
                     c = 4;
                     if ( !first )
                         r.append( "," );
