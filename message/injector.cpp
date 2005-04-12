@@ -99,7 +99,7 @@ public:
 
     void execute() {
         Query *q = queries->first();
-        if ( !q->done() )
+        if ( !q || !q->done() )
             return;
 
         if ( q->hasResults() )
@@ -147,9 +147,8 @@ void Injector::setup()
 
     intoBodyparts =
         new PreparedStatement(
-            "insert into bodyparts (bytes,lines,hash,text,data) "
-            "select $1,$2,$3,$4,$5 where not exists "
-            "(select id from bodyparts where hash=$3)"
+            "insert into bodyparts (hash,bytes,lines,text,data) "
+            "values ($1,$2,$3,$4,$5)"
         );
     Allocator::addEternal( intoBodyparts, "intoBodyparts" );
 
@@ -247,6 +246,14 @@ void Injector::execute()
 {
     Scope x( log() );
 
+    // Conceptually, the Injector does its work in a single transaction.
+    // In practice, however, the need to maintain unique entries in the
+    // bodyparts table demands either an exclusive lock (which we would
+    // rather avoid), the use of savepoints (only in PG8), or INSERTing
+    // bodyparts entries outside the transaction to tolerate failure.
+    //
+    // -- AMS 20050412
+
     if ( d->step == 0 ) {
         // We begin by obtaining a UID for each mailbox we are injecting
         // a message into, and simultaneously inserting entries into the
@@ -258,8 +265,9 @@ void Injector::execute()
         d->transaction = new Transaction( this );
         d->bodyparts = d->message->allBodyparts();
 
-        selectUids();
+        // The bodyparts inserts happen outside d->transaction.
         insertBodyparts();
+        selectUids();
         buildAddressLinks();
         buildFieldLinks();
 
@@ -367,7 +375,6 @@ void Injector::selectUids()
         q = new Query( *incrUidnext, helper );
         q->bind( 1, it->id() );
         d->transaction->enqueue( q );
-        queries->append( q );
 
         ++it;
     }
@@ -495,8 +502,9 @@ void Injector::insertBodyparts()
     Query *i, *s;
     Codec *c = new Utf8Codec;
     d->bodypartIds = new List< uint >;
-    List< Query > * queries = new List< Query >;
-    IdHelper * helper = new IdHelper( d->bodypartIds, queries, this );
+    List< Query > *queries = new List< Query >;
+    List< Query > *selects = new List< Query >;
+    IdHelper * helper = new IdHelper( d->bodypartIds, selects, this );
 
     List< Bodypart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
@@ -523,11 +531,12 @@ void Injector::insertBodyparts()
         else
             hash = MD5::hash( b->data() ).hex();
 
+        // This insert may fail if a bodypart with this hash already
+        // exists. We don't care, as long as the select below works.
         i = new Query( *intoBodyparts, helper );
-        i->bind( 1, b->numBytes() );
-        i->bind( 2, b->numLines() );
-        i->bind( 3, hash );
-
+        i->bind( 1, hash );
+        i->bind( 2, b->numBytes() );
+        i->bind( 3, b->numLines() );
         if ( text ) {
             i->bind( 4, c->fromUnicode( b->text() ), Query::Binary );
             i->bindNull( 5 );
@@ -536,25 +545,15 @@ void Injector::insertBodyparts()
             i->bindNull( 4 );
             i->bind( 5, b->data(), Query::Binary );
         }
-
-        // XXX: The following block of type specifications is required
-        // to work around a Postgres bug that crashes INSERT .. SELECT
-        // in some circumstances if the types are left unspecified.
-        {
-            i->appendType( 23 );
-            i->appendType( 23 );
-            i->appendType( 25 );
-            i->appendType( 25 );
-            i->appendType( 17 );
-        }
-
-        d->transaction->enqueue( i );
+        queries->append( i );
 
         s = new Query( *idBodypart, helper );
         s->bind( 1, hash );
-        d->transaction->enqueue( s );
         queries->append( s );
+        selects->append( s );
     }
+
+    Database::submit( queries );
 }
 
 
