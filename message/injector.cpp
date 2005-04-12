@@ -26,6 +26,7 @@
 static PreparedStatement *lockUidnext;
 static PreparedStatement *incrUidnext;
 static PreparedStatement *idBodypart;
+static PreparedStatement *fixBodypart;
 static PreparedStatement *intoBodyparts;
 static PreparedStatement *intoMessages;
 static PreparedStatement *intoRecent;
@@ -144,6 +145,12 @@ void Injector::setup()
             "select id from bodyparts where hash=$1"
         );
     Allocator::addEternal( idBodypart, "idBodypart" );
+
+    fixBodypart =
+        new PreparedStatement(
+            "update bodyparts set lines=$2 where hash=$1"
+        );
+    Allocator::addEternal( fixBodypart, "fixBodypart" );
 
     intoBodyparts =
         new PreparedStatement(
@@ -499,7 +506,7 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
 
 void Injector::insertBodyparts()
 {
-    Query *i, *s;
+    Query *i, *u, *s;
     Codec *c = new Utf8Codec;
     d->bodypartIds = new List< uint >;
     List< Query > *queries = new List< Query >;
@@ -546,6 +553,16 @@ void Injector::insertBodyparts()
             i->bind( 5, b->data(), Query::Binary );
         }
         queries->append( i );
+
+        // Even if the insert fails, we may have to fix up the number of
+        // lines in the table if a text bodypart is being shared with a
+        // binary entry.
+        if ( text ) {
+            u = new Query( *fixBodypart, helper );
+            u->bind( 1, hash );
+            u->bind( 2, b->numLines() );
+            queries->append( u );
+        }
 
         s = new Query( *idBodypart, helper );
         s->bind( 1, hash );
