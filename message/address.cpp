@@ -747,13 +747,13 @@ String AddressParser::phrase( int & i )
             int j = i;
             do {
                 j = i;
-                if ( i >= 0 && d->s[i] != '"' && d->s[i] != '\\' ) {
-                    tmp = d->s.mid( i, 1 ) + tmp;
-                    i--;
-                }
-                else if ( i > 0 && d->s[i-1] == '\\' ) {
+                if ( i > 0 && d->s[i-1] == '\\' ) {
                     tmp = d->s.mid( i, 1 ) + tmp;
                     i = i - 2;
+                }
+                else if ( i >= 0 && d->s[i] != '"' ) {
+                    tmp = d->s.mid( i, 1 ) + tmp;
+                    i--;
                 }
             } while ( i < j );
             if ( i < 0 || d->s[i] != '"' )
