@@ -20,6 +20,7 @@ public:
 
     static void setup();
     static void submit( Query * );
+    static void submit( List< Query > * );
 
     virtual void processQueue() = 0;
 
@@ -30,6 +31,8 @@ protected:
 
     void setState( State );
     State state() const;
+
+    static void runQueue();
 
     static void addHandle( Database * );
     static void removeHandle( Database * );

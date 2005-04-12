@@ -83,14 +83,40 @@ void Database::setup()
 
 
 /*! Adds \a q to the queue of submitted queries and sets its state to
-    Query::Submitted.
+    Query::Submitted. The first available handle will process it.
 */
 
 void Database::submit( Query *q )
 {
     queries->append( q );
     q->setState( Query::Submitted );
+    runQueue();
+}
 
+
+/*! Adds the queries in the list \a q to the queue of submitted queries,
+    and sets their state to Query::Submitted. The first available handle
+    will process them.
+*/
+
+void Database::submit( List< Query > *q )
+{
+    List< Query >::Iterator it( q->first() );
+    while ( it ) {
+        it->setState( Query::Submitted );
+        queries->append( it );
+        ++it;
+    }
+    runQueue();
+}
+
+
+/*! This private function is used to make idle handles process the queue
+    of queries, and is called by the two variants of submit().
+*/
+
+void Database::runQueue()
+{
     List< Database >::Iterator it( handles->first() );
     while ( it ) {
         if ( it->state() == Idle ) {
