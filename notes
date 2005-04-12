@@ -7,9 +7,6 @@ ocd needs work (mike@waspfactory.org)
   2. Should synchronise field names etc.
 
 
-We need top-level message/rfc822 support
-
-
 tlsproxy doesn't handle eof (or errors) well
 
 
