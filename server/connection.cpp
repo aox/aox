@@ -643,6 +643,7 @@ int Connection::connect( const Endpoint &e )
     setState( Connecting );
     if ( n == 0 || ( n < 0 && errno == EINPROGRESS ) ) {
         if ( n == 0 ) {
+            setState( Connected );
             d->event = Connect;
             d->pending = true;
         }
