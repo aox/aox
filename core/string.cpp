@@ -520,27 +520,50 @@ bool String::boring( Boring b ) const
 
 String String::simplified() const
 {
+    // scan for the first nonwhitespace character
     uint i = 0;
-    while ( i < length() &&
-            !( d->str[i] == 9 || d->str[i] == 10 ||
-               d->str[i] == 13 || d->str[i] == 32 ) )
+    uint first = 0;
+    while ( i < length() && first == i ) {
+        char c = d->str[i];
+        if ( c == 9 || c == 10 || c == 13 || c == 32 )
+            first++;
         i++;
-    if ( i == length() )
-        return *this;
+    }
+    // scan on to find the last nonwhitespace character and detect any
+    // sequences of two or more whitespace characters within the
+    // string.
+    uint last = first;
+    uint spaces = 0;
+    bool identity = true;
+    while ( identity && i < length() ) {
+        char c = d->str[i];
+        if ( c == 9 || c == 10 || c == 13 || c == 32 ) {
+            spaces++;
+        }
+        else {
+            if ( spaces > 1 )
+                identity = false;
+            spaces = 0;
+            last = i;
+        }
+        i++;
+    }
+    if ( identity )
+        return mid( first, last+1-first );
 
     String result;
     result.reserve( length() );
     i = 0;
-    bool s = false;
+    spaces = 0;
     while ( i < length() ) {
         char c = d->str[i];
         if ( c == 9 || c == 10 || c == 13 || c == 32 ) {
-            s = true;
+            spaces++;
         }
         else {
-            if ( s && !result.isEmpty() )
+            if ( spaces && !result.isEmpty() )
                 result.append( ' ' );
-            s = false;
+            spaces = 0;
             result.append( c );
         }
         i++;
