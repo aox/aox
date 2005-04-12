@@ -5,6 +5,7 @@
 #include "date.h"
 #include "ustring.h"
 #include "address.h"
+#include "datefield.h"
 #include "mimefields.h"
 #include "parser.h"
 #include "utf.h"
@@ -54,13 +55,12 @@ class HeaderFieldData {
 public:
     HeaderFieldData()
         : type( HeaderField::Other ),
-          date( 0 ), addresses( 0 )
+          addresses( 0 )
     {}
 
     HeaderField::Type type;
     String name, data, value, string, error;
 
-    ::Date *date;
     List< ::Address > *addresses;
 };
 
@@ -94,6 +94,12 @@ HeaderField *HeaderField::create( const String &name, const String &value )
     switch ( t ) {
     default:
         hf = new HeaderField( fieldNames[i].type );
+        break;
+
+    case Date:
+    case OrigDate:
+    case ResentDate:
+        hf = new DateField( t );
         break;
 
     case ContentType:
@@ -241,16 +247,6 @@ void HeaderField::setError( const String &s )
 }
 
 
-/*! Returns a pointer to the Date value of this header field, or 0 if
-    this is not a Date field.
-*/
-
-Date *HeaderField::date() const
-{
-    return d->date;
-}
-
-
 /*! Returns a pointer to the list of addresses in this header field, or
     0 if this is not a field that is known to contain addresses.
 */
@@ -303,12 +299,6 @@ void HeaderField::parse()
         parseReferences();
         break;
 
-    case HeaderField::Date:
-    case HeaderField::OrigDate:
-    case HeaderField::ResentDate:
-        parseDate();
-        break;
-
     case HeaderField::Subject:
     case HeaderField::Comments:
         // parseText();
@@ -330,6 +320,9 @@ void HeaderField::parse()
         parseContentLocation();
         break;
 
+    case HeaderField::Date:
+    case HeaderField::OrigDate:
+    case HeaderField::ResentDate:
     case HeaderField::ContentType:
     case HeaderField::ContentTransferEncoding:
     case HeaderField::ContentDisposition:
@@ -424,19 +417,6 @@ void HeaderField::parseMessageId()
 
     if ( d->error.isEmpty() && d->addresses->count() > 1 )
         setError( "Only one message-id is allowed" );
-}
-
-
-/*! Parses the RFC 2822 date production and records the first problem
-    found.
-*/
-
-void HeaderField::parseDate()
-{
-    d->date = new ::Date;
-    d->date->setRfc822( value() );
-    if ( !d->date->valid() )
-        setError( "Could not parse '" + value().simplified() + "'" );
 }
 
 

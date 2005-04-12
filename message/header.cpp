@@ -3,6 +3,7 @@
 #include "header.h"
 
 #include "field.h"
+#include "datefield.h"
 #include "mimefields.h"
 #include "address.h"
 #include "date.h"
@@ -196,7 +197,7 @@ HeaderField * Header::field( HeaderField::Type t, uint n ) const
 
 Date *Header::date( HeaderField::Type t ) const
 {
-    HeaderField *hf = field( t );
+    DateField *hf = (DateField *)field( t );
     if ( !hf )
         return 0;
     return hf->date();
@@ -561,7 +562,7 @@ void Header::appendField( String &r, HeaderField *hf ) const
         return;
 
     HeaderField::Type t = hf->type();
-    
+
     if ( t == HeaderField::ReturnPath ) {
         List< Address > *a = hf->addresses();
         if ( a && !a->isEmpty() ) {
@@ -612,17 +613,6 @@ void Header::appendField( String &r, HeaderField *hf ) const
         r.append( hf->name() );
         r.append( ": " );
         r.append( v );
-    }
-    else if ( t == HeaderField::Date ||
-              t == HeaderField::OrigDate ||
-              t == HeaderField::ResentDate )
-    {
-        Date *dt = hf->date();
-        if ( !dt || !dt->valid() )
-            return;
-        r.append( hf->name() );
-        r.append( ": " );
-        r.append( dt->rfc822() );
     }
     else if ( t == HeaderField::References ) {
         r.append( hf->name() );

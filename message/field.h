@@ -62,7 +62,6 @@ public:
 
     virtual void parse();
 
-    ::Date *date() const;
     List< ::Address > *addresses() const;
 
     static const char *fieldName( HeaderField::Type );
@@ -76,7 +75,6 @@ private:
     void parseAddressList();
     void parseMessageId();
     void parseReferences();
-    void parseDate();
     void parseContentLocation();
     void parseMimeVersion();
 };
