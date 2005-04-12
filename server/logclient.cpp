@@ -4,6 +4,7 @@
 
 #include "loop.h"
 #include "string.h"
+#include "server.h"
 #include "connection.h"
 #include "configuration.h"
 
@@ -90,7 +91,8 @@ void LogClient::send( const String &s )
 {
     c->reconnect();
     c->enqueue( s );
-    c->write();
+    if ( c->state() == Connection::Connected )
+        c->write();
 }
 
 
@@ -122,5 +124,6 @@ void LogClient::setup()
         exit( -1 );
     }
     client->c->setBlocking( false );
+    client->c->enqueue( "name " + Server::name() + "\r\n" );
     Loop::addConnection( client->c );
 }

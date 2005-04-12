@@ -41,7 +41,7 @@ static Log::Severity severity( const String & );
 
 class LogServerData {
 public:
-    LogServerData(): id( ::id++ ) {}
+    LogServerData(): id( ::id++ ), name( "(Anonymous)" ) {}
 
     uint id;
 
@@ -59,6 +59,8 @@ public:
     typedef List<Line> Queue;
 
     Dict<Queue> pending;
+
+    String name;
 };
 
 
@@ -121,6 +123,11 @@ void LogServer::parse()
 
 void LogServer::processLine( const String &line )
 {
+    if ( line.startsWith( "name " ) ) {
+        d->name = line.mid( 5 ).simplified();
+        return;
+    }
+
     uint cmd = 0;
     uint msg = 0;
 
@@ -217,7 +224,7 @@ void LogServer::commitAll()
         return;
 
     log( 0, Log::Immediate, Log::Error,
-         "Log client unexpectedly died. "
+         d->name + " unexpectedly died. "
          "All messages in unfinished transactions follow." );
     i = keys.first();
     while ( i ) {
