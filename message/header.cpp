@@ -5,6 +5,7 @@
 #include "field.h"
 #include "datefield.h"
 #include "mimefields.h"
+#include "addressfield.h"
 #include "address.h"
 #include "date.h"
 
@@ -107,19 +108,22 @@ String Header::error() const
 
 void Header::add( HeaderField *hf )
 {
-    if ( hf->type() == HeaderField::To ||
-         hf->type() == HeaderField::Cc ||
-         hf->type() == HeaderField::ReplyTo ||
-         hf->type() == HeaderField::Bcc ) {
-        HeaderField * other = field( hf->type() );
-        if ( other ) {
-            List<Address>::Iterator it( hf->addresses()->first() );
-            List<Address> * old = other->addresses();
+    HeaderField::Type t = hf->type();
+
+    if ( t == HeaderField::To || t == HeaderField::Cc ||
+         t == HeaderField::Bcc || t == HeaderField::ReplyTo )
+    {
+        AddressField *first = addressField( t );
+        AddressField *next = (AddressField *)hf;
+        if ( first ) {
+            List< Address > *old = first->addresses();
+            List< Address >::Iterator it( next->addresses()->first() );
             while ( it ) {
                 old->append( it );
                 ++it;
             }
             Address::uniquify( old );
+            first->update();
             return;
         }
     }
@@ -166,9 +170,9 @@ List< HeaderField > *Header::fields() const
 }
 
 
-/*! This private function returns a pointer to the header field with
-    type \a t and index \a n, or a null pointer if there is no such
-    field in this header.
+/*! This function returns a pointer to the header field with type \a t
+    and index \a n, or a null pointer if there is no such field in this
+    header.
 
     if \a n is 0, as it is by default, the first field with type \a t
     is returned. 1 refer to the second.
@@ -187,6 +191,16 @@ HeaderField * Header::field( HeaderField::Type t, uint n ) const
     while ( it && it->type() != t )
         ++it;
     return it;
+}
+
+
+/*! Returns a pointer to the address field of type \a t at index \a n in
+    this header, or a null pointer if no such field exists.
+*/
+
+AddressField *Header::addressField( HeaderField::Type t, uint n ) const
+{
+    return (AddressField *)field( t, n );
 }
 
 
@@ -239,40 +253,10 @@ String Header::inReplyTo() const
 
 String Header::messageId( HeaderField::Type t ) const
 {
-    String r;
-    List< Address > *a = 0;
-    HeaderField *hf = field( t );
-    if ( hf )
-        a = hf->addresses();
-    if ( a && !a->isEmpty() )
-        r = "<" + a->first()->toString() + ">";
-    return r;
-}
-
-
-/*! Returns the header's references. Each of the message-ids in the
-    string is in the cleanest possible form (no unnecessary quoting or
-    similar). If there is no references field in this header, this
-    function returns an empty string.
-*/
-
-String Header::references() const
-{
-    String r;
-    List< Address > *a = 0;
-    HeaderField *hf = field( HeaderField::References );
-    if ( hf )
-        a = hf->addresses();
-    if ( a && !a->isEmpty() ) {
-        List< Address >::Iterator it( a->first() );
-        while ( it ) {
-            if ( !r.isEmpty() )
-                r.append( "\n " );
-            r.append( "<" + it->toString() + ">" );
-            ++it;
-        }
-    }
-    return r;
+    AddressField *af = addressField( t );
+    if ( !af )
+        return "";
+    return af->value();
 }
 
 
@@ -284,9 +268,9 @@ String Header::references() const
 List< Address > *Header::addresses( HeaderField::Type t ) const
 {
     List< Address > *a = 0;
-    HeaderField *hf = field( t );
-    if ( hf )
-        a = hf->addresses();
+    AddressField *af = addressField( t );
+    if ( af )
+        a = af->addresses();
     return a;
 }
 
@@ -445,7 +429,7 @@ void Header::verify() const
 }
 
 
-static bool sameAddresses( HeaderField *a, HeaderField *b )
+static bool sameAddresses( AddressField *a, AddressField *b )
 {
     if ( !a || !b )
         return false;
@@ -522,12 +506,12 @@ void Header::simplify()
     else if ( ct == 0 )
         add( "Content-Type", "text/plain" );
 
-    if ( sameAddresses( field( HeaderField::From ),
-                        field( HeaderField::ReplyTo ) ) )
+    if ( sameAddresses( addressField( HeaderField::From ),
+                        addressField( HeaderField::ReplyTo ) ) )
         removeField( HeaderField::ReplyTo );
 
-    if ( sameAddresses( field( HeaderField::From ),
-                        field( HeaderField::Sender ) ) )
+    if ( sameAddresses( addressField( HeaderField::From ),
+                        addressField( HeaderField::Sender ) ) )
         removeField( HeaderField::Sender );
 }
 
@@ -561,71 +545,8 @@ void Header::appendField( String &r, HeaderField *hf ) const
     if ( !hf )
         return;
 
-    HeaderField::Type t = hf->type();
-
-    if ( t == HeaderField::ReturnPath ) {
-        List< Address > *a = hf->addresses();
-        if ( a && !a->isEmpty() ) {
-            List<Address>::Iterator it( a->first() );
-            r.append( hf->name() );
-            r.append( ": <" );
-            r.append( it->localpart() );
-            r.append( "@" );
-            r.append( it->domain() );
-            r.append( ">" );
-        }
-    }
-    else if ( t <= HeaderField::LastAddressField ) {
-        List< Address > *a = hf->addresses();
-        if ( a && !a->isEmpty() ) {
-            r.append( hf->name() );
-            r.append( ": " );
-            uint c = hf->name().length() + 2;
-            bool first = true;
-            List<Address>::Iterator it( a->first() );
-            while ( it ) {
-                String a = it->toString();
-                if ( first ) {
-                    // we always put the first message the line with
-                    // the field name.
-                    first = false;
-                }
-                else if ( c + a.length() > 72 ) {
-                    c = 4;
-                    r.append( ",\n    " );
-                }
-                else {
-                    r.append( ", " );
-                    c = c + 2;
-                }
-                r.append( a );
-                c = c + a.length();
-                ++it;
-            }
-        }
-    }
-    else if ( t == HeaderField::MessageId ||
-              t == HeaderField::ResentMessageId )
-    {
-        String v = messageId( t );
-        if ( v.isEmpty() )
-            return;
-        r.append( hf->name() );
-        r.append( ": " );
-        r.append( v );
-    }
-    else if ( t == HeaderField::References ) {
-        r.append( hf->name() );
-        r.append( ": " );
-        r.append( references() );
-    }
-    else {
-        r.append( hf->name() );
-        r.append( ": " );
-        r.append( hf->value() );
-        r.append( crlf );
-        return;
-    }
-
-    r.append( "\015\012" );
+    r.append( hf->name() );
+    r.append( ": " );
+    r.append( hf->value() );
+    r.append( crlf );
 }

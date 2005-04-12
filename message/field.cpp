@@ -7,6 +7,7 @@
 #include "address.h"
 #include "datefield.h"
 #include "mimefields.h"
+#include "addressfield.h"
 #include "parser.h"
 #include "utf.h"
 
@@ -54,14 +55,11 @@ static struct {
 class HeaderFieldData {
 public:
     HeaderFieldData()
-        : type( HeaderField::Other ),
-          addresses( 0 )
+        : type( HeaderField::Other )
     {}
 
     HeaderField::Type type;
     String name, data, value, string, error;
-
-    List< ::Address > *addresses;
 };
 
 
@@ -71,7 +69,7 @@ public:
     This class is responsible for parsing and verifying header fields.
     Each field has a type(), name(), and value(). It is valid() if no
     error() was recorded during parsing by the various functions that
-    parse() field values, e.g. parseMailbox()).
+    parse() field values, e.g. parseText()).
 
     Users may obtain HeaderField objects only via create().
 */
@@ -94,6 +92,24 @@ HeaderField *HeaderField::create( const String &name, const String &value )
     switch ( t ) {
     default:
         hf = new HeaderField( fieldNames[i].type );
+        break;
+
+    case From:
+    case ResentFrom:
+    case Sender:
+    case ResentSender:
+    case ReturnPath:
+    case ReplyTo:
+    case To:
+    case Cc:
+    case Bcc:
+    case ResentTo:
+    case ResentCc:
+    case ResentBcc:
+    case MessageId:
+    case ResentMessageId:
+    case References:
+        hf = new AddressField( t );
         break;
 
     case Date:
@@ -247,19 +263,9 @@ void HeaderField::setError( const String &s )
 }
 
 
-/*! Returns a pointer to the list of addresses in this header field, or
-    0 if this is not a field that is known to contain addresses.
-*/
-
-List< Address > *HeaderField::addresses() const
-{
-    return d->addresses;
-}
-
-
 /*! This function decides how to parse this header field based on the
     type() assigned by the constructor. It leaves the actual parsing
-    to functions like parseMailbox().
+    to functions like parseText().
 */
 
 void HeaderField::parse()
@@ -268,69 +274,54 @@ void HeaderField::parse()
     d->data = d->value = d->string;
 
     switch ( d->type ) {
-    case HeaderField::Sender:
-    case HeaderField::ReturnPath:
-    case HeaderField::ResentSender:
-        parseMailbox();
+    case From:
+    case ResentFrom:
+    case Sender:
+    case ReturnPath:
+    case ResentSender:
+    case To:
+    case Cc:
+    case Bcc:
+    case ReplyTo:
+    case ResentTo:
+    case ResentCc:
+    case ResentBcc:
+    case MessageId:
+    case ContentId:
+    case ResentMessageId:
+    case References:
+    case Date:
+    case OrigDate:
+    case ResentDate:
+    case ContentType:
+    case ContentTransferEncoding:
+    case ContentDisposition:
+    case ContentLanguage:
+        // These should be handled by their own parse().
         break;
 
-    case HeaderField::From:
-    case HeaderField::ResentFrom:
-        parseMailboxList();
-        break;
-
-    case HeaderField::To:
-    case HeaderField::Cc:
-    case HeaderField::Bcc:
-    case HeaderField::ReplyTo:
-    case HeaderField::ResentTo:
-    case HeaderField::ResentCc:
-    case HeaderField::ResentBcc:
-        parseAddressList();
-        break;
-
-    case HeaderField::MessageId:
-    case HeaderField::ContentId:
-    case HeaderField::ResentMessageId:
-        parseMessageId();
-        break;
-
-    case HeaderField::References:
-        parseReferences();
-        break;
-
-    case HeaderField::Subject:
-    case HeaderField::Comments:
+    case Subject:
+    case Comments:
         // parseText();
         break;
 
-    case HeaderField::InReplyTo:
-    case HeaderField::Keywords:
-    case HeaderField::Received:
-    case HeaderField::ContentMd5:
-    case HeaderField::ContentDescription:
-        // no action necessary
-        break;
-
-    case HeaderField::MimeVersion:
+    case MimeVersion:
         parseMimeVersion();
         break;
 
-    case HeaderField::ContentLocation:
+    case ContentLocation:
         parseContentLocation();
         break;
 
-    case HeaderField::Date:
-    case HeaderField::OrigDate:
-    case HeaderField::ResentDate:
-    case HeaderField::ContentType:
-    case HeaderField::ContentTransferEncoding:
-    case HeaderField::ContentDisposition:
-    case HeaderField::ContentLanguage:
-        // We should never be called for these.
+    case InReplyTo:
+    case Keywords:
+    case Received:
+    case ContentMd5:
+    case ContentDescription:
+        // no action necessary
         break;
 
-    case HeaderField::Other:
+    case Other:
         // no action possible
         break;
     }
@@ -346,77 +337,6 @@ void HeaderField::parseText()
     Utf8Codec u;
     Parser822 p( value() );
     d->data = u.fromUnicode( p.text() );
-}
-
-
-/*! Parses the RFC 2822 address-list production and records the first
-    problem found.
-*/
-
-void HeaderField::parseAddressList()
-{
-    AddressParser ap( value() );
-    d->addresses = ap.addresses();
-    d->error = ap.error();
-}
-
-
-/*! Parses the RFC 2822 mailbox-list production and records the first
-    problem found.
-*/
-
-void HeaderField::parseMailboxList()
-{
-    parseAddressList();
-
-    // A mailbox-list is an address-list where groups aren't allowed.
-    List< Address >::Iterator it( d->addresses->first() );
-    while ( it && d->error.isEmpty() ) {
-        if ( it->localpart().isEmpty() || it->domain().isEmpty() )
-            d->error = "Invalid mailbox: '" + it->toString() + "'";
-        ++it;
-    }
-}
-
-
-/*! Parses the RFC 2822 mailbox production and records the first
-    problem found.
-*/
-
-void HeaderField::parseMailbox()
-{
-    parseMailboxList();
-
-    // A mailbox in our world is just a mailbox-list with one entry.
-    if ( d->error.isEmpty() && d->addresses->count() > 1 )
-        setError( "Only one address is allowed" );
-}
-
-
-/*! Parses the contents of an RFC 2822 references field. This is
-    nominally 1*msg-id, but in practice we need to be a little more
-    flexible. Overlooks common problems and records the first serious
-    problems found.
-*/
-
-void HeaderField::parseReferences()
-{
-    AddressParser *ap = AddressParser::references( value() );
-    d->addresses = ap->addresses();
-    setError( ap->error() );
-}
-
-
-/*! Parses the RFC 2822 msg-id production and records the first
-    problem found.
-*/
-
-void HeaderField::parseMessageId()
-{
-    parseReferences();
-
-    if ( d->error.isEmpty() && d->addresses->count() > 1 )
-        setError( "Only one message-id is allowed" );
 }
 
 

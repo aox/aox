@@ -13,6 +13,7 @@ class ContentType;
 class ContentTransferEncoding;
 class ContentDisposition;
 class ContentLanguage;
+class AddressField;
 class Date;
 
 
@@ -30,13 +31,13 @@ public:
     void removeField( HeaderField::Type );
 
     List< HeaderField > *fields() const;
-    HeaderField * field( HeaderField::Type, uint=0 ) const;
+    HeaderField * field( HeaderField::Type, uint = 0 ) const;
+    AddressField * addressField( HeaderField::Type, uint = 0 ) const;
 
     Date * date( HeaderField::Type = HeaderField::Date ) const;
     String subject() const;
     String inReplyTo() const;
     String messageId( HeaderField::Type = HeaderField::MessageId ) const;
-    String references() const;
     List< Address > * addresses( HeaderField::Type ) const;
     ContentType * contentType() const;
     ContentTransferEncoding * contentTransferEncoding() const;

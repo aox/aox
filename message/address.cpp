@@ -840,7 +840,7 @@ void Address::uniquify( List<Address> * l )
         return;
 
     Dict<Address> unique;
-    
+
     List<Address>::Iterator it( l->first() );
     while ( it ) {
         Address *a = it;

@@ -8,6 +8,6 @@ SubInclude TOP server ;
 
 Build message :
     multipart.cpp message.cpp bodypart.cpp header.cpp parser.cpp
-    field.cpp mimefields.cpp datefield.cpp date.cpp address.cpp
-    flag.cpp addresscache.cpp fieldcache.cpp
+    field.cpp mimefields.cpp datefield.cpp addressfield.cpp
+    address.cpp date.cpp flag.cpp addresscache.cpp fieldcache.cpp
     injector.cpp fetcher.cpp smtpclient.cpp ;

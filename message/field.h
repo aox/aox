@@ -62,21 +62,14 @@ public:
 
     virtual void parse();
 
-    List< ::Address > *addresses() const;
-
     static const char *fieldName( HeaderField::Type );
 
 private:
     class HeaderFieldData *d;
 
     void parseText();
-    void parseMailboxList();
-    void parseMailbox();
-    void parseAddressList();
-    void parseMessageId();
-    void parseReferences();
-    void parseContentLocation();
     void parseMimeVersion();
+    void parseContentLocation();
 };
 
 
