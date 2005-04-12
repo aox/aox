@@ -23,6 +23,8 @@
 #include <time.h>
 
 
+class IdHelper;
+
 static PreparedStatement *lockUidnext;
 static PreparedStatement *incrUidnext;
 static PreparedStatement *idBodypart;
@@ -56,7 +58,7 @@ public:
           owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
           totalUids( 0 ), uids( 0 ), totalBodyparts( 0 ), bodypartIds( 0 ),
           bodyparts( 0 ), addressLinks( 0 ), fieldLinks( 0 ), otherFields( 0 ),
-          fieldLookup( 0 ), addressLookup( 0 )
+          fieldLookup( 0 ), addressLookup( 0 ), bidHelper( 0 )
     {}
 
     int step;
@@ -80,18 +82,21 @@ public:
 
     CacheLookup * fieldLookup;
     CacheLookup * addressLookup;
+    IdHelper * bidHelper;
 };
 
 
 class IdHelper : public EventHandler {
-protected:
+private:
     List< uint > * list;
     List< Query > * queries;
     EventHandler * owner;
 
 public:
+    bool failed;
+
     IdHelper( List< uint > *l, List< Query > *q, EventHandler *ev )
-        : list( l ), queries( q ), owner( ev )
+        : list( l ), queries( q ), owner( ev ), failed( false )
     {}
 
     virtual void processResults( Query *q ) {
@@ -105,6 +110,8 @@ public:
 
         if ( q->hasResults() )
             processResults( q );
+        else
+            failed = true;
 
         queries->take( queries->first() );
         if ( queries->isEmpty() )
@@ -300,6 +307,14 @@ void Injector::execute()
         // Once insertBodyparts() is completed, we can start adding to
         // the part_numbers and header_fields tables.
 
+        // Since the bodyparts inserts are outside the transaction, we
+        // have to take particular care about handling errors there.
+        if ( d->bidHelper->failed ) {
+            d->transaction->rollback();
+            d->failed = true;
+            d->step = 5;
+        }
+
         if ( !d->fieldLookup->done() ||
              d->bodypartIds->count() != d->totalBodyparts )
             return;
@@ -333,7 +348,8 @@ void Injector::execute()
     if ( d->step == 5 ) {
         if ( !d->transaction->done() )
             return;
-        d->failed = d->transaction->failed();
+        if ( !d->failed )
+            d->failed = d->transaction->failed();
 
         // XXX: If we fail early in the transaction, we'll continue to
         // be notified of individual query failures. We don't want to
@@ -511,7 +527,7 @@ void Injector::insertBodyparts()
     d->bodypartIds = new List< uint >;
     List< Query > *queries = new List< Query >;
     List< Query > *selects = new List< Query >;
-    IdHelper * helper = new IdHelper( d->bodypartIds, selects, this );
+    d->bidHelper = new IdHelper( d->bodypartIds, selects, this );
 
     List< Bodypart >::Iterator it( d->bodyparts->first() );
     while ( it ) {
@@ -540,7 +556,7 @@ void Injector::insertBodyparts()
 
         // This insert may fail if a bodypart with this hash already
         // exists. We don't care, as long as the select below works.
-        i = new Query( *intoBodyparts, helper );
+        i = new Query( *intoBodyparts, d->bidHelper );
         i->bind( 1, hash );
         i->bind( 2, b->numBytes() );
         i->bind( 3, b->numLines() );
@@ -558,13 +574,13 @@ void Injector::insertBodyparts()
         // lines in the table if a text bodypart is being shared with a
         // binary entry.
         if ( text ) {
-            u = new Query( *fixBodypart, helper );
+            u = new Query( *fixBodypart, d->bidHelper );
             u->bind( 1, hash );
             u->bind( 2, b->numLines() );
             queries->append( u );
         }
 
-        s = new Query( *idBodypart, helper );
+        s = new Query( *idBodypart, d->bidHelper );
         s->bind( 1, hash );
         queries->append( s );
         selects->append( s );
