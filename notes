@@ -37,9 +37,6 @@ We must optimise Row composition.
 tls client support (smtp, postgresql)
 
 
-Bodypart sharing: How to serialise multiple duplicate-part injectors?
-
-
 Set up automatic injection regression/speed testing on penne after the
 Injector becomes stable again.
 
