@@ -13,7 +13,7 @@ class LogClient
     : public Logger
 {
 public:
-    static void setup();
+    static void setup( const String & );
     void send( const String & );
 
 private:

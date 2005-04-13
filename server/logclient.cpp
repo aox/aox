@@ -97,13 +97,13 @@ void LogClient::send( const String &s )
 
 
 /*! Connects to the configured log server and creates a singleton
-    Logger talking to that server.
+    Logger named \a name talking to that server.
 
     If setup() cannot connect to a log server, it brutally exits the
     application.
 */
 
-void LogClient::setup()
+void LogClient::setup( const String &name )
 {
     Endpoint e( Configuration::LogAddress, Configuration::LogPort );
     if ( !e.valid() ) {
@@ -124,6 +124,6 @@ void LogClient::setup()
         exit( -1 );
     }
     client->c->setBlocking( false );
-    client->c->enqueue( "name " + Server::name() + "\r\n" );
+    client->c->enqueue( "name " + name + "\r\n" );
     Loop::addConnection( client->c );
 }

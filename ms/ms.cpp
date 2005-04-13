@@ -196,7 +196,7 @@ int main( int argc, char *argv[] )
 
     Log l( Log::General );
     global.setLog( &l );
-    LogClient::setup();
+    LogClient::setup( "ms" );
 
     OCClient::setup();
     Database::setup();

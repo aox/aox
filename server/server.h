@@ -32,8 +32,6 @@ public:
     void setup( Stage );
     void execute();
 
-    static String name();
-
 private:
     class ServerData * d;
 
