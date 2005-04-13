@@ -194,10 +194,15 @@ void Server::configuration()
 
 /*! Creates the global logging context, and sets up a LogClient if no
     Logger has been created already.
+
+    This also creates the Loop object, so that the LogClient doesn't
+    feel alone in the world, abandoned by its parents, depressed and
+    generally bad.
 */
 
 void Server::logSetup()
 {
+    Loop::setup();
     if ( !Logger::global() )
         LogClient::setup( d->name );
     Scope::current()->setLog( new Log( Log::General ) );
@@ -226,7 +231,6 @@ void Server::loop()
     ::signal( SIGTERM, shutdownLoop );
     // sigpipe happens if we're writing to an already-closed fd
     ::signal( SIGPIPE, throwFDException );
-    Loop::setup();
 }
 
 
