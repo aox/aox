@@ -88,10 +88,10 @@ String Header::error() const
     if ( d->error.isEmpty() )
         return d->error;
     if ( !messageId().isEmpty() )
-         return d->error + " Message-ID: " + messageId();
+         return d->error + " (Message-ID: " + messageId() + ")";
     if ( field( HeaderField::From ) )
-        return d->error + " From: " +
-            field( HeaderField::From )->value().simplified();
+        return d->error + " (From: " +
+            field( HeaderField::From )->value().simplified() + ")";
     return d->error + " (lacking From and Message-ID)";
 }
 
@@ -513,6 +513,10 @@ void Header::simplify()
     if ( sameAddresses( addressField( HeaderField::From ),
                         addressField( HeaderField::Sender ) ) )
         removeField( HeaderField::Sender );
+
+    HeaderField *m = field( HeaderField::MessageId );
+    if ( m && m->value().isEmpty() )
+        removeField( HeaderField::MessageId );
 }
 
 

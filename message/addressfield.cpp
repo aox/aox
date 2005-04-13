@@ -194,8 +194,13 @@ void AddressField::parseMessageId()
 {
     parseReferences();
 
-    if ( valid() && a->count() > 1 )
-        setError( "Only one message-id is allowed" );
+    if ( valid() ) {
+        if ( a->count() == 0 )
+            // We'll tolerate (and remove) invalid Message-Ids.
+            ;
+        else if ( a->count() > 1 )
+            setError( "Only one msg-id is allowed" );
+    }
 }
 
 
