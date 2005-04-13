@@ -74,12 +74,12 @@ public:
     Users may obtain HeaderField objects only via create().
 */
 
-/*! This static function returns a pointer to a new HeaderField object
-    that represents the given field \a name (case-insensitive) and its
-    \a value (which is parsed appropriately).
+
+/*! This private function is used by create() and assemble() to create a
+    HeaderField object of a type appropriate to the given \a name.
 */
 
-HeaderField *HeaderField::create( const String &name, const String &value )
+HeaderField *HeaderField::fieldNamed( const String &name )
 {
     int i = 0;
     String n = name.headerCased();
@@ -136,9 +136,38 @@ HeaderField *HeaderField::create( const String &name, const String &value )
     }
 
     hf->setName( n );
+    return hf;
+}
+
+
+/*! This static function returns a pointer to a new HeaderField object
+    that represents the given field \a name (case-insensitive) and its
+    \a value (which is parsed appropriately).
+
+    This function is for use by the message parser.
+*/
+
+HeaderField *HeaderField::create( const String &name, const String &value )
+{
+    HeaderField *hf = fieldNamed( name );
     hf->setString( value );
     hf->parse();
+    return hf;
+}
 
+
+/*! This static function returns a pointer to a new HeaderField object
+    that represents the given field \a name (case-insensitive) and the
+    field \a data retrieved from the database.
+
+    This function is for use by the message fetcher.
+*/
+
+HeaderField *HeaderField::assemble( const String &name, const String &data )
+{
+    HeaderField *hf = fieldNamed( name );
+    hf->setData( data );
+    hf->reassemble();
     return hf;
 }
 
@@ -192,6 +221,7 @@ String HeaderField::string() const
 
 void HeaderField::setString( const String &s )
 {
+    // We should either unwrap() here, or in the caller.
     d->string = s;
 }
 
@@ -211,6 +241,7 @@ String HeaderField::value() const
 
 void HeaderField::setValue( const String &s )
 {
+    // This function should wrap() and encode2047() if necessary.
     d->value = s;
 }
 
@@ -263,15 +294,18 @@ void HeaderField::setError( const String &s )
 }
 
 
-/*! This function decides how to parse this header field based on the
-    type() assigned by the constructor. It leaves the actual parsing
-    to functions like parseText().
+/*! Every HeaderField subclass must define a parse() function that takes
+    the string() (from a message) and sets the field value() and data().
+    This default function handles fields that are not specially handled
+    by subclasses, using functions like parseText().
 */
 
 void HeaderField::parse()
 {
-    // XXX: We don't handle folding or RFC 2047 encoding properly yet.
-    d->data = d->value = d->string;
+    // Most fields share the same external and database representations.
+    // For any that don't (cf. 2047) , we'll just setData() again later.
+    setData( string() );
+    setValue( string() );
 
     switch ( d->type ) {
     case From:
@@ -325,6 +359,19 @@ void HeaderField::parse()
         // no action possible
         break;
     }
+}
+
+
+/*! Like parse(), this function must be reimplemented by subclasses. Its
+    responsibility is to use data() (as retrieved from the database) to
+    set the field's value().
+*/
+
+void HeaderField::reassemble()
+{
+    // We'll just defer to parse() for now.
+    setString( data() );
+    parse();
 }
 
 

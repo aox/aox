@@ -14,6 +14,7 @@ class Address;
 class HeaderField {
 public:
     static HeaderField *create( const String &, const String & );
+    static HeaderField *assemble( const String &, const String & );
 
     // The contents of this enum must be kept in sync with the data in
     // src/schema/field-names. Furthermore, new entries MUST be added
@@ -61,10 +62,12 @@ public:
     void setError( const String & );
 
     virtual void parse();
+    virtual void reassemble();
 
     static const char *fieldName( HeaderField::Type );
 
 private:
+    static HeaderField *fieldNamed( const String & );
     class HeaderFieldData *d;
 
     void parseText();

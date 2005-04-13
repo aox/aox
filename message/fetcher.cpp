@@ -259,20 +259,18 @@ void MessageHeaderFetcher::decode( Message * m, Row * r )
     String name = r->getString( "name" );
     String value = r->getString( "value" );
 
-    if ( part.isEmpty() ) {
-        m->header()->add( name, value );
-    }
-    else if ( part.endsWith( ".rfc822" ) ) {
+    Header *h = m->header();
+    if ( part.endsWith( ".rfc822" ) ) {
         Bodypart * bp =
             m->bodypart( part.mid( 0, part.length()-7 ), true );
         if ( !bp->rfc822() )
             bp->setRfc822( new Message );
-        bp->rfc822()->header()->add( name, value );
+        h = bp->rfc822()->header();
     }
-    else {
-        Bodypart * bp = m->bodypart( part, true );
-        bp->header()->add( name, value );
+    else if ( !part.isEmpty() ) {
+        h = m->bodypart( part, true )->header();
     }
+    h->add( HeaderField::assemble( name, value ) );
 }
 
 
