@@ -76,34 +76,42 @@ void AddressField::update()
         if ( it )
             s = "<" + it->localpart() + "@" + it->domain() + ">";
     }
-    else if ( t <= HeaderField::LastAddressField ) {
-        uint c = name().length() + 2;
+    else if ( t <= HeaderField::LastAddressField ||
+              t == HeaderField::References )
+    {
         bool first = true;
+        String wsep, lsep;
+        uint c = name().length() + 2;
+        uint lpos;
+
+        if ( t == HeaderField::References ) {
+            wsep = " ";
+            lsep = "\n ";
+            lpos = 1;
+        }
+        else {
+            wsep = ", ";
+            lsep = ",\n    ";
+            lpos = 4;
+        }
+
         while ( it ) {
             String a = it->toString();
+            if ( t == HeaderField::References )
+                a = "<" + a + ">";
             if ( first ) {
-                // we always put the first message the line with
-                // the field name.
                 first = false;
             }
-            else if ( c + a.length() > 72 ) {
-                c = 4;
-                s.append( ",\n    " );
+            else if ( c + wsep.length() + a.length() > 72 ) {
+                s.append( lsep );
+                c = lpos;
             }
             else {
-                s.append( ", " );
-                c = c + 2;
+                s.append( wsep );
+                c = c + wsep.length();
             }
             s.append( a );
             c = c + a.length();
-            ++it;
-        }
-    }
-    else if ( t == HeaderField::References ) {
-        while ( it ) {
-            if ( !s.isEmpty() )
-                s.append( "\n " );
-            s.append( "<" + it->toString() + ">" );
             ++it;
         }
     }
