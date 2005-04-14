@@ -779,6 +779,9 @@ void Injector::logMessageDetails()
 /*! This function announces the injection of a message into the relevant
     mailboxes, using ocd. It should be called only when the Injector has
     completed successfully (done(), but not failed()).
+
+    The Mailbox objects in this process are notified immediately, to
+    avoid timing-dependent behaviour within one process.
 */
 
 void Injector::announce()
@@ -786,6 +789,8 @@ void Injector::announce()
     List< Mailbox >::Iterator m( d->mailboxes->first() );
     List< uint >::Iterator u( d->uids->first() );
     while ( m ) {
+        if ( m->uidnext() <= *u )
+            m->setUidnext( 1 + *u );
         OCClient::send( "mailbox " + m->name().quoted() + " "
                         "message=" + fn( *u ) );
         ++m;
