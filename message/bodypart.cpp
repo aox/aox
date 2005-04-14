@@ -388,16 +388,14 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     if ( bp->d->hasText ) {
         uint n = 0;
         uint i = 0;
-        bool sol = true;
-        while ( i < bp->d->text.length() ) {
-            if ( sol ) {
-                n++;
-                sol = false;
-            }
+        uint l = bp->d->text.length();
+        while ( i < l ) {
             if ( bp->d->text[i] == '\n' )
-                sol = true;
+                n++;
             i++;
         }
+        if ( l && bp->d->text[l-1] != '\n' )
+            n++;
         bp->setNumLines( n );
     }
 
