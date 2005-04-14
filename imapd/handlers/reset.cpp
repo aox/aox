@@ -29,7 +29,7 @@ void XOryxReset::execute()
 
         Mailbox * inbox = imap()->user()->inbox();
 
-        d->messages = new Query( "delete * from messages where mailbox=$1",
+        d->messages = new Query( "delete from messages where mailbox=$1",
                                  this );
         d->messages->bind( 1, inbox->id() );
         d->messages->execute();
