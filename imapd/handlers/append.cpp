@@ -52,7 +52,6 @@ void Append::parse()
     space();
 
     if ( present( "(" ) ) {
-        step();
         if ( nextChar() != ')' ) {
             d->flags.append( new String( flag() ) );
             while( nextChar() == ' ' ) {
