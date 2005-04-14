@@ -34,6 +34,7 @@
 #include "handlers/store.h"
 #include "handlers/subscribe.h"
 #include "handlers/unselect.h"
+#include "handlers/reset.h"
 
 
 class CommandData {
@@ -170,6 +171,8 @@ Command * Command::create( IMAP * imap,
             c = new Unsubscribe;
         else if ( n == "append" )
             c = new Append;
+        else if ( n == "x-oryx-reset" )
+            c = new XOryxReset;
 
         if ( c ) {
             authenticated = true;

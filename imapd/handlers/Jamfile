@@ -18,6 +18,7 @@ Build imap :
     namespace.cpp
     noop.cpp
     rename.cpp
+    reset.cpp
     search.cpp
     select.cpp
     starttls.cpp
