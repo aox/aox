@@ -92,8 +92,7 @@ public:
                 ::mailboxes->insert( m->d->id, m );
         }
 
-        // XXX: why was the next line commented out?
-        if ( query->failed() )
+        if ( query->failed() && query->isStartUpQuery() )
             log( "Couldn't create mailbox tree.", Log::Disaster );
     }
 };
