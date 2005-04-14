@@ -47,11 +47,7 @@ user, and have "ms migrate" ask for a different username and password to
 perform schema upgrades.
 
 
-We need an IMAP test suite
-
-  Of course we will both remember what Arnt wrote in email, and our
-  thoughts concerning this subject. Therefore there's no point in making
-  notes. ;)
+We need lots more IMAP script tests
 
 
 Fix shutdown

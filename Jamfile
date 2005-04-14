@@ -26,8 +26,6 @@ if ( $(BUILDDOC) ) {
     SubInclude TOP udoc ;
 }
 
-SubInclude TOP closed ;
-
 Doc oryxdoc : core database encodings imap logd mailbox message ocd sasl
     server smtp tls user http ;
 
