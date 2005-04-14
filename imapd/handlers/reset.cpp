@@ -38,6 +38,8 @@ void XOryxReset::execute()
                                 this );
         d->mailboxes->bind( 1, inbox->id() );
         d->mailboxes->execute();
+
+        inbox->setUidnext( 1 );
     }
 
     if ( d->messages->done() && d->mailboxes->done() )
