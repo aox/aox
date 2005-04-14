@@ -40,7 +40,7 @@ class SearchData {
 public:
     SearchData()
         : uid( false ), done( false ), root( 0 ), conditions( 0 ),
-          codec( 0 ), query( 0 ), argc( 0 ),
+          codec( 0 ), query( 0 ), argc( 0 ), mboxId( 0 ),
           usesHeaderFieldsTable( false ),
           usesFieldNamesTable( false ),
           usesAddressFieldsTable( false ),
@@ -65,6 +65,7 @@ public:
         ++argc;
         return argc;
     };
+    uint mboxId;
     
     bool usesHeaderFieldsTable;
     bool usesFieldNamesTable;
@@ -324,6 +325,8 @@ void Search::execute()
         }
 
         d->query = new SearchQuery( this );
+        d->mboxId = d->argument();
+        d->query->bind( d->mboxId, imap()->session()->mailbox()->id() );
         d->query->s = "select messages.uid from messages";
         String w( d->root->where() );
         if ( !ok() )
@@ -340,14 +343,11 @@ void Search::execute()
             d->query->s.append( ", part_numbers" );
         if ( d->usesBodypartsTable )
             d->query->s.append( ", bodyparts" );
-        if ( d->usesFlagsTable )
-            d->query->s.append( ", flags" );
         if ( d->usesFlagNamesTable )
             d->query->s.append( ", flag_names" );
-        uint mbox = d->argument();
-        d->query->bind( mbox, imap()->session()->mailbox()->id() );
-        d->query->s.append( " where messages.mailbox=$" + fn( mbox ) + 
+        d->query->s.append( " where messages.mailbox=$" + fn( d->mboxId ) + 
                             " and (" + w + ") order by messages.uid" );
+        respond( "OK debug: SQL: " + d->query->s );
         d->query->execute();
     }
 
@@ -657,7 +657,7 @@ void Search::Condition::simplify()
         // > 0 matches everything
         a = All;
     }
-    else if ( a == Contains && f != Uid && a2.isEmpty() ) {
+    else if ( a == Contains && f != Uid && a1.isEmpty() ) {
         // contains empty string too
         a = All;
     }
@@ -974,14 +974,17 @@ String Search::Condition::whereFlags() const
     uint name = d->argument();
     if ( f ) {
         d->query->bind( name, f->id() );
-        return "messages.mailbox=flags.mailbox and "
-            "messages.uid=flags.uid and "
-            "flags.flag=$1";
+        return "messages.uid in ("
+            "select uid from flags where flags.mailbox=$" + fn( d->mboxId ) +
+            " and flags.flag=$" + fn( name ) + ")";
     }
     d->usesFlagNamesTable = true;
     d->query->bind( name, a1 ); // do we need to smash case on flags?
-    return "messages.mailbox=flags.mailbox and messages.uid=flags.uid and "
-        "flags.flag=flag_names.id and flag_names.name=$1";
+    return "messages.uid in ("
+        "select flags.uid from flags, flag_names "
+        "where flags.mailbox=$" + fn( d->mboxId ) +
+        " and flags.flag=flag_names.id and flag_names.name=$" +
+        fn( name ) + ")";
 }
 
 
