@@ -336,7 +336,7 @@ void HeaderField::parse()
 
     case Subject:
     case Comments:
-        // parseText();
+        parseText();
         break;
 
     case MimeVersion:
