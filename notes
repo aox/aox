@@ -321,4 +321,21 @@ User/Mailbox/access control
 tcpdump to imap script
 
   What's the easiest way to generate a script from a tcpdump savefile?
-  
+
+
+C/R
+
+  C/R sucks. But it has its uses, so we can benefit from implementing
+  it somehow. Here are some classes of messages we may want to treat
+  specially:
+
+  - replies to own mail
+  - messages in languages not understood by the user
+  - mail from previously unknown addresses
+  - mail from freemail providers
+  - vacation responses from unknowns
+  - messages likely, but not certain to be out-of-office-autoreply
+
+  The questions are: How can we ensure that we almost never challenge
+  real mail, while simultaneously challenging most/all junk? How can
+  we provide suitable configuration?
