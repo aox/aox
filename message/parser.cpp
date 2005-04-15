@@ -487,29 +487,6 @@ UString Parser822::text()
             out.append( c );
             c = s[++i];
         }
-
-#if 0
-        while ( c == '=' && s[i+1] == '?' ) {
-            uint j = i+2;
-            while ( j-i <= 75 && isAtext( s[j] ) &&
-                    !( s[j] == '?' && s[j+1] == '=' ) )
-                j++;
-            if ( s[j] == '?' && s[j+1] == '=' ) {
-                if ( ( i == first || last == ' ' ) &&
-                     ( s[j+2] == ' ' || j+2 == s.length() ||
-                       s[j+2] == '\012' || s[j+2] == '\015' ) )
-                {
-                    UString us = encodedWord();
-                    if ( !us.isEmpty() ) {
-                        out.append( us );
-                        words++;
-                        c = s[i];
-                    }
-                }
-            }
-        }
-#endif
-
     }
 
     return out;
