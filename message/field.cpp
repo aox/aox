@@ -382,8 +382,8 @@ void HeaderField::reassemble()
 void HeaderField::parseText()
 {
     Utf8Codec u;
-    Parser822 p( value() );
-    d->data = u.fromUnicode( p.text() );
+    Parser822 p( string() );
+    setData( u.fromUnicode( p.text() ) );
 }
 
 
@@ -396,7 +396,7 @@ void HeaderField::parseText()
 
 void HeaderField::parseMimeVersion()
 {
-    Parser822 p( d->value );
+    Parser822 p( string() );
     p.comment();
     String v = p.dotAtom();
     p.comment();
@@ -411,7 +411,7 @@ void HeaderField::parseMimeVersion()
 
 void HeaderField::parseContentLocation()
 {
-    Parser822 p( d->value );
+    Parser822 p( string() );
     String s;
     char c;
 
@@ -424,7 +424,7 @@ void HeaderField::parseContentLocation()
 
     if ( !p.atEnd() )
         setError( "Junk at end of '" + value().simplified() + "'" );
-    d->value = s;
+    setValue( s );
 }
 
 
