@@ -471,8 +471,8 @@ UString Parser822::text()
                  ( s[i] == ' ' || s[i] == '\012' || s[i] == '\015' ||
                    i == s.length() ) )
             {
-                out.append( us );
                 sawEncoded = true;
+                out.append( us );
                 c = s[i];
             }
             else {

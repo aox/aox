@@ -369,9 +369,19 @@ void HeaderField::parse()
 
 void HeaderField::reassemble()
 {
-    // We'll just defer to parse() for now.
-    setString( data() );
-    parse();
+    switch ( d->type ) {
+    default:
+        // We assume that most fields share an external and database
+        // representation.
+        setString( data() );
+        parse();
+        break;
+
+    case Subject:
+    case Comments:
+        setValue( encode( data() ) );
+        break;
+    }
 }
 
 
@@ -384,6 +394,7 @@ void HeaderField::parseText()
     Utf8Codec u;
     Parser822 p( string() );
     setData( u.fromUnicode( p.text() ) );
+    setValue( encode( data() ) );
 }
 
 
@@ -438,4 +449,14 @@ const char *HeaderField::fieldName( HeaderField::Type t )
     while ( fieldNames[i].name && fieldNames[i].type != t )
         i++;
     return fieldNames[i].name;
+}
+
+
+/*! This static function returns the RFC 2047-encoded version of \a s,
+    which is assumed to be a UTF-8 encoded string.
+*/
+
+String HeaderField::encode( const String &s )
+{
+    return s;
 }
