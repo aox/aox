@@ -386,6 +386,17 @@ Message * Mailbox::message( uint uid, bool create ) const
 }
 
 
+/*! Forgets all about the Message objects in this Mailbox. This
+    interacts very poorly with active fetchers. Basically, if there's
+    a fetcher active, clear() will cause horrid confusion.
+*/
+
+void Mailbox::clear()
+{
+    d->messages = 0;
+}
+
+
 /*! Starts retrieving the header fields of \a messages, and will
     notify \a handler whenever at least one message becomes available.
 */

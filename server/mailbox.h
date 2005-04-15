@@ -31,6 +31,7 @@ public:
     List< Mailbox > *children() const;
 
     Message * message( uint, bool = true ) const;
+    void clear();
 
     static void setup();
     static Mailbox *find( const String &, bool = false );

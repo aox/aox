@@ -40,6 +40,7 @@ void XOryxReset::execute()
         d->mailboxes->execute();
 
         inbox->setUidnext( 1 );
+        inbox->clear();
     }
 
     if ( d->messages->done() && d->mailboxes->done() )
