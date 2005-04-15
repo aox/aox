@@ -349,6 +349,7 @@ UString Parser822::encodedWord()
     // encoded-word = "=?" charset '?' encoding '?' encoded-text "?="
 
     int n = i;
+    Codec *cs = 0;
     bool valid = true;
     String charset, encoding, text;
 
@@ -369,7 +370,14 @@ UString Parser822::encodedWord()
             c = s[++m];
         }
 
-        if ( m - i > 75 )
+        // XXX: Should we treat unknown charsets as us-ascii?
+        int j = charset.find( '*' );
+        if ( j > 0 ) {
+            // XXX: What should we do with the language information?
+            charset = charset.mid( 0, j );
+        }
+
+        if ( m - i > 75 || ( cs = Codec::byName( charset ) ) == 0 )
             valid = false;
         else
             n = m;
@@ -422,24 +430,11 @@ UString Parser822::encodedWord()
         valid = false;
 
     if ( valid ) {
-        if ( encoding == "q" ) {
-            // XXX: What about underscores?
-            text = text.deQP();
-        }
-        else if ( encoding == "b" ) {
+        if ( encoding == "q" )
+            text = text.deQP( true );
+        else if ( encoding == "b" )
             text = text.de64();
-        }
-
-        int j = charset.find( '*' );
-        if ( j > 0 ) {
-            // XXX: What should we do with the language information?
-            charset = charset.mid( 0, j );
-        }
-
-        Codec *c = Codec::byName( charset );
-        if ( !c )
-            c = new AsciiCodec;
-        out = c->toUnicode( text );
+        out = cs->toUnicode( text );
         i = ++n;
     }
 
@@ -456,25 +451,69 @@ UString Parser822::text()
 {
     UString out;
 
+    uint first = i;
+    bool sawEncoded = false;
+
     char c = s[i];
-    while ( i < s.length() && c != 0 && c != '\012' && c != '\015' ) {
-        // Are we looking at an encoded-word?
-        if ( c == '=' && s[i+1] == '?' ) {
+    while ( i < s.length() &&
+            c != 0 && c != '\012' && c != '\015' )
+    {
+        if ( ( c == ' ' && s[i+1] == '=' && s[i+2] == '?' ) ||
+             ( i == first && s[i] == '=' && s[i+1] == '?' ) )
+        {
+            if ( c == ' ' )
+                c = s[++i];
+            if ( !sawEncoded && i != first )
+                out.append( ' ' );
             uint j = i+2;
             while ( j-i <= 75 && isAtext( s[j] ) &&
                     !( s[j] == '?' && s[j+1] == '=' ) )
                 j++;
             if ( s[j] == '?' && s[j+1] == '=' ) {
-                out.append( encodedWord() );
-                c = s[i];
-                continue;
+                if ( s[j+2] == ' ' || j+2 == s.length() ||
+                     s[j+2] == '\012' || s[j+2] == '\015' )
+                {
+                    UString us = encodedWord();
+                    if ( !us.isEmpty() ) {
+                        out.append( us );
+                        sawEncoded = true;
+                        c = s[i];
+                    }
+                }
             }
         }
-        out.append( c );
-        c = s[++i];
+        else {
+            sawEncoded = false;
+        }
+
+        if ( !sawEncoded ) {
+            out.append( c );
+            c = s[++i];
+        }
+
+#if 0
+        while ( c == '=' && s[i+1] == '?' ) {
+            uint j = i+2;
+            while ( j-i <= 75 && isAtext( s[j] ) &&
+                    !( s[j] == '?' && s[j+1] == '=' ) )
+                j++;
+            if ( s[j] == '?' && s[j+1] == '=' ) {
+                if ( ( i == first || last == ' ' ) &&
+                     ( s[j+2] == ' ' || j+2 == s.length() ||
+                       s[j+2] == '\012' || s[j+2] == '\015' ) )
+                {
+                    UString us = encodedWord();
+                    if ( !us.isEmpty() ) {
+                        out.append( us );
+                        words++;
+                        c = s[i];
+                    }
+                }
+            }
+        }
+#endif
+
     }
 
     return out;
 }
-
-
