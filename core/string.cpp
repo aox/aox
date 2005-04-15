@@ -963,16 +963,22 @@ String String::e64( uint lineLength ) const
 /*! Decodes this string according to the quoted-printable algorithm,
     and returns the result. Errors are overlooked, to cope with all
     the mail-munging brokenware in the great big world.
+
+    If \a underscore is true, underscores in the input are translated
+    into spaces (as specified in RFC 2047).
 */
 
-String String::deQP() const
+String String::deQP( bool underscore ) const
 {
     uint i = 0;
     String r;
     r.reserve( length() );
     while ( i < length() ) {
         if ( d->str[i] != '=' ) {
-            r.d->str[r.d->len++] = d->str[i++];
+            char c = d->str[i++];
+            if ( underscore && c == '_' )
+                c = ' ';
+            r.d->str[r.d->len++] = c;
         }
         else {
             // are we looking at = followed by end-of-line?

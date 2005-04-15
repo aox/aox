@@ -88,7 +88,7 @@ public:
 
     String de64() const;
     String e64( uint = 0 ) const;
-    String deQP() const;
+    String deQP( bool = false ) const;
     String eQP() const;
     bool needsQP() const;
 
