@@ -379,7 +379,7 @@ void HeaderField::reassemble()
 
     case Subject:
     case Comments:
-        setValue( encode( data() ) );
+        setValue( wrap( encode( data() ) ) );
         break;
     }
 }
@@ -392,9 +392,9 @@ void HeaderField::reassemble()
 void HeaderField::parseText()
 {
     Utf8Codec u;
-    Parser822 p( string() );
+    Parser822 p( unwrap( string() ) );
     setData( u.fromUnicode( p.text() ) );
-    setValue( encode( data() ) );
+    setValue( wrap( encode( data() ) ) );
 }
 
 
@@ -459,4 +459,88 @@ const char *HeaderField::fieldName( HeaderField::Type t )
 String HeaderField::encode( const String &s )
 {
     return s;
+}
+
+
+/*! Returns an unwrapped version of the string \a s, where any CRLF-SP
+    is replaced by a single space.
+
+    XXX: We use this function to unwrap only Subject and Comments fields
+    at the moment, since they're the only ones we transform. Unwrapping
+    should eventually be handled in the higher-level parser instead. We
+    must assume here that every [CR]LF is actually followed by an SP.
+*/
+
+String HeaderField::unwrap( const String &s )
+{
+    String t;
+    uint last = 0;
+    uint n = 0;
+    while ( n < s.length() ) {
+        if ( s[n] == '\012' ||
+             ( s[n] == '\015' && s[n+1] == '\012' ) )
+        {
+            t.append( s.mid( last, n-last ) );
+            if ( s[n] == '\015' )
+                n++;
+            if ( s[n+1] == ' ' || s[n+1] == '\t' ) {
+                t.append( " " );
+                n++;
+            }
+            last = n+1;
+        }
+        n++;
+    }
+    t.append( s.mid( last ) );
+    return t;
+}
+
+
+/*! Returns a version of \a s with long lines wrapped according to the
+    rules in RFC [2]822. This function is not static, because it needs
+    to look at the field name.
+
+    XXX: Well, except that we ignore the rules right now.
+*/
+
+String HeaderField::wrap( const String &s )
+{
+    String t;
+
+    uint n = 0;
+    uint last = 0;
+    bool first = true;
+    uint l = d->name.length() + 2;
+
+    // We'll consider every space a potential wrapping point, and just
+    // try to fit as many tokens onto each line as possible. This is a
+    // cheap hack.
+
+    do {
+        String w;
+        n = s.find( ' ', last );
+        if ( n > 0 )
+            w = s.mid( last, n-last );
+        else
+            w = s.mid( last );
+        last = n+1;
+
+        if ( first ) {
+            first = false;
+        }
+        else if ( l + 1 + w.length() > 72 ) {
+            t.append( "\015\012 " );
+            l = 1;
+        }
+        else {
+            t.append( " " );
+            l += 1;
+        }
+
+        l += w.length();
+        t.append( w );
+    }
+    while ( last > 0 );
+
+    return t;
 }

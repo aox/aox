@@ -67,6 +67,8 @@ public:
     static const char *fieldName( HeaderField::Type );
 
     static String encode( const String & );
+    static String unwrap( const String & );
+    String wrap( const String & );
 
 private:
     static HeaderField *fieldNamed( const String & );
