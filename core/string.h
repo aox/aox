@@ -89,7 +89,7 @@ public:
     String de64() const;
     String e64( uint = 0 ) const;
     String deQP( bool = false ) const;
-    String eQP() const;
+    String eQP( bool = false ) const;
     bool needsQP() const;
 
     friend inline bool operator==( const String &, const String & );

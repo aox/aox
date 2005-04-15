@@ -1033,9 +1033,13 @@ static char qphexdigits[17] = "0123456789ABCDEF";
     encodes trailing spaces, as suggested in RFC 2045, but RFC 2646
     suggest that if trailing spaces are the only reason to q-p, then
     the message should not be encoded.
+
+    If \a underscore is present and true, this function uses the variant
+    of q-p specified by RFC 2047, where a space is encoded as an
+    underscore.
 */
 
-String String::eQP() const
+String String::eQP( bool underscore ) const
 {
     uint i = 0;
     String r;
@@ -1078,7 +1082,11 @@ String String::eQP() const
                 c = j;
             }
 
-            if ( ( d->str[i] >= ' ' && d->str[i] < 127 &&
+            if ( underscore && d->str[i] == ' ' ) {
+                r.d->str[r.d->len++] = '_';
+                c += 1;
+            }
+            else if ( ( d->str[i] >= ' ' && d->str[i] < 127 &&
                    d->str[i] != '=' ) ||
                  ( d->str[i] == '\t' ) ) {
                 r.d->str[r.d->len++] = d->str[i];
