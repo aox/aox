@@ -508,10 +508,15 @@ void Header::simplify()
         }
     }
 
-    if ( ct == 0 && cte == 0 && cde == 0 && cdi == 0 )
+    if ( ct == 0 && cte == 0 && cde == 0 && cdi == 0 ) {
         removeField( HeaderField::MimeVersion );
-    else if ( ct == 0 )
-        add( "Content-Type", "text/plain" );
+    }
+    else {
+        if ( ct == 0 )
+            add( "Content-Type", "text/plain" );
+        if ( !field( HeaderField::MimeVersion ) )
+            add( "Mime-Version", "1.0" );
+    }
 
     HeaderField *m = field( HeaderField::MessageId );
     if ( m && m->value().isEmpty() )
