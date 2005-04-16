@@ -425,6 +425,13 @@ void Header::verify() const
         }
         i++;
     }
+
+    AddressField *f = addressField( HeaderField::From );
+    AddressField *s = addressField( HeaderField::Sender );
+    if ( f && f->addresses()->count() > 1 &&
+         !( s && s->addresses()->count() == 1 ) )
+        d->error = "Sender is mandatory with multiple From addresses.";
+
     // we graciously ignore all the Resent-This-Or-That restrictions.
 }
 
@@ -506,6 +513,14 @@ void Header::simplify()
     else if ( ct == 0 )
         add( "Content-Type", "text/plain" );
 
+    HeaderField *m = field( HeaderField::MessageId );
+    if ( m && m->value().isEmpty() )
+        removeField( HeaderField::MessageId );
+
+    AddressField *s = addressField( HeaderField::Sender );
+    if ( s && s->addresses()->isEmpty() )
+        removeField( HeaderField::Sender );
+
     if ( sameAddresses( addressField( HeaderField::From ),
                         addressField( HeaderField::ReplyTo ) ) )
         removeField( HeaderField::ReplyTo );
@@ -513,10 +528,6 @@ void Header::simplify()
     if ( sameAddresses( addressField( HeaderField::From ),
                         addressField( HeaderField::Sender ) ) )
         removeField( HeaderField::Sender );
-
-    HeaderField *m = field( HeaderField::MessageId );
-    if ( m && m->value().isEmpty() )
-        removeField( HeaderField::MessageId );
 }
 
 
