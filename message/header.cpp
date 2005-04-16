@@ -514,7 +514,7 @@ void Header::simplify()
     else {
         if ( ct == 0 )
             add( "Content-Type", "text/plain" );
-        if ( !field( HeaderField::MimeVersion ) )
+        if ( mode() == Rfc2822 && !field( HeaderField::MimeVersion ) )
             add( "Mime-Version", "1.0" );
     }
 
