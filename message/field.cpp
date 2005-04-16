@@ -152,14 +152,6 @@ HeaderField *HeaderField::create( const String &name, const String &value )
     HeaderField *hf = fieldNamed( name );
     hf->setString( value );
     hf->parse();
-    if ( hf->type() == HeaderField::Sender && !hf->valid() ) {
-        // if the sender field is bad, that usually is best
-        // disregarded. for now, our policy is that if the parser
-        // couldn't see even one address there, we pretend the field
-        // is empty and okay.
-        hf->setString( "" );
-        hf->parse();
-    }
     return hf;
 }
 
