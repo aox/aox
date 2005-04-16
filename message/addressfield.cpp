@@ -23,7 +23,20 @@ void AddressField::parse()
 {
     switch ( type() ) {
     case HeaderField::Sender:
+        parseMailbox();
+        if ( !valid() && addresses()->isEmpty() ) {
+            // sender is quite often wrong in otherwise perfectly
+            // legible messages. so we'll nix out the error. Header
+            // will probably remove the field completely, since an
+            // empty Sender field isn't sensible.
+            setError( "" );
+        }
+        break;
+
     case HeaderField::ReturnPath:
+        parseMailbox();
+        break;
+
     case HeaderField::ResentSender:
         parseMailbox();
         break;
@@ -57,6 +70,9 @@ void AddressField::parse()
         // Should not happen.
         break;
     }
+
+    if ( type() != HeaderField::ReturnPath )
+        outlawBounce();
 
     update();
 }
@@ -205,9 +221,27 @@ void AddressField::parseMessageId()
 
 
 /*! Returns a pointer to the List of addresses contained in this field.
+
+    This is never a null pointer.
 */
 
 List< Address > *AddressField::addresses() const
 {
     return a;
+}
+
+
+/*! Checks whether '<>' is present in this address field, and records
+    an error if it is. '<>' is legal in Return-Path, but as of April
+    2005, not in any other field.
+*/
+
+void AddressField::outlawBounce()
+{
+    List< Address >::Iterator it( a->first() );
+    while ( it && valid() ) {
+        if ( it->toString() == "<>" )
+            setError( "No-bounce address not allowed in this field" );
+        ++it;
+    }
 }

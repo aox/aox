@@ -27,6 +27,9 @@ protected:
     void parseMessageId();
 
 private:
+    void outlawBounce();
+
+private:
     List< Address > *a;
 };
 

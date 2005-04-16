@@ -19,9 +19,14 @@ public:
     The Address class represents one e-mail address.
 
     All aspects of e-mail addresses are emulated, mostly except
-    address groups. Address groups can exist, but only as empty groups
-    ("internet-drafts:;"). (An empty address group is an address with a
-    name() but without a localpart() or a domain().)
+    address groups.
+
+    Address groups can exist, but only as empty groups
+    ("internet-drafts:;"). (An empty address group is an address with
+    a name() but without a localpart() or a domain().)
+
+    The un-address <> can be parsed and represented; both its name(),
+    localpart() and domain() are empty.
 
     Domains are kept as naked strings, and there is as yet no attempt
     to make this fit nicely in the database.
@@ -215,6 +220,11 @@ String Address::toString() const
     if ( !valid() ) {
         // it's not valid at all
     }
+    else if ( d->name.isEmpty() &&
+              d->localpart.isEmpty() &&
+              d->domain.isEmpty() ) {
+        r = "<>";
+    }
     else if ( d->name.isEmpty() ) {
         // it's a naked address
         r = d->localpart + "@" + d->domain;
@@ -239,7 +249,7 @@ String Address::toString() const
 bool Address::valid() const
 {
     if ( d->name.isEmpty() && d->localpart.isEmpty() )
-        return false;
+        return d->domain.isEmpty();
     if ( !d->localpart.isEmpty() && d->domain.isEmpty() )
         return false; // just for sanity
     return true;
@@ -465,6 +475,11 @@ void AddressParser::address( int & i )
     String & s = d->s;
     if ( i < 0 ) {
         // nothing there. error of some sort.
+    }
+    else if ( i > 0 && s[i-1] == '<' && s[i] == '>' ) {
+        // the address is <>. whether that's legal is another matter.
+        add( "", "", "" );
+        i = i - 2;
     }
     else if ( s[i] == '>' ) {
         // name-addr
