@@ -89,7 +89,10 @@ void AddressField::update()
     List< Address >::Iterator it( addresses()->first() );
 
     if ( t == HeaderField::ReturnPath ) {
-        if ( it )
+        if ( it && it->name().isEmpty() && it->localpart().isEmpty() &&
+             it->domain().isEmpty() )
+            s = "<>";
+        else if ( it )
             s = "<" + it->localpart() + "@" + it->domain() + ">";
     }
     else if ( t <= HeaderField::LastAddressField ||
@@ -167,7 +170,8 @@ void AddressField::parseMailboxList()
     // A mailbox-list is an address-list where groups aren't allowed.
     List< Address >::Iterator it( a->first() );
     while ( it && valid() ) {
-        if ( it->localpart().isEmpty() || it->domain().isEmpty() )
+        if ( it->localpart().isEmpty() && it->domain().isEmpty() &&
+             !it->name().isEmpty() )
             setError( "Invalid mailbox: '" + it->toString() + "'" );
         ++it;
     }
