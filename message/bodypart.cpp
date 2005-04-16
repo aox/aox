@@ -269,8 +269,9 @@ void Bodypart::parseMultiPart( uint i, uint end,
                 if ( rfc2822[j] == 10 )
                     j++;
                 if ( start > 0 ) {
-                    Header * h =
-                        Message::parseHeader( start, j, rfc2822, Header::Mime );
+                    Header * h = Message::parseHeader( start, j,
+                                                       rfc2822,
+                                                       Header::Mime );
                     if ( h->contentType() )
                         ; // if supplied, it's good.
                     else if ( digest )
@@ -365,6 +366,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 cte->setEncoding( String::QP );
         }
         else if ( qp ) {
+            if ( !h->field( HeaderField::MimeVersion ) )
+                h->add( "Mime-Version", "1.0" );
             h->add( "Content-Transfer-Encoding", "quoted-printable" );
         }
         h->simplify();
@@ -378,6 +381,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                     cte->setEncoding( String::Base64 );
             }
             else {
+                if ( !h->field( HeaderField::MimeVersion ) )
+                    h->add( "Mime-Version", "1.0" );
                 h->add( "Content-Transfer-Encoding", "base64" );
             }
             h->simplify();
