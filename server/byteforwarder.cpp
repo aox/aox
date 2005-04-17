@@ -5,6 +5,13 @@
 #include "buffer.h"
 #include "log.h"
 
+// struct timeval, fd_set
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/select.h>
+// read, select
+#include <unistd.h>
+
 
 /*! \class ByteForwarder byteforwarder.h
   The ByteForwarder class forwards all it reads to a sibling forwarder.
@@ -45,7 +52,16 @@ void ByteForwarder::react( Event e )
         log( String("Shutting down byte forwarder due to ") +
              ( e == Close ? "peer close." : "error." ) );
         setState( Closing );
-        s->close();
+        {
+            // XXX: This cheap hack is an attempt to sidestep the
+            // unfortunate tendency of tlsproxy to sit in a tight
+            // loop eating 99% CPU.
+            struct timeval tv;
+            tv.tv_sec = 0;
+            tv.tv_usec = 2000;
+            (void)::select( 0, 0, 0, 0, &tv );
+            s->close();
+        }
         break;
 
     case Shutdown:
