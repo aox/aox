@@ -33,6 +33,9 @@ public:
     }
 
     void reconnect() {
+        // XXX: This function is used only to reconnect to the log
+        // server in the tlsproxy after fork. It is not generally
+        // useful, and the pretence should be removed someday.
         if ( state() != Invalid && state() != Inactive )
             return;
 

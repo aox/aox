@@ -339,3 +339,9 @@ C/R
   The questions are: How can we ensure that we almost never challenge
   real mail, while simultaneously challenging most/all junk? How can
   we provide suitable configuration?
+
+
+LogClient::reconnect should die, or at least suck less.
+
+
+
