@@ -1,6 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
 #include "scope.h"
+#include "allocator.h"
 #include "configuration.h"
 #include "logclient.h"
 #include "listener.h"
@@ -208,8 +209,10 @@ TlsProxy::TlsProxy( int socket )
     : Connection( socket, Connection::TlsProxy ), d( new TlsProxyData )
 {
     Loop::addConnection( this );
-    if ( !proxies )
+    if ( !proxies ) {
         proxies = new List<TlsProxy>;
+        Allocator::addEternal( proxies, "tlsproxy list" );
+    }
     proxies->append( this );
 
     enqueue( "tlsproxy " + d->key.e64() + "\r\n" );
