@@ -23,6 +23,8 @@
 #include <errno.h>
 // fcntl
 #include <fcntl.h>
+// signal
+#include <signal.h>
 
 
 static void setupKey();
@@ -48,7 +50,7 @@ int main( int argc, char *argv[] )
     Listener< TlsProxy >::create( "tlsproxy",
                                   Configuration::TlsProxyAddress,
                                   Configuration::TlsProxyPort );
-
+    ::signal( SIGCHLD, SIG_IGN );
     s.execute();
 }
 
