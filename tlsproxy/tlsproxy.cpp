@@ -51,6 +51,8 @@ int main( int argc, char *argv[] )
     Listener< TlsProxy >::create( "tlsproxy",
                                   Configuration::TlsProxyAddress,
                                   Configuration::TlsProxyPort );
+    // Is the following enough to avoid zombies, or should the handler
+    // call waitpid? Ignoring the signal doesn't seem to work in gdb.
     ::signal( SIGCHLD, SIG_IGN );
     s.execute();
 }
