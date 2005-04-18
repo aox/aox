@@ -26,6 +26,7 @@
     RFC 2595: AUTH=PLAIN
     RFC 2195: AUTH=CRAM-MD5
     RFC 2831: AUTH=DIGEST-MD5
+    RFC 3516: BINARY
 
     The configuration variable announce-draft-support controls whether
     or not we announce features described in Internet-Drafts. Only the
@@ -63,6 +64,7 @@ String Capability::capabilities( IMAP * i )
     if ( i->supports( "plain" ) )
         c.append( "AUTH=PLAIN" );
 
+    c.append( "BINARY" );
     c.append( "ID" );
     c.append( "IDLE" );
     c.append( "LITERAL+" );

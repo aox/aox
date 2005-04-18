@@ -31,12 +31,14 @@ public:
     class Section {
     public:
         Section()
-            : partial( false ), offset( 0 ), length( UINT_MAX )
+            : binary( false ),
+              partial( false ), offset( 0 ), length( UINT_MAX )
         {}
 
         String id;
         String part;
-        StringList fields;
+        StringList fields; 
+        bool binary;
         bool partial;
         uint offset;
         uint length;
@@ -188,13 +190,13 @@ void Fetch::parseAttribute( bool alsoMacro )
     }
     else if ( keyword == "body.peek" && nextChar() == '[' ) {
         step();
-        parseBody();
+        parseBody( false );
     }
     else if ( keyword == "body" ) {
         if ( nextChar() == '[' ) {
             d->peek = false;
             step();
-            parseBody();
+            parseBody( false );
         }
         else {
             d->body = true;
@@ -207,6 +209,24 @@ void Fetch::parseAttribute( bool alsoMacro )
     }
     else if ( keyword == "uid" ) {
         d->uid = true;
+    }
+    else if ( keyword == "binary.peek" && nextChar() == '[' ) {
+        step();
+        parseBody( true );
+    }
+    else if ( keyword == "binary" && nextChar() == '[' ) {
+        d->peek = false;
+        step();
+        parseBody( true );
+    }
+    else if ( keyword == "binary.size" && nextChar() == '[' ) {
+        d->peek = false;
+        step();
+        parseBody( true );
+        FetchData::Section * s = d->sections.last();
+        s->id = "size";
+        if ( s->partial )
+            error( Bad, "Fetching partial BINARY.SIZE is not meaningful" );
     }
     else {
         error( Bad, "expected fetch attribute, saw word " + keyword );
@@ -244,11 +264,16 @@ String Fetch::dotLetters( uint min, uint max )
 /*! Parses a bodypart description - the bit following "body[" in an
     attribute. The cursor must be after '[' on entry, and is left
     after the trailing ']'.
+
+    If \a binary is true, the parsed section will be sent using the
+    BINARY extension (RFC 3515). If not, it'll be sent using a normal
+    BODY.
 */
 
-void Fetch::parseBody()
+void Fetch::parseBody( bool binary )
 {
     FetchData::Section * s = new FetchData::Section;
+    s->binary = binary;
 
     //section-spec    = section-msgtext / (section-part ["." section-text])
     //section-msgtext = "HEADER" /
@@ -284,7 +309,10 @@ void Fetch::parseBody()
 
     // Parse any section-text.
     String item = dotLetters( 0, 17 ).lower();
-    if ( item == "text" ) {
+    if ( binary && !item.isEmpty() ) {
+        error( Bad, "BINARY with section-text is not legal, saw " + item );
+    }
+    else if ( item == "text" ) {
         if ( s->part.isEmpty() )
             d->needHeader = false;
     }
@@ -466,12 +494,21 @@ static String sectionResponse( FetchData::Section *s,
         if ( s->part.isEmpty() ) {
             data = m->rfc822();
         }
+        else if ( s->binary ) {
+            Bodypart *bp = m->bodypart( s->part, false );
+            if ( bp )
+                data = bp->data();
+        }
         else {
             Bodypart *bp = m->bodypart( s->part, false );
             if ( bp )
                 data = bp->asText();
         }
-        item = "BODY[" + s->part + "]";
+        if ( s->binary )
+            item = "BINARY";
+        else
+            item = "BODY";
+        item = item + "[" + s->part + "]";
     }
 
     else if ( s->id == "text" ) {
@@ -486,6 +523,18 @@ static String sectionResponse( FetchData::Section *s,
                 data = bp->rfc822()->body();
         }
         item = "BODY[" + item + "]";
+    }
+
+    else if ( s->id == "size" ) {
+        if ( s->part.isEmpty() ) {
+            data = m->rfc822();
+        }
+        else {
+            Bodypart *bp = m->bodypart( s->part, false );
+            if ( bp )
+                data = bp->data();
+        }
+        return "BINARY.SIZE[" + s->part + "] " + fn( data.length() );
     }
 
     if ( s->partial ) {
