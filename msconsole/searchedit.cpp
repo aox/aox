@@ -204,9 +204,7 @@ void SearchEdit::changeCurrentMatch( QWidget * w )
         d->frame->setEraseColor( palette().active().highlight() );
     }
 
-    QPoint tl = w->mapTo( w->topLevelWidget(), w->pos() );
-    tl.setX( tl.x() - 4 );
-    tl.setY( tl.y() - 4 );
+    QPoint tl = w->mapTo( topLevelWidget(), QPoint( -4, -4 ) );
     QBitmap mask( w->width() + 8, w->height() + 8 );
     QPainter p( &mask );
     p.fillRect( 0, 0, mask.width(), mask.height(),
