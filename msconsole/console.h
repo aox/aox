@@ -3,14 +3,16 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#include "qsplitter.h"
+#include "qwidget.h"
 
-class Console: public QSplitter {
+class Console: public QWidget {
     Q_OBJECT
 public:
     Console();
 
     void keyPressEvent( QKeyEvent * );
+
+    void resizeEvent( QResizeEvent * );
 
 private slots:
     void changePane();

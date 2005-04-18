@@ -9,24 +9,26 @@
 #include "searchedit.h"
 #include "mailboxpane.h"
 
-#include <qlistview.h>
-#include <qheader.h>
-#include <qwidgetstack.h>
-#include <qptrdict.h>
-#include <qlayout.h>
 #include <qlabel.h>
 #include <qaccel.h>
+#include <qheader.h>
+#include <qlayout.h>
+#include <qptrdict.h>
+#include <qsplitter.h>
+#include <qlistview.h>
+#include <qwidgetstack.h>
 #include <qapplication.h>
 
 
 class ConsoleData
 {
 public:
-    ConsoleData(): paneList( 0 ), stack( 0 ),
+    ConsoleData(): paneList( 0 ), stack( 0 ), splitter( 0 ),
                    panes( new QPtrDict<QWidget> ),
                    items( new QPtrDict<QListViewItem> ) {}
     QListView * paneList;
     QWidgetStack * stack;
+    QSplitter * splitter;
     QPtrDict<QWidget> * panes;
     QPtrDict<QListViewItem> * items;
 };
@@ -44,9 +46,10 @@ public:
 /*! Constructs a mailstore console window. Does not show it. */
 
 Console::Console()
-    : QSplitter( 0, "mailstore console" ), d( new ConsoleData )
+    : QWidget( 0, "mailstore console" ), d( new ConsoleData )
 {
-    QWidget * w = new QWidget( this );
+    d->splitter = new QSplitter( this );
+    QWidget * w = new QWidget( d->splitter );
 
     QLabel * label = new QLabel( tr( "&Categories" ), w );
     d->paneList = new QListView( w);
@@ -57,10 +60,10 @@ Console::Console()
     l->addWidget( d->paneList );
     l->addWidget( new SearchEdit( tr( "(Search)" ), w ) );
 
-    d->stack = new QWidgetStack( this );
+    d->stack = new QWidgetStack( d->splitter );
 
-    setResizeMode( w, KeepSize );
-    setResizeMode( d->stack, Stretch );
+    d->splitter->setResizeMode( w, QSplitter::KeepSize );
+    d->splitter->setResizeMode( d->stack, QSplitter::Stretch );
     connect( d->paneList, SIGNAL(selectionChanged()),
              this, SLOT(changePane()) );
 
@@ -153,4 +156,11 @@ void Console::indicatePane( QWidget * w )
         d->paneList->setSelected( i, true );
     else
         d->paneList->setSelected( d->paneList->selectedItem(), false );
+}
+
+
+void Console::resizeEvent( QResizeEvent * e )
+{
+    QWidget::resizeEvent( e );
+    d->splitter->resize( size() );
 }
