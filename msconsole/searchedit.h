@@ -17,8 +17,13 @@ public:
 
     void setFocus();
 
+    bool matches( QWidget * w );
+
+    void changeCurrentMatch( QWidget * w );
+
 public slots:
     void revert();
+    void search();
 
 private:
     class SearchEditData * d;
