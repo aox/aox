@@ -14,7 +14,8 @@ class BodypartData {
 public:
     BodypartData()
         : number( 1 ), parent( 0 ), rfc822( 0 ),
-          numBytes( 0 ), numLines( 0 ), hasText( false )
+          numBytes( 0 ), numEncodedBytes(), numEncodedLines( 0 ),
+          hasText( false )
     {}
 
     uint number;
@@ -23,7 +24,8 @@ public:
     Message *rfc822;
 
     uint numBytes;
-    uint numLines;
+    uint numEncodedBytes;
+    uint numEncodedLines;
 
     String data;
     UString text;
@@ -38,8 +40,8 @@ public:
 
     Every Bodypart has a number(), and contains text(), data(), or an
     rfc822() message, based on its contentType(). It knows how many
-    numBytes() and numLines() of data it contains, and can present
-    itself asText().
+    numBytes(), numEncodedBytes() and numEncodedLines() of data it
+    contains, and can present itself asText().
 
     This class is also responsible for parsing bodyparts in messages.
 */
@@ -179,23 +181,46 @@ uint Bodypart::numBytes() const
 }
 
 
-/*! Notifies this Bodypart that it contains \a n lines of text().
-    The initial value is 0.
+/*! Returns the value set by setNumEncodedBytes(). Compare to
+    numBytes().
 */
 
-void Bodypart::setNumLines( uint n )
+uint Bodypart::numEncodedBytes() const
 {
-    d->numLines = n;
+    return d->numEncodedBytes;
+}
+
+
+/*! Notifies this Bodypart that it contains \a n bytes of asText()
+    when fully encoded using the current ContentTransferEncoding.  The
+    initial value is 0.
+
+    Compare to numBytes(), which returns the raw number of bytes.
+*/
+
+void Bodypart::setNumEncodedBytes( uint n )
+{
+    d->numEncodedBytes = n;
+}
+
+
+/*! Notifies this Bodypart that it contains \a n lines of text() once
+    encoded some ContentTransferEncoding. The initial value is 0.
+*/
+
+void Bodypart::setNumEncodedLines( uint n )
+{
+    d->numEncodedLines = n;
 }
 
 
 /*! Returns the number of lines in this body part, as set using
-    setNumLines().
+    setNumEncodedLines().
 */
 
-uint Bodypart::numLines() const
+uint Bodypart::numEncodedLines() const
 {
-    return d->numLines;
+    return d->numEncodedLines;
 }
 
 
@@ -385,23 +410,23 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         }
     }
 
+    bp->d->numBytes = body.length();
     if ( cte )
-        bp->d->numBytes = body.encode( cte->encoding() ).length();
-    else
-        bp->d->numBytes = body.length();
+        body = body.encode( cte->encoding() );
+    bp->d->numEncodedBytes = body.length();
 
     if ( bp->d->hasText ) {
         uint n = 0;
         uint i = 0;
-        uint l = bp->d->text.length();
+        uint l = body.length();
         while ( i < l ) {
-            if ( bp->d->text[i] == '\n' )
+            if ( body[i] == '\n' )
                 n++;
             i++;
         }
-        if ( l && bp->d->text[l-1] != '\n' )
+        if ( l && body[l-1] != '\n' )
             n++;
-        bp->setNumLines( n );
+        bp->setNumEncodedLines( n );
     }
 
     if ( !ct ) {

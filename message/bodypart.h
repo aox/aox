@@ -35,8 +35,11 @@ public:
     uint numBytes() const;
     void setNumBytes( uint );
 
-    uint numLines() const;
-    void setNumLines( uint );
+    uint numEncodedBytes() const;
+    void setNumEncodedBytes( uint );
+
+    uint numEncodedLines() const;
+    void setNumEncodedLines( uint );
 
     String asText() const;
 

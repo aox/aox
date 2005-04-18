@@ -833,18 +833,18 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
         l.append( "\"7BIT\"" );
     }
 
-    l.append( fn( bp->numBytes() ) );
+    l.append( fn( bp->numEncodedBytes() ) );
 
     if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // body-type-msg   = media-message SP body-fields SP envelope
         //                   SP body SP body-fld-lines
         l.append( envelope( bp->rfc822() ) );
         l.append( bodyStructure( bp->rfc822(), extended ) );
-        l.append( fn( bp->numLines() ) );
+        l.append( fn( bp->numEncodedLines() ) );
     }
     else if ( !ct || ct->type() == "text" ) {
         // body-type-text  = media-text SP body-fields SP body-fld-lines
-        l.append( fn( bp->numLines() ) );
+        l.append( fn( bp->numEncodedLines() ) );
     }
 
     if ( extended ) {

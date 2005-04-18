@@ -162,7 +162,7 @@ void Injector::setup()
     intoBodyparts =
         new PreparedStatement(
             "insert into bodyparts (hash,bytes,lines,text,data) "
-            "values ($1,$2,$3,$4,$5)"
+            "values ($1,$2,42,$3,$4)"
         );
     Allocator::addEternal( intoBodyparts, "intoBodyparts" );
 
@@ -559,14 +559,17 @@ void Injector::insertBodyparts()
         i = new Query( *intoBodyparts, d->bidHelper );
         i->bind( 1, hash );
         i->bind( 2, b->numBytes() );
-        i->bind( 3, b->numLines() );
+        // XXX: The next bit is wrong. Because of it, a text and a
+        // non-text bodypart that have the same hash are stored
+        // together, but this code stores text and non-text
+        // differently.
         if ( text ) {
-            i->bind( 4, c->fromUnicode( b->text() ), Query::Binary );
-            i->bindNull( 5 );
+            i->bind( 3, c->fromUnicode( b->text() ), Query::Binary );
+            i->bindNull( 4 );
         }
         else {
-            i->bindNull( 4 );
-            i->bind( 5, b->data(), Query::Binary );
+            i->bindNull( 3 );
+            i->bind( 4, b->data(), Query::Binary );
         }
         queries->append( i );
 
@@ -576,7 +579,7 @@ void Injector::insertBodyparts()
         if ( text ) {
             u = new Query( *fixBodypart, d->bidHelper );
             u->bind( 1, hash );
-            u->bind( 2, b->numLines() );
+            u->bind( 2, b->numBytes() );
             queries->append( u );
         }
 
