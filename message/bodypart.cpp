@@ -356,8 +356,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             ct->addParameter( "charset", c->name().lower() );
 
         // XXX: Can we avoid this re-conversion?
-        String s = c->fromUnicode( bp->d->text );
-        bool qp = s.needsQP();
+        body = c->fromUnicode( bp->d->text );
+        bool qp = body.needsQP();
 
         if ( cte ) {
             if ( !qp )
@@ -369,7 +369,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             h->add( "Content-Transfer-Encoding", "quoted-printable" );
         }
         h->simplify();
-        bp->d->numBytes = bp->d->text.length();
     }
     else {
         bp->d->data = body;
@@ -380,11 +379,16 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             }
             else {
                 h->add( "Content-Transfer-Encoding", "base64" );
+                cte = h->contentTransferEncoding();
             }
             h->simplify();
         }
-        bp->d->numBytes = body.length();
     }
+
+    if ( cte )
+        bp->d->numBytes = body.encode( cte->encoding() ).length();
+    else
+        bp->d->numBytes = body.length();
 
     if ( bp->d->hasText ) {
         uint n = 0;
