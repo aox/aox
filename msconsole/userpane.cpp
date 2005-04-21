@@ -95,12 +95,12 @@ UserPane::UserPane( QWidget * parent )
 
     QLabel * l = new QLabel( tr( "&Users" ),
                              this );
-    tll->addWidget( l, 0, 0 );
+    tll->addWidget( l, 0, 0, AlignLeft );
 
     d->users = new QListBox( this, "user list" );
     l->setBuddy( d->users );
     tll->addMultiCellWidget( d->users, 1, 9, 0, 0 );
-    connect( d->users, SIGNAL(selected(int)),
+    connect( d->users, SIGNAL(highlighted(int)),
              this, SLOT(handleUserSelection()) );
 
     QPushButton * pb = new QPushButton( tr( "&Refresh",
@@ -113,7 +113,7 @@ UserPane::UserPane( QWidget * parent )
 
     // the fields on the left: login
     l = new QLabel( tr( "User &Login" ), this );
-    tll->addMultiCellWidget( l, 0, 0, 2, 3 );
+    tll->addMultiCellWidget( l, 0, 0, 2, 3, AlignLeft );
 
     d->login = new QLineEdit( this, "login editor" );
     tll->addWidget( d->login, 1, 3 );
@@ -123,7 +123,7 @@ UserPane::UserPane( QWidget * parent )
 
     // real name
     l = new QLabel( tr( "Real &Name" ), this );
-    tll->addMultiCellWidget( l, 2, 2, 2, 3 );
+    tll->addMultiCellWidget( l, 2, 2, 2, 3, AlignLeft );
 
     d->realName = new QLineEdit( this, "real-name editor" );
     tll->addWidget( d->realName, 3, 3 );
@@ -133,7 +133,7 @@ UserPane::UserPane( QWidget * parent )
 
     // password
     l = new QLabel( tr( "Password" ), this );
-    tll->addMultiCellWidget( l, 4, 4, 2, 3 );
+    tll->addMultiCellWidget( l, 4, 4, 2, 3, AlignLeft );
 
     d->password1 = new QLineEdit( this, "password editor" );
     d->password2 = new QLineEdit( this, "password confirmation" );
@@ -160,7 +160,7 @@ UserPane::UserPane( QWidget * parent )
 
     // aliases
     l = new QLabel( tr( "Extra Aliases" ), this );
-    tll->addMultiCellWidget( l, 8, 8, 2, 3 );
+    tll->addMultiCellWidget( l, 8, 8, 2, 3, AlignLeft );
 
     d->aliases = new QListBox( this, "extra-address listbox" );
     tll->addWidget( d->aliases, 9, 3 );
@@ -252,17 +252,19 @@ void UserPane::handleUserSelection()
         d->login->clearModified();
         d->login->deselect();
     }
-    if ( !d->user ||
-         d->user->login() != d->login->text().utf8() ) {
-        d->user = new User;
-        d->user->setLogin( d->login->text().utf8().data() );
-        d->realName->clear();
-        d->realName->clearModified();
-        d->password1->clear();
-        d->password1->clearModified();
-        d->password2->clear();
-        d->password2->clearModified();
-    }
+    if ( d->user && d->user->login() == d->login->text().utf8() )
+        return;
+    if ( d->login->text().isEmpty() )
+        return;
+
+    d->user = new User;
+    d->user->setLogin( d->login->text().utf8().data() );
+    d->realName->clear();
+    d->realName->clearModified();
+    d->password1->clear();
+    d->password1->clearModified();
+    d->password2->clear();
+    d->password2->clearModified();
     if ( !d->refreshUserDetails )
         d->refreshUserDetails = new UserRefreshHelper( this );
     d->user->refresh( d->refreshUserDetails );
@@ -453,7 +455,7 @@ void UserPane::fetchUserList()
     bool inserted = false;
     while ( r ) {
         String login = r->getString( "login" );
-        QListBoxItem * i 
+        QListBoxItem * i
             = d->users->findItem( QString::fromUtf8( login.cstr() ),
                                   Qt::ExactMatch );
         if ( !i ) {

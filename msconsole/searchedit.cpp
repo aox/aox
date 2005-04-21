@@ -5,6 +5,7 @@
 #include "searchedit.h"
 
 #include <qaccel.h>
+#include <qlabel.h>
 #include <qtimer.h>
 #include <qbitmap.h>
 #include <qpainter.h>
@@ -52,8 +53,7 @@ SearchEdit::SearchEdit( const QString & t, QWidget * p )
     QAccel * a = new QAccel( this );
     a->insertItem( QKeySequence( CTRL + Key_S ) );
     connect( a, SIGNAL( activated( int ) ),
-             this, SLOT( setFocus() ) );
-
+             this, SLOT( ctrls() ) );
     connect( this, SIGNAL(returnPressed()),
              this, SLOT(search()) );
     connect( this, SIGNAL(textChanged( const QString & )),
@@ -78,6 +78,8 @@ void SearchEdit::focusInEvent( QFocusEvent * f )
 {
     QLineEdit::focusInEvent( f );
     d->revert.stop();
+    if ( text() == d->label )
+        clear();
 }
 
 
@@ -87,10 +89,42 @@ void SearchEdit::focusInEvent( QFocusEvent * f )
 
 void SearchEdit::focusOutEvent( QFocusEvent * f )
 {
-    QLineEdit::focusOutEvent( f );
     if ( d->frame )
         d->frame->hide();
+    d->current = 0;
+    setText( d->label );
+    QLineEdit::focusOutEvent( f );
     d->revert.start( 5000, true );
+}
+
+
+/*! If escape has been pressed, this handler accepts the press and
+    moves keybaord focus to the right search result.
+*/
+
+void SearchEdit::keyPressEvent( QKeyEvent * ke )
+{
+    if ( ke->key() == Key_Escape ) {
+        ke->accept();
+        QWidget * w = d->current;
+        if ( w && w->focusProxy() )
+            w = w->focusProxy();
+        if ( w && w->inherits( "QLabel" ) )
+            w = ((QLabel*)w)->buddy();
+        if ( w && w->focusPolicy() ) {
+            fprintf( stderr, "moving focus to %s/%s\n",
+                     w->name(), w->className() );
+            w->setFocus();
+        }
+        return;
+    }
+    else if ( ( ke->key() == Key_Enter || ke->key() == Key_Return ) &&
+              !ke->state() ) {
+        ke->accept();
+        search();
+        return;
+    }
+    QLineEdit::keyPressEvent( ke );
 }
 
 
@@ -100,7 +134,7 @@ void SearchEdit::focusOutEvent( QFocusEvent * f )
 
 void SearchEdit::revert()
 {
-    deselect();
+    d->current = 0;
     setText( d->label );
     if ( d->frame )
         d->frame->hide();
@@ -113,6 +147,7 @@ void SearchEdit::revert()
 
 void SearchEdit::setFocus()
 {
+    d->current = 0;
     if ( text() == d->label )
         clear();
     QWidget::setFocus();
@@ -129,13 +164,20 @@ void SearchEdit::search()
     if ( text() == d->label || text().isEmpty() ) {
         if ( d->frame )
             d->frame->hide();
+        d->current = 0;
         return;
     }
 
     if ( text() == d->searchText ) {
+        fprintf( stderr, "stepping to next (of %d)\n", d->matches.count() );
+        fprintf( stderr, " - before: %d \n", d->matches.at() );
         QWidget * w = 0;
-        if ( d->matches.find( d->current ) >= 0 )
+        if ( d->matches.find( d->current ) >= 0 ) {
             w = d->matches.next();
+            if ( !w )
+                w = d->matches.first();
+        }
+        fprintf( stderr, " - after: %d \n", d->matches.at() );
         if ( w )
             changeCurrentMatch( w );
         return;
@@ -150,11 +192,7 @@ void SearchEdit::search()
     bool seen = false;
     while ( (w=(QWidget*)it.current()) != 0 ) {
         ++it;
-        fprintf( stderr, "Considering %s/%s against %s\n",
-                 w->className(), w->name(),
-                 d->searchText.latin1() );
         if ( matches( w ) ) {
-            fprintf( stderr, " - hit\n" );
             d->matches.append( w );
             if ( d->current == w )
                 seen = true;
@@ -172,6 +210,10 @@ void SearchEdit::search()
 bool SearchEdit::matches( QWidget * w )
 {
     if ( !w || w == this )
+        return false;
+
+    if ( w->inherits( "QLineEdit" ) &&
+         ((QLineEdit*)w)->echoMode() != QLineEdit::Normal )
         return false;
 
     QString s = w->property( "text" ).asString().lower();
@@ -197,6 +239,8 @@ void SearchEdit::changeCurrentMatch( QWidget * w )
         d->current = 0;
         return;
     }
+
+    d->current = w;
 
     if ( !d->frame ) {
         d->frame = new QWidget( topLevelWidget(),
@@ -224,4 +268,17 @@ void SearchEdit::changeCurrentMatch( QWidget * w )
         w = w->parentWidget();
     }
 
+}
+
+
+/*! Handles the ctrl-s press in the manner that seems most natural to
+    arnt. This function should not be called except to react to
+    ctrl-s. */
+
+void SearchEdit::ctrls()
+{
+    if ( hasFocus() )
+        search();
+    else
+        setFocus();
 }

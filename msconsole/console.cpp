@@ -8,6 +8,7 @@
 #include "userpane.h"
 #include "searchedit.h"
 #include "mailboxpane.h"
+#include "migrationpane.h"
 
 #include <qlabel.h>
 #include <qaccel.h>

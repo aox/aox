@@ -14,6 +14,7 @@ public:
 
     void focusInEvent( QFocusEvent * );
     void focusOutEvent( QFocusEvent * );
+    void keyPressEvent( QKeyEvent * );
 
     void setFocus();
 
@@ -24,6 +25,7 @@ public:
 public slots:
     void revert();
     void search();
+    void ctrls();
 
 private:
     class SearchEditData * d;
