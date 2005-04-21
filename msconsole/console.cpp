@@ -92,6 +92,12 @@ Console::Console()
     d->panes->insert( i, w );
     d->items->insert( w, i );
 
+    w = new MigrationPane( this );
+    d->stack->addWidget( w );
+    i = new QListViewItem( d->paneList, tr( "Migration" ) );
+    d->panes->insert( i, w );
+    d->items->insert( w, i );
+
 #if 0
     w = new UserPane( this );
     d->stack->addWidget( w );

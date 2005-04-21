@@ -17,7 +17,7 @@
 class MailboxPaneData
 {
 public:
-    MailboxPaneData() 
+    MailboxPaneData()
         : mailboxes( 0 ), shown( false )
     {}
 
@@ -41,7 +41,7 @@ MailboxPane::MailboxPane( QWidget * parent )
     QGridLayout * tll = new QGridLayout( this, 3, 4, 6 );
 
     QLabel * l = new QLabel( tr( "&Mailboxes" ), this );
-    tll->addWidget( l, 0, 0 );
+    tll->addWidget( l, 0, 0, AlignLeft );
 
     d->mailboxes = new QListView( this, "mailbox list" );
     d->mailboxes->setRootIsDecorated( true );
