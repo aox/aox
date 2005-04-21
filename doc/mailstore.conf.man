@@ -108,7 +108,7 @@ should use if it creates
 .IR logfile .
 The default is
 .IR $LOGFILEMODE .
-.IP loglevel
+.IP log-level
 can be
 .IR debug ,
 .IR error ,
