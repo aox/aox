@@ -287,7 +287,8 @@ void Bodypart::parseMultipart( uint i, uint end,
             }
             while ( rfc2822[j] == ' ' || rfc2822[j] == '\t' )
                 j++;
-            if ( rfc2822[j] == 13 || rfc2822[j] == 10 ) {
+            if ( rfc2822[j] == 13 || rfc2822[j] == 10 ||
+                 j >= rfc2822.length() ) {
                 // finally. we accept that as a boundary line.
                 if ( rfc2822[j] == 13 )
                     j++;
