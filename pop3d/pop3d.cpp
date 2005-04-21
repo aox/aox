@@ -4,6 +4,7 @@
 #include "logclient.h"
 #include "pop3.h"
 #include "listener.h"
+#include "database.h"
 #include "loop.h"
 #include "server.h"
 #include "flag.h"
@@ -21,8 +22,7 @@ int main( int argc, char * argv[] )
                               Configuration::Pop3Address,
                               Configuration::Pop3Port );
     s.setup( Server::Finish );
-
+    Database::setup();
     Flag::setup();
-
     s.execute();
 }
