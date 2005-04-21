@@ -6,6 +6,7 @@
 #include "string.h"
 #include "list.h"
 #include "message.h"
+#include "mailbox.h"
 #include "injector.h"
 #include "imap.h"
 #include "imapsession.h"
@@ -17,6 +18,7 @@ public:
     AppendData() : message( 0 ), injector( 0 ) {}
 
     Date date;
+    String mailbox;
     Message * message;
     Injector * injector;
     List< String > flags;
@@ -48,7 +50,7 @@ void Append::parse()
     // the grammar used is:
     // append = "APPEND" SP mailbox SP [flag-list SP] [date-time SP] literal
     space();
-    String mailbox = astring();
+    d->mailbox = astring();
     space();
 
     if ( present( "(" ) ) {
@@ -117,8 +119,13 @@ uint Append::number( uint n )
 void Append::execute()
 {
     if ( !d->injector ) {
+        Mailbox *mbx = Mailbox::find( imap()->mailboxName( d->mailbox ) );
+        if ( !mbx ) {
+            error( No, "No such mailbox: '" + d->mailbox + "'" );
+            return;
+        }
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
-        m->append( imap()->session()->mailbox() );
+        m->append( mbx );
         d->injector = new Injector( d->message, m, this );
         d->injector->execute();
     }
