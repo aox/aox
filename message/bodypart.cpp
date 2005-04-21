@@ -261,7 +261,7 @@ String Bodypart::asText() const
     \a error is nonempty, it isn't changed.
 */
 
-void Bodypart::parseMultiPart( uint i, uint end,
+void Bodypart::parseMultipart( uint i, uint end,
                                const String & rfc2822,
                                const String & divider,
                                bool digest,
@@ -433,7 +433,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         ;
     }
     else if ( ct->type() == "multipart" ) {
-        parseMultiPart( start, end, rfc2822,
+        parseMultipart( start, end, rfc2822,
                         ct->parameter( "boundary" ),
                         ct->subtype() == "digest",
                         bp->children(), bp, error );

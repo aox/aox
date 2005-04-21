@@ -48,7 +48,7 @@ private:
     friend class Message;
 
     Bodypart();
-    static void parseMultiPart( uint, uint, const String &,
+    static void parseMultipart( uint, uint, const String &,
                                 const String &, bool,
                                 List< Bodypart > *, Bodypart *,
                                 String & );

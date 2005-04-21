@@ -87,7 +87,7 @@ Message::Message( const String & rfc2822 )
     HeaderField * mv = header()->field( HeaderField::MimeVersion );
     ContentType * ct = header()->contentType();
     if ( mv && ct && ct->type() == "multipart" ) {
-        Bodypart::parseMultiPart( i, rfc2822.length(), rfc2822,
+        Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
                                   ct->parameter( "boundary" ),
                                   ct->subtype() == "digest",
                                   children(), 0, d->error );
