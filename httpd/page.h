@@ -6,10 +6,10 @@
 class Page
 {
 public:
-    Page( class Link * );
+    Page( class Link *, class HTTP * );
 
     void setText( const String & );
-    String text();
+    String text() const;
 
     void checkAccess();
     void fetchMailbox();

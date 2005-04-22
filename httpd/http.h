@@ -29,6 +29,8 @@ public:
     void respond();
     StringList * response();
 
+    class User * user() const;
+
 private:
     void parseAccept( const String &, uint );
     void parseAcceptCharset( const String &, uint );

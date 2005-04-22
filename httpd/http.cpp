@@ -2,6 +2,8 @@
 
 #include "http.h"
 
+#include "link.h"
+#include "loop.h"
 #include "page.h"
 #include "codec.h"
 #include "buffer.h"
@@ -60,6 +62,7 @@ HTTP::HTTP( int s )
     : Connection( s, Connection::HttpServer ), d( new HTTPData )
 {
     clear();
+    Loop::addConnection( this );
 }
 
 
@@ -72,7 +75,7 @@ void HTTP::react( Event e )
         if ( d->state == Done ) {
             respond();
             enqueue( response()->join( "\r\n" ) );
-            enqueue( "\r\n" );
+            enqueue( "\r\n\r\n" );
             if ( d->sendContents )
                 enqueue( d->page );
 
@@ -266,6 +269,10 @@ HTTP::State HTTP::state() const
 
 void HTTP::parseHeader( const String & h )
 {
+    if ( h.isEmpty() ) {
+        d->state = Done;
+        return;
+    }
 
     uint i = h.find( ':' );
     if ( i < 1 ) {
@@ -321,15 +328,6 @@ void HTTP::parseHeader( const String & h )
     else {
         d->ignored.append( n );
     }
-    Buffer * r = readBuffer();
-    if ( (*r)[0] == '\n' ) {
-        r->remove( 1 );
-        d->state = Done;
-    }
-    if ( (*r)[0] == '\r' && (*r)[1] == '\n' ) {
-        r->remove( 2 );
-        d->state = Done;
-    }
 }
 
 
@@ -366,9 +364,9 @@ void HTTP::respond()
     }
 
     if ( d->error.isEmpty() )
-        d->headers.prepend( new String( "200 Here we go!" ) );
+        d->headers.prepend( new String( "HTTP/1.0 200 Here we go!" ) );
     else
-        d->headers.prepend( new String( d->error ) );
+        d->headers.prepend( new String( "HTTP/1.0 " + d->error ) );
 }
 
 
@@ -561,8 +559,10 @@ void HTTP::addHeader( const String & s )
 
 String HTTP::page()
 {
-    return "<html><head><title>Webmail</title></head>"
-        "<body><blink>USE IMAP</blink></body></html>";
+    Link *l = new Link;
+    l->parse( d->path );
+    Page *p = new Page( l, this );
+    return p->text();
 }
 
 
@@ -723,3 +723,12 @@ bool HTTP::isTokenChar( char c )
 }
 
 
+/*! Returns a pointer to the user associated with this server, or 0 if
+    there is no such user. (For archive mailboxes, 0 is usually
+    returned.)
+*/
+
+User *HTTP::user() const
+{
+    return 0;
+}

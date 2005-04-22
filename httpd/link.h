@@ -10,7 +10,7 @@ public:
     
     void parse( const String & );
 
-    String generate();
+    String generate() const;
 
     enum Type {
         ArchiveMailbox,
@@ -36,8 +36,8 @@ public:
     String errorMessage() const;
 
 private:
-    void uid();
-    void mailbox();
+    void parseUid();
+    void parseMailbox();
     bool pick( const char * );
     void error( const String & );
     

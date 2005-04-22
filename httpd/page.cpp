@@ -1,6 +1,50 @@
 #include "page.h"
 
-#if 0
+#include "link.h"
+#include "user.h"
+#include "http.h"
+#include "mailbox.h"
+#include "message.h"
+
+
+static const char *head =
+"<!doctype html public \"-//W3C//DTD HTML 4.01//EN\">\n"
+"<html>"
+"<head>"
+"<title>Webmail</title>"
+"<script src=\"http://www.oryx.com/oryx.js\"></script>"
+"<link rel=stylesheet type=\"text/css\" href=\"http://www.oryx.com/oryx.css\">"
+"</head>"
+"<body onload=\"deframe(); enablejs();\">";
+
+static const char *foot = "</body></html>\n";
+
+static const char *webmailText =
+"<div class=top>"
+"<form method=post action=>"
+"<input type=text name=query>"
+"<input type=submit value=search>"
+"</form>"
+"<a href=\"\">Logout</a>"
+"<a href=\"\">Compose</a>"
+"</div>"
+"<div class=middle>"
+"<div class=folders>"
+"</div>"
+"<iframe class=content name=content src=INBOX>"
+"</iframe>"
+"</div>"
+"<div class=bottom>"
+"</div>";
+
+static const char *accessControlText =
+"Access control";
+
+static const char *noSuchMailbox =
+"No such mailbox";
+
+static const char *noSuchMessage =
+"No such message";
 
 
 static String htmlQuoted( const String & s )
@@ -34,6 +78,15 @@ static String htmlQuoted( const String & s )
 
 class PageData
 {
+public:
+    PageData()
+        : link( 0 ), uid( 0 ), server( 0 )
+    {}
+
+    Link *link;
+    String text;
+    uint uid;
+    HTTP *server;
 };
 
 
@@ -45,12 +98,15 @@ class PageData
 */
 
 
-/*!  Constructs a Page for \a link. The page may not be ready() at once. */
+/*! Constructs a Page for \a link on \a server.
+    The page may not be ready() at once.
+*/
 
-Page::Page( Link * link )
+Page::Page( Link * link, HTTP *server )
     : d( new PageData )
 {
     d->link = link;
+    d->server = server;
     switch( link->type() ) {
     case Link::ArchiveMailbox:
     case Link::WebmailMailbox:
@@ -130,8 +186,7 @@ void Page::fetchMailbox()
 }
 
 
-/*!
-
+/*! Blah.
 */
 
 void Page::fetchMessage()
@@ -154,4 +209,14 @@ void Page::fetchMessage()
     }
 }
 
-#endif
+
+/*! Returns the HTML text of this page, or an empty string if the text
+    is not yet available.
+*/
+
+String Page::text() const
+{
+    if ( d->text.isEmpty() )
+        return "";
+    return head + d->text + foot;
+}

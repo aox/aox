@@ -48,13 +48,13 @@ void Link::parse( const String & s )
     d->s = s;
     if ( pick( "/archive" ) ) {
         d->type = ArchiveMailbox;
-        mailbox();
-        uid();
+        parseMailbox();
+        parseUid();
     }
     else if ( pick( "/webmail/folder" ) ) {
         d->type = WebmailMailbox;
-        mailbox();
-        uid();
+        parseMailbox();
+        parseUid();
     }
     else if ( pick( "/webmail" ) ) {
         d->type = Webmail;
@@ -72,11 +72,10 @@ void Link::parse( const String & s )
 }
 
 
-/*!
-
+/*! Generates a path that represents this Link object.
 */
 
-String Link::generate()
+String Link::generate() const
 {
     String s;
     switch( d->type ) {
@@ -102,11 +101,9 @@ String Link::generate()
 }
 
 
-/*!
+/*! Parses a UID. It skips an optional prefix /. */
 
-*/
-
-void Link::uid()
+void Link::parseUid()
 {
     if ( d->s[0] != '/' )
         return;
@@ -146,7 +143,7 @@ bool Link::pick( const char * prefix )
 
 /*! Parses a mailbox name. If there isn't any, registers an error. */
 
-void Link::mailbox()
+void Link::parseMailbox()
 {
     if ( d->s[0] != '/' ) {
         error( "No mailbox name present" );
@@ -202,4 +199,25 @@ void Link::error( const String & msg )
 String Link::errorMessage() const
 {
     return d->error;
+}
+
+
+/*! Returns a pointer to the mailbox identified by this link, or 0 if
+    there is no such mailbox, or if this link does not identify a
+    mailbox.
+*/
+
+Mailbox *Link::mailbox() const
+{
+    return d->mailbox;
+}
+
+
+/*! Returns the type of this Link, which may be ArchiveMailbox,
+    WebmailMailbox, Webmail, ArchiveMessage, WebmailMessage, or Error.
+*/
+
+Link::Type Link::type() const
+{
+    return d->type;
 }
