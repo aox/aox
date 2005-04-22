@@ -44,6 +44,7 @@ private:
     void parseReferer( const String & );
     void parseTransferEncoding( const String & );
     void parseUserAgent( const String & );
+    void parseCookie( const String & );
 
     void parseList( const String &, const String & );
     void parseListItem( const String &, const String &, uint );

@@ -3,6 +3,7 @@
 #include "http.h"
 
 #include "link.h"
+#include "httpsession.h"
 #include "loop.h"
 #include "page.h"
 #include "codec.h"
@@ -14,7 +15,9 @@
 class HTTPData
 {
 public:
-    HTTPData() {}
+    HTTPData()
+        : link( 0 ), session( 0 )
+    {}
 
     HTTP::State state;
     bool sendContents;
@@ -37,6 +40,7 @@ public:
     bool acceptsIdentity;
 
     Link *link;
+    HttpSession *session;
 
     struct HeaderListItem {
         HeaderListItem(): q( 0 ) {}
@@ -309,6 +313,9 @@ void HTTP::parseHeader( const String & h )
     else if ( n == "Connection" ) {
         parseConnection( v );
     }
+    else if ( n == "Cookie" ) {
+        parseList( n, v );
+    }
     else if ( n == "Expect" ) {
         error( "417 Expectations not supported" );
     }
@@ -377,8 +384,11 @@ void HTTP::respond()
         // that's it?
     }
 
+    if ( d->session )
+        addHeader( "Set-Cookie: session=\"" + d->session->key() + "\"" );
+
     if ( d->error.isEmpty() )
-        d->headers.prepend( new String( "HTTP/1.0 200 Here we go!" ) );
+        d->headers.prepend( new String( "HTTP/1.0 200 OK" ) );
     else
         d->headers.prepend( new String( "HTTP/1.0 " + d->error ) );
 }
@@ -561,6 +571,21 @@ void HTTP::parseUserAgent( const String & )
 }
 
 
+/*! Parses a single component of a Cookie header. */
+
+void HTTP::parseCookie( const String &s )
+{
+    int eq = s.find( '=' );
+    if ( eq > 0 ) {
+        String name = s.mid( 0, eq ).stripWSP().lower();
+        String value = s.mid( eq+1 ).stripWSP();
+
+        if ( name == "session" )
+            d->session = HttpSession::find( value.unquoted() );
+    }
+}
+
+
 /*! Records \a s as a reply header to be sent. */
 
 void HTTP::addHeader( const String & s )
@@ -620,6 +645,8 @@ void HTTP::parseListItem( const String & header, const String & item, uint q )
         parseAccept( item, q );
     else if ( header == "Accept-Charset" )
         parseAcceptCharset( item, q );
+    else if ( header == "Cookie" )
+        parseCookie( item );
 }
 
 
@@ -742,5 +769,7 @@ bool HTTP::isTokenChar( char c )
 
 User *HTTP::user() const
 {
+    if ( d->session )
+        return d->session->user();
     return 0;
 }
