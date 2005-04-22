@@ -141,12 +141,12 @@ should be empty and unreadable to
 .IR jail-user .
 .IP jail-user
 is the user name under which the servers run, and is
-.I nobody
+.I $ORYXUSER
 by default. On startup, the servers change UID to this user. This user
 should not have read or write access to the jail directory.
 .IP jail-group
 is the group name under which the servers run, and is
-.I nogroup
+.I $ORYXGROUP
 by default. On startup, the servers change GID to this user.
 .SS "Cluster Configuration"
 .IP ocd-address
