@@ -344,4 +344,7 @@ C/R
 LogClient::reconnect should die, or at least suck less.
 
 
+We need to upgrade to cryptlib 3.2
+
+
 
