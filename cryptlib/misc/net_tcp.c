@@ -2714,19 +2714,6 @@ static int readSocketFunction( STREAM *stream, BYTE *buffer,
 			}
 		if( bytesRead == 0 )
 			{
-			/* Under some odd circumstances (typically implementation bugs),
-			   recv() can return zero bytes without an EOF condition being
-			   present, even though it should return an error status if this
-			   happens (this could also happen under very old SysV
-			   implementations using O_NDELAY for nonblocking I/O).  To
-			   catch this, we check for a restartable read due to something
-			   like an interrupted system call and retry the read if it is */
-			if( isRestartableError() )
-				{
-				assert( !"Restartable read, recv() indicated no error" );
-				continue;
-				}
-
 			/* "It said its piece, and then it sodded off" - Baldrick,
 			   Blackadder's Christmas Carol */
 			bytesToRead = 0;
