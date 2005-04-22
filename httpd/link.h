@@ -7,8 +7,7 @@ class Link
 {
 public:
     Link();
-    
-    void parse( const String & );
+    Link( class HTTP *, const String & );
 
     String generate() const;
 
@@ -36,9 +35,10 @@ public:
     String errorMessage() const;
 
 private:
+    void parse( const String & );
     void parseUid();
     void parseMailbox();
-    bool pick( const char * );
+    bool pick( const String & );
     void error( const String & );
     
 private:

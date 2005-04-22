@@ -1,5 +1,7 @@
 #include "link.h"
 
+#include "http.h"
+#include "user.h"
 #include "page.h"
 #include "mailbox.h"
 #include "message.h"
@@ -9,12 +11,13 @@ class LinkData
 {
 public:
     LinkData()
-        : type( Link::Error ),
+        : type( Link::Error ), server( 0 ),
           mailbox( 0 ), uid( 0 ),
           js( Link::Uncertain )
         {}
     String s;
     Link::Type type;
+    HTTP *server;
     Mailbox * mailbox;
     uint uid;
     Link::Javascript js;
@@ -36,6 +39,18 @@ Link::Link()
     : d( new LinkData )
 {
     
+}
+
+
+/*! Constructs and parses a link with path \a s for the specified
+    \a server.
+*/
+
+Link::Link( HTTP * server, const String &s )
+    : d( new LinkData )
+{
+    d->server = server;
+    parse( s );
 }
 
 
@@ -129,11 +144,11 @@ void Link::parseUid()
     cases it returns false.
 */
 
-bool Link::pick( const char * prefix )
+bool Link::pick( const String & prefix )
 {
     if ( !d->s.startsWith( prefix ) )
         return false;
-    String s = d->s.mid( s.length() );
+    String s( d->s.mid( prefix.length() ) );
     if ( !s.isEmpty() && s[0] != '/' )
         return false;
     d->s = s;
@@ -145,10 +160,16 @@ bool Link::pick( const char * prefix )
 
 void Link::parseMailbox()
 {
+    if ( d->server->user() && pick( "/INBOX" ) ) {
+        d->mailbox = d->server->user()->inbox();
+        return;
+    }
+
     if ( d->s[0] != '/' ) {
         error( "No mailbox name present" );
         return;
     }
+
     Mailbox * m = Mailbox::root();
     uint s = 0;
     bool more = false;
@@ -187,6 +208,7 @@ void Link::parseMailbox()
 
 void Link::error( const String & msg )
 {
+    d->type = Error;
     if ( d->error.isEmpty() )
         d->error = msg;
 }

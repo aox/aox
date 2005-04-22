@@ -36,6 +36,8 @@ public:
     bool acceptsUtf8;
     bool acceptsIdentity;
 
+    Link *link;
+
     struct HeaderListItem {
         HeaderListItem(): q( 0 ) {}
 
@@ -229,6 +231,8 @@ void HTTP::parseRequest( String l )
     }
     if ( minor > 0 )
         d->use11 = true;
+    else
+        d->connectionClose = true;
     // XXX: is this right? should we accept HTTP/1.2 and answer as
     // though it were 1.1?
 
@@ -248,6 +252,13 @@ void HTTP::parseRequest( String l )
             d->path.append( path[i] );
             i++;
         }
+    }
+
+    d->link = new Link( this, d->path );
+    if ( !d->link->errorMessage().isEmpty() ) {
+        addHeader( "X-Oryx-Debug: " + d->link->errorMessage() );
+        error( "404 No such page: " + d->path );
+        return;
     }
 }
 
@@ -351,6 +362,9 @@ void HTTP::respond()
     addHeader( "Server: Mailstore/" +
                Configuration::compiledIn( Configuration::Version ) +
                " (http://www.oryx.com/mailstore/)" );
+
+    Link l( this, d->path );
+    addHeader( "Location: " + l.generate() );
 
     if ( !d->ignored.isEmpty() )
         addHeader( "X-Oryx-Ignored: " + d->ignored.join( ", " ) );
@@ -559,10 +573,8 @@ void HTTP::addHeader( const String & s )
 
 String HTTP::page()
 {
-    Link *l = new Link;
-    l->parse( d->path );
-    Page *p = new Page( l, this );
-    return p->text();
+    Page *page = new Page( d->link, this );
+    return page->text();
 }
 
 
