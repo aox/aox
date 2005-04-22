@@ -52,16 +52,7 @@ void ByteForwarder::react( Event e )
         log( String("Shutting down byte forwarder due to ") +
              ( e == Close ? "peer close." : "error." ) );
         setState( Closing );
-        {
-            // XXX: This cheap hack is an attempt to sidestep the
-            // unfortunate tendency of tlsproxy to sit in a tight
-            // loop eating 99% CPU.
-            struct timeval tv;
-            tv.tv_sec = 0;
-            tv.tv_usec = 2000;
-            (void)::select( 0, 0, 0, 0, &tv );
-            s->close();
-        }
+        s->close();
         break;
 
     case Shutdown:
