@@ -8,7 +8,6 @@
 #include "mimefields.h"
 #include "allocator.h"
 #include "flag.h"
-#include "file.h"
 
 
 static const char * crlf = "\015\012";
@@ -78,11 +77,6 @@ Message::Message( const String & rfc2822 )
     d->rfc822Size = rfc2822.length();
 
     uint i = 0;
-
-    if ( d->rfc822Size > 2000 ) {
-        File f( "/tmp/message.contents", File::Write );
-        f.write( rfc2822 );
-    }
 
     setHeader( parseHeader( i, d->rfc822Size, rfc2822, Header::Rfc2822 ) );
     if ( !header()->valid() ) {
