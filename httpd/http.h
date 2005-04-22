@@ -56,7 +56,7 @@ private:
     void clear();
     void addHeader( const String & );
 
-    String page() const;
+    String page();
 
 private:
     class HTTPData * d;

@@ -2,6 +2,7 @@
 
 #include "http.h"
 
+#include "page.h"
 #include "codec.h"
 #include "buffer.h"
 #include "stringlist.h"
@@ -228,7 +229,23 @@ void HTTP::parseRequest( String l )
     // XXX: is this right? should we accept HTTP/1.2 and answer as
     // though it were 1.1?
 
-    d->path = path;
+    uint i = 0;
+    while ( i < path.length() ) {
+        if ( path[i] == '%' ) {
+            bool ok = false;
+            uint num = path.mid( i+1, 2 ).number( &ok, 16 );
+            if ( !ok || path.length() < i + 3 ) {
+                error( "400 Bad percent escape: " + path.mid( i, 3 ) );
+                return;
+            }
+            d->path.append( (char)num );
+            i += 3;
+        }
+        else {
+            d->path.append( path[i] );
+            i++;
+        }
+    }
 }
 
 
@@ -542,7 +559,7 @@ void HTTP::addHeader( const String & s )
 
 /*! Returns the page indicated by the current request. */
 
-String HTTP::page() const
+String HTTP::page()
 {
     return "<html><head><title>Webmail</title></head>"
         "<body><blink>USE IMAP</blink></body></html>";
