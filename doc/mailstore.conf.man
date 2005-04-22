@@ -35,7 +35,7 @@ Most of the servers need to know the fully-qualified hostname. The
 default is computed at runtime and is normally acceptable.
 .IP
 Note that if the name is "localhost", there may be problems with
-TLS. An IMAP/POP/SMTP client may refuse a server certificate for
+TLS. An IMAP/POP/SMTP/HTTP client may refuse a server certificate for
 "localhost" if it already has a different certificate for
 "localhost". We strongly suggest using a different
 .IR hostname .
@@ -102,20 +102,22 @@ writes log events. The file name must be absolute (start with '/'),
 and the default is
 .IR $LOGFILE .
 .IP logfile-mode
-The mode (three octal digits) that
+is
+.I $LOGFILEMODE
+by default and controls the permissions used by 
 .BR logd (8)
-should use if it creates
+if it creates
 .IR logfile .
-The default is
-.IR $LOGFILEMODE .
+The format (three octal digits) is the same as that used by
+.BR chmod (1)
+and
+.BR chmod (2).
 .IP log-level
-can be
-.IR debug ,
-.IR error ,
-or
-.IR disaster ,
-besides the default value of 
-.IR info .
+is
+.I info
+by default and can also be set to either
+.IR debug or
+.IR error .
 If a message is logged with this severity or above, the log server
 immediately writes it to the log file. Messages with lower severity
 are considered only when the transaction is commited, or when a message
@@ -123,14 +125,16 @@ is logged with a severity greater than
 .IR error .
 .SS Security
 .IP security
-is enabled by default, and should be enabled whenever Mailstore is
+is
+.I enabled
+by default, and should be enabled whenever Mailstore is
 used in production. If security is disabled, the servers do not need
 to be started as root, they keep stderr open, and they do not try to
 lose privileges.
 .IP
 Turning security off has exactly one advantage: it simplifies
 debugging.
-.IP jail-directory
+.IP jail-dir
 is the directory where the servers jail themselves,
 .I $JAILDIR
 by default. On startup, each server uses
@@ -206,7 +210,8 @@ passwords, use the
 .I allow-plaintext-passwords
 variable above.
 .IP auth-anonymous
-controls whether the servers offer anonymous login. Disabled by
+controls whether the servers offer anonymous login,
+.I disabled by
 default.
 .SS "Mail delivery"
 .IP use-lmtp
@@ -262,9 +267,14 @@ is the port where the IMAP server accepts connections,
 by default.
 .IP use-imaps
 is enabled if the IMAP server should also accept SSL-wrapped
-connections. The default is no.
+connections. The default is
+.I no .
 .IP imaps-address
-is the address where the IMAP server listens for new SSL-wrapped connections.
+is the address where the IMAP server listens for new SSL-wrapped
+connections. As for
+.IR imap-address ,
+the default is an empty string, which means all available IPv4 and
+IPv6 addresses.
 .IP imaps-port
 is the port where the IMAP server accepts SSL-wrapped connections,
 .I 993
@@ -272,10 +282,11 @@ by default.
 .IP announce-draft-support
 is enabled if the IMAP server should advertise support for
 drafts. Oryx tracks the draft versions of several IMAP extensions
-etc. Since these drafts are subject to change without notice, their
-support is
-.I disabled
-by default, and can be enabled using this toggle.
+etc. Currently the default is
+.IR enabled .
+In version 1.0, the default will change to
+.IR disabled ,
+since these drafts can change without notice and 1.0 cannot.
 .SS POP
 .IP pop-address
 is the address where the POP server listens for new connections. The
@@ -285,6 +296,25 @@ IPv6 addresses.
 is the port where the POP server accepts connections,
 .I 110
 by default.
+.SS HTTP
+.IP use-http
+decides whether Mailstore offers HTTP service at all, and is
+.I no
+by default.
+.IP http-address
+is the address where the HTTP server listens for new connections. The
+default, an empty string, means to listen on all available IPv4 and
+IPv6 addresses.
+.IP http-port
+is the port where the HTTP server accepts connections,
+.I 8808
+by default.
+.IP accept-any-http-host
+decides whether the HTTP server accepts any hostname supplied
+by the server, and is
+.I enabled
+by default. Properly speaking, it would be better to disable this, but
+that would add complexity without giving anything in return.
 .SS TLS
 .IP use-tls
 regulates whether Mailstore supports TLS at all. The default is
@@ -364,7 +394,7 @@ hostname=stuff.nonsense.example.com # also a comment
 .br
  logfile    =   /dev/null# and this is a comment
 .br
-
+p
 .br
 # empty lines are ignored
 .SH AUTHOR
