@@ -119,7 +119,7 @@ void Link::uid()
         if ( ok ) {
             if ( d->type == ArchiveMailbox )
                 d->type = ArchiveMessage;
-            else if ( d->type = WebmailMailbox )
+            else if ( d->type == WebmailMailbox )
                 d->type = WebmailMessage;
             d->s = d->s.mid( i );
         }
@@ -136,7 +136,7 @@ bool Link::pick( const char * prefix )
 {
     if ( !d->s.startsWith( prefix ) )
         return false;
-    String s( d->s.mid( s.length() ) );
+    String s = d->s.mid( s.length() );
     if ( !s.isEmpty() && s[0] != '/' )
         return false;
     d->s = s;
