@@ -173,7 +173,7 @@ Unix socket.
 The port number at which
 .BR ocd (8)
 listens for admin requests.
-.I 2050
+.I 2051
 by default.
 .SS "User Authentication"
 http://www.oryx.com/mailstore/sasl.html describes SASL and
