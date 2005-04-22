@@ -99,7 +99,6 @@ public:
 
 
 /*! Constructs a Page for \a link on \a server.
-    The page may not be ready() at once.
 */
 
 Page::Page( Link * link, HTTP *server )
