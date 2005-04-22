@@ -8,10 +8,13 @@
 class AddressData
 {
 public:
+    AddressData(): id( 0 ), type( Address::Invalid ) {}
+
     uint id;
     String name;
     String localpart;
     String domain;
+    Address::Type type;
 };
 
 
@@ -66,7 +69,7 @@ public:
 */
 
 
-/*!  Constructs an empty Address. */
+/*!  Constructs an empty invalid Address. */
 
 Address::Address()
     : d( new AddressData )
@@ -86,6 +89,14 @@ Address::Address( const String &n, const String &l, const String &o )
     d->name = n;
     d->localpart = l;
     d->domain = o;
+    if (! d->localpart.isEmpty() && !d->domain.isEmpty() )
+        d->type = Normal;
+    else if ( !d->name.isEmpty() )
+        d->type = EmptyGroup;
+    else if ( d->name.isEmpty() &&
+              d->localpart.isEmpty() &&
+              d->domain.isEmpty() )
+        d->type = Bounce;
 }
 
 
@@ -217,43 +228,32 @@ static String qhack( const String & s )
 String Address::toString() const
 {
     String r;
-    if ( !valid() ) {
-        // it's not valid at all
-    }
-    else if ( d->name.isEmpty() &&
-              d->localpart.isEmpty() &&
-              d->domain.isEmpty() ) {
+    switch( type() ) {
+    case Invalid:
+        r = "";
+        break;
+    case Bounce:
         r = "<>";
-    }
-    else if ( d->name.isEmpty() ) {
-        // it's a naked address
-        r = d->localpart + "@" + d->domain;
-    }
-    else if ( d->localpart.isEmpty() ) {
-        // it's a memberless group
+        break;
+    case EmptyGroup:
         r = d->name + ":;";
-    }
-    else {
-        // it's a fully-fledged name.
-        r = qhack( d->name ) + " <" + d->localpart + "@" + d->domain + ">";
-        // qhack is rather incomplete. solve it properly later.
+        break;
+    case Normal:
+        if ( d->name.isEmpty() )
+            r = d->localpart + "@" + d->domain;
+        else
+            r = qhack( d->name ) +
+                " <" + d->localpart + "@" + d->domain + ">";
     }
     return r;
 }
 
 
-/*! Returns true if this Address is a meaningful object, or false if
+/*! \fn bool Address::valid() const
+
+    Returns true if this Address is a meaningful object, or false if
     its content is meaningless.
 */
-
-bool Address::valid() const
-{
-    if ( d->name.isEmpty() && d->localpart.isEmpty() )
-        return d->domain.isEmpty();
-    if ( !d->localpart.isEmpty() && d->domain.isEmpty() )
-        return false; // just for sanity
-    return true;
-}
 
 
 /*! Sets this Address to have name \a n, overwriting whatever was
@@ -876,4 +876,18 @@ void Address::uniquify( List<Address> * l )
         if ( unique.find( key( a ) ) != a )
             l->take( a );
     }
+}
+
+
+/*! Returns the type of Address, which is inferred at construction
+    time.
+
+    If type() is Normal, name(), localpart() and domain() are
+    valid. If type() is EmptyGroup, name() alone is. If type() is
+    Bounce or Invalid, none of the three are.
+*/
+
+Address::Type Address::type() const
+{
+    return d->type;
 }

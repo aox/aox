@@ -17,6 +17,9 @@ public:
 
     Address &operator=( const Address & );
 
+    enum Type { Normal, Bounce, EmptyGroup, Invalid };
+    Type type() const;
+
     uint id() const;
     void setId( uint );
 
@@ -26,7 +29,7 @@ public:
 
     String toString() const;
 
-    bool valid() const;
+    bool valid() const { return type() != Invalid; }
 
     void setName( const String & );
 
