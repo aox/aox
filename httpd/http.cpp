@@ -29,6 +29,8 @@ public:
     StringList ignored;
     String referer;
     String page;
+    uint contentLength;
+    String body;
 
     Codec * preferredCodec;
     uint codecQuality;
@@ -122,6 +124,16 @@ void HTTP::parse()
         parseRequest( line().simplified() );
     while ( d->state == Header && canReadHTTPLine() )
         parseHeader( line() );
+    if ( d->state == Body ) {
+        if ( d->contentLength > 0 ) {
+            Buffer *r = readBuffer();
+            if ( r->size() < d->contentLength )
+                return;
+            d->body = r->string( d->contentLength );
+            r->remove( d->contentLength );
+        }
+        d->state = Done;
+    }
 }
 
 
@@ -190,15 +202,18 @@ void HTTP::parseRequest( String l )
         error( "400 Really total parse error" );
         return;
     }
-    if ( request == "GET" ) {
+    if ( request == "HEAD" ) {
+        d->sendContents = false;
+    }
+    else if ( request == "GET" ) {
         d->sendContents = true;
     }
-    else if ( request == "HEAD" ) {
-        d->sendContents = false;
+    else if ( request == "POST" ) {
+        d->sendContents = true;
     }
     else {
         error( "405 Bad Request: " + request );
-        addHeader( "Allow: GET, HEAD" );
+        addHeader( "Allow: GET, HEAD, POST" );
         return;
     }
 
@@ -285,7 +300,7 @@ HTTP::State HTTP::state() const
 void HTTP::parseHeader( const String & h )
 {
     if ( h.isEmpty() ) {
-        d->state = Done;
+        d->state = Body;
         return;
     }
 
@@ -343,6 +358,9 @@ void HTTP::parseHeader( const String & h )
     else if ( n == "User-Agent" ) {
         parseUserAgent( v );
     }
+    else if ( n == "Content-Length" ) {
+        parseContentLength( v );
+    }
     else {
         d->ignored.append( n );
     }
@@ -378,7 +396,10 @@ void HTTP::respond()
     d->ignored.clear();
 
     if ( d->error.isEmpty() ) {
-        d->page = page();
+        if ( !d->body.isEmpty() )
+            d->page = d->body;
+        else
+            d->page = page();
         addHeader( "Content-Length: " + fn( d->page.length() ) );
         // probably want to add an etag header here. md5 the page and
         // that's it?
@@ -583,6 +604,14 @@ void HTTP::parseCookie( const String &s )
         if ( name == "session" )
             d->session = HttpSession::find( value.unquoted() );
     }
+}
+
+
+/*! Parses a Content-Length header. */
+
+void HTTP::parseContentLength( const String &s )
+{
+    d->contentLength = s.number( 0 );
 }
 
 

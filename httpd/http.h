@@ -20,7 +20,7 @@ public:
     void react( Event e );
 
     enum State {
-        Request, Header, Done
+        Request, Header, Body, Done
     };
     State state() const;
     void parse();
@@ -45,6 +45,7 @@ private:
     void parseTransferEncoding( const String & );
     void parseUserAgent( const String & );
     void parseCookie( const String & );
+    void parseContentLength( const String & );
 
     void parseList( const String &, const String & );
     void parseListItem( const String &, const String &, uint );
