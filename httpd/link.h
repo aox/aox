@@ -38,9 +38,9 @@ private:
     void parse( const String & );
     void parseUid();
     void parseMailbox();
-    bool pick( const String & );
     void error( const String & );
-    
+    String removePrefix();
+
 private:
     class LinkData * d;
 };

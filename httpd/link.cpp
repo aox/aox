@@ -61,30 +61,25 @@ Link::Link( HTTP * server, const String &s )
 void Link::parse( const String & s )
 {
     d->s = s;
-    if ( pick( "/archive" ) ) {
+
+    String prefix = removePrefix();
+
+    if ( prefix == "archive" ) {
         d->type = ArchiveMailbox;
         parseMailbox();
         parseUid();
     }
-    else if ( pick( "/webmail/folder" ) ) {
+    else if ( prefix == "folder" ) {
         d->type = WebmailMailbox;
         parseMailbox();
         parseUid();
     }
-    else if ( pick( "/webmail" ) ) {
+    else if ( prefix == "webmail" ) {
         d->type = Webmail;
     }
 
-    if ( pick( "/js" ) ) {
-        d->js = Enabled;
-    }
-    else if ( pick( "/njs" ) ) {
-        d->js = Disabled;
-    }
-
-    if ( d->s.isEmpty() || d->s == "/" )
-        return;
-    error( "Garbage at end of URL: " + d->s );
+    if ( !d->s.isEmpty() && d->s != "/" )
+        error( "Garbage at end of URL: " + d->s );
 }
 
 
@@ -99,7 +94,7 @@ String Link::generate() const
         s = "/archive/" + fn( d->mailbox->id() );
         break;
     case WebmailMailbox:
-        s = "/webmail/folder/" + fn( d->mailbox->id() );
+        s = "/folder/" + fn( d->mailbox->id() );
         break;
     case Webmail:
         s = "/webmail";
@@ -108,7 +103,7 @@ String Link::generate() const
         s = "/archive/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
         break;
     case WebmailMessage:
-        s = "/webmail/folder/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
+        s = "/folder/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
         break;
     case Error:
         break;
@@ -140,20 +135,26 @@ void Link::parseUid()
 }
 
 
-/*! If the link's string starts with \a prefix and a slash, or if it
-    is equal to \a prefix, this function returns true. In all other
-    cases it returns false.
+/*! Removes and returns the component of this link between the first
+    pair of slashes.
+
+    (Should this function be named nextWord? We'll see.)
 */
 
-bool Link::pick( const String & prefix )
+String Link::removePrefix()
 {
-    if ( !d->s.startsWith( prefix ) )
-        return false;
-    String s( d->s.mid( prefix.length() ) );
-    if ( !s.isEmpty() && s[0] != '/' )
-        return false;
-    d->s = s;
-    return true;
+    uint i = 0;
+    String prefix;
+
+    if ( d->s[i] == '/' ) {
+        i++;
+        while ( d->s[i] != '/' )
+            i++;
+        prefix = d->s.mid( 1, i-1 );
+        d->s = d->s.mid( i );
+    }
+
+    return prefix;
 }
 
 
@@ -174,8 +175,10 @@ void Link::parseMailbox()
     if ( i > 0 ) {
         bool ok = false;
         uint id = d->s.mid( 1, i-1 ).number( &ok );
-        if ( ok )
+        if ( ok ) {
+            d->s = d->s.mid( i );
             m = Mailbox::find( id );
+        }
     }
 
     if ( !m )
