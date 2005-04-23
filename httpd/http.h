@@ -30,6 +30,10 @@ public:
     StringList * response();
 
     class User * user() const;
+    class HttpSession *session() const;
+
+    void error( const String & );
+    void addHeader( const String & );
 
 private:
     void parseAccept( const String &, uint );
@@ -56,9 +60,7 @@ private:
     bool canReadHTTPLine() const;
     String line();
 
-    void error( const String & );
     void clear();
-    void addHeader( const String & );
 
     String page();
 

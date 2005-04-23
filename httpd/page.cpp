@@ -5,6 +5,7 @@
 #include "http.h"
 #include "mailbox.h"
 #include "message.h"
+#include "httpsession.h"
 
 
 static const char *head =
@@ -106,6 +107,24 @@ Page::Page( Link * link, HTTP *server )
 {
     d->link = link;
     d->server = server;
+
+    if ( link->type() == Link::WebmailMessage ||
+         link->type() == Link::WebmailMailbox ||
+         link->type() == Link::Webmail )
+    {
+        if ( !d->server->session() ||
+             !d->server->session()->user() ||
+             d->server->session()->expired() )
+        {
+            d->server->addHeader( "Location: /webmail/login" );
+            d->server->error( "302 Must login" );
+            return;
+        }
+    }
+
+    if ( d->server->session() )
+        d->server->session()->refresh();
+
     switch( link->type() ) {
     case Link::ArchiveMailbox:
     case Link::WebmailMailbox:
@@ -180,8 +199,6 @@ void Page::fetchMailbox()
         d->text = noSuchMailbox;
         return;
     }
-
-    
 }
 
 

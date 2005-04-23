@@ -798,7 +798,17 @@ bool HTTP::isTokenChar( char c )
 
 User *HTTP::user() const
 {
-    if ( d->session )
+    if ( d->session && !d->session->expired() )
         return d->session->user();
     return 0;
+}
+
+
+/*! Returns a pointer to the HttpSession object associated with this
+    server, or 0 if no such session exists.
+*/
+
+HttpSession *HTTP::session() const
+{
+    return d->session;
 }

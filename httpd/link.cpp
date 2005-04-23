@@ -81,6 +81,7 @@ void Link::parse( const String & s )
     else if ( pick( "/njs" ) ) {
         d->js = Disabled;
     }
+
     if ( d->s.isEmpty() || d->s == "/" )
         return;
     error( "Garbage at end of URL: " + d->s );
@@ -95,19 +96,19 @@ String Link::generate() const
     String s;
     switch( d->type ) {
     case ArchiveMailbox:
-        s = "/archive" + d->mailbox->name();
+        s = "/archive/" + fn( d->mailbox->id() );
         break;
     case WebmailMailbox:
-        s = "/webmail/folder" + d->mailbox->name();
+        s = "/webmail/folder/" + fn( d->mailbox->id() );
         break;
     case Webmail:
         s = "/webmail";
         break;
     case ArchiveMessage:
-        s = "/archive/" + d->mailbox->name() + "/" + fn( d->uid );
+        s = "/archive/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
         break;
     case WebmailMessage:
-        s = "/webmail/folder" + d->mailbox->name() + "/" + fn( d->uid );
+        s = "/webmail/folder/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
         break;
     case Error:
         break;
@@ -160,43 +161,26 @@ bool Link::pick( const String & prefix )
 
 void Link::parseMailbox()
 {
-    if ( d->server->user() && pick( "/INBOX" ) ) {
-        d->mailbox = d->server->user()->inbox();
-        return;
-    }
+    Mailbox *m = 0;
 
     if ( d->s[0] != '/' ) {
-        error( "No mailbox name present" );
+        error( "No mailbox id present" );
         return;
     }
 
-    Mailbox * m = Mailbox::root();
-    uint s = 0;
-    bool more = false;
-    do {
-        uint i = s + 1;
-        while ( i < d->s.length() && d->s[i] != '/' )
-            i++;
-        String component = d->s.mid( s, i-s );
-        List<Mailbox> * children = m->children();
-        List<Mailbox>::Iterator it( children->first() );
-        Mailbox * c = 0;
-        while ( it && !c ) {
-            if ( it->name() == d->s.mid( 0, i ) )
-                c = it;
-            ++it;
-        }
-        if ( c ) {
-            more = true;
-            m = c;
-            s = i;
-        }
-    } while ( more );
-    if ( !m ) {
-        error( "Could not find valid mailbox: " + d->s );
-        return;
+    uint i = 1;
+    while ( d->s[i] >= '0' && d->s[i] <= '9' )
+        i++;
+    if ( i > 0 ) {
+        bool ok = false;
+        uint id = d->s.mid( 1, i-1 ).number( &ok );
+        if ( ok )
+            m = Mailbox::find( id );
     }
-    d->s = d->s.mid( s );
+
+    if ( !m )
+        error( "Could not find valid mailbox id: " + d->s );
+
     d->mailbox = m;
 }
 
