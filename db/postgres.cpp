@@ -57,7 +57,7 @@ public:
     is responsible for all network communications with the server.
 
     The network protocol is documented at <doc/src/sgml/protocol.sgml>
-    and <http://developer.postgresql.org/docs/postgres/protocol.html>.
+    and <http://www.postgresql.org/docs/current/static/protocol.html>.
     The version implemented here is used by PostgreSQL 7.4 and later.
 
     At the time of writing, there do not seem to be any other suitable
