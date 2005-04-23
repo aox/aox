@@ -20,28 +20,34 @@ public:
     {}
 
     HTTP::State state;
-    bool sendContents;
+
     bool use11;
-    bool connectionClose;
-    String path;
-    String error;
-    StringList headers;
-    StringList ignored;
-    String referer;
-    String page;
-    uint contentLength;
-    String body;
-
-    Codec * preferredCodec;
-    uint codecQuality;
-
+    bool sendContents;
     bool acceptsHtml;
     bool acceptsPng;
     bool acceptsLatin1;
     bool acceptsUtf8;
     bool acceptsIdentity;
+    bool connectionClose;
+
+    uint status;
+    String method;
+    String message;
+    String protocol;
+
+    String body;
+    String path;
+    String error;
+    String referer;
+    StringList headers;
+    StringList ignored;
+    uint contentLength;
+
+    Codec * preferredCodec;
+    uint codecQuality;
 
     Link *link;
+    Page *page;
     HttpSession *session;
 
     struct HeaderListItem {
@@ -79,19 +85,7 @@ void HTTP::react( Event e )
     switch ( e ) {
     case Read:
         setTimeoutAfter( 1800 );
-        parse();
-        if ( d->state == Done ) {
-            respond();
-            enqueue( response()->join( "\r\n" ) );
-            enqueue( "\r\n\r\n" );
-            if ( d->sendContents )
-                enqueue( d->page );
-
-            if ( d->connectionClose )
-                setState( Closing );
-
-            clear();
-        }
+        process();
         break;
 
     case Timeout:
@@ -109,6 +103,74 @@ void HTTP::react( Event e )
     case Shutdown:
         enqueue( "505 Server must shut down\r\n" );
         break;
+    }
+}
+
+
+/*! This function, which is called whenever the HTTP server might want
+    to do something, decides what to do based on the server's state().
+
+    An HTTP server starts off in the Request state, expecting to see a
+    valid HTTP request line. Once parseRequest() has done its job, the
+    server enters the Header state, and calls parseHeader() for every
+    header line received
+
+
+
+
+*/
+
+void HTTP::process()
+{
+    if ( d->state == Request ) {
+        if ( canReadHTTPLine() )
+            parseRequest( line().simplified() );
+    }
+
+    if ( d->state == Header ) {
+        while ( canReadHTTPLine() )
+            parseHeader( line() );
+    }
+
+    if ( d->state == Body ) {
+        Buffer *r = readBuffer();
+
+        if ( d->contentLength <= r->size() ) {
+            String s = r->string( d->contentLength );
+            r->remove( d->contentLength );
+            if ( d->method == "POST" )
+                d->body = s;
+            d->state = Parsed;
+        }
+    }
+
+    if ( d->state == Parsed && !d->page ) {
+        d->page = new Page( d->link, this );
+    }
+
+    if ( d->page->ready() ) {
+        String text = d->page->text();
+
+        addHeader( "Server: Mailstore/" +
+                   Configuration::compiledIn( Configuration::Version ) +
+                   " (http://www.oryx.com/mailstore/)" );
+        addHeader( "Content-Length: " + fn( text.length() ) );
+
+        if ( d->session )
+            addHeader( "Set-Cookie: session=\"" + d->session->key() + "\"" );
+
+        enqueue( d->protocol + " " + fn( d->status ) + " " +
+                 d->message + "\r\n" );
+        enqueue( d->headers.join( "\r\n" ) );
+        enqueue( "\r\n\r\n" );
+
+        if ( d->sendContents )
+            enqueue( d->page->text() );
+
+        if ( d->connectionClose )
+            setState( Closing );
+
+        clear();
     }
 }
 
@@ -375,43 +437,6 @@ void HTTP::parseHeader( const String & h )
 StringList * HTTP::response()
 {
     return &d->headers;
-}
-
-
-/*! Responds to an already-parsed request.
-
-*/
-
-void HTTP::respond()
-{
-    addHeader( "Server: Mailstore/" +
-               Configuration::compiledIn( Configuration::Version ) +
-               " (http://www.oryx.com/mailstore/)" );
-
-    Link l( this, d->path );
-    addHeader( "Location: " + l.generate() );
-
-    if ( !d->ignored.isEmpty() )
-        addHeader( "X-Oryx-Ignored: " + d->ignored.join( ", " ) );
-    d->ignored.clear();
-
-    if ( d->error.isEmpty() ) {
-        if ( !d->body.isEmpty() )
-            d->page = d->body;
-        else
-            d->page = page();
-        addHeader( "Content-Length: " + fn( d->page.length() ) );
-        // probably want to add an etag header here. md5 the page and
-        // that's it?
-    }
-
-    if ( d->session )
-        addHeader( "Set-Cookie: session=\"" + d->session->key() + "\"" );
-
-    if ( d->error.isEmpty() )
-        d->headers.prepend( new String( "HTTP/1.0 200 OK" ) );
-    else
-        d->headers.prepend( new String( "HTTP/1.0 " + d->error ) );
 }
 
 

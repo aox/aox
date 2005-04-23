@@ -20,13 +20,12 @@ public:
     void react( Event e );
 
     enum State {
-        Request, Header, Body, Done
+        Request, Header, Body, Parsed, Done
     };
     State state() const;
     void parse();
     void parseRequest( String );
     void parseHeader( const String & );
-    void respond();
     StringList * response();
 
     class User * user() const;
@@ -36,6 +35,8 @@ public:
     void addHeader( const String & );
 
 private:
+    void process();
+
     void parseAccept( const String &, uint );
     void parseAcceptCharset( const String &, uint );
     void parseAcceptEncoding( const String &, uint );

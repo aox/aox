@@ -81,13 +81,14 @@ class PageData
 {
 public:
     PageData()
-        : link( 0 ), uid( 0 ), server( 0 )
+        : link( 0 ), uid( 0 ), server( 0 ), ready( false )
     {}
 
     Link *link;
     String text;
     uint uid;
     HTTP *server;
+    bool ready;
 };
 
 
@@ -235,4 +236,13 @@ String Page::text() const
     if ( d->text.isEmpty() )
         return "";
     return head + d->text + foot;
+}
+
+
+/*! Returns true only if this page is ready to be rendered.
+*/
+
+bool Page::ready() const
+{
+    return d->ready;
 }

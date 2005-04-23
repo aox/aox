@@ -14,6 +14,8 @@ public:
     void fetchMailbox();
     void fetchMessage();
 
+    bool ready() const;
+
 private:
     class PageData * d;
 };
