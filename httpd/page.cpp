@@ -83,7 +83,8 @@ class PageData {
 public:
     PageData()
         : type( Page::Error ),
-          link( 0 ), uid( 0 ), server( 0 ), ready( false )
+          link( 0 ), uid( 0 ), server( 0 ), ready( false ),
+          user( 0 )
     {}
 
     Page::Type type;
@@ -93,6 +94,10 @@ public:
     uint uid;
     HTTP *server;
     bool ready;
+
+    String login;
+    String passwd;
+    User *user;
 };
 
 
@@ -218,27 +223,44 @@ void Page::loginForm()
 
 void Page::loginData()
 {
-    String login, passwd;
-    String body = d->server->body();
+    if ( !d->user ) {
+        String body = d->server->body();
 
-    uint i;
-    i = body.find( '&' );
-    if ( i > 0 ) {
-        String l = body.mid( 0, i );
-        String p = body.mid( i+1 );
+        uint i;
+        i = body.find( '&' );
+        if ( i > 0 ) {
+            String l = body.mid( 0, i );
+            String p = body.mid( i+1 );
 
-        if ( l.startsWith( "login=" ) )
-            login = l.mid( 6 );
+            if ( l.startsWith( "login=" ) )
+                d->login = l.mid( 6 );
 
-        if ( p.startsWith( "passwd=" ) )
-            passwd = p.mid( 7 );
+            if ( p.startsWith( "passwd=" ) )
+                d->passwd = p.mid( 7 );
+        }
+
+        if ( d->login.isEmpty() || d->passwd.isEmpty() ) {
+            d->type = LoginForm;
+            loginForm();
+            return;
+        }
+
+        d->user = new User;
+        d->user->setLogin( d->login );
+        d->user->refresh( this );
     }
 
-    if ( login.isEmpty() || passwd.isEmpty() ) {
-        loginForm();
+    if ( d->user->state() == User::Unverified )
         return;
-    }
 
-    d->ready = true;
-    d->text = "<p>You sent us a username and password.";
+    if ( d->user->state() == User::Nonexistent ||
+         d->user->secret() != d->passwd )
+    {
+        d->ready = true;
+        d->text = "<p>You sent us a bad username and password.";
+    }
+    else {
+        d->type = MainPage;
+        mainPage();
+    }
 }
