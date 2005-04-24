@@ -451,6 +451,8 @@ void HTTP::status( uint status, const String &message )
 
 void HTTP::clear()
 {
+    d->link = 0;
+    d->page = 0;
     d->state = Request;
     d->status = 200;
     d->message = "OK";

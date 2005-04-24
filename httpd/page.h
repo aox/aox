@@ -21,6 +21,7 @@ public:
 
 private:
     void mainPage();
+    void loginForm();
 
 private:
     class PageData * d;

@@ -153,6 +153,7 @@ void Page::execute()
         break;
 
     case LoginForm:
+        loginForm();
         break;
 
     case LoginData:
@@ -186,7 +187,7 @@ bool Page::ready() const
 }
 
 
-/*! Displays the main page.
+/*! Prepares to display the main page.
 */
 
 void Page::mainPage()
@@ -196,9 +197,10 @@ void Page::mainPage()
 }
 
 
-/*
+/*! Prepares to display the login form.
+*/
 
-String Page::loginForm()
+void Page::loginForm()
 {
     d->ready = true;
     d->text =
@@ -208,5 +210,3 @@ String Page::loginForm()
         "<input type=submit name=Login>"
         "</form>";
 }
-
-*/
