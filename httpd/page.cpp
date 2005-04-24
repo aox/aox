@@ -123,7 +123,7 @@ Page::Page( Link * link, HTTP *server )
              !d->server->session()->user() ||
              d->server->session()->expired() )
         {
-            d->server->status( 403, "Forbidden" );
+            d->server->setStatus( 403, "Forbidden" );
             d->ready = true;
             return;
         }
@@ -166,6 +166,7 @@ void Page::execute()
         break;
 
     case Error:
+        errorPage();
         break;
     }
 }
@@ -263,4 +264,15 @@ void Page::loginData()
         d->type = MainPage;
         mainPage();
     }
+}
+
+
+/*! Prepares to display an error page.
+*/
+
+void Page::errorPage()
+{
+    d->ready = true;
+    d->text = "<p>" + d->link->errorMessage();
+    d->server->setStatus( 404, "File not found" );
 }

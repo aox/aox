@@ -266,7 +266,7 @@ void HTTP::parseRequest( String l )
     d->state = Header;
     int space = l.find( ' ' );
     if ( space < 0 ) {
-        status( 400, "Complete and utter parse error" );
+        setStatus( 400, "Complete and utter parse error" );
         return;
     }
 
@@ -274,7 +274,7 @@ void HTTP::parseRequest( String l )
     l = l.mid( space+1 );
     space = l.find( ' ' );
     if ( space < 0 ) {
-        status( 400, "Really total parse error" );
+       setStatus( 400, "Really total parse error" );
         return;
     }
     d->method = request;
@@ -288,7 +288,7 @@ void HTTP::parseRequest( String l )
         d->sendContents = true;
     }
     else {
-        status( 405, "Bad Request: " + request );
+       setStatus( 405, "Bad Request: " + request );
         addHeader( "Allow: GET, HEAD, POST" );
         return;
     }
@@ -305,7 +305,7 @@ void HTTP::parseRequest( String l )
     String protocol = l;
 
     if ( !protocol.startsWith( "HTTP/" ) ) {
-        status( 400, "Bad protocol: " + protocol + ". Only HTTP supported." );
+       setStatus( 400, "Bad protocol: " + protocol + ". Only HTTP supported." );
         return;
     }
     bool ok = false;
@@ -313,7 +313,7 @@ void HTTP::parseRequest( String l )
     while ( dot < protocol.length() && protocol[dot] != '.' )
         dot++;
     if ( protocol[dot] != '.' ) {
-        status( 400, "Bad version number: " + protocol.mid( 6 ) );
+       setStatus( 400, "Bad version number: " + protocol.mid( 6 ) );
         return;
     }
     uint major = protocol.mid( 5, dot-5 ).number( &ok );
@@ -321,7 +321,7 @@ void HTTP::parseRequest( String l )
     if ( ok )
         minor = protocol.mid( dot+1 ).number( &ok );
     if ( major != 1 ) {
-        status( 400, "Only HTTP/1.0 and 1.1 are supported" );
+       setStatus( 400, "Only HTTP/1.0 and 1.1 are supported" );
         return;
     }
     if ( minor > 0 )
@@ -338,7 +338,7 @@ void HTTP::parseRequest( String l )
             bool ok = false;
             uint num = path.mid( i+1, 2 ).number( &ok, 16 );
             if ( !ok || path.length() < i + 3 ) {
-                status( 400, "Bad percent escape: " + path.mid( i, 3 ) );
+               setStatus( 400, "Bad percent escape: " + path.mid( i, 3 ) );
                 return;
             }
             d->path.append( (char)num );
@@ -351,11 +351,6 @@ void HTTP::parseRequest( String l )
     }
 
     d->link = new Link( this, d->path );
-    if ( !d->link->errorMessage().isEmpty() ) {
-        addHeader( "X-Oryx-Debug: " + d->link->errorMessage() );
-        status( 404, "No such page: " + d->path );
-        return;
-    }
 }
 
 
@@ -372,7 +367,7 @@ void HTTP::parseHeader( const String & h )
 
     uint i = h.find( ':' );
     if ( i < 1 ) {
-        status( 400, "Bad header: " + h.simplified() );
+       setStatus( 400, "Bad header: " + h.simplified() );
         return;
     }
     String n = h.mid( 0, i ).simplified().headerCased();
@@ -398,7 +393,7 @@ void HTTP::parseHeader( const String & h )
         parseList( n, v );
     }
     else if ( n == "Expect" ) {
-        status( 417, "Expectations not supported" );
+       setStatus( 417, "Expectations not supported" );
     }
     else if ( n == "Host" ) {
         parseHost( v );
@@ -437,7 +432,7 @@ void HTTP::parseHeader( const String & h )
     unless another non-200 message has already been set.
 */
 
-void HTTP::status( uint status, const String &message )
+void HTTP::setStatus( uint status, const String &message )
 {
     if ( d->status == 200 ) {
         d->status = status;
@@ -547,7 +542,7 @@ void HTTP::parseHost( const String & v )
     String correct = Configuration::text( Configuration::Hostname ).lower();
     if ( supplied == correct )
         return;
-    status( 400, "No such host: " + supplied +
+   setStatus( 400, "No such host: " + supplied +
                  ". Only " + correct + " allowed" );
 }
 
@@ -672,7 +667,7 @@ void HTTP::parseList( const String & name, const String & value )
             parseListItem( name, item, q );
         }
         else if ( value[i] != ',' ) {
-            status( 400, "Expected comma at header " + name + " position " +
+           setStatus( 400, "Expected comma at header " + name + " position " +
                     fn( i ) + ", saw " + value.mid( i ) );
             return;
         }
@@ -735,7 +730,7 @@ void HTTP::skipValues( const String & value, uint & i, uint & q )
             }
             expect( value, i, '"' );
             if ( isQ )
-                status( 400, "q cannot be quoted" );
+               setStatus( 400, "q cannot be quoted" );
         }
         else {
             n = i;
@@ -753,11 +748,11 @@ void HTTP::skipValues( const String & value, uint & i, uint & q )
                         bool ok;
                         q = q + decimals.mid( 0, 3 ).number( &ok );
                         if ( q > 1000 )
-                            status( 400, "Quality can be at most 1.000" );
+                           setStatus( 400, "Quality can be at most 1.000" );
                     }
                 }
                 else {
-                    status( 400, "Could not parse quality value: " +
+                   setStatus( 400, "Could not parse quality value: " +
                             value.mid( i ) );
                 }
             }
@@ -788,7 +783,7 @@ void HTTP::expect( const String & value, uint & i, char c )
                   fn( i ) +
                   ", saw " +
                   value.mid( i ) );
-        status( 400, e );
+       setStatus( 400, e );
     }
     i++;
     while ( value[i] == ' ' )

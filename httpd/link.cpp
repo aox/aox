@@ -78,7 +78,7 @@ void Link::parse( const String & s )
         d->type = Webmail;
     }
     else {
-        error( "Garbage at end of URL: " + d->s );
+        error( "Garbage at end of URL: " + s );
     }
 }
 
