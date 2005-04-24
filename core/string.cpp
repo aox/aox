@@ -5,6 +5,10 @@
 #include "allocator.h"
 #include "sys.h"
 
+// stderr, fprintf
+#include <stdio.h>
+
+
 /*! \class StringData string.h
 
     This private helper class contains the actual string data. It has
@@ -1183,3 +1187,12 @@ bool String::operator>=( const String & other ) const
 }
 
 
+/*! This function is a debugging aid. It prints the contents of the
+    string within single quotes followed by a trailing newline to
+    stderr.
+*/
+
+void String::print() const
+{
+    fprintf( stderr, "'%*.*s'\n", length(), length(), data() );
+}
