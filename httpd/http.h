@@ -30,6 +30,7 @@ public:
     class HttpSession *session() const;
     String body() const;
 
+    uint status() const;
     void setStatus( uint, const String & );
     void addHeader( const String & );
 

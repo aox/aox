@@ -212,6 +212,15 @@ String HTTP::body() const
 }
 
 
+/*! Returns the status code that the next response will use.
+*/
+
+uint HTTP::status() const
+{
+    return d->status;
+}
+
+
 static uint inputLength( Buffer * r )
 {
     uint i = 0;

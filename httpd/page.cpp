@@ -123,8 +123,9 @@ Page::Page( Link * link, HTTP *server )
              !d->server->session()->user() ||
              d->server->session()->expired() )
         {
+            d->type = Error;
             d->server->setStatus( 403, "Forbidden" );
-            d->ready = true;
+            errorPage();
             return;
         }
     }
@@ -145,6 +146,7 @@ Page::Page( Link * link, HTTP *server )
 
     default:
         d->type = Error;
+        d->server->setStatus( 404, "File not found" );
         break;
     }
 }
@@ -272,7 +274,15 @@ void Page::loginData()
 
 void Page::errorPage()
 {
+    switch ( d->server->status() ) {
+    case 404:
+        d->text = "<p>" + d->link->errorMessage();
+        break;
+
+    case 403:
+        d->text = "<p>You do not have permission to access that page.";
+        break;
+    }
+
     d->ready = true;
-    d->text = "<p>" + d->link->errorMessage();
-    d->server->setStatus( 404, "File not found" );
 }
