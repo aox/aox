@@ -142,7 +142,7 @@ void HTTP::process()
         d->page->execute();
     }
 
-    if ( d->page->ready() ) {
+    if ( d->page && d->page->ready() ) {
         String text = d->page->text();
 
         addHeader( "Server: Mailstore/" +

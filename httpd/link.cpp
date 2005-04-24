@@ -148,7 +148,7 @@ String Link::removePrefix()
 
     if ( d->s[i] == '/' ) {
         i++;
-        while ( d->s[i] != '/' )
+        while ( i < d->s.length() && d->s[i] != '/' )
             i++;
         prefix = d->s.mid( 1, i-1 );
         d->s = d->s.mid( i );
