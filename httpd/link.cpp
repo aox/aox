@@ -74,12 +74,12 @@ void Link::parse( const String & s )
         parseMailbox();
         parseUid();
     }
-    else if ( prefix == "webmail" ) {
+    else if ( prefix == "" ) {
         d->type = Webmail;
     }
-
-    if ( !d->s.isEmpty() && d->s != "/" )
+    else {
         error( "Garbage at end of URL: " + d->s );
+    }
 }
 
 

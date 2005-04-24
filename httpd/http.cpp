@@ -21,6 +21,11 @@ public:
 
     HTTP::State state;
 
+    uint status;
+    String method;
+    String message;
+    String protocol;
+
     bool use11;
     bool sendContents;
     bool acceptsHtml;
@@ -30,14 +35,8 @@ public:
     bool acceptsIdentity;
     bool connectionClose;
 
-    uint status;
-    String method;
-    String message;
-    String protocol;
-
     String body;
     String path;
-    String error;
     String referer;
     StringList headers;
     StringList ignored;
@@ -110,14 +109,8 @@ void HTTP::react( Event e )
 /*! This function, which is called whenever the HTTP server might want
     to do something, decides what to do based on the server's state().
 
-    An HTTP server starts off in the Request state, expecting to see a
-    valid HTTP request line. Once parseRequest() has done its job, the
-    server enters the Header state, and calls parseHeader() for every
-    header line received
-
-
-
-
+    Our request parsing is somewhat simpler than described in RFC 2616
+    and <http://www.and.org/texts/server-http.html>.
 */
 
 void HTTP::process()
@@ -146,6 +139,7 @@ void HTTP::process()
 
     if ( d->state == Parsed && !d->page ) {
         d->page = new Page( d->link, this );
+        d->page->execute();
     }
 
     if ( d->page->ready() ) {
@@ -175,27 +169,48 @@ void HTTP::process()
 }
 
 
-/*! Parses incoming HTTP requests. This is a little simpler than the
-    RFC says: We deviate in some of the ways
-    http://www.and.org/texts/server-http.html describes.
+/*! Returns the HTTP parser's current state. The state changes after
+    parsing a byte, so the return value is bound to next incoming
+    byte, not the last one.
 */
 
-void HTTP::parse()
+HTTP::State HTTP::state() const
 {
-    if ( d->state == Request && canReadHTTPLine() )
-        parseRequest( line().simplified() );
-    while ( d->state == Header && canReadHTTPLine() )
-        parseHeader( line() );
-    if ( d->state == Body ) {
-        if ( d->contentLength > 0 ) {
-            Buffer *r = readBuffer();
-            if ( r->size() < d->contentLength )
-                return;
-            d->body = r->string( d->contentLength );
-            r->remove( d->contentLength );
-        }
-        d->state = Done;
-    }
+    return d->state;
+}
+
+
+/*! Returns a pointer to the HttpSession object associated with this
+    server, or 0 if no such session exists.
+*/
+
+HttpSession *HTTP::session() const
+{
+    return d->session;
+}
+
+
+/*! Returns a pointer to the user associated with this server, or 0 if
+    there is no such user. (For archive mailboxes, 0 is usually
+    returned.)
+*/
+
+User *HTTP::user() const
+{
+    if ( d->session && !d->session->expired() )
+        return d->session->user();
+    return 0;
+}
+
+
+/*! Returns a string containing the request-body, if any, supplied with
+    the request. If there was none (or none was permitted), this string
+    is empty.
+*/
+
+String HTTP::body() const
+{
+    return d->body;
 }
 
 
@@ -253,7 +268,7 @@ void HTTP::parseRequest( String l )
     d->state = Header;
     int space = l.find( ' ' );
     if ( space < 0 ) {
-        error( "400 Complete and utter parse error" );
+        status( 400, "Complete and utter parse error" );
         return;
     }
 
@@ -261,7 +276,7 @@ void HTTP::parseRequest( String l )
     l = l.mid( space+1 );
     space = l.find( ' ' );
     if ( space < 0 ) {
-        error( "400 Really total parse error" );
+        status( 400, "Really total parse error" );
         return;
     }
     if ( request == "HEAD" ) {
@@ -274,7 +289,7 @@ void HTTP::parseRequest( String l )
         d->sendContents = true;
     }
     else {
-        error( "405 Bad Request: " + request );
+        status( 405, "Bad Request: " + request );
         addHeader( "Allow: GET, HEAD, POST" );
         return;
     }
@@ -291,7 +306,7 @@ void HTTP::parseRequest( String l )
     String protocol = l;
 
     if ( !protocol.startsWith( "HTTP/" ) ) {
-        error( "400 Bad protocol: " + protocol + ". Only HTTP supported." );
+        status( 400, "Bad protocol: " + protocol + ". Only HTTP supported." );
         return;
     }
     bool ok = false;
@@ -299,7 +314,7 @@ void HTTP::parseRequest( String l )
     while ( dot < protocol.length() && protocol[dot] != '.' )
         dot++;
     if ( protocol[dot] != '.' ) {
-        error( "400 Bad version number: " + protocol.mid( 6 ) );
+        status( 400, "Bad version number: " + protocol.mid( 6 ) );
         return;
     }
     uint major = protocol.mid( 5, dot-5 ).number( &ok );
@@ -307,7 +322,7 @@ void HTTP::parseRequest( String l )
     if ( ok )
         minor = protocol.mid( dot+1 ).number( &ok );
     if ( major != 1 ) {
-        error( "400 Only HTTP/1.0 and 1.1 are supported" );
+        status( 400, "Only HTTP/1.0 and 1.1 are supported" );
         return;
     }
     if ( minor > 0 )
@@ -316,6 +331,7 @@ void HTTP::parseRequest( String l )
         d->connectionClose = true;
     // XXX: is this right? should we accept HTTP/1.2 and answer as
     // though it were 1.1?
+    d->protocol = "HTTP/1.0";
 
     uint i = 0;
     while ( i < path.length() ) {
@@ -323,7 +339,7 @@ void HTTP::parseRequest( String l )
             bool ok = false;
             uint num = path.mid( i+1, 2 ).number( &ok, 16 );
             if ( !ok || path.length() < i + 3 ) {
-                error( "400 Bad percent escape: " + path.mid( i, 3 ) );
+                status( 400, "Bad percent escape: " + path.mid( i, 3 ) );
                 return;
             }
             d->path.append( (char)num );
@@ -338,20 +354,9 @@ void HTTP::parseRequest( String l )
     d->link = new Link( this, d->path );
     if ( !d->link->errorMessage().isEmpty() ) {
         addHeader( "X-Oryx-Debug: " + d->link->errorMessage() );
-        error( "404 No such page: " + d->path );
+        status( 404, "No such page: " + d->path );
         return;
     }
-}
-
-
-/*! Returns the HTTP parser's current state. The state changes after
-    parsing a byte, so the return value is bound to next incoming
-    byte, not the last one.
-*/
-
-HTTP::State HTTP::state() const
-{
-    return d->state;
 }
 
 
@@ -368,7 +373,7 @@ void HTTP::parseHeader( const String & h )
 
     uint i = h.find( ':' );
     if ( i < 1 ) {
-        error( "400 Bad header: " + h.simplified() );
+        status( 400, "Bad header: " + h.simplified() );
         return;
     }
     String n = h.mid( 0, i ).simplified().headerCased();
@@ -394,7 +399,7 @@ void HTTP::parseHeader( const String & h )
         parseList( n, v );
     }
     else if ( n == "Expect" ) {
-        error( "417 Expectations not supported" );
+        status( 417, "Expectations not supported" );
     }
     else if ( n == "Host" ) {
         parseHost( v );
@@ -429,26 +434,16 @@ void HTTP::parseHeader( const String & h )
 }
 
 
-/*! Computes and returns a list containing the response line and its
-    attendant headers. Each line does not have any trailing CRLF (or
-    other whitespace).
+/*! Records \a status and \a message as the status line to be sent,
+    unless another non-200 message has already been set.
 */
 
-StringList * HTTP::response()
+void HTTP::status( uint status, const String &message )
 {
-    return &d->headers;
-}
-
-
-/*! Records \a message as the error to be sent, unless another message
-    has already been set. \a message must start with a three-digit
-    error code.
-*/
-
-void HTTP::error( const String & message )
-{
-    if ( d->error.isEmpty() )
-        d->error = message;
+    if ( d->status == 200 ) {
+        d->status = status;
+        d->message = message;
+    }
 }
 
 
@@ -456,8 +451,9 @@ void HTTP::error( const String & message )
 
 void HTTP::clear()
 {
-    d->error.truncate( 0 );
     d->state = Request;
+    d->status = 200;
+    d->message = "OK";
 }
 
 
@@ -550,8 +546,8 @@ void HTTP::parseHost( const String & v )
     String correct = Configuration::text( Configuration::Hostname ).lower();
     if ( supplied == correct )
         return;
-    error( "400 No such host: " + supplied +
-           ". Only " + correct + " allowed" );
+    status( 400, "No such host: " + supplied +
+                 ". Only " + correct + " allowed" );
 }
 
 
@@ -675,8 +671,8 @@ void HTTP::parseList( const String & name, const String & value )
             parseListItem( name, item, q );
         }
         else if ( value[i] != ',' ) {
-            error( "400 Expected comma at header " + name + " position " +
-                   fn( i ) + ", saw " + value.mid( i ) );
+            status( 400, "Expected comma at header " + name + " position " +
+                    fn( i ) + ", saw " + value.mid( i ) );
             return;
         }
         else {
@@ -738,7 +734,7 @@ void HTTP::skipValues( const String & value, uint & i, uint & q )
             }
             expect( value, i, '"' );
             if ( isQ )
-                error( "400 q cannot be quoted" );
+                status( 400, "q cannot be quoted" );
         }
         else {
             n = i;
@@ -756,12 +752,12 @@ void HTTP::skipValues( const String & value, uint & i, uint & q )
                         bool ok;
                         q = q + decimals.mid( 0, 3 ).number( &ok );
                         if ( q > 1000 )
-                            error( "400 Quality can be at most 1.000" );
+                            status( 400, "Quality can be at most 1.000" );
                     }
                 }
                 else {
-                    error( "400 Could not parse quality value: " +
-                           value.mid( i ) );
+                    status( 400, "Could not parse quality value: " +
+                            value.mid( i ) );
                 }
             }
             else {
@@ -785,13 +781,13 @@ void HTTP::expect( const String & value, uint & i, char c )
     while ( value[i] == ' ' )
         i++;
     if ( value[i] != c ) {
-        String e( "400 Expected '" );
+        String e( "Expected '" );
         e.append( c );
         e.append( "' at position " +
                   fn( i ) +
                   ", saw " +
                   value.mid( i ) );
-        error( e );
+        status( 400, e );
     }
     i++;
     while ( value[i] == ' ' )
@@ -813,27 +809,4 @@ bool HTTP::isTokenChar( char c )
          | c == '{' | c == '}' | c == ' ' )
         return false;
     return true;
-}
-
-
-/*! Returns a pointer to the user associated with this server, or 0 if
-    there is no such user. (For archive mailboxes, 0 is usually
-    returned.)
-*/
-
-User *HTTP::user() const
-{
-    if ( d->session && !d->session->expired() )
-        return d->session->user();
-    return 0;
-}
-
-
-/*! Returns a pointer to the HttpSession object associated with this
-    server, or 0 if no such session exists.
-*/
-
-HttpSession *HTTP::session() const
-{
-    return d->session;
 }

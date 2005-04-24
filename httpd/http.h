@@ -23,15 +23,14 @@ public:
         Request, Header, Body, Parsed, Done
     };
     State state() const;
-    void parse();
     void parseRequest( String );
     void parseHeader( const String & );
-    StringList * response();
 
     class User * user() const;
     class HttpSession *session() const;
+    String body() const;
 
-    void error( const String & );
+    void status( uint, const String & );
     void addHeader( const String & );
 
 private:

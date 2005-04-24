@@ -38,6 +38,7 @@ static const char *webmailText =
 "<div class=bottom>"
 "</div>";
 
+#if 0
 static const char *accessControlText =
 "Access control";
 
@@ -75,14 +76,17 @@ static String htmlQuoted( const String & s )
     }
     return r;
 }
+#endif
 
 
-class PageData
-{
+class PageData {
 public:
     PageData()
-        : link( 0 ), uid( 0 ), server( 0 ), ready( false )
+        : type( Page::Error ),
+          link( 0 ), uid( 0 ), server( 0 ), ready( false )
     {}
+
+    Page::Type type;
 
     Link *link;
     String text;
@@ -99,9 +103,7 @@ public:
     eventually hands out its text().
 */
 
-
-/*! Constructs a Page for \a link on \a server.
-*/
+/*! Constructs a Page for \a link on \a server. */
 
 Page::Page( Link * link, HTTP *server )
     : d( new PageData )
@@ -110,121 +112,57 @@ Page::Page( Link * link, HTTP *server )
     d->server = server;
 
     if ( link->type() == Link::WebmailMessage ||
-         link->type() == Link::WebmailMailbox ||
-         link->type() == Link::Webmail )
+         link->type() == Link::WebmailMailbox )
     {
         if ( !d->server->session() ||
              !d->server->session()->user() ||
              d->server->session()->expired() )
         {
-            d->server->addHeader( "Location: /webmail/login" );
-            d->server->error( "302 Must login" );
+            d->server->status( 403, "Forbidden" );
+            d->ready = true;
             return;
         }
     }
 
-    if ( d->server->session() )
-        d->server->session()->refresh();
-
-    switch( link->type() ) {
-    case Link::ArchiveMailbox:
-    case Link::WebmailMailbox:
-        checkAccess();
-        fetchMailbox();
-        break;
+    switch ( link->type() ) {
     case Link::Webmail:
-        d->text = webmailText;
+        {
+            String body = d->server->body();
+            HttpSession *s = d->server->session();
+            if ( s && !s->expired() )
+                d->type = MainPage;
+            else if ( body.isEmpty() )
+                d->type = LoginForm;
+            else
+                d->type = LoginData;
+        }
         break;
-    case Link::ArchiveMessage:
-    case Link::WebmailMessage:
-        checkAccess();
-        fetchMessage();
-        break;
-    case Link::Error:
-        d->text = htmlQuoted( link->errorMessage() );
+
+    default:
+        d->type = Error;
         break;
     }
 }
 
 
-/*! Checks that the user associated with this Page has access to read
-    the mailbox, and sets an error if not.
-
-    If this Page isn't associated with a Mailbox, this function is a
-    noop.
-*/
-
-void Page::checkAccess()
+void Page::execute()
 {
-    Mailbox * m = d->link->mailbox();
-    if ( !m )
-        return;
+    switch( d->type ) {
+    case MainPage:
+        mainPage();
+        break;
 
-    // this is highly unsatisfying. we need to do ACL stuff very
-    // soon. what a pity that the IMAP ACL2 work isn't stable yet.
+    case LoginForm:
+        break;
 
-    Mailbox * home = 0;
-    if ( d->server->user() )
-        home = d->server->user()->home();
+    case LoginData:
+        break;
 
-    // test 1. if we have a user, we allow access to any folder in his
-    // home directory.
-    if ( home && m->name().startsWith( home->name() + "/" ) )
-        return;
-    // test 2. we allow access to any folder outside /users/.
-    if ( !m->name().startsWith( "/users/" ) )
-        return;
-    // test 3. we allow access to synthetic mailboxes. this is a
-    // little dubious.
-    if ( m->synthetic() )
-        return;
-
-    // nothing passed? then we have to fail the access. we really need
-    // ACL. RFC2086, here we come.
-    d->text = accessControlText;
-}
-
-
-/*! Fetch the mailbox data and present it. If an error has occured,
-    this is a noop.
-
-*/
-
-void Page::fetchMailbox()
-{
-    if ( !d->text.isEmpty() )
-        return;
-
-    Mailbox * m = d->link->mailbox();
-    if ( !m ) {
-        d->text = noSuchMailbox;
-        return;
+    case Error:
+        break;
     }
 }
 
-
-/*! Blah.
-*/
-
-void Page::fetchMessage()
-{
-    if ( !d->text.isEmpty() )
-        return;
-    Mailbox * mb = d->link->mailbox();
-    if ( !mb || !d->uid ) {
-        d->text = noSuchMessage;
-        return;
-    }
-    Message * m = mb->message( d->uid );
-    if ( !m ) {
-        d->text = noSuchMessage;
-        return;
-    }
-    if ( !m->hasHeaders() ) {
-    }
-    if ( !m->hasBodies() ) {
-    }
-}
 
 
 /*! Returns the HTML text of this page, or an empty string if the text
@@ -246,3 +184,29 @@ bool Page::ready() const
 {
     return d->ready;
 }
+
+
+/*! Displays the main page.
+*/
+
+void Page::mainPage()
+{
+    d->ready = true;
+    d->text = webmailText;
+}
+
+
+/*
+
+String Page::loginForm()
+{
+    d->ready = true;
+    d->text =
+        "<form method=post action=\"/\">"
+        "<input type=text name=login value=\"\">"
+        "<input type=password name=passwd value=\"\">"
+        "<input type=submit name=Login>"
+        "</form>";
+}
+
+*/

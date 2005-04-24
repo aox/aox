@@ -1,23 +1,30 @@
 #ifndef PAGE_H
 #define PAGE_H
 
+
+#include "event.h"
 #include "string.h"
 
+
 class Page
+    : public EventHandler
 {
 public:
     Page( class Link *, class HTTP * );
 
-    String text() const;
-
-    void checkAccess();
-    void fetchMailbox();
-    void fetchMessage();
+    enum Type { MainPage, LoginForm, LoginData, Error };
 
     bool ready() const;
+    String text() const;
+
+    void execute();
+
+private:
+    void mainPage();
 
 private:
     class PageData * d;
 };
+
 
 #endif
