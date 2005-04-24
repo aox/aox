@@ -157,6 +157,7 @@ void Page::execute()
         break;
 
     case LoginData:
+        loginData();
         break;
 
     case Error:
@@ -209,4 +210,35 @@ void Page::loginForm()
         "<input type=password name=passwd value=\"\">"
         "<input type=submit name=Login>"
         "</form>";
+}
+
+
+/*! ...
+*/
+
+void Page::loginData()
+{
+    String login, passwd;
+    String body = d->server->body();
+
+    uint i;
+    i = body.find( '&' );
+    if ( i > 0 ) {
+        String l = body.mid( 0, i );
+        String p = body.mid( i+1 );
+
+        if ( l.startsWith( "login=" ) )
+            login = l.mid( 6 );
+
+        if ( p.startsWith( "passwd=" ) )
+            passwd = p.mid( 7 );
+    }
+
+    if ( login.isEmpty() || passwd.isEmpty() ) {
+        loginForm();
+        return;
+    }
+
+    d->ready = true;
+    d->text = "<p>You sent us a username and password.";
 }

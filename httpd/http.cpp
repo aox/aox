@@ -120,10 +120,8 @@ void HTTP::process()
             parseRequest( line().simplified() );
     }
 
-    if ( d->state == Header ) {
-        while ( canReadHTTPLine() )
-            parseHeader( line() );
-    }
+    while ( d->state == Header && canReadHTTPLine() )
+        parseHeader( line() );
 
     if ( d->state == Body ) {
         Buffer *r = readBuffer();
@@ -279,6 +277,7 @@ void HTTP::parseRequest( String l )
         status( 400, "Really total parse error" );
         return;
     }
+    d->method = request;
     if ( request == "HEAD" ) {
         d->sendContents = false;
     }
