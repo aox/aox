@@ -154,7 +154,7 @@ bool Store::processFlagNames()
             unknown.append( *it );
         ++it;
     }
-    if ( unknown.isEmpty() ) 
+    if ( unknown.isEmpty() )
         return true;
     else if ( !d->flagCreator )
         d->flagCreator = new FlagCreator( this, unknown );
@@ -255,7 +255,7 @@ bool Store::dumpFetchResponses()
 /*! Removes the specified flags from the relevant messages in the
     database. If \a opposite, removes all other flags, but leaves the
     specified flags.
-  
+
     This is a not ideal for the case where a single flag is removed
     from a single messages or from a simple range of messages. In that
     case, we could use a PreparedStatement. Later.
@@ -265,9 +265,9 @@ void Store::removeFlags( bool opposite )
 {
     List<Flag>::Iterator it( d->flags.first() );
     String flags;
-    String sep( "(flag=" );
     if ( opposite )
-        sep = "not(flag=";
+        flags = "not";
+    String sep( "(flag=" );
     while( it ) {
         flags.append( sep );
         flags.append( fn( it->id() ) );
@@ -276,7 +276,7 @@ void Store::removeFlags( bool opposite )
         ++it;
     }
     flags.append( ")" );
-    
+
     Query * q = new Query( "delete from flags where mailbox=$1 and " +
                            flags + " and (" + d->s.where() + ")",
                            this );
