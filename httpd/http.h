@@ -25,6 +25,9 @@ public:
     State state() const;
     void parseRequest( String );
     void parseHeader( const String & );
+    void parseParameters();
+
+    String * parameter( const String & ) const;
 
     class User * user() const;
     class HttpSession *session() const;

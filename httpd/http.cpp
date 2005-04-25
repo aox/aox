@@ -2,6 +2,7 @@
 
 #include "http.h"
 
+#include "dict.h"
 #include "link.h"
 #include "httpsession.h"
 #include "loop.h"
@@ -46,6 +47,7 @@ public:
     StringList headers;
     StringList ignored;
     uint contentLength;
+    Dict< String > parameters;
 
     Codec * preferredCodec;
     uint codecQuality;
@@ -140,6 +142,7 @@ void HTTP::process()
                 log( "Received request-body of " + fn( d->contentLength ) +
                      " bytes for " + d->method );
             d->state = Parsed;
+            parseParameters();
         }
     }
 
@@ -242,6 +245,16 @@ String HTTP::body() const
 uint HTTP::status() const
 {
     return d->status;
+}
+
+
+/*! Returns a pointer to the String value of the parameter named \a s,
+    or 0 if the parameter was not specified in the request.
+*/
+
+String *HTTP::parameter( const String &s ) const
+{
+    return d->parameters.find( s );
 }
 
 
@@ -847,4 +860,35 @@ bool HTTP::isTokenChar( char c )
          | c == '{' | c == '}' | c == ' ' )
         return false;
     return true;
+}
+
+
+/*! This function parses parameter values specified in the request, so
+    as to make them available for later use through parameter().
+
+    Currently, we consider parameter data supplied in the request-body
+    of POST requests, but not in the request URI ("?foo=bar").
+*/
+
+void HTTP::parseParameters()
+{
+    StringList *p = StringList::split( '&', d->body );
+    StringList::Iterator it( p->first() );
+
+    while ( it ) {
+        String n, v;
+        String s = *it;
+
+        int i = s.find( '=' );
+        if ( i > 0 ) {
+            n = s.mid( 0, i-1 ).deURI();
+            v = s.mid( i+1 ).deURI();
+        }
+        else {
+            n = s.deURI();
+        }
+
+        d->parameters.insert( n, new String( v ) );
+        ++it;
+    }
 }
