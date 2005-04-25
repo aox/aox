@@ -442,6 +442,12 @@ String Page::message( Message *m )
         else if ( type == "text/html" ) {
             s.append( u.fromUnicode( bp->text() ) );
         }
+        else if ( type == "message/rfc822" ) {
+            s.append( message( bp->rfc822() ) );
+        }
+        else {
+            s.append( "Cannot render bodypart of type " + type );
+        }
 
         s.append( "<hr>" );
     }
