@@ -12,11 +12,16 @@
 #include "configuration.h"
 
 
-class HTTPData
-{
+class HTTPData {
 public:
     HTTPData()
-        : link( 0 ), session( 0 )
+        : state( HTTP::Request ),
+          status( 200 ),
+          use11( false ), sendContents( true ), acceptsHtml( true ),
+          acceptsPng( true ), acceptsLatin1( true ), acceptsUtf8( true ),
+          acceptsIdentity( false ), connectionClose( true ),
+          contentLength( 0 ),
+          link( 0 ), page( 0 ), session( 0 )
     {}
 
     HTTP::State state;
@@ -150,6 +155,9 @@ void HTTP::process()
 
         if ( d->session )
             addHeader( "Set-Cookie: session=\"" + d->session->key() + "\"" );
+
+        if ( d->use11 && d->connectionClose )
+            addHeader( "Connection: close" );
 
         enqueue( d->protocol + " " + fn( d->status ) + " " +
                  d->message + "\r\n" );
@@ -344,8 +352,7 @@ void HTTP::parseRequest( String l )
     }
     if ( minor > 0 )
         d->use11 = true;
-    else
-        d->connectionClose = true;
+    d->connectionClose = true;
     // XXX: is this right? should we accept HTTP/1.2 and answer as
     // though it were 1.1?
     d->protocol = "HTTP/1.0";
@@ -465,9 +472,12 @@ void HTTP::clear()
 {
     d->link = 0;
     d->page = 0;
+    d->body = 0;
     d->state = Request;
     d->status = 200;
+    d->session = 0;
     d->message = "OK";
+    d->headers.clear();
 }
 
 
