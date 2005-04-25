@@ -210,7 +210,7 @@ void Page::errorPage()
 {
     switch ( d->server->status() ) {
     case 404:
-        d->text = "<p>" + d->link->errorMessage();
+        d->text = "<p>No such page: " + d->link->string();
         break;
 
     case 403:

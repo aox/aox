@@ -13,7 +13,7 @@
 class LinkData {
 public:
     LinkData()
-        : type( Link::Error ), mailbox( 0 ), uid( 0 )
+        : type( Link::Unknown ), mailbox( 0 ), uid( 0 )
     {}
 
     String path;
@@ -21,7 +21,6 @@ public:
     Link::Type type;
     Mailbox * mailbox;
     uint uid;
-    String error;
 };
 
 
@@ -48,6 +47,36 @@ Link::Link( const String &s )
     : d( new LinkData )
 {
     parse( s );
+}
+
+
+/*! Returns the type of this Link, which may be ArchiveMailbox,
+    WebmailMailbox, Webmail, ArchiveMessage, WebmailMessage, or Unknown.
+*/
+
+Link::Type Link::type() const
+{
+    return d->type;
+}
+
+
+/*! Returns a pointer to the mailbox identified by this link, or 0 if
+    there is no such mailbox, or if this link does not identify a
+    mailbox.
+*/
+
+Mailbox *Link::mailbox() const
+{
+    return d->mailbox;
+}
+
+
+/*! Returns the UID, if this Link contains a UID, or 0 if not.
+*/
+
+uint Link::uid() const
+{
+    return d->uid;
 }
 
 
@@ -104,7 +133,7 @@ String Link::string() const
     case WebmailMessage:
         s = "/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
         break;
-    case Error:
+    case Unknown:
         s = d->path;
         break;
     }
@@ -112,7 +141,7 @@ String Link::string() const
 }
 
 
-/*! Parses a UID in \a s. */
+/*! Tries to parse \a s as a message uid. */
 
 void Link::parseUid( const String *s )
 {
@@ -130,7 +159,7 @@ void Link::parseUid( const String *s )
 }
 
 
-/*! Parses a mailbox id in \a s. If there isn't any, registers an error. */
+/*! Tries to parse \a s as a mailbox id. */
 
 void Link::parseMailbox( const String *s )
 {
@@ -144,59 +173,6 @@ void Link::parseMailbox( const String *s )
     if ( ok )
         m = Mailbox::find( id );
     if ( !m )
-        error( "Could not find valid mailbox id" );
+        d->type = Unknown;
     d->mailbox = m;
-}
-
-
-
-/*! Records \a msg as a parse error, assuming that no other error has
-    been recorded yet. Only the first error is recorded/reported.
-*/
-
-void Link::error( const String & msg )
-{
-    d->type = Error;
-    if ( d->error.isEmpty() )
-        d->error = msg;
-}
-
-
-/*! Returns the error message corresponding to the first error seen
-    while parsing the link, or an empty string if all is well.
-*/
-
-String Link::errorMessage() const
-{
-    return d->error;
-}
-
-
-/*! Returns a pointer to the mailbox identified by this link, or 0 if
-    there is no such mailbox, or if this link does not identify a
-    mailbox.
-*/
-
-Mailbox *Link::mailbox() const
-{
-    return d->mailbox;
-}
-
-
-/*! Returns the UID, if this Link contains a UID, or 0 if not.
-*/
-
-uint Link::uid() const
-{
-    return d->uid;
-}
-
-
-/*! Returns the type of this Link, which may be ArchiveMailbox,
-    WebmailMailbox, Webmail, ArchiveMessage, WebmailMessage, or Error.
-*/
-
-Link::Type Link::type() const
-{
-    return d->type;
 }
