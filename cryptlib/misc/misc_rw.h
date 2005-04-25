@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
-*		Miscellaneous (Non-ASN.1) Routines Constants and Structures			*
-*						Copyright Peter Gutmann 1992-2002					*
+*				Miscellaneous (Non-ASN.1) Routines Header File				*
+*					  Copyright Peter Gutmann 1992-2004						*
 *																			*
 ****************************************************************************/
 
@@ -13,19 +13,20 @@
 #if defined( INC_ALL )
   #include "stream.h"
 #elif defined( INC_CHILD )
-  #include "stream.h"
+  #include "../io/stream.h"
 #else
-  #include "misc/stream.h"
+  #include "io/stream.h"
 #endif /* Compiler-specific includes */
 
 /****************************************************************************
 *																			*
-*							ASN.1 Constants and Macros						*
+*								Constants and Macros						*
 *																			*
 ****************************************************************************/
 
 /* Sizes of encoded integer values */
 
+#define UINT16_SIZE		2
 #define UINT32_SIZE		4
 #define UINT64_SIZE		8
 
@@ -34,6 +35,13 @@
 *								Function Prototypes							*
 *																			*
 ****************************************************************************/
+
+/* Read 16-bit integer values.  Although in theory we could perform the read
+   much more simply with ( sgetc( stream ) << 8 ) | sgetc( stream ), this 
+   will break with some compilers that reorder expressions */
+
+int readUint16( STREAM *stream );
+int writeUint16( STREAM *stream, const int value );
 
 /* Read and write 32- and 64-bit integer values */
 
@@ -49,43 +57,64 @@ int writeUint32Time( STREAM *stream, const time_t timeVal );
 int readUint64Time( STREAM *stream, time_t *timeVal );
 int writeUint64Time( STREAM *stream, const time_t timeVal );
 
-/* Read and write strings and (large) integers preceded by 32-bit lengths 
-   (the difference between the two being that integers require handling of
-   sign bits and zero-padding) */
+/* Read and write strings preceded by 32-bit lengths */
 
-#define sizeofString32( stringLength )	( UINT32_SIZE + stringLength )
+#define sizeofString32( string, stringLength ) \
+		( ( stringLength > 0 ) ? ( UINT32_SIZE + stringLength ) : \
+								 ( UINT32_SIZE + strlen( string ) ) )
 
 int readString32( STREAM *stream, void *string, int *stringLength,
 				  const int maxLength );
 int writeString32( STREAM *stream, const void *string,
 				   const int stringLength );
-int readInteger32( STREAM *stream, void *integer, int *integerLength,
-				   const int maxLength );
-int writeInteger32( STREAM *stream, const void *integer,
-					const int integerLength );
+
+/* Read a raw object preceded by a 32-bit length */
+
+int readRawObject32( STREAM *stream, void *buffer, int *bufferLength,
+					 const int maxLength );
+
+/* Read a universal type and discard it (used to skip unknown or unwanted
+   types) */
+
+int readUniversal16( STREAM *stream );
+int readUniversal32( STREAM *stream );
 
 /* Read and write unsigned (large) integers preceded by 16- and 32-bit 
    lengths, lengths in bits */
 
+#define sizeofInteger32( integer, integerLength ) \
+		( UINT32_SIZE + ( ( ( ( BYTE * ) integer )[ 0 ] & 0x80 ) ? 1 : 0 ) + \
+						integerLength )
+
+int readInteger16U( STREAM *stream, void *integer, int *integerLength,
+					const int minLength, const int maxLength );
 int readInteger16Ubits( STREAM *stream, void *integer, int *integerLength,
-						const int maxLength );
+						const int minLength, const int maxLength );
+int readInteger32( STREAM *stream, void *integer, int *integerLength,
+				   const int minLength, const int maxLength );
 int readInteger32Ubits( STREAM *stream, void *integer, int *integerLength,
-						const int maxLength );
+						const int minLength, const int maxLength );
+int writeInteger16U( STREAM *stream, const void *integer,
+					 const int integerLength );
 int writeInteger16Ubits( STREAM *stream, const void *integer,
 						 const int integerLength );
+int writeInteger32( STREAM *stream, const void *integer,
+					const int integerLength );
 int writeInteger32Ubits( STREAM *stream, const void *integer,
 						 const int integerLength );
 
 /* Read and write bignum integers */
 
-int sizeofBignumInteger32( const void *bignum );
-int readBignumInteger32( STREAM *stream, void *bignum, const int minBytes, 
-						 const int maxBytes );
-int writeBignumInteger32( STREAM *stream, const void *bignum );
-
+int readBignumInteger16U( STREAM *stream, void *bignum, const int minLength, 
+						  const int maxLength );
+int writeBignumInteger16U( STREAM *stream, const void *bignum );
 int readBignumInteger16Ubits( STREAM *stream, void *bignum, const int minBits, 
 							  const int maxBits );
 int writeBignumInteger16Ubits( STREAM *stream, const void *bignum );
+int sizeofBignumInteger32( const void *bignum );
+int readBignumInteger32( STREAM *stream, void *bignum, const int minLength, 
+						 const int maxLength );
+int writeBignumInteger32( STREAM *stream, const void *bignum );
 
 /* PGP-specific read/write routines */
 

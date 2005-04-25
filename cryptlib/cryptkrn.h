@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib Kernel Interface Header File 				*
-*						Copyright Peter Gutmann 1992-2002					*
+*						Copyright Peter Gutmann 1992-2004					*
 *																			*
 ****************************************************************************/
 
@@ -9,35 +9,37 @@
 
 #define _CRYPTKRN_DEFINED
 
-/* Macros to handle code correctness checking of critical sections of the 
-   code such as the kernel and CSPRNG (sed quis custodiet ipsos custodes?).  
-   By default these are mapped directly to C assertions, but they can be 
-   remapped for use by an external verifier if USE_EXTERNAL_CHECKER is 
+/* Macros to handle code correctness checking of critical sections of the
+   code such as the kernel and CSPRNG (sed quis custodiet ipsos custodes?).
+   By default these are mapped directly to C assertions, but they can be
+   remapped for use by an external verifier if USE_EXTERNAL_CHECKER is
    defined (typically this means turning them into no-ops for ADL) */
 
 #if !defined( USE_EXTERNAL_CHECKER ) && !defined( NDEBUG )
 
 /* Value of a variable at the start of block scope, used for postcondition
-   predicates.  The pointer is declared as char * rather than the more
-   general void * in order to allow range comparisons.  Note that these
-   declarations must be the last in any set of variable declarations since
-   the release build expands them to nothing, leaving only the terminating
-   semicolon on the line, which must follow all other declarations */
+   predicates.  The pointer is declared as BYTE * rather than the more
+   general void * in order to allow range comparisons, and a BYTE * rather
+   than char * because of compilers that complain about comparisons between
+   signed and unsigned pointer types.  Note that these declarations must be
+   the last in any set of variable declarations since the release build
+   expands them to nothing, leaving only the terminating semicolon on the
+   line, which must follow all other declarations */
 
 #define ORIGINAL_VALUE( x )			orig_##x
 #define ORIGINAL_INT( x )			const int orig_##x = ( int ) x
-#define ORIGINAL_PTR( x )			const char *orig_##x = ( const char * ) x
+#define ORIGINAL_PTR( x )			const BYTE *orig_##x = ( const BYTE * ) x
 
 /* Sometimes we can't use the preprocessor tricks above because the value
-   being saved isn't a primitive type or the variable value isn't available 
-   at the start of the block, in which case we have to use the somewhat less 
+   being saved isn't a primitive type or the variable value isn't available
+   at the start of the block, in which case we have to use the somewhat less
    transaparent macros below */
 
 #define ORIGINAL_INT_VAR( x, y )	const int orig_##x = ( y )
 #define DECLARE_ORIGINAL_INT( x )	int orig_##x
 #define STORE_ORIGINAL_INT( x, y )	orig_##x = ( y )
 
-/* Sometimes we need to declare temporary intermediate variables to avoid 
+/* Sometimes we need to declare temporary intermediate variables to avoid
    having to cram a dozen lines of expression into a single assertion, the
    following define allows this */
 
@@ -59,6 +61,16 @@
 		for( iter = ( start ); iter < ( end ); iter++ ) \
 			assert( condition ); \
 		}
+
+#define EXISTS( iter, start, end, condition ) \
+		{ \
+		int iter; \
+		\
+		for( iter = ( start ); iter < ( end ); iter++ ) \
+			if( condition ) \
+				break; \
+		assert( iter < ( end ) ); \
+		}
 #else
 
 /* Non-debug version, no-op out the various checks */
@@ -75,6 +87,7 @@
 #define INV( x )
 #define POST( x )
 #define FORALL( a, b, c, d )
+#define EXISTS( a, b, c, d )
 
 #endif /* USE_EXTERNAL_CHECKER || NDEBUG */
 
@@ -84,7 +97,11 @@
 *																			*
 ****************************************************************************/
 
-/* The object types */
+/* The object types.  Sometimes several object types can be packed into
+   a single object-type variable (for example an indication than both a
+   context and a cert are valid at this location), to ensure that the data
+   type is wide enough to contain it we use a range-extension to force it
+   to 32 bits */
 
 typedef enum {
 	OBJECT_TYPE_NONE,				/* No object type */
@@ -95,34 +112,35 @@ typedef enum {
 	OBJECT_TYPE_DEVICE,				/* Crypto device */
 	OBJECT_TYPE_SESSION,			/* Secure session */
 	OBJECT_TYPE_USER,				/* User object */
-	OBJECT_TYPE_LAST				/* Last object type */
+	OBJECT_TYPE_LAST,				/* Last object type */
+	OBJECT_RANGEEXTEND = 0x0FFFFFFL	/* Range extension */
 	} OBJECT_TYPE;
 
-/* Object subtypes.  The subtype names aren't needed by the kernel (it just 
-   treats the values as an anonymous bitfield during an ACL check) but they 
-   are used in the ACL definitions and by the code that calls 
+/* Object subtypes.  The subtype names aren't needed by the kernel (it just
+   treats the values as an anonymous bitfield during an ACL check) but they
+   are used in the ACL definitions and by the code that calls
    krnlCreateObject(), so they need to be defined here.
 
-   Because there are so many object subtypes we have to split them across 
-   two 32-bit bitfields in order to permit a simple bitwise and check, if we 
-   ordered them by the more obvious major and minor type (that is, object 
-   type and subtype) this wouldn't be necessary but it would increase the 
-   size of the compiled ACL table (from 2 * 32 bits to NO_OBJECT_TYPES * 
-   32 bits) and would make automated consistency checking difficult since 
-   it's no longer possible to spot a case where a subtype bit for object A 
-   has been set for object B.  
-   
+   Because there are so many object subtypes we have to split them across
+   two 32-bit bitfields in order to permit a simple bitwise AND check, if we
+   ordered them by the more obvious major and minor type (that is, object
+   type and subtype) this wouldn't be necessary but it would increase the
+   size of the compiled ACL table (from 2 * 32 bits to NO_OBJECT_TYPES *
+   32 bits) and would make automated consistency checking difficult since
+   it's no longer possible to spot a case where a subtype bit for object A
+   has inadvertently been set for object B.
+
    To resolve this, we divide the subtype bit field into two smaller bit
-   fields (classes) with the high two bits designating which class the 
-   subtype is in (actually we use the bits one below the high bit since 
+   fields (classes) with the high two bits designating which class the
+   subtype is in (actually we use the bits one below the high bit since
    this may be interpreted as a sign bit by some preprocessors even if it's
    declared as a xxxxUL, so in the following discussion we're talking about
-   logical rather than physical high bits).  Class A is always 01xxx..., 
-   class B is always 10xxx...  If we get an entry that has 11xxx... we know 
-   that that ACL entry is inconsistent.  This isn't pretty, but it's the 
-   least ugly way to do it which still allows the ACL table to be built 
+   logical rather than physical high bits).  Class A is always 01xxx...,
+   class B is always 10xxx...  If we get an entry that has 11xxx... we know
+   that the ACL entry is inconsistent.  This isn't pretty, but it's the
+   least ugly way to do it that still allows the ACL table to be built
    using the preprocessor.
-   
+
    Note that the device and keyset values must be in the same class, since
    they're interchangeable for many message types and this simplifies some
    of the MKACL() macros that only need to initialise one class type */
@@ -180,16 +198,17 @@ typedef enum {
 #define SUBTYPE_SESSION_CMP_SVR		0x40004000L
 #define SUBTYPE_SESSION_SCEP		0x40008000L
 #define SUBTYPE_SESSION_SCEP_SVR	0x40010000L
+#define SUBTYPE_SESSION_CERT_SVR	0x40020000L
 
-#define SUBTYPE_USER_SO				0x40020000L
-#define SUBTYPE_USER_NORMAL			0x40040000L
-#define SUBTYPE_USER_CA				0x40080000L
+#define SUBTYPE_USER_SO				0x40040000L
+#define SUBTYPE_USER_NORMAL			0x40080000L
+#define SUBTYPE_USER_CA				0x40100000L
 
-/* Message flags.  Normally messages can only be sent to external objects, 
-   however we can also explicitly send them to internal objects which means 
-   that the external access ACL isn't checked.  This can only be done from 
-   inside cryptlib, for example when an object sends a message to a 
-   subordinate object */
+/* Message flags.  Normally messages can only be sent to external objects,
+   however we can also explicitly send them to internal objects which means
+   that we use the internal rather than external access ACL.  This can only
+   be done from inside cryptlib, for example when an object sends a message
+   to a subordinate object */
 
 #define MESSAGE_FLAG_INTERNAL		0x100
 #define MKINTERNAL( message )		( message | MESSAGE_FLAG_INTERNAL )
@@ -198,9 +217,9 @@ typedef enum {
 
 #define MESSAGE_MASK				0xFF
 
-/* The message types that can be sent to an object via krnlSendMessage().  
-   By default messages can only be sent to externally visible objects, there 
-   are also internal versions that can be sent to all objects.  The object 
+/* The message types that can be sent to an object via krnlSendMessage().
+   By default messages can only be sent to externally visible objects, there
+   are also internal versions that can be sent to all objects.  The object
    messages have the following arguments:
 
 	Type								DataPtr			Value
@@ -216,8 +235,6 @@ typedef enum {
 	MESSAGE_CHECK						NULL			requestedUse
 
 	MESSAGE_CHANGENOTIFY				&value			attributeType
-										Data from message that triggered the
-										changeNotify
 
 	MESSAGE_CTX_ENC/DEC/SIG/SIGCHK/HASH	&value			valueLength
 	MESSAGE_CTX_GENKEY					NULL			isAsync
@@ -242,8 +259,8 @@ typedef enum {
 	MESSAGE_NONE,				/* No message */
 
 	/* Control messages to externally visible objects (the internal versions
-	   are defined further down).  These messages are handled directly by 
-	   the kernel and don't affect the object itself except for 
+	   are defined further down).  These messages are handled directly by
+	   the kernel and don't affect the object itself except for
 	   MESSAGE_DESTROY which is generated by the kernel in response to the
 	   final MESSAGE_DECREFCOUNT sent to an object.  These are forwarded out
 	   to the object to get it to clean up its state before the kernel
@@ -255,26 +272,26 @@ typedef enum {
 	MESSAGE_SETDEPENDENT,		/* Set dependent object (e.g.ctx->dev) */
 	MESSAGE_CLONE,				/* Clone the object */
 
-	/* Attribute messages.  The reason for the numeric vs.non-numeric 
-	   attribute messages is that the data types these work with are 
-	   explicitly specified by the user based on which function they call 
-	   to get/set them rather than being implicitly specified by the 
-	   attribute ID.  Because of the explicit typing, the handlers have to 
-	   be able to check to make sure the actual type matches what the user 
-	   specified, so we need one message type for numeric attributes and one 
-	   for string attributes */
+	/* Attribute messages.  The reason for the numeric vs.non-numeric
+	   attribute messages is that for improved error checking the data types
+	   that these work with are explicitly specified by the user based on
+	   which function they call to get/set them rather than being implicitly
+	   specified by the attribute ID.  Because of the explicit typing, the
+	   handlers have to be able to check to make sure that the actual type
+	   matches what the user specified, so we need one message type for
+	   numeric attributes and one for string attributes */
 	MESSAGE_GETATTRIBUTE,		/* Get numeric object attribute */
 	MESSAGE_GETATTRIBUTE_S,		/* Get string object attribute */
 	MESSAGE_SETATTRIBUTE,		/* Set numeric object attribute */
 	MESSAGE_SETATTRIBUTE_S,		/* Set string object attribute */
 	MESSAGE_DELETEATTRIBUTE,	/* Delete object attribute */
 
-	/* General messages.  The check message is used for informational 
-	   purposes only so that problems (e.g. attempt to use a public key 
-	   where a private key is required) can be reported to the user 
-	   immediately as a function parameter error rather than appearing much 
-	   later as an object use permission error when the kernel blocks the 
-	   access.  Final access checking is always still done at the kernel 
+	/* General messages.  The check message is used for informational
+	   purposes only so that problems (e.g. an attempt to use a public key
+	   where a private key is required) can be reported to the user
+	   immediately as a function parameter error rather than appearing much
+	   later as an object use permission error when the kernel blocks the
+	   access.  Final access checking is always still done at the kernel
 	   level to avoid the confused deputy problem */
 	MESSAGE_COMPARE,			/* Compare objs. or obj.properties */
 	MESSAGE_CHECK,				/* Check object info */
@@ -313,7 +330,7 @@ typedef enum {
 	MESSAGE_KEY_CERTMGMT,		/* Keyset: Cert management */
 	MESSAGE_LAST,				/* Last valid message type */
 
-	/* Internal object versions of the above messages */
+	/* Internal-object versions of the above messages */
 	IMESSAGE_DESTROY = MKINTERNAL( MESSAGE_DESTROY ),
 	IMESSAGE_INCREFCOUNT = MKINTERNAL( MESSAGE_INCREFCOUNT ),
 	IMESSAGE_DECREFCOUNT = MKINTERNAL( MESSAGE_DECREFCOUNT ),
@@ -376,9 +393,21 @@ typedef enum {
 	MESSAGE_COMPARE_LAST			/* Last possible compare type */
 	} MESSAGE_COMPARE_TYPE;
 
-/* The checks that MESSAGE_CHECK performs */
+/* The checks that MESSAGE_CHECK performs.  There are a number of variations
+   of the checking we can perform, either the object is initialised in a
+   state to perform the required action (meaning that it has to be in the
+   high state), the object is ready to be initialised for the required
+   action, for example an encryption context about to have a key loaded for
+   encryption (meaning that it has to be in the low state), or the check is
+   on a passive container object that constrains another object (for example
+   a cert being attached to a context) for which the state isn't important
+   in this instance.  Usually we check to make sure that the cert is in the
+   high state, but when a cert is being created/imported it may not be in
+   the high state yet at the time the check is being carried out */
 
 typedef enum {
+	/* Standard checks, for which the object must be initialised in a state
+	   to perform this operation */
 	MESSAGE_CHECK_NONE,				/* No check */
 	MESSAGE_CHECK_PKC,				/* Public or private key context */
 	MESSAGE_CHECK_PKC_PRIVATE,		/* Private key context */
@@ -391,18 +420,46 @@ typedef enum {
 	MESSAGE_CHECK_CRYPT,			/* Conventional encryption context */
 	MESSAGE_CHECK_HASH,				/* Hash context */
 	MESSAGE_CHECK_MAC,				/* MAC context */
-	MESSAGE_CHECK_KEYGEN,			/* Key generation capability */
+
+	/* Checks that an object is ready to be initialised to perform this
+	   operation */
+	MESSAGE_CHECK_CRYPT_READY,		/* Ready for conv.encr. init */
+	MESSAGE_CHECK_MAC_READY,		/* Ready for MAC init */
+	MESSAGE_CHECK_KEYGEN_READY,		/* Ready for key generation */
+
+	/* Checks on purely passive container objects that constrain action
+	   objects */
+	MESSAGE_CHECK_PKC_ENCRYPT_AVAIL,/* Encryption available */
+	MESSAGE_CHECK_PKC_DECRYPT_AVAIL,/* Decryption available */
+	MESSAGE_CHECK_PKC_SIGCHECK_AVAIL,	/* Signature check available */
+	MESSAGE_CHECK_PKC_SIGN_AVAIL,	/* Signature available */
+	MESSAGE_CHECK_PKC_KA_EXPORT_AVAIL,	/* Key agreement - export available */
+	MESSAGE_CHECK_PKC_KA_IMPORT_AVAIL,	/* Key agreement - import available */
+
+	/* Misc.checks for meta-capabilities not directly connected with object
+	   actions */
 	MESSAGE_CHECK_CA,				/* Cert signing capability */
 	MESSAGE_CHECK_LAST				/* Last possible check type */
 	} MESSAGE_CHECK_TYPE;
 
-/* Symbolic defines for the set dependent object message */
+/* The notifications that a MESSAGE_CHANGENOTIFY can deliver */
+
+typedef enum {
+	MESSAGE_CHANGENOTIFY_NONE,		/* No notification */
+	MESSAGE_CHANGENOTIFY_STATUS,	/* Object status change */
+	MESSAGE_CHANGENOTIFY_STATE,		/* Object should save/rest.int.state */
+	MESSAGE_CHANGENOTIFY_OBJHANDLE,	/* Object cloned, handle changed */
+	MESSAGE_CHANGENOTIFY_OWNERHANDLE,	/* Object cloned, owner handle changed */
+	MESSAGE_CHANGENOTIFY_LAST		/* Last possible notification type */
+	} MESSAGE_CHANGENOTIFY_TYPE;
+
+/* Symbolic defines for the MESSAGE_SETDEPENDENT message */
 
 #define SETDEP_OPTION_INCREF	TRUE	/* Increment dep.objs reference count */
 #define SETDEP_OPTION_NOINCREF	FALSE	/* Don't inc.dep.objs reference count */
 
-/* When getting/setting string data which consists of (value, length) pairs, 
-   we pass a pointer to a value-and-length structure rather than a pointer to 
+/* When getting/setting string data that consists of (value, length) pairs,
+   we pass a pointer to a value-and-length structure rather than a pointer to
    the data itself */
 
 typedef struct {
@@ -416,8 +473,8 @@ typedef struct {
 	( msgDataPtr )->length = ( dataLength ); \
 	}
 
-/* Some messages communicate standard data values that are used again and 
-   again so we predefine values for these which can be used globally */
+/* Some messages communicate standard data values that are used again and
+   again, so we predefine values for these that can be used globally */
 
 #define MESSAGE_VALUE_TRUE			( ( void * ) &messageValueTrue )
 #define MESSAGE_VALUE_FALSE			( ( void * ) &messageValueFalse )
@@ -436,7 +493,7 @@ extern const int messageValueCryptUnused, messageValueCryptUseDefault;
 extern const int messageValueCursorFirst, messageValueCursorNext;
 extern const int messageValueCursorPrevious, messageValueCursorLast;
 
-/* Test for membership within an attribute class */
+/* Check for membership within an attribute class */
 
 #define isAttribute( attribute ) \
 	( ( attribute ) > CRYPT_ATTRIBUTE_NONE && \
@@ -445,7 +502,7 @@ extern const int messageValueCursorPrevious, messageValueCursorLast;
 	( ( attribute ) > CRYPT_IATTRIBUTE_FIRST && \
 	  ( attribute ) < CRYPT_IATTRIBUTE_LAST )
 
-/* Check whether a message is in a given message class, used in object 
+/* Check whether a message is in a given message class, used in object
    message handlers */
 
 #define isAttributeMessage( message ) \
@@ -460,7 +517,7 @@ extern const int messageValueCursorPrevious, messageValueCursorLast;
 
 /* The following handles correspond to built-in fixed object types that are
    available throughout the architecture.  Currently there are two objects,
-   an internal system object that encapsulates the built-in RNG and the 
+   an internal system object that encapsulates the built-in RNG and the
    built-in mechanism types (if this ever becomes a bottleneck the two can be
    separated into different objects) and a default user object which is used
    when there are no explicit user objects being employed */
@@ -470,9 +527,9 @@ extern const int messageValueCursorPrevious, messageValueCursorLast;
 
 #define NO_SYSTEM_OBJECTS		2	/* Total number of system objects */
 
-/* We limit the maximum number of objects to a sensible value to prevent 
+/* We limit the maximum number of objects to a sensible value to prevent
    deliberate/accidental DoS attacks.  The following represents about 32MB
-   of object data which should be a good indication that there are more
+   of object data, which should be a good indication that there are more
    objects present than there should be */
 
 #define MAX_OBJECTS				16384
@@ -490,20 +547,20 @@ extern const int messageValueCursorPrevious, messageValueCursorLast;
    action (for example perform PKCS #1 padding and then transform a block of
    data).
 
-   Each object that processes direct action messages can can have a range of 
-   permission settings that control how action messages sent to it are 
-   handled.  The most common case is that the action isn't available for 
-   this object, ACTION_PERM_NOTAVAIL.  This is an all-zero permission, so 
-   the default is deny-all unless the action is explicitly permitted.  The 
-   other permissions are ACTION_PERM_NONE, which means that the action is in 
-   theory available but has been turned off, ACTION_PERM_NONE_EXTERNAL, 
-   which means that the action is only valid if the message is coming from 
-   inside cryptlib, and ACTION_PERM_ALL, which means that the action is 
-   available for anyone.  In order to set all permissions to a certain value 
-   (e.g. NONE_EXTERNAL), we define overall values xxx_ALL which (in 
-   combination with the kernel-enforced ratchet) can be used to set all 
+   Each object that processes direct action messages can can have a range of
+   permission settings that control how action messages sent to it are
+   handled.  The most common case is that the action isn't available for
+   this object, ACTION_PERM_NOTAVAIL.  This is an all-zero permission, so
+   the default is deny-all unless the action is explicitly permitted.  The
+   other permissions are ACTION_PERM_NONE, which means that the action is in
+   theory available but has been turned off, ACTION_PERM_NONE_EXTERNAL,
+   which means that the action is only valid if the message is coming from
+   inside cryptlib, and ACTION_PERM_ALL, which means that the action is
+   available for anyone.  In order to set all permissions to a certain value
+   (e.g. NONE_EXTERNAL), we define overall values xxx_ALL that (in
+   combination with the kernel-enforced ratchet) can be used to set all
    settings to (at most) the given value.
-   
+
    The order of the action bits is:
 
 	  hash   sign  encr
@@ -512,16 +569,16 @@ extern const int messageValueCursorPrevious, messageValueCursorLast;
 	 |	   |	 |
 	kgen sigch  decr
 
-   x.. .0 .. .0 .. .0	Hex digits
+    x. .x|x. .x|x. .x	Hex digits
 
    Common settings are 0xCFF (new PKC, all operations), 0x0F (key-loaded
-   conv., all operations), and 0xAA (key-loaded PKC, internal-only 
+   conv., all operations), and 0xAA (key-loaded PKC, internal-only
    operations).
-   
-   The kernel enforces a ratchet for these setting which only allows them to
+
+   The kernel enforces a ratchet for these setting that only allows them to
    be set to a more restrictive value than their existing one.  If a setting
-   starts out as not available on object creation, it can never be enabled. 
-   If a setting starts as 'none-external', it can only be set to a straight 
+   starts out as not available on object creation, it can never be enabled.
+   If a setting starts as 'none-external', it can only be set to a straight
    'none', but never to 'all' */
 
 #define ACTION_PERM_NOTAVAIL		0x00
@@ -553,17 +610,19 @@ extern const int messageValueCursorPrevious, messageValueCursorLast;
 
 typedef enum {
 	MECHANISM_NONE,				/* No mechanism */
-	MECHANISM_PKCS1,			/* PKCS #1 sign/encrypt */
-	MECHANISM_PKCS1_PGP,		/* PKCS #1 using PGP formatting */
-	MECHANISM_PKCS1_RAW,		/* PKCS #1 returning uninterpreted data */
-	MECHANISM_PKCS5,			/* PKCS #5 derive */
-	MECHANISM_PKCS12,			/* PKCS #12 derive */
-	MECHANISM_CMS,				/* CMS key wrap */
-	MECHANISM_KEA,				/* KEA key agreement */
-	MECHANISM_SSL,				/* SSL derive */
-	MECHANISM_TLS,				/* TLS derive */
-	MECHANISM_CMP,				/* CMP/Entrust derive */
-	MECHANISM_PGP,				/* OpenPGP S2K derive */
+	MECHANISM_ENC_PKCS1,		/* PKCS #1 encrypt */
+	MECHANISM_ENC_PKCS1_PGP,	/* PKCS #1 using PGP formatting */
+	MECHANISM_ENC_PKCS1_RAW,	/* PKCS #1 returning uninterpreted data */
+	MECHANISM_ENC_CMS,			/* CMS key wrap */
+	MECHANISM_ENC_KEA,			/* KEA key agreement */
+	MECHANISM_SIG_PKCS1,		/* PKCS #1 sign */
+	MECHANISM_SIG_SSL,			/* SSL sign with dual hashes */
+	MECHANISM_DERIVE_PKCS5,		/* PKCS #5 derive */
+	MECHANISM_DERIVE_PKCS12,	/* PKCS #12 derive */
+	MECHANISM_DERIVE_SSL,		/* SSL derive */
+	MECHANISM_DERIVE_TLS,		/* TLS derive */
+	MECHANISM_DERIVE_CMP,		/* CMP/Entrust derive */
+	MECHANISM_DERIVE_PGP,		/* OpenPGP S2K derive */
 	MECHANISM_PRIVATEKEYWRAP,	/* Private key wrap */
 	MECHANISM_PRIVATEKEYWRAP_PKCS8,	/* PKCS #8 private key wrap */
 	MECHANISM_PRIVATEKEYWRAP_PGP,	/* PGP private key wrap */
@@ -573,35 +632,30 @@ typedef enum {
 
 /* A structure to hold information needed by the key export/import mechanism.
    The key can be passed as raw key data or as a context if tied to hardware
-   that doesn't allow keying material outside the hardware's security 
+   that doesn't allow keying material outside the hardware's security
    perimeter:
 
-	PKCS #1		wrappedData = wrapped key
+	PKCS #1,	wrappedData = wrapped key
 	PKCS #1 PGP	keyData = -
 				keyContext = context containing key
 				wrapContext = wrap/unwrap PKC context
 				auxContext = CRYPT_UNUSED
 	PKCS #1	raw	wrappedData = wrapped raw data
-				keyData = uninterpreted raw data
+				keyData = raw data
 				keyContext = CRYPT_UNUSED
 				wrapContext = wrap/unwrap PKC context
 				auxContext = CRYPT_UNUSED
 	CMS			wrappedData = wrapped key
-				keyData = raw key - or -
+				keyData = -
 				keyContext = context containing key
 				wrapContext = wrap/unwrap conventional context
 				auxContext = CRYPT_UNUSED
 	KEA			wrappedData = len + TEK( MEK ), len + UKM
-				keyData = NULL
+				keyData = -
 				keyContext = MEK
 				wrapContext = recipient KEA public key
 				auxContext = originator KEA private key
-	ssh			wrappedData = double-wrapped key
-				keyData = raw key
-				keyContext = CRYPT_UNUSED
-				wrapContext = server PKC key
-				auxContext = host PKC key
-	Private		wrappedData = Padded encrypted private key components
+	Private		wrappedData = padded encrypted private key components
 	key wrap	keyData = -
 				keyContext = context containing private key
 				wrapContext = wrap/unwrap conventional context
@@ -621,20 +675,25 @@ typedef struct {
 
 	PKCS #1		signature = signature
 				hashContext = hash to sign
+				signContext = signing key
+
+	SSL			signature = signature
+				hashContext, hashContext2 = dual hashes to sign
 				signContext = signing key */
 
 typedef struct {
 	void *signature;			/* Signature */
 	int signatureLength;
 	CRYPT_CONTEXT hashContext;	/* Hash context */
+	CRYPT_CONTEXT hashContext2;	/* Secondary hash context */
 	CRYPT_HANDLE signContext;	/* Signing context */
 	} MECHANISM_SIGN_INFO;
 
 /* A structure to hold information needed by the key derive mechanism:
 
-	PKCS #5		dataOut = key data
-	CMP			dataIn = password
-	PGP			hashAlgo = hash algorithm
+	PKCS #5,	dataOut = key data
+	CMP, PGP	dataIn = password
+				hashAlgo = hash algorithm
 				salt = salt
 				iterations = iteration count
 	SSL/TLS		dataOut = key data/master secret
@@ -654,7 +713,7 @@ typedef struct {
 	int iterations;				/* Iterations of derivation function */
 	} MECHANISM_DERIVE_INFO;
 
-/* Macros to make it easier to work with the mechanism info types.  The 
+/* Macros to make it easier to work with the mechanism info types.  The
    shortened name forms in the macro args are necessary to avoid clashes with
    the struct members.  The long lines are necessary because older Borland
    compilers can't handle line breaks at this point in a macro definition */
@@ -673,11 +732,12 @@ typedef struct {
 		( mechanismInfo )->auxContext = ( auxCtx ); \
 		}
 
-#define setMechanismSignInfo( mechanismInfo, sig, sigLen, hashCtx, signCtx ) \
+#define setMechanismSignInfo( mechanismInfo, sig, sigLen, hashCtx, hashCtx2, signCtx ) \
 		{ \
 		( mechanismInfo )->signature = ( sig ); \
 		( mechanismInfo )->signatureLength = ( sigLen ); \
 		( mechanismInfo )->hashContext = ( hashCtx ); \
+		( mechanismInfo )->hashContext2 = ( hashCtx2 ); \
 		( mechanismInfo )->signContext = ( signCtx ); \
 		}
 
@@ -699,23 +759,23 @@ typedef struct {
 *																			*
 ****************************************************************************/
 
-/* Beside the general value+length and mechanism messages, we also have a 
+/* Beside the general value+length and mechanism messages, we also have a
    number of special-purposes messages that require their own parameter
    data structures.  These are:
 
-   Create object messages, used to create objects via a device, either 
+   Create object messages, used to create objects via a device, either
    directly or indirectly by instantiating the object from encoded data (for
-   example a certificate object from a certificate).  Usually the device is 
-   the system object, but it can also be used to create contexts in hardware 
-   devices.  In addition to the creation parameters we also pass in the 
-   owner's user object to be stored with the object data for use when 
+   example a certificate object from a certificate).  Usually the device is
+   the system object, but it can also be used to create contexts in hardware
+   devices.  In addition to the creation parameters we also pass in the
+   owner's user object to be stored with the object data for use when
    needed */
 
 typedef struct {
 	CRYPT_HANDLE cryptHandle;	/* Handle to created object */
 	CRYPT_USER cryptOwner;		/* New object's owner */
 	int arg1, arg2;				/* Integer args */
-	void *strArg1, *strArg2;	/* String args */
+	const void *strArg1, *strArg2;	/* String args */
 	int strArgLen1, strArgLen2;
 	} MESSAGE_CREATEOBJECT_INFO;
 
@@ -738,21 +798,21 @@ typedef struct {
 		}
 
 /* Key management messages, used to set, get and delete keys.  The item type,
-   keyIDtype, keyID, and keyIDlength are mandatory, the aux.info depends on 
-   the type of message (optional password for private key get/set, state 
-   information for get next cert, null otherwise), and the flags are 
-   generally only required where the keyset can hold multiple types of keys 
+   keyIDtype, keyID, and keyIDlength are mandatory, the aux.info depends on
+   the type of message (optional password for private key get/set, state
+   information for get next cert, null otherwise), and the flags are
+   generally only required where the keyset can hold multiple types of keys
    (for example a crypto device acting as a keyset, or a PKCS #15 token).
 
    An itemType of KEYMGMT_ITEM_PUBLICKEY is somewhat more general than its
    name implies in that keysets/devices that store private key information
-   alongside public-key data may delete both types of items if asked to 
-   delete a KEYMGMT_ITEM_PUBLICKEY since the two items are (implicitly) 
+   alongside public-key data may delete both types of items if asked to
+   delete a KEYMGMT_ITEM_PUBLICKEY since the two items are (implicitly)
    connected.
 
    In addition to the flags that are used to handle various special-case
-   read accesses, we can also specify a usage preference (e.g. 
-   confidentiality vs.signature) for cases where we may have multiple keys 
+   read accesses, we can also specify a usage preference (e.g.
+   confidentiality vs.signature) for cases where we may have multiple keys
    with the same keyID that differ only in required usage */
 
 typedef enum {
@@ -803,8 +863,8 @@ typedef struct {
 		( keymgmtInfo )->flags = ( keyFlags ); \
 		}
 
-/* Cert management messages used to handle CA operations.  All fields are 
-   mandatory, however the cryptCert and request fields may be set to 
+/* Cert management messages used to handle CA operations.  All fields are
+   mandatory, however the cryptCert and request fields may be set to
    CRYPT_UNUSED to indicate 'don't care' conditions */
 
 typedef struct {
@@ -830,14 +890,14 @@ typedef struct {
 
 typedef int ( *MESSAGE_FUNCTION )( const void *objectInfoPtr,
 								   const MESSAGE_TYPE message,
-								   void *messageDataPtr, 
+								   void *messageDataPtr,
 								   const int messageValue );
 
 /* Object management functions.  A dummy object is one that exists but
    doesn't have the capabilities of the actual object, for example an
    encryption context that just maps to underlying crypto hardware.  This
    doesn't affect krnlCreateObject(), but is used by the object-type-specific
-   routines which decorate the results of krnlCreateObject() with object-
+   routines that decorate the results of krnlCreateObject() with object-
    specific extras */
 
 #define CREATEOBJECT_FLAG_NONE		0x00	/* No create-object flags */
@@ -845,8 +905,8 @@ typedef int ( *MESSAGE_FUNCTION )( const void *objectInfoPtr,
 									0x01	/* Use krnlMemAlloc() to alloc.*/
 #define CREATEOBJECT_FLAG_DUMMY		0x02	/* Dummy obj.used as placeholder */
 
-int krnlCreateObject( void **objectDataPtr, const int objectDataSize, 
-					  const OBJECT_TYPE type, const int subType, 
+int krnlCreateObject( void **objectDataPtr, const int objectDataSize,
+					  const OBJECT_TYPE type, const int subType,
 					  const int createObjectFlags, const CRYPT_USER owner,
 					  const int actionFlags,
 					  MESSAGE_FUNCTION messageFunction );
@@ -859,26 +919,30 @@ int krnlSendMessage( const int objectHandle, const MESSAGE_TYPE message,
 #define krnlSendNotifier( handle, message ) \
 		krnlSendMessage( handle, message, NULL, 0 )
 
-/* In some rare cases we have to access an object directly without sending 
-   it a message.  This happens either with certs where we're already 
-   processing a message for one cert and need to access internal data in 
-   another cert, or when we're working with a device tied to a context where 
-   we need access to both context and device internals at the same time.  
-   This access handled by the following function */
+/* In some rare cases we have to access an object directly without sending
+   it a message.  This happens either with certs where we're already
+   processing a message for one cert and need to access internal data in
+   another cert, when we're working with a crypto device tied to a context
+   where we need access to both context and device internals at the same
+   time, or when we're updating config data in a user object.  This type of
+   access is handled by the following function, which also explicitly
+   disallows any access types apart from the three described here */
 
-int krnlGetObject( const int objectHandle, const OBJECT_TYPE type,
-				   void **objectPtr, const int errorCode );
+int krnlAcquireObject( const int objectHandle, const OBJECT_TYPE type,
+					   void **objectPtr, const int errorCode );
 int krnlReleaseObject( const int objectHandle );
 
-/* In even rarer cases, we have to allow a second thread access to an object 
+/* In even rarer cases, we have to allow a second thread access to an object
    when another thread has it locked.  This only occurs in one case, when a
    background polling thread is adding entropy to the system device.  The way
    this works is that the calling thread hands ownership over to the polling
    thread and suspends itself until the polling thread completes.  When the
-   polling thread has completed, it terminates, whereupon ownership passes 
-   back to the original thread */
+   polling thread has completed, it terminates, whereupon ownership passes
+   back to the original thread.  The value passed to the release call is
+   actually a thread ID, but since this isn't visible outside the kernel we
+   just us a generic int */
 
-int krnlReleaseSystemObject( const THREAD_HANDLE objectOwner );
+int krnlRelinquishSystemObject( const int /* THREAD_HANDLE */ objectOwnerThread );
 int krnlReacquireSystemObject( void );
 
 /* Semaphores and mutexes */
@@ -897,14 +961,51 @@ typedef enum {
 	MUTEX_LAST						/* Last mutex */
 	} MUTEX_TYPE;
 
-/* Set/clear/wait on a semaphore, enter and exit a mutex */
+/* Execute a function in a background thread.  This takes a pointer to the
+   function to execute in the background thread, a set of parameters to pass
+   to the function, and an optional semaphore ID to set once the thread is
+   started.  A function is run via a background thread as follows:
 
-void setSemaphore( const SEMAPHORE_TYPE semaphore, 
-				   const SEMAPHORE_HANDLE object );
-void clearSemaphore( const SEMAPHORE_TYPE semaphore );
-void waitSemaphore( const SEMAPHORE_TYPE semaphore );
-void enterMutex( const MUTEX_TYPE mutex );
-void exitMutex( const MUTEX_TYPE mutex );
+	void threadFunction( const THREAD_FUNCTION_PARAMS *threadParams )
+		{
+		}
+
+	initThreadParams( &threadParams, ptrParam, intParam );
+	krnlDispatchThread( threadFunction, &threadParams, SEMAPHORE_ID );
+
+   Note that the parameters must be held in static storage because the
+   caller's stack frame may have long since disappeared before the thread
+   gets to access them.  To emphasise this, we define the storage specifier
+   STATIC_THREADPARAM_STORAGE for when we declare the variables */
+
+struct TF;
+
+typedef void ( *THREAD_FUNCTION )( const struct TF *threadParams );
+
+typedef struct TF {
+	THREAD_FUNCTION threadFunction;	/* Function to call from thread */
+	void *ptrParam;					/* Thread function parameters */
+	int intParam;
+	SEMAPHORE_TYPE semaphore;		/* Optional semaphore to set */
+	long syncHandle;				/* Handle to use for thread sync */
+	} THREAD_FUNCTION_PARAMS;
+
+#define STATIC_THREADPARAM_STORAGE	static
+
+#define initThreadParams( threadParams, pParam, iParam ) \
+		memset( ( threadParams ), 0, sizeof( THREAD_FUNCTION_PARAMS ) ); \
+		( threadParams )->ptrParam = ( void * )( pParam ); \
+		( threadParams )->intParam = ( iParam );
+
+int krnlDispatchThread( THREAD_FUNCTION threadFunction,
+						THREAD_FUNCTION_PARAMS *threadParams,
+						const SEMAPHORE_TYPE semaphore );
+
+/* Wait on a semaphore, enter and exit a mutex */
+
+void krnlWaitSemaphore( const SEMAPHORE_TYPE semaphore );
+void krnlEnterMutex( const MUTEX_TYPE mutex );
+void krnlExitMutex( const MUTEX_TYPE mutex );
 
 /* Secure memory handling functions */
 
@@ -912,4 +1013,14 @@ int krnlMemalloc( void **pointer, int size );
 void krnlMemfree( void **pointer );
 int krnlMemsize( const void *pointer );
 
+#ifdef NEED_ENUMFIX
+  #undef OBJECT_TYPE_LAST
+  #undef MESSAGE_COMPARE_LAST
+  #undef MESSAGE_CHECK_LAST
+  #undef MESSAGE_CHANGENOTIFY_LAST
+  #undef MECHANISM_LAST
+  #undef KEYMGMT_ITEM_LAST
+  #undef SEMAPHORE_LAST
+  #undef MUTEX_LAST
+#endif /* NEED_ENUMFIX */
 #endif /* _CRYPTKRN_DEFINED */

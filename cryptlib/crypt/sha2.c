@@ -1,7 +1,6 @@
 /*
  ---------------------------------------------------------------------------
- Copyright (c) 2002, Dr Brian Gladman <brg@gladman.me.uk>, Worcester, UK.
- All rights reserved.
+ Copyright (c) 2002, Dr Brian Gladman, Worcester, UK.   All rights reserved.
 
  LICENSE TERMS
 
@@ -28,7 +27,7 @@
  in respect of its properties, including, but not limited to, correctness
  and/or fitness for purpose.
  ---------------------------------------------------------------------------
- Issue Date: 26/08/2003
+ Issue Date: 23/02/2005
 
  This is a byte oriented version of SHA2 that operates on arrays of bytes
  stored in memory. This code implements sha256, sha384 and sha512 but the
@@ -41,7 +40,7 @@
        void sha256_begin(sha256_ctx ctx[1])
        void sha256_hash(const unsigned char data[],
                             unsigned long len, sha256_ctx ctx[1])
-       void sha256_end(unsigned char hval[], sha256_ctx ctx[1])
+       void sha_end1(unsigned char hval[], sha256_ctx ctx[1])
 
  The first subroutine initialises a hash computation by setting up the
  context in the sha256_ctx context. The second subroutine hashes 8-bit
@@ -74,12 +73,9 @@
  on big-endian systems and for his assistance with corrections
 */
 
-/* define the hash functions that you need          */
-
-#define SHA_2           /* for dynamic hash length  */
-#define SHA_256
-#define SHA_384
-#define SHA_512
+#if 0
+#define UNROLL_SHA2     /* for SHA2 loop unroll     */
+#endif
 
 #include <string.h>     /* for memcpy() etc.        */
 #include <stdlib.h>     /* for _lrotr with VC++     */
@@ -95,7 +91,21 @@ extern "C"
 {
 #endif
 
-/*  PLATFORM SPECIFIC INCLUDES */
+/*  PLATFORM SPECIFIC INCLUDES AND BYTE ORDER IN 32-BIT WORDS
+
+    To obtain the highest speed on processors with 32-bit words, this code
+    needs to determine the byte order of the target machine. The following
+    block of code is an attempt to capture the most obvious ways in which
+    various environemnts define byte order. It may well fail, in which case
+    the definitions will need to be set by editing at the points marked
+    **** EDIT HERE IF NECESSARY **** below.  My thanks go to Peter Gutmann
+    for his assistance with this endian detection nightmare.
+*/
+
+#define BRG_LITTLE_ENDIAN   1234 /* byte 0 is least significant (i386) */
+#define BRG_BIG_ENDIAN      4321 /* byte 0 is most significant (mc68k) */
+
+#define __CRYPTLIB__
 
 #if defined(__CRYPTLIB__)
 #  if defined( INC_ALL )
@@ -106,97 +116,87 @@ extern "C"
 #    include "crypt.h"
 #  endif
 #  if defined(DATA_LITTLEENDIAN)
-#    define PLATFORM_BYTE_ORDER AES_LITTLE_ENDIAN
+#    define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
 #  else
-#    define PLATFORM_BYTE_ORDER AES_BIG_ENDIAN
+#    define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
 #  endif
 #else
 
 #if defined(__GNUC__) || defined(__GNU_LIBRARY__)
-#  if defined( __FreeBSD__ ) || defined( __OpenBSD__ )
+#  if defined(__FreeBSD__) || defined(__OpenBSD__)
 #    include <sys/endian.h>
 #  elif defined( BSD ) && ( BSD >= 199103 )
 #      include <machine/endian.h>
-#  elif defined( __APPLE__ )
-#    if defined( __BIG_ENDIAN__ ) && !defined( BIG_ENDIAN )
+#  elif defined( __DJGPP__ ) || defined( __CYGWIN32__ )
+#      include <machine/endian.h>
+#  elif defined(__APPLE__)
+#    if defined(__BIG_ENDIAN__) && !defined( BIG_ENDIAN )
 #      define BIG_ENDIAN
-#    elif defined( __LITTLE_ENDIAN__ ) && !defined( LITTLE_ENDIAN )
+#    elif defined(__LITTLE_ENDIAN__) && !defined( LITTLE_ENDIAN )
 #      define LITTLE_ENDIAN
 #    endif
 #  else
 #    include <endian.h>
-#    include <byteswap.h>
+#    if !defined(__BEOS__)
+#      include <byteswap.h>
+#    endif
 #  endif
 #endif
 
 #endif /* cryptlib */
 
-/*  BYTE ORDER IN 32-BIT WORDS
-
-    To obtain the highest speed on processors with 32-bit words, this code
-    needs to determine the byte order of the target machine. The following
-    block of code is an attempt to capture the most obvious ways in which
-    various environemnts define byte order. It may well fail, in which case
-    the definitions will need to be set by editing at the points marked
-    **** EDIT HERE IF NECESSARY **** below.  My thanks to Peter Gutmann for
-    some of these defines (from cryptlib).
-*/
-
-#define BRG_LITTLE_ENDIAN   1234 /* byte 0 is least significant (i386) */
-#define BRG_BIG_ENDIAN      4321 /* byte 0 is most significant (mc68k) */
-
-#if defined(LITTLE_ENDIAN) || defined(BIG_ENDIAN)
-#  if    defined(LITTLE_ENDIAN) && !defined(BIG_ENDIAN)
-#    define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#  elif !defined(LITTLE_ENDIAN) &&  defined(BIG_ENDIAN)
-#    define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#  elif defined(BYTE_ORDER) && (BYTE_ORDER == LITTLE_ENDIAN)
-#    define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#  elif defined(BYTE_ORDER) && (BYTE_ORDER == BIG_ENDIAN)
-#    define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#  endif
-#elif defined(_LITTLE_ENDIAN) || defined(_BIG_ENDIAN)
-#  if    defined(_LITTLE_ENDIAN) && !defined(_BIG_ENDIAN)
-#    define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#  elif !defined(_LITTLE_ENDIAN) &&  defined(_BIG_ENDIAN)
-#    define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#  elif defined(_BYTE_ORDER) && (_BYTE_ORDER == _LITTLE_ENDIAN)
-#    define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#  elif defined(_BYTE_ORDER) && (_BYTE_ORDER == _BIG_ENDIAN)
-#    define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#  endif
-#elif defined(__LITTLE_ENDIAN__) || defined(__BIG_ENDIAN__)
-#  if    defined(__LITTLE_ENDIAN__) && !defined(__BIG_ENDIAN__)
-#    define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#  elif !defined(__LITTLE_ENDIAN__) &&  defined(__BIG_ENDIAN__)
-#    define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
-#  elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __LITTLE_ENDIAN__)
-#    define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
-#  elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __BIG_ENDIAN__)
-#    define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
+#if !defined(PLATFORM_BYTE_ORDER)
+#  if defined(LITTLE_ENDIAN) || defined(BIG_ENDIAN)
+#    if    defined(LITTLE_ENDIAN) && !defined(BIG_ENDIAN)
+#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
+#    elif !defined(LITTLE_ENDIAN) &&  defined(BIG_ENDIAN)
+#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
+#    elif defined(BYTE_ORDER) && (BYTE_ORDER == LITTLE_ENDIAN)
+#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
+#    elif defined(BYTE_ORDER) && (BYTE_ORDER == BIG_ENDIAN)
+#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
+#    endif
+#  elif defined(_LITTLE_ENDIAN) || defined(_BIG_ENDIAN)
+#    if    defined(_LITTLE_ENDIAN) && !defined(_BIG_ENDIAN)
+#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
+#    elif !defined(_LITTLE_ENDIAN) &&  defined(_BIG_ENDIAN)
+#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
+#    elif defined(_BYTE_ORDER) && (_BYTE_ORDER == _LITTLE_ENDIAN)
+#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
+#    elif defined(_BYTE_ORDER) && (_BYTE_ORDER == _BIG_ENDIAN)
+#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
+#   endif
+#  elif defined(__LITTLE_ENDIAN__) || defined(__BIG_ENDIAN__)
+#    if    defined(__LITTLE_ENDIAN__) && !defined(__BIG_ENDIAN__)
+#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
+#    elif !defined(__LITTLE_ENDIAN__) &&  defined(__BIG_ENDIAN__)
+#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
+#    elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __LITTLE_ENDIAN__)
+#      define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
+#    elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __BIG_ENDIAN__)
+#      define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
+#    endif
 #  endif
 #endif
 
-/*  if the platform is still not known, try to find its byte order  */
-/*  from commonly used definitions in the headers included earlier  */
+/*  if the platform is still unknown, try to find its byte order    */
+/*  from commonly used machine defines                              */
 
 #if !defined(PLATFORM_BYTE_ORDER)
 
-#if   defined( __alpha__ ) || defined( __alpha ) || defined( i386 )       ||   \
-      defined( __i386__ )  || defined( _M_I86 )  || defined( _M_IX86 )    ||   \
-      defined( __OS2__ )   || defined( sun386 )  || defined( __TURBOC__ ) ||   \
-      defined( vax )       || defined( vms )     || defined( VMS )        ||   \
+#if   defined( __alpha__ ) || defined( __alpha ) || defined( i386 )       || \
+      defined( __i386__ )  || defined( _M_I86 )  || defined( _M_IX86 )    || \
+      defined( __OS2__ )   || defined( sun386 )  || defined( __TURBOC__ ) || \
+      defined( vax )       || defined( vms )     || defined( VMS )        || \
       defined( __VMS )
-
 #  define PLATFORM_BYTE_ORDER BRG_LITTLE_ENDIAN
 
-#elif defined( AMIGA )    || defined( applec )  || defined( __AS400__ )  ||   \
-      defined( _CRAY )    || defined( __hppa )  || defined( __hp9000 )   ||   \
-      defined( ibm370 )   || defined( mc68000 ) || defined( m68k )       ||   \
-      defined( __MRC__ )  || defined( __MVS__ ) || defined( __MWERKS__ ) ||   \
-      defined( sparc )    || defined( __sparc)  || defined( SYMANTEC_C ) ||   \
+#elif defined( AMIGA )    || defined( applec )  || defined( __AS400__ )  || \
+      defined( _CRAY )    || defined( __hppa )  || defined( __hp9000 )   || \
+      defined( ibm370 )   || defined( mc68000 ) || defined( m68k )       || \
+      defined( __MRC__ )  || defined( __MVS__ ) || defined( __MWERKS__ ) || \
+      defined( sparc )    || defined( __sparc)  || defined( SYMANTEC_C ) || \
       defined( __TANDEM ) || defined( THINK_C ) || defined( __VMCMS__ )
-
 #  define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
 
 #elif 0     /* **** EDIT HERE IF NECESSARY **** */
@@ -204,7 +204,7 @@ extern "C"
 #elif 0     /* **** EDIT HERE IF NECESSARY **** */
 #  define PLATFORM_BYTE_ORDER BRG_BIG_ENDIAN
 #else
-#  error Please edit aesopt.h (line 182 or 184) to set the platform byte order
+#  error Please edit sha2.c (line 185 or 187) to set the platform byte order
 #endif
 
 #endif
@@ -213,7 +213,13 @@ extern "C"
 #pragma intrinsic(memcpy)
 #endif
 
+#if 0 && defined(_MSC_VER)
+#define rotl32 _lrotl
+#define rotr32 _lrotr
+#else
+#define rotl32(x,n)   (((x) << n) | ((x) >> (32 - n)))
 #define rotr32(x,n)   (((x) >> n) | ((x) << (32 - n)))
+#endif
 
 #if !defined(bswap_32)
 #define bswap_32(x) (rotr32((x), 24) & 0x00ff00ff | rotr32((x), 8) & 0xff00ff00)
@@ -224,18 +230,6 @@ extern "C"
 #else
 #undef  SWAP_BYTES
 #endif
-
-#if defined(SHA_2) || defined(SHA_256)
-
-#define SHA256_MASK (SHA256_BLOCK_SIZE - 1)
-
-#if defined(SWAP_BYTES)
-#define bsw_32(p,n) { int _i = (n); while(_i--) p[_i] = bswap_32(p[_i]); }
-#else
-#define bsw_32(p,n)
-#endif
-
-/* SHA256 mixing function definitions   */
 
 #if 0
 
@@ -249,81 +243,180 @@ extern "C"
 
 #endif
 
-#define s256_0(x) (rotr32((x),  2) ^ rotr32((x), 13) ^ rotr32((x), 22))
-#define s256_1(x) (rotr32((x),  6) ^ rotr32((x), 11) ^ rotr32((x), 25))
-#define g256_0(x) (rotr32((x),  7) ^ rotr32((x), 18) ^ ((x) >>  3))
-#define g256_1(x) (rotr32((x), 17) ^ rotr32((x), 19) ^ ((x) >> 10))
+/* round transforms for SHA256 and SHA512 compression functions */
+
+#define vf(n,i) v[(n - i) & 7]
+
+#define hf(i) (p[i & 15] += \
+    g_1(p[(i + 14) & 15]) + p[(i + 9) & 15] + g_0(p[(i + 1) & 15]))
+
+#define v_cycle(i,j)                                \
+    vf(7,i) += (j ? hf(i) : p[i]) + k_0[i+j]        \
+    + s_1(vf(4,i)) + ch(vf(4,i),vf(5,i),vf(6,i));   \
+    vf(3,i) += vf(7,i);                             \
+    vf(7,i) += s_0(vf(0,i))+ maj(vf(0,i),vf(1,i),vf(2,i))
+
+#if defined(SHA_224) || defined(SHA_256)
+
+#define SHA256_MASK (SHA256_BLOCK_SIZE - 1)
+
+#if defined(SWAP_BYTES)
+#define bsw_32(p,n) \
+    { int _i = (n); while(_i--) ((sha2_32t*)p)[_i] = bswap_32(((sha2_32t*)p)[_i]); }
+#else
+#define bsw_32(p,n)
+#endif
+
+#define s_0(x)  (rotr32((x),  2) ^ rotr32((x), 13) ^ rotr32((x), 22))
+#define s_1(x)  (rotr32((x),  6) ^ rotr32((x), 11) ^ rotr32((x), 25))
+#define g_0(x)  (rotr32((x),  7) ^ rotr32((x), 18) ^ ((x) >>  3))
+#define g_1(x)  (rotr32((x), 17) ^ rotr32((x), 19) ^ ((x) >> 10))
+#define k_0     k256
 
 /* rotated SHA256 round definition. Rather than swapping variables as in    */
 /* FIPS-180, different variables are 'rotated' on each round, returning     */
 /* to their starting positions every eight rounds                           */
 
-#define h2(i) p[i & 15] += \
-    g256_1(p[(i + 14) & 15]) + p[(i + 9) & 15] + g256_0(p[(i + 1) & 15])
+#define q(n)  v##n
 
-#define h2_cycle(i,j)  \
-    v[(7 - i) & 7] += (j ? h2(i) : p[i & 15]) + k256[i + j] \
-        + s256_1(v[(4 - i) & 7]) + ch(v[(4 - i) & 7], v[(5 - i) & 7], v[(6 - i) & 7]); \
-    v[(3 - i) & 7] += v[(7 - i) & 7]; \
-    v[(7 - i) & 7] += s256_0(v[(0 - i) & 7]) + maj(v[(0 - i) & 7], v[(1 - i) & 7], v[(2 - i) & 7])
+#define one_cycle(a,b,c,d,e,f,g,h,k,w)  \
+    q(h) += s_1(q(e)) + ch(q(e), q(f), q(g)) + k + w; \
+    q(d) += q(h); q(h) += s_0(q(a)) + maj(q(a), q(b), q(c))
 
 /* SHA256 mixing data   */
 
 const sha2_32t k256[64] =
-{   n_u32(428a2f98), n_u32(71374491), n_u32(b5c0fbcf), n_u32(e9b5dba5),
-    n_u32(3956c25b), n_u32(59f111f1), n_u32(923f82a4), n_u32(ab1c5ed5),
-    n_u32(d807aa98), n_u32(12835b01), n_u32(243185be), n_u32(550c7dc3),
-    n_u32(72be5d74), n_u32(80deb1fe), n_u32(9bdc06a7), n_u32(c19bf174),
-    n_u32(e49b69c1), n_u32(efbe4786), n_u32(0fc19dc6), n_u32(240ca1cc),
-    n_u32(2de92c6f), n_u32(4a7484aa), n_u32(5cb0a9dc), n_u32(76f988da),
-    n_u32(983e5152), n_u32(a831c66d), n_u32(b00327c8), n_u32(bf597fc7),
-    n_u32(c6e00bf3), n_u32(d5a79147), n_u32(06ca6351), n_u32(14292967),
-    n_u32(27b70a85), n_u32(2e1b2138), n_u32(4d2c6dfc), n_u32(53380d13),
-    n_u32(650a7354), n_u32(766a0abb), n_u32(81c2c92e), n_u32(92722c85),
-    n_u32(a2bfe8a1), n_u32(a81a664b), n_u32(c24b8b70), n_u32(c76c51a3),
-    n_u32(d192e819), n_u32(d6990624), n_u32(f40e3585), n_u32(106aa070),
-    n_u32(19a4c116), n_u32(1e376c08), n_u32(2748774c), n_u32(34b0bcb5),
-    n_u32(391c0cb3), n_u32(4ed8aa4a), n_u32(5b9cca4f), n_u32(682e6ff3),
-    n_u32(748f82ee), n_u32(78a5636f), n_u32(84c87814), n_u32(8cc70208),
-    n_u32(90befffa), n_u32(a4506ceb), n_u32(bef9a3f7), n_u32(c67178f2),
+{   0x428a2f98ul, 0x71374491ul, 0xb5c0fbcful, 0xe9b5dba5ul,
+    0x3956c25bul, 0x59f111f1ul, 0x923f82a4ul, 0xab1c5ed5ul,
+    0xd807aa98ul, 0x12835b01ul, 0x243185beul, 0x550c7dc3ul,
+    0x72be5d74ul, 0x80deb1feul, 0x9bdc06a7ul, 0xc19bf174ul,
+    0xe49b69c1ul, 0xefbe4786ul, 0x0fc19dc6ul, 0x240ca1ccul,
+    0x2de92c6ful, 0x4a7484aaul, 0x5cb0a9dcul, 0x76f988daul,
+    0x983e5152ul, 0xa831c66dul, 0xb00327c8ul, 0xbf597fc7ul,
+    0xc6e00bf3ul, 0xd5a79147ul, 0x06ca6351ul, 0x14292967ul,
+    0x27b70a85ul, 0x2e1b2138ul, 0x4d2c6dfcul, 0x53380d13ul,
+    0x650a7354ul, 0x766a0abbul, 0x81c2c92eul, 0x92722c85ul,
+    0xa2bfe8a1ul, 0xa81a664bul, 0xc24b8b70ul, 0xc76c51a3ul,
+    0xd192e819ul, 0xd6990624ul, 0xf40e3585ul, 0x106aa070ul,
+    0x19a4c116ul, 0x1e376c08ul, 0x2748774cul, 0x34b0bcb5ul,
+    0x391c0cb3ul, 0x4ed8aa4aul, 0x5b9cca4ful, 0x682e6ff3ul,
+    0x748f82eeul, 0x78a5636ful, 0x84c87814ul, 0x8cc70208ul,
+    0x90befffaul, 0xa4506cebul, 0xbef9a3f7ul, 0xc67178f2ul,
 };
-
-/* SHA256 initialisation data */
-
-const sha2_32t i256[8] =
-{
-    n_u32(6a09e667), n_u32(bb67ae85), n_u32(3c6ef372), n_u32(a54ff53a),
-    n_u32(510e527f), n_u32(9b05688c), n_u32(1f83d9ab), n_u32(5be0cd19)
-};
-
-sha2_void sha256_begin(sha256_ctx ctx[1])
-{
-    ctx->count[0] = ctx->count[1] = 0;
-    memcpy(ctx->hash, i256, 8 * sizeof(sha2_32t));
-}
 
 /* Compile 64 bytes of hash data into SHA256 digest value   */
 /* NOTE: this routine assumes that the byte order in the    */
-/* ctx->wbuf[] at this point is in such an order that low   */
-/* address bytes in the ORIGINAL byte stream placed in this */
-/* buffer will now go to the high end of words on BOTH big  */
-/* and little endian systems                                */
+/* ctx->wbuf[] at this point is such that low address bytes */
+/* in the ORIGINAL byte stream will go into the high end of */
+/* words on BOTH big and little endian systems              */
 
 sha2_void sha256_compile(sha256_ctx ctx[1])
-{   sha2_32t    v[8], j, *p = ctx->wbuf;
+{
+#if !defined(UNROLL_SHA2)
+
+    sha2_32t j, *p = ctx->wbuf, v[8];
 
     memcpy(v, ctx->hash, 8 * sizeof(sha2_32t));
 
     for(j = 0; j < 64; j += 16)
     {
-        h2_cycle( 0, j); h2_cycle( 1, j); h2_cycle( 2, j); h2_cycle( 3, j);
-        h2_cycle( 4, j); h2_cycle( 5, j); h2_cycle( 6, j); h2_cycle( 7, j);
-        h2_cycle( 8, j); h2_cycle( 9, j); h2_cycle(10, j); h2_cycle(11, j);
-        h2_cycle(12, j); h2_cycle(13, j); h2_cycle(14, j); h2_cycle(15, j);
+        v_cycle( 0, j); v_cycle( 1, j);
+        v_cycle( 2, j); v_cycle( 3, j);
+        v_cycle( 4, j); v_cycle( 5, j);
+        v_cycle( 6, j); v_cycle( 7, j);
+        v_cycle( 8, j); v_cycle( 9, j);
+        v_cycle(10, j); v_cycle(11, j);
+        v_cycle(12, j); v_cycle(13, j);
+        v_cycle(14, j); v_cycle(15, j);
     }
 
-    ctx->hash[0] += v[0]; ctx->hash[1] += v[1]; ctx->hash[2] += v[2]; ctx->hash[3] += v[3];
-    ctx->hash[4] += v[4]; ctx->hash[5] += v[5]; ctx->hash[6] += v[6]; ctx->hash[7] += v[7];
+    ctx->hash[0] += v[0]; ctx->hash[1] += v[1];
+    ctx->hash[2] += v[2]; ctx->hash[3] += v[3];
+    ctx->hash[4] += v[4]; ctx->hash[5] += v[5];
+    ctx->hash[6] += v[6]; ctx->hash[7] += v[7];
+
+#else
+
+    sha2_32t *p = ctx->wbuf,v0,v1,v2,v3,v4,v5,v6,v7;
+
+    v0 = ctx->hash[0]; v1 = ctx->hash[1];
+    v2 = ctx->hash[2]; v3 = ctx->hash[3];
+    v4 = ctx->hash[4]; v5 = ctx->hash[5];
+    v6 = ctx->hash[6]; v7 = ctx->hash[7];
+
+    one_cycle(0,1,2,3,4,5,6,7,k256[ 0],p[ 0]);
+    one_cycle(7,0,1,2,3,4,5,6,k256[ 1],p[ 1]);
+    one_cycle(6,7,0,1,2,3,4,5,k256[ 2],p[ 2]);
+    one_cycle(5,6,7,0,1,2,3,4,k256[ 3],p[ 3]);
+    one_cycle(4,5,6,7,0,1,2,3,k256[ 4],p[ 4]);
+    one_cycle(3,4,5,6,7,0,1,2,k256[ 5],p[ 5]);
+    one_cycle(2,3,4,5,6,7,0,1,k256[ 6],p[ 6]);
+    one_cycle(1,2,3,4,5,6,7,0,k256[ 7],p[ 7]);
+    one_cycle(0,1,2,3,4,5,6,7,k256[ 8],p[ 8]);
+    one_cycle(7,0,1,2,3,4,5,6,k256[ 9],p[ 9]);
+    one_cycle(6,7,0,1,2,3,4,5,k256[10],p[10]);
+    one_cycle(5,6,7,0,1,2,3,4,k256[11],p[11]);
+    one_cycle(4,5,6,7,0,1,2,3,k256[12],p[12]);
+    one_cycle(3,4,5,6,7,0,1,2,k256[13],p[13]);
+    one_cycle(2,3,4,5,6,7,0,1,k256[14],p[14]);
+    one_cycle(1,2,3,4,5,6,7,0,k256[15],p[15]);
+
+    one_cycle(0,1,2,3,4,5,6,7,k256[16],hf( 0));
+    one_cycle(7,0,1,2,3,4,5,6,k256[17],hf( 1));
+    one_cycle(6,7,0,1,2,3,4,5,k256[18],hf( 2));
+    one_cycle(5,6,7,0,1,2,3,4,k256[19],hf( 3));
+    one_cycle(4,5,6,7,0,1,2,3,k256[20],hf( 4));
+    one_cycle(3,4,5,6,7,0,1,2,k256[21],hf( 5));
+    one_cycle(2,3,4,5,6,7,0,1,k256[22],hf( 6));
+    one_cycle(1,2,3,4,5,6,7,0,k256[23],hf( 7));
+    one_cycle(0,1,2,3,4,5,6,7,k256[24],hf( 8));
+    one_cycle(7,0,1,2,3,4,5,6,k256[25],hf( 9));
+    one_cycle(6,7,0,1,2,3,4,5,k256[26],hf(10));
+    one_cycle(5,6,7,0,1,2,3,4,k256[27],hf(11));
+    one_cycle(4,5,6,7,0,1,2,3,k256[28],hf(12));
+    one_cycle(3,4,5,6,7,0,1,2,k256[29],hf(13));
+    one_cycle(2,3,4,5,6,7,0,1,k256[30],hf(14));
+    one_cycle(1,2,3,4,5,6,7,0,k256[31],hf(15));
+
+    one_cycle(0,1,2,3,4,5,6,7,k256[32],hf( 0));
+    one_cycle(7,0,1,2,3,4,5,6,k256[33],hf( 1));
+    one_cycle(6,7,0,1,2,3,4,5,k256[34],hf( 2));
+    one_cycle(5,6,7,0,1,2,3,4,k256[35],hf( 3));
+    one_cycle(4,5,6,7,0,1,2,3,k256[36],hf( 4));
+    one_cycle(3,4,5,6,7,0,1,2,k256[37],hf( 5));
+    one_cycle(2,3,4,5,6,7,0,1,k256[38],hf( 6));
+    one_cycle(1,2,3,4,5,6,7,0,k256[39],hf( 7));
+    one_cycle(0,1,2,3,4,5,6,7,k256[40],hf( 8));
+    one_cycle(7,0,1,2,3,4,5,6,k256[41],hf( 9));
+    one_cycle(6,7,0,1,2,3,4,5,k256[42],hf(10));
+    one_cycle(5,6,7,0,1,2,3,4,k256[43],hf(11));
+    one_cycle(4,5,6,7,0,1,2,3,k256[44],hf(12));
+    one_cycle(3,4,5,6,7,0,1,2,k256[45],hf(13));
+    one_cycle(2,3,4,5,6,7,0,1,k256[46],hf(14));
+    one_cycle(1,2,3,4,5,6,7,0,k256[47],hf(15));
+
+    one_cycle(0,1,2,3,4,5,6,7,k256[48],hf( 0));
+    one_cycle(7,0,1,2,3,4,5,6,k256[49],hf( 1));
+    one_cycle(6,7,0,1,2,3,4,5,k256[50],hf( 2));
+    one_cycle(5,6,7,0,1,2,3,4,k256[51],hf( 3));
+    one_cycle(4,5,6,7,0,1,2,3,k256[52],hf( 4));
+    one_cycle(3,4,5,6,7,0,1,2,k256[53],hf( 5));
+    one_cycle(2,3,4,5,6,7,0,1,k256[54],hf( 6));
+    one_cycle(1,2,3,4,5,6,7,0,k256[55],hf( 7));
+    one_cycle(0,1,2,3,4,5,6,7,k256[56],hf( 8));
+    one_cycle(7,0,1,2,3,4,5,6,k256[57],hf( 9));
+    one_cycle(6,7,0,1,2,3,4,5,k256[58],hf(10));
+    one_cycle(5,6,7,0,1,2,3,4,k256[59],hf(11));
+    one_cycle(4,5,6,7,0,1,2,3,k256[60],hf(12));
+    one_cycle(3,4,5,6,7,0,1,2,k256[61],hf(13));
+    one_cycle(2,3,4,5,6,7,0,1,k256[62],hf(14));
+    one_cycle(1,2,3,4,5,6,7,0,k256[63],hf(15));
+
+    ctx->hash[0] += v0; ctx->hash[1] += v1;
+    ctx->hash[2] += v2; ctx->hash[3] += v3;
+    ctx->hash[4] += v4; ctx->hash[5] += v5;
+    ctx->hash[6] += v6; ctx->hash[7] += v7;
+#endif
 }
 
 /* SHA256 hash data in an array of bytes into hash buffer   */
@@ -350,27 +443,20 @@ sha2_void sha256_hash(const unsigned char data[], unsigned long len, sha256_ctx 
 
 /* SHA256 Final padding and digest calculation  */
 
-static sha2_32t  m1[4] =
-{
-    n_u32(00000000), n_u32(ff000000), n_u32(ffff0000), n_u32(ffffff00)
-};
-
-static sha2_32t  b1[4] =
-{
-    n_u32(80000000), n_u32(00800000), n_u32(00008000), n_u32(00000080)
-};
-
-sha2_void sha256_end(unsigned char hval[], sha256_ctx ctx[1])
+static sha2_void sha_end1(unsigned char hval[], sha256_ctx ctx[1], const unsigned int hlen)
 {   sha2_32t    i = (sha2_32t)(ctx->count[0] & SHA256_MASK);
 
-    bsw_32(ctx->wbuf, (i + 3) >> 2)
-    /* bytes in the buffer are now in an order in which references  */
-    /* to 32-bit words will put bytes with lower addresses into the */
+    /* put bytes in the buffer in an order in which references to   */
+    /* 32-bit words will put bytes with lower addresses into the    */
     /* top of 32 bit words on BOTH big and little endian machines   */
+    bsw_32(ctx->wbuf, (i + 3) >> 2)
 
     /* we now need to mask valid bytes and add the padding which is */
-    /* a single 1 bit and as many zero bits as necessary.           */
-    ctx->wbuf[i >> 2] = (ctx->wbuf[i >> 2] & m1[i & 3]) | b1[i & 3];
+    /* a single 1 bit and as many zero bits as necessary. Note that */
+    /* we can always add the first padding byte here because the    */
+    /* buffer always has at least one empty slot                    */
+    ctx->wbuf[i >> 2] &= 0xffffff80 << 8 * (~i & 3);
+    ctx->wbuf[i >> 2] |= 0x00000080 << 8 * (~i & 3);
 
     /* we need 9 or more empty positions, one for the padding byte  */
     /* (above) and eight for the length count.  If there is not     */
@@ -384,34 +470,84 @@ sha2_void sha256_end(unsigned char hval[], sha256_ctx ctx[1])
     else    /* compute a word index for the empty buffer positions  */
         i = (i >> 2) + 1;
 
-    while(i < 14) /* and zero pad all but last two positions      */
+    while(i < 14) /* and zero pad all but last two positions        */
         ctx->wbuf[i++] = 0;
 
     /* the following 32-bit length fields are assembled in the      */
     /* wrong byte order on little endian machines but this is       */
     /* corrected later since they are only ever used as 32-bit      */
     /* word values.                                                 */
-
     ctx->wbuf[14] = (ctx->count[1] << 3) | (ctx->count[0] >> 29);
     ctx->wbuf[15] = ctx->count[0] << 3;
-
     sha256_compile(ctx);
 
     /* extract the hash value as bytes in case the hash buffer is   */
     /* mislaigned for 32-bit words                                  */
-    for(i = 0; i < SHA256_DIGEST_SIZE; ++i)
+    for(i = 0; i < hlen; ++i)
         hval[i] = (unsigned char)(ctx->hash[i >> 2] >> (8 * (~i & 3)));
+}
+
+#endif
+
+#if defined(SHA_224)
+
+const sha2_32t i224[8] =
+{
+    0xc1059ed8ul, 0x367cd507ul, 0x3070dd17ul, 0xf70e5939ul,
+    0xffc00b31ul, 0x68581511ul, 0x64f98fa7ul, 0xbefa4fa4ul
+};
+
+sha2_void sha224_begin(sha224_ctx ctx[1])
+{
+    ctx->count[0] = ctx->count[1] = 0;
+    memcpy(ctx->hash, i224, 8 * sizeof(sha2_32t));
+}
+
+sha2_void sha224_end(unsigned char hval[], sha224_ctx ctx[1])
+{
+    sha_end1(hval, ctx, SHA224_DIGEST_SIZE);
+}
+
+sha2_void sha224(unsigned char hval[], const unsigned char data[], unsigned long len)
+{   sha224_ctx  cx[1];
+
+    sha224_begin(cx);
+    sha224_hash(data, len, cx);
+    sha_end1(hval, cx, SHA224_DIGEST_SIZE);
+}
+
+#endif
+
+#if defined(SHA_256)
+
+const sha2_32t i256[8] =
+{
+    0x6a09e667ul, 0xbb67ae85ul, 0x3c6ef372ul, 0xa54ff53aul,
+    0x510e527ful, 0x9b05688cul, 0x1f83d9abul, 0x5be0cd19ul
+};
+
+sha2_void sha256_begin(sha256_ctx ctx[1])
+{
+    ctx->count[0] = ctx->count[1] = 0;
+    memcpy(ctx->hash, i256, 8 * sizeof(sha2_32t));
+}
+
+sha2_void sha256_end(unsigned char hval[], sha256_ctx ctx[1])
+{
+    sha_end1(hval, ctx, SHA256_DIGEST_SIZE);
 }
 
 sha2_void sha256(unsigned char hval[], const unsigned char data[], unsigned long len)
 {   sha256_ctx  cx[1];
 
-    sha256_begin(cx); sha256_hash(data, len, cx); sha256_end(hval, cx);
+    sha256_begin(cx);
+    sha256_hash(data, len, cx);
+    sha_end1(hval, cx, SHA256_DIGEST_SIZE);
 }
 
 #endif
 
-#if defined(SHA_2) || defined(SHA_384) || defined(SHA_512)
+#if defined(SHA_384) || defined(SHA_512)
 
 #define SHA512_MASK (SHA512_BLOCK_SIZE - 1)
 
@@ -422,95 +558,102 @@ sha2_void sha256(unsigned char hval[], const unsigned char data[], unsigned long
 #endif
 
 #if defined(SWAP_BYTES)
-#define bsw_64(p,n) { int _i = (n); while(_i--) p[_i] = bswap_64(p[_i]); }
+#define bsw_64(p,n) \
+    { int _i = (n); while(_i--) ((sha2_64t*)p)[_i] = bswap_64(((sha2_64t*)p)[_i]); }
 #else
 #define bsw_64(p,n)
 #endif
 
 /* SHA512 mixing function definitions   */
 
-#define s512_0(x) (rotr64((x), 28) ^ rotr64((x), 34) ^ rotr64((x), 39))
-#define s512_1(x) (rotr64((x), 14) ^ rotr64((x), 18) ^ rotr64((x), 41))
-#define g512_0(x) (rotr64((x),  1) ^ rotr64((x),  8) ^ ((x) >>  7))
-#define g512_1(x) (rotr64((x), 19) ^ rotr64((x), 61) ^ ((x) >>  6))
+#ifdef   s_0
+# undef  s_0
+# undef  s_1
+# undef  g_0
+# undef  g_1
+# undef  k_0
+#endif
 
-/* rotated SHA512 round definition. Rather than swapping variables as in    */
-/* FIPS-180, different variables are 'rotated' on each round, returning     */
-/* to their starting positions every eight rounds                           */
-
-#define h5(i) ctx->wbuf[i & 15] += \
-    g512_1(ctx->wbuf[(i + 14) & 15]) + ctx->wbuf[(i + 9) & 15] + g512_0(ctx->wbuf[(i + 1) & 15])
-
-#define h5_cycle(i,j)  \
-    v[(7 - i) & 7] += (j ? h5(i) : ctx->wbuf[i & 15]) + k512[i + j] \
-        + s512_1(v[(4 - i) & 7]) + ch(v[(4 - i) & 7], v[(5 - i) & 7], v[(6 - i) & 7]); \
-    v[(3 - i) & 7] += v[(7 - i) & 7]; \
-    v[(7 - i) & 7] += s512_0(v[(0 - i) & 7]) + maj(v[(0 - i) & 7], v[(1 - i) & 7], v[(2 - i) & 7])
+#define s_0(x)  (rotr64((x), 28) ^ rotr64((x), 34) ^ rotr64((x), 39))
+#define s_1(x)  (rotr64((x), 14) ^ rotr64((x), 18) ^ rotr64((x), 41))
+#define g_0(x)  (rotr64((x),  1) ^ rotr64((x),  8) ^ ((x) >>  7))
+#define g_1(x)  (rotr64((x), 19) ^ rotr64((x), 61) ^ ((x) >>  6))
+#define k_0     k512
 
 /* SHA384/SHA512 mixing data    */
 
 const sha2_64t  k512[80] =
 {
-    n_u64(428a2f98d728ae22), n_u64(7137449123ef65cd),
-    n_u64(b5c0fbcfec4d3b2f), n_u64(e9b5dba58189dbbc),
-    n_u64(3956c25bf348b538), n_u64(59f111f1b605d019),
-    n_u64(923f82a4af194f9b), n_u64(ab1c5ed5da6d8118),
-    n_u64(d807aa98a3030242), n_u64(12835b0145706fbe),
-    n_u64(243185be4ee4b28c), n_u64(550c7dc3d5ffb4e2),
-    n_u64(72be5d74f27b896f), n_u64(80deb1fe3b1696b1),
-    n_u64(9bdc06a725c71235), n_u64(c19bf174cf692694),
-    n_u64(e49b69c19ef14ad2), n_u64(efbe4786384f25e3),
-    n_u64(0fc19dc68b8cd5b5), n_u64(240ca1cc77ac9c65),
-    n_u64(2de92c6f592b0275), n_u64(4a7484aa6ea6e483),
-    n_u64(5cb0a9dcbd41fbd4), n_u64(76f988da831153b5),
-    n_u64(983e5152ee66dfab), n_u64(a831c66d2db43210),
-    n_u64(b00327c898fb213f), n_u64(bf597fc7beef0ee4),
-    n_u64(c6e00bf33da88fc2), n_u64(d5a79147930aa725),
-    n_u64(06ca6351e003826f), n_u64(142929670a0e6e70),
-    n_u64(27b70a8546d22ffc), n_u64(2e1b21385c26c926),
-    n_u64(4d2c6dfc5ac42aed), n_u64(53380d139d95b3df),
-    n_u64(650a73548baf63de), n_u64(766a0abb3c77b2a8),
-    n_u64(81c2c92e47edaee6), n_u64(92722c851482353b),
-    n_u64(a2bfe8a14cf10364), n_u64(a81a664bbc423001),
-    n_u64(c24b8b70d0f89791), n_u64(c76c51a30654be30),
-    n_u64(d192e819d6ef5218), n_u64(d69906245565a910),
-    n_u64(f40e35855771202a), n_u64(106aa07032bbd1b8),
-    n_u64(19a4c116b8d2d0c8), n_u64(1e376c085141ab53),
-    n_u64(2748774cdf8eeb99), n_u64(34b0bcb5e19b48a8),
-    n_u64(391c0cb3c5c95a63), n_u64(4ed8aa4ae3418acb),
-    n_u64(5b9cca4f7763e373), n_u64(682e6ff3d6b2b8a3),
-    n_u64(748f82ee5defb2fc), n_u64(78a5636f43172f60),
-    n_u64(84c87814a1f0ab72), n_u64(8cc702081a6439ec),
-    n_u64(90befffa23631e28), n_u64(a4506cebde82bde9),
-    n_u64(bef9a3f7b2c67915), n_u64(c67178f2e372532b),
-    n_u64(ca273eceea26619c), n_u64(d186b8c721c0c207),
-    n_u64(eada7dd6cde0eb1e), n_u64(f57d4f7fee6ed178),
-    n_u64(06f067aa72176fba), n_u64(0a637dc5a2c898a6),
-    n_u64(113f9804bef90dae), n_u64(1b710b35131c471b),
-    n_u64(28db77f523047d84), n_u64(32caab7b40c72493),
-    n_u64(3c9ebe0a15c9bebc), n_u64(431d67c49c100d4c),
-    n_u64(4cc5d4becb3e42b6), n_u64(597f299cfc657e2a),
-    n_u64(5fcb6fab3ad6faec), n_u64(6c44198c4a475817)
+    li_64(428a2f98d728ae22), li_64(7137449123ef65cd),
+    li_64(b5c0fbcfec4d3b2f), li_64(e9b5dba58189dbbc),
+    li_64(3956c25bf348b538), li_64(59f111f1b605d019),
+    li_64(923f82a4af194f9b), li_64(ab1c5ed5da6d8118),
+    li_64(d807aa98a3030242), li_64(12835b0145706fbe),
+    li_64(243185be4ee4b28c), li_64(550c7dc3d5ffb4e2),
+    li_64(72be5d74f27b896f), li_64(80deb1fe3b1696b1),
+    li_64(9bdc06a725c71235), li_64(c19bf174cf692694),
+    li_64(e49b69c19ef14ad2), li_64(efbe4786384f25e3),
+    li_64(0fc19dc68b8cd5b5), li_64(240ca1cc77ac9c65),
+    li_64(2de92c6f592b0275), li_64(4a7484aa6ea6e483),
+    li_64(5cb0a9dcbd41fbd4), li_64(76f988da831153b5),
+    li_64(983e5152ee66dfab), li_64(a831c66d2db43210),
+    li_64(b00327c898fb213f), li_64(bf597fc7beef0ee4),
+    li_64(c6e00bf33da88fc2), li_64(d5a79147930aa725),
+    li_64(06ca6351e003826f), li_64(142929670a0e6e70),
+    li_64(27b70a8546d22ffc), li_64(2e1b21385c26c926),
+    li_64(4d2c6dfc5ac42aed), li_64(53380d139d95b3df),
+    li_64(650a73548baf63de), li_64(766a0abb3c77b2a8),
+    li_64(81c2c92e47edaee6), li_64(92722c851482353b),
+    li_64(a2bfe8a14cf10364), li_64(a81a664bbc423001),
+    li_64(c24b8b70d0f89791), li_64(c76c51a30654be30),
+    li_64(d192e819d6ef5218), li_64(d69906245565a910),
+    li_64(f40e35855771202a), li_64(106aa07032bbd1b8),
+    li_64(19a4c116b8d2d0c8), li_64(1e376c085141ab53),
+    li_64(2748774cdf8eeb99), li_64(34b0bcb5e19b48a8),
+    li_64(391c0cb3c5c95a63), li_64(4ed8aa4ae3418acb),
+    li_64(5b9cca4f7763e373), li_64(682e6ff3d6b2b8a3),
+    li_64(748f82ee5defb2fc), li_64(78a5636f43172f60),
+    li_64(84c87814a1f0ab72), li_64(8cc702081a6439ec),
+    li_64(90befffa23631e28), li_64(a4506cebde82bde9),
+    li_64(bef9a3f7b2c67915), li_64(c67178f2e372532b),
+    li_64(ca273eceea26619c), li_64(d186b8c721c0c207),
+    li_64(eada7dd6cde0eb1e), li_64(f57d4f7fee6ed178),
+    li_64(06f067aa72176fba), li_64(0a637dc5a2c898a6),
+    li_64(113f9804bef90dae), li_64(1b710b35131c471b),
+    li_64(28db77f523047d84), li_64(32caab7b40c72493),
+    li_64(3c9ebe0a15c9bebc), li_64(431d67c49c100d4c),
+    li_64(4cc5d4becb3e42b6), li_64(597f299cfc657e2a),
+    li_64(5fcb6fab3ad6faec), li_64(6c44198c4a475817)
 };
 
-/* Compile 64 bytes of hash data into SHA384/SHA512 digest value  */
+/* Compile 128 bytes of hash data into SHA384/512 digest    */
+/* NOTE: this routine assumes that the byte order in the    */
+/* ctx->wbuf[] at this point is such that low address bytes */
+/* in the ORIGINAL byte stream will go into the high end of */
+/* words on BOTH big and little endian systems              */
 
 sha2_void sha512_compile(sha512_ctx ctx[1])
-{   sha2_64t    v[8];
+{   sha2_64t    v[8], *p = ctx->wbuf;
     sha2_32t    j;
 
     memcpy(v, ctx->hash, 8 * sizeof(sha2_64t));
 
     for(j = 0; j < 80; j += 16)
     {
-        h5_cycle( 0, j); h5_cycle( 1, j); h5_cycle( 2, j); h5_cycle( 3, j);
-        h5_cycle( 4, j); h5_cycle( 5, j); h5_cycle( 6, j); h5_cycle( 7, j);
-        h5_cycle( 8, j); h5_cycle( 9, j); h5_cycle(10, j); h5_cycle(11, j);
-        h5_cycle(12, j); h5_cycle(13, j); h5_cycle(14, j); h5_cycle(15, j);
+        v_cycle( 0, j); v_cycle( 1, j);
+        v_cycle( 2, j); v_cycle( 3, j);
+        v_cycle( 4, j); v_cycle( 5, j);
+        v_cycle( 6, j); v_cycle( 7, j);
+        v_cycle( 8, j); v_cycle( 9, j);
+        v_cycle(10, j); v_cycle(11, j);
+        v_cycle(12, j); v_cycle(13, j);
+        v_cycle(14, j); v_cycle(15, j);
     }
 
-    ctx->hash[0] += v[0]; ctx->hash[1] += v[1]; ctx->hash[2] += v[2]; ctx->hash[3] += v[3];
-    ctx->hash[4] += v[4]; ctx->hash[5] += v[5]; ctx->hash[6] += v[6]; ctx->hash[7] += v[7];
+    ctx->hash[0] += v[0]; ctx->hash[1] += v[1];
+    ctx->hash[2] += v[2]; ctx->hash[3] += v[3];
+    ctx->hash[4] += v[4]; ctx->hash[5] += v[5];
+    ctx->hash[6] += v[6]; ctx->hash[7] += v[7];
 }
 
 /* Compile 128 bytes of hash data into SHA256 digest value  */
@@ -541,34 +684,20 @@ sha2_void sha512_hash(const unsigned char data[], unsigned long len, sha512_ctx 
 
 /* SHA384/512 Final padding and digest calculation  */
 
-static sha2_64t  m2[8] =
-{
-    n_u64(0000000000000000), n_u64(ff00000000000000),
-    n_u64(ffff000000000000), n_u64(ffffff0000000000),
-    n_u64(ffffffff00000000), n_u64(ffffffffff000000),
-    n_u64(ffffffffffff0000), n_u64(ffffffffffffff00)
-};
-
-static sha2_64t  b2[8] =
-{
-    n_u64(8000000000000000), n_u64(0080000000000000),
-    n_u64(0000800000000000), n_u64(0000008000000000),
-    n_u64(0000000080000000), n_u64(0000000000800000),
-    n_u64(0000000000008000), n_u64(0000000000000080)
-};
-
-static void sha_end(unsigned char hval[], sha512_ctx ctx[1], const unsigned int hlen)
+static void sha_end2(unsigned char hval[], sha512_ctx ctx[1], const unsigned int hlen)
 {   sha2_32t    i = (sha2_32t)(ctx->count[0] & SHA512_MASK);
 
+    /* put bytes in the buffer in an order in which references to   */
+    /* 32-bit words will put bytes with lower addresses into the    */
+    /* top of 32 bit words on BOTH big and little endian machines   */
     bsw_64(ctx->wbuf, (i + 7) >> 3);
 
-    /* bytes in the buffer are now in an order in which references  */
-    /* to 64-bit words will put bytes with lower addresses into the */
-    /* top of 64 bit words on BOTH big and little endian machines   */
-
     /* we now need to mask valid bytes and add the padding which is */
-    /* a single 1 bit and as many zero bits as necessary.           */
-    ctx->wbuf[i >> 3] = (ctx->wbuf[i >> 3] & m2[i & 7]) | b2[i & 7];
+    /* a single 1 bit and as many zero bits as necessary. Note that */
+    /* we can always add the first padding byte here because the    */
+    /* buffer always has at least one empty slot                    */
+    ctx->wbuf[i >> 3] &= li_64(ffffffffffffff00) << 8 * (~i & 7);
+    ctx->wbuf[i >> 3] |= li_64(0000000000000080) << 8 * (~i & 7);
 
     /* we need 17 or more empty byte positions, one for the padding */
     /* byte (above) and sixteen for the length count.  If there is  */
@@ -589,10 +718,8 @@ static void sha_end(unsigned char hval[], sha512_ctx ctx[1], const unsigned int 
     /* wrong byte order on little endian machines but this is       */
     /* corrected later since they are only ever used as 64-bit      */
     /* word values.                                                 */
-
     ctx->wbuf[14] = (ctx->count[1] << 3) | (ctx->count[0] >> 61);
     ctx->wbuf[15] = ctx->count[0] << 3;
-
     sha512_compile(ctx);
 
     /* extract the hash value as bytes in case the hash buffer is   */
@@ -603,16 +730,16 @@ static void sha_end(unsigned char hval[], sha512_ctx ctx[1], const unsigned int 
 
 #endif
 
-#if defined(SHA_2) || defined(SHA_384)
+#if defined(SHA_384)
 
 /* SHA384 initialisation data   */
 
 const sha2_64t  i384[80] =
 {
-    n_u64(cbbb9d5dc1059ed8), n_u64(629a292a367cd507),
-    n_u64(9159015a3070dd17), n_u64(152fecd8f70e5939),
-    n_u64(67332667ffc00b31), n_u64(8eb44a8768581511),
-    n_u64(db0c2e0d64f98fa7), n_u64(47b5481dbefa4fa4)
+    li_64(cbbb9d5dc1059ed8), li_64(629a292a367cd507),
+    li_64(9159015a3070dd17), li_64(152fecd8f70e5939),
+    li_64(67332667ffc00b31), li_64(8eb44a8768581511),
+    li_64(db0c2e0d64f98fa7), li_64(47b5481dbefa4fa4)
 };
 
 sha2_void sha384_begin(sha384_ctx ctx[1])
@@ -623,27 +750,29 @@ sha2_void sha384_begin(sha384_ctx ctx[1])
 
 sha2_void sha384_end(unsigned char hval[], sha384_ctx ctx[1])
 {
-    sha_end(hval, ctx, SHA384_DIGEST_SIZE);
+    sha_end2(hval, ctx, SHA384_DIGEST_SIZE);
 }
 
 sha2_void sha384(unsigned char hval[], const unsigned char data[], unsigned long len)
 {   sha384_ctx  cx[1];
 
-    sha384_begin(cx); sha384_hash(data, len, cx); sha384_end(hval, cx);
+    sha384_begin(cx);
+    sha384_hash(data, len, cx);
+    sha_end2(hval, cx, SHA384_DIGEST_SIZE);
 }
 
 #endif
 
-#if defined(SHA_2) || defined(SHA_512)
+#if defined(SHA_512)
 
 /* SHA512 initialisation data   */
 
 const sha2_64t  i512[80] =
 {
-    n_u64(6a09e667f3bcc908), n_u64(bb67ae8584caa73b),
-    n_u64(3c6ef372fe94f82b), n_u64(a54ff53a5f1d36f1),
-    n_u64(510e527fade682d1), n_u64(9b05688c2b3e6c1f),
-    n_u64(1f83d9abfb41bd6b), n_u64(5be0cd19137e2179)
+    li_64(6a09e667f3bcc908), li_64(bb67ae8584caa73b),
+    li_64(3c6ef372fe94f82b), li_64(a54ff53a5f1d36f1),
+    li_64(510e527fade682d1), li_64(9b05688c2b3e6c1f),
+    li_64(1f83d9abfb41bd6b), li_64(5be0cd19137e2179)
 };
 
 sha2_void sha512_begin(sha512_ctx ctx[1])
@@ -654,19 +783,22 @@ sha2_void sha512_begin(sha512_ctx ctx[1])
 
 sha2_void sha512_end(unsigned char hval[], sha512_ctx ctx[1])
 {
-    sha_end(hval, ctx, SHA512_DIGEST_SIZE);
+    sha_end2(hval, ctx, SHA512_DIGEST_SIZE);
 }
 
 sha2_void sha512(unsigned char hval[], const unsigned char data[], unsigned long len)
 {   sha512_ctx  cx[1];
 
-    sha512_begin(cx); sha512_hash(data, len, cx); sha512_end(hval, cx);
+    sha512_begin(cx);
+    sha512_hash(data, len, cx);
+    sha_end2(hval, cx, SHA512_DIGEST_SIZE);
 }
 
 #endif
 
 #if defined(SHA_2)
 
+#define CTX_224(x)  ((x)->uu->ctx256)
 #define CTX_256(x)  ((x)->uu->ctx256)
 #define CTX_384(x)  ((x)->uu->ctx512)
 #define CTX_512(x)  ((x)->uu->ctx512)
@@ -674,31 +806,53 @@ sha2_void sha512(unsigned char hval[], const unsigned char data[], unsigned long
 /* SHA2 initialisation */
 
 sha2_int sha2_begin(unsigned long len, sha2_ctx ctx[1])
-{   unsigned long   l = len;
+{
     switch(len)
     {
-        case 256:   l = len >> 3;
+#if defined(SHA_224)
+        case 224:
+        case  28:   CTX_256(ctx)->count[0] = CTX_256(ctx)->count[1] = 0;
+                    memcpy(CTX_256(ctx)->hash, i224, 32);
+                    ctx->sha2_len = 28; return SHA2_GOOD;
+#endif
+#if defined(SHA_256)
+        case 256:
         case  32:   CTX_256(ctx)->count[0] = CTX_256(ctx)->count[1] = 0;
-                    memcpy(CTX_256(ctx)->hash, i256, 32); break;
-        case 384:   l = len >> 3;
+                    memcpy(CTX_256(ctx)->hash, i256, 32);
+                    ctx->sha2_len = 32; return SHA2_GOOD;
+#endif
+#if defined(SHA_384)
+        case 384:
         case  48:   CTX_384(ctx)->count[0] = CTX_384(ctx)->count[1] = 0;
-                    memcpy(CTX_384(ctx)->hash, i384, 64); break;
-        case 512:   l = len >> 3;
+                    memcpy(CTX_384(ctx)->hash, i384, 64);
+                    ctx->sha2_len = 48; return SHA2_GOOD;
+#endif
+#if defined(SHA_512)
+        case 512:
         case  64:   CTX_512(ctx)->count[0] = CTX_512(ctx)->count[1] = 0;
-                    memcpy(CTX_512(ctx)->hash, i512, 64); break;
+                    memcpy(CTX_512(ctx)->hash, i512, 64);
+                    ctx->sha2_len = 64; return SHA2_GOOD;
+#endif
         default:    return SHA2_BAD;
     }
-
-    ctx->sha2_len = l; return SHA2_GOOD;
 }
 
 sha2_void sha2_hash(const unsigned char data[], unsigned long len, sha2_ctx ctx[1])
 {
     switch(ctx->sha2_len)
     {
+#if defined(SHA_224)
+        case 28: sha224_hash(data, len, CTX_224(ctx)); return;
+#endif
+#if defined(SHA_256)
         case 32: sha256_hash(data, len, CTX_256(ctx)); return;
+#endif
+#if defined(SHA_384)
         case 48: sha384_hash(data, len, CTX_384(ctx)); return;
+#endif
+#if defined(SHA_512)
         case 64: sha512_hash(data, len, CTX_512(ctx)); return;
+#endif
     }
 }
 
@@ -706,9 +860,18 @@ sha2_void sha2_end(unsigned char hval[], sha2_ctx ctx[1])
 {
     switch(ctx->sha2_len)
     {
-        case 32: sha256_end(hval, CTX_256(ctx)); return;
-        case 48: sha_end(hval, CTX_384(ctx), SHA384_DIGEST_SIZE); return;
-        case 64: sha_end(hval, CTX_512(ctx), SHA512_DIGEST_SIZE); return;
+#if defined(SHA_224)
+        case 28: sha_end1(hval, CTX_224(ctx), SHA224_DIGEST_SIZE); return;
+#endif
+#if defined(SHA_256)
+        case 32: sha_end1(hval, CTX_256(ctx), SHA256_DIGEST_SIZE); return;
+#endif
+#if defined(SHA_384)
+        case 48: sha_end2(hval, CTX_384(ctx), SHA384_DIGEST_SIZE); return;
+#endif
+#if defined(SHA_512)
+        case 64: sha_end2(hval, CTX_512(ctx), SHA512_DIGEST_SIZE); return;
+#endif
     }
 }
 
@@ -729,5 +892,3 @@ sha2_int sha2(unsigned char hval[], unsigned long size,
 #if defined(__cplusplus)
 }
 #endif
-
-

@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib SSH Session Management						*
-*						Copyright Peter Gutmann 1998-2003					*
+*						Copyright Peter Gutmann 1998-2004					*
 *																			*
 ****************************************************************************/
 
@@ -9,14 +9,17 @@
 #include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
+  #include "misc_rw.h"
   #include "session.h"
   #include "ssh.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
-  #include "../session/session.h"
-  #include "../session/ssh.h"
+  #include "../misc/misc_rw.h"
+  #include "session.h"
+  #include "ssh.h"
 #else
   #include "crypt.h"
+  #include "misc/misc_rw.h"
   #include "session/session.h"
   #include "session/ssh.h"
 #endif /* Compiler-specific includes */
@@ -57,114 +60,6 @@ static void destroyHandshakeInfo( SSH_HANDSHAKE_INFO *handshakeInfo )
 	zeroise( handshakeInfo, sizeof( SSH_HANDSHAKE_INFO ) );
 	}
 
-/* Initialise and destroy the security contexts */
-
-static void destroySecurityContexts( SESSION_INFO *sessionInfoPtr )
-	{
-	/* Destroy any active contexts */
-	if( sessionInfoPtr->iKeyexCryptContext != CRYPT_ERROR )
-		{
-		krnlSendNotifier( sessionInfoPtr->iKeyexCryptContext,
-						  IMESSAGE_DECREFCOUNT );
-		sessionInfoPtr->iKeyexCryptContext = CRYPT_ERROR;
-		}
-	if( sessionInfoPtr->iCryptInContext != CRYPT_ERROR )
-		{
-		krnlSendNotifier( sessionInfoPtr->iCryptInContext,
-						  IMESSAGE_DECREFCOUNT );
-		sessionInfoPtr->iCryptInContext = CRYPT_ERROR;
-		}
-	if( sessionInfoPtr->iCryptOutContext != CRYPT_ERROR )
-		{
-		krnlSendNotifier( sessionInfoPtr->iCryptOutContext,
-						  IMESSAGE_DECREFCOUNT );
-		sessionInfoPtr->iCryptOutContext = CRYPT_ERROR;
-		}
-	if( sessionInfoPtr->iAuthInContext != CRYPT_ERROR )
-		{
-		krnlSendNotifier( sessionInfoPtr->iAuthInContext,
-						  IMESSAGE_DECREFCOUNT );
-		sessionInfoPtr->iAuthInContext = CRYPT_ERROR;
-		}
-	if( sessionInfoPtr->iAuthOutContext != CRYPT_ERROR )
-		{
-		krnlSendNotifier( sessionInfoPtr->iAuthOutContext,
-						  IMESSAGE_DECREFCOUNT );
-		sessionInfoPtr->iAuthOutContext = CRYPT_ERROR;
-		}
-	}
-
-int initSecurityContexts( SESSION_INFO *sessionInfoPtr )
-	{
-	MESSAGE_CREATEOBJECT_INFO createInfo;
-	int status;
-
-	setMessageCreateObjectInfo( &createInfo, sessionInfoPtr->cryptAlgo );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_CREATEOBJECT,
-							  &createInfo, OBJECT_TYPE_CONTEXT );
-	if( cryptStatusOK( status ) )
-		{
-		sessionInfoPtr->iCryptInContext = createInfo.cryptHandle;
-		setMessageCreateObjectInfo( &createInfo, sessionInfoPtr->cryptAlgo );
-		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
-								  OBJECT_TYPE_CONTEXT );
-		}
-	if( cryptStatusOK( status ) )
-		{
-		sessionInfoPtr->iCryptOutContext = createInfo.cryptHandle;
-		krnlSendMessage( sessionInfoPtr->iCryptInContext,
-						 IMESSAGE_GETATTRIBUTE, &sessionInfoPtr->cryptBlocksize,
-						 CRYPT_CTXINFO_BLOCKSIZE );
-		}
-	if( cryptStatusOK( status ) && sessionInfoPtr->version == 1 && \
-		sessionInfoPtr->cryptAlgo == CRYPT_ALGO_IDEA )
-		{
-		const int cryptMode = CRYPT_MODE_CFB;
-
-		/* SSHv1 uses stream ciphers in places, for which we have to set the
-		   mode explicitly */
-		status = krnlSendMessage( sessionInfoPtr->iCryptInContext,
-								  IMESSAGE_SETATTRIBUTE,
-								  ( void * ) &cryptMode,
-								  CRYPT_CTXINFO_MODE );
-		if( cryptStatusOK( status ) )
-			status = krnlSendMessage( sessionInfoPtr->iCryptOutContext,
-									  IMESSAGE_SETATTRIBUTE,
-									  ( void * ) &cryptMode,
-									  CRYPT_CTXINFO_MODE );
-		}
-	if( cryptStatusOK( status ) && sessionInfoPtr->version == 2 )
-		{
-		setMessageCreateObjectInfo( &createInfo, sessionInfoPtr->integrityAlgo );
-		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
-								  OBJECT_TYPE_CONTEXT );
-		if( cryptStatusOK( status ) )
-			{
-			sessionInfoPtr->iAuthInContext = createInfo.cryptHandle;
-			setMessageCreateObjectInfo( &createInfo,
-										sessionInfoPtr->integrityAlgo );
-			status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-									  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
-									  OBJECT_TYPE_CONTEXT );
-			}
-		if( cryptStatusOK( status ) )
-			{
-			sessionInfoPtr->iAuthOutContext = createInfo.cryptHandle;
-			krnlSendMessage( sessionInfoPtr->iAuthInContext,
-							 IMESSAGE_GETATTRIBUTE,
-							 &sessionInfoPtr->authBlocksize,
-							 CRYPT_CTXINFO_BLOCKSIZE );
-			}
-		}
-	if( cryptStatusError( status ) )
-		/* One or more of the contexts couldn't be created, destroy all the
-		   contexts that have been created so far */
-		destroySecurityContexts( sessionInfoPtr );
-	return( status );
-	}
-
 /* Read the SSH version information string */
 
 static int readVersionLine( STREAM *stream, BYTE *buffer )
@@ -192,8 +87,8 @@ static int readVersionLine( STREAM *stream, BYTE *buffer )
 			return( CRYPT_ERROR_UNDERFLOW );
 		if( !buffer[ length ] )
 			/* The spec doesn't really say what is and isn't valid in the ID
-			   strings, although it does say that nuls shouldn't be used.  
-			   In any case we can't allow these because they'd cause 
+			   strings, although it does say that nuls shouldn't be used.
+			   In any case we can't allow these because they'd cause
 			   problems for the string-handling functions */
 			return( CRYPT_ERROR_BADDATA );
 		if( buffer[ length ] == '\n' )
@@ -227,23 +122,23 @@ static int readVersionString( SESSION_INFO *sessionInfoPtr )
 	   string terminated with a newline, so we have to process it a character
 	   at a time after the initial fixed data.
 
-	   Unfortunately the SSH RFC further complicates this by allowing 
-	   implementations to send non-version-related text lines before the 
-	   version line.  The theory is that this will allow applications like 
-	   TCP wrappers to display a (human-readable) error message before 
+	   Unfortunately the SSH RFC further complicates this by allowing
+	   implementations to send non-version-related text lines before the
+	   version line.  The theory is that this will allow applications like
+	   TCP wrappers to display a (human-readable) error message before
 	   disconnecting, however some installations use it to display general
 	   banners before the ID string.  Since the RFC doesn't provide any means
 	   of distinguishing this banner information from arbitrary data, we
 	   can't quickly reject attempts to connect to something that isn't an
-	   SSH server.  In other words we have to sit here waiting for further 
-	   data in the hope that eventually an SSH ID turns up, until such time 
+	   SSH server.  In other words we have to sit here waiting for further
+	   data in the hope that eventually an SSH ID turns up, until such time
 	   as the connect timeout expires.  In order to provide a more useful
 	   message than a somewhat confusing timeout error, we remember whether
 	   we've already read any lines of text and if we have, report it as an
 	   invalid ID error rather than a timeout error */
 	do
 		{
-		status = readVersionLine( &sessionInfoPtr->stream, 
+		status = readVersionLine( &sessionInfoPtr->stream,
 								  sessionInfoPtr->receiveBuffer );
 		if( cryptStatusError( status ) )
 			{
@@ -255,7 +150,7 @@ static int readVersionString( SESSION_INFO *sessionInfoPtr )
 						"SSH version string read timed out before all data "
 						"could be read" );
 			if( status == CRYPT_ERROR_TIMEOUT && linesRead > 0 )
-				/* We timed out waiting for an ID to appear, this is an 
+				/* We timed out waiting for an ID to appear, this is an
 				   invalid ID error rather than a true timeout */
 				retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 						"Invalid SSH version string 0x%02X 0x%02X 0x%02X "
@@ -316,30 +211,45 @@ static int readVersionString( SESSION_INFO *sessionInfoPtr )
 	versionStringPtr++;		/* Skip '-' */
 
 	/* Check whether the peer is using cryptlib */
-	if( !memcmp( versionStringPtr, SSH1_ID_STRING + SSH_ID_SIZE + SSH_VERSION_SIZE,
+	if( !memcmp( versionStringPtr, SSH2_ID_STRING + SSH_ID_SIZE + SSH_VERSION_SIZE,
 				 strlen( SSH2_ID_STRING + SSH_ID_SIZE + SSH_VERSION_SIZE ) ) )
 		sessionInfoPtr->flags |= SESSION_ISCRYPTLIB;
 
 	/* Check for various servers that require special-case handling.  The
 	   versions that we check for are:
 
+		CuteFTP:
+			Drops the connection after seeing the server hello with no
+			(usable) error indication.  This implementation is somewhat
+			tricky to detect since it identifies itself using the dubious
+			vendor ID string "1.0" (see the ssh.com note below), this
+			problem hasn't been fixed more than a year after the vendor was
+			notified of it, indicating that it's unlikely to ever be fixed.
+			CuteFTP also uses the SSHv1 backwards-compatible version string
+			"1.99" even though it can't actually do SSHv1, which means that
+			it'll fail if it ever tries to connect to an SSHv1 peer.
+
 		OpenSSH:
 			Omits hashing the exchange hash length when creating the hash
 			to be signed for client auth for version 2.0 (all subversions).
 
+			Can't handle "password" as a PAM sub-method (meaning an
+			authentication method hint), it responds with an authentication-
+			failed response as soon as we send the PAM authentication
+			request, for versions 3.8 - ? (currently 3.9).
+
 		ssh.com:
-			This implementation puts the version number first, so if we find 
-			something without a vendor name at the start we treat it as an 
-			ssh.com version.  However, Van Dyke's SSH server VShell also 
-			uses the ssh.com-style identification (fronti nulla fides), so 
-			when we check for the ssh.com implementation we make sure that 
-			it isn't really VShell.  In addition CuteFTP advertises whatever 
-			it's using as "1.x" (without and vendor name), which is going to 
-			cause problems in the future if they ever move to 2.x of 
-			whatever it is.
+			This implementation puts the version number first, so if we find
+			something without a vendor name at the start we treat it as an
+			ssh.com version.  However, Van Dyke's SSH server VShell also
+			uses the ssh.com-style identification (fronti nulla fides), so
+			when we check for the ssh.com implementation we make sure that
+			it isn't really VShell.  In addition CuteFTP advertises its
+			implementation as "1.0" (without any vendor name), which is
+			going to cause problems in the future when they move to 2.x.
 
 			Omits the DH-derived shared secret when hashing the keying
-			material for versions identified as "2.0.0" (all 
+			material for versions identified as "2.0.0" (all
 			sub-versions) and "2.0.10" .
 
 			Uses an SSH2_FIXED_KEY_SIZE-sized key for HMAC instead of the de
@@ -347,24 +257,24 @@ static int readVersionString( SESSION_INFO *sessionInfoPtr )
 			and "2.2." (i.e. all sub-versions of 2.0, 2.1, and 2.2), and
 			specifically version "2.3.0".  This was fixed in 2.3.1.
 
-			Omits the signature algorithm name for versions identified as 
+			Omits the signature algorithm name for versions identified as
 			"2.0" and "2.1" (all sub-versions).
 
 			Requires a window adjust for every 32K sent even if the window is
-			advertised as being (effectively) infinite in size for versions 
+			advertised as being (effectively) infinite in size for versions
 			identified as "2.0" and "2.1" (all sub-versions).
 
 			Omits hashing the exchange hash length when creating the hash
-			to be signed for client auth for versions 2.1 and 2.2 (all 
+			to be signed for client auth for versions 2.1 and 2.2 (all
 			subversions).
 
 			Dumps text diagnostics (that is, raw text strings rather than
-			SSH error packets) onto the connection if something unexpected 
+			SSH error packets) onto the connection if something unexpected
 			occurs, for uncertain versions probably in the 2.x range.
 
 		Van Dyke:
-			Omits hashing the exchange hash length when creating the hash to 
-			be signed for client auth for version 3.0 (SecureCRT = SSH) and 
+			Omits hashing the exchange hash length when creating the hash to
+			be signed for client auth for version 3.0 (SecureCRT = SSH) and
 			1.7 (SecureFX = SFTP).
 
 	   Further quirks and peculiarities exist, but fortunately these are rare
@@ -376,11 +286,15 @@ static int readVersionString( SESSION_INFO *sessionInfoPtr )
 
 		if( !memcmp( subVersionStringPtr, "2.0", 3 ) )
 			sessionInfoPtr->protocolFlags |= SSH_PFLAG_NOHASHLENGTH;
+		if( !memcmp( subVersionStringPtr, "3.8", 3 ) || \
+			!memcmp( subVersionStringPtr, "3.9", 3 ) || \
+			!memcmp( subVersionStringPtr, "3.10", 4 ) )
+			sessionInfoPtr->protocolFlags |= SSH_PFLAG_PAMPW;
 		}
 	if( *versionStringPtr == '2' && \
 		strstr( versionStringPtr, "VShell" ) == NULL )
 		{
-		/* ssh.com 2.x versions have quite a number of bugs so we check for 
+		/* ssh.com 2.x versions have quite a number of bugs so we check for
 		   them as a group */
 		if( !memcmp( versionStringPtr, "2.0.0", 5 ) || \
 			!memcmp( versionStringPtr, "2.0.10", 6 ) )
@@ -406,23 +320,10 @@ static int readVersionString( SESSION_INFO *sessionInfoPtr )
 	if( !memcmp( versionStringPtr, "3.0 SecureCRT", 13 ) || \
 		!memcmp( versionStringPtr, "1.7 SecureFX", 12 ) )
 		sessionInfoPtr->protocolFlags |= SSH_PFLAG_NOHASHLENGTH;
+	if( !memcmp( versionStringPtr, "1.0", 3 ) )
+		sessionInfoPtr->protocolFlags |= SSH_PFLAG_CUTEFTP;
 
 	return( CRYPT_OK );
-	}
-
-/* Encode a value as an SSH string */
-
-int encodeString( BYTE *buffer, const BYTE *string, const int stringLength )
-	{
-	BYTE *bufPtr = buffer;
-	const int length = ( stringLength > 0 ) ? stringLength : strlen( string );
-
-	if( buffer != NULL )
-		{
-		mputLong( bufPtr, length );
-		memcpy( bufPtr, string, length );
-		}
-	return( LENGTH_SIZE + length );
 	}
 
 /****************************************************************************
@@ -443,13 +344,18 @@ static int initVersion( SESSION_INFO *sessionInfoPtr,
 	status = readVersionString( sessionInfoPtr );
 	if( cryptStatusError( status ) )
 		return( status );
+#ifdef USE_SSH1
 	if( sessionInfoPtr->version == 1 )
 		{
 		initSSH1processing( sessionInfoPtr, handshakeInfo,
 							( sessionInfoPtr->flags & SESSION_ISSERVER) ? \
 								TRUE : FALSE );
+		sessionInfoPtr->sendBufStartOfs = \
+			sessionInfoPtr->receiveBufStartOfs = \
+				sessionInfoPtr->protocolInfo->sendBufStartOfs;
 		return( CRYPT_OK );
 		}
+#endif /* USE_SSH1 */
 	initSSH2processing( sessionInfoPtr, handshakeInfo,
 						( sessionInfoPtr->flags & SESSION_ISSERVER) ? \
 							TRUE : FALSE );
@@ -482,7 +388,11 @@ static int completeStartup( SESSION_INFO *sessionInfoPtr )
 											   &handshakeInfo );
 	if( cryptStatusError( status ) )
 		{
+		/* If we run into an error at this point we need to disable error-
+		   reporting during the shutdown phase since we've already got
+		   error information present from the already-encountered error */
 		destroyHandshakeInfo( &handshakeInfo );
+		sessionInfoPtr->flags |= SESSION_NOREPORTERROR;
 		sessionInfoPtr->shutdownFunction( sessionInfoPtr );
 		return( status );
 		}
@@ -491,8 +401,9 @@ static int completeStartup( SESSION_INFO *sessionInfoPtr )
 	status = handshakeInfo.exchangeKeys( sessionInfoPtr, &handshakeInfo );
 	if( cryptStatusError( status ) )
 		{
-		destroySecurityContexts( sessionInfoPtr );
+		destroySecurityContextsSSH( sessionInfoPtr );
 		destroyHandshakeInfo( &handshakeInfo );
+		sessionInfoPtr->flags |= SESSION_NOREPORTERROR;
 		sessionInfoPtr->shutdownFunction( sessionInfoPtr );
 		return( status );
 		}
@@ -503,16 +414,21 @@ static int completeStartup( SESSION_INFO *sessionInfoPtr )
 	destroyHandshakeInfo( &handshakeInfo );
 	if( cryptStatusError( status ) )
 		{
+		/* If we need confirmation from the user before continuing, let
+		   them know */
+		if( status == CRYPT_ENVELOPE_RESOURCE )
+			return( status );
+
 		/* At this point we could be in the secure state, so we have to
-		   keep the security info around until after we've called the 
+		   keep the security info around until after we've called the
 		   shutdown function, which could require sending secured data */
+		sessionInfoPtr->flags |= SESSION_NOREPORTERROR;
 		sessionInfoPtr->shutdownFunction( sessionInfoPtr );
-		destroySecurityContexts( sessionInfoPtr );
+		destroySecurityContextsSSH( sessionInfoPtr );
 		return( status );
 		}
-	sioctl( &sessionInfoPtr->stream, STREAM_IOCTL_HANDSHAKETIMEOUT, NULL, 0 );
 
-	return( status );
+	return( CRYPT_OK );
 	}
 
 /* Start an SSH server */
@@ -522,6 +438,21 @@ static int serverStartup( SESSION_INFO *sessionInfoPtr )
 	const char *idString = ( sessionInfoPtr->version == 1 ) ? \
 						   SSH1_ID_STRING "\n" : SSH2_ID_STRING "\r\n";
 	int status;
+
+	/* If we're completing a handshake that was interrupted while we got
+	   confirmation of the client auth, skip the initial handshake stages
+	   and go straight to the handshake completion stage */
+	if( sessionInfoPtr->flags & SESSION_PARTIALOPEN )
+		{
+		SSH_HANDSHAKE_INFO handshakeInfo;
+
+		initHandshakeInfo( &handshakeInfo );
+		initSSH2processing( sessionInfoPtr, &handshakeInfo, TRUE );
+		status = handshakeInfo.completeHandshake( sessionInfoPtr,
+												  &handshakeInfo );
+		destroyHandshakeInfo( &handshakeInfo );
+		return( status );
+		}
 
 	/* Send the ID string to the client before we continue with the
 	   handshake.  We don't have to wait for any input from the client since
@@ -549,73 +480,133 @@ static int serverStartup( SESSION_INFO *sessionInfoPtr )
 static int getAttributeFunction( SESSION_INFO *sessionInfoPtr,
 								 void *data, const CRYPT_ATTRIBUTE_TYPE type )
 	{
-	RESOURCE_DATA *msgData = data;
+	int status;
 
-	assert( type == CRYPT_SESSINFO_SSH_SUBSYSTEM || \
-			type == CRYPT_SESSINFO_SSH_PORTFORWARD );
+	assert( type == CRYPT_SESSINFO_SSH_CHANNEL ||\
+			type == CRYPT_SESSINFO_SSH_CHANNEL_TYPE || \
+			type == CRYPT_SESSINFO_SSH_CHANNEL_ARG1 || \
+			type == CRYPT_SESSINFO_SSH_CHANNEL_ARG2 || \
+			type == CRYPT_SESSINFO_SSH_CHANNEL_ACTIVE );
 
-	switch( type )
+	if( type == CRYPT_SESSINFO_SSH_CHANNEL || \
+		type == CRYPT_SESSINFO_SSH_CHANNEL_ACTIVE )
+		status = getChannelAttribute( sessionInfoPtr, type,
+									  NULL, data );
+	else
 		{
-		case CRYPT_SESSINFO_SSH_SUBSYSTEM:
-			if( sessionInfoPtr->sshSubsystemLength <= 0 )
-				return( CRYPT_ERROR_NOTINITED );
-			return( attributeCopy( msgData, sessionInfoPtr->sshSubsystem,
-								   sessionInfoPtr->sshSubsystemLength ) );
+		RESOURCE_DATA *msgData = data;
 
-		case CRYPT_SESSINFO_SSH_PORTFORWARD:
-			if( sessionInfoPtr->sshPortForwardLength <= 0 )
-				return( CRYPT_ERROR_NOTINITED );
-			return( attributeCopy( msgData, sessionInfoPtr->sshPortForward,
-								   sessionInfoPtr->sshPortForwardLength ) );
+		status = getChannelAttribute( sessionInfoPtr, type,
+									  msgData->data, &msgData->length );
 		}
-
-	assert( NOTREACHED );
-	return( CRYPT_ARGERROR_NUM1 );
+	return( ( status == CRYPT_ERROR ) ? CRYPT_ARGERROR_NUM1 : status );
 	}
 
 static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 								 const void *data,
 								 const CRYPT_ATTRIBUTE_TYPE type )
 	{
-	const RESOURCE_DATA *msgData = data;
+	int status;
 
-	assert( type == CRYPT_SESSINFO_SSH_SUBSYSTEM || \
-			type == CRYPT_SESSINFO_SSH_PORTFORWARD );
+	assert( type == CRYPT_SESSINFO_SSH_CHANNEL ||\
+			type == CRYPT_SESSINFO_SSH_CHANNEL_TYPE || \
+			type == CRYPT_SESSINFO_SSH_CHANNEL_ARG1 || \
+			type == CRYPT_SESSINFO_SSH_CHANNEL_ARG2 || \
+			type == CRYPT_SESSINFO_SSH_CHANNEL_ACTIVE );
 
-	switch( type )
+	/* If we're selecting a channel and there's unwritten data from a
+	   previous write still in the buffer, we can't change the write
+	   channel */
+	if( type == CRYPT_SESSINFO_SSH_CHANNEL && sessionInfoPtr->partialWrite )
+		return( CRYPT_ERROR_INCOMPLETE );
+
+	/* If we're creating a new channel by setting the value to CRYPT_UNUSED,
+	   create the new channel */
+	if( type == CRYPT_SESSINFO_SSH_CHANNEL && \
+		*( int * ) data == CRYPT_UNUSED )
 		{
-		case CRYPT_SESSINFO_SSH_SUBSYSTEM:
-			if( sessionInfoPtr->sshSubsystemLength > 0 )
-				return( CRYPT_ERROR_INITED );
-			memcpy( sessionInfoPtr->sshSubsystem, msgData->data, 
-					msgData->length );
-			sessionInfoPtr->sshSubsystemLength = msgData->length;
-			break;
+		/* If the session hasn't been activated yet, we can only create a
+		   single channel during session activation, any subsequent ones
+		   have to be handled later */
+		if( !( sessionInfoPtr->flags & SESSION_ISOPEN ) && \
+			getCurrentChannelNo( sessionInfoPtr, \
+								 CHANNEL_READ ) != UNUSED_CHANNEL_NO )
+			return( CRYPT_ERROR_INITED );
 
-		case CRYPT_SESSINFO_SSH_PORTFORWARD:
-			{
-			URL_INFO urlInfo;
-			int status;
-
-			/* Make sure that we've been given a valid URL for forwarding */
-			if( sessionInfoPtr->sshPortForwardLength > 0 )
-				return( CRYPT_ERROR_INITED );
-			status = sNetParseURL( &urlInfo, msgData->data, 
-								   msgData->length );
-			if( cryptStatusError( status ) )
-				return( status );
-			memcpy( sessionInfoPtr->sshPortForward, msgData->data, 
-					msgData->length );
-			sessionInfoPtr->sshPortForwardLength = msgData->length;
-			break;
-			}
-
-		default:
-			assert( NOTREACHED );
-			return( CRYPT_ARGERROR_NUM1 );
+		return( createChannel( sessionInfoPtr ) );
 		}
 
-	return( CRYPT_OK );
+	/* If we 're setting the channel-active attribute, this implicitly
+	   activates or deactivates the channel rather than setting any 
+	   attribute value */
+	if( type == CRYPT_SESSINFO_SSH_CHANNEL_ACTIVE )
+		{
+		if( *( int * ) data )
+			return( sendChannelOpen( sessionInfoPtr ) );
+		return( closeChannel( sessionInfoPtr, FALSE ) );
+		}
+
+	if( type == CRYPT_SESSINFO_SSH_CHANNEL )
+		status = setChannelAttribute( sessionInfoPtr, type,
+									  NULL, *( int * ) data );
+	else
+		{
+		const RESOURCE_DATA *msgData = data;
+
+		status = setChannelAttribute( sessionInfoPtr, type,
+									  msgData->data, msgData->length );
+		}
+	return( ( status == CRYPT_ERROR ) ? CRYPT_ARGERROR_NUM1 : status );
+	}
+
+static int checkAttributeFunction( SESSION_INFO *sessionInfoPtr,
+								   const CRYPT_HANDLE cryptHandle,
+								   const CRYPT_ATTRIBUTE_TYPE type )
+	{
+	HASHFUNCTION hashFunction;
+	STREAM stream;
+	BYTE buffer[ 128 + ( CRYPT_MAX_PKCSIZE * 4 ) ];
+	BYTE fingerPrint[ CRYPT_MAX_HASHSIZE ];
+	int length, hashSize, status;
+
+	if( type != CRYPT_SESSINFO_PRIVATEKEY )
+		return( CRYPT_OK );
+
+	/* Only the server key has a fingerprint */
+	if( !( sessionInfoPtr->flags & SESSION_ISSERVER ) )
+		return( CRYPT_OK );
+
+	getHashParameters( CRYPT_ALGO_MD5, &hashFunction, &hashSize );
+
+	/* The fingerprint is computed from the "key blob", which is different
+	   from the server key.  The server key is the full key, while the "key
+	   blob" is only the raw key components (e, n for RSA, p, q, g, y for
+	   DSA), so we have to skip the key header before we hash the key data.
+	   Note that, as with the old PGP 2.x key hash mechanism, this allows
+	   key spoofing (although it isn't quite as bad as the PGP 2.x key
+	   fingerprint mechanism) since it doesn't hash an indication of the key
+	   type or format */
+	sMemOpen( &stream, buffer, 128 + ( CRYPT_MAX_PKCSIZE * 4 ) );
+	status = exportAttributeToStream( &stream, cryptHandle,
+									  CRYPT_IATTRIBUTE_KEY_SSH2,
+									  CRYPT_USE_DEFAULT );
+	if( cryptStatusError( status ) )
+		return( status );
+	length = stell( &stream );
+	sseek( &stream, 0 );
+	readUint32( &stream );					/* Length */
+	status = readUniversal32( &stream );	/* Algorithm ID */
+	if( cryptStatusOK( status ) )
+		hashFunction( NULL, fingerPrint, sMemBufPtr( &stream ),
+					  length - stell( &stream ), HASH_ALL );
+	sMemClose( &stream );
+	if( cryptStatusError( status ) )
+		return( status );
+
+	/* Add the fingerprint */
+	return( addSessionAttribute( &sessionInfoPtr->attributeList,
+								 CRYPT_SESSINFO_SERVER_FINGERPRINT,
+								 fingerPrint, hashSize ) );
 	}
 
 /****************************************************************************
@@ -631,6 +622,7 @@ int setAccessMethodSSH( SESSION_INFO *sessionInfoPtr )
 	   used */
 	sessionInfoPtr->getAttributeFunction = getAttributeFunction;
 	sessionInfoPtr->setAttributeFunction = setAttributeFunction;
+	sessionInfoPtr->checkAttributeFunction = checkAttributeFunction;
 	if( sessionInfoPtr->flags & SESSION_ISSERVER )
 		{
 		sessionInfoPtr->transactFunction = serverStartup;

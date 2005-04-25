@@ -7,14 +7,18 @@
 
 #include <stdlib.h>
 #include <string.h>
-#if defined( INC_ALL ) ||  defined( INC_CHILD )
+#if defined( INC_ALL )
   #include "cert.h"
-  #include "../misc/asn1_rw.h"
-  #include "../misc/asn1s_rw.h"
+  #include "asn1.h"
+  #include "asn1_ext.h"
+#elif defined( INC_CHILD )
+  #include "cert.h"
+  #include "../misc/asn1.h"
+  #include "../misc/asn1_ext.h"
 #else
   #include "cert/cert.h"
-  #include "misc/asn1_rw.h"
-  #include "misc/asn1s_rw.h"
+  #include "misc/asn1.h"
+  #include "misc/asn1_ext.h"
 #endif /* Compiler-specific includes */
 
 /* The maximum length of ID that can be stored in a REVOCATION_INFO entry.
@@ -66,9 +70,9 @@ static int findRevocationEntry( const REVOCATION_INFO *listPtr,
 	const REVOCATION_INFO *prevElement = NULL;
 	const int dCheck = checksumData( value, valueLength );
 
-	assert( isReadPtr( listPtr, REVOCATION_INFO ) );
+	assert( isReadPtr( listPtr, sizeof( REVOCATION_INFO ) ) );
 	assert( insertPoint == NULL || \
-			isWritePtr( insertPoint, REVOCATION_INFO * ) );
+			isWritePtr( insertPoint, sizeof( REVOCATION_INFO * ) ) );
 
 	/* Clear the return value */
 	if( insertPoint != NULL )
@@ -119,15 +123,16 @@ static int findRevocationEntry( const REVOCATION_INFO *listPtr,
 int checkRevocation( const CERT_INFO *certInfoPtr, 
 					 CERT_INFO *revocationInfoPtr )
 	{
+	CERT_REV_INFO *certRevInfo = revocationInfoPtr->cCertRev;
 	REVOCATION_INFO *revocationEntry;
 	int status;
 
-	assert( isReadPtr( certInfoPtr, CERT_INFO ) );
-	assert( isWritePtr( revocationInfoPtr, CERT_INFO ) );
+	assert( isReadPtr( certInfoPtr, sizeof( CERT_INFO ) ) );
+	assert( isWritePtr( revocationInfoPtr, sizeof( CERT_INFO ) ) );
 
 	/* If there's no revocation information present, the cert can't have been
 	   revoked */
-	if( revocationInfoPtr->revocations == NULL )
+	if( certRevInfo->revocations == NULL )
 		return( CRYPT_OK );
 
 	/* Check whether the cert is present in the revocation list */
@@ -140,10 +145,10 @@ int checkRevocation( const CERT_INFO *certInfoPtr,
 			return( CRYPT_OK );
 
 		/* Check whether there's an entry for this cert in the list */
-		status = findRevocationEntry( revocationInfoPtr->revocations, 
+		status = findRevocationEntry( certRevInfo->revocations, 
 									  &revocationEntry, 
-									  certInfoPtr->serialNumber, 
-									  certInfoPtr->serialNumberLength,
+									  certInfoPtr->cCertCert->serialNumber, 
+									  certInfoPtr->cCertCert->serialNumberLength,
 									  FALSE );
 		if( status == CRYPT_ERROR_NOTFOUND )
 			/* No CRL entry, the certificate is OK */
@@ -164,7 +169,7 @@ int checkRevocation( const CERT_INFO *certInfoPtr,
 								   CRYPT_CERTINFO_FINGERPRINT_SHA,
 								   certHash, &certHashLength );
 		if( cryptStatusOK( status ) )
-			status = findRevocationEntry( revocationInfoPtr->revocations, 
+			status = findRevocationEntry( certRevInfo->revocations, 
 										  &revocationEntry, certHash, 
 										  certHashLength, FALSE );
 		if( cryptStatusError( status ) )
@@ -179,7 +184,7 @@ int checkRevocation( const CERT_INFO *certInfoPtr,
 	   the entry.  The unknown status is a bit difficult to report, the best 
 	   we can do is report notfound, although the notfound occurred at the 
 	   responder rather than here */
-	revocationInfoPtr->currentRevocation = revocationEntry;
+	certRevInfo->currentRevocation = revocationEntry;
 	if( revocationInfoPtr->type == CRYPT_CERTTYPE_CRL )
 		return( CRYPT_ERROR_INVALID );
 	return( ( revocationEntry->status == CRYPT_OCSPSTATUS_NOTREVOKED ) ? \
@@ -198,8 +203,8 @@ int addRevocationEntry( REVOCATION_INFO **listHeadPtr,
 	{
 	REVOCATION_INFO *newElement, *insertPoint;
 
-	assert( isWritePtr( listHeadPtr, REVOCATION_INFO * ) );
-	assert( isWritePtr( newEntryPosition, REVOCATION_INFO * ) );
+	assert( isWritePtr( listHeadPtr, sizeof( REVOCATION_INFO * ) ) );
+	assert( isWritePtr( newEntryPosition, sizeof( REVOCATION_INFO * ) ) );
 	assert( sizeof( newElement->data ) == MAX_ID_SIZE );
 	assert( valueType == CRYPT_KEYID_NONE || \
 			valueType == CRYPT_IKEYID_CERTID || \
@@ -261,7 +266,7 @@ void deleteRevocationEntries( REVOCATION_INFO **listHeadPtr )
 	{
 	REVOCATION_INFO *entryListPtr = *listHeadPtr;
 
-	assert( isWritePtr( listHeadPtr, REVOCATION_INFO * ) );
+	assert( isWritePtr( listHeadPtr, sizeof( REVOCATION_INFO * ) ) );
 
 	*listHeadPtr = NULL;
 
@@ -286,14 +291,12 @@ void deleteRevocationEntries( REVOCATION_INFO **listHeadPtr )
 /* Copy a revocation list */
 
 int copyRevocationEntries( REVOCATION_INFO **destListHeadPtr,
-						   const REVOCATION_INFO *srcListPtr,
-						   CRYPT_ATTRIBUTE_TYPE *errorLocus, 
-						   CRYPT_ERRTYPE_TYPE *errorType )
+						   const REVOCATION_INFO *srcListPtr )
 	{
 	const REVOCATION_INFO *srcListCursor;
 	REVOCATION_INFO *destListCursor;
 
-	assert( isWritePtr( destListHeadPtr, REVOCATION_INFO * ) );
+	assert( isWritePtr( destListHeadPtr, sizeof( REVOCATION_INFO * ) ) );
 	assert( *destListHeadPtr == NULL );	/* Dest.should be empty */
 
 	/* Copy all revocation entries from source to destination */
@@ -363,7 +366,7 @@ int copyRevocationEntries( REVOCATION_INFO **destListHeadPtr,
 
 int sizeofCRLentry( REVOCATION_INFO *crlEntry )
 	{
-	assert( isWritePtr( crlEntry, REVOCATION_INFO ) );
+	assert( isWritePtr( crlEntry, sizeof( REVOCATION_INFO ) ) );
 
 	/* Remember the encoded attribute size for later when we write the
 	   attributes */
@@ -385,7 +388,7 @@ int readCRLentry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
 	int serialNumberLength, endPos, length, status;
 	time_t revocationTime;
 
-	assert( isWritePtr( listHeadPtr, REVOCATION_INFO * ) );
+	assert( isWritePtr( listHeadPtr, sizeof( REVOCATION_INFO * ) ) );
 
 	/* Determine the overall size of the entry */
 	readSequence( stream, &length );
@@ -431,7 +434,7 @@ int writeCRLentry( STREAM *stream, const REVOCATION_INFO *crlEntry )
 					( int ) sizeofObject( crlEntry->attributeSize ) : 0 );
 	int status;
 
-	assert( isReadPtr( crlEntry, REVOCATION_INFO ) );
+	assert( isReadPtr( crlEntry, sizeof( REVOCATION_INFO ) ) );
 
 	/* Write the CRL entry */
 	writeSequence( stream, revocationLength );
@@ -476,7 +479,7 @@ int writeCRLentry( STREAM *stream, const REVOCATION_INFO *crlEntry )
 
 static int sizeofOcspID( const REVOCATION_INFO *ocspEntry )
 	{
-	assert( isReadPtr( ocspEntry, REVOCATION_INFO ) );
+	assert( isReadPtr( ocspEntry, sizeof( REVOCATION_INFO ) ) );
 	assert( ocspEntry->type == CRYPT_KEYID_NONE );
 
 	/* For now we don't try and handle anything except the v1 ID, since the
@@ -566,7 +569,7 @@ static int writeOcspID( STREAM *stream, const REVOCATION_INFO *ocspEntry )
 
 int sizeofOcspRequestEntry( REVOCATION_INFO *ocspEntry )
 	{
-	assert( isWritePtr( ocspEntry, REVOCATION_INFO ) );
+	assert( isWritePtr( ocspEntry, sizeof( REVOCATION_INFO ) ) );
 	assert( ocspEntry->type == CRYPT_KEYID_NONE );
 
 	/* Remember the encoded attribute size for later when we write the
@@ -587,8 +590,8 @@ int readOcspRequestEntry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
 	CRYPT_KEYID_TYPE idType;
 	int endPos, length, status;
 
-	assert( isWritePtr( listHeadPtr, REVOCATION_INFO * ) );
-	assert( isWritePtr( certInfoPtr, CERT_INFO ) );
+	assert( isWritePtr( listHeadPtr, sizeof( REVOCATION_INFO * ) ) );
+	assert( isWritePtr( certInfoPtr, sizeof( CERT_INFO ) ) );
 
 	/* Determine the overall size of the entry */
 	readSequence( stream, &length );
@@ -625,7 +628,7 @@ int writeOcspRequestEntry( STREAM *stream, const REVOCATION_INFO *ocspEntry )
 					( int ) sizeofObject( ocspEntry->attributeSize ) : 0;
 	int status;
 
-	assert( isReadPtr( ocspEntry, REVOCATION_INFO ) );
+	assert( isReadPtr( ocspEntry, sizeof( REVOCATION_INFO ) ) );
 
 	/* Write the header and ID information */
 	writeSequence( stream, sizeofOcspID( ocspEntry ) + attributeSize );
@@ -660,7 +663,7 @@ int sizeofOcspResponseEntry( REVOCATION_INFO *ocspEntry )
 	{
 	int certStatusSize = 0;
 
-	assert( isWritePtr( ocspEntry, REVOCATION_INFO ) );
+	assert( isWritePtr( ocspEntry, sizeof( REVOCATION_INFO ) ) );
 
 	/* Remember the encoded attribute size for later when we write the
 	   attributes */
@@ -685,8 +688,8 @@ int readOcspResponseEntry( STREAM *stream, REVOCATION_INFO **listHeadPtr,
 	CRYPT_KEYID_TYPE idType;
 	int endPos, length, crlReason = 0, status;
 
-	assert( isWritePtr( listHeadPtr, REVOCATION_INFO * ) );
-	assert( isWritePtr( certInfoPtr, CERT_INFO ) );
+	assert( isWritePtr( listHeadPtr, sizeof( REVOCATION_INFO * ) ) );
+	assert( isWritePtr( certInfoPtr, sizeof( CERT_INFO ) ) );
 
 	/* Determine the overall size of the entry */
 	readSequence( stream, &length );
@@ -777,7 +780,7 @@ int writeOcspResponseEntry( STREAM *stream, const REVOCATION_INFO *ocspEntry,
 	{
 	int certStatusSize, status;
 
-	assert( isReadPtr( ocspEntry, REVOCATION_INFO ) );
+	assert( isReadPtr( ocspEntry, sizeof( REVOCATION_INFO ) ) );
 
 	/* Determine the size of the cert status field */
 	certStatusSize = ( ocspEntry->status != CRYPT_OCSPSTATUS_REVOKED ) ? \

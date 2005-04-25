@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						Secure Session Routines Header File					*
-*						 Copyright Peter Gutmann 1998-2003					*
+*						 Copyright Peter Gutmann 1998-2004					*
 *																			*
 ****************************************************************************/
 
@@ -13,40 +13,69 @@
   #if defined( INC_ALL )
 	#include "stream.h"
   #elif defined( INC_CHILD )
-	#include "../misc/stream.h"
+	#include "../io/stream.h"
   #else
-	#include "misc/stream.h"
+	#include "io/stream.h"
   #endif /* Compiler-specific includes */
 #endif /* _STREAM_DEFINED */
 
-/* Session information flags.  The sendClosed flag indicates that the remote
-   system has closed its receive channel, which means that no more data can
-   be sent to it.  It does not however mean that no more data can be
-   received on our receive channel.  The isSecure flag indicates that the 
-   session has passed the initial handshake stage and all data is now being
-   encrypted/MACd/whatever.  The isCryptlib flag indicates that the peer is
-   also running cryptlib, which means that we can apply cryptlib-specific
-   optimistions and security enhancements.  The encoding flags indicate that
-   the user name and password are stored in cryptlib XXXXX-XXXXX-... style
-   encoding and need to be converted to binary form before use.  The 
-   changenotify values indicate that when changes are made to the indicated
-   attribute (normally handled at the general session level), the changes
-   are reflected down to the protocol-specific code for protocol-specific
-   handling */
+/****************************************************************************
+*																			*
+*							Session Types and Constants						*
+*																			*
+****************************************************************************/
 
-#define SESSION_NONE				0x000	/* No session flags */
-#define SESSION_ISOPEN				0x001	/* Session is active */
-#define SESSION_SENDCLOSED			0x002	/* Send channel is closed */
-#define SESSION_ISSERVER			0x004	/* Session is server session */
-#define SESSION_ISSECURE			0x008	/* Session has entered secure state */
-#define SESSION_ISCRYPTLIB			0x010	/* Peer is running cryptlib */
-#define SESSION_ISHTTPTRANSPORT		0x020	/* Session using HTTP transport */
-#define SESSION_ISPNPPKI			0x040	/* Session is PnP PKI-capable */
-#define SESSION_ISENCODEDUSERID		0x080	/* User ID uses XXX-XXX encoding */
-#define SESSION_ISENCODEDPW			0x100	/* Password uses XXX-XXX encoding */
-#define SESSION_USEALTTRANSPORT		0x200	/* Use alternative to HTTP xport */
-#define SESSION_CHANGENOTIFY_USERID	0x400	/* Notify session of userID change */
-#define SESSION_CHANGENOTIFY_PASSWD	0x800	/* Notify session of passwd change */
+/* Session information flags.  These are:
+
+	SESSION_ISOPEN: The session is active.
+
+	SESSION_PARTIALOPEN: The session is partially active pending 
+			confirmation of credentials such as a username and password
+			or certificate.  This means that the session remains in the
+			handshake state, with the handshake being completed once the 
+			credentials have been confirmed.
+
+	SESSION_SENDCLOSED: The remote system has closed its receive channel, 
+			which means that no more data can be sent to it.  This does not 
+			however mean that no more data can be received on our receive 
+			channel.
+
+	SESSION_NOREPORTERROR: Don't update the extended error information if
+			an error occurs, since this has already been set.  This is
+			typically used when performing shutdown actions in response to
+			a protocol error, when a network error such as the other side
+			closing the connection would overwrite the details of the
+			error that caused the shutdown to be performed.
+
+	SESSION_ISSERVER: The session is a server session.
+
+	SESSION_ISSECURE_READ:  The read/write channel is in the secure state, 
+	SESSION_ISSECURE_WRITE: for secure data transport sessions.  In other
+			words the session has passed the initial handshake stage and all 
+			data is now being encrypted/MACd/whatever.
+
+	SESSION_ISCRYPTLIB: The peer is also running cryptlib, which means that 
+			we can apply cryptlib-specific optimistions and security 
+			enhancements.
+
+	SESSION_ISHTTPTRANSPORT: The session is using HTTP transport, for 
+			request/response sessions.
+
+	SESSION_USEALTTRANSPORT: The protocol usually uses HTTP but also 
+			supports an alternative transport type, which should be used 
+			in place of HTTP */
+
+#define SESSION_NONE				0x0000	/* No session flags */
+#define SESSION_ISOPEN				0x0001	/* Session is active */
+#define SESSION_PARTIALOPEN			0x0002	/* Session is partially active */
+#define SESSION_SENDCLOSED			0x0004	/* Send channel is closed */
+#define SESSION_NOREPORTERROR		0x0008	/* Don't report network-level errors */
+#define SESSION_ISSERVER			0x0010	/* Session is server session */
+#define SESSION_ISSECURE_READ		0x0020	/* Session read ch.in secure state */
+#define SESSION_ISSECURE_WRITE		0x0040	/* Session write ch.in secure state */
+#define SESSION_ISCRYPTLIB			0x0080	/* Peer is running cryptlib */
+#define SESSION_ISHTTPTRANSPORT		0x0100	/* Session using HTTP transport */
+#define SESSION_USEALTTRANSPORT		0x0200	/* Use alternative to HTTP xport */
 
 /* Needed-information flags used by protocol-specific handlers to indicate
    that the caller must set the given attributes in the session information
@@ -69,6 +98,7 @@
 #define SESSION_NEEDS_REQUEST		0x0100	/* Must have request obj.*/
 #define SESSION_NEEDS_KEYSET		0x0200	/* Must have cert keyset */
 #define SESSION_NEEDS_CERTSTORE		0x0400	/* Keyset must be cert store */
+#define SESSION_NEEDS_CERTSOURCE	0x0800	/* Keyset must be R/O non-certstore */
 
 /* When reading packets for a secure session protocol, we need to 
    communicate read state information which is more complex than the usual 
@@ -85,12 +115,18 @@ typedef enum {
 	READINFO_LAST						/* Last possible read info */
 	} READSTATE_INFO;
 
+/****************************************************************************
+*																			*
+*								Session Structures							*
+*																			*
+****************************************************************************/
+
 /* Protocol-specific information for each session */
 
 typedef struct {
-	STREAM_PROTOCOL_TYPE type;			/* Protocol type */
-	char *uriType;						/* Protocol URI type (e.g. "cmp://") */
-	int port;							/* Protocol port */
+	const STREAM_PROTOCOL_TYPE type;	/* Protocol type */
+	const char *uriType;				/* Protocol URI type (e.g. "cmp://") */
+	const int port;						/* Protocol port */
 	} ALTPROTOCOL_INFO;
 
 typedef struct {
@@ -100,11 +136,11 @@ typedef struct {
 	   the session can be activated, the default protocol version and lowest
 	   and highest allowed versions, and the transport-protocol client and 
 	   server content-types */
-	BOOLEAN isReqResp;					/* Whether session is req/resp session */
-	int flags;							/* Protocol flags */
-	int port;							/* Default port */
-	int clientReqAttrFlags, serverReqAttrFlags; /* Required attributes */
-	int version, minVersion, maxVersion;/* Protocol version/subtype */
+	const BOOLEAN isReqResp;			/* Whether session is req/resp session */
+	const int flags;					/* Protocol flags */
+	const int port;						/* Default port */
+	const int clientReqAttrFlags, serverReqAttrFlags; /* Required attributes */
+	const int version, minVersion, maxVersion;/* Protocol version/subtype */
 	const char *clientContentType, *serverContentType;
 										/* HTTP content-type */
 
@@ -112,16 +148,161 @@ typedef struct {
 	   the alternative transport protocol for request/response sessions if
 	   HTTP isn't being used, the minimum allowed size for the server's
 	   private key */
-	int bufSize;						/* Send/receive buffer sizes */
-	int sendBufStartOfs, sendBufMaxPos;	/* Payload data start and end */
+	const int bufSize;					/* Send/receive buffer sizes */
+	const int sendBufStartOfs;			/* Payload data start */
+	const int maxPacketSize;			/* Maximum packet (payload data) size */
 	const ALTPROTOCOL_INFO *altProtocolInfo; /* Alternative xport protocol */
-	int requiredPrivateKeySize;			/* Min.allowed size for private key */
+	const int requiredPrivateKeySize;	/* Min.allowed size for private key */
 	} PROTOCOL_INFO;
 
 /* A value to initialise the session type-specific buffer size values to
    default settings for request/response protocols */
 
 #define BUFFER_SIZE_DEFAULT		0, 0, 0
+
+/* Attribute flags.  These are:
+
+	ATTR_FLAG_ENCODEDVALUE: The attribute value is stored in cryptlib 
+			XXXXX-XXXXX-... style encoding and needs to be converted to 
+			binary form before use.
+	
+	ATTR_FLAG_MULTIVALUED: Multiple instances of the attribute are
+			permitted.  This complements ATTR_FLAG_OVERWRITE in that
+			instead of overwriting the single existing instance, another
+			instance is created.
+	
+	ATTR_FLAG_COMPOSITE: Composite attribute containing sub-attribute
+			data in the in the { value, valueLength } buffer.  The
+			attribute cursor can be moved within the attribute using
+			the internal virtual cursor.
+			
+	ATTR_FLAG_CURSORMOVED: The attribute (group) cursor has moved, so
+			the virtual cursor within the attribute needs to be reset
+			the next time that it's referenced.  This is used with
+			composite attributes, whose internal structure is opaque
+			to the general session code */
+
+#define ATTR_FLAG_NONE			0x00	/* No attribute flag */
+#define ATTR_FLAG_ENCODEDVALUE	0x01	/* Value uses XXX-XXX encoding */
+#define ATTR_FLAG_MULTIVALUED	0x02	/* Multiple instances permitted */
+#define ATTR_FLAG_COMPOSITE		0x04	/* Composite attribute */
+#define ATTR_FLAG_CURSORMOVED	0x08	/* Attribute virtual cursor reset */
+
+/* The helper function used to access session subtype-specific internal
+   attributes within an attribute list entry */
+
+struct AL;	/* Forward declaration for attribute-list access function */
+
+typedef int ( *ATTRACCESSFUNCTION )( struct AL *attributeListPtr,
+									 const ATTR_TYPE attrGetType );
+
+/* An attribute list used to store session-related attributes such as 
+   user names, passwords, and public keys.  Since some of these can be
+   composite attributes (with information stored in the { value, 
+   valueLength } buffer), we implement a virtual cursor that points to the 
+   currently-selected sub-attribute within the composite attribute */
+
+typedef struct AL {
+	/* Identification and other information for this attribute */
+	CRYPT_ATTRIBUTE_TYPE attribute;		/* Attribute type */
+	ATTRACCESSFUNCTION accessFunction;	/* Internal attribute access fn.*/
+	int flags;							/* Attribute data flags */
+
+	/* The data payload for this attribute.  If it's numeric data such as 
+	   a small integer or context, we store it in the intValue member.  If 
+	   it's a string or composite attribute data, we store it in the 
+	   variable-length buffer */
+	long intValue;						/* Integer value for simple types */
+	void *value;						/* Attribute value */
+	int valueLength;					/* Attribute value length */
+
+	/* The previous and next list element in the linked list of elements */
+	struct AL *prev, *next;				/* Prev, next item in the list */
+
+	/* Variable-length storage for the attribute data */
+	DECLARE_VARSTRUCT_VARS;
+	} ATTRIBUTE_LIST;
+
+/* Deferred response information.  When we get a request, we may be in the 
+   middle of assembling or sending a data packet, so the response has to be 
+   deferred until after the data packet has been completed and sent.  The
+   following structure is used to hold the response data until the send
+   channel is clear */
+
+#define SSH_MAX_RESPONSESIZE	16		/* 2 * channelNo + 2 * param */
+
+typedef struct {
+	int type;							/* Response type */
+	BYTE data[ SSH_MAX_RESPONSESIZE ];	/* Encoded response data */
+	int dataLen;
+	} SSH_RESPONSE_INFO;
+
+/* The internal fields in a session that hold data for the various session
+   types */
+
+typedef struct {
+	/* Session state information */
+	int sessionCacheID;					/* Session cache ID for this session */
+	int ivSize;							/* Explicit IV size for TLS 1.1 */
+
+	/* The incoming and outgoing packet sequence number, for detecting 
+	   insertion/deletion attacks */
+	long readSeqNo, writeSeqNo;
+
+	/* The SSL MAC read/write secrets are required because SSL 3.0 uses a 
+	   proto-HMAC that isn't handled by cryptlib.  We leave the data in 
+	   normal memory because it's only usable for an active attack, which 
+	   means that recovering it from swap afterwards isn't a problem */
+	BYTE macReadSecret[ CRYPT_MAX_HASHSIZE ];
+	BYTE macWriteSecret[ CRYPT_MAX_HASHSIZE ];
+	} SSL_INFO;
+
+typedef struct {
+	/* The packet type and padding length, which are extracted from the 
+	   packet header during header processing */
+	int packetType, padLength;
+
+	/* The incoming and outgoing packet sequence number, for detecting 
+	   insertion/deletion attacks */
+	long readSeqNo, writeSeqNo;
+
+	/* Per-channel state information */
+	int currReadChannel, currWriteChannel; /* Current active R/W channels */
+	int nextChannelNo;					/* Next SSH channel no.to use */
+	int channelIndex;					/* Current cryptlib unique channel ID */
+
+	/* Deferred response data, used to enqueue responses when unwritten data 
+	   remains in the send buffer */
+	SSH_RESPONSE_INFO response;
+
+	/* Whether an SSH user authentication packet has been read ready for the
+	   server to act on */
+	BOOLEAN authRead;
+	} SSH_INFO;
+
+typedef struct {
+	/* The message imprint (hash) algorithm and hash value */
+	CRYPT_ALGO_TYPE imprintAlgo;
+	BYTE imprint[ CRYPT_MAX_HASHSIZE ];
+	int imprintSize;
+	} TSP_INFO;
+
+typedef struct {
+	/* CMP request subtype, user info and protocol flags */
+	int requestType;					/* CMP request subtype */
+	CRYPT_CERTIFICATE userInfo;			/* PKI user info */
+	int flags;							/* Protocl flags */
+
+	/* The saved MAC context from a previous transaction (if any) */
+	CRYPT_CONTEXT savedMacContext;		/* MAC context from prev.trans */
+	} CMP_INFO;
+
+/* Defines to make access to the union fields less messy */
+
+#define sessionSSH		sessionInfo.sshInfo
+#define sessionSSL		sessionInfo.sslInfo
+#define sessionTSP		sessionInfo.tspInfo
+#define sessionCMP		sessionInfo.cmpInfo
 
 /* The structure that stores the information on a session */
 
@@ -133,13 +314,21 @@ typedef struct SI {
 	CRYPT_ALGO_TYPE cryptAlgo;			/* Negotiated encryption algo */
 	CRYPT_ALGO_TYPE integrityAlgo;		/* Negotiated integrity prot.algo */
 	int flags, protocolFlags;			/* Session info, protocol-specific flags */
+	int authResponse;					/* Response to user-auth request */
+
+	/* Session type-specific information */
+	union {
+		SSL_INFO *sslInfo;
+		SSH_INFO *sshInfo;
+		TSP_INFO *tspInfo;
+		CMP_INFO *cmpInfo;
+		} sessionInfo;
 
 	/* When we add generic attributes to the session, we occasionally need to
 	   perform protocol-specific checking of the attributes being added.  The
 	   following values are used to tell the generic cryptses.c code which
 	   checks need to be performed */
 	int clientReqAttrFlags, serverReqAttrFlags; /* Required attributes */
-	int requiredPasswordStatus;			/* Password info OK if > 0 */
 
 	/* The overall session status.  If we run into a nonrecoverable error
 	   (which for the encrypted session types means just about anything,
@@ -151,12 +340,13 @@ typedef struct SI {
 	   state for both sides for network-related errors.
 
 	   In many cases there'll still be data in the internal buffer that the
-	   user can read without triggering an error response so before we set
-	   the error state we set the pending error state and only move the
+	   user can read/write without triggering an error response so before we 
+	   set the error state we set the pending error state and only move the
 	   pending state into the current state once all data still present in
 	   the buffer has been read */
 	int readErrorState, writeErrorState;/* Current error state */
-	int pendingErrorState;				/* Error state when buffer emptied */
+	int pendingReadErrorState, pendingWriteErrorState;
+										/* Error state when buffer emptied */
 
 	/* Data buffer information.  In protocols that consist of single
 	   messages sent back and forth only the receive buffer is used for
@@ -169,6 +359,7 @@ typedef struct SI {
 	int sendBufPos, receiveBufPos;		/* Current position in buffer */
 	int sendBufStartOfs, receiveBufStartOfs; /* Space for header in buffer */
 	int receiveBufEnd;					/* Total data in buffer */
+	int maxPacketSize;					/* Maximum packet (payload data) size */
 
 	/* When reading encrypted data packets we typically end up with a partial
 	   packet in the read buffer that we can't process until the remainder
@@ -181,11 +372,19 @@ typedef struct SI {
 	int pendingPacketPartialLength;		/* Length of data already processed */
 	int pendingPacketRemaining;			/* Bytes remaining to be read */
 
-	/* Unlike payload data, the packet header can't be read in sectiosn but
+	/* Unlike payload data, the packet header can't be read in sections but
 	   must be read atomically since all of the header information needs to
 	   be processed at once.  The following value is usually zero, if it's
 	   nonzero it records how much of the header has been read so far */
 	int partialHeaderLength;			/* Header bytes read so far */
+
+	/* When sending data we can also end up with partially-processed packets
+	   in the send buffer, but for sending we prevent further packets from
+	   being added until the current one is flushed.  To handle this all we
+	   need is a simple high-water-mark indicator that indicates the start 
+	   position of any yet-to-be-written data */
+	BOOLEAN partialWrite;				/* Unwritten data remains in buffer */
+	int sendBufPartialBufPos;			/* Progress point of partial write */
 
 	/* The session generally has various ephemeral contexts associated with
 	   it, some short-term (e.g.public-key contexts used to establish the
@@ -203,16 +402,8 @@ typedef struct SI {
 										/* Cert request/response */
 	int cryptBlocksize, authBlocksize;	/* Block size of crypt, auth.algos */
 
-	/* Other session state information.  The incoming and outgoing packet
-	   sequence number, for detecting insertion/deletion attacks */
-	long readSeqNo, writeSeqNo;			/* Packet sequence number */
-
-	/* User name and password, key fingerprint, and private key, which are
-	   required to authenticate the client or server in some protocols */
-	char userName[ CRYPT_MAX_TEXTSIZE ], password[ CRYPT_MAX_TEXTSIZE ];
-	int userNameLength, passwordLength;	/* Username and password */
-	BYTE keyFingerprint[ CRYPT_MAX_HASHSIZE ];
-	int keyFingerprintSize;				/* Server key fingerprint (hash) */
+	/* The private key, which is required to authenticate the client or 
+	   server in some protocols */
 	CRYPT_CONTEXT privateKey;			/* Authentication private key */
 
 	/* Certificate store for cert management protocols like OCSP and CMP
@@ -220,46 +411,19 @@ typedef struct SI {
 	CRYPT_KEYSET cryptKeyset;			/* Certificate store */
 	CRYPT_HANDLE privKeyset;			/* Private-key keyset/device */
 
-	/* SSL protocol-specific information.  The SSL MAC read/write secrets
-	   are required because SSL 3.0 uses a proto-HMAC that isn't handled
-	   by cryptlib.  We leave the data in normal memory because it's only
-	   usable for an active attack which means recovering it from swap
-	   afterwards isn't a problem */
-	BYTE sslMacReadSecret[ CRYPT_MAX_HASHSIZE ],
-		 sslMacWriteSecret[ CRYPT_MAX_HASHSIZE ];	/* Proto-HMAC keys */
-	int sslSessionCacheID;				/* Session cache ID for this session */
+	/* Session-related attributes such as username and password */
+	ATTRIBUTE_LIST *attributeList, *attributeListCurrent;
 
-	/* SSH protocol-specific information.  The type and pad length are
-	   extracted from the packet header during header processing */
-	int sshPacketType, sshPadLength;	/* Packet type and padding length */
-	char sshSubsystem[ CRYPT_MAX_TEXTSIZE ];
-	int sshSubsystemLength;				/* Requested subsystem */
-	char sshPortForward[ CRYPT_MAX_TEXTSIZE ];
-	int sshPortForwardLength;			/* Requested port forwarding */
-	long sshChannel;					/* Data channel ID */
-	long sshWindowCount;				/* Bytes sent since window reset */
-
-	/* TSP protocol-specific information.  The message imprint (hash)
-	   algorithm and hash value */
-	CRYPT_ALGO_TYPE tspImprintAlgo;		/* Imprint (hash) algorithm */
-	BYTE tspImprint[ CRYPT_MAX_HASHSIZE ];
-	int tspImprintSize;					/* Message imprint (hash) */
-
-	/* CMP protocol-specific information.  The PKI user info, saved MAC 
-	   context from a previous transaction (if any), and request subtype */
-	CRYPT_CERTIFICATE cmpUserInfo;		/* PKI user info */
-	CRYPT_CONTEXT cmpSavedMacContext;	/* MAC context from prev.trans */
-	int cmpRequestType;					/* CMP request subtype */
-
-	/* Network connection information */
+	/* Network connection information.  The reason why the client and server
+	   info require separate storage is that (on the server) we may be 
+	   binding to a specific interface (requiring a server name) and we need
+	   to record where the remote system's connection is coming from 
+	   (requiring a client name) */
 	CRYPT_SESSION transportSession;		/* Transport mechanism */
 	int networkSocket;					/* User-supplied network socket */
-	int timeout, connectTimeout;		/* Connect and data xfer.timeouts */
+	int readTimeout, writeTimeout, connectTimeout;
+										/* Connect and data xfer.timeouts */
 	STREAM stream;						/* Network I/O stream */
-	char serverName[ MAX_URL_SIZE + 1 ];/* Server name and port */
-	int serverPort;
-	char clientName[ MAX_URL_SIZE + 1 ];/* Client name and port */
-	int clientPort;
 
 	/* Last-error information.  To help developers in debugging, we store
 	   the error code and error text (if available) */
@@ -282,7 +446,7 @@ typedef struct SI {
 								 READSTATE_INFO *readInfo );
 	int ( *processBodyFunction )( struct SI *sessionInfoPtr,
 								  READSTATE_INFO *readInfo );
-	int ( *writeDataFunction )( struct SI *sessionInfoPtr );
+	int ( *preparePacketFunction )( struct SI *sessionInfoPtr );
 
 	/* Error information */
 	CRYPT_ATTRIBUTE_TYPE errorLocus;/* Error locus */
@@ -294,29 +458,71 @@ typedef struct SI {
 	   same information from the system object table */
 	CRYPT_HANDLE objectHandle;
 	CRYPT_USER ownerHandle;
+
+	/* Variable-length storage for the type-specific data */
+	DECLARE_VARSTRUCT_VARS;
 	} SESSION_INFO;
 
-/* Prototypes for various utility functions in cryptses.c.  retExt() returns 
-   after setting extended error information for the session.  We use a macro 
-   to make it match the standard return statement, the slightly unusual form 
-   is required to handle the fact that the helper function is a varargs
-   function.  readFixedHeader() performs an atomic read of the fixed portion
-   of a secure data session packet header.  read/writePkiDatagram() read and
-   write a PKI (ASN.1-encoded) message.  initSessionNetConnectInfo() is an
-   extended form of the STREAM-level initNetConnectInfo() that initialises the
-   connect info using the session object data */
+/****************************************************************************
+*																			*
+*								Session Functions							*
+*																			*
+****************************************************************************/
+
+/* Prototypes for utility functions in cryptses.c.  retExt() returns after 
+   setting extended error information for the session.  We use a macro to 
+   make it match the standard return statement, the slightly unusual form is 
+   required to handle the fact that the helper function is a varargs 
+   function */
 
 int retExtFnSession( SESSION_INFO *sessionInfoPtr, const int status, 
 					 const char *format, ... );
 #define retExt	return retExtFnSession
+
+/* Session attribute management functions */
+
+int addSessionAttribute( ATTRIBUTE_LIST **listHeadPtr,
+						 const CRYPT_ATTRIBUTE_TYPE attributeType,
+						 const void *data, const int dataLength );
+int addSessionAttributeEx( ATTRIBUTE_LIST **listHeadPtr,
+						   const CRYPT_ATTRIBUTE_TYPE attributeType,
+						   const void *data, const int dataLength,
+						   const ATTRACCESSFUNCTION accessFunction, 
+						   const int flags );
+int updateSessionAttribute( ATTRIBUTE_LIST **listHeadPtr,
+							const CRYPT_ATTRIBUTE_TYPE attributeType,
+							const void *data, const int dataLength,
+							const int dataMaxLength, const int flags );
+const ATTRIBUTE_LIST *findSessionAttribute( const ATTRIBUTE_LIST *attributeListPtr,
+											const CRYPT_ATTRIBUTE_TYPE attributeType );
+void resetSessionAttribute( ATTRIBUTE_LIST *attributeListPtr,
+							const CRYPT_ATTRIBUTE_TYPE attributeType );
+void deleteSessionAttribute( ATTRIBUTE_LIST **attributeListHead,
+							 ATTRIBUTE_LIST *attributeListPtr );
+
+/* Prototypes for functions in session.c */
+
+int initSessionIO( SESSION_INFO *sessionInfoPtr );
+void initSessionNetConnectInfo( const SESSION_INFO *sessionInfoPtr,
+								NET_CONNECT_INFO *connectInfo );
+int activateSession( SESSION_INFO *sessionInfoPtr );
+int getSessionData( SESSION_INFO *sessionInfoPtr, void *data, 
+					const int length, int *bytesCopied );
+int putSessionData( SESSION_INFO *sessionInfoPtr, const void *data,
+					const int length, int *bytesCopied );
 int readFixedHeader( SESSION_INFO *sessionInfoPtr, const int headerSize );
 int readPkiDatagram( SESSION_INFO *sessionInfoPtr );
 int writePkiDatagram( SESSION_INFO *sessionInfoPtr );
-void initSessionNetConnectInfo( const SESSION_INFO *sessionInfoPtr,
-								NET_CONNECT_INFO *connectInfo );
+int sendCloseNotification( SESSION_INFO *sessionInfoPtr,
+						   const void *data, const int length );
 
 /* Prototypes for session mapping functions */
 
+#ifdef USE_CERTSTORE
+  int setAccessMethodCertstore( SESSION_INFO *sessionInfoPtr );
+#else
+  #define setAccessMethodCertstore( x )	CRYPT_ARGERROR_NUM1
+#endif /* USE_CERTSTORE */
 #ifdef USE_CMP
   int setAccessMethodCMP( SESSION_INFO *sessionInfoPtr );
 #else

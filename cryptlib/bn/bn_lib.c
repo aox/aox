@@ -56,22 +56,22 @@
  * [including the GNU Public Licence.]
  */
 
-#include <assert.h>
+#if defined( _WIN32_WCE ) && _WIN32_WCE < 400
+  #define assert( x )
+#else
+  #include <assert.h>
+#endif /* Systems without assert() */
 #include <limits.h>
 #include <stdio.h>
 #if defined( INC_ALL ) || defined( INC_CHILD )
-  #ifdef __TANDEM
-	#include "bnlcl.h"
-  #else
-	#include "bn_lcl.h"
-  #endif /* __TANDEM */
+  #include "bn_lcl.h"
 #else
   #include "bn/bn_lcl.h"
 #endif /* Compiler-specific includes */
 
 #ifdef USE_BN_DEBUG_MALLOC
 
-void *clBnAllocFn( const char *fileName, const char *fnName, 
+void *clBnAllocFn( const char *fileName, const char *fnName,
 				   const int lineNo, size_t size )
 	{
 	printf( "BNDEBUG: %s:%s:%d %d bytes.\n", fileName, fnName, lineNo, size );

@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *								Read CMP Messages							*
-*						Copyright Peter Gutmann 1999-2003					*
+*						Copyright Peter Gutmann 1999-2004					*
 *																			*
 ****************************************************************************/
 
@@ -9,20 +9,20 @@
 #include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "asn1_rw.h"
-  #include "asn1s_rw.h"
+  #include "asn1.h"
+  #include "asn1_ext.h"
   #include "session.h"
   #include "cmp.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
-  #include "../misc/asn1_rw.h"
-  #include "../misc/asn1s_rw.h"
-  #include "../session/session.h"
-  #include "../session/cmp.h"
+  #include "../misc/asn1.h"
+  #include "../misc/asn1_ext.h"
+  #include "session.h"
+  #include "cmp.h"
 #else
   #include "crypt.h"
-  #include "misc/asn1_rw.h"
-  #include "misc/asn1s_rw.h"
+  #include "misc/asn1.h"
+  #include "misc/asn1_ext.h"
   #include "session/session.h"
   #include "session/cmp.h"
 #endif /* Compiler-specific includes */
@@ -64,7 +64,7 @@ static int readMacInfo( STREAM *stream, CMP_PROTOCOL_INFO *protocolInfo,
 
 	/* Read the various parameter fields */
 	readSequence( stream, NULL );
-	status = readOID( stream, OID_ENTRUST_MAC );
+	status = readFixedOID( stream, OID_ENTRUST_MAC );
 	if( cryptStatusError( status ) )
 		{
 		/* If we don't find this OID we specifically report it as an unknown
@@ -241,7 +241,7 @@ static int readEncryptedCert( STREAM *stream,
 						  NULL, 0, iSessionKey, iImportContext,
 						  CRYPT_UNUSED );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_IMPORT,
-							  &mechanismInfo, MECHANISM_PKCS1 );
+							  &mechanismInfo, MECHANISM_ENC_PKCS1 );
 	clearMechanismInfo( &mechanismInfo );
 	if( cryptStatusError( status ) )
 		{
@@ -454,13 +454,16 @@ int readPkiStatusInfo( STREAM *stream, int *errorCode, char *errorMessage )
 	*errorCode = ( int ) value;
 	if( stell( stream ) < endPos && peekTag( stream ) == BER_SEQUENCE )
 		{
-		status = readFreeText( stream, errorMessage, MAX_ERRMSG_SIZE - 1 );
+		strcpy( errorMessage, "Server returned error: " );
+
+		status = readFreeText( stream, errorMessage + 23, 
+							   MAX_ERRMSG_SIZE - ( 23 + 1 ) );
 		if( cryptStatusError( status ) )
 			return( status );
 		}
 	if( stell( stream ) < endPos )
 		{
-		char textBitString[ 64 ];
+		char textBitString[ 128 ], *textBitStringPtr = textBitString;
 		int bitString, textBitStringLen, errorMsgLen;
 		int i, noBits, bitMask, bitNo = -1;
 
@@ -471,6 +474,8 @@ int readPkiStatusInfo( STREAM *stream, int *errorCode, char *errorMessage )
 			strcpy( errorMessage, "Invalid PKI failure info" );
 			return( status );
 			}
+		strcpy( textBitString, "Server returned status value " );
+		textBitStringPtr = textBitString + strlen( textBitString );
 		i = bitString;
 		for( noBits = 0; i > 0 && noBits < 32; noBits++ )
 			i >>= 1;
@@ -479,23 +484,29 @@ int readPkiStatusInfo( STREAM *stream, int *errorCode, char *errorMessage )
 			{
 			if( bitString & bitMask )
 				{
+				/* If there's no bit set yet, set it.  If there's already
+				   a bit set, set it to a no-value that indicates that more
+				   than one bit is set */
 				bitNo = ( bitNo == -1 ) ? ( noBits - 1 ) - i : -2;
-				textBitString[ i ] = '1';
+				*textBitStringPtr++ = '1';
 				}
 			else
-				textBitString[ i ] = '0';
+				*textBitStringPtr++ = '0';
 			bitMask >>= 1;
 			}
 		if( bitNo >= 0 )
-			sPrintf( textBitString + i, "'B (bit %d): ", bitNo );
+			sPrintf( textBitString, "Server returned status bit %d: ", 
+					 bitNo );
 		else
-			strcpy( textBitString + i, "'B: " );
+			strcpy( textBitStringPtr, "'B: " );
 		textBitStringLen = strlen( textBitString );
 		if( ( errorMsgLen = strlen( errorMessage ) ) > 0 )
 			{
+			/* There's error message text present, move it up to make room 
+			   for the bit string text */
 			memmove( errorMessage + textBitStringLen, errorMessage,
-					 min( errorMsgLen + 1, MAX_ERRMSG_SIZE - textBitStringLen ) );
-			errorMessage[ MAX_ERRMSG_SIZE - 1 ] = '\0';
+					 min( errorMsgLen + 1, \
+						  MAX_ERRMSG_SIZE - ( textBitStringLen + 1 ) ) );
 			memcpy( errorMessage, textBitString, textBitStringLen );
 			}
 		else
@@ -505,8 +516,9 @@ int readPkiStatusInfo( STREAM *stream, int *errorCode, char *errorMessage )
 				{
 				memcpy( errorMessage, textBitString, textBitStringLen + 1 );
 				strncat( errorMessage, getFailureString( bitString ),
-						 MAX_ERRMSG_SIZE - textBitStringLen );
+						 MAX_ERRMSG_SIZE - ( textBitStringLen + 1 ) );
 				}
+		errorMessage[ MAX_ERRMSG_SIZE - 1 ] = '\0';
 
 		/* If we can return something more useful than the generic "failed"
 		   error code, try and do so */
@@ -530,6 +542,11 @@ int readPkiStatusInfo( STREAM *stream, int *errorCode, char *errorMessage )
 			( bitString & CMPFAILINFO_DUPLICATECERTREQ ) )
 			return( CRYPT_ERROR_DUPLICATE );
 		}
+	else
+		/* There's no error information present, return a "This page 
+		   deliberately left blank" error */
+		strcpy( errorMessage, 
+				"Server returned nonspecific error information" );
 
 	/* A PKI status code is a bit difficult to turn into anything useful,
 	   the best we can do is to report that the operation failed and let
@@ -554,34 +571,26 @@ static int readRequestBody( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 							CMP_PROTOCOL_INFO *protocolInfo,
 							const int messageType )
 	{
-	MESSAGE_CREATEOBJECT_INFO createInfo;
+	CMP_INFO *cmpInfo = sessionInfoPtr->sessionCMP;
 	RESOURCE_DATA msgData;
 	BYTE authCertID[ CRYPT_MAX_HASHSIZE ];
 	int value, length, status;
 
 	/* Import the CRMF request */
 	status = readSequence( stream, &length );
-	if( cryptStatusOK( status ) && length > sMemDataLeft( stream ) )
-		status = CRYPT_ERROR_UNDERFLOW;
 	if( cryptStatusOK( status ) )
-		{
-		setMessageCreateObjectIndirectInfo( &createInfo,
-								sMemBufPtr( stream ), length,
+		status = importCertFromStream( stream, 
+								&sessionInfoPtr->iCertRequest, length,
 								( messageType == CTAG_PB_P10CR ) ? \
 									CRYPT_CERTTYPE_CERTREQUEST : \
 								( messageType == CTAG_PB_RR ) ? \
 									CRYPT_CERTTYPE_REQUEST_REVOCATION : \
 									CRYPT_CERTTYPE_REQUEST_CERT );
-		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-								  IMESSAGE_DEV_CREATEOBJECT_INDIRECT,
-								  &createInfo, OBJECT_TYPE_CERTIFICATE );
-		}
 	if( cryptStatusError( status ) )
 		{
 		protocolInfo->pkiFailInfo = CMPFAILINFO_BADCERTTEMPLATE;
 		retExt( sessionInfoPtr, status, "Invalid CRMF request" );
 		}
-	sessionInfoPtr->iCertRequest = createInfo.cryptHandle;
 
 	/* If the request is from an encryption-only key, remember this so that 
 	   we can peform special-case processing later on */
@@ -611,7 +620,7 @@ static int readRequestBody( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 	   a signed request) that authorised this request */
 	setMessageData( &msgData, authCertID, CRYPT_MAX_HASHSIZE );
 	status = krnlSendMessage( protocolInfo->useMACreceive ? \
-								sessionInfoPtr->cmpUserInfo : \
+								cmpInfo->userInfo : \
 								sessionInfoPtr->iAuthInContext,
 							  IMESSAGE_GETATTRIBUTE_S, &msgData,
 							  CRYPT_CERTINFO_FINGERPRINT_SHA );
@@ -628,8 +637,7 @@ static int readRequestBody( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 	   other constraints that the CA wants to apply, these are handled by
 	   applying the PKI user info to the request */
 	status = krnlSendMessage( sessionInfoPtr->iCertRequest,
-							  IMESSAGE_SETATTRIBUTE,
-							  &sessionInfoPtr->cmpUserInfo,
+							  IMESSAGE_SETATTRIBUTE, &cmpInfo->userInfo,
 							  CRYPT_IATTRIBUTE_PKIUSERINFO );
 	if( cryptStatusError( status ) )
 		{
@@ -648,7 +656,7 @@ static int readResponseBody( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 	{
 	MESSAGE_CREATEOBJECT_INFO createInfo;
 	void *bodyInfoPtr;
-	int bodyStart, bodyLength, tag, status;
+	int bodyLength, tag, status;
 
 	/* If it's a revocation response, the only returned data is the status
 	   value */
@@ -683,7 +691,6 @@ static int readResponseBody( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 
 	/* Process the returned cert as required */
 	bodyInfoPtr = sMemBufPtr( stream );
-	bodyStart = stell( stream );
 	switch( tag )
 		{
 		case  CTAG_CK_CERT:
@@ -805,45 +812,36 @@ static int readConfBody( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 static int readGenMsgBody( STREAM *stream, SESSION_INFO *sessionInfoPtr, 
 						   const BOOLEAN isRequest )
 	{
-	MESSAGE_CREATEOBJECT_INFO createInfo;
-	void *bodyInfoPtr;
 	int bodyLength, status;
 
 	status = readSequence( stream, &bodyLength );
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 				"Invalid genMsg header" );
-	if( !isRequest )
-		/* The InfoTypeAndValue is handled as CMS content (see the comment 
-		   for writeGenMsgBody()) so we remember where the CMS payload 
-		   starts if it's a PKIBoot response */
-		bodyInfoPtr = sMemBufPtr( stream );
-	if( bodyLength < 8 || bodyLength > sMemDataLeft( stream ) )
-		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
-				"Invalid genMsg length %d", bodyLength );
-	readSequence( stream, NULL );
-	status = readOID( stream, isRequest ? OID_PKIBOOT : OID_CMS_SIGNEDDATA );
-	if( cryptStatusError( status ) )
-		retExt( sessionInfoPtr, CRYPT_ERROR_NOTAVAIL,
-				"Invalid genMsg type, expected PKIBoot request or "
-				"response" );
-
-	/* If it's a PKIBoot request, we're done */
 	if( isRequest )
+		{
+		/* It's a request GenMsg, check for a PKIBoot request */
+		if( bodyLength < sizeofObject( sizeofOID( OID_PKIBOOT ) ) || \
+			bodyLength > sMemDataLeft( stream ) )
+			retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
+					"Invalid genMsg length %d", bodyLength );
+		readSequence( stream, NULL );
+		status = readFixedOID( stream, OID_PKIBOOT );
+		if( cryptStatusError( status ) )
+			retExt( sessionInfoPtr, CRYPT_ERROR_NOTAVAIL,
+					"Invalid genMsg type, expected PKIBoot request" );
 		return( CRYPT_OK );
+		}
 
-	/* It's a PKIBoot response, import the cert trust list.  Since this 
-	   isn't a true cert chain and isn't used as such, we use data-only 
-	   certs (specified using the special-case CERTFORMAT_CTL format 
-	   specifier) */
-	setMessageCreateObjectIndirectInfo( &createInfo, bodyInfoPtr, 
-										bodyLength, CERTFORMAT_CTL );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-							  IMESSAGE_DEV_CREATEOBJECT_INDIRECT, 
-							  &createInfo, OBJECT_TYPE_CERTIFICATE );
+	/* It's a PKIBoot response with the InfoTypeAndValue handled as CMS 
+	   content (see the comment for writeGenMsgBody()), import the cert 
+	   trust list.  Since this isn't a true cert chain and isn't used as 
+	   such, we use data-only certs (specified using the special-case 
+	   CERTFORMAT_CTL format specifier) */
+	status = importCertFromStream( stream, &sessionInfoPtr->iCertResponse, 
+								   bodyLength, CERTFORMAT_CTL );
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status, "Invalid PKIBoot response" );
-	sessionInfoPtr->iCertResponse = createInfo.cryptHandle;
 	return( CRYPT_OK );
 	}
 
@@ -1009,7 +1007,7 @@ static int readPkiHeader( STREAM *stream, CMP_PROTOCOL_INFO *protocolInfo,
 		{								/* Sender protection keyID */
 		if( isServerInitialMessage )
 			{
-			BYTE userID[ CRYPT_MAX_HASHSIZE ];
+			BYTE userID[ CRYPT_MAX_HASHSIZE + 8 ];
 			int userIDsize;
 
 			/* Read the PKI user ID that we'll need to handle the integrity 
@@ -1164,7 +1162,10 @@ static int readPkiHeader( STREAM *stream, CMP_PROTOCOL_INFO *protocolInfo,
 		header			PKIHeader,
 		body			CHOICE { [0]... [24]... },
 		protection	[0]	BIT STRING
-		} */
+		}
+
+   Note that readPkiDatagram() has already performed an initial valid-ASN.1
+   check before we get here */
 
 int readPkiMessage( SESSION_INFO *sessionInfoPtr,
 					CMP_PROTOCOL_INFO *protocolInfo,
@@ -1209,26 +1210,32 @@ int readPkiMessage( SESSION_INFO *sessionInfoPtr,
 		if( protocolInfo->isCryptlib && \
 			protocolInfo->userIDsize == 9 )
 			{
-			sessionInfoPtr->userNameLength = \
-				encodePKIUserValue( sessionInfoPtr->userName, 
-									protocolInfo->userID, 3 );
-			sessionInfoPtr->flags |= SESSION_ISENCODEDUSERID;
+			BYTE encodedUserID[ CRYPT_MAX_TEXTSIZE ];
+			int encodedUserIDLength;
+
+			encodedUserIDLength = encodePKIUserValue( encodedUserID, 
+												protocolInfo->userID, 3 );
+			status = updateSessionAttribute( &sessionInfoPtr->attributeList,
+									CRYPT_SESSINFO_USERNAME, encodedUserID, 
+									encodedUserIDLength, CRYPT_MAX_TEXTSIZE, 
+									ATTR_FLAG_ENCODEDVALUE );
 			}
 		else
-			{
-			memcpy( sessionInfoPtr->userName, protocolInfo->userID,
-					protocolInfo->userIDsize );
-			sessionInfoPtr->userNameLength = protocolInfo->userIDsize;
-			}
-		if( isServerInitialMessage && useMAC )
+			status = updateSessionAttribute( &sessionInfoPtr->attributeList,
+									CRYPT_SESSINFO_USERNAME, 
+									protocolInfo->userID, 
+									protocolInfo->userIDsize, 
+									CRYPT_MAX_TEXTSIZE, ATTR_FLAG_NONE );
+		if( cryptStatusOK( status ) && isServerInitialMessage && useMAC )
 			status = initServerAuthentMAC( sessionInfoPtr, protocolInfo );
 		}
-	if( protocolInfo->certIDchanged )
+	if( cryptStatusOK( status ) && protocolInfo->certIDchanged )
 		{
-		memcpy( sessionInfoPtr->keyFingerprint, protocolInfo->certID,
-				protocolInfo->certIDsize );
-		sessionInfoPtr->keyFingerprintSize = protocolInfo->certIDsize;
-		if( isServerInitialMessage )
+		status = addSessionAttribute( &sessionInfoPtr->attributeList,
+									  CRYPT_SESSINFO_SERVER_FINGERPRINT, 
+									  protocolInfo->certID, 
+									  protocolInfo->certIDsize );
+		if( cryptStatusOK( status ) && isServerInitialMessage )
 			status = initServerAuthentSign( sessionInfoPtr, protocolInfo );
 		}
 	if( cryptStatusError( status ) )
@@ -1262,16 +1269,18 @@ int readPkiMessage( SESSION_INFO *sessionInfoPtr,
 	   MAC info using the appropriate password */
 	if( useMAC )
 		{
+		const ATTRIBUTE_LIST *passwordPtr = \
+					findSessionAttribute( sessionInfoPtr->attributeList,
+										  CRYPT_SESSINFO_PASSWORD );
 		BYTE decodedValue[ CRYPT_MAX_TEXTSIZE ];
 		const BYTE *decodedValuePtr = decodedValue;
 		int decodedValueLength;
 
-		if( sessionInfoPtr->flags & SESSION_ISENCODEDPW )
+		if( passwordPtr->flags & ATTR_FLAG_ENCODEDVALUE )
 			{
 			/* It's an encoded value, get the decoded form */
 			decodedValueLength = decodePKIUserValue( decodedValue,
-										sessionInfoPtr->password, 
-										sessionInfoPtr->passwordLength );
+							passwordPtr->value, passwordPtr->valueLength );
 			if( cryptStatusError( decodedValueLength ) )
 				{
 				assert( NOTREACHED );
@@ -1282,8 +1291,8 @@ int readPkiMessage( SESSION_INFO *sessionInfoPtr,
 			}
 		else
 			{
-			decodedValuePtr = sessionInfoPtr->password;
-			decodedValueLength = sessionInfoPtr->passwordLength;
+			decodedValuePtr = passwordPtr->value;
+			decodedValueLength = passwordPtr->valueLength;
 			}
 
 		/* We couldn't initialise the MAC information when we read the 
@@ -1394,29 +1403,36 @@ int readPkiMessage( SESSION_INFO *sessionInfoPtr,
 		{
 		const CRYPT_CONTEXT iMacContext = ( protocolInfo->useAltMAC ) ? \
 					protocolInfo->iAltMacContext : protocolInfo->iMacContext;
-		RESOURCE_DATA msgData;
-		BYTE macBuffer[ CRYPT_MAX_HASHSIZE ];
 		int protectionLength;
 
 		/* Read the BIT STRING encapsulation, MAC the data, and make sure 
 		   that it matches the value attached to the message */
 		status = readBitStringHole( &stream, &protectionLength, DEFAULT_TAG );
-		if( cryptStatusOK( status ) && \
-			protectionLength > sMemDataLeft( &stream ) )
-			status = CRYPT_ERROR_UNDERFLOW;
+		if( cryptStatusOK( status ) )
+			{
+			if( protectionLength > sMemDataLeft( &stream ) )
+				status = CRYPT_ERROR_UNDERFLOW;
+			else
+				if( protectionLength < 16 || \
+					protectionLength > CRYPT_MAX_HASHSIZE )
+					status = CRYPT_ERROR_BADDATA;
+			}
 		if( cryptStatusOK( status ) )
 			status = hashMessageContents( iMacContext,
 							sessionInfoPtr->receiveBuffer + protPartStart,
 							protPartSize );
 		if( cryptStatusOK( status ) )
 			{
-			setMessageData( &msgData, macBuffer, CRYPT_MAX_HASHSIZE );
-			status = krnlSendMessage( iMacContext, IMESSAGE_GETATTRIBUTE_S,
-									  &msgData, CRYPT_CTXINFO_HASHVALUE );
+			RESOURCE_DATA msgData;
+
+			setMessageData( &msgData, sMemBufPtr( &stream ), 
+							protectionLength );
+			if( cryptStatusError( \
+				krnlSendMessage( iMacContext, IMESSAGE_COMPARE, &msgData, 
+								 MESSAGE_COMPARE_HASH ) ) )
+				status = CRYPT_ERROR_SIGNATURE;
 			}
-		if( cryptStatusError( status ) || \
-			protectionLength != msgData.length || \
-			memcmp( macBuffer, sMemBufPtr( &stream ), msgData.length ) )
+		if( cryptStatusError( status ) )
 			{
 			sMemDisconnect( &stream );
 			retExt( sessionInfoPtr, CRYPT_ERROR_SIGNATURE, 

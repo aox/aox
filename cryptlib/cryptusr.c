@@ -10,11 +10,11 @@
 #include <string.h>
 #include "crypt.h"
 #ifdef INC_ALL
-  #include "asn1_rw.h"
-  #include "asn1s_rw.h"
+  #include "asn1.h"
+  #include "asn1_ext.h"
 #else
-  #include "misc/asn1_rw.h"
-  #include "misc/asn1s_rw.h"
+  #include "misc/asn1.h"
+  #include "misc/asn1_ext.h"
 #endif /* Compiler-specific includes */
 
 /* States for the user object */
@@ -256,7 +256,7 @@ static int openUserKeyset( CRYPT_KEYSET *iUserKeyset, const char *fileName,
 	/* Open the given keyset */
 	fileBuildCryptlibPath( userFilePath, fileName, 
 						   ( options == CRYPT_KEYOPT_READONLY ) ? \
-						   FALSE : TRUE );
+						   BUILDPATH_GETPATH : BUILDPATH_CREATEPATH );
 	setMessageCreateObjectInfo( &createInfo, CRYPT_KEYSET_FILE );
 	createInfo.arg2 = options;
 	createInfo.strArg1 = userFilePath;
@@ -806,7 +806,7 @@ static int zeroiseUsers( void )
 			{
 			char userFilePath[ MAX_PATH_LENGTH + 128 ];	/* Protection for Windows */
 
-			fileBuildCryptlibPath( userFilePath, "index", FALSE );
+			fileBuildCryptlibPath( userFilePath, "index", BUILDPATH_GETPATH );
 			fileErase( userFilePath );
 
 			return( CRYPT_OK );
@@ -844,7 +844,8 @@ static int zeroiseUsers( void )
 
 		/* Erase the given user keyset */
 		sPrintf( userFileName, "u%06lx",  fileRef );
-		fileBuildCryptlibPath( userFilePath, userFileName, FALSE );
+		fileBuildCryptlibPath( userFilePath, userFileName, 
+							   BUILDPATH_GETPATH );
 		status = sFileOpen( &fileStream, userFilePath, 
 							FILE_READ | FILE_WRITE | FILE_EXCLUSIVE_ACCESS );
 		if( cryptStatusError( status ) )
@@ -1091,10 +1092,6 @@ static int userMessageFunction( const void *objectInfoPtr,
 		endTrustInfo( userInfoPtr->trustInfoPtr );
 		endOptions( userInfoPtr->configOptions );
 
-		/* Delete the object itself */
-		zeroise( userInfoPtr, sizeof( USER_INFO ) );
-		clFree( "userMessageFunction", userInfoPtr );
-
 		return( CRYPT_OK );
 		}
 
@@ -1239,7 +1236,11 @@ static int userMessageFunction( const void *objectInfoPtr,
 			status = addTrustEntry( userInfoPtr->trustInfoPtr, cryptCert, 
 									NULL, 0, TRUE );
 			if( cryptStatusOK( status ) )
+				{
 				userInfoPtr->trustInfoChanged = TRUE;
+				setOption( userInfoPtr->configOptions,
+						   CRYPT_OPTION_CONFIGCHANGED, TRUE );
+				}
 			return( status );
 			}
 		if( messageValue == CRYPT_IATTRIBUTE_CERT_UNTRUSTED )
@@ -1256,6 +1257,8 @@ static int userMessageFunction( const void *objectInfoPtr,
 				return( CRYPT_ERROR_NOTFOUND );
 			deleteTrustEntry( userInfoPtr->trustInfoPtr, entryToDelete );
 			userInfoPtr->trustInfoChanged = TRUE;
+			setOption( userInfoPtr->configOptions,
+					   CRYPT_OPTION_CONFIGCHANGED, TRUE );
 			return( CRYPT_OK );
 			}
 		if( messageValue == CRYPT_IATTRIBUTE_CERT_CHECKTRUST )
@@ -1305,8 +1308,11 @@ static int userMessageFunction( const void *objectInfoPtr,
 												cryptCert, TRUE );
 			if( trustedIssuerInfo != NULL )
 				{
-				*( ( int * ) messageDataPtr ) = \
-									getTrustedCert( trustedIssuerInfo );
+				const int trustedCert = getTrustedCert( trustedIssuerInfo );
+				if( cryptStatusError( trustedCert ) )
+					return( trustedCert );
+				assert( trustedCert != cryptCert );
+				*( ( int * ) messageDataPtr ) = trustedCert;
 				return( CRYPT_OK );
 				}
 
@@ -1396,16 +1402,16 @@ static int userMessageFunction( const void *objectInfoPtr,
 
 			krnlReleaseObject( userInfoPtr->objectHandle );
 			selfTestStatus = krnlSendMessage( SYSTEM_OBJECT_HANDLE, 
-								IMESSAGE_SETATTRIBUTE, MESSAGE_VALUE_TRUE, 
-								CRYPT_IATTRIBUTE_SELFTEST );
-			status = krnlGetObject( iCryptUser, OBJECT_TYPE_USER, 
-									( void ** ) &userInfoPtr, 
-									CRYPT_ERROR_SIGNALLED );
+									IMESSAGE_SETATTRIBUTE, messageDataPtr, 
+									CRYPT_IATTRIBUTE_SELFTEST );
+			status = krnlAcquireObject( iCryptUser, OBJECT_TYPE_USER, 
+										( void ** ) &userInfoPtr, 
+										CRYPT_ERROR_SIGNALLED );
 			if( cryptStatusError( status ) )
 				return( status );
 			return( setOption( userInfoPtr->configOptions, CRYPT_OPTION_LAST, 
 							   cryptStatusOK( selfTestStatus ) ? \
-							   TRUE : FALSE ) );
+							   *( ( int * ) messageDataPtr ) : 0 ) );
 			}
 
 		/* The config option write is performed in two phases, a first phase 
@@ -1429,6 +1435,8 @@ static int userMessageFunction( const void *objectInfoPtr,
 		   data to disk */
 		krnlReleaseObject( userInfoPtr->objectHandle );
 		status = commitConfigData( cryptUser, userFileName, data, length );
+		if( cryptStatusOK( status ) )
+			userInfoPtr->trustInfoChanged = FALSE;
 		clFree( "userMessageFunction", data );
 		return( status );
 		}
@@ -1458,6 +1466,7 @@ static int openUser( CRYPT_USER *iCryptUser, const CRYPT_USER cryptOwner,
 	   they expect.  Because of this, the default user has to be able to
 	   perform the full range of available operations, requiring that they
 	   appear as both a normal user and an SO */
+#if 0	/* Disabled since ACL checks are messed up by dual-user, 18/5/02 */
 	assert( userFileInfo->type == CRYPT_USER_NORMAL || \
 			userFileInfo->type == CRYPT_USER_SO || \
 			userFileInfo->type == CRYPT_USER_CA || \
@@ -1466,6 +1475,11 @@ static int openUser( CRYPT_USER *iCryptUser, const CRYPT_USER cryptOwner,
 								defaultUserInfo.userNameLength && \
 			  !memcmp( userFileInfo->userName, defaultUserInfo.userName, 
 					   defaultUserInfo.userNameLength ) ) );
+#else
+	assert( userFileInfo->type == CRYPT_USER_NORMAL || \
+			userFileInfo->type == CRYPT_USER_SO || \
+			userFileInfo->type == CRYPT_USER_CA );
+#endif /* 0 */
 
 	/* Clear the return values */
 	*iCryptUser = CRYPT_ERROR;

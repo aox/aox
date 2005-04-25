@@ -24,9 +24,9 @@
 #  include <string.h>
 #  include <stdlib.h>
 #endif
-#ifdef NO_ERRNO_H
+#if defined( NO_ERRNO_H )
     extern int errno;
-#else
+#elif !defined( _WIN32_WCE )
 #   include <errno.h>
 #endif
 

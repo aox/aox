@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *								cryptlib Interface							*
-*						Copyright Peter Gutmann 1992-2003					*
+*						Copyright Peter Gutmann 1992-2004					*
 *																			*
 ****************************************************************************/
 
@@ -27,7 +27,8 @@
    enums */
 
 #if ( defined( _WINDOWS ) || defined( WIN32 ) || defined( _WIN32 ) || \
-	  defined( __WIN32__ ) ) && !defined( _SCCTK )
+	  defined( __WIN32__ ) || defined( _WIN32_WCE ) ) && \
+	  !defined( _SCCTK ) && !defined( _CVI_ )
   #define WIN32_LEAN_AND_MEAN	/* Skip RPC, OLE, Multimedia, etc */
   #define NOCRYPT				/* Disable include of wincrypt.h */
   #include <windows.h>
@@ -44,9 +45,19 @@
    functions depending on whether we're being included via the cryptlib-
    internal crypt.h or not */
 
-#if ( defined( WIN32 ) || defined( _WIN32 ) || defined( __WIN32__ ) ) && \
-	!( defined( STATIC_LIB ) || defined( _SCCTK ) )
+#if ( defined( WIN32 ) || defined( _WIN32 ) || defined( __WIN32__ ) || \
+	  defined( _WIN32_WCE ) ) && !( defined( STATIC_LIB ) || defined( _SCCTK ) )
   #define C_PTR	*					/* General pointer */
+  #if defined( _WIN32_WCE )
+	/* Rather than relying on _UNICODE being defined (which would cause 
+	   problems if cryptlib is built with char * but the calling app is built
+	   with wchar_t *), we always use the default native char type, which is
+	   ASCII (or at least 8-bit) under Win32 and Unicode under WinCE */
+	#define C_CHR wchar_t
+  #else
+	#define C_CHR char
+  #endif /* WinCE vs. Win32 */
+  #define C_STR C_CHR *
   #if defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x500 )
 	#ifdef _CRYPT_DEFINED
 	  #define C_RET	int	_export _stdcall		/* BC++ DLL export ret.val.*/
@@ -62,13 +73,16 @@
   #endif /* BC++ vs.VC++ DLL functions */
 #elif defined( _WINDOWS ) && !defined( STATIC_LIB )
   #define C_PTR	FAR *				/* DLL pointer */
+  #define C_CHR char
+  #define C_STR C_CHR FAR *			/* DLL string pointer */
   #define C_RET	int FAR PASCAL _export	/* DLL return value */
 #elif defined( __BEOS__ )
 /* #include <BeBuild.h>				// _EXPORT/_IMPORT defines */
   #define C_PTR *
+  #define C_CHR char
+  #define C_STR C_CHR *
   #ifdef _STATIC_LINKING
-	#define C_PTR	*				/* General pointer */
-	#define C_RET	int				/* General return value */
+	#define C_RET int
   #else
 	#ifdef _CRYPT_DEFINED
 	  #define C_RET	__declspec( dllexport ) int	/* Shared lib export ret.val.*/
@@ -77,8 +91,10 @@
 	#endif /* CRYPT_DEFINED */
   #endif /* Static vs. shared lib */
 #else
-  #define C_PTR	*					/* General pointer */
-  #define C_RET	int					/* General return value */
+  #define C_PTR	*
+  #define C_CHR char
+  #define C_STR C_CHR *
+  #define C_RET	int
 #endif /* Windows vs.everything else function types */
 
 /* Symbolic defines to make it clearer how the function parameters behave */
@@ -138,9 +154,7 @@ typedef enum {						/* Algorithms */
 	CRYPT_ALGO_MD5,					/* MD5 */
 	CRYPT_ALGO_SHA,					/* SHA/SHA1 */
 	CRYPT_ALGO_RIPEMD160,			/* RIPE-MD 160 */
-#ifdef USE_SHA2
-	CRYPT_ALGO_SHA2,				/* SHA2 placeholder */
-#endif /* USE_SHA2 */
+	CRYPT_ALGO_SHA2,				/* SHA2 (SHA-256/384/512)*/
 
 	/* MAC's */
 	CRYPT_ALGO_HMAC_MD5 = 300,		/* HMAC-MD5 */
@@ -205,7 +219,7 @@ typedef enum {						/* Keyset types */
 #ifdef _CRYPT_DEFINED
 	/* Useful defines used internally for range checking */
 	, CRYPT_FIRST_RDBMS = CRYPT_KEYSET_ODBC,
-	CRYPT_LAST_RDBMS = CRYPT_KEYSET_LAST - 1
+	CRYPT_LAST_RDBMS = CRYPT_KEYSET_PLUGIN_STORE
 #endif /* _CRYPT_DEFINED */
 	} CRYPT_KEYSET_TYPE;
 
@@ -265,6 +279,7 @@ typedef enum {
 	/* Alongside the usual types we can also wind up with various protocol-
 	   specific format types such as SSL and SSH.  The following types are 
 	   only visible internally */
+	CRYPT_IFORMAT_SSL,				/* SSL format */
 	CRYPT_IFORMAT_SSH,				/* SSH format */
 #endif /* _CRYPT_DEFINED */
 	CRYPT_FORMAT_LAST				/* Last possible format type */
@@ -291,6 +306,7 @@ typedef enum {
 	CRYPT_SESSION_CMP_SERVER,		/* CMP server */
 	CRYPT_SESSION_SCEP,				/* SCEP */
 	CRYPT_SESSION_SCEP_SERVER,		/* SCEP server */
+	CRYPT_SESSION_CERTSTORE_SERVER,	/* HTTP cert store interface */
 	CRYPT_SESSION_LAST				/* Last possible session type */
 	} CRYPT_SESSION_TYPE;
 
@@ -351,6 +367,9 @@ typedef enum {
 	CRYPT_ATTRIBUTE_INT_ERRORMESSAGE, /*   error code and message */
 
 	/* Generic information */
+	CRYPT_ATTRIBUTE_CURRENT_GROUP,	/* Cursor mgt: Group in attribute list */
+	CRYPT_ATTRIBUTE_CURRENT,		/* Cursor mgt: Entry in attribute list */
+	CRYPT_ATTRIBUTE_CURRENT_INSTANCE,	/* Cursor mgt: Instance in attribute list */
 	CRYPT_ATTRIBUTE_BUFFERSIZE,		/* Internal data buffer size */
 
 	/* User internally */
@@ -389,6 +408,7 @@ typedef enum {
 	CRYPT_OPTION_CERT_VALIDITY,		/* Certificate validity period */
 	CRYPT_OPTION_CERT_UPDATEINTERVAL,	/* CRL update interval */
 	CRYPT_OPTION_CERT_COMPLIANCELEVEL,	/* PKIX compliance level for cert chks.*/
+	CRYPT_OPTION_CERT_REQUIREPOLICY,	/* Whether explicit policy req'd for certs */
 
 	/* CMS/SMIME options */
 	CRYPT_OPTION_CMS_DEFAULTATTRIBUTES,	/* Add default CMS attributes */
@@ -416,7 +436,8 @@ typedef enum {
 	CRYPT_OPTION_NET_SOCKS_USERNAME,	/* Socks user name */
 	CRYPT_OPTION_NET_HTTP_PROXY,		/* Web proxy server */
 	CRYPT_OPTION_NET_CONNECTTIMEOUT,	/* Timeout for network connection setup */
-	CRYPT_OPTION_NET_TIMEOUT,			/* Timeout for network read/write */
+	CRYPT_OPTION_NET_READTIMEOUT,		/* Timeout for network reads */
+	CRYPT_OPTION_NET_WRITETIMEOUT,		/* Timeout for network writes */
 
 	/* Miscellaneous options */
 	CRYPT_OPTION_MISC_ASYNCINIT,	/* Whether to init cryptlib async'ly */
@@ -476,9 +497,11 @@ typedef enum {
 		CRYPT_CERTINFO_FINGERPRINT_MD5 = CRYPT_CERTINFO_FINGERPRINT,
 	CRYPT_CERTINFO_FINGERPRINT_SHA,
 	CRYPT_CERTINFO_CURRENT_CERTIFICATE,/* Cursor mgt: Rel.pos in chain/CRL/OCSP */
+#if 1	/* To be removed in cryptlib 3.2 */
 	CRYPT_CERTINFO_CURRENT_EXTENSION,/* Cursor mgt: Rel.pos.or abs.extension */
 	CRYPT_CERTINFO_CURRENT_FIELD,	/* Cursor mgt: Rel.pos.or abs.field in ext */
 	CRYPT_CERTINFO_CURRENT_COMPONENT,/* Cursor mgt: Rel.pos in multival.field */
+#endif /* 1 */
 	CRYPT_CERTINFO_TRUSTED_USAGE,	/* Usage that cert is trusted for */
 	CRYPT_CERTINFO_TRUSTED_IMPLICIT,/* Whether cert is implicitly trusted */
 	CRYPT_CERTINFO_SIGNATURELEVEL,	/* Amount of detail to include in sigs.*/
@@ -565,7 +588,22 @@ typedef enum {
 	CRYPT_CERTINFO_AUTHORITYINFO_RTCS,		/* accessDescription.accessLocation */
 	CRYPT_CERTINFO_AUTHORITYINFO_OCSP,		/* accessDescription.accessLocation */
 	CRYPT_CERTINFO_AUTHORITYINFO_CAISSUERS,	/* accessDescription.accessLocation */
-	CRYPT_CERTINFO_AUTHORITYINFO_TIMESTAMPING,/* accessDescription.accessLocation */
+	CRYPT_CERTINFO_AUTHORITYINFO_CERTSTORE,	/* accessDescription.accessLocation */
+	CRYPT_CERTINFO_AUTHORITYINFO_CRLS,		/* accessDescription.accessLocation */
+
+	/* 1 3 6 1 5 5 7 1 2 biometricInfo */
+	CRYPT_CERTINFO_BIOMETRICINFO,
+	CRYPT_CERTINFO_BIOMETRICINFO_TYPE,		/* biometricData.typeOfData */
+	CRYPT_CERTINFO_BIOMETRICINFO_HASHALGO,	/* biometricData.hashAlgorithm */
+	CRYPT_CERTINFO_BIOMETRICINFO_HASH,		/* biometricData.dataHash */
+	CRYPT_CERTINFO_BIOMETRICINFO_URL,		/* biometricData.sourceDataUri */
+
+	/* 1 3 6 1 5 5 7 1 3 qcStatements */
+	CRYPT_CERTINFO_QCSTATEMENT,
+	CRYPT_CERTINFO_QCSTATEMENT_SEMANTICS,	
+					/* qcStatement.statementInfo.semanticsIdentifier */
+	CRYPT_CERTINFO_QCSTATEMENT_REGISTRATIONAUTHORITY,	
+					/* qcStatement.statementInfo.nameRegistrationAuthorities */
 
 	/* 1 3 6 1 5 5 7 48 1 2 ocspNonce */
 	CRYPT_CERTINFO_OCSP_NONCE,				/* nonce */
@@ -719,6 +757,7 @@ typedef enum {
 	CRYPT_CERTINFO_EXTKEY_TIMESTAMPING,		/* timeStamping */
 	CRYPT_CERTINFO_EXTKEY_OCSPSIGNING,		/* ocspSigning */
 	CRYPT_CERTINFO_EXTKEY_DIRECTORYSERVICE,	/* directoryService */
+	CRYPT_CERTINFO_EXTKEY_ANYKEYUSAGE,		/* anyExtendedKeyUsage */
 	CRYPT_CERTINFO_EXTKEY_NS_SERVERGATEDCRYPTO,	/* serverGatedCrypto */
 	CRYPT_CERTINFO_EXTKEY_VS_SERVERGATEDCRYPTO_CA,	/* serverGatedCrypto CA */
 
@@ -786,6 +825,9 @@ typedef enum {
 	/* 1 2 840 113549 1 9 6 counterSignature */
 	CRYPT_CERTINFO_CMS_COUNTERSIGNATURE,	/* counterSignature */
 
+	/* 1 2 840 113549 1 9 13 signingDescription */
+	CRYPT_CERTINFO_CMS_SIGNINGDESCRIPTION,
+
 	/* 1 2 840 113549 1 9 15 sMIMECapabilities */
 	CRYPT_CERTINFO_CMS_SMIMECAPABILITIES,
 	CRYPT_CERTINFO_CMS_SMIMECAP_3DES,		/* 3DES encryption */
@@ -838,6 +880,18 @@ typedef enum {
 	CRYPT_CERTINFO_CMS_SIGNINGCERTIFICATE,
 	CRYPT_CERTINFO_CMS_SIGNINGCERT_ESSCERTID, /* certs.essCertID */
 	CRYPT_CERTINFO_CMS_SIGNINGCERT_POLICIES,/* policies.policyInformation.policyIdentifier */
+
+	/* 1 2 840 113549 1 9 16 2 15 signaturePolicyID */
+	CRYPT_CERTINFO_CMS_SIGNATUREPOLICYID,
+	CRYPT_CERTINFO_CMS_SIGPOLICYID,			/* sigPolicyID */
+	CRYPT_CERTINFO_CMS_SIGPOLICYHASH,		/* sigPolicyHash */
+	CRYPT_CERTINFO_CMS_SIGPOLICY_CPSURI,	/* sigPolicyQualifiers.sigPolicyQualifier.cPSuri */
+	CRYPT_CERTINFO_CMS_SIGPOLICY_ORGANIZATION, 
+		/* sigPolicyQualifiers.sigPolicyQualifier.userNotice.noticeRef.organization */
+	CRYPT_CERTINFO_CMS_SIGPOLICY_NOTICENUMBERS,
+		/* sigPolicyQualifiers.sigPolicyQualifier.userNotice.noticeRef.noticeNumbers */
+	CRYPT_CERTINFO_CMS_SIGPOLICY_EXPLICITTEXT, 
+		/* sigPolicyQualifiers.sigPolicyQualifier.userNotice.explicitText */
 
 	/* 1 2 840 113549 1 9 16 9 signatureTypeIdentifier */
 	CRYPT_CERTINFO_CMS_SIGTYPEIDENTIFIER,
@@ -920,7 +974,6 @@ typedef enum {
 	CRYPT_ENVINFO_DETACHEDSIGNATURE,/* Generate CMS detached signature */
 	CRYPT_ENVINFO_SIGNATURE_RESULT,	/* Signature check result */
 	CRYPT_ENVINFO_MAC,				/* Use MAC instead of encrypting */
-	CRYPT_ENVINFO_CURRENT_COMPONENT,/* Cursor management: Relative pos.*/
 
 	/* Resources required for enveloping/deenveloping */
 	CRYPT_ENVINFO_PASSWORD,			/* User password */
@@ -934,7 +987,7 @@ typedef enum {
 	CRYPT_ENVINFO_ORIGINATOR,		/* Originator info/key */
 	CRYPT_ENVINFO_SESSIONKEY,		/* Session key */
 	CRYPT_ENVINFO_HASH,				/* Hash value */
-	CRYPT_ENVINFO_TIMESTAMP_AUTHORITY,	/* Timestamp authority */
+	CRYPT_ENVINFO_TIMESTAMP,		/* Timestamp information */
 
 	/* Keysets used to retrieve keys needed for enveloping/deenveloping */
 	CRYPT_ENVINFO_KEYSET_SIGCHECK,	/* Signature check keyset */
@@ -960,6 +1013,7 @@ typedef enum {
 	CRYPT_SESSINFO_PASSWORD,		/* Password */
 	CRYPT_SESSINFO_PRIVATEKEY,		/* Server/client private key */
 	CRYPT_SESSINFO_KEYSET,			/* Certificate store */
+	CRYPT_SESSINFO_AUTHRESPONSE,	/* Session authorisation OK */
 
 	/* Client/server information */
 	CRYPT_SESSINFO_SERVER_NAME,		/* Server name */
@@ -981,8 +1035,11 @@ typedef enum {
 	CRYPT_SESSINFO_CMP_REQUESTTYPE,	/* Request type */
 	CRYPT_SESSINFO_CMP_PKIBOOT,		/* Enable PKIBoot facility */
 	CRYPT_SESSINFO_CMP_PRIVKEYSET,	/* Private-key keyset */
-	CRYPT_SESSINFO_SSH_SUBSYSTEM,	/* SSH subsystem */
-	CRYPT_SESSINFO_SSH_PORTFORWARD,	/* SSH port forwarding */
+	CRYPT_SESSINFO_SSH_CHANNEL,		/* SSH current channel */
+	CRYPT_SESSINFO_SSH_CHANNEL_TYPE,/* SSH channel type */
+	CRYPT_SESSINFO_SSH_CHANNEL_ARG1,/* SSH channel argument 1 */
+	CRYPT_SESSINFO_SSH_CHANNEL_ARG2,/* SSH channel argument 2 */
+	CRYPT_SESSINFO_SSH_CHANNEL_ACTIVE,/* SSH channel active */
 
 	/* Used internally */
 	CRYPT_SESSINFO_LAST, CRYPT_USERINFO_FIRST = 7000,
@@ -1042,6 +1099,7 @@ typedef enum {
 	CRYPT_IATTRIBUTE_KEY_PGP,		/* Ctx: PGP-format public key */
 	CRYPT_IATTRIBUTE_KEY_SSH1,		/* Ctx: SSHv1-format public key */
 	CRYPT_IATTRIBUTE_KEY_SSH2,		/* Ctx: SSHv2-format public key */
+	CRYPT_IATTRIBUTE_KEY_SSL,		/* Ctx: SSL-format public key */
 	CRYPT_IATTRIBUTE_KEY_SPKI_PARTIAL,/* Ctx: SubjectPublicKeyInfo w/o trigger */
 	CRYPT_IATTRIBUTE_KEY_PGP_PARTIAL,/* Ctx: PGP public key w/o trigger */
 	CRYPT_IATTRIBUTE_PGPVALIDITY,	/* Ctx: PGP key validity */
@@ -1057,6 +1115,7 @@ typedef enum {
 	CRYPT_IATTRIBUTE_OCSPREQUEST,	/* Cert: OCSP req.info added to OCSP resp.*/
 	CRYPT_IATTRIBUTE_REVREQUEST,	/* Cert: CRMF rev.request added to CRL */
 	CRYPT_IATTRIBUTE_PKIUSERINFO,	/* Cert: Additional user info added to cert.req.*/
+	CRYPT_IATTRIBUTE_BLOCKEDATTRS,	/* Cert: Template of disallowed attrs.in cert */
 	CRYPT_IATTRIBUTE_AUTHCERTID,	/* Cert: Authorising cert ID for a cert/rev.req.*/
 	CRYPT_IATTRIBUTE_ESSCERTID,		/* Cert: ESSCertID */
 	CRYPT_IATTRIBUTE_ENTROPY,		/* Dev: Polled entropy data */
@@ -1101,7 +1160,7 @@ typedef enum {
 	CRYPT_CERTINFO_FIRST_CMS = CRYPT_CERTINFO_CMS_CONTENTTYPE,
 	CRYPT_CERTINFO_LAST_CMS = CRYPT_CERTINFO_LAST - 1,
 	CRYPT_SESSINFO_FIRST_SPECIFIC = CRYPT_SESSINFO_REQUEST,
-	CRYPT_SESSINFO_LAST_SPECIFIC = CRYPT_SESSINFO_SSH_PORTFORWARD
+	CRYPT_SESSINFO_LAST_SPECIFIC = CRYPT_SESSINFO_SSH_CHANNEL_ACTIVE
 #endif /* _CRYPT_DEFINED */
 	} CRYPT_ATTRIBUTE_TYPE;
 
@@ -1131,8 +1190,9 @@ enum { CRYPT_CRLREASON_UNSPECIFIED, CRYPT_CRLREASON_KEYCOMPROMISE,
 	   CRYPT_CRLREASON_CACOMPROMISE, CRYPT_CRLREASON_AFFILIATIONCHANGED,
 	   CRYPT_CRLREASON_SUPERSEDED, CRYPT_CRLREASON_CESSATIONOFOPERATION,
 	   CRYPT_CRLREASON_CERTIFICATEHOLD, CRYPT_CRLREASON_REMOVEFROMCRL = 8,
+	   CRYPT_CRLREASON_PRIVILEGEWITHDRAWN, CRYPT_CRLREASON_AACOMPROMISE,
 	   CRYPT_CRLREASON_LAST, /* End of standard CRL reasons */
-	   CRYPT_CRLREASON_NEVERVALID = 10, CRYPT_CRLEXTREASON_LAST };
+	   CRYPT_CRLREASON_NEVERVALID = 20, CRYPT_CRLEXTREASON_LAST };
 
 /* X.509 CRL reason flags.  These identify the same thing as the cRLReason
    codes but allow for multiple reasons to be specified.  Note that these
@@ -1239,6 +1299,7 @@ typedef enum {
 #ifdef _CRYPT_DEFINED
 	CRYPT_ICERTFORMAT_CERTSET,		/* SET OF Certificate */
 	CRYPT_ICERTFORMAT_CERTSEQUENCE,	/* SEQUENCE OF Certificate */
+	CRYPT_ICERTFORMAT_SSL_CERTCHAIN,/* SSL certificate chain */
 	CRYPT_ICERTFORMAT_DATA,			/* Non-signed object data */
 #endif /* CRYPT_DEFINED */
 	CRYPT_CERTFORMAT_LAST			/* Last possible cert.format type */
@@ -1269,7 +1330,8 @@ typedef enum {
 typedef enum {
 	CRYPT_KEYID_NONE,				/* No key ID type */
 	CRYPT_KEYID_NAME,				/* Key owner name */
-	CRYPT_KEYID_EMAIL,				/* Key owner email address */
+	CRYPT_KEYID_URI,				/* Key owner URI */
+		CRYPT_KEYID_EMAIL = CRYPT_KEYID_URI, /* Synonym: owner email addr.*/
 #ifdef _CRYPT_DEFINED
 	/* Internal key ID types */
 	CRYPT_IKEYID_KEYID,				/* SubjectKeyIdentifier/internal ID */
@@ -1280,7 +1342,7 @@ typedef enum {
 #endif /* _CRYPT_DEFINED */
 	CRYPT_KEYID_LAST				/* Last possible key ID type */
 #ifdef _CRYPT_DEFINED
-	, CRYPT_KEYID_LAST_EXTERNAL = CRYPT_IKEYID_KEYID/* Last external key ID */
+	, CRYPT_KEYID_LAST_EXTERNAL = CRYPT_KEYID_URI + 1/* Last external key ID */
 #endif /* _CRYPT_DEFINED */
 	} CRYPT_KEYID_TYPE;
 
@@ -1317,6 +1379,7 @@ typedef enum {
 	CRYPT_CERTACTION_DISCONNECT,	/* Disconnect from cert store */
 	CRYPT_CERTACTION_ERROR,			/* Error information */
 	CRYPT_CERTACTION_ADDUSER,		/* Add PKI user */
+	CRYPT_CERTACTION_DELETEUSER,	/* Delete PKI user */
 	CRYPT_CERTACTION_REQUEST_CERT,	/* Cert request */
 	CRYPT_CERTACTION_REQUEST_RENEWAL,/* Cert renewal request */
 	CRYPT_CERTACTION_REQUEST_REVOCATION,/* Cert revocation request */
@@ -1335,7 +1398,7 @@ typedef enum {
 #ifdef _CRYPT_DEFINED
 	/* User-settable action types for cert mgmt.actions */
 	, CRYPT_CERTACTION_FIRST_USER = CRYPT_CERTACTION_ISSUE_CERT,
-	CRYPT_CERTACTION_LAST_USER = CRYPT_CERTACTION_LAST - 1
+	CRYPT_CERTACTION_LAST_USER = CRYPT_CERTACTION_CLEANUP
 #endif /* _CRYPT_DEFINED */
 	} CRYPT_CERTACTION_TYPE;
 
@@ -1403,7 +1466,7 @@ typedef enum {
 #endif /* _CRYPT_DEFINED */
 	CRYPT_KEYOPT_LAST				/* Last possible key option type */
 #ifdef _CRYPT_DEFINED
-	, CRYPT_KEYOPT_LAST_EXTERNAL = CRYPT_IKEYOPT_EXCLUSIVEACCESS
+	, CRYPT_KEYOPT_LAST_EXTERNAL = CRYPT_KEYOPT_CREATE + 1
 									/* Last external keyset option */
 #endif /* _CRYPT_DEFINED */
 	} CRYPT_KEYOPT_TYPE;
@@ -1433,7 +1496,7 @@ typedef int CRYPT_HANDLE;
 
 typedef struct {
 	/* Algorithm information */
-	char algoName[ CRYPT_MAX_TEXTSIZE ];/* Algorithm name */
+	C_CHR algoName[ CRYPT_MAX_TEXTSIZE ];/* Algorithm name */
 	int blockSize;					/* Block size of the algorithm */
 	int minKeySize;					/* Minimum key size in bytes */
 	int keySize;					/* Recommended key size in bytes */
@@ -1658,7 +1721,8 @@ C_RET cryptDeleteAttribute( C_IN CRYPT_HANDLE cryptHandle,
    be found */
 
 C_RET cryptAddRandom( C_IN void C_PTR randomData, C_IN int randomDataLength );
-C_RET cryptQueryObject( C_IN void C_PTR objectData,
+C_RET cryptQueryObject( C_IN void C_PTR objectData, 
+						C_IN int objectDataLength,
 					    C_OUT CRYPT_OBJECT_INFO C_PTR cryptObjectInfo );
 
 /****************************************************************************
@@ -1670,18 +1734,22 @@ C_RET cryptQueryObject( C_IN void C_PTR objectData,
 /* Export and import an encrypted session key */
 
 C_RET cryptExportKey( C_OUT void C_PTR encryptedKey,
+					  C_IN int encryptedKeyMaxLength,
 					  C_OUT int C_PTR encryptedKeyLength,
 					  C_IN CRYPT_HANDLE exportKey,
 					  C_IN CRYPT_CONTEXT sessionKeyContext );
 C_RET cryptExportKeyEx( C_OUT void C_PTR encryptedKey,
+						C_IN int encryptedKeyMaxLength,
 						C_OUT int C_PTR encryptedKeyLength,
 						C_IN CRYPT_FORMAT_TYPE formatType,
 						C_IN CRYPT_HANDLE exportKey,
 						C_IN CRYPT_CONTEXT sessionKeyContext );
 C_RET cryptImportKey( C_IN void C_PTR encryptedKey,
+					  C_IN int encryptedKeyLength,
 					  C_IN CRYPT_CONTEXT importKey,
 					  C_IN CRYPT_CONTEXT sessionKeyContext );
 C_RET cryptImportKeyEx( C_IN void C_PTR encryptedKey,
+						C_IN int encryptedKeyLength,
 						C_IN CRYPT_CONTEXT importKey,
 						C_IN CRYPT_CONTEXT sessionKeyContext,
 						C_OUT CRYPT_CONTEXT C_PTR returnedContext );
@@ -1689,19 +1757,23 @@ C_RET cryptImportKeyEx( C_IN void C_PTR encryptedKey,
 /* Create and check a digital signature */
 
 C_RET cryptCreateSignature( C_OUT void C_PTR signature,
+							C_IN int signatureMaxLength,
 							C_OUT int C_PTR signatureLength,
 							C_IN CRYPT_CONTEXT signContext,
 							C_IN CRYPT_CONTEXT hashContext );
 C_RET cryptCreateSignatureEx( C_OUT void C_PTR signature,
+							  C_IN int signatureMaxLength,
 							  C_OUT int C_PTR signatureLength,
 							  C_IN CRYPT_FORMAT_TYPE formatType,
 							  C_IN CRYPT_CONTEXT signContext,
 							  C_IN CRYPT_CONTEXT hashContext,
 							  C_IN CRYPT_CERTIFICATE extraData );
 C_RET cryptCheckSignature( C_IN void C_PTR signature,
+						   C_IN int signatureLength,
 						   C_IN CRYPT_HANDLE sigCheckKey,
 						   C_IN CRYPT_CONTEXT hashContext );
 C_RET cryptCheckSignatureEx( C_IN void C_PTR signature,
+							 C_IN int signatureLength,
 							 C_IN CRYPT_HANDLE sigCheckKey,
 							 C_IN CRYPT_CONTEXT hashContext,
 							 C_OUT CRYPT_HANDLE C_PTR extraData );
@@ -1717,7 +1789,7 @@ C_RET cryptCheckSignatureEx( C_IN void C_PTR signature,
 C_RET cryptKeysetOpen( C_OUT CRYPT_KEYSET C_PTR keyset,
 					   C_IN CRYPT_USER cryptUser,
 					   C_IN CRYPT_KEYSET_TYPE keysetType,
-					   C_IN char C_PTR name, C_IN CRYPT_KEYOPT_TYPE options );
+					   C_IN C_STR name, C_IN CRYPT_KEYOPT_TYPE options );
 C_RET cryptKeysetClose( C_IN CRYPT_KEYSET keyset );
 
 /* Get a key from a keyset */
@@ -1725,11 +1797,11 @@ C_RET cryptKeysetClose( C_IN CRYPT_KEYSET keyset );
 C_RET cryptGetPublicKey( C_IN CRYPT_KEYSET keyset,
 						 C_OUT CRYPT_CONTEXT C_PTR cryptContext,
 						 C_IN CRYPT_KEYID_TYPE keyIDtype,
-						 C_IN char C_PTR keyID );
+						 C_IN C_STR keyID );
 C_RET cryptGetPrivateKey( C_IN CRYPT_KEYSET keyset,
 						  C_OUT CRYPT_CONTEXT C_PTR cryptContext,
 						  C_IN CRYPT_KEYID_TYPE keyIDtype,
-						  C_IN char C_PTR keyID, C_IN char C_PTR password );
+						  C_IN C_STR keyID, C_IN C_STR password );
 
 /* Add/delete a key to/from a keyset */
 
@@ -1737,10 +1809,10 @@ C_RET cryptAddPublicKey( C_IN CRYPT_KEYSET keyset,
 						 C_IN CRYPT_CERTIFICATE certificate );
 C_RET cryptAddPrivateKey( C_IN CRYPT_KEYSET keyset,
 						  C_IN CRYPT_HANDLE cryptKey,
-						  C_IN char C_PTR password );
+						  C_IN C_STR password );
 C_RET cryptDeleteKey( C_IN CRYPT_KEYSET keyset,
 					  C_IN CRYPT_KEYID_TYPE keyIDtype,
-					  C_IN char C_PTR keyID );
+					  C_IN C_STR keyID );
 
 /****************************************************************************
 *																			*
@@ -1755,12 +1827,15 @@ C_RET cryptCreateCert( C_OUT CRYPT_CERTIFICATE C_PTR certificate,
 					   C_IN CRYPT_CERTTYPE_TYPE certType );
 C_RET cryptDestroyCert( C_IN CRYPT_CERTIFICATE certificate );
 
-/* Get/add/delete certificate extensions */
+/* Get/add/delete certificate extensions.  These are direct data insertion 
+   functions whose use is discouraged, so they fix the string at char *
+   rather than C_STR */
 
 C_RET cryptGetCertExtension( C_IN CRYPT_CERTIFICATE certificate,
 							 C_IN char C_PTR oid,
 							 C_OUT int C_PTR criticalFlag,
 							 C_OUT void C_PTR extension,
+							 C_IN int extensionMaxLength,
 							 C_OUT int C_PTR extensionLength );
 C_RET cryptAddCertExtension( C_IN CRYPT_CERTIFICATE certificate,
 							 C_IN char C_PTR oid, C_IN int criticalFlag,
@@ -1783,6 +1858,7 @@ C_RET cryptImportCert( C_IN void C_PTR certObject,
 					   C_IN CRYPT_USER cryptUser,
 					   C_OUT CRYPT_CERTIFICATE C_PTR certificate );
 C_RET cryptExportCert( C_OUT void C_PTR certObject,
+					   C_IN int certObjectMaxLength,
 					   C_OUT int C_PTR certObjectLength,
 					   C_IN CRYPT_CERTFORMAT_TYPE certFormatType,
 					   C_IN CRYPT_CERTIFICATE certificate );
@@ -1795,10 +1871,11 @@ C_RET cryptCAGetItem( C_IN CRYPT_KEYSET keyset,
 					  C_OUT CRYPT_CERTIFICATE C_PTR certificate,
 					  C_IN CRYPT_CERTTYPE_TYPE certType,
 					  C_IN CRYPT_KEYID_TYPE keyIDtype,
-					  C_IN char C_PTR keyID );
+					  C_IN C_STR keyID );
 C_RET cryptCADeleteItem( C_IN CRYPT_KEYSET keyset,
+						 C_IN CRYPT_CERTTYPE_TYPE certType,
 						 C_IN CRYPT_KEYID_TYPE keyIDtype,
-						 C_IN char C_PTR keyID );
+						 C_IN C_STR keyID );
 C_RET cryptCACertManagement( C_OUT CRYPT_CERTIFICATE C_PTR certificate,
 							 C_IN CRYPT_CERTACTION_TYPE action,
 							 C_IN CRYPT_KEYSET keyset,
@@ -1844,7 +1921,7 @@ C_RET cryptPopData( C_IN CRYPT_HANDLE envelope, C_OUT void C_PTR buffer,
 C_RET cryptDeviceOpen( C_OUT CRYPT_DEVICE C_PTR device,
 					   C_IN CRYPT_USER cryptUser,
 					   C_IN CRYPT_DEVICE_TYPE deviceType,
-					   C_IN char C_PTR name );
+					   C_IN C_STR name );
 C_RET cryptDeviceClose( C_IN CRYPT_DEVICE device );
 
 /* Query a devices capabilities */
@@ -1868,10 +1945,11 @@ C_RET cryptDeviceCreateContext( C_IN CRYPT_DEVICE device,
 /* Log on and off (create/destroy a user object) */
 
 C_RET cryptLogin( C_OUT CRYPT_USER C_PTR user,
-				  C_IN char C_PTR name, C_IN char C_PTR password );
+				  C_IN C_STR name, C_IN C_STR password );
 C_RET cryptLogout( C_IN CRYPT_USER user );
 
-#if defined( WIN32 ) || defined( _WIN32 ) || defined( __WIN32__ )
+#if ( defined( WIN32 ) || defined( _WIN32 ) || defined( __WIN32__ ) ) && \
+	!( defined( _SCCTK ) || defined( _CVI_ ) )
 
 /****************************************************************************
 *																			*

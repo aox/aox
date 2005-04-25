@@ -59,9 +59,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined( INC_ALL ) || defined( INC_CHILD )
+#if defined( INC_ALL )
+  #include "crypt.h"
+  #include "md2.h"
+#elif defined( INC_CHILD )
+  #include "../crypt.h"
   #include "md2.h"
 #else
+  #include "crypt.h"
   #include "crypt/md2.h"
 #endif /* Compiler-specific includes */
 

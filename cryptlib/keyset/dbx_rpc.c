@@ -1,31 +1,66 @@
 /****************************************************************************
 *																			*
 *						 cryptlib Database RPC Interface					*
-*						Copyright Peter Gutmann 1997-2002					*
+*						Copyright Peter Gutmann 1997-2004					*
 *																			*
 ****************************************************************************/
 
 /* This file isn't a standalone module but is meant to be #included into
-   whichever of the dbxXXXX.c database client files it's used with */
+   whichever of the database client files that it's used with */
 
-#include <stdlib.h>
-#if defined( INC_ALL )
-  #include "crypt.h"
-  #include "keyset.h"
-  #include "rpc.h"
-#elif defined( INC_CHILD )
-  #include "../crypt.h"
-  #include "keyset.h"
-  #include "../misc/rpc.h"
-#else
-  #include "crypt.h"
-  #include "keyset/keyset.h"
-  #include "misc/rpc.h"
-#endif /* Compiler-specific includes */
+#ifdef USE_RPCAPI
+
+/* Set up query data so it can be sent to the database back-end */
+
+static void extractQueryData( COMMAND_INFO *cmd, time_t *timeValuePtrPtr, 
+							  void **dataValuePtrPtr, 
+							  int *dataValueLengthPtr )
+	{
+	/* Clear return values */
+	*timeValuePtrPtr = 0;
+	*dataValuePtrPtr = NULL;
+	*dataValueLengthPtr = 0;
+
+	/* If there's only one string arg present (the command), we're done */
+	if( cmd->noStrArgs < 2 )
+		return;
+
+	/* If one of the string args is a bound date, convert it into a time_t */
+	if( cmd->strArgLen[ 1 ] == 8 )
+		{
+		const BYTE *timeValuePtr = cmd->strArg[ 1 ];
+
+		/* Extract the time_t from the 64-bit time value */
+		*timeValuePtrPtr = ( time_t ) timeValuePtr[ 4 ] << 24 | \
+						   ( time_t ) timeValuePtr[ 5 ] << 16 | \
+						   ( time_t ) timeValuePtr[ 6 ] << 8 | \
+						   ( time_t ) timeValuePtr[ 7 ];
+#ifdef _BIG_WORDS
+		*timeValuePtrPtr |= ( time_t ) timeValuePtr[ 3 ] << 32;
+#endif /* _BIG_WORDS */
+
+		/* Since the first arg is the date, the data (if any) will be in 
+		   the second arg */
+		if( cmd->strArgLen[ 2 ] > 0 )
+			{
+			*dataValuePtrPtr = cmd->strArg[ 2 ];
+			*dataValueLengthPtr = cmd->strArgLen[ 2 ];
+			}
+		
+		return;
+		}
+
+	/* There's only one string arg present, which is the data */
+	if( cmd->strArgLen[ 1 ] > 0 )
+		{
+		*dataValuePtrPtr = cmd->strArg[ 1 ];
+		*dataValueLengthPtr = cmd->strArgLen[ 1 ];
+		}
+	}
 
 /* Handlers for the various commands */
 
-static int cmdClose( void *stateInfo, COMMAND_INFO *cmd )
+int cmdClose( void *stateInfo, COMMAND_INFO *cmd )
 	{
 	assert( cmd->type == DBX_COMMAND_CLOSE );
 	assert( cmd->flags == COMMAND_FLAG_NONE );
@@ -36,7 +71,7 @@ static int cmdClose( void *stateInfo, COMMAND_INFO *cmd )
 	return( CRYPT_OK );
 	}
 
-static int cmdGetErrorInfo( void *stateInfo, COMMAND_INFO *cmd )
+int cmdGetErrorInfo( void *stateInfo, COMMAND_INFO *cmd )
 	{
 	assert( cmd->type == DBX_COMMAND_GETERRORINFO );
 	assert( cmd->flags == COMMAND_FLAG_NONE );
@@ -48,7 +83,7 @@ static int cmdGetErrorInfo( void *stateInfo, COMMAND_INFO *cmd )
 	return( CRYPT_OK );
 	}
 
-static int cmdOpen( void *stateInfo, COMMAND_INFO *cmd )
+int cmdOpen( void *stateInfo, COMMAND_INFO *cmd )
 	{
 	int hasBinaryBlobs, status;
 
@@ -66,42 +101,26 @@ static int cmdOpen( void *stateInfo, COMMAND_INFO *cmd )
 	return( status );
 	}
 
-static int cmdQuery( void *stateInfo, COMMAND_INFO *cmd )
+int cmdQuery( void *stateInfo, COMMAND_INFO *cmd )
 	{
-	const void *dataPtr = cmd->strArg[ 1 ];
 	const int argIndex = cmd->noStrArgs - 1;
-	time_t timeValue = 0;
-	int dataLength, status;
+	void *dataValue;
+	time_t timeValue;
+	int dataValueLength, dataLength, status;
 
 	assert( cmd->type == DBX_COMMAND_QUERY );
 	assert( cmd->flags == COMMAND_FLAG_NONE );
-	assert( cmd->noArgs == 1 );
-	assert( cmd->arg[ 0 ] >= DBMS_QUERY_NORMAL && \
-			cmd->arg[ 0 ] <= DBMS_QUERY_CANCEL );
-	assert( cmd->noStrArgs >= 1 && cmd->noStrArgs <= 3 );
+	assert( cmd->noArgs == 2 );
+	assert( cmd->arg[ 0 ] > DBMS_QUERY_NONE && \
+			cmd->arg[ 0 ] < DBMS_QUERY_LAST );
+	assert( cmd->arg[ 1 ] >= DBMS_CACHEDQUERY_NONE && \
+			cmd->arg[ 1 ] < DBMS_CACHEDQUERY_LAST );
+	assert( cmd->noStrArgs >= 2 && cmd->noStrArgs <= 4 );
 
-	/* If one of the string args is a bound date, convert it into a time_t */
-	if( cmd->noStrArgs >= 2 && cmd->strArgLen[ 1 ] == 8 )
-		{
-		const BYTE *timeValuePtr = cmd->strArg[ 1 ];
-
-		/* Extract the time_t from the 64-bit time value */
-#ifdef _BIG_WORDS
-		timeValue = ( time_t ) timeValuePtr[ 3 ] << 32 | \
-					( time_t ) timeValuePtr[ 4 ] << 24 | \
-					( time_t ) timeValuePtr[ 5 ] << 16 | \
-					( time_t ) timeValuePtr[ 6 ] << 8 | \
-					( time_t ) timeValuePtr[ 7 ];
-#else
-		timeValue = ( time_t ) timeValuePtr[ 4 ] << 24 | \
-					( time_t ) timeValuePtr[ 5 ] << 16 | \
-					( time_t ) timeValuePtr[ 6 ] << 8 | \
-					( time_t ) timeValuePtr[ 7 ];
-#endif /* _BIG_WORDS */
-		}
-
+	extractQueryData( cmd, &timeValue, &dataValue, &dataValueLength );
 	status = performQuery( stateInfo, cmd->strArg[ 0 ],
-						   cmd->strArg[ argIndex ], &dataLength, timeValue,
+						   cmd->strArg[ argIndex ], &dataLength, dataValue, 
+						   dataValueLength, timeValue, cmd->arg[ 1 ], 
 						   cmd->arg[ 0 ] );
 	if( cryptStatusOK( status ) )
 		cmd->strArgLen[ argIndex ] = \
@@ -111,45 +130,21 @@ static int cmdQuery( void *stateInfo, COMMAND_INFO *cmd )
 	return( status );
 	}
 
-static int cmdUpdate( void *stateInfo, COMMAND_INFO *cmd )
+int cmdUpdate( void *stateInfo, COMMAND_INFO *cmd )
 	{
-	const void *dataPtr = cmd->strArg[ 1 ];
-	int dataLength = cmd->strArgLen[ 1 ];
-	time_t timeValue = 0;
+	void *dataValue;
+	int dataValueLength;
+	time_t timeValue;
 
 	assert( cmd->type == DBX_COMMAND_UPDATE );
 	assert( cmd->flags == COMMAND_FLAG_NONE );
 	assert( cmd->noArgs == 1 );
 	assert( cmd->noStrArgs >= 0 && cmd->noStrArgs <= 3 );
 
-	/* If one of the string args is a bound date, convert it into a time_t */
-	if( cmd->noStrArgs >= 2 && cmd->strArgLen[ 1 ] == 8 )
-		{
-		const BYTE *timeValuePtr = cmd->strArg[ 1 ];
-
-		/* Extract the time_t from the 64-bit time value */
-#ifdef _BIG_WORDS
-		timeValue = ( time_t ) timeValuePtr[ 3 ] << 32 | \
-					( time_t ) timeValuePtr[ 4 ] << 24 | \
-					( time_t ) timeValuePtr[ 5 ] << 16 | \
-					( time_t ) timeValuePtr[ 6 ] << 8 | \
-					( time_t ) timeValuePtr[ 7 ];
-#else
-		timeValue = ( time_t ) timeValuePtr[ 4 ] << 24 | \
-					( time_t ) timeValuePtr[ 5 ] << 16 | \
-					( time_t ) timeValuePtr[ 6 ] << 8 | \
-					( time_t ) timeValuePtr[ 7 ];
-#endif /* _BIG_WORDS */
-
-		/* Since the first arg is the date, the data will be in the second
-		   arg */
-		dataPtr = cmd->strArg[ 2 ];
-		dataLength = cmd->strArgLen[ 2 ];
-		}
-
+	extractQueryData( cmd, &timeValue, &dataValue, &dataValueLength );
 	return( performUpdate( stateInfo, cmd->strArg[ 0 ],
-						   dataLength ? dataPtr : NULL, dataLength,
-						   timeValue, cmd->arg[ 0 ] ) );
+						   dataValueLength > 0 ? dataValue : NULL, 
+						   dataValueLength, timeValue, cmd->arg[ 0 ] ) );
 	}
 
 /* Process a command from the client and send it to the appropriate handler */
@@ -298,3 +293,4 @@ void processCommand( void *stateInfo, BYTE *buffer )
 	putMessageLength( bufPtr + COMMAND_WORDSIZE, COMMAND_WORDSIZE );
 	putMessageWord( bufPtr + COMMAND_WORD1_OFFSET, CRYPT_OK );
 	}
+#endif /* USE_RPCAPI */

@@ -1,12 +1,26 @@
-/* pkcs11f.h include file for PKCS #11.  1997 December 22 */
+/* pkcs11f.h include file for PKCS #11. */
+/* $Revision: 1.4 $ */
 
-/* This function contains pretty much everything about all the */
+/* License to copy and use this software is granted provided that it is
+ * identified as "RSA Security Inc. PKCS #11 Cryptographic Token Interface
+ * (Cryptoki)" in all material mentioning or referencing this software.
+
+ * License is also granted to make and use derivative works provided that
+ * such works are identified as "derived from the RSA Security Inc. PKCS #11
+ * Cryptographic Token Interface (Cryptoki)" in all material mentioning or
+ * referencing the derived work.
+
+ * RSA Security Inc. makes no representations concerning either the
+ * merchantability of this software or the suitability of this software for
+ * any particular purpose. It is provided "as is" without express or implied
+ * warranty of any kind.
+ */
+
+/* This header file contains pretty much everything about all the */
 /* Cryptoki function prototypes.  Because this information is */
 /* used for more than just declaring function prototypes, the */
 /* order of the functions appearing herein is important, and */
 /* should not be altered. */
-
-
 
 /* General-purpose */
 
@@ -113,11 +127,12 @@ CK_PKCS11_FUNCTION_INFO(C_GetMechanismInfo)
 /* C_InitToken initializes a token. */
 CK_PKCS11_FUNCTION_INFO(C_InitToken)
 #ifdef CK_NEED_ARG_LIST
+/* pLabel changed from CK_CHAR_PTR to CK_UTF8CHAR_PTR for v2.10 */
 (
-  CK_SLOT_ID     slotID,    /* ID of the token's slot */
-  CK_CHAR_PTR    pPin,      /* the SO's initial PIN */
-  CK_ULONG       ulPinLen,  /* length in bytes of the PIN */
-  CK_CHAR_PTR    pLabel     /* 32-byte token label (blank padded) */
+  CK_SLOT_ID      slotID,    /* ID of the token's slot */
+  CK_UTF8CHAR_PTR pPin,      /* the SO's initial PIN */
+  CK_ULONG        ulPinLen,  /* length in bytes of the PIN */
+  CK_UTF8CHAR_PTR pLabel     /* 32-byte token label (blank padded) */
 );
 #endif
 
@@ -127,7 +142,7 @@ CK_PKCS11_FUNCTION_INFO(C_InitPIN)
 #ifdef CK_NEED_ARG_LIST
 (
   CK_SESSION_HANDLE hSession,  /* the session's handle */
-  CK_CHAR_PTR       pPin,      /* the normal user's PIN */
+  CK_UTF8CHAR_PTR   pPin,      /* the normal user's PIN */
   CK_ULONG          ulPinLen   /* length in bytes of the PIN */
 );
 #endif
@@ -138,9 +153,9 @@ CK_PKCS11_FUNCTION_INFO(C_SetPIN)
 #ifdef CK_NEED_ARG_LIST
 (
   CK_SESSION_HANDLE hSession,  /* the session's handle */
-  CK_CHAR_PTR       pOldPin,   /* the old PIN */
+  CK_UTF8CHAR_PTR   pOldPin,   /* the old PIN */
   CK_ULONG          ulOldLen,  /* length of the old PIN */
-  CK_CHAR_PTR       pNewPin,   /* the new PIN */
+  CK_UTF8CHAR_PTR   pNewPin,   /* the new PIN */
   CK_ULONG          ulNewLen   /* length of the new PIN */
 );
 #endif
@@ -224,7 +239,7 @@ CK_PKCS11_FUNCTION_INFO(C_Login)
 (
   CK_SESSION_HANDLE hSession,  /* the session's handle */
   CK_USER_TYPE      userType,  /* the user type */
-  CK_CHAR_PTR       pPin,      /* the user's PIN */
+  CK_UTF8CHAR_PTR   pPin,      /* the user's PIN */
   CK_ULONG          ulPinLen   /* the length of the PIN */
 );
 #endif
@@ -284,6 +299,7 @@ CK_PKCS11_FUNCTION_INFO(C_GetObjectSize)
 (
   CK_SESSION_HANDLE hSession,  /* the session's handle */
   CK_OBJECT_HANDLE  hObject,   /* the object's handle */
+
   CK_ULONG_PTR      pulSize    /* receives size of object */
 );
 #endif
@@ -549,7 +565,7 @@ CK_PKCS11_FUNCTION_INFO(C_Sign)
 
 
 /* C_SignUpdate continues a multiple-part signature operation,
- * where the signature is (will be) an appendix to the data, 
+ * where the signature is (will be) an appendix to the data,
  * and plaintext cannot be recovered from the signature. */
 CK_PKCS11_FUNCTION_INFO(C_SignUpdate)
 #ifdef CK_NEED_ARG_LIST
@@ -561,7 +577,7 @@ CK_PKCS11_FUNCTION_INFO(C_SignUpdate)
 #endif
 
 
-/* C_SignFinal finishes a multiple-part signature operation, 
+/* C_SignFinal finishes a multiple-part signature operation,
  * returning the signature. */
 CK_PKCS11_FUNCTION_INFO(C_SignFinal)
 #ifdef CK_NEED_ARG_LIST
@@ -610,12 +626,12 @@ CK_PKCS11_FUNCTION_INFO(C_VerifyInit)
 (
   CK_SESSION_HANDLE hSession,    /* the session's handle */
   CK_MECHANISM_PTR  pMechanism,  /* the verification mechanism */
-  CK_OBJECT_HANDLE  hKey         /* verification key */ 
+  CK_OBJECT_HANDLE  hKey         /* verification key */
 );
 #endif
 
 
-/* C_Verify verifies a signature in a single-part operation, 
+/* C_Verify verifies a signature in a single-part operation,
  * where the signature is an appendix to the data, and plaintext
  * cannot be recovered from the signature. */
 CK_PKCS11_FUNCTION_INFO(C_Verify)
@@ -631,7 +647,7 @@ CK_PKCS11_FUNCTION_INFO(C_Verify)
 
 
 /* C_VerifyUpdate continues a multiple-part verification
- * operation, where the signature is an appendix to the data, 
+ * operation, where the signature is an appendix to the data,
  * and plaintext cannot be recovered from the signature. */
 CK_PKCS11_FUNCTION_INFO(C_VerifyUpdate)
 #ifdef CK_NEED_ARG_LIST
@@ -757,7 +773,7 @@ CK_PKCS11_FUNCTION_INFO(C_GenerateKey)
 #endif
 
 
-/* C_GenerateKeyPair generates a public-key/private-key pair, 
+/* C_GenerateKeyPair generates a public-key/private-key pair,
  * creating new key objects. */
 CK_PKCS11_FUNCTION_INFO(C_GenerateKeyPair)
 #ifdef CK_NEED_ARG_LIST
@@ -845,6 +861,7 @@ CK_PKCS11_FUNCTION_INFO(C_SeedRandom)
   CK_ULONG          ulSeedLen  /* length of seed material */
 );
 #endif
+
 
 
 /* C_GenerateRandom generates random data. */

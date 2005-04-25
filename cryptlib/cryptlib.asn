@@ -266,7 +266,9 @@ PKCS15CommonObjectAttributes ::= SEQUENCE {
 	...
 	}
 
--/ Class attributes /-
+-/ Class attributes.  Note that the validFrom/validTo attributes were
+   added for PKCS #11 support after the PKCS #15 / ISO 7816-15 split and
+   are for the PKCS #15 v1.2 spec  /-
 
 PKCS15CommonKeyAttributes ::= SEQUENCE {
 	iD				OCTET STRING,			-- Cross-reference to cert
@@ -304,7 +306,8 @@ PKCS15CommonDataObjectAttributes ::= SEQUENCE {
 	...
 	}
 
--/ Key identifiers /-
+-/ Key identifiers.  Note that the pgp/openPGP IDs were added after the
+   PKCS #15 / ISO 7816-15 split and are for the PKCS #15 v1.2 spec /-
 
 PKCS15KeyIdentifier ::= TYPED CHOICE {
 	iAndS			SEQUENCE {				-- Not written, conv.to iAndSHash on rd
@@ -481,7 +484,14 @@ DataObjects ::= [7][0] SEQUENCE OF PKCS15Data
 
 -/ User information /-
 
--/ PKI user information needed for CMP /-
+-/ PKI user information needed for CMP.  The attributes always include an 
+   sKID (to uniquely identify the user info) and optionally additional
+   template attributes that are applied to certificate(s) created for this
+   user.  The dual use of the attributes is somewhat ugly, in theory we
+   could split the two into attributes required for PKI user management and
+   attributes to apply to the issued certificate, but because the only one
+   that's used for user management is the sKID it's easier to special-case
+   it in the cert handling code /-
 
 userData ::= SEQUENCE {
 	name				Name,					-- Name for CMP

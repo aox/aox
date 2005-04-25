@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib Enveloping Routines						*
-*					  Copyright Peter Gutmann 1996-2003						*
+*					  Copyright Peter Gutmann 1996-2005						*
 *																			*
 ****************************************************************************/
 
@@ -41,6 +41,162 @@
 *																			*
 ****************************************************************************/
 
+/* Reset the internal virtual cursor in a content-list item after we've 
+   moved the attribute cursor */
+
+static void resetVirtualCursor( CONTENT_LIST *contentListPtr )
+	{
+	if( contentListPtr == NULL || \
+		!( contentListPtr->flags & CONTENTLIST_ISSIGOBJ ) )
+		return;
+	contentListPtr->clSigInfo.attributeCursorEntry = \
+									CRYPT_ENVINFO_SIGNATURE_RESULT;
+	}
+
+/* Move the internal virtual cursor within a content-list item */
+
+static BOOLEAN moveVirtualCursor( CONTENT_LIST *contentListPtr,
+								  const ATTR_TYPE attrGetType )
+	{
+	static const CRYPT_ATTRIBUTE_TYPE attributeOrderList[] = {
+				CRYPT_ENVINFO_SIGNATURE_RESULT, CRYPT_ENVINFO_SIGNATURE,
+				CRYPT_ENVINFO_SIGNATURE_EXTRADATA, CRYPT_ENVINFO_TIMESTAMP, 
+				CRYPT_ATTRIBUTE_NONE, CRYPT_ATTRIBUTE_NONE };
+	CONTENT_SIG_INFO *sigInfo = &contentListPtr->clSigInfo;
+	CRYPT_ATTRIBUTE_TYPE attributeType = sigInfo->attributeCursorEntry;
+	BOOLEAN doContinue;
+
+	assert( attrGetType == ATTR_NEXT || attrGetType == ATTR_PREV );
+	assert( sigInfo->attributeCursorEntry != CRYPT_ATTRIBUTE_NONE );
+
+	do
+		{
+		int i;
+
+		/* Find the position of the current sub-attribute in the attribute 
+		   order list and use that to get its successor/predecessor sub-
+		   attribute */
+		for( i = 0; \
+			 attributeOrderList[ i ] != attributeType && \
+			 attributeOrderList[ i ] != CRYPT_ATTRIBUTE_NONE; i++ );
+		if( attributeOrderList[ i ] == CRYPT_ATTRIBUTE_NONE )
+			attributeType = CRYPT_ATTRIBUTE_NONE;
+		else
+			if( attrGetType == ATTR_PREV )
+				attributeType = ( i < 1 ) ? CRYPT_ATTRIBUTE_NONE : \
+											attributeOrderList[ i - 1 ];
+			else
+				attributeType = attributeOrderList[ i + 1 ];
+		if( attributeType == CRYPT_ATTRIBUTE_NONE )
+			/* We've reached the first/last sub-attribute within the current 
+			   item/group, tell the caller that there are no more sub-
+			   attributes present and they have to move on to the next 
+			   group */
+			return( FALSE );
+
+		/* Check whether the required sub-attribute is present.  If not, we
+		   continue and try the next one */
+		doContinue = FALSE;
+		switch( attributeType )
+			{
+			case CRYPT_ENVINFO_SIGNATURE_RESULT:
+				break;	/* Always present */
+				
+			case CRYPT_ENVINFO_SIGNATURE:
+				if( sigInfo->iSigCheckKey == CRYPT_ERROR )
+					doContinue = TRUE;
+				break;
+	
+			case CRYPT_ENVINFO_SIGNATURE_EXTRADATA:
+				if( sigInfo->iExtraData == CRYPT_ERROR )
+					doContinue = TRUE;
+				break;
+
+			case CRYPT_ENVINFO_TIMESTAMP:
+				if( sigInfo->iTimestamp == CRYPT_ERROR )
+					doContinue = TRUE;
+				break;
+
+			default:
+				assert( NOTREACHED );
+				return( FALSE );
+			}
+		}
+	while( doContinue );
+	sigInfo->attributeCursorEntry = attributeType;
+	
+	return( TRUE );
+	}
+
+/* Callback function used to provide external access to content list-
+   internal fields */
+
+static const void *getAttrFunction( const void *attributePtr, 
+									CRYPT_ATTRIBUTE_TYPE *groupID, 
+									CRYPT_ATTRIBUTE_TYPE *attributeID, 
+									CRYPT_ATTRIBUTE_TYPE *instanceID,
+									const ATTR_TYPE attrGetType )
+	{
+	CONTENT_LIST *contentListPtr = ( CONTENT_LIST * ) attributePtr;
+	BOOLEAN subGroupMove;
+
+	assert( contentListPtr == NULL || \
+			isReadPtr( contentListPtr, sizeof( CONTENT_LIST ) ) );
+
+	/* Clear return values */
+	if( groupID != NULL )
+		*groupID = CRYPT_ATTRIBUTE_NONE;
+	if( attributeID != NULL )
+		*attributeID = CRYPT_ATTRIBUTE_NONE;
+	if( instanceID != NULL )
+		*instanceID = CRYPT_ATTRIBUTE_NONE;
+
+	/* Move to the next or previous attribute if required.  This isn't just a
+	   case of following the prev/next links because some content-list items
+	   contain an entire attribute group, so positioning by attribute merely
+	   changes the current selection within the group (== content-list item)
+	   rather than moving to the previous/next entry.  Because of this we
+	   have to special-case the code for composite items (currently only
+	   signature objects meet this definition) and allow virtual positioning
+	   within the item */
+	if( contentListPtr == NULL )
+		return( NULL );
+	subGroupMove = ( attrGetType == ATTR_PREV || \
+					 attrGetType == ATTR_NEXT ) && \
+				   ( contentListPtr->flags & CONTENTLIST_ISSIGOBJ );
+	if( subGroupMove )
+		subGroupMove = moveVirtualCursor( contentListPtr, attrGetType );
+
+	/* If we're moving by group, move to the next/previous content list
+	   item and reset the internal virtual cursor.  Note that we always 
+	   advance the cursor to the next/prev attribute, it's up to the calling 
+	   code to manage attribute by attribute vs.group by group moves */
+	if( !subGroupMove && attrGetType != ATTR_CURRENT )
+		{
+		contentListPtr = ( attrGetType == ATTR_PREV ) ? \
+						 contentListPtr->prev : contentListPtr->next;
+		resetVirtualCursor( contentListPtr );
+		}
+	if( contentListPtr == NULL )
+		return( NULL );
+
+	/* Return ID information to the caller.  We only return the group ID if
+	   we've moved within the attribute group, if we've moved from one group
+	   to another we leave it cleared because envelopes can contain multiple
+	   groups with the same ID, and returning an ID identical to the one from
+	   the group that we've moved out of would make it look as if we're still 
+	   within the same group.  Note that this relies on the behaviour of the
+	   attribute-move functions, which first get the current group using 
+	   ATTR_CURRENT and then move to the next or previous using ATTR_NEXT/
+	   PREV */
+	if( groupID != NULL && ( attrGetType == ATTR_CURRENT || subGroupMove ) )
+		*groupID = contentListPtr->envInfo;
+	if( attributeID != NULL && \
+		( contentListPtr->flags & CONTENTLIST_ISSIGOBJ ) )
+		*attributeID = contentListPtr->clSigInfo.attributeCursorEntry;
+	return( contentListPtr );
+	}
+
 /* Instantiate a cert chain from a collection of certs */
 
 static int instantiateCertChain( const ENVELOPE_INFO *envelopeInfoPtr,
@@ -76,54 +232,6 @@ static int instantiateCertChain( const ENVELOPE_INFO *envelopeInfoPtr,
 	if( cryptStatusOK( status ) )
 		contentListItem->clSigInfo.iSigCheckKey = createInfo.cryptHandle;
 	return( status );
-	}
-
-/* Move the envelope component cursor */
-
-static int moveCursor( ENVELOPE_INFO *envelopeInfoPtr, const int value )
-	{
-	if( envelopeInfoPtr->contentList == NULL )
-		return( CRYPT_ERROR_NOTFOUND );	/* Nothing to move the cursor to */
-
-	switch( value )
-		{
-		case CRYPT_CURSOR_FIRST:
-			envelopeInfoPtr->contentListCurrent = envelopeInfoPtr->contentList;
-			break;
-
-		case CRYPT_CURSOR_PREVIOUS:
-			if( envelopeInfoPtr->contentListCurrent == NULL || \
-				envelopeInfoPtr->contentListCurrent == envelopeInfoPtr->contentList )
-				return( CRYPT_ERROR_NOTFOUND );
-			else
-				{
-				CONTENT_LIST *contentListPtr = envelopeInfoPtr->contentList;
-
-				/* Find the previous element in the list */
-				while( contentListPtr->next != envelopeInfoPtr->contentListCurrent )
-					contentListPtr = contentListPtr->next;
-				envelopeInfoPtr->contentListCurrent = contentListPtr;
-				}
-			break;
-
-		case CRYPT_CURSOR_NEXT:
-			if( envelopeInfoPtr->contentListCurrent == NULL || \
-				envelopeInfoPtr->contentListCurrent->next == NULL )
-				return( CRYPT_ERROR_NOTFOUND );
-			envelopeInfoPtr->contentListCurrent = envelopeInfoPtr->contentListCurrent->next;
-			break;
-
-		case CRYPT_CURSOR_LAST:
-			envelopeInfoPtr->contentListCurrent = envelopeInfoPtr->contentList;
-			while( envelopeInfoPtr->contentListCurrent->next != NULL )
-				envelopeInfoPtr->contentListCurrent = envelopeInfoPtr->contentListCurrent->next;
-			break;
-
-		default:
-			return( CRYPT_ARGERROR_NUM1 );
-		}
-
-	return( CRYPT_OK );
 	}
 
 /****************************************************************************
@@ -208,10 +316,12 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 				return( CRYPT_ARGERROR_OBJECT );
 			break;
 					
-		case CRYPT_ENVINFO_CURRENT_COMPONENT:
+		case CRYPT_ATTRIBUTE_CURRENT_GROUP:
+		case CRYPT_ATTRIBUTE_CURRENT:
 		case CRYPT_ENVINFO_SIGNATURE_RESULT:
 		case CRYPT_ENVINFO_SIGNATURE:
 		case CRYPT_ENVINFO_SIGNATURE_EXTRADATA:
+		case CRYPT_ENVINFO_TIMESTAMP:
 			/* The signature key and extra data is read-only for de-
 			   enveloping, write-only for enveloping, which can't be checked 
 			   by the more general kernel checks (the current-component and 
@@ -239,24 +349,9 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 					return( exitErrorNotFound( envelopeInfoPtr, 
 											   messageValue ) );
 				envelopeInfoPtr->contentListCurrent = envelopeInfoPtr->contentList;
+				resetVirtualCursor( envelopeInfoPtr->contentListCurrent );
 				}
 			break;
-
-#if 0	/* Unused, removed 9/9/03 */
-		case CRYPT_IATTRIBUTE_PAYLOADSIZE:
-			/* In order to determine the available payload size, we must be 
-			   in the finished state (envelope flush successfully processed) 
-			   so that all the data is available */
-			if( envelopeInfoPtr->state != STATE_FINISHED )
-				return( CRYPT_ERROR_INCOMPLETE );
-
-			/* We can only determine the payload size if we're using a 
-			   processing mode where this is possible */
-			if( envelopeInfoPtr->usage != ACTION_SIGN && \
-				envelopeInfoPtr->usage != ACTION_CRYPT )
-				return( CRYPT_ERROR_NOTFOUND );
-			break;
-#endif /* 0 */
 
 		default:
 			assert( messageValue == CRYPT_ENVINFO_COMPRESSION || \
@@ -268,6 +363,89 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 	/* Handle the various information types */
 	switch( messageValue )
 		{
+		case CRYPT_ATTRIBUTE_CURRENT_GROUP:
+		case CRYPT_ATTRIBUTE_CURRENT:
+			{
+			CONTENT_LIST *contentListItem = \
+								envelopeInfoPtr->contentListCurrent;
+			MESSAGE_KEYMGMT_INFO getkeyInfo;
+
+			assert( contentListItem != NULL );
+
+			/* If we need something other than a private key or we need a
+			   private key but there's no keyset present to fetch it from,
+			   just report what we need and exit */
+			if( contentListItem->envInfo != CRYPT_ENVINFO_PRIVATEKEY || \
+				envelopeInfoPtr->iDecryptionKeyset == CRYPT_ERROR )
+				{
+				*valuePtr = contentListItem->envInfo;
+				return( CRYPT_OK );
+				}
+
+			/* There's a decryption keyset available, try and get the
+			   required key from it.  Even though we're accessing the key by 
+			   (unique) key ID, we still specify the key type preference in 
+			   case there's some problem with the ID info.  This means that 
+			   we return a more meaningful error message now rather than a 
+			   usage-related one when we try to use the key.
+
+			   Unlike sig.check keyset access, we retry the access every 
+			   time we're called because we may be talking to a device that 
+			   has a trusted authentication path which is outside our 
+			   control, so that the first read fails if the user hasn't 
+			   entered their PIN but a second read once they've entered it 
+			   will succeed */
+			if( contentListItem->issuerAndSerialNumber == NULL )
+				{
+				setMessageKeymgmtInfo( &getkeyInfo, 
+								( contentListItem->formatType == CRYPT_FORMAT_PGP ) ? \
+								CRYPT_IKEYID_PGPKEYID : CRYPT_IKEYID_KEYID, 
+								contentListItem->keyID,
+								contentListItem->keyIDsize, NULL, 0,
+								KEYMGMT_FLAG_USAGE_CRYPT );
+				}
+			else
+				{
+				setMessageKeymgmtInfo( &getkeyInfo, 
+								CRYPT_IKEYID_ISSUERANDSERIALNUMBER,
+								contentListItem->issuerAndSerialNumber,
+								contentListItem->issuerAndSerialNumberSize,
+								NULL, 0, KEYMGMT_FLAG_USAGE_CRYPT );
+				}
+			status = krnlSendMessage( envelopeInfoPtr->iDecryptionKeyset,
+									  IMESSAGE_KEY_GETKEY, &getkeyInfo, 
+									  KEYMGMT_ITEM_PRIVATEKEY );
+			if( cryptArgError( status ) )
+				/* Make sure that any argument errors arising from this 
+				   internal key fetch don't get propagated back up to the 
+				   caller */
+				status = CRYPT_ERROR_NOTFOUND;
+
+			/* If we managed to get the private key (either bcause it wasn't
+			   protected by a password if it's in a keyset or because it came
+			   from a device), push it into the envelope.  If the call
+			   succeeds, this will import the session key and delete the
+			   required-information list */
+			if( cryptStatusOK( status ) )
+				{
+				status = envelopeInfoPtr->addInfo( envelopeInfoPtr,
+												   CRYPT_ENVINFO_PRIVATEKEY,
+												   &getkeyInfo.cryptHandle, 0 );
+				krnlSendNotifier( getkeyInfo.cryptHandle,
+								  IMESSAGE_DECREFCOUNT );
+				}
+
+			/* If we got the key, there's nothing else needed.  If we didn't,
+			   we still return an OK status since the caller is asking us for
+			   the resource which is required and not the status of any
+			   background operation that was performed while trying to obtain
+			   it */
+			*valuePtr = cryptStatusError( status ) ? \
+							envelopeInfoPtr->contentListCurrent->envInfo : \
+							CRYPT_ATTRIBUTE_NONE;
+			return( CRYPT_OK );
+			}
+
 		case CRYPT_OPTION_ENCR_ALGO:
 			if( envelopeInfoPtr->defaultAlgo == CRYPT_ALGO_NONE )
 				return( exitErrorNotInited( envelopeInfoPtr, 
@@ -296,81 +474,6 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 			*valuePtr = ( envelopeInfoPtr->usage == ACTION_COMPRESS ) ? \
 						TRUE : FALSE;
 			return( CRYPT_OK );
-
-		case CRYPT_ENVINFO_CURRENT_COMPONENT:
-			{
-			CONTENT_LIST *contentListItem = \
-								envelopeInfoPtr->contentListCurrent;
-			MESSAGE_KEYMGMT_INFO getkeyInfo;
-
-			assert( contentListItem != NULL );
-
-			/* If we need something other than a private key or we need a
-			   private key but there's no keyset present to fetch it from,
-			   just report what we need and exit */
-			if( contentListItem->envInfo != CRYPT_ENVINFO_PRIVATEKEY || \
-				envelopeInfoPtr->iDecryptionKeyset == CRYPT_ERROR )
-				{
-				*valuePtr = contentListItem->envInfo;
-				return( CRYPT_OK );
-				}
-
-			/* There's a decryption keyset available, try and get the
-			   required key from it.  Since we're accessing the key by 
-			   (unique) key ID, there's no real need to specify a preference 
-			   for encryption keys.
-
-			   Unlike sig.check keyset access, we retry the access every 
-			   time we're called because we may be talking to a device that 
-			   has a trusted authentication path which is outside our 
-			   control, so that the first read fails if the user hasn't 
-			   entered their PIN but a second read once they've entered it 
-			   will succeed */
-			if( contentListItem->issuerAndSerialNumber == NULL )
-				{
-				setMessageKeymgmtInfo( &getkeyInfo, 
-								( contentListItem->formatType == CRYPT_FORMAT_PGP ) ? \
-								CRYPT_IKEYID_PGPKEYID : CRYPT_IKEYID_KEYID, 
-								contentListItem->keyID,
-								contentListItem->keyIDsize, NULL, 0,
-								KEYMGMT_FLAG_NONE );
-				}
-			else
-				{
-				setMessageKeymgmtInfo( &getkeyInfo, 
-								CRYPT_IKEYID_ISSUERANDSERIALNUMBER,
-								contentListItem->issuerAndSerialNumber,
-								contentListItem->issuerAndSerialNumberSize,
-								NULL, 0, KEYMGMT_FLAG_NONE );
-				}
-			status = krnlSendMessage( envelopeInfoPtr->iDecryptionKeyset,
-									  IMESSAGE_KEY_GETKEY, &getkeyInfo, 
-									  KEYMGMT_ITEM_PRIVATEKEY );
-
-			/* If we managed to get the private key (either bcause it wasn't
-			   protected by a password if it's in a keyset or because it came
-			   from a device), push it into the envelope.  If the call
-			   succeeds, this will import the session key and delete the
-			   required-information list */
-			if( cryptStatusOK( status ) )
-				{
-				status = envelopeInfoPtr->addInfo( envelopeInfoPtr,
-												   CRYPT_ENVINFO_PRIVATEKEY,
-												   &getkeyInfo.cryptHandle, 0 );
-				krnlSendNotifier( getkeyInfo.cryptHandle,
-								  IMESSAGE_DECREFCOUNT );
-				}
-
-			/* If we got the key, there's nothing else needed.  If we didn't,
-			   we still return an OK status since the caller is asking us for
-			   the resource which is required and not the status of any
-			   background operation that was performed while trying to obtain
-			   it */
-			*valuePtr = cryptStatusError( status ) ? \
-							envelopeInfoPtr->contentListCurrent->envInfo : \
-							CRYPT_ATTRIBUTE_NONE;
-			return( CRYPT_OK );
-			}
 
 		case CRYPT_ENVINFO_CONTENTTYPE:
 			if( envelopeInfoPtr->contentType == CRYPT_CONTENT_NONE )
@@ -445,9 +548,11 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 				return( exitErrorNotInited( envelopeInfoPtr, 
 											CRYPT_ENVINFO_KEYSET_SIGCHECK ) );
 
-			/* Try and get the key.  Since we're accessing the key by 
-			   (unique) key ID, there's no real need to specify a preference 
-			   for encryption keys */
+			/* Try and get the required key.  Even though we're accessing 
+			   the key by (unique) key ID, we still specify the key type 
+			   preference in case there's some problem with the ID info.  
+			   This means that we return a more meaningful error message now 
+			   rather than a usage-related one when we try to use the key */
 			if( contentListItem->issuerAndSerialNumber == NULL )
 				{
 				setMessageKeymgmtInfo( &getkeyInfo, 
@@ -455,7 +560,7 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 							CRYPT_IKEYID_PGPKEYID : CRYPT_IKEYID_KEYID, 
 							contentListItem->keyID,
 							contentListItem->keyIDsize, NULL, 0,
-							KEYMGMT_FLAG_NONE );
+							KEYMGMT_FLAG_USAGE_SIGN );
 				}
 			else
 				{
@@ -463,7 +568,7 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 							CRYPT_IKEYID_ISSUERANDSERIALNUMBER,
 							contentListItem->issuerAndSerialNumber,
 							contentListItem->issuerAndSerialNumberSize,
-							NULL, 0, KEYMGMT_FLAG_NONE );
+							NULL, 0, KEYMGMT_FLAG_USAGE_SIGN );
 				}
 			status = krnlSendMessage( envelopeInfoPtr->iSigCheckKeyset,
 									  IMESSAGE_KEY_GETKEY, &getkeyInfo, 
@@ -580,6 +685,7 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 			}
 
 		case CRYPT_ENVINFO_SIGNATURE_EXTRADATA:
+		case CRYPT_ENVINFO_TIMESTAMP:
 			{
 			CRYPT_HANDLE iCryptHandle;
 			CONTENT_LIST *contentListItem = \
@@ -588,27 +694,18 @@ static int processGetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 			assert( contentListItem != NULL );
 
 			/* Make sure that there's extra data present */
-			iCryptHandle = contentListItem->clSigInfo.iExtraData;
+			iCryptHandle = \
+				( messageValue == CRYPT_ENVINFO_SIGNATURE_EXTRADATA ) ? \
+					contentListItem->clSigInfo.iExtraData : \
+					contentListItem->clSigInfo.iTimestamp;
 			if( iCryptHandle == CRYPT_ERROR )
-				return( exitErrorNotFound( envelopeInfoPtr, 
-									CRYPT_ENVINFO_SIGNATURE_EXTRADATA ) );
+				return( exitErrorNotFound( envelopeInfoPtr, messageValue ) );
 
 			/* Return it to the caller */
 			krnlSendNotifier( iCryptHandle, IMESSAGE_INCREFCOUNT );
 			*valuePtr = iCryptHandle;
 			return( CRYPT_OK );
 			}
-
-#if 0	/* Unused, removed 9/9/03 */
-		case CRYPT_IATTRIBUTE_PAYLOADSIZE:
-			/* This is an internal attribute used by high-level cryptlib 
-			   functions that use CMS as their native data format.  These
-			   typically push the entire data quantity into an envelope
-			   at once and then need to know how much data will be produced
-			   to write to an output stream */
-			*valuePtr = envelopeInfoPtr->bufPos;
-			return( CRYPT_OK );
-#endif /* 0 */
 
 		case CRYPT_IATTRIBUTE_ATTRONLY:
 			/* If this isn't signed data, we don't know whether it's an 
@@ -641,6 +738,7 @@ static int processGetAttributeS( ENVELOPE_INFO *envelopeInfoPtr,
 			return( exitErrorNotFound( envelopeInfoPtr, 
 									   CRYPT_ENVINFO_PRIVATEKEY_LABEL ) );
 		envelopeInfoPtr->contentListCurrent = envelopeInfoPtr->contentList;
+		resetVirtualCursor( envelopeInfoPtr->contentListCurrent );
 		}
 
 	/* Generic attributes are valid for all envelope types */
@@ -711,8 +809,9 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 		{ CRYPT_ENVINFO_KEY, ACTION_CRYPT, MESSAGE_CHECK_CRYPT },
 		{ CRYPT_ENVINFO_PUBLICKEY, ACTION_CRYPT, MESSAGE_CHECK_PKC_ENCRYPT },
 		{ CRYPT_ENVINFO_PRIVATEKEY, ACTION_CRYPT, MESSAGE_CHECK_PKC_DECRYPT },
+		{ CRYPT_ENVINFO_SESSIONKEY, ACTION_CRYPT, MESSAGE_CHECK_CRYPT },
 		{ CRYPT_ENVINFO_HASH, ACTION_SIGN, MESSAGE_CHECK_HASH },
-		{ CRYPT_ENVINFO_TIMESTAMP_AUTHORITY, ACTION_SIGN, MESSAGE_CHECK_NONE },
+		{ CRYPT_ENVINFO_TIMESTAMP, ACTION_SIGN, MESSAGE_CHECK_NONE },
 		{ CRYPT_ENVINFO_DETACHEDSIGNATURE, ACTION_SIGN, MESSAGE_CHECK_NONE },
 		{ CRYPT_IATTRIBUTE_INCLUDESIGCERT, ACTION_SIGN, MESSAGE_CHECK_NONE },
 		{ CRYPT_IATTRIBUTE_ATTRONLY, ACTION_SIGN, MESSAGE_CHECK_NONE },
@@ -733,13 +832,60 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 		}
 
 	/* If it's meta-information, process it now */
-	if( messageValue == CRYPT_ENVINFO_CURRENT_COMPONENT )
-		return( moveCursor( envelopeInfoPtr, value ) );
+	if( messageValue == CRYPT_ATTRIBUTE_CURRENT_GROUP || \
+		messageValue == CRYPT_ATTRIBUTE_CURRENT )
+		{
+		const CONTENT_LIST *contentListCursor;
+
+		/* If it's an absolute positioning code, pre-set the attribute
+		   cursor if required */
+		if( value == CRYPT_CURSOR_FIRST || value == CRYPT_CURSOR_LAST )
+			{
+			if( envelopeInfoPtr->contentList == NULL )
+				return( CRYPT_ERROR_NOTFOUND );
+
+			/* If it's an absolute attribute positioning code, reset the
+			   attribute cursor to the start of the list before we try to
+			   move it, and if it's an attribute positioning code, 
+			   initialise the attribute cursor if necessary */
+			if( messageValue == CRYPT_ATTRIBUTE_CURRENT_GROUP || \
+				envelopeInfoPtr->contentListCurrent == NULL )
+				{
+				envelopeInfoPtr->contentListCurrent = \
+										envelopeInfoPtr->contentList;
+				resetVirtualCursor( envelopeInfoPtr->contentListCurrent );
+				}
+
+			/* If there are no attributes present, return the appropriate 
+			   error code */
+			if( envelopeInfoPtr->contentListCurrent == NULL )
+				return( ( value == CRYPT_CURSOR_FIRST || \
+						  value == CRYPT_CURSOR_LAST ) ? \
+						 CRYPT_ERROR_NOTFOUND : CRYPT_ERROR_NOTINITED );
+			}
+		else
+			/* It's a relative positioning code, return a not-inited error
+			   rather than a not-found error if the cursor isn't set since
+			   there may be attributes present but the cursor hasn't been
+			   initialised yet by selecting the first or last absolute
+			   attribute */
+			if( envelopeInfoPtr->contentListCurrent == NULL )
+				return( CRYPT_ERROR_NOTINITED );
+
+		/* Move the cursor */
+		contentListCursor = \
+			attributeMoveCursor( envelopeInfoPtr->contentListCurrent, 
+								 getAttrFunction, messageValue, value );
+		if( contentListCursor == NULL )
+			return( CRYPT_ERROR_NOTFOUND );
+		envelopeInfoPtr->contentListCurrent = \
+								( CONTENT_LIST * ) contentListCursor;
+		return( CRYPT_OK );
+		}
 
 	/* In general we can't add new enveloping information once we've started
 	   processing data */
-	if( messageValue != CRYPT_ENVINFO_CURRENT_COMPONENT && \
-		envelopeInfoPtr->state != STATE_PREDATA )
+	if( envelopeInfoPtr->state != STATE_PREDATA )
 		{
 		/* We can't add new information once we've started enveloping */
 		if( !( envelopeInfoPtr->flags & ENVELOPE_ISDEENVELOPE ) )
@@ -786,7 +932,19 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 			checkType = checkTable[ i ].checkType;
 			break;
 			}
-	if( usage == ACTION_NONE )
+	if( usage != ACTION_NONE )
+		{
+		/* Make sure that the usage requirements for the item that we're 
+		   about to add are consistent */
+		if( envelopeInfoPtr->usage != ACTION_NONE && \
+			envelopeInfoPtr->usage != usage )
+			return( exitErrorInited( envelopeInfoPtr, 
+									 messageValue ) );
+		}
+	else
+		{
+		/* If it's not a general class of action, perform special-case usage
+		   checking */
 		switch( messageValue )
 			{
 			case CRYPT_OPTION_ENCR_ALGO:
@@ -854,19 +1012,6 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 											 CRYPT_ENVINFO_CONTENTTYPE ) );
 				break;
 
-			case CRYPT_ENVINFO_SESSIONKEY:
-				checkType = MESSAGE_CHECK_CRYPT;
-				if( envelopeInfoPtr->usage != ACTION_NONE && \
-					!( ( envelopeInfoPtr->flags & ENVELOPE_ISDEENVELOPE ) && \
-					   envelopeInfoPtr->usage == ACTION_CRYPT ) )
-					/* On de-enveloping the usage is set by the enveloped data
-					   format, so setting a session key when the usage is
-					   already set to encryption isn't an error */
-					return( exitErrorInited( envelopeInfoPtr, 
-											 CRYPT_ENVINFO_SESSIONKEY ) );
-				usage = ACTION_CRYPT;
-				break;
-
 			case CRYPT_ENVINFO_SIGNATURE:
 				checkType = \
 					( envelopeInfoPtr->flags & ENVELOPE_ISDEENVELOPE ) ? \
@@ -905,21 +1050,21 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 				break;
 
 			case CRYPT_ENVINFO_KEYSET_ENCRYPT:
-				checkType = MESSAGE_CHECK_PKC_ENCRYPT;
+				checkType = MESSAGE_CHECK_PKC_ENCRYPT_AVAIL;
 				if( envelopeInfoPtr->iEncryptionKeyset != CRYPT_ERROR )
 					return( exitErrorInited( envelopeInfoPtr, 
 											 CRYPT_ENVINFO_KEYSET_ENCRYPT ) );
 				break;
 
 			case CRYPT_ENVINFO_KEYSET_DECRYPT:
-				checkType = MESSAGE_CHECK_PKC_DECRYPT;
+				checkType = MESSAGE_CHECK_PKC_DECRYPT_AVAIL;
 				if( envelopeInfoPtr->iDecryptionKeyset != CRYPT_ERROR )
 					return( exitErrorInited( envelopeInfoPtr, 
 											 CRYPT_ENVINFO_KEYSET_DECRYPT ) );
 				break;
 
 			case CRYPT_ENVINFO_KEYSET_SIGCHECK:
-				checkType = MESSAGE_CHECK_PKC_SIGCHECK;
+				checkType = MESSAGE_CHECK_PKC_SIGCHECK_AVAIL;
 				if( envelopeInfoPtr->iSigCheckKeyset != CRYPT_ERROR )
 					return( exitErrorInited( envelopeInfoPtr, 
 											 CRYPT_ENVINFO_KEYSET_SIGCHECK ) );
@@ -928,6 +1073,7 @@ static int processSetAttribute( ENVELOPE_INFO *envelopeInfoPtr,
 			default:
 				assert( NOTREACHED );
 			}
+		}
 	if( checkType != MESSAGE_CHECK_NONE )
 		{
 		/* Check the object as appropriate.  A key agreement key can also act
@@ -1074,7 +1220,7 @@ static int processSetAttributeS( ENVELOPE_INFO *envelopeInfoPtr,
 			   Before we try and use the key we therefore perform an extra 
 			   check here to make sure that it really is an encryption-
 			   capable key */
-			setMessageKeymgmtInfo( &getkeyInfo, CRYPT_KEYID_EMAIL, 
+			setMessageKeymgmtInfo( &getkeyInfo, CRYPT_KEYID_URI, 
 								   msgData->data, msgData->length, NULL, 0, 
 								   KEYMGMT_FLAG_USAGE_CRYPT );
 			status = krnlSendMessage( envelopeInfoPtr->iEncryptionKeyset,
@@ -1572,7 +1718,7 @@ static int envelopeMessageFunction( const void *objectInfoPtr,
 		deleteActionList( envelopeInfoPtr->memPoolState, 
 						  envelopeInfoPtr->postActionList );
 		deleteContentList( envelopeInfoPtr->memPoolState, 
-						   envelopeInfoPtr->contentList );
+						   &envelopeInfoPtr->contentList );
 
 #ifdef USE_COMPRESSION
 		/* Delete the zlib compression state information if necessary */
@@ -1613,10 +1759,6 @@ static int envelopeMessageFunction( const void *objectInfoPtr,
 			clFree( "envelopeMessageFunction", envelopeInfoPtr->auxBuffer );
 			}
 
-		/* Delete the object itself */
-		zeroise( envelopeInfoPtr, sizeof( ENVELOPE_INFO ) );
-		clFree( "envelopeMessageFunction", envelopeInfoPtr );
-
 		return( status );
 		}
 
@@ -1649,13 +1791,17 @@ static int envelopeMessageFunction( const void *objectInfoPtr,
 	if( message == MESSAGE_ENV_PUSHDATA )
 		{
 		RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+		const int length = msgData->length;
 		int bytesCopied, status;
 
 		assert( ( msgData->data == NULL && msgData->length == 0 ) || \
-				( msgData->data != NULL && msgData->length > 0 ) );
+				( isReadPtr( msgData->data, msgData->length ) ) );
+
+		/* Unless we're told otherwise, we've copied zero bytes */
+		msgData->length = 0;
 
 		/* Make sure that everything is in order */
-		if( msgData->length == 0 )
+		if( length == 0 )
 			{
 			/* If it's a flush, make sure that we're in a state where this is
 			   valid.  We can only perform a flush on enveloping if we're in
@@ -1702,19 +1848,34 @@ static int envelopeMessageFunction( const void *objectInfoPtr,
 		/* Send the data to the envelope */
 		if( envelopeInfoPtr->flags & ENVELOPE_ISDEENVELOPE )
 			status = deenvelopePush( envelopeInfoPtr, msgData->data,
-									 msgData->length, &bytesCopied );
+									 length, &bytesCopied );
 		else
 			status = envelopePush( envelopeInfoPtr, msgData->data,
-								   msgData->length, &bytesCopied );
-		msgData->length = bytesCopied;
+								   length, &bytesCopied );
+		if( cryptStatusOK( status ) )
+			msgData->length = bytesCopied;
+		else
+			/* In some cases data can be copied even if an error status is
+			   returned.  The most usual case is when the error is
+			   recoverable (underflow or overflow), however when we're de-
+			   enveloping we can also copy data but then stall with a 
+			   CRYPT_ENVELOPE_RESOURCE notification */
+			if( ( isRecoverableError( status ) && bytesCopied > 0 ) || \
+				( ( envelopeInfoPtr->flags & ENVELOPE_ISDEENVELOPE ) && \
+				   status == CRYPT_ENVELOPE_RESOURCE && bytesCopied > 0 ) )
+				msgData->length = bytesCopied;
 		return( status );
 		}
 	if( message == MESSAGE_ENV_POPDATA )
 		{
 		RESOURCE_DATA *msgData = ( RESOURCE_DATA * ) messageDataPtr;
+		const int length = msgData->length;
 		int bytesCopied, status;
 
-		assert( msgData->data != NULL && msgData->length > 0 );
+		assert( isWritePtr( msgData->data, msgData->length ) );
+
+		/* Unless we're told otherwise, we've copied zero bytes */
+		msgData->length = 0;
 
 		/* Make sure that everything is in order */
 		if( envelopeInfoPtr->errorState != CRYPT_OK )
@@ -1723,11 +1884,12 @@ static int envelopeMessageFunction( const void *objectInfoPtr,
 		/* Get the data from the envelope */
 		if( envelopeInfoPtr->flags & ENVELOPE_ISDEENVELOPE )
 			status = deenvelopePop( envelopeInfoPtr, msgData->data,
-									msgData->length, &bytesCopied );
+									length, &bytesCopied );
 		else
 			status = envelopePop( envelopeInfoPtr, msgData->data,
-								  msgData->length, &bytesCopied );
-		msgData->length = bytesCopied;
+								  length, &bytesCopied );
+		if( cryptStatusOK( status ) )
+			msgData->length = bytesCopied;
 		return( status );
 		}
 
@@ -1796,10 +1958,15 @@ static int initEnvelope( CRYPT_ENVELOPE *iCryptEnvelope,
 	else
 		initCMSEnveloping( envelopeInfoPtr );
 	if( isDeenvelope )
+		{
 		initDeenvelopeStreaming( envelopeInfoPtr );
+		initDenvResourceHandling( envelopeInfoPtr );
+		}
 	else
+		{
 		initEnvelopeStreaming( envelopeInfoPtr );
-	initResourceHandling( envelopeInfoPtr );
+		initEnvResourceHandling( envelopeInfoPtr );
+		}
 
 	/* Set up the de-enveloping methods.  We default to PKCS #7/CMS/SMIME, 
 	   if the data is in some other format we'll adjust the function 

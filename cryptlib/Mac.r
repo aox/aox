@@ -1,0 +1,1 @@
+#include <MacTypes.r>// version informationresource 'vers' (1) {	0x3,	0x03,	beta,	0,	verUS,	"3.0b3",	"3.0b3, Copyright \0xA9 Peter Gutmann, Eric Young 1994 - 2000."};// extensions manager display stringdata 'CCIª' (128) {	"This library provides encryption and authentication security services.\r\r"	"3.0b3, Copyright \0xA9 Peter Gutmann, Eric Young 1994 - 2000."};

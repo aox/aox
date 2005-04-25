@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						SSL v3/TLS Definitions Header File					*
-*						Copyright Peter Gutmann 1998-2003					*
+*						Copyright Peter Gutmann 1998-2004					*
 *																			*
 ****************************************************************************/
 
@@ -29,13 +29,15 @@
 #define TLS_HASHEDMAC_SIZE			12	/* Size of TLS PRF( MD5 + SHA1 ) */
 #define SESSIONID_SIZE				16	/* Size of session ID */
 #define MAX_SESSIONID_SIZE			32	/* Max.allowed session ID size */
-#define MAX_KEYBLOCK_SIZE			( ( 20 + 32 + 8 ) * 2 )	/* AES + SHA-1 */
+#define MAX_KEYBLOCK_SIZE			( ( 20 + 32 + 16 ) * 2 )/* HMAC-SHA1 + AES */
 #define MIN_PACKET_SIZE				4	/* Minimum SSL packet size */
-#define MIN_SECURED_PACKET_SIZE		( 1 + MD5MAC_SIZE )	/* RC4-enc + MD5 MAC */
 #define MAX_PACKET_SIZE				16384	/* Maximum SSL packet size */
 
 /* The number of entries in the SSL session cache and the maximum amount of 
-   time that an entry is retained in the cache */
+   time that an entry is retained in the cache.  Note that when changing the
+   SESSIONCACHE_SIZE value you need to also change MAX_ALLOC_SIZE in 
+   sec_mem.c to allow the allocation of such large amounts of secure 
+   memory */
 
 #if defined( CONFIG_CONSERVE_MEMORY )
   #define SESSIONCACHE_SIZE			128
@@ -44,9 +46,21 @@
 #endif /* CONFIG_CONSERVE_MEMORY */
 #define SESSIONCACHE_TIMEOUT		3600
 
-/* SSL packet/buffer size information */
+/* SSL packet/buffer size information.  The extra packet size is somewhat 
+   large because it can contains the packet header (5 bytes), IV (0/8/16 
+   bytes), MAC (16/20 bytes), and cipher block padding (up to 256 bytes) */
 
-#define EXTRA_PACKET_SIZE			64	/* Additional space for non-payload data */
+#define EXTRA_PACKET_SIZE			512	
+
+/* By default, cryptlib uses RSA key transport, which is supported by all 
+   servers.  It's also possible to use DH key agreement, however this isn't
+   supported by all servers (particularly Microsoft ones) and has a 
+   considerably higher cryptographic overhead than RSA, requiring a DH 
+   (pseudo-)private key operation on both client and server as well as a 
+   standard RSA private-key operation on the server.  To use DH cipher 
+   suites in preference to RSA ones, uncomment the following */
+
+/* #define PREFER_DH_SUITES */
 
 /* SSL protocol-specific flags that augment the general session flags.  The 
    alert-sent flag is required because we're required to send a close alert 
@@ -56,7 +70,6 @@
 
 #define SSL_PFLAG_NONE				0x0	/* No protocol-specific flags */
 #define SSL_PFLAG_ALERTSENT			0x1	/* Close alert sent */
-#define SSL_PFLAG_EXPLICITIV		0x2	/* TLS 1.1 with explicit IV */
 
 /* SSL message types */
 
@@ -68,13 +81,16 @@
 #define SSL_MSG_FIRST				20
 #define SSL_MSG_LAST				23
 
-/* Special-case expected packet-type values that are passed to readPacketSSL()
-   to handle situations where more than one return value is valid.  The
-   client handshake is supposed to be a v3 handshake but is often a hacked v2
-   one with forwards-compatibility kludges, since this looks nothing like a
-   normal v3 packet we have to treat it specially */
+/* Special-case expected packet-type values that are passed to 
+   readPacketSSL() to handle situations where more than one packet type is 
+   valid.  The first handshake packet from the client or server is treated 
+   specially in that both the version number info is taken from this packet,
+   and the packet itself may have to be treated specially because although
+   the client handshake is supposed to be a v3 handshake, the first 
+   handshake packet is often a hacked v2 one with forwards-compatibility 
+   kludges */
 
-#define SSL_MSG_SPECIAL_HANDSHAKE	0xFF
+#define SSL_MSG_FIRST_HANDSHAKE		0xFF
 #define SSL_MSG_V2HANDSHAKE			0x80
 
 /* SSL handshake message subtypes */
@@ -82,6 +98,7 @@
 #define SSL_HAND_CLIENT_HELLO		0x01
 #define SSL_HAND_SERVER_HELLO		0x02
 #define SSL_HAND_CERTIFICATE		0x0B
+#define SSL_HAND_SERVER_KEYEXCHANGE	0x0C
 #define SSL_HAND_SERVER_CERTREQUEST	0x0D
 #define SSL_HAND_SERVER_HELLODONE	0x0E
 #define SSL_HAND_CLIENT_CERTVERIFY	0x0F
@@ -122,6 +139,7 @@
 #define TLS_ALERT_UNRECOGNIZED_NAME			112
 #define TLS_ALERT_BAD_CERTIFICATE_STATUS_RESPONSE 113
 #define TLS_ALERT_BAD_CERTIFICATE_HASH_VALUE 114
+#define TLS_ALERT_UNKNOWN_PSK_IDENTITY		115
 
 /* SSL cipher suites */
 
@@ -169,14 +187,25 @@ typedef enum {
 	TLS_DH_RSA_WITH_AES_256_CBC_SHA, TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
 	TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_DH_anon_WITH_AES_256_CBC_SHA,
 
-	SSL_LAST } SSL_CIPHERSUITE_TYPE;
+	/* Unknown suites (59-137) */
+
+	/* TLS-PSK cipher suites (138-149) */
+	TLS_PSK_WITH_RC4_128_SHA = 138, TLS_PSK_WITH_3DES_EDE_CBC_SHA, 
+	TLS_PSK_WITH_AES_128_CBC_SHA, TLS_PSK_WITH_AES_256_CBC_SHA, 
+	TLS_DHE_PSK_WITH_RC4_128_SHA, TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA,
+	TLS_DHE_PSK_WITH_AES_128_CBC_SHA, TLS_DHE_PSK_WITH_AES_256_CBC_SHA,
+	TLS_RSA_PSK_WITH_RC4_128_SHA, TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA,
+	TLS_RSA_PSK_WITH_AES_128_CBC_SHA, TLS_RSA_PSK_WITH_AES_256_CBC_SHA,
+
+	SSL_LAST 
+	} SSL_CIPHERSUITE_TYPE;
 
 /* TLS extension types */
 
 typedef enum {
 	TLS_EXT_SERVER_NAME, TLS_EXT_MAX_FRAGMENT_LENTH,
 	TLS_EXT_CLIENT_CERTIFICATE_URL, TLS_EXT_TRUSTED_CA_KEYS,
-	TLS_EXT_TRUNCATED_HMAC, TLS_EXT_STATUS_REQUEST 
+	TLS_EXT_TRUNCATED_HMAC, TLS_EXT_STATUS_REQUEST, TLS_EXT_LAST
 	} TLS_EXT_TYPE;
 
 /* SSL and TLS major and minor version numbers */
@@ -191,21 +220,6 @@ typedef enum {
 #define SSL_SENDER_CLIENTLABEL	"CLNT"
 #define SSL_SENDER_SERVERLABEL	"SRVR"
 #define SSL_SENDERLABEL_SIZE	4
-
-/* Proto-HMAC padding data */
-
-#define PROTOHMAC_PAD1			"\x36\x36\x36\x36\x36\x36\x36\x36" \
-								"\x36\x36\x36\x36\x36\x36\x36\x36" \
-								"\x36\x36\x36\x36\x36\x36\x36\x36" \
-								"\x36\x36\x36\x36\x36\x36\x36\x36" \
-								"\x36\x36\x36\x36\x36\x36\x36\x36" \
-								"\x36\x36\x36\x36\x36\x36\x36\x36"
-#define PROTOHMAC_PAD2			"\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C" \
-								"\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C" \
-								"\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C" \
-								"\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C" \
-								"\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C" \
-								"\x5C\x5C\x5C\x5C\x5C\x5C\x5C\x5C"
 
 /* Fixed-format message templates for SSL, TLS 1.0, and TLS 1.1.  The second
    subscript is a worst-case, unfortunately this is the only way we can
@@ -222,17 +236,32 @@ typedef struct SL {
 	CRYPT_CONTEXT serverMD5context, serverSHA1context;
 
 	/* Client and server nonces and session ID */
-	BYTE clientNonce[ SSL_NONCE_SIZE ], serverNonce[ SSL_NONCE_SIZE ];
-	BYTE sessionID[ MAX_SESSIONID_SIZE ];
+	BYTE clientNonce[ SSL_NONCE_SIZE + 8 ];
+	BYTE serverNonce[ SSL_NONCE_SIZE + 8 ];
+	BYTE sessionID[ MAX_SESSIONID_SIZE + 8 ];
 	int sessionIDlength;
 
 	/* Premaster/master secret */
-	BYTE premasterSecret[ SSL_SECRET_SIZE ];
+	BYTE premasterSecret[ CRYPT_MAX_PKCSIZE + CRYPT_MAX_TEXTSIZE + 8 ];
+	int premasterSecretSize;
+
+	/* Encryption/security info */
+	CRYPT_CONTEXT dhContext;	/* DH ctx.if DHE is being used */
+	int cipherSuite;			/* Selected cipher suite */
+	CRYPT_ALGO_TYPE keyexAlgo, authAlgo;/* Selected cipher suite algos */
+	int cryptKeysize;			/* Size of session key */
+	BOOLEAN serverSigKey;		/* Server sig.key can auth.DH exchange */
 
 	/* Other info */
-	int cipherSuite;			/* Selected cipher suite */
-	int cryptKeysize;			/* Size of session key */
 	int clientOfferedVersion;	/* Prot.vers.originally offered by client */
+	BOOLEAN isSSLv2;			/* Client hello is SSLv2 */
+	BOOLEAN hasExtensions;		/* Hello has TLS extensions */
+
+	/* The packet data stream.  Since SSL can encapsulate multiple handshake
+	   packets within a single SSL packet, the stream has to be persistent
+	   across the different handshake functions to allow the continuation of
+	   packets */
+	STREAM stream;				/* Packet data stream */
 
 	/* Function pointers to handshaking functions.  These are set up as 
 	   required depending on whether the session is client or server */
@@ -248,31 +277,118 @@ int findSessionCacheEntryID( const void *sessionID,
 							 const int sessionIDlength );
 int addSessionCacheEntry( const void *sessionID, const int sessionIDlength, 
 						  const void *masterSecret, 
+						  const int masterSecretLength, 
 						  const BOOLEAN isFixedEntry );
 void deleteSessionCacheEntry( const int uniqueID );
 
 /* Prototypes for functions in ssl.c */
 
+int readUint24( STREAM *stream );
+int writeUint24( STREAM *stream, const int length );
+int processHelloSSL( SESSION_INFO *sessionInfoPtr, 
+					 SSL_HANDSHAKE_INFO *handshakeInfo, 
+					 STREAM *stream, const BOOLEAN isServer );
+int readSSLCertChain( SESSION_INFO *sessionInfoPtr, 
+					  SSL_HANDSHAKE_INFO *handshakeInfo, STREAM *stream,
+					  CRYPT_CERTIFICATE *iCertChain, 
+					  const BOOLEAN isServer );
+int writeSSLCertChain( SESSION_INFO *sessionInfoPtr, STREAM *stream );
+int checkPacketHeaderSSL( SESSION_INFO *sessionInfoPtr, STREAM *stream );
+int checkHSPacketHeader( SESSION_INFO *sessionInfoPtr, STREAM *stream,
+						 const int packetType, const int minSize );
+int processVersionInfo( SESSION_INFO *sessionInfoPtr, STREAM *stream,
+						int *clientVersion );
+	/* Only needed for legacy SSLv2 support */
+int processCipherSuite( SESSION_INFO *sessionInfoPtr, 
+						SSL_HANDSHAKE_INFO *handshakeInfo, 
+						STREAM *stream, const int noSuites );
+
+/* Prototypes for functions in ssl_rw.c */
+
+int unwrapPacketSSL( SESSION_INFO *sessionInfoPtr, STREAM *stream, 
+					 const int packetType );
 int readPacketSSL( SESSION_INFO *sessionInfoPtr,
 				   SSL_HANDSHAKE_INFO *handshakeInfo, const int packetType );
-int checkPacketHeader( SESSION_INFO *sessionInfoPtr, BYTE **bufPtrPtr,
-					   const int type, const int minSize, 
-					   const int nextByte );
-void wrapHandshakePacket( void *data, const int length,
-						  const int protocolVersion );
-int createSharedMasterSecret( BYTE *masterSecret, 
-							  const SESSION_INFO *sessionInfoPtr );
-int initCiphersuiteInfo( SESSION_INFO *sessionInfoPtr,
+int refreshHSStream( SESSION_INFO *sessionInfoPtr, 
+					 SSL_HANDSHAKE_INFO *handshakeInfo );
+int wrapPacketSSL( SESSION_INFO *sessionInfoPtr, STREAM *stream, 
+				   const int offset );
+int sendPacketSSL( SESSION_INFO *sessionInfoPtr, STREAM *stream, 
+				   const BOOLEAN sendOnly );
+void openPacketStreamSSL( STREAM *stream, const SESSION_INFO *sessionInfoPtr, 
+						  const int bufferSize, const int packetType );
+int continuePacketStreamSSL( STREAM *stream, 
+							 const SESSION_INFO *sessionInfoPtr, 
+							 const int packetType );
+int completePacketStreamSSL( STREAM *stream, const int offset );
+int continueHSPacketStream( STREAM *stream, const int packetType );
+int completeHSPacketStream( STREAM *stream, const int offset );
+int processAlert( SESSION_INFO *sessionInfoPtr, const void *header, 
+				  const int headerLength );
+void sendCloseAlert( SESSION_INFO *sessionInfoPtr, 
+					 const BOOLEAN alertReceived );
+void sendHandshakeFailAlert( SESSION_INFO *sessionInfoPtr );
+
+/* Prototypes for functions in ssl_cry.c */
+
+int initSecurityContextsSSL( SESSION_INFO *sessionInfoPtr );
+void destroySecurityContextsSSL( SESSION_INFO *sessionInfoPtr );
+int initHandshakeCryptInfo( SSL_HANDSHAKE_INFO *handshakeInfo );
+int destroyHandshakeCryptInfo( SSL_HANDSHAKE_INFO *handshakeInfo );
+int initDHcontextSSL( CRYPT_CONTEXT *iCryptContext, const void *keyData, 
+					  const int keyDataLength );
+int createSharedPremasterSecret( void *premasterSecret, 
+								 int *premasterSecretLength,
+								 const SESSION_INFO *sessionInfoPtr );
+int wrapPremasterSecret( SESSION_INFO *sessionInfoPtr, 
 						 SSL_HANDSHAKE_INFO *handshakeInfo,
-						 const int cipherSuite );
-int writeSSLCertChain( SESSION_INFO *sessionInfoPtr, BYTE *buffer );
-int processVersionInfo( SESSION_INFO *sessionInfoPtr, const int version );
-int processCertVerify( const SESSION_INFO *sessionInfoPtr,
-					   const SSL_HANDSHAKE_INFO *handshakeInfo,
-					   void *signature, const int signatureLength,
-					   const int signatureMaxLength );
-int dualMacData( const SSL_HANDSHAKE_INFO *handshakeInfo, const void *data,
+						 void *data, int *dataLength );
+int unwrapPremasterSecret( SESSION_INFO *sessionInfoPtr, 
+						   SSL_HANDSHAKE_INFO *handshakeInfo,
+						   const void *data, const int dataLength );
+int premasterToMaster( const SESSION_INFO *sessionInfoPtr, 
+					   const SSL_HANDSHAKE_INFO *handshakeInfo, 
+					   void *masterSecret, const int masterSecretLength );
+int masterToKeys( const SESSION_INFO *sessionInfoPtr, 
+				  const SSL_HANDSHAKE_INFO *handshakeInfo, 
+				  const void *masterSecret, const int masterSecretLength,
+				  void *keyBlock, const int keyBlockLength );
+int loadKeys( SESSION_INFO *sessionInfoPtr, 
+			  const SSL_HANDSHAKE_INFO *handshakeInfo, 
+			  const BOOLEAN isClient, const void *keyBlock );
+int loadExplicitIV( SESSION_INFO *sessionInfoPtr, STREAM *stream );
+int encryptData( const SESSION_INFO *sessionInfoPtr, BYTE *data,
 				 const int dataLength );
+int decryptData( SESSION_INFO *sessionInfoPtr, BYTE *data,
+				 const int dataLength );
+int dualMacData( const SSL_HANDSHAKE_INFO *handshakeInfo, 
+				 const STREAM *stream, const BOOLEAN isRawData );
+int completeSSLDualMAC( const CRYPT_CONTEXT md5context,
+						const CRYPT_CONTEXT sha1context, BYTE *hashValues, 
+						const char *label, const BYTE *masterSecret );
+int completeTLSHashedMAC( const CRYPT_CONTEXT md5context,
+						  const CRYPT_CONTEXT sha1context, BYTE *hashValues, 
+						  const char *label, const BYTE *masterSecret );
+int macDataSSL( SESSION_INFO *sessionInfoPtr, const void *data,
+				const int dataLength, const int type, const BOOLEAN isRead, 
+				const BOOLEAN noReportError );
+int macDataTLS( SESSION_INFO *sessionInfoPtr, const void *data,
+				const int dataLength, const int type, const BOOLEAN isRead, 
+				const BOOLEAN noReportError );
+int createCertVerify( const SESSION_INFO *sessionInfoPtr,
+					  const SSL_HANDSHAKE_INFO *handshakeInfo,
+					  STREAM *stream );
+int checkCertVerify( const SESSION_INFO *sessionInfoPtr,
+					 const SSL_HANDSHAKE_INFO *handshakeInfo,
+					 STREAM *stream, const int sigLength );
+int createKeyexSignature( SESSION_INFO *sessionInfoPtr, 
+						  SSL_HANDSHAKE_INFO *handshakeInfo,
+						  STREAM *stream, const void *keyData, 
+						  const int keyDataLength );
+int checkKeyexSignature( SESSION_INFO *sessionInfoPtr, 
+						 SSL_HANDSHAKE_INFO *handshakeInfo,
+						 STREAM *stream, const void *keyData, 
+						 const int keyDataLength );
 
 /* Prototypes for session mapping functions */
 

@@ -9,20 +9,20 @@
 #include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "asn1_rw.h"
-  #include "asn1s_rw.h"
+  #include "asn1.h"
+  #include "asn1_ext.h"
   #include "session.h"
   #include "cmp.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
-  #include "../misc/asn1_rw.h"
-  #include "../misc/asn1s_rw.h"
-  #include "../session/session.h"
-  #include "../session/cmp.h"
+  #include "../misc/asn1.h"
+  #include "../misc/asn1_ext.h"
+  #include "session.h"
+  #include "cmp.h"
 #else
   #include "crypt.h"
-  #include "misc/asn1_rw.h"
-  #include "misc/asn1s_rw.h"
+  #include "misc/asn1.h"
+  #include "misc/asn1_ext.h"
   #include "session/session.h"
   #include "session/cmp.h"
 #endif /* Compiler-specific includes */
@@ -345,7 +345,8 @@ static int writeResponseBody( STREAM *stream,
 			if( cryptStatusOK( status ) )
 				status = envelopeWrap( bufPtr, msgData.length, 
 									   bufPtr, &dataLength, bufSize,
-									   CRYPT_FORMAT_CRYPTLIB, CRYPT_UNUSED, 
+									   CRYPT_FORMAT_CRYPTLIB, 
+									   CRYPT_CONTENT_NONE, 
 									   sessionInfoPtr->iCertResponse );
 			if( cryptStatusError( status ) )
 				return( status );
@@ -450,10 +451,22 @@ static int writeGenMsgBody( STREAM *stream,
 	/* Get the CTL from the CA object.  We recreate this each time rather 
 	   than cacheing it in the session to ensure that changes in the trusted
 	   cert set while the session is active get reflected back to the 
-	   caller */
+	   caller.
+	   
+	   In addition to the explicitly trusted certs, we also include the CA 
+	   cert(s) in the CTL as implicitly-trusted certs.  This is done both
+	   because users often forget to mark them as trusted on the server and 
+	   then wonder where their CA certs are on the client, and because these 
+	   should inherently be trusted, since the user is about to get their 
+	   certs issued by them */
 	status = krnlSendMessage( sessionInfoPtr->ownerHandle,
 							  IMESSAGE_GETATTRIBUTE, &iCTL,
 							  CRYPT_IATTRIBUTE_CTL );
+	if( cryptStatusError( status ) )
+		return( status );
+	status = krnlSendMessage( iCTL, IMESSAGE_SETATTRIBUTE,
+							  ( void * ) &sessionInfoPtr->privateKey,
+							  CRYPT_IATTRIBUTE_CERTCOLLECTION );
 	if( cryptStatusError( status ) )
 		return( status );
 	setMessageData( &msgData, NULL, 0 );
@@ -491,7 +504,6 @@ static int writeGenMsgBody( STREAM *stream,
 /* Write error body */
 
 static int writeErrorBody( STREAM *stream,
-						   const SESSION_INFO *sessionInfoPtr,
 						   const CMP_PROTOCOL_INFO *protocolInfo )
 	{
 	const int length = writePkiStatusInfo( NULL, protocolInfo->status,
@@ -556,6 +568,9 @@ static int writePkiHeader( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 	int protInfoLength, totalLength, status;
 
 	assert( !useFullHeader || protocolInfo->userIDsize > 0 );
+
+	krnlSendMessage( sessionInfoPtr->ownerHandle, IMESSAGE_GETATTRIBUTE, 
+					 &protocolInfo->hashAlgo, CRYPT_OPTION_ENCR_HASH );
 
 	/* Determine how big the sender and recipient info will be.  We 
 	   shouldn't need to send a recipient name for an ir because it won't
@@ -626,7 +641,8 @@ static int writePkiHeader( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 					  sessionInfoPtr->protocolFlags & CMP_PFLAG_MACINFOSENT );
 	else
 		writeContextAlgoID( &nullStream, protocolInfo->authContext, 
-							CRYPT_ALGO_SHA, ALGOID_FLAG_ALGOID_ONLY );
+							protocolInfo->hashAlgo, 
+							ALGOID_FLAG_ALGOID_ONLY );
 	protInfoLength = stell( &nullStream );
 	sMemClose( &nullStream );
 	if( !( sessionInfoPtr->protocolFlags & CMP_PFLAG_CLIBIDSENT ) )
@@ -672,7 +688,8 @@ static int writePkiHeader( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 		if( senderNameObject != CRYPT_ERROR )
 			{
 			status = exportAttributeToStream( stream, senderNameObject, 
-											  CRYPT_IATTRIBUTE_SUBJECT );
+											  CRYPT_IATTRIBUTE_SUBJECT,
+											  CRYPT_USE_DEFAULT );
 			if( cryptStatusError( status ) )
 				return( status );
 			}
@@ -682,7 +699,8 @@ static int writePkiHeader( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 		if( recipNameObject != CRYPT_ERROR )
 			{
 			status = exportAttributeToStream( stream, recipNameObject, 
-											  CRYPT_IATTRIBUTE_SUBJECT );
+											  CRYPT_IATTRIBUTE_SUBJECT,
+											  CRYPT_USE_DEFAULT );
 			if( cryptStatusError( status ) )
 				return( status );
 			}
@@ -710,7 +728,8 @@ static int writePkiHeader( STREAM *stream, SESSION_INFO *sessionInfoPtr,
 		}
 	else
 		writeContextAlgoID( stream, protocolInfo->authContext, 
-							CRYPT_ALGO_SHA, ALGOID_FLAG_ALGOID_ONLY );
+							protocolInfo->hashAlgo, 
+							ALGOID_FLAG_ALGOID_ONLY );
 	if( useFullHeader || \
 		!( sessionInfoPtr->protocolFlags & CMP_PFLAG_USERIDSENT ) )
 		{
@@ -847,8 +866,7 @@ int writePkiMessage( SESSION_INFO *sessionInfoPtr,
 				break;
 
 			case CMPBODY_ERROR:
-				status = writeErrorBody( &stream, sessionInfoPtr,
-										 protocolInfo );
+				status = writeErrorBody( &stream, protocolInfo );
 				break;
 
 			default:
@@ -895,7 +913,7 @@ int writePkiMessage( SESSION_INFO *sessionInfoPtr,
 		MESSAGE_CREATEOBJECT_INFO createInfo;
 
 		/* Hash the data and create the signature */
-		setMessageCreateObjectInfo( &createInfo, CRYPT_ALGO_SHA );
+		setMessageCreateObjectInfo( &createInfo, protocolInfo->hashAlgo );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
 								  IMESSAGE_DEV_CREATEOBJECT, &createInfo,
 								  OBJECT_TYPE_CONTEXT );

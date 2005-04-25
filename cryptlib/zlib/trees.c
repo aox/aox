@@ -1114,9 +1114,6 @@ local void compress_block(s, ltree, dtree)
             }
         } /* literal or match pair ? */
 
-        /* Check that the overlay between pending_buf and d_buf+l_buf is ok: */
-        Assert(s->pending < s->lit_bufsize + 2*lx, "pendingBuf overflow");
-
     } while (lx < s->last_lit);
 
     send_code(s, END_BLOCK, ltree);

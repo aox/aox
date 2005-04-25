@@ -1,6 +1,6 @@
 /* zconf.h -- configuration of the zlib compression library
  * Copyright (C) 1995-2002 Jean-loup Gailly.
- * For conditions of distribution and use, see copyright notice in zlib.h 
+ * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
 /* @(#) $Id$ */
@@ -248,6 +248,15 @@ typedef uLong FAR uLongf;
 #ifndef z_off_t
 #  define  z_off_t long
 #endif
+
+#if defined( _MSC_VER )
+  /* cryptlib is built with the highest warning level, disable some of the
+     more irritating warnings produced by the OpenSSL code */
+  #pragma warning( disable: 4100 )	/* Unreferenced parameter */
+  #pragma warning( disable: 4127 )	/* Conditional is constant: while( TRUE ) */
+  #pragma warning( disable: 4131 )	/* K&R-style declaration */
+  #pragma warning( disable: 4244 )	/* int <-> unsigned char/short */
+#endif /* Visual C++ */
 
 /* MVS linker does not support external names larger than 8 bytes */
 #if defined(__MVS__)

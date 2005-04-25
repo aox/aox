@@ -9,31 +9,22 @@
 #include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "asn1_rw.h"
-  #include "asn1s_rw.h"
+  #include "asn1.h"
+  #include "asn1_ext.h"
   #include "session.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
-  #include "../misc/asn1_rw.h"
-  #include "../misc/asn1s_rw.h"
-  #include "../session/session.h"
+  #include "../misc/asn1.h"
+  #include "../misc/asn1_ext.h"
+  #include "session.h"
 #else
   #include "crypt.h"
-  #include "misc/asn1_rw.h"
-  #include "misc/asn1s_rw.h"
+  #include "misc/asn1.h"
+  #include "misc/asn1_ext.h"
   #include "session/session.h"
 #endif /* Compiler-specific includes */
 
 #ifdef USE_OCSP
-
-/* Uncomment the following to read predefined requests/responses from disk
-   instead of communicating with the client/server */
-
-/* #define SKIP_IO					/* Don't communicate with server */
-#ifdef SKIP_IO
-  #define readPkiDatagram( dummy )	CRYPT_OK
-  #define writePkiDatagram( dummy )	CRYPT_OK
-#endif /* SKIP_IO */
 
 /* OCSP query/response types */
 
@@ -85,9 +76,9 @@ static void sendErrorResponse( SESSION_INFO *sessionInfoPtr,
 
 /* OID information used to read responses */
 
-static const FAR_BSS OID_SELECTION ocspOIDselection[] = {
-	{ OID_OCSP_RESPONSE_OCSP, CRYPT_UNUSED, CRYPT_UNUSED, OCSPRESPONSE_TYPE_OCSP },
-	{ NULL, 0, 0, 0 }
+static const FAR_BSS OID_INFO ocspOIDinfo[] = {
+	{ OID_OCSP_RESPONSE_OCSP, OCSPRESPONSE_TYPE_OCSP },
+	{ NULL, 0 }
 	};
 
 /* Send a request to an OCSP server */
@@ -120,11 +111,11 @@ static int sendClientRequest( SESSION_INFO *sessionInfoPtr )
 
 static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 	{
-	MESSAGE_CREATEOBJECT_INFO createInfo;
+	CRYPT_CERTIFICATE iCertResponse;
 	RESOURCE_DATA msgData;
 	STREAM stream;
 	BYTE nonceBuffer[ CRYPT_MAX_HASHSIZE ];
-	int value, dataStartPos, responseType, status;
+	int value, responseType, length, status;
 
 	/* Read the response from the responder */
 	status = readPkiDatagram( sessionInfoPtr );
@@ -140,6 +131,8 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 	status = readEnumerated( &stream, &value );
 	if( cryptStatusOK( status ) )
 		{
+		const char *errorString = NULL;
+
 		sessionInfoPtr->errorCode = value;
 
 		/* If it's an error status, try and translate it into something a
@@ -152,21 +145,29 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 				break;
 
 			case OCSP_RESP_TRYLATER:
+				errorString = "Try again later";
 				status = CRYPT_ERROR_NOTAVAIL;
 				break;
 
 			case OCSP_RESP_SIGREQUIRED:
+				errorString = "Signed OCSP request required";
 				status = CRYPT_ERROR_SIGNATURE;
 				break;
 
 			case OCSP_RESP_UNAUTHORISED:
+				errorString = "Client isn't authorised to perform query";
 				status = CRYPT_ERROR_PERMISSION;
 				break;
 
 			default:
+				errorString = "Unknown error";
 				status = CRYPT_ERROR_INVALID;
 				break;
 			}
+		if( errorString != NULL )
+			sPrintf( sessionInfoPtr->errorMessage, 
+					 "OCSP server returned status %d: %s", 
+					 value, errorString );
 		}
 	if( cryptStatusError( status ) )
 		{
@@ -175,25 +176,21 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 		}
 
 	/* We've got a valid response, read the [0] EXPLICIT SEQUENCE { OID,
-	   OCTET STRING { encapsulation */
+	   OCTET STRING { encapsulation and import the response into an OCSP 
+	   cert object */
 	readConstructed( &stream, NULL, 0 );		/* responseBytes */
 	readSequence( &stream, NULL );
-	readOIDSelection( &stream, ocspOIDselection,/* responseType */
-					  &responseType );
-	status = readGenericHole( &stream, NULL, DEFAULT_TAG );
-	dataStartPos = stell( &stream );			/* response */
-	sMemDisconnect( &stream );
+	readOID( &stream, ocspOIDinfo,				/* responseType */
+			 &responseType );
+	status = readGenericHole( &stream, &length, DEFAULT_TAG );
 	if( cryptStatusError( status ) )
+		{
+		sMemDisconnect( &stream );
 		retExt( sessionInfoPtr, status, "Invalid OCSP response header" );
-
-	/* Import the response into an OCSP cert object */
-	setMessageCreateObjectIndirectInfo( &createInfo,
-							sessionInfoPtr->receiveBuffer + dataStartPos,
-							sessionInfoPtr->receiveBufEnd - dataStartPos, 
-							CRYPT_CERTTYPE_OCSP_RESPONSE );
-	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE,
-							  IMESSAGE_DEV_CREATEOBJECT_INDIRECT, 
-							  &createInfo, OBJECT_TYPE_CERTIFICATE );
+		}
+	status = importCertFromStream( &stream, &iCertResponse, length,
+								   CRYPT_CERTTYPE_OCSP_RESPONSE );
+	sMemDisconnect( &stream );
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status, "Invalid OCSP response data" );
 
@@ -218,8 +215,8 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 
 		setMessageData( &responseMsgData, responseNonceBuffer,
 						CRYPT_MAX_HASHSIZE );
-		status = krnlSendMessage( createInfo.cryptHandle,
-								  IMESSAGE_GETATTRIBUTE_S, &responseMsgData, 
+		status = krnlSendMessage( iCertResponse, IMESSAGE_GETATTRIBUTE_S, 
+								  &responseMsgData, 
 								  CRYPT_CERTINFO_OCSP_NONCE );
 		if( cryptStatusError( status ) || msgData.length < 4 || \
 			!( ( msgData.length == responseMsgData.length && \
@@ -232,7 +229,7 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 			   we sent, we can't trust it.  The best error that we can return 
 			   here is a signature error to indicate that the integrity check
 			   failed */
-			krnlSendNotifier( createInfo.cryptHandle, IMESSAGE_DECREFCOUNT );
+			krnlSendNotifier( iCertResponse, IMESSAGE_DECREFCOUNT );
 			retExt( sessionInfoPtr, CRYPT_ERROR_SIGNATURE,
 					cryptStatusError( status ) ? \
 					"OCSP response doesn't contain a nonce" : \
@@ -242,7 +239,7 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr )
 		}
 	krnlSendNotifier( sessionInfoPtr->iCertRequest, IMESSAGE_DECREFCOUNT );
 	sessionInfoPtr->iCertRequest = CRYPT_ERROR;
-	sessionInfoPtr->iCertResponse = createInfo.cryptHandle;
+	sessionInfoPtr->iCertResponse = iCertResponse;
 
 	return( CRYPT_OK );
 	}
@@ -268,24 +265,13 @@ static const FAR_BSS BYTE respIntError[] = {
 
 /* Read a request from an OCSP client */
 
-static int readClientRequest( SESSION_INFO *sessionInfoPtr,
-							  OCSP_PROTOCOL_INFO *protocolInfo )
+static int readClientRequest( SESSION_INFO *sessionInfoPtr )
 	{
 	CRYPT_CERTIFICATE iOcspRequest;
 	MESSAGE_CREATEOBJECT_INFO createInfo;
 	STREAM stream;
 	int status;
 
-/*-----------------------------------------------------------------------*/
-#ifdef SKIP_IO
-{
-FILE *filePtr = fopen( "/tmp/ocsp_sreq.der", "rb" );
-sessionInfoPtr->receiveBufEnd = fread( sessionInfoPtr->receiveBuffer, 1,
-									   sessionInfoPtr->receiveBufSize, filePtr );
-fclose( filePtr );
-}
-#endif /* SKIP_IO */
-/*-----------------------------------------------------------------------*/
 	/* Read the request data from the client.  We don't write an error
 	   response at this initial stage to prevent scanning/DOS attacks 
 	   (vir sapit qui pauca loquitur) */
@@ -352,8 +338,7 @@ fclose( filePtr );
 
 /* Return a response to an OCSP client */
 
-static int sendServerResponse( SESSION_INFO *sessionInfoPtr,
-							   OCSP_PROTOCOL_INFO *protocolInfo )
+static int sendServerResponse( SESSION_INFO *sessionInfoPtr )
 	{
 	RESOURCE_DATA msgData;
 	STREAM stream;
@@ -439,13 +424,12 @@ static int clientTransact( SESSION_INFO *sessionInfoPtr )
 
 static int serverTransact( SESSION_INFO *sessionInfoPtr )
 	{
-	OCSP_PROTOCOL_INFO protocolInfo;
 	int status;
 
 	/* Send cert revocation information to the client */
-	status = readClientRequest( sessionInfoPtr, &protocolInfo );
+	status = readClientRequest( sessionInfoPtr );
 	if( cryptStatusOK( status ) )
-		status = sendServerResponse( sessionInfoPtr, &protocolInfo );
+		status = sendServerResponse( sessionInfoPtr );
 	return( status );
 	}
 
@@ -478,7 +462,8 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 
 	/* If we haven't already got a server name explicitly set, try and get
 	   it from the request */
-	if( !*sessionInfoPtr->serverName )
+	if( findSessionAttribute( sessionInfoPtr->attributeList,
+							  CRYPT_SESSINFO_SERVER_NAME ) == NULL )
 		{
 		char buffer[ MAX_URL_SIZE ];
 

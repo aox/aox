@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib Internal General Header File 				*
-*						Copyright Peter Gutmann 1992-2003					*
+*						Copyright Peter Gutmann 1992-2004					*
 *																			*
 ****************************************************************************/
 
@@ -14,11 +14,11 @@
    '/'s as path delimiters, but work around it by scanning all subdirectories
    and treating the files as if they were in the same directory (INC_ALL).
    Microsoft C, in a braindamaged exception to all other compilers, treats
-   the subdirectory as the root (INC_CHILD).  The Tandem NSK (Guardian) 
-   doesn't have subdirectories, and the C compiler zaps '.'s, truncates 
-   filenames to 7 characters, and appends a 'h' to the name (so that 
-   asn1misc.h becomes asn1mish).  This unfortunately requires a bit of 
-   renaming for header files.  Tandem OSS (Unix services) on the other hand 
+   the subdirectory as the root (INC_CHILD).  The Tandem NSK (Guardian)
+   doesn't have subdirectories, and the C compiler zaps '.'s, truncates
+   filenames to 7 characters, and appends a 'h' to the name (so that
+   asn1misc.h becomes asn1mish).  This unfortunately requires a bit of
+   renaming for header files.  Tandem OSS (Unix services) on the other hand
    is just like Unix, so we explicitly distinguish between the two.
 
    There are also a few systems that have somewhat special requirements,
@@ -63,7 +63,7 @@
   #define NOMENUS			/* MF_* */
   #define NOMETAFILE		/* typedef METAFILEPICT */
   #define NOMSG				/* typedef MSG and associated routines */
-  #define NONLS				/* NLS routines, needed for cert charset handling */
+  #define NONLS				/* NLS routines */
   #define NOPROFILER		/* Profiler interface */
   #define NORASTEROPS		/* Binary and Tertiary raster ops */
   #define NOSCROLL			/* SB_* and scrolling routines */
@@ -81,11 +81,155 @@
   #define OEMRESOURCE		/* OEM Resource values */
 #endif /* Win32 */
 
+/* The Palm OS SDK compiler tries to make enums as small as possible (8-bit
+   unsigned chars if it can, otherwise 16-bit unsigned shorts, otherwise
+   ints) for backwards-compatibility with the old 68K-based Palm interface,
+   which causes severe problems for code that assumes that enum == int
+   (this occurs in a number of places where an integer parameter is used to
+   pass a generic value to/from a function).  CodeWarrior allows this enum
+   behaviour to be turned off, but pacc doesn't.
+
+   Similarly, the MSDOS-derived (!!) Watcom C compiler used with older
+   versions of QNX 4.x uses 16-bit enums (DOS 16-bit ints) if possible, and
+   again there's no way to disable this behaviour (there is with newer
+   versions, the pragma to fix the problem is used further down).
+
+   To fix this, we take advantage of the fact that every typedef'd enum has
+   a _LAST member as the last entry and override it to include an additional
+   value that forces the enum range into the 32-bit int range */
+
+#if ( defined( __PALMSOURCE__ ) && defined( _PACC_VER ) ) || \
+	( defined( __QNX__ ) && ( OSVERSION <= 4 ) )
+  #define NEED_ENUMFIX			/* Remember to undo defines later */
+
+  /* cryptlib.h */
+  #define CRYPT_ALGO_LAST		CRYPT_ALGO_LAST, CRYPT_ALGO_ENUM = -50000
+  #define CRYPT_MODE_LAST		CRYPT_MODE_LAST, CRYPT_MODE_ENUM = -50000
+  #define CRYPT_KEYSET_LAST		CRYPT_KEYSET_LAST, CRYPT_KEYSET_ENUM = -50000
+  #define CRYPT_DEVICE_LAST		CRYPT_DEVICE_LAST, CRYPT_DEVICE_ENUM = -50000
+  #define CRYPT_CERTTYPE_LAST	CRYPT_CERTTYPE_LAST, CRYPT_CERTTYPE_ENUM = -50000
+  #define CRYPT_FORMAT_LAST		CRYPT_FORMAT_LAST, CRYPT_FORMAT_ENUM = -50000
+  #define CRYPT_SESSION_LAST	CRYPT_SESSION_LAST, CRYPT_SESSION_ENUM = -50000
+  #define CRYPT_USER_LAST		CRYPT_USER_LAST, CRYPT_USER_ENUM = -50000
+  #define CRYPT_IATTRIBUTE_LAST	CRYPT_IATTRIBUTE_LAST, CRYPT_IATTRIBUTE_ENUM = -50000
+  #define CRYPT_CRLEXTREASON_LAST	CRYPT_CRLEXTREASON_LAST, CRYPT_CRLEXTREASON_ENUM = -50000
+  #define CRYPT_CONTENT_LAST	CRYPT_CONTENT_LAST, CRYPT_CONTENT_ENUM = -50000
+  #define CRYPT_SIGNATURELEVEL_LAST	CRYPT_SIGNATURELEVEL_LAST, CRYPT_SIGNATURELEVEL_ENUM = -50000
+  #define CRYPT_CERTFORMAT_LAST	CRYPT_CERTFORMAT_LAST
+  #define CRYPT_REQUESTTYPE_LAST	CRYPT_REQUESTTYPE_LAST, CRYPT_REQUESTTYPE_ENUM = -50000
+  #define CRYPT_KEYID_LAST		CRYPT_KEYID_LAST, CRYPT_KEYID_ENUM = -50000
+  #define CRYPT_OBJECT_LAST		CRYPT_OBJECT_LAST, CRYPT_OBJECT_ENUM = -50000
+  #define CRYPT_ERRTYPE_LAST	CRYPT_ERRTYPE_LAST, CRYPT_ERRTYPE_ENUM = -50000
+  #define CRYPT_CERTACTION_LAST	CRYPT_CERTACTION_LAST, CRYPT_CERTACTION_ENUM = -50000
+  #define CRYPT_KEYOPT_LAST		CRYPT_KEYOPT_LAST, CRYPT_KEYOPT_ENUM = -50000
+  /* crypt.h */
+  #define KEYFORMAT_LAST		KEYFORMAT_LAST, KEYFORMAT_ENUM = -50000
+  #define CERTFORMAT_LAST		CERTFORMAT_LAST, CERTFORMAT_ENUM = -50000
+  #define MANAGEMENT_ACTION_LAST	MANAGEMENT_ACTION_LAST, MANAGEMENT_ACTION_ENUM = -50000
+  #define HASH_LAST				HASH_LAST, HASH_ENUM = -50000
+  #define ATTR_LAST				ATTR_LAST, ATTR_ENUM = -50000
+  /* cryptkrn.h */
+  #define MESSAGE_COMPARE_LAST	MESSAGE_COMPARE_LAST, MESSAGE_COMPARE_ENUM = -50000
+  #define MESSAGE_CHECK_LAST	MESSAGE_CHECK_LAST, MESSAGE_CHECK_ENUM = -50000
+  #define MESSAGE_CHANGENOTIFY_LAST	MESSAGE_CHANGENOTIFY_LAST, MESSAGE_CHANGENOTIFY_ENUM = -50000
+  #define MECHANISM_LAST		MECHANISM_LAST, MECHANISM_ENUM = -50000
+  #define KEYMGMT_ITEM_LAST		KEYMGMT_ITEM_LAST, KEYMGMT_ITEM_ENUM = -50000
+  #define SEMAPHORE_LAST		SEMAPHORE_LAST, SEMAPHORE_ENUM = -50000
+  #define MUTEX_LAST			MUTEX_LAST, MUTEX_ENUM = -50000
+  /* cert/cert.h */
+  #define RTCSRESPONSE_TYPE_LAST	RTCSRESPONSE_TYPE_LAST, RTCSRESPONSE_TYPE_ENUM = -50000
+  #define ATTRIBUTE_LAST		ATTRIBUTE_LAST, ATTRIBUTE_ENUM = -50000
+  #define POLICY_LAST			POLICY_LAST, POLICY_ENUM = -50000
+  #define SELECTION_OPTION_LAST	SELECTION_OPTION_LAST, SELECTION_OPTION_ENUM = -50000
+  /* context/context.h */
+  #define CONTEXT_LAST			CONTEXT_LAST, CONTEXT_ENUM = -50000
+  /* device/capabil.h */
+  #define CAPABILITY_INFO_LAST	CAPABILITY_INFO_LAST, CAPABILITY_INFO_ENUM = -50000
+  /* envelope/envelope.h */
+  #define ACTION_LAST			ACTION_LAST, ACTION_ENUM = -50000
+  #define ACTION_RESULT_LAST	ACTION_RESULT_LAST, ACTION_RESULT_ENUM = -50000
+  #define STATE_LAST			STATE_LAST, STATE_ENUM = -50000
+  #define ENVSTATE_LAST			ENVSTATE_LAST, ENVSTATE_ENUM = -50000
+  #define DEENVSTATE_LAST		DEENVSTATE_LAST, DEENVSTATE_ENUM = -50000
+  #define PGP_DEENVSTATE_LAST	PGP_DEENVSTATE_LAST, PGP_DEENVSTATE_ENUM = -50000
+  #define SEGHDRSTATE_LAST		SEGHDRSTATE_LAST, SEGHDRSTATE_ENUM = -50000
+  /* envelope/pgp.h */
+  #define PGP_ALGOCLASS_LAST	PGP_ALGOCLASS_LAST, PGP_ALGOCLASS_ENUM = -50000
+  /* kernel/acl.h */
+  #define RANGEVAL_LAST			RANGEVAL_LAST, RANGEVAL_ENUM = -50000
+  #define ATTRIBUTE_VALUE_LAST	ATTRIBUTE_VALUE_LAST, ATTRIBUTE_VALUE_ENUM = -50000
+  #define PARAM_VALUE_LAST		PARAM_VALUE_LAST, PARAM_VALUE_ENUM = -50000
+  /* kernel/kernel.h */
+  #define SEMAPHORE_STATE_LAST	SEMAPHORE_STATE_LAST, SEMAPHORE_STATE_ENUM = -50000
+  /* keyset/dbms.h */
+  #define CERTADD_LAST			CERTADD_LAST, CERTADD_ENUM = -50000
+  /* keyset/keyset.h */
+  #define KEYSET_SUBTYPE_LAST	KEYSET_SUBTYPE_LAST, KEYSET_SUBTYPE_ENUM = -50000
+  #define DBMS_QUERY_LAST		DBMS_QUERY_LAST, DBMS_QUERY_ENUM = -50000
+  #define DBMS_UPDATE_LAST		DBMS_UPDATE_LAST, DBMS_UPDATE_ENUM = -50000
+  #define DBMS_CACHEDQUERY_LAST	DBMS_CACHEDQUERY_LAST, DBMS_CACHEDQUERY_ENUM = -50000
+  /* keyset/pkcs15.h */
+  #define PKCS15_SUBTYPE_LAST	PKCS15_SUBTYPE_LAST, PKCS15_SUBTYPE_ENUM = -50000
+//  #define PKCS15_OBJECT_LAST	PKCS15_OBJECT_LAST, PKCS15_OBJECT_ENUM = -50000
+  #define PKCS15_KEYID_LAST		PKCS15_KEYID_LAST, PKCS15_KEYID_ENUM = -50000
+  /* misc/ber.h */
+  #define BER_ID_LAST			BER_ID_LAST, BER_ID_ENUM = -50000
+  /* misc/objinfo.h */
+  #define KEYEX_LAST			KEYEX_LAST, KEYEX_ENUM = -50000
+  #define SIGNATURE_LAST		SIGNATURE_LAST, SIGNATURE_ENUM = -50000
+  /* misc/rpc.h */
+  #define COMMAND_LAST			COMMAND_LAST, COMMAND_ENUM = -50000
+  #define DBX_COMMAND_LAST		DBX_COMMAND_LAST, DBX_COMMAND_ENUM = -50000
+  /* misc/stream.h */
+  #define STREAM_TYPE_LAST		STREAM_TYPE_LAST, STREAM_TYPE_ENUM = -50000
+  #define BUILDPATH_LAST		BUILDPATH_LAST, BUILDPATH_ENUM = -50000
+  #define STREAM_IOCTL_LAST		STREAM_IOCTL_LAST, STREAM_IOCTL_ENUM = -50000
+  #define STREAM_PROTOCOL_LAST	STREAM_PROTOCOL_LAST, STREAM_PROTOCOL_ENUM = -50000
+  #define URL_TYPE_LAST			URL_TYPE_LAST, URL_TYPE_ENUM = -50000
+  #define NET_OPTION_LAST		NET_OPTION_LAST, NET_OPTION_ENUM = -50000
+  /* session/cmp.h */
+  #define CMPBODY_LAST			CMPBODY_LAST, CMPBODY_ENUM = -50000
+  /* session/session.h */
+  #define READINFO_LAST			READINFO_LAST, READINFO_ENUM = -50000
+  /* session/ssh.h */
+  #define CHANNEL_LAST			CHANNEL_LAST, CHANNEL_ENUM = -50000
+  #define MAC_LAST				MAC_LAST, MAC_ENUM = -50000
+  #define SSH_ATRIBUTE_LAST		SSH_ATRIBUTE_LAST, SSH_ATRIBUTE_ENUM = -50000
+  /* session/ssl.h */
+  #define SSL_LAST				SSL_LAST, SSL_ENUM = -50000
+  #define TLS_EXT_LAST			TLS_EXT_LAST, TLS_EXT_ENUM = -50000
+#endif /* Palm SDK compiler enum fix */
+
 /* If the global cryptlib header hasn't been included yet, include it now */
 
 #ifndef _CRYPTLIB_DEFINED
   #include "cryptlib.h"
 #endif /* _CRYPTLIB_DEFINED */
+
+/* Since some of the _LAST types are used in the code, we have to undefine
+   them again if they've been used in the enum-fix kludge */
+
+#ifdef NEED_ENUMFIX
+  #undef CRYPT_ALGO_LAST
+  #undef CRYPT_MODE_LAST
+  #undef CRYPT_KEYSET_LAST
+  #undef CRYPT_DEVICE_LAST
+  #undef CRYPT_CERTTYPE_LAST
+  #undef CRYPT_FORMAT_LAST
+  #undef CRYPT_SESSION_LAST
+  #undef CRYPT_USER_LAST
+  #undef CRYPT_IATTRIBUTE_LAST
+  #undef CRYPT_CRLEXTREASON_LAST
+  #undef CRYPT_CONTENT_LAST
+  #undef CRYPT_SIGNATURELEVEL_LAST
+  #undef CRYPT_CERTFORMAT_LAST
+  #undef CRYPT_REQUESTTYPE_LAST
+  #undef CRYPT_KEYID_LAST
+  #undef CRYPT_OBJECT_LAST
+  #undef CRYPT_ERRTYPE_LAST
+  #undef CRYPT_CERTACTION_LAST
+  #undef CRYPT_KEYOPT_LAST
+#endif /* NEED_ENUMFIX */
 
 /****************************************************************************
 *																			*
@@ -97,31 +241,36 @@
    it not recommended since the init/shutdown is no longer thread-safe).  In
    theory it should be possible to detect the build of a DLL vs a LIB with
    the _DLL define which is set when the /MD (multithreaded DLL) option is
-   used, however fscking VC++ only defines _DLL when /MD is used *and* it's
-   linked with the MT DLL runtime.  If it's linked with the statically
-   linked runtime, _DLL isn't defined, which would result in the unsafe
-   LIB version being built as a DLL */
+   used, however VC++ only defines _DLL when /MD is used *and* it's linked
+   with the MT DLL runtime.  If it's linked with the statically linked
+   runtime, _DLL isn't defined, which would result in the unsafe LIB version
+   being built as a DLL */
 
 /* #define STATIC_LIB */
 
-/* Try and figure out if we're running under Windows and/or Win32.  We have
-   to jump through all sorts of hoops later on, not helped by the fact that
-   the method of detecting Windows at compile time changes with different
-   versions of Visual C (it's different for each of VC 2.0, 2.1, 4.0, and
-   4.1.  It actually remains the same after 4.1) */
+/* Try and figure out if we're running under Windows and Win16/Win32/WinCE.
+   We have to jump through all sorts of hoops later on, not helped by the
+   fact that the method of detecting Windows at compile time changes with
+   different versions of Visual C (it's different for each of VC 2.0, 2.1,
+   4.0, and 4.1.  It actually remains the same after 4.1) */
 
 #if !defined( __WINDOWS__ ) && ( defined( _Windows ) || defined( _WINDOWS ) )
   #define __WINDOWS__
-#endif /* !__WINDOWS__ && ( _Windows || _WINDOWS ) */
+#endif /* Win16 */
 #if !defined( __WIN32__ ) && ( defined( WIN32 ) || defined( _WIN32 ) )
   #ifndef __WINDOWS__
-	#define __WINDOWS__
+	#define __WINDOWS__		/* Win32 or WinCE */
   #endif /* __WINDOWS__ */
-  #define __WIN32__
-#endif /* !__WIN32__ && ( WIN32 || _WIN32 ) */
-#if defined( __WINDOWS__ ) && !defined( __WIN32__ )
+  #ifdef _WIN32_WCE
+	#define __WINCE__
+  #else
+	#define __WIN32__
+  #endif /* WinCE vs. Win32 */
+#endif /* Win32 or WinCE */
+#if defined( __WINDOWS__ ) && \
+	!( defined( __WIN32__ ) || defined( __WINCE__ ) )
   #define __WIN16__
-#endif /* __WINDOWS__ && !__WIN32__ */
+#endif /* Windows without Win32 or WinCE */
 
 /* In some cases we're using a DOS or Windows system as a cross-development
    platform, if we are we add extra defines to turn off some Windows-
@@ -131,12 +280,56 @@
   #define __IBM4758__
 #endif /* IBM 4758 cross-compiled under Windows */
 
+/* All Windows CE functions are Unicode-only, this was an attempt to clean
+   up the ASCII vs. Unicode kludges in Win32 but unfortunately was made just
+   before UTF8 took off.  Because UTF8 allows everyone to keep using their
+   old ASCII stuff while being nominally Unicode-aware, it's unlikely that
+   any new Unicode-only systems will appear in the future, leaving WinCE's
+   Unicode-only API an orphan.  The easiest way to handle this is to convert
+   all strings to ASCII/8 bit as they come in from the external cryptlib API
+   and convert them back to Unicode as required when they're passed to WinCE
+   OS functions.  In other words Unicode is treated just like EBCDIC and
+   pushed out to the edges of cryptlib.  This requires the minimum amount of
+   conversion and special-case handling internally */
+
+#ifdef __WINCE__
+  #define UNICODE_CHARS
+#endif /* WinCE */
+
 /* If we're compiling under VC++ with the maximum level of warning, turn off
    some of the more irritating warnings */
 
 #if defined( _MSC_VER )
+  /* Warning level 3 */
   #pragma warning( disable: 4018 )	/* Comparing signed <-> unsigned value */
   #pragma warning( disable: 4127 )	/* Conditional is constant: while( TRUE ) */
+
+  /* Warning level 4 */
+  #pragma warning( disable: 4054 )	/* Cast from fn.ptr -> generic (data) ptr.*/
+  #pragma warning( disable: 4055 )	/* Cast from generic (data) ptr. -> fn.ptr.*/
+  #pragma warning( disable: 4057 )	/* char vs.unsigned char use */
+  #pragma warning( disable: 4204 )	/* Struct initialised with non-const value */
+  #pragma warning( disable: 4221 )	/* Struct initialised with addr.of auto.var */
+  #pragma warning( disable: 4244 )	/* int <-> unsigned char/short */
+  #pragma warning( disable: 4245 )	/* int <-> unsigned long */
+
+  /* gcc -wall type warnings.  The highest warning level generates large
+     numbers of spurious warnings (including ones in VC++ headers), so it's
+	 best to only enable them for one-off test builds requiring manual
+	 checking for real errors.  The used-before-initialised is particularly
+	 common during the code generation phase, when the compiler flags all
+	 values initialised in conditional code blocks as potential problems */
+  #if 1
+	#pragma warning( disable: 4100 )	/* Unreferenced parameter */
+	#pragma warning( disable: 4131 )	/* K&R prototype (in zlib) */
+	#pragma warning( disable: 4201 )	/* Nameless struct/union */
+	#pragma warning( disable: 4205 )	/* Static function */
+	#pragma warning( disable: 4210 )	/* Static function */
+	#pragma warning( disable: 4211 )	/* Static function */
+	#pragma warning( disable: 4217 )	/* Static function */
+	#pragma warning( disable: 4505 )	/* Unreferenced local function */
+	#pragma warning( disable: 4701 )	/* Variable used before initialised */
+  #endif /* 1 */
 #endif /* Visual C++ */
 
 /* If we're using a DOS compiler and it's not a 32-bit one, record this.
@@ -148,16 +341,26 @@
   #define __MSDOS16__
 #endif /* 16-bit DOS */
 
-/* Make the Tandem NSK and Macintosh defines look a bit more like the usual
-   ANSI defines used to identify the other OS types */
+/* Make the Tandem, Macintosh, and PalmOS defines look a bit more like the
+   usual ANSI defines used to identify the other OS types */
 
 #ifdef __TANDEM
-  #define __TANDEMNSK__
-#endif /* Tandem NSK */
+  #if defined( _OSS_TARGET )
+	#define __TANDEM_OSS__
+  #elif defined( _GUARDIAN_TARGET )
+	#define __TANDEM_NSK__
+  #else
+	#error "Can't determine Tandem OS target type (NSK or OSS)"
+  #endif /* Tandem OSS vs. NSK */
+#endif /* Tandem */
 
 #if defined( __MWERKS__ ) || defined( SYMANTEC_C ) || defined( __MRC__ )
   #define __MAC__
 #endif /* Macintosh */
+
+#ifdef __PALMSOURCE__
+  #define __PALMOS__
+#endif /* Palm OS */
 
 /* If we're compiling on the AS/400, make enums a fixed size rather than
    using the variable-length values that IBM compilers default to, and force
@@ -179,6 +382,26 @@
   #define EBCDIC_CHARS
 #endif /* __MVS__ */
 
+/* If we're compiling under QNX, make enums a fixed size rather than using
+   the variable-length values that the Watcom compiler defaults to */
+
+#if defined( __QNX__ ) && defined( __WATCOMC__ )
+  #pragma enum int
+#endif /* QNX and Watcom C */
+
+/* PalmOS is a bit more picky than other OSes about what has to be in which
+   header, in particular shared data segments can't be easily exported from
+   libraries so the isXYZ() macros (which use lookup tables) that are
+   generally available elsewhere have to be explicitly enabled via ctype.h,
+   and the native strcpy()/memcpy() used by most compilers may not be
+   available in some cases either so we have to explicitly pull them in via
+   string.h */
+
+#ifdef __PALMOS__
+  #include <ctype.h>
+  #include <string.h>
+#endif /* __PALMOS__ */
+
 /* Some encryption algorithms that rely on longints having 32 bits won't
    work on 64- or 128-bit machines due to problems with sign extension and
    whatnot.  The following define can be used to enable special handling for
@@ -192,11 +415,11 @@
 /* Useful data types */
 
 typedef unsigned char		BYTE;
-#ifdef __WIN32__
+#if defined( __WIN32__ ) || defined( __WINCE__ )
   #define BOOLEAN			int
 #else
   typedef int				BOOLEAN;
-#endif /* __WIN32__ */
+#endif /* __WIN32__ || __WINCE__ */
 
 /* If we're using DOS or Windows as a cross-development platform, we need
    the OS-specific value defined initially to get the types right but don't
@@ -227,18 +450,17 @@ typedef unsigned char		BYTE;
   #define FAR_BSS
 #endif /* 16-bit systems */
 
-/* Some systems (typically 16-bit or embedded ones) have rather limited 
-   amounts of memory available, if we're building on one of these we limit 
+/* Some systems (typically 16-bit or embedded ones) have rather limited
+   amounts of memory available, if we're building on one of these we limit
    the size of some of the buffers that we use */
 
-#if defined( __MSDOS16__ ) || defined( __TANDEMNSK__ ) || \
-	defined( __uClinux__ )
+#if defined( __MSDOS16__ ) || defined( __uClinux__ )
   #define CONFIG_CONSERVE_MEMORY
-#endif /* MSDOS || Win16 || Tandem NSK */
+#endif /* Memory-starved systems */
 
 /* On systems that support dynamic loading, we bind various drivers and
    libraries at runtime rather than at compile time.  Under Windows this is
-   fairly easy but under Unix it's only supported selectively and may be
+   fairly easy but under Unix it's supported somewhat selectively and may be
    buggy or platform-specific */
 
 #if defined( __WINDOWS__ ) || \
@@ -255,7 +477,12 @@ typedef unsigned char		BYTE;
 	#define DynamicUnload		FreeLibrary
 	#define DynamicBind			GetProcAddress
   #elif defined( __UNIX__ )
-	#if !defined( __APPLE__ )
+    /* Older versions of OS X didn't have dlopen() support but required
+	   the use of the rather painful low-level dyld() interface.  If you're
+	   running an older version of OS X and don't have the dlcompat wrapper
+	   installed, get Peter O'Gorman's dlopen() implementation, which wraps
+	   the dyld() interface */
+	#if !( defined( __APPLE__ ) && OSVERSION < 7 )
 	  #include <dlfcn.h>
 	#endif /* Mac OS X */
 	#define INSTANCE_HANDLE		void *
@@ -302,17 +529,17 @@ typedef unsigned char		BYTE;
    is only really necessary on non-Unix systems since the makefile runtime
    test will tell us the endianness under Unix */
 
-#if defined( CONFIG_LITTLE_ENDIAN ) || defined( CONFIG_BIG_ENDIAN )
+#if defined( CONFIG_DATA_LITTLEENDIAN ) || defined( CONFIG_DATA_BIGENDIAN )
   /* If we're cross-compiling for another system, the endianness auto-
 	 detection will have been overridden.  In this case we force it to be
 	 what the user has specified rather than what we've auto-detected */
   #undef DATA_LITTLEENDIAN
   #undef DATA_BIGENDIAN
-  #ifdef CONFIG_LITTLE_ENDIAN
+  #ifdef CONFIG_DATA_LITTLEENDIAN
 	#define DATA_LITTLEENDIAN
   #else
 	#define DATA_BIGENDIAN
-  #endif /* CONFIG_LITTLE_ENDIAN */
+  #endif /* CONFIG_DATA_LITTLEENDIAN */
 #endif /* Forced big vs.little-endian */
 
 #if !defined( DATA_LITTLEENDIAN ) && !defined( DATA_BIGENDIAN )
@@ -330,13 +557,18 @@ typedef unsigned char		BYTE;
   #elif defined( _M_I86 ) || defined( _M_IX86 ) || defined( __TURBOC__ ) || \
 		defined( __OS2__ )
 	#define DATA_LITTLEENDIAN	/* Intel architecture always little-endian */
+  #elif defined( __WINCE__ )
+	/* For WinCE it can get a bit complicated, however because of x86 cargo
+	   cult programming WinCE systems always tend to be set up in little-
+	   endian mode */
+	#define DATA_LITTLEENDIAN	/* Intel architecture always little-endian */
   #elif defined( AMIGA ) || defined( __MWERKS__ ) || defined( SYMANTEC_C ) || \
 		defined( THINK_C ) || defined( applec ) || defined( __MRC__ )
 	#define DATA_BIGENDIAN		/* Motorola architecture always big-endian */
   #elif defined( VMS ) || defined( __VMS )
 	#define DATA_LITTLEENDIAN	/* VAX architecture always little-endian */
-  #elif defined( __TANDEMNSK__ )
-	#define DATA_BIGENDIAN		/* Tandem NSK architecture always big-endian */
+  #elif defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ )
+	#define DATA_BIGENDIAN		/* Tandem architecture always big-endian */
   #elif defined( __AS400__ ) || defined( __VMCMS__ ) || defined( __MVS__ )
 	#define DATA_BIGENDIAN		/* IBM big iron always big-endian */
   #elif defined __GNUC__
@@ -389,11 +621,13 @@ typedef unsigned char		BYTE;
   #ifndef FILENAME_MAX
 	#include <stdio.h>
   #endif /* FILENAME_MAX */
-  #ifdef PATH_MAX
+  #if defined( PATH_MAX )
 	#define MAX_PATH_LENGTH		PATH_MAX
+  #elif defined( MAX_PATH )
+	#define MAX_PATH_LENGTH		MAX_PATH
   #else
 	#define MAX_PATH_LENGTH		FILENAME_MAX
-  #endif /* PATH_MAX or FILENAME_MAX */
+  #endif /* PATH_MAX, MAX_PATH, or FILENAME_MAX */
 #endif /* PATH_MAX */
 #ifdef __UNIX__
   /* SunOS 4.1.x doesn't define FILENAME_MAX in limits.h, however it does
@@ -406,8 +640,8 @@ typedef unsigned char		BYTE;
   #endif /* SunOS 4.1.x FILENAME_MAX define */
 #endif /* __UNIX__ */
 
-/* SunOS 4 doesn't have memmove(), but Solaris does, so we define memmove() 
-   to bcopy() under 4.  In addition SunOS doesn't define the fseek position 
+/* SunOS 4 doesn't have memmove(), but Solaris does, so we define memmove()
+   to bcopy() under 4.  In addition SunOS doesn't define the fseek position
    indicators so we define these as well */
 
 #if defined( __UNIX__ ) && defined( sun ) && ( OSVERSION == 4 )
@@ -428,11 +662,19 @@ typedef unsigned char		BYTE;
 	#error cryptlib must be compiled with ASCII literals
   #endif /* Check for use of ASCII */
 
-  int asciiToEbcdic( char *string, int stringLen );
-  int ebcdicToAscii( char *string, int stringLen );
+  int asciiToEbcdic( char *dest, const char *src, const int length );
+  int ebcdicToAscii( char *dest, const char *src, const int length );
   char *bufferToEbcdic( char *buffer, const char *string );
   char *bufferToAscii( char *buffer, const char *string );
 #endif /* IBM mainframes */
+
+/* If we're compiling on Windows CE, enable Unicode <-> ASCII string
+   conversion */
+
+#ifdef UNICODE_CHARS
+  int asciiToUnicode( wchar_t *dest, const char *src, const int length );
+  int unicodeToAscii( char *dest, const wchar_t *src, const int length );
+#endif /* Windows CE */
 
 /* Since cryptlib uses ASCII internally, we have to force the use of
    ASCII-compatible versions of system library functions if the system
@@ -506,6 +748,7 @@ typedef unsigned char		BYTE;
 
 #if ( defined( __BORLANDC__ ) && ( __BORLANDC__ < 0x600 ) ) || \
 	defined( __VMCMS__ ) || defined( __MVS__ ) || defined( __MRC__ ) || \
+	defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ ) || \
 	( defined( __UNIX__ ) && defined( _MPRAS ) )
   #define STATIC_FN
   #define STATIC_DATA
@@ -513,6 +756,76 @@ typedef unsigned char		BYTE;
   #define STATIC_FN		static
   #define STATIC_DATA	static
 #endif /* Fn.prototyping workarounds for borken compilers */
+
+/* A few compilers won't allow initialisation of a struct at runtime, so
+   we have to kludge the init with macros.  This is rather ugly since
+   instead of saying "struct = { a, b, c }" we have to set each field
+   individually by name.  The real reason for doing this though is that
+   if the compiler can initialise the struct directly, we can make the
+   fields const for better usage checking by the compiler.
+
+   There are two forms of this, one for simple structs and one for arrays
+   of structs.  At the moment the only use for the array-init is for the
+   situation where the array represents a sequence of search options with
+   the last one being a terminator entry, so we provide a simplified form
+   that only sets the required fields */
+
+#if ( defined( __QNX__ ) && ( OSVERSION <= 4 ) ) || \
+	defined( __SUNPRO_C ) || defined( __SCO_VERSION__ ) || \
+	defined( _CRAY )
+  #define CONST_INIT
+  #define CONST_INIT_STRUCT_3( decl, init1, init2, init3 ) \
+		  decl
+  #define CONST_INIT_STRUCT_4( decl, init1, init2, init3, init4 ) \
+		  decl
+  #define CONST_INIT_STRUCT_5( decl, init1, init2, init3, init4, init5 ) \
+		  decl
+  #define CONST_SET_STRUCT( init ) \
+		  init
+
+  #define CONST_INIT_STRUCT_A2( decl, init1, init2 ) \
+		  decl
+  #define CONST_SET_STRUCT_A( init ) \
+		  init
+#else
+  #define CONST_INIT	const
+  #define CONST_INIT_STRUCT_3( decl, init1, init2, init3 ) \
+		  decl = { init1, init2, init3 }
+  #define CONST_INIT_STRUCT_4( decl, init1, init2, init3, init4 ) \
+		  decl = { init1, init2, init3, init4 }
+  #define CONST_INIT_STRUCT_5( decl, init1, init2, init3, init4, init5 ) \
+		  decl = { init1, init2, init3, init4, init5 }
+  #define CONST_SET_STRUCT( init )
+
+  #define CONST_INIT_STRUCT_A2( decl, init1, init2 ) \
+		  const decl = { { init1, 0 }, { init2, 0 } }
+  #define CONST_SET_STRUCT_A( init )
+#endif /* Watcom C || SunPro C || SCO C */
+
+/* The Tandem mktime() is broken and can't convert dates beyond 2023, so we
+   replace it with our own version which can */
+
+#if defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ )
+  #define mktime	my_mktime
+#endif /* __TANDEM_NSK__ || __TANDEM_OSS__ */
+
+/* Support for vsnprintf() (used for assembling the
+   CRYPT_ATTRIBUTE_INT_ERRORMESSAGE value) is a bit hit-and-miss on non-Unix
+   systems and also on older Unixen, if it's not available we alias it to
+   vsprintf() */
+
+#if defined( __ITRON__ ) || \
+	defined( __UNIX__ ) && \
+		( ( defined( __SCO_VERSION__ ) && OSVERSION < 5 ) || \
+		  ( defined( sun ) && OSVERSION < 5 ) || \
+		  defined( __SYMBIAN32__ ) )
+  #define vsnprintf( buf, count, format, arg )	vsprintf( buf, format, arg )
+#elif defined( 	__WINDOWS__ )
+  /* Microsoft provides vsnprintf() in all VC++ and eVC++ libraries, but
+     it's given as _vsnprintf() since it's not an ANSI/ISO C (pre-C99)
+	 function */
+  #define vsnprintf		_vsnprintf
+#endif /* Systems without vsnprintf() */
 
 /* Unlike the equivalent crypto code, the MD5, RIPEMD-160, and SHA-1 hashing
    code needs special defines set to enable the use of asm alternatives.
@@ -555,13 +868,6 @@ typedef unsigned char		BYTE;
 *								OS-Specific Macros							*
 *																			*
 ****************************************************************************/
-
-/* cryptlib provides support for a number of extended OS-specific services
-   such as multithreading, resource locking, bounds checking, and so on.
-   The macros for the OS-specific services and resource management are
-   defined in their own include file */
-
-#include "cryptos.h"
 
 /* The cryptlib kernel has its own interface, defined in the kernel include
    file */
@@ -610,8 +916,9 @@ typedef unsigned char		BYTE;
   #define EOL_LEN	2
 #elif ( defined( __APPLE__ ) && !defined( __MAC__ ) ) || \
 	  defined( __BEOS__ ) || defined( __IBM4758__ ) || \
-	  defined( __TANDEMNSK__ ) || defined( __TANDEMOSS__ ) || \
-	  defined( __UNIX__ ) || defined( __VMCMS__ )
+	  defined( __PALMOS__ ) || defined( __TANDEM_NSK__ ) || \
+	  defined( __TANDEM_OSS__ ) || defined( __UNIX__ ) || \
+	  defined( __VMCMS__ )
   #define EOL		"\n"
   #define EOL_LEN	1
 #elif defined( __MAC__ )
@@ -625,9 +932,10 @@ typedef unsigned char		BYTE;
    (not supported for older DOS compilers and some (now-rare) Unixen) */
 
 #ifdef USE_WIDECHARS
-  #ifndef __APPLE__
+  #if !( ( defined( __QNX__ ) && ( OSVERSION <= 4 ) ) || \
+		 ( defined( __WINCE__ ) && _WIN32_WCE < 400 ) )
 	#include <wchar.h>
-  #endif /* Mac OS X */
+  #endif /* Systems with widechar support in stdlib.h */
   #define WCSIZE	( sizeof( wchar_t ) )
 
   #if defined( __MSDOS16__ ) && !defined( __BORLANDC__ )
@@ -636,6 +944,17 @@ typedef unsigned char		BYTE;
   #if defined( __BORLANDC__ ) && ( __BORLANDC__ == 0x410 )
 	#define wchar_t unsigned short int;	/* BC++ 3.1 has an 8-bit wchar_t */
   #endif /* BC++ 3.1 */
+#else
+  /* No native widechar support, define the necesary types ourselves unless
+	 we're running under older OS X (Darwin 6.x), which defines wchar_t in
+	 stdlib.h even though there's no wchar support present, or PalmOS, which
+	 defines it in wchar.c but then defines it differently in stddef.h, and
+	 in any case has no wchar support present */
+  #if !( defined( __APPLE__ ) || defined( __OpenBSD__ ) || \
+		 defined( __PALMOS__ ) )
+	typedef unsigned short int wchar_t;
+  #endif /* __APPLE__ */
+  #define WCSIZE	( sizeof( wchar_t ) )
 #endif /* USE_WIDECHARS */
 
 /****************************************************************************
@@ -742,7 +1061,11 @@ typedef unsigned char		BYTE;
    lengths, particularly since it applies to external objects outside
    cryptlib's control */
 
-#define MIN_NAME_LENGTH			2
+#ifdef UNICODE_CHARS
+  #define MIN_NAME_LENGTH		( 2 * sizeof( wchar_t ) )
+#else
+  #define MIN_NAME_LENGTH		2
+#endif /* Unicode vs. ASCII environments */
 
 /* Some object types interact with exteral services that can return detailed
    error messages when problems occur, the following is the maximum length
@@ -761,7 +1084,7 @@ typedef unsigned char		BYTE;
 
 #define MIN_DNS_SIZE			4			/* x.com */
 #define MAX_DNS_SIZE			255			/* Max hostname size */
-#define MIN_RFC822_SIZE			8			/* xx@yy.zz */
+#define MIN_RFC822_SIZE			7			/* x@yy.zz */
 #define MAX_RFC822_SIZE			255
 #define MIN_URL_SIZE			12			/* http://x.com */
 #define MAX_URL_SIZE			MAX_DNS_SIZE
@@ -820,10 +1143,11 @@ typedef enum {
 /*	KEYFORMAT_PUBLIC,	// PKCS #15 public key - currently unused */
 	KEYFORMAT_SSH1,		/* SSHv1 public key */
 	KEYFORMAT_SSH2,		/* SSHv2 public key */
+	KEYFORMAT_SSL,		/* SSL public key */
 	KEYFORMAT_PGP,		/* PGP public key */
 	KEYFORMAT_PRIVATE,	/* Private key */
 	KEYFORMAT_PRIVATE_OLD,	/* Older format for backwards-compatibility */
-	KEYFORMAT_LAST = 6	/* Last possible key format type */
+	KEYFORMAT_LAST		/* Last possible key format type */
 	} KEYFORMAT_TYPE;
 
 /* When importing certs for internal use we occasionally need to be able to
@@ -836,7 +1160,7 @@ typedef enum {
    associated public key.  This value is used by certs contained in cert
    chains, where only the leaf cert actually needs to have a context
    instantiated.  CERTFORMAT_CTL is the same as CERTFORMAT_DATAONLY but
-   covers cert chains, specifically CTLs which are used as containers for
+   covers cert chains, specifically CTLs that are used as containers for
    trusted certs but never as true cert chains */
 
 typedef enum {
@@ -950,16 +1274,19 @@ typedef struct {
 
 	PKCS #3: publicValue = y
 	Fortezza: publicValue = y, ukm = Ra, wrappedKey = TEK-wrapped MEK
-	S/MIME: publicValue = y, ukm = 512-bit nonce, wrappedKey = g^x mod p */
+	S/MIME: publicValue = y, ukm = 512-bit nonce, wrappedKey = g^x mod p
+	SSH, SSL: publicValue = y, wrappedKey = x */
 
 typedef struct {
-	BYTE publicValue[ CRYPT_MAX_PKCSIZE ];
+	BYTE publicValue[ CRYPT_MAX_PKCSIZE + 8 ];
 	int publicValueLen;				/* Public key value */
-	BYTE ukm[ CRYPT_MAX_PKCSIZE ];
+#ifdef USE_FORTEZZA
+	BYTE ukm[ CRYPT_MAX_PKCSIZE + 8 ];
 	int ukmLen;						/* User keying material */
-	BYTE wrappedKey[ CRYPT_MAX_PKCSIZE ];
-	int wrappedKeyLen;				/* Wrapped key */
 	CRYPT_CONTEXT sessionKeyContext;/* Context for derived key */
+#endif /* USE_FORTEZZA */
+	BYTE wrappedKey[ CRYPT_MAX_PKCSIZE + 8 ];
+	int wrappedKeyLen;				/* Wrapped key */
 	} KEYAGREE_PARAMS;
 
 /****************************************************************************
@@ -1051,15 +1378,32 @@ typedef struct {
 	( ( algorithm ) == CRYPT_ALGO_DSA || ( algorithm ) == CRYPT_ALGO_ELGAMAL || \
 	  ( algorithm ) == CRYPT_ALGO_DH || ( algorithm ) == CRYPT_ALGO_KEA )
 
+/* Check the validity of a pointer passed to a cryptlib function.  Usually
+   the best that we can do is check that it's not null, but some OSes allow
+   for better checking than this, for example that it points to a block of
+   readable or writeable memory.  Under Windows IsBadReadPtr() will always
+   succeed if the size is 0, so we have to add a separate check to make sure
+   that it's non-NULL */
+
+#if defined( __WIN32__ ) || defined( __WINCE__ )
+  #define isReadPtr( ptr, size )	( ( ptr ) != NULL && ( size ) > 0 && \
+									  !IsBadReadPtr( ( ptr ), ( size ) ) )
+  #define isWritePtr( ptr, size )	( ( ptr ) != NULL && ( size ) > 0 && \
+									  !IsBadWritePtr( ( ptr ), ( size ) ) )
+#else
+  #define isReadPtr( ptr, size )	( ( ptr ) != NULL && ( size ) > 0 )
+  #define isWritePtr( ptr, size )	( ( ptr ) != NULL && ( size ) > 0 )
+#endif /* Pointer check macros */
+
 /* Almost all objects require object-subtype-specific amounts of memory to
-   store object information.  In addition some objects such as certificates 
-   contain arbitrary numbers of arbitrary-sized bits and pieces, most of 
-   which are quite small.  To avoid having to allocate worst-case sized 
+   store object information.  In addition some objects such as certificates
+   contain arbitrary numbers of arbitrary-sized bits and pieces, most of
+   which are quite small.  To avoid having to allocate worst-case sized
    blocks of memory for objects (a problem in embedded environments) or large
-   numbers of tiny little blocks of memory for certificate attributes, we use 
-   variable-length structures in which the payload is stored after the 
-   structure, with a pointer inside the structure pointing into the payload 
-   storage.  To make this easier to handle, we use macros to set up and tear 
+   numbers of tiny little blocks of memory for certificate attributes, we use
+   variable-length structures in which the payload is stored after the
+   structure, with a pointer inside the structure pointing into the payload
+   storage.  To make this easier to handle, we use macros to set up and tear
    down the necessary variables */
 
 #define DECLARE_VARSTRUCT_VARS \
@@ -1150,6 +1494,34 @@ typedef struct {
 #define insertDoubleListElement( listHead, insertPoint, newElement ) \
 		insertDoubleListElements( listHead, insertPoint, newElement, newElement )
 
+#define deleteSingleListElement( listHead, listPrev, element ) \
+		{ \
+		if( element == *( listHead ) ) \
+			/* Special case for first item */ \
+			*( listHead ) = element->next; \
+		else \
+			/* Delete from middle or end of the list */ \
+			listPrev->next = element->next; \
+		}
+
+#define deleteDoubleListElement( listHead, element ) \
+		{ \
+		if( element == *( listHead ) ) \
+			{ \
+			/* Special case for first item */ \
+			*( listHead ) = element->next; \
+			if( element->next != NULL ) \
+				element->next->prev = NULL; \
+			} \
+		else \
+			{ \
+			/* Delete from the middle or the end of the list */ \
+			element->prev->next = element->next; \
+			if( element->next != NULL ) \
+				element->next->prev = element->prev; \
+			} \
+		}
+
 /****************************************************************************
 *																			*
 *								Object Class Functions						*
@@ -1216,6 +1588,13 @@ int iCryptImportCertIndirect( CRYPT_CERTIFICATE *iCertificate,
 int iCryptReadSubjectPublicKey( void *streamPtr, CRYPT_CONTEXT *iCryptContext,
 								const BOOLEAN deferredLoad );
 
+/* Get information on encoded object data.  The first parameter for this
+   function is actually a STREAM *, but we can't use this here since
+   STREAM * hasn't been defined yet */
+
+int queryAsn1Object( void *streamPtr, QUERY_INFO *queryInfo );
+int queryPgpObject( void *streamPtr, QUERY_INFO *queryInfo );
+
 /* Copy a string attribute to external storage, with various range checks
    to follow the cryptlib semantics */
 
@@ -1226,8 +1605,15 @@ int attributeCopy( RESOURCE_DATA *msgData, const void *attribute,
    it contains at least one character, but stronger checking can be
    substituted if required */
 
-#define checkBadPassword( password ) \
-		( checkBadPtrRead( password, 1 ) || ( strlen( password ) < 1 ) )
+#ifdef UNICODE_CHARS
+  #define checkBadPassword( password ) \
+		  ( !isReadPtr( password, sizeof( wchar_t ) ) || \
+		    ( wcslen( password ) < 1 ) )
+#else
+  #define checkBadPassword( password ) \
+		  ( !isReadPtr( password, 1 ) || \
+		    ( strlen( password ) < 1 ) )
+#endif /* Unicode vs. ASCII environments */
 
 /* Check whether a given algorithm is available for use.  This is performed
    frequently enough that we have a special function for it rather than
@@ -1243,8 +1629,8 @@ BOOLEAN algoAvailable( const CRYPT_ALGO_TYPE cryptAlgo );
    and for situations where the absolute time isn't critical an approximate
    current-time function that returns either a sane time value or an
    approximate value hardcoded in at compile time.  Finally, we provide a
-   reliable time function used for operations such as signing certs and 
-   timestamping that tries to get the time from a hardware time source if 
+   reliable time function used for operations such as signing certs and
+   timestamping that tries to get the time from a hardware time source if
    one is available.
 
    The following two values define the minimum time value that's regarded as
@@ -1264,11 +1650,23 @@ time_t getApproxTime( void );
 time_t getReliableTime( const CRYPT_HANDLE cryptHandle );
 
 /* Compare two strings in a case-insensitive manner for those systems that
-   don't have this function */
+   don't have this function (PalmOS has strcasecmp()/strncasecmp(), but
+   these aren't i18n-aware) */
 
-#if defined( __UNIX__ ) && !defined( __CYGWIN__ )
+#if defined( __UNIX__ ) && !( defined( __CYGWIN__ ) )
+  #if defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ )
+	#include <strings.h>
+  #endif /* Tandem */
   #define strnicmp	strncasecmp
   #define stricmp	strcasecmp
+#elif defined( __WINCE__ )
+  #define strnicmp	_strnicmp
+  #define stricmp	_stricmp
+#elif defined __PALMOS__
+  #include <StringMgr.h>
+
+  #define strnicmp	StrNCaselessCompare
+  #define stricmp	StrCaselessCompare
 #elif defined( __xxxOS___ )
   int strnicmp( const char *src, const char *dest, const int length );
   int stricmp( const char *src, const char *dest );
@@ -1278,7 +1676,13 @@ time_t getReliableTime( const CRYPT_HANDLE cryptHandle );
    HASH_ALL to process an entire buffer at a time, or HASH_START/
    HASH_CONTINUE/HASH_END to process it in parts */
 
-typedef enum { HASH_START, HASH_CONTINUE, HASH_END, HASH_ALL } HASH_STATE;
+typedef enum {
+	HASH_START,					/* Begin hashing */
+	HASH_CONTINUE,				/* Continue existing hashing */
+	HASH_END,					/* Complete existing hashing */
+	HASH_ALL,					/* One-step hash operation */
+	HASH_LAST					/* Last valid hash option */
+	} HASH_STATE;
 
 /* The hash functions are used quite a bit so we provide an internal API for
    them to avoid the overhead of having to set up an encryption context
@@ -1293,8 +1697,8 @@ typedef enum { HASH_START, HASH_CONTINUE, HASH_END, HASH_ALL } HASH_STATE;
   typedef BYTE HASHINFO[ 100 ];	/* RIPEMD160: 24 * sizeof( long ) */
 #endif /* _BIG_WORDS */
 
-typedef void ( *HASHFUNCTION )( HASHINFO hashInfo, BYTE *outBuffer, \
-								const BYTE *inBuffer, const int length, \
+typedef void ( *HASHFUNCTION )( HASHINFO hashInfo, BYTE *outBuffer,
+								const BYTE *inBuffer, const int length,
 								const HASH_STATE hashState );
 
 void getHashParameters( const CRYPT_ALGO_TYPE hashAlgorithm,
@@ -1329,15 +1733,20 @@ void dynDestroy( DYNBUF *dynBuf );
 #define dynLength( dynBuf )		( dynBuf ).length
 #define dynData( dynBuf )		( dynBuf ).data
 
-/* Export data to a stream without the overhead of going via a dynbuf.  The
-   first parameter for this function is actually a STREAM *, but we can't
-   use this here since STREAM * hasn't been defined yet */
+/* Export/import data to/from a stream without the overhead of going via a
+   dynbuf.  The first parameter for these function is actually a STREAM *,
+   but we can't use this here since STREAM * hasn't been defined yet */
 
 int exportAttributeToStream( void *streamPtr, const CRYPT_HANDLE cryptHandle,
-							 const CRYPT_ATTRIBUTE_TYPE attributeType );
+							 const CRYPT_ATTRIBUTE_TYPE attributeType,
+							 const int attributeLength );
 int exportCertToStream( void *streamPtr,
 						const CRYPT_CERTIFICATE cryptCertificate,
-						const CRYPT_CERTTYPE_TYPE certType );
+						const CRYPT_CERTFORMAT_TYPE certFormatType );
+int importCertFromStream( void *streamPtr,
+						  CRYPT_CERTIFICATE *cryptCertificate,
+						  const int length,
+						  const CRYPT_CERTTYPE_TYPE certType );
 
 /* In order to make it easier to add lots of arbitrary-sized random data
    values, we make the following functions available to the polling code to
@@ -1378,7 +1787,7 @@ int endMIMEstate( MIME_STATE *mimeState );
 /* When allocating many little blocks of memory, especially in resource-
    constrained systems, it's better if we pre-allocate a small memory pool
    ourselves and grab chunks of it as required, falling back to dynamically
-   allocating memory later on if we exhaust the pool.  To use a custom 
+   allocating memory later on if we exhaust the pool.  To use a custom
    memory pool, the caller declares a state varible of type MEMPOOL_STATE,
    calls initMemPool() to initialise the pool, and then calls getMemPool()
    and freeMemPool() to allocate and free memory blocks */
@@ -1395,11 +1804,11 @@ CRYPT_CERTFORMAT_TYPE base64checkHeader( const char *data,
 										 const int dataLength, int *startPos );
 int base64encodeLen( const int dataLength,
 					 const CRYPT_CERTTYPE_TYPE certType );
-int base64encode( char *outBuffer, const void *inBuffer, const int count,
-				  const CRYPT_CERTTYPE_TYPE certType );
+int base64encode( char *dest, const int destMaxLen, const void *src,
+				  const int srcLen, const CRYPT_CERTTYPE_TYPE certType );
 int base64decodeLen( const char *data, const int dataLength );
-int base64decode( void *outBuffer, const char *inBuffer, const int count,
-				  const CRYPT_CERTFORMAT_TYPE format );
+int base64decode( void *dest, const int destMaxLen, const char *src,
+				  const int srcLen, const CRYPT_CERTFORMAT_TYPE format );
 
 /* User data en/decode routines */
 
@@ -1409,6 +1818,41 @@ int encodePKIUserValue( char *encVal, const BYTE *value,
 						const int noCodeGroups );
 int decodePKIUserValue( BYTE *value, const char *encVal,
 						const int encValueLength );
+
+/* In order to work with attribute lists of different types, we need a
+   means of accessing the type-specific previous and next pointers and the
+   attribute ID information.  The following callback function is passed to
+   all attribute-list manipulation functions and provides external access
+   to the required internal fields */
+
+typedef enum {
+	ATTR_NONE,			/* No attribute get type */
+	ATTR_CURRENT,		/* Get details for current attribute */
+	ATTR_PREV,			/* Get details for previous attribute */
+	ATTR_NEXT,			/* Get details for next attribute */
+	ATTR_LAST			/* Last valid attribute get type */
+	} ATTR_TYPE;
+
+typedef const void * ( *GETATTRFUNCTION )( const void *attributePtr,
+										   CRYPT_ATTRIBUTE_TYPE *groupID,
+										   CRYPT_ATTRIBUTE_TYPE *attributeID,
+										   CRYPT_ATTRIBUTE_TYPE *instanceID,
+										   const ATTR_TYPE attrGetType );
+
+void *attributeFindStart( const void *attributePtr,
+						  GETATTRFUNCTION getAttrFunction );
+void *attributeFindEnd( const void *attributePtr,
+						GETATTRFUNCTION getAttrFunction );
+void *attributeFind( const void *attributePtr,
+					 GETATTRFUNCTION getAttrFunction,
+					 const CRYPT_ATTRIBUTE_TYPE attributeID,
+					 const CRYPT_ATTRIBUTE_TYPE instanceID );
+void *attributeFindNextInstance( const void *attributePtr,
+								 GETATTRFUNCTION getAttrFunction );
+const void *attributeMoveCursor( const void *currentCursor,
+								 GETATTRFUNCTION getAttrFunction,
+								 const CRYPT_ATTRIBUTE_TYPE attributeMoveType,
+								 const int cursorMoveType );
 
 /* General-purpose enveloping functions, used by various high-level
    protocols */
@@ -1437,11 +1881,7 @@ int envelopeSigCheck( const void *inData, const int inDataLength,
 
 /* Hardware timer read routine used for performance evaluation */
 
-#if defined( __WIN32__ ) && !defined( NDEBUG )
-
-unsigned long getTickCount( unsigned long startTime );
-
-#endif /* __WIN32__ debug build */
+long getTickCount( long startTime );
 
 /****************************************************************************
 *																			*
@@ -1457,12 +1897,56 @@ unsigned long getTickCount( unsigned long startTime );
    versions, so in practice the warn-the-user action is only taken under
    Windows unless the user explicitly enables the use of assertions */
 
-#include <assert.h>
+#if defined( __WINCE__ ) && _WIN32_WCE < 400
+#if 0
+  /* Older WinCE environments don't support assert() because there's no
+     console and no other support for it in the runtime (the documentation
+	 claims there's at least an _ASSERT available, but this isn't present
+	 in many systems such as PocketPC), so we use it if it's available and
+	 otherwise kludge it using NKDbgPrintfW() */
+  #ifndef _ASSERTE
+	#ifdef NDEBUG
+	  #define _ASSERTE( x )
+	#else
+	  #define _ASSERTE( expr )	( void )( ( expr ) || ( NKDbgPrintfW( #expr ) ) )
+	#endif /* Debug vs. non-debug builds */
+  #endif /* _ASSERTE available */
+  #define assert( expr )	_ASSERTE( expr )
+#else
+  /* Older WinCE environments don't support assert() because there's no
+     console and no other support for it in the runtime (the documentation
+	 claims there's at least an _ASSERT available, but this isn't present
+	 in many systems such as PocketPC), so we build our own assert() from
+	 DEBUGMSG().  Note that (in theory) the version check isn't reliable
+	 since we should be checking for the development environment version
+	 rather than the target OS version, however in practice compiler/SDK
+	 version == OS version unless you seriously enjoy pain, and in any case
+	 it's not really possible to differentiate between eVC++ 3.0 and 4.0 -
+	 the SHx, MIPS, and ARM compilers at least report 120{1|2} for 3.0 and
+	 1200 for 3.0, but the x86 compiler reports 1200 for both 3.0 and 4.0
+	 even though it's a different build, 0.8168 vs 0.8807 */
+  #ifdef NDEBUG
+	#define assert( x )
+  #else
+	#define assert( x )		\
+			DEBUGMSG( !( x ), ( TEXT( "Assert failed in %s line %d: %s" ), TEXT( __FILE__ ), __LINE__, TEXT( #x ) ) )
+  #endif /* Debug vs. non-debug builds */
+#endif /* 0 */
+#else
+  #include <assert.h>
+#endif /* Systems without assert() */
 #define NOTREACHED	0	/* Force an assertion failure via assert( NOTREACHED ) */
 
-/* The following macro can be used to enable dumping of PDUs to disk.  As a
-   safeguard, this only works in the Win32 debug version to prevent it from
-   being accidentally enabled in any release version */
+/* The following macro outputs an I-am-here to stdout, useful when tracing
+   errors in code without debug symbols available */
+
+#define DEBUG_INFO()	printf( "%4d %s.\n", __LINE__, __FILE__ );
+
+/* The following macros can be used to enable dumping of PDUs to disk and to
+   create a hex dump of the first n bytes of a buffer, along with the length
+   and a checksum of the entire buffer.  As a safeguard, these only work in
+   the Win32 debug version to prevent them from being accidentally enabled in
+   any release version */
 
 #if defined( __WIN32__ ) && !defined( NDEBUG )
   #define DEBUG_DUMP( name, data, length ) \
@@ -1482,21 +1966,63 @@ unsigned long getTickCount( unsigned long startTime );
 		fclose( filePtr ); \
 		} \
 	}
+
+  #define DEBUG_DUMP_CERT( name, cert ) \
+	{ \
+	RESOURCE_DATA msgData; \
+	FILE *filePtr; \
+	char fileName[ 1024 ]; \
+	BYTE certData[ 2048 ]; \
+	\
+	GetTempPath( 512, fileName ); \
+	strcat( fileName, name ); \
+	strcat( fileName, ".der" ); \
+	\
+	filePtr = fopen( fileName, "wb" ); \
+	if( filePtr != NULL ) \
+		{ \
+		setMessageData( &msgData, certData, 2048 ); \
+		status = krnlSendMessage( cert, IMESSAGE_CRT_EXPORT, &msgData, \
+								  CRYPT_CERTFORMAT_CERTIFICATE ); \
+		if( cryptStatusOK( status ) ) \
+			fwrite( msgData.data, 1, msgData.length, filePtr ); \
+		fclose( filePtr ); \
+		} \
+	}
+
+  #define DEBUG_DUMPHEX( dumpBuf, dumpLen ) \
+	{ \
+	const int maxLen = min( dumpLen, 19 ); \
+	int i; \
+	\
+	printf( "%4d %04X ", dumpLen, checksumData( dumpBuf, dumpLen ) ); \
+	for( i = 0; i < maxLen; i++ ) \
+		printf( "%02X ", ( ( BYTE * ) dumpBuf )[ i ] ); \
+	for( i = 0; i < maxLen; i++ ) \
+		{ \
+		const BYTE ch = ( ( BYTE * ) dumpBuf )[ i ]; \
+		\
+		putchar( isprint( ch ) ? ch : '.' ); \
+		} \
+	putchar( '\n' ); \
+	}
 #else
   #define DEBUG_DUMP( name, data, length )
+  #define DEBUG_DUMP_CERT( name, data, length )
+  #define DEBUG_DUMPHEX( dumpBuf, dumpLen )
 #endif /* Win32 debug */
 
-/* In order to debug memory usage, we can define CONFIG_DEBUG_MALLOC to dump 
+/* In order to debug memory usage, we can define CONFIG_DEBUG_MALLOC to dump
    memory usage diagnostics to stdout (this would usually be done in the
-   makefile rather than hardcoding it in here).  Without this, the debug 
-   malloc just becomes a standard malloc.  Note that crypt/osconfig.h 
-   contains its own debug-malloc() handling for the OpenSSL-derived code 
-   enabled via USE_BN_DEBUG_MALLOC in osconfig.h, and zlib also has its own 
+   makefile rather than hardcoding it in here).  Without this, the debug
+   malloc just becomes a standard malloc.  Note that crypt/osconfig.h
+   contains its own debug-malloc() handling for the OpenSSL-derived code
+   enabled via USE_BN_DEBUG_MALLOC in osconfig.h, and zlib also has its own
    allocation code (which isn't instrumented for diagnostic purposes).
-   
-   In addition in order to control on-demand allocation of buffers for 
-   larger-than-normal data items, we can define CONFIG_NO_DYNALLOC to 
-   disable this allocation.  This is useful in memory-constrained 
+
+   In addition in order to control on-demand allocation of buffers for
+   larger-than-normal data items, we can define CONFIG_NO_DYNALLOC to
+   disable this allocation.  This is useful in memory-constrained
    environments where we can't afford to grab chunks of memory at random */
 
 #ifdef CONFIG_DEBUG_MALLOC
@@ -1506,9 +2032,9 @@ unsigned long getTickCount( unsigned long startTime );
 		  clAllocFn( __FILE__, ( string ), __LINE__, ( size ) )
   #define clFree( string, memblock ) \
 		  clFreeFn( __FILE__, ( string ), __LINE__, ( memblock ) )
-  void *clAllocFn( const char *fileName, const char *fnName, 
+  void *clAllocFn( const char *fileName, const char *fnName,
 				   const int lineNo, size_t size );
-  void clFreeFn( const char *fileName, const char *fnName, 
+  void clFreeFn( const char *fileName, const char *fnName,
 				 const int lineNo, void *memblock );
 #else
   #define clAlloc( string, size )		malloc( size )
@@ -1519,4 +2045,22 @@ unsigned long getTickCount( unsigned long startTime );
 #else
   #define clDynAlloc( string, size )	clAlloc( string, size )
 #endif /* CONFIG_NO_DYNALLOC */
+
+/* Windows NT/2000/XP support ACL-based access control mechanisms for system
+   objects, so when we create objects such as files and threads we give them
+   an ACL that allows only the creator access.  The following functions
+   return the security info needed when creating objects */
+
+#ifdef __WINDOWS__
+  #ifdef __WIN32__
+	void *initACLInfo( const int access );
+	void *getACLInfo( void *securityInfoPtr );
+	void freeACLInfo( void *securityInfoPtr );
+  #else
+	#define initACLInfo( x )	NULL
+	#define getACLInfo( x )		NULL
+	#define freeACLInfo( x )
+  #endif /* __WIN32__ */
+#endif /* __WINDOWS__ */
+
 #endif /* _CRYPT_DEFINED */

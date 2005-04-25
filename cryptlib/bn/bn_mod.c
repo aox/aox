@@ -112,11 +112,7 @@
  */
 
 #if defined( INC_ALL ) || defined( INC_CHILD )
-  #ifdef __TANDEM
-	#include "bnlcl.h"
-  #else
-	#include "bn_lcl.h"
-  #endif /* __TANDEM */
+  #include "bn_lcl.h"
 #else
   #include "bn/bn_lcl.h"
 #endif /* Compiler-specific includes */

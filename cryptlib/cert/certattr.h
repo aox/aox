@@ -237,6 +237,13 @@ const ATTRIBUTE_INFO *oidToAttribute( const ATTRIBUTE_TYPE attributeType,
 
 const ATTRIBUTE_INFO *selectAttributeInfo( const ATTRIBUTE_TYPE attributeType );
 
+/* Get the attribute and attributeID for a field ID */
+
+const ATTRIBUTE_INFO *fieldIDToAttribute( const ATTRIBUTE_TYPE attributeType,
+										  const CRYPT_ATTRIBUTE_TYPE fieldID, 
+										  const CRYPT_ATTRIBUTE_TYPE subFieldID,
+										  CRYPT_ATTRIBUTE_TYPE *attributeID );
+
 /* Write an attribute field */
 
 int writeAttributeField( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr );

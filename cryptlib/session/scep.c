@@ -9,31 +9,22 @@
 #include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "asn1_rw.h"
-  #include "asn1s_rw.h"
+  #include "asn1.h"
+  #include "asn1_ext.h"
   #include "session.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
-  #include "../misc/asn1_rw.h"
-  #include "../misc/asn1s_rw.h"
-  #include "../session/session.h"
+  #include "../misc/asn1.h"
+  #include "../misc/asn1_ext.h"
+  #include "session.h"
 #else
   #include "crypt.h"
-  #include "misc/asn1_rw.h"
-  #include "misc/asn1s_rw.h"
+  #include "misc/asn1.h"
+  #include "misc/asn1_ext.h"
   #include "session/session.h"
 #endif /* Compiler-specific includes */
 
 #ifdef USE_SCEP
-
-/* Uncomment the following to read predefined requests/responses from disk
-   instead of communicating with the client/server */
-
-/* #define SKIP_IO					/* Don't communicate with server */
-#ifdef SKIP_IO
-  #define readPkiDatagram( dummy )	CRYPT_OK
-  #define writePkiDatagram( dummy )	CRYPT_OK
-#endif /* SKIP_IO */
 
 /* Various SCEP constants */
 
@@ -114,28 +105,33 @@ static void destroyProtocolInfo( SCEP_PROTOCOL_INFO *protocolInfo )
 static int checkPkiUserInfo( SESSION_INFO *sessionInfoPtr,
 							 SCEP_PROTOCOL_INFO *protocolInfo )
 	{
+	const ATTRIBUTE_LIST *userNamePtr = \
+				findSessionAttribute( sessionInfoPtr->attributeList,
+									  CRYPT_SESSINFO_USERNAME );
 	MESSAGE_KEYMGMT_INFO getkeyInfo;
 	RESOURCE_DATA msgData;
-	BYTE keyIDbuffer[ CRYPT_MAX_TEXTSIZE ], *keyIDptr = protocolInfo->transID;
-	BYTE password[ CRYPT_MAX_TEXTSIZE ];
-	int keyIDsize = protocolInfo->transIDsize, passwordSize, status;
+	BYTE keyIDbuffer[ CRYPT_MAX_TEXTSIZE ], *keyIDptr = userNamePtr->value;
+	BYTE requestPassword[ CRYPT_MAX_TEXTSIZE ];
+	BYTE userPassword[ CRYPT_MAX_TEXTSIZE ];
+	int requestPasswordSize, userPasswordSize;
+	int keyIDsize = userNamePtr->valueLength, status;
 
 	/* Get the password from the PKCS #10 request */
-	setMessageData( &msgData, password, CRYPT_MAX_TEXTSIZE );
+	setMessageData( &msgData, requestPassword, CRYPT_MAX_TEXTSIZE );
 	status = krnlSendMessage( sessionInfoPtr->iCertRequest, 
 							  IMESSAGE_GETATTRIBUTE_S, &msgData, 
 							  CRYPT_CERTINFO_CHALLENGEPASSWORD );
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status,
 				"Couldn't get challenge password from PKCS #10 request" );
-	passwordSize = msgData.length;
+	requestPasswordSize = msgData.length;
 
 	/* If it's a cryptlib encoded user ID, we need to decode it before we can 
 	   look up a PKI user with it */
-	if( sessionInfoPtr->flags & SESSION_ISENCODEDUSERID )
+	if( userNamePtr->flags & ATTR_FLAG_ENCODEDVALUE )
 		{
-		keyIDsize = decodePKIUserValue( keyIDbuffer, 
-						protocolInfo->transID, protocolInfo->transIDsize );
+		keyIDsize = decodePKIUserValue( keyIDbuffer, userNamePtr->value, 
+										userNamePtr->valueLength );
 		keyIDptr = keyIDbuffer;
 		}
 
@@ -147,37 +143,40 @@ static int checkPkiUserInfo( SESSION_INFO *sessionInfoPtr,
 							  KEYMGMT_ITEM_PKIUSER );
 	if( cryptStatusError( status ) )
 		{
-		zeroise( password, CRYPT_MAX_TEXTSIZE );
+		zeroise( requestPassword, CRYPT_MAX_TEXTSIZE );
 		retExt( sessionInfoPtr, status,
 				"Couldn't get PKI user information for requested user" );
 		}
 
 	/* Get the password from the PKI user object */
-	setMessageData( &msgData, sessionInfoPtr->password, CRYPT_MAX_TEXTSIZE );
+	setMessageData( &msgData, userPassword, CRYPT_MAX_TEXTSIZE );
 	status = krnlSendMessage( getkeyInfo.cryptHandle, 
 							  IMESSAGE_GETATTRIBUTE_S, &msgData,
 							  CRYPT_CERTINFO_PKIUSER_ISSUEPASSWORD );
 	if( cryptStatusError( status ) )
 		{
-		zeroise( password, CRYPT_MAX_TEXTSIZE );
+		zeroise( requestPassword, CRYPT_MAX_TEXTSIZE );
 		krnlSendNotifier( getkeyInfo.cryptHandle, IMESSAGE_DECREFCOUNT );
 		retExt( sessionInfoPtr, status, 
 				"Couldn't read PKI user data from PKI user object" );
 		}
-	sessionInfoPtr->passwordLength = msgData.length;
-	sessionInfoPtr->flags |= SESSION_ISENCODEDPW;
+	userPasswordSize = msgData.length;
+	updateSessionAttribute( &sessionInfoPtr->attributeList, 
+							CRYPT_SESSINFO_PASSWORD, userPassword, 
+							userPasswordSize, CRYPT_MAX_TEXTSIZE,
+							ATTR_FLAG_ENCODEDVALUE );
 
 	/* Make sure that the password matches the one in the request */
-	if( sessionInfoPtr->passwordLength != passwordSize || \
-		memcmp( sessionInfoPtr->password, password, 
-				sessionInfoPtr->passwordLength ) )
+	if( userPasswordSize != requestPasswordSize || \
+		memcmp( userPassword, requestPassword, userPasswordSize ) )
 		{
-		zeroise( password, CRYPT_MAX_TEXTSIZE );
+		zeroise( requestPassword, CRYPT_MAX_TEXTSIZE );
+		zeroise( userPassword, CRYPT_MAX_TEXTSIZE );
 		krnlSendNotifier( getkeyInfo.cryptHandle, IMESSAGE_DECREFCOUNT );
 		retExt( sessionInfoPtr, status, 
 				"Supplied password doesn't match PKI user password" );
 		}
-	zeroise( password, CRYPT_MAX_TEXTSIZE );
+	zeroise( userPassword, CRYPT_MAX_TEXTSIZE );
 
 	/* If the subject only knows their CN, they may send a CN-only subject DN 
 	   in the hope that we can fill it in for them.  In addition there may be 
@@ -300,12 +299,16 @@ static int createScepCert( SESSION_INFO *sessionInfoPtr,
 							  CRYPT_CERTINFO_CERTREQUEST );
 	if( cryptStatusOK( status ) )
 		{
+		const ATTRIBUTE_LIST *userNamePtr = \
+				findSessionAttribute( sessionInfoPtr->attributeList,
+									  CRYPT_SESSINFO_USERNAME );
+
 		/* Set the serial number to the user name/transaction ID,
 		   required by SCEP.  This is the only time that we can write a 
 		   serial number to a certificate, normally it's set automagically
 		   by the cert-management code */
-		setMessageData( &msgData, sessionInfoPtr->userName,
-						sessionInfoPtr->userNameLength );
+		setMessageData( &msgData, userNamePtr->value,
+						userNamePtr->valueLength );
 		status = krnlSendMessage( createInfo.cryptHandle, 
 								  IMESSAGE_SETATTRIBUTE_S, &msgData, 
 								  CRYPT_CERTINFO_SERIALNUMBER );
@@ -367,18 +370,24 @@ static int createScepCert( SESSION_INFO *sessionInfoPtr,
 
 static int createScepRequest( SESSION_INFO *sessionInfoPtr )
 	{
+	const ATTRIBUTE_LIST *attributeListPtr = \
+				findSessionAttribute( sessionInfoPtr->attributeList,
+									  CRYPT_SESSINFO_PASSWORD );
 	RESOURCE_DATA msgData;
-	int status;
+	int status = CRYPT_ERROR_NOTINITED;
 
 	/* Add the password to the PKCS #10 request as a ChallengePassword
 	   attribute and sign the request.  We always send this in its
 	   ASCII string form even if it's an encoded value because the
 	   ChallengePassword attribute has to be a text string */
-	setMessageData( &msgData, sessionInfoPtr->password,
-					sessionInfoPtr->passwordLength );
-	status = krnlSendMessage( sessionInfoPtr->iCertRequest, 
-							  IMESSAGE_SETATTRIBUTE_S, &msgData, 
-							  CRYPT_CERTINFO_CHALLENGEPASSWORD );
+	if( attributeListPtr != NULL )
+		{
+		setMessageData( &msgData, attributeListPtr->value,
+						attributeListPtr->valueLength );
+		status = krnlSendMessage( sessionInfoPtr->iCertRequest, 
+								  IMESSAGE_SETATTRIBUTE_S, &msgData, 
+								  CRYPT_CERTINFO_CHALLENGEPASSWORD );
+		}
 	if( cryptStatusOK( status ) )
 		status = krnlSendMessage( sessionInfoPtr->iCertRequest,
 								  IMESSAGE_CRT_SIGN, NULL,
@@ -397,6 +406,9 @@ static int createScepAttributes( SESSION_INFO *sessionInfoPtr,
 								 const BOOLEAN isInitiator,
 								 const int scepStatus )
 	{
+	const ATTRIBUTE_LIST *userNamePtr = \
+				findSessionAttribute( sessionInfoPtr->attributeList,
+									  CRYPT_SESSINFO_USERNAME );
 	CRYPT_CERTIFICATE iCmsAttributes;
 	MESSAGE_CREATEOBJECT_INFO createInfo;
 	RESOURCE_DATA msgData;
@@ -414,8 +426,7 @@ static int createScepAttributes( SESSION_INFO *sessionInfoPtr,
 	if( cryptStatusError( status ) )
 		return( status );
 	iCmsAttributes = createInfo.cryptHandle;
-	setMessageData( &msgData, sessionInfoPtr->userName,
-					sessionInfoPtr->userNameLength );
+	setMessageData( &msgData, userNamePtr->value, userNamePtr->valueLength );
 	status = krnlSendMessage( iCmsAttributes, IMESSAGE_SETATTRIBUTE_S,
 							  &msgData, CRYPT_CERTINFO_SCEP_TRANSACTIONID );
 	if( cryptStatusOK( status ) )
@@ -552,7 +563,7 @@ static int createPkcsRequest( SESSION_INFO *sessionInfoPtr,
 	status = envelopeWrap( sessionInfoPtr->receiveBuffer, msgData.length,
 						   sessionInfoPtr->receiveBuffer, &dataLength, 
 						   sessionInfoPtr->receiveBufSize,
-						   CRYPT_FORMAT_CMS, CRYPT_UNUSED, 
+						   CRYPT_FORMAT_CMS, CRYPT_CONTENT_NONE, 
 						   sessionInfoPtr->iAuthInContext );
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status,
@@ -749,14 +760,20 @@ static int checkPkcsRequest( SESSION_INFO *sessionInfoPtr,
 		}
 	protocolInfo->transIDsize = msgData.length;
 
-	/* We've got a transaction ID (user ID), remember it for later and record
-	   whether it's a cryptlib encoded ID */
-	memcpy( sessionInfoPtr->userName, protocolInfo->transID,
-			protocolInfo->transIDsize );
-	sessionInfoPtr->userNameLength = protocolInfo->transIDsize;
-	if( protocolInfo->transIDsize == 17 && \
-		isPKIUserValue( protocolInfo->transID, protocolInfo->transIDsize ) )
-		sessionInfoPtr->flags |= SESSION_ISENCODEDUSERID;
+	/* We've got a transaction ID (user ID), remember it for later, 
+	   remembering whether it's a cryptlib encoded ID */
+	status = updateSessionAttribute( &sessionInfoPtr->attributeList,
+						CRYPT_SESSINFO_USERNAME, protocolInfo->transID, 
+						protocolInfo->transIDsize, CRYPT_MAX_HASHSIZE,
+						( protocolInfo->transIDsize == 17 && \
+						  isPKIUserValue( protocolInfo->transID, \
+										  protocolInfo->transIDsize ) ) ? \
+						ATTR_FLAG_ENCODEDVALUE : ATTR_FLAG_NONE );
+	if( cryptStatusError( status ) )
+		{
+		krnlSendNotifier( iCmsAttributes, IMESSAGE_DECREFCOUNT );
+		return( status );
+		}
 
 	/* Check that we've been sent the correct type of message */
 	status = getStatusValue( iCmsAttributes,
@@ -815,7 +832,7 @@ static int createPkcsResponse( SESSION_INFO *sessionInfoPtr,
 	status = envelopeWrap( sessionInfoPtr->receiveBuffer, msgData.length,
 						   sessionInfoPtr->receiveBuffer, &dataLength, 
 						   sessionInfoPtr->receiveBufSize,
-						   CRYPT_FORMAT_CMS, CRYPT_UNUSED, 
+						   CRYPT_FORMAT_CMS, CRYPT_CONTENT_NONE, 
 						   protocolInfo->iScepCert );
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, status,

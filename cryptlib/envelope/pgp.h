@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *							PGP Definitions Header File						*
-*						Copyright Peter Gutmann 1996-2003					*
+*						Copyright Peter Gutmann 1996-2004					*
 *																			*
 ****************************************************************************/
 
@@ -13,9 +13,9 @@
   #if defined( INC_ALL )
 	#include "stream.h"
   #elif defined INC_CHILD
-	#include "../misc/stream.h"
+	#include "../io/stream.h"
   #else
-	#include "misc/stream.h"
+	#include "io/stream.h"
   #endif /* Compiler-specific includes */
 #endif /* _STREAM_DEFINED */
 
@@ -189,8 +189,8 @@ int cryptlibToPgpAlgo( const CRYPT_ALGO_TYPE cryptlibAlgo );
 
 /* Prototypes for functions in pgp_misc.c */
 
-int pgpPasswordToKey( CRYPT_CONTEXT cryptContext, const char *password,
-					  const int passwordLength, 
+int pgpPasswordToKey( CRYPT_CONTEXT cryptContext, const int optKeyLength,
+					  const char *password, const int passwordLength, 
 					  const CRYPT_ALGO_TYPE hashAlgo, const BYTE *salt, 
 					  const int iterations );
 int pgpProcessIV( const CRYPT_CONTEXT iCryptContext, BYTE *ivInfo,

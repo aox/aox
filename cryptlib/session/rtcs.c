@@ -9,31 +9,22 @@
 #include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "asn1_rw.h"
-  #include "asn1s_rw.h"
+  #include "asn1.h"
+  #include "asn1_ext.h"
   #include "session.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
-  #include "../misc/asn1_rw.h"
-  #include "../misc/asn1s_rw.h"
-  #include "../session/session.h"
+  #include "../misc/asn1.h"
+  #include "../misc/asn1_ext.h"
+  #include "session.h"
 #else
   #include "crypt.h"
-  #include "misc/asn1_rw.h"
-  #include "misc/asn1s_rw.h"
+  #include "misc/asn1.h"
+  #include "misc/asn1_ext.h"
   #include "session/session.h"
 #endif /* Compiler-specific includes */
 
 #ifdef USE_RTCS
-
-/* Uncomment the following to read predefined requests/responses from disk
-   instead of communicating with the client/server */
-
-/* #define SKIP_IO					/* Don't communicate with server */
-#ifdef SKIP_IO
-  #define readPkiDatagram( dummy )	CRYPT_OK
-  #define writePkiDatagram( dummy )	CRYPT_OK
-#endif /* SKIP_IO */
 
 /* The action to take to process an RTCS request/response */
 
@@ -63,13 +54,16 @@ typedef struct {
 
 /* Check for a valid-looking RTCS request/response header */
 
-static const FAR_BSS OID_SELECTION envelopeOIDselection[] = {
-	{ OID_CRYPTLIB_RTCSREQ, CRYPT_UNUSED, CRYPT_UNUSED, ACTION_UNWRAP },
-	{ OID_CRYPTLIB_RTCSRESP, CRYPT_UNUSED, CRYPT_UNUSED, ACTION_UNWRAP },
-	{ OID_CRYPTLIB_RTCSRESP_EXT, CRYPT_UNUSED, CRYPT_UNUSED, ACTION_UNWRAP },
-	{ OID_CMS_SIGNEDDATA, 0, 3, ACTION_SIGN },
-	{ OID_CMS_ENVELOPEDDATA, 0, 2, ACTION_CRYPT },
-	{ NULL, 0, 0, 0 }
+static const FAR_BSS CMS_CONTENT_INFO oidInfoSignedData = { 0, 3 };
+static const FAR_BSS CMS_CONTENT_INFO oidInfoEnvelopedData = { 0, 3 };
+
+static const FAR_BSS OID_INFO envelopeOIDinfo[] = {
+	{ OID_CRYPTLIB_RTCSREQ, ACTION_UNWRAP },
+	{ OID_CRYPTLIB_RTCSRESP, ACTION_UNWRAP },
+	{ OID_CRYPTLIB_RTCSRESP_EXT, ACTION_UNWRAP },
+	{ OID_CMS_SIGNEDDATA, ACTION_SIGN, &oidInfoSignedData },
+	{ OID_CMS_ENVELOPEDDATA, ACTION_CRYPT, &oidInfoEnvelopedData },
+	{ NULL, 0 }
 	};
 
 static int checkRtcsHeader( const void *rtcsData, const int rtcsDataLength,
@@ -82,7 +76,7 @@ static int checkRtcsHeader( const void *rtcsData, const int rtcsDataLength,
 
 	/* We've got a valid response, check the CMS encapsulation */
 	sMemConnect( &stream, rtcsData, rtcsDataLength );
-	status = readCMSheader( &stream, envelopeOIDselection, NULL, FALSE );
+	status = readCMSheader( &stream, envelopeOIDinfo, NULL, FALSE );
 	sMemDisconnect( &stream );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -228,17 +222,6 @@ static int readClientRequest( SESSION_INFO *sessionInfoPtr,
 	ACTION_TYPE actionType;
 	int dataLength, status;
 
-/*-----------------------------------------------------------------------*/
-#ifdef SKIP_IO
-{
-FILE *filePtr = fopen( "/tmp/rtcs_sreq.der", "rb" );
-sessionInfoPtr->receiveBufEnd = fread( sessionInfoPtr->receiveBuffer, 1,
-									   sessionInfoPtr->receiveBufSize, filePtr );
-fclose( filePtr );
-status = sessionInfoPtr->receiveBufEnd;
-}
-#endif /* SKIP_IO */
-/*-----------------------------------------------------------------------*/
 	/* Read the request data from the client.  We don't write an error
 	   response at this initial stage to prevent scanning/DOS attacks 
 	   (vir sapit qui pauca loquitur) */
@@ -429,7 +412,8 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 
 	/* If we haven't already got a server name explicitly set, try and get
 	   it from the request */
-	if( !*sessionInfoPtr->serverName )
+	if( findSessionAttribute( sessionInfoPtr->attributeList,
+							  CRYPT_SESSINFO_SERVER_NAME ) == NULL )
 		{
 		char buffer[ MAX_URL_SIZE ];
 

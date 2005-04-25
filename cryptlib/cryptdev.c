@@ -410,10 +410,6 @@ static int deviceMessageFunction( const void *objectInfoPtr,
 			deviceInfoPtr->shutdownFunction != NULL )
 			deviceInfoPtr->shutdownFunction( deviceInfoPtr );
 
-		/* Delete the object itself */
-		zeroise( deviceInfoPtr, sizeof( DEVICE_INFO ) );
-		clFree( "deviceMessageFunction", deviceInfoPtr );
-
 		return( CRYPT_OK );
 		}
 
@@ -484,14 +480,14 @@ static int deviceMessageFunction( const void *objectInfoPtr,
 			   so we always use system mechanisms which we know will get it
 			   right.  Because it should never be used in normal use, we 
 			   throw an exception if we get here inadvertently (if this 
-			   doesn't stop execution, the krnlGetObject() will since it will
-			   refuse to allocate the system object) */
+			   doesn't stop execution, the krnlAcquireObject() will since it 
+			   will refuse to allocate the system object) */
 			assert( NOTREACHED );
 			krnlReleaseObject( deviceInfoPtr->objectHandle );
 			localCryptDevice = SYSTEM_OBJECT_HANDLE;
-			status = krnlGetObject( localCryptDevice, OBJECT_TYPE_DEVICE, 
-									( void ** ) &deviceInfoPtr, 
-									CRYPT_ERROR_SIGNALLED );
+			status = krnlAcquireObject( localCryptDevice, OBJECT_TYPE_DEVICE, 
+										( void ** ) &deviceInfoPtr, 
+										CRYPT_ERROR_SIGNALLED );
 			if( cryptStatusError( status ) )
 				return( status );
 			assert( deviceInfoPtr->mechanismFunctions != NULL );
@@ -525,21 +521,21 @@ static int deviceMessageFunction( const void *objectInfoPtr,
 		return( mechanismFunction( deviceInfoPtr, messageDataPtr ) );
 		}
 
-	/* Process messages that check a device.  Some devices can act as 
-	   keysets, so if the device could store keys of the request type (eg
-	   PKC encryption keys) we report it as being an appropriate keyset */
+	/* Process messages that check a device */
 	if( message == MESSAGE_CHECK )
 		{
-		if( ( messageValue == MESSAGE_CHECK_PKC_ENCRYPT || \
-			  messageValue == MESSAGE_CHECK_PKC_DECRYPT || \
-			  messageValue == MESSAGE_CHECK_PKC_SIGCHECK || \
-			  messageValue == MESSAGE_CHECK_PKC_SIGN ) && \
-			( deviceInfoPtr->type == CRYPT_DEVICE_FORTEZZA || \
-			  deviceInfoPtr->type == CRYPT_DEVICE_PKCS11 || \
-			  deviceInfoPtr->type == CRYPT_DEVICE_CRYPTOAPI ) )
-			return( CRYPT_OK );
+		/* The check for whether this device type can contain an object that 
+		   can perform the requested operation has already been performed by 
+		   the kernel, so there's nothing further to do here */
+		assert( ( messageValue == MESSAGE_CHECK_PKC_ENCRYPT_AVAIL || \
+				  messageValue == MESSAGE_CHECK_PKC_DECRYPT_AVAIL || \
+				  messageValue == MESSAGE_CHECK_PKC_SIGCHECK_AVAIL || \
+				  messageValue == MESSAGE_CHECK_PKC_SIGN_AVAIL ) && \
+				( deviceInfoPtr->type == CRYPT_DEVICE_FORTEZZA || \
+				  deviceInfoPtr->type == CRYPT_DEVICE_PKCS11 || \
+				  deviceInfoPtr->type == CRYPT_DEVICE_CRYPTOAPI ) );
 
-		return( CRYPT_ARGERROR_OBJECT );
+		return( CRYPT_OK );
 		}
 
 	/* Process object-specific messages */
@@ -553,7 +549,8 @@ static int deviceMessageFunction( const void *objectInfoPtr,
 		return( deviceInfoPtr->getItemFunction( deviceInfoPtr,
 								&getkeyInfo->cryptHandle, messageValue,
 								getkeyInfo->keyIDtype, getkeyInfo->keyID,
-								getkeyInfo->keyIDlength, NULL, 0,
+								getkeyInfo->keyIDlength, getkeyInfo->auxInfo, 
+								&getkeyInfo->auxInfoLength, 
 								getkeyInfo->flags ) );
 		}
 	if( message == MESSAGE_KEY_SETKEY )
@@ -654,7 +651,7 @@ static int deviceMessageFunction( const void *objectInfoPtr,
 		if( createObjectFunction  == NULL )
 			return( CRYPT_ERROR_NOTAVAIL );
 
-		/* Get any auxiliary info we may need to create the object */
+		/* Get any auxiliary info that we may need to create the object */
 		if( messageValue == OBJECT_TYPE_CONTEXT )
 			auxInfo = deviceInfoPtr->capabilityInfo;
 
@@ -745,7 +742,7 @@ static int openDevice( CRYPT_DEVICE *device,
 	switch( deviceType )
 		{
 		case CRYPT_DEVICE_NONE:
-			storageSize = 0;
+			storageSize = sizeof( SYSTEMDEV_INFO );
 			break;
 
 		case CRYPT_DEVICE_FORTEZZA:
@@ -779,6 +776,11 @@ static int openDevice( CRYPT_DEVICE *device,
 	deviceInfoPtr->type = deviceType;
 	switch( deviceType )
 		{
+		case CRYPT_DEVICE_NONE:
+			deviceInfoPtr->deviceSystem = \
+							( SYSTEMDEV_INFO * ) deviceInfoPtr->storage;
+			break;
+
 		case CRYPT_DEVICE_FORTEZZA:
 			deviceInfoPtr->deviceFortezza = \
 							( FORTEZZA_INFO * ) deviceInfoPtr->storage;
@@ -854,7 +856,7 @@ int createDevice( MESSAGE_CREATEOBJECT_INFO *createInfo,
 		return( CRYPT_ARGERROR_STR1 );
 
 	/* Wait for any async device driver binding to complete */
-	waitSemaphore( SEMAPHORE_DRIVERBIND );
+	krnlWaitSemaphore( SEMAPHORE_DRIVERBIND );
 
 	/* Pass the call on to the lower-level open function */
 	initStatus = openDevice( &iCryptDevice, createInfo->cryptOwner,

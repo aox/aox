@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						 Enveloping Routines Header File					*
-*						Copyright Peter Gutmann 1996-2003					*
+*						Copyright Peter Gutmann 1996-2004					*
 *																			*
 ****************************************************************************/
 
@@ -13,9 +13,9 @@
   #if defined( INC_ALL )
 	#include "stream.h"
   #elif defined INC_CHILD
-	#include "../misc/stream.h"
+	#include "../io/stream.h"
   #else
-	#include "misc/stream.h"
+	#include "io/stream.h"
   #endif /* Compiler-specific includes */
 #endif /* _STREAM_DEFINED */
 #ifdef USE_COMPRESSION
@@ -28,12 +28,18 @@
   #endif /* Compiler-specific includes */
 #endif /* USE_COMPRESSION */
 
-/* Types of actions that can be performed on a piece of data.  The two key
-   exchange actions are handled identically, but are given different tags
-   because we place PKC-based key exchange actions (which may be handled
-   automatically on de-enveloping) before conventional key exchange actions 
-   (which usually require manual intervention for passphrases).  For this 
-   reason the actions are given in their sort order (i.e. 
+/****************************************************************************
+*																			*
+*								Envelope Actions							*
+*																			*
+****************************************************************************/
+
+/* Types of actions that can be performed on a piece of envelope data.  The 
+   two key exchange actions are handled identically, but are given different 
+   tags because we place PKC-based key exchange actions (which may be 
+   handled automatically on de-enveloping) before conventional key exchange 
+   actions (which usually require manual intervention for passphrases).  For 
+   this reason the actions are given in their sort order (i.e. 
    ACTION_KEYEXCHANGE_PKC precedes ACTION_KEYEXCHANGE in the action list) */
 
 typedef enum {
@@ -50,7 +56,9 @@ typedef enum {
 	ACTION_CRYPT,					/* En/decrypt */
 
 	/* Post-actions */
-	ACTION_SIGN						/* Generate/check signature */
+	ACTION_SIGN,					/* Generate/check signature */
+
+	ACTION_LAST						/* Last valid action type */
 	} ACTION_TYPE;
 
 /* An 'action list' that defines what we need to do to the content when
@@ -59,8 +67,7 @@ typedef enum {
    actually just a single action rather than a list), and one to perform 
    after enveloping.  ACTION_KEYEXCHANGE and ACTION_KEYEXCHANGE_PKC are found 
    in the pre-enveloping list, ACTION_SIGN in the post-enveloping list, and 
-   everything else in the during-enveloping list.  A collection of similar 
-   actions is called an action group.
+   everything else in the during-enveloping list.
 
    Some actions are many-to-one, in which a number of controlling actions in
    one list may act on a single subject action in another list (for example a
@@ -109,6 +116,41 @@ typedef struct AI {
 	int encodedSize;				/* The encoded size of the action */
 	} ACTION_LIST;
 
+/* Result codes for the checkAction() function when adding an action to
+   an action list.  The two 'action present' results are for the case where 
+   the action is already present and shouldn't be added again, and where the 
+   action is present from being added as an (invisible to the user) side-
+   effect of another action being added, so that this attempt to add it 
+   should be reported as CRYPT_OK rather than CRYPT_INITED */
+
+typedef enum {
+	ACTION_RESULT_OK,				/* Action not present, can be added */
+	ACTION_RESULT_EMPTY,			/* Action list is empty */
+	ACTION_RESULT_INITED,			/* Action present (CRYPT_ERROR_INITED) */
+	ACTION_RESULT_PRESENT,			/* Action present (CRYPT_OK) */
+	ACTION_RESULT_ERROR,			/* Arg.error (CRYPT_ARGERROR_NUM1) */
+	ACTION_RESULT_LAST				/* Last valid action result type */
+	} ACTION_RESULT;
+
+/* Content information flags.  These are:
+
+	CONTENTLIST_ISSIGOBJ: The contentInfo union contains information from a 
+			signature object, otherwise it contains data from an encryption
+			object.
+
+	CONTENTLIST_PROCESSED: The signature object has been processed by having
+			the signature verified (or at least attempted to be verified).
+			The verification result is stored/cached with the content info 
+			for later use.
+
+	CONTENTLIST_EXTERNALKEY: The signature-check key was supplied by the user
+			rather than being instantiated internally from certificates
+			associated with the signature */
+
+#define CONTENTLIST_ISSIGOBJ	0x01	/* Item is signature object */
+#define CONTENTLIST_PROCESSED	0x02	/* Whether object has been processed */
+#define CONTENTLIST_EXTERNALKEY	0x04	/* Whether key was added externally */
+
 /* A 'content list' which is used to store objects found in the non-data
    portion of the envelope until we can do something with them when de-
    enveloping data.  If the envelope contains encrypted data this list
@@ -116,10 +158,6 @@ typedef struct AI {
    recover the session key.  If the envelope contains signed data this list
    contains the signature(s) until we get signature keys to check them.  The
    same list is used for two purposes at different times */
-
-#define CONTENTLIST_ISSIGOBJ	0x01	/* Item is signature object */
-#define CONTENTLIST_PROCESSED	0x02	/* Whether object has been processed */
-#define CONTENTLIST_EXTERNALKEY	0x04	/* Whether key was added externally */
 
 #define clEncrInfo	contentInfo.contentEncrInfo
 #define clSigInfo	contentInfo.contentSigInfo
@@ -133,6 +171,7 @@ typedef struct {
 	CRYPT_CERTIFICATE iExtraData;	/* Authent.attrib.in CMS signatures */
 	void *extraData;				/* Authent.attrib.in PGP signatures */
 	int extraDataLength;
+	CRYPT_ENVELOPE iTimestamp;		/* Unauth.attrib.in CMS signatures */
 	void *extraData2;				/* Unauthenticated attributes */
 	int extraData2Length;
 
@@ -142,6 +181,12 @@ typedef struct {
 	   be processed multiple times if the user wanders up and down the 
 	   content list using the cursor management capabilities) */
 	int processingResult;			/* Result of processing */
+	
+	/* To allow positioning of the cursor within this item (== attribute 
+	   group), we have to keep track of the virtual position within the
+	   group.  The virtual attribute order is result -> key -> auth.
+	   attr -> timestamp */
+	CRYPT_ATTRIBUTE_TYPE attributeCursorEntry;
 	} CONTENT_SIG_INFO;
 
 typedef struct {
@@ -161,7 +206,7 @@ typedef struct CL {
 	CRYPT_ATTRIBUTE_TYPE envInfo;	/* Env.info required to continue */
 	CRYPT_FORMAT_TYPE formatType;	/* Data format */
 	int flags;						/* Item flags */
-	struct CL *next;				/* Next item in the list */
+	struct CL *prev, *next;			/* Prev, next items in the list */
 
 	/* The object contained in this list element.  All object type-specific
 	   pointers in the xxxInfo data point into fields inside this data */
@@ -182,6 +227,12 @@ typedef struct CL {
 		} contentInfo;
 	} CONTENT_LIST;
 
+/****************************************************************************
+*																			*
+*								De-envelope Actions							*
+*																			*
+****************************************************************************/
+
 /* The current state of the (de)enveloping.  The states are the predata state
    (when we're performing final setup steps and handling header information
    in the envelope), the data state (when we're enveloping data), the
@@ -194,18 +245,19 @@ typedef enum {
 	STATE_DATA,						/* During (de)enveloping of data */
 	STATE_POSTDATA,					/* After (de)enveloping of data */
 	STATE_EXTRADATA,				/* Additional out-of-band data */
-	STATE_FINISHED					/* Finished processing */
+	STATE_FINISHED,					/* Finished processing */
+	STATE_LAST						/* Last valid enveloping state */
 	} ENVELOPE_STATE;
 
-/* The current state of the processing of headers that contain non-data
+/* The current state of the processing of CMS headers that contain non-data
    during the enveloping process.  Before the enveloping of data begins, the
    user pushes in a variety of enveloping information, which in turn might
    trigger the creation of more internal information objects.  Once the
    enveloping begins, this information is encoded as ASN.1 structures and 
-   written into the envelope buffer.  This encoding process can be 
-   interrupted at any point when the envelope buffer fills up, so we break 
-   it down into a series of atomic states between which the enveloping 
-   process can be interrupted by the caller removing data from the envelope.
+   written into the envelope buffer.  The encoding process can be interrupted 
+   at any point when the envelope buffer fills up, so we break it down into a 
+   series of atomic states between which the enveloping process can be 
+   interrupted by the caller removing data from the envelope.
 
    There are two sets of states, the first set that covers the encoding of
    the header information at the start of the envelope (only key exchange
@@ -226,7 +278,9 @@ typedef enum {
 	ENVSTATE_FLUSHED,				/* Data flushed through into buffer */
 	ENVSTATE_SIGNATURE,				/* Emitting signatures */
 
-	ENVSTATE_DONE					/* Finished processing header/trailer */
+	ENVSTATE_DONE,					/* Finished processing header/trailer */
+
+	ENVSTATE_LAST					/* Last valid enveloping state */
 	} ENV_STATE;
 
 /* The current state of the processing of CMS headers that contain non-data
@@ -270,7 +324,9 @@ typedef enum {
 	DEENVSTATE_SIG,					/* Processing Signature records */
 	DEENVSTATE_EOC,					/* Processing end-of-contents octets */
 
-	DEENVSTATE_DONE					/* Finished processing header/trailer */
+	DEENVSTATE_DONE,				/* Finished processing header/trailer */
+
+	DEENVSTATE_LAST					/* Last valid de-enveloping state */
 	} DEENV_STATE;
 
 /* The current state of processing of PGP headers that contain non-data in 
@@ -301,23 +357,40 @@ typedef enum {
 	PGP_DEENVSTATE_DATA,			/* Data */
 	PGP_DEENVSTATE_DATA_HEADER,		/* Out-of-band data inside compressed data */
 
-	PGP_DEENVSTATE_DONE				/* Finished processing message */
+	PGP_DEENVSTATE_DONE,			/* Finished processing message */
+
+	PGP_DEENVSTATE_LAST				/* Last valid de-enveloping state */
 	} PGP_DEENV_STATE;
 
 /* The current state of processing of headers for data segments nested inside
-   the OCTET STRING that contains the envelopes content.  Since we can run
-   out of data at any point, we have to preserve the current state so we can
-   continue when we get more data */
+   the OCTET STRING that contains the envelope's content.  Since we can run
+   out of data at any point, we have to preserve the current state so that we 
+   can continue when we get more data */
 
 typedef enum {
 	SEGHDRSTATE_NONE,				/* No header processing/before header */
 	SEGHDRSTATE_LEN_OF_LEN,			/* Expecting OCTET STRING len-of-len */
 	SEGHDRSTATE_LEN,				/* Processing OCTET STRING length */
 	SEGHDRSTATE_END,				/* Expecting second end-of-contents oct.*/
-	SEGHDRSTATE_DONE				/* Parsed entire header */
+	SEGHDRSTATE_DONE,				/* Parsed entire header */
+	SEGHDRSTATE_LAST				/* Last valid header state */
 	} SEGHDR_STATE;
 
-/* Envelope information flags */
+/* Envelope information flags.  These are:
+
+	ENVELOPE_ISDEENVELOPE: The envelope is a de-enveloping envelope.
+
+	ENVELOPE_DETACHED_SIG: The (signed data) envelope should generate a
+			standalone detached signature rather than signed enveloped data.
+
+	ENVELOPE_NOSIGNINGCERTS: When generating a S/MIME signed data, don't
+			include the signing certificates with the data.
+
+	ENVELOPE_ATTRONLY: The (signed data) envelope only contains authenticated
+			attributes, but not actual data.  This is required by SCEP.
+
+	ENVELOPE_ZSTREAMINITED: Whether the zlib compression/decompression stream
+			has been initialised */
 
 #define ENVELOPE_ISDEENVELOPE	0x01	/* De-enveloping envelope */
 #define ENVELOPE_DETACHED_SIG	0x02	/* Generate detached signature */
@@ -325,7 +398,30 @@ typedef enum {
 #define ENVELOPE_ATTRONLY		0x08	/* Env.contains only auth'd attrs.*/
 #define ENVELOPE_ZSTREAMINITED	0x10	/* Whether zlib stream has been inited */
 
-/* Envelope data processing flags */
+/* Envelope data processing flags.  These are:
+
+	ENVDATA_HASINDEFTRAILER: The (signed) envelope trailer has an indefinite
+			length due to the use of signature algorithms that produce 
+			variable-length output that can't be determined in advance.
+
+	ENVDATA_HASHACTIONSACTIVE: The (signed) envelope is currently hashing
+			payload data.
+
+	ENVDATA_NOSEGMENT: The payload data shouldn't be segmented because a
+			definite-length encoding is being used.
+
+	ENVDATA_SEGMENTCOMPLETE: An indefinite-length segment has been completed
+			an another one must be begun before more payload data can be
+			emitted.
+
+	ENVDATA_ENDOFCONTENTS: The EOC octets on indefinite payload data have 
+			been reached.
+
+	ENVDATA_NEEDSPADDING: Before (encrypted) enveloping can been completed 
+			the payload data needs PKCS #5 padding added to it.
+
+   The handling of several of these flags is quite complex, more details can 
+   be found in encode/decode.c */
 
 #define ENVDATA_HASINDEFTRAILER	0x01	/* Whether trailer size is indefinite */
 #define ENVDATA_HASHACTIONSACTIVE 0x02	/* Payload hashing is active */
@@ -371,7 +467,7 @@ typedef struct EI {
 
 	/* When prepending or appending header or trailer information to an
 	   envelope we need to record the current position in the action list so
-	   we can continue later if we run out of room */
+	   that we can continue later if we run out of room */
 	ACTION_LIST *lastAction;
 
 	/* When de-enveloping we may have objects present that can't be used
@@ -408,7 +504,7 @@ typedef struct EI {
 	   having to check the action list each time, so we set the
 	   ENVDATA_HASHACTIONSACTIVE flag to indicate that hashing is taking 
 	   place.  This is only set while the hashing is taking place, once 
-	   there's no more data to be hashed it's cleared to preventout-of-band 
+	   there's no more data to be hashed it's cleared to prevent out-of-band 
 	   data from being hashed as well */
 	CRYPT_CONTEXT iCryptContext;
 
@@ -457,9 +553,9 @@ typedef struct EI {
 	long payloadSize;
 
 	/* The current state of header processing.  The cryptlib/CMS and PGP
-	   processing states are kept seperate (although they could be merged
-	   into the same variable) because they are conceptually seperate and
-	   shouldn't really be treated as the same thing */
+	   processing states are kept separate (although they could actually be 
+	   merged into the same variable) because they are conceptually separate 
+	   and shouldn't really be treated as the same thing */
 	ENVELOPE_STATE state;			/* Current state of processing */
 	ENV_STATE envState;				/* Current state of env.non-data proc.*/
 	DEENV_STATE deenvState;			/* Current state of de-env.non-data proc.*/
@@ -488,23 +584,27 @@ typedef struct EI {
 	int oobBufPos;
 
 	/* Information on the current OCTET STRING segment in the buffer during
-	   the enveloping process.  We keep track of the segment start point 
+	   the de-enveloping process.  We keep track of the segment start point 
 	   (the byte after the OCTET STRING tag), the segment data start point 
 	   (which may move when the segment is terminated if the length encoding 
-	   shrinks due to a short segment), the remaining data in the current 
-	   segment (explicitly declared as a long since we may be processing 
-	   data that came from a 32-bit machine on a 16-bit machine), and 
-	   whether we've just completed a segment (which we need to do before we 
-	   can pop any data from the envelope, this is tracked via the
-	   ENVDATA_SEGMENTCOMPLETE flag).  In addition we track where the last
-	   completed segment ends, as the buffer may contain one or more 
-	   completed segments followed by an incomplete segment, and any attempt 
-	   to read into the incomplete segment will require it to be completed 
-	   first */
+	   shrinks due to a short segment), and whether we've just completed a 
+	   segment (which we need to do before we can pop any data from the 
+	   envelope, this is tracked via the ENVDATA_SEGMENTCOMPLETE flag).  In 
+	   addition we track where the last completed segment ends, as the buffer 
+	   may contain one or more completed segments followed by an incomplete 
+	   segment, and any attempt to read into the incomplete segment will 
+	   require it to be completed first */
 	int segmentStart;				/* Segment len+data start point */
 	int segmentDataStart;			/* Segment data start point */
-	long segmentSize;				/* Remaining data in segment */
 	int segmentDataEnd;				/* End of completed data */
+
+	/* The remaining data in the current OCTET STRING segment, explicitly 
+	   declared as a long since we may be processing data that came from a 
+	   32-bit machine on a 16-bit machine.  During enveloping this is used
+	   to track the amount of data left from the user-declared payloadSize
+	   that can still be added to the envelope.  During de-enveloping, it's 
+	   used to record how much data is left in the current segment */
+	long segmentSize;				/* Remaining data in segment */
 
 	/* If the amount of data pushed in results in only part of a segment
 	   header being available during the decoding process, we need to record
@@ -580,12 +680,21 @@ typedef struct EI {
 	DECLARE_VARSTRUCT_VARS;
 	} ENVELOPE_INFO;
 
+/****************************************************************************
+*																			*
+*								Enveloping Functions						*
+*																			*
+****************************************************************************/
+
 /* Prototypes for envelope action management functions */
 
 ACTION_LIST *addAction( ACTION_LIST **actionListHeadPtrPtr,
 						MEMPOOL_STATE memPoolState,
 						const ACTION_TYPE actionType,
 						const CRYPT_HANDLE cryptHandle );
+ACTION_RESULT checkAction( const ACTION_LIST *actionListStart,
+						   const ACTION_TYPE actionType, 
+						   const CRYPT_HANDLE cryptHandle );
 ACTION_LIST *findAction( ACTION_LIST *actionListPtr,
 						 const ACTION_TYPE actionType );
 void deleteAction( ACTION_LIST **actionListHead, 
@@ -605,9 +714,15 @@ CONTENT_LIST *createContentListItem( MEMPOOL_STATE memPoolState,
 									 const void *object, const int objectSize,
 									 const BOOLEAN isSigObject );
 void appendContentListItem( ENVELOPE_INFO *envelopeInfoPtr,
-							const CONTENT_LIST *contentListItem );
+							CONTENT_LIST *contentListItem );
 void deleteContentList( MEMPOOL_STATE memPoolState,
-						CONTENT_LIST *contentListPtr );
+						CONTENT_LIST **contentListHeadPtr );
+
+/* Prototypes for misc.management functions */
+
+int addKeyset( ENVELOPE_INFO *envelopeInfoPtr,
+			   const CRYPT_ATTRIBUTE_TYPE keysetFunction,
+			   const CRYPT_KEYSET keyset );
 
 /* Prepare the envelope for data en/decryption */
 
@@ -635,6 +750,7 @@ int initEnvelopeEncryption( ENVELOPE_INFO *envelopeInfoPtr,
   #define initPGPDeenveloping( envelopeInfoPtr )
 #endif /* USE_PGP */
 void initEnvelopeStreaming( ENVELOPE_INFO *envelopeInfoPtr );
+void initEnvResourceHandling( ENVELOPE_INFO *envelopeInfoPtr );
 void initDeenvelopeStreaming( ENVELOPE_INFO *envelopeInfoPtr );
-void initResourceHandling( ENVELOPE_INFO *envelopeInfoPtr );
+void initDenvResourceHandling( ENVELOPE_INFO *envelopeInfoPtr );
 #endif /* _ENV_DEFINED */

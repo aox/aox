@@ -1,0 +1,35 @@
+; cryptlib resource file
+
+#include <ver.h>
+
+VS_VERSION_INFO		VERSIONINFO
+FILEVERSION			3,2,0
+PRODUCTVERSION		3,2,0
+FILEFLAGSMASK		VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+  FILEFLAGS			VS_FF_DEBUG | VS_FF_PRIVATEBUILD | VS_FF_PRERELEASE
+#else
+  FILEFLAGS			0
+#endif
+FILEOS				VOS_DOS_WINDOWS16
+FILETYPE			VFT_DLL
+FILESUBTYPE			VFT2_UNKNOWN
+BEGIN
+  BLOCK "VarFileInfo"
+  BEGIN
+	VALUE "Translation", 0x0409, 1252	; US English, Windoze charset
+  END
+
+  BLOCK "StringFileInfo"
+  BEGIN
+	BLOCK "040904E4"					; US English, Windoze charset data
+	BEGIN
+	  VALUE "FileDescription", "cryptlib security toolkit\0"
+	  VALUE "ProductName", "cryptlib security toolkit\0"
+	  VALUE "CompanyName", "Peter Gutmann\0"
+	  VALUE "LegalCopyright", "Copyright \251 1994 - 2005 Peter Gutmann, Eric Young, OpenSSL\0"
+	  VALUE "FileVersion", "3.2\0"
+	  VALUE "ProductVersion", "3.2\0"
+	END
+  END
+END

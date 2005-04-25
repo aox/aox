@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						 cryptlib Configuration Routines					*
-*						Copyright Peter Gutmann 1994-2003					*
+*						Copyright Peter Gutmann 1994-2005					*
 *																			*
 ****************************************************************************/
 
@@ -11,9 +11,9 @@
 #include <string.h>
 #include "crypt.h"
 #ifdef INC_ALL
-  #include "asn1_rw.h"
+  #include "asn1.h"
 #else
-  #include "misc/asn1_rw.h"
+  #include "misc/asn1.h"
 #endif /* Compiler-specific includes */
 
 /* Prototypes for cert trust management functions */
@@ -62,73 +62,90 @@ typedef struct {
 	BOOLEAN dirty;					/* Whether option has been changed */
 	} OPTION_INFO;
 
+#define MK_OPTION( option, value, index ) \
+	{ option, OPTION_NUMERIC, index, NULL, value }
+#define MK_OPTION_B( option, value, index ) \
+	{ option, OPTION_BOOLEAN, index, NULL, value }
+#define MK_OPTION_S( option, value, index ) \
+	{ option, OPTION_STRING, index, value, 0 }
+#define MK_OPTION_NONE() \
+	{ CRYPT_ATTRIBUTE_NONE, OPTION_NONE, CRYPT_UNUSED, NULL, 0 }
+
 static const FAR_BSS FIXED_OPTION_INFO fixedOptionInfo[] = {
 	/* Dummy entry for CRYPT_ATTRIBUTE_NONE */
-	{ CRYPT_ATTRIBUTE_NONE, 0 },
+	MK_OPTION_NONE(),
 
 	/* cryptlib information (read-only) */
-	{ CRYPT_OPTION_INFO_DESCRIPTION, OPTION_STRING, CRYPT_UNUSED, "cryptlib security toolkit" },
-	{ CRYPT_OPTION_INFO_COPYRIGHT, OPTION_STRING, CRYPT_UNUSED, "Copyright Peter Gutmann, Eric Young, OpenSSL, 1994-2004" },
-	{ CRYPT_OPTION_INFO_MAJORVERSION, OPTION_NUMERIC, CRYPT_UNUSED, NULL, 3 },
-	{ CRYPT_OPTION_INFO_MINORVERSION, OPTION_NUMERIC, CRYPT_UNUSED, NULL, 1 },
-	{ CRYPT_OPTION_INFO_STEPPING, OPTION_NUMERIC, CRYPT_UNUSED, NULL, 0 },
+	MK_OPTION_S( CRYPT_OPTION_INFO_DESCRIPTION, "cryptlib security toolkit", CRYPT_UNUSED ),
+	MK_OPTION_S( CRYPT_OPTION_INFO_COPYRIGHT, "Copyright Peter Gutmann, Eric Young, OpenSSL, 1994-2005", CRYPT_UNUSED ),
+	MK_OPTION( CRYPT_OPTION_INFO_MAJORVERSION, 3, CRYPT_UNUSED ),
+	MK_OPTION( CRYPT_OPTION_INFO_MINORVERSION, 2, CRYPT_UNUSED ),
+	MK_OPTION( CRYPT_OPTION_INFO_STEPPING, 0, CRYPT_UNUSED ),
 
 	/* Context options, base = 0 */
 	/* Algorithm = Conventional encryption/hash/MAC options */
-	{ CRYPT_OPTION_ENCR_ALGO, OPTION_NUMERIC, 0, NULL, CRYPT_ALGO_3DES },
-	{ CRYPT_OPTION_ENCR_HASH, OPTION_NUMERIC, 1, NULL, CRYPT_ALGO_SHA },
-	{ CRYPT_OPTION_ENCR_MAC, OPTION_NUMERIC, 2, NULL, CRYPT_ALGO_HMAC_SHA },
+	MK_OPTION( CRYPT_OPTION_ENCR_ALGO, CRYPT_ALGO_3DES, 0 ),
+	MK_OPTION( CRYPT_OPTION_ENCR_HASH, CRYPT_ALGO_SHA, 1 ),
+	MK_OPTION( CRYPT_OPTION_ENCR_MAC, CRYPT_ALGO_HMAC_SHA, 2 ),
 
 	/* Algorithm = PKC options */
-	{ CRYPT_OPTION_PKC_ALGO, OPTION_NUMERIC, 3, NULL, CRYPT_ALGO_RSA },
-	{ CRYPT_OPTION_PKC_KEYSIZE, OPTION_NUMERIC, 4, NULL, bitsToBytes( 1024 ) },
+	MK_OPTION( CRYPT_OPTION_PKC_ALGO, CRYPT_ALGO_RSA, 3 ),
+	MK_OPTION( CRYPT_OPTION_PKC_KEYSIZE, bitsToBytes( 1024 ), 4 ),
 
 	/* Algorithm = Signature options */
-	{ CRYPT_OPTION_SIG_ALGO, OPTION_NUMERIC, 5, NULL, CRYPT_ALGO_RSA },
-	{ CRYPT_OPTION_SIG_KEYSIZE, OPTION_NUMERIC, 6, NULL, bitsToBytes( 1024 ) },
+	MK_OPTION( CRYPT_OPTION_SIG_ALGO, CRYPT_ALGO_RSA, 5 ),
+	MK_OPTION( CRYPT_OPTION_SIG_KEYSIZE, bitsToBytes( 1024 ), 6 ),
 
 	/* Algorithm = Key derivation options */
-	{ CRYPT_OPTION_KEYING_ALGO, OPTION_NUMERIC, 7, NULL, CRYPT_ALGO_SHA },
-	{ CRYPT_OPTION_KEYING_ITERATIONS, OPTION_NUMERIC, 8, NULL, 500 },
+	MK_OPTION( CRYPT_OPTION_KEYING_ALGO, CRYPT_ALGO_SHA, 7 ),
+	MK_OPTION( CRYPT_OPTION_KEYING_ITERATIONS, 500, 8 ),
 
 	/* Certificate options, base = 100 */
-	{ CRYPT_OPTION_CERT_SIGNUNRECOGNISEDATTRIBUTES, OPTION_BOOLEAN, 100, NULL, FALSE },
-	{ CRYPT_OPTION_CERT_VALIDITY, OPTION_NUMERIC, 101, NULL, 365 },
-	{ CRYPT_OPTION_CERT_UPDATEINTERVAL, OPTION_NUMERIC, 102, NULL, 90 },
-	{ CRYPT_OPTION_CERT_COMPLIANCELEVEL, OPTION_NUMERIC, 103, NULL, CRYPT_COMPLIANCELEVEL_STANDARD },
+	MK_OPTION_B( CRYPT_OPTION_CERT_SIGNUNRECOGNISEDATTRIBUTES, FALSE, 100 ),
+	MK_OPTION( CRYPT_OPTION_CERT_VALIDITY, 365, 101 ),
+	MK_OPTION( CRYPT_OPTION_CERT_UPDATEINTERVAL, 90, 102 ),
+	MK_OPTION( CRYPT_OPTION_CERT_COMPLIANCELEVEL, CRYPT_COMPLIANCELEVEL_STANDARD, 103 ),
+	MK_OPTION_B( CRYPT_OPTION_CERT_REQUIREPOLICY, TRUE, 104 ),
 
 	/* CMS options */
-	{ CRYPT_OPTION_CMS_DEFAULTATTRIBUTES, OPTION_BOOLEAN, 104, NULL, TRUE },
+	MK_OPTION_B( CRYPT_OPTION_CMS_DEFAULTATTRIBUTES, TRUE, 105 ),
 
 	/* Keyset options, base = 200 */
 	/* Keyset = LDAP options */
-	{ CRYPT_OPTION_KEYS_LDAP_OBJECTCLASS, OPTION_STRING, 200, "inetOrgPerson" },
-	{ CRYPT_OPTION_KEYS_LDAP_OBJECTTYPE, OPTION_NUMERIC, 201, NULL, CRYPT_CERTTYPE_NONE },
-	{ CRYPT_OPTION_KEYS_LDAP_FILTER, OPTION_STRING, 202, "(objectclass=*)" },
-	{ CRYPT_OPTION_KEYS_LDAP_CACERTNAME, OPTION_STRING, 203, "cACertificate;binary" },
-	{ CRYPT_OPTION_KEYS_LDAP_CERTNAME, OPTION_STRING, 204, "userCertificate;binary" },
-	{ CRYPT_OPTION_KEYS_LDAP_CRLNAME, OPTION_STRING, 205, "certificateRevocationList;binary" },
-	{ CRYPT_OPTION_KEYS_LDAP_EMAILNAME, OPTION_STRING, 206, "mail" },
+	MK_OPTION_S( CRYPT_OPTION_KEYS_LDAP_OBJECTCLASS, "inetOrgPerson", 200 ),
+	MK_OPTION( CRYPT_OPTION_KEYS_LDAP_OBJECTTYPE, CRYPT_CERTTYPE_NONE, 201 ),
+	MK_OPTION_S( CRYPT_OPTION_KEYS_LDAP_FILTER, "(objectclass=*)", 202 ),
+	MK_OPTION_S( CRYPT_OPTION_KEYS_LDAP_CACERTNAME, "cACertificate;binary", 203 ),
+	MK_OPTION_S( CRYPT_OPTION_KEYS_LDAP_CERTNAME, "userCertificate;binary", 204 ),
+	MK_OPTION_S( CRYPT_OPTION_KEYS_LDAP_CRLNAME, "certificateRevocationList;binary", 205 ),
+	MK_OPTION_S( CRYPT_OPTION_KEYS_LDAP_EMAILNAME, "mail", 206 ),
 
 	/* Device options, base = 300 */
 	/* Device = PKCS #11 token options */
-	{ CRYPT_OPTION_DEVICE_PKCS11_DVR01, OPTION_STRING, 300, NULL },
-	{ CRYPT_OPTION_DEVICE_PKCS11_DVR02, OPTION_STRING, 301, NULL },
-	{ CRYPT_OPTION_DEVICE_PKCS11_DVR03, OPTION_STRING, 302, NULL },
-	{ CRYPT_OPTION_DEVICE_PKCS11_DVR04, OPTION_STRING, 303, NULL },
-	{ CRYPT_OPTION_DEVICE_PKCS11_DVR05, OPTION_STRING, 304, NULL },
-	{ CRYPT_OPTION_DEVICE_PKCS11_HARDWAREONLY, OPTION_BOOLEAN, 305, NULL, FALSE },
+	MK_OPTION_S( CRYPT_OPTION_DEVICE_PKCS11_DVR01, NULL, 300 ),
+	MK_OPTION_S( CRYPT_OPTION_DEVICE_PKCS11_DVR02, NULL, 301 ),
+	MK_OPTION_S( CRYPT_OPTION_DEVICE_PKCS11_DVR03, NULL, 302 ),
+	MK_OPTION_S( CRYPT_OPTION_DEVICE_PKCS11_DVR04, NULL, 303 ),
+	MK_OPTION_S( CRYPT_OPTION_DEVICE_PKCS11_DVR05, NULL, 304 ),
+	MK_OPTION_B( CRYPT_OPTION_DEVICE_PKCS11_HARDWAREONLY, FALSE, 305 ),
 
 	/* Session options, base = 400 */
 
-	/* Miscellaneous options, base = 500 */
-	{ CRYPT_OPTION_NET_SOCKS_SERVER, OPTION_STRING, 500, NULL },
-	{ CRYPT_OPTION_NET_SOCKS_USERNAME, OPTION_STRING, 501, NULL },
-	{ CRYPT_OPTION_NET_HTTP_PROXY, OPTION_STRING, 502, NULL },
-	{ CRYPT_OPTION_NET_CONNECTTIMEOUT, OPTION_NUMERIC, 503, NULL, 30 },
-	{ CRYPT_OPTION_NET_TIMEOUT, OPTION_NUMERIC, 504, NULL, 0 },
-	{ CRYPT_OPTION_MISC_ASYNCINIT, OPTION_BOOLEAN, 505, NULL, TRUE },
-	{ CRYPT_OPTION_MISC_SIDECHANNELPROTECTION, OPTION_BOOLEAN, 506, NULL, FALSE },
+	/* Miscellaneous options, base = 500.  The network options are mostly
+	   used by sessions, but also apply to other object types like network
+	   keysets, so they're classed as miscellaneous options */
+	MK_OPTION_S( CRYPT_OPTION_NET_SOCKS_SERVER, NULL, 500 ),
+	MK_OPTION_S( CRYPT_OPTION_NET_SOCKS_USERNAME, NULL, 501 ),
+	MK_OPTION_S( CRYPT_OPTION_NET_HTTP_PROXY, NULL, 502 ),
+	MK_OPTION( CRYPT_OPTION_NET_CONNECTTIMEOUT, 30, 503 ),
+	MK_OPTION( CRYPT_OPTION_NET_READTIMEOUT, 0, 504 ),
+	MK_OPTION( CRYPT_OPTION_NET_WRITETIMEOUT, 2, 505 ),
+	MK_OPTION_B( CRYPT_OPTION_MISC_ASYNCINIT, TRUE, 506 ),
+	MK_OPTION_B( CRYPT_OPTION_MISC_SIDECHANNELPROTECTION, FALSE, 507 ),
+
+	/* All options beyond this point are ephemeral and aren't stored to disk.
+	   Remember to update the LAST_STORED_OPTION define below when adding
+	   new options here */
 
 	/* cryptlib state information.  These are special-case options that
 	   record state information rather than a static config value.  The
@@ -136,17 +153,19 @@ static const FAR_BSS FIXED_OPTION_INFO fixedOptionInfo[] = {
 	   to TRUE if any config option is changed.  Writing it to FALSE commits
 	   the changes to disk.  The self-test status value is initially set to
 	   FALSE, writing it to TRUE triggers a self-test for which the value
-	   remains at TRUE if the test succeeds */
-	{ CRYPT_OPTION_CONFIGCHANGED, OPTION_BOOLEAN, CRYPT_UNUSED, NULL, FALSE },
-	{ CRYPT_OPTION_SELFTESTOK, OPTION_BOOLEAN, CRYPT_UNUSED, NULL, FALSE },
+	   remains at TRUE if the test succeeds.  Writing it to a particular
+	   algorithm value tests only that algorithm */
+	MK_OPTION_B( CRYPT_OPTION_CONFIGCHANGED, FALSE, CRYPT_UNUSED ),
+	MK_OPTION( CRYPT_OPTION_SELFTESTOK, FALSE, CRYPT_UNUSED ),
 
-	{ CRYPT_ATTRIBUTE_NONE, OPTION_NONE, CRYPT_UNUSED, NULL, 0 }
+	/* End-of-list marker */
+	MK_OPTION_NONE()
 	};
 
 /* The last option that's written to disk.  Further options beyond this one
    are ephemeral and are never written to disk */
 
-#define LAST_STORED_OPTION	CRYPT_OPTION_MISC_ASYNCINIT
+#define LAST_STORED_OPTION	CRYPT_OPTION_MISC_SIDECHANNELPROTECTION
 
 /* The size of the variable-length config data */
 
@@ -197,15 +216,29 @@ int setOption( OPTION_INFO *optionList, const CRYPT_ATTRIBUTE_TYPE option,
 		return( CRYPT_OK );
 
 	/* If we're forcing a commit by returning the config.changed flag to its
-	   ground state, write any changed options to disk */
+	   ground state, write any changed options to backing store */
 	if( option == CRYPT_OPTION_CONFIGCHANGED )
 		{
-		/* Make sure there's something to write.  We do this to avoid problems
-		   with programs that always try to update the config (whether it's
-		   necessary or not), which can cause problems with media with limited
-		   writeability */
-		if( !optionList[ CRYPT_OPTION_CONFIGCHANGED - \
-						 CRYPT_OPTION_FIRST ].intValue )
+		/* When a non-config option (for example a cert trust option) is
+		   changed, then we need to write the updated config data to backing
+		   store, but there's no way to tell that this is required because
+		   the config options are unchanged.  To allow the caller to signal
+		   this change, they can explicitly set the config-changed setting
+		   to TRUE (normally this is done implicitly by when another config
+		   setting is changed).  This explicit setting can only be done by
+		   the higher-level config-update code, because the kernel blocks
+		   any attempts to set it to a value other than FALSE */
+		if( value )
+			{
+			optionInfoPtr->intValue = TRUE;
+			return( CRYPT_OK );
+			}
+
+		/* Make sure that there's something to write.  We do this to avoid
+		   problems with programs that always try to update the config
+		   (whether it's necessary or not), which can cause problems with
+		   media with limited writeability */
+		if( !optionInfoPtr->intValue )
 			return( CRYPT_OK );
 
 		/* We don't do anything to write the config data at this level since
@@ -454,7 +487,7 @@ int readConfig( const CRYPT_USER iCryptUser, const char *fileName,
 
 	/* Try and open the config file.  If we can't open it, it means the that
 	   file doesn't exist, which isn't an error */
-	fileBuildCryptlibPath( configFilePath, fileName, FALSE );
+	fileBuildCryptlibPath( configFilePath, fileName, BUILDPATH_GETPATH );
 	setMessageCreateObjectInfo( &createInfo, CRYPT_KEYSET_FILE );
 	createInfo.arg2 = CRYPT_KEYOPT_READONLY;
 	createInfo.strArg1 = configFilePath;
@@ -573,8 +606,9 @@ int encodeConfigData( OPTION_INFO *optionList, const char *fileName,
 	{
 	STREAM stream;
 	const BOOLEAN trustedCertsPresent = \
-					( enumTrustedCerts( trustInfoPtr, CRYPT_UNUSED,
-										CRYPT_UNUSED ) != CRYPT_ERROR ) ? \
+						cryptStatusOK( \
+							enumTrustedCerts( trustInfoPtr, CRYPT_UNUSED,
+											  CRYPT_UNUSED ) ) ? \
 					TRUE : FALSE;
 	int i;
 
@@ -642,7 +676,7 @@ int encodeConfigData( OPTION_INFO *optionList, const char *fileName,
 			return( OK_SPECIAL );
 
 		/* There's nothing to write, delete the config file */
-		fileBuildCryptlibPath( configFilePath, fileName, FALSE );
+		fileBuildCryptlibPath( configFilePath, fileName, BUILDPATH_GETPATH );
 		fileErase( configFilePath );
 		return( CRYPT_OK );
 		}
@@ -719,7 +753,7 @@ int commitConfigData( const CRYPT_USER cryptUser, const char *fileName,
 	int status;
 
 	/* Build the path to the config file and try and create it */
-	fileBuildCryptlibPath( configFilePath, fileName, TRUE );
+	fileBuildCryptlibPath( configFilePath, fileName, BUILDPATH_CREATEPATH );
 	setMessageCreateObjectInfo( &createInfo, CRYPT_KEYSET_FILE );
 	createInfo.arg2 = CRYPT_KEYOPT_CREATE;
 	createInfo.strArg1 = configFilePath;

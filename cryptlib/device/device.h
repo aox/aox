@@ -61,6 +61,14 @@ typedef struct {
    parameters */
 
 typedef struct {
+	/* Nonce PRNG information */
+	BYTE nonceData[ CRYPT_MAX_HASHSIZE + 8 ];	/* Nonce RNG state */
+	HASHFUNCTION hashFunction;		/* Nonce hash function */
+	int hashSize;
+	BOOLEAN nonceDataInitialised;	/* Whether nonce RNG initialised */
+	} SYSTEMDEV_INFO;
+
+typedef struct {
 	/* General device information */
 	int minPinSize, maxPinSize;		/* Minimum, maximum PIN lengths */
 	char labelBuffer[ CRYPT_MAX_TEXTSIZE + 1 ];		/* Device label */
@@ -69,6 +77,7 @@ typedef struct {
 	unsigned long hSession;			/* Session handle */
 	long slotID;					/* Slot ID for multi-slot device */
 	int deviceNo;					/* Index into PKCS #11 token table */
+	void *functionListPtr;			/* PKCS #11 driver function list pointer */
 	char defaultSSOPIN[ CRYPT_MAX_TEXTSIZE + 1 ];	/* SSO PIN from dev.init */
 
 	/* Last-error information returned from lower-level code */
@@ -82,8 +91,10 @@ typedef struct {
 
 	/* Device type-specific information */
 	int hProv;						/* CryptoAPI provider handle */
+	void *hCertStore;				/* Cert store for key/cert storage */
 	int hPrivateKey;				/* Key for session key import/export */
 	int privateKeySize;				/* Size of import/export key */
+	void *hCertChain;				/* Cached copy of current cert chain */
 
 	/* Last-error information returned from lower-level code */
 	int errorCode;
@@ -119,6 +130,7 @@ typedef struct {
 
 /* Defines to make access to the union fields less messy */
 
+#define deviceSystem	deviceInfo.systemInfo
 #define devicePKCS11	deviceInfo.pkcs11Info
 #define deviceCryptoAPI	deviceInfo.cryptoapiInfo
 #define deviceFortezza	deviceInfo.fortezzaInfo
@@ -145,6 +157,7 @@ typedef struct DI {
 
 	/* Device type-specific information */
 	union {
+		SYSTEMDEV_INFO *systemInfo;
 		PKCS11_INFO *pkcs11Info;
 		CRYPTOAPI_INFO *cryptoapiInfo;
 		FORTEZZA_INFO *fortezzaInfo;
@@ -234,6 +247,8 @@ int deriveCMP( void *dummy, MECHANISM_DERIVE_INFO *mechanismInfo );
 int derivePGP( void *dummy, MECHANISM_DERIVE_INFO *mechanismInfo );
 int signPKCS1( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo );
 int sigcheckPKCS1( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo );
+int signSSL( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo );
+int sigcheckSSL( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo );
 int exportPKCS1( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo );
 int exportPKCS1PGP( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo );
 int importPKCS1( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo );

@@ -107,7 +107,7 @@
    so it's best to default to allow-all rather than deny-all */
 
 #if defined( linux ) || defined( __linux__ ) || defined( sun ) || \
-	defined( __bsdi__ ) || defined( __FreeBSD__ ) || \
+	defined( __bsdi__ ) || defined( __FreeBSD__ ) || defined( __NetBSD__ ) || \
 	defined( __OpenBSD__ ) || defined( __hpux ) || defined( _M_XENIX ) || \
 	defined( __osf__ ) || defined( _AIX ) || defined( __MACH__ )
   #define __UNIX__
@@ -1214,7 +1214,9 @@ static void displayString( FILE *inFile, long length, int level,
 					{
 					lineLength++;
 					i++;	/* We've read two characters for a wchar_t */
-#if defined( __WIN32__ ) || ( defined( __UNIX__ ) && !defined( __MACH__ ) )
+#if defined( __WIN32__ ) || \
+	( defined( __UNIX__ ) && !( defined( __MACH__ ) || defined( __OpenBSD__ ) ) )
+
 					wprintf( L"%c", wCh );
 #else
   #ifdef __OS390__
@@ -1809,7 +1811,8 @@ void printASN1object( FILE *inFile, ASN1_ITEM *item, int level )
 
 		case BITSTRING:
 			if( ( x = getc( inFile ) ) != 0 )
-				fprintf( output, " %d unused bits", x );
+				fprintf( output, " %d unused bit%s",
+						 x, ( x != 1 ) ? "s" : "" );
 			fPos++;
 			if( !--item->length && !x )
 				{

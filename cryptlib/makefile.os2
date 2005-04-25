@@ -1,0 +1,687 @@
+#****************************************************************************
+#*                                                                          *
+#*                          Makefile for cryptlib 2.1b                      *
+#*                                    OS/2                                  *
+#****************************************************************************
+
+# Naming information: Major and minor version numbers and project and library
+# names.  The patch level is always zero because patches imply bugs and my
+# code is perfect.
+
+MAJ     = 2
+MIN     = 10
+PLV     = 0
+PROJ    = CL32
+LIBNAME = $(PROJ).lib
+DLLNAME = $(PROJ).dll
+
+# To enable use of a particular key database interface, add -DDBX_<name> to
+# the CFLAGS or DLLFLAGS as appropriate (you can enable more than one database
+# interface if required).  You also need to set TESTLIB (defined further
+# down) to link the appropriate database library or libraries with the self-
+# test code.
+
+CMDC = /DHAS_RDBMS
+CFLAGS   = /C /Ti /Tm /Q /W2 /Su4 /Ge- /I. /DLITTLE_ENDIAN $(CMDC)
+DLLFLAGS    = /Ti /Tm /Q /W2 /Su4 /Ge- /I. /DLITTLE_ENDIAN
+EXEFLAGS    = /Ti /Tm /Q /W2 /Su4 /Ge+ /I. /DLITTLE_ENDIAN
+SFL         = /DOS2 /DSTDC
+
+# To link the self-test code with a key database, uncomment the following
+# and substitute the name or names of the database libraries you'll be using.
+
+# TESTLIB   = -lmsql
+
+# Paths and command names.  We have to be careful with comments attached to
+# path defines because some makes don't strip trailing spaces.
+
+OBJ_NAME = OBJ
+OBJ_DIR = ./$(OBJ_NAME)
+LIBPATH = ./
+
+# Default target and obj file path.  This is changed depending on whether
+# we're building the static or shared library, the default is to build the
+# static library.
+
+TARGET  = $(LIBPATH)$(LIBNAME)
+OBJPATH = $(OBJ_DIR)/
+
+# Some makes don't pass defines down when they recursively invoke make, so we
+# need to manually pass them along.  The following macro contains all defines
+# which we want to pass to recursive calls to make.
+
+DEFINES = $(TARGET) OBJPATH=$(OBJPATH)
+
+#****************************************************************************
+#*                                                                          *
+#*                              Common Dependencies                         *
+#*                                                                          *
+#****************************************************************************
+
+# The object files which make up the library
+
+BNOBJS      = $(OBJPATH)bn_add.obj $(OBJPATH)bn_blind.obj $(OBJPATH)bn_div.obj \
+              $(OBJPATH)bn_exp.obj $(OBJPATH)bn_gcd.obj $(OBJPATH)bn_lib.obj \
+              $(OBJPATH)bn_mod.obj $(OBJPATH)bn_mont.obj $(OBJPATH)bn_mul.obj \
+              $(OBJPATH)bn_mulw.obj $(OBJPATH)bn_recp.obj \
+              $(OBJPATH)bn_shift.obj $(OBJPATH)bn_sqr.obj $(OBJPATH)bn_sub.obj \
+              $(OBJPATH)bn_word.obj
+
+CRYPTOBJS   = $(OBJPATH)bf_ecb.obj $(OBJPATH)bf_enc.obj $(OBJPATH)bf_skey.obj \
+              $(OBJPATH)c_ecb.obj $(OBJPATH)c_enc.obj $(OBJPATH)c_skey.obj \
+			  $(OBJPATH)des_enc.obj $(OBJPATH)ecb3_enc.obj $(OBJPATH)ecb_enc.obj \
+			  $(OBJPATH)idea.obj $(OBJPATH)rc2.obj $(OBJPATH)rc4_enc.obj \
+              $(OBJPATH)rc4_skey.obj $(OBJPATH)rc5.obj $(OBJPATH)safer.obj \
+			  $(OBJPATH)set_key.obj $(OBJPATH)skipjack.obj
+
+ENVOBJS		= $(OBJPATH)deenvel.obj $(OBJPATH)envelope.obj $(OBJPATH)octetstr.obj \
+			  $(OBJPATH)pgp_deen.obj $(OBJPATH)pgp_misc.obj $(OBJPATH)resource.obj
+
+HASHOBJS    = $(OBJPATH)md2.obj $(OBJPATH)md4.obj $(OBJPATH)md5_dgst.obj \
+              $(OBJPATH)mdc2dgst.obj $(OBJPATH)ripemd.obj $(OBJPATH)ripecore.obj \
+              $(OBJPATH)sha_dgst.obj $(OBJPATH)sha1dgst.obj
+
+KEYOBJS     = $(OBJPATH)asn1.obj $(OBJPATH)asn1keys.obj $(OBJPATH)asn1objs.obj \
+              $(OBJPATH)asn1oid.obj $(OBJPATH)cert.obj $(OBJPATH)certchk.obj \
+			  $(OBJPATH)certchn.obj $(OBJPATH)certcomp.obj $(OBJPATH)certechk.obj \
+			  $(OBJPATH)certedef.obj $(OBJPATH)certexrw.obj $(OBJPATH)certext.obj \
+			  $(OBJPATH)certio.obj $(OBJPATH)certsig.obj $(OBJPATH)certstr.obj \
+			  $(OBJPATH)certrust.obj $(OBJPATH)pgp_key.obj $(OBJPATH)cms.obj \
+			  $(OBJPATH)stream.obj $(OBJPATH)x509_key.obj
+
+LIBOBJS		= $(OBJPATH)crypt.obj $(OBJPATH)cryptapi.obj $(OBJPATH)cryptcap.obj \
+			  $(OBJPATH)cryptcfg.obj $(OBJPATH)cryptcrt.obj \
+			  $(OBJPATH)cryptdbx.obj $(OBJPATH)cryptdev.obj \
+			  $(OBJPATH)cryptenv.obj $(OBJPATH)cryptkey.obj \
+			  $(OBJPATH)cryptkrn.obj $(OBJPATH)cryptlib.obj \
+			  $(OBJPATH)lib_3des.obj $(OBJPATH)lib_bf.obj \
+			  $(OBJPATH)lib_cast.obj $(OBJPATH)lib_dbms.obj \
+			  $(OBJPATH)lib_des.obj $(OBJPATH)lib_dh.obj $(OBJPATH)lib_dsa.obj \
+			  $(OBJPATH)lib_elg.obj $(OBJPATH)lib_hmd5.obj $(OBJPATH)lib_hrmd.obj \
+			  $(OBJPATH)lib_hsha.obj $(OBJPATH)lib_idea.obj $(OBJPATH)lib_kg.obj \
+			  $(OBJPATH)lib_keyx.obj $(OBJPATH)lib_md2.obj $(OBJPATH)lib_md4.obj \
+			  $(OBJPATH)lib_md5.obj $(OBJPATH)lib_mdc2.obj $(OBJPATH)lib_rc2.obj \
+			  $(OBJPATH)lib_rc4.obj $(OBJPATH)lib_rc5.obj $(OBJPATH)lib_rand.obj \
+			  $(OBJPATH)lib_ripe.obj $(OBJPATH)lib_rsa.obj $(OBJPATH)lib_safr.obj \
+			  $(OBJPATH)lib_sha.obj $(OBJPATH)lib_sign.obj $(OBJPATH)lib_skip.obj
+
+MISCOBJS    = $(OBJPATH)dbxbsql.obj $(OBJPATH)dbxldap.obj \
+              $(OBJPATH)dbxmsql.obj $(OBJPATH)dbxmysql.obj $(OBJPATH)dbxoracl.obj \
+              $(OBJPATH)dbxpk15.obj $(OBJPATH)dbxpostg.obj $(OBJPATH)dbxraima.obj \
+              $(OBJPATH)dbxsolid.obj $(OBJPATH)rndos2.obj\
+              $(OBJPATH)sc_dx.obj \
+              $(OBJPATH)scasc.obj \
+              $(OBJPATH)strutil.obj
+
+ZLIBOBJS    = $(OBJPATH)adler32.obj $(OBJPATH)deflate.obj $(OBJPATH)infblock.obj \
+              $(OBJPATH)infcodes.obj $(OBJPATH)inffast.obj $(OBJPATH)inflate.obj \
+              $(OBJPATH)inftrees.obj $(OBJPATH)infutil.obj $(OBJPATH)trees.obj \
+              $(OBJPATH)zutil.obj
+
+OBJS        = $(ASMOBJS) $(BNOBJS) $(CRYPTOBJS) $(DESOBJS) $(ENVOBJS) \
+              $(HASHOBJS) $(KEYOBJS) $(LIBOBJS) $(MISCOBJS) $(ZLIBOBJS)
+
+# Various functions all make use of certain headers so we define the
+# dependencies once here
+
+ASN1_DEP = keymgmt/asn1.h keymgmt/asn1keys.h \
+		   keymgmt/asn1objs.h keymgmt/asn1oid.h keymgmt/ber.h \
+		   keymgmt/stream.h
+
+CRYPT_DEP	= capi.h crypt.h cryptos.h
+
+ECC_DEP = crypt/ec_crypt.h crypt/ec_curve.h crypt/ec_field.h \
+          crypt/ec_param.h crypt/ec_vlong.h
+
+SIO_DEP = misc/platform.h misc/sio.h misc/sct0.h misc/sc.h
+
+ZLIB_DEP = zlib/zconf.h zlib/zlib.h zlib/zutil.h
+
+#****************************************************************************
+#*                                                                          *
+#*                          Default and High-level Targets                  *
+#*                                                                          *
+#****************************************************************************
+all:    $(DLLNAME) $(LIBNAME) testlib.exe dumpasn1.exe certutil.exe
+
+$(DLLNAME):    $(OBJS)
+        -copy *.obj OBJ
+        -del *.obj
+        $(CC) $(DLLFLAGS) /Fe$(DLLNAME) @<<
+        $(OBJS)
+        cryptos2.def
+<<
+$(LIBNAME):   $(DLLNAME)
+        implib.exe $(LIBNAME) $(DLLNAME)
+
+testlib.exe: $(OBJPATH)certutil.obj \
+             $(OBJPATH)testlib.obj \
+             $(OBJPATH)testcert.obj \
+             $(OBJPATH)testenv.obj \
+             $(OBJPATH)testhl.obj
+             $(CC) $(EXEFLAGS) /Fetestlib.exe @<<
+             $(OBJPATH)certutil.obj
+             $(OBJPATH)testlib.obj
+             $(OBJPATH)testcert.obj
+             $(OBJPATH)testenv.obj
+             $(OBJPATH)testhl.obj
+             $(LIBNAME)
+<<
+dumpasn1.exe: $(OBJPATH)dumpasn1.obj
+        $(CC) $(EXEFLAGS) /Fedumpasn1.exe $(OBJPATH)dumpasn1.obj $(LIBNAME)
+
+certutil.exe: certutil.obj
+        $(CC) $(EXEFLAGS) /Fecertutil.exe certutil.obj $(LIBNAME)
+
+# Build the endianness-test program.  The output of this is a preprocessor
+# define which is piped back into make to control the cryptlib endianness.
+
+endian: endian.c
+        @$(CC) endian.c
+
+#****************************************************************************
+#*                                                                          *
+#*                  Rules to build the encryption library                   *
+#*                                                                          *
+#****************************************************************************
+
+# Main directory
+
+$(OBJPATH)crypt.obj:    $(CRYPT_DEP) cryptctx.h crypt.c
+                        $(CC) $(CFLAGS) crypt.c
+
+$(OBJPATH)cryptapi.obj: $(CRYPT_DEP) hash/md2.h hash/md4.h hash/md5.h \
+						hash/sha.h cryptapi.c
+                        $(CC) $(CFLAGS) cryptapi.c
+
+$(OBJPATH)cryptcap.obj: $(CRYPT_DEP) cryptctx.h cryptcap.c
+                        $(CC) $(CFLAGS) cryptcap.c
+
+$(OBJPATH)cryptcfg.obj: $(CRYPT_DEP) cryptcfg.c
+                        $(CC) $(CFLAGS) cryptcfg.c
+
+$(OBJPATH)cryptcrt.obj:	$(CRYPT_DEP) keymgmt/cert.h cryptcrt.c
+						$(CC) $(CFLAGS) cryptcrt.c
+
+$(OBJPATH)cryptdbx.obj: $(CRYPT_DEP) misc/dbms.h keymgmt/asn1objs.h \
+                        cryptdbx.c
+                        $(CC) $(CFLAGS) cryptdbx.c
+
+$(OBJPATH)cryptdev.obj:	$(CRYPT_DEP) misc/device.h cryptdev.c
+					 	$(CC) $(CFLAGS) cryptdev.c
+
+$(OBJPATH)cryptenv.obj: $(CRYPT_DEP) envelope/envelope.h $(ASN1_DEP) \
+                        cryptenv.c
+                        $(CC) $(CFLAGS) cryptenv.c
+
+$(OBJPATH)cryptkey.obj: $(CRYPT_DEP) cryptctx.h cryptkey.c
+                        $(CC) $(CFLAGS) cryptkey.c
+
+$(OBJPATH)cryptkrn.obj:	$(CRYPT_DEP) cryptkrn.c
+						$(CC) $(CFLAGS) cryptkrn.c
+
+$(OBJPATH)cryptlib.obj:	$(CRYPT_DEP) cryptlib.c
+						$(CC) $(CFLAGS) cryptlib.c
+
+$(OBJPATH)lib_3des.obj: $(CRYPT_DEP) cryptctx.h crypt/des.h lib_3des.c
+                        $(CC) $(CFLAGS) lib_3des.c
+
+$(OBJPATH)lib_bf.obj:   $(CRYPT_DEP) cryptctx.h crypt/blowfish.h lib_bf.c
+                        $(CC) $(CFLAGS) lib_bf.c
+
+$(OBJPATH)lib_cast.obj: $(CRYPT_DEP) cryptctx.h crypt/cast.h lib_cast.c
+                        $(CC) $(CFLAGS) lib_cast.c
+
+$(OBJPATH)lib_dbms.obj: $(CRYPT_DEP) misc/dbms.h lib_dbms.c
+                        $(CC) $(CFLAGS) lib_dbms.c
+
+$(OBJPATH)lib_des.obj:  $(CRYPT_DEP) cryptctx.h crypt/testdes.h crypt/des.h \
+                        lib_des.c
+                        $(CC) $(CFLAGS) lib_des.c
+
+$(OBJPATH)lib_dh.obj:   $(CRYPT_DEP) cryptctx.h bn/bn.h lib_dh.c
+                        $(CC) $(CFLAGS) lib_dh.c
+
+$(OBJPATH)lib_dsa.obj:  $(CRYPT_DEP) cryptctx.h bn/bn.h lib_dsa.c
+                        $(CC) $(CFLAGS) lib_dsa.c
+
+$(OBJPATH)lib_elg.obj:  $(CRYPT_DEP) cryptctx.h bn/bn.h lib_elg.c
+                        $(CC) $(CFLAGS) lib_elg.c
+
+$(OBJPATH)lib_hmd5.obj: $(CRYPT_DEP) cryptctx.h hash/md5.h lib_hmd5.c
+                        $(CC) $(CFLAGS) lib_hmd5.c
+
+$(OBJPATH)lib_hrmd.obj: $(CRYPT_DEP) cryptctx.h hash/ripemd.h lib_hrmd.c
+                        $(CC) $(CFLAGS) lib_hrmd.c
+
+$(OBJPATH)lib_hsha.obj: $(CRYPT_DEP) cryptctx.h hash/sha.h lib_hsha.c
+                        $(CC) $(CFLAGS) lib_hsha.c
+
+$(OBJPATH)lib_idea.obj: $(CRYPT_DEP) cryptctx.h crypt/idea.h lib_idea.c
+                        $(CC) $(CFLAGS) lib_idea.c
+
+$(OBJPATH)lib_keyx.obj: $(CRYPT_DEP) cryptctx.h $(ASN1_DEP) lib_keyx.c
+                        $(CC) $(CFLAGS) lib_keyx.c
+
+$(OBJPATH)lib_kg.obj:   $(CRYPT_DEP) cryptctx.h bn/bn_prime.h lib_kg.c
+                        $(CC) $(CFLAGS) lib_kg.c
+
+$(OBJPATH)lib_md2.obj:  $(CRYPT_DEP) cryptctx.h hash/md2.h lib_md2.c
+                        $(CC) $(CFLAGS) lib_md2.c
+
+$(OBJPATH)lib_md4.obj:  $(CRYPT_DEP) cryptctx.h hash/md4.h lib_md4.c
+                        $(CC) $(CFLAGS) lib_md4.c
+
+$(OBJPATH)lib_md5.obj:  $(CRYPT_DEP) cryptctx.h hash/md5.h lib_md5.c
+                        $(CC) $(CFLAGS) lib_md5.c
+
+$(OBJPATH)lib_mdc2.obj: $(CRYPT_DEP) cryptctx.h hash/mdc2.h lib_mdc2.c
+                        $(CC) $(CFLAGS) lib_mdc2.c
+
+$(OBJPATH)lib_rc2.obj:  $(CRYPT_DEP) cryptctx.h crypt/rc2.h lib_rc2.c
+                        $(CC) $(CFLAGS) lib_rc2.c
+
+$(OBJPATH)lib_rc4.obj:  $(CRYPT_DEP) cryptctx.h crypt/rc4.h lib_rc4.c
+                        $(CC) $(CFLAGS) lib_rc4.c
+
+$(OBJPATH)lib_rc5.obj:  $(CRYPT_DEP) cryptctx.h crypt/rc5.h lib_rc5.c
+                        $(CC) $(CFLAGS) lib_rc5.c
+
+$(OBJPATH)lib_ripe.obj: $(CRYPT_DEP) cryptctx.h hash/ripemd.h lib_ripe.c
+                        $(CC) $(CFLAGS) lib_ripe.c
+
+$(OBJPATH)lib_rand.obj: $(CRYPT_DEP) misc/random.h lib_rand.c
+                        $(CC) $(CFLAGS) lib_rand.c
+
+$(OBJPATH)lib_rsa.obj:  $(CRYPT_DEP) cryptctx.h bn/bn.h lib_rsa.c
+                        $(CC) $(CFLAGS) lib_rsa.c
+
+$(OBJPATH)lib_safr.obj: $(CRYPT_DEP) cryptctx.h crypt/safer.h lib_safr.c
+                        $(CC) $(CFLAGS) lib_safr.c
+
+$(OBJPATH)lib_sha.obj:  $(CRYPT_DEP) cryptctx.h hash/sha.h lib_sha.c
+                        $(CC) $(CFLAGS) lib_sha.c
+
+$(OBJPATH)lib_sign.obj: $(CRYPT_DEP) cryptctx.h $(ASN1_DEP) lib_sign.c
+                        $(CC) $(CFLAGS) lib_sign.c
+
+$(OBJPATH)lib_skip.obj: $(CRYPT_DEP) cryptctx.h lib_skip.c
+                        $(CC) $(CFLAGS) lib_skip.c
+
+# bn subdirectory
+
+$(OBJPATH)bn_add.obj:   bn/bn.h bn/bn_lcl.h bn/bn_add.c
+                        $(CC) $(CFLAGS) bn/bn_add.c
+
+$(OBJPATH)bn_blind.obj: bn/bn.h bn/bn_lcl.h bn/bn_blind.c
+                        $(CC) $(CFLAGS) bn/bn_blind.c
+
+$(OBJPATH)bn_div.obj:   bn/bn.h bn/bn_lcl.h bn/bn_div.c
+                        $(CC) $(CFLAGS) bn/bn_div.c
+
+$(OBJPATH)bn_exp.obj:   bn/bn.h bn/bn_lcl.h bn/bn_exp.c
+                        $(CC) $(CFLAGS) bn/bn_exp.c
+
+$(OBJPATH)bn_gcd.obj:   bn/bn.h bn/bn_lcl.h bn/bn_gcd.c
+                        $(CC) $(CFLAGS) bn/bn_gcd.c
+
+$(OBJPATH)bn_lib.obj:   bn/bn.h bn/bn_lcl.h bn/bn_lib.c
+                        $(CC) $(CFLAGS) bn/bn_lib.c
+
+$(OBJPATH)bn_mod.obj:   bn/bn.h bn/bn_lcl.h bn/bn_mod.c
+                        $(CC) $(CFLAGS) bn/bn_mod.c
+
+$(OBJPATH)bn_mont.obj:  bn/bn.h bn/bn_lcl.h bn/bn_mont.c
+                        $(CC) $(CFLAGS) bn/bn_mont.c
+
+$(OBJPATH)bn_mul.obj:   bn/bn.h bn/bn_lcl.h bn/bn_mul.c
+                        $(CC) $(CFLAGS) bn/bn_mul.c
+
+$(OBJPATH)bn_mulw.obj:  bn/bn.h bn/bn_lcl.h bn/bn_mulw.c
+                        $(CC) $(CFLAGS) bn/bn_mulw.c
+
+$(OBJPATH)bn_recp.obj:  bn/bn.h bn/bn_lcl.h bn/bn_recp.c
+                        $(CC) $(CFLAGS) bn/bn_recp.c
+
+$(OBJPATH)bn_shift.obj: bn/bn.h bn/bn_lcl.h bn/bn_shift.c
+                        $(CC) $(CFLAGS) bn/bn_shift.c
+
+$(OBJPATH)bn_sqr.obj:   bn/bn.h bn/bn_lcl.h bn/bn_sqr.c
+                        $(CC) $(CFLAGS) bn/bn_sqr.c
+
+$(OBJPATH)bn_sub.obj:   bn/bn.h bn/bn_lcl.h bn/bn_sub.c
+                        $(CC) $(CFLAGS) bn/bn_sub.c
+
+$(OBJPATH)bn_word.obj:  bn/bn.h bn/bn_lcl.h bn/bn_word.c
+                        $(CC) $(CFLAGS) bn/bn_word.c
+
+# crypt subdirectory
+
+$(OBJPATH)bf_ecb.obj:   crypt/bf_locl.h crypt/blowfish.h crypt/bf_ecb.c
+                        $(CC) $(CFLAGS) crypt/bf_ecb.c
+
+$(OBJPATH)bf_enc.obj:   crypt/bf_locl.h crypt/blowfish.h crypt/bf_enc.c
+                        $(CC) $(CFLAGS) crypt/bf_enc.c
+
+$(OBJPATH)bf_skey.obj:  crypt/bf_locl.h crypt/bf_pi.h crypt/blowfish.h \
+                        crypt/bf_skey.c
+                        $(CC) $(CFLAGS) crypt/bf_skey.c
+
+$(OBJPATH)c_ecb.obj:    crypt/cast_lcl.h crypt/cast.h crypt/c_ecb.c
+                        $(CC) $(CFLAGS) crypt/c_ecb.c
+
+$(OBJPATH)c_enc.obj:    crypt/cast_lcl.h crypt/cast.h crypt/c_enc.c
+                        $(CC) $(CFLAGS) crypt/c_enc.c
+
+$(OBJPATH)c_skey.obj:   crypt/cast_lcl.h crypt/cast.h crypt/cast_s.h \
+                        crypt/c_skey.c
+                        $(CC) $(CFLAGS) crypt/c_skey.c
+
+$(OBJPATH)des_enc.obj:  crypt/des.h crypt/des_locl.h crypt/des_enc.c
+                        $(CC) $(CFLAGS) crypt/des_enc.c
+
+$(OBJPATH)ecb3_enc.obj: crypt/des.h crypt/des_locl.h crypt/ecb3_enc.c
+                        $(CC) $(CFLAGS) crypt/ecb3_enc.c
+
+$(OBJPATH)ecb_enc.obj:  crypt/des.h crypt/des_locl.h crypt/spr.h crypt/ecb_enc.c
+                        $(CC) $(CFLAGS) crypt/ecb_enc.c
+
+$(OBJPATH)ec_crypt.obj: $(ECC_DEP) crypt/ec_crypt.c
+                        $(CC) $(CFLAGS) -DUSE_BNLIB crypt/ec_crypt.c
+
+$(OBJPATH)ec_curve.obj: $(ECC_DEP) crypt/ec_curve.c
+                        $(CC) $(CFLAGS) -DUSE_BNLIB crypt/ec_curve.c
+
+$(OBJPATH)ec_field.obj: $(ECC_DEP) crypt/ec_field.c
+                        $(CC) $(CFLAGS) -DUSE_BNLIB crypt/ec_field.c
+
+$(OBJPATH)ec_param.obj: $(ECC_DEP) crypt/ec_param.c
+                        $(CC) $(CFLAGS) -DUSE_BNLIB crypt/ec_param.c
+
+$(OBJPATH)ec_vlong.obj: $(ECC_DEP) crypt/ec_vlong.c
+                        $(CC) $(CFLAGS) -DUSE_BNLIB crypt/ec_vlong.c
+
+$(OBJPATH)idea.obj:     $(CRYPT_DEP) crypt/idea.h crypt/idea.c
+                        $(CC) $(CFLAGS) crypt/idea.c
+
+$(OBJPATH)rc2.obj:      crypt/rc2.h crypt/rc2.c
+                        $(CC) $(CFLAGS) crypt/rc2.c
+
+$(OBJPATH)rc4_enc.obj:  crypt/rc4_locl.h crypt/rc4.h crypt/rc4_enc.c
+                        $(CC) $(CFLAGS) crypt/rc4_enc.c
+
+$(OBJPATH)rc4_skey.obj: crypt/rc4_locl.h crypt/rc4.h crypt/rc4_skey.c
+                        $(CC) $(CFLAGS) crypt/rc4_skey.c
+
+$(OBJPATH)rc5.obj:      $(CRYPT_DEP) crypt/rc5.h crypt/rc5.c
+                        $(CC) $(CFLAGS) crypt/rc5.c
+
+$(OBJPATH)safer.obj:    $(CRYPT_DEP) crypt/safer.h crypt/safer.c
+                        $(CC) $(CFLAGS) crypt/safer.c
+
+$(OBJPATH)set_key.obj:  crypt/des.h crypt/des_locl.h crypt/podd.h \
+						crypt/sk.h crypt/set_key.c
+						$(CC) $(CFLAGS) crypt/set_key.c
+
+$(OBJPATH)skipjack.obj: crypt/skipjack.c
+                        $(CC) $(CFLAGS) crypt/skipjack.c
+
+# envelope subdirectory
+
+$(OBJPATH)deenvel.obj:	$(CRYPT_DEP) envelope/envelope.h $(ASN1_DEP) \
+						envelope/deenvel.c
+						$(CC) $(CFLAGS) envelope/deenvel.c
+
+$(OBJPATH)envelope.obj:	$(CRYPT_DEP) envelope/envelope.h $(ASN1_DEP) \
+						envelope/envelope.c
+						$(CC) $(CFLAGS) envelope/envelope.c
+
+$(OBJPATH)octetstr.obj:	$(CRYPT_DEP) envelope/envelope.h $(ASN1_DEP) \
+						envelope/octetstr.c
+						$(CC) $(CFLAGS) envelope/octetstr.c
+
+$(OBJPATH)pgp_deen.obj:	$(CRYPT_DEP) envelope/pgp.h envelope/pgp_deen.c
+						$(CC) $(CFLAGS) envelope/pgp_deen.c
+
+$(OBJPATH)pgp_misc.obj:	$(CRYPT_DEP) envelope/pgp.h envelope/pgp_misc.c
+						$(CC) $(CFLAGS) envelope/pgp_misc.c
+
+$(OBJPATH)resource.obj:	$(CRYPT_DEP) envelope/envelope.h envelope/resource.c
+						$(CC) $(CFLAGS) envelope/resource.c
+
+# hash subdirectory
+
+$(OBJPATH)md2.obj:      $(CRYPT_DEP) hash/md2.h hash/md2.c
+                        $(CC) $(CFLAGS) hash/md2.c
+
+$(OBJPATH)md4.obj:      $(CRYPT_DEP) hash/md4.h hash/md4.c
+                        $(CC) $(CFLAGS) hash/md4.c
+
+$(OBJPATH)md5_dgst.obj: hash/md5.h hash/md5_locl.h hash/md5_dgst.c
+                        $(CC) $(CFLAGS) hash/md5_dgst.c
+
+$(OBJPATH)mdc2dgst.obj: hash/mdc2.h hash/mdc2dgst.c
+                        $(CC) $(CFLAGS) hash/mdc2dgst.c
+
+$(OBJPATH)ripemd.obj:   $(CRYPT_DEP) hash/ripemd.h hash/ripemd.c
+                        $(CC) $(CFLAGS) hash/ripemd.c
+
+$(OBJPATH)ripecore.obj: $(CRYPT_DEP) hash/ripemd.h hash/ripecore.c
+                        $(CC) $(CFLAGS) hash/ripecore.c
+
+$(OBJPATH)sha_dgst.obj: hash/sha.h hash/sha_locl.h hash/sha_dgst.c
+                        $(CC) $(CFLAGS) hash/sha_dgst.c
+
+$(OBJPATH)sha1dgst.obj: hash/sha.h hash/sha_locl.h hash/sha1dgst.c
+                        $(CC) $(CFLAGS) hash/sha1dgst.c
+
+# keymgmt subdirectory
+
+$(OBJPATH)asn1.obj:     $(CRYPT_DEP) $(ASN1_DEP) keymgmt/asn1.c
+                        $(CC) $(CFLAGS) keymgmt/asn1.c
+
+$(OBJPATH)asn1keys.obj: $(CRYPT_DEP) $(ASN1_DEP) keymgmt/asn1keys.c
+                        $(CC) $(CFLAGS) keymgmt/asn1keys.c
+
+$(OBJPATH)asn1objs.obj: $(CRYPT_DEP) $(ASN1_DEP) keymgmt/asn1objs.c
+                        $(CC) $(CFLAGS) keymgmt/asn1objs.c
+
+$(OBJPATH)asn1oid.obj:  $(ASN1_DEP) keymgmt/asn1oid.c
+                        $(CC) $(CFLAGS) keymgmt/asn1oid.c
+
+$(OBJPATH)cert.obj:     $(CRYPT_DEP) $(ASN1_DEP) keymgmt/cert.h keymgmt/cert.c
+                        $(CC) $(CFLAGS) keymgmt/cert.c
+
+$(OBJPATH)certchk.obj:  $(CRYPT_DEP) $(ASN1_DEP) keymgmt/cert.h keymgmt/certchk.c
+                        $(CC) $(CFLAGS) keymgmt/certchk.c
+
+$(OBJPATH)certchn.obj:  $(CRYPT_DEP) $(ASN1_DEP) keymgmt/cert.h keymgmt/certchn.c
+                        $(CC) $(CFLAGS) keymgmt/certchn.c
+
+$(OBJPATH)certcomp.obj: $(CRYPT_DEP) $(ASN1_DEP) keymgmt/cert.h keymgmt/certcomp.c
+                        $(CC) $(CFLAGS) keymgmt/certcomp.c
+
+$(OBJPATH)certechk.obj: $(CRYPT_DEP) $(ASN1_DEP) keymgmt/cert.h keymgmt/certechk.c
+						$(CC) $(CFLAGS) keymgmt/certechk.c
+
+$(OBJPATH)certedef.obj: $(CRYPT_DEP) $(ASN1_DEP) keymgmt/cert.h keymgmt/certedef.c
+                        $(CC) $(CFLAGS) keymgmt/certedef.c
+
+$(OBJPATH)certexrw.obj: $(CRYPT_DEP) $(ASN1_DEP) keymgmt/cert.h keymgmt/certexrw.c
+                        $(CC) $(CFLAGS) keymgmt/certexrw.c
+
+$(OBJPATH)certext.obj:  $(CRYPT_DEP) $(ASN1_DEP) keymgmt/cert.h keymgmt/certext.c
+                        $(CC) $(CFLAGS) keymgmt/certext.c
+
+$(OBJPATH)certio.obj:   $(CRYPT_DEP) $(ASN1_DEP) keymgmt/cert.h keymgmt/certio.c
+                        $(CC) $(CFLAGS) keymgmt/certio.c
+
+$(OBJPATH)certsig.obj:  $(CRYPT_DEP) keymgmt/asn1.h keymgmt/cert.h keymgmt/certsig.c
+						$(CC) $(CFLAGS) keymgmt/certsig.c
+
+$(OBJPATH)certstr.obj:  $(CRYPT_DEP) keymgmt/asn1.h keymgmt/cert.h keymgmt/certstr.c
+                        $(CC) $(CFLAGS) keymgmt/certstr.c
+
+$(OBJPATH)certrust.obj: $(CRYPT_DEP) keymgmt/asn1.h keymgmt/cert.h keymgmt/certrust.c
+						$(CC) $(CFLAGS) keymgmt/certrust.c
+
+$(OBJPATH)pgp_key.obj:  $(CRYPT_DEP) keymgmt/asn1keys.h envelope/pgp.h \
+                        keymgmt/pgp_key.c
+                        $(CC) $(CFLAGS) keymgmt/pgp_key.c
+
+$(OBJPATH)cms.obj:		$(CRYPT_DEP) $(ASN1_DEP) keymgmt/cert.h \
+						keymgmt/cms.c
+						$(CC) $(CFLAGS) keymgmt/cms.c
+
+$(OBJPATH)stream.obj:   $(ASN1_DEP) keymgmt/stream.c
+                        $(CC) $(CFLAGS) keymgmt/stream.c
+
+$(OBJPATH)x509_key.obj: $(ASN1_DEP) keymgmt/asn1keys.h keymgmt/x509_key.c
+                        $(CC) $(CFLAGS) keymgmt/x509_key.c
+
+# misc subdirectory
+
+$(OBJPATH)dbxbsql.obj:  $(CRYPT_DEP) misc/dbms.h misc/dbxbsql.c
+                        $(CC) $(CFLAGS) misc/dbxbsql.c
+
+$(OBJPATH)dbxpk15.obj:  $(CRYPT_DEP) misc/dbms.h misc/dbxpk15.c
+                        $(CC) $(CFLAGS) misc/dbxpk15.c
+
+$(OBJPATH)dbxldap.obj:  $(CRYPT_DEP) misc/dbms.h misc/dbxldap.c
+                        $(CC) $(CFLAGS) misc/dbxldap.c
+
+$(OBJPATH)dbxmsql.obj:  $(CRYPT_DEP) misc/dbms.h misc/dbxmsql.c
+                        $(CC) $(CFLAGS) misc/dbxmsql.c
+
+$(OBJPATH)dbxmysql.obj:  $(CRYPT_DEP) misc/dbms.h misc/dbxmysql.c
+                        $(CC) $(CFLAGS) misc/dbxmysql.c
+
+$(OBJPATH)dbxoracl.obj: $(CRYPT_DEP) misc/dbms.h misc/dbxoracl.c
+                        $(CC) $(CFLAGS) misc/dbxoracl.c
+
+$(OBJPATH)dbxpostg.obj: $(CRYPT_DEP) misc/dbms.h misc/dbxpostg.c
+                        $(CC) $(CFLAGS) misc/dbxpostg.c
+
+$(OBJPATH)dbxraima.obj: $(CRYPT_DEP) misc/dbms.h misc/dbxraima.c
+                        $(CC) $(CFLAGS) misc/dbxraima.c
+
+$(OBJPATH)dbxsolid.obj: $(CRYPT_DEP) misc/dbms.h misc/dbxsolid.c
+                        $(CC) $(CFLAGS) misc/dbxsolid.c
+
+$(OBJPATH)rndos2.obj:   $(CRYPT_DEP) misc/random.h misc/rndos2.c
+                        $(CC) $(CFLAGS) misc/rndos2.c
+
+$(OBJPATH)sc.obj:       $(SIO_DEP) misc/sc.c
+                        $(CC) $(CFLAGS) misc/sc.c
+
+$(OBJPATH)sc_cflex.obj: $(SIO_DEP) misc/sc_cflex.c
+                        $(CC) $(CFLAGS) misc/sc_cflex.c
+
+$(OBJPATH)sc_ck.obj:    $(SIO_DEP) misc/sc_ck.c
+                        $(CC) $(CFLAGS) misc/sc_ck.c
+
+$(OBJPATH)sc_dx.obj:    $(SIO_DEP) misc/sc_dx.c
+                        $(CC) $(CFLAGS) misc/sc_dx.c
+
+$(OBJPATH)scasc.obj:    $(SIO_DEP) misc/scasc.c
+                        $(CC) $(CFLAGS) misc/scasc.c
+
+$(OBJPATH)scatr.obj:    $(SIO_DEP) misc/scatr.c
+                        $(CC) $(CFLAGS) misc/scatr.c
+
+$(OBJPATH)sccards.obj:  $(SIO_DEP) misc/sccards.c
+                        $(CC) $(CFLAGS) misc/sccards.c
+
+$(OBJPATH)scint.obj:    $(SIO_DEP) misc/scint.c
+                        $(CC) $(CFLAGS) misc/scint.c
+
+$(OBJPATH)scstr.obj:    $(SIO_DEP) misc/scstr.c
+                        $(CC) $(CFLAGS) misc/scstr.c
+
+$(OBJPATH)sct0.obj:     $(SIO_DEP) misc/sct0.c
+                        $(CC) $(CFLAGS) misc/sct0.c
+
+$(OBJPATH)sio.obj:      $(SIO_DEP) misc/sio.c
+#                       $(CC) $(CFLAGS) misc/sio.c
+                        echo sio.c NOT COMPILED
+
+$(OBJPATH)slog.obj:     $(SIO_DEP) misc/slog.h misc/slog.c
+#                       $(CC) $(CFLAGS) misc/slog.c
+                        echo slog.c NOT COMPILED
+
+$(OBJPATH)strutil.obj:  $(SIO_DEP) misc/strutil.c
+                        $(CC) $(CFLAGS) misc/strutil.c
+
+# zlib subdirectory
+
+$(OBJPATH)adler32.obj:  $(ZLIB_DEP) zlib/adler32.c
+                        $(CC) $(CFLAGS) $(SFL) zlib/adler32.c
+
+$(OBJPATH)deflate.obj:  $(ZLIB_DEP) zlib/deflate.c
+                        $(CC) $(CFLAGS) $(SFL) zlib/deflate.c
+
+$(OBJPATH)infblock.obj: $(ZLIB_DEP) zlib/infblock.h zlib/inftrees.h \
+                        zlib/infcodes.h zlib/infutil.h zlib/infblock.c
+                        $(CC) $(CFLAGS) $(SFL) zlib/infblock.c
+
+$(OBJPATH)infcodes.obj: $(ZLIB_DEP) zlib/infblock.h zlib/inffast.h \
+                        zlib/inftrees.h zlib/infcodes.h zlib/infutil.h \
+                        zlib/infcodes.c
+                        $(CC) $(CFLAGS) $(SFL) zlib/infcodes.c
+
+$(OBJPATH)inffast.obj:  $(ZLIB_DEP) zlib/infblock.h zlib/inffast.h \
+                        zlib/inftrees.h zlib/infcodes.h zlib/infutil.h \
+                        zlib/inffast.c
+                        $(CC) $(CFLAGS) $(SFL) zlib/inffast.c
+
+$(OBJPATH)inflate.obj:  $(ZLIB_DEP) zlib/infblock.h zlib/inflate.c
+                        $(CC) $(CFLAGS) $(SFL) zlib/inflate.c
+
+$(OBJPATH)inftrees.obj: $(ZLIB_DEP) zlib/inftrees.h zlib/inftrees.c
+                        $(CC) $(CFLAGS) $(SFL) zlib/inftrees.c
+
+$(OBJPATH)infutil.obj:  $(ZLIB_DEP) zlib/infblock.h zlib/inffast.h \
+                        zlib/inftrees.h zlib/infcodes.h zlib/infutil.c
+                        $(CC) $(CFLAGS) $(SFL) zlib/infutil.c
+
+$(OBJPATH)trees.obj:    $(ZLIB_DEP) zlib/trees.c
+                        $(CC) $(CFLAGS) $(SFL) zlib/trees.c
+
+$(OBJPATH)zutil.obj:    $(ZLIB_DEP) zlib/zutil.c
+                        $(CC) $(CFLAGS) $(SFL) zlib/zutil.c
+
+# The test programs
+
+$(OBJPATH)certutil.obj: $(CRYPT_DEP) test/certutil.c
+                        $(CC) /C $(EXEFLAGS) test/certutil.c
+                        -copy *.obj OBJ
+                        -del *.obj
+
+certutil.obj:           $(CRYPT_DEP) test/certutil.c
+                        $(CC) /C $(EXEFLAGS) /DSTANDALONE_PROGRAM test/certutil.c
+
+$(OBJPATH)testcert.obj: $(CRYPT_DEP) test/testcert.c
+                        $(CC) /C $(EXEFLAGS) test/testcert.c
+                        -copy *.obj OBJ
+                        -del *.obj
+
+$(OBJPATH)testenv.obj:  $(CRYPT_DEP) test/testenv.c
+                        $(CC) /C $(EXEFLAGS) test/testenv.c
+                        -copy *.obj OBJ
+                        -del *.obj
+
+$(OBJPATH)testhl.obj:   $(CRYPT_DEP) test/testhl.c
+                        $(CC) /C $(EXEFLAGS) test/testhl.c
+                        -copy *.obj OBJ
+                        -del *.obj
+
+$(OBJPATH)testlib.obj:  $(CRYPT_DEP) test/testlib.c
+                        $(CC) /C $(EXEFLAGS) test/testlib.c
+                        -copy *.obj OBJ
+                        -del *.obj
+
+$(OBJPATH)dumpasn1.obj: keymgmt/dumpasn1.c
+                        $(CC) /C $(EXEFLAGS) keymgmt/dumpasn1.c
+                        -copy *.obj OBJ
+                        -del *.obj
+

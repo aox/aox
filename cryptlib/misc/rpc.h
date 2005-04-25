@@ -126,11 +126,12 @@ typedef enum {
 	COMMAND_SETKEY
 		word: handle				word: status
 		word: key handle
-		word: caItem (optional)
+		word: caItemType (optional)
 		str : password (optional)
 	COMMAND_DELETEKEY
 		word: handle				word: status
 		word: key ID type
+		word: caItemType (optional)
 		str : key ID
 	COMMAND_PUSHDATA
 		word: handle				word: status
@@ -165,8 +166,10 @@ typedef enum {
 		str : data (optional)
 	DBX_COMMAND_QUERY:
 		word: type					word: status
-		str : command				str : data
+		word: query entry (opt.)	str : data
+		str : command			
 		str : date (optional)
+		str : data (optional)
 		[str: return buffer]
 	DBX_COMMAND_GETERRORINFO
 		<none>						word: errorCode
@@ -259,10 +262,16 @@ typedef int ( *COMMAND_HANDLER )( void *stateInfo, COMMAND_INFO *cmd );
    no-op out the extra parameter in case we're using the RPC form */
 
 #ifdef USE_RPCAPI
-  #define DISPATCH_COMMAND( function, command )	dispatchCommand( &command )
+  #define DISPATCH_COMMAND( function, command ) \
+		  dispatchCommand( &command )
+  #define DISPATCH_COMMAND_DBX( function, command, dbmsInfo ) \
+		  dispatchCommand( &command, ( dbmsInfo )->stateInfo, ( dbmsInfo )->dispatchFunction )
   #define RETURN_VALUE( value )		0
 #else
-  #define DISPATCH_COMMAND( function, command )	function( NULL, &command )
+  #define DISPATCH_COMMAND( function, command ) \
+		  function( NULL, &command )
+  #define DISPATCH_COMMAND_DBX( function, command, dbmsInfo ) \
+		  function( ( dbmsInfo )->stateInfo, &command )
   #define RETURN_VALUE( value )		value
 #endif /* USE_RPCAPI */
 

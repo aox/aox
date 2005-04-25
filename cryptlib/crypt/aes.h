@@ -67,7 +67,14 @@ extern "C"
 #elif ULONG_MAX == 0xffffffff
   typedef   unsigned long    aes_32t;
 #else
+#ifdef _CRAY
+  /* USE_AES is undefined on Crays, however we define a dummy data type
+     to get the code to compile */
+/*#error Crays don't support 32-bit data types, this code won't compile on a Cray*/
+  typedef   unsigned int     aes_32t;
+#else
 #error Please define aes_32t as a 32-bit unsigned integer type in aes.h
+#endif
 #endif
 
 #define AES_BLOCK_SIZE  16  /* the AES block size in bytes          */

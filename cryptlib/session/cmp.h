@@ -28,16 +28,17 @@
 /* CMP protocol-specific flags that augment the general session flags.  If
    we're running a PnP PKI session, we leave the client connection active 
    to allow for further transactions.  In order to minimise the mount of junk
-   in headers (see the comment at the start of cmp_msg.c), we record when
+   in headers (see the comment at the start of cmp_wr.c), we record when
    various identifiers have been sent and don't send them again in subsequent
    messages */
 
-#define CMP_PFLAG_NONE			0x0		/* No protocol-specific flags */
+#define CMP_PFLAG_NONE			0x00	/* No protocol-specific flags */
 #define CMP_PFLAG_RETAINCONNECTION 0x01	/* Leave conn.open for further trans.*/
-#define CMP_PFLAG_CLIBIDSENT	0x2		/* cryptlib ID sent */
-#define CMP_PFLAG_USERIDSENT	0x4		/* User ID sent */
-#define CMP_PFLAG_CERTIDSENT	0x8		/* Cert ID sent */
+#define CMP_PFLAG_CLIBIDSENT	0x02	/* cryptlib ID sent */
+#define CMP_PFLAG_USERIDSENT	0x04	/* User ID sent */
+#define CMP_PFLAG_CERTIDSENT	0x08	/* Cert ID sent */
 #define CMP_PFLAG_MACINFOSENT	0x10	/* MAC parameters sent */
+#define CMP_PFLAG_PNPPKI		0x20	/* Session is PnP PKI-capable */
 
 /* Since the CMP spec is so vague and open-ended that almost anything can
    be argued to be valid, it's useful to be able to grab a sample message
@@ -45,7 +46,7 @@
    define will read this stored input from disk rather than communicating
    with the server */
 
-/*#define SKIP_IO						/* Don't communicate with server */
+/*#define SKIP_IO						// Don't communicate with server */
 
 /* Context-specific tags for the PKIHeader record */
 
@@ -123,7 +124,7 @@ enum { PKISTATUS_OK, PKISTATUS_OK_WITHINFO, PKISTATUS_REJECTED,
 
 typedef enum {
 	CMPBODY_NORMAL, CMPBODY_CONFIRMATION, CMPBODY_ACK, CMPBODY_GENMSG,
-	CMPBODY_ERROR
+	CMPBODY_ERROR, CMPBODY_LAST
 	} CMPBODY_TYPE;
 
 /* CMP uses so many unnecessary EXPLICIT tags that we define a macro to

@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib Test Routines Header File					*
-*						Copyright Peter Gutmann 1995-2003					*
+*						Copyright Peter Gutmann 1995-2005					*
 *																			*
 ****************************************************************************/
 
@@ -20,7 +20,7 @@
 #define TEST_CERTPROCESS	/* Test certificate handling/CA management */
 #endif /* 0 */
 #if 1
-#define TEST_HIGHLEVEL		/* Test high-level encr/sig.functions */
+#define TEST_HIGHEVEL		/* Test high-level encr/sig.functions */
 #define TEST_ENVELOPE		/* Test enveloping functions */
 #endif /* 0 */
 #if 1
@@ -41,11 +41,36 @@
 
 /* #define TEST_DEVICE_FORTEZZA */
 
+/* DH and KEA can't be tested because they use cryptlib-internal mechanisms,
+   however by using a custom-modified cryptlib it's possible to test at
+   least part of the DH implementation.  If the following is defined, the
+   DH key load will be tested */
+
+/* #define TEST_DH */
+
+/* To test the code under Windows CE:
+
+	- If PB can't start the emulator, start it manually via Tools | Configure
+	  Platform Manager | StandardSDK Emulator | Properties | Test.
+	- Before running the self-test for the first time, from the emulator
+	  select Folder Sharing, share the test subdirectory, which will appear
+	  as \\Storage Card\ (sharing it while an app is running may crash the
+	  emulator).
+	- If eVC++ can't connect to the emulator, enable the WCE Config toolbar,
+	  frob all the settings (which have only one option anyway).  VC++ will
+	  rebuild everything (with exactly the same settings as before), and
+	  then it'll work.
+	- Only cl32ce.dll can be run in the debugger, test32ce.exe fails with
+	  some unknown error code.
+	- To test the randomness polling in the emulated environment, first run
+	  the Remote Kernel Tracker, which installs the ToolHelp DLL (this isn't
+	  installed by default) */
+
 /* When commenting out code for testing, the following macro displays a
    warning that the behaviour has been changed as well as the location of
    the change */
 
-#if defined( __MVS__ ) || defined( __VMCMS__ )
+#if defined( __MVS__ ) || defined( __VMCMS__ ) || defined( __ILEC400__ )
   #define KLUDGE_WARN( str )	\
 			{ \
 			char fileName[ 1000 ]; \
@@ -61,7 +86,11 @@
 
 /* Include univerally-needed headers */
 
-#include <assert.h>
+#if defined( _WIN32_WCE ) && _WIN32_WCE < 400
+  #define assert( x )
+#else
+  #include <assert.h>
+#endif /* Systems without assert() */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -98,9 +127,39 @@
 /* It's useful to know if we're running under Windows to enable Windows-
    specific processing */
 
-#if defined( _WINDOWS ) || defined( WIN32 ) || defined( _WIN32 )
+#if defined( _WINDOWS ) || defined( WIN32 ) || defined( _WIN32 ) || \
+	defined( _WIN32_WCE )
   #define __WINDOWS__
 #endif /* _WINDOWS || WIN32 || _WIN32 */
+
+/* If we're running in an environment with a Unicode API, we have to be able
+   to function with both Unicode and ASCII strings */
+
+#ifdef __WINDOWS__
+  #if defined( _WIN32_WCE )
+	#undef TEXT
+	#define TEXT( x )				L ## x
+	#define paramStrlen( x )		( wcslen( x ) * sizeof( wchar_t ) )
+	#define paramStrcmp( x, y )		wcscmp( x, y )
+	#define UNICODE_STRINGS
+  #elif ( defined( WIN32 ) || defined( _WIN32 ) ) && 0
+	/* Facility to test WinCE Unicode handling under Win32 */
+	#undef TEXT
+	#define TEXT( x )				L ## x
+	#define paramStrlen( x )		( wcslen( x ) * sizeof( wchar_t ) )
+	#define paramStrcmp( x, y )		wcscmp( x, y )
+	#define UNICODE_STRINGS
+  #else
+	#undef TEXT						/* Already defined in windows.h */
+	#define TEXT( x )				x
+	#define paramStrlen( x )		strlen( x )
+	#define paramStrcmp( x, y )		strcmp( x, y )
+  #endif /* Windows variants */
+#else
+  #define TEXT( x )					x
+  #define paramStrlen( x )			strlen( x )
+  #define paramStrcmp( x, y )		strcmp( x, y )
+#endif /* Unicode vs. ASCII API */
 
 /* In certain memory-starved environments we have to kludge things to help
    the compiler along.  The following define tells the compiler to move BSS
@@ -118,12 +177,32 @@
    for testing on 16-bit machines */
 
 #if defined( __MSDOS__ ) && defined( __TURBOC__ )
-  #define BUFFER_SIZE		4096
-  #define FILEBUFFER_SIZE	20000
+  #define BUFFER_SIZE			4096
+  #define FILEBUFFER_SIZE		20000
 #else
-  #define BUFFER_SIZE		8192
-  #define FILEBUFFER_SIZE	40960
+  #define BUFFER_SIZE			8192
+  #define FILEBUFFER_SIZE		32768
 #endif /* __MSDOS__ && __TURBOC__ */
+#define FILENAME_BUFFER_SIZE	512
+
+/* Explicit includes needed by Palm OS, see the comment in crypt.h for more
+   details */
+
+#ifdef __PALMSOURCE__
+  #include <ctype.h>
+  #include <string.h>
+#endif /* __PALMSOURCE__ */
+
+/* Helper function to make tracking down errors on systems with no console a
+   bit less painful */
+
+#ifdef _WIN32_WCE
+  #define printf	wcPrintf
+  #define puts		wcPuts
+
+  void wcPrintf( const char *format, ... );
+  void wcPuts( const char *string );
+#endif /* Console-less environments */
 
 /* Try and detect OSes that have threading support, this is needed for some
    operations like async keygen and sleep calls.  Under OSF/1 pthread.h
@@ -155,7 +234,10 @@
   #endif /* Alpha */
   #include <pthread.h>
 #endif /* Slowaris || OSF1/DEC Unix || Mach || AIX || Linux */
-#if defined( WIN32 ) || defined( _WIN32 )
+#if ( defined( WIN32 ) || defined( _WIN32 ) ) && !defined( _WIN32_WCE )
+  /* We don't test the loopback functionality under WinCE because the
+	 _beginthreadx() vs. CreateThread() issue (normally hidden in
+	 cryptos.h) causes all sorts of problems */
   #define WINDOWS_THREADS
   #include <process.h>
 #endif /* Win32 */
@@ -176,6 +258,16 @@
 #if defined( __MVS__ ) || defined( __VMCMS__ )
   #pragma convlit( suspend )
 #endif /* IBM big iron */
+#if defined( __ILEC400__ )
+  #pragma convert( 0 )
+#endif /* IBM medium iron */
+
+/* If we're compiling under QNX, make enums a fixed size rather than using
+   the variable-length values that the Watcom compiler defaults to */
+
+#if defined( __QNX__ ) && defined( __WATCOMC__ )
+  #pragma enum int
+#endif /* QNX and Watcom C */
 
 /* The key size to use for the PKC routines.  This is the minimum allowed by
    cryptlib, it speeds up the various tests but shouldn't be used in
@@ -183,298 +275,54 @@
 
 #define PKC_KEYSIZE			512
 
-/* The names of the test key and certificate files.  For flat filesystems we
-   give the test files names starting with 'z' so they're easier to find */
-
-#if defined( __VMCMS__ )
-  #define TEST_PRIVKEY_FILE			"zkeytest.p15"
-  #define TEST_PRIVKEY_ALT_FILE		"zkeytest.p12"
-  #define CA_PRIVKEY_FILE			"zkeyca.p15"
-  #define ICA_PRIVKEY_FILE			"zkeyica.p15"
-  #define SCEPCA_PRIVKEY_FILE		"zkeysca.p15"
-  #define USER_PRIVKEY_FILE			"zkeyuser.p15"
-  #define DUAL_PRIVKEY_FILE			"zkeydual.p15"
-  #define RENEW_PRIVKEY_FILE		"zkeyren.p15"
-  #define BIG_PRIVKEY_FILE			"zkeybig.p15"
-  #define CMP_PRIVKEY_FILE_TEMPLATE	"zkeycmp.p15"
-  #define PNP_PRIVKEY_FILE			"zkeypnp.p15"
-  #define SERVER_PRIVKEY_FILE		"zkeysrv.p15"
-  #define SSH_PRIVKEY_FILE			"zkeyssh.p15"
-  #define TSA_PRIVKEY_FILE			"zkeytsa.p15"
-
-  #define PGP_PUBKEY_FILE			"zpubring.pgp"
-  #define PGP_PRIVKEY_FILE			"zsecring.pgp"
-  #define OPENPGP_PUBKEY_FILE		"zpubring.gpg"
-  #define OPENPGP_PRIVKEY_FILE		"zsecring.gpg"
-  #define OPENPGP_PUBKEY_HASH_FILE	"zpubrinh.gpg"
-  #define OPENPGP_PRIVKEY_HASH_FILE	"zsecrinh.gpg"
-  #define NAIPGP_PUBKEY_FILE		"zpubring.pkr"
-  #define NAIPGP_PRIVKEY_FILE		"zsecring.skr"
-  #define PKCS12_FILE				"zkey.p12"
-
-  #define CERT_FILE_TEMPLATE		"zcert%d.der"
-  #define BASE64CERT_FILE_TEMPLATE	"zcert%d.asc"
-  #define BROKEN_CERT_FILE			"zcertb.der"
-  #define BROKEN_USER_CERT_FILE		"zcertbus.der"
-  #define BROKEN_CA_CERT_FILE		"zcertbca.der"
-  #define CERTREQ_FILE_TEMPLATE		"zcertreq%d.der"
-  #define CRL_FILE_TEMPLATE			"zcrl%d.der"
-  #define CERTCHAIN_FILE_TEMPLATE	"zcertchn%d.der"
-  #define RTCS_OK_FILE				"zrtcsrok.der"
-  #define OCSP_OK_FILE				"zocsprok.der"
-  #define OCSP_REV_FILE				"zocsprrev.der"
-  #define OCSP_CA_FILE				"zocspca.der"
-  #define CRLCERT_FILE_TEMPLATE		"zcrlcrt%d.der"
-  #define CHAINCERT_FILE_TEMPLATE	"zchncrt%d.der"
-  #define RTCS_FILE_TEMPLATE		"zrtcsee%do.der"
-  #define OCSP_CA_FILE_TEMPLATE		"zocspca%d.der"
-  #define OCSP_EEOK_FILE_TEMPLATE	"zocspee%do.der"
-  #define OCSP_EEREV_FILE_TEMPLATE	"zocspee%dr.der"
-  #define CMP_CA_FILE_TEMPLATE		"zcmpca%d.der"
-  #define SCEP_CA_FILE_TEMPLATE		"zscepca%d.der"
-
-  #define SMIME_SIG_FILE_TEMPLATE	"zsmime%d.p7s"
-  #define SMIME_ENVELOPED_FILE		"zsmime.p7m"
-  #define PGP_ENC_FILE_TEMPLATE		"zenc%d.pgp"
-  #define PGP_PKE_FILE_TEMPLATE		"zenc_pk%d.pgp"
-  #define OPENPGP_PKE_FILE_TEMPLATE	"zenc_pk%d.gpg"
-  #define PGP_SIG_FILE_TEMPLATE		"zsig%d.pgp"
-  #define PGP_COPR_FILE_TEMPLATE	"zcopr%d.pgp"
-
-  #define COMPRESS_FILE				"test.h"
-#elif defined( __OS400__ )
-  #define TEST_PRIVKEY_FILE			"testlib/zkeytest"
-  #define TEST_PRIVKEY_ALT_FILE		"testlib/zkeytsta"
-  #define CA_PRIVKEY_FILE			"testlib/zkeyca"
-  #define ICA_PRIVKEY_FILE			"testlib/zkeyica"
-  #define SCEPCA_PRIVKEY_FILE		"testlib/zkeysca"
-  #define USER_PRIVKEY_FILE			"testlib/zkeyuser"
-  #define DUAL_PRIVKEY_FILE			"testlib/zkeydual"
-  #define RENEW_PRIVKEY_FILE		"testlib/zkeyren"
-  #define BIG_PRIVKEY_FILE			"testlib/zkeybig"
-  #define CMP_PRIVKEY_FILE_TEMPLATE	"testlib/zkeycmp"
-  #define PNP_PRIVKEY_FILE			"testlib/zkeypnp"
-  #define SERVER_PRIVKEY_FILE		"testlib/zkeysrv"
-  #define SSH_PRIVKEY_FILE			"testlib/zkeyssh"
-  #define TSA_PRIVKEY_FILE			"testlib/zkeytsa"
-
-  #define PGP_PUBKEY_FILE			"testlib/zpubring"
-  #define PGP_PRIVKEY_FILE			"testlib/zsecring"
-  #define OPENPGP_PUBKEY_FILE		"testlib/zpubringg"
-  #define OPENPGP_PRIVKEY_FILE		"testlib/zsecringg"
-  #define OPENPGP_PUBKEY_HASH_FILE	"testlib/zpubrinhg"
-  #define OPENPGP_PRIVKEY_HASH_FILE	"testlib/zsecrinhg"
-  #define NAIPGP_PUBKEY_FILE		"testlib/zpubringp"
-  #define NAIPGP_PRIVKEY_FILE		"testlib/zsecrings"
-  #define PKCS12_FILE				"testlib/zkey"
-
-  #define CERT_FILE_TEMPLATE		"testlib/zcert%d"
-  #define BASE64CERT_FILE_TEMPLATE	"testlib/zcerta%d"
-  #define BROKEN_CERT_FILE			"testlib/zcertb"
-  #define BROKEN_USER_CERT_FILE		"testlib/zcertbus"
-  #define BROKEN_CA_CERT_FILE		"testlib/zcertbca"
-  #define CERTREQ_FILE_TEMPLATE		"testlib/zcertreq%d"
-  #define CRL_FILE_TEMPLATE			"testlib/zcrl%d"
-  #define CERTCHAIN_FILE_TEMPLATE	"testlib/zcertchn%d"
-  #define RTCS_OK_FILE				"testlib/zrtcsrok"
-  #define OCSP_OK_FILE				"testlib/zocsprok"
-  #define OCSP_REV_FILE				"testlib/zocsprrev"
-  #define OCSP_CA_FILE				"testlib/zocspca"
-  #define CRLCERT_FILE_TEMPLATE		"testlib/zcrlcrt%d"
-  #define CHAINCERT_FILE_TEMPLATE	"testlib/zchncrt%d"
-  #define RTCS_FILE_TEMPLATE		"testlib/zrtcsee%do"
-  #define OCSP_CA_FILE_TEMPLATE		"testlib/zocspca%d"
-  #define OCSP_EEOK_FILE_TEMPLATE	"testlib/zocspee%do"
-  #define OCSP_EEREV_FILE_TEMPLATE	"testlib/zocspee%dr"
-  #define CMP_CA_FILE_TEMPLATE		"testlib/zcmpca%d"
-  #define SCEP_CA_FILE_TEMPLATE		"testlib/zscepca%d"
-
-  #define SMIME_SIG_FILE_TEMPLATE	"testlib/zsmime%d"
-  #define SMIME_ENVELOPED_FILE		"testlib/zsmimem"
-  #define PGP_ENC_FILE_TEMPLATE		"testlib/zenc%d"
-  #define PGP_PKE_FILE_TEMPLATE		"testlib/zenc_pkp%d"
-  #define OPENPGP_PKE_FILE_TEMPLATE	"testlib/enc_pkg%d"
-  #define PGP_SIG_FILE_TEMPLATE		"testlib/zsig%d"
-  #define PGP_COPR_FILE_TEMPLATE	"testlib/zcopr%d"
-
-  #define COMPRESS_FILE				"testlib/test"
-#elif defined( __MWERKS__ ) || defined( SYMANTEC_C ) || defined( __MRC__ )
-  #define TEST_PRIVKEY_FILE			":test:key_test.p15"
-  #define TEST_PRIVKEY_ALT_FILE		":test:key_test.p12"
-  #define CA_PRIVKEY_FILE			":test:key_ca.p15"
-  #define ICA_PRIVKEY_FILE			":test:key_ica.p15"
-  #define SCEPCA_PRIVKEY_FILE		":test:key_sca.p15"
-  #define USER_PRIVKEY_FILE			":test:key_user.p15"
-  #define DUAL_PRIVKEY_FILE			":test:key_dual.p15"
-  #define RENEW_PRIVKEY_FILE		":test:key_ren.p15"
-  #define BIG_PRIVKEY_FILE			":test:key_big.p15"
-  #define CMP_PRIVKEY_FILE_TEMPLATE	":test:key_cmp%d.p15"
-  #define PNP_PRIVKEY_FILE			":test:key_pnp.p15"
-  #define SERVER_PRIVKEY_FILE		":test:key_srv.p15"
-  #define SSH_PRIVKEY_FILE			":test:key_ssh.p15"
-  #define TSA_PRIVKEY_FILE			":test:key_tsa.p15"
-
-  #define PGP_PUBKEY_FILE			":test:pubring.pgp"
-  #define PGP_PRIVKEY_FILE			":test:secring.pgp"
-  #define OPENPGP_PUBKEY_FILE		":test:pubring.gpg"
-  #define OPENPGP_PRIVKEY_FILE		":test:secring.gpg"
-  #define OPENPGP_PUBKEY_HASH_FILE	":test:pubrinh.gpg"
-  #define OPENPGP_PRIVKEY_HASH_FILE	":test:secrinh.gpg"
-  #define NAIPGP_PUBKEY_FILE		":test:pubring.pkr"
-  #define NAIPGP_PRIVKEY_FILE		":test:secring.skr"
-  #define PKCS12_FILE				":test:key.p12"
-
-  #define CERT_FILE_TEMPLATE		":test:cert%d.der"
-  #define BASE64CERT_FILE_TEMPLATE	":test:cert%d.asc"
-  #define BROKEN_CERT_FILE			":test:certb.der"
-  #define BROKEN_USER_CERT_FILE		":test:certbus.der"
-  #define BROKEN_CA_CERT_FILE		":test:certbca.der"
-  #define CERTREQ_FILE_TEMPLATE		":test:certreq%d.der"
-  #define CRL_FILE_TEMPLATE			":test:crl%d.der"
-  #define CERTCHAIN_FILE_TEMPLATE	":test:certchn%d.der"
-  #define RTCS_OK_FILE				":test:rtcsrok.der"
-  #define OCSP_OK_FILE				":test:ocsprok.der"
-  #define OCSP_REV_FILE				":test:ocsprrev.der"
-  #define OCSP_CA_FILE				":test:ocspca.der"
-  #define CRLCERT_FILE_TEMPLATE		":test:crl_cert%d.der"
-  #define CHAINCERT_FILE_TEMPLATE	":test:chn_cert%d.der"
-  #define RTCS_FILE_TEMPLATE		":test:rtcs_ee%do.der"
-  #define OCSP_CA_FILE_TEMPLATE		":test:ocsp_ca%d.der"
-  #define OCSP_EEOK_FILE_TEMPLATE	":test:ocsp_ee%do.der"
-  #define OCSP_EEREV_FILE_TEMPLATE	":test:ocsp_ee%dr.der"
-  #define CMP_CA_FILE_TEMPLATE		":test:cmp_ca%d.der"
-  #define SCEP_CA_FILE_TEMPLATE		":test:scep_ca%d.der"
-
-  #define SMIME_SIG_FILE_TEMPLATE	":est:smime%d.p7s"
-  #define SMIME_ENVELOPED_FILE		":test:smime.p7m"
-  #define PGP_ENC_FILE_TEMPLATE		":test:enc%d.pgp"
-  #define PGP_PKE_FILE_TEMPLATE		":test:enc_pk%d.pgp"
-  #define OPENPGP_PKE_FILE_TEMPLATE	":test:enc_pk%d.gpg"
-  #define PGP_SIG_FILE_TEMPLATE		":test:sig%d.pgp"
-  #define PGP_COPR_FILE_TEMPLATE	":test:copr%d.pgp"
-
-  #define COMPRESS_FILE				":test:test.h"
-#elif defined( DDNAME_IO )
-  #define TEST_PRIVKEY_FILE			"DD:CLBTEST"
-  #define TEST_PRIVKEY_ALT_FILE		"DD:CLBTESTA"
-  #define CA_PRIVKEY_FILE			"DD:CLBP15(KEYCA)"
-  #define ICA_PRIVKEY_FILE			"DD:CLBP15(KEYICA)"
-  #define SCEPCA_PRIVKEY_FILE		"DD:CLBP15(KEYSCA)"
-  #define USER_PRIVKEY_FILE			"DD:CLBP15(KEYUSER)"
-  #define DUAL_PRIVKEY_FILE			"DD:CLBP15(KEYDUAL)"
-  #define RENEW_PRIVKEY_FILE		"DD:CLBP15(KEYREN)"
-  #define BIG_PRIVKEY_FILE			"DD:CLBP15(KEYBIG)"
-  #define CMP_PRIVKEY_FILE_TEMPLATE	"DD:CLBP15(KEYCMP%d)"
-  #define PNP_PRIVKEY_FILE			"DD:CLBP15(KEYPNP)"
-  #define SERVER_PRIVKEY_FILE		"DD:CLBP15(KEYSRV)"
-  #define SSH_PRIVKEY_FILE			"DD:CLBP15(KEYSSH)"
-  #define TSA_PRIVKEY_FILE			"DD:CLBP15(KEYTSA)"
-
-  #define PGP_PUBKEY_FILE			"DD:CLBPGP(PUBRING)"
-  #define PGP_PRIVKEY_FILE			"DD:CLBPGP(SECRING)"
-  #define OPENPGP_PUBKEY_FILE		"DD:CLBGPG(PUBRING)"
-  #define OPENPGP_PRIVKEY_FILE		"DD:CLBGPG(SECRING)"
-  #define OPENPGP_PUBKEY_HASH_FILE	"DD:CLBGPG(PUBRINH)"
-  #define OPENPGP_PRIVKEY_HASH_FILE	"DD:CLBGPG(SECRINH)"
-  #define NAIPGP_PUBKEY_FILE		"DD:CLBPKR(PUBRING)"
-  #define NAIPGP_PRIVKEY_FILE		"DD:CLBSKR(SECRING)"
-  #define PKCS12_FILE				"DD:CLBP12(KEY)"
-
-  #define CERT_FILE_TEMPLATE		"DD:CLBDER(CERT%d)"
-  #define BASE64CERT_FILE_TEMPLATE	"DD:CLBDER(CERT%d)"
-  #define BROKEN_CERT_FILE			"DD:CLBDER(CERTB)"
-  #define BROKEN_USER_CERT_FILE		"DD:CLBDER(CERTBUS)"
-  #define BROKEN_CA_CERT_FILE		"DD:CLBDER(CERTBCA)"
-  #define CERTREQ_FILE_TEMPLATE		"DD:CLBDER(CERTREQ%d)"
-  #define CRL_FILE_TEMPLATE			"DD:CLBDER(CRL%d)"
-  #define CERTCHAIN_FILE_TEMPLATE	"DD:CLBDER(CERTCHN%d)"
-  #define RTCS_OK_FILE				"DD:CLBDER(RTCSROK)"
-  #define OCSP_OK_FILE				"DD:CLBDER(OCSPROK)"
-  #define OCSP_REV_FILE				"DD:CLBDER(OCSPRREV)"
-  #define OCSP_CA_FILE				"DD:CLBDER(OCSPCA)"
-  #define CRLCERT_FILE_TEMPLATE		"DD:CLBDER(CRLCERT%d)"
-  #define CHAINCERT_FILE_TEMPLATE	"DD:CLBDER(CHNCERT%d)"
-  #define RTCS_FILE_TEMPLATE		"DD:CLBDER(RTCSEE%dO)"
-  #define OCSP_CA_FILE_TEMPLATE		"DD:CLBDER(OCSPCA%d)"
-  #define OCSP_EEOK_FILE_TEMPLATE	"DD:CLBDER(OCSPEE%dO)"
-  #define OCSP_EEREV_FILE_TEMPLATE	"DD:CLBDER(OCSPEE%dR)"
-  #define CMP_CA_FILE_TEMPLATE		"DD:CLBDER(CMPCA%d)"
-  #define SCEP_CA_FILE_TEMPLATE		"DD:CLBDER(SCEPCA%d)"
-
-  #define SMIME_SIG_FILE_TEMPLATE	"DD:CLBP7S(SMIME%d)"
-  #define SMIME_ENVELOPED_FILE		"DD:CLBP7M(SMIME)"
-  #define PGP_ENC_FILE_TEMPLATE		"DD:CLBPGP(ENC%d)"
-  #define PGP_PKE_FILE_TEMPLATE		"DD:CLBPGP(ENCPK%d)"
-  #define OPENPGP_PKE_FILE_TEMPLATE	"DD:CLBGPG(ENCPK%d)"
-  #define PGP_SIG_FILE_TEMPLATE		"DD:CLBPGP(SIG%d)"
-  #define PGP_COPR_FILE_TEMPLATE	"DD:CLBPGP(COPR%d)"
-
-  #define COMPRESS_FILE				"DD:CLBCMP(TEST)"
-#else
-  #define TEST_PRIVKEY_FILE			"test/key_test.p15"
-  #define TEST_PRIVKEY_ALT_FILE		"test/key_test.p12"
-  #define CA_PRIVKEY_FILE			"test/key_ca.p15"
-  #define ICA_PRIVKEY_FILE			"test/key_ica.p15"
-  #define SCEPCA_PRIVKEY_FILE		"test/key_sca.p15"
-  #define USER_PRIVKEY_FILE			"test/key_user.p15"
-  #define DUAL_PRIVKEY_FILE			"test/key_dual.p15"
-  #define RENEW_PRIVKEY_FILE		"test/key_ren.p15"
-  #define BIG_PRIVKEY_FILE			"test/key_big.p15"
-  #define CMP_PRIVKEY_FILE_TEMPLATE	"test/key_cmp%d.p15"
-  #define PNP_PRIVKEY_FILE			"test/key_pnp.p15"
-  #define SERVER_PRIVKEY_FILE		"test/key_srv.p15"
-  #define SSH_PRIVKEY_FILE			"test/key_ssh.p15"
-  #define TSA_PRIVKEY_FILE			"test/key_tsa.p15"
-
-  #define PGP_PUBKEY_FILE			"test/pubring.pgp"
-  #define PGP_PRIVKEY_FILE			"test/secring.pgp"
-  #define OPENPGP_PUBKEY_FILE		"test/pubring.gpg"
-  #define OPENPGP_PRIVKEY_FILE		"test/secring.gpg"
-  #define OPENPGP_PUBKEY_HASH_FILE	"test/pubrinh.gpg"
-  #define OPENPGP_PRIVKEY_HASH_FILE	"test/secrinh.gpg"
-  #define NAIPGP_PUBKEY_FILE		"test/pubring.pkr"
-  #define NAIPGP_PRIVKEY_FILE		"test/secring.skr"
-  #define PKCS12_FILE				"test/key.p12"
-
-  #define CERT_FILE_TEMPLATE		"test/cert%d.der"
-  #define BASE64CERT_FILE_TEMPLATE	"test/cert%d.asc"
-  #define BROKEN_CERT_FILE			"test/certb.der"
-  #define BROKEN_USER_CERT_FILE		"test/certbus.der"
-  #define BROKEN_CA_CERT_FILE		"test/certbca.der"
-  #define CERTREQ_FILE_TEMPLATE		"test/certreq%d.der"
-  #define CRL_FILE_TEMPLATE			"test/crl%d.der"
-  #define CERTCHAIN_FILE_TEMPLATE	"test/certchn%d.der"
-  #define RTCS_OK_FILE				"test/rtcsrok.der"
-  #define OCSP_OK_FILE				"test/ocsprok.der"
-  #define OCSP_REV_FILE				"test/ocsprrev.der"
-  #define OCSP_CA_FILE				"test/ocspca.der"
-  #define CRLCERT_FILE_TEMPLATE		"test/crl_cert%d.der"
-  #define CHAINCERT_FILE_TEMPLATE	"test/chn_cert%d.der"
-  #define RTCS_FILE_TEMPLATE		"test/rtcs_ee%do.der"
-  #define OCSP_CA_FILE_TEMPLATE		"test/ocsp_ca%d.der"
-  #define OCSP_EEOK_FILE_TEMPLATE	"test/ocsp_ee%do.der"
-  #define OCSP_EEREV_FILE_TEMPLATE	"test/ocsp_ee%dr.der"
-  #define CMP_CA_FILE_TEMPLATE		"test/cmp_ca%d.der"
-  #define SCEP_CA_FILE_TEMPLATE		"test/scep_ca%d.der"
-
-  #define SMIME_SIG_FILE_TEMPLATE	"test/smime%d.p7s"
-  #define SMIME_ENVELOPED_FILE		"test/smime.p7m"
-  #define PGP_ENC_FILE_TEMPLATE		"test/enc%d.pgp"
-  #define PGP_PKE_FILE_TEMPLATE		"test/enc_pk%d.pgp"
-  #define OPENPGP_PKE_FILE_TEMPLATE	"test/enc_pk%d.gpg"
-  #define PGP_SIG_FILE_TEMPLATE		"test/sig%d.pgp"
-  #define PGP_COPR_FILE_TEMPLATE	"test/copr%d.pgp"
-
-  #define COMPRESS_FILE				"test/test.h"
-#endif /* OS-specific naming */
-
 /* Since the handling of filenames can get unwieldy when we have large
    numbers of similar files, we use a function to map a filename template
    and number into an actual filename rather the having to use huge
    numbers of defines */
 
-#define filenameFromTemplate( buffer, fileTemplate, count ) \
-		sprintf( buffer, fileTemplate, count )
+#ifdef UNICODE_STRINGS
+  void filenameFromTemplate( char *buffer, const wchar_t *fileTemplate,
+							 const int count );
+  void filenameParamFromTemplate( wchar_t *buffer,
+								  const wchar_t *fileTemplate,
+								  const int count );
+  const char *convertFileName( const C_STR fileName );
+#else
+  #define filenameFromTemplate( buffer, fileTemplate, count ) \
+		  sprintf( buffer, fileTemplate, count )
+  #define filenameParamFromTemplate( buffer, fileTemplate, count ) \
+		  sprintf( buffer, fileTemplate, count )
+  #define convertFileName( fileName )	fileName
+#endif /* Unicode vs. ASCII */
+
+/* A structure that allows us to specify a collection of extension
+   components.  This is used when adding a collection of extensions to a
+   cert */
+
+typedef enum { IS_VOID, IS_NUMERIC, IS_STRING, IS_WCSTRING,
+			   IS_TIME } COMPONENT_TYPE;
+
+typedef struct {
+	const CRYPT_ATTRIBUTE_TYPE type;/* Extension component ID */
+	const COMPONENT_TYPE componentType;	/* Component type */
+	const int numericValue;			/* Value if numeric */
+	const void *stringValue;		/* Value if string */
+	const time_t timeValue;			/* Value if time */
+	} CERT_DATA;
+
+/****************************************************************************
+*																			*
+*									Naming									*
+*																			*
+****************************************************************************/
+
+/* Pull in the OS-specific file names for the test data */
+
+#ifdef _MSC_VER
+  #include "filename.h"
+#else
+  #include "test/filename.h"
+#endif /* Braindamaged MSC include handling */
 
 /* When we're using common code to handle a variety of key file types for
    key read/encryption/signing tests, we need to distinguish between the
@@ -482,11 +330,12 @@
    code */
 
 typedef enum { KEYFILE_X509, KEYFILE_PGP, KEYFILE_OPENPGP,
-			   KEYFILE_OPENPGP_HASH, KEYFILE_NAIPGP } KEYFILE_TYPE;
+			   KEYFILE_OPENPGP_HASH, KEYFILE_OPENPGP_AES,
+			   KEYFILE_NAIPGP } KEYFILE_TYPE;
 
 /* The generic password for private keys */
 
-#define TEST_PRIVKEY_PASSWORD	"test"
+#define TEST_PRIVKEY_PASSWORD	TEXT( "test" )
 
 /* The database keyset type and name.  Under Windoze we use ODBC, for
    anything else we use the first database which is enabled by a preprocessor
@@ -506,32 +355,37 @@ typedef enum { KEYFILE_X509, KEYFILE_PGP, KEYFILE_OPENPGP,
   #define DATABASE_KEYSET_TYPE	CRYPT_KEYSET_DATABASE
   #define CERTSTORE_KEYSET_TYPE	CRYPT_KEYSET_DATABASE_STORE
 #endif /* Various database backends */
-#define DATABASE_KEYSET_NAME		"testkeys"
-#define CERTSTORE_KEYSET_NAME		"testcertstore"
-#define DATABASE_PLUGIN_KEYSET_NAME	"localhost:6500"
+#define DATABASE_KEYSET_NAME		TEXT( "testkeys" )
+#define DATABASE_KEYSET_NAME_ASCII	"testkeys"
+#define CERTSTORE_KEYSET_NAME		TEXT( "testcertstore" )
+#define CERTSTORE_KEYSET_NAME_ASCII	"testcertstore"
+#define DATABASE_PLUGIN_KEYSET_NAME	TEXT( "localhost:6500" )
+#define DATABASE_PLUGIN_KEYSET_NAME_ASCII	"localhost:6500"
 
 /* Some LDAP keyset names and names of probably-present certs and CRLs.
    These keysets (and their contents) come and go, so we have a variety of
    them and try them in turn until something works.  There's a list of more
    LDAP servers at http://www.dante.net/np/pdi.html, but none of these are
-   known to contain certificates */
+   known to contain certificates.
 
-#define LDAP_KEYSET_NAME1		"ldap.diginotar.nl"
-#define LDAP_CERT_NAME1			"cn=Root Certificaat Productie, "\
-								"o=DigiNotar Root,c=NL"
-#define LDAP_CRL_NAME1			"CN=CRL Productie,O=DigiNotar CRL,C=NL"
-#define LDAP_KEYSET_NAME2		"ds.katalog.posten.se"
-#define LDAP_CERT_NAME2			"cn=Posten CertPolicy_eIDKort_1 CA_nyckel_1, " \
-								"o=Posten_Sverige_AB 556451-4148, c=SE"
-#define LDAP_CRL_NAME2			"cn=Posten CertPolicy_eIDKort_1 CA_nyckel_1, " \
-								"o=Posten_Sverige_AB 556451-4148, c=SE"
+   Note that the following strings have to be given on one line in order for
+   the widechar conversion voodoo to work */
+
+#define LDAP_KEYSET_NAME1		TEXT( "ldap.diginotar.nl" )
+#define LDAP_KEYSET_NAME1_ASCII	"ldap.diginotar.nl"
+#define LDAP_CERT_NAME1			TEXT( "cn=Root Certificaat Productie, o=DigiNotar Root,c=NL" )
+#define LDAP_CRL_NAME1			TEXT( "CN=CRL Productie,O=DigiNotar CRL,C=NL" )
+#define LDAP_KEYSET_NAME2		TEXT( "ds.katalog.posten.se" )
+#define LDAP_KEYSET_NAME2_ASCII	"ds.katalog.posten.se"
+#define LDAP_CERT_NAME2			TEXT( "cn=Posten CertPolicy_eIDKort_1 CA_nyckel_1, o=Posten_Sverige_AB 556451-4148, c=SE" )
+#define LDAP_CRL_NAME2			TEXT( "cn=Posten CertPolicy_eIDKort_1 CA_nyckel_1, o=Posten_Sverige_AB 556451-4148, c=SE" )
 
 /* The HTTP keyset names (actually URLs for pages containing a cert and
    CRL) */
 
-#define HTTP_KEYSET_CERT_NAME	"www.thawte.com/persfree.crt"
-#define HTTP_KEYSET_CRL_NAME	"crl.verisign.com/Class1Individual.crl"
-#define HTTP_KEYSET_HUGECRL_NAME "crl.verisign.com/RSASecureServer.crl"
+#define HTTP_KEYSET_CERT_NAME	TEXT( "www.thawte.com/persfree.crt" )
+#define HTTP_KEYSET_CRL_NAME	TEXT( "crl.verisign.com/Class1Individual.crl" )
+#define HTTP_KEYSET_HUGECRL_NAME TEXT( "crl.verisign.com/RSASecureServer.crl" )
 
 /* Assorted default server names and authentication information, and the PKI
    SRV server (redirecting to mail.cryptoapps.com:8080).  There are so many
@@ -539,47 +393,32 @@ typedef enum { KEYFILE_X509, KEYFILE_PGP, KEYFILE_OPENPGP,
    allow remapping in the functions where the secure session tests are
    performed */
 
-#define SSH_USER_NAME			"test"
-#define SSH_PASSWORD			"test"
-#define SSL_USER_NAME			"test"
-#define SSL_PASSWORD			"test"
-#define PKI_SRV_NAME			"_pkiboot._tcp.cryptoapps.com"
-#define TSP_DEFAULTSERVER_NAME	"http://www.edelweb.fr/cgi-bin/service-tsp"
+#define SSH_USER_NAME			TEXT( "test" )
+#define SSH_PASSWORD			TEXT( "test" )
+#define SSL_USER_NAME			TEXT( "test" )
+#define SSL_PASSWORD			TEXT( "test" )
+#define PKI_SRV_NAME			TEXT( "_pkiboot._tcp.cryptoapps.com" )
+#define TSP_DEFAULTSERVER_NAME	TEXT( "http://www.edelweb.fr/cgi-bin/service-tsp" )
 
 /* Labels for the various public-key objects.  These are needed when the
    underlying implementation creates persistent objects (eg keys held in PKCS
    #11 tokens) that need to be identified */
 
-#define RSA_PUBKEY_LABEL		"Test RSA public key"
-#define RSA_PRIVKEY_LABEL		"Test RSA private key"
-#define RSA_BIG_PRIVKEY_LABEL	"Test RSA big private key"
-#define DSA_PUBKEY_LABEL		"Test DSA sigcheck key"
-#define DSA_PRIVKEY_LABEL		"Test DSA signing key"
-#define ELGAMAL_PUBKEY_LABEL	"Test Elgamal public key"
-#define ELGAMAL_PRIVKEY_LABEL	"Test Elgamal private key"
-#define DH_KEY1_LABEL			"Test DH key #1"
-#define DH_KEY2_LABEL			"Test DH key #2"
-#define CA_PRIVKEY_LABEL		RSA_PRIVKEY_LABEL
-#define USER_PRIVKEY_LABEL		"Test user key"
-#define USER_EMAIL				"dave@wetaburgers.com"
-#define DUAL_SIGNKEY_LABEL		"Test signing key"
-#define DUAL_ENCRYPTKEY_LABEL	"Test encryption key"
-#define SSH_PRIVKEY_LABEL		"SSH host key"
-
-/* A structure that allows us to specify a collection of extension
-   components.  This is used when adding a collection of extensions to a
-   cert */
-
-typedef enum { IS_VOID, IS_NUMERIC, IS_STRING, IS_WCSTRING,
-			   IS_TIME } COMPONENT_TYPE;
-
-typedef struct {
-	const CRYPT_ATTRIBUTE_TYPE type;/* Extension component ID */
-	const COMPONENT_TYPE componentType;	/* Component type */
-	const int numericValue;			/* Value if numeric */
-	const void *stringValue;		/* Value if string */
-	const time_t timeValue;			/* Value if time */
-	} CERT_DATA;
+#define RSA_PUBKEY_LABEL		TEXT( "Test RSA public key" )
+#define RSA_PRIVKEY_LABEL		TEXT( "Test RSA private key" )
+#define RSA_BIG_PRIVKEY_LABEL	TEXT( "Test RSA big private key" )
+#define DSA_PUBKEY_LABEL		TEXT( "Test DSA sigcheck key" )
+#define DSA_PRIVKEY_LABEL		TEXT( "Test DSA signing key" )
+#define ELGAMAL_PUBKEY_LABEL	TEXT( "Test Elgamal public key" )
+#define ELGAMAL_PRIVKEY_LABEL	TEXT( "Test Elgamal private key" )
+#define DH_KEY1_LABEL			TEXT( "Test DH key #1" )
+#define DH_KEY2_LABEL			TEXT( "Test DH key #2" )
+#define CA_PRIVKEY_LABEL		TEXT( "Test RSA private key" )
+#define USER_PRIVKEY_LABEL		TEXT( "Test user key" )
+#define USER_EMAIL				TEXT( "dave@wetaburgers.com" )
+#define DUAL_SIGNKEY_LABEL		TEXT( "Test signing key" )
+#define DUAL_ENCRYPTKEY_LABEL	TEXT( "Test encryption key" )
+#define SSH_PRIVKEY_LABEL		TEXT( "SSH host key" )
 
 /****************************************************************************
 *																			*
@@ -587,28 +426,34 @@ typedef struct {
 *																			*
 ****************************************************************************/
 
-/* Prototypes for functions in certutil.c */
+/* Prototypes for functions in utils.c */
 
 void printErrorAttributeInfo( const CRYPT_CERTIFICATE certificate );
+int displayAttributes( const CRYPT_HANDLE cryptHandle );
 int printCertInfo( const CRYPT_CERTIFICATE certificate );
 int printCertChainInfo( const CRYPT_CERTIFICATE certChain );
 void printExtError( const CRYPT_HANDLE cryptHandle,
 					const char *functionName, const int functionStatus,
 					const int lineNo );
-int importCertFile( CRYPT_CERTIFICATE *cryptCert, const char *fileName );
+int importCertFile( CRYPT_CERTIFICATE *cryptCert, const C_STR fileName );
 int importCertFromTemplate( CRYPT_CERTIFICATE *cryptCert,
-							const char *fileTemplate, const int number );
+							const C_STR fileTemplate, const int number );
 int addCertFields( const CRYPT_CERTIFICATE certificate,
 				   const CERT_DATA *certData );
 int checkFileAccess( void );
-int getPublicKey( CRYPT_CONTEXT *cryptContext, const char *keysetName,
-				  const char *keyName );
-int getPrivateKey( CRYPT_CONTEXT *cryptContext, const char *keysetName,
-				   const char *keyName, const char *password );
+int getPublicKey( CRYPT_CONTEXT *cryptContext, const C_STR keysetName,
+				  const C_STR keyName );
+int getPrivateKey( CRYPT_CONTEXT *cryptContext, const C_STR keysetName,
+				   const C_STR keyName, const C_STR password );
 void debugDump( const char *fileName, const void *data,
 				const int dataLength );
+int printConnectInfo( const CRYPT_SESSION cryptSession );
+int printSecurityInfo( const CRYPT_SESSION cryptSession,
+					   const BOOLEAN isServer,
+					   const BOOLEAN showFingerprint );
+BOOLEAN setLocalConnect( const CRYPT_SESSION cryptSession, const int port );
 
-/* Exit with an error message, in certutil.c.  attrErrorExit() prints the
+/* Exit with an error message, in utils.c.  attrErrorExit() prints the
    locus and type, extErrorExit() prints the extended error code and
    message */
 
@@ -619,7 +464,7 @@ BOOLEAN extErrorExit( const CRYPT_HANDLE cryptHandle,
 					  const char *functionName, const int errorCode,
 					  const int lineNumber );
 
-/* Prototypes for functions in testcert.c */
+/* Prototypes for functions in certs.c */
 
 BOOLEAN certErrorExit( const CRYPT_HANDLE cryptHandle,
 					   const char *functionName, const int errorCode,
@@ -634,21 +479,23 @@ BOOLEAN certErrorExit( const CRYPT_HANDLE cryptHandle,
 #endif /* Systems with threading support */
 CRYPT_ALGO_TYPE selectCipher( const CRYPT_ALGO_TYPE algorithm );
 
-/* Prototypes for functions in testll.c */
+/* Prototypes for functions in lowlvl.c */
 
+BOOLEAN loadDHKey( const CRYPT_DEVICE cryptDevice,
+				   CRYPT_CONTEXT *cryptContext );
 BOOLEAN loadRSAContextsEx( const CRYPT_DEVICE cryptDevice,
 						   CRYPT_CONTEXT *cryptContext,
 						   CRYPT_CONTEXT *decryptContext,
-						   const char *cryptContextLabel,
-						   const char *decryptContextLabel );
+						   const C_STR cryptContextLabel,
+						   const C_STR decryptContextLabel );
 BOOLEAN loadRSAContexts( const CRYPT_DEVICE cryptDevice,
 						 CRYPT_CONTEXT *cryptContext,
 						 CRYPT_CONTEXT *decryptContext );
 BOOLEAN loadDSAContextsEx( const CRYPT_DEVICE cryptDevice,
 						   CRYPT_CONTEXT *signContext,
 						   CRYPT_CONTEXT *sigCheckContext,
-						   const char *signContextLabel,
-						   const char *sigCheckContextLabel );
+						   const C_STR signContextLabel,
+						   const C_STR sigCheckContextLabel );
 BOOLEAN loadDSAContexts( const CRYPT_DEVICE cryptDevice,
 						 CRYPT_CONTEXT *signContext,
 						 CRYPT_CONTEXT *sigCheckContext );
@@ -666,21 +513,22 @@ int testCrypt( CRYPT_CONTEXT cryptContext, CRYPT_CONTEXT decryptContext,
 			   BYTE *buffer, const BOOLEAN isDevice,
 			   const BOOLEAN noWarnFail );
 
-/* Prototypes for functions in testkey.c */
+/* Prototypes for functions in keyfile.c */
 
-const char *getKeyfileName( const KEYFILE_TYPE type,
+const C_STR getKeyfileName( const KEYFILE_TYPE type,
 							const BOOLEAN isPrivKey );
-const char *getKeyfilePassword( const KEYFILE_TYPE type );
-const char *getKeyfileUserID( const KEYFILE_TYPE type );
+const C_STR getKeyfilePassword( const KEYFILE_TYPE type );
+const C_STR getKeyfileUserID( const KEYFILE_TYPE type,
+							  const BOOLEAN isPrivKey );
 
-/* Prototypes for functions in testenv.c */
+/* Prototypes for functions in envelope.c */
 
 int testCMSEnvelopeSignEx( const CRYPT_CONTEXT signContext );
 int testCMSEnvelopePKCCryptEx( const CRYPT_HANDLE encryptContext,
 							   const CRYPT_HANDLE decryptKeyset,
-							   const char *password );
+							   const C_STR password );
 
-/* Prototypes for functions in testsess.c */
+/* Prototypes for functions in sreqresp.c */
 
 int testSessionTSPServerEx( const CRYPT_CONTEXT privKeyContext );
 
@@ -690,7 +538,7 @@ int testSessionTSPServerEx( const CRYPT_CONTEXT privKeyContext );
 *																			*
 ****************************************************************************/
 
-/* Prototypes for functions in testhl.c */
+/* Prototypes for functions in highlvl.c */
 
 int testLargeBufferEncrypt( void );
 int testDeriveKey( void );
@@ -705,12 +553,12 @@ int testKeygenAsync( void );
 int testKeyExportImportCMS( void );
 int testSignDataCMS( void );
 
-/* Prototypes for functions in testdev.c */
+/* Prototypes for functions in devices.c */
 
 int testDevices( void );
 int testUser( void );
 
-/* Prototypes for functions in testkey.c */
+/* Prototypes for functions in keyfile.c */
 
 int testGetPGPPublicKey( void );
 int testGetPGPPrivateKey( void );
@@ -733,6 +581,9 @@ int testSingleStepFileCert( void );
 int testSingleStepAltFileCert( void );
 int testDoubleCertFile( void );
 int testRenewedCertFile( void );
+
+/* Prototypes for functions in keydbx.c */
+
 int testWriteCert( void );
 int testReadCert( void );
 int testKeysetQuery( void );
@@ -742,7 +593,7 @@ int testReadCertLDAP( void );
 int testReadCertURL( void );
 int testReadCertHTTP( void );
 
-/* Prototypes for functions in testenv.c */
+/* Prototypes for functions in envelope.c */
 
 int testEnvelopeData( void );
 int testEnvelopeDataLargeBuffer( void );
@@ -766,7 +617,7 @@ int testCMSEnvelopeDualSign( void );
 int testCMSEnvelopeDetachedSig( void );
 int testCMSEnvelopeSignedDataImport( void );
 
-/* Prototypes for functions in testcert.c */
+/* Prototypes for functions in certs.c */
 
 int testCert( void );
 int testCACert( void );
@@ -795,22 +646,49 @@ int testCRLImport( void );
 int testCertChainImport( void );
 int testOCSPImport( void );
 int testBase64CertImport( void );
+int testBase64CertChainImport( void );
+int testMiscImport( void );
 int testCertComplianceLevel( void );
+int testPathProcessing( void );
 int testCertProcess( void );
 int testCertManagement( void );
 
-/* Prototypes for functions in testsess.c (the last one is actually in with
+/* Prototypes for functions in scert.c (the EnvTSP one is actually in with
    the enveloping code because the only way to fully exercise the TS
    functionality is by using it to timestamp an S/MIME signature) */
 
+int testSessionSCEP( void );
+int testSessionSCEPServer( void );
+int testSessionCMP( void );
+int testSessionCMPServer( void );
+int testSessionPNPPKI( void );
+int testSessionEnvTSP( void );
+
+/* Prototypes for functions in sreqresp.c */
+
+int testSessionHTTPCertstoreServer( void );
+int testSessionRTCS( void );
+int testSessionRTCSServer( void );
+int testSessionOCSP( void );
+int testSessionOCSPServer( void );
+int testSessionTSP( void );
+int testSessionTSPServer( void );
+
+/* Prototypes for functions in ssh.c */
+
 int testSessionUrlParse( void );
+int testSessionSSHMultiServer( void );
 int testSessionSSHv1( void );
-int testSessionSSHv2( void );
+int testSessionSSH( void );
 int testSessionSSHClientCert( void );
+int testSessionSSHPortforward( void );
 int testSessionSSH_SFTP( void );
 int testSessionSSHv1Server( void );
-int testSessionSSHv2Server( void );
+int testSessionSSHServer( void );
 int testSessionSSH_SFTPServer( void );
+
+/* Prototypes for functions in ssl.c */
+
 int testSessionSSL( void );
 int testSessionSSLLocalSocket( void );
 int testSessionSSLClientCert( void );
@@ -823,34 +701,24 @@ int testSessionTLSServer( void );
 int testSessionTLSServerSharedKey( void );
 int testSessionTLS11( void );
 int testSessionTLS11Server( void );
-int testSessionRTCS( void );
-int testSessionRTCSServer( void );
-int testSessionOCSP( void );
-int testSessionOCSPServer( void );
-int testSessionTSP( void );
-int testSessionTSPServer( void );
-int testSessionSCEP( void );
-int testSessionSCEPServer( void );
-int testSessionCMP( void );
-int testSessionCMPServer( void );
-int testSessionPNPPKI( void );
-int testSessionEnvTSP( void );
 
 /* Functions to test local client/server sessions.  These require threading
    support since they run the client and server in different threads */
 
 #ifdef WINDOWS_THREADS
   int testSessionSSHv1ClientServer( void );
-  int testSessionSSHv2ClientServer( void );
+  int testSessionSSHClientServer( void );
   int testSessionSSHClientServerFingerprint( void );
   int testSessionSSHClientServerSFTP( void );
   int testSessionSSHClientServerPortForward( void );
+  int testSessionSSHClientServerMultichannel( void );
   int testSessionSSLClientServer( void );
   int testSessionSSLClientCertClientServer( void );
   int testSessionTLSClientServer( void );
   int testSessionTLSSharedKeyClientServer( void );
   int testSessionTLSBulkTransferClientServer( void );
   int testSessionTLS11ClientServer( void );
+  int testSessionHTTPCertstoreClientServer( void );
   int testSessionRTCSClientServer( void );
   int testSessionOCSPClientServer( void );
   int testSessionTSPClientServer( void );
@@ -859,28 +727,38 @@ int testSessionEnvTSP( void );
   int testSessionCMPClientServer( void );
   int testSessionCMPPKIBootClientServer( void );
   int testSessionPNPPKIClientServer( void );
+  int testSessionPNPPKICAClientServer( void );
+  int testSessionPNPPKIIntermedCAClientServer( void );
 #else
   #define testSessionSSHv1ClientServer()			TRUE
-  #define testSessionSSHv2ClientServer()			TRUE
+  #define testSessionSSHClientServer()				TRUE
   #define testSessionSSHClientServerFingerprint()	TRUE
   #define testSessionSSHClientServerSFTP()			TRUE
   #define testSessionSSHClientServerPortForward()	TRUE
+  #define testSessionSSHClientServerMultichannel()	TRUE
   #define testSessionSSLClientServer()				TRUE
   #define testSessionSSLClientCertClientServer()	TRUE
   #define testSessionTLSClientServer()				TRUE
   #define testSessionTLSSharedKeyClientServer()		TRUE
   #define testSessionTLSBulkTransferClientServer()	TRUE
   #define testSessionTLS11ClientServer()			TRUE
+  #define testSessionHTTPCertstoreClientServer()	TRUE
   #define testSessionRTCSClientServer()				TRUE
   #define testSessionOCSPClientServer()				TRUE
   #define testSessionTSPClientServer()				TRUE
   #define testSessionTSPClientServerPersistent()	TRUE
   #define testSessionSCEPClientServer()				TRUE
   #define testSessionCMPClientServer()				TRUE
+  #define testSessionCMPCAClientServer()			TRUE
   #define testSessionCMPPKIBootClientServer()		TRUE
   #define testSessionPNPPKIClientServer()			TRUE
+  #define testSessionPNPPKICAClientServer()			TRUE
+  #define testSessionPNPPKIIntermedCAClientServer()	TRUE
 #endif /* WINDOWS_THREADS */
 
 #if defined( __MVS__ ) || defined( __VMCMS__ )
   #pragma convlit( resume )
 #endif /* IBM big iron */
+#if defined( __ILEC400__ )
+  #pragma convert( 819 )
+#endif /* IBM medium iron */

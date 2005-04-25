@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						 cryptlib TSP Session Management					*
-*						Copyright Peter Gutmann 1999-2002					*
+*						Copyright Peter Gutmann 1999-2004					*
 *																			*
 ****************************************************************************/
 
@@ -9,21 +9,18 @@
 #include <string.h>
 #if defined( INC_ALL )
   #include "crypt.h"
-  #include "asn1_rw.h"
-  #include "asn1s_rw.h"
-  #include "objinfo.h"
+  #include "asn1.h"
+  #include "asn1_ext.h"
   #include "session.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
-  #include "../misc/asn1_rw.h"
-  #include "../misc/asn1s_rw.h"
-  #include "../misc/objinfo.h"
-  #include "../session/session.h"
+  #include "../misc/asn1.h"
+  #include "../misc/asn1_ext.h"
+  #include "session.h"
 #else
   #include "crypt.h"
-  #include "misc/asn1_rw.h"
-  #include "misc/asn1s_rw.h"
-  #include "misc/objinfo.h"
+  #include "misc/asn1.h"
+  #include "misc/asn1_ext.h"
   #include "session/session.h"
 #endif /* Compiler-specific includes */
 
@@ -259,6 +256,7 @@ static int signTSToken( BYTE *tsaResp, int *tsaRespLength,
 static int sendClientRequest( SESSION_INFO *sessionInfoPtr,
 							  TSP_PROTOCOL_INFO *protocolInfo )
 	{
+	TSP_INFO *tspInfo = sessionInfoPtr->sessionTSP;
 	STREAM stream;
 	BYTE *bufPtr = sessionInfoPtr->receiveBuffer;
 	void *msgImprintPtr;
@@ -272,8 +270,8 @@ static int sendClientRequest( SESSION_INFO *sessionInfoPtr,
 	   easily handle having arbitrary amounts of signing certs being 
 	   returned */
 	protocolInfo->msgImprintSize = \
-					sizeofMessageDigest( sessionInfoPtr->tspImprintAlgo,
-										 sessionInfoPtr->tspImprintSize );
+							sizeofMessageDigest( tspInfo->imprintAlgo,
+												 tspInfo->imprintSize );
 	sMemOpen( &stream, sessionInfoPtr->receiveBuffer, 1024 );
 	writeSequence( &stream, sizeofShortInteger( TSP_VERSION ) + \
 							protocolInfo->msgImprintSize + \
@@ -281,9 +279,8 @@ static int sendClientRequest( SESSION_INFO *sessionInfoPtr,
 								sizeofBoolean() : 0 ) );
 	writeShortInteger( &stream, TSP_VERSION, DEFAULT_TAG );
 	msgImprintPtr = sMemBufPtr( &stream );
-	writeMessageDigest( &stream, sessionInfoPtr->tspImprintAlgo,
-						sessionInfoPtr->tspImprint,
-						sessionInfoPtr->tspImprintSize );
+	writeMessageDigest( &stream, tspInfo->imprintAlgo,
+						tspInfo->imprint, tspInfo->imprintSize );
 	memcpy( protocolInfo->msgImprint, msgImprintPtr, 
 			protocolInfo->msgImprintSize );
 	if( protocolInfo->includeSigCerts )
@@ -327,7 +324,7 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr,
 	   sure it's in order.  The check for a response labelled as a request 
 	   is necessary because some buggy implementations use the request 
 	   message type for any normal communication (in fact since the socket
-	   protocol arose from a botched cut&paste of the equivalent CMP 
+	   protocol arose from a botched cut & paste of the equivalent CMP 
 	   protocol it serves no actual purpose and so some implementations just 
 	   memcpy() in a fixed header) */
 	if( !( sessionInfoPtr->flags & SESSION_ISHTTPTRANSPORT ) )
@@ -354,7 +351,7 @@ static int readServerResponse( SESSION_INFO *sessionInfoPtr,
 		/* Fiddle the read buffer size to make sure we only try and read as
 		   much as the wrapper protocol has told us is present.  This kludge 
 		   is necessary because the wrapper protocol isn't any normal 
-		   transport mechanism like HTTP but a botched cut&paste from CMP 
+		   transport mechanism like HTTP but a botched cut & paste from CMP 
 		   that can't easily be accommodated by the network-layer code */
 		sessionInfoPtr->receiveBufSize = ( int ) packetLength - 1;
 		}
@@ -450,12 +447,6 @@ static const FAR_BSS BYTE respBadData[] = {
 	0x05,							/* Type */
 	0x30, 0x09, 0x30, 0x07, 0x02, 0x01, 0x02, 0x03,
 	0x02, 0x05, 0x20				/* Rejection, badDataFormat */
-	};
-static const FAR_BSS BYTE respBadPolicy[] = {
-	0x00, 0x00, 0x00, 0x0D,			/* Length */
-	0x05,							/* Type */
-	0x30, 0x0A, 0x30, 0x08, 0x02, 0x01, 0x02, 0x03,
-	0x03, 0x00, 0x00, 0x01			/* Rejection, unacceptedPolicy */
 	};
 static const FAR_BSS BYTE respBadExtension[] = {
 	0x00, 0x00, 0x00, 0x0E,			/* Length */
@@ -643,7 +634,7 @@ static int clientTransact( SESSION_INFO *sessionInfoPtr )
 	int status;
 
 	/* Make sure that we have all of the needed information */
-	if( sessionInfoPtr->tspImprintSize == 0 )
+	if( sessionInfoPtr->sessionTSP->imprintSize == 0 )
 		{
 		setErrorInfo( sessionInfoPtr, CRYPT_SESSINFO_TSP_MSGIMPRINT,
 					  CRYPT_ERRTYPE_ATTR_ABSENT );
@@ -655,9 +646,6 @@ static int clientTransact( SESSION_INFO *sessionInfoPtr )
 	status = sendClientRequest( sessionInfoPtr, &protocolInfo );
 	if( cryptStatusOK( status ) )
 		status = readServerResponse( sessionInfoPtr, &protocolInfo );
-#if 0
-	sioctl( &sessionInfoPtr->stream, STREAM_IOCTL_GETCONNSTATE, &status, 0 );
-#endif /* 0 */
 	return( status );
 	}
 
@@ -671,9 +659,6 @@ static int serverTransact( SESSION_INFO *sessionInfoPtr )
 	status = readClientRequest( sessionInfoPtr, &protocolInfo );
 	if( cryptStatusOK( status ) )
 		status = sendServerResponse( sessionInfoPtr, &protocolInfo );
-#if 0
-	sioctl( &sessionInfoPtr->stream, STREAM_IOCTL_GETCONNSTATE, &status, 0 );
-#endif /* 0 */
 	return( status );
 	}
 
@@ -750,28 +735,27 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 								 const CRYPT_ATTRIBUTE_TYPE type )
 	{
 	CRYPT_CONTEXT hashContext = *( ( CRYPT_CONTEXT * ) data );
+	TSP_INFO *tspInfo = sessionInfoPtr->sessionTSP;
 	int status;
 
 	assert( type == CRYPT_SESSINFO_TSP_MSGIMPRINT );
 
-	if( sessionInfoPtr->tspImprintSize != 0 )
+	if( tspInfo->imprintSize != 0 )
 		return( CRYPT_ERROR_INITED );
 
 	/* Get the message imprint from the hash context */
 	status = krnlSendMessage( hashContext, IMESSAGE_GETATTRIBUTE,
-							  &sessionInfoPtr->tspImprintAlgo,
-							  CRYPT_CTXINFO_ALGO );
+							  &tspInfo->imprintAlgo, CRYPT_CTXINFO_ALGO );
 	if( cryptStatusOK( status ) )
 		{
 		RESOURCE_DATA msgData;
 
-		setMessageData( &msgData, sessionInfoPtr->tspImprint,
-						CRYPT_MAX_HASHSIZE );
+		setMessageData( &msgData, tspInfo->imprint, CRYPT_MAX_HASHSIZE );
 		status = krnlSendMessage( hashContext, IMESSAGE_GETATTRIBUTE_S,
 								  &msgData, CRYPT_CTXINFO_HASHVALUE );
 		if( cryptStatusError( status ) )
 			return( status );
-		sessionInfoPtr->tspImprintSize = msgData.length;
+		tspInfo->imprintSize = msgData.length;
 		}
 
 	return( cryptStatusError( status ) ? CRYPT_ARGERROR_NUM1 : CRYPT_OK );
@@ -840,9 +824,10 @@ int setAccessMethodTSP( SESSION_INFO *sessionInfoPtr )
 
 	/* Set the access method pointers */
 	sessionInfoPtr->protocolInfo = &protocolInfo;
-	sessionInfoPtr->transactFunction = \
-			( sessionInfoPtr->flags & SESSION_ISSERVER ) ? \
-			serverTransact : clientTransact;
+	if( sessionInfoPtr->flags & SESSION_ISSERVER )
+		sessionInfoPtr->transactFunction = serverTransact;
+	else
+		sessionInfoPtr->transactFunction = clientTransact;
 	sessionInfoPtr->getAttributeFunction = getAttributeFunction;
 	sessionInfoPtr->setAttributeFunction = setAttributeFunction;
 	sessionInfoPtr->checkAttributeFunction = checkAttributeFunction;

@@ -1,0 +1,173 @@
+&TRACE ON
+
+* Set the LE runtime library and various global values
+
+GLOBAL LOADLIB SCEERUN
+
+&LIBNAME = CRYPTLIB
+
+* Compile all cryptlib modules
+
+&TYPE Building cryptlib modules...
+EXEC CC crypt c (def(__VMCMS__) lo
+EXEC CC cryptapi c (def(__VMCMS__) lo
+EXEC CC cryptcfg c (def(__VMCMS__) lo
+EXEC CC cryptcrt c (def(__VMCMS__) lo
+EXEC CC cryptdbx c (def(__VMCMS__) lo
+EXEC CC cryptdev c (def(__VMCMS__) lo
+EXEC CC cryptenv c (def(__VMCMS__) lo
+EXEC CC cryptkey c (def(__VMCMS__) lo
+EXEC CC cryptkrn c (def(__VMCMS__) lo
+EXEC CC cryptlib c (def(__VMCMS__) lo
+EXEC CC cryptmis c (def(__VMCMS__) lo
+EXEC CC cryptses c (def(__VMCMS__) lo
+EXEC CC lib_3des c (def(__VMCMS__) lo
+EXEC CC lib_bf c (def(__VMCMS__) lo
+EXEC CC lib_cast c (def(__VMCMS__) lo
+EXEC CC lib_dbms c (def(__VMCMS__) lo
+EXEC CC lib_des c (def(__VMCMS__) lo
+EXEC CC lib_dh c (def(__VMCMS__) lo
+EXEC CC lib_dsa c (def(__VMCMS__) lo
+EXEC CC lib_elg c (def(__VMCMS__) lo
+EXEC CC lib_hmd5 c (def(__VMCMS__) lo
+EXEC CC lib_hrmd c (def(__VMCMS__) lo
+EXEC CC lib_hsha c (def(__VMCMS__) lo
+EXEC CC lib_idea c (def(__VMCMS__) lo
+EXEC CC lib_keyx c (def(__VMCMS__) lo
+EXEC CC lib_kg c (def(__VMCMS__) lo
+EXEC CC lib_md2 c (def(__VMCMS__) lo
+EXEC CC lib_md4 c (def(__VMCMS__) lo
+EXEC CC lib_md5 c (def(__VMCMS__) lo
+EXEC CC lib_mdc2 c (def(__VMCMS__) lo
+EXEC CC lib_rc2 c (def(__VMCMS__) lo
+EXEC CC lib_rc4 c (def(__VMCMS__) lo
+EXEC CC lib_rc5 c (def(__VMCMS__) lo
+EXEC CC lib_ripe c (def(__VMCMS__) lo
+EXEC CC lib_rsa c (def(__VMCMS__) lo
+EXEC CC lib_safr c (def(__VMCMS__) lo
+EXEC CC lib_sha c (def(__VMCMS__) lo
+EXEC CC lib_sign c (def(__VMCMS__) lo
+EXEC CC lib_skip c (def(__VMCMS__) lo
+EXEC CC bn_add c (def(__VMCMS__) lo
+EXEC CC bn_blind c (def(__VMCMS__) lo
+EXEC CC bn_div c (def(__VMCMS__) lo
+EXEC CC bn_exp c (def(__VMCMS__) lo
+EXEC CC bn_gcd c (def(__VMCMS__) lo
+EXEC CC bn_lib c (def(__VMCMS__) lo
+EXEC CC bn_mod c (def(__VMCMS__) lo
+EXEC CC bn_mont c (def(__VMCMS__) lo
+EXEC CC bn_mul c (def(__VMCMS__) lo
+EXEC CC bn_mulw c (def(__VMCMS__) lo
+EXEC CC bn_recp c (def(__VMCMS__) lo
+EXEC CC bn_shift c (def(__VMCMS__) lo
+EXEC CC bn_sqr c (def(__VMCMS__) lo
+EXEC CC bn_sub c (def(__VMCMS__) lo
+EXEC CC bn_word c (def(__VMCMS__) lo
+EXEC CC bf_ecb c (def(__VMCMS__) lo
+EXEC CC bf_enc c (def(__VMCMS__) lo
+EXEC CC bf_skey c (def(__VMCMS__) lo
+EXEC CC c_ecb c (def(__VMCMS__) lo
+EXEC CC c_enc c (def(__VMCMS__) lo
+EXEC CC c_skey c (def(__VMCMS__) lo
+EXEC CC des_enc c (def(__VMCMS__) lo
+EXEC CC ecb3_enc c (def(__VMCMS__) lo
+EXEC CC ecb_enc c (def(__VMCMS__) lo
+EXEC CC idea c (def(__VMCMS__) lo
+EXEC CC rc2 c (def(__VMCMS__) lo
+EXEC CC rc4_enc c (def(__VMCMS__) lo
+EXEC CC rc4_skey c (def(__VMCMS__) lo
+EXEC CC rc5 c (def(__VMCMS__) lo
+EXEC CC safer c (def(__VMCMS__) lo
+EXEC CC set_key c (def(__VMCMS__) lo
+EXEC CC skipjack c (def(__VMCMS__) lo
+EXEC CC deenvel c (def(__VMCMS__) lo
+EXEC CC envelope c (def(__VMCMS__) lo
+EXEC CC octetstr c (def(__VMCMS__) lo
+EXEC CC pgp_deen c (def(__VMCMS__) lo
+EXEC CC pgp_misc c (def(__VMCMS__) lo
+EXEC CC resource c (def(__VMCMS__) lo
+EXEC CC md2 c (def(__VMCMS__) lo
+EXEC CC md4 c (def(__VMCMS__) lo
+EXEC CC md5_dgst c (def(__VMCMS__) lo
+EXEC CC mdc2dgst c (def(__VMCMS__) lo
+EXEC CC ripecore c (def(__VMCMS__) lo
+EXEC CC ripemd c (def(__VMCMS__) lo
+EXEC CC sha1dgst c (def(__VMCMS__) lo
+EXEC CC sha_dgst c (def(__VMCMS__) lo
+EXEC CC asn1 c (def(__VMCMS__) lo
+EXEC CC asn1keys c (def(__VMCMS__) lo
+EXEC CC asn1objs c (def(__VMCMS__) lo
+EXEC CC asn1oid c (def(__VMCMS__) lo
+EXEC CC cert c (def(__VMCMS__) lo
+EXEC CC certchk c (def(__VMCMS__) lo
+EXEC CC certchn c (def(__VMCMS__) lo
+EXEC CC certcomp c (def(__VMCMS__) lo
+EXEC CC certechk c (def(__VMCMS__) lo
+EXEC CC certedef c (def(__VMCMS__) lo
+EXEC CC certexrw c (def(__VMCMS__) lo
+EXEC CC certext c (def(__VMCMS__) lo
+EXEC CC certio c (def(__VMCMS__) lo
+EXEC CC certrust c (def(__VMCMS__) lo
+EXEC CC certsig c (def(__VMCMS__) lo
+EXEC CC certstr c (def(__VMCMS__) lo
+EXEC CC cms c (def(__VMCMS__) lo
+EXEC CC stream c (def(__VMCMS__) lo
+EXEC CC dbxpgp c (def(__VMCMS__) lo
+EXEC CC dbxpk12 c (def(__VMCMS__) lo
+EXEC CC dbxpk15 c (def(__VMCMS__) lo
+EXEC CC dev_sys c (def(__VMCMS__) lo
+EXEC CC rndvm c (def(__VMCMS__) lo
+
+* Build the cryptlib library from the object modules
+
+&TYPE Building cryptlib...
+EXEC C370LIB GEN &LIBNAME crypt cryptapi cryptcfg cryptcrt cryptdbx
+EXEC C370LIB ADD &LIBNAME cryptdev cryptenv cryptkey cryptkrn cryptlib
+EXEC C370LIB ADD &LIBNAME cryptmis cryptses
+EXEC C370LIB ADD &LIBNAME lib_3des lib_bf lib_cast lib_dbms lib_des
+EXEC C370LIB ADD &LIBNAME lib_dh lib_dsa lib_elg lib_hmd5 lib_hrmd
+EXEC C370LIB ADD &LIBNAME lib_hsha lib_idea lib_keyx lib_kg lib_md2
+EXEC C370LIB ADD &LIBNAME lib_md4 lib_md5 lib_mdc2 lib_rc2 lib_rc4
+EXEC C370LIB ADD &LIBNAME lib_rc5 lib_ripe lib_rsa lib_safr lib_sha
+EXEC C370LIB ADD &LIBNAME lib_sign lib_skip
+EXEC C370LIB ADD &LIBNAME bn_add bn_blind bn_div bn_exp bn_gcd bn_lib
+EXEC C370LIB ADD &LIBNAME bn_mod bn_mont bn_mul bn_mulw bn_recp bn_shift
+EXEC C370LIB ADD &LIBNAME bn_sqr bn_sub bn_word bf_ecb bf_enc bf_skey
+EXEC C370LIB ADD &LIBNAME c_ecb c_enc c_skey des_enc ecb3_enc ecb_enc
+EXEC C370LIB ADD &LIBNAME idea rc2 rc4_enc rc4_skey rc5 safer set_key
+EXEC C370LIB ADD &LIBNAME skipjack
+EXEC C370LIB ADD &LIBNAME deenvel envelope octetstr pgp_deen pgp_misc
+EXEC C370LIB ADD &LIBNAME resource
+EXEC C370LIB ADD &LIBNAME md2 md4 md5_dgst mdc2dgst ripecore ripemd
+EXEC C370LIB ADD &LIBNAME sha1dgst sha_dgst
+EXEC C370LIB ADD &LIBNAME asn1 asn1keys asn1objs asn1oid cert certchk
+EXEC C370LIB ADD &LIBNAME certchn certcomp certechk certedef certexrw
+EXEC C370LIB ADD &LIBNAME certext certio certrust certsig certstr cms
+EXEC C370LIB ADD &LIBNAME stream
+EXEC C370LIB ADD &LIBNAME dbxpgp dbxpk12 dbxpk15 dev_sys rndvm
+
+* Make the newly-generated modules available for use
+
+GLOBAL TXTLIB &LIBNAME
+
+* Compile the test code
+
+&TYPE Building test routines...
+EXEC CC certutil c (def(__VMCMS__) lo
+EXEC CC testcert c (def(__VMCMS__) lo
+EXEC CC testdev c (def(__VMCMS__) lo
+EXEC CC testenv c (def(__VMCMS__) lo
+EXEC CC testhl c (def(__VMCMS__) lo
+EXEC CC testkey c (def(__VMCMS__) lo
+EXEC CC testlib c (def(__VMCMS__) lo
+
+* Build the executable
+
+&TYPE Building test program...
+EXEC CMOD testlib testcert testdev testenv testhl testkey certutil
+
+--
+global txtlib cryptlib
+cmod testlib testcert testenv testhl testkey certutil
+load testlib testcert testenv testhl testkey certutil
+genmod testlib

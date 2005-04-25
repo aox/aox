@@ -51,6 +51,8 @@ static const FAR_BSS struct {
 	{ PGP_ALGO_CAST5, PGP_ALGOCLASS_PWCRYPT, CRYPT_ALGO_CAST },
 	{ PGP_ALGO_IDEA, PGP_ALGOCLASS_PWCRYPT, CRYPT_ALGO_IDEA },
 	{ PGP_ALGO_AES_128, PGP_ALGOCLASS_PWCRYPT, CRYPT_ALGO_AES },
+	{ PGP_ALGO_AES_192, PGP_ALGOCLASS_PWCRYPT, CRYPT_ALGO_AES },
+	{ PGP_ALGO_AES_256, PGP_ALGOCLASS_PWCRYPT, CRYPT_ALGO_AES },
 
 	/* PKC encryption algos */
 	{ PGP_ALGO_RSA, PGP_ALGOCLASS_PKCCRYPT, CRYPT_ALGO_RSA },
@@ -67,19 +69,20 @@ static const FAR_BSS struct {
 	{ PGP_ALGO_MD5, PGP_ALGOCLASS_HASH, CRYPT_ALGO_MD5 },
 	{ PGP_ALGO_SHA, PGP_ALGOCLASS_HASH, CRYPT_ALGO_SHA },
 	{ PGP_ALGO_RIPEMD160, PGP_ALGOCLASS_HASH, CRYPT_ALGO_RIPEMD160 },
+	{ PGP_ALGO_SHA2_256, PGP_ALGOCLASS_HASH, CRYPT_ALGO_SHA2 },
 
-	{ CRYPT_ERROR, 0, CRYPT_ERROR }
+	{ PGP_ALGO_NONE, 0, CRYPT_ALGO_NONE }
 	};
 
-CRYPT_ALGO_TYPE pgpToCryptlibAlgo( const int pgpAlgo, 
+CRYPT_ALGO_TYPE pgpToCryptlibAlgo( const int pgpAlgo,
 								   const PGP_ALGOCLASS_TYPE pgpAlgoClass )
 	{
 	int i;
 
-	for( i = 0; 
+	for( i = 0;
 		 ( pgpAlgoMap[ i ].pgpAlgo != pgpAlgo || \
 		   pgpAlgoMap[ i ].pgpAlgoClass != pgpAlgoClass ) && \
-		 pgpAlgoMap[ i ].pgpAlgo != CRYPT_ERROR; i++ );
+		 pgpAlgoMap[ i ].pgpAlgo != PGP_ALGO_NONE; i++ );
 	return( pgpAlgoMap[ i ].cryptlibAlgo );
 	}
 
@@ -88,7 +91,7 @@ int cryptlibToPgpAlgo( const CRYPT_ALGO_TYPE cryptlibAlgo )
 	int i;
 
 	for( i = 0; pgpAlgoMap[ i ].cryptlibAlgo != cryptlibAlgo && \
-				pgpAlgoMap[ i ].cryptlibAlgo != CRYPT_ERROR; i++ );
+				pgpAlgoMap[ i ].cryptlibAlgo != CRYPT_ALGO_NONE; i++ );
 	return( pgpAlgoMap[ i ].pgpAlgo );
 	}
 
@@ -104,7 +107,7 @@ int pgpReadMPI( STREAM *stream, BYTE *data )
 	{
 	int bitLength, length, status;
 
-	bitLength = ( sgetc( stream ) << 8 ) | sgetc( stream );
+	bitLength = readUint16( stream );
 	length = bitsToBytes( bitLength );
 	if( length < 1 || length > PGP_MAX_MPISIZE )
 		return( CRYPT_ERROR_BADDATA );
@@ -132,9 +135,9 @@ int pgpWriteMPI( STREAM *stream, const BYTE *data, const int length )
 
 /* Create an encryption key from a password */
 
-int pgpPasswordToKey( CRYPT_CONTEXT iCryptContext, const char *password,
-					  const int passwordLength, 
-					  const CRYPT_ALGO_TYPE hashAlgo, const BYTE *salt, 
+int pgpPasswordToKey( CRYPT_CONTEXT iCryptContext, const int optKeyLength,
+					  const char *password, const int passwordLength,
+					  const CRYPT_ALGO_TYPE hashAlgo, const BYTE *salt,
 					  const int iterations )
 	{
 	CRYPT_ALGO_TYPE algorithm;
@@ -143,10 +146,10 @@ int pgpPasswordToKey( CRYPT_CONTEXT iCryptContext, const char *password,
 	int keySize, status;
 
 	/* Get various parameters needed to process the password */
-	status = krnlSendMessage( iCryptContext, IMESSAGE_GETATTRIBUTE, 
+	status = krnlSendMessage( iCryptContext, IMESSAGE_GETATTRIBUTE,
 							  &algorithm, CRYPT_CTXINFO_ALGO );
 	if( cryptStatusOK( status ) )
-		status = krnlSendMessage( iCryptContext, IMESSAGE_GETATTRIBUTE, 
+		status = krnlSendMessage( iCryptContext, IMESSAGE_GETATTRIBUTE,
 								  &keySize, CRYPT_CTXINFO_KEYSIZE );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -154,6 +157,11 @@ int pgpPasswordToKey( CRYPT_CONTEXT iCryptContext, const char *password,
 		/* PGP limits the Blowfish key size to 128 bits rather than the more
 		   usual 448 bits */
 		keySize = 16;
+	if( algorithm == CRYPT_ALGO_AES && optKeyLength != CRYPT_UNUSED )
+		/* PGP allows various AES key sizes and then encodes the size in the
+		   algorithm ID (ugh), to handle this we allow the caller to specify
+		   the actual size */
+		keySize = optKeyLength;
 
 	/* Hash the password */
 	if( salt != NULL )
@@ -165,17 +173,17 @@ int pgpPasswordToKey( CRYPT_CONTEXT iCryptContext, const char *password,
 								password, passwordLength, hashAlgo,
 								salt, PGP_SALTSIZE, iterations );
 		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_DERIVE,
-								  &mechanismInfo, MECHANISM_PGP );
+								  &mechanismInfo, MECHANISM_DERIVE_PGP );
 		if( cryptStatusError( status ) )
 			return( status );
 
 		/* Save the derivation info with the context */
 		setMessageData( &msgData, ( void * ) salt, PGP_SALTSIZE );
-		krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE_S, &msgData, 
+		krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE_S, &msgData,
 						 CRYPT_CTXINFO_KEYING_SALT );
-		krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE, 
+		krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE,
 						 ( void * ) &iterations, CRYPT_CTXINFO_KEYING_ITERATIONS );
-		status = krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE, 
+		status = krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE,
 								  ( void * ) &hashAlgo, CRYPT_CTXINFO_KEYING_ALGO );
 		if( cryptStatusError( status ) )
 			{
@@ -188,13 +196,13 @@ int pgpPasswordToKey( CRYPT_CONTEXT iCryptContext, const char *password,
 		HASHFUNCTION hashFunction;
 
 		getHashParameters( hashAlgo, &hashFunction, NULL );
-		hashFunction( NULL, hashedKey, ( BYTE * ) password, passwordLength, 
+		hashFunction( NULL, hashedKey, ( BYTE * ) password, passwordLength,
 					  HASH_ALL );
 		}
 
 	/* Load the key into the context */
 	setMessageData( &msgData, hashedKey, keySize );
-	status = krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE_S, 
+	status = krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE_S,
 							  &msgData, CRYPT_CTXINFO_KEY );
 	zeroise( hashedKey, CRYPT_MAX_KEYSIZE );
 
@@ -211,34 +219,34 @@ int pgpProcessIV( const CRYPT_CONTEXT iCryptContext, BYTE *ivInfo,
 	RESOURCE_DATA msgData;
 	int status;
 
-	/* PGP uses a bizarre way of handling IV's that resyncs the data on 
-	   some boundaries, and doesn't actually use an IV but instead prefixes 
-	   the data with ivSize bytes of random information (which is effectively 
-	   the IV) followed by two bytes of key check value after which there's a 
-	   resync boundary that requires reloading the IV from the last ivSize 
-	   bytes of ciphertext.  An exception is the encrypted private key, 
-	   which does use an IV (although this can also be regarded as an 
-	   ivSize-byte prefix), however there's no key check or resync.  First, 
+	/* PGP uses a bizarre way of handling IV's that resyncs the data on
+	   some boundaries, and doesn't actually use an IV but instead prefixes
+	   the data with ivSize bytes of random information (which is effectively
+	   the IV) followed by two bytes of key check value after which there's a
+	   resync boundary that requires reloading the IV from the last ivSize
+	   bytes of ciphertext.  An exception is the encrypted private key,
+	   which does use an IV (although this can also be regarded as an
+	   ivSize-byte prefix), however there's no key check or resync.  First,
 	   we load the all-zero IV */
 	setMessageData( &msgData, ( void * ) zeroIV, ivSize );
-	status = krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE_S, 
+	status = krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE_S,
 							  &msgData, CRYPT_CTXINFO_IV );
 	if( cryptStatusError( status ) )
 		return( status );
 
-	/* Then we encrypt or decrypt the first ivSize + 2 bytes of the IV 
+	/* Then we encrypt or decrypt the first ivSize + 2 bytes of the IV
 	   data */
 	if( isEncrypt )
 		{
-		/* Get some random data to serve as the IV, duplicate the last two 
+		/* Get some random data to serve as the IV, duplicate the last two
 		   bytes, and encrypt the lot */
 		setMessageData( &msgData, ivInfo, ivSize );
-		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S, 
+		status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
 								  &msgData, CRYPT_IATTRIBUTE_RANDOM_NONCE );
 		if( cryptStatusOK( status ) )
 			{
 			memcpy( ivInfo + ivSize, ivInfo + ivSize - 2, 2 );
-			status = krnlSendMessage( iCryptContext, IMESSAGE_CTX_ENCRYPT, 
+			status = krnlSendMessage( iCryptContext, IMESSAGE_CTX_ENCRYPT,
 									  ivInfo, ivSize + 2 );
 			}
 		}
@@ -247,9 +255,16 @@ int pgpProcessIV( const CRYPT_CONTEXT iCryptContext, BYTE *ivInfo,
 		BYTE ivInfoBuffer[ CRYPT_MAX_IVSIZE + 2 ];
 
 		/* Decrypt the first ivSize bytes (the effective IV) and following
-		   2-byte check value */
+		   2-byte check value.  There's a potential problem here in which an
+		   attacker that convinces us to act as an oracle for the valid/not
+		   valid status of the checksum can determine the contents of 16
+		   bits of the encrypted data in 2^15 queries on average.  This is
+		   incredibly unlikely, however if it's a concern then one
+		   ameliorating change would be to not perform the check for keys
+		   that were PKC-encrypted, because the PKC decryption process
+		   would  check the key for us */
 		memcpy( ivInfoBuffer, ivInfo, ivSize + 2 );
-		status = krnlSendMessage( iCryptContext, IMESSAGE_CTX_DECRYPT, 
+		status = krnlSendMessage( iCryptContext, IMESSAGE_CTX_DECRYPT,
 								  ivInfoBuffer, ivSize + 2 );
 		if( cryptStatusOK( status ) && \
 			( ivInfoBuffer[ ivSize - 2 ] != ivInfoBuffer[ ivSize ] || \
@@ -259,11 +274,11 @@ int pgpProcessIV( const CRYPT_CONTEXT iCryptContext, BYTE *ivInfo,
 	if( cryptStatusError( status ) || !resyncIV )
 		return( status );
 
-	/* Finally we've got the data the way we want it, resync the IV by 
+	/* Finally we've got the data the way we want it, resync the IV by
 	   setting it to the last ivSize bytes of data processed unless we've
 	   been told not to */
 	setMessageData( &msgData, ivInfo + 2, ivSize );
-	return( krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE_S, 
+	return( krnlSendMessage( iCryptContext, IMESSAGE_SETATTRIBUTE_S,
 							 &msgData, CRYPT_CTXINFO_IV ) );
 	}
 #endif /* USE_PGP || USE_PGPKEYS */

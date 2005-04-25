@@ -193,7 +193,7 @@
 #    endif
 #  else
 #    include <endian.h>
-#    ifndef (__BEOS__)
+#    ifndef __BEOS__
 #      include <byteswap.h>
 #    endif
 #  endif

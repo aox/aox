@@ -30,6 +30,14 @@
   #define THIRTY_TWO_BIT
 #endif /* Machine word size */
 
+#if defined( _MSC_VER )
+  /* cryptlib is built with the highest warning level, disable some of the
+     more irritating warnings produced by the OpenSSL code */
+  #pragma warning( disable: 4244 )	/* int <-> unsigned char/short */
+  #pragma warning( disable: 4100 )	/* Unreferenced parameter */
+  #pragma warning( disable: 4127 )	/* Conditional is constant: while( TRUE ) */
+#endif /* Visual C++ */
+
 /* Aches */
 #ifdef _AIX
   #define B_ENDIAN
@@ -70,7 +78,8 @@
 #endif /* BeOS */
 
 /* The BSDs */
-#if defined( __FreeBSD__ ) || defined( __bsdi__ ) || defined( __OpenBSD__ )
+#if defined( __FreeBSD__ ) || defined( __bsdi__ ) || \
+	defined( __OpenBSD__ ) || defined( __NetBSD__ )
   #define L_ENDIAN
   #define BN_LLONG
   #define DES_PTR
@@ -78,6 +87,16 @@
   #define DES_UNROLL
   #define RC4_INDEX
 #endif /* The BSDs */
+
+/* Cray Unicos */
+#ifdef _CRAY
+  /* Crays are big-endian, but if B_ENDIAN is defined the code implicitly
+     assumes 32-bit ints whereas Crays have 64-bit ints and longs.  However,
+     the non-B/L_ENDIAN code happens to work, so we don't define either */
+  #undef SIXTY_FOUR_BIT
+  #define SIXTY_FOUR_BIT_LONG
+  #define DES_INT
+#endif /* Cray Unicos */
 
 /* DGUX */
 #ifdef __dgux
@@ -137,6 +156,9 @@
 	#define DES_UNROLL
 	#define RC4_CHAR
 	#define RC4_CHUNK
+  #elif defined( __arm ) || defined( __arm__ )
+	#define L_ENDIAN
+	/* Not sure what other options the ARM build should enable... */
   #else
 	#error Need to define CPU type for non-x86/non-PPC Linux
   #endif /* Linux variants */
@@ -181,6 +203,17 @@
   #define RC4_INDEX
 #endif /* UNIX_SV */
 
+/* Palm OS: ARM */
+#if defined( __PALMSOURCE__ )
+  #if defined( __arm ) || defined( __arm__ )
+	#define L_ENDIAN
+	/* Not sure what other options the ARM build should enable... */
+  #else
+	#error Need to define architecture-specific values for crypto code
+  #endif /* Palm OS variants */
+#endif /* Palm OS */
+
+
 /* PHUX */
 #ifdef __hpux
 
@@ -216,6 +249,13 @@
   #define DES_RISC1
   #define DES_UNROLL
   #define RC4_INDEX
+  #if OSVERSION <= 4
+	/* The Watcom compiler can't handle 64-bit ints even though the hardware
+	   can, so we have to build it as 16-bit code with 16x16 -> 32 multiplies
+	   rather than 32x32 -> 64 */
+	#undef THIRTY_TWO_BIT
+	#define SIXTEEN_BIT
+  #endif /* QNX 4.x */
 #endif /* QNX */
 
 /* SCO/UnixWare */
@@ -301,10 +341,24 @@
 #if defined( __SYMBIAN32__ )
   #ifdef __MARM__
 	#define L_ENDIAN
+	/* Not sure what other options the ARM build should enable... */
   #else
 	#error Need to define architecture-specific values for crypto code
   #endif /* Symbian OS variants */
 #endif /* Symbian OS */
+
+/* Tandem NSK/OSS */
+#ifdef __TANDEM
+  #define B_ENDIAN
+  #define BF_PTR
+  #define DES_RISC2
+  #define DES_PTR
+  #define DES_UNROLL
+  #define RC4_INDEX
+  #define RC4_CHAR
+  #define RC4_CHUNK
+  #define MD2_CHAR
+#endif /* Tandem */
 
 /* Ultrix */
 #ifdef __ultrix__
@@ -361,6 +415,24 @@
   #endif /* Assorted Windows compilers */
 #endif /* Windows */
 
+/* Xilinx XMK */
+
+#if defined ( _XMK )
+  #if defined( __mb__ )
+	#define B_ENDIAN
+	/* Not sure what other options the MicroBlaze build should enable... */
+  #elif defined( __ppc__ )
+	#define B_ENDIAN
+	#define BN_LLONG
+	#define BF_PTR
+	#define DES_UNROLL
+	#define RC4_CHAR
+	#define RC4_CHUNK
+  #else
+	#error Need to define CPU type for non-MicroBlaze/non-PPC XMK
+  #endif /* XMK target variants */
+#endif /* Xilinx XMK */
+
 /* RC4_CHUNK is actually a data type rather than a straight define, so we
    redefine it as a data type if it's been defined */
 
@@ -369,9 +441,10 @@
   #define RC4_CHUNK	unsigned long
 #endif /* RC4_CHUNK */
 
-/* Make sure we weren't missed out */
+/* Make sure we weren't missed out.  See the comment in the Cray section
+   for the exception for Crays */
 
-#if !defined( L_ENDIAN ) && !defined( B_ENDIAN )
+#if !defined( _CRAY ) && !defined( L_ENDIAN ) && !defined( B_ENDIAN )
   #error You need to add system-specific configuration settings to osconfig.h
 #endif /* Endianness not defined */
 #ifdef CHECK_ENDIANNESS		/* One-off check in des_enc.c */

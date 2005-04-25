@@ -76,13 +76,6 @@
   #include "crypt/des.h"
 #endif /* Compiler-specific includes */
 
-#ifdef MSDOS		/* Visual C++ 2.1 (Windows NT/95) */
-#include <stdlib.h>
-#include <errno.h>
-#include <time.h>
-#include <io.h>
-#endif
-
 #if defined(__STDC__) || defined(VMS) || defined(M_XENIX) || defined(MSDOS)
 #include <string.h>
 #endif

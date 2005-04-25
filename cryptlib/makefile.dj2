@@ -1,0 +1,52 @@
+# MSDOS makefile for djgpp v2
+#
+# Note: you must have installed the following djgpp utilities
+#   GNU make 3.75
+#   GNU binutils 2.8.1
+#   GNU fileutils 3.16
+#
+# This is a ready-to-run Makefile.
+# Just type 'make -f makefile.dj2' to build the library and test programs.
+#
+# Contributed by Markus F.X.J. Oberhumer <markus.oberhumer@jk.uni-linz.ac.at>
+
+## Changes by <makemoneyfast2@netzero.com>
+## crypt.h (__DOSDJGPP__)
+## keymgmt/stream.c (__DOSDJGPP__)
+## misc/rnddos.c (__DOSDJGPP__)
+## misc/rnddos.c added waitforRandomCompletion
+## cryptapi.c (__DOSDJGPP__)
+## cryptdbx.c (__DOSDJGPP__)
+## cryptkrn.c (__DOSDJGPP__)
+## keymgmt/certstr.c (__DOSDJGPP__)
+## defining __DOSDJGPP__ eliminates *nix functions which are not implemented in DJGPP or not needed (ie. lstat, mlock, etc.)
+## this makefile
+## also, fixed DJGPP header file: /include/wctypes.h (removed #endifs)
+
+.PHONY: my_default djgpp2 my_objpath
+
+my_default: my_objpath djgpp2
+
+override MISCOBJS = $(OBJPATH)rnddos.o
+include makefile
+
+# misc subdirectory
+$(OBJPATH)rnddos.o: crypt.h misc/random.h misc/rnddos.c
+ $(CC) $(CFLAGS) misc/rnddos.c -o $(OBJPATH)rnddos.o
+
+CC = gcc
+CFLAGS  = -c -I. -O2 -fno-strength-reduce -fomit-frame-pointer
+CFLAGS += -DLITTLE_ENDIAN -DUNIX -D__UNIX__ -D__DOSDJGPP__ -U__MSDOS__ -UMSDOS
+
+### CFLAGS += -Wall
+SCFLAGS = NOT SUPPORTED
+
+djgpp2: $(OBJPATH) libcl.a testlib
+
+my_asm:
+ $(MAKE) asm_targets ASMFLAGS=ASM_COFF
+
+my_objpath: $(OBJPATH)
+
+$(OBJPATH):
+ gmkdir.exe $(OBJPATH)

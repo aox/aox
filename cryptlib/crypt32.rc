@@ -1,0 +1,64 @@
+/* cryptlib resource file.  We provide a slightly different version depending
+   on whether it's a debug or release build because some Windows lusers
+   complained about the fact that the code indicated a version of "beta n".
+   Shipping them exactly the same code renamed to "SPn" fixed the problem */
+
+#ifdef APSTUDIO_INVOKED
+  #error This file should not be edited using the resource editor (ApStudio)
+#endif /* Resource editor fiddling with the file */
+
+#ifdef _WIN32_WCE
+  #include <winbase.h>
+#else
+  #include <winver.h>
+#endif /* Win32 vs. WinCE */
+#include "cryptini.h"
+
+VS_VERSION_INFO		VERSIONINFO
+FILEVERSION			3,2,0
+PRODUCTVERSION		3,2,0
+FILEFLAGSMASK		VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+  FILEFLAGS			VS_FF_DEBUG | VS_FF_PRIVATEBUILD | VS_FF_PRERELEASE
+#else
+  FILEFLAGS			0
+#endif /* _DEBUG */
+#ifdef _WIN32_WCE
+  #if UNDER_CE >= 400
+	FILEOS			VOS_WINDOWSCE
+  #else
+	FILEOS			VOS_NT_WINDOWS32
+  #endif /* Older vs. newer eVC++ versions */
+#else
+  FILEOS			VOS_NT
+#endif /* Win32 vs. WinCE */
+FILETYPE			VFT_DLL
+FILESUBTYPE			VFT2_UNKNOWN
+BEGIN
+  BLOCK "VarFileInfo"
+  BEGIN
+	VALUE "Translation", 0x0409, 1252	; US English, Windoze charset
+  END
+
+  BLOCK "StringFileInfo"
+  BEGIN
+	BLOCK "040904E4"					; US English, Windoze charset data
+	BEGIN
+#ifdef _WIN32_WCE
+	  VALUE "FileDescription", "cryptlib security toolkit for Windows CE\0"
+#else
+	  VALUE "FileDescription", "cryptlib security toolkit\0"
+#endif /* Win32 vs. WinCE */
+	  VALUE "ProductName", "cryptlib security toolkit\0"
+	  VALUE "CompanyName", "Peter Gutmann\0"
+	  VALUE "LegalCopyright", "Copyright \251 1994 - 2005 Peter Gutmann, Eric Young, OpenSSL\0"
+#ifdef _DEBUG
+	  VALUE "FileVersion", "3.2\0"
+	  VALUE "ProductVersion", "3.2\0"
+#else
+	  VALUE "FileVersion", "3.2\0"
+	  VALUE "ProductVersion", "3.2\0"
+#endif /* _DEBUG */
+	END
+  END
+END
