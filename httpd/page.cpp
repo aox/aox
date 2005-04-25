@@ -227,15 +227,25 @@ bool Page::ready() const
 
 void Page::errorPage()
 {
+    String e;
     switch ( d->server->status() ) {
     case 404:
-        d->text = "<p>No such page: " + d->link->string();
+        e = "No such page: " + htmlQuoted( d->link->string() );
         break;
 
     case 403:
-        d->text = "<p>You do not have permission to access that page.";
+        e = "You do not have permission to access that page.";
         break;
+
+    default:
+        e = "Unknown, unexpected, mystifying error: " +
+            fn( d->server->status() ) +
+            "<p>Please report this to info@oryx.com.";
     }
+
+    d->text = "<div class=errorpage>"
+              "<h1>Error " + fn( d->server->status() ) + "</h1>"
+              "<p>" + e + "</div>";
 
     d->ready = true;
 }
@@ -246,12 +256,24 @@ void Page::errorPage()
 
 void Page::loginForm()
 {
+    String login = "";
+    if ( d->server->session() )
+        login = d->server->session()->user()->login();
+    if ( !d->login.isEmpty() )
+        login = d->login;
     d->ready = true;
     d->text =
+        "<div class=loginform>"
         "<form method=post action=\"/\">"
-        "Name: <input type=text name=login value=\"\"><br>"
-        "Password: <input type=password name=passwd value=\"\"><br>"
-        "<input type=submit value=Login>"
+        "<table>"
+        "<tr><td>Name:</td>"
+        "<td><input type=text name=login value=\"" +
+        htmlQuoted( login ) + "\"></td></tr>"
+        "<tr><td><Password:</td>"
+        "<td><input type=password name=passwd value=\"\"><</td></tr>"
+        "<tr><input type=submit value=Login></tr>"
+        "</table>"
+        "</div>"
         "</form>";
 }
 
@@ -284,8 +306,11 @@ void Page::loginData()
     if ( d->user->state() == User::Nonexistent ||
          d->user->secret() != d->passwd )
     {
+        loginForm();
+        d->text = "<div class=errormessage>"
+                  "<p>Login and passwword did not match.";
+                  "</div>" + d->text + "";
         d->ready = true;
-        d->text = "<p>You sent us a bad username and password.";
     }
     else {
         HttpSession *s = d->server->session();
@@ -309,12 +334,16 @@ void Page::mainPage()
     d->ready = true;
     d->text =
         "<div class=top>"
+        "<div class=search>"
         "<form method=post action=>"
         "<input type=text name=query>"
         "<input type=submit value=search>"
         "</form>"
+        "</div>"
+        "<div class=buttons>"
         "<a href=\"\">Logout</a>"
         "<a href=\"\">Compose</a>"
+        "</div>"
         "</div>"
         "<div class=middle>"
         "<div class=folders>"
@@ -400,18 +429,21 @@ static String address( Message *m, HeaderField::Type t )
     if ( !af )
         return s;
 
+    s.append( "<div class=headerfield name=" + af->name().lower() +">" );
     s.append( af->name() );
     s.append( ": " );
 
     List< Address >::Iterator it( af->addresses()->first() );
     while ( it ) {
+        s.append( "<span class=address>" );
         s.append( htmlQuoted( it->toString() ) );
+        s.append( "</span>" );
         ++it;
         if ( it )
             s.append( ", " );
     }
 
-    s.append( "<br>" );
+    s.append( "</div>" );
     return s;
 }
 
@@ -425,16 +457,19 @@ String Page::message( Message *m )
     Utf8Codec u;
     HeaderField *hf;
 
+    s.append( "<div class=message><div class=header>" );
+
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
-        s.append( "Subject: " + hf->value() );
-        s.append( "<br>" );
+        s.append( "<div class=headerfield name=subject>Subject: " );
+        s.append( hf->value() );
+        s.append( "</div>" );
     }
     s.append( address( m, HeaderField::From ) );
     s.append( address( m, HeaderField::To ) );
     s.append( address( m, HeaderField::Cc ) );
 
-    s.append( "<hr>" );
+    s.append( "</div>" );
 
     List< Bodypart >::Iterator it( m->children()->first() );
     while ( it ) {
@@ -444,21 +479,27 @@ String Page::message( Message *m )
         ContentType *ct = bp->header()->contentType();
         String type = ct->type() + "/" + ct->subtype();
         if ( type == "text/plain" ) {
-            s.append( "<pre>" );
+            s.append( "<div class=body>" );
             s.append( htmlQuoted( u.fromUnicode( bp->text() ) ) );
-            s.append( "</pre>" );
+            s.append( "</div>" );
         }
         else if ( type == "text/html" ) {
+            s.append( "<div class=body>" );
             s.append( u.fromUnicode( bp->text() ) );
+            s.append( "</div>" );
         }
         else if ( type == "message/rfc822" ) {
+            s.append( "<div class=body>" );
             s.append( message( bp->rfc822() ) );
+            s.append( "</div>" );
         }
         else {
+            s.append( "<div class=unknown>" );
             s.append( "Cannot render bodypart of type " + type );
+            s.append( "</div>" );
         }
 
-        s.append( "<hr>" );
+        s.append( "</div>" );
     }
 
     return s;
