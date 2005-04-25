@@ -25,7 +25,6 @@ static const char *head =
 
 static const char *foot = "</div></div></div></body></html>\n";
 
-#if 0
 static String htmlQuoted( const String & s )
 {
     String r;
@@ -53,7 +52,6 @@ static String htmlQuoted( const String & s )
     }
     return r;
 }
-#endif
 
 
 class PageData {
@@ -343,6 +341,5 @@ void Page::messagePage()
         return;
 
     d->ready = true;
-    d->server->addHeader( "Content-Type: text/plain" );
-    d->text = d->message->rfc822();
+    d->text = "<pre>" + htmlQuoted( d->message->rfc822() ) + "</pre>";
 }
