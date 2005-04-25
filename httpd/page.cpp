@@ -18,9 +18,11 @@ static const char *head =
 "<script src=\"http://www.oryx.com/oryx.js\"></script>"
 "<link rel=stylesheet type=\"text/css\" href=\"http://www.oryx.com/oryx.css\">"
 "</head>"
-"<body onload=\"deframe(); enablejs();\">";
+"<body onload=\"deframe(); enablejs();\">"
+"<div class=\"page\">"
+"<div class=\"container\"><div class=\"content\">";
 
-static const char *foot = "</body></html>\n";
+static const char *foot = "</div></div></div></body></html>\n";
 
 #if 0
 static String htmlQuoted( const String & s )
@@ -205,9 +207,9 @@ void Page::loginForm()
     d->ready = true;
     d->text =
         "<form method=post action=\"/\">"
-        "<input type=text name=login value=\"\">"
-        "<input type=password name=passwd value=\"\">"
-        "<input type=submit name=Login>"
+        "Name: <input type=text name=login value=\"\"><br>"
+        "Password: <input type=password name=passwd value=\"\"><br>"
+        "<input type=submit value=Login>"
         "</form>";
 }
 
