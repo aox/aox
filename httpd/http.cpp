@@ -692,13 +692,11 @@ String HTTP::page()
 
 void HTTP::parseList( const String & name, const String & value )
 {
-    if ( name != "Cookie" )
-        return;
-
     uint i = 0;
     while ( i < value.length() ) {
         uint start = i;
-        while ( isTokenChar( value[i] ) )
+        while ( isTokenChar( value[i] ) ||
+                value[i] == '/' || value[i] == '=' || value[i] == '"' )
             i++;
         String item = value.mid( start, i-start );
         uint q = 1000;
