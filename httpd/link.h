@@ -1,10 +1,12 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 #ifndef LINK_H
 #define LINK_H
 
 #include "string.h"
 
-class Link
-{
+
+class Link {
 public:
     Link();
     Link( const String & );
@@ -22,7 +24,7 @@ public:
 
     Type type() const;
     class Mailbox * mailbox() const;
-    class Message * message() const;
+    uint uid() const;
 
     String errorMessage() const;
 
@@ -33,7 +35,8 @@ private:
     void error( const String & );
 
 private:
-    class LinkData * d;
+    class LinkData *d;
 };
+
 
 #endif

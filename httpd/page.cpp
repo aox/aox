@@ -1,3 +1,5 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 #include "page.h"
 
 #include "link.h"
@@ -21,16 +23,6 @@ static const char *head =
 static const char *foot = "</body></html>\n";
 
 #if 0
-static const char *accessControlText =
-"Access control";
-
-static const char *noSuchMailbox =
-"No such mailbox";
-
-static const char *noSuchMessage =
-"No such message";
-
-
 static String htmlQuoted( const String & s )
 {
     String r;
@@ -126,6 +118,10 @@ Page::Page( Link * link, HTTP *server )
         }
         break;
 
+    case Link::WebmailMailbox:
+        d->type = WebmailMailbox;
+        break;
+
     default:
         d->type = Error;
         d->server->setStatus( 404, "File not found" );
@@ -147,6 +143,10 @@ void Page::execute()
 
     case LoginData:
         loginData();
+        break;
+
+    case WebmailMailbox:
+        mailboxPage();
         break;
 
     case Error:
@@ -288,4 +288,12 @@ void Page::mainPage()
         "</div>"
         "<div class=bottom>"
         "</div>";
+}
+
+
+/*! Prepares to display a mailbox.
+*/
+
+void Page::mailboxPage()
+{
 }

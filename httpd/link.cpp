@@ -1,3 +1,5 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 #include "link.h"
 
 #include "http.h"
@@ -8,13 +10,12 @@
 #include "stringlist.h"
 
 
-class LinkData
-{
+class LinkData {
 public:
     LinkData()
-        : type( Link::Error ),
-          mailbox( 0 ), uid( 0 )
-        {}
+        : type( Link::Error ), mailbox( 0 ), uid( 0 )
+    {}
+
     Link::Type type;
     Mailbox * mailbox;
     uint uid;
@@ -189,6 +190,15 @@ String Link::errorMessage() const
 Mailbox *Link::mailbox() const
 {
     return d->mailbox;
+}
+
+
+/*! Returns the UID, if this Link contains a UID, or 0 if not.
+*/
+
+uint Link::uid() const
+{
+    return d->uid;
 }
 
 

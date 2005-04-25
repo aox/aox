@@ -1,6 +1,7 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 #ifndef PAGE_H
 #define PAGE_H
-
 
 #include "event.h"
 #include "string.h"
@@ -12,7 +13,10 @@ class Page
 public:
     Page( class Link *, class HTTP * );
 
-    enum Type { MainPage, LoginForm, LoginData, Error };
+    enum Type {
+        MainPage, LoginForm, LoginData, WebmailMailbox,
+        Error
+    };
 
     bool ready() const;
     String text() const;
@@ -20,10 +24,11 @@ public:
     void execute();
 
 private:
-    void mainPage();
+    void errorPage();
     void loginForm();
     void loginData();
-    void errorPage();
+    void mainPage();
+    void mailboxPage();
 
 private:
     class PageData * d;
