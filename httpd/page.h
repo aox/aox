@@ -15,7 +15,7 @@ public:
 
     enum Type {
         MainPage, LoginForm, LoginData, WebmailMailbox,
-        Error
+        WebmailMessage, Error
     };
 
     bool ready() const;
@@ -29,6 +29,7 @@ private:
     void loginData();
     void mainPage();
     void mailboxPage();
+    void messagePage();
 
 private:
     class PageData * d;

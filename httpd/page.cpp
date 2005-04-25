@@ -124,6 +124,10 @@ Page::Page( Link * link, HTTP *server )
         d->type = WebmailMailbox;
         break;
 
+    case Link::WebmailMessage:
+        d->type = WebmailMessage;
+        break;
+
     default:
         d->type = Error;
         d->server->setStatus( 404, "File not found" );
@@ -149,6 +153,10 @@ void Page::execute()
 
     case WebmailMailbox:
         mailboxPage();
+        break;
+
+    case WebmailMessage:
+        // messagePage();
         break;
 
     case Error:
@@ -259,9 +267,13 @@ void Page::loginData()
         d->text = "<p>You sent us a bad username and password.";
     }
     else {
-        HttpSession *s = new HttpSession;
+        HttpSession *s = d->server->session();
+        if ( !s || s->user()->login() != d->user->login() ) {
+            s = new HttpSession;
+            d->server->setSession( s );
+        }
         s->setUser( d->user );
-        d->server->setSession( s );
+        s->refresh();
         d->type = MainPage;
         mainPage();
     }
@@ -303,4 +315,14 @@ void Page::mailboxPage()
 {
     d->ready = true;
     d->text = "<p>La la la.";
+}
+
+
+/*! Prepares to display a single message.
+*/
+
+void Page::messagePage()
+{
+    d->ready = true;
+    d->text = "<p>Who the fuck is Alice?";
 }

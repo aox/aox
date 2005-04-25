@@ -158,7 +158,8 @@ void HTTP::process()
         addHeader( "Content-Length: " + fn( text.length() ) );
 
         if ( d->session )
-            addHeader( "Set-Cookie: session=\"" + d->session->key() + "\"" );
+            addHeader( "Set-Cookie: session=\"" + d->session->key() + "\";"
+                       "path=/" );
 
         if ( d->connectionClose )
             addHeader( "Connection: close" );
@@ -655,7 +656,8 @@ void HTTP::parseCookie( const String &s )
         String name = s.mid( 0, eq ).stripWSP().lower();
         String value = s.mid( eq+1 ).stripWSP();
 
-        if ( name == "session" )
+        if ( name == "session" &&
+             ( !d->session || d->session->expired() ) )
             d->session = HttpSession::find( value.unquoted() );
     }
 }
@@ -705,12 +707,14 @@ void HTTP::parseList( const String & name, const String & value )
             parseListItem( name, item, q );
         }
         else if ( value[i] != ',' ) {
-           setStatus( 400, "Expected comma at header " + name + " position " +
-                    fn( i ) + ", saw " + value.mid( i ) );
+            setStatus( 400, "Expected comma at header " + name + " position " +
+                       fn( i ) + ", saw " + value.mid( i ) );
             return;
         }
         else {
             i++;
+            while ( value[i] == ' ' )
+                i++;
             parseListItem( name, item, q );
         }
     }
