@@ -20,24 +20,6 @@ static const char *head =
 
 static const char *foot = "</body></html>\n";
 
-static const char *webmailText =
-"<div class=top>"
-"<form method=post action=>"
-"<input type=text name=query>"
-"<input type=submit value=search>"
-"</form>"
-"<a href=\"\">Logout</a>"
-"<a href=\"\">Compose</a>"
-"</div>"
-"<div class=middle>"
-"<div class=folders>"
-"</div>"
-"<iframe class=content name=content src=INBOX>"
-"</iframe>"
-"</div>"
-"<div class=bottom>"
-"</div>";
-
 #if 0
 static const char *accessControlText =
 "Access control";
@@ -196,13 +178,22 @@ bool Page::ready() const
 }
 
 
-/*! Prepares to display the main page.
+/*! Prepares to display an error page.
 */
 
-void Page::mainPage()
+void Page::errorPage()
 {
+    switch ( d->server->status() ) {
+    case 404:
+        d->text = "<p>" + d->link->errorMessage();
+        break;
+
+    case 403:
+        d->text = "<p>You do not have permission to access that page.";
+        break;
+    }
+
     d->ready = true;
-    d->text = webmailText;
 }
 
 
@@ -263,26 +254,38 @@ void Page::loginData()
         d->text = "<p>You sent us a bad username and password.";
     }
     else {
+        HttpSession *s = new HttpSession;
+        s->setUser( d->user );
+        d->server->setSession( s );
         d->type = MainPage;
         mainPage();
     }
 }
 
 
-/*! Prepares to display an error page.
+/*! Prepares to display the main page.
 */
 
-void Page::errorPage()
+void Page::mainPage()
 {
-    switch ( d->server->status() ) {
-    case 404:
-        d->text = "<p>" + d->link->errorMessage();
-        break;
-
-    case 403:
-        d->text = "<p>You do not have permission to access that page.";
-        break;
-    }
-
     d->ready = true;
+    d->text =
+        "<div class=top>"
+        "<form method=post action=>"
+        "<input type=text name=query>"
+        "<input type=submit value=search>"
+        "</form>"
+        "<a href=\"\">Logout</a>"
+        "<a href=\"\">Compose</a>"
+        "</div>"
+        "<div class=middle>"
+        "<div class=folders>"
+        "<p>Folder list."
+        "</div>"
+        "<iframe class=content name=content src=\"" +
+        fn( d->server->user()->inbox()->id() ) + "/\">"
+        "</iframe>"
+        "</div>"
+        "<div class=bottom>"
+        "</div>";
 }

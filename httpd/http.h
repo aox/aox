@@ -28,6 +28,7 @@ public:
 
     class User * user() const;
     class HttpSession *session() const;
+    void setSession( HttpSession * );
     String body() const;
 
     uint status() const;

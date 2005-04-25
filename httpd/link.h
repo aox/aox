@@ -28,10 +28,9 @@ public:
 
 private:
     void parse( const String & );
-    void parseUid();
-    void parseMailbox();
+    void parseUid( const String * );
+    void parseMailbox( const String * );
     void error( const String & );
-    String removePrefix();
 
 private:
     class LinkData * d;

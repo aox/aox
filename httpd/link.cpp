@@ -5,6 +5,7 @@
 #include "page.h"
 #include "mailbox.h"
 #include "message.h"
+#include "stringlist.h"
 
 
 class LinkData
@@ -14,7 +15,6 @@ public:
         : type( Link::Error ),
           mailbox( 0 ), uid( 0 )
         {}
-    String s;
     Link::Type type;
     Mailbox * mailbox;
     uint uid;
@@ -54,25 +54,40 @@ Link::Link( const String &s )
 
 void Link::parse( const String & s )
 {
-    d->s = s;
+    StringList l;
 
-    String prefix = removePrefix();
+    uint n = 0;
+    uint last = 0;
+    do {
+        String w;
+        n = s.find( ' ', last );
+        if ( n > 0 ) {
+            w = s.mid( last+1, n-last-1 );
+            n++;
+        }
+        else {
+            w = s.mid( last+1 );
+        }
+        last = n;
 
-    if ( prefix == "archive" ) {
-        d->type = ArchiveMailbox;
-        parseMailbox();
-        parseUid();
+        if ( !w.isEmpty() )
+            l.append( w );
     }
-    else if ( prefix == "folder" ) {
-        d->type = WebmailMailbox;
-        parseMailbox();
-        parseUid();
-    }
-    else if ( prefix == "" ) {
+    while ( last > 0 );
+
+    StringList::Iterator it( l.first() );
+    if ( !it ) {
         d->type = Webmail;
     }
+    else if ( *it == "archive" ) {
+        d->type = ArchiveMailbox;
+        parseMailbox( ++it );
+        parseUid( ++it );
+    }
     else {
-        error( "Garbage at end of URL: " + s );
+        d->type = WebmailMailbox;
+        parseMailbox( it );
+        parseUid( ++it );
     }
 }
 
@@ -106,78 +121,39 @@ String Link::string() const
 }
 
 
-/*! Parses a UID. It skips an optional prefix /. */
+/*! Parses a UID in \a s. */
 
-void Link::parseUid()
+void Link::parseUid( const String *s )
 {
-    if ( d->s[0] != '/' )
+    if ( !s )
         return;
-    uint i = 1;
-    while ( d->s[i] >= '0' && d->s[i] <= '9' )
-        i++;
-    if ( i > 0 ) {
-        bool ok = false;
-        d->uid =  d->s.mid( 1, i-1 ).number( &ok );
-        if ( ok ) {
-            if ( d->type == ArchiveMailbox )
-                d->type = ArchiveMessage;
-            else if ( d->type == WebmailMailbox )
-                d->type = WebmailMessage;
-            d->s = d->s.mid( i );
-        }
+
+    bool ok = false;
+    d->uid = s->number( &ok );
+    if ( ok ) {
+        if ( d->type == ArchiveMailbox )
+            d->type = ArchiveMessage;
+        else if ( d->type == WebmailMailbox )
+            d->type = WebmailMessage;
     }
 }
 
 
-/*! Removes and returns the component of this link between the first
-    pair of slashes.
+/*! Parses a mailbox id in \a s. If there isn't any, registers an error. */
 
-    (Should this function be named nextWord? We'll see.)
-*/
-
-String Link::removePrefix()
-{
-    uint i = 0;
-    String prefix;
-
-    if ( d->s[i] == '/' ) {
-        i++;
-        while ( i < d->s.length() && d->s[i] != '/' )
-            i++;
-        prefix = d->s.mid( 1, i-1 );
-        d->s = d->s.mid( i );
-    }
-
-    return prefix;
-}
-
-
-/*! Parses a mailbox name. If there isn't any, registers an error. */
-
-void Link::parseMailbox()
+void Link::parseMailbox( const String *s )
 {
     Mailbox *m = 0;
 
-    if ( d->s[0] != '/' ) {
-        error( "No mailbox id present" );
+    if ( !s )
         return;
-    }
 
-    uint i = 1;
-    while ( d->s[i] >= '0' && d->s[i] <= '9' )
-        i++;
-    if ( i > 0 ) {
-        bool ok = false;
-        uint id = d->s.mid( 1, i-1 ).number( &ok );
-        if ( ok ) {
-            d->s = d->s.mid( i );
-            m = Mailbox::find( id );
-        }
-    }
-
+    bool ok = false;
+    uint id = s->number( &ok );
+    if ( ok )
+        m = Mailbox::find( id );
     if ( !m )
-        error( "Could not find valid mailbox id: " + d->s );
-
+        error( "Could not find valid mailbox id" );
     d->mailbox = m;
 }
 

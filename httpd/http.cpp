@@ -188,6 +188,15 @@ HttpSession *HTTP::session() const
 }
 
 
+/*! Sets this HTTP server's session to \a s.
+*/
+
+void HTTP::setSession( HttpSession *s )
+{
+    d->session = s;
+}
+
+
 /*! Returns a pointer to the user associated with this server, or 0 if
     there is no such user. (For archive mailboxes, 0 is usually
     returned.)
