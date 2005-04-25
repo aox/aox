@@ -306,7 +306,7 @@ void Allocator::free()
     if ( !freed )
         return;
 
-    if ( verbose )
+    if ( verbose && freed >= 16384 )
         log( "Allocator: freed " + fn( freed ) + " bytes, leaving " +
              fn( total ) + " bytes allocated in " +
              fn( objects ) + " objects",
