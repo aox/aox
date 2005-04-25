@@ -9,6 +9,11 @@
 #include "message.h"
 #include "messageset.h"
 #include "httpsession.h"
+#include "addressfield.h"
+#include "mimefields.h"
+#include "bodypart.h"
+#include "utf.h"
+#include "ustring.h"
 
 
 static const char *head =
@@ -224,7 +229,7 @@ void Page::loginForm()
 }
 
 
-/*! ...
+/*! Verifies the login data provided and hands work off to mainPage().
 */
 
 void Page::loginData()
@@ -341,5 +346,72 @@ void Page::messagePage()
         return;
 
     d->ready = true;
-    d->text = "<pre>" + htmlQuoted( d->message->rfc822() ) + "</pre>";
+    d->text = message( d->message );
+}
+
+
+static String address( Message *m, HeaderField::Type t )
+{
+    String s;
+
+    AddressField *af = m->header()->addressField( t );
+    if ( !af )
+        return s;
+
+    s.append( af->name() );
+    s.append( ": " );
+
+    List< Address >::Iterator it( af->addresses()->first() );
+    while ( it ) {
+        s.append( htmlQuoted( it->toString() ) );
+        ++it;
+        if ( it )
+            s.append( ", " );
+    }
+
+    s.append( "<br>" );
+    return s;
+}
+
+
+/*! Returns an HTML representation of the Message \a m.
+*/
+
+String Page::message( Message *m )
+{
+    String s, t;
+    Utf8Codec u;
+    HeaderField *hf;
+
+    hf = m->header()->field( HeaderField::Subject );
+    if ( hf ) {
+        s.append( "Subject: " + hf->value() );
+        s.append( "<br>" );
+    }
+    s.append( address( m, HeaderField::From ) );
+    s.append( address( m, HeaderField::To ) );
+    s.append( address( m, HeaderField::Cc ) );
+
+    s.append( "<hr>" );
+
+    List< Bodypart >::Iterator it( m->children()->first() );
+    while ( it ) {
+        Bodypart *bp = it;
+        ++it;
+
+        ContentType *ct = bp->header()->contentType();
+        String type = ct->type() + "/" + ct->subtype();
+        if ( type == "text/plain" ) {
+            s.append( "<pre>" );
+            s.append( htmlQuoted( u.fromUnicode( bp->text() ) ) );
+            s.append( "</pre>" );
+        }
+        else if ( type == "text/html" ) {
+            s.append( u.fromUnicode( bp->text() ) );
+        }
+
+        s.append( "<hr>" );
+    }
+
+    return s;
 }

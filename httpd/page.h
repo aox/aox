@@ -30,6 +30,7 @@ private:
     void mainPage();
     void mailboxPage();
     void messagePage();
+    String message( class Message * );
 
 private:
     class PageData * d;
