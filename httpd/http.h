@@ -31,13 +31,13 @@ public:
     void setSession( HttpSession * );
     String body() const;
 
+    void process();
+
     uint status() const;
     void setStatus( uint, const String & );
     void addHeader( const String & );
 
 private:
-    void process();
-
     void parseAccept( const String &, uint );
     void parseAcceptCharset( const String &, uint );
     void parseAcceptEncoding( const String &, uint );

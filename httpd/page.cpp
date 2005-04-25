@@ -15,8 +15,8 @@ static const char *head =
 "<html>"
 "<head>"
 "<title>Webmail</title>"
-"<script src=\"http://www.oryx.com/oryx.js\"></script>"
-"<link rel=stylesheet type=\"text/css\" href=\"http://www.oryx.com/oryx.css\">"
+"<!-- script src=\"http://www.oryx.com/oryx.js\"></script>"
+"<link rel=stylesheet type=\"text/css\" href=\"http://www.oryx.com/oryx.css\" -->"
 "</head>"
 "<body onload=\"deframe(); enablejs();\">"
 "<div class=\"page\">"
@@ -155,6 +155,9 @@ void Page::execute()
         errorPage();
         break;
     }
+
+    if ( ready() )
+        d->server->process();
 }
 
 
@@ -298,4 +301,6 @@ void Page::mainPage()
 
 void Page::mailboxPage()
 {
+    d->ready = true;
+    d->text = "<p>La la la.";
 }

@@ -9,6 +9,7 @@
 #include "codec.h"
 #include "buffer.h"
 #include "stringlist.h"
+#include "log.h"
 #include "configuration.h"
 
 
@@ -136,11 +137,15 @@ void HTTP::process()
             r->remove( d->contentLength );
             if ( d->method == "POST" )
                 d->body = s;
+            if ( d->contentLength != 0 )
+                log( "Received request-body of " + fn( d->contentLength ) +
+                     " bytes for " + d->method );
             d->state = Parsed;
         }
     }
 
     if ( d->state == Parsed && !d->page ) {
+        log( "Creating Page for " + d->link->string() );
         d->page = new Page( d->link, this );
         d->page->execute();
     }
@@ -166,6 +171,9 @@ void HTTP::process()
 
         if ( d->sendContents )
             enqueue( d->page->text() );
+
+        log( "Sent '" + fn( d->status ) + "/" + d->message + "' response "
+             "of " + fn( text.length() ) + " bytes." );
 
         if ( d->connectionClose )
             setState( Closing );
@@ -376,6 +384,7 @@ void HTTP::parseRequest( String l )
     }
 
     d->link = new Link( d->path );
+    log( "Received: " + d->method + "(" + d->path + ") " + protocol );
 }
 
 
@@ -397,6 +406,8 @@ void HTTP::parseHeader( const String & h )
     }
     String n = h.mid( 0, i ).simplified().headerCased();
     String v = h.mid( i+1 ).simplified();
+
+    log( "Received: '" + n + "' = '" + v + "'" );
 
     if ( n == "Accept" ) {
         d->acceptsHtml = false;
@@ -459,6 +470,7 @@ void HTTP::parseHeader( const String & h )
 
 void HTTP::setStatus( uint status, const String &message )
 {
+    log( "Status changed to " + fn( status ) + "/" + message );
     if ( d->status == 200 ) {
         d->status = status;
         d->message = message;
@@ -683,6 +695,7 @@ String HTTP::page()
 
 void HTTP::parseList( const String & name, const String & value )
 {
+    return;
     uint i = 0;
     while ( i < value.length() ) {
         uint start = i;
@@ -690,7 +703,7 @@ void HTTP::parseList( const String & name, const String & value )
             i++;
         String item = value.mid( start, i-start );
         uint q = 1000;
-        skipValues( name, i, q );
+        skipValues( value, i, q );
         if ( i >= value.length() ) {
             parseListItem( name, item, q );
         }

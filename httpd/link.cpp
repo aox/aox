@@ -104,16 +104,16 @@ String Link::string() const
         s = "/archive/" + fn( d->mailbox->id() );
         break;
     case WebmailMailbox:
-        s = "/folder/" + fn( d->mailbox->id() );
+        s = "/" + fn( d->mailbox->id() );
         break;
     case Webmail:
-        s = "/webmail";
+        s = "/";
         break;
     case ArchiveMessage:
         s = "/archive/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
         break;
     case WebmailMessage:
-        s = "/folder/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
+        s = "/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
         break;
     case Error:
         break;
