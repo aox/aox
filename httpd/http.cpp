@@ -881,7 +881,7 @@ void HTTP::parseParameters()
 
         int i = s.find( '=' );
         if ( i > 0 ) {
-            n = s.mid( 0, i-1 ).deURI();
+            n = s.mid( 0, i ).deURI();
             v = s.mid( i+1 ).deURI();
         }
         else {

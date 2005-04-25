@@ -262,26 +262,16 @@ void Page::loginForm()
 void Page::loginData()
 {
     if ( !d->user ) {
-        String body = d->server->body();
-
-        uint i;
-        i = body.find( '&' );
-        if ( i > 0 ) {
-            String l = body.mid( 0, i );
-            String p = body.mid( i+1 );
-
-            if ( l.startsWith( "login=" ) )
-                d->login = l.mid( 6 );
-
-            if ( p.startsWith( "passwd=" ) )
-                d->passwd = p.mid( 7 );
-        }
-
-        if ( d->login.isEmpty() || d->passwd.isEmpty() ) {
+        String *login = d->server->parameter( "login" );
+        String *passwd = d->server->parameter( "passwd" );
+        if ( !login || login->isEmpty() || !passwd ) {
             d->type = LoginForm;
             loginForm();
             return;
         }
+
+        d->login = *login;
+        d->passwd = *passwd;
 
         d->user = new User;
         d->user->setLogin( d->login );
