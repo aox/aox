@@ -16,6 +16,8 @@ public:
         : type( Link::Error ), mailbox( 0 ), uid( 0 )
     {}
 
+    String path;
+
     Link::Type type;
     Mailbox * mailbox;
     uint uid;
@@ -55,26 +57,16 @@ Link::Link( const String &s )
 
 void Link::parse( const String & s )
 {
-    StringList l;
+    StringList *l = StringList::split( '/', s );
+    StringList::Iterator it( l->first() );
 
-    int n = 0;
-    int last = 0;
-    do {
-        String w;
-        n = s.find( '/', last+1 );
-        if ( n > 0 )
-            w = s.mid( last+1, n-last-1 );
-        else
-            w = s.mid( last+1 );
-        last = n;
+    d->path = s;
 
-        if ( !w.isEmpty() )
-            l.append( w );
-    }
-    while ( last > 0 );
+    // We must assume that the path starts with a /.
+    if ( !it || !it->isEmpty() || !++it )
+        return;
 
-    StringList::Iterator it( l.first() );
-    if ( !it ) {
+    if ( it->isEmpty() ) {
         d->type = Webmail;
     }
     else if ( *it == "archive" ) {
@@ -113,6 +105,7 @@ String Link::string() const
         s = "/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
         break;
     case Error:
+        s = d->path;
         break;
     }
     return s;
