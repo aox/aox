@@ -132,6 +132,10 @@ Page::Page( Link * link, HTTP *server )
         d->type = WebmailMessage;
         break;
 
+    case Link::ArchiveMessage:
+        d->type = ArchiveMessage;
+        break;
+
     default:
         d->type = Error;
         d->server->setStatus( 404, "File not found" );
@@ -161,6 +165,10 @@ void Page::execute()
 
     case WebmailMessage:
         messagePage();
+        break;
+
+    case ArchiveMessage:
+        archivePage();
         break;
 
     case Error:
@@ -327,6 +335,33 @@ void Page::mailboxPage()
 
 void Page::messagePage()
 {
+    if ( !messageReady() )
+        return;
+
+    d->ready = true;
+    d->text = message( d->message );
+}
+
+
+/*! Prepares to display a single archive message.
+*/
+
+void Page::archivePage()
+{
+    if ( !messageReady() )
+        return;
+
+    d->ready = true;
+    d->text = message( d->message );
+}
+
+
+/*! Returns true if d->message has been fetched from the database, and
+    false otherwise.
+*/
+
+bool Page::messageReady()
+{
     if ( !d->message ) {
         Mailbox *m = d->link->mailbox();
         d->message = m->message( d->link->uid(), true );
@@ -343,10 +378,8 @@ void Page::messagePage()
 
     if ( !d->message->hasHeaders() ||
          !d->message->hasBodies() )
-        return;
-
-    d->ready = true;
-    d->text = message( d->message );
+        return false;
+    return true;
 }
 
 

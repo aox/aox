@@ -14,8 +14,8 @@ public:
     Page( class Link *, class HTTP * );
 
     enum Type {
-        MainPage, LoginForm, LoginData, WebmailMailbox,
-        WebmailMessage, Error
+        MainPage, LoginForm, LoginData, WebmailMailbox, WebmailMessage,
+        ArchiveMessage, Error
     };
 
     bool ready() const;
@@ -30,6 +30,8 @@ private:
     void mainPage();
     void mailboxPage();
     void messagePage();
+    void archivePage();
+    bool messageReady();
     String message( class Message * );
 
 private:
