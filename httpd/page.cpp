@@ -7,6 +7,7 @@
 #include "http.h"
 #include "mailbox.h"
 #include "message.h"
+#include "messageset.h"
 #include "httpsession.h"
 
 
@@ -59,21 +60,21 @@ class PageData {
 public:
     PageData()
         : type( Page::Error ),
-          link( 0 ), uid( 0 ), server( 0 ), ready( false ),
-          user( 0 )
+          link( 0 ), server( 0 ), ready( false ),
+          user( 0 ), message( 0 )
     {}
 
     Page::Type type;
 
     Link *link;
     String text;
-    uint uid;
     HTTP *server;
     bool ready;
 
     String login;
     String passwd;
     User *user;
+    Message *message;
 };
 
 
@@ -323,6 +324,25 @@ void Page::mailboxPage()
 
 void Page::messagePage()
 {
+    if ( !d->message ) {
+        Mailbox *m = d->link->mailbox();
+        d->message = m->message( d->link->uid(), true );
+
+        MessageSet ms;
+        ms.add( d->link->uid() );
+        if ( !d->message->hasFlags() )
+            m->fetchFlags( ms, this );
+        if ( !d->message->hasBodies() )
+            m->fetchBodies( ms, this );
+        if ( !d->message->hasHeaders() )
+            m->fetchHeaders( ms, this );
+    }
+
+    if ( !d->message->hasHeaders() ||
+         !d->message->hasBodies() )
+        return;
+
     d->ready = true;
-    d->text = "<p>Who the fuck is Alice?";
+    d->server->addHeader( "Content-Type: text/plain" );
+    d->text = d->message->rfc822();
 }
