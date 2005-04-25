@@ -71,3 +71,31 @@ String StringList::join( const String & separator )
 }
 
 
+/*! This function splits \a s on the separator \a c, and returns a non-0
+    pointer to a list of the resulting strings. Consecutive occurrences
+    of \a c cause the list to contain empty elements.
+*/
+
+StringList *StringList::split( char c, const String &s )
+{
+    StringList *l = new StringList;
+
+    int n = 0;
+    int last = 0;
+    do {
+        String w;
+        n = s.find( c, last );
+        if ( n >= 0 ) {
+            w = s.mid( last, n-last );
+            n++;
+        }
+        else {
+            w = s.mid( last );
+        }
+        last = n;
+        l->append( w );
+    }
+    while ( last > 0 );
+
+    return l;
+}

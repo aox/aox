@@ -6,7 +6,9 @@
 #include "list.h"
 #include "string.h"
 
-class StringList: public List<String>
+
+class StringList
+    : public List< String >
 {
 public:
     StringList();
@@ -16,6 +18,8 @@ public:
     void append( const char * );
 
     String join( const String & );
+    static StringList *split( char, const String & );
 };
+
 
 #endif

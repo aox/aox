@@ -347,7 +347,4 @@ LogClient::reconnect should die, or at least suck less.
 We need to upgrade to cryptlib 3.2
 
 
-We may need a StringList::split if it's used anywhere other than Link.
-
-
 
