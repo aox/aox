@@ -156,7 +156,7 @@ void Page::execute()
         break;
 
     case WebmailMessage:
-        // messagePage();
+        messagePage();
         break;
 
     case Error:
