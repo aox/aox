@@ -2,33 +2,24 @@
 
 #include "page.h"
 
+#include "utf.h"
 #include "link.h"
 #include "user.h"
 #include "http.h"
 #include "mailbox.h"
 #include "message.h"
+#include "ustring.h"
+#include "bodypart.h"
+#include "allocator.h"
 #include "messageset.h"
+#include "mimefields.h"
 #include "httpsession.h"
 #include "addressfield.h"
-#include "mimefields.h"
-#include "bodypart.h"
-#include "utf.h"
-#include "ustring.h"
 
 
-static const char *head =
-"<!doctype html public \"-//W3C//DTD HTML 4.01//EN\">\n"
-"<html>"
-"<head>"
-"<title>Webmail</title>"
-"<!-- script src=\"http://www.oryx.com/oryx.js\"></script>"
-"<link rel=stylesheet type=\"text/css\" href=\"http://www.oryx.com/oryx.css\" -->"
-"</head>"
-"<body>"
-"<div class=\"page\">"
-"<div class=\"container\"><div class=\"content\">";
+static String * jsUrl;
+static String * cssUrl;
 
-static const char *foot = "</div></div></div></body></html>\n";
 
 static String htmlQuoted( const String & s )
 {
@@ -190,7 +181,35 @@ String Page::text() const
 {
     if ( d->text.isEmpty() )
         return "";
-    return head + d->text + foot;
+
+    if ( !cssUrl ) {
+        cssUrl = new String;
+        *cssUrl = Configuration::text( Configuration::WebmailCSS );
+        Allocator::addEternal( cssUrl, "the CSS page webmail uses" );
+        jsUrl = new String;
+        *jsUrl =Configuration::text( Configuration::WebmailJS );
+        if ( jsUrl->isEmpty() )
+            jsUrl = 0;
+        else
+            Allocator::addEternal( jsUrl, "the JS page webmail uses" );
+    }
+
+
+    String r = "<!doctype html public \"-//W3C//DTD HTML 4.01//EN\">\n"
+               "<html>"
+               "<head>"
+               "<title>Webmail</title>";
+    if ( jsUrl )
+        r.append( "<script src=\"" + *jsUrl + "\"></script>" );
+    if ( cssUrl )
+        r.append( "<link rel=stylesheet type=\"text/css\" href=\"" +
+                  *cssUrl + "\">" );
+    r.append( "</head>"
+              "<body>"
+              "<div class=\"page\">" );
+    r.append( d->text );
+    r.append( "</div></body></html>" );
+    return r;
 }
 
 

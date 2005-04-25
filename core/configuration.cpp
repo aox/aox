@@ -174,7 +174,9 @@ static struct {
     { "http-address", Configuration::HttpAddress, "127.0.0.1" },
     { "tls-certificate", Configuration::TlsCertFile, "" },
     { "log-level", Configuration::LogLevel, "info" },
-    { "logfile-mode", Configuration::LogfileMode, LOGFILEMODE }
+    { "logfile-mode", Configuration::LogfileMode, LOGFILEMODE },
+    { "webmail-css-page", Configuration::WebmailCSS, "http://www.oryx.com/webmail/default.css" },
+    { "webmail-js-page", Configuration::WebmailJS, "" }
 };
 
 

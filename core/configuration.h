@@ -76,6 +76,8 @@ public:
         TlsCertFile,
         LogLevel,
         LogfileMode,
+        WebmailCSS,
+        WebmailJS,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };
