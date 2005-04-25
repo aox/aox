@@ -86,6 +86,8 @@ public:
     String encode( Encoding, uint = 0 ) const;
     String decode( Encoding ) const;
 
+    String eURI() const;
+    String deURI() const;
     String de64() const;
     String e64( uint = 0 ) const;
     String deQP( bool = false ) const;

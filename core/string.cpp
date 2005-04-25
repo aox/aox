@@ -824,6 +824,46 @@ String String::decode( Encoding e ) const
 }
 
 
+/*! Returns a version of this String with absolutely nothing changed.
+    (This function is eventually intended to percent-escape URIs, the
+    opposite of deURI().)
+*/
+
+String String::eURI() const
+{
+    return *this;
+}
+
+
+/*! Returns a version of this String with every %xx escape replaced with
+    the corresponding character (as used to encode URIs). Invalid escape
+    sequences are left unchanged.
+*/
+
+String String::deURI() const
+{
+    String s;
+    s.reserve( d->len );
+
+    uint p = 0;
+    while ( p < d->len ) {
+        char c = d->str[p];
+        if ( c == '%' ) {
+            bool ok;
+            uint n = mid( p+1, 2 ).number( &ok, 16 );
+            if ( ok ) {
+                p += 2;
+                c = (char)n;
+            }
+        }
+        s.append( c );
+        p++;
+    }
+
+    return s;
+}
+
+
 static char from64[128] =
 {
     64, 99, 99, 99,  99, 99, 99, 99,
