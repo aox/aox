@@ -359,7 +359,7 @@ void HTTP::parseRequest( String l )
         }
     }
 
-    d->link = new Link( this, d->path );
+    d->link = new Link( d->path );
 }
 
 

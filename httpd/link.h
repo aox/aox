@@ -7,9 +7,9 @@ class Link
 {
 public:
     Link();
-    Link( class HTTP *, const String & );
+    Link( const String & );
 
-    String generate() const;
+    String string() const;
 
     enum Type {
         ArchiveMailbox,
@@ -23,14 +23,6 @@ public:
     Type type() const;
     class Mailbox * mailbox() const;
     class Message * message() const;
-
-    enum Javascript {
-        Enabled,
-        Disabled,
-        Uncertain,
-    };
-
-    Javascript javascript() const;
 
     String errorMessage() const;
 

@@ -11,16 +11,13 @@ class LinkData
 {
 public:
     LinkData()
-        : type( Link::Error ), server( 0 ),
-          mailbox( 0 ), uid( 0 ),
-          js( Link::Uncertain )
+        : type( Link::Error ),
+          mailbox( 0 ), uid( 0 )
         {}
     String s;
     Link::Type type;
-    HTTP *server;
     Mailbox * mailbox;
     uint uid;
-    Link::Javascript js;
     String error;
 };
 
@@ -38,18 +35,15 @@ public:
 Link::Link()
     : d( new LinkData )
 {
-    
 }
 
 
-/*! Constructs and parses a link with path \a s for the specified
-    \a server.
+/*! Constructs and parses a link with path \a s.
 */
 
-Link::Link( HTTP * server, const String &s )
+Link::Link( const String &s )
     : d( new LinkData )
 {
-    d->server = server;
     parse( s );
 }
 
@@ -86,7 +80,7 @@ void Link::parse( const String & s )
 /*! Generates a path that represents this Link object.
 */
 
-String Link::generate() const
+String Link::string() const
 {
     String s;
     switch( d->type ) {
