@@ -57,18 +57,15 @@ void Link::parse( const String & s )
 {
     StringList l;
 
-    uint n = 0;
-    uint last = 0;
+    int n = 0;
+    int last = 0;
     do {
         String w;
-        n = s.find( ' ', last );
-        if ( n > 0 ) {
+        n = s.find( '/', last+1 );
+        if ( n > 0 )
             w = s.mid( last+1, n-last-1 );
-            n++;
-        }
-        else {
+        else
             w = s.mid( last+1 );
-        }
         last = n;
 
         if ( !w.isEmpty() )

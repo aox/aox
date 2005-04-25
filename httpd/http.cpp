@@ -20,7 +20,7 @@ public:
           status( 200 ),
           use11( false ), sendContents( true ), acceptsHtml( true ),
           acceptsPng( true ), acceptsLatin1( true ), acceptsUtf8( true ),
-          acceptsIdentity( false ), connectionClose( true ),
+          acceptsIdentity( false ), connectionClose( false ),
           contentLength( 0 ),
           link( 0 ), page( 0 ), session( 0 )
     {}
@@ -30,7 +30,6 @@ public:
     uint status;
     String method;
     String message;
-    String protocol;
 
     bool use11;
     bool sendContents;
@@ -161,11 +160,10 @@ void HTTP::process()
         if ( d->session )
             addHeader( "Set-Cookie: session=\"" + d->session->key() + "\"" );
 
-        if ( d->use11 && d->connectionClose )
+        if ( d->connectionClose )
             addHeader( "Connection: close" );
 
-        enqueue( d->protocol + " " + fn( d->status ) + " " +
-                 d->message + "\r\n" );
+        enqueue( "HTTP/1.1 " + fn( d->status ) + " " + d->message + "\r\n" );
         enqueue( d->headers.join( "\r\n" ) );
         enqueue( "\r\n\r\n" );
 
@@ -360,10 +358,8 @@ void HTTP::parseRequest( String l )
     }
     if ( minor > 0 )
         d->use11 = true;
-    d->connectionClose = true;
-    // XXX: is this right? should we accept HTTP/1.2 and answer as
-    // though it were 1.1?
-    d->protocol = "HTTP/1.0";
+    else
+        d->connectionClose = true;
 
     uint i = 0;
     while ( i < path.length() ) {
