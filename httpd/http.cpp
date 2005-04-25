@@ -362,12 +362,13 @@ void HTTP::parseRequest( String l )
         d->connectionClose = true;
 
     uint i = 0;
+    d->path.truncate( 0 );
     while ( i < path.length() ) {
         if ( path[i] == '%' ) {
             bool ok = false;
             uint num = path.mid( i+1, 2 ).number( &ok, 16 );
             if ( !ok || path.length() < i + 3 ) {
-               setStatus( 400, "Bad percent escape: " + path.mid( i, 3 ) );
+                setStatus( 400, "Bad percent escape: " + path.mid( i, 3 ) );
                 return;
             }
             d->path.append( (char)num );
@@ -691,7 +692,9 @@ String HTTP::page()
 
 void HTTP::parseList( const String & name, const String & value )
 {
-    return;
+    if ( name != "Cookie" )
+        return;
+
     uint i = 0;
     while ( i < value.length() ) {
         uint start = i;

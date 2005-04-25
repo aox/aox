@@ -18,7 +18,7 @@ static const char *head =
 "<!-- script src=\"http://www.oryx.com/oryx.js\"></script>"
 "<link rel=stylesheet type=\"text/css\" href=\"http://www.oryx.com/oryx.css\" -->"
 "</head>"
-"<body onload=\"deframe(); enablejs();\">"
+"<body>"
 "<div class=\"page\">"
 "<div class=\"container\"><div class=\"content\">";
 
