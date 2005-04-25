@@ -8,9 +8,10 @@
 # Note: Jamsettings variables are evaluated at build time.
 cd $SBINDIR
 
-SERVERS="logd ocd tlsproxy imapd smtpd"
+SERVERS="logd ocd tlsproxy imapd smtpd httpd"
 
-REVERSE=`echo $SERVERS | fmt -1 | rev | fmt -666 | rev`
+REVERSE=""
+for a in $SERVERS ; do REVERSE="$a $REVERSE"; done
 
 for a in $SERVERS ; do
     test -x ${a} || exit 0
