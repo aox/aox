@@ -4,7 +4,28 @@
 
 #include "mailbox.h"
 #include "event.h"
+#include "query.h"
 #include "user.h"
+
+
+static char rightChar( ACL::Right );
+
+
+class AclData {
+public:
+    AclData()
+        : ready( false ), mailbox( 0 ), user( 0 ), owner( 0 ),
+          allowed( false ), q( 0 )
+    {}
+
+    bool ready;
+    Mailbox *mailbox;
+    User *user;
+    ACL::Right right;
+    EventHandler *owner;
+    bool allowed;
+    Query *q;
+};
 
 
 /*! \class ACL acl.h
@@ -48,57 +69,126 @@
     always granted to the owner of a mailbox, and may be granted to
     others.
 
-    For the moment, this class cannot modify the database, it only
-    interprets its current contents. Until it has updated itself from
-    the database, ready() returns false. As soon as it's ready(),
-    allowed() tells you whether a given user has a given right.
-
-    refresh() requests that the ACL object refresh itself from the
-    database and notify the specified event handler once it's ready.
+    For the moment, this class cannot modify the database. It can only
+    verify() that a user has a given right, and will notify an event
+    handler when it's ready() to say whether the access is allowed()
+    or not.
 */
 
-
-/*! Constructs an ACL object for \a mailbox and immedietely refreshes
-    it from the database.
-
+/*! Constructs an ACL object for \a mailbox, but does nothing further
+    until verify() is called.
 */
 
-ACL::ACL( Mailbox * mailbox )
-    : d( 0 )
+ACL::ACL( Mailbox *mailbox )
+    : d( new AclData )
 {
-    mailbox = mailbox;
+    d->mailbox = mailbox;
 }
 
 
-/*! Returns true if the ACL object is ready to answer questions using
-    allowed(), and false the object is currently fetching data from
-    the database.
+/*! Returns true if the ACL object is ready to answer the question using
+    allowed(), and false the object is still fetching data.
 */
 
 bool ACL::ready()
 {
-    return true;
+    return d->ready;
 }
 
 
-/*! Returns true if \a u is permitted to do \a r by this ACL. */
-
-bool ACL::allowed( User * u, Right r)
-{
-    u = u;
-    r = r;
-    return false;
-}
-
-
-/*! Starts refreshing this object from the database, and will notify
-    \a handler as soon as it's done.
-
-    refresh() may be called several times with different \a handler
-    objects; all will be notified.
+/*! Returns true only if the user has the Right specified in the call to
+    verify(). This function is meaningful only when the ACL is ready().
 */
 
-void ACL::refresh( EventHandler * handler )
+bool ACL::allowed()
 {
-    handler = handler;
+    return d->allowed;
+}
+
+
+/*! Checks to see if the user \a u has the right \a r, and notifies the
+    \a handler when allowed() can answer the question.
+*/
+
+void ACL::verify( User *u, Right r, EventHandler *handler )
+{
+    d->user = u;
+    d->right = r;
+    d->owner = handler;
+    execute();
+}
+
+
+/*! This function processes ACL results from the database and calculates
+    the applicable permissions.
+*/
+
+void ACL::execute()
+{
+    if ( !d->q ) {
+        // The user and superuser always have all rights.
+        if ( d->user->id() == d->mailbox->owner() ||
+             0 /* d->user->isRoot() */ )
+        {
+            d->allowed = true;
+            d->ready = true;
+            return;
+        }
+
+        // For everyone else, we have to check.
+        d->q = new Query( "select * from permissions where mailbox=$1 and "
+                          "identifier=$2", this );
+        d->q->bind( 1, d->mailbox->id() );
+        d->q->bind( 2, d->user->login() );
+        d->q->execute();
+    }
+
+    if ( !d->q->done() )
+        return;
+
+    while ( d->q->hasResults() ) {
+        Row *r = d->q->nextRow();
+
+        String rights;
+        if ( !r->isNull( "rights" ) )
+            rights = r->getString( "rights" );
+        if ( rights.find( rightChar( d->right ) ) )
+            d->allowed = true;
+        else
+            d->allowed = false;
+    }
+
+    d->ready = true;
+    d->owner->execute();
+}
+
+
+static char rightChar( ACL::Right r )
+{
+    char c;
+    switch ( r ) {
+    case ACL::Lookup:
+        c = 'l';
+    case ACL::Read:
+        c = 'r';
+    case ACL::KeepSeen:
+        c = 's';
+    case ACL::Write:
+        c = 'w';
+    case ACL::Insert:
+        c = 'i';
+    case ACL::Post:
+        c = 'p';
+    case ACL::CreateMailboxes:
+        c = 'k';
+    case ACL::DeleteMailbox:
+        c = 'x';
+    case ACL::DeleteMessages:
+        c = 't';
+    case ACL::Expunge:
+        c = 'e';
+    case ACL::Admin:
+        c = 'a';
+    }
+    return c;
 }

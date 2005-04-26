@@ -3,8 +3,12 @@
 #ifndef ACL_H
 #define ACL_H
 
+#include "event.h"
 
-class ACL {
+
+class ACL
+    : public EventHandler
+{
 public:
     ACL( class Mailbox * );
 
@@ -23,12 +27,12 @@ public:
     };
 
     bool ready();
-    bool allowed( class User *, Right );
-
-    void refresh( class EventHandler * );
+    bool allowed();
+    void verify( class User *, Right, class EventHandler * );
+    void execute();
 
 private:
-    class ACLData * d;
+    class AclData *d;
 };
 
 

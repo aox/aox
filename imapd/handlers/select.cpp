@@ -80,12 +80,12 @@ void Select::execute()
 
     if ( !d->acl ) {
         d->acl = new ACL( d->mailbox );
-        d->acl->refresh( this );
+        d->acl->verify( imap()->user(), ACL::Read, this );
     }
     if ( d->acl && !d->setup ) {
         if ( !d->acl->ready() )
             return;
-        if ( !d->acl->allowed( imap()->user(), ACL::Read ) ) {
+        if ( !d->acl->allowed() ) {
             error( No, d->name + " is not accessible" );
             finish();
             return;
