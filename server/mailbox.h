@@ -23,6 +23,7 @@ public:
     uint uidvalidity() const;
     bool deleted() const;
     bool synthetic() const;
+    uint owner() const;
 
     void setUidnext( uint );
     void setDeleted( bool );

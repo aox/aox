@@ -20,7 +20,7 @@ public:
     MailboxData()
         : id( 0 ),
           uidnext( 0 ), uidvalidity( 0 ),
-          deleted( false ),
+          deleted( false ), owner( 0 ),
           parent( 0 ), children( 0 ), messages( 0 ),
           flagFetcher( 0 ), headerFetcher( 0 ), bodyFetcher( 0 ),
           watchers( 0 )
@@ -31,6 +31,7 @@ public:
     uint uidnext;
     uint uidvalidity;
     bool deleted;
+    uint owner;
 
     Mailbox *parent;
     List< Mailbox > *children;
@@ -87,6 +88,8 @@ public:
             m->d->deleted = r->getBoolean( "deleted" );
             m->d->uidvalidity = r->getInt( "uidvalidity" );
             m->setUidnext( r->getInt( "uidnext" ) );
+            if ( !r->isNull( "owner" ) )
+                m->d->owner = r->getInt( "owner" );
 
             if ( m->d->id )
                 ::mailboxes->insert( m->d->id, m );
@@ -190,6 +193,16 @@ bool Mailbox::deleted() const
 bool Mailbox::synthetic() const
 {
     return !id();
+}
+
+
+/*! Returns the numeric user id of the owner of this mailbox, or 0 if
+    the mailbox has no defined owner (or is not yet known to have one).
+*/
+
+uint Mailbox::owner() const
+{
+    return d->owner;
 }
 
 
