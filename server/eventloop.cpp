@@ -95,6 +95,16 @@ void EventLoop::removeConnection( Connection *c )
 }
 
 
+/*! Returns a (non-zero) pointer to the list of Connections that have
+    been added to this EventLoop.
+*/
+
+List< Connection > *EventLoop::connections() const
+{
+    return &d->connections;
+}
+
+
 /*! Starts the EventLoop and runs it until stop() is called. */
 
 void EventLoop::start()

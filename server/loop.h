@@ -19,6 +19,7 @@ public:
     static void closeAllExcept( Connection *, Connection * );
     static void flushAll();
 
+    static List< Connection > *connections();
     static EventLoop * loop();
 };
 

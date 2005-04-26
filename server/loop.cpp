@@ -91,6 +91,21 @@ void Loop::flushAll()
 }
 
 
+/*! Returns a (non-zero) pointer to the list of connections in the
+    global Loop.
+*/
+
+List< Connection > *Loop::connections()
+{
+    List< Connection > *l = 0;
+    if ( ::loop )
+        l = ::loop->connections();
+    else
+        l = new List< Connection >;
+    return l;
+}
+
+
 /*! Returns a pointer to the global event loop, or a null pointer if
     there isn't any.
 */

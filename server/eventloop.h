@@ -3,6 +3,9 @@
 #ifndef EVENTLOOP_H
 #define EVENTLOOP_H
 
+#include "list.h"
+
+
 class Connection;
 
 
@@ -19,6 +22,8 @@ public:
     void flushAll();
 
     void dispatch( Connection *, bool, bool, int );
+
+    List< Connection > *connections() const;
 
 private:
     class LoopData *d;

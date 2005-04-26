@@ -35,6 +35,7 @@
 #include "scope.h"
 #include "allocator.h"
 #include "logclient.h"
+#include "connection.h"
 #include "configuration.h"
 #include "entropy.h"
 
@@ -472,9 +473,23 @@ void Server::execute()
 {
     setup( Finish );
     Configuration::report();
+
+    uint listeners = 0;
+    List< Connection >::Iterator it( Loop::connections()->first() );
+    while ( it ) {
+        if ( it->type() == Connection::Listener )
+            listeners++;
+        ++it;
+    }
+
+    if ( listeners == 0 ) {
+        log( "No active listeners.", Log::Disaster );
+        exit( 1 );
+    }
+
     if ( Scope::current()->log()->disastersYet() ) {
         log( "Aborting server " + d->name + " due to earlier problems." );
-        Loop::shutdown();
+        exit( 1 );
     }
     commit();
     Loop::start();
