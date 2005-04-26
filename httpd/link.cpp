@@ -21,6 +21,7 @@ public:
     Link::Type type;
     Mailbox * mailbox;
     uint uid;
+    String part;
 };
 
 
@@ -63,6 +64,8 @@ Link::Type Link::type() const
 /*! Returns a pointer to the mailbox identified by this link, or 0 if
     there is no such mailbox, or if this link does not identify a
     mailbox.
+
+    This value is meaningful only if type() is not Unknown.
 */
 
 Mailbox *Link::mailbox() const
@@ -72,11 +75,27 @@ Mailbox *Link::mailbox() const
 
 
 /*! Returns the UID, if this Link contains a UID, or 0 if not.
+
+    This value is meaningful only if type() is not Unknown.
 */
 
 uint Link::uid() const
 {
     return d->uid;
+}
+
+
+/*! Returns the part number of the message identified by this Link, if
+    there is one; or an empty string otherwise. The part number is a
+    valid IMAP part number, but may not be valid for the message in
+    question.
+
+    This value is meaningful only if type() is not Unknown.
+*/
+
+String Link::part() const
+{
+    return d->part;
 }
 
 
@@ -102,11 +121,13 @@ void Link::parse( const String & s )
         d->type = ArchiveMailbox;
         parseMailbox( ++it );
         parseUid( ++it );
+        parsePart( ++it );
     }
     else {
         d->type = WebmailMailbox;
         parseMailbox( it );
         parseUid( ++it );
+        parsePart( ++it );
     }
 }
 
@@ -130,8 +151,15 @@ String Link::string() const
     case ArchiveMessage:
         s = "/archive/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
         break;
+    case ArchivePart:
+        s = "/archive/" + fn( d->mailbox->id() ) + "/" + fn( d->uid ) +
+            "/" + d->part;
+        break;
     case WebmailMessage:
         s = "/" + fn( d->mailbox->id() ) + "/" + fn( d->uid );
+        break;
+    case WebmailPart:
+        s = "/" + fn( d->mailbox->id() ) + "/" + fn( d->uid ) + "/" + d->part;
         break;
     case Unknown:
         s = d->path;
@@ -175,4 +203,36 @@ void Link::parseMailbox( const String *s )
     if ( !m )
         d->type = Unknown;
     d->mailbox = m;
+}
+
+
+/*! Tries to parse \a s as an IMAP part number. */
+
+void Link::parsePart( const String *s )
+{
+    if ( !s )
+        return;
+
+    char c;
+    uint i = 0;
+    while ( ( ( c = (*s)[i] ) >= '0' && c <= '9' ) || c == '.' ) {
+        if ( c == '.' &&
+             ( i == 0 || (*s)[i+1] == '.' || i == s->length()-1 ) )
+        {
+            d->type = Unknown;
+            return;
+        }
+        i++;
+    }
+
+    if ( i < s->length()-1 ) {
+        d->type = Unknown;
+        return;
+    }
+
+    if ( d->type == ArchiveMessage )
+        d->type = ArchivePart;
+    else
+        d->type = WebmailPart;
+    d->part = *s;
 }

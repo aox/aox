@@ -20,36 +20,8 @@
 static String * jsUrl;
 static String * cssUrl;
 
+static String htmlQuoted( const String & );
 static String address( Message *, HeaderField::Type );
-
-
-static String htmlQuoted( const String & s )
-{
-    String r;
-    r.reserve( s.length() );
-    uint i = 0;
-    while ( i < s.length() ) {
-        if ( s[i] > 126 ) {
-            r.append( "&#" );
-            r.append( fn( s[i] ) );
-            r.append( ";" );
-        }
-        else if ( s[i] == '<' ) {
-            r.append( "&lt;" );
-        }
-        else if ( s[i] == '>' ) {
-            r.append( "&gt;" );
-        }
-        else if ( s[i] == '&' ) {
-            r.append( "&amp;" );
-        }
-        else {
-            r.append( s[i] );
-        }
-        i++;
-    }
-    return r;
-}
 
 
 class PageData {
@@ -64,7 +36,7 @@ public:
     uint state;
 
     Link *link;
-    String text;
+    String text, data;
     HTTP *server;
     bool ready;
 
@@ -91,7 +63,8 @@ Page::Page( Link * link, HTTP *server )
     d->server = server;
 
     if ( link->type() == Link::WebmailMessage ||
-         link->type() == Link::WebmailMailbox )
+         link->type() == Link::WebmailMailbox ||
+         link->type() == Link::WebmailPart )
     {
         if ( !d->server->session() ||
              !d->server->session()->user() ||
@@ -126,8 +99,16 @@ Page::Page( Link * link, HTTP *server )
         d->type = WebmailMessage;
         break;
 
+    case Link::WebmailPart:
+        d->type = WebmailPart;
+        break;
+
     case Link::ArchiveMessage:
         d->type = ArchiveMessage;
+        break;
+
+    case Link::ArchivePart:
+        d->type = ArchivePart;
         break;
 
     default:
@@ -161,8 +142,16 @@ void Page::execute()
         messagePage();
         break;
 
+    case WebmailPart:
+        webmailPartPage();
+        break;
+
     case ArchiveMessage:
         archivePage();
+        break;
+
+    case ArchivePart:
+        archivePartPage();
         break;
 
     case Error:
@@ -182,6 +171,9 @@ void Page::execute()
 
 String Page::text() const
 {
+    if ( !d->data.isEmpty() )
+        return d->data;
+
     if ( d->text.isEmpty() )
         return "";
 
@@ -461,33 +453,6 @@ bool Page::messageReady()
 }
 
 
-static String address( Message *m, HeaderField::Type t )
-{
-    String s;
-
-    AddressField *af = m->header()->addressField( t );
-    if ( !af )
-        return s;
-
-    s.append( "<div class=headerfield name=" + af->name().lower() +">" );
-    s.append( af->name() );
-    s.append( ": " );
-
-    List< Address >::Iterator it( af->addresses()->first() );
-    while ( it ) {
-        s.append( "<span class=address>" );
-        s.append( htmlQuoted( it->toString() ) );
-        s.append( "</span>" );
-        ++it;
-        if ( it )
-            s.append( ", " );
-    }
-
-    s.append( "</div>" );
-    return s;
-}
-
-
 /*! Returns an HTML representation of the Message \a m.
 */
 
@@ -545,5 +510,104 @@ String Page::message( Message *m )
         s.append( "</div>" );
     }
 
+    return s;
+}
+
+
+/*! Prepares to display a single bodypart from the requested message.
+*/
+
+void Page::webmailPartPage()
+{
+    if ( !messageReady() )
+        return;
+
+    Bodypart *bp = d->message->bodypart( d->link->part(), false );
+    if ( !bp ) {
+        d->type = Error;
+        d->server->setStatus( 404, "File not found" );
+        errorPage();
+        return;
+    }
+
+    String type = "text/plain";
+    ContentType *ct = bp->header()->contentType();
+    if ( ct )
+        type = ct->type() + "/" + ct->subtype();
+
+    d->server->addHeader( "Content-Type: " + type );
+
+    Utf8Codec u;
+    if ( type.startsWith( "text/" ) )
+        d->data = u.fromUnicode( bp->text() );
+    else
+        d->data = bp->data();
+    d->ready = true;
+}
+
+
+/*! Prepares to display a single bodypart from the requested archive
+    message. This function currently just punts to webmailPartPage()
+    above.
+*/
+
+void Page::archivePartPage()
+{
+    webmailPartPage();
+}
+
+
+static String htmlQuoted( const String & s )
+{
+    String r;
+    r.reserve( s.length() );
+    uint i = 0;
+    while ( i < s.length() ) {
+        if ( s[i] > 126 ) {
+            r.append( "&#" );
+            r.append( fn( s[i] ) );
+            r.append( ";" );
+        }
+        else if ( s[i] == '<' ) {
+            r.append( "&lt;" );
+        }
+        else if ( s[i] == '>' ) {
+            r.append( "&gt;" );
+        }
+        else if ( s[i] == '&' ) {
+            r.append( "&amp;" );
+        }
+        else {
+            r.append( s[i] );
+        }
+        i++;
+    }
+    return r;
+}
+
+
+static String address( Message *m, HeaderField::Type t )
+{
+    String s;
+
+    AddressField *af = m->header()->addressField( t );
+    if ( !af )
+        return s;
+
+    s.append( "<div class=headerfield name=" + af->name().lower() +">" );
+    s.append( af->name() );
+    s.append( ": " );
+
+    List< Address >::Iterator it( af->addresses()->first() );
+    while ( it ) {
+        s.append( "<span class=address>" );
+        s.append( htmlQuoted( it->toString() ) );
+        s.append( "</span>" );
+        ++it;
+        if ( it )
+            s.append( ", " );
+    }
+
+    s.append( "</div>" );
     return s;
 }

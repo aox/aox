@@ -15,7 +15,7 @@ public:
 
     enum Type {
         MainPage, LoginForm, LoginData, WebmailMailbox, WebmailMessage,
-        ArchiveMessage, Error
+        WebmailPart, ArchiveMessage, ArchivePart, Error
     };
 
     bool ready() const;
@@ -32,6 +32,8 @@ private:
     void messagePage();
     void archivePage();
     bool messageReady();
+    void webmailPartPage();
+    void archivePartPage();
     String message( class Message * );
 
 private:

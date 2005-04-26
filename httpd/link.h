@@ -16,7 +16,9 @@ public:
         WebmailMailbox,
         Webmail,
         ArchiveMessage,
+        ArchivePart,
         WebmailMessage,
+        WebmailPart,
         Unknown
     };
 
@@ -24,13 +26,15 @@ public:
 
     class Mailbox *mailbox() const;
     uint uid() const;
+    String part() const;
 
     String string() const;
 
 private:
     void parse( const String & );
-    void parseUid( const String * );
     void parseMailbox( const String * );
+    void parseUid( const String * );
+    void parsePart( const String * );
 
 private:
     class LinkData *d;
