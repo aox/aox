@@ -78,6 +78,7 @@ public:
     void appendNumber( uint, int = 10 );
     void append( const String & );
     void append( const char *, uint );
+    void append( const char * );
 
     void reserve( uint );
     void truncate( uint );

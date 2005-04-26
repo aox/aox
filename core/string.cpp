@@ -292,7 +292,7 @@ void String::append( const String & other )
 
 /*! \overload
     This version of append() appends \a num raw bytes from memory
-    \a base.
+    \a base. If \a base is null, this function does nothing.
 */
 
 void String::append( const char * base, uint num )
@@ -303,6 +303,19 @@ void String::append( const char * base, uint num )
     reserve( length() + num );
     memmove( d->str + d->len, base, num );
     d->len += num;
+}
+
+
+/*! \overload
+
+    This version of append() appends the null-terminated string \a s,
+    or does nothing if \a s is null.
+*/
+
+void String::append( const char * s )
+{
+    if ( s )
+        append( s, strlen( s ) );
 }
 
 
