@@ -22,6 +22,7 @@ static String * cssUrl;
 
 static String htmlQuoted( const String & );
 static String address( Message *, HeaderField::Type );
+static String jsToggle( const String &, const String &, const String & );
 
 
 class PageData {
@@ -534,7 +535,6 @@ String Page::message( Message *first, Message *m )
     s.append( address( m, HeaderField::To ) );
     s.append( address( m, HeaderField::Cc ) );
 
-    s.append( "<div class=njsonly id=wholeheader>" );
     List< HeaderField >::Iterator it( m->header()->fields()->first() );
     while ( it ) {
         hf = it;
@@ -545,24 +545,18 @@ String Page::message( Message *first, Message *m )
              hf->type() != HeaderField::Cc )
         {
             if ( hf->type() <= HeaderField::LastAddressField ) {
-                s.append( address( m, hf->type() ) );
+                t.append( address( m, hf->type() ) );
             }
             else {
-                s.append( "<div class=headerfield name=" + hf->name() + ">" );
-                s.append( hf->name() + ": " + hf->value() );
-                s.append( "</div>" );
+                t.append( "<div class=headerfield name=" + hf->name() + ">" );
+                t.append( hf->name() + ": " + hf->value() );
+                t.append( "</div>" );
             }
         }
 
         ++it;
     }
-    s.append( "<div class=jsonly>" );
-    s.append( "<form><input type=submit value=\"Hide headers\" onclick=\"toggleElement('showheader','wholeheader')\"></form>" );
-    s.append( "</div>" );
-    s.append( "</div>" );
-    s.append( "<div class=jsonly id=showheader>" );
-    s.append( "<form><input type=submit value=\"Show headers\" onclick=\"toggleElement('wholeheader','showheader')\"></form>" );
-    s.append( "</div>" );
+    s.append( jsToggle( t, "Show header", "Hide header" ) );
 
     s.append( "</div>" );
 
@@ -671,5 +665,29 @@ static String address( Message *m, HeaderField::Type t )
     }
 
     s.append( "</div>" );
+    return s;
+}
+
+
+static uint el = 0;
+static String jsToggle( const String &t,
+                        const String &show,
+                        const String &hide )
+{
+    String s;
+
+    String a = fn( el++ );
+    String b = fn( el++ );
+
+    s.append( "<div class=njsonly id=" + a + ">" );
+    s.append( t );
+    s.append( "<div class=jsonly>" );
+    s.append( "<form><input type=submit value=\"" + hide + "\" onclick=\"toggleElement('" + b + "', '" + a + "')\"></form>" );
+    s.append( "</div>" );
+    s.append( "</div>" );
+    s.append( "<div class=jsonly id=" + b + ">" );
+    s.append( "<form><input type=submit value=\"" + show + "\" onclick=\"toggleElement('" + a + "', '" + b + "')\"></form>" );
+    s.append( "</div>" );
+
     return s;
 }
