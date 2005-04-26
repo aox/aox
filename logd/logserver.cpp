@@ -92,7 +92,7 @@ void LogServer::react( Event e )
     case Timeout:
         // Timeout never should happen
     case Shutdown:
-        log( 0, Log::Immediate, Log::Debug, "log server shutdown" );
+        log( 0, Log::General, Log::Debug, "log server shutdown" );
         commitAll();
         break;
     case Connect:
@@ -158,7 +158,7 @@ void LogServer::processLine( const String &line )
     if ( c ) {
         commit( transaction, f, s );
     }
-    else if ( s >= logLevel || f == Log::Immediate ) {
+    else if ( s >= logLevel ) {
         if ( s >= Log::Error )
             s = Log::Debug;
         commit( transaction, f, s );
@@ -221,7 +221,7 @@ void LogServer::commitAll()
     if ( !i )
         return;
 
-    output( 0, Log::Immediate, Log::Error,
+    output( 0, Log::General, Log::Error,
             d->name + " unexpectedly died. "
             "All messages in unfinished transactions follow." );
     i = keys.first();
@@ -317,11 +317,9 @@ static Log::Facility facility( const String &l )
     String p = l.lower();
     switch ( p[0] ) {
     case 'i':
-    if ( p == "immediate" )
-        f = Log::Immediate;
-    else if ( p == "imap" )
+        //if ( p == "imap" )
         f = Log::IMAP;
-    break;
+        break;
     case 'c':
         //if ( p == "configuration" )
         f = Log::Configuration;
@@ -339,8 +337,9 @@ static Log::Facility facility( const String &l )
             f = Log::SMTP;
         else if ( p == "server" )
             f = Log::Server;
+        break;
     default:
-        f = Log::Immediate;
+        f = Log::General;
         break;
     }
     return f;

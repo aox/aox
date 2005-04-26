@@ -166,9 +166,6 @@ String Log::facility( Facility f )
     String i;
 
     switch ( f ) {
-    case Immediate:
-        i = "immediate";
-        break;
     case Configuration:
         i = "configuration";
         break;
