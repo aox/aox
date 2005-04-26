@@ -49,6 +49,11 @@
 #define USE_PATENTED_ALGORITHMS
 #define USE_OBSCURE_ALGORITHMS
 #define USE_SLIGHTLY_OBSCURE_ALGORITHMS
+#if defined(ORYX_STRIPPED)
+#undef USE_PATENTED_ALGORITHMS
+#undef USE_OBSCURE_ALGORITHMS
+#undef USE_SLIGHTLY_OBSCURE_ALGORITHMS
+#endif
 #ifdef USE_PATENTED_ALGORITHMS
   #define USE_IDEA
   #define USE_RC5
@@ -76,6 +81,7 @@
   #undef USE_AES
   #undef USE_SHA2
 #endif /* Crays */
+#undef USE_SHA2
 
 /* Devices */
 
@@ -93,6 +99,10 @@
 #define USE_CMS
 #define USE_COMPRESSION
 #define USE_PGP
+#if defined(ORYX_STRIPPED)
+#undef USE_CMS
+#undef USE_PGP
+#endif
 #if defined( USE_PGP ) && !defined( USE_ELGAMAL )
   #define USE_ELGAMAL
 #endif /* OpenPGP requires Elgamal */
@@ -201,28 +211,24 @@
    we don't want in one place rather than trying to conditionally enable
    them */
 
-#if 0	/* Devices */
+#if defined(ORYX_STRIPPED)	/* Devices */
   #undef USE_PKCS11
   #undef USE_FORTEZZA
   #undef USE_CRYPTOAPI
 #endif /* 0 */
-#if 0	/* Heavyweight keysets */
+#if defined(ORYX_STRIPPED)	/* Heavyweight keysets */
   #undef USE_HTTP
   #undef USE_LDAP
   #undef USE_ODBC
   #undef USE_DBMS
 #endif /* 0 */
-#if 0	/* Networking */
-  #undef USE_CERTSTORE
-  #undef USE_TCP
+#if defined(ORYX_STRIPPED)	/* Networking */
   #undef USE_CMP
   #undef USE_RTCS
   #undef USE_OCSP
   #undef USE_SCEP
   #undef USE_SSH1
   #undef USE_SSH2
-  #undef USE_SSL
   #undef USE_TSP
-  #undef USE_SESSIONS
 #endif /* 0 */
 #endif /* _CRYPTINI_DEFINED */
