@@ -1668,12 +1668,12 @@ static int readSocketFunction( STREAM *stream, BYTE *buffer,
 			   uses a valid bytes-received value to indicate an out-of-band 
 			   condition that should be reported via an error code ("There's 
 			   nowt wrong wi' owt what mithen clutterbucks don't barley 
-			   grummit") */
+			   grummit")
 			if( isRestartableError() )
 				{
 				assert( !"Restartable read, recv() indicated no error" );
 				continue;
-				}
+				} */
 
 			/* Once this Winsock bug hits, we've fallen and can't get up any 
 			   more.  WSAGetLastError() reports no error, select() reports 
