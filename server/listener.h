@@ -101,8 +101,8 @@ public:
         }
         else if ( s == "http" ) {
             use = Configuration::toggle( Configuration::UseHttp );
-            address = Configuration::LogAddress;
-            port = Configuration::LogPort;
+            address = Configuration::HttpAddress;
+            port = Configuration::HttpPort;
         }
         else if ( s == "pop3" ) {
             use = Configuration::toggle( Configuration::UsePop );
