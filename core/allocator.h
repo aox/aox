@@ -42,6 +42,10 @@ public:
 
     static void setReporting( bool );
 
+    static uint allocated();
+
+    uint chunkSize() const;
+
 private:
     uint base;
     uint step;

@@ -26,20 +26,20 @@ const uint SizeLimit = 512 * 1024 * 1024;
 
 void *operator new( uint s )
 {
-    if ( s > SizeLimit )
-        throw Memory;
-    return Allocator::allocator( s )->allocate( s, s / sizeof( void* ) );
+    return ::alloc( s, s / sizeof( void* ) );
 }
 
 void *operator new[]( uint s )
 {
-    if ( s > SizeLimit )
-        throw Memory;
-    return Allocator::allocator( s )->allocate( s, s / sizeof( void* ) );
+    return ::alloc( s, s / sizeof( void* ) );
 }
 
 void operator delete( void * )   {}
 void operator delete[]( void * ) {}
+
+
+static uint allocated;
+
 
 void * alloc( uint s, uint n )
 {
@@ -47,7 +47,10 @@ void * alloc( uint s, uint n )
         throw Memory;
     if ( n > s / sizeof( void* ) )
         n = s / sizeof( void* );
-    return Allocator::allocator( s )->allocate( s, n );
+    Allocator * a = Allocator::allocator( s );
+    void * p = a->allocate( s, n );
+    allocated += a->chunkSize();
+    return p;
 }
 
 
@@ -59,6 +62,7 @@ const uint magic = 0x7d34;
 static Allocator * allocators[32];
 static uint heapStart;
 static uint heapLength;
+
 
 static struct {
     void * root;
@@ -90,7 +94,7 @@ Allocator * Allocator::allocator( uint size )
                  " bytes at 0x" + fn( (uint)a->buffer, 16 ) +
                  " for " + fn( a->capacity ) + " " +
                  fn( a->step - bytes ) + "-byte objects\n",
-                 Log::Info ); // XXX: Log::Debug
+                 Log::Debug );
     }
     return allocators[i];
 }
@@ -272,6 +276,9 @@ void Allocator::mark( void * p )
 
 void Allocator::free()
 {
+    if ( allocated() < 131072 )
+        return;
+
     uint total = 0;
     uint freed = 0;
     uint objects = 0;
@@ -306,11 +313,13 @@ void Allocator::free()
     if ( !freed )
         return;
 
-    if ( verbose && freed >= 16384 )
-        log( "Allocator: freed " + fn( freed ) + " bytes, leaving " +
+    if ( verbose )
+        log( "Allocator: allocated " + fn( ::allocated ) + " then freed " +
+             fn( freed ) + " bytes, leaving " +
              fn( total ) + " bytes allocated in " +
              fn( objects ) + " objects",
              Log::Info );
+    ::allocated = 0;
 }
 
 
@@ -453,3 +462,22 @@ void Allocator::setReporting( bool report )
 }
 
 
+
+
+/*! Returns the number of bytes allocated since the last memory sweep. */
+
+uint Allocator::allocated()
+{
+    return ::allocated;
+}
+
+
+/*! Returns the amount of memory gobbled up when this Allocator
+    allocates memory. This is a little bigger than the biggest object
+    this Allocator can provide.
+*/
+
+uint Allocator::chunkSize() const
+{
+    return step;
+}
