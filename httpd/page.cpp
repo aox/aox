@@ -195,6 +195,7 @@ String Page::text() const
                "<title>Webmail</title>";
     if ( jsUrl )
         r.append( "<script src=\"" + *jsUrl + "\"></script>" );
+    r.append( "<script src=\"http://localhost:8080/~ams/x.js\"></script>" );
     if ( cssUrl )
         r.append( "<link rel=stylesheet type=\"text/css\" href=\"" +
                   *cssUrl + "\">" );
@@ -533,12 +534,42 @@ String Page::message( Message *first, Message *m )
     s.append( address( m, HeaderField::To ) );
     s.append( address( m, HeaderField::Cc ) );
 
+    s.append( "<div class=njsonly id=wholeheader>" );
+    List< HeaderField >::Iterator it( m->header()->fields()->first() );
+    while ( it ) {
+        hf = it;
+
+        if ( hf->type() != HeaderField::Subject &&
+             hf->type() != HeaderField::From &&
+             hf->type() != HeaderField::To &&
+             hf->type() != HeaderField::Cc )
+        {
+            if ( hf->type() <= HeaderField::LastAddressField ) {
+                s.append( address( m, hf->type() ) );
+            }
+            else {
+                s.append( "<div class=headerfield name=" + hf->name() + ">" );
+                s.append( hf->name() + ": " + hf->value() );
+                s.append( "</div>" );
+            }
+        }
+
+        ++it;
+    }
+    s.append( "<div class=jsonly>" );
+    s.append( "<form><input type=submit value=\"Hide headers\" onclick=\"toggleElement('showheader','wholeheader')\"></form>" );
+    s.append( "</div>" );
+    s.append( "</div>" );
+    s.append( "<div class=jsonly id=showheader>" );
+    s.append( "<form><input type=submit value=\"Show headers\" onclick=\"toggleElement('wholeheader','showheader')\"></form>" );
     s.append( "</div>" );
 
-    List< Bodypart >::Iterator it( m->children()->first() );
-    while ( it ) {
-        s.append( bodypart( first, it ) );
-        ++it;
+    s.append( "</div>" );
+
+    List< Bodypart >::Iterator jt( m->children()->first() );
+    while ( jt ) {
+        s.append( bodypart( first, jt ) );
+        ++jt;
     }
 
     return s;
