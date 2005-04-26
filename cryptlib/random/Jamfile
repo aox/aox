@@ -1,0 +1,3 @@
+SubDir TOP cryptlib random ;
+
+Build cryptlib : random.c unix.c ;

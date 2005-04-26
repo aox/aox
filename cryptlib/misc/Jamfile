@@ -1,5 +1,4 @@
 SubDir TOP cryptlib misc ;
 
-Build cryptlib : asn1_rw.c asn1s_rw.c key_rw.c keyex.c keyex_rw.c
-	misc_rw.c net_cmp.c net_http.c net_tcp.c rndunix.c sign.c
-	sign_rw.c str_file.c str_mem.c str_net.c stream.c ;
+Build cryptlib : asn1_chk.c asn1_ext.c asn1_rd.c asn1_wr.c base64.c misc_rw.c
+    os_spec.c ;

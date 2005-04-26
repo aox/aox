@@ -21,18 +21,21 @@ if $(ORYX_STRIPPED) {
 # include all the subdirectories
 SubInclude TOP cryptlib bn ;
 SubInclude TOP cryptlib cert ;
+SubInclude TOP cryptlib context ;
 SubInclude TOP cryptlib crypt ;
 SubInclude TOP cryptlib device ;
 SubInclude TOP cryptlib envelope ;
+SubInclude TOP cryptlib io ;
+SubInclude TOP cryptlib kernel ;
 SubInclude TOP cryptlib keyset ;
-SubInclude TOP cryptlib libs ;
+SubInclude TOP cryptlib mechs ;
 SubInclude TOP cryptlib misc ;
+SubInclude TOP cryptlib random ;
 SubInclude TOP cryptlib session ;
 SubInclude TOP cryptlib zlib ;
 
-Build cryptlib : cryptapi.c cryptcfg.c cryptcrt.c cryptctx.c cryptdbx.c
-    cryptdev.c cryptenv.c cryptkey.c cryptkrn.c cryptlib.c cryptmch.c
-    cryptmis.c cryptses.c cryptusr.c ;
+Build cryptlib : cryptapi.c cryptcfg.c cryptcrt.c cryptctx.c cryptdev.c
+    cryptenv.c cryptkey.c cryptlib.c cryptmis.c cryptses.c cryptusr.c ;
 
 # work around brokenness by including test last, with an extra define
 DEFINES += strnicmp=strncasecmp ;

@@ -1,0 +1,4 @@
+SubDir TOP cryptlib kernel ;
+
+Build cryptlib : attr_acl.c certm_acl.c init.c int_msg.c key_acl.c mech_acl.c
+    msg_acl.c obj_acc.c objects.c sec_mem.c semaphore.c sendmsg.c ;

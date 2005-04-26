@@ -1,0 +1,4 @@
+SubDir TOP cryptlib mechs ;
+
+Build cryptlib : keyex.c keyex_rw.c mech_drv.c mech_enc.c mech_sig.c mech_wrp.c
+    obj_qry.c sign.c sign_rw.c ;

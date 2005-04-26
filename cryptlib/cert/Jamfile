@@ -1,6 +1,6 @@
 SubDir TOP cryptlib cert ;
 
-Build cryptlib : certcget.c certchk.c certchn.c certcset.c certdn.c
-	certechk.c certedef.c certexrd.c certext.c certexwr.c certio.c
-	certrd.c certrev.c certrust.c certsig.c certstr.c certval.c
-	certwr.c ;
+Build cryptlib : certrev.c certsign.c certval.c chain.c chk_cert.c chk_chn.c
+    chk_use.c comp_get.c comp_set.c dn.c dnstring.c ext_add.c ext.c ext_chk.c
+    ext_copy.c ext_def.c ext_rd.c ext_wr.c imp_exp.c read.c trustmgr.c write.c
+    ;
