@@ -276,9 +276,6 @@ void Allocator::mark( void * p )
 
 void Allocator::free()
 {
-    if ( allocated() < 131072 )
-        return;
-
     uint total = 0;
     uint freed = 0;
     uint objects = 0;
