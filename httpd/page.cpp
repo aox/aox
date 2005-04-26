@@ -270,8 +270,8 @@ void Page::loginForm()
         "<td><input type=text name=login value=\"" +
         htmlQuoted( login ) + "\"></td></tr>"
         "<tr><td><Password:</td>"
-        "<td><input type=password name=passwd value=\"\"><</td></tr>"
-        "<tr><input type=submit value=Login></tr>"
+        "<td><input type=password name=passwd value=\"\"></td></tr>"
+        "<tr><td></td><td><input type=submit value=Login></td></tr>"
         "</table>"
         "</div>"
         "</form>";
