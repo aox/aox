@@ -20,6 +20,8 @@
 static String * jsUrl;
 static String * cssUrl;
 
+static String address( Message *, HeaderField::Type );
+
 
 static String htmlQuoted( const String & s )
 {
@@ -53,12 +55,13 @@ static String htmlQuoted( const String & s )
 class PageData {
 public:
     PageData()
-        : type( Page::Error ),
+        : type( Page::Error ), state( 0 ),
           link( 0 ), server( 0 ), ready( false ),
           user( 0 ), message( 0 )
     {}
 
     Page::Type type;
+    uint state;
 
     Link *link;
     String text;
@@ -193,7 +196,6 @@ String Page::text() const
         else
             Allocator::addEternal( jsUrl, "the JS page webmail uses" );
     }
-
 
     String r = "<!doctype html public \"-//W3C//DTD HTML 4.01//EN\">\n"
                "<html>"
@@ -363,8 +365,46 @@ void Page::mainPage()
 
 void Page::mailboxPage()
 {
+    if ( d->state == 0 ) {
+        MessageSet ms;
+        Mailbox *m = d->link->mailbox();
+        ms.add( 1, m->uidnext()-1 );
+        m->fetchFlags( ms, this );
+        m->fetchHeaders( ms, this );
+        d->message = m->message( ms.largest() );
+        d->state = 1;
+    }
+
+    if ( !d->message->hasFlags() || !d->message->hasHeaders() )
+        return;
+
+    String s;
+    uint uid = 1;
+    while ( uid < d->message->uid() ) {
+        Message *m = d->link->mailbox()->message( uid );
+        if ( m && !m->header()->fields()->isEmpty() ) {
+            s.append( "<div class=messagesummary><div class=header>" );
+
+            HeaderField *hf = m->header()->field( HeaderField::Subject );
+            if ( hf ) {
+                s.append( "<div class=headerfield name=subject>Subject: " );
+                s.append( "<a href=\"" + d->link->string() + "/" +
+                          fn( uid ) + "\">" );
+                s.append( hf->value() );
+                s.append( "</a></div>" );
+            }
+            s.append( address( m, HeaderField::From ) );
+            s.append( address( m, HeaderField::To ) );
+            s.append( address( m, HeaderField::Cc ) );
+
+            s.append( "</div></div>" );
+
+        }
+        uid++;
+    }
+
     d->ready = true;
-    d->text = "<p>La la la.";
+    d->text = s;
 }
 
 
@@ -476,8 +516,11 @@ String Page::message( Message *m )
         Bodypart *bp = it;
         ++it;
 
+        String type = "text/plain";
         ContentType *ct = bp->header()->contentType();
-        String type = ct->type() + "/" + ct->subtype();
+        if ( ct )
+            type = ct->type() + "/" + ct->subtype();
+
         if ( type == "text/plain" ) {
             s.append( "<div class=body>" );
             s.append( htmlQuoted( u.fromUnicode( bp->text() ) ) );
