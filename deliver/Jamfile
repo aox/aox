@@ -5,5 +5,5 @@ SubInclude TOP db ;
 
 Build deliver : deliver.cpp ;
 
-Program deliver : deliver database message server mailbox core encodings ;
+Program deliver : deliver database message server mailbox core encodings user ;
 LINKLIBS on deliver = -lcrypt ;
