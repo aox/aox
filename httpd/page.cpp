@@ -409,7 +409,7 @@ void Page::messagePage()
         return;
 
     d->ready = true;
-    d->text = message( d->message );
+    d->text = message( d->message, d->message );
 }
 
 
@@ -422,7 +422,7 @@ void Page::archivePage()
         return;
 
     d->ready = true;
-    d->text = message( d->message );
+    d->text = message( d->message, d->message );
 }
 
 
@@ -453,13 +453,72 @@ bool Page::messageReady()
 }
 
 
-/*! Returns an HTML representation of the Message \a m.
+/*! Returns an HTML representation of the Bodypart \a bp, which belongs
+    to the Message \a first.
 */
 
-String Page::message( Message *m )
+String Page::bodypart( Message *first, Bodypart *bp )
+{
+    String s;
+    Utf8Codec u;
+
+    String type = "text/plain";
+    ContentType *ct = bp->header()->contentType();
+    if ( ct )
+        type = ct->type() + "/" + ct->subtype();
+
+    if ( type == "text/plain" ) {
+        s.append( "<div class=body>" );
+        s.append( htmlQuoted( u.fromUnicode( bp->text() ) ) );
+        s.append( "</div>" );
+    }
+    else if ( type == "text/html" ) {
+        s.append( "<div class=body>" );
+        s.append( u.fromUnicode( bp->text() ) );
+        s.append( "</div>" );
+    }
+    else if ( type == "message/rfc822" ) {
+        s.append( "<div class=body>" );
+        s.append( message( first, bp->rfc822() ) );
+        s.append( "</div>" );
+    }
+    else if ( type.startsWith( "image/" ) ) {
+        s.append( "<div class=image>" );
+        s.append( "<a href=\"" + d->link->string() + "/" +
+                  first->partNumber( bp ) + "\">" );
+        s.append( "<img src=\"" + d->link->string() + "/" +
+                  first->partNumber( bp ) + "\">" );
+        s.append( "</a></div>" );
+    }
+    else if ( type.startsWith( "multipart/" ) ) {
+        s.append( "<div class=multipart>" );
+        List< Bodypart >::Iterator it( bp->children()->first() );
+        while ( it ) {
+            s.append( bodypart( first, it ) );
+            ++it;
+        }
+        s.append( "</div>" );
+    }
+    else {
+        s.append( "<div class=unknown>" );
+        s.append( "<a href=\"" + d->link->string() + "/" +
+                  first->partNumber( bp ) + "\">" );
+        s.append( "Bodypart of type " + type );
+        s.append( "</a></div>" );
+    }
+
+    s.append( "</div>" );
+    return s;
+}
+
+
+/*! Returns an HTML representation of the Message \a m, which belongs to
+    the Message \a first.
+*/
+
+String Page::message( Message *first, Message *m )
 {
     String s, t;
-    Utf8Codec u;
     HeaderField *hf;
 
     s.append( "<div class=message><div class=header>" );
@@ -478,36 +537,8 @@ String Page::message( Message *m )
 
     List< Bodypart >::Iterator it( m->children()->first() );
     while ( it ) {
-        Bodypart *bp = it;
+        s.append( bodypart( first, it ) );
         ++it;
-
-        String type = "text/plain";
-        ContentType *ct = bp->header()->contentType();
-        if ( ct )
-            type = ct->type() + "/" + ct->subtype();
-
-        if ( type == "text/plain" ) {
-            s.append( "<div class=body>" );
-            s.append( htmlQuoted( u.fromUnicode( bp->text() ) ) );
-            s.append( "</div>" );
-        }
-        else if ( type == "text/html" ) {
-            s.append( "<div class=body>" );
-            s.append( u.fromUnicode( bp->text() ) );
-            s.append( "</div>" );
-        }
-        else if ( type == "message/rfc822" ) {
-            s.append( "<div class=body>" );
-            s.append( message( bp->rfc822() ) );
-            s.append( "</div>" );
-        }
-        else {
-            s.append( "<div class=unknown>" );
-            s.append( "Cannot render bodypart of type " + type );
-            s.append( "</div>" );
-        }
-
-        s.append( "</div>" );
     }
 
     return s;

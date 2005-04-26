@@ -6,6 +6,9 @@
 #include "event.h"
 #include "string.h"
 
+class Bodypart;
+class Message;
+
 
 class Page
     : public EventHandler
@@ -34,7 +37,8 @@ private:
     bool messageReady();
     void webmailPartPage();
     void archivePartPage();
-    String message( class Message * );
+    String bodypart( Message *, Bodypart * );
+    String message( Message *, Message * );
 
 private:
     class PageData * d;
