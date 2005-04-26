@@ -128,6 +128,7 @@ void ACL::execute()
     if ( !d->q ) {
         // The user and superuser always have all rights.
         if ( d->user->id() == d->mailbox->owner() ||
+             d->user->inbox()->id() == d->mailbox->id() ||
              0 /* d->user->isRoot() */ )
         {
             d->allowed = true;
