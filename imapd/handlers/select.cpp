@@ -11,13 +11,15 @@
 #include "query.h"
 #include "flag.h"
 #include "user.h"
+#include "acl.h"
 
 
 class SelectData {
 public:
     SelectData()
         : mailbox( 0 ), session( 0 ), setup( 0 ),
-          t( 0 ), recent( 0 ), messages( 0 )
+          t( 0 ), recent( 0 ), messages( 0 ),
+          acl( 0 )
     {}
 
     String name;
@@ -29,6 +31,7 @@ public:
     Transaction * t;
     Query * recent;
     Query * messages;
+    ACL *acl;
 };
 
 
@@ -69,17 +72,25 @@ void Select::execute()
         else if ( d->mailbox->deleted() )
             error( No, d->name + " is deleted" );
 
-        Mailbox * home = imap()->user()->home();
-        if ( home && d->mailbox && home != d->mailbox &&
-             !d->mailbox->name().startsWith( home->name() + "/" ) )
-            error( No, "No access (is outside " + home->name() + ")" );
-
         if ( !ok() ) {
             finish();
             return;
         }
     }
 
+    if ( !d->acl ) {
+        d->acl = new ACL( d->mailbox );
+        d->acl->refresh( this );
+    }
+    if ( d->acl && !d->setup ) {
+        if ( !d->acl->ready() )
+            return;
+        if ( !d->acl->allowed( imap()->user(), ACL::Read ) ) {
+            error( No, d->name + " is not accessible" );
+            finish();
+            return;
+        }
+    }
 
     if ( !d->setup ) {
         // this should expunge, shouldn't it? how? think later

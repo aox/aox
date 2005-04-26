@@ -1,9 +1,10 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 #ifndef ACL_H
 #define ACL_H
 
 
-class ACL
-{
+class ACL {
 public:
     ACL( class Mailbox * );
 
@@ -29,5 +30,6 @@ public:
 private:
     class ACLData * d;
 };
+
 
 #endif

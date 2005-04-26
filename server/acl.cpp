@@ -77,7 +77,7 @@ ACL::ACL( Mailbox * mailbox )
 
 bool ACL::ready()
 {
-    return false;
+    return true;
 }
 
 
