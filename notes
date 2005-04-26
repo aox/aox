@@ -16,18 +16,6 @@ We should not duplicate the contents of address_fields in header_fields.
 AddressCache and FieldNameCache are utter crocks, and must die.
 
 
-Header::appendField doesn't wrap
-
-  Some tests (e.g. o/20) contain very long header fields as a
-  result. That warrants fixing at some point.
-
-
-We must optimise Row composition.
-
-  Row creation should tolerable now that the new String is
-  there. Faster allocation won't hurt, of course.
-
-
 tls client support (smtp, postgresql)
 
 
