@@ -26,16 +26,8 @@ int main( int argc, char * argv[] )
 
     s.setup( Server::Report );
 
-    if ( Configuration::toggle( Configuration::UseSmtp ) )
-        Listener< SMTP >::create( "SMTP",
-                                  Configuration::SmtpAddress,
-                                  Configuration::SmtpPort );
-
-    if ( Configuration::toggle( Configuration::UseLmtp ) )
-        Listener< LMTP >::create( "LMTP",
-                                  Configuration::LmtpAddress,
-                                  Configuration::LmtpPort );
-
+    Listener< SMTP >::create( "SMTP" );
+    Listener< LMTP >::create( "LMTP" );
     Database::setup();
 
     s.setup( Server::Finish );

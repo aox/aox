@@ -24,14 +24,11 @@ int main( int argc, char *argv[] )
 
     Server s( "imapd", argc, argv );
     s.setup( Server::Report );
-    Listener< IMAP >::create( "IMAP",
-                              Configuration::ImapAddress,
-                              Configuration::ImapPort );
-    if ( Configuration::toggle( Configuration::UseImaps ) )
-        Listener< IMAPS >::create( "IMAPS",
-                                   Configuration::ImapsAddress,
-                                   Configuration::ImapsPort );
+
+    Listener< IMAP >::create( "IMAP" );
+    Listener< IMAP >::create( "IMAPS" );
     Database::setup();
+
     s.setup( Server::Finish );
 
     TlsServer::setup();

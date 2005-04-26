@@ -30,9 +30,7 @@ int main( int argc, char * argv[] )
     LogServer::setLogLevel( logLevel );
 
     s.setup( Server::Report );
-    Listener< LogServer >::create( "log",
-                                   Configuration::LogAddress,
-                                   Configuration::LogPort );
+    Listener< LogServer >::create( "log" );
     s.setup( Server::Finish );
 
     signal( SIGHUP, LogServer::reopen );

@@ -48,12 +48,12 @@ int main( int argc, char *argv[] )
     cryptAddRandom( NULL, CRYPT_RANDOM_SLOWPOLL );
     setupKey();
 
-    Listener< TlsProxy >::create( "tlsproxy",
-                                  Configuration::TlsProxyAddress,
-                                  Configuration::TlsProxyPort );
+    Listener< TlsProxy >::create( "tlsproxy" );
+
     // Is the following enough to avoid zombies, or should the handler
     // call waitpid? Ignoring the signal doesn't seem to work in gdb.
     ::signal( SIGCHLD, SIG_IGN );
+
     s.execute();
 }
 

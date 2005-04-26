@@ -23,14 +23,9 @@ int main( int argc, char * argv[] )
     Scope global;
 
     Server s( "httpd", argc, argv );
-
     s.setup( Server::Report );
 
-    if ( Configuration::toggle( Configuration::UseHttp ) )
-        Listener< HTTP >::create( "HTTP",
-                                  Configuration::HttpAddress,
-                                  Configuration::HttpPort );
-
+    Listener< HTTP >::create( "HTTP" );
     Database::setup();
 
     s.setup( Server::Finish );
