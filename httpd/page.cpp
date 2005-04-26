@@ -104,6 +104,10 @@ Page::Page( Link * link, HTTP *server )
         d->type = WebmailPart;
         break;
 
+    case Link::ArchiveMailbox:
+        d->type = ArchiveMailbox;
+        break;
+
     case Link::ArchiveMessage:
         d->type = ArchiveMessage;
         break;
@@ -147,8 +151,12 @@ void Page::execute()
         webmailPartPage();
         break;
 
-    case ArchiveMessage:
+    case ArchiveMailbox:
         archivePage();
+        break;
+
+    case ArchiveMessage:
+        archiveMessagePage();
         break;
 
     case ArchivePart:
@@ -415,10 +423,19 @@ void Page::messagePage()
 }
 
 
-/*! Prepares to display a single archive message.
+/*! Prepares to display an archive mailbox.
 */
 
 void Page::archivePage()
+{
+    mailboxPage();
+}
+
+
+/*! Prepares to display a single archive message.
+*/
+
+void Page::archiveMessagePage()
 {
     if ( !messageReady() )
         return;

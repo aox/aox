@@ -120,14 +120,18 @@ void Link::parse( const String & s )
     else if ( *it == "archive" ) {
         d->type = ArchiveMailbox;
         parseMailbox( ++it );
-        parseUid( ++it );
-        parsePart( ++it );
+        if ( it )
+            parseUid( ++it );
+        if ( it )
+            parsePart( ++it );
     }
     else {
         d->type = WebmailMailbox;
         parseMailbox( it );
-        parseUid( ++it );
-        parsePart( ++it );
+        if ( it )
+            parseUid( ++it );
+        if ( it )
+            parsePart( ++it );
     }
 }
 
