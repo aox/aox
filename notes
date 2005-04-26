@@ -7,9 +7,6 @@ ocd needs work (mike@waspfactory.org)
   2. Should synchronise field names etc.
 
 
-tlsproxy doesn't handle eof (or errors) well
-
-
 We should not duplicate the contents of address_fields in header_fields.
 
   The Injector should avoid inserting address fields into header_fields,
