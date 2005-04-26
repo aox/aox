@@ -122,18 +122,26 @@ public:
             return;
 
         if ( a.isEmpty() ) {
-            Listener<T> * six = new Listener<T>( Endpoint( "::", p ), svc );
-            if ( six->state() == Listening )
-                l = six;
-            else
-                delete six;
+            bool use6 = Configuration::toggle( Configuration::UseIPv6 );
+            bool use4 = Configuration::toggle( Configuration::UseIPv4 );
 
-            Listener<T> * four
-                = new Listener<T>( Endpoint( "0.0.0.0", p ), svc );
-            if ( four->state() == Listening )
-                l = four;
-            else
-                delete four;
+            if ( use6 ) {
+                Listener< T > *six =
+                    new Listener< T >( Endpoint( "::", p ), svc );
+                if ( six->state() == Listening )
+                    l = six;
+                else
+                    delete six;
+            }
+
+            if ( use4 ) {
+                Listener< T > *four =
+                    new Listener< T >( Endpoint( "0.0.0.0", p ), svc );
+                if ( four->state() == Listening )
+                    l = four;
+                else
+                    delete four;
+            }
 
             if ( !l )
                 ::log( "Cannot listen for " + svc + " on port " + fn( p ) +
@@ -142,7 +150,7 @@ public:
         }
         else {
             Endpoint e( address, port );
-            l = new Listener<T>( e, svc );
+            l = new Listener< T >( e, svc );
             if ( !e.valid() || l->state() != Listening )
                 ::log( "Cannot listen for " + svc + " on " + e.address(),
                        Log::Disaster );
