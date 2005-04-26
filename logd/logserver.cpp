@@ -315,20 +315,34 @@ static Log::Facility facility( const String &l )
     Log::Facility f = Log::General;
 
     String p = l.lower();
+    switch ( p[0] ) {
+    case 'i':
     if ( p == "immediate" )
         f = Log::Immediate;
-    else if ( p == "configuration" )
-        f = Log::Configuration;
-    else if ( p == "database" )
-        f = Log::Database;
-    else if ( p == "authentication" )
-        f = Log::Authentication;
     else if ( p == "imap" )
         f = Log::IMAP;
-    else if ( p == "smtp" )
-        f = Log::SMTP;
-    else if ( p == "server" )
-        f = Log::Server;
+    break;
+    case 'c':
+        //if ( p == "configuration" )
+        f = Log::Configuration;
+        break;
+    case 'd':
+        //if ( p == "database" )
+        f = Log::Database;
+        break;
+    case 'a':
+        //if ( p == "authentication" )
+        f = Log::Authentication;
+        break;
+    case 's':
+        if ( p == "smtp" )
+            f = Log::SMTP;
+        else if ( p == "server" )
+            f = Log::Server;
+    default:
+        f = Log::Immediate;
+        break;
+    }
     return f;
 }
 
@@ -336,15 +350,23 @@ static Log::Severity severity( const String &l )
 {
     Log::Severity s = Log::Info;
 
-    String p = l.lower();
-    if ( p == "debug" )
+    switch ( l[1] ) {
+    case 'e':
+    case 'E':
         s = Log::Debug;
-    else if ( p == "info" )
+        break;
+    case 'n':
+    case 'N':
         s = Log::Info;
-    else if ( p == "error" )
+        break;
+    case 'r':
+    case 'R':
         s = Log::Error;
-    else if ( p == "disaster" )
+        break;
+    case 'i':
         s = Log::Disaster;
+        break;
+    }
     return s;
 }
 
