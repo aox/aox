@@ -87,6 +87,8 @@ public:
 
     enum Toggle {
         Security,
+        UseIPv4,
+        UseIPv6,
         UseTls,
         UseSmtp,
         UseLmtp,
