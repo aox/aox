@@ -39,6 +39,14 @@ TLS. An IMAP/POP/SMTP/HTTP client may refuse a server certificate for
 "localhost" if it already has a different certificate for
 "localhost". We strongly suggest using a different
 .IR hostname .
+.IP use-ipv4
+decides whether the various servers accept IPv4 connections.
+.I true
+by default.
+.IP use-ipv6
+decides whether the various servers accept IPv6 connections.
+.I true
+by default.
 .SS "Database Access"
 .IP db
 The type of database. The default,
