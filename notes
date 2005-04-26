@@ -320,7 +320,9 @@ User/Mailbox/access control
 
 tcpdump to imap script
 
-  What's the easiest way to generate a script from a tcpdump savefile?
+  What's the easiest way to generate a script from a tcpdump savefile? 
+  Likely Answer: Write a man-in-the-middle recorder, and have the
+  client connect to the relay, not the real server.
 
 
 C/R
@@ -337,11 +339,36 @@ C/R
   - messages likely, but not certain to be out-of-office-autoreply
 
   The questions are: How can we ensure that we almost never challenge
-  real mail, while simultaneously challenging most/all junk? How can
-  we provide suitable configuration?
+  real mail, while simultaneously challenging most/all messages that
+  don't come from valid senders? How can we provide suitable
+  configuration?
 
 
 LogClient::reconnect should die, or at least suck less.
 
+
+New configuration variables: use-<protocol>
+
+  What we now have is almost a rule. Bad. So we need to regularise it.
+
+  1. The existing use-* variables should all be tested by Listener,
+     not by its callers.
+  2. We should have use-* for each protocol used.
+  3. Server needs a new setup step, where it checks that there is at
+     least one functioning Listener, and exits with a sensible message
+     if not.
+  4. use-ipv4 and use-ipv6, both probably true by default. (Or 
+     perhaps use-ipv6 should be false by default, and the servers
+     should warn if they're supposed to answer on IPv6 and cannot.)
+
+  This would permit simple startup, since rcmailstore could just run
+  the servers, and those not desired would exit.
+
+
+Memory use.
+
+  At present, logd uses quite a lot of memory, and almost all of it is
+  unnecessary. Setting a breakpoint in alloc() and looking to see who
+  calls it should yield results in a hurry.
 
 
