@@ -842,11 +842,13 @@ String String::eURI() const
 
 String String::deURI() const
 {
+    uint l = length();
+
     String s;
-    s.reserve( d->len );
+    s.reserve( l );
 
     uint p = 0;
-    while ( p < d->len ) {
+    while ( p < l ) {
         char c = d->str[p];
         if ( c == '%' ) {
             bool ok;
