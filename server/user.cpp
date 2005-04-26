@@ -366,6 +366,14 @@ void User::createHelper()
         q2->bind( 3, d->login );
         q2->bind( 4, d->secret );
         d->t->enqueue( q2 );
+
+        Query *q3 =
+            new Query( "update mailboxes set "
+                       "owner=(select currval('users_id_seq')::int) "
+                       "where name=$1", this );
+        q3->bind( 1, m );
+        d->t->enqueue( q3 );
+
         d->t->commit();
     }
 
