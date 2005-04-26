@@ -257,6 +257,11 @@ is normally disabled,
 .I smtp-port
 is unused.)
 .SS IMAP
+.IP use-imap
+must be enabled for
+.BR imapd (8)
+to accept IMAP connections. The default is
+.I true .
 .IP imap-address
 is the address where the IMAP server listens for new connections. The
 default, an empty string, means to listen on all available IPv4 and
@@ -268,7 +273,7 @@ by default.
 .IP use-imaps
 is enabled if the IMAP server should also accept SSL-wrapped
 connections. The default is
-.I no .
+.I false .
 .IP imaps-address
 is the address where the IMAP server listens for new SSL-wrapped
 connections. As for
@@ -288,6 +293,11 @@ In version 1.0, the default will change to
 .IR disabled ,
 since these drafts can change without notice and 1.0 cannot.
 .SS POP
+.IP use-pop
+must be enabled for
+.BR pop3d (8)
+to accept POP3 connections. The default is
+.I false .
 .IP pop-address
 is the address where the POP server listens for new connections. The
 default, an empty string, means to listen on all available IPv4 and
