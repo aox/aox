@@ -80,9 +80,8 @@
 */
 
 
-/*! \fn Iterator &List::insert( const Iterator &i, T *d )
-    Inserts \a d before the element pointed to by \a i, and returns an
-    Iterator that points to the newly-inserted element.
+/*! \fn void List::insert( const Iterator &i, T *d )
+    Inserts \a d before the element pointed to by \a i.
 */
 
 

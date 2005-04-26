@@ -85,17 +85,19 @@ void MessageSet::add( uint n1, uint n2 )
     i = d->l.first();
     while ( i && i->start < n1 )
         ++i;
-    i = d->l.insert( i, new SetData::Range( n1, n2-n1+1 ) );
+    d->l.insert( i, new SetData::Range( n1, n2-n1+1 ) );
+    if ( i )
+        --i;
+    else
+        i = d->l.last();
 
     // step back once and merge twice, in order to merge the newly
     // inserted range with both of its neighbours.
     uint left = 2;
-    if ( i == d->l.first() ) {
+    if ( i == d->l.first() )
         left--;
-    }
-    else {
+    else
         --i;
-    }
     while ( left && i ) {
         List< SetData::Range >::Iterator j = i;
         ++j;

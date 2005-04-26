@@ -147,7 +147,7 @@ public:
     }
 
 
-    Iterator &insert( const Iterator &i, T *d )
+    void insert( const Iterator &i, T *d )
     {
         Node *n = new Node( d );
         Node *cur = i.node();
@@ -171,8 +171,6 @@ public:
             cur->prev->next = n;
             cur->prev = n;
         }
-
-        return Iterator::newRef( n );
     }
 
     void append( T *d )
@@ -222,13 +220,13 @@ class SortedList
 public:
     typedef typename List< T >::Iterator Iterator;
 
-    Iterator &insert( T *d )
+    void insert( T *d )
     {
         Iterator it( List< T >::first() );
         while ( it && *it <= *d )
             ++it;
 
-        return List< T >::insert( it, d );
+        List< T >::insert( it, d );
     }
 };
 
