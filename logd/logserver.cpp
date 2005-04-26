@@ -155,12 +155,17 @@ void LogServer::processLine( const String &line )
     Log::Facility f = facility( priority.mid( 0, n ) );
     Log::Severity s = severity( priority.mid( n+1 ) );
 
-    if ( !c )
-        log( transaction, f, s, parameters );
-    if ( c || s >= logLevel ) {
+    if ( c ) {
+        commit( transaction, f, s );
+    }
+    else if ( s >= logLevel || f == Log::Immediate ) {
         if ( s >= Log::Error )
             s = Log::Debug;
         commit( transaction, f, s );
+        output( transaction, f, s, parameters );
+    }
+    else {
+        log( transaction, f, s, parameters );
     }
 }
 
@@ -173,11 +178,6 @@ void LogServer::processLine( const String &line )
 void LogServer::log( String t, Log::Facility f, Log::Severity s,
                      const String &line )
 {
-    if ( f == Log::Immediate ) {
-        output( t, f, s, line );
-        return;
-    }
-
     LogServerData::Queue * q = d->pending.find( t );
     if ( !q ) {
         q = new LogServerData::Queue;
@@ -190,8 +190,6 @@ void LogServer::log( String t, Log::Facility f, Log::Severity s,
 /*! Commits all log lines of \a severity or higher from transaction \a
     tag to the log file, and discards lines of lower severity. It does
     nothing with the \a facility yet.
-
-    If \a tag is 0, everything is logged. Absolutely everything.
 */
 
 void LogServer::commit( String tag,
@@ -200,7 +198,7 @@ void LogServer::commit( String tag,
     LogServerData::Queue * q = d->pending.find( tag );
     if ( !q || q->isEmpty() )
         return;
-    
+
     List< LogServerData::Line >::Iterator i( q->first() );
     while ( i ) {
         if ( i->severity >= severity )
@@ -223,9 +221,9 @@ void LogServer::commitAll()
     if ( !i )
         return;
 
-    log( 0, Log::Immediate, Log::Error,
-         d->name + " unexpectedly died. "
-         "All messages in unfinished transactions follow." );
+    output( 0, Log::Immediate, Log::Error,
+            d->name + " unexpectedly died. "
+            "All messages in unfinished transactions follow." );
     i = keys.first();
     while ( i ) {
         commit( *i, Log::General, Log::Debug );
@@ -243,12 +241,18 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
                         const String &line )
 {
     String msg;
+    msg.reserve( line.length() );
 
-    msg.append( Log::facility( f ) + "/" + Log::severity( s ) );
+    msg.append( Log::facility( f ) );
+    msg.append( "/" );
+    msg.append( Log::severity( s ) );
     msg.append( ": " );
-    msg.append( fn( d->id, 36 ) + "/" + tag );
+    msg.append( fn( d->id, 36 ) );
+    msg.append( "/" );
+    msg.append( tag );
     msg.append( ": " );
-    msg.append( line + "\n" );
+    msg.append( line );
+    msg.append( "\n" );
 
     if ( logFile )
         logFile->write( msg );
