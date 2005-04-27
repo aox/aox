@@ -28,7 +28,6 @@ class IdHelper;
 static PreparedStatement *lockUidnext;
 static PreparedStatement *incrUidnext;
 static PreparedStatement *idBodypart;
-static PreparedStatement *fixBodypart;
 static PreparedStatement *intoBodyparts;
 static PreparedStatement *intoMessages;
 static PreparedStatement *intoRecent;
@@ -153,16 +152,10 @@ void Injector::setup()
         );
     Allocator::addEternal( idBodypart, "idBodypart" );
 
-    fixBodypart =
-        new PreparedStatement(
-            "update bodyparts set lines=$2 where hash=$1"
-        );
-    Allocator::addEternal( fixBodypart, "fixBodypart" );
-
     intoBodyparts =
         new PreparedStatement(
-            "insert into bodyparts (hash,bytes,lines,text,data) "
-            "values ($1,$2,42,$3,$4)"
+            "insert into bodyparts (hash,bytes,text,data) "
+            "values ($1,$2,$3,$4)"
         );
     Allocator::addEternal( intoBodyparts, "intoBodyparts" );
 
@@ -522,7 +515,7 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
 
 void Injector::insertBodyparts()
 {
-    Query *i, *u, *s;
+    Query *i, *s;
     Codec *c = new Utf8Codec;
     d->bodypartIds = new List< uint >;
     List< Query > *queries = new List< Query >;
@@ -559,10 +552,6 @@ void Injector::insertBodyparts()
         i = new Query( *intoBodyparts, d->bidHelper );
         i->bind( 1, hash );
         i->bind( 2, b->numBytes() );
-        // XXX: The next bit is wrong. Because of it, a text and a
-        // non-text bodypart that have the same hash are stored
-        // together, but this code stores text and non-text
-        // differently.
         if ( text ) {
             i->bind( 3, c->fromUnicode( b->text() ), Query::Binary );
             i->bindNull( 4 );
@@ -573,16 +562,6 @@ void Injector::insertBodyparts()
         }
         i->allowFailure();
         queries->append( i );
-
-        // Even if the insert fails, we may have to fix up the number of
-        // lines in the table if a text bodypart is being shared with a
-        // binary entry.
-        if ( text ) {
-            u = new Query( *fixBodypart, d->bidHelper );
-            u->bind( 1, hash );
-            u->bind( 2, b->numBytes() );
-            queries->append( u );
-        }
 
         s = new Query( *idBodypart, d->bidHelper );
         s->bind( 1, hash );
