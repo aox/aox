@@ -571,6 +571,7 @@ void Injector::insertBodyparts()
             i->bindNull( 3 );
             i->bind( 4, b->data(), Query::Binary );
         }
+        i->allowFailure();
         queries->append( i );
 
         // Even if the insert fails, we may have to fix up the number of
