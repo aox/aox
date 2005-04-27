@@ -19,7 +19,7 @@ public:
     SelectData()
         : mailbox( 0 ), session( 0 ), setup( 0 ),
           t( 0 ), recent( 0 ), messages( 0 ),
-          acl( 0 )
+          permissions( 0 )
     {}
 
     String name;
@@ -31,7 +31,7 @@ public:
     Transaction * t;
     Query * recent;
     Query * messages;
-    Permissions *acl;
+    Permissions *permissions;
 };
 
 
@@ -78,18 +78,21 @@ void Select::execute()
         }
     }
 
-    if ( !d->acl ) {
-        d->acl = new Permissions( d->mailbox );
-        d->acl->verify( imap()->user(), Permissions::Read, this );
+    if ( !d->permissions ) {
+        d->permissions = new Permissions( d->mailbox, imap()->user(),
+                                          this );
     }
-    if ( d->acl && !d->setup ) {
-        if ( !d->acl->ready() )
+    if ( d->permissions && !d->setup ) {
+        if ( !d->permissions->ready() )
             return;
-        if ( !d->acl->allowed() ) {
+        if ( !d->permissions->allowed( Permissions::Read ) ) {
             error( No, d->name + " is not accessible" );
             finish();
             return;
         }
+        if ( !d->readOnly &&
+             !d->permissions->allowed( Permissions::KeepSeen ) )
+            d->readOnly = true;
     }
 
     if ( !d->setup ) {
@@ -98,6 +101,7 @@ void Select::execute()
             imap()->endSession();
         d->session = new ImapSession( d->mailbox, imap(), d->readOnly );
         d->setup = new ImapSessionInitializer( d->session, this );
+        d->session->setPermissions( d->permissions );
     }
 
     if ( !d->setup->done() )

@@ -19,7 +19,7 @@ public:
     SessionData()
         : readOnly( true ), mailbox( 0 ),
           uidnext( 1 ), firstUnseen( 0 ),
-          imap( 0 )
+          imap( 0 ), permissions( 0 )
     {}
 
     bool readOnly;
@@ -30,6 +30,7 @@ public:
     uint uidnext;
     uint firstUnseen;
     IMAP * imap;
+    Permissions *permissions;
 };
 
 
@@ -86,6 +87,38 @@ IMAP * ImapSession::imap() const
 bool ImapSession::readOnly() const
 {
     return d->readOnly;
+}
+
+
+/*! Returns a pointer to the Permissions object owned by this session,
+    or 0 if none has been created (by Select). This object is ready to
+    answer queries (with allows()) because Select waited for it to be.
+*/
+
+Permissions *ImapSession::permissions() const
+{
+    return d->permissions;
+}
+
+
+/*! Sets the Permissions object for this session to \a p. Used only by
+    Select. ImapSession assumes that \a p is Permissions::ready().
+*/
+
+void ImapSession::setPermissions( Permissions *p )
+{
+    d->permissions = p;
+}
+
+
+/*! Returns true only if this session knows that its user has the right
+    \a r. If the session does not know, or the user doesn't have the
+    right, it returns false.
+*/
+
+bool ImapSession::allows( Permissions::Right r )
+{
+    return d->permissions->allowed( r );
 }
 
 

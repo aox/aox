@@ -11,19 +11,21 @@
 static char rightChar( Permissions::Right );
 
 
-class AclData {
+class PermissionData {
 public:
-    AclData()
-        : ready( false ), mailbox( 0 ), user( 0 ), owner( 0 ),
-          allowed( false ), q( 0 )
-    {}
+    PermissionData()
+        : ready( false ), mailbox( 0 ), user( 0 ), owner( 0 ), q( 0 )
+    {
+        uint i = 0;
+        while ( i < Permissions::NumRights )
+            allowed[i++] = false;
+    }
 
     bool ready;
     Mailbox *mailbox;
     User *user;
-    Permissions::Right right;
     EventHandler *owner;
-    bool allowed;
+    bool allowed[ Permissions::NumRights ];
     Query *q;
 };
 
@@ -70,19 +72,25 @@ public:
     others.
 
     For the moment, this class cannot modify the database. It can only
-    verify() that a user has a given right, and will notify an event
+    verify that a user has a given right, and will notify an event
     handler when it's ready() to say whether the access is allowed()
     or not.
 */
 
-/*! Constructs an Permissions object for \a mailbox, but does nothing
-    further until verify() is called.
+/*! Constructs an Permissions object for \a mailbox and \a user, and
+    calls execute() to calculate permissions, issuing queries if
+    necessary. If any queries are needed, \a handler will be notified
+    when the object is ready().
 */
 
-Permissions::Permissions( Mailbox *mailbox )
-    : d( new AclData )
+Permissions::Permissions( Mailbox *mailbox, User *user,
+                          EventHandler *handler )
+    : d( new PermissionData )
 {
     d->mailbox = mailbox;
+    d->user = user;
+    d->owner = handler;
+    execute();
 }
 
 
@@ -96,26 +104,13 @@ bool Permissions::ready()
 }
 
 
-/*! Returns true only if the user has the Right specified in the call to
-    verify(). This function is meaningful only when the ACL is ready().
+/*! Returns true only if the user has the \a r Right. This function is
+    meaningful only when the object is ready().
 */
 
-bool Permissions::allowed()
+bool Permissions::allowed( Right r )
 {
-    return d->allowed;
-}
-
-
-/*! Checks to see if the user \a u has the right \a r, and notifies the
-    \a handler when allowed() can answer the question.
-*/
-
-void Permissions::verify( User *u, Right r, EventHandler *handler )
-{
-    d->user = u;
-    d->right = r;
-    d->owner = handler;
-    execute();
+    return d->allowed[r];
 }
 
 
@@ -131,7 +126,9 @@ void Permissions::execute()
              d->user->inbox()->id() == d->mailbox->id() ||
              0 /* d->user->isRoot() */ )
         {
-            d->allowed = true;
+            uint i = 0;
+            while ( i < Permissions::NumRights )
+                d->allowed[i++] = true;
             d->ready = true;
             return;
         }
@@ -153,10 +150,13 @@ void Permissions::execute()
         String rights;
         if ( !r->isNull( "rights" ) )
             rights = r->getString( "rights" );
-        if ( rights.find( rightChar( d->right ) ) )
-            d->allowed = true;
-        else
-            d->allowed = false;
+
+        uint i = 0;
+        while ( i < Permissions::NumRights ) {
+            int n = rights.find( rightChar( (Permissions::Right)i ) );
+            if ( n >= 0 )
+                d->allowed[i] = true;
+        }
     }
 
     d->ready = true;
@@ -170,26 +170,40 @@ static char rightChar( Permissions::Right r )
     switch ( r ) {
     case Permissions::Lookup:
         c = 'l';
+        break;
     case Permissions::Read:
         c = 'r';
+        break;
     case Permissions::KeepSeen:
         c = 's';
+        break;
     case Permissions::Write:
         c = 'w';
+        break;
     case Permissions::Insert:
         c = 'i';
+        break;
     case Permissions::Post:
         c = 'p';
+        break;
     case Permissions::CreateMailboxes:
         c = 'k';
+        break;
     case Permissions::DeleteMailbox:
         c = 'x';
+        break;
     case Permissions::DeleteMessages:
         c = 't';
+        break;
     case Permissions::Expunge:
         c = 'e';
+        break;
     case Permissions::Admin:
         c = 'a';
+        break;
+    case Permissions::NumRights:
+        c = '\0';
+        break;
     }
     return c;
 }

@@ -10,7 +10,8 @@ class Permissions
     : public EventHandler
 {
 public:
-    Permissions( class Mailbox * );
+    Permissions( class Mailbox *, class User *,
+                 class EventHandler * );
 
     enum Right {
         Lookup, // l
@@ -23,16 +24,17 @@ public:
         DeleteMailbox, // x
         DeleteMessages, // t
         Expunge, // e
-        Admin // a
+        Admin, // a
+        // New rights go above this line.
+        NumRights
     };
 
     bool ready();
-    bool allowed();
-    void verify( class User *, Right, class EventHandler * );
     void execute();
+    bool allowed( Right );
 
 private:
-    class AclData *d;
+    class PermissionData *d;
 };
 
 

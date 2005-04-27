@@ -5,6 +5,7 @@
 
 #include "global.h"
 #include "messageset.h"
+#include "permissions.h"
 #include "event.h"
 
 class Mailbox;
@@ -21,6 +22,10 @@ public:
     IMAP * imap() const;
     Mailbox * mailbox() const;
     bool readOnly() const;
+
+    Permissions *permissions() const;
+    void setPermissions( Permissions * );
+    bool allows( Permissions::Right );
 
     uint uidnext() const;
     uint uidvalidity() const;
