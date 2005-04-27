@@ -339,3 +339,10 @@ Memory use.
   calls it should yield results in a hurry.
 
 
+Log::~Log() calls commit(), but Log::id is already broken.
+
+  Running "ms create user ..." is a good way to reproduce this SIGABRT
+  (caused by Log::commit using "id + ...").
+
+
+
