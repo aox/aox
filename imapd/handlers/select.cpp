@@ -11,7 +11,7 @@
 #include "query.h"
 #include "flag.h"
 #include "user.h"
-#include "acl.h"
+#include "permissions.h"
 
 
 class SelectData {

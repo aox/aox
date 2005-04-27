@@ -1,6 +1,6 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "acl.h"
+#include "permissions.h"
 
 #include "mailbox.h"
 #include "event.h"
@@ -28,7 +28,7 @@ public:
 };
 
 
-/*! \class ACL acl.h
+/*! \class ACL permissions.h
     The ACL class provides RFC 2086 access control lists.
 
     It can evaluate its list and provide the list of rights available

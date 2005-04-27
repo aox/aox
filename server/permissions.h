@@ -1,7 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef ACL_H
-#define ACL_H
+#ifndef PERMISSIONS_H
+#define PERMISSIONS_H
 
 #include "event.h"
 
