@@ -16,6 +16,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
+
+
+extern int strcmp( const char *, const char * );
 
 
 static int status;
@@ -82,6 +86,17 @@ static void addEternal( void * v, const char * t )
 static void createUser( const char * login, const char * password,
                         const char * address = 0 )
 {
+    if ( strcmp( login, "anonymous" ) == 0 ||
+         strcmp( login, "anyone" ) == 0 ||
+         strcmp( login, "group" ) == 0 ||
+         strcmp( login, "user" ) == 0 ||
+         !isalnum( login[0] ) )
+    {
+        fprintf( stderr, "%s: Invalid username: '%s'.\n", name, login );
+        Loop::shutdown();
+        return;
+    }
+
     User * u = new User;
     addEternal( u, "user" );
     u->setLogin( login );
