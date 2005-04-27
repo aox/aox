@@ -74,8 +74,8 @@ Fetcher::Fetcher( Mailbox * m )
             "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
             "order by h.uid, h.part, h.id";
         ::header = new PreparedStatement( q );
-        q = "select p.uid, p.part, b.text, b.data, b.bytes, b.lines "
-            "from part_numbers p, bodyparts b where "
+        q = "select p.uid, p.part, b.text, b.data, b.bytes as rawbytes, "
+            "p.bytes, p.lines from part_numbers p, bodyparts b where "
             "p.bodypart=b.id and "
             "p.uid>=$1 and p.uid<=$2 and p.mailbox=$3 "
             "order by p.uid, p.part";
@@ -350,7 +350,11 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
     }
     else {
         Bodypart * bp = m->bodypart( part, true );
-        bp->setNumBytes( r->getInt( "bytes" ) );
+
+        bp->setNumBytes( r->getInt( "rawbytes" ) );
+        bp->setNumEncodedBytes( r->getInt( "bytes" ) );
+        bp->setNumEncodedLines( r->getInt( "lines" ) );
+
         if ( r->isNull( "data" ) )
             bp->setData( r->getString( "text" ) );
         else
