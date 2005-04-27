@@ -345,4 +345,7 @@ Log::~Log() calls commit(), but Log::id is already broken.
   (caused by Log::commit using "id + ...").
 
 
+bin/ms really needs cleaning up.
+
+
 
