@@ -34,6 +34,9 @@ public:
     bool isStartUpQuery() const;
     static bool isStartingUp();
 
+    bool canFail() const;
+    void allowFailure();
+
     Transaction *transaction() const;
     void setTransaction( Transaction * );
 

@@ -16,7 +16,8 @@ class QueryData {
 public:
     QueryData()
         : state( Query::Inactive ),
-          transaction( 0 ), owner( 0 ), totalRows( 0 ), startup( false )
+          transaction( 0 ), owner( 0 ), totalRows( 0 ), startup( false ),
+          canFail( false )
     {}
 
     Query::State state;
@@ -35,6 +36,7 @@ public:
     String error;
 
     bool startup;
+    bool canFail;
 };
 
 
@@ -194,6 +196,32 @@ bool Query::isStartUpQuery() const
 bool Query::isStartingUp()
 {
     return ::startup > 0;
+}
+
+
+/*! Returns true only if allowFailure() has been called for this query,
+    signifying that this query is known to run the risk of failure (e.g.
+    the Injector's "insert into bodyparts..." query may violate a unique
+    constraint).
+
+    This function exists only so that Postgres can avoid logging
+    unimportant errors.
+*/
+
+bool Query::canFail() const
+{
+    return d->canFail;
+}
+
+
+/*! If this function is called before execute(), Postgres will not log
+    an error if the Query fails. The query continues to be processed
+    as it would be otherwise.
+*/
+
+void Query::allowFailure()
+{
+    d->canFail = true;
 }
 
 
