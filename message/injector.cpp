@@ -637,7 +637,7 @@ void Injector::linkBodyparts()
 
             if ( b->rfc822() )
                 insertPartNumber( m->id(), uid, pn + ".rfc822",
-                                  bid, -1, -1 );
+                                  bid, -1, b->numEncodedLines() );
         }
     }
 }
