@@ -33,6 +33,8 @@ public:
     void execute();
     bool allowed( Right );
 
+    static char rightChar( Permissions::Right );
+
 private:
     class PermissionData *d;
 };

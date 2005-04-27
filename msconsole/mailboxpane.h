@@ -19,6 +19,7 @@ public:
     void showEvent( QShowEvent * );
 
 private slots:
+    void mailboxSelected();
 
 private:
     class MailboxPaneData * d;

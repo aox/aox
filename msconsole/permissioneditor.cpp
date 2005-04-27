@@ -39,18 +39,42 @@ public:
 */
 
 
-/*! Constructs a PermissionEditor for \a mailbox, visually located in
-    \a parent.
-
-    If \a m is null, a dummy is created.
+/*! Constructs a PermissionEditor visually located in \a parent. After
+    construction the editor shows nothing, since there is no Mailbox
+    yet.
 */
 
-PermissionEditor::PermissionEditor( QWidget * parent, Mailbox * m )
+PermissionEditor::PermissionEditor( QWidget * parent )
     : QWidget( parent ), d( new PermissionEditorData )
 {
-    d->mailbox = m;
+}
 
-    setupLayout();
+
+/*! Deletes whatever was shown and starts showing the ACL for \a
+    mailbox.
+*/
+
+void PermissionEditor::setMailbox( Mailbox * mailbox )
+{
+    if ( mailbox == d->mailbox )
+        return;
+    delete d->tll;
+    d->tll = 0;
+    d->rows.setAutoDelete( true );
+    d->rows.clear();
+
+    d->mailbox = mailbox;
+    (void)new PermissionEditorFetcher( this, mailbox );
+}
+
+
+/*! Returns a pointer to the currently displayed Mailbox. The value is
+    0 initially, meaning that no mailbox is being displayed.
+*/
+
+Mailbox * PermissionEditor::mailbox() const
+{
+    return d->mailbox;
 }
 
 
@@ -157,9 +181,10 @@ QLabel * PermissionEditorRow::label() const
 class PermissionEditorFetcherData
 {
 public:
-    PermissionEditorFetcherData(): q( 0 ), e( 0 ) {}
+    PermissionEditorFetcherData(): q( 0 ), e( 0 ), m( 0 ) {}
     Query * q;
     PermissionEditor * e;
+    Mailbox * m;
     String anyone;
 };
 
@@ -179,6 +204,7 @@ PermissionEditorFetcher::PermissionEditorFetcher( PermissionEditor * e,
     d->q->bind( 1, m->id() );
     d->q->execute();
     d->e = e;
+    d->m = m;
 }
 
 
@@ -188,15 +214,18 @@ void PermissionEditorFetcher::execute()
     while ( (r=d->q->nextRow()) != 0 ) {
         String rights( r->getString( "rights" ) );
         String id( r->getString( "identifier" ) );
-        if ( id == "anyone" )
+        if ( d->m != d->e->mailbox() )
+            ;
+        else if ( id == "anyone" )
             d->anyone = rights;
         else
             d->e->add( id, rights );
     }
-    if ( !d->q->done() )
+    if ( !d->q->done() || d->m != d->e->mailbox() )
         return;
     if ( !d->anyone.isEmpty() )
         d->e->add( "anyone", d->anyone );
+    d->e->setupLayout();
 }
 
 

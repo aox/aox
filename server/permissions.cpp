@@ -8,9 +8,6 @@
 #include "user.h"
 
 
-static char rightChar( Permissions::Right );
-
-
 class PermissionData {
 public:
     PermissionData()
@@ -164,10 +161,13 @@ void Permissions::execute()
 }
 
 
-static char rightChar( Permissions::Right r )
+/*! This static helper returns the RFC 2086 name for \a right.
+*/
+
+char Permissions::rightChar( Permissions::Right right )
 {
     char c;
-    switch ( r ) {
+    switch ( right ) {
     case Permissions::Lookup:
         c = 'l';
         break;

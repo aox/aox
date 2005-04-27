@@ -16,7 +16,10 @@ class PermissionEditor
 {
     Q_OBJECT
 public:
-    PermissionEditor( QWidget * parent, Mailbox * );
+    PermissionEditor( QWidget * parent );
+
+    void setMailbox( Mailbox * );
+    Mailbox * mailbox() const;
 
     void setupLayout();
 

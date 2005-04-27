@@ -5,6 +5,7 @@
 #include "cstring.h"
 
 #include "mailboxpane.h"
+#include "permissioneditor.h"
 #include "mailbox.h"
 
 #include <qlayout.h>
@@ -18,10 +19,11 @@ class MailboxPaneData
 {
 public:
     MailboxPaneData()
-        : mailboxes( 0 ), shown( false )
+        : mailboxes( 0 ), editor( 0 ), shown( false )
     {}
 
     QListView * mailboxes;
+    PermissionEditor * editor;
     bool shown;
 };
 
@@ -56,6 +58,9 @@ MailboxPane::MailboxPane( QWidget * parent )
     tll->addWidget( pb, 2, 0, AlignLeft ); // writing...
     pb->setFocusPolicy( NoFocus );
 
+    d->editor = new PermissionEditor( this );
+    tll->addWidget( d->editor, 1, 2 );
+
     // finally, tell the master grid where it can stretch, and where
     // it must have space.
     tll->setColSpacing( 1, 0 );
@@ -64,6 +69,9 @@ MailboxPane::MailboxPane( QWidget * parent )
     /* tll->setColSpacing( 2, strut() ); */
     /* tll->setRowStretch( 9, 2 ); */
     /* tll->setColStretch( 3, 2 ); */
+
+    connect( d->mailboxes, SIGNAL(selectionChanged()),
+             this, SLOT(mailboxSelected()) );
 }
 
 
@@ -84,6 +92,8 @@ public:
             return "";
         return QString::fromUtf8( m->name().cstr() );
     }
+
+    Mailbox * mailbox() const { return m; }
 
 private:
     Mailbox * m;
@@ -130,4 +140,16 @@ void MailboxPane::showEvent( QShowEvent *show )
             d->shown = true;
     }
     QWidget::showEvent( show );
+}
+
+
+/*! This private slot updates the PermissionEditor based on the
+    mailbox view.
+*/
+
+void MailboxPane::mailboxSelected()
+{
+    MailboxItem * i = (MailboxItem*)d->mailboxes->selectedItem();
+    if ( !i )
+        d->editor->setMailbox( i->mailbox() );
 }
