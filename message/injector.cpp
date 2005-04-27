@@ -174,8 +174,9 @@ void Injector::setup()
 
     intoPartnumbers =
         new PreparedStatement(
-            "insert into part_numbers (mailbox,uid,part,bodypart) "
-            "values ($1,$2,$3,$4)"
+            "insert into part_numbers "
+            "(mailbox,uid,part,bodypart,bytes,lines) "
+            "values ($1,$2,$3,$4,$5,$6)"
         );
     Allocator::addEternal( intoPartnumbers, "intoPartnumbers" );
 
@@ -618,7 +619,7 @@ void Injector::linkBodyparts()
         ++uids;
         ++mb;
 
-        insertPartNumber( m->id(), uid, "", -1 );
+        insertPartNumber( m->id(), uid, "", -1, -1, -1 );
 
         List< uint >::Iterator bids( d->bodypartIds->first() );
         List< Bodypart >::Iterator it( d->bodyparts->first() );
@@ -630,9 +631,13 @@ void Injector::linkBodyparts()
 
             String pn = d->message->partNumber( b );
 
-            insertPartNumber( m->id(), uid, pn, bid );
+            insertPartNumber( m->id(), uid, pn, bid,
+                              b->numEncodedBytes(),
+                              b->numEncodedLines() );
+
             if ( b->rfc822() )
-                insertPartNumber( m->id(), uid, pn + ".rfc822", bid );
+                insertPartNumber( m->id(), uid, pn + ".rfc822",
+                                  bid, -1, -1 );
         }
     }
 }
@@ -641,10 +646,12 @@ void Injector::linkBodyparts()
 /*! This private helper is used by linkBodyparts() to add a single row
     to part_numbers for \a mailbox, \a uid, \a part, and \a bodypart.
     If bodypart is smaller than 0, a NULL value is inserted instead.
+    If \a bytes and \a lines are greater than or equal to 0, their
+    values are inserted along with the \a bodypart.
 */
 
 void Injector::insertPartNumber( int mailbox, int uid, const String &part,
-                                 int bodypart )
+                                 int bodypart, int bytes, int lines )
 {
     Query *q;
 
@@ -652,10 +659,23 @@ void Injector::insertPartNumber( int mailbox, int uid, const String &part,
     q->bind( 1, mailbox );
     q->bind( 2, uid );
     q->bind( 3, part );
-    if ( bodypart > 0 )
+
+    if ( bodypart > 0 ) {
         q->bind( 4, bodypart );
-    else
+        if ( bytes >= 0 )
+            q->bind( 5, bytes );
+        else
+            q->bindNull( 5 );
+        if ( lines >= 0 )
+            q->bind( 6, lines );
+        else
+            q->bindNull( 6 );
+    }
+    else {
         q->bindNull( 4 );
+        q->bindNull( 5 );
+        q->bindNull( 6 );
+    }
 
     d->transaction->enqueue( q );
 }
