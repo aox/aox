@@ -17,6 +17,8 @@ public:
 
     void showEvent( QShowEvent * );
 
+    static bool validUserName( const String & );
+
 private slots:
     void addAlias();
     void removeAlias();

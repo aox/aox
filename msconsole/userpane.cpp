@@ -41,6 +41,8 @@ public:
 };
 
 
+static UserPane * userPaneHack;
+
 class UserPaneData
 {
 public:
@@ -91,6 +93,7 @@ static uint strut()
 UserPane::UserPane( QWidget * parent )
     : QWidget( parent, "user pane" ), d( new UserPaneData )
 {
+    ::userPaneHack = 0;
     QGridLayout * tll = new QGridLayout( this, 12, 4, 6 );
 
     QLabel * l = new QLabel( tr( "&Users" ),
@@ -475,4 +478,19 @@ void UserPane::showEvent( QShowEvent * e )
 {
     QWidget::showEvent( e );
     fetchUserList();
+}
+
+
+/*! Returns true if \a n is a known user name, and false if it's
+    unknown, invalid or the list isn't known (yet). */
+
+bool UserPane::validUserName( const String & n )
+{
+    if ( !::userPaneHack )
+        return false;
+    QString tmp( QString::fromUtf8( n.data(), n.length() ) );
+    QListBoxItem * i = ::userPaneHack->d->users->findItem( tmp, ExactMatch );
+    if ( i )
+        return true;
+    return false;
 }
