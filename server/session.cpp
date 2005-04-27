@@ -321,13 +321,12 @@ void Session::emitExists( uint )
 }
 
 
-/*! Copies the uidnext value from the mailbox, doing nothing else and
-    emitting no responses.
+/*! Sets our uidnext value to \a u. Used only by the SessionInitialiser.
 */
 
-void Session::updateUidnext()
+void Session::setUidnext( uint u )
 {
-    d->uidnext = mailbox()->uidnext();
+    d->uidnext = u;
 }
 
 
@@ -336,7 +335,8 @@ void Session::updateUidnext()
 
 void Session::refresh( EventHandler *handler )
 {
-    (void)new SessionInitialiser( this, handler );
+    if ( d->uidnext < d->mailbox->uidnext() )
+        (void)new SessionInitialiser( this, handler );
 }
 
 
@@ -387,7 +387,6 @@ SessionInitialiser::SessionInitialiser( Session * session,
     d->owner = owner;
     d->oldUidnext = d->session->uidnext();
     d->newUidnext = d->session->mailbox()->uidnext();
-    d->session->updateUidnext();
     log( "Updating session on " + d->session->mailbox()->name() +
          " for UIDs [" + fn( d->oldUidnext ) + "," +
          fn( d->newUidnext ) + ">" );
@@ -466,6 +465,7 @@ void SessionInitialiser::execute()
          fn( d->recent->rows() ) + " recent ones",
          Log::Debug );
     d->done = true;
+    d->session->setUidnext( d->newUidnext );
     if ( d->owner )
         d->owner->execute();
 }

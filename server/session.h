@@ -49,7 +49,7 @@ public:
     const MessageSet & expunged() const;
     const MessageSet & messages() const;
 
-    void updateUidnext();
+    void setUidnext( uint );
     void expunge( const MessageSet & );
 
     bool responsesNeeded() const;
