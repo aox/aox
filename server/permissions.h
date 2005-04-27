@@ -6,11 +6,11 @@
 #include "event.h"
 
 
-class ACL
+class Permissions
     : public EventHandler
 {
 public:
-    ACL( class Mailbox * );
+    Permissions( class Mailbox * );
 
     enum Right {
         Lookup, // l

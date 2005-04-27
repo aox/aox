@@ -8,7 +8,7 @@
 #include "user.h"
 
 
-static char rightChar( ACL::Right );
+static char rightChar( Permissions::Right );
 
 
 class AclData {
@@ -21,15 +21,15 @@ public:
     bool ready;
     Mailbox *mailbox;
     User *user;
-    ACL::Right right;
+    Permissions::Right right;
     EventHandler *owner;
     bool allowed;
     Query *q;
 };
 
 
-/*! \class ACL permissions.h
-    The ACL class provides RFC 2086 access control lists.
+/*! \class Permissions permissions.h
+    This class provides RFC 2086 access control lists.
 
     It can evaluate its list and provide the list of rights available
     for any given user.
@@ -75,11 +75,11 @@ public:
     or not.
 */
 
-/*! Constructs an ACL object for \a mailbox, but does nothing further
-    until verify() is called.
+/*! Constructs an Permissions object for \a mailbox, but does nothing
+    further until verify() is called.
 */
 
-ACL::ACL( Mailbox *mailbox )
+Permissions::Permissions( Mailbox *mailbox )
     : d( new AclData )
 {
     d->mailbox = mailbox;
@@ -90,7 +90,7 @@ ACL::ACL( Mailbox *mailbox )
     allowed(), and false the object is still fetching data.
 */
 
-bool ACL::ready()
+bool Permissions::ready()
 {
     return d->ready;
 }
@@ -100,7 +100,7 @@ bool ACL::ready()
     verify(). This function is meaningful only when the ACL is ready().
 */
 
-bool ACL::allowed()
+bool Permissions::allowed()
 {
     return d->allowed;
 }
@@ -110,7 +110,7 @@ bool ACL::allowed()
     \a handler when allowed() can answer the question.
 */
 
-void ACL::verify( User *u, Right r, EventHandler *handler )
+void Permissions::verify( User *u, Right r, EventHandler *handler )
 {
     d->user = u;
     d->right = r;
@@ -123,7 +123,7 @@ void ACL::verify( User *u, Right r, EventHandler *handler )
     the applicable permissions.
 */
 
-void ACL::execute()
+void Permissions::execute()
 {
     if ( !d->q ) {
         // The user and superuser always have all rights.
@@ -164,31 +164,31 @@ void ACL::execute()
 }
 
 
-static char rightChar( ACL::Right r )
+static char rightChar( Permissions::Right r )
 {
     char c;
     switch ( r ) {
-    case ACL::Lookup:
+    case Permissions::Lookup:
         c = 'l';
-    case ACL::Read:
+    case Permissions::Read:
         c = 'r';
-    case ACL::KeepSeen:
+    case Permissions::KeepSeen:
         c = 's';
-    case ACL::Write:
+    case Permissions::Write:
         c = 'w';
-    case ACL::Insert:
+    case Permissions::Insert:
         c = 'i';
-    case ACL::Post:
+    case Permissions::Post:
         c = 'p';
-    case ACL::CreateMailboxes:
+    case Permissions::CreateMailboxes:
         c = 'k';
-    case ACL::DeleteMailbox:
+    case Permissions::DeleteMailbox:
         c = 'x';
-    case ACL::DeleteMessages:
+    case Permissions::DeleteMessages:
         c = 't';
-    case ACL::Expunge:
+    case Permissions::Expunge:
         c = 'e';
-    case ACL::Admin:
+    case Permissions::Admin:
         c = 'a';
     }
     return c;

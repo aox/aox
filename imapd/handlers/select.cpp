@@ -31,7 +31,7 @@ public:
     Transaction * t;
     Query * recent;
     Query * messages;
-    ACL *acl;
+    Permissions *acl;
 };
 
 
@@ -79,8 +79,8 @@ void Select::execute()
     }
 
     if ( !d->acl ) {
-        d->acl = new ACL( d->mailbox );
-        d->acl->verify( imap()->user(), ACL::Read, this );
+        d->acl = new Permissions( d->mailbox );
+        d->acl->verify( imap()->user(), Permissions::Read, this );
     }
     if ( d->acl && !d->setup ) {
         if ( !d->acl->ready() )
