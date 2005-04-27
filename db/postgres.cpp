@@ -589,7 +589,7 @@ void Postgres::shutdown()
 }
 
 
-static int currentRevision = 5;
+static int currentRevision = 6;
 
 
 class UpdateSchema
@@ -946,6 +946,31 @@ void UpdateSchema::execute() {
                         return;
                     l->log( "Done.", Log::Debug );
                     substate = 0;
+                }
+            }
+
+            if ( revision == 5 ) {
+                if ( substate == 0 ) {
+                    l->log( "Moving bytes/lines to part_numbers.",
+                            Log::Debug );
+                    q = new Query( "alter table part_numbers add "
+                                   "bytes integer", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table part_numbers add "
+                                   "lines integer", this );
+                    t->enqueue( q );
+                    q = new Query( "update part_numbers set "
+                                   "bytes=bodyparts.bytes,"
+                                   "lines=bodyparts.lines from "
+                                   "bodyparts where "
+                                   "part_numbers.bodypart=bodyparts.id",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "alter table bodyparts drop lines",
+                                   this );
+                    t->enqueue( q );
+                    t->execute();
+                    substate = 1;
                 }
             }
 
