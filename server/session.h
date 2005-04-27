@@ -1,7 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef IMAPSESSION_H
-#define IMAPSESSION_H
+#ifndef SESSION_H
+#define SESSION_H
 
 #include "global.h"
 #include "messageset.h"
@@ -14,12 +14,14 @@ class Select;
 class IMAP;
 
 
-class ImapSession {
+class Session {
 public:
-    ImapSession( Mailbox *, IMAP *, bool );
-    ~ImapSession();
+    Session( Mailbox *, bool );
+    virtual ~Session();
 
-    IMAP * imap() const;
+    bool initialised() const;
+    void refresh( class EventHandler * );
+
     Mailbox * mailbox() const;
     bool readOnly() const;
 
@@ -47,25 +49,30 @@ public:
     const MessageSet & expunged() const;
     const MessageSet & messages() const;
 
-    bool responsesNeeded() const;
-    void emitResponses();
     void updateUidnext();
     void expunge( const MessageSet & );
+
+    bool responsesNeeded() const;
+    void emitResponses();
+    virtual void emitExpunge( uint );
+    virtual void emitExists( uint );
 
 private:
     class SessionData *d;
 };
 
 
-class ImapSessionInitializer: public EventHandler {
+class SessionInitialiser
+    : public EventHandler
+{
 public:
-    ImapSessionInitializer( ImapSession *, EventHandler * );
+    SessionInitialiser( Session *, EventHandler * );
 
     bool done() const;
-
     void execute();
+
 private:
-    class ImapSessionInitializerData * d;
+    class SessionInitialiserData * d;
 };
 
 

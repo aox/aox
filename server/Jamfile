@@ -11,6 +11,7 @@ Build server :
     connection.cpp endpoint.cpp event.cpp logclient.cpp loop.cpp tls.cpp
     eventloop.cpp byteforwarder.cpp server.cpp ;
 
-Build mailbox : occlient.cpp mailbox.cpp messageset.cpp permissions.cpp ;
+Build mailbox : session.cpp occlient.cpp mailbox.cpp messageset.cpp
+    permissions.cpp ;
 
 Build user : user.cpp ;

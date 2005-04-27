@@ -3,69 +3,26 @@
 #ifndef IMAPSESSION_H
 #define IMAPSESSION_H
 
-#include "global.h"
-#include "messageset.h"
-#include "permissions.h"
-#include "event.h"
+#include "session.h"
 
 class Mailbox;
-class Message;
-class Select;
 class IMAP;
 
 
-class ImapSession {
+class ImapSession
+    : public Session
+{
 public:
-    ImapSession( Mailbox *, IMAP *, bool );
+    ImapSession( IMAP *, Mailbox *, bool );
     ~ImapSession();
 
     IMAP * imap() const;
-    Mailbox * mailbox() const;
-    bool readOnly() const;
 
-    Permissions *permissions() const;
-    void setPermissions( Permissions * );
-    bool allows( Permissions::Right );
-
-    uint uidnext() const;
-    uint uidvalidity() const;
-
-    uint uid( uint ) const;
-    uint msn( uint ) const;
-    uint count() const;
-
-    uint firstUnseen() const;
-    void setFirstUnseen( uint );
-
-    void insert( uint );
-    void remove( uint );
-
-    MessageSet recent() const;
-    bool isRecent( uint ) const;
-    void addRecent( uint );
-
-    const MessageSet & expunged() const;
-    const MessageSet & messages() const;
-
-    bool responsesNeeded() const;
-    void emitResponses();
-    void updateUidnext();
-    void expunge( const MessageSet & );
+    void emitExpunge( uint );
+    void emitExists( uint );
 
 private:
-    class SessionData *d;
-};
-
-
-class ImapSessionInitializer: public EventHandler {
-public:
-    ImapSessionInitializer( ImapSession *, EventHandler * );
-
-    bool done() const;
-
-    void execute();
-private:
-    class ImapSessionInitializerData * d;
+    class IMAP *i;
 };
 
 

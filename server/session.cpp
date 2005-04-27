@@ -1,15 +1,13 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "imapsession.h"
+#include "session.h"
 
 #include "transaction.h"
 #include "messageset.h"
 #include "mailbox.h"
 #include "message.h"
-#include "global.h"
 #include "event.h"
 #include "query.h"
-#include "imap.h"
 #include "flag.h"
 #include "log.h"
 
@@ -18,8 +16,8 @@ class SessionData {
 public:
     SessionData()
         : readOnly( true ), mailbox( 0 ),
-          uidnext( 1 ), firstUnseen( 0 ),
-          imap( 0 ), permissions( 0 )
+          uidnext( 0 ), firstUnseen( 0 ),
+          permissions( 0 ), si( 0 )
     {}
 
     bool readOnly;
@@ -29,36 +27,43 @@ public:
     MessageSet expunges;
     uint uidnext;
     uint firstUnseen;
-    IMAP * imap;
     Permissions *permissions;
+    SessionInitialiser *si;
 };
 
 
-/*! \class ImapSession imapsession.h
-    This class contains all data associated with an IMAP session.
-
-    Right now, the only session data is the currently-selected Mailbox.
+/*! \class Session session.h
+    This class contains all data associated with the single use of a
+    Mailbox, such as the number of messages visible, etc. Subclasses
+    provide some protocol-specific actions.
 */
 
-
-/*! Creates a new ImapSession for the Mailbox \a m to be accessed
-    using \a imap. If \a readOnly is true, the session is read-only.
+/*! Creates a new Session for the Mailbox \a m. If \a readOnly is true,
+    the session is read-only.
 */
 
-ImapSession::ImapSession( Mailbox *m, IMAP * imap, bool readOnly )
+Session::Session( Mailbox *m, bool readOnly )
     : d( new SessionData )
 {
     d->mailbox = m;
     d->readOnly = readOnly;
-    d->imap = imap;
 }
 
 
-/*! Destroys an ImapSession.
+/*! Exists only to satisfy GCC.
 */
 
-ImapSession::~ImapSession()
+Session::~Session()
 {
+}
+
+
+/*! Returns true if this Session has updated itself from the database.
+*/
+
+bool Session::initialised() const
+{
+    return d->uidnext != 0;
 }
 
 
@@ -66,17 +71,9 @@ ImapSession::~ImapSession()
     isn't one.
 */
 
-Mailbox *ImapSession::mailbox() const
+Mailbox *Session::mailbox() const
 {
     return d->mailbox;
-}
-
-
-/*! Returns a pointer to the IMAP connection that's using this session. */
-
-IMAP * ImapSession::imap() const
-{
-    return d->imap;
 }
 
 
@@ -84,7 +81,7 @@ IMAP * ImapSession::imap() const
     and false otherwise (SELECT).
 */
 
-bool ImapSession::readOnly() const
+bool Session::readOnly() const
 {
     return d->readOnly;
 }
@@ -95,17 +92,17 @@ bool ImapSession::readOnly() const
     answer queries (with allows()) because Select waited for it to be.
 */
 
-Permissions *ImapSession::permissions() const
+Permissions *Session::permissions() const
 {
     return d->permissions;
 }
 
 
 /*! Sets the Permissions object for this session to \a p. Used only by
-    Select. ImapSession assumes that \a p is Permissions::ready().
+    Select. Session assumes that \a p is Permissions::ready().
 */
 
-void ImapSession::setPermissions( Permissions *p )
+void Session::setPermissions( Permissions *p )
 {
     d->permissions = p;
 }
@@ -116,7 +113,7 @@ void ImapSession::setPermissions( Permissions *p )
     right, it returns false.
 */
 
-bool ImapSession::allows( Permissions::Right r )
+bool Session::allows( Permissions::Right r )
 {
     return d->permissions->allowed( r );
 }
@@ -128,7 +125,7 @@ bool ImapSession::allows( Permissions::Right r )
     corresponding untagged EXISTS and UIDNEXT responses.
 */
 
-uint ImapSession::uidnext() const
+uint Session::uidnext() const
 {
     return d->uidnext;
 }
@@ -138,7 +135,7 @@ uint ImapSession::uidnext() const
     always the same as Mailbox::uidvalidity(), and both are always 1.
 */
 
-uint ImapSession::uidvalidity() const
+uint Session::uidvalidity() const
 {
     return d->mailbox->uidvalidity();
 }
@@ -148,7 +145,7 @@ uint ImapSession::uidvalidity() const
     no such message.
 */
 
-uint ImapSession::uid( uint msn ) const
+uint Session::uid( uint msn ) const
 {
     return d->msns.value( msn );
 }
@@ -158,7 +155,7 @@ uint ImapSession::uid( uint msn ) const
     no such message.
 */
 
-uint ImapSession::msn( uint uid ) const
+uint Session::msn( uint uid ) const
 {
     return d->msns.index( uid );
 }
@@ -166,7 +163,7 @@ uint ImapSession::msn( uint uid ) const
 
 /*! Returns the number of messages visible in this session. */
 
-uint ImapSession::count() const
+uint Session::count() const
 {
     return d->msns.count();
 }
@@ -176,7 +173,7 @@ uint ImapSession::count() const
     if the number isn't known.
 */
 
-uint ImapSession::firstUnseen() const
+uint Session::firstUnseen() const
 {
     return d->firstUnseen;
 }
@@ -184,7 +181,7 @@ uint ImapSession::firstUnseen() const
 
 /*! Notifies this session that its first unseen message has \a uid. */
 
-void ImapSession::setFirstUnseen( uint uid )
+void Session::setFirstUnseen( uint uid )
 {
     d->firstUnseen = uid;
 }
@@ -192,7 +189,7 @@ void ImapSession::setFirstUnseen( uint uid )
 
 /*! Notifies this session that it contains a message with \a uid. */
 
-void ImapSession::insert( uint uid )
+void Session::insert( uint uid )
 {
     d->msns.add( uid );
 }
@@ -203,7 +200,7 @@ void ImapSession::insert( uint uid )
     cause responses to be emitted.
 */
 
-void ImapSession::remove( uint uid )
+void Session::remove( uint uid )
 {
     d->msns.remove( uid );
 }
@@ -213,7 +210,7 @@ void ImapSession::remove( uint uid )
     this session.
 */
 
-MessageSet ImapSession::recent() const
+MessageSet Session::recent() const
 {
     return d->recent;
 }
@@ -223,7 +220,7 @@ MessageSet ImapSession::recent() const
     this session.
 */
 
-bool ImapSession::isRecent( uint uid ) const
+bool Session::isRecent( uint uid ) const
 {
     // return d->recent.contains( uid );
     return false;
@@ -232,17 +229,17 @@ bool ImapSession::isRecent( uint uid ) const
 
 /*! Marks the message \a uid as "\Recent" in this session. */
 
-void ImapSession::addRecent( uint uid )
+void Session::addRecent( uint uid )
 {
     d->recent.add( uid );
 }
 
 
-/*! Returns true if this ImapSession needs to refresh the client's
+/*! Returns true if this Session needs to refresh the client's
     world view with some EXPUNGE and/or EXISTS responses.
 */
 
-bool ImapSession::responsesNeeded() const
+bool Session::responsesNeeded() const
 {
     if ( d->mailbox->uidnext() > d->uidnext )
         return true;
@@ -256,21 +253,21 @@ bool ImapSession::responsesNeeded() const
     be told about it at the earliest possible moment.
 */
 
-void ImapSession::expunge( const MessageSet & uids )
+void Session::expunge( const MessageSet & uids )
 {
     d->expunges.add( uids );
     log( "Added " + fn( uids.count() ) + " expunged messages, " +
-         fn( d->expunges.count() ) + " in all" );
+         fn( d->expunges.count() ) + " in all", Log::Debug );
 }
 
 
 /*! Sends all necessary EXPUNGE, EXISTS and OK[UIDNEXT] responses and
-    updates this ImapSession accordingly.
+    updates this Session accordingly.
 
     emitResponses() uses Connection::writeBuffer() directly.
 */
 
-void ImapSession::emitResponses()
+void Session::emitResponses()
 {
     bool change = false;
     uint i = 1;
@@ -278,7 +275,7 @@ void ImapSession::emitResponses()
         uint uid = d->expunges.value( i );
         uint msn = d->msns.index( uid );
         if ( msn ) {
-            imap()->enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
+            emitExpunge( msn );
             change = true;
             d->msns.remove( uid );
         }
@@ -295,12 +292,32 @@ void ImapSession::emitResponses()
         d->msns.add( d->uidnext, u - 1 );
         d->uidnext = u;
         change = true;
-        (void)new ImapSessionInitializer( this, 0 );
+        refresh( 0 );
     }
 
     if ( change )
-        imap()->enqueue( "* " + fn( d->msns.count() ) + " EXISTS\r\n"
-                         "* OK [UIDNEXT " + fn( d->uidnext ) + "]\r\n" );
+        emitExists( d->msns.count() );
+}
+
+
+/*! \fn Session::emitExpunge( uint msn )
+    Does whatever the protocol requires when a message numbered \a msn
+    is expunged. When this function is called, uid() and msn() are still
+    valid.
+*/
+
+void Session::emitExpunge( uint )
+{
+}
+
+
+/*! \fn Session::emitExists( uint number )
+    Does whatever the protocol requires when the number of messages in
+    the Mailbox changes to \a number.
+*/
+
+void Session::emitExists( uint )
+{
 }
 
 
@@ -308,23 +325,34 @@ void ImapSession::emitResponses()
     emitting no responses.
 */
 
-void ImapSession::updateUidnext()
+void Session::updateUidnext()
 {
     d->uidnext = mailbox()->uidnext();
 }
 
 
-class ImapSessionInitializerData
+/*! Refreshes this session, notifying \a handler when it's done.
+*/
+
+void Session::refresh( EventHandler *handler )
+{
+    (void)new SessionInitialiser( this, handler );
+}
+
+
+
+
+class SessionInitialiserData
 {
 public:
-    ImapSessionInitializerData()
+    SessionInitialiserData()
         : session( 0 ), owner( 0 ),
           t( 0 ), recent( 0 ), messages( 0 ), seen( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
           done( false )
         {}
 
-    ImapSession * session;
+    Session * session;
     EventHandler * owner;
 
     Transaction * t;
@@ -339,21 +367,21 @@ public:
 };
 
 
-/*! \class ImapSessionInitializer imapsession.h
+/*! \class SessionInitialiser imapsession.h
 
-    The ImapSessionInitializer class performs the database queries
-    needed to initialize an ImapSession.
+    The SessionInitialiser class performs the database queries
+    needed to initialize an Session.
 
     When completed, it notifies its owner.
 */
 
-/*! Constructs an ImapSessionInitializer for \a session, which will
+/*! Constructs an SessionInitialiser for \a session, which will
     notify \a owner when it's done.
 */
 
-ImapSessionInitializer::ImapSessionInitializer( ImapSession * session,
-                                                EventHandler * owner )
-    : EventHandler(), d( new ImapSessionInitializerData )
+SessionInitialiser::SessionInitialiser( Session * session,
+                                        EventHandler * owner )
+    : EventHandler(), d( new SessionInitialiserData )
 {
     d->session = session;
     d->owner = owner;
@@ -368,7 +396,7 @@ ImapSessionInitializer::ImapSessionInitializer( ImapSession * session,
 }
 
 
-void ImapSessionInitializer::execute()
+void SessionInitialiser::execute()
 {
     if ( !d->t ) {
         // We select and delete the rows in recent_messages that refer
@@ -447,7 +475,7 @@ void ImapSessionInitializer::execute()
     until then.
 */
 
-bool ImapSessionInitializer::done() const
+bool SessionInitialiser::done() const
 {
     return d->done;
 }
@@ -457,11 +485,10 @@ bool ImapSessionInitializer::done() const
     expunged in the database, but not yet reported to the client.
 */
 
-const MessageSet & ImapSession::expunged() const
+const MessageSet & Session::expunged() const
 {
     return d->expunges;
 }
-
 
 
 /*! Returns a message set containing all the messages that are
@@ -469,7 +496,7 @@ const MessageSet & ImapSession::expunged() const
     messages.
 */
 
-const MessageSet & ImapSession::messages() const
+const MessageSet & Session::messages() const
 {
     return d->msns;
 }

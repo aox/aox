@@ -196,7 +196,7 @@ bool MessageSet::isEmpty() const
     greater.
 
     If this set contains the UIDs in a mailbox, this function converts
-    from MSNs to UIDs. See ImapSession::uid().
+    from MSNs to UIDs. See Session::uid().
 */
 
 uint MessageSet::value( uint index ) const
@@ -217,7 +217,7 @@ uint MessageSet::value( uint index ) const
     this Set.
 
     If this set contains the UIDs in a mailbox, this function converts
-    from UIDs to MSNs. See ImapSession::msn().
+    from UIDs to MSNs. See Session::msn().
 */
 
 uint MessageSet::index( uint value ) const

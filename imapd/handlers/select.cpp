@@ -6,9 +6,7 @@
 #include "mailbox.h"
 #include "messageset.h"
 #include "imapsession.h"
-#include "transaction.h"
 #include "message.h"
-#include "query.h"
 #include "flag.h"
 #include "user.h"
 #include "permissions.h"
@@ -17,20 +15,13 @@
 class SelectData {
 public:
     SelectData()
-        : mailbox( 0 ), session( 0 ), setup( 0 ),
-          t( 0 ), recent( 0 ), messages( 0 ),
-          permissions( 0 )
+        : mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
 
     String name;
     bool readOnly;
     Mailbox * mailbox;
     ImapSession *session;
-    ImapSessionInitializer * setup;
-
-    Transaction * t;
-    Query * recent;
-    Query * messages;
     Permissions *permissions;
 };
 
@@ -82,7 +73,7 @@ void Select::execute()
         d->permissions = new Permissions( d->mailbox, imap()->user(),
                                           this );
     }
-    if ( d->permissions && !d->setup ) {
+    if ( d->permissions && !d->session ) {
         if ( !d->permissions->ready() )
             return;
         if ( !d->permissions->allowed( Permissions::Read ) ) {
@@ -95,16 +86,15 @@ void Select::execute()
             d->readOnly = true;
     }
 
-    if ( !d->setup ) {
-        // this should expunge, shouldn't it? how? think later
+    if ( !d->session ) {
         if ( imap()->session() )
             imap()->endSession();
-        d->session = new ImapSession( d->mailbox, imap(), d->readOnly );
-        d->setup = new ImapSessionInitializer( d->session, this );
+        d->session = new ImapSession( imap(), d->mailbox, d->readOnly );
         d->session->setPermissions( d->permissions );
+        d->session->refresh( this );
     }
 
-    if ( !d->setup->done() )
+    if ( !d->session->initialised() )
         return;
 
     const List<Flag> * l = Flag::flags();
