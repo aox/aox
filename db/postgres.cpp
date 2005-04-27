@@ -508,7 +508,9 @@ void Postgres::unknown( char type )
                 s.append( msg.message() );
                 if ( msg.detail() != "" )
                     s.append( " (" + msg.detail() + ")" );
-                log( s, Log::Error );
+
+                if ( !q || !q->canFail() )
+                    log( s, Log::Error );
 
                 // Has the current query failed?
                 if ( q && msg.severity() == PgMessage::Error ) {
