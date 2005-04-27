@@ -12,16 +12,20 @@
 #include "imapsession.h"
 
 
-class AppendData
-{
+class AppendData {
 public:
-    AppendData() : message( 0 ), injector( 0 ) {}
+    AppendData()
+        : mailbox( 0 ), message( 0 ), injector( 0 ),
+          permissions( 0 )
+    {}
 
     Date date;
-    String mailbox;
+    String mbx;
+    Mailbox * mailbox;
     Message * message;
     Injector * injector;
     List< String > flags;
+    Permissions *permissions;
 };
 
 
@@ -50,7 +54,7 @@ void Append::parse()
     // the grammar used is:
     // append = "APPEND" SP mailbox SP [flag-list SP] [date-time SP] literal
     space();
-    d->mailbox = astring();
+    d->mbx = astring();
     space();
 
     if ( present( "(" ) ) {
@@ -118,14 +122,37 @@ uint Append::number( uint n )
 
 void Append::execute()
 {
-    if ( !d->injector ) {
-        Mailbox *mbx = Mailbox::find( imap()->mailboxName( d->mailbox ) );
-        if ( !mbx ) {
-            error( No, "No such mailbox: '" + d->mailbox + "'" );
+    if ( !d->permissions ) {
+        d->mailbox = Mailbox::find( imap()->mailboxName( d->mbx ) );
+        if ( !d->mailbox ) {
+            error( No, "No such mailbox: '" + d->mbx + "'" );
+            finish();
             return;
         }
+
+        ImapSession *is = imap()->session();
+        if ( is ) {
+            d->permissions = is->permissions();
+        }
+        else {
+            d->permissions = new Permissions( d->mailbox, imap()->user(),
+                                              this );
+        }
+    }
+
+    if ( d->permissions && !d->injector ) {
+        if ( !d->permissions->ready() )
+            return;
+        if ( !d->permissions->allowed( Permissions::Insert ) ) {
+            error( No, d->mbx + " is not accessible" );
+            finish();
+            return;
+        }
+    }
+
+    if ( !d->injector ) {
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
-        m->append( mbx );
+        m->append( d->mailbox );
         d->injector = new Injector( d->message, m, this );
         d->injector->execute();
     }
