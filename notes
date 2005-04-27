@@ -297,12 +297,6 @@ GC speedups
   Allocators that are full or have seen some activity. Or something.
 
 
-User/Mailbox/access control
-
-  At the moment, access control is only done by a hack in
-  imapd/handlers/select.cpp. We need to do it better and more cleanly.
-
-
 tcpdump to imap script
 
   What's the easiest way to generate a script from a tcpdump savefile? 
