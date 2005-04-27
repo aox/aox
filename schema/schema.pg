@@ -4,8 +4,8 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (5);
-create sequence revisions start with 5;
+insert into mailstore (revision) values (6);
+create sequence revisions start with 6;
 
 
 -- One entry per Mailstore user.
@@ -95,7 +95,6 @@ create sequence bodypart_ids;
 create table bodyparts (
     id          integer default nextval('bodypart_ids') primary key,
     bytes       integer not null,
-    lines       integer not null,
     hash        text not null unique,
     text        text,
     data        bytea
@@ -109,6 +108,8 @@ create table part_numbers (
     uid         integer not null,
     part        text not null,
     bodypart    integer references bodyparts(id),
+    bytes       integer not null,
+    lines       integer not null,
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade,
