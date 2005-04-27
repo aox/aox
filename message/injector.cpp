@@ -100,7 +100,7 @@ public:
     {}
 
     virtual void processResults( Query *q ) {
-        list->append( new uint( q->nextRow()->getInt( 0 ) ) );
+        list->append( new uint( q->nextRow()->getInt( 0u ) ) );
     }
 
     void execute() {

@@ -119,22 +119,22 @@ public:
     Row( uint, Column * );
 
     bool isNull( uint ) const;
-    bool isNull( const String & ) const;
+    bool isNull( const char * ) const;
 
     int getInt( uint ) const;
-    int getInt( const String & ) const;
+    int getInt( const char * ) const;
 
     bool getBoolean( uint ) const;
-    bool getBoolean( const String & ) const;
+    bool getBoolean( const char * ) const;
 
     String getString( uint ) const;
-    String getString( const String & ) const;
+    String getString( const char * ) const;
 
 private:
     uint n;
     Column *columns;
 
-    int findColumn( const String & ) const;
+    int findColumn( const char * ) const;
     bool badFetch( uint, Column::Type = Column::Unknown ) const;
 };
 

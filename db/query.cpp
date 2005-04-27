@@ -510,7 +510,7 @@ bool Row::isNull( uint i ) const
     As above, but returns true only if the column named \a f is NULL.
 */
 
-bool Row::isNull( const String &f ) const
+bool Row::isNull( const char *f ) const
 {
     int i = findColumn( f );
     if ( i < 0 )
@@ -535,7 +535,7 @@ bool Row::getBoolean( uint i ) const
     As above, but returns the boolean value of the column named \a f.
 */
 
-bool Row::getBoolean( const String &f ) const
+bool Row::getBoolean( const char *f ) const
 {
     int i = findColumn( f );
     if ( i < 0 )
@@ -587,7 +587,7 @@ int Row::getInt( uint i ) const
     As above, but returns the integer value of the column named \a f.
 */
 
-int Row::getInt( const String &f ) const
+int Row::getInt( const char *f ) const
 {
     int i = findColumn( f );
     if ( i < 0 )
@@ -612,7 +612,7 @@ String Row::getString( uint i ) const
     As above, but returns the string value of the column named \a f.
 */
 
-String Row::getString( const String &f ) const
+String Row::getString( const char *f ) const
 {
     int i = findColumn( f );
     if ( i < 0 )
@@ -625,7 +625,7 @@ String Row::getString( const String &f ) const
     if exists, and -1 if it does not.
 */
 
-int Row::findColumn( const String &f ) const
+int Row::findColumn( const char *f ) const
 {
     uint i = 0;
     while ( i < n ) {
@@ -634,7 +634,9 @@ int Row::findColumn( const String &f ) const
         i++;
     }
 
-    log( "Unknown column " + f, Log::Error );
+    String s = "Unknown column ";
+    s.append( f );
+    log( s, Log::Error );
     return -1;
 }
 
