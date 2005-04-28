@@ -217,6 +217,25 @@ public:
         return Iterator::newRef( cur );
     }
 
+    void remove( const T *d )
+    {
+        Node *cur = head;
+
+        while ( cur && cur->data != d )
+            cur = cur->next;
+        if ( cur ) {
+            if ( cur->next )
+                cur->next->prev = cur->prev;
+            if ( cur->prev )
+                cur->prev->next = cur->next;
+
+            if ( cur == head )
+                head = cur->next;
+            if ( cur == tail )
+                tail = cur->prev;
+        }
+    }
+
 private:
     Node *head, *tail;
 

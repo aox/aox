@@ -108,6 +108,12 @@
 
 */
 
+/*! \fn void List::remove( const T *d )
+    This function is equivalent to take( find( d ) ), in that it finds
+    the position of the first element in the List equal to \a d, then
+    removes that element. Its advantage: no memory allocation.
+*/
+
 
 /*! \class List::Iterator list.h
     This class can be used to iterate over the elements of a List<T>.
