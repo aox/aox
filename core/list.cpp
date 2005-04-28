@@ -45,6 +45,12 @@
 */
 
 
+/*! \fn T *List::firstElement() const
+    This function returns the contents of the first element in the List,
+    without the need to create and dereference an Iterator with first().
+*/
+
+
 /*! \fn Iterator &List::first() const
     Returns an Iterator that points to the first element in the List.
 */

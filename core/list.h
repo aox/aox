@@ -113,6 +113,13 @@ public:
     };
 
 
+    T *firstElement() const {
+        if ( head )
+            return head->data;
+        return 0;
+    }
+
+
     Iterator &first() const { return Iterator::newRef( head ); }
     Iterator &last()  const { return Iterator::newRef( tail ); }
     Iterator &end()   const { return Iterator::newRef( 0 );    }
