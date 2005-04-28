@@ -347,20 +347,19 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     if ( rfc2822[start] == 10 )
         start++;
 
-    ContentType * ct = h->contentType();
+    Bodypart * bp = new Bodypart;
+    bp->setHeader( h );
 
     String::Encoding e = String::Binary;
     ContentTransferEncoding * cte = h->contentTransferEncoding();
     if ( cte )
         e = cte->encoding();
 
-    Bodypart * bp = new Bodypart;
-    bp->setHeader( h );
-
     String body;
     if ( end > start )
         body = rfc2822.mid( start, end-start ).decode( e );
 
+    ContentType * ct = h->contentType();
     if ( !ct || ct->type() == "text" ) {
         Codec * c = 0;
         if ( ct )
@@ -416,7 +415,9 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         body = body.encode( cte->encoding() );
     bp->d->numEncodedBytes = body.length();
 
-    if ( bp->d->hasText ) {
+    if ( bp->d->hasText || 
+         ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) )
+    {
         uint n = 0;
         uint i = 0;
         uint l = body.length();
