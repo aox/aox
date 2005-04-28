@@ -108,10 +108,12 @@
 
 */
 
-/*! \fn void List::remove( const T *d )
+/*! \fn T *List::remove( const T *d )
     This function is equivalent to take( find( d ) ), in that it finds
     the position of the first element in the List equal to \a d, then
-    removes that element. Its advantage: no memory allocation.
+    removes that element. Its advantage is that it performs no memory
+    allocation. It returns a pointer to the removed element, or 0 if
+    it was not found in the List.
 */
 
 
