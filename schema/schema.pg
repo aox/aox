@@ -108,8 +108,8 @@ create table part_numbers (
     uid         integer not null,
     part        text not null,
     bodypart    integer references bodyparts(id),
-    bytes       integer not null,
-    lines       integer not null,
+    bytes       integer,
+    lines       integer,
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade,
