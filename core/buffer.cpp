@@ -248,7 +248,7 @@ char Buffer::at( uint i ) const
     if ( i >= d->size )
         return 0;
 
-    List< struct iovec >::Iterator it( d->vecs.first() );
+    List< struct iovec >::Iterator it( d->vecs );
     struct iovec *v = it;
     i += d->firstused;
 
@@ -278,7 +278,7 @@ String Buffer::string( uint num ) const
         n = num;
     result.reserve( n );
 
-    List< struct iovec >::Iterator it( d->vecs.first() );
+    List< struct iovec >::Iterator it( d->vecs );
     struct iovec *v = it;
 
     int max = v->iov_len;
