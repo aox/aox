@@ -721,16 +721,20 @@ void Injector::insertPartNumber( int mailbox, int uid, const String &part,
     q->bind( 2, uid );
     q->bind( 3, part );
 
-    if ( !part.isEmpty() && bodypart > 0 ) {
+    if ( bodypart > 0 )
         q->bind( 4, bodypart );
-        q->bind( 5, bytes );
-        q->bind( 6, lines );
-    }
-    else {
+    else
         q->bindNull( 4 );
+
+    if ( bytes >= 0 )
+        q->bind( 5, bytes );
+    else
         q->bindNull( 5 );
+
+    if ( lines >= 0 )
+        q->bind( 6, lines );
+    else
         q->bindNull( 6 );
-    }
 
     d->transaction->enqueue( q );
 }

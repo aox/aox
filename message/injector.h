@@ -38,7 +38,7 @@ private:
     void buildLinksForHeader( Header *, const String & );
     void buildFieldLinks();
     void insertPartNumber( int, int, const String &,
-                           int = 0, int = 0, int = 0 );
+                           int = -1, int = -1, int = -1 );
     void insertBodyparts();
     void insertBodypart( Bodypart *, bool, List< Query > *,
                          List< Query > * );
