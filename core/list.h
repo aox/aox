@@ -149,7 +149,16 @@ public:
 
     T *shift()
     {
-        return take( first() );
+        Node *cur = head;
+
+        if ( !cur )
+            return 0;
+        if ( cur->next )
+            cur->next->prev = 0;
+        head = cur->next;
+        if ( cur == tail )
+            tail = 0;
+        return cur->data;
     }
 
 
