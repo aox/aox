@@ -107,7 +107,7 @@ void DigestMD5::readResponse( const String &r )
                 }
                 cache->append( cn );
                 if ( cache->count() > 128 )
-                    delete cache->take( cache->first() );
+                    delete cache->shift();
             }
             setState( Succeeded );
         }

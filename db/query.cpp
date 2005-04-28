@@ -461,10 +461,7 @@ void Query::addRow( Row *r )
 
 Row *Query::nextRow()
 {
-    List< Row >::Iterator r( d->rows );
-    if ( !r )
-        return 0;
-    return d->rows.take( r );
+    return d->rows.shift();
 }
 
 

@@ -217,13 +217,13 @@ void Buffer::remove( uint n )
     while ( v && n >= v->iov_len - d->firstused ) {
         n -= v->iov_len - d->firstused;
         d->firstused = 0;
-        d->vecs.take( d->vecs.first() );
+        d->vecs.shift();
         v = d->vecs.first();
     }
     if ( v ) {
         d->firstused += n;
         if ( d->firstused >= d->firstfree && d->vecs.count() == 1 ) {
-            d->vecs.take( d->vecs.first() );
+            d->vecs.shift();
             d->firstused = d->firstfree = 0;
         }
     }

@@ -386,7 +386,7 @@ void Postgres::process( char type )
                 if ( !q->done() )
                     q->setState( Query::Completed );
                 q->notify();
-                d->queries.take( q );
+                d->queries.shift();
             }
         }
         break;
@@ -514,7 +514,7 @@ void Postgres::unknown( char type )
 
                 // Has the current query failed?
                 if ( q && msg.severity() == PgMessage::Error ) {
-                    d->queries.take( d->queries.first() );
+                    d->queries.shift();
                     q->setError( msg.message() );
                     q->notify();
                 }

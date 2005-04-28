@@ -578,7 +578,7 @@ Search::Condition * Search::push( Action a )
 
 void Search::pop()
 {
-    d->conditions->take( d->conditions->first() );
+    d->conditions->shift();
 }
 
 
