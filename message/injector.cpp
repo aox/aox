@@ -557,9 +557,13 @@ void Injector::insertBodyparts()
             i->bind( 3, c->fromUnicode( b->text() ), Query::Binary );
             i->bindNull( 4 );
         }
-        else {
+        else if ( data ) {
             i->bindNull( 3 );
             i->bind( 4, b->data(), Query::Binary );
+        }
+        else {
+            i->bindNull( 3 );
+            i->bindNull( 4 );
         }
         i->allowFailure();
         queries->append( i );
