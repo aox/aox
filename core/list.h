@@ -60,9 +60,12 @@ public:
     public:
         Iterator()                   { cur = 0; }
         Iterator( Node *n )          { cur = n; }
-        Iterator( List< T > *l )     { cur = l->head; }
-        Iterator( const List< T > &l )
-                                     { cur = l.head; }
+        Iterator( const List< T > *l ) {
+            cur = l->head;
+        }
+        Iterator( const List< T > &l ) {
+            cur = l.head;
+        }
 
         Node *node() const           { return cur; }
         operator bool()              { return cur != 0; }
