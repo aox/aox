@@ -245,31 +245,20 @@ void Buffer::remove( uint n )
 
 char Buffer::at( uint i ) const
 {
-    struct iovec *v;
+    if ( i >= d->size )
+        return 0;
 
     List< struct iovec >::Iterator it( d->vecs.first() );
-    if ( !it )
-        return 0;
-    v = it;
-
-    int max = v->iov_len;
-    if ( d->vecs.count() == 1 )
-        max = d->firstfree;
-
-    if ( i < max - d->firstused )
-        return *( (char *)v->iov_base + d->firstused + i );
-
+    struct iovec *v = it;
     i += d->firstused;
 
-    while ( it && i >= it->iov_len ) {
-        i -= it->iov_len;
+    while ( i >= v->iov_len ) {
+        i -= v->iov_len;
         ++it;
+        v = it;
     }
-    v = it;
 
-    if ( !v || ( v == d->vecs.last() && i >= d->firstfree ) )
-        return 0;
-    return *( (char *)v->iov_base+i );
+    return *( (char *)v->iov_base + i );
 }
 
 
