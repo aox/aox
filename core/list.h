@@ -233,9 +233,11 @@ public:
                 head = cur->next;
             if ( cur == tail )
                 tail = cur->prev;
+
+            return cur->data;
         }
 
-        return cur;
+        return 0;
     }
 
 private:
