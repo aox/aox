@@ -91,7 +91,7 @@ void FieldLookup::execute() {
     if ( !i->done() || !q->done() )
         return;
 
-    queries->take( queries->find( q ) );
+    queries->remove( q );
 
     Row *r = q->nextRow();
     if ( r ) {

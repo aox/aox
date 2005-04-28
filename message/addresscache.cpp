@@ -134,7 +134,7 @@ void AddressLookup::execute() {
     if ( !q->done() )
         return;
 
-    queries->take( queries->find( q ) );
+    queries->remove( q );
     if ( !q->failed() ) {
         Row *r = q->nextRow();
         if ( !r ) {

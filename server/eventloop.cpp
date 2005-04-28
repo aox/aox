@@ -84,12 +84,10 @@ void EventLoop::removeConnection( Connection *c )
 {
     Scope x( d->log );
 
-    SortedList< Connection >::Iterator it( d->connections.find( c ) );
-    if ( !it )
+    if ( d->connections->remove( c ) == 0 )
         return;
 
     c->commit();
-    d->connections.take( it );
     if ( c->type() != Connection::LogClient )
         log( "Removed " + c->description(), Log::Debug );
 }

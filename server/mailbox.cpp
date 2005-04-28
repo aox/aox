@@ -489,9 +489,8 @@ void Mailbox::removeWatcher( EventHandler * eh )
 {
     if ( !d->watchers || !eh )
         return;
-    List<EventHandler>::Iterator it( d->watchers->find( eh ) );
-    if ( it )
-        d->watchers->take( it );
+
+    d->watchers->remove( eh );
     if ( d->watchers->isEmpty() )
         d->watchers = 0;
 }

@@ -171,7 +171,7 @@ void Database::addHandle( Database * d )
 
 void Database::removeHandle( Database * d )
 {
-    handles->take( handles->find( d ) );
+    handles->remove( d );
     if ( handles->isEmpty() ) {
         List< Query >::Iterator q( queries );
         while ( q ) {
