@@ -15,10 +15,10 @@
 #include "transaction.h"
 #include "allocator.h"
 #include "occlient.h"
+#include "scope.h"
 #include "md5.h"
 #include "utf.h"
 #include "log.h"
-#include "scope.h"
 
 #include <time.h>
 
@@ -50,71 +50,96 @@ struct AddressLink {
 };
 
 
+// This struct contains the database IDs of Mailboxes or Bodyparts (we
+// use only one struct because IdHelper has to process the results).
+// Only one of the two pointers will be non-zero in one instance.
+
+struct ObjectId {
+    ObjectId( Mailbox *m, Bodypart *b )
+        : id( 0 ), mailbox( m ), bodypart( b )
+    {}
+
+    uint id;
+    Mailbox *mailbox;
+    Bodypart *bodypart;
+};
+
+
 class InjectorData {
 public:
     InjectorData()
         : step( 0 ), failed( false ), idate( time( 0 ) ),
-          owner( 0 ), message( 0 ), mailboxes( 0 ), transaction( 0 ),
-          totalUids( 0 ), uids( 0 ), totalBodyparts( 0 ), bodypartIds( 0 ),
-          bodyparts( 0 ), addressLinks( 0 ), fieldLinks( 0 ), otherFields( 0 ),
-          fieldLookup( 0 ), addressLookup( 0 ), bidHelper( 0 )
+          owner( 0 ), message( 0 ), transaction( 0 ),
+          mailboxes( 0 ), bodyparts( 0 ),
+          uidHelper( 0 ), bidHelper( 0 ),
+          addressLinks( 0 ), fieldLinks( 0 ), otherFields( 0 ),
+          fieldLookup( 0 ), addressLookup( 0 )
     {}
 
     int step;
     bool failed;
 
     int idate;
-    EventHandler * owner;
-    const Message * message;
-    SortedList< Mailbox > * mailboxes;
+    EventHandler *owner;
+    const Message *message;
+    Transaction *transaction;
 
-    Transaction * transaction;
+    // The *idHelpers fill in the IDs corresponding to each Object in
+    // these lists.
+    List< ObjectId > *mailboxes;
+    List< ObjectId > *bodyparts;
 
-    uint totalUids;
-    List< uint > * uids;
-    uint totalBodyparts;
-    List< uint > * bodypartIds;
-    List< Bodypart > * bodyparts;
+    IdHelper *uidHelper;
+    IdHelper *bidHelper;
+
     List< AddressLink > * addressLinks;
     List< FieldLink > * fieldLinks;
     List< String > * otherFields;
 
     CacheLookup * fieldLookup;
     CacheLookup * addressLookup;
-    IdHelper * bidHelper;
 };
 
 
 class IdHelper : public EventHandler {
 private:
-    List< uint > * list;
-    List< Query > * queries;
-    EventHandler * owner;
+    List< ObjectId >::Iterator *li;
+    List< ObjectId > *list;
+    List< Query > *queries;
+    EventHandler *owner;
 
 public:
     bool failed;
 
-    IdHelper( List< uint > *l, List< Query > *q, EventHandler *ev )
-        : list( l ), queries( q ), owner( ev ), failed( false )
+    IdHelper( List< ObjectId > *l, List< Query > *q, EventHandler *ev )
+        : li( 0 ), list( l ), queries( q ), owner( ev ), failed( false )
     {}
 
-    virtual void processResults( Query *q ) {
-        list->append( new uint( q->nextRow()->getInt( 0u ) ) );
-    }
-
     void execute() {
-        Query *q = queries->first();
-        if ( !q || !q->done() )
-            return;
+        List< Query >::Iterator it( queries->first() );
+        while ( it && it->done() ) {
+            Query *q = it;
 
-        if ( q->hasResults() )
-            processResults( q );
-        else
-            failed = true;
+            if ( q->hasResults() ) {
+                if ( !li )
+                    li = new List< ObjectId >::Iterator( list->first() );
 
-        queries->take( queries->first() );
+                (*li)->id = q->nextRow()->getInt( 0u );
+                ++(*li);
+            }
+            else {
+                failed = true;
+            }
+
+            queries->take( it );
+        }
+
         if ( queries->isEmpty() )
             owner->execute();
+    }
+
+    bool done() const {
+        return queries->isEmpty();
     }
 };
 
@@ -215,7 +240,20 @@ Injector::Injector( const Message * message,
         setup();
     d->owner = owner;
     d->message = message;
-    d->mailboxes = mailboxes;
+
+    d->mailboxes = new List< ObjectId >;
+    SortedList< Mailbox >::Iterator mi( mailboxes->first() );
+    while ( mi ) {
+        d->mailboxes->append( new ObjectId( mi, 0 ) );
+        ++mi;
+    }
+
+    d->bodyparts = new List< ObjectId >;
+    List< Bodypart >::Iterator bi( d->message->allBodyparts()->first() );
+    while ( bi ) {
+        d->bodyparts->append( new ObjectId( 0, bi ) );
+        ++bi;
+    }
 }
 
 
@@ -271,7 +309,6 @@ void Injector::execute()
         logMessageDetails();
 
         d->transaction = new Transaction( this );
-        d->bodyparts = d->message->allBodyparts();
 
         // The bodyparts inserts happen outside d->transaction.
         insertBodyparts();
@@ -287,7 +324,7 @@ void Injector::execute()
         // Once we have UIDs for each Mailbox, we can insert rows into
         // messages and recent_messages.
 
-        if ( d->uids->count() != d->totalUids )
+        if ( !d->uidHelper->done() )
             return;
 
         insertMessages();
@@ -309,8 +346,7 @@ void Injector::execute()
             d->step = 5;
         }
 
-        if ( !d->fieldLookup->done() ||
-             d->bodypartIds->count() != d->totalBodyparts )
+        if ( !d->fieldLookup->done() || !d->bidHelper->done() )
             return;
 
         linkBodyparts();
@@ -362,20 +398,17 @@ void Injector::execute()
 
 /*! This private function issues queries to retrieve a UID for each of
     the Mailboxes we are delivering the message into, adds each UID to
-    d->uids, and informs execute() when it's done.
+    d->mailboxes, and informs execute() when it's done.
 */
 
 void Injector::selectUids()
 {
     Query *q;
-    d->uids = new List< uint >;
     List< Query > * queries = new List< Query >;
-    IdHelper * helper = new IdHelper( d->uids, queries, this );
+    d->uidHelper = new IdHelper( d->mailboxes, queries, this );
 
-    List< Mailbox >::Iterator it( d->mailboxes->first() );
-    while ( it ) {
-        d->totalUids++;
-
+    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    while ( mi ) {
         // We acquire a write lock on our mailbox, and hold it until the
         // entire transaction has committed successfully. We use uidnext
         // in lieu of a UID sequence to serialise Injectors, so that UID
@@ -384,16 +417,18 @@ void Injector::selectUids()
         // The mailbox list must be sorted, so that Injectors always try
         // to acquire locks in the same order, thus avoiding deadlocks.
 
-        q = new Query( *lockUidnext, helper );
-        q->bind( 1, it->id() );
+        Mailbox *m = mi->mailbox;
+
+        q = new Query( *lockUidnext, d->uidHelper );
+        q->bind( 1, m->id() );
         d->transaction->enqueue( q );
         queries->append( q );
 
-        q = new Query( *incrUidnext, helper );
-        q->bind( 1, it->id() );
+        q = new Query( *incrUidnext, d->uidHelper );
+        q->bind( 1, m->id() );
         d->transaction->enqueue( q );
 
-        ++it;
+        ++mi;
     }
 }
 
@@ -465,19 +500,21 @@ void Injector::buildFieldLinks()
     if ( !ct || ct->type() != "multipart" )
         skip = true;
 
-    List< Bodypart >::Iterator it( d->bodyparts->first() );
-    while ( it ) {
-        String pn = d->message->partNumber( it );
+    List< ObjectId >::Iterator bi( d->bodyparts->first() );
+    while ( bi ) {
+        Bodypart *bp = bi->bodypart;
+
+        String pn = d->message->partNumber( bp );
 
         if ( !skip )
-            buildLinksForHeader( it->header(), pn );
+            buildLinksForHeader( bp->header(), pn );
         else
             skip = false;
 
-        if ( it->rfc822() )
-            buildLinksForHeader( it->rfc822()->header(), pn + ".rfc822" );
+        if ( bp->rfc822() )
+            buildLinksForHeader( bp->rfc822()->header(), pn + ".rfc822" );
 
-        ++it;
+        ++bi;
     }
 
     d->fieldLookup =
@@ -511,23 +548,19 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
 
 
 /*! This private function inserts an entry into bodyparts for every MIME
-    bodypart in the message. The IDs are then stored in d->bodypartIds.
+    bodypart in the message. The IDs are then stored in d->bodyparts.
 */
 
 void Injector::insertBodyparts()
 {
-    Query *i, *s;
-    Codec *c = new Utf8Codec;
-    d->bodypartIds = new List< uint >;
     List< Query > *queries = new List< Query >;
     List< Query > *selects = new List< Query >;
-    d->bidHelper = new IdHelper( d->bodypartIds, selects, this );
+    List< ObjectId > *insertedParts = new List< ObjectId >;
+    d->bidHelper = new IdHelper( insertedParts, selects, this );
 
-    List< Bodypart >::Iterator it( d->bodyparts->first() );
-    while ( it ) {
-        d->totalBodyparts++;
-        Bodypart *b = it;
-        ++it;
+    List< ObjectId >::Iterator bi( d->bodyparts->first() );
+    while ( bi ) {
+        Bodypart *b = bi->bodypart;
 
         bool text = true;
         bool data = true;
@@ -542,39 +575,65 @@ void Injector::insertBodyparts()
                 data = false;
         }
 
-        String hash;
-        if ( text )
-            hash = MD5::hash( c->fromUnicode( b->text() ) ).hex();
-        else
-            hash = MD5::hash( b->data() ).hex();
+        if ( text || data ) {
+            insertBodypart( b, text, queries, selects );
+            insertedParts->append( bi );
+        }
 
-        // This insert may fail if a bodypart with this hash already
-        // exists. We don't care, as long as the select below works.
-        i = new Query( *intoBodyparts, d->bidHelper );
-        i->bind( 1, hash );
-        i->bind( 2, b->numBytes() );
-        if ( text ) {
-            i->bind( 3, c->fromUnicode( b->text() ), Query::Binary );
-            i->bindNull( 4 );
-        }
-        else if ( data ) {
-            i->bindNull( 3 );
-            i->bind( 4, b->data(), Query::Binary );
-        }
-        else {
-            i->bindNull( 3 );
-            i->bindNull( 4 );
-        }
-        i->allowFailure();
-        queries->append( i );
-
-        s = new Query( *idBodypart, d->bidHelper );
-        s->bind( 1, hash );
-        queries->append( s );
-        selects->append( s );
+        ++bi;
     }
 
     Database::submit( queries );
+}
+
+
+/*! This private function inserts one row into the bodyparts table
+    corresponding to \a b. If \a storeAsText is true, the text of the
+    bodypart is stored, otherwise the data is stored.
+
+    It appends any queries it creates to \a queries, and appends the
+    final id-select to \a selects.
+*/
+
+void Injector::insertBodypart( Bodypart *b,
+                               bool storeAsText,
+                               List< Query > *queries,
+                               List< Query > *selects )
+{
+    Utf8Codec u;
+    Query *i, *s;
+
+    String data;
+    if ( storeAsText )
+        data = u.fromUnicode( b->text() );
+    else
+        data = b->data();
+    String hash = MD5::hash( data ).hex();
+
+    // This insert may fail if a bodypart with this hash already
+    // exists. We don't care, as long as the select below works.
+    i = new Query( *intoBodyparts, d->bidHelper );
+    i->bind( 1, hash );
+    i->bind( 2, b->numBytes() );
+    if ( storeAsText ) {
+        i->bind( 3, data, Query::Binary );
+        i->bindNull( 4 );
+    }
+    else {
+        i->bindNull( 3 );
+        i->bind( 4, data, Query::Binary );
+    }
+    i->allowFailure();
+    queries->append( i );
+
+    // XXX: The following query MUST be executed after the insert above.
+    // But since they aren't inside the transaction, we can't be sure it
+    // will be. Nor can we be sure that the row we just inserted wasn't
+    // deleted along with bodyparts orphaned by EXPUNGE.
+    s = new Query( *idBodypart, d->bidHelper );
+    s->bind( 1, hash );
+    queries->append( s );
+    selects->append( s );
 }
 
 
@@ -586,13 +645,10 @@ void Injector::insertMessages()
 {
     Query *q;
 
-    List< uint >::Iterator uids( d->uids->first() );
-    List< Mailbox >::Iterator mb( d->mailboxes->first() );
-    while ( uids ) {
-        Mailbox *m = mb;
-        int uid = *uids;
-        ++uids;
-        ++mb;
+    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    while ( mi ) {
+        uint uid = mi->id;
+        Mailbox *m = mi->mailbox;
 
         q = new Query( *intoMessages, 0 );
         q->bind( 1, m->id() );
@@ -605,6 +661,8 @@ void Injector::insertMessages()
         q->bind( 1, m->id() );
         q->bind( 2, uid );
         d->transaction->enqueue( q );
+
+        ++mi;
     }
 }
 
@@ -615,23 +673,17 @@ void Injector::insertMessages()
 
 void Injector::linkBodyparts()
 {
-    List< uint >::Iterator uids( d->uids->first() );
-    List< Mailbox >::Iterator mb( d->mailboxes->first() );
-    while ( uids ) {
-        Mailbox *m = mb;
-        int uid = *uids;
-        ++uids;
-        ++mb;
+    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    while ( mi ) {
+        uint uid = mi->id;
+        Mailbox *m = mi->mailbox;
 
         insertPartNumber( m->id(), uid, "", -1, -1, -1 );
 
-        List< uint >::Iterator bids( d->bodypartIds->first() );
-        List< Bodypart >::Iterator it( d->bodyparts->first() );
-        while ( it ) {
-            int bid = *bids;
-            Bodypart *b = it;
-            ++bids;
-            ++it;
+        List< ObjectId >::Iterator bi( d->bodyparts->first() );
+        while ( bi ) {
+            uint bid = bi->id;
+            Bodypart *b = bi->bodypart;
 
             String pn = d->message->partNumber( b );
 
@@ -642,7 +694,11 @@ void Injector::linkBodyparts()
             if ( b->rfc822() )
                 insertPartNumber( m->id(), uid, pn + ".rfc822",
                                   bid, -1, b->numEncodedLines() );
+
+            ++bi;
         }
+
+        ++mi;
     }
 }
 
@@ -693,13 +749,10 @@ void Injector::linkHeaderFields()
 {
     Query *q;
 
-    List< uint >::Iterator uids( d->uids->first() );
-    List< Mailbox >::Iterator mb( d->mailboxes->first() );
-    while ( uids ) {
-        Mailbox *m = mb;
-        int uid = *uids;
-        ++uids;
-        ++mb;
+    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    while ( mi ) {
+        uint uid = mi->id;
+        Mailbox *m = mi->mailbox;
 
         List< FieldLink >::Iterator it( d->fieldLinks->first() );
         while ( it ) {
@@ -720,6 +773,8 @@ void Injector::linkHeaderFields()
 
             ++it;
         }
+
+        ++mi;
     }
 }
 
@@ -732,13 +787,10 @@ void Injector::linkAddresses()
 {
     Query *q;
 
-    List< uint >::Iterator uids( d->uids->first() );
-    List< Mailbox >::Iterator mb( d->mailboxes->first() );
-    while ( uids ) {
-        Mailbox *m = mb;
-        int uid = *uids;
-        ++uids;
-        ++mb;
+    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    while ( mi ) {
+        uint uid = mi->id;
+        Mailbox *m = mi->mailbox;
 
         List< AddressLink >::Iterator it( d->addressLinks->first() );
         while ( it ) {
@@ -754,6 +806,8 @@ void Injector::linkAddresses()
 
             ++it;
         }
+
+        ++mi;
     }
 }
 
@@ -775,10 +829,12 @@ void Injector::logMessageDetails()
     else {
         id = id + " ";
     }
-    List<Mailbox>::Iterator it( d->mailboxes->first() );
-    while ( it ) {
-        log( "Injecting message " + id + "into mailbox " + it->name() );
-        ++it;
+
+    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    while ( mi ) {
+        log( "Injecting message " + id + "into mailbox " +
+             mi->mailbox->name() );
+        ++mi;
     }
 }
 
@@ -793,15 +849,17 @@ void Injector::logMessageDetails()
 
 void Injector::announce()
 {
-    List< Mailbox >::Iterator m( d->mailboxes->first() );
-    List< uint >::Iterator u( d->uids->first() );
-    while ( m ) {
-        if ( m->uidnext() <= *u )
-            m->setUidnext( 1 + *u );
+    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    while ( mi ) {
+        uint uid = mi->id;
+        Mailbox *m = mi->mailbox;
+
+        if ( m->uidnext() <= uid )
+            m->setUidnext( 1 + uid );
         OCClient::send( "mailbox " + m->name().quoted() + " "
-                        "message=" + fn( *u ) );
-        ++m;
-        ++u;
+                        "message=" + fn( uid ) );
+
+        ++mi;
     }
 }
 
@@ -818,13 +876,10 @@ void Injector::announce()
 
 uint Injector::uid( Mailbox * mailbox ) const
 {
-    List<Mailbox>::Iterator m( d->mailboxes->first() );
-    List<uint>::Iterator u( d->uids->first() );
-    while ( m && u && m != mailbox ) {
-        ++m;
-        ++u;
-    }
-    if ( !u )
+    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    while ( mi && mi->mailbox != mailbox )
+        ++mi;
+    if ( !mi )
         return 0;
-    return *u;
+    return mi->id;
 }

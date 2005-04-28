@@ -3,12 +3,15 @@
 #ifndef INJECTOR_H
 #define INJECTOR_H
 
-#include "header.h"
 #include "event.h"
 #include "list.h"
 
+
+class Query;
+class Header;
 class Message;
 class Mailbox;
+class Bodypart;
 
 
 class Injector
@@ -36,6 +39,7 @@ private:
     void buildFieldLinks();
     void insertPartNumber( int, int, const String &, int, int, int );
     void insertBodyparts();
+    void insertBodypart( Bodypart *, bool, List< Query > *, List< Query > * );
     void insertMessages();
     void linkBodyparts();
     void linkHeaderFields();
