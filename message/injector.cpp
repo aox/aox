@@ -116,9 +116,12 @@ public:
     {}
 
     void execute() {
-        List< Query >::Iterator it( queries );
-        while ( it && it->done() ) {
-            Query *q = it;
+        Query *q;
+
+        while ( ( q = queries->firstElement() ) != 0 &&
+                q->done() )
+        {
+            queries->shift();
 
             if ( q->hasResults() ) {
                 if ( !li )
@@ -130,8 +133,6 @@ public:
             else {
                 failed = true;
             }
-
-            queries->take( it );
         }
 
         if ( queries->isEmpty() )
