@@ -84,7 +84,7 @@ void EventLoop::removeConnection( Connection *c )
 {
     Scope x( d->log );
 
-    if ( d->connections->remove( c ) == 0 )
+    if ( d->connections.remove( c ) == 0 )
         return;
 
     c->commit();
