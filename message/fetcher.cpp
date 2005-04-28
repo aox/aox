@@ -351,13 +351,16 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
     else {
         Bodypart * bp = m->bodypart( part, true );
 
-        bp->setNumBytes( r->getInt( "rawbytes" ) );
-        bp->setNumEncodedBytes( r->getInt( "bytes" ) );
-        bp->setNumEncodedLines( r->getInt( "lines" ) );
+        if ( !r->isNull( "rawbytes" ) )
+            bp->setNumBytes( r->getInt( "rawbytes" ) );
+        if ( !r->isNull( "bytes" ) )
+            bp->setNumEncodedBytes( r->getInt( "bytes" ) );
+        if ( !r->isNull( "lines" ) )
+            bp->setNumEncodedLines( r->getInt( "lines" ) );
 
-        if ( r->isNull( "data" ) )
+        if ( !r->isNull( "text" ) )
             bp->setData( r->getString( "text" ) );
-        else
+        else if ( !r->isNull( "data" ) )
             bp->setData( r->getString( "data" ) );
     }
 }
