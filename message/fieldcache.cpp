@@ -121,7 +121,7 @@ CacheLookup *FieldNameCache::lookup( Transaction *t, List< String > *l,
     CacheLookup *status = new CacheLookup;
     List< Query > *lookups = new List< Query >;
 
-    List< String >::Iterator it( l->first() );
+    List< String >::Iterator it( l );
     while ( it ) {
         String field = *it;
 

@@ -179,7 +179,7 @@ CacheLookup *AddressCache::lookup( Transaction *t, List< Address > *l,
     List< Query > * lookups = new List< Query >;
     CacheLookup * status = new CacheLookup;
 
-    List< Address >::Iterator it( l->first() );
+    List< Address >::Iterator it( l );
     while ( it ) {
         Address *a = nameCache->find( it->toString() );
 

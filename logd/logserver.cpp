@@ -199,7 +199,7 @@ void LogServer::commit( String tag,
     if ( !q || q->isEmpty() )
         return;
 
-    List< LogServerData::Line >::Iterator i( q->first() );
+    List< LogServerData::Line >::Iterator i( q );
     while ( i ) {
         if ( i->severity >= severity )
             output( tag, i->facility, i->severity, i->line );
@@ -215,7 +215,7 @@ void LogServer::commit( String tag,
 void LogServer::commitAll()
 {
     StringList keys( d->pending.keys() );
-    StringList::Iterator i( keys.first() );
+    StringList::Iterator i( keys );
     while ( i && d->pending.find( *i )->isEmpty() )
         ++i;
     if ( !i )

@@ -215,7 +215,7 @@ String Message::body() const
 static void appendChildren(List<Bodypart> *l, Bodypart *bp )
 {
     l->append( bp );
-    List<Bodypart>::Iterator it( bp->children()->first() );
+    List<Bodypart>::Iterator it( bp->children() );
     while ( it ) {
         appendChildren( l, it );
         ++it;
@@ -233,7 +233,7 @@ static void appendChildren(List<Bodypart> *l, Bodypart *bp )
 List<Bodypart> *Message::allBodyparts() const
 {
     List< Bodypart > * l = new List< Bodypart >;
-    List<Bodypart>::Iterator it( children()->first() );
+    List<Bodypart>::Iterator it( children() );
     while ( it ) {
         appendChildren( l, it );
         ++it;
@@ -266,7 +266,7 @@ class Bodypart * Message::bodypart( const String & s, bool create )
         List<Bodypart> * c = children();
         if ( bp )
             c = bp->children();
-        List<Bodypart>::Iterator i( c->first() );
+        List<Bodypart>::Iterator i( c );
         while ( i && i->number() < n )
             ++i;
         if ( i && i->number() == n ) {

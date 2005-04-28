@@ -669,7 +669,7 @@ void Search::Condition::simplify()
     }
     else if ( a == And ) {
         // zero-element and becomes all, "none and x" becomes none
-        List< Condition >::Iterator i( l->first() );
+        List< Condition >::Iterator i( l );
         while ( i && a == And ) {
             List< Condition >::Iterator p( i );
             ++i;
@@ -685,7 +685,7 @@ void Search::Condition::simplify()
     }
     else if ( a == Or ) {
         // zero-element or becomes all, "all or x" becomes all
-        List< Condition >::Iterator i( l->first() );
+        List< Condition >::Iterator i( l );
         while ( i && a == Or ) {
             List< Condition >::Iterator p( i );
             ++i;
@@ -713,12 +713,12 @@ void Search::Condition::simplify()
 
     // or (a or (b c)) -> or (a b c). ditto and.
     if ( l ) {
-        List< Condition >::Iterator i( l->first() );
+        List< Condition >::Iterator i( l );
         while ( i ) {
             List< Condition >::Iterator p( i );
             ++i;
             if ( p->a == a ) {
-                List<Condition>::Iterator c( p->l->first() );
+                List<Condition>::Iterator c( p->l );
                 while ( c ) {
                     l->prepend( c );
                     ++c;
@@ -730,7 +730,7 @@ void Search::Condition::simplify()
 
     // a single-element and/or can be removed and its argument substituted
     if ( l->count() == 1 ) {
-        List< Condition >::Iterator p( l->first() );
+        List< Condition >::Iterator p( l );
         f = p->f;
         a = p->a;
         a1 = p->a1;
@@ -1009,7 +1009,7 @@ String Search::Condition::whereNoField() const
                 return "true";
             return "false";
         }
-        List<Condition>::Iterator i( l->first() );
+        List<Condition>::Iterator i( l );
         String r = "(" + i->where();
         ++i;
         String sep;
@@ -1083,7 +1083,7 @@ String Search::Condition::debugString() const
 
     if ( o.isEmpty() ) {
         r = "(";
-        List< Condition >::Iterator i( l->first() );
+        List< Condition >::Iterator i( l );
         while ( i ) {
             r += i->debugString();
             ++i;
@@ -1149,7 +1149,7 @@ Search::Condition::MatchResult Search::Condition::match( Message * m,
                                                          uint uid )
 {
     if ( a == And || a == Or ) {
-        List< Condition >::Iterator i( l->first() );
+        List< Condition >::Iterator i( l );
         while ( i ) {
             MatchResult sub = i->match( m, uid );
             if ( sub == Punt )

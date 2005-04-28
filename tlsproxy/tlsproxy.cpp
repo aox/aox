@@ -334,7 +334,7 @@ void TlsProxy::parse()
     }
 
     TlsProxy * other = 0;
-    List<TlsProxy>::Iterator it( proxies->first() );
+    List<TlsProxy>::Iterator it( proxies );
     while ( other == 0 && it ) {
         TlsProxy * c = it;
         ++it;

@@ -56,7 +56,7 @@ MessageSet& MessageSet::operator=( const MessageSet & other )
         delete d;
         d = new SetData;
 
-        List< SetData::Range >::Iterator it( other.d->l.first() );
+        List< SetData::Range >::Iterator it( other.d->l );
         while ( it ) {
             SetData::Range *r = it;
             d->l.append( new SetData::Range( r->start, r->length ) );
@@ -123,7 +123,7 @@ void MessageSet::add( uint n1, uint n2 )
 
 void MessageSet::add( const MessageSet & set )
 {
-    List<SetData::Range>::Iterator it( set.d->l.first() );
+    List<SetData::Range>::Iterator it( set.d->l );
     while ( it ) {
         add( it->start, it->start + it->length - 1 );
         ++it;
@@ -175,7 +175,7 @@ bool MessageSet::isRange() const
 uint MessageSet::count() const
 {
     uint c = 0;
-    List<SetData::Range>::Iterator i( d->l.first() );
+    List<SetData::Range>::Iterator i( d->l );
     while ( i ) {
         c += i->length;
         ++i;
@@ -202,7 +202,7 @@ bool MessageSet::isEmpty() const
 uint MessageSet::value( uint index ) const
 {
     uint c = 1;
-    List<SetData::Range>::Iterator i( d->l.first() );
+    List<SetData::Range>::Iterator i( d->l );
     while ( i && c + i->length <= index ) {
         c += i->length;
         ++i;
@@ -223,7 +223,7 @@ uint MessageSet::value( uint index ) const
 uint MessageSet::index( uint value ) const
 {
     uint c = 0;
-    List<SetData::Range>::Iterator i( d->l.first() );
+    List<SetData::Range>::Iterator i( d->l );
     while ( i && i->start + i->length - 1 < value ) {
         c += i->length;
         ++i;
@@ -248,7 +248,7 @@ String MessageSet::where( const String & table ) const
     String s;
     s.reserve( 22*d->l.count() );
 
-    List< SetData::Range >::Iterator it( d->l.first() );
+    List< SetData::Range >::Iterator it( d->l );
     while ( it ) {
         SetData::Range *r = it;
         String p;
@@ -300,7 +300,7 @@ bool MessageSet::contains( uint value ) const
 
 void MessageSet::remove( uint value )
 {
-    List<SetData::Range>::Iterator i( d->l.first() );
+    List<SetData::Range>::Iterator i( d->l );
     while ( i && i->start + i->length - 1 < value )
         ++i;
     if ( !i || i->start > value || i->start + i->length - 1 < value )
@@ -333,8 +333,8 @@ void MessageSet::remove( uint value )
 
 void MessageSet::remove( const MessageSet & other )
 {
-    List<SetData::Range>::Iterator mine( d->l.first() );
-    List<SetData::Range>::Iterator hers( other.d->l.first() );
+    List<SetData::Range>::Iterator mine( d->l );
+    List<SetData::Range>::Iterator hers( other.d->l );
     while ( mine && hers ) {
         while ( hers && hers->start + hers->length <= mine->start )
             ++hers;
@@ -376,8 +376,8 @@ void MessageSet::remove( const MessageSet & other )
 
 MessageSet MessageSet::intersection( const MessageSet & other ) const
 {
-    List<SetData::Range>::Iterator me( d->l.first() );
-    List<SetData::Range>::Iterator her( other.d->l.first() );
+    List<SetData::Range>::Iterator me( d->l );
+    List<SetData::Range>::Iterator her( other.d->l );
     MessageSet r;
 
     while ( me && her ) {

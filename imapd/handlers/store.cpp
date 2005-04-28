@@ -143,7 +143,7 @@ void Store::execute()
 
 bool Store::processFlagNames()
 {
-    StringList::Iterator it = d->flagNames.first();
+    StringList::Iterator it( d->flagNames );
     StringList unknown;
     d->flags.clear();
     while ( it ) {
@@ -230,7 +230,7 @@ bool Store::dumpFetchResponses()
 
             List<Flag> * f = m->flags();
             if ( f && !f->isEmpty() ) {
-                List<Flag>::Iterator it( f->first() );
+                List<Flag>::Iterator it( f );
                 while ( it ) {
                     if ( !r.isEmpty() )
                         r.append( " " );
@@ -263,7 +263,7 @@ bool Store::dumpFetchResponses()
 
 void Store::removeFlags( bool opposite )
 {
-    List<Flag>::Iterator it( d->flags.first() );
+    List<Flag>::Iterator it( d->flags );
     String flags;
     if ( opposite )
         flags = "not";
@@ -314,7 +314,7 @@ Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
 
 void Store::addFlags()
 {
-    List<Flag>::Iterator it( d->flags.first() );
+    List<Flag>::Iterator it( d->flags );
     while ( it ) {
         Query * q = addFlagsQuery( it, imap()->session()->mailbox(),
                                    d->s, this );
@@ -353,7 +353,7 @@ void Store::recordFlags()
                 m->setFlagsFetched( true );
                 List<Flag> * current = m->flags();
                 current->clear();
-                List<Flag>::Iterator it( d->flags.first() );
+                List<Flag>::Iterator it( d->flags );
                 while ( it ) {
                     current->append( it );
                     ++it;

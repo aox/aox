@@ -570,7 +570,7 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
     if ( d->bodystructure )
         l.append( "BODYSTRUCTURE " + bodyStructure( m, true ) );
 
-    List< FetchData::Section >::Iterator it( d->sections.first() );
+    List< FetchData::Section >::Iterator it( d->sections );
     while ( it ) {
         l.append( sectionResponse( it, m ) );
         ++it;
@@ -594,7 +594,7 @@ String Fetch::flagList( Message * m, uint uid )
 
     List<Flag> * f = m->flags();
     if ( f && !f->isEmpty() ) {
-        List<Flag>::Iterator it( f->first() );
+        List<Flag>::Iterator it( f );
         while ( it ) {
             if ( !r.isEmpty() )
                 r.append( " " );
@@ -623,7 +623,7 @@ static String hf( Header * f, HeaderField::Type t )
     if ( !a || a->isEmpty() )
         return "NIL ";
     String r( "(" );
-    List<Address>::Iterator it( a->first() );
+    List<Address>::Iterator it( a );
     while ( it ) {
         r.append( "(" );
         r.append( Command::imapQuoted( it->name(), Command::NString ) );
@@ -683,7 +683,7 @@ static String parameterString( MimeField *mf )
         return "NIL";
 
     StringList l;
-    StringList::Iterator it( p->first() );
+    StringList::Iterator it( p );
     while ( it ) {
         l.append( Command::imapQuoted( *it ) );
         l.append( Command::imapQuoted( mf->parameter( *it ) ) );
@@ -720,7 +720,7 @@ static String languageString( ContentLanguage *cl )
 
     StringList m;
     const StringList *l = cl->languages();
-    StringList::Iterator it( l->first() );
+    StringList::Iterator it( l );
     while ( it ) {
         m.append( Command::imapQuoted( *it ) );
         ++it;
@@ -746,7 +746,7 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
 
     if ( ct && ct->type() == "multipart" ) {
         StringList children;
-        List< Bodypart >::Iterator it( m->children()->first() );
+        List< Bodypart >::Iterator it( m->children() );
         while ( it ) {
             children.append( bodyStructure( it, extended ) );
             ++it;

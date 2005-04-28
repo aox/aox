@@ -80,7 +80,7 @@ void OCServer::send( const String &s )
 
     String msg = "* " + s + "\n";
 
-    List< OCServer >::Iterator it( servers->first() );
+    List< OCServer >::Iterator it( servers );
     while ( it ) {
         it->enqueue( msg );
         it->write();

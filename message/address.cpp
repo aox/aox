@@ -856,7 +856,7 @@ void Address::uniquify( List<Address> * l )
 
     Dict<Address> unique;
 
-    List<Address>::Iterator it( l->first() );
+    List<Address>::Iterator it( l );
     while ( it ) {
         Address *a = it;
         ++it;

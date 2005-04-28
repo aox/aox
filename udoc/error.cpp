@@ -54,7 +54,7 @@ void Error::report()
     if ( !errors )
         return;
 
-    List<Error>::Iterator it( errors->first() );
+    List<Error>::Iterator it( errors );
     while ( it ) {
         it->blather();
         ++it;

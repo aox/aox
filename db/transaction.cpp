@@ -175,7 +175,7 @@ void Transaction::commit()
 
 void Transaction::execute()
 {
-    List< Query >::Iterator it( d->queries->first() );
+    List< Query >::Iterator it( d->queries );
     while ( it ) {
         it->setState( Query::Submitted );
         ++it;

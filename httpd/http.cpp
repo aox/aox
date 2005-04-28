@@ -873,7 +873,7 @@ bool HTTP::isTokenChar( char c )
 void HTTP::parseParameters()
 {
     StringList *p = StringList::split( '&', d->body );
-    StringList::Iterator it( p->first() );
+    StringList::Iterator it( p );
 
     while ( it ) {
         String n, v;

@@ -518,7 +518,7 @@ void PgParse::encodeData()
     }
     else {
         appendInt16( types->count() );
-        List< int >::Iterator it( types->first() );
+        List< int >::Iterator it( types );
         while ( it ) {
             appendInt32( *it );
             ++it;
@@ -586,7 +586,7 @@ void PgBind::encodeData()
     else {
         // Parameter formats.
         appendInt16( values->count() );
-        List< Query::Value >::Iterator it( values->first() );
+        List< Query::Value >::Iterator it( values );
         while ( it ) {
             appendInt16( it->format() );
             ++it;
@@ -763,7 +763,7 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
 
     int i = 0;
     Column *columns = new Column[c];
-    List< PgRowDescription::Column >::Iterator it( d->columns.first() );
+    List< PgRowDescription::Column >::Iterator it( d->columns );
     while ( it ) {
         Column *cv = &columns[i];
 

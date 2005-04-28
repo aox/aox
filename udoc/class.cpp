@@ -55,7 +55,7 @@ Class * Class::find( const String & s )
     if ( !classes )
         return 0;
 
-    List<Class>::Iterator it( classes->first() );
+    List<Class>::Iterator it( classes );
     Class * c = 0;
     while ( (c=it) != 0 && c->n != s )
         ++it;
@@ -105,7 +105,7 @@ void Class::output()
     if ( !classes )
         return;
 
-    SortedList<Class>::Iterator it( classes->first() );
+    SortedList<Class>::Iterator it( classes );
     while ( it ) {
         Class * c = it;
         ++it;
@@ -146,7 +146,7 @@ void Class::generateOutput()
         db->generate();
     }
 
-    SortedList<Function>::Iterator it( m.first() );
+    SortedList<Function>::Iterator it( m );
     Function * f;
     while ( (f=it) != 0 ) {
         ++it;
@@ -183,7 +183,7 @@ void Class::buildHierarchy()
     if ( !classes )
         return;
 
-    List<Class>::Iterator it( classes->first() );
+    List<Class>::Iterator it( classes );
     Class * c = 0;
     while ( (c=it) != 0 ) {
         ++it;

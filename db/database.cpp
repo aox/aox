@@ -101,7 +101,7 @@ void Database::submit( Query *q )
 
 void Database::submit( List< Query > *q )
 {
-    List< Query >::Iterator it( q->first() );
+    List< Query >::Iterator it( q );
     while ( it ) {
         it->setState( Query::Submitted );
         queries->append( it );
@@ -117,7 +117,7 @@ void Database::submit( List< Query > *q )
 
 void Database::runQueue()
 {
-    List< Database >::Iterator it( handles->first() );
+    List< Database >::Iterator it( handles );
     while ( it ) {
         if ( it->state() == Idle ) {
             it->processQueue();
@@ -173,7 +173,7 @@ void Database::removeHandle( Database * d )
 {
     handles->take( handles->find( d ) );
     if ( handles->isEmpty() ) {
-        List< Query >::Iterator q( queries->first() );
+        List< Query >::Iterator q( queries );
         while ( q ) {
             q->setError( "No available database handles." );
             q->notify();
@@ -224,7 +224,7 @@ uint Database::numHandles()
     if ( !::handles )
         return 0;
     uint n = 0;
-    List<Database>::Iterator it( ::handles->first() );
+    List<Database>::Iterator it( ::handles );
     while ( it ) {
         if ( it->state() != Connecting )
             n++;

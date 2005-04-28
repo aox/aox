@@ -511,7 +511,7 @@ String Page::bodypart( Message *first, Bodypart *bp )
     }
     else if ( type.startsWith( "multipart/" ) ) {
         s.append( "<div class=multipart>" );
-        List< Bodypart >::Iterator it( bp->children()->first() );
+        List< Bodypart >::Iterator it( bp->children() );
         while ( it ) {
             s.append( bodypart( first, it ) );
             ++it;
@@ -552,7 +552,7 @@ String Page::message( Message *first, Message *m )
     s.append( address( m, HeaderField::To ) );
     s.append( address( m, HeaderField::Cc ) );
 
-    List< HeaderField >::Iterator it( m->header()->fields()->first() );
+    List< HeaderField >::Iterator it( m->header()->fields() );
     while ( it ) {
         hf = it;
 
@@ -577,7 +577,7 @@ String Page::message( Message *first, Message *m )
 
     s.append( "</div>" );
 
-    List< Bodypart >::Iterator jt( m->children()->first() );
+    List< Bodypart >::Iterator jt( m->children() );
     while ( jt ) {
         s.append( bodypart( first, jt ) );
         ++jt;
@@ -671,7 +671,7 @@ static String address( Message *m, HeaderField::Type t )
     s.append( af->name() );
     s.append( ": " );
 
-    List< Address >::Iterator it( af->addresses()->first() );
+    List< Address >::Iterator it( af->addresses() );
     while ( it ) {
         s.append( "<span class=address>" );
         s.append( htmlQuoted( it->toString() ) );

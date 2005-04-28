@@ -433,7 +433,7 @@ void DocBlock::generateClassPreamble()
             Output::addText( ". " );
         Output::addText( "Inherited by " );
         p = true;
-        List<Class>::Iterator it( subclasses->first() );
+        List<Class>::Iterator it( subclasses );
         while( it ) {
             Class * sub = it;
             ++it;
@@ -460,7 +460,7 @@ void DocBlock::generateClassPreamble()
         return;
     }
     else {
-        List<Function>::Iterator it( members->first() );
+        List<Function>::Iterator it( members );
         while ( it )
             ++it;
     }

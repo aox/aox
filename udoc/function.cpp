@@ -67,7 +67,7 @@ Function * Function::find( const String & name,
         return 0;
 
     String tmp = name;
-    List<Function>::Iterator it( functions->first() );
+    List<Function>::Iterator it( functions );
     Function * f = 0;
     if ( arguments.isEmpty() ) {
         while ( (f=it) != 0 && f->n != name )

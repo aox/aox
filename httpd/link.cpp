@@ -106,7 +106,7 @@ String Link::part() const
 void Link::parse( const String & s )
 {
     StringList *l = StringList::split( '/', s );
-    StringList::Iterator it( l->first() );
+    StringList::Iterator it( l );
 
     d->path = s;
 

@@ -372,7 +372,7 @@ String Query::description()
         StringList p;
 
         int i = 0;
-        List< Query::Value >::Iterator v( values()->first() );
+        List< Query::Value >::Iterator v( values() );
         while ( v ) {
             i++;
 
@@ -461,7 +461,7 @@ void Query::addRow( Row *r )
 
 Row *Query::nextRow()
 {
-    List< Row >::Iterator r( d->rows.first() );
+    List< Row >::Iterator r( d->rows );
     if ( !r )
         return 0;
     return d->rows.take( r );

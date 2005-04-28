@@ -473,7 +473,7 @@ void Command::emitResponses()
         return;
     d->responded = true;
 
-    List< String >::Iterator it( d->responses.first() );
+    List< String >::Iterator it( d->responses );
     while ( it ) {
         imap()->enqueue( *it );
         ++it;

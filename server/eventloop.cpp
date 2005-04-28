@@ -129,7 +129,7 @@ void EventLoop::start()
 
         // Figure out what events each connection wants.
 
-        SortedList< Connection >::Iterator it( d->connections.first() );
+        SortedList< Connection >::Iterator it( d->connections );
         while ( it ) {
             c = it;
 
@@ -198,7 +198,7 @@ void EventLoop::start()
     // ConsoleLoop.
     if ( d->shutdown ) {
         log( "Shutting down event loop", Log::Debug );
-        SortedList< Connection >::Iterator it( d->connections.first() );
+        SortedList< Connection >::Iterator it( d->connections );
         while ( it ) {
             try {
                 Scope x( it->log() );
@@ -340,7 +340,7 @@ void EventLoop::shutdown()
 
 void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 {
-    SortedList< Connection >::Iterator it( d->connections.first() );
+    SortedList< Connection >::Iterator it( d->connections );
     while ( it ) {
         Connection *c = it;
         if ( c != c1 && c != c2 ) {
@@ -356,7 +356,7 @@ void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 
 void EventLoop::flushAll()
 {
-    SortedList< Connection >::Iterator it( d->connections.first() );
+    SortedList< Connection >::Iterator it( d->connections );
     while ( it ) {
         it->write();
         ++it;

@@ -53,7 +53,7 @@ void StringList::append( const char * s )
 String StringList::join( const String & separator )
 {
     String r;
-    Iterator it( first() );
+    Iterator it( this );
     uint l = 0;
     while ( it ) {
         l = l + it->length() + separator.length();

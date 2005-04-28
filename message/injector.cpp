@@ -116,13 +116,13 @@ public:
     {}
 
     void execute() {
-        List< Query >::Iterator it( queries->first() );
+        List< Query >::Iterator it( queries );
         while ( it && it->done() ) {
             Query *q = it;
 
             if ( q->hasResults() ) {
                 if ( !li )
-                    li = new List< ObjectId >::Iterator( list->first() );
+                    li = new List< ObjectId >::Iterator( list );
 
                 (*li)->id = q->nextRow()->getInt( 0u );
                 ++(*li);
@@ -242,14 +242,14 @@ Injector::Injector( const Message * message,
     d->message = message;
 
     d->mailboxes = new List< ObjectId >;
-    SortedList< Mailbox >::Iterator mi( mailboxes->first() );
+    SortedList< Mailbox >::Iterator mi( mailboxes );
     while ( mi ) {
         d->mailboxes->append( new ObjectId( mi, 0 ) );
         ++mi;
     }
 
     d->bodyparts = new List< ObjectId >;
-    List< Bodypart >::Iterator bi( d->message->allBodyparts()->first() );
+    List< Bodypart >::Iterator bi( d->message->allBodyparts() );
     while ( bi ) {
         d->bodyparts->append( new ObjectId( 0, bi ) );
         ++bi;
@@ -407,7 +407,7 @@ void Injector::selectUids()
     List< Query > * queries = new List< Query >;
     d->uidHelper = new IdHelper( d->mailboxes, queries, this );
 
-    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         // We acquire a write lock on our mailbox, and hold it until the
         // entire transaction has committed successfully. We use uidnext
@@ -450,7 +450,7 @@ void Injector::buildAddressLinks()
         HeaderField::Type t = (HeaderField::Type)i++;
         List< Address > * a = d->message->header()->addresses( t );
         if ( a && !a->isEmpty() ) {
-            List< Address >::Iterator it( a->first() );
+            List< Address >::Iterator it( a );
             while ( it ) {
                 Address *a = it;
                 String k = a->toString();
@@ -500,7 +500,7 @@ void Injector::buildFieldLinks()
     if ( !ct || ct->type() != "multipart" )
         skip = true;
 
-    List< ObjectId >::Iterator bi( d->bodyparts->first() );
+    List< ObjectId >::Iterator bi( d->bodyparts );
     while ( bi ) {
         Bodypart *bp = bi->bodypart;
 
@@ -529,7 +529,7 @@ void Injector::buildFieldLinks()
 
 void Injector::buildLinksForHeader( Header *hdr, const String &part )
 {
-    List< HeaderField >::Iterator it( hdr->fields()->first() );
+    List< HeaderField >::Iterator it( hdr->fields() );
     while ( it ) {
         HeaderField *hf = it;
 
@@ -558,7 +558,7 @@ void Injector::insertBodyparts()
     List< ObjectId > *insertedParts = new List< ObjectId >;
     d->bidHelper = new IdHelper( insertedParts, selects, this );
 
-    List< ObjectId >::Iterator bi( d->bodyparts->first() );
+    List< ObjectId >::Iterator bi( d->bodyparts );
     while ( bi ) {
         Bodypart *b = bi->bodypart;
 
@@ -645,7 +645,7 @@ void Injector::insertMessages()
 {
     Query *q;
 
-    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         uint uid = mi->id;
         Mailbox *m = mi->mailbox;
@@ -673,14 +673,14 @@ void Injector::insertMessages()
 
 void Injector::linkBodyparts()
 {
-    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         uint uid = mi->id;
         Mailbox *m = mi->mailbox;
 
         insertPartNumber( m->id(), uid, "" );
 
-        List< ObjectId >::Iterator bi( d->bodyparts->first() );
+        List< ObjectId >::Iterator bi( d->bodyparts );
         while ( bi ) {
             uint bid = bi->id;
             Bodypart *b = bi->bodypart;
@@ -748,12 +748,12 @@ void Injector::linkHeaderFields()
 {
     Query *q;
 
-    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         uint uid = mi->id;
         Mailbox *m = mi->mailbox;
 
-        List< FieldLink >::Iterator it( d->fieldLinks->first() );
+        List< FieldLink >::Iterator it( d->fieldLinks );
         while ( it ) {
             FieldLink *link = it;
 
@@ -786,12 +786,12 @@ void Injector::linkAddresses()
 {
     Query *q;
 
-    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         uint uid = mi->id;
         Mailbox *m = mi->mailbox;
 
-        List< AddressLink >::Iterator it( d->addressLinks->first() );
+        List< AddressLink >::Iterator it( d->addressLinks );
         while ( it ) {
             AddressLink *link = it;
 
@@ -829,7 +829,7 @@ void Injector::logMessageDetails()
         id = id + " ";
     }
 
-    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         log( "Injecting message " + id + "into mailbox " +
              mi->mailbox->name() );
@@ -848,7 +848,7 @@ void Injector::logMessageDetails()
 
 void Injector::announce()
 {
-    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         uint uid = mi->id;
         Mailbox *m = mi->mailbox;
@@ -875,7 +875,7 @@ void Injector::announce()
 
 uint Injector::uid( Mailbox * mailbox ) const
 {
-    List< ObjectId >::Iterator mi( d->mailboxes->first() );
+    List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi && mi->mailbox != mailbox )
         ++mi;
     if ( !mi )

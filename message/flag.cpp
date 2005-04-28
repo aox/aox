@@ -40,7 +40,7 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
 {
     uint n = 0;
     if ( ::flags ) {
-        List<Flag>::Iterator it( ::flags->first() );
+        List<Flag>::Iterator it( ::flags );
         while ( it ) {
             if ( n < it->id() )
                 n = it->id();
@@ -135,7 +135,7 @@ Flag * Flag::find( const String & name )
     if ( !::flags )
         return 0;
     String n = name.lower();
-    List<Flag>::Iterator it( ::flags->first() );
+    List<Flag>::Iterator it( ::flags );
     while ( it ) {
         if ( n == it->name().lower() )
             return it;
@@ -153,7 +153,7 @@ Flag * Flag::find( uint id )
 {
     if ( !::flags )
         return 0;
-    List<Flag>::Iterator it( ::flags->first() );
+    List<Flag>::Iterator it( ::flags );
     while ( it ) {
         if ( it->id() == id )
             return it;
@@ -212,7 +212,7 @@ FlagCreator::FlagCreator( EventHandler * owner, const StringList & flags )
 {
     d->owner = owner;
 
-    StringList::Iterator it( flags.first() );
+    StringList::Iterator it( flags );
     while ( it ) {
         //log( Log::Info, "Adding new flag " + *it + " to the database" );
         Query * q = new Query( "insert into flag_names (name) values ($1)",
@@ -227,7 +227,7 @@ FlagCreator::FlagCreator( EventHandler * owner, const StringList & flags )
 
 void FlagCreator::execute()
 {
-    List<Query>::Iterator it( d->queries.first() );
+    List<Query>::Iterator it( d->queries );
     while ( it ) {
         List<Query>::Iterator q( it );
         ++it;

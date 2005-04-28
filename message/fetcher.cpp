@@ -120,7 +120,7 @@ void Fetcher::execute()
     if ( !d->results.isEmpty() ) {
         // if we've fetched something, notify the event handlers that
         // wait for that.
-        List<FetcherData::Handler>::Iterator it( d->handlers.first() );
+        List<FetcherData::Handler>::Iterator it( d->handlers );
         while ( it ) {
             List<FetcherData::Handler>::Iterator h( it );
             ++it;
@@ -142,7 +142,7 @@ void Fetcher::execute()
         // waiting for some data, forget that they asked for that
         // data, and notify them so they understand that it isn't
         // coming.
-        List<FetcherData::Handler>::Iterator it( d->handlers.first() );
+        List<FetcherData::Handler>::Iterator it( d->handlers );
         MessageSet s;
         s.add( d->smallest, d->largest );
         while ( it ) {
@@ -155,7 +155,7 @@ void Fetcher::execute()
     }
 
     MessageSet merged;
-    List<FetcherData::Handler>::Iterator it( d->handlers.first() );
+    List<FetcherData::Handler>::Iterator it( d->handlers );
     while ( it ) {
         merged.add( it->s );
         ++it;
@@ -342,7 +342,7 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
         if ( !bp->rfc822() )
             bp->setRfc822( new Message );
 
-        List< Bodypart >::Iterator it( bp->children()->first() );
+        List< Bodypart >::Iterator it( bp->children() );
         while ( it ) {
             bp->rfc822()->children()->append( it );
             ++it;

@@ -117,7 +117,7 @@ void Header::add( HeaderField *hf )
         AddressField *next = (AddressField *)hf;
         if ( first ) {
             List< Address > *old = first->addresses();
-            List< Address >::Iterator it( next->addresses()->first() );
+            List< Address >::Iterator it( next->addresses() );
             while ( it ) {
                 old->append( it );
                 ++it;
@@ -148,7 +148,7 @@ void Header::add( const String &name, const String &value )
 
 void Header::removeField( HeaderField::Type t )
 {
-    List<HeaderField>::Iterator it( d->fields.first() );
+    List<HeaderField>::Iterator it( d->fields );
     while ( it ) {
         if ( it->type() == t )
             d->fields.take( it );
@@ -180,7 +180,7 @@ List< HeaderField > *Header::fields() const
 
 HeaderField * Header::field( HeaderField::Type t, uint n ) const
 {
-    List<HeaderField>::Iterator it( d->fields.first() );
+    List<HeaderField>::Iterator it( d->fields );
     while ( n > 0 && it ) {
         while ( it && it->type() != t )
             ++it;
@@ -386,7 +386,7 @@ void Header::verify() const
     d->verified = true;
     d->error.truncate( 0 );
 
-    List<HeaderField>::Iterator it( d->fields.first() );
+    List<HeaderField>::Iterator it( d->fields );
     while ( it ) {
         if ( !it->valid() ) {
             d->error = it->name() + ": " + it->error();
@@ -450,11 +450,11 @@ static bool sameAddresses( AddressField *a, AddressField *b )
     if ( l->count() != m->count() )
         return false;
 
-    List<Address>::Iterator it( m->first() );
+    List<Address>::Iterator it( m );
     while ( it ) {
         String lp = it->localpart();
         String dom = it->localpart().lower();
-        List<Address>::Iterator i( l->first() );
+        List<Address>::Iterator i( l );
         while ( i &&
                 i->localpart() != lp &&
                 i->domain().lower() != dom )
@@ -542,7 +542,7 @@ String Header::asText() const
 {
     String r;
 
-    List< HeaderField >::Iterator it( d->fields.first() );
+    List< HeaderField >::Iterator it( d->fields );
     while ( it ) {
         appendField( r, it );
         ++it;

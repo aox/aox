@@ -82,7 +82,7 @@ void Multipart::appendMultipart( String &r ) const
 {
     ContentType *ct = header()->contentType();
     String delim = ct->parameter( "boundary" );
-    List<Bodypart>::Iterator it( children()->first() );
+    List<Bodypart>::Iterator it( children() );
     r.append( "--" + delim + crlf );
     while ( it ) {
         Bodypart *bp = it;
@@ -205,7 +205,7 @@ static void dumpMessage( Message *m, int n = 0 )
     while ( i-- > 0 )
         fprintf( stderr, " " );
     fprintf( stderr, "(%s\n\n", headerSummary( m->header() ).cstr() );
-    List< Bodypart >::Iterator it( m->children()->first() );
+    List< Bodypart >::Iterator it( m->children() );
     while ( it ) {
         dumpBodypart( m, it, n+2 );
         ++it;
@@ -227,7 +227,7 @@ static void dumpBodypart( Message *m, Bodypart *bp, int n )
              headerSummary( bp->header() ).cstr() );
     if ( bp->rfc822() )
         dumpMessage( bp->rfc822(), n+4 );
-    List< Bodypart >::Iterator it( bp->children()->first() );
+    List< Bodypart >::Iterator it( bp->children() );
     while ( it ) {
         dumpBodypart( m, it, n+2 );
         ++it;

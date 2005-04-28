@@ -475,7 +475,7 @@ void Server::execute()
     Configuration::report();
 
     uint listeners = 0;
-    List< Connection >::Iterator it( Loop::connections()->first() );
+    List< Connection >::Iterator it( Loop::connections() );
     while ( it ) {
         if ( it->type() == Connection::Listener )
             listeners++;

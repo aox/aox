@@ -98,7 +98,7 @@ void Select::execute()
         return;
 
     const List<Flag> * l = Flag::flags();
-    List<Flag>::Iterator i( l->first() );
+    List<Flag>::Iterator i( l );
     String flags;
     if ( i ) {
         flags = i->name();

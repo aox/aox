@@ -45,7 +45,7 @@ MimeField::MimeField( HeaderField::Type t )
 StringList *MimeField::parameters() const
 {
     StringList *l = new StringList;
-    List< MimeFieldData::Parameter >::Iterator it( d->parameters.first() );
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it ) {
         l->append( new String( it->name ) );
         ++it;
@@ -62,7 +62,7 @@ StringList *MimeField::parameters() const
 String MimeField::parameterString() const
 {
     String s;
-    List< MimeFieldData::Parameter >::Iterator it( d->parameters.first() );
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it ) {
         s.append( "; " );
         s.append( it->name );
@@ -88,7 +88,7 @@ String MimeField::parameterString() const
 String MimeField::parameter( const String &n ) const
 {
     String s = n.lower();
-    List< MimeFieldData::Parameter >::Iterator it( d->parameters.first() );
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it && s != it->name )
         ++it;
     if ( it )
@@ -118,7 +118,7 @@ void MimeField::addParameter( const String &n, const String &v )
 void MimeField::removeParameter( const String &n )
 {
     String s = n.lower();
-    List< MimeFieldData::Parameter >::Iterator it( d->parameters.first() );
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters );
     while ( it && s != it->name )
         ++it;
     if ( it )

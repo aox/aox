@@ -34,7 +34,7 @@ public:
     StringList seen;
     bool contains( const String & s )
     {
-        StringList::Iterator i = seen.first();
+        StringList::Iterator i( seen );
         while ( i && *i != s )
             ++i;
         if ( i )
@@ -509,7 +509,7 @@ void Configuration::report()
     Log l( Log::Configuration );
     Scope x( &l );
 
-    List<ConfigurationData::Error>::Iterator it( d->errors->first() );
+    List<ConfigurationData::Error>::Iterator it( d->errors );
     while ( it ) {
         ::log( it->e, it->s );
         ++it;

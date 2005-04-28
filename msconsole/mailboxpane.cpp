@@ -114,7 +114,7 @@ int MailboxPane::addChildren( Mailbox * parent, QListViewItem * item )
     List<Mailbox> * children = parent->children();
     if ( !children )
         return 0;
-    List<Mailbox>::Iterator i( children->first() );
+    List<Mailbox>::Iterator i( children );
     uint n = 0;
     while ( i ) {
         MailboxItem * mi = 0;

@@ -186,7 +186,7 @@ void ManPage::addReferences()
         return;
     endParagraph();
     output( ".SH SEE ALSO\n.ad l\n" );
-    SortedList<String>::Iterator it( references.first() );
+    SortedList<String>::Iterator it( references );
     while ( it ) {
         String s( *it );
         ++it;

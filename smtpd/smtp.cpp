@@ -595,7 +595,7 @@ void SMTP::sendResponses()
         respond( 250, "OK" ); // to provide a good default
 
     String n = fn( d->code );
-    StringList::Iterator it( d->response.first() );
+    StringList::Iterator it( d->response );
     do {
         String r;
         String l = *it;
@@ -678,7 +678,7 @@ void SMTP::inject()
     }
 
     SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
-    List<User>::Iterator it( d->to.first() );
+    List<User>::Iterator it( d->to );
     while ( it ) {
         mailboxes->insert( it->inbox() );
         ++it;
@@ -770,7 +770,7 @@ void LMTP::reportInjection()
 
     d->state = MailFrom;
 
-    List<User>::Iterator it( d->to.first() );
+    List<User>::Iterator it( d->to );
     while ( it ) {
         Address * a = it->address();
         String prefix = a->localpart() + "@" + a->domain() + ": ";

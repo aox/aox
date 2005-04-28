@@ -119,7 +119,7 @@ void Listext::execute()
         return;
     }
 
-    StringList::Iterator it( d->patterns.first() );
+    StringList::Iterator it( d->patterns );
     while ( it ) {
         if ( it->isEmpty() )
             respond( "LIST \"/\" \"\"" );
@@ -278,7 +278,7 @@ void Listext::listChildren( Mailbox * mailbox, const String & pattern )
 {
     List<Mailbox> * c = mailbox->children();
     if ( c ) {
-        List<Mailbox>::Iterator it( c->first() );
+        List<Mailbox>::Iterator it( c );
         while ( it ) {
             list( it, pattern );
             ++it;

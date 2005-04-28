@@ -163,7 +163,7 @@ HeaderFile * HeaderFile::find( const String & s )
     if ( !headers )
         return 0;
 
-    List<HeaderFile>::Iterator it( headers->first() );
+    List<HeaderFile>::Iterator it( headers );
     HeaderFile * h = 0;
     String hack = "/" + s;
     while ( (h=it) != 0 &&

@@ -59,12 +59,12 @@ void Intro::output()
     if ( !intros )
         return;
 
-    SortedList<Intro>::Iterator it( intros->first() );
+    SortedList<Intro>::Iterator it( intros );
     while ( it ) {
         Intro * i = it;
         ++it;
         i->docBlock->generate();
-        SortedList<Class>::Iterator c( i->classes.first() );
+        SortedList<Class>::Iterator c( i->classes );
         while ( c ) {
             c->generateOutput();
             ++c;

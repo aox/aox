@@ -296,7 +296,7 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
 
     if ( !parent->children() )
         parent->d->children = new List<Mailbox>;
-    List<Mailbox>::Iterator it( parent->children()->first() );
+    List<Mailbox>::Iterator it( parent->children() );
     while ( it ) {
         if ( it->name() == name )
             return it;
@@ -326,7 +326,7 @@ void Mailbox::setUidnext( uint n )
     d->uidnext = n;
     if ( !d->watchers )
         return;
-    List<EventHandler>::Iterator it( d->watchers->first() );
+    List<EventHandler>::Iterator it( d->watchers );
     while ( it ) {
         EventHandler * h = it;
         ++it;

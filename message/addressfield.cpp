@@ -86,7 +86,7 @@ void AddressField::update()
 {
     String s;
     HeaderField::Type t = type();
-    List< Address >::Iterator it( addresses()->first() );
+    List< Address >::Iterator it( addresses() );
 
     if ( t == HeaderField::ReturnPath ) {
         if ( !it )
@@ -169,7 +169,7 @@ void AddressField::parseMailboxList()
     parseAddressList();
 
     // A mailbox-list is an address-list where groups aren't allowed.
-    List< Address >::Iterator it( a->first() );
+    List< Address >::Iterator it( a );
     while ( it && valid() ) {
         if ( it->type() == Address::EmptyGroup )
             setError( "Invalid mailbox: '" + it->toString() + "'" );
@@ -242,7 +242,7 @@ List< Address > *AddressField::addresses() const
 
 void AddressField::outlawBounce()
 {
-    List< Address >::Iterator it( a->first() );
+    List< Address >::Iterator it( a );
     while ( it && valid() ) {
         if ( it->toString() == "<>" )
             setError( "No-bounce address not allowed in this field" );

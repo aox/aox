@@ -453,7 +453,7 @@ void IMAP::runCommands()
         done = true;
 
         // run all currently executing commands once
-        List< Command >::Iterator i( d->commands.first() );
+        List< Command >::Iterator i( d->commands );
         while ( i ) {
             run( i );
             ++i;
@@ -493,7 +493,7 @@ void IMAP::runCommands()
 
 void IMAP::expireCommands()
 {
-    List< Command >::Iterator i( d->commands.first() );
+    List< Command >::Iterator i( d->commands );
     while ( i ) {
         if ( i->state() == Command::Finished )
             d->commands.take( i );
@@ -637,7 +637,7 @@ bool IMAP::supports( const String &s ) const
 uint IMAP::activeCommands() const
 {
     uint n = 0;
-    List<Command>::Iterator i( d->commands.first() );
+    List<Command>::Iterator i( d->commands );
     while ( i ) {
         if ( i->state() != Command::Finished )
             n++;

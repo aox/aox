@@ -98,7 +98,7 @@ void Postgres::processQueue()
     List< Query > *l = Database::queries;
     if ( d->transaction )
         l = d->transaction->queries();
-    List< Query >::Iterator it( l->first() );
+    List< Query >::Iterator it( l );
 
     while ( it ) {
         if ( it->state() != Query::Submitted )
@@ -322,7 +322,7 @@ void Postgres::backendStartup( char type )
 
 void Postgres::process( char type )
 {
-    List< Query >::Iterator q( d->queries.first() );
+    List< Query >::Iterator q( d->queries );
 
     extendTimeout( 5 );
 
@@ -561,7 +561,7 @@ void Postgres::error( const String &s )
     d->active = false;
     log( s, Log::Error );
 
-    List< Query >::Iterator q( d->queries.first() );
+    List< Query >::Iterator q( d->queries );
     while ( q ) {
         q->setError( s );
         q->notify();
