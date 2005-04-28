@@ -157,7 +157,9 @@ void Append::execute()
         d->injector->execute();
     }
     if ( d->injector->done() ) {
-        if ( !d->injector->failed() )
+        if ( d->injector->failed() )
+            error( No, "Could not append to " + d->mbx );
+        else
             d->injector->announce();
         finish();
     }
