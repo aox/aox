@@ -229,10 +229,10 @@ void FlagCreator::execute()
 {
     List<Query>::Iterator it( d->queries );
     while ( it ) {
-        List<Query>::Iterator q( it );
-        ++it;
-        if ( q->done() )
-            d->queries.take( q );
+        if ( it->done() )
+            d->queries.take( it );
+        else
+            ++it;
     }
     if ( d->queries.isEmpty() )
         (void)new FlagFetcher( d->owner );
