@@ -37,9 +37,11 @@ private:
     void buildAddressLinks();
     void buildLinksForHeader( Header *, const String & );
     void buildFieldLinks();
-    void insertPartNumber( int, int, const String &, int, int, int );
+    void insertPartNumber( int, int, const String &,
+                           int = 0, int = 0, int = 0 );
     void insertBodyparts();
-    void insertBodypart( Bodypart *, bool, List< Query > *, List< Query > * );
+    void insertBodypart( Bodypart *, bool, List< Query > *,
+                         List< Query > * );
     void insertMessages();
     void linkBodyparts();
     void linkHeaderFields();

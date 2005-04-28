@@ -678,7 +678,7 @@ void Injector::linkBodyparts()
         uint uid = mi->id;
         Mailbox *m = mi->mailbox;
 
-        insertPartNumber( m->id(), uid, "", -1, -1, -1 );
+        insertPartNumber( m->id(), uid, "" );
 
         List< ObjectId >::Iterator bi( d->bodyparts->first() );
         while ( bi ) {
@@ -693,7 +693,8 @@ void Injector::linkBodyparts()
 
             if ( b->rfc822() )
                 insertPartNumber( m->id(), uid, pn + ".rfc822",
-                                  bid, -1, b->numEncodedLines() );
+                                  bid, b->numEncodedBytes(),
+                                  b->numEncodedLines() );
 
             ++bi;
         }
@@ -720,16 +721,10 @@ void Injector::insertPartNumber( int mailbox, int uid, const String &part,
     q->bind( 2, uid );
     q->bind( 3, part );
 
-    if ( bodypart > 0 ) {
+    if ( !part.isEmpty() && bodypart > 0 ) {
         q->bind( 4, bodypart );
-        if ( bytes >= 0 )
-            q->bind( 5, bytes );
-        else
-            q->bindNull( 5 );
-        if ( lines >= 0 )
-            q->bind( 6, lines );
-        else
-            q->bindNull( 6 );
+        q->bind( 5, bytes );
+        q->bind( 6, lines );
     }
     else {
         q->bindNull( 4 );
