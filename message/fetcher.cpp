@@ -74,10 +74,10 @@ Fetcher::Fetcher( Mailbox * m )
             "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
             "order by h.uid, h.part, h.id";
         ::header = new PreparedStatement( q );
-        q = "select p.uid, p.part, b.text, b.data, b.bytes as rawbytes, "
-            "p.bytes, p.lines from part_numbers p, bodyparts b where "
-            "p.bodypart=b.id and "
-            "p.uid>=$1 and p.uid<=$2 and p.mailbox=$3 "
+        q = "select p.uid, p.part, b.text, b.data, "
+            "b.bytes as rawbytes, p.bytes, p.lines "
+            "from part_numbers p left join bodyparts b on p.bodypart=b.id "
+            "where p.uid>=$1 and p.uid<=$2 and p.mailbox=$3 and p.part != '' "
             "order by p.uid, p.part";
         ::body = new PreparedStatement( q );
         q = "select uid, flag from flags "
