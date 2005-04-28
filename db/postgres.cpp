@@ -93,19 +93,18 @@ Postgres::~Postgres()
 
 void Postgres::processQueue()
 {
+    Query *q;
     int n = 0;
 
     List< Query > *l = Database::queries;
     if ( d->transaction )
         l = d->transaction->queries();
-    List< Query >::Iterator it( l );
 
-    while ( it ) {
-        if ( it->state() != Query::Submitted )
+    while ( ( q = l->firstElement() ) != 0 ) {
+        if ( q->state() != Query::Submitted )
             break;
 
-        String s;
-        Query *q = l->take( it );
+        l->shift();
         q->setState( Query::Executing );
 
         if ( !d->transaction && q->transaction() ) {
@@ -113,11 +112,11 @@ void Postgres::processQueue()
             d->transaction->setState( Transaction::Executing );
             d->transaction->setDatabase( this );
             l = d->transaction->queries();
-            it = l->first();
         }
 
         d->queries.append( q );
 
+        String s;
         if ( q->name() == "" ||
              !d->prepared.contains( q->name() ) )
         {
@@ -322,7 +321,7 @@ void Postgres::backendStartup( char type )
 
 void Postgres::process( char type )
 {
-    List< Query >::Iterator q( d->queries );
+    Query *q = d->queries.firstElement();
 
     extendTimeout( 5 );
 
@@ -451,7 +450,7 @@ void Postgres::unknown( char type )
         {
             d->unknownMessage = false;
             PgMessage msg( readBuffer() );
-            Query *q = d->queries.first();
+            Query *q = d->queries.firstElement();
 
             switch ( msg.severity() ) {
             case PgMessage::Panic:
