@@ -362,7 +362,7 @@ void String::appendNumber( uint n, int base )
     string. This implicitly causes the string to become modifiable and
     have a nonzero number of available bytes. */
 
-inline void String::reserve( uint num )
+void String::reserve( uint num )
 {
     if ( !num )
         num = 1;
