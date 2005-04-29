@@ -288,21 +288,20 @@ String * Buffer::removeLine( uint s )
     uint i = 0, n = 0;
     String * r;
 
-    if ( s == 0 )
+    if ( s == 0 || s > size() )
         s = size();
 
-    while ( i < s ) {
-        if ( (*this)[i] == '\015' && (*this)[i+1] == '\012' )
-            n = 2;
-        else if ( (*this)[i] == '\012' )
-            n = 1;
-        if ( n > 0 )
-            break;
+    while ( i < s && (*this)[i] != '\012' )
         i++;
-    }
 
-    if ( !n )
+    if ( i == s )
         return 0;
+
+    n = 1;
+    if ( i > 0 && (*this)[i-1] == '\015' ) {
+        i--;
+        n++;
+    }
 
     r = new String( string( i ) );
     remove( i+n );
