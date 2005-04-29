@@ -80,9 +80,6 @@ public:
     virtual String string() const;
     List< Value > *values() const;
 
-    List< int > *types() const;
-    void appendType( int );
-
     EventHandler *owner() const;
     void notify();
 

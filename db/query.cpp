@@ -122,6 +122,7 @@ Query::State Query::state() const
 
 static uint startup;
 
+
 /*! Sets the state of this object to \a s.
     The initial state of each Query is Inactive, and the Database changes
     it to indicate the query's progress.
@@ -316,24 +317,6 @@ String Query::string() const
 List< Query::Value > *Query::values() const
 {
     return &d->values;
-}
-
-
-/*! Returns a pointer to the list of pre-specified parameter types for
-    this query.
-*/
-
-List< int > *Query::types() const
-{
-    return &d->types;
-}
-
-
-/*! Appends the type \a n to the list of types to pre-specify. */
-
-void Query::appendType( int n )
-{
-    d->types.append( new int( n ) );
 }
 
 
@@ -731,4 +714,3 @@ String Column::typeName( Column::Type type )
     }
     return n;
 }
-
