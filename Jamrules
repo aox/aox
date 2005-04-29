@@ -8,9 +8,6 @@ VERSION = 0.93 ;
 
 MKDIR = mkdir -p ;
 
-if $(OPTIM) = "-O" {
-    OPTIM = ;
-}
 OPTIM ?= ;
 RANLIB = ;
 
@@ -23,7 +20,7 @@ else {
     C++ = g++ ;
     C++FLAGS += -Wall ;
     BUILD = build/gcc ;
-    if $(OPTIM) {
+    if $(OPTIM) != "-O" {
         BUILD = build/gcc$(OPTIM) ;
     }
 
