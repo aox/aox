@@ -264,7 +264,11 @@ void Allocator::deallocate( void * p )
     taken--;
     m->x.magic = 0;
     m->x.marked = false;
-    base = 0;
+
+    if ( base > i )
+        base = i;
+    if ( ::allocated > step )
+        ::allocated -= step;
 }
 
 
@@ -272,7 +276,7 @@ void Allocator::deallocate( void * p )
     pointer if \a p doesn't seem to be a valid pointer.
 */
 
-Allocator * Allocator::owner( void * p )
+inline Allocator * Allocator::owner( void * p )
 {
     if ( !p )
         return 0;
