@@ -239,11 +239,19 @@ String Address::toString() const
         r = d->name + ":;";
         break;
     case Normal:
-        if ( d->name.isEmpty() )
-            r = d->localpart + "@" + d->domain;
-        else
-            r = qhack( d->name ) +
-                " <" + d->localpart + "@" + d->domain + ">";
+        if ( d->name.isEmpty() ) {
+            r.append( d->localpart );
+            r.append( "@" );
+            r.append( d->domain );
+        }
+        else {
+            r.append( qhack( d->name ) );
+            r.append( " <" );
+            r.append( d->localpart );
+            r.append( "@" );
+            r.append( d->domain );
+            r.append( ">" );
+        }
     }
     return r;
 }
@@ -843,7 +851,15 @@ void AddressParser::error( const char * s, int i )
 
 static String key( Address * a )
 {
-    return a->name() + " " + a->localpart() + "@" + a->domain().lower();
+    String t;
+
+    t.append( a->name() );
+    t.append( " " );
+    t.append( a->localpart() );
+    t.append( "@" );
+    t.append( a->domain().lower() );
+
+    return t;
 }
 
 
@@ -864,7 +880,10 @@ void Address::uniquify( List<Address> * l )
         if ( !unique.contains( k ) ) {
             unique.insert( k, a );
             if ( !a->name().isEmpty() ) {
-                k = " " + a->localpart() + "@" + a->domain().lower();
+                k = " ";
+                k.append( a->localpart() );
+                k.append( "@" );
+                k.append( a->domain().lower() );
                 unique.insert( k, a );
             }
         }
