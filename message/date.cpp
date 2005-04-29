@@ -206,12 +206,101 @@ static struct {
     { 0, 0 }
 };
 
-static const char * months[] = { "jan", "feb", "mar", "apr",
-                                 "may", "jun", "jul", "aug",
-                                 "sep", "oct", "nov", "dec" };
+static const char * months[] = { "Jan", "Feb", "Mar", "Apr",
+                                 "May", "Jun", "Jul", "Aug",
+                                 "Sep", "Oct", "Nov", "Dec" };
 
-static const char * weekdays[] = { "mon", "tue", "wed", "thu",
-                                   "fri", "sat", "sun" };
+static const char * weekdays[] = { "Mon", "Tue", "Wed", "Thu",
+                                   "Fri", "Sat", "Sun" };
+
+// return 1-12 for january-december, or 0 for error
+static uint month( const String & name )
+{
+    uint n = 0;
+    switch ( name[0] ) {
+    case 'j': // "jan" "jun" "jul"
+    case 'J':
+        if ( (name[1]|0x20) == 'a' )
+            n = 1;
+        else if ( (name[2]|0x20) == 'n' )
+            n = 6;
+        else
+            n = 7;
+        break;
+    case 'f': // "feb"
+    case 'F':
+        n = 2;
+        break;
+    case 'm': // "mar" "may"
+    case 'M':
+        if ( (name[2]|0x20) == 'r' )
+            n = 3;
+        else
+            n = 5;
+        break;
+    case 'a': // "apr" "aug"
+    case 'A':
+        if ( (name[1]|0x20) == 'p' )
+            n = 4;
+        else
+            n = 8;
+        break;
+    case 's': // "sep"
+    case 'S':
+        n = 9;
+        break;
+    case 'o': // "oct"
+    case 'O':
+        n = 10;
+        break;
+    case 'n': // "nov"
+    case 'N':
+        n = 11;
+        break;
+    case 'd': // "dec"
+    case 'D':
+        n = 12;
+        break;
+    }
+    return n;
+}
+
+
+// return 1-7 for monday-sunday or 0 for error
+static uint weekday( const String & name )
+{
+    uint n = 0;
+    switch ( name[0] ) {
+    case 'm': // "mon"
+    case 'M':
+        n = 1;
+        break;
+    case 't': // "tue" "thu"
+    case 'T':
+        if ( (name[1]|0x20) == 'u' )
+            n = 2;
+        else
+            n = 4;
+        break;
+    case 'w': // "wed"
+    case 'W':
+        n = 3;
+        break;
+    case 'f': // "fri"
+    case 'F':
+        n = 5;
+        break;
+    case 's': // "sat" "sun"
+    case 'S':
+        if ( (name[1]|0x20) == 'a' )
+            n = 6;
+        else
+            n = 7;
+        break;
+    }
+    return n;
+}
+
 
 /*! Sets this date object to reflect the RFC 2822-format date \a s. If
     there are any syntax errors, the date is set to be invalid.
@@ -246,10 +335,7 @@ void Date::setRfc822( const String & s )
     }
     else {
         // sometimes there's no comma.
-        uint j = 0;
-        while ( j < 7 && !a.lower().startsWith( weekdays[j] ) )
-            j++;
-        if ( j < 7 )
+        if ( weekday( a ) )
             a = p.string();
     }
 
@@ -268,14 +354,7 @@ void Date::setRfc822( const String & s )
     if ( !ok )
         return;
 
-    uint j = 0;
-    while( j < 12 ) {
-        if ( s2.lower().startsWith( months[j] ) ) {
-            d->month = j+1;
-            j = 12;
-        }
-        j++;
-    }
+    d->month = month( s2 );
 
     if ( d->month == 0 ) {
         // also accept numerical months. fucked, but...
@@ -463,13 +542,13 @@ String Date::rfc822() const
 
     if ( d->year > 1925 && d->year < 2100 ) {
         int wd = dow( d->year, d->month, d->day );
-        r.append( String( weekdays[wd] ).headerCased() );
+        r.append( weekdays[wd] );
         r.append( ", " );
     }
 
     r.append( fn( d->day ) );
     r.append( " " );
-    r.append( String( months[d->month-1] ).headerCased() );
+    r.append( months[d->month-1] );
     r.append( " " );
     r.append( fn( d->year ) );
     r.append( " " );
@@ -513,7 +592,7 @@ String Date::imap() const
 
     r.append( zeroPrefixed( d->day, 2 ) );
     r.append( "-" );
-    r.append( String( months[ d->month-1 ] ).headerCased() );
+    r.append( months[ d->month-1 ] );
     r.append( "-" );
     r.append( zeroPrefixed( d->year, 4 ) );
     r.append( " " );
