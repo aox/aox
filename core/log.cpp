@@ -87,9 +87,21 @@ void Log::log( const String &m, Severity s )
         fprintf( stderr, "Mailstore: %s\n", m.simplified().cstr() );
 
     Logger *l = Logger::global();
-    if ( l )
-        l->send( id + " " + facility( fc ) + "/" + severity( s ) + " " +
-                 time() + " " + m.stripCRLF() + "\r\n" );
+    if ( !l )
+        return;
+
+    String t( id );
+    t.reserve( m.length() );
+    t.append( " " );
+    t.append( facility( fc ) );
+    t.append( "/" );
+    t.append( severity( s ) );
+    t.append( " " );
+    t.append( time() );
+    t.append( " " );
+    t.append( m.simplified() );
+    t.append( "\r\n" );
+    l->send( t );
 }
 
 
