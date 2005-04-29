@@ -210,24 +210,17 @@ void Buffer::remove( uint n )
 */
 
 
-/*! \overload
+/*! This private function retrieves bytes that are not in the first
+    Vector on behalf of operator[](). It's kept here to make the inline
+    function smaller. \a i is an internal variable, and this function
+    should never be called except from the operator.
 */
 
 char Buffer::at( uint i ) const
 {
-    if ( i >= bytes )
-        return 0;
-
-    i += firstused;
-
-    // Optimise heavily for the common case.
-    Vector *v = vecs.firstElement();
-    if ( v && v->len > i )
-        return *( v->base + i );
-
     List< Vector >::Iterator it( vecs );
 
-    v = it;
+    Vector *v = it;
     while ( i >= v->len ) {
         i -= v->len;
         ++it;

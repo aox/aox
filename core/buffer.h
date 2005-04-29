@@ -23,17 +23,25 @@ public:
     bool eof() const;
     uint size() const { return bytes; }
     void remove( uint );
-    char at( uint ) const;
     String string( uint ) const;
     String * removeLine( uint = 0 );
 
     char operator[]( uint i ) const {
+        if ( i >= bytes )
+            return 0;
+
+        i += firstused;
+        Vector *v = vecs.firstElement();
+        if ( v && v->len > i )
+            return *( v->base + i );
+
         return at( i );
     }
 
 private:
-    class BufferData *d;
+    char at( uint ) const;
 
+private:
     struct Vector {
         Vector() : base( 0 ), len( 0 ) {}
         char *base;
