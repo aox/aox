@@ -131,9 +131,6 @@ Logging to syslog
   it can't reopen the logfile.
 
 
-Can we use COPY to speed up bulk mail insertion?
-
-
 We need a SIEVE interpreter.
 
 
@@ -322,6 +319,12 @@ Log::~Log() calls commit(), but Log::id is already broken.
 
 
 bin/ms really needs cleaning up.
+
+
+We have to use COPY in the Injector
+
+  The potential performance benefits in light of Andrew's tests and the
+  bulk user loading at Perpetual make it absolutely necessary.
 
 
 
