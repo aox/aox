@@ -112,9 +112,16 @@ void Log::log( const String &m, Severity s )
 void Log::commit( Severity s )
 {
     Logger *l = Logger::global();
-    if ( l )
-        l->send( id + " commit " + facility( fc ) + "/" + severity( s ) +
-                 "\r\n" );
+    if ( !l )
+        return;
+
+    String t( id );
+    t.append( " commit " );
+    t.append( facility( fc ) );
+    t.append( "/" );
+    t.append( severity( s ) );
+    t.append( "\r\n" );
+    l->send( t );
 }
 
 
