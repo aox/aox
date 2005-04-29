@@ -116,17 +116,6 @@ Consider RFC2231:
   shouldn't.
 
 
-What to do about EventHandlers whose targets have died?
-
-  At the moment, our basic policy is to never delete a Connection or
-  EventHandler while it's working. If a Connection dies, we remove it
-  from the event loop's list and don't write to the fd any ore. When
-  noone has pointers to it any more, Allocator will reclaim the space
-  used by the Connection and its minion.
-
-  That should work, but we'll have to see whether it's a complete fix.
-
-
 Keeping stderr open
 
   Maybe we should keep it open forever. Maybe that should be a
@@ -324,13 +313,6 @@ C/R
 
 
 LogClient::reconnect should die, or at least suck less.
-
-
-Memory use.
-
-  At present, logd uses quite a lot of memory, and almost all of it is
-  unnecessary. Setting a breakpoint in alloc() and looking to see who
-  calls it should yield results in a hurry.
 
 
 Log::~Log() calls commit(), but Log::id is already broken.
