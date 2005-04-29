@@ -3,6 +3,7 @@
 #include "address.h"
 
 #include "dict.h"
+#include "stringlist.h"
 
 
 class AddressData
@@ -418,9 +419,12 @@ void AddressParser::add( String name,
         i++;
     if ( i > 0 )
         name = name.mid( i, name.length() - 2*i ).simplified();
+
     // step 2: if the name is the same as the address, kill it.
-    if ( ( name.lower() == localpart.lower()+"@"+domain.lower() ) ||
-         ( name.lower() == localpart.lower() ) )
+    if ( ( name.length() == localpart.length() &&
+           name.lower() == localpart.lower() ) ||
+         ( name.length() == localpart.length()+domain.length()+1 &&
+           name.lower() == localpart.lower()+"@"+domain.lower() ) )
         name = "";
 
     Address * a = new Address( name, localpart, domain );
@@ -707,12 +711,15 @@ String AddressParser::domain( int & i )
     else {
         // atoms, separated by '.' and (obsoletely) spaces. the spaces
         // are stripped.
-        dom = atom( i );
+        StringList atoms;
+
+        atoms.append( atom( i ) );
         comment( i );
         while( i >= 0 && d->s[i] == '.' ) {
             i--;
-            dom = atom( i ) + "." + dom;
+            atoms.prepend( new String( atom( i ) ) );
         }
+        dom = atoms.join( "." );
         if ( dom.isEmpty() )
             error( "zero-length domain", i );
     }
@@ -789,7 +796,8 @@ String AddressParser::phrase( int & i )
             // we allow atom "." as an alternative, too, to handle
             // initials.
             i--;
-            tmp = atom( i ) + ".";
+            tmp = atom( i );
+            tmp.append( "." );
         }
         else {
             // single word
@@ -823,12 +831,15 @@ String AddressParser::localpart( int & i )
     else {
         // atoms, separated by '.' and (obsoletely) spaces. the spaces
         // are stripped.
-        lp = atom( i );
+        StringList atoms;
+
+        atoms.append( atom( i ) );
         comment( i );
         while( i >= 0 && d->s[i] == '.' ) {
             i--;
-            lp = atom( i ) + "." + lp;
+            atoms.prepend( new String( atom( i ) ) );
         }
+        lp = atoms.join( "." );
     }
     return lp;
 }
