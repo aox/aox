@@ -23,8 +23,8 @@ public:
     void commit( Severity = Info );
     ~Log();
 
-    static String severity( Severity );
-    static String facility( Facility );
+    static const char * severity( Severity );
+    static const char * facility( Facility );
     static bool disastersYet();
 
 private:

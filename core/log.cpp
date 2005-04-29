@@ -148,9 +148,9 @@ static String time()
 
 /*! This static function returns a string describing \a s. */
 
-String Log::severity( Severity s )
+const char *Log::severity( Severity s )
 {
-    String i;
+    const char *i = 0;
 
     switch ( s ) {
     case Log::Debug:
@@ -173,9 +173,9 @@ String Log::severity( Severity s )
 
 /*! This static function returns a string describing \a f. */
 
-String Log::facility( Facility f )
+const char *Log::facility( Facility f )
 {
-    String i;
+    const char *i = 0;
 
     switch ( f ) {
     case Configuration:
