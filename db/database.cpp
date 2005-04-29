@@ -77,7 +77,6 @@ void Database::setup()
         return;
     }
 
-    // We create a single handle at startup, and others as needed.
     newHandle();
 }
 
@@ -96,7 +95,8 @@ void Database::submit( Query *q )
 
 /*! Adds the queries in the list \a q to the queue of submitted queries,
     and sets their state to Query::Submitted. The first available handle
-    will process them.
+    will process them (but it's not guaranteed that the same handle will
+    process them all. Use a Transaction if you depend on ordering).
 */
 
 void Database::submit( List< Query > *q )
@@ -183,7 +183,8 @@ void Database::removeHandle( Database * d )
 }
 
 
-/*! Returns the configured address of the database server. */
+/*! Returns the configured address of the database server (db-address).
+*/
 
 Endpoint Database::server()
 {
@@ -191,7 +192,7 @@ Endpoint Database::server()
 }
 
 
-/*! Returns the configured database name. */
+/*! Returns the configured database name (db-name). */
 
 String Database::name()
 {
@@ -199,7 +200,7 @@ String Database::name()
 }
 
 
-/*! Returns the configured database username. */
+/*! Returns the configured database username (db-user). */
 
 String Database::user()
 {
@@ -207,7 +208,7 @@ String Database::user()
 }
 
 
-/*! Returns the configured database password. */
+/*! Returns the configured database password (db-passwd). */
 
 String Database::password()
 {
