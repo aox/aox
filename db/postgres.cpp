@@ -378,9 +378,13 @@ void Postgres::process( char type )
 
             if ( q ) {
                 String s;
-                s.append( "Dequeueing query " + q->description() );
-                if ( q->rows() > 0 )
-                    s.append( " (with " + fn( q->rows() ) + " rows)" );
+                s.append( "Dequeueing query " );
+                s.append( q->description() );
+                if ( q->rows() > 0 ) {
+                    s.append( " (with " );
+                    s.append( fn( q->rows() ) );
+                    s.append( " rows)" );
+                }
                 log( s, Log::Debug );
                 if ( !q->done() )
                     q->setState( Query::Completed );
