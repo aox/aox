@@ -7,6 +7,7 @@
 
 
 extern void * alloc( uint, uint = UINT_MAX );
+extern void dealloc( void * );
 
 
 class Allocator
@@ -45,6 +46,9 @@ public:
     static uint allocated();
 
     uint chunkSize() const;
+
+    static Allocator * owner( void * );
+    void deallocate( void * );
 
 private:
     uint base;

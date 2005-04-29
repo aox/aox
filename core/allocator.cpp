@@ -65,6 +65,14 @@ void * alloc( uint s, uint n )
 }
 
 
+void dealloc( void * p )
+{
+    Allocator * a = Allocator::owner( p );
+    if ( a )
+        a->deallocate( p );
+}
+
+
 const uint bytes = sizeof(uint);
 const uint bits = 8 * sizeof(uint);
 const uint magic = 0x7d34;
@@ -231,23 +239,64 @@ void * Allocator::allocate( uint size, uint pointers )
 }
 
 
-/*! This private helper marks \a p and (recursively) all objects to
-    which \a p points.
+/*! Deallocates the object at \a p, provided that it's within this
+    Allocator. Calling this function is never necessary, since free()
+    does the same job. However, String helps out by doing it
+    occasionally.
 */
 
-void Allocator::mark( void * p )
+void Allocator::deallocate( void * p )
+{
+    uint i = ((uint)p - (uint)buffer) / step;
+    if ( i >= capacity )
+        return;
+    if ( ! (bitmap[i/bits] & 1 << (i%bits)) )
+        return;
+
+    AllocationBlock * m = (AllocationBlock *)block( i );
+    if ( m->x.magic != ::magic ) {
+        if ( verbose )
+            log( "Memory corrupt at 0x" + fn( (uint)m, 16 ),
+                 Log::Disaster );
+        throw Memory;
+    }
+    if ( !m->x.marked ) {
+        bitmap[i/bits] &= ~(1 << i);
+        taken--;
+        m->x.magic = 0;
+    }
+    m->x.marked = false;
+}
+
+
+/*! Returns a pointer to the Allocator in which \a p lies, or a null
+    pointer if \a p doesn't seem to be a valid pointer.
+*/
+
+Allocator * Allocator::owner( void * p )
 {
     if ( !p )
-        return;
+        return 0;
     uint q = (uint)p - ::heapStart;
     if ( q >= ::heapLength )
-        return;
+        return 0;
     uint ai = (uint)p >> 20;
     Allocator * a = 0;
     do {
         a = (Allocator*)(::byStart[ai]);
         ai--;
     } while ( ai && ( !a || (uint)a->buffer > (uint)p ) );
+    return a;
+}
+
+
+/*! This private helper marks \a p and (recursively) all objects to
+    which \a p points.
+*/
+
+void Allocator::mark( void * p )
+{
+    Allocator * a = owner( p );
     // a is the allocator we may want. does its area encompass p?
     if ( !a || (uint)a->buffer > (uint)p )
         return;
@@ -377,9 +426,9 @@ void * Allocator::block( uint i )
 }
 
 
-void Allocator::operator delete( void * )
+void Allocator::operator delete( void * p )
 {
-
+    //
 }
 
 

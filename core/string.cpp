@@ -91,13 +91,23 @@ String::String( const String &s )
     this prior to modifying the string. */
 
 
-/*! Destroys the string. Does not deallocate or even modify the
-    storage - the result of cstr() or data() remains valid until
-    Allocator::free() collects garbage.
+/*! Destroys the string.
+
+    Because String is used so much, and can eat up such vast amounts
+    of memory so quickly, this destructor does something: If the
+    string is the sole owner of its data, it frees them.
+
+    As of April 2005, the return values of data() or cstr() are NO
+    LONGER valid after a string has gone out of scope or otherwise been
+    lost.
 */
 
 String::~String()
 {
+    if ( modifiable() ) {
+        ::dealloc( d->str );
+        ::dealloc( d );
+    }
     d = 0;
 }
 
