@@ -6,6 +6,9 @@
 #include "string.h"
 #include "log.h"
 
+// fprintf
+#include <stdio.h>
+
 
 struct AllocationBlock
 {
@@ -50,10 +53,12 @@ void * alloc( uint s, uint n )
         n = s / sizeof( void* );
     Allocator * a = Allocator::allocator( s );
     void * p = a->allocate( s, n );
-    if ( ( total + allocated + s ) & 0xfff00000 >
-         ( total + allocated ) & 0xfff00000 ) {
+    if ( ( ( total + allocated + s ) & 0xfff00000 ) >
+         ( ( total + allocated ) & 0xfff00000 ) )
+    {
         // this is a good place to put a breakpoint when we want to
         // find out who allocates memory.
+        fprintf( stderr, "" );
     }
     allocated += a->chunkSize();
     return p;
