@@ -124,7 +124,7 @@ void LogServer::parse()
 void LogServer::processLine( const String &line )
 {
     if ( line.startsWith( "name " ) ) {
-        d->name = line.mid( 5 ).simplified();
+        d->name = line.mid( 5 );
         return;
     }
 
@@ -139,7 +139,7 @@ void LogServer::processLine( const String &line )
 
     String transaction = line.mid( 0, cmd );
     String priority = line.mid( cmd+1, msg-cmd-1 );
-    String parameters = line.mid( msg+1 ).simplified();
+    String parameters = line.mid( msg+1 );
 
     bool c = false;
     if ( priority == "commit" ) {
