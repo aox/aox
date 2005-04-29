@@ -70,8 +70,8 @@ void Buffer::append( const char *s, uint l )
         int remains = l - copied;
         Vector *f = f = new Vector;
         f->len = remains;
-        if ( f->len < 1024 )
-            f->len = 1024;
+        if ( f->len < 16384 )
+            f->len = 16384;
         f->len = Allocator::rounded( f->len );
         f->base = (char*)::alloc( f->len );
 
@@ -182,13 +182,20 @@ void Buffer::remove( uint n )
         n = bytes;
     bytes -= n;
 
-    Vector *v = vecs.first();
+    Vector *v = vecs.firstElement();
+
+    if ( bytes == 0 ) {
+        firstused = firstfree = 0;
+        vecs.clear();
+        vecs.append( v );
+        return;
+    }
 
     while ( v && n >= v->len - firstused ) {
         n -= v->len - firstused;
         firstused = 0;
         vecs.shift();
-        v = vecs.first();
+        v = vecs.firstElement();
     }
     if ( v ) {
         firstused += n;
