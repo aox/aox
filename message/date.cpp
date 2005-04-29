@@ -436,10 +436,9 @@ static int dow( int y, int m, int d )
 // these two may be candidates for String...
 static String zeroPrefixed( int n, uint w )
 {
-    String r = fn( n );
-    while ( r.length() < w )
-        r = "0" + r;
-    return r;
+    String z( "0000" );
+    z.append( fn( n ) );
+    return z.mid( z.length()-w );
 }
 
 
@@ -462,22 +461,38 @@ String Date::rfc822() const
     if ( !valid() )
         return r;
 
-    if ( d->year > 1925 && d->year < 2100 )
-        r = String( weekdays[dow( d->year, d->month, d->day )] ).headerCased()
-            + ", ";
+    if ( d->year > 1925 && d->year < 2100 ) {
+        int wd = dow( d->year, d->month, d->day );
+        r.append( String( weekdays[wd] ).headerCased() );
+        r.append( ", " );
+    }
 
-    r.append( fn( d->day ) + " " +
-              String( months[d->month-1] ).headerCased() + " " +
-              fn( d->year ) + " " +
-              zeroPrefixed( d->hour, 2 ) + ":" +
-              zeroPrefixed( d->minute, 2 ) + ":" +
-              zeroPrefixed( d->second, 2 ) + " " +
-              ( ( d->minus0 || d->tz < 0 ) ? "-" : "+" ) +
-              zeroPrefixed( abs( d->tz ) / 60, 2 ) +
-              zeroPrefixed( abs( d->tz ) % 60, 2 ) );
+    r.append( fn( d->day ) );
+    r.append( " " );
+    r.append( String( months[d->month-1] ).headerCased() );
+    r.append( " " );
+    r.append( fn( d->year ) );
+    r.append( " " );
+    r.append( zeroPrefixed( d->hour, 2 ) );
+    r.append( ":" );
+    r.append( zeroPrefixed( d->minute, 2 ) );
+    r.append( ":" );
+    r.append( zeroPrefixed( d->second, 2 ) );
+    r.append( " " );
 
-    if ( !d->minus0  && d->tzn.length() > 0 )
-        r.append( " (" + d->tzn.upper() + ")" );
+    if ( d->minus0 || d->tz < 0 )
+        r.append( "-" );
+    else
+        r.append( "+" );
+
+    r.append( zeroPrefixed( abs( d->tz ) / 60, 2 ) );
+    r.append( zeroPrefixed( abs( d->tz ) % 60, 2 ) );
+
+    if ( !d->minus0 && d->tzn.length() > 0 ) {
+        r.append( " (" );
+        r.append( d->tzn.upper() );
+        r.append( ")" );
+    }
 
     return r;
 }
@@ -496,15 +511,27 @@ String Date::imap() const
     if ( !d->valid )
         return r;
 
-    r = zeroPrefixed( d->day, 2 ) + "-" +
-        String( months[ d->month-1 ] ).headerCased() + "-" +
-        zeroPrefixed( d->year, 4 ) + " " +
-        zeroPrefixed( d->hour, 2 ) + ":" +
-        zeroPrefixed( d->minute, 2 ) + ":" +
-        zeroPrefixed( d->second, 2 ) + " " +
-        ( ( d->minus0 || d->tz < 0 ) ? "-" : "+" ) +
-        zeroPrefixed( abs( d->tz ) / 60, 2 ) +
-        zeroPrefixed( abs( d->tz ) % 60, 2 );
+    r.append( zeroPrefixed( d->day, 2 ) );
+    r.append( "-" );
+    r.append( String( months[ d->month-1 ] ).headerCased() );
+    r.append( "-" );
+    r.append( zeroPrefixed( d->year, 4 ) );
+    r.append( " " );
+    r.append( zeroPrefixed( d->hour, 2 ) );
+    r.append( ":" );
+    r.append( zeroPrefixed( d->minute, 2 ) );
+    r.append( ":" );
+    r.append( zeroPrefixed( d->second, 2 ) );
+    r.append( " " );
+
+    if ( d->minus0 || d->tz < 0 )
+        r.append( "-" );
+    else
+        r.append( "+" );
+
+    r.append( zeroPrefixed( abs( d->tz ) / 60, 2 ) );
+    r.append( zeroPrefixed( abs( d->tz ) % 60, 2 ) );
+
     return r;
 }
 
@@ -596,5 +623,3 @@ int Date::offset() const
         return 0;
     return d->tz;
 }
-
-
