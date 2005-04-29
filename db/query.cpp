@@ -363,17 +363,30 @@ String Query::description()
             int n = v->length();
             if ( n == -1 )
                 r = "NULL";
-            else if ( n <= 16 && v->format() != Query::Binary )
-                r = "'" + v->data() + "'";
-            else
-                r = "...{" + fn( n ) + "}";
-            p.append( fn(i) + "=" + r );
+            else if ( n <= 16 && v->format() != Query::Binary ) {
+                r.append( "'" );
+                r.append( v->data() );
+                r.append( "'" );
+            }
+            else {
+                r.append( "...{" );
+                r.append( fn( n ) );
+                r.append( "}" );
+            }
+            p.append( fn(i) );
+            p.append( "=" );
+            p.append( r );
             ++v;
         }
 
-        d->description.append( "\"" + string() + "\"" );
-        if ( i > 0 )
-            d->description.append( " (" + p.join(",") + ")" );
+        d->description.append( "\"" );
+        d->description.append( string() );
+        d->description.append( "\"" );
+        if ( i > 0 ) {
+            d->description.append( " (" );
+            d->description.append( p.join(",") );
+            d->description.append( ")" );
+        }
     }
 
     return d->description;

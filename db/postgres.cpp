@@ -116,7 +116,7 @@ void Postgres::processQueue()
 
         d->queries.append( q );
 
-        String s;
+        String s( "Sent " );
         if ( q->name() == "" ||
              !d->prepared.contains( q->name() ) )
         {
@@ -141,8 +141,9 @@ void Postgres::processQueue()
         PgSync e;
         e.enqueue( writeBuffer() );
 
-        s.append( "execute" );
-        log( "Sent " + s + " for " + q->description(), Log::Debug );
+        s.append( "execute for " );
+        s.append( q->description() );
+        log( s, Log::Debug );
         n++;
     }
 
