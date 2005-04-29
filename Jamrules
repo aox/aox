@@ -8,7 +8,10 @@ VERSION = 0.93 ;
 
 MKDIR = mkdir -p ;
 
-OPTIM = ;
+if $(OPTIM) = "-O" {
+    OPTIM = ;
+}
+OPTIM ?= ;
 RANLIB = ;
 
 if $(ICC) {
@@ -20,6 +23,9 @@ else {
     C++ = g++ ;
     C++FLAGS += -Wall ;
     BUILD = build/gcc ;
+    if $(OPTIM) {
+        BUILD = build/gcc$(OPTIM) ;
+    }
 
     if $(COV) {
         C++FLAGS += -fprofile-arcs -ftest-coverage ;
