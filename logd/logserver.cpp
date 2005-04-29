@@ -137,9 +137,9 @@ void LogServer::processLine( const String &line )
     if ( msg <= cmd+1 )
         return;
 
-    String transaction = line.mid( 0, cmd );
-    String priority = line.mid( cmd+1, msg-cmd-1 );
-    String parameters = line.mid( msg+1 );
+    String transaction( line.mid( 0, cmd ) );
+    String priority( line.mid( cmd+1, msg-cmd-1 ) );
+    String parameters( line.mid( msg+1 ) );
 
     bool c = false;
     if ( priority == "commit" ) {
@@ -314,30 +314,35 @@ static Log::Facility facility( const String &l )
 {
     Log::Facility f = Log::General;
 
-    String p = l.lower();
-    switch ( p[0] ) {
+    switch ( l[0] ) {
     case 'i':
-        //if ( p == "imap" )
+    case 'I':
         f = Log::IMAP;
         break;
+
     case 'c':
-        //if ( p == "configuration" )
+    case 'C':
         f = Log::Configuration;
         break;
+
     case 'd':
-        //if ( p == "database" )
+    case 'D':
         f = Log::Database;
         break;
+
     case 'a':
-        //if ( p == "authentication" )
+    case 'A':
         f = Log::Authentication;
         break;
+
     case 's':
-        if ( p == "smtp" )
+    case 'S':
+        if ( l[1]|0x20 == 'm' )
             f = Log::SMTP;
-        else if ( p == "server" )
+        else
             f = Log::Server;
         break;
+
     default:
         f = Log::General;
         break;
@@ -354,15 +359,19 @@ static Log::Severity severity( const String &l )
     case 'E':
         s = Log::Debug;
         break;
+
     case 'n':
     case 'N':
         s = Log::Info;
         break;
+
     case 'r':
     case 'R':
         s = Log::Error;
         break;
+
     case 'i':
+    case 'I':
         s = Log::Disaster;
         break;
     }
