@@ -32,6 +32,8 @@ public:
     String & operator=( const char * );
     String & operator+=( const String & str ) { append( str ); return *this; }
 
+    void operator delete( void * );
+
     // const, returns zero when used beyond the end
     inline char operator[]( uint i ) const {
         if ( !d )

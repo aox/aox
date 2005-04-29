@@ -112,6 +112,20 @@ String::~String()
 }
 
 
+/*! Deletes \a p. (This function exists only so that gcc -O3 doesn't
+    decide that String objects don't need destruction.)
+*/
+
+void String::operator delete( void *p )
+{
+    if ( ((String *)p)->modifiable() ) {
+        ::dealloc( ((String *)p)->d->str );
+        ::dealloc( ((String *)p)->d );
+    }
+    ((String *)p)->d = 0;
+}
+
+
 /*! Copies \a other to this string and returns a reference to this
     string. */
 
