@@ -38,6 +38,7 @@ void operator delete( void * )   {}
 void operator delete[]( void * ) {}
 
 
+static int total;
 static uint allocated;
 
 
@@ -49,6 +50,11 @@ void * alloc( uint s, uint n )
         n = s / sizeof( void* );
     Allocator * a = Allocator::allocator( s );
     void * p = a->allocate( s, n );
+    if ( ( total + allocated + s ) & 0xfff00000 >
+         ( total + allocated ) & 0xfff00000 ) {
+        // this is a good place to put a breakpoint when we want to
+        // find out who allocates memory.
+    }
     allocated += a->chunkSize();
     return p;
 }
@@ -276,7 +282,7 @@ void Allocator::mark( void * p )
 
 void Allocator::free()
 {
-    uint total = 0;
+    total = 0;
     uint freed = 0;
     uint objects = 0;
     // mark
