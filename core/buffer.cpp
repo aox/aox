@@ -15,19 +15,6 @@
 #include <unistd.h>
 
 
-class BufferData {
-public:
-    BufferData()
-        : eof( false ), firstused( 0 ), firstfree( 0 ), size( 0 )
-    {}
-
-    int fd;
-    bool eof;
-    uint firstused, firstfree;
-    uint size;
-};
-
-
 /*! \class Buffer buffer.h
     A Buffer is a FIFO of bytes.
 
@@ -47,19 +34,8 @@ public:
 */
 
 Buffer::Buffer()
-    : d( new BufferData )
+    : firstused( 0 ), firstfree( 0 ), seenEOF( false ), bytes( 0 )
 {
-}
-
-
-/*! Destroys a Buffer, freeing all allocated memory, and discarding all
-    buffered data.
-*/
-
-Buffer::~Buffer()
-{
-    delete d;
-    d = 0;
 }
 
 
@@ -74,17 +50,17 @@ void Buffer::append( const char *s, uint l )
     if ( l == 0 )
         return;
 
-    d->size += l;
+    bytes += l;
 
     // First, we copy as much as we can into the last vector.
     uint n, copied = 0;
     Vector *v = vecs.last();
-    if ( v && (n = v->len - d->firstfree) > 0 ) {
+    if ( v && (n = v->len - firstfree) > 0 ) {
         if ( n > l )
             n = l;
 
-        memmove(v->base+d->firstfree, s, n);
-        d->firstfree += n;
+        memmove(v->base+firstfree, s, n);
+        firstfree += n;
         copied = n;
 
     }
@@ -100,7 +76,7 @@ void Buffer::append( const char *s, uint l )
         f->base = (char*)::alloc( f->len );
 
         if ( vecs.isEmpty() )
-            d->firstused = 0;
+            firstused = 0;
         vecs.append(f);
 
         int n = f->len;
@@ -108,7 +84,7 @@ void Buffer::append( const char *s, uint l )
             n = remains;
 
         memmove(f->base, s+copied, n);
-        d->firstfree = n;
+        firstfree = n;
         copied += n;
     }
 }
@@ -139,11 +115,11 @@ void Buffer::read( int fd )
         n = ::read( fd, &buf, 8192 );
 
         if ( n > 0 ) {
-            d->eof = false;
+            seenEOF = false;
             append( buf, n );
         }
         else if ( n == 0 ) {
-            d->eof = true;
+            seenEOF = true;
         }
         else if ( errno != EAGAIN &&
                   errno != EWOULDBLOCK )
@@ -170,10 +146,10 @@ void Buffer::write( int fd )
 
         int max = v->len;
         if ( vecs.count() == 1 )
-            max = d->firstfree;
-        int n = max - d->firstused;
+            max = firstfree;
+        int n = max - firstused;
 
-        written = ::write( fd, v->base+d->firstused, n );
+        written = ::write( fd, v->base+firstused, n );
         if ( written > 0 )
             remove(written);
         else if ( written < 0 && errno != EAGAIN )
@@ -187,16 +163,13 @@ void Buffer::write( int fd )
 
 bool Buffer::eof() const
 {
-    return d->eof;
+    return seenEOF;
 }
 
 
-/*! Returns the number of bytes in the Buffer. */
-
-uint Buffer::size() const
-{
-    return d->size;
-}
+/*! \fn uint Buffer::size() const
+    Returns the number of bytes in the Buffer.
+*/
 
 
 /*! Discards the first \a n bytes from the Buffer. If there are fewer
@@ -205,27 +178,27 @@ uint Buffer::size() const
 
 void Buffer::remove( uint n )
 {
-    if ( n > d->size )
-        n = d->size;
-    d->size -= n;
+    if ( n > bytes )
+        n = bytes;
+    bytes -= n;
 
     Vector *v = vecs.first();
 
-    while ( v && n >= v->len - d->firstused ) {
-        n -= v->len - d->firstused;
-        d->firstused = 0;
+    while ( v && n >= v->len - firstused ) {
+        n -= v->len - firstused;
+        firstused = 0;
         vecs.shift();
         v = vecs.first();
     }
     if ( v ) {
-        d->firstused += n;
-        if ( d->firstused >= d->firstfree && vecs.count() == 1 ) {
+        firstused += n;
+        if ( firstused >= firstfree && vecs.count() == 1 ) {
             vecs.shift();
-            d->firstused = d->firstfree = 0;
+            firstused = firstfree = 0;
         }
     }
     else {
-        d->firstused = 0;
+        firstused = 0;
     }
 }
 
@@ -242,10 +215,10 @@ void Buffer::remove( uint n )
 
 char Buffer::at( uint i ) const
 {
-    if ( i >= d->size )
+    if ( i >= bytes )
         return 0;
 
-    i += d->firstused;
+    i += firstused;
 
     // Optimise heavily for the common case.
     Vector *v = vecs.firstElement();
@@ -287,14 +260,14 @@ String Buffer::string( uint num ) const
     int max = v->len;
 
     if ( vecs.count() == 1 )
-        max = d->firstfree;
+        max = firstfree;
 
-    uint copied = max - d->firstused;
+    uint copied = max - firstused;
 
     if ( copied > n )
         copied = n;
 
-    result.append( v->base + d->firstused, copied );
+    result.append( v->base + firstused, copied );
 
     while ( copied < n ) {
         v = ++it;

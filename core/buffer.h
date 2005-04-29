@@ -13,7 +13,6 @@ class String;
 class Buffer {
 public:
     Buffer();
-    ~Buffer();
 
     void append( const String & );
     void append( const char *, uint = 0 );
@@ -22,7 +21,7 @@ public:
     void write( int );
 
     bool eof() const;
-    uint size() const;
+    uint size() const { return bytes; }
     void remove( uint );
     char at( uint ) const;
     String string( uint ) const;
@@ -42,6 +41,9 @@ private:
     };
 
     List< Vector > vecs;
+    uint firstused, firstfree;
+    bool seenEOF;
+    uint bytes;
 };
 
 
