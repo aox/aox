@@ -11,8 +11,6 @@
 #include <errno.h>
 // open, O_CREAT|O_RDWR|O_EXCL
 #include <fcntl.h>
-// struct iovec
-#include <sys/uio.h>
 // read, write, unlink, lseek, close
 #include <unistd.h>
 
@@ -25,7 +23,6 @@ public:
 
     int fd;
     bool eof;
-    List< struct iovec > vecs;
     uint firstused, firstfree;
     uint size;
 };
@@ -81,12 +78,12 @@ void Buffer::append( const char *s, uint l )
 
     // First, we copy as much as we can into the last vector.
     uint n, copied = 0;
-    struct iovec *v = d->vecs.last();
-    if ( v && (n = v->iov_len - d->firstfree) > 0 ) {
+    Vector *v = vecs.last();
+    if ( v && (n = v->len - d->firstfree) > 0 ) {
         if ( n > l )
             n = l;
 
-        memmove((char *)v->iov_base+d->firstfree, s, n);
+        memmove(v->base+d->firstfree, s, n);
         d->firstfree += n;
         copied = n;
 
@@ -95,22 +92,22 @@ void Buffer::append( const char *s, uint l )
     // Then we use a new vector for the rest.
     if ( copied < l ) {
         int remains = l - copied;
-        struct iovec *f = f = new struct iovec;
-        f->iov_len = remains;
-        if ( f->iov_len < 1024 )
-            f->iov_len = 1024;
-        f->iov_len = Allocator::rounded( f->iov_len );
-        f->iov_base = (char*)::alloc( f->iov_len );
+        Vector *f = f = new Vector;
+        f->len = remains;
+        if ( f->len < 1024 )
+            f->len = 1024;
+        f->len = Allocator::rounded( f->len );
+        f->base = (char*)::alloc( f->len );
 
-        if ( d->vecs.isEmpty() )
+        if ( vecs.isEmpty() )
             d->firstused = 0;
-        d->vecs.append(f);
+        vecs.append(f);
 
-        int n = f->iov_len;
+        int n = f->len;
         if ( n > remains )
             n = remains;
 
-        memmove(f->iov_base, s+copied, n);
+        memmove(f->base, s+copied, n);
         d->firstfree = n;
         copied += n;
     }
@@ -124,7 +121,7 @@ void Buffer::append( const char *s, uint l )
 void Buffer::append(const String &s)
 {
     if ( s.length() > 0 )
-        append( (char *)s.data(), s.length() );
+        append( s.data(), s.length() );
 }
 
 
@@ -166,17 +163,17 @@ void Buffer::write( int fd )
     int written = 0;
 
     do {
-        struct iovec *v = d->vecs.first();
+        Vector *v = vecs.first();
 
         if ( !v )
             return;
 
-        int max = v->iov_len;
-        if ( d->vecs.count() == 1 )
+        int max = v->len;
+        if ( vecs.count() == 1 )
             max = d->firstfree;
         int n = max - d->firstused;
 
-        written = ::write( fd, (char *)v->iov_base+d->firstused, n );
+        written = ::write( fd, v->base+d->firstused, n );
         if ( written > 0 )
             remove(written);
         else if ( written < 0 && errno != EAGAIN )
@@ -212,18 +209,18 @@ void Buffer::remove( uint n )
         n = d->size;
     d->size -= n;
 
-    struct iovec *v = d->vecs.first();
+    Vector *v = vecs.first();
 
-    while ( v && n >= v->iov_len - d->firstused ) {
-        n -= v->iov_len - d->firstused;
+    while ( v && n >= v->len - d->firstused ) {
+        n -= v->len - d->firstused;
         d->firstused = 0;
-        d->vecs.shift();
-        v = d->vecs.first();
+        vecs.shift();
+        v = vecs.first();
     }
     if ( v ) {
         d->firstused += n;
-        if ( d->firstused >= d->firstfree && d->vecs.count() == 1 ) {
-            d->vecs.shift();
+        if ( d->firstused >= d->firstfree && vecs.count() == 1 ) {
+            vecs.shift();
             d->firstused = d->firstfree = 0;
         }
     }
@@ -251,20 +248,20 @@ char Buffer::at( uint i ) const
     i += d->firstused;
 
     // Optimise heavily for the common case.
-    struct iovec *v = d->vecs.firstElement();
-    if ( v && v->iov_len > i )
-        return *( (char *)v->iov_base + i );
+    Vector *v = vecs.firstElement();
+    if ( v && v->len > i )
+        return *( v->base + i );
 
-    List< struct iovec >::Iterator it( d->vecs );
+    List< Vector >::Iterator it( vecs );
 
     v = it;
-    while ( i >= v->iov_len ) {
-        i -= v->iov_len;
+    while ( i >= v->len ) {
+        i -= v->len;
         ++it;
         v = it;
     }
 
-    return *( (char *)v->iov_base + i );
+    return *( v->base + i );
 }
 
 
@@ -284,12 +281,12 @@ String Buffer::string( uint num ) const
         n = num;
     result.reserve( n );
 
-    List< struct iovec >::Iterator it( d->vecs );
-    struct iovec *v = it;
+    List< Vector >::Iterator it( vecs );
+    Vector *v = it;
 
-    int max = v->iov_len;
+    int max = v->len;
 
-    if ( d->vecs.count() == 1 )
+    if ( vecs.count() == 1 )
         max = d->firstfree;
 
     uint copied = max - d->firstused;
@@ -297,14 +294,14 @@ String Buffer::string( uint num ) const
     if ( copied > n )
         copied = n;
 
-    result.append( (const char *)v->iov_base + d->firstused, copied );
+    result.append( v->base + d->firstused, copied );
 
     while ( copied < n ) {
         v = ++it;
-        uint l = v->iov_len;
+        uint l = v->len;
         if ( copied + l > n )
             l = n - copied;
-        result.append( (const char *)v->iov_base, l );
+        result.append( v->base, l );
         copied += l;
     }
 

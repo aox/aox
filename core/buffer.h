@@ -4,6 +4,8 @@
 #define BUFFER_H
 
 #include "global.h"
+#include "list.h"
+
 
 class String;
 
@@ -32,6 +34,14 @@ public:
 
 private:
     class BufferData *d;
+
+    struct Vector {
+        Vector() : base( 0 ), len( 0 ) {}
+        char *base;
+        uint len;
+    };
+
+    List< Vector > vecs;
 };
 
 
