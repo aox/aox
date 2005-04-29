@@ -166,7 +166,7 @@ void Permissions::execute()
 
 char Permissions::rightChar( Permissions::Right right )
 {
-    char c;
+    char c = '\0';
     switch ( right ) {
     case Permissions::Lookup:
         c = 'l';
@@ -202,7 +202,6 @@ char Permissions::rightChar( Permissions::Right right )
         c = 'a';
         break;
     case Permissions::NumRights:
-        c = '\0';
         break;
     }
     return c;
