@@ -25,5 +25,5 @@ SelfLogger::SelfLogger()
 
 void SelfLogger::send( const String & s )
 {
-    ls->processLine( s );
+    ls->processLine( s.stripCRLF() );
 }
