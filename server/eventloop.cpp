@@ -171,8 +171,11 @@ void EventLoop::start()
                 exit( 0 );
             }
         }
-        if ( now - gc > 10 && !d->stop &&
-             Allocator::allocated() >= 131072 )
+
+        if ( !d->stop &&
+             ( now - gc > 60 ||
+               Allocator::allocated() > 8*1024*1024 ||
+               ( now - gc > 10 && Allocator::allocated() >= 131072 ) ) )
         {
             Allocator::free();
             gc = time( 0 );
