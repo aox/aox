@@ -81,6 +81,7 @@ public:
     void append( const char * );
 
     void reserve( uint );
+    void reserve2( uint );
     void truncate( uint );
 
     enum Encoding { Binary, Base64, QP };

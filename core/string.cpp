@@ -352,13 +352,24 @@ void String::appendNumber( uint n, int base )
     string. This implicitly causes the string to become modifiable and
     have a nonzero number of available bytes. */
 
-void String::reserve( uint num )
+inline void String::reserve( uint num )
 {
     if ( !num )
         num = 1;
-    if ( d && d->max >= num )
-        return;
+    if ( !d || d->max < num )
+        reserve2( num );
+}
 
+/*! Equivalent to reserve(). reserve( \a num ) calls this function to
+    do the heavy lifting. This function is not inline, while reserve()
+    is, and calls to this function should be interesting wrt. memory
+    allocation statistics.
+
+    Noone except reserve() should call reserve2().
+*/
+
+void String::reserve2( uint num )
+{
     num = Allocator::rounded( num );
 
     if ( !d ) {
