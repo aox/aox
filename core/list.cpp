@@ -48,16 +48,19 @@
 /*! \fn T *List::firstElement() const
     This function returns the contents of the first element in the List,
     without the need to create and dereference an Iterator with first().
+    Returns 0 if the list isEmpty().
 */
 
 
 /*! \fn Iterator &List::first() const
     Returns an Iterator that points to the first element in the List.
+    The Iterator evaluates to 0 if the list isEmpty().
 */
 
 
 /*! \fn Iterator &List::last() const
     Returns an Iterator that points to the last element in the List.
+    The Iterator evaluates to 0 if the list isEmpty().
 */
 
 
@@ -76,13 +79,15 @@
 
 
 /*! \fn T *List::pop()
-    Removes the last element from the List and returns it.
+    Removes the last element from the List and returns it, or 0 if there
+    is no element to remove. Equivalent to take( last() ).
 */
 
 
 /*! \fn T *List::shift()
-    Removes the first element from the List and returns it.
-
+    Removes the first element from the List and returns it, or 0 if the
+    list isEmpty(). This is equivalent to take( first() ), but doesn't
+    allocate as much memory.
 */
 
 
@@ -156,5 +161,3 @@
     This function inserts the object \a d into a SortedList, and returns
     a reference to an Iterator pointing to it.
 */
-
-
