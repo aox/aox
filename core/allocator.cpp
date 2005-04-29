@@ -48,7 +48,7 @@ static uint allocated;
 void * alloc( uint s, uint n )
 {
     if ( s > SizeLimit )
-        throw Memory;
+        die( Memory );
     if ( n > s / sizeof( void* ) )
         n = s / sizeof( void* );
     Allocator * a = Allocator::allocator( s );
@@ -218,7 +218,7 @@ void * Allocator::allocate( uint size, uint pointers )
                     if ( b->x.magic == ::magic ) {
                         if ( verbose )
                             log( "Internal error in allocate" );
-                        throw Memory;
+                        die( Memory );
                     }
                     b->x.number = pointers;
                     b->x.magic = ::magic;
@@ -258,14 +258,13 @@ void Allocator::deallocate( void * p )
         if ( verbose )
             log( "Memory corrupt at 0x" + fn( (uint)m, 16 ),
                  Log::Disaster );
-        throw Memory;
+        die( Memory );
     }
-    if ( !m->x.marked ) {
-        bitmap[i/bits] &= ~(1 << i);
-        taken--;
-        m->x.magic = 0;
-    }
+    bitmap[i/bits] &= ~(1 << i);
+    taken--;
+    m->x.magic = 0;
     m->x.marked = false;
+    base = 0;
 }
 
 
@@ -314,7 +313,7 @@ void Allocator::mark( void * p )
             log( "Would have marked non-object at 0x" + fn( (uint)b, 16 ) +
                  " because of a pointer to 0x" + fn( (uint)p, 16 ),
                  Log::Disaster );
-        throw Memory;
+        die( Memory );
         return;
     }
     // is it already marked?
@@ -397,7 +396,7 @@ void Allocator::sweep()
                     if ( verbose )
                         log( "Memory corrupt at 0x" + fn( (uint)m, 16 ),
                              Log::Disaster );
-                    throw Memory;
+                    die( Memory );
                 }
                 if ( !m->x.marked ) {
                     bitmap[b] &= ~(1 << i);
@@ -470,7 +469,7 @@ void Allocator::addEternal( void * p, const char * t )
     // roots in a loop.
     log( String( "Ran out of roots. Last allocated root: " ) + t,
          Log::Disaster );
-    throw Memory;
+    die( Memory );
 }
 
 
