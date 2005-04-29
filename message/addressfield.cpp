@@ -244,7 +244,7 @@ void AddressField::outlawBounce()
 {
     List< Address >::Iterator it( a );
     while ( it && valid() ) {
-        if ( it->toString() == "<>" )
+        if ( it->type() == Address::Bounce )
             setError( "No-bounce address not allowed in this field" );
         ++it;
     }
