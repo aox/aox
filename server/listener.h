@@ -59,7 +59,7 @@ public:
     {
         Listener< T > *l = 0;
 
-        bool use;
+        bool use = false;
         Configuration::Text address;
         Configuration::Scalar port;
 
@@ -115,11 +115,11 @@ public:
             port = Configuration::TlsProxyPort;
         }
 
-        String a = Configuration::text( address );
-        uint p = Configuration::scalar( port );
-
         if ( !use )
             return;
+
+        String a = Configuration::text( address );
+        uint p = Configuration::scalar( port );
 
         if ( a.isEmpty() ) {
             bool use6 = Configuration::toggle( Configuration::UseIPv6 );
