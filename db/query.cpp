@@ -359,7 +359,8 @@ String Query::description()
         while ( v ) {
             i++;
 
-            String r;
+            String r( fn( i ) );
+            r.append( "=" );
             int n = v->length();
             if ( n == -1 )
                 r = "NULL";
@@ -373,8 +374,6 @@ String Query::description()
                 r.append( fn( n ) );
                 r.append( "}" );
             }
-            p.append( fn(i) );
-            p.append( "=" );
             p.append( r );
             ++v;
         }
