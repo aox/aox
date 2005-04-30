@@ -541,3 +541,87 @@ uint Allocator::chunkSize() const
 {
     return step;
 }
+
+
+/*! Scans the pointer in \a p and returns its total size, ie. the sum
+    of the sizes of the objects to which it contains. If it contains
+    several pointers to the same object, that object is counted several
+    times.
+
+    if \a print is true and the total cost is ast least \a limit,
+    scanHelper() also prints some debug output on stdout, prefixed by
+    \a level spaces. If \a print is false, \a level and \a limit are
+    ignored.
+*/
+
+uint Allocator::scanHelper( void * p, bool print,
+                            uint level, uint limit )
+{
+    uint sz = 0;
+
+    Allocator * a = owner( p );
+    if ( !a )
+        return 0;
+
+    uint i = ((uint)p - (uint)a->buffer) / a->step;
+    AllocationBlock * b = (AllocationBlock *)a->block( i );
+    if ( !b )
+        return 0;
+    if ( ! (a->bitmap[i/bits] & 1 << (i%bits)) )
+        return 0;
+
+    if ( b->x.magic != ::magic )
+        return 0; // recusing would be bad.
+    if ( b->x.marked )
+        return 0;
+    b->x.marked = true;
+    uint n = b->x.number;
+    while ( n ) {
+        n--;
+        if ( b->payload[n] )
+            sz += scanHelper( b->payload[n], print, level+1, limit );
+    }
+    b->x.marked = false;
+    sz += a->step;
+
+    if ( !print || level >= 16 || (level > 0 && sz < limit ) )
+        return sz;
+
+    char s[16];
+    if ( sz > 1024*1024*1024 )
+        sprintf( s, "%.2fGB", sz / 1024.0 / 1024.0 / 1024.0 );
+    else if ( sz > 1024*1024 )
+        sprintf( s, "%.2fMB", sz / 1024.0 / 1024.0 );
+    if ( sz > 1024 )
+        sprintf( s, "%.2fK", sz / 1024.0 );
+    else
+        sprintf( s, "%d", sz );
+    printf( "%*.*s0x%08x: %s\n", level, level, "                ",
+            (uint)p, s );
+    return sz;
+}
+
+
+/*! This debug function prints a summary of the memory usage for \a p
+    on stdout. It can be conveniently be called using 'call
+    Allocator::scan( \a p )' from gdb.
+*/
+
+void Allocator::scan( void * p )
+{
+    scanHelper( p, false, 0, sizeOf( p ) / 20 );
+}
+
+
+/*! Returns the amount of memory allocated to hold \a p and any object
+    to which p points.
+
+    The return value can bee an overstatement. For example, if \a p
+    contains two pointers to the same object, that object is counted
+    twice.
+*/
+
+uint Allocator::sizeOf( void * p )
+{
+    return scanHelper( p, false );
+}
