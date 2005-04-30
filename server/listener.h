@@ -55,69 +55,14 @@ public:
         }
     }
 
-    static void create( const String &svc )
+    static void create( const String &svc, bool use,
+                        Configuration::Text address,
+                        Configuration::Scalar port )
     {
-        Listener< T > *l = 0;
-
-        bool use = false;
-        Configuration::Text address;
-        Configuration::Scalar port;
-
-        String s = svc.lower();
-        if ( s == "log" ) {
-            use = 1;
-            address = Configuration::LogAddress;
-            port = Configuration::LogPort;
-        }
-        else if ( s == "ocd" ) {
-            use = 1;
-            address = Configuration::OcdAddress;
-            port = Configuration::OcdPort;
-        }
-        else if ( s == "ocadmin" ) {
-            use = 1;
-            address = Configuration::OcAdminAddress;
-            port = Configuration::OcAdminPort;
-        }
-        else if ( s == "imap" ) {
-            use = Configuration::toggle( Configuration::UseImap );
-            address = Configuration::ImapAddress;
-            port = Configuration::ImapPort;
-        }
-        else if ( s == "imaps" ) {
-            use = Configuration::toggle( Configuration::UseImaps );
-            address = Configuration::ImapsAddress;
-            port = Configuration::ImapsPort;
-        }
-        else if ( s == "smtp" ) {
-            use = Configuration::toggle( Configuration::UseSmtp );
-            address = Configuration::SmtpAddress;
-            port = Configuration::SmtpPort;
-        }
-        else if ( s == "lmtp" ) {
-            use = Configuration::toggle( Configuration::UseLmtp );
-            address = Configuration::LmtpAddress;
-            port = Configuration::LmtpPort;
-        }
-        else if ( s == "http" ) {
-            use = Configuration::toggle( Configuration::UseHttp );
-            address = Configuration::HttpAddress;
-            port = Configuration::HttpPort;
-        }
-        else if ( s == "pop3" ) {
-            use = Configuration::toggle( Configuration::UsePop );
-            address = Configuration::PopAddress;
-            port = Configuration::PopPort;
-        }
-        else if ( s == "tlsproxy" ) {
-            use = Configuration::toggle( Configuration::UseTls );
-            address = Configuration::TlsProxyAddress;
-            port = Configuration::TlsProxyPort;
-        }
-
         if ( !use )
             return;
 
+        Listener< T > *l = 0;
         String a = Configuration::text( address );
         uint p = Configuration::scalar( port );
 

@@ -19,7 +19,11 @@ int main( int argc, char * argv[] )
     Server s( "pop3d", argc, argv );
     s.setup( Server::Report );
 
-    Listener< POP3 >::create( "POP3" );
+    Listener< POP3 >::create(
+        "POP3", Configuration::toggle( Configuration::UsePop ),
+        Configuration::PopAddress, Configuration::PopPort
+    );
+
     Database::setup();
     Flag::setup();
 

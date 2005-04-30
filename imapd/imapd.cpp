@@ -25,8 +25,15 @@ int main( int argc, char *argv[] )
     Server s( "imapd", argc, argv );
     s.setup( Server::Report );
 
-    Listener< IMAP >::create( "IMAP" );
-    Listener< IMAP >::create( "IMAPS" );
+    Listener< IMAP >::create(
+        "IMAP", Configuration::toggle( Configuration::UseImap ),
+        Configuration::ImapAddress, Configuration::ImapPort
+    );
+    Listener< IMAPS >::create(
+        "IMAPS", Configuration::toggle( Configuration::UseImaps ),
+        Configuration::ImapsAddress, Configuration::ImapsPort
+    );
+
     Database::setup();
 
     s.setup( Server::Finish );

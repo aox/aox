@@ -26,8 +26,15 @@ int main( int argc, char * argv[] )
 
     s.setup( Server::Report );
 
-    Listener< SMTP >::create( "SMTP" );
-    Listener< LMTP >::create( "LMTP" );
+    Listener< SMTP >::create(
+        "SMTP", Configuration::toggle( Configuration::UseSmtp ),
+        Configuration::SmtpAddress, Configuration::SmtpPort
+    );
+    Listener< LMTP >::create(
+        "LMTP", Configuration::toggle( Configuration::UseLmtp ),
+        Configuration::LmtpAddress, Configuration::LmtpPort
+    );
+
     Database::setup();
 
     s.setup( Server::Finish );

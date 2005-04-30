@@ -25,7 +25,11 @@ int main( int argc, char * argv[] )
     Server s( "httpd", argc, argv );
     s.setup( Server::Report );
 
-    Listener< HTTP >::create( "HTTP" );
+    Listener< HTTP >::create(
+        "HTTP", Configuration::toggle( Configuration::UseHttp ),
+        Configuration::HttpAddress, Configuration::HttpPort
+    );
+
     Database::setup();
 
     s.setup( Server::Finish );
