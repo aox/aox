@@ -51,6 +51,7 @@ public:
     void deallocate( void * );
 
     static uint sizeOf( void * );
+    static void scan( void * );
 
 private:
     uint base;
@@ -66,7 +67,6 @@ private:
     void sweep();
 
     static uint scanHelper( void *, bool = false, uint = 0, uint = UINT_MAX );
-    static void scan( void * );
 };
 
 
