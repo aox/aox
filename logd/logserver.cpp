@@ -267,7 +267,7 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
 
 void LogServer::setLogFile( const String &name, const String &mode )
 {
-    uint m;
+    uint m = 0;
     String s = mode;
     bool ok = false;
 
