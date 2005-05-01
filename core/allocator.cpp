@@ -657,3 +657,18 @@ uint Allocator::sizeOf( void * p )
     scan2( p );
     return n;
 }
+
+
+/*! Prints the memory usage of the roots.
+*/
+
+void Allocator::scanRoots()
+{
+    uint n = 0;
+    while ( n < numRoots ) {
+        if ( roots[n].root )
+            fprintf( stdout, "%s(%d) => %d\n", roots[n].name, n,
+                     sizeOf( roots[n].root ) );
+        n++;
+    }
+}

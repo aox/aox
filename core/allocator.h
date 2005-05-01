@@ -66,7 +66,9 @@ private:
     static void mark( void * );
     void sweep();
 
-    static uint scanHelper( void *, bool = false, uint = 0, uint = UINT_MAX );
+    static uint scan1( void *, bool = false, uint = 0, uint = UINT_MAX );
+    static void scan2( void * );
+    static void scanRoots();
 };
 
 
