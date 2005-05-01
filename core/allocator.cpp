@@ -579,13 +579,14 @@ uint Allocator::scanHelper( void * p, bool print,
     while ( n ) {
         n--;
         if ( b->payload[n] )
-            sz += scanHelper( b->payload[n], print, level+1, limit );
+            sz += scanHelper( b->payload[n], false, level+1, limit );
     }
-    b->x.marked = false;
     sz += a->step;
 
-    if ( !print || level >= 16 || (level > 0 && sz < limit ) )
+    if ( !print || level >= 5 || (level > 0 && sz < limit ) ) {
+        b->x.marked = false;
         return sz;
+    }
 
     char s[16];
     if ( sz > 1024*1024*1024 )
@@ -596,8 +597,17 @@ uint Allocator::scanHelper( void * p, bool print,
         sprintf( s, "%.2fK", sz / 1024.0 );
     else
         sprintf( s, "%d", sz );
-    printf( "%*.*s0x%08x: %s\n", level, level, "                ",
+    printf( "%*.*s0x%08x: %s\n", level*4, level*4, "                ",
             (uint)p, s );
+    if ( level < 4  ) {
+        n = 0;
+        while ( n < b->x.number ) {
+            if ( b->payload[n] )
+                scanHelper( b->payload[n], print, level+1, limit );
+            n++;
+        }
+    }
+    b->x.marked = false;
     return sz;
 }
 
