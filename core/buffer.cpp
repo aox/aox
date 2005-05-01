@@ -139,7 +139,7 @@ void Buffer::write( int fd )
     int written = 0;
 
     do {
-        Vector *v = vecs.first();
+        Vector *v = vecs.firstElement();
 
         if ( !v )
             return;
