@@ -174,18 +174,11 @@ public:
         Node *n = new Node( d );
         Node *cur = i.node();
 
-        if ( !head && !tail ) {
-            head = tail = n;
-        }
-        else if ( !cur ) {
-            tail->next = n;
-            n->prev = tail;
-            tail = n;
+        if ( !cur ) {
+            append( d );
         }
         else if ( head == cur ) {
-            head->prev = n;
-            n->next = head;
-            head = n;
+            prepend( d );
         }
         else {
             n->next = cur;
@@ -197,12 +190,30 @@ public:
 
     void append( T *d )
     {
-        insert( end(), d );
+        Node *n = new Node( d );
+
+        if ( !head && !tail ) {
+            head = tail = n;
+        }
+        else {
+            tail->next = n;
+            n->prev = tail;
+            tail = n;
+        }
     }
 
     void prepend( T *d )
     {
-        insert( first(), d );
+        Node *n = new Node( d );
+
+        if ( !head && !tail ) {
+            head = tail = n;
+        }
+        else {
+            head->prev = n;
+            n->next = head;
+            head = n;
+        }
     }
 
 
