@@ -54,6 +54,7 @@ public:
     static void scan( void * );
 
 private:
+    friend void * alloc( uint, uint );
     uint base;
     uint step;
     uint taken;

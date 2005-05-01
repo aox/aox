@@ -52,6 +52,8 @@ void * alloc( uint s, uint n )
     if ( n > s / sizeof( void* ) )
         n = s / sizeof( void* );
     Allocator * a = Allocator::allocator( s );
+    while ( a->base == a->capacity && a->next )
+        a = a->next;
     void * p = a->allocate( s, n );
     if ( ( ( total + allocated + s ) & 0xfff00000 ) >
          ( ( total + allocated ) & 0xfff00000 ) )
