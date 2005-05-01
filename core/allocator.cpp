@@ -592,7 +592,7 @@ uint Allocator::scanHelper( void * p, bool print,
         sprintf( s, "%.2fGB", sz / 1024.0 / 1024.0 / 1024.0 );
     else if ( sz > 1024*1024 )
         sprintf( s, "%.2fMB", sz / 1024.0 / 1024.0 );
-    if ( sz > 1024 )
+    else if ( sz > 1024 )
         sprintf( s, "%.2fK", sz / 1024.0 );
     else
         sprintf( s, "%d", sz );
@@ -609,7 +609,7 @@ uint Allocator::scanHelper( void * p, bool print,
 
 void Allocator::scan( void * p )
 {
-    scanHelper( p, false, 0, sizeOf( p ) / 20 );
+    scanHelper( p, true, 0, sizeOf( p ) / 20 );
 }
 
 
