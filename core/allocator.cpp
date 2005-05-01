@@ -549,13 +549,12 @@ uint Allocator::chunkSize() const
     times.
 
     if \a print is true and the total cost is ast least \a limit,
-    scanHelper() also prints some debug output on stdout, prefixed by
+    scan1() also prints some debug output on stdout, prefixed by
     \a level spaces. If \a print is false, \a level and \a limit are
     ignored.
 */
 
-uint Allocator::scanHelper( void * p, bool print,
-                            uint level, uint limit )
+uint Allocator::scan1( void * p, bool print, uint level, uint limit )
 {
     uint sz = 0;
 
@@ -569,24 +568,22 @@ uint Allocator::scanHelper( void * p, bool print,
         return 0;
     if ( ! (a->bitmap[i/bits] & 1 << (i%bits)) )
         return 0;
-
     if ( b->x.magic != ::magic )
-        return 0; // recusing would be bad.
+        return 0;
     if ( b->x.marked )
         return 0;
+
     b->x.marked = true;
     uint n = b->x.number;
     while ( n ) {
         n--;
         if ( b->payload[n] )
-            sz += scanHelper( b->payload[n], false, level+1, limit );
+            sz += scan1( b->payload[n], print, level+1, limit );
     }
     sz += a->step;
 
-    if ( !print || level >= 5 || (level > 0 && sz < limit ) ) {
-        b->x.marked = false;
+    if ( !print || level >= 5 || (level > 0 && sz < limit ) )
         return sz;
-    }
 
     char s[16];
     if ( sz > 1024*1024*1024 )
@@ -599,16 +596,38 @@ uint Allocator::scanHelper( void * p, bool print,
         sprintf( s, "%d", sz );
     printf( "%*.*s0x%08x (%s)\n", level*4, level*4, "                ",
             (uint)p, s );
-    if ( level < 4  ) {
-        n = 0;
-        while ( n < b->x.number ) {
-            if ( b->payload[n] )
-                scanHelper( b->payload[n], print, level+1, limit );
-            n++;
-        }
-    }
-    b->x.marked = false;
     return sz;
+}
+
+
+/*! Scans the pointer in \a p and clears all the marked bits left by
+    scan1().
+*/
+
+void Allocator::scan2( void * p )
+{
+    Allocator * a = owner( p );
+    if ( !a )
+        return;
+
+    uint i = ((uint)p - (uint)a->buffer) / a->step;
+    AllocationBlock * b = (AllocationBlock *)a->block( i );
+    if ( !b )
+        return;
+    if ( ! (a->bitmap[i/bits] & 1 << (i%bits)) )
+        return;
+    if ( b->x.magic != ::magic )
+        return;
+    if ( !b->x.marked )
+        return;
+
+    b->x.marked = false;
+    uint n = b->x.number;
+    while ( n ) {
+        n--;
+        if ( b->payload[n] )
+            scan2( b->payload[n] );
+    }
 }
 
 
@@ -619,7 +638,8 @@ uint Allocator::scanHelper( void * p, bool print,
 
 void Allocator::scan( void * p )
 {
-    scanHelper( p, true, 0, sizeOf( p ) / 20 );
+    scan1( p, true, 0, sizeOf( p ) / 20 );
+    scan2( p );
 }
 
 
@@ -633,5 +653,7 @@ void Allocator::scan( void * p )
 
 uint Allocator::sizeOf( void * p )
 {
-    return scanHelper( p, false );
+    uint n = scan1( p, false );
+    scan2( p );
+    return n;
 }
