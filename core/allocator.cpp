@@ -590,14 +590,14 @@ uint Allocator::scanHelper( void * p, bool print,
 
     char s[16];
     if ( sz > 1024*1024*1024 )
-        sprintf( s, "%.2fGB", sz / 1024.0 / 1024.0 / 1024.0 );
+        sprintf( s, "%.1fGB", sz / 1024.0 / 1024.0 / 1024.0 );
     else if ( sz > 1024*1024 )
-        sprintf( s, "%.2fMB", sz / 1024.0 / 1024.0 );
+        sprintf( s, "%.1fMB", sz / 1024.0 / 1024.0 );
     else if ( sz > 1024 )
-        sprintf( s, "%.2fK", sz / 1024.0 );
+        sprintf( s, "%.1fK", sz / 1024.0 );
     else
         sprintf( s, "%d", sz );
-    printf( "%*.*s0x%08x: %s\n", level*4, level*4, "                ",
+    printf( "%*.*s0x%08x (%s)\n", level*4, level*4, "                ",
             (uint)p, s );
     if ( level < 4  ) {
         n = 0;
