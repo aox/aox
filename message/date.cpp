@@ -627,17 +627,8 @@ void Date::setDate( uint year, const String & month, uint day,
 {
     d->reset();
 
-    // the hard one first.
-    uint j = 0;
-    while( j < 12 ) {
-        if ( month.lower() == months[j] ) {
-            d->month = j+1;
-            j = 12;
-        }
-        j++;
-    }
-
     d->year = year;
+    d->month = ::month( month );
     d->day = day;
     d->hour = hour;
     d->minute = minute;
