@@ -55,8 +55,8 @@ private:
 
         Field f;
         Action a;
-        String a1;
-        UString a2;
+        String s8;
+        UString s16;
         MessageSet s;
         uint n;
         List<Condition> * l;

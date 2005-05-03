@@ -66,7 +66,7 @@ public:
         return argc;
     };
     uint mboxId;
-    
+
     bool usesHeaderFieldsTable;
     bool usesFieldNamesTable;
     bool usesAddressFieldsTable;
@@ -103,10 +103,8 @@ void Search::parse()
     end();
 
     prepare();
-    respond( "OK debug: query as parsed: " + d->root->debugString() );
     log( "OK debug: query as parsed: " + d->root->debugString(), Log::Debug );
     d->root->simplify();
-    respond( "OK debug: simplified query: " + d->root->debugString() );
     log( "OK debug: simplified query: " + d->root->debugString(), Log::Debug );
 }
 
@@ -345,9 +343,8 @@ void Search::execute()
             d->query->s.append( ", bodyparts" );
         if ( d->usesFlagNamesTable )
             d->query->s.append( ", flag_names" );
-        d->query->s.append( " where messages.mailbox=$" + fn( d->mboxId ) + 
+        d->query->s.append( " where messages.mailbox=$" + fn( d->mboxId ) +
                             " and (" + w + ") order by messages.uid" );
-        respond( "OK debug: SQL: " + d->query->s );
         d->query->execute();
     }
 
@@ -463,14 +460,14 @@ String Search::date()
 
 
 /*! This private helper adds a new Condition to the current list. \a
-    f, \a a and \a a1 are used as-is. a2 is set to an empty string.
+    f, \a a and \a s8 are used as-is. s16 is set to an empty string.
 
     This function isn't well-defined for cases where \a a is And, Or
     or Not.
 */
 
 Search::Condition * Search::add( Field f, Action a,
-                                 const String & a1 )
+                                 const String & s8 )
 {
     prepare();
     Condition * c = new Condition;
@@ -478,21 +475,21 @@ Search::Condition * Search::add( Field f, Action a,
     c->d = d;
     c->f = f;
     c->a = a;
-    c->a1 = a1;
+    c->s8 = s8;
     d->conditions->first()->l->append( c );
     return c;
 }
 
 
 /*! This private helper adds a new Condition to the current list. \a
-    f, \a a, \a a1 and \a a2 are used as-is.
+    f, \a a, \a s8 and \a s16 are used as-is.
 
     This function isn't well-defined for cases where \a a is And, Or
     or Not.
 */
 
 Search::Condition * Search::add( Field f, Action a,
-                                 const String & a1, const UString & a2 )
+                                 const String & s8, const UString & s16 )
 {
     prepare();
     Condition * c = new Condition;
@@ -501,10 +498,10 @@ Search::Condition * Search::add( Field f, Action a,
     c->f = f;
     c->a = a;
     if ( f == Header )
-        c->a1 = a1.headerCased();
+        c->s8 = s8.headerCased();
     else
-        c->a1 = a1;
-    c->a2 = a2;
+        c->s8 = s8;
+    c->s16 = s16;
     d->conditions->first()->l->append( c );
     return c;
 }
@@ -638,14 +635,14 @@ void Search::Condition::simplify()
 
         f = again->f;
         a = again->a;
-        a1 = again->a1;
-        a2 = again->a2;
+        s8 = again->s8;
+        s16 = again->s16;
         s = again->s;
         n = again->n;
         l = again->l;
     }
 
-    if ( a == Contains && f == Flags && a1.lower() == "\\recent" ) {
+    if ( a == Contains && f == Flags && s8.lower() == "\\recent" ) {
         // the database cannot look at UIDs, so we turn this query
         // into a test for the relevant UIDs.
         f = Uid;
@@ -657,9 +654,36 @@ void Search::Condition::simplify()
         // > 0 matches everything
         a = All;
     }
-    else if ( a == Contains && f != Uid && a1.isEmpty() ) {
+    else if ( a == Contains ) {
+        // x contains y may match everything
+        switch ( f ) {
+        case InternalDate:
+        case Sent:
+            a = None;
+            break;
+        case Header:
+        case Body:
+            if ( s16.isEmpty() )
+                a = All;
+            break;
+        case Rfc822Size:
+            break;
+        case Flags:
+            if ( !Flag::find( s8 ) )
+                a = None;
+            break;
+        case Uid:
+            // if s contains all messages or is empty...
+            if ( s.isEmpty() )
+                a = None;
+            // the All Messages case is harder.
+            break;
+        case NoField:
+            // contains is orthogonal to nofield, so this we cannot
+            // simplify
+            break;
+        }
         // contains empty string too
-        a = All;
     }
     else if ( a == Contains && f == Uid ) {
         if ( s.isEmpty() )
@@ -733,8 +757,8 @@ void Search::Condition::simplify()
         List< Condition >::Iterator p( l );
         f = p->f;
         a = p->a;
-        a1 = p->a1;
-        a2 = p->a2;
+        s8 = p->s8;
+        s16 = p->s16;
         s = p->s;
         l = p->l;
         return;
@@ -763,7 +787,7 @@ String Search::Condition::where() const
         return whereSent();
         break;
     case Header:
-        if ( a1.isEmpty() )
+        if ( s8.isEmpty() )
             return whereHeader();
         else
             return whereHeaderField();
@@ -793,9 +817,9 @@ String Search::Condition::where() const
 
 String Search::Condition::whereInternalDate() const
 {
-    uint day = a1.mid( 0, 2 ).number( 0 );
-    String month = a1.mid( 3, 3 );
-    uint year = a1.mid( 7 ).number( 0 );
+    uint day = s8.mid( 0, 2 ).number( 0 );
+    String month = s8.mid( 3, 3 );
+    uint year = s8.mid( 7 ).number( 0 );
     // XXX: local time zone is ignored here
     Date d1;
     d1.setDate( year, month, day, 0, 0, 0, 0 );
@@ -835,7 +859,7 @@ static String q( const UString & orig )
 {
     Utf8Codec c;
     String r( c.fromUnicode( orig ) );
-    // escape % somehow
+    // escape % somehow?
     return r;
 }
 
@@ -847,15 +871,15 @@ String Search::Condition::whereHeaderField() const
 {
     uint f = 1;
     while ( f <= HeaderField::LastAddressField &&
-            HeaderField::fieldName( (HeaderField::Type)f ) != a1 )
+            HeaderField::fieldName( (HeaderField::Type)f ) != s8 )
         f++;
     if ( f <= HeaderField::LastAddressField )
-        return whereAddressField( a1 );
+        return whereAddressField( s8 );
 
     uint fnum = d->argument();
-    d->query->bind( fnum, a1 );
+    d->query->bind( fnum, s8 );
     uint like = d->argument();
-    d->query->bind( like, q( a2 ) );
+    d->query->bind( like, q( s16 ) );
     d->usesHeaderFieldsTable = true;
     d->usesFieldNamesTable = true;
     return "header_fields.mailbox=messages.mailbox and "
@@ -872,7 +896,7 @@ String Search::Condition::whereHeaderField() const
 
 String Search::Condition::whereAddressField( const String & field ) const
 {
-    String raw( q( a2 ) );
+    String raw( q( s16 ) );
     int at = raw.find( '@' );
     uint name = d->argument();
     d->query->bind( name, raw );
@@ -886,7 +910,7 @@ String Search::Condition::whereAddressField( const String & field ) const
     if ( !field.isEmpty() ) {
         d->usesFieldNamesTable = true;
         uint fnum = d->argument();
-        d->query->bind( fnum, a1 );
+        d->query->bind( fnum, s8 );
         r.append( "address_fields.field=field_names.id and "
                   "field_names.name=$" + fn( fnum ) + " and " );
     }
@@ -918,7 +942,7 @@ String Search::Condition::whereAddressField( const String & field ) const
 String Search::Condition::whereHeader() const
 {
     uint like = d->argument();
-    d->query->bind( like, q( a2 ) );
+    d->query->bind( like, q( s16 ) );
     d->usesHeaderFieldsTable = true;
     return "(header_fields.mailbox=messages.mailbox and "
         "header_fields.uid=messages.uid and "
@@ -936,7 +960,7 @@ String Search::Condition::whereHeader() const
 String Search::Condition::whereBody() const
 {
     uint bt = d->argument();
-    d->query->bind( bt, q( a2 ) );
+    d->query->bind( bt, q( s16 ) );
     d->usesPartNumbersTable = true;
     d->usesBodypartsTable = true;
     return "messages.mailbox=part_numbers.mailbox and "
@@ -970,7 +994,7 @@ String Search::Condition::whereFlags() const
 {
     // the database can look in the ordinary way. we make it easy, if we can.
     d->usesFlagsTable = true;
-    Flag * f = Flag::find( a1 );
+    Flag * f = Flag::find( s8 );
     uint name = d->argument();
     if ( f ) {
         d->query->bind( name, f->id() );
@@ -979,7 +1003,7 @@ String Search::Condition::whereFlags() const
             " and flags.flag=$" + fn( name ) + ")";
     }
     d->usesFlagNamesTable = true;
-    d->query->bind( name, a1 ); // do we need to smash case on flags?
+    d->query->bind( name, s8 ); // do we need to smash case on flags?
     return "messages.uid in ("
         "select flags.uid from flags, flag_names "
         "where flags.mailbox=$" + fn( d->mboxId ) +
@@ -1106,10 +1130,10 @@ String Search::Condition::debugString() const
         w = "sent";
         break;
     case Header:
-        if ( a1.isEmpty() )
+        if ( s8.isEmpty() )
             w = "header";
         else
-            w = "header field " + a1;
+            w = "header field " + s8;
         break;
     case Body:
         w = "body";
@@ -1129,10 +1153,10 @@ String Search::Condition::debugString() const
     };
 
     r = w + " " + o + " ";
-    if ( a2.isEmpty() )
-        r.append( a1 );
+    if ( s16.isEmpty() )
+        r.append( s8 );
     else
-        r.append( a2.ascii() );
+        r.append( s16.ascii() );
 
     return r;
 
@@ -1171,7 +1195,7 @@ Search::Condition::MatchResult Search::Condition::match( Message * m,
         return No;
     }
     else if ( a == Contains && f == Flags ) {
-        if ( uid > 0 && a1 == "recent" ) {
+        if ( uid > 0 && s8 == "recent" ) {
             ImapSession * s = c->imap()->session();
             if ( s->isRecent( uid ) )
                 return Yes;
