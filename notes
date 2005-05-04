@@ -327,12 +327,6 @@ We have to use COPY in the Injector
   bulk user loading at Perpetual make it absolutely necessary.
 
 
-Inject torture-test.mbox
-
-
-Eliminate the inappropriate uses of headerCased() in Date.
-
-
 Write a test of BINARY.SIZE of multiparts.
 
 
