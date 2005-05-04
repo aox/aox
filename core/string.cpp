@@ -1286,3 +1286,48 @@ void String::print() const
 {
     fprintf( stderr, "'%*.*s'\n", length(), length(), data() );
 }
+
+
+/*! Returns \a n as a string representing that number in a
+    human-readable fashion optionally suffixed by K, M og G.
+
+    The number is rounded more or less correctly.
+*/
+
+String String::humanNumber( uint n )
+{
+    if ( n < 1024 )
+        return fromNumber( n );
+
+    uint f = 1024;
+    char s = 'K';
+    if ( n < 1024 * 1024 ) {
+        // ok
+    }
+    else if ( n < 1024 * 1024 * 1024 ) {
+        f = 1024 * 1024;
+        s = 'M';
+    }
+    else {
+        f = 1024 * 1024 * 1024;
+        s = 'G';
+    }
+
+    String r;
+    // if it's single-digit, we add a decimal point. to avoid
+    // wraparound and wrongness for 32-bit cpus and gigabyte sizes, we
+    // check a little harder.
+    if ( n < f * 10 || f > UINT_MAX/10 ) {
+        n += f/20-1;
+        r = fromNumber( n/f );
+        uint m = (n%f)/(f/10);
+        r.append( '.' );
+        r.append( '0' + m );
+    }
+    else {
+        n += f/2-1;
+        r = fromNumber( n/f );
+    }
+    r.append( s );
+    return r;
+}
