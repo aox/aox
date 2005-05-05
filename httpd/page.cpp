@@ -22,7 +22,7 @@ static String * cssUrl;
 
 static String htmlQuoted( const String & );
 static String address( Message *, HeaderField::Type );
-static String jsToggle( const String &, const String &, const String & );
+static String jsToggle( const String &, bool, const String &, const String & );
 
 
 class PageData {
@@ -367,11 +367,13 @@ void Page::mainPage()
 
 void Page::mailboxPage()
 {
+    log( "mailboxPage for " + d->link->mailbox()->name() + " with uidnext " +
+         fn( d->link->mailbox()->uidnext() ) );
+
     if ( d->state == 0 ) {
         MessageSet ms;
         Mailbox *m = d->link->mailbox();
         ms.add( 1, m->uidnext()-1 );
-        m->fetchFlags( ms, this );
         m->fetchHeaders( ms, this );
         d->message = m->message( ms.largest() );
         d->state = 1;
@@ -392,12 +394,14 @@ void Page::mailboxPage()
                 s.append( "<div class=headerfield name=subject>Subject: " );
                 s.append( "<a href=\"" + d->link->string() + "/" +
                           fn( uid ) + "\">" );
-                s.append( hf->value() );
+                s.append( htmlQuoted( hf->value() ) );
                 s.append( "</a></div>" );
             }
             s.append( address( m, HeaderField::From ) );
             s.append( address( m, HeaderField::To ) );
             s.append( address( m, HeaderField::Cc ) );
+
+            log( "added blah for uid " + fn( uid ) );
 
             s.append( "</div></div>" );
 
@@ -520,10 +524,15 @@ String Page::bodypart( Message *first, Bodypart *bp )
     }
     else {
         s.append( "<div class=unknown>" );
+        s.append( "Unknown content type: " );
+        s.append( type );
         s.append( "<a href=\"" + d->link->string() + "/" +
                   first->partNumber( bp ) + "\">" );
-        s.append( "Bodypart of type " + type );
-        s.append( "</a></div>" );
+        s.append( "Save" );
+        s.append( "</a>" );
+        s.append( " (size " );
+        s.append( String::humanNumber( bp->numBytes() ) );
+        s.append( ")</div>" );
     }
 
     s.append( "</div>" );
@@ -573,7 +582,7 @@ String Page::message( Message *first, Message *m )
 
         ++it;
     }
-    s.append( jsToggle( t, "Show header", "Hide header" ) );
+    s.append( jsToggle( t, false, "Show full header", "Hide full header" ) );
 
     s.append( "</div>" );
 
@@ -688,23 +697,29 @@ static String address( Message *m, HeaderField::Type t )
 
 static uint el = 0;
 static String jsToggle( const String &t,
+                        bool v,
                         const String &show,
                         const String &hide )
 {
     String s;
 
-    String a = fn( el++ );
+    String a = "toggle" + fn( el++ );
     String b = fn( el++ );
 
-    s.append( "<div class=njsonly id=" + a + ">" );
+    if ( v )
+        s.append( "<div class=njsvisible id=" + a + ">" );
+    else
+        s.append( "<div class=njshidden id=" + a + ">" );
     s.append( t );
     s.append( "<div class=jsonly>" );
-    s.append( "<form><input type=submit value=\"" + hide + "\" onclick=\"toggleElement('" + b + "', '" + a + "')\"></form>" );
-    s.append( "</div>" );
-    s.append( "</div>" );
+    s.append( "<a onclick=\"toggleElement('" + b + "', '" + a + "')\">" );
+    s.append( hide );
+    s.append( "</a></div></div>" );
+
     s.append( "<div class=jsonly id=" + b + ">" );
-    s.append( "<form><input type=submit value=\"" + show + "\" onclick=\"toggleElement('" + a + "', '" + b + "')\"></form>" );
-    s.append( "</div>" );
+    s.append( "<a onclick=\"toggleElement('" + a + "', '" + b + "')\">" );
+    s.append( show );
+    s.append( "</a></div>" );
 
     return s;
 }
