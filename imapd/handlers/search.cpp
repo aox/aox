@@ -898,10 +898,6 @@ String Search::Condition::whereAddressField( const String & field ) const
 {
     String raw( q( s16 ) );
     int at = raw.find( '@' );
-    uint name = d->argument();
-    d->query->bind( name, raw );
-    uint lp = d->argument();
-    uint dom = d->argument();
     d->usesAddressFieldsTable = true;
     d->usesAddressesTable = true;
     String r;
@@ -912,27 +908,63 @@ String Search::Condition::whereAddressField( const String & field ) const
         uint fnum = d->argument();
         d->query->bind( fnum, s8 );
         r.append( "address_fields.field=field_names.id and "
-                  "field_names.name=$" + fn( fnum ) + " and " );
+                  "field_names.name=$" + fn( fnum ) );
     }
-    r.append( "address_fields.address=addresses.id and "
-              "(addresses.name like '%'||$" + fn( name ) + "||'%' " );
     if ( at < 0 ) {
-        d->query->bind( lp, raw );
-        d->query->bind( dom, raw );
-        r.append( "or addresses.localpart like '%'||$" + fn( lp ) + "||'%' "
-                  "or addresses.domain like '%'||$" + fn( dom ) + "||'%'" );
+        uint name = d->argument();
+        d->query->bind( name, raw );
+        r.append( " and "
+                  "address_fields.address=addresses.id and "
+                  "(addresses.name like '%'||$" + fn( name ) + "||'%' "
+                  "or addresses.localpart like '%'||$" + fn( name ) + "||'%' "
+                  "or addresses.domain like '%'||$" + fn( name ) + "||'%')" );
     }
     else {
+        String lc, dc;
         if ( at > 0 ) {
-            d->query->bind( lp, raw.mid( 0, at ) );
-            r.append( "or addresses.localpart like '%'||$" + fn( lp ) + " " );
+            uint lp = d->argument();
+            if ( raw.startsWith( "<" ) ) {
+                d->query->bind( lp, raw.mid( 1, at-1 ) );
+                lc = "addresses.localpart like $" + fn( lp );
+            }
+            else {
+                d->query->bind( lp, raw.mid( 0, at ) );
+                lc = "addresses.localpart like '%'||$" + fn( lp ) + " ";
+            }
         }
         if ( at < (int)raw.length() - 1 ) {
-            d->query->bind( dom, raw.mid( at+1 ) );
-            r.append( "or addresses.domain like $" + fn( dom ) + "||'%'" );
+            uint dom = d->argument();
+            if ( raw.endsWith( ">" ) ) {
+                d->query->bind( dom, raw.mid( at+1, raw.length()-at-2 ) );
+                dc = "addresses.domain like $" + fn( dom );
+            }
+            else {
+                d->query->bind( dom, raw.mid( at+1 ) );
+                dc = "addresses.domain like $" + fn( dom ) + "||'%'";
+            }
         }
+        if ( lc.isEmpty() && dc.isEmpty() ) {
+            // imap SEARCH FROM "@" matches messages with a nonempty
+            // from field. the sort of thing only a test suite would
+            // do.
+        }
+        if ( lc.isEmpty() ) {
+            r.append( " and " );
+            r.append( dc );
+        }
+        else if ( dc.isEmpty() ) {
+            r.append( " and " );
+            r.append( lc );
+        }
+        else {
+            r.append( " and (" );
+            r.append( lc );
+            r.append( " or " );
+            r.append( dc );
+            r.append( ")" );
+        }
+
     }
-    r.append( ")" );
     return r;
 }
 
