@@ -339,7 +339,9 @@ String Parser822::mimeValue()
 
 /*! Steps past a MIME encoded-word (as defined in RFC2047 and updated by
     RFC2231) and returns its decoded representation, or an empty string
-    if the cursor does not point to a valid encoded-word.
+    if the cursor does not point to a valid encoded-word. This function
+    does not check that encoded-words are correctly separated from any
+    neighbouring tokens by whitespace: the caller must verify that.
 */
 
 UString Parser822::encodedWord()
