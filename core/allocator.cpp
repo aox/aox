@@ -376,10 +376,15 @@ void Allocator::free()
         return;
 
     if ( verbose )
-        log( "Allocator: allocated " + fn( ::allocated ) + " then freed " +
-             fn( freed ) + " bytes, leaving " +
-             fn( total ) + " bytes allocated in " +
-             fn( objects ) + " objects",
+        log( "Allocator: allocated " +
+             String::humanNumber( ::allocated ) +
+             " then freed " +
+             String::humanNumber( freed ) +
+             " bytes, leaving " +
+             String::humanNumber( total ) +
+             " bytes allocated in " +
+             fn( objects ) +
+             " objects",
              Log::Info );
     ::allocated = 0;
 }
