@@ -256,8 +256,8 @@ void IMAP::addCommand()
         i++;
 
     if ( i < 1 || c != ' ' ) {
-        enqueue( "* BAD tag: " + s->mid( 0, i ) + "\r\n" );
-        log( "Bad tag. Line: '" + *s + "'", Log::Error );
+        enqueue( "* BAD tag in line: " + *s + "\r\n" );
+        log( "Bad tag. Line: '" + *s + "'", Log::Info );
         return;
     }
 
