@@ -41,6 +41,9 @@ private:
     bool messageReady();
     String bodypart( Message *, Bodypart * );
     String message( Message *, Message * );
+    String jsToggle( const String &, bool, const String &, const String & );
+    static String textPlain( const String & );
+    static String textHtml( const String & );
 
 private:
     class PageData * d;

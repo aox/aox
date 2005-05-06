@@ -21,9 +21,9 @@
 static String * jsUrl;
 static String * cssUrl;
 
+static const char * htmlQuoted( char );
 static String htmlQuoted( const String & );
 static String address( Message *, HeaderField::Type );
-static String jsToggle( const String &, bool, const String &, const String & );
 
 
 class PageData {
@@ -32,7 +32,8 @@ public:
         : type( Page::Error ), state( 0 ),
           link( 0 ), server( 0 ), ready( false ),
           user( 0 ), message( 0 ),
-          uid( 0 ), session( 0 )
+          uid( 0 ), session( 0 ),
+          uniq( 0 )
     {}
 
     Page::Type type;
@@ -50,6 +51,8 @@ public:
     Message *message;
     uint uid;
     Session * session;
+
+    uint uniq;
 };
 
 
@@ -215,6 +218,7 @@ String Page::text() const
               ".hidden{display:none;}"
               ".njshidden{display:none;}"
               ".jsonly{display:none;}"
+              ".njsvisible{}"
               "</style>" );
     if ( cssUrl )
         r.append( "<link rel=stylesheet type=\"text/css\" href=\"" +
@@ -533,6 +537,219 @@ bool Page::messageReady()
     return true;
 }
 
+/*! This helper turns \a s into HTML. It is public for convenience and
+    ease of testing. It should not be called by other classes.
+*/
+
+String Page::textPlain( const String & s )
+{
+    String r;
+    r.reserve( s.length() );
+    r.append( "<div class=textplain>" );
+    uint i = 0;
+    bool quoted = false;
+    bool newPara = true;
+    while ( i < s.length() ) {
+        if ( newPara ) {
+            if ( s[i] == '>' ) {
+                r.append( "<p class=quoted>" );
+                quoted = true;
+            }
+            else {
+                r.append( "<p>" );
+                quoted = false;
+            }
+            newPara = false;
+        }
+        if ( s[i] == 13 || s[i] == 10 ) {
+            uint cr = 0;
+            uint lf = 0;
+            bool done = false;
+            do {
+                if ( s[i] == 13 )
+                    cr++;
+                else if ( s[i] == 10 )
+                    lf++;
+                else
+                    done = true;
+                i++;
+            } while ( !done );
+            if ( cr <= 1 && lf <= 1 )
+                r.append( "<br>" );
+            else
+                newPara = true;
+        }
+        else {
+            const char * s = htmlQuoted( s[i] );
+            if ( s )
+                r.append( s );
+            else
+                r.append( s[i] );
+            i++;
+        }
+    }
+    r.append( "</div>" );
+    return r;
+}
+
+
+static String unwindStack( StringList & stack, const String & tag )
+{
+    String r;
+    StringList::Iterator it( stack.last() );
+    while ( it && tag != *it )
+        --it;
+    if ( !it )
+        return r;
+    String s;
+    do {
+        it = stack.last();
+        if ( it ) {
+            s = *it;
+            stack.take( it );
+            r.append( "</" );
+            r.append( s );
+            r.append( ">" );
+        }
+    } while ( it && tag != s );
+    return r;
+}
+
+
+/*! This helper turns \a s into plain HTML, without anything that
+    might expose the browser to problems (javascript, webbugs, overly
+    inventive syntax, that sort of thing).
+    
+    It is public for convenience and ease of testing. It should not be
+    called by other classes.
+*/
+
+String Page::textHtml( const String & s )
+{
+    String r;
+    r.reserve( s.length() );
+    r.append( "<div class=texthtml>" );
+    StringList stack;
+    uint i = 0;
+    while ( i < s.length() ) {
+        uint j = i;
+        while ( j < s.length() && s[j] != '<' )
+            j++;
+        r.append( s.mid( i, j-i ) );
+        i = j;
+        if ( s[i] == '<' ) {
+            i++;
+            j = i;
+            while ( j < s.length() && s[j] != ' ' && s[j] != '>' )
+                j++;
+            String tag = s.mid( i, j-i ).lower();
+            i = j;
+            String href, htmlclass, src;
+            while ( i < s.length() && s[i] != '>' ) {
+                while ( j < s.length() && s[j] != '>' && s[j] != '=' )
+                    j++;
+                String arg = s.mid( i, j-i ).simplified().lower();
+                String value;
+                i = j;
+                if ( s[i] == '=' ) {
+                    i++;
+                    while ( s[i] == ' ' || s[i] == '	' ||
+                            s[i] == 13 || s[i] == 10 )
+                        i++;
+                    if ( s[i] == '"' ) {
+                        j = i+1;
+                        // XXX: isn't this wrong? wasn't there some \"
+                        // or whatever?
+                        while ( j < s.length() && s[j] != '"' && s[j] != 10 )
+                            j++;
+                        if ( s[j] == 10 ) {
+                            // if we ran off the end of a line, it's
+                            // most likely broken input. let's go back
+                            // and look for > as well as '>'.
+                            j = i+1;
+                            while ( j < s.length() &&
+                                    s[j] != '"' && s[j] != '>' )
+                                j++;
+                        }
+                        value = s.mid( i, j-i );
+                        if ( s[j] == '"' )
+                            j++;
+                        i = j;
+                    }
+                    else {
+                        j = i+1;
+                        while ( j < s.length() &&
+                                s[j] != '>' &&
+                                s[j] != 10 && s[j] != 13 &&
+                                s[j] != ' ' && s[j] != '\t' )
+                            j++;
+                        value = s.mid( i, j-i );
+                    }
+                    if ( arg == "href" )
+                        href = value;
+                    else if ( arg == "class" )
+                        htmlclass = value.lower();
+                    else if ( arg == "src" )
+                        src = value;
+                }
+            }
+            i++;
+            if ( tag[0] == '/' ) {
+                if ( tag == "/p" ) {
+                    // noop
+                }
+                else if ( tag == "/blockquote" ) {
+                    if ( !stack.isEmpty() && *stack.last() == "p" )
+                        r.append( unwindStack( stack, "p" ) );
+                }
+                else if ( tag == "/div" ||
+                          tag == "/ul" ||
+                          tag == "/ol" ||
+                          tag == "/pre" ||
+                          tag == "/table" ) {
+                    r.append( unwindStack( stack, tag.mid( 1 ) ) );
+                }
+            }
+            else if ( tag == "blockquote" ) {
+                if ( htmlclass == "cite" ) {
+                    stack.append( "p" );
+                    r.append( "<p class=quoted>" );
+                }
+            }
+            else if ( tag == "p" ||
+                      tag == "br" ||
+                      tag == "div" ||
+                      tag == "ul" ||
+                      tag == "ol" ||
+                      tag == "li" ||
+                      tag == "dl" ||
+                      tag == "dt" ||
+                      tag == "dd" ||
+                      tag == "pre" ||
+                      tag == "table" ||
+                      tag == "tr" ||
+                      tag == "td" ||
+                      tag == "th" ) {
+                stack.append( tag );
+                r.append( "<" );
+                r.append( tag );
+                r.append( "<" );
+            }
+            else {
+                // in all other cases, we skip the tag. maybe we
+                // should treat IMG and A specially.
+            }
+        }
+    }
+    while ( stack.last() ) {
+        r.append( "</" );
+        r.append( stack.last() );
+        r.append( ">" );
+        stack.take( stack.last() );
+    }
+    r.append( "</div>" );
+    return r;
+}
 
 /*! Returns an HTML representation of the Bodypart \a bp, which belongs
     to the Message \a first.
@@ -550,12 +767,12 @@ String Page::bodypart( Message *first, Bodypart *bp )
 
     if ( type == "text/plain" ) {
         s.append( "<div class=body>" );
-        s.append( htmlQuoted( u.fromUnicode( bp->text() ) ) );
+        s.append( textPlain( u.fromUnicode( bp->text() ) ) );
         s.append( "</div>" );
     }
     else if ( type == "text/html" ) {
         s.append( "<div class=body>" );
-        s.append( u.fromUnicode( bp->text() ) );
+        s.append( textHtml( u.fromUnicode( bp->text() ) ) );
         s.append( "</div>" );
     }
     else if ( type == "message/rfc822" ) {
@@ -695,6 +912,26 @@ void Page::archivePartPage()
 }
 
 
+static const char * htmlQuoted( char c )
+{
+    const char * r = 0;
+    switch ( c ) {
+    case '<':
+        r = "&lt;";
+        break;
+    case '>':
+        r = "&lt;";
+        break;
+    case '&':
+        r = "&lt;";
+        break;
+    default:
+        break;
+    }
+    return r;
+}
+
+
 static String htmlQuoted( const String & s )
 {
     String r;
@@ -751,16 +988,26 @@ static String address( Message *m, HeaderField::Type t )
 }
 
 
-static uint el = 0;
-static String jsToggle( const String &t,
-                        bool v,
-                        const String &show,
-                        const String &hide )
+/*! Returns a string where \a t is wrapped in javascript magic to show
+    and hide it on command. \a show and \a hide are the texts to be
+    used. If \a v is true, the text is visible if javascript is not
+    availble, if \a v is false, the text is hidden in that case.
+
+    At some point in the future, we probably want to have this
+    function return an empty string if \a v is false and we somehow
+    know the browser does not execute javascript.
+*/
+
+
+String Page::jsToggle( const String &t,
+                       bool v,
+                       const String &show,
+                       const String &hide )
 {
     String s;
 
-    String a = "toggle" + fn( el++ );
-    String b = fn( el++ );
+    String a = "toggle" + fn( ++d->uniq );
+    String b = "toggle" + fn( ++d->uniq );
 
     if ( v )
         s.append( "<div class=njsvisible id=" + a + ">" );
