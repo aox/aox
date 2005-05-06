@@ -48,9 +48,6 @@ public:
     String name() const;
     void setName( const String & );
 
-    String string() const;
-    void setString( const String & );
-
     virtual String value() const;
     void setValue( const String & );
 
@@ -61,7 +58,7 @@ public:
     String error() const;
     void setError( const String & );
 
-    virtual void parse();
+    virtual void parse( const String & );
     virtual void reassemble();
 
     static const char *fieldName( HeaderField::Type );
@@ -74,9 +71,9 @@ private:
     static HeaderField *fieldNamed( const String & );
     class HeaderFieldData *d;
 
-    void parseText();
-    void parseMimeVersion();
-    void parseContentLocation();
+    void parseText( const String & );
+    void parseMimeVersion( const String & );
+    void parseContentLocation( const String & );
 };
 
 

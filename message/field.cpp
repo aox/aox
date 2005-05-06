@@ -59,7 +59,7 @@ public:
     {}
 
     HeaderField::Type type;
-    String name, data, value, string, error;
+    String name, data, value, error;
 };
 
 
@@ -147,11 +147,11 @@ HeaderField *HeaderField::fieldNamed( const String &name )
     This function is for use by the message parser.
 */
 
-HeaderField *HeaderField::create( const String &name, const String &value )
+HeaderField *HeaderField::create( const String &name,
+                                  const String &value )
 {
     HeaderField *hf = fieldNamed( name );
-    hf->setString( value );
-    hf->parse();
+    hf->parse( value );
     return hf;
 }
 
@@ -163,7 +163,8 @@ HeaderField *HeaderField::create( const String &name, const String &value )
     This function is for use by the message fetcher.
 */
 
-HeaderField *HeaderField::assemble( const String &name, const String &data )
+HeaderField *HeaderField::assemble( const String &name,
+                                    const String &data )
 {
     HeaderField *hf = fieldNamed( name );
     hf->setData( data );
@@ -204,25 +205,6 @@ String HeaderField::name() const
 void HeaderField::setName( const String &n )
 {
     d->name = n;
-}
-
-
-/*! Returns the unparsed contents of this HeaderField. This is the
-    string we extract from mail to be parsed.
-*/
-
-String HeaderField::string() const
-{
-    return d->string;
-}
-
-
-/*! Sets the unparsed contents of this HeaderField to \a s. */
-
-void HeaderField::setString( const String &s )
-{
-    // We should either unwrap() here, or in the caller.
-    d->string = s;
 }
 
 
@@ -295,17 +277,17 @@ void HeaderField::setError( const String &s )
 
 
 /*! Every HeaderField subclass must define a parse() function that takes
-    the string() (from a message) and sets the field value() and data().
+    a string \a s from a message and sets the field value() and data().
     This default function handles fields that are not specially handled
     by subclasses, using functions like parseText().
 */
 
-void HeaderField::parse()
+void HeaderField::parse( const String &s )
 {
     // Most fields share the same external and database representations.
     // For any that don't (cf. 2047) , we'll just setData() again later.
-    setData( string() );
-    setValue( string() );
+    setData( s );
+    setValue( s );
 
     switch ( d->type ) {
     case From:
@@ -336,15 +318,15 @@ void HeaderField::parse()
 
     case Subject:
     case Comments:
-        parseText();
+        parseText( s );
         break;
 
     case MimeVersion:
-        parseMimeVersion();
+        parseMimeVersion( s );
         break;
 
     case ContentLocation:
-        parseContentLocation();
+        parseContentLocation( s );
         break;
 
     case InReplyTo:
@@ -373,8 +355,7 @@ void HeaderField::reassemble()
     default:
         // We assume that most fields share an external and database
         // representation.
-        setString( data() );
-        parse();
+        parse( data() );
         break;
 
     case Subject:
@@ -389,10 +370,10 @@ void HeaderField::reassemble()
     RFC 2047. This is used to parse the Subject and Comments fields.
 */
 
-void HeaderField::parseText()
+void HeaderField::parseText( const String &s )
 {
     Utf8Codec u;
-    Parser822 p( unwrap( string() ) );
+    Parser822 p( unwrap( s ) );
     setData( u.fromUnicode( p.text() ) );
     setValue( wrap( encode( data() ) ) );
 }
@@ -405,9 +386,9 @@ void HeaderField::parseText()
     incorrectly send comments, this parser accepts them.
 */
 
-void HeaderField::parseMimeVersion()
+void HeaderField::parseMimeVersion( const String &s )
 {
-    Parser822 p( string() );
+    Parser822 p( s );
     p.comment();
     String v = p.dotAtom();
     p.comment();
@@ -420,22 +401,22 @@ void HeaderField::parseMimeVersion()
     problem found.
 */
 
-void HeaderField::parseContentLocation()
+void HeaderField::parseContentLocation( const String &s )
 {
-    Parser822 p( string() );
-    String s;
+    Parser822 p( s );
+    String t;
     char c;
 
     // We pretend a URI is just something without spaces in it.
     // Why the HELL couldn't this have been quoted?
     p.comment();
     while ( ( c = p.character() ) != '\0' && c != ' ' && c != '\t' )
-        s.append( c );
+        t.append( c );
     p.comment();
 
     if ( !p.atEnd() )
         setError( "Junk at end of '" + value().simplified() + "'" );
-    setValue( s );
+    setValue( t );
 }
 
 

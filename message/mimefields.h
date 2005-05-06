@@ -40,7 +40,7 @@ public:
     ContentType();
     virtual ~ContentType();
 
-    void parse();
+    void parse( const String & );
 
     String type() const;
     String subtype() const;
@@ -56,7 +56,7 @@ class ContentTransferEncoding
 public:
     ContentTransferEncoding();
 
-    void parse();
+    void parse( const String & );
 
     void setEncoding( String::Encoding );
     String::Encoding encoding() const;
@@ -72,7 +72,7 @@ class ContentDisposition
 public:
     ContentDisposition();
 
-    void parse();
+    void parse( const String & );
 
     enum Disposition { Inline, Attachment };
     Disposition disposition() const;
@@ -89,7 +89,7 @@ public:
     ContentLanguage();
     virtual ~ContentLanguage();
 
-    void parse();
+    void parse( const String & );
 
     const StringList *languages() const;
 

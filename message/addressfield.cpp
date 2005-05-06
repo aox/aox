@@ -19,11 +19,11 @@ AddressField::AddressField( HeaderField::Type t )
 }
 
 
-void AddressField::parse()
+void AddressField::parse( const String &s )
 {
     switch ( type() ) {
     case HeaderField::Sender:
-        parseMailbox();
+        parseMailbox( s );
         if ( !valid() && addresses()->isEmpty() ) {
             // sender is quite often wrong in otherwise perfectly
             // legible messages. so we'll nix out the error. Header
@@ -34,16 +34,16 @@ void AddressField::parse()
         break;
 
     case HeaderField::ReturnPath:
-        parseMailbox();
+        parseMailbox( s );
         break;
 
     case HeaderField::ResentSender:
-        parseMailbox();
+        parseMailbox( s );
         break;
 
     case HeaderField::From:
     case HeaderField::ResentFrom:
-        parseMailboxList();
+        parseMailboxList( s );
         break;
 
     case HeaderField::To:
@@ -53,17 +53,17 @@ void AddressField::parse()
     case HeaderField::ResentTo:
     case HeaderField::ResentCc:
     case HeaderField::ResentBcc:
-        parseAddressList();
+        parseAddressList( s );
         break;
 
     case HeaderField::MessageId:
     case HeaderField::ContentId:
     case HeaderField::ResentMessageId:
-        parseMessageId();
+        parseMessageId( s );
         break;
 
     case HeaderField::References:
-        parseReferences();
+        parseReferences( s );
         break;
 
     default:
@@ -152,9 +152,9 @@ void AddressField::update()
     problem found.
 */
 
-void AddressField::parseAddressList()
+void AddressField::parseAddressList( const String &s )
 {
-    AddressParser ap( string() );
+    AddressParser ap( s );
     setError( ap.error() );
     a = ap.addresses();
 }
@@ -164,9 +164,9 @@ void AddressField::parseAddressList()
     problem found.
 */
 
-void AddressField::parseMailboxList()
+void AddressField::parseMailboxList( const String &s )
 {
-    parseAddressList();
+    parseAddressList( s );
 
     // A mailbox-list is an address-list where groups aren't allowed.
     List< Address >::Iterator it( a );
@@ -182,9 +182,9 @@ void AddressField::parseMailboxList()
     problem found.
 */
 
-void AddressField::parseMailbox()
+void AddressField::parseMailbox( const String &s )
 {
-    parseMailboxList();
+    parseMailboxList( s );
 
     // A mailbox in our world is just a mailbox-list with one entry.
     if ( valid() && a->count() > 1 )
@@ -198,9 +198,9 @@ void AddressField::parseMailbox()
     problems found.
 */
 
-void AddressField::parseReferences()
+void AddressField::parseReferences( const String &s )
 {
-    AddressParser *ap = AddressParser::references( string() );
+    AddressParser *ap = AddressParser::references( s );
     setError( ap->error() );
     a = ap->addresses();
 }
@@ -210,9 +210,9 @@ void AddressField::parseReferences()
     problem found.
 */
 
-void AddressField::parseMessageId()
+void AddressField::parseMessageId( const String &s )
 {
-    parseReferences();
+    parseReferences( s );
 
     if ( valid() ) {
         if ( a->count() == 0 )

@@ -14,17 +14,17 @@ class AddressField
 public:
     AddressField( HeaderField::Type );
 
-    void parse();
+    void parse( const String & );
     void update();
 
     List< Address > *addresses() const;
 
 protected:
-    void parseAddressList();
-    void parseMailboxList();
-    void parseMailbox();
-    void parseReferences();
-    void parseMessageId();
+    void parseAddressList( const String & );
+    void parseMailboxList( const String & );
+    void parseMailbox( const String & );
+    void parseReferences( const String & );
+    void parseMessageId( const String & );
 
 private:
     void outlawBounce();

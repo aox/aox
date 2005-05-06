@@ -203,14 +203,8 @@ ContentType::~ContentType()
 }
 
 
-void ContentType::parse()
+void ContentType::parse( const String &s )
 {
-    String s = string();
-
-    // Tolerate elm's "Content-Type: text".
-    if ( s.simplified() == "text" )
-        s = "text/plain";
-
     Parser822 p( s );
 
     // Parse: type "/" subtype *( ";" attribute = value )
@@ -265,9 +259,8 @@ ContentTransferEncoding::ContentTransferEncoding()
 }
 
 
-void ContentTransferEncoding::parse()
+void ContentTransferEncoding::parse( const String &s )
 {
-    String s = string();
     Parser822 p( s );
 
     String t = p.mimeToken().lower();
@@ -345,9 +338,8 @@ ContentDisposition::ContentDisposition()
 
 /*! Parses a Content-Disposition field. */
 
-void ContentDisposition::parse()
+void ContentDisposition::parse( const String &s )
 {
-    String s = string();
     Parser822 p( s );
 
     String t;
@@ -404,9 +396,8 @@ ContentLanguage::~ContentLanguage()
 
 /*! Parses a Content-Language field. */
 
-void ContentLanguage::parse()
+void ContentLanguage::parse( const String &s )
 {
-    String s = string();
     Parser822 p( s );
 
     do {
