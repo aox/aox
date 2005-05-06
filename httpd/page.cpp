@@ -9,6 +9,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "ustring.h"
+#include "session.h"
 #include "bodypart.h"
 #include "allocator.h"
 #include "messageset.h"
@@ -30,7 +31,8 @@ public:
     PageData()
         : type( Page::Error ), state( 0 ),
           link( 0 ), server( 0 ), ready( false ),
-          user( 0 ), message( 0 )
+          user( 0 ), message( 0 ),
+          uid( 0 ), session( 0 )
     {}
 
     Page::Type type;
@@ -45,6 +47,8 @@ public:
     String passwd;
     User *user;
     Message *message;
+    uint uid;
+    Session * session;
 };
 
 
@@ -362,6 +366,9 @@ void Page::mainPage()
 }
 
 
+static List<Session> * sessions;
+
+
 /*! Prepares to display a mailbox.
 */
 
@@ -370,22 +377,56 @@ void Page::mailboxPage()
     log( "mailboxPage for " + d->link->mailbox()->name() + " with uidnext " +
          fn( d->link->mailbox()->uidnext() ) );
 
-    if ( d->state == 0 ) {
-        MessageSet ms;
-        Mailbox *m = d->link->mailbox();
-        ms.add( 1, m->uidnext()-1 );
-        m->fetchHeaders( ms, this );
-        d->message = m->message( ms.largest() );
-        d->state = 1;
+    if ( !d->session ) {
+        if ( !::sessions ) {
+            ::sessions = new List<Session>;
+            Allocator::AddEternal( ::sessions,
+                                   "mailbox sessions used via http" );
+        }
+        List<Session>::Iterator it( *::sessions );
+        while ( it && it->mailbox() != d->link->mailbox() )
+            ++it;
+        d->session = it;
+        if ( !d->session ) {
+            d->session = new Session( d->link->mailbox(), true );
+            ::sessions->append( d->session );
+        }
     }
 
-    if ( !d->message->hasFlags() || !d->message->hasHeaders() )
+    if ( !d->session->initialised() ) {
+        d->session->refresh( this );
+        d->uid = 0;
         return;
+    }
+
+    if ( d->session->count() == 0 ) {
+        d->text = "<p>Mailbox is empty";
+        d->ready = true;
+    }
+
+    if ( !d->uid ) {
+        MessageSet ms;
+        ms.add( d->session->uid( 1 ),
+                d->session->uid( d->session->count() ) );
+        d->session->mailbox()->fetchHeaders( ms, this );
+        d->uid = d->session->uid( 1 );
+    }
+
+    uint highest = d->session->uid( d->session->count() );
+
+    while ( d->uid < highest ) {
+        Message * m = d->session->mailbox()->message( d->uid );
+        if ( !m || !m->hasHeaders() )
+            return;
+        d->uid++;
+    }
 
     String s;
-    uint uid = 1;
-    while ( uid < d->message->uid() ) {
-        Message *m = d->link->mailbox()->message( uid );
+    uint msn = 1;
+    while ( msn <= d->session->count() ) {
+        uint uid =  d->session->uid( msn );
+        Message *m = d->session->mailbox()->message( uid );
+        msn++;
         if ( m && !m->header()->fields()->isEmpty() ) {
             s.append( "<div class=messagesummary><div class=header>" );
 
@@ -401,12 +442,9 @@ void Page::mailboxPage()
             s.append( address( m, HeaderField::To ) );
             s.append( address( m, HeaderField::Cc ) );
 
-            log( "added blah for uid " + fn( uid ) );
-
             s.append( "</div></div>" );
 
         }
-        uid++;
     }
 
     d->ready = true;
