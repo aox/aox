@@ -23,6 +23,7 @@ public:
 
     bool ready() const;
     String text() const;
+    String contentType() const;
 
     void execute();
 

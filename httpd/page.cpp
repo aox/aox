@@ -40,6 +40,7 @@ public:
 
     Link *link;
     String text, data;
+    String ct;
     HTTP *server;
     bool ready;
 
@@ -66,6 +67,7 @@ Page::Page( Link * link, HTTP *server )
 {
     d->link = link;
     d->server = server;
+    d->ct = "text/html";
 
     if ( link->type() == Link::WebmailMessage ||
          link->type() == Link::WebmailMailbox ||
@@ -209,6 +211,11 @@ String Page::text() const
     if ( jsUrl )
         r.append( "<script src=\"" + *jsUrl + "\"></script>" );
     r.append( "<script src=\"http://localhost:8080/~ams/x.js\"></script>" );
+    r.append( "<style>"
+              ".hidden{display:none;}"
+              ".njshidden{display:none;}"
+              ".jsonly{display:none;}"
+              "</style>" );
     if ( cssUrl )
         r.append( "<link rel=stylesheet type=\"text/css\" href=\"" +
                   *cssUrl + "\">" );
@@ -218,6 +225,19 @@ String Page::text() const
     r.append( d->text );
     r.append( "</div></body></html>" );
     return r;
+}
+
+
+/*! Returns the content-type of this page, or a null string if the
+    page isn't ready().
+
+*/
+
+String Page::contentType() const
+{
+    if ( !ready() )
+        return "";
+    return d->ct;
 }
 
 
@@ -380,7 +400,7 @@ void Page::mailboxPage()
     if ( !d->session ) {
         if ( !::sessions ) {
             ::sessions = new List<Session>;
-            Allocator::AddEternal( ::sessions,
+            Allocator::addEternal( ::sessions,
                                    "mailbox sessions used via http" );
         }
         List<Session>::Iterator it( *::sessions );
@@ -650,15 +670,13 @@ void Page::webmailPartPage()
         return;
     }
 
-    String type = "text/plain";
+    d->ct = "text/plain";
     ContentType *ct = bp->header()->contentType();
     if ( ct )
-        type = ct->type() + "/" + ct->subtype();
-
-    d->server->addHeader( "Content-Type: " + type );
+        d->ct = ct->type() + "/" + ct->subtype();
 
     Utf8Codec u;
-    if ( type.startsWith( "text/" ) )
+    if ( d->ct.startsWith( "text/" ) )
         d->data = u.fromUnicode( bp->text() );
     else
         d->data = bp->data();

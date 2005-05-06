@@ -160,6 +160,7 @@ void HTTP::process()
                    Configuration::compiledIn( Configuration::Version ) +
                    " (http://www.oryx.com/mailstore/)" );
         addHeader( "Content-Length: " + fn( text.length() ) );
+        addHeader( "Content-Type: " + d->page->contentType() );
 
         if ( d->session )
             addHeader( "Set-Cookie: session=\"" + d->session->key() + "\";"
