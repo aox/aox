@@ -257,7 +257,8 @@ void Parser822::setMime( bool m )
 }
 
 
-/*! Returns a dot-atom, stepping past all relevant whitespace and comments.
+/*! Returns a dot-atom, stepping past all relevant whitespace and
+    comments.
 */
 
 String Parser822::dotAtom()
@@ -342,9 +343,12 @@ String Parser822::mimeValue()
     if the cursor does not point to a valid encoded-word. This function
     does not check that encoded-words are correctly separated from any
     neighbouring tokens by whitespace: the caller must verify that.
+
+    The characters permitted in the encoded-text are adjusted based on
+    \a type, which may be Text (by default), Comment, or Phrase.
 */
 
-UString Parser822::encodedWord()
+UString Parser822::encodedWord( EncodedText type )
 {
     UString out;
 
@@ -416,7 +420,15 @@ UString Parser822::encodedWord()
         int m = ++n;
         char c = s[m];
         while ( m - i <= 75 &&
-                c > 32 && c < 128 && c != '?' )
+                c > 32 && c < 128 && c != '?' &&
+                ( type != Comment ||
+                  ( c != '(' && c != ')' && c != '\\' ) ) && 
+                ( type != Phrase || 
+                  ( ( c >= '0' && c <= '9' ) ||
+                    ( c >= 'a' && c <= 'z' ) ||
+                    ( c >= 'A' && c <= 'Z' ) ||
+                    ( c == '!' || c == '*' || c == '-' ||
+                      c == '/' || c == '=' || c == '_' ) ) ) )
         {
             text.append( c );
             c = s[++m];

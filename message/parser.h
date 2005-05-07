@@ -36,7 +36,9 @@ public:
     String atom();
     String mimeToken();
     String mimeValue();
-    UString encodedWord();
+
+    enum EncodedText { Text, Comment, Phrase };
+    UString encodedWord( EncodedText = Text );
     UString text();
 
     char next() const { return s[i]; }
