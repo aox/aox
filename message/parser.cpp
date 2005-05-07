@@ -408,19 +408,33 @@ UString Parser822::encodedWord( EncodedText type )
     if ( valid ) {
         int m = ++n;
         char c = s[m];
-        while ( m - i <= 75 &&
-                c > 32 && c < 128 && c != '?' &&
-                ( type != Comment ||
-                  ( c != '(' && c != ')' && c != '\\' ) ) && 
-                ( type != Phrase || 
-                  ( ( c >= '0' && c <= '9' ) ||
-                    ( c >= 'a' && c <= 'z' ) ||
-                    ( c >= 'A' && c <= 'Z' ) ||
-                    ( c == '!' || c == '*' || c == '-' ||
-                      c == '/' || c == '=' || c == '_' ) ) ) )
-        {
-            text.append( c );
-            c = s[++m];
+
+        if ( encoding == 'b' ) {
+            while ( m - i <= 75 &&
+                    ( ( c >= '0' && c <= '9' ) ||
+                      ( c >= 'a' && c <= 'z' ) ||
+                      ( c >= 'A' && c <= 'Z' ) ||
+                      c == '+' || c == '/' || c == '=' ) )
+            {
+                text.append( c );
+                c = s[++m];
+            }
+        }
+        else {
+            while ( m - i <= 75 &&
+                    c > 32 && c < 128 && c != '?' &&
+                    ( type != Comment ||
+                      ( c != '(' && c != ')' && c != '\\' ) ) && 
+                    ( type != Phrase || 
+                      ( c >= '0' && c <= '9' ) ||
+                      ( c >= 'a' && c <= 'z' ) ||
+                      ( c >= 'A' && c <= 'Z' ) ||
+                      ( c == '!' || c == '*' || c == '-' ||
+                        c == '/' || c == '=' || c == '_' ) ) )
+            {
+                text.append( c );
+                c = s[++m];
+            }
         }
 
         if ( m - i > 75 )
@@ -435,7 +449,7 @@ UString Parser822::encodedWord( EncodedText type )
     if ( valid ) {
         if ( encoding == 'q' )
             text = text.deQP( true );
-        else if ( encoding == 'b' )
+        else
             text = text.de64();
         out = cs->toUnicode( text );
         i = ++n;
