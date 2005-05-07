@@ -48,10 +48,10 @@ public:
     String name() const;
     void setName( const String & );
 
-    virtual String value() const;
+    virtual String value();
     void setValue( const String & );
 
-    virtual String data() const;
+    virtual String data();
     void setData( const String & );
 
     bool valid() const;
@@ -59,7 +59,7 @@ public:
     void setError( const String & );
 
     virtual void parse( const String & );
-    virtual void reassemble();
+    virtual void reassemble( const String & );
 
     static const char *fieldName( HeaderField::Type );
 

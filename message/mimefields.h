@@ -25,8 +25,8 @@ public:
     void removeParameter( const String & );
     void parseParameters( Parser822 * );
 
-    String value() const;
-    String data() const;
+    String value();
+    String data();
 
 private:
     class MimeFieldData *d;

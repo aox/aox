@@ -143,7 +143,6 @@ void AddressField::update()
             s = "<" + it->toString() + ">";
     }
 
-    setValue( s );
     setData( s );
 }
 

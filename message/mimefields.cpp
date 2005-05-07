@@ -160,15 +160,15 @@ void MimeField::parseParameters( Parser822 *p )
 }
 
 
-String MimeField::value() const
+String MimeField::value()
 {
-    String s = HeaderField::value();
+    String s = HeaderField::data();
     s.append( parameterString() );
     return s;
 }
 
 
-String MimeField::data() const
+String MimeField::data()
 {
     String s = HeaderField::data();
     s.append( parameterString() );
@@ -218,7 +218,6 @@ void ContentType::parse( const String &s )
         setError( "Multipart entities must have a boundary parameter." );
 
     String v = t + "/" + st;
-    setValue( v );
     setData( v );
 }
 
@@ -280,7 +279,6 @@ void ContentTransferEncoding::parse( const String &s )
     if ( valid() && !p.atEnd() )
         setError( "Junk at the end of c-t-e: '" + s.simplified() + "'" );
 
-    setValue( t );
     setData( t );
 }
 
@@ -306,7 +304,6 @@ void ContentTransferEncoding::setEncoding( String::Encoding en )
         s = "base64";
         break;
     }
-    setValue( s );
     setData( s );
 }
 
@@ -349,7 +346,6 @@ void ContentDisposition::parse( const String &s )
         else // if ( t == "attachment" )
             d = Attachment;
         parseParameters( &p );
-        setValue( t );
         setData( t );
         return;
     }
@@ -412,7 +408,6 @@ void ContentLanguage::parse( const String &s )
     if ( !p.atEnd() || l.count() == 0 )
         setError( "Unparseable value: '" + s.simplified() + "'" );
 
-    setValue( s );
     setData( s );
 }
 

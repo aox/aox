@@ -55,11 +55,12 @@ static struct {
 class HeaderFieldData {
 public:
     HeaderFieldData()
-        : type( HeaderField::Other )
+        : type( HeaderField::Other ), hasData( false )
     {}
 
     HeaderField::Type type;
-    String name, data, value, error;
+    String name, data, error;
+    bool hasData;
 };
 
 
@@ -167,8 +168,7 @@ HeaderField *HeaderField::assemble( const String &name,
                                     const String &data )
 {
     HeaderField *hf = fieldNamed( name );
-    hf->setData( data );
-    hf->reassemble();
+    hf->reassemble( data );
     return hf;
 }
 
@@ -213,9 +213,12 @@ void HeaderField::setName( const String &n )
     can use to form headers that are handed out to clients.
 */
 
-String HeaderField::value() const
+String HeaderField::value()
 {
-    return d->value;
+    if ( d->hasData )
+        reassemble( d->data );
+
+    return d->data;
 }
 
 
@@ -223,8 +226,8 @@ String HeaderField::value() const
 
 void HeaderField::setValue( const String &s )
 {
-    // This function should wrap() and encode2047() if necessary.
-    d->value = s;
+    d->hasData = false;
+    d->data = s;
 }
 
 
@@ -232,8 +235,11 @@ void HeaderField::setValue( const String &s )
     This is the value we store in the database.
 */
 
-String HeaderField::data() const
+String HeaderField::data()
 {
+    if ( !d->hasData )
+        parse( d->data );
+
     return d->data;
 }
 
@@ -242,6 +248,7 @@ String HeaderField::data() const
 
 void HeaderField::setData( const String &s )
 {
+    d->hasData = true;
     d->data = s;
 }
 
@@ -277,9 +284,9 @@ void HeaderField::setError( const String &s )
 
 
 /*! Every HeaderField subclass must define a parse() function that takes
-    a string \a s from a message and sets the field value() and data().
-    This default function handles fields that are not specially handled
-    by subclasses, using functions like parseText().
+    a string \a s from a message and sets the field data(). This default
+    function handles fields that are not specially handled by subclasses
+    using functions like parseText().
 */
 
 void HeaderField::parse( const String &s )
@@ -287,7 +294,6 @@ void HeaderField::parse( const String &s )
     // Most fields share the same external and database representations.
     // For any that don't (cf. 2047) , we'll just setData() again later.
     setData( s );
-    setValue( s );
 
     switch ( d->type ) {
     case From:
@@ -345,22 +351,23 @@ void HeaderField::parse( const String &s )
 
 
 /*! Like parse(), this function must be reimplemented by subclasses. Its
-    responsibility is to use data() (as retrieved from the database) to
+    responsibility is to use \a s (as retrieved from the database) to
     set the field's value().
 */
 
-void HeaderField::reassemble()
+void HeaderField::reassemble( const String &s )
 {
     switch ( d->type ) {
     default:
         // We assume that most fields share an external and database
         // representation.
-        parse( data() );
+        parse( s );
+        setValue( data() );
         break;
 
     case Subject:
     case Comments:
-        setValue( wrap( encode( data() ) ) );
+        setValue( wrap( encode( s ) ) );
         break;
     }
 }
@@ -375,7 +382,6 @@ void HeaderField::parseText( const String &s )
     Utf8Codec u;
     Parser822 p( unwrap( s ) );
     setData( u.fromUnicode( p.text() ) );
-    setValue( wrap( encode( data() ) ) );
 }
 
 
@@ -416,7 +422,6 @@ void HeaderField::parseContentLocation( const String &s )
 
     if ( !p.atEnd() )
         setError( "Junk at end of '" + value().simplified() + "'" );
-    setValue( t );
 }
 
 
