@@ -357,7 +357,8 @@ UString Parser822::encodedWord( EncodedText type )
     int n = i;
     Codec *cs = 0;
     bool valid = true;
-    String charset, encoding, text;
+    String charset, text;
+    char encoding;
 
     if ( s[n] != '=' || s[++n] != '?' )
         valid = false;
@@ -394,23 +395,11 @@ UString Parser822::encodedWord( EncodedText type )
 
     if ( valid ) {
         int m = ++n;
-        char c = s[m];
-        while ( m - i <= 75 &&
-                c > 32 && c < 128 &&
-                c != '(' && c != ')' && c != '<' && c != '>' &&
-                c != '@' && c != ',' && c != ';' && c != ':' &&
-                c != '[' && c != ']' && c != '?' && c != '=' &&
-                c != '\\' && c != '"' && c != '/' && c != '.' )
-        {
-            encoding.append( c );
-            c = s[++m];
-        }
-
-        encoding = encoding.lower();
-        if ( m - i > 75 || ( encoding != "q" && encoding != "b" ) )
+        encoding = s[m] | 0x20;
+        if ( encoding != 'q' && encoding != 'b' )
             valid = false;
         else
-            n = m;
+            n = ++m;
     }
 
     if ( valid && s[n] != '?' )
@@ -444,9 +433,9 @@ UString Parser822::encodedWord( EncodedText type )
         valid = false;
 
     if ( valid ) {
-        if ( encoding == "q" )
+        if ( encoding == 'q' )
             text = text.deQP( true );
-        else if ( encoding == "b" )
+        else if ( encoding == 'b' )
             text = text.de64();
         out = cs->toUnicode( text );
         i = ++n;
