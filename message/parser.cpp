@@ -424,8 +424,8 @@ UString Parser822::encodedWord( EncodedText type )
             while ( m - i <= 75 &&
                     c > 32 && c < 128 && c != '?' &&
                     ( type != Comment ||
-                      ( c != '(' && c != ')' && c != '\\' ) ) && 
-                    ( type != Phrase || 
+                      ( c != '(' && c != ')' && c != '\\' ) ) &&
+                    ( type != Phrase ||
                       ( c >= '0' && c <= '9' ) ||
                       ( c >= 'a' && c <= 'z' ) ||
                       ( c >= 'A' && c <= 'Z' ) ||
@@ -459,6 +459,50 @@ UString Parser822::encodedWord( EncodedText type )
 }
 
 
+/*! Steps past a sequence of adjacent encoded-words with whitespace in
+    between and returns the decoded representation.
+*/
+
+UString Parser822::encodedWords( EncodedText type )
+{
+    UString out;
+
+    UString us = encodedWord();
+    if ( us.isEmpty() )
+        return out;
+
+    uint n;
+    out.append( us );
+    do {
+        n = i;
+        while ( i < s.length() &&
+                ( s[i] == ' ' || s[i] == '\t' ) )
+            i++;
+        
+        if ( i == n )
+            break;
+
+        if ( i < s.length() && s[i] == '=' && s[i+1] == '?' ) {
+            UString us = encodedWord();
+            if ( us.isEmpty() ) {
+                i = n;
+                break;
+            }
+            else {
+                out.append( us );
+            }
+        }
+        else {
+            i = n;
+            break;
+        }
+    }
+    while ( 1 );
+
+    return out;
+}
+
+
 /*! Steps past the longest "*text" (a series of text/encoded-words) at
     the cursor, and returns its decoded representation, which may be an
     empty string.
@@ -469,7 +513,6 @@ UString Parser822::text()
     UString out;
 
     uint first = i;
-    bool sawEncoded = false;
 
     char c = s[i];
     while ( i < s.length() &&
@@ -480,15 +523,15 @@ UString Parser822::text()
         {
             if ( c == ' ' )
                 c = s[++i];
-            if ( !sawEncoded && i != first )
+            if ( i != first )
                 out.append( ' ' );
+
             uint n = i;
-            UString us = encodedWord();
+            UString us = encodedWords();
             if ( !us.isEmpty() &&
                  ( s[i] == ' ' || s[i] == '\012' || s[i] == '\015' ||
                    i == s.length() ) )
             {
-                sawEncoded = true;
                 out.append( us );
                 c = s[i];
             }
@@ -497,10 +540,6 @@ UString Parser822::text()
             }
         }
         else {
-            sawEncoded = false;
-        }
-
-        if ( !sawEncoded ) {
             out.append( c );
             c = s[++i];
         }

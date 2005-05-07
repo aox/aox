@@ -39,6 +39,7 @@ public:
 
     enum EncodedText { Text, Comment, Phrase };
     UString encodedWord( EncodedText = Text );
+    UString encodedWords( EncodedText = Text );
     UString text();
 
     char next() const { return s[i]; }
