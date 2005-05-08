@@ -4,10 +4,12 @@
 
 #include "dict.h"
 #include "stringlist.h"
+#include "ustring.h"
+#include "parser.h"
+#include "utf.h"
 
 
-class AddressData
-{
+class AddressData {
 public:
     AddressData(): id( 0 ), type( Address::Invalid ) {}
 
@@ -157,6 +159,18 @@ void Address::setId( uint id )
 String Address::name() const
 {
     return d->name;
+}
+
+
+/*! Returns a UTF-8 encoded string containing the RFC2047-decoded
+    name() belonging to this address.
+*/
+
+String Address::uname() const
+{
+    Utf8Codec u;
+    Parser822 p( d->name );
+    return u.fromUnicode( p.phrase() );
 }
 
 

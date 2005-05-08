@@ -7,8 +7,7 @@
 #include "list.h"
 
 
-class Address
-{
+class Address {
 public:
     Address();
     Address( const String &, const String &, const String & );
@@ -24,6 +23,7 @@ public:
     void setId( uint );
 
     String name() const;
+    String uname() const;
     String localpart() const;
     String domain() const;
 
@@ -42,8 +42,7 @@ private:
 };
 
 
-class AddressParser
-{
+class AddressParser {
 public:
     AddressParser( String );
     ~AddressParser();

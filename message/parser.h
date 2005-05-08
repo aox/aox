@@ -30,7 +30,6 @@ public:
     String comment();
     String string();
     String dotAtom();
-    String phrase();
     char character();
     String domain();
     String atom();
@@ -40,6 +39,7 @@ public:
     enum EncodedText { Text, Comment, Phrase };
     UString encodedWord( EncodedText = Text );
     UString encodedWords( EncodedText = Text );
+    UString phrase();
     UString text();
 
     char next() const { return s[i]; }

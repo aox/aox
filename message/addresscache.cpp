@@ -112,14 +112,18 @@ public:
         queries = l;
         transaction = t;
 
+        String un = a->uname();
+        if ( un.isEmpty() )
+            un = a->name();
+
         Query *i = new Query( *addressInsert, this );
-        i->bind( 1, a->name() );
+        i->bind( 1, un );
         i->bind( 2, a->localpart() );
         i->bind( 3, a->domain() );
         transaction->enqueue( i );
 
         q = new Query( *addressLookup, this );
-        q->bind( 1, a->name() );
+        q->bind( 1, un );
         q->bind( 2, a->localpart() );
         q->bind( 3, a->domain() );
         transaction->enqueue( q );

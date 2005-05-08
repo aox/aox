@@ -181,24 +181,6 @@ String Parser822::string()
 }
 
 
-/*! Returns a run of strings, with separating spaces. */
-
-String Parser822::phrase()
-{
-    String r = string();
-    if ( r.isEmpty() )
-        return r;
-
-    String w = string();
-    while ( !w.isEmpty() ) {
-        r = r + " " + w;
-        w = string();
-    };
-
-    return r;
-}
-
-
 /*! Returns a single character and steps to the next. */
 
 char Parser822::character()
@@ -542,6 +524,56 @@ UString Parser822::text()
         else {
             out.append( c );
             c = s[++i];
+        }
+    }
+
+    return out;
+}
+
+
+/*! Steps past an RFC 822 phrase (a series of word/encoded-words) at the
+    cursor, and returns its decoded representation, which may be an
+    empty string.
+*/
+
+UString Parser822::phrase()
+{
+    UString out;
+
+    uint first = i;
+
+    char c = s[i];
+    while ( i < s.length() &&
+            c != 0 && c != '\012' && c != '\015' )
+    {
+        if ( ( c == ' ' && s[i+1] == '=' && s[i+2] == '?' ) ||
+             ( i == first && s[i] == '=' && s[i+1] == '?' ) )
+        {
+            if ( c == ' ' )
+                c = s[++i];
+            if ( i != first )
+                out.append( ' ' );
+
+            uint n = i;
+            UString us = encodedWords();
+            if ( !us.isEmpty() &&
+                 ( s[i] == ' ' || s[i] == '\012' || s[i] == '\015' ||
+                   i == s.length() ) )
+            {
+                out.append( us );
+                c = s[i];
+            }
+            else {
+                i = n;
+            }
+        }
+        else {
+            AsciiCodec a;
+            String qs = string();
+            if ( qs.isEmpty() )
+                break;
+            out.append( a.toUnicode( qs ) );
+            c = s[i];
         }
     }
 
