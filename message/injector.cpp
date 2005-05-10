@@ -445,7 +445,6 @@ void Injector::buildAddressLinks()
 {
     d->addressLinks = new List< AddressLink >;
     List< Address > * addresses = new List< Address >;
-    Dict< Address > unique;
 
     int i = 0;
     while ( i <= HeaderField::LastAddressField ) {
@@ -455,16 +454,7 @@ void Injector::buildAddressLinks()
             List< Address >::Iterator it( a );
             while ( it ) {
                 Address *a = it;
-                String k = a->toString();
-
-                if ( unique.contains( k ) ) {
-                    a = unique.find( k );
-                }
-                else {
-                    unique.insert( k, a );
-                    addresses->append( a );
-                }
-
+                addresses->append( a );
                 AddressLink *link = new AddressLink;
                 d->addressLinks->append( link );
                 link->address = a;
