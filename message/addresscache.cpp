@@ -112,9 +112,7 @@ public:
         queries = l;
         transaction = t;
 
-        String un = a->uname();
-        if ( un.isEmpty() )
-            un = a->name();
+        String un = a->name();
 
         Query *i = new Query( *addressInsert, this );
         i->bind( 1, un );
@@ -153,16 +151,7 @@ void AddressLookup::execute() {
                                   address->domain() );
         a->setId( id );
 
-        String s( a->uname() );
-        if ( s.isEmpty() )
-            s.append( a->name() );
-        if ( !s.isEmpty() )
-            s.append( " " );
-        s.append( "<" );
-        s.append( a->localpart() );
-        s.append( "@" );
-        s.append( a->domain() );
-        s.append( ">" );
+        String s( a->toString() );
         nameCache->insert( s, a );
         idCache->insert( a->id(), a );
     }
@@ -196,16 +185,7 @@ CacheLookup *AddressCache::lookup( Transaction *t, List< Address > *l,
     List< Address >::Iterator it( l );
     while ( it ) {
         Address *a = it;
-        String s( a->uname() );
-        if ( s.isEmpty() )
-            s.append( a->name() );
-        if ( !s.isEmpty() )
-            s.append( " " );
-        s.append( "<" );
-        s.append( a->localpart() );
-        s.append( "@" );
-        s.append( a->domain() );
-        s.append( ">" );
+        String s( a->toString() );
         a = nameCache->find( s );
 
         if ( !a )
