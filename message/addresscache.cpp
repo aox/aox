@@ -156,7 +156,8 @@ void AddressLookup::execute() {
         String s( a->uname() );
         if ( s.isEmpty() )
             s.append( a->name() );
-        s.append( " " );
+        if ( !s.isEmpty() )
+            s.append( " " );
         s.append( "<" );
         s.append( a->localpart() );
         s.append( "@" );
@@ -198,7 +199,8 @@ CacheLookup *AddressCache::lookup( Transaction *t, List< Address > *l,
         String s( a->uname() );
         if ( s.isEmpty() )
             s.append( a->name() );
-        s.append( " " );
+        if ( !s.isEmpty() )
+            s.append( " " );
         s.append( "<" );
         s.append( a->localpart() );
         s.append( "@" );
