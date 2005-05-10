@@ -448,6 +448,7 @@ void Injector::buildAddressLinks()
 {
     d->addressLinks = new List< AddressLink >;
     List< Address > * addresses = new List< Address >;
+    Dict< Address > unique;
 
     int i = 1;
     List< HeaderField >::Iterator it( d->message->header()->fields() );
@@ -460,6 +461,15 @@ void Injector::buildAddressLinks()
                 List< Address >::Iterator ai( al );
                 while ( ai ) {
                     Address *a = ai;
+                    String k = a->toString();
+
+                    if ( unique.contains( k ) ) {
+                        a = unique.find( k );
+                    }
+                    else {
+                        unique.insert( k, a );
+                        addresses->append( a );
+                    }
 
                     AddressLink *link = new AddressLink;
                     link->part = "";
@@ -467,7 +477,6 @@ void Injector::buildAddressLinks()
                     link->type = hf->type();
                     link->address = a;
                     d->addressLinks->append( link );
-                    addresses->append( a );
 
                     ++ai;
                 }
