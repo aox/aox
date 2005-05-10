@@ -27,6 +27,9 @@ public:
 
     void execute();
 
+    static String textPlain( const String & );
+    static String textHtml( const String & );
+
 private:
     void errorPage();
     void loginForm();
@@ -42,8 +45,6 @@ private:
     String bodypart( Message *, Bodypart * );
     String message( Message *, Message * );
     String jsToggle( const String &, bool, const String &, const String & );
-    static String textPlain( const String & );
-    static String textHtml( const String & );
 
 private:
     class PageData * d;
