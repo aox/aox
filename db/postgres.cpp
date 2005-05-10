@@ -1042,6 +1042,7 @@ void UpdateSchema::execute() {
                                        "(mailbox,uid,part,position,field)",
                                        this );
                         t->enqueue( q );
+                        t->execute();
                         substate = 2;
                     }
                 }
