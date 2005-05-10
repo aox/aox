@@ -1082,9 +1082,6 @@ void UpdateSchema::execute() {
                     q = new Query( "alter table address_fields alter "
                                    "field set not null", this );
                     t->enqueue( q );
-                    q = new Query( "alter table address_fields drop constraint "
-                                   "address_fields_mailbox_fkey", this );
-                    t->enqueue( q );
                     q = new Query( "alter table address_fields add foreign key "
                                    "(mailbox,uid,part,position,field) "
                                    "references header_fields "
