@@ -325,7 +325,7 @@ void Search::execute()
         d->query = new SearchQuery( this );
         d->mboxId = d->argument();
         d->query->bind( d->mboxId, imap()->session()->mailbox()->id() );
-        d->query->s = "select messages.uid from messages";
+        d->query->s = "select distinct messages.uid from messages";
         String w( d->root->where() );
         if ( !ok() )
             return;
