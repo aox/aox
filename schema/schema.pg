@@ -149,7 +149,7 @@ create table header_fields (
     id          serial primary key,
     mailbox     integer not null,
     uid         integer not null,
-    part        text,
+    part        text not null,
     position    integer not null,
     field       integer not null references field_names(id),
     value       text,
@@ -166,7 +166,7 @@ create index hf_mup on header_fields (mailbox, uid, part);
 create table address_fields (
     mailbox     integer not null,
     uid         integer not null,
-    part        text,
+    part        text not null,
     position    integer not null,
     field       integer not null,
     address     integer not null references addresses(id),
