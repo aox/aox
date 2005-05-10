@@ -916,8 +916,8 @@ String Search::Condition::whereAddressField( const String & field ) const
         d->query->bind( name, raw );
         r.append( " and "
                   "(addresses.name like '%'||$" + fn( name ) + "||'%' "
-                  "or addresses.localpart like '%'||$" + fn( name ) + "||'%' "
-                  "or addresses.domain like '%'||$" + fn( name ) + "||'%')" );
+                  "or addresses.localpart ilike '%'||$" + fn( name ) + "||'%' "
+                  "or addresses.domain ilike '%'||$" + fn( name ) + "||'%')" );
     }
     else {
         String lc, dc;
@@ -925,22 +925,22 @@ String Search::Condition::whereAddressField( const String & field ) const
             uint lp = d->argument();
             if ( raw.startsWith( "<" ) ) {
                 d->query->bind( lp, raw.mid( 1, at-1 ) );
-                lc = "addresses.localpart like $" + fn( lp );
+                lc = "addresses.localpart ilike $" + fn( lp );
             }
             else {
                 d->query->bind( lp, raw.mid( 0, at ) );
-                lc = "addresses.localpart like '%'||$" + fn( lp ) + " ";
+                lc = "addresses.localpart ilike '%'||$" + fn( lp ) + " ";
             }
         }
         if ( at < (int)raw.length() - 1 ) {
             uint dom = d->argument();
             if ( raw.endsWith( ">" ) ) {
                 d->query->bind( dom, raw.mid( at+1, raw.length()-at-2 ) );
-                dc = "addresses.domain like $" + fn( dom );
+                dc = "addresses.domain ilike $" + fn( dom );
             }
             else {
                 d->query->bind( dom, raw.mid( at+1 ) );
-                dc = "addresses.domain like $" + fn( dom ) + "||'%'";
+                dc = "addresses.domain ilike $" + fn( dom ) + "||'%'";
             }
         }
         if ( lc.isEmpty() && dc.isEmpty() ) {
