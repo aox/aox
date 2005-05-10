@@ -592,7 +592,7 @@ void Postgres::shutdown()
 }
 
 
-static int currentRevision = 7;
+static int currentRevision = 8;
 
 
 class UpdateSchema
@@ -1048,6 +1048,53 @@ void UpdateSchema::execute() {
                 }
 
                 if ( substate == 2 ) {
+                    if ( !q->done() )
+                        return;
+                    l->log( "Done.", Log::Debug );
+                    substate = 0;
+                }
+            }
+
+            if ( revision == 7 ) {
+                if ( substate == 0 ) {
+                    l->log( "Making address_fields refer to header_fields.",
+                            Log::Debug );
+                    q = new Query( "delete from address_fields", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table address_fields drop field",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "alter table address_fields add "
+                                   "part text", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table address_fields alter "
+                                   "part set not null", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table address_fields add "
+                                   "position integer", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table address_fields alter "
+                                   "position set not null", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table address_fields add "
+                                   "field integer", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table address_fields alter "
+                                   "field set not null", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table address_fields drop constraint "
+                                   "address_fields_mailbox_fkey", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table address_fields add foreign key "
+                                   "(mailbox,uid,part,position,field) "
+                                   "references header_fields "
+                                   "(mailbox,uid,part,position,field)", this );
+                    t->enqueue( q );
+                    t->execute();
+                    substate = 1;
+                }
+
+                if ( substate == 1 ) {
                     if ( !q->done() )
                         return;
                     l->log( "Done.", Log::Debug );
