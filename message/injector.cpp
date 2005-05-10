@@ -457,9 +457,9 @@ void Injector::buildAddressLinks()
         if ( hf->type() <= HeaderField::LastAddressField ) {
             List< Address > *a = ((AddressField *)hf)->addresses();
             if ( a && !a->isEmpty() ) {
-                List< Address >::Iterator it( a );
-                while ( it ) {
-                    Address *a = it;
+                List< Address >::Iterator ai( a );
+                while ( ai ) {
+                    Address *a = ai;
 
                     AddressLink *link = new AddressLink;
                     link->part = "";
@@ -469,11 +469,12 @@ void Injector::buildAddressLinks()
                     d->addressLinks->append( link );
                     addresses->append( a );
 
-                    ++it;
+                    ++ai;
                 }
             }
         }
 
+        ++it;
         i++;
     }
 
