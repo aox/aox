@@ -153,8 +153,17 @@ void AddressLookup::execute() {
                                   address->domain() );
         a->setId( id );
 
+        String s( a->uname() );
+        if ( s.isEmpty() )
+            s.append( a->name() );
+        s.append( " " );
+        s.append( "<" );
+        s.append( a->localpart() );
+        s.append( "@" );
+        s.append( a->domain() );
+        s.append( ">" );
+        nameCache->insert( s, a );
         idCache->insert( a->id(), a );
-        nameCache->insert( a->toString(), a );
     }
 
     if ( queries->isEmpty() ) {
@@ -185,7 +194,17 @@ CacheLookup *AddressCache::lookup( Transaction *t, List< Address > *l,
 
     List< Address >::Iterator it( l );
     while ( it ) {
-        Address *a = nameCache->find( it->toString() );
+        Address *a = it;
+        String s( a->uname() );
+        if ( s.isEmpty() )
+            s.append( a->name() );
+        s.append( " " );
+        s.append( "<" );
+        s.append( a->localpart() );
+        s.append( "@" );
+        s.append( a->domain() );
+        s.append( ">" );
+        a = nameCache->find( s );
 
         if ( !a )
             (void)new AddressLookup( t, it, lookups, status, ev );
