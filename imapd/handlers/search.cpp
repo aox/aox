@@ -910,11 +910,11 @@ String Search::Condition::whereAddressField( const String & field ) const
         r.append( "address_fields.field=field_names.id and "
                   "field_names.name=$" + fn( fnum ) );
     }
+    r.append( " and address_fields.address=addresses.id" );
     if ( at < 0 ) {
         uint name = d->argument();
         d->query->bind( name, raw );
         r.append( " and "
-                  "address_fields.address=addresses.id and "
                   "(addresses.name like '%'||$" + fn( name ) + "||'%' "
                   "or addresses.localpart like '%'||$" + fn( name ) + "||'%' "
                   "or addresses.domain like '%'||$" + fn( name ) + "||'%')" );
