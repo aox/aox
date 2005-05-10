@@ -950,11 +950,11 @@ String Search::Condition::whereAddressField( const String & field ) const
         }
         if ( !lc.isEmpty() ) {
             r.append( " and " );
-            r.append( dc );
-        }
-        if ( !lc.isEmpty() ) {
-            r.append( " and " );
             r.append( lc );
+        }
+        if ( !dc.isEmpty() ) {
+            r.append( " and " );
+            r.append( dc );
         }
     }
     return r;
