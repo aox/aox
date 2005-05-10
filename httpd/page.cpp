@@ -614,9 +614,11 @@ static String unwindStack( StringList & stack, const String & tag )
         if ( it ) {
             s = *it;
             stack.take( it );
-            r.append( "</" );
-            r.append( s );
-            r.append( ">" );
+            if ( s != "p" ) {
+                r.append( "</" );
+                r.append( s );
+                r.append( ">" );
+            }
         }
     } while ( it && tag != s );
     return r;
@@ -719,14 +721,20 @@ String Page::textHtml( const String & s )
             }
             else if ( tag == "blockquote" ) {
                 if ( htmlclass == "cite" ) {
-
+                    r.append( unwindStack( stack, "p" ) );
                     stack.append( new String( "p" ) );
-                    r.append( "<p class=quoted>" );
+                    r.append( "\n<p class=quoted>" );
                 }
             }
-            else if ( tag == "p" ||
-                      tag == "br" ||
-                      tag == "div" ||
+            else if ( tag == "p" ) {
+                r.append( unwindStack( stack, "p" ) );
+                stack.append( new String( "p" ) );
+                r.append( "\n<p>" );
+            }
+            else if ( tag == "br" ) {
+                r.append( "<br>\n" );
+            }
+            else if ( tag == "div" ||
                       tag == "ul" ||
                       tag == "ol" ||
                       tag == "li" ||
@@ -738,7 +746,7 @@ String Page::textHtml( const String & s )
                       tag == "tr" ||
                       tag == "td" ||
                       tag == "th" ) {
-                stack.append( tag );
+                stack.append( new String( tag ) );
                 r.append( "\n<" );
                 r.append( tag );
                 r.append( ">" );
@@ -749,10 +757,12 @@ String Page::textHtml( const String & s )
             }
         }
     }
-    while ( stack.last() ) {
-        r.append( "</" );
-        r.append( stack.last() );
-        r.append( ">" );
+    while ( !stack.isEmpty() ) {
+        if ( *stack.last() != "p" ) {
+            r.append( "</" );
+            r.append( *stack.last() );
+            r.append( ">" );
+        }
         stack.take( stack.last() );
     }
     r.append( "</div>\n" );
