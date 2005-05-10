@@ -4,8 +4,8 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (7);
-create sequence revisions start with 7;
+insert into mailstore (revision) values (8);
+create sequence revisions start with 8;
 
 
 -- One entry for each unique address we've encountered.
