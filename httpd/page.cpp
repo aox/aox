@@ -614,7 +614,7 @@ static String unwindStack( StringList & stack, const String & tag )
         if ( it ) {
             s = *it;
             stack.take( it );
-            if ( s != "p" ) {
+            if ( s != "p" && s != "body" && s != "script" && s != "style" ) {
                 r.append( "</" );
                 r.append( s );
                 r.append( ">" );
@@ -622,6 +622,21 @@ static String unwindStack( StringList & stack, const String & tag )
         }
     } while ( it && tag != s );
     return r;
+}
+
+
+static bool visibility( StringList & stack )
+{
+    StringList::Iterator it( stack );
+    while ( it && *it != "body" )
+        ++it;
+    if ( !it )
+        return false;
+    while ( it && *it != "style" && *it != "script" )
+        ++it;
+    if ( it )
+        return false;
+    return true;
 }
 
 
@@ -640,11 +655,13 @@ String Page::textHtml( const String & s )
     r.append( "<div class=texthtml>" );
     StringList stack;
     uint i = 0;
+    bool visible = false;
     while ( i < s.length() ) {
         uint j = i;
         while ( j < s.length() && s[j] != '<' )
             j++;
-        r.append( s.mid( i, j-i ).simplified() );
+        if ( visible )
+            r.append( s.mid( i, j-i ).simplified() );
         i = j;
         if ( s[i] == '<' ) {
             i++;
@@ -715,7 +732,12 @@ String Page::textHtml( const String & s )
                           tag == "/ul" ||
                           tag == "/ol" ||
                           tag == "/pre" ||
-                          tag == "/table" ) {
+                          tag == "/td" ||
+                          tag == "/tr" ||
+                          tag == "/table" ||
+                          tag == "/script" ||
+                          tag == "/style" ||
+                          tag == "/body" ) {
                     r.append( unwindStack( stack, tag.mid( 1 ) ) );
                 }
             }
@@ -730,6 +752,15 @@ String Page::textHtml( const String & s )
                 r.append( unwindStack( stack, "p" ) );
                 stack.append( new String( "p" ) );
                 r.append( "\n<p>" );
+            }
+            else if ( tag == "p" ||
+                      tag == "tr" ||
+                      tag == "td" ) {
+                r.append( unwindStack( stack, tag ) );
+                stack.append( tag );
+                r.append( "\n<" );
+                r.append( tag );
+                r.append( ">" );
             }
             else if ( tag == "br" ) {
                 r.append( "<br>\n" );
@@ -751,20 +782,19 @@ String Page::textHtml( const String & s )
                 r.append( tag );
                 r.append( ">" );
             }
+            else if ( tag == "script" ||
+                      tag == "style" ||
+                      tag == "body" ) {
+                stack.append( new String( tag ) );
+            }
             else {
                 // in all other cases, we skip the tag. maybe we
                 // should treat IMG and A specially.
             }
+            visible = visibility( stack );
         }
     }
-    while ( !stack.isEmpty() ) {
-        if ( *stack.last() != "p" ) {
-            r.append( "</" );
-            r.append( *stack.last() );
-            r.append( ">" );
-        }
-        stack.take( stack.last() );
-    }
+    r.append( unwindStack( stack, "" ) );
     r.append( "</div>\n" );
     return r;
 }
