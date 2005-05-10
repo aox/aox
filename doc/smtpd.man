@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH smtpd 8 2004-07-20 www.oryx.com "Mailstore Documentation"
+.TH smtpd 8 2005-05-16 www.oryx.com "Mailstore Documentation"
 .SH NAME
 smtpd - SMTP and LMTP server for Oryx Mailstore.
 .SH SYNOPSIS
@@ -14,6 +14,16 @@ mail server which uses a database for mail storage.
 .PP
 .B smtpd
 only accepts mail for local delivery; it will not relay or forward mail.
+.PP
+It can copy mail to
+.I message-copy-directory
+(see
+.BR mailstore.conf (5))
+to ensure that there are complete low-level copies of all attempted
+mail deliveries. This can be used to burn a record of mail to CD/DVD,
+or to have a backup in case there is a problem with Mailstore.
+Messages are copied even if database fails (usually due to syntax
+errors), so this feature can be useful for debugging.
 .SH OPTIONS
 Mostly, 
 .B smtpd
@@ -22,8 +32,7 @@ is configured using
 The only command-line options at present are:
 .IP "-c filename"
 Read configuration variables from
-.I filename
-instead of from
+.I filenameinstead of from
 .IR $CONFIGDIR/mailstore.conf .
 .IP -f
 Fork into background during startup.

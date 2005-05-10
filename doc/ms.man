@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH ms 8 2005-01-06 www.oryx.com "Mailstore Documentation"
+.TH ms 8 2005-05-16 www.oryx.com "Mailstore Documentation"
 .SH NAME
 ms - management tool for Oryx Mailstore.
 .SH SYNOPSIS

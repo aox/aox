@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH pop3d 8 2004-07-20 www.oryx.com "Mailstore Documentation"
+.TH pop3d 8 2005-05-16 www.oryx.com "Mailstore Documentation"
 .SH NAME
 pop3d - POP3 server for Oryx Mailstore.
 .SH SYNOPSIS
