@@ -159,7 +159,7 @@ static struct {
     { "hostname", Configuration::Hostname, "" },
     { "jail-user", Configuration::JailUser, ORYXUSER },
     { "jail-group", Configuration::JailGroup, ORYXGROUP },
-    { "jail-dir", Configuration::JailDir, JAILDIR },
+    { "jail-directory", Configuration::JailDir, JAILDIR },
     { "allow-plaintext-passwords", Configuration::AllowPlaintextPasswords, "always" },
     { "logfile", Configuration::LogFile, LOGFILE },
     { "tlsproxy-address", Configuration::TlsProxyAddress, "127.0.0.1" },
@@ -176,6 +176,7 @@ static struct {
     { "log-level", Configuration::LogLevel, "info" },
     { "logfile-mode", Configuration::LogfileMode, LOGFILEMODE },
     { "webmail-css-page", Configuration::WebmailCSS, "http://www.oryx.com/webmail/default.css" },
+    { "message-copy-directory", Configuration::MessageCopyDir, "" },
     { "webmail-js-page", Configuration::WebmailJS, "" }
 };
 

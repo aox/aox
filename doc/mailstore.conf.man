@@ -142,7 +142,7 @@ lose privileges.
 .IP
 Turning security off has exactly one advantage: it simplifies
 debugging.
-.IP jail-dir
+.IP jail-directory
 is the directory where the servers jail themselves,
 .I $JAILDIR
 by default. On startup, each server uses
@@ -264,6 +264,15 @@ should listen to. The default is
 is normally disabled,
 .I smtp-port
 is unused.)
+.IP message-copy-directory
+specifies a directory to which all incoming mail is copied, e.g. to
+burn a mail log to CD/DVD regularly. The default is an empty string,
+which means to not copy mail.
+.IP
+If
+.I message-copy-directory
+does not exist, mailstore logs an error at startup and refuses to
+accept mail.
 .SS IMAP
 .IP use-imap
 must be enabled for

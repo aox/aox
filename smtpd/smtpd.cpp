@@ -23,6 +23,9 @@ int main( int argc, char * argv[] )
     Scope global;
 
     Server s( "smtpd", argc, argv );
+    String c( Configuration::text( Configuration::MessageCopyDir ) );
+    if ( !c.isEmpty() )
+        s.setChrootMode( Server::MessageCopyDir );
 
     s.setup( Server::Report );
 

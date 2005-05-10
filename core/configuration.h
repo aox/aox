@@ -78,6 +78,7 @@ public:
         LogfileMode,
         WebmailCSS,
         WebmailJS,
+        MessageCopyDir,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };

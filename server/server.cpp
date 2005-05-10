@@ -367,10 +367,14 @@ void Server::secure()
     }
 
     String root;
-    if ( d->chrootMode == JailDir ) {
+    switch ( d->chrootMode ) {
+    case MessageCopyDir:
+        root = Configuration::text( Configuration::MessageCopyDir );
+        break;
+    case JailDir:
         root = Configuration::text( Configuration::JailDir );
-    }
-    else if ( d->chrootMode == LogDir ) {
+        break;
+    case LogDir:
         root = Configuration::text( Configuration::LogFile );
         uint i = root.length();
         while ( i > 0 && root[i] != '/' )
@@ -383,6 +387,7 @@ void Server::secure()
             exit( 1 );
         }
         root.truncate( i );
+        break;
     }
     if ( chroot( root.cstr() ) ) {
         log( "Cannot secure server " + d->name + " since chroot( \"" +
