@@ -64,8 +64,8 @@ support in Mailstore.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 0.93, released 2005-04-18,
-http://www.oryx.com/mailstore/0.93.html.
+This man page covers Oryx Mailstore version 0.94, released 2005-05-16,
+http://www.oryx.com/mailstore/0.94.html.
 .SH SEE ALSO
 .BR mailstore (7),
 .BR mailstore.conf (5),
