@@ -567,6 +567,10 @@ UString Parser822::phrase()
                 i = n;
             }
         }
+        else if ( c == ' ' || c == '\t' ) {
+            out.append( c );
+            c = s[++i];
+        }
         else {
             AsciiCodec a;
             String qs = string();
