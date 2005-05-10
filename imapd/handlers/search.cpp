@@ -902,12 +902,12 @@ String Search::Condition::whereAddressField( const String & field ) const
     d->usesAddressesTable = true;
     String r;
     r.append( "address_fields.mailbox=messages.mailbox and "
-              "address_fields.uid=messages.uid and " );
+              "address_fields.uid=messages.uid " );
     if ( !field.isEmpty() ) {
         d->usesFieldNamesTable = true;
         uint fnum = d->argument();
         d->query->bind( fnum, s8 );
-        r.append( "address_fields.field=field_names.id and "
+        r.append( "and address_fields.field=field_names.id and "
                   "field_names.name=$" + fn( fnum ) );
     }
     r.append( " and address_fields.address=addresses.id" );
