@@ -2,22 +2,32 @@
 
 #include "smtp.h"
 
-#include "log.h"
-#include "scope.h"
-#include "string.h"
-#include "address.h"
-#include "parser.h"
-#include "buffer.h"
-#include "message.h"
 #include "configuration.h"
 #include "stringlist.h"
-#include "date.h"
-#include "header.h"
 #include "injector.h"
+#include "message.h"
+#include "address.h"
 #include "mailbox.h"
+#include "parser.h"
+#include "buffer.h"
+#include "string.h"
+#include "header.h"
+#include "scope.h"
 #include "loop.h"
-#include "tls.h"
+#include "date.h"
+#include "file.h"
 #include "user.h"
+#include "tls.h"
+#include "log.h"
+
+// time()
+#include <time.h>
+// getpid()
+#include <sys/types.h>
+#include <unistd.h>
+
+
+uint sequence;
 
 
 class SmtpDbClient: public EventHandler
@@ -688,6 +698,32 @@ void SMTP::inject()
     d->injector = new Injector( m, mailboxes, d->helper );
     d->helper->injector = d->injector;
     d->injector->execute();
+
+    String copy = Configuration::text( Configuration::MessageCopyDir );
+    if ( copy.isEmpty() )
+        return;
+
+    copy.append( '/' );
+    copy.append( fn( time(0) ) );
+    copy.append( '-' );
+    copy.append( fn( getpid() ) );
+    copy.append( '-' );
+    copy.append( fn( ++sequence ) );
+    File f( copy, File::ExclusiveWrite );
+    if ( !f.valid() ) {
+        log( "Could not open " + copy + " for writing", Log::Disaster );
+        return;
+    }
+    f.write( "From: " );
+    f.write( d->from->toString() );
+    it = d->to.first();
+    while ( it ) {
+        f.write( "\nTo: " );
+        f.write( it->address()->toString() );
+        ++it;
+    }
+    f.write( "\n\n" );
+    f.write( d->body );
 }
 
 

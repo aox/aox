@@ -552,43 +552,50 @@ String Page::textPlain( const String & s )
     while ( i < s.length() ) {
         if ( newPara ) {
             if ( s[i] == '>' ) {
-                r.append( "<p class=quoted>" );
+                r.append( "\n<p class=quoted>" );
                 quoted = true;
             }
             else {
-                r.append( "<p>" );
+                r.append( "\n<p>" );
                 quoted = false;
             }
             newPara = false;
         }
+
         if ( s[i] == 13 || s[i] == 10 ) {
             uint cr = 0;
             uint lf = 0;
             bool done = false;
             do {
-                if ( s[i] == 13 )
+                if ( s[i] == 13 ) {
                     cr++;
-                else if ( s[i] == 10 )
+                    i++;
+                }
+                else if ( s[i] == 10 ) {
                     lf++;
-                else
+                    i++;
+                }
+                else {
                     done = true;
-                i++;
+                }
             } while ( !done );
-            if ( cr <= 1 && lf <= 1 )
-                r.append( "<br>" );
+            if ( i >= s.length() )
+                ;
+            else if ( cr <= 1 && lf <= 1 )
+                r.append( "<br>\n" );
             else
                 newPara = true;
         }
         else {
-            const char * s = htmlQuoted( s[i] );
-            if ( s )
-                r.append( s );
+            const char * element = htmlQuoted( s[i] );
+            if ( element )
+                r.append( element );
             else
                 r.append( s[i] );
             i++;
         }
     }
-    r.append( "</div>" );
+    r.append( "</div>\n" );
     return r;
 }
 
@@ -619,7 +626,7 @@ static String unwindStack( StringList & stack, const String & tag )
 /*! This helper turns \a s into plain HTML, without anything that
     might expose the browser to problems (javascript, webbugs, overly
     inventive syntax, that sort of thing).
-    
+
     It is public for convenience and ease of testing. It should not be
     called by other classes.
 */
@@ -635,7 +642,7 @@ String Page::textHtml( const String & s )
         uint j = i;
         while ( j < s.length() && s[j] != '<' )
             j++;
-        r.append( s.mid( i, j-i ) );
+        r.append( s.mid( i, j-i ).simplified() );
         i = j;
         if ( s[i] == '<' ) {
             i++;
@@ -653,7 +660,7 @@ String Page::textHtml( const String & s )
                 i = j;
                 if ( s[i] == '=' ) {
                     i++;
-                    while ( s[i] == ' ' || s[i] == '	' ||
+                    while ( s[i] == ' ' || s[i] == '\t' ||
                             s[i] == 13 || s[i] == 10 )
                         i++;
                     if ( s[i] == '"' ) {
@@ -712,7 +719,8 @@ String Page::textHtml( const String & s )
             }
             else if ( tag == "blockquote" ) {
                 if ( htmlclass == "cite" ) {
-                    stack.append( "p" );
+
+                    stack.append( new String( "p" ) );
                     r.append( "<p class=quoted>" );
                 }
             }
@@ -731,9 +739,9 @@ String Page::textHtml( const String & s )
                       tag == "td" ||
                       tag == "th" ) {
                 stack.append( tag );
-                r.append( "<" );
+                r.append( "\n<" );
                 r.append( tag );
-                r.append( "<" );
+                r.append( ">" );
             }
             else {
                 // in all other cases, we skip the tag. maybe we
@@ -747,7 +755,7 @@ String Page::textHtml( const String & s )
         r.append( ">" );
         stack.take( stack.last() );
     }
-    r.append( "</div>" );
+    r.append( "</div>\n" );
     return r;
 }
 
@@ -920,10 +928,10 @@ static const char * htmlQuoted( char c )
         r = "&lt;";
         break;
     case '>':
-        r = "&lt;";
+        r = "&gt;";
         break;
     case '&':
-        r = "&lt;";
+        r = "&amp;";
         break;
     default:
         break;

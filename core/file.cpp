@@ -100,6 +100,9 @@ void File::init( const String &name, File::Access a,
     case Append:
         d->fd = ::open( chn.cstr(), O_APPEND|O_WRONLY|O_CREAT, mode );
         break;
+    case ExclusiveWrite:
+        d->fd = ::open( chn.cstr(), O_WRONLY|O_CREAT|O_EXCL, mode );
+        break;
     }
 
     if ( d->fd < 0 )

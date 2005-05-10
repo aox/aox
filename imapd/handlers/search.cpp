@@ -948,22 +948,14 @@ String Search::Condition::whereAddressField( const String & field ) const
             // from field. the sort of thing only a test suite would
             // do.
         }
-        if ( lc.isEmpty() ) {
+        if ( !lc.isEmpty() ) {
             r.append( " and " );
             r.append( dc );
         }
-        else if ( dc.isEmpty() ) {
+        if ( !lc.isEmpty() ) {
             r.append( " and " );
             r.append( lc );
         }
-        else {
-            r.append( " and (" );
-            r.append( lc );
-            r.append( " or " );
-            r.append( dc );
-            r.append( ")" );
-        }
-
     }
     return r;
 }

@@ -10,7 +10,7 @@
 class File {
 public:
     enum Access {
-        Read, Write, Append
+        Read, Write, Append, ExclusiveWrite
     };
     File( const String &, uint = 0 );
     File( const String &, File::Access, uint = 0644 );
