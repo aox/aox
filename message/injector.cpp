@@ -11,6 +11,7 @@
 #include "mailbox.h"
 #include "mimefields.h"
 #include "fieldcache.h"
+#include "addressfield.h"
 #include "addresscache.h"
 #include "transaction.h"
 #include "allocator.h"
@@ -48,6 +49,8 @@ struct FieldLink {
 struct AddressLink {
     Address * address;
     HeaderField::Type type;
+    String part;
+    int position;
 };
 
 
@@ -218,8 +221,8 @@ void Injector::setup()
     intoAddressfields =
         new PreparedStatement(
             "insert into address_fields "
-            "(mailbox,uid,field,address) values "
-            "($1,$2,$3,$4)"
+            "(mailbox,uid,part,position,field,address) values "
+            "($1,$2,$3,$4,$5,$6)"
         );
     Allocator::addEternal( intoAddressfields, "intoAddressfields" );
 }
@@ -446,23 +449,32 @@ void Injector::buildAddressLinks()
     d->addressLinks = new List< AddressLink >;
     List< Address > * addresses = new List< Address >;
 
-    int i = 0;
-    while ( i <= HeaderField::LastAddressField ) {
-        HeaderField::Type t = (HeaderField::Type)i++;
-        List< Address > * a = d->message->header()->addresses( t );
-        if ( a && !a->isEmpty() ) {
-            List< Address >::Iterator it( a );
-            while ( it ) {
-                Address *a = it;
-                addresses->append( a );
-                AddressLink *link = new AddressLink;
-                d->addressLinks->append( link );
-                link->address = a;
-                link->type = t;
+    int i = 1;
+    List< HeaderField >::Iterator it( d->message->header()->fields() );
+    while ( it ) {
+        HeaderField *hf = it;
 
-                ++it;
+        if ( hf->type() <= HeaderField::LastAddressField ) {
+            List< Address > *a = ((AddressField *)hf)->addresses();
+            if ( a && !a->isEmpty() ) {
+                List< Address >::Iterator it( a );
+                while ( it ) {
+                    Address *a = it;
+
+                    AddressLink *link = new AddressLink;
+                    link->part = "";
+                    link->position = i;
+                    link->type = hf->type();
+                    link->address = a;
+                    d->addressLinks->append( link );
+                    addresses->append( a );
+
+                    ++it;
+                }
             }
         }
+
+        i++;
     }
 
     d->addressLookup =
@@ -793,9 +805,10 @@ void Injector::linkAddresses()
             q = new Query( *intoAddressfields, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, uid );
-            q->bind( 3, link->type );
-            q->bind( 4, link->address->id() );
-
+            q->bind( 3, link->part );
+            q->bind( 4, link->position );
+            q->bind( 5, link->type );
+            q->bind( 6, link->address->id() );
             d->transaction->enqueue( q );
 
             ++it;
