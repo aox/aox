@@ -592,7 +592,7 @@ void Postgres::shutdown()
 }
 
 
-static int currentRevision = 6;
+static int currentRevision = 7;
 
 
 class UpdateSchema
@@ -975,7 +975,87 @@ void UpdateSchema::execute() {
                     t->execute();
                     substate = 1;
                 }
+
+                if ( substate == 1 ) {
+                    if ( !q->done() )
+                        return;
+                    l->log( "Done.", Log::Debug );
+                    substate = 0;
+                }
             }
+
+            if ( revision == 6 ) {
+                if ( substate == 0 ) {
+                    l->log( "Adding header_fields.position.", Log::Debug );
+                    q = new Query( "alter table header_fields add "
+                                   "position integer", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table header_fields alter part "
+                                   "set not null", this );
+                    t->enqueue( q );
+                    q = new Query( "create temporary sequence hf_pos", this );
+                    t->enqueue( q );
+                    q = new Query( "declare groups cursor for "
+                                   "select distinct mailbox,uid,part "
+                                   "from header_fields",
+                                   this );
+                    t->enqueue( q );
+                    q = new Query( "fetch 512 from groups", this );
+                    t->enqueue( q );
+                    t->execute();
+                    substate = 1;
+                }
+
+                if ( substate == 1 ) {
+                    while ( q->hasResults() ) {
+                        Row *r = q->nextRow();
+
+                        Query *u =
+                            new Query( "update header_fields set position="
+                                       "nextval('hf_pos') where id in "
+                                       "(select id from header_fields "
+                                       "where not (mailbox,uid,part) is "
+                                       "distinct from ($1,$2,$3) order by id)",
+                                       this );
+                        u->bind( 1, r->getInt( "mailbox" ) );
+                        u->bind( 2, r->getInt( "uid" ) );
+                        u->bind( 3, r->getString( "part" ) );
+                        t->enqueue( u );
+
+                        u = new Query( "alter sequence hf_pos restart with 1",
+                                       this );
+                        t->enqueue( u );
+                    }
+
+                    if ( !q->done() )
+                        return;
+
+                    if ( q->rows() != 0 ) {
+                        q = new Query( "fetch 512 from groups", this );
+                        t->enqueue( q );
+                        t->execute();
+                        return;
+                    }
+                    else {
+                        t->enqueue( new Query( "close groups", this ) );
+                        q = new Query( "alter table header_fields add unique "
+                                       "(mailbox,uid,part,position,field)",
+                                       this );
+                        t->enqueue( q );
+                        substate = 2;
+                    }
+                }
+
+                if ( substate == 2 ) {
+                    if ( !q->done() )
+                        return;
+                    l->log( "Done.", Log::Debug );
+                    substate = 0;
+                }
+            }
+
+            // Remember to update currentRevision when you add something
+            // here.
 
             state = 5;
         }
