@@ -1085,7 +1085,8 @@ void UpdateSchema::execute() {
                     q = new Query( "alter table address_fields add foreign key "
                                    "(mailbox,uid,part,position,field) "
                                    "references header_fields "
-                                   "(mailbox,uid,part,position,field)", this );
+                                   "(mailbox,uid,part,position,field) "
+                                   "on delete cascade", this );
                     t->enqueue( q );
                     t->execute();
                     substate = 1;
