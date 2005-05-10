@@ -363,7 +363,7 @@ String Query::description()
             int n = v->length();
             if ( n == -1 )
                 r = "NULL";
-            else if ( n <= 16 && v->format() != Query::Binary ) {
+            else if ( n <= 32 && v->format() != Query::Binary ) {
                 r.append( "'" );
                 r.append( v->data() );
                 r.append( "'" );
