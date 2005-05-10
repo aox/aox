@@ -8,13 +8,14 @@ insert into mailstore (revision) values (6);
 create sequence revisions start with 6;
 
 
--- One entry per Mailstore user.
--- Used for authentication, access control, and mail routing.
+-- One entry for each unique address we've encountered.
 
-create table users (
+create table addresses (
     id          serial primary key,
-    login       text unique,
-    secret      text
+    name        text,
+    localpart   text,
+    domain      text,
+    unique (name, localpart, domain)
 );
 
 
@@ -26,6 +27,18 @@ create table namespaces (
     name        text not null unique
 );
 insert into namespaces (name) values ('/users');
+
+
+-- One entry per Mailstore user.
+-- Used for authentication, access control, and mail routing.
+
+create table users (
+    id          serial primary key,
+    login       text unique,
+    secret      text,
+    address     integer not null references addresses(id),
+    parentspace integer not null references namespaces(id)
+);
 
 
 -- One entry per named group.
@@ -63,6 +76,10 @@ create table mailboxes (
     -- that its UIDVALIDITY can be incremented if it is ever re-created.
     deleted     boolean not null default false
 );
+
+
+alter table users add inbox integer references mailboxes(id);
+alter table users alter inbox set not null;
 
 
 -- One row per <identifier, right> entry for a mailbox.
@@ -142,17 +159,6 @@ create table header_fields (
 create index hf_mup on header_fields (mailbox, uid, part);
 
 
--- One entry for each unique address we've encountered.
-
-create table addresses (
-    id          serial primary key,
-    name        text,
-    localpart   text,
-    domain      text,
-    unique (name, localpart, domain)
-);
-
-
 -- A list of addresses associated with each message.
 
 create table address_fields (
@@ -207,12 +213,3 @@ create table subscriptions (
     owner       integer not null references users(id),
     mailbox     integer not null references mailboxes(id)
 );
-
-alter table users add address integer references addresses(id);
-alter table users alter address set not null;
-alter table users add inbox integer references mailboxes(id);
-alter table users alter inbox set not null;
-alter table users add parentspace integer references namespaces(id);
-alter table users alter parentspace set not null;
-
--- Why is the users table before addresses and namespaces?
