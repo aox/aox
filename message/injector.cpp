@@ -42,6 +42,7 @@ static PreparedStatement *intoAddressfields;
 struct FieldLink {
     HeaderField *hf;
     String part;
+    int position;
 };
 
 struct AddressLink {
@@ -209,8 +210,8 @@ void Injector::setup()
     intoHeaderfields =
         new PreparedStatement(
             "insert into header_fields "
-            "(mailbox,uid,part,field,value) values "
-            "($1,$2,$3,$4,$5)"
+            "(mailbox,uid,part,position,field,value) values "
+            "($1,$2,$3,$4,$5,$6)"
         );
     Allocator::addEternal( intoHeaderfields, "intoHeaderfields" );
 
@@ -530,6 +531,7 @@ void Injector::buildFieldLinks()
 
 void Injector::buildLinksForHeader( Header *hdr, const String &part )
 {
+    int i = 1;
     List< HeaderField >::Iterator it( hdr->fields() );
     while ( it ) {
         HeaderField *hf = it;
@@ -537,6 +539,7 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
         FieldLink *link = new FieldLink;
         link->hf = hf;
         link->part = part;
+        link->position = i++;
 
         if ( hf->type() >= HeaderField::Other )
             d->otherFields->append( new String ( hf->name() ) );
@@ -766,8 +769,9 @@ void Injector::linkHeaderFields()
             q->bind( 1, m->id() );
             q->bind( 2, uid );
             q->bind( 3, link->part );
-            q->bind( 4, t );
-            q->bind( 5, link->hf->data() );
+            q->bind( 4, link->position );
+            q->bind( 5, t );
+            q->bind( 6, link->hf->data() );
 
             d->transaction->enqueue( q );
 
