@@ -25,7 +25,6 @@ public:
     String name;
     String query;
     SortedList< Query::Value > values;
-    List< int > types;
 
     Transaction *transaction;
     EventHandler *owner;
