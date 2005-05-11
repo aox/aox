@@ -2,17 +2,19 @@
 
 #include "mailbox.h"
 
-#include "dict.h"
-#include "scope.h"
-#include "allocator.h"
-#include "event.h"
-#include "query.h"
-#include "string.h"
-#include "stringlist.h"
 #include "log.h"
 #include "map.h"
+#include "dict.h"
+#include "user.h"
+#include "query.h"
+#include "scope.h"
+#include "event.h"
+#include "string.h"
 #include "message.h"
 #include "fetcher.h"
+#include "allocator.h"
+#include "stringlist.h"
+#include "transaction.h"
 
 
 class MailboxData {
@@ -44,7 +46,6 @@ public:
 
 
 static Mailbox * root = 0;
-static Query * query = 0;
 static Map<Mailbox> * mailboxes = 0;
 
 
@@ -71,15 +72,25 @@ static Map<Mailbox> * mailboxes = 0;
 
 class MailboxReader : public EventHandler {
 public:
-    void execute() {
-        if ( !query->done() )
-            return;
-
+    Query * query;
+    MailboxReader( const char * q, const String & n, Transaction * t )
+        : query( 0 )
+    {
+        query = new Query( q, this );
+        if ( !n.isEmpty() )
+            query->bind( 1, n );
         if ( !::mailboxes ) {
             ::mailboxes = new Map<Mailbox>;
             Allocator::addEternal( ::mailboxes, "mailbox tree" );
+            query->setStartUpQuery( true );
         }
+        if ( t )
+            t->enqueue( query );
+        else
+            query->execute();
+    }
 
+    void execute() {
         while ( query->hasResults() ) {
             Row *r = query->nextRow();
 
@@ -93,6 +104,10 @@ public:
 
             if ( m->d->id )
                 ::mailboxes->insert( m->d->id, m );
+            log( "yay! " +
+                 r->getString( "name" ) + ": " +
+                 ( r->getBoolean( "deleted" ) ? "deleted" : "exists" ),
+                 Log::Error );
         }
 
         if ( query->failed() && query->isStartUpQuery() )
@@ -111,11 +126,7 @@ void Mailbox::setup()
     ::root = new Mailbox( "/" );
     Allocator::addEternal( ::root, "root mailbox" );
 
-    query = new Query( "select * from mailboxes", new MailboxReader );
-    Allocator::addEternal( ::query, "query to find all mailboxes" );
-
-    query->setStartUpQuery( true );
-    query->execute();
+    (void)new MailboxReader( "select * from mailboxes", "", 0 );
 }
 
 
@@ -125,13 +136,8 @@ void Mailbox::setup()
 
 void Mailbox::refresh()
 {
-    query = new Query( "select * from mailboxes where name=$1",
-                       new MailboxReader );
-    query->bind( 1, name() );
-    query->execute();
-    // don't add it as a new root - for as long as it's active, the
-    // database modules will keep a pointer to it, and after that, we
-    // want it to die. adding it as a new root would leak memory.
+    (void)new MailboxReader( "select * from mailboxes where name=$1",
+                             name(), 0 );
 }
 
 
@@ -267,8 +273,8 @@ Mailbox *Mailbox::find( const String &name, bool deleted )
 
 
 /*! Returns a pointer to the closest existing parent mailbox for \a
-    name, or a null pointer if \a doesn't look like a mailbox name at
-    all, or if no parent mailboxes of \a name exist.
+    name, or a null pointer if \a name doesn't look like a mailbox
+    name at all, or if no parent mailboxes of \a name exist.
 
     The returned mailbox is either a real existing mailbox, or the root.
 */
@@ -385,28 +391,66 @@ void Mailbox::setDeleted( bool del )
 
 
 /*! Creates this mailbox by updating the mailboxes table, and notifies
-    \a ev of completion. Returns a Query which indicates the progress
-    of the operation, or 0 if the attempt fails immediately.
+    \a ev of completion. Returns a running Transaction which indicates
+    the progress of the operation, or 0 if the attempt fails
+    immediately.
+
+    If \a owner is non-null, the new mailbox is owned by by \a owner.
 */
 
-Query *Mailbox::create( EventHandler *ev )
+Transaction *Mailbox::create( EventHandler *ev, User * owner )
 {
-    Query *q = new Query( ev );
-    q->setState( Query::Completed );
-    return q;
+    Transaction * t = new Transaction( ev );
+    if ( synthetic() ) {
+        Query * q = new Query( "insert into mailboxes "
+                               "(name,owner,uidnext,uidvalidity,deleted) "
+                               "values ($1,$2,1,1,'f')",
+                               0 );
+        q->bind( 1, name() );
+        if ( owner )
+            q->bind( 1, owner->id() );
+        else
+            q->bindNull( 1 );
+        t->enqueue( q );
+    }
+    else if ( deleted() ) {
+        Query * q = new Query( "update mailboxes set deleted='f' where id=$1",
+                               0 );
+        q->bind( 1, id() );
+        t->enqueue( q );
+    }
+    else {
+        return 0;
+    }
+    (void)new MailboxReader( "select * from mailboxes where name=$1",
+                             name(), t );
+    t->commit();
+    return t;
 }
 
 
 /*! Deletes this mailbox by updating the mailboxes table, and notifies
-    \a ev of completion. Returns a Query which indicates the progress
-    of the operation, or 0 if the attempt fails immediately.
+    \a ev of completion. Returns a running Transaction which indicates
+    the progress of the operation, or 0 if the attempt fails
+    immediately.
 */
 
-Query *Mailbox::remove( EventHandler *ev )
+Transaction *Mailbox::remove( EventHandler *ev )
 {
-    Query *q = new Query( ev );
-    q->setState( Query::Completed );
-    return q;
+    if ( synthetic() || deleted() )
+        return 0;
+
+    Transaction * t = new Transaction( ev );
+    Query * q = new Query( "update mailboxes set deleted='t' where id=$1",
+                           0 );
+    q->bind( 1, id() );
+    t->enqueue( q );
+
+    (void)new MailboxReader( "select * from mailboxes where name=$1",
+                             name(), t );
+
+    t->commit();
+    return t;
 }
 
 

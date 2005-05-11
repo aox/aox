@@ -16,8 +16,7 @@ public:
     void execute();
 
 private:
-    String name;
-    class Query *q;
+    class DeleteData * d;
 };
 
 

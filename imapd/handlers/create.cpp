@@ -3,17 +3,17 @@
 #include "create.h"
 
 #include "imap.h"
-#include "query.h"
 #include "mailbox.h"
 #include "permissions.h"
+#include "transaction.h"
 
 
 class CreateData
 {
 public:
-    CreateData(): q( 0 ), p( 0 ) {}
+    CreateData(): t( 0 ), p( 0 ) {}
     String name;
-    Query * q;
+    Transaction * t;
     Permissions * p;
 };
 
@@ -54,31 +54,22 @@ void Create::execute()
         if ( d->p && !d->p->allowed( Permissions::CreateMailboxes ) )
             error( No, "Cannot create mailboxes under " + m->name() );
     }
-    if ( ok() && !d->q ) {
+    if ( ok() && !d->t ) {
         Mailbox * m = Mailbox::find( d->name, true );
-
-        if ( !m || m->synthetic() ) {
-            d->q = new Query( "insert into mailboxes (name) values ($1)",
-                              this );
-            d->q->bind( 1, d->name );
-        }
-        else if ( m->deleted() ) {
-            d->q = new Query( "update mailboxes set deleted=0 where id=$1",
-                              this );
-            d->q->bind( 1, m->id() );
-        }
-        else {
+        if ( !m )
+            m = new Mailbox( d->name );
+        if ( !m->synthetic() && !m->deleted() ) {
             error( No, d->name + " already exists" );
             return;
         }
 
-        d->q->execute();
+        d->t = m->create( this, imap()->user() );
     }
 
-    if ( d->q && d->q->failed() )
-        error( No, "Database error: " + d->q->error() );
+    if ( d->t && d->t->failed() )
+        error( No, "Database error: " + d->t->error() );
 
-    if ( !d->q || !d->q->done() || !ok() )
+    if ( !d->t || !d->t->done() || !ok() )
         return;
 
     finish();

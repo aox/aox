@@ -1,18 +1,19 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include "configuration.h"
+#include "addresscache.h"
+#include "transaction.h"
+#include "logclient.h"
 #include "allocator.h"
+#include "occlient.h"
+#include "mailbox.h"
+#include "address.h"
 #include "scope.h"
 #include "event.h"
 #include "query.h"
-#include "configuration.h"
-#include "occlient.h"
-#include "logclient.h"
-#include "address.h"
-#include "addresscache.h"
 #include "user.h"
 #include "loop.h"
 #include "log.h"
-#include "mailbox.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,7 +24,8 @@ extern int strcmp( const char *, const char * );
 
 
 static int status;
-static Query *query;
+static Transaction * transaction;
+static Query * query;
 static const char * name;
 
 
@@ -33,13 +35,24 @@ static const char * name;
 class AdminHelper: public EventHandler {
 public:
     void execute() {
-        if ( query->failed() ) {
-            fprintf( stderr, "%s: SQL error: %s\n",
-                     name, query->error().cstr() );
-            status = -1;
+        if ( transaction ) {
+            if ( transaction->failed() ) {
+                fprintf( stderr, "%s: SQL error: %s\n",
+                         name, transaction->error().cstr() );
+                status = -1;
+            }
+            if ( transaction->done() )
+                Loop::shutdown();
         }
-        if ( query->done() )
-            Loop::shutdown();
+        else {
+            if ( query->failed() ) {
+                fprintf( stderr, "%s: SQL error: %s\n",
+                         name, query->error().cstr() );
+                status = -1;
+            }
+            if ( query->done() )
+                Loop::shutdown();
+        }
     }
 };
 
@@ -258,27 +271,36 @@ int main( int argc, char *argv[] )
         else if ( argc > 4 )
             error( "Unknown argument following mailbox name." );
 
-        Mailbox *m = new Mailbox( argv[3] );
-        addEternal( m, "mailbox" );
-        if ( verb == "create" )
-            query = m->create( new AdminHelper );
-        else if ( verb == "delete" )
-            query = m->remove( new AdminHelper );
-
-        if ( !query || query->failed() ) {
-            fprintf( stderr, "%s: Internal error. Couldn't create mailbox.\n",
-                     argv[3] );
-            exit( -1 );
+        if ( verb == "create" ) {
+            Mailbox * m = new Mailbox( argv[3] );
+            addEternal( m, "mailbox" );
+            transaction = m->create( new AdminHelper, 0 );
+            if ( !transaction ) {
+                fprintf( stderr,
+                         "%s: Internal error: Could not create transaction\n",
+                         argv[3] );
+                exit( -1 );
+            }
         }
-        else if ( query->done() ) {
-            exit( 0 );
+        else if ( verb == "delete" ) {
+            // Mailbox tree isn't set up yet. we hack and set up a
+            // query on our own. this is broken - there's no error
+            // message if the mailbo did not exist.
+            query = new Query( "update mailboxes set deleted='t' "
+                               "where name=$1 and deleted='f'",
+                               new AdminHelper );
+            query->bind( 1, argv[3] );
+            query->execute();
         }
     }
     else { // .. and if we don't know that verb/noun combination:
         error( "Sorry, not implemented: " + verb + " " + noun );
     }
 
-    addEternal( query, "query to be run" );
+    if ( query )
+        addEternal( query, "query to be run" );
+    if ( transaction )
+        addEternal( transaction, "query to be run" );
     Loop::start();
     return status;
 }

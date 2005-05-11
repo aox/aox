@@ -5,12 +5,12 @@
 
 #include "list.h"
 
-class Query;
-class String;
 class EventHandler;
+class Transaction;
+class MessageSet;
 class Message;
 class Fetcher;
-class MessageSet;
+class String;
 
 
 class Mailbox {
@@ -48,8 +48,8 @@ public:
         return name() <= b.name();
     }
 
-    Query *create( EventHandler * );
-    Query *remove( EventHandler * );
+    Transaction *create( EventHandler *, class User * );
+    Transaction *remove( EventHandler * );
 
     void refresh();
 
