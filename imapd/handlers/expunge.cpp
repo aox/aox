@@ -8,6 +8,7 @@
 #include "mailbox.h"
 #include "transaction.h"
 #include "imapsession.h"
+#include "permissions.h"
 #include "messageset.h"
 
 
@@ -51,11 +52,19 @@ Expunge::Expunge()
 
 /*! This function expunges the current mailbox, emitting EXPUNGE
     responses if \a chat is true and being silent if \a chat is false.
+
+    It returns true if the job was done, and false if it needs to be
+    called again.
 */
 
 bool Expunge::expunge( bool chat )
 {
     if ( d->stage == 0 ) {
+        Permissions * p = imap()->session()->permissions();
+        if ( !p->allowed( Permissions::Expunge ) ) {
+            error( No, "Do not have privileges to expunge" );
+            return true;
+        }
         Flag * f = Flag::find( "\\deleted" );
         d->t = new Transaction( this );
         d->q =
