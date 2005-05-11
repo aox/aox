@@ -266,6 +266,44 @@ Mailbox *Mailbox::find( const String &name, bool deleted )
 }
 
 
+/*! Returns a pointer to the closest existing parent mailbox for \a
+    name, or a null pointer if \a doesn't look like a mailbox name at
+    all, or if no parent mailboxes of \a name exist.
+
+    The returned mailbox is either a real existing mailbox, or the root.
+*/
+
+Mailbox * Mailbox::closestParent( const String & name )
+{
+    if ( name[0] != '/' )
+        return 0;
+
+    Mailbox * candidate = ::root;
+    Mailbox * good = ::root;
+    uint i = 1;
+    while ( candidate ) {
+        if ( candidate && !candidate->synthetic() && !candidate->deleted() )
+            good = candidate;
+        if ( name[i] == '/' )
+            return 0; // two slashes -> syntax error
+        while ( i < name.length() && name[i] != '/' )
+            i++;
+        if ( !candidate->children() ) {
+            candidate = 0;
+        }
+        else {
+            String next = name.mid( 0, i );
+            List<Mailbox>::Iterator it( candidate->children() );
+            while ( it && it->name() != next )
+                ++it;
+            candidate = it;
+            i++;
+       }
+    }
+    return good;
+}
+
+
 /*! Obtain a mailbox with \a name, creating Mailbox objects as
     necessary and permitted.
 

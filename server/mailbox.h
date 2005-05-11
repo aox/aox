@@ -35,8 +35,9 @@ public:
     void clear();
 
     static void setup();
-    static Mailbox *find( const String &, bool = false );
-    static Mailbox *obtain( const String &, bool create = true );
+    static Mailbox * find( const String &, bool = false );
+    static Mailbox * obtain( const String &, bool create = true );
+    static Mailbox * closestParent( const String & );
 
     static Mailbox * root();
     static Mailbox * find( uint );
