@@ -488,7 +488,7 @@ void Server::execute()
     }
 
     if ( listeners == 0 ) {
-        log( "No active listeners.", Log::Disaster );
+        log( "No active listeners. " + d->name + " exiting.", Log::Disaster );
         exit( 1 );
     }
 
