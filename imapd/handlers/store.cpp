@@ -2,6 +2,7 @@
 
 #include "store.h"
 
+#include "permissions.h"
 #include "transaction.h"
 #include "imapsession.h"
 #include "messageset.h"
@@ -17,7 +18,8 @@
 class StoreData {
 public:
     StoreData()
-        : op( Replace ), silent( false ), uid( false ), fetching( false ),
+        : op( Replace ), silent( false ), uid( false ),
+          checkedPermission( false ), fetching( false ),
           transaction( 0 ), flagCreator( 0 )
     {}
     MessageSet s;
@@ -27,6 +29,7 @@ public:
 
     bool silent;
     bool uid;
+    bool checkedPermission;
 
     bool fetching;
 
@@ -92,6 +95,34 @@ void Store::parse()
 
 void Store::execute()
 {
+    if ( !d->checkedPermission ) {
+        Permissions * p = imap()->session()->permissions();
+        if ( !p->ready() )
+            return;
+        d->checkedPermission = true;
+        bool deleted = false;
+        bool seen = false;
+        bool other = false;
+        StringList::Iterator it( d->flagNames );
+        while ( it ) {
+            if ( *it == "\\deleted" )
+                deleted = true;
+            else if ( *it == "\\seen" )
+                seen = true;
+            else
+                other = true;
+            ++it;
+        }
+        if ( seen && !p->allowed( Permissions::KeepSeen ) )
+            error( No, "Insufficient privileges to set \\Seen" );
+        else if ( deleted && !p->allowed( Permissions::DeleteMessages ) )
+            error( No, "Insufficient privileges to set \\Deleted" );
+        else if ( other && !p->allowed( Permissions::Write ) )
+            error( No, "Insufficient privileges to set flags" );
+        if ( !ok() )
+            return;
+    }
+
     if ( !processFlagNames() )
         return;
 
@@ -173,9 +204,9 @@ bool Store::processFlagNames()
 void Store::pretendToFetch()
 {
     uint max = d->s.count();
-    uint i = 0;
+    uint i = 1;
     ImapSession * s = imap()->session();
-    while ( i < max ) {
+    while ( i <= max ) {
         uint uid = d->s.value( i );
         uint msn = s->msn( uid );
         i++;
