@@ -442,6 +442,7 @@ void Command::error( Error e, const String & t )
     d->errorCode = e;
     d->errorText = t;
     d->error = true;
+    finish();
 }
 
 
