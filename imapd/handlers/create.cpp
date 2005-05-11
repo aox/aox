@@ -5,6 +5,17 @@
 #include "imap.h"
 #include "query.h"
 #include "mailbox.h"
+#include "permissions.h"
+
+
+class CreateData
+{
+public:
+    CreateData(): q( 0 ), p( 0 ) {}
+    String name;
+    Query * q;
+    Permissions * p;
+};
 
 
 /*! \class Create create.h
@@ -16,7 +27,7 @@
 */
 
 Create::Create()
-    : q( 0 )
+    : d( new CreateData )
 {
 }
 
@@ -24,49 +35,53 @@ Create::Create()
 void Create::parse()
 {
     space();
-    name = astring();
+    String name( astring() );
     end();
+    if ( name.lower() == "inbox" )
+        error( No, "INBOX always exists" );
+    d->name = imap()->mailboxName( name );
 }
 
 
 void Create::execute()
 {
-    if ( !q ) {
-        String mbx = imap()->mailboxName( name );
-        Mailbox *m = Mailbox::find( name, true );
+    if ( !d->p ) {
+        Mailbox * m = Mailbox::closestParent( d->name );
+        if ( !m )
+            error( No, "Syntax error in mailbox name: " + d->name );
+        else
+            d->p = new Permissions( m, imap()->user(), this );
+        if ( d->p && !d->p->allowed( Permissions::CreateMailboxes ) )
+            error( No, "Cannot create mailboxes under " + m->name() );
+    }
+    if ( ok() && !d->q ) {
+        Mailbox * m = Mailbox::find( d->name, true );
 
-        if ( name.lower() == "inbox" ) {
-            // We don't need to test this, because the user's INBOX must
-            // exist, and cannot be deleted.
-        }
-        else if ( !m || m->synthetic() ) {
-            q = new Query( "insert into mailboxes (name) values ($1)", this );
-            q->bind( 1, mbx );
-            // the Mailbox object now does not know its ID. bad. ocd
-            // must fix that.
+        if ( !m || m->synthetic() ) {
+            d->q = new Query( "insert into mailboxes (name) values ($1)",
+                              this );
+            d->q->bind( 1, d->name );
         }
         else if ( m->deleted() ) {
-            q = new Query( "update mailboxes set deleted=0"
-                           /* ",uidvalidity=uidvalidity+1,uidnext=1" */
-                           " "
-                           "where id=$1", this );
-            q->bind( 1, m->id() );
+            d->q = new Query( "update mailboxes set deleted=0 where id=$1",
+                              this );
+            d->q->bind( 1, m->id() );
+        }
+        else {
+            error( No, d->name + " already exists" );
+            return;
         }
 
-        if ( q )
-            q->execute();
+        d->q->execute();
     }
 
-    if ( q && !q->done() )
-        return;
+    if ( d->q && d->q->failed() )
+        error( No, "Database error: " + d->q->error() );
 
-    if ( !q || q->failed() ) {
-        error( No, "Couldn't create " + name );
-        finish();
+    if ( !d->q || !d->q->done() || !ok() )
         return;
-    }
-
-    // We need to tell the OCServer what we did.
 
     finish();
+
+    // XXX We need to tell the OCServer what we did.
 }
