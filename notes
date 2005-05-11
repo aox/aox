@@ -340,3 +340,10 @@ DELETE of mailboxes in inappropriately qualified (security problem)
   The race condition means it's possible to append to a mailbox
   while it's being deleted, and the message will reappear if the
   mailbox is later recreated.
+
+
+RENAME isn't implemented
+
+  Implementing it should be a reasonably simple matter. May be best
+  to put it off until ocd forwards information about mailboxes,
+  though.
