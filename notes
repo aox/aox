@@ -327,7 +327,16 @@ We have to use COPY in the Injector
   bulk user loading at Perpetual make it absolutely necessary.
 
 
-Write a test of BINARY.SIZE of multiparts.
+DELETE of mailboxes in inappropriately qualified (security problem)
 
+  At present, the user always needs to have all three rights, and
+  there's a race condition against append/copy. It would be better to
+  grab the uidnext lock and do more fine-grained checking:
 
+  1. Require DeleteMessages unless all messages have \deleted.
 
+  2. Require Expunge if there are any messages at all.
+
+  The race condition means it's possible to append to a mailbox
+  while it's being deleted, and the message will reappear if the
+  mailbox is later recreated.
