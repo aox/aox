@@ -27,6 +27,8 @@ OCAdmin::OCAdmin( int s )
     : Connection( s, Connection::OryxConsole ), d( new OCAData )
 {
     Loop::addConnection( this );
+    enqueue( "Hi. This is Oryx OCAdmin " +
+             Configuration::compiledIn( Configuration::Version ) + "\r\n" );
 }
 
 
@@ -59,17 +61,22 @@ void OCAdmin::parse()
         List< OCServer > *servers = OCServer::connections();
         List< OCServer >::Iterator it( servers );
         while ( it ) {
+            // this doens't look terribly useful. shouldn't we say
+            // something about the servers?
             enqueue( it->peer().string() + "\r\n" );
             ++it;
         }
     }
     else if ( r == "shutdown" ) {
         OCServer::send( "shutdown\r\n" );
+        enqueue( "Shutting down\r\n" );
+        Loop::shutdown();
     }
     else if ( r == "quit" || r == "exit" ) {
         setState( Closing );
+        enqueue( "Closing connection\r\n" );
     }
     else {
-        enqueue( "?\r\n" );
+        enqueue( "Valid commands: shutdown, ls, quit.\r\n" );
     }
 }
