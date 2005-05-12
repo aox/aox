@@ -546,38 +546,39 @@ UString Parser822::phrase()
     while ( i < s.length() &&
             c != 0 && c != '\012' && c != '\015' )
     {
+        UString t;
+
         if ( ( c == ' ' && s[i+1] == '=' && s[i+2] == '?' ) ||
              ( i == first && s[i] == '=' && s[i+1] == '?' ) )
         {
             if ( c == ' ' )
                 c = s[++i];
-            if ( i != first )
-                out.append( ' ' );
 
             uint n = i;
-            UString us = encodedWords();
-            if ( !us.isEmpty() &&
+            t = encodedWords();
+            if ( !t.isEmpty() &&
                  ( s[i] == ' ' || s[i] == '\012' || s[i] == '\015' ||
                    i == s.length() ) )
             {
-                out.append( us );
                 c = s[i];
             }
             else {
                 i = n;
             }
         }
-        else if ( c == ' ' || c == '\t' ) {
-            out.append( c );
-            c = s[++i];
-        }
         else {
             AsciiCodec a;
             String qs = string();
             if ( qs.isEmpty() )
                 break;
-            out.append( a.toUnicode( qs ) );
+            t = a.toUnicode( qs );
             c = s[i];
+        }
+
+        if ( !t.isEmpty() ) {
+            if ( !out.isEmpty() )
+                out.append( ' ' );
+            out.append( t );
         }
     }
 
