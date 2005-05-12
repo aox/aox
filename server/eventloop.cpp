@@ -178,10 +178,13 @@ void EventLoop::start()
                     int dummy;
                     if ( ::setsockopt( c->fd(), SOL_SOCKET, SO_RCVBUF,
                                        (char*)&dummy, sizeof(dummy) ) < 0 ) {
-                        log( "Socket " + fn( c->fd() ) +
-                             " was unexpectedly closed: "
-                             "Removing corresponding connection: " +
-                             c->description(), Log::Error );
+                        c->log( "Socket " + fn( c->fd() ) +
+                                " was unexpectedly closed: "
+                                "Removing corresponding connection: " +
+                                c->description(), Log::Error );
+                        c->log( "Please notify info@oryx.com about what "
+                                "happened with this connection" );
+                        c->commit();
                         removeConnection( c );
                     }
                 }
