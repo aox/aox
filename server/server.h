@@ -33,7 +33,9 @@ public:
     void execute();
 
 private:
-    class ServerData * d;
+    static class ServerData * d;
+
+    static String name();
 
     void configuration();
     void files();

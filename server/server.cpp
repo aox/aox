@@ -58,6 +58,8 @@ public:
 };
 
 
+ServerData * Server::d;
+
 /*! \class Server server.h
 
     The Server class performs the server startup functions that are
@@ -76,8 +78,9 @@ public:
 */
 
 Server::Server( const char * name, int argc, char * argv[] )
-    : d( new ServerData( name ) )
 {
+    d = new ServerData( name );
+
     int c;
     while ( (c=getopt( argc, argv, "fc:" )) != -1 ) {
         switch ( c ) {
@@ -514,4 +517,14 @@ void Server::execute()
 void Server::setChrootMode( ChrootMode mode )
 {
     d->chrootMode = mode;
+}
+
+
+/*!
+
+*/
+
+String Server::name()
+{
+    return d->name;
 }
