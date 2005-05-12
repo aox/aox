@@ -588,6 +588,8 @@ bool Connection::hasTls() const
 
     If the connection is not valid, a socket is created and associated
     with it first.
+
+    (Why does this return an int instead of a bool?)
 */
 
 int Connection::listen( const Endpoint &e )
@@ -607,9 +609,21 @@ int Connection::listen( const Endpoint &e )
     if ( e.protocol() == Endpoint::Unix )
         unlink( File::chrooted( e.address() ).cstr() );
 
-    if ( ::bind( d->fd, e.sockaddr(), e.sockaddrSize() ) < 0 ||
-         ::listen( d->fd, 64 ) < 0 )
+    if ( ::bind( d->fd, e.sockaddr(), e.sockaddrSize() ) < 0 ) {
+        if ( errno == EADDRINUSE ) {
+            log( "Cannot listen to " + e.address() +
+                 "because another process is occupying it", Log::Error );
+            return -1;
+        }
+        log( "bind( " + fn( d->fd ) + ", " + e.address() +
+             " ) returned errno " + fn( errno ), Log::Debug );
         return -1;
+    }
+    if ( ::listen( d->fd, 64 ) < 0 ) {
+        log( "listen( " + fn( d->fd ) + ", 64 ) for address " + e.address() +
+             " ) returned errno " + fn( errno ), Log::Debug );
+        return -1;
+    }
 
     setState( Listening );
     d->self = e;
