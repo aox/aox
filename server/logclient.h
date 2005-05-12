@@ -16,8 +16,10 @@ public:
     static void setup( const String & );
     void send( const String & );
 
+    String name() const;
+
 private:
-    class LogClientHelper * c;
+    class LogClientData * d;
     LogClient();
 };
 

@@ -15,17 +15,17 @@
 
 
 // This is our connection to the log server.
-class LogClientHelper
+class LogClientData
     : public Connection
 {
 public:
-    LogClientHelper( int fd, const Endpoint & e, Logger *client )
+    LogClientData( int fd, const Endpoint & e, Logger *client )
         : Connection( fd, Connection::LogClient ),
           logServer( e ), owner( client )
     {
     }
 
-    ~LogClientHelper()
+    ~LogClientData()
     {
         Loop::removeConnection( this );
         delete owner;
@@ -66,9 +66,9 @@ public:
         }
     }
 
-private:
     Endpoint logServer;
     Logger *owner;
+    String name;
 };
 
 
@@ -92,41 +92,49 @@ LogClient::LogClient()
 
 void LogClient::send( const String &s )
 {
-    c->reconnect();
-    c->enqueue( s );
-    if ( c->state() == Connection::Connected )
-        c->write();
+    d->reconnect();
+    d->enqueue( s );
+    if ( d->state() == Connection::Connected )
+        d->write();
 }
 
 
 /*! Connects to the configured log server and creates a singleton
-    Logger named \a name talking to that server.
+    Logger named \a n talking to that server.
 
     If setup() cannot connect to a log server, it brutally exits the
     application.
 */
 
-void LogClient::setup( const String &name )
+void LogClient::setup( const String & n )
 {
     Endpoint e( Configuration::LogAddress, Configuration::LogPort );
     if ( !e.valid() ) {
         fprintf( stderr,
-                 "LogClient: Unable to parse log server address %s:%d\n",
+                 "%s: Unable to parse log server address %s:%d\n",
+                 String(n).cstr(),
                  Configuration::text( Configuration::LogAddress ).cstr(),
                  Configuration::scalar( Configuration::LogPort ) );
         exit( -1 );
     }
 
     LogClient *client = new LogClient();
-    client->c = new LogClientHelper( Connection::socket( e.protocol() ),
-                                     e, client );
-    client->c->setBlocking( true );
-    if ( client->c->connect( e ) < 0 ) {
-        fprintf( stderr, "LogClient: Unable to connect to server %s\n",
-                 e.string().cstr() );
+    client->d = new LogClientData( Connection::socket( e.protocol() ),
+                                   e, client );
+    client->d->name = n;
+    client->d->setBlocking( true );
+    if ( client->d->connect( e ) < 0 ) {
+        fprintf( stderr, "%s: Unable to connect to server %s\n",
+                 client->name().cstr(), e.string().cstr() );
         exit( -1 );
     }
-    client->c->setBlocking( false );
-    client->c->enqueue( "name " + name + "\r\n" );
-    Loop::addConnection( client->c );
+    client->d->setBlocking( false );
+    client->d->enqueue( "name " + client->name() + "\r\n" );
+    Loop::addConnection( client->d );
+}
+
+
+String LogClient::name() const
+{
+    return d->name;
 }

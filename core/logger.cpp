@@ -2,6 +2,7 @@
 
 #include "logger.h"
 
+#include "string.h"
 #include "allocator.h"
 
 
@@ -51,4 +52,16 @@ Logger::~Logger()
 Logger *Logger::global()
 {
     return ::logger;
+}
+
+
+/*! Returns an application name. Subclasses must provide this name.
+
+    I don't like this mechanism. It's hacky. Only exists to let Log
+    (in core) get at Server::name() (in server).
+*/
+
+String Logger::name() const
+{
+    return "Mailstore";
 }

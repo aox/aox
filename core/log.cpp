@@ -83,10 +83,14 @@ void Log::setFacility( Facility f )
 
 void Log::log( const String &m, Severity s )
 {
-    if ( s == Disaster )
-        fprintf( stderr, "Mailstore: %s\n", m.simplified().cstr() );
-
     Logger *l = Logger::global();
+    if ( s == Disaster ) {
+        String n = "Mailstore";
+        if ( l )
+            n = l->name();
+        fprintf( stderr, "%s: %s\n", n.cstr(), m.simplified().cstr() );
+    }
+
     if ( !l )
         return;
 

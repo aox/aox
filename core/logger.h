@@ -12,6 +12,8 @@ public:
     virtual void send( const String & ) = 0;
     virtual ~Logger();
 
+    virtual String name() const;
+
     static Logger *global();
 };
 
