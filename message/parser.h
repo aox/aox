@@ -6,11 +6,7 @@
 #include "string.h"
 
 
-class UString;
-
-
-class Parser822
-{
+class Parser822 {
 public:
     Parser822( const String & os ): s(os), i(0), mime( false ) {}
 
@@ -37,10 +33,10 @@ public:
     String mimeValue();
 
     enum EncodedText { Text, Comment, Phrase };
-    UString encodedWord( EncodedText = Text );
-    UString encodedWords( EncodedText = Text );
-    UString phrase();
-    UString text();
+    String encodedWord( EncodedText = Text );
+    String encodedWords( EncodedText = Text );
+    String phrase();
+    String text();
 
     char next() const { return s[i]; }
 

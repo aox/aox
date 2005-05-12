@@ -4,6 +4,7 @@
 
 #include "ustring.h"
 #include "codec.h"
+#include "utf.h"
 
 
 /*! \class Parser822 parser.h
@@ -320,19 +321,19 @@ String Parser822::mimeValue()
 }
 
 
-/*! Steps past a MIME encoded-word (as defined in RFC2047 and updated by
-    RFC2231) and returns its decoded representation, or an empty string
-    if the cursor does not point to a valid encoded-word. This function
-    does not check that encoded-words are correctly separated from any
-    neighbouring tokens by whitespace: the caller must verify that.
+/*! Steps past a MIME encoded-word (as defined in RFC2047) and returns
+    its decoded UTF-8 representation, or an empty string if the cursor
+    does not point to a valid encoded-word. The caller is responsible
+    for checking that the encoded-word is separated from neighbouring
+    tokens by whitespace.
 
     The characters permitted in the encoded-text are adjusted based on
     \a type, which may be Text (by default), Comment, or Phrase.
 */
 
-UString Parser822::encodedWord( EncodedText type )
+String Parser822::encodedWord( EncodedText type )
 {
-    UString out;
+    String out;
 
     // encoded-word = "=?" charset '?' encoding '?' encoded-text "?="
 
@@ -429,11 +430,12 @@ UString Parser822::encodedWord( EncodedText type )
         valid = false;
 
     if ( valid ) {
+        Utf8Codec u;
         if ( encoding == 'q' )
             text = text.deQP( true );
         else
             text = text.de64();
-        out = cs->toUnicode( text );
+        out = u.fromUnicode( cs->toUnicode( text ) );
         i = ++n;
     }
 
@@ -442,14 +444,14 @@ UString Parser822::encodedWord( EncodedText type )
 
 
 /*! Steps past a sequence of adjacent encoded-words with whitespace in
-    between and returns the decoded representation.
+    between and returns the decoded UTF-8 representation.
 */
 
-UString Parser822::encodedWords( EncodedText type )
+String Parser822::encodedWords( EncodedText type )
 {
-    UString out;
+    String out;
 
-    UString us = encodedWord();
+    String us = encodedWord();
     if ( us.isEmpty() )
         return out;
 
@@ -465,7 +467,7 @@ UString Parser822::encodedWords( EncodedText type )
             break;
 
         if ( i < s.length() && s[i] == '=' && s[i+1] == '?' ) {
-            UString us = encodedWord();
+            String us = encodedWord();
             if ( us.isEmpty() ) {
                 i = n;
                 break;
@@ -486,13 +488,13 @@ UString Parser822::encodedWords( EncodedText type )
 
 
 /*! Steps past the longest "*text" (a series of text/encoded-words) at
-    the cursor, and returns its decoded representation, which may be an
-    empty string.
+    the cursor and returns its UTF-8 decoded representation, which may
+    be an empty string.
 */
 
-UString Parser822::text()
+String Parser822::text()
 {
-    UString out;
+    String out;
 
     uint first = i;
 
@@ -509,7 +511,7 @@ UString Parser822::text()
                 out.append( ' ' );
 
             uint n = i;
-            UString us = encodedWords();
+            String us = encodedWords();
             if ( !us.isEmpty() &&
                  ( s[i] == ' ' || s[i] == '\012' || s[i] == '\015' ||
                    i == s.length() ) )
@@ -532,13 +534,13 @@ UString Parser822::text()
 
 
 /*! Steps past an RFC 822 phrase (a series of word/encoded-words) at the
-    cursor, and returns its decoded representation, which may be an
+    cursor and returns its decoded UTF-8 representation, which may be an
     empty string.
 */
 
-UString Parser822::phrase()
+String Parser822::phrase()
 {
-    UString out;
+    String out;
 
     uint first = i;
 
@@ -546,7 +548,7 @@ UString Parser822::phrase()
     while ( i < s.length() &&
             c != 0 && c != '\012' && c != '\015' )
     {
-        UString t;
+        String t;
 
         if ( ( c == ' ' && s[i+1] == '=' && s[i+2] == '?' ) ||
              ( i == first && s[i] == '=' && s[i+1] == '?' ) )
@@ -568,10 +570,9 @@ UString Parser822::phrase()
         }
         else {
             AsciiCodec a;
-            String qs = string();
-            if ( qs.isEmpty() )
+            t = string();
+            if ( t.isEmpty() )
                 break;
-            t = a.toUnicode( qs );
             c = s[i];
         }
 

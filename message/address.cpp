@@ -168,9 +168,8 @@ String Address::name() const
 
 String Address::uname() const
 {
-    Utf8Codec u;
     Parser822 p( d->name );
-    return u.fromUnicode( p.phrase() );
+    return p.phrase();
 }
 
 

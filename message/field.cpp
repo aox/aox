@@ -379,9 +379,8 @@ void HeaderField::reassemble( const String &s )
 
 void HeaderField::parseText( const String &s )
 {
-    Utf8Codec u;
     Parser822 p( unwrap( s ) );
-    setData( u.fromUnicode( p.text() ) );
+    setData( p.text() );
 }
 
 
