@@ -273,6 +273,22 @@ If
 .I message-copy-directory
 does not exist, mailstore logs an error at startup and refuses to
 accept mail.
+.IP
+Each file in
+.I message-copy-directory
+contains one or more headers, namely
+.BR Error ,
+.B From
+and
+.BR To ,
+then an empty line, then the verbatim received mail message. If there is an
+.B Error
+line, the message was not delivered, and the rest of the line
+describes the problem.
+.IP
+The file's name is a unique string of numbers and hyphens. If it ends
+with "-parser", there was a parse error. If it ends with "-db", there
+was an error injecting the message into the database.
 .SS IMAP
 .IP use-imap
 must be enabled for
