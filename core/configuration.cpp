@@ -176,8 +176,8 @@ static struct {
     { "log-level", Configuration::LogLevel, "info" },
     { "logfile-mode", Configuration::LogfileMode, LOGFILEMODE },
     { "webmail-css-page", Configuration::WebmailCSS, "http://www.oryx.com/webmail/default.css" },
-    { "message-copy-directory", Configuration::MessageCopyDir, "" },
-    { "webmail-js-page", Configuration::WebmailJS, "" }
+    { "webmail-js-page", Configuration::WebmailJS, "" },
+    { "message-copy-directory", Configuration::MessageCopyDir, "" }
 };
 
 

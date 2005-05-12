@@ -23,6 +23,7 @@ public:
 
     bool done() const;
     bool failed() const;
+    String error() const;
     void execute();
 
     void announce();

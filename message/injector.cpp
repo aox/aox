@@ -289,6 +289,18 @@ bool Injector::failed() const
 }
 
 
+/*! Returns an error message if injection failed, or an empty string
+    if it succeeded or hasn't failed yet.
+*/
+
+String Injector::error() const
+{
+    if ( !d->failed || !d->transaction )
+        return "";
+    return d->transaction->error();
+}
+
+
 /*! This function creates and executes the series of database queries
     needed to perform message delivery.
 */

@@ -23,11 +23,11 @@ int main( int argc, char * argv[] )
     Scope global;
 
     Server s( "smtpd", argc, argv );
+    s.setup( Server::Report );
+
     String c( Configuration::text( Configuration::MessageCopyDir ) );
     if ( !c.isEmpty() )
         s.setChrootMode( Server::MessageCopyDir );
-
-    s.setup( Server::Report );
 
     Listener< SMTP >::create(
         "SMTP", Configuration::toggle( Configuration::UseSmtp ),

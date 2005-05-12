@@ -679,7 +679,6 @@ void SMTP::inject()
 
     d->messageError = "";
     d->injector = 0;
-    d->body = "";
 
     if ( !m->valid() ) {
         d->messageError = m->error();
@@ -698,7 +697,15 @@ void SMTP::inject()
     d->injector = new Injector( m, mailboxes, d->helper );
     d->helper->injector = d->injector;
     d->injector->execute();
+}
 
+
+/*! Writes a copy of the message into the message-copy-directory, if
+    appropriate.
+*/
+
+void SMTP::writeCopy()
+{
     String copy = Configuration::text( Configuration::MessageCopyDir );
     if ( copy.isEmpty() )
         return;
@@ -709,20 +716,35 @@ void SMTP::inject()
     copy.append( fn( getpid() ) );
     copy.append( '-' );
     copy.append( fn( ++sequence ) );
+    String e;
+    if ( !d->injector ) {
+        e = "Error: Parser: " + d->messageError + "\n";
+        copy.append( "-parser" );
+    }
+    else if ( d->injector->failed() ) {
+        e = "Error: Injector: " + d->injector->error() + "\n";
+        copy.append( "-db" );
+    }
     File f( copy, File::ExclusiveWrite );
     if ( !f.valid() ) {
         log( "Could not open " + copy + " for writing", Log::Disaster );
         return;
     }
-    f.write( "From: " );
-    f.write( d->from->toString() );
-    it = d->to.first();
+    f.write( e );
+        f.write( "From: " );
+    if ( d->from )
+        f.write( d->from->toString() );
+    else
+        f.write( "<>" );
+    f.write( "\n" );
+    List<User>::Iterator it( d->to );
     while ( it ) {
-        f.write( "\nTo: " );
+        f.write( "To: " );
         f.write( it->address()->toString() );
+        f.write( "\n" );
         ++it;
     }
-    f.write( "\n\n" );
+    f.write( "\n" );
     f.write( d->body );
 }
 
@@ -736,6 +758,7 @@ void SMTP::reportInjection()
     if ( d->state != Injecting )
         return;
 
+    writeCopy();
     d->state = MailFrom;
 
     if ( !d->injector ) {
@@ -750,7 +773,9 @@ void SMTP::reportInjection()
     }
 
     commit();
+    d->from = 0;
     d->to.clear();
+    d->body = "";
 }
 
 
@@ -804,6 +829,7 @@ void LMTP::reportInjection()
     if ( d->state != Injecting )
         return;
 
+    writeCopy();
     d->state = MailFrom;
 
     List<User>::Iterator it( d->to );
@@ -825,5 +851,7 @@ void LMTP::reportInjection()
     if ( d->injector && !d->injector->failed() )
         d->injector->announce();
 
+    d->from = 0;
     d->to.clear();
+    d->body = "";
 }
