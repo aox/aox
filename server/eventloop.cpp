@@ -2,12 +2,13 @@
 
 #include "eventloop.h"
 
-#include "scope.h"
 #include "allocator.h"
-#include "list.h"
 #include "connection.h"
 #include "buffer.h"
 #include "string.h"
+#include "server.h"
+#include "scope.h"
+#include "list.h"
 #include "log.h"
 #include "sys.h"
 
@@ -160,13 +161,36 @@ void EventLoop::start()
 
         if ( n < 0 ) {
             if ( errno == EINTR ) {
-                log( "EventLoop: Shutting down due to signal" );
+                log( Server::name() + ": Shutting down due to signal" );
                 commit();
                 shutdown();
             }
+            else if ( errno == EBADF ) {
+                // one of the FDs was closed. we react by forgetting
+                // that connection, and letting the rest of the server
+                // go on.
+                SortedList< Connection >::Iterator it( d->connections );
+                while ( it ) {
+                    Connection * c = it;
+                    ++it;
+                    // we check the window size for each socket to see
+                    // which ones are bad.
+                    int dummy;
+                    if ( ::setsockopt( c->fd(), SOL_SOCKET, SO_RCVBUF,
+                                       (char*)&dummy, sizeof(dummy) ) < 0 ) {
+                        log( "Socket " + fn( c->fd() ) +
+                             " was unexpectedly closed: "
+                             "Removing corresponding connection: " +
+                             c->description(), Log::Error );
+                        removeConnection( c );
+                    }
+                }
+            }
             else {
-                // XXX: This is highly suboptimal. (Why?)
-                log( "EventLoop: select() returned errno " + fn( errno ),
+                // XXX: This is highly suboptimal.
+                // XXX: Why is it highly suboptimal? What could we do better?
+                log( Server::name() + ": select() returned errno " +
+                     fn( errno ),
                      Log::Disaster );
                 exit( 0 );
             }

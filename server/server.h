@@ -32,10 +32,10 @@ public:
     void setup( Stage );
     void execute();
 
+    static String name();
+
 private:
     static class ServerData * d;
-
-    static String name();
 
     void configuration();
     void files();
