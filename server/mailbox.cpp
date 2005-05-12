@@ -104,10 +104,6 @@ public:
 
             if ( m->d->id )
                 ::mailboxes->insert( m->d->id, m );
-            log( "yay! " +
-                 r->getString( "name" ) + ": " +
-                 ( r->getBoolean( "deleted" ) ? "deleted" : "exists" ),
-                 Log::Error );
         }
 
         if ( query->failed() && query->isStartUpQuery() )
