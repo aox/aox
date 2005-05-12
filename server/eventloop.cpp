@@ -108,7 +108,7 @@ List< Connection > *EventLoop::connections() const
 void EventLoop::start()
 {
     Scope x( d->log );
-    time_t gc = 0;
+    time_t gc = time(0);
 
     log( "Starting event loop", Log::Debug );
 
