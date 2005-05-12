@@ -102,10 +102,13 @@ void OCClient::parse()
     log( "OCClient received " + tag + "/" + msg + " <<" + arg + ">>",
          Log::Debug );
 
-    if ( msg == "shutdown" )
+    if ( msg == "shutdown" ) {
+        log( "Shutting down due to ocd request" );
         Loop::shutdown();
-    else if ( msg == "mailbox" )
+    }
+    else if ( msg == "mailbox" ) {
         updateMailbox( arg );
+    }
 }
 
 
@@ -174,15 +177,6 @@ void OCClient::updateMailbox( const String & arg )
                      " to uidnext " + fn( n ), Log::Debug );
             m->setUidnext( n );
         }
-    }
-    else if ( rest.startsWith( "message=" ) ) {
-        bool ok;
-        uint n = rest.mid( 8 ).number( &ok );
-        if ( !ok )
-            log( "Unable to parse message UID: " + rest.mid( 8 ),
-                 Log::Error );
-        else if ( n >= m->uidnext() )
-            m->setUidnext( n+1 );
     }
     else {
         log( "Unable to parse mailbox changes: " + rest, Log::Error );

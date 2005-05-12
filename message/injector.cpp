@@ -883,10 +883,11 @@ void Injector::announce()
         uint uid = mi->id;
         Mailbox *m = mi->mailbox;
 
-        if ( m->uidnext() <= uid )
+        if ( m->uidnext() <= uid ) {
             m->setUidnext( 1 + uid );
-        OCClient::send( "mailbox " + m->name().quoted() + " "
-                        "message=" + fn( uid ) );
+            OCClient::send( "mailbox " + m->name().quoted() + " "
+                            "uidnext=" + fn( m->uidnext() ) );
+        }
 
         ++mi;
     }
