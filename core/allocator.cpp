@@ -60,7 +60,7 @@ void * alloc( uint s, uint n )
     {
         // this is a good place to put a breakpoint when we want to
         // find out who allocates memory.
-        fprintf( stderr, "" );
+        fprintf( stderr, "%s", "" );
     }
     allocated += a->chunkSize();
     return p;
