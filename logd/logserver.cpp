@@ -127,6 +127,16 @@ void LogServer::processLine( const String &line )
         d->name = line.mid( 5 );
         return;
     }
+    else if ( line.startsWith( "shutdown" ) ) {
+        close();
+        StringList keys( d->pending.keys() );
+        StringList::Iterator i( keys );
+        while ( i ) {
+            commit( *i, Log::Info );
+            ++i;
+        }
+        return;
+    }
 
     uint cmd = 0;
     uint msg = 0;
@@ -156,12 +166,12 @@ void LogServer::processLine( const String &line )
     Log::Severity s = severity( priority.mid( n+1 ) );
 
     if ( c ) {
-        commit( transaction, f, s );
+        commit( transaction, s );
     }
     else if ( s >= logLevel ) {
         if ( s >= Log::Error )
             s = Log::Debug;
-        commit( transaction, f, s );
+        commit( transaction, s );
         output( transaction, f, s, parameters );
     }
     else {
@@ -188,12 +198,10 @@ void LogServer::log( String t, Log::Facility f, Log::Severity s,
 
 
 /*! Commits all log lines of \a severity or higher from transaction \a
-    tag to the log file, and discards lines of lower severity. It does
-    nothing with the \a facility yet.
+    tag to the log file, and discards lines of lower severity.
 */
 
-void LogServer::commit( String tag,
-                        Log::Facility facility, Log::Severity severity )
+void LogServer::commit( String tag, Log::Severity severity )
 {
     LogServerData::Queue * q = d->pending.find( tag );
     if ( !q || q->isEmpty() )
@@ -222,11 +230,11 @@ void LogServer::commitAll()
         return;
 
     output( 0, Log::General, Log::Error,
-            d->name + " unexpectedly died. "
+            d->name + " unexpectedly closed the log connection. "
             "All messages in unfinished transactions follow." );
     i = keys.first();
     while ( i ) {
-        commit( *i, Log::General, Log::Debug );
+        commit( *i, Log::Debug );
         ++i;
     }
 }

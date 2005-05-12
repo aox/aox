@@ -50,7 +50,8 @@ int main( int argc, char *argv[] )
 
     Listener< TlsProxy >::create(
         "tlsproxy", Configuration::toggle( Configuration::UseTls ),
-        Configuration::TlsProxyAddress, Configuration::TlsProxyPort
+        Configuration::TlsProxyAddress, Configuration::TlsProxyPort,
+        true
     );
 
     // Is the following enough to avoid zombies, or should the handler

@@ -24,7 +24,7 @@ public:
 
 private:
     void parse();
-    void commit( String, Log::Facility, Log::Severity );
+    void commit( String, Log::Severity );
     void commitAll();
     void log( String, Log::Facility, Log::Severity, const String & );
     void output( String, Log::Facility, Log::Severity, const String & );

@@ -15,8 +15,8 @@ class Listener
     : public Connection
 {
 public:
-    Listener( const Endpoint &e, const String & s )
-        : Connection(), svc( s )
+    Listener( const Endpoint &e, const String & s, bool internal )
+        : Connection(), svc( s ), i( internal )
     {
         setType( Connection::Listener );
         if ( listen( e ) >= 0 ) {
@@ -51,13 +51,13 @@ public:
             Connection *c = new T(s);
             c->setState( Connected );
             log( "Accepted new " + svc + " connection from " +
-                 c->peer().string() );
+                 c->peer().string(), i ? Log::Debug : Log::Info );
         }
     }
 
     static void create( const String &svc, bool use,
                         Configuration::Text address,
-                        Configuration::Scalar port )
+                        Configuration::Scalar port, bool i )
     {
         if ( !use )
             return;
@@ -72,7 +72,7 @@ public:
 
             if ( use6 ) {
                 Listener< T > *six =
-                    new Listener< T >( Endpoint( "::", p ), svc );
+                    new Listener< T >( Endpoint( "::", p ), svc, i );
                 if ( six->state() == Listening )
                     l = six;
                 else
@@ -81,7 +81,7 @@ public:
 
             if ( use4 ) {
                 Listener< T > *four =
-                    new Listener< T >( Endpoint( "0.0.0.0", p ), svc );
+                    new Listener< T >( Endpoint( "0.0.0.0", p ), svc, i );
                 if ( four->state() == Listening )
                     l = four;
                 else
@@ -95,7 +95,7 @@ public:
         }
         else {
             Endpoint e( address, port );
-            l = new Listener< T >( e, svc );
+            l = new Listener< T >( e, svc, i );
             if ( !e.valid() || l->state() != Listening )
                 ::log( "Cannot listen for " + svc + " on " + e.address(),
                        Log::Disaster );
@@ -106,6 +106,7 @@ public:
 
 private:
     String svc;
+    bool i;
 };
 
 #endif

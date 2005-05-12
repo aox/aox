@@ -31,11 +31,13 @@ int main( int argc, char * argv[] )
 
     Listener< SMTP >::create(
         "SMTP", Configuration::toggle( Configuration::UseSmtp ),
-        Configuration::SmtpAddress, Configuration::SmtpPort
+        Configuration::SmtpAddress, Configuration::SmtpPort,
+        false
     );
     Listener< LMTP >::create(
         "LMTP", Configuration::toggle( Configuration::UseLmtp ),
-        Configuration::LmtpAddress, Configuration::LmtpPort
+        Configuration::LmtpAddress, Configuration::LmtpPort,
+        false
     );
 
     Database::setup();

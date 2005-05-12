@@ -51,7 +51,10 @@ public:
         switch ( e ) {
         case Connect:
         case Timeout:
+            break;
         case Shutdown:
+            if ( state() == Connected )
+                enqueue( "shutdown\r\n" );
             break;
         case Read:
         case Close:

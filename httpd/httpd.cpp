@@ -27,7 +27,8 @@ int main( int argc, char * argv[] )
 
     Listener< HTTP >::create(
         "HTTP", Configuration::toggle( Configuration::UseHttp ),
-        Configuration::HttpAddress, Configuration::HttpPort
+        Configuration::HttpAddress, Configuration::HttpPort,
+        false
     );
 
     Database::setup();

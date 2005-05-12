@@ -520,8 +520,10 @@ void Server::setChrootMode( ChrootMode mode )
 }
 
 
-/*!
+/*! This function is unused (again), so I made it private. Do we need
+    it, should we have it?
 
+    Is server the right way to publicise the application's name?
 */
 
 String Server::name()
