@@ -58,7 +58,7 @@ Logger *Logger::global()
 /*! Returns an application name. Subclasses must provide this name.
 
     I don't like this mechanism. It's hacky. Only exists to let Log
-    (in core) get at Server::name() (in server).
+    (in core) get at information held by the Server class (in server).
 */
 
 String Logger::name() const
