@@ -213,7 +213,7 @@ typedef struct CK_TOKEN_INFO {
 #define CKF_TOKEN_INITIALIZED       0x00000400
 
 /* CKF_SECONDARY_AUTHENTICATION if new for v2.10. If it is
- * true, the token supports secondary authentication for
+ * true, the token supports secondary authentication for
  * private key objects. This flag is deprecated in v2.11 and
    onwards. */
 #define CKF_SECONDARY_AUTHENTICATION  0x00000800
@@ -267,7 +267,7 @@ typedef CK_ULONG          CK_SESSION_HANDLE;
 
 typedef CK_SESSION_HANDLE CK_PTR CK_SESSION_HANDLE_PTR;
 
-
+
 /* CK_USER_TYPE enumerates the types of Cryptoki users */
 /* CK_USER_TYPE has been changed from an enum to a CK_ULONG for
  * v2.0 */
@@ -982,7 +982,7 @@ typedef CK_ULONG          CK_RV;
 #define CKR_ATTRIBUTE_VALUE_INVALID           0x00000013
 #define CKR_DATA_INVALID                      0x00000020
 #define CKR_DATA_LEN_RANGE                    0x00000021
-#define CKR_DEVICE_ERROR                      0x00000030
+#define CKR_DEVICE_ERROR                      0x00000030
 #define CKR_DEVICE_MEMORY                     0x00000031
 #define CKR_DEVICE_REMOVED                    0x00000032
 #define CKR_ENCRYPTED_DATA_INVALID            0x00000040
