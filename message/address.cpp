@@ -779,53 +779,52 @@ String AddressParser::phrase( int & i )
     int start = i;
     comment( i );
     bool done = false;
-    while ( !done ) {
-        String tmp;
+    while ( !done && i >= 0 ) {
+        String word;
         if ( i > 0 && d->s[i] == '"' ) {
-            // quoted stuff
-            i--;
+            // quoted phrase
             int j = i;
-            do {
-                j = i;
-                if ( i > 0 && d->s[i-1] == '\\' ) {
-                    tmp = d->s.mid( i, 1 ) + tmp;
-                    i = i - 2;
-                }
-                else if ( i >= 0 && d->s[i] != '"' ) {
-                    tmp = d->s.mid( i, 1 ) + tmp;
+            i--;
+            bool progressing = true;
+            while ( progressing ) {
+                if ( i > 0 && d->s[i-1] == '\\' )
+                    i -= 2;
+                else if ( i >= 0 && d->s[i] != '"' )
                     i--;
-                }
-            } while ( i < j );
+                else
+                    progressing = false;
+            }
             if ( i < 0 || d->s[i] != '"' )
                 error( "quoted phrase must begin with '\"'", i );
-            else
-                i--;
+            word = d->s.mid( i, j + 1 - i ).unquoted();
+            i--;
         }
         else if ( d->s[i] == '.' ) {
             // obs-phrase allows a single dot as alternative to word.
             // we allow atom "." as an alternative, too, to handle
             // initials.
             i--;
-            tmp = atom( i );
-            tmp.append( "." );
+            word = atom( i );
+            word.append( "." );
         }
         else {
             // single word
-            tmp = atom( i );
-            if ( tmp.isEmpty() )
+            word = atom( i );
+            if ( word.isEmpty() )
                 done = true;
         }
         if ( r.isEmpty() ) {
-            // nothing
+            r = word;
         }
-        else if ( tmp.endsWith( " " ) ) {
-            tmp.append( r );
+        else if ( word.endsWith( " " ) ) {
+            word.append( r );
+            r = word;
         }
-        else if ( !tmp.isEmpty() ) {
-            tmp.append( " " );
-            tmp.append( r );
+        else if ( !word.isEmpty() ) {
+            word.append( " " );
+            word.append( r );
+            r = word;
         }
-        r = tmp;
     }
     if ( i < start && r.find( '=' ) >= 0 ) {
         // if it seems to be an encoded-word, we parse the same input
