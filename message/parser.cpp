@@ -521,6 +521,8 @@ String Parser822::text()
             }
             else {
                 i = n;
+                out.append( c );
+                c = s[++i];
             }
         }
         else {
