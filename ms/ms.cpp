@@ -96,16 +96,22 @@ static void addEternal( void * v, const char * t )
 }
 
 
-static void createUser( const char * login, const char * password,
-                        const char * address = 0 )
+static void createUser( String login, String password, String address0 )
 {
-    if ( strcmp( login, "anonymous" ) == 0 ||
-         strcmp( login, "anyone" ) == 0 ||
-         strcmp( login, "group" ) == 0 ||
-         strcmp( login, "user" ) == 0 ||
-         !isalnum( login[0] ) )
+    uint i = 0;
+    while ( i < login.length() &&
+            ( ( login[i] >= '0' && login[i] <= '9' ) ||
+              ( login[i] >= 'a' && login[i] <= 'z' ) ||
+              ( login[i] >= 'Z' && login[i] <= 'Z' ) ) )
+        i++;
+    if ( i < login.length() ||
+         login == "anonymous" ||
+         login == "anyone" ||
+         login == "group" ||
+         login == "user" ||
     {
-        fprintf( stderr, "%s: Invalid username: '%s'.\n", name, login );
+        fprintf( stderr, "%s: Invalid username: '%s'.\n",
+                 name.cstr(), login.cstr() );
         Loop::shutdown();
         return;
     }
