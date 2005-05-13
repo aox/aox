@@ -550,7 +550,7 @@ String Parser822::phrase()
 
         if ( s[i] == '=' && s[i+1] == '?' ) {
             uint n = i;
-            t = encodedWord();
+            t = encodedWord( Phrase );
             if ( !t.isEmpty() &&
                  ( cfws() > 0 || s[i+1] == '\0' ) )
                 type = 1;
