@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH mailstore 7 2005-05-16 www.oryx.com "Mailstore Documentation"
+.TH mailstore 7 2005-05-23 www.oryx.com "Mailstore Documentation"
 .SH NAME
 Overview of Oryx Mailstore.
 .SH SYNOPSIS
@@ -236,7 +236,7 @@ contains a private key and self-signed certificate used by
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 0.94, released 2005-05-16,
+This man page covers Oryx Mailstore version 0.94, released 2005-05-23,
 http://www.oryx.com/mailstore/0.94.html.
 .SH SEE ALSO
 .BR mailstore.conf (5),
