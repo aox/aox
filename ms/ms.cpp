@@ -96,7 +96,7 @@ static void addEternal( void * v, const char * t )
 }
 
 
-static void createUser( String login, String password, String address0 )
+static void createUser( String login, String password, String address )
 {
     uint i = 0;
     while ( i < login.length() &&
@@ -108,10 +108,10 @@ static void createUser( String login, String password, String address0 )
          login == "anonymous" ||
          login == "anyone" ||
          login == "group" ||
-         login == "user" ||
+         login == "user" )
     {
         fprintf( stderr, "%s: Invalid username: '%s'.\n",
-                 name.cstr(), login.cstr() );
+                 name, login.cstr() );
         Loop::shutdown();
         return;
     }
@@ -123,7 +123,7 @@ static void createUser( String login, String password, String address0 )
     if ( !u->valid() )
         error( u->error() );
 
-    if ( address ) {
+    if ( !address.isEmpty() ) {
         AddressParser p( address );
         if ( !p.error().isEmpty() )
             error( p.error() );
@@ -243,7 +243,7 @@ int main( int argc, char *argv[] )
         if ( argc <= 4 )
             error( "Too few arguments (need login and password)" );
         else if ( argc == 5 )
-            createUser( argv[3], argv[4] );
+            createUser( argv[3], argv[4], "" );
         else if ( argc == 6 )
             createUser( argv[3], argv[4], argv[5] );
         else
