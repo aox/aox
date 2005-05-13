@@ -1130,7 +1130,7 @@ static char qphexdigits[17] = "0123456789ABCDEF";
 
     If \a underscore is present and true, this function uses the variant
     of q-p specified by RFC 2047, where a space is encoded as an
-    underscore.
+    underscore and a few more characters need to be encoded.
 */
 
 String String::eQP( bool underscore ) const
@@ -1179,6 +1179,14 @@ String String::eQP( bool underscore ) const
             if ( underscore && d->str[i] == ' ' ) {
                 r.d->str[r.d->len++] = '_';
                 c += 1;
+            }
+            else if ( underscore &&
+                      ( d->str[i] == '"' || d->str[i] == '@' ||
+                        d->str[i] == '=' || d->str[i] == '?' ) ) {
+                r.d->str[r.d->len++] = '=';
+                r.d->str[r.d->len++] = qphexdigits[d->str[i]/16];
+                r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
+                c += 3;
             }
             else if ( ( d->str[i] >= ' ' && d->str[i] < 127 &&
                    d->str[i] != '=' ) ||
