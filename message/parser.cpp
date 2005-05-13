@@ -546,7 +546,7 @@ String Parser822::phrase()
     int last = 0;
 
     i += cfws();
-    while ( s[i] != '\0' ) {
+    while ( i < s.length() ) {
         String t;
         int type = 0;
 
