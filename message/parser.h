@@ -51,6 +51,8 @@ private:
     String s;
     uint i;
     bool mime;
+
+    int cfws();
 };
 
 

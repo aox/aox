@@ -541,47 +541,95 @@ String Parser822::text()
 String Parser822::phrase()
 {
     String out;
+    int last = 0;
 
-    uint first = i;
-
-    char c = s[i];
-    while ( i < s.length() &&
-            c != 0 && c != '\012' && c != '\015' )
-    {
+    i += cfws();
+    while ( s[i] != '\0' ) {
         String t;
+        int type = 0;
 
-        if ( ( c == ' ' && s[i+1] == '=' && s[i+2] == '?' ) ||
-             ( i == first && s[i] == '=' && s[i+1] == '?' ) )
-        {
-            if ( c == ' ' )
-                c = s[++i];
-
+        if ( s[i] == '=' && s[i+1] == '?' ) {
             uint n = i;
-            t = encodedWords();
+            t = encodedWord();
             if ( !t.isEmpty() &&
-                 ( s[i] == ' ' || s[i] == '\012' || s[i] == '\015' ||
-                   i == s.length() ) )
-            {
-                c = s[i];
-            }
-            else {
+                 ( cfws() > 0 || s[i+1] == '\0' ) )
+                type = 1;
+            else
                 i = n;
-            }
         }
-        else {
-            AsciiCodec a;
+        else if ( s[i] == '"' ) {
             t = string();
-            if ( t.isEmpty() )
-                break;
-            c = s[i];
+            type = 2;
         }
 
-        if ( !t.isEmpty() ) {
-            if ( !out.isEmpty() )
-                out.append( ' ' );
-            out.append( t );
-        }
+        if ( type == 0 )
+            t = atom();
+
+        if ( t.isEmpty() )
+            break;
+
+        if ( !( out.isEmpty() || ( last == 1 && type == 1 ) ) )
+            out.append( ' ' );
+        out.append( t );
+        last = type;
+
+        uint n = i;
+        i += cfws();
+        if ( i == n )
+            break;
     }
 
     return out;
+}
+
+
+/*! Returns the number of CFWS characters at the cursor, but does
+    nothing else.
+*/
+
+int Parser822::cfws()
+{
+    uint n = 0;
+    uint j = i;
+
+    do {
+        if ( s[j] == '\040' || s[j] == '\011' ||
+             s[j] == '\012' || s[j] == '\015' )
+        {
+            n++;
+            j++;
+        }
+        else if ( s[j] == '(' ) {
+            uint l = 0;
+            while ( s[j] == '(' ) {
+                uint level = 0;
+                do {
+                    l++;
+                    switch ( s[j] ) {
+                    case '(':
+                        level++;
+                        break;
+                    case ')':
+                        level--;
+                        break;
+                    case '\\':
+                        j++;
+                        l++;
+                        break;
+                    }
+                    j++;
+                }
+                while ( level != 0 && j < s.length() );
+            }
+            if ( l == 0 )
+                break;
+            n += l;
+        }
+        else {
+            break;
+        }
+    }
+    while ( 1 );
+
+    return n;
 }
