@@ -601,8 +601,14 @@ uint Allocator::scan1( void * p, bool print, uint level, uint limit )
         sprintf( s, "%.1fK", sz / 1024.0 );
     else
         sprintf( s, "%d", sz );
-    printf( "%*.*s0x%08x (%s)\n", level*4, level*4, "                ",
-            (uint)p, s );
+    const char * levelspaces[] = {
+	"",
+	"    ",
+	"        ",
+	"            ",
+	"                "
+    };
+    printf( "%s0x%08x (%s)\n", levelspaces[level], (uint)p, s );
     return sz;
 }
 
