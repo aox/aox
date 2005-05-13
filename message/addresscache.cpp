@@ -88,7 +88,7 @@ public:
           transaction( t )
     {
         q = new Query( *addressLookup, this );
-        q->bind( 1, a->name() );
+        q->bind( 1, a->uname() );
         q->bind( 2, a->localpart() );
         q->bind( 3, a->domain() );
         transaction->enqueue( q );
@@ -112,7 +112,7 @@ public:
         queries = l;
         transaction = t;
 
-        String un = a->name();
+        String un = a->uname();
 
         Query *i = new Query( *addressInsert, this );
         i->bind( 1, un );
@@ -147,7 +147,7 @@ void AddressLookup::execute() {
 
         uint id = r->getInt( "id" );
         address->setId( id );
-        Address *a = new Address( address->name(), address->localpart(),
+        Address *a = new Address( address->uname(), address->localpart(),
                                   address->domain() );
         a->setId( id );
 
