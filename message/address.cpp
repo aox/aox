@@ -815,12 +815,17 @@ String AddressParser::phrase( int & i )
             if ( tmp.isEmpty() )
                 done = true;
         }
-        if ( r.isEmpty() )
-            r = tmp;
-        else if ( tmp.endsWith( " " ) )
-            r = tmp + r;
-        else if ( !tmp.isEmpty() )
-            r = tmp + " " + r;
+        if ( r.isEmpty() ) {
+            // nothing
+        }
+        else if ( tmp.endsWith( " " ) ) {
+            tmp.append( r );
+        }
+        else if ( !tmp.isEmpty() ) {
+            tmp.append( " " );
+            tmp.append( r );
+        }
+        r = tmp;
     }
     if ( i < start && r.find( '=' ) >= 0 ) {
         // if it seems to be an encoded-word, we parse the same input
