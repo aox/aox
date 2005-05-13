@@ -615,10 +615,13 @@ void AddressParser::comment( int & i )
         // comment  = "(" *([FWS] ccontent) [FWS] ")"
         --i;
         ccontent( i );
-        if ( d->s[i] != '(' )
+        if ( d->s[i] != '(' ) {
             error( "Unbalanced comment: ", i );
-        else
-            d->lastComment = unqp( d->s.mid( i+1, j-i-1 ) );
+        }
+        else {
+            Parser822 p( d->s.mid( i, j+1-i ) );
+            d->lastComment = p.comment();
+        }
         --i;
         space( i );
     }
@@ -780,6 +783,7 @@ String AddressParser::atom( int & i )
 String AddressParser::phrase( int & i )
 {
     String r;
+    int start = i;
     comment( i );
     bool done = false;
     while ( !done ) {
@@ -824,6 +828,14 @@ String AddressParser::phrase( int & i )
             r = tmp + r;
         else if ( !tmp.isEmpty() )
             r = tmp + " " + r;
+    }
+    if ( i < start && r.find( '=' ) >= 0 ) {
+        // if it seems to be an encoded-word, we parse the same input
+        // using Parser822 and let it decode 2047. slow and wasteful.
+        Parser822 p( d->s.mid( i+1, start-i ) );
+        String tmp( p.phrase() );
+        if ( !tmp.isEmpty() )
+            r = tmp;
     }
     return r;
 }
