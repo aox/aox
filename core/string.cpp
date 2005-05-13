@@ -1181,8 +1181,9 @@ String String::eQP( bool underscore ) const
                 c += 1;
             }
             else if ( underscore &&
-                      ( d->str[i] == '"' || d->str[i] == '@' ||
-                        d->str[i] == '=' || d->str[i] == '?' ) ) {
+                      ! ( ( d->str[i] >= '0' && d->str[i] <= '9' ) ||
+                          ( d->str[i] >= 'a' && d->str[i] <= 'z' ) ||
+                          ( d->str[i] >= 'A' && d->str[i] <= 'Z' ) ) ) {
                 r.d->str[r.d->len++] = '=';
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]/16];
                 r.d->str[r.d->len++] = qphexdigits[d->str[i]%16];
