@@ -158,7 +158,44 @@ void Address::setId( uint id )
 
 String Address::name() const
 {
-    return d->name;
+    bool atom = true;
+    uint i = 0;
+    while ( atom && i < d->name.length() ) {
+        // source: 2822 section 3.2.4
+        char c = d->name[i];
+        if ( ( c >= 'a' && c <= 'z' ) ||
+             ( c >= 'A' && c <= 'Z' ) ||
+             ( c >= '0' && c <= '9' ) ||
+             c == '!' || c == '#' || c == '$' || c == '%' ||
+             c == '&' || c == '\''|| c == '*' || c == '+' ||
+             c == '-' || c == '/' || c == '=' || c == '?' ||
+             c == '^' || c == '_' || c == '`' || c == '{' ||
+             c == '|' || c == '}' || c == '~' ||
+             // extra
+             c == ' ' ) {
+            // still an atom
+        }
+        else {
+            atom = false;
+        }
+        i++;
+    }
+
+    if ( atom )
+        return d->name;
+
+    Utf8Codec u;
+    UString real( u.toUnicode( d->name ) );
+    Codec * c = Codec::byString( real );
+    if ( c->name() == "US-ASCII" )
+        return d->name.quoted( '"', '\\' );
+
+    String r( "=?" );
+    r.append( c->name() );
+    r.append( "?q?" );
+    r.append( c->fromUnicode( real ).eQP( true ) );
+    r.append( "?=" );
+    return r;
 }
 
 
@@ -168,8 +205,7 @@ String Address::name() const
 
 String Address::uname() const
 {
-    Parser822 p( d->name );
-    return p.phrase();
+    return d->name;
 }
 
 
@@ -193,50 +229,7 @@ String Address::domain() const
 }
 
 
-static String qhack( const String & s )
-{
-    bool atom = true;
-    uint i = 0;
-    while ( atom && i < s.length() ) {
-        // source: 2822 section 3.2.4
-        if ( ( s[i] >= 'a' && s[i] <= 'z' ) ||
-             ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-             ( s[i] >= '0' && s[i] <= '9' ) ||
-             s[i] == '!' || s[i] == '#' || s[i] == '$' || s[i] == '%' ||
-             s[i] == '&' || s[i] == '\''|| s[i] == '*' || s[i] == '+' ||
-             s[i] == '-' || s[i] == '/' || s[i] == '=' || s[i] == '?' ||
-             s[i] == '^' || s[i] == '_' || s[i] == '`' || s[i] == '{' ||
-             s[i] == '|' || s[i] == '}' || s[i] == '~' ||
-             // extra
-             s[i] == ' ' ) {
-            // still an atom
-        }
-        else {
-            atom = false;
-        }
-        i++;
-    }
-
-    if ( atom )
-        // it was all atoms, return it as-is
-        return s;
-
-    String r( "\"" );
-    i = 0;
-    while ( i < s.length() ) {
-        if ( s[i] == '"' || s[i] == '\\' )
-            r.append( '\\' );
-        r.append( s[i] );
-        i++;
-    }
-    r.append( '"' );
-    return r;
-}
-
-
-/*! Returns an RFC 2822 representation of this address.  This should
-    do RFC 2047 encoding, but currently does not. We fix that when we
-    add unicode strings.
+/*! Returns an RFC 2822 representation of this address.
 */
 
 String Address::toString() const
@@ -259,7 +252,7 @@ String Address::toString() const
             r.append( d->domain );
         }
         else {
-            r.append( qhack( d->name ) );
+            r.append( name() );
             r.append( " <" );
             r.append( d->localpart );
             r.append( "@" );
@@ -889,7 +882,7 @@ static String key( Address * a )
 {
     String t;
 
-    t.append( a->name() );
+    t.append( a->uname() );
     t.append( " " );
     t.append( a->localpart() );
     t.append( "@" );
@@ -915,7 +908,7 @@ void Address::uniquify( List<Address> * l )
         String k = key( a );
         if ( !unique.contains( k ) ) {
             unique.insert( k, a );
-            if ( !a->name().isEmpty() ) {
+            if ( !a->uname().isEmpty() ) {
                 k = " ";
                 k.append( a->localpart() );
                 k.append( "@" );
