@@ -191,7 +191,7 @@ String Address::name() const
         return d->name.quoted( '"', '\\' );
 
     String r( "=?" );
-    r.append( c->name() );
+    r.append( c->name().lower() );
     r.append( "?q?" );
     r.append( c->fromUnicode( real ).eQP( true ) );
     r.append( "?=" );
