@@ -1,5 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include <limits.h>
+
 #include "cstring.h"
 
 #include "permissioneditor.h"
@@ -11,6 +13,7 @@
 #include <qlayout.h>
 #include <qpushbutton.h>
 #include <qcheckbox.h>
+#include <qptrlist.h>
 #include <qlabel.h>
 
 
