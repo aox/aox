@@ -20,9 +20,6 @@
 #include <ctype.h>
 
 
-extern int strcmp( const char *, const char * );
-
-
 static int status;
 static Transaction * transaction;
 static Query * query;
