@@ -1293,10 +1293,12 @@ bool String::operator>=( const String & other ) const
 
 void String::print() const
 {
-#if !defined(__GNUC__) || __GNUC__ > 2
-    // gcc 2.95 (freebsd 4.x) breaks on the next line. its fault, not ours.
-    fprintf( stderr, "'%*.*s'\n", length(), length(), data() );
-#endif
+    uint i = 0;
+
+    fprintf( stderr, "'" );
+    while ( i < length() )
+        fprintf( stderr, "%c", d->str[i++] );
+    fprintf( stderr, "'\n" );
 }
 
 
