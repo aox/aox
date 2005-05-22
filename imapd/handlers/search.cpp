@@ -873,7 +873,7 @@ String Search::Condition::whereHeaderField() const
         "header_fields.uid=messages.uid and "
         "header_fields.field=field_names.id and "
         "field_names.name=$" + fn( fnum ) + " and "
-        "value like '%' || $" + fn( like ) + " || '%'";
+        "value ilike '%' || $" + fn( like ) + " || '%'";
 }
 
 
@@ -902,7 +902,7 @@ String Search::Condition::whereAddressField( const String & field ) const
         uint name = d->argument();
         d->query->bind( name, raw );
         r.append( " and "
-                  "(addresses.name like '%'||$" + fn( name ) + "||'%' "
+                  "(addresses.name ilike '%'||$" + fn( name ) + "||'%' "
                   "or addresses.localpart ilike '%'||$" + fn( name ) + "||'%' "
                   "or addresses.domain ilike '%'||$" + fn( name ) + "||'%')" );
     }
@@ -957,7 +957,7 @@ String Search::Condition::whereHeader() const
     d->usesHeaderFieldsTable = true;
     return "(header_fields.mailbox=messages.mailbox and "
         "header_fields.uid=messages.uid and "
-        "value like '%'||$" + fn( like ) + "||'%') or (" +
+        "value ilike '%'||$" + fn( like ) + "||'%') or (" +
         whereAddressField() + ")";
 }
 
@@ -977,7 +977,7 @@ String Search::Condition::whereBody() const
     return "messages.mailbox=part_numbers.mailbox and "
         "messages.uid=part_numbers.uid and "
         "part_numbers.bodypart=bodyparts.id and "
-        "bodyparts.text like '%'||$" + fn( bt ) + "||'%'";
+        "bodyparts.text ilike '%'||$" + fn( bt ) + "||'%'";
 }
 
 
