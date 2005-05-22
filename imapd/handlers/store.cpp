@@ -248,10 +248,8 @@ bool Store::dumpFetchResponses()
     bool all = true;
     ImapSession * s = imap()->session();
     Mailbox * mb = s->mailbox();
-    uint i = d->s.count();
-    while ( i ) {
-        uint uid = d->s.value( i );
-        i--;
+    while ( all && !d->s.isEmpty() ) {
+        uint uid = d->s.value( 1 );
         Message * m = mb->message( uid, false );
         if ( m && m->hasFlags() ) {
             String r;
