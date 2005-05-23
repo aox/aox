@@ -1,6 +1,3 @@
-Add support for RFC 2047 encoding
-
-
 ocd needs work (mike@waspfactory.org)
 
   1. The code (along with user/mailbox) needs cleaning up.
@@ -249,18 +246,14 @@ udoc stuff:
 
   1. Support a single level of nested classes. (What file names to use
      for output?)
-  3. Support enum annotation.
+  2. Support enum annotation.
+  3. Suppress empty <p>, duplicate anchor names in output.
 
 
 Udoc web pages chores
 
   Add "Related Pages" etc. Clarify where background.html
   fits. usage.html is an orphan now; should it become a manpage?
-
-
-HTML tidy fixes: suppress empty <p>, duplicate anchor names.
-
-  (To what does this pertain? Webmail, our web pages or udoc?)
 
 
 archives.oryx.com
@@ -349,3 +342,13 @@ RENAME isn't implemented
   Implementing it should be a reasonably simple matter. May be best
   to put it off until ocd forwards information about mailboxes,
   though.
+
+
+The HTTP server needs to learn streaming
+
+  Instead of accumulating page text and sending it in one chunk, we
+  should switch to a startPage()/*sendStuff()/endPage() interface,
+  to conserve memory and reduce (apparent) latency.
+
+
+
