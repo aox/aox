@@ -613,7 +613,7 @@ int Connection::listen( const Endpoint &e )
     // bind() returns EADDRINUSE happens. the kernel doesn't like >50
     // sockets in TIME_WAIT state, perhaps? when it happens, we can
     // try waiting a second or two.
-    uint retcode = ::bind( d->fd, e.sockaddr(), e.sockaddrSize() );
+    int retcode = ::bind( d->fd, e.sockaddr(), e.sockaddrSize() );
     /// XXX yank this code if it the occasional problem still occurs
     /// in, say, July 2005.
     if ( retcode < 0 && errno == EADDRINUSE ) {
