@@ -1,0 +1,7 @@
+SubDir TOP recorder ;
+
+SubInclude TOP server ;
+
+Build recorder : recorder.cpp ;
+
+Program recorder : recorder server core ;

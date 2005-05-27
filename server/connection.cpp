@@ -274,6 +274,12 @@ String Connection::description() const
     case TlsClient:
         r = "TLS client";
         break;
+    case RecorderClient:
+        r = "TCP stream recorder client";
+        break;
+    case RecorderServer:
+        r = "TCP stream recorder";
+        break;
     case Listener:
         r = "Listener";
         break;

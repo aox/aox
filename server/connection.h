@@ -27,6 +27,8 @@ public:
         HttpServer,
         TlsProxy,
         TlsClient,
+        RecorderClient,
+        RecorderServer,
         Listener,
         Pipe
     };

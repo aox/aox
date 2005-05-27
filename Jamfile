@@ -15,6 +15,7 @@ SubInclude TOP ms ;
 SubInclude TOP smtpd ;
 SubInclude TOP server ;
 SubInclude TOP db ;
+SubInclude TOP recorder ;
 SubInclude TOP sasl ;
 SubInclude TOP schema ;
 SubInclude TOP scripts ;
