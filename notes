@@ -352,3 +352,15 @@ The HTTP server needs to learn streaming
 
 
 
+Case sensitivity
+
+  Do we want case sensitive user names? Email addresses? I think not,
+  but perhaps some sites do want that.
+
+  If we have any case sensitivity, we should try to be case-friendly:
+
+     a login AbhIjIt "QREWCejfhfeuwhrxfa"
+     * ALERT User name "Abhijit", not "AbhIjIt"
+     a NO no such user
+
+  Bad security? User-friendly.
