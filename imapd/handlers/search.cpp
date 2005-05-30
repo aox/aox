@@ -238,6 +238,19 @@ void Search::parseKey( bool alsoCharset )
             space();
             add( Header, Contains, "subject", uastring() );
         }
+        else if ( keyword == "body" ) {
+            space();
+            add( Body, Contains, "", uastring() );
+        }
+        else if ( keyword == "text" ) {
+            space();
+            UString a = uastring();
+            push( Or );
+            add( Body, Contains, "", a );
+            // field name is null for any-field searches
+            add( Header, Contains, 0, a );
+            pop();
+        }
         else if ( keyword == "keyword" ) {
             space();
             add( Flags, Contains, atom() );
