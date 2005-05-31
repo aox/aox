@@ -4,8 +4,14 @@
 
 #include "file.h"
 #include "event.h"
+#include "scope.h"
 #include "buffer.h"
+#include "listener.h"
+#include "allocator.h"
+#include "logclient.h"
 
+#include <stdio.h> // fprintf
+#include <stdlib.h> // exit
 
 
 class RecorderData
@@ -32,8 +38,8 @@ void RecorderData::dump( Direction dir )
     if ( dir == ToClient )
         s = &toClient;
     uint lines = 0;
-    uint ls = 0;
-    uint i = 0;
+    int ls = 0;
+    int i = 0;
     while ( i >= ls ) {
         i = s->find( '\n', ls );
         if ( i >= ls ) {
@@ -78,6 +84,9 @@ void RecorderData::assertEmpty()
 }
 
 
+static String * base = 0;
+
+
 /*! \class RecorderServer recorder.h
 
     The RecorderServer class provides the client-facing side of a man
@@ -96,22 +105,38 @@ RecorderServer::RecorderServer( int fd )
     : Connection( fd, Connection::RecorderServer ),
       d( new RecorderData )
 {
-    d->client = new RecorderClient( d );
+    d->server = this;
+    d->client = new ::RecorderClient( d );
+    d->log = new File( *::base + "." + peer().string(),
+                       File::Append, 0444 );
+    Loop::addConnection( this );
+
+    fprintf( stderr,
+             "new recorder writing %s\n", d->log->name().cstr() );
 }
 
 
 void RecorderServer::react( Event e )
 {
+    String tmp;
     switch( e ) {
     case Read:
-        d->toServer.append( readBuffer()->string( readBuffer()->size() ) );
+        fprintf( stderr, "%s: read event\n", description().cstr() );
+        tmp = readBuffer()->string( readBuffer()->size() );
+        d->toServer.append( tmp );
+        d->client->enqueue( tmp );
+        readBuffer()->remove( tmp.length() );
         if ( d->toServer.find( '\n' ) )
             d->dump( RecorderData::ToClient );
         break;
     case Close:
+        fprintf( stderr, "%s: close event\n", description().cstr() );
         d->dump( RecorderData::ToServer );
         d->dump( RecorderData::ToClient );
         d->assertEmpty();
+        d->client->close();
+        delete d->log;
+        d->log = 0;
         break;
     default:
         {
@@ -127,22 +152,24 @@ void RecorderServer::react( Event e )
     man-in-the-middle, and \a s acts as the server portion.
 */
 
-RecorderClient::RecorderClient( RecorderServerData * sd )
+RecorderClient::RecorderClient( RecorderData * sd )
     : Connection(), d( sd )
 {
     connect( RecorderServer::endpoint() );
+    Loop::addConnection( this );
 }
 
 
-/*!
-
-*/
-
-void RecorderClient::react( Event )
+void RecorderClient::react( Event e )
 {
+    String tmp;
+    fprintf( stderr, "%s: %d event\n", description().cstr(), e );
     switch( e ) {
     case Read:
-        d->toClient.append( readBuffer()->string( readBuffer()->size() ) );
+        tmp = readBuffer()->string( readBuffer()->size() );
+        d->toClient.append( tmp );
+        d->server->enqueue( tmp );
+        readBuffer()->remove( tmp.length() );
         if ( d->toClient.find( '\n' ) )
             d->dump( RecorderData::ToServer );
         break;
@@ -150,6 +177,9 @@ void RecorderClient::react( Event )
         d->dump( RecorderData::ToServer );
         d->dump( RecorderData::ToClient );
         d->assertEmpty();
+        d->server->close();
+        delete d->log;
+        d->log = 0;
         break;
     default:
         {
@@ -158,4 +188,79 @@ void RecorderClient::react( Event )
         break;
     }
 
+}
+
+
+static Endpoint * ep;
+
+
+int main( int argc, char ** argv )
+{
+    Scope global;
+    Loop::setup();
+
+    const char * error = 0;
+    bool ok = true;
+    if ( argc != 5 ) {
+        error = "Wrong number of arguments";
+        ok = false;
+    }
+
+    uint port;
+    if ( ok ) {
+        port = String( argv[1] ).number( &ok );
+        if ( !ok )
+            error = "Could not parse own port number";
+    }
+    if ( ok ) {
+        Listener<RecorderServer> * l4
+            = new Listener<RecorderServer>( Endpoint( "0.0.0.0", port ),
+                                            "recording relay/4", true );
+        Allocator::addEternal( l4, "recording listener" );
+        Listener<RecorderServer> * l6
+            = new Listener<RecorderServer>( Endpoint( "::", port ),
+                                            "recording relay/6", true );
+        Allocator::addEternal( l6, "recording listener" );
+
+        if ( l4->state() != Connection::Listening &&
+             l6->state() != Connection::Listening )
+            error = "Could not listen for connections";
+    }
+
+    if ( ok ) {
+        port = String( argv[3] ).number( &ok );
+        if ( !ok )
+            error = "Could not parse server's port number";
+    }
+
+    if ( ok ) {
+        ep = new Endpoint( argv[2], port );
+        Allocator::addEternal( ep, "target server endpoint" );
+    }
+
+    if ( !ok ) {
+        fprintf( stderr,
+                 "Error: %s\n"
+                 "Usage: recorder port address port filebase\n"
+                 "       First port: The recorder's own port.\n"
+                 "       Address: The server to forward to.\n"
+                 "       Second port: The server port to forward to.\n"
+                 "       Filebase: The filename base (.<blah> is added).\n",
+                 error );
+        exit( 1 );
+    }
+
+    ::base = new String( argv[4] );
+    Allocator::addEternal( ::base, "base of recordede file names" );
+
+    global.setLog( new Log( Log::General ) );
+    Loop::start();
+}
+
+
+/*! Returns the endpoint to which RecorderClient should connect. */
+
+Endpoint RecorderServer::endpoint()
+{
+    return *ep;
 }
