@@ -57,12 +57,14 @@ void RecorderData::dump( Direction dir )
     f.append( fn( lines ) );
     f.append( "\n" );
     f.append( s->mid( 0, ls ) );
+    log->write( f );
     *s = s->mid( ls );
 }
 
 
 void RecorderData::assertEmpty()
 {
+    log->write( "end\n" );
     if ( !toServer.isEmpty() ) {
         String f;
         f.append( "# The following " );
