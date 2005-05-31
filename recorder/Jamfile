@@ -4,4 +4,5 @@ SubInclude TOP server ;
 
 Build recorder : recorder.cpp ;
 
-Program recorder : recorder server core ;
+# we put this in the INSTALLDIR/sbin directory
+Server recorder : recorder server core ;
