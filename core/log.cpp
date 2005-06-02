@@ -85,6 +85,7 @@ void Log::log( const String &m, Severity s )
 {
     Logger *l = Logger::global();
     if ( s == Disaster ) {
+        disasters = true;
         String n = "Mailstore";
         if ( l )
             n = l->name();
