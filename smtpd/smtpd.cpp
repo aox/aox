@@ -14,6 +14,7 @@
 #include "injector.h"
 #include "tls.h"
 #include "configuration.h"
+#include "log.h"
 
 
 /*! \nodoc */
@@ -25,9 +26,16 @@ int main( int argc, char * argv[] )
     Server s( "smtpd", argc, argv );
     s.setup( Server::Report );
 
-    String c( Configuration::text( Configuration::MessageCopyDir ) );
-    if ( !c.isEmpty() )
+    String mc( Configuration::text( Configuration::MessageCopy ) );
+    String mcd( Configuration::text( Configuration::MessageCopyDir ) );
+    if ( mc == "all" || mc == "errors" ) {
+        if ( mcd.isEmpty() )
+            log( "message-copy-directory not set", Log::Disaster );
         s.setChrootMode( Server::MessageCopyDir );
+    }
+    else if ( mc != "none" ) {
+        log( "Invalid value for message-copy: " + mc, Log::Disaster );
+    }
 
     Listener< SMTP >::create(
         "SMTP", Configuration::toggle( Configuration::UseSmtp ),

@@ -142,7 +142,7 @@ static struct {
     { "lmtp-port", Configuration::LmtpPort, 2026 },
     { "http-port", Configuration::HttpPort, 8808 },
     { "db-max-handles", Configuration::DbMaxHandles, 4 },
-    { "db-handle-interval", Configuration::DbHandleInterval, 120 },
+    { "db-handle-interval", Configuration::DbHandleInterval, 120 }
 };
 
 
@@ -177,6 +177,7 @@ static struct {
     { "logfile-mode", Configuration::LogfileMode, LOGFILEMODE },
     { "webmail-css-page", Configuration::WebmailCSS, "http://www.oryx.com/webmail/default.css" },
     { "webmail-js-page", Configuration::WebmailJS, "" },
+    { "message-copy", Configuration::MessageCopy, "none" },
     { "message-copy-directory", Configuration::MessageCopyDir, "" }
 };
 
@@ -201,7 +202,7 @@ static struct {
     { "auth-digest-md5", Configuration::AuthDigestMd5, true },
     { "auth-anonymous", Configuration::AuthAnonymous, false },
     { "accept-any-http-host", Configuration::AcceptAnyHttpHost, true },
-    { "announce-draft-support", Configuration::AnnounceDraftSupport, true },
+    { "announce-draft-support", Configuration::AnnounceDraftSupport, true }
 };
 
 

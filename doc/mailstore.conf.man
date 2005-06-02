@@ -264,19 +264,34 @@ should listen to. The default is
 is normally disabled,
 .I smtp-port
 is unused.)
+.IP message-copy
+specifies whether or not to keep filesystem copies of incoming messages.
+The default value of
+.I none
+means that no copies are ever made. Setting it to
+.I all
+keeps copies of all incoming messages in the specified
+.IR message-copy-directory ,
+and an extra copy of messages that cause delivery failures in the
+.I errors
+subdirectory. Setting it to
+.I errors
+keeps copies only of the undeliverable messages.
 .IP message-copy-directory
 specifies a directory to which all incoming mail is copied, e.g. to
-burn a mail log to CD/DVD regularly. The default is an empty string,
-which means to not copy mail.
+burn a mail log to CD/DVD regularly. This parameter must be set if
+.I message-copy
+is not set to
+.IR none .
 .IP
 If
 .I message-copy-directory
-does not exist, mailstore logs an error at startup and refuses to
-accept mail.
+is set and refers to a directory that does not exist or is not writable,
+Mailstore logs an error at startup and exits.
 .IP
 Each file in
 .I message-copy-directory
-contains one or more headers, namely
+contains one or more header lines, namely
 .BR Error ,
 .B From
 and

@@ -667,7 +667,7 @@ void SMTP::inject()
     Date now;
     now.setCurrentTime();
     String received( "Received: from " );
-    received.append( peer.address() );
+    received.append( peer().address() );
     received.append( " (HELO " );
     received.append( d->helo );
     received.append( ") by " );
@@ -681,6 +681,14 @@ void SMTP::inject()
     d->state = Injecting;
     d->messageError = "";
     d->injector = 0;
+
+    if ( Configuration::text( Configuration::MessageCopy ) == "all" ) {
+        if ( !writeCopy() ) {
+            d->messageError = "Couldn't write message copy.";
+            reportInjection();
+            return;
+        }
+    }
 
     Message * m = new Message( received + d->body );
     m->header()->removeField( HeaderField::ReturnPath );
@@ -708,42 +716,33 @@ void SMTP::inject()
 
 
 /*! Writes a copy of the message into the message-copy-directory, if
-    appropriate.
+    appropriate. Returns true if the copy was successfully written,
+    false otherwise.
 */
 
-void SMTP::writeCopy()
+bool SMTP::writeCopy()
 {
-    String copy = Configuration::text( Configuration::MessageCopyDir );
-    if ( copy.isEmpty() )
-        return;
-
+    String copy( Configuration::text( Configuration::MessageCopyDir ) );
     copy.append( '/' );
     copy.append( fn( time(0) ) );
     copy.append( '-' );
     copy.append( fn( getpid() ) );
     copy.append( '-' );
     copy.append( fn( ++sequence ) );
-    String e;
-    if ( !d->injector ) {
-        e = "Error: Parser: " + d->messageError + "\n";
-        copy.append( "-parser" );
-    }
-    else if ( d->injector->failed() ) {
-        e = "Error: Injector: " + d->injector->error() + "\n";
-        copy.append( "-db" );
-    }
+
     File f( copy, File::ExclusiveWrite );
     if ( !f.valid() ) {
         log( "Could not open " + copy + " for writing", Log::Disaster );
-        return;
+        return false;
     }
-    f.write( e );
-        f.write( "From: " );
+
+    f.write( "From: " );
     if ( d->from )
         f.write( d->from->toString() );
     else
         f.write( "<>" );
     f.write( "\n" );
+
     List<User>::Iterator it( d->to );
     while ( it ) {
         f.write( "To: " );
@@ -752,6 +751,62 @@ void SMTP::writeCopy()
         ++it;
     }
     f.write( "\n" );
+
+    f.write( d->body );
+
+    // XXX: How about some error checking here?
+
+    return true;
+}
+
+
+/*! Writes a copy of the message into the message-copy-directory/errors.
+*/
+
+void SMTP::writeError()
+{
+    String copy( Configuration::text( Configuration::MessageCopyDir ) );
+    copy.append( "/errors/" );
+    copy.append( fn( time(0) ) );
+    copy.append( '-' );
+    copy.append( fn( getpid() ) );
+    copy.append( '-' );
+    copy.append( fn( ++sequence ) );
+
+    String e;
+    if ( !d->injector ) {
+        e = "Error: Parser: " + d->messageError;
+        copy.append( "-parser" );
+    }
+    else if ( d->injector->failed() ) {
+        e = "Error: Injector: " + d->injector->error();
+        copy.append( "-db" );
+    }
+
+    File f( copy, File::ExclusiveWrite );
+    if ( !f.valid() ) {
+        log( "Could not open " + copy + " for writing", Log::Disaster );
+        return;
+    }
+
+    f.write( "From: " );
+    if ( d->from )
+        f.write( d->from->toString() );
+    else
+        f.write( "<>" );
+    f.write( "\n" );
+
+    List<User>::Iterator it( d->to );
+    while ( it ) {
+        f.write( "To: " );
+        f.write( it->address()->toString() );
+        f.write( "\n" );
+        ++it;
+    }
+
+    f.write( e );
+    f.write( "\n" );
+
     f.write( d->body );
 }
 
@@ -765,8 +820,11 @@ void SMTP::reportInjection()
     if ( d->state != Injecting )
         return;
 
-    writeCopy();
     d->state = MailFrom;
+
+    if ( Configuration::text( Configuration::MessageCopy ) != "none" &&
+         ( !d->injector || d->injector->failed() ) )
+        writeError();
 
     if ( !d->injector ) {
         respond( 554, d->messageError );
@@ -836,8 +894,11 @@ void LMTP::reportInjection()
     if ( d->state != Injecting )
         return;
 
-    writeCopy();
     d->state = MailFrom;
+
+    if ( Configuration::text( Configuration::MessageCopy ) != "none" &&
+         ( !d->injector || d->injector->failed() ) )
+        writeError();
 
     List<User>::Iterator it( d->to );
     while ( it ) {
