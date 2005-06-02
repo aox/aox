@@ -40,8 +40,7 @@ public:
     void inject();
     virtual void reportInjection();
     void rcptAnswer();
-    bool writeCopy();
-    void writeError();
+    bool writeCopy( bool );
 
     enum State {
         Initial,

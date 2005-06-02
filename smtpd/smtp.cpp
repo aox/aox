@@ -683,7 +683,7 @@ void SMTP::inject()
     d->injector = 0;
 
     if ( Configuration::text( Configuration::MessageCopy ) == "all" ) {
-        if ( !writeCopy() ) {
+        if ( !writeCopy( true ) ) {
             d->messageError = "Couldn't write message copy.";
             reportInjection();
             return;
@@ -718,9 +718,12 @@ void SMTP::inject()
 /*! Writes a copy of the message into the message-copy-directory, if
     appropriate. Returns true if the copy was successfully written,
     false otherwise.
+
+    If \a pre is true, this is a pre-injection copy, and no attempt at
+    setting the Errors: header in the copy is made.
 */
 
-bool SMTP::writeCopy()
+bool SMTP::writeCopy( bool pre )
 {
     String copy( Configuration::text( Configuration::MessageCopyDir ) );
     copy.append( '/' );
@@ -729,6 +732,18 @@ bool SMTP::writeCopy()
     copy.append( fn( getpid() ) );
     copy.append( '-' );
     copy.append( fn( ++sequence ) );
+
+    String e;
+    if ( !pre ) {
+        if ( !d->injector ) {
+            e = "Error: Parser: " + d->messageError;
+            copy.append( "-parser" );
+        }
+        else if ( d->injector->failed() ) {
+            e = "Error: Injector: " + d->injector->error();
+            copy.append( "-db" );
+        }
+    }
 
     File f( copy, File::ExclusiveWrite );
     if ( !f.valid() ) {
@@ -750,6 +765,11 @@ bool SMTP::writeCopy()
         f.write( "\n" );
         ++it;
     }
+
+    if ( !e.isEmpty() ) {
+        f.write( e );
+        f.write( "\n" );
+    }
     f.write( "\n" );
 
     f.write( d->body );
@@ -757,57 +777,6 @@ bool SMTP::writeCopy()
     // XXX: How about some error checking here?
 
     return true;
-}
-
-
-/*! Writes a copy of the message into the message-copy-directory/errors.
-*/
-
-void SMTP::writeError()
-{
-    String copy( Configuration::text( Configuration::MessageCopyDir ) );
-    copy.append( '/' );
-    copy.append( fn( time(0) ) );
-    copy.append( '-' );
-    copy.append( fn( getpid() ) );
-    copy.append( '-' );
-    copy.append( fn( ++sequence ) );
-
-    String e;
-    if ( !d->injector ) {
-        e = "Error: Parser: " + d->messageError;
-        copy.append( "-parser" );
-    }
-    else if ( d->injector->failed() ) {
-        e = "Error: Injector: " + d->injector->error();
-        copy.append( "-db" );
-    }
-
-    File f( copy, File::ExclusiveWrite );
-    if ( !f.valid() ) {
-        log( "Could not open " + copy + " for writing", Log::Disaster );
-        return;
-    }
-
-    f.write( "From: " );
-    if ( d->from )
-        f.write( d->from->toString() );
-    else
-        f.write( "<>" );
-    f.write( "\n" );
-
-    List<User>::Iterator it( d->to );
-    while ( it ) {
-        f.write( "To: " );
-        f.write( it->address()->toString() );
-        f.write( "\n" );
-        ++it;
-    }
-
-    f.write( e );
-    f.write( "\n" );
-
-    f.write( d->body );
 }
 
 
@@ -824,7 +793,7 @@ void SMTP::reportInjection()
 
     if ( Configuration::text( Configuration::MessageCopy ) == "errors" &&
          ( !d->injector || d->injector->failed() ) )
-        writeError();
+        writeCopy( false );
 
     if ( !d->injector ) {
         respond( 554, d->messageError );
@@ -898,7 +867,7 @@ void LMTP::reportInjection()
 
     if ( Configuration::text( Configuration::MessageCopy ) == "errors" &&
          ( !d->injector || d->injector->failed() ) )
-        writeError();
+        writeCopy( false );
 
     List<User>::Iterator it( d->to );
     while ( it ) {
