@@ -663,22 +663,29 @@ SMTP::State SMTP::state() const
 void SMTP::inject()
 {
     Scope x( new Log( Log::SMTP ) );
+
     Date now;
     now.setCurrentTime();
-    String received = "Received: from " +
-                      peer().address() + " (HELO " + d->helo + ") " +
-                      "by " + Configuration::hostname() + " " +
-                      "with " + d->protocol + "; " + now.rfc822() + "\r\n";
+    String received( "Received: from " );
+    received.append( peer.address() );
+    received.append( " (HELO " );
+    received.append( d->helo );
+    received.append( ") by " );
+    received.append( Configuration::hostname() );
+    received.append( " with " );
+    received.append( d->protocol );
+    received.append( "; " );
+    received.append( now.rfc822() );
+    received.append( "\r\n" );
 
     d->state = Injecting;
+    d->messageError = "";
+    d->injector = 0;
 
     Message * m = new Message( received + d->body );
     m->header()->removeField( HeaderField::ReturnPath );
     if ( d->from )
         m->header()->add( "Return-Path", d->from->toString() );
-
-    d->messageError = "";
-    d->injector = 0;
 
     if ( !m->valid() ) {
         d->messageError = m->error();
