@@ -279,7 +279,7 @@ subdirectory. Setting it to
 keeps copies only of the undeliverable messages.
 .IP message-copy-directory
 specifies a directory to which all incoming mail is copied, e.g. to
-burn a mail log to CD/DVD regularly. This parameter must be set if
+burn a mail log to CD/DVD regularly. This variable must be set if
 .I message-copy
 is not set to
 .IR none .
