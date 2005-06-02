@@ -766,7 +766,7 @@ bool SMTP::writeCopy()
 void SMTP::writeError()
 {
     String copy( Configuration::text( Configuration::MessageCopyDir ) );
-    copy.append( "/errors/" );
+    copy.append( '/' );
     copy.append( fn( time(0) ) );
     copy.append( '-' );
     copy.append( fn( getpid() ) );
@@ -822,7 +822,7 @@ void SMTP::reportInjection()
 
     d->state = MailFrom;
 
-    if ( Configuration::text( Configuration::MessageCopy ) != "none" &&
+    if ( Configuration::text( Configuration::MessageCopy ) == "errors" &&
          ( !d->injector || d->injector->failed() ) )
         writeError();
 
@@ -896,7 +896,7 @@ void LMTP::reportInjection()
 
     d->state = MailFrom;
 
-    if ( Configuration::text( Configuration::MessageCopy ) != "none" &&
+    if ( Configuration::text( Configuration::MessageCopy ) == "errors" &&
          ( !d->injector || d->injector->failed() ) )
         writeError();
 
