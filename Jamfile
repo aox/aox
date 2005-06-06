@@ -21,7 +21,7 @@ SubInclude TOP schema ;
 SubInclude TOP scripts ;
 SubInclude TOP tlsproxy ;
 
-if ( $(BUILDGUI ) {
+if ( $(BUILDGUI) ) {
     SubInclude TOP msconsole ;
 }
 
