@@ -27,9 +27,6 @@ stopserver() {
         kill `cat $P` 2>/dev/null
         rm $P
         echo -n " $1";
-    else
-        # hm. this is dubious.
-        killall $1 2>/dev/null
     fi
 }
 
