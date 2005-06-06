@@ -179,7 +179,7 @@ String MimeField::data()
 
 /*! \class ContentType mimefields.h
 
-    The Content-Type field is defined in RFC 2045, §5. It contains the
+    The Content-Type field is defined in RFC 2045 section 5. It contains the
     media type of an entity body, along with any auxiliary information
     required to describe the type.
 */

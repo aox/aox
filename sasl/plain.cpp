@@ -1,7 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
 /*! \class Plain plain.h
-    Implements plain-text authentication (RFC 2595, §6)
+    Implements plain-text authentication (RFC 2595 section 6)
 
     SASL permits a distinction between the authentication ID (which
     credentials are checked) and the authorization ID (which is logged

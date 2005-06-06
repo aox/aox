@@ -284,8 +284,8 @@ String Parser822::atom()
 }
 
 
-/*! Returns a single MIME token (as defined in RFC2045, §5), which is an
-    atom minus [/?=] plus [.].
+/*! Returns a single MIME token (as defined in RFC2045 section 5), which
+    is an atom minus [/?=] plus [.].
 */
 
 String Parser822::mimeToken()
@@ -309,8 +309,9 @@ String Parser822::mimeToken()
 }
 
 
-/*! Returns a single MIME value (as defined in RFC2045, §5), which is an
-    atom minus [/?=] plus [.] (i.e., a MIME token) or a quoted string.
+/*! Returns a single MIME value (as defined in RFC2045 section 5), which
+    is an atom minus [/?=] plus [.] (i.e., a MIME token) or a quoted
+    string.
 */
 
 String Parser822::mimeValue()
