@@ -25,11 +25,54 @@ CONFIG=$CONFIGDIR/mailstore.conf
 # db-user, etc.
 if [ -f $CONFIG -a $TELL = no ]; then
     echo $CONFIG already exists -- exiting without changes.
+    echo " - not creating unix user" $UNIXUSER " and group " $ORYXGROUP
     echo " - not creating PostgreSQL user" $DBUSER
     echo " - not creating PostgreSQL database" $DBNAME
     echo " - not creating stub configuration file" $CONFIG
     exit 0
 fi
+
+# Is there an oryx user and group?
+GROUPS=`id $ORYXUSER` >/dev/null 2>/dev/null || NOORYXUSER=1
+# (There does not seem to be a properly portable way to identify a group)
+grep '^'$ORYXGROUP':' /etc/group >/dev/null 2>/dev/null || NOORYXGROUP=1
+
+
+# I am so very happy that we don't intend to support many platforms.
+# platform conditionals are painful, and the ones below appear
+# inescapable.
+
+if [ $NOORYXGROUP ]; then
+    if [ $TELL = yes ]; then
+	echo Make a group called $ORYXGROUP, e.g. with
+	echo "    groupadd $ORYXGROUP";
+    elif [ -x /usr/sbin/groupadd ]; then
+	/usr/sbin/group $ORYXGROUP
+    else
+	echo Need to make a unix group called $ORYXGROUP, but do not know how
+	echo to. Please make one by hand, then rerun the install script.
+	exit 1
+    fi
+fi
+
+if [ $NOORYXUSER = 1 ]; then
+    if [ $TELL = yes ]; then
+	echo Make a user called $ORYXUSER, e.g. with
+    	echo "    useradd -r -g $ORYXGROUP $ORYXUSER"
+	echo The new user does not need a valid login shell or password.
+    elif [ -f /etc/SuSE-release -a -x /usr/sbin/useradd ]; then
+	useradd -r -g $ORYXGROUP $ORYXUSER
+    elif [ -x /usr/sbin/useradd ]; then
+	# other linux
+	useradd -g $ORYXGROUP $ORYXUSER
+    else
+	echo Need to make a unix user called $ORYXGROUP, but do not know how
+	echo to. Please make one by hand, then rerun the install script.
+	echo The new user does not need a valid login shell or password.
+	exit 1
+    fi
+fi
+
 
 # Find psql and pg_ctl
 if [ "$PGBIN" = "" ]; then
@@ -43,7 +86,7 @@ fi
 if [ -x /sbin/md5 ]; then
     MD5=/sbin/md5;
 elif [ -x /usr/bin/md5 ]; then
-    MD5=/sbin/md5;
+    MD5=/usr/bin/md5;
 elif [ -x /usr/bin/md5sum ]; then
     MD5=/usr/bin/md5sum
 else
