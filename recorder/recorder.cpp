@@ -56,6 +56,14 @@ void RecorderData::dump( Direction dir )
         f.append( "send " );
     f.append( fn( lines ) );
     f.append( "\n" );
+    i = 0;
+    while ( i < ls ) {
+        if ( (*s)[i] == 13 && (*s)[i+1] == 10 )
+            ; // don't write the CR
+        else
+            f.append( s[i] );
+        i++;
+    }
     f.append( s->mid( 0, ls ) );
     log->write( f );
     *s = s->mid( ls );
