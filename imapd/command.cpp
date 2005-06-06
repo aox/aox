@@ -181,12 +181,12 @@ Command * Command::create( IMAP * imap,
     }
 
     if ( !c ) {
-        if ( n == "expunge" )
-            c = new Expunge;
+        if ( n == "fetch" || n == "uid fetch" )
+            c = new Fetch( n == "uid fetch" );
         else if ( n == "search" || n == "uid search" )
             c = new Search( n == "uid search" );
-        else if ( n == "fetch" || n == "uid fetch" )
-            c = new Fetch( n == "uid fetch" );
+        else if ( n == "expunge" /* || n == "uid expunge" */ )
+            c = new Expunge( n == "uid expunge" );
         else if ( n == "check" )
             c = new Check;
         else if ( n == "close" )
