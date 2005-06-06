@@ -4,63 +4,20 @@
 
 #include "consoleloop.h"
 
+#include "connection.h"
+#include "allocator.h"
 #include "scope.h"
 #include "loop.h"
-#include "connection.h"
 #include "log.h"
 
+#include <qsocketnotifier.h>
 #include <qapplication.h>
+#include <qtimer.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <time.h>
 
-
-WriteNotifier::WriteNotifier( int socket, Connection * connection )
-    : QSocketNotifier( socket, Write, 0, 0 ), c( connection )
-{
-    if ( c->state() == Connection::Connecting )
-        setEnabled( true );
-    else
-        setEnabled( false );
-    connect( this, SIGNAL( activated( int ) ),
-             this, SLOT( dispatch() ) );
-}
-
-void WriteNotifier::dispatch() {
-    bool w = true;
-    bool r = false;
-
-    if ( c->state() == Connection::Connecting ) {
-        int errval;
-        int errlen = sizeof( int );
-        ::getsockopt( c->fd(), SOL_SOCKET, SO_ERROR, (void *)&errval,
-                      (socklen_t *)&errlen );
-        if ( errval != 0 )
-            r = true;
-    }
-
-    Loop::loop()->dispatch( c, r, w, time( 0 ) );
-    setEnabled( c->canWrite() &&
-                c->state() == Connection::Connected );
-}
-
-ReadNotifier::ReadNotifier( int socket, Connection * connection )
-    : QSocketNotifier( socket, Read, 0, 0 ), c( connection )
-{
-    setEnabled( true );
-    connect( this, SIGNAL( activated( int ) ),
-             this, SLOT( dispatch() ) );
-}
-
-void ReadNotifier::dispatch() {
-    Loop::loop()->dispatch( c, true, false, time( 0 ) );
-}
-
-Connection *ReadNotifier::connection() const
-{
-    return c;
-}
 
 class ConsoleLoopData {
 };
@@ -79,20 +36,20 @@ class ConsoleLoopData {
 
 
 /*! Constructs an event loop for the Mailstore Console, setting up
-    both Qt's and our event loops.
+    both Qt's event loop and our own.
 */
 
 ConsoleLoop::ConsoleLoop()
     : EventLoop(), d( new ConsoleLoopData )
 {
     Loop::setup( this );
+    Allocator::addEternal( this, "Qt's event loop, and ours too" );
 }
 
 
 // more than 128 fds in the console is a BUG. we just shouldn't have that.
 static const int fdLimit = 128;
-static ReadNotifier * r[128];
-static WriteNotifier * w[128];
+static EventNotifier * e[128];
 
 
 /*! This reimplementation manages \a c using a pair of QSocketNotifier
@@ -102,12 +59,14 @@ static WriteNotifier * w[128];
 void ConsoleLoop::addConnection( Connection * c )
 {
     int fd = c->fd();
-    if ( fd >= fdLimit ) {
+    if ( fd < 0 ) {
+        return;
+    }
+    else if ( fd >= fdLimit ) {
         ::log( "Too many sockets used", Log::Disaster );
         shutdown();
     }
-    r[fd] = new ReadNotifier( fd, c );
-    w[fd] = new WriteNotifier( fd, c );
+    e[fd] = new EventNotifier( c );
 }
 
 
@@ -116,13 +75,11 @@ void ConsoleLoop::addConnection( Connection * c )
 void ConsoleLoop::removeConnection( Connection * c )
 {
     int fd = c->fd();
-    if ( fd >= fdLimit )
+    if ( fd >= fdLimit || fd < 0 )
         return;
 
-    delete r[fd];
-    r[fd] = 0;
-    delete w[fd];
-    w[fd] = 0;
+    delete e[fd];
+    e[fd] = 0;
 }
 
 
@@ -141,11 +98,88 @@ void ConsoleLoop::shutdown()
     uint i = fdLimit;
     while ( i ) {
         i--;
-        if ( r[i] ) {
-            Connection * c = r[i]->connection();
+        if ( e[i] ) {
+            Connection * c = e[i]->connection();
+            e[i] = 0;
             c->react( Connection::Shutdown );
             c->write();
         }
     }
     qApp->exit( 0 );
+}
+
+/*! \class EventNotifier consoleloop.cpp
+
+    This class interfaces QSocketNotifier to EventLoop. Its only real
+    function is to merge the read and write notifiers, so EventLoop
+    can interpret the combinations correctly. Specifically, when a
+    Connection is connecting and the read and write notifiers fire at
+    the same time, this can indicate either an succeeding connection
+    with outstanding data, or it can indicate an error.
+*/
+
+
+/*! Constructs an EventNotifier interfacing \a connection to the Qt
+    event loop. \a connection must be valid, or this object does
+    nothing.
+*/
+
+EventNotifier::EventNotifier( Connection * connection )
+    : QObject( 0 ), c( connection ), r( false ), w( false )
+{
+    if ( !c->valid() )
+        return;
+    QSocketNotifier * n;
+    n = new QSocketNotifier( c->fd(), QSocketNotifier::Read, this );
+    connect( n, SIGNAL(activated(int)),
+             this, SLOT(acceptRead()) );
+    n = new QSocketNotifier( c->fd(), QSocketNotifier::Write, this );
+    connect( n, SIGNAL(activated(int)),
+             this, SLOT(acceptWrite()) );
+}
+
+
+/*! This slot is invoked whenever Qt says a file descriptor is
+    readable. It ensures that shortly later, dispatch() is called to
+    do its job.
+*/
+
+void EventNotifier::acceptRead()
+{
+    r = true;
+    QTimer::singleShot( 0, this, SLOT(dispatch()) );
+}
+
+
+/*! This slot is invoked whenever Qt says a file descriptor is
+    writable. It ensures that shortly later, dispatch() is called to
+    do its job.
+*/
+
+void EventNotifier::acceptWrite()
+{
+    w = true;
+    QTimer::singleShot( 0, this, SLOT(dispatch()) );
+}
+
+
+/*! Uses EventLoop::dispatch() to dispatch the correct mixture of
+    read, write, connect and whatever other events need to be sent.
+*/
+
+void EventNotifier::dispatch()
+{
+    bool rr = r;
+    bool ww = w;
+    r = false;
+    w = false;
+    Loop::loop()->dispatch( c, rr, ww, time( 0 ) );
+}
+
+
+/*! Returns a pointer to the Connection this EventNotifier looks after. */
+
+Connection * EventNotifier::connection() const
+{
+    return c;
 }

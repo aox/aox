@@ -4,7 +4,7 @@
 #define CONSOLELOOP_H
 
 #include "eventloop.h"
-#include <qsocketnotifier.h>
+#include <qobject.h>
 
 
 class ConsoleLoop
@@ -15,7 +15,7 @@ public:
 
     void stop();
     void shutdown();
-    void addConnection( Connection * c );
+    void addConnection( Connection * );
     void removeConnection( Connection * );
 
 private:
@@ -23,36 +23,24 @@ private:
 };
 
 
-class WriteNotifier
-    : public QSocketNotifier
+class EventNotifier
+    : public QObject
 {
     Q_OBJECT
-
 public:
-    WriteNotifier( int, Connection * );
+    EventNotifier( Connection * );
+
+    Connection * connection() const;
 
 public slots:
+    void acceptRead();
+    void acceptWrite();
     void dispatch();
 
 private:
     Connection * c;
-};
-
-
-class ReadNotifier
-    : public QSocketNotifier
-{
-    Q_OBJECT
-
-public:
-    ReadNotifier( int, Connection * );
-    Connection *connection() const;
-
-public slots:
-    void dispatch();
-
-private:
-    Connection * c;
+    bool r;
+    bool w;
 };
 
 
