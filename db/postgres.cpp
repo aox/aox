@@ -20,6 +20,11 @@
 #define _XOPEN_SOURCE 4
 #include <unistd.h>
 
+// setreuid(), getpwnam()
+#include <sys/types.h>
+#include <unistd.h>
+#include <pwd.h>
+
 
 static bool hasMessage( Buffer * );
 
@@ -78,7 +83,38 @@ Postgres::Postgres()
     log()->setFacility( Log::Database );
     log( "Connecting to PostgreSQL server at " + server().string(),
          Log::Debug );
-    connect( server() );
+
+    uint oryx = 0;
+    if ( false && server().protocol() == Endpoint::Unix && !getuid() ) {
+        // postgresql on suse and debian, and perhaps elsewhere, loves
+        // to use SO_PEERCRED to check who's connecting.  since we
+        // have to connect to a unix socket before we chroot(), and
+        // have to chroot() before we can lose root privileges,
+        // postgresql will probably reject us (unless some smart
+        // sysadmin has fixed the configuration).
+        //
+        // fortunately, this postgresql security feature is easy to
+        // defeat.  the code is a little ugly, that's all.
+
+        String user( Configuration::text( Configuration::JailUser ) );
+        struct passwd * pw = getpwnam( user.cstr() );
+        if ( pw )
+            oryx = pw->pw_uid;
+    }
+
+    if ( oryx ) {
+        // to defeat postgresql's checking, we need to partly drop
+        // privileges...
+        setreuid( oryx, 0 );
+        setBlocking( true );
+        connect( server() );
+        setBlocking( false );
+        // ... but we can pick them up again afterwards
+        setreuid( 0, 0 );
+    }
+    else {
+        connect( server() );
+    }
     setTimeoutAfter( 60 );
     Loop::addConnection( this );
     addHandle( this );
