@@ -2,8 +2,6 @@
 
 #include "global.h"
 
-#include <stdlib.h>     /* malloc */
-
 
 /*! \nodoc */
 
