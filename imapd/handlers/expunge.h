@@ -10,7 +10,9 @@ class Expunge
     : public Command
 {
 public:
-    Expunge();
+    Expunge( bool );
+
+    void parse();
 
     void execute();
     bool expunge( bool );

@@ -18,6 +18,7 @@ public:
         : stage( 0 ), q( 0 ), t( 0 )
     {}
 
+    bool uid;
     int stage;
     Query *q;
     Transaction *t;
@@ -28,8 +29,9 @@ public:
 /*! \class Expunge expunge.h
     This command is responsible for removing "\Deleted" messages.
 
-    It implements EXPUNGE, as specified in RFC 3501 section 6.4.3, and
-    helps Close.
+    It implements EXPUNGE, as specified in RFC 3501 section 6.4.3 and
+    UID EXPUNGE, as specified in RFC 2359 section 4.1, and helps
+    Close.
 
     RFC 2180 discusses expunging in situations where multiple users
     may access the mailbox. Our present approach is to delete the
@@ -44,9 +46,18 @@ public:
 /*! Creates a new Expunge handler.
 */
 
-Expunge::Expunge()
+Expunge::Expunge( bool u )
     : d( new ExpungeData )
 {
+    d->uid = u;
+}
+
+
+void Expunge::parse()
+{
+    if ( d->uid )
+        d->uids = set( false );
+    end();
 }
 
 
@@ -67,14 +78,21 @@ bool Expunge::expunge( bool chat )
         }
         Flag * f = Flag::find( "\\deleted" );
         d->t = new Transaction( this );
-        d->q =
-            new Query( "select uid from flags where mailbox=$1 and flag=$2",
-                       this );
+        if ( d->uid )
+            d->q = new Query( "select uid from flags "
+                              "where mailbox=$1 and flag=$2"
+                              " and (" + d->uids.where() + ")",
+                              this );
+        else
+            d->q = new Query( "select uid from flags "
+                              "where mailbox=$1 and flag=$2",
+                              this );
         d->q->bind( 1, imap()->session()->mailbox()->id() );
         d->q->bind( 2, f->id() );
         d->t->enqueue( d->q );
         d->t->execute();
         d->stage = 1;
+        d->uids.clear();
     }
 
     if ( d->stage == 1 && d->q->done() ) {

@@ -10,6 +10,8 @@ class Close
     : public Expunge
 {
 public:
+    Close(): Expunge( false ) {}
+
     void execute();
 };
 
