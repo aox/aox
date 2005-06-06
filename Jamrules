@@ -147,6 +147,9 @@ actions WriteShellConfig
     echo LOGFILE="'"$(LOGFILE)"'" >> $(<)
     echo LOGFILEMODE="'"$(LOGFILEMODE)"'" >> $(<)
 
+    echo ORYXUSER="'"$(ORYXUSER)"'" >> $(<)
+    echo ORYXGROUP="'"$(ORYXGROUP)"'" >> $(<)
+
     if [ $(PGUSER) ]; then
         echo PGUSER="'"$(PGUSER)"'" >> $(<)
     else
