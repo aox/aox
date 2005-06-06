@@ -70,7 +70,7 @@ Page::Page( Link * link, HTTP *server )
 {
     d->link = link;
     d->server = server;
-    d->ct = "text/html";
+    d->ct = "text/html; charset=utf-8";
 
     if ( link->type() == Link::WebmailMessage ||
          link->type() == Link::WebmailMailbox ||
@@ -849,7 +849,7 @@ String Page::bodypart( Message *first, Bodypart *bp )
         s.append( "<div class=unknown>" );
         s.append( "Unknown content type: " );
         s.append( type );
-        s.append( "<a href=\"" + d->link->string() + "/" +
+        s.append( " <a href=\"" + d->link->string() + "/" +
                   first->partNumber( bp ) + "\">" );
         s.append( "Save" );
         s.append( "</a>" );
@@ -877,7 +877,7 @@ String Page::message( Message *first, Message *m )
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
         s.append( "<div class=headerfield name=subject>Subject: " );
-        s.append( hf->value() );
+        s.append( htmlQuoted( hf->value() ) );
         s.append( "</div>" );
     }
     s.append( address( m, HeaderField::From ) );
@@ -897,8 +897,12 @@ String Page::message( Message *first, Message *m )
                 t.append( address( m, hf->type() ) );
             }
             else {
-                t.append( "<div class=headerfield name=" + hf->name() + ">" );
-                t.append( hf->name() + ": " + hf->value() );
+                t.append( "<div class=headerfield name=" );
+                t.append( hf->name() );
+                t.append( ">" );
+                t.append( htmlQuoted( hf->name() ) );
+                t.append( ": " );
+                t.append( htmlQuoted( hf->value() ) );
                 t.append( "</div>" );
             }
         }
