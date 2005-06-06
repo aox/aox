@@ -459,7 +459,7 @@ void Page::mailboxPage()
                 s.append( "<div class=headerfield name=subject>Subject: " );
                 s.append( "<a href=\"" + d->link->string() + "/" +
                           fn( uid ) + "\">" );
-                s.append( htmlQuoted( hf->value() ) );
+                s.append( htmlQuoted( hf->data() ) );
                 s.append( "</a></div>" );
             }
             s.append( address( m, HeaderField::From ) );
@@ -877,7 +877,7 @@ String Page::message( Message *first, Message *m )
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
         s.append( "<div class=headerfield name=subject>Subject: " );
-        s.append( htmlQuoted( hf->value() ) );
+        s.append( htmlQuoted( hf->data() ) );
         s.append( "</div>" );
     }
     s.append( address( m, HeaderField::From ) );
@@ -897,12 +897,15 @@ String Page::message( Message *first, Message *m )
                 t.append( address( m, hf->type() ) );
             }
             else {
-                t.append( "<div class=headerfield name=" );
-                t.append( hf->name() );
+                t.append( "<div class=headerfield" );
+                if ( hf->name().boring() ) {
+                    t.append( " name=" );
+                    t.append( hf->name() );
+                }
                 t.append( ">" );
                 t.append( htmlQuoted( hf->name() ) );
                 t.append( ": " );
-                t.append( htmlQuoted( hf->value() ) );
+                t.append( htmlQuoted( hf->data() ) );
                 t.append( "</div>" );
             }
         }
@@ -1028,8 +1031,12 @@ static String address( Message *m, HeaderField::Type t )
     List< Address >::Iterator it( af->addresses() );
     while ( it ) {
         s.append( "<span class=address>" );
-        s.append( htmlQuoted( it->toString() ) );
-        s.append( "</span>" );
+        s.append( htmlQuoted( it->uname() ) );
+        s.append( " &lt;" );
+        s.append( htmlQuoted( it->localpart() ) );
+        s.append( "@" );
+        s.append( htmlQuoted( it->domain() ) );
+        s.append( "&gt;</span>" );
         ++it;
         if ( it )
             s.append( ", " );
