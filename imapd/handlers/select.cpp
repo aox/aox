@@ -27,7 +27,7 @@ public:
 
 
 /*! \class Select select.h
-    Opens a mailbox for read-write access (RFC 3501, §6.3.1)
+    Opens a mailbox for read-write access (RFC 3501 section 6.3.1)
 
     This class implements both Select and Examine. The constructor has
     to tell execute() what to do by setting the readOnly flag.
@@ -128,7 +128,7 @@ void Select::execute()
 
 
 /*! \class Examine select.h
-    Opens a mailbox for read-only access (RFC 3501, §6.3.1)
+    Opens a mailbox for read-only access (RFC 3501 section 6.3.1)
 
     This class merely inherits from Select and sets the readOnly flag.
     It has no code of its own.

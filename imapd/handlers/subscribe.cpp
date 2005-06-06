@@ -9,7 +9,7 @@
 
 
 /*! \class Subscribe subscribe.h
-    Adds a mailbox to the subscription list (RFC 3501, §6.3.6)
+    Adds a mailbox to the subscription list (RFC 3501 section 6.3.6)
 
     This class implements both Subscribe and Unsubscribe. The required
     mode is set by the constructor, and is used by execute() to decide
@@ -26,7 +26,7 @@ Subscribe::Subscribe( Mode n )
 
 
 /*! \class Unsubscribe subscribe.h
-    Removes a mailbox from the subscription list (RFC 3501, §6.3.7)
+    Removes a mailbox from the subscription list (RFC 3501 section 6.3.7)
 
     This class inherits from Subscribe, and calls its constructor with
     a subscription mode of Subscribe::Remove. It has no other code.

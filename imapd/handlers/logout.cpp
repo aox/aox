@@ -6,7 +6,7 @@
 
 
 /*! \class Logout logout.h
-    Terminates an IMAP session (RFC 3501, §6.1.3)
+    Terminates an IMAP session (RFC 3501 section 6.1.3)
 */
 
 void Logout::execute()

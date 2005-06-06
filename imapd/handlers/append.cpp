@@ -30,7 +30,7 @@ public:
 
 
 /*! \class Append append.h
-    Adds a message to a mailbox (RFC 3501, §6.3.11)
+    Adds a message to a mailbox (RFC 3501 section 6.3.11)
 
     Parsing mostly relies on the Message class, execution on the
     Injector. There is no way to insert anything but conformant

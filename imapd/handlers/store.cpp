@@ -40,7 +40,7 @@ public:
 
 
 /*! \class Store store.h
-    Alters message flags (RFC 3501, §6.4.6).
+    Alters message flags (RFC 3501 section 6.4.6).
 
     The Store command is the principal means of altering message flags,
     although Annotate may be able to do the same.

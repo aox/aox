@@ -12,7 +12,7 @@
 
 
 /*! \class Capability capability.h
-    Announces supported features (RFC 3501, §6.1.1)
+    Announces supported features (RFC 3501 section 6.1.1)
 
     We announce the following capabilities:
 

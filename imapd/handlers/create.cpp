@@ -19,7 +19,7 @@ public:
 
 
 /*! \class Create create.h
-    Creates a new mailbox (RFC 3501, §6.3.3)
+    Creates a new mailbox (RFC 3501 section 6.3.3)
 
     The mailboxes table contains an entry for each deliverable mailbox
     that has ever existed in the database. This class either inserts a

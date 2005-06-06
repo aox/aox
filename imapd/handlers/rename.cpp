@@ -6,7 +6,7 @@
 
 
 /*! \class Rename rename.h
-    Renames a mailbox (RFC 3501, §6.3.5)
+    Renames a mailbox (RFC 3501 section 6.3.5)
 */
 
 

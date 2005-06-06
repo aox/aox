@@ -64,7 +64,7 @@ public:
     client input to decide which Command to defer the real work to, and
     ensures that the handler is called at the appropriate times.
 
-    Each IMAP object has a state() (RFC 3501, §3), and may possess
+    Each IMAP object has a state() (RFC 3501 section 3), and may possess
     other state information, such as the user() logged in or a
     session(). The Idle state (RFC 2177) is also kept here.
 

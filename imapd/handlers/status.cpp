@@ -8,7 +8,7 @@
 
 
 /*! \class Status status.h
-    Returns the status of the specified mailbox (RFC 3501, §6.3.10)
+    Returns the status of the specified mailbox (RFC 3501 section 6.3.10)
 */
 
 Status::Status()

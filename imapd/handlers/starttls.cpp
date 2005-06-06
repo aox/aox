@@ -10,7 +10,7 @@
 
 /*! \class StartTLS starttls.h
 
-    Initiates TLS negotiation (RFC 3501, §6.2.1)
+    Initiates TLS negotiation (RFC 3501 section 6.2.1)
 */
 
 

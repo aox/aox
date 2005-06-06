@@ -8,7 +8,7 @@
 
 
 /*! \class Lsub lsub.h
-    LIST for subscribed mailboxes (RFC 3501, §6.3.9)
+    LIST for subscribed mailboxes (RFC 3501 section 6.3.9)
 
     Everyone wishes that LSUB had never existed independently of LIST,
     paving the way for horrors like RLSUB. With Listext, one can treat

@@ -6,7 +6,7 @@
 
 
 /*! \class Login login.h
-    Performs plaintext authentication (RFC 3501, §6.2.3)
+    Performs plaintext authentication (RFC 3501 section 6.2.3)
 
     The client supplies us with a plaintext username and password, and
     we treat it as we would an AUTH=PLAIN request. (We should disallow

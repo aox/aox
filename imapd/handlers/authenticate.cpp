@@ -9,7 +9,7 @@
 
 
 /*! \class Authenticate authenticate.h
-    Initiates SASL authentication (RFC 3501, §6.2.2)
+    Initiates SASL authentication (RFC 3501 section 6.2.2)
 
     This class oversees the SASL challenge-response negotiation, using a
     SaslMechanism subclass to handle the details of the client-selected
