@@ -956,10 +956,13 @@ void Page::webmailPartPage()
     ContentDisposition * cd = bp->header()->contentDisposition();
     if ( cd )
         fn = cd->parameter( "filename" );
+    if ( ct && fn.isEmpty() )
+        fn = ct->parameter( "filename" );
 
     if ( !fn.isEmpty() || !d->ct.startsWith( "image/" ) ) {
         if ( fn.isEmpty() )
-            d->server->addHeader( "Content-Disposition: attachment" );
+            d->server->addHeader( "Content-Disposition: attachment; "
+                                  "filename=attachment");
         else
             d->server->addHeader( "Content-Disposition: attachment; "
                                   "filename=" + fn.quoted() );
