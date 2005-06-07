@@ -213,7 +213,6 @@ String Page::text() const
                "<title>Webmail</title>";
     if ( jsUrl )
         r.append( "<script src=\"" + *jsUrl + "\"></script>" );
-    r.append( "<script src=\"http://localhost:8080/~ams/x.js\"></script>" );
     r.append( "<style>"
               ".hidden{display:none;}"
               ".njshidden{display:none;}"
@@ -993,12 +992,7 @@ static String htmlQuoted( const String & s )
     r.reserve( s.length() );
     uint i = 0;
     while ( i < s.length() ) {
-        if ( s[i] > 126 ) {
-            r.append( "&#" );
-            r.append( fn( s[i] ) );
-            r.append( ";" );
-        }
-        else if ( s[i] == '<' ) {
+        if ( s[i] == '<' ) {
             r.append( "&lt;" );
         }
         else if ( s[i] == '>' ) {
