@@ -726,6 +726,8 @@ String Page::textHtml( const String & s )
                 else if ( tag == "/blockquote" ) {
                     if ( !stack.isEmpty() && *stack.last() == "p" )
                         r.append( unwindStack( stack, "p" ) );
+                    else
+                        r.append( unwindStack( stack, "blockquote" ) );
                 }
                 else if ( tag == "/div" ||
                           tag == "/ul" ||
@@ -745,6 +747,10 @@ String Page::textHtml( const String & s )
                     r.append( unwindStack( stack, "p" ) );
                     stack.append( new String( "p" ) );
                     r.append( "\n<p class=quoted>" );
+                }
+                else {
+                    stack.append( new String( "blockquote" ) );
+                    r.append( "\n<blockquote>" );
                 }
             }
             else if ( tag == "p" ) {
@@ -945,6 +951,19 @@ void Page::webmailPartPage()
     ContentType *ct = bp->header()->contentType();
     if ( ct )
         d->ct = ct->type() + "/" + ct->subtype();
+
+    String fn;
+    ContentDisposition * cd = bp->header()->contentDisposition();
+    if ( cd )
+        fn = cd->parameter( "filename" );
+
+    if ( !fn.isEmpty() || !d->ct.startsWith( "image/" ) ) {
+        if ( fn.isEmpty() )
+            d->server->addHeader( "Content-Disposition: attachment" );
+        else
+            d->server->addHeader( "Content-Disposition: attachment; "
+                                  "filename=" + fn.quoted() );
+    }
 
     Utf8Codec u;
     if ( d->ct.startsWith( "text/" ) )
