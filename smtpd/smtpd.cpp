@@ -28,12 +28,17 @@ int main( int argc, char * argv[] )
 
     String mc( Configuration::text( Configuration::MessageCopy ) );
     String mcd( Configuration::text( Configuration::MessageCopyDir ) );
-    if ( mc == "all" || mc == "errors" ) {
+    if ( mc == "all" || mc == "errors" || mc == "delivered" ) {
         if ( mcd.isEmpty() )
             log( "message-copy-directory not set", Log::Disaster );
         s.setChrootMode( Server::MessageCopyDir );
     }
-    else if ( mc != "none" ) {
+    else if ( mc == "none" ) {
+        if ( !mcd.isEmpty() )
+            log( "Disregarding message-copy-directory "
+                 "because message-copy is set to none " );
+    }
+    else {
         log( "Invalid value for message-copy: " + mc, Log::Disaster );
     }
 

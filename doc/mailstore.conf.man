@@ -20,7 +20,7 @@ Anyone who can read
 can see the database password, and use this password to damage or
 destroy the mail database.
 .PP
-By default, 
+By default,
 .I mailstore.conf
 is readable only by root.
 .SH SETTINGS
@@ -112,7 +112,7 @@ and the default is
 .IP logfile-mode
 is
 .I $LOGFILEMODE
-by default and controls the permissions used by 
+by default and controls the permissions used by
 .BR logd (8)
 if it creates
 .IR logfile .
@@ -265,28 +265,29 @@ is normally disabled,
 .I smtp-port
 is unused.)
 .IP message-copy
-specifies whether or not to keep filesystem copies of incoming messages.
+specifies whether or not to keep filesystem copies of incoming
+messages, e.g. to burn a mail log to CD/DVD regularly.
 The default value of
 .I none
-means that no copies are ever made. Setting it to
-.I all
-keeps copies of all incoming messages in the specified
-.IR message-copy-directory ,
-and a value of
+means that no copies are ever made.
+.IP
+Setting it to
+.I delivered
+keeps copies of all delivered messages, a value of
 .I errors
-copies only those messages that cause delivery failures.
+keeps only those messages that could not be delivered because of errors, and
+.I all
+keeps copies of all messages.
 .IP message-copy-directory
-specifies a directory to which all incoming mail is copied, e.g. to
-burn a mail log to CD/DVD regularly. This variable must be set if
-.I message-copy
-is not set to
-.IR none .
+specifies a directory to which mail delivered via LMTP/SMTP is copied, if
+.I message-COPY
+is set.
 .IP
 If
 .I message-copy-directory
-is set and refers to a directory that does not exist or is not writable,
+does not exist or is not writable,
 Mailstore logs an error at startup and exits.
-.IP
+.PP
 Each file in
 .I message-copy-directory
 contains one or more header lines, namely
@@ -298,7 +299,7 @@ then an empty line, then the verbatim received mail message. If there is an
 .B Error
 line, the message was not delivered, and the rest of the line
 describes the problem.
-.IP
+.PP
 The file's name is a unique string of numbers and hyphens. If it ends
 with "-parser", there was a parse error. If it ends with "-db", there
 was an error injecting the message into the database.
