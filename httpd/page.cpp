@@ -730,6 +730,9 @@ String Page::textHtml( const String & s )
                         r.append( unwindStack( stack, "blockquote" ) );
                 }
                 else if ( tag == "/div" ||
+                          tag == "/i" ||
+                          tag == "/b" ||
+                          tag == "/u" ||
                           tag == "/ul" ||
                           tag == "/ol" ||
                           tag == "/pre" ||
@@ -771,6 +774,9 @@ String Page::textHtml( const String & s )
                 r.append( "<br>\n" );
             }
             else if ( tag == "div" ||
+                      tag == "i" ||
+                      tag == "b" ||
+                      tag == "u" ||
                       tag == "ul" ||
                       tag == "ol" ||
                       tag == "li" ||
@@ -932,6 +938,10 @@ String Page::message( Message *first, Message *m )
 
 
 /*! Prepares to display a single bodypart from the requested message.
+
+    If the bodypart isn't an image, this sends a Content-Disposition
+    suggesting that the browser should download the page instead of
+    displaying it.
 */
 
 void Page::webmailPartPage()
