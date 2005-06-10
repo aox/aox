@@ -125,6 +125,9 @@ void Link::parse( const String & s )
         if ( it )
             parsePart( ++it );
     }
+    else if ( l->count() == 1 && *it == "favicon.ico" ) {
+        d->type = Favicon;
+    }
     else {
         d->type = WebmailMailbox;
         parseMailbox( it );
@@ -165,6 +168,8 @@ String Link::string() const
     case WebmailPart:
         s = "/" + fn( d->mailbox->id() ) + "/" + fn( d->uid ) + "/" + d->part;
         break;
+    case Favicon:
+        s = "/favicon.ico";
     case Unknown:
         s = d->path;
         break;

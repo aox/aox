@@ -76,6 +76,7 @@ public:
         TlsCertFile,
         LogLevel,
         LogfileMode,
+        FaviconURL,
         WebmailCSS,
         WebmailJS,
         MessageCopy,

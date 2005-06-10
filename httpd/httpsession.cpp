@@ -81,7 +81,7 @@ void HttpSession::setUser( User *u )
 
 void HttpSession::refresh()
 {
-    d->timeout = ::time( 0 ) + 1200;
+    d->timeout = ::time( 0 ) + 7200;
 }
 
 

@@ -175,6 +175,7 @@ static struct {
     { "tls-certificate", Configuration::TlsCertFile, "" },
     { "log-level", Configuration::LogLevel, "info" },
     { "logfile-mode", Configuration::LogfileMode, LOGFILEMODE },
+    { "favicon-url", Configuration::FaviconURL, "http://www.oryx.com/favicon.ico" },
     { "webmail-css-page", Configuration::WebmailCSS, "http://www.oryx.com/webmail/default.css" },
     { "webmail-js-page", Configuration::WebmailJS, "" },
     { "message-copy", Configuration::MessageCopy, "none" },

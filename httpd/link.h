@@ -19,6 +19,7 @@ public:
         ArchivePart,
         WebmailMessage,
         WebmailPart,
+        Favicon,
         Unknown
     };
 

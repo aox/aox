@@ -29,7 +29,7 @@ static String address( Message *, HeaderField::Type );
 class PageData {
 public:
     PageData()
-        : type( Page::Error ), state( 0 ),
+        : type( Page::Error ), useFooter( false ), state( 0 ),
           link( 0 ), server( 0 ), ready( false ),
           user( 0 ), message( 0 ),
           uid( 0 ), session( 0 ),
@@ -37,6 +37,7 @@ public:
     {}
 
     Page::Type type;
+    bool useFooter;
     uint state;
 
     Link *link;
@@ -77,12 +78,20 @@ Page::Page( Link * link, HTTP *server )
          link->type() == Link::WebmailPart )
     {
         if ( !d->server->session() ||
-             !d->server->session()->user() ||
-             d->server->session()->expired() )
+             !d->server->session()->user() )
         {
             d->type = Error;
             d->server->setStatus( 403, "Forbidden" );
             errorPage();
+            return;
+        }
+        else if ( d->server->session()->expired() ) {
+            d->server->setStatus( 302, "Session Expired" );
+            d->server->addHeader( "Location: /" );
+            d->text = "<div class=errorpage>"
+                      "<h1>Session Timeout</h1>"
+                      "<p>Please <a href=\"/\">log in again</a></div>";
+            d->ready = true;
             return;
         }
     }
@@ -123,6 +132,10 @@ Page::Page( Link * link, HTTP *server )
 
     case Link::ArchivePart:
         d->type = ArchivePart;
+        break;
+
+    case Link::Favicon:
+        d->type = Favicon;
         break;
 
     default:
@@ -170,6 +183,10 @@ void Page::execute()
 
     case ArchivePart:
         archivePartPage();
+        break;
+
+    case Favicon:
+        favicon();
         break;
 
     case Error:
@@ -228,7 +245,7 @@ String Page::text() const
               "}else{"
               "return"
               "}" // at this point, change the css so js can be called
-              "r[0].style.display='block';"
+              "r[0].style.display='';"
               "r[1].style.display='none'"
               "}"
               "function toggleElement(show, hide){"
@@ -248,12 +265,17 @@ String Page::text() const
               "<div class=\"page\">" );
     r.append( d->text );
     r.append( "</div>" );
-    r.append( "<div class=\"footer\">"
-              "<a href=\"http://www.oryx.com\">Oryx</a> Webmail version " );
-    r.append( Configuration::compiledIn( Configuration::Version ) );
-    r.append( ". <div class=\"jsonly\">Javascript detected and used.</div>"
-              "</div>"
-              "</body></html>" );
+    if ( d->useFooter ) {
+        r.append( "<div class=\"footer\">"
+                  "<a href=\"http://www.oryx.com\">Oryx</a> "
+                  "Webmail version " );
+        r.append( Configuration::compiledIn( Configuration::Version ) );
+        r.append( " "
+                  <span class=\"jsonly\">(using javascript)</span>"
+                  "<span class=\"njsvisible\">(without javascript)</span>"
+                  "</div>" );
+    }
+    r.append( "</body></html>" );
     return r;
 }
 
@@ -306,6 +328,7 @@ void Page::errorPage()
               "<p>" + e + "</div>";
 
     d->ready = true;
+    d->useFooter = true;
 }
 
 
@@ -320,6 +343,7 @@ void Page::loginForm()
     if ( !d->login.isEmpty() )
         login = d->login;
     d->ready = true;
+    d->useFooter = true;
     d->text =
         "<div class=loginform>"
         "<form method=post action=\"/\">"
@@ -369,6 +393,7 @@ void Page::loginData()
                   "<p>Login and passwword did not match.";
                   "</div>" + d->text + "";
         d->ready = true;
+        d->useFooter = true;
     }
     else {
         HttpSession *s = d->server->session();
@@ -390,6 +415,7 @@ void Page::loginData()
 void Page::mainPage()
 {
     d->ready = true;
+    d->useFooter = true;
     d->text =
         "<div class=top>"
         "<div class=search>"
@@ -400,7 +426,7 @@ void Page::mainPage()
         "</div>"
         "<div class=buttons>"
         "<a href=\"/logout\">Logout</a>"
-        "<a href=\"\">Compose</a>"
+        "<a href=\"/compose\">Compose</a>"
         "</div>"
         "</div>"
         "<div class=middle>"
@@ -521,6 +547,7 @@ void Page::messagePage()
 void Page::archivePage()
 {
     mailboxPage();
+    d->useFooter = true;
 }
 
 
@@ -534,6 +561,7 @@ void Page::archiveMessagePage()
 
     d->ready = true;
     d->text = message( d->message, d->message );
+    d->useFooter = true;
 }
 
 
@@ -1134,4 +1162,19 @@ String Page::jsToggle( const String &t,
     s.append( "</a></div>" );
 
     return s;
+}
+
+
+/*! Returns the icon for this webmail service. This is a 302 redirect
+    to an admin-configurable URL, or the Oryx logo by default.
+*/
+
+void Page::favicon()
+{
+    String url( Configuration::text( Configuration::FaviconURL ) );
+    if ( url.isEmpty() )
+        url = "http://www.oryx.com/favicon.ico";
+    d->server->setStatus( 302, "look over there!" );
+    d->server->addHeader( "Location: " + url );
+    d->ready = true;
 }
