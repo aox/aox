@@ -211,14 +211,35 @@ String Page::text() const
                "<html>"
                "<head>"
                "<title>Webmail</title>";
+    r.append( "<style type=\"text/css\">"
+              ".jsonly{display:none;}" // visible if js, invisible otherwise
+              ".njsvisible{}" // hidden if js, visible if not
+              ".hidden{display:none;}" // invisible (set by js code)
+              ".njshidden{display:none;}" // invisible (showable by js code)
+              "</style>" );
+    // change the first two rules if the browser supports javascript
+    r.append( "<script language=javascript>"
+              "function useJS(){"
+              "var r=new Array;"
+              "if(document.styleSheets[0].cssRules){"
+              "r=document.styleSheets[0].cssRules"
+              "}else if(document.styleSheets[0].rules){"
+              "r=document.styleSheets[0].rules"
+              "}else{"
+              "return"
+              "}" // at this point, change the css so js can be called
+              "r[0].style.display='block';"
+              "r[1].style.display='none'"
+              "}"
+              "function toggleElement(show, hide){"
+              "document.getElementById(show).className = "visible";"
+              "document.getElementById(hide).className = "hidden";"
+              "}"
+              "useJS();" // change at once for most browsers
+              "window.onload = 'useJS();'" // later for safari
+              "</script>" );
     if ( jsUrl )
         r.append( "<script src=\"" + *jsUrl + "\"></script>" );
-    r.append( "<style>"
-              ".hidden{display:none;}"
-              ".njshidden{display:none;}"
-              ".jsonly{display:none;}"
-              ".njsvisible{}"
-              "</style>" );
     if ( cssUrl )
         r.append( "<link rel=stylesheet type=\"text/css\" href=\"" +
                   *cssUrl + "\">" );
@@ -372,7 +393,7 @@ void Page::mainPage()
         "</form>"
         "</div>"
         "<div class=buttons>"
-        "<a href=\"\">Logout</a>"
+        "<a href=\"/logout\">Logout</a>"
         "<a href=\"\">Compose</a>"
         "</div>"
         "</div>"
@@ -380,7 +401,7 @@ void Page::mainPage()
         "<div class=folders>"
         "<p>Folder list."
         "</div>"
-        "<iframe class=content name=content src=\"" +
+        "<iframe class=content src=\"" +
         fn( d->server->user()->inbox()->id() ) + "/\">"
         "</iframe>"
         "</div>"
@@ -455,7 +476,7 @@ void Page::mailboxPage()
 
             HeaderField *hf = m->header()->field( HeaderField::Subject );
             if ( hf ) {
-                s.append( "<div class=headerfield name=subject>Subject: " );
+                s.append( "<div class=headerfield>Subject: " );
                 s.append( "<a href=\"" + d->link->string() + "/" +
                           fn( uid ) + "\">" );
                 s.append( htmlQuoted( hf->data() ) );
@@ -887,7 +908,7 @@ String Page::message( Message *first, Message *m )
 
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
-        s.append( "<div class=headerfield name=subject>Subject: " );
+        s.append( "<div class=headerfield>Subject: " );
         s.append( htmlQuoted( hf->data() ) );
         s.append( "</div>" );
     }
@@ -908,12 +929,7 @@ String Page::message( Message *first, Message *m )
                 t.append( address( m, hf->type() ) );
             }
             else {
-                t.append( "<div class=headerfield" );
-                if ( hf->name().boring() ) {
-                    t.append( " name=" );
-                    t.append( hf->name() );
-                }
-                t.append( ">" );
+                t.append( "<div class=headerfield>" );
                 t.append( htmlQuoted( hf->name() ) );
                 t.append( ": " );
                 t.append( htmlQuoted( hf->data() ) );
