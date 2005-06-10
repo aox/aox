@@ -125,7 +125,7 @@ void Link::parse( const String & s )
         if ( it )
             parsePart( ++it );
     }
-    else if ( l->count() == 1 && *it == "favicon.ico" ) {
+    else if ( *it == "favicon.ico" ) {
         d->type = Favicon;
     }
     else {
