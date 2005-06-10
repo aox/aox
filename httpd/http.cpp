@@ -271,7 +271,9 @@ static uint inputLength( Buffer * r )
               ( (*r)[i] == '\n' &&
                 ( (*r)[i+1] == '\t' || (*r)[i+1] == ' ' ) ) ) )
         i++;
-    return i;
+    if ( i < r->size() )
+        return i;
+    return UINT_MAX;
 }
 
 
@@ -299,7 +301,7 @@ String HTTP::line()
     Buffer * r = readBuffer();
     uint i = inputLength( r );
     String l;
-    if ( !i )
+    if ( i >= r->size() )
         return l;
     l = r->string( i );
     if ( l.endsWith( "\r" ) )
@@ -356,7 +358,8 @@ void HTTP::parseRequest( String l )
     String protocol = l;
 
     if ( !protocol.startsWith( "HTTP/" ) ) {
-       setStatus( 400, "Bad protocol: " + protocol + ". Only HTTP supported." );
+       setStatus( 400,
+                  "Bad protocol: " + protocol + ". Only HTTP supported." );
         return;
     }
     bool ok = false;
@@ -400,7 +403,7 @@ void HTTP::parseRequest( String l )
     }
 
     d->link = new Link( d->path );
-    log( "Received: " + d->method + "(" + d->path + ") " + protocol );
+    log( "Received: " + d->method + " " + d->path + " " + protocol );
 }
 
 
@@ -490,6 +493,7 @@ void HTTP::setStatus( uint status, const String &message )
     if ( d->status == 200 ) {
         d->status = status;
         d->message = message;
+        d->state = Parsed;
     }
 }
 
@@ -502,6 +506,7 @@ void HTTP::clear()
     d->page = 0;
     d->body = 0;
     d->state = Request;
+    d->contentLength = 0;
     d->status = 200;
     d->session = 0;
     d->message = "OK";
