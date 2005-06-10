@@ -480,21 +480,13 @@ void Page::mailboxPage()
         d->ready = true;
     }
 
-    if ( !d->uid ) {
-        MessageSet ms;
-        ms.add( d->session->uid( 1 ),
-                d->session->uid( d->session->count() ) );
-        d->session->mailbox()->fetchHeaders( ms, this );
-        d->uid = d->session->uid( 1 );
-    }
-
     uint highest = d->session->uid( d->session->count() );
 
-    while ( d->uid < highest ) {
-        Message * m = d->session->mailbox()->message( d->uid );
-        if ( !m || !m->hasHeaders() )
-            return;
-        d->uid++;
+    if ( !d->uid ) {
+        d->uid = d->session->uid( 1 );
+        MessageSet ms;
+        ms.add( d->uid, highest );
+        d->session->mailbox()->fetchHeaders( ms, this );
     }
 
     String s;
@@ -519,7 +511,12 @@ void Page::mailboxPage()
             s.append( address( m, HeaderField::Cc ) );
 
             s.append( "</div></div>" );
-
+        }
+        else {
+            // XXX: this is inefficient. it would be better to keep
+            // the built string and extend it next time. consider that
+            // later.
+            return;
         }
     }
 
