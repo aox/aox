@@ -271,7 +271,7 @@ String Page::text() const
                   "Webmail version " );
         r.append( Configuration::compiledIn( Configuration::Version ) );
         r.append( " "
-                  <span class=\"jsonly\">(using javascript)</span>"
+                  "<span class=\"jsonly\">(using javascript)</span>"
                   "<span class=\"njsvisible\">(without javascript)</span>"
                   "</div>" );
     }
