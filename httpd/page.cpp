@@ -1150,14 +1150,12 @@ String Page::jsToggle( const String &t,
         s.append( "<div class=njshidden id=" + a + ">" );
     s.append( t );
     s.append( "<div class=jsonly>" );
-    s.append( "<a href=\"\" "
-              "onclick=\"toggleElement('" + b + "', '" + a + "')\">" );
+    s.append( "<a onclick=\"toggleElement('" + b + "', '" + a + "')\">" );
     s.append( hide );
     s.append( "</a></div></div>" );
 
     s.append( "<div class=jsonly id=" + b + ">" );
-    s.append( "<a href=\"\" "
-              "onclick=\"toggleElement('" + a + "', '" + b + "')\">" );
+    s.append( "<a onclick=\"toggleElement('" + a + "', '" + b + "')\">" );
     s.append( show );
     s.append( "</a></div>" );
 
