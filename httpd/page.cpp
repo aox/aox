@@ -218,7 +218,7 @@ String Page::text() const
               ".njshidden{display:none;}" // invisible (showable by js code)
               "</style>" );
     // change the first two rules if the browser supports javascript
-    r.append( "<script language=javascript>"
+    r.append( "<script language=javascript type=\"text/javascript\">"
               "function useJS(){"
               "var r=new Array;"
               "if(document.styleSheets[0].cssRules){"
@@ -232,8 +232,8 @@ String Page::text() const
               "r[1].style.display='none'"
               "}"
               "function toggleElement(show, hide){"
-              "document.getElementById(show).className = "visible";"
-              "document.getElementById(hide).className = "hidden";"
+              "document.getElementById(show).className = 'visible';"
+              "document.getElementById(hide).className = 'hidden';"
               "}"
               "useJS();" // change at once for most browsers
               "window.onload = 'useJS();'" // later for safari
@@ -247,7 +247,13 @@ String Page::text() const
               "<body>"
               "<div class=\"page\">" );
     r.append( d->text );
-    r.append( "</div></body></html>" );
+    r.append( "</div>" );
+    r.append( "<div class=\"footer\">"
+              "<a href=\"http://www.oryx.com\">Oryx</a> Webmail version " );
+    r.append( Configuration::compiledIn( Configuration::Version ) );
+    r.append( ". <div class=\"jsonly\">Javascript detected and used.</div>"
+              "</div>"
+              "</body></html>" );
     return r;
 }
 
@@ -1066,7 +1072,7 @@ static String address( Message *m, HeaderField::Type t )
     if ( !af )
         return s;
 
-    s.append( "<div class=headerfield name=" + af->name().lower() +">" );
+    s.append( "<div class=headerfield>" );
     s.append( af->name() );
     s.append( ": " );
 
@@ -1116,12 +1122,14 @@ String Page::jsToggle( const String &t,
         s.append( "<div class=njshidden id=" + a + ">" );
     s.append( t );
     s.append( "<div class=jsonly>" );
-    s.append( "<a onclick=\"toggleElement('" + b + "', '" + a + "')\">" );
+    s.append( "<a href=\"\" "
+              "onclick=\"toggleElement('" + b + "', '" + a + "')\">" );
     s.append( hide );
     s.append( "</a></div></div>" );
 
     s.append( "<div class=jsonly id=" + b + ">" );
-    s.append( "<a onclick=\"toggleElement('" + a + "', '" + b + "')\">" );
+    s.append( "<a href=\"\" "
+              "onclick=\"toggleElement('" + a + "', '" + b + "')\">" );
     s.append( show );
     s.append( "</a></div>" );
 
