@@ -61,10 +61,9 @@ void RecorderData::dump( Direction dir )
         if ( (*s)[i] == 13 && (*s)[i+1] == 10 )
             ; // don't write the CR
         else
-            f.append( s[i] );
+            f.append( (*s)[i] );
         i++;
     }
-    f.append( s->mid( 0, ls ) );
     log->write( f );
     *s = s->mid( ls );
 }
