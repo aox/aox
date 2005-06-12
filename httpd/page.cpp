@@ -90,7 +90,7 @@ Page::Page( Link * link, HTTP *server )
             d->server->addHeader( "Location: /" );
             d->text = "<div class=errorpage>"
                       "<h1>Session Timeout</h1>"
-                      "<p>Please <a href=\"/\">log in again</a></div>";
+                      "<p>Please <a href=\"/\">log in again</a></div>\n";
             d->ready = true;
             return;
         }
@@ -227,46 +227,47 @@ String Page::text() const
     String r = "<!doctype html public \"-//W3C//DTD HTML 4.01//EN\">\n"
                "<html>"
                "<head>"
-               "<title>Webmail</title>";
-    r.append( "<style type=\"text/css\">"
-              ".jsonly{display:none;}" // visible if js, invisible otherwise
-              ".njsvisible{}" // hidden if js, visible if not
-              ".hidden{display:none;}" // invisible (set by js code)
-              ".njshidden{display:none;}" // invisible (showable by js code)
-              "</style>" );
+               "<title>";
+    r.append( htmlQuoted( Configuration::text( Configuration::Hostname ) ) );
+    r.append( " webmail</title>\n" );
+    r.append( "<style type=\"text/css\">\n"
+              ".jsonly{display:none;}\n" // visible if js, invisible otherwise
+              ".njsvisible{}\n" // hidden if js, visible if not
+              ".hidden{display:none;}\n" // invisible (set by js code)
+              ".njshidden{display:none;}\n" // invisible (showable by js code)
+              "</style>\n" );
     // change the first two rules if the browser supports javascript
-    r.append( "<script language=javascript type=\"text/javascript\">"
-              "function useJS(){"
-              "var r=new Array;"
-              "if(document.styleSheets[0].cssRules){"
-              "r=document.styleSheets[0].cssRules"
-              "}else if(document.styleSheets[0].rules){"
-              "r=document.styleSheets[0].rules"
-              "}else{"
-              "return"
-              "}" // at this point, change the css so js can be called
-              "r[0].style.display='';"
-              "r[1].style.display='none'"
+    r.append( "<script language=javascript type=\"text/javascript\">\n"
+              "function useJS(){\n"
+              "var r=new Array;\n"
+              "if(document.styleSheets[0].cssRules)"
+              "r=document.styleSheets[0].cssRules\n"
+              "else if(document.styleSheets[0].rules)"
+              "r=document.styleSheets[0].rules\n"
+              "else "
+              "return;\n"
+              "r[0].style.display='';\n"
+              "r[1].style.display='none'\n"
               "}"
-              "function toggleElement(show, hide){"
-              "document.getElementById(show).className = 'visible';"
-              "document.getElementById(hide).className = 'hidden';"
-              "}"
-              "useJS();" // change css at once (safari cannot yet)
-              "window.onload = 'useJS();'" ); // do it again when safari can
+              "function toggleElement(show, hide){\n"
+              "document.getElementById(show).className = 'visible';\n"
+              "document.getElementById(hide).className = 'hidden';\n"
+              "}\n"
+              "useJS();\n" // change css at once (safari cannot yet)
+              "window.onload = 'useJS();';\n" ); // and again when safari can
     if ( d->isTopLevel )
-        r.append( "if(top.location!=location){top.location=location}" );
-    r.append( "</script>" );
+        r.append( "if(top.location!=location){top.location=location}\n" );
+    r.append( "</script>\n" );
     if ( jsUrl )
-        r.append( "<script src=\"" + *jsUrl + "\"></script>" );
+        r.append( "<script src=\"" + *jsUrl + "\"></script>\n" );
     if ( cssUrl )
         r.append( "<link rel=stylesheet type=\"text/css\" href=\"" +
-                  *cssUrl + "\">" );
-    r.append( "</head>"
+                  *cssUrl + "\">\n" );
+    r.append( "</head>\n"
               "<body>"
-              "<div class=\"page\">" );
+              "<div class=\"page\">\n" );
     r.append( d->text );
-    r.append( "</div>" );
+    r.append( "</div>\n" );
     if ( d->isTopLevel ) {
         r.append( "<div class=\"footer\">"
                   "<a href=\"http://www.oryx.com\">Oryx</a> "
@@ -274,9 +275,9 @@ String Page::text() const
         r.append( Configuration::compiledIn( Configuration::Version ) );
         r.append( " (<span class=\"njsvisible\">not </span>"
                   "using javascript)"
-                  "</div>" );
+                  "</div>\n" );
     }
-    r.append( "</body></html>" );
+    r.append( "</body></html>\n" );
     return r;
 }
 
@@ -326,7 +327,7 @@ void Page::errorPage()
 
     d->text = "<div class=errorpage>"
               "<h1>Error " + fn( d->server->status() ) + "</h1>"
-              "<p>" + e + "</div>";
+              "<p>" + e + "</div>\n";
 
     d->ready = true;
     d->isTopLevel = true;
@@ -346,18 +347,18 @@ void Page::loginForm()
     d->ready = true;
     d->isTopLevel = true;
     d->text =
-        "<div class=loginform>"
-        "<form method=post action=\"/\">"
-        "<table>"
+        "<div class=loginform>\n"
+        "<form method=post action=\"/\">\n"
+        "<table>\n"
         "<tr><td>Name:</td>"
         "<td><input type=text name=login value=\"" +
-        htmlQuoted( login ) + "\"></td></tr>"
+        htmlQuoted( login ) + "\"></td></tr>\n"
         "<tr><td>Password:</td>"
-        "<td><input type=password name=passwd value=\"\"></td></tr>"
-        "<tr><td></td><td><input type=submit value=Login></td></tr>"
+        "<td><input type=password name=passwd value=\"\"></td></tr>\n"
+        "<tr><td></td><td><input type=submit value=Login></td></tr>\n"
         "</table>"
         "</div>"
-        "</form>";
+        "</form>\n";
 }
 
 
@@ -392,7 +393,7 @@ void Page::loginData()
         loginForm();
         d->text = "<div class=errormessage>"
                   "<p>Login and passwword did not match.";
-                  "</div>" + d->text + "";
+                  "</div>\n" + d->text + "";
         d->ready = true;
         d->isTopLevel = true;
     }
@@ -425,6 +426,7 @@ static String mailboxDescriptor( Mailbox * m, uint prefixLength = 0 )
     r.append( htmlQuoted( m->name().mid( prefixLength ) ) );
     if ( link )
         r.append( "</a>" );
+    r.append( "\n" );
     List<Mailbox> * c = m->children();
     if ( c && !c->isEmpty() ) {
         r.append( "<ul class=mailboxlist>" );
@@ -434,7 +436,7 @@ static String mailboxDescriptor( Mailbox * m, uint prefixLength = 0 )
             r.append( mailboxDescriptor( i, l ) );
             ++i;
         }
-        r.append( "</ul>" );
+        r.append( "</ul>\n" );
     }
     return r;
 }
@@ -455,25 +457,25 @@ void Page::mainPage()
         "<input type=text name=query>"
         "<input type=submit value=search>"
         "</form>"
-        "</div>"
+        "</div>\n"
         "<div class=buttons>"
         "<a href=\"/logout\">Logout</a>"
         "<a href=\"/compose\">Compose</a>"
-        "</div>"
-        "</div>"
+        "</div>\n"
+        "</div>\n"
         "<div class=middle>"
         "<div class=folders>"
         "<p>Folder list.<ul class=mailboxlist>" +
         mailboxDescriptor( d->user->home(), 0 ) +
         "</ul>"
-        "</div>"
+        "</div>\n"
         "<iframe class=content name=content src=\"" +
         fn( d->server->user()->inbox()->id() ) +
         "/\">"
         "</iframe>"
-        "</div>"
+        "</div>\n"
         "<div class=bottom>"
-        "</div>";
+        "</div>\n";
 }
 
 
@@ -539,13 +541,13 @@ void Page::mailboxPage()
                 s.append( "<a href=\"" + d->link->string() + "/" +
                           fn( uid ) + "\">" );
                 s.append( htmlQuoted( hf->data() ) );
-                s.append( "</a></div>" );
+                s.append( "</a></div>\n" );
             }
             s.append( address( m, HeaderField::From ) );
             s.append( address( m, HeaderField::To ) );
             s.append( address( m, HeaderField::Cc ) );
 
-            s.append( "</div></div>" );
+            s.append( "</div></div>\n" );
         }
         else {
             // XXX: this is inefficient. it would be better to keep
@@ -914,17 +916,17 @@ String Page::bodypart( Message *first, Bodypart *bp )
     if ( type == "text/plain" ) {
         s.append( "<div class=body>" );
         s.append( textPlain( u.fromUnicode( bp->text() ) ) );
-        s.append( "</div>" );
+        s.append( "</div>\n" );
     }
     else if ( type == "text/html" ) {
         s.append( "<div class=body>" );
         s.append( textHtml( u.fromUnicode( bp->text() ) ) );
-        s.append( "</div>" );
+        s.append( "</div>\n" );
     }
     else if ( type == "message/rfc822" ) {
         s.append( "<div class=body>" );
         s.append( message( first, bp->rfc822() ) );
-        s.append( "</div>" );
+        s.append( "</div>\n" );
     }
     else if ( type.startsWith( "image/" ) ) {
         s.append( "<div class=image>" );
@@ -932,7 +934,7 @@ String Page::bodypart( Message *first, Bodypart *bp )
                   first->partNumber( bp ) + "\">" );
         s.append( "<img src=\"" + d->link->string() + "/" +
                   first->partNumber( bp ) + "\">" );
-        s.append( "</a></div>" );
+        s.append( "</a></div>\n" );
     }
     else if ( type.startsWith( "multipart/" ) ) {
         s.append( "<div class=multipart>" );
@@ -941,7 +943,7 @@ String Page::bodypart( Message *first, Bodypart *bp )
             s.append( bodypart( first, it ) );
             ++it;
         }
-        s.append( "</div>" );
+        s.append( "</div>\n" );
     }
     else {
         s.append( "<div class=unknown>" );
@@ -953,10 +955,10 @@ String Page::bodypart( Message *first, Bodypart *bp )
         s.append( "</a>" );
         s.append( " (size " );
         s.append( String::humanNumber( bp->numBytes() ) );
-        s.append( ")</div>" );
+        s.append( ")</div>\n" );
     }
 
-    s.append( "</div>" );
+    s.append( "</div>\n" );
     return s;
 }
 
@@ -976,7 +978,7 @@ String Page::message( Message *first, Message *m )
     if ( hf ) {
         s.append( "<div class=headerfield>Subject: " );
         s.append( htmlQuoted( hf->data() ) );
-        s.append( "</div>" );
+        s.append( "</div>\n" );
     }
     s.append( address( m, HeaderField::From ) );
     s.append( address( m, HeaderField::To ) );
@@ -1000,14 +1002,14 @@ String Page::message( Message *first, Message *m )
                 t.append( htmlQuoted( hf->name() ) );
                 t.append( ": " );
                 t.append( htmlQuoted( hf->data() ) );
-                t.append( "</div>" );
+                t.append( "</div>\n" );
             }
         }
 
     }
     s.append( jsToggle( t, false, "Show full header", "Hide full header" ) );
 
-    s.append( "</div>" );
+    s.append( "</div>\n" );
 
     List< Bodypart >::Iterator jt( m->children() );
     while ( jt ) {
@@ -1150,7 +1152,7 @@ static String address( Message *m, HeaderField::Type t )
             s.append( ", " );
     }
 
-    s.append( "</div>" );
+    s.append( "</div>\n" );
     return s;
 }
 
@@ -1184,12 +1186,12 @@ String Page::jsToggle( const String &t,
     s.append( "<div class=jsonly>" );
     s.append( "<a onclick=\"toggleElement('" + b + "', '" + a + "')\">" );
     s.append( hide );
-    s.append( "</a></div></div>" );
+    s.append( "</a></div></div>\n" );
 
     s.append( "<div class=jsonly id=" + b + ">" );
     s.append( "<a onclick=\"toggleElement('" + a + "', '" + b + "')\">" );
     s.append( show );
-    s.append( "</a></div>" );
+    s.append( "</a></div>\n" );
 
     return s;
 }
