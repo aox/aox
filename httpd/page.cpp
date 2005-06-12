@@ -29,7 +29,7 @@ static String address( Message *, HeaderField::Type );
 class PageData {
 public:
     PageData()
-        : type( Page::Error ), useFooter( false ), state( 0 ),
+        : type( Page::Error ), isTopLevel( false ), state( 0 ),
           link( 0 ), server( 0 ), ready( false ),
           user( 0 ), message( 0 ),
           uid( 0 ), session( 0 ),
@@ -37,7 +37,7 @@ public:
     {}
 
     Page::Type type;
-    bool useFooter;
+    bool isTopLevel;
     uint state;
 
     Link *link;
@@ -252,9 +252,11 @@ String Page::text() const
               "document.getElementById(show).className = 'visible';"
               "document.getElementById(hide).className = 'hidden';"
               "}"
-              "useJS();" // change at once for most browsers
-              "window.onload = 'useJS();'" // later for safari
-              "</script>" );
+              "useJS();" // change css at once (safari cannot yet)
+              "window.onload = 'useJS();'" ); // do it again when safari can
+    if ( d->isTopLevel )
+        r.append( "if(top.location!=location){top.location=location}" );
+    r.append( "</script>" );
     if ( jsUrl )
         r.append( "<script src=\"" + *jsUrl + "\"></script>" );
     if ( cssUrl )
@@ -265,14 +267,13 @@ String Page::text() const
               "<div class=\"page\">" );
     r.append( d->text );
     r.append( "</div>" );
-    if ( d->useFooter ) {
+    if ( d->isTopLevel ) {
         r.append( "<div class=\"footer\">"
                   "<a href=\"http://www.oryx.com\">Oryx</a> "
                   "Webmail version " );
         r.append( Configuration::compiledIn( Configuration::Version ) );
-        r.append( " "
-                  "<span class=\"jsonly\">(using javascript)</span>"
-                  "<span class=\"njsvisible\">(without javascript)</span>"
+        r.append( " (<span class=\"njsvisible\">not </span>"
+                  "using javascript)"
                   "</div>" );
     }
     r.append( "</body></html>" );
@@ -328,7 +329,7 @@ void Page::errorPage()
               "<p>" + e + "</div>";
 
     d->ready = true;
-    d->useFooter = true;
+    d->isTopLevel = true;
 }
 
 
@@ -343,7 +344,7 @@ void Page::loginForm()
     if ( !d->login.isEmpty() )
         login = d->login;
     d->ready = true;
-    d->useFooter = true;
+    d->isTopLevel = true;
     d->text =
         "<div class=loginform>"
         "<form method=post action=\"/\">"
@@ -393,7 +394,7 @@ void Page::loginData()
                   "<p>Login and passwword did not match.";
                   "</div>" + d->text + "";
         d->ready = true;
-        d->useFooter = true;
+        d->isTopLevel = true;
     }
     else {
         HttpSession *s = d->server->session();
@@ -409,13 +410,44 @@ void Page::loginData()
 }
 
 
+static String mailboxDescriptor( Mailbox * m, uint prefixLength = 0 )
+{
+    String r;
+    r.append( "<li class=mailboxname>" );
+    bool link = true;
+    if ( m->synthetic() || m->deleted() )
+        link = false;
+    if ( link ) {
+        r.append( "<a href=\"/" );
+        r.append( fn( m->id() ) );
+        r.append( "\" target=content>" );
+    }
+    r.append( htmlQuoted( m->name().mid( prefixLength ) ) );
+    if ( link )
+        r.append( "</a>" );
+    List<Mailbox> * c = m->children();
+    if ( c && !c->isEmpty() ) {
+        r.append( "<ul class=mailboxlist>" );
+        List<Mailbox>::Iterator i( c->first() );
+        uint l = m->name().length() + 1;
+        while ( i ) {
+            r.append( mailboxDescriptor( i, l ) );
+            ++i;
+        }
+        r.append( "</ul>" );
+    }
+    return r;
+}
+
+
 /*! Prepares to display the main page.
 */
 
 void Page::mainPage()
 {
+
     d->ready = true;
-    d->useFooter = true;
+    d->isTopLevel = true;
     d->text =
         "<div class=top>"
         "<div class=search>"
@@ -431,10 +463,13 @@ void Page::mainPage()
         "</div>"
         "<div class=middle>"
         "<div class=folders>"
-        "<p>Folder list."
+        "<p>Folder list.<ul class=mailboxlist>" +
+        mailboxDescriptor( d->user->home(), 0 ) +
+        "</ul>"
         "</div>"
-        "<iframe class=content src=\"" +
-        fn( d->server->user()->inbox()->id() ) + "/\">"
+        "<iframe class=content name=content src=\"" +
+        fn( d->server->user()->inbox()->id() ) +
+        "/\">"
         "</iframe>"
         "</div>"
         "<div class=bottom>"
@@ -544,7 +579,7 @@ void Page::messagePage()
 void Page::archivePage()
 {
     mailboxPage();
-    d->useFooter = true;
+    d->isTopLevel = true;
 }
 
 
@@ -558,7 +593,7 @@ void Page::archiveMessagePage()
 
     d->ready = true;
     d->text = message( d->message, d->message );
-    d->useFooter = true;
+    d->isTopLevel = true;
 }
 
 
@@ -950,6 +985,7 @@ String Page::message( Message *first, Message *m )
     List< HeaderField >::Iterator it( m->header()->fields() );
     while ( it ) {
         hf = it;
+        ++it;
 
         if ( hf->type() != HeaderField::Subject &&
              hf->type() != HeaderField::From &&
@@ -968,7 +1004,6 @@ String Page::message( Message *first, Message *m )
             }
         }
 
-        ++it;
     }
     s.append( jsToggle( t, false, "Show full header", "Hide full header" ) );
 
