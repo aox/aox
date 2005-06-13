@@ -85,6 +85,16 @@ void HttpSession::refresh()
 }
 
 
+/*! Sets the expiry counter for this session to a value in the past,
+    such that access is denied immediately.
+*/
+
+void HttpSession::expireNow()
+{
+    d->timeout = 0;
+}
+
+
 /*! Returns true if this session had not been refresh()ed in the last
     {configured session timeout interval} seconds.
 */

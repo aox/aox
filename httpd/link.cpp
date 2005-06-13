@@ -128,6 +128,12 @@ void Link::parse( const String & s )
     else if ( *it == "favicon.ico" ) {
         d->type = Favicon;
     }
+    else if ( *it == "logout" ) {
+        d->type = Logout;
+    }
+    else if ( *it == "compose" ) {
+        d->type = Compose;
+    }
     else {
         d->type = WebmailMailbox;
         parseMailbox( it );
@@ -170,6 +176,13 @@ String Link::string() const
         break;
     case Favicon:
         s = "/favicon.ico";
+        break;
+    case Logout:
+        s = "/logout";
+        break;
+    case Compose:
+        s = "/compose";
+        break;
     case Unknown:
         s = d->path;
         break;

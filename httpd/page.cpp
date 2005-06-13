@@ -138,6 +138,14 @@ Page::Page( Link * link, HTTP *server )
         d->type = Favicon;
         break;
 
+    case Link::Logout:
+        d->type = Logout;
+        break;
+
+    case Link::Compose:
+        d->type = Compose;
+        break;
+
     default:
         d->type = Error;
         d->server->setStatus( 404, "File not found" );
@@ -187,6 +195,14 @@ void Page::execute()
 
     case Favicon:
         favicon();
+        break;
+
+    case Logout:
+        logoutPage();
+        break;
+
+    case Compose:
+        composePage();
         break;
 
     case Error:
@@ -241,20 +257,25 @@ String Page::text() const
               "function useJS(){\n"
               "var r=new Array;\n"
               "if(document.styleSheets[0].cssRules)"
-              "r=document.styleSheets[0].cssRules\n"
+              "r=document.styleSheets[0].cssRules;\n"
               "else if(document.styleSheets[0].rules)"
-              "r=document.styleSheets[0].rules\n"
+              "r=document.styleSheets[0].rules;\n"
               "else "
               "return;\n"
               "r[0].style.display='';\n"
               "r[1].style.display='none'\n"
               "}"
-              "function toggleElement(show, hide){\n"
-              "document.getElementById(show).className = 'visible';\n"
-              "document.getElementById(hide).className = 'hidden';\n"
+              // and provide a function to show/hide
+              "function toggleElement(s,h){\n"
+              "document.getElementById(s).className = 'visible';\n"
+              "document.getElementById(h).className = 'hidden';\n"
               "}\n"
-              "useJS();\n" // change css at once (safari cannot yet)
-              "window.onload = 'useJS();';\n" ); // and again when safari can
+               // change the css to use the javascript version at once
+               // for browsers that can...
+              "useJS();\n"
+              // and later for safari and whatever else
+              "window.onload = 'useJS();';\n" );
+    // if this ought to be a top-level page and it's not, upgrade it
     if ( d->isTopLevel )
         r.append( "if(top.location!=location){top.location=location}\n" );
     r.append( "</script>\n" );
@@ -267,17 +288,8 @@ String Page::text() const
               "<body>"
               "<div class=\"page\">\n" );
     r.append( d->text );
-    r.append( "</div>\n" );
-    if ( d->isTopLevel ) {
-        r.append( "<div class=\"footer\">"
-                  "<a href=\"http://www.oryx.com\">Oryx</a> "
-                  "Webmail version " );
-        r.append( Configuration::compiledIn( Configuration::Version ) );
-        r.append( " (<span class=\"njsvisible\">not </span>"
-                  "using javascript)"
-                  "</div>\n" );
-    }
-    r.append( "</body></html>\n" );
+    r.append( "</div>\n"
+              "</body></html>\n" );
     return r;
 }
 
@@ -348,15 +360,16 @@ void Page::loginForm()
     d->isTopLevel = true;
     d->text =
         "<div class=loginform>\n"
-        "<form method=post action=\"/\">\n"
-        "<table>\n"
-        "<tr><td>Name:</td>"
-        "<td><input type=text name=login value=\"" +
-        htmlQuoted( login ) + "\"></td></tr>\n"
-        "<tr><td>Password:</td>"
-        "<td><input type=password name=passwd value=\"\"></td></tr>\n"
-        "<tr><td></td><td><input type=submit value=Login></td></tr>\n"
-        "</table>"
+        "<form name=login method=post action=\"/\">\n"
+        "<label for=login>Name:</label>"
+        "<input type=text name=login value=\"" +
+        htmlQuoted( login ) + "\">"
+        "<br>\n"
+        "<label for=passwd>Password:</label>"
+        "<input type=password name=passwd value=\"\">\n"
+        "<br>\n"
+        "<label for=submit>&nbsp;</label>"
+        "<input name=submit type=submit value=Login>\n"
         "</div>"
         "</form>\n";
 }
@@ -451,31 +464,36 @@ void Page::mainPage()
     d->ready = true;
     d->isTopLevel = true;
     d->text =
+        "<div class=homepage>"
         "<div class=top>"
         "<div class=search>"
         "<form method=post action=>"
         "<input type=text name=query>"
         "<input type=submit value=search>"
         "</form>"
-        "</div>\n"
-        "<div class=buttons>"
-        "<a href=\"/logout\">Logout</a>"
-        "<a href=\"/compose\">Compose</a>"
-        "</div>\n"
-        "</div>\n"
+        "</div>\n" // search
+        "<div class=buttons>\n"
+        "<a href=\"/logout\">Logout</a>\n"
+        "<a href=\"/compose\" target=content>Compose</a>\n"
+        "</div>\n" // buttons
+        "</div>\n" // top
         "<div class=middle>"
         "<div class=folders>"
-        "<p>Folder list.<ul class=mailboxlist>" +
-        mailboxDescriptor( d->user->home(), 0 ) +
+        "<p>Folder list.\n<ul class=mailboxlist>" +
+        mailboxDescriptor( d->server->session()->user()->home(), 0 ) +
         "</ul>"
-        "</div>\n"
+        "</div>\n" // folders
+        "</div>\n" // buttons
+        "<div class=bottom>"
+        "</div>\n" // bottom
+        "</div>\n" // homepage
+        "<div class=hack>\n"
         "<iframe class=content name=content src=\"" +
         fn( d->server->user()->inbox()->id() ) +
         "/\">"
         "</iframe>"
-        "</div>\n"
-        "<div class=bottom>"
-        "</div>\n";
+        "</div>"
+        ;
 }
 
 
@@ -533,7 +551,7 @@ void Page::mailboxPage()
         Message *m = d->session->mailbox()->message( uid );
         msn++;
         if ( m && !m->header()->fields()->isEmpty() ) {
-            s.append( "<div class=messagesummary><div class=header>" );
+            s.append( "<div class=messagesummary><div class=header>\n" );
 
             HeaderField *hf = m->header()->field( HeaderField::Subject );
             if ( hf ) {
@@ -972,7 +990,7 @@ String Page::message( Message *first, Message *m )
     String s, t;
     HeaderField *hf;
 
-    s.append( "<div class=message><div class=header>" );
+    s.append( "<div class=message><div class=header>\n" );
 
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
@@ -1209,4 +1227,33 @@ void Page::favicon()
     d->server->setStatus( 302, "look over there!" );
     d->server->addHeader( "Location: " + url );
     d->ready = true;
+}
+
+
+/*! Returns text suitable for composing an original message. This is
+    really, really primitive.
+
+    Should we demand javascript support for things like attaching more
+    than one file?
+*/
+
+void Page::composePage()
+{
+    d->ready = true;
+    d->text = "Placeholder";
+}
+
+
+/*! Logs the user out and returns some text to that effect. */
+
+void Page::logoutPage()
+{
+    loginForm();
+    if ( d->server->session() )
+        d->server->session()->expireNow();
+    d->text = "<h1>Logged out</h1>\n"
+              "<p>To log in again, fill in the form below.\n"
+              "<p>To do something else, follow "
+              "<a href=\"http://random.yahoo.com/fast/ryl\">"
+              "this link.</a>\n" + d->text;
 }

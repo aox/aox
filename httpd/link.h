@@ -20,6 +20,8 @@ public:
         WebmailMessage,
         WebmailPart,
         Favicon,
+        Logout,
+        Compose,
         Unknown
     };
 

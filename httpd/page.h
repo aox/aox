@@ -19,7 +19,7 @@ public:
     enum Type {
         MainPage, LoginForm, LoginData, WebmailMailbox, WebmailMessage,
         WebmailPart, ArchiveMailbox, ArchiveMessage, ArchivePart,
-        Favicon,
+        Favicon, Logout, Compose,
         Error
     };
 
@@ -44,6 +44,8 @@ private:
     void archiveMessagePage();
     void archivePartPage();
     void favicon();
+    void composePage();
+    void logoutPage();
     bool messageReady();
     String bodypart( Message *, Bodypart * );
     String message( Message *, Message * );

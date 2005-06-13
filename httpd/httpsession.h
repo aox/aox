@@ -16,6 +16,7 @@ public:
     User *user() const;
     void setUser( User * );
     void refresh();
+    void expireNow();
     bool expired() const;
 
     static HttpSession *find( const String & );
