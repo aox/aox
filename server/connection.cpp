@@ -615,19 +615,7 @@ int Connection::listen( const Endpoint &e )
     if ( e.protocol() == Endpoint::Unix )
         unlink( File::chrooted( e.address() ).cstr() );
 
-    // on linux, if we restart too many times in a minute, sometimes
-    // bind() returns EADDRINUSE happens. the kernel doesn't like >50
-    // sockets in TIME_WAIT state, perhaps? when it happens, we can
-    // try waiting a second or two.
     int retcode = ::bind( d->fd, e.sockaddr(), e.sockaddrSize() );
-    /// XXX yank this code if it the occasional problem still occurs
-    /// in, say, July 2005.
-    if ( retcode < 0 && errno == EADDRINUSE ) {
-        log( "bind() returned EADDRINUSE; retrying after two-second pause",
-             Log::Error );
-        sleep( 2 );
-        retcode = ::bind( d->fd, e.sockaddr(), e.sockaddrSize() );
-    }
     if ( retcode < 0 ) {
         if ( errno == EADDRINUSE ) {
             log( "Cannot listen to " +
