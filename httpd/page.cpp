@@ -3,7 +3,9 @@
 #include "page.h"
 
 #include "utf.h"
+#include "dict.h"
 #include "link.h"
+#include "list.h"
 #include "user.h"
 #include "http.h"
 #include "mailbox.h"
@@ -23,7 +25,8 @@ static String * cssUrl;
 
 static const char * htmlQuoted( char );
 static String htmlQuoted( const String & );
-static String address( Message *, HeaderField::Type );
+static String address( Address * );
+static String addressField( Message *, HeaderField::Type );
 
 
 class PageData {
@@ -54,6 +57,52 @@ public:
     Session * session;
 
     uint uniq;
+
+    class Thread
+    {
+    private:
+        struct M {
+            M( uint u, Message * m ): uid( u ), message( m ) {}
+
+            uint uid;
+            Message * message;
+        };
+        List<M> m;
+
+        M * member( uint n ) const {
+            List<M>::Iterator i( m );
+            while ( i && n ) {
+                ++i;
+                --n;
+            }
+            return i;
+        }
+
+    public:
+        Thread() {}
+
+        void append( uint uid, Message * msg ) {
+            m.append( new M( uid, msg ) );
+        }
+        Message * message( uint n ) const {
+            M * m = member( n );
+            if ( m )
+                return m->message;
+            return 0;
+        }
+        uint uid( uint n ) const {
+            M * m = member( n );
+            if ( m )
+                return m->uid;
+            return 0;
+        }
+        uint messages() const {
+            return m.count();
+        }
+    };
+
+    Dict<Thread> subjects;
+    List<Thread> threads;
 };
 
 
@@ -497,6 +546,82 @@ void Page::mainPage()
 }
 
 
+// tries to chop off the prefixes and suffixes used by MUAs to find a
+// base subject that can be used to tie threads together linearly.
+
+static String baseSubject( const String & s )
+{
+    uint b = 0;
+    uint e = s.length();
+
+    // try to get rid of leading Re:, Fwd:, Re[2]: and similar.
+    bool done = false;
+    while ( !done ) {
+        done = true;
+        uint i = b;
+        if ( s[i] == '[' ) {
+            uint j = i;
+            i++;
+            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
+                    ( s[i] >= 'a' && s[i] <= 'z' ) ||
+                    ( s[i] >= '0' && s[i] <= '9' ) ||
+                    s[i] == '-' )
+                i++;
+            if ( s[i] == ']' ) {
+                i++;
+                done = false;
+                b = i;
+            }
+            else {
+                i = j;
+            }
+        }
+        while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
+                ( s[i] >= 'a' && s[i] <= 'z' ) )
+            i++;
+        if ( s[i] == '[' ) {
+            uint j = i;
+            i++;
+            while ( ( s[i] >= '0' && s[i] <= '9' ) )
+                i++;
+            if ( s[i] == ']' )
+                i++;
+            else
+                i = j;
+        }
+        if ( s[i] == ':' ) {
+            i++;
+            b = i;
+            done = false;
+        }
+        if ( !done && s[b] == 32 )
+            b++;
+    }
+
+    // try to get rid of trailing (Fwd) etc.
+    done = false;
+    while ( !done ) {
+        done = true;
+        uint i = e;
+        if ( i > 0 && s[i-1] == ')' ) {
+            i--;
+            while ( i > 0 &&
+                    ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
+                      ( s[i] >= 'a' && s[i] <= 'z' ) ) )
+                i--;
+            if ( s[i] == ')' ) {
+                if ( i >0 && s[i-1] == ' ' )
+                    i--;
+                e = i;
+                done = false;
+            }
+        }
+    }
+
+    return s.mid( b, e-b );
+}
+
+
 static List<Session> * sessions;
 
 
@@ -544,35 +669,72 @@ void Page::mailboxPage()
         d->session->mailbox()->fetchHeaders( ms, this );
     }
 
-    String s;
-    uint msn = 1;
-    while ( msn <= d->session->count() ) {
-        uint uid =  d->session->uid( msn );
-        Message *m = d->session->mailbox()->message( uid );
-        msn++;
-        if ( m && !m->header()->fields()->isEmpty() ) {
-            s.append( "<div class=messagesummary><div class=header>\n" );
-
-            HeaderField *hf = m->header()->field( HeaderField::Subject );
-            if ( hf ) {
-                s.append( "<div class=headerfield>Subject: " );
-                s.append( "<a href=\"" + d->link->string() + "/" +
-                          fn( uid ) + "\">" );
-                s.append( htmlQuoted( hf->data() ) );
-                s.append( "</a></div>\n" );
-            }
-            s.append( address( m, HeaderField::From ) );
-            s.append( address( m, HeaderField::To ) );
-            s.append( address( m, HeaderField::Cc ) );
-
-            s.append( "</div></div>\n" );
-        }
-        else {
-            // XXX: this is inefficient. it would be better to keep
-            // the built string and extend it next time. consider that
-            // later.
+    while ( d->uid < highest ) {
+        Message *m = d->session->mailbox()->message( d->uid );
+        if ( !m || m->header()->fields()->isEmpty() )
             return;
+        HeaderField *hf = m->header()->field( HeaderField::Subject );
+        String subject( baseSubject( hf->data().simplified() ) );
+        PageData::Thread * t = d->subjects.find( subject );
+        if ( !t ) {
+            t = new PageData::Thread;
+            d->subjects.insert( subject, t );
+            d->threads.append( t );
         }
+        t->append( d->uid, m );
+        d->uid = d->session->uid( 1 + d->session->msn( d->uid ) );
+    }
+
+    String s;
+    List<PageData::Thread>::Iterator it( d->threads );
+    while ( it ) {
+        PageData::Thread * t = it;
+        ++it;
+        Message * m = t->message( 0 );
+        String url( d->link->string() );
+        url.append( "/" );
+        url.append( fn( t->uid( 0 ) ) );
+
+        HeaderField * hf = m->header()->field( HeaderField::Subject );
+        String subject( hf->data().simplified() );
+        if ( subject.isEmpty() )
+            subject = "(No Subject)";
+        s.append( "<div class=thread>\n"
+                  "<div class=headerfield>Subject: " );
+        s.append( htmlQuoted( subject ) );
+        s.append( "</div>\n" );
+
+        s.append( "<div class=threadcontributors>\n" );
+        s.append( "<div class=headerfield>From:\n" );
+        uint i = 0;
+        while ( i < t->messages() ) {
+            m = t->message( i );
+            s.append( "<a href=\"" );
+            s.append( url );
+            if ( i > 0 ) {
+                s.append( "#" );
+                s.append( fn( t->uid( i ) ) );
+            }
+            s.append( "\">" );
+            AddressField *af = m->header()->addressField( HeaderField::From );
+            if ( af ) {
+                List< Address >::Iterator it( af->addresses() );
+                while ( it ) {
+                    s.append( address( it ) );
+                    ++it;
+                    if ( it )
+                        s.append( ", " );
+                }
+            }
+            s.append( "</a>" );
+            i++;
+            if ( i < t->messages() )
+                s.append( "," );
+            s.append( "\n" );
+        }
+        s.append( "</div>\n" // headerfield
+                  "</div>\n" // threadcontributors
+                  "</div>\n" ); // thread
     }
 
     d->ready = true;
@@ -691,6 +853,11 @@ String Page::textPlain( const String & s )
                 r.append( "<br>\n" );
             else
                 newPara = true;
+        }
+        else if ( s[i] == 8 && r.length() > 0 &&
+                  r[r.length()-1] != '>' &&
+                  r[r.length()-1] != ';' ) {
+            r.truncate( r.length()-1 );
         }
         else {
             const char * element = htmlQuoted( s[i] );
@@ -998,9 +1165,9 @@ String Page::message( Message *first, Message *m )
         s.append( htmlQuoted( hf->data() ) );
         s.append( "</div>\n" );
     }
-    s.append( address( m, HeaderField::From ) );
-    s.append( address( m, HeaderField::To ) );
-    s.append( address( m, HeaderField::Cc ) );
+    s.append( addressField( m, HeaderField::From ) );
+    s.append( addressField( m, HeaderField::To ) );
+    s.append( addressField( m, HeaderField::Cc ) );
 
     List< HeaderField >::Iterator it( m->header()->fields() );
     while ( it ) {
@@ -1013,7 +1180,7 @@ String Page::message( Message *first, Message *m )
              hf->type() != HeaderField::Cc )
         {
             if ( hf->type() <= HeaderField::LastAddressField ) {
-                t.append( address( m, hf->type() ) );
+                t.append( addressField( m, hf->type() ) );
             }
             else {
                 t.append( "<div class=headerfield>" );
@@ -1144,7 +1311,22 @@ static String htmlQuoted( const String & s )
 }
 
 
-static String address( Message *m, HeaderField::Type t )
+static String address( Address * a )
+{
+    String s( "<span class=address>" );
+    s.append( htmlQuoted( a->uname() ) );
+    s.append( " &lt;" );
+    s.append( htmlQuoted( a->localpart() ) );
+    s.append( "@" );
+    s.append( htmlQuoted( a->domain() ) );
+    s.append( "&gt;</span>" );
+
+    return s;
+}
+
+
+
+static String addressField( Message *m, HeaderField::Type t )
 {
     String s;
 
@@ -1158,13 +1340,7 @@ static String address( Message *m, HeaderField::Type t )
 
     List< Address >::Iterator it( af->addresses() );
     while ( it ) {
-        s.append( "<span class=address>" );
-        s.append( htmlQuoted( it->uname() ) );
-        s.append( " &lt;" );
-        s.append( htmlQuoted( it->localpart() ) );
-        s.append( "@" );
-        s.append( htmlQuoted( it->domain() ) );
-        s.append( "&gt;</span>" );
+        s.append( address( it ) );
         ++it;
         if ( it )
             s.append( ", " );
