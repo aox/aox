@@ -673,8 +673,10 @@ void Page::mailboxPage()
         Message *m = d->session->mailbox()->message( d->uid );
         if ( !m || m->header()->fields()->isEmpty() )
             return;
-        HeaderField *hf = m->header()->field( HeaderField::Subject );
-        String subject( baseSubject( hf->data().simplified() ) );
+        HeaderField * hf = m->header()->field( HeaderField::Subject );
+        String subject;
+        if ( hf )
+            subject = baseSubject( hf->data().simplified() );
         PageData::Thread * t = d->subjects.find( subject );
         if ( !t ) {
             t = new PageData::Thread;
@@ -696,7 +698,9 @@ void Page::mailboxPage()
         url.append( fn( t->uid( 0 ) ) );
 
         HeaderField * hf = m->header()->field( HeaderField::Subject );
-        String subject( hf->data().simplified() );
+        String subject;
+        if ( hf )
+            subject = hf->data().simplified();
         if ( subject.isEmpty() )
             subject = "(No Subject)";
         s.append( "<div class=thread>\n"
