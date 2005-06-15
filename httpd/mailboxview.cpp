@@ -14,8 +14,9 @@ class MailboxViewData
 {
 public:
     MailboxViewData()
-        : unready( 0 ) {}
+        : unready( 0 ), working( false ) {}
     uint unready;
+    bool working;
     Dict<MailboxView::Thread> subjects;
     List<MailboxView::Thread> threads;
 };
@@ -73,13 +74,15 @@ public:
 
 void MailboxView::refresh( EventHandler * owner )
 {
-    if ( uidnext() >= mailbox()->uidnext() )
+    if ( d->working || ready() )
         return;
+
+    d->working = true;
 
     EventHandler * h = new MailboxViewBouncer( owner, this );
 
     MessageSet s;
-    s.add( uidnext(), mailbox()->uidnext() );
+    s.add( uidnext(), mailbox()->uidnext() - 1 );
     mailbox()->fetchHeaders( s, new MailboxViewBouncer( owner, this ) );
 
     Session::refresh( h );
@@ -97,11 +100,15 @@ bool MailboxView::ready()
 {
     if ( !initialised() )
         return false;
-    if ( !d->unready )
-        d->unready = uid( 1 );
+    if ( !d->unready ) {
+        if ( count() )
+            d->unready = uid( 1 );
+        else
+            d->unready = uidnext();
+    }
     while ( d->unready < uidnext() ) {
         Message * m = mailbox()->message( d->unready, false );
-        if ( m && !m->hasHeaders() )
+        if ( !m || !m->hasHeaders() )
             return false;
         threadMessage( d->unready, m );
         uint x = uid( msn( d->unready ) + 1 );
@@ -109,6 +116,7 @@ bool MailboxView::ready()
             x = uidnext();
         d->unready = x;
     }
+    d->working = false;
     return true;
 }
 

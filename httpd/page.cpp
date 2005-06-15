@@ -600,10 +600,9 @@ void Page::messagePage()
     MessageSet s;
     uint n = 0;
     while ( n < t->messages() ) {
-        if ( !t->message( n )->hasBodies() ) {
-            uint u = t->uid( n );
-            s.add( u, u );
-        }
+        if ( !t->message( n )->hasBodies() )
+            s.add( t->uid( n ) );
+        n++;
     }
 
     if ( !s.isEmpty() ) {
@@ -617,6 +616,7 @@ void Page::messagePage()
         d->text.append( message( m, m ) );
         n++;
     }
+    d->ready = true;
 }
 
 
