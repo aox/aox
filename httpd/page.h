@@ -46,7 +46,6 @@ private:
     void favicon();
     void composePage();
     void logoutPage();
-    bool messageReady();
     String bodypart( Message *, Bodypart * );
     String message( Message *, Message * );
     String jsToggle( const String &, bool, const String &, const String & );

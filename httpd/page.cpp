@@ -11,12 +11,12 @@
 #include "mailbox.h"
 #include "message.h"
 #include "ustring.h"
-#include "session.h"
 #include "bodypart.h"
 #include "allocator.h"
 #include "messageset.h"
 #include "mimefields.h"
 #include "httpsession.h"
+#include "mailboxview.h"
 #include "addressfield.h"
 
 
@@ -34,8 +34,8 @@ public:
     PageData()
         : type( Page::Error ), isTopLevel( false ), state( 0 ),
           link( 0 ), server( 0 ), ready( false ),
-          user( 0 ), message( 0 ),
-          uid( 0 ), session( 0 ),
+          user( 0 ),
+          uid( 0 ), mailboxView( 0 ),
           uniq( 0 )
     {}
 
@@ -52,57 +52,11 @@ public:
     String login;
     String passwd;
     User *user;
-    Message *message;
     uint uid;
-    Session * session;
+    MailboxView * mailboxView;
 
     uint uniq;
 
-    class Thread
-    {
-    private:
-        struct M {
-            M( uint u, Message * m ): uid( u ), message( m ) {}
-
-            uint uid;
-            Message * message;
-        };
-        List<M> m;
-
-        M * member( uint n ) const {
-            List<M>::Iterator i( m );
-            while ( i && n ) {
-                ++i;
-                --n;
-            }
-            return i;
-        }
-
-    public:
-        Thread() {}
-
-        void append( uint uid, Message * msg ) {
-            m.append( new M( uid, msg ) );
-        }
-        Message * message( uint n ) const {
-            M * m = member( n );
-            if ( m )
-                return m->message;
-            return 0;
-        }
-        uint uid( uint n ) const {
-            M * m = member( n );
-            if ( m )
-                return m->uid;
-            return 0;
-        }
-        uint messages() const {
-            return m.count();
-        }
-    };
-
-    Dict<Thread> subjects;
-    List<Thread> threads;
 };
 
 
@@ -546,85 +500,6 @@ void Page::mainPage()
 }
 
 
-// tries to chop off the prefixes and suffixes used by MUAs to find a
-// base subject that can be used to tie threads together linearly.
-
-static String baseSubject( const String & s )
-{
-    uint b = 0;
-    uint e = s.length();
-
-    // try to get rid of leading Re:, Fwd:, Re[2]: and similar.
-    bool done = false;
-    while ( !done ) {
-        done = true;
-        uint i = b;
-        if ( s[i] == '[' ) {
-            uint j = i;
-            i++;
-            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                    ( s[i] >= 'a' && s[i] <= 'z' ) ||
-                    ( s[i] >= '0' && s[i] <= '9' ) ||
-                    s[i] == '-' )
-                i++;
-            if ( s[i] == ']' ) {
-                i++;
-                done = false;
-                b = i;
-            }
-            else {
-                i = j;
-            }
-        }
-        while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                ( s[i] >= 'a' && s[i] <= 'z' ) )
-            i++;
-        if ( s[i] == '[' ) {
-            uint j = i;
-            i++;
-            while ( ( s[i] >= '0' && s[i] <= '9' ) )
-                i++;
-            if ( s[i] == ']' )
-                i++;
-            else
-                i = j;
-        }
-        if ( s[i] == ':' ) {
-            i++;
-            b = i;
-            done = false;
-        }
-        if ( !done && s[b] == 32 )
-            b++;
-    }
-
-    // try to get rid of trailing (Fwd) etc.
-    done = false;
-    while ( !done ) {
-        done = true;
-        uint i = e;
-        if ( i > 0 && s[i-1] == ')' ) {
-            i--;
-            while ( i > 0 &&
-                    ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                      ( s[i] >= 'a' && s[i] <= 'z' ) ) )
-                i--;
-            if ( s[i] == ')' ) {
-                if ( i >0 && s[i-1] == ' ' )
-                    i--;
-                e = i;
-                done = false;
-            }
-        }
-    }
-
-    return s.mid( b, e-b );
-}
-
-
-static List<Session> * sessions;
-
-
 /*! Prepares to display a mailbox.
 */
 
@@ -633,64 +508,22 @@ void Page::mailboxPage()
     log( "mailboxPage for " + d->link->mailbox()->name() + " with uidnext " +
          fn( d->link->mailbox()->uidnext() ) );
 
-    if ( !d->session ) {
-        if ( !::sessions ) {
-            ::sessions = new List<Session>;
-            Allocator::addEternal( ::sessions,
-                                   "mailbox sessions used via http" );
-        }
-        List<Session>::Iterator it( *::sessions );
-        while ( it && it->mailbox() != d->link->mailbox() )
-            ++it;
-        d->session = it;
-        if ( !d->session ) {
-            d->session = new Session( d->link->mailbox(), true );
-            ::sessions->append( d->session );
-        }
-    }
+    if ( !d->mailboxView )
+        d->mailboxView = MailboxView::find( d->link->mailbox() );
 
-    if ( !d->session->initialised() ) {
-        d->session->refresh( this );
-        d->uid = 0;
+    d->mailboxView->refresh( this );
+    if ( !d->mailboxView->ready() )
         return;
-    }
 
-    if ( d->session->count() == 0 ) {
+    if ( d->mailboxView->count() == 0 ) {
         d->text = "<p>Mailbox is empty";
         d->ready = true;
     }
 
-    uint highest = d->session->uid( d->session->count() );
-
-    if ( !d->uid ) {
-        d->uid = d->session->uid( 1 );
-        MessageSet ms;
-        ms.add( d->uid, highest );
-        d->session->mailbox()->fetchHeaders( ms, this );
-    }
-
-    while ( d->uid < highest ) {
-        Message *m = d->session->mailbox()->message( d->uid );
-        if ( !m || m->header()->fields()->isEmpty() )
-            return;
-        HeaderField * hf = m->header()->field( HeaderField::Subject );
-        String subject;
-        if ( hf )
-            subject = baseSubject( hf->data().simplified() );
-        PageData::Thread * t = d->subjects.find( subject );
-        if ( !t ) {
-            t = new PageData::Thread;
-            d->subjects.insert( subject, t );
-            d->threads.append( t );
-        }
-        t->append( d->uid, m );
-        d->uid = d->session->uid( 1 + d->session->msn( d->uid ) );
-    }
-
     String s;
-    List<PageData::Thread>::Iterator it( d->threads );
+    List<MailboxView::Thread>::Iterator it( d->mailboxView->allThreads() );
     while ( it ) {
-        PageData::Thread * t = it;
+        MailboxView::Thread * t = it;
         ++it;
         Message * m = t->message( 0 );
         String url( d->link->string() );
@@ -747,15 +580,43 @@ void Page::mailboxPage()
 
 
 /*! Prepares to display a single message.
+
+    Misnamed. Displays an entire thread, starting with a message. This
+    is an EVIL EVIL HACK. We need a new class modelling a, uh, session
+    for a session.
 */
 
 void Page::messagePage()
 {
-    if ( !messageReady() )
+    if ( !d->mailboxView )
+        d->mailboxView = MailboxView::find( d->link->mailbox() );
+
+    d->mailboxView->refresh( this );
+    if ( !d->mailboxView->ready() )
         return;
 
-    d->ready = true;
-    d->text = message( d->message, d->message );
+    MailboxView::Thread * t = d->mailboxView->thread( d->link->uid() );
+
+    MessageSet s;
+    uint n = 0;
+    while ( n < t->messages() ) {
+        if ( !t->message( n )->hasBodies() ) {
+            uint u = t->uid( n );
+            s.add( u, u );
+        }
+    }
+
+    if ( !s.isEmpty() ) {
+        d->mailboxView->mailbox()->fetchBodies( s, this );
+        return;
+    }
+
+    n = 0;
+    while ( n < t->messages() ) {
+        Message * m = t->message( n );
+        d->text.append( message( m, m ) );
+        n++;
+    }
 }
 
 
@@ -774,40 +635,10 @@ void Page::archivePage()
 
 void Page::archiveMessagePage()
 {
-    if ( !messageReady() )
-        return;
-
-    d->ready = true;
-    d->text = message( d->message, d->message );
     d->isTopLevel = true;
+    messagePage();
 }
 
-
-/*! Returns true if d->message has been fetched from the database, and
-    false otherwise.
-*/
-
-bool Page::messageReady()
-{
-    if ( !d->message ) {
-        Mailbox *m = d->link->mailbox();
-        d->message = m->message( d->link->uid(), true );
-
-        MessageSet ms;
-        ms.add( d->link->uid() );
-        if ( !d->message->hasFlags() )
-            m->fetchFlags( ms, this );
-        if ( !d->message->hasBodies() )
-            m->fetchBodies( ms, this );
-        if ( !d->message->hasHeaders() )
-            m->fetchHeaders( ms, this );
-    }
-
-    if ( !d->message->hasHeaders() ||
-         !d->message->hasBodies() )
-        return false;
-    return true;
-}
 
 /*! This helper turns \a s into HTML. It is public for convenience and
     ease of testing. It should not be called by other classes.
@@ -1219,10 +1050,17 @@ String Page::message( Message *first, Message *m )
 
 void Page::webmailPartPage()
 {
-    if ( !messageReady() )
+    Message * m
+        = d->mailboxView->mailbox()->message( d->link->uid(), false );
+    if ( !m || !m->hasBodies() || !m->hasHeaders() ) {
+        MessageSet s;
+        s.add( d->link->uid() );
+        d->mailboxView->mailbox()->fetchHeaders( s, this );
+        d->mailboxView->mailbox()->fetchBodies( s, this );
         return;
+    }
 
-    Bodypart *bp = d->message->bodypart( d->link->part(), false );
+    Bodypart *bp = m->bodypart( d->link->part(), false );
     if ( !bp ) {
         d->type = Error;
         d->server->setStatus( 404, "File not found" );
