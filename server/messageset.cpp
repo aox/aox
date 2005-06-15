@@ -80,6 +80,12 @@ void MessageSet::add( uint n1, uint n2 )
         return;
     }
 
+    if ( !n1 ) {
+        if ( n2 )
+            add( 1, n2 );
+        return;
+    }
+
     List< SetData::Range >::Iterator i;
 
     i = d->l.first();
