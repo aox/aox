@@ -613,6 +613,9 @@ void Page::messagePage()
     n = 0;
     while ( n < t->messages() ) {
         Message * m = t->message( n );
+        d->text.append( "<a name=\"" );
+        d->text.append( fn( t->uid( n ) ) );
+        d->text.append( "\"></a>\n" );
         d->text.append( message( m, m ) );
         n++;
     }
@@ -934,17 +937,17 @@ String Page::bodypart( Message *first, Bodypart *bp )
         type = ct->type() + "/" + ct->subtype();
 
     if ( type == "text/plain" ) {
-        s.append( "<div class=body>" );
+        s.append( "<div class=body>\n" );
         s.append( textPlain( u.fromUnicode( bp->text() ) ) );
         s.append( "</div>\n" );
     }
     else if ( type == "text/html" ) {
-        s.append( "<div class=body>" );
+        s.append( "<div class=body>\n" );
         s.append( textHtml( u.fromUnicode( bp->text() ) ) );
         s.append( "</div>\n" );
     }
     else if ( type == "message/rfc822" ) {
-        s.append( "<div class=body>" );
+        s.append( "<div class=body>\n" );
         s.append( message( first, bp->rfc822() ) );
         s.append( "</div>\n" );
     }
@@ -957,7 +960,7 @@ String Page::bodypart( Message *first, Bodypart *bp )
         s.append( "</a></div>\n" );
     }
     else if ( type.startsWith( "multipart/" ) ) {
-        s.append( "<div class=multipart>" );
+        s.append( "<div class=multipart>\n" );
         List< Bodypart >::Iterator it( bp->children() );
         while ( it ) {
             s.append( bodypart( first, it ) );
@@ -966,7 +969,7 @@ String Page::bodypart( Message *first, Bodypart *bp )
         s.append( "</div>\n" );
     }
     else {
-        s.append( "<div class=unknown>" );
+        s.append( "<div class=unknown>\n" );
         s.append( "Unknown content type: " );
         s.append( type );
         s.append( " <a href=\"" + d->link->string() + "/" +
@@ -978,7 +981,6 @@ String Page::bodypart( Message *first, Bodypart *bp )
         s.append( ")</div>\n" );
     }
 
-    s.append( "</div>\n" );
     return s;
 }
 
@@ -992,7 +994,7 @@ String Page::message( Message *first, Message *m )
     String s, t;
     HeaderField *hf;
 
-    s.append( "<div class=message><div class=header>\n" );
+    s.append( "<div class=message>\n<div class=header>\n" );
 
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
@@ -1021,13 +1023,14 @@ String Page::message( Message *first, Message *m )
                 t.append( "<div class=headerfield>" );
                 t.append( htmlQuoted( hf->name() ) );
                 t.append( ": " );
-                t.append( htmlQuoted( hf->data() ) );
+                t.append( htmlQuoted( hf->data().simplified() ) );
                 t.append( "</div>\n" );
             }
         }
 
     }
-    s.append( jsToggle( t, false, "Show full header", "Hide full header" ) );
+    s.append( jsToggle( t, false,
+                        "Show full header", "Hide full header" ) );
 
     s.append( "</div>\n" );
 
@@ -1036,6 +1039,8 @@ String Page::message( Message *first, Message *m )
         s.append( bodypart( first, jt ) );
         ++jt;
     }
+
+    s.append( "</div>\n" );
 
     return s;
 }
@@ -1215,14 +1220,14 @@ String Page::jsToggle( const String &t,
     String b = "toggle" + fn( ++d->uniq );
 
     if ( v )
-        s.append( "<div class=njsvisible id=" + a + ">" );
+        s.append( "<div class=njsvisible id=" + a + ">\n" );
     else
-        s.append( "<div class=njshidden id=" + a + ">" );
+        s.append( "<div class=njshidden id=" + a + ">\n" );
     s.append( t );
     s.append( "<div class=jsonly>" );
     s.append( "<a onclick=\"toggleElement('" + b + "', '" + a + "')\">" );
     s.append( hide );
-    s.append( "</a></div></div>\n" );
+    s.append( "</a></div>\n</div>\n" );
 
     s.append( "<div class=jsonly id=" + b + ">" );
     s.append( "<a onclick=\"toggleElement('" + a + "', '" + b + "')\">" );
