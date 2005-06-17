@@ -985,12 +985,11 @@ String Search::Condition::whereBody() const
 {
     uint bt = d->argument();
     d->query->bind( bt, q( s16 ) );
-    d->usesPartNumbersTable = true;
-    d->usesBodypartsTable = true;
-    return "messages.mailbox=part_numbers.mailbox and "
-        "messages.uid=part_numbers.uid and "
-        "part_numbers.bodypart=bodyparts.id and "
-        "bodyparts.text ilike '%'||$" + fn( bt ) + "||'%'";
+    return "messages.uid in ("
+        "select m.uid from messages m, part_numbers pn, bodyparts b "
+        "where m.mailbox=$" + fn( d->mboxId ) + " and m.mailbox=pn.mailbox "
+        "and m.uid=pn.uid and pn.bodypart=b.id and "
+        "b.text ilike '%'||$" + fn( bt ) + "||'%')";
 }
 
 
