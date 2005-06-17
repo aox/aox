@@ -47,7 +47,7 @@ if [ $NOORYXGROUP ]; then
 	echo Make a group called $ORYXGROUP, e.g. with
 	echo "    groupadd $ORYXGROUP";
     elif [ -x /usr/sbin/groupadd ]; then
-	/usr/sbin/group $ORYXGROUP
+	/usr/sbin/groupadd $ORYXGROUP
     else
 	echo Need to make a unix group called $ORYXGROUP, but do not know how
 	echo to. Please make one by hand, then rerun the install script.
