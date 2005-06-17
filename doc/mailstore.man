@@ -28,8 +28,13 @@ Usually, this is as simple as:
 http://www.oryx.com/mailstore/installation.html explains what to do in
 other cases.
 .PP
-Installing Mailstore normally starts all the necessary services using
-the default configuration.
+Use
+.IP
+.B $LIBDIR/rcmailstore start
+.PP
+to start Mailstore using the default configuration from
+.BR mailstore.conf ,
+which tries hard to be sensible.
 .SS "2. Add a user"
 Run
 .IP

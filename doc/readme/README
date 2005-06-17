@@ -29,15 +29,15 @@ Building and installing Mailstore is a five-step process:
 
    The man page for mailstore.conf explains all the possible settings.
 
-5. Create the Mailstore users you need, e.g.
+At this point, you're ready to run "INITDIR/rcmailstore start" to start
+Mailstore. After a change, "rcmailstore restart" restarts.
+
+Create the Mailstore users you need, e.g.
 
       ms create user nirmala pw nirmala@example.org
 
-   to create a user with login "nirmala", password "pw" and email
-   address "nirmala@example.org".
-
-At this point, you're ready to run "INITDIR/rcmailstore start" to start
-Mailstore. After a change, "rcmailstore restart" restarts.
+to create a user with login "nirmala", password "pw" and email address
+"nirmala@example.org".
 
 There are mailing lists for Mailstore users and announcements. To
 subscribe to the users list, send mail:
