@@ -982,11 +982,26 @@ String Page::bodypart( Message *first, Bodypart *bp )
     }
     else {
         s.append( "<div class=unknown>\n" );
-        s.append( "Unknown content type: " );
+
+        s.append( "<p>Unknown content type: " );
         s.append( type );
-        s.append( " <a href=\"" + d->link->string() + "/" +
+        s.append( "\n" );
+        s.append( "<p><a href=\"" + d->link->string() + "/" +
                   first->partNumber( bp ) + "\">" );
         s.append( "Save" );
+
+        String fn;
+        ContentDisposition * cd = bp->header()->contentDisposition();
+        if ( cd )
+            fn = cd->parameter( "filename" );
+        if ( ct && fn.isEmpty() )
+            fn = ct->parameter( "filename" );
+        if ( !fn.isEmpty() ) {
+            // XXX i18n unfriendly; enforces "verb object" order
+            s.append( " " );
+            s.append( htmlQuoted( fn ) );
+        }
+
         s.append( "</a>" );
         s.append( " (size " );
         s.append( String::humanNumber( bp->numBytes() ) );
