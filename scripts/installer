@@ -33,7 +33,7 @@ if [ -f $CONFIG -a $TELL = no ]; then
 fi
 
 # Is there an oryx user and group?
-GROUPS=`id $ORYXUSER` >/dev/null 2>/dev/null || NOORYXUSER=1
+GROUPS=`id $ORYXUSER 2>/dev/null` || NOORYXUSER=1
 # (There does not seem to be a properly portable way to identify a group)
 grep '^'$ORYXGROUP':' /etc/group >/dev/null 2>/dev/null || NOORYXGROUP=1
 
