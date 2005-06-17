@@ -158,6 +158,11 @@ Page::Page( Link * link, HTTP *server )
 
 void Page::execute()
 {
+    // if we're ready already, there's no point in doing anything, and
+    // it might be harmful, if the HTTP has sent the response already.
+    if ( d->ready )
+        return;
+
     switch( d->type ) {
     case MainPage:
         mainPage();
@@ -468,42 +473,11 @@ static String mailboxDescriptor( Mailbox * m, uint prefixLength = 0 )
 
 void Page::mainPage()
 {
-    String s( mailbox( d->server->user()->inbox() ) );
-    if ( s.isEmpty() )
-        return;
-
-    d->ready = true;
-    d->text =
-        "<div class=homepage>"
-        "<div class=top>"
-        "<div class=search>"
-        "<form method=post action=>"
-        "<input type=text name=query>"
-        "<input type=submit value=search>"
-        "</form>"
-        "</div>\n" // search
-        "<div class=buttons>\n"
-        "<a href=\"/logout\">Logout</a>\n"
-        "<a href=\"/compose\">Compose</a>\n"
-        "</div>\n" // buttons
-        "</div>\n" // top
-        "<div class=middle>"
-        "<div class=folders>"
-        "<p>Folder list.\n<ul class=mailboxlist>" +
-        mailboxDescriptor( d->server->session()->user()->home(), 0 ) +
-        "</ul>"
-        "</div>\n" // folders
-        "</div>\n" // buttons
-        "<div class=bottom>"
-        "</div>\n" // bottom
-        "</div>\n" // homepage
-        "<div class=formeriframe>\n" + s + "</div>\n"
-        ;
-    // suckily, all this is repeated in mailboxPage(). just
-    // coincidence, or will it always be like that? I think mostly
-    // coincidence. most of this text should come from a third
-    // function, which will be called by mainPage(), mailboxPage(),
-    // composePage() and more.
+    // XXX HACK to work around the mainpage/inbox dualism - two URLs
+    // map to the same result. think about a more proper approach.
+    d->link = new Link( "/" + fn( d->server->user()->inbox()->id() ) );
+    d->type = WebmailMailbox;
+    mailboxPage();
 }
 
 
