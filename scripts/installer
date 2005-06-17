@@ -55,7 +55,7 @@ if [ $NOORYXGROUP ]; then
     fi
 fi
 
-if [ $NOORYXUSER = 1 ]; then
+if [ $NOORYXUSER ]; then
     if [ $TELL = yes ]; then
 	echo Make a user called $ORYXUSER, e.g. with
     	echo "    useradd -r -g $ORYXGROUP $ORYXUSER"
