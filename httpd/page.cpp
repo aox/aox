@@ -267,11 +267,23 @@ String Page::text() const
               "return;\n"
               "r[0].style.display='';\n"
               "r[1].style.display='none'\n"
-              "}"
-              // and provide a function to show/hide
+              "}\n"
+              // provide a function to swap two elements
               "function toggleElement(s,h){\n"
-              "document.getElementById(s).className = 'visible';\n"
-              "document.getElementById(h).className = 'hidden';\n"
+              "document.getElementById(s).className='visible';\n"
+              "document.getElementById(h).className='hidden';\n"
+              "}\n"
+              // one to toggle display of a single element
+              "function expandCollapse(e){\n"
+              "var s=document.getElementById(e);\n"
+              "if(s&&s.style){\n"
+              "s=s.style;\n"
+              "if(s.display&&s.display=='none'){\n"
+              "s.display = '';\n"
+              "}else{\n"
+              "s.display = 'none';\n"
+              "}\n"
+              "}\n"
               "}\n"
                // change the css to use the javascript version at once
                // for browsers that can...
@@ -1055,8 +1067,9 @@ String Page::message( Message *first, Message *m )
 
 void Page::webmailPartPage()
 {
-    Message * m
-        = d->mailboxView->mailbox()->message( d->link->uid(), false );
+    Message * m = 0;
+    if ( d->link->mailbox() )
+        m = d->link->mailbox()->message( d->link->uid(), false );
     if ( !m || !m->hasBodies() || !m->hasHeaders() ) {
         MessageSet s;
         s.add( d->link->uid() );
