@@ -46,8 +46,12 @@ private:
     void favicon();
     void composePage();
     void logoutPage();
+
     String bodypart( Message *, Bodypart * );
     String message( Message *, Message * );
+
+    String mailbox( class Mailbox * );
+
     String jsToggle( const String &, bool, const String &, const String & );
 
 private:

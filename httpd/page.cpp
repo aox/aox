@@ -32,7 +32,7 @@ static String addressField( Message *, HeaderField::Type );
 class PageData {
 public:
     PageData()
-        : type( Page::Error ), isTopLevel( false ), state( 0 ),
+        : type( Page::Error ), state( 0 ),
           link( 0 ), server( 0 ), ready( false ),
           user( 0 ),
           uid( 0 ), mailboxView( 0 ),
@@ -40,18 +40,17 @@ public:
     {}
 
     Page::Type type;
-    bool isTopLevel;
     uint state;
 
-    Link *link;
+    Link * link;
     String text, data;
     String ct;
-    HTTP *server;
+    HTTP * server;
     bool ready;
 
     String login;
     String passwd;
-    User *user;
+    User * user;
     uint uid;
     MailboxView * mailboxView;
 
@@ -290,9 +289,6 @@ String Page::text() const
               "useJS();\n"
               // and later for safari and whatever else
               "window.onload = 'useJS();';\n" );
-    // if this ought to be a top-level page and it's not, upgrade it
-    if ( d->isTopLevel )
-        r.append( "if(top.location!=location){top.location=location}\n" );
     r.append( "</script>\n" );
     if ( jsUrl )
         r.append( "<script src=\"" + *jsUrl + "\"></script>\n" );
@@ -357,7 +353,6 @@ void Page::errorPage()
               "<p>" + e + "</div>\n";
 
     d->ready = true;
-    d->isTopLevel = true;
 }
 
 
@@ -372,7 +367,6 @@ void Page::loginForm()
     if ( !d->login.isEmpty() )
         login = d->login;
     d->ready = true;
-    d->isTopLevel = true;
     d->text =
         "<div class=loginform>\n"
         "<form name=login method=post action=\"/\">\n"
@@ -420,10 +414,9 @@ void Page::loginData()
     {
         loginForm();
         d->text = "<div class=errormessage>"
-                  "<p>Login and passwword did not match.";
+                  "<p>Login and password did not match.";
                   "</div>\n" + d->text + "";
         d->ready = true;
-        d->isTopLevel = true;
     }
     else {
         HttpSession *s = d->server->session();
@@ -449,7 +442,7 @@ static String mailboxDescriptor( Mailbox * m, uint prefixLength = 0 )
     if ( link ) {
         r.append( "<a href=\"/" );
         r.append( fn( m->id() ) );
-        r.append( "\" target=content>" );
+        r.append( "\"" );
     }
     r.append( htmlQuoted( m->name().mid( prefixLength ) ) );
     if ( link )
@@ -475,9 +468,11 @@ static String mailboxDescriptor( Mailbox * m, uint prefixLength = 0 )
 
 void Page::mainPage()
 {
+    String s( mailbox( d->server->user()->inbox() ) );
+    if ( s.isEmpty() )
+        return;
 
     d->ready = true;
-    d->isTopLevel = true;
     d->text =
         "<div class=homepage>"
         "<div class=top>"
@@ -489,7 +484,7 @@ void Page::mainPage()
         "</div>\n" // search
         "<div class=buttons>\n"
         "<a href=\"/logout\">Logout</a>\n"
-        "<a href=\"/compose\" target=content>Compose</a>\n"
+        "<a href=\"/compose\">Compose</a>\n"
         "</div>\n" // buttons
         "</div>\n" // top
         "<div class=middle>"
@@ -502,44 +497,47 @@ void Page::mainPage()
         "<div class=bottom>"
         "</div>\n" // bottom
         "</div>\n" // homepage
-        "<div class=hack>\n"
-        "<iframe class=content name=content src=\"" +
-        fn( d->server->user()->inbox()->id() ) +
-        "/\">"
-        "</iframe>"
-        "</div>"
+        "<div class=formeriframe>\n" + s + "</div>\n"
         ;
+    // suckily, all this is repeated in mailboxPage(). just
+    // coincidence, or will it always be like that? I think mostly
+    // coincidence. most of this text should come from a third
+    // function, which will be called by mainPage(), mailboxPage(),
+    // composePage() and more.
 }
 
 
-/*! Prepares to display a mailbox.
+/*! Returns the string necessary to display \a m, without any
+    extraneous surrounding text (search buttons etc). mainPage(),
+    mailboxPage() and archivePage() all use this and supplement it
+    with extras of their choosing.
+
+    If mailbox() cannot return a finished result, it returns an empty
+    string and expects to be called again. In this case it arranges
+    for execute() to be called again.
 */
 
-void Page::mailboxPage()
+String Page::mailbox( Mailbox * m )
 {
-    log( "mailboxPage for " + d->link->mailbox()->name() + " with uidnext " +
-         fn( d->link->mailbox()->uidnext() ) );
+    MailboxView * mv = MailboxView::find( m );
+    mv->refresh( this );
+    if ( !mv->ready() )
+        return "";
 
-    if ( !d->mailboxView )
-        d->mailboxView = MailboxView::find( d->link->mailbox() );
-
-    d->mailboxView->refresh( this );
-    if ( !d->mailboxView->ready() )
-        return;
-
-    if ( d->mailboxView->count() == 0 ) {
+    if ( mv->count() == 0 ) {
         d->text = "<p>Mailbox is empty";
         d->ready = true;
     }
 
     String s;
-    List<MailboxView::Thread>::Iterator it( d->mailboxView->allThreads() );
+    List<MailboxView::Thread>::Iterator it( mv->allThreads() );
     while ( it ) {
         MailboxView::Thread * t = it;
         ++it;
         Message * m = t->message( 0 );
         String url( d->link->string() );
-        url.append( "/" );
+        if ( !url.endsWith( "/" ) )
+            url.append( "/" );
         url.append( fn( t->uid( 0 ) ) );
 
         HeaderField * hf = m->header()->field( HeaderField::Subject );
@@ -551,7 +549,7 @@ void Page::mailboxPage()
         s.append( "<div class=thread>\n"
                   "<div class=headerfield>Subject: " );
         s.append( htmlQuoted( subject ) );
-        s.append( "</div>\n" );
+        s.append( "</div>\n" ); // subject
 
         s.append( "<div class=threadcontributors>\n" );
         s.append( "<div class=headerfield>From:\n" );
@@ -565,7 +563,8 @@ void Page::mailboxPage()
                 s.append( fn( t->uid( i ) ) );
             }
             s.append( "\">" );
-            AddressField *af = m->header()->addressField( HeaderField::From );
+            AddressField * af
+                = m->header()->addressField( HeaderField::From );
             if ( af ) {
                 List< Address >::Iterator it( af->addresses() );
                 while ( it ) {
@@ -586,8 +585,47 @@ void Page::mailboxPage()
                   "</div>\n" ); // thread
     }
 
+    return s;
+}
+
+
+/*! Prepares to display a mailbox.
+*/
+
+void Page::mailboxPage()
+{
+    String s( mailbox( d->link->mailbox() ) );
+    if ( s.isEmpty() )
+        return;
+
+    d->text =
+        "<div class=homepage>"
+        "<div class=top>"
+        "<div class=search>"
+        "<form method=post action=>"
+        "<input type=text name=query>"
+        "<input type=submit value=search>"
+        "</form>"
+        "</div>\n" // search
+        "<div class=buttons>\n"
+        "<a href=\"/logout\">Logout</a>\n"
+        "<a href=\"/compose\">Compose</a>\n"
+        "</div>\n" // buttons
+        "</div>\n" // top
+        "<div class=middle>"
+        "<div class=folders>"
+        "<p>Folder list.\n<ul class=mailboxlist>" +
+        mailboxDescriptor( d->server->session()->user()->home(), 0 ) +
+        "</ul>"
+        "</div>\n" // folders
+        "</div>\n" // buttons
+        "<div class=bottom>"
+        "</div>\n" // bottom
+        "</div>\n" // homepage
+        "<div class=formeriframe>\n" + s + "</div>\n"
+        ;
+
     d->ready = true;
-    d->text = s;
 }
 
 
@@ -640,8 +678,12 @@ void Page::messagePage()
 
 void Page::archivePage()
 {
-    mailboxPage();
-    d->isTopLevel = true;
+    String s( mailbox( d->link->mailbox() ) );
+    if ( s.isEmpty() )
+        return;
+
+    d->text = s;
+    d->ready = true;
 }
 
 
@@ -650,7 +692,6 @@ void Page::archivePage()
 
 void Page::archiveMessagePage()
 {
-    d->isTopLevel = true;
     messagePage();
 }
 
