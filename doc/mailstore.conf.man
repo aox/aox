@@ -124,7 +124,8 @@ and
 is
 .I info
 by default and can also be set to either
-.IR debug or
+.I debug
+or
 .IR error .
 If a message is logged with this severity or above, the log server
 immediately writes it to the log file. Messages with lower severity
