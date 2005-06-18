@@ -556,6 +556,8 @@ void Mailbox::forget( Fetcher * f )
         d->flagFetcher = 0;
     else if ( d->bodyFetcher == f )
         d->bodyFetcher = 0;
+    else if ( d->triviaFetcher == f )
+        d->triviaFetcher = 0;
 }
 
 

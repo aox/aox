@@ -90,7 +90,7 @@ Fetcher::Fetcher( Mailbox * m )
             "order by uid, flag";
         ::flags = new PreparedStatement( q );
         Allocator::addEternal( header, "statement to fetch headers" );
-        Allocator::addEternal( header, "statement to fetch ~nothing" );
+        Allocator::addEternal( trivia, "statement to fetch ~nothing" );
         Allocator::addEternal( body, "statement to fetch bodies" );
         Allocator::addEternal( flags, "statement to fetch flags" );
     }
@@ -409,5 +409,5 @@ void MessageTriviaFetcher::decode( Message * m , Row * r )
 
 void MessageTriviaFetcher::setDone( Message * )
 {
-    // presumably bug-free. unless...
+    // hard work
 }
