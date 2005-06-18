@@ -165,7 +165,7 @@ static struct {
     { "tlsproxy-address", Configuration::TlsProxyAddress, "127.0.0.1" },
     { "log-address", Configuration::LogAddress, "127.0.0.1" },
     { "ocd-address", Configuration::OcdAddress, "127.0.0.1" },
-    { "ocadmin-address", Configuration::OcAdminAddress, "" },
+    { "ocadmin-address", Configuration::OcAdminAddress, "127.0.0.1" },
     { "pop-address", Configuration::PopAddress, "" },
     { "imap-address", Configuration::ImapAddress, "" },
     { "imaps-address", Configuration::ImapsAddress, "" },
