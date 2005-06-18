@@ -100,6 +100,8 @@ Message::Message( const String & rfc2822 )
     }
 
     header()->simplify();
+
+    d->rfc822Size = rfc822().length();
 }
 
 
