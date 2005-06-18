@@ -106,12 +106,12 @@ void AddressField::update()
 
         if ( t == HeaderField::References ) {
             wsep = " ";
-            lsep = "\n ";
+            lsep = "\r\n ";
             lpos = 1;
         }
         else {
             wsep = ", ";
-            lsep = ",\n    ";
+            lsep = ",\r\n    ";
             lpos = 4;
         }
 
@@ -122,7 +122,7 @@ void AddressField::update()
             if ( first ) {
                 first = false;
             }
-            else if ( c + wsep.length() + a.length() > 72 ) {
+            else if ( c + wsep.length() + a.length() > 71 ) {
                 s.append( lsep );
                 c = lpos;
             }
