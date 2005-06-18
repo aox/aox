@@ -1,0 +1,104 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH recorder 8 2005-06-18 www.oryx.com "Mailstore Documentation"
+.SH NAME
+recorder - IMAP connection recorder
+.SH SYNOPSIS
+.B $BINDIR/recorder port address port file
+.SH DESCRIPTION
+.nh
+.PP
+The
+.B recorder
+program accepts connection on a TCP port, forwards them to another
+port, and records the data transmitted in a format which is useful to
+Oryx.
+.PP
+If you have problems getting
+.BR imapd (8)
+to work with a particular IMAP client, you can run
+.BR recorder ,
+make the IMAP client connect to
+.BR imapd (8)
+via
+.B recorder
+instead of directly, and
+.B recorder
+will make a record of the IMAP connection. If the client opens more
+than one connection,
+.B recorder
+records stores more than one file.
+.PP
+The file format is pure ASCII and can be edited. We suggest that you
+edit out your password, then send the rest to info@oryx.com and we may
+be able to find out what's happening.
+.PP
+Oryx has debug tools that can replay the connection, so we can fix any
+bugs on the server's side. In some cases, we can also add the file to
+our regression tests, so we can be sure that new versions of
+.BR imapd (8)
+does not have the error.
+.SH EXAMPLE
+To intercept and record traffic to the
+.BR imapd (8)
+on 192.0.2.4.17 and place a record of the connections in files called
+.I /tmp/bugreport*
+you can do the following:
+.SS "Disable TLS"
+.PP
+.B recorder
+does not work when TLS is being used. (To TLS, a tool like
+.B recorder
+looks like a man-in-the-middle attack.)
+.PP
+To disable TLS, set the variable
+.I use-tls
+to
+.I disabled
+in
+.I $CONFIGDIR/mailstore.conf
+(see the
+.BR mailstore.conf (5)
+man page for more information.)
+.SS "Restart Mailstore"
+The change to
+.I use-tls
+only takes effect when you restart Mailstore, e.g. by issuing the
+following command
+.IP
+$LIBDIR/rcmailstore restart
+.SS "Start recorder"
+To make recorder listen on the normal port 143 and forward connections
+to the real server:
+.IP $BINDIR/recorder 143 192.0.2.17 143 /tmp/bugreport
+.SS "Connect to recorder"
+With the IMAP client, you connect to port 143 on this host (instead of
+the real server) and work as usual. Please don't do too much, or the
+bugreport files grow very large.
+.IP Stop
+Just hit control-c to stop
+.BR recorder .
+when you're done. The files called
+.I /tmp/bugreport*
+contain the IMAP connections.
+.IP "Remove passwords"
+Please edit the files to remove any passwords or other confidential
+data. If you can, don't change the number of words or bytes. It's best
+to change all the letters in passwords and confidential words to 'x'.
+.PP
+That's it. Now you can send an excellent bug report to info@oryx.com.
+.SH AUTHOR
+The Oryx Mailstore developers, info@oryx.com.
+.SH VERSION
+This man page covers Oryx Mailstore version 0.94, released 2005-05-23,
+http://www.oryx.com/mailstore/0.94.html.
+.SH SEE ALSO
+.BR mailstore (7),
+.BR mailstore.conf (5),
+.BR deliver (8),
+.BR logd (8),
+.BR ocd (8),
+.BR pop3d (8),
+.BR smtpd (8),
+.BR tlsproxy (8),
+.BR oryx (7),
+http://www.oryx.com/mailstore/
