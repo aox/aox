@@ -33,7 +33,7 @@ stopserver() {
 check() {
     RUNNING=""
     for a in $SERVERS ; do
-        test -f $PIDFILEDIR/${a}.pid || RUNNING="$RUNNING $a"
+        test -f $PIDFILEDIR/${a}.pid && RUNNING="$RUNNING $a"
     done
     if [ "$RUNNING" != "" ]; then
         echo "The following servers are running already:"
