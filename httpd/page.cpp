@@ -455,14 +455,19 @@ static String mailboxDescriptor( Mailbox * m, uint prefixLength = 0 )
     r.append( "\n" );
     List<Mailbox> * c = m->children();
     if ( c && !c->isEmpty() ) {
-        r.append( "<ul class=mailboxlist>" );
+        String sub;
         List<Mailbox>::Iterator i( c->first() );
         uint l = m->name().length() + 1;
         while ( i ) {
-            r.append( mailboxDescriptor( i, l ) );
+            if ( !i->deleted() )
+                sub.append( mailboxDescriptor( i, l ) );
             ++i;
         }
-        r.append( "</ul>\n" );
+        if ( !sub.isEmpty() ) {
+            r.append( "<ul class=mailboxlist>" );
+            r.append( sub );
+            r.append( "</ul>\n" );
+        }
     }
     return r;
 }
