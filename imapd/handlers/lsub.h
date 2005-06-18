@@ -17,8 +17,12 @@ public:
     void execute();
 
 private:
+    void reference();
+
+private:
     class Query *q;
     class Mailbox * ref;
+    uint pfxl;
     String pat;
 };
 

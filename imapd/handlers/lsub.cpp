@@ -20,7 +20,7 @@
 /*! Constructs an empty LSUB handler. */
 
 Lsub::Lsub()
-    : q( 0 )
+    : q( 0 ), ref( 0 ), pfxl( 0 )
 {
 }
 
@@ -28,7 +28,7 @@ Lsub::Lsub()
 void Lsub::parse()
 {
     space();
-    ref = reference();
+    reference();
     space();
     pat = listMailbox();
     end();
@@ -64,11 +64,39 @@ void Lsub::execute()
             if ( !m )
                 flags = "\\noselect";
 
-            respond( "LSUB (" + flags + ") \"/\" " + name );
+            respond( "LSUB (" + flags + ") \"/\" " + name.mid( pfxl ) );
         }
     }
 
     if ( !q->done() )
         return;
     finish();
+}
+
+
+/*! This copy of Listext::reference() has to die... but first we have
+    to find out how to make Lsub into a thinnish wrapper around the
+    Listext functionality.
+*/
+
+void Lsub::reference()
+{
+    String name = astring();
+
+    pfxl = imap()->user()->home()->name().length() + 1;
+
+    if ( name[0] == '/' ) {
+        ref = Mailbox::obtain( name, false );
+        pfxl = 0;
+    }
+    else if ( name.isEmpty() ) {
+        ref = imap()->user()->home();
+    }
+    else {
+        ref = Mailbox::obtain( imap()->user()->home()->name() + "/" + name,
+                               false );
+    }
+
+    if ( !ref )
+        error( No, "Cannot find reference name " + name );
 }

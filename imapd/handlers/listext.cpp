@@ -13,6 +13,7 @@ class ListextData
 public:
     ListextData():
         reference( 0 ),
+        prefixLength( 0 ),
         responses( 0 ),
         extended( false ),
         returnSubscribed( false ), returnChildren( false ),
@@ -22,6 +23,7 @@ public:
 
     Mailbox * reference;
     StringList patterns;
+    uint prefixLength;
 
     uint responses;
 
@@ -82,7 +84,7 @@ void Listext::parse()
         space();
     }
 
-    d->reference = reference();
+    reference();
     space();
 
     // mbox-or-pat = list-mailbox / patterns
@@ -318,7 +320,8 @@ void Listext::sendListResponse( Mailbox * mailbox )
     else
         a.append( "\\hasnochildren" );
 
-    respond( "LIST (" + a.join( " " ) + ") \"/\" " + mailbox->name() );
+    respond( "LIST (" + a.join( " " ) + ") \"/\" " +
+             mailbox->name().mid( d->prefixLength ) );
     d->responses++;
 }
 
@@ -328,20 +331,27 @@ void Listext::sendListResponse( Mailbox * mailbox )
     wrong.
 */
 
-Mailbox * Listext::reference()
+void Listext::reference()
 {
     String name = astring();
-    Mailbox * m;
-    if ( name[0] == '/' )
-        m = Mailbox::obtain( name, false );
-    else if ( name.isEmpty() )
-        m = imap()->user()->home();
-    else
-        m = Mailbox::obtain( imap()->user()->home()->name() + "/" + name,
-                             false );
-    if ( !m )
+
+    d->prefixLength = imap()->user()->home()->name().length() + 1;
+
+    if ( name[0] == '/' ) {
+        d->reference = Mailbox::obtain( name, false );
+        d->prefixLength = 0;
+    }
+    else if ( name.isEmpty() ) {
+        d->reference = imap()->user()->home();
+    }
+    else {
+        d->reference
+            = Mailbox::obtain( imap()->user()->home()->name() + "/" + name,
+                               false );
+    }
+
+    if ( !d->reference )
         error( No, "Cannot find reference name " + name );
-    return m;
 }
 
 

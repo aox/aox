@@ -17,8 +17,6 @@ public:
     void parse();
     void execute();
 
-    Mailbox * reference();
-
     String combinedName( Mailbox *, const String & );
 
     uint match( const String & pattern, uint p,
@@ -33,6 +31,8 @@ private:
     void list( Mailbox *, const String & );
     void listChildren( Mailbox *, const String & );
     void sendListResponse( Mailbox * );
+
+    void reference();
 
 private:
     class ListextData * d;
