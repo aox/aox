@@ -272,7 +272,7 @@ Mailbox *Mailbox::find( const String &name, bool deleted )
     name, or a null pointer if \a name doesn't look like a mailbox
     name at all, or if no parent mailboxes of \a name exist.
 
-    The returned mailbox is either a real existing mailbox, or the root.
+    Never returns a null pointer or a pointer to a deleted mailbox.
 */
 
 Mailbox * Mailbox::closestParent( const String & name )
@@ -283,8 +283,8 @@ Mailbox * Mailbox::closestParent( const String & name )
     Mailbox * candidate = ::root;
     Mailbox * good = ::root;
     uint i = 1;
-    while ( candidate ) {
-        if ( candidate && !candidate->synthetic() && !candidate->deleted() )
+    while ( candidate && candidate->name() != name ) {
+        if ( candidate && !candidate->deleted() )
             good = candidate;
         if ( name[i] == '/' )
             return 0; // two slashes -> syntax error
