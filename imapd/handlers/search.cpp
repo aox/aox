@@ -15,7 +15,6 @@
 #include "log.h"
 #include "utf.h"
 
-
 class SearchQuery: public Query {
 public:
     SearchQuery( EventHandler * e ): Query( e ) {}
@@ -40,15 +39,7 @@ class SearchData {
 public:
     SearchData()
         : uid( false ), done( false ), root( 0 ), conditions( 0 ),
-          codec( 0 ), query( 0 ), argc( 0 ), mboxId( 0 ),
-          usesHeaderFieldsTable( false ),
-          usesFieldNamesTable( false ),
-          usesAddressFieldsTable( false ),
-          usesAddressesTable( false ),
-          usesPartNumbersTable( false ),
-          usesBodypartsTable( false ),
-          usesFlagsTable( false ),
-          usesFlagNamesTable( false )
+          codec( 0 ), query( 0 ), argc( 0 ), mboxId( 0 )
     {}
 
     bool uid;
@@ -66,15 +57,6 @@ public:
         return argc;
     };
     uint mboxId;
-
-    bool usesHeaderFieldsTable;
-    bool usesFieldNamesTable;
-    bool usesAddressFieldsTable;
-    bool usesAddressesTable;
-    bool usesPartNumbersTable;
-    bool usesBodypartsTable;
-    bool usesFlagsTable;
-    bool usesFlagNamesTable;
 };
 
 /*! Constructs an empty Search. If \a u is true, it's an UID SEARCH,
@@ -313,9 +295,10 @@ void Search::parseKey( bool alsoCharset )
 
 void Search::execute()
 {
-    // for now, we know there are no messages in there, so this is
-    // correct:
     if ( !d->query ) {
+        if ( !ok() )
+            return;
+
         considerCache();
         if ( d->done ) {
             finish();
@@ -326,25 +309,9 @@ void Search::execute()
         d->mboxId = d->argument();
         d->query->bind( d->mboxId, imap()->session()->mailbox()->id() );
         d->query->s = "select distinct messages.uid from messages";
-        String w( d->root->where() );
-        if ( !ok() )
-            return;
-        if ( d->usesHeaderFieldsTable )
-            d->query->s.append( ", header_fields" );
-        if ( d->usesFieldNamesTable )
-            d->query->s.append( ", field_names" );
-        if ( d->usesAddressFieldsTable )
-            d->query->s.append( ", address_fields" );
-        if ( d->usesAddressesTable )
-            d->query->s.append( ", addresses" );
-        if ( d->usesPartNumbersTable )
-            d->query->s.append( ", part_numbers" );
-        if ( d->usesBodypartsTable )
-            d->query->s.append( ", bodyparts" );
-        if ( d->usesFlagNamesTable )
-            d->query->s.append( ", flag_names" );
         d->query->s.append( " where messages.mailbox=$" + fn( d->mboxId ) +
-                            " and (" + w + ") order by messages.uid" );
+                            " and (" + d->root->where() + ") order by"
+                            " messages.uid" );
         d->query->execute();
     }
 
@@ -370,7 +337,6 @@ void Search::execute()
     respond( result );
     finish();
 }
-
 
 
 /*! Considers whether this search can and should be solved using this
@@ -855,6 +821,12 @@ String Search::Condition::whereSent() const
 }
 
 
+static String matchAny( int n )
+{
+    return "'%'||$" + fn( n ) + "||'%'";
+}
+
+
 static String q( const UString & orig )
 {
     Utf8Codec c;
@@ -880,13 +852,13 @@ String Search::Condition::whereHeaderField() const
     d->query->bind( fnum, s8 );
     uint like = d->argument();
     d->query->bind( like, q( s16 ) );
-    d->usesHeaderFieldsTable = true;
-    d->usesFieldNamesTable = true;
-    return "header_fields.mailbox=messages.mailbox and "
-        "header_fields.uid=messages.uid and "
-        "header_fields.field=field_names.id and "
-        "field_names.name=$" + fn( fnum ) + " and "
-        "value ilike '%' || $" + fn( like ) + " || '%'";
+
+    return
+        "messages.uid in "
+        "(select uid from header_fields hf, field_names fn where"
+        " hf.mailbox=$" + fn( d->mboxId ) + " and hf.field=fn.id"
+        " and fn.name=$" + fn( fnum ) + " and"
+        " hf.value ilike " + matchAny( like ) + ")";
 }
 
 
@@ -896,28 +868,31 @@ String Search::Condition::whereHeaderField() const
 
 String Search::Condition::whereAddressField( const String & field ) const
 {
+    String r( "messages.uid in (" );
+    r.append( "select uid from address_fields af join addresses a "
+              "on (af.address=a.id)" );
+
+    uint fnum = 0;
+    if ( !field.isEmpty() ) {
+        fnum = d->argument();
+        d->query->bind( fnum, s8 );
+        r.append( " join field_names fn on (af.field=fn.id)" );
+    }
+
+    r.append( " where af.mailbox=$" + fn( d->mboxId ) );
+    if ( fnum != 0 )
+        r.append( " and fn.name=$" + fn( fnum ) );
+
     String raw( q( s16 ) );
     int at = raw.find( '@' );
-    d->usesAddressFieldsTable = true;
-    d->usesAddressesTable = true;
-    String r;
-    r.append( "address_fields.mailbox=messages.mailbox and "
-              "address_fields.uid=messages.uid " );
-    if ( !field.isEmpty() ) {
-        d->usesFieldNamesTable = true;
-        uint fnum = d->argument();
-        d->query->bind( fnum, s8 );
-        r.append( "and address_fields.field=field_names.id and "
-                  "field_names.name=$" + fn( fnum ) );
-    }
-    r.append( " and address_fields.address=addresses.id" );
+
     if ( at < 0 ) {
         uint name = d->argument();
         d->query->bind( name, raw );
         r.append( " and "
-                  "(addresses.name ilike '%'||$" + fn( name ) + "||'%' "
-                  "or addresses.localpart ilike '%'||$" + fn( name ) + "||'%' "
-                  "or addresses.domain ilike '%'||$" + fn( name ) + "||'%')" );
+                  "(a.name ilike " + matchAny( name ) + " or"
+                  " a.localpart ilike " + matchAny( name ) + " or"
+                  " a.domain ilike " + matchAny( name ) + ")" );
     }
     else {
         String lc, dc;
@@ -925,22 +900,22 @@ String Search::Condition::whereAddressField( const String & field ) const
             uint lp = d->argument();
             if ( raw.startsWith( "<" ) ) {
                 d->query->bind( lp, raw.mid( 1, at-1 ) );
-                lc = "addresses.localpart ilike $" + fn( lp );
+                lc = "a.localpart ilike $" + fn( lp );
             }
             else {
                 d->query->bind( lp, raw.mid( 0, at ) );
-                lc = "addresses.localpart ilike '%'||$" + fn( lp ) + " ";
+                lc = "a.localpart ilike '%'||$" + fn( lp ) + " ";
             }
         }
         if ( at < (int)raw.length() - 1 ) {
             uint dom = d->argument();
             if ( raw.endsWith( ">" ) ) {
                 d->query->bind( dom, raw.mid( at+1, raw.length()-at-2 ) );
-                dc = "addresses.domain ilike $" + fn( dom );
+                dc = "a.domain ilike $" + fn( dom );
             }
             else {
                 d->query->bind( dom, raw.mid( at+1 ) );
-                dc = "addresses.domain ilike $" + fn( dom ) + "||'%'";
+                dc = "a.domain ilike $" + fn( dom ) + "||'%'";
             }
         }
         if ( lc.isEmpty() && dc.isEmpty() ) {
@@ -957,6 +932,7 @@ String Search::Condition::whereAddressField( const String & field ) const
             r.append( dc );
         }
     }
+    r.append( ")" );
     return r;
 }
 
@@ -965,13 +941,14 @@ String Search::Condition::whereAddressField( const String & field ) const
 
 String Search::Condition::whereHeader() const
 {
-    uint like = d->argument();
-    d->query->bind( like, q( s16 ) );
-    d->usesHeaderFieldsTable = true;
-    return "(header_fields.mailbox=messages.mailbox and "
-        "header_fields.uid=messages.uid and "
-        "value ilike '%'||$" + fn( like ) + "||'%') or (" +
-        whereAddressField() + ")";
+    uint str = d->argument();
+    d->query->bind( str, q( s16 ) );
+    return
+        "messages.uid in "
+        "(select uid from header_fields hf"
+        " where hf.mailbox=$" + fn( d->mboxId ) + " and"
+        " hf.value ilike " + matchAny( str ) + ") "
+        "or " + whereAddressField();
 }
 
 
@@ -985,11 +962,12 @@ String Search::Condition::whereBody() const
 {
     uint bt = d->argument();
     d->query->bind( bt, q( s16 ) );
-    return "messages.uid in ("
-        "select m.uid from messages m, part_numbers pn, bodyparts b "
-        "where m.mailbox=$" + fn( d->mboxId ) + " and m.mailbox=pn.mailbox "
-        "and m.uid=pn.uid and pn.bodypart=b.id and "
-        "b.text ilike '%'||$" + fn( bt ) + "||'%')";
+    return
+        "messages.uid in "
+        "(select pn.uid from part_numbers pn, bodyparts b"
+        " where pn.mailbox=$" + fn( d->mboxId ) + " and"
+        " pn.bodypart=b.id and"
+        " b.text ilike " + matchAny( bt ) + ")";
 }
 
 
@@ -1016,7 +994,6 @@ String Search::Condition::whereRfc822Size() const
 String Search::Condition::whereFlags() const
 {
     // the database can look in the ordinary way. we make it easy, if we can.
-    d->usesFlagsTable = true;
     Flag * f = Flag::find( s8 );
     uint name = d->argument();
     if ( f ) {
@@ -1025,7 +1002,6 @@ String Search::Condition::whereFlags() const
             "select uid from flags where flags.mailbox=$" + fn( d->mboxId ) +
             " and flags.flag=$" + fn( name ) + ")";
     }
-    d->usesFlagNamesTable = true;
     d->query->bind( name, s8 ); // do we need to smash case on flags?
     return "messages.uid in ("
         "select flags.uid from flags, flag_names "
