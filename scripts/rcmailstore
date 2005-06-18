@@ -30,6 +30,20 @@ stopserver() {
     fi
 }
 
+check() {
+    RUNNING=""
+    for a in $SERVERS ; do
+        test -f $PIDFILEDIR/${a}.pid || RUNNING="$RUNNING $a"
+    done
+    if [ "$RUNNING" != "" ]; then
+        echo "The following servers are running already:"
+	echo "    $RUNNING"
+        echo "Please kill them (or delete $PIDFILEDIR/*.pid) first."
+        exit 1
+    fi
+}
+
+
 start() {
     echo -n "Starting Oryx Mailstore:"
     for a in $SERVERS ; do
@@ -48,6 +62,7 @@ stop() {
 
 case "$1" in
     start)
+        check
         start
         ;;
     stop)
