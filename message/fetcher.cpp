@@ -82,7 +82,7 @@ Fetcher::Fetcher( Mailbox * m )
         ::body = new PreparedStatement( q );
         q = "select uid, flag from flags "
             "where uid>=$1 and uid<=$2 and mailbox=$3 "
-            "order by uid";
+            "order by uid, flag";
         ::flags = new PreparedStatement( q );
         Allocator::addEternal( header, "statement to fetch headers" );
         Allocator::addEternal( body, "statement to fetch bodies" );
