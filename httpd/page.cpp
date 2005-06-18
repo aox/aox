@@ -447,7 +447,7 @@ static String mailboxDescriptor( Mailbox * m, uint prefixLength = 0 )
     if ( link ) {
         r.append( "<a href=\"/" );
         r.append( fn( m->id() ) );
-        r.append( "\"" );
+        r.append( "\">" );
     }
     r.append( htmlQuoted( m->name().mid( prefixLength ) ) );
     if ( link )
