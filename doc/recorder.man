@@ -3,30 +3,28 @@
 .SH NAME
 recorder - IMAP connection recorder
 .SH SYNOPSIS
-.B $BINDIR/recorder port address port file
+.B $BINDIR/recorder srcport address destport file
 .SH DESCRIPTION
 .nh
 .PP
 The
 .B recorder
-program accepts connection on a TCP port, forwards them to another
-port, and records the data transmitted in a format which is useful to
-Oryx.
+program relays data between an IMAP client and server, and records the
+session in a format which allows Oryx to replay and analyse it later.
 .PP
 If you have problems getting
 .BR imapd (8)
-to work with a particular IMAP client, you can run
+to work with a particular IMAP client, you can make the client connect
+to the
 .BR recorder ,
-make the IMAP client connect to
-.BR imapd (8)
-via
+instead of directly to
+.BR imapd ,
+and 
 .B recorder
-instead of directly, and
-.B recorder
-will make a record of the IMAP connection. If the client opens more
+will produce a transcript of the IMAP session. If the client opens more
 than one connection,
 .B recorder
-records stores more than one file.
+stores more than one file.
 .PP
 The file format is pure ASCII and can be edited. We suggest that you
 edit out your password, then send the rest to info@oryx.com and we may
@@ -36,7 +34,7 @@ Oryx has debug tools that can replay the connection, so we can fix any
 bugs on the server's side. In some cases, we can also add the file to
 our regression tests, so we can be sure that new versions of
 .BR imapd (8)
-does not have the error.
+do not have the same error.
 .SH EXAMPLE
 To intercept and record traffic to the
 .BR imapd (8)
@@ -69,17 +67,18 @@ $LIBDIR/rcmailstore restart
 .SS "Start recorder"
 To make recorder listen on the normal port 143 and forward connections
 to the real server:
-.IP $BINDIR/recorder 143 192.0.2.17 143 /tmp/bugreport
+.IP $BINDIR/recorder 1430 192.0.2.17 143 /tmp/bugreport
 .SS "Connect to recorder"
-With the IMAP client, you connect to port 143 on this host (instead of
-the real server) and work as usual. Please don't do too much, or the
-bugreport files grow very large.
+With the IMAP client, you connect to port 1430 on this host instead of
+the real server, and work as usual. Please don't do much more than is
+necessary to reproduce the problem, because it makes the bugreport
+files grow very large.
 .IP Stop
-Just hit control-c to stop
-.BR recorder .
+Just hit Control-C to stop
+.B recorder
 when you're done. The files called
 .I /tmp/bugreport*
-contain the IMAP connections.
+contain the IMAP session transcripts.
 .IP "Remove passwords"
 Please edit the files to remove any passwords or other confidential
 data. If you can, don't change the number of words or bytes. It's best
