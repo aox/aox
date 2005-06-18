@@ -128,9 +128,8 @@ uint Date::unixTime()
     t.tm_hour = d->hour;
     t.tm_min = d->minute;
     t.tm_sec = d->second;
-    t.tm_zone = (char*)(d->tzn.cstr()); // ick
-    t.tm_gmtoff = d->tz * 60;
-    return mktime( &t );
+    t.tm_isdst = 0;
+    return mktime( &t ) - d->tz * 60;
 }
 
 

@@ -193,6 +193,10 @@ void Server::configuration()
         Configuration::setup( "mailstore.conf" );
     else
         Configuration::setup( d->configFile );
+
+    // evil hack : work around unix brain damage. there's no way to
+    // turn human-format dates into GMT, mktime always things locally.
+    setenv( "TZ", "UTC", 1 );
 }
 
 
