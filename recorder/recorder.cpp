@@ -40,7 +40,7 @@ void RecorderData::dump( Direction dir )
     uint lines = 0;
     int ls = 0;
     int i = 0;
-    while ( i >= ls ) {
+    while ( i >= 0 ) {
         i = s->find( '\n', ls );
         if ( i >= ls ) {
             lines++;
@@ -117,7 +117,7 @@ RecorderServer::RecorderServer( int fd )
     d->server = this;
     d->client = new ::RecorderClient( d );
     d->log = new File( *::base + "." + peer().string(),
-                       File::Append, 0444 );
+                       File::Append, 0644 );
     Loop::addConnection( this );
 
     fprintf( stderr,
