@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH imapd 8 2005-05-23 www.oryx.com "Mailstore Documentation"
+.TH imapd 8 2005-06-20 www.oryx.com "Mailstore Documentation"
 .SH NAME
 logd - logging server for Oryx Mailstore.
 .SH SYNOPSIS
@@ -97,8 +97,8 @@ $BINDIR/logd
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 0.94, released 2005-05-23,
-http://www.oryx.com/mailstore/0.94.html.
+This man page covers Oryx Mailstore version 0.95, released 2005-06-20,
+http://www.oryx.com/mailstore/0.95.html.
 .SH SEE ALSO
 .BR mailstore (7),
 .BR mailstore.conf (5),

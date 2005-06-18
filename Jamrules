@@ -4,7 +4,7 @@ PGUSER = postgres ;
 JAMSETTINGS = Jamsettings ;
 include $(JAMSETTINGS:D=$(TOP)) ;
 
-VERSION = 0.94 ;
+VERSION = 0.95 ;
 
 MKDIR = mkdir -p ;
 

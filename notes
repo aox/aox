@@ -350,6 +350,8 @@ The HTTP server needs to learn streaming
   should switch to a startPage()/*sendStuff()/endPage() interface,
   to conserve memory and reduce (apparent) latency.
 
+  Arnt notes: From what I can tell of the code, this won't save
+  anything. We'd be able to send <title> a little sooner, that's all.
 
 
 Case sensitivity
