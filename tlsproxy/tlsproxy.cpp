@@ -501,8 +501,10 @@ static void handleError( int cryptError, const String & function )
     if ( !errorString.isEmpty() > 0 )
         ::log( "cryptlib's own message: " + errorString );
 
-    userside->close();
-    serverside->close();
+    if ( userside ) {
+        userside->close();
+        serverside->close();
+    }
 
     exit( 0 );
 }
