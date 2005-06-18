@@ -812,8 +812,8 @@ String Fetch::singlePartStructure( Bodypart *bp, bool extended )
     }
     else {
         // XXX: What happens to the default if this is a /digest?
-        l.append( "text" );
-        l.append( "plain" );
+        l.append( "\"text\"" );
+        l.append( "\"plain\"" );
     }
 
     l.append( parameterString( ct ) );
