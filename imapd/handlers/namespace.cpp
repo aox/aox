@@ -10,9 +10,11 @@
     Implements the NAMESPACE extension specified in RFC 2342.
 
     Mailstore uses a single namespace, and this command informs the
-    client about how this space is set up. Notably,
-    /users/<name>/... is the same as ..., and other users are in
-    /users/.
+    client about how this space is set up.
+    
+    Because of client confusion, we no longer tell anyone about
+    /users/<name>. It is the same as "", but we don't tell the client
+    that explicitly.
 */
 
 
@@ -20,8 +22,7 @@ void Namespace::execute()
 {
     String personal, other, shared;
 
-    personal = "((\"\" \"/\")"
-               " (\"" + imap()->user()->home()->name() + "/\" \"/\"))";
+    personal = "((\"\" \"/\"))";
     other    = "((\"/users/\" \"/\"))"; // XXX: hardcoded still
     shared   = "((\"/\" \"/\"))";
 
