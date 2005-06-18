@@ -372,6 +372,9 @@ void Message::setInternalDate( uint id )
 /*! Returns the message's internaldate, which is meant to be the time
     when Mailstore first saw it, although it actually is whatever was
     set using setInternalDate().
+    
+    If the messages comes from the database, this function's return
+    value is valid only if hasTrivia();
 */
 
 uint Message::internalDate() const
@@ -391,7 +394,7 @@ void Message::setRfc822Size( uint s )
 
 
 /*! Reports the Message's size, as set using setRfc822Size() or the
-    constructor.
+    constructor. Valid only if hasTrivia();
 */
 
 uint Message::rfc822Size() const
@@ -477,4 +480,14 @@ void Message::setHeadersFetched()
 void Message::setBodiesFetched()
 {
     d->hasBodies = true;
+}
+
+
+/*! Returns true if this message knows where its towel is, and false
+    if it's hopeless clueless.
+*/
+
+bool Message::hasTrivia() const
+{
+    return d->rfc822Size > 0;
 }

@@ -37,6 +37,7 @@ public:
 
 
 static PreparedStatement * header;
+static PreparedStatement * trivia;
 static PreparedStatement * flags;
 static PreparedStatement * body;
 
@@ -74,6 +75,10 @@ Fetcher::Fetcher( Mailbox * m )
             "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
             "order by h.uid, h.part, h.id";
         ::header = new PreparedStatement( q );
+        q = "select uid, idate, rfc822size from messages "
+            "where uid>=$1 and uid<=$2 and mailbox=$3 "
+            "order by uid";
+        ::trivia = new PreparedStatement( q );
         q = "select p.uid, p.part, b.text, b.data, "
             "b.bytes as rawbytes, p.bytes, p.lines "
             "from part_numbers p left join bodyparts b on p.bodypart=b.id "
@@ -85,6 +90,7 @@ Fetcher::Fetcher( Mailbox * m )
             "order by uid, flag";
         ::flags = new PreparedStatement( q );
         Allocator::addEternal( header, "statement to fetch headers" );
+        Allocator::addEternal( header, "statement to fetch ~nothing" );
         Allocator::addEternal( body, "statement to fetch bodies" );
         Allocator::addEternal( flags, "statement to fetch flags" );
     }
@@ -369,4 +375,39 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
 void MessageBodyFetcher::setDone( Message * m )
 {
     m->setBodiesFetched();
+}
+
+/*! \class MessageTriviaFetcher fetcher.h
+
+    The MessageTriviaFetcher class is an implementation class
+    responsible for fetching, ah, well, for fetching the IMAP
+    internaldate and rfc822.size.
+    
+    It has no API of its own and precious little code; Fetcher is the
+    entire API.
+*/
+
+/*! \fn MessageTriviaFetcher::MessageTriviaFetcher( Mailbox * m )
+
+    Constructs a Fetcher to fetch two trivial, stupid little columns
+    for the messages in \a m.
+*/
+
+
+PreparedStatement * MessageTriviaFetcher::query() const
+{
+    return ::trivia;
+}
+
+
+void MessageTriviaFetcher::decode( Message * m , Row * r )
+{
+    m->setInternalDate( r->getInt( "idate" ) );
+    m->setRfc822Size( r->getInt( "rfc822size" ) );
+}
+
+
+void MessageTriviaFetcher::setDone( Message * )
+{
+    // presumably bug-free. unless...
 }

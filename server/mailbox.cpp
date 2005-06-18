@@ -24,7 +24,8 @@ public:
           uidnext( 0 ), uidvalidity( 0 ),
           deleted( false ), owner( 0 ),
           parent( 0 ), children( 0 ), messages( 0 ),
-          flagFetcher( 0 ), headerFetcher( 0 ), bodyFetcher( 0 ),
+          flagFetcher( 0 ), headerFetcher( 0 ),
+          triviaFetcher( 0 ), bodyFetcher( 0 ),
           watchers( 0 )
     {}
 
@@ -40,6 +41,7 @@ public:
     Map<Message> * messages;
     Fetcher * flagFetcher;
     Fetcher * headerFetcher;
+    Fetcher * triviaFetcher;
     Fetcher * bodyFetcher;
     List<EventHandler> * watchers;
 };
@@ -498,6 +500,20 @@ void Mailbox::fetchHeaders( const MessageSet & messages,
     if ( !d->headerFetcher )
         d->headerFetcher = new MessageHeaderFetcher( this );
     d->headerFetcher->insert( messages, handler );
+}
+
+
+/*! Starts retrieving the internaldate and rfc822size from \a
+    messages, and will notify \a handler whenever at least one message
+    becomes available.
+*/
+
+void Mailbox::fetchTrivia( const MessageSet & messages,
+                           EventHandler * handler )
+{
+    if ( !d->triviaFetcher )
+        d->triviaFetcher = new MessageTriviaFetcher( this );
+    d->triviaFetcher->insert( messages, handler );
 }
 
 

@@ -54,6 +54,7 @@ public:
     void refresh();
 
     void fetchHeaders( const MessageSet &, EventHandler * );
+    void fetchTrivia( const MessageSet &, EventHandler * );
     void fetchBodies( const MessageSet &, EventHandler * );
     void fetchFlags( const MessageSet &, EventHandler * );
     void forget( Fetcher * );

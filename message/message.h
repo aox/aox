@@ -47,6 +47,7 @@ public:
 
     bool hasFlags() const;
     bool hasHeaders() const;
+    bool hasTrivia() const;
     bool hasBodies() const;
     void setFlagsFetched( bool );
     void setHeadersFetched();

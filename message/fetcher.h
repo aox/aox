@@ -72,4 +72,16 @@ public:
 };
 
 
+class MessageTriviaFetcher
+    : public Fetcher
+{
+public:
+    MessageTriviaFetcher( Mailbox * m ): Fetcher( m ) {}
+
+    PreparedStatement * query() const;
+    void decode( Message *, Row * );
+    void setDone( Message * );
+};
+
+
 #endif

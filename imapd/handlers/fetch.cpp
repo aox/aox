@@ -372,12 +372,13 @@ void Fetch::execute()
     }
 
     uint i = 1;
-    while ( ( d->state == 1 || i == 1 ) && i <= d->set.count() ) {
+    while ( i == 1 && !d->set.isEmpty() ) {
         uint uid = d->set.value( i );
         Message * m = s->mailbox()->message( uid );
         if ( ( !d->needHeader || m->hasHeaders() ) &&
              ( !d->needBody || m->hasBodies() ) &&
-             ( !d->flags || m->hasFlags() ) )
+             ( !d->flags || m->hasFlags() ) &&
+             ( ( !d->rfc822size && !d->internaldate ) || m->hasTrivia() ) )
         {
             imap()->enqueue( fetchResponse( m, uid, s->msn( uid ) ) );
             d->set.remove( uid );
@@ -399,7 +400,7 @@ void Fetch::execute()
 
 void Fetch::sendFetchQueries()
 {
-    MessageSet headers, bodies, flags;
+    MessageSet headers, bodies, flags, trivia;
     Mailbox * mb = imap()->session()->mailbox();
 
     uint i = 1;
@@ -412,12 +413,15 @@ void Fetch::sendFetchQueries()
             bodies.add( uid );
         if ( d->flags && !m->hasFlags() )
             flags.add( uid );
+        if ( ( d->rfc822size || d->internaldate ) && !m->hasTrivia() )
+            trivia.add( uid );
         i++;
     }
 
     mb->fetchFlags( flags, this );
     mb->fetchHeaders( headers, this );
     mb->fetchBodies( bodies, this );
+    mb->fetchTrivia( trivia, this );
 
     // if we're not peeking, send off a query to set \seen, and don't
     // wait for any results.
