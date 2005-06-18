@@ -104,6 +104,7 @@ void Append::parse()
     }
 
     d->message = new Message( literal() );
+    d->message->setInternalDate( d->date.unixTime() );
     if ( !d->message->valid() )
         error( Bad, d->message->error() );
 }

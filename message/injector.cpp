@@ -21,8 +21,6 @@
 #include "utf.h"
 #include "log.h"
 
-#include <time.h>
-
 
 class IdHelper;
 
@@ -72,7 +70,7 @@ struct ObjectId {
 class InjectorData {
 public:
     InjectorData()
-        : step( 0 ), failed( false ), idate( time( 0 ) ),
+        : step( 0 ), failed( false ),
           owner( 0 ), message( 0 ), transaction( 0 ),
           mailboxes( 0 ), bodyparts( 0 ),
           uidHelper( 0 ), bidHelper( 0 ),
@@ -83,7 +81,6 @@ public:
     int step;
     bool failed;
 
-    int idate;
     EventHandler *owner;
     const Message *message;
     Transaction *transaction;
@@ -681,7 +678,7 @@ void Injector::insertMessages()
         q = new Query( *intoMessages, 0 );
         q->bind( 1, m->id() );
         q->bind( 2, uid );
-        q->bind( 3, d->idate );
+        q->bind( 3, d->message->internalDate() );
         q->bind( 4, d->message->rfc822Size() );
         d->transaction->enqueue( q );
 
