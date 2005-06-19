@@ -286,11 +286,19 @@ MailboxView::Thread * MailboxView::thread( uint uid )
     List<MailboxView::Thread>::Iterator it( d->threads );
     while ( it && it->uid( 0 ) < uid )
         ++it;
-    if ( it->uid( 0 ) == uid )
+    if ( it && it->uid( 0 ) == uid )
         return it;
 
-    // perhaps we should look for the thread that contains the uid, so
-    // it would be possible to issue a 302? not sure. not for now.
+    it = d->threads.first();
+    while ( it && it->uid( 0 ) < uid ) {
+        uint c = it->messages(); // O(n)
+        uint n = 0;
+        while ( n < c && it->uid( n ) < uid ) // O(n SQUARED)
+            n++;
+        if ( it->uid( n ) == uid )
+            return it;
+        ++it;
+    }
 
     return 0;
 }
