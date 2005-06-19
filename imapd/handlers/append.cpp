@@ -158,10 +158,18 @@ void Append::execute()
         d->injector->execute();
     }
     if ( d->injector->done() ) {
-        if ( d->injector->failed() )
+        if ( d->injector->failed() ) {
             error( No, "Could not append to " + d->mbx );
-        else
+        }
+        else {
             d->injector->announce();
+            respond( "OK [APPENDUID " +
+                     fn( d->mailbox->uidvalidity() ) +
+                     " " +
+                     fn( d->injector->uid( d->mailbox ) ) +
+                     "]",
+                     Tagged );
+        }
         finish();
     }
 }
