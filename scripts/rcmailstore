@@ -70,7 +70,7 @@ case "$1" in
         ;;
     restart)
         stop
-	[ `uname` = FreeBSD ] && sleep 1
+	[ `uname` = FreeBSD ] && sleep 2
         start
         ;;
     *)
