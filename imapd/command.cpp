@@ -474,36 +474,27 @@ void Command::emitResponses()
         return;
     d->responded = true;
 
+    if ( !d->tagged ) {
+        if ( !d->error )
+            respond( "OK", Tagged );
+        else if ( d->errorCode == Bad )
+            respond( "BAD " + d->errorText, Tagged );
+        else
+            respond( "NO " + d->errorText, Tagged );
+    }
+
     List< String >::Iterator it( d->responses );
     while ( it ) {
+        if ( !it->startsWith( "* " ) &&
+             d->canExpunge &&
+             imap()->state() == IMAP::Selected &&
+             imap()->activeCommands() == 0 &&
+             imap()->session()->responsesNeeded() )
+            imap()->session()->emitResponses();
         imap()->enqueue( *it );
         ++it;
     }
 
-    if ( d->tagged )
-        return;
-
-    if ( d->canExpunge &&
-         imap()->state() == IMAP::Selected &&
-         imap()->activeCommands() == 0 &&
-         imap()->session()->responsesNeeded() )
-        imap()->session()->emitResponses();
-
-    String tmp( d->tag );
-    if ( !d->error ) {
-        tmp.append( " OK" );
-        log( "Sending: " + d->tag + " OK", Log::Debug );
-    }
-    else if ( d->errorCode == Bad ) {
-        tmp.append( " BAD " + d->errorText );
-        log( "Sending: " + d->tag + " BAD: " + d->errorText, Log::Error );
-    }
-    else {
-        tmp.append( " NO " + d->errorText );
-        log( "Sending: " + d->tag + " NO: " + d->errorText, Log::Error );
-    }
-    tmp.append( "\r\n" );
-    imap()->enqueue( tmp );
     imap()->write();
 }
 
