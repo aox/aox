@@ -8,6 +8,7 @@
 #include "list.h"
 #include "user.h"
 #include "http.h"
+#include "query.h"
 #include "mailbox.h"
 #include "message.h"
 #include "ustring.h"
@@ -35,7 +36,8 @@ public:
         : type( Page::Error ), state( 0 ),
           link( 0 ), server( 0 ), ready( false ),
           user( 0 ),
-          uid( 0 ), mailboxView( 0 ),
+          searchQuery( 0 ),
+          mailboxView( 0 ),
           uniq( 0 )
     {}
 
@@ -51,7 +53,7 @@ public:
     String login;
     String passwd;
     User * user;
-    uint uid;
+    Query * searchQuery;
     MailboxView * mailboxView;
 
     uint uniq;
@@ -1355,8 +1357,81 @@ void Page::logoutPage()
 
 void Page::webmailSearchPage()
 {
+    if ( !d->mailboxView ) {
+        d->mailboxView = MailboxView::find( d->link->mailbox() );
+        d->mailboxView->refresh( this );
+    }
+    if ( !d->searchQuery ) {
+        String * terms = d->server->parameter( "query" );
+        if ( !terms || terms->simplified().isEmpty() ) {
+            // XXX: give a little more sensible error message. or
+            // better yet, a "how to search" page.
+            d->type = Error;
+            errorPage();
+        }
+        if ( terms->find( '@' ) > 0 ) {
+            d->searchQuery
+                = new Query( "select 1 as uid union select 2 as uid",
+                             this );
+        }
+        else {
+            d->searchQuery
+                = new Query( "select 2 as uid union select 4 as uid",
+                             this );
+        }
+        d->searchQuery->execute();
+    }
+    if ( !d->searchQuery->done() || !d->mailboxView->ready() )
+        return;
+
+    Row * r = d->searchQuery->nextRow();
+    String s( "ugga: " + fn( d->searchQuery->rows() ) + "<br>" );
+    while ( r ) {
+        uint uid = r->getInt( "uid" );
+        
+        MailboxView::Thread * t = d->mailboxView->thread( uid );
+        Link result( d->link, d->link->mailbox(), t->uid( 0 ) );
+        Message * m = d->mailboxView->mailbox()->message( uid );
+        HeaderField * hf = m->header()->field( HeaderField::Subject );
+        String subject;
+        if ( hf )
+            subject = hf->data().simplified();
+        if ( subject.isEmpty() )
+            subject = "(No Subject)";
+        s.append( "<div class=thread>\n"
+                  "<div class=headerfield>Subject: " );
+        s.append( htmlQuoted( subject ) );
+        s.append( "</div>\n" ); // subject
+
+        s.append( "<div class=threadcontributors>\n" );
+        s.append( "<div class=headerfield>From:\n" );
+
+        s.append( "<a href=\"" );
+        s.append( result.string() );
+        s.append( "#" );
+        s.append( fn( uid ) );
+        s.append( "\">" );
+        AddressField * af
+            = m->header()->addressField( HeaderField::From );
+        if ( af ) {
+            List< Address >::Iterator it( af->addresses() );
+            while ( it ) {
+                s.append( address( it ) );
+                ++it;
+                if ( it )
+                    s.append( ", " );
+            }
+        }
+        s.append( "</a>" );
+        s.append( "\n" );
+        s.append( "</div>\n" // headerfield
+                  "</div>\n" // threadcontributors
+                  "</div>\n" ); // thread
+        r = d->searchQuery->nextRow();
+    }
+
+    d->text = s;
     d->ready = true;
-    d->text = "Kilroy will eventually be somewhere. Search for him.";
 }
 
 
