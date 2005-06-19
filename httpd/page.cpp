@@ -1388,8 +1388,17 @@ void Page::webmailSearchPage()
         }
         else {
             d->searchQuery
-                = new Query( "select 2 as uid union select 4 as uid",
+                = new Query( "select hf.uid from header_fields hf "
+                             "join field_names fn on (hf.field=fn.id) "
+                             "where hf.mailbox=$1 and fn.name='Subject' "
+                             "and hf.value ilike '%'||$2||'%' union "
+                             "select pn.uid from part_numbers pn, "
+                             "bodyparts b where pn.mailbox=$1 and "
+                             "pn.bodypart=b.id and "
+                             "b.text ilike '%'||$2||'%'",
                              this );
+            d->searchQuery->bind( 1, d->link->mailbox()->id() );
+            d->searchQuery->bind( 2, *terms );
         }
         d->searchQuery->execute();
     }
@@ -1397,7 +1406,7 @@ void Page::webmailSearchPage()
         return;
 
     Row * r = d->searchQuery->nextRow();
-    String s( "ugga: " + fn( d->searchQuery->rows() ) + "<br>" );
+    String s( fn( d->searchQuery->rows() ) + " results found.<br>" );
     while ( r ) {
         uint uid = r->getInt( "uid" );
         
