@@ -1369,10 +1369,22 @@ void Page::webmailSearchPage()
             d->type = Error;
             errorPage();
         }
+        // XXX: check that *terms not only contains @, but that the
+        // domain looks more or less reasonable.
         if ( terms->find( '@' ) > 0 ) {
             d->searchQuery
-                = new Query( "select 1 as uid union select 2 as uid",
+                = new Query( "select uid from address_fields af "
+                             "join addresses a "
+                             "on (af.address=a.id)"
+                             "where af.mailbox=$1 and "
+                             "lower(a.localpart)=$2 and "
+                             "lower(a.domain)=$3",
                              this );
+            String localpart = terms->mid( 0, terms->find( '@' ) ).lower();
+            String domain = terms->mid( 1 + terms->find( '@' ) ).lower();
+            d->searchQuery->bind( 1, d->link->mailbox()->id() );
+            d->searchQuery->bind( 2, localpart );
+            d->searchQuery->bind( 3, domain );
         }
         else {
             d->searchQuery
