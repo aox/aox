@@ -49,6 +49,7 @@ private:
     void favicon();
     void composePage();
     void logoutPage();
+    String leftContent();
 
     String bodypart( Message *, uint, Bodypart * );
     String message( Message *, uint, Message * );

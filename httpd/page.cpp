@@ -597,31 +597,10 @@ void Page::mailboxPage()
         return;
 
     d->text =
-        "<div class=homepage>"
-        "<div class=top>"
-        "<div class=search>"
-        "<form method=post action=\"/" + fn( d->link->mailbox()->id() ) +
-        "/search\">"
-        "<input type=text name=query>"
-        "<input type=submit value=search>"
-        "</form>"
-        "</div>\n" // search
-        "<div class=buttons>\n"
-        "<a href=\"/logout\">Logout</a>\n"
-        "<a href=\"/compose\">Compose</a>\n"
-        "</div>\n" // buttons
-        "</div>\n" // top
-        "<div class=middle>"
-        "<div class=folders>"
-        "<p>Folder list.\n<ul class=mailboxlist>" +
-        mailboxDescriptor( d->server->session()->user()->home(), 0 ) +
-        "</ul>"
-        "</div>\n" // folders
-        "</div>\n" // buttons
-        "<div class=bottom>"
-        "</div>\n" // bottom
-        "</div>\n" // homepage
+        "<div class=page>\n" +
+        leftContent() +
         "<div class=formeriframe>\n" + s + "</div>\n"
+        "</div>\n"
         ;
 
     d->ready = true;
@@ -1464,4 +1443,40 @@ void Page::archiveSearchPage()
 {
     d->ready = true;
     d->text = "Kilroy might eventually be somewhere. Search for him.";
+}
+
+
+/*!
+
+*/
+
+String Page::leftContent()
+{
+    String s = "<div id=leftcontent>"
+               "<div class=actions>"
+               "<div class=search>"
+               "<form method=post action=\"/" + fn( d->link->mailbox()->id() ) +
+               "/search\">"
+               "<input type=text name=query>"
+               "<input type=submit value=search>"
+               "</form>"
+               "</div>\n" // search
+               "<div class=actionbuttons>\n"
+               "<a href=\"/logout\">Logout</a>\n"
+               "<a href=\"/compose\">Compose</a>\n"
+               "<a href=\"http://www.oryx.com/webmail/help/\">Help</a>\n"
+               "<a href=\"/preferences\">Preferences</a>\n"
+               "<a href=\"/\">Refresh Mailbox</a>\n" // XXX
+               "</div>\n" // actionbuttons
+               "<div class=folders>"
+               "<p>Folder list.\n<ul class=mailboxlist>" +
+               mailboxDescriptor( d->server->session()->user()->home(), 0 ) +
+               "</ul>"
+               "</div>\n" // folders
+               "</div>\n" // actions
+               "</div>\n" // leftcontent
+               "<div class=bottom>"
+               "</div>\n" // bottom
+               ;
+    return s;
 }
