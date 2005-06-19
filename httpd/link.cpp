@@ -51,6 +51,60 @@ Link::Link( const String &s )
 }
 
 
+/*!  Constructs a link generally like \a other that references \a
+     mailbox.
+*/
+
+Link::Link( Link * other, Mailbox * mailbox )
+    : d( new LinkData )
+{
+    if ( other->d->type == ArchiveMailbox ||
+         other->d->type == ArchiveMessage ||
+         other->d->type == ArchivePart )
+        d->type = ArchiveMailbox;
+    else
+        d->type = WebmailMailbox;
+    d->mailbox = mailbox;
+}
+
+
+/*!  Constructs a link generally like \a other that references \a uid
+     in \a mailbox.
+*/
+
+Link::Link( Link * other, Mailbox * mailbox, uint uid )
+    : d( new LinkData )
+{
+    if ( other->d->type == ArchiveMailbox ||
+         other->d->type == ArchiveMessage ||
+         other->d->type == ArchivePart )
+        d->type = ArchiveMessage;
+    else
+        d->type = WebmailMessage;
+    d->mailbox = mailbox;
+    d->uid = uid;
+}
+
+
+/*!  Constructs a link generally like \a other that references part \a
+     part of \a uid in \a mailbox.
+*/
+
+Link::Link( Link * other, Mailbox * mailbox, uint uid, const String & part )
+    : d( new LinkData )
+{
+    if ( other->d->type == ArchiveMailbox ||
+         other->d->type == ArchiveMessage ||
+         other->d->type == ArchivePart )
+        d->type = ArchivePart;
+    else
+        d->type = WebmailPart;
+    d->mailbox = mailbox;
+    d->uid = uid;
+    d->part = part;
+}
+
+
 /*! Returns the type of this Link, which may be ArchiveMailbox,
     WebmailMailbox, Webmail, ArchiveMessage, WebmailMessage, or Unknown.
 */

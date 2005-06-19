@@ -47,8 +47,8 @@ private:
     void composePage();
     void logoutPage();
 
-    String bodypart( Message *, Bodypart * );
-    String message( Message *, Message * );
+    String bodypart( Message *, uint, Bodypart * );
+    String message( Message *, uint, Message * );
 
     String mailbox( class Mailbox * );
 

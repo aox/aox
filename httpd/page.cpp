@@ -581,7 +581,7 @@ void Page::mailboxPage()
         "<div class=homepage>"
         "<div class=top>"
         "<div class=search>"
-        "<form method=post action=>"
+        "<form method=get action=\"/search\">"
         "<input type=text name=query>"
         "<input type=submit value=search>"
         "</form>"
@@ -645,7 +645,7 @@ void Page::messagePage()
         d->text.append( "<a name=\"" );
         d->text.append( fn( t->uid( n ) ) );
         d->text.append( "\"></a>\n" );
-        d->text.append( message( m, m ) );
+        d->text.append( message( m, t->uid( n ), m ) ); // ->uid() twice: slow
         n++;
     }
     d->ready = true;
@@ -955,13 +955,15 @@ String Page::textHtml( const String & s )
 }
 
 /*! Returns an HTML representation of the Bodypart \a bp, which belongs
-    to the Message \a first.
+    to the Message \a first. \a first is assumed to have UID \a uid.
 */
 
-String Page::bodypart( Message *first, Bodypart *bp )
+String Page::bodypart( Message *first, uint uid, Bodypart *bp )
 {
     String s;
     Utf8Codec u;
+
+    Link l( d->link, d->link->mailbox(), uid, first->partNumber( bp ) );
 
     String type = "text/plain";
     ContentType *ct = bp->header()->contentType();
@@ -980,22 +982,20 @@ String Page::bodypart( Message *first, Bodypart *bp )
     }
     else if ( type == "message/rfc822" ) {
         s.append( "<div class=body>\n" );
-        s.append( message( first, bp->rfc822() ) );
+        s.append( message( first, uid, bp->rfc822() ) );
         s.append( "</div>\n" );
     }
     else if ( type.startsWith( "image/" ) ) {
         s.append( "<div class=image>" );
-        s.append( "<a href=\"" + d->link->string() + "/" +
-                  first->partNumber( bp ) + "\">" );
-        s.append( "<img src=\"" + d->link->string() + "/" +
-                  first->partNumber( bp ) + "\">" );
+        s.append( "<a href=\"" + l.string() + "\">" );
+        s.append( "<img src=\"" + l.string() + "\">" );
         s.append( "</a></div>\n" );
     }
     else if ( type.startsWith( "multipart/" ) ) {
         s.append( "<div class=multipart>\n" );
         List< Bodypart >::Iterator it( bp->children() );
         while ( it ) {
-            s.append( bodypart( first, it ) );
+            s.append( bodypart( first, uid, it ) );
             ++it;
         }
         s.append( "</div>\n" );
@@ -1006,8 +1006,7 @@ String Page::bodypart( Message *first, Bodypart *bp )
         s.append( "<p>Unknown content type: " );
         s.append( type );
         s.append( "\n" );
-        s.append( "<p><a href=\"" + d->link->string() + "/" +
-                  first->partNumber( bp ) + "\">" );
+        s.append( "<p><a href=\"" + l.string() + "\">" );
         s.append( "Save" );
 
         String fn;
@@ -1036,7 +1035,7 @@ String Page::bodypart( Message *first, Bodypart *bp )
     the Message \a first.
 */
 
-String Page::message( Message *first, Message *m )
+String Page::message( Message *first, uint uid, Message *m )
 {
     String s, t;
     HeaderField *hf;
@@ -1083,7 +1082,7 @@ String Page::message( Message *first, Message *m )
 
     List< Bodypart >::Iterator jt( m->children() );
     while ( jt ) {
-        s.append( bodypart( first, jt ) );
+        s.append( bodypart( first, uid, jt ) );
         ++jt;
     }
 

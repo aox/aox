@@ -10,6 +10,9 @@ class Link {
 public:
     Link();
     Link( const String & );
+    Link( Link *, class Mailbox * );
+    Link( Link *, class Mailbox *, uint );
+    Link( Link *, class Mailbox *, uint, const String & );
 
     enum Type {
         ArchiveMailbox,
