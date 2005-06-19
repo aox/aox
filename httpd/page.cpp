@@ -1051,8 +1051,8 @@ String Page::bodypart( Message *first, uint uid, Bodypart *bp )
 }
 
 
-/*! Returns an HTML representation of the Message \a m, which belongs to
-    the Message \a first.
+/*! Returns an HTML representation of the Message \a m, which has \a
+    uid and belongs to the Message \a first.
 */
 
 String Page::message( Message *first, uint uid, Message *m )
