@@ -60,6 +60,7 @@ Link::Link( Link * other, Mailbox * mailbox )
 {
     if ( other->d->type == ArchiveMailbox ||
          other->d->type == ArchiveMessage ||
+         other->d->type == ArchiveSearch ||
          other->d->type == ArchivePart )
         d->type = ArchiveMailbox;
     else
@@ -77,6 +78,7 @@ Link::Link( Link * other, Mailbox * mailbox, uint uid )
 {
     if ( other->d->type == ArchiveMailbox ||
          other->d->type == ArchiveMessage ||
+         other->d->type == ArchiveSearch ||
          other->d->type == ArchivePart )
         d->type = ArchiveMessage;
     else
@@ -95,6 +97,7 @@ Link::Link( Link * other, Mailbox * mailbox, uint uid, const String & part )
 {
     if ( other->d->type == ArchiveMailbox ||
          other->d->type == ArchiveMessage ||
+         other->d->type == ArchiveSearch ||
          other->d->type == ArchivePart )
         d->type = ArchivePart;
     else
@@ -172,12 +175,19 @@ void Link::parse( const String & s )
         d->type = Webmail;
     }
     else if ( *it == "archive" ) {
+        ++it;
         d->type = ArchiveMailbox;
-        parseMailbox( ++it );
-        if ( it )
-            parseUid( ++it );
-        if ( it )
-            parsePart( ++it );
+        parseMailbox( it ); // XXX: use archive name, not mailbox ID
+        ++it;
+        if ( it && *it == "search" ) {
+            d->type = ArchiveSearch;
+        }
+        else {
+            if ( it )
+                parseUid( ++it );
+            if ( it )
+                parsePart( ++it );
+        }
     }
     else if ( *it == "favicon.ico" ) {
         d->type = Favicon;
@@ -191,10 +201,16 @@ void Link::parse( const String & s )
     else {
         d->type = WebmailMailbox;
         parseMailbox( it );
-        if ( it )
-            parseUid( ++it );
-        if ( it )
-            parsePart( ++it );
+        ++it;
+        if ( it && *it == "search" ) {
+            d->type = WebmailSearch;
+        }
+        else {
+            if ( it )
+                parseUid( it );
+            if ( it )
+                parsePart( ++it );
+        }
     }
 }
 
@@ -227,6 +243,12 @@ String Link::string() const
         break;
     case WebmailPart:
         s = "/" + fn( d->mailbox->id() ) + "/" + fn( d->uid ) + "/" + d->part;
+        break;
+    case WebmailSearch:
+        s = "/" + fn( d->mailbox->id() ) + "/search";
+        break;
+    case ArchiveSearch:
+        s = "/archive/" + fn( d->mailbox->id() ) + "/search";
         break;
     case Favicon:
         s = "/favicon.ico";

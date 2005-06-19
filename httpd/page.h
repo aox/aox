@@ -17,8 +17,9 @@ public:
     Page( class Link *, class HTTP * );
 
     enum Type {
-        MainPage, LoginForm, LoginData, WebmailMailbox, WebmailMessage,
-        WebmailPart, ArchiveMailbox, ArchiveMessage, ArchivePart,
+        MainPage, LoginForm, LoginData,
+        WebmailMailbox, WebmailMessage, WebmailPart, WebmailSearch,
+        ArchiveMailbox, ArchiveMessage, ArchivePart, ArchiveSearch,
         Favicon, Logout, Compose,
         Error
     };
@@ -40,9 +41,11 @@ private:
     void mailboxPage();
     void messagePage();
     void webmailPartPage();
+    void webmailSearchPage();
     void archivePage();
     void archiveMessagePage();
     void archivePartPage();
+    void archiveSearchPage();
     void favicon();
     void composePage();
     void logoutPage();

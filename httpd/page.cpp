@@ -77,7 +77,8 @@ Page::Page( Link * link, HTTP *server )
 
     if ( link->type() == Link::WebmailMessage ||
          link->type() == Link::WebmailMailbox ||
-         link->type() == Link::WebmailPart )
+         link->type() == Link::WebmailPart ||
+         link->type() == Link::WebmailSearch )
     {
         if ( !d->server->session() ||
              !d->server->session()->user() )
@@ -124,6 +125,10 @@ Page::Page( Link * link, HTTP *server )
         d->type = WebmailPart;
         break;
 
+    case Link::WebmailSearch:
+        d->type = WebmailSearch;
+        break;
+
     case Link::ArchiveMailbox:
         d->type = ArchiveMailbox;
         break;
@@ -134,6 +139,10 @@ Page::Page( Link * link, HTTP *server )
 
     case Link::ArchivePart:
         d->type = ArchivePart;
+        break;
+
+    case Link::ArchiveSearch:
+        d->type = ArchiveSearch;
         break;
 
     case Link::Favicon:
@@ -188,6 +197,10 @@ void Page::execute()
         webmailPartPage();
         break;
 
+    case WebmailSearch:
+        webmailSearchPage();
+        break;
+
     case ArchiveMailbox:
         archivePage();
         break;
@@ -198,6 +211,10 @@ void Page::execute()
 
     case ArchivePart:
         archivePartPage();
+        break;
+
+    case ArchiveSearch:
+        archiveSearchPage();
         break;
 
     case Favicon:
@@ -581,7 +598,8 @@ void Page::mailboxPage()
         "<div class=homepage>"
         "<div class=top>"
         "<div class=search>"
-        "<form method=get action=\"/search\">"
+        "<form method=post action=\"/" + fn( d->link->mailbox()->id() ) +
+        "/search\">"
         "<input type=text name=query>"
         "<input type=submit value=search>"
         "</form>"
@@ -1326,4 +1344,28 @@ void Page::logoutPage()
               "<p>To do something else, follow "
               "<a href=\"http://random.yahoo.com/fast/ryl\">"
               "this link.</a>\n" + d->text;
+}
+
+
+/*! Performs a search and/or retrieves a cached result. Presents the
+    whole thing.
+    
+    The search and presentation need to be divided.
+*/
+
+void Page::webmailSearchPage()
+{
+    d->ready = true;
+    d->text = "Kilroy will eventually be somewhere. Search for him.";
+}
+
+
+/*! Just like webmailSearchPage(); probably they should share search
+    and do individual presentation.
+*/
+
+void Page::archiveSearchPage()
+{
+    d->ready = true;
+    d->text = "Kilroy might eventually be somewhere. Search for him.";
 }

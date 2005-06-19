@@ -22,6 +22,8 @@ public:
         ArchivePart,
         WebmailMessage,
         WebmailPart,
+        WebmailSearch,
+        ArchiveSearch,
         Favicon,
         Logout,
         Compose,
