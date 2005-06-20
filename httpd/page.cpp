@@ -1062,6 +1062,9 @@ String Page::bodypart( Message *first, uint uid, Bodypart *bp )
 }
 
 
+
+
+
 /*! Returns an HTML representation of the Message \a m, which has \a
     uid and belongs to the Message \a first.
 */
@@ -1071,6 +1074,9 @@ String Page::message( Message *first, uint uid, Message *m )
     bool topLevel = false;
     if ( first == m )
         topLevel = true;
+    String optionalHeader = "toggle" + fn( ++d->uniq );
+    String fullBody = "toggle" + fn( ++d->uniq );
+    String summaryBody = "toggle" + fn( ++d->uniq );
 
     String s, t;
     HeaderField *hf;
@@ -1086,9 +1092,8 @@ String Page::message( Message *first, uint uid, Message *m )
     }
     s.append( addressField( m, HeaderField::From ) );
     s.append( addressField( m, HeaderField::To ) );
-    if ( topLevel ) {
-        
-    }
+    if ( topLevel )
+        s.append( "<div id=toggle" + optionalHeader + ">\n" );
     s.append( addressField( m, HeaderField::Cc ) );
 
     List< HeaderField >::Iterator it( m->header()->fields() );
@@ -1117,7 +1122,20 @@ String Page::message( Message *first, uint uid, Message *m )
     s.append( jsToggle( t, false,
                         "Show full header", "Hide full header" ) );
 
-    s.append( "</div>\n" );
+    if ( topLevel )
+        s.append( "</div>\n" ); // optionalHeader
+    s.append( "</div>\n" ); // header
+
+    if ( topLevel ) {
+        s.append( "<div class=jsonly id=" );
+        s.append( summaryBody );
+        s.append( ">\n" );
+        s.append( twoLines( first ) );
+        s.append( "</div>\n" ); // jsonly summaryBody
+        s.append( "<div id=" );
+        s.append( fullBody );
+        s.append( ">" );
+    }
 
     List< Bodypart >::Iterator jt( m->children() );
     while ( jt ) {
@@ -1125,7 +1143,10 @@ String Page::message( Message *first, uint uid, Message *m )
         ++jt;
     }
 
-    s.append( "</div>\n" );
+    if ( topLevel )
+        s.append( "</div>\n" ); // fullBody
+
+    s.append( "</div>\n" ); // message
 
     return s;
 }
@@ -1519,4 +1540,50 @@ String Page::leftContent()
                "</div>\n" // bottom
                ;
     return s;
+}
+
+
+/*! Returns a HTML-formatted string containing the first two lines or
+    so of \a m.
+
+    This function heuristically picks the "first" bodypart and even
+    more heuristically looks for the "first" text in that bodypart.
+
+    If no bodyparts can be used, this function returns an empty string.
+*/
+
+String Page::twoLines( Message * m )
+{
+    List<Bodypart>::Iterator bp( m->allBodyparts() );
+    String type;
+    while ( bp && type != "text/plain" && type != "text/html" ) {
+        type = "text/plain";
+        ContentType * ct = bp->header()->contentType();
+        if ( ct )
+            type = ct->type() + "/" + ct->subtype();
+    }
+
+    String r;
+    if ( !bp ) {
+        r = "(Cannot display summary of nontext message)";
+    }
+    else if ( type == "text/plain" ) {
+        Utf8Codec u; // XXX UString needs find() and more.
+        String b = u.fromUnicode( bp->text() );
+        int i = 0;
+        while ( i >= 0 && b[i] == '>' && b[i] > ' ' ) {
+            i = b.find( '\n', i + 1 );
+            if ( i >= 0 )
+                i++;
+        }
+        int e = b.find( '\n', i + 1 );
+        if ( e < i )
+            e = b.length();
+        r = textPlain( b.mid( i, e-i ) );
+    }
+    else if ( type == "text/html" ) {
+        r = "(Cannot display summary of HTML message)";
+    }
+
+    return r;
 }

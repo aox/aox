@@ -50,6 +50,7 @@ private:
     void composePage();
     void logoutPage();
     String leftContent();
+    String twoLines( Message * );
 
     String bodypart( Message *, uint, Bodypart * );
     String message( Message *, uint, Message * );
