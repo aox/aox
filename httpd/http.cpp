@@ -176,7 +176,6 @@ void HTTP::process()
             enqueue( "HTTP/1.0 " );
         
         enqueue( fn( d->status ) + " " + d->message + "\r\n" );
-        enqueue( "HTTP/1.0 " + fn( d->status ) + " " + d->message + "\r\n" );
         enqueue( d->headers.join( "\r\n" ) );
         enqueue( "\r\n\r\n" );
 
