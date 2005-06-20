@@ -960,14 +960,24 @@ String Search::Condition::whereHeader() const
 
 String Search::Condition::whereBody() const
 {
+    String s;
+
     uint bt = d->argument();
     d->query->bind( bt, q( s16 ) );
-    return
-        "messages.uid in "
+
+    s = "messages.uid in "
         "(select pn.uid from part_numbers pn, bodyparts b"
         " where pn.mailbox=$" + fn( d->mboxId ) + " and"
-        " pn.bodypart=b.id and"
-        " b.text ilike " + matchAny( bt ) + ")";
+        " pn.bodypart=b.id and ";
+
+    String db = Database::type();
+    if ( db.lower().endsWith( "tsearch2" ) )
+        s.append( "b.ftidx @@ $" + fn( bt ) + "::tsquery" );
+    else
+        s.append( "b.text ilike " + matchAny( bt ) );
+
+    s.append( ")" );
+    return s;
 }
 
 
