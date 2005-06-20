@@ -169,7 +169,14 @@ void HTTP::process()
         if ( d->connectionClose )
             addHeader( "Connection: close" );
 
-        enqueue( "HTTP/1.1 " + fn( d->status ) + " " + d->message + "\r\n" );
+
+        if ( d->use11 )
+            enqueue( "HTTP/1.1 " );
+        else
+            enqueue( "HTTP/1.0 " );
+        
+        enqueue( fn( d->status ) + " " + d->message + "\r\n" );
+        enqueue( "HTTP/1.0 " + fn( d->status ) + " " + d->message + "\r\n" );
         enqueue( d->headers.join( "\r\n" ) );
         enqueue( "\r\n\r\n" );
 
@@ -384,6 +391,11 @@ void HTTP::parseRequest( String l )
         d->use11 = true;
     else
         d->connectionClose = true;
+
+    // XXX hack: we always use HTTP/1.0 to see whether that kills the
+    // slowness problem.
+    d->connectionClose = true;
+    d->use11 = false;
 
     uint i = 0;
     d->path.truncate( 0 );
