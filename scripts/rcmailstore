@@ -58,6 +58,7 @@ stop() {
         echo $SERVERPIDS | xargs -n1 kill 2>/dev/null
         sleep 1
         echo $SERVERPIDS | xargs -n1 kill -9 2>/dev/null
+	sleep 1
     fi
     echo "."
 }
