@@ -10,9 +10,6 @@ cd $SBINDIR
 
 SERVERS="logd ocd tlsproxy imapd smtpd httpd"
 
-REVERSE=""
-for a in $SERVERS ; do REVERSE="$a $REVERSE"; done
-
 for a in $SERVERS ; do
     test -x ${a} || exit 0
 done
@@ -24,7 +21,7 @@ startserver() {
 stopserver() {
     P=$PIDFILEDIR/$1.pid
     if [ -f $P ]; then
-        kill `cat $P` 2>/dev/null
+        SERVERPIDS="`cat $P` $SERVERPIDS"
         rm $P
         echo -n " $1";
     fi
@@ -54,9 +51,14 @@ start() {
 
 stop() {
     echo -n "Stopping Oryx Mailstore:"
-    for a in $REVERSE ; do
+    for a in $SERVERS ; do
         stopserver $a
     done
+    if [ "$SERVERPIDS" != "" ]; then
+        echo $SERVERPIDS | xargs -n1 kill 2>/dev/null
+        sleep 1
+        echo $SERVERPIDS | xargs -n1 kill -9 2>/dev/null
+    fi
     echo "."
 }
 
@@ -70,7 +72,6 @@ case "$1" in
         ;;
     restart)
         stop
-	[ `uname` = FreeBSD ] && sleep 2
         start
         ;;
     *)
