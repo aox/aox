@@ -249,8 +249,9 @@ void Listext::list( Mailbox *m, const String &p )
         matchChildren = true;
         break;
     default:
-        matches = true;
         matchChildren = true;
+        if ( !m->deleted() )
+            matches = true;
         break;
     }
 
