@@ -736,6 +736,7 @@ String Page::textPlain( const String & s )
                   r[r.length()-1] != '>' &&
                   r[r.length()-1] != ';' ) {
             r.truncate( r.length()-1 );
+            i++;
         }
         else {
             const char * element = htmlQuoted( s[i] );
