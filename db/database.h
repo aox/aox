@@ -37,6 +37,7 @@ protected:
     static void addHandle( Database * );
     static void removeHandle( Database * );
 
+    static String type();
     static Endpoint server();
     static String name();
     static String user();

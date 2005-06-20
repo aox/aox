@@ -66,7 +66,20 @@ void Database::setup()
     Allocator::addEternal( handles, "list of database handles" );
 
     String db = Configuration::text( Configuration::Db ).lower();
-    if ( !( db == "pg" || db == "pgsql" || db == "postgres" ) ) {
+
+    String dbt, ext;
+    int n = db.find( '+' );
+    if ( n > 0 ) {
+        ext = db.mid( n+1 );
+        dbt = db.mid( 0, n );
+    }
+    else {
+        dbt = db;
+    }
+
+    if ( !( dbt == "pg" || dbt == "pgsql" || dbt == "postgres" ) ||
+         !( ext.isEmpty() || ext == "tsearch2" ) )
+    {
         ::log( "Unsupported database type: " + db, Log::Disaster );
         return;
     }
@@ -180,6 +193,16 @@ void Database::removeHandle( Database * d )
             ++q;
         }
     }
+}
+
+
+/*! Returns the configured Database type, which may currently be
+    postgres or postgres+tsearch2.
+*/
+
+String Database::type()
+{
+    return Configuration::text( Configuration::Db );
 }
 
 
