@@ -459,19 +459,22 @@ void Page::loginData()
 static String mailboxDescriptor( Mailbox * m, uint prefixLength = 0 )
 {
     String r;
-    r.append( "<li class=mailboxname>" );
-    bool link = true;
-    if ( m->synthetic() || m->deleted() )
-        link = false;
-    if ( link ) {
-        r.append( "<a href=\"/" );
-        r.append( fn( m->id() ) );
-        r.append( "\">" );
+    String n( m->name().mid( prefixLength ) );
+    if ( !n.isEmpty() ) {
+        r.append( "<li class=mailboxname>" );
+        bool link = true;
+        if ( m->synthetic() || m->deleted() )
+            link = false;
+        if ( link ) {
+            r.append( "<a href=\"/" );
+            r.append( fn( m->id() ) );
+            r.append( "\">" );
+        }
+        r.append( htmlQuoted( m->name().mid( prefixLength ) ) );
+        if ( link )
+            r.append( "</a>" );
+        r.append( "\n" );
     }
-    r.append( htmlQuoted( m->name().mid( prefixLength ) ) );
-    if ( link )
-        r.append( "</a>" );
-    r.append( "\n" );
     List<Mailbox> * c = m->children();
     if ( c && !c->isEmpty() ) {
         String sub;
@@ -483,7 +486,7 @@ static String mailboxDescriptor( Mailbox * m, uint prefixLength = 0 )
             ++i;
         }
         if ( !sub.isEmpty() ) {
-            r.append( "<ul class=mailboxlist>" );
+            r.append( "<ul class=mailboxlist>\n" );
             r.append( sub );
             r.append( "</ul>\n" );
         }
@@ -638,6 +641,9 @@ void Page::messagePage()
         return;
     }
 
+    d->text = leftContent();
+    d->text.append( "<div class=formeriframe>\n" );
+
     n = 0;
     while ( n < t->messages() ) {
         Message * m = t->message( n );
@@ -647,6 +653,9 @@ void Page::messagePage()
         d->text.append( message( m, t->uid( n ), m ) ); // ->uid() twice: slow
         n++;
     }
+
+    d->text.append( "</div>\n" );
+
     d->ready = true;
 }
 
@@ -1330,7 +1339,7 @@ void Page::logoutPage()
 
 /*! Performs a search and/or retrieves a cached result. Presents the
     whole thing.
-    
+
     The search and presentation need to be divided.
 */
 
@@ -1388,7 +1397,7 @@ void Page::webmailSearchPage()
     String s( fn( d->searchQuery->rows() ) + " results found.<br>" );
     while ( r ) {
         uint uid = r->getInt( "uid" );
-        
+
         MailboxView::Thread * t = d->mailboxView->thread( uid );
         Link result( d->link, d->link->mailbox(), t->uid( 0 ) );
         Message * m = d->mailboxView->mailbox()->message( uid );
@@ -1469,9 +1478,9 @@ String Page::leftContent()
                "<a href=\"/\">Refresh Mailbox</a>\n" // XXX
                "</div>\n" // actionbuttons
                "<div class=folders>"
-               "<p>Folder list.\n<ul class=mailboxlist>" +
-               mailboxDescriptor( d->server->session()->user()->home(), 0 ) +
-               "</ul>"
+               "<p>Folder list\n" +
+               mailboxDescriptor( d->server->session()->user()->home(), 
+                                  d->server->session()->user()->home()->name().length() ) +
                "</div>\n" // folders
                "</div>\n" // actions
                "</div>\n" // leftcontent
