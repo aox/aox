@@ -1,0 +1,13 @@
+grant select on pg_ts_dict to oryx;
+grant select on pg_ts_parser to oryx;
+grant select on pg_ts_cfg to oryx;
+grant select on pg_ts_cfgmap to oryx;
+
+vacuum full analyze bodyparts;
+alter table bodyparts add ftidx tsvector;
+update bodyparts set ftidx=to_tsvector('default',text);
+create index bodyparts_ftidx on bodyparts using gist(ftidx);
+vacuum full analyze bodyparts;
+
+create trigger bodyparts_ftupdate before insert on bodyparts
+for each row execute procedure tsearch2(ftidx, text);
