@@ -18,6 +18,7 @@
 #include "mimefields.h"
 #include "httpsession.h"
 #include "mailboxview.h"
+#include "permissions.h"
 #include "addressfield.h"
 
 
@@ -38,6 +39,7 @@ public:
           user( 0 ),
           searchQuery( 0 ),
           mailboxView( 0 ),
+          permissions( 0 ),
           uniq( 0 )
     {}
 
@@ -55,6 +57,7 @@ public:
     User * user;
     Query * searchQuery;
     MailboxView * mailboxView;
+    Permissions * permissions;
 
     uint uniq;
 
@@ -99,6 +102,11 @@ Page::Page( Link * link, HTTP *server )
             d->ready = true;
             return;
         }
+        if ( d->link->mailbox() )
+            d->permissions
+                = new Permissions( d->link->mailbox(),
+                                   d->server->user(),
+                                   this );
     }
 
     switch ( link->type() ) {
@@ -173,6 +181,14 @@ void Page::execute()
     // it might be harmful, if the HTTP has sent the response already.
     if ( d->ready )
         return;
+
+    if ( d->permissions && !d->permissions->ready() )
+        return;
+
+    if ( d->permissions && !d->permissions->allowed( Permissions::Read ) ) {
+        d->type = Error;
+        d->server->setStatus( 403, "Forbidden" );
+    }
 
     switch( d->type ) {
     case MainPage:
@@ -1071,8 +1087,7 @@ String Page::message( Message *first, uint uid, Message *m )
     s.append( addressField( m, HeaderField::From ) );
     s.append( addressField( m, HeaderField::To ) );
     if ( topLevel ) {
-        // in here, put code to show abbreviated messages. must think
-        // clearly about how to.
+        
     }
     s.append( addressField( m, HeaderField::Cc ) );
 
