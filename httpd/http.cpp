@@ -156,9 +156,9 @@ void HTTP::process()
     if ( d->page && d->page->ready() ) {
         String text = d->page->text();
 
-        addHeader( "Server: Mailstore/" +
+        addHeader( "Server: Oryx/" +
                    Configuration::compiledIn( Configuration::Version ) +
-                   " (http://www.oryx.com/mailstore/)" );
+                   " (http://www.oryx.com/webmail/)" );
         addHeader( "Content-Length: " + fn( text.length() ) );
         addHeader( "Content-Type: " + d->page->contentType() );
 
@@ -173,8 +173,10 @@ void HTTP::process()
         enqueue( d->headers.join( "\r\n" ) );
         enqueue( "\r\n\r\n" );
 
-        if ( d->sendContents )
+        if ( d->sendContents ) {
             enqueue( d->page->text() );
+            write();
+        }
 
         log( "Sent '" + fn( d->status ) + "/" + d->message + "' response "
              "of " + fn( text.length() ) + " bytes." );
