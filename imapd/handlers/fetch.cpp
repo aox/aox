@@ -773,9 +773,12 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
         r.append( ")" );
     }
     else if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
-        // XXX: This doesn't handle the case where the top-level message
-        // has Content-Type: message/rfc822.
-        r = singlePartStructure( (Bodypart *)m, extended );
+        Bodypart *bp;
+        if ( !m->parent() )
+            bp = m->children()->first();
+        else
+            bp = (Bodypart *)m;
+        r = singlePartStructure( bp,  m->header(), extended );
     }
     else {
         /* If we get here, m is either a single-part leaf Bodypart, or a
@@ -784,26 +787,26 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
         Bodypart *bp = m->children()->first();
         if ( !bp )
             bp = (Bodypart *)m;
-        r = singlePartStructure( bp, extended );
+        r = singlePartStructure( bp, bp->header(), extended );
     }
 
     return r;
 }
 
 
-/*! Returns the structure of the single-part bodypart \a bp. If
-    \a extended is true, extended BODYSTRUCTURE attributes are
-    included.
+/*! Returns the structure of the single-part bodypart \a bp. We use
+    \a hdr instead of "bp->header()" only so that bodyStructure()
+    can cope with top-level message/rfc822 objects. If \a extended
+    is true, extended BODYSTRUCTURE attributes are included.
 */
 
-String Fetch::singlePartStructure( Bodypart *bp, bool extended )
+String Fetch::singlePartStructure( Bodypart *bp, Header *hdr, bool extended )
 {
     StringList l;
 
     if ( !bp )
         return "";
 
-    Header *hdr = bp->header();
     ContentType *ct = hdr->contentType();
 
     if ( ct ) {

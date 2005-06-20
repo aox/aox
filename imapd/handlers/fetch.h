@@ -6,6 +6,7 @@
 #include "command.h"
 
 
+class Header;
 class Message;
 class Bodypart;
 class Multipart;
@@ -29,7 +30,7 @@ private:
     String internalDate( Message * );
     String envelope( Message * );
     String bodyStructure( Multipart *, bool );
-    String singlePartStructure( Bodypart *, bool );
+    String singlePartStructure( Bodypart *, Header *, bool );
     String fetchResponse( Message *, uint, uint );
 
 private:
