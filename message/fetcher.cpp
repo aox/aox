@@ -151,12 +151,14 @@ void Fetcher::execute()
         List<FetcherData::Handler>::Iterator it( d->handlers );
         MessageSet s;
         s.add( d->smallest, d->largest );
+        d->smallest = 0;
         while ( it ) {
             List<FetcherData::Handler>::Iterator h( it );
             ++it;
-            if ( !h->s.isEmpty() )
+            if ( !h->s.intersection( s ).isEmpty() ) {
+                h->s.remove( s );
                 h->o->execute();
-            h->s.remove( s );
+            }
         }
     }
 
