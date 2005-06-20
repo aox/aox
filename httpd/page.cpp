@@ -649,7 +649,13 @@ void Page::messagePage()
         Message * m = t->message( n );
         d->text.append( "<a name=\"" );
         d->text.append( fn( t->uid( n ) ) );
-        d->text.append( "\"></a>\n" );
+        d->text.append( "\"></a>\n"
+                        "<div class=aboutmessage>"
+                        "Message " );
+        d->text.append( fn( n+1 ) );
+        d->text.append( " of " );
+        d->text.append( fn( t->messages() ) );
+        d->text.append( "</div>\n" );
         d->text.append( message( m, t->uid( n ), m ) ); // ->uid() twice: slow
         n++;
     }
@@ -1046,10 +1052,15 @@ String Page::bodypart( Message *first, uint uid, Bodypart *bp )
 
 String Page::message( Message *first, uint uid, Message *m )
 {
+    bool topLevel = false;
+    if ( first == m )
+        topLevel = true;
+
     String s, t;
     HeaderField *hf;
 
-    s.append( "<div class=message>\n<div class=header>\n" );
+    s.append( "<div class=message>\n"
+              "<div class=header>\n" );
 
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
@@ -1059,6 +1070,10 @@ String Page::message( Message *first, uint uid, Message *m )
     }
     s.append( addressField( m, HeaderField::From ) );
     s.append( addressField( m, HeaderField::To ) );
+    if ( topLevel ) {
+        // in here, put code to show abbreviated messages. must think
+        // clearly about how to.
+    }
     s.append( addressField( m, HeaderField::Cc ) );
 
     List< HeaderField >::Iterator it( m->header()->fields() );
@@ -1480,7 +1495,7 @@ String Page::leftContent()
                "</div>\n" // actionbuttons
                "<div class=folders>"
                "<p>Folder list\n" +
-               mailboxDescriptor( d->server->session()->user()->home(), 
+               mailboxDescriptor( d->server->session()->user()->home(),
                                   d->server->session()->user()->home()->name().length() ) +
                "</div>\n" // folders
                "</div>\n" // actions
