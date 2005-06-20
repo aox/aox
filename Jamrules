@@ -98,6 +98,7 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
     -e 's!$SBINDIR!'$(SBINDIR)'!' \
     -e 's!$MANDIR!'$(MANDIR)'!' \
     -e 's!$LIBDIR!'$(LIBDIR)'!' \
+    -e 's!$INITDIR!'$(INITDIR)'!' \
     -e 's!$PIDFILEDIR!'$(PIDFILEDIR)'!' \
     -e 's!$JAILDIR!'$(JAILDIR)'!' \
     -e 's!$CONFIGDIR!'$(CONFIGDIR)'!' \
