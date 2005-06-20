@@ -1446,8 +1446,8 @@ void Page::archiveSearchPage()
 }
 
 
-/*!
-
+/*! Returns a string containing the HTML that represents the left column
+    of the final web page.
 */
 
 String Page::leftContent()
