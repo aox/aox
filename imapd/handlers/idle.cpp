@@ -65,5 +65,6 @@ void Idle::read()
     if ( r != "done" )
         error( Bad, "Leaving idle mode due to syntax error: " + r );
     imap()->reserve( 0 );
+    imap()->session()->mailbox()->removeWatcher( this );
     finish();
 }
