@@ -1084,16 +1084,28 @@ String Page::message( Message *first, uint uid, Message *m )
     s.append( "<div class=message>\n"
               "<div class=header>\n" );
 
+    if ( topLevel ) {
+        s.append( "<a onclick=\"expandCollapse('" );
+        s.append( optionalHeader );
+        s.append( "');expandCollapse('" );
+        s.append( fullBody );
+        s.append( "');expandCollapse('" );
+        s.append( summaryBody );
+        s.append( "')\">\n" );
+    }
+    s.append( addressField( m, HeaderField::From ) );
+    if ( topLevel ) {
+        s.append( "</a>\n" );
+    }
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
         s.append( "<div class=headerfield>Subject: " );
         s.append( htmlQuoted( hf->data() ) );
         s.append( "</div>\n" );
     }
-    s.append( addressField( m, HeaderField::From ) );
     s.append( addressField( m, HeaderField::To ) );
     if ( topLevel )
-        s.append( "<div id=toggle" + optionalHeader + ">\n" );
+        s.append( "<div id=" + optionalHeader + ">\n" );
     s.append( addressField( m, HeaderField::Cc ) );
 
     List< HeaderField >::Iterator it( m->header()->fields() );
