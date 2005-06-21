@@ -163,10 +163,60 @@ void Multipart::appendTextPart( String & r, const Bodypart * bp,
 /* Debugging aids. */
 
 
+static void spaces( int );
+static void headerSummary( Header *, int );
 static void dumpBodypart( Message *, Bodypart *, int );
+static void dumpMultipart( Multipart *, int );
 
 
-static String headerSummary( Header *h )
+static void dumpMessage( Message *m, int n = 0 )
+{
+    dumpMultipart( m, n );
+
+    List< Bodypart >::Iterator it( m->children() );
+    while ( it ) {
+        dumpBodypart( m, it, n+2 );
+        ++it;
+    }
+}
+
+
+static void dumpBodypart( Message *m, Bodypart *bp, int n )
+{
+    dumpMultipart( bp, n );
+
+    if ( bp->rfc822() ) {
+        dumpMessage( bp->rfc822(), n+4 );
+    }
+    else {
+        List< Bodypart >::Iterator it( bp->children() );
+        while ( it ) {
+            dumpBodypart( m, it, n+2 );
+            ++it;
+        }
+    }
+}
+
+
+static void dumpMultipart( Multipart *m, int n )
+{
+    spaces( n );
+    fprintf( stderr, "%p = {h=%p, p=%p, c=%p [", m, m->header(),
+             m->parent(), m->children() );
+    List< Bodypart >::Iterator it( m->children() );
+    while ( it ) {
+        Bodypart *bp = it;
+        fprintf( stderr, "%p", bp );
+        ++it;
+        if ( it )
+            fprintf( stderr, "," );
+    }
+    fprintf( stderr, "]}\n" );
+    headerSummary( m->header(), n );
+}
+
+
+static void headerSummary( Header *h, int n )
 {
     StringList l;
 
@@ -195,41 +245,13 @@ static String headerSummary( Header *h )
     if ( cd )
         l.append( cd->value() );
 
-    return l.join( ";" );
+    spaces( n );
+    fprintf( stderr, "%s\n", l.join( ";" ).cstr() );
 }
 
 
-static void dumpMessage( Message *m, int n = 0 )
+static void spaces( int n )
 {
-    int i = n;
-    while ( i-- > 0 )
+    while ( n-- > 0 )
         fprintf( stderr, " " );
-    fprintf( stderr, "(%s\n\n", headerSummary( m->header() ).cstr() );
-    List< Bodypart >::Iterator it( m->children() );
-    while ( it ) {
-        dumpBodypart( m, it, n+2 );
-        ++it;
-    }
-    i = n;
-    while ( i-- > 0 )
-        fprintf( stderr, " " );
-    fprintf( stderr, "(%d entries in children()))\n",
-             m->children()->count() );
-}
-
-
-static void dumpBodypart( Message *m, Bodypart *bp, int n )
-{
-    int i = n;
-    while ( i-- > 0 )
-        fprintf( stderr, " " );
-    fprintf( stderr, "%s: %s\n", m->partNumber( bp ).cstr(),
-             headerSummary( bp->header() ).cstr() );
-    if ( bp->rfc822() )
-        dumpMessage( bp->rfc822(), n+4 );
-    List< Bodypart >::Iterator it( bp->children() );
-    while ( it ) {
-        dumpBodypart( m, it, n+2 );
-        ++it;
-    }
 }
