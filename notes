@@ -375,4 +375,6 @@ RFC 2359
 
 Our httpd should be able to serve its own css: /default.css?
 
+Get rid of the field_names table (thanks to Tony at Perforce).
+
 
