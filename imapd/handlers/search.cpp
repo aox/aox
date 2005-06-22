@@ -972,7 +972,7 @@ String Search::Condition::whereBody() const
 
     String db = Database::type();
     if ( db.lower().endsWith( "tsearch2" ) )
-        s.append( "b.ftidx @@ $" + fn( bt ) + "::tsquery" );
+        s.append( "b.ftidx @@ to_tsquery('default', $" + fn( bt ) + ")" );
     else
         s.append( "b.text ilike " + matchAny( bt ) );
 
