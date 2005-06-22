@@ -373,4 +373,6 @@ RFC 2359
   Not really important, but simple and nice. arnt started on it, and
   will probably finish it eventually.
 
+Our httpd should be able to serve its own css: /default.css?
+
 
