@@ -1439,16 +1439,25 @@ void Page::webmailSearchPage()
             d->searchQuery->bind( 3, domain );
         }
         else {
-            d->searchQuery
-                = new Query( "select hf.uid from header_fields hf "
-                             "join field_names fn on (hf.field=fn.id) "
-                             "where hf.mailbox=$1 and fn.name='Subject' "
-                             "and hf.value ilike '%'||$2||'%' union "
-                             "select pn.uid from part_numbers pn, "
-                             "bodyparts b where pn.mailbox=$1 and "
-                             "pn.bodypart=b.id and "
-                             "b.text ilike '%'||$2||'%'",
-                             this );
+            String s = "select hf.uid from header_fields hf "
+                       "join field_names fn on (hf.field=fn.id) "
+                       "where hf.mailbox=$1 and fn.name='Subject' "
+                       "and hf.value ilike '%'||$2||'%' union ";
+
+            String db = Database::type();
+            if ( !db.endsWith( "+tsearch2" ) || terms->find( ' ' ) > 0 ) {
+                s.append( "select pn.uid from part_numbers pn, "
+                          "bodyparts b where pn.mailbox=$1 and "
+                          "pn.bodypart=b.id and b.text ilike '%'||$2||'%'" );
+            }
+            else {
+                s.append( "select pn.uid from part_numbers pn, "
+                          "bodyparts b where pn.mailbox=$1 and "
+                          "pn.bodypart=b.id and "
+                          "b.ftidx @@ to_tsquery('default', $2)" );
+            }
+
+            d->searchQuery = new Query( s, this );
             d->searchQuery->bind( 1, d->link->mailbox()->id() );
             d->searchQuery->bind( 2, *terms );
         }
