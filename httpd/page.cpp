@@ -1445,21 +1445,33 @@ void Page::webmailSearchPage()
                        "and hf.value ilike '%'||$2||'%' union ";
 
             String db = Database::type();
-            if ( !db.endsWith( "+tsearch2" ) || terms->find( ' ' ) > 0 ) {
+
+            String tsquery;
+            if ( !db.endsWith( "+tsearch2" ) ) {
                 s.append( "select pn.uid from part_numbers pn, "
                           "bodyparts b where pn.mailbox=$1 and "
                           "pn.bodypart=b.id and b.text ilike '%'||$2||'%'" );
             }
             else {
+                uint n = 0;
+                while ( n < terms->length() ) {
+                    char c = (*terms)[n++];
+                    if ( c == ' ' || c == '+' )
+                        c = '&';
+                    tsquery.append( c );
+                }
+
                 s.append( "select pn.uid from part_numbers pn, "
                           "bodyparts b where pn.mailbox=$1 and "
                           "pn.bodypart=b.id and "
-                          "b.ftidx @@ to_tsquery('default', $2)" );
+                          "b.ftidx @@ to_tsquery('default', $3)" );
             }
 
             d->searchQuery = new Query( s, this );
             d->searchQuery->bind( 1, d->link->mailbox()->id() );
             d->searchQuery->bind( 2, *terms );
+            if ( !tsquery.isEmpty() )
+                d->searchQuery->bind( 3, tsquery );
         }
         d->searchQuery->execute();
     }
