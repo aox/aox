@@ -1439,14 +1439,14 @@ void Page::webmailSearchPage()
             d->searchQuery->bind( 3, domain );
         }
         else {
-            String s = "select hf.uid from header_fields hf "
-                       "join field_names fn on (hf.field=fn.id) "
-                       "where hf.mailbox=$1 and fn.name='Subject' "
-                       "and hf.value ilike '%'||$2||'%' union ";
+            String s =
+                "select uid from header_fields where mailbox=$1 and field=20 "
+                "and value ilike '%'||$2||'%'";
 
-            String db = Database::type();
+            s.append( " union " );
 
             String tsquery;
+            String db = Database::type();
             if ( !db.endsWith( "+tsearch2" ) ) {
                 s.append( "select pn.uid from part_numbers pn, "
                           "bodyparts b where pn.mailbox=$1 and "
