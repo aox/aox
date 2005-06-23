@@ -1478,8 +1478,12 @@ void Page::webmailSearchPage()
     if ( !d->searchQuery->done() || !d->mailboxView->ready() )
         return;
 
+    String s( "<div class=page>" );
+    s.append( leftContent() );
+    s.append( "<div class=formeriframe>" );
+    s.append( fn( d->searchQuery->rows() ) + " results found.<br>" );
+
     Row * r = d->searchQuery->nextRow();
-    String s( fn( d->searchQuery->rows() ) + " results found.<br>" );
     while ( r ) {
         uint uid = r->getInt( "uid" );
 
@@ -1523,6 +1527,7 @@ void Page::webmailSearchPage()
                   "</div>\n" ); // thread
         r = d->searchQuery->nextRow();
     }
+    s.append( "</div></div>" );
 
     d->text = s;
     d->ready = true;
