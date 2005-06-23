@@ -3,11 +3,20 @@ grant select on pg_ts_parser to oryx;
 grant select on pg_ts_cfg to oryx;
 grant select on pg_ts_cfgmap to oryx;
 
-vacuum full analyze bodyparts;
 alter table bodyparts add ftidx tsvector;
 update bodyparts set ftidx=to_tsvector('default',text);
 create index bodyparts_ftidx on bodyparts using gist(ftidx);
 vacuum full analyze bodyparts;
 
+alter table header_fields add subjectidx tsvector;
+update header_fields set subjectidx=to_tsvector('default',text);
+create index hf_subjectidx on header_fields using gist(subjectidx);
+vacuum full analyze header_fields;
+
 create trigger bodyparts_ftupdate before insert on bodyparts
 for each row execute procedure tsearch2(ftidx, text);
+
+-- (How do I restrict this to only Subject inserts?)
+-- create trigger hf_ftupdate before insert on header_fields
+-- for each row execute procedure tsearch2(subjectidx, value);
+
