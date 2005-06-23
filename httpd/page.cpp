@@ -1439,39 +1439,39 @@ void Page::webmailSearchPage()
             d->searchQuery->bind( 3, domain );
         }
         else {
-            String s =
-                "select uid from header_fields where mailbox=$1 and field=20 "
-                "and value ilike '%'||$2||'%'";
+            String s;
+            String arg;
 
-            s.append( " union " );
-
-            String tsquery;
             String db = Database::type();
             if ( !db.endsWith( "+tsearch2" ) ) {
-                s.append( "select pn.uid from part_numbers pn, "
-                          "bodyparts b where pn.mailbox=$1 and "
-                          "pn.bodypart=b.id and b.text ilike '%'||$2||'%'" );
+                s = "select uid from header_fields where mailbox=$1 "
+                    "and field=20 and value ilike '%'||$2||'%' "
+                    "union "
+                    "select pn.uid from part_numbers pn, bodyparts b "
+                    "where pn.mailbox=$1 and pn.bodypart=b.id and "
+                    "b.text ilike '%'||$2||'%'";
+                arg = *terms;
             }
             else {
+                s = "select uid from header_fields where mailbox=$1 "
+                    "and subjectidx @@ to_tsquery('default', $2) "
+                    "union "
+                    "select pn.uid from part_numbers pn, bodyparts b "
+                    "where pn.mailbox=$1 and pn.bodypart=b.id and "
+                    "b.ftidx @@ to_tsquery('default', $3)";
+
                 uint n = 0;
                 while ( n < terms->length() ) {
                     char c = (*terms)[n++];
                     if ( c == ' ' || c == '+' )
                         c = '&';
-                    tsquery.append( c );
+                    arg.append( c );
                 }
-
-                s.append( "select pn.uid from part_numbers pn, "
-                          "bodyparts b where pn.mailbox=$1 and "
-                          "pn.bodypart=b.id and "
-                          "b.ftidx @@ to_tsquery('default', $3)" );
             }
 
             d->searchQuery = new Query( s, this );
             d->searchQuery->bind( 1, d->link->mailbox()->id() );
-            d->searchQuery->bind( 2, *terms );
-            if ( !tsquery.isEmpty() )
-                d->searchQuery->bind( 3, tsquery );
+            d->searchQuery->bind( 2, arg );
         }
         d->searchQuery->execute();
     }
