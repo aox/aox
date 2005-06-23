@@ -373,8 +373,40 @@ RFC 2359
   Not really important, but simple and nice. arnt started on it, and
   will probably finish it eventually.
 
+
 Our httpd should be able to serve its own css: /default.css?
 
-Get rid of the field_names table (thanks to Tony at Perforce).
+
+Get rid of the field_names table? (thanks to Tony at Perforce).
+
+
+Split the folder view into pages.
+
+  The injector needs to do threading to make the paging possible.
+
+
+The tsearch2 trigger doesn't work
+
+  "Can't find configuration by locale" errors, and they make the
+  Injector very unhappy.
+
+
+We need some sort of bulk loading for messages.
+
+
+A failing parse message should invalidate the prepared statement cache.
+
+
+We should reject 8-bit content in headers.
+
+
+How do we cope with PostgreSQL server crashes?
+
+
+Pine bodystructure problems (torture-test)
+
+
+We don't handle message/non-rfc822 bodyparts well.
+
 
 
