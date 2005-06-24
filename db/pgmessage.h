@@ -357,4 +357,38 @@ private:
     void encodeData();
 };
 
+
+class PgCopyInResponse
+    : public PgServerMessage
+{
+public:
+    PgCopyInResponse( Buffer * );
+
+private:
+};
+
+
+class PgCopyData
+    : public PgClientMessage
+{
+public:
+    PgCopyData( String );
+
+private:
+    void encodeData();
+    String data;
+};
+
+
+class PgCopyDone
+    : public PgClientMessage
+{
+public:
+    PgCopyDone() : PgClientMessage( 'c' ) {}
+
+private:
+    void encodeData();
+};
+
+
 #endif

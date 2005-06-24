@@ -951,3 +951,54 @@ void PgTerminate::encodeData()
 }
 
 
+
+/*! \class PgCopyInResponse pgmessage.h
+    S: The backend is willing to accept CopyData messages.
+
+    The message describes the expected format of the CopyData messages
+    (text/binary format, number of columns, etc.)
+*/
+
+PgCopyInResponse::PgCopyInResponse( Buffer *b )
+    : PgServerMessage( b )
+{
+    decodeByte();
+    uint c = decodeInt16();
+    while ( c-- > 0 )
+        decodeInt16();
+}
+
+
+
+/*! \class PgCopyData pgmessage.h
+    C: One row of data, formatted according to what the server expects
+    (as described by the CopyInResponse).
+*/
+
+/*! Creates a new CopyData message containing \a s. */
+
+PgCopyData::PgCopyData( String s )
+    : PgClientMessage( 'd' ),
+      data( s )
+{
+}
+
+
+void PgCopyData::encodeData()
+{
+    appendByten( data );
+}
+
+
+
+/*! \class PgCopyDone pgmessage.h
+    C: Sent after the last of the CopyData messages.
+*/
+
+/*! \fn PgCopyDone::PgCopyDone()
+    Creates a new CopyDone message.
+*/
+
+void PgCopyDone::encodeData()
+{
+}
