@@ -1002,3 +1002,21 @@ void PgCopyData::encodeData()
 void PgCopyDone::encodeData()
 {
 }
+
+
+
+/*! \class PgCopyFail pgmessage.h
+    C: Sent if the frontend doesn't want to COPY.
+
+    We don't bother with a sensible error message. This shouldn't ever
+    be used anyway.
+*/
+
+/*! \fn PgCopyFail::PgCopyFail()
+    Creates a new CopyFail message.
+*/
+
+void PgCopyFail::encodeData()
+{
+    appendString( "Nothing to COPY" );
+}

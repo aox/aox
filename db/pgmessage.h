@@ -391,4 +391,15 @@ private:
 };
 
 
+class PgCopyFail
+    : public PgClientMessage
+{
+public:
+    PgCopyFail() : PgClientMessage( 'f' ) {}
+
+private:
+    void encodeData();
+};
+
+
 #endif
