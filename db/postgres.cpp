@@ -384,6 +384,23 @@ void Postgres::process( char type )
         (void)new PgParameterDescription( readBuffer() );
         break;
 
+    case 'G':
+        {
+            PgCopyInResponse msg( readBuffer() );
+            if ( q && q->hasCopyData() ) {
+                PgCopyData d( q->copyData() );
+                PgCopyDone e;
+
+                d.enqueue( writeBuffer() );
+                e.enqueue( writeBuffer() );
+            }
+            else {
+                PgCopyFail f;
+                f.enqueue( writeBuffer() );
+            }
+        }
+        break;
+
     case 'T':
         d->description = new PgRowDescription( readBuffer() );
         break;
