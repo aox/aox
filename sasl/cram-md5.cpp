@@ -35,7 +35,7 @@ String CramMD5::challenge()
         r = Entropy::asNumber( 2 ) % 16384;
 
     String hn = Configuration::hostname();
-    if ( hn.isEmpty() )
+    if ( hn.isEmpty() || hn.find( '.' ) < 0 )
         hn = "oryx.invalid";
 
     challengeSent = "<" + fn( r ) + "." + fn( t ) + "@" + hn + ">";
