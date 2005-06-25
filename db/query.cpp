@@ -31,6 +31,8 @@ public:
     List< Row > rows;
     uint totalRows;
 
+    String copyData;
+
     String description;
     String error;
 
@@ -241,6 +243,34 @@ Transaction *Query::transaction() const
 void Query::setTransaction( Transaction *t )
 {
     d->transaction = t;
+}
+
+
+/*! Appends \a s to this Query's COPY data.
+*/
+
+void Query::appendCopyData( String s )
+{
+    d->copyData.append( s );
+}
+
+
+/*! Returns true if some data has been added to this query with
+    appendCopyData(), and false if there is no data.
+*/
+
+bool Query::hasCopyData() const
+{
+    return !d->copyData.isEmpty();
+}
+
+
+/*! Returns the COPY data appended to this Query with appendCopyData().
+*/
+
+String Query::copyData() const
+{
+    return d->copyData;
 }
 
 

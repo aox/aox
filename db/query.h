@@ -37,6 +37,10 @@ public:
     bool canFail() const;
     void allowFailure();
 
+    void appendCopyData( String );
+    bool hasCopyData() const;
+    String copyData() const;
+
     Transaction *transaction() const;
     void setTransaction( Transaction * );
 
