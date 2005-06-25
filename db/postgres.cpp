@@ -398,6 +398,9 @@ void Postgres::process( char type )
                 PgCopyFail f;
                 f.enqueue( writeBuffer() );
             }
+
+            PgSync s;
+            s.enqueue( writeBuffer() );
         }
         break;
 
