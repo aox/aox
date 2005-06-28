@@ -353,6 +353,8 @@ The HTTP server needs to learn streaming
   Arnt notes: From what I can tell of the code, this won't save
   anything. We'd be able to send <title> a little sooner, that's all.
 
+  We can't send anything until we know the Content-Length.
+
 
 Case sensitivity
 
@@ -375,6 +377,8 @@ RFC 2359
 
 
 Our httpd should be able to serve its own css: /default.css?
+
+  Why should it be able to? Does the same apply for favicon.ico?
 
 
 Get rid of the field_names table? (thanks to Tony at Perforce).
@@ -399,8 +403,20 @@ A failing parse message should invalidate the prepared statement cache.
 
 We should reject 8-bit content in headers.
 
+  Is that to say that we don't?
+
+  I know that we don't in the cases where we discard the data
+  unparsed. For example, comments in Date fields. But do we reject
+  anything else? And what are the arguments for rejecting, anyway?
+
+  (Not trying to be a bastard. This one just seemed a little short on
+  self-evidential truth.)
+
 
 How do we cope with PostgreSQL server crashes?
+
+  We reconnect when we can, ie. when TCP/IP is used, and if not, we
+  fall over and die horribly, in a graceless and untested manner.
 
 
 Pine bodystructure problems (torture-test)
@@ -409,4 +425,12 @@ Pine bodystructure problems (torture-test)
 We don't handle message/non-rfc822 bodyparts well.
 
 
+Update /events/linuxtag2005.html
 
+  It claims it'll be updated. The home page too says "we will
+  update". Oops.
+
+
+Update doc/recorder.man
+
+  Must decide whether to use .SS or .IP, etc.
