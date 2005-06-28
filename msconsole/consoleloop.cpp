@@ -6,6 +6,7 @@
 
 #include "connection.h"
 #include "allocator.h"
+#include "buffer.h"
 #include "scope.h"
 #include "loop.h"
 #include "log.h"
@@ -125,16 +126,15 @@ void ConsoleLoop::shutdown()
 */
 
 EventNotifier::EventNotifier( Connection * connection )
-    : QObject( 0 ), c( connection ), r( false ), w( false )
+    : QObject( 0 ), rn( 0 ), wn( 0 ), c( connection ), r( false ), w( false )
 {
     if ( !c->valid() )
         return;
-    QSocketNotifier * n;
-    n = new QSocketNotifier( c->fd(), QSocketNotifier::Read, this );
-    connect( n, SIGNAL(activated(int)),
+    rn = new QSocketNotifier( c->fd(), QSocketNotifier::Read, this );
+    connect( rn, SIGNAL(activated(int)),
              this, SLOT(acceptRead()) );
-    n = new QSocketNotifier( c->fd(), QSocketNotifier::Write, this );
-    connect( n, SIGNAL(activated(int)),
+    wn = new QSocketNotifier( c->fd(), QSocketNotifier::Write, this );
+    connect( wn, SIGNAL(activated(int)),
              this, SLOT(acceptWrite()) );
 }
 
@@ -174,6 +174,8 @@ void EventNotifier::dispatch()
     r = false;
     w = false;
     Loop::loop()->dispatch( c, rr, ww, time( 0 ) );
+    wn->setEnabled( c->state() != Connection::Connected ||
+                    c->writeBuffer()->size() > 0 );
 }
 
 

@@ -38,6 +38,8 @@ public slots:
     void dispatch();
 
 private:
+    class QSocketNotifier * rn;
+    class QSocketNotifier * wn;
     Connection * c;
     bool r;
     bool w;
