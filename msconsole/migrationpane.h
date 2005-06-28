@@ -1,3 +1,5 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
 #ifndef MIGRATIONPANE_H
 #define MIGRATIONPANE_H
 
@@ -9,6 +11,14 @@ class MigrationPane: public QWidget
     Q_OBJECT
 public:
     MigrationPane( QWidget * );
+
+public:
+    void startMigration();
+    void abortMigration();
+    void disenablify();
+
+private:
+    class MigrationPaneData * d;
 };
 
 
