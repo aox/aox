@@ -278,13 +278,6 @@ GC speedups
   Allocators that are full or have seen some activity. Or something.
 
 
-tcpdump to imap script
-
-  What's the easiest way to generate a script from a tcpdump savefile? 
-  Likely Answer: Write a man-in-the-middle recorder, and have the
-  client connect to the relay, not the real server.
-
-
 C/R
 
   C/R sucks. But it has its uses, so we can benefit from implementing
@@ -342,18 +335,6 @@ RENAME isn't implemented
   Implementing it should be a reasonably simple matter. May be best
   to put it off until ocd forwards information about mailboxes,
   though.
-
-
-The HTTP server needs to learn streaming
-
-  Instead of accumulating page text and sending it in one chunk, we
-  should switch to a startPage()/*sendStuff()/endPage() interface,
-  to conserve memory and reduce (apparent) latency.
-
-  Arnt notes: From what I can tell of the code, this won't save
-  anything. We'd be able to send <title> a little sooner, that's all.
-
-  We can't send anything until we know the Content-Length.
 
 
 Case sensitivity
