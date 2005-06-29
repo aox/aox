@@ -1012,11 +1012,11 @@ String Search::Condition::whereFlags() const
             " and flags.flag=$" + fn( name ) + ")";
     }
     d->query->bind( name, s8 ); // do we need to smash case on flags?
-    return "messages.uid in ("
-        "select flags.uid from flags, flag_names "
-        "where flags.mailbox=$" + fn( d->mboxId ) +
-        " and flags.flag=flag_names.id and flag_names.name=$" +
-        fn( name ) + ")";
+    return
+        "messages.uid in "
+        "(select uid from flags where mailbox=$" + fn( d->mboxId ) +
+        " and flag=(select id from flag_names where name=$" +
+        fn( name ) + "))";
 }
 
 
