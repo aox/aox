@@ -13,11 +13,13 @@ public:
     UserPane( QWidget * );
 
     void refreshFromDatabase();
-    void fetchUserList();
 
     void showEvent( QShowEvent * );
 
     static bool validUserName( const String & );
+
+public slots:
+    void fetchUserList();
 
 private slots:
     void addAlias();
