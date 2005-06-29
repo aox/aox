@@ -855,10 +855,9 @@ String Search::Condition::whereHeaderField() const
 
     return
         "messages.uid in "
-        "(select uid from header_fields hf, field_names fn where"
-        " hf.mailbox=$" + fn( d->mboxId ) + " and hf.field=fn.id"
-        " and fn.name=$" + fn( fnum ) + " and"
-        " hf.value ilike " + matchAny( like ) + ")";
+        "(select uid from header_fields where mailbox=$" + fn( d->mboxId ) +
+        " and field=(select id from field_names where name=$" + fn( fnum ) +
+        ") and hf.value ilike " + matchAny( like ) + ")";
 }
 
 
