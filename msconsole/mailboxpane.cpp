@@ -123,11 +123,16 @@ int MailboxPane::addChildren( Mailbox * parent, QListViewItem * item )
         else
             mi = new MailboxItem( i, d->mailboxes );
         n++;
-        n += addChildren( i, mi );
+        uint c = addChildren( i, mi );
+        if ( c < 4 ) // same test as below
+            n += c;
         ++i;
     }
     if ( item && item->firstChild() )
-        item->setOpen( n < 3 );
+        item->setOpen( n < 4 ); // same test as above
+    else if ( !item && d->mailboxes->firstChild() )
+        d->mailboxes->firstChild()->setOpen( true );
+    
     return n;
 }
 
