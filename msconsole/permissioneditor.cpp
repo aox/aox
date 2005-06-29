@@ -10,10 +10,11 @@
 #include "mailbox.h"
 #include "query.h"
 
-#include <qlayout.h>
+#include <qapplication.h>
 #include <qpushbutton.h>
 #include <qcheckbox.h>
 #include <qptrlist.h>
+#include <qlayout.h>
 #include <qlabel.h>
 
 
@@ -50,6 +51,8 @@ public:
 PermissionEditor::PermissionEditor( QWidget * parent )
     : QWidget( parent ), d( new PermissionEditorData )
 {
+    d->add = new QPushButton( tr( "Add" ), this );
+    setBackgroundColor( Qt::green );
 }
 
 
@@ -68,6 +71,18 @@ void PermissionEditor::setMailbox( Mailbox * mailbox )
 
     d->mailbox = mailbox;
     (void)new PermissionEditorFetcher( this, mailbox );
+
+    // Mailbox::owner() really should return User*
+    PermissionEditorRow * r = new PermissionEditorRow( this );
+    r->label()->setText( QString::fromLatin1( "(owner)" ) );
+    uint i = 0;
+    while( i < Permissions::NumRights ) {
+        QCheckBox * b = r->button( (Permissions::Right)i );
+        b->setChecked( true );
+        b->setEnabled( false );
+        i++;
+    }
+    d->rows.append( r );
 }
 
 
@@ -88,24 +103,30 @@ Mailbox * PermissionEditor::mailbox() const
 void PermissionEditor::setupLayout()
 {
     delete d->tll;
-    d->tll = new QGridLayout( 4, d->rows.count(), 6 );
+    d->tll = new QGridLayout( this, 4, 1 + d->rows.count(), 6 );
     QPtrListIterator<PermissionEditorRow> it( d->rows );
-    uint col = 1;
+    uint col = 0;
     PermissionEditorRow * r = 0;
     while ( (r=it.current()) != 0 ) {
         ++it;
         if ( !it ) {
             d->tll->addWidget( d->add, 0, col );
-            col++;
+            d->add->show();
         }
         uint i = 0;
         while ( i < Permissions::NumRights ) {
             d->tll->addWidget( r->button( (Permissions::Right)i ),
                                i+1, col );
+            r->button( (Permissions::Right)i )->show();
             i++;
         }
         col++;
     }
+    QApplication::postEvent( parentWidget(),
+                             new QEvent( QEvent::LayoutHint ) );
+    QApplication::sendEvent( this,
+                             new QEvent( QEvent::LayoutHint ) );
+    dumpObjectTree();
 }
 
 
@@ -198,7 +219,7 @@ public:
 
 PermissionEditorFetcher::PermissionEditorFetcher( PermissionEditor * e,
                                                   Mailbox * m )
-    : EventHandler()
+    : EventHandler(), d( new PermissionEditorFetcherData )
 {
     d->q = new Query( "select identifier, rights "
                       "from permissions where mailbox=$1 "
@@ -213,6 +234,7 @@ PermissionEditorFetcher::PermissionEditorFetcher( PermissionEditor * e,
 
 void PermissionEditorFetcher::execute()
 {
+    qDebug( "fetcher %s", d->m->name().cstr() );
     Row * r;
     while ( (r=d->q->nextRow()) != 0 ) {
         String rights( r->getString( "rights" ) );
@@ -248,5 +270,5 @@ void PermissionEditor::add( const String & identifier, const String & rights )
             r->button( (Permissions::Right)i )->setChecked( true );
         i++;
     }
-
+    d->rows.append( r );
 }
