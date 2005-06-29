@@ -21,9 +21,15 @@
 
 /*! \nodoc */
 
+static void breakHere()
+{
+}
+
+
 static void errorHandler( QtMsgType t, const char * message )
 {
     if ( message && *message ) {
+        fprintf( stderr, "%s\n", message );
         Log::Severity s = Log::Info;
         switch ( t ) {
         case QtDebugMsg:
@@ -38,6 +44,8 @@ static void errorHandler( QtMsgType t, const char * message )
         }
         ::log( message, s );
     }
+    if ( t != QtDebugMsg )
+	breakHere();
 }
 
 
@@ -68,6 +76,8 @@ static QSize goodDefaultSize()
 
 int main( int argc, char *argv[] )
 {
+    qInstallMsgHandler( errorHandler );
+
     Scope global;
 
     // typical mailstore crud
