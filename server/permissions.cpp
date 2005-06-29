@@ -132,8 +132,10 @@ void Permissions::execute()
         }
 
         // For everyone else, we have to check.
-        d->q = new Query( "select * from permissions where mailbox=$1 and "
-                          "identifier=$2", this );
+        d->q = new Query( "select * from permissions "
+                          "where mailbox=$1 and "
+                          "(identifier=$2 or identifier='anyone')",
+                          this );
         d->q->bind( 1, d->mailbox->id() );
         d->q->bind( 2, d->user->login() );
         d->q->execute();
