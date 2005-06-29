@@ -12,7 +12,7 @@ class MigrationPane: public QWidget
 public:
     MigrationPane( QWidget * );
 
-public:
+public slots:
     void startMigration();
     void abortMigration();
     void disenablify();

@@ -66,7 +66,7 @@ MigrationPane::MigrationPane( QWidget * parent )
     tll->addWidget( d->sourceStack, 0, 1 );
     tll->addMultiCellWidget( d->migrator, 2, 2, 0, 1 );
 
-    QHBoxLayout * buttons = new QHBoxLayout( QBoxLayout::LeftToRight );
+    QBoxLayout * buttons = new QBoxLayout( QBoxLayout::LeftToRight, 6 );
     tll->addMultiCellLayout( buttons, 1, 1, 0, 1 );
 
     buttons->addWidget( d->start );
@@ -112,8 +112,6 @@ void MigrationPane::abortMigration()
 
 void MigrationPane::disenablify()
 {
-    fprintf( stderr, "ugga!\n" );
-
     bool canSelectSource = true;
 
     if ( d->migrator->running() ) {
