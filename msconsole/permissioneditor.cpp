@@ -327,7 +327,6 @@ PermissionEditorFetcher::PermissionEditorFetcher( PermissionEditor * e,
 
 void PermissionEditorFetcher::execute()
 {
-    qDebug( "fetcher %s", d->m->name().cstr() );
     Row * r;
     while ( (r=d->q->nextRow()) != 0 ) {
         String rights( r->getString( "rights" ) );
