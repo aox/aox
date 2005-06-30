@@ -68,6 +68,7 @@ void ConsoleLoop::addConnection( Connection * c )
         shutdown();
     }
     e[fd] = new EventNotifier( c );
+    Allocator::addEternal( e[fd], "qt/oryx event notifier" );
 }
 
 

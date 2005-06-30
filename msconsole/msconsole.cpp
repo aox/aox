@@ -100,13 +100,14 @@ int main( int argc, char *argv[] )
 
     // typical Qt crud
     qInstallMsgHandler( errorHandler );
-    QApplication a( argc, argv );
-    a.connect( qApp, SIGNAL(lastWindowClosed()),
-               qApp, SLOT(quit()) );
+    QApplication * a = new QApplication( argc, argv );
+    Allocator::addEternal( a, "main qt application" );
+    a->connect( qApp, SIGNAL(lastWindowClosed()),
+                qApp, SLOT(quit()) );
     QWidget * w = new Console;
     w->resize( goodDefaultSize() );
     w->show();
 
     // now do it.
-    return a.exec();
+    return a->exec();
 }
