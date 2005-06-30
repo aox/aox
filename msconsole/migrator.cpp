@@ -16,18 +16,6 @@ Migrator::Migrator( QWidget * parent )
 }
 
 
-/*! Returns true if a Migrator operation is currently running, and
-    false otherwise. An operation is running even if there's nothing
-    it can do at the moment because of syntax errors or permission
-    problems.
-*/
-
-bool Migrator::running() const
-{
-    return false;
-}
-
-
 /*! \class MigratorSource migrator.h
 
     The MigratorSource class models something from which Oryx can
@@ -59,6 +47,8 @@ MigratorSource::MigratorSource()
     operate on them in parallel. However, unlimited parallelism isn't
     necessary. It's acceptable to hold an open file descriptor in each
     active MigratorMailbox object.
+
+    The results of this function aren't ordered in any way.
 */
 
 
@@ -100,7 +90,7 @@ MigratorMailbox::MigratorMailbox()
     human-readably described by \a desc.
 */
 
-MigratorMessage::MigratorMessage( class String & rfc822, const String & desc )
+MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
     : Message( rfc822 ), s( desc )
 {
     // nothing more
@@ -134,10 +124,22 @@ MigratorMailbox::~MigratorMailbox()
 }
 
 
-/*! Necessary only to satisfy g++, which wants virtual
-    constructors.
+/*! Starts migrating data from \a source. Returns immediately, while
+    migration probably takes a few minutes or hours. */
+
+void Migrator::start( class MigratorSource * source )
+{
+    source = source; // XXX
+}
+
+
+/*! Returns true if a Migrator operation is currently running, and
+    false otherwise. An operation is running even if there's nothing
+    it can do at the moment because of syntax errors or permission
+    problems.
 */
 
-MigratorMessage::~MigratorMessage()
+bool Migrator::running() const
 {
+    return false;
 }

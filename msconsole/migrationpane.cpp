@@ -6,11 +6,16 @@
 
 #include "migrator.h"
 
+//#include "mh.h"
+#include "mbox.h"
+//#include "cyrus.h"
+
 #include <qlayout.h>
 #include <qpushbutton.h>
 #include <qbuttongroup.h>
 #include <qradiobutton.h>
 #include <qwidgetstack.h>
+
 
 
 class MigrationPaneData
@@ -91,6 +96,17 @@ MigrationPane::MigrationPane( QWidget * parent )
 
 void MigrationPane::startMigration()
 {
+    if ( d->migrator->running() ) {
+    }
+    else if ( d->mh->isOn() ) {
+        //d->migrator->start( new MHDirectory );
+    }
+    else if ( d->mbox->isOn() ) {
+        d->migrator->start( new MboxDirectory( "/" ) ); // / XXX
+    }
+    else if ( d->cyrus->isOn() ) {
+        //d->migrator->start( new CyrusDirectory );
+    }
     disenablify();
 }
 

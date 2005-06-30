@@ -43,11 +43,9 @@ public:
 class MigratorMessage: public Message
 {
 public:
-    MigratorMessage( class String &, const String & );
-    virtual ~MigratorMessage();
+    MigratorMessage( const String &, const String & );
 
-    virtual class Message * message();
-    virtual String description();
+    String description();
 
 private:
     class String s;

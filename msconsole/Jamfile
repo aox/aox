@@ -28,6 +28,7 @@ echo '#include "cstring.h"' > $(<) ; for i in $(>) ; do ( cd `dirname $i` ; moc 
 Build msconsole : console.cpp userpane.cpp mailboxpane.cpp msconsole.cpp
     consoleloop.cpp searchedit.cpp guilog.cpp migrationpane.cpp
     permissioneditor.cpp migrator.cpp
+    mbox.cpp
     .msconsole.moc.cpp ;
 
 Program msconsole :
