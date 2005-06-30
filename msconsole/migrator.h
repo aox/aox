@@ -5,6 +5,8 @@
 
 #include <qwidget.h>
 
+#include "message.h"
+
 
 class Migrator: public QWidget
 {
@@ -12,7 +14,44 @@ class Migrator: public QWidget
 public:
     Migrator( QWidget * parent );
 
+    void start( class MigratorSource * );
+
     bool running() const;
 };
+
+
+class MigratorSource
+{
+public:
+    MigratorSource();
+    virtual ~MigratorSource();
+
+    virtual class MigratorMailbox * nextMailbox() = 0;
+};
+
+
+class MigratorMailbox
+{
+public:
+    MigratorMailbox();
+    virtual ~MigratorMailbox();
+
+    virtual class MigratorMessage * nextMessage() = 0;
+};
+
+
+class MigratorMessage: public Message
+{
+public:
+    MigratorMessage( class String &, const String & );
+    virtual ~MigratorMessage();
+
+    virtual class Message * message();
+    virtual String description();
+
+private:
+    class String s;
+};
+
 
 #endif
