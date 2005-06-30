@@ -14,6 +14,7 @@
 #include <qpushbutton.h>
 #include <qcheckbox.h>
 #include <qptrlist.h>
+#include <qtooltip.h>
 #include <qlayout.h>
 #include <qlabel.h>
 
@@ -22,13 +23,17 @@ class PermissionEditorData
 {
 public:
     PermissionEditorData()
-        : add( 0 ), mailbox( 0 ), tll( 0 )
+        : add( 0 ), mailbox( 0 ), tll( 0 ),
+          rows( new QPtrList<PermissionEditorRow> ), unflicker( 0 )
     {}
 
     QPushButton * add;
     Mailbox * mailbox;
     QGridLayout * tll;
-    QPtrList<PermissionEditorRow> rows;
+    QPtrList<PermissionEditorRow> * rows;
+    QPtrList<PermissionEditorRow> * unflicker;
+
+    QLabel * rights[Permissions::NumRights];
 };
 
 
@@ -52,7 +57,75 @@ PermissionEditor::PermissionEditor( QWidget * parent )
     : QWidget( parent ), d( new PermissionEditorData )
 {
     d->add = new QPushButton( tr( "Add" ), this );
-    setBackgroundColor( Qt::green );
+    connect( d->add, SIGNAL(clicked()),
+             this, SLOT(addColumn) );
+    
+    d->rights[Permissions::Lookup]
+        = new QLabel( "Lookup", this );
+    QToolTip::add( d->rights[Permissions::Lookup],
+                   tr( "<p>If set, the mailbox name is visible. "
+                       "This is always true.</p>" ) );
+
+    d->rights[Permissions::Read]
+        = new QLabel( "Read", this );
+    QToolTip::add( d->rights[Permissions::Read],
+                   tr( "<p>If set, "
+                       "the user can ready messages in this mailbox.</p>" ) );
+
+    d->rights[Permissions::KeepSeen]
+        = new QLabel( "Keep Seen", this );
+    QToolTip::add( d->rights[Permissions::KeepSeen],
+                   tr( "<p>If set, then reading messages sets the "
+                       "<i>seen</i> flag.</p>" ) );
+
+    d->rights[Permissions::Write]
+        = new QLabel( "Write", this );
+    QToolTip::add( d->rights[Permissions::Write],
+                   tr( "<p>If set, then the user can change flags "
+                       "(except <i>seen</i> and <i>deleted</i>).</p>" ) );
+
+    d->rights[Permissions::Insert]
+        = new QLabel( "Insert", this );
+    QToolTip::add( d->rights[Permissions::Insert],
+                   tr( "<p>If set, the user can write or copy new messages "
+                       "into the mailbox.</p>" ) );
+
+    d->rights[Permissions::Post]
+        = new QLabel( "Post", this );
+    QToolTip::add( d->rights[Permissions::Post],
+                   tr( "<p>If set, the user can send mail to mailbox. "
+                       "This right is not enforced. For the moment, "
+                       "it cannot be disabled.</p>" ) );
+
+    d->rights[Permissions::CreateMailboxes]
+        = new QLabel( "CreateMailboxes", this );
+    QToolTip::add( d->rights[Permissions::CreateMailboxes],
+                   tr( "<p>If set, the user can create child mailboxes "
+                       "of this mailbox.</p>" ) );
+
+    d->rights[Permissions::DeleteMailbox]
+        = new QLabel( "Delete Mailbox", this );
+    QToolTip::add( d->rights[Permissions::DeleteMailbox],
+                   tr( "<p>If set, the user can delete mailbox. "
+                       "Note that deleting the messages in this mailbox "
+                       "is covered by a separate right.</p>" ) );
+
+    d->rights[Permissions::DeleteMessages]
+        = new QLabel( "Delete Messages", this );
+    QToolTip::add( d->rights[Permissions::DeleteMessages],
+                   tr( "<p>If set, the user can can set the "
+                       "<i>deleted</i> flag on messages.</p>" ) );
+
+    d->rights[Permissions::Expunge]
+        = new QLabel( "Expunge", this );
+    QToolTip::add( d->rights[Permissions::Expunge],
+                   tr( "<p>If set, the user can expunge messages that have "
+                       "the <i>deleted</i> flag.</p>" ) );
+
+    d->rights[Permissions::Admin]
+        = new QLabel( "Admin", this );
+    QToolTip::add( d->rights[Permissions::Admin],
+                   tr( "<p>If set, the user can modify these rights.</p>" ) );
 }
 
 
@@ -66,8 +139,10 @@ void PermissionEditor::setMailbox( Mailbox * mailbox )
         return;
     delete d->tll;
     d->tll = 0;
-    d->rows.setAutoDelete( true );
-    d->rows.clear();
+    delete d->unflicker;
+    d->unflicker = d->rows;
+    d->rows = new QPtrList<PermissionEditorRow>;
+    d->rows->setAutoDelete( true );
 
     d->mailbox = mailbox;
     (void)new PermissionEditorFetcher( this, mailbox );
@@ -82,7 +157,7 @@ void PermissionEditor::setMailbox( Mailbox * mailbox )
         b->setEnabled( false );
         i++;
     }
-    d->rows.append( r );
+    d->rows->append( r );
 }
 
 
@@ -103,17 +178,15 @@ Mailbox * PermissionEditor::mailbox() const
 void PermissionEditor::setupLayout()
 {
     delete d->tll;
-    d->tll = new QGridLayout( this, 4, 1 + d->rows.count(), 6 );
-    QPtrListIterator<PermissionEditorRow> it( d->rows );
+    d->tll = new QGridLayout( this, 4, 1 + d->rows->count(), 6 );
+    QPtrListIterator<PermissionEditorRow> it( *d->rows );
     uint col = 0;
     PermissionEditorRow * r = 0;
     while ( (r=it.current()) != 0 ) {
         ++it;
-        if ( !it ) {
-            d->tll->addWidget( d->add, 0, col );
-            d->add->show();
-        }
         uint i = 0;
+        d->tll->addWidget( r->label(), 0, col );
+        r->label()->show();
         while ( i < Permissions::NumRights ) {
             d->tll->addWidget( r->button( (Permissions::Right)i ),
                                i+1, col );
@@ -122,11 +195,21 @@ void PermissionEditor::setupLayout()
         }
         col++;
     }
+    d->tll->addWidget( d->add, 0, col );
+    d->add->show();
+    uint i = 0;
+    while ( i < Permissions::NumRights ) {
+        d->tll->addWidget( d->rights[i], i+1, col );
+        i++;
+    }
+
+    d->tll->activate();
     QApplication::postEvent( parentWidget(),
                              new QEvent( QEvent::LayoutHint ) );
-    QApplication::sendEvent( this,
-                             new QEvent( QEvent::LayoutHint ) );
-    dumpObjectTree();
+
+    // finally, now that the screen is ready, kill the old items, kept
+    // in the unflicker list.
+    delete d->unflicker;
 }
 
 
@@ -202,6 +285,9 @@ QLabel * PermissionEditorRow::label() const
 }
 
 
+static const char * defaultRights = "lp";
+
+
 class PermissionEditorFetcherData
 {
 public:
@@ -229,6 +315,7 @@ PermissionEditorFetcher::PermissionEditorFetcher( PermissionEditor * e,
     d->q->execute();
     d->e = e;
     d->m = m;
+    d->anyone = defaultRights;
 }
 
 
@@ -256,6 +343,10 @@ void PermissionEditorFetcher::execute()
 
 /*! Creates and shows a PermissionEditorRow indicating that \a
     identifier has \a rights, and allowing change.
+
+    It would be good to take any old PermissionEditorRow we had for
+    the last mailbox instead of creating a new one, if a suitable row
+    is at hand. Minimizes flicker.
 */
 
 void PermissionEditor::add( const String & identifier, const String & rights )
@@ -270,5 +361,33 @@ void PermissionEditor::add( const String & identifier, const String & rights )
             r->button( (Permissions::Right)i )->setChecked( true );
         i++;
     }
-    d->rows.append( r );
+    d->rows->append( r );
+}
+
+
+/*! Adds a new row, including editable name.
+ 
+    Todo: Editable name. Here or elsewhere?
+
+*/
+
+void PermissionEditor::addColumn()
+{
+    PermissionEditorRow * r = new PermissionEditorRow( this );
+    r->label()->setText( tr( "ugga" ) );
+    uint i = 0;
+    String rights( defaultRights );
+    while( i < Permissions::NumRights ) {
+        char rc = Permissions::rightChar( (Permissions::Right)i );
+        if ( rights.find( rc ) >= 0 )
+            r->button( (Permissions::Right)i )->setChecked( true );
+        i++;
+    }
+    PermissionEditorRow * anyone = d->rows->last();
+    if ( anyone )
+        d->rows->take();
+    d->rows->append( r );
+    if ( anyone )
+        d->rows->append( anyone );
+    setupLayout();
 }

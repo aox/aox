@@ -59,7 +59,7 @@ MailboxPane::MailboxPane( QWidget * parent )
     pb->setFocusPolicy( NoFocus );
 
     d->editor = new PermissionEditor( this );
-    tll->addWidget( d->editor, 1, 2 );
+    tll->addWidget( d->editor, 1, 1 );
 
     // finally, tell the master grid where it can stretch, and where
     // it must have space.
@@ -70,7 +70,7 @@ MailboxPane::MailboxPane( QWidget * parent )
     /* tll->setRowStretch( 9, 2 ); */
     /* tll->setColStretch( 3, 2 ); */
 
-    connect( d->mailboxes, SIGNAL(selectionChanged()),
+    connect( d->mailboxes, SIGNAL(currentChanged( QListViewItem * )),
              this, SLOT(mailboxSelected()) );
 }
 
@@ -154,7 +154,7 @@ void MailboxPane::showEvent( QShowEvent *show )
 
 void MailboxPane::mailboxSelected()
 {
-    MailboxItem * i = (MailboxItem*)d->mailboxes->selectedItem();
-    if ( !i )
+    MailboxItem * i = (MailboxItem*)d->mailboxes->currentItem();
+    if ( i )
         d->editor->setMailbox( i->mailbox() );
 }

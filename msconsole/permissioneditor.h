@@ -25,6 +25,9 @@ public:
 
     void add( const String &, const String & );
 
+private slots:
+    void addColumn();
+
 private:
     class PermissionEditorData * d;
 };
