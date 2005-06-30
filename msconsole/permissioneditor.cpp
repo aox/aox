@@ -58,7 +58,7 @@ PermissionEditor::PermissionEditor( QWidget * parent )
 {
     d->add = new QPushButton( tr( "Add" ), this );
     connect( d->add, SIGNAL(clicked()),
-             this, SLOT(addColumn) );
+             this, SLOT(addColumn()) );
     
     d->rights[Permissions::Lookup]
         = new QLabel( "Lookup", this );
@@ -248,6 +248,12 @@ PermissionEditorRow::PermissionEditorRow( PermissionEditor * parent )
     uint i = 0;
     while( i < Permissions::NumRights )
         d->buttons[i++] = new QCheckBox( parent );
+
+    // two rights are hardwired to true in the oryx system
+    d->buttons[Permissions::Lookup]->setChecked( true );
+    d->buttons[Permissions::Lookup]->setEnabled( false );
+    d->buttons[Permissions::Post]->setChecked( true );
+    d->buttons[Permissions::Post]->setEnabled( false );
 }
 
 
