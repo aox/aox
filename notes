@@ -359,7 +359,16 @@ RFC 2359
 
 Our httpd should be able to serve its own css: /default.css?
 
-  Why should it be able to? Does the same apply for favicon.ico?
+  > Why should it be able to?
+
+  So we can demonstrate it at trade fairs where we don't have Internet
+  access. :-)
+
+  > Does the same apply for favicon.ico?
+
+  I'm not sure any more. Maybe it's good enough to serve both from
+  oryx.com; it's just that we've had problems with that more than
+  once.
 
 
 Get rid of the field_names table? (thanks to Tony at Perforce).
@@ -384,20 +393,32 @@ A failing parse message should invalidate the prepared statement cache.
 
 We should reject 8-bit content in headers.
 
-  Is that to say that we don't?
+  > Is that to say that we don't?
 
-  I know that we don't in the cases where we discard the data
-  unparsed. For example, comments in Date fields. But do we reject
-  anything else? And what are the arguments for rejecting, anyway?
+  I found a message with some junk in the header (^H and some other
+  stuff) killed Postgres (A message saying "Unicode characters above
+  0x10000 are not supported", then a server crash) when I delivered it.
+  It wasn't in a field that could be 2047 encoded, and I can't see what
+  to do about it other than reject it. We certainly shouldn't be trying
+  to feed it into Postgres unmodified.
 
-  (Not trying to be a bastard. This one just seemed a little short on
-  self-evidential truth.)
+  > I know that we don't in the cases where we discard the data
+  > unparsed. For example, comments in Date fields. But do we reject
+  > anything else? And what are the arguments for rejecting, anyway?
+  >
+  > (Not trying to be a bastard. This one just seemed a little short on
+  > self-evidential truth.)
 
 
 How do we cope with PostgreSQL server crashes?
 
-  We reconnect when we can, ie. when TCP/IP is used, and if not, we
-  fall over and die horribly, in a graceless and untested manner.
+  > We reconnect when we can, ie. when TCP/IP is used, and if not, we
+  > fall over and die horribly, in a graceless and untested manner.
+
+  Right. In fact, I should have written "Look into what happens when the
+  Postgres server crashes" (it doesn't accept immediate reconnections).
+  I observed nasty behaviour at Linuxtag, but didn't have the time to
+  try to reproduce it.
 
 
 Pine bodystructure problems (torture-test)
@@ -408,10 +429,34 @@ We don't handle message/non-rfc822 bodyparts well.
 
 Update /events/linuxtag2005.html
 
-  It claims it'll be updated. The home page too says "we will
-  update". Oops.
+  It claims it'll be updated. The home page (what home page?) too says
+  "we will update". Oops.
 
 
 Update doc/recorder.man
 
   Must decide whether to use .SS or .IP, etc.
+
+
+Look into supporting the MySQL protocol after 1.0
+
+
+Look at cryptlib error messages after 0.96.
+
+  We report some things as errors that may be just ordinary EOF-like
+  conditions.
+
+
+Error handling in the Injector needs another look.
+
+  (I saw some horrible failures at Linuxtag. I just need to go over the
+  logs.)
+
+
+We need to support date field searches.
+
+
+We need to support stored search "folders".
+
+
+
