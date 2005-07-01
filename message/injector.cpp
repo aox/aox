@@ -32,7 +32,6 @@ static PreparedStatement *intoMessages;
 static PreparedStatement *intoRecent;
 static PreparedStatement *intoPartnumbers;
 static PreparedStatement *intoHeaderfields;
-static PreparedStatement *intoAddressfields;
 
 
 // These structs represent one part of each entry in the header_fields
@@ -214,14 +213,6 @@ void Injector::setup()
             "($1,$2,$3,$4,$5,$6)"
         );
     Allocator::addEternal( intoHeaderfields, "intoHeaderfields" );
-
-    intoAddressfields =
-        new PreparedStatement(
-            "insert into address_fields "
-            "(mailbox,uid,part,position,field,address) values "
-            "($1,$2,$3,$4,$5,$6)"
-        );
-    Allocator::addEternal( intoAddressfields, "intoAddressfields" );
 }
 
 
@@ -810,7 +801,10 @@ void Injector::linkHeaderFields()
 
 void Injector::linkAddresses()
 {
-    Query *q;
+    Query *q =
+        new Query( "copy address_fields "
+                   "(mailbox,uid,part,position,field,address) "
+                   "from stdin", 0 );
 
     List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
@@ -821,20 +815,27 @@ void Injector::linkAddresses()
         while ( it ) {
             AddressLink *link = it;
 
-            q = new Query( *intoAddressfields, 0 );
-            q->bind( 1, m->id() );
-            q->bind( 2, uid );
-            q->bind( 3, link->part );
-            q->bind( 4, link->position );
-            q->bind( 5, link->type );
-            q->bind( 6, link->address->id() );
-            d->transaction->enqueue( q );
+            String s( fn( m->id() ) );
+            s.append( "\t" );
+            s.append( fn( uid ) );
+            s.append( "\t" );
+            s.append( link->part );
+            s.append( "\t" );
+            s.append( fn( link->position ) );
+            s.append( "\t" );
+            s.append( fn( link->type ) );
+            s.append( "\t" );
+            s.append( fn( link->address->id() ) );
+            s.append( "\n" );
+            q->appendCopyData( s );
 
             ++it;
         }
 
         ++mi;
     }
+
+    d->transaction->enqueue( q );
 }
 
 
