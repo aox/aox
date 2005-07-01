@@ -289,11 +289,13 @@ String Page::text() const
     r.append( htmlQuoted( Configuration::text( Configuration::Hostname ) ) );
     r.append( " webmail</title>\n" );
     r.append( "<style type=\"text/css\">\n"
-              ".jsonly{display:none;}\n" // visible if js, invisible otherwise
+              ".jsonly{display:none;}\n" // visible if js, inv. otherwise
               ".njsvisible{}\n" // hidden if js, visible if not
               ".hidden{display:none;}\n" // invisible (set by js code)
-              ".njshidden{display:none;}\n" // invisible (showable by js code)
-              "</style>\n" );
+              ".njshidden{display:none;}\n" ); // inv. (showable by js code)
+    if ( cssUrl )
+        r.append( "@import url(\"" + *cssUrl + "\");\n" );
+    r.append( " </style>\n" );
     // change the first two rules if the browser supports javascript
     r.append( "<script language=javascript type=\"text/javascript\">\n"
               "function useJS(){\n"
@@ -332,9 +334,6 @@ String Page::text() const
     r.append( "</script>\n" );
     if ( jsUrl )
         r.append( "<script src=\"" + *jsUrl + "\"></script>\n" );
-    if ( cssUrl )
-        r.append( "<link rel=stylesheet type=\"text/css\" href=\"" +
-                  *cssUrl + "\">\n" );
     r.append( "</head>\n"
               "<body>"
               "<div class=\"page\">\n" );
