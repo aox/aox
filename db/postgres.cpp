@@ -34,7 +34,8 @@ public:
     PgData()
         : active( false ), startup( false ), authenticated( false ),
           unknownMessage( false ), identBreakageSeen( false ),
-          keydata( 0 ), description( 0 ), transaction( 0 )
+          sendingCopy( false ), keydata( 0 ), description( 0 ),
+          transaction( 0 )
     {}
 
     bool active;
@@ -42,6 +43,7 @@ public:
     bool authenticated;
     bool unknownMessage;
     bool identBreakageSeen;
+    bool sendingCopy;
 
     PgKeyData *keydata;
     Dict< String > params;
@@ -132,6 +134,9 @@ void Postgres::processQueue()
     Query *q;
     int n = 0;
 
+    if ( d->sendingCopy )
+        return;
+
     List< Query > *l = Database::queries;
     if ( d->transaction )
         l = d->transaction->queries();
@@ -171,8 +176,8 @@ void Postgres::processQueue()
         PgDescribe c;
         c.enqueue( writeBuffer() );
 
-        PgExecute d;
-        d.enqueue( writeBuffer() );
+        PgExecute ex;
+        ex.enqueue( writeBuffer() );
 
         PgSync e;
         e.enqueue( writeBuffer() );
@@ -181,6 +186,11 @@ void Postgres::processQueue()
         s.append( q->description() );
         log( s, Log::Debug );
         n++;
+
+        if ( q->hasCopyData() ) {
+            d->sendingCopy = true;
+            break;
+        }
     }
 
     if ( n > 0 ) {
@@ -401,6 +411,8 @@ void Postgres::process( char type )
 
             PgSync s;
             s.enqueue( writeBuffer() );
+            d->sendingCopy = false;
+            processQueue();
         }
         break;
 
