@@ -6,6 +6,7 @@
 #include <qwidget.h>
 
 #include "message.h"
+#include "event.h"
 
 
 class Migrator: public QWidget
@@ -17,6 +18,10 @@ public:
     void start( class MigratorSource * );
 
     bool running() const;
+    void refill();
+
+private:
+    class MigratorData * d;
 };
 
 
@@ -49,6 +54,22 @@ public:
 
 private:
     class String s;
+};
+
+
+class MailboxMigrator: public EventHandler
+{
+public:
+    MailboxMigrator( class MigratorMailbox *,
+                     class Migrator * );
+
+    bool valid() const;
+    bool done() const;
+
+    void execute();
+
+private:
+    class MailboxMigratorData * d;
 };
 
 

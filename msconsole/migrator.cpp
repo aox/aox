@@ -3,14 +3,34 @@
 #include "cstring.h"
 
 #include "migrator.h"
+#include "injector.h"
+#include "list.h"
 
 
-/*!  Constructs an empty
+class MigratorData
+{
+public:
+    MigratorData()
+        : source( 0 ), working( 0 )
+        {}
+
+    MigratorSource * source;
+    List<MailboxMigrator> * working;
+};
+
+
+/*! \class Migrator migrator.h
+
+    The Migrator class is a list view displaying information about a
+    mailbox migration (and managing the migration, too).
+*/
+
+/*! Constructs an empty
 
 */
 
 Migrator::Migrator( QWidget * parent )
-    : QWidget( parent )
+    : QWidget( parent ), d( new MigratorData )
 {
     
 }
@@ -129,7 +149,8 @@ MigratorMailbox::~MigratorMailbox()
 
 void Migrator::start( class MigratorSource * source )
 {
-    source = source; // XXX
+    d->source = source;
+    refill();
 }
 
 
@@ -142,4 +163,135 @@ void Migrator::start( class MigratorSource * source )
 bool Migrator::running() const
 {
     return false;
+}
+
+
+/*! Fills up the quota of working mailboxes, so we're continuously
+    migrating four mailboxes.
+*/
+
+void Migrator::refill()
+{
+    if ( !d->working )
+        d->working = new List<MailboxMigrator>;
+    List<MailboxMigrator>::Iterator it( d->working );
+    while ( it ) {
+        if ( it->done() )
+            d->working->take( it );
+        // skip to next. even if take() does ++it, the code remains
+        // correct, because we will eventually discover that all of
+        // the working objects are done, even if we don't right now.
+        ++it;
+    }
+    while ( d->working->count() < 4 ) {
+        MigratorMailbox * m = d->source->nextMailbox();
+        if ( !m )
+            return;
+        MailboxMigrator * n = new MailboxMigrator( m, this );
+        if ( n->valid() ) {
+            d->working->append( n );
+            n->execute();
+        }
+    }
+}
+
+
+class MailboxMigratorData
+{
+public:
+    MailboxMigratorData()
+        : source( 0 ), destination( 0 ),
+          migrator( 0 ),
+          message( 0 ),
+          validated( false ), valid( false ),
+          injector( 0 ),
+          migrated( 0 )
+        {}
+    MigratorMailbox * source;
+    Mailbox * destination;
+    Migrator * migrator;
+    Message * message;
+    bool validated;
+    bool valid;
+    Injector * injector;
+    uint migrated;
+};
+
+
+/*! \class MailboxMigrator migrator.h
+
+    The MailboxMigrator class takes all the input from a single
+    MigratorMailbox, injects it into a single Mailbox, and updates the
+    visual representatio of a Migrator.
+*/
+
+
+/*!  Constructs a Migrator to migrate \a source to \a destination and
+     show progress on \a migrator.
+*/
+
+MailboxMigrator::MailboxMigrator( MigratorMailbox * source,
+                                  Migrator * migrator )
+    : EventHandler(), d( new MailboxMigratorData )
+{
+    
+}
+
+
+/*! Returns true if this migrator's source contains at least one
+    message. Whether the message is syntactically valid is
+    irrelevant.
+
+*/
+
+bool MailboxMigrator::valid() const
+{
+    if ( !d->validated ) {
+        d->validated = true;
+        d->message = d->source->nextMessage();
+        if ( d->message )
+            d->valid = true;
+    }
+    return d->valid;
+}
+
+
+void MailboxMigrator::execute()
+{
+    if ( d->injector && !d->injector->done() )
+        return;
+
+    if ( d->injector && d->injector->failed() ) {
+        // record the one that failed somehow XXX
+    }
+    else if ( d->injector ) {
+        d->migrated++;
+    }
+
+    if ( d->injector )
+        d->message = d->source->nextMessage();
+    if ( d->message ) {
+        SortedList<Mailbox> * m = new SortedList<Mailbox>;
+        m->append( d->destination );
+        d->injector = new Injector( d->message, m, this );
+        d->injector->execute();
+    }
+    else {
+        d->migrator->refill();
+    }
+}
+
+
+/*! Returns true if this message has processed every message in its
+    source to completion, and false if there may be something left to
+    do.
+*/
+
+bool MailboxMigrator::done() const
+{
+    if ( !d->validated )
+        return false;
+    if ( d->message )
+        return false;
+    return true;
 }
