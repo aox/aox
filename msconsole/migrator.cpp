@@ -11,11 +11,16 @@ class MigratorData
 {
 public:
     MigratorData()
-        : source( 0 ), working( 0 )
+        : source( 0 ), working( 0 ),
+          errors( 0 ), current( 0 ), done( 0 )
         {}
 
     MigratorSource * source;
     List<MailboxMigrator> * working;
+
+    QListViewItem * errors;
+    QListViewItem * current;
+    QListViewItem * done;
 };
 
 
@@ -30,10 +35,38 @@ public:
 */
 
 Migrator::Migrator( QWidget * parent )
-    : QWidget( parent ), d( new MigratorData )
+    : QListView( parent ), d( new MigratorData )
 {
-    
+    addColumn( tr( "Name" ) );
+    addColumn( tr( "Messsages" ) );
+
+    setColumnAlignment( 1, AlignRight );
+
+    setColumnWidthMode( 0, Maximum );
+    setColumnWidthMode( 1, Manual );
+
+    d->errors = new QListViewItem( this, tr( "Mailboxes with errors" ), "0" );
+    d->errors->setExpandable( true );
+    d->errors->setOpen( false );
+
+    d->current = new QListViewItem( this,
+                                    tr( "Mailboxes being converted" ), "0" );
+    d->current->setExpandable( true );
+    d->current->setOpen( true );
+
+    d->done = new QListViewItem( this, tr( "Migrated mailboxes" ), "0" );
+    d->done->setExpandable( true );
+    d->done->setOpen( false );
 }
+
+
+void Migrator::resizeEvent( QResizeEvent * e )
+{
+    setColumnWidth( 0, contentsRect().width() - columnWidth( 1 ) );
+    resizeContents( contentsRect().width(), contentsHeight() );
+    QListView::resizeEvent( e );
+}
+
 
 
 /*! \class MigratorSource migrator.h
@@ -176,8 +209,10 @@ void Migrator::refill()
         d->working = new List<MailboxMigrator>;
     List<MailboxMigrator>::Iterator it( d->working );
     while ( it ) {
-        if ( it->done() )
+        if ( it->done() ) {
             d->working->take( it );
+            
+        }
         // skip to next. even if take() does ++it, the code remains
         // correct, because we will eventually discover that all of
         // the working objects are done, even if we don't right now.

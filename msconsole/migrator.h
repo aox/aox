@@ -3,13 +3,13 @@
 #ifndef MIGRATOR_H
 #define MIGRATOR_H
 
-#include <qwidget.h>
+#include <qlistview.h>
 
 #include "message.h"
 #include "event.h"
 
 
-class Migrator: public QWidget
+class Migrator: public QListView
 {
     Q_OBJECT
 public:
@@ -19,6 +19,8 @@ public:
 
     bool running() const;
     void refill();
+
+    void resizeEvent( QResizeEvent * );
 
 private:
     class MigratorData * d;
