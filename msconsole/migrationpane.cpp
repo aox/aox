@@ -60,10 +60,10 @@ MigrationPane::MigrationPane( QWidget * parent )
 
     d->sourceStack = new QWidgetStack( this );
 
-    d->migrator = new Migrator( this );
-
     d->start = new QPushButton( tr( "Migrate" ), this );
     d->abort = new QPushButton( tr( "Abort" ), this );
+
+    d->migrator = new Migrator( this );
 
     QGridLayout * tll = new QGridLayout( this, 3, 2, 6 );
 

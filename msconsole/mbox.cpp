@@ -35,11 +35,12 @@ public:
 
 /*!  Constructs an MboxMailbox for \a path. If \a path isn't a valid
      file, or if it doesn't seem to be an mbox file, the result is an
-     MboxMailbox containing zero messages.
+     MboxMailbox containing zero messages. The first \a n character of
+     \a path are disregarded when creating the target mailboxes.
 */
 
-MboxMailbox::MboxMailbox( const String & path )
-    : d( new MboxMailboxData )
+MboxMailbox::MboxMailbox( const String & path, uint n )
+    : MigratorMailbox( path.mid( n ) ), d( new MboxMailboxData )
 {
     d->path = path;
 }
@@ -84,7 +85,9 @@ MigratorMessage * MboxMailbox::nextMessage()
 
 class MboxDirectoryData {
 public:
+    MboxDirectoryData(): prefixLength( 0 ) {}
     StringList paths;
+    uint prefixLength;
 };
 
 
@@ -105,6 +108,7 @@ MboxDirectory::MboxDirectory( const String & path )
         d->paths.append( path.mid( 0, path.length()-1 ) );
     else
         d->paths.append( path );
+    d->prefixLength = d->paths.first()->length();
 }
 
 
@@ -129,7 +133,7 @@ MboxMailbox * MboxDirectory::nextMailbox()
                 struct dirent * de = readdir( dp );
                 while ( de ) {
                     if ( ( de->d_namlen == 1 && de->d_name[0] == '.' ) ||
-                         ( de->d_namlen == 2 && 
+                         ( de->d_namlen == 2 &&
                            de->d_name[0] == '.' &&
                            de->d_name[1] == '.' ) ) {
                         // we don't want those two
@@ -155,5 +159,5 @@ MboxMailbox * MboxDirectory::nextMailbox()
     }
     if ( !p )
         return 0;
-    return new MboxMailbox( *p );
+    return new MboxMailbox( *p, d->prefixLength );
 }

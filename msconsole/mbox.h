@@ -9,8 +9,8 @@
 class MboxMailbox: public MigratorMailbox
 {
 public:
-    MboxMailbox( const String & path );
-    
+    MboxMailbox( const String & path, uint );
+
     MigratorMessage * nextMessage();
 
 private:

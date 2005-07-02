@@ -40,10 +40,15 @@ public:
 class MigratorMailbox
 {
 public:
-    MigratorMailbox();
+    MigratorMailbox( const String & );
     virtual ~MigratorMailbox();
 
+    String partialName();
+
     virtual class MigratorMessage * nextMessage() = 0;
+
+private:
+    String n;
 };
 
 
@@ -55,7 +60,7 @@ public:
     String description();
 
 private:
-    class String s;
+    String s;
 };
 
 
@@ -69,6 +74,11 @@ public:
     bool done() const;
 
     void execute();
+
+    void createListViewItem( QListViewItem * );
+    QListViewItem * listViewItem() const;
+
+    uint migrated() const;
 
 private:
     class MailboxMigratorData * d;

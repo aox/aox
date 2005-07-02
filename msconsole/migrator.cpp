@@ -12,7 +12,8 @@ class MigratorData
 public:
     MigratorData()
         : source( 0 ), working( 0 ),
-          errors( 0 ), current( 0 ), done( 0 )
+          errors( 0 ), current( 0 ), done( 0 ),
+          messagesDone( 0 )
         {}
 
     MigratorSource * source;
@@ -21,6 +22,8 @@ public:
     QListViewItem * errors;
     QListViewItem * current;
     QListViewItem * done;
+
+    uint messagesDone;
 };
 
 
@@ -45,18 +48,23 @@ Migrator::Migrator( QWidget * parent )
     setColumnWidthMode( 0, Maximum );
     setColumnWidthMode( 1, Manual );
 
+    setAllColumnsShowFocus( true );
+
     d->errors = new QListViewItem( this, tr( "Mailboxes with errors" ), "0" );
     d->errors->setExpandable( true );
     d->errors->setOpen( false );
+    d->errors->setSelectable( false );
 
     d->current = new QListViewItem( this,
-                                    tr( "Mailboxes being converted" ), "0" );
+                                    tr( "Mailboxes being converted" ), "" );
     d->current->setExpandable( true );
     d->current->setOpen( true );
+    d->current->setSelectable( false );
 
     d->done = new QListViewItem( this, tr( "Migrated mailboxes" ), "0" );
     d->done->setExpandable( true );
     d->done->setOpen( false );
+    d->done->setSelectable( false );
 }
 
 
@@ -117,13 +125,28 @@ MigratorSource::MigratorSource()
 */
 
 
-/*! Constructs a mailbox from which MigratorMessage objects can be
-    fetched. Subclasses must do this properly.
+/*! Constructs a mailbox for \a partialName from which MigratorMessage
+    objects can be fetched. Subclasses must do this properly. \a
+    partialName will be used for creating a destination mailbox.
 */
 
-MigratorMailbox::MigratorMailbox()
+MigratorMailbox::MigratorMailbox( const String & partialName )
+    : n( partialName )
 {
     // nothing
+}
+
+
+/*! Returns the partial name of this mailbox, ie. the name of the
+    source mailbox relative to the MigratorSource's top-level name.
+
+    This is typically a file name including all directories that are
+    within the directory being migrated.
+*/
+
+String MigratorMailbox::partialName()
+{
+    return n;
 }
 
 
@@ -210,8 +233,12 @@ void Migrator::refill()
     List<MailboxMigrator>::Iterator it( d->working );
     while ( it ) {
         if ( it->done() ) {
+            QListViewItem * i = it->listViewItem();
+            d->current->takeItem( i );
+            d->done->insertItem( i );
+            d->messagesDone += it->migrated();
+            d->done->setText( 1, QString::number( d->messagesDone ) );
             d->working->take( it );
-            
         }
         // skip to next. even if take() does ++it, the code remains
         // correct, because we will eventually discover that all of
@@ -225,6 +252,7 @@ void Migrator::refill()
         MailboxMigrator * n = new MailboxMigrator( m, this );
         if ( n->valid() ) {
             d->working->append( n );
+            n->createListViewItem( d->current );
             n->execute();
         }
     }
@@ -240,7 +268,8 @@ public:
           message( 0 ),
           validated( false ), valid( false ),
           injector( 0 ),
-          migrated( 0 )
+          migrated( 0 ),
+          lvi( 0 )
         {}
     MigratorMailbox * source;
     Mailbox * destination;
@@ -250,6 +279,7 @@ public:
     bool valid;
     Injector * injector;
     uint migrated;
+    QListViewItem * lvi;
 };
 
 
@@ -301,6 +331,8 @@ void MailboxMigrator::execute()
     }
     else if ( d->injector ) {
         d->migrated++;
+        if ( d->lvi )
+            d->lvi->setText( 1, QString::number( d->migrated ) );
     }
 
     if ( d->injector )
@@ -329,4 +361,34 @@ bool MailboxMigrator::done() const
     if ( d->message )
         return false;
     return true;
+}
+
+
+/*! Creates a QListViewItem describing this migrator as a child of \a
+    parent. This function must be called before listViewItem(), and
+    can be called only once.
+*/
+
+void MailboxMigrator::createListViewItem( QListViewItem * parent )
+{
+    String n( d->source->partialName() );
+    d->lvi = new QListViewItem( parent,
+                                QString::fromLocal8Bit( n.cstr() ),
+                                "0" );
+}
+
+
+/*! Returns a pointer to the item created by createListViewItem(). */
+
+QListViewItem * MailboxMigrator::listViewItem() const
+{
+    return d->lvi;
+}
+
+
+/*! Returns the number of messages successfully migrated so far. */
+
+uint MailboxMigrator::migrated() const
+{
+    return d->migrated;
 }
