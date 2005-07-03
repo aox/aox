@@ -132,18 +132,20 @@ MboxMailbox * MboxDirectory::nextMailbox()
             if ( dp ) {
                 struct dirent * de = readdir( dp );
                 while ( de ) {
-                    if ( ( de->d_namlen == 1 && de->d_name[0] == '.' ) ||
-                         ( de->d_namlen == 2 &&
-                           de->d_name[0] == '.' &&
-                           de->d_name[1] == '.' ) ) {
+                    if ( de->d_name[0] == '.' && 
+                         ( de->d_name[1] == '\0' ||
+                           ( de->d_name[1] == '.' &&
+                             de->d_name[2] == '\0' ) ) )
+                    {
                         // we don't want those two
                     }
                     else {
                         String * tmp = new String;
-                        tmp->reserve( p->length() + 1 + de->d_namlen );
+                        uint len = strlen( de->d_name );
+                        tmp->reserve( p->length() + 1 + len );
                         tmp->append( *p );
                         tmp->append( "/" );
-                        tmp->append( de->d_name, de->d_namlen );
+                        tmp->append( de->d_name, len );
                         d->paths.append( tmp );
                     }
                     de = readdir( dp );
