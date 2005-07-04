@@ -28,7 +28,6 @@ static PreparedStatement *lockUidnext;
 static PreparedStatement *incrUidnext;
 static PreparedStatement *idBodypart;
 static PreparedStatement *intoBodyparts;
-static PreparedStatement *intoMessages;
 static PreparedStatement *intoPartnumbers;
 
 
@@ -182,13 +181,6 @@ void Injector::setup()
             "values ($1,$2,$3,$4)"
         );
     Allocator::addEternal( intoBodyparts, "intoBodyparts" );
-
-    intoMessages =
-        new PreparedStatement(
-            "insert into messages (mailbox,uid,idate,rfc822size) "
-            "values ($1,$2,$3,$4)"
-        );
-    Allocator::addEternal( intoMessages, "intoMessages" );
 
     intoPartnumbers =
         new PreparedStatement(
@@ -643,8 +635,9 @@ void Injector::insertBodypart( Bodypart *b,
 
 void Injector::insertMessages()
 {
-    Query *q;
-
+    Query *qm =
+        new Query( "copy messages (mailbox,uid,idate,rfc822size) "
+                   "from stdin with binary", 0 );
     Query *qr =
         new Query( "copy recent_messages (mailbox,uid) "
                    "from stdin with binary", 0 );
@@ -654,12 +647,11 @@ void Injector::insertMessages()
         uint uid = mi->id;
         Mailbox *m = mi->mailbox;
 
-        q = new Query( *intoMessages, 0 );
-        q->bind( 1, m->id() );
-        q->bind( 2, uid );
-        q->bind( 3, d->message->internalDate() );
-        q->bind( 4, d->message->rfc822Size() );
-        d->transaction->enqueue( q );
+        qm->bind( 1, m->id(), Query::Binary );
+        qm->bind( 2, uid, Query::Binary );
+        qm->bind( 3, d->message->internalDate(), Query::Binary );
+        qm->bind( 4, d->message->rfc822Size(), Query::Binary );
+        qm->copyLine();
 
         qr->bind( 1, m->id(), Query::Binary );
         qr->bind( 2, uid, Query::Binary );
@@ -668,6 +660,7 @@ void Injector::insertMessages()
         ++mi;
     }
 
+    d->transaction->enqueue( qm );
     d->transaction->enqueue( qr );
 }
 
