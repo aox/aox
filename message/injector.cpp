@@ -804,7 +804,7 @@ void Injector::linkAddresses()
     Query *q =
         new Query( "copy address_fields "
                    "(mailbox,uid,part,position,field,address) "
-                   "from stdin", 0 );
+                   "from stdin with binary", 0 );
 
     List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
@@ -815,19 +815,13 @@ void Injector::linkAddresses()
         while ( it ) {
             AddressLink *link = it;
 
-            String s( fn( m->id() ) );
-            s.append( "\t" );
-            s.append( fn( uid ) );
-            s.append( "\t" );
-            s.append( link->part );
-            s.append( "\t" );
-            s.append( fn( link->position ) );
-            s.append( "\t" );
-            s.append( fn( link->type ) );
-            s.append( "\t" );
-            s.append( fn( link->address->id() ) );
-            s.append( "\n" );
-            q->appendCopyData( s );
+            q->bind( 1, m->id() );
+            q->bind( 2, uid );
+            q->bind( 3, link->part );
+            q->bind( 4, link->position );
+            q->bind( 5, link->type );
+            q->bind( 6, link->address->id() );
+            q->copyLine();
 
             ++it;
         }

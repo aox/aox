@@ -372,11 +372,11 @@ class PgCopyData
     : public PgClientMessage
 {
 public:
-    PgCopyData( String );
+    PgCopyData( const Query * );
 
 private:
     void encodeData();
-    String data;
+    const Query *query;
 };
 
 

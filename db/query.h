@@ -37,10 +37,6 @@ public:
     bool canFail() const;
     void allowFailure();
 
-    void appendCopyData( String );
-    bool hasCopyData() const;
-    String copyData() const;
-
     Transaction *transaction() const;
     void setTransaction( Transaction * );
 
@@ -49,6 +45,8 @@ public:
     void bind( uint, int );
     void bind( uint, const String &, Format = Text );
     void bindNull( uint );
+    void copyLine();
+
     void execute();
 
     class Value {
@@ -83,6 +81,7 @@ public:
     virtual String name() const;
     virtual String string() const;
     List< Value > *values() const;
+    List< SortedList< Value > > *copyData() const;
 
     EventHandler *owner() const;
     void notify();

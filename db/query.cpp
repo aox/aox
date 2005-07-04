@@ -16,22 +16,23 @@ class QueryData {
 public:
     QueryData()
         : state( Query::Inactive ),
-          transaction( 0 ), owner( 0 ), totalRows( 0 ), startup( false ),
-          canFail( false )
+          values( new SortedList< Query::Value > ), copyData( 0 ),
+          transaction( 0 ), owner( 0 ), totalRows( 0 ),
+          startup( false ), canFail( false )
     {}
 
     Query::State state;
 
     String name;
     String query;
-    SortedList< Query::Value > values;
+
+    SortedList< Query::Value > *values;
+    List< SortedList< Query::Value > > *copyData;
 
     Transaction *transaction;
     EventHandler *owner;
     List< Row > rows;
     uint totalRows;
-
-    String copyData;
 
     String description;
     String error;
@@ -246,34 +247,6 @@ void Query::setTransaction( Transaction *t )
 }
 
 
-/*! Appends \a s to this Query's COPY data.
-*/
-
-void Query::appendCopyData( String s )
-{
-    d->copyData.append( s );
-}
-
-
-/*! Returns true if some data has been added to this query with
-    appendCopyData(), and false if there is no data.
-*/
-
-bool Query::hasCopyData() const
-{
-    return !d->copyData.isEmpty();
-}
-
-
-/*! Returns the COPY data appended to this Query with appendCopyData().
-*/
-
-String Query::copyData() const
-{
-    return d->copyData;
-}
-
-
 /*! Binds the integer value \a s to the parameter \a n of this Query.
 */
 
@@ -291,7 +264,7 @@ void Query::bind( uint n, int s )
 void Query::bind( uint n, const String &s, Format f )
 {
     Value *v = new Value( n, s, f );
-    d->values.insert( v );
+    d->values->insert( v );
 }
 
 
@@ -301,7 +274,21 @@ void Query::bind( uint n, const String &s, Format f )
 
 void Query::bindNull( uint n )
 {
-    d->values.insert( new Value( n ) );
+    d->values->insert( new Value( n ) );
+}
+
+
+/*! Uses the Values bound to this query so far to form one line of input
+    to COPY. The bind() functions can then be reused to compose the next
+    line of input.
+*/
+
+void Query::copyLine()
+{
+    if ( !d->copyData )
+        d->copyData = new List< SortedList< Value > >;
+    d->copyData->append( d->values );
+    d->values = new SortedList< Value >;
 }
 
 
@@ -345,7 +332,16 @@ String Query::string() const
 
 List< Query::Value > *Query::values() const
 {
-    return &d->values;
+    return d->values;
+}
+
+
+/*! Returns the COPY data appended to this Query with appendCopyData().
+*/
+
+List< SortedList< Query::Value > > *Query::copyData() const
+{
+    return d->copyData;
 }
 
 
@@ -384,7 +380,7 @@ String Query::description()
         StringList p;
 
         int i = 0;
-        List< Query::Value >::Iterator v( values() );
+        List< Query::Value >::Iterator v( *values() );
         while ( v ) {
             i++;
 

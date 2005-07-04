@@ -975,18 +975,42 @@ PgCopyInResponse::PgCopyInResponse( Buffer *b )
     (as described by the CopyInResponse).
 */
 
-/*! Creates a new CopyData message containing \a s. */
+/*! Creates a new CopyData message for the Query \a q. */
 
-PgCopyData::PgCopyData( String s )
+PgCopyData::PgCopyData( const Query *q )
     : PgClientMessage( 'd' ),
-      data( s )
+      query( q )
 {
 }
 
 
 void PgCopyData::encodeData()
 {
-    appendByten( data );
+    // Header: Signature, flags, extension length.
+    appendByten( "PGCOPY\n\377\r\n" );
+    appendByte( '\0' );
+    appendInt32( 0 );
+    appendInt32( 0 );
+
+    // Tuples: Field count, fields.
+    List< SortedList< Query::Value > >::Iterator it( *query->copyData() );
+    while ( it ) {
+        SortedList< Query::Value >::Iterator v( it );
+
+        appendInt16( it->count() );
+        while ( v ) {
+            int n = v->length();
+            appendInt32( n );
+            if ( n > 0 )
+                appendByten( v->data() );
+            ++v;
+        }
+
+        ++it;
+    }
+
+    // Trailer.
+    appendInt16( -1 );
 }
 
 
