@@ -24,11 +24,11 @@
 
 class IdHelper;
 
+
 static PreparedStatement *lockUidnext;
 static PreparedStatement *incrUidnext;
 static PreparedStatement *idBodypart;
 static PreparedStatement *intoBodyparts;
-static PreparedStatement *intoPartnumbers;
 
 
 // These structs represent one part of each entry in the header_fields
@@ -181,14 +181,6 @@ void Injector::setup()
             "values ($1,$2,$3,$4)"
         );
     Allocator::addEternal( intoBodyparts, "intoBodyparts" );
-
-    intoPartnumbers =
-        new PreparedStatement(
-            "insert into part_numbers "
-            "(mailbox,uid,part,bodypart,bytes,lines) "
-            "values ($1,$2,$3,$4,$5,$6)"
-        );
-    Allocator::addEternal( intoPartnumbers, "intoPartnumbers" );
 }
 
 
@@ -671,12 +663,17 @@ void Injector::insertMessages()
 
 void Injector::linkBodyparts()
 {
+    Query *q =
+        new Query( "copy part_numbers "
+                   "(mailbox,uid,part,bodypart,bytes,lines) "
+                   "from stdin with binary", 0 );
+
     List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         uint uid = mi->id;
         Mailbox *m = mi->mailbox;
 
-        insertPartNumber( m->id(), uid, "" );
+        insertPartNumber( q, m->id(), uid, "" );
 
         List< ObjectId >::Iterator bi( d->bodyparts );
         while ( bi ) {
@@ -684,57 +681,55 @@ void Injector::linkBodyparts()
             Bodypart *b = bi->bodypart;
 
             String pn = d->message->partNumber( b );
-
-            insertPartNumber( m->id(), uid, pn, bid,
+            insertPartNumber( q, m->id(), uid, pn, bid,
                               b->numEncodedBytes(),
                               b->numEncodedLines() );
 
             if ( b->rfc822() )
-                insertPartNumber( m->id(), uid, pn + ".rfc822",
+                insertPartNumber( q, m->id(), uid, pn + ".rfc822",
                                   bid, b->numEncodedBytes(),
                                   b->numEncodedLines() );
-
             ++bi;
         }
 
         ++mi;
     }
+
+    d->transaction->enqueue( q );
 }
 
 
 /*! This private helper is used by linkBodyparts() to add a single row
-    to part_numbers for \a mailbox, \a uid, \a part, and \a bodypart.
+    of data to \a q for \a mailbox, \a uid, \a part, and \a bodypart.
     If bodypart is smaller than 0, a NULL value is inserted instead.
     If \a bytes and \a lines are greater than or equal to 0, their
     values are inserted along with the \a bodypart.
 */
 
-void Injector::insertPartNumber( int mailbox, int uid, const String &part,
-                                 int bodypart, int bytes, int lines )
+void Injector::insertPartNumber( Query *q, int mailbox, int uid,
+                                 const String &part, int bodypart,
+                                 int bytes, int lines )
 {
-    Query *q;
-
-    q = new Query( *intoPartnumbers, 0 );
-    q->bind( 1, mailbox );
-    q->bind( 2, uid );
-    q->bind( 3, part );
+    q->bind( 1, mailbox, Query::Binary );
+    q->bind( 2, uid, Query::Binary );
+    q->bind( 3, part, Query::Binary );
 
     if ( bodypart > 0 )
-        q->bind( 4, bodypart );
+        q->bind( 4, bodypart, Query::Binary );
     else
         q->bindNull( 4 );
 
     if ( bytes >= 0 )
-        q->bind( 5, bytes );
+        q->bind( 5, bytes, Query::Binary );
     else
         q->bindNull( 5 );
 
     if ( lines >= 0 )
-        q->bind( 6, lines );
+        q->bind( 6, lines, Query::Binary );
     else
         q->bindNull( 6 );
 
-    d->transaction->enqueue( q );
+    q->copyLine();
 }
 
 
