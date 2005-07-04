@@ -29,7 +29,6 @@ static PreparedStatement *incrUidnext;
 static PreparedStatement *idBodypart;
 static PreparedStatement *intoBodyparts;
 static PreparedStatement *intoMessages;
-static PreparedStatement *intoRecent;
 static PreparedStatement *intoPartnumbers;
 
 
@@ -190,12 +189,6 @@ void Injector::setup()
             "values ($1,$2,$3,$4)"
         );
     Allocator::addEternal( intoMessages, "intoMessages" );
-
-    intoRecent =
-        new PreparedStatement(
-            "insert into recent_messages (mailbox,uid) values ($1,$2)"
-        );
-    Allocator::addEternal( intoRecent, "intoRecent" );
 
     intoPartnumbers =
         new PreparedStatement(
@@ -652,6 +645,10 @@ void Injector::insertMessages()
 {
     Query *q;
 
+    Query *qr =
+        new Query( "copy recent_messages (mailbox,uid) "
+                   "from stdin with binary", 0 );
+
     List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         uint uid = mi->id;
@@ -664,13 +661,14 @@ void Injector::insertMessages()
         q->bind( 4, d->message->rfc822Size() );
         d->transaction->enqueue( q );
 
-        q = new Query( *intoRecent, 0 );
-        q->bind( 1, m->id() );
-        q->bind( 2, uid );
-        d->transaction->enqueue( q );
+        qr->bind( 1, m->id(), Query::Binary );
+        qr->bind( 2, uid, Query::Binary );
+        qr->copyLine();
 
         ++mi;
     }
+
+    d->transaction->enqueue( qr );
 }
 
 
