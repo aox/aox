@@ -42,7 +42,7 @@ public:
 
     enum Format { Text, Binary };
 
-    void bind( uint, int );
+    void bind( uint, int, Format = Text );
     void bind( uint, const String &, Format = Text );
     void bindNull( uint );
     void copyLine();

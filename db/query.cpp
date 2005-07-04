@@ -247,12 +247,23 @@ void Query::setTransaction( Transaction *t )
 }
 
 
-/*! Binds the integer value \a s to the parameter \a n of this Query.
+/*! Binds the integer value \a s to the parameter \a n of this Query in
+    the specified format \a f (Binary or Text; Text by default).
 */
 
-void Query::bind( uint n, int s )
+void Query::bind( uint n, int s, Format f )
 {
-    bind( n, fn( s ) );
+    if ( f == Binary ) {
+        String t;
+        t.append( (char)( s >> 24 ) );
+        t.append( (char)( s >> 16 ) );
+        t.append( (char)( s >>  8 ) );
+        t.append( (char)( s ) );
+        bind( n, t );
+    }
+    else {
+        bind( n, fn( s ) );
+    }
 }
 
 
