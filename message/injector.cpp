@@ -31,7 +31,6 @@ static PreparedStatement *intoBodyparts;
 static PreparedStatement *intoMessages;
 static PreparedStatement *intoRecent;
 static PreparedStatement *intoPartnumbers;
-static PreparedStatement *intoHeaderfields;
 
 
 // These structs represent one part of each entry in the header_fields
@@ -205,14 +204,6 @@ void Injector::setup()
             "values ($1,$2,$3,$4,$5,$6)"
         );
     Allocator::addEternal( intoPartnumbers, "intoPartnumbers" );
-
-    intoHeaderfields =
-        new PreparedStatement(
-            "insert into header_fields "
-            "(mailbox,uid,part,position,field,value) values "
-            "($1,$2,$3,$4,$5,$6)"
-        );
-    Allocator::addEternal( intoHeaderfields, "intoHeaderfields" );
 }
 
 
@@ -762,7 +753,10 @@ void Injector::insertPartNumber( int mailbox, int uid, const String &part,
 
 void Injector::linkHeaderFields()
 {
-    Query *q;
+    Query *q =
+        new Query( "copy header_fields "
+                   "(mailbox,uid,part,position,field,value) "
+                   "from stdin with binary", 0 );
 
     List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
@@ -777,21 +771,21 @@ void Injector::linkHeaderFields()
             if ( t >= HeaderField::Other )
                 t = FieldNameCache::translate( link->hf->name() );
 
-            q = new Query( *intoHeaderfields, 0 );
-            q->bind( 1, m->id() );
-            q->bind( 2, uid );
-            q->bind( 3, link->part );
-            q->bind( 4, link->position );
-            q->bind( 5, t );
-            q->bind( 6, link->hf->data() );
-
-            d->transaction->enqueue( q );
+            q->bind( 1, m->id(), Query::Binary );
+            q->bind( 2, uid, Query::Binary );
+            q->bind( 3, link->part, Query::Binary );
+            q->bind( 4, link->position, Query::Binary );
+            q->bind( 5, t, Query::Binary );
+            q->bind( 6, link->hf->data(), Query::Binary );
+            q->copyLine();
 
             ++it;
         }
 
         ++mi;
     }
+
+    d->transaction->enqueue( q );
 }
 
 
