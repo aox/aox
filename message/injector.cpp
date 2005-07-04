@@ -815,12 +815,12 @@ void Injector::linkAddresses()
         while ( it ) {
             AddressLink *link = it;
 
-            q->bind( 1, m->id() );
-            q->bind( 2, uid );
-            q->bind( 3, link->part );
-            q->bind( 4, link->position );
-            q->bind( 5, link->type );
-            q->bind( 6, link->address->id() );
+            q->bind( 1, m->id(), Query::Binary );
+            q->bind( 2, uid, Query::Binary );
+            q->bind( 3, link->part, Query::Binary );
+            q->bind( 4, link->position, Query::Binary );
+            q->bind( 5, link->type, Query::Binary );
+            q->bind( 6, link->address->id(), Query::Binary );
             q->copyLine();
 
             ++it;
