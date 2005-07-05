@@ -993,9 +993,9 @@ void PgCopyData::encodeData()
     appendInt32( 0 );
 
     // Tuples: Field count, fields.
-    List< SortedList< Query::Value > >::Iterator it( *query->copyData() );
+    List< Query::InputLine >::Iterator it( *query->inputLines() );
     while ( it ) {
-        SortedList< Query::Value >::Iterator v( it );
+        Query::InputLine::Iterator v( it );
 
         appendInt16( it->count() );
         while ( v ) {

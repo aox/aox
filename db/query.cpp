@@ -16,7 +16,7 @@ class QueryData {
 public:
     QueryData()
         : state( Query::Inactive ),
-          values( new SortedList< Query::Value > ), copyData( 0 ),
+          values( new Query::InputLine ), inputLines( 0 ),
           transaction( 0 ), owner( 0 ), totalRows( 0 ),
           startup( false ), canFail( false )
     {}
@@ -26,8 +26,8 @@ public:
     String name;
     String query;
 
-    SortedList< Query::Value > *values;
-    List< SortedList< Query::Value > > *copyData;
+    Query::InputLine *values;
+    List< Query::InputLine > *inputLines;
 
     Transaction *transaction;
     EventHandler *owner;
@@ -48,6 +48,13 @@ public:
     A Query is typically created by (or for, or with) a EventHandler,
     has parameter values bound to it with bind(), and is execute()d
     (or enqueue()d as part of a Transaction).
+
+    To accommodate queries that need to feed multiple lines of input
+    to a COPY statement, a series of bind() calls may be followed by
+    a call to submitLine() to form one line of input. This sequence
+    can be repeated as many times as required, and execute() called
+    as usual afterwards. (All parameters to a COPY must be bound in
+    the Query::Binary format.)
 
     Once the Query is executed, the Database informs its owner() of any
     interesting events (e.g. the arrival of results, timeouts, failures,
@@ -294,12 +301,12 @@ void Query::bindNull( uint n )
     line of input.
 */
 
-void Query::copyLine()
+void Query::submitLine()
 {
-    if ( !d->copyData )
-        d->copyData = new List< SortedList< Value > >;
-    d->copyData->append( d->values );
-    d->values = new SortedList< Value >;
+    if ( !d->inputLines )
+        d->inputLines = new List< Query::InputLine >;
+    d->inputLines->append( d->values );
+    d->values = new InputLine;
 }
 
 
@@ -341,18 +348,22 @@ String Query::string() const
 /*! Returns a pointer to the list of Values bound to this Query.
 */
 
-List< Query::Value > *Query::values() const
+Query::InputLine *Query::values() const
 {
     return d->values;
 }
 
 
-/*! Returns the COPY data appended to this Query with appendCopyData().
+/*! Returns a pointer to the List of InputLines created with bind() and
+    submitLine(). Will return 0 if submitLine() has never been called
+    for this Query.
+
+    (Should calling this function clear the List?)
 */
 
-List< SortedList< Query::Value > > *Query::copyData() const
+List< Query::InputLine > *Query::inputLines() const
 {
-    return d->copyData;
+    return d->inputLines;
 }
 
 

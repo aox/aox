@@ -45,7 +45,7 @@ public:
     void bind( uint, int, Format = Text );
     void bind( uint, const String &, Format = Text );
     void bindNull( uint );
-    void copyLine();
+    void submitLine();
 
     void execute();
 
@@ -80,8 +80,11 @@ public:
 
     virtual String name() const;
     virtual String string() const;
-    List< Value > *values() const;
-    List< SortedList< Value > > *copyData() const;
+
+    typedef SortedList< Query::Value > InputLine;
+
+    InputLine *values() const;
+    List< InputLine > *inputLines() const;
 
     EventHandler *owner() const;
     void notify();

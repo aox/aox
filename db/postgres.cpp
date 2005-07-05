@@ -187,7 +187,7 @@ void Postgres::processQueue()
         log( s, Log::Debug );
         n++;
 
-        if ( q->copyData() ) {
+        if ( q->inputLines() ) {
             d->sendingCopy = true;
             break;
         }
@@ -397,7 +397,7 @@ void Postgres::process( char type )
     case 'G':
         {
             PgCopyInResponse msg( readBuffer() );
-            if ( q && q->copyData() ) {
+            if ( q && q->inputLines() ) {
                 PgCopyData cd( q );
                 PgCopyDone e;
 

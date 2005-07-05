@@ -643,11 +643,11 @@ void Injector::insertMessages()
         qm->bind( 2, uid, Query::Binary );
         qm->bind( 3, d->message->internalDate(), Query::Binary );
         qm->bind( 4, d->message->rfc822Size(), Query::Binary );
-        qm->copyLine();
+        qm->submitLine();
 
         qr->bind( 1, m->id(), Query::Binary );
         qr->bind( 2, uid, Query::Binary );
-        qr->copyLine();
+        qr->submitLine();
 
         ++mi;
     }
@@ -729,7 +729,7 @@ void Injector::insertPartNumber( Query *q, int mailbox, int uid,
     else
         q->bindNull( 6 );
 
-    q->copyLine();
+    q->submitLine();
 }
 
 
@@ -763,7 +763,7 @@ void Injector::linkHeaderFields()
             q->bind( 4, link->position, Query::Binary );
             q->bind( 5, t, Query::Binary );
             q->bind( 6, link->hf->data(), Query::Binary );
-            q->copyLine();
+            q->submitLine();
 
             ++it;
         }
@@ -801,7 +801,7 @@ void Injector::linkAddresses()
             q->bind( 4, link->position, Query::Binary );
             q->bind( 5, link->type, Query::Binary );
             q->bind( 6, link->address->id(), Query::Binary );
-            q->copyLine();
+            q->submitLine();
 
             ++it;
         }
