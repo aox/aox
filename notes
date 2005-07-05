@@ -462,4 +462,7 @@ We need to support stored search "folders".
 Orphaned bodyparts should be cleaned up somehow.
 
 
+httpd should learn to stream result pages to reduce memory use.
+
+
 
