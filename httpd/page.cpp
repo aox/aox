@@ -60,7 +60,7 @@ public:
     Permissions * permissions;
 
     uint uniq;
-
+    uint msn;
 };
 
 
@@ -288,17 +288,20 @@ String Page::text() const
                "<title>";
     r.append( htmlQuoted( Configuration::text( Configuration::Hostname ) ) );
     r.append( " webmail</title>\n" );
-    r.append( "<style type=\"text/css\">\n"
-              ".jsonly{display:none;}\n" // visible if js, inv. otherwise
-              ".njsvisible{}\n" // hidden if js, visible if not
-              ".hidden{display:none;}\n" // invisible (set by js code)
-              ".njshidden{display:none;}\n" ); // inv. (showable by js code)
+    r.append( "<style type=\"text/css\">\n" );
     if ( cssUrl )
         r.append( "@import url(\"" + *cssUrl + "\");\n" );
-    r.append( " </style>\n" );
+    r.append( ".jsonly{display:none;}\n" // visible if js, inv. otherwise
+              ".njsvisible{}\n" // hidden if js, visible if not
+              ".hidden{display:none;}\n" // invisible (set by js code)
+              ".njshidden{display:none;}\n" // invisible (showable by js code)
+              " </style>\n" );
     // change the first two rules if the browser supports javascript
     r.append( "<script language=javascript type=\"text/javascript\">\n"
+              "var toggledToJs=false;\n"
               "function useJS(){\n"
+              "if(toggledToJs)"
+              "return;\n"
               "var r=new Array;\n"
               "if(document.styleSheets[0].cssRules)"
               "r=document.styleSheets[0].cssRules;\n"
@@ -306,31 +309,42 @@ String Page::text() const
               "r=document.styleSheets[0].rules;\n"
               "else "
               "return;\n"
-              "r[0].style.display='';\n"
-              "r[1].style.display='none'\n"
+              "var i=0;\n"
+              "if(r[1].style.display=='none')"
+              "i=1;\n"
+              "r[i].style.display='';\n"
+              "r[i+1].style.display='none';\n"
+              "toggledToJs=true\n"
               "}\n"
-              // provide a function to swap two elements
-              "function toggleElement(s,h){\n"
-              "document.getElementById(s).className='visible';\n"
-              "document.getElementById(h).className='hidden';\n"
-              "}\n"
-              // one to toggle display of a single element
-              "function expandCollapse(e){\n"
-              "var s=document.getElementById(e);\n"
-              "if(s&&s.style){\n"
-              "s=s.style;\n"
-              "if(s.display&&s.display=='none'){\n"
-              "s.display = '';\n"
-              "}else{\n"
-              "s.display = 'none';\n"
-              "}\n"
-              "}\n"
-              "}\n"
-               // change the css to use the javascript version at once
-               // for browsers that can...
+              // change the css to use the javascript version at once
+              // for browsers that can...
               "useJS();\n"
               // and later for safari and whatever else
-              "window.onload = 'useJS();';\n" );
+              "window.onload = 'useJS();';\n"
+              // a function to show an element
+              "function reveal(e){\n"
+              "document.getElementById(e).className='visible'"
+              "}\n"
+              // a function to hide an element
+              "function hide(e){\n"
+              "document.getElementById(e).className='hidden'"
+              "}\n"
+              // an array to record what we're showing
+              "var hiddenIds=new Array;\n"
+              // a function to expand/collapse a message
+              "function expandCollapse(i,a,b,c){\n"
+              "if(hiddenIds[i]){\n"
+              "reveal(a);\n"
+              "reveal(b);\n"
+              "hide(c);\n"
+              "hiddenIds[i]=false\n"
+              "}else{\n"
+              "hide(a);\n"
+              "hide(b);\n"
+              "reveal(c);\n"
+              "hiddenIds[i]=true\n"
+              "}\n"
+              "}\n" );
     r.append( "</script>\n" );
     if ( jsUrl )
         r.append( "<script src=\"" + *jsUrl + "\"></script>\n" );
@@ -378,7 +392,8 @@ void Page::errorPage()
         break;
 
     case 403:
-        e = "You do not have permission to access that page.";
+        loginForm();
+        e = "You do not have permission to access that page." + d->text;
         break;
 
     default:
@@ -1084,18 +1099,17 @@ String Page::message( Message *first, uint uid, Message *m )
               "<div class=header>\n" );
 
     if ( topLevel ) {
-        s.append( "<a onclick=\"expandCollapse('" );
+        s.append( "<a onclick=\"expandCollapse(" );
+        s.append( fn( d->msn++ ) );
+        s.append( ",'" );
         s.append( optionalHeader );
-        s.append( "');expandCollapse('" );
+        s.append( "','" );
         s.append( fullBody );
-        s.append( "');expandCollapse('" );
+        s.append( "','" );
         s.append( summaryBody );
         s.append( "')\">\n" );
     }
     s.append( addressField( m, HeaderField::From ) );
-    if ( topLevel ) {
-        s.append( "</a>\n" );
-    }
     hf = m->header()->field( HeaderField::Subject );
     if ( hf ) {
         s.append( "<div class=headerfield>Subject: " );
@@ -1103,8 +1117,10 @@ String Page::message( Message *first, uint uid, Message *m )
         s.append( "</div>\n" );
     }
     s.append( addressField( m, HeaderField::To ) );
-    if ( topLevel )
+    if ( topLevel ) {
         s.append( "<div id=" + optionalHeader + ">\n" );
+        s.append( "</a>\n" );
+    }
     s.append( addressField( m, HeaderField::Cc ) );
 
     List< HeaderField >::Iterator it( m->header()->fields() );
@@ -1138,7 +1154,7 @@ String Page::message( Message *first, uint uid, Message *m )
     s.append( "</div>\n" ); // header
 
     if ( topLevel ) {
-        s.append( "<div class=jsonly id=" );
+        s.append( "<div class=njshidden id=" );
         s.append( summaryBody );
         s.append( ">\n" );
         s.append( twoLines( first ) );
@@ -1343,12 +1359,13 @@ String Page::jsToggle( const String &t,
         s.append( "<div class=njshidden id=" + a + ">\n" );
     s.append( t );
     s.append( "<div class=jsonly>" );
-    s.append( "<a onclick=\"toggleElement('" + b + "', '" + a + "')\">" );
+    s.append( "<a onclick=\"reveal('" + b + "');hide('" + a + "')\">" );
+    s.append( "<a onclick=\"reveal('" + b + "');hide('" + a + "')\">" );
     s.append( hide );
     s.append( "</a></div>\n</div>\n" );
 
     s.append( "<div class=jsonly id=" + b + ">" );
-    s.append( "<a onclick=\"toggleElement('" + a + "', '" + b + "')\">" );
+    s.append( "<a onclick=\"reveal('" + a + "')hide('" + b + "')\">" );
     s.append( show );
     s.append( "</a></div>\n" );
 
@@ -1393,10 +1410,8 @@ void Page::logoutPage()
     if ( d->server->session() )
         d->server->session()->expireNow();
     d->text = "<h1>Logged out</h1>\n"
-              "<p>To log in again, fill in the form below.\n"
-              "<p>To do something else, follow "
-              "<a href=\"http://random.yahoo.com/fast/ryl\">"
-              "this link.</a>\n" + d->text;
+              "<p>To log in again, fill in the form below.\n" +
+              d->text;
 }
 
 
@@ -1605,6 +1620,7 @@ String Page::twoLines( Message * m )
         r = "(Cannot display summary of nontext message)";
     }
     else if ( type == "text/plain" ) {
+#if 0
         Utf8Codec u; // XXX UString needs find() and more.
         String b = u.fromUnicode( bp->text() );
         int i = 0;
@@ -1617,6 +1633,9 @@ String Page::twoLines( Message * m )
         if ( e < i )
             e = b.length();
         r = textPlain( b.mid( i, e-i ) );
+#else
+        r = "(Cannot display text/plain summary)";
+#endif
     }
     else if ( type == "text/html" ) {
         r = "(Cannot display summary of HTML message)";
