@@ -465,4 +465,7 @@ Orphaned bodyparts should be cleaned up somehow.
 httpd should learn to stream result pages to reduce memory use.
 
 
+We should get rid of recent_messages (see email from Arnt).
+
+
 
