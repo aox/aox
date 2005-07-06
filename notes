@@ -468,4 +468,7 @@ httpd should learn to stream result pages to reduce memory use.
 We should get rid of recent_messages (see email from Arnt).
 
 
+Think about clustering/replication with Slony/dbmirror.
+
+
 
