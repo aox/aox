@@ -471,4 +471,7 @@ We should get rid of recent_messages (see email from Arnt).
 Think about clustering/replication with Slony/dbmirror.
 
 
+We need mUTF-7 support.
+
+
 
