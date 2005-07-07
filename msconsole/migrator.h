@@ -72,6 +72,7 @@ public:
 
     bool valid() const;
     bool done() const;
+    String error() const;
 
     void execute();
 

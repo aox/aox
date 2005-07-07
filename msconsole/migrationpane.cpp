@@ -120,7 +120,7 @@ void MigrationPane::startMigration()
         //d->migrator->start( new MHDirectory );
     }
     else if ( d->mbox->isOn() ) {
-        d->migrator->start( new MboxDirectory( "/" ) ); // / XXX
+        d->migrator->start( new MboxDirectory( d->mboxRoot->text().latin1() ) );
     }
     else if ( d->cyrus->isOn() ) {
         //d->migrator->start( new CyrusDirectory );

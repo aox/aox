@@ -2,8 +2,10 @@
 
 #include "cstring.h"
 
+#include "transaction.h"
 #include "migrator.h"
 #include "injector.h"
+#include "mailbox.h"
 #include "list.h"
 
 
@@ -269,7 +271,8 @@ public:
           validated( false ), valid( false ),
           injector( 0 ),
           migrated( 0 ),
-          lvi( 0 )
+          lvi( 0 ),
+          mailboxCreator( 0 )
         {}
     MigratorMailbox * source;
     Mailbox * destination;
@@ -280,6 +283,8 @@ public:
     Injector * injector;
     uint migrated;
     QListViewItem * lvi;
+    Transaction * mailboxCreator;
+    String error;
 };
 
 
@@ -299,7 +304,8 @@ MailboxMigrator::MailboxMigrator( MigratorMailbox * source,
                                   Migrator * migrator )
     : EventHandler(), d( new MailboxMigratorData )
 {
-    
+    d->source = source;
+    d->migrator = migrator;
 }
 
 
@@ -333,6 +339,31 @@ void MailboxMigrator::execute()
         d->migrated++;
         if ( d->lvi )
             d->lvi->setText( 1, QString::number( d->migrated ) );
+    }
+    else if ( d->mailboxCreator ) {
+        if ( d->mailboxCreator->failed() ) {
+            d->message = 0;
+            d->validated = true;
+            d->error = "Error creating " + 
+                       d->destination->name() +
+                       ": " +
+                       d->mailboxCreator->error();
+            d->migrator->refill();
+            return;
+        }
+        if ( !d->mailboxCreator->done() )
+            return;
+    }
+    else if ( !d->destination ) {
+        d->destination = Mailbox::find( d->source->partialName() );
+        if ( !d->destination ) {
+            d->destination = new Mailbox( d->source->partialName() );
+            d->mailboxCreator = d->destination->create( this, 0 );
+            // this is slightly wrong: the mailbox owner is set to
+            // 0. once we create users as part of the migration
+            // process, this needs improvement.
+            return;
+        }
     }
 
     if ( d->injector )
@@ -391,4 +422,14 @@ QListViewItem * MailboxMigrator::listViewItem() const
 uint MailboxMigrator::migrated() const
 {
     return d->migrated;
+}
+
+
+/*! If anything wrong happened, this returns a textual error
+    message. If all is in order, this returns an empty string.
+*/
+
+String MailboxMigrator::error() const
+{
+    return d->error;
 }
