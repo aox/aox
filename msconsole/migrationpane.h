@@ -18,6 +18,11 @@ public slots:
     void disenablify();
 
 private:
+    void addMboxConfiguration();
+    void addCyrusConfiguration();
+    void addMHConfiguration();
+
+private:
     class MigrationPaneData * d;
 };
 
