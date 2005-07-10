@@ -35,12 +35,6 @@ Fix shutdown
   is another aspect of the problem above.
 
 
-Make smtpclient and deliver a lot more robust
-
-  They work for now, but they don't work well. We need a -v -v, at
-  least. Better code wouldn't be a bad thing either.
-
-
 Implement listext
 
   List and lsub are basically good now, but listext is only partially
@@ -297,9 +291,6 @@ Log::~Log() calls commit(), but Log::id is already broken.
   (caused by Log::commit using "id + ...").
 
 
-bin/ms really needs cleaning up.
-
-
 DELETE of mailboxes in inappropriately qualified (security problem)
 
   At present, the user always needs to have all three rights, and
@@ -438,9 +429,6 @@ Error handling in the Injector needs another look.
 We need to support date field searches.
 
 
-We need to support stored search "folders".
-
-
 Orphaned bodyparts should be cleaned up somehow.
 
 
@@ -454,11 +442,6 @@ We need mUTF-7 support.
 
 
 We need more IMAP scripts and message parsing and assembly tests.
-
-
-canonical should try harder to be helpful
-
-  (For example, add CRs to bare LFs in the input to avoid bad diffs.)
 
 
 Write better field wrapping code
@@ -483,6 +466,12 @@ read-only local database mirror.
 
 
 MH folder support for the migration tool.
+
+
+bin/ms, canonical, and deliver all need severe cleaning up.
+
+
+Finish the valgrind skin that should help us to diagnose memory abuse.
 
 
 
