@@ -474,4 +474,13 @@ bin/ms, canonical, and deliver all need severe cleaning up.
 Finish the valgrind skin that should help us to diagnose memory abuse.
 
 
+Look over RFC 3501 to see what is left unimplemented.
+
+
+Finish the comparison with cyrus-imapd (which I'll install on fugue).
+
+
+Read the GiST papers and look at tsearch2 again.
+
+
 
