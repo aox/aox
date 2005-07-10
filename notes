@@ -29,9 +29,6 @@ user, and have "ms migrate" ask for a different username and password to
 perform schema upgrades.
 
 
-We need lots more IMAP script tests
-
-
 Fix shutdown
 
   There's no practical way to shutdown using ocd/ocadmin. Perhaps this
@@ -55,9 +52,6 @@ Resource limits on memory allocation
 
 
 Set up and play with PITR
-
-
-The GUI should do something
 
 
 Inbox lifetime/mailbox reuse
@@ -462,13 +456,10 @@ httpd should learn to stream result pages to reduce memory use.
 We should get rid of recent_messages (see email from Arnt).
 
 
-Think about clustering/replication with Slony/dbmirror.
-
-
 We need mUTF-7 support.
 
 
-We urgently need more message parsing and assembly tests.
+We need more IMAP scripts and message parsing and assembly tests.
 
 
 canonical should try harder to be helpful
@@ -489,6 +480,12 @@ We assume that all Content-Type fields conform to MIME.
   hack I added turns out to have been for such a non-MIME field.
 
   I don't know what to do about this.
+
+
+The servers should accept (a set of) "db-mirror" settings to define a
+read-only local database mirror.
+
+  That way, we can play nicely with most replication systems.
 
 
 
