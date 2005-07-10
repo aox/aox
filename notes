@@ -359,9 +359,6 @@ Our httpd should be able to serve its own css: /default.css?
   once.
 
 
-Get rid of the field_names table? (thanks to Tony at Perforce).
-
-
 Split the folder view into pages.
 
   The injector needs to do threading to make the paging possible.
