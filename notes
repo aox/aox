@@ -468,4 +468,27 @@ Think about clustering/replication with Slony/dbmirror.
 We need mUTF-7 support.
 
 
+We urgently need more message parsing and assembly tests.
+
+
+canonical should try harder to be helpful
+
+  (For example, add CRs to bare LFs in the input to avoid bad diffs.)
+
+
+Write better field wrapping code
+
+  HeaderField::wrap is terribly hackish right now. Besides, ::unwrap()
+  should become the higher-level parser's job.
+
+
+We assume that all Content-Type fields conform to MIME.
+
+  In fact, RFC 1049 defines a non-MIME Content-Type (and Arnt says the
+  Sun mailer had an incompatible one). The "Content-Type: text" parser
+  hack I added turns out to have been for such a non-MIME field.
+
+  I don't know what to do about this.
+
+
 
