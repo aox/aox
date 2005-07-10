@@ -51,9 +51,6 @@ Implement listext
 Resource limits on memory allocation
 
 
-Set up and play with PITR
-
-
 Inbox lifetime/mailbox reuse
 
   A newly created used needs an inbox. Since the user name may be the
@@ -370,9 +367,6 @@ The tsearch2 trigger doesn't work
   Injector very unhappy.
 
 
-We need some sort of bulk loading for messages.
-
-
 A failing parse message should invalidate the prepared statement cache.
 
 
@@ -416,6 +410,9 @@ Update /events/linuxtag2005.html
 
   It claims it'll be updated. The home page (what home page?) too says
   "we will update". Oops.
+
+
+Play with PITR and write /ams/pitr.html
 
 
 Update doc/recorder.man
@@ -483,6 +480,9 @@ The servers should accept (a set of) "db-mirror" settings to define a
 read-only local database mirror.
 
   That way, we can play nicely with most replication systems.
+
+
+MH folder support for the migration tool.
 
 
 
