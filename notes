@@ -465,9 +465,6 @@ read-only local database mirror.
   That way, we can play nicely with most replication systems.
 
 
-MH folder support for the migration tool.
-
-
 bin/ms, canonical, and deliver all need severe cleaning up.
 
 
