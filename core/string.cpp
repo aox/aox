@@ -28,7 +28,7 @@
 StringData::StringData( int bytes )
     : str( 0 ), len( 0 ), max( bytes )
 {
-    str = (char*)::alloc( max, 0 );
+    str = (char*)Allocator::alloc( max, 0 );
 }
 
 
@@ -105,8 +105,8 @@ String::String( const String &s )
 String::~String()
 {
     if ( modifiable() ) {
-        ::dealloc( d->str );
-        ::dealloc( d );
+        Allocator::dealloc( d->str );
+        Allocator::dealloc( d );
     }
     d = 0;
 }
@@ -119,8 +119,8 @@ String::~String()
 void String::operator delete( void *p )
 {
     if ( ((String *)p)->modifiable() ) {
-        ::dealloc( ((String *)p)->d->str );
-        ::dealloc( ((String *)p)->d );
+        Allocator::dealloc( ((String *)p)->d->str );
+        Allocator::dealloc( ((String *)p)->d );
     }
     ((String *)p)->d = 0;
 }
@@ -402,7 +402,7 @@ void String::reserve2( uint num )
     }
     else if ( d->max ) {
         // we owned the old string: modify d
-        char * s = (char*)::alloc( num, 0 );
+        char * s = (char*)Allocator::alloc( num, 0 );
         if ( d->len )
             memmove( s, d->str, d->len );
         d->str = s;

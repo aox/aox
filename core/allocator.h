@@ -6,10 +6,6 @@
 #include "global.h"
 
 
-extern void * alloc( uint, uint = UINT_MAX );
-extern void dealloc( void * );
-
-
 class Allocator
 {
 public:
@@ -42,6 +38,9 @@ public:
 
     static uint allocated();
 
+    static void * alloc( uint, uint = UINT_MAX );
+    static void dealloc( void * );
+
     uint chunkSize() const;
 
     static Allocator * owner( void * );
@@ -51,7 +50,6 @@ public:
     static void scan( void * );
 
 private:
-    friend void * alloc( uint, uint );
     uint base;
     uint step;
     uint taken;

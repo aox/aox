@@ -132,7 +132,7 @@ void File::init( const String &name, File::Access a,
     int l;
     int total = 0;
     int size = n+1;
-    char *b = (char *)alloc( size );
+    char *b = (char *)Allocator::alloc( size );
     b[0] = '\0';
     b[n] = '\0';
 
@@ -145,7 +145,7 @@ void File::init( const String &name, File::Access a,
 
         if ( l > 0 ) {
             size += n;
-            char *s = (char *)alloc( size );
+            char *s = (char *)Allocator::alloc( size );
             memcpy(s, b, total);
             s[total] = '\0';
             b = s;

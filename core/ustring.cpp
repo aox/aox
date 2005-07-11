@@ -115,7 +115,7 @@ void UString::reserve( uint size )
         return;
 
     size = Allocator::rounded( size * sizeof( int ) ) / sizeof( int );
-    int * s = (int*)::alloc( sizeof( int ) * size, 0 );
+    int * s = (int*)Allocator::alloc( sizeof( int ) * size, 0 );
     if ( len )
         memmove( s, str, sizeof( int ) * len );
     str = s;

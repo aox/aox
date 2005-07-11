@@ -184,8 +184,9 @@ void DictBase::resize( uint size )
 {
     DictBaseData::Node ** buckets = d->buckets;
     d->buckets
-        = (DictBaseData::Node **)::alloc( size * sizeof(DictBaseData::Node*),
-                                          size );
+        = (DictBaseData::Node **)
+        Allocator::alloc( size * sizeof(DictBaseData::Node*),
+                          size );
     uint i = 0;
     while ( i < size ) {
         d->buckets[i] = 0;

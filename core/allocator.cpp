@@ -31,7 +31,15 @@ static int total;
 static uint allocated;
 
 
-void * alloc( uint s, uint n )
+/*! Allocates \a s bytes of collectible memory, which may contain up
+    to \a n pointers. If n is too large to be contained within \a s
+    bytes, alloc() uses the largest legal value. The default value is
+    UINT_MAX, which in practise means that the entire object may
+    consist of pointers.
+*/
+
+
+void * Allocator::alloc( uint s, uint n )
 {
     if ( s > SizeLimit )
         die( Memory );
@@ -41,19 +49,28 @@ void * alloc( uint s, uint n )
     while ( a->base == a->capacity && a->next )
         a = a->next;
     void * p = a->allocate( s, n );
-    if ( ( ( total + allocated + s ) & 0xfff00000 ) >
-         ( ( total + allocated ) & 0xfff00000 ) )
+    if ( ( ( ::total + ::allocated + s ) & 0xfff00000 ) >
+         ( ( ::total + ::allocated ) & 0xfff00000 ) )
     {
         // this is a good place to put a breakpoint when we want to
         // find out who allocates memory.
         fprintf( stderr, "%s", "" );
     }
-    allocated += a->chunkSize();
+    ::allocated += a->chunkSize();
     return p;
 }
 
 
-void dealloc( void * p )
+/*! Deallocates the object at \a p.
+
+    This is never strictly necessary, however, if a very large number
+    of objects are allocated and deallocated, it may be
+    beneficial. This function exists because it was beneficial in
+    String::reserve().
+*/
+
+
+void Allocator::dealloc( void * p )
 {
     Allocator * a = Allocator::owner( p );
     if ( a )
@@ -109,12 +126,15 @@ Allocator * Allocator::allocator( uint size )
 
 /*! \class Allocator allocator.h
 
-    The Allocator class provides Mailstore's memory allocation system,
-    a simple garbage collector for event-driven servers.
+    The Allocator class does the heavy lifting for Oryx memory
+    allocation system, a simple garbage collector for event-driven
+    servers.
 
     Our GC system is based on the notion of eternal objects and safe
-    GC points. Eternal objects must
-    be declared by calling addEternal.
+    GC points. Eternal objects must be declared by calling
+    addEternal. Collectible objects are allocated by calling alloc(),
+    or alternatively by inheriting Garbage. Most Oryx classes inherit
+    Garbage.
 
     The free() function mark all objects that can be reached from the
     eternal ones, and afterwards frees anything which isn't

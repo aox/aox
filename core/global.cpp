@@ -16,12 +16,24 @@ void die( Exception e )
 
     The Garbage class provides an object which will allocated using
     Allocator and be freed automatically when nothing points to it.
+
+    Almost all Oryx classes inherit Garbage directly or
+    indirectly. Any that need special allocation handling (Allocator
+    itself is one example) can avoid inheriting Garbage, or can
+    provide their own operator new implementations which call
+    ::malloc() or the Allocator's ::alloc() on their own.
+*/
+
+
+/*! \fn Garbage::Garbage()
+
+    Creates garbage to justify garbage collection.
 */
 
 
 void *Garbage::operator new( uint s )
 {
-    return ::alloc( s, s/sizeof( void* ) );
+    return Allocator::alloc( s, s/sizeof( void* ) );
 }
 
 
@@ -33,7 +45,7 @@ void Garbage::operator delete( void * )
 
 void *Garbage::operator new[]( uint s )
 {
-    return ::alloc( s, s/sizeof( void* ) );
+    return Allocator::alloc( s, s/sizeof( void* ) );
 }
 
 
