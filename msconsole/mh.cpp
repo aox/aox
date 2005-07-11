@@ -5,6 +5,7 @@
 #include "mh.h"
 
 #include "file.h"
+#include "stringlist.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -86,4 +87,89 @@ MigratorMessage *MhMailbox::nextMessage()
     ::closedir( d->dir );
     d->dir = 0;
     return 0;
+}
+
+
+
+class MhDirectoryData {
+public:
+    MhDirectoryData()
+        : prefixLength( 0 )
+    {}
+
+    StringList paths;
+    uint prefixLength;
+};
+
+
+/*! \class MhDirectory mh.h
+
+    Represents a hierarchy of directories and MH mailboxes. It hands out
+    the name of each mailbox in turn using the MigratorSource API.
+*/
+
+
+/*! Constructs an MhDirectory for \a path.
+*/
+
+MhDirectory::MhDirectory( const String &path )
+    : d( new MhDirectoryData )
+{
+    if ( path.length() > 0 && path[path.length()-1] == '/' )
+        d->paths.append( path.mid( 0, path.length()-1 ) );
+    else
+        d->paths.append( path );
+    d->prefixLength = d->paths.first()->length();
+}
+
+
+MhMailbox *MhDirectory::nextMailbox()
+{
+    String *p = 0;
+
+    while ( !p ) {
+        if ( d->paths.isEmpty() )
+            return 0;
+
+        p = d->paths.shift();
+
+        struct stat st;
+        if ( stat( p->cstr(), &st ) < 0 ) {
+            p = 0;
+        }
+        else if ( S_ISDIR( st.st_mode ) ) {
+            DIR *dp = opendir( p->cstr() );
+            if ( dp ) {
+                struct dirent *de = readdir( dp );
+                while ( de ) {
+                    if ( !( de->d_name[0] == '.' &&
+                            ( de->d_name[1] == '\0' ||
+                              ( de->d_name[1] == '.' &&
+                                de->d_name[2] == '\0' ) ) ) )
+                    {
+                        String * tmp = new String;
+                        uint len = strlen( de->d_name );
+                        tmp->reserve( p->length() + 1 + len );
+                        tmp->append( *p );
+                        tmp->append( "/" );
+                        tmp->append( de->d_name, len );
+                        d->paths.append( tmp );
+                    }
+                    de = readdir( dp );
+                }
+                closedir( dp );
+
+                // Is this directory an MH mailbox?
+                String s( *p + "/.mh_sequences" );
+                if ( stat( s.cstr(), &st ) < 0 )
+                    p = 0;
+            }
+            else {
+                p = 0;
+            }
+        }
+    }
+    if ( !p )
+        return 0;
+    return new MhMailbox( *p, d->prefixLength );
 }

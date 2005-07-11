@@ -18,4 +18,16 @@ private:
 };
 
 
+class MhDirectory
+    : public MigratorSource
+{
+public:
+    MhDirectory( const String & );
+    MhMailbox *nextMailbox();
+
+private:
+    class MhDirectoryData *d;
+};
+
+
 #endif
