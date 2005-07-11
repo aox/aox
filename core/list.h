@@ -16,7 +16,9 @@ public:
     ~List() {}
 
 
-    class Node {
+    class Node
+        : public Garbage
+    {
     public:
         Node( T *d ) {
             prev = next = 0;
@@ -58,7 +60,9 @@ public:
     }
 
 
-    class Iterator {
+    class Iterator
+        : public Garbage
+    {
     public:
         Iterator()                   { cur = 0; }
         Iterator( Node *n )          { cur = n; }

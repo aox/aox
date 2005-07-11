@@ -406,7 +406,7 @@ void MailboxMigrator::createListViewItem( QListViewItem * parent )
 {
     String n( d->source->partialName() );
     d->lvi = new QListViewItem( parent,
-                                QString::fromLocal8Bit( n.cstr() ),
+                                QString::fromLatin1( n.cstr() ),
                                 "0" );
 }
 

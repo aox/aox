@@ -246,7 +246,9 @@ class PgRowDescription
 public:
     PgRowDescription( Buffer * );
 
-    class Column {
+    class Column
+        : public Garbage
+    {
     public:
         String name;
         int table, column, type, size, mod, format;

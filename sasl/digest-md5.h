@@ -18,7 +18,9 @@ public:
     void readResponse( const String & );
     void verify();
 
-    class Variable {
+    class Variable
+        : public Garbage
+    {
     public:
         String name;
         String value() const { return *values.first(); }

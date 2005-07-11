@@ -51,7 +51,9 @@ public:
 
     void execute();
 
-    class Value {
+    class Value
+        : public Garbage
+    {
     private:
         int n;
         bool null;
