@@ -24,6 +24,7 @@ static const char * pathRegExp = "^(/[^/]+)+$";
 
 
 class MigrationPaneData
+    : public Garbage
 {
 public:
     MigrationPaneData()
@@ -193,7 +194,7 @@ void MigrationPane::addMboxConfiguration()
     d->sourceStack->addWidget( w, d->serverType->id( d->mbox ) );
     w->setTitle( tr( "Source Mbox Tree" ) );
     d->mboxRoot = new QLineEdit( w );
-    QRegExpValidator * v 
+    QRegExpValidator * v
         = new QRegExpValidator(  QRegExp( pathRegExp ), d->mboxRoot );
     d->mboxRoot->setValidator( v );
     connect( d->mboxRoot, SIGNAL(textChanged( const QString & )),
@@ -211,7 +212,7 @@ void MigrationPane::addCyrusConfiguration()
     d->sourceStack->addWidget( w, d->serverType->id( d->cyrus ) );
     w->setTitle( tr( "Cyrus Partition Directory" ) );
     d->cyrusRoot = new QLineEdit( w );
-    QRegExpValidator * v 
+    QRegExpValidator * v
         = new QRegExpValidator(  QRegExp( pathRegExp ), d->cyrusRoot );
     d->cyrusRoot->setValidator( v );
     connect( d->cyrusRoot, SIGNAL(textChanged( const QString & )),
@@ -229,7 +230,7 @@ void MigrationPane::addMHConfiguration()
     d->sourceStack->addWidget( w, d->serverType->id( d->mh ) );
     w->setTitle( tr( "MH Directory" ) );
     d->mhRoot = new QLineEdit( w );
-    QRegExpValidator * v 
+    QRegExpValidator * v
         = new QRegExpValidator(  QRegExp( pathRegExp ), d->mhRoot );
     d->mhRoot->setValidator( v );
     connect( d->mhRoot, SIGNAL(textChanged( const QString & )),

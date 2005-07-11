@@ -13,7 +13,9 @@
 static const char *crlf = "\015\012";
 
 
-class HeaderData {
+class HeaderData
+    : public Garbage
+{
 public:
     HeaderData()
         : mode( Header::Rfc2822 ),

@@ -31,7 +31,9 @@ static String address( Address * );
 static String addressField( Message *, HeaderField::Type );
 
 
-class PageData {
+class PageData
+    : public Garbage
+{
 public:
     PageData()
         : type( Page::Error ), state( 0 ),

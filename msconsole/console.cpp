@@ -22,6 +22,7 @@
 
 
 class ConsoleData
+    : public Garbage
 {
 public:
     ConsoleData(): paneList( 0 ), stack( 0 ), splitter( 0 ),

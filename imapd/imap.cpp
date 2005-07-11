@@ -27,7 +27,9 @@ static bool supportsDigestMd5 = true;
 static bool supportsAnonymous = true;
 
 
-class IMAPData {
+class IMAPData
+    : public Garbage
+{
 public:
     IMAPData()
         : state( IMAP::NotAuthenticated ),
@@ -648,6 +650,7 @@ uint IMAP::activeCommands() const
 
 
 class IMAPSData
+    : public Garbage
 {
 public:
     IMAPSData() : tlsServer( 0 ), helper( 0 ) {}

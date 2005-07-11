@@ -8,7 +8,9 @@
 #include "user.h"
 
 
-class PermissionData {
+class PermissionData
+    : public Garbage
+{
 public:
     PermissionData()
         : ready( false ), mailbox( 0 ), user( 0 ), owner( 0 ), q( 0 )

@@ -16,6 +16,7 @@
 
 
 class MailboxPaneData
+    : public Garbage
 {
 public:
     MailboxPaneData()
@@ -132,7 +133,7 @@ int MailboxPane::addChildren( Mailbox * parent, QListViewItem * item )
         item->setOpen( n < 4 ); // same test as above
     else if ( !item && d->mailboxes->firstChild() )
         d->mailboxes->firstChild()->setOpen( true );
-    
+
     return n;
 }
 

@@ -14,7 +14,9 @@
 #include "plain.h"
 
 
-class SaslData {
+class SaslData
+    : public Garbage
+{
 public:
     SaslData()
         : state( SaslMechanism::IssuingChallenge ),

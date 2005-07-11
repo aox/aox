@@ -13,6 +13,7 @@ class DocBlock;
 
 
 class Function
+    : public Garbage
 {
 public:
     Function( const String & type,

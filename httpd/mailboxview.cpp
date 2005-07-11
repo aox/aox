@@ -11,6 +11,7 @@
 
 
 class MailboxViewData
+    : public Garbage
 {
 public:
     MailboxViewData()

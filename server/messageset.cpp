@@ -7,6 +7,7 @@
 
 
 class SetData
+    : public Garbage
 {
 public:
     SetData() {}

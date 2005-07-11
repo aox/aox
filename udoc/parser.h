@@ -12,6 +12,7 @@ class Function;
 
 
 class Parser
+    : public Garbage
 {
 public:
     Parser( const String & );

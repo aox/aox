@@ -44,6 +44,7 @@ public:
 static UserPane * userPaneHack;
 
 class UserPaneData
+    : public Garbage
 {
 public:
     UserPaneData(): users( 0 ), login( 0 ), realName( 0 ),

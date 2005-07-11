@@ -6,7 +6,9 @@
 #include "string.h"
 
 
-class Parser822 {
+class Parser822
+    : public Garbage
+{
 public:
     Parser822( const String & os ): s(os), i(0), mime( false ) {}
 

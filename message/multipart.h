@@ -10,7 +10,9 @@ class Bodypart;
 class ContentType;
 
 
-class Multipart {
+class Multipart
+    : public Garbage
+{
 public:
     Multipart();
 

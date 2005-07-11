@@ -12,7 +12,9 @@
 #include "log.h"
 
 
-class QueryData {
+class QueryData
+    : public Garbage
+{
 public:
     QueryData()
         : state( Query::Inactive ),

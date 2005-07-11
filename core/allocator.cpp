@@ -27,20 +27,6 @@ struct AllocationBlock
 const uint SizeLimit = 512 * 1024 * 1024;
 
 
-void *operator new( uint s )
-{
-    return ::alloc( s, s / sizeof( void* ) );
-}
-
-void *operator new[]( uint s )
-{
-    return ::alloc( s, s / sizeof( void* ) );
-}
-
-void operator delete( void * )   {}
-void operator delete[]( void * ) {}
-
-
 static int total;
 static uint allocated;
 
@@ -436,18 +422,6 @@ void * Allocator::block( uint i )
 }
 
 
-void Allocator::operator delete( void * p )
-{
-    //
-}
-
-
-void *Allocator::operator new( uint )
-{
-    return ::malloc( sizeof( Allocator ) );
-}
-
-
 /*! \fn uint Allocator::rounded( uint size )
 
     Returns the biggest number of bytes which can be allocated at the
@@ -602,11 +576,11 @@ uint Allocator::scan1( void * p, bool print, uint level, uint limit )
     else
         sprintf( s, "%d", sz );
     const char * levelspaces[] = {
-	"",
-	"    ",
-	"        ",
-	"            ",
-	"                "
+        "",
+        "    ",
+        "        ",
+        "            ",
+        "                "
     };
     printf( "%s0x%08x (%s)\n", levelspaces[level], (uint)p, s );
     return sz;

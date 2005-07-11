@@ -5,8 +5,12 @@
 
 class String;
 
+#include "global.h"
 
-class Logger {
+
+class Logger
+    : public Garbage
+{
 public:
     Logger();
     virtual void send( const String & ) = 0;

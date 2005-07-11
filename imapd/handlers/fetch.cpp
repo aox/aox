@@ -18,7 +18,9 @@
 #include "date.h"
 
 
-class FetchData {
+class FetchData
+    : public Garbage
+{
 public:
     FetchData()
         : state( 0 ), peek( true ), uid( false ),
@@ -37,7 +39,7 @@ public:
 
         String id;
         String part;
-        StringList fields; 
+        StringList fields;
         bool binary;
         bool partial;
         uint offset;

@@ -29,9 +29,6 @@ public:
 
     static Allocator * allocator( uint size );
 
-    void *operator new( uint );
-    void operator delete( void * );
-
     static void free();
     static void addEternal( void *, const char * );
     static void addEternal( const void * p, const char * c ) {

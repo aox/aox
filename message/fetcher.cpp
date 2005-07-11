@@ -11,7 +11,9 @@
 #include "utf.h"
 
 
-class FetcherData {
+class FetcherData
+    : public Garbage
+{
 public:
     FetcherData()
         : mailbox( 0 ), query( 0 ),
@@ -384,7 +386,7 @@ void MessageBodyFetcher::setDone( Message * m )
     The MessageTriviaFetcher class is an implementation class
     responsible for fetching, ah, well, for fetching the IMAP
     internaldate and rfc822.size.
-    
+
     It has no API of its own and precious little code; Fetcher is the
     entire API.
 */

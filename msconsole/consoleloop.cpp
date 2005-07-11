@@ -20,7 +20,9 @@
 #include <time.h>
 
 
-class ConsoleLoopData {
+class ConsoleLoopData
+    : public Garbage
+{
 };
 
 

@@ -9,6 +9,7 @@
 
 
 class CreateData
+    : public Garbage
 {
 public:
     CreateData(): t( 0 ), p( 0 ) {}

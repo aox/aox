@@ -41,6 +41,7 @@
 
 
 class ServerData
+    : public Garbage
 {
 public:
     ServerData( const char * n )

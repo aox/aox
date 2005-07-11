@@ -6,7 +6,9 @@
 #include "string.h"
 
 
-class Link {
+class Link
+    : public Garbage
+{
 public:
     Link();
     Link( const String & );

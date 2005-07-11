@@ -9,7 +9,9 @@
 class String;
 
 
-class Log {
+class Log
+    : public Garbage
+{
 public:
     enum Facility {
         General,

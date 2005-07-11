@@ -12,7 +12,9 @@
 #include "imapsession.h"
 
 
-class AppendData {
+class AppendData
+    : public Garbage
+{
 public:
     AppendData()
         : mailbox( 0 ), message( 0 ), injector( 0 ),

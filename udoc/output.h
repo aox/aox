@@ -12,6 +12,7 @@ class Intro;
 
 
 class Output
+    : public Garbage
 {
 public:
     static void startHeadline( Intro * );

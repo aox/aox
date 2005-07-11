@@ -14,6 +14,7 @@ static const char * crlf = "\015\012";
 
 
 class MessageData
+    : public Garbage
 {
 public:
     MessageData()
@@ -374,7 +375,7 @@ void Message::setInternalDate( uint id )
 /*! Returns the message's internaldate, which is meant to be the time
     when Mailstore first saw it, although it actually is whatever was
     set using setInternalDate().
-    
+
     If the messages comes from the database, this function's return
     value is valid only if hasTrivia();
 */

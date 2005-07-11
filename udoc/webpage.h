@@ -13,6 +13,7 @@ class Class;
 
 
 class WebPage
+    : public Garbage
 {
 public:
     WebPage( const char * );

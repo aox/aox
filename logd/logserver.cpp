@@ -39,7 +39,9 @@ static Log::Severity severity( const String & );
     to disk.
 */
 
-class LogServerData {
+class LogServerData
+    : public Garbage
+{
 public:
     LogServerData(): id( ::id++ ), name( "(Anonymous)" ) {}
 

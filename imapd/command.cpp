@@ -37,7 +37,9 @@
 #include "handlers/reset.h"
 
 
-class CommandData {
+class CommandData
+    : public Garbage
+{
 public:
     CommandData():
         at( 0 ), args( 0 ),

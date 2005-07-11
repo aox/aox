@@ -10,7 +10,9 @@ class Buffer;
 class TlsServer;
 
 
-class Connection {
+class Connection
+    : public Garbage
+{
 public:
     enum Type {
         Client,

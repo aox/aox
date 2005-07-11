@@ -9,6 +9,7 @@ class File;
 
 
 class Singleton
+    : public Garbage
 {
 public:
     Singleton( File *, uint, const String & );

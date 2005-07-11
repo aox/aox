@@ -15,6 +15,7 @@
 
 
 class RecorderData
+    : public Garbage
 {
 public:
     RecorderData()

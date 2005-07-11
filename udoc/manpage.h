@@ -14,6 +14,7 @@ class Intro;
 
 
 class ManPage
+    : public Garbage
 {
 public:
     ManPage( const char * );

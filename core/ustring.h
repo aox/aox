@@ -8,7 +8,9 @@
 class String;
 
 
-class UString {
+class UString
+    : public Garbage
+{
 public:
     UString();
     UString( const UString & );

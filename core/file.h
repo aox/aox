@@ -7,7 +7,9 @@
 #include "string.h"
 
 
-class File {
+class File
+    : public Garbage
+{
 public:
     enum Access {
         Read, Write, Append, ExclusiveWrite

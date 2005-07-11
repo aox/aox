@@ -3,6 +3,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+// add NO includes here. this is included from almost everywhere.
+
 #if !defined(U32_MAX)
 #define U32_MAX (0xffffffffU)
 #endif
@@ -27,5 +29,18 @@ enum Exception {
 };
 
 void die( Exception );
+
+
+class Garbage
+{
+public:
+    Garbage() {}
+
+    void *operator new( uint );
+    void *operator new[]( uint );
+    void operator delete( void * );
+    void operator delete[]( void * );
+
+};
 
 #endif

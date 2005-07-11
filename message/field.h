@@ -11,7 +11,9 @@ class String;
 class Address;
 
 
-class HeaderField {
+class HeaderField
+    : public Garbage
+{
 public:
     static HeaderField *create( const String &, const String & );
     static HeaderField *assemble( const String &, const String & );

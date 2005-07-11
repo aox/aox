@@ -8,7 +8,9 @@
 #include "loop.h"
 
 
-class SmtpClientData {
+class SmtpClientData
+    : public Garbage
+{
 public:
     SmtpClientData()
         : failed( false ), connected( false ), owner( 0 )

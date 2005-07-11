@@ -63,7 +63,9 @@ struct ObjectId {
 };
 
 
-class InjectorData {
+class InjectorData
+    : public Garbage
+{
 public:
     InjectorData()
         : step( 0 ), failed( false ),

@@ -16,6 +16,7 @@
 
 
 class ConfigurationData
+    : public Garbage
 {
 public:
     ConfigurationData(): errors( 0 ) {}

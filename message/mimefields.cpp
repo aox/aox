@@ -9,6 +9,7 @@
 
 
 class MimeFieldData
+    : public Garbage
 {
 public:
     struct Parameter {

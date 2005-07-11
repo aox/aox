@@ -7,8 +7,12 @@
 class User;
 class String;
 
+#include "global.h"
 
-class HttpSession {
+
+class HttpSession
+    : public Garbage
+{
 public:
     HttpSession();
 

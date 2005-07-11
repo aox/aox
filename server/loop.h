@@ -9,7 +9,9 @@ class EventLoop;
 #include "list.h"
 
 
-class Loop {
+class Loop
+    : public Garbage
+{
 public:
     static void setup( EventLoop * = 0 );
     static void start();

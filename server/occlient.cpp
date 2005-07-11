@@ -12,7 +12,9 @@
 #include "log.h"
 
 
-class OCCData {
+class OCCData
+    : public Garbage
+{
 public:
 };
 

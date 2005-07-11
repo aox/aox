@@ -8,7 +8,9 @@
 #include "mailbox.h"
 
 
-class XOryxResetData {
+class XOryxResetData
+    : public Garbage
+{
 public:
     XOryxResetData(): messages( 0 ), mailboxes( 0 ) {}
 

@@ -35,7 +35,9 @@ public:
     up and uses the database.
 */
 
-class SearchData {
+class SearchData
+    : public Garbage
+{
 public:
     SearchData()
         : uid( false ), done( false ), root( 0 ), conditions( 0 ),

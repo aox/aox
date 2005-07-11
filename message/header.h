@@ -17,7 +17,9 @@ class AddressField;
 class Date;
 
 
-class Header {
+class Header
+    : public Garbage
+{
 public:
     enum Mode { Rfc2822, Mime };
     Header( Mode );

@@ -13,7 +13,9 @@
 #include <unistd.h>
 
 
-class MhMailboxData {
+class MhMailboxData
+    : public Garbage
+{
 public:
     MhMailboxData()
         : opened( false ), dir( 0 )
@@ -91,7 +93,9 @@ MigratorMessage *MhMailbox::nextMessage()
 
 
 
-class MhDirectoryData {
+class MhDirectoryData
+    : public Garbage
+{
 public:
     MhDirectoryData()
         : prefixLength( 0 )

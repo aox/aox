@@ -29,7 +29,9 @@
 static bool hasMessage( Buffer * );
 
 
-class PgData {
+class PgData
+    : public Garbage
+{
 public:
     PgData()
         : active( false ), startup( false ), authenticated( false ),

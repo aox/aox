@@ -10,7 +10,9 @@
 #include "mimefields.h"
 
 
-class BodypartData {
+class BodypartData
+    : public Garbage
+{
 public:
     BodypartData()
         : number( 1 ), parent( 0 ), rfc822( 0 ),
@@ -415,7 +417,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         body = body.encode( cte->encoding() );
     bp->d->numEncodedBytes = body.length();
 
-    if ( bp->d->hasText || 
+    if ( bp->d->hasText ||
          ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) )
     {
         uint n = 0;

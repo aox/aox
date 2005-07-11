@@ -13,7 +13,9 @@ class Transaction;
 class EventHandler;
 
 
-class FieldNameCache {
+class FieldNameCache
+    : public Garbage
+{
 public:
     static void setup();
     static CacheLookup *lookup( Transaction *, List< String > *,

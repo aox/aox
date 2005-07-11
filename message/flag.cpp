@@ -12,6 +12,7 @@ static List<Flag> * flags;
 
 
 class FlagFetcherData
+    : public Garbage
 {
 public:
     FlagFetcherData(): o( 0 ), q( 0 ) {}
@@ -87,7 +88,9 @@ void FlagFetcher::execute()
 */
 
 
-class FlagData {
+class FlagData
+    : public Garbage
+{
 public:
     FlagData() : id( 0 ) {}
     String name;
@@ -184,7 +187,9 @@ void Flag::setup()
 }
 
 
-class FlagCreatorData {
+class FlagCreatorData
+    : public Garbage
+{
 public:
     FlagCreatorData(): owner( 0 ) {}
     EventHandler * owner;

@@ -17,6 +17,7 @@
 
 
 class SearchEditData
+    : public Garbage
 {
 public:
     SearchEditData(): current( 0 ), frame( 0 ) {}

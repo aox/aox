@@ -12,7 +12,9 @@
 #include "log.h"
 
 
-class SessionData {
+class SessionData
+    : public Garbage
+{
 public:
     SessionData()
         : readOnly( true ), mailbox( 0 ),
@@ -343,6 +345,7 @@ void Session::refresh( EventHandler *handler )
 
 
 class SessionInitialiserData
+    : public Garbage
 {
 public:
     SessionInitialiserData()
@@ -433,7 +436,7 @@ void SessionInitialiser::execute()
         d->messages->bind( 3, d->newUidnext );
         d->messages->execute();
 
-        d->seen 
+        d->seen
             = new Query( "select uid from messages "
                          "where mailbox=$1 and not(uid in ("
                          "select uid from flags where "

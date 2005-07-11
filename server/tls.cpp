@@ -16,6 +16,7 @@ static Endpoint * tlsProxy = 0;
 
 
 class TlsServerData
+    : public Garbage
 {
 public:
     TlsServerData()

@@ -9,6 +9,7 @@
 
 
 class ListextData
+    : public Garbage
 {
 public:
     ListextData():

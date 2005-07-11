@@ -7,7 +7,9 @@
 #include "list.h"
 
 
-class Address {
+class Address
+    : public Garbage
+{
 public:
     Address();
     Address( const String &, const String &, const String & );
@@ -42,7 +44,9 @@ private:
 };
 
 
-class AddressParser {
+class AddressParser
+    : public Garbage
+{
 public:
     AddressParser( String );
     ~AddressParser();

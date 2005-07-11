@@ -11,7 +11,9 @@
 class Buffer;
 
 
-class PgServerMessage {
+class PgServerMessage
+    : public Garbage
+{
 public:
     PgServerMessage( Buffer *b );
     virtual ~PgServerMessage() {}
@@ -34,7 +36,9 @@ protected:
 };
 
 
-class PgClientMessage {
+class PgClientMessage
+    : public Garbage
+{
 public:
     PgClientMessage( char t );
     virtual ~PgClientMessage() {}

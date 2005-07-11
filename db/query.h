@@ -15,7 +15,9 @@ class EventHandler;
 class PreparedStatement;
 
 
-class Query {
+class Query
+    : public Garbage
+{
 public:
     Query( EventHandler * );
     Query( const String &, EventHandler * );
@@ -104,7 +106,9 @@ private:
 };
 
 
-class Column {
+class Column
+    : public Garbage
+{
 public:
     enum Type { Unknown, Boolean, Integer, Bytes };
 
@@ -117,7 +121,9 @@ public:
 };
 
 
-class Row {
+class Row
+    : public Garbage
+{
 public:
     Row( uint, Column * );
 
@@ -142,7 +148,9 @@ private:
 };
 
 
-class PreparedStatement {
+class PreparedStatement
+    : public Garbage
+{
 public:
     PreparedStatement( const String & );
     String name() const;

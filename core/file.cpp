@@ -20,7 +20,9 @@
 extern "C" void *memcpy(void *, const void *, uint);
 
 
-class FileData {
+class FileData
+    : public Garbage
+{
 public:
     FileData(): fd( -1 ), t( 0 ), ok( false ) {}
     int fd;

@@ -14,7 +14,9 @@
 #include "configuration.h"
 
 
-class HTTPData {
+class HTTPData
+    : public Garbage
+{
 public:
     HTTPData()
         : state( HTTP::Request ),
@@ -174,7 +176,7 @@ void HTTP::process()
             enqueue( "HTTP/1.1 " );
         else
             enqueue( "HTTP/1.0 " );
-        
+
         enqueue( fn( d->status ) + " " + d->message + "\r\n" );
         enqueue( d->headers.join( "\r\n" ) );
         enqueue( "\r\n\r\n" );

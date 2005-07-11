@@ -12,6 +12,7 @@ class Connection;
 
 
 class TlsServer
+    : public Garbage
 {
 public:
     TlsServer( EventHandler *, const Endpoint &, const String & );

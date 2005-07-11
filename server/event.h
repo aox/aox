@@ -8,7 +8,9 @@
 class String;
 
 
-class EventHandler {
+class EventHandler
+    : public Garbage
+{
 public:
     EventHandler();
 

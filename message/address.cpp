@@ -9,7 +9,9 @@
 #include "utf.h"
 
 
-class AddressData {
+class AddressData
+    : public Garbage
+{
 public:
     AddressData(): id( 0 ), type( Address::Invalid ) {}
 
@@ -282,6 +284,7 @@ void Address::setName( const String & n )
 
 
 class AddressParserData
+    : public Garbage
 {
 public:
     AddressParserData() {}

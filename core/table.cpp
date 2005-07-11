@@ -4,6 +4,7 @@
 
 
 class TableBaseData
+    : public Garbage
 {
 public:
     TableBaseData() : numWanted( 0 ) {}

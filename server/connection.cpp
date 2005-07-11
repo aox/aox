@@ -25,7 +25,9 @@
 #include <time.h>
 
 
-class ConnectionData {
+class ConnectionData
+    : public Garbage
+{
 public:
     ConnectionData()
         : fd( -1 ), timeout( 0 ), r( 0 ), w( 0 ),

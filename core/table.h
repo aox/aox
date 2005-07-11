@@ -8,6 +8,7 @@
 
 
 class TableBase
+    : public Garbage
 {
 public:
     TableBase();

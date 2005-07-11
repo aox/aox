@@ -7,6 +7,7 @@
 
 
 class Entropy
+    : public Garbage
 {
 public:
     static void setup();

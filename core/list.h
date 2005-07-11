@@ -8,7 +8,9 @@
 
 
 template< class T >
-class List {
+class List
+    : public Garbage
+{
 public:
     List() { head = tail = 0; }
     ~List() {}

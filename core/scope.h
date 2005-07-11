@@ -5,8 +5,12 @@
 
 class Log;
 
+#include "global.h"
 
-class Scope {
+
+class Scope
+    : public Garbage
+{
 public:
     Scope();
     Scope( Log * );

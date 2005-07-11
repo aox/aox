@@ -8,7 +8,9 @@
 #include "loop.h"
 
 
-class OCAData {
+class OCAData
+    : public Garbage
+{
 public:
 };
 

@@ -52,7 +52,9 @@ static struct {
 };
 
 
-class HeaderFieldData {
+class HeaderFieldData
+    : public Garbage
+{
 public:
     HeaderFieldData()
         : type( HeaderField::Other ), hasData( false )

@@ -12,6 +12,7 @@ class File;
 
 
 class Error
+    : public Garbage
 {
 public:
     Error( File *, uint, const String & );

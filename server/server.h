@@ -5,8 +5,12 @@
 
 class String;
 
+#include "global.h"
 
-class Server {
+
+class Server
+    : public Garbage
+{
 public:
     Server( const char *, int, char *[] );
 

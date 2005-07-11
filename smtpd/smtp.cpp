@@ -102,6 +102,7 @@ void SmtpUserHelper::execute()
 
 
 class SMTPData
+    : public Garbage
 {
 public:
     SMTPData():

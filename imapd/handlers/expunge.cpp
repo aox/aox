@@ -12,7 +12,9 @@
 #include "messageset.h"
 
 
-class ExpungeData {
+class ExpungeData
+    : public Garbage
+{
 public:
     ExpungeData()
         : stage( 0 ), q( 0 ), t( 0 )

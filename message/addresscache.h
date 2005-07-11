@@ -13,6 +13,7 @@ class EventHandler;
 
 
 class AddressCache
+    : public Garbage
 {
 public:
     static void setup();

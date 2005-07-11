@@ -10,7 +10,9 @@
 #include "stringlist.h"
 
 
-class LinkData {
+class LinkData
+    : public Garbage
+{
 public:
     LinkData()
         : type( Link::Unknown ), mailbox( 0 ), uid( 0 )

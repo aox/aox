@@ -10,6 +10,7 @@
 
 
 class MigratorData
+    : public Garbage
 {
 public:
     MigratorData()
@@ -102,7 +103,7 @@ MigratorSource::MigratorSource()
 
 
 /*! \fn class MigratorMailbox * MigratorSource::nextMailbox()
-  
+
     Returns a pointer to the next mailbox in this source, or a null
     pointer if all mailboxes have been found.
 
@@ -153,7 +154,7 @@ String MigratorMailbox::partialName()
 
 
 /*! \class MigratorMessage migrator.h
-  
+
     The MigratorMessage provides a message and a source. It's used by
     Migrator and MigratorMailbox to generate and inject messages.
 
@@ -262,6 +263,7 @@ void Migrator::refill()
 
 
 class MailboxMigratorData
+    : public Garbage
 {
 public:
     MailboxMigratorData()
@@ -344,7 +346,7 @@ void MailboxMigrator::execute()
         if ( d->mailboxCreator->failed() ) {
             d->message = 0;
             d->validated = true;
-            d->error = "Error creating " + 
+            d->error = "Error creating " +
                        d->destination->name() +
                        ": " +
                        d->mailboxCreator->error();

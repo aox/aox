@@ -21,7 +21,9 @@ struct Nonce {
 static List<Nonce> * cache;
 
 
-class DigestData {
+class DigestData
+    : public Garbage
+{
 public:
     DigestData()
         : stale( false ), cachedNonce( 0 )

@@ -6,7 +6,9 @@
 #include "global.h"
 
 
-class StringData {
+class StringData
+    : public Garbage
+{
 private:
     StringData(): str( 0 ), len( 0 ), max( 0 ) {}
     StringData( int );
@@ -20,7 +22,9 @@ private:
 };
 
 
-class String {
+class String
+    : public Garbage
+{
 public:
     String();
     String( const char * );

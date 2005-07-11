@@ -12,7 +12,9 @@
 #include <sys/un.h>
 
 
-class EndpointData {
+class EndpointData
+    : public Garbage
+{
 public:
     EndpointData()
         : valid( false ), proto( Endpoint::IPv4 ), ip4a( 0 ), port( 0 )

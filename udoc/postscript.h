@@ -15,6 +15,7 @@ class File;
 
 
 class Postscript
+    : public Garbage
 {
 public:
     Postscript( const char * );

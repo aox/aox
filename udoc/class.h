@@ -12,6 +12,7 @@ class DocBlock;
 
 
 class Class
+    : public Garbage
 {
 public:
     Class( const String &, File *, uint );

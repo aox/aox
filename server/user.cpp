@@ -12,7 +12,9 @@
 #include "occlient.h"
 
 
-class UserData {
+class UserData
+    : public Garbage
+{
 public:
     UserData()
         : id( 0 ), inbox( 0 ), home( 0 ), address( 0 ),

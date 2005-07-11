@@ -9,7 +9,9 @@ class UString;
 #include "string.h"
 
 
-class Codec {
+class Codec
+    : public Garbage
+{
 public:
     Codec( const char * );
     virtual ~Codec();

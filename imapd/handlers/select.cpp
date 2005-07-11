@@ -12,7 +12,9 @@
 #include "permissions.h"
 
 
-class SelectData {
+class SelectData
+    : public Garbage
+{
 public:
     SelectData()
         : mailbox( 0 ), session( 0 ), permissions( 0 )

@@ -9,7 +9,9 @@
 #include "allocator.h"
 
 
-class OCSData {
+class OCSData
+    : public Garbage
+{
 public:
 };
 

@@ -6,6 +6,7 @@
 
 
 class DictBaseData
+    : public Garbage
 {
 public:
     DictBaseData():

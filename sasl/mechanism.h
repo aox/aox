@@ -10,7 +10,9 @@ class EventHandler;
 class User;
 
 
-class SaslMechanism {
+class SaslMechanism
+    : public Garbage
+{
 public:
     SaslMechanism( EventHandler * );
     virtual ~SaslMechanism() {}

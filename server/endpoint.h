@@ -9,7 +9,9 @@
 class String;
 
 
-class Endpoint {
+class Endpoint
+    : public Garbage
+{
 public:
     Endpoint();
     Endpoint( const Endpoint & );

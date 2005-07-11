@@ -15,7 +15,9 @@
 static Dict< HttpSession > *sessions;
 
 
-class HttpSessionData {
+class HttpSessionData
+    : public Garbage
+{
 public:
     HttpSessionData()
         : user( 0 )

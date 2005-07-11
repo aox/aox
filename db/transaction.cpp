@@ -8,7 +8,9 @@
 #include "list.h"
 
 
-class TransactionData {
+class TransactionData
+    : public Garbage
+{
 public:
     TransactionData()
         : state( Transaction::Inactive ), owner( 0 ), db( 0 ),

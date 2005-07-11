@@ -12,7 +12,9 @@ class Database;
 class EventHandler;
 
 
-class Transaction {
+class Transaction
+    : public Garbage
+{
 public:
     Transaction( EventHandler * );
     void setDatabase( Database * );

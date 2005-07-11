@@ -10,6 +10,7 @@
 
 
 class Flag
+    : public Garbage
 {
 public:
     Flag( const String &, uint );

@@ -26,7 +26,9 @@
 #include <unistd.h>
 
 
-class LoopData {
+class LoopData
+    : public Garbage
+{
 public:
     LoopData()
         : log( new Log( Log::Server ) ),

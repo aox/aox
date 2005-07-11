@@ -9,6 +9,7 @@
 
 
 class DateData
+    : public Garbage
 {
 public:
     DateData() { reset(); }

@@ -13,6 +13,7 @@ class Intro;
 
 
 class DocBlock
+    : public Garbage
 {
 public:
     DocBlock( File *, uint, const String &, Function * );

@@ -13,6 +13,7 @@
 
 
 class MboxMailboxData
+    : public Garbage
 {
 public:
     MboxMailboxData(): read( false ), offset( 0 ) {}
@@ -83,7 +84,9 @@ MigratorMessage * MboxMailbox::nextMessage()
 }
 
 
-class MboxDirectoryData {
+class MboxDirectoryData
+    : public Garbage
+{
 public:
     MboxDirectoryData(): prefixLength( 0 ) {}
     StringList paths;
@@ -133,7 +136,7 @@ MboxMailbox * MboxDirectory::nextMailbox()
             if ( dp ) {
                 struct dirent * de = readdir( dp );
                 while ( de ) {
-                    if ( de->d_name[0] == '.' && 
+                    if ( de->d_name[0] == '.' &&
                          ( de->d_name[1] == '\0' ||
                            ( de->d_name[1] == '.' &&
                              de->d_name[2] == '\0' ) ) )

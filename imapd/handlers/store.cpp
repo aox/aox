@@ -15,7 +15,9 @@
 #include "imap.h"
 
 
-class StoreData {
+class StoreData
+    : public Garbage
+{
 public:
     StoreData()
         : op( Replace ), silent( false ), uid( false ),

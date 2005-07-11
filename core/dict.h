@@ -6,6 +6,7 @@
 #include "stringlist.h"
 
 class DictBase
+    : public Garbage
 {
 protected:
     DictBase();

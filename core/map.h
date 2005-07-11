@@ -6,7 +6,9 @@
 #include "global.h"
 
 
-class MapTable { // helper class for Map
+class MapTable
+    : public Garbage
+{ // helper class for Map
 public:
     MapTable();
     void * find( uint );
@@ -22,7 +24,9 @@ private:
 
 
 template<class T>
-class Map {
+class Map
+    : public Garbage
+{
 public:
     Map() {} // more?
 

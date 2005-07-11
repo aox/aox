@@ -10,7 +10,9 @@
 class String;
 
 
-class Buffer {
+class Buffer
+    : public Garbage
+{
 public:
     Buffer();
 

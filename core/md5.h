@@ -10,7 +10,9 @@ class String;
 class Buffer;
 
 
-class MD5 {
+class MD5
+    : public Garbage
+{
 public:
     MD5();
 

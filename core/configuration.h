@@ -8,6 +8,7 @@
 
 
 class Configuration
+    : public Garbage
 {
 private:
     Configuration();

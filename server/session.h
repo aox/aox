@@ -14,7 +14,9 @@ class Select;
 class IMAP;
 
 
-class Session {
+class Session
+    : public Garbage
+{
 public:
     Session( Mailbox *, bool );
     virtual ~Session();

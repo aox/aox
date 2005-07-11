@@ -6,7 +6,9 @@
 #include "string.h"
 
 
-class MessageSet {
+class MessageSet
+    : public Garbage
+{
 public:
     MessageSet();
     MessageSet( const MessageSet & );

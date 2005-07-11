@@ -9,7 +9,9 @@
 class Connection;
 
 
-class EventLoop {
+class EventLoop
+    : public Garbage
+{
 public:
     EventLoop();
 

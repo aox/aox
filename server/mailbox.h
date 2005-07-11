@@ -13,7 +13,9 @@ class Fetcher;
 class String;
 
 
-class Mailbox {
+class Mailbox
+    : public Garbage
+{
 public:
     Mailbox( const String & );
 

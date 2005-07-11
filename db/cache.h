@@ -3,8 +3,12 @@
 #ifndef CACHE_H
 #define CACHE_H
 
+#include "global.h"
 
-class CacheLookup {
+
+class CacheLookup
+    : public Garbage
+{
 public:
     CacheLookup();
 

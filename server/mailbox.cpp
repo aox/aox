@@ -17,7 +17,9 @@
 #include "transaction.h"
 
 
-class MailboxData {
+class MailboxData
+    : public Garbage
+{
 public:
     MailboxData()
         : id( 0 ),

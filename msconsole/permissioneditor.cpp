@@ -20,6 +20,7 @@
 
 
 class PermissionEditorData
+    : public Garbage
 {
 public:
     PermissionEditorData()
@@ -59,7 +60,7 @@ PermissionEditor::PermissionEditor( QWidget * parent )
     d->add = new QPushButton( tr( "Add" ), this );
     connect( d->add, SIGNAL(clicked()),
              this, SLOT(addColumn()) );
-    
+
     d->rights[Permissions::Lookup]
         = new QLabel( "Lookup", this );
     QToolTip::add( d->rights[Permissions::Lookup],
@@ -214,6 +215,7 @@ void PermissionEditor::setupLayout()
 
 
 class PermissionEditorRowData
+    : public Garbage
 {
 public:
     PermissionEditorRowData()
@@ -295,6 +297,7 @@ static const char * defaultRights = "lp";
 
 
 class PermissionEditorFetcherData
+    : public Garbage
 {
 public:
     PermissionEditorFetcherData(): q( 0 ), e( 0 ), m( 0 ) {}
@@ -371,7 +374,7 @@ void PermissionEditor::add( const String & identifier, const String & rights )
 
 
 /*! Adds a new row, including editable name.
- 
+
     Todo: Editable name. Here or elsewhere?
 
 */

@@ -8,7 +8,9 @@
 #include "log.h"
 
 
-class PopData {
+class PopData
+    : public Garbage
+{
 public:
     PopData()
         : state( POP3::Authorization ), sawUser( false )

@@ -11,6 +11,7 @@
 
 
 class DeleteData
+    : public Garbage
 {
 public:
     DeleteData(): m( 0 ), t( 0 ), p( 0 ) {}

@@ -7,6 +7,7 @@
 
 
 class Date
+    : public Garbage
 {
 public:
     Date();

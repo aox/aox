@@ -28,6 +28,7 @@ private:
 
 
 class MigratorSource
+    : public Garbage
 {
 public:
     MigratorSource();
@@ -38,6 +39,7 @@ public:
 
 
 class MigratorMailbox
+    : public Garbage
 {
 public:
     MigratorMailbox( const String & );

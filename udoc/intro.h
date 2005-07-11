@@ -12,6 +12,7 @@ class DocBlock;
 
 
 class Intro
+    : public Garbage
 {
 public:
     Intro( const String & );
@@ -20,7 +21,7 @@ public:
     void addClass( Class * );
 
     static void output();
-    
+
     String name() const;
 
 private:
