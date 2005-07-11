@@ -93,7 +93,7 @@ public:
 
 /*! \class MboxDirectory mbox.h
 
-    The MboxDirectory class models a hierchy of directories and mbox
+    The MboxDirectory class models a hierarchy of directories and mbox
     files. It hands out the name of one mbox file at a time via the
     MigratorSource API.
 */
@@ -121,9 +121,10 @@ MboxMailbox * MboxDirectory::nextMailbox()
 
         p = d->paths.shift();
         struct stat st;
-        if ( stat( p->cstr(), &st ) < 0 )
+        if ( stat( p->cstr(), &st ) < 0 ) {
             // deleted since we looked at it
             p = 0;
+        }
         else if ( S_ISREG( st.st_mode ) ) {
             // done
         }
