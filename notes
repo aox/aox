@@ -486,4 +486,7 @@ Complete POP3 support.
 Complete ACL support.
 
 
+Implement COPY (for IMAP messages).
+
+
 
