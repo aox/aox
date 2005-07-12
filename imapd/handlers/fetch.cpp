@@ -30,7 +30,9 @@ public:
           needHeader( false ), needBody( false )
     {}
 
-    class Section {
+    class Section
+        : public Garbage
+    {
     public:
         Section()
             : binary( false ),

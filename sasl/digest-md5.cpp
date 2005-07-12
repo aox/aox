@@ -12,7 +12,9 @@
 #include <time.h>
 
 
-struct Nonce {
+struct Nonce
+    : public Garbage
+{
     String value;
     String count;
     uint time;

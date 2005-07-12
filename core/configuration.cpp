@@ -25,7 +25,9 @@ public:
     String text[Configuration::NumTexts];
     bool toggle[Configuration::NumToggles];
 
-    struct Error {
+    struct Error
+        : public Garbage
+    {
         Error() : s( Log::Info ) {}
 
         String e;

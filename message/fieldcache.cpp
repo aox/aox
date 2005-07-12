@@ -98,7 +98,9 @@ void FieldLookup::execute() {
         uint id = r->getInt( "id" );
         String *name = new String( field );
         idCache->insert( id, name );
-        nameCache->insert( *name, new uint( id ) );
+        uint * tmp = (uint*)Allocator::alloc( sizeof(uint) );
+        *tmp = id;
+        nameCache->insert( *name, tmp );
     }
 
     if ( queries->isEmpty() ) {

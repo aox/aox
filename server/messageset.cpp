@@ -12,7 +12,9 @@ class SetData
 public:
     SetData() {}
 
-    struct Range {
+    struct Range
+        : public Garbage
+    {
         Range( uint s, uint l ): start( s ), length( l ) {}
         uint start;
         uint length;

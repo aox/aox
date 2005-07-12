@@ -20,7 +20,9 @@ public:
           smallest( 0 ), largest( 0 ),
           uid( 0 ), notified( 0 ), message( 0 )
     {}
-    struct Handler {
+    struct Handler
+        : public Garbage
+    {
         Handler(): o( 0 ) {}
         MessageSet s;
         EventHandler * o;

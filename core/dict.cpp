@@ -13,7 +13,9 @@ public:
         size( 0 ), buckets( 0 )
     {}
 
-    class Node {
+    class Node
+        : public Garbage
+    {
     public:
         Node( Node * n, uint h, void * v, const String & s )
             : next( n ), hash( h ), data( v ), key( s ) {}

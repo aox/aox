@@ -12,7 +12,9 @@ class MimeFieldData
     : public Garbage
 {
 public:
-    struct Parameter {
+    struct Parameter
+        : public Garbage
+    {
         bool operator<=( const Parameter & other ) const {
             return name <= other.name;
         }

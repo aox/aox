@@ -16,7 +16,9 @@ public:
     class Thread
     {
     private:
-        struct M {
+        struct M
+            : public Garbage
+        {
             M( uint u, Message * m ): uid( u ), message( m ) {}
 
             uint uid;

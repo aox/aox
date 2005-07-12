@@ -58,7 +58,9 @@ public:
     Page *page;
     HttpSession *session;
 
-    struct HeaderListItem {
+    struct HeaderListItem
+        : public Garbage
+    {
         HeaderListItem(): q( 0 ) {}
 
         String n;

@@ -49,6 +49,7 @@ private:
     };
 
     struct Condition
+        : public Garbage
     { // everything here is public. this may need changing at some point.
     public:
         Condition() : f( NoField ), a( All ), n( 0 ), l( 0 ), c( 0 ), d( 0 ) {}

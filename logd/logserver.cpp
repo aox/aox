@@ -47,7 +47,9 @@ public:
 
     uint id;
 
-    class Line {
+    class Line
+        : public Garbage
+    {
     public:
         Line( Log::Facility f, Log::Severity s, const String &l )
             : facility( f ), severity( s ), line( l )

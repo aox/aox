@@ -34,13 +34,17 @@ static PreparedStatement *intoBodyparts;
 // These structs represent one part of each entry in the header_fields
 // and address_fields tables. (The other part being mailbox and UID.)
 
-struct FieldLink {
+struct FieldLink
+    : public Garbage
+{
     HeaderField *hf;
     String part;
     int position;
 };
 
-struct AddressLink {
+struct AddressLink
+    : public Garbage
+{
     Address * address;
     HeaderField::Type type;
     String part;
@@ -52,7 +56,9 @@ struct AddressLink {
 // use only one struct because IdHelper has to process the results).
 // Only one of the two pointers will be non-zero in one instance.
 
-struct ObjectId {
+struct ObjectId
+    : public Garbage
+{
     ObjectId( Mailbox *m, Bodypart *b )
         : id( 0 ), mailbox( m ), bodypart( b )
     {}

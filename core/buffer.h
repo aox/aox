@@ -44,7 +44,9 @@ private:
     char at( uint ) const;
 
 private:
-    struct Vector {
+    struct Vector
+        : public Garbage
+    {
         Vector() : base( 0 ), len( 0 ) {}
         char *base;
         uint len;

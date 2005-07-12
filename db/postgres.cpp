@@ -6,6 +6,7 @@
 #include "list.h"
 #include "string.h"
 #include "buffer.h"
+#include "allocator.h"
 #include "configuration.h"
 #include "transaction.h"
 #include "stringlist.h"
@@ -892,7 +893,10 @@ void UpdateSchema::execute() {
                             t->enqueue( u );
                         }
                         else {
-                            hashes.insert( hash, new uint( id ) );
+                            uint * tmp 
+                                = (uint*)Allocator::alloc( sizeof(uint) );
+                            *tmp = id;
+                            hashes.insert( hash, tmp );
                         }
                     }
 
