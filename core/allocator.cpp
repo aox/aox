@@ -419,6 +419,7 @@ void Allocator::sweep()
                     bitmap[b] &= ~(1 << i);
                     taken--;
                     m->x.magic = 0;
+                    memset( m->payload, 0, step-bytes ); // ARNT
                 }
                 m->x.marked = false;
             }
