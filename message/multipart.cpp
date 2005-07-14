@@ -133,7 +133,7 @@ void Multipart::appendAnyPart( String &r, const Bodypart *bp,
            !childct ) || ( childct && childct->type() == "message" ) )
     {
         // We only expect message/rfc822 here for now.
-        r.append( bp->rfc822()->rfc822() );
+        r.append( bp->message()->rfc822() );
     }
 
     else if ( !childct || childct->type().lower() == "text" ) {
@@ -203,8 +203,8 @@ static void dumpBodypart( Message *m, Bodypart *bp, int n )
 {
     dumpMultipart( bp, n );
 
-    if ( bp->rfc822() ) {
-        dumpMessage( bp->rfc822(), n+4 );
+    if ( bp->message() ) {
+        dumpMessage( bp->message(), n+4 );
     }
     else {
         List< Bodypart >::Iterator it( bp->children() );

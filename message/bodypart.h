@@ -29,9 +29,6 @@ public:
     UString text() const;
     void setText( const UString & );
 
-    Message *rfc822() const;
-    void setRfc822( Message * );
-
     uint numBytes() const;
     void setNumBytes( uint );
 

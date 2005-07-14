@@ -15,7 +15,7 @@ class BodypartData
 {
 public:
     BodypartData()
-        : number( 1 ), parent( 0 ), rfc822( 0 ),
+        : number( 1 ), parent( 0 ),
           numBytes( 0 ), numEncodedBytes(), numEncodedLines( 0 ),
           hasText( false )
     {}
@@ -23,7 +23,6 @@ public:
     uint number;
 
     Multipart *parent;
-    Message *rfc822;
 
     uint numBytes;
     uint numEncodedBytes;
@@ -40,10 +39,10 @@ public:
     The Bodypart class models a single MIME body part. It is a subclass
     of Multipart, and an adjunct to Message.
 
-    Every Bodypart has a number(), and contains text(), data(), or an
-    rfc822() message, based on its contentType(). It knows how many
-    numBytes(), numEncodedBytes() and numEncodedLines() of data it
-    contains, and can present itself asText().
+    Every Bodypart has a number(), and contains text(), data(), or a
+    message(), based on its contentType(). It knows how many numBytes(),
+    numEncodedBytes() and numEncodedLines() of data it contains, and can
+    present itself asText().
 
     This class is also responsible for parsing bodyparts in messages.
 */
@@ -141,25 +140,6 @@ UString Bodypart::text() const
 void Bodypart::setText( const UString &s )
 {
     d->text = s;
-}
-
-
-/*! If this Bodypart is a message/rfc822, this function returns a
-    pointer to the subsidiary message. In all other cases, this
-    function returns a null pointer.
-*/
-
-Message *Bodypart::rfc822() const
-{
-    return d->rfc822;
-}
-
-
-/*! Sets the subsidiary rfc822() message of this Bodypart to \a m. */
-
-void Bodypart::setRfc822( Message *m )
-{
-    d->rfc822 = m;
 }
 
 
@@ -451,7 +431,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             it->setParent( bp );
             ++it;
         }
-        bp->d->rfc822 = m;
+        bp->setMessage( m );
     }
 
     return bp;

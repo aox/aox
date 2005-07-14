@@ -527,8 +527,8 @@ static String sectionResponse( FetchData::Section *s,
         else {
             item = s->part + ".TEXT";
             Bodypart *bp = m->bodypart( s->part, false );
-            if ( bp && bp->rfc822() )
-                data = bp->rfc822()->body();
+            if ( bp && bp->message() )
+                data = bp->message()->body();
         }
         item = "BODY[" + item + "]";
     }
@@ -777,9 +777,11 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
         r.append( ")" );
     }
     else if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
-        Bodypart *bp = (Bodypart *)m;
-        if ( !bp->rfc822() && !m->parent() )
+        Bodypart *bp = (Bodypart *)m->parent();
+        if ( !bp )
             bp = m->children()->first();
+        // Bodypart *bp = (Bodypart *)m;
+        // if ( !bp->rfc822() && !m->parent() )
         r = singlePartStructure( bp,  m->header(), extended );
     }
     else {
@@ -847,8 +849,8 @@ String Fetch::singlePartStructure( Bodypart *bp, Header *hdr, bool extended )
     if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // body-type-msg   = media-message SP body-fields SP envelope
         //                   SP body SP body-fld-lines
-        l.append( envelope( bp->rfc822() ) );
-        l.append( bodyStructure( bp->rfc822(), extended ) );
+        l.append( envelope( bp->message() ) );
+        l.append( bodyStructure( bp->message(), extended ) );
         l.append( fn( bp->numEncodedLines() ) );
     }
     else if ( !ct || ct->type() == "text" ) {

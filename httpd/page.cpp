@@ -1029,7 +1029,7 @@ String Page::bodypart( Message *first, uint uid, Bodypart *bp )
     }
     else if ( type == "message/rfc822" ) {
         s.append( "<div class=body>\n" );
-        s.append( message( first, uid, bp->rfc822() ) );
+        s.append( message( first, uid, bp->message() ) );
         s.append( "</div>\n" );
     }
     else if ( type.startsWith( "image/" ) ) {

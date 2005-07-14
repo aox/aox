@@ -501,8 +501,8 @@ void Injector::buildFieldLinks()
         else
             skip = false;
 
-        if ( bp->rfc822() )
-            buildLinksForHeader( bp->rfc822()->header(), pn + ".rfc822" );
+        if ( bp->message() )
+            buildLinksForHeader( bp->message()->header(), pn + ".rfc822" );
 
         ++bi;
     }
@@ -693,7 +693,7 @@ void Injector::linkBodyparts()
                               b->numEncodedBytes(),
                               b->numEncodedLines() );
 
-            if ( b->rfc822() )
+            if ( b->message() )
                 insertPartNumber( q, m->id(), uid, pn + ".rfc822",
                                   bid, b->numEncodedBytes(),
                                   b->numEncodedLines() );
