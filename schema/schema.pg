@@ -177,6 +177,22 @@ create table address_fields (
 create index af_mu on address_fields (mailbox, uid);
 
 
+-- One entry per unique thread.
+
+create table threads (
+    id          serial primary key,
+    subject     text unique
+);
+
+
+-- One entry per message in each thread.
+
+create table thread_members (
+    thread      integer not null references threads(id),
+    message     integer not null references messages(id)
+);
+
+
 -- One entry for each message to be announced as \Recent.
 
 create table recent_messages (
