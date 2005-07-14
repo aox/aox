@@ -275,8 +275,10 @@ void MessageHeaderFetcher::decode( Message * m, Row * r )
     if ( part.endsWith( ".rfc822" ) ) {
         Bodypart * bp =
             m->bodypart( part.mid( 0, part.length()-7 ), true );
-        if ( !bp->message() )
+        if ( !bp->message() ) {
             bp->setMessage( new Message );
+            bp->message()->setParent( bp );
+        }
         h = bp->message()->header();
     }
     else if ( !part.isEmpty() ) {
@@ -351,8 +353,10 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
     if ( part.endsWith( ".rfc822" ) ) {
         Bodypart *bp = m->bodypart( part.mid( 0, part.length()-7 ),
                                     true );
-        if ( !bp->message() )
+        if ( !bp->message() ) {
             bp->setMessage( new Message );
+            bp->message()->setParent( bp );
+        }
 
         List< Bodypart >::Iterator it( bp->children() );
         while ( it ) {

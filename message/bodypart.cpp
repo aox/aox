@@ -432,6 +432,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             ++it;
         }
         bp->setMessage( m );
+        m->setParent( bp );
     }
 
     return bp;

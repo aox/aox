@@ -777,8 +777,12 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
         r.append( ")" );
     }
     else if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
-        Bodypart *bp = (Bodypart *)m;
-        if ( !bp->rfc822() && !m->parent() )
+        Bodypart *bp = 0;
+        if ( m->message() )
+            bp = (Bodypart *)m;
+        else
+            bp = (Bodypart *)m->parent();
+        if ( !bp || !bp->message() )
             bp = m->children()->first();
         r = singlePartStructure( bp,  m->header(), extended );
     }
