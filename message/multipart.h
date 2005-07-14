@@ -6,6 +6,7 @@
 #include "list.h"
 
 class Header;
+class Message;
 class Bodypart;
 class ContentType;
 
@@ -21,6 +22,10 @@ public:
 
     Multipart *parent() const;
     void setParent( Multipart * );
+
+    Message *message() const;
+    void setMessage( Message * );
+
     List< Bodypart > *children() const;
 
     void appendMultipart( String & ) const;
@@ -30,6 +35,7 @@ public:
 private:
     Header *h;
     Multipart *p;
+    Message *m;
     List< Bodypart > *parts;
 };
 

@@ -24,7 +24,7 @@ static const char * crlf = "\015\012";
 */
 
 Multipart::Multipart()
-    : h( 0 ), p( 0 ), parts( new List< Bodypart > )
+    : h( 0 ), p( 0 ), m( 0 ), parts( new List< Bodypart > )
 {
 }
 
@@ -62,6 +62,24 @@ Multipart *Multipart::parent() const
 void Multipart::setParent( Multipart *pt )
 {
     p = pt;
+}
+
+
+/*! Returns a pointer to the Message contained within this Multipart, or
+    0 if this is not a MIME message/ object.
+*/
+
+Message *Multipart::message() const
+{
+    return m;
+}
+
+
+/*! Sets the message contained by this Multipart to \a msg. */
+
+void Multipart::setMessage( Message *msg )
+{
+    m = msg;
 }
 
 
