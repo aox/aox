@@ -219,8 +219,8 @@ static void dumpBodypart( Message *m, Bodypart *bp, int n )
 static void dumpMultipart( Multipart *m, int n )
 {
     spaces( n );
-    fprintf( stderr, "%p = {h=%p, p=%p, c=%p [", m, m->header(),
-             m->parent(), m->children() );
+    fprintf( stderr, "%p = {h=%p, p=%p, m=%p, c=%p [", m, m->header(),
+             m->parent(), m->message(), m->children() );
     List< Bodypart >::Iterator it( m->children() );
     while ( it ) {
         Bodypart *bp = it;
@@ -263,8 +263,10 @@ static void headerSummary( Header *h, int n )
     if ( cd )
         l.append( cd->value() );
 
-    spaces( n );
-    fprintf( stderr, "%s\n", l.join( ";" ).cstr() );
+    if ( !l.isEmpty() ) {
+        spaces( n );
+        fprintf( stderr, "%s\n", l.join( ";" ).cstr() );
+    }
 }
 
 
