@@ -130,20 +130,17 @@ void Multipart::appendAnyPart( String &r, const Bodypart *bp,
     ContentType *childct = bp->header()->contentType();
 
     if ( ( ct && ct->type() == "multipart" && ct->subtype() == "digest" &&
-           !childct ) || ( childct && childct->type() == "message" ) )
+           !childct ) ||
+         ( childct && childct->type() == "message" ) )
     {
-        // We only expect message/rfc822 here for now.
         r.append( bp->message()->rfc822() );
     }
-
     else if ( !childct || childct->type().lower() == "text" ) {
         appendTextPart( r, bp, childct );
     }
-
     else if ( childct->type() == "multipart" ) {
         bp->appendMultipart( r );
     }
-
     else {
         r.append( bp->data().e64( 72 ) );
     }
