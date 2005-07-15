@@ -15,13 +15,10 @@ public:
     struct Parameter
         : public Garbage
     {
-        bool operator<=( const Parameter & other ) const {
-            return name <= other.name;
-        }
         String name;
         String value;
     };
-    SortedList<Parameter> parameters;
+    List< Parameter > parameters;
 };
 
 
@@ -110,7 +107,7 @@ void MimeField::addParameter( const String &n, const String &v )
     MimeFieldData::Parameter *pm = new MimeFieldData::Parameter;
     pm->name = n;
     pm->value = v;
-    d->parameters.insert( pm );
+    d->parameters.append( pm );
 }
 
 
@@ -167,7 +164,7 @@ String MimeField::value()
 {
     String s = HeaderField::data();
     s.append( parameterString() );
-    return s;
+    return wrap( s );
 }
 
 
