@@ -12,6 +12,7 @@
 #include "event.h"
 #include "query.h"
 #include "address.h"
+#include "allocator.h"
 
 #include <qlabel.h>
 #include <qlayout.h>
