@@ -569,7 +569,7 @@ String HeaderField::wrap( const String &s )
         if ( first ) {
             first = false;
         }
-        else if ( l + 1 + w.length() >= 78 ) {
+        else if ( l + 1 + w.length() > 78 ) {
             t.append( "\015\012 " );
             l = 1;
         }

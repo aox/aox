@@ -117,22 +117,26 @@ void AddressField::update()
 
         while ( it ) {
             String a = it->toString();
+            ++it;
+
             if ( t == HeaderField::References )
                 a = "<" + a + ">";
+
             if ( first ) {
                 first = false;
             }
-            else if ( c + wsep.length() + a.length() >= 78 ) {
+            else if ( ( c + wsep.length() + a.length() > 78 ) || 
+                      ( c + wsep.length() + a.length() == 78 && it ) )
+            {
                 s.append( lsep );
                 c = lpos;
             }
             else {
                 s.append( wsep );
-                c = c + wsep.length();
+                c += wsep.length();
             }
             s.append( a );
-            c = c + a.length();
-            ++it;
+            c += a.length();
         }
     }
     else if ( t == HeaderField::MessageId ||
