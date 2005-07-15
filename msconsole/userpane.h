@@ -11,6 +11,7 @@ class UserPane: public QWidget
     Q_OBJECT
 public:
     UserPane( QWidget * );
+    ~UserPane();
 
     void refreshFromDatabase();
 

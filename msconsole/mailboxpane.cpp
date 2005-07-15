@@ -4,6 +4,7 @@
 
 #include "cstring.h"
 
+#include "allocator.h"
 #include "mailboxpane.h"
 #include "permissioneditor.h"
 #include "mailbox.h"
@@ -41,6 +42,8 @@ public:
 MailboxPane::MailboxPane( QWidget * parent )
     : QWidget( parent, "mailbox pane" ), d( new MailboxPaneData )
 {
+    Allocator::addEternal( d, "mailbox pane gc-able data" );
+
     QGridLayout * tll = new QGridLayout( this, 3, 4, 6 );
 
     QLabel * l = new QLabel( tr( "&Mailboxes" ), this );
@@ -73,6 +76,12 @@ MailboxPane::MailboxPane( QWidget * parent )
 
     connect( d->mailboxes, SIGNAL(currentChanged( QListViewItem * )),
              this, SLOT(mailboxSelected()) );
+}
+
+
+MailboxPane::~MailboxPane()
+{
+    Allocator::removeEternal( d );
 }
 
 

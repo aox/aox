@@ -3,6 +3,7 @@
 #include "cstring.h"
 
 #include "transaction.h"
+#include "allocator.h"
 #include "migrator.h"
 #include "injector.h"
 #include "mailbox.h"
@@ -43,6 +44,8 @@ public:
 Migrator::Migrator( QWidget * parent )
     : QListView( parent ), d( new MigratorData )
 {
+    Allocator::addEternal( d, "migrator gcable data" );
+
     addColumn( tr( "Name" ) );
     addColumn( tr( "Messsages" ) );
 
@@ -68,6 +71,12 @@ Migrator::Migrator( QWidget * parent )
     d->done->setExpandable( true );
     d->done->setOpen( false );
     d->done->setSelectable( false );
+}
+
+
+Migrator::~Migrator()
+{
+    Allocator::removeEternal( d );
 }
 
 
@@ -306,8 +315,16 @@ MailboxMigrator::MailboxMigrator( MigratorMailbox * source,
                                   Migrator * migrator )
     : EventHandler(), d( new MailboxMigratorData )
 {
+    Allocator::addEternal( d, "mailbox migrator gcable data" );
+
     d->source = source;
     d->migrator = migrator;
+}
+
+
+MailboxMigrator::~MailboxMigrator()
+{
+    Allocator::removeEternal( d );
 }
 
 

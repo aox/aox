@@ -11,6 +11,7 @@ class SearchEdit: public QLineEdit
     Q_OBJECT
 public:
     SearchEdit( const QString &, QWidget * );
+    ~SearchEdit();
 
     QSize sizeHint() const;
 

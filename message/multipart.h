@@ -17,26 +17,26 @@ class Multipart
 public:
     Multipart();
 
-    Header *header() const;
+    Header * header() const;
     void setHeader( Header * );
 
-    Multipart *parent() const;
+    Multipart * parent() const;
     void setParent( Multipart * );
 
-    Message *message() const;
+    Message * message() const;
     void setMessage( Message * );
 
-    List< Bodypart > *children() const;
+    List< Bodypart > * children() const;
 
     void appendMultipart( String & ) const;
     void appendAnyPart( String &, const Bodypart *, ContentType * ) const;
     void appendTextPart( String &, const Bodypart *, ContentType * ) const;
 
 private:
-    Header *h;
-    Multipart *p;
-    Message *m;
-    List< Bodypart > *parts;
+    Header * h;
+    Multipart * p;
+    Message * m;
+    List< Bodypart > * parts;
 };
 
 

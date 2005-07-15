@@ -94,6 +94,8 @@ static uint strut()
 UserPane::UserPane( QWidget * parent )
     : QWidget( parent, "user pane" ), d( new UserPaneData )
 {
+    Allocator::addEternal( d, "user pane gcable data" );
+
     ::userPaneHack = 0;
     QGridLayout * tll = new QGridLayout( this, 12, 4, 6 );
 
@@ -194,6 +196,12 @@ UserPane::UserPane( QWidget * parent )
     tll->setColStretch( 3, 2 );
 
     tll->setRowStretch( 9, 2 );
+}
+
+
+UserPane::~UserPane()
+{
+    Allocator::removeEternal( d );
 }
 
 

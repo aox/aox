@@ -33,7 +33,7 @@ void die( Exception e )
 
 void *Garbage::operator new( uint s )
 {
-    return Allocator::alloc( s, s/sizeof( void* ) );
+    return Allocator::alloc( s );
 }
 
 
@@ -45,7 +45,7 @@ void Garbage::operator delete( void * )
 
 void *Garbage::operator new[]( uint s )
 {
-    return Allocator::alloc( s, s/sizeof( void* ) );
+    return Allocator::alloc( s );
 }
 
 

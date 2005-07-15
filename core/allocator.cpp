@@ -370,8 +370,8 @@ void Allocator::free()
             objects += a->taken;
             Allocator * n = a->next;
             if ( taken == 0 && a->taken == 0 && p ) {
-                p->next = a->next;
-                delete a;
+                //p->next = a->next;
+                //delete a;
             }
             a = n;
         }
@@ -484,7 +484,7 @@ void Allocator::addEternal( void * p, const char * t )
     have been deleted.
 */
 
-void Allocator::removeRoot( void * p )
+void Allocator::removeEternal( void * p )
 {
     uint i = 0;
     while( i < ::numRoots && roots[i].root != p )
@@ -506,9 +506,9 @@ void Allocator::removeRoot( void * p )
     have been deleted.
 */
 
-void Allocator::removeRoot( const void * p )
+void Allocator::removeEternal( const void * p )
 {
-    removeRoot( (void*)p );
+    removeEternal( (void*)p );
 }
 
 

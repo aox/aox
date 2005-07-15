@@ -31,8 +31,8 @@ public:
         addEternal( (void*)p, c );
     }
 
-    static void removeRoot( void * );
-    static void removeRoot( const void * );
+    static void removeEternal( void * );
+    static void removeEternal( const void * );
 
     static void setReporting( bool );
 

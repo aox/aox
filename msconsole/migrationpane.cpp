@@ -4,6 +4,7 @@
 
 #include "migrationpane.h"
 
+#include "allocator.h"
 #include "migrator.h"
 
 //#include "mh.h"
@@ -24,7 +25,6 @@ static const char * pathRegExp = "^(/[^/]+)+$";
 
 
 class MigrationPaneData
-    : public Garbage
 {
 public:
     MigrationPaneData()
@@ -63,6 +63,8 @@ public:
 MigrationPane::MigrationPane( QWidget * parent )
     : QWidget( parent ), d( new MigrationPaneData )
 {
+    Allocator::addEternal( d, "migration pane gcable data" );
+
     d->serverType = new QButtonGroup( 2, QButtonGroup::Vertical, this );
     d->serverType->setTitle( tr( "Migrate From:" ) );
 
@@ -108,6 +110,11 @@ MigrationPane::MigrationPane( QWidget * parent )
     disenablify();
 }
 
+
+MigrationPane::~MigrationPane()
+{
+    Allocator::removeEternal( d );
+}
 
 /*! Starts the actual migration.
 

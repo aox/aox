@@ -14,6 +14,7 @@ class Migrator: public QListView
     Q_OBJECT
 public:
     Migrator( QWidget * parent );
+    ~Migrator();
 
     void start( class MigratorSource * );
 
@@ -71,6 +72,7 @@ class MailboxMigrator: public EventHandler
 public:
     MailboxMigrator( class MigratorMailbox *,
                      class Migrator * );
+    virtual ~MailboxMigrator();
 
     bool valid() const;
     bool done() const;

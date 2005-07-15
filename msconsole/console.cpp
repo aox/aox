@@ -6,6 +6,7 @@
 
 #include "console.h"
 #include "userpane.h"
+#include "allocator.h"
 #include "searchedit.h"
 #include "mailboxpane.h"
 #include "migrationpane.h"
@@ -50,6 +51,7 @@ public:
 Console::Console()
     : QWidget( 0, "mailstore console" ), d( new ConsoleData )
 {
+    Allocator::addEternal( d, "console GC-able data" );
     d->splitter = new QSplitter( this );
     QWidget * w = new QWidget( d->splitter );
 
@@ -114,6 +116,12 @@ Console::Console()
 }
 
 
+Console::~Console()
+{
+    Allocator::removeEternal( d );
+}
+
+
 /*! This reimplementation helps ensure that enter works appropriately
     in all the lineedits etc.
 */
@@ -172,3 +180,5 @@ void Console::resizeEvent( QResizeEvent * e )
     QWidget::resizeEvent( e );
     d->splitter->resize( size() );
 }
+
+

@@ -17,6 +17,7 @@ class PermissionEditor
     Q_OBJECT
 public:
     PermissionEditor( QWidget * parent );
+    ~PermissionEditor();
 
     void setMailbox( Mailbox * );
     Mailbox * mailbox() const;
@@ -54,6 +55,7 @@ class PermissionEditorFetcher
 {
 public:
     PermissionEditorFetcher( PermissionEditor *, Mailbox * );
+    virtual ~PermissionEditorFetcher();
 
     void execute();
 

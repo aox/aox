@@ -14,6 +14,7 @@ class MailboxPane: public QWidget
     Q_OBJECT
 public:
     MailboxPane( QWidget * );
+    ~MailboxPane();
 
     int addChildren( Mailbox *, QListViewItem * );
     void showEvent( QShowEvent * );

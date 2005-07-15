@@ -11,6 +11,7 @@ class MigrationPane: public QWidget
     Q_OBJECT
 public:
     MigrationPane( QWidget * );
+    ~MigrationPane();
 
 public slots:
     void startMigration();

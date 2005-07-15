@@ -9,6 +9,7 @@ class Console: public QWidget {
     Q_OBJECT
 public:
     Console();
+    ~Console();
 
     void keyPressEvent( QKeyEvent * );
 

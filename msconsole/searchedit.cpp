@@ -4,6 +4,8 @@
 
 #include "searchedit.h"
 
+#include "allocator.h"
+
 #include <qaccel.h>
 #include <qlabel.h>
 #include <qtimer.h>
@@ -48,6 +50,8 @@ public:
 SearchEdit::SearchEdit( const QString & t, QWidget * p )
     : QLineEdit( t, p ), d( new SearchEditData )
 {
+    Allocator::addEternal( d, "searchedit gcable data" );
+
     d->label = t;
     connect( &d->revert, SIGNAL(timeout()),
              this, SLOT(revert()) );
@@ -59,6 +63,12 @@ SearchEdit::SearchEdit( const QString & t, QWidget * p )
              this, SLOT(search()) );
     connect( this, SIGNAL(textChanged( const QString & )),
              this, SLOT(search()) );
+}
+
+
+SearchEdit::~SearchEdit()
+{
+    Allocator::removeEternal( d );
 }
 
 

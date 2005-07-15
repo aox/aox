@@ -7,6 +7,7 @@
 #include "permissioneditor.h"
 
 #include "permissions.h"
+#include "allocator.h"
 #include "mailbox.h"
 #include "query.h"
 
@@ -57,6 +58,7 @@ public:
 PermissionEditor::PermissionEditor( QWidget * parent )
     : QWidget( parent ), d( new PermissionEditorData )
 {
+    Allocator::addEternal( d, "permission editor GC-able data" );
     d->add = new QPushButton( tr( "Add" ), this );
     connect( d->add, SIGNAL(clicked()),
              this, SLOT(addColumn()) );
@@ -127,6 +129,12 @@ PermissionEditor::PermissionEditor( QWidget * parent )
         = new QLabel( "Admin", this );
     QToolTip::add( d->rights[Permissions::Admin],
                    tr( "<p>If set, the user can modify these rights.</p>" ) );
+}
+
+
+PermissionEditor::~PermissionEditor()
+{
+    Allocator::removeEternal( d );
 }
 
 
@@ -246,6 +254,7 @@ public:
 PermissionEditorRow::PermissionEditorRow( PermissionEditor * parent )
     : QObject( parent ), d( new PermissionEditorRowData )
 {
+    Allocator::addEternal( d, "permissioneditor row gcable" );
     d->label = new QLabel( parent );
     uint i = 0;
     while( i < Permissions::NumRights )
@@ -267,6 +276,7 @@ PermissionEditorRow::PermissionEditorRow( PermissionEditor * parent )
 
 PermissionEditorRow::~PermissionEditorRow()
 {
+    Allocator::removeEternal( d );
     delete d->label;
     uint i = 0;
     while( i < Permissions::NumRights )
@@ -316,6 +326,7 @@ PermissionEditorFetcher::PermissionEditorFetcher( PermissionEditor * e,
                                                   Mailbox * m )
     : EventHandler(), d( new PermissionEditorFetcherData )
 {
+    Allocator::addEternal( d, "permissioneditorfetcher gcable data" );
     d->q = new Query( "select identifier, rights "
                       "from permissions where mailbox=$1 "
                       "order by identifier",
@@ -325,6 +336,12 @@ PermissionEditorFetcher::PermissionEditorFetcher( PermissionEditor * e,
     d->e = e;
     d->m = m;
     d->anyone = defaultRights;
+}
+
+
+PermissionEditorFetcher::~PermissionEditorFetcher()
+{
+    Allocator::removeEternal( d );
 }
 
 
