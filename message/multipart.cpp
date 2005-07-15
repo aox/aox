@@ -129,11 +129,14 @@ void Multipart::appendAnyPart( String &r, const Bodypart *bp,
 {
     ContentType *childct = bp->header()->contentType();
 
-    if ( ( ct && ct->type() == "multipart" && ct->subtype() == "digest" &&
-           !childct ) ||
-         ( childct && childct->type() == "message" ) )
+    if ( ( childct && childct->type() == "message" ) ||
+         ( ct && ct->type() == "multipart" && ct->subtype() == "digest" &&
+           !childct ) )
     {
-        r.append( bp->message()->rfc822() );
+        if ( childct && childct->subtype() != "rfc822" )
+            appendTextPart( r, bp, childct );
+        else
+            r.append( bp->message()->rfc822() );
     }
     else if ( !childct || childct->type().lower() == "text" ) {
         appendTextPart( r, bp, childct );
