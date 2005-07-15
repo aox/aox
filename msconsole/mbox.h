@@ -4,9 +4,23 @@
 #define MBOX_H
 
 #include "migrator.h"
+#include "dirtree.h"
 
 
-class MboxMailbox: public MigratorMailbox
+class MboxDirectory
+    : public DirectoryTree
+{
+public:
+    MboxDirectory( const String & );
+
+protected:
+    bool isMailbox( const String &, struct stat * );
+    MigratorMailbox * newMailbox( const String &, uint );
+};
+
+
+class MboxMailbox
+    : public MigratorMailbox
 {
 public:
     MboxMailbox( const String & path, uint );
@@ -15,18 +29,6 @@ public:
 
 private:
     class MboxMailboxData * d;
-};
-
-
-class MboxDirectory: public MigratorSource
-{
-public:
-    MboxDirectory( const String & path );
-
-    MboxMailbox * nextMailbox();
-
-private:
-    class MboxDirectoryData * d;
 };
 
 

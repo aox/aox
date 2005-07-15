@@ -12,6 +12,36 @@
 #include <dirent.h>
 
 
+/*! \class MboxDirectory mbox.h
+
+    The MboxDirectory class models a hierarchy of directories and mbox
+    files. It hands out the name of one mbox file at a time via the
+    MigratorSource API.
+*/
+
+
+/*!  Constructs an MboxDirectory for \a path. */
+
+MboxDirectory::MboxDirectory( const String & path )
+    : DirectoryTree( path )
+{
+}
+
+
+bool MboxDirectory::isMailbox( const String &path, struct stat *st )
+{
+    if ( S_ISREG( st->st_mode ) )
+        return true;
+    return false;
+}
+
+
+MigratorMailbox * MboxDirectory::newMailbox( const String &path, uint n )
+{
+    return new MboxMailbox( path, n );
+}
+
+
 class MboxMailboxData
     : public Garbage
 {
@@ -81,89 +111,4 @@ MigratorMessage * MboxMailbox::nextMessage()
     d->offset = i;
 
     return m;
-}
-
-
-class MboxDirectoryData
-    : public Garbage
-{
-public:
-    MboxDirectoryData(): prefixLength( 0 ) {}
-    StringList paths;
-    uint prefixLength;
-};
-
-
-/*! \class MboxDirectory mbox.h
-
-    The MboxDirectory class models a hierarchy of directories and mbox
-    files. It hands out the name of one mbox file at a time via the
-    MigratorSource API.
-*/
-
-
-/*!  Constructs an MboxDirectory for \a path. */
-
-MboxDirectory::MboxDirectory( const String & path )
-    :d( new MboxDirectoryData )
-{
-    if ( path.length() > 0 && path[path.length()-1] == '/' )
-        d->paths.append( path.mid( 0, path.length()-1 ) );
-    else
-        d->paths.append( path );
-    d->prefixLength = d->paths.first()->length();
-}
-
-
-MboxMailbox * MboxDirectory::nextMailbox()
-{
-    String * p = 0;
-    while ( !p ) {
-        if ( d->paths.isEmpty() )
-            return 0;
-
-        p = d->paths.shift();
-        struct stat st;
-        if ( stat( p->cstr(), &st ) < 0 ) {
-            // deleted since we looked at it
-            p = 0;
-        }
-        else if ( S_ISREG( st.st_mode ) ) {
-            // done
-        }
-        else if ( S_ISDIR( st.st_mode ) ) {
-            DIR * dp = opendir( p->cstr() );
-            if ( dp ) {
-                struct dirent * de = readdir( dp );
-                while ( de ) {
-                    if ( de->d_name[0] == '.' &&
-                         ( de->d_name[1] == '\0' ||
-                           ( de->d_name[1] == '.' &&
-                             de->d_name[2] == '\0' ) ) )
-                    {
-                        // we don't want those two
-                    }
-                    else {
-                        String * tmp = new String;
-                        uint len = strlen( de->d_name );
-                        tmp->reserve( p->length() + 1 + len );
-                        tmp->append( *p );
-                        tmp->append( "/" );
-                        tmp->append( de->d_name, len );
-                        d->paths.append( tmp );
-                    }
-                    de = readdir( dp );
-                }
-                closedir( dp );
-            }
-            p = 0;
-        }
-        else {
-            // a symlink? a device node? whatever it is, we ignore it
-            p = 0;
-        }
-    }
-    if ( !p )
-        return 0;
-    return new MboxMailbox( *p, d->prefixLength );
 }
