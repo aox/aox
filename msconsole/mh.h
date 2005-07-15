@@ -4,6 +4,19 @@
 #define MH_H
 
 #include "migrator.h"
+#include "dirtree.h"
+
+
+class MhDirectory
+    : public DirectoryTree
+{
+public:
+    MhDirectory( const String & );
+
+protected:
+    bool isMailbox( const String &, struct stat * );
+    MigratorMailbox * newMailbox( const String &, uint );
+};
 
 
 class MhMailbox
@@ -15,18 +28,6 @@ public:
 
 private:
     class MhMailboxData *d;
-};
-
-
-class MhDirectory
-    : public MigratorSource
-{
-public:
-    MhDirectory( const String & );
-    MhMailbox *nextMailbox();
-
-private:
-    class MhDirectoryData *d;
 };
 
 
