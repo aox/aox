@@ -422,7 +422,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                         ct->subtype() == "digest",
                         bp->children(), bp, error );
     }
-    else if ( ct->type() == "message" ) {
+    else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
         Message * m = new Message( rfc2822.mid( start, end ) );
         List<Bodypart>::Iterator it( m->children() );
         while ( it ) {
