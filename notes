@@ -394,9 +394,6 @@ How do we cope with PostgreSQL server crashes?
 Pine bodystructure problems (torture-test)
 
 
-We don't handle message/non-rfc822 bodyparts well.
-
-
 Update /events/linuxtag2005.html
 
   It claims it'll be updated. The home page (what home page?) too says
