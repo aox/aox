@@ -122,7 +122,7 @@ void AddressField::update()
             if ( first ) {
                 first = false;
             }
-            else if ( c + wsep.length() + a.length() > 78 ) {
+            else if ( c + wsep.length() + a.length() >= 78 ) {
                 s.append( lsep );
                 c = lpos;
             }
