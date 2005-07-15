@@ -346,9 +346,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         Codec * c = 0;
         if ( ct )
             c = Codec::byName( ct->parameter( "charset" ) );
-        if ( c )
-            ct->removeParameter( "charset" );
-        else
+        if ( !c )
             c = new AsciiCodec;
 
         bp->d->hasText = true;
@@ -361,6 +359,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             c = Codec::byString( bp->d->text );
         if ( ct && c->name().lower() != "us-ascii" )
             ct->addParameter( "charset", c->name().lower() );
+        else if ( ct )
+            ct->removeParameter( "charset" );
 
         // XXX: Can we avoid this re-conversion?
         body = c->fromUnicode( bp->d->text );

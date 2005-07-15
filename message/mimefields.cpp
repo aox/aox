@@ -103,11 +103,19 @@ String MimeField::parameter( const String &n ) const
 
 void MimeField::addParameter( const String &n, const String &v )
 {
-    removeParameter( n );
-    MimeFieldData::Parameter *pm = new MimeFieldData::Parameter;
-    pm->name = n;
-    pm->value = v;
-    d->parameters.append( pm );
+    String s = n.lower();
+    List< MimeFieldData::Parameter >::Iterator it( d->parameters );
+    while ( it && s != it->name )
+        ++it;
+    if ( it ) {
+        it->value = v;
+    }
+    else {
+        MimeFieldData::Parameter *pm = new MimeFieldData::Parameter;
+        pm->name = n;
+        pm->value = v;
+        d->parameters.append( pm );
+    }
 }
 
 
