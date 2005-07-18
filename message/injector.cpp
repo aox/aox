@@ -223,6 +223,9 @@ Injector::Injector( const Message * message,
         d->bodyparts->append( new ObjectId( 0, bi ) );
         ++bi;
     }
+
+    if ( !d->message->valid() )
+        d->failed = true;
 }
 
 
@@ -259,7 +262,11 @@ bool Injector::failed() const
 
 String Injector::error() const
 {
-    if ( !d->failed || !d->transaction )
+    if ( !d->failed )
+        return "";
+    if ( !d->message->valid() )
+        return d->message->error();
+    if ( !d->transaction )
         return "";
     return d->transaction->error();
 }
