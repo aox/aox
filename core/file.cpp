@@ -123,7 +123,9 @@ void File::init( const String &name, File::Access a,
     }
 
     int n = maxLength;
-    if ( maxLength == 0 ) {
+    if ( maxLength == 0 || maxLength > 1024 * 1024 ) {
+        // if (int)maxLength() <= 0, this ensures that n ends up
+        // positive.
         n = st.st_size;
         if ( n == 0 )
             n = 16*1024;
@@ -137,18 +139,11 @@ void File::init( const String &name, File::Access a,
     b[n] = '\0';
 
     do {
-        l = ::read( d->fd, b+total, n );
-        total += l;
-
-        if ( maxLength > 0 || l == st.st_size )
-            break;
-
+        l = ::read( d->fd, b+total, n - total );
         if ( l > 0 ) {
-            size += n;
-            char *s = (char *)Allocator::alloc( size );
-            memcpy(s, b, total);
-            s[total] = '\0';
-            b = s;
+            total += l;
+            if ( total >= n )
+                l = -1;
         }
     }
     while ( l > 0 );
