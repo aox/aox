@@ -63,6 +63,8 @@ SearchEdit::SearchEdit( const QString & t, QWidget * p )
              this, SLOT(search()) );
     connect( this, SIGNAL(textChanged( const QString & )),
              this, SLOT(search()) );
+
+    setFocusPolicy( ClickFocus );
 }
 
 
