@@ -46,7 +46,6 @@ ConsoleLoop::ConsoleLoop()
     : EventLoop(), d( new ConsoleLoopData )
 {
     Loop::setup( this );
-    Allocator::addEternal( this, "Qt's event loop, and ours too" );
 }
 
 
@@ -70,7 +69,6 @@ void ConsoleLoop::addConnection( Connection * c )
         shutdown();
     }
     e[fd] = new EventNotifier( c );
-    Allocator::addEternal( e[fd], "qt/oryx event notifier" );
 }
 
 
