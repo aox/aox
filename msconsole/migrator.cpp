@@ -255,7 +255,8 @@ void Migrator::refill()
         // skip to next. even if take() does ++it, the code remains
         // correct, because we will eventually discover that all of
         // the working objects are done, even if we don't right now.
-        ++it;
+        if ( it )
+            ++it;
     }
     while ( d->working->count() < 4 ) {
         MigratorMailbox * m = d->source->nextMailbox();
