@@ -12,6 +12,30 @@
 #include <stdlib.h>
 // fprintf, stderr
 #include <stdio.h>
+// gettimeofday
+#include <sys/time.h>
+// localtime
+#include <time.h>
+
+
+/* This static function returns a nicely-formatted timestamp. */
+
+static String time()
+{
+    struct timeval tv;
+    struct timezone tz;
+    if ( ::gettimeofday( &tv, &tz ) < 0 )
+        return "";
+    struct tm * t = localtime( (const time_t *)&tv.tv_sec );
+
+    // yuck.
+    char result[32];
+    sprintf( result, "%04d-%02d-%02d %02d:%02d:%02d.%03d",
+             t->tm_year + 1900, t->tm_mon+1, t->tm_mday,
+             t->tm_hour, t->tm_min, t->tm_sec,
+             (int)tv.tv_usec/1000 );
+    return result;
+}
 
 
 // This is our connection to the log server.
@@ -83,8 +107,8 @@ public:
     LogClient::setup() at startup.
 */
 
-/*! Creates a new LogClient.
-    This constructor is usable only via setup().
+/*! Creates a new LogClient.  This constructor is usable only via
+    setup().
 */
 
 LogClient::LogClient()
@@ -93,10 +117,36 @@ LogClient::LogClient()
 }
 
 
-void LogClient::send( const String &s )
+void LogClient::send( const String &id,
+                      Log::Facility f, Log::Severity s,
+                      const String & m )
 {
     d->reconnect();
-    d->enqueue( s );
+
+    String t( id );
+    t.reserve( m.length() + 35 );
+    t.append( " " );
+    t.append( Log::facility( f ) );
+    t.append( "/" );
+    t.append( Log::severity( s ) );
+    t.append( " " );
+    t.append( time() );
+    t.append( " " );
+    t.append( m.simplified() );
+    t.append( "\r\n" );
+    d->enqueue( t );
+    if ( d->state() == Connection::Connected )
+        d->write();
+}
+
+
+void LogClient::commit( const String & id, Log::Severity s )
+{
+    String t( id );
+    t.append( " commit commit/" );
+    t.append( Log::severity( s ) );
+    t.append( "\r\n" );
+    d->enqueue( t );
     if ( d->state() == Connection::Connected )
         d->write();
 }

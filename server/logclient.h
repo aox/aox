@@ -14,7 +14,11 @@ class LogClient
 {
 public:
     static void setup( const String & );
-    void send( const String & );
+
+    void send( const String &,
+               Log::Facility, Log::Severity,
+               const String & );
+    void commit( const String &, Log::Severity );
 
     String name() const;
 

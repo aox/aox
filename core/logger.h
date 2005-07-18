@@ -6,6 +6,7 @@
 class String;
 
 #include "global.h"
+#include "log.h"
 
 
 class Logger
@@ -13,8 +14,12 @@ class Logger
 {
 public:
     Logger();
-    virtual void send( const String & ) = 0;
     virtual ~Logger();
+
+    virtual void send( const String &,
+                       Log::Facility, Log::Severity,
+                       const String & ) = 0;
+    virtual void commit( const String &, Log::Severity );
 
     virtual String name() const;
 

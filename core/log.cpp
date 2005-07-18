@@ -6,16 +6,11 @@
 #include "logger.h"
 #include "string.h"
 
-// gettimeofday
-#include <sys/time.h>
-// localtime
-#include <time.h>
 // sprintf, fprintf
 #include <stdio.h>
 
 
 static bool disasters = false;
-static String time();
 
 
 void log( const String &m, Log::Severity s )
@@ -95,18 +90,7 @@ void Log::log( const String &m, Severity s )
     if ( !l )
         return;
 
-    String t( id );
-    t.reserve( m.length() );
-    t.append( " " );
-    t.append( facility( fc ) );
-    t.append( "/" );
-    t.append( severity( s ) );
-    t.append( " " );
-    t.append( time() );
-    t.append( " " );
-    t.append( m.simplified() );
-    t.append( "\r\n" );
-    l->send( t );
+    l->send( id, fc, s, m );
 }
 
 
@@ -120,13 +104,7 @@ void Log::commit( Severity s )
     if ( !l )
         return;
 
-    String t( id );
-    t.append( " commit " );
-    t.append( facility( fc ) );
-    t.append( "/" );
-    t.append( severity( s ) );
-    t.append( "\r\n" );
-    l->send( t );
+    l->commit( id, s );
 }
 
 
@@ -135,26 +113,6 @@ void Log::commit( Severity s )
 Log::~Log()
 {
     commit( Debug );
-}
-
-
-/* This static function returns a nicely-formatted timestamp. */
-
-static String time()
-{
-    struct timeval tv;
-    struct timezone tz;
-    if ( ::gettimeofday( &tv, &tz ) < 0 )
-        return "";
-    struct tm * t = localtime( (const time_t *)&tv.tv_sec );
-
-    // yuck.
-    char result[32];
-    sprintf( result, "%04d-%02d-%02d %02d:%02d:%02d.%03d",
-             t->tm_year + 1900, t->tm_mon+1, t->tm_mday,
-             t->tm_hour, t->tm_min, t->tm_sec,
-             (int)tv.tv_usec/1000 );
-    return result;
 }
 
 

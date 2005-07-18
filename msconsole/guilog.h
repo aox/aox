@@ -10,7 +10,10 @@ class GuiLog: public Logger
 {
 public:
     GuiLog();
-    void send( const String & ) {}
+    void send( const String &,
+               Log::Facility, Log::Severity,
+               const String & );
+    void commit( const String &, Log::Severity );
 };
 
 #endif

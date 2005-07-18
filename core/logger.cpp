@@ -30,11 +30,30 @@ Logger::Logger()
 }
 
 
-/*! \fn void Logger::send( const String &s )
+/*! \fn void Logger::send( const String &id,
+                           Log::Facility f, Log::Severity s,
+                           const String & m )
 
-    This virtual function logs \a s in a manner decided by the
-    subclass. \a s is assumed to already have a trailing CRLF.
+    This virtual function logs the message \a m belonging to
+    transaction \a id, whose severity is \a s and which is logged by
+    \a f, in a manner decided by the subclass.
+
+    \a id uniquely identifies a Log object.
 */
+
+
+/*! \fn void Logger::commit( const String &id, Log::Severity s )
+
+    This virtual function instructs the logger to commit all messages
+    for \a id with severity \a s or higher. Messages with lower
+    severity may be logged or discarded at the logger's discretion.
+
+    The default implementation is a no-op.
+*/
+
+void Logger::commit( const String &, Log::Severity )
+{
+}
 
 
 /*! This virtual destructor exists only to ensure that global() doesn't

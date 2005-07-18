@@ -23,7 +23,15 @@ SelfLogger::SelfLogger()
 }
 
 
-void SelfLogger::send( const String & s )
+void SelfLogger::send( const String & id,
+                       Log::Facility f, Log::Severity s,
+                       const String & m )
 {
-    ls->processLine( s.stripCRLF() );
+    ls->output( id, f, s, m );
+}
+
+
+void SelfLogger::commit( const String & id, Log::Severity s )
+{
+    ls->commit( id, s );
 }

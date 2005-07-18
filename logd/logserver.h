@@ -22,12 +22,14 @@ public:
 
     static void reopen( int );
 
+    // only for SelfLogger
+    void commit( String, Log::Severity );
+    void output( String, Log::Facility, Log::Severity, const String & );
+
 private:
     void parse();
-    void commit( String, Log::Severity );
     void commitAll();
     void log( String, Log::Facility, Log::Severity, const String & );
-    void output( String, Log::Facility, Log::Severity, const String & );
 
 private:
     class LogServerData *d;
