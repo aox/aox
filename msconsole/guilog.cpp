@@ -1,6 +1,10 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include "cstring.h"
+
 #include "guilog.h"
+
+#include <stdio.h>
 
 
 /*! \class GuiLog guilog.h
@@ -19,9 +23,10 @@ GuiLog::GuiLog()
 
 void GuiLog::send( const String &,
                    Log::Facility, Log::Severity,
-                   const String & )
+                   const String & m )
 {
-
+    String n( m );
+    fprintf( stderr, "%s\n", n.cstr() );
 }
 
 
