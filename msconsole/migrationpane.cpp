@@ -81,7 +81,7 @@ MigrationPane::MigrationPane( QWidget * parent )
     connect( d->serverType, SIGNAL(clicked(int)),
              d->sourceStack, SLOT(raiseWidget(int)) );
 
-    d->start = new QPushButton( tr( "Migrate" ), this );
+    d->start = new QPushButton( tr( "&Migrate" ), this );
     d->abort = new QPushButton( tr( "Abort" ), this );
 
     d->migrator = new Migrator( this );
