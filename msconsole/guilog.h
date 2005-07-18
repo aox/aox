@@ -6,6 +6,9 @@
 #include "logger.h"
 
 
+class QListView;
+
+
 class GuiLog: public Logger
 {
 public:
@@ -14,6 +17,9 @@ public:
                Log::Facility, Log::Severity,
                const String & );
     void commit( const String &, Log::Severity );
+
+    static void setListView( QListView * );
+    static QListView * listView();
 };
 
 #endif

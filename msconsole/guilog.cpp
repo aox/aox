@@ -4,7 +4,7 @@
 
 #include "guilog.h"
 
-#include <stdio.h>
+#include <qlistview.h>
 
 
 /*! \class GuiLog guilog.h
@@ -21,16 +21,114 @@ GuiLog::GuiLog()
 }
 
 
-void GuiLog::send( const String &,
-                   Log::Facility, Log::Severity,
+class LogItem
+    : public QListViewItem
+{
+public:
+    LogItem( QListView * parent,
+             const String & id, Log::Facility f, Log::Severity s,
+             const String & m );
+
+    QString text( int ) const;
+
+    QString key( int, bool ) const;
+
+    String transaction;
+    Log::Facility facility;
+    Log::Severity severity;
+    String message;
+};
+
+
+LogItem::LogItem( QListView * parent,
+                  const String & id, Log::Facility f, Log::Severity s,
+                  const String & m )
+    : QListViewItem( parent ),
+      transaction( id ), facility( f ), severity( s ), message( m )
+{
+}
+
+
+QString LogItem::text( int col ) const
+{
+    QString r;
+    switch( col ) {
+    case 0:
+        r = QString::fromLatin1( transaction.data(), transaction.length() );
+        break;
+    case 1:
+        r = QString::fromLatin1( Log::facility( facility ) );
+        break;
+    case 2:
+        r = QString::fromLatin1( Log::severity( severity ) );
+        break;
+    case 3:
+        r = QString::fromLatin1( message.data(), message.length() );
+        break;
+    default:
+        break;
+    }
+    return r;
+}
+
+QString LogItem::key( int col, bool ) const
+{
+    QString r;
+    switch( col ) {
+    case 0:
+        r = QString::fromLatin1( transaction.data(), transaction.length() );
+        break;
+    case 1:
+        r[0] = (uint)facility;
+        break;
+    case 2:
+        r[0] = (uint)severity;
+        break;
+    case 3:
+        r = QString::fromLatin1( message.data(), message.length() );
+        break;
+    default:
+        break;
+    }
+    return r;
+}
+
+
+static QListView * listView;
+
+
+void GuiLog::send( const String & id,
+                   Log::Facility f, Log::Severity s,
                    const String & m )
 {
-    String n( m );
-    fprintf( stderr, "%s\n", n.cstr() );
+    if ( ::listView )
+        new LogItem( ::listView, id, f, s, m );
 }
 
 
 void GuiLog::commit( const String &, Log::Severity )
 {
+}
 
+
+/*! Records that GuiLog should store all its log messages in \a
+    view. The initial value is 0, which means that log messages are
+    discarded.
+
+    Calling setListView does not move older log lines into \a view.
+*/
+
+void GuiLog::setListView( QListView * view )
+{
+    ::listView = view;
+}
+
+
+/*! Returns the a pointer to the list view currently used for
+    output. The initial value is 0, meaning that output is discarded.
+*/
+
+QListView * GuiLog::listView()
+{
+    return ::listView;
 }
