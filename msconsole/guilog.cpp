@@ -4,7 +4,12 @@
 
 #include "guilog.h"
 
+#include "date.h"
+
 #include <qlistview.h>
+
+// time()
+#include <time.h>
 
 
 /*! \class GuiLog guilog.h
@@ -37,6 +42,7 @@ public:
     Log::Facility facility;
     Log::Severity severity;
     String message;
+    uint time;
 };
 
 
@@ -44,7 +50,8 @@ LogItem::LogItem( QListView * parent,
                   const String & id, Log::Facility f, Log::Severity s,
                   const String & m )
     : QListViewItem( parent ),
-      transaction( id ), facility( f ), severity( s ), message( m )
+      transaction( id ), facility( f ), severity( s ), message( m ),
+      time( ::time( 0 ) )
 {
 }
 
@@ -57,12 +64,19 @@ QString LogItem::text( int col ) const
         r = QString::fromLatin1( transaction.data(), transaction.length() );
         break;
     case 1:
-        r = QString::fromLatin1( Log::facility( facility ) );
+        { // a new scope so the Date object doesn't cross a label
+            Date date;
+            date.setUnixTime( time );
+            r = QString::fromLatin1( date.isoTime().cstr() );
+        }
         break;
     case 2:
-        r = QString::fromLatin1( Log::severity( severity ) );
+        r = QString::fromLatin1( Log::facility( facility ) );
         break;
     case 3:
+        r = QString::fromLatin1( Log::severity( severity ) );
+        break;
+    case 4:
         r = QString::fromLatin1( message.data(), message.length() );
         break;
     default:
@@ -79,12 +93,15 @@ QString LogItem::key( int col, bool ) const
         r = QString::fromLatin1( transaction.data(), transaction.length() );
         break;
     case 1:
-        r[0] = (uint)facility;
+        r.sprintf( "%015d", time );
         break;
     case 2:
-        r[0] = (uint)severity;
+        r[0] = '0' + (uint)facility;
         break;
     case 3:
+        r[0] = '0' + (uint)severity;
+        break;
+    case 4:
         r = QString::fromLatin1( message.data(), message.length() );
         break;
     default:

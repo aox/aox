@@ -5,6 +5,7 @@
 #include "cstring.h"
 
 #include "console.h"
+#include "logpane.h"
 #include "userpane.h"
 #include "allocator.h"
 #include "searchedit.h"
@@ -101,6 +102,13 @@ Console::Console()
     d->panes->insert( i, w );
     d->items->insert( w, i );
 
+    w = new LogPane( this );
+    d->stack->addWidget( w );
+    i = new QListViewItem( d->paneList, tr( "Event Log" ) );
+    d->panes->insert( i, w );
+    d->items->insert( w, i );
+
+    // and something to cut-and-paste for future panes
 #if 0
     w = new UserPane( this );
     d->stack->addWidget( w );
