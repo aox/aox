@@ -219,6 +219,7 @@ void PermissionEditor::setupLayout()
     // finally, now that the screen is ready, kill the old items, kept
     // in the unflicker list.
     delete d->unflicker;
+    d->unflicker = 0;
 }
 
 
