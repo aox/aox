@@ -379,8 +379,12 @@ void MailboxMigrator::execute()
     Scope x( &d->log );
 
     if ( d->injector && d->injector->failed() ) {
-        // XXX should somehow create a QListViewItem to show the
-        // failed message. but how?
+        QString e = QString::fromLatin1( d->message->description().cstr() )+
+                    QString::fromLatin1( "\n" ) +
+                    QString::fromLatin1( "Database Error: " ) +
+                    QString::fromLatin1( d->injector->error().cstr() );
+        QListViewItem * i = new QListViewItem( d->lvi, e );
+        i->setMultiLinesEnabled( true );
     }
     else if ( d->injector ) {
         d->migrated++;
@@ -427,6 +431,12 @@ void MailboxMigrator::execute()
         Scope x( new Log( Log::General ) );
         log( "Syntax problem: " + d->message->error(), Log::Error );
         log( "Cannot migrate message " + d->message->description() );
+        QString e = QString::fromLatin1( d->message->description().cstr() )+
+                    QString::fromLatin1( "\n" ) +
+                    QString::fromLatin1( "Syntax Error: " ) +
+                    QString::fromLatin1( d->message->error().cstr() );
+        QListViewItem * i = new QListViewItem( d->lvi, e );
+        i->setMultiLinesEnabled( true );
         d->message = d->source->nextMessage();
     }
 
