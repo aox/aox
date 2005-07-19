@@ -190,7 +190,7 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
     constructor.
 */
 
-String MigratorMessage::description()
+String MigratorMessage::description() const
 {
     return s;
 }
@@ -218,6 +218,7 @@ MigratorMailbox::~MigratorMailbox()
 
 void Migrator::start( class MigratorSource * source )
 {
+    log( "Starting migration" );
     d->source = source;
     refill();
 }
@@ -231,7 +232,7 @@ void Migrator::start( class MigratorSource * source )
 
 bool Migrator::running() const
 {
-    return false;
+    return d->working && !d->working->isEmpty();
 }
 
 
@@ -291,7 +292,7 @@ public:
     MigratorMailbox * source;
     Mailbox * destination;
     Migrator * migrator;
-    Message * message;
+    MigratorMessage * message;
     bool validated;
     bool valid;
     Injector * injector;
@@ -325,7 +326,8 @@ MailboxMigrator::MailboxMigrator( MigratorMailbox * source,
     d->source = source;
     d->migrator = migrator;
 
-    log( "Starting migration of " + d->source->partialName() );
+    log( "Starting migration of mailbox " + d->source->partialName() );
+    commit();
 }
 
 
@@ -333,6 +335,7 @@ MailboxMigrator::~MailboxMigrator()
 {
     Scope x( &d->log );
     log( "Finishing" );
+    commit();
     Allocator::removeEternal( d );
 }
 
@@ -357,6 +360,7 @@ bool MailboxMigrator::valid() const
             log( "Source is not a valid mailbox" );
         if ( d->message && d->message->valid() )
             log( "Valid message seen" );
+        commit();
     }
 
     return d->valid;
@@ -387,6 +391,7 @@ void MailboxMigrator::execute()
                        d->destination->name() +
                        ": " +
                        d->mailboxCreator->error();
+            log( d->error, Log::Error );
             d->migrator->refill();
             return;
         }
@@ -406,18 +411,35 @@ void MailboxMigrator::execute()
         }
     }
 
-    if ( d->injector )
+    if ( d->injector ) {
+        // we've already injected one message. must get another.
         d->message = d->source->nextMessage();
+    }
+    else {
+        log( "Ready to start injecting messages" );
+    }
+
+    while ( d->message && !d->message->valid() ) {
+        Scope x( new Log( Log::General ) );
+        log( "Syntax problem: " + d->message->error(), Log::Error );
+        log( "Cannot migrate message " + d->message->description() );
+        d->message = d->source->nextMessage();
+    }
+
     if ( d->message ) {
+        Scope x( new Log( Log::General ) );
+        log( "Starting migration of message " + d->message->description() );
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
         m->append( d->destination );
         d->injector = new Injector( d->message, m, this );
-        d->injector->setLog( new Log( Log::General ) );
+        d->injector->setLog( x.log() );
         d->injector->execute();
     }
     else {
         d->migrator->refill();
     }
+
+    commit();
 }
 
 

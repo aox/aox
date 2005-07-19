@@ -60,7 +60,7 @@ class MigratorMessage: public Message
 public:
     MigratorMessage( const String &, const String & );
 
-    String description();
+    String description() const;
 
 private:
     String s;
