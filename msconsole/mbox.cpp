@@ -46,12 +46,13 @@ class MboxMailboxData
     : public Garbage
 {
 public:
-    MboxMailboxData(): read( false ), offset( 0 ) {}
+    MboxMailboxData(): read( false ), offset( 0 ), msn( 1 ) {}
 
     String path;
     bool read;
     uint offset;
     String contents;
+    uint msn;
 };
 
 
@@ -107,7 +108,8 @@ MigratorMessage * MboxMailbox::nextMessage()
     MigratorMessage * m
         = new MigratorMessage( d->contents.mid( d->offset,
                                                 i - d->offset ),
-                               d->path + ":" + fn( d->offset ) );
+                               d->path + ":" + fn( d->msn ) +
+                               " (offset " + fn( d->offset ) + ")" );
     d->offset = i;
 
     return m;
