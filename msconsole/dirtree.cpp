@@ -92,10 +92,8 @@ MigratorMailbox * DirectoryTree::nextMailbox()
                 closedir( dp );
             }
         }
-        if ( n > 0 ) {
-            if ( !isMailbox( *p, &st ) )
-                p = 0;
-        }
+        if ( n < 0 || !isMailbox( *p, &st ) )
+            p = 0;
     }
 
     if ( !p )
