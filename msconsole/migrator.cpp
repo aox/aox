@@ -36,10 +36,16 @@ public:
 
     The Migrator class is a list view displaying information about a
     mailbox migration (and managing the migration, too).
+
+    Its API consists of the two functions start() and running(). The
+    refill() function does the heavy loading, by ensuring that the
+    Migrator always has four MailboxMigrator objects working. (The
+    MailboxMigrator objects must call refill() when they're done.)
 */
 
-/*! Constructs an empty
 
+/*! Constructs an Migrator. start() must be called to supply this
+    object with a source.
 */
 
 Migrator::Migrator( QWidget * parent )
@@ -57,9 +63,10 @@ Migrator::Migrator( QWidget * parent )
 
     setAllColumnsShowFocus( true );
 
-    d->errors = new QListViewItem( this, tr( "Mailboxes with errors" ), "0" );
+    d->errors = new QListViewItem( this,
+                                   tr( "Mailboxes with errors" ), "0" );
     d->errors->setExpandable( true );
-    d->errors->setOpen( false );
+    d->errors->setOpen( true );
     d->errors->setSelectable( false );
 
     d->current = new QListViewItem( this,
@@ -70,7 +77,7 @@ Migrator::Migrator( QWidget * parent )
 
     d->done = new QListViewItem( this, tr( "Migrated mailboxes" ), "0" );
     d->done->setExpandable( true );
-    d->done->setOpen( false );
+    d->done->setOpen( true );
     d->done->setSelectable( false );
 }
 
