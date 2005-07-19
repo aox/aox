@@ -7,9 +7,9 @@
 #include "allocator.h"
 #include "migrator.h"
 
-//#include "mh.h"
+#include "mh.h"
 #include "mbox.h"
-//#include "cyrus.h"
+#include "cyrus.h"
 
 #include <qlayout.h>
 #include <qgroupbox.h>
@@ -125,13 +125,13 @@ void MigrationPane::startMigration()
     if ( d->migrator->running() ) {
     }
     else if ( d->mh->isOn() ) {
-        //d->migrator->start( new MHDirectory );
+        d->migrator->start( new MhDirectory( d->mboxRoot->text().latin1() ) );
     }
     else if ( d->mbox->isOn() ) {
         d->migrator->start( new MboxDirectory( d->mboxRoot->text().latin1() ) );
     }
     else if ( d->cyrus->isOn() ) {
-        //d->migrator->start( new CyrusDirectory );
+        d->migrator->start( new CyrusDirectory( d->cyrusRoot->text().latin1() ) );
     }
     disenablify();
 }
@@ -177,7 +177,10 @@ void MigrationPane::disenablify()
                 d->start->setEnabled( false );
         }
         else if ( d->mh->isOn() ) {
-            d->start->setEnabled( false );
+            if ( d->mhRoot->hasAcceptableInput() )
+                d->start->setEnabled( true );
+            else
+                d->start->setEnabled( false );
         }
     }
     else {
