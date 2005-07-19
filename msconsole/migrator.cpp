@@ -58,10 +58,12 @@ Migrator::Migrator( QWidget * parent )
 
     setColumnAlignment( 1, AlignRight );
 
-    setColumnWidthMode( 0, Maximum );
+    setColumnWidthMode( 0, Manual );
     setColumnWidthMode( 1, Manual );
 
     setAllColumnsShowFocus( true );
+
+    setSorting( -1 );
 
     d->errors = new QListViewItem( this,
                                    tr( "Mailboxes with errors" ), "0" );
@@ -429,7 +431,7 @@ void MailboxMigrator::execute()
 
     while ( d->message && !d->message->valid() ) {
         Scope x( new Log( Log::General ) );
-        log( "Syntax problem: " + d->message->error(), Log::Error );
+        log( "Syntax problem: " + d->message->error() );
         log( "Cannot migrate message " + d->message->description() );
         QString e = QString::fromLatin1( d->message->description().cstr() )+
                     QString::fromLatin1( "\n" ) +
