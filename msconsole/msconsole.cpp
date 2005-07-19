@@ -5,6 +5,7 @@
 #include "scope.h"
 #include "configuration.h"
 #include "addresscache.h"
+#include "fieldcache.h"
 #include "allocator.h"
 #include "guilog.h"
 #include "loop.h"
@@ -45,7 +46,7 @@ static void errorHandler( QtMsgType t, const char * message )
         ::log( message, s );
     }
     if ( t != QtDebugMsg )
-	breakHere();
+        breakHere();
 }
 
 
@@ -92,6 +93,7 @@ int main( int argc, char *argv[] )
 
     Database::setup();
     AddressCache::setup();
+    FieldNameCache::setup();
     Configuration::report();
     Mailbox::setup();
 

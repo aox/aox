@@ -105,9 +105,15 @@ MigratorMessage * MboxMailbox::nextMessage()
                d->contents.mid( i, 5 ) == "From " ) )
         i++;
 
+    uint j = d->offset;
+    while ( j < d->contents.length() &&
+            d->contents[j] != '\n' )
+        j++;
+    if ( d->contents[j] == '\n' )
+        j++;
+
     MigratorMessage * m
-        = new MigratorMessage( d->contents.mid( d->offset,
-                                                i - d->offset ),
+        = new MigratorMessage( d->contents.mid( j, i - j ),
                                d->path + ":" + fn( d->msn ) +
                                " (offset " + fn( d->offset ) + ")" );
     d->offset = i;
