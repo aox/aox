@@ -43,7 +43,10 @@ public:
     Log::Severity severity;
     QString message;
     uint time;
+    uint number;
 };
+
+static uint uniq;
 
 
 LogItem::LogItem( QListView * parent,
@@ -53,7 +56,7 @@ LogItem::LogItem( QListView * parent,
       transaction( QString::fromLatin1( id.data(), id.length() ) ),
       facility( f ), severity( s ),
       message( QString::fromLatin1( m.data(), m.length() ) ),
-      time( ::time( 0 ) )
+      time( ::time( 0 ) ), number( ++uniq )
 {
 }
 
@@ -95,7 +98,7 @@ QString LogItem::key( int col, bool ) const
         r = transaction;
         break;
     case 1:
-        r.sprintf( "%015d", time );
+        r.sprintf( "%08x %08x", time, number );
         break;
     case 2:
         r[0] = '0' + (uint)facility;

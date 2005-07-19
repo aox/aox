@@ -32,6 +32,7 @@ LogPane::LogPane( QWidget * parent )
     v->addColumn( tr( "Message" ) );
 
     v->setAllColumnsShowFocus( true );
+    v->setSorting( 1 );
 
     QVBoxLayout * tll = new QVBoxLayout( this );
     tll->addWidget( v );
