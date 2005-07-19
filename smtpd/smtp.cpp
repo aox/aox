@@ -127,7 +127,6 @@ public:
     SmtpDbClient * helper;
     TlsServer * tlsServer;
     SmtpTlsStarter * tlsHelper;
-    String messageError;
     bool negotiatingTls;
 };
 
@@ -682,19 +681,12 @@ void SMTP::inject()
     received.append( "\r\n" );
 
     d->state = Injecting;
-    d->messageError = "";
     d->injector = 0;
 
     Message * m = new Message( received + d->body );
     m->header()->removeField( HeaderField::ReturnPath );
     if ( d->from )
         m->header()->add( "Return-Path", d->from->toString() );
-
-    if ( !m->valid() ) {
-        d->messageError = m->error();
-        reportInjection();
-        return;
-    }
 
     SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
     List<User>::Iterator it( d->to );
@@ -740,11 +732,7 @@ bool SMTP::writeCopy()
     String e;
     if ( d->injector && d->injector->failed() ) {
         e = "Error: Injector: " + d->injector->error();
-        copy.append( "-db" );
-    }
-    else if ( !d->messageError.isEmpty() ) {
-        e = "Error: Parser: " + d->messageError;
-        copy.append( "-parser" );
+        copy.append( "-err" );
     }
 
     File f( copy, File::ExclusiveWrite );
@@ -793,11 +781,8 @@ void SMTP::reportInjection()
 
     d->state = MailFrom;
 
-    if ( !d->injector ) {
-        respond( 554, d->messageError );
-    }
-    else if ( d->injector->failed() ) {
-        respond( 451, "Unable to inject" );
+    if ( d->injector->failed() ) {
+        respond( 451, d->injector->error() );
     }
     else {
         d->injector->announce();
@@ -872,11 +857,8 @@ void LMTP::reportInjection()
     while ( it ) {
         Address * a = it->address();
         String prefix = a->localpart() + "@" + a->domain() + ": ";
-        if ( !d->injector )
-            respond( 554, prefix + d->messageError );
-        else if ( d->injector->failed() )
-            respond( 451, prefix + "Unable to inject into mailbox " +
-                     it->inbox()->name() );
+        if ( d->injector->failed() )
+            respond( 451, prefix + d->injector->error() );
         else
             respond( 250, prefix + "injected into " +
                      it->inbox()->name() );
