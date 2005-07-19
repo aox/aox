@@ -102,7 +102,7 @@ MigratorMessage * MboxMailbox::nextMessage()
     while ( i < d->contents.length() &&
             !( d->contents[i-1] == '\n' &&
                d->contents[i] == 'F' &&
-               d->contents.mid( i, 5 ) != "From " ) )
+               d->contents.mid( i, 5 ) == "From " ) )
         i++;
 
     MigratorMessage * m
@@ -111,6 +111,7 @@ MigratorMessage * MboxMailbox::nextMessage()
                                d->path + ":" + fn( d->msn ) +
                                " (offset " + fn( d->offset ) + ")" );
     d->offset = i;
+    d->msn++;
 
     return m;
 }
