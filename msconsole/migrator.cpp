@@ -246,19 +246,16 @@ void Migrator::refill()
         d->working = new List<MailboxMigrator>;
     List<MailboxMigrator>::Iterator it( d->working );
     while ( it ) {
-        if ( it->done() ) {
-            QListViewItem * i = it->listViewItem();
+        List<MailboxMigrator>::Iterator mm( it );
+        ++it;
+        if ( mm->done() ) {
+            QListViewItem * i = mm->listViewItem();
             d->current->takeItem( i );
             d->done->insertItem( i );
-            d->messagesDone += it->migrated();
+            d->messagesDone += mm->migrated();
             d->done->setText( 1, QString::number( d->messagesDone ) );
-            d->working->take( it );
+            d->working->take( mm );
         }
-        // skip to next. even if take() does ++it, the code remains
-        // correct, because we will eventually discover that all of
-        // the working objects are done, even if we don't right now.
-        if ( it )
-            ++it;
     }
     while ( d->working->count() < 4 ) {
         MigratorMailbox * m = d->source->nextMailbox();
