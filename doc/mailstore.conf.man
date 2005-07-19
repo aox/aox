@@ -301,9 +301,8 @@ then an empty line, then the verbatim received mail message. If there is an
 line, the message was not delivered, and the rest of the line
 describes the problem.
 .PP
-The file's name is a unique string of numbers and hyphens. If it ends
-with "-parser", there was a parse error. If it ends with "-db", there
-was an error injecting the message into the database.
+The file's name is a unique string of numbers and hyphens. It ends with
+"-err" if there was an error injecting the message into the database.
 .SS IMAP
 .IP use-imap
 must be enabled for
