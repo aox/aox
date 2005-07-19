@@ -9,6 +9,7 @@
 class LogPane
     : public QWidget
 {
+    Q_OBJECT
 public:
     LogPane( QWidget * );
     ~LogPane();

@@ -7,6 +7,7 @@
 #include "migrator.h"
 #include "injector.h"
 #include "mailbox.h"
+#include "scope.h"
 #include "list.h"
 
 
@@ -284,7 +285,8 @@ public:
           injector( 0 ),
           migrated( 0 ),
           lvi( 0 ),
-          mailboxCreator( 0 )
+          mailboxCreator( 0 ),
+          log( Log::General )
         {}
     MigratorMailbox * source;
     Mailbox * destination;
@@ -297,6 +299,7 @@ public:
     QListViewItem * lvi;
     Transaction * mailboxCreator;
     String error;
+    Log log;
 };
 
 
@@ -316,15 +319,20 @@ MailboxMigrator::MailboxMigrator( MigratorMailbox * source,
                                   Migrator * migrator )
     : EventHandler(), d( new MailboxMigratorData )
 {
+    Scope x( &d->log );
     Allocator::addEternal( d, "mailbox migrator gcable data" );
 
     d->source = source;
     d->migrator = migrator;
+
+    log( "Starting migration of " + d->source->partialName() );
 }
 
 
 MailboxMigrator::~MailboxMigrator()
 {
+    Scope x( &d->log );
+    log( "Finishing" );
     Allocator::removeEternal( d );
 }
 
@@ -342,7 +350,15 @@ bool MailboxMigrator::valid() const
         d->message = d->source->nextMessage();
         if ( d->message )
             d->valid = true;
+        Scope x( &d->log );
+        if ( d->valid )
+            log( "Source apparently is a valid mailbox" );
+        else
+            log( "Source is not a valid mailbox" );
+        if ( d->message && d->message->valid() )
+            log( "Valid message seen" );
     }
+
     return d->valid;
 }
 
@@ -352,8 +368,11 @@ void MailboxMigrator::execute()
     if ( d->injector && !d->injector->done() )
         return;
 
+    Scope x( &d->log );
+
     if ( d->injector && d->injector->failed() ) {
-        // record the one that failed somehow XXX
+        // XXX should somehow create a QListViewItem to show the
+        // failed message. but how?
     }
     else if ( d->injector ) {
         d->migrated++;
@@ -377,6 +396,7 @@ void MailboxMigrator::execute()
     else if ( !d->destination ) {
         d->destination = Mailbox::find( d->source->partialName() );
         if ( !d->destination ) {
+            log( "Need to create destination mailbox" );
             d->destination = new Mailbox( d->source->partialName() );
             d->mailboxCreator = d->destination->create( this, 0 );
             // this is slightly wrong: the mailbox owner is set to
@@ -392,6 +412,7 @@ void MailboxMigrator::execute()
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
         m->append( d->destination );
         d->injector = new Injector( d->message, m, this );
+        d->injector->setLog( new Log( Log::General ) );
         d->injector->execute();
     }
     else {

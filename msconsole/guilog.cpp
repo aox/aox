@@ -38,10 +38,10 @@ public:
 
     QString key( int, bool ) const;
 
-    String transaction;
+    QString transaction;
     Log::Facility facility;
     Log::Severity severity;
-    String message;
+    QString message;
     uint time;
 };
 
@@ -50,7 +50,9 @@ LogItem::LogItem( QListView * parent,
                   const String & id, Log::Facility f, Log::Severity s,
                   const String & m )
     : QListViewItem( parent ),
-      transaction( id ), facility( f ), severity( s ), message( m ),
+      transaction( QString::fromLatin1( id.data(), id.length() ) ),
+      facility( f ), severity( s ),
+      message( QString::fromLatin1( m.data(), m.length() ) ),
       time( ::time( 0 ) )
 {
 }
@@ -61,7 +63,7 @@ QString LogItem::text( int col ) const
     QString r;
     switch( col ) {
     case 0:
-        r = QString::fromLatin1( transaction.data(), transaction.length() );
+        r = transaction;
         break;
     case 1:
         { // a new scope so the Date object doesn't cross a label
@@ -77,7 +79,7 @@ QString LogItem::text( int col ) const
         r = QString::fromLatin1( Log::severity( severity ) );
         break;
     case 4:
-        r = QString::fromLatin1( message.data(), message.length() );
+        r = message;
         break;
     default:
         break;
@@ -90,7 +92,7 @@ QString LogItem::key( int col, bool ) const
     QString r;
     switch( col ) {
     case 0:
-        r = QString::fromLatin1( transaction.data(), transaction.length() );
+        r = transaction;
         break;
     case 1:
         r.sprintf( "%015d", time );
@@ -102,7 +104,7 @@ QString LogItem::key( int col, bool ) const
         r[0] = '0' + (uint)severity;
         break;
     case 4:
-        r = QString::fromLatin1( message.data(), message.length() );
+        r = message;
         break;
     default:
         break;
