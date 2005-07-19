@@ -223,9 +223,6 @@ Injector::Injector( const Message * message,
         d->bodyparts->append( new ObjectId( 0, bi ) );
         ++bi;
     }
-
-    if ( !d->message->valid() )
-        d->failed = true;
 }
 
 
@@ -289,12 +286,18 @@ void Injector::execute()
     // -- AMS 20050412
 
     if ( d->step == 0 ) {
+        if ( !d->message->valid() ) {
+            d->failed = true;
+            finish();
+            return;
+        }
+
+        logMessageDetails();
+
         // We begin by obtaining a UID for each mailbox we are injecting
         // a message into, and simultaneously inserting entries into the
         // bodyparts table. At the same time, we can begin to lookup and
         // insert the addresses and field names used in the message.
-
-        logMessageDetails();
 
         d->transaction = new Transaction( this );
 
@@ -368,18 +371,27 @@ void Injector::execute()
             return;
         if ( !d->failed )
             d->failed = d->transaction->failed();
+        finish();
+    }
+}
 
-        // XXX: If we fail early in the transaction, we'll continue to
-        // be notified of individual query failures. We don't want to
-        // pass them on, because d->owner would have killed itself.
-        if ( d->owner ) {
-            if ( d->failed )
-                log( "Injection failed: " + d->transaction->error() );
-            else
-                log( "Injection succeeded" );
-            d->owner->execute();
-            d->owner = 0;
-        }
+
+/*! This function notifies the owner of this Injector of its completion.
+    It will do so only once.
+*/
+
+void Injector::finish()
+{
+    // XXX: If we fail early in the transaction, we'll continue to
+    // be notified of individual query failures. We don't want to
+    // pass them on, because d->owner would have killed itself.
+    if ( d->owner ) {
+        if ( d->failed )
+            log( "Injection failed: " + error() );
+        else
+            log( "Injection succeeded" );
+        d->owner->execute();
+        d->owner = 0;
     }
 }
 

@@ -34,6 +34,7 @@ private:
 
     static void setup();
 
+    void finish();
     void selectUids();
     void buildAddressLinks();
     void buildLinksForHeader( Header *, const String & );
