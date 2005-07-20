@@ -4,6 +4,7 @@
 #define LOGPANE_H
 
 #include <qwidget.h>
+#include <qlistview.h>
 
 
 class LogPane
@@ -13,6 +14,27 @@ class LogPane
 public:
     LogPane( QWidget * );
     ~LogPane();
+
+    QListView * listView() const;
+    uint maxLines() const;
+
+private:
+    class LogPaneData * d;
+};
+
+
+class LogView
+    : public QListView
+{
+    Q_OBJECT
+public:
+    LogView( LogPane * parent );
+    ~LogView();
+
+    void insertItem( QListViewItem * );
+
+private:
+    LogPane * parent;
 };
 
 

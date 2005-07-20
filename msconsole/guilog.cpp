@@ -4,9 +4,8 @@
 
 #include "guilog.h"
 
+#include "logpane.h"
 #include "date.h"
-
-#include <qlistview.h>
 
 // time()
 #include <time.h>
@@ -116,15 +115,12 @@ QString LogItem::key( int col, bool ) const
 }
 
 
-static QListView * listView;
-
-
 void GuiLog::send( const String & id,
                    Log::Facility f, Log::Severity s,
                    const String & m )
 {
-    if ( ::listView )
-        new LogItem( ::listView, id, f, s, m );
+    if ( ::logPane )
+        new LogItem( ::logPane->listView(), id, f, s, m );
 }
 
 
@@ -133,16 +129,19 @@ void GuiLog::commit( const String &, Log::Severity )
 }
 
 
-/*! Records that GuiLog should store all its log messages in \a
+static LogPane * logPane;
+
+
+/*! Records that GuiLog should store all its log messages using \a
     view. The initial value is 0, which means that log messages are
     discarded.
 
-    Calling setListView does not move older log lines into \a view.
+    Calling setLogPane does not move older log lines into \a view.
 */
 
-void GuiLog::setListView( QListView * view )
+void GuiLog::setLogPane( LogPane * view )
 {
-    ::listView = view;
+    ::logPane = view;
 }
 
 
@@ -150,7 +149,7 @@ void GuiLog::setListView( QListView * view )
     output. The initial value is 0, meaning that output is discarded.
 */
 
-QListView * GuiLog::listView()
+LogPane * GuiLog::logPane()
 {
-    return ::listView;
+    return ::logPane;
 }

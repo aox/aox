@@ -5,9 +5,23 @@
 #include "logpane.h"
 
 #include "guilog.h"
+#include "allocator.h"
 
+#include <qlabel.h>
 #include <qlayout.h>
+#include <qspinbox.h>
 #include <qlistview.h>
+
+
+class LogPaneData
+    : public Garbage
+{
+public:
+    LogPaneData(): log( 0 ), maxLines( 0 ) {}
+
+    QListView * log;
+    QSpinBox * maxLines;
+};
 
 
 /*! \class LogPane logpane.h
@@ -20,26 +34,102 @@
 */
 
 LogPane::LogPane( QWidget * parent )
-    : QWidget( parent )
+    : QWidget( parent ), d( new LogPaneData )
 {
-    QListView * v = new QListView( this );
-    GuiLog::setListView( v );
+    Allocator::addEternal( d, "logpane gcable data" );
 
-    v->addColumn( tr( "Transaction" ) );
-    v->addColumn( tr( "Time" ) );
-    v->addColumn( tr( "Facility" ) );
-    v->addColumn( tr( "Severity" ) );
-    v->addColumn( tr( "Message" ) );
+    QGridLayout * tll = new QGridLayout( this, 2, 3, 6 );
 
-    v->setAllColumnsShowFocus( true );
-    v->setSorting( 1 );
+    d->maxLines = new QSpinBox( this );
+    d->maxLines->setMaxValue( 10000 );
+    d->maxLines->setMinValue( 1 );
+    tll->addWidget( d->maxLines, 0, 2 );
 
-    QVBoxLayout * tll = new QVBoxLayout( this );
-    tll->addWidget( v );
+    QLabel * l = new QLabel( tr( "&Maximum log size" ), this );
+    l->setBuddy( d->maxLines );
+    tll->addWidget( l, 0, 1 );
+
+    d->log = new LogView( this );
+
+    d->log->addColumn( tr( "Transaction" ) );
+    d->log->addColumn( tr( "Time" ) );
+    d->log->addColumn( tr( "Facility" ) );
+    d->log->addColumn( tr( "Severity" ) );
+    d->log->addColumn( tr( "Message" ) );
+
+    d->log->setAllColumnsShowFocus( true );
+    d->log->setSorting( 1 );
+
+    tll->addMultiCellWidget( d->log, 1, 1, 0, 2 );
+
+    tll->setColStretch( 0, 9999 );
+
+    //GuiLog::setLogPane( this );
 }
 
 
 LogPane::~LogPane()
 {
-    // nothing necessary, but the destructor must exist
+    Allocator::removeEternal( d );
+}
+
+
+LogView::LogView( LogPane * w )
+    : QListView( w ), parent( w )
+{
+    // nothing necessary
+}
+
+
+LogView::~LogView()
+{
+    // nothing necessary
+}
+
+
+static uint counter;
+
+
+void LogView::insertItem( QListViewItem * i )
+{
+    QListView::insertItem( i );
+
+    ::counter++;
+    if ( ::counter < 128 )
+        return;
+    ::counter = 0;
+    uint n = parent->maxLines();
+    if ( (uint)childCount() <= n )
+        return;
+
+    i = firstChild();
+    while ( n && i ) {
+        i = i->nextSibling();
+        n--;
+    }
+    while ( i ) {
+        QListViewItem * t = i;
+        i = i->nextSibling();
+        delete t;
+    }
+}
+
+
+/*! Returns a pointer to the QListView used to store, display and sort
+    the log lines.
+*/
+
+QListView * LogPane::listView() const
+{
+    return d->log;
+}
+
+
+/*! Returns the maximum number of lines to be stored and displayed in
+    the log pane.
+*/
+
+uint LogPane::maxLines() const
+{
+    return d->maxLines->value();
 }
