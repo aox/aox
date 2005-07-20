@@ -23,6 +23,9 @@ public:
 
     void resizeEvent( QResizeEvent * );
 
+signals:
+    void done();
+
 private:
     class MigratorData * d;
 };

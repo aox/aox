@@ -254,6 +254,7 @@ bool Migrator::running() const
 
 void Migrator::refill()
 {
+    bool lastTaken = false;
     if ( !d->working )
         d->working = new List<MailboxMigrator>;
     List<MailboxMigrator>::Iterator it( d->working );
@@ -267,12 +268,18 @@ void Migrator::refill()
             d->messagesDone += mm->migrated();
             d->done->setText( 1, QString::number( d->messagesDone ) );
             d->working->take( mm );
+            if ( d->working->isEmpty() )
+                lastTaken = true;
         }
     }
     while ( d->working->count() < 4 ) {
         MigratorMailbox * m = d->source->nextMailbox();
-        if ( !m )
+        if ( !m ) {
+            if ( lastTaken && d->working->isEmpty() )
+                emit done();
+            // every year I like this sort of return a little less. hm.
             return;
+        }
         MailboxMigrator * n = new MailboxMigrator( m, this );
         if ( n->valid() ) {
             d->working->append( n );
@@ -280,6 +287,8 @@ void Migrator::refill()
             n->execute();
         }
     }
+    if ( lastTaken && d->working->isEmpty() )
+        emit done();
 }
 
 

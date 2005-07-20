@@ -85,6 +85,8 @@ MigrationPane::MigrationPane( QWidget * parent )
     d->abort = new QPushButton( tr( "Abort" ), this );
 
     d->migrator = new Migrator( this );
+    connect( d->migrator, SIGNAL(done()),
+             this, SLOT(disenablify()) );
 
     QGridLayout * tll = new QGridLayout( this, 3, 2, 6 );
 
@@ -122,16 +124,20 @@ MigrationPane::~MigrationPane()
 
 void MigrationPane::startMigration()
 {
+    MigratorSource * s = 0;
     if ( d->migrator->running() ) {
     }
     else if ( d->mh->isOn() ) {
-        d->migrator->start( new MhDirectory( d->mboxRoot->text().latin1() ) );
+        s = new MhDirectory( d->mboxRoot->text().latin1() );
     }
     else if ( d->mbox->isOn() ) {
-        d->migrator->start( new MboxDirectory( d->mboxRoot->text().latin1() ) );
+        s = new MboxDirectory( d->mboxRoot->text().latin1() );
     }
     else if ( d->cyrus->isOn() ) {
-        d->migrator->start( new CyrusDirectory( d->cyrusRoot->text().latin1() ) );
+        s = new CyrusDirectory( d->cyrusRoot->text().latin1() );
+    }
+    if ( s ) {
+        d->migrator->start( s );
     }
     disenablify();
 }
