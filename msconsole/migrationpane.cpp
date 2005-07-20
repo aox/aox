@@ -118,9 +118,7 @@ MigrationPane::~MigrationPane()
     Allocator::removeEternal( d );
 }
 
-/*! Starts the actual migration.
-
-*/
+/*! Starts the actual migration. */
 
 void MigrationPane::startMigration()
 {
@@ -128,7 +126,7 @@ void MigrationPane::startMigration()
     if ( d->migrator->running() ) {
     }
     else if ( d->mh->isOn() ) {
-        s = new MhDirectory( d->mboxRoot->text().latin1() );
+        s = new MhDirectory( d->mhRoot->text().latin1() );
     }
     else if ( d->mbox->isOn() ) {
         s = new MboxDirectory( d->mboxRoot->text().latin1() );
