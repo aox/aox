@@ -98,10 +98,10 @@ Address::Address( const String &n, const String &l, const String &o )
     d->domain = o;
     if ( !d->localpart.isEmpty() && !d->domain.isEmpty() )
         d->type = Normal;
-    else if ( !d->name.isEmpty() )
-        d->type = EmptyGroup;
     else if ( !d->localpart.isEmpty() )
         d->type = Local;
+    else if ( !d->name.isEmpty() )
+        d->type = EmptyGroup;
     else if ( d->name.isEmpty() &&
               d->localpart.isEmpty() &&
               d->domain.isEmpty() )
