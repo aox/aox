@@ -56,7 +56,7 @@ Migrator::Migrator( QWidget * parent )
     Allocator::addEternal( d, "migrator gcable data" );
 
     addColumn( tr( "Name" ) );
-    addColumn( tr( "Messsages" ) );
+    addColumn( tr( "Messages" ) );
 
     setColumnAlignment( 1, AlignRight );
 
