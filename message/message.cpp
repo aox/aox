@@ -80,6 +80,7 @@ Message::Message( const String & rfc2822 )
     uint i = 0;
 
     setHeader( parseHeader( i, d->rfc822Size, rfc2822, Header::Rfc2822 ) );
+    header()->repair();
     if ( !header()->valid() ) {
         d->error = header()->error();
         return;

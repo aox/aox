@@ -49,6 +49,7 @@ public:
     String contentLocation() const;
 
     void simplify();
+    void repair();
 
     String asText() const;
 

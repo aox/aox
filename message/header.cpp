@@ -157,6 +157,7 @@ void Header::removeField( HeaderField::Type t )
         else
             ++it;
     }
+    d->verified = false;
 }
 
 
@@ -535,6 +536,44 @@ void Header::simplify()
     if ( sameAddresses( addressField( HeaderField::From ),
                         addressField( HeaderField::Sender ) ) )
         removeField( HeaderField::Sender );
+}
+
+
+/*! Repairs a few harmless and common problems, such as inserting two
+    Date fields with the same value.
+
+*/
+
+void Header::repair()
+{
+    if ( valid() )
+        return;
+
+    // duplicated date fields
+
+    uint occurences;
+    List<HeaderField>::Iterator it( d->fields );
+    while ( it ) {
+        HeaderField::Type t = it->type();
+        ++it;
+        if ( t == HeaderField::Date )
+            occurences++;
+    }
+
+    if ( occurences > 1 ) {
+        uint i = 0;
+        HeaderField * h = field( HeaderField::Date, 0 );
+        while ( h && !h->valid() ) {
+            i++;
+            h = field( HeaderField::Date, i );
+        }
+        if ( h ) {
+            removeField( HeaderField::Date );
+            add( h );
+            // this moves h to the end. a problem?
+        }
+    }
+
 }
 
 
