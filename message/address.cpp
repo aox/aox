@@ -34,7 +34,9 @@ public:
     a name() but without a localpart() or a domain().)
 
     The un-address <> can be parsed and represented; both its name(),
-    localpart() and domain() are empty.
+    localpart() and domain() are empty. Local-only addresses
+    (e.g. "root") are accepted, because so much legacy software
+    generated it, and some even generates it still.
 
     Domains are kept as naked strings, and there is as yet no attempt
     to make this fit nicely in the database.
@@ -94,10 +96,12 @@ Address::Address( const String &n, const String &l, const String &o )
     d->name = n;
     d->localpart = l;
     d->domain = o;
-    if (! d->localpart.isEmpty() && !d->domain.isEmpty() )
+    if ( !d->localpart.isEmpty() && !d->domain.isEmpty() )
         d->type = Normal;
     else if ( !d->name.isEmpty() )
         d->type = EmptyGroup;
+    else if ( !d->localpart.isEmpty() )
+        d->type = Local;
     else if ( d->name.isEmpty() &&
               d->localpart.isEmpty() &&
               d->domain.isEmpty() )
@@ -246,6 +250,9 @@ String Address::toString() const
         break;
     case EmptyGroup:
         r = d->name + ":;";
+        break;
+    case Local:
+        r = d->localpart;
         break;
     case Normal:
         if ( d->name.isEmpty() ) {
@@ -508,34 +515,35 @@ void AddressParser::address( int & i )
         String dom = domain( i );
         String lp;
         String name;
-        if ( s[i] == '@' ) {
-            i--;
-            lp = localpart( i );
+        if ( s[i] == '<' ) {
+            lp = dom;
+            dom = "";
         }
-        if ( i >= 0 && s[i] == ':' ) {
-            i--;
-            String rdom;
-            do {
-                rdom = domain( i );
-                if ( i < 0 || s[i] != '@' )
-                    error( "no @ preceding route-addr", i );
-                else
-                    i--;
-            } while ( i >= 0 && s[i] != '<' && !rdom.isEmpty() );
+        else {
+            if ( s[i] == '@' ) {
+                i--;
+                lp = localpart( i );
+            }
+            if ( i >= 0 && s[i] == ':' ) {
+                i--;
+                String rdom;
+                do {
+                    rdom = domain( i );
+                    if ( i < 0 || s[i] != '@' )
+                        error( "no @ preceding route-addr", i );
+                    else
+                        i--;
+                } while ( i >= 0 && s[i] != '<' && !rdom.isEmpty() );
+            }
         }
         if ( s[i] == '<' ) {
             i--;
             name = phrase( i );
         }
-        if ( !dom.isEmpty() && !lp.isEmpty() ) {
+        if ( lp.isEmpty() )
+            error( "Empty localpart ", i );
+        else
             add( name, lp, dom );
-        }
-        else {
-            if ( dom.isEmpty() )
-                error( "Empty domain", i );
-            if ( lp.isEmpty() )
-                error( "Empty localpart ", i );
-        }
     }
     else if ( s[i] == ';' ) {
         // group
@@ -567,9 +575,11 @@ void AddressParser::address( int & i )
             i--;
             lp = localpart( i );
         }
-        if ( dom.isEmpty() )
-            error( "Empty domain", i );
-        else if ( lp.isEmpty() )
+        else {
+            lp = dom;
+            dom = "";
+        }
+        if ( lp.isEmpty() )
             error( "Empty localpart ", i );
         else
             add( name, lp, dom );

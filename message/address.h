@@ -18,7 +18,7 @@ public:
 
     Address &operator=( const Address & );
 
-    enum Type { Normal, Bounce, EmptyGroup, Invalid };
+    enum Type { Normal, Bounce, EmptyGroup, Local, Invalid };
     Type type() const;
 
     uint id() const;
