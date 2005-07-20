@@ -115,6 +115,9 @@ QString LogItem::key( int col, bool ) const
 }
 
 
+static LogPane * logPane;
+
+
 void GuiLog::send( const String & id,
                    Log::Facility f, Log::Severity s,
                    const String & m )
@@ -127,9 +130,6 @@ void GuiLog::send( const String & id,
 void GuiLog::commit( const String &, Log::Severity )
 {
 }
-
-
-static LogPane * logPane;
 
 
 /*! Records that GuiLog should store all its log messages using \a
