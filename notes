@@ -486,4 +486,10 @@ Complete ACL support.
 Implement COPY (for IMAP messages).
 
 
+Support address groups properly.
+
+
+Make http://oryx.com not be broken (and oryx.{,co.}in too).
+
+
 
