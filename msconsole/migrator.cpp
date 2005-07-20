@@ -270,6 +270,7 @@ void Migrator::refill()
             d->working->take( mm );
             if ( d->working->isEmpty() )
                 lastTaken = true;
+            delete mm;
         }
     }
     while ( d->working->count() < 4 ) {
@@ -285,6 +286,9 @@ void Migrator::refill()
             d->working->append( n );
             n->createListViewItem( d->current );
             n->execute();
+        }
+        else {
+            delete n;
         }
     }
     if ( lastTaken && d->working->isEmpty() )
