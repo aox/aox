@@ -10,6 +10,8 @@
 #include "scope.h"
 #include "list.h"
 
+#include <qstyle.h>
+
 
 class MigratorData
     : public Garbage
@@ -92,7 +94,8 @@ Migrator::~Migrator()
 
 void Migrator::resizeEvent( QResizeEvent * e )
 {
-    setColumnWidth( 0, contentsRect().width() - columnWidth( 1 ) );
+    uint sbv = style().pixelMetric( QStyle::PM_ScrollBarExtent );
+    setColumnWidth( 0, contentsRect().width() - columnWidth( 1 ) - sbv );
     resizeContents( contentsRect().width(), contentsHeight() );
     QListView::resizeEvent( e );
 }
