@@ -117,5 +117,12 @@ MigratorMessage * MhMailbox::nextMessage()
 
     String f( d->path + "/" + String::fromNumber( i ) );
     File m( f );
-    return new MigratorMessage( m.contents(), f );
+    String c( m.contents() );
+    if ( c.mid( 0, 5 ) == "From " ) {
+        i = 0;
+        while ( i < c.length() && c[i] != '\n' )
+            i++;
+        i++;
+    }
+    return new MigratorMessage( c.mid( i ), f );
 }
