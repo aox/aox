@@ -307,7 +307,7 @@ public:
           validated( false ), valid( false ),
           injector( 0 ),
           migrated( 0 ),
-          lvi( 0 ),
+          lvi( 0 ), lastItem( 0 ),
           mailboxCreator( 0 ),
           log( Log::General )
         {}
@@ -320,6 +320,7 @@ public:
     Injector * injector;
     uint migrated;
     QListViewItem * lvi;
+    QListViewItem * lastItem;
     Transaction * mailboxCreator;
     String error;
     Log log;
@@ -401,8 +402,8 @@ void MailboxMigrator::execute()
                     QString::fromLatin1( "\n" ) +
                     QString::fromLatin1( "Database Error: " ) +
                     QString::fromLatin1( d->injector->error().cstr() );
-        QListViewItem * i = new QListViewItem( d->lvi, e );
-        i->setMultiLinesEnabled( true );
+        d->lastItem = new QListViewItem( d->lvi, d->lastItem, e );
+        d->lastItem->setMultiLinesEnabled( true );
     }
     else if ( d->injector ) {
         d->migrated++;
@@ -453,8 +454,8 @@ void MailboxMigrator::execute()
                     QString::fromLatin1( "\n" ) +
                     QString::fromLatin1( "Syntax Error: " ) +
                     QString::fromLatin1( d->message->error().cstr() );
-        QListViewItem * i = new QListViewItem( d->lvi, e );
-        i->setMultiLinesEnabled( true );
+        d->lastItem = new QListViewItem( d->lvi, d->lastItem, e );
+        d->lastItem->setMultiLinesEnabled( true );
         d->message = d->source->nextMessage();
     }
 
