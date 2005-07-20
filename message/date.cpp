@@ -433,6 +433,19 @@ void Date::setRfc822( const String & s )
         }
         tzok = true;
     }
+    else if ( a[0] >= '0' && a[0] <= '9' && yearAtEnd ) {
+        // having the year at the end doesn't necessarily mean at the
+        // very end...
+        ok = false;
+        d->year = a.number( &ok );
+        if ( ok ) {
+            yearAtEnd = false;
+            if ( d->year < 60 )
+                d->year += 2000;
+            else if ( d->year < 100 )
+                d->year += 1900;
+        }
+    }
     else {
         // could it be that we're looking at the time zone NAME, not
         // in a comment?
@@ -443,6 +456,8 @@ void Date::setRfc822( const String & s )
         if ( zones[j].name != 0 )
             tzn = a;
     }
+
+    // that's all. the date is valid.
 
     a = p.comment();
     if ( !a.isEmpty() )
@@ -489,7 +504,6 @@ void Date::setRfc822( const String & s )
             d->year += 1900;
     }
 
-    // that's all. the date is valid.
     d->valid = true;
 }
 
