@@ -68,6 +68,10 @@ create table mailboxes (
     -- Incremented after each successful delivery.
     uidnext     integer not null default 1,
 
+    -- The UID of the first message that should be marked \Recent.
+    -- Set to uidnext when each new IMAP session is created.
+    first_recent integer not null default 1,
+
     -- The IMAP mailbox UIDVALIDITY value, which, along with a message UID,
     -- is forever guaranteed to uniquely refer to a single message.
     uidvalidity integer not null default 1,
@@ -190,18 +194,6 @@ create table threads (
 create table thread_members (
     thread      integer not null references threads(id),
     message     integer not null references messages(id)
-);
-
-
--- One entry for each message to be announced as \Recent.
-
-create table recent_messages (
-    mailbox     integer not null,
-    uid         integer not null,
-    foreign key (mailbox, uid)
-                references messages(mailbox, uid)
-                on delete cascade,
-    primary key (mailbox,uid)
 );
 
 
