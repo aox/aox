@@ -117,6 +117,7 @@ MigratorMessage * MhMailbox::nextMessage()
 
     String f( d->path + "/" + String::fromNumber( i ) );
     File m( f );
+    i = 0;
     String c( m.contents() );
     if ( c.mid( 0, 5 ) == "From " ) {
         i = 0;
