@@ -136,6 +136,8 @@ int MailboxPane::addChildren( Mailbox * parent, QListViewItem * item )
         uint c = addChildren( i, mi );
         if ( c < 4 ) // same test as below
             n += c;
+        if ( !c && i->deleted() )
+            delete mi;
         ++i;
     }
     if ( item && item->firstChild() )
