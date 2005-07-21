@@ -313,7 +313,7 @@ void Injector::execute()
 
     if ( d->step == 1 && !d->transaction->failed() ) {
         // Once we have UIDs for each Mailbox, we can insert rows into
-        // messages and recent_messages.
+        // messages.
 
         if ( !d->uidHelper->done() )
             return;
@@ -657,9 +657,6 @@ void Injector::insertMessages()
     Query *qm =
         new Query( "copy messages (mailbox,uid,idate,rfc822size) "
                    "from stdin with binary", 0 );
-    Query *qr =
-        new Query( "copy recent_messages (mailbox,uid) "
-                   "from stdin with binary", 0 );
 
     List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
@@ -672,15 +669,10 @@ void Injector::insertMessages()
         qm->bind( 4, d->message->rfc822Size(), Query::Binary );
         qm->submitLine();
 
-        qr->bind( 1, m->id(), Query::Binary );
-        qr->bind( 2, uid, Query::Binary );
-        qr->submitLine();
-
         ++mi;
     }
 
     d->transaction->enqueue( qm );
-    d->transaction->enqueue( qr );
 }
 
 
