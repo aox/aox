@@ -116,7 +116,7 @@ MigratorMessage *CyrusMailbox::nextMessage()
     uint i = d->messages.smallest();
     d->messages.remove( i );
 
-    String f( d->path + "/" + String::fromNumber( i ) );
+    String f( d->path + "/" + String::fromNumber( i ) + "." );
     File m( f );
     return new MigratorMessage( m.contents(), f );
 }
