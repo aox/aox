@@ -69,7 +69,7 @@ MigrationPane::MigrationPane( QWidget * parent )
     d->serverType->setTitle( tr( "Migrate From:" ) );
 
     d->mbox = new QRadioButton( tr( "Berkeley Mailbox" ), d->serverType );
-    d->cyrus = new QRadioButton( tr( "Cyrus 2.x" ), d->serverType );
+    d->cyrus = new QRadioButton( tr( "Cyrus" ), d->serverType );
     d->mh = new QRadioButton( tr( "MH Directories" ), d->serverType );
 
     d->sourceStack = new QWidgetStack( this );
