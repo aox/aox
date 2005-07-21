@@ -663,7 +663,7 @@ void Postgres::shutdown()
 }
 
 
-static int currentRevision = 8;
+static int currentRevision = 9;
 
 
 class UpdateSchema
@@ -1161,6 +1161,37 @@ void UpdateSchema::execute() {
                                    "references header_fields "
                                    "(mailbox,uid,part,position,field) "
                                    "on delete cascade", this );
+                    t->enqueue( q );
+                    t->execute();
+                    substate = 1;
+                }
+
+                if ( substate == 1 ) {
+                    if ( !q->done() )
+                        return;
+                    l->log( "Done.", Log::Debug );
+                    substate = 0;
+                }
+            }
+
+            if ( revision == 8 ) {
+                if ( substate == 0 ) {
+                    l->log( "Removing recent_messages.", Log::Debug );
+                    q = new Query( "alter table mailboxes add "
+                                   "first_recent integer ", this );
+                    t->enqueue( q );
+                    q = new Query( "update mailboxes set "
+                                   "first_recent=coalesce((select min(uid) "
+                                   "from recent_messages where "
+                                   "mailbox=mailboxes.id),uidnext)", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table mailboxes alter first_recent "
+                                   "set not null", this );
+                    t->enqueue( q );
+                    q = new Query( "alter table mailboxes alter first_recent "
+                                   "set default 1", this );
+                    t->enqueue( q );
+                    q = new Query( "drop table recent_messages", this );
                     t->enqueue( q );
                     t->execute();
                     substate = 1;
