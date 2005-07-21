@@ -401,26 +401,20 @@ SessionInitialiser::SessionInitialiser( Session * session,
 void SessionInitialiser::execute()
 {
     if ( !d->t ) {
-        // We select and delete the rows in recent_messages that refer
-        // to our session's mailbox. Concurrent Selects of the same
-        // mailbox will block until this transaction has committed.
+        // We update first_recent for our mailbox. Concurrent selects of
+        // this mailbox will block until this transaction has committed.
 
         d->t = new Transaction( this );
 
-        d->recent = new Query( "select * from recent_messages where "
-                               "mailbox=$1 and uid>=$2 and uid<$3 for update",
-                               this );
+        d->recent = new Query( "select first_recent from mailboxes "
+                               "where id=$1 for update", this );
         d->recent->bind( 1, d->session->mailbox()->id() );
-        d->recent->bind( 2, d->oldUidnext );
-        d->recent->bind( 3, d->newUidnext );
         d->t->enqueue( d->recent );
 
         if ( !d->session->readOnly() ) {
-            Query *q = new Query( "delete from recent_messages where "
-                                  "mailbox=$1 and uid>=$2 and uid<$3", this );
+            Query *q = new Query( "update mailboxes set first_recent=uidnext "
+                                  "where id=$1", this );
             q->bind( 1, d->session->mailbox()->id() );
-            q->bind( 2, d->oldUidnext );
-            q->bind( 3, d->newUidnext );
             d->t->enqueue( q );
         }
 
@@ -449,8 +443,6 @@ void SessionInitialiser::execute()
     }
 
     Row * r = 0;
-    while ( (r = d->recent->nextRow()) != 0 )
-        d->session->addRecent( r->getInt( "uid" ) );
 
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );
@@ -460,13 +452,16 @@ void SessionInitialiser::execute()
     while( (r=d->seen->nextRow()) )
         d->session->setFirstUnseen( r->getInt( "uid" ) );
 
-    if ( !d->messages->done() || !d->recent->done() || !d->seen->done() ||
-         !d->t->done() )
+    if ( !d->t->done() || !d->messages->done() || !d->seen->done() )
         return;
 
+    uint recent = d->recent->nextRow()->getInt( "first_recent" );
+    uint n = recent;
+    while ( n < d->newUidnext )
+        d->session->addRecent( n++ );
+
     log( "Saw " + fn( d->messages->rows() ) + " new messages, " +
-         fn( d->recent->rows() ) + " recent ones",
-         Log::Debug );
+         fn( recent ) + " recent ones", Log::Debug );
     d->done = true;
     d->session->setUidnext( d->newUidnext );
     if ( d->owner )
