@@ -30,6 +30,7 @@ class LogItem
 {
 public:
     LogItem( QListView * parent,
+             QListViewItem * after,
              const String & id, Log::Facility f, Log::Severity s,
              const String & m );
 
@@ -49,9 +50,10 @@ static uint uniq;
 
 
 LogItem::LogItem( QListView * parent,
+                  QListViewItem * after,
                   const String & id, Log::Facility f, Log::Severity s,
                   const String & m )
-    : QListViewItem( parent ),
+    : QListViewItem( parent, after ),
       transaction( QString::fromLatin1( id.data(), id.length() ) ),
       facility( f ), severity( s ),
       message( QString::fromLatin1( m.data(), m.length() ) ),
@@ -115,15 +117,35 @@ QString LogItem::key( int col, bool ) const
 }
 
 
+static QListViewItem * item;
 static LogPane * logPane;
+static uint counter;
 
 
 void GuiLog::send( const String & id,
                    Log::Facility f, Log::Severity s,
                    const String & m )
 {
-    if ( ::logPane )
-        new LogItem( ::logPane->listView(), id, f, s, m );
+    if ( !::logPane )
+        return;
+
+    ::item = new LogItem( ::logPane->listView(), item, id, f, s, m );
+    ::counter++;
+    if ( ::counter < 128 )
+        return;
+    ::counter = 0;
+    uint n = ::logPane->maxLines();
+    if ( (uint)::logPane->listView()->childCount() <= n )
+        return;
+
+    QListViewItem * i = ::logPane->listView()->firstChild();
+    n = (uint)::logPane->listView()->childCount() - n;
+    while ( n && i && i != ::item ) {
+        QListViewItem * t = i;
+        i = i->nextSibling();
+        delete t;
+        n--;
+    }
 }
 
 

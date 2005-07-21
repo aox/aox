@@ -42,14 +42,14 @@ LogPane::LogPane( QWidget * parent )
 
     d->maxLines = new QSpinBox( this );
     d->maxLines->setMaxValue( 10000 );
-    d->maxLines->setMinValue( 1 );
+    d->maxLines->setMinValue( 128 );
     tll->addWidget( d->maxLines, 0, 2 );
 
     QLabel * l = new QLabel( tr( "&Maximum log size" ), this );
     l->setBuddy( d->maxLines );
     tll->addWidget( l, 0, 1 );
 
-    d->log = new LogView( this );
+    d->log = new QListView( this );
 
     d->log->addColumn( tr( "Transaction" ) );
     d->log->addColumn( tr( "Time" ) );
@@ -64,54 +64,13 @@ LogPane::LogPane( QWidget * parent )
 
     tll->setColStretch( 0, 9999 );
 
-    //GuiLog::setLogPane( this );
+    GuiLog::setLogPane( this );
 }
 
 
 LogPane::~LogPane()
 {
     Allocator::removeEternal( d );
-}
-
-
-LogView::LogView( LogPane * w )
-    : QListView( w ), parent( w )
-{
-    // nothing necessary
-}
-
-
-LogView::~LogView()
-{
-    // nothing necessary
-}
-
-
-static uint counter;
-
-
-void LogView::insertItem( QListViewItem * i )
-{
-    QListView::insertItem( i );
-
-    ::counter++;
-    if ( ::counter < 128 )
-        return;
-    ::counter = 0;
-    uint n = parent->maxLines();
-    if ( (uint)childCount() <= n )
-        return;
-
-    i = firstChild();
-    while ( n && i ) {
-        i = i->nextSibling();
-        n--;
-    }
-    while ( i ) {
-        QListViewItem * t = i;
-        i = i->nextSibling();
-        delete t;
-    }
 }
 
 

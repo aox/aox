@@ -23,19 +23,4 @@ private:
 };
 
 
-class LogView
-    : public QListView
-{
-    Q_OBJECT
-public:
-    LogView( LogPane * parent );
-    ~LogView();
-
-    void insertItem( QListViewItem * );
-
-private:
-    LogPane * parent;
-};
-
-
 #endif
