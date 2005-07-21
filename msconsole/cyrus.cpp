@@ -5,6 +5,7 @@
 #include "cyrus.h"
 
 #include "file.h"
+#include "messageset.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -31,8 +32,7 @@ bool CyrusDirectory::isMailbox( const String &path, struct stat *st )
 {
     if ( S_ISDIR( st->st_mode ) ) {
         struct stat st;
-        // XXX: This is bogus. But where is the Cyrus format documented?
-        String s( path + "/.cyrus_metadata" );
+        String s( path + "/cyrus.seen" );
         if ( stat( s.cstr(), &st ) >= 0 )
             return true;
     }
@@ -52,12 +52,12 @@ class CyrusMailboxData
 {
 public:
     CyrusMailboxData()
-        : opened( false ), dir( 0 )
+        : opened( false )
     {}
 
     bool opened;
     String path;
-    DIR *dir;
+    MessageSet messages;
 };
 
 
@@ -88,31 +88,35 @@ MigratorMessage *CyrusMailbox::nextMessage()
 {
     if ( !d->opened ) {
         d->opened = true;
-        d->dir = opendir( d->path.cstr() );
+        DIR * dir = opendir( d->path.cstr() );
+        if ( dir ) {
+            struct dirent * de = readdir( dir );
+            while ( de ) {
+                if ( de->d_name[0] >= '1' && de->d_name[0] <= '9' ) {
+                    uint i = 0;
+                    while ( de->d_name[i] >= '0' && de->d_name[i] <= '9' )
+                        i++;
+                    if ( de->d_name[i] == '.' ) {
+                        String n( de->d_name, i );
+                        bool ok = false;
+                        uint number = n.number( &ok );
+                        if ( ok )
+                            d->messages.add( number );
+                    }
+                }
+                de = readdir( dir );
+            }
+            closedir( dir );
+        }
     }
 
-    if ( !d->dir )
+    if ( d->messages.isEmpty() )
         return 0;
 
-    struct dirent *de = readdir( d->dir );
-    while ( de ) {
-        if ( de->d_name[0] == '.' ||
-             de->d_name[0] == ',' )
-        {
-            // We ignore ,-prefixed names, but should we import them and
-            // set \Deleted instead?
-            de = readdir( d->dir );
-        }
-        else {
-            // Do we need to check that the name is all-numerals?
-            // Do we need to sort messages?
-            String f( d->path + "/" + de->d_name );
-            File m( f );
-            return new MigratorMessage( m.contents(), f );
-        }
-    }
+    uint i = d->messages.smallest();
+    d->messages.remove( i );
 
-    closedir( d->dir );
-    d->dir = 0;
-    return 0;
+    String f( d->path + "/" + String::fromNumber( i ) );
+    File m( f );
+    return new MigratorMessage( m.contents(), f );
 }
