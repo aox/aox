@@ -432,22 +432,6 @@ Orphaned bodyparts should be cleaned up somehow.
 httpd should learn to stream result pages to reduce memory use.
 
 
-We should get rid of recent_messages.
-
-  The way to do it:
-
-  Add a column to mailboxes called first_recent.
-
-  Do nothing on delivery.
-
-  When a session is initialised (ie. in SessionInitialiser), record
-  the value of first_recent and uidnext, set the in-memory \recent
-  flag on all messages [first_recent,uidnext>, and copy uidnext into
-  first_recent.
-
-  That's all.
-
-
 We need mUTF-7 support.
 
 
