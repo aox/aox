@@ -432,7 +432,20 @@ Orphaned bodyparts should be cleaned up somehow.
 httpd should learn to stream result pages to reduce memory use.
 
 
-We should get rid of recent_messages (see email from Arnt).
+We should get rid of recent_messages.
+
+  The way to do it:
+
+  Add a column to mailboxes called first_recent.
+
+  Do nothing on delivery.
+
+  When a session is initialised (ie. in SessionInitialiser), record
+  the value of first_recent and uidnext, set the in-memory \recent
+  flag on all messages [first_recent,uidnext>, and copy uidnext into
+  first_recent.
+
+  That's all.
 
 
 We need mUTF-7 support.
@@ -455,6 +468,9 @@ We assume that all Content-Type fields conform to MIME.
 
   I don't know what to do about this.
 
+  We do nothing about it until we see user demand for it. If/when we
+  do see that, we'll discuss the need with that user.
+
 
 The servers should accept (a set of) "db-mirror" settings to define a
 read-only local database mirror.
@@ -473,6 +489,9 @@ Look over RFC 3501 to see what is left unimplemented.
 
 Finish the comparison with cyrus-imapd (which I'll install on fugue).
 
+  What comparison is this? Will it end up as a file in corp/docs/misc,
+  on our web site, or where?
+
 
 Read the GiST papers and look at tsearch2 again.
 
@@ -488,8 +507,21 @@ Implement COPY (for IMAP messages).
 
 Support address groups properly.
 
+  Excuse me? What does "properly" mean in this case? What and how
+  should we do?
+
 
 Make http://oryx.com not be broken (and oryx.{,co.}in too).
 
+  (Arnt can do this using one of his many new IP addresses.)
+
+
+Improve LogPane so it doesn't eat so much CPU
+
+  The right way is to have a constant number of list view items, each
+  of which look at a circular buffer. GuiLog just overwrites the
+  "next" item in the circular buffer.
+
+  Or would it be better to use a list? Not sure.
 
 
