@@ -29,6 +29,8 @@ public:
     void announce();
     uint uid( Mailbox * ) const;
 
+    const Message * message() const;
+
 private:
     class InjectorData *d;
 

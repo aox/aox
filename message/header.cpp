@@ -87,14 +87,7 @@ bool Header::valid() const
 String Header::error() const
 {
     verify();
-    if ( d->error.isEmpty() )
-        return d->error;
-    if ( !messageId().isEmpty() )
-         return d->error + " (Message-ID: " + messageId() + ")";
-    if ( field( HeaderField::From ) )
-        return d->error + " (From: " +
-            field( HeaderField::From )->value().simplified() + ")";
-    return d->error + " (lacking From and Message-ID)";
+    return d->error;
 }
 
 

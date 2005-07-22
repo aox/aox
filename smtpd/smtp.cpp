@@ -52,6 +52,20 @@ void SmtpDbClient::execute()
     if ( !injector || !injector->done() )
         return;
 
+    if ( injector->failed() &&
+         injector->message()->header() ) {
+        Header * h = injector->message()->header();
+        String id = h->messageId();
+        if ( !id.isEmpty() )
+            log( "Message-ID: " + id );
+        String from;
+        HeaderField * f = h->field( HeaderField::From );
+        if ( f )
+            from = f->value();
+        if ( !from.isEmpty() )
+            log( "From: " + from );
+    }
+
     owner->reportInjection();
 }
 

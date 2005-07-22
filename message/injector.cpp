@@ -904,3 +904,14 @@ uint Injector::uid( Mailbox * mailbox ) const
         return 0;
     return mi->id;
 }
+
+
+/*! Returns a pointer to the Message to be/being/which was inserted,
+    or a null pointer if this Injector isn't inserting exactly one
+    Message.
+*/
+
+const Message * Injector::message() const
+{
+    return d->message;
+}
