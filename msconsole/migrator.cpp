@@ -11,6 +11,7 @@
 #include "list.h"
 
 #include <qstyle.h>
+#include <qtextedit.h>
 
 
 class MigratorData
@@ -192,7 +193,7 @@ String MigratorMailbox::partialName()
 */
 
 MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
-    : Message( rfc822 ), s( desc )
+    : Message( rfc822 ), s( desc ), o( rfc822 )
 {
     // nothing more
 }
@@ -205,6 +206,21 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
 String MigratorMessage::description() const
 {
     return s;
+}
+
+
+/*! Returns the raw text used to construct this message. This may
+    return the same as rfc822(), but it may also be different: If the
+    message couldn't be parsed, rfc2822() return something more or les
+    random, while original() returns the original string. If the
+    message contained any fixable syntax problems, rfc822() has the
+    corrected version, while original() returns the message with these
+    problems.
+*/
+
+String MigratorMessage::original() const
+{
+    return o;
 }
 
 
@@ -294,6 +310,42 @@ void Migrator::refill()
     if ( lastTaken && d->working->isEmpty() )
         emit done();
 }
+
+class MigratorMessageItem
+    : public QListViewItem
+{
+public:
+    MigratorMessageItem( QListViewItem *, QListViewItem *,
+                         MigratorMessage *, const QString & );
+    void activate();
+    QString text;
+};
+
+
+MigratorMessageItem::MigratorMessageItem( QListViewItem * parent,
+                                          QListViewItem * lastItem,
+                                          MigratorMessage * message,
+                                          const QString & error )
+    : QListViewItem( parent ),
+      text( QString::fromLatin1( message->original().cstr() ) )
+{
+    setMultiLinesEnabled( true );
+
+    setText( 0,
+             QString::fromLatin1( message->description().cstr() )+
+             QString::fromLatin1( "\n" ) + error );
+}
+
+
+void MigratorMessageItem::activate()
+{
+    QTextEdit * t = new QTextEdit( 0 );
+    t->setTextFormat( QTextEdit::PlainText );
+    t->setReadOnly( true );
+    t->setText( text );
+    t->show();
+}
+
 
 
 class MailboxMigratorData
@@ -398,12 +450,10 @@ void MailboxMigrator::execute()
     Scope x( &d->log );
 
     if ( d->injector && d->injector->failed() ) {
-        QString e = QString::fromLatin1( d->message->description().cstr() )+
-                    QString::fromLatin1( "\n" ) +
-                    QString::fromLatin1( "Database Error: " ) +
+        QString e = QString::fromLatin1( "Database Error: " ) +
                     QString::fromLatin1( d->injector->error().cstr() );
-        d->lastItem = new QListViewItem( d->lvi, d->lastItem, e );
-        d->lastItem->setMultiLinesEnabled( true );
+        d->lastItem = new MigratorMessageItem( d->lvi, d->lastItem,
+                                               d->message, e );
     }
     else if ( d->injector ) {
         d->migrated++;
@@ -450,12 +500,11 @@ void MailboxMigrator::execute()
         Scope x( new Log( Log::General ) );
         log( "Syntax problem: " + d->message->error() );
         log( "Cannot migrate message " + d->message->description() );
-        QString e = QString::fromLatin1( d->message->description().cstr() )+
-                    QString::fromLatin1( "\n" ) +
-                    QString::fromLatin1( "Syntax Error: " ) +
+        commit();
+        QString e = QString::fromLatin1( "Syntax Error: " ) +
                     QString::fromLatin1( d->message->error().cstr() );
-        d->lastItem = new QListViewItem( d->lvi, d->lastItem, e );
-        d->lastItem->setMultiLinesEnabled( true );
+        d->lastItem = new MigratorMessageItem( d->lvi, d->lastItem,
+                                               d->message, e );
         d->message = d->source->nextMessage();
     }
 

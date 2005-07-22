@@ -64,9 +64,11 @@ public:
     MigratorMessage( const String &, const String & );
 
     String description() const;
+    String original() const;
 
 private:
     String s;
+    String o;
 };
 
 
