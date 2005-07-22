@@ -10,8 +10,11 @@
 #include "scope.h"
 #include "list.h"
 
+#include <qlabel.h>
 #include <qstyle.h>
+#include <qlayout.h>
 #include <qtextedit.h>
+#include <qapplication.h>
 
 
 class MigratorData
@@ -318,6 +321,8 @@ public:
     MigratorMessageItem( QListViewItem *, QListViewItem *,
                          MigratorMessage *, const QString & );
     void activate();
+    QString description;
+    QString error;
     QString text;
 };
 
@@ -325,25 +330,51 @@ public:
 MigratorMessageItem::MigratorMessageItem( QListViewItem * parent,
                                           QListViewItem * lastItem,
                                           MigratorMessage * message,
-                                          const QString & error )
+                                          const QString & e )
     : QListViewItem( parent ),
+      description( QString::fromLatin1( message->description().cstr() ) ),
+      error( QString::fromLatin1( e ) ),
       text( QString::fromLatin1( message->original().cstr() ) )
 {
     setMultiLinesEnabled( true );
 
-    setText( 0,
-             QString::fromLatin1( message->description().cstr() )+
-             QString::fromLatin1( "\n" ) + error );
+    setText( 0, description + QString::fromLatin1( "\n" ) + error );
 }
 
 
 void MigratorMessageItem::activate()
 {
-    QTextEdit * t = new QTextEdit( 0 );
+    QWidget * w = new QWidget( 0 );
+    QGridLayout * g = new QGridLayout( w, 2, 2, 6 );
+
+    QLabel * l = new QLabel( Migrator::tr( "Message:" ), w );
+    g->addWidget( l, 0, 0 );
+    l = new QLabel( Migrator::tr( "Error:" ), w );
+    g->addWidget( l, 1, 0 );
+    l = new QLabel( description, w );
+    g->addWidget( l, 0, 1 );
+    l = new QLabel( error, w );
+    g->addWidget( l, 1, 1 );
+    
+    QTextEdit * t = new QTextEdit( w );
     t->setTextFormat( QTextEdit::PlainText );
     t->setReadOnly( true );
     t->setText( text );
-    t->show();
+    g->addMultiCellWidget( t, 2, 2, 0, 1 );
+
+    // should also have 'mangle' and 'report as error'
+    // buttons. 'mangle' should change all ASCII letters to 'x' with
+    // certain exceptions. what are the exceptions? letters in the
+    // words from, to, subject, content-type, boundary, anything
+    // starting with '--', anything containing '=', what more?
+
+    w->show();
+
+    QWidget * tlw = listView()->topLevelWidget();
+    w->resize( tlw->width()-20, tlw->height()-20 );
+    int w80 = t->fontMetrics().width( "abcd" ) * 20;
+    if ( w->width() < w80 && w80 < QApplication::desktop()->width() )
+        w->resize( w80, w->height() );
 }
 
 
@@ -551,6 +582,7 @@ void MailboxMigrator::createListViewItem( QListViewItem * parent )
     d->lvi = new QListViewItem( parent,
                                 QString::fromLatin1( n.cstr() ),
                                 "0" );
+    d->lvi->setSelectable( false );
 }
 
 
