@@ -67,7 +67,7 @@ if [ $NOORYXUSER ]; then
     elif [ -x /usr/sbin/useradd ]; then
 	# other linux
 	useradd -g $ORYXGROUP $ORYXUSER
-    elif [ -x /usr/sbin/pw ]
+    elif [ -x /usr/sbin/pw ]; then
 	# freebsd, perhaps other bsds?
 	/usr/sbin/pw useradd $ORYXUSER -g $ORYXGROUP
     else
