@@ -50,8 +50,8 @@ quality can build stable, reliable products.
 .PP
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 0.95, released 2005-06-20,
-http://www.oryx.com/mailstore/0.95.html.
+This man page covers Oryx Mailstore version 0.96, released 2005-07-25,
+http://www.oryx.com/mailstore/0.96.html.
 .SH SEE ALSO
 .BR mailstore (7),
 .BR mailstore.conf (5),
