@@ -9,6 +9,12 @@ OrdinaryDEFINES = $(DEFINES) ;
 DEFINES = DATA_LITTLEENDIAN NO_THREADS NDEBUG OSVERSION=2 USE_ASM
     _REENTRANT __UNIX__ ;
 
+# io/file.c triggers a gcc warning. gcc is probably in the wrong, so
+# we tell it to shut up. (arnt reported the bug, with a three-line
+# demonstration, but the bug report probably was forwarded to
+# devnull@gcc.gnu.org.)
+CCFLAGS += -Wno-trigraphs ;
+
 # Comment next line out to build a testable cryptlib. (testlib also
 # needs three files to be writable: cryptlib/test/key_dual.p15,
 # cryptlib/test/key_ren.p15 and cryptlib/test/key_test.p15).
