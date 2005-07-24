@@ -1,6 +1,5 @@
 # No user-serviceable parts below this line. And none above it either ;)
 
-PGUSER = postgres ;
 JAMSETTINGS = Jamsettings ;
 include $(JAMSETTINGS:D=$(TOP)) ;
 
@@ -123,7 +122,7 @@ rule WriteShellConfig
 
 actions WriteShellConfig
 {
-    echo "#!/bin/sh" >> $(<)
+    echo "#!/bin/sh" > $(<)
     echo "#" >> $(<)
     echo "# This file contains copies of some compile-time settings." >> $(<)
     echo "# It is sourced by some shell scripts. Many of the values" >> $(<)
@@ -151,10 +150,7 @@ actions WriteShellConfig
     echo ORYXUSER="'"$(ORYXUSER)"'" >> $(<)
     echo ORYXGROUP="'"$(ORYXGROUP)"'" >> $(<)
 
-    # if/then/else cannot be used due to the makefile generated from this
-    [ -n "$(PGUSER)" ] && echo PGUSER="'"$(PGUSER)"'" >> $(<) || true
-    [ -n "$(PGUSER)" ] || echo PGUSER='postgres' >> $(<)
-
+    echo PGUSER="'"$(PGUSER)"'" >> $(<)
     [ -n "$(PGBIN)" ] && echo PGBIN="'"$(PGBIN)"'" >> $(<) || true
 
     echo DBADDRESS="'"$(DBADDRESS)"'" >> $(<)

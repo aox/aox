@@ -81,10 +81,9 @@ EXEMODE = 555 ;
 
 ## Database settings.
 
-# The Unix username of the PostgreSQL superuser. You need to set this if
-# your PostgreSQL superuser's username is not "postgres".
+# The Unix username of the PostgreSQL superuser.
 #
-# PGUSER = pgsql ;
+PGUSER = postgres ;
 
 # The directory in which psql and pg_ctl live. You can ignore this
 # setting in most cases, because psql and pg_ctl are usually in the
