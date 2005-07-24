@@ -151,21 +151,16 @@ actions WriteShellConfig
     echo ORYXUSER="'"$(ORYXUSER)"'" >> $(<)
     echo ORYXGROUP="'"$(ORYXGROUP)"'" >> $(<)
 
-    if [ $(PGUSER) ]; then
-        echo PGUSER="'"$(PGUSER)"'" >> $(<)
-    else
-        echo PGUSER='postgres' >> $(<)
-    fi
-    if [ $(PGBIN) ]; then
-        echo PGBIN="'"$(PGBIN)"'" >> $(<)
-    fi
+    # if/then/else cannot be used due to the makefile generated from this
+    [ -n "$(PGUSER)" ] && echo PGUSER="'"$(PGUSER)"'" >> $(<) || true
+    [ -n "$(PGUSER)" ] || echo PGUSER='postgres' >> $(<)
+
+    [ -n "$(PGBIN)" ] && echo PGBIN="'"$(PGBIN)"'" >> $(<) || true
 
     echo DBADDRESS="'"$(DBADDRESS)"'" >> $(<)
     echo DBNAME="'"$(DBNAME)"'" >> $(<)
     echo DBUSER="'"$(DBUSER)"'" >> $(<)
-    if [ $(DBPASS) ]; then
-        echo DBPASS="'"$(DBPASS)"'" >> $(<)
-    fi
+    [ -n "$(DBPASS)" ] && echo DBPASS="'"$(DBPASS)"'" >> $(<) || true
 }
 
 
