@@ -3,7 +3,7 @@
 JAMSETTINGS = Jamsettings ;
 include $(JAMSETTINGS:D=$(TOP)) ;
 
-VERSION = 0.95 ;
+VERSION = 0.96 ;
 
 MKDIR = mkdir -p ;
 
@@ -103,6 +103,7 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
     -e 's!$CONFIGDIR!'$(CONFIGDIR)'!' \
     -e 's!$LOGFILEMODE!'$(LOGFILEMODE)'!' \
     -e 's!$LOGFILE!'$(LOGFILE)'!' \
+    -e 's!$PGUSER!'$(PGUSER)'!' \
     -e 's!$DBNAME!'$(DBNAME)'!' \
     -e 's!$DBUSER!'$(DBUSER)'!' \
     -e 's!$DBADDRESS!'$(DBADDRESS)'!' \
