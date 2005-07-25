@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH oryx 7 2005-06-20 www.oryx.com "Mailstore Documentation"
+.TH oryx 7 2005-08-22 www.oryx.com "Mailstore Documentation"
 .SH NAME
 Oryx Mail Systems GmbH - the company behind Mailstore
 .SH SYNOPSIS
@@ -50,8 +50,8 @@ quality can build stable, reliable products.
 .PP
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 0.96, released 2005-07-25,
-http://www.oryx.com/mailstore/0.96.html.
+This man page covers Oryx Mailstore version 0.97, released 2005-08-22,
+http://www.oryx.com/mailstore/0.97.html.
 .SH SEE ALSO
 .BR mailstore (7),
 .BR mailstore.conf (5),
