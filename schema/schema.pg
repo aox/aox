@@ -185,6 +185,7 @@ create index af_mu on address_fields (mailbox, uid);
 
 create table threads (
     id          serial primary key,
+    mailbox     integer not null references mailboxes(id),
     subject     text unique
 );
 
@@ -193,7 +194,11 @@ create table threads (
 
 create table thread_members (
     thread      integer not null references threads(id),
-    message     integer not null references messages(id)
+    mailbox     integer not null,
+    uid         integer not null,
+    foreign key (mailbox, uid)
+                references messages(mailbox, uid)
+                on delete cascade
 );
 
 
