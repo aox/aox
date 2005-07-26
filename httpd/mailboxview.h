@@ -60,8 +60,6 @@ public:
 
     static MailboxView * find( Mailbox * );
 
-    static String baseSubject( const String & );
-
     Thread * thread( const String & subject );
     Thread * thread( uint );
 

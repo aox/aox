@@ -57,6 +57,10 @@ public:
 
     This may not be what we really need. In particular, constructing
     Messages (partially) from Cache needs consideration. We'll see.
+
+    This class also provides the utility function baseSubject(), which
+    strips extras such as "Re:" and "(fwd)" off a string to find the
+    presumed base subject of the message.
 */
 
 
@@ -494,4 +498,96 @@ void Message::setBodiesFetched()
 bool Message::hasTrivia() const
 {
     return d->rfc822Size > 0;
+}
+
+
+/*! Tries to remove the prefixes and suffixes used by MUAs from \a subject
+    to find a base subject that can be used to tie threads together
+    linearly.
+*/
+
+String Message::baseSubject( const String & subject )
+{
+    String s( subject.simplified() );
+    uint b = 0;
+    uint e = s.length();
+
+    // try to get rid of leading Re:, Fwd:, Re[2]: and similar.
+    bool done = false;
+    while ( !done ) {
+        done = true;
+        uint i = b;
+        if ( s[i] == '(' ) {
+            i++;
+            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
+                    ( s[i] >= 'a' && s[i] <= 'z' ) )
+                i++;
+            if ( i - b > 2 && i - b < 5 && s[i] == ')' ) {
+                done = false;
+                b = i + 1;
+            }
+        }
+        else if ( s[i] == '[' ) {
+            uint j = i;
+            i++;
+            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
+                    ( s[i] >= 'a' && s[i] <= 'z' ) ||
+                    ( s[i] >= '0' && s[i] <= '9' ) ||
+                    s[i] == '-' )
+                i++;
+            if ( s[i] == ']' ) {
+                i++;
+                done = false;
+                b = i;
+            }
+            else {
+                i = j;
+            }
+        }
+        else if ( s[i] >= 'A' && s[i] <= 'Z' ) {
+            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
+                    ( s[i] >= 'a' && s[i] <= 'z' ) )
+                i++;
+            uint l = i - b;
+            if ( s[i] == '[' ) {
+                uint j = i;
+                i++;
+                while ( ( s[i] >= '0' && s[i] <= '9' ) )
+                    i++;
+                if ( s[i] == ']' )
+                    i++;
+                else
+                    i = j;
+            }
+            if ( l >= 2 && l < 4 && s[i] == ':' && s[i+1] == ' ' ) {
+                i++;
+                b = i;
+                done = false;
+            }
+        }
+        if ( !done && s[b] == 32 )
+            b++;
+    }
+
+    // try to get rid of trailing (Fwd) etc.
+    done = false;
+    while ( !done ) {
+        done = true;
+        uint i = e;
+        if ( i > 2 && s[i-1] == ')' ) {
+            i = i - 2;
+            while ( i > 0 &&
+                    ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
+                      ( s[i] >= 'a' && s[i] <= 'z' ) ) )
+                i--;
+            if ( e - i >= 4 && e - i < 6 && s[i] == '(' ) {
+                if ( i >0 && s[i-1] == ' ' )
+                    i--;
+                e = i;
+                done = false;
+            }
+        }
+    }
+
+    return s.mid( b, e-b );
 }

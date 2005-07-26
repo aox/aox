@@ -53,6 +53,8 @@ public:
     void setHeadersFetched();
     void setBodiesFetched();
 
+    static String baseSubject( const String & );
+
 private:
     static Header * parseHeader( uint &, uint, const String &, Header::Mode );
 

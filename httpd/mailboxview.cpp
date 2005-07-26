@@ -25,13 +25,9 @@ public:
 
 /*! \class MailboxView mailboxview.h
 
-   The MailboxView class models a webmail client's view of a
-   mailbox. It subclasses Session and provides threading, so Page can
-   show the messages sorted by subject.
-
-   Additionally, it provides the utility function baseSubject(), which
-   strips extras such as "Re:" and "(fwd)" off a string to find the
-   presumed base subject of the message.
+    The MailboxView class models a webmail client's view of a mailbox.
+    It subclasses Session and provides threading, so Page can show the
+    messages sorted by subject.
 */
 
 
@@ -122,98 +118,6 @@ bool MailboxView::ready()
 }
 
 
-/*! Tries to remove the prefixes and suffixes used by MUAs from \a subject
-    to find a base subject that can be used to tie threads together
-    linearly.
-*/
-
-String MailboxView::baseSubject( const String & subject )
-{
-    String s( subject.simplified() );
-    uint b = 0;
-    uint e = s.length();
-
-    // try to get rid of leading Re:, Fwd:, Re[2]: and similar.
-    bool done = false;
-    while ( !done ) {
-        done = true;
-        uint i = b;
-        if ( s[i] == '(' ) {
-            i++;
-            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                    ( s[i] >= 'a' && s[i] <= 'z' ) )
-                i++;
-            if ( i - b > 2 && i - b < 5 && s[i] == ')' ) {
-                done = false;
-                b = i + 1;
-            }
-        }
-        else if ( s[i] == '[' ) {
-            uint j = i;
-            i++;
-            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                    ( s[i] >= 'a' && s[i] <= 'z' ) ||
-                    ( s[i] >= '0' && s[i] <= '9' ) ||
-                    s[i] == '-' )
-                i++;
-            if ( s[i] == ']' ) {
-                i++;
-                done = false;
-                b = i;
-            }
-            else {
-                i = j;
-            }
-        }
-        else if ( s[i] >= 'A' && s[i] <= 'Z' ) {
-            while ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                    ( s[i] >= 'a' && s[i] <= 'z' ) )
-                i++;
-            uint l = i - b;
-            if ( s[i] == '[' ) {
-                uint j = i;
-                i++;
-                while ( ( s[i] >= '0' && s[i] <= '9' ) )
-                    i++;
-                if ( s[i] == ']' )
-                    i++;
-                else
-                    i = j;
-            }
-            if ( l >= 2 && l < 4 && s[i] == ':' && s[i+1] == ' ' ) {
-                i++;
-                b = i;
-                done = false;
-            }
-        }
-        if ( !done && s[b] == 32 )
-            b++;
-    }
-
-    // try to get rid of trailing (Fwd) etc.
-    done = false;
-    while ( !done ) {
-        done = true;
-        uint i = e;
-        if ( i > 2 && s[i-1] == ')' ) {
-            i = i - 2;
-            while ( i > 0 &&
-                    ( ( s[i] >= 'A' && s[i] <= 'Z' ) ||
-                      ( s[i] >= 'a' && s[i] <= 'z' ) ) )
-                i--;
-            if ( e - i >= 4 && e - i < 6 && s[i] == '(' ) {
-                if ( i >0 && s[i-1] == ' ' )
-                    i--;
-                e = i;
-                done = false;
-            }
-        }
-    }
-
-    return s.mid( b, e-b );
-}
-
-
 /*! This private helper adds message \a m, which is assumed to have
      UID \a u to the thread datastructures.
 */
@@ -223,7 +127,7 @@ void MailboxView::threadMessage( uint u, Message * m )
     HeaderField * hf = m->header()->field( HeaderField::Subject );
     String subject;
     if ( hf )
-        subject = baseSubject( hf->data().simplified() );
+        subject = Message::baseSubject( hf->data().simplified() );
     Thread * t = d->subjects.find( subject );
     if ( !t ) {
         t = new Thread;
@@ -266,7 +170,7 @@ MailboxView * MailboxView::find( Mailbox * m )
 
 MailboxView::Thread * MailboxView::thread( const String & subject )
 {
-    String s( baseSubject( subject ) );
+    String s( Message::baseSubject( subject ) );
     Thread * t = d->subjects.find( subject );
     if ( t )
         return t;
