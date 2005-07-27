@@ -149,9 +149,11 @@ void Buffer::write( int fd )
             max = firstfree;
         int n = max - firstused;
 
-        written = ::write( fd, v->base+firstused, n );
+        written = 0;
+        if ( n )
+            written = ::write( fd, v->base+firstused, n );
         if ( written > 0 )
-            remove(written);
+            remove( written );
         else if ( written < 0 && errno != EAGAIN )
             die( FD );
     }
