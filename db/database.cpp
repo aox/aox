@@ -148,7 +148,7 @@ void Database::runQueue()
 }
 
 
-/*! \fn virtual void Database::processQueue() = 0
+/*! \fn virtual void Database::processQueue()
     Instructs the Database object to send any queries whose state is
     Query::Submitted to the server.
 */
