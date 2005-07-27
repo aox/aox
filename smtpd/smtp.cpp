@@ -604,6 +604,12 @@ Address * SMTP::address()
 
 void SMTP::respond( int c, const String & s )
 {
+    // This is a little icky. I think LMTP errors always merit this
+    // treatment - the local MTA just shouldn't send errors. But how
+    // about SMTP?
+    if ( d->code < 400 && c >= 400 )
+        log( "SMTP/LMTP error while in state " + fn( d->state ), Log::Error );
+
     if ( c )
         d->code = c;
     if ( !s.isEmpty() )
