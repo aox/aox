@@ -25,7 +25,7 @@ private:
     void unknown( char );
     void error( const String & );
     void shutdown();
-    void updateSchema();
+    void checkSchema();
 };
 
 
