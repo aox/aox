@@ -535,3 +535,19 @@ ms add user spews errors
 
   Should be easyish to fix.
 
+
+ms show configuration
+
+  We need a command to show the value used for all variables. It's
+  easy to find, just read the man page and check mailstore.conf, but
+  it's even easier for ms to output.
+
+
+ms show status
+
+  Figuring out which servers are running (each 'ms add user' currently
+  kills three servers) is a bit too much trouble. ms show status
+  should output the running servers and some user counts etc. for
+  each.
+
+
