@@ -568,3 +568,13 @@ Document IPC structure
 
   Some man page, or some web page, or both, should say who's
   connnecting to who and why.
+
+
+SMTP/LMTP doesn't accept multiple messages
+
+  If the postfix option lmtp_cache_connection is enabled, smtpd
+  refuses the second and subsequent messages, saying that the MAIL
+  FROM command is broken.
+
+
+
