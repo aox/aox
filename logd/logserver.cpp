@@ -185,8 +185,7 @@ void LogServer::processLine( const String &line )
 
 
 /*! Saves \a line with tag \a t, facility \a f, and severity \a s in the
-    list of pending output lines. If \a f is Immediate, however, \a line
-    is logged immediately.
+    list of pending output lines.
 */
 
 void LogServer::log( String t, Log::Facility f, Log::Severity s,
