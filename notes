@@ -577,10 +577,7 @@ SMTP/LMTP doesn't accept multiple messages
   FROM command is broken.
 
 
-STORE is broken on kalyani.
-
-
-EXPUNGE doesn't send EXPUNGE responses on penne.
+EXPUNGE doesn't seem to send EXPUNGE responses.
 
 
 
