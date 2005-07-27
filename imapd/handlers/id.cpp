@@ -42,11 +42,13 @@ void Id::parse()
 
 void Id::execute()
 {
+    String v( Configuration::compiledIn( Configuration::Version ) );
     respond( "ID ("
-             "\"name\" \"Oryx IMAP Gateway\" "
-             "\"version\" \"snapshot\" "
+             "\"name\" \"Oryx Mail Server\" "
+             "\"version\" \"" + v + "\" "
              "\"compile-time\" \"" __DATE__ " " __TIME__ "\" "
              "\"support-url\" \"http://www.oryx.com\" "
+             "\"support-email\" \"info@oryx.com\" "
              "\"vendor\" \"Oryx Mail Systems GmbH\")" );
     finish();
 }
