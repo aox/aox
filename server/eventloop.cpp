@@ -180,13 +180,20 @@ void EventLoop::start()
                     int dummy;
                     if ( ::setsockopt( c->fd(), SOL_SOCKET, SO_RCVBUF,
                                        (char*)&dummy, sizeof(dummy) ) < 0 ) {
-                        c->log( "Socket " + fn( c->fd() ) +
-                                " was unexpectedly closed: "
-                                "Removing corresponding connection: " +
-                                c->description(), Log::Error );
-                        c->log( "Please notify info@oryx.com about what "
-                                "happened with this connection" );
-                        c->commit();
+                        if ( c->state() == Connection::Closing ) {
+                            // if a socket is closed by the peer while
+                            // we're trying to close it, we smile and
+                            // and go on our way.
+                        }
+                        else {
+                            c->log( "Socket " + fn( c->fd() ) +
+                                    " was unexpectedly closed: "
+                                    "Removing corresponding connection: " +
+                                    c->description(), Log::Error );
+                            c->log( "Please notify info@oryx.com about what "
+                                    "happened with this connection" );
+                            c->commit();
+                        }
                         removeConnection( c );
                     }
                 }
@@ -206,10 +213,10 @@ void EventLoop::start()
                now - gc > 7200 ||
                Allocator::allocated() > 8*1024*1024 ||
                ( now - gc > 10 && Allocator::allocated() >= 131072 ) ) )
-        {
-            Allocator::free();
-            gc = time( 0 );
-        }
+            {
+                Allocator::free();
+                gc = time( 0 );
+            }
 
         // Figure out what each connection cares about.
 

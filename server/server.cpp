@@ -224,10 +224,6 @@ static void shutdownLoop( int )
     Loop::shutdown();
 }
 
-static void throwFDException( int )
-{
-    throw FD;
-}
 
 /*! Initializes the global event loop. */
 
@@ -238,8 +234,9 @@ void Server::loop()
     // sigint and sigterm both should stop the server
     ::signal( SIGINT, shutdownLoop );
     ::signal( SIGTERM, shutdownLoop );
-    // sigpipe happens if we're writing to an already-closed fd
-    ::signal( SIGPIPE, throwFDException );
+    // sigpipe happens if we're writing to an already-closed fd. we'll
+    // discover that it's closed a little later.
+    ::signal( SIGPIPE, SIG_IGN );
 }
 
 
