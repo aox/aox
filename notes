@@ -534,6 +534,11 @@ ms add user spews errors
   Should be easyish to fix.
 
 
+On kalyani, "ms add users" segfaults three servers
+
+  The user is created, then three servers die.
+
+
 ms show configuration
 
   We need a command to show the value used for all variables. It's
@@ -547,5 +552,15 @@ ms show status
   kills three servers) is a bit too much trouble. ms show status
   should output the running servers and some user counts etc. for
   each.
+
+
+Startup failures have bad error messages
+
+  When we cannot connect to something, we need to say what. "Port
+  2054" is too cryptic even for me (Arnt).
+
+  The man page for each program should say what it needs to
+  connect. And I supose it had better list the configuration variables
+  used by that program, too.
 
 
