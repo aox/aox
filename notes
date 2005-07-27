@@ -524,3 +524,14 @@ Mailbox migration looks worse and worse
   roll the transaction back instead of committing it.
 
 
+ms add user spews errors
+
+  # /usr/local/mailstore/bin/ms add user arnt secret arnt@oryx.com
+  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+
+  Should be easyish to fix.
+
