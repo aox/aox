@@ -564,3 +564,7 @@ Startup failures have bad error messages
   used by that program, too.
 
 
+Document IPC structure
+
+  Some man page, or some web page, or both, should say who's
+  connnecting to who and why.
