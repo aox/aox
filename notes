@@ -4,7 +4,7 @@ ocd needs work (mike@waspfactory.org)
   2. Should synchronise field names etc.
 
 
-We should not duplicate the contents of address_fields in header_fields.
+Don't duplicate the contents of address_fields in header_fields.
 
   The Injector should avoid inserting address fields into header_fields,
   and the HeaderFetcher should assemble addresses from address_fields.
@@ -16,17 +16,16 @@ AddressCache and FieldNameCache are utter crocks, and must die.
 tls client support (smtp, postgresql)
 
 
-Set up automatic injection regression/speed testing on penne after the
-Injector becomes stable again.
+Set up automatic injection regression/speed testing on penne.
 
 
-Discuss the ever-present problem of content in unlabelled charsets and
-encodings.
+Discuss the problem of content in unlabelled charsets and encodings.
 
 
-It would be nice if we could connect to the database as an unprivileged
-user, and have "ms migrate" ask for a different username and password to
-perform schema upgrades.
+We should be able to connect to Postgres as an unprivileged user.
+
+  ms migrate could then ask for a different username and password to
+  perform schema upgrades.
 
 
 Fix shutdown
@@ -456,8 +455,7 @@ We assume that all Content-Type fields conform to MIME.
   do see that, we'll discuss the need with that user.
 
 
-The servers should accept (a set of) "db-mirror" settings to define a
-read-only local database mirror.
+We should be able to use a read-only local database mirror.
 
   That way, we can play nicely with most replication systems.
 
