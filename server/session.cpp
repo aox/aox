@@ -273,7 +273,7 @@ void Session::emitResponses()
 {
     bool change = false;
     uint i = 1;
-    while ( i < d->expunges.count() ) {
+    while ( i <= d->expunges.count() ) {
         uint uid = d->expunges.value( i );
         uint msn = d->msns.index( uid );
         if ( msn ) {
