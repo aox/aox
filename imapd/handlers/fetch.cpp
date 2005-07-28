@@ -778,21 +778,21 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
     }
     else if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // We have a Multipart, and we want a Bodypart with a message().
-        Bodypart *bp = (Bodypart *)m;
+        Multipart *mp = m;
         if ( !m->message() ) {
-            bp = (Bodypart *)m->parent();
-            if ( !bp )
-                bp = m->children()->first();
+            mp = m->parent();
+            if ( !mp )
+                mp = m->children()->first();
         }
-        r = singlePartStructure( bp,  m->header(), extended );
+        r = singlePartStructure( mp,  m->header(), extended );
     }
     else {
         /* If we get here, m is either a single-part leaf Bodypart, or a
            Message. In the former case, it will have no children(), but
            the Message will have one child. */
-        Bodypart *bp = m->children()->first();
+        Multipart *bp = m->children()->first();
         if ( !bp )
-            bp = (Bodypart *)m;
+            bp = m;
         r = singlePartStructure( bp, bp->header(), extended );
     }
 
@@ -806,7 +806,8 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
     is true, extended BODYSTRUCTURE attributes are included.
 */
 
-String Fetch::singlePartStructure( Bodypart *bp, Header *hdr, bool extended )
+String Fetch::singlePartStructure( Multipart * bp,
+                                   Header * hdr, bool extended )
 {
     StringList l;
 
@@ -826,7 +827,8 @@ String Fetch::singlePartStructure( Bodypart *bp, Header *hdr, bool extended )
     }
 
     l.append( parameterString( ct ) );
-    l.append( imapQuoted( hdr->messageId( HeaderField::ContentId ), NString ) );
+    l.append( imapQuoted( hdr->messageId( HeaderField::ContentId ),
+                          NString ) );
     l.append( imapQuoted( hdr->contentDescription(), NString ) );
 
     if ( hdr->contentTransferEncoding() ) {

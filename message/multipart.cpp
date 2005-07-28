@@ -275,3 +275,25 @@ static void spaces( int n )
     while ( n-- > 0 )
         fprintf( stderr, " " );
 }
+
+
+/*! Returns 0. Included to avoid the need to cast to Bodypart.
+
+    The "real" function is Bodypart::numEncodedBytes().
+*/
+
+uint Multipart::numEncodedBytes() const
+{
+    return 0;
+}
+
+
+/*! Returns 0. Included to avoid the need to cast to Bodypart.
+
+    The "real" function is Bodypart::numEncodedBytes().
+*/
+
+uint Multipart::numEncodedLines() const
+{
+    return 0;
+}

@@ -62,6 +62,7 @@ class MigratorMessage: public Message
 {
 public:
     MigratorMessage( const String &, const String & );
+    virtual ~MigratorMessage();
 
     String description() const;
     String original() const;

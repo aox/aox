@@ -23,8 +23,11 @@ public:
     Multipart * parent() const;
     void setParent( Multipart * );
 
-    Message * message() const;
-    void setMessage( Message * );
+    virtual Message * message() const;
+    virtual void setMessage( Message * );
+
+    virtual uint numEncodedBytes() const;
+    virtual uint numEncodedLines() const;
 
     List< Bodypart > * children() const;
 

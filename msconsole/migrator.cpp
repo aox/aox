@@ -202,6 +202,12 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
 }
 
 
+MigratorMessage::~MigratorMessage()
+{
+    // nothing necessary
+}
+
+
 /*! Returns a description of the message's source, as set using the
     constructor.
 */
@@ -355,7 +361,7 @@ void MigratorMessageItem::activate()
     g->addWidget( l, 0, 1 );
     l = new QLabel( error, w );
     g->addWidget( l, 1, 1 );
-    
+
     QTextEdit * t = new QTextEdit( w );
     t->setTextFormat( QTextEdit::PlainText );
     t->setReadOnly( true );
