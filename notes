@@ -577,9 +577,6 @@ SMTP/LMTP doesn't accept multiple messages
   FROM command is broken.
 
 
-EXPUNGE doesn't seem to send EXPUNGE responses.
-
-
 Add Maildir support to the migrator.
 
 
