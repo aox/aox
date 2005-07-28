@@ -24,7 +24,7 @@ static const char * crlf = "\015\012";
 */
 
 Multipart::Multipart()
-    : h( 0 ), p( 0 ), m( 0 ), parts( new List< Bodypart > )
+    : h( 0 ), p( 0 ), parts( new List< Bodypart > )
 {
 }
 
@@ -33,7 +33,7 @@ Multipart::Multipart()
     none has been set with setHeader().
 */
 
-Header *Multipart::header() const
+Header * Multipart::header() const
 {
     return h;
 }
@@ -41,7 +41,7 @@ Header *Multipart::header() const
 
 /*! Sets the header of this Multipart object to \a hdr. */
 
-void Multipart::setHeader( Header *hdr )
+void Multipart::setHeader( Header * hdr )
 {
     h = hdr;
 }
@@ -51,7 +51,7 @@ void Multipart::setHeader( Header *hdr )
     top-level MIME object.
 */
 
-Multipart *Multipart::parent() const
+Multipart * Multipart::parent() const
 {
     return p;
 }
@@ -59,27 +59,22 @@ Multipart *Multipart::parent() const
 
 /*! Sets the parent of this Multipart object to \a pt. */
 
-void Multipart::setParent( Multipart *pt )
+void Multipart::setParent( Multipart * pt )
 {
     p = pt;
 }
 
 
-/*! Returns a pointer to the Message contained within this Multipart, or
-    0 if this is not a MIME message/ object.
+/*! Returns 0.
+
+    Bodypart::message() is different; this function exists so that the
+    Bodypart::message() is available even if the caller has a
+    Multipart pointer.
 */
 
-Message *Multipart::message() const
+Message * Multipart::message() const
 {
-    return m;
-}
-
-
-/*! Sets the message contained by this Multipart to \a msg. */
-
-void Multipart::setMessage( Message *msg )
-{
-    m = msg;
+    return 0;
 }
 
 
@@ -87,7 +82,7 @@ void Multipart::setMessage( Message *msg )
     Will never return 0.
 */
 
-List< Bodypart > *Multipart::children() const
+List< Bodypart > * Multipart::children() const
 {
     return parts;
 }
@@ -98,12 +93,12 @@ List< Bodypart > *Multipart::children() const
 
 void Multipart::appendMultipart( String &r ) const
 {
-    ContentType *ct = header()->contentType();
+    ContentType * ct = header()->contentType();
     String delim = ct->parameter( "boundary" );
     List<Bodypart>::Iterator it( children() );
     r.append( "--" + delim + crlf );
     while ( it ) {
-        Bodypart *bp = it;
+        Bodypart * bp = it;
         ++it;
 
         r.append( bp->header()->asText() );
@@ -124,10 +119,10 @@ void Multipart::appendMultipart( String &r ) const
     The details of this function are certain to change.
 */
 
-void Multipart::appendAnyPart( String &r, const Bodypart *bp,
-                               ContentType *ct ) const
+void Multipart::appendAnyPart( String &r, const Bodypart * bp,
+                               ContentType * ct ) const
 {
-    ContentType *childct = bp->header()->contentType();
+    ContentType * childct = bp->header()->contentType();
 
     if ( ( childct && childct->type() == "message" ) ||
          ( ct && ct->type() == "multipart" && ct->subtype() == "digest" &&
@@ -159,7 +154,7 @@ void Multipart::appendAnyPart( String &r, const Bodypart *bp,
 void Multipart::appendTextPart( String & r, const Bodypart * bp,
                                 ContentType * ct ) const
 {
-    Codec *c = 0;
+    Codec * c = 0;
 
     String::Encoding e = String::Binary;
     ContentTransferEncoding * cte
@@ -187,7 +182,7 @@ static void dumpBodypart( Message *, Bodypart *, int );
 static void dumpMultipart( Multipart *, int );
 
 
-static void dumpMessage( Message *m, int n = 0 )
+static void dumpMessage( Message * m, int n = 0 )
 {
     dumpMultipart( m, n );
 
@@ -199,7 +194,7 @@ static void dumpMessage( Message *m, int n = 0 )
 }
 
 
-static void dumpBodypart( Message *m, Bodypart *bp, int n )
+static void dumpBodypart( Message * m, Bodypart * bp, int n )
 {
     dumpMultipart( bp, n );
 
@@ -216,14 +211,14 @@ static void dumpBodypart( Message *m, Bodypart *bp, int n )
 }
 
 
-static void dumpMultipart( Multipart *m, int n )
+static void dumpMultipart( Multipart * m, int n )
 {
     spaces( n );
     fprintf( stderr, "%p = {h=%p, p=%p, m=%p, c=%p [", m, m->header(),
              m->parent(), m->message(), m->children() );
     List< Bodypart >::Iterator it( m->children() );
     while ( it ) {
-        Bodypart *bp = it;
+        Bodypart * bp = it;
         fprintf( stderr, "%p", bp );
         ++it;
         if ( it )
@@ -234,15 +229,15 @@ static void dumpMultipart( Multipart *m, int n )
 }
 
 
-static void headerSummary( Header *h, int n )
+static void headerSummary( Header * h, int n )
 {
     StringList l;
 
-    ContentType *ct = h->contentType();
+    ContentType * ct = h->contentType();
     if ( ct )
         l.append( ct->type() + "/" + ct->subtype() );
 
-    ContentTransferEncoding *cte = h->contentTransferEncoding();
+    ContentTransferEncoding * cte = h->contentTransferEncoding();
     if ( cte ) {
         String s;
         switch ( cte->encoding() ) {
@@ -259,7 +254,7 @@ static void headerSummary( Header *h, int n )
         l.append( s );
     }
 
-    HeaderField *cd = h->field( HeaderField::ContentDescription );
+    HeaderField * cd = h->field( HeaderField::ContentDescription );
     if ( cd )
         l.append( cd->value() );
 

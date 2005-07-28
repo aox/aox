@@ -24,7 +24,6 @@ public:
     void setParent( Multipart * );
 
     virtual Message * message() const;
-    virtual void setMessage( Message * );
 
     virtual uint numEncodedBytes() const;
     virtual uint numEncodedLines() const;
@@ -38,7 +37,6 @@ public:
 private:
     Header * h;
     Multipart * p;
-    Message * m;
     List< Bodypart > * parts;
 };
 

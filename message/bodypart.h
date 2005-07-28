@@ -26,6 +26,9 @@ public:
     String data() const;
     void setData( const String & );
 
+    Message * message() const;
+    void setMessage( Message * );
+
     UString text() const;
     void setText( const UString & );
 

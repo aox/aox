@@ -15,7 +15,7 @@ class BodypartData
 {
 public:
     BodypartData()
-        : number( 1 ), parent( 0 ),
+        : number( 1 ), parent( 0 ), message( 0 ),
           numBytes( 0 ), numEncodedBytes(), numEncodedLines( 0 ),
           hasText( false )
     {}
@@ -23,6 +23,7 @@ public:
     uint number;
 
     Multipart *parent;
+    Message * message;
 
     uint numBytes;
     uint numEncodedBytes;
@@ -435,4 +436,25 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     }
 
     return bp;
+}
+
+
+/*! Returns a pointer to the subsidiary message, provided this is a
+    message/rfc822 bodypart, or a null pointer in other cases.
+*/
+
+Message * Bodypart::message() const
+{
+    return d->message;
+}
+
+
+/*! Notifies this Bodypart that it has a subsidiary message \a m. This
+    function is only meaningful if the Bodypart has content-type
+    message/rfc822.
+*/
+
+void Bodypart::setMessage( Message * m )
+{
+    d->message = m;
 }
