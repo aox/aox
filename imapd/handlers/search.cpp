@@ -359,7 +359,7 @@ void Search::considerCache()
         switch ( d->root->match( m, uid ) ) {
         case Search::Condition::Yes:
             matches.append( " " );
-            if ( d->uid )
+            if ( !d->uid )
                 matches.append( fn( c ) );
             else
                 matches.append( fn( uid ) );
