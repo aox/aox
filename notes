@@ -580,4 +580,7 @@ SMTP/LMTP doesn't accept multiple messages
 Add Maildir support to the migrator.
 
 
+Maybe we shouldn't send UIDNEXT if messages have only been expunged?
+
+
 
