@@ -26,9 +26,6 @@ public:
     virtual bool isMessage() const;
     virtual bool isBodypart() const;
 
-    virtual uint numEncodedBytes() const;
-    virtual uint numEncodedLines() const;
-
     List< Bodypart > * children() const;
 
     void appendMultipart( String & ) const;
