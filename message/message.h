@@ -33,6 +33,8 @@ public:
     void setMailbox( const Mailbox * );
     const Mailbox * mailbox() const;
 
+    bool isMessage() const;
+
     Bodypart * bodypart( const String &, bool create = false );
     String partNumber( Bodypart * ) const;
 

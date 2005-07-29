@@ -749,8 +749,8 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
 {
     String r;
 
-    Header *hdr = m->header();
-    ContentType *ct = hdr->contentType();
+    Header * hdr = m->header();
+    ContentType * ct = hdr->contentType();
 
     if ( ct && ct->type() == "multipart" ) {
         StringList children;
@@ -776,45 +776,28 @@ String Fetch::bodyStructure( Multipart * m, bool extended )
 
         r.append( ")" );
     }
-    else if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
-        // We have a Multipart, and we want a Bodypart with a message().
-        Multipart *mp = m;
-        if ( !m->message() ) {
-            mp = m->parent();
-            if ( !mp )
-                mp = m->children()->first();
-        }
-        r = singlePartStructure( mp,  m->header(), extended );
-    }
     else {
-        /* If we get here, m is either a single-part leaf Bodypart, or a
-           Message. In the former case, it will have no children(), but
-           the Message will have one child. */
-        Multipart *bp = m->children()->first();
-        if ( !bp )
-            bp = m;
-        r = singlePartStructure( bp, bp->header(), extended );
+        r = singlePartStructure( (Bodypart*)m, extended );
     }
 
     return r;
 }
 
 
-/*! Returns the structure of the single-part bodypart \a bp. We use
-    \a hdr instead of "bp->header()" only so that bodyStructure()
-    can cope with top-level message/rfc822 objects. If \a extended
-    is true, extended BODYSTRUCTURE attributes are included.
+/*! Returns the structure of the single-part bodypart \a mp.
+
+    If \a extended is true, extended BODYSTRUCTURE attributes are
+    included.
 */
 
-String Fetch::singlePartStructure( Multipart * bp,
-                                   Header * hdr, bool extended )
+String Fetch::singlePartStructure( Multipart * mp, bool extended )
 {
     StringList l;
 
-    if ( !bp )
+    if ( !mp )
         return "";
 
-    ContentType *ct = hdr->contentType();
+    ContentType * ct = mp->header()->contentType();
 
     if ( ct ) {
         l.append( imapQuoted( ct->type() ) );
@@ -827,12 +810,12 @@ String Fetch::singlePartStructure( Multipart * bp,
     }
 
     l.append( parameterString( ct ) );
-    l.append( imapQuoted( hdr->messageId( HeaderField::ContentId ),
+    l.append( imapQuoted( mp->header()->messageId( HeaderField::ContentId ),
                           NString ) );
-    l.append( imapQuoted( hdr->contentDescription(), NString ) );
+    l.append( imapQuoted( mp->header()->contentDescription(), NString ) );
 
-    if ( hdr->contentTransferEncoding() ) {
-        switch( hdr->contentTransferEncoding()->encoding() ) {
+    if ( mp->header()->contentTransferEncoding() ) {
+        switch( mp->header()->contentTransferEncoding()->encoding() ) {
         case String::Binary:
             l.append( "\"8BIT\"" ); // hm. is this entirely sound?
             break;
@@ -848,9 +831,16 @@ String Fetch::singlePartStructure( Multipart * bp,
         l.append( "\"7BIT\"" );
     }
 
-    l.append( fn( bp->numEncodedBytes() ) );
+    Bodypart * bp = 0;
+    if ( mp->isBodypart() )
+        bp = (Bodypart*)mp;
+    else if ( mp->isMessage() )
+        bp = ((Message*)mp)->children()->first();
 
-    if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
+    if ( bp )
+        l.append( fn( bp->numEncodedBytes() ) );
+
+    if ( bp && ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // body-type-msg   = media-message SP body-fields SP envelope
         //                   SP body SP body-fld-lines
         l.append( envelope( bp->message() ) );
@@ -864,14 +854,14 @@ String Fetch::singlePartStructure( Multipart * bp,
 
     if ( extended ) {
         String md5;
-        HeaderField *f = hdr->field( HeaderField::ContentMd5 );
+        HeaderField *f = mp->header()->field( HeaderField::ContentMd5 );
         if ( f )
             md5 = f->value();
 
         l.append( imapQuoted( md5, NString ) );
-        l.append( dispositionString( hdr->contentDisposition() ) );
-        l.append( languageString( hdr->contentLanguage() ) );
-        l.append( imapQuoted( hdr->contentLocation(), NString ) );
+        l.append( dispositionString( mp->header()->contentDisposition() ) );
+        l.append( languageString( mp->header()->contentLanguage() ) );
+        l.append( imapQuoted( mp->header()->contentLocation(), NString ) );
     }
 
     return "(" + l.join( " " ) + ")";

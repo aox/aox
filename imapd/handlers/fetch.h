@@ -30,7 +30,7 @@ private:
     String internalDate( Message * );
     String envelope( Message * );
     String bodyStructure( Multipart *, bool );
-    String singlePartStructure( Multipart *, Header *, bool );
+    String singlePartStructure( Multipart *, bool );
     String fetchResponse( Message *, uint, uint );
 
 private:

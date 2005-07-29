@@ -23,7 +23,8 @@ public:
     Multipart * parent() const;
     void setParent( Multipart * );
 
-    virtual Message * message() const;
+    virtual bool isMessage() const;
+    virtual bool isBodypart() const;
 
     virtual uint numEncodedBytes() const;
     virtual uint numEncodedLines() const;

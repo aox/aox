@@ -65,19 +65,6 @@ void Multipart::setParent( Multipart * pt )
 }
 
 
-/*! Returns 0.
-
-    Bodypart::message() is different; this function exists so that the
-    Bodypart::message() is available even if the caller has a
-    Multipart pointer.
-*/
-
-Message * Multipart::message() const
-{
-    return 0;
-}
-
-
 /*! Returns a pointer to a list of Bodyparts belonging to this object.
     Will never return 0.
 */
@@ -214,8 +201,8 @@ static void dumpBodypart( Message * m, Bodypart * bp, int n )
 static void dumpMultipart( Multipart * m, int n )
 {
     spaces( n );
-    fprintf( stderr, "%p = {h=%p, p=%p, m=%p, c=%p [", m, m->header(),
-             m->parent(), m->message(), m->children() );
+    fprintf( stderr, "%p = {h=%p, p=%p, c=%p [", m, m->header(),
+             m->parent(), m->children() );
     List< Bodypart >::Iterator it( m->children() );
     while ( it ) {
         Bodypart * bp = it;
@@ -291,4 +278,24 @@ uint Multipart::numEncodedBytes() const
 uint Multipart::numEncodedLines() const
 {
     return 0;
+}
+
+
+/*! This virtual function returns true if the object is a Message,
+    false if not.
+*/
+
+bool Multipart::isMessage() const
+{
+    return false;
+}
+
+
+/*! This virtual function returns true if the object is a Bodypart,
+    false if not.
+*/
+
+bool Multipart::isBodypart() const
+{
+    return false;
 }

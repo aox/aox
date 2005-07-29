@@ -29,6 +29,8 @@ public:
     Message * message() const;
     void setMessage( Message * );
 
+    bool isBodypart() const;
+
     UString text() const;
     void setText( const UString & );
 

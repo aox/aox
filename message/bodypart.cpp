@@ -458,3 +458,11 @@ void Bodypart::setMessage( Message * m )
 {
     d->message = m;
 }
+
+
+/*! Returns true. */
+
+bool Bodypart::isBodypart() const
+{
+    return true;
+}

@@ -591,3 +591,11 @@ String Message::baseSubject( const String & subject )
 
     return s.mid( b, e-b );
 }
+
+
+/*! Returns true. */
+
+bool Message::isMessage() const
+{
+    return true;
+}
