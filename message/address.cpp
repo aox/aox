@@ -463,7 +463,9 @@ AddressParser * AddressParser::references( const String & r )
     ap->comment( i );
     while ( ok && i > 0 && r[i] == '>' ) {
         i--;
-        String dom = ap->domain( i );
+        String dom;
+        if ( r[i] != '<' )
+            dom = ap->domain( i );
         if ( r[i] == '<' ) {
             // Some people send illegal message-ids, the most common
             // being "<no.id>". We cater to it for the time being. In
