@@ -3,13 +3,15 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-class String;
-
 #include "global.h"
+#include "event.h"
+
+
+class String;
 
 
 class Server
-    : public Garbage
+    : public EventHandler
 {
 public:
     Server( const char *, int, char *[] );
@@ -36,6 +38,7 @@ public:
 
     void setup( Stage );
     void run();
+    void execute();
 
     static String name();
 

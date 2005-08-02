@@ -61,6 +61,7 @@ public:
 
 ServerData * Server::d;
 
+
 /*! \class Server server.h
 
     The Server class performs the server startup functions that are
@@ -118,6 +119,19 @@ Server::Server( const char * name, int argc, char * argv[] )
                  name, optind, argv[optind] );
         exit( 1 );
     }
+}
+
+
+/*! Notifies the Server that it is to chroot according to \a mode. If
+    \a mode is JailDir, secure() will chroot into the jail directory
+    and check that '/' is inaccesssible. If \a mode is LogDir,
+    secure() will chroot into the logfile directory, where the server
+    hopefully can access the logfile.
+*/
+
+void Server::setChrootMode( ChrootMode mode )
+{
+    d->chrootMode = mode;
 }
 
 
@@ -204,6 +218,26 @@ void Server::configuration()
 }
 
 
+/*! Closes all files except stderr. Attaches stdin and stdout to
+    /dev/null just in case something uses them. stderr is kept open so
+    that we can tell our daddy about any disasters.
+*/
+
+void Server::files()
+{
+    int s = getdtablesize();
+    while ( s > 0 ) {
+        s--;
+        if ( s != 2 )
+            close( s );
+    }
+    s = open( "/dev/null", O_RDWR );
+    dup( 0 );
+
+    Entropy::setup();
+}
+
+
 /*! Creates the global logging context, and sets up a LogClient if no
     Logger has been created already.
 
@@ -284,23 +318,26 @@ void Server::pidFile()
 }
 
 
-/*! Closes all files except stderr. Attaches stdin and stdout to
-    /dev/null just in case something uses them. stderr is kept open so
-    that we can tell our daddy about any disasters.
+/*! This function performs all startup tasks, and continues only when
+    they are successfully completed. If any errors occur, the startup
+    sequence is terminated with an error.
 */
 
-void Server::files()
+void Server::startup()
 {
-    int s = getdtablesize();
-    while ( s > 0 ) {
-        s--;
-        if ( s != 2 )
-            close( s );
-    }
-    s = open( "/dev/null", O_RDWR );
-    dup( 0 );
+}
 
-    Entropy::setup();
+
+/*! Logs the startup details. By this time, the logger must be in
+    working order.
+*/
+
+void Server::logStartup()
+{
+    log( "Starting server " + d->name +
+         " (host " + Configuration::hostname() + ")" +
+         " (pid " + fn( getpid() ) + ") " +
+         String( d->secured ? "securely" : "insecurely" ) );
 }
 
 
@@ -467,29 +504,6 @@ void Server::secure()
 }
 
 
-/*! This function performs all startup tasks, and continues only when
-    they are successfully completed. If any errors occur, the startup
-    sequence is terminated with an error.
-*/
-
-void Server::startup()
-{
-}
-
-
-/*! Logs the startup details. By this time, the logger must be in
-    working order.
-*/
-
-void Server::logStartup()
-{
-    log( "Starting server " + d->name +
-         " (host " + Configuration::hostname() + ")" +
-         " (pid " + fn( getpid() ) + ") " +
-         String( d->secured ? "securely" : "insecurely" ) );
-}
-
-
 /*! Finishes setup and runs the main loop of the server. */
 
 void Server::run()
@@ -522,23 +536,16 @@ void Server::run()
 }
 
 
-/*! Notifies the Server that it is to chroot according to \a mode. If
-    \a mode is JailDir, secure() will chroot into the jail directory
-    and check that '/' is inaccesssible. If \a mode is LogDir,
-    secure() will chroot into the logfile directory, where the server
-    hopefully can access the logfile.
+/*! It's not yet clear what this function should do.
 */
 
-void Server::setChrootMode( ChrootMode mode )
+void Server::execute()
 {
-    d->chrootMode = mode;
 }
 
 
-/*! This function is unused (again), so I made it private. Do we need
-    it, should we have it?
-
-    Is server the right way to publicise the application's name?
+/*! This static function returns the name of the application.
+    Is server the right way to publicise this name?
 */
 
 String Server::name()
