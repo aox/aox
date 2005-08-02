@@ -332,23 +332,15 @@ void Postgres::authentication( char type )
 
 void Postgres::backendStartup( char type )
 {
-    static bool initialized = false;
     switch ( type ) {
     case 'Z':
         setTimeout( 0 );
         d->startup = false;
 
-        // The first time we successfully negotiate a connection, we
-        // need to check that we understand the existing schema.
-        if ( !initialized ) {
-            initialized = true;
-            checkSchema();
-            log( "PostgreSQL: Ready for queries" );
-        }
-
         // This successfully concludes connection startup. We'll leave
         // this message unparsed, so that process() can handle it like
         // any other PgReady.
+
         commit();
         break;
 
@@ -660,88 +652,6 @@ void Postgres::shutdown()
     removeHandle( this );
 
     d->active = false;
-}
-
-
-static int currentRevision = 9;
-
-
-class SchemaChecker
-    : public EventHandler
-{
-public:
-    Log *l;
-    int state;
-    Query *lock;
-    Transaction *t;
-
-    SchemaChecker()
-        : l( new Log( Log::Database ) ), state( 0 ), lock( 0 ),
-          t( new Transaction( this ) )
-    {}
-
-    void execute() {
-        if ( state == 0 ) {
-            lock = new Query( "select revision from mailstore for update",
-                              this );
-            t->enqueue( lock );
-            t->commit();
-            state = 1;
-        }
-
-        if ( state == 1 ) {
-            if ( !t->done() )
-                return;
-
-            Row *r = lock->nextRow();
-            if ( lock->failed() || !r ) {
-                l->log( "Database inconsistent: "
-                        "Couldn't query the mailstore table.",
-                        Log::Disaster );
-                state = 2;
-                return;
-            }
-
-            int revision = r->getInt( "revision" );
-            if ( revision == currentRevision ) {
-                state = 2;
-                return;
-            }
-
-            String s( "The existing schema (revision #" );
-            s.append( fn( revision ) );
-            s.append( ") is " );
-            if ( revision < currentRevision )
-                s.append( "older" );
-            else
-                s.append( "newer" );
-            s.append( " than this server (version " );
-            s.append( Configuration::compiledIn( Configuration::Version ) );
-            s.append( ") expected (revision #" );
-            s.append( fn( currentRevision ) );
-            s.append( "). Please " );
-            if ( revision < currentRevision )
-                s.append( "run 'ms migrate'" );
-            else
-                s.append( "upgrade" );
-            s.append( " or contact support." );
-            l->log( s, Log::Disaster );
-            state = 2;
-        }
-    }
-};
-
-
-/*! This function is called when the first database handle is created,
-    and checks that we can understand the existing schema.
-*/
-
-void Postgres::checkSchema()
-{
-    SchemaChecker *s = new SchemaChecker;
-    d->transaction = s->t;
-    d->transaction->setDatabase( this );
-    s->execute();
 }
 
 
