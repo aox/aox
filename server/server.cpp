@@ -149,6 +149,9 @@ void Server::setup( Stage s )
             case PidFile:
                 pidFile();
                 break;
+            case Startup:
+                startup();
+                break;
             case LogStartup:
                 logStartup();
                 break;
@@ -461,6 +464,16 @@ void Server::secure()
     log( "Secured server " + d->name + " using jail directory " + root +
          ", uid " + fn( pw->pw_uid ) + ", gid " + fn( gr->gr_gid ) );
     d->secured = true;
+}
+
+
+/*! This function performs all startup tasks, and continues only when
+    they are successfully completed. If any errors occur, the startup
+    sequence is terminated with an error.
+*/
+
+void Server::startup()
+{
 }
 
 

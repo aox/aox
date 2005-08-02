@@ -28,6 +28,7 @@ public:
         Report,
         Fork,
         PidFile,
+        Startup,
         LogStartup,
         Secure,
         Finish // MUST BE LAST
@@ -47,6 +48,7 @@ private:
     void logSetup();
     void fork();
     void pidFile();
+    void startup();
     void logStartup();
     void secure();
 };
