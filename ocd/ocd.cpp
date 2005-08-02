@@ -28,5 +28,5 @@ int main( int argc, char * argv[] )
                                  Configuration::OcAdminPort,
                                  false
     );
-    s.execute();
+    s.run();
 }

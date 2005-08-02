@@ -38,5 +38,5 @@ int main( int argc, char * argv[] )
 
     signal( SIGHUP, LogServer::reopen );
 
-    s.execute();
+    s.run();
 }

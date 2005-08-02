@@ -48,5 +48,5 @@ int main( int argc, char *argv[] )
     Flag::setup();
     IMAP::setup();
 
-    s.execute();
+    s.run();
 }

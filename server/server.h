@@ -35,7 +35,7 @@ public:
     };
 
     void setup( Stage );
-    void execute();
+    void run();
 
     static String name();
 

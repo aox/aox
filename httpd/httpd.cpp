@@ -41,5 +41,5 @@ int main( int argc, char * argv[] )
     AddressCache::setup();
     FieldNameCache::setup();
 
-    s.execute();
+    s.run();
 }

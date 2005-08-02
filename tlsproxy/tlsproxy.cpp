@@ -58,7 +58,7 @@ int main( int argc, char *argv[] )
     // call waitpid? Ignoring the signal doesn't seem to work in gdb.
     ::signal( SIGCHLD, SIG_IGN );
 
-    s.execute();
+    s.run();
 }
 
 

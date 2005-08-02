@@ -492,7 +492,7 @@ void Server::logStartup()
 
 /*! Finishes setup and runs the main loop of the server. */
 
-void Server::execute()
+void Server::run()
 {
     setup( Finish );
     Configuration::report();
