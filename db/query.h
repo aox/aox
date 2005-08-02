@@ -32,10 +32,6 @@ public:
     bool failed() const;
     bool done() const;
 
-    void setStartUpQuery( bool );
-    bool isStartUpQuery() const;
-    static bool isStartingUp();
-
     bool canFail() const;
     void allowFailure();
 

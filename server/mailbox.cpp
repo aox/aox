@@ -86,7 +86,6 @@ public:
         if ( !::mailboxes ) {
             ::mailboxes = new Map<Mailbox>;
             Allocator::addEternal( ::mailboxes, "mailbox tree" );
-            query->setStartUpQuery( true );
         }
         if ( t )
             t->enqueue( query );
@@ -110,7 +109,7 @@ public:
                 ::mailboxes->insert( m->d->id, m );
         }
 
-        if ( query->failed() && query->isStartUpQuery() )
+        if ( query->failed() )
             log( "Couldn't create mailbox tree.", Log::Disaster );
     }
 };

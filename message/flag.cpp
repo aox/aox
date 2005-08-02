@@ -50,8 +50,6 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
     }
     d->q = new Query( "select id,name from flag_names where id>" + fn( n ),
                       this );
-    if ( !::flags )
-        d->q->setStartUpQuery( true );
     d->q->execute();
     ::flags = new List<Flag>;
     Allocator::addEternal( ::flags, "list of existing flags" );
@@ -182,8 +180,7 @@ const List<Flag> * Flag::flags()
 
 void Flag::setup()
 {
-    FlagFetcher * f = new FlagFetcher( 0 );
-    f->d->q->setStartUpQuery( true );
+    (void)new FlagFetcher( 0 );
 }
 
 
