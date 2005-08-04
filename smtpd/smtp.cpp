@@ -299,7 +299,7 @@ void SMTP::setHeloString()
 
 void SMTP::helo()
 {
-    if ( state() != Initial ) {
+    if ( state() != Initial && state() == MailFrom ) {
         respond( 503, "HELO permitted initially only" );
         return;
     }
@@ -318,7 +318,7 @@ void SMTP::helo()
 
 void SMTP::ehlo()
 {
-    if ( state() != Initial ) {
+    if ( state() != Initial && state() == MailFrom ) {
         respond( 503, "HELO permitted initially only" );
         return;
     }
@@ -326,7 +326,7 @@ void SMTP::ehlo()
     respond( 250, Configuration::hostname() );
     //for the moment not
     //respond( 250, "STARTTLS" );
-    //respond( 250, "PIPELINING" );
+    respond( 250, "PIPELINING" );
     respond( 250, "DSN" );
     d->state = MailFrom;
     d->pipelining = true;
@@ -346,8 +346,7 @@ void SMTP::lhlo()
 
 void SMTP::rset()
 {
-    d->state = Initial;
-    d->pipelining = false;
+    d->state = MailFrom;
     respond( 250, "State reset" );
 }
 
