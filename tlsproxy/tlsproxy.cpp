@@ -180,6 +180,7 @@ static TlsProxy * serverside;
 
 
 class TlsProxyData
+    : public Garbage
 {
 public:
     TlsProxyData()
