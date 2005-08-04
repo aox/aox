@@ -533,6 +533,13 @@ Add Maildir support to the migrator.
 Should we allow Sender-less multiple-From mailboxes?
 
 
+There's more to supporting SMTP pipelining than simply announcing it.
+
+  ... since doing so comprehensively broke mail delivery on kalyani.
+  (See, for example, SMTP::rcpt for clues.)
+
+
 We need to do the right thing.
+
 
 
