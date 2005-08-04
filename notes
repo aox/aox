@@ -283,6 +283,8 @@ C/R
 
 LogClient::reconnect should die, or at least suck less.
 
+  Is this still a problem, or is this a zombie note?
+
 
 Log::~Log() calls commit(), but Log::id is already broken.
 
@@ -330,6 +332,8 @@ RFC 2359
 
   Not really important, but simple and nice. arnt started on it, and
   will probably finish it eventually.
+
+  Status now is that all seems okay, but we don't have COPY at all.
 
 
 Our httpd should be able to serve its own css: /default.css?
