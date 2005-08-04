@@ -596,9 +596,6 @@ TLS is broken again
   Fix it until arnt can use it in practice.
 
 
-If we kill a database connection, we shouldn't claim the server did it.
-
-
 message-copy should split the directory by date
 
   Something like messages/2005/08/02/123456-78-9
