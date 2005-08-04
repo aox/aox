@@ -604,4 +604,7 @@ message-copy should split the directory by date
   Something like messages/2005/08/02/123456-78-9
 
 
+Should we allow Sender-less multiple-From mailboxes?
+
+
 
