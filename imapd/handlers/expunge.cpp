@@ -57,8 +57,10 @@ Expunge::Expunge( bool u )
 
 void Expunge::parse()
 {
-    if ( d->uid )
+    if ( d->uid ) {
+        space();
         d->uids = set( false );
+    }
     end();
 }
 
