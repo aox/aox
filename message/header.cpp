@@ -534,7 +534,6 @@ void Header::simplify()
 
 /*! Repairs a few harmless and common problems, such as inserting two
     Date fields with the same value.
-
 */
 
 void Header::repair()
@@ -542,18 +541,22 @@ void Header::repair()
     if ( valid() )
         return;
 
-    // duplicated date fields
+    uint dateFields = 0;
+    uint cteFields = 0;
 
-    uint occurences;
-    List<HeaderField>::Iterator it( d->fields );
+    List< HeaderField >::Iterator it( d->fields );
     while ( it ) {
         HeaderField::Type t = it->type();
-        ++it;
         if ( t == HeaderField::Date )
-            occurences++;
+            dateFields++;
+        else if ( t == HeaderField::ContentTransferEncoding )
+            cteFields++;
+        ++it;
     }
 
-    if ( occurences > 1 ) {
+    // Remove duplicated Date fields.
+
+    if ( dateFields > 1 ) {
         uint i = 0;
         HeaderField * h = field( HeaderField::Date, 0 );
         while ( h && !h->valid() ) {
@@ -563,10 +566,33 @@ void Header::repair()
         if ( h ) {
             removeField( HeaderField::Date );
             add( h );
-            // this moves h to the end. a problem?
         }
     }
 
+    // Remove duplicate Content-Transfer-Encoding fields.
+    // (Thanks to the brain-damaged lemonade mailing list.)
+
+    if ( cteFields > 1 ) {
+        ContentTransferEncoding *cte = contentTransferEncoding();
+
+        uint i = 0;
+        List< HeaderField >::Iterator it( d->fields );
+        while ( it ) {
+            HeaderField::Type t = it->type();
+            if ( t == HeaderField::ContentTransferEncoding ) {
+                i++;
+                if ( i > 1 && cte->value() == it->value() )
+                    d->fields.take( it );
+                else
+                    ++it;
+            }
+            else {
+                ++it;
+            }
+        }
+    }
+
+    d->verified = false;
 }
 
 
