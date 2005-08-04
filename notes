@@ -188,35 +188,6 @@ SASL NTLM authentication
   description. Cyrus also implements it.
 
 
-Schema documentation
-
-  I've done all I want to sql-schema.html and postgres.schema; I'll have
-  to wait for Sujai's diagram to complete schema.html, but until then, I
-  have done all I can to it.
-
-
-Web site proofreading
-
-  Need a comprehensive proofreading session.
-
-
-Web Style Guide
-
-  Must add a section about the phrasing, what sort of language we
-  used. Added by request of the CTO.
-
-  Also a section on terminology. Manpage, man page or manual page?
-
-
-Web page appearance/voice
-
-  Right now, our pages look much the same, but differ in detail. It'd
-  be good to have a formally decided look and feel, and update the
-  pages to use that, and only that. For example, what's the "related
-  pages" headline called, "pages" or "links", and is the second word
-  capitalized?
-
-
 "Writing Secure Code"
 
   We have a page about security, /mailstore/security.html, and a
@@ -336,20 +307,6 @@ RFC 2359
   Status now is that all seems okay, but we don't have COPY at all.
 
 
-Our httpd should be able to serve its own css: /default.css?
-
-  > Why should it be able to?
-
-  So we can demonstrate it at trade fairs where we don't have Internet
-  access. :-)
-
-  > Does the same apply for favicon.ico?
-
-  I'm not sure any more. Maybe it's good enough to serve both from
-  oryx.com; it's just that we've had problems with that more than
-  once.
-
-
 Split the folder view into pages.
 
   The injector needs to do threading to make the paging possible.
@@ -395,12 +352,6 @@ How do we cope with PostgreSQL server crashes?
 
 
 Pine bodystructure problems (torture-test)
-
-
-Update /events/linuxtag2005.html
-
-  It claims it'll be updated. The home page (what home page?) too says
-  "we will update". Oops.
 
 
 Play with PITR and write /ams/pitr.html
@@ -577,14 +528,6 @@ Add Maildir support to the migrator.
 /events/solutionslinux-2006.html needs a plausible audience/task.
 
   We'll use that to do a better job of /events/linuxtag-2005.html
-
-
-message-copy should split the directory by date
-
-  Something like messages/2005/08/02/123456-78-9
-
-  Or something unlike that. Rather depends on what goal we want to
-  reach with this feature, doesn't it?
 
 
 Should we allow Sender-less multiple-From mailboxes?
