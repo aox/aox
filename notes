@@ -487,12 +487,6 @@ Complete ACL support.
 Implement COPY (for IMAP messages).
 
 
-Support address groups properly.
-
-  Excuse me? What does "properly" mean in this case? What and how
-  should we do?
-
-
 Make http://oryx.com not be broken (and oryx.{,co.}in too).
 
   (Arnt can do this using one of his many new IP addresses.)
@@ -570,13 +564,6 @@ Document IPC structure
   connnecting to who and why.
 
 
-SMTP/LMTP doesn't accept multiple messages
-
-  If the postfix option lmtp_cache_connection is enabled, smtpd
-  refuses the second and subsequent messages, saying that the MAIL
-  FROM command is broken.
-
-
 Add Maildir support to the migrator.
 
 
@@ -588,14 +575,12 @@ Add Maildir support to the migrator.
   We'll use that to do a better job of /events/linuxtag-2005.html
 
 
-TLS is broken again
-
-  Fix it until arnt can use it in practice.
-
-
 message-copy should split the directory by date
 
   Something like messages/2005/08/02/123456-78-9
+
+  Or something unlike that. Rather depends on what goal we want to
+  reach with this feature, doesn't it?
 
 
 Should we allow Sender-less multiple-From mailboxes?
