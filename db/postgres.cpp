@@ -253,7 +253,8 @@ void Postgres::react( Event e )
         break;
 
     case Close:
-        error( "Connection terminated by the server." );
+        if ( d->active )
+            error( "Connection terminated by the server." );
         break;
 
     case Timeout:
