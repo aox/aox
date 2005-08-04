@@ -97,6 +97,11 @@ void Store::parse()
 
 void Store::execute()
 {
+    if ( d->s.isEmpty() ) {
+        finish();
+        return;
+    }
+
     if ( !d->checkedPermission ) {
         Permissions * p = imap()->session()->permissions();
         if ( !p->ready() )
