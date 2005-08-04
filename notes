@@ -588,9 +588,15 @@ Maybe we shouldn't send UIDNEXT if messages have only been expunged?
 
 /events/solutionslinux-2006.html needs a plausible audience/task.
 
-  We'll use that to do a better job of /events/linuxtag.html.
+  We'll use that to do a better job of /events/linuxtag-2005.html
 
 
 TLS is broken again
 
   Fix it until arnt can use it in practice.
+
+
+If we kill a database connection, we shouldn't claim the server did it.
+
+
+
