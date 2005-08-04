@@ -187,7 +187,7 @@ Command * Command::create( IMAP * imap,
             c = new Fetch( n == "uid fetch" );
         else if ( n == "search" || n == "uid search" )
             c = new Search( n == "uid search" );
-        else if ( n == "expunge" /* || n == "uid expunge" */ )
+        else if ( n == "expunge" || n == "uid expunge" )
             c = new Expunge( n == "uid expunge" );
         else if ( n == "check" )
             c = new Check;
@@ -909,8 +909,8 @@ MessageSet Command::set( bool parseMsns = false )
     };
 
     if ( s ) {
-        // if the parsed set contains some messages, remove them and
-        // give the client a tagged OK with a note.
+        // if the parsed set contains some expunged messages, remove
+        // them and give the client a tagged OK with a note.
         MessageSet e( s->expunged().intersection( result ) );
         uint i = 1;
         while ( i <= e.count() ) {
