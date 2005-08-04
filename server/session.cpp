@@ -19,7 +19,8 @@ public:
     SessionData()
         : readOnly( true ), mailbox( 0 ),
           uidnext( 0 ), firstUnseen( 0 ),
-          permissions( 0 ), si( 0 )
+          permissions( 0 ), si( 0 ),
+          announced( 0 )
     {}
 
     bool readOnly;
@@ -31,6 +32,7 @@ public:
     uint firstUnseen;
     Permissions *permissions;
     SessionInitialiser *si;
+    uint announced;
 };
 
 
@@ -329,6 +331,27 @@ void Session::emitExists( uint )
 void Session::setUidnext( uint u )
 {
     d->uidnext = u;
+}
+
+
+/*! Returns the last UIDNEXT value that this session has announced.
+    (Used to decide if a new one needs to be announced.)
+
+    This function may be misnamed, and may not be necessary at all.
+*/
+
+uint Session::announced() const
+{
+    return d->announced;
+}
+
+
+/*! Sets the last announced UIDNEXT value to \a n.
+*/
+
+void Session::setAnnounced( uint n )
+{
+    d->announced = n;
 }
 
 

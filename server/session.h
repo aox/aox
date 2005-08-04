@@ -54,6 +54,9 @@ public:
     void setUidnext( uint );
     void expunge( const MessageSet & );
 
+    uint announced() const;
+    void setAnnounced( uint );
+
     bool responsesNeeded() const;
     void emitResponses();
     virtual void emitExpunge( uint );

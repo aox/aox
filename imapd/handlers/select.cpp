@@ -116,7 +116,11 @@ void Select::execute()
     respond( fn( d->session->count() ) + " EXISTS" );
     respond( fn( d->session->recent().count() ) + " RECENT" );
     respond( "OK [UNSEEN " + fn( d->session->firstUnseen() ) + "]" );
-    respond( "OK [UIDNEXT " + fn( d->session->uidnext() ) + "]" );
+
+    uint n = d->session->uidnext();
+    respond( "OK [UIDNEXT " + fn( n ) + "]" );
+    d->session->setAnnounced( n );
+
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]" );
     respond( "OK [PERMANENTFLAGS (" + flags +" \\*)]" );
     if ( d->session->readOnly() )

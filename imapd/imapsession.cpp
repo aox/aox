@@ -42,6 +42,10 @@ void ImapSession::emitExpunge( uint msn )
 
 void ImapSession::emitExists( uint number )
 {
-    i->enqueue( "* " + fn( number ) + " EXISTS\r\n"
-                "* OK [UIDNEXT " + fn( uidnext() ) + "]\r\n" );
+    i->enqueue( "* " + fn( number ) + " EXISTS\r\n" );
+    uint n = uidnext();
+    if ( n > announced() ) {
+        i->enqueue( "* OK [UIDNEXT " + fn( n ) + "]\r\n" );
+        setAnnounced( n );
+    }
 }
