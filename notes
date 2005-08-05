@@ -256,6 +256,9 @@ LogClient::reconnect should die, or at least suck less.
 
   Is this still a problem, or is this a zombie note?
 
+  (It's not a zombie note. The code is still... misguided. But just
+  removing a few lines of code should suffice to fix it.)
+
 
 Log::~Log() calls commit(), but Log::id is already broken.
 
