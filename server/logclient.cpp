@@ -56,16 +56,8 @@ public:
         owner = 0;
     }
 
-    void reconnect() {
-        // XXX: This function is used only to reconnect to the log
-        // server in the tlsproxy after fork. It is not generally
-        // useful, and the pretence should be removed someday.
-        if ( state() != Invalid && state() != Inactive )
-            return;
-
-        // XXX: Should this connection still be in the Loop?
-        // I don't think so. -- AMS
-        Loop::removeConnection( this );
+    void reconnect()
+    {
         connect( logServer );
         Loop::addConnection( this );
     }
@@ -83,9 +75,6 @@ public:
         case Read:
         case Close:
         case Error:
-            // If it does, we shutdown after deactivating the LogClient.
-            // XXX: We shouldn't be doing this if reconnect() is to do
-            // something useful. Should fix later. -- AMS
             delete owner;
             owner = 0;
             Loop::shutdown();
@@ -121,7 +110,10 @@ void LogClient::send( const String &id,
                       Log::Facility f, Log::Severity s,
                       const String & m )
 {
-    d->reconnect();
+    // We need to re-establish the connection to the log server after
+    // the tlsproxy forks.
+    if ( d->state() == Connection::Invalid )
+        d->reconnect();
 
     String t( id );
     t.reserve( m.length() + 35 );
