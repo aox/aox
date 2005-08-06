@@ -83,6 +83,8 @@ Server::Server( const char * name, int argc, char * argv[] )
 {
     d = new ServerData( name );
 
+    Allocator::addEternal( d, "Server data" );
+
     int c;
     while ( (c=getopt( argc, argv, "fc:" )) != -1 ) {
         switch ( c ) {
