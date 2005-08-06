@@ -163,9 +163,6 @@ void Server::setup( Stage s )
             case PidFile:
                 pidFile();
                 break;
-            case Startup:
-                startup();
-                break;
             case LogStartup:
                 logStartup();
                 break;
@@ -315,16 +312,6 @@ void Server::pidFile()
         f.write( fn( getpid() ) + "\n" );
     else
         log( "Unable to write to PID file " + n );
-}
-
-
-/*! This function performs all startup tasks, and continues only when
-    they are successfully completed. If any errors occur, the startup
-    sequence is terminated with an error.
-*/
-
-void Server::startup()
-{
 }
 
 
