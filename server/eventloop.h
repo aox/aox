@@ -25,6 +25,9 @@ public:
 
     void dispatch( Connection *, bool, bool, int );
 
+    bool inStartup() const;
+    void setStartup( bool );
+
     List< Connection > *connections() const;
 
 private:

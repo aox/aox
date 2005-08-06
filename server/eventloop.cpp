@@ -31,11 +31,12 @@ class LoopData
 {
 public:
     LoopData()
-        : log( new Log( Log::Server ) ),
+        : log( new Log( Log::Server ) ), startup( false ),
           stop( false ), shutdown( false )
     {}
 
     Log *log;
+    bool startup;
     bool stop, shutdown;
     SortedList< Connection > connections;
 };
@@ -134,7 +135,9 @@ void EventLoop::start()
         while ( it ) {
             c = it;
 
-            if ( c->active() ) {
+            if ( c->active() &&
+                 !( inStartup() && c->type() == Connection::Listener ) )
+            {
                 int fd = c->fd();
                 if ( c->canRead() && c->state() != Connection::Closing )
                     FD_SET( fd, &r );
@@ -199,12 +202,10 @@ void EventLoop::start()
                 }
             }
             else {
-                // XXX: This is highly suboptimal.
-                // XXX: Why is it highly suboptimal? What could we do better?
                 log( Server::name() + ": select() returned errno " +
                      fn( errno ),
                      Log::Disaster );
-                exit( 0 );
+                return;
             }
         }
 
@@ -399,4 +400,25 @@ void EventLoop::flushAll()
         it->write();
         ++it;
     }
+}
+
+
+/*! Returns true if this EventLoop is still attending to startup chores,
+    and not yet processing Listener requests.
+*/
+
+bool EventLoop::inStartup() const
+{
+    return d->startup;
+}
+
+
+/*! Sets the startup state of this EventLoop to \a p. If \a p is true,
+    then Listeners will not be processed until this function is called
+    again with \a p set to false.
+*/
+
+void EventLoop::setStartup( bool p )
+{
+    d->startup = p;
 }
