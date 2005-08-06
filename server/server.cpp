@@ -35,9 +35,11 @@
 #include "scope.h"
 #include "allocator.h"
 #include "logclient.h"
+#include "eventloop.h"
 #include "connection.h"
 #include "configuration.h"
 #include "entropy.h"
+#include "query.h"
 
 
 class ServerData
@@ -47,7 +49,8 @@ public:
     ServerData( const char * n )
         : name( n ), stage( Server::Configuration ),
           secured( false ), fork( false ),
-          chrootMode( Server::JailDir )
+          chrootMode( Server::JailDir ),
+          queries( new List< Query > )
     {}
 
     String name;
@@ -56,6 +59,8 @@ public:
     bool secured;
     bool fork;
     Server::ChrootMode chrootMode;
+
+    List< Query > *queries;
 };
 
 
@@ -82,7 +87,6 @@ ServerData * Server::d;
 Server::Server( const char * name, int argc, char * argv[] )
 {
     d = new ServerData( name );
-
     Allocator::addEternal( d, "Server data" );
 
     int c;
@@ -518,10 +522,25 @@ void Server::run()
         exit( 1 );
     }
     commit();
+
+    if ( !d->queries->isEmpty() )
+        Loop::loop()->setStartup( true );
     Loop::start();
+
     if ( Scope::current()->log()->disastersYet() )
         exit( 1 );
     exit( 0 );
+}
+
+
+/*! Adds \a q to the list of queries that this Server should wait for
+    before declaring the startup complete, and allowing the EventLoop
+    to start processing Listeners.
+*/
+
+void Server::waitFor( Query *q )
+{
+    d->queries->append( q );
 }
 
 

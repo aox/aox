@@ -37,6 +37,8 @@ public:
 
     void setup( Stage );
     void run();
+
+    void waitFor( class Query * );
     void execute();
 
     static String name();
