@@ -4,4 +4,5 @@ SubInclude TOP server ;
 
 Build logd : logserver.cpp selflogger.cpp ;
 Build logdmain : logd.cpp ;
-Server logd : logdmain logd server core ;
+Server logd : logdmain logd server database core ;
+LINKLIBS on logd += -lcrypt ;

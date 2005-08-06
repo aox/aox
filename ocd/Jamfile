@@ -3,4 +3,5 @@ SubInclude TOP server ;
 
 Build ocd : ocserver.cpp ocadmin.cpp ;
 Build ocdmain : ocd.cpp ;
-Server ocd : ocdmain ocd server core ;
+Server ocd : ocdmain ocd server database core ;
+LINKLIBS on ocd += -lcrypt ;
