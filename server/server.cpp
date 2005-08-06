@@ -533,6 +533,16 @@ void Server::run()
 }
 
 
+/*! This static function returns the name of the application.
+    Is server the right way to publicise this name?
+*/
+
+String Server::name()
+{
+    return d->name;
+}
+
+
 /*! Adds \a q to the list of queries that this Server should wait for
     before declaring the startup complete, and allowing the EventLoop
     to start processing Listeners.
@@ -544,19 +554,34 @@ void Server::waitFor( Query *q )
 }
 
 
-/*! It's not yet clear what this function should do.
+/*! This function actually waits for the queries added with waitFor() to
+    complete before ending the EventLoop startup phase. If any of these
+    queries fail, the function exits.
 */
 
 void Server::execute()
 {
-}
+    static bool failures = false;
+    List< Query >::Iterator it( d->queries );
 
+    while ( it ) {
+        Query *q = it;
 
-/*! This static function returns the name of the application.
-    Is server the right way to publicise this name?
-*/
+        if ( q->done() ) {
+            if ( q->failed() )
+                failures = true;
+            d->queries->take( it );
+        }
+        else {
+            ++it;
+        }
+    }
 
-String Server::name()
-{
-    return d->name;
+    if ( failures || Scope::current()->log()->disastersYet() ) {
+        Loop::shutdown();
+        exit( 1 );
+    }
+
+    if ( d->queries->isEmpty() )
+        Loop::loop()->setStartup( false );
 }
