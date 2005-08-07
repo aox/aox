@@ -534,6 +534,9 @@ There's more to supporting SMTP pipelining than simply announcing it.
   (See, for example, SMTP::rcpt for clues.)
 
 
+There is no reason to have the EventLoop/Loop split any more.
+
+
 We need to do the right thing.
 
 
