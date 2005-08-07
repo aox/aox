@@ -16,6 +16,7 @@ class Multipart
 {
 public:
     Multipart();
+    virtual ~Multipart();
 
     Header * header() const;
     void setHeader( Header * );

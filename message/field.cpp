@@ -184,6 +184,13 @@ HeaderField::HeaderField( HeaderField::Type t )
 }
 
 
+/*! Exists only to avoid compiler warnings. */
+
+HeaderField::~HeaderField()
+{
+}
+
+
 /*! Returns the type of this header field, as set by the constructor
     based on the name(). Unknown fields have type HeaderField::Other.
 */

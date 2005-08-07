@@ -61,6 +61,13 @@ EventLoop::EventLoop()
 }
 
 
+/*! Exists only to avoid compiler warnings. */
+
+EventLoop::~EventLoop()
+{
+}
+
+
 /*! Adds \a c to this EventLoop's list of active Connections. */
 
 void EventLoop::addConnection( Connection *c )

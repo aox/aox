@@ -14,6 +14,7 @@ class EventLoop
 {
 public:
     EventLoop();
+    virtual ~EventLoop();
 
     virtual void start();
     virtual void stop();

@@ -33,8 +33,14 @@ EventHandler::EventHandler()
 }
 
 
-/*! Sets this object's Log to \a log.
-*/
+/*! Exists only to avoid compiler warnings. */
+
+EventHandler::~EventHandler()
+{
+}
+
+
+/*! Sets this object's Log to \a log. */
 
 void EventHandler::setLog( Log *log )
 {

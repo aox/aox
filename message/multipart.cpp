@@ -29,6 +29,13 @@ Multipart::Multipart()
 }
 
 
+/*! Exists only to avoid compiler warnings. */
+
+Multipart::~Multipart()
+{
+}
+
+
 /*! Returns a pointer to the Header for this Multipart object, or 0 if
     none has been set with setHeader().
 */

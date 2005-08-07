@@ -13,6 +13,7 @@ class EventHandler
 {
 public:
     EventHandler();
+    virtual ~EventHandler();
 
     void setLog( Log * );
     Log *log() const;

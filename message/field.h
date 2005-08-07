@@ -43,6 +43,7 @@ public:
 
 protected:
     HeaderField( HeaderField::Type );
+    virtual ~HeaderField();
 
 public:
     Type type() const;

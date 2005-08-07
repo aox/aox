@@ -68,7 +68,7 @@ void Buffer::append( const char *s, uint l )
     // Then we use a new vector for the rest.
     if ( copied < l ) {
         int remains = l - copied;
-        Vector *f = f = new Vector;
+        Vector *f = new Vector;
         f->len = remains;
         if ( f->len < 16384 )
             f->len = 16384;
