@@ -169,7 +169,7 @@ void LogClient::setup( const String & n )
     client->d->name = n;
     client->d->setBlocking( true );
     if ( client->d->connect( e ) < 0 ) {
-        fprintf( stderr, "%s: Unable to connect to server %s\n",
+        fprintf( stderr, "%s: Unable to connect to log server %s\n",
                  client->name().cstr(), e.string().cstr() );
         exit( -1 );
     }

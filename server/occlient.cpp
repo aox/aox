@@ -56,7 +56,7 @@ void OCClient::setup()
     client->setBlocking( true );
 
     if ( client->connect( e ) < 0 ) {
-        ::log( "Unable to connect to ocdhost " + e.string() + "\n",
+        ::log( "Unable to connect to oryx cluster server " + e.string() + "\n",
                Log::Disaster );
         return;
     }
