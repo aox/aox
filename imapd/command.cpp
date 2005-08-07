@@ -478,7 +478,7 @@ void Command::emitResponses()
 
     if ( !d->tagged ) {
         if ( !d->error )
-            respond( "OK", Tagged );
+            respond( "OK done", Tagged );
         else if ( d->errorCode == Bad )
             respond( "BAD " + d->errorText, Tagged );
         else
