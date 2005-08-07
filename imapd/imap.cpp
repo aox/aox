@@ -201,7 +201,7 @@ void IMAP::parse()
                 d->literalSize = n;
 
                 if ( !plus )
-                    enqueue( "+\r\n" );
+                    enqueue( "+ reading literal\r\n" );
             }
 
             // Have we finished reading the entire command?
