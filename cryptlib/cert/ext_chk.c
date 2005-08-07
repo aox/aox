@@ -336,9 +336,10 @@ static int stackInfo( ATTRIBUTE_CHECK_INFO *attributeCheckInfo,
 	return( CRYPT_OK );
 	}
 
+static int checkAttribute( ATTRIBUTE_CHECK_INFO *attributeCheckInfo );	/* Fwd.dec for fn.*/
+
 static int checkAttributeEntry( ATTRIBUTE_CHECK_INFO *attributeCheckInfo )
 	{
-	STATIC_FN int checkAttribute( ATTRIBUTE_CHECK_INFO *attributeCheckInfo );
 	ATTRIBUTE_LIST *attributeListPtr = attributeCheckInfo->attributeListPtr;
 	ATTRIBUTE_INFO *attributeInfoPtr = attributeCheckInfo->attributeInfoPtr;
 	ATTRIBUTE_STACK *stack = attributeCheckInfo->stack;

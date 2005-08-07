@@ -120,10 +120,11 @@ int getRandomData( void *randomInfo, void *buffer, const int length );
 
 /* Initialise and shut down the system device */
 
+static void initCapabilities( void );		/* Fwd.dec for fn.*/
+
 static int initFunction( DEVICE_INFO *deviceInfo, const char *name,
 						 const int nameLength )
 	{
-	STATIC_FN void initCapabilities( void );
 	int status;
 
 	UNUSED( name );

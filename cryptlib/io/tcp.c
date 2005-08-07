@@ -30,6 +30,11 @@
 *																			*
 ****************************************************************************/
 
+/* Forward declarations for socket pool functions */
+
+static int initSocketPool( void );
+static void endSocketPool( void );
+
 #ifdef __WINDOWS__
 
 /* Global function pointers.  These are necessary because the functions need
@@ -276,8 +281,6 @@ int netInitTCP( void )
 
 void netEndTCP( void )
 	{
-	STATIC_FN void endSocketPool( void );
-
 	/* Clean up the socket pool state information */
 	endSocketPool();
 
@@ -305,8 +308,6 @@ static BOOLEAN transportOKFunction( void )
 
 int netInitTCP( void )
 	{
-	STATIC_FN int initSocketPool( void );
-
 #ifdef __SCO_VERSION__
 	struct sigaction act, oact;
 
@@ -349,8 +350,6 @@ int netInitTCP( void )
 
 void netEndTCP( void )
 	{
-	STATIC_FN void endSocketPool( void );
-
 	/* Clean up the socket pool state information */
 	endSocketPool();
 
