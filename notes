@@ -335,17 +335,6 @@ We should reject 8-bit content in headers.
   > self-evidential truth.)
 
 
-How do we cope with PostgreSQL server crashes?
-
-  > We reconnect when we can, ie. when TCP/IP is used, and if not, we
-  > fall over and die horribly, in a graceless and untested manner.
-
-  Right. In fact, I should have written "Look into what happens when the
-  Postgres server crashes" (it doesn't accept immediate reconnections).
-  I observed nasty behaviour at Linuxtag, but didn't have the time to
-  try to reproduce it.
-
-
 Pine bodystructure problems (torture-test)
 
 
