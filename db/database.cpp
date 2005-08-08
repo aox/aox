@@ -20,8 +20,6 @@ List< Query > *Database::queries;
 static List< Database > *handles;
 static time_t lastCreated;
 
-int currentRevision = 9;
-
 static void newHandle()
 {
     (void)new Postgres;

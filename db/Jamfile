@@ -4,4 +4,4 @@ SubDir TOP db ;
 SubInclude TOP server ;
 
 Build database : database.cpp postgres.cpp pgmessage.cpp cache.cpp
-    query.cpp transaction.cpp ;
+    query.cpp transaction.cpp schema.cpp ;
