@@ -641,7 +641,6 @@ void Postgres::error( const String &s )
     }
 
     writeBuffer()->remove( writeBuffer()->size() );
-    writeBuffer()->remove( writeBuffer()->size() );
     Connection::setState( Closing );
     removeHandle( this );
 }
