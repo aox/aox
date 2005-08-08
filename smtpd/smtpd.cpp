@@ -14,6 +14,7 @@
 #include "injector.h"
 #include "tls.h"
 #include "configuration.h"
+#include "schema.h"
 #include "log.h"
 
 
@@ -56,6 +57,8 @@ int main( int argc, char * argv[] )
     Database::setup();
 
     s.setup( Server::Finish );
+
+    s.waitFor( Schema::check( &s ) );
 
     TlsServer::setup();
     OCClient::setup();

@@ -8,6 +8,7 @@
 #include "loop.h"
 #include "server.h"
 #include "flag.h"
+#include "schema.h"
 
 
 /*! \nodoc */
@@ -25,6 +26,8 @@ int main( int argc, char * argv[] )
     );
 
     Database::setup();
+
+    s.waitFor( Schema::check( &s ) );
     Flag::setup();
 
     s.execute();
