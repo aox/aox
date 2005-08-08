@@ -205,7 +205,7 @@ void SMTP::react( Event e )
     acceptable and various SMTP extensions may increase it. RFC 2822
     declares that line lengths should be limited to 998 characters.
 
-    I spontaneously declare 32768 to be big enough.
+    I spontaneously declare 262144 to be big enough.
 */
 
 void SMTP::parse()
@@ -215,7 +215,7 @@ void SMTP::parse()
         uint i = 0;
         while ( i < r->size() && (*r)[i] != 10 )
             i++;
-        if ( i >= 32768 ) {
+        if ( i >= 262144 ) {
             log( "Connection closed due to overlong line (" +
                  fn( i ) + " bytes)", Log::Error );
             respond( 500, "Line too long (legal maximum is 998 bytes)" );
