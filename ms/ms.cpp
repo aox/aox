@@ -261,7 +261,7 @@ void UpdateSchema::execute() {
                             t->enqueue( u );
                         }
                         else {
-                            uint * tmp 
+                            uint * tmp
                                 = (uint*)Allocator::alloc( sizeof(uint) );
                             *tmp = id;
                             hashes.insert( hash, tmp );
@@ -777,6 +777,34 @@ void listUsers( const char * pattern )
 }
 
 
+static void showConfiguration()
+{
+    uint i = 0;
+    while ( i < Configuration::NumScalars ) {
+        printf( "%-23s %d\n",
+                Configuration::name( (Configuration::Scalar)i ),
+                Configuration::scalar( (Configuration::Scalar)i ) );
+        i++;
+    }
+    i = 0;
+    while ( i < Configuration::NumToggles ) {
+        printf( "%-23s %s\n",
+                Configuration::name( (Configuration::Toggle)i ),
+                Configuration::toggle( (Configuration::Toggle)i )
+                ? "on" : "off" );
+        i++;
+    }
+    i = 0;
+    while ( i < Configuration::NumTexts ) {
+        if ( i != Configuration::DbPassword )
+            printf( "%-23s %s\n",
+                    Configuration::name( (Configuration::Text)i ),
+                    Configuration::text( (Configuration::Text)i ).cstr() );
+        i++;
+    }
+}
+
+
 int main( int argc, char *argv[] )
 {
     Scope global;
@@ -797,20 +825,24 @@ int main( int argc, char *argv[] )
     else if ( verb == "remove" || verb == "del" )
         verb = "delete";
 
+    if ( noun == "config" )
+        noun = "configuration";
+
     // get rid of illegal verbs and nouns
     if ( verb != "create" &&
          verb != "rename" &&
          verb != "change" &&
          verb != "list" &&
          verb != "delete" &&
-         verb != "migrate" )
+         verb != "migrate" &&
+         verb != "show" )
         error( verb + ": unknown verb" );
 
     if ( noun != "user" &&
          noun != "users" &&
          noun != "mailbox" &&
          noun != "password" &&
-         verb != "migrate" )
+         noun != "configuration" )
         error( noun + ": unknown noun" );
 
     // typical mailstore crud
@@ -892,6 +924,10 @@ int main( int argc, char *argv[] )
     else if ( verb == "migrate" ) {
         UpdateSchema *s = new UpdateSchema;
         s->execute();
+    }
+    else if ( verb == "show" && noun == "configuration" ) {
+        showConfiguration();
+        exit( 0 );
     }
     else { // .. and if we don't know that verb/noun combination:
         error( "Sorry, not implemented: " + verb + " " + noun );
