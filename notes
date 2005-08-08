@@ -537,6 +537,9 @@ There's more to supporting SMTP pipelining than simply announcing it.
 There is no reason to have the EventLoop/Loop split any more.
 
 
+Implement more encodings: BIG5/SJIS/GBK. (AMS)
+
+
 We need to do the right thing.
 
 
