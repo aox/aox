@@ -169,7 +169,7 @@ void Append::execute()
                      fn( d->mailbox->uidvalidity() ) +
                      " " +
                      fn( d->injector->uid( d->mailbox ) ) +
-                     "]",
+                     "] done",
                      Tagged );
         }
         finish();

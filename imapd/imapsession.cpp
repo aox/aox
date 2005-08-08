@@ -45,7 +45,7 @@ void ImapSession::emitExists( uint number )
     i->enqueue( "* " + fn( number ) + " EXISTS\r\n" );
     uint n = uidnext();
     if ( n > announced() ) {
-        i->enqueue( "* OK [UIDNEXT " + fn( n ) + "]\r\n" );
+        i->enqueue( "* OK [UIDNEXT " + fn( n ) + "] next uid\r\n" );
         setAnnounced( n );
     }
 }

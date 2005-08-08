@@ -115,18 +115,20 @@ void Select::execute()
 
     respond( fn( d->session->count() ) + " EXISTS" );
     respond( fn( d->session->recent().count() ) + " RECENT" );
-    respond( "OK [UNSEEN " + fn( d->session->firstUnseen() ) + "]" );
+    respond( "OK [UNSEEN " + fn( d->session->firstUnseen() ) + "]"
+             " first unseen" );
 
     uint n = d->session->uidnext();
-    respond( "OK [UIDNEXT " + fn( n ) + "]" );
+    respond( "OK [UIDNEXT " + fn( n ) + "] next uid" );
     d->session->setAnnounced( n );
 
-    respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]" );
-    respond( "OK [PERMANENTFLAGS (" + flags +" \\*)]" );
+    respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
+             " uid validity" );
+    respond( "OK [PERMANENTFLAGS (" + flags +" \\*)] permanent flags" );
     if ( d->session->readOnly() )
-        respond( "OK [READ-ONLY]", Tagged );
+        respond( "OK [READ-ONLY] done", Tagged );
     else
-        respond( "OK [READ-WRITE]", Tagged );
+        respond( "OK [READ-WRITE] done", Tagged );
 
     imap()->beginSession( d->session );
     finish();
