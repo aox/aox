@@ -14,6 +14,7 @@
 #include "flag.h"
 #include "tls.h"
 #include "injector.h"
+#include "schema.h"
 
 
 /*! \nodoc */
@@ -47,6 +48,8 @@ int main( int argc, char *argv[] )
     FieldNameCache::setup();
     Flag::setup();
     IMAP::setup();
+
+    s.waitFor( Schema::check( &s ) );
 
     s.run();
 }
