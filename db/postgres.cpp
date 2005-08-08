@@ -558,7 +558,12 @@ void Postgres::unknown( char type )
                     }
                 }
                 else {
-                    error( msg.message() );
+                    if ( msg.severity() == PgMessage::Panic )
+                        s.append( "PANIC: " );
+                    else
+                        s.append( "FATAL: " );
+                    s.append( msg.message() );
+                    error( s );
                 }
                 break;
 
