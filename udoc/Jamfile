@@ -3,7 +3,7 @@ SubInclude TOP core ;
 
 Build udoc : qdoc.cpp error.cpp parser.cpp class.cpp function.cpp docblock.cpp
     headerfile.cpp sourcefile.cpp output.cpp webpage.cpp manpage.cpp
-    postscript.cpp singleton.cpp intro.cpp ;
+    postscript.cpp singleton.cpp intro.cpp enum.cpp ;
 
 Doc udocdoc : udoc core ;
 

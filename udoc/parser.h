@@ -30,6 +30,7 @@ public:
     String type();
     String argumentList();
     String word();
+    String value();
 
 private:
     uint simpleIdentifier( uint );

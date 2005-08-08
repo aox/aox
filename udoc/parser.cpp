@@ -342,25 +342,44 @@ String Parser::word()
 }
 
 
+/*! Parses and steps past a single value, which is either a number of
+    an identifier.
+*/
+
+String Parser::value()
+{
+    uint j = whitespace( i );
+    if ( t[j] >= '0' && t[j] <= '9' ) {
+        uint k = j;
+        while ( t[k] >= '0' && t[k] <= '9' )
+            k++;
+        String r( t.mid( j, k-j ) );
+        i = k;
+        return r;
+    }
+    return identifier();
+}
+
+
 /*! Steps past the whitespace starting at \a j and return the index of
     the first following nonwhitespace character.
 */
 
 uint Parser::whitespace( uint j )
 {
-    bool again = true;
-    while ( again ) {
-        again = false;
+    uint k;
+    do {
+        k = j;
 
         while ( t[j] == 32 || t[j] == 9 || t[j] == 13 || t[j] == 10 )
             j++;
 
         if ( t[j] == '/' && t[j+1] == '/' ) {
-            while( j < t.length() && t[j] != '\n' )
+            while ( j < t.length() && t[j] != '\n' )
                 j++;
-            again = true;
         }
-    }
+    } while ( j > k );
+
     return j;
 }
 

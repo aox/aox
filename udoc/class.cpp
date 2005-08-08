@@ -72,7 +72,6 @@ Class * Class::find( const String & s )
 
 void Class::setParent( const String & cn )
 {
-    new Error( file(), line(), "Setting superclass " + cn + " for " + name() );
     superclassName = cn;
 }
 

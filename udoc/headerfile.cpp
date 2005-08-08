@@ -2,11 +2,12 @@
 
 #include "headerfile.h"
 
-#include "class.h"
-#include "parser.h"
-#include "error.h"
-#include "function.h"
 #include "list.h"
+#include "enum.h"
+#include "class.h"
+#include "error.h"
+#include "parser.h"
+#include "function.h"
 
 
 static List<HeaderFile> * headers = 0;
@@ -117,7 +118,50 @@ void HeaderFile::parse()
                     n = p.identifier();
                 }
                 else if ( p.lookingAt( "enum " ) ) {
-                    ok = true;
+                    p.scan( " " );
+                    Enum * e = new Enum( c, p.word(), this, l );
+                    p.whitespace();
+                    if ( p.lookingAt( "{" ) ) {
+                        bool again = true;
+                        while ( again ) {
+                            p.step();
+                            p.whitespace();
+                            String v = p.word();
+                            if ( v.isEmpty() )
+                                (void)new Error( this, p.line(),
+                                                 "Could not parse "
+                                                 "enum value" );
+                            else
+                                e->addValue( v );
+                            p.whitespace();
+                            if ( p.lookingAt( "=" ) ) {
+                                p.step();
+                                p.whitespace();
+                                (void)p.value();
+                                p.whitespace();
+                            }
+                            again = p.lookingAt( "," );
+                        }
+                        if ( p.lookingAt( "}" ) ) {
+                            p.step();
+                            ok = true;
+                        }
+                        else {
+                            (void)new Error( this, p.line(),
+                                             "Enum definition for " +
+                                             className + "::" + n +
+                                             " does not end with '}'" );
+                        }
+                    }
+                    else if ( p.lookingAt( ";" ) ) {
+                        // senseless crap
+                        ok = true;
+                    }
+                    else {
+                        (void)new Error( this, l,
+                                         "Cannot parse enum " +
+                                         className + "::" + n );
+                    }
                 }
                 else {
                     t = p.type();
