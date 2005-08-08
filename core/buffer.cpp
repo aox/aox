@@ -118,7 +118,9 @@ void Buffer::read( int fd )
             seenEOF = false;
             append( buf, n );
         }
-        else if ( n == 0 ) {
+        else if ( n == 0 ||
+                  errno == ECONNRESET )
+        {
             seenEOF = true;
         }
         else if ( errno != EAGAIN &&
