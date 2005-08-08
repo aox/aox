@@ -779,28 +779,42 @@ void listUsers( const char * pattern )
 
 static void showConfiguration()
 {
+    SortedList<String> output;
+    char tmp[1100];
+
     uint i = 0;
     while ( i < Configuration::NumScalars ) {
-        printf( "%-23s %d\n",
-                Configuration::name( (Configuration::Scalar)i ),
-                Configuration::scalar( (Configuration::Scalar)i ) );
+        sprintf( tmp, "%-23s %d",
+                 Configuration::name( (Configuration::Scalar)i ),
+                 Configuration::scalar( (Configuration::Scalar)i ) );
+        output.insert( new String( tmp ) );
         i++;
     }
     i = 0;
     while ( i < Configuration::NumToggles ) {
-        printf( "%-23s %s\n",
-                Configuration::name( (Configuration::Toggle)i ),
-                Configuration::toggle( (Configuration::Toggle)i )
-                ? "on" : "off" );
+        sprintf( tmp, "%-23s %s",
+                 Configuration::name( (Configuration::Toggle)i ),
+                 Configuration::toggle( (Configuration::Toggle)i )
+                 ? "on" : "off" );
+        output.insert( new String( tmp ) );
         i++;
     }
     i = 0;
     while ( i < Configuration::NumTexts ) {
-        if ( i != Configuration::DbPassword )
-            printf( "%-23s %s\n",
-                    Configuration::name( (Configuration::Text)i ),
-                    Configuration::text( (Configuration::Text)i ).cstr() );
+        if ( i != Configuration::DbPassword ) {
+            String v( Configuration::text( (Configuration::Text)i ) );
+            v = v.mid( 0, 1000 );
+            sprintf( tmp, "%-23s %s",
+                     Configuration::name( (Configuration::Text)i ),
+                     v.cstr() );
+            output.insert( new String( tmp ) );
+        }
         i++;
+    }
+    StringList::Iterator it( output );
+    while ( it ) {
+        printf( "%s\n", it->cstr() );
+        ++it;
     }
 }
 
