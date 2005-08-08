@@ -41,6 +41,8 @@ int main( int argc, char *argv[] )
 
     s.setup( Server::Finish );
 
+    s.waitFor( Schema::check( &s ) );
+
     TlsServer::setup();
     OCClient::setup();
     Mailbox::setup();
@@ -48,8 +50,6 @@ int main( int argc, char *argv[] )
     FieldNameCache::setup();
     Flag::setup();
     IMAP::setup();
-
-    s.waitFor( Schema::check( &s ) );
 
     s.run();
 }
