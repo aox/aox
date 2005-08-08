@@ -74,19 +74,26 @@ static Map<Mailbox> * mailboxes = 0;
 */
 
 
-class MailboxReader : public EventHandler {
+class MailboxReader
+    : public EventHandler
+{
 public:
     Query * query;
-    MailboxReader( const char * q, const String & n, Transaction * t )
-        : query( 0 )
+    EventHandler * owner;
+
+    MailboxReader( const char * q, const String & n,
+                   Transaction * t, EventHandler * ev = 0 )
     {
         query = new Query( q, this );
+        owner = ev;
+
         if ( !n.isEmpty() )
             query->bind( 1, n );
         if ( !::mailboxes ) {
             ::mailboxes = new Map<Mailbox>;
             Allocator::addEternal( ::mailboxes, "mailbox tree" );
         }
+
         if ( t )
             t->enqueue( query );
         else
@@ -109,8 +116,11 @@ public:
                 ::mailboxes->insert( m->d->id, m );
         }
 
-        if ( query->failed() )
-            log( "Couldn't create mailbox tree.", Log::Disaster );
+        if ( owner ) {
+            if ( query->failed() )
+                log( "Couldn't create mailbox tree.", Log::Disaster );
+            owner->execute();
+        }
     }
 };
 
@@ -126,6 +136,25 @@ void Mailbox::setup()
     Allocator::addEternal( ::root, "root mailbox" );
 
     (void)new MailboxReader( "select * from mailboxes", "", 0 );
+}
+
+
+/*! This function is a replacement for setup(). It does the same thing
+    as its elder sibling, but returns a Query and notifies \a owner of
+    completion.
+
+    This function and setup() are mutually exclusive. ::main() should
+    call only one of them.
+*/
+
+Query * Mailbox::slurp( EventHandler * owner )
+{
+    ::root = new Mailbox( "/" );
+    Allocator::addEternal( ::root, "root mailbox" );
+
+    MailboxReader * mr =
+        new MailboxReader( "select * from mailboxes", "", 0, owner );
+    return mr->query;
 }
 
 
