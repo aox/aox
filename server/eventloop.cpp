@@ -330,8 +330,13 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
             w = true;
         }
 
-        if ( w )
+        if ( w ) {
             c->write();
+            if ( c->writeBuffer()->error() != 0 ) {
+                c->react( Connection::Close );
+                c->setState( Connection::Closing );
+            }
+        }
     }
     catch ( Exception e ) {
         String s;

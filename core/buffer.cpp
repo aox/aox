@@ -30,11 +30,11 @@
     that: IMAPS.
 */
 
-/*! Creates an empty Buffer.
-*/
+/*! Creates an empty Buffer. */
 
 Buffer::Buffer()
-    : firstused( 0 ), firstfree( 0 ), seenEOF( false ), bytes( 0 )
+    : firstused( 0 ), firstfree( 0 ), seenEOF( false ),
+      bytes( 0 ), err( 0 )
 {
 }
 
@@ -126,7 +126,7 @@ void Buffer::read( int fd )
         else if ( errno != EAGAIN &&
                   errno != EWOULDBLOCK )
         {
-            die( FD );
+            err = errno;
         }
     } while ( n > 0 );
 }
@@ -154,10 +154,13 @@ void Buffer::write( int fd )
         written = 0;
         if ( n )
             written = ::write( fd, v->base+firstused, n );
-        if ( written > 0 )
+        if ( written > 0 ) {
             remove( written );
-        else if ( written < 0 && errno != EAGAIN )
-            die( FD );
+        }
+        else if ( written < 0 && errno != EAGAIN ) {
+            err = errno;
+            break;
+        }
     }
     while ( written > 0 );
 }
@@ -168,6 +171,16 @@ void Buffer::write( int fd )
 bool Buffer::eof() const
 {
     return seenEOF;
+}
+
+
+/*! Returns the errno value for the last error value encountered during
+    IO on this Buffer, or 0 if there was no error.
+*/
+
+uint Buffer::error() const
+{
+    return err;
 }
 
 

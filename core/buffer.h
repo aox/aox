@@ -23,6 +23,7 @@ public:
     void write( int );
 
     bool eof() const;
+    uint error() const;
     uint size() const { return bytes; }
     void remove( uint );
     String string( uint ) const;
@@ -56,6 +57,7 @@ private:
     uint firstused, firstfree;
     bool seenEOF;
     uint bytes;
+    uint err;
 };
 
 

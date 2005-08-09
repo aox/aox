@@ -468,7 +468,7 @@ void Connection::write()
 
 bool Connection::canRead()
 {
-    return !d->r->eof();
+    return !d->r->eof() && d->r->error() == 0;
 }
 
 
@@ -476,7 +476,7 @@ bool Connection::canRead()
 
 bool Connection::canWrite()
 {
-    return d->w->size() > 0;
+    return d->w->size() > 0 && d->w->error() == 0;
 }
 
 
