@@ -355,12 +355,6 @@ Look at cryptlib error messages after 0.96.
   conditions.
 
 
-Error handling in the Injector needs another look.
-
-  (I saw some horrible failures at Linuxtag. I just need to go over the
-  logs.)
-
-
 We need to support date field searches.
 
 
