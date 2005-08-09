@@ -466,13 +466,6 @@ On kalyani, "ms add users" segfaults three servers
   The user is created, then three servers die.
 
 
-ms show configuration
-
-  We need a command to show the value used for all variables. It's
-  easy to find, just read the man page and check mailstore.conf, but
-  it's even easier for ms to output.
-
-
 ms show status
 
   Figuring out which servers are running (each 'ms add user' currently
@@ -521,6 +514,9 @@ There is no reason to have the EventLoop/Loop split any more.
 
 
 Implement more encodings: BIG5/SJIS/GBK. (AMS)
+
+
+Cryptlib 3.2.1 has been released. Upgrade to it later.
 
 
 We need to do the right thing.
