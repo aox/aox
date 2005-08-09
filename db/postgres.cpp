@@ -37,8 +37,8 @@ public:
     PgData()
         : active( false ), startup( false ), authenticated( false ),
           unknownMessage( false ), identBreakageSeen( false ),
-          sendingCopy( false ), keydata( 0 ), description( 0 ),
-          transaction( 0 )
+          sendingCopy( false ), error( false ), keydata( 0 ),
+          description( 0 ), transaction( 0 )
     {}
 
     bool active;
@@ -47,6 +47,7 @@ public:
     bool unknownMessage;
     bool identBreakageSeen;
     bool sendingCopy;
+    bool error;
 
     PgKeyData *keydata;
     Dict< String > params;
@@ -158,41 +159,18 @@ void Postgres::processQueue()
             l = d->transaction->queries();
         }
 
-        d->queries.append( q );
+        if ( !d->error ) {
+            d->queries.append( q );
+            processQuery( q );
+            n++;
 
-        String s( "Sent " );
-        if ( q->name() == "" ||
-             !d->prepared.contains( q->name() ) )
-        {
-            PgParse a( q->string(), q->name() );
-            a.enqueue( writeBuffer() );
-
-            if ( q->name() != "" )
-                d->prepared.insert( q->name(), 0 );
-            s.append( "parse/" );
+            if ( q->inputLines() ) {
+                d->sendingCopy = true;
+                break;
+            }
         }
-
-        PgBind b( q->name() );
-        b.bind( q->values() );
-        b.enqueue( writeBuffer() );
-
-        PgDescribe c;
-        c.enqueue( writeBuffer() );
-
-        PgExecute ex;
-        ex.enqueue( writeBuffer() );
-
-        PgSync e;
-        e.enqueue( writeBuffer() );
-
-        s.append( "execute for " );
-        s.append( q->description() );
-        log( s, Log::Debug );
-        n++;
-
-        if ( q->inputLines() ) {
-            d->sendingCopy = true;
-            break;
+        else {
+            q->setError( "Database handle no longer usable." );
         }
     }
 
@@ -200,6 +178,43 @@ void Postgres::processQueue()
         extendTimeout( 5 );
         write();
     }
+}
+
+
+/*! Sends whatever messages are required to make the backend process the
+    query \a q.
+*/
+
+void Postgres::processQuery( Query *q )
+{
+    String s( "Sent " );
+    if ( q->name() == "" ||
+         !d->prepared.contains( q->name() ) )
+    {
+        PgParse a( q->string(), q->name() );
+        a.enqueue( writeBuffer() );
+
+        if ( q->name() != "" )
+            d->prepared.insert( q->name(), 0 );
+        s.append( "parse/" );
+    }
+
+    PgBind b( q->name() );
+    b.bind( q->values() );
+    b.enqueue( writeBuffer() );
+
+    PgDescribe c;
+    c.enqueue( writeBuffer() );
+
+    PgExecute ex;
+    ex.enqueue( writeBuffer() );
+
+    PgSync e;
+    e.enqueue( writeBuffer() );
+
+    s.append( "execute for " );
+    s.append( q->description() );
+    log( s, Log::Debug );
 }
 
 
@@ -630,6 +645,9 @@ void Postgres::unknown( char type )
 
 void Postgres::error( const String &s )
 {
+    removeHandle( this );
+
+    d->error = true;
     d->active = false;
     log( s, Log::Error );
 
@@ -642,7 +660,6 @@ void Postgres::error( const String &s )
 
     writeBuffer()->remove( writeBuffer()->size() );
     Connection::setState( Closing );
-    removeHandle( this );
 }
 
 

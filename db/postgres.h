@@ -19,6 +19,7 @@ public:
 private:
     class PgData *d;
 
+    void processQuery( class Query * );
     void authentication( char );
     void backendStartup( char );
     void process( char );
