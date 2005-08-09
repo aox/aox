@@ -140,9 +140,11 @@ void Database::runQueue()
 
     uint max = Configuration::scalar( Configuration::DbMaxHandles );
     int interval = Configuration::scalar( Configuration::DbHandleInterval );
-    if ( handles->count() < max && time( 0 ) - lastCreated >= interval &&
-         ( server().protocol() != Endpoint::Unix ||
-           server().address().startsWith( File::root() ) ) )
+    if ( handles->count() == 0 ||
+         ( handles->count() < max &&
+           time( 0 ) - lastCreated >= interval &&
+           ( server().protocol() != Endpoint::Unix ||
+             server().address().startsWith( File::root() ) ) ) )
         newHandle();
 }
 
