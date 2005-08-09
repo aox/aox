@@ -418,7 +418,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bp->d->text = c->toUnicode( body );
         if ( !c->valid() && !specified ) {
             Codec * guess = 0;
-            if ( ct->subtype() == "html" )
+            if ( ct && ct->subtype() == "html" )
                 guess = guessHtmlCodec( body );
             else
                 guess = guessTextCodec( body );
