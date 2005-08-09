@@ -4,8 +4,9 @@
 
 #include "utf.h"
 #include "codec.h"
-#include "ustring.h"
 #include "header.h"
+#include "iso8859.h"
+#include "ustring.h"
 #include "message.h"
 #include "mimefields.h"
 
@@ -315,6 +316,66 @@ void Bodypart::parseMultipart( uint i, uint end,
 }
 
 
+static Codec * guessHtmlCodec( const String & body )
+{
+    String b = body.mid( 0, 2048 ).lower().simplified();
+    int i = 0;
+    while ( i >= 0 ) {
+        // some user-agents add a certain meta http-equiv instead of
+        // the content-type header. we scan for that. we can use it to
+        // work around certain observed breakage. two problems:
+        // 1. this is not correct because this isn't http, so
+        // http-equiv is inoperative, strictly speaking.
+        // 2. it's also not correct because we're just scanning for
+        // the particular pattern which happens to be used by the
+        // brokenware, not parsing properly.
+        i = b.find( "<meta http-equiv=\"content-type\" content=\"", i );
+        if ( i >= 0 ) {
+            i = i + 41; // length of the meta above
+            int j = i;
+            while ( j < (int)b.length() &&
+                    b[j] != '"' )
+                j++;
+            HeaderField * hf
+                = HeaderField::create( "Content-Type",
+                                       b.mid( i, j-i ) );
+            String cs = ((MimeField*)hf)->parameter( "charset" );
+            Codec * c = 0;
+            if ( !cs.isEmpty() )
+                c = Codec::byName( cs );
+            if ( c )
+                return c;
+        }
+    }
+
+    // that didn't work. if it's well-formed UTF-8, let's just assume
+    // that is the right thing.
+    Codec * c = new Utf8Codec;
+    (void)c->toUnicode( body );
+    if ( c->valid() )
+        return c;
+
+    // XXX: we probably want to check Big5, GB18030 and other
+    // multibytes here.
+
+    return new Iso88591Codec;
+}
+
+
+static Codec * guessTextCodec( const String & body )
+{
+    Codec * c = new Utf8Codec;
+    (void)c->toUnicode( body );
+    if ( c->valid() )
+        return c;
+
+    // XXX: we probably want to check Big5, GB18030 and other
+    // multibytes here.
+
+    return 0;
+}
+
+
 /*! Parses the part of \a rfc2822 from \a start to \a end (not
     including \a end) as a single bodypart with MIME/RFC822 header \a h.
 
@@ -344,20 +405,31 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
 
     ContentType * ct = h->contentType();
     if ( !ct || ct->type() == "text" ) {
+        bool specified = true;
         Codec * c = 0;
         if ( ct )
             c = Codec::byName( ct->parameter( "charset" ) );
-        if ( !c )
+        if ( !c ) {
             c = new AsciiCodec;
+            specified = false;
+        }
 
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body );
+        if ( !c->valid() && !specified ) {
+            Codec * guess = 0;
+            if ( ct->subtype() == "html" )
+                guess = guessHtmlCodec( body );
+            else
+                guess = guessTextCodec( body );
+            if ( guess ) {
+                c = guess;
+                bp->d->text = c->toUnicode( body );
+            }
+        }
         if ( !c->valid() && error.isEmpty() )
-            error = "Error converting body from " + c->name() + " to Unicode";
+            error = "Error converting body to Unicode from " + c->name();
 
-        // Is there a better codec for this data?
-        if ( ct )
-            c = Codec::byString( bp->d->text );
         if ( ct && c->name().lower() != "us-ascii" )
             ct->addParameter( "charset", c->name().lower() );
         else if ( ct )
