@@ -58,12 +58,23 @@ void Idle::execute()
 
 void Idle::read()
 {
-    String *s = imap()->readBuffer()->removeLine();
-    if ( !s )
+    if ( imap()->Connection::state() != Connection::Connected ) {
+        error( Bad, "Leaving idle mode due to connection state change" );
+        imap()->reserve( 0 );
         return;
-    String r = s->lower();
-    if ( r != "done" )
-        error( Bad, "Leaving idle mode due to syntax error: " + r );
+    }
+
+    String * s = 0;
+    if ( imap()->Connection::state() == Connection::Connected ) {
+        s = imap()->readBuffer()->removeLine();
+        if ( !s )
+            return;
+
+        String r = s->lower();
+        if ( r != "done" )
+            error( Bad, "Leaving idle mode due to syntax error: " + r );
+    }
+
     imap()->reserve( 0 );
 
     Mailbox * m = 0;

@@ -136,6 +136,8 @@ void IMAP::react( Event e )
         log( "Idle timeout" );
         enqueue( "* BYE autologout\r\n" );
         Connection::setState( Closing );
+        if ( d->reader )
+            d->reader->read();
         break;
 
     case Connect:
