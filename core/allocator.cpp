@@ -163,7 +163,7 @@ Allocator::Allocator( uint s )
       bitmap( 0 ), buffer( 0 ),
       next( 0 )
 {
-    if ( s < 262144 )
+    if ( s < 0x100000 )
         capacity = 0x100000 / ( s );
     else
         capacity = 1;
