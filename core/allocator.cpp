@@ -381,7 +381,7 @@ void Allocator::free()
     if ( !freed )
         return;
 
-    if ( verbose && ::allocated >= 131072 )
+    if ( verbose && ::allocated >= 524288 )
         log( "Allocator: allocated " +
              String::humanNumber( ::allocated ) +
              " then freed " +
