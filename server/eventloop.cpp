@@ -217,8 +217,7 @@ void EventLoop::start()
         }
 
         if ( !d->stop &&
-             ( true ||
-               now - gc > 7200 ||
+             ( now - gc > 7200 ||
                Allocator::allocated() > 8*1024*1024 ||
                ( now - gc > 10 && Allocator::allocated() >= 131072 ) ) )
             {
