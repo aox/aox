@@ -38,6 +38,8 @@ Multipart::~Multipart()
 
 /*! Returns a pointer to the Header for this Multipart object, or 0 if
     none has been set with setHeader().
+
+    Both Message and Bodypart always create a Header at construction.
 */
 
 Header * Multipart::header() const
