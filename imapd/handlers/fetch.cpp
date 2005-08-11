@@ -10,12 +10,15 @@
 #include "address.h"
 #include "mailbox.h"
 #include "message.h"
+#include "ustring.h"
+#include "codec.h"
+#include "query.h"
 #include "scope.h"
 #include "store.h"
-#include "query.h"
 #include "imap.h"
 #include "flag.h"
 #include "date.h"
+#include "utf.h"
 
 
 class FetchData
@@ -308,7 +311,7 @@ void Fetch::parseBody( bool binary )
         s->part = part;
     }
 
-    d->needHeader = true; // need that for the boundary, if nothing else
+    d->needHeader = true; // need that for the charset and boundary
     d->needBody = true;
 
     // Parse any section-text.
@@ -457,15 +460,14 @@ static String sectionResponse( FetchData::Section *s,
 
     else if ( s->id == "mime" ||
               s->id == "rfc822.header" ||
-              s->id.startsWith( "header" ) )
-    {
+              s->id.startsWith( "header" ) ) {
         bool rfc822 = s->id == "rfc822.header";
         bool fields = s->id.startsWith( "header.fields" );
         bool exclude = s->id.endsWith( ".not" );
 
-        Header *hdr = m->header();
+        Header * hdr = m->header();
         if ( !s->part.isEmpty() ) {
-            Bodypart *bp = m->bodypart( s->part, false );
+            Bodypart * bp = m->bodypart( s->part, false );
             if ( bp && bp->header() )
                 hdr = bp->header();
             else
@@ -501,21 +503,32 @@ static String sectionResponse( FetchData::Section *s,
     else if ( s->id.isEmpty() ) {
         if ( s->part.isEmpty() ) {
             data = m->rfc822();
-        }
-        else if ( s->binary ) {
-            Bodypart *bp = m->bodypart( s->part, false );
-            if ( bp )
-                data = bp->data();
+            item = "BODY"; // if the client asks for BINARY[]...
         }
         else {
             Bodypart *bp = m->bodypart( s->part, false );
+            ContentType * ct = 0;
             if ( bp )
-                data = bp->asText();
+                ct = bp->contentType();
+            if ( ct && ct->type() != "text" ) {
+                data = bp->data();
+            }
+            else {
+                Codec * c = 0;
+                if ( ct )
+                    c = Codec::byName( ct->parameter( "charset" ) );
+                if ( !c )
+                    c = new Utf8Codec;
+                data = c->fromUnicode( bp->text() );
+            }
+            if ( s->binary ) {
+                item = "BINARY";
+            }
+            else {
+                item = "BODY";
+                data = data.encode( bp->contentTransferEncoding(), 70 );
+            }
         }
-        if ( s->binary )
-            item = "BINARY";
-        else
-            item = "BODY";
         item = item + "[" + s->part + "]";
     }
 
