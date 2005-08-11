@@ -669,7 +669,7 @@ uint Command::nzNumber()
 {
     uint u = number();
     if ( u == 0 )
-        error( Bad, "nonzero number expected, saw 0, then" + following() );
+        error( Bad, "nonzero number expected, saw 0, then " + following() );
     return u;
 }
 
