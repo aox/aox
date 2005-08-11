@@ -448,8 +448,8 @@ void Fetch::sendFetchQueries()
    fetchResponses() below.
 */
 
-static String sectionResponse( FetchData::Section *s,
-                               Message *m )
+static String sectionResponse( FetchData::Section * s,
+                               Message * m )
 {
     String item, data;
 
@@ -501,12 +501,22 @@ static String sectionResponse( FetchData::Section *s,
     }
 
     else if ( s->id.isEmpty() ) {
+        item = "BODY";
+        Bodypart * bp = m->bodypart( s->part, false );
         if ( s->part.isEmpty() ) {
             data = m->rfc822();
-            item = "BODY"; // if the client asks for BINARY[]...
+            // if the client asks for BINARY[], we may be wrong. or right.
         }
-        else {
-            Bodypart *bp = m->bodypart( s->part, false );
+        else if ( !bp ) {
+            // nonexistent part number
+            if ( s->binary )
+                item = "BINARY";
+            // should we report an error?  the fetch responses will be
+            // sent anyway.
+            // error( No, "No such bodypart: " + s->part );
+        }
+        else if ( bp->children()->isEmpty() ) {
+            // leaf part
             ContentType * ct = 0;
             if ( bp )
                 ct = bp->contentType();
@@ -521,13 +531,15 @@ static String sectionResponse( FetchData::Section *s,
                     c = new Utf8Codec;
                 data = c->fromUnicode( bp->text() );
             }
-            if ( s->binary ) {
+            if ( s->binary )
                 item = "BINARY";
-            }
-            else {
-                item = "BODY";
+            else
                 data = data.encode( bp->contentTransferEncoding(), 70 );
-            }
+        }
+        else {
+            // nonleaf part. probably wrong - this might use the wrong
+            // content-transfer-encoding.
+            data = bp->asText();
         }
         item = item + "[" + s->part + "]";
     }

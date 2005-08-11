@@ -555,3 +555,9 @@ Detect character sets for unlabelled bodyparts/header fields
   4. http://wortschatz.uni-leipzig.de/html/wliste.html
 
 
+scripts/13 passes, but looks wrong.
+
+  Let's discuss the appropriate response to each command in 13, then
+  make the imapd survive the script.
+
+
