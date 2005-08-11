@@ -208,7 +208,19 @@ uint Bodypart::numEncodedLines() const
 }
 
 
-/*! Returns the text representation of this Bodypart. */
+/*! Returns the text representation of this Bodypart.
+
+    Notes: This function seems uncomfortable. It returns just one of
+    many possible text representations, and the exact choice seems
+    arbitrary, and finally, it does rather overlap with text() and
+    data().
+
+    We probably should transition away from this function.
+
+    The exact representation returned uses base64 encoding for data
+    types and no contentTransferEncoding() For text types, it encodes
+    the text according to the contentType().
+*/
 
 String Bodypart::asText() const
 {
