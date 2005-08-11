@@ -16,14 +16,13 @@ class BodypartData
 {
 public:
     BodypartData()
-        : number( 1 ), parent( 0 ), message( 0 ),
+        : number( 1 ), message( 0 ),
           numBytes( 0 ), numEncodedBytes(), numEncodedLines( 0 ),
           hasText( false )
     {}
 
     uint number;
 
-    Multipart *parent;
     Message * message;
 
     uint numBytes;
@@ -62,7 +61,7 @@ Bodypart::Bodypart()
 
 /*! Constructs a Bodypart with number \a n and parent \a p. */
 
-Bodypart::Bodypart( uint n, Multipart *p )
+Bodypart::Bodypart( uint n, Multipart * p )
     : d( new BodypartData )
 {
     setHeader( new Header( Header::Mime ) );
@@ -82,7 +81,8 @@ uint Bodypart::number() const
 
 
 /*! Returns the ContentType of this Bodypart, which may be a null
-    pointer in case the Content-Type is the default one.
+    pointer in case the Content-Type is the default one. The default
+    is either text/plain or message/rfc822.
 
     The Bodypart cannot find the default alone, since it depends on
     the surrounding type.
@@ -90,9 +90,38 @@ uint Bodypart::number() const
 
 ContentType * Bodypart::contentType() const
 {
-    if ( !d || !header() )
+    ContentType * ct = header()->contentType();
+    if ( ct )
+        return ct;
+    if ( !parent() )
         return 0;
-    return header()->contentType();
+    ct = parent()->header()->contentType();
+    if ( ct && ct->type() == "multipart" )
+        return 0;
+    return ct;
+}
+
+
+/*! Returns the content transfer encoding of this Bodypart, which may
+    be any of String::Binary, String::QuotedPrintable and
+    String::Base64.
+
+    Note that data() and text() return the canonical representation of
+    the body, not encoded with this.
+*/
+
+String::Encoding Bodypart::contentTransferEncoding() const
+{
+    ContentTransferEncoding * cte = header()->contentTransferEncoding();
+    if ( !cte && parent() ) {
+        ContentType * ct = parent()->header()->contentType();
+        if ( !ct || ( ct->type() != "multipart" &&
+                      ct->type() != "message" ) )
+            cte = parent()->header()->contentTransferEncoding();
+    }
+    if ( cte )
+        return cte->encoding();
+    return String::Binary;
 }
 
 
@@ -480,6 +509,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     bp->d->numBytes = body.length();
     if ( cte )
         body = body.encode( cte->encoding() );
+    // XXX: if cte->encoding() is base64, this encodes without
+    // CFLF. that seems rather suboptimal.
     bp->d->numEncodedBytes = body.length();
 
     if ( bp->d->hasText ||
