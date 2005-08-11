@@ -281,7 +281,11 @@ class Bodypart * Message::bodypart( const String & s, bool create )
             bp = i;
         }
         else if ( create ) {
-            Bodypart * child = new Bodypart( n, bp );
+            Bodypart * child = 0;
+            if ( bp )
+                child = new Bodypart( n, bp );
+            else
+                child = new Bodypart( n, this );
             c->insert( i, child );
             bp = child;
         }
