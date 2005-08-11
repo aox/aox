@@ -218,8 +218,8 @@ uint Bodypart::numEncodedLines() const
     We probably should transition away from this function.
 
     The exact representation returned uses base64 encoding for data
-    types and no contentTransferEncoding() For text types, it encodes
-    the text according to the contentType().
+    types and no ContentTransferEncoding. For text types, it encodes
+    the text according to the ContentType.
 */
 
 String Bodypart::asText() const
