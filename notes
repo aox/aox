@@ -522,4 +522,36 @@ Cryptlib 3.2.1 has been released. Upgrade to it later.
 We need to do the right thing.
 
 
+Detect character sets for unlabelled bodyparts/header fields
+
+  Arnt's great little algorithm:
+
+  1. Gather large lists of words in unicode, one list per language.
+  2. Encode each word in n encodings (e.g. the Russian words in KOI8-R
+     and ISO-8859-5), and map from the encoded form to the encoding used.
+  3. If an encoded form does not uniquely indicate a single character
+     encoding (e.g. if a Russian word in ISO-8859-5 and a Turkish in
+     ISO-8859-9 are encoded as the same byte sequence), drop that.
+  4. Compile the result into our source.
+
+  The above could be done as a smallish shell script if we trust gnu
+  recode... and I think we can trust it for common words in
+  widely-used languages, even if it's full of bugs in the corner
+  cases.
+
+  At runtime:
+
+  1. Scan the string to be decoded for words in the list above.
+  2. For each word, record which encoding it indicates.
+  3. Decode using the encoding indicated by the largest number of words.
+
+  Word lists need to contain at least one non-ASCII character, and to
+  be fairly common words. Such lists are available from a few sources,
+  including but not limited to:
+
+  1. Project Gutenberg has ebooks from which we could generate lists.
+  2. /usr/dict/words exists in many languages.
+  3. ispell, but there may be license issues.
+  4. http://wortschatz.uni-leipzig.de/html/wliste.html
+
 
