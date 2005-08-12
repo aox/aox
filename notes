@@ -357,8 +357,7 @@ We need to support date field searches.
 
 Orphaned bodyparts should be cleaned up somehow.
 
-
-httpd should learn to stream result pages to reduce memory use.
+  'ms vacuum' is this.
 
 
 We need mUTF-7 support.
@@ -388,6 +387,11 @@ We assume that all Content-Type fields conform to MIME.
 We should be able to use a read-only local database mirror.
 
   That way, we can play nicely with most replication systems.
+
+  The way to do it: add a new db-mirror setting pointing to a
+  read-only database mirror. all queries that update are sent to
+  db-address, all selects are sent to db-mirror. db-mirror defaults to
+  db-address.
 
 
 bin/ms, canonical, and deliver all need severe cleaning up.
@@ -547,12 +551,6 @@ Detect character sets for unlabelled bodyparts/header fields
   2. /usr/dict/words exists in many languages.
   3. ispell, but there may be license issues.
   4. http://wortschatz.uni-leipzig.de/html/wliste.html
-
-
-scripts/13 passes, but looks wrong.
-
-  Let's discuss the appropriate response to each command in 13, then
-  make the imapd survive the script.
 
 
 We need to do the right thing.
