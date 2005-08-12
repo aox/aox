@@ -1286,6 +1286,27 @@ bool String::operator>=( const String & other ) const
 }
 
 
+bool String::operator<( const char * other ) const
+{
+    if ( !other )
+        return false;
+
+    uint l = length();
+    uint i = 0;
+    while ( i < l && d->str[i] == other[i] && other[i] )
+        i++;
+    // four cases: we ran out of characters, other did, both did,
+    // there's a difference
+    if ( i == l && !other[i] )
+        return false;
+    if ( !other[i] )
+        return false;
+    if ( i == l )
+        return true;
+    return d->str[i] < other[i];
+}
+
+
 /*! This function is a debugging aid. It prints the contents of the
     string within single quotes followed by a trailing newline to
     stderr.

@@ -111,6 +111,8 @@ public:
     bool operator<=( const String & ) const;
     bool operator>=( const String & ) const;
 
+    bool operator<( const char * ) const;
+
     int compare( const String & ) const;
 
     inline void detach() { if ( !modifiable() ) reserve( length() ); }
