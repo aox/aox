@@ -1,0 +1,4 @@
+SubDir TOP encodings words ;
+
+Build encodings : wordguesser.cpp ;
+

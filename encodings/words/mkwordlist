@@ -1,0 +1,41 @@
+#!/usr/bin/perl -w
+
+# a function to reencode a file and stick anything unique into the array
+sub encode {
+    my $in = $_[0];
+    my $cs = $_[1];
+    open ( I, "recode utf-8...$cs < $in |" ) || die "ugga";
+    foreach ( <I> ) {
+	chomp;
+	if ( /^[a-z\200-\377]+$/ && /[\200-\377]/ ) {
+	    if ( defined( $words{$_} ) ) {
+		$words{$_} = "inconclusive";
+	    } else {
+		$words{$_} = $cs;
+	    }
+	}
+    }
+}
+
+# call encode once for each interesting combination of words and encodings
+encode( "german.words", "iso-8859-15" );
+encode( "german.words", "macroman" );
+
+encode( "french.words", "iso-8859-15" );
+encode( "french.words", "macroman" );
+
+encode( "dutch.words", "iso-8859-15" );
+encode( "dutch.words", "macroman" );
+
+#
+# NOTE: the file names above must match those in jamfile
+#
+
+# print the encoded forms we saw only once
+foreach ( sort keys %words ) {
+    if ( $words{$_} eq "inconclusive" ) {
+	# skip on this case
+    } else {
+	print "    { \"$_\", \"$words{$_}\" },\n";
+    }
+}

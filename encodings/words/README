@@ -1,0 +1,19 @@
+This dictionary contains list of common words in UTF-8. Each file is
+named for a language and contains common words in that language, one
+word per line.
+
+Any lines starting with '#' are disregarded.
+
+A note regarding licensing:
+
+The code and data in this directory are licensed under the OSL 2.1 by
+virtue of being in this source tree. Please write to info@oryx.com if
+that's a problem for you. If anyone else wants to use this algorithm,
+we'll be very flexible.
+
+The data files in this directory are based on the following sources:
+
+1. http://wortschatz.uni-leipzig.de/html/wliste.html
+
+   The files german.words, dutch.words and french.words are based on
+   Wortschatz material, transcoded to UTF-8.
