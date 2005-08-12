@@ -496,6 +496,9 @@ Add Maildir support to the migrator.
 
 /disaster messages seem to be logged as /debug messages.
 
+  Arnt has tested it, and thinks not. An example of this happening
+  would be good.
+
 
 /events/solutionslinux-2006.html needs a plausible audience/task.
 
@@ -507,8 +510,8 @@ Should we allow Sender-less multiple-From mailboxes?
 
 There's more to supporting SMTP pipelining than simply announcing it.
 
-  ... since doing so comprehensively broke mail delivery on kalyani.
-  (See, for example, SMTP::rcpt for clues.)
+  d->user needs to become a list of User objects, insted of being just
+  one.
 
 
 There is no reason to have the EventLoop/Loop split any more.

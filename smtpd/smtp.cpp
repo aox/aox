@@ -326,7 +326,7 @@ void SMTP::ehlo()
     respond( 250, Configuration::hostname() );
     //for the moment not
     //respond( 250, "STARTTLS" );
-    //respond( 250, "PIPELINING" );
+    respond( 250, "PIPELINING" );
     respond( 250, "DSN" );
     d->state = MailFrom;
     d->pipelining = true;
@@ -391,7 +391,7 @@ void SMTP::rcpt()
         return;
     }
     if ( d->user ) {
-        respond( 550, "Cannot process two RCPT commands simultanously" );
+        respond( 450, "Cannot process two RCPT commands simultanously" );
         return;
     }
 
