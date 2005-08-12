@@ -111,7 +111,7 @@ SmtpUserHelper::SmtpUserHelper( SMTP * s, User * u )
 
 void SmtpUserHelper::execute()
 {
-    owner->rcptAnswer();
+    owner->rcptAnswer( user );
 }
 
 
@@ -121,7 +121,7 @@ class SMTPData
 public:
     SMTPData():
         code( 0 ), state( SMTP::Initial ),
-        pipelining( false ), from( 0 ), user( 0 ), protocol( "smtp" ),
+        pipelining( false ), from( 0 ), protocol( "smtp" ),
         injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false )
     {}
@@ -131,7 +131,7 @@ public:
     SMTP::State state;
     bool pipelining;
     Address * from;
-    User * user;
+    uint rcpts;
     List<User> to;
     String body;
     String arg;
@@ -273,8 +273,8 @@ void SMTP::parse()
                 respond( 500, "Unknown command (" + cmd.upper() + ")" );
         }
 
-        if ( d->state != Verifying && d->state != Body &&
-             d->state != Injecting && !d->negotiatingTls )
+        if ( d->state != Body && d->state != Injecting &&
+             !d->negotiatingTls )
             sendResponses();
     }
 }
@@ -371,6 +371,9 @@ void SMTP::mail()
         respond( 250, "Accepted message from " + d->from->toString() );
         d->state = RcptTo;
     }
+
+    d->rcpts = 0;
+    d->to.clear();
 }
 
 
@@ -380,7 +383,7 @@ void SMTP::mail()
 
 void SMTP::rcpt()
 {
-    if ( state() != RcptTo && state() != Data ) {
+    if ( state() != RcptTo ) {
         respond( 503, "Must specify sender before recipient(s)" );
         return;
     }
@@ -390,38 +393,37 @@ void SMTP::rcpt()
         to = 0;
         return;
     }
-    if ( d->user ) {
-        respond( 450, "Cannot process two RCPT commands simultanously" );
-        return;
-    }
 
-    d->user = new User;
-    d->user->setAddress( to );
-    d->user->refresh( new SmtpUserHelper( this, d->user ) );
-    d->state = Verifying;
+    User * u = new User;
+    u->setAddress( to );
+    u->refresh( new SmtpUserHelper( this, u ) );
+    d->rcpts++;
 }
 
 
-/*! Delivers the SMTP answer, not based on the database lookup. Should
-    this use anything, e.g. from User::error()?
+/*! Delivers the SMTP answer for \a u, based on the database lookup.
+
+    Should this report e.g. User::error()?
 */
 
-void SMTP::rcptAnswer()
+void SMTP::rcptAnswer( User * u )
 {
-    Address *a = d->user->address();
+    if ( d->rcpts )
+        d->rcpts--;
+    Address *a = u->address();
     String to = a->localpart() + "@" + a->domain();
 
-    if ( d->user && d->user->valid() ) {
-        d->state = Data;
-        d->to.append( d->user );
+    if ( u && u->valid() ) {
+        d->to.append( u );
         respond( 250, "Will send to " + to );
         log( "Delivering message to " + to );
     }
     else {
         respond( 550, to + " is not a legal destination address" );
     }
-    d->user = 0;
     sendResponses();
+    if ( d->state == Injecting && !d->rcpts )
+        inject();
 }
 
 
@@ -433,19 +435,20 @@ void SMTP::rcptAnswer()
 
 void SMTP::data()
 {
-    if ( state() != Data ) {
+    if ( state() != RcptTo ) {
         respond( 503, "Must specify sender and recipient(s) first" );
         return;
     }
-    if ( d->to.isEmpty() ) {
-        respond( 503, "No valid recipients specified" );
-    }
-    else {
-        respond( 354, "Go ahead (sending to " +
-                 fn( d->to.count() ) + " recipients)" );
-        d->state = Body;
-        sendResponses();
-    }
+
+    // if a client sends lots of bad addresses, this results in 'go
+    // ahead (sending to 0 recipients'.
+    respond( 354,
+             "Go ahead (" + fn( d->to.count() ) +
+             " recipients verified so far, " +
+             fn( d->rcpts - d->to.count() ) +
+             " are being looked up)" );
+    d->state = Body;
+    sendResponses();
 }
 
 
@@ -462,7 +465,9 @@ void SMTP::body( String & line )
         i--;
     line.truncate( i );
     if ( i == 1 && line[0] == '.' ) {
-        inject();
+        d->state = Injecting;
+        if ( !d->rcpts )
+            inject();
     }
     else if ( line[0] == '.' ) {
         d->body.append( line.mid( 1 ) );
@@ -683,6 +688,9 @@ SMTP::State SMTP::state() const
 
 void SMTP::inject()
 {
+    if ( d->state != Injecting || d->injector )
+        return;
+
     Scope x( new Log( Log::SMTP ) );
 
     Date now;
@@ -698,9 +706,6 @@ void SMTP::inject()
     received.append( "; " );
     received.append( now.rfc822() );
     received.append( "\r\n" );
-
-    d->state = Injecting;
-    d->injector = 0;
 
     Message * m = new Message( received + d->body );
     m->header()->removeField( HeaderField::ReturnPath );

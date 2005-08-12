@@ -508,12 +508,6 @@ Add Maildir support to the migrator.
 Should we allow Sender-less multiple-From mailboxes?
 
 
-There's more to supporting SMTP pipelining than simply announcing it.
-
-  d->user needs to become a list of User objects, insted of being just
-  one.
-
-
 There is no reason to have the EventLoop/Loop split any more.
 
 
