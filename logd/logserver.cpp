@@ -318,6 +318,12 @@ void LogServer::setLogLevel( const String &l )
 }
 
 
+/*! Maps \a l to the corresponding Log::Facility value, and returns
+    Log::General in case of error.
+
+    This function is the inverse of Log::facility().
+*/
+
 Log::Facility LogServer::facility( const String &l )
 {
     Log::Facility f = Log::General;
@@ -358,6 +364,12 @@ Log::Facility LogServer::facility( const String &l )
     return f;
 }
 
+
+/*! Maps \a l to the corresponding Log::Severity value, and returns
+    Log::Info in case of error.
+
+    This function is the inverse of Log::severity().
+*/
 
 Log::Severity LogServer::severity( const String &l )
 {
