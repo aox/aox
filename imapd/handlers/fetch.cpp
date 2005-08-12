@@ -478,10 +478,18 @@ static String sectionResponse( FetchData::Section * s,
         if ( hdr )
             it = hdr->fields()->first();
         while ( it ) {
-            if ( !fields ||
-                 ( !exclude && s->fields.find( it->name() ) ) ||
-                 ( exclude && !s->fields.find( it->name() ) ) )
-            {
+            bool include = false;
+            if ( !fields ) {
+                include = true;
+            }
+            else {
+                bool listed = s->fields.find( it->name() );
+                if ( exclude )
+                    include = !listed;
+                else
+                    include = listed;
+            }
+            if ( include ) {
                 String n = it->name().headerCased();
                 data.append( n + ": " + it->value() + "\r\n" );
             }
@@ -514,6 +522,10 @@ static String sectionResponse( FetchData::Section * s,
             // should we report an error?  the fetch responses will be
             // sent anyway.
             // error( No, "No such bodypart: " + s->part );
+        }
+        else if ( bp->message() ) {
+            // message/rfc822 part
+            data = bp->message()->rfc822();
         }
         else if ( bp->children()->isEmpty() ) {
             // leaf part
