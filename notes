@@ -516,9 +516,6 @@ Implement more encodings: BIG5/SJIS/GBK. (AMS)
 Cryptlib 3.2.1 has been released. Upgrade to it later.
 
 
-We need to do the right thing.
-
-
 Detect character sets for unlabelled bodyparts/header fields
 
   Arnt's great little algorithm:
@@ -556,5 +553,9 @@ scripts/13 passes, but looks wrong.
 
   Let's discuss the appropriate response to each command in 13, then
   make the imapd survive the script.
+
+
+We need to do the right thing.
+
 
 
