@@ -18,9 +18,6 @@ static uint id;
 static File *logFile;
 static Log::Severity logLevel;
 
-static Log::Facility facility( const String & );
-static Log::Severity severity( const String & );
-
 
 /*! \class LogServer logserver.h
     The LogServer listens for log items on a TCP socket and commits
@@ -321,7 +318,7 @@ void LogServer::setLogLevel( const String &l )
 }
 
 
-static Log::Facility facility( const String &l )
+Log::Facility LogServer::facility( const String &l )
 {
     Log::Facility f = Log::General;
 
@@ -348,7 +345,7 @@ static Log::Facility facility( const String &l )
 
     case 's':
     case 'S':
-        if ( l[1]|0x20 == 'm' )
+        if ( (l[1]|0x20) == 'm' )
             f = Log::SMTP;
         else
             f = Log::Server;
@@ -361,7 +358,8 @@ static Log::Facility facility( const String &l )
     return f;
 }
 
-static Log::Severity severity( const String &l )
+
+Log::Severity LogServer::severity( const String &l )
 {
     Log::Severity s = Log::Info;
 
