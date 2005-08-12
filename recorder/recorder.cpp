@@ -10,7 +10,7 @@
 #include "allocator.h"
 #include "logclient.h"
 
-#include <stdio.h> // fprintf
+#include <stdio.h> // fprintf, printf
 #include <stdlib.h> // exit
 
 
@@ -121,8 +121,7 @@ RecorderServer::RecorderServer( int fd )
                        File::Append, 0644 );
     Loop::addConnection( this );
 
-    fprintf( stderr,
-             "new recorder writing %s\n", d->log->name().cstr() );
+    printf( "new recorder writing %s\n", d->log->name().cstr() );
 }
 
 
@@ -131,7 +130,6 @@ void RecorderServer::react( Event e )
     String tmp;
     switch( e ) {
     case Read:
-        fprintf( stderr, "%s: read event\n", description().cstr() );
         tmp = readBuffer()->string( readBuffer()->size() );
         d->toServer.append( tmp );
         d->client->enqueue( tmp );
@@ -140,11 +138,11 @@ void RecorderServer::react( Event e )
             d->dump( RecorderData::ToClient );
         break;
     case Close:
-        fprintf( stderr, "%s: close event\n", description().cstr() );
         d->dump( RecorderData::ToServer );
         d->dump( RecorderData::ToClient );
         d->assertEmpty();
         d->client->close();
+        printf( "Closed %s\n", d->log->name().cstr() );
         delete d->log;
         d->log = 0;
         break;
@@ -173,7 +171,6 @@ RecorderClient::RecorderClient( RecorderData * sd )
 void RecorderClient::react( Event e )
 {
     String tmp;
-    fprintf( stderr, "%s: %d event\n", description().cstr(), e );
     switch( e ) {
     case Read:
         tmp = readBuffer()->string( readBuffer()->size() );
@@ -261,7 +258,7 @@ int main( int argc, char ** argv )
     }
 
     ::base = new String( argv[4] );
-    Allocator::addEternal( ::base, "base of recordede file names" );
+    Allocator::addEternal( ::base, "base of recorded file names" );
 
     global.setLog( new Log( Log::General ) );
     Loop::start();
