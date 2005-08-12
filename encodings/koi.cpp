@@ -27,7 +27,7 @@ Koi8RCodec::Koi8RCodec()
   The Koi8UCodec class maps between UString and KOI8-U.
 
   The definition of KOI8-U used is taken from RFC 2319. (No
-  controversies ar known regarding the character maps.)
+  controversies are known regarding the character maps.)
 */
 
 static const int tablekoi8U[256] = {
