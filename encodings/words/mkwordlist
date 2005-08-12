@@ -1,5 +1,8 @@
 #!/usr/bin/perl -w
 
+die "must have one argument (path to *.words)" unless ($#ARGV == 0);
+chdir( $ARGV[0] );
+
 # a function to reencode a file and stick anything unique into the array
 sub encode {
     my $in = $_[0];
@@ -8,10 +11,10 @@ sub encode {
     foreach ( <I> ) {
 	chomp;
 	if ( /^[a-z\200-\377]+$/ && /[\200-\377]/ ) {
-	    if ( defined( $words{$_} ) ) {
-		$words{$_} = "inconclusive";
+	    if ( defined( $forms{$_} ) ) {
+		$forms{$_} = "inconclusive";
 	    } else {
-		$words{$_} = $cs;
+		$forms{$_} = $cs;
 	    }
 	}
     }
@@ -32,10 +35,24 @@ encode( "dutch.words", "macroman" );
 #
 
 # print the encoded forms we saw only once
-foreach ( sort keys %words ) {
-    if ( $words{$_} eq "inconclusive" ) {
-	# skip on this case
-    } else {
-	print "    { \"$_\", \"$words{$_}\" },\n";
-    }
+$numForms = 0;
+foreach ( sort keys %forms ) {
+    $numForms++ if ( $forms{$_} ne "inconclusive" );
 }
+
+$enum{"macroman"} = "MacRoman";
+$enum{"iso-8859-15"} = "Iso885915";
+
+print "enum Encoding { Iso885915, MacRoman, NumEncodings };\n",
+"static const uint NumForms = ", $numForms, ";\n",
+"static const struct {\n",
+"    const char * encodedForm;\n",
+"    Encoding encoding;\n",
+"} forms[", $numForms, "] = {\n";
+
+foreach ( sort keys %forms ) {
+    print "    { \"$_\", $enum{$forms{$_}} },\n"
+        if ( $forms{$_} ne "inconclusive" );
+}
+
+print "};\n"

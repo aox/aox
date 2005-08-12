@@ -158,6 +158,80 @@ Codec * Codec::byString( const UString & u )
 }
 
 
+#include "wordlist.inc"
+
+
+/*! Returns a codec likely to describe the encoding for \a s. This
+    uses words lists: If \a s is a Russian string, it probably
+    contains lots of common Russian words, and we have can identify
+    the character encoding by scanning for KOI8-R and ISO-8859-5 forms
+    of some common words.
+
+    This function is a little slower than it could be, since it
+    creates a largish number of short String objects.
+*/
+
+Codec * Codec::byString( const String & s )
+{
+    uint b = 0;
+    uint e = 0;
+    uint occurences[NumEncodings];
+    uint i = 0;
+    while ( i < NumEncodings )
+        occurences[i++] = 0;
+    while ( b < s.length() ) {
+        while ( b < s.length() && s[b] < 'a' )
+            b++;
+        e = b;
+        while ( e < s.length() &&
+                ( s[e] >= 128 ||
+                  ( s[e] >= 'a' && s[e] <= 'z' ) ) )
+            e++;
+        if ( e > b ) {
+            uint i = b;
+            while ( i < e && s[i] < 128 )
+                i++;
+            if ( i < e ) {
+                String w( s.mid( b, e-b ) );
+                uint top = NumForms-1;
+                uint bottom = 0;
+                while ( top > bottom ) {
+                    i = (bottom + top)/2;
+                    if ( w == forms[i].encodedForm )
+                        occurences[forms[i].encoding]++;
+                    else if ( w < forms[i].encodedForm )
+                        bottom = i+1;
+                    else
+                        top = i-1;
+                }
+            }
+        }
+        b = e;
+    }
+    i = 0;
+    uint max = 0;
+    while ( i < NumEncodings ) {
+        if ( occurences[i] > occurences[max] )
+            max = i;
+        i++;
+    }
+    if ( !occurences[max] )
+        return 0;
+
+    switch( (Encoding)max ) {
+    case Iso885915:
+        return new Iso885915Codec;
+        break;
+    case MacRoman:
+        return new MacRomanCodec;
+        break;
+    case NumEncodings:
+        break;
+    }
+    return 0;
+}
+
+
 /*! \class TableCodec codec.h
   The TableCodec provides a codec for simple 256-entry character sets.
 
@@ -319,5 +393,4 @@ UString AsciiCodec::toUnicode( const String & s )
 */
 
 //codec US-ASCII AsciiCodec
-
 

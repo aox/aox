@@ -30,6 +30,7 @@ public:
 
     static Codec * byName( const String & );
     static Codec * byString( const UString & );
+    static Codec * byString( const String & );
 
     String name() { return n; }
 

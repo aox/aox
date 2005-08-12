@@ -517,28 +517,7 @@ Implement more encodings: BIG5/SJIS/GBK. (AMS)
 Cryptlib 3.2.1 has been released. Upgrade to it later.
 
 
-Detect character sets for unlabelled bodyparts/header fields
-
-  Arnt's great little algorithm:
-
-  1. Gather large lists of words in unicode, one list per language.
-  2. Encode each word in n encodings (e.g. the Russian words in KOI8-R
-     and ISO-8859-5), and map from the encoded form to the encoding used.
-  3. If an encoded form does not uniquely indicate a single character
-     encoding (e.g. if a Russian word in ISO-8859-5 and a Turkish in
-     ISO-8859-9 are encoded as the same byte sequence), drop that.
-  4. Compile the result into our source.
-
-  The above could be done as a smallish shell script if we trust gnu
-  recode... and I think we can trust it for common words in
-  widely-used languages, even if it's full of bugs in the corner
-  cases.
-
-  At runtime:
-
-  1. Scan the string to be decoded for words in the list above.
-  2. For each word, record which encoding it indicates.
-  3. Decode using the encoding indicated by the largest number of words.
+Get more word lists for Codec::byString( const String & )
 
   Word lists need to contain at least one non-ASCII character, and to
   be fairly common words. Such lists are available from a few sources,
@@ -548,6 +527,21 @@ Detect character sets for unlabelled bodyparts/header fields
   2. /usr/dict/words exists in many languages.
   3. ispell, but there may be license issues.
   4. http://wortschatz.uni-leipzig.de/html/wliste.html
+
+
+Use Codec::byString() to handle just-send-8
+
+  But first, put together lots of tests. And before that, enjoy what's
+  left of a Friday evening.
+
+
+Add a web page about the charset encoding.
+
+  It's a novel and good algorithm, so we can make a good page about
+  it. We also can link to data sources there.
+
+  The documentation for Codec::byString() should mention that page's
+  URL.
 
 
 We need to do the right thing.
