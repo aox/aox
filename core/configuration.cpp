@@ -51,12 +51,11 @@ public:
     The Configuration class contains all configuration variables.
 
     Some configuration variables are set at compile time and are
-    available via compiledIn(). These include the path of the
-    configuration filename.
+    available via compiledIn(). These include the path to the
+    configuration file.
 
     Others are available by calling text(), scalar() or toggle() for
-    the relevant variable. To add new configuration variables, the
-    Configuration class needs extending.
+    the relevant variable.
 
     As a matter of policy, we check the configuration completely at
     startup. Configuration knows the type and name of all legal
