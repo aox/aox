@@ -195,14 +195,18 @@ Codec * Codec::byString( const String & s )
                 String w( s.mid( b, e-b ) );
                 uint top = NumForms-1;
                 uint bottom = 0;
-                while ( top > bottom ) {
+                while ( top >= bottom ) {
                     i = (bottom + top)/2;
-                    if ( w == forms[i].encodedForm )
-                        occurences[forms[i].encoding]++;
-                    else if ( w < forms[i].encodedForm )
-                        bottom = i+1;
-                    else
+                    if ( w < forms[i].encodedForm ) {
                         top = i-1;
+                    }
+                    else if ( w == forms[i].encodedForm ) {
+                        occurences[forms[i].encoding]++;
+                        bottom = NumForms + 1;
+                    }
+                    else {
+                        bottom = i+1;
+                    }
                 }
             }
         }
