@@ -11,8 +11,6 @@
 #include "mac.h"
 #include "utf.h"
 
-#include <stdio.h>
-
 
 /*! \class Codec codec.h
     The Codec class describes a mapping between UString and anything else
@@ -205,7 +203,6 @@ Codec * Codec::byString( const String & s )
                     }
                     else if ( w == forms[i].encodedForm ) {
                         occurences[forms[i].encoding]++;
-                        fprintf( stderr, "word %s found\n", forms[i].encodedForm );
                         bottom = NumForms + 1;
                     }
                     else {
