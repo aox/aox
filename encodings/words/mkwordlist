@@ -15,6 +15,7 @@ sub encode {
 		$forms{$_} = "inconclusive";
 	    } else {
 		$forms{$_} = $cs;
+		$source{$_} = $in;
 	    }
 	}
     }
@@ -51,7 +52,7 @@ print "enum Encoding { Iso885915, MacRoman, NumEncodings };\n",
 "} forms[", $numForms, "] = {\n";
 
 foreach ( sort keys %forms ) {
-    print "    { \"$_\", $enum{$forms{$_}} },\n"
+    print "    { \"$_\", $enum{$forms{$_}} }, // from $source{$_}\n"
         if ( $forms{$_} ne "inconclusive" );
 }
 

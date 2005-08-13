@@ -11,6 +11,8 @@
 #include "mac.h"
 #include "utf.h"
 
+#include <stdio.h>
+
 
 /*! \class Codec codec.h
     The Codec class describes a mapping between UString and anything else
@@ -180,19 +182,20 @@ Codec * Codec::byString( const String & s )
     while ( i < NumEncodings )
         occurences[i++] = 0;
     while ( b < s.length() ) {
-        while ( b < s.length() && s[b] < 'a' )
+        while ( b < s.length() && s[b] < 'A' )
             b++;
         e = b;
         while ( e < s.length() &&
                 ( s[e] >= 128 ||
-                  ( s[e] >= 'a' && s[e] <= 'z' ) ) )
+                  ( s[e] >= 'a' && s[e] <= 'z' ) ||
+                  ( s[e] >= 'A' && s[e] <= 'Z' ) ) )
             e++;
         if ( e > b ) {
             uint i = b;
             while ( i < e && s[i] < 128 )
                 i++;
             if ( i < e ) {
-                String w( s.mid( b, e-b ) );
+                String w( s.mid( b, e-b ).lower() );
                 uint top = NumForms-1;
                 uint bottom = 0;
                 while ( top >= bottom ) {
@@ -202,6 +205,7 @@ Codec * Codec::byString( const String & s )
                     }
                     else if ( w == forms[i].encodedForm ) {
                         occurences[forms[i].encoding]++;
+                        fprintf( stderr, "word %s found\n", forms[i].encodedForm );
                         bottom = NumForms + 1;
                     }
                     else {
@@ -210,7 +214,9 @@ Codec * Codec::byString( const String & s )
                 }
             }
         }
-        b = e;
+        b++;
+        if ( e > b )
+            b = e;
     }
     i = 0;
     uint max = 0;

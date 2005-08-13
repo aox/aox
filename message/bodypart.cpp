@@ -357,17 +357,47 @@ void Bodypart::parseMultipart( uint i, uint end,
 }
 
 
+static Codec * guessTextCodec( const String & body )
+{
+    // step 1. could it be pure ascii?
+    Codec * c = new AsciiCodec;
+    (void)c->toUnicode( body );
+    if ( c->valid() )
+        return c;
+
+    // step 2. could it be utf-8?
+    c = new Utf8Codec;
+    (void)c->toUnicode( body );
+    if ( c->valid() )
+        return c;
+
+    // step 3. could it be ... (we probably want to check Big5, GB18030
+    // and other multibytes here.)
+
+    // step 4. guess a codec based on the bodypart content.
+    c = Codec::byString( body );
+    if ( c ) {
+        // this probably isn't necessary... but it doesn't hurt to be sure.
+        (void)c->toUnicode( body );
+        if ( c->valid() )
+            return c;
+    }
+
+    return 0;
+}
+
+
 static Codec * guessHtmlCodec( const String & body )
 {
     String b = body.mid( 0, 2048 ).lower().simplified();
     int i = 0;
     while ( i >= 0 ) {
-        // some user-agents add a certain meta http-equiv instead of
-        // the content-type header. we scan for that. we can use it to
-        // work around certain observed breakage. two problems:
-        // 1. this is not correct because this isn't http, so
+        // Some user-agents add a certain meta http-equiv instead of
+        // the content-type header. We scan for that. We can use it to
+        // work around certain observed breakage. Two problems:
+        // 1. This is not correct because this isn't HTTP, so
         // http-equiv is inoperative, strictly speaking.
-        // 2. it's also not correct because we're just scanning for
+        // 2. It's also not correct because we're just scanning for
         // the particular pattern which happens to be used by the
         // brokenware, not parsing properly.
         i = b.find( "<meta http-equiv=\"content-type\" content=\"", i );
@@ -389,30 +419,20 @@ static Codec * guessHtmlCodec( const String & body )
         }
     }
 
-    // that didn't work. if it's well-formed UTF-8, let's just assume
-    // that is the right thing.
-    Codec * c = new Utf8Codec;
+    // That didn't work. Let's see if the general function has
+    // something for us.
+    Codec * c = guessTextCodec( body );
+    if ( c )
+        return c;
+
+    // HTML prescribes that 8859-1 is the default. Let's see if 8859-1
+    // works.
+    c = new Iso88591Codec;
     (void)c->toUnicode( body );
     if ( c->valid() )
         return c;
 
-    // XXX: we probably want to check Big5, GB18030 and other
-    // multibytes here.
-
-    return new Iso88591Codec;
-}
-
-
-static Codec * guessTextCodec( const String & body )
-{
-    Codec * c = new Utf8Codec;
-    (void)c->toUnicode( body );
-    if ( c->valid() )
-        return c;
-
-    // XXX: we probably want to check Big5, GB18030 and other
-    // multibytes here.
-
+    // Nothing doing.
     return 0;
 }
 
@@ -448,8 +468,19 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     if ( !ct || ct->type() == "text" ) {
         bool specified = true;
         Codec * c = 0;
-        if ( ct )
+        if ( ct ) {
             c = Codec::byName( ct->parameter( "charset" ) );
+            if ( c && c->name().lower() == "us-ascii" ) {
+                // Some MTAs appear to say this in case there is no
+                // Content-Type field - without checking whether the
+                // body actually is ASCII. If it isn't, we'd better
+                // call our charset guesser.
+                (void)c->toUnicode( body );
+                if ( !c->valid() )
+                    specified = false;
+                // Not pretty.
+            }
+        }
         if ( !c ) {
             c = new AsciiCodec;
             specified = false;
