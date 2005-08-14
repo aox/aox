@@ -46,6 +46,7 @@ public:
         Initial,
         MailFrom,
         RcptTo,
+        Data,
         Body,
         Injecting
     };

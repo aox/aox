@@ -121,7 +121,7 @@ class SMTPData
 public:
     SMTPData():
         code( 0 ), state( SMTP::Initial ),
-        pipelining( false ), from( 0 ), protocol( "smtp" ),
+        from( 0 ), protocol( "smtp" ),
         injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false )
     {}
@@ -129,7 +129,6 @@ public:
     int code;
     StringList response;
     SMTP::State state;
-    bool pipelining;
     Address * from;
     uint rcpts;
     List<User> to;
@@ -154,9 +153,9 @@ public:
     There is also a closely related LMTP class, a subclass of this.
 
     This class implements SMTP as specified by RFC 2821, with the
-    extensions specified by RFC 1651 (EHLO), RFC 1652 (8BITMIME), RFC
-    2197 (pipelining) and RFC 2487 (STARTTLS). In some ways, this parser
-    is a little too lax.
+    extensions specified by RFC 1651 (EHLO), RFC 1652 (8BITMIME), and
+    RFC 2487 (STARTTLS). In some ways, this parser is a little too
+    lax.
 */
 
 /*!  Constructs an (E)SMTP server for socket \a s. */
@@ -293,8 +292,7 @@ void SMTP::setHeloString()
 }
 
 
-/*! Changes state to account for the HELO command. Notably, pipelining
-  is then not allowed.
+/*! Changes state to account for the HELO command.
 */
 
 void SMTP::helo()
@@ -309,11 +307,9 @@ void SMTP::helo()
 }
 
 
-/*! Changes state to account for the EHLO command. Since EHLO
-  announces pipeline support, we support pipelines once this has been
-  called.
+/*! Changes state to account for the EHLO command.
 
-  Note that this is called by LMTP::lhlo().
+    Note that this is called by LMTP::lhlo().
 */
 
 void SMTP::ehlo()
@@ -326,10 +322,8 @@ void SMTP::ehlo()
     respond( 250, Configuration::hostname() );
     //for the moment not
     //respond( 250, "STARTTLS" );
-    respond( 250, "PIPELINING" );
     respond( 250, "DSN" );
     d->state = MailFrom;
-    d->pipelining = true;
     d->protocol = "esmtp";
 }
 
@@ -383,7 +377,7 @@ void SMTP::mail()
 
 void SMTP::rcpt()
 {
-    if ( state() != RcptTo ) {
+    if ( state() != RcptTo || state() == Data ) {
         respond( 503, "Must specify sender before recipient(s)" );
         return;
     }
@@ -417,25 +411,23 @@ void SMTP::rcptAnswer( User * u )
         d->to.append( u );
         respond( 250, "Will send to " + to );
         log( "Delivering message to " + to );
+        d->state = Data;
     }
     else {
         respond( 550, to + " is not a legal destination address" );
     }
     sendResponses();
-    if ( d->state == Injecting && !d->rcpts )
-        inject();
 }
 
 
-/*! The DATA command is a little peculiar, and can be as simple or
-    complex as one wishes when PIPELINING is implemented. We implement
-    all of SMTP and LMTP DATA in one command: 503 if the command isn't
-    sensible, 354 elsewhere.
+/*! The DATA command is a little peculiar, having the BODY phase. We
+    implement all of SMTP and LMTP DATA in one command: 503 if the
+    command isn't sensible, 354 elsewhere.
 */
 
 void SMTP::data()
 {
-    if ( state() != RcptTo && state() != MailFrom ) {
+    if ( state() != Data ) {
         respond( 503, "Bad sequence of commands" );
         return;
     }
@@ -443,10 +435,7 @@ void SMTP::data()
     // if a client sends lots of bad addresses, this results in 'go
     // ahead (sending to 0 recipients'.
     respond( 354,
-             "Go ahead (" + fn( d->to.count() ) +
-             " recipients verified so far, " +
-             fn( d->rcpts - d->to.count() ) +
-             " are being looked up)" );
+             "Go ahead (" + fn( d->to.count() ) + " recipients)" );
     d->state = Body;
     sendResponses();
 }
