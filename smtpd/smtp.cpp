@@ -599,12 +599,6 @@ void SMTP::respond( int c, const String & s )
         d->code = c;
     if ( !s.isEmpty() )
         d->response.append( new String( s ) );
-
-    // This is a little icky. I think LMTP errors always merit this
-    // treatment - the local MTA just shouldn't send errors. But how
-    // about SMTP?
-    if ( d->code < 400 && c >= 400 )
-        log( "SMTP/LMTP error while in state " + fn( d->state ), Log::Error );
 }
 
 
@@ -630,7 +624,7 @@ void SMTP::sendResponses()
             r.append( "-" );
         r.append( l );
         log( "Sending response '" + r + "'",
-             Log::Debug );
+             d->code >= 400 ? Log::Error : Log::Debug );
         r.append( "\r\n" );
         enqueue( r );
     } while ( it );
@@ -800,6 +794,7 @@ void SMTP::reportInjection()
         respond( 250, "Done" );
     }
 
+    sendResponses();
     commit();
     d->from = 0;
     d->to.clear();
