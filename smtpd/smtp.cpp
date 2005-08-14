@@ -271,7 +271,8 @@ void SMTP::parse()
                 respond( 500, "Unknown command (" + cmd.upper() + ")" );
         }
 
-        if ( d->state != Body && d->state != Injecting &&
+        if ( d->state != RcptTo && d->state != Data &&
+             d->state != Body && d->state != Injecting &&
              !d->negotiatingTls )
             sendResponses();
     }
@@ -366,11 +367,11 @@ void SMTP::mail()
     }
 
     d->to.clear();
+    sendResponses();
 }
 
 
-/*! rcpt() handles RCPT TO. This needs to be simple, since it's more
-    or less duplicated in LMTP.
+/*! rcpt() handles RCPT TO.
 */
 
 void SMTP::rcpt()
@@ -380,9 +381,12 @@ void SMTP::rcpt()
         return;
     }
     Address * to = address();
-    if ( !to || !to->valid() ) {
-        respond( 550, "Unknown address: " + to->toString() );
-        to = 0;
+    if ( !to ) {
+        respond( 550, "Unknown address" );
+        return;
+    }
+    if ( !to->valid() ) {
+        respond( 550, "Unknown address " + to->toString() );
         return;
     }
 
