@@ -229,7 +229,7 @@ void SMTP::parse()
         // we have a line; read it
         String line = r->string( ++i );
         r->remove( i );
-        if ( state() == Body ) {
+        if ( d->state == Body ) {
             body( line );
         }
         else {
@@ -297,7 +297,7 @@ void SMTP::setHeloString()
 
 void SMTP::helo()
 {
-    if ( state() != Initial && state() == MailFrom ) {
+    if ( d->state != Initial && d->state != MailFrom ) {
         respond( 503, "HELO permitted initially only" );
         return;
     }
@@ -314,7 +314,7 @@ void SMTP::helo()
 
 void SMTP::ehlo()
 {
-    if ( state() != Initial && state() == MailFrom ) {
+    if ( d->state != Initial && d->state != MailFrom ) {
         respond( 503, "HELO permitted initially only" );
         return;
     }
@@ -349,7 +349,7 @@ void SMTP::rset()
 
 void SMTP::mail()
 {
-    if ( state() != MailFrom ) {
+    if ( d->state != MailFrom ) {
         respond( 503, "Bad sequence of commands" );
         return;
     }
@@ -376,7 +376,7 @@ void SMTP::mail()
 
 void SMTP::rcpt()
 {
-    if ( state() != RcptTo || state() == Data ) {
+    if ( d->state != RcptTo || d->state == Data ) {
         respond( 503, "Must specify sender before recipient(s)" );
         return;
     }
@@ -426,7 +426,7 @@ void SMTP::rcptAnswer( User * u )
 
 void SMTP::data()
 {
-    if ( state() != Data ) {
+    if ( d->state != Data ) {
         respond( 503, "Bad sequence of commands" );
         return;
     }
@@ -595,16 +595,16 @@ Address * SMTP::address()
 
 void SMTP::respond( int c, const String & s )
 {
+    if ( c )
+        d->code = c;
+    if ( !s.isEmpty() )
+        d->response.append( new String( s ) );
+
     // This is a little icky. I think LMTP errors always merit this
     // treatment - the local MTA just shouldn't send errors. But how
     // about SMTP?
     if ( d->code < 400 && c >= 400 )
         log( "SMTP/LMTP error while in state " + fn( d->state ), Log::Error );
-
-    if ( c )
-        d->code = c;
-    if ( !s.isEmpty() )
-        d->response.append( new String( s ) );
 }
 
 
