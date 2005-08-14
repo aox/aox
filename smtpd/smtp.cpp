@@ -130,7 +130,6 @@ public:
     StringList response;
     SMTP::State state;
     Address * from;
-    uint rcpts;
     List<User> to;
     String body;
     String arg;
@@ -366,7 +365,6 @@ void SMTP::mail()
         d->state = RcptTo;
     }
 
-    d->rcpts = 0;
     d->to.clear();
 }
 
@@ -391,7 +389,6 @@ void SMTP::rcpt()
     User * u = new User;
     u->setAddress( to );
     u->refresh( new SmtpUserHelper( this, u ) );
-    d->rcpts++;
 }
 
 
@@ -402,8 +399,6 @@ void SMTP::rcpt()
 
 void SMTP::rcptAnswer( User * u )
 {
-    if ( d->rcpts )
-        d->rcpts--;
     Address *a = u->address();
     String to = a->localpart() + "@" + a->domain();
 
@@ -455,8 +450,7 @@ void SMTP::body( String & line )
     line.truncate( i );
     if ( i == 1 && line[0] == '.' ) {
         d->state = Injecting;
-        if ( !d->rcpts )
-            inject();
+        inject();
     }
     else if ( line[0] == '.' ) {
         d->body.append( line.mid( 1 ) );
