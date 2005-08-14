@@ -435,8 +435,8 @@ void SMTP::rcptAnswer( User * u )
 
 void SMTP::data()
 {
-    if ( state() != RcptTo ) {
-        respond( 503, "Must specify sender and recipient(s) first" );
+    if ( state() != RcptTo && state() != MailFrom ) {
+        respond( 503, "Bad sequence of commands" );
         return;
     }
 
