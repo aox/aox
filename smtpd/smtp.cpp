@@ -271,9 +271,7 @@ void SMTP::parse()
                 respond( 500, "Unknown command (" + cmd.upper() + ")" );
         }
 
-        if ( d->state != RcptTo && d->state != Data &&
-             d->state != Body && d->state != Injecting &&
-             !d->negotiatingTls )
+        if ( d->code )
             sendResponses();
     }
 }
@@ -436,7 +434,6 @@ void SMTP::data()
     respond( 354,
              "Go ahead (" + fn( d->to.count() ) + " recipients)" );
     d->state = Body;
-    sendResponses();
 }
 
 
@@ -608,7 +605,7 @@ void SMTP::respond( int c, const String & s )
 
 void SMTP::sendResponses()
 {
-    if ( d->code < 100 )
+    if ( !d->code )
         respond( 250, "OK" ); // to provide a good default
 
     String n = fn( d->code );
