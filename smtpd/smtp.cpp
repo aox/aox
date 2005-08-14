@@ -866,11 +866,12 @@ void LMTP::reportInjection()
             respond( 250, prefix + "injected into " +
                      it->inbox()->name() );
         ++it;
-        sendResponses();
     }
 
     if ( d->injector && !d->injector->failed() )
         d->injector->announce();
+
+    sendResponses();
 
     d->from = 0;
     d->to.clear();
