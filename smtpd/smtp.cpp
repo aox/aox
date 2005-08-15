@@ -450,7 +450,6 @@ void SMTP::body( String & line )
         i--;
     line.truncate( i );
     if ( i == 1 && line[0] == '.' ) {
-        d->state = Injecting;
         inject();
     }
     else if ( line[0] == '.' ) {
@@ -666,9 +665,7 @@ SMTP::State SMTP::state() const
 
 void SMTP::inject()
 {
-    if ( d->state != Injecting || d->injector )
-        return;
-
+    d->state = Injecting;
     Scope x( new Log( Log::SMTP ) );
 
     Date now;
