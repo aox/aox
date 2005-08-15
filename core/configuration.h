@@ -20,6 +20,7 @@ public:
         ConfigDir,
         PidFileDir,
         BinDir,
+        SbinDir,
         ManDir,
         LibDir,
         InitDir,

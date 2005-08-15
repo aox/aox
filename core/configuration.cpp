@@ -376,6 +376,9 @@ String Configuration::compiledIn( CompileTimeSetting setting )
     case BinDir:
         return BINDIR;
         break;
+    case SbinDir:
+        return SBINDIR;
+        break;
     case ManDir:
         return MANDIR;
         break;

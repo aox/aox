@@ -13,6 +13,7 @@ Build admintools : syslogger.cpp ;
 # settings so they can be used and logged at runtime.
 ObjectDefines configuration.cpp :
      BINDIR='\"$(BINDIR)\"'
+     SBINDIR='\"$(SBINDIR)\"'
      MANDIR='\"$(MANDIR)\"'
      LIBDIR='\"$(LIBDIR)\"'
      INITDIR='\"$(INITDIR)\"'
