@@ -226,6 +226,9 @@ Codec * Codec::byString( const String & s )
         return 0;
 
     switch( (Encoding)max ) {
+    case Iso88592:
+        return new Iso88592Codec;
+        break;
     case Iso885915:
         return new Iso885915Codec;
         break;

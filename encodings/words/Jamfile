@@ -15,5 +15,6 @@ actions Wordlist
 
 
 Wordlist wordlist.inc : mkwordlist
-	german.words french.words dutch.words ;
-
+    german.words french.words dutch.words 
+    czech.words
+    ;

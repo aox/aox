@@ -31,6 +31,8 @@ encode( "french.words", "macroman" );
 encode( "dutch.words", "iso-8859-15" );
 encode( "dutch.words", "macroman" );
 
+encode( "czech.words", "iso-8859-2" );
+
 #
 # NOTE: the file names above must match those in jamfile
 #
@@ -42,9 +44,10 @@ foreach ( sort keys %forms ) {
 }
 
 $enum{"macroman"} = "MacRoman";
+$enum{"iso-8859-2"} = "Iso88592";
 $enum{"iso-8859-15"} = "Iso885915";
 
-print "enum Encoding { Iso885915, MacRoman, NumEncodings };\n",
+print "enum Encoding { Iso88592, Iso885915, MacRoman, NumEncodings };\n",
 "static const uint NumForms = ", $numForms, ";\n",
 "static const struct {\n",
 "    const char * encodedForm;\n",
