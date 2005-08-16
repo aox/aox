@@ -651,7 +651,7 @@ void Date::setDate( uint year, const String & month, uint day,
 
     if ( d->month > 0 && d->year > 0 &&
          d->second <= 60 && d->minute <= 59 && d->hour <= 23 &&
-         d->day <= 31 && d->hour > 0 )
+         d->day <= 31 && d->hour >= 0 )
         d->valid = true;
 }
 
