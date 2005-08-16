@@ -555,6 +555,30 @@ We should test multipart/signed and multipart/encrypted support.
   sure they survive the round trip. No doubt there will be bugs.
 
 
+Recording the build source wouldn't be bad.
+
+  tarball could establish the identity conclusively:
+
+  p4 have Jamfile | sed 's/\/Jamfile.*//'
+  p4 counter change
+
+  It would then need to sync the temporary client to that change
+  instead of to head. Fine.
+
+  This would naturally go into the 'what was built' field. But I don't
+  like tarball changing anything. Should we perhaps have a new file,
+  buildinfo, with one-per-line fields that eventually are shown by 'ms
+  show build'?
+
+  $ cat buildinfo
+  Source tree: //oryx/rel/0.97
+  Change number: 50894
+
+  Any distributors wanting to add patches would be encouraged to add
+  something to the file. Or should we pick up buildinfo.*, so people
+  can add their own files?
+
+
 We need to do the right thing.
 
 
