@@ -195,7 +195,7 @@ The configurable file and directory names in this build are as follows:
 .IR $BINDIR .
 .IP INITDIR
 (where the startup script lives) is
-.IP $INITDIR .
+.IR $INITDIR .
 .IP MANDIR
 (where manpages live) is 
 .IR $MANDIR .
