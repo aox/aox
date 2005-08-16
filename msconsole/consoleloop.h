@@ -29,6 +29,7 @@ class EventNotifier
     Q_OBJECT
 public:
     EventNotifier( Connection * );
+    ~EventNotifier();
 
     Connection * connection() const;
 

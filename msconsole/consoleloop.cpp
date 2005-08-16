@@ -129,6 +129,7 @@ void ConsoleLoop::shutdown()
 EventNotifier::EventNotifier( Connection * connection )
     : QObject( 0 ), rn( 0 ), wn( 0 ), c( connection ), r( false ), w( false )
 {
+    Allocator::addEternal( c, "connection managed by qt's event loop" );
     if ( !c->valid() )
         return;
     rn = new QSocketNotifier( c->fd(), QSocketNotifier::Read, this );
@@ -137,6 +138,16 @@ EventNotifier::EventNotifier( Connection * connection )
     wn = new QSocketNotifier( c->fd(), QSocketNotifier::Write, this );
     connect( wn, SIGNAL(activated(int)),
              this, SLOT(acceptWrite()) );
+}
+
+
+/*! Destroys the notifier object and allows its connection() to be
+    collected.
+*/
+
+EventNotifier::~EventNotifier()
+{
+    Allocator::removeEternal( c );
 }
 
 
