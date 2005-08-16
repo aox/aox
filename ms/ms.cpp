@@ -335,19 +335,33 @@ void showStatus()
     end();
 
     printf( "Servers: " );
+    if ( opt( 'v' ) > 0 )
+        printf( "\n  " );
 
     int i = 0;
     while ( i < nservers ) {
         int pid = serverPid( servers[i] );
         printf( "%s", servers[i] );
-        if ( pid < 0 || ( kill( pid, 0 ) != 0 && errno == ESRCH ) )
+        if ( pid < 0 )
             printf( " (not running)" );
+        else if ( kill( pid, 0 ) != 0 && errno == ESRCH )
+            if ( opt( 'v' ) > 0 )
+                printf( " (not running, stale pidfile)" );
+            else
+                printf( " (not running)" );
+        else if ( opt( 'v' ) > 0 )
+            printf( " (%d)", pid );
         if ( i != nservers-1 )
-            printf( ", " );
+            if ( opt( 'v' ) > 0 )
+                printf( "\n  " );
+            else
+                printf( ", " );
         i++;
     }
 
-    printf( ".\n" );
+    if ( opt( 'v' ) == 0 )
+        printf( "." );
+    printf( "\n" );
 }
 
 
@@ -355,6 +369,7 @@ void showBuildconf()
 {
     end();
 
+    printf( "Built on " __DATE__ " " __TIME__ "\n" );
     printf( "CONFIGDIR = %s\n",
             Configuration::compiledIn( Configuration::ConfigDir ).cstr() );
     printf( "PIDFILEDIR = %s\n",
@@ -382,8 +397,7 @@ void addVariable( SortedList< String > *l, String n, String v,
     int np = opt( 'p' );
     int nv = opt( 'v' );
 
-    // XXX: We should check more than just startsWith here.
-    if ( ( pat.isEmpty() || n.startsWith( pat ) ) &&
+    if ( ( pat.isEmpty() || n == pat ) &&
          ( np == 0 || p ) )
     {
         String *s = new String;
@@ -538,8 +552,8 @@ void help()
             "  show configuration -- Display configuration variables.\n\n"
             "    Synopsis: ms show conf [ -p -v ] [variable-name]\n\n"
             "    Displays variables configured in mailstore.conf.\n\n"
-            "    If a variable-name (or part thereof) is specified, only\n"
-            "    matching variables are displayed.\n\n"
+            "    If a variable-name is specified, only that variable\n"
+            "    is displayed.\n\n"
             "    The -v flag displays only the value of the variable.\n"
             "    The -p flag restricts the results to variables whose\n"
             "    value has been changed from the default.\n\n"
