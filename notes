@@ -462,11 +462,6 @@ ms add user spews errors
   Should be easyish to fix.
 
 
-On kalyani, "ms add users" segfaults three servers
-
-  The user is created, then three servers die.
-
-
 Startup failures have bad error messages
 
   When we cannot connect to something, we need to say what. "Port
