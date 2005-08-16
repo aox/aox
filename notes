@@ -549,6 +549,12 @@ Character encoding "unknown-8bit"
   message that _has_ been displayed correctly on a user's screen.
 
 
+We should test multipart/signed and multipart/encrypted support.
+
+  We must add a selection of RFC 1847 messages to canonical, and make
+  sure they survive the round trip. No doubt there will be bugs.
+
+
 We need to do the right thing.
 
 
