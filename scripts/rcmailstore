@@ -6,74 +6,21 @@
 # write to info@oryx.com.
 
 # Note: Jamsettings variables are evaluated at build time.
-cd $SBINDIR
-
-SERVERS="logd ocd tlsproxy imapd smtpd httpd"
-
-for a in $SERVERS ; do
-    test -x ${a} || exit 0
-done
-
-startserver() {
-    ./$1 -f && echo -n " $1" || exit 0
-}
-
-stopserver() {
-    P=$PIDFILEDIR/$1.pid
-    if [ -f $P ]; then
-        SERVERPIDS="`cat $P` $SERVERPIDS"
-        rm $P
-        echo -n " $1";
-    fi
-}
-
-check() {
-    RUNNING=""
-    for a in $SERVERS ; do
-        test -f $PIDFILEDIR/${a}.pid && RUNNING="$RUNNING $a"
-    done
-    if [ "$RUNNING" != "" ]; then
-        echo "The following servers are running already:"
-	echo "    $RUNNING"
-        echo "Please kill them (or delete $PIDFILEDIR/*.pid) first."
-        exit 1
-    fi
-}
-
-
-start() {
-    echo -n "Starting Oryx Mailstore:"
-    for a in $SERVERS ; do
-        startserver $a
-    done
-    echo "."
-}
-
-stop() {
-    echo -n "Stopping Oryx Mailstore:"
-    for a in $SERVERS ; do
-        stopserver $a
-    done
-    if [ "$SERVERPIDS" != "" ]; then
-        echo $SERVERPIDS | xargs -n1 kill 2>/dev/null
-        sleep 1
-        echo $SERVERPIDS | xargs -n1 kill -9 2>/dev/null
-	sleep 1
-    fi
-    echo "."
-}
+cd $BINDIR
 
 case "$1" in
     start)
-        check
-        start
+        echo -n "Starting Oryx Mailstore: "
+        ./ms start
+        echo "done."
         ;;
     stop)
-        stop
+        echo -n "Stopping Oryx Mailstore: "
+        ./ms stop
+        echo "done."
         ;;
     restart)
-        stop
-        start
+        ./ms restart
         ;;
     *)
         echo "Usage: mailstore {start|stop|restart}"
