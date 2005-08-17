@@ -86,10 +86,9 @@ int main( int ac, char *av[] )
         String noun = next().lower();
         if ( noun == "status" )
             showStatus();
-        else if ( noun == "build" || noun == "buildconf" )
+        else if ( noun == "build" )
             showBuildconf();
-        else if ( noun == "cf" || noun == "conf" || noun == "config" ||
-                  noun == "configuration" )
+        else if ( noun == "cf" || noun == "configuration" )
             showConfiguration();
         else
             bad( verb, noun );
@@ -557,10 +556,10 @@ void help()
             "    The -v flag displays only the value of the variable.\n"
             "    The -p flag restricts the results to variables whose\n"
             "    value has been changed from the default.\n\n"
+            "    configuration may be abbreviated as cf.\n\n"
             "    Examples:\n\n"
             "      ms show configuration\n"
-            "      ms show config -p\n"
-            "      ms show conf use-\n"
+            "      ms show cf -p\n"
             "      ms show cf -v imap-address\n"
         );
     }
