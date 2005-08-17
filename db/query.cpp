@@ -72,8 +72,8 @@ public:
 */
 
 
-/*! Constructs a new empty Query handled by \a ev.
-    (This form is provided for use by subclasses.)
+/*! Constructs a new empty Query handled by \a ev, which may be 0 to
+    disable callbacks. (This form is provided for use by subclasses.)
 */
 
 Query::Query( EventHandler *ev )
@@ -83,7 +83,10 @@ Query::Query( EventHandler *ev )
 }
 
 
-/*! Constructs a Query for \a ev containing the SQL statement \a s. */
+/*! Constructs a Query for \a ev containing the SQL statement \a s.
+    If \a ev is 0, the query will run without notifying its owner of
+    progress or completion.
+*/
 
 Query::Query( const String &s, EventHandler *ev )
     : d( new QueryData )
@@ -93,7 +96,10 @@ Query::Query( const String &s, EventHandler *ev )
 }
 
 
-/*! Constructs a Query for \a ev from the prepared statement \a ps. */
+/*! Constructs a Query for \a ev from the prepared statement \a ps.
+    If \a ev is 0, the query will run without notifying its owner of
+    progress or completion.
+*/
 
 Query::Query( const PreparedStatement &ps, EventHandler *ev )
     : d( new QueryData )
