@@ -5,6 +5,10 @@
 #include "log.h"
 #include "query.h"
 #include "transaction.h"
+#include "stringlist.h"
+#include "allocator.h"
+#include "dict.h"
+#include "md5.h"
 
 
 int currentRevision = 9;
@@ -146,7 +150,459 @@ void Schema::execute()
         }
 
         if ( d->state == 4 ) {
-            // ...
+            if ( d->revision == 1 ) {
+                if ( d->substate == 0 ) {
+                    d->l->log( "Changing users.login/secret to text", Log::Debug );
+                    d->q = new Query( "alter table users add login2 text", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "update users set login2=login", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table users drop login", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table users rename login2 to login",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table users add unique(login)",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table users add secret2 text", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "update users set secret2=secret", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table users drop secret", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table users rename secret2 to secret",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
+                    if ( !d->q->done() )
+                        return;
+                    d->l->log( "Done.", Log::Debug );
+                    d->substate = 0;
+                }
+            }
+
+            if ( d->revision == 2 ) {
+                if ( d->substate == 0 ) {
+                    d->l->log( "Merging bodyparts and binary_parts", Log::Debug );
+                    d->q = new Query( "alter table bodyparts add hash text",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table bodyparts add data bytea",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table bodyparts add text2 text",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "update bodyparts set data=b.data from "
+                                   "binary_parts b where id=b.bodypart",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "declare parts cursor for "
+                                   "select id,text,data from bodyparts",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "fetch 512 from parts", this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
+                    while ( d->q->hasResults() ) {
+                        Row *r = d->q->nextRow();
+                        String text, data;
+
+                        Query *u =
+                            new Query( "update bodyparts set "
+                                       "text2=$1,hash=$2 where id=$3", this );
+                        if ( r->isNull( "text" ) ) {
+                            data = r->getString( "data" );
+                            u->bindNull( 1 );
+                            u->bind( 2, MD5::hash( data ).hex() );
+                        }
+                        else {
+                            text = r->getString( "text" );
+                            u->bind( 1, text );
+                            u->bind( 2, MD5::hash( text ).hex() );
+                        }
+                        u->bind( 3, r->getInt( "id" ) );
+                        d->t->enqueue( u );
+                    }
+
+                    if ( !d->q->done() )
+                        return;
+
+                    if ( d->q->rows() != 0 ) {
+                        d->q = new Query( "fetch 512 from parts", this );
+                        d->t->enqueue( d->q );
+                        d->t->execute();
+                        return;
+                    }
+                    else {
+                        d->substate = 2;
+                        d->t->enqueue( new Query( "close parts", this ) );
+                    }
+                }
+
+                if ( d->substate == 2 ) {
+                    d->q = new Query( "alter table bodyparts drop text", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table bodyparts rename text2 to text",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "select id,hash from bodyparts where hash in "
+                                   "(select hash from bodyparts group by hash"
+                                   " having count(*) > 1)", this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 3;
+                }
+
+                if ( d->substate == 3 ) {
+                    if ( !d->q->done() )
+                        return;
+
+                    StringList ids;
+                    Dict< uint > hashes;
+
+                    while ( d->q->hasResults() ) {
+                        Row *r = d->q->nextRow();
+                        uint id = r->getInt( "id" );
+                        String hash = r->getString( "hash" );
+
+                        uint *old = hashes.find( hash );
+                        if ( old ) {
+                            ids.append( fn( id ) );
+                            Query *u =
+                                new Query( "update part_numbers set "
+                                           "bodypart=$1 where bodypart=$2",
+                                           this );
+                            u->bind( 1, *old );
+                            u->bind( 2, id );
+                            d->t->enqueue( u );
+                        }
+                        else {
+                            uint * tmp
+                                = (uint*)Allocator::alloc( sizeof(uint) );
+                            *tmp = id;
+                            hashes.insert( hash, tmp );
+                        }
+                    }
+
+                    if ( !ids.isEmpty() ) {
+                        d->q = new Query( "delete from bodyparts where id in "
+                                       "(" + ids.join(",") + ")", this );
+                        d->t->enqueue( d->q );
+                    }
+                    d->q = new Query( "drop table binary_parts", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table bodyparts add unique(hash)",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 4;
+                }
+
+                if ( d->substate == 4 ) {
+                    if ( !d->q->done() )
+                        return;
+                    d->l->log( "Done.", Log::Debug );
+                    d->substate = 0;
+                }
+            }
+
+            if ( d->revision == 3 ) {
+                if ( d->substate == 0 ) {
+                    d->l->log( "Creating flags from messages/extra_flags.",
+                            Log::Debug );
+                    d->q = new Query( "alter table extra_flags rename to flags",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "insert into flag_names (name) values ($1)",
+                                   this );
+                    d->q->bind( 1, "\\Deleted" );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "insert into flag_names (name) values ($1)",
+                                   this );
+                    d->q->bind( 1, "\\Answered" );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "insert into flag_names (name) values ($1)",
+                                   this );
+                    d->q->bind( 1, "\\Flagged" );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "insert into flag_names (name) values ($1)",
+                                   this );
+                    d->q->bind( 1, "\\Draft" );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "insert into flag_names (name) values ($1)",
+                                   this );
+                    d->q->bind( 1, "\\Seen" );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "insert into flags (mailbox,uid,flag) "
+                                   "select mailbox,uid,"
+                                   "(select id from flag_names"
+                                   " where name='\\Deleted') from messages "
+                                   "where deleted", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "insert into flags (mailbox,uid,flag) "
+                                   "select mailbox,uid,"
+                                   "(select id from flag_names"
+                                   " where name='\\Answered') from messages "
+                                   "where answered", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "insert into flags (mailbox,uid,flag) "
+                                   "select mailbox,uid,"
+                                   "(select id from flag_names"
+                                   " where name='\\Flagged') from messages "
+                                   "where flagged", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "insert into flags (mailbox,uid,flag) "
+                                   "select mailbox,uid,"
+                                   "(select id from flag_names"
+                                   " where name='\\Draft') from messages "
+                                   "where draft", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "insert into flags (mailbox,uid,flag) "
+                                   "select mailbox,uid,"
+                                   "(select id from flag_names"
+                                   " where name='\\Seen') from messages "
+                                   "where seen", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table messages drop deleted", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table messages drop answered", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table messages drop flagged", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table messages drop draft", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table messages drop seen", this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
+                    if ( !d->q->done() )
+                        return;
+                    d->l->log( "Done.", Log::Debug );
+                    d->substate = 0;
+                }
+            }
+
+            if ( d->revision == 4 ) {
+                if ( d->substate == 0 ) {
+                    d->l->log( "Adding hf_mup, af_mu, fl_mu indices.",
+                            Log::Debug );
+                    d->q = new Query( "create index hf_mup on "
+                                   "header_fields (mailbox,uid,part)", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "create index af_mu on "
+                                   "address_fields (mailbox,uid)", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "create index fl_mu on "
+                                   "flags (mailbox,uid)", this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
+                    if ( !d->q->done() )
+                        return;
+                    d->l->log( "Done.", Log::Debug );
+                    d->substate = 0;
+                }
+            }
+
+            if ( d->revision == 5 ) {
+                if ( d->substate == 0 ) {
+                    d->l->log( "Moving bytes/lines to part_numbers.",
+                            Log::Debug );
+                    d->q = new Query( "alter table part_numbers add "
+                                   "bytes integer", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table part_numbers add "
+                                   "lines integer", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "update part_numbers set "
+                                   "bytes=bodyparts.bytes,"
+                                   "lines=bodyparts.lines from "
+                                   "bodyparts where "
+                                   "part_numbers.bodypart=bodyparts.id",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table bodyparts drop lines",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
+                    if ( !d->q->done() )
+                        return;
+                    d->l->log( "Done.", Log::Debug );
+                    d->substate = 0;
+                }
+            }
+
+            if ( d->revision == 6 ) {
+                if ( d->substate == 0 ) {
+                    d->l->log( "Adding header_fields.position.", Log::Debug );
+                    d->q = new Query( "alter table header_fields add "
+                                   "position integer", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table header_fields alter part "
+                                   "set not null", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "create temporary sequence hf_pos", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "declare groups cursor for "
+                                   "select distinct mailbox,uid,part "
+                                   "from header_fields",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "fetch 512 from groups", this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
+                    while ( d->q->hasResults() ) {
+                        Row *r = d->q->nextRow();
+
+                        Query *u =
+                            new Query( "update header_fields set position="
+                                       "nextval('hf_pos') where id in "
+                                       "(select id from header_fields "
+                                       "where not (mailbox,uid,part) is "
+                                       "distinct from ($1,$2,$3) order by id)",
+                                       this );
+                        u->bind( 1, r->getInt( "mailbox" ) );
+                        u->bind( 2, r->getInt( "uid" ) );
+                        u->bind( 3, r->getString( "part" ) );
+                        d->t->enqueue( u );
+
+                        u = new Query( "alter sequence hf_pos restart with 1",
+                                       this );
+                        d->t->enqueue( u );
+                    }
+
+                    if ( !d->q->done() )
+                        return;
+
+                    if ( d->q->rows() != 0 ) {
+                        d->q = new Query( "fetch 512 from groups", this );
+                        d->t->enqueue( d->q );
+                        d->t->execute();
+                        return;
+                    }
+                    else {
+                        d->t->enqueue( new Query( "close groups", this ) );
+                        d->q = new Query( "alter table header_fields add unique "
+                                       "(mailbox,uid,part,position,field)",
+                                       this );
+                        d->t->enqueue( d->q );
+                        d->t->execute();
+                        d->substate = 2;
+                    }
+                }
+
+                if ( d->substate == 2 ) {
+                    if ( !d->q->done() )
+                        return;
+                    d->l->log( "Done.", Log::Debug );
+                    d->substate = 0;
+                }
+            }
+
+            if ( d->revision == 7 ) {
+                if ( d->substate == 0 ) {
+                    d->l->log( "Making address_fields refer to header_fields.",
+                            Log::Debug );
+                    d->q = new Query( "delete from address_fields", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table address_fields drop field",
+                                   this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table address_fields add "
+                                   "part text", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table address_fields alter "
+                                   "part set not null", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table address_fields add "
+                                   "position integer", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table address_fields alter "
+                                   "position set not null", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table address_fields add "
+                                   "field integer", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table address_fields alter "
+                                   "field set not null", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table address_fields add foreign key "
+                                   "(mailbox,uid,part,position,field) "
+                                   "references header_fields "
+                                   "(mailbox,uid,part,position,field) "
+                                   "on delete cascade", this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
+                    if ( !d->q->done() )
+                        return;
+                    d->l->log( "Done.", Log::Debug );
+                    d->substate = 0;
+                }
+            }
+
+            if ( d->revision == 8 ) {
+                if ( d->substate == 0 ) {
+                    d->l->log( "Removing recent_messages.", Log::Debug );
+                    d->q = new Query( "alter table mailboxes add "
+                                   "first_recent integer ", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "update mailboxes set "
+                                   "first_recent=coalesce((select min(uid) "
+                                   "from recent_messages where "
+                                   "mailbox=mailboxes.id),uidnext)", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table mailboxes alter first_recent "
+                                   "set not null", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table mailboxes alter first_recent "
+                                   "set default 1", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "drop table recent_messages", this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
+                    if ( !d->q->done() )
+                        return;
+                    d->l->log( "Done.", Log::Debug );
+                    d->substate = 0;
+                }
+            }
+
+            // Remember to update currentRevision when you add something
+            // here.
+
+            d->state = 5;
         }
 
         if ( d->state == 5 ) {
