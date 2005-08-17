@@ -385,7 +385,7 @@ Iso885916Codec::Iso885916Codec()
 //codec ISO-8859-8 Iso88598Codec
 //codec ISO-8859-9 Iso88599Codec
 //codec ISO-8859-10 Iso885910Codec
-//codec ISO-8859-11 Iso885911Codec
+//codec TIS-620 Iso885911Codec
 // (see http://mail.apps.ietf.org/ietf/charsets/msg01362.html)
 //codec ISO-8859-13 Iso885913Codec
 //codec ISO-8859-14 Iso885914Codec
