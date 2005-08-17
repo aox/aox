@@ -413,3 +413,28 @@ void MessageSet::clear()
 {
     d = new SetData;
 }
+
+
+/*! Returns the contents of this set in IMAP syntax. The shortest
+    possible representation is returned, with strictly increasing
+    values, without repetitions, with ":" and "," as necessary.
+
+    If the set is empty, so is the returned string.
+*/
+
+String MessageSet::set() const
+{
+    String r;
+    List< SetData::Range >::Iterator it( d->l );
+    while ( it ) {
+	if ( !r.isEmpty() )
+	    r.append( "," );
+	r.append( fn( it->start ) );
+	if ( it->length > 1 ) {
+	    r.append( ":" );
+	    r.append( fn( it->start + it->length - 1 ) );
+	}
+	++it;
+    }
+    return r;
+}
