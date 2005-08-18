@@ -531,24 +531,6 @@ Add a web page about the charset encoding.
   URL.
 
 
-Character encoding "unknown-8bit"
-
-  I was wondering how to handle mail with that charset. Then it hit
-  me: It's a character encoding, no more, no less.
-
-  We define 128 code points in the unicode private use area and map
-  the top half of unknown-8bit to them, and the bottom half to U+0000
-  to U+007F. That way, we do support unknown-8bit, without making it
-  equal to anything.
-
-  I don't want to do it just yet. Let it settle in my mind for a
-  little while, see whether the idea is so good.
-
-  One possible disadvantage: If an IMAP client assumes that it's equal
-  to latin-1, later searches for latin-1 strings will not find the
-  message that _has_ been displayed correctly on a user's screen.
-
-
 We should test multipart/signed and multipart/encrypted support.
 
   We must add a selection of RFC 1847 messages to canonical, and make
