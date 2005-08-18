@@ -363,6 +363,12 @@ void Date::setRfc822( const String & s )
         if ( d->month > 12 || !ok )
             d->month = 0;
     }
+    else {
+        // Some programs (which urgently need potty training) put a dot
+        // after the month's name.
+        if ( p.next() == '.' )
+            p.step();
+    }
 
     if ( d->month == 0 )
         return;
