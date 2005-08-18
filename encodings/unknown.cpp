@@ -53,7 +53,7 @@ static const int tableUnknown[256] = {
 
 
 Unknown8BitCodec::Unknown8BitCodec()
-    : TableCodec( tableUnknown, "unknown-8bit" )
+    : TableCodec( tableUnknown, "UNKNOWN-8BIT" )
 {
     // nothing necessary
 }

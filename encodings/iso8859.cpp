@@ -270,6 +270,16 @@ static const int table885911[256] = {
     The Iso885911Codec class convers bet ISO 8859-11 and Unicode, using
     tables published by the Unicode Consortium. We have scripts to
     update the tables if/when a new revision of ISO 8859-11 is published.
+
+    According to the IANA, the one valid name for this is
+    TIS-620. This is probably an oversight by the IANA, but it hasn't
+    been corrected for many years and we don't know. For the time
+    being, we follow the IANA's lead. If/when we have users in
+    Thailand, we may change this, depending on their needs.
+
+    We actually do support ISO-8859-11, not just TIS-620. The only
+    difference between the two is code point 0xA0, which is
+    nonbreakspace in 8859-11 and undefined in TIS-620.
 */
 
 
@@ -278,7 +288,7 @@ static const int table885911[256] = {
 */
 
 Iso885911Codec::Iso885911Codec()
-    : TableCodec( table885911, "ISO-8859-11" )
+    : TableCodec( table885911, "TIS-620" )
 {
 }
 
