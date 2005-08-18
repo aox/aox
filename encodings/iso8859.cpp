@@ -64,9 +64,10 @@ static const int table88592[256] = {
 
 /*! \class Iso88592Codec iso8859.h
 
-    The Iso88592Codec class convers bet ISO 8859-3 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-2 is published.
+    The Iso88592Codec class converts between ISO 8859-3 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-2 is
+    published.
 */
 
 
@@ -87,9 +88,10 @@ static const int table88593[256] = {
 
 /*! \class Iso88593Codec iso8859.h
 
-    The Iso88593Codec class convers bet ISO 8859-2 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-2 is published.
+    The Iso88593Codec class converts between ISO 8859-2 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-2 is
+    published.
 */
 
 
@@ -110,9 +112,10 @@ static const int table88594[256] = {
 
 /*! \class Iso88594Codec iso8859.h
 
-    The Iso88594Codec class convers bet ISO 8859-4 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-2 is published.
+    The Iso88594Codec class converts between ISO 8859-4 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-2 is
+    published.
 */
 
 
@@ -132,9 +135,10 @@ static const int table88595[256] = {
 
 /*! \class Iso88595Codec iso8859.h
 
-    The Iso88595Codec class convers bet ISO 8859-5 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-5 is published.
+    The Iso88595Codec class converts between ISO 8859-5 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-5 is
+    published.
 */
 
 
@@ -154,9 +158,10 @@ static const int table88596[256] = {
 
 /*! \class Iso88596Codec iso8859.h
 
-    The Iso88596Codec class convers bet ISO 8859-6 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-6 is published.
+    The Iso88596Codec class converts between ISO 8859-6 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-6 is
+    published.
 */
 
 
@@ -176,9 +181,10 @@ static const int table88597[256] = {
 
 /*! \class Iso88597Codec iso8859.h
 
-    The Iso88597Codec class convers bet ISO 8859-7 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-7 is published.
+    The Iso88597Codec class converts between ISO 8859-7 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-7 is
+    published.
 */
 
 
@@ -198,9 +204,10 @@ static const int table88598[256] = {
 
 /*! \class Iso88598Codec iso8859.h
 
-    The Iso88598Codec class convers bet ISO 8859-8-I and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-8-I is published.
+    The Iso88598Codec class converts between ISO 8859-8-I and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-8-I is
+    published.
 
     8859-8-I is the version where direction is implied; see RFC 1556.
 */
@@ -223,9 +230,10 @@ static const int table88599[256] = {
 
 /*! \class Iso88599Codec iso8859.h
 
-    The Iso88599Codec class convers bet ISO 8859-9 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-9 is published.
+    The Iso88599Codec class converts between ISO 8859-9 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-9 is
+    published.
 */
 
 
@@ -245,9 +253,10 @@ static const int table885910[256] = {
 
 /*! \class Iso885910Codec iso8859.h
 
-    The Iso885910Codec class convers bet ISO 8859-10 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-10 is published.
+    The Iso885910Codec class converts between ISO 8859-10 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-10 is
+    published.
 */
 
 
@@ -267,15 +276,16 @@ static const int table885911[256] = {
 
 /*! \class Iso885911Codec iso8859.h
 
-    The Iso885911Codec class convers bet ISO 8859-11 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-11 is published.
+    The Iso885911Codec class converts between ISO 8859-11 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-11 is
+    published.
 
-    According to the IANA, the one valid name for this is
-    TIS-620. This is probably an oversight by the IANA, but it hasn't
-    been corrected for many years and we don't know. For the time
-    being, we follow the IANA's lead. If/when we have users in
-    Thailand, we may change this, depending on their needs.
+    According to the IANA, the canonical name for this is TIS-620.
+    This is probably an oversight by the IANA, but it hasn't been
+    corrected for many years and we don't know. For the time being, we
+    follow the IANA's lead. If/when we have users in Thailand, we may
+    change this, depending on their needs.
 
     We actually do support ISO-8859-11, not just TIS-620. The only
     difference between the two is code point 0xA0, which is
@@ -298,9 +308,10 @@ Iso885911Codec::Iso885911Codec()
 
 /*! \class Iso885913Codec iso8859.h
 
-    The Iso885913Codec class convers bet ISO 8859-13 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-13 is published.
+    The Iso885913Codec class converts between ISO 8859-13 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-13 is
+    published.
 */
 
 
@@ -324,9 +335,10 @@ static const int table885914[256] = {
 
 /*! \class Iso885914Codec iso8859.h
 
-    The Iso885914Codec class convers bet ISO 8859-14 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-14 is published.
+    The Iso885914Codec class converts between ISO 8859-14 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-14 is
+    published.
 */
 
 
@@ -346,9 +358,10 @@ static const int table885915[256] = {
 
 /*! \class Iso885915Codec iso8859.h
 
-    The Iso885915Codec class convers bet ISO 8859-15 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-15 is published.
+    The Iso885915Codec class converts between ISO 8859-15 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-15 is
+    published.
 */
 
 
@@ -368,9 +381,10 @@ static const int table885916[256] = {
 
 /*! \class Iso885916Codec iso8859.h
 
-    The Iso885916Codec class convers bet ISO 8859-16 and Unicode, using
-    tables published by the Unicode Consortium. We have scripts to
-    update the tables if/when a new revision of ISO 8859-16 is published.
+    The Iso885916Codec class converts between ISO 8859-16 and Unicode,
+    using tables published by the Unicode Consortium. We have scripts
+    to update the tables if/when a new revision of ISO 8859-16 is
+    published.
 */
 
 
