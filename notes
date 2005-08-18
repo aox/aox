@@ -567,6 +567,18 @@ ms can help (read: take over the function of) scripts/installer
   past with shell hackery.
 
 
+ms could/should check that pgsql is okay before starting *d
+
+  ms could connect to postgresql, log in, issue 'select 1;' and check
+  that the results match expectations. only then is it safe to start
+  the servers.
+
+  ms could also check that the schema revision corresponds to that
+  expected by the servers it would shortly start.
+
+  All this could improve the quality of startup error messages vastly.
+
+
 We need to do the right thing.
 
 
