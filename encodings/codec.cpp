@@ -10,6 +10,7 @@
 #include "iso8859.h"
 #include "mac.h"
 #include "utf.h"
+#include "unknown.h"
 
 
 /*! \class Codec codec.h
