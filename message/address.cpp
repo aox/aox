@@ -541,6 +541,14 @@ void AddressParser::address( int & i )
         if ( s[i] == '<' ) {
             i--;
             name = phrase( i );
+            if ( s[i] == '@' ) {
+                // we may be looking at address "lp@domain
+                // <lp@domain>", or at some other error. we respond to
+                // this particular error by ignoring the display-name.
+                i--;
+                (void)phrase( i );
+                name = "";
+            }
         }
         if ( lp.isEmpty() )
             error( "Empty localpart ", i );
