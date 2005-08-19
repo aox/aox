@@ -481,10 +481,9 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 // Not pretty.
             }
         }
-        if ( !c ) {
+
+        if ( !c )
             c = new AsciiCodec;
-            specified = false;
-        }
 
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body );
