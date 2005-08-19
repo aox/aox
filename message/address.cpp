@@ -549,6 +549,16 @@ void AddressParser::address( int & i )
                 (void)phrase( i );
                 name = "";
             }
+            // if the display-name contains unknown-8bit, we drop the
+            // display-name.
+            Utf8Codec u;
+            UString real = u.toUnicode( name );
+            uint i = 0;
+            while ( i < real.length() &&
+                    ( real[i] < 0xED80 || real[i] > 0xEDFF ) )
+                i++;
+            if ( i < real.length() )
+                name = "";
         }
         if ( lp.isEmpty() )
             error( "Empty localpart ", i );
