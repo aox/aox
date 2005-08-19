@@ -256,7 +256,7 @@ Codec * Codec::byString( const String & s )
 */
 
 
-/*! \fn TableCodec::TableCodec( const int * table, const char * name )
+/*! \fn TableCodec::TableCodec( const uint * table, const char * name )
     Creates an empty TableCodec mapping to/from Unicode using \a table
     and named \a name.
 */

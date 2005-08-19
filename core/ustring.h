@@ -20,7 +20,7 @@ public:
     UString & operator+=( const UString & str );
 
     // const, returns zero when used beyond the end
-    int operator[]( uint i ) const {
+    uint operator[]( uint i ) const {
         if ( i >= len )
             return 0;
         return str[i];
@@ -30,7 +30,7 @@ public:
     uint length() const { return len; }
 
     void append( const UString & );
-    void append( const int );
+    void append( const uint );
 
     void reserve( uint );
     void truncate( uint );
@@ -41,9 +41,9 @@ public:
     String ascii() const;
 
 private:
-    uint len, max;
-    int idx;
-    int *str;
+    uint len;
+    uint max;
+    uint *str;
 };
 
 

@@ -5,7 +5,7 @@
 // DOS code pages, 437-869 or so. 874 is in the window section, below.
 
 
-static const int tablecp437[256] = {
+static const uint tablecp437[256] = {
 #include "cp437.inc"
 };
 
@@ -27,7 +27,7 @@ Cp437Codec::Cp437Codec()
 }
 
 
-static const int tablecp737[256] = {
+static const uint tablecp737[256] = {
 #include "cp737.inc"
 };
 
@@ -50,7 +50,7 @@ Cp737Codec::Cp737Codec()
 
 
 
-static const int tablecp775[256] = {
+static const uint tablecp775[256] = {
 #include "cp775.inc"
 };
 
@@ -72,7 +72,7 @@ Cp775Codec::Cp775Codec()
 }
 
 
-static const int tablecp850[256] = {
+static const uint tablecp850[256] = {
 #include "cp850.inc"
 };
 
@@ -94,7 +94,7 @@ Cp850Codec::Cp850Codec()
 }
 
 
-static const int tablecp852[256] = {
+static const uint tablecp852[256] = {
 #include "cp852.inc"
 };
 
@@ -117,7 +117,7 @@ Cp852Codec::Cp852Codec()
 }
 
 
-static const int tablecp855[256] = {
+static const uint tablecp855[256] = {
 #include "cp855.inc"
 };
 
@@ -137,7 +137,7 @@ Cp855Codec::Cp855Codec()
 }
 
 
-static const int tablecp857[256] = {
+static const uint tablecp857[256] = {
 #include "cp857.inc"
 };
 
@@ -157,7 +157,7 @@ Cp857Codec::Cp857Codec()
 }
 
 
-static const int tablecp860[256] = {
+static const uint tablecp860[256] = {
 #include "cp860.inc"
 };
 
@@ -177,7 +177,7 @@ Cp860Codec::Cp860Codec()
 }
 
 
-static const int tablecp861[256] = {
+static const uint tablecp861[256] = {
 #include "cp861.inc"
 };
 
@@ -197,7 +197,7 @@ Cp861Codec::Cp861Codec()
 }
 
 
-static const int tablecp862[256] = {
+static const uint tablecp862[256] = {
 #include "cp862.inc"
 };
 
@@ -217,7 +217,7 @@ Cp862Codec::Cp862Codec()
 }
 
 
-static const int tablecp863[256] = {
+static const uint tablecp863[256] = {
 #include "cp863.inc"
 };
 
@@ -237,7 +237,7 @@ Cp863Codec::Cp863Codec()
 }
 
 
-static const int tablecp864[256] = {
+static const uint tablecp864[256] = {
 #include "cp864.inc"
 };
 
@@ -257,7 +257,7 @@ Cp864Codec::Cp864Codec()
 }
 
 
-static const int tablecp865[256] = {
+static const uint tablecp865[256] = {
 #include "cp865.inc"
 };
 
@@ -277,7 +277,7 @@ Cp865Codec::Cp865Codec()
 }
 
 
-static const int tablecp866[256] = {
+static const uint tablecp866[256] = {
 #include "cp866.inc"
 };
 
@@ -297,7 +297,7 @@ Cp866Codec::Cp866Codec()
 }
 
 
-static const int tablecp869[256] = {
+static const uint tablecp869[256] = {
 #include "cp869.inc"
 };
 
@@ -317,7 +317,7 @@ Cp869Codec::Cp869Codec()
 }
 
 
-static const int tablecp874[256] = {
+static const uint tablecp874[256] = {
 #include "cp874.inc"
 };
 
@@ -340,7 +340,7 @@ Cp874Codec::Cp874Codec()
 // some 8-bit windows code pages
 
 
-static const int tablecp1250[256] = {
+static const uint tablecp1250[256] = {
 #include "cp1250.inc"
 };
 
@@ -360,7 +360,7 @@ Cp1250Codec::Cp1250Codec()
 }
 
 
-static const int tablecp1251[256] = {
+static const uint tablecp1251[256] = {
 #include "cp1251.inc"
 };
 
@@ -380,7 +380,7 @@ Cp1251Codec::Cp1251Codec()
 }
 
 
-static const int tablecp1252[256] = {
+static const uint tablecp1252[256] = {
 #include "cp1252.inc"
 };
 
@@ -400,7 +400,7 @@ Cp1252Codec::Cp1252Codec()
 }
 
 
-static const int tablecp1253[256] = {
+static const uint tablecp1253[256] = {
 #include "cp1253.inc"
 };
 
@@ -420,7 +420,7 @@ Cp1253Codec::Cp1253Codec()
 }
 
 
-static const int tablecp1254[256] = {
+static const uint tablecp1254[256] = {
 #include "cp1254.inc"
 };
 
@@ -440,7 +440,7 @@ Cp1254Codec::Cp1254Codec()
 }
 
 
-static const int tablecp1255[256] = {
+static const uint tablecp1255[256] = {
 #include "cp1255.inc"
 };
 
@@ -460,7 +460,7 @@ Cp1255Codec::Cp1255Codec()
 }
 
 
-static const int tablecp1256[256] = {
+static const uint tablecp1256[256] = {
 #include "cp1256.inc"
 };
 
@@ -480,7 +480,7 @@ Cp1256Codec::Cp1256Codec()
 }
 
 
-static const int tablecp1257[256] = {
+static const uint tablecp1257[256] = {
 #include "cp1257.inc"
 };
 
@@ -500,7 +500,7 @@ Cp1257Codec::Cp1257Codec()
 }
 
 
-static const int tablecp1258[256] = {
+static const uint tablecp1258[256] = {
 #include "cp1258.inc"
 };
 

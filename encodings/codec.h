@@ -42,7 +42,7 @@ private:
 
 class TableCodec: public Codec {
 protected:
-    TableCodec( const int * table, const char * cs )
+    TableCodec( const uint * table, const char * cs )
         : Codec( cs ), t( table ) {}
 
 public:
@@ -50,7 +50,7 @@ public:
     UString toUnicode( const String & );
 
 private:
-    const int * t;
+    const uint * t;
 };
 
 

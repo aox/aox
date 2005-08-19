@@ -57,7 +57,7 @@ UString Iso88591Codec::toUnicode( const String & s )
 }
 
 
-static const int table88592[256] = {
+static const uint table88592[256] = {
 #include "8859-2.inc"
 };
 
@@ -82,7 +82,7 @@ Iso88592Codec::Iso88592Codec()
 
 
 
-static const int table88593[256] = {
+static const uint table88593[256] = {
 #include "8859-3.inc"
 };
 
@@ -106,7 +106,7 @@ Iso88593Codec::Iso88593Codec()
 
 
 
-static const int table88594[256] = {
+static const uint table88594[256] = {
 #include "8859-4.inc"
 };
 
@@ -129,7 +129,7 @@ Iso88594Codec::Iso88594Codec()
 }
 
 
-static const int table88595[256] = {
+static const uint table88595[256] = {
 #include "8859-5.inc"
 };
 
@@ -152,7 +152,7 @@ Iso88595Codec::Iso88595Codec()
 }
 
 
-static const int table88596[256] = {
+static const uint table88596[256] = {
 #include "8859-6.inc"
 };
 
@@ -175,7 +175,7 @@ Iso88596Codec::Iso88596Codec()
 }
 
 
-static const int table88597[256] = {
+static const uint table88597[256] = {
 #include "8859-7.inc"
 };
 
@@ -198,7 +198,7 @@ Iso88597Codec::Iso88597Codec()
 }
 
 
-static const int table88598[256] = {
+static const uint table88598[256] = {
 #include "8859-8.inc"
 };
 
@@ -224,7 +224,7 @@ Iso88598Codec::Iso88598Codec()
 }
 
 
-static const int table88599[256] = {
+static const uint table88599[256] = {
 #include "8859-9.inc"
 };
 
@@ -247,7 +247,7 @@ Iso88599Codec::Iso88599Codec()
 }
 
 
-static const int table885910[256] = {
+static const uint table885910[256] = {
 #include "8859-10.inc"
 };
 
@@ -270,7 +270,7 @@ Iso885910Codec::Iso885910Codec()
 }
 
 
-static const int table885911[256] = {
+static const uint table885911[256] = {
 #include "8859-11.inc"
 };
 
@@ -315,7 +315,7 @@ Iso885911Codec::Iso885911Codec()
 */
 
 
-static const int table885913[256] = {
+static const uint table885913[256] = {
 #include "8859-13.inc"
 };
 
@@ -329,7 +329,7 @@ Iso885913Codec::Iso885913Codec()
 }
 
 
-static const int table885914[256] = {
+static const uint table885914[256] = {
 #include "8859-14.inc"
 };
 
@@ -352,7 +352,7 @@ Iso885914Codec::Iso885914Codec()
 }
 
 
-static const int table885915[256] = {
+static const uint table885915[256] = {
 #include "8859-15.inc"
 };
 
@@ -375,7 +375,7 @@ Iso885915Codec::Iso885915Codec()
 }
 
 
-static const int table885916[256] = {
+static const uint table885916[256] = {
 #include "8859-16.inc"
 };
 

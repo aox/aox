@@ -11,7 +11,7 @@
   be unless they reach RFC status.
 */
 
-static const int tablekoi8R[256] = {
+static const uint tablekoi8R[256] = {
 #include "koi8-r.inc"
 };
 
@@ -30,7 +30,7 @@ Koi8RCodec::Koi8RCodec()
   controversies are known regarding the character maps.)
 */
 
-static const int tablekoi8U[256] = {
+static const uint tablekoi8U[256] = {
     0x2500, 0x2502, 0x250C, 0x2510, 0x2514, 0x2518, 0x251C, 0x2524,
     0x252C, 0x2534, 0x253C, 0x2580, 0x2584, 0x2588, 0x258C, 0x2590,
     0x2591, 0x2592, 0x2593, 0x2320, 0x25A0, 0x2219, 0x221A, 0x2248,

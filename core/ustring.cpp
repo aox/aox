@@ -89,15 +89,15 @@ UString & UString::operator+=( const UString & other )
 void UString::append( const UString & other )
 {
     reserve( len + other.len );
-    int * dest = str + len;
-    memmove( dest, other.str, other.len * sizeof(int) );
+    uint * dest = str + len;
+    memmove( dest, other.str, other.len * sizeof(uint) );
     len += other.len;
 }
 
 
 /*! Appends unicode code point \a cp to the end of this string. */
 
-void UString::append( const int cp )
+void UString::append( const uint cp )
 {
     reserve( len + 1 );
     str[len++] = cp;
@@ -114,10 +114,10 @@ void UString::reserve( uint size )
     if ( max >= size )
         return;
 
-    size = Allocator::rounded( size * sizeof( int ) ) / sizeof( int );
-    int * s = (int*)Allocator::alloc( sizeof( int ) * size, 0 );
+    size = Allocator::rounded( size * sizeof( uint ) ) / sizeof( uint );
+    uint * s = (uint*)Allocator::alloc( sizeof( uint ) * size, 0 );
     if ( len )
-        memmove( s, str, sizeof( int ) * len );
+        memmove( s, str, sizeof( uint ) * len );
     str = s;
     max = size;
 }

@@ -3,7 +3,7 @@
 #include "mac.h"
 
 
-static const int macromantable[256] = {
+static const uint macromantable[256] = {
 #include "mac-roman.inc"
 };
 
