@@ -579,6 +579,19 @@ ms could/should check that pgsql is okay before starting *d
   All this could improve the quality of startup error messages vastly.
 
 
+Something confuses Address::uname() and Address::name()
+
+  As a result, we send unlabelled 8-bit content in display-names if
+  the name cannot be expressed in either 8859-1, 8859-2 or koi8-r.
+
+  I think the underlying reason is that we're not using UString, so
+  the compiler's type checking does nothing for us.
+
+  This is easy to demoonstrate with 22 right now, but it won't be
+  shortly - I'll make a separate change which accidentally obliterates
+  the difference.
+
+
 We need to do the right thing.
 
 
