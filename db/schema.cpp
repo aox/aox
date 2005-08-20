@@ -124,7 +124,7 @@ void Schema::execute()
             s.append( fn( currentRevision ) );
             s.append( "). Please " );
             if ( d->revision < currentRevision )
-                s.append( "run 'ms update schema'" );
+                s.append( "run 'ms upgrade schema'" );
             else
                 s.append( "upgrade" );
             s.append( " or contact support." );
@@ -676,7 +676,8 @@ void Schema::execute()
         if ( d->t->failed() && !d->result->failed() ) {
             String s( "The schema " );
             if ( d->upgrade )
-                s.append( "update to revision " + fn ( 1 + d->revision ) );
+                s.append( "could not be upgraded to revision " +
+                          fn( currentRevision ) );
             else
                 s.append( "validation" );
             s.append( " failed." );
