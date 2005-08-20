@@ -53,7 +53,7 @@ void showStatus();
 void showBuildconf();
 void showConfiguration();
 void showSchema();
-void updateSchema();
+void upgradeSchema();
 void createUser();
 void deleteUser();
 void createMailbox();
@@ -114,10 +114,10 @@ int main( int ac, char *av[] )
         else
             bad( verb, noun );
     }
-    else if ( verb == "update" ) {
+    else if ( verb == "upgrade" ) {
         String noun = next().lower();
         if ( noun == "schema" )
-            updateSchema();
+            upgradeSchema();
         else
             bad( verb, noun );
     }
@@ -570,7 +570,7 @@ void showSchema()
 }
 
 
-void updateSchema()
+void upgradeSchema()
 {
     end();
 
@@ -813,10 +813,10 @@ void help()
             "    Displays the revision of the existing database schema.\n"
         );
     }
-    else if ( a == "update" && b == "schema" ) {
+    else if ( a == "upgrade" && b == "schema" ) {
         fprintf(
             stderr,
-            "  update schema -- Update the database schema.\n\n"
+            "  upgrade schema -- Upgrade the database schema.\n\n"
             "    Synopsis: ms update schema\n\n"
             "    Checks that the database schema is one that this version\n"
             "    of Mailstore is compatible with, and updates it if needed.\n"
@@ -852,7 +852,38 @@ void help()
             "      ms ls users ab?cd*\n"
         );
     }
+    else if ( a == "commands" ) {
+        fprintf(
+            stderr,
+            "  Available ms commands:\n\n"
+            "    start              -- Server management.\n"
+            "    stop\n"
+            "    restart\n\n"
+            "    show status        -- Are the servers running?\n"
+            "    show configuration -- Displays runtime configuration.\n"
+            "    show build         -- Displays compile-time configuration.\n"
+            "\n"
+            "    show schema        -- Displays the existing schema revision.\n"
+            "    upgrade schema     -- Upgrades an older schema to work with\n"
+            "                          the current server.\n"
+            "\n"
+            "    list users         -- User and mailbox management.\n"
+            "    create user\n"
+            "    delete user\n"
+            "    change password\n"
+            "    create mailbox\n"
+            "    delete mailbox\n\n"
+            "  Use \"ms help command name\" for more specific help.\n"
+        );
+    }
     else {
-        fprintf( stderr, "Usage: %s <verb> <noun> [arguments]\n", ms );
+        fprintf(
+            stderr,
+            "  ms -- A command-line interface to Oryx Mailstore.\n\n"
+            "    Synopsis: %s <verb> <noun> [options] [arguments]\n\n"
+            "    Use \"ms help commands\" for a list of commands.\n"
+            "    Use \"ms help start\" for help with \"start\".\n",
+            ms
+        );
     }
 }
