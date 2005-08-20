@@ -584,6 +584,26 @@ void upgradeSchema()
 }
 
 
+bool validUsername( String s )
+{
+    uint i = 0;
+    while ( i < s.length() &&
+            ( ( s[i] >= '0' && s[i] <= '9' ) ||
+              ( s[i] >= 'a' && s[i] <= 'z' ) ||
+              ( s[i] >= 'Z' && s[i] <= 'Z' ) ) )
+        i++;
+    if ( i < s.length() ||
+         s == "anonymous" ||
+         s == "anyone" ||
+         s == "group" ||
+         s == "user" )
+    {
+        return false;
+    }
+    return true;
+}
+
+
 void createUser()
 {
     parseOptions();
@@ -594,21 +614,8 @@ void createUser()
 
     if ( login.isEmpty() || passwd.isEmpty() )
         error( "No login name and password supplied." );
-
-    uint i = 0;
-    while ( i < login.length() &&
-            ( ( login[i] >= '0' && login[i] <= '9' ) ||
-              ( login[i] >= 'a' && login[i] <= 'z' ) ||
-              ( login[i] >= 'Z' && login[i] <= 'Z' ) ) )
-        i++;
-    if ( i < login.length() ||
-         login == "anonymous" ||
-         login == "anyone" ||
-         login == "group" ||
-         login == "user" )
-    {
+    if ( !validUsername( login ) )
         error( "Invalid username: " + login );
-    }
 
     User * u = new User;
     u->setLogin( login );
@@ -627,7 +634,7 @@ void createUser()
     r = new Receiver;
     Mailbox::slurp( r );
     Query * q = u->create( r );
-    if ( !q || q->failed() )
+    if ( q->failed() )
         error( q->error() );
     r->waitFor( q );
     u->execute();
@@ -642,21 +649,8 @@ void deleteUser()
 
     if ( login.isEmpty() )
         error( "No login name supplied." );
-
-    uint i = 0;
-    while ( i < login.length() &&
-            ( ( login[i] >= '0' && login[i] <= '9' ) ||
-              ( login[i] >= 'a' && login[i] <= 'z' ) ||
-              ( login[i] >= 'Z' && login[i] <= 'Z' ) ) )
-        i++;
-    if ( i < login.length() ||
-         login == "anonymous" ||
-         login == "anyone" ||
-         login == "group" ||
-         login == "user" )
-    {
+    if ( !validUsername( login ) )
         error( "Invalid username: " + login );
-    }
 
     User * u = new User;
     u->setLogin( login );
@@ -664,7 +658,7 @@ void deleteUser()
     r = new Receiver;
     Mailbox::slurp( r );
     Query * q = u->remove( r );
-    if ( !q || q->failed() )
+    if ( q->failed() )
         error( q->error() );
     r->waitFor( q );
     u->execute();
@@ -685,7 +679,29 @@ void deleteMailbox()
 
 void changePassword()
 {
-    fprintf( stderr, "ms change password: Not yet implemented.\n" );
+    parseOptions();
+    String login = next();
+    String passwd = next();
+    end();
+
+    Database::setup();
+
+    if ( login.isEmpty() || passwd.isEmpty() )
+        error( "No login name and password supplied." );
+    if ( !validUsername( login ) )
+        error( "Invalid username: " + login );
+
+    User * u = new User;
+    u->setLogin( login );
+    u->setSecret( passwd );
+
+    r = new Receiver;
+    Mailbox::slurp( r );
+    Query * q = u->changeSecret( r );
+    if ( q->failed() )
+        error( q->error() );
+    r->waitFor( q );
+    u->execute();
 }
 
 
