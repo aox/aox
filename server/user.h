@@ -56,6 +56,7 @@ private:
     void renameHelper();
     void refreshHelper();
     void removeHelper();
+    void csHelper();
 
 private:
     class UserData * d;

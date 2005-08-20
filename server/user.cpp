@@ -41,7 +41,8 @@ public:
         Creating,
         Renaming,
         Refreshing,
-        Removing
+        Removing,
+        ChangingSecret
     };
     Operation mode;
 };
@@ -209,6 +210,9 @@ void User::execute()
     case UserData::Removing:
         removeHelper();
         break;
+    case UserData::ChangingSecret:
+        csHelper();
+        break;
     case UserData::LoungingAround:
         break;
     }
@@ -297,9 +301,9 @@ void User::refreshHelper()
 /*! This function is used to create a user on behalf of \a owner.
 
     It returns a pointer to a Query that can be used to track the
-    progress of the operation. If (and only if) the return value
-    is not 0, and the Query has not already failed, the caller
-    must call execute() to initiate the operation.
+    progress of the operation. If (and only if) this Query hasn't
+    already failed upon return from this function, the caller must
+    call execute() to initiate the operation.
 
     The query may fail immediately if the user is not valid(), or if it
     already exists().
@@ -407,9 +411,9 @@ void User::createHelper()
 /*! This function is used to remove a user on behalf of \a owner.
 
     It returns a pointer to a Query that can be used to track the
-    progress of the operation. If (and only if) the return value
-    is not 0, and the Query has not already failed, the caller
-    must call execute() to initiate the operation.
+    progress of the operation. If (and only if) this Query hasn't
+    already failed upon return from this function, the caller must
+    call execute() to initiate the operation.
 
     XXX: This function doesn't tell ocd about the user going away, and
     ocd wouldn't know what to do about it anyway.
@@ -453,21 +457,52 @@ void User::removeHelper()
 }
 
 
-/*! Changes the password of this User to the current secret() and
-    notifies \a user when the operation is complete.
+/*! This function changes a user's password on behalf of \a owner.
+
+    It returns a pointer to a Query that can be used to track the
+    progress of the operation. If (and only if) this Query hasn't
+    already failed upon return from this function, the caller must
+    call execute() to initiate the operation.
+
+    XXX: This function doesn't tell ocd about the user going away, and
+    ocd wouldn't know what to do about it anyway.
 */
 
-Query * User::changeSecret( EventHandler * user )
+Query * User::changeSecret( EventHandler * owner )
 {
-    if ( !user || !valid() )
-        return 0;
+    Query *q = new Query( owner );
 
-    d->q = new Query( "update users set secret=$1 where login=$2", user );
-    d->q->bind( 1, d->secret );
-    d->q->bind( 2, d->login );
-    d->q->execute();
+    d->q = 0;
+    d->mode = UserData::ChangingSecret;
+    d->user = owner;
+    d->result = q;
 
-    return d->q;
+    return q;
+}
+
+
+/*! Finish the work of changeSecret(). */
+
+void User::csHelper()
+{
+    if ( !d->q ) {
+        d->q =
+            new Query( "update users set secret=$1 where login=$2",
+                       this );
+        d->q->bind( 1, d->secret );
+        d->q->bind( 2, d->login );
+        d->q->execute();
+    }
+
+    if ( !d->q->done() )
+        return;
+
+    if ( d->q->failed() )
+        d->result->setError( d->q->error() );
+    else
+        d->result->setState( Query::Completed );
+
+    d->result->notify();
 }
 
 
