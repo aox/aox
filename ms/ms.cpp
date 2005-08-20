@@ -2,13 +2,19 @@
 
 #include "scope.h"
 #include "string.h"
+#include "allocator.h"
 #include "stringlist.h"
 #include "configuration.h"
+#include "addresscache.h"
 #include "database.h"
+#include "occlient.h"
+#include "address.h"
+#include "mailbox.h"
 #include "schema.h"
 #include "query.h"
 #include "file.h"
 #include "loop.h"
+#include "user.h"
 #include "log.h"
 
 #include <errno.h>
@@ -79,6 +85,12 @@ int main( int ac, char *av[] )
         exit( -1 );
 
     String verb = next().lower();
+
+    if ( verb == "add" || verb == "new" )
+        verb = "create";
+    else if ( verb == "del" || verb == "remove" )
+        verb = "delete";
+
     if ( verb == "start" ) {
         start();
     }
@@ -106,21 +118,21 @@ int main( int ac, char *av[] )
         else
             bad( verb, noun );
     }
-    else if ( verb == "create" || verb == "add" || verb == "new" ) {
+    else if ( verb == "create" || verb == "delete" ) {
         String noun = next().lower();
-        if ( noun == "user" )
+
+        Database::setup();
+        OCClient::setup();
+        AddressCache::setup();
+
+        if ( verb == "create" && noun == "user" )
             createUser();
-        else if ( noun == "mailbox" )
+        else if ( verb == "delete" && noun == "user" )
+            deleteUser();
+        else if ( verb == "create" && noun == "mailbox" )
             createMailbox();
-        else
-            bad( verb, noun );
-    }
-    else if ( verb == "delete" || verb == "del" || verb == "remove" ) {
-        String noun = next().lower();
-        if ( noun == "user" )
-            createUser();
-        else if ( noun == "mailbox" )
-            createMailbox();
+        else if ( verb == "delete" && noun == "mailbox" )
+            deleteMailbox();
         else
             bad( verb, noun );
     }
@@ -144,8 +156,10 @@ int main( int ac, char *av[] )
         help();
     }
 
-    if ( r )
+    if ( r ) {
+        Allocator::addEternal( r, "Event receiver" );
         Loop::start();
+    }
     return status;
 }
 
@@ -480,7 +494,7 @@ public:
         : query( 0 )
     {
     }
-    
+
     void waitFor( Query * q )
     {
         query = q;
@@ -517,7 +531,51 @@ void updateSchema()
 
 void createUser()
 {
-    fprintf( stderr, "ms create user: Not yet implemented.\n" );
+    parseOptions();
+    String login = next();
+    String passwd = next();
+    String address = next();
+    end();
+
+    if ( login.isEmpty() || passwd.isEmpty() )
+        error( "No login name and password supplied." );
+
+    uint i = 0;
+    while ( i < login.length() &&
+            ( ( login[i] >= '0' && login[i] <= '9' ) ||
+              ( login[i] >= 'a' && login[i] <= 'z' ) ||
+              ( login[i] >= 'Z' && login[i] <= 'Z' ) ) )
+        i++;
+    if ( i < login.length() ||
+         login == "anonymous" ||
+         login == "anyone" ||
+         login == "group" ||
+         login == "user" )
+    {
+        error( "Invalid username: " + login );
+    }
+
+    User * u = new User;
+    u->setLogin( login );
+    u->setSecret( passwd );
+    if ( !u->valid() )
+        error( u->error() );
+    if ( !address.isEmpty() ) {
+        AddressParser p( address );
+        if ( !p.error().isEmpty() )
+            error( p.error() );
+        if ( p.addresses()->count() != 1 )
+            error( "At most one address may be present" );
+        u->setAddress( p.addresses()->first() );
+    }
+
+    r = new Receiver;
+    Mailbox::slurp( r );
+    Query * q = u->create( r );
+    if ( !q || q->failed() )
+        error( q->error() );
+    r->waitFor( q );
+    u->execute();
 }
 
 
