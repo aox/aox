@@ -599,7 +599,10 @@ Something confuses Address::uname() and Address::name()
   the difference.
 
 
+We should store bodyparts.text for HTML/PDF/DOC.
+
+  We need non-GPLed code to convert PDF and DOC to plaintext. We already
+  have (from Mailchen) code to convert HTML.
+
+
 We need to do the right thing.
-
-
-
