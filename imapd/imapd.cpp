@@ -42,7 +42,7 @@ int main( int argc, char *argv[] )
     s.setup( Server::Finish );
 
     Schema::check( &s );
-    s.waitFor( Mailbox::slurp( &s ) );
+    Mailbox::slurp( &s );
 
     TlsServer::setup();
     OCClient::setup();

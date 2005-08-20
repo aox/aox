@@ -37,7 +37,7 @@ public:
     void clear();
 
     static void setup();
-    static class Query * slurp( EventHandler * );
+    static void slurp( class Server * );
     static Mailbox * find( const String &, bool = false );
     static Mailbox * obtain( const String &, bool create = true );
     static Mailbox * closestParent( const String & );

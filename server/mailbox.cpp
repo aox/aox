@@ -10,6 +10,7 @@
 #include "scope.h"
 #include "event.h"
 #include "string.h"
+#include "server.h"
 #include "message.h"
 #include "fetcher.h"
 #include "allocator.h"
@@ -82,7 +83,7 @@ public:
     EventHandler * owner;
 
     MailboxReader( const char * q, const String & n,
-                   Transaction * t, EventHandler * ev = 0 )
+                   EventHandler * ev = 0 )
     {
         query = new Query( q, this );
         owner = ev;
@@ -93,11 +94,6 @@ public:
             ::mailboxes = new Map<Mailbox>;
             Allocator::addEternal( ::mailboxes, "mailbox tree" );
         }
-
-        if ( t )
-            t->enqueue( query );
-        else
-            query->execute();
     }
 
     void execute() {
@@ -135,7 +131,9 @@ void Mailbox::setup()
     ::root = new Mailbox( "/" );
     Allocator::addEternal( ::root, "root mailbox" );
 
-    (void)new MailboxReader( "select * from mailboxes", "", 0 );
+    MailboxReader * mr =
+        new MailboxReader( "select * from mailboxes", "" );
+    mr->query->execute();
 }
 
 
@@ -147,14 +145,15 @@ void Mailbox::setup()
     call only one of them.
 */
 
-Query * Mailbox::slurp( EventHandler * owner )
+void Mailbox::slurp( Server * owner )
 {
     ::root = new Mailbox( "/" );
     Allocator::addEternal( ::root, "root mailbox" );
 
     MailboxReader * mr =
-        new MailboxReader( "select * from mailboxes", "", 0, owner );
-    return mr->query;
+        new MailboxReader( "select * from mailboxes", "", owner );
+    owner->waitFor( mr->query );
+    mr->query->execute();
 }
 
 
@@ -164,8 +163,10 @@ Query * Mailbox::slurp( EventHandler * owner )
 
 void Mailbox::refresh()
 {
-    (void)new MailboxReader( "select * from mailboxes where name=$1",
-                             name(), 0 );
+    MailboxReader * mr =
+        new MailboxReader( "select * from mailboxes where name=$1",
+                           name() );
+    mr->query->execute();
 }
 
 
@@ -450,8 +451,10 @@ Transaction *Mailbox::create( EventHandler *ev, User * owner )
     else {
         return 0;
     }
-    (void)new MailboxReader( "select * from mailboxes where name=$1",
-                             name(), t );
+    MailboxReader * mr =
+        new MailboxReader( "select * from mailboxes where name=$1",
+                           name() );
+    t->enqueue( mr->query );
     t->commit();
     return t;
 }
@@ -474,9 +477,10 @@ Transaction *Mailbox::remove( EventHandler *ev )
     q->bind( 1, id() );
     t->enqueue( q );
 
-    (void)new MailboxReader( "select * from mailboxes where name=$1",
-                             name(), t );
-
+    MailboxReader * mr =
+        new MailboxReader( "select * from mailboxes where name=$1",
+                           name() );
+    t->enqueue( mr->query );
     t->commit();
     return t;
 }
