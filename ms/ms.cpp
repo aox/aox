@@ -690,6 +690,15 @@ void help()
             "    of Mailstore is compatible with, and updates it if needed.\n"
         );
     }
+    else if ( a == "create" && b == "user" ) {
+        fprintf(
+            stderr,
+            "  create user -- Create a new user.\n\n"
+            "    Synopsis: ms create user <login> <password> <e@ma.il>\n\n"
+            "    Creates a new Mailstore user with the specified login\n"
+            "    name, password, and email address.\n\n"
+        );
+    }
     else {
         fprintf( stderr, "Usage: %s <verb> <noun> [arguments]\n", ms );
     }
