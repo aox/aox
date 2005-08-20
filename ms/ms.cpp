@@ -46,7 +46,7 @@ void restart();
 void showStatus();
 void showBuildconf();
 void showConfiguration();
-void migrate();
+void updateSchema();
 void createUser();
 void deleteUser();
 void createMailbox();
@@ -99,8 +99,12 @@ int main( int ac, char *av[] )
         else
             bad( verb, noun );
     }
-    else if ( verb == "migrate" ) {
-        migrate();
+    else if ( verb == "update" ) {
+        String noun = next().lower();
+        if ( noun == "schema" )
+            updateSchema();
+        else
+            bad( verb, noun );
     }
     else if ( verb == "create" || verb == "add" || verb == "new" ) {
         String noun = next().lower();
@@ -498,8 +502,10 @@ public:
 };
 
 
-void migrate()
+void updateSchema()
 {
+    end();
+
     Database::setup();
 
     r = new Receiver;
@@ -615,6 +621,15 @@ void help()
             "    Synopsis: ms show build\n\n"
             "    Displays the build settings used for this installation.\n"
             "    (As configured in Jamsettings.)\n"
+        );
+    }
+    else if ( a == "update" && b == "schema" ) {
+        fprintf(
+            stderr,
+            "  update schema -- Upgrade the database schema.\n\n"
+            "    Synopsis: ms update schema\n\n"
+            "    Checks that the database schema is one that this version\n"
+            "    of Mailstore is compatible with, and updates it if needed.\n"
         );
     }
     else {
