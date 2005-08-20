@@ -534,9 +534,30 @@ void showSchema()
     public:
         void process( Query * q )
         {
+            const char * versions[] = {
+                "", "", "0.91", "0.92", "0.92", "0.92 to 0.93",
+                "0.93", "0.93", "0.94 to 0.95", "0.96", "0.97"
+            };
+            int nv = sizeof( versions ) / sizeof( versions[0] );
+
             Row * r = q->nextRow();
-            if ( r )
-                printf( "%d\n", r->getInt( "revision" ) );
+            if ( r ) {
+                int rev = r->getInt( "revision" );
+
+                String comment;
+                if ( rev >= nv ) {
+                    comment =
+                        "too new for " +
+                        Configuration::compiledIn( Configuration::Version );
+                }
+                else {
+                    comment = versions[rev];
+                }
+
+                if ( !comment.isEmpty() )
+                    comment = " (" + comment + ")";
+                printf( "%d%s\n", rev, comment.cstr() );
+            }
         }
     };
 
