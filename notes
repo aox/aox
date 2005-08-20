@@ -501,6 +501,13 @@ There is no reason to have the EventLoop/Loop split any more.
 Implement more encodings: BIG5/SJIS/GBK. (AMS)
 
 
+Implement a "save mangled copy" feature in msconsole. (AMS)
+
+  People can use this to send us copies of messages that cause injection
+  errors, without having to go through them by hand to remove sensitive
+  information.
+
+
 Cryptlib 3.2.1 has been released. Upgrade to it later.
 
 
