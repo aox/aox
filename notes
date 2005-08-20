@@ -605,4 +605,13 @@ We should store bodyparts.text for HTML/PDF/DOC.
   have (from Mailchen) code to convert HTML.
 
 
+We should tolerate duplicated header fields, iff:
+
+  1. The RFC says there should be at most one instance of the field.
+  2. When parsed and regenerated, the two fields have the same value.
+
+  It's a safe, loss-less workaround for known brokenness (such as the
+  tendency of the lemonade list to send 2 Mime-Version or CTE fields).
+
+
 We need to do the right thing.
