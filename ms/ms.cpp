@@ -52,6 +52,7 @@ void restart();
 void showStatus();
 void showBuildconf();
 void showConfiguration();
+void showSchema();
 void updateSchema();
 void createUser();
 void deleteUser();
@@ -108,6 +109,8 @@ int main( int ac, char *av[] )
             showBuildconf();
         else if ( noun == "cf" || noun == "configuration" )
             showConfiguration();
+        else if ( noun == "schema" )
+            showSchema();
         else
             bad( verb, noun );
     }
@@ -500,8 +503,13 @@ public:
         query = q;
     }
 
+    virtual void process( Query * q )
+    {
+    }
+
     void execute()
     {
+        process( query );
         if ( !query->done() )
             return;
 
@@ -514,6 +522,29 @@ public:
         Loop::shutdown();
     }
 };
+
+
+void showSchema()
+{
+    end();
+
+    Database::setup();
+
+    class SsReceiver : public Receiver {
+    public:
+        void process( Query * q )
+        {
+            Row * r = q->nextRow();
+            if ( r )
+                printf( "%d\n", r->getInt( "revision" ) );
+        }
+    };
+
+    r = new SsReceiver;
+    Query * q = new Query( "select revision from mailstore", r );
+    r->waitFor( q );
+    q->execute();
+}
 
 
 void updateSchema()
@@ -710,6 +741,14 @@ void help()
             "    Synopsis: ms show build\n\n"
             "    Displays the build settings used for this installation.\n"
             "    (As configured in Jamsettings.)\n"
+        );
+    }
+    else if ( a == "show" && b == "schema" ) {
+        fprintf(
+            stderr,
+            "  show schema -- Display schema revision.\n\n"
+            "    Synopsis: ms show schema\n\n"
+            "    Displays the revision of the existing database schema.\n"
         );
     }
     else if ( a == "update" && b == "schema" ) {
