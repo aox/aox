@@ -97,12 +97,12 @@ void Schema::execute()
             d->revision = currentRevision;
             d->result->setError( s );
             d->t->commit();
-            d->state = 7;
+            d->state = 5;
         }
         else if ( d->revision == currentRevision ) {
             d->result->setState( Query::Completed );
             d->t->commit();
-            d->state = 7;
+            d->state = 5;
         }
         else if ( d->upgrade && d->revision < currentRevision ) {
             d->l->log( "Updating schema from revision " +
@@ -133,39 +133,12 @@ void Schema::execute()
             d->revision = currentRevision;
             d->result->setError( s );
             d->t->commit();
-            d->state = 7;
+            d->state = 5;
         }
     }
 
     while ( d->revision < currentRevision ) {
         if ( d->state == 2 ) {
-            d->seq =
-                new Query( "select nextval('revisions')::integer as seq",
-                           this );
-            d->t->enqueue( d->seq );
-            d->t->execute();
-            d->state = 3;
-        }
-
-        if ( d->state == 3 ) {
-            if ( !d->seq->done() )
-                return;
-
-            int gap = d->seq->nextRow()->getInt( "seq" ) - d->revision;
-            if ( gap > 1 ) {
-                String s( "Can't upgrade schema because an earlier "
-                          "attempt to do so failed." );
-                d->l->log( s, Log::Disaster );
-                d->revision = currentRevision;
-                d->result->setError( s );
-                d->t->commit();
-                d->state = 7;
-                break;
-            }
-            d->state = 4;
-        }
-
-        if ( d->state == 4 ) {
             if ( d->revision == 1 ) {
                 if ( d->substate == 0 ) {
                     d->l->log( "Changing users.login/secret to text", Log::Debug );
@@ -660,19 +633,19 @@ void Schema::execute()
             // Remember to update currentRevision when you add something
             // here.
 
-            d->state = 5;
+            d->state = 3;
         }
 
-        if ( d->state == 5 ) {
+        if ( d->state == 3 ) {
             d->update =
                 new Query( "update mailstore set revision=revision+1",
                            this );
             d->t->enqueue( d->update );
             d->t->execute();
-            d->state = 6;
+            d->state = 4;
         }
 
-        if ( d->state == 6 ) {
+        if ( d->state == 4 ) {
             if ( !d->update->done() )
                 return;
 
@@ -681,13 +654,13 @@ void Schema::execute()
 
             if ( d->revision == currentRevision ) {
                 d->t->commit();
-                d->state = 8;
+                d->state = 6;
                 break;
             }
         }
     }
 
-    if ( d->state == 7 || d->state == 8 ) {
+    if ( d->state == 5 || d->state == 6 ) {
         if ( !d->t->done() )
             return;
 
@@ -703,14 +676,14 @@ void Schema::execute()
             d->l->log( s, Log::Disaster );
             d->result->setError( s );
         }
-        else if ( d->state == 8 ) {
+        else if ( d->state == 6 ) {
             d->result->setState( Query::Completed );
             d->l->log( "Schema updated to revision " + fn( currentRevision ) );
         }
-        d->state = 9;
+        d->state = 7;
     }
 
-    if ( d->state == 9 ) {
+    if ( d->state == 7 ) {
         d->state = 42;
         d->result->notify();
     }
