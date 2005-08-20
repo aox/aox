@@ -20,7 +20,9 @@ case "$1" in
         echo "done."
         ;;
     restart)
+        echo -n "Restarting Oryx Mailstore: "
         ./ms restart
+        echo "done."
         ;;
     *)
         echo "Usage: mailstore {start|stop|restart}"
