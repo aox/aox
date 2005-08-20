@@ -58,6 +58,20 @@ Log *EventHandler::log() const
 }
 
 
+/*! This function doesn't do anything, but subclasses that care (such as
+    Server) can implement it to help keep track of the queries they are
+    being notified about (for example, Server needs to keep track of
+    which startup queries have not yet completed).
+
+    The function is in this class because ms and msconsole need to use
+    the functionality, but aren't (and can't easily be) Servers.
+*/
+
+void EventHandler::waitFor( Query * )
+{
+}
+
+
 /*! \fn void EventHandler::execute()
 
     This pure virtual function is called when there's something the

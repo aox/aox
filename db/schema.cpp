@@ -7,7 +7,6 @@
 #include "transaction.h"
 #include "stringlist.h"
 #include "allocator.h"
-#include "server.h"
 #include "dict.h"
 #include "md5.h"
 
@@ -685,7 +684,7 @@ void Schema::execute()
     first database transaction.
 */
 
-void Schema::check( Server * owner )
+void Schema::check( EventHandler * owner )
 {
     Schema * s = new Schema( owner );
     owner->waitFor( s->result() );

@@ -10,7 +10,6 @@
 #include "scope.h"
 #include "event.h"
 #include "string.h"
-#include "server.h"
 #include "message.h"
 #include "fetcher.h"
 #include "allocator.h"
@@ -145,7 +144,7 @@ void Mailbox::setup()
     call only one of them.
 */
 
-void Mailbox::slurp( Server * owner )
+void Mailbox::slurp( EventHandler * owner )
 {
     ::root = new Mailbox( "/" );
     Allocator::addEternal( ::root, "root mailbox" );

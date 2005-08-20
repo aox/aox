@@ -17,7 +17,7 @@ public:
     Query * result() const;
     void execute();
 
-    static void check( class Server * );
+    static void check( EventHandler * );
 
 private:
     class SchemaData *d;

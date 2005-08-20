@@ -18,6 +18,7 @@ public:
     void setLog( Log * );
     Log *log() const;
 
+    virtual void waitFor( class Query * );
     virtual void execute() = 0;
     virtual void log( const String &, Log::Severity = Log::Info ) const;
     virtual void commit( Log::Severity = Log::Info ) const;
