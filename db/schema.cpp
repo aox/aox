@@ -617,10 +617,28 @@ void Schema::execute()
 
             if ( d->revision == 9 ) {
                 if ( d->substate == 0 ) {
-                    // XXX: Will this work with a 7.4.x server?
                     d->l->log( "Altering mailboxes_owner_fkey.", Log::Debug );
+                    d->q = new Query( "select version()", this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
+                    if ( !d->q->done() )
+                        return;
+
+                    String constraint = "mailboxes_owner_fkey";
+
+                    Row * r = d->q->nextRow();
+                    if ( r ) {
+                        String version = r->getString( "version" );
+                        if ( version.startsWith( "PostgreSQL 7" ) )
+                            constraint = "$1";
+                    }
+
                     d->q = new Query( "alter table mailboxes drop constraint "
-                                      "mailboxes_owner_fkey", this );
+                                      "\"" + constraint + "\"", this );
                     d->t->enqueue( d->q );
                     d->q = new Query( "alter table mailboxes add constraint "
                                       "mailboxes_owner_fkey foreign key "
@@ -628,10 +646,10 @@ void Schema::execute()
                                       "on delete cascade", this );
                     d->t->enqueue( d->q );
                     d->t->execute();
-                    d->substate = 1;
+                    d->substate = 2;
                 }
 
-                if ( d->substate == 1 ) {
+                if ( d->substate == 2 ) {
                     if ( !d->q->done() )
                         return;
                     d->l->log( "Done.", Log::Debug );
