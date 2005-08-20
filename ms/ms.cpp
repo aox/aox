@@ -488,7 +488,8 @@ public:
             return;
 
         if ( query->failed() ) {
-            error( "Error: " + query->error() );
+            if ( !Scope::current()->log()->disastersYet() )
+                error( "Error: " + query->error() );
             status = -1;
         }
 
