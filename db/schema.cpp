@@ -93,10 +93,10 @@ void Schema::execute()
             d->revision = r->getInt( "revision" );
 
         if ( !r || d->lock->failed() ) {
-            d->l->log( "Bad database: Couldn't query the mailstore table.",
-                       Log::Disaster );
-            d->result->setState( Query::Failed );
+            String s( "Bad database: Couldn't query the mailstore table." );
+            d->l->log( s, Log::Disaster );
             d->revision = currentRevision;
+            d->result->setError( s );
             d->t->commit();
             d->state = 7;
         }
@@ -129,9 +129,10 @@ void Schema::execute()
             else
                 s.append( "upgrade" );
             s.append( " or contact support." );
+
             d->l->log( s, Log::Disaster );
-            d->result->setState( Query::Failed );
             d->revision = currentRevision;
+            d->result->setError( s );
             d->t->commit();
             d->state = 7;
         }
@@ -153,10 +154,11 @@ void Schema::execute()
 
             int gap = d->seq->nextRow()->getInt( "seq" ) - d->revision;
             if ( gap > 1 ) {
-                d->l->log( "Can't upgrade schema because an earlier "
-                           "attempt to do so failed.", Log::Disaster );
-                d->result->setState( Query::Failed );
+                String s( "Can't upgrade schema because an earlier "
+                          "attempt to do so failed." );
+                d->l->log( s, Log::Disaster );
                 d->revision = currentRevision;
+                d->result->setError( s );
                 d->t->commit();
                 d->state = 7;
                 break;
@@ -649,12 +651,19 @@ void Schema::execute()
             return;
 
         if ( d->t->failed() && !d->result->failed() ) {
-            d->result->setState( Query::Failed );
-            d->l->log( "The schema transaction failed.", Log::Disaster );
+            String s( "The schema " );
+            if ( d->upgrade )
+                s.append( "upgradation" );
+            else
+                s.append( "validation" );
+            s.append( "failed." );
+
+            d->l->log( s, Log::Disaster );
+            d->result->setError( s );
         }
         else if ( d->state == 8 ) {
             d->result->setState( Query::Completed );
-            d->l->log( "Schema updated to revision " +fn( currentRevision ) );
+            d->l->log( "Schema updated to revision " + fn( currentRevision ) );
         }
         d->state = 9;
     }
