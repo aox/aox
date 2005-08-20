@@ -4,8 +4,8 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (9);
-create sequence revisions start with 9;
+insert into mailstore (revision) values (10);
+create sequence revisions start with 10;
 
 
 -- One entry for each unique address we've encountered.
@@ -62,7 +62,8 @@ create table group_members (
 create table mailboxes (
     id          serial primary key,
     name        text not null unique,
-    owner       integer references users(id),
+    owner       integer references users(id)
+                on delete cascade,
 
     -- The UID that will be assigned to the next delivered message.
     -- Incremented after each successful delivery.
