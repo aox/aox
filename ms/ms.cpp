@@ -4,7 +4,11 @@
 #include "string.h"
 #include "stringlist.h"
 #include "configuration.h"
+#include "database.h"
+#include "schema.h"
+#include "query.h"
 #include "file.h"
+#include "loop.h"
 #include "log.h"
 
 #include <errno.h>
@@ -20,6 +24,7 @@ char * ms;
 StringList * args;
 int options[256];
 int status;
+class Receiver * r;
 
 
 char * servers[] = {
@@ -66,6 +71,7 @@ int main( int ac, char *av[] )
     while ( i < ac )
         args->append( new String( av[i++] ) );
 
+    Loop::setup();
     Configuration::setup( "mailstore.conf" );
     Configuration::report();
 
@@ -134,6 +140,8 @@ int main( int ac, char *av[] )
         help();
     }
 
+    if ( r )
+        Loop::start();
     return status;
 }
 
@@ -458,9 +466,45 @@ void showConfiguration()
 }
 
 
+class Receiver
+    : public EventHandler
+{
+public:
+    Query * query;
+
+    Receiver()
+        : query( 0 )
+    {
+    }
+    
+    void waitFor( Query * q )
+    {
+        query = q;
+    }
+
+    void execute()
+    {
+        if ( !query->done() )
+            return;
+
+        if ( query->failed() ) {
+            error( "Error: " + query->error() );
+            status = -1;
+        }
+
+        Loop::shutdown();
+    }
+};
+
+
 void migrate()
 {
-    fprintf( stderr, "ms migrate: Not yet implemented.\n" );
+    Database::setup();
+
+    r = new Receiver;
+    Schema * s = new Schema( r, true );
+    r->waitFor( s->result() );
+    s->execute();
 }
 
 
