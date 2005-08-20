@@ -656,7 +656,7 @@ void Schema::execute()
                 s.append( "upgradation" );
             else
                 s.append( "validation" );
-            s.append( "failed." );
+            s.append( " failed." );
 
             d->l->log( s, Log::Disaster );
             d->result->setError( s );
