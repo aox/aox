@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 10;
+int currentRevision = 11;
 
 
 class SchemaData
@@ -623,6 +623,24 @@ void Schema::execute()
                 }
 
                 if ( d->substate == 2 ) {
+                    if ( !d->q->done() )
+                        return;
+                    d->l->log( "Done.", Log::Debug );
+                    d->substate = 0;
+                }
+            }
+
+            if ( d->revision == 10 ) {
+                if ( d->substate == 0 ) {
+                    d->l->log( "Deleting revisions.", Log::Debug );
+                    d->q = new Query( "drop sequence revisions",
+                                      this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
                     if ( !d->q->done() )
                         return;
                     d->l->log( "Done.", Log::Debug );
