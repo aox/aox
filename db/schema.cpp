@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 9;
+int currentRevision = 10;
 
 
 class SchemaData
@@ -602,6 +602,30 @@ void Schema::execute()
                                    "set default 1", this );
                     d->t->enqueue( d->q );
                     d->q = new Query( "drop table recent_messages", this );
+                    d->t->enqueue( d->q );
+                    d->t->execute();
+                    d->substate = 1;
+                }
+
+                if ( d->substate == 1 ) {
+                    if ( !d->q->done() )
+                        return;
+                    d->l->log( "Done.", Log::Debug );
+                    d->substate = 0;
+                }
+            }
+
+            if ( d->revision == 9 ) {
+                if ( d->substate == 0 ) {
+                    // XXX: Will this work with a 7.4.x server?
+                    d->l->log( "Altering mailboxes_owner_fkey.", Log::Debug );
+                    d->q = new Query( "alter table mailboxes drop constraint "
+                                      "mailboxes_owner_fkey", this );
+                    d->t->enqueue( d->q );
+                    d->q = new Query( "alter table mailboxes add constraint "
+                                      "mailboxes_owner_fkey foreign key "
+                                      "(owner) references users(id) "
+                                      "on delete cascade", this );
                     d->t->enqueue( d->q );
                     d->t->execute();
                     d->substate = 1;
