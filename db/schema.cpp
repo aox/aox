@@ -7,6 +7,7 @@
 #include "transaction.h"
 #include "stringlist.h"
 #include "allocator.h"
+#include "server.h"
 #include "dict.h"
 #include "md5.h"
 
@@ -41,19 +42,33 @@ public:
 
     The static check() function verifies during server startup that the
     running server is compatible with the existing schema.
-
-    The static upgrade() function is used to upgrade the schema to a new
-    version.
 */
 
 
-/*! Creates a new Schema object for \a owner. */
+/*! Creates a new Schema object to check that the existing schema is one
+    that the running server understands. If \a upgrade is true (which it
+    is not, by default) and the schema is too old, it will be upgraded.
+    The \a owner will be notified of progress via the Query returned by
+    result().
+*/
 
-Schema::Schema( EventHandler * owner )
+Schema::Schema( EventHandler * owner, bool upgrade )
     : d( new SchemaData )
 {
     d->result = new Query( owner );
+    d->upgrade = upgrade;
     d->t = new Transaction( this );
+}
+
+
+/*! Returns a Query object that can be used to track the progress of the
+    Schema verification or upgradation. The Query's owner is set by the
+    constructor when the Schema is created.
+*/
+
+Query * Schema::result() const
+{
+    return d->result;
 }
 
 
@@ -653,8 +668,7 @@ void Schema::execute()
 
 /*! This function is responsible for checking that the running server is
     compatible with the existing database schema, and to notify \a owner
-    when the verification is complete. The return value is a query whose
-    state reflects the success or failure of the verification.
+    when the verification is complete.
 
     If the schema is not compatible, a disaster is logged.
 
@@ -662,28 +676,9 @@ void Schema::execute()
     first database transaction.
 */
 
-Query * Schema::check( EventHandler * owner )
+void Schema::check( Server * owner )
 {
     Schema * s = new Schema( owner );
+    owner->waitFor( s->result() );
     s->execute();
-
-    return s->d->result;
-}
-
-
-/*! This function is responsible for upgrading the database schema to
-    meet the expectations of the running server. When the process is
-    complete, the \a owner is notified. The Query returned by this
-    function reflects the success or failure of the operation.
-
-    The function expects to be called from ::main().
-*/
-
-Query * Schema::upgrade( EventHandler * owner )
-{
-    Schema * s = new Schema( owner );
-    s->d->upgrade = true;
-    s->execute();
-
-    return s->d->result;
 }

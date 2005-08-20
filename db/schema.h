@@ -13,11 +13,11 @@ class Schema
     : public EventHandler
 {
 public:
-    Schema( EventHandler * );
+    Schema( EventHandler *, bool = false );
+    Query * result() const;
     void execute();
 
-    static Query * check( EventHandler * );
-    static Query * upgrade( EventHandler * );
+    static void check( class Server * );
 
 private:
     class SchemaData *d;

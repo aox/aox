@@ -36,7 +36,7 @@ int main( int argc, char * argv[] )
 
     s.setup( Server::Finish );
 
-    s.waitFor( Schema::check( &s ) );
+    Schema::check( &s );
     s.waitFor( Mailbox::slurp( &s  ) );
 
     TlsServer::setup();

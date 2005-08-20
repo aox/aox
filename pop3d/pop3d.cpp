@@ -27,7 +27,7 @@ int main( int argc, char * argv[] )
 
     Database::setup();
 
-    s.waitFor( Schema::check( &s ) );
+    Schema::check( &s );
     Flag::setup();
 
     s.execute();
