@@ -581,7 +581,38 @@ void createUser()
 
 void deleteUser()
 {
-    fprintf( stderr, "ms delete user: Not yet implemented.\n" );
+    parseOptions();
+    String login = next();
+    end();
+
+    if ( login.isEmpty() )
+        error( "No login name supplied." );
+
+    uint i = 0;
+    while ( i < login.length() &&
+            ( ( login[i] >= '0' && login[i] <= '9' ) ||
+              ( login[i] >= 'a' && login[i] <= 'z' ) ||
+              ( login[i] >= 'Z' && login[i] <= 'Z' ) ) )
+        i++;
+    if ( i < login.length() ||
+         login == "anonymous" ||
+         login == "anyone" ||
+         login == "group" ||
+         login == "user" )
+    {
+        error( "Invalid username: " + login );
+    }
+
+    User * u = new User;
+    u->setLogin( login );
+
+    r = new Receiver;
+    Mailbox::slurp( r );
+    Query * q = u->remove( r );
+    if ( !q || q->failed() )
+        error( q->error() );
+    r->waitFor( q );
+    u->execute();
 }
 
 
@@ -697,6 +728,14 @@ void help()
             "    Synopsis: ms create user <login> <password> <e@ma.il>\n\n"
             "    Creates a new Mailstore user with the specified login\n"
             "    name, password, and email address.\n\n"
+        );
+    }
+    else if ( a == "delete" && b == "user" ) {
+        fprintf(
+            stderr,
+            "  delete user -- Delete a user.\n\n"
+            "    Synopsis: ms create user <login>\n\n"
+            "    Deletes the Mailstore user with the specified login.\n\n"
         );
     }
     else {
