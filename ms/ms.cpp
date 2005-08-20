@@ -146,7 +146,7 @@ int main( int ac, char *av[] )
         else
             bad( verb, noun );
     }
-    else if ( verb == "list" ) {
+    else if ( verb == "list" || verb == "ls" ) {
         String noun = next().lower();
         if ( noun == "users" )
             listUsers();
@@ -667,7 +667,46 @@ void changePassword()
 
 void listUsers()
 {
-    fprintf( stderr, "ms list users: Not yet implemented.\n" );
+    String pattern = next();
+    end();
+
+    Database::setup();
+
+    class LuReceiver : public Receiver {
+    public:
+        void process( Query * q ) {
+            while ( q->hasResults() ) {
+                Row * r = q->nextRow();
+                printf( "%-16s %s\n",
+                        r->getString( "login" ).cstr(),
+                        r->getString( "address" ).cstr() );
+            }
+        }
+    };
+
+    r = new LuReceiver;
+
+    String s( "select login, localpart||'@'||domain as address "
+              "from users u join addresses a on (u.address=a.id)" );
+    if ( !pattern.isEmpty() )
+        s.append( " where login like $1" );
+    Query * q = new Query( s, r );
+    if ( !pattern.isEmpty() ) {
+        String p;
+        uint i = 0;
+        while ( pattern[i] ) {
+            if ( pattern[i] == '*' )
+                p.append( '%' );
+            else if ( pattern[i] == '?' )
+                p.append( '_' );
+            else
+                p.append( pattern[i] );
+            i++;
+        }
+        q->bind( 1, p );
+    }
+    r->waitFor( q );
+    q->execute();
 }
 
 
@@ -775,6 +814,19 @@ void help()
             "  delete user -- Delete a user.\n\n"
             "    Synopsis: ms create user <login>\n\n"
             "    Deletes the Mailstore user with the specified login.\n\n"
+        );
+    }
+    else if ( a == "list" && b == "users" ) {
+        fprintf(
+            stderr,
+            "  list users -- Display existing users.\n\n"
+            "    Synopsis: ms list users [pattern]\n\n"
+            "    Displays a list of users matching the specified shell\n"
+            "    glob pattern. Without a pattern, all users are listed.\n\n"
+            "    ls is an acceptable abbreviation for list.\n\n"
+            "    Examples:\n\n"
+            "      ms list users\n"
+            "      ms ls users ab?cd*\n"
         );
     }
     else {
