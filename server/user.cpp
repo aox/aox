@@ -18,7 +18,7 @@ class UserData
 public:
     UserData()
         : id( 0 ), inbox( 0 ), home( 0 ), address( 0 ),
-          q( 0 ), createQuery( 0 ), t( 0 ), user( 0 ),
+          q( 0 ), result( 0 ), t( 0 ), user( 0 ),
           state( User::Unverified ),
           mode( LoungingAround )
     {}
@@ -30,7 +30,7 @@ public:
     Mailbox * home;
     Address * address;
     Query * q;
-    Query *createQuery;
+    Query * result;
     Transaction * t;
     EventHandler * user;
     String error;
@@ -294,7 +294,7 @@ void User::refreshHelper()
 }
 
 
-/*! This function is used to create a user.
+/*! This function is used to create a user on behalf of \a owner.
 
     It returns a pointer to a Query that can be used to track the
     progress of the operation. If (and only if) the return value
@@ -307,7 +307,7 @@ void User::refreshHelper()
     This function (indeed, this whole class) is overdue for change.
 */
 
-Query *User::create( EventHandler * owner )
+Query * User::create( EventHandler * owner )
 {
     Query *q = new Query( owner );
 
@@ -318,10 +318,11 @@ Query *User::create( EventHandler * owner )
         q->setError( "User exists already." );
     }
     else {
+        d->q = 0;
         d->t = new Transaction( this );
         d->mode = UserData::Creating;
         d->user = owner;
-        d->createQuery = q;
+        d->result = q;
     }
 
     return q;
@@ -391,15 +392,82 @@ void User::createHelper()
         return;
 
     if ( d->t->failed() ) {
-        d->createQuery->setError( d->t->error() );
+        d->result->setError( d->t->error() );
     }
     else {
-        d->createQuery->setState( Query::Completed );
+        d->result->setState( Query::Completed );
 
         OCClient::send( "mailbox " + d->inbox->name().quoted() + " new" );
     }
 
-    d->user->execute();
+    d->result->notify();
+}
+
+
+/*! This function is used to remove a user on behalf of \a owner.
+
+    It returns a pointer to a Query that can be used to track the
+    progress of the operation. If (and only if) the return value
+    is not 0, and the Query has not already failed, the caller
+    must call execute() to initiate the operation.
+
+    XXX: This function doesn't tell ocd about the user going away, and
+    ocd wouldn't know what to do about it anyway.
+*/
+
+Query * User::remove( EventHandler * owner )
+{
+    Query *q = new Query( owner );
+
+    d->q = 0;
+    d->mode = UserData::Removing;
+    d->user = owner;
+    d->result = q;
+
+    return q;
+}
+
+
+/*! Finishes the work of remove(). */
+
+void User::removeHelper()
+{
+    if ( !d->q ) {
+        d->q = new Query( "delete from users where login=$1", this );
+        d->q->bind( 1, d->login );
+        d->q->execute();
+    }
+
+    if ( !d->q->done() )
+        return;
+
+    if ( d->q->failed() ) {
+        d->result->setError( d->q->error() );
+    }
+    else {
+        d->result->setState( Query::Completed );
+        d->id = 0;
+    }
+
+    d->result->notify();
+}
+
+
+/*! Changes the password of this User to the current secret() and
+    notifies \a user when the operation is complete.
+*/
+
+Query * User::changeSecret( EventHandler * user )
+{
+    if ( !user || !valid() )
+        return 0;
+
+    d->q = new Query( "update users set secret=$1 where login=$2", user );
+    d->q->bind( 1, d->secret );
+    d->q->bind( 2, d->login );
+    d->q->execute();
+
+    return d->q;
 }
 
 
@@ -433,46 +501,6 @@ void User::renameHelper()
         refresh( d->user );
     }
     d->user->execute();
-}
-
-
-/*! Removes this user from the database and notifies \a user when the
-    operation is complete.
-*/
-
-void User::remove( EventHandler * user )
-{
-    if ( !exists() )
-        return;
-    d->q = new Query( "delete from users where id=$1", this );
-    d->q->bind( 1, d->id );
-}
-
-
-/*! Finishes the work of remove(). */
-
-void User::removeHelper()
-{
-    if ( d->q->done() )
-        d->id = 0;
-}
-
-
-/*! Changes the password of this User to the current secret() and
-    notifies \a user when the operation is complete.
-*/
-
-Query *User::changeSecret( EventHandler * user )
-{
-    if ( !user || !valid() )
-        return 0;
-
-    d->q = new Query( "update users set secret=$1 where login=$2", user );
-    d->q->bind( 1, d->secret );
-    d->q->bind( 2, d->login );
-    d->q->execute();
-
-    return d->q;
 }
 
 

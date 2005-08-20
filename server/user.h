@@ -41,10 +41,10 @@ public:
     bool exists();
 
     void refresh( EventHandler * );
-    Query *create( EventHandler * );
+    Query * create( EventHandler * );
+    Query * remove( EventHandler * );
+    Query * changeSecret( EventHandler * );
     void rename( const String &, EventHandler * );
-    void remove( EventHandler * );
-    Query *changeSecret( EventHandler * );
 
     void execute();
 
