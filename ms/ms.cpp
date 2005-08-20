@@ -552,6 +552,8 @@ void showSchema()
                 }
                 else {
                     comment = versions[rev];
+                    if ( rev == nv-1 )
+                        comment.append( ", and perhaps later versions" );
                 }
 
                 if ( !comment.isEmpty() )
@@ -814,7 +816,7 @@ void help()
     else if ( a == "update" && b == "schema" ) {
         fprintf(
             stderr,
-            "  update schema -- Upgrade the database schema.\n\n"
+            "  update schema -- Update the database schema.\n\n"
             "    Synopsis: ms update schema\n\n"
             "    Checks that the database schema is one that this version\n"
             "    of Mailstore is compatible with, and updates it if needed.\n"
