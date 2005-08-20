@@ -294,28 +294,36 @@ void User::refreshHelper()
 }
 
 
-/*! Creates this user in the database notifies \a user afterwards. If
-    the user could not be created, error() returns a message about
-    what went wrong.
+/*! This function is used to create a user.
+
+    It returns a pointer to a Query that can be used to track the
+    progress of the operation. If (and only if) the return value
+    is not 0, and the Query has not already failed, the caller
+    must call execute() to initiate the operation.
+
+    The query may fail immediately if the user is not valid(), or if it
+    already exists().
+
+    This function (indeed, this whole class) is overdue for change.
 */
 
-Query *User::create( EventHandler * user )
+Query *User::create( EventHandler * owner )
 {
-    Query *q = new Query( user );
+    Query *q = new Query( owner );
 
-    if ( !user || !valid() )
-        return 0;
-
-    if ( exists() ) {
-        q->setError( "User exists already" );
-        return q;
+    if ( !valid() ) {
+        q->setError( "Invalid user data." );
+    }
+    else if ( exists() ) {
+        q->setError( "User exists already." );
+    }
+    else {
+        d->t = new Transaction( this );
+        d->mode = UserData::Creating;
+        d->user = owner;
+        d->createQuery = q;
     }
 
-    d->t = new Transaction( this );
-    d->mode = UserData::Creating;
-    d->user = user;
-    d->createQuery = q;
-    createHelper();
     return q;
 }
 
