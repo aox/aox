@@ -7,7 +7,7 @@ chdir( $ARGV[0] );
 sub encode {
     my $in = $_[0];
     my $cs = $_[1];
-    open ( I, "recode utf-8...$cs < $in |" ) || die "ugga";
+    open ( I, "recode utf-8...$cs < $in 2>/dev/null |" ) || die "ugga";
     foreach ( <I> ) {
 	chomp;
 	if ( /^[a-z\200-\377]+$/ && /[\200-\377]/ ) {
@@ -46,6 +46,17 @@ foreach ( sort keys %forms ) {
     $numForms++ if ( $forms{$_} ne "inconclusive" );
 }
 
+# if we didn't produce anything, recode probably isn't present. give a
+# nice compiler error
+
+if ( !$numForms ) {
+    print '#error "recode needed to compile character encoding autodetection"', "\n\n";
+    # and avoid a gcc bug
+    $forms{"mumble"} = "iso-8859-2";
+    $source{"mumble"} = "a workaround in the source";
+    $numForms = 1;
+}
+
 $enum{"macroman"} = "MacRoman";
 $enum{"iso-8859-2"} = "Iso88592";
 $enum{"iso-8859-15"} = "Iso885915";
@@ -62,4 +73,4 @@ foreach ( sort keys %forms ) {
         if ( $forms{$_} ne "inconclusive" );
 }
 
-print "};\n"
+print "};\n";
