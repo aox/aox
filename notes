@@ -394,7 +394,7 @@ We should be able to use a read-only local database mirror.
   db-address.
 
 
-bin/ms, canonical, and deliver all need severe cleaning up.
+canonical and deliver need severe cleaning up.
 
 
 Finish the valgrind skin that should help us to diagnose memory abuse.
