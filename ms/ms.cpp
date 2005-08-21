@@ -6,6 +6,7 @@
 #include "stringlist.h"
 #include "configuration.h"
 #include "addresscache.h"
+#include "transaction.h"
 #include "database.h"
 #include "occlient.h"
 #include "address.h"
@@ -54,12 +55,12 @@ void showBuildconf();
 void showConfiguration();
 void showSchema();
 void upgradeSchema();
+void listUsers();
 void createUser();
 void deleteUser();
 void createMailbox();
 void deleteMailbox();
 void changePassword();
-void listUsers();
 void help();
 
 
@@ -121,6 +122,13 @@ int main( int ac, char *av[] )
         else
             bad( verb, noun );
     }
+    else if ( verb == "list" || verb == "ls" ) {
+        String noun = next().lower();
+        if ( noun == "users" )
+            listUsers();
+        else
+            bad( verb, noun );
+    }
     else if ( verb == "create" || verb == "delete" ) {
         String noun = next().lower();
 
@@ -143,13 +151,6 @@ int main( int ac, char *av[] )
         String noun = next().lower();
         if ( noun == "password" )
             changePassword();
-        else
-            bad( verb, noun );
-    }
-    else if ( verb == "list" || verb == "ls" ) {
-        String noun = next().lower();
-        if ( noun == "users" )
-            listUsers();
         else
             bad( verb, noun );
     }
@@ -604,6 +605,51 @@ bool validUsername( String s )
 }
 
 
+void listUsers()
+{
+    String pattern = next();
+    end();
+
+    Database::setup();
+
+    class LuReceiver : public Receiver {
+    public:
+        void process( Query * q ) {
+            while ( q->hasResults() ) {
+                Row * r = q->nextRow();
+                printf( "%-16s %s\n",
+                        r->getString( "login" ).cstr(),
+                        r->getString( "address" ).cstr() );
+            }
+        }
+    };
+
+    r = new LuReceiver;
+
+    String s( "select login, localpart||'@'||domain as address "
+              "from users u join addresses a on (u.address=a.id)" );
+    if ( !pattern.isEmpty() )
+        s.append( " where login like $1" );
+    Query * q = new Query( s, r );
+    if ( !pattern.isEmpty() ) {
+        String p;
+        uint i = 0;
+        while ( pattern[i] ) {
+            if ( pattern[i] == '*' )
+                p.append( '%' );
+            else if ( pattern[i] == '?' )
+                p.append( '_' );
+            else
+                p.append( pattern[i] );
+            i++;
+        }
+        q->bind( 1, p );
+    }
+    r->waitFor( q );
+    q->execute();
+}
+
+
 void createUser()
 {
     parseOptions();
@@ -665,18 +711,6 @@ void deleteUser()
 }
 
 
-void createMailbox()
-{
-    fprintf( stderr, "ms create mailbox: Not yet implemented.\n" );
-}
-
-
-void deleteMailbox()
-{
-    fprintf( stderr, "ms delete mailbox: Not yet implemented.\n" );
-}
-
-
 void changePassword()
 {
     parseOptions();
@@ -705,48 +739,109 @@ void changePassword()
 }
 
 
-void listUsers()
+void createMailbox()
 {
-    String pattern = next();
+    parseOptions();
+    String name = next();
+    String owner = next();
+    end();
+
+    if ( name.isEmpty() )
+        error( "No mailbox name supplied." );
+
+    class McReceiver : public Receiver {
+    public:
+        String name;
+        User * user;
+        Transaction * t;
+
+        McReceiver( String n, User * u )
+            : name( n ), user( u ), t( 0 )
+        {
+        }
+
+        void process( Query * q ) {
+            if ( !t && ( !q->done() ||
+                         user->state() == User::Unverified ) )
+                return;
+
+            if ( !t ) {
+                Mailbox * m = Mailbox::obtain( name );
+                if ( user && user->state() == User::Nonexistent )
+                    error( "No user named " + user->login() );
+                t = m->create( this, user );
+                if ( !t )
+                    error( "Couldn't create mailbox " + name );
+            }
+
+            if ( t && !t->done() )
+                return;
+            if ( t->failed() )
+                error( "Couldn't create mailbox: " + t->error() );
+
+            Loop::shutdown();
+        }
+    };
+
+
+    User * u = 0;
+    if ( !owner.isEmpty() ) {
+        u = new User;
+        u->setLogin( owner );
+    }
+
+    r = new McReceiver( name, u );
+    if ( u )
+        u->refresh( r );
+    Mailbox::slurp( r );
+}
+
+
+void deleteMailbox()
+{
+    parseOptions();
+    String name = next();
     end();
 
     Database::setup();
 
-    class LuReceiver : public Receiver {
+    if ( name.isEmpty() )
+        error( "No mailbox name supplied." );
+
+    class MdReceiver : public Receiver {
     public:
+        String name;
+        Transaction * t;
+
+        MdReceiver( String n )
+            : name( n ), t( 0 )
+        {
+        }
+
         void process( Query * q ) {
-            while ( q->hasResults() ) {
-                Row * r = q->nextRow();
-                printf( "%-16s %s\n",
-                        r->getString( "login" ).cstr(),
-                        r->getString( "address" ).cstr() );
+            if ( !t && !q->done() )
+                return;
+
+            if ( !t ) {
+                Mailbox * m = Mailbox::obtain( name, false );
+                if ( !m )
+                    error( "No mailbox named " + name );
+                t = m->remove( this );
+                if ( !t )
+                    error( "Couldn't delete mailbox " + name );
             }
+
+            if ( t && !t->done() )
+                return;
+            if ( t->failed() )
+                error( "Couldn't delete mailbox: " + t->error() );
+
+            Loop::shutdown();
         }
     };
 
-    r = new LuReceiver;
-
-    String s( "select login, localpart||'@'||domain as address "
-              "from users u join addresses a on (u.address=a.id)" );
-    if ( !pattern.isEmpty() )
-        s.append( " where login like $1" );
-    Query * q = new Query( s, r );
-    if ( !pattern.isEmpty() ) {
-        String p;
-        uint i = 0;
-        while ( pattern[i] ) {
-            if ( pattern[i] == '*' )
-                p.append( '%' );
-            else if ( pattern[i] == '?' )
-                p.append( '_' );
-            else
-                p.append( pattern[i] );
-            i++;
-        }
-        q->bind( 1, p );
-    }
-    r->waitFor( q );
-    q->execute();
+    r = new MdReceiver( name );
+    Mailbox::slurp( r );
 }
 
 
@@ -839,23 +934,6 @@ void help()
             "    of Mailstore is compatible with, and updates it if needed.\n"
         );
     }
-    else if ( a == "create" && b == "user" ) {
-        fprintf(
-            stderr,
-            "  create user -- Create a new user.\n\n"
-            "    Synopsis: ms create user <login> <password> <e@ma.il>\n\n"
-            "    Creates a new Mailstore user with the specified login\n"
-            "    name, password, and email address.\n\n"
-        );
-    }
-    else if ( a == "delete" && b == "user" ) {
-        fprintf(
-            stderr,
-            "  delete user -- Delete a user.\n\n"
-            "    Synopsis: ms create user <login>\n\n"
-            "    Deletes the Mailstore user with the specified login.\n\n"
-        );
-    }
     else if ( a == "list" && b == "users" ) {
         fprintf(
             stderr,
@@ -867,6 +945,48 @@ void help()
             "    Examples:\n\n"
             "      ms list users\n"
             "      ms ls users ab?cd*\n"
+        );
+    }
+    else if ( a == "create" && b == "user" ) {
+        fprintf(
+            stderr,
+            "  create user -- Create a new user.\n\n"
+            "    Synopsis: ms create user <login> <password> <e@ma.il>\n\n"
+            "    Creates a new Mailstore user with the specified login\n"
+            "    name, password, and email address.\n"
+        );
+    }
+    else if ( a == "delete" && b == "user" ) {
+        fprintf(
+            stderr,
+            "  delete user -- Delete a user.\n\n"
+            "    Synopsis: ms create user <login>\n\n"
+            "    Deletes the Mailstore user with the specified login.\n"
+        );
+    }
+    else if ( a == "change" && b == "password" ) {
+        fprintf(
+            stderr,
+            "  change password -- Change a user's password.\n\n"
+            "    Synopsis: ms change password <login> <new-password>\n\n"
+            "    Changes the specified user's password.\n"
+        );
+    }
+    else if ( a == "create" && b == "mailbox" ) {
+        fprintf(
+            stderr,
+            "  create mailbox -- Create a new mailbox.\n\n"
+            "    Synopsis: ms create mailbox <name> [username]\n\n"
+            "    Creates a new mailbox with the specified name and,\n"
+            "    if a username is specified, owned by that user.\n"
+        );
+    }
+    else if ( a == "delete" && b == "mailbox" ) {
+        fprintf(
+            stderr,
+            "  delete mailbox -- Delete a mailbox.\n\n"
+            "    Synopsis: ms delete mailbox <name>\n\n"
+            "    Deletes the specified mailbox.\n"
         );
     }
     else if ( a == "commands" ) {
