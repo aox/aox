@@ -538,7 +538,7 @@ void showSchema()
             const char * versions[] = {
                 "", "", "0.91", "0.92", "0.92", "0.92 to 0.93",
                 "0.93", "0.93", "0.94 to 0.95", "0.96 to 0.97",
-                "0.98", "0.98"
+                "0.97", "0.97"
             };
             int nv = sizeof( versions ) / sizeof( versions[0] );
 
