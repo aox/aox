@@ -614,4 +614,7 @@ We should tolerate duplicated header fields, iff:
   tendency of the lemonade list to send 2 Mime-Version or CTE fields).
 
 
+Hunt down and kill whatever stops ocd from announcing new mail promptly.
+
+
 We need to do the right thing.
