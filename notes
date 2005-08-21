@@ -617,4 +617,17 @@ We should tolerate duplicated header fields, iff:
 Hunt down and kill whatever stops ocd from announcing new mail promptly.
 
 
+CAcert instead of self-signed certificate?
+
+  www.cacert.org offers free certificates and seems to be an
+  up-and-coming thing.  In a few months, we may want to add 'obtain
+  valid cert from cacert' to ms or msconsole.
+
+  Or better yet, add a wizard to msconsole to get a real cert.
+
+  Btw, cacert.org is a very nice place to get praise and a link from. High
+  nerd factor. If we have the first really-easy-to-use interface to
+  get cacert interfaces into a program, they'll do that, no doubt.
+
+
 We need to do the right thing.
