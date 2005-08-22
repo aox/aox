@@ -14,6 +14,7 @@
 #include "schema.h"
 #include "query.h"
 #include "file.h"
+#include "list.h"
 #include "loop.h"
 #include "user.h"
 #include "log.h"
@@ -32,6 +33,7 @@ StringList * args;
 int options[256];
 int status;
 class Receiver * r;
+class Dispatcher * d;
 
 
 char * servers[] = {
@@ -160,8 +162,11 @@ int main( int ac, char *av[] )
         help();
     }
 
-    if ( r ) {
-        Allocator::addEternal( r, "Event receiver" );
+    if ( r || d ) {
+        if ( r )
+            Allocator::addEternal( r, "Event receiver" );
+        if ( d )
+            Allocator::addEternal( r, "Event dispatcher" );
         Loop::start();
     }
     return status;
@@ -226,6 +231,74 @@ void end()
         return;
     error( "Unexpected argument: " + next() );
 }
+
+
+class Dispatcher
+    : public EventHandler
+{
+public:
+    enum Command {
+        ShowSchema
+    };
+
+    List< Query > * chores;
+    Command command;
+    Query * query;
+
+    Dispatcher( Command cmd )
+        : chores( new List< Query > ),
+          command( cmd ), query( 0 )
+    {
+    }
+
+    void waitFor( Query * q )
+    {
+        chores->append( q );
+    }
+
+    void execute()
+    {
+        static bool failures = false;
+
+        if ( !chores->isEmpty() ) {
+            List< Query >::Iterator it( chores );
+            while ( it ) {
+                Query * q = it;
+
+                if ( q->done() ) {
+                    if ( q->failed() )
+                        failures = true;
+                    chores->take( it );
+                }
+                else {
+                    ++it;
+                }
+            }
+
+            if ( failures || Scope::current()->log()->disastersYet() ) {
+                Loop::shutdown();
+                exit( -1 );
+            }
+        }
+
+        switch ( command ) {
+        case ShowSchema:
+            showSchema();
+            break;
+        }
+
+        if ( !query->done() )
+            return;
+
+        if ( query->failed() ) {
+            if ( !Scope::current()->log()->disastersYet() )
+                error( "Error: " + query->error() );
+            status = -1;
+        }
+
+        Loop::shutdown();
+    }
+};
 
 
 class Receiver
@@ -559,48 +632,46 @@ void showConfiguration()
 
 void showSchema()
 {
-    end();
-
-    Database::setup();
-
-    class SsReceiver : public Receiver {
-    public:
-        void process( Query * q )
-        {
-            const char * versions[] = {
-                "", "", "0.91", "0.92", "0.92", "0.92 to 0.93",
-                "0.93", "0.93", "0.94 to 0.95", "0.96 to 0.97",
-                "0.97", "0.97"
-            };
-            int nv = sizeof( versions ) / sizeof( versions[0] );
-
-            Row * r = q->nextRow();
-            if ( r ) {
-                int rev = r->getInt( "revision" );
-
-                String comment;
-                if ( rev >= nv ) {
-                    comment =
-                        "too new for " +
-                        Configuration::compiledIn( Configuration::Version );
-                }
-                else {
-                    comment = versions[rev];
-                    if ( rev == nv-1 )
-                        comment.append( ", and perhaps later versions" );
-                }
-
-                if ( !comment.isEmpty() )
-                    comment = " (" + comment + ")";
-                printf( "%d%s\n", rev, comment.cstr() );
-            }
-        }
+    const char * versions[] = {
+        "", "", "0.91", "0.92", "0.92", "0.92 to 0.93", "0.93",
+        "0.93", "0.94 to 0.95", "0.96 to 0.97", "0.97", "0.97"
     };
+    int nv = sizeof( versions ) / sizeof( versions[0] );
 
-    r = new SsReceiver;
-    Query * q = new Query( "select revision from mailstore", r );
-    r->waitFor( q );
-    q->execute();
+    if ( !d ) {
+        end();
+
+        Database::setup();
+
+        d = new Dispatcher( Dispatcher::ShowSchema );
+        Query * q = new Query( "select revision from mailstore", d );
+        d->query = q;
+        q->execute();
+    }
+
+    if ( d && !d->query->done() )
+        return;
+
+    Row * r = d->query->nextRow();
+    if ( r ) {
+        int rev = r->getInt( "revision" );
+
+        String comment;
+        if ( rev >= nv ) {
+            comment =
+                "too new for " +
+                Configuration::compiledIn( Configuration::Version );
+        }
+        else {
+            comment = versions[rev];
+            if ( rev == nv-1 )
+                comment.append( ", and perhaps later versions" );
+        }
+
+        if ( !comment.isEmpty() )
+            comment = " (" + comment + ")";
+        printf( "%d%s\n", rev, comment.cstr() );
+    }
 }
 
 
