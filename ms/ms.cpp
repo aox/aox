@@ -228,11 +228,31 @@ void end()
 }
 
 
-void startServer( const char *s )
+void startServer( const char * s )
 {
     String srv( Configuration::compiledIn( Configuration::SbinDir ) );
     srv.append( "/" );
     srv.append( s );
+
+    bool use = true;
+
+    String t( s );
+    if ( t == "tlsproxy" )
+        use = Configuration::toggle( Configuration::UseTls );
+    else if ( t == "imapd" )
+        use = Configuration::toggle( Configuration::UseImap ) ||
+              Configuration::toggle( Configuration::UseImaps );
+    else if ( t == "smtpd" )
+        use = Configuration::toggle( Configuration::UseSmtp ) ||
+              Configuration::toggle( Configuration::UseLmtp );
+    else if ( t == "httpd" )
+        use = Configuration::toggle( Configuration::UseHttp );
+
+    if ( !use ) {
+        if ( opt( 'v' ) > 0 )
+            printf( "Don't need to start %s\n", srv.cstr() );
+        return;
+    }
 
     if ( opt( 'v' ) > 0 )
         printf( "Starting %s\n", srv.cstr() );
@@ -269,7 +289,7 @@ void start()
 }
 
 
-String pidFile( const char *s )
+String pidFile( const char * s )
 {
     String pf( Configuration::compiledIn( Configuration::PidFileDir ) );
     pf.append( "/" );
@@ -279,7 +299,7 @@ String pidFile( const char *s )
 }
 
 
-int serverPid( const char *s )
+int serverPid( const char * s )
 {
     String pf = pidFile( s );
     File f( pf, File::Read );
@@ -420,7 +440,7 @@ void showBuildconf()
 }
 
 
-void addVariable( SortedList< String > *l, String n, String v,
+void addVariable( SortedList< String > * l, String n, String v,
                   String pat, bool p )
 {
     int np = opt( 'p' );
@@ -429,7 +449,7 @@ void addVariable( SortedList< String > *l, String n, String v,
     if ( ( pat.isEmpty() || n == pat ) &&
          ( np == 0 || p ) )
     {
-        String *s = new String;
+        String * s = new String;
 
         if ( nv == 0 ) {
             s->append( n );
