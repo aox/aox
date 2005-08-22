@@ -228,6 +228,71 @@ void end()
 }
 
 
+class Receiver
+    : public EventHandler
+{
+public:
+    Query * query;
+
+    Receiver()
+        : query( 0 )
+    {
+    }
+
+    void waitFor( Query * q )
+    {
+        query = q;
+    }
+
+    virtual void process( Query * q )
+    {
+    }
+
+    void execute()
+    {
+        process( query );
+        if ( !query->done() )
+            return;
+
+        if ( query->failed() ) {
+            if ( !Scope::current()->log()->disastersYet() )
+                error( "Error: " + query->error() );
+            status = -1;
+        }
+
+        Loop::shutdown();
+    }
+};
+
+
+String pidFile( const char * s )
+{
+    String pf( Configuration::compiledIn( Configuration::PidFileDir ) );
+    pf.append( "/" );
+    pf.append( s );
+    pf.append( ".pid" );
+    return pf;
+}
+
+
+int serverPid( const char * s )
+{
+    String pf = pidFile( s );
+    File f( pf, File::Read );
+    if ( !f.valid() )
+        return -1;
+
+    bool ok;
+    int pid = f.contents().stripCRLF().number( &ok );
+    if ( !ok ) {
+        fprintf( stderr, "ms: Bad pid file: %s\n", pf.cstr() );
+        return -1;
+    }
+
+    return pid;
+}
+
+
 void startServer( const char * s )
 {
     String srv( Configuration::compiledIn( Configuration::SbinDir ) );
@@ -252,6 +317,18 @@ void startServer( const char * s )
         if ( opt( 'v' ) > 0 )
             printf( "Don't need to start %s\n", srv.cstr() );
         return;
+    }
+
+    int p = serverPid( s );
+    if ( p != -1 ) {
+        if ( kill( p, 0 ) != 0 && errno == ESRCH ) {
+            File::unlink( pidFile( s ) );
+        }
+        else {
+            if ( opt( 'v' ) > 0 )
+                printf( "%s(%d) is already running\n", s, p );
+            return;
+        }
     }
 
     if ( opt( 'v' ) > 0 )
@@ -286,34 +363,6 @@ void start()
     int i = 0;
     while ( i < nservers )
         startServer( servers[i++] );
-}
-
-
-String pidFile( const char * s )
-{
-    String pf( Configuration::compiledIn( Configuration::PidFileDir ) );
-    pf.append( "/" );
-    pf.append( s );
-    pf.append( ".pid" );
-    return pf;
-}
-
-
-int serverPid( const char * s )
-{
-    String pf = pidFile( s );
-    File f( pf, File::Read );
-    if ( !f.valid() )
-        return -1;
-
-    bool ok;
-    int pid = f.contents().stripCRLF().number( &ok );
-    if ( !ok ) {
-        fprintf( stderr, "ms: Bad pid file: %s\n", pf.cstr() );
-        return -1;
-    }
-
-    return pid;
 }
 
 
@@ -506,43 +555,6 @@ void showConfiguration()
         ++it;
     }
 }
-
-
-class Receiver
-    : public EventHandler
-{
-public:
-    Query * query;
-
-    Receiver()
-        : query( 0 )
-    {
-    }
-
-    void waitFor( Query * q )
-    {
-        query = q;
-    }
-
-    virtual void process( Query * q )
-    {
-    }
-
-    void execute()
-    {
-        process( query );
-        if ( !query->done() )
-            return;
-
-        if ( query->failed() ) {
-            if ( !Scope::current()->log()->disastersYet() )
-                error( "Error: " + query->error() );
-            status = -1;
-        }
-
-        Loop::shutdown();
-    }
-};
 
 
 void showSchema()
