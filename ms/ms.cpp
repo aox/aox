@@ -238,7 +238,7 @@ class Dispatcher
 {
 public:
     enum Command {
-        ShowSchema
+        Start, ShowSchema
     };
 
     List< Query > * chores;
@@ -282,6 +282,10 @@ public:
         }
 
         switch ( command ) {
+        case Start:
+            start();
+            break;
+
         case ShowSchema:
             showSchema();
             break;
@@ -426,12 +430,27 @@ void startServer( const char * s )
 
 void start()
 {
-    parseOptions();
-    end();
+    if ( !d ) {
+        parseOptions();
+        end();
 
-    String sbin( Configuration::compiledIn( Configuration::SbinDir ) );
-    if ( chdir( sbin.cstr() ) < 0 )
-        error( "Couldn't chdir to SBINDIR (" + sbin + ")" );
+        String sbin( Configuration::compiledIn( Configuration::SbinDir ) );
+        if ( chdir( sbin.cstr() ) < 0 )
+            error( "Couldn't chdir to SBINDIR (" + sbin + ")" );
+
+        Database::setup();
+
+        d = new Dispatcher( Dispatcher::Start );
+        d->query = new Query( "select 42 as test", d );
+        d->query->execute();
+    }
+
+    if ( d && !d->query->done() )
+        return;
+
+    Row * r = d->query->nextRow();
+    if ( !r || r->getInt( "test" ) != 42 )
+        error( "Couldn't execute a simple Postgres query." );
 
     int i = 0;
     while ( i < nservers )
@@ -644,9 +663,8 @@ void showSchema()
         Database::setup();
 
         d = new Dispatcher( Dispatcher::ShowSchema );
-        Query * q = new Query( "select revision from mailstore", d );
-        d->query = q;
-        q->execute();
+        d->query = new Query( "select revision from mailstore", d );
+        d->query->execute();
     }
 
     if ( d && !d->query->done() )
