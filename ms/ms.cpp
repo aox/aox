@@ -239,16 +239,21 @@ class Dispatcher
 public:
     enum Command {
         Start, ShowSchema, UpgradeSchema, ListUsers,
-        CreateUser, DeleteUser, ChangePassword
+        CreateUser, DeleteUser, ChangePassword,
+        CreateMailbox, DeleteMailbox
     };
 
     List< Query > * chores;
     Command command;
     Query * query;
+    User * user;
+    Transaction * t;
+    String s;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
-          command( cmd ), query( 0 )
+          command( cmd ), query( 0 ),
+          user( 0 ), t( 0 )
     {
     }
 
@@ -310,12 +315,20 @@ public:
         case ChangePassword:
             changePassword();
             break;
+
+        case CreateMailbox:
+            createMailbox();
+            break;
+
+        case DeleteMailbox:
+            deleteMailbox();
+            break;
         }
 
-        if ( !query->done() )
+        if ( ( query && !query->done() ) || ( t && !t->done() ) )
             return;
 
-        if ( query->failed() ) {
+        if ( query && query->failed() ) {
             if ( !Scope::current()->log()->disastersYet() )
                 error( "Error: " + query->error() );
             status = -1;
@@ -889,59 +902,42 @@ public:
 
 void createMailbox()
 {
-    parseOptions();
-    String name = next();
-    String owner = next();
-    end();
+    if ( !d ) {
+        parseOptions();
+        String name = next();
+        String owner = next();
+        end();
 
-    if ( name.isEmpty() )
-        error( "No mailbox name supplied." );
+        if ( name.isEmpty() )
+            error( "No mailbox name supplied." );
 
-    class McReceiver : public Receiver {
-    public:
-        String name;
-        User * user;
-        Transaction * t;
-
-        McReceiver( String n, User * u )
-            : name( n ), user( u ), t( 0 )
-        {
+        d = new Dispatcher( Dispatcher::CreateMailbox );
+        d->s = name;
+        Mailbox::slurp( d );
+        if ( !owner.isEmpty() ) {
+            d->user = new User;
+            d->user->setLogin( owner );
+            d->user->refresh( d );
         }
-
-        void process( Query * q ) {
-            if ( !t && ( !q->done() ||
-                         user->state() == User::Unverified ) )
-                return;
-
-            if ( !t ) {
-                Mailbox * m = Mailbox::obtain( name );
-                if ( user && user->state() == User::Nonexistent )
-                    error( "No user named " + user->login() );
-                t = m->create( this, user );
-                if ( !t )
-                    error( "Couldn't create mailbox " + name );
-            }
-
-            if ( t && !t->done() )
-                return;
-            if ( t->failed() )
-                error( "Couldn't create mailbox: " + t->error() );
-
-            Loop::shutdown();
-        }
-    };
-
-
-    User * u = 0;
-    if ( !owner.isEmpty() ) {
-        u = new User;
-        u->setLogin( owner );
     }
 
-    r = new McReceiver( name, u );
-    if ( u )
-        u->refresh( r );
-    Mailbox::slurp( r );
+    if ( d && ( d->user && d->user->state() == User::Unverified ) )
+        return;
+
+    if ( !d->t ) {
+        Mailbox * m = Mailbox::obtain( d->s );
+        if ( d->user && d->user->state() == User::Nonexistent )
+            error( "No user named " + d->user->login() );
+        d->t = m->create( d, d->user );
+        if ( !d->t )
+            error( "Couldn't create mailbox " + d->s );
+    }
+
+    if ( d->t && !d->t->done() )
+        return;
+
+    if ( d->t->failed() )
+        error( "Couldn't create mailbox: " + d->t->error() );
 }
 
 
