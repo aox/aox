@@ -238,7 +238,8 @@ class Dispatcher
 {
 public:
     enum Command {
-        Start, ShowSchema
+        Start, ShowSchema, UpgradeSchema, ListUsers,
+        CreateUser, DeleteUser, ChangePassword
     };
 
     List< Query > * chores;
@@ -289,45 +290,28 @@ public:
         case ShowSchema:
             showSchema();
             break;
+
+        case UpgradeSchema:
+            upgradeSchema();
+            break;
+
+        case ListUsers:
+            listUsers();
+            break;
+
+        case CreateUser:
+            createUser();
+            break;
+
+        case DeleteUser:
+            deleteUser();
+            break;
+
+        case ChangePassword:
+            changePassword();
+            break;
         }
 
-        if ( !query->done() )
-            return;
-
-        if ( query->failed() ) {
-            if ( !Scope::current()->log()->disastersYet() )
-                error( "Error: " + query->error() );
-            status = -1;
-        }
-
-        Loop::shutdown();
-    }
-};
-
-
-class Receiver
-    : public EventHandler
-{
-public:
-    Query * query;
-
-    Receiver()
-        : query( 0 )
-    {
-    }
-
-    void waitFor( Query * q )
-    {
-        query = q;
-    }
-
-    virtual void process( Query * q )
-    {
-    }
-
-    void execute()
-    {
-        process( query );
         if ( !query->done() )
             return;
 
@@ -695,13 +679,16 @@ void showSchema()
 
 void upgradeSchema()
 {
+    if ( d )
+        return;
+
     end();
 
     Database::setup();
 
-    r = new Receiver;
-    Schema * s = new Schema( r, true );
-    r->waitFor( s->result() );
+    d = new Dispatcher( Dispatcher::UpgradeSchema );
+    Schema * s = new Schema( d, true );
+    d->waitFor( s->result() );
     s->execute();
 }
 
@@ -728,30 +715,28 @@ bool validUsername( String s )
 
 void listUsers()
 {
+    if ( d ) {
+        while ( d->query->hasResults() ) {
+            Row * r = d->query->nextRow();
+            printf( "%-16s %s\n",
+                    r->getString( "login" ).cstr(),
+                    r->getString( "address" ).cstr() );
+        }
+        return;
+    }
+
     String pattern = next();
     end();
 
     Database::setup();
 
-    class LuReceiver : public Receiver {
-    public:
-        void process( Query * q ) {
-            while ( q->hasResults() ) {
-                Row * r = q->nextRow();
-                printf( "%-16s %s\n",
-                        r->getString( "login" ).cstr(),
-                        r->getString( "address" ).cstr() );
-            }
-        }
-    };
-
-    r = new LuReceiver;
+    d = new Dispatcher( Dispatcher::ListUsers );
 
     String s( "select login, localpart||'@'||domain as address "
               "from users u join addresses a on (u.address=a.id)" );
     if ( !pattern.isEmpty() )
         s.append( " where login like $1" );
-    Query * q = new Query( s, r );
+    d->query = new Query( s, d );
     if ( !pattern.isEmpty() ) {
         String p;
         uint i = 0;
@@ -764,15 +749,17 @@ void listUsers()
                 p.append( pattern[i] );
             i++;
         }
-        q->bind( 1, p );
+        d->query->bind( 1, p );
     }
-    r->waitFor( q );
-    q->execute();
+    d->query->execute();
 }
 
 
 void createUser()
 {
+    if ( d )
+        return;
+
     parseOptions();
     String login = next();
     String passwd = next();
@@ -798,18 +785,20 @@ void createUser()
         u->setAddress( p.addresses()->first() );
     }
 
-    r = new Receiver;
-    Mailbox::slurp( r );
-    Query * q = u->create( r );
-    if ( q->failed() )
-        error( q->error() );
-    r->waitFor( q );
+    d = new Dispatcher( Dispatcher::CreateUser );
+    Mailbox::slurp( d );
+    d->query = u->create( d );
+    if ( d->query->failed() )
+        error( d->query->error() );
     u->execute();
 }
 
 
 void deleteUser()
 {
+    if ( d )
+        return;
+
     parseOptions();
     String login = next();
     end();
@@ -822,18 +811,20 @@ void deleteUser()
     User * u = new User;
     u->setLogin( login );
 
-    r = new Receiver;
-    Mailbox::slurp( r );
-    Query * q = u->remove( r );
-    if ( q->failed() )
-        error( q->error() );
-    r->waitFor( q );
+    d = new Dispatcher( Dispatcher::DeleteUser );
+    Mailbox::slurp( d );
+    d->query = u->remove( d );
+    if ( d->query->failed() )
+        error( d->query->error() );
     u->execute();
 }
 
 
 void changePassword()
 {
+    if ( d )
+        return;
+
     parseOptions();
     String login = next();
     String passwd = next();
@@ -850,14 +841,50 @@ void changePassword()
     u->setLogin( login );
     u->setSecret( passwd );
 
-    r = new Receiver;
-    Mailbox::slurp( r );
-    Query * q = u->changeSecret( r );
-    if ( q->failed() )
-        error( q->error() );
-    r->waitFor( q );
+    d = new Dispatcher( Dispatcher::ChangePassword );
+    Mailbox::slurp( d );
+    d->query = u->changeSecret( d );
+    if ( d->query->failed() )
+        error( d->query->error() );
     u->execute();
 }
+
+
+class Receiver
+    : public EventHandler
+{
+public:
+    Query * query;
+
+    Receiver()
+        : query( 0 )
+    {
+    }
+
+    void waitFor( Query * q )
+    {
+        query = q;
+    }
+
+    virtual void process( Query * q )
+    {
+    }
+
+    void execute()
+    {
+        process( query );
+        if ( !query->done() )
+            return;
+
+        if ( query->failed() ) {
+            if ( !Scope::current()->log()->disastersYet() )
+                error( "Error: " + query->error() );
+            status = -1;
+        }
+
+        Loop::shutdown();
+    }
+};
 
 
 void createMailbox()
