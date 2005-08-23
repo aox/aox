@@ -32,7 +32,6 @@ char * ms;
 StringList * args;
 int options[256];
 int status;
-class Receiver * r;
 class Dispatcher * d;
 
 
@@ -162,11 +161,8 @@ int main( int ac, char *av[] )
         help();
     }
 
-    if ( r || d ) {
-        if ( r )
-            Allocator::addEternal( r, "Event receiver" );
-        if ( d )
-            Allocator::addEternal( r, "Event dispatcher" );
+    if ( d ) {
+        Allocator::addEternal( d, "Event dispatcher" );
         Loop::start();
     }
     return status;
@@ -285,6 +281,9 @@ public:
                 Loop::shutdown();
                 exit( -1 );
             }
+
+            if ( !chores->isEmpty() )
+                return;
         }
 
         switch ( command ) {
@@ -863,43 +862,6 @@ void changePassword()
 }
 
 
-class Receiver
-    : public EventHandler
-{
-public:
-    Query * query;
-
-    Receiver()
-        : query( 0 )
-    {
-    }
-
-    void waitFor( Query * q )
-    {
-        query = q;
-    }
-
-    virtual void process( Query * q )
-    {
-    }
-
-    void execute()
-    {
-        process( query );
-        if ( !query->done() )
-            return;
-
-        if ( query->failed() ) {
-            if ( !Scope::current()->log()->disastersYet() )
-                error( "Error: " + query->error() );
-            status = -1;
-        }
-
-        Loop::shutdown();
-    }
-};
-
-
 void createMailbox()
 {
     if ( !d ) {
@@ -943,49 +905,36 @@ void createMailbox()
 
 void deleteMailbox()
 {
-    parseOptions();
-    String name = next();
-    end();
+    if ( !d ) {
+        parseOptions();
+        String name = next();
+        end();
 
-    Database::setup();
+        Database::setup();
 
-    if ( name.isEmpty() )
-        error( "No mailbox name supplied." );
+        if ( name.isEmpty() )
+            error( "No mailbox name supplied." );
 
-    class MdReceiver : public Receiver {
-    public:
-        String name;
-        Transaction * t;
+        d = new Dispatcher( Dispatcher::DeleteMailbox );
+        d->s = name;
+        Mailbox::slurp( d );
+        return;
+    }
 
-        MdReceiver( String n )
-            : name( n ), t( 0 )
-        {
-        }
+    if ( !d->t ) {
+        Mailbox * m = Mailbox::obtain( d->s, false );
+        if ( !m )
+            error( "No mailbox named " + d->s );
+        d->t = m->remove( d );
+        if ( !d->t )
+            error( "Couldn't delete mailbox " + d->s );
+    }
 
-        void process( Query * q ) {
-            if ( !t && !q->done() )
-                return;
+    if ( d->t && !d->t->done() )
+        return;
 
-            if ( !t ) {
-                Mailbox * m = Mailbox::obtain( name, false );
-                if ( !m )
-                    error( "No mailbox named " + name );
-                t = m->remove( this );
-                if ( !t )
-                    error( "Couldn't delete mailbox " + name );
-            }
-
-            if ( t && !t->done() )
-                return;
-            if ( t->failed() )
-                error( "Couldn't delete mailbox: " + t->error() );
-
-            Loop::shutdown();
-        }
-    };
-
-    r = new MdReceiver( name );
-    Mailbox::slurp( r );
+    if ( d->t->failed() )
+        error( "Couldn't delete mailbox: " + d->t->error() );
 }
 
 
