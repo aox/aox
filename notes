@@ -618,4 +618,23 @@ CAcert instead of self-signed certificate?
   get cacert interfaces into a program, they'll do that, no doubt.
 
 
+0.98
+
+  Upgrade to cryptlib 3.2.1
+  Write a GB2312 codec.
+  Fix the ocd problem.
+  Textify HTML bodyparts.
+  Fix the 8-bit problems in Address.
+  Make msconsole's user pane work.
+  Fix tsearch2.
+  ms vacuum.
+
+  (All of these items have their own separate notes.)
+
+
+0.99
+
+  What should we do for 0.99?
+
+
 We need to do the right thing.
