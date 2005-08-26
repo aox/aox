@@ -538,6 +538,49 @@ Add a web page about the charset encoding.
   URL.
 
 
+Make a web page about our licensing
+
+  Not sure what to say there. the purpose of the page would be to
+  direct people to one of the two others, really. and to be linked to
+  from the home page.
+
+
+The "Database" link on home page
+
+  Where should it go? People might click it wondering why to use a
+  database instead of flat files and wanting to know what we do with
+  databases.
+
+
+Interop pages
+
+  A variety needed.
+
+
+Prototocols supported
+
+  A list detailing what our general idea is (internet standard,
+  interoperability, utility) and linking to each actual protocol page.
+
+  The URL for this is difficult.
+
+
+Releases page
+
+  Audience: People wanting to install, or curious about.
+
+  Task: Tell them which release to use and introduce our general
+  release schedule. Perhaps say a bit about the next couple of
+  releases, what we're concentrating on.
+
+
+Search ourselves, not via google
+
+  Or maybe farm that out, get google to search with an approximation
+  of our design. http://www.google.com/faq_freewebsearch.html may be
+  interesting.
+
+
 We should test multipart/signed and multipart/encrypted support.
 
   We must add a selection of RFC 1847 messages to canonical, and make

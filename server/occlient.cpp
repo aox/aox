@@ -102,7 +102,7 @@ void OCClient::parse()
     String arg = s->mid( j+1 ).stripCRLF();
 
     log( "OCClient received " + tag + "/" + msg + " <<" + arg + ">>",
-         Log::Debug );
+         Log::Info );
 
     if ( msg == "shutdown" ) {
         log( "Shutting down due to ocd request" );
@@ -176,7 +176,7 @@ void OCClient::updateMailbox( const String & arg )
         else {
             if ( m->uidnext() != n )
                 log( "OCClient set mailbox " + m->name() +
-                     " to uidnext " + fn( n ), Log::Debug );
+                     " to uidnext " + fn( n ), Log::Info );
             m->setUidnext( n );
         }
     }
