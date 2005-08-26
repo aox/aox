@@ -518,7 +518,7 @@ static int findHostInfo( STREAM *stream, char *hostName, int *hostPort,
 	return( CRYPT_OK );
 	}
 
-#elif defined( __UNIX__ ) && \
+#elif 0 && defined( __UNIX__ ) && \
 	  !( defined( __CYGWIN__) || ( defined( sun ) && OSVERSION <= 5 ) || \
 		 defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ ) )
 
