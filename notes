@@ -508,9 +508,6 @@ Implement a "save mangled copy" feature in msconsole. (AMS)
   information.
 
 
-Cryptlib 3.2.1 has been released. Upgrade to it later.
-
-
 Get more word lists for Codec::byString( const String & )
 
   Word lists need to contain at least one non-ASCII character, and to
@@ -663,7 +660,7 @@ CAcert instead of self-signed certificate?
 
 0.98
 
-  Upgrade to cryptlib 3.2.1
+  Upgrade to cryptlib 3.2.1 (Done)
   Write a GB2312 codec.
   Fix the ocd problem.
   Textify HTML bodyparts.
