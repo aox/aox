@@ -212,7 +212,6 @@
   #undef USE_CRYPTOAPI
 #endif /* 0 */
 #if defined(ORYX_STRIPPED)      /* Heavyweight keysets */
-  #undef USE_HTTP
   #undef USE_LDAP
   #undef USE_ODBC
   #undef USE_DBMS
