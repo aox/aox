@@ -143,10 +143,10 @@ typedef struct {
 #define getPersonality( fortezzaInfo, index ) \
 		( &( ( ( CI_PERSON * ) fortezzaInfo->personalities )[ index ] ) )
 
-/* Prototypes for functions in cryptcap.c */
+/* Prototypes for functions in cryptctx.c */
 
-const void FAR_BSS *findCapabilityInfo( const void FAR_BSS *capabilityInfoPtr,
-										const CRYPT_ALGO_TYPE cryptAlgo );
+const void *findCapabilityInfo( const void *capabilityInfoPtr,
+								const CRYPT_ALGO_TYPE cryptAlgo );
 
 /****************************************************************************
 *																			*
@@ -259,9 +259,10 @@ static CI_ZEROIZE pCI_Zeroize = NULL;
 
 /* Dynamically load and unload any necessary card drivers */
 
+static void initCapabilities( void );
+
 int deviceInitFortezza( void )
 	{
-	void initCapabilities( void );
 #ifdef __WIN16__
 	UINT errorMode;
 #endif /* __WIN16__ */
@@ -1010,8 +1011,8 @@ static int updateCertChain( FORTEZZA_INFO *fortezzaInfo,
 /* Table of mechanisms supported by this device.  These are sorted in order 
    of frequency of use in order to make lookups a bit faster */
 
-int exportKEA( DEVICE_INFO *deviceInfo, MECHANISM_WRAP_INFO *mechanismInfo );
-int importKEA( DEVICE_INFO *deviceInfo, MECHANISM_WRAP_INFO *mechanismInfo );
+static int exportKEA( DEVICE_INFO *deviceInfo, MECHANISM_WRAP_INFO *mechanismInfo );
+static int importKEA( DEVICE_INFO *deviceInfo, MECHANISM_WRAP_INFO *mechanismInfo );
 
 static const MECHANISM_FUNCTION_INFO objectMechanisms[] = {
 	{ MESSAGE_DEV_EXPORT, MECHANISM_ENC_KEA, exportKEA },
@@ -1582,7 +1583,7 @@ static int getItemFunction( DEVICE_INFO *deviceInfo,
 				cryptAlgo = CRYPT_ALGO_KEA;
 			else
 				return( CRYPT_ERROR_BADDATA );
-	capabilityInfoPtr = findCapabilityInfo( deviceInfo->capabilityInfo, 
+	capabilityInfoPtr = findCapabilityInfo( deviceInfo->capabilityInfoList, 
 											cryptAlgo );
 	if( capabilityInfoPtr == NULL )
 		return( CRYPT_ERROR_NOTAVAIL );
@@ -1847,6 +1848,8 @@ static int getNextItemFunction( DEVICE_INFO *deviceInfo,
 *																			*
 ****************************************************************************/
 
+#if 0
+
 /* Initialise the encryption */
 
 static int initCryptFunction( CONTEXT_INFO *contextInfoPtr )
@@ -1860,6 +1863,7 @@ static int initCryptFunction( CONTEXT_INFO *contextInfoPtr )
 		status = pCI_SetMode( CI_ENCRYPT_TYPE, CI_CBC64_MODE );
 	return( mapError( status, CRYPT_ERROR_FAILED ) );
 	}
+#endif /* 0 */
 
 /* Load an IV.  Handling IV generation/loading is very problematic since we 
    can't generate an IV until the key is generated (since it depends on the 
@@ -2639,6 +2643,7 @@ static int importKEA( DEVICE_INFO *deviceInfo,
 	return( CRYPT_ERROR );
 	}
 
+#if 0	/* 22/09/99 Replaced by mechanism function */
 static int keyAgreeRecipientFunction( CONTEXT_INFO *contextInfoPtr, void *buffer, 
 									  int length )
 	{
@@ -2700,6 +2705,7 @@ static int keyAgreeRecipientFunction( CONTEXT_INFO *contextInfoPtr, void *buffer
 
 	return( mapError( status, CRYPT_ERROR_FAILED ) );
 	}
+#endif /* 0 */
 
 /****************************************************************************
 *																			*
@@ -2711,49 +2717,53 @@ static int keyAgreeRecipientFunction( CONTEXT_INFO *contextInfoPtr, void *buffer
    device since the implementation is somewhat clunky and will be much slower
    than a native one */
 
-#define bits(x)	bitsToBytes(x)
-
-static CAPABILITY_INFO FAR_BSS capabilities[] = {
+static const CAPABILITY_INFO capabilities[] = {
 	/* The DSA capabilities */
-	{ CRYPT_ALGO_DSA, bits( 0 ), "DSA",
-		bits( 1024 ), bits( 1024 ), bits( 1024 ), 
-		NULL, getInfo, NULL, NULL, initKeyFunction, generateKeyFunction, 
+	{ CRYPT_ALGO_DSA, bitsToBytes( 0 ), "DSA",
+		bitsToBytes( 1024 ), bitsToBytes( 1024 ), bitsToBytes( 1024 ), 
+		NULL, getDefaultInfo, NULL, NULL, initKeyFunction, generateKeyFunction, 
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
 		signFunction, sigCheckFunction },
 
 	/* The Skipjack capabilities.  Note that we're using a LEAF-suppressed IV */
-	{ CRYPT_ALGO_SKIPJACK, bits( 64 ), "Skipjack",
-		bits( 80 ), bits( 80 ), bits( 80 ), 
-		NULL, /*initCryptFunction*/getInfo, NULL, initKeyParamsFunction, initKeyFunction, generateKeyFunction, 
+	{ CRYPT_ALGO_SKIPJACK, bitsToBytes( 64 ), "Skipjack",
+		bitsToBytes( 80 ), bitsToBytes( 80 ), bitsToBytes( 80 ), 
+		NULL, /*initCryptFunction*/getDefaultInfo, NULL, initKeyParamsFunction, initKeyFunction, generateKeyFunction, 
 		encryptFunction, decryptFunction, encryptFunction, decryptFunction, 
 		encryptFunction, decryptFunction, encryptFunction, decryptFunction },
 
 	/* The KEA capabilities.  The capabilities can't be applied directly but 
 	   are used via higher-level mechanisms so the associated function 
 	   pointers are all null */
-	{ CRYPT_ALGO_KEA, bits( 0 ), "KEA",
-		bits( 1024 ), bits( 1024 ), bits( 1024 ), 
-		NULL, getInfo, NULL, NULL, NULL, generateKeyFunction },
+	{ CRYPT_ALGO_KEA, bitsToBytes( 0 ), "KEA",
+		bitsToBytes( 1024 ), bitsToBytes( 1024 ), bitsToBytes( 1024 ), 
+		NULL, getDefaultInfo, NULL, NULL, NULL, generateKeyFunction },
 
 	/* The end-of-list marker.  This value isn't linked into the 
 	   capabilities list when we call initCapabilities() */
 	{ CRYPT_ALGO_NONE }
 	};
 
+static CAPABILITY_INFO_LIST capabilityInfoList[ 4 ];
+
 /* Initialise the capability info */
 
 static void initCapabilities( void )
 	{
-	CAPABILITY_INFO *prevCapabilityInfoPtr = NULL;
 	int i;
 
+	/* Build the list of available capabilities */
+	memset( capabilityInfoList, 0, 
+			sizeof( CAPABILITY_INFO_LIST ) * 4 );
 	for( i = 0; capabilities[ i ].cryptAlgo != CRYPT_ALGO_NONE; i++ )
 		{
 		assert( capabilities[ i ].cryptAlgo == CRYPT_ALGO_KEA || \
 				capabilityInfoOK( &capabilities[ i ], FALSE ) );
-		if( prevCapabilityInfoPtr != NULL )
-			prevCapabilityInfoPtr->next = &capabilities[ i ];
-		prevCapabilityInfoPtr = &capabilities[ i ];
+		
+		capabilityInfoList[ i ].info = &capabilities[ i ];
+		capabilityInfoList[ i ].next = NULL;
+		if( i > 0 )
+			capabilityInfoList[ i - 1 ].next = &capabilityInfoList[ i ];
 		}
 	}
 
@@ -2784,7 +2794,7 @@ int setDeviceFortezza( DEVICE_INFO *deviceInfo )
 	deviceInfo->getFirstItemFunction = getFirstItemFunction;
 	deviceInfo->getNextItemFunction = getNextItemFunction;
 	deviceInfo->getRandomFunction = getRandomFunction;
-	deviceInfo->capabilityInfo = capabilities;
+	deviceInfo->capabilityInfoList = capabilityInfoList;
 	deviceInfo->mechanismFunctions = objectMechanisms;
 
 	return( CRYPT_OK );

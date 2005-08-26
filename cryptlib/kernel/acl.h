@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *								ACL Definitions								*
-*						Copyright Peter Gutmann 1997-2004					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
@@ -848,12 +848,17 @@ typedef struct {
 
 /* Cert mgmt.ACL entry.  These have parameters that work similarly to the
    mechanism ACLs, except that only a small subset (objects and unused) are
-   used in practice */
+   used in practice.  In addition some objects require the presence of
+   secondary objects (dependent objects for the main object), for example
+   a CA's PKC context requires an attached CA certificate.  This is 
+   specified in the secondary parameter ACL, which mirrors the main
+   parameter ACL */
 
 typedef struct {
 	const CRYPT_CERTACTION_TYPE action;	/* Cert mgmt.action */
 	const int access;				/* Permitted access type */
 	const PARAM_ACL paramACL[ 3 ];	/* Parameter ACL information */
+	const PARAM_ACL secParamACL[ 3 ];/* Parameter ACL for dep.objects */
 	} CERTMGMT_ACL;
 
 /* Compare-message ACL entry */
@@ -876,28 +881,52 @@ typedef struct {
 			{ ST_NONE, ST_NONE, ACL_FLAG_NONE }, \
 			{ MKACP_END() }
 
-/* Check-message ACL entry */
+/* Check-message ACL entry.  Most checks are for the same capability in a 
+   single object type (e.g. encryption capability in a PKC context and/or 
+   cert), for which we check the object type and action corresponding to the 
+   check.  However, some checks apply to dependent but object pairs but with
+   different capabilities (for example a PKC context and a CA certificate).
+   In this case the check can be applied to either of the two object types, 
+   so we allow for a secondary ACL entry for the related object type.  In 
+   addition once we've applied the check to the primary object, we have to 
+   forward it to the secondary object, however in order to avoid message 
+   loops the forwarded check type applies only to the secondary object 
+   rather than being the same as the one that was applied to the primary 
+   object */
 
 typedef struct {
 	const MESSAGE_CHECK_TYPE checkType;	/* Check message type */
-	const MESSAGE_TYPE actionType[ 3 ];	/* Action(s) corresponding to check */
+	const MESSAGE_TYPE actionType;	/* Action corresponding to check */
 	const OBJECT_ACL objectACL;		/* Valid objects for message type */
+	const struct CAA *altACL;		/* Ptr. to alt.ACL */	
 	} CHECK_ACL;
 
-/* Macros to set up check ACLs */
+typedef struct CAA {
+	const OBJECT_TYPE object;		/* Object type this entry applies to */
+	const MESSAGE_CHECK_TYPE checkType;	/* Check message type */
+	const OBJECT_TYPE depObject;	/* Dependent object type */
+	const OBJECT_ACL depObjectACL;	/* Valid objects for message type */
+	const MESSAGE_TYPE fdCheckType;	/* Fwded check type for related obj.*/
+	} CHECK_ALT_ACL;
 
-#define MK_CHKACL( message, objSTA ) \
-			{ message, MESSAGE_NONE }, \
-			{ objSTA, ST_NONE, ACL_FLAG_HIGH_STATE }
-#define MK_CHKACL_ALT( message1, message2, objSTA ) \
-			{ message1, message2, MESSAGE_NONE }, \
-			{ objSTA, ST_NONE, ACL_FLAG_HIGH_STATE }
-#define MK_CHKACL_EX( message, objSTA, flags ) \
-			{ message, MESSAGE_NONE }, \
-			{ objSTA, ST_NONE, flags }
+/* Macros to set up check ACLs.  For the standard check ACL the first 
+   parameter, the check type, is supplied explicitly and isn't present in 
+   the macro */
+
+#define MK_CHKACL( action, objSTA ) \
+			action, { objSTA, ST_NONE, ACL_FLAG_HIGH_STATE }, NULL
+#define MK_CHKACL_EX( action, objSTA, flags ) \
+			action, { objSTA, ST_NONE, flags }
+#define MK_CHKACL_EXT( action, objSTA, extACL ) \
+			action, { objSTA, ST_NONE, ACL_FLAG_HIGH_STATE }, extACL
 #define MK_CHKACL_END() \
-			{ MESSAGE_NONE }, \
-			{ ST_NONE, ST_NONE, ACL_FLAG_NONE }
+			MESSAGE_NONE, { ST_NONE, ST_NONE, ACL_FLAG_NONE }
+
+#define MK_CHKACL_ALT( depObj, depObjSTA, fdCheck ) \
+			depObj, { depObjSTA, ST_NONE, ACL_FLAG_HIGH_STATE }, fdCheck
+#define MK_CHKACL_ALT_END() \
+			MESSAGE_NONE, \
+			OBJECT_TYPE_NONE, { ST_NONE, ST_NONE, ACL_FLAG_NONE }, MESSAGE_NONE
 
 /* Object dependency ACL entry, used when making one object dependent on 
    another */

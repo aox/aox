@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib HMAC-SHA Hash Routines						*
-*						Copyright Peter Gutmann 1997-2003					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,17 +9,14 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "sha.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/sha.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/sha.h"
 #endif /* Compiler-specific includes */
 
@@ -30,6 +27,8 @@
 typedef struct {
 	SHA_CTX macState, initialMacState;
 	} MAC_STATE;
+
+#define MAC_STATE_SIZE		sizeof( MAC_STATE )
 
 /****************************************************************************
 *																			*
@@ -113,39 +112,38 @@ static const FAR_BSS struct {
 	{ "", 0, NULL, 0, { 0 } }
 	};
 
-int hmacSHASelfTest( void )
+static int selfTest( void )
 	{
-	CONTEXT_INFO contextInfoPtr;
-	MAC_INFO macInfo;
-	MAC_STATE macState;
-	int i;
-
-	/* Set up the dummy contextInfoPtr structure */
-	memset( &contextInfoPtr, 0, sizeof( CONTEXT_INFO ) );
-	memset( &macInfo, 0, sizeof( MAC_INFO ) );
-	contextInfoPtr.ctxMAC = &macInfo;
-	contextInfoPtr.ctxMAC->macInfo = &macState;
+	const CAPABILITY_INFO *capabilityInfo = getHmacSHA1Capability();
+	CONTEXT_INFO contextInfo;
+	MAC_INFO contextData;
+	BYTE keyData[ MAC_STATE_SIZE ];
+	int i, status;
 
 	/* Test HMAC-SHA against the test vectors given in RFC ???? */
 	for( i = 0; hmacValues[ i ].data != NULL; i++ )
 		{
-		/* Load the HMAC key and perform the hashing */
-		hmacSHAInitKey( &contextInfoPtr, hmacValues[ i ].key,
-						hmacValues[ i ].keyLength );
-		contextInfoPtr.flags |= CONTEXT_HASH_INITED;
-		hmacSHAHash( &contextInfoPtr, ( BYTE * ) hmacValues[ i ].data,
-					 hmacValues[ i ].length );
-		hmacSHAHash( &contextInfoPtr, NULL, 0 );
-		contextInfoPtr.flags = 0;
-
-		/* Retrieve the hash and make sure it matches the expected value */
-		if( memcmp( contextInfoPtr.ctxMAC->mac, hmacValues[ i ].digest,
+		staticInitContext( &contextInfo, CONTEXT_MAC, capabilityInfo,
+						   &contextData, sizeof( MAC_INFO ), keyData );
+		status = capabilityInfo->initKeyFunction( &contextInfo, 
+						hmacValues[ i ].key, hmacValues[ i ].keyLength );
+		contextInfo.flags |= CONTEXT_HASH_INITED;
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, 
+						( BYTE * ) hmacValues[ i ].data, 
+						hmacValues[ i ].length );
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
+		if( cryptStatusOK( status ) && \
+			memcmp( contextInfo.ctxMAC->mac, hmacValues[ i ].digest,
 					SHA_DIGEST_LENGTH ) )
-			break;
+			status = CRYPT_ERROR;
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) )
+			return( status );
 		}
 
-	return( ( hmacValues[ i ].data == NULL ) ? \
-			CRYPT_OK : CRYPT_ERROR );
+	return( CRYPT_OK );
 	}
 
 /****************************************************************************
@@ -156,13 +154,13 @@ int hmacSHASelfTest( void )
 
 /* Return context subtype-specific information */
 
-int hmacSHAGetInfo( const CAPABILITY_INFO_TYPE type, 
-					void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
-		return( sizeof( MAC_STATE ) );
+		return( MAC_STATE_SIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -173,7 +171,7 @@ int hmacSHAGetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Hash data using HMAC-SHA */
 
-int hmacSHAHash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	MAC_INFO *macInfo = contextInfoPtr->ctxMAC;
 	SHA_CTX *shaInfo = &( ( MAC_STATE * ) macInfo->macInfo )->macState;
@@ -224,7 +222,7 @@ int hmacSHAHash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Set up an HMAC-SHA key */
 
-int hmacSHAInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
 					const int keyLength )
 	{
 	MAC_INFO *macInfo = contextInfoPtr->ctxMAC;
@@ -271,4 +269,21 @@ int hmacSHAInitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 			sizeof( SHA_CTX ) );
 
 	return( CRYPT_OK );
+	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_HMAC_SHA, bitsToBytes( 160 ), "HMAC-SHA",
+	bitsToBytes( 64 ), bitsToBytes( 128 ), CRYPT_MAX_KEYSIZE,
+	selfTest, getInfo, NULL, NULL, initKey, NULL, hash, hash
+	};
+
+const CAPABILITY_INFO *getHmacSHA1Capability( void )
+	{
+	return( &capabilityInfo );
 	}

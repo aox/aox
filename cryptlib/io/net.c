@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						Network Stream I/O Functions						*
-*						Copyright Peter Gutmann 1993-2003					*
+*						Copyright Peter Gutmann 1993-2005					*
 *																			*
 ****************************************************************************/
 
@@ -333,34 +333,143 @@ static int copyUrlToStream( STREAM *stream, const URL_INFO *urlInfo )
 
 /****************************************************************************
 *																			*
+*							Transport-layer Functions						*
+*																			*
+****************************************************************************/
+
+/* Map the upper-layer I/O functions directly to the transport-layer
+   equivalent.  This is used if we're performing raw I/O without any
+   intermediate protocol layers or buffering */
+
+static int transportDirectReadFunction( STREAM *stream, void *buffer,
+										const int length )
+	{
+	return( stream->transportReadFunction( stream, buffer, length, 
+										   TRANSPORT_FLAG_NONE ) );
+	}
+
+static int transportDirectWriteFunction( STREAM *stream, const void *buffer,
+										 const int length )
+	{
+	return( stream->transportWriteFunction( stream, buffer, length,
+											TRANSPORT_FLAG_NONE ) );
+	}
+
+static int setStreamLayerDirect( STREAM *stream )
+	{
+	stream->writeFunction = transportDirectWriteFunction;
+	stream->readFunction = transportDirectReadFunction;
+
+	return( CRYPT_OK );
+	}
+
+/* Send and receive data with a cryptlib session as the transport layer */
+
+static int transportSessionConnectFunction( STREAM *stream, 
+											const char *server, 
+											const int port )
+	{
+	int isActive, status;
+
+	assert( server == NULL );
+	assert( port == 0 );
+
+	/* If the transport session hasn't been activated yet, activate it now */
+	status = krnlSendMessage( stream->iTransportSession,
+							  IMESSAGE_GETATTRIBUTE, &isActive,
+							  CRYPT_SESSINFO_ACTIVE );
+	if( cryptStatusOK( status ) && isActive )
+		return( CRYPT_OK );
+	status = krnlSendMessage( stream->iTransportSession,
+							  IMESSAGE_SETATTRIBUTE, MESSAGE_VALUE_TRUE, 
+							  CRYPT_SESSINFO_ACTIVE );
+	if( cryptStatusError( status ) )
+		return( getSessionErrorInfo( stream, status ) );
+	return( CRYPT_OK );
+	}
+
+static void transportSessionDisconnectFunction( STREAM *stream,
+												const BOOLEAN fullDisconnect )
+	{
+	krnlSendNotifier( stream->iTransportSession, IMESSAGE_DECREFCOUNT );
+	}
+
+static BOOLEAN transportSessionOKFunction( void )
+	{
+	return( TRUE );
+	}
+
+static int transportSessionReadFunction( STREAM *stream, BYTE *buffer,
+										 const int length, const int flags )
+	{
+	RESOURCE_DATA msgData;
+	int newTimeout = CRYPT_UNUSED, status;
+
+	/* Read data from the session, overriding the timeout handling if
+	   requested */
+	if( ( flags & TRANSPORT_FLAG_NONBLOCKING ) && stream->timeout > 0 )
+		newTimeout = 0;
+	else
+		if( ( flags & TRANSPORT_FLAG_BLOCKING ) && stream->timeout == 0 )
+			newTimeout = 30;
+	if( newTimeout != CRYPT_UNUSED )
+		krnlSendMessage( stream->iTransportSession, IMESSAGE_SETATTRIBUTE, 
+						 &newTimeout, CRYPT_OPTION_NET_READTIMEOUT );
+	setMessageData( &msgData, buffer, length );
+	status = krnlSendMessage( stream->iTransportSession, IMESSAGE_ENV_POPDATA, 
+							  &msgData, 0 );
+	if( newTimeout != CRYPT_UNUSED )
+		krnlSendMessage( stream->iTransportSession, IMESSAGE_SETATTRIBUTE, 
+						 &stream->timeout, CRYPT_OPTION_NET_READTIMEOUT );
+	if( cryptStatusError( status ) )
+		return( getSessionErrorInfo( stream, status ) );
+	if( msgData.length < length )
+		retExtStream( stream, CRYPT_ERROR_READ, 
+					  "Only read %d out of %d bytes via cryptlib session "
+					  "object", msgData.length, length );
+	return( length );
+	}
+
+static int transportSessionWriteFunction( STREAM *stream, const BYTE *buffer,
+										  const int length, const int flags )
+	{
+	RESOURCE_DATA msgData;
+	int status;
+
+	setMessageData( &msgData, ( void * ) buffer, length );
+	status = krnlSendMessage( stream->iTransportSession,
+							  IMESSAGE_ENV_PUSHDATA, &msgData, 0 );
+	if( cryptStatusOK( status ) )
+		{
+		setMessageData( &msgData, NULL, 0 );
+		status = krnlSendMessage( stream->iTransportSession,
+								  IMESSAGE_ENV_PUSHDATA, &msgData, 0 );
+		}
+	if( cryptStatusError( status ) )
+		return( getSessionErrorInfo( stream, status ) );
+	return( CRYPT_OK );
+	}
+
+/****************************************************************************
+*																			*
 *							Proxy Management Functions						*
 *																			*
 ****************************************************************************/
 
 /* Open a connection through a Socks proxy.  This is currently disabled 
-   since it appears to be unused by anyone */
+   since it doesn't appear to be used by anyone */
 
 #if 0
 
-static int connectStreamProxy( STREAM *stream )
+static int connectViaSocksProxy( STREAM *stream )
 	{
 	RESOURCE_DATA msgData;
 	BYTE socksBuffer[ 64 + CRYPT_MAX_TEXTSIZE ], *bufPtr = socksBuffer;
-	const char *hostNamePtr = stream->host;
-	char proxyName[ MAX_URL_SIZE + 1 ], userName[ CRYPT_MAX_TEXTSIZE + 1 ];
-	unsigned short localPort = stream->port;
+	char userName[ CRYPT_MAX_TEXTSIZE + 1 ];
 	int length, status;
 
-	/* Get the proxy and user name, defaulting to "cryptlib" if there's none 
+	/* Get the SOCKS user name, defaulting to "cryptlib" if there's none 
 	   set */
-	setMessageData( &msgData, proxyName, MAX_URL_SIZE );
-	status = krnlSendMessage( DEFAULTUSER_OBJECT_HANDLE,
-							  IMESSAGE_GETATTRIBUTE_S, &msgData,
-							  CRYPT_OPTION_NET_SOCKS_SERVER );
-	if( cryptStatusError( status ) )
-		retExtStream( stream, CRYPT_ERROR_OPEN, 
-					  "Couldn't get SOCKS server name" );
-	proxyName[ msgData.length ] = '\0';
 	setMessageData( &msgData, userName, CRYPT_MAX_TEXTSIZE );
 	status = krnlSendMessage( DEFAULTUSER_OBJECT_HANDLE,
 							  IMESSAGE_GETATTRIBUTE_S, &msgData,
@@ -369,14 +478,6 @@ static int connectStreamProxy( STREAM *stream )
 		userName[ msgData.length ] = '\0';
 	else
 		strcpy( userName, "cryptlib" );
-	hostNamePtr = proxyName;
-	localPort = 1080;	/* SOCKS port */
-
-	/* Try and open the connection to the proxy server */
-	status = stream->transportConnectFunction( stream, hostNamePtr, 
-											   localPort );
-	if( cryptStatusError( status ) )
-		return( status );
 
 	/* Build up the socks request string:
 		BYTE: version = 4
@@ -434,11 +535,41 @@ static int connectStreamProxy( STREAM *stream )
 	}
 #endif /* 0 */
 
+static int connectViaHttpProxy( STREAM *stream, int *errorCode,
+								char *errorMessage )
+	{
+	BYTE buffer[ 64 ];
+	int status;
+
+	/* Open the connection via the proxy.  To do this we temporarily layer 
+	   HTTP I/O over the TCP I/O, then once the proxy messaging has been
+	   completely we re-set the stream to pure TCP I/O and clear any stream
+	   flags that were set during the proxying */
+	setStreamLayerHTTP( stream );
+	status = stream->writeFunction( stream, "", 0 );
+	if( cryptStatusOK( status ) )
+		status = stream->readFunction( stream, buffer, 64 );
+	setStreamLayerDirect( stream );
+	stream->flags = 0;
+	if( cryptStatusError( status ) )
+		{
+		/* The involvement of a proxy complicates matters somewhat because
+		   we can usually connect to the proxy OK but may run into problems
+		   going from the proxy to the remote server, so if we get an error
+		   at this stage (which will typically show up as a read error from
+		   the proxy) we report it as an open error instead */
+		if( status == CRYPT_ERROR_READ || status == CRYPT_ERROR_COMPLETE )
+			status = CRYPT_ERROR_OPEN;
+		*errorCode = stream->errorCode;
+		strcpy( errorMessage, stream->errorMessage );
+		stream->transportDisconnectFunction( stream, TRUE );
+		}
+	return( status );
+	}
+
 /* Try and auto-detect HTTP proxy information */
 
-#if defined( __WIN32__ ) && 0
-
-#if 1
+#if defined( __WIN32__ )
 
 /* The autoproxy functions were only documented in WinHTTP 5.1, so we have to
    provide the necessary defines and structures ourselves */
@@ -461,38 +592,53 @@ typedef struct {
 	LPWSTR lpszProxy;
 	LPWSTR lpszProxyBypass;
 	} WINHTTP_PROXY_INFO;
+
+typedef struct {
+	BOOL fAutoDetect;
+	LPWSTR lpszAutoConfigUrl;
+	LPWSTR lpszProxy;
+	LPWSTR lpszProxyBypass;
+	} WINHTTP_CURRENT_USER_IE_PROXY_CONFIG;
+
+#define WINHTTP_AUTOPROXY_AUTO_DETECT	1
+#define WINHTTP_AUTO_DETECT_TYPE_DHCP	1
+#define WINHTTP_AUTO_DETECT_TYPE_DNS_A	2
+#define WINHTTP_ACCESS_TYPE_NO_PROXY	1
+#define WINHTTP_NO_PROXY_NAME			NULL
+#define WINHTTP_NO_PROXY_BYPASS			NULL
+
 #endif /* WinHTTP 5.1 defines and structures */
 
 typedef HINTERNET ( *WINHTTPOPEN )( LPCWSTR pwszUserAgent, DWORD dwAccessType,
 									LPCWSTR pwszProxyName, LPCWSTR pwszProxyBypass,
 									DWORD dwFlags );
+typedef BOOL ( *WINHTTPGETDEFAULTPROXYCONFIGURATION )( WINHTTP_PROXY_INFO* pProxyInfo );
+typedef BOOL ( *WINHTTPGETIEPROXYCONFIGFORCURRENTUSER )( 
+								WINHTTP_CURRENT_USER_IE_PROXY_CONFIG *pProxyConfig );
 typedef BOOL ( *WINHTTPGETPROXYFORURL )( HINTERNET hSession, LPCWSTR lpcwszUrl,
 										 WINHTTP_AUTOPROXY_OPTIONS *pAutoProxyOptions,
 										 WINHTTP_PROXY_INFO *pProxyInfo );
 typedef BOOL ( *WINHTTPCLOSEHANDLE )( HINTERNET hInternet );
 
-/* The WinHTTP functions take Unicode strings as args, which means that we 
-   have to convert the URL from ASCII before we pass it in.  Because we've
-   locked out the inclusion of the NLS functions in the global include of
-   windows.h, we have to re-enable it and manually include it here */
-
-#undef _WINNLS_
-#undef NONLS
-#include <winnls.h>
-
 static int findProxyURL( char *proxy, const char *url )
 	{
 	static HMODULE hWinHTTP = NULL;
 	static WINHTTPOPEN pWinHttpOpen = NULL;
+	static WINHTTPGETDEFAULTPROXYCONFIGURATION pWinHttpGetDefaultProxyConfiguration = NULL;
+	static WINHTTPGETIEPROXYCONFIGFORCURRENTUSER pWinHttpGetIEProxyConfigForCurrentUser = NULL;
 	static WINHTTPGETPROXYFORURL pWinHttpGetProxyForUrl = NULL;
 	static WINHTTPCLOSEHANDLE pWinHttpCloseHandle = NULL;
-	static const WINHTTP_AUTOPROXY_OPTIONS autoProxyOptions = \
+	WINHTTP_AUTOPROXY_OPTIONS autoProxyOptions = \
 			{ WINHTTP_AUTOPROXY_AUTO_DETECT,
 			  WINHTTP_AUTO_DETECT_TYPE_DHCP | WINHTTP_AUTO_DETECT_TYPE_DNS_A,
 			  NULL, NULL, 0, FALSE };
+	WINHTTP_CURRENT_USER_IE_PROXY_CONFIG ieProxyInfo;
 	WINHTTP_PROXY_INFO proxyInfo;
 	HINTERNET hSession;
+	char urlBuffer[ MAX_DNS_SIZE + 1 ];
 	wchar_t unicodeURL[ MAX_DNS_SIZE + 1 ];
+	const int urlLen = strlen( url );
+	int offset = 0, count;
 
 	/* Under Win2K SP3, XP and 2003 (or at least Windows versions with 
 	   WinHTTP 5.1 installed in some way, it officially shipped with the 
@@ -513,6 +659,10 @@ static int findProxyURL( char *proxy, const char *url )
 
 		pWinHttpOpen = ( WINHTTPOPEN ) \
 						GetProcAddress( hWinHTTP, "WinHttpOpen" );
+		pWinHttpGetDefaultProxyConfiguration = ( WINHTTPGETDEFAULTPROXYCONFIGURATION ) \
+						GetProcAddress( hWinHTTP, "WinHttpGetDefaultProxyConfiguration" );
+		pWinHttpGetIEProxyConfigForCurrentUser = ( WINHTTPGETIEPROXYCONFIGFORCURRENTUSER ) \
+						GetProcAddress( hWinHTTP, "WinHttpGetIEProxyConfigForCurrentUser" );
 		pWinHttpGetProxyForUrl = ( WINHTTPGETPROXYFORURL ) \
 						GetProcAddress( hWinHTTP, "WinHttpGetProxyForUrl" );
 		pWinHttpCloseHandle = ( WINHTTPCLOSEHANDLE ) \
@@ -525,23 +675,103 @@ static int findProxyURL( char *proxy, const char *url )
 			}
 		}
 
+	/* Autoproxy discovery using WinHttpGetProxyForUrl() can be awfully slow,
+	   often taking several seconds, since it requires probing for proxy info 
+	   first using DHCP and then if that fails using DNS.  Since this is done 
+	   via a blocking call, everything blocks while it's in progress.  To 
+	   help mitigate this, we try for proxy info direct from the registry if 
+	   it's available, avoiding the lengthy autodiscovery process.  This also 
+	   means that discovery will work if no auto-discovery support is present, 
+	   for example on servers where the admin has set the proxy config 
+	   directly with ProxyCfg.exe */
+	if( pWinHttpGetDefaultProxyConfiguration != NULL && \
+		pWinHttpGetDefaultProxyConfiguration( &proxyInfo ) && \
+		proxyInfo.lpszProxy != NULL )
+		{
+		count = wcstombs( proxy, proxyInfo.lpszProxy, MAX_DNS_SIZE );
+		GlobalFree( proxyInfo.lpszProxy );
+		if( proxyInfo.lpszProxyBypass != NULL )
+			GlobalFree( proxyInfo.lpszProxy );
+		}
+
+	/* The next fallback is to get the proxy info from MSIE.  This is also 
+	   usually much quicker than WinHttpGetProxyForUrl(), although sometimes
+	   it seems to fall back to that, based on the longish delay involved.
+	   Another issue with this is that it won't work in a service process
+	   that isn't impersonating an interactive user (since there isn't a
+	   current user), but in that case we just fall back to 
+	   WinHttpGetProxyForUrl() */
+	if( pWinHttpGetIEProxyConfigForCurrentUser != NULL && \
+		pWinHttpGetIEProxyConfigForCurrentUser( &ieProxyInfo ) )
+		{
+		count = wcstombs( proxy, ieProxyInfo.lpszProxy, MAX_DNS_SIZE );
+		if( ieProxyInfo.lpszAutoConfigUrl != NULL )
+			GlobalFree( ieProxyInfo.lpszAutoConfigUrl );
+		if( ieProxyInfo.lpszProxy != NULL )
+			GlobalFree( ieProxyInfo.lpszProxy );
+		if( ieProxyInfo.lpszProxyBypass != NULL )
+			GlobalFree( ieProxyInfo.lpszProxyBypass );
+		if( count > 0 )
+			{
+			proxy[ count ] = '\0';
+			return( CRYPT_OK );
+			}
+		}
+
+	/* WinHttpGetProxyForUrl() requires a schema for the URL that it's 
+	   performing a lookup on, if the URL doesn't contain one we use a 
+	   default value of "http://" */
+	if( strstr( url, "://" ) == NULL )
+		{
+		strcpy( urlBuffer, "http://" );
+		offset = 7;
+		}
+	memcpy( urlBuffer + offset, url, min( urlLen, MAX_DNS_SIZE - offset ) );
+	urlBuffer[ offset + min( urlLen, MAX_DNS_SIZE - offset ) ] = '\0';
+
+	/* Locate the proxy used for accessing the resource at the supplied URL.  
+	   We have to convert to and from Unicode because the WinHTTP functions 
+	   all take Unicode strings as args.  Note that we use the libc widechar 
+	   functions rather than the Windows ones since the latter aren't 
+	   present in Win95 or Win98.
+	   
+	   WinHttpGetProxyForUrl() can be rather flaky, in some cases it'll fail 
+	   instantly (without even trying auto-discovery) with GetLastError() = 
+	   87 (parameter error), but then calling it again some time later works 
+	   fine.  Because of this we leave it as the last resort after trying 
+	   all the other get-proxy mechanisms */
 	hSession = pWinHttpOpen( L"cryptlib/1.0", 
-							 WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+							 WINHTTP_ACCESS_TYPE_NO_PROXY,
 							 WINHTTP_NO_PROXY_NAME, 
 							 WINHTTP_NO_PROXY_BYPASS, 0 );
-    if( hSession == NULL )
+	if( hSession == NULL )
 		return( CRYPT_ERROR_NOTFOUND );
-	MultiByteToWideChar( GetACP(), 0, url, strlen( url ) + 1, 
-						 unicodeURL, MAX_DNS_SIZE + 1 );
-	if( pWinHttpGetProxyForUrl( hSession, unicodeURL, &autoProxyOptions, 
-								proxyInfo ) )
+	count = mbstowcs( unicodeURL, urlBuffer, MAX_DNS_SIZE );
+	if( count <= 0 )
 		{
+		pWinHttpCloseHandle( hSession );
+		return( CRYPT_ERROR_NOTFOUND );
 		}
-	pWinHttpCloseHandle( hSession );
+	unicodeURL[ count ] = L'\0';
+	count = 0;
+	memset( &proxyInfo, 0, sizeof( WINHTTP_PROXY_INFO ) );
+	if( pWinHttpGetProxyForUrl( hSession, unicodeURL, &autoProxyOptions, 
+								&proxyInfo ) == TRUE )
+		{
+		count = wcstombs( proxy, proxyInfo.lpszProxy, MAX_DNS_SIZE );
+		GlobalFree( proxyInfo.lpszProxy );
+		if( proxyInfo.lpszProxyBypass != NULL )
+			GlobalFree( proxyInfo.lpszProxy );
+		}
 
-	return( CRYPT_ERROR_NOTFOUND );
+	pWinHttpCloseHandle( hSession );
+	if( count <= 0 )
+		return( CRYPT_ERROR_NOTFOUND );
+	proxy[ count ] = '\0';
+	return( CRYPT_OK );
 	}
-#else
+
+#if 0
 
 typedef BOOL ( WINAPI *INTERNETGETPROXYINFO )( LPCSTR lpszUrl, DWORD dwUrlLength,
 							LPSTR lpszUrlHostName, DWORD dwUrlHostNameLength,
@@ -845,125 +1075,6 @@ static int bufferedTransportWriteFunction( STREAM *stream, const BYTE *buffer,
 
 /****************************************************************************
 *																			*
-*							Transport-layer Functions						*
-*																			*
-****************************************************************************/
-
-/* Map the upper-layer I/O functions directly to the transport-layer
-   equivalent.  This is used if we're performing raw I/O without any
-   intermediate protocol layers or buffering */
-
-static int transportDirectReadFunction( STREAM *stream, void *buffer,
-										const int length )
-	{
-	return( stream->transportReadFunction( stream, buffer, length, 
-										   TRANSPORT_FLAG_NONE ) );
-	}
-
-static int transportDirectWriteFunction( STREAM *stream, const void *buffer,
-										 const int length )
-	{
-	return( stream->transportWriteFunction( stream, buffer, length,
-											TRANSPORT_FLAG_NONE ) );
-	}
-
-static int setStreamLayerDirect( STREAM *stream )
-	{
-	stream->writeFunction = transportDirectWriteFunction;
-	stream->readFunction = transportDirectReadFunction;
-
-	return( CRYPT_OK );
-	}
-
-/* Send and receive data with a cryptlib session as the transport layer */
-
-static int transportSessionConnectFunction( STREAM *stream, 
-											const char *server, 
-											const int port )
-	{
-	int isActive, status;
-
-	assert( server == NULL );
-	assert( port == 0 );
-
-	/* If the transport session hasn't been activated yet, activate it now */
-	status = krnlSendMessage( stream->iTransportSession,
-							  IMESSAGE_GETATTRIBUTE, &isActive,
-							  CRYPT_SESSINFO_ACTIVE );
-	if( cryptStatusOK( status ) && isActive )
-		return( CRYPT_OK );
-	status = krnlSendMessage( stream->iTransportSession,
-							  IMESSAGE_SETATTRIBUTE, MESSAGE_VALUE_TRUE, 
-							  CRYPT_SESSINFO_ACTIVE );
-	if( cryptStatusError( status ) )
-		return( getSessionErrorInfo( stream, status ) );
-	return( CRYPT_OK );
-	}
-
-static void transportSessionDisconnectFunction( STREAM *stream,
-												const BOOLEAN fullDisconnect )
-	{
-	krnlSendNotifier( stream->iTransportSession, IMESSAGE_DECREFCOUNT );
-	}
-
-static BOOLEAN transportSessionOKFunction( void )
-	{
-	return( TRUE );
-	}
-
-static int transportSessionReadFunction( STREAM *stream, BYTE *buffer,
-										 const int length, const int flags )
-	{
-	RESOURCE_DATA msgData;
-	int newTimeout = CRYPT_UNUSED, status;
-
-	/* Read data from the session, overriding the timeout handling if
-	   requested */
-	if( ( flags & TRANSPORT_FLAG_NONBLOCKING ) && stream->timeout > 0 )
-		newTimeout = 0;
-	else
-		if( ( flags & TRANSPORT_FLAG_BLOCKING ) && stream->timeout == 0 )
-			newTimeout = 30;
-	if( newTimeout != CRYPT_UNUSED )
-		krnlSendMessage( stream->iTransportSession, IMESSAGE_SETATTRIBUTE, 
-						 &newTimeout, CRYPT_OPTION_NET_READTIMEOUT );
-	setMessageData( &msgData, buffer, length );
-	status = krnlSendMessage( stream->iTransportSession, IMESSAGE_ENV_POPDATA, 
-							  &msgData, 0 );
-	if( newTimeout != CRYPT_UNUSED )
-		krnlSendMessage( stream->iTransportSession, IMESSAGE_SETATTRIBUTE, 
-						 &stream->timeout, CRYPT_OPTION_NET_READTIMEOUT );
-	if( cryptStatusError( status ) )
-		return( getSessionErrorInfo( stream, status ) );
-	if( msgData.length < length )
-		retExtStream( stream, CRYPT_ERROR_READ, 
-					  "Only read %d out of %d bytes via cryptlib session "
-					  "object", msgData.length, length );
-	return( length );
-	}
-
-static int transportSessionWriteFunction( STREAM *stream, const BYTE *buffer,
-										  const int length, const int flags )
-	{
-	RESOURCE_DATA msgData;
-	int status;
-
-	setMessageData( &msgData, ( void * ) buffer, length );
-	status = krnlSendMessage( stream->iTransportSession,
-							  IMESSAGE_ENV_PUSHDATA, &msgData, 0 );
-	if( cryptStatusOK( status ) )
-		{
-		setMessageData( &msgData, NULL, 0 );
-		status = krnlSendMessage( stream->iTransportSession,
-								  IMESSAGE_ENV_PUSHDATA, &msgData, 0 );
-		}
-	if( cryptStatusError( status ) )
-		return( getSessionErrorInfo( stream, status ) );
-	return( CRYPT_OK );
-	}
-
-/****************************************************************************
-*																			*
 *							Network Stream Functions						*
 *																			*
 ****************************************************************************/
@@ -1051,7 +1162,7 @@ static int openConnection( STREAM *stream,
 
 	/* We're going via a proxy.  If the user has specified automatic proxy 
 	   detection, try and locate the proxy information */
-	if( !strCompareZ( "[Autodetect]", proxyURL ) )
+	if( !strCompareZ( proxyURL, "[Autodetect]" ) )
 		{
 		status = findProxyURL( urlBuffer, stream->host );
 		if( cryptStatusError( status ) )
@@ -1062,23 +1173,22 @@ static int openConnection( STREAM *stream,
 			strcpy( stream->errorMessage, "Couldn't auto-detect HTTP proxy" );
 			return( CRYPT_ERROR_OPEN );
 			}
+		proxyURL = urlBuffer;
 		}
-	else
+
+	/* Process the proxy details.  Since this is an HTTP proxy, we specify 
+	   the default port as port 80 */
+	status = parseURL( &urlInfo, proxyURL, strlen( proxyURL ), 80 );
+	if( cryptStatusError( status ) )
 		{
-		/* The user has specified the proxy details directly.  Since this is 
-		   an HTTP proxy, we specify the default port as port 80 */
-		status = parseURL( &urlInfo, proxyURL, strlen( proxyURL ), 80 );
-		if( cryptStatusError( status ) )
-			{
-			/* The proxy URL was invalid, provide more information for the 
-			   caller */
-			stream->errorCode = CRYPT_ERROR_BADDATA;
-			strcpy( stream->errorMessage, "Invalid HTTP proxy URL" );
-			return( CRYPT_ERROR_OPEN );
-			}
-		memcpy( urlBuffer, urlInfo.host, urlInfo.hostLen );
-		urlBuffer[ urlInfo.hostLen ] = '\0';
+		/* The proxy URL was invalid, provide more information for the 
+		   caller */
+		stream->errorCode = CRYPT_ERROR_BADDATA;
+		strcpy( stream->errorMessage, "Invalid HTTP proxy URL" );
+		return( CRYPT_ERROR_OPEN );
 		}
+	memcpy( urlBuffer, urlInfo.host, urlInfo.hostLen );
+	urlBuffer[ urlInfo.hostLen ] = '\0';
 
 	/* Since we're going via a proxy, open the connection to the proxy 
 	   rather than directly to the target system.  */
@@ -1124,6 +1234,67 @@ static void cleanupStream( STREAM *stream, const BOOLEAN cleanupTransport,
 		clFree( "cleanupStream", stream->query );
 
 	zeroise( stream, sizeof( STREAM ) );
+	}
+
+/* Check for the use of a proxy when opening a stream */
+
+static BOOLEAN checkForProxy( STREAM *stream, 
+							  const STREAM_PROTOCOL_TYPE protocol,
+							  const NET_CONNECT_INFO *connectInfo,
+							  char *proxyUrlBuffer )
+	{
+	RESOURCE_DATA msgData;
+	int status;
+
+	/* Check for a local connection, which always bypasses the proxy.  We 
+	   only use the case-insensitive string compares for the text-format 
+	   host names, since the numeric forms don't need this. */
+	if( !strcmp( stream->host, "127.0.0.1" ) || \
+		!strcmp( stream->host, "::1" ) && \
+		!strCompareZ( stream->host, "localhost" ) && \
+		!strCompare( stream->host, "localhost.", 10 ) )	/* Are you local? */
+		/* This is a local socket! We'll have no proxies here! */
+		return( FALSE );
+
+	/* Check to see whether we're going through a proxy.  First we check for
+	   a protocol-specific HTTP proxy (if appropriate), if there's none we 
+	   check for the more generic case of a SOCKS proxy.  In addition to the 
+	   obvious use of an HTTP proxy for HTTP, we also check for an HTTP URL 
+	   specified for use with other protocols (specifcally SSL/TLS), since 
+	   these can also go via a proxy even if the they're not an explicit use 
+	   of HTTP */
+	if( ( protocol == STREAM_PROTOCOL_HTTP || \
+		  protocol == STREAM_PROTOCOL_HTTP_TRANSACTION || \
+		  connectInfo->options == NET_OPTION_HOSTNAME_TUNNEL ) )
+		{
+		/* Check whether there's an HTTP proxy configured */
+		setMessageData( &msgData, proxyUrlBuffer, MAX_DNS_SIZE );
+		status = krnlSendMessage( connectInfo->iUserObject, 
+								  IMESSAGE_GETATTRIBUTE_S, &msgData, 
+								  CRYPT_OPTION_NET_HTTP_PROXY );
+		if( cryptStatusOK( status ) )
+			{
+			proxyUrlBuffer[ msgData.length ] = '\0';
+			stream->flags |= \
+				( connectInfo->options == NET_OPTION_HOSTNAME ) ? \
+				STREAM_NFLAG_HTTPPROXY : STREAM_NFLAG_HTTPTUNNEL;
+			return( TRUE );
+			}
+		}
+
+	/* Check whether there's a SOCKS proxy configured */
+	setMessageData( &msgData, proxyUrlBuffer, MAX_DNS_SIZE );
+	status = krnlSendMessage( connectInfo->iUserObject, 
+							  IMESSAGE_GETATTRIBUTE_S, &msgData, 
+							  CRYPT_OPTION_NET_SOCKS_SERVER );
+	if( cryptStatusOK( status ) )
+		{
+		proxyUrlBuffer[ msgData.length ] = '\0';
+		return( TRUE );
+		}
+
+	/* There's no proxy configured */
+	return( FALSE );
 	}
 
 /* Complete a network connection after the client- or server-specific
@@ -1273,7 +1444,12 @@ static int completeConnect( STREAM *stream,
 		return( status );
 		}
 
-	return( CRYPT_OK );
+	/* If we're not going through a proxy, we're done */
+	if( proxyURL == NULL )
+		return( CRYPT_OK );
+
+	/* Complete the connect via the appropriate proxy type */
+	return( connectViaHttpProxy( stream, errorCode, errorMessage ) );
 	}
 
 /* Open and close a network connection.  This parses a location string
@@ -1296,8 +1472,10 @@ int sNetConnect( STREAM *stream, const STREAM_PROTOCOL_TYPE protocol,
 			protocol == STREAM_PROTOCOL_CMP );
 	assert( isReadPtr( connectInfo, sizeof( NET_CONNECT_INFO ) ) );
 	assert( errorMessage != NULL && errorCode != NULL );
-	assert( connectInfo->options != NET_OPTION_HOSTNAME || \
-			( connectInfo->options == NET_OPTION_HOSTNAME && \
+	assert( ( connectInfo->options != NET_OPTION_HOSTNAME && \
+			  connectInfo->options != NET_OPTION_HOSTNAME_TUNNEL ) || \
+			( ( connectInfo->options == NET_OPTION_HOSTNAME || \
+				connectInfo->options == NET_OPTION_HOSTNAME_TUNNEL ) && \
 			  isReadPtr( connectInfo->name, connectInfo->nameLength ) && \
 			  connectInfo->iCryptSession == CRYPT_ERROR && \
 			  connectInfo->networkSocket == CRYPT_ERROR ) );
@@ -1325,6 +1503,7 @@ int sNetConnect( STREAM *stream, const STREAM_PROTOCOL_TYPE protocol,
 	switch( connectInfo->options )
 		{
 		case NET_OPTION_HOSTNAME:
+		case NET_OPTION_HOSTNAME_TUNNEL:
 			/* If we're using standard HTTP then only an HTTP GET is 
 			   possible, use of POST requires the HTTP_TRANSACTION variant */
 			if( protocol == STREAM_PROTOCOL_HTTP )
@@ -1344,32 +1523,11 @@ int sNetConnect( STREAM *stream, const STREAM_PROTOCOL_TYPE protocol,
 			if( cryptStatusError( status ) )
 				return( status );
 
-			/* If it's going to something other than the local system, check 
-			   to see whether we're going through a proxy.  We only use the
-			   case-insensitive string compares for the text-format host 
-			   names, since the numeric forms don't need this */
-			if( ( protocol == STREAM_PROTOCOL_HTTP || \
-				  protocol == STREAM_PROTOCOL_HTTP_TRANSACTION ) && \
-				( strcmp( stream->host, "127.0.0.1" ) && \
-				  strcmp( stream->host, "::1" ) && \
-				  strCompareZ( stream->host, "localhost" ) && \
-				  strCompare( stream->host, "localhost.", 10 ) ) )	/* Are you local? */
-				{
-				RESOURCE_DATA msgData;
-
-				/* Check whether there's an HTTP proxy configured */
-				setMessageData( &msgData, proxyUrlBuffer, MAX_DNS_SIZE );
-				status = krnlSendMessage( connectInfo->iUserObject, 
-										  IMESSAGE_GETATTRIBUTE_S, &msgData, 
-										  CRYPT_OPTION_NET_HTTP_PROXY );
-				if( cryptStatusOK( status ) )
-					{
-					proxyUrlBuffer[ msgData.length ] = '\0';
-					proxyURL = proxyUrlBuffer;
-					stream->flags |= STREAM_NFLAG_HTTPPROXY;
-					}
-				}
-			break;
+			/* Check for the use of a proxy to establish the connection */
+			if( checkForProxy( stream, protocol, connectInfo, 
+							   proxyUrlBuffer ) )
+				proxyURL = proxyUrlBuffer;
+;			break;
 
 		case NET_OPTION_TRANSPORTSESSION:
 			stream->iTransportSession = connectInfo->iCryptSession;

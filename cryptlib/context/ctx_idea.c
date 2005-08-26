@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib IDEA Encryption Routines					*
-*						Copyright Peter Gutmann 1992-2003					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,17 +9,14 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "idea.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/idea.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/idea.h"
 #endif /* Compiler-specific includes */
 
@@ -105,22 +102,36 @@ static const FAR_BSS IDEA_TEST testIdea[] = {
 /* Test the IDEA code against the test vectors from the ETH reference
    implementation */
 
-int ideaSelfTest( void )
+static int selfTest( void )
 	{
+	const CAPABILITY_INFO *capabilityInfo = getIDEACapability();
+	CONTEXT_INFO contextInfo;
+	CONV_INFO contextData;
+	BYTE keyData[ IDEA_EXPANDED_KEYSIZE ];
 	BYTE temp[ IDEA_BLOCKSIZE ];
-	IDEA_KEY_SCHEDULE eKey, dKey;
-	int i;
+	int i, status;
 
 	for( i = 0; i < sizeof( testIdea ) / sizeof( IDEA_TEST ); i++ )
 		{
+		staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+						   &contextData, sizeof( CONV_INFO ), keyData );
 		memcpy( temp, testIdea[ i ].plaintext, IDEA_BLOCKSIZE );
-		idea_set_encrypt_key( testIdea[ i ].key, &eKey );
-		idea_set_decrypt_key( &eKey, &dKey );
-		idea_ecb_encrypt( temp, temp, &eKey );
-		if( memcmp( testIdea[ i ].ciphertext, temp, IDEA_BLOCKSIZE ) )
-			return( CRYPT_ERROR );
-		idea_ecb_encrypt( temp, temp, &dKey );
-		if( memcmp( temp, testIdea[ i ].plaintext, IDEA_BLOCKSIZE ) )
+		status = capabilityInfo->initKeyFunction( &contextInfo, 
+												  testIdea[ i ].key, 16 );
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, temp, 
+													  IDEA_BLOCKSIZE );
+		if( cryptStatusOK( status ) && \
+			memcmp( testIdea[ i ].ciphertext, temp, IDEA_BLOCKSIZE ) )
+			status = CRYPT_ERROR;
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->decryptFunction( &contextInfo, temp, 
+													  IDEA_BLOCKSIZE );
+		if( cryptStatusOK( status ) && \
+			memcmp( temp, testIdea[ i ].plaintext, IDEA_BLOCKSIZE ) )
+			status = CRYPT_ERROR;
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) )
 			return( CRYPT_ERROR );
 		}
 
@@ -135,13 +146,13 @@ int ideaSelfTest( void )
 
 /* Return context subtype-specific information */
 
-int ideaGetInfo( const CAPABILITY_INFO_TYPE type, 
-				 void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
 		return( IDEA_EXPANDED_KEYSIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -152,13 +163,14 @@ int ideaGetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Encrypt/decrypt data in ECB mode */
 
-int ideaEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	IDEA_KEY *ideaKey = ( IDEA_KEY * ) convInfo->key;
 	int blockCount = noBytes / IDEA_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Encrypt a block of data */
 		idea_ecb_encrypt( buffer, buffer, &ideaKey->eKey );
@@ -170,13 +182,14 @@ int ideaEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int ideaDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	IDEA_KEY *ideaKey = ( IDEA_KEY * ) convInfo->key;
 	int blockCount = noBytes / IDEA_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Decrypt a block of data */
 		idea_ecb_encrypt( buffer, buffer, &ideaKey->dKey );
@@ -190,7 +203,8 @@ int ideaDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CBC mode */
 
-int ideaEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -201,7 +215,8 @@ int ideaEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int ideaDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -214,14 +229,15 @@ int ideaDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CFB mode */
 
-int ideaEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	IDEA_KEY *ideaKey = ( IDEA_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -241,7 +257,7 @@ int ideaEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > IDEA_BLOCKSIZE ) ? IDEA_BLOCKSIZE : noBytes;
 
@@ -271,7 +287,8 @@ int ideaEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
    faster (but less clear) with temp = buffer, buffer ^= iv, iv = temp
    all in one loop */
 
-int ideaDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	IDEA_KEY *ideaKey = ( IDEA_KEY * ) convInfo->key;
@@ -279,7 +296,7 @@ int ideaDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -300,7 +317,7 @@ int ideaDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > IDEA_BLOCKSIZE ) ? IDEA_BLOCKSIZE : noBytes;
 
@@ -334,14 +351,15 @@ int ideaDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in OFB mode */
 
-int ideaEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	IDEA_KEY *ideaKey = ( IDEA_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -360,7 +378,7 @@ int ideaEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > IDEA_BLOCKSIZE ) ? IDEA_BLOCKSIZE : noBytes;
 
@@ -385,14 +403,15 @@ int ideaEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Decrypt data in OFB mode */
 
-int ideaDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	IDEA_KEY *ideaKey = ( IDEA_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -411,7 +430,7 @@ int ideaDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > IDEA_BLOCKSIZE ) ? IDEA_BLOCKSIZE : noBytes;
 
@@ -442,8 +461,8 @@ int ideaDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Key schedule an IDEA key */
 
-int ideaInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-				 const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	IDEA_KEY *ideaKey = ( IDEA_KEY * ) convInfo->key;
@@ -459,4 +478,24 @@ int ideaInitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 
 	return( CRYPT_OK );
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_IDEA, bitsToBytes( 64 ), "IDEA",
+	bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), bitsToBytes( 128 ),
+	selfTest, getInfo, NULL, initKeyParams, initKey, NULL,
+	encryptECB, decryptECB, encryptCBC, decryptCBC,
+	encryptCFB, decryptCFB, encryptOFB, decryptOFB
+	};
+
+const CAPABILITY_INFO *getIDEACapability( void )
+	{
+	return( &capabilityInfo );
+	}
+
 #endif /* USE_IDEA */

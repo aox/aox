@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					cryptlib Triple DES Encryption Routines					*
-*						Copyright Peter Gutmann 1994-2003					*
+*						Copyright Peter Gutmann 1994-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,17 +9,14 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "des.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/des.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/des.h"
 #endif /* Compiler-specific includes */
 
@@ -59,49 +56,60 @@ typedef struct {
    since they require that K1 = K2 = K3, but we do it anyway so we can claim
    compliance) */
 
-static int des3TestLoop( const DES_TEST *testData, int iterations )
+static int testLoop( const DES_TEST *testData, int iterations )
 	{
+	const CAPABILITY_INFO *capabilityInfo = get3DESCapability();
 	BYTE temp[ DES_BLOCKSIZE ];
-	BYTE key1[ DES_KEYSIZE ], key2[ DES_KEYSIZE ], key3[ DES_KEYSIZE ];
 	int i;
 
 	for( i = 0; i < iterations; i++ )
 		{
-		memcpy( temp, testData[ i ].plaintext, DES_BLOCKSIZE );
+		CONTEXT_INFO contextInfo;
+		CONV_INFO contextData;
+		BYTE keyData[ DES3_KEYSIZE ];
+		BYTE desKeyData[ DES_BLOCKSIZE * 3 ];
+		int status;
 
-		/* Since the self-test uses weak keys, we have to explicitly use the
-		   non-parity-checking key schedule function */
-		des_set_key_unchecked( ( C_Block * ) testData[ i ].key,
-							   *( ( Key_schedule * ) key1 ) );
-		des_set_key_unchecked( ( C_Block * ) testData[ i ].key,
-							   *( ( Key_schedule * ) key2 ) );
-		des_set_key_unchecked( ( C_Block * ) testData[ i ].key,
-							   *( ( Key_schedule * ) key3 ) );
-		des_ecb3_encrypt( ( C_Block * ) temp, ( C_Block * ) temp,
-						  *( ( Key_schedule * ) key1 ), 
-						  *( ( Key_schedule * ) key2 ), 
-						  *( ( Key_schedule * ) key3 ), DES_ENCRYPT );
-		if( memcmp( testData[ i ].ciphertext, temp, DES_BLOCKSIZE ) )
+		memcpy( temp, testData[ i ].plaintext, DES_BLOCKSIZE );
+		memcpy( desKeyData, testData[ i ].key, DES_BLOCKSIZE );
+		memcpy( desKeyData + DES_BLOCKSIZE, testData[ i ].key, DES_BLOCKSIZE );
+		memcpy( desKeyData + ( DES_BLOCKSIZE * 2 ), testData[ i ].key, DES_BLOCKSIZE );
+
+		/* The self-test uses weak keys, which means they'll be rejected by 
+		   the key-load function if it checks for these.  For the OpenSSL
+		   DES implementation we can kludge around this by temporarily 
+		   clearing the global des_check_key value, but for other 
+		   implementations some alternative workaround will be necessary */
+		staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+						   &contextData, sizeof( CONV_INFO ), keyData );
+		des_check_key = FALSE;
+		status = capabilityInfo->initKeyFunction( &contextInfo, desKeyData,
+												  DES_BLOCKSIZE * 3 );
+		des_check_key = TRUE;
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, temp, 
+													  DES_BLOCKSIZE );
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) || \
+			memcmp( testData[ i ].ciphertext, temp, DES_BLOCKSIZE ) )
 			return( CRYPT_ERROR );
 		}
 
 	return( CRYPT_OK );
 	}
 
-int des3SelfTest( void )
+static int selfTest( void )
 	{
-	int status = CRYPT_OK;
-
 	/* Check the 3DES test vectors.  Note that we don't perform the RS test, 
 	   since it's valid only for single DES */
-	if( ( des3TestLoop( testIP, sizeof( testIP ) / sizeof( DES_TEST ) ) != CRYPT_OK ) || \
-		( des3TestLoop( testVP, sizeof( testVP ) / sizeof( DES_TEST ) ) != CRYPT_OK ) || \
-		( des3TestLoop( testKP, sizeof( testKP ) / sizeof( DES_TEST ) ) != CRYPT_OK ) || \
-		( des3TestLoop( testDP, sizeof( testDP ) / sizeof( DES_TEST ) ) != CRYPT_OK ) || \
-		( des3TestLoop( testSB, sizeof( testSB ) / sizeof( DES_TEST ) ) != CRYPT_OK ) )
-		status = CRYPT_ERROR;
+	if( ( testLoop( testIP, sizeof( testIP ) / sizeof( DES_TEST ) ) != CRYPT_OK ) || \
+		( testLoop( testVP, sizeof( testVP ) / sizeof( DES_TEST ) ) != CRYPT_OK ) || \
+		( testLoop( testKP, sizeof( testKP ) / sizeof( DES_TEST ) ) != CRYPT_OK ) || \
+		( testLoop( testDP, sizeof( testDP ) / sizeof( DES_TEST ) ) != CRYPT_OK ) || \
+		( testLoop( testSB, sizeof( testSB ) / sizeof( DES_TEST ) ) != CRYPT_OK ) )
+		return( CRYPT_ERROR );
 
-	return( status );
+	return( CRYPT_OK );
 	}
 
 /****************************************************************************
@@ -112,13 +120,13 @@ int des3SelfTest( void )
 
 /* Return context subtype-specific information */
 
-int des3GetInfo( const CAPABILITY_INFO_TYPE type, 
-				 void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
 		return( DES3_KEYSIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -129,13 +137,14 @@ int des3GetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Encrypt/decrypt data in ECB mode */
 
-int des3EncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	DES3_KEY *des3Key = ( DES3_KEY * ) convInfo->key;
 	int blockCount = noBytes / DES_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Encrypt a block of data */
 		des_ecb3_encrypt( ( C_Block * ) buffer, ( C_Block * ) buffer,
@@ -149,13 +158,14 @@ int des3EncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int des3DecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	DES3_KEY *des3Key = ( DES3_KEY * ) convInfo->key;
 	int blockCount = noBytes / DES_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Decrypt a block of data */
 		des_ecb3_encrypt( ( C_Block * ) buffer, ( C_Block * ) buffer,
@@ -171,7 +181,8 @@ int des3DecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CBC mode */
 
-int des3EncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	DES3_KEY *des3Key = ( DES3_KEY * ) convInfo->key;
@@ -183,7 +194,8 @@ int des3EncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int des3DecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	DES3_KEY *des3Key = ( DES3_KEY * ) convInfo->key;
@@ -197,14 +209,15 @@ int des3DecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CFB mode */
 
-int des3EncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	DES3_KEY *des3Key = ( DES3_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -224,7 +237,7 @@ int des3EncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > DES_BLOCKSIZE ) ? DES_BLOCKSIZE : noBytes;
 
@@ -256,7 +269,8 @@ int des3EncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
    faster (but less clear) with temp = buffer, buffer ^= iv, iv = temp
    all in one loop */
 
-int des3DecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	DES3_KEY *des3Key = ( DES3_KEY * ) convInfo->key;
@@ -264,7 +278,7 @@ int des3DecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -286,7 +300,7 @@ int des3DecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > DES_BLOCKSIZE ) ? DES_BLOCKSIZE : noBytes;
 
@@ -322,14 +336,15 @@ int des3DecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in OFB mode */
 
-int des3EncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	DES3_KEY *des3Key = ( DES3_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -348,7 +363,7 @@ int des3EncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > DES_BLOCKSIZE ) ? DES_BLOCKSIZE : noBytes;
 
@@ -375,14 +390,15 @@ int des3EncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Decrypt data in OFB mode */
 
-int des3DecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	DES3_KEY *des3Key = ( DES3_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -401,7 +417,7 @@ int des3DecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > DES_BLOCKSIZE ) ? DES_BLOCKSIZE : noBytes;
 
@@ -434,8 +450,8 @@ int des3DecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Key schedule two/three DES keys */
 
-int des3InitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-				 const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	DES3_KEY *des3Key = ( DES3_KEY * ) convInfo->key;
@@ -485,4 +501,30 @@ int des3InitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 		}
 
 	return( CRYPT_OK );
+	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	/* Unlike the other algorithms, the minimum key size for 3DES is 64 + 8 
+	   bits (nominally 56 + 1 bits) because using a key any shorter is (a) 
+	   no better than single DES, and (b) will result in a key load error 
+	   since the second key will be an all-zero weak key.  We also give the 
+	   default key size as 192 bits instead of 128 to make sure that anyone 
+	   using a key of the default size ends up with three-key 3DES rather 
+	   than two-key 3DES */
+	CRYPT_ALGO_3DES, bitsToBytes( 64 ), "3DES",
+	bitsToBytes( 64 + 8 ), bitsToBytes( 192 ), bitsToBytes( 192 ),
+	selfTest, getInfo, NULL, initKeyParams, initKey, NULL,
+	encryptECB, decryptECB, encryptCBC, decryptCBC,
+	encryptCFB, decryptCFB, encryptOFB, decryptOFB 
+	};
+
+const CAPABILITY_INFO *get3DESCapability( void )
+	{
+	return( &capabilityInfo );
 	}

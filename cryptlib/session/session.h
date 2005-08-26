@@ -63,7 +63,12 @@
 
 	SESSION_USEALTTRANSPORT: The protocol usually uses HTTP but also 
 			supports an alternative transport type, which should be used 
-			in place of HTTP */
+			in place of HTTP.
+	
+	SESSION_USEHTTPTUNNEL: The protocol is (potentially) tunneled over an 
+			HTTP proxy.  In other words if CRYPT_OPTION_NET_HTTP_PROXY is
+			set, the protocol talks through an HTTP proxy rather than a
+			direct connection */
 
 #define SESSION_NONE				0x0000	/* No session flags */
 #define SESSION_ISOPEN				0x0001	/* Session is active */
@@ -75,7 +80,8 @@
 #define SESSION_ISSECURE_WRITE		0x0040	/* Session write ch.in secure state */
 #define SESSION_ISCRYPTLIB			0x0080	/* Peer is running cryptlib */
 #define SESSION_ISHTTPTRANSPORT		0x0100	/* Session using HTTP transport */
-#define SESSION_USEALTTRANSPORT		0x0200	/* Use alternative to HTTP xport */
+#define SESSION_USEHTTPTUNNEL		0x0200	/* Session uses HTTP tunnel */
+#define SESSION_USEALTTRANSPORT		0x0400	/* Use alternative to HTTP xport */
 
 /* Needed-information flags used by protocol-specific handlers to indicate
    that the caller must set the given attributes in the session information
@@ -121,12 +127,18 @@ typedef enum {
 *																			*
 ****************************************************************************/
 
-/* Protocol-specific information for each session */
+/* Protocol-specific information for each session.  The alt.protocol info can
+   be used when a secondary transport protocol is available (e.g. HTTP tunnel
+   for SSL), if the URI type matches then the alt.protocol type, port, and
+   protocol flags are used, the mask is used to mask out existing flags and
+   the new flags value is used to set replacement flags */
 
 typedef struct {
 	const STREAM_PROTOCOL_TYPE type;	/* Protocol type */
 	const char *uriType;				/* Protocol URI type (e.g. "cmp://") */
 	const int port;						/* Protocol port */
+	const int oldFlagsMask;				/* Mask for current protocol flags */
+	const int newFlags;					/* Replacement flags */
 	} ALTPROTOCOL_INFO;
 
 typedef struct {
@@ -473,11 +485,22 @@ typedef struct SI {
    setting extended error information for the session.  We use a macro to 
    make it match the standard return statement, the slightly unusual form is 
    required to handle the fact that the helper function is a varargs 
-   function */
+   function.
+   
+   In addition to the standard retExt() we also have an extended-form version
+   of the function that takes an additional parameter, a handle to an object
+   that may provide additional error information.  This is used when (for
+   example) an operation references a keyset, where the keyset also contains
+   extended error information */
 
 int retExtFnSession( SESSION_INFO *sessionInfoPtr, const int status, 
 					 const char *format, ... );
 #define retExt	return retExtFnSession
+
+int retExtExFnSession( SESSION_INFO *sessionInfoPtr, 
+					   const int status, const CRYPT_HANDLE extErrorObject, 
+					   const char *format, ... );
+#define retExtEx	return retExtExFnSession
 
 /* Session attribute management functions */
 

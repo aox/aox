@@ -800,9 +800,11 @@ static int checkAttributeFunction( SESSION_INFO *sessionInfoPtr,
 int setAccessMethodTSP( SESSION_INFO *sessionInfoPtr )
 	{
 	static const ALTPROTOCOL_INFO altProtocolInfo = {
-		STREAM_PROTOCOL_TCPIP,		/* Alt.xport protocol type */
-		"tcp://",					/* Alt.xport protocol URI type */
-		TSP_PORT					/* Alt.xport protocol port */
+		STREAM_PROTOCOL_TCPIP,		/* Alt.protocol type */
+		"tcp://",					/* Alt.protocol URI type */
+		TSP_PORT,					/* Alt.protocol port */
+		SESSION_ISHTTPTRANSPORT,	/* Protocol flags to replace */
+		SESSION_USEALTTRANSPORT		/* Alt.protocol flags */
 		};
 	static const PROTOCOL_INFO protocolInfo = {
 		/* General session information */

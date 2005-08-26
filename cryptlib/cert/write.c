@@ -931,7 +931,7 @@ static int writeCRLInfo( STREAM *stream, CERT_INFO *subjectCertInfoPtr,
 	int length, extensionSize, revocationInfoLength = 0, status;
 
 	assert( ( isReadPtr( issuerCertInfoPtr, sizeof( CERT_INFO ) ) && \
-			  checkHandleRange( iIssuerCryptContext ) ) || \
+			  isHandleRangeValid( iIssuerCryptContext ) ) || \
 			( issuerCertInfoPtr == NULL && \
 			  iIssuerCryptContext == CRYPT_UNUSED ) );
 

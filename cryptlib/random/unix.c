@@ -1115,9 +1115,9 @@ void slowPoll( void )
 #if defined( _CRAY ) || defined( __hpux ) || defined( _M_XENIX ) || \
 	defined( __aux )
   #if defined( _SC_PAGESIZE )
-	const int pageSize = sysconf( _SC_PAGESIZE )
+	const int pageSize = sysconf( _SC_PAGESIZE );
   #elif defined( _SC_PAGE_SIZE )
-	const int pageSize = sysconf( _SC_PAGE_SIZE )
+	const int pageSize = sysconf( _SC_PAGE_SIZE );
   #else
 	const int pageSize = 4096;
   #endif /* Systems without getpagesize() */

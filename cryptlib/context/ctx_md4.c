@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *							cryptlib MD4 Hash Routines						*
-*						Copyright Peter Gutmann 1992-2003					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,21 +9,20 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "md4.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/md4.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/md4.h"
 #endif /* Compiler-specific includes */
 
 #ifdef USE_MD4
+
+#define HASH_STATE_SIZE		sizeof( MD4_CTX )
 
 /****************************************************************************
 *																			*
@@ -62,22 +61,36 @@ static const FAR_BSS struct {
 	{ NULL, 0, { 0 } }
 	};
 
-int md4SelfTest( void )
+static int selfTest( void )
 	{
-	BYTE digest[ MD4_DIGEST_LENGTH ];
-	int i;
+	const CAPABILITY_INFO *capabilityInfo = getMD4Capability();
+	CONTEXT_INFO contextInfo;
+	HASH_INFO contextData;
+	BYTE keyData[ HASH_STATE_SIZE ];
+	int i, status;
 
 	/* Test MD4 against the test vectors given in RFC 1320 */
 	for( i = 0; digestValues[ i ].data != NULL; i++ )
 		{
-		MD4_CTX md4Info;
-
-		MD4_Init( &md4Info );
-		MD4_Update( &md4Info, ( BYTE * ) digestValues[ i ].data, 
-				   digestValues[ i ].length );
-		MD4_Final( digest, &md4Info );
-		if( memcmp( digest, digestValues[ i ].digest, MD4_DIGEST_LENGTH ) )
-			return( CRYPT_ERROR );
+		staticInitContext( &contextInfo, CONTEXT_HASH, capabilityInfo,
+						   &contextData, sizeof( HASH_INFO ), keyData );
+		status = CRYPT_OK ;
+		if( digestValues[ i ].length > 0 )
+			{
+			status = capabilityInfo->encryptFunction( &contextInfo, 
+								( BYTE * ) digestValues[ i ].data, 
+								digestValues[ i ].length );
+			contextInfo.flags |= CONTEXT_HASH_INITED;
+			}
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
+		if( cryptStatusOK( status ) && \
+			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest, 
+					MD4_DIGEST_LENGTH ) )
+			status = CRYPT_ERROR;
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) )
+			return( status );
 		}
 
 	return( CRYPT_OK );
@@ -91,13 +104,13 @@ int md4SelfTest( void )
 
 /* Return context subtype-specific information */
 
-int md4GetInfo( const CAPABILITY_INFO_TYPE type, 
-				void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
-		return( sizeof( MD4_CTX ) );
+		return( HASH_STATE_SIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -108,7 +121,7 @@ int md4GetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Hash data using MD4 */
 
-int md4Hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	MD4_CTX *md4Info = ( MD4_CTX * ) contextInfoPtr->ctxHash->hashInfo;
 
@@ -124,4 +137,22 @@ int md4Hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 	return( CRYPT_OK );
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_MD4, bitsToBytes( 128 ), "MD4",
+	bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ),
+	selfTest, getInfo, NULL, NULL, NULL, NULL, hash, hash
+	};
+
+const CAPABILITY_INFO *getMD4Capability( void )
+	{
+	return( &capabilityInfo );
+	}
+
 #endif /* USE_MD4 */

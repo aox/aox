@@ -483,7 +483,7 @@ int addTrustEntry( void *trustInfoPtr, const CRYPT_CERTIFICATE iCryptCert,
 	BOOLEAN seenNonDuplicate = FALSE;
 	int status;
 
-	assert( ( checkHandleRange( iCryptCert ) && certObject == NULL ) || \
+	assert( ( isHandleRangeValid( iCryptCert ) && certObject == NULL ) || \
 			( iCryptCert == CRYPT_UNUSED && certObject != NULL ) );
 
 	/* If we're adding encoded cert data, we can add it directly */

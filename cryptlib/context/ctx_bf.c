@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib Blowfish Encryption Routines					*
-*						Copyright Peter Gutmann 1994-2003					*
+*						Copyright Peter Gutmann 1994-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,19 +9,18 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "blowfish.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/blowfish.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/blowfish.h"
 #endif /* Compiler-specific includes */
+
+#ifdef USE_BLOWFISH
 
 /* The size of the expanded Blowfish keys */
 
@@ -36,8 +35,12 @@
 /* Test the Blowfish code against Bruce Schneiers test vectors (1 & 2) and
    Mike Morgans test vector (3) */
 
-int blowfishSelfTest( void )
+static int selfTest( void )
 	{
+	const CAPABILITY_INFO *capabilityInfo = getBlowfishCapability();
+	CONTEXT_INFO contextInfo;
+	CONV_INFO contextData;
+	BYTE keyData[ BLOWFISH_EXPANDED_KEYSIZE ];
 	BYTE *plain1 = ( BYTE * ) "BLOWFISH";
 	BYTE *key1 = ( BYTE * ) "abcdefghijklmnopqrstuvwxyz";
 	BYTE cipher1[] = { 0x32, 0x4E, 0xD0, 0xFE, 0xF4, 0x13, 0xA2, 0x03 };
@@ -47,40 +50,51 @@ int blowfishSelfTest( void )
 	BYTE plain3[] = { 0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10 };
 	BYTE key3[] = { 0x41, 0x79, 0x6E, 0xA0, 0x52, 0x61, 0x6E, 0xE4 };
 	BYTE cipher3[] = { 0xE1, 0x13, 0xF4, 0x10, 0x2C, 0xFC, 0xCE, 0x43 };
-#if defined( __WIN32__ ) && defined( NT_DRIVER )	/* Kernel stack is tiny */
-	static BF_KEY bfKey;
-#else
-	BF_KEY bfKey;
-#endif /* __WIN32__ && NT_DRIVER */
 	BYTE buffer[ 8 ];
+	int status;
 
 	/* Test the Blowfish implementation */
+	staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+					   &contextData, sizeof( CONV_INFO ), keyData );
 	memcpy( buffer, plain1, 8 );
-	BF_set_key( &bfKey, strlen( ( char * ) key1 ), key1 );
-	BF_ecb_encrypt( buffer, buffer, &bfKey, BF_ENCRYPT );
-	if( memcmp( buffer, cipher1, 8 ) )
-		return( CRYPT_ERROR );
-	BF_ecb_encrypt( buffer, buffer, &bfKey, BF_DECRYPT );
-	if( memcmp( buffer, plain1, 8 ) )
-		return( CRYPT_ERROR );
-	memcpy( buffer, plain2, 8 );
-	BF_set_key( &bfKey, strlen( ( char * ) key2 ), key2 );
-	BF_ecb_encrypt( buffer, buffer, &bfKey, BF_ENCRYPT );
-	if( memcmp( buffer, cipher2, 8 ) )
-		return( CRYPT_ERROR );
-	BF_ecb_encrypt( buffer, buffer, &bfKey, BF_DECRYPT );
-	if( memcmp( buffer, plain2, 8 ) )
-		return( CRYPT_ERROR );
-	memcpy( buffer, plain3, 8 );
-	BF_set_key( &bfKey, 8, key3 );
-	BF_ecb_encrypt( buffer, buffer, &bfKey, BF_ENCRYPT );
-	if( memcmp( buffer, cipher3, 8 ) )
-		return( CRYPT_ERROR );
-	BF_ecb_encrypt( buffer, buffer, &bfKey, BF_DECRYPT );
-	if( memcmp( buffer, plain3, 8 ) )
-		return( CRYPT_ERROR );
+	status = capabilityInfo->initKeyFunction( &contextInfo, key1,
+											  strlen( ( char * ) key1 ) );
+	if( cryptStatusOK( status ) )
+		status = capabilityInfo->encryptFunction( &contextInfo, buffer, 8 );
+	if( cryptStatusOK( status ) && memcmp( buffer, cipher1, 8 ) )
+		status = CRYPT_ERROR;
+	if( cryptStatusOK( status ) )
+		status = capabilityInfo->decryptFunction( &contextInfo, buffer, 8 );
+	if( cryptStatusOK( status ) && memcmp( buffer, plain1, 8 ) )
+		status = CRYPT_ERROR;
 
-	return( CRYPT_OK );
+	memcpy( buffer, plain2, 8 );
+	if( cryptStatusOK( status ) )
+		status = capabilityInfo->initKeyFunction( &contextInfo, key2,
+												  strlen( ( char * ) key2 ) );
+	if( cryptStatusOK( status ) )
+		status = capabilityInfo->encryptFunction( &contextInfo, buffer, 8 );
+	if( cryptStatusOK( status ) && memcmp( buffer, cipher2, 8 ) )
+		status = CRYPT_ERROR;
+	if( cryptStatusOK( status ) )
+		status = capabilityInfo->decryptFunction( &contextInfo, buffer, 8 );
+	if( cryptStatusOK( status ) && memcmp( buffer, plain2, 8 ) )
+		status = CRYPT_ERROR;
+
+	memcpy( buffer, plain3, 8 );
+	if( cryptStatusOK( status ) )
+		status = capabilityInfo->initKeyFunction( &contextInfo, key3, 8 );
+	if( cryptStatusOK( status ) )
+		status = capabilityInfo->encryptFunction( &contextInfo, buffer, 8 );
+	if( cryptStatusOK( status ) && memcmp( buffer, cipher3, 8 ) )
+		status = CRYPT_ERROR;
+	if( cryptStatusOK( status ) )
+		status = capabilityInfo->decryptFunction( &contextInfo, buffer, 8 );
+	if( cryptStatusOK( status ) && memcmp( buffer, plain3, 8 ) )
+		status = CRYPT_ERROR;
+	staticDestroyContext( &contextInfo );
+
+	return( cryptStatusError( status ) ? CRYPT_ERROR : CRYPT_OK );
 	}
 
 /****************************************************************************
@@ -91,13 +105,13 @@ int blowfishSelfTest( void )
 
 /* Return context subtype-specific information */
 
-int blowfishGetInfo( const CAPABILITY_INFO_TYPE type, 
-					 void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
 		return( BLOWFISH_EXPANDED_KEYSIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -108,13 +122,14 @@ int blowfishGetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Encrypt/decrypt data in ECB mode */
 
-int blowfishEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BF_KEY *blowfishKey = ( BF_KEY * ) convInfo->key;
 	int blockCount = noBytes / BF_BLOCK;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Encrypt a block of data */
 		BF_ecb_encrypt( buffer, buffer, blowfishKey, BF_ENCRYPT );
@@ -126,13 +141,14 @@ int blowfishEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 	return( CRYPT_OK );
 	}
 
-int blowfishDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BF_KEY *blowfishKey = ( BF_KEY * ) convInfo->key;
 	int blockCount = noBytes / BF_BLOCK;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Decrypt a block of data */
 		BF_ecb_encrypt( buffer, buffer, blowfishKey, BF_DECRYPT );
@@ -146,7 +162,8 @@ int blowfishDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 
 /* Encrypt/decrypt data in CBC mode */
 
-int blowfishEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -156,7 +173,8 @@ int blowfishEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 	return( CRYPT_OK );
 	}
 
-int blowfishDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -168,14 +186,15 @@ int blowfishDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 
 /* Encrypt/decrypt data in CFB mode */
 
-int blowfishEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BF_KEY *blowfishKey = ( BF_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -195,7 +214,7 @@ int blowfishEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > BF_BLOCK ) ? BF_BLOCK : noBytes;
 
@@ -225,7 +244,8 @@ int blowfishEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
    faster (but less clear) with temp = buffer, buffer ^= iv, iv = temp
    all in one loop */
 
-int blowfishDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BF_KEY *blowfishKey = ( BF_KEY * ) convInfo->key;
@@ -233,7 +253,7 @@ int blowfishDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -254,7 +274,7 @@ int blowfishDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > BF_BLOCK ) ? BF_BLOCK : noBytes;
 
@@ -288,14 +308,15 @@ int blowfishDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 
 /* Encrypt/decrypt data in OFB mode */
 
-int blowfishEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BF_KEY *blowfishKey = ( BF_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -314,7 +335,7 @@ int blowfishEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > BF_BLOCK ) ? BF_BLOCK : noBytes;
 
@@ -339,14 +360,15 @@ int blowfishEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 
 /* Decrypt data in OFB mode */
 
-int blowfishDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BF_KEY *blowfishKey = ( BF_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -365,7 +387,7 @@ int blowfishDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > BF_BLOCK ) ? BF_BLOCK : noBytes;
 
@@ -396,8 +418,8 @@ int blowfishDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 
 /* Key schedule a Blowfish key */
 
-int blowfishInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-					 const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -409,3 +431,24 @@ int blowfishInitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	BF_set_key( ( BF_KEY * ) convInfo->key, keyLength, ( void * ) key );
 	return( CRYPT_OK );
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_BLOWFISH, bitsToBytes( 64 ), "Blowfish",
+	bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), bitsToBytes( 448 ),
+	selfTest, getInfo, NULL, initKeyParams, initKey, NULL,
+	encryptECB, decryptECB, encryptCBC, decryptCBC,
+	encryptCFB, decryptCFB, encryptOFB, decryptOFB
+	};
+
+const CAPABILITY_INFO *getBlowfishCapability( void )
+	{
+	return( &capabilityInfo );
+	}
+
+#endif /* USE_BLOWFISH */

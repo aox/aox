@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib AES Encryption Routines					*
-*						Copyright Peter Gutmann 2000-2003					*
+*						Copyright Peter Gutmann 2000-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,19 +9,18 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "aes.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/aes.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/aes.h"
 #endif /* Compiler-specific includes */
+
+#ifdef USE_AES
 
 /* The size of an AES key and block and a keyscheduled AES key */
 
@@ -94,43 +93,185 @@ static const FAR_BSS AES_TEST testAES[] = {
 		0xEA, 0xFC, 0x49, 0x90, 0x4B, 0x49, 0x60, 0x89 } }
 	};
 
+#if 0
+
 /* Test the AES code against the test vectors from the AES FIPS */
 
-int aesSelfTest( void )
+static void printVector( const char *description, const BYTE *data,
+						 const int length )
 	{
 	int i;
 
+	printf( "%s = ", description );
+	for( i = 0; i < length; i++ )
+		printf( "%02x", data[ i ] );
+	putchar( '\n' );
+	}
+
+static int updateKey( BYTE *key, const int keySize,
+					  CONTEXT_INFO *contextInfo, 
+					  const CAPABILITY_INFO *capabilityInfo,
+					  const BYTE *newKey1, const BYTE *newKey2 )
+	{
+	BYTE keyData[ AES_KEYSIZE ];
+	int i;
+
+	switch( keySize )
+		{
+		case 16:
+			memcpy( keyData, newKey2, keySize );
+			break;
+
+		case 24:
+			memcpy( keyData, newKey1 + 8, keySize );
+			memcpy( keyData + 8, newKey2, AES_BLOCKSIZE );
+
+		case 32:
+			memcpy( keyData, newKey1, AES_BLOCKSIZE );
+			memcpy( keyData + 16, newKey2, AES_BLOCKSIZE );
+		}
+
+	for( i = 0; i < keySize; i++ )
+		key[ i ] ^= keyData[ i ];
+	return( capabilityInfo->initKeyFunction( contextInfo, key, 
+											 keySize ) );
+	}
+
+static int mct( CONTEXT_INFO *contextInfo, 
+			    const CAPABILITY_INFO *capabilityInfo,
+				const BYTE *initialKey, const int keySize,
+				const BYTE *initialIV, const BYTE *initialPT )
+	{
+	BYTE key[ AES_KEYSIZE ], iv[ AES_KEYSIZE ], temp[ AES_BLOCKSIZE ];
+	int i;
+
+	memcpy( key, initialKey, keySize );
+	if( iv != NULL )
+		memcpy( iv, initialIV, AES_BLOCKSIZE );
+	memcpy( temp, initialPT, AES_BLOCKSIZE );
+	for( i = 0; i < 100; i++ )
+		{
+		BYTE prevTemp[ AES_BLOCKSIZE ];
+		int j, status;
+
+		status = capabilityInfo->initKeyFunction( contextInfo, key, 
+												  keySize );
+		if( cryptStatusError( status ) )
+			return( status );
+		printVector( "Key", key, keySize );
+		if( iv != NULL )
+			printVector( "IV", iv, AES_BLOCKSIZE );
+		printVector( "Plaintext", temp, AES_BLOCKSIZE );
+		if( iv != NULL )
+			memcpy( contextInfo->ctxConv->currentIV, iv, AES_BLOCKSIZE );
+		for( j = 0; j < 1000; j++ )
+			{
+/*			memcpy( prevTemp, temp, AES_BLOCKSIZE ); */
+			if( iv != NULL && j == 0 )
+				{
+				status = capabilityInfo->encryptCBCFunction( contextInfo, temp, 
+															 AES_BLOCKSIZE );
+				memcpy( prevTemp, temp, AES_BLOCKSIZE );
+				memcpy( temp, iv, AES_BLOCKSIZE );
+				}
+			else
+				{
+				status = capabilityInfo->encryptFunction( contextInfo, temp, 
+														  AES_BLOCKSIZE );
+				if( iv != NULL )
+					{
+					BYTE tmpTemp[ AES_BLOCKSIZE ];
+
+					memcpy( tmpTemp, temp, AES_BLOCKSIZE );
+					memcpy( temp, prevTemp, AES_BLOCKSIZE );
+					memcpy( prevTemp, tmpTemp, AES_BLOCKSIZE );
+					}
+				}
+			if( cryptStatusError( status ) )
+				return( status );
+			}
+		printVector( "Ciphertext", temp, AES_BLOCKSIZE );
+		putchar( '\n' );
+		status = updateKey( key, keySize, contextInfo, capabilityInfo, 
+							prevTemp, temp );
+		if( cryptStatusError( status ) )
+			return( status );
+		}
+	
+	return( CRYPT_OK );
+	}
+#endif
+
+static int selfTest( void )
+	{
+	/* ECB */
+	static const BYTE mctECBKey[] = { 0x8D, 0x2E, 0x60, 0x36, 0x5F, 0x17, 0xC7, 0xDF, 0x10, 0x40, 0xD7, 0x50, 0x1B, 0x4A, 0x7B, 0x5A };
+	static const BYTE mctECBPT[] = { 0x59, 0xB5, 0x08, 0x8E, 0x6D, 0xAD, 0xC3, 0xAD, 0x5F, 0x27, 0xA4, 0x60, 0x87, 0x2D, 0x59, 0x29 };
+	/* CBC */
+	static const BYTE mctCBCKey[] = { 0x9D, 0xC2, 0xC8, 0x4A, 0x37, 0x85, 0x0C, 0x11, 0x69, 0x98, 0x18, 0x60, 0x5F, 0x47, 0x95, 0x8C };
+	static const BYTE mctCBCIV[] = { 0x25, 0x69, 0x53, 0xB2, 0xFE, 0xAB, 0x2A, 0x04, 0xAE, 0x01, 0x80, 0xD8, 0x33, 0x5B, 0xBE, 0xD6 };
+	static const BYTE mctCBCPT[] = { 0x2E, 0x58, 0x66, 0x92, 0xE6, 0x47, 0xF5, 0x02, 0x8E, 0xC6, 0xFA, 0x47, 0xA5, 0x5A, 0x2A, 0xAB };
+	/* OFB */
+	static const BYTE mctOFBKey[] = { 0xB1, 0x1E, 0x4E, 0xCA, 0xE2, 0xE7, 0x1E, 0x14, 0x14, 0x5D, 0xD7, 0xDB, 0x26, 0x35, 0x65, 0x2F };
+	static const BYTE mctOFBIV[] = { 0xAD, 0xD3, 0x2B, 0xF8, 0x20, 0x4C, 0x33, 0x33, 0x9C, 0x54, 0xCD, 0x58, 0x58, 0xEE, 0x0D, 0x13 };
+	static const BYTE mctOFBPT[] = { 0x73, 0x20, 0x49, 0xE8, 0x9D, 0x74, 0xFC, 0xE7, 0xC5, 0xA4, 0x96, 0x64, 0x04, 0x86, 0x8F, 0xA6 };
+	/* CFB-128 */
+	static const BYTE mctCFBKey[] = { 0x71, 0x15, 0x11, 0x93, 0x1A, 0x15, 0x62, 0xEA, 0x73, 0x29, 0x0A, 0x8B, 0x0A, 0x37, 0xA3, 0xB4 };
+	static const BYTE mctCFBIV[] = { 0x9D, 0xCE, 0x23, 0xFD, 0x2D, 0xF5, 0x36, 0x0F, 0x79, 0x9C, 0xF1, 0x79, 0x84, 0xE4, 0x7C, 0x8D };
+	static const BYTE mctCFBPT[] = { 0xF0, 0x66, 0xBE, 0x4B, 0xD6, 0x71, 0xEB, 0xC1, 0xC4, 0xCF, 0x3C, 0x00, 0x8E, 0xF2, 0xCF, 0x18 };
+	const CAPABILITY_INFO *capabilityInfo = getAESCapability();
+	CONTEXT_INFO contextInfo;
+	CONV_INFO contextData;
+	BYTE keyData[ AES_EXPANDED_KEYSIZE ];
+	int i, status;
+
+#if 1
 	for( i = 0; i < sizeof( testAES ) / sizeof( AES_TEST ); i++ )
 		{
-		AES_EKEY aesEKey;
-		AES_DKEY aesDKey;
 		BYTE temp[ AES_BLOCKSIZE ];
 
 		memcpy( temp, testAES[ i ].plaintext, AES_BLOCKSIZE );
-		switch(testAES[ i ].keySize)
-			{
-			case 16: 
-				aes_encrypt_key128( testAES[ i ].key, &aesEKey ); 
-				aes_decrypt_key128( testAES[ i ].key, &aesDKey ); 
-				break;
-
-			case 24: 
-				aes_encrypt_key192( testAES[ i ].key, &aesEKey );
-				aes_decrypt_key192( testAES[ i ].key, &aesDKey ); 
-				break;
-
-			case 32: 
-				aes_encrypt_key256( testAES[ i ].key, &aesEKey );
-				aes_decrypt_key256( testAES[ i ].key, &aesDKey ); 
-				break;
-			}
-		aes_encrypt( temp, temp, &aesEKey );
-		if( memcmp( testAES[ i ].ciphertext, temp, AES_BLOCKSIZE ) )
-			return( CRYPT_ERROR );
-		aes_decrypt( temp, temp, &aesDKey );
-		if( memcmp( testAES[ i ].plaintext, temp, AES_BLOCKSIZE ) )
+		staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+						   &contextData, sizeof( CONV_INFO ), keyData );
+		status = capabilityInfo->initKeyFunction( &contextInfo, 
+												  testAES[ i ].key,
+												  testAES[ i ].keySize );
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, temp, 
+													  AES_BLOCKSIZE );
+		if( cryptStatusOK( status ) && \
+			memcmp( testAES[ i ].ciphertext, temp, AES_BLOCKSIZE ) )
+			status = CRYPT_ERROR;
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->decryptFunction( &contextInfo, temp, 
+													  AES_BLOCKSIZE );
+		if( cryptStatusOK( status ) && \
+			memcmp( testAES[ i ].plaintext, temp, AES_BLOCKSIZE ) )
+			status = CRYPT_ERROR;
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) )
 			return( CRYPT_ERROR );
 		}
+#endif
+
+#if 0	/* OK */
+	staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+					   &contextData, sizeof( CONV_INFO ), keyData );
+	status = mct( &contextInfo, capabilityInfo, mctECBKey, 16, 
+				  NULL, mctECBPT );
+	staticDestroyContext( &contextInfo );
+	if( cryptStatusError( status ) )
+		return( CRYPT_ERROR );
+#endif
+#if 0	/* OK */
+	staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+					   &contextData, sizeof( CONV_INFO ), keyData );
+	status = mct( &contextInfo, capabilityInfo, mctCBCKey, 16, 
+				  mctCBCIV, mctCBCPT );
+	staticDestroyContext( &contextInfo );
+	if( cryptStatusError( status ) )
+		return( CRYPT_ERROR );
+#endif
 
 	return( CRYPT_OK );
 	}
@@ -143,13 +284,13 @@ int aesSelfTest( void )
 
 /* Return context subtype-specific information */
 
-int aesGetInfo( const CAPABILITY_INFO_TYPE type, 
-				void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
 		return( AES_EXPANDED_KEYSIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -160,13 +301,14 @@ int aesGetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Encrypt/decrypt data in ECB mode */
 
-int aesEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	const AES_EKEY *aesKey = ENC_KEY( convInfo );
 	int blockCount = noBytes / AES_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Encrypt a block of data */
 		aes_encrypt( buffer, buffer, aesKey );
@@ -178,13 +320,14 @@ int aesEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int aesDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	const AES_DKEY *aesKey = DEC_KEY( convInfo );
 	int blockCount = noBytes / AES_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Decrypt a block of data */
 		aes_decrypt( buffer, buffer, aesKey );
@@ -198,13 +341,14 @@ int aesDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CBC mode */
 
-int aesEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	const AES_EKEY *aesKey = ENC_KEY( convInfo );
 	int blockCount = noBytes / AES_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		int i;
 
@@ -225,14 +369,15 @@ int aesEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int aesDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	const AES_DKEY *aesKey = DEC_KEY( convInfo );
 	BYTE temp[ AES_BLOCKSIZE ];
 	int blockCount = noBytes / AES_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		int i;
 
@@ -261,14 +406,15 @@ int aesDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CFB mode */
 
-int aesEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	const AES_EKEY *aesKey = ENC_KEY( convInfo );
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -288,7 +434,7 @@ int aesEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > AES_BLOCKSIZE ) ? AES_BLOCKSIZE : noBytes;
 
@@ -317,7 +463,8 @@ int aesEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
    faster (but less clear) with temp = buffer, buffer ^= iv, iv = temp
    all in one loop */
 
-int aesDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	const AES_EKEY *aesKey = ENC_KEY( convInfo );
@@ -325,7 +472,7 @@ int aesDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -346,7 +493,7 @@ int aesDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > AES_BLOCKSIZE ) ? AES_BLOCKSIZE : noBytes;
 
@@ -379,14 +526,15 @@ int aesDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in OFB mode */
 
-int aesEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	const AES_EKEY *aesKey = ENC_KEY( convInfo );
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -405,7 +553,7 @@ int aesEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > AES_BLOCKSIZE ) ? AES_BLOCKSIZE : noBytes;
 
@@ -429,14 +577,15 @@ int aesEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Decrypt data in OFB mode */
 
-int aesDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	const AES_EKEY *aesKey = ENC_KEY( convInfo );
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -455,7 +604,7 @@ int aesDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > AES_BLOCKSIZE ) ? AES_BLOCKSIZE : noBytes;
 
@@ -485,8 +634,8 @@ int aesDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Key schedule an AES key */
 
-int aesInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-				const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	AES_2KEY *aesKey = convInfo->key;
@@ -501,3 +650,24 @@ int aesInitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	aes_decrypt_key( convInfo->userKey, keyLength, &aesKey->decKey );
 	return( CRYPT_OK );
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_AES, bitsToBytes( 128 ), "AES",
+	bitsToBytes( 128 ), bitsToBytes( 128 ), bitsToBytes( 256 ),
+	selfTest, getInfo, NULL, initKeyParams, initKey, NULL,
+	encryptECB, decryptECB, encryptCBC, decryptCBC,
+	encryptCFB, decryptCFB, encryptOFB, decryptOFB
+	};
+
+const CAPABILITY_INFO *getAESCapability( void )
+	{
+	return( &capabilityInfo );
+	}
+
+#endif /* USE_AES */

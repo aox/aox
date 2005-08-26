@@ -90,6 +90,33 @@ int retExtFnKeyset( KEYSET_INFO *keysetInfoPtr, const int status,
 	return( cryptArgError( status ) ? CRYPT_ERROR_FAILED : status );
 	}
 
+/* Clear the extended error information that may be present from a previous
+   operation prior to beginning a new operation */
+
+static void resetErrorInfo( KEYSET_INFO *keysetInfoPtr )
+	{
+	switch( keysetInfoPtr->type )
+		{
+		case KEYSET_HTTP:
+			keysetInfoPtr->keysetHTTP->errorCode = 0;
+			memset( keysetInfoPtr->keysetHTTP->errorMessage, 0, 
+					MAX_ERRMSG_SIZE );
+			break;
+
+		case KEYSET_LDAP:
+			keysetInfoPtr->keysetLDAP->errorCode = 0;
+			memset( keysetInfoPtr->keysetLDAP->errorMessage, 0, 
+					MAX_ERRMSG_SIZE );
+			break;
+
+		case KEYSET_DBMS:
+			keysetInfoPtr->keysetDBMS->errorCode = 0;
+			memset( keysetInfoPtr->keysetDBMS->errorMessage, 0, 
+					MAX_ERRMSG_SIZE );
+			break;
+		}
+	}
+
 /* Prepare to update a keyset, performing various access checks and pre-
    processing of information */
 
@@ -702,6 +729,7 @@ static int keysetMessageFunction( const void *objectInfoPtr,
 				keysetInfoPtr->type == KEYSET_DBMS );
 
 		/* Get the key */
+		resetErrorInfo( keysetInfoPtr );
 		status = initKeysetUpdate( keysetInfoPtr, &keyIDinfo, keyIDbuffer,
 								   TRUE );
 		if( cryptStatusOK( status ) )
@@ -750,6 +778,7 @@ static int keysetMessageFunction( const void *objectInfoPtr,
 		   dummy values that point back to the object for handling of 
 		   operations.  Going via a keyset/device bypasses these issues, but 
 		   doing it directly shows up all of these problems */
+		resetErrorInfo( keysetInfoPtr );
 		status = initKeysetUpdate( keysetInfoPtr, NULL, NULL, FALSE );
 		if( cryptStatusOK( status ) )
 			status = keysetInfoPtr->setItemFunction( keysetInfoPtr,
@@ -784,6 +813,7 @@ static int keysetMessageFunction( const void *objectInfoPtr,
 				keyIDinfo.keyID != NULL && keyIDinfo.keyIDlength > 0 );
 
 		/* Delete the key */
+		resetErrorInfo( keysetInfoPtr );
 		status = initKeysetUpdate( keysetInfoPtr, &keyIDinfo, keyIDbuffer,
 								   FALSE );
 		if( cryptStatusOK( status ) )
@@ -817,6 +847,7 @@ static int keysetMessageFunction( const void *objectInfoPtr,
 				getnextcertInfo->auxInfoLength == sizeof( int ) );
 
 		/* Fetch the first cert in a sequence from the keyset */
+		resetErrorInfo( keysetInfoPtr );
 		status = initKeysetUpdate( keysetInfoPtr, &keyIDinfo, keyIDbuffer, 
 								   TRUE );
 		if( cryptStatusOK( status ) )
@@ -856,6 +887,7 @@ static int keysetMessageFunction( const void *objectInfoPtr,
 		assert( keysetInfoPtr->isBusyFunction != NULL );
 
 		/* Perform the cert management operation */
+		resetErrorInfo( keysetInfoPtr );
 		status = initKeysetUpdate( keysetInfoPtr, NULL, NULL, TRUE );
 		if( cryptStatusOK( status ) )
 			status = keysetInfoPtr->keysetDBMS->certMgmtFunction( keysetInfoPtr,

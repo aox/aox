@@ -895,7 +895,12 @@ static int clientTransact( SESSION_INFO *sessionInfoPtr )
 	/* Get a new cert from the server */
 	status = createPkcsRequest( sessionInfoPtr, &protocolInfo );
 	if( cryptStatusOK( status ) )
+		{
+		sioctl( &sessionInfoPtr->stream, STREAM_IOCTL_QUERY,
+				"operation=PKIOperation", 22 );
 		status = writePkiDatagram( sessionInfoPtr );
+		sioctl( &sessionInfoPtr->stream, STREAM_IOCTL_QUERY, NULL, 0 );
+		}
 	if( cryptStatusOK( status ) )
 		status = readPkiDatagram( sessionInfoPtr );
 	if( cryptStatusOK( status ) )

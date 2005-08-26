@@ -44,8 +44,8 @@ Build cryptlib : cryptapi.c cryptcfg.c cryptcrt.c cryptctx.c cryptdev.c
     cryptenv.c cryptkey.c cryptlib.c cryptmis.c cryptses.c cryptusr.c ;
 
 # work around brokenness by including test last, with an extra define
-DEFINES += strnicmp=strncasecmp ;
-SubInclude TOP cryptlib test ;
+# DEFINES += strnicmp=strncasecmp ;
+# SubInclude TOP cryptlib test ;
 
 # we could wrap the above subinclude in the next if, but in that case
 # 'jam clean' might not clean in cryptlib/test

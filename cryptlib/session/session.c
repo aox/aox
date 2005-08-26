@@ -42,6 +42,8 @@ void initSessionNetConnectInfo( const SESSION_INFO *sessionInfoPtr,
 					NET_OPTION_TRANSPORTSESSION : \
 				( sessionInfoPtr->networkSocket != CRYPT_ERROR ) ? \
 					NET_OPTION_NETWORKSOCKET : \
+				( sessionInfoPtr->flags & SESSION_USEHTTPTUNNEL ) ? \
+					NET_OPTION_HOSTNAME_TUNNEL : \
 					NET_OPTION_HOSTNAME );
 
 	/* If there's an explicit server name set, connect to it if we're the 

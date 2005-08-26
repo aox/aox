@@ -164,7 +164,13 @@ static int readVersionString( SESSION_INFO *sessionInfoPtr )
 							  &sessionInfoPtr->errorCode );
 			return( status );
 			}
-		linesRead++;
+		if( linesRead++ >= 100 )
+			/* The peer shouldn't be throwing infinite amounts of junk at us,
+			   if we don't get an SSH ID after reading 100 lines of input
+			   there's a problem */
+			retExt( sessionInfoPtr, CRYPT_ERROR_OVERFLOW,
+					"Peer sent excessive amounts of text without sending "
+					"any SSH version info" );
 		}
 	while( memcmp( sessionInfoPtr->receiveBuffer, SSH_ID, SSH_ID_SIZE ) );
 

@@ -223,7 +223,7 @@ static int processPreamble( ENVELOPE_INFO *envelopeInfoPtr )
 	{
 	DEENV_STATE state = envelopeInfoPtr->deenvState;
 	STREAM stream;
-	int length, streamPos = 0, status = CRYPT_OK;
+	int length, streamPos = 0, iterationCount = 0, status = CRYPT_OK;
 
 	sMemConnect( &stream, envelopeInfoPtr->buffer, envelopeInfoPtr->bufPos );
 
@@ -320,7 +320,7 @@ static int processPreamble( ENVELOPE_INFO *envelopeInfoPtr )
 
 	/* Keep consuming information until we run out of input or reach the data
 	   payload */
-	while( state != DEENVSTATE_DONE )
+	while( state != DEENVSTATE_DONE && iterationCount++ < 256 )
 		{
 		/* Check that various values are within range.  They can go out of
 		   range if the header is corrupted */
@@ -565,6 +565,8 @@ static int processPreamble( ENVELOPE_INFO *envelopeInfoPtr )
 			assert( actionsOK( envelopeInfoPtr ) );
 			}
 		}
+	if( iterationCount >= 256 )
+		return( CRYPT_ERROR_FAILED );
 	envelopeInfoPtr->deenvState = state;
 
 	assert( streamPos >= 0 && envelopeInfoPtr->bufPos - streamPos >= 0 );
@@ -591,7 +593,7 @@ static int processPostamble( ENVELOPE_INFO *envelopeInfoPtr )
 	{
 	DEENV_STATE state = envelopeInfoPtr->deenvState;
 	STREAM stream;
-	int length, streamPos = 0, status = CRYPT_OK;
+	int length, streamPos = 0, iterationCount = 0, status = CRYPT_OK;
 
 	/* If that's all there is, return */
 	if( state == DEENVSTATE_NONE && envelopeInfoPtr->usage != ACTION_SIGN && \
@@ -686,7 +688,7 @@ static int processPostamble( ENVELOPE_INFO *envelopeInfoPtr )
 
 	/* Keep consuming information until we run out of input or read the end
 	   of the data */
-	while( state != DEENVSTATE_DONE )
+	while( state != DEENVSTATE_DONE && iterationCount++ < 256 )
 		{
 		/* Check that various values are within range.  They can go out of
 		   range if the header is corrupted */
@@ -829,6 +831,8 @@ static int processPostamble( ENVELOPE_INFO *envelopeInfoPtr )
 			break;
 			}
 		}
+	if( iterationCount >= 256 )
+		return( CRYPT_ERROR_FAILED );
 	envelopeInfoPtr->deenvState = state;
 	sMemDisconnect( &stream );
 

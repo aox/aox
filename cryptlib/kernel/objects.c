@@ -437,7 +437,7 @@ static int findFreeResource( int value )
 		/* Postcondition: We tried all locations and there are no free slots
 		   available (or, vastly less likely, an internal error has 
 		   occurred) */
-		POST( iterations == krnlData->objectTableSize - 1 );
+		POST( iterations == krnlData->objectTableSize - 2 );
 		FORALL( i, 0, krnlData->objectTableSize,
 				krnlData->objectTable[ i ].objectPtr != NULL );
 

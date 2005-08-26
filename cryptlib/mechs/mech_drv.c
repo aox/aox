@@ -470,7 +470,7 @@ int deriveCMP( void *dummy, MECHANISM_DERIVE_INFO *mechanismInfo )
 				  mechanismInfo->saltLength, HASH_END );
 
 	/* Iterate the hashing the remaining number of times */
-	while( iterations-- )
+	while( iterations-- > 0 )
 		hashFunction( NULL, mechanismInfo->dataOut, mechanismInfo->dataOut,
 					  hashSize, HASH_ALL );
 	zeroise( hashInfo, sizeof( HASHINFO ) );

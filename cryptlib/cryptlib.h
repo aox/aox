@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *								cryptlib Interface							*
-*						Copyright Peter Gutmann 1992-2004					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,21 +9,25 @@
 
 #define _CRYPTLIB_DEFINED
 
+/* The current cryptlib version: 3.2.1.0 */
+
+#define CRYPTLIB_VERSION	3210
+
 /* Fixup for Windows support.  We need to include windows.h for various types
    and prototypes needed for DLL's.  In addition wincrypt.h defines some
    values with the same names as cryptlib ones, so we need to check for this
    and issue a warning not to mix cryptlib with CryptoAPI (that's like taking
    a bank vault and making one side out of papier mache).
-   
-   A second, less likely condition can occur when wincrypt.h is included 
-   after cryptlib.h, which shouldn't happen if developers follow the 
-   convention of including local headers after system headers, but can occur 
-   if they ignore this convention.  The NOCRYPT doesn't fix this since 
-   wincrypt.h can be pulled in indirectly and unconditionally, for example 
-   via winldap.h -> schnlsp.h -> schannel.h -> wincrypt.h.  To fix this, we 
-   create a redundant define for CRYPT_MODE_ECB which produces a compile 
-   error if wincrypt.h is included after cryptlib.h.  Since thie will 
-   conflict with the enum, we have to place it after the CRYPT_MODE_xxx 
+
+   A second, less likely condition can occur when wincrypt.h is included
+   after cryptlib.h, which shouldn't happen if developers follow the
+   convention of including local headers after system headers, but can occur
+   if they ignore this convention.  The NOCRYPT doesn't fix this since
+   wincrypt.h can be pulled in indirectly and unconditionally, for example
+   via winldap.h -> schnlsp.h -> schannel.h -> wincrypt.h.  To fix this, we
+   create a redundant define for CRYPT_MODE_ECB which produces a compile
+   error if wincrypt.h is included after cryptlib.h.  Since thie will
+   conflict with the enum, we have to place it after the CRYPT_MODE_xxx
    enums */
 
 #if ( defined( _WINDOWS ) || defined( WIN32 ) || defined( _WIN32 ) || \
@@ -40,8 +44,8 @@
 #endif /* Windows other than a cross-development environment */
 
 /* Machine-dependant types to allow use in special library types such as
-   DLL's.  Under Win32 and BeOS we need to use the dllimport and dllexport 
-   directives for the DLL/shared-lib version so we define the type used for 
+   DLL's.  Under Win32 and BeOS we need to use the dllimport and dllexport
+   directives for the DLL/shared-lib version so we define the type used for
    functions depending on whether we're being included via the cryptlib-
    internal crypt.h or not */
 
@@ -49,7 +53,7 @@
 	  defined( _WIN32_WCE ) ) && !( defined( STATIC_LIB ) || defined( _SCCTK ) )
   #define C_PTR	*					/* General pointer */
   #if defined( _WIN32_WCE )
-	/* Rather than relying on _UNICODE being defined (which would cause 
+	/* Rather than relying on _UNICODE being defined (which would cause
 	   problems if cryptlib is built with char * but the calling app is built
 	   with wchar_t *), we always use the default native char type, which is
 	   ASCII (or at least 8-bit) under Win32 and Unicode under WinCE */
@@ -196,7 +200,7 @@ typedef enum {						/* Block cipher modes */
 
 #if ( defined( _WINDOWS ) || defined( WIN32 ) || defined( _WIN32 ) || \
 	  defined( __WIN32__ ) ) && !defined( _SCCTK )
-  /* Force an error if wincrypt.h is included after cryptlib.h, see note at 
+  /* Force an error if wincrypt.h is included after cryptlib.h, see note at
      the start of the file */
   #define CRYPT_MODE_ECB	1
 #endif /* Windows other than a cross-development environment */
@@ -277,7 +281,7 @@ typedef enum {
 	CRYPT_FORMAT_PGP,				/* PGP format */
 #ifdef _CRYPT_DEFINED
 	/* Alongside the usual types we can also wind up with various protocol-
-	   specific format types such as SSL and SSH.  The following types are 
+	   specific format types such as SSL and SSH.  The following types are
 	   only visible internally */
 	CRYPT_IFORMAT_SSL,				/* SSL format */
 	CRYPT_IFORMAT_SSH,				/* SSH format */
@@ -483,8 +487,8 @@ typedef enum {
 	/* Certificate attributes */
 	/**************************/
 
-	/* Because there are so many cert attributes, we break them down into 
-	   blocks to minimise the number of values that change if a new one is 
+	/* Because there are so many cert attributes, we break them down into
+	   blocks to minimise the number of values that change if a new one is
 	   added halfway through */
 
 	/* Pseudo-information on a cert object or meta-information which is used
@@ -563,7 +567,7 @@ typedef enum {
 	CRYPT_CERTINFO_IPADDRESS,				/* iPAddress */
 	CRYPT_CERTINFO_REGISTEREDID,			/* registeredID */
 
-	/* X.509 certificate extensions.  Although it would be nicer to use names 
+	/* X.509 certificate extensions.  Although it would be nicer to use names
 	   that match the extensions more closely (e.g.
 	   CRYPT_CERTINFO_BASICCONSTRAINTS_PATHLENCONSTRAINT), these exceed the
 	   32-character ANSI minimum length for unique names, and get really
@@ -600,9 +604,9 @@ typedef enum {
 
 	/* 1 3 6 1 5 5 7 1 3 qcStatements */
 	CRYPT_CERTINFO_QCSTATEMENT,
-	CRYPT_CERTINFO_QCSTATEMENT_SEMANTICS,	
+	CRYPT_CERTINFO_QCSTATEMENT_SEMANTICS,
 					/* qcStatement.statementInfo.semanticsIdentifier */
-	CRYPT_CERTINFO_QCSTATEMENT_REGISTRATIONAUTHORITY,	
+	CRYPT_CERTINFO_QCSTATEMENT_REGISTRATIONAUTHORITY,
 					/* qcStatement.statementInfo.nameRegistrationAuthorities */
 
 	/* 1 3 6 1 5 5 7 48 1 2 ocspNonce */
@@ -886,11 +890,11 @@ typedef enum {
 	CRYPT_CERTINFO_CMS_SIGPOLICYID,			/* sigPolicyID */
 	CRYPT_CERTINFO_CMS_SIGPOLICYHASH,		/* sigPolicyHash */
 	CRYPT_CERTINFO_CMS_SIGPOLICY_CPSURI,	/* sigPolicyQualifiers.sigPolicyQualifier.cPSuri */
-	CRYPT_CERTINFO_CMS_SIGPOLICY_ORGANIZATION, 
+	CRYPT_CERTINFO_CMS_SIGPOLICY_ORGANIZATION,
 		/* sigPolicyQualifiers.sigPolicyQualifier.userNotice.noticeRef.organization */
 	CRYPT_CERTINFO_CMS_SIGPOLICY_NOTICENUMBERS,
 		/* sigPolicyQualifiers.sigPolicyQualifier.userNotice.noticeRef.noticeNumbers */
-	CRYPT_CERTINFO_CMS_SIGPOLICY_EXPLICITTEXT, 
+	CRYPT_CERTINFO_CMS_SIGPOLICY_EXPLICITTEXT,
 		/* sigPolicyQualifiers.sigPolicyQualifier.userNotice.explicitText */
 
 	/* 1 2 840 113549 1 9 16 9 signatureTypeIdentifier */
@@ -904,7 +908,7 @@ typedef enum {
 	CRYPT_CERTINFO_CMS_NONCE,				/* randomNonce */
 
 	/* SCEP attributes:
-	   2 16 840 1 113733 1 9 2 messageType 
+	   2 16 840 1 113733 1 9 2 messageType
 	   2 16 840 1 113733 1 9 3 pkiStatus
 	   2 16 840 1 113733 1 9 4 failInfo
 	   2 16 840 1 113733 1 9 5 senderNonce
@@ -1067,18 +1071,18 @@ typedef enum {
 
 	/* The following attributes are only visible internally and are protected
 	   from any external access by the kernel (and for good measure by checks
-	   in other places as well).  The two attributes CRYPT_IATTRIBUTE_KEY_SPKI 
-	   and CRYPT_IATTRIBUTE_SPKI are actually the same thing, the difference 
+	   in other places as well).  The two attributes CRYPT_IATTRIBUTE_KEY_SPKI
+	   and CRYPT_IATTRIBUTE_SPKI are actually the same thing, the difference
 	   is that the former is write-only for contexts and the latter is read-
-	   only for certificates (the former is used when loading a context from 
-	   a key contained in a device, where the actual key components aren't 
-	   directly available in the context but may be needed in the future for 
-	   things like cert requests).  Because a single object can act as both a 
-	   context and a cert, having two explicitly different attribute names 
-	   makes things less confusing.  In addition, some public-key attributes 
-	   have _PARTIAL variants that load the public-key components but don't 
-	   initialise the key/move the context into the high state.  This is 
-	   used for formats in which public and private-key components are loaded 
+	   only for certificates (the former is used when loading a context from
+	   a key contained in a device, where the actual key components aren't
+	   directly available in the context but may be needed in the future for
+	   things like cert requests).  Because a single object can act as both a
+	   context and a cert, having two explicitly different attribute names
+	   makes things less confusing.  In addition, some public-key attributes
+	   have _PARTIAL variants that load the public-key components but don't
+	   initialise the key/move the context into the high state.  This is
+	   used for formats in which public and private-key components are loaded
 	   separately */
 	, CRYPT_IATTRIBUTE_FIRST = 8000,
 	CRYPT_IATTRIBUTE_TYPE,			/* Object type */
@@ -1253,8 +1257,8 @@ typedef enum { CRYPT_CONTENT_NONE, CRYPT_CONTENT_DATA,
 			   CRYPT_CONTENT_SIGNEDANDENVELOPEDDATA,
 			   CRYPT_CONTENT_DIGESTEDDATA, CRYPT_CONTENT_ENCRYPTEDDATA,
 			   CRYPT_CONTENT_COMPRESSEDDATA, CRYPT_CONTENT_TSTINFO,
-			   CRYPT_CONTENT_SPCINDIRECTDATACONTEXT, 
-			   CRYPT_CONTENT_RTCSREQUEST, CRYPT_CONTENT_RTCSRESPONSE, 
+			   CRYPT_CONTENT_SPCINDIRECTDATACONTEXT,
+			   CRYPT_CONTENT_RTCSREQUEST, CRYPT_CONTENT_RTCSRESPONSE,
 			   CRYPT_CONTENT_RTCSRESPONSE_EXT, CRYPT_CONTENT_LAST
 			 } CRYPT_CONTENT_TYPE;
 
@@ -1278,7 +1282,7 @@ enum { CRYPT_OCSPSTATUS_NOTREVOKED, CRYPT_OCSPSTATUS_REVOKED,
 /* The amount of detail to include in signatures when signing certificate
    objects */
 
-typedef enum { 
+typedef enum {
 	CRYPT_SIGNATURELEVEL_NONE,		/* Include only signature */
 	CRYPT_SIGNATURELEVEL_SIGNERCERT,/* Include signer cert */
 	CRYPT_SIGNATURELEVEL_ALL,		/* Include all relevant info */
@@ -1304,8 +1308,8 @@ typedef enum {
 #endif /* CRYPT_DEFINED */
 	CRYPT_CERTFORMAT_LAST			/* Last possible cert.format type */
 #ifdef _CRYPT_DEFINED
-	/* The following is used as an internal format specifier when the format 
-	   is autodetected, to tell the base64 decoding code to strip MIME 
+	/* The following is used as an internal format specifier when the format
+	   is autodetected, to tell the base64 decoding code to strip MIME
 	   headers before the base64 data */
 	, CRYPT_ICERTFORMAT_SMIME_CERTIFICATE,/* S/MIME cert.request or cert chain */
 	CRYPT_CERTFORMAT_LAST_EXTERNAL = CRYPT_CERTFORMAT_XML_CERTCHAIN + 1
@@ -1721,7 +1725,7 @@ C_RET cryptDeleteAttribute( C_IN CRYPT_HANDLE cryptHandle,
    be found */
 
 C_RET cryptAddRandom( C_IN void C_PTR randomData, C_IN int randomDataLength );
-C_RET cryptQueryObject( C_IN void C_PTR objectData, 
+C_RET cryptQueryObject( C_IN void C_PTR objectData,
 						C_IN int objectDataLength,
 					    C_OUT CRYPT_OBJECT_INFO C_PTR cryptObjectInfo );
 
@@ -1827,7 +1831,7 @@ C_RET cryptCreateCert( C_OUT CRYPT_CERTIFICATE C_PTR certificate,
 					   C_IN CRYPT_CERTTYPE_TYPE certType );
 C_RET cryptDestroyCert( C_IN CRYPT_CERTIFICATE certificate );
 
-/* Get/add/delete certificate extensions.  These are direct data insertion 
+/* Get/add/delete certificate extensions.  These are direct data insertion
    functions whose use is discouraged, so they fix the string at char *
    rather than C_STR */
 

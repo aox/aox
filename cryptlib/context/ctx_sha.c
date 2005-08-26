@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *							cryptlib SHA Hash Routines						*
-*						Copyright Peter Gutmann 1992-2003					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,19 +9,18 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "sha.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/sha.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/sha.h"
 #endif /* Compiler-specific includes */
+
+#define HASH_STATE_SIZE		sizeof( SHA_CTX )
 
 /****************************************************************************
 *																			*
@@ -56,18 +55,32 @@ static const FAR_BSS struct {
 	{ NULL, 0, { 0 } }
 	};
 
-int shaSelfTest( void )
+static int selfTest( void )
 	{
-	BYTE digest[ SHA_DIGEST_LENGTH ];
-	int i;
+	const CAPABILITY_INFO *capabilityInfo = getSHA1Capability();
+	CONTEXT_INFO contextInfo;
+	HASH_INFO contextData;
+	BYTE keyData[ HASH_STATE_SIZE ];
+	int i, status;
 
 	/* Test SHA-1 against values given in FIPS 180-1 */
 	for( i = 0; digestValues[ i ].data != NULL; i++ )
 		{
-		shaHashBuffer( NULL, digest, ( BYTE * ) digestValues[ i ].data,
-					   digestValues[ i ].length, HASH_ALL );
-		if( memcmp( digest, digestValues[ i ].digest, SHA_DIGEST_LENGTH ) )
-			return( CRYPT_ERROR );
+		staticInitContext( &contextInfo, CONTEXT_HASH, capabilityInfo,
+						   &contextData, sizeof( HASH_INFO ), keyData );
+		status = capabilityInfo->encryptFunction( &contextInfo, 
+							( BYTE * ) digestValues[ i ].data, 
+							digestValues[ i ].length );
+		contextInfo.flags |= CONTEXT_HASH_INITED;
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
+		if( cryptStatusOK( status ) && \
+			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest, 
+					SHA_DIGEST_LENGTH ) )
+			status = CRYPT_ERROR;
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) )
+			return( status );
 		}
 
 	return( CRYPT_OK );
@@ -81,13 +94,13 @@ int shaSelfTest( void )
 
 /* Return context subtype-specific information */
 
-int shaGetInfo( const CAPABILITY_INFO_TYPE type, 
-				void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
-		return( sizeof( SHA_CTX ) );
+		return( HASH_STATE_SIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -98,7 +111,7 @@ int shaGetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Hash data using SHA */
 
-int shaHash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	SHA_CTX *shaInfo = ( SHA_CTX * ) contextInfoPtr->ctxHash->hashInfo;
 
@@ -156,4 +169,21 @@ void shaHashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
 		default:
 			assert( NOTREACHED );
 		}
+	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_SHA, bitsToBytes( 160 ), "SHA-1",
+	bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ),
+	selfTest, getInfo, NULL, NULL, NULL, NULL, hash, hash
+	};
+
+const CAPABILITY_INFO *getSHA1Capability( void )
+	{
+	return( &capabilityInfo );
 	}

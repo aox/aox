@@ -556,7 +556,8 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 		status = dbmsUpdate(
 					"DELETE FROM CRLs WHERE expiryDate < ?",
 							 NULL, 0, currentTime, DBMS_UPDATE_NORMAL );
-		return( ( status == CRYPT_ERROR_NOTFOUND ) ? CRYPT_OK : status );
+		return( ( status == CRYPT_ERROR_NOTFOUND ) ? \
+				resetErrorInfo( dbmsInfo ) : status );
 		}
 
 	/* It's a restart, process any incompletely-issued certificates in the
@@ -704,7 +705,7 @@ static int caCleanup( DBMS_INFO *dbmsInfo,
 		return( status );
 		}
 
-	return( CRYPT_OK );
+	return( resetErrorInfo( dbmsInfo ) );
 	}
 
 /****************************************************************************
@@ -789,16 +790,16 @@ static int certMgmtFunction( KEYSET_INFO *keysetInfo,
 								  CRYPT_CERTINFO_KEYUSAGE );
 		if( cryptStatusError( status ) || \
 			!( value & CRYPT_KEYUSAGE_CRLSIGN ) )
-			return( CRYPT_ARGERROR_NUM1 );
+			return( CAMGMT_ARGERROR_CAKEY );
 		}
 	else
 		/* For anything other than a revocation action (which just updates the 
 		   cert store without doing anything else), the key must be a CA key */
-		if( action != CRYPT_CERTACTION_REVOKE_CERT )
-			if( cryptStatusError( \
-					krnlSendMessage( caKey, IMESSAGE_CHECK, NULL, 
-									 MESSAGE_CHECK_CA ) ) )
-				return( CRYPT_ARGERROR_NUM1 );
+		if( action != CRYPT_CERTACTION_REVOKE_CERT && \
+			cryptStatusError( \
+				krnlSendMessage( caKey, IMESSAGE_CHECK, NULL, 
+								 MESSAGE_CHECK_CA ) ) )
+			return( CAMGMT_ARGERROR_CAKEY );
 
 	/* If it's a CRL issue, it's a read-only operation on the CRL store
 	   for which we only need the CA cert (there's no request involved) */
@@ -812,7 +813,7 @@ static int certMgmtFunction( KEYSET_INFO *keysetInfo,
 	/* We're processing an action that request an explicit cert request, 
 	   perform further checks on the request */
 	if( !checkRequest( request, action ) )
-		return( CRYPT_ARGERROR_NUM2 );
+		return( CAMGMT_ARGERROR_REQUEST );
 
 	/* Make sure that the request is present in the request table in order 
 	   to issue a certificate for it.  Again, this will be checked later, 
@@ -820,7 +821,7 @@ static int certMgmtFunction( KEYSET_INFO *keysetInfo,
 	status = length = getKeyID( reqCertID, request, 
 								CRYPT_CERTINFO_FINGERPRINT_SHA );
 	if( cryptStatusError( status ) )
-		return( CRYPT_ARGERROR_NUM2 );
+		return( CAMGMT_ARGERROR_REQUEST );
 	status = dbmsQuery( 
 		"SELECT certData FROM certRequests WHERE certID = ?",
 						NULL, 0, reqCertID, length, 0, 
@@ -840,7 +841,7 @@ static int certMgmtFunction( KEYSET_INFO *keysetInfo,
 	/* It's a cert issue request, issue the certificate */
 	assert( action == CRYPT_CERTACTION_ISSUE_CERT || \
 			action == CRYPT_CERTACTION_CERT_CREATION );
-	assert( checkHandleRange( caKey ) );
+	assert( isHandleRangeValid( caKey ) );
 
 	return( caIssueCert( dbmsInfo, iCertificate, caKey, request, action ) );
 	}

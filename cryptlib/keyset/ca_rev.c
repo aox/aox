@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					cryptlib DBMS CA Cert Revocation Interface				*
-*						Copyright Peter Gutmann 1996-2004					*
+*						Copyright Peter Gutmann 1996-2005					*
 *																			*
 ****************************************************************************/
 
@@ -89,7 +89,7 @@ int revokeCertDirect( DBMS_INFO *dbmsInfo,
 	time_t certDate;
 	int status;
 
-	assert( checkHandleRange( iCertificate ) );
+	assert( isHandleRangeValid( iCertificate ) );
 	assert( action == CRYPT_CERTACTION_REVOKE_CERT || \
 			action == CRYPT_CERTACTION_CERT_CREATION_REVERSE );
 
@@ -186,7 +186,7 @@ int caRevokeCert( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCertRequest,
 	int certDataLength, status = CRYPT_OK;
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
-	assert( checkHandleRange( iCertRequest ) );
+	assert( isHandleRangeValid( iCertRequest ) );
 	assert( action == CRYPT_CERTACTION_REVOKE_CERT || \
 			action == CRYPT_CERTACTION_RESTART_REVOKE_CERT || \
 			action == CRYPT_CERTACTION_CERT_CREATION_REVERSE );
@@ -213,7 +213,7 @@ int caRevokeCert( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCertRequest,
 			  iCertificate == CRYPT_UNUSED ) || \
 			( action == CRYPT_CERTACTION_REVOKE_CERT ) || \
 			( action == CRYPT_CERTACTION_CERT_CREATION_REVERSE && \
-			  checkHandleRange( iCertificate ) ) );
+			  isHandleRangeValid( iCertificate ) ) );
 
 	/* If it's a standard revocation (rather than one done as part of an
 	   internal cert management operation, which passes in a single-entry
@@ -381,7 +381,7 @@ int caIssueCRL( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCryptCRL,
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
 	assert( isWritePtr( iCryptCRL, sizeof( CRYPT_CERTIFICATE * ) ) );
-	assert( checkHandleRange( caKey ) );
+	assert( isHandleRangeValid( caKey ) );
 
 	/* Extract the information that we need to build the CRL from the CA 
 	   cert */
@@ -502,6 +502,8 @@ int caIssueCRL( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCryptCRL,
 							  NULL, caKey );
 	if( cryptStatusError( status ) )
 		{
+		if( status == CRYPT_ARGERROR_VALUE )
+			status = CAMGMT_ARGERROR_CAKEY;	/* Map to correct error code */
 		krnlSendNotifier( createInfo.cryptHandle, IMESSAGE_DECREFCOUNT );
 		updateCertErrorLogMsg( dbmsInfo, operationStatus,
 							   "CRL creation failed" );

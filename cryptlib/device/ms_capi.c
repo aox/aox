@@ -149,7 +149,8 @@ const void FAR_BSS *findCapabilityInfo( const void FAR_BSS *capabilityInfoPtr,
 	struct CCC **rgpLowerQualityChainContext;
 	BOOL fHasRevocationFreshnessTime;
 	DWORD dwRevocationFreshnessTime;
-	} CCERT_CHAIN_CONTEXT, *PCCERT_CHAIN_CONTEXT;
+	} CERT_CHAIN_CONTEXT;
+  typedef const CERT_CHAIN_CONTEXT *PCCERT_CHAIN_CONTEXT;
 #endif /* Pre-1999 wincrypt.h */
 
 /****************************************************************************
@@ -986,6 +987,8 @@ static int getCertificateFromKey( CRYPTOAPI_INFO *cryptoapiInfo,
 	return( CRYPT_OK );
 	}
 
+#if 0
+
 static int getPrivKeyFromCertificate( CRYPTOAPI_INFO *cryptoapiInfo,
 									  const PCCERT_CONTEXT pCertContext,
 									  HCRYPTKEY *hKeyPtr )
@@ -1009,6 +1012,7 @@ static int getPrivKeyFromCertificate( CRYPTOAPI_INFO *cryptoapiInfo,
 	*hKeyPtr = hKey;
 	return( CRYPT_OK );
 	}
+#endif /* 0 */
 
 /* Create a private-key context using a CryptoAPI native key */
 
@@ -1034,7 +1038,7 @@ static int createPrivkeyContext( DEVICE_INFO *deviceInfo,
 							0 ) || \
 		( *cryptAlgo = capiToCryptlibID( algID ) ) == CRYPT_ALGO_NONE )
 		return( CRYPT_ERROR_NOTAVAIL );
-	capabilityInfoPtr = findCapabilityInfo( deviceInfo->capabilityInfo, 
+	capabilityInfoPtr = findCapabilityInfo( deviceInfo->capabilityInfoList, 
 											*cryptAlgo );
 	if( capabilityInfoPtr == NULL )
 		return( CRYPT_ERROR_NOTAVAIL );
@@ -1395,7 +1399,7 @@ static int getItemFunction( DEVICE_INFO *deviceInfo,
 								   certKeyContext.dwKeySpec, &hKey ) )
 				return( mapError( cryptoapiInfo, CRYPT_ERROR_NOTFOUND ) );
 
-#else
+#else		/* Need to uncomment gPKFC() above */
 			status = getPrivKeyFromCertificate( cryptoapiInfo, pCertContext, 
 												&hKey );
 #endif
@@ -2431,6 +2435,8 @@ static int rsaDecrypt( CONTEXT_INFO *contextInfoPtr, void *buffer, int length )
 
 /* DSA algorithm-specific mapping functions */
 
+#if 0
+
 static int dsaSetKeyInfo( DEVICE_INFO *deviceInfo, CONTEXT_INFO *contextInfoPtr, 
 //						  const CK_OBJECT_HANDLE hPrivateKey,
 //						  const CK_OBJECT_HANDLE hPublicKey,
@@ -2439,7 +2445,6 @@ static int dsaSetKeyInfo( DEVICE_INFO *deviceInfo, CONTEXT_INFO *contextInfoPtr,
 						  const void *g, const int gLen,
 						  const void *y, const int yLen )
 	{
-#if 0
 	RESOURCE_DATA msgData;
 	BYTE keyDataBuffer[ CRYPT_MAX_PKCSIZE * 2 ], idBuffer[ KEYID_SIZE ];
 	int keyDataSize, cryptStatus;
@@ -2495,9 +2500,9 @@ static int dsaSetKeyInfo( DEVICE_INFO *deviceInfo, CONTEXT_INFO *contextInfoPtr,
 		}
 	
 	return( cryptStatus );
-#endif /* 0 */
 	return( CRYPT_ERROR );
 	}
+#endif /* 0 */
 
 static int dsaInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
 					   const int keyLength )
@@ -3034,12 +3039,15 @@ static int cipherDecrypt( CONTEXT_INFO *contextInfoPtr, void *buffer, int length
 	return( CRYPT_OK );
 	}
 
+#if 0	/* Not used, see the comment in the capability info */
+
 static int hashFunction( CONTEXT_INFO *contextInfoPtr, void *buffer, int length )
 	{
 	if( !pCryptHashData( contextInfoPtr->deviceObject, buffer, length, 0 ) )
 		return( mapDeviceError( contextInfoPtr, CRYPT_ERROR_FAILED ) );
 	return( CRYPT_OK );
 	}
+#endif /* 0 */
 
 /****************************************************************************
 *																			*
@@ -3047,89 +3055,48 @@ static int hashFunction( CONTEXT_INFO *contextInfoPtr, void *buffer, int length 
 *																			*
 ****************************************************************************/
 
-/* Since cryptlib's CAPABILITY_INFO is fixed, all of the fields are declared
-   const so that they'll (hopefully) be allocated in the code segment.  This 
-   doesn't quite work for CryptoAPI providers since things like the available 
-   key lengths can vary depending on the providers, so we declare an 
-   equivalent structure here that makes the variable fields non-const.  Once 
-   the fields are set up, the result is copied into a dynamically-allocated 
-   CAPABILITY_INFO block at which point the fields are treated as const by 
-   the code */
-
-typedef struct {
-	const CRYPT_ALGO_TYPE cryptAlgo;
-	const int blockSize;
-	const char *algoName;
-	int minKeySize;						/* Non-const */
-	int keySize;						/* Non-const */
-	int maxKeySize;						/* Non-const */
-	int ( *selfTestFunction )( void );
-	int ( *getInfoFunction )( const CAPABILITY_INFO_TYPE type, 
-							  void *varParam, const int constParam );
-	int ( *endFunction )( struct CI *contextInfoPtr );
-	int ( *initKeyParamsFunction )( struct CI *contextInfoPtr, const void *iv, 
-									const int ivLength, const CRYPT_MODE_TYPE mode );
-	int ( *initKeyFunction )( struct CI *contextInfoPtr, const void *key, 
-							  const int keyLength );
-	int ( *generateKeyFunction )( struct CI *contextInfoPtr, const int keySizeBits );
-	int ( *encryptFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *decryptFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *encryptCBCFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *decryptCBCFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *encryptCFBFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *decryptCFBFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *encryptOFBFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *decryptOFBFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *signFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *sigCheckFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int param1, param2, param3, param4;	/* Non-const */
-	struct CA *next;
-	} VARIABLE_CAPABILITY_INFO;
-
 /* Templates for the various capabilities.  These contain only basic 
    information, the remaining fields are filled in when the capability is 
    set up */
 
-#define bits(x)	bitsToBytes(x)
-
 static CAPABILITY_INFO FAR_BSS capabilityTemplates[] = {
 	/* Encryption capabilities */
-	{ CRYPT_ALGO_DES, bits( 64 ), "DES",
-		bits( 40 ), bits( 64 ), bits( 64 ) },
-	{ CRYPT_ALGO_3DES, bits( 64 ), "3DES",
-		bits( 64 + 8 ), bits( 128 ), bits( 192 ) },
-	{ CRYPT_ALGO_IDEA, bits( 64 ), "IDEA",
-		bits( 40 ), bits( 128 ), bits( 128 ) },
-	{ CRYPT_ALGO_CAST, bits( 64 ), "CAST-128",
-		bits( 40 ), bits( 128 ), bits( 128 ) },
-	{ CRYPT_ALGO_RC2, bits( 64 ), "RC2",
-		bits( 40 ), bits( 128 ), bits( 1024 ) },
-	{ CRYPT_ALGO_RC4, bits( 8 ), "RC4",
-		bits( 40 ), bits( 128 ), 256 },
-	{ CRYPT_ALGO_RC5, bits( 64 ), "RC5",
-		bits( 40 ), bits( 128 ), bits( 832 ) },
-	{ CRYPT_ALGO_AES, bits( 128 ), "AES",
-		bits( 128 ), bits( 128 ), bits( 256 ) },
-	{ CRYPT_ALGO_SKIPJACK, bits( 64 ), "Skipjack",
-		bits( 80 ), bits( 80 ), bits( 80 ) },
+	{ CRYPT_ALGO_DES, bitsToBytes( 64 ), "DES",
+		bitsToBytes( 40 ), bitsToBytes( 64 ), bitsToBytes( 64 ) },
+	{ CRYPT_ALGO_3DES, bitsToBytes( 64 ), "3DES",
+		bitsToBytes( 64 + 8 ), bitsToBytes( 128 ), bitsToBytes( 192 ) },
+	{ CRYPT_ALGO_IDEA, bitsToBytes( 64 ), "IDEA",
+		bitsToBytes( 40 ), bitsToBytes( 128 ), bitsToBytes( 128 ) },
+	{ CRYPT_ALGO_CAST, bitsToBytes( 64 ), "CAST-128",
+		bitsToBytes( 40 ), bitsToBytes( 128 ), bitsToBytes( 128 ) },
+	{ CRYPT_ALGO_RC2, bitsToBytes( 64 ), "RC2",
+		bitsToBytes( 40 ), bitsToBytes( 128 ), bitsToBytes( 1024 ) },
+	{ CRYPT_ALGO_RC4, bitsToBytes( 8 ), "RC4",
+		bitsToBytes( 40 ), bitsToBytes( 128 ), 256 },
+	{ CRYPT_ALGO_RC5, bitsToBytes( 64 ), "RC5",
+		bitsToBytes( 40 ), bitsToBytes( 128 ), bitsToBytes( 832 ) },
+	{ CRYPT_ALGO_AES, bitsToBytes( 128 ), "AES",
+		bitsToBytes( 128 ), bitsToBytes( 128 ), bitsToBytes( 256 ) },
+	{ CRYPT_ALGO_SKIPJACK, bitsToBytes( 64 ), "Skipjack",
+		bitsToBytes( 80 ), bitsToBytes( 80 ), bitsToBytes( 80 ) },
 
 	/* Hash capabilities */
-	{ CRYPT_ALGO_MD2, bits( 128 ), "MD2",
-		bits( 0 ), bits( 0 ), bits( 0 ) },
-	{ CRYPT_ALGO_MD4, bits( 128 ), "MD4",
-		bits( 0 ), bits( 0 ), bits( 0 ) },
-	{ CRYPT_ALGO_MD5, bits( 128 ), "MD5",
-		bits( 0 ), bits( 0 ), bits( 0 ) },
-	{ CRYPT_ALGO_SHA, bits( 160 ), "SHA",
-		bits( 0 ), bits( 0 ), bits( 0 ) },
-	{ CRYPT_ALGO_RIPEMD160, bits( 160 ), "RIPEMD-160",
-		bits( 0 ), bits( 0 ), bits( 0 ) },
+	{ CRYPT_ALGO_MD2, bitsToBytes( 128 ), "MD2",
+		bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ) },
+	{ CRYPT_ALGO_MD4, bitsToBytes( 128 ), "MD4",
+		bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ) },
+	{ CRYPT_ALGO_MD5, bitsToBytes( 128 ), "MD5",
+		bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ) },
+	{ CRYPT_ALGO_SHA, bitsToBytes( 160 ), "SHA",
+		bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ) },
+	{ CRYPT_ALGO_RIPEMD160, bitsToBytes( 160 ), "RIPEMD-160",
+		bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ) },
 
 	/* Public-key capabilities */
-	{ CRYPT_ALGO_RSA, bits( 0 ), "RSA",
-		bits( 512 ), bits( 1024 ), CRYPT_MAX_PKCSIZE },
-	{ CRYPT_ALGO_DSA, bits( 0 ), "DSA",
-		bits( 512 ), bits( 1024 ), CRYPT_MAX_PKCSIZE },
+	{ CRYPT_ALGO_RSA, bitsToBytes( 0 ), "RSA",
+		bitsToBytes( 512 ), bitsToBytes( 1024 ), CRYPT_MAX_PKCSIZE },
+	{ CRYPT_ALGO_DSA, bitsToBytes( 0 ), "DSA",
+		bitsToBytes( 512 ), bitsToBytes( 1024 ), CRYPT_MAX_PKCSIZE },
 
 	/* Hier ist der Mast zu ende */
 	{ CRYPT_ERROR }
@@ -3272,7 +3239,7 @@ static CAPABILITY_INFO *addCapability( const DEVICE_INFO *deviceInfo,
 		}
 
 	/* Set up the device-specific handlers */
-	capabilityInfo->getInfoFunction = getInfo;
+	capabilityInfo->getInfoFunction = getDefaultInfo;
 	if( mechanismInfoPtr->cryptAlgo != CRYPT_ALGO_RSA && \
 		mechanismInfoPtr->cryptAlgo != CRYPT_ALGO_DSA )
 		capabilityInfo->initKeyParamsFunction = initKeyParams;
@@ -3329,29 +3296,32 @@ static CAPABILITY_INFO *addCapability( const DEVICE_INFO *deviceInfo,
 
 static void freeCapabilities( DEVICE_INFO *deviceInfo )
 	{
-	CAPABILITY_INFO *capabilityInfoPtr = \
-				( CAPABILITY_INFO * ) deviceInfo->capabilityInfo;
+	CAPABILITY_INFO_LIST *capabilityInfoListPtr = \
+				( CAPABILITY_INFO_LIST * ) deviceInfo->capabilityInfoList;
 
 	/* If the list was empty, return now */
-	if( capabilityInfoPtr == NULL )
+	if( capabilityInfoListPtr == NULL )
 		return;
-	deviceInfo->capabilityInfo = NULL;
+	deviceInfo->capabilityInfoList = NULL;
 
-	while( capabilityInfoPtr != NULL )
+	while( capabilityInfoListPtr != NULL )
 		{
-		CAPABILITY_INFO *itemToFree = capabilityInfoPtr;
+		CAPABILITY_INFO_LIST *listItemToFree = capabilityInfoListPtr;
+		CAPABILITY_INFO *itemToFree = ( CAPABILITY_INFO * ) listItemToFree->info;
 
-		capabilityInfoPtr = capabilityInfoPtr->next;
+		capabilityInfoListPtr = capabilityInfoListPtr->next;
 		zeroise( itemToFree, sizeof( CAPABILITY_INFO ) );
 		clFree( "freeCapabilities", itemToFree );
+		zeroise( listItemToFree, sizeof( CAPABILITY_INFO_LIST ) );
+		clFree( "freeCapabilities", listItemToFree );
 		}
 	}
 
 static int getCapabilities( DEVICE_INFO *deviceInfo )
 	{
 	CRYPTOAPI_INFO *cryptoapiInfo = deviceInfo->deviceCryptoAPI;
-	CAPABILITY_INFO *capabilityListTail = \
-				( CAPABILITY_INFO * ) deviceInfo->capabilityInfo;
+	CAPABILITY_INFO_LIST *capabilityInfoListTail = \
+				( CAPABILITY_INFO_LIST * ) deviceInfo->capabilityInfoList;
 	PROV_ENUMALGS_EX capiAlgoInfo;
 	int length = sizeof( PROV_ENUMALGS_EX );
 
@@ -3364,7 +3334,8 @@ static int getCapabilities( DEVICE_INFO *deviceInfo )
 		return( CRYPT_ERROR );
 	do
 		{
-		CAPABILITY_INFO *newCapability, *capabilityListPtr;
+		CAPABILITY_INFO_LIST *newCapabilityList, *capabilityInfoListPtr;
+		CAPABILITY_INFO *newCapability;
 		CRYPT_ALGO_TYPE cryptAlgo;
 		int i;
 
@@ -3380,14 +3351,15 @@ static int getCapabilities( DEVICE_INFO *deviceInfo )
 		cryptAlgo = mechanismInfo[ i ].cryptAlgo;
 
 		/* Check whether this is a variation of an existing capability */
-		for( capabilityListPtr = ( CAPABILITY_INFO * ) deviceInfo->capabilityInfo; 
-			 capabilityListPtr != NULL && \
-				capabilityListPtr->cryptAlgo != cryptAlgo; 
-			 capabilityListPtr = capabilityListPtr->next );
-		if( capabilityListPtr != NULL )
+		for( capabilityInfoListPtr = ( CAPABILITY_INFO_LIST * ) \
+									 deviceInfo->capabilityInfoList; 
+			 capabilityInfoListPtr != NULL && \
+				capabilityInfoListPtr->info->cryptAlgo != cryptAlgo; 
+			 capabilityInfoListPtr = capabilityInfoListPtr->next );
+		if( capabilityInfoListPtr != NULL )
 			{
 			addCapability( deviceInfo, &capiAlgoInfo, &mechanismInfo[ i ], 
-						   capabilityListPtr );
+						   capabilityInfoListPtr->info );
 			continue;
 			}
 
@@ -3412,16 +3384,25 @@ static int getCapabilities( DEVICE_INFO *deviceInfo )
 					( newCapability->cryptAlgo >= CRYPT_ALGO_FIRST_PKC && \
 					  newCapability->cryptAlgo <= CRYPT_ALGO_LAST_PKC ) ? \
 					  TRUE : FALSE ) );
-		if( deviceInfo->capabilityInfo == NULL )
-			deviceInfo->capabilityInfo = newCapability;
+		if( ( newCapabilityList = \
+						clAlloc( "getCapabilities", \
+								 sizeof( CAPABILITY_INFO_LIST ) ) ) == NULL )
+			{
+			clFree( "getCapabilities", newCapability );
+			continue;
+			}
+		newCapabilityList->info = newCapability;
+		newCapabilityList->next = NULL;
+		if( deviceInfo->capabilityInfoList == NULL )
+			deviceInfo->capabilityInfoList = newCapabilityList;
 		else
-			capabilityListTail->next = newCapability;
-		capabilityListTail = newCapability;
+			capabilityInfoListTail->next = newCapabilityList;
+		capabilityInfoListTail = newCapabilityList;
 		}
 	while( pCryptGetProvParam( cryptoapiInfo->hProv, PP_ENUMALGS_EX, 
 							   ( BYTE * ) &capiAlgoInfo, &length, 0 ) );
 
-	return( ( deviceInfo->capabilityInfo == NULL ) ? CRYPT_ERROR : CRYPT_OK );
+	return( ( deviceInfo->capabilityInfoList == NULL ) ? CRYPT_ERROR : CRYPT_OK );
 	}
 
 /****************************************************************************

@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						Certificate Usage Checking Routines					*
-*						Copyright Peter Gutmann 1997-2004					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
@@ -403,17 +403,21 @@ int checkKeyUsage( const CERT_INFO *certInfoPtr,
 		   mandatory for CA certs, we always require it at this level of
 		   checking (no doubt the next PKIX revision will make it mandatory
 		   in EE certs as well) */
-		if( complianceLevel >= CRYPT_COMPLIANCELEVEL_PKIX_PARTIAL )
+		if( isCA || complianceLevel >= CRYPT_COMPLIANCELEVEL_PKIX_PARTIAL )
 			{
 			setErrorValues( CRYPT_CERTINFO_KEYUSAGE, 
 							CRYPT_ERRTYPE_ATTR_ABSENT );
 			return( CRYPT_ERROR_INVALID );
 			}
 
-		/* Some broken certs don't have any keyUsage present, if there's
-		   nothing there allow at least some minimal usage.  Note that this 
-		   is a non-CA usage, so setting it doesn't interfere with the CA 
-		   keyUsage checks below.
+		/* Some broken certs don't have any keyUsage present, which is meant
+		   to imply that the cert can be used for any usage that the key is
+		   capable of, modulo the magic usages keyCertSign and crlSign.  To
+		   handle this, we map the algorithm type to the matching usage 
+		   types.  In theory the usage may be further modified by the cert 
+		   policy, extKeyUsage, and who knows what else, but in the presence 
+		   of a cert like that it's up to the user to sort out what they 
+		   want to do with it.
 		
 		   Some even more broken certs indicate their usage via a Netscape 
 		   key usage (even though they use X.509 flags everywhere else), 
@@ -421,7 +425,14 @@ int checkKeyUsage( const CERT_INFO *certInfoPtr,
 		   requirements at a higher compliance level.  At this lower level,
 		   fixAttributes() will have mapped the Netscape usage to the
 		   equivalent X.509 usage, so there's always a keyUsage present */
-		keyUsage = CRYPT_KEYUSAGE_DIGITALSIGNATURE;
+		keyUsage = 0;
+		if( isCryptAlgo( certInfoPtr->publicKeyAlgo ) )
+			keyUsage |= CRYPT_KEYUSAGE_KEYENCIPHERMENT;
+		if( isSigAlgo( certInfoPtr->publicKeyAlgo ) )
+			keyUsage |= CRYPT_KEYUSAGE_DIGITALSIGNATURE | \
+						CRYPT_KEYUSAGE_NONREPUDIATION;
+		if( isKeyxAlgo( certInfoPtr->publicKeyAlgo ) )
+			keyUsage |= CRYPT_KEYUSAGE_KEYAGREEMENT;
 		}
 
 	/* Apply the trusted-usage restrictions if necessary */

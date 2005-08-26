@@ -149,6 +149,15 @@ typedef enum {
 	CERTADD_LAST				/* Last valid cert-add type */
 	} CERTADD_TYPE;
 
+/* In order to make reporting of parameter errors in the multi-parameter 
+   CA management function easier, we provide symbolic defines mapping the 
+   CA management-specific parameter type to its corresponding parameter 
+   error type */
+
+#define CAMGMT_ARGERROR_CAKEY		CRYPT_ARGERROR_NUM1
+#define CAMGMT_ARGERROR_REQUEST		CRYPT_ARGERROR_NUM2
+#define CAMGMT_ARGERROR_ACTION		CRYPT_ARGERROR_VALUE
+
 /* A structure to parse the database access information into so that it can 
    be used by backend-specific connect functions */
 
@@ -217,6 +226,7 @@ int makeKeyID( char *keyIDbuffer, const int keyIDbufSize,
 int getKeyID( char *keyIDbuffer, const CRYPT_HANDLE cryptHandle,
 			  const CRYPT_ATTRIBUTE_TYPE keyIDtype );
 int getCertKeyID( char *keyID, const CRYPT_CERTIFICATE iCryptCert );
+int resetErrorInfo( DBMS_INFO *dbmsInfo );
 int getItemData( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 				 int *stateInfo, const CRYPT_KEYID_TYPE keyIDtype, 
 				 const char *keyValue, const int keyValueLength, 

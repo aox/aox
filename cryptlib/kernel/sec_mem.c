@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *							Secure Memory Management						*
-*						Copyright Peter Gutmann 1995-2004					*
+*						Copyright Peter Gutmann 1995-2005					*
 *																			*
 ****************************************************************************/
 
@@ -609,6 +609,82 @@ void krnlMemfree( void **pointer )
 	zeroise( memPtr, memBlockPtr->size );
 	clFree( "krnlMemFree", memPtr );
 #endif /* !__BEOS__ */
+	*pointer = NULL;
+	}
+
+/****************************************************************************
+*																			*
+*					ChorusOS Secure Memory Allocation Functions				*
+*																			*
+****************************************************************************/
+
+#elif defined( __CHORUS__ )
+
+/* ChorusOS is one of the very few embedded OSes with paging capabilities,
+   fortunately there's a way to allocate nonpageable memory if paging is
+   enabled */
+
+#include <mem/chMem.h>
+
+/* A safe malloc function that performs page locking if possible */
+
+int krnlMemalloc( void **pointer, int size )
+	{
+	MEMLOCK_INFO *memBlockPtr;
+	BYTE *memPtr;
+	KnRgnDesc rgnDesc = { K_ANYWHERE, size + MEMLOCK_HEADERSIZE, \
+						  K_WRITEABLE | K_NODEMAND };
+
+	checkInitAlloc( pointer, size );
+
+	/* Try and allocate the memory */
+	adjustMemCanary( size );	/* For canary at end of block */
+	if( rgnAllocate( K_MYACTOR, &rgnDesc ) != K_OK )
+		return( CRYPT_ERROR_MEMORY );
+	memPtr = rgnDesc.startAddr;
+	memset( memPtr, 0, size + MEMLOCK_HEADERSIZE );
+	memBlockPtr = ( MEMLOCK_INFO * ) memPtr;
+	memBlockPtr->isLocked = FALSE;
+	memBlockPtr->size = size + MEMLOCK_HEADERSIZE;
+	insertMemCanary( memBlockPtr, memPtr );
+	*pointer = memPtr + MEMLOCK_HEADERSIZE;
+
+	/* Lock the memory list, insert the new block, and unlock it again */
+	MUTEX_LOCK( allocation );
+	insertMemBlock( krnlData->allocatedListHead, krnlData->allocatedListTail,
+					memBlockPtr );
+	MUTEX_UNLOCK( allocation );
+
+	return( CRYPT_OK );
+	}
+
+/* A safe free function that scrubs memory and zeroes the pointer.
+
+	"You will softly and suddenly vanish away
+	 And never be met with again"	- Lewis Carroll,
+									  "The Hunting of the Snark" */
+
+void krnlMemfree( void **pointer )
+	{
+	MEMLOCK_INFO *memBlockPtr;
+	BYTE *memPtr;
+	KnRgnDesc rgnDesc = { K_ANYWHERE, 0, 0 };
+
+	checkInitFree( pointer, memPtr, memBlockPtr );
+
+	/* Lock the memory list, unlink the new block, and unlock it again */
+	MUTEX_LOCK( allocation );
+	checkMemCanary( memBlockPtr, memPtr );
+	unlinkMemBlock( krnlData->allocatedListHead, krnlData->allocatedListTail,
+					memBlockPtr );
+	MUTEX_UNLOCK( allocation );
+
+	/* Zeroise the memory (including the memlock info), free it, and zero
+	   the pointer */
+	rgnDesc.size = memBlockPtr->size;
+	rgnDesc.startAddr = memPtr;
+	zeroise( memPtr, memBlockPtr->size );
+	rgnFree( K_MYACTOR, &rgnDesc );
 	*pointer = NULL;
 	}
 

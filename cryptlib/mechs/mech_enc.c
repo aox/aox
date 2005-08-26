@@ -22,6 +22,10 @@
   #include "misc/asn1.h"
 #endif /* Compiler-specific includes */
 
+/* Prototypes for kernel-internal access functions */
+
+int extractKeyData( const CRYPT_CONTEXT iCryptContext, void *keyData );
+
 /****************************************************************************
 *																			*
 *								Utility Routines							*
@@ -146,7 +150,7 @@ int pgpExtractKey( CRYPT_CONTEXT *iCryptContext, STREAM *stream,
 	if( cryptAlgo == CRYPT_ALGO_NONE )
 		return( CRYPT_ERROR_NOTAVAIL );
 
-	/* Create the context and load the key into it */
+	/* Create the context ready to have the key loaded into it */
 	setMessageCreateObjectInfo( &createInfo, cryptAlgo );
 	status = krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_DEV_CREATEOBJECT,
 							  &createInfo, OBJECT_TYPE_CONTEXT );
@@ -174,7 +178,6 @@ typedef enum { PKCS1_WRAP_NORMAL, PKCS1_WRAP_RAW, PKCS1_WRAP_PGP } PKCS1_WRAP_TY
 static int pkcs1Wrap( MECHANISM_WRAP_INFO *mechanismInfo,
 					  const PKCS1_WRAP_TYPE type )
 	{
-	int extractKeyData( const CRYPT_CONTEXT iCryptContext, void *keyData );
 	CRYPT_ALGO_TYPE cryptAlgo;
 	RESOURCE_DATA msgData;
 	BYTE *wrappedData = mechanismInfo->wrappedData, *dataPtr;
@@ -546,7 +549,6 @@ static int cmsGetPadSize( const CRYPT_CONTEXT iExportContext,
 
 int exportCMS( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo )
 	{
-	int extractKeyData( const CRYPT_CONTEXT iCryptContext, void *keyData );
 	BYTE *keyBlockPtr = ( BYTE * ) mechanismInfo->wrappedData;
 	int payloadSize, padSize, status = CRYPT_OK;
 

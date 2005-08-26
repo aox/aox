@@ -31,12 +31,17 @@
 
 #define ENCRYPT_CHECKSIZE	16
 
+/* Prototypes for functions in ctx_misc.c */
+
+const CAPABILITY_INFO FAR_BSS *findCapabilityInfo(
+					const CAPABILITY_INFO_LIST *capabilityInfoList,
+					const CRYPT_ALGO_TYPE cryptAlgo );
+
 /* Prototypes for functions in keyload.c */
 
 void initKeyHandling( CONTEXT_INFO *contextInfoPtr );
 int initKeyParams( CONTEXT_INFO *contextInfoPtr, const void *iv,
 				   const int ivLength, const CRYPT_MODE_TYPE mode );
-int getKeysize( CONTEXT_INFO *contextInfoPtr, const int requestedKeyLength );
 
 /****************************************************************************
 *																			*
@@ -103,27 +108,6 @@ static int attributeToFormatType( const CRYPT_ATTRIBUTE_TYPE attribute )
 	return( CRYPT_ERROR );	/* Get rid of compiler warning */
 	}
 
-/* Get object subtype-specific information.  This is a shared function that 
-   can be overridden on a per-object-type basis, usually individual values
-   are handled in the override function and anything that's left gets passed
-   down here */
-
-int getInfo( const CAPABILITY_INFO_TYPE type, 
-			 void *varParam, const int constParam )
-	{
-	switch( type )
-		{
-		case CAPABILITY_INFO_KEYSIZE:
-			return( getKeysize( varParam, constParam ) );
-
-		case CAPABILITY_INFO_STATESIZE:
-			return( 0 );
-		}
-
-	assert( NOTREACHED );
-	return( CRYPT_ERROR );	/* Get rid of compiler warning */
-	}
-
 /* Clear temporary bignum values used during PKC operations */
 
 void clearTempBignums( PKC_INFO *pkcInfo )
@@ -132,167 +116,6 @@ void clearTempBignums( PKC_INFO *pkcInfo )
 	BN_clear( &pkcInfo->tmp2 );
 	BN_clear( &pkcInfo->tmp3 );
 	BN_CTX_clear( &pkcInfo->bnCTX );
-	}
-
-/****************************************************************************
-*																			*
-*						Capability Management Functions						*
-*																			*
-****************************************************************************/
-
-/* Check that a capability info record is consistent.  This is a complex
-   function which is called from an assert() macro, so we only need to define
-   it when we're building the debug version of the code */
-
-#ifndef NDEBUG
-
-BOOLEAN capabilityInfoOK( const CAPABILITY_INFO *capabilityInfoPtr,
-						  const BOOLEAN asymmetricOK )
-	{
-	CRYPT_ALGO_TYPE cryptAlgo = capabilityInfoPtr->cryptAlgo;
-
-	/* Check the algorithm and mode parameters */
-	if( cryptAlgo <= CRYPT_ALGO_NONE || cryptAlgo >= CRYPT_ALGO_LAST_MAC || \
-		capabilityInfoPtr->algoName == NULL )
-		return( FALSE );
-
-	/* Make sure that the minimum functions are present */
-	if( isStreamCipher( cryptAlgo ) )
-		{
-		if( capabilityInfoPtr->encryptOFBFunction == NULL || \
-			capabilityInfoPtr->decryptOFBFunction == NULL )
-			return( FALSE );
-		}
-	else
-		if( asymmetricOK )
-			{
-			/* If asymmetric capabilities (e.g. decrypt but not encrypt,
-			   present in some tinkertoy tokens) are OK, we only check
-			   that there's at least one useful capability available */
-			if( capabilityInfoPtr->decryptFunction == NULL && \
-				capabilityInfoPtr->signFunction == NULL )
-				return( FALSE );
-			}
-		else
-			/* We need at least one mechanism pair to be able to do anything
-			   useful with the capability */
-			if( ( capabilityInfoPtr->encryptFunction == NULL || \
-				  capabilityInfoPtr->decryptFunction == NULL ) && \
-				( capabilityInfoPtr->encryptCBCFunction == NULL || \
-				  capabilityInfoPtr->decryptCBCFunction == NULL ) && \
-				( capabilityInfoPtr->encryptCFBFunction == NULL || \
-				  capabilityInfoPtr->decryptCFBFunction == NULL ) && \
-				( capabilityInfoPtr->encryptOFBFunction == NULL || \
-				  capabilityInfoPtr->decryptOFBFunction == NULL ) && \
-				( capabilityInfoPtr->signFunction == NULL || \
-				  capabilityInfoPtr->sigCheckFunction == NULL ) )
-				return( FALSE );
-
-	/* Make sure that the algorithm/mode names will fit inside the query
-	   information structure */
-	if( strlen( capabilityInfoPtr->algoName ) > CRYPT_MAX_TEXTSIZE - 1 )
-		return( FALSE );
-
-	/* Make sure that the algorithm/mode-specific parameters are
-	   consistent */
-	if( capabilityInfoPtr->minKeySize > capabilityInfoPtr->keySize || \
-		capabilityInfoPtr->maxKeySize < capabilityInfoPtr->keySize )
-		return( FALSE );
-	if( cryptAlgo >= CRYPT_ALGO_FIRST_CONVENTIONAL && \
-		cryptAlgo <= CRYPT_ALGO_LAST_CONVENTIONAL )
-		{
-		if( ( capabilityInfoPtr->blockSize < bitsToBytes( 8 ) || \
-        	  capabilityInfoPtr->blockSize > CRYPT_MAX_IVSIZE ) || \
-			( capabilityInfoPtr->minKeySize < bitsToBytes( MIN_KEYSIZE_BITS ) || \
-			  capabilityInfoPtr->maxKeySize > CRYPT_MAX_KEYSIZE ) )
-			return( FALSE );
-		if( capabilityInfoPtr->initKeyParamsFunction == NULL || \
-			capabilityInfoPtr->initKeyFunction == NULL )
-			return( FALSE );
-		if( !isStreamCipher( cryptAlgo ) && \
-			 capabilityInfoPtr->blockSize < bitsToBytes( 64 ) )
-			return( FALSE );
-		if( ( capabilityInfoPtr->encryptCBCFunction != NULL && \
-			  capabilityInfoPtr->decryptCBCFunction == NULL ) || \
-			( capabilityInfoPtr->encryptCBCFunction == NULL && \
-			  capabilityInfoPtr->decryptCBCFunction != NULL ) )
-			return( FALSE );
-		if( ( capabilityInfoPtr->encryptCFBFunction != NULL && \
-			  capabilityInfoPtr->decryptCFBFunction == NULL ) || \
-			( capabilityInfoPtr->encryptCFBFunction == NULL && \
-			  capabilityInfoPtr->decryptCFBFunction != NULL ) )
-			return( FALSE );
-		if( ( capabilityInfoPtr->encryptOFBFunction != NULL && \
-			  capabilityInfoPtr->decryptOFBFunction == NULL ) || \
-			( capabilityInfoPtr->encryptOFBFunction == NULL && \
-			  capabilityInfoPtr->decryptOFBFunction != NULL ) )
-			return( FALSE );
-		}
-	if( cryptAlgo >= CRYPT_ALGO_FIRST_PKC && \
-		cryptAlgo <= CRYPT_ALGO_LAST_PKC )
-		{
-		if( capabilityInfoPtr->blockSize || \
-			( capabilityInfoPtr->minKeySize < bitsToBytes( MIN_PKCSIZE_BITS ) || \
-			  capabilityInfoPtr->maxKeySize > CRYPT_MAX_PKCSIZE ) )
-			return( FALSE );
-		if( capabilityInfoPtr->initKeyFunction == NULL )
-			return( FALSE );
-		}
-	if( cryptAlgo >= CRYPT_ALGO_FIRST_HASH && \
-		cryptAlgo <= CRYPT_ALGO_LAST_HASH )
-		{
-		if( ( capabilityInfoPtr->blockSize < bitsToBytes( 128 ) || \
-			  capabilityInfoPtr->blockSize > CRYPT_MAX_HASHSIZE ) || \
-			( capabilityInfoPtr->minKeySize || capabilityInfoPtr->keySize || \
-			  capabilityInfoPtr->maxKeySize ) )
-			return( FALSE );
-		}
-	if( cryptAlgo >= CRYPT_ALGO_FIRST_MAC && \
-		cryptAlgo <= CRYPT_ALGO_LAST_MAC )
-		{
-		if( ( capabilityInfoPtr->blockSize < bitsToBytes( 128 ) || \
-			  capabilityInfoPtr->blockSize > CRYPT_MAX_HASHSIZE ) || \
-			( capabilityInfoPtr->minKeySize < bitsToBytes( MIN_KEYSIZE_BITS ) || \
-			  capabilityInfoPtr->maxKeySize > CRYPT_MAX_KEYSIZE ) )
-			return( FALSE );
-		if( capabilityInfoPtr->initKeyFunction == NULL )
-			return( FALSE );
-		}
-
-	return( TRUE );
-	}
-#endif /* !NDEBUG */
-
-/* Get information from a capability record */
-
-void getCapabilityInfo( CRYPT_QUERY_INFO *cryptQueryInfo,
-						const CAPABILITY_INFO FAR_BSS *capabilityInfoPtr )
-	{
-	memset( cryptQueryInfo, 0, sizeof( CRYPT_QUERY_INFO ) );
-	strcpy( ( char * ) cryptQueryInfo->algoName, 
-			capabilityInfoPtr->algoName );
-	cryptQueryInfo->blockSize = capabilityInfoPtr->blockSize;
-	cryptQueryInfo->minKeySize = capabilityInfoPtr->minKeySize;
-	cryptQueryInfo->keySize = capabilityInfoPtr->keySize;
-	cryptQueryInfo->maxKeySize = capabilityInfoPtr->maxKeySize;
-	}
-
-/* Find the capability record for a given encryption algorithm */
-
-const CAPABILITY_INFO FAR_BSS *findCapabilityInfo(
-					const CAPABILITY_INFO FAR_BSS *capabilityInfoList,
-					const CRYPT_ALGO_TYPE cryptAlgo )
-	{
-	const CAPABILITY_INFO *capabilityInfoPtr;
-
-	/* Find the capability corresponding to the requested algorithm/mode */
-	for( capabilityInfoPtr = capabilityInfoList;
-		 capabilityInfoPtr != NULL;
-		 capabilityInfoPtr = capabilityInfoPtr->next )
-		if( capabilityInfoPtr->cryptAlgo == cryptAlgo )
-			return( capabilityInfoPtr );
-
-	return( NULL );
 	}
 
 /****************************************************************************

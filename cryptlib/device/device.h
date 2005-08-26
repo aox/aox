@@ -94,7 +94,7 @@ typedef struct {
 	void *hCertStore;				/* Cert store for key/cert storage */
 	int hPrivateKey;				/* Key for session key import/export */
 	int privateKeySize;				/* Size of import/export key */
-	void *hCertChain;				/* Cached copy of current cert chain */
+	const void *hCertChain;			/* Cached copy of current cert chain */
 
 	/* Last-error information returned from lower-level code */
 	int errorCode;
@@ -153,7 +153,7 @@ typedef struct DI {
 	   following list.  When we need to create an object via the device, we
 	   look up the requirements in the capability info and feed it to
 	   createObjectFromCapability() */
-	const void FAR_BSS *capabilityInfo;
+	const void *capabilityInfoList;
 
 	/* Device type-specific information */
 	union {

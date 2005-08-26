@@ -984,11 +984,11 @@ int iCryptImportKeyEx( const void *encryptedKey, const int encryptedKeyLength,
 	assert( isReadPtr( encryptedKey, encryptedKeyLength ) );
 	assert( formatType > CRYPT_FORMAT_NONE && \
 			formatType < CRYPT_FORMAT_LAST );
-	assert( checkHandleRange( iImportKey ) );
+	assert( isHandleRangeValid( iImportKey ) );
 	assert( ( formatType == CRYPT_FORMAT_PGP && \
 			  iSessionKeyContext == CRYPT_UNUSED ) || \
 			( formatType != CRYPT_FORMAT_PGP && \
-			  checkHandleRange( iSessionKeyContext ) ) );
+			  isHandleRangeValid( iSessionKeyContext ) ) );
 	assert( ( formatType == CRYPT_FORMAT_PGP && \
 			  iReturnedContext != NULL ) || \
 			( formatType != CRYPT_FORMAT_PGP && \
@@ -1030,7 +1030,7 @@ int iCryptExportKeyEx( void *encryptedKey, int *encryptedKeyLength,
 	assert( isWritePtr( encryptedKeyLength, sizeof( int ) ) );
 	assert( formatType > CRYPT_FORMAT_NONE && \
 			formatType < CRYPT_FORMAT_LAST );
-	assert( checkHandleRange( iExportKey ) );
+	assert( isHandleRangeValid( iExportKey ) );
 
 	/* Clear return value */
 	*encryptedKeyLength = 0;

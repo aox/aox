@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib Skipjack Encryption Routines					*
-*						Copyright Peter Gutmann 1992-1998					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,23 +9,21 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
 #endif /* Compiler-specific includes */
 
-#ifdef USE_SKIPJACK
+#ifdef USE_SKIPJACK 
 
 /* Size of the Skipjack block and key size */
 
-#define SKIPJACK_KEYSIZE	10
-#define SKIPJACK_BLOCKSIZE	8
+#define SKIPJACK_KEYSIZE			10
+#define SKIPJACK_BLOCKSIZE			8
+#define SKIPJACK_EXPANDED_KEYSIZE	SKIPJACK_KEYSIZE * 256
 
 /* Prototypes for functions in crypt/skipjack.c */
 
@@ -58,18 +56,28 @@ static const FAR_BSS struct SKIPJACK_TEST {
 
 /* Test the Skipjack code against the Skipjack test vectors */
 
-int skipjackSelfTest( void )
+static int selfTest( void )
 	{
+	const CAPABILITY_INFO *capabilityInfo = getSkipjackCapability();
+	CONTEXT_INFO contextInfo;
+	CONV_INFO contextData;
+	BYTE keyData[ SKIPJACK_EXPANDED_KEYSIZE ];
 	BYTE temp[ SKIPJACK_BLOCKSIZE ];
-	BYTE sjKey[ 10 ][ 256 ];
-	int i;
+	int i, status;
 
 	for( i = 0; i < sizeof( testSkipjack ) / sizeof( struct SKIPJACK_TEST ); i++ )
 		{
+		staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+						   &contextData, sizeof( CONV_INFO ), keyData );
 		memcpy( temp, testSkipjack[ i ].plainText, SKIPJACK_BLOCKSIZE );
-		skipjackMakeKey( ( BYTE * ) testSkipjack[ i ].key, sjKey );
-		skipjackEncrypt( sjKey, temp, temp );
-		if( memcmp( testSkipjack[ i ].cipherText, temp, SKIPJACK_BLOCKSIZE ) )
+		status = capabilityInfo->initKeyFunction( &contextInfo, 
+					( BYTE * ) testSkipjack[ i ].key, SKIPJACK_KEYSIZE );
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, temp, 
+													  SKIPJACK_BLOCKSIZE );
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) || \
+			memcmp( testSkipjack[ i ].cipherText, temp, SKIPJACK_BLOCKSIZE ) )
 			return( CRYPT_ERROR );
 		}
 
@@ -84,13 +92,13 @@ int skipjackSelfTest( void )
 
 /* Return context subtype-specific information */
 
-int skipjackGetInfo( const CAPABILITY_INFO_TYPE type, 
-					 void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
-		return( SKIPJACK_KEYSIZE * 256 );
+		return( SKIPJACK_EXPANDED_KEYSIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -101,12 +109,13 @@ int skipjackGetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Encrypt/decrypt data in ECB mode */
 
-int skipjackEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int blockCount = noBytes / SKIPJACK_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Encrypt a block of data */
 		skipjackEncrypt( convInfo->key, buffer, buffer );
@@ -118,12 +127,13 @@ int skipjackEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 	return( CRYPT_OK );
 	}
 
-int skipjackDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int blockCount = noBytes / SKIPJACK_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Decrypt a block of data */
 		skipjackDecrypt( convInfo->key, buffer, buffer );
@@ -137,12 +147,13 @@ int skipjackDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 
 /* Encrypt/decrypt data in CBC mode */
 
-int skipjackEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int blockCount = noBytes / SKIPJACK_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		int i;
 
@@ -163,13 +174,14 @@ int skipjackEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 	return( CRYPT_OK );
 	}
 
-int skipjackDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BYTE temp[ SKIPJACK_BLOCKSIZE ];
 	int blockCount = noBytes / SKIPJACK_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		int i;
 
@@ -198,13 +210,14 @@ int skipjackDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 
 /* Encrypt/decrypt data in CFB mode */
 
-int skipjackEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -224,7 +237,7 @@ int skipjackEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > SKIPJACK_BLOCKSIZE ) ? SKIPJACK_BLOCKSIZE : \
 													 noBytes;
@@ -255,14 +268,15 @@ int skipjackEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
    faster (but less clear) with temp = buffer, buffer ^= iv, iv = temp
    all in one loop */
 
-int skipjackDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BYTE temp[ SKIPJACK_BLOCKSIZE ];
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -283,7 +297,7 @@ int skipjackDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > SKIPJACK_BLOCKSIZE ) ? SKIPJACK_BLOCKSIZE : \
 													 noBytes;
@@ -318,13 +332,14 @@ int skipjackDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 
 /* Encrypt/decrypt data in OFB mode */
 
-int skipjackEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -343,7 +358,7 @@ int skipjackEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > SKIPJACK_BLOCKSIZE ) ? SKIPJACK_BLOCKSIZE : \
 													 noBytes;
@@ -369,13 +384,14 @@ int skipjackEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 
 /* Decrypt data in OFB mode */
 
-int skipjackDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -394,7 +410,7 @@ int skipjackDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > SKIPJACK_BLOCKSIZE ) ? SKIPJACK_BLOCKSIZE : \
 													 noBytes;
@@ -426,8 +442,8 @@ int skipjackDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes 
 
 /* Key schedule a Skipjack key */
 
-int skipjackInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-					 const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -442,4 +458,24 @@ int skipjackInitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	skipjackMakeKey( ( BYTE * ) key, convInfo->key );
 	return( CRYPT_OK );
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_SKIPJACK, bitsToBytes( 64 ), "Skipjack",
+	bitsToBytes( 80 ), bitsToBytes( 80 ), bitsToBytes( 80 ),
+	selfTest, getInfo, NULL, initKeyParams, initKey, NULL,
+	encryptECB, decryptECB, encryptCBC, decryptCBC,
+	encryptCFB, decryptCFB, encryptOFB, decryptOFB
+	};
+
+const CAPABILITY_INFO *getSkipjackCapability( void )
+	{
+	return( &capabilityInfo );
+	}
+
 #endif /* USE_SKIPJACK */

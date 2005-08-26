@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib Secure Session Routines					*
-*						Copyright Peter Gutmann 1998-2003					*
+*						Copyright Peter Gutmann 1998-2005					*
 *																			*
 ****************************************************************************/
 
@@ -75,6 +75,57 @@ int retExtFnSession( SESSION_INFO *sessionInfoPtr, const int status,
 	return( cryptArgError( status ) ? CRYPT_ERROR_FAILED : status );
 	}
 
+int retExtExFnSession( SESSION_INFO *sessionInfoPtr, 
+					   const int status, const CRYPT_HANDLE extErrorObject, 
+					   const char *format, ... )
+	{
+	RESOURCE_DATA msgData;
+	va_list argPtr;
+	int extErrorStatus;
+
+	/* Check whether there's any additional error information available */
+	va_start( argPtr, format );
+	setMessageData( &msgData, NULL, 0 );
+	extErrorStatus = krnlSendMessage( extErrorObject, MESSAGE_GETATTRIBUTE_S,
+									  &msgData, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE );
+	if( cryptStatusOK( extErrorStatus ) )
+		{
+		char errorString[ MAX_ERRMSG_SIZE + 1 ];
+		char extraErrorString[ MAX_ERRMSG_SIZE + 1 ];
+		int errorStringLen, extraErrorStringLen;
+
+		/* There's additional information present via the additional object, 
+		   fetch it and append it to the session-level error message */
+		setMessageData( &msgData, extraErrorString, MAX_ERRMSG_SIZE );
+		extErrorStatus = krnlSendMessage( extErrorObject, MESSAGE_GETATTRIBUTE_S,
+										  &msgData, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE );
+		if( cryptStatusOK( extErrorStatus ) )
+			extraErrorString[ msgData.length ] = '\0';
+		else
+			strcpy( extraErrorString, "(None available)" );
+		extraErrorStringLen = strlen( extraErrorString );
+		vsnprintf( errorString, MAX_ERRMSG_SIZE, format, argPtr );
+		errorStringLen = strlen( errorString );
+		if( errorStringLen < MAX_ERRMSG_SIZE - 64 )
+			{
+			const int extErrorLenToCopy = \
+							min( MAX_ERRMSG_SIZE - ( 32 + errorStringLen ), 
+								 extraErrorStringLen );
+
+			strcpy( errorString + errorStringLen, ". Additional information: " );
+			memcpy( errorString + errorStringLen + 26, extraErrorString,
+					extErrorLenToCopy );
+			errorString[ errorStringLen + 26 + extErrorLenToCopy ] = '\0';
+			}
+		strcpy( sessionInfoPtr->errorMessage, errorString );
+		}
+	else
+		vsnprintf( sessionInfoPtr->errorMessage, MAX_ERRMSG_SIZE, format, argPtr ); 
+	va_end( argPtr );
+	assert( !cryptArgError( status ) );	/* Catch leaks */
+	return( cryptArgError( status ) ? CRYPT_ERROR_FAILED : status );
+	}
+
 /* Reset the internal virtual cursor in a attribute-list item after we've 
    moved the attribute cursor */
 
@@ -85,11 +136,12 @@ int retExtFnSession( SESSION_INFO *sessionInfoPtr, const int status,
 /* Helper function used to access internal attributes within an attribute 
    group */
 
+#if 0	/* Currently unused, will be enabled in 3.3 with the move to 
+		   composite attributes for host/client info */
+
 static int accessFunction( ATTRIBUTE_LIST *attributeListPtr,
 						   const ATTR_TYPE attrGetType )
 	{
-#if 0	/* Currently unused, will be enabled in 3.2 with the move to 
-		   composite attributes for host/client info */
 	static const CRYPT_ATTRIBUTE_TYPE attributeOrderList[] = {
 				CRYPT_SESSINFO_NAME, CRYPT_SESSINFO_PASSWORD,
 				CRYPT_SESSINFO_KEY, CRYPT_ATTRIBUTE_NONE, 
@@ -161,10 +213,10 @@ static int accessFunction( ATTRIBUTE_LIST *attributeListPtr,
 		}
 	while( doContinue );
 	attributeListPtr->attributeCursorEntry = attributeType;
-#endif /* 0 */
 	
 	return( TRUE );
 	}
+#endif /* 0 */
 
 /* Callback function used to provide external access to attribute list-
    internal fields */
@@ -1137,8 +1189,8 @@ static int processSetAttributeS( SESSION_INFO *sessionInfoPtr,
 				{
 				/* The caller has specified the use of the altnernate 
 				   transport protocol type, switch to that instead of HTTP */
-				sessionInfoPtr->flags &= ~SESSION_ISHTTPTRANSPORT;
-				sessionInfoPtr->flags |= SESSION_USEALTTRANSPORT;
+				sessionInfoPtr->flags &= ~protocolInfoPtr->altProtocolInfo->oldFlagsMask;
+				sessionInfoPtr->flags |= protocolInfoPtr->altProtocolInfo->newFlags;
 				}
 			else
 				if( sessionInfoPtr->protocolInfo->flags & SESSION_ISHTTPTRANSPORT )

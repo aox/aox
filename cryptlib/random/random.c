@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					cryptlib Randomness Management Routines					*
-*						Copyright Peter Gutmann 1995-2004					*
+*						Copyright Peter Gutmann 1995-2005					*
 *																			*
 ****************************************************************************/
 
@@ -80,13 +80,10 @@
   #error You need to create OS-specific randomness-gathering functions in random/<os-name>.c
 #endif /* Various OS-specific defines */
 
-/* If we're using stored seed data, make sure that the seed update count and 
-   quality settings are in order */
+/* If we're using stored seed data, make sure that the seed quality setting 
+   is in order */
 
 #ifdef CONFIG_RANDSEED
-  #if CONFIG_RANDSEED < 0
-	#error CONFIG_RANDSEED must be >= 0
-  #endif /* CONFIG_RANDSEED < 0 */
   #ifndef CONFIG_RANDSEED_QUALITY
 	/* If the user hasn't provided a quality estimate, default to 80 */
 	#define CONFIG_RANDSEED_QUALITY		80
@@ -1260,18 +1257,40 @@ restartPoint:
 *																			*
 ****************************************************************************/
 
-/* X9.17/X9.31 generator test vectors.  The values used are from the NIST
-   publication "The Random Number Generator Validation System (RNGVS)", the
-   commented-out ones are from test data used by an eval lab */
+/* X9.17/X9.31 generator test vectors.  The first set of values used are 
+   from the NIST publication "The Random Number Generator Validation System 
+   (RNGVS)" (unfortunately the MCT values for this are wrong so they can't 
+   be used), the second set are from test data used by an eval lab, and the 
+   third set are the values used for cryptlib's FIPS evaluation */
+
+#define RNG_TEST_NIST		0
+#define RNG_TEST_INFOGARD	1
+#define RNG_TEST_FIPSEVAL	2
+
+#define RNG_TEST_VALUES		RNG_TEST_INFOGARD
+
+#if ( RNG_TEST_VALUES == RNG_TEST_NIST )
+  #define VST_ITERATIONS	5
+#elif ( RNG_TEST_VALUES == RNG_TEST_INFOGARD )
+  #define VST_ITERATIONS	64
+#elif ( RNG_TEST_VALUES == RNG_TEST_FIPSEVAL )
+  #define VST_ITERATIONS	64
+#endif /* VST iterations */
 
 typedef struct {
-	const BYTE key[ X917_KEYSIZE + X917_KEYSIZE ];
+	const BYTE key[ X917_KEYSIZE ];
 	const BYTE DT[ X917_POOLSIZE ], V[ X917_POOLSIZE ];
 	const BYTE R[ X917_POOLSIZE ];
-	} X917_TESTDATA;
+	} X917_MCT_TESTDATA;
 
-static const X917_TESTDATA x917MCTdata = {	/* Monte Carlo Test (MCT) */
-#if 0	/* NIST vectors, possibly wrong */
+typedef struct {
+	const BYTE key[ X917_KEYSIZE ];
+	const BYTE initDT[ X917_POOLSIZE ], initV[ X917_POOLSIZE ];
+	const BYTE R[ VST_ITERATIONS ][ X917_POOLSIZE ];
+	} X917_VST_TESTDATA;
+
+static const X917_MCT_TESTDATA x917MCTdata = {	/* Monte Carlo Test */
+#if ( RNG_TEST_VALUES == RNG_TEST_NIST )	/* These values are wrong */
 	/* Key1 = 75C71AE5A11A232C
 	   Key2 = 40256DCD94F767B0
 	   DT = C89A1D888ED12F3C
@@ -1281,7 +1300,7 @@ static const X917_TESTDATA x917MCTdata = {	/* Monte Carlo Test (MCT) */
 	"\xC8\x9A\x1D\x88\x8E\xD1\x2F\x3C",
 	"\xD5\x53\x8F\x9C\xF4\x50\xF5\x3C", 
 	"\x77\xC6\x95\xC3\x3E\x51\xC8\xC0"
-#else	/* InfoGuard vectors, OK */
+#elif ( RNG_TEST_VALUES == RNG_TEST_INFOGARD )
 	/* Key1 = 625BB5131A45F492
 	   Key2 = 70971C9E0D4C9792
 	   DT = 5F328264B787B098
@@ -1291,145 +1310,215 @@ static const X917_TESTDATA x917MCTdata = {	/* Monte Carlo Test (MCT) */
 	"\x5F\x32\x82\x64\xB7\x87\xB0\x98",
 	"\xA2\x4F\x6E\x0E\xE4\x32\x04\xCD", 
 	"\xC7\xAC\x1E\x8F\x10\x0C\xC3\x0A"
-#endif /* 0 */
+#elif ( RNG_TEST_VALUES == RNG_TEST_FIPSEVAL )
+	/* Key1 = A45BF2E50D153710
+	   Key2 = 79832F38A89B2AB0
+	   DT = 8219E01B2A6958BB
+	   V = 283176BA23FA3181
+	   R = ? */
+	"\xA4\x5B\xF2\xE5\x0D\x15\x37\x10\x79\x83\x2F\x38\xA8\x9B\x2A\xB0",
+	"\x82\x19\xE0\x1B\x2A\x69\x58\xBB",
+	"\x28\x31\x76\xBA\x23\xFA\x31\x81",
+	0
+#endif /* Different test vectors */
 	};
 
-static const X917_TESTDATA x917VSTdata[] = {	/* Variable Seed Test (VST) */
+static const X917_VST_TESTDATA x917VSTdata = {	/* Variable Seed Test (VST) */
+#if ( RNG_TEST_VALUES == RNG_TEST_NIST )
 	/* Count = 0
 	   Key1 = 75C71AE5A11A232C
 	   Key2 = 40256DCD94F767B0
-	   DT = C89A1D888ED12F3C
-	   V = 8000000000000000
-	   R = 944DC7210D6D7FD7 */
-	{ "\x75\xC7\x1A\xE5\xA1\x1A\x23\x2C\x40\x25\x6D\xCD\x94\xF7\x67\xB0",
-	  "\xC8\x9A\x1D\x88\x8E\xD1\x2F\x3C",
-	  "\x80\x00\x00\x00\x00\x00\x00\x00",
-	  "\x94\x4D\xC7\x21\x0D\x6D\x7F\xD7" },
-	/* Count = 1
-	   Key1 = 75C71AE5A11A232C
-	   Key2 = 40256DCD94F767B0
-	   DT = C89A1D888ED12F3D
-	   V = C000000000000000
-	   R = AF1A648591BB7C2C */
-	{ "\x75\xC7\x1A\xE5\xA1\x1A\x23\x2C\x40\x25\x6D\xCD\x94\xF7\x67\xB0",
-	  "\xC8\x9A\x1D\x88\x8E\xD1\x2F\x3D",
-	  "\xC0\x00\x00\x00\x00\x00\x00\x00",
-	  "\xAF\x1A\x64\x85\x91\xBB\x7C\x2C" },
-	/* Count = 2
-	   Key1 = 75C71AE5A11A232C
-	   Key2 = 40256DCD94F767B0
-	   DT = C89A1D888ED12F3E
-	   V = E000000000000000
-	   R = 221839B07451E423 */
-	{ "\x75\xC7\x1A\xE5\xA1\x1A\x23\x2C\x40\x25\x6D\xCD\x94\xF7\x67\xB0",
-	  "\xC8\x9A\x1D\x88\x8E\xD1\x2F\x3E",
-	  "\xE0\x00\x00\x00\x00\x00\x00\x00",
-	  "\x22\x18\x39\xB0\x74\x51\xE4\x23" },
-	/* Count = 3
-	   Key1 = 75C71AE5A11A232C
-	   Key2 = 40256DCD94F767B0
-	   DT = C89A1D888ED12F3F
-	   V = F000000000000000
-	   R = EBA9271E04043712 */
-	{ "\x75\xC7\x1A\xE5\xA1\x1A\x23\x2C\x40\x25\x6D\xCD\x94\xF7\x67\xB0",
-	  "\xC8\x9A\x1D\x88\x8E\xD1\x2F\x3F",
-	  "\xF0\x00\x00\x00\x00\x00\x00\x00",
-	  "\xEB\xA9\x27\x1E\x04\x04\x37\x12" },
-	/* Count = 4
-	   Key1 = 75C71AE5A11A232C
-	   Key2 = 40256DCD94F767B0
-	   DT = C89A1D888ED12F40
-	   V = F800000000000000
-	   R = 02433C9417A3326F */
-	{ "\x75\xC7\x1A\xE5\xA1\x1A\x23\x2C\x40\x25\x6D\xCD\x94\xF7\x67\xB0",
-	  "\xC8\x9A\x1D\x88\x8E\xD1\x2F\x40",
-	  "\xF8\x00\x00\x00\x00\x00\x00\x00",
-	  "\x02\x43\x3C\x94\x17\xA3\x32\x6F" },
-#if 0
+	   DT = C89A1D888ED12F3C 
+	   V = 80000000000000000 */
+	"\x75\xC7\x1A\xE5\xA1\x1A\x23\x2C\x40\x25\x6D\xCD\x94\xF7\x67\xB0",
+	"\xC8\x9A\x1D\x88\x8E\xD1\x2F\x3C",
+	"\x80\x00\x00\x00\x00\x00\x00\x00",
+	  /* Count = 0, V = 8000000000000000, R = 944DC7210D6D7FD7 */
+	{ "\x94\x4D\xC7\x21\x0D\x6D\x7F\xD7",
+	  /* Count = 1, V = C000000000000000, R = AF1A648591BB7C2C */
+	  "\xAF\x1A\x64\x85\x91\xBB\x7C\x2C",
+	  /* Count = 2, V = E000000000000000, R = 221839B07451E423 */
+	  "\x22\x18\x39\xB0\x74\x51\xE4\x23",
+	  /* Count = 3, V = F000000000000000, R = EBA9271E04043712 */
+	  "\xEB\xA9\x27\x1E\x04\x04\x37\x12",
+	  /* Count = 4, V = F800000000000000, R = 02433C9417A3326F */
+	  "\x02\x43\x3C\x94\x17\xA3\x32\x6F" }
+#elif ( RNG_TEST_VALUES == RNG_TEST_INFOGARD )
 	/* Count = 0
 	   Key1 = 3164916EA2C87AAE
 	   Key2 = 2ABC323EFB9802E3
 	   DT = 65B9108277AC0582
-	   V = 8000000000000000
-	   R = D8015B966ADE69BA */
-	{ "\x31\x64\x91\x6E\xA2\xC8\x7A\xAE\x2A\xBC\x32\x3E\xFB\x98\x02\xE3",
-	  "\x65\xB9\x10\x82\x77\xAC\x05\x82",
-	  "\x80\x00\x00\x00\x00\x00\x00\x00",
-	  "\xD8\x01\x5B\x96\x6A\xDE\x69\xBA" },
-	/* Count = 1
-	   Key1 = 3164916EA2C87AAE
-	   Key2 = 2ABC323EFB9802E3
-	   DT = 65B9108277AC0583
-	   V = C000000000000000
-	   R = E737E18734365F43 */
-	{ "\x31\x64\x91\x6E\xA2\xC8\x7A\xAE\x2A\xBC\x32\x3E\xFB\x98\x02\xE3",
-	  "\x65\xB9\x10\x82\x77\xAC\x05\x83",
-	  "\xC0\x00\x00\x00\x00\x00\x00\x00",
-	  "\xE7\x37\xE1\x87\x34\x36\x5F\x43" },
-	/* Count = 2
-	   Key1 = 3164916EA2C87AAE
-	   Key2 = 2ABC323EFB9802E3
-	   DT = 65B9108277AC0584
-	   V = E000000000000000
-	   R = CA8F00C1DF28FCFF */
-	{ "\x31\x64\x91\x6E\xA2\xC8\x7A\xAE\x2A\xBC\x32\x3E\xFB\x98\x02\xE3",
-	  "\x65\xB9\x10\x82\x77\xAC\x05\x84",
-	  "\xE0\x00\x00\x00\x00\x00\x00\x00",
-	  "\xCA\x8F\x00\xC1\xDF\x28\xFC\xFF" },
-	/* Count = 3
-	   Key1 = 3164916EA2C87AAE
-	   Key2 = 2ABC323EFB9802E3
-	   DT = 65B9108277AC0585
-	   V = F000000000000000
-	   R = 9FF307027622FA2A */
-	{ "\x31\x64\x91\x6E\xA2\xC8\x7A\xAE\x2A\xBC\x32\x3E\xFB\x98\x02\xE3",
-	  "\x65\xB9\x10\x82\x77\xAC\x05\x85",
-	  "\xF0\x00\x00\x00\x00\x00\x00\x00",
-	  "\x9F\xF3\x07\x02\x76\x22\xFA\x2A" },
-	/* Count = 4
-	   Key1 = 3164916EA2C87AAE
-	   Key2 = 2ABC323EFB9802E3
-	   DT = 65B9108277AC0586
-	   V = F800000000000000
-	   R = 0A4BB2E54842648E */
-	{ "\x31\x64\x91\x6E\xA2\xC8\x7A\xAE\x2A\xBC\x32\x3E\xFB\x98\x02\xE3",
-	  "\x65\xB9\x10\x82\x77\xAC\x05\x86",
-	  "\xF8\x00\x00\x00\x00\x00\x00\x00",
-	  "\x0A\x4B\xB2\xE5\x48\x42\x64\x8E" },
-	/* Count = 5
-	   Key1 = 3164916EA2C87AAE
-	   Key2 = 2ABC323EFB9802E3
-	   DT = 65B9108277AC0587
-	   V = FC00000000000000
-	   R = FFAD84A57EE0DE37 */
-	{ "\x31\x64\x91\x6E\xA2\xC8\x7A\xAE\x2A\xBC\x32\x3E\xFB\x98\x02\xE3",
-	  "\x65\xB9\x10\x82\x77\xAC\x05\x87",
-	  "\xFC\x00\x00\x00\x00\x00\x00\x00",
-	  "\xFF\xAD\x84\xA5\x7E\xE0\xDE\x37" },
-	/* Count = 6
-	   Key1 = 3164916EA2C87AAE
-	   Key2 = 2ABC323EFB9802E3
-	   DT = 65B9108277AC0588
-	   V = FE00000000000000
-	   R = 0CF064313A7889FD */
-	{ "\x31\x64\x91\x6E\xA2\xC8\x7A\xAE\x2A\xBC\x32\x3E\xFB\x98\x02\xE3",
-	  "\x65\xB9\x10\x82\x77\xAC\x05\x88",
-	  "\xFE\x00\x00\x00\x00\x00\x00\x00",
-	  "\x0C\xF0\x64\x31\x3A\x78\x89\xFD" },
-	/* Count = 7
-	   Key1 = 3164916EA2C87AAE
-	   Key2 = 2ABC323EFB9802E3
-	   DT = 65B9108277AC0589
-	   V = FF00000000000000
-	   R = 97B6854447D95A01 */
-	{ "\x31\x64\x91\x6E\xA2\xC8\x7A\xAE\x2A\xBC\x32\x3E\xFB\x98\x02\xE3",
-	  "\x65\xB9\x10\x82\x77\xAC\x05\x89",
-	  "\xFF\x00\x00\x00\x00\x00\x00\x00",
-	  "\x97\xB6\x85\x44\x47\xD9\x5A\x01" },
-#endif /* 0 */
+	   V = 80000000000000000 */
+	"\x31\x64\x91\x6E\xA2\xC8\x7A\xAE\x2A\xBC\x32\x3E\xFB\x98\x02\xE3",
+	"\x65\xB9\x10\x82\x77\xAC\x05\x82",
+	"\x80\x00\x00\x00\x00\x00\x00\x00",
+	  /* Count = 0, V = 8000000000000000, R = D8015B966ADE69BA */
+	{ "\xD8\x01\x5B\x96\x6A\xDE\x69\xBA",
+	  /* Count = 1, V = C000000000000000, R = E737E18734365F43 */
+	  "\xE7\x37\xE1\x87\x34\x36\x5F\x43",
+	  /* Count = 2, V = E000000000000000, R = CA8F00C1DF28FCFF */
+	  "\xCA\x8F\x00\xC1\xDF\x28\xFC\xFF",
+	  /* Count = 3, V = F000000000000000, R = 9FF307027622FA2A */
+	  "\x9F\xF3\x07\x02\x76\x22\xFA\x2A",
+	  /* Count = 4, V = F800000000000000, R = 0A4BB2E54842648E */
+	  "\x0A\x4B\xB2\xE5\x48\x42\x64\x8E",
+	  /* Count = 5, V = FC00000000000000, R = FFAD84A57EE0DE37 */
+	  "\xFF\xAD\x84\xA5\x7E\xE0\xDE\x37",
+	  /* Count = 6, V = FE00000000000000, R = 0CF064313A7889FD */
+	  "\x0C\xF0\x64\x31\x3A\x78\x89\xFD",
+	  /* Count = 7, V = FF00000000000000, R = 97B6854447D95A01 */
+	  "\x97\xB6\x85\x44\x47\xD9\x5A\x01",
+	  /* Count = 8, V = ff80000000000000, R = 55272f900ae13948 */
+	  "\x55\x27\x2F\x90\x0A\xE1\x39\x48",
+	  /* Count = 9, V = ffc0000000000000, R = dbd731bdf9875a04 */
+	  "\xDB\xD7\x31\xBD\xF9\x87\x5A\x04",
+	  /* Count = 10, V = ffe0000000000000, R = b19589a371d4942d */
+	  "\xB1\x95\x89\xA3\x71\xD4\x94\x2D",
+	  /* Count = 11, V = fff0000000000000, R = 8da8f8e8c59fc497 */
+	  "\x8D\xA8\xF8\xE8\xC5\x9F\xC4\x97",
+	  /* Count = 12, V = fff8000000000000, R = ddfbf3f319bcda42 */
+	  "\xDD\xFB\xF3\xF3\x19\xBC\xDA\x42",
+	  /* Count = 13, V = fffc000000000000, R = a72ddd98d1744844 */
+	  "\xA7\x2D\xDD\x98\xD1\x74\x48\x44",
+	  /* Count = 14, V = fffe000000000000, R = de0835034456629e */
+	  "\xDE\x08\x35\x03\x44\x56\x62\x9E",
+	  /* Count = 15, V = ffff000000000000, R = e977daafef7aa5e0 */
+	  "\xE9\x77\xDA\xAF\xEF\x7A\xA5\xE0",
+	  /* Count = 16, V = ffff800000000000, R = 019c3edc5ae93ab8 */
+	  "\x01\x9C\x3E\xDC\x5A\xE9\x3A\xB8",
+	  /* Count = 17, V = ffffc00000000000, R = 163c3dbe31ffd91b */
+	  "\x16\x3C\x3D\xBE\x31\xFF\xD9\x1B",
+	  /* Count = 18, V = ffffe00000000000, R = f2045893945b4774 */
+	  "\xF2\x04\x58\x93\x94\x5B\x47\x74",
+	  /* Count = 19, V = fffff00000000000, R = 50c88799fc1ec55d */
+	  "\x50\xC8\x87\x99\xFC\x1E\xC5\x5D",
+	  /* Count = 20, V = fffff80000000000, R = 1545f463986e1511 */
+	  "\x15\x45\xF4\x63\x98\x6E\x15\x11",
+	  /* Count = 21, V = fffffc0000000000, R = 55f999624fe045a6 */
+	  "\x55\xF9\x99\x62\x4F\xE0\x45\xA6",
+	  /* Count = 22, V = fffffe0000000000, R = e3e0db844bca7505 */
+	  "\xE3\xE0\xDB\x84\x4B\xCA\x75\x05",
+	  /* Count = 23, V = ffffff0000000000, R = 8fb4b76d808562d7 */
+	  "\x8F\xB4\xB7\x6D\x80\x85\x62\xD7",
+	  /* Count = 24, V = ffffff8000000000, R = 9d5457baaeb496e4 */
+	  "\x9D\x54\x57\xBA\xAE\xB4\x96\xE4",
+	  /* Count = 25, V = ffffffc000000000, R = 2b8abff2bdc82366 */
+	  "\x2B\x8A\xBF\xF2\xBD\xC8\x23\x66",
+	  /* Count = 26, V = ffffffe000000000, R = 3936c324d09465af */
+	  "\x39\x36\xC3\x24\xD0\x94\x65\xAF",
+	  /* Count = 27, V = fffffff000000000, R = 1983dd227e55240e */
+	  "\x19\x83\xDD\x22\x7E\x55\x24\x0E",
+	  /* Count = 28, V = fffffff800000000, R = 866cf6e6dc3d03fb */
+	  "\x86\x6C\xF6\xE6\xDC\x3D\x03\xFB",
+	  /* Count = 29, V = fffffffc00000000, R = 03d10b0f17b04b59 */
+	  "\x03\xD1\x0B\x0F\x17\xB0\x4B\x59",
+	  /* Count = 30, V = fffffffe00000000, R = 3eeb1cd0248e25a6 */
+	  "\x3E\xEB\x1C\xD0\x24\x8E\x25\xA6",
+	  /* Count = 31, V = ffffffff00000000, R = 9d8bd4b8c3e425dc */
+	  "\x9D\x8B\xD4\xB8\xC3\xE4\x25\xDC",
+	  /* Count = 32, V = ffffffff80000000, R = bc515d3a0a719be1 */
+	  "\xBC\x51\x5D\x3A\x0A\x71\x9B\xE1",
+	  /* Count = 33, V = ffffffffc0000000, R = 1b35fb4aca4ac47c */
+	  "\x1B\x35\xFB\x4A\xCA\x4A\xC4\x7C",
+	  /* Count = 34, V = ffffffffe0000000, R = f8338668b6ead493 */
+	  "\xF8\x33\x86\x68\xB6\xEA\xD4\x93",
+	  /* Count = 35, V = fffffffff0000000, R = cdfa8e5ffa2deb17 */
+	  "\xCD\xFA\x8E\x5F\xFA\x2D\xEB\x17",
+	  /* Count = 36, V = fffffffff8000000, R = c965a35109044ca3 */
+	  "\xC9\x65\xA3\x51\x09\x04\x4C\xA3",
+	  /* Count = 37, V = fffffffffc000000, R = 8da70c88167b2746 */
+	  "\x8D\xA7\x0C\x88\x16\x7B\x27\x46",
+	  /* Count = 38, V = fffffffffe000000, R = 22ba92a21a74eb5b */
+	  "\x22\xBA\x92\xA2\x1A\x74\xEB\x5B",
+	  /* Count = 39, V = ffffffffff000000, R = 1fba0fab823a85e7 */
+	  "\x1F\xBA\x0F\xAB\x82\x3A\x85\xE7",
+	  /* Count = 40, V = ffffffffff800000, R = 656f4fc91245073d */
+	  "\x65\x6F\x4F\xC9\x12\x45\x07\x3D",
+	  /* Count = 41, V = ffffffffffc00000, R = a803441fb939f09c */
+	  "\xA8\x03\x44\x1F\xB9\x39\xF0\x9C",
+	  /* Count = 42, V = ffffffffffe00000, R = e3f30bb6aed64331 */
+	  "\xE3\xF3\x0B\xB6\xAE\xD6\x43\x31",
+	  /* Count = 43, V = fffffffffff00000, R = 6a75588b5e6f5ea4 */
+	  "\x6A\x75\x58\x8B\x5E\x6F\x5E\xA4",
+	  /* Count = 44, V = fffffffffff80000, R = ec95ad55ac684e93 */
+	  "\xEC\x95\xAD\x55\xAC\x68\x4E\x93",
+	  /* Count = 45, V = fffffffffffc0000, R = b2a79a0ebfb96c4e */
+	  "\xB2\xA7\x9A\x0E\xBF\xB9\x6C\x4E",
+	  /* Count = 46, V = fffffffffffe0000, R = 480263bb6146006f */
+	  "\x48\x02\x63\xBB\x61\x46\x00\x6F",
+	  /* Count = 47, V = ffffffffffff0000, R = c0d8b711395b290f */
+	  "\xC0\xD8\xB7\x11\x39\x5B\x29\x0F",
+	  /* Count = 48, V = ffffffffffff8000, R = a3f39193fe3d526d */
+	  "\xA3\xF3\x91\x93\xFE\x3D\x52\x6D",
+	  /* Count = 49, V = ffffffffffffc000, R = 6f50ba964d94d153 */
+	  "\x6F\x50\xBA\x96\x4D\x94\xD1\x53",
+	  /* Count = 50, V = ffffffffffffe000, R = ff8240a77c67bb8d */
+	  "\xFF\x82\x40\xA7\x7C\x67\xBB\x8D",
+	  /* Count = 51, V = fffffffffffff000, R = 7f95c72fd9b38ff6 */
+	  "\x7F\x95\xC7\x2F\xD9\xB3\x8F\xF6",
+	  /* Count = 52, V = fffffffffffff800, R = 7fbdf1428f44aac1 */
+	  "\x7F\xBD\xF1\x42\x8F\x44\xAA\xC1",
+	  /* Count = 53, V = fffffffffffffc00, R = 04cec286480ab97b */
+	  "\x04\xCE\xC2\x86\x48\x0A\xB9\x7B",
+	  /* Count = 54, V = fffffffffffffe00, R = 86562948c1cf8ec0 */
+	  "\x86\x56\x29\x48\xC1\xCF\x8E\xC0",
+	  /* Count = 55, V = ffffffffffffff00, R = b1a1c0f20c71b267 */
+	  "\xB1\xA1\xC0\xF2\x0C\x71\xB2\x67",
+	  /* Count = 56, V = ffffffffffffff80, R = f357a25c7dacbca8 */
+	  "\xF3\x57\xA2\x5C\x7D\xAC\xBC\xA8",
+	  /* Count = 57, V = ffffffffffffffc0, R = 8f8f4e0e348bf185 */
+	  "\x8F\x8F\x4E\x0E\x34\x8B\xF1\x85",
+	  /* Count = 58, V = ffffffffffffffe0, R = 52a21df35fa70190 */
+	  "\x52\xA2\x1D\xF3\x5F\xA7\x01\x90",
+	  /* Count = 59, V = fffffffffffffff0, R = 8be78733594af616 */
+	  "\x8B\xE7\x87\x33\x59\x4A\xF6\x16",
+	  /* Count = 60, V = fffffffffffffff8, R = e03a051b4ca826e5 */
+	  "\xE0\x3A\x05\x1B\x4C\xA8\x26\xE5",
+	  /* Count = 61, V = fffffffffffffffc, R = 5c4b73bb5901c3cf */
+	  "\x5C\x4B\x73\xBB\x59\x01\xC3\xCF",
+	  /* Count = 62, V = fffffffffffffffe, R = e5d7fc8415bfb0f0 */
+	  "\xE5\xD7\xFC\x84\x15\xBF\xB0\xF0",
+	  /* Count = 63, V = ffffffffffffffff, R = 9417d7247eaa5159 */
+	  "\x94\x17\xD7\x24\x7E\xAA\x51\x59" }
+#elif ( RNG_TEST_VALUES == RNG_TEST_FIPSEVAL )
+	/* COUNT = 0
+	   Key1 = 3D3D0289DAEC867A
+	   Key2 = 29B3F2C7F12C40E5
+	   DT = 6FC8AE5CA678E042
+	   V = 80000000000000000 */
+	"\x3D\x3D\x02\x89\xDA\xEC\x86\x7A\x29\xB3\xF2\xC7\xF1\x2C\x40\xE5",
+	"\x6F\xC8\xAE\x5C\xA6\x78\xE0\x42",
+	"\x80\x00\x00\x00\x00\x00\x00\x00", 
 	{ 0 }
+#endif /* Different test vectors */
 	};
 
+/* Helper functions to output the test data in the format required for the
+   FIPS eval */
+
+#if ( RNG_TEST_VALUES == RNG_TEST_FIPSEVAL )
+
+static void printVector( const char *description, const BYTE *data )
+	{
+	int i;
+
+	printf( "%s = ", description );
+	for( i = 0; i < 8; i++ )
+		printf( "%02x", data[ i ] );
+	putchar( '\n' );
+	}
+
+static void printVectors( const BYTE *key, const BYTE *dt, const BYTE *v,
+						  const BYTE *r, const int count )
+	{
+	printf( "COUNT = %d\n", count );
+	printVector( "Key1", key );
+	printVector( "Key2", key + 8 );
+	printVector( "DT", dt );
+	printVector( "V", v );
+	printVector( "R", r );
+	}
+#endif /* FIPS eval data output */
 
 /* Self-test code for the two crypto algorithms that are used for random
    number generation.  The self-test of these two algorithms is performed
@@ -1622,7 +1711,7 @@ int initRandomInfo( void **randomInfoPtrPtr )
 	   overall random number generation system, inserting this test in the 
 	   middle would upset the final result values */
 	initRandomPool( &randomInfo );
-	memcpy( keyBuffer, x917MCTdata.key, X917_KEYSIZE + X917_KEYSIZE );
+	memcpy( keyBuffer, x917MCTdata.key, X917_KEYSIZE );
 	status = setKeyX917( &randomInfo, keyBuffer, x917MCTdata.V, 
 						 x917MCTdata.DT );
 	if( cryptStatusOK( status ) )
@@ -1633,9 +1722,11 @@ int initRandomInfo( void **randomInfoPtrPtr )
 			status = generateX917( &randomInfo, buffer, X917_POOLSIZE );
 			}
 		}
+#if ( RNG_TEST_VALUES != RNG_TEST_FIPSEVAL )
 	if( cryptStatusOK( status ) && \
 		memcmp( buffer, x917MCTdata.R, X917_POOLSIZE ) )
 		status = CRYPT_ERROR_FAILED;
+#endif /* FIPS eval data output */
 	if( cryptStatusError( status ) )
 		{
 		endRandomPool( &randomInfo );
@@ -1643,24 +1734,35 @@ int initRandomInfo( void **randomInfoPtrPtr )
 		return( CRYPT_ERROR_FAILED );
 		}
 	endRandomPool( &randomInfo );
+#if ( RNG_TEST_VALUES == RNG_TEST_FIPSEVAL )
+	printf( "[X9.31]\n[2-Key TDES]\n\n" );
+	printVectors( x917MCTdata.key, x917MCTdata.DT, x917MCTdata.V, buffer, 0 );
+	printf( "\n\n[X9.31]\n[2-Key TDES]\n\n" );
+#endif /* FIPS eval data output */
 	for( isX931 = FALSE; isX931 <= TRUE; isX931++ )
 		{
-		/* Run through the tests twice, once using the X9.17 interpreation,
+		BYTE V[ X917_POOLSIZE ], DT[ X917_POOLSIZE ];
+
+		/* Run through the tests twice, once using the X9.17 interpretation,
 		   a second time using the X9.31 interpretation */
-		for( i = 0; memcmp( x917VSTdata[ i ].key, "\x00\x00\x00\x00", 4 ); 
-			 i++ )
+		memcpy( V, x917VSTdata.initV, X917_POOLSIZE );
+		memcpy( DT, x917VSTdata.initDT, X917_POOLSIZE );
+		for( i = 0; i < VST_ITERATIONS; i++ )
 			{
+			int j;
+
 			initRandomPool( &randomInfo );
-			memcpy( keyBuffer, x917VSTdata[ i ].key, 
-					X917_KEYSIZE + X917_KEYSIZE );
-			memcpy( buffer, x917VSTdata[ i ].DT, X917_POOLSIZE );
-			status = setKeyX917( &randomInfo, keyBuffer, x917VSTdata[ i ].V, 
-								 isX931 ? x917VSTdata[ i ].DT : NULL );
+			memcpy( keyBuffer, x917VSTdata.key, X917_KEYSIZE );
+			memcpy( buffer, DT, X917_POOLSIZE );
+			status = setKeyX917( &randomInfo, keyBuffer, V, \
+								 isX931 ? DT : NULL );
 			if( cryptStatusOK( status ) )
 				status = generateX917( &randomInfo, buffer, X917_POOLSIZE );
+#if ( RNG_TEST_VALUES != RNG_TEST_FIPSEVAL )
 			if( cryptStatusOK( status ) && \
-				memcmp( buffer, x917VSTdata[ i ].R, X917_POOLSIZE ) )
+				memcmp( buffer, x917VSTdata.R[ i ], X917_POOLSIZE ) )
 				status = CRYPT_ERROR_FAILED;
+#endif /* FIPS eval data output */
 			if( cryptStatusError( status ) )
 				{
 				endRandomPool( &randomInfo );
@@ -1668,8 +1770,35 @@ int initRandomInfo( void **randomInfoPtrPtr )
 				return( CRYPT_ERROR_FAILED );
 				}
 			endRandomPool( &randomInfo );
+#if ( RNG_TEST_VALUES == RNG_TEST_FIPSEVAL )
+			if( isX931 )
+				{
+				printVectors( x917VSTdata.key, DT, V, buffer, i );
+				putchar( '\n' );
+				}
+#endif /* FIPS eval data output */
+			
+			/* V = V >> 1, shifting in 1 bits;
+			   DT = DT + 1 */
+			for( j = X917_POOLSIZE - 1; j > 0; j-- )
+				{
+				if( V[ j - 1 ] & 1 )
+					V[ j ] = ( V[ j ] >> 1 ) | 0x80;
+				}
+			V[ 0 ] = ( V[ 0 ] >> 1 ) | 0x80;
+			for( j = X917_POOLSIZE - 1; j >= 0; j-- )
+				{
+				DT[ j ]++;
+				if( DT[ j ] != 0 )
+					break;
+				}
 			}
 		}
+#if ( RNG_TEST_VALUES == RNG_TEST_FIPSEVAL )
+	/* Since this is run as a background thread, we need to flush the output
+	   before the thread terminates, otherwise it'll be discarded */
+	fflush( stdout );
+#endif /* FIPS eval data output */
 
 	/* Allocate and initialise the random pool */
 	if( ( status = krnlMemalloc( randomInfoPtrPtr, \

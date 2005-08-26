@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						Certificate Attribute Write Routines				*
-*						 Copyright Peter Gutmann 1996-2003					*
+*						 Copyright Peter Gutmann 1996-2005					*
 *																			*
 ****************************************************************************/
 
@@ -26,7 +26,7 @@
 
 /****************************************************************************
 *																			*
-*								Attribute Write Routines					*
+*								Utility Routines							*
 *																			*
 ****************************************************************************/
 
@@ -120,6 +120,9 @@ static ATTRIBUTE_LIST *getNextEncodedAttribute( ATTRIBUTE_LIST *attributeListPtr
 			memcpy( currentEncodedForm, buffer, ATTR_ENCODED_SIZE );
 			currentAttributeListPtr = attributeListPtr;
 			}
+
+		/* Move on to the next attribute */
+		attributeListPtr = attributeListPtr->next;
 		}
 
 	sMemDisconnect( &stream );
@@ -197,11 +200,18 @@ int sizeofAttributes( const ATTRIBUTE_LIST *attributeListPtr )
 	return( attributeSize );
 	}
 
+/****************************************************************************
+*																			*
+*					Attribute/Attribute Field Write Routines				*
+*																			*
+****************************************************************************/
+
 /* Write an attribute field */
 
-int writeAttributeField( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr )
+int writeAttributeField( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
+						 const int complianceLevel )
 	{
-	const BOOLEAN isSpecial = ( attributeListPtr->fifoPos ) ? TRUE : FALSE;
+	const BOOLEAN isSpecial = ( attributeListPtr->fifoPos > 0 ) ? TRUE : FALSE;
 	const ATTRIBUTE_INFO *attributeInfoPtr = ( isSpecial ) ? \
 		attributeListPtr->encodingFifo[ --attributeListPtr->fifoPos ] : \
 		attributeListPtr->attributeInfoPtr;
@@ -377,6 +387,12 @@ int writeAttributeField( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr )
 		case FIELDTYPE_IDENTIFIER:
 			return( swrite( stream, attributeInfoPtr->oid, size ) );
 
+		case FIELDTYPE_DISPLAYSTRING:
+			return( writeCharacterString( stream, dataPtr, attributeListPtr->valueLength,
+						( tag == DEFAULT_TAG ) ? \
+							( ( complianceLevel >= CRYPT_COMPLIANCELEVEL_PKIX_PARTIAL ) ? \
+								BER_STRING_UTF8 : BER_STRING_ISO646 ) : tag ) );
+
 		case BER_BITSTRING:
 			return( writeBitString( stream, ( int ) attributeListPtr->intValue, tag ) );
 
@@ -438,7 +454,8 @@ int writeAttributeField( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr )
 
 static int writeAttribute( STREAM *stream, 
 						   ATTRIBUTE_LIST **attributeListPtrPtr,
-						   const int wrapperTagSet )
+						   const int wrapperTagSet, 
+						   const int complianceLevel )
 	{
 	ATTRIBUTE_LIST *attributeListPtr = *attributeListPtrPtr;
 	int flagSize, status;
@@ -493,13 +510,15 @@ static int writeAttribute( STREAM *stream,
 			   default values), so we only try to write the member if there's
 			   encoding information for it present */
 			attributeListPtr->fifoPos = attributeListPtr->fifoEnd;
-			while( cryptStatusOK( status ) && attributeListPtr->fifoPos )
+			while( cryptStatusOK( status ) && attributeListPtr->fifoPos > 0 )
 				status = writeAttributeField( stream, 
-									( ATTRIBUTE_LIST * ) attributeListPtr );
+									( ATTRIBUTE_LIST * ) attributeListPtr,
+									complianceLevel );
 			if( cryptStatusOK( status ) && \
 				attributeListPtr->attributeInfoPtr != NULL )
 				status = writeAttributeField( stream, 
-									( ATTRIBUTE_LIST * ) attributeListPtr );
+									( ATTRIBUTE_LIST * ) attributeListPtr,
+									complianceLevel );
 			if( cryptStatusError( status ) )
 				return( status );
 
@@ -533,18 +552,33 @@ static int writeAttribute( STREAM *stream,
 	return( status );
 	}
 
+/****************************************************************************
+*																			*
+*						Attribute Collection Write Routines					*
+*																			*
+****************************************************************************/
+
 /* Write a set of attributes */
 
 int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 					 const CRYPT_CERTTYPE_TYPE type, const int attributeSize )
 	{
-	int signUnrecognised, status = CRYPT_OK;
+	int signUnrecognised, complianceLevel, status = CRYPT_OK;
 
 	/* If there's nothing to write, return now */
 	if( attributeSize == 0 )
 		return( CRYPT_OK );
 
 	assert( isWritePtr( attributeListPtr, sizeof( ATTRIBUTE_LIST ) ) );
+
+	/* Some attributes have odd encoding/handling requirements that can cause
+	   problems for other software, so we only enforce peculiarities required
+	   by the standard at higher compliance levels */
+	status = krnlSendMessage( DEFAULTUSER_OBJECT_HANDLE,
+							  IMESSAGE_GETATTRIBUTE, &complianceLevel,
+							  CRYPT_OPTION_CERT_COMPLIANCELEVEL );
+	if( cryptStatusError( status ) )
+		return( status );
 
 	/* CMS attributes work somewhat differently from normal attributes in 
 	   that, since they're encoded as a SET OF Attribute, they have to be 
@@ -574,7 +608,8 @@ int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 													   currentEncodedForm );
 		while( currentAttributePtr != NULL && cryptStatusOK( status ) )
 			{
-			status = writeAttribute( stream, &currentAttributePtr, TRUE );
+			status = writeAttribute( stream, &currentAttributePtr, TRUE,
+									 complianceLevel );
 			currentAttributePtr = getNextEncodedAttribute( attributeListPtr,
 														   currentEncodedForm );
 			}
@@ -636,7 +671,8 @@ int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 	   or the first blob-type attribute */
 	while( attributeListPtr != NULL && \
 		   !isBlobAttribute( attributeListPtr ) && cryptStatusOK( status ) )
-		status = writeAttribute( stream, &attributeListPtr, FALSE );
+		status = writeAttribute( stream, &attributeListPtr, FALSE, 
+								 complianceLevel );
 	if( cryptStatusError( status ) )
 		return( status );
 
@@ -648,7 +684,8 @@ int writeAttributes( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
 		{
 		/* Write the blob-type attributes */
 		while( attributeListPtr != NULL && cryptStatusOK( status ) )
-			status = writeAttribute( stream, &attributeListPtr, FALSE );
+			status = writeAttribute( stream, &attributeListPtr, FALSE, 
+									 complianceLevel );
 		}
 	return( status );
 	}

@@ -52,7 +52,7 @@ static void longReverse( unsigned long *buffer, int count )
 	assert( ( count % 4 ) == 0 );
 
 	count /= 4;		/* sizeof( unsigned long ) != 4 */
-	while( count-- )
+	while( count-- > 0 )
 		{
   #if 0
 		unsigned long temp;
@@ -103,7 +103,7 @@ swapLoop:
 	assert( sizeof( unsigned long ) == 4 );
 
 	count /= sizeof( unsigned long );
-	while( count-- )
+	while( count-- > 0 )
 		{
 		value = *buffer;
 		value = ( ( value & 0xFF00FF00UL ) >> 8  ) | \
@@ -348,27 +348,28 @@ static int processKeyFingerprint( SESSION_INFO *sessionInfoPtr,
 	{
 	HASHFUNCTION hashFunction;
 	HASHINFO hashInfo;
+	const ATTRIBUTE_LIST *attributeListPtr = \
+				findSessionAttribute( sessionInfoPtr->attributeList,
+									  CRYPT_SESSINFO_SERVER_FINGERPRINT );
 	BYTE fingerPrint[ CRYPT_MAX_HASHSIZE ];
 	int hashSize;
 
 	getHashParameters( CRYPT_ALGO_MD5, &hashFunction, &hashSize );
 	hashFunction( hashInfo, NULL, n, nLength, HASH_START );
 	hashFunction( hashInfo, fingerPrint, e, eLength, HASH_END );
-	if( sessionInfoPtr->keyFingerprintSize > 0 )
-		{
-		/* There's an existing fingerprint value, make sure that it matches 
-		   what we just calculated */
-		if( sessionInfoPtr->keyFingerprintSize != hashSize || \
-			memcmp( sessionInfoPtr->keyFingerprint, fingerPrint, hashSize ) )
-			retExt( sessionInfoPtr, CRYPT_ERROR_WRONGKEY,
-					"Server key didn't match fingerprint" );
-		}
-	else
-		{
+	if( attributeListPtr == NULL )
 		/* Remember the value for the caller */
-		memcpy( sessionInfoPtr->keyFingerprint, fingerPrint, hashSize );
-		sessionInfoPtr->keyFingerprintSize = hashSize;
-		}
+		return( addSessionAttribute( &sessionInfoPtr->attributeList,
+									 CRYPT_SESSINFO_SERVER_FINGERPRINT, 
+									 fingerPrint, hashSize ) );
+
+	/* There's an existing fingerprint value, make sure that it matches what 
+	   we just calculated */
+	if( attributeListPtr->valueLength != hashSize || \
+		memcmp( attributeListPtr->value, fingerPrint, hashSize ) )
+		retExt( sessionInfoPtr, CRYPT_ERROR_WRONGKEY,
+				"Server key fingerprint doesn't match requested "
+				"fingerprint" );
 	return( CRYPT_OK );
 	}
 
@@ -524,7 +525,7 @@ static int initSecurityInfoSSH1( SESSION_INFO *sessionInfoPtr,
 		}
 
 	/* We've set up the security info, from now on all data is encrypted */
-	sessionInfoPtr->flags |= SESSION_ISSECURE;
+	sessionInfoPtr->flags |= SESSION_ISSECURE_READ | SESSION_ISSECURE_WRITE;
 
 	return( CRYPT_OK );
 	}
@@ -558,8 +559,8 @@ static BOOLEAN checksumPayload( SESSION_INFO *sessionInfoPtr,
 
 	/* Calculate the checksum over the padding, type, and data and make sure 
 	   that it matches the transmitted value */
-	if( ( sessionInfoPtr->flags & ( SESSION_ISCRYPTLIB | SESSION_ISSECURE ) ) == \
-								  ( SESSION_ISCRYPTLIB | SESSION_ISSECURE ) )
+	if( ( sessionInfoPtr->flags & ( SESSION_ISCRYPTLIB | SESSION_ISSECURE_READ ) ) == \
+								  ( SESSION_ISCRYPTLIB | SESSION_ISSECURE_READ ) )
 		crc32 = calculateTruncatedMAC( sessionInfoPtr->iAuthInContext,
 									   buffer, dataLength );
 	else
@@ -588,7 +589,7 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 	{
 	BYTE *bufPtr = sessionInfoPtr->receiveBuffer;
 	long length;
-	int padLength, packetType;
+	int padLength, packetType, iterationCount = 0;
 
 	/* Alongside the expected packets the server can also send us all sorts 
 	   of no-op messages, ranging from explicit no-ops (SSH_MSG_IGNORE) 
@@ -635,7 +636,7 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 			retExt( sessionInfoPtr, CRYPT_ERROR_TIMEOUT,
 					"Timeout during packet remainder read, only got %d of "
 					"%d bytes", status, padLength + length );
-		if( sessionInfoPtr->flags & SESSION_ISSECURE )
+		if( sessionInfoPtr->flags & SESSION_ISSECURE_READ )
 			{
 			status = decryptPayload( sessionInfoPtr, 
 									 sessionInfoPtr->receiveBuffer, 
@@ -655,7 +656,11 @@ static int readPacketSSH1( SESSION_INFO *sessionInfoPtr, int expectedType )
 					"Bad message checksum" );
 		packetType = sessionInfoPtr->receiveBuffer[ padLength ];
 		}
-	while( packetType == SSH1_MSG_IGNORE || packetType == SSH1_MSG_DEBUG );
+	while( ( packetType == SSH1_MSG_IGNORE || \
+			 packetType == SSH1_MSG_DEBUG ) && iterationCount++ < 1000 );
+	if( iterationCount >= 1000 )
+		retExt( sessionInfoPtr, CRYPT_ERROR_OVERFLOW, 
+				"Peer sent excessive number of no-op packets" );
 	length -= ID_SIZE + UINT_SIZE;	/* Remove fixed fields */
 
 	/* Make sure we either got what we asked for or one of the allowed 
@@ -755,8 +760,8 @@ static int sendPacketSsh1( SESSION_INFO *sessionInfoPtr,
 	krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S, 
 					 &msgData, CRYPT_IATTRIBUTE_RANDOM_NONCE );
 	bufPtr[ padLength ] = packetType;
-	if( ( sessionInfoPtr->flags & ( SESSION_ISCRYPTLIB | SESSION_ISSECURE ) ) == \
-								  ( SESSION_ISCRYPTLIB | SESSION_ISSECURE ) )
+	if( ( sessionInfoPtr->flags & ( SESSION_ISCRYPTLIB | SESSION_ISSECURE_WRITE ) ) == \
+								  ( SESSION_ISCRYPTLIB | SESSION_ISSECURE_WRITE ) )
 		crc32 = calculateTruncatedMAC( sessionInfoPtr->iAuthInContext,
 									   bufPtr, 
 									   padLength + ID_SIZE + dataLength );
@@ -764,7 +769,7 @@ static int sendPacketSsh1( SESSION_INFO *sessionInfoPtr,
 		crc32 = calculateCRC( bufPtr, padLength + ID_SIZE + dataLength );
 	bufPtr += padLength + ID_SIZE + dataLength;
 	mputLong( bufPtr, crc32 );
-	if( sessionInfoPtr->flags & SESSION_ISSECURE )
+	if( sessionInfoPtr->flags & SESSION_ISSECURE_WRITE )
 		{
 		/* Encrypt the payload with handling for SSH's Blowfish
 		   endianness bug */
@@ -822,6 +827,14 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 	MESSAGE_CREATEOBJECT_INFO createInfo;
 	RESOURCE_DATA msgData;
 	BYTE *bufPtr;
+	const BOOLEAN hasPassword = \
+			( findSessionAttribute( sessionInfoPtr->attributeList,
+								    CRYPT_SESSINFO_PASSWORD ) != NULL ) ? \
+			TRUE : FALSE;
+	const BOOLEAN hasPrivkey = \
+			( findSessionAttribute( sessionInfoPtr->attributeList,
+								    CRYPT_SESSINFO_PRIVATEKEY ) != NULL ) ? \
+			TRUE : FALSE;
 	BOOLEAN rsaOK, pwOK;
 	int hostKeyLength, serverKeyLength, keyDataLength, length, value, status;
 
@@ -928,10 +941,8 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 				"No crypto algorithm compatible with the remote system "
 				"could be found" );
 	value = ( int ) mgetLong( bufPtr );		/* Offered authentication */
-	pwOK = ( value & ( 1 << SSH1_AUTH_PASSWORD ) ) && \
-		   sessionInfoPtr->passwordLength > 0;
-	rsaOK = ( value & ( 1 << SSH1_AUTH_RSA ) ) && \
-			sessionInfoPtr->privateKey != CRYPT_ERROR;
+	pwOK = hasPassword && ( value & ( 1 << SSH1_AUTH_PASSWORD ) );
+	rsaOK = hasPrivkey && ( value & ( 1 << SSH1_AUTH_RSA ) );
 	if( !pwOK )
 		{
 		/* If neither RSA nor password authentication is possible, we can't 
@@ -955,11 +966,14 @@ static int beginClientHandshake( SESSION_INFO *sessionInfoPtr,
 
 		/* Either the client or the server won't do passwords, turn it off 
 		   explicitly at the client in case it's the server */
-		if( sessionInfoPtr->passwordLength > 0 )
+		if( hasPassword )
 			{
-			zeroise( sessionInfoPtr->password, 
-					 sessionInfoPtr->passwordLength );
-			sessionInfoPtr->passwordLength = 0;
+			ATTRIBUTE_LIST *attributeListPtr = ( ATTRIBUTE_LIST * ) \
+					findSessionAttribute( sessionInfoPtr->attributeList,
+										  CRYPT_SESSINFO_PASSWORD );
+
+			deleteSessionAttribute( &sessionInfoPtr->attributeList,
+									attributeListPtr );
 			}
 		}
 
@@ -1090,6 +1104,12 @@ static int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 static int completeClientHandshake( SESSION_INFO *sessionInfoPtr, 
 									SSH_HANDSHAKE_INFO *handshakeInfo )
 	{
+	const ATTRIBUTE_LIST *userNamePtr = \
+				findSessionAttribute( sessionInfoPtr->attributeList,
+									  CRYPT_SESSINFO_USERNAME );
+	const ATTRIBUTE_LIST *passwordPtr = \
+				findSessionAttribute( sessionInfoPtr->attributeList,
+									  CRYPT_SESSINFO_PASSWORD );
 	BYTE *bufPtr;
 	int padLength, modulusLength, length, status;
 
@@ -1103,12 +1123,11 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 	status = readPacketSSH1( sessionInfoPtr, SSH1_SMSG_SUCCESS );
 	if( cryptStatusError( status ) )
 		return( status );
-	padLength = getPadLength( LENGTH_SIZE + sessionInfoPtr->userNameLength );
+	padLength = getPadLength( LENGTH_SIZE + userNamePtr->valueLength );
 	bufPtr = sessionInfoPtr->sendBuffer + LENGTH_SIZE + padLength + ID_SIZE;
-	encodeString( bufPtr, sessionInfoPtr->userName, 
-				  sessionInfoPtr->userNameLength );
+	encodeString( bufPtr, userNamePtr->value, userNamePtr->valueLength );
 	status = sendPacketSsh1( sessionInfoPtr, SSH1_CMSG_USER,
-							 LENGTH_SIZE + sessionInfoPtr->userNameLength, 
+							 LENGTH_SIZE + userNamePtr->valueLength, 
 							 CRYPT_UNUSED );
 	if( cryptStatusError( status ) )
 		return( status );
@@ -1124,7 +1143,7 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 		/* If there's a password present, we're using password-based 
 		   authentication:
 			string		password */
-		if( sessionInfoPtr->passwordLength > 0 )
+		if( passwordPtr != NULL )
 			{
 			int maxLen, packetType, i;
 
@@ -1143,18 +1162,18 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 			   them all in a loop and only then sends a response, which 
 			   means that this defence isn't as effective as it seems */
 			status = CRYPT_OK;
-			for( maxLen = 16; maxLen <= sessionInfoPtr->passwordLength;
+			for( maxLen = 16; maxLen <= passwordPtr->valueLength;
 				 maxLen <<= 1 );
-			for( i = min( 4, sessionInfoPtr->passwordLength ); 
+			for( i = min( 4, passwordPtr->valueLength ); 
 				 i < maxLen && cryptStatusOK( status ); i++ )
 				{
 				padLength = getPadLength( LENGTH_SIZE + i );
 				bufPtr = sessionInfoPtr->sendBuffer + LENGTH_SIZE + \
 													  padLength + ID_SIZE;
-				if( i == sessionInfoPtr->passwordLength )
+				if( i == passwordPtr->valueLength )
 					{
-					encodeString( bufPtr, sessionInfoPtr->password, 
-								  sessionInfoPtr->passwordLength );
+					encodeString( bufPtr, passwordPtr->value, 
+								  passwordPtr->valueLength );
 					packetType = SSH1_CMSG_AUTH_PASSWORD;
 					}
 				else
@@ -1521,7 +1540,7 @@ static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 									SSH_HANDSHAKE_INFO *handshakeInfo )
 	{
 	BYTE *bufPtr;
-	int packetType, stringLength, length, status;
+	int packetType, stringLength, length, iterationCount = 0, status;
 
 	/* Set up the security information required for the session */
 	status = initSecurityInfoSSH1( sessionInfoPtr, handshakeInfo );
@@ -1544,8 +1563,10 @@ static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 				"Invalid user name packet length %d, name length %d",
 				length, stringLength );
-	memcpy( sessionInfoPtr->userName, bufPtr, stringLength );
-	sessionInfoPtr->userNameLength = stringLength;
+	updateSessionAttribute( &sessionInfoPtr->attributeList,
+							CRYPT_SESSINFO_USERNAME, bufPtr, 
+							stringLength, CRYPT_MAX_TEXTSIZE,
+							ATTR_FLAG_NONE );
 
 	/* Send the server ack (which is actually a nack since the user needs
 	   to submit a password) and read back the password */
@@ -1563,8 +1584,10 @@ static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 				"Invalid password packet length %d, password length %d",
 				length, stringLength );
-	memcpy( sessionInfoPtr->password, bufPtr, stringLength );
-	sessionInfoPtr->passwordLength = stringLength;
+	updateSessionAttribute( &sessionInfoPtr->attributeList,
+							CRYPT_SESSINFO_PASSWORD, bufPtr, 
+							stringLength, CRYPT_MAX_TEXTSIZE,
+							ATTR_FLAG_NONE );
 
 	/* Send the server ack and process any further junk that the caller may 
 	   throw at us until we get an exec shell or command request.  At the 
@@ -1606,7 +1629,10 @@ static int completeServerHandshake( SESSION_INFO *sessionInfoPtr,
 		}
 	while( !cryptStatusError( status ) && \
 		   ( packetType != SSH1_CMSG_EXEC_SHELL && \
-			 packetType != SSH1_CMSG_EXEC_CMD ) );
+			 packetType != SSH1_CMSG_EXEC_CMD ) && iterationCount++ < 50 );
+	if( iterationCount >= 50 )
+		retExt( sessionInfoPtr, CRYPT_ERROR_OVERFLOW, 
+				"Peer sent excessive number of session open packets" );
 
 	return( cryptStatusError( status ) ? status : CRYPT_OK );
 	}

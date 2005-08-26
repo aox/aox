@@ -29,14 +29,14 @@
   #include "io/file.h"
 #endif /* Compiler-specific includes */
 
-/* In order to get enhanced control over things like file security and 
-   buffering we can't use stdio but have to rely on using OS-level file 
-   routines, which is essential for working with things like ACL's for 
-   sensitive files and forcing disk writes for files we want to erase.  
-   Without the forced disk write the data in the cache doesn't get flushed 
-   before the file delete request arrives, after which it's discarded rather 
-   than being written, so the file never gets overwritten.  In addition some 
-   embedded environments don't support stdio so we have to supply our own 
+/* In order to get enhanced control over things like file security and
+   buffering we can't use stdio but have to rely on using OS-level file
+   routines, which is essential for working with things like ACL's for
+   sensitive files and forcing disk writes for files we want to erase.
+   Without the forced disk write the data in the cache doesn't get flushed
+   before the file delete request arrives, after which it's discarded rather
+   than being written, so the file never gets overwritten.  In addition some
+   embedded environments don't support stdio so we have to supply our own
    alternatives.
 
    When implementing the following for new systems there are certain things
@@ -50,7 +50,38 @@
 	- If the file is locked for exclusive access, the open call should either
 	  block until the lock is released (they're never held for more than a
 	  fraction of a second) or return CRYPT_ERROR_TIMEOUT depending on how
-	  the OS handles locks */
+	  the OS handles locks.
+
+   When erasing data, we may run into problems on embedded systems using
+   solid-state storage that implements wear-levelling by using a log-
+   structured filesystem (LFS) type arrangement.  These work by never
+   writing a sector twice but always appending newly-written data at the
+   next free location until the volume is full, at which point a garbage
+   collector runs to reclaim.  A main goal of LFS's is speed (data is
+   written in large sequential writes rather than lots of small random
+   writes) and error-recovery by taking advantage of the characteristics
+   of the log structure, however a side-effect of the write mechanism is
+   that it makes wear-levelling management quite simple.  However, the use
+   of a LFS also makes it impossible to reliably overwrite data, since
+   new writes never touch the existing data.  There's no easy way to cope
+   with this since we have no way of telling what the underlying media is
+   doing with our data.  A mediating factor though is that embedded systems
+   are usually sealed, single-use systems where the chances of a second user
+   accessing the data is low.  The only possible threat then is post system-
+   retirement recovery of the data, presumably if it contains valuable data
+   it'll be disposed of appropriately */
+
+/* Symbolic defines for stdio-style file access modes */
+
+#if defined( DDNAME_IO )
+  #define MODE_READ			"rb,byteseek"
+  #define MODE_WRITE		"wb,byteseek,recfm=*"
+  #define MODE_READWRITE	"rb+,byteseek,recfm=*"
+#else
+  #define MODE_READ			"rb"
+  #define MODE_WRITE		"wb"
+  #define MODE_READWRITE	"rb+"
+#endif /* Standard vs. DDNAME I/O */
 
 /****************************************************************************
 *																			*
@@ -64,9 +95,9 @@
 
 int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 	{
-	static const int modes[] = { 
-		FJ_O_RDONLY, FJ_O_RDONLY, 
-		FJ_O_WRONLY | FJ_O_CREAT | FJ_O_NOSHAREANY, 
+	static const int modes[] = {
+		FJ_O_RDONLY, FJ_O_RDONLY,
+		FJ_O_WRONLY | FJ_O_CREAT | FJ_O_NOSHAREANY,
 		FJ_O_RDWR | FJ_O_NOSHAREWR
 		};
 
@@ -178,8 +209,8 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		BYTE buffer[ BUFSIZ * 2 ];
 		int bytesToWrite = min( length, BUFSIZ * 2 );
 
-		/* We need to make sure that we fill the buffer with random data for 
-		   each write, otherwise compressing filesystems will just compress 
+		/* We need to make sure that we fill the buffer with random data for
+		   each write, otherwise compressing filesystems will just compress
 		   it to nothing */
 		setMessageData( &msgData, buffer, bytesToWrite );
 		krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
@@ -221,7 +252,7 @@ void fileErase( const char *fileName )
 
 	assert( fileName != NULL );
 
-	/* Try and open the file so that we can erase it.  If this fails, the 
+	/* Try and open the file so that we can erase it.  If this fails, the
 	   best that we can do is a straight unlink */
 	status = sFileOpen( &stream, fileName,
 						FILE_READ | FILE_WRITE | FILE_EXCLUSIVE_ACCESS );
@@ -235,7 +266,7 @@ void fileErase( const char *fileName )
 	fjstat( fileName, &fileInfo );
 	eraseFile( &stream, 0, fileInfo.??? );
 
-	/* Reset the files attributes */
+	/* Reset the file's attributes */
 	fjfattr( stream.fd, FJ_DA_NORMAL );
 
 	/* Delete the file */
@@ -264,6 +295,240 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 			{
 			*path = '\0';
 			return;
+			}
+		}
+
+	/* Add the filename to the path */
+	if( option == BUILDPATH_RNDSEEDFILE )
+		strcat( path, "randseed.dat" );
+	else
+		{
+		strcat( path, fileName );
+		strcat( path, ".p15" );
+		}
+	}
+
+/****************************************************************************
+*																			*
+*							uC/OS-II File Stream Functions					*
+*																			*
+****************************************************************************/
+
+#elif defined( __UCOSII__ )
+
+/* Open/close a file stream */
+
+int sFileOpen( STREAM *stream, const char *fileName, const int mode )
+	{
+	static const char *modes[] = { MODE_READ, MODE_READ,
+								   MODE_WRITE, MODE_READWRITE };
+	const char *openMode;
+
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( fileName != NULL );
+	assert( mode != 0 );
+
+	/* Initialise the stream structure */
+	memset( stream, 0, sizeof( STREAM ) );
+	stream->type = STREAM_TYPE_FILE;
+	if( ( mode & FILE_RW_MASK ) == FILE_READ )
+		stream->flags = STREAM_FLAG_READONLY;
+	openMode = modes[ mode & FILE_RW_MASK ];
+
+	/* If we're trying to write to the file, check whether we've got
+	   permission to do so */
+	if( ( mode & FILE_WRITE ) && fileReadonly( fileName ) )
+		return( CRYPT_ERROR_PERMISSION );
+
+	/* Try and open the file */
+	stream->pFile = FS_FOpen( fileName, openMode );
+	if( stream->pFile == NULL )
+		{
+		const FS_i16 errNo = FS_FError();
+
+		/* Return what we can in the way of an error message.  Curiously
+		   uC/FS doesn't provide an indicator for common errors like file
+		   not found, although it does provide strange indicators like
+		   FS_ERR_CLOSE, an error occurred while calling FS_FClose() */
+		return( ( errNo == FS_ERR_DISKFULL ) ? \
+					CRYPT_ERROR_OVEWFLOW : \
+				( errNo == FS_ERR_READONLY ) ? \
+					CRYPT_ERROR_PERMISSION : CRYPT_ERROR_OPEN );
+		}
+
+	return( CRYPT_OK );
+	}
+
+int sFileClose( STREAM *stream )
+	{
+	assert( isWritePtr( stream, sizeof( STREAM ) ) );
+	assert( stream->type == STREAM_TYPE_FILE );
+
+	/* Close the file and clear the stream structure */
+	FS_FClose( stream->pFile );
+	zeroise( stream, sizeof( STREAM ) );
+
+	return( CRYPT_OK );
+	}
+
+/* Read/write a block of data from/to a file stream */
+
+int fileRead( STREAM *stream, void *buffer, const int length )
+	{
+	int bytesRead;
+
+	if( ( bytesRead = FS_Read( stream->pFile, buffer, length ) ) < 0 )
+		return( CRYPT_ERROR_READ );
+	return( bytesRead );
+	}
+
+int fileWrite( STREAM *stream, const void *buffer, const int length )
+	{
+	int bytesWritten;
+
+	if( ( bytesWritten = FS_Write( stream->pFile, buffer, length ) ) < 0 || \
+		bytesWritten != length )
+		return( CRYPT_ERROR_WRITE );
+	return( CRYPT_OK );
+	}
+
+/* Commit data in a file stream to backing storage */
+
+int fileFlush( STREAM *stream )
+	{
+	/* There is an IOCTL to flush all buffers (for all files) to the backing
+	   store, but it's no supported in all drivers and seems a bit excessive
+	   for this case */
+	return( CRYPT_OK );
+	}
+
+/* Change the read/write position in a file */
+
+int fileSeek( STREAM *stream, const long position )
+	{
+	if( FS_FSeek( stream->pFile, position, FS_SEEK_SET ) < 0 )
+		return( CRYPT_ERROR_WRITE );
+	return( CRYPT_OK );
+	}
+
+/* Check whether a file is writeable */
+
+BOOLEAN fileReadonly( const char *fileName )
+	{
+	FS_U8 fileAttr;
+
+	assert( fileName != NULL );
+
+	if( ( fileAttr = FS_GetFileAttributes( fileName ) ) == 0xFF )
+		return( TRUE );
+
+	return( ( fileAttr & FS_ATTR_READONLY ) ? TRUE : FALSE );
+	}
+
+/* File deletion functions: Wipe a file from the current position to EOF,
+   and wipe and delete a file (although it's not terribly rigorous).
+   Vestigia nulla retrorsum */
+
+static void eraseFile( const STREAM *stream, long position, long length )
+	{
+	/* Wipe everything past the current position in the file */
+	while( length > 0 )
+		{
+		RESOURCE_DATA msgData;
+		BYTE buffer[ BUFSIZ * 2 ];
+		int bytesToWrite = min( length, BUFSIZ * 2 );
+
+		/* We need to make sure that we fill the buffer with random data for
+		   each write, otherwise compressing filesystems will just compress
+		   it to nothing */
+		setMessageData( &msgData, buffer, bytesToWrite );
+		krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
+						 &msgData, CRYPT_IATTRIBUTE_RANDOM_NONCE );
+
+		if( FS_Write( stream->pFile, buffer, bytesToWrite ) < 0 )
+			break;	/* An error occurred while writing, exit */
+		length -= bytesToWrite;
+		}
+
+	fjchsize( stream->pFile, position );
+	}
+
+void fileClearToEOF( const STREAM *stream )
+	{
+	int length, position;
+
+	assert( isReadPtr( stream, sizeof( STREAM ) ) );
+	assert( stream->type == STREAM_TYPE_FILE );
+
+	/* Wipe everything past the current position in the file */
+	if( ( length = FS_GetFileSize( fileName ) ) < 0 )
+		return;
+	if( ( position = FS_FTell( stream->pFile ) ) < 0 )
+		return;
+	length -= position;
+	if( length <= 0 )
+		return;	/* Nothing to do, exit */
+	eraseFile( stream, position, length );
+	}
+
+void fileErase( const char *fileName )
+	{
+	STREAM stream;
+	int length, status;
+
+	assert( fileName != NULL );
+
+	if( ( length = FS_GetFileSize( fileName ) ) < 0 )
+		return;
+
+	/* Try and open the file so that we can erase it.  If this fails, the
+	   best that we can do is a straight unlink */
+	status = sFileOpen( &stream, fileName,
+						FILE_READ | FILE_WRITE | FILE_EXCLUSIVE_ACCESS );
+	if( cryptStatusError( status ) )
+		{
+		remove( fileName );
+		return;
+		}
+
+	/* Determine the size of the file and erase it */
+	eraseFile( &stream, 0, length );
+
+	/* Reset the file's attributes and delete it */
+	sFileClose( &stream );
+	FS_SetFileAttributes( stream.pFile, FS_ATTR_ARCHIVE );
+	FS_SetFileTime( stream.pFile, 0 );
+	FS_Remove( fileName );
+	}
+
+/* Build the path to a file in the cryptlib directory */
+
+void fileBuildCryptlibPath( char *path, const char *fileName,
+							const BUILDPATH_OPTION_TYPE option )
+	{
+	/* Make sure that the open fails if we can't build the path */
+	*path = '\0';
+
+	/* Build the path to the configuration file if necessary.  We assume that
+	   we're on the correct drive */
+	strcpy( path, "\\cryptlib\\" );
+
+	/* If we're being asked to create the cryptlib directory and it doesn't
+	   already exist, create it now */
+	if( option == BUILDPATH_CREATEPATH )
+		{
+		FS_DIR dirInfo;
+
+		if( ( dirInfo = FS_OpenDir( path ) ) != NULL )
+			FSCloseDir( dirInfo );
+		else
+			{
+			/* The directory doesn't exist, try and create it */
+			if( FS_MkDir( path ) < 0 )
+				{
+				*path = '\0';
+				return;
+				}
 			}
 		}
 
@@ -370,8 +635,8 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		RESOURCE_DATA msgData;
 		int bytesToWrite = min( length, BUFSIZ * 2 );
 
-		/* We need to make sure that we fill the buffer with random data for 
-		   each write, otherwise compressing filesystems will just compress 
+		/* We need to make sure that we fill the buffer with random data for
+		   each write, otherwise compressing filesystems will just compress
 		   it to nothing */
 		setMessageData( &msgData, buffer, bytesToWrite );
 		krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
@@ -382,8 +647,8 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		}
 	fflush( stream->filePtr );
 
-	/* Truncate the file and if we're erasing the entire file, reset the 
-	   timestamps.  This is only possible through a file handle on some 
+	/* Truncate the file and if we're erasing the entire file, reset the
+	   timestamps.  This is only possible through a file handle on some
 	   systems, on others the caller has to do it via the filename */
 	chsize( fileHandle, position );
 	if( position <= 0 )
@@ -417,7 +682,7 @@ void fileErase( const char *fileName )
 
 	assert( fileName != NULL );
 
-	/* Try and open the file so that we can erase it.  If this fails, the 
+	/* Try and open the file so that we can erase it.  If this fails, the
 	   best that we can do is a straight unlink */
 	status = sFileOpen( &stream, fileName,
 						FILE_READ | FILE_WRITE | FILE_EXCLUSIVE_ACCESS );
@@ -434,7 +699,7 @@ void fileErase( const char *fileName )
 	fseek( stream.filePtr, 0, SEEK_SET );
 	eraseFile( stream, 0, length );
 
-	/* Truncate the file to 0 bytes if we couldn't do it in eraseFile, reset 
+	/* Truncate the file to 0 bytes if we couldn't do it in eraseFile, reset
 	   the time stamps, and delete it */
 	sFileClose( &stream );
 	/* Under Win16 we can't really do anything without resorting to MSDOS int
@@ -620,8 +885,8 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		BYTE buffer[ BUFSIZ * 2 ];
 		int bytesToWrite = min( length, BUFSIZ * 2 );
 
-		/* We need to make sure that we fill the buffer with random data for 
-		   each write, otherwise compressing filesystems will just compress 
+		/* We need to make sure that we fill the buffer with random data for
+		   each write, otherwise compressing filesystems will just compress
 		   it to nothing */
 		setMessageData( &msgData, buffer, bytesToWrite );
 		krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
@@ -660,7 +925,7 @@ void fileErase( const char *fileName )
 
 	assert( fileName != NULL );
 
-	/* Try and open the file so that we can erase it.  If this fails, the 
+	/* Try and open the file so that we can erase it.  If this fails, the
 	   best that we can do is a straight unlink */
 	status = sFileOpen( &stream, fileName,
 						FILE_READ | FILE_WRITE | FILE_EXCLUSIVE_ACCESS );
@@ -714,9 +979,9 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 
    For streams with the sensitive bit set we don't expand the buffer size
    because the original was probably in protected memory, for non-sensitive
-   streams we expand the size if necessary.  This means that we have to 
-   choose a suitably large buffer for sensitive streams (private keys), but 
-   one that isn't too big.  16K is about right, since typical private key 
+   streams we expand the size if necessary.  This means that we have to
+   choose a suitably large buffer for sensitive streams (private keys), but
+   one that isn't too big.  16K is about right, since typical private key
    files with cert chains are 2K */
 
 #define STREAM_BUFSIZE	16384
@@ -743,10 +1008,10 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 		stream->flags = STREAM_FLAG_READONLY;
 
 #if defined( __IBM4758__ )
-	/* Make sure that the filename matches the 4758's data item naming 
-	   conventions and remember the filename.  The best error code to return 
-	   if there's a problem is a file open error, since this is buried so 
-	   many levels down that a parameter error won't be meaningful to the 
+	/* Make sure that the filename matches the 4758's data item naming
+	   conventions and remember the filename.  The best error code to return
+	   if there's a problem is a file open error, since this is buried so
+	   many levels down that a parameter error won't be meaningful to the
 	   caller */
 	if( strlen( fileName ) > 8 )
 		return( CRYPT_ERROR_OPEN );
@@ -774,8 +1039,8 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 		}
 
 	/* We're doing a write, make sure that there's enough room available.
-	   This doesn't guarantee that there'll be enough when the data is 
-	   committed, but it makes sense to at least check when the "file" is 
+	   This doesn't guarantee that there'll be enough when the data is
+	   committed, but it makes sense to at least check when the "file" is
 	   opened */
 	status = sccQueryPPDSpace( &length, useBBRAM ? PPD_BBRAM : PPD_FLASH );
 	if( status != PPDGood || length < STREAM_BUFSIZE )
@@ -790,9 +1055,9 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 	return( CRYPT_OK );
 #elif defined( __VMCMS__ )
 	/* If we're going to be doing a write either now or later, we can't open
-	   the file until we have all of the data that we want to write to it 
-	   available since the open arg has to include the file format 
-	   information, so all we can do at this point is remember the name for 
+	   the file until we have all of the data that we want to write to it
+	   available since the open arg has to include the file format
+	   information, so all we can do at this point is remember the name for
 	   later use */
 	strcpy( stream->name, fileName );
 	asciiToEbcdic( stream->name, strlen( stream->name ) );
@@ -871,7 +1136,7 @@ int sFileClose( STREAM *stream )
 int fileRead( STREAM *stream, void *buffer, const int length )
 	{
 #if defined( __IBM4758__ ) || defined( __VMCMS__ )
-	/* These environments move all data into an in-memory buffer when the 
+	/* These environments move all data into an in-memory buffer when the
 	   file is opened, so there's never any need to read more data from the
 	   stream */
 	return( CRYPT_ERROR_READ );
@@ -884,11 +1149,11 @@ int fileRead( STREAM *stream, void *buffer, const int length )
 int fileWrite( STREAM *stream, const void *buffer, const int length )
 	{
 #if defined( __IBM4758__ ) || defined( __VMCMS__ )
-	/* Expand the write buffer on demand when it fills up.  If it's a small 
-	   buffer allocated when we initially read a file and it doesn't look 
-	   like we'll be overflowing a standard-size buffer, we first expand it 
-	   up to STREAM_BUFSIZE before increasing it in STREAM_BUFSIZE steps.  
-	   The following routine does a safe realloc() that wipes the original 
+	/* Expand the write buffer on demand when it fills up.  If it's a small
+	   buffer allocated when we initially read a file and it doesn't look
+	   like we'll be overflowing a standard-size buffer, we first expand it
+	   up to STREAM_BUFSIZE before increasing it in STREAM_BUFSIZE steps.
+	   The following routine does a safe realloc() that wipes the original
 	   buffer */
 	void *newBuffer;
 	const int newSize = ( stream->bufSize < STREAM_BUFSIZE && \
@@ -950,7 +1215,7 @@ int fileFlush( STREAM *stream )
 int fileSeek( STREAM *stream, const long position )
 	{
 #if defined( __IBM4758__ ) || defined( __VMCMS__ )
-	/* These environments move all data into an in-memory buffer when the 
+	/* These environments move all data into an in-memory buffer when the
 	   file is opened, so there's never any need to move around in the
 	   stream */
 	return( CRYPT_ERROR_READ );
@@ -1013,7 +1278,7 @@ void fileErase( const char *fileName )
 		}
 
 	/* If we got a length, overwrite the data.  Since the file contains a
-	   single record we can't perform the write-until-done overwrite used 
+	   single record we can't perform the write-until-done overwrite used
 	   on other OS'es, however since we're only going to be deleting short
 	   private key files using the default stream buffer is OK for this */
 	if( length > 0 )
@@ -1076,7 +1341,7 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 
 #include <FeatureMgr.h>
 
-/* In theory it's possible for a system not to have the VFS Manager 
+/* In theory it's possible for a system not to have the VFS Manager
    available, although this seems highly unlikely we check for it just
    in case using the Feature Manager */
 
@@ -1084,7 +1349,7 @@ static BOOLEAN checkVFSMgr( void )
 	{
 	uint32_t vfsMgrVersion;
 
-	return( ( FtrGet( sysFileCVFSMgr, vfsFtrIDVersion, 
+	return( ( FtrGet( sysFileCVFSMgr, vfsFtrIDVersion,
 					  &vfsMgrVersion ) == errNone ) ? TRUE : FALSE );
 	}
 
@@ -1092,9 +1357,9 @@ static BOOLEAN checkVFSMgr( void )
 
 int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 	{
-	static const int modes[] = { 
-		vfsModeRead, vfsModeRead, 
-		vfsModeCreate | vfsModeExclusive | vfsModeWrite, 
+	static const int modes[] = {
+		vfsModeRead, vfsModeRead,
+		vfsModeCreate | vfsModeExclusive | vfsModeWrite,
 		vfsModeReadWrite
 		};
 	uint32_t volIterator = vfsIteratorStart;
@@ -1112,7 +1377,7 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 		stream->flags = STREAM_FLAG_READONLY;
 	openMode = modes[ mode & FILE_RW_MASK ];
 
-	/* Make sure that VFS services are available and get the default volume 
+	/* Make sure that VFS services are available and get the default volume
 	   to open the file on */
 	if( !checkVFSMgr() )
 		return( CRYPT_ERROR_OPEN );
@@ -1155,7 +1420,7 @@ int fileRead( STREAM *stream, void *buffer, const int length )
 	{
 	uint32_t bytesRead;
 
-	if( VFSFileRead( stream->fileRef, length, buffer, 
+	if( VFSFileRead( stream->fileRef, length, buffer,
 					 &bytesRead ) != errNone )
 		return( CRYPT_ERROR_READ );
 	return( bytesRead );
@@ -1165,7 +1430,7 @@ int fileWrite( STREAM *stream, const void *buffer, const int length )
 	{
 	uint32_t bytesWritten;
 
-	if( VFSFileWrite( stream->fileRef, length, buffer, 
+	if( VFSFileWrite( stream->fileRef, length, buffer,
 					  &bytesWritten ) != errNone || \
 		bytesWritten != length )
 		return( CRYPT_ERROR_WRITE );
@@ -1176,12 +1441,12 @@ int fileWrite( STREAM *stream, const void *buffer, const int length )
 
 int fileFlush( STREAM *stream )
 	{
-	/* There doesn't seem to be any way to force data to be written do 
+	/* There doesn't seem to be any way to force data to be written do
 	   backing store, probably because the concept of backing store is
 	   somewhat hazy in a system that's never really powered down.
 	   Probably for removable media data is committed fairly quickly to
-	   handle media removal while for fixed media it's committed as 
-	   required since it can be retained in memory more or less 
+	   handle media removal while for fixed media it's committed as
+	   required since it can be retained in memory more or less
 	   indefinitely */
 	return( CRYPT_OK );
 	}
@@ -1190,7 +1455,7 @@ int fileFlush( STREAM *stream )
 
 int fileSeek( STREAM *stream, const long position )
 	{
-	if( VFSFileSeek( stream->fileRef, vfsOriginBeginning, 
+	if( VFSFileSeek( stream->fileRef, vfsOriginBeginning,
 					 position ) != errNone )
 		return( CRYPT_ERROR_WRITE );
 	return( CRYPT_OK );
@@ -1230,14 +1495,14 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		uint32_t bytesWritten;
 		int bytesToWrite = min( length, BUFSIZ * 2 );
 
-		/* We need to make sure that we fill the buffer with random data for 
-		   each write, otherwise compressing filesystems will just compress 
+		/* We need to make sure that we fill the buffer with random data for
+		   each write, otherwise compressing filesystems will just compress
 		   it to nothing */
 		setMessageData( &msgData, buffer, bytesToWrite );
 		krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
 						 &msgData, CRYPT_IATTRIBUTE_RANDOM_NONCE );
 
-		if( VFSFileWrite( stream->fileRef, bytesToWrite, buffer, 
+		if( VFSFileWrite( stream->fileRef, bytesToWrite, buffer,
 						  &bytesWritten ) != errNone )
 			break;	/* An error occurred while writing, exit */
 		length -= bytesToWrite;
@@ -1272,7 +1537,7 @@ void fileErase( const char *fileName )
 
 	assert( fileName != NULL );
 
-	/* Try and open the file so that we can erase it.  If this fails, the 
+	/* Try and open the file so that we can erase it.  If this fails, the
 	   best that we can do is a straight unlink */
 	if( VFSVolumeEnumerate( &volRefNum, &volIterator ) != errNone )
 		return;
@@ -1288,7 +1553,7 @@ void fileErase( const char *fileName )
 	VFSFileSize( stream.fileRef, &length );
 	eraseFile( &stream, 0, length );
 
-	/* Reset the files attributes */
+	/* Reset the file's attributes */
 	VFSFileSetAttributes( stream.fileRef, 0 );
 	VFSFileSetDate( stream.fileRef, vfsFileDateAccessed, 0 );
 	VFSFileSetDate( stream.fileRef, vfsFileDateCreated, 0 );
@@ -1375,20 +1640,16 @@ int ftruncate( int fd, off_t length )
 
 /* Open/close a file stream */
 
-#ifdef DDNAME_IO 
+#ifdef DDNAME_IO
 
-/* DDNAME I/O can be used under MVS.  Low-level POSIX I/O APIs can't be 
-   used at this level, only stream I/O functions can be used.  For 
+/* DDNAME I/O can be used under MVS.  Low-level POSIX I/O APIs can't be
+   used at this level, only stream I/O functions can be used.  For
    sFileOpen:
 
 	- File permissions are controlled by RACF (or SAF compatable product)
 	  and should not be set by the program.
 
 	- No locking mechanism is implemented */
-
-#define MODE_READ		"rb,byteseek"
-#define MODE_WRITE		"wb,byteseek,recfm=*"
-#define MODE_READWRITE	"rb+,byteseek,recfm=*"
 
 int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 	{
@@ -1432,17 +1693,17 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
   #define STDERR_FILENO		2
 #endif /* STDIN_FILENO */
 
-static int openFile( STREAM *stream, const char *fileName, 
+static int openFile( STREAM *stream, const char *fileName,
 					 const int flags, const int mode )
 	{
 	int fd, count = 0;
 
 	/* A malicious user could have exec()'d us after closing standard I/O
-	   handles (which we inherit across the exec()), which means that any 
-	   new files that we open will be allocated the same handles as the 
-	   former standard I/O ones.  This could cause private data to be 
-	   written to stdout or error messages emitted by the calling app to go 
-	   into the opened file.  To avoid this, we retry the open if we get the 
+	   handles (which we inherit across the exec()), which means that any
+	   new files that we open will be allocated the same handles as the
+	   former standard I/O ones.  This could cause private data to be
+	   written to stdout or error messages emitted by the calling app to go
+	   into the opened file.  To avoid this, we retry the open if we get the
 	   same handle as a standard I/O one */
 	do
 		{
@@ -1454,7 +1715,7 @@ static int openFile( STREAM *stream, const char *fileName,
 			if( flags & O_CREAT )
 				return( CRYPT_ERROR_OPEN );
 
-			/* Determine whether the open failed because the file doesn't 
+			/* Determine whether the open failed because the file doesn't
 			   exist or because we can't use that access mode */
 			return( ( access( fileName, 0 ) == -1 ) ? \
 					CRYPT_ERROR_NOTFOUND : CRYPT_ERROR_OPEN );
@@ -1481,7 +1742,7 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 #ifdef EBCDIC_CHARS
 	char fileNameBuffer[ MAX_PATH_LENGTH ];
 #endif /* EBCDIC_CHARS */
-#ifdef USE_FCNTL_LOCKING 
+#ifdef USE_FCNTL_LOCKING
 	struct flock flockInfo;
 #endif /* USE_FCNTL_LOCKING */
 
@@ -1504,15 +1765,15 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 	fileName = bufferToEbcdic( fileNameBuffer, fileName );
 #endif /* EBCDIC_CHARS */
 
-	/* Defending against writing through links is somewhat difficult since 
-	   there's no atomic way to do this.  What we do is lstat() the file, 
-	   open it as appropriate, and if it's an existing file ftstat() it and 
-	   compare various important fields to make sure that the file wasn't 
-	   changed between the lstat() and the open().  If everything is OK, we 
-	   then use the lstat() information to make sure that it isn't a symlink 
-	   (or at least that it's a normal file) and that the link count is 1.  
-	   These checks also catch other weird things like STREAMS stuff 
-	   fattach()'d over files.  If these checks pass and the file already 
+	/* Defending against writing through links is somewhat difficult since
+	   there's no atomic way to do this.  What we do is lstat() the file,
+	   open it as appropriate, and if it's an existing file ftstat() it and
+	   compare various important fields to make sure that the file wasn't
+	   changed between the lstat() and the open().  If everything is OK, we
+	   then use the lstat() information to make sure that it isn't a symlink
+	   (or at least that it's a normal file) and that the link count is 1.
+	   These checks also catch other weird things like STREAMS stuff
+	   fattach()'d over files.  If these checks pass and the file already
 	   exists we truncate it to mimic the effect of an open with create */
 	if( ( mode & FILE_RW_MASK ) == FILE_WRITE )
 		{
@@ -1529,10 +1790,10 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 			if( errno != ENOENT )
 				return( CRYPT_ERROR_OPEN );
 
-			/* The file doesn't exist, create it with O_EXCL to make sure 
-			   that an attacker can't slip in a file between the lstat() and 
+			/* The file doesn't exist, create it with O_EXCL to make sure
+			   that an attacker can't slip in a file between the lstat() and
 			   open() */
-			status = openFile( stream, fileName, O_CREAT | O_EXCL | O_RDWR, 
+			status = openFile( stream, fileName, O_CREAT | O_EXCL | O_RDWR,
 							   0600 );
 			if( cryptStatusError( status ) )
 				return( status );
@@ -1561,14 +1822,14 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 			   fstat() were done to the same file.  Now check that there's
 			   only one link, and that it's a normal file (this isn't
 			   strictly necessary because the fstat() vs. lstat() st_mode
-			   check would also find this).  This also catches tricks like 
-			   an attacker closing stdin/stdout so that a newly-opened file 
-			   ends up with those file handles, with the result that the app 
-			   using cryptlib ends up corrupting cryptlib's files when it 
-			   sends data to stdout.  In order to counter this we could 
-			   simply repeatedly open /dev/null until we get a handle > 2, 
-			   but the fstat() check will catch this in a manner that's also 
-			   safe with systems that don't have a stdout (so the handle > 2 
+			   check would also find this).  This also catches tricks like
+			   an attacker closing stdin/stdout so that a newly-opened file
+			   ends up with those file handles, with the result that the app
+			   using cryptlib ends up corrupting cryptlib's files when it
+			   sends data to stdout.  In order to counter this we could
+			   simply repeatedly open /dev/null until we get a handle > 2,
+			   but the fstat() check will catch this in a manner that's also
+			   safe with systems that don't have a stdout (so the handle > 2
 			   check won't make much sense) */
 			if( fstatInfo.st_nlink > 1 || !S_ISREG( lstatInfo.st_mode ) )
 				{
@@ -1594,10 +1855,10 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 	if( mode & FILE_PRIVATE )
 		chmod( fileName, 0600 );
 
-	/* Lock the file if possible to make sure that no-one else tries to do 
-	   things to it.  If available we used the (BSD-style) flock(), if not we 
-	   fall back to Posix fcntl() locking (both mechanisms are broken, but 
-	   flock() is less broken).  fcntl() locking has two disadvantages over 
+	/* Lock the file if possible to make sure that no-one else tries to do
+	   things to it.  If available we used the (BSD-style) flock(), if not we
+	   fall back to Posix fcntl() locking (both mechanisms are broken, but
+	   flock() is less broken).  fcntl() locking has two disadvantages over
 	   flock():
 
 	   1. Locking is per-process rather than per-thread (specifically it's
@@ -1610,8 +1871,8 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 		  from the file (if one keyset handle is shared among threads), but
 		  not necessarily for multiple threads to be able to write.  We could
 		  if necessary use mutexes for per-thread lock synchronisation, but
-		  this gets incredibly ugly since we then have to duplicate parts of 
-		  the the system file table with per-thread mutexes, mess around with 
+		  this gets incredibly ugly since we then have to duplicate parts of
+		  the the system file table with per-thread mutexes, mess around with
 		  an fstat() on each file access to determine if we're accessing an
 		  already-open file, wrap all that up in more mutexes, etc etc, as
 		  well as being something that's symtomatic of a user application bug
@@ -1728,8 +1989,8 @@ int fileFlush( STREAM *stream )
 int fileSeek( STREAM *stream, const long position )
 	{
 #if defined( DDNAME_IO )
-	/* If we're using ddnames, we only seek if we're not already at the 
-	   start of the file to prevent postioning to 0 in a new empty PDS 
+	/* If we're using ddnames, we only seek if we're not already at the
+	   start of the file to prevent postioning to 0 in a new empty PDS
 	   member, which fails */
 	if( ( stream->bufCount > 0 || stream->bufPos > 0 || position > 0 ) )
 		/* Drop through */
@@ -1777,8 +2038,8 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		BYTE buffer[ 1024 ];
 		const int bytesToWrite = min( length, 1024 );
 
-		/* We need to make sure that we fill the buffer with random data for 
-		   each write, otherwise compressing filesystems will just compress 
+		/* We need to make sure that we fill the buffer with random data for
+		   each write, otherwise compressing filesystems will just compress
 		   it to nothing */
 		setMessageData( &msgData, buffer, bytesToWrite );
 		krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
@@ -1827,7 +2088,7 @@ void fileErase( const char *fileName )
 	fileName = bufferToEbcdic( fileNameBuffer, fileName );
 #endif /* EBCDIC_CHARS */
 
-	/* Try and open the file so that we can erase it.  If this fails, the 
+	/* Try and open the file so that we can erase it.  If this fails, the
 	   best that we can do is a straight unlink */
 	status = sFileOpen( &stream, fileName,
 						FILE_READ | FILE_WRITE | FILE_EXCLUSIVE_ACCESS );
@@ -1945,16 +2206,16 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 	ftruncate() - FIOTRUNC, dosFsLib.
 
 	tell() - FIOWHERE, dosFsLib, nfsDrv, rt11FsLib.
-	
-	utime() - FIOTIMESET, not documented to be supported, but probably 
-			present for utime() support in dirLib, best-effort use only.  
-			For dosFsLib the only way to set the time is to install a time 
-			hook via dosFsDateTimeInstall() before accessing the file, have 
-			it report the desired time when the file is accessed, and then 
-			uninstall it again afterwards, which is too unsafe to use 
+
+	utime() - FIOTIMESET, not documented to be supported, but probably
+			present for utime() support in dirLib, best-effort use only.
+			For dosFsLib the only way to set the time is to install a time
+			hook via dosFsDateTimeInstall() before accessing the file, have
+			it report the desired time when the file is accessed, and then
+			uninstall it again afterwards, which is too unsafe to use
 			(it'd affect all files on the filesystem.
 
-   Of these ftruncate() is the only problem, being supported only in 
+   Of these ftruncate() is the only problem, being supported only in
    dosFsLib */
 
 /* When performing file accesses, we use the Unix-style errno to interpret
@@ -1963,7 +2224,7 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
    basis, VxWorks stores the last error in the TCB, so that errno can read
    it directly from the TCB.
 
-   The error status is a 32-bit value, of which the high 16 bits are the 
+   The error status is a 32-bit value, of which the high 16 bits are the
    module number and the low 16 bits are the module-specific error.  However,
    module 0 is reserved for Unix-compatible errors, allowing direct use of
    the standard errno.h values.  This is complicated by the fact that the
@@ -2027,7 +2288,7 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 	   functions that Unix provides to detec them) */
 	if( ( mode & FILE_RW_MASK ) == FILE_WRITE )
 		{
-		/* We're creating the file, we have to use creat() rather than 
+		/* We're creating the file, we have to use creat() rather than
 		   open(), which can only open an existing file (well, except for
 		   NFS filesystems) */
 		if( ( stream->fd = creat( fileName, 0600 ) ) == ERROR )
@@ -2040,7 +2301,7 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 
 		/* Open an existing file */
 		if( ( stream->fd = open( fileName, mode, 0600 ) ) == ERROR )
-			/* The open failed, determine whether it was because the file 
+			/* The open failed, determine whether it was because the file
 			   doesn't exist or because we can't use that access mode */
 			return( getErrorCode( CRYPT_ERROR_OPEN ) );
 		}
@@ -2109,7 +2370,7 @@ BOOLEAN fileReadonly( const char *fileName )
 	   for writing, since there's no access() function */
 	if( ( fd = open( fileName, O_RDWR, 0600 ) ) == ERROR )
 		{
-		/* We couldn't open it, check to see whether this is because it 
+		/* We couldn't open it, check to see whether this is because it
 		   doesn't exist or because it's not writeable */
 		return( getErrorCode( CRYPT_ERROR_OPEN ) == CRYPT_ERROR_PERMISSION ? \
 				TRUE : FALSE );
@@ -2132,8 +2393,8 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		RESOURCE_DATA msgData;
 		int bytesToWrite = min( length, BUFSIZ * 2 );
 
-		/* We need to make sure that we fill the buffer with random data for 
-		   each write, otherwise compressing filesystems will just compress 
+		/* We need to make sure that we fill the buffer with random data for
+		   each write, otherwise compressing filesystems will just compress
 		   it to nothing */
 		setMessageData( &msgData, buffer, bytesToWrite );
 		krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
@@ -2144,8 +2405,8 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		}
 	ioctl( stream->fd, FIOFLUSH, 0 );
 
-	/* Truncate the file and if we're erasing the entire file, reset the 
-	   attributes and timestamps.  We ignore return codes since some 
+	/* Truncate the file and if we're erasing the entire file, reset the
+	   attributes and timestamps.  We ignore return codes since some
 	   filesystems don't support these ioctl()'s */
 	ioctl( stream->fd, FIOTRUNC, position );
 	if( position <= 0 )
@@ -2163,7 +2424,7 @@ void fileClearToEOF( const STREAM *stream )
 	assert( isReadPtr( stream, sizeof( STREAM ) ) );
 	assert( stream->type == STREAM_TYPE_FILE );
 
-	/* Wipe everything past the current position in the file.  We use the 
+	/* Wipe everything past the current position in the file.  We use the
 	   long-winded method of determining the overall length since it doesn't
 	   require the presence of dirLib for fstat() */
 	position = ioctl( stream->fd, FIOWHERE, 0 );
@@ -2187,7 +2448,7 @@ void fileErase( const char *fileName )
 
 	assert( fileName != NULL );
 
-	/* Try and open the file so that we can erase it.  If this fails, the 
+	/* Try and open the file so that we can erase it.  If this fails, the
 	   best that we can do is a straight unlink */
 	status = sFileOpen( &stream, fileName,
 						FILE_READ | FILE_WRITE | FILE_EXCLUSIVE_ACCESS );
@@ -2197,8 +2458,8 @@ void fileErase( const char *fileName )
 		return;
 		}
 
-	/* Determine the size of the file and erase it.  We use the long-winded 
-	   method of determining the overall length since it doesn't require the 
+	/* Determine the size of the file and erase it.  We use the long-winded
+	   method of determining the overall length since it doesn't require the
 	   presence of dirLib for fstat() */
 	if( ioctl( stream.fd, FIOFSTATGET, ( int ) &statStruct ) != ERROR )
 		length = statStruct.st_size;
@@ -2248,19 +2509,19 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 #elif defined( __WIN32__ ) || defined( __WINCE__ )
 
 /* File flags to use when accessing a file and attributes to use when
-   creating a file.  For access we tell the OS that we'll be reading the 
-   file sequentially, for creation we prevent the OS from groping around 
-   inside the file.  We could also be (inadvertently) opening the client 
-   side of a named pipe, which would allow a server to impersonate us if 
-   we're not careful.  To handle this we set the impersonation level to 
-   SecurityAnonymous, which prevents the server from doing anything with our 
+   creating a file.  For access we tell the OS that we'll be reading the
+   file sequentially, for creation we prevent the OS from groping around
+   inside the file.  We could also be (inadvertently) opening the client
+   side of a named pipe, which would allow a server to impersonate us if
+   we're not careful.  To handle this we set the impersonation level to
+   SecurityAnonymous, which prevents the server from doing anything with our
    capabilities.  Note that the pipe flag SECURITY_SQOS_PRESENT flag clashes
-   with the file flag FILE_FLAG_OPEN_NO_RECALL (indicating that data 
-   shouldn't be moved in from remote storage if it currently resides there), 
-   this isn't likely to be a problem.  The SECURITY_ANONYMOUS define 
-   evaluates to zero, which means that it won't clash with any file flags, 
-   however if future flags below the no-recall flag (0x00100000) are defined 
-   for CreateFile() care needs to be taken that they don't run down into the 
+   with the file flag FILE_FLAG_OPEN_NO_RECALL (indicating that data
+   shouldn't be moved in from remote storage if it currently resides there),
+   this isn't likely to be a problem.  The SECURITY_ANONYMOUS define
+   evaluates to zero, which means that it won't clash with any file flags,
+   however if future flags below the no-recall flag (0x00100000) are defined
+   for CreateFile() care needs to be taken that they don't run down into the
    area used by the pipe flags around 0x000x0000 */
 
 #ifndef __WINCE__
@@ -2276,7 +2537,7 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
   #define FILE_ATTRIBUTES		0
 #endif /* Win32 vs.WinCE */
 
-/* Older versions of the Windows SDK don't include the defines for system 
+/* Older versions of the Windows SDK don't include the defines for system
    directories so we define them ourselves if necesary */
 
 #ifndef CSIDL_PERSONAL
@@ -2300,10 +2561,10 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
   #define checkUserKnown( x )	TRUE
 #endif /* __WINCE__ */
 
-/* Check whether a user's SID is known to a server providing a network 
+/* Check whether a user's SID is known to a server providing a network
    share, so that we can set file ACLs based on it */
 
-#ifndef __WINCE__ 
+#ifndef __WINCE__
 
 #define TOKEN_BUFFER_SIZE	256
 #define UNI_BUFFER_SIZE		( 256 + _MAX_PATH )
@@ -2328,22 +2589,22 @@ static BOOLEAN checkUserKnown( const char *fileName )
 	if( isWin95 )
 		return( TRUE );
 
-	/* Canonicalise the path name.  This turns relative paths into absolute 
+	/* Canonicalise the path name.  This turns relative paths into absolute
 	   ones and converts forward to backwards slashes.  The latter is
-	   necessary because while the Windows filesystem functions will accept 
-	   Unix-style forward slashes in paths, the WNetGetUniversalName() 
+	   necessary because while the Windows filesystem functions will accept
+	   Unix-style forward slashes in paths, the WNetGetUniversalName()
 	   networking function doesn't */
-	if( GetFullPathName( fileName, PATH_BUFFER_SIZE, pathBuffer, 
+	if( GetFullPathName( fileName, PATH_BUFFER_SIZE, pathBuffer,
 						 &fileNamePtr ) )
 		fileName = pathBuffer;
 
-	/* If the path is too short to contain a drive letter or UNC path, it 
+	/* If the path is too short to contain a drive letter or UNC path, it
 	   must be local */
 	if( strlen( fileName ) <= 2 )
 		return( TRUE );
 
 	/* If there's a drive letter present, check whether it's a local or
-	   remote drive.  GetDriveType() is rather picky about what it'll accept 
+	   remote drive.  GetDriveType() is rather picky about what it'll accept
 	   so we have to extract just the drive letter from the path */
 	if( fileName[ 1 ] == ':' )
 		{
@@ -2357,16 +2618,16 @@ static BOOLEAN checkUserKnown( const char *fileName )
 		isMappedDrive = TRUE;
 		}
 	else
-		/* If it's not a UNC name, it's local (or something weird like a 
+		/* If it's not a UNC name, it's local (or something weird like a
 		   mapped web page to which we shouldn't be writing keys anyway) */
 		if( memcmp( fileName, "\\\\", 2 ) )
 			return( TRUE );
 
 	/* If it's a mapped network drive, get the name in UNC form.  What to do
-	   in case of failure is a bit tricky.  If we get here we know that it's 
-	   a network share, but if there's some problem mapping it to a UNC (the 
-	   usual reason for this will be that there's a problem with the network 
-	   and the share is a cached remnant of a persistent connection), all we 
+	   in case of failure is a bit tricky.  If we get here we know that it's
+	   a network share, but if there's some problem mapping it to a UNC (the
+	   usual reason for this will be that there's a problem with the network
+	   and the share is a cached remnant of a persistent connection), all we
 	   can do is fail safe and hope that the user is known */
 	if( isMappedDrive )
 		{
@@ -2377,9 +2638,9 @@ static BOOLEAN checkUserKnown( const char *fileName )
 		HINSTANCE hMPR;
 		BOOLEAN gotUNC = FALSE;
 
-		/* Load the MPR library.  We can't (safely) use an opportunistic 
-		   GetModuleHandle() before the LoadLibrary() for this because the 
-		   code that originally loaded the DLL might do a FreeLibrary in 
+		/* Load the MPR library.  We can't (safely) use an opportunistic
+		   GetModuleHandle() before the LoadLibrary() for this because the
+		   code that originally loaded the DLL might do a FreeLibrary in
 		   another thread, causing the library to be removed from under us.
 		   In any case LoadLibrary does this for us, merely incrementing the
 		   reference count if the DLL is already loaded */
@@ -2390,13 +2651,13 @@ static BOOLEAN checkUserKnown( const char *fileName )
 			return( TRUE );		/* Default fail-safe */
 
 		/* Get the translated UNC name.  The UNIVERSAL_NAME_INFO struct is
-		   one of those variable-length ones where the lpUniversalName 
+		   one of those variable-length ones where the lpUniversalName
 		   member points to extra data stored off the end of the struct, so
 		   we overlay it onto a much larger buffer */
 		pWNetGetUniversalNameA = ( WNETGETUNIVERSALNAMEA ) \
 								 GetProcAddress( hMPR, "WNetGetUniversalNameA" );
 		if( pWNetGetUniversalNameA != NULL && \
-			pWNetGetUniversalNameA( fileName, UNIVERSAL_NAME_INFO_LEVEL, 
+			pWNetGetUniversalNameA( fileName, UNIVERSAL_NAME_INFO_LEVEL,
 									nameInfo, &uniBufSize ) == NO_ERROR )
 			{
 			fileName = nameInfo->lpUniversalName;
@@ -2409,7 +2670,7 @@ static BOOLEAN checkUserKnown( const char *fileName )
 	assert( !memcmp( fileName, "\\\\", 2 ) );
 
 	/* We've got the network share in UNC form, extract the server name.  If
-	   for some reason the name is still an absolute path, the following will 
+	   for some reason the name is still an absolute path, the following will
 	   convert it to "x:\", which is fine */
 	for( serverNameLength = 2; \
 		 fileName[ serverNameLength ] && fileName[ serverNameLength ] != '\\'; \
@@ -2423,14 +2684,14 @@ static BOOLEAN checkUserKnown( const char *fileName )
 		{
 		DWORD cbTokenUser;
 
-		tokenOK = GetTokenInformation( hToken, TokenUser, pTokenUser, 
+		tokenOK = GetTokenInformation( hToken, TokenUser, pTokenUser,
 									   TOKEN_BUFFER_SIZE, &cbTokenUser );
 		CloseHandle( hToken );
 		}
 	if( !tokenOK )
 		return( TRUE );			/* Default fail-safe */
-	retVal = LookupAccountSid( pathBuffer, pTokenUser->User.Sid, 
-							   nameBuffer, &nameBufSize, 
+	retVal = LookupAccountSid( pathBuffer, pTokenUser->User.Sid,
+							   nameBuffer, &nameBufSize,
 							   domainBuffer, &domainBufSize, &eUse );
 	if( !retVal && GetLastError() == ERROR_NONE_MAPPED )
 		/* The user with this SID isn't known to the server */
@@ -2467,7 +2728,7 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 
 	/* Convert the filename to the native character set if necessary */
 #ifdef __WINCE__
-	status = asciiToUnicode( fileNameBuffer, fileName, 
+	status = asciiToUnicode( fileNameBuffer, fileName,
 							 strlen( fileName ) + 1 );
 	if( cryptStatusError( status ) )
 		return( CRYPT_ERROR_OPEN );
@@ -2479,7 +2740,7 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 		{
 		const int length = strlen( ( char * ) fileNamePtr );
 
-		if( length >= 4 && memcmp( fileNamePtr, "\\\\?\\", 4 ) )
+		if( length >= 4 && !memcmp( fileNamePtr, "\\\\?\\", 4 ) )
 			return( CRYPT_ERROR_OPEN );
 		}
 	else
@@ -2487,13 +2748,13 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 			{
 			const int length = wcslen( ( wchar_t * ) fileNamePtr );
 
-			if( length >= 8 && memcmp( fileNamePtr, L"\\\\?\\", 8 ) )
+			if( length >= 8 && !memcmp( fileNamePtr, L"\\\\?\\", 8 ) )
 				return( CRYPT_ERROR_OPEN );
 			}
 
 	/* If we're creating the file and we don't want others to get to it, set
-	   up the security attributes to reflect this if the OS supports it.  
-	   Unfortunately creating the file with ACLs doesn't always work when 
+	   up the security attributes to reflect this if the OS supports it.
+	   Unfortunately creating the file with ACLs doesn't always work when
 	   the file is located on a network share because what's:
 
 		create file, ACL = user SID access
@@ -2502,11 +2763,11 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 
 		create file, ACL = <unknown SID> access
 
-	   on the network share if the user is accessing it as a member of a 
-	   group and their individual SID isn't known to the server.  As a 
-	   result, they can't read the file that they've just created.  To get 
+	   on the network share if the user is accessing it as a member of a
+	   group and their individual SID isn't known to the server.  As a
+	   result, they can't read the file that they've just created.  To get
 	   around this, we need to perform an incredibly convoluted check (via
-	   checkUserKnown()) to see whether the path is a network path and if 
+	   checkUserKnown()) to see whether the path is a network path and if
 	   so, if the user is known to the server providing the network share */
 	if( !isWin95 && ( mode & FILE_WRITE ) && ( mode & FILE_PRIVATE ) && \
 		checkUserKnown( fileNamePtr ) && \
@@ -2517,9 +2778,14 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 	/* Check that the file isn't a special file type, for example a device
 	   pseudo-file that can crash the system under Win95/98/ME/whatever.
 	   WinCE doesn't have these pseudo-files, so this function doesn't
-	   exist there.  In theory we could check for the various 
-	   FILE_ATTRIBUTE_xxxROM variations, but that'll be handled 
-	   automatically by CreateFile()*/
+	   exist there.  In theory we could check for the various
+	   FILE_ATTRIBUTE_xxxROM variations, but that'll be handled
+	   automatically by CreateFile().  We perform this check before we try
+	   any of the open actions since it's most likely to catch accidental
+	   access to the wrong file, and we want to have the chance to bail
+	   out before making irreversible changes like the call to DeleteFile()
+	   below.  To avoid race conditions, a further check is carried out
+	   after the file is opened */
 #ifndef __WINCE__
 	hFile = CreateFile( fileNamePtr, GENERIC_READ, FILE_SHARE_READ, NULL,
 						OPEN_EXISTING, FILE_FLAGS, NULL );
@@ -2551,13 +2817,13 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 		   can trap and turn into an error */
 		DeleteFile( fileNamePtr );
 		stream->hFile = CreateFile( fileNamePtr, GENERIC_READ | GENERIC_WRITE, 0,
-									getACLInfo( aclInfo ), CREATE_ALWAYS, 
+									getACLInfo( aclInfo ), CREATE_ALWAYS,
 									FILE_ATTRIBUTES | FILE_FLAGS, NULL );
 		if( stream->hFile != INVALID_HANDLE_VALUE && \
 			GetLastError() == ERROR_ALREADY_EXISTS )
 			{
 			/* There was already something there that wasn't hit by the
-			   delete, we can't be sure that the file has the required 
+			   delete, we can't be sure that the file has the required
 			   semantics */
 			CloseHandle( stream->hFile );
 			DeleteFile( fileNamePtr );
@@ -2573,6 +2839,19 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 
 		stream->hFile = CreateFile( fileNamePtr, openMode, shareMode, NULL,
 									OPEN_EXISTING, FILE_FLAGS, NULL );
+#ifndef __WINCE__
+		if( stream->hFile != INVALID_HANDLE_VALUE && \
+			GetFileType( hFile ) != FILE_TYPE_DISK )
+			{
+			/* This repeats the check that we made earlier before trying
+			   to open the file, and works around a potential race condition
+			   in which an attacker creates a special file after we perform
+			   the check */
+			CloseHandle( hFile );
+			freeACLInfo( aclInfo );
+			return( CRYPT_ERROR_OPEN );
+			}
+#endif /* __WINCE__ */
 		}
 #ifndef __WINCE__
 	SetErrorMode( uErrorMode );
@@ -2673,7 +2952,7 @@ BOOLEAN fileReadonly( const char *fileName )
 
 	/* Convert the filename to the native character set if necessary */
 #ifdef __WINCE__
-	status = asciiToUnicode( fileNameBuffer, fileName, 
+	status = asciiToUnicode( fileNameBuffer, fileName,
 							 strlen( fileName ) + 1 );
 	if( cryptStatusError( status ) )
 		return( TRUE );
@@ -2682,8 +2961,8 @@ BOOLEAN fileReadonly( const char *fileName )
 	/* The only way to tell whether a file is writeable is to try to open it
 	   for writing.  An access()-based check is pointless because it just
 	   calls GetFileAttributes() and checks for the read-only bit being set.
-	   Even if we wanted to check for this basic level of access, it 
-	   wouldn't work because writes can still be blocked if it's a read-only 
+	   Even if we wanted to check for this basic level of access, it
+	   wouldn't work because writes can still be blocked if it's a read-only
 	   file system or a network share */
 	hFile = CreateFile( fileNamePtr, GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
 						FILE_ATTRIBUTE_NORMAL, NULL );
@@ -2710,8 +2989,8 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		DWORD bytesWritten;
 		int bytesToWrite = min( length, 1024 );
 
-		/* We need to make sure that we fill the buffer with random data for 
-		   each write, otherwise compressing filesystems will just compress 
+		/* We need to make sure that we fill the buffer with random data for
+		   each write, otherwise compressing filesystems will just compress
 		   it to nothing */
 		setMessageData( &msgData, buffer, bytesToWrite );
 		krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
@@ -2720,13 +2999,13 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		length -= bytesToWrite;
 		}
 
-	/* Truncate the file and if we're erasing the entire file, reset the 
-	   timestamps.  The delete just marks the file as deleted rather than 
-	   actually deleting it, but there's not much information that can be 
-	   recovered without a magnetic force microscope.  The call to 
-	   FlushFileBuffers() ensures that the changed data gets committed 
-	   before the delete call comes along.  If we didn't do this then the OS 
-	   would drop all changes once DeleteFile() was called, leaving the 
+	/* Truncate the file and if we're erasing the entire file, reset the
+	   timestamps.  The delete just marks the file as deleted rather than
+	   actually deleting it, but there's not much information that can be
+	   recovered without a magnetic force microscope.  The call to
+	   FlushFileBuffers() ensures that the changed data gets committed
+	   before the delete call comes along.  If we didn't do this then the OS
+	   would drop all changes once DeleteFile() was called, leaving the
 	   original more or less intact on disk */
 	SetFilePointer( stream->hFile, position, NULL, FILE_BEGIN );
 	SetEndOfFile( stream->hFile );
@@ -2769,7 +3048,7 @@ void fileErase( const char *fileName )
 	asciiToUnicode( fileNameBuffer, fileName, strlen( fileName ) + 1 );
 #endif /* __WINCE__ */
 
-	/* Try and open the file so that we can erase it.  If this fails, the 
+	/* Try and open the file so that we can erase it.  If this fails, the
 	   best that we can do is a straight unlink */
 	status = sFileOpen( &stream, fileName,
 						FILE_READ | FILE_WRITE | FILE_EXCLUSIVE_ACCESS );
@@ -2811,27 +3090,27 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 	*path = '\0';
 
 #if defined( __WIN32__ )
-	/* Build the path to the configuration file if necessary.  We can't 
-	   (safely) use an opportunistic GetModuleHandle() before the 
-	   LoadLibrary() for this because the code that originally loaded the 
-	   DLL might do a FreeLibrary in another thread, causing the library to 
-	   be removed from under us.  In any case LoadLibrary does this for us, 
-	   merely incrementing the reference count if the DLL is already 
+	/* Build the path to the configuration file if necessary.  We can't
+	   (safely) use an opportunistic GetModuleHandle() before the
+	   LoadLibrary() for this because the code that originally loaded the
+	   DLL might do a FreeLibrary in another thread, causing the library to
+	   be removed from under us.  In any case LoadLibrary does this for us,
+	   merely incrementing the reference count if the DLL is already
 	   loaded */
 	GetVersionEx( &osvi );
 	if( osvi.dwMajorVersion <= 4 )
 		{
 		HINSTANCE hComCtl32, hSHFolder;
 
-		/* Try and find the location of the closest thing that Windows has 
-		   to a home directory.  This is a bit of a problem function in that 
-		   both the function name and parameters have changed over time, and 
-		   it's only included in pre-Win2K versions of the OS via a kludge 
-		   DLL that takes the call and redirects it to the appropriate 
-		   function anderswhere.  Under certain (very unusual) circumstances 
-		   this kludge can fail if shell32.dll and comctl32.dll aren't 
-		   mapped into the process' address space yet, so we have to check 
-		   for the presence of these DLLs in memory as well as for the 
+		/* Try and find the location of the closest thing that Windows has
+		   to a home directory.  This is a bit of a problem function in that
+		   both the function name and parameters have changed over time, and
+		   it's only included in pre-Win2K versions of the OS via a kludge
+		   DLL that takes the call and redirects it to the appropriate
+		   function anderswhere.  Under certain (very unusual) circumstances
+		   this kludge can fail if shell32.dll and comctl32.dll aren't
+		   mapped into the process' address space yet, so we have to check
+		   for the presence of these DLLs in memory as well as for the
 		   successful load of the kludge DLL */
 	 	hComCtl32 = LoadLibrary( "ComCtl32.dll" );
 		if( ( hSHFolder = LoadLibrary( "SHFolder.dll" ) ) != NULL )
@@ -2850,7 +3129,7 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 		{
 		HINSTANCE hShell32;
 
-		/* Try and find the location of the closest thing that Windows has 
+		/* Try and find the location of the closest thing that Windows has
 		   to a home directory */
 		hShell32 = LoadLibrary( "Shell32.dll" );
 		pSHGetFolderPath = ( SHGETFOLDERPATH ) \
@@ -2863,14 +3142,14 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 		}
 	if( !gotPath )
 		{
-		/* Fall back to dumping it in the Windows directory.  This will 
-		   probably fail on systems where the user doesn't have privs to 
-		   write there, but if SHGetFolderPath() fails it's an indication 
+		/* Fall back to dumping it in the Windows directory.  This will
+		   probably fail on systems where the user doesn't have privs to
+		   write there, but if SHGetFolderPath() fails it's an indication
 		   that something's wrong anyway.
-		   
+
 		   If this too fails, we fall back to the root dir.  This has the
 		   same problems as the Windows directory for non-admin users, but
-		   we try it just in case the user manually copied the config there 
+		   we try it just in case the user manually copied the config there
 		   as a last resort */
 		if( !GetWindowsDirectory( pathPtr, _MAX_PATH - 32 ) )
 			*pathPtr = '\0';
@@ -2879,7 +3158,7 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 		if( strlen( pathPtr ) < 3 )
 			{
 			/* Under WinNT and Win2K the LocalSystem account doesn't have
-			   its own profile, so SHGetFolderPath() will report success but 
+			   its own profile, so SHGetFolderPath() will report success but
 			   return a zero-length path if we're running as a service.  In
 			   this case we use the nearest equivalent that LocalSystem has
 			   to its own directories, which is the Windows directory.  This
@@ -2892,11 +3171,11 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 #elif defined( __WINCE__ )
 	if( SHGetSpecialFolderPath( NULL, pathPtr, CSIDL_APPDATA, TRUE ) || \
 		SHGetSpecialFolderPath( NULL, pathPtr, CSIDL_PERSONAL, TRUE ) )
-		/* We have to check for the availability of two possible locations 
+		/* We have to check for the availability of two possible locations
 		   since some older PocketPC versions don't have CSIDL_APPDATA */
 		gotPath = TRUE;
 	if( !gotPath )
-		/* This should never happen under WinCE since the get-path 
+		/* This should never happen under WinCE since the get-path
 		   functionality is always available */
 		wcscpy( pathPtr, L"\\Windows" );
 	wcscat( pathPtr, L"\\cryptlib" );
@@ -3039,7 +3318,7 @@ int fileSeek( STREAM *stream, const long position )
 BOOLEAN fileReadonly( const char *fileName )
 	{
 	/* All non-ROM filesystems are writeable under MFS, in theory a ROM-based
-	   FS would be non-writeable but there's no way to tell whether the 
+	   FS would be non-writeable but there's no way to tell whether the
 	   underlying system is ROM or RAM */
 	return( FALSE );
 	}
@@ -3047,7 +3326,7 @@ BOOLEAN fileReadonly( const char *fileName )
 /* File deletion functions: Wipe a file from the current position to EOF,
    and wipe and delete a file (although it's not terribly rigorous).  Since
    MFS doesn't support any type of file writes except appending data to an
-   existing file, the best that we can do is to simply delete the file 
+   existing file, the best that we can do is to simply delete the file
    without trying to overwrite it */
 
 void fileClearToEOF( const STREAM *stream )
@@ -3117,8 +3396,8 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
   #define fileno( filePtr )		( ( filePtr )->fd )
 #endif /* BC++ 3.1 in ANSI mode */
 
-/* When checking whether a file is read-only we also have to check (via 
-   errno) to make sure that the file actually exists since the access check 
+/* When checking whether a file is read-only we also have to check (via
+   errno) to make sure that the file actually exists since the access check
    will return a false positive for a nonexistant file */
 
 #if defined( __MSDOS16__ ) || defined( __OS2__ ) || defined( __WIN16__ )
@@ -3130,12 +3409,6 @@ void fileBuildCryptlibPath( char *path, const char *fileName,
 #ifndef W_OK
   #define W_OK				2
 #endif /* W_OK */
-
-/* Symbolic defines for the stdio file access modes */
-
-#define MODE_READ			"rb"
-#define MODE_WRITE			"wb"
-#define MODE_READWRITE		"rb+"
 
 /* Open/close a file stream */
 
@@ -3162,7 +3435,7 @@ int sFileOpen( STREAM *stream, const char *fileName, const int mode )
 		return( CRYPT_ERROR_PERMISSION );
 
 #if defined( __MSDOS16__ ) || defined( __WIN16__ ) || defined( __WINCE__ ) || \
-	defined( __OS2__ ) || defined( __SYMBIAN32__ ) 
+	defined( __OS2__ ) || defined( __SYMBIAN32__ )
 	/* Try and open the file */
 	stream->filePtr = fopen( fileName, openMode );
 	if( stream->filePtr == NULL )
@@ -3268,8 +3541,8 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		RESOURCE_DATA msgData;
 		int bytesToWrite = min( length, BUFSIZ * 2 );
 
-		/* We need to make sure that we fill the buffer with random data for 
-		   each write, otherwise compressing filesystems will just compress 
+		/* We need to make sure that we fill the buffer with random data for
+		   each write, otherwise compressing filesystems will just compress
 		   it to nothing */
 		setMessageData( &msgData, buffer, bytesToWrite );
 		krnlSendMessage( SYSTEM_OBJECT_HANDLE, IMESSAGE_GETATTRIBUTE_S,
@@ -3280,8 +3553,8 @@ static void eraseFile( const STREAM *stream, long position, long length )
 		}
 	fflush( stream->filePtr );
 
-	/* Truncate the file and if we're erasing the entire file, reset the 
-	   timestamps.  This is only possible through a file handle on some 
+	/* Truncate the file and if we're erasing the entire file, reset the
+	   timestamps.  This is only possible through a file handle on some
 	   systems, on others the caller has to do it via the filename */
 #if defined( __AMIGA__ )
 	SetFileSize( fileHandle, OFFSET_BEGINNING, position );
@@ -3334,7 +3607,7 @@ void fileErase( const char *fileName )
 
 	assert( fileName != NULL );
 
-	/* Try and open the file so that we can erase it.  If this fails, the 
+	/* Try and open the file so that we can erase it.  If this fails, the
 	   best that we can do is a straight unlink */
 	status = sFileOpen( &stream, fileName,
 						FILE_READ | FILE_WRITE | FILE_EXCLUSIVE_ACCESS );
@@ -3351,7 +3624,7 @@ void fileErase( const char *fileName )
 	fseek( stream.filePtr, 0, SEEK_SET );
 	eraseFile( stream, 0, length );
 
-	/* Truncate the file to 0 bytes if we couldn't do it in eraseFile, reset 
+	/* Truncate the file to 0 bytes if we couldn't do it in eraseFile, reset
 	   the time stamps, and delete it */
 	sFileClose( &stream );
 #if defined( __AMIGA__ )

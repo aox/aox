@@ -1,7 +1,39 @@
-# This directory contains a stripped-down version of cryptlib 3.2, taken
-# from <http://www.cs.auckland.ac.nz/~pgut001/cryptlib/download.html>.
+# This directory contains a stripped-down version of cryptlib 3.2.1 from
+# <http://www.cs.auckland.ac.nz/~pgut001/cryptlib/download.html>.
 # Problems should be reported to info@oryx.com, and not the cryptlib
 # author.
+
+Changes in 3.2.1 release
+========================
+
+The zlib code has exhibited a number of security vulnerabilities, both in the
+rather dated 1998-vintage zlib 1.1.x code and the much newer zlib 1.2.x code.
+In order to avoid exposing cryptlib users to any new technology until it's
+proven itself in the field, cryptlib has stayed with the old zlib code base,
+which has avoided problems arising from the vulnerabilities found in the 1.2.x
+code.  However, the 1.2.x code base does have a number of advantages over the
+old 1.1.4 code, including better compression, much faster compression and
+decompression, and significantly less memory consumption, particularly for
+decompression.  Another potential problem with 1.1.4 is that there may be as
+yet undiscovered problems in it that no-one's found yet because they're
+concentrating on the newer 1.2.x instead.
+
+Because 1.2.x includes a significant rewrite of a fair portion of the code,
+it's not possible to simply switch from one version of zlib to the other at
+the flip of a compiler switch.  Based on user feedback, the preferred
+behaviour is to have cryptlib move from the old 1.1.x to the current 1.2.x
+code base, so cryptlib 3.2.1 uses zlib 1.2.3 (those values are pure
+coincidence).  Users concerned about security issues should disable the
+compression code (undefine USE_COMPRESSION in cryptini.h) unless it's actually
+required.
+
+Support of autoproxy configuration (under operating systems that implement
+automatic network proxy discovery) has been added.  This includes support for
+SOCKS-style HTTP proxies as well as the originally implemented HTTP-
+application-gateway HTTP proxies.
+
+Several minor portability issues in 3.2 have been fixed, among other things a
+workaround for a problem in gcc 4.0 that prevented the code from compiling.
 
 Changes in 3.2 release
 ======================

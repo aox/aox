@@ -114,25 +114,25 @@ int checksumData( const void *data, const int dataLength )
 
 /* Determine the parameters for a particular hash algorithm */
 
+void md2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer,
+					const BYTE *inBuffer, const int length,
+					const HASH_STATE hashState );
+void md5HashBuffer( HASHINFO hashInfo, BYTE *outBuffer,
+					const BYTE *inBuffer, const int length,
+					const HASH_STATE hashState );
+void ripemd160HashBuffer( HASHINFO hashInfo, BYTE *outBuffer,
+						  const BYTE *inBuffer, const int length,
+						  const HASH_STATE hashState );
+void shaHashBuffer( HASHINFO hashInfo, BYTE *outBuffer,
+					const BYTE *inBuffer, const int length,
+					const HASH_STATE hashState );
+void sha2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer,
+					 const BYTE *inBuffer, const int length,
+					 const HASH_STATE hashState );
+
 void getHashParameters( const CRYPT_ALGO_TYPE hashAlgorithm,
 						HASHFUNCTION *hashFunction, int *hashSize )
 	{
-	void md2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer,
-						const BYTE *inBuffer, const int length,
-						const HASH_STATE hashState );
-	void md5HashBuffer( HASHINFO hashInfo, BYTE *outBuffer,
-						const BYTE *inBuffer, const int length,
-						const HASH_STATE hashState );
-	void ripemd160HashBuffer( HASHINFO hashInfo, BYTE *outBuffer,
-							  const BYTE *inBuffer, const int length,
-							  const HASH_STATE hashState );
-	void shaHashBuffer( HASHINFO hashInfo, BYTE *outBuffer,
-						const BYTE *inBuffer, const int length,
-						const HASH_STATE hashState );
-	void sha2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer,
-						 const BYTE *inBuffer, const int length,
-						 const HASH_STATE hashState );
-
 	assert( isWritePtr( hashFunction, sizeof( HASHFUNCTION ) ) );
 	assert( ( hashSize == NULL ) || isWritePtr( hashSize, sizeof( int ) ) );
 
@@ -297,7 +297,7 @@ int dynCreate( DYNBUF *dynBuf, const CRYPT_HANDLE cryptHandle,
 	assert( isWritePtr( dynBuf, sizeof( DYNBUF ) ) );
 	assert( ( cryptHandle == CRYPT_UNUSED && \
 			  attributeType == CRYPT_UNUSED ) || \
-			( checkHandleRange( cryptHandle ) && \
+			( isHandleRangeValid( cryptHandle ) && \
 			  ( isAttribute( attributeType ) || \
 				isInternalAttribute( attributeType ) ) ) );
 
@@ -512,7 +512,7 @@ int exportAttributeToStream( void *streamPtr, const CRYPT_HANDLE cryptHandle,
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( sStatusOK( stream ) );
 	assert( cryptHandle == SYSTEM_OBJECT_HANDLE || \
-			checkHandleRange( cryptHandle ) );
+			isHandleRangeValid( cryptHandle ) );
 	assert( isAttribute( attributeType ) || \
 			isInternalAttribute( attributeType ) );
 	assert( attributeLength == CRYPT_USE_DEFAULT || \
@@ -544,7 +544,7 @@ int exportCertToStream( void *streamPtr,
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( sStatusOK( stream ) );
-	assert( checkHandleRange( cryptCertificate ) );
+	assert( isHandleRangeValid( cryptCertificate ) );
 	assert( certFormatType > CRYPT_CERTFORMAT_NONE && \
 			certFormatType < CRYPT_CERTFORMAT_LAST );
 
@@ -638,7 +638,7 @@ void *attributeFindStart( const void *attributePtr,
 		if( prevPtr == NULL || prevGroupID != groupID )
 			/* We've reached the start of the list or a different attribute 
 			   group, this is the start of the current group */
-			return( ( void * ) attributePtr );
+			break;
 		attributePtr = prevPtr;
 		}
 
@@ -666,7 +666,7 @@ void *attributeFindEnd( const void *attributePtr,
 		if( nextPtr == NULL || nextGroupID != groupID )
 			/* We've reached the end of the list or a different attribute 
 			   group, this is the end of the current group */
-			return( ( void * ) attributePtr );
+			break;
 		attributePtr = nextPtr;
 		}
 
@@ -798,10 +798,12 @@ const void *attributeMoveCursor( const void *currentCursor,
 			
 			prevCursor = getAttrFunction( newCursor, &prevGroupID, NULL, 
 										  NULL, ATTR_PREV );
-			while( count-- && prevCursor != NULL && \
+			while( count-- > 0 && prevCursor != NULL && \
 				   prevGroupID == groupID )
 				{
 				newCursor = prevCursor;
+				prevCursor = getAttrFunction( newCursor, &prevGroupID, NULL, 
+											  NULL, ATTR_PREV );
 				cursorMoved = TRUE;
 				}
 			}
@@ -812,10 +814,12 @@ const void *attributeMoveCursor( const void *currentCursor,
 
 			nextCursor = getAttrFunction( newCursor, &nextGroupID, NULL, 
 										  NULL, ATTR_NEXT );
-			while( count-- && nextCursor != NULL && \
+			while( count-- > 0 && nextCursor != NULL && \
 				   nextGroupID == groupID )
 				{
 				newCursor = nextCursor;
+				nextCursor = getAttrFunction( newCursor, &nextGroupID, NULL, 
+											  NULL, ATTR_NEXT );
 				cursorMoved = TRUE;
 				}
 			}
@@ -837,13 +841,17 @@ const void *attributeMoveCursor( const void *currentCursor,
 			CRYPT_ATTRIBUTE_TYPE prevGroupID, prevAttrID, prevInstID;
 			const void *prevCursor;
 
-			prevCursor = getAttrFunction( newCursor, &prevGroupID, &prevAttrID, 
-										  &prevInstID, ATTR_PREV );
-			while( count-- && prevCursor != NULL && \
+			prevCursor = getAttrFunction( newCursor, &prevGroupID, 
+										  &prevAttrID, &prevInstID, 
+										  ATTR_PREV );
+			while( count-- > 0 && prevCursor != NULL && \
 				   prevGroupID == groupID && prevAttrID == attributeID && \
 				   prevInstID == instanceID )
 				{
 				newCursor = prevCursor;
+				prevCursor = getAttrFunction( newCursor, &prevGroupID, 
+											  &prevAttrID, &prevInstID, 
+											  ATTR_PREV );
 				cursorMoved = TRUE;
 				}
 			}
@@ -852,13 +860,17 @@ const void *attributeMoveCursor( const void *currentCursor,
 			CRYPT_ATTRIBUTE_TYPE nextGroupID, nextAttrID, nextInstID;
 			const void *nextCursor;
 
-			nextCursor = getAttrFunction( newCursor, &nextGroupID, &nextAttrID, 
-										  &nextInstID, ATTR_NEXT );
-			while( count-- && nextCursor != NULL && \
+			nextCursor = getAttrFunction( newCursor, &nextGroupID, 
+										  &nextAttrID, &nextInstID, 
+										  ATTR_NEXT );
+			while( count-- > 0 && nextCursor != NULL && \
 				   nextGroupID == groupID && nextAttrID == attributeID && \
 				   nextInstID == instanceID )
 				{
 				newCursor = nextCursor;
+				nextCursor = getAttrFunction( newCursor, &nextGroupID, 
+											  &nextAttrID, &nextInstID, 
+											  ATTR_NEXT );
 				cursorMoved = TRUE;
 				}
 			}
@@ -874,7 +886,7 @@ const void *attributeMoveCursor( const void *currentCursor,
 	   next (via ATTR_NEXT) group beyond that.  This has the effect of 
 	   moving us from anywhere in the current group to the start of the 
 	   preceding or following group.  Finally, we repeat this as required */
-	while( count-- && newCursor != NULL )
+	while( count-- > 0 && newCursor != NULL )
 		{
 		lastCursor = newCursor;
 		if( cursorMoveType == CRYPT_CURSOR_FIRST || \
@@ -944,7 +956,7 @@ int envelopeWrap( const void *inData, const int inDataLength, void *outData,
 			( contentType > CRYPT_CONTENT_NONE && \
 			  contentType < CRYPT_CONTENT_LAST ) );
 	assert( ( iCryptKey == CRYPT_UNUSED ) || \
-			checkHandleRange( iCryptKey ) );
+			isHandleRangeValid( iCryptKey ) );
 
 	*outDataLength = 0;
 
@@ -1011,7 +1023,7 @@ int envelopeUnwrap( const void *inData, const int inDataLength,
 	assert( outDataMaxLength > 16 );
 	assert( isWritePtr( outDataLength, sizeof( int ) ) );
 	assert( ( iDecryptKey == CRYPT_UNUSED ) || \
-			checkHandleRange( iDecryptKey ) );
+			isHandleRangeValid( iDecryptKey ) );
 
 	*outDataLength = 0;
 
@@ -1074,16 +1086,16 @@ int envelopeSign( const void *inData, const int inDataLength,
 	assert( isReadPtr( inData, inDataLength ) );
 	assert( inDataLength > 16 || \
 			( contentType == CRYPT_CONTENT_NONE && \
-			  checkHandleRange( iCmsAttributes ) && \
+			  isHandleRangeValid( iCmsAttributes ) && \
 			  inDataLength == 0 ) );
 	assert( isWritePtr( outData, outDataMaxLength ) );
 	assert( outDataMaxLength > 16 );
 	assert( isWritePtr( outDataLength, sizeof( int ) ) );
 	assert( contentType >= CRYPT_CONTENT_NONE && \
 			contentType < CRYPT_CONTENT_LAST );
-	assert( checkHandleRange( iSigKey ) );
+	assert( isHandleRangeValid( iSigKey ) );
 	assert( iCmsAttributes == CRYPT_UNUSED || \
-			checkHandleRange( iCmsAttributes ) );
+			isHandleRangeValid( iCmsAttributes ) );
 
 	*outDataLength = 0;
 
@@ -1165,7 +1177,7 @@ int envelopeSigCheck( const void *inData, const int inDataLength,
 	assert( outDataMaxLength > 16 );
 	assert( isWritePtr( outDataLength, sizeof( int ) ) );
 	assert( iSigCheckKey == CRYPT_UNUSED || \
-			checkHandleRange( iSigCheckKey ) );
+			isHandleRangeValid( iSigCheckKey ) );
 	assert( isWritePtr( sigResult, sizeof( int ) ) );
 
 	/* Clear return values */
@@ -1305,7 +1317,7 @@ int addMIMEchar( MIME_STATE *mimeState, char *buffer, int ch )
 		/* Strip trailing whitespace.  At this point it's all been
 		   canonicalised so we don't need to check for anything other than
 		   spaces */
-		while( state->bufPos && buffer[ state->bufPos - 1 ] == ' ' )
+		while( state->bufPos > 0 && buffer[ state->bufPos - 1 ] == ' ' )
 			state->bufPos--;
 
 		/* If we've seen a continuation market as the last non-whitespace 

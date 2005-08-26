@@ -11,17 +11,14 @@
   #include "crypt.h"
   #include "capabil.h"
   #include "device.h"
-  #include "libs.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "capabil.h"
   #include "device.h"
-  #include "../context/libs.h"
 #else
   #include "crypt.h"
   #include "device/capabil.h"
   #include "device/device.h"
-  #include "context/libs.h"
 #endif /* Compiler-specific includes */
 
 /* Mechanisms supported by the system device.  These are sorted in order of
@@ -273,11 +270,13 @@ static int controlFunction( DEVICE_INFO *deviceInfo,
 	   by the caller, or all algorithms if CRYPT_USE_DEFAULT is given */
 	if( type == CRYPT_IATTRIBUTE_SELFTEST )
 		{
-		const CAPABILITY_INFO *capabilityInfoPtr = deviceInfo->capabilityInfo;
+		const CAPABILITY_INFO_LIST *capabilityInfoListPtr = \
+									deviceInfo->capabilityInfoList;
 		BOOLEAN algoTested = FALSE;
 
-		while( capabilityInfoPtr != NULL )
+		while( capabilityInfoListPtr != NULL )
 			{
+			const CAPABILITY_INFO *capabilityInfoPtr = capabilityInfoListPtr->info;
 			const CRYPT_ALGO_TYPE cryptAlgo = capabilityInfoPtr->cryptAlgo;
 
 			assert( capabilityInfoPtr->selfTestFunction != NULL );
@@ -292,9 +291,9 @@ static int controlFunction( DEVICE_INFO *deviceInfo,
 					return( status );
 				algoTested = TRUE;
 				}
-			while( capabilityInfoPtr != NULL && \
-				   capabilityInfoPtr->cryptAlgo == cryptAlgo )
-				capabilityInfoPtr = capabilityInfoPtr->next;
+			while( capabilityInfoListPtr != NULL && \
+				   capabilityInfoListPtr->info->cryptAlgo == cryptAlgo )
+				capabilityInfoListPtr = capabilityInfoListPtr->next;
 			}
 
 		return( algoTested ? CRYPT_OK : CRYPT_ERROR_NOTFOUND );
@@ -321,187 +320,65 @@ static int controlFunction( DEVICE_INFO *deviceInfo,
 
 /* The cryptlib intrinsic capability list */
 
-static CAPABILITY_INFO FAR_BSS capabilities[] = {
-	/* The DES capabilities */
-	{ CRYPT_ALGO_DES, bits( 64 ), "DES",
-		bits( MIN_KEYSIZE_BITS ), bits( 64 ), bits( 64 ),
-		desSelfTest, desGetInfo, NULL, initKeyParams, desInitKey, NULL,
-		desEncryptECB, desDecryptECB, desEncryptCBC, desDecryptCBC,
-		desEncryptCFB, desDecryptCFB, desEncryptOFB, desDecryptOFB },
+#define MAX_NO_CAPABILITIES		32
 
-	/* The triple DES capabilities.  Unlike the other algorithms, the minimum
-	   key size here is 64 + 8 bits (nominally 56 + 1 bits) because using a
-	   key any shorter is (a) no better than single DES, and (b) will result
-	   in a key load error since the second key will be an all-zero weak
-	   key.  We also give the default key size as 192 bits instead of 128 to
-	   make sure that anyone using a key of the default size ends up with
-	   three-key 3DES rather than two-key 3DES */
-	{ CRYPT_ALGO_3DES, bits( 64 ), "3DES",
-		bits( 64 + 8 ), bits( 192 ), bits( 192 ),
-		des3SelfTest, des3GetInfo, NULL, initKeyParams, des3InitKey, NULL,
-		des3EncryptECB, des3DecryptECB, des3EncryptCBC, des3DecryptCBC,
-		des3EncryptCFB, des3DecryptCFB, des3EncryptOFB, des3DecryptOFB },
-
-#ifdef USE_IDEA
-	/* The IDEA capabilities */
-	{ CRYPT_ALGO_IDEA, bits( 64 ), "IDEA",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), bits( 128 ),
-		ideaSelfTest, ideaGetInfo, NULL, initKeyParams, ideaInitKey, NULL,
-		ideaEncryptECB, ideaDecryptECB, ideaEncryptCBC, ideaDecryptCBC,
-		ideaEncryptCFB, ideaDecryptCFB, ideaEncryptOFB, ideaDecryptOFB },
-#endif /* USE_IDEA */
-
-#ifdef USE_CAST
-	/* The CAST-128 capabilities */
-	{ CRYPT_ALGO_CAST, bits( 64 ), "CAST-128",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), bits( 128 ),
-		castSelfTest, castGetInfo, NULL, initKeyParams, castInitKey, NULL,
-		castEncryptECB, castDecryptECB, castEncryptCBC, castDecryptCBC,
-		castEncryptCFB, castDecryptCFB, castEncryptOFB, castDecryptOFB },
-#endif /* USE_CAST */
-
-#ifdef USE_RC2
-	/* The RC2 capabilities */
-	{ CRYPT_ALGO_RC2, bits( 64 ), "RC2",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), bits( 1024 ),
-		rc2SelfTest, rc2GetInfo, NULL, initKeyParams, rc2InitKey, NULL,
-		rc2EncryptECB, rc2DecryptECB, rc2EncryptCBC, rc2DecryptCBC,
-		rc2EncryptCFB, rc2DecryptCFB, rc2EncryptOFB, rc2DecryptOFB },
-#endif /* USE_RC2 */
-
-#ifdef USE_RC4
-	/* The RC4 capabilities */
-	{ CRYPT_ALGO_RC4, bits( 8 ), "RC4",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), 256,
-		rc4SelfTest, rc4GetInfo, NULL, initKeyParams, rc4InitKey, NULL,
-		NULL, NULL, NULL, NULL, NULL, NULL, rc4Encrypt, rc4Encrypt },
-#endif /* USE_RC4 */
-
-#ifdef USE_RC5
-	/* The RC5 capabilities */
-	{ CRYPT_ALGO_RC5, bits( 64 ), "RC5",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), bits( 832 ),
-		rc5SelfTest, rc5GetInfo, NULL, initKeyParams, rc5InitKey, NULL,
-		rc5EncryptECB, rc5DecryptECB, rc5EncryptCBC, rc5DecryptCBC,
-		rc5EncryptCFB, rc5DecryptCFB, rc5EncryptOFB, rc5DecryptOFB },
-#endif /* USE_RC5 */
-
+static const GETCAPABILITY_FUNCTION getCapabilityTable[] = {
+	get3DESCapability, 
 #ifdef USE_AES
-	/* The AES capabilities */
-	{ CRYPT_ALGO_AES, bits( 128 ), "AES",
-		bits( 128 ), bits( 128 ), bits( 256 ),
-		aesSelfTest, aesGetInfo, NULL, initKeyParams, aesInitKey, NULL,
-		aesEncryptECB, aesDecryptECB, aesEncryptCBC, aesDecryptCBC,
-		aesEncryptCFB, aesDecryptCFB, aesEncryptOFB, aesDecryptOFB },
+	getAESCapability, 
 #endif /* USE_AES */
-
 #ifdef USE_BLOWFISH
-	/* The Blowfish capabilities */
-	{ CRYPT_ALGO_BLOWFISH, bits( 64 ), "Blowfish",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), bits( 448 ),
-		blowfishSelfTest, blowfishGetInfo, NULL, initKeyParams, blowfishInitKey, NULL,
-		blowfishEncryptECB, blowfishDecryptECB, blowfishEncryptCBC, blowfishDecryptCBC,
-		blowfishEncryptCFB, blowfishDecryptCFB, blowfishEncryptOFB, blowfishDecryptOFB },
+	getBlowfishCapability,
 #endif /* USE_BLOWFISH */
-
+#ifdef USE_CAST
+	getCASTCapability,
+#endif /* USE_CAST */
+	getDESCapability,
+#ifdef USE_IDEA
+	getIDEACapability,
+#endif /* USE_IDEA */
+#ifdef USE_RC2
+	getRC2Capability,
+#endif /* USE_RC2 */
+#ifdef USE_RC4
+	getRC4Capability,
+#endif /* USE_RC4 */
+#ifdef USE_RC5
+	getRC5Capability,
+#endif /* USE_RC5 */
 #ifdef USE_SKIPJACK
-	/* The Skipjack capabilities */
-	{ CRYPT_ALGO_SKIPJACK, bits( 64 ), "Skipjack",
-		bits( 80 ), bits( 80 ), bits( 80 ),
-		skipjackSelfTest, skipjackGetInfo, NULL, initKeyParams, skipjackInitKey, NULL,
-		skipjackEncryptECB, skipjackDecryptECB, skipjackEncryptCBC, skipjackDecryptCBC,
-		skipjackEncryptCFB, skipjackDecryptCFB, skipjackEncryptOFB, skipjackDecryptOFB },
+	getSkipjackCapability,
 #endif /* USE_SKIPJACK */
 
 #ifdef USE_MD2
-	/* The MD2 capabilities */
-	{ CRYPT_ALGO_MD2, bits( 128 ), "MD2",
-		bits( 0 ), bits( 0 ), bits( 0 ),
-		md2SelfTest, md2GetInfo, NULL, NULL, NULL, NULL, md2Hash, md2Hash },
+	getMD2Capability,
 #endif /* USE_MD2 */
-
 #ifdef USE_MD4
-	/* The MD4 capabilities */
-	{ CRYPT_ALGO_MD4, bits( 128 ), "MD4",
-		bits( 0 ), bits( 0 ), bits( 0 ),
-		md4SelfTest, md4GetInfo, NULL, NULL, NULL, NULL, md4Hash, md4Hash },
+	getMD4Capability,
 #endif /* USE_MD4 */
-
-	/* The MD5 capabilities */
-	{ CRYPT_ALGO_MD5, bits( 128 ), "MD5",
-		bits( 0 ), bits( 0 ), bits( 0 ),
-		md5SelfTest, md5GetInfo, NULL, NULL, NULL, NULL, md5Hash, md5Hash },
-
-	/* The SHA1 capabilities */
-	{ CRYPT_ALGO_SHA, bits( 160 ), "SHA",
-		bits( 0 ), bits( 0 ), bits( 0 ),
-		shaSelfTest, shaGetInfo, NULL, NULL, NULL, NULL, shaHash, shaHash },
-
+	getMD5Capability,
 #ifdef USE_RIPEMD160
-	/* The RIPEMD-160 capabilities */
-	{ CRYPT_ALGO_RIPEMD160, bits( 160 ), "RIPEMD-160",
-		bits( 0 ), bits( 0 ), bits( 0 ),
-		ripemd160SelfTest, ripemd160GetInfo, NULL, NULL, NULL, NULL,
-		ripemd160Hash, ripemd160Hash },
+	getRipemd160Capability,
 #endif /* USE_RIPEMD160 */
-
+	getSHA1Capability,
 #ifdef USE_SHA2
-	/* The SHA2 capabilities */
-	{ CRYPT_ALGO_SHA2, bits( 256 ), "SHA2",
-		bits( 0 ), bits( 0 ), bits( 0 ),
-		sha2SelfTest, sha2GetInfo, NULL, NULL, NULL, NULL, sha2Hash, sha2Hash },
+	getSHA2Capability,
 #endif /* USE_SHA2 */
 
 #ifdef USE_HMAC_MD5
-	/* The HMAC-MD5 capabilities */
-	{ CRYPT_ALGO_HMAC_MD5, bits( 128 ), "HMAC-MD5",
-		bits( 64 ), bits( 128 ), CRYPT_MAX_KEYSIZE,
-		hmacMD5SelfTest, hmacMD5GetInfo, NULL, NULL, hmacMD5InitKey,
-		NULL, hmacMD5Hash, hmacMD5Hash },
+	getHmacMD5Capability,
 #endif /* USE_HMAC_MD5 */
-
-	/* The HMAC-SHA capabilities */
-	{ CRYPT_ALGO_HMAC_SHA, bits( 160 ), "HMAC-SHA",
-		bits( 64 ), bits( 128 ), CRYPT_MAX_KEYSIZE,
-		hmacSHASelfTest, hmacSHAGetInfo, NULL, NULL, hmacSHAInitKey,
-		NULL, hmacSHAHash, hmacSHAHash },
-
 #ifdef USE_HMAC_RIPEMD160
-	/* The HMAC-RIPEMD160 capabilities */
-	{ CRYPT_ALGO_HMAC_RIPEMD160, bits( 160 ), "HMAC-RIPEMD160",
-		bits( 64 ), bits( 128 ), CRYPT_MAX_KEYSIZE,
-		hmacRIPEMD160SelfTest, hmacRIPEMD160GetInfo, NULL, NULL, hmacRIPEMD160InitKey,
-		NULL, hmacRIPEMD160Hash, hmacRIPEMD160Hash },
+	getHmacRipemd160Capability,
 #endif /* USE_HMAC_RIPEMD160 */
+	getHmacSHA1Capability,
 
-	/* The Diffie-Hellman capabilities */
-	{ CRYPT_ALGO_DH, bits( 0 ), "Diffie-Hellman",
-		bits( MIN_PKCSIZE_BITS ), bits( 1024 ), CRYPT_MAX_PKCSIZE,
-		dhSelfTest, getInfo, NULL, NULL, dhInitKey, dhGenerateKey,
-		dhEncrypt, dhDecrypt },
-
-	/* The RSA capabilities */
-	{ CRYPT_ALGO_RSA, bits( 0 ), "RSA",
-		bits( MIN_PKCSIZE_BITS ), bits( 1024 ), CRYPT_MAX_PKCSIZE,
-		rsaSelfTest, getInfo, NULL, NULL, rsaInitKey, rsaGenerateKey,
-		rsaEncrypt, rsaDecrypt, NULL, NULL, NULL, NULL, NULL, NULL,
-		rsaDecrypt, rsaEncrypt },
-
-	/* The DSA capabilities */
-	{ CRYPT_ALGO_DSA, bits( 0 ), "DSA",
-		bits( MIN_PKCSIZE_BITS ), bits( 1024 ), CRYPT_MAX_PKCSIZE,
-		dsaSelfTest, getInfo, NULL, NULL, dsaInitKey, dsaGenerateKey,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-		dsaSign, dsaSigCheck },
-
+	getDHCapability,
+	getDSACapability,
 #ifdef USE_ELGAMAL
-	/* The ElGamal capabilities */
-	{ CRYPT_ALGO_ELGAMAL, bits( 0 ), "Elgamal",
-		bits( MIN_PKCSIZE_BITS ), bits( 1024 ), CRYPT_MAX_PKCSIZE,
-		elgamalSelfTest, getInfo, NULL, NULL, elgamalInitKey, elgamalGenerateKey,
-		elgamalEncrypt, elgamalDecrypt, NULL, NULL, NULL, NULL, NULL, NULL,
-		NULL, NULL },
+	getElgamalCapability,
 #endif /* USE_ELGAMAL */
+	getRSACapability,
 
 	/* Vendors may want to use their own algorithms, which aren't part of the
 	   general cryptlib suite.  The following provides the ability to include
@@ -511,16 +388,16 @@ static CAPABILITY_INFO FAR_BSS capabilities[] = {
 	#include "vendalgo.c"
 #endif /* USE_VENDOR_ALGOS */
 
-	/* The end-of-list marker.  This value isn't linked into the
-	   capabilities list when we call initCapabilities() */
-	{ CRYPT_ALGO_NONE }
+	/* End-of-list marker */
+	NULL
 	};
+
+static CAPABILITY_INFO_LIST capabilityInfoList[ MAX_NO_CAPABILITIES ];
 
 /* Initialise the capability info */
 
 static void initCapabilities( void )
 	{
-	CAPABILITY_INFO *prevCapabilityInfoPtr = NULL;
 	int i;
 
 	/* Perform a consistency check on the encryption mode values, which
@@ -530,12 +407,18 @@ static void initCapabilities( void )
 			CRYPT_MODE_OFB == CRYPT_MODE_CFB + 1 && \
 			CRYPT_MODE_LAST == CRYPT_MODE_OFB + 1 );
 
-	for( i = 0; capabilities[ i ].cryptAlgo != CRYPT_ALGO_NONE; i++ )
+	/* Build the list of available capabilities */
+	memset( capabilityInfoList, 0, 
+			sizeof( CAPABILITY_INFO_LIST ) * MAX_NO_CAPABILITIES );
+	for( i = 0; getCapabilityTable[ i ] != NULL; i++ )
 		{
-		assert( capabilityInfoOK( &capabilities[ i ], FALSE ) );
-		if( prevCapabilityInfoPtr != NULL )
-			prevCapabilityInfoPtr->next = &capabilities[ i ];
-		prevCapabilityInfoPtr = &capabilities[ i ];
+		const CAPABILITY_INFO *capabilityInfoPtr = getCapabilityTable[ i ]();
+
+		assert( capabilityInfoOK( capabilityInfoPtr, FALSE ) );
+		capabilityInfoList[ i ].info = capabilityInfoPtr;
+		capabilityInfoList[ i ].next = NULL;
+		if( i > 0 )
+			capabilityInfoList[ i - 1 ].next = &capabilityInfoList[ i ];
 		}
 	}
 
@@ -553,7 +436,7 @@ int setDeviceSystem( DEVICE_INFO *deviceInfo )
 	deviceInfo->shutdownFunction = shutdownFunction;
 	deviceInfo->controlFunction = controlFunction;
 	deviceInfo->getRandomFunction = getRandomFunction;
-	deviceInfo->capabilityInfo = capabilities;
+	deviceInfo->capabilityInfoList = capabilityInfoList;
 	deviceInfo->createObjectFunctions = createObjectFunctions;
 	deviceInfo->mechanismFunctions = mechanismFunctions;
 

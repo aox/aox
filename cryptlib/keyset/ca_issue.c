@@ -219,7 +219,7 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 	int certDataLength, issueType, status;
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
-	assert( checkHandleRange( iCertRequest ) );
+	assert( isHandleRangeValid( iCertRequest ) );
 	assert( action == CRYPT_CERTACTION_ISSUE_CERT || \
 			action == CRYPT_CERTACTION_CERT_CREATION );
 
@@ -233,7 +233,7 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		status = getKeyID( reqCertID, iCertRequest,
 						   CRYPT_CERTINFO_FINGERPRINT_SHA );
 	if( cryptStatusError( status ) )
-		return( status );
+		return( cryptArgError( status ) ? CAMGMT_ARGERROR_REQUEST : status );
 
 	/* We're ready to perform the cert issue transaction.  First, we turn the
 	   request into a cert */
@@ -289,7 +289,7 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		if( status == CRYPT_ERROR_INVALID )
 			/* If the request would have resulted in the creation of an 
 			   invalid cert, report it as an error with the request */
-			status = CRYPT_ARGERROR_NUM2;
+			status = CAMGMT_ARGERROR_REQUEST;
 		krnlSendNotifier( iTemplateCertificate, IMESSAGE_DECREFCOUNT );
 		}
 	if( cryptStatusError( status ) )
@@ -304,7 +304,8 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 	if( cryptStatusError( status ) )
 		{
 		krnlSendNotifier( iLocalCertificate, IMESSAGE_DECREFCOUNT );
-		return( status );
+		return( ( status == CRYPT_ARGERROR_VALUE ) ? \
+				CAMGMT_ARGERROR_CAKEY : status );
 		}
 
 	/* Extract the information that we need from the newly-created cert */
@@ -376,11 +377,12 @@ int caIssueCert( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 									DBMS_CACHEDQUERY_NONE,
 									DBMS_QUERY_CHECK ) ) ? \
 						 CRYPT_ERROR_DUPLICATE : CRYPT_OK;
-			}
-		if( cryptStatusError( status ) )
-			{
-			krnlSendNotifier( iLocalCertificate, IMESSAGE_DECREFCOUNT );
-			return( status );
+			if( cryptStatusError( status ) )
+				{
+				krnlSendNotifier( iLocalCertificate, IMESSAGE_DECREFCOUNT );
+				return( status );
+				}
+			resetErrorInfo( dbmsInfo );
 			}
 
 		/* This is a partial add, make sure that the cert is added in the
@@ -440,7 +442,7 @@ int caIssueCertComplete( DBMS_INFO *dbmsInfo,
 	int status;
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
-	assert( checkHandleRange( iCertificate ) );
+	assert( isHandleRangeValid( iCertificate ) );
 	assert( action == CRYPT_CERTACTION_CERT_CREATION_COMPLETE || \
 			action == CRYPT_CERTACTION_CERT_CREATION_DROP || \
 			action == CRYPT_CERTACTION_CERT_CREATION_REVERSE );

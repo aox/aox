@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *							Cert Management ACLs							*
-*						Copyright Peter Gutmann 1997-2004					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
@@ -18,6 +18,11 @@
   #include "kernel/acl.h"
   #include "kernel/kernel.h"
 #endif /* Compiler-specific includes */
+
+/* Macro to access the secondary parameter ACL information for a given 
+   parameter in a list of parameter ACLs */
+
+#define secParamInfo( parentACL, paramNo )	parentACL->secParamACL[ paramNo ]
 
 /* A pointer to the kernel data block */
 
@@ -75,9 +80,11 @@ static const FAR_BSS CERTMGMT_ACL certMgmtACLTbl[] = {
 	/* Cert creation */
 	{ CRYPT_CERTACTION_CERT_CREATION,
 	  ACTION_PERM_NONE_EXTERNAL,		/* Cert mgmt.use only */
-	  { MKACP_O( ST_CTX_PKC,			/* CA key */
+	  { MKACP_O( ST_CTX_PKC,			/* CA key w/cert (see below) */
 				 ACL_FLAG_HIGH_STATE ),
 		MKACP_O( ST_CERT_CERTREQ | ST_CERT_REQ_CERT,/* Cert request */
+				 ACL_FLAG_HIGH_STATE ) },
+	  { MKACP_O( ST_CERT_CERT | ST_CERT_CERTCHAIN,	/* CA cert */
 				 ACL_FLAG_HIGH_STATE ) } },
 
 	/* Confirmation of cert creation */
@@ -114,17 +121,21 @@ static const FAR_BSS CERTMGMT_ACL certMgmtACLTbl[] = {
 	/* Cert issue */
 	{ CRYPT_CERTACTION_ISSUE_CERT,
 	  ACTION_PERM_ALL,					/* Any access */
-	  { MKACP_O( ST_CTX_PKC,			/* CA key */
+	  { MKACP_O( ST_CTX_PKC,			/* CA key w/cert (see below) */
 				 ACL_FLAG_HIGH_STATE ),
 		MKACP_O( ST_CERT_CERTREQ | ST_CERT_REQ_CERT,/* Cert request */
+				 ACL_FLAG_HIGH_STATE ) },
+	  { MKACP_O( ST_CERT_CERT | ST_CERT_CERTCHAIN,	/* CA cert */
 				 ACL_FLAG_HIGH_STATE ) } },
 
 	/* CRL issue */
 	{ CRYPT_CERTACTION_ISSUE_CRL,
 	  ACTION_PERM_ALL,					/* Any access */
-	  { MKACP_O( ST_CTX_PKC,			/* CA key */
+	  { MKACP_O( ST_CTX_PKC,			/* CA key w/cert (see below) */
 				 ACL_FLAG_HIGH_STATE ),
-		MKACP_UNUSED() } },
+		MKACP_UNUSED() },
+	  { MKACP_O( ST_CERT_CERT | ST_CERT_CERTCHAIN,	/* CA cert */
+				 ACL_FLAG_HIGH_STATE ) } },
 
 	/* Cert revocation */
 	{ CRYPT_CERTACTION_REVOKE_CERT,
@@ -197,12 +208,17 @@ int initCertMgmtACL( KERNEL_DATA *krnlDataPtr )
 			}
 
 		/* If it requires a CA key parameter, it must be a private-key 
-		   context with the key loaded */
+		   context with the key loaded and an attached CA certificate */
 		if( paramInfo( certMgmtACL, 0 ).valueType == PARAM_VALUE_OBJECT )
 			{
 			if( paramInfo( certMgmtACL, 0 ).subTypeA != ST_CTX_PKC || \
 				paramInfo( certMgmtACL, 0 ).subTypeB != ST_NONE || \
 				paramInfo( certMgmtACL, 0 ).flags != ACL_FLAG_HIGH_STATE )
+				return( CRYPT_ERROR_FAILED );
+			if( ( secParamInfo( certMgmtACL, 0 ).subTypeA & \
+					~( ST_CERT_CERT | ST_CERT_CERTCHAIN ) ) || \
+				secParamInfo( certMgmtACL, 0 ).subTypeB != ST_NONE || \
+				secParamInfo( certMgmtACL, 0 ).flags != ACL_FLAG_HIGH_STATE )
 				return( CRYPT_ERROR_FAILED );
 			continue;
 			}
@@ -295,6 +311,22 @@ int preDispatchCheckCertMgmtAccess( const int objectHandle,
 		if( !checkParamObject( paramInfo( certMgmtACL, 0 ), \
 							   mechanismInfo->caKey ) ) 
 			return( CRYPT_ARGERROR_NUM1 );
+
+		/* If there's a secondary parameter present, check it agains the
+		   dependent object.  We perform a basic isValidObject() check 
+		   rather than a fullObjectCheck() since the dependent object is 
+		   usually internal, and this would fail with an external message */
+		if( secParamInfo( certMgmtACL, 0 ).valueType == PARAM_VALUE_OBJECT )
+			{
+			const int dependentObject = \
+						objectTable[ mechanismInfo->caKey ].dependentObject;
+
+			if( !isValidObject( dependentObject ) )
+				return( CRYPT_ARGERROR_NUM1 );
+			if( !checkParamObject( secParamInfo( certMgmtACL, 0 ), \
+								   dependentObject ) ) 
+				return( CRYPT_ARGERROR_NUM1 );
+			}
 		}
 	else
 		{
@@ -307,17 +339,17 @@ int preDispatchCheckCertMgmtAccess( const int objectHandle,
 		{
 		if( !fullObjectCheck( mechanismInfo->request, message ) || \
 			!isSameOwningObject( objectHandle, mechanismInfo->request ) )
-			return( CRYPT_ARGERROR_NUM1 );
+			return( CRYPT_ARGERROR_NUM2 );
 		if( !checkParamObject( paramInfo( certMgmtACL, 1 ), \
 							   mechanismInfo->request ) ) 
-			return( CRYPT_ARGERROR_NUM1 );
+			return( CRYPT_ARGERROR_NUM2 );
 		}
 	else
 		{
 		PRE( paramInfo( certMgmtACL, 1 ).valueType == PARAM_VALUE_UNUSED );
 
 		if( mechanismInfo->request != CRYPT_UNUSED )
-			return( CRYPT_ARGERROR_NUM1 );
+			return( CRYPT_ARGERROR_NUM2 );
 		}
 
 	return( CRYPT_OK );

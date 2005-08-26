@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib DES Encryption Routines					*
-*						Copyright Peter Gutmann 1995-2003					*
+*						Copyright Peter Gutmann 1995-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,17 +9,14 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "des.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/des.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/des.h"
 #endif /* Compiler-specific includes */
 
@@ -49,49 +46,66 @@
 /* Test the DES implementation against the test vectors given in NBS Special
    Publication 500-20, 1980 */
 
-static int desTestLoop( const DES_TEST *testData, int iterations, 
-						int operation )
+static int testLoop( const DES_TEST *testData, int iterations, BOOLEAN isEncrypt )
 	{
+	const CAPABILITY_INFO *capabilityInfo = getDESCapability();
 	BYTE temp[ DES_BLOCKSIZE ];
-	BYTE key[ DES_KEYSIZE ];
 	int i;
 
 	for( i = 0; i < iterations; i++ )
 		{
-		/* Since the self-test uses weak keys, we have to explicitly use the
-		   non-parity-checking key schedule function */
+		CONTEXT_INFO contextInfo;
+		CONV_INFO contextData;
+		BYTE keyData[ DES_KEYSIZE ];
+		int status;
+
 		memcpy( temp, testData[ i ].plaintext, DES_BLOCKSIZE );
-		des_set_key_unchecked( ( C_Block * ) testData[ i ].key,
-							   *( ( Key_schedule * ) key ) );
-		des_ecb_encrypt( ( C_Block * ) temp, ( C_Block * ) temp,
-						 *( ( Key_schedule * ) key ), operation );
-		if( memcmp( testData[ i ].ciphertext, temp, DES_BLOCKSIZE ) )
+
+		/* The self-test uses weak keys, which means they'll be rejected by 
+		   the key-load function if it checks for these.  For the OpenSSL
+		   DES implementation we can kludge around this by temporarily 
+		   clearing the global des_check_key value, but for other 
+		   implementations some alternative workaround will be necessary */
+		staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+						   &contextData, sizeof( CONV_INFO ), keyData );
+		des_check_key = FALSE;
+		status = capabilityInfo->initKeyFunction( &contextInfo, 
+												  testData[ i ].key,
+												  DES_BLOCKSIZE );
+		des_check_key = TRUE;
+		if( cryptStatusOK( status ) )
+			status = isEncrypt ? \
+					 capabilityInfo->encryptFunction( &contextInfo, temp, 
+													  DES_BLOCKSIZE ) : \
+					 capabilityInfo->decryptFunction( &contextInfo, temp, 
+													  DES_BLOCKSIZE );
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) || \
+			memcmp( testData[ i ].ciphertext, temp, DES_BLOCKSIZE ) )
 			return( CRYPT_ERROR );
 		}
 
 	return( CRYPT_OK );
 	}
 
-int desSelfTest( void )
+static int selfTest( void )
 	{
-	int status = CRYPT_OK;
-
 	/* Check the DES test vectors */
-	if( ( desTestLoop( testIP, sizeof( testIP ) / sizeof( DES_TEST ),
-					   DES_ENCRYPT ) != CRYPT_OK ) || \
-		( desTestLoop( testVP, sizeof( testVP ) / sizeof( DES_TEST ),
-					   DES_ENCRYPT ) != CRYPT_OK ) || \
-		( desTestLoop( testKP, sizeof( testKP ) / sizeof( DES_TEST ),
-					   DES_ENCRYPT ) != CRYPT_OK ) || \
-		( desTestLoop( testRS, sizeof( testRS ) / sizeof( DES_TEST ),
-					   DES_DECRYPT ) != CRYPT_OK ) || \
-		( desTestLoop( testDP, sizeof( testDP ) / sizeof( DES_TEST ),
-					   DES_ENCRYPT ) != CRYPT_OK ) || \
-		( desTestLoop( testSB, sizeof( testSB ) / sizeof( DES_TEST ),
-					   DES_ENCRYPT ) != CRYPT_OK ) )
-		status = CRYPT_ERROR;
+	if( ( testLoop( testIP, sizeof( testIP ) / sizeof( DES_TEST ),
+					TRUE ) != CRYPT_OK ) || \
+		( testLoop( testVP, sizeof( testVP ) / sizeof( DES_TEST ),
+					TRUE ) != CRYPT_OK ) || \
+		( testLoop( testKP, sizeof( testKP ) / sizeof( DES_TEST ),
+					TRUE ) != CRYPT_OK ) || \
+		( testLoop( testRS, sizeof( testRS ) / sizeof( DES_TEST ),
+					FALSE ) != CRYPT_OK ) || \
+		( testLoop( testDP, sizeof( testDP ) / sizeof( DES_TEST ),
+					TRUE ) != CRYPT_OK ) || \
+		( testLoop( testSB, sizeof( testSB ) / sizeof( DES_TEST ),
+					TRUE ) != CRYPT_OK ) )
+		return( CRYPT_ERROR );
 
-	return( status );
+	return( CRYPT_OK );
 	}
 
 /****************************************************************************
@@ -102,13 +116,13 @@ int desSelfTest( void )
 
 /* Return context subtype-specific information */
 
-int desGetInfo( const CAPABILITY_INFO_TYPE type, 
-				void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
 		return( DES_KEYSIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -119,12 +133,13 @@ int desGetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Encrypt/decrypt data in ECB mode */
 
-int desEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int blockCount = noBytes / DES_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Encrypt a block of data */
 		des_ecb_encrypt( ( C_Block * ) buffer, ( C_Block * ) buffer, 
@@ -137,12 +152,13 @@ int desEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int desDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int blockCount = noBytes / DES_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Decrypt a block of data */
 		des_ecb_encrypt( ( C_Block * ) buffer, ( C_Block * ) buffer, 
@@ -157,7 +173,8 @@ int desDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CBC mode */
 
-int desEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -167,7 +184,8 @@ int desEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int desDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -179,13 +197,14 @@ int desDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CFB mode */
 
-int desEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -205,7 +224,7 @@ int desEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > DES_BLOCKSIZE ) ? DES_BLOCKSIZE : noBytes;
 
@@ -232,14 +251,15 @@ int desEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int desDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BYTE temp[ DES_BLOCKSIZE ];
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -260,7 +280,7 @@ int desDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > DES_BLOCKSIZE ) ? DES_BLOCKSIZE : noBytes;
 
@@ -295,13 +315,14 @@ int desDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in OFB mode */
 
-int desEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -320,7 +341,7 @@ int desEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > DES_BLOCKSIZE ) ? DES_BLOCKSIZE : noBytes;
 
@@ -344,13 +365,14 @@ int desEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int desDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -369,7 +391,7 @@ int desDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > DES_BLOCKSIZE ) ? DES_BLOCKSIZE : noBytes;
 
@@ -401,8 +423,8 @@ int desDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Key schedule a DES key */
 
-int desInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-				const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -420,4 +442,23 @@ int desInitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 		return( CRYPT_ARGERROR_STR1 );
 
 	return( CRYPT_OK );
+	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_DES, bitsToBytes( 64 ), "DES",
+	bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 64 ), bitsToBytes( 64 ),
+	selfTest, getInfo, NULL, initKeyParams, initKey, NULL,
+	encryptECB, decryptECB, encryptCBC, decryptCBC,
+	encryptCFB, decryptCFB, encryptOFB, decryptOFB
+	};
+
+const CAPABILITY_INFO *getDESCapability( void )
+	{
+	return( &capabilityInfo );
 	}

@@ -148,21 +148,43 @@ static int clearAddressAndPort( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 														response.to tcpip-fd
 	open	"direct-tcpip"	remote_info		local_info	Client -> server, currently
 														local_info = 127.0.0.1
+	global	"tcpip-fd"		remote_info (out)			Request for remote 
+														forwarding
+
+   Once we've opened a standard session, we need to follow it with either a
+   pty-request + shell request or a subsystem request:
+
+	Pkt		Name			Arg1			Arg2		Comment
+	---		----			----			----		-------
 	channel	"pty-req"
 	channel "subsystem"		name
-	global	"tcpip-fd"		remote_info (out)			Request for remote 
-														forwarding */
 
-static int createOpenRequest( SESSION_INFO *sessionInfoPtr, STREAM *stream )
+   In theory we could bundle the channel open + pty-request + shell request 
+   into a single packet group to save round-trips, but the packets sent after
+   the channel open require the use of the receive-channel number supplied by
+   the remote system.  This is usually the same as the send channel that we
+   specify, but for some unknown reason Cisco use different send and receive
+   channel numbers, requiring that we wait for the response to the channel-
+   open before we send any subsequent packets, adding another RTT to the
+   exchange */
+
+typedef enum { OPENREQUEST_NONE, OPENREQUEST_STANDALONE, 
+			   OPENREQUEST_CHANNELONLY, OPENREQUEST_SESSION } OPENREQUEST_TYPE;
+
+static int createOpenRequest( SESSION_INFO *sessionInfoPtr, STREAM *stream,
+							  OPENREQUEST_TYPE *requestType )
 	{
 	const long channelNo = getCurrentChannelNo( sessionInfoPtr,
-												CHANNEL_READ );
+												CHANNEL_WRITE );
 	const int maxPacketSize = sessionInfoPtr->sendBufSize - \
 							  EXTRA_PACKET_SIZE;
 	BYTE typeString[ CRYPT_MAX_TEXTSIZE + 8 ];
 	BYTE arg1String[ CRYPT_MAX_TEXTSIZE + 8 ];
 	BOOLEAN isPortForward = FALSE, isSubsystem = FALSE;
-	int typeLen, arg1Len, packetOffset, status;
+	int typeLen, arg1Len, status;
+
+	/* Clear return value */
+	*requestType = OPENREQUEST_NONE;
 
 	/* Get the information that's needed for the channel we're about to 
 	   create */
@@ -203,6 +225,11 @@ static int createOpenRequest( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 			}
 		}
 
+	/* Set the request type to tell the caller what to do after they've
+	   sent the initial channel open */
+	*requestType = ( isPortForward ) ? OPENREQUEST_CHANNELONLY : \
+									   OPENREQUEST_SESSION;
+
 #if 0	/* Request forwarding of a port from the remote system to the local
 		   one.  Once a connection arrives on the remote port it'll open a
 		   channel to the local system of type "forwarded-tcpip".  Since 
@@ -211,6 +238,8 @@ static int createOpenRequest( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 	if( "tcpip-forward" )
 		{
 		URL_INFO urlInfo;
+
+		*requestType = OPENREQUEST_STANDALONE;
 
 		/*	...
 			byte	type = SSH_MSG_GLOBAL_REQUEST
@@ -229,8 +258,7 @@ static int createOpenRequest( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 		sputc( stream, 0 );
 		writeString32( stream, urlInfo.host, urlInfo.hostLen );
 		writeUint32( stream, urlInfo.port );
-		status = wrapPacketSSH2( sessionInfoPtr, stream, packetOffset );
-		return( cryptStatusError( status ) ? status : OK_SPECIAL );
+		return( wrapPacketSSH2( sessionInfoPtr, stream, packetOffset ) );
 		}
 #endif /* 0 */
 
@@ -284,35 +312,52 @@ static int createOpenRequest( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 		writeUint32( stream, urlInfo.port );
 		writeString32( stream, "127.0.0.1", 0 );
 		writeUint32( stream, 22 );
-		return( wrapPacketSSH2( sessionInfoPtr, stream, 0 ) );
 		}
-	status = wrapPacketSSH2( sessionInfoPtr, stream, 0 );
-	if( cryptStatusError( status ) )
-		return( status );
+	return( wrapPacketSSH2( sessionInfoPtr, stream, 0 ) );
+	}
+
+static int createSessionOpenRequest( SESSION_INFO *sessionInfoPtr, 
+									 STREAM *stream )
+	{
+	const long channelNo = getCurrentChannelNo( sessionInfoPtr,
+												CHANNEL_WRITE );
+	BYTE typeString[ CRYPT_MAX_TEXTSIZE + 8 ];
+	int typeLen, packetOffset, status;
 
 	/* If the caller has requested the use of a custom subsystem (and at the
 	   moment the only one that's likely to be used is SFTP), request this 
 	   from the server by modifying the channel that we've just opened to
-	   run the subsystem */
-	if( isSubsystem )
+	   run the subsystem.  We don't have to check the return status since we
+	   just performed the same operation when we opened the channel */
+	getChannelAttribute( sessionInfoPtr, CRYPT_SESSINFO_SSH_CHANNEL_TYPE,
+						 typeString, &typeLen );
+	if( !strCompare( typeString, "subsystem", 9 ) )
 		{
-		/*	...
-			byte	type = SSH2_MSG_CHANNEL_REQUEST
+		BYTE arg1String[ CRYPT_MAX_TEXTSIZE + 8 ];
+		int arg1Len;
+
+		/* Get the subsystem type.  We don't have to check the return status
+		   since it was already checked before we tried to open the 
+		   channel */
+		getChannelAttribute( sessionInfoPtr, CRYPT_SESSINFO_SSH_CHANNEL_ARG1,
+							 arg1String, &arg1Len );
+
+		/*	byte	type = SSH2_MSG_CHANNEL_REQUEST
 			uint32	recipient_channel
 			string	request_name = "subsystem"
 			boolean	want_reply = FALSE
 			string	subsystem_name */
-		packetOffset = continuePacketStreamSSH( stream, 
-												SSH2_MSG_CHANNEL_REQUEST );
+		openPacketStreamSSH( stream, sessionInfoPtr, CRYPT_USE_DEFAULT, 
+							 SSH2_MSG_CHANNEL_REQUEST );
 		writeUint32( stream, channelNo );
 		writeString32( stream, "subsystem", 0 );
 		sputc( stream, 0 );
 		writeString32( stream, arg1String, arg1Len );
-		return( wrapPacketSSH2( sessionInfoPtr, stream, packetOffset ) );
+		return( wrapPacketSSH2( sessionInfoPtr, stream, 0 ) );
 		}
 
 	/* It's a standard channel open:
-		...
+
 		byte	type = SSH2_MSG_CHANNEL_REQUEST
 		uint32	recipient_channel
 		string	request_name = "pty-req"
@@ -324,8 +369,8 @@ static int createOpenRequest( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 		uint32	pixel_height = 0
 		string	tty_mode_info = ""
 		... */
-	packetOffset = continuePacketStreamSSH( stream, 
-											SSH2_MSG_CHANNEL_REQUEST );
+	openPacketStreamSSH( stream, sessionInfoPtr, CRYPT_USE_DEFAULT, 
+						 SSH2_MSG_CHANNEL_REQUEST );
 	writeUint32( stream, channelNo );
 	writeString32( stream, "pty-req", 0 );
 	sputc( stream, 0 );					/* No reply */
@@ -335,7 +380,7 @@ static int createOpenRequest( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 	writeUint32( stream, 0 );
 	writeUint32( stream, 0 );			/* No graphics capabilities */
 	writeUint32( stream, 0 );			/* No special TTY modes */
-	status = wrapPacketSSH2( sessionInfoPtr, stream, packetOffset );
+	status = wrapPacketSSH2( sessionInfoPtr, stream, 0 );
 	if( cryptStatusError( status ) )
 		return( status );
 
@@ -360,6 +405,7 @@ static int createOpenRequest( SESSION_INFO *sessionInfoPtr, STREAM *stream )
 int sendChannelOpen( SESSION_INFO *sessionInfoPtr )
 	{
 	STREAM stream;
+	OPENREQUEST_TYPE requestType;
 	const long channelNo = getCurrentChannelNo( sessionInfoPtr,
 												CHANNEL_READ );
 	long currentChannelNo;
@@ -379,18 +425,23 @@ int sendChannelOpen( SESSION_INFO *sessionInfoPtr )
 				"Current channel has already been activated" );
 
 	/* Create a request for the appropriate type of service */
-	status = createOpenRequest( sessionInfoPtr, &stream );
+	status = createOpenRequest( sessionInfoPtr, &stream, &requestType );
 	if( cryptStatusError( status ) )
 		{
-		/* If it's a request-only message that doesn't open a channel,
-		   send it and exit */
-		if( status == OK_SPECIAL )
-			status = sendPacketSSH2( sessionInfoPtr, &stream, TRUE );
 		sMemDisconnect( &stream );
 		return( status );
 		}
 
-	/* Send the whole mess to the server.  The SSHv2 spec doesn't really 
+	/* If it's a request-only message that doesn't open a channel,send it 
+	   and exit */
+	if( requestType == OPENREQUEST_STANDALONE )
+		{
+		status = sendPacketSSH2( sessionInfoPtr, &stream, TRUE );
+		sMemDisconnect( &stream );
+		return( status );
+		}
+
+	/* Send the open request to the server.  The SSHv2 spec doesn't really 
 	   explain the semantics of the server's response to the channel open 
 	   command, in particular whether the returned data size parameters are 
 	   merely a confirmation of the client's requested values or whether the 
@@ -454,18 +505,31 @@ int sendChannelOpen( SESSION_INFO *sessionInfoPtr )
 	currentChannelNo = readUint32( &stream );
 	sMemDisconnect( &stream );
 
+	/* The channel has been successfully created, mark it as active and 
+	   select it for future exchanges */
+	setChannelExtAttribute( sessionInfoPtr, SSH_ATTRIBUTE_ACTIVE,
+							NULL, TRUE );
+	if( currentChannelNo != channelNo )
 	/* It's unclear why anyone would use different channel numbers for 
 	   different directions, since it's the same channel that the data is 
 	   moving across.  All (known) implementations use the same value in 
 	   both directions, just in case anyone doesn't we throw an exception in 
 	   the debug version */
-	assert( currentChannelNo == channelNo );
+		setChannelExtAttribute( sessionInfoPtr, SSH_ATTRIBUTE_ALTCHANNELNO, 
+								 NULL, currentChannelNo );
+	status = selectChannel( sessionInfoPtr, channelNo, CHANNEL_BOTH );
+	if( ( requestType == OPENREQUEST_CHANNELONLY ) || \
+		cryptStatusError( status ) )
+		return( status );
+	assert( requestType == OPENREQUEST_SESSION );
 
-	/* The channel has been successfully created, mark it as active and 
-	   select it for future exchanges */
-	setChannelExtAttribute( sessionInfoPtr, SSH_ATTRIBUTE_ACTIVE,
-							NULL, TRUE );
-	return( selectChannel( sessionInfoPtr, channelNo, CHANNEL_BOTH ) );
+	/* It's a session open request that requires additional messages to do 
+	   anything useful, create and send the extra packets */
+	status = createSessionOpenRequest( sessionInfoPtr, &stream );
+	if( cryptStatusOK( status ) )
+		status = sendPacketSSH2( sessionInfoPtr, &stream, TRUE );
+	sMemDisconnect( &stream );
+	return( status );
 	}
 
 /****************************************************************************
@@ -941,17 +1005,8 @@ static int sendChannelClose( SESSION_INFO *sessionInfoPtr,
 	return( status );
 	}
 
-/* Process a channel control message */
-
-static int clearPacket( SESSION_INFO *sessionInfoPtr )
-	{
-	/* Reset the send buffer indicators to clear the packet */
-	sessionInfoPtr->receiveBufEnd = sessionInfoPtr->receiveBufPos;
-	sessionInfoPtr->pendingPacketLength = 0;
-
-	/* Tell the caller to try again */
-	return( OK_SPECIAL );
-	}
+/* Process a channel control message.  Returns OK_SPECIAL to tell the caller
+   to try again with the next packet */
 
 int processChannelControlMessage( SESSION_INFO *sessionInfoPtr, 
 								  STREAM *stream )
@@ -973,13 +1028,12 @@ int processChannelControlMessage( SESSION_INFO *sessionInfoPtr,
 											CRYPT_UNUSED );
 			if( cryptStatusError( status ) && status != OK_SPECIAL )
 				return( status );
-			return( clearPacket( sessionInfoPtr ) );
+			return( OK_SPECIAL );
 
 		case SSH2_MSG_CHANNEL_OPEN:
 			status = processChannelOpen( sessionInfoPtr, stream );
 			if( cryptStatusError( status ) )
 				return( status );
-			clearPacket( sessionInfoPtr );
 
 			/* Tell the caller that they have to process the new channel 
 			   info before they can continue */
@@ -996,16 +1050,14 @@ int processChannelControlMessage( SESSION_INFO *sessionInfoPtr,
 				boolean	always_display
 				string	message
 				string	language_tag */
-			return( clearPacket( sessionInfoPtr ) );
+			return( OK_SPECIAL );
 
 		case SSH2_MSG_DISCONNECT:
 			/* This only really seems to be used during the handshake phase, 
 			   once a channel is open it (and the session as a whole) is 
 			   disconnected with a channel EOF/close, but we handle it here
 			   just in case */
-			status = getDisconnectInfo( sessionInfoPtr, stream );
-			clearPacket( sessionInfoPtr );
-			return( status );
+			return( getDisconnectInfo( sessionInfoPtr, stream ) );
 
 		case SSH2_MSG_KEXINIT:
 			/* The SSH spec is extremely vague about the sequencing of 
@@ -1178,7 +1230,7 @@ int processChannelControlMessage( SESSION_INFO *sessionInfoPtr,
 			   data.  This should be fairly safe since this message type 
 			   seems to be rarely (if ever) used, so apps will function 
 			   without it */
-			return( clearPacket( sessionInfoPtr ) );
+			return( OK_SPECIAL );
 			}
 
 		case SSH2_MSG_CHANNEL_REQUEST:
@@ -1186,19 +1238,19 @@ int processChannelControlMessage( SESSION_INFO *sessionInfoPtr,
 											prevChannelNo );
 			if( cryptStatusError( status ) && status != OK_SPECIAL )
 				return( status );
-			return( clearPacket( sessionInfoPtr ) );
+			return( OK_SPECIAL );
 
 		case SSH2_MSG_CHANNEL_WINDOW_ADJUST:
 			/* Another noop-equivalent (but a very performance-affecting 
 			   one) */
-			return( clearPacket( sessionInfoPtr ) );
+			return( OK_SPECIAL );
 
 		case SSH2_MSG_CHANNEL_EOF:
 			/* According to the SSH docs the EOF packet is mostly a courtesy 
 			   notification, however many implementations seem to use a 
 			   channel EOF in place of a close before sending a disconnect
 			   message */
-			return( clearPacket( sessionInfoPtr ) );
+			return( OK_SPECIAL );
 
 		case SSH2_MSG_CHANNEL_CLOSE:
 			/* The peer has closed their side of the channel, if our side
@@ -1214,7 +1266,7 @@ int processChannelControlMessage( SESSION_INFO *sessionInfoPtr,
 
 			/* If this wasn't the last channel, we're done */
 			if( status != OK_SPECIAL )
-				return( clearPacket( sessionInfoPtr ) );
+				return( OK_SPECIAL );
 
 			/* We've closed the last channel, indicate that the overall 
 			   connection is now closed.  This behaviour isn't mentioned in 

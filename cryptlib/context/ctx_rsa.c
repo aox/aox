@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib RSA Encryption Routines					*
-*						Copyright Peter Gutmann 1993-2004					*
+*						Copyright Peter Gutmann 1993-2005					*
 *																			*
 ****************************************************************************/
 
@@ -12,15 +12,12 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
 #endif /* Compiler-specific includes */
 
 /****************************************************************************
@@ -103,31 +100,31 @@ static const FAR_BSS RSA_PRIVKEY rsaTestKey = {
 
 static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr )
 	{
+	const CAPABILITY_INFO *capabilityInfoPtr = getRSACapability();
 	BYTE buffer[ CRYPT_MAX_PKCSIZE + 8 ];
 	int status;
 
 	/* Encrypt with the public key */
 	memset( buffer, 0, CRYPT_MAX_PKCSIZE );
 	memcpy( buffer + 1, "abcde", 5 );
-	status = rsaEncrypt( contextInfoPtr, buffer, 
+	status = capabilityInfoPtr->encryptFunction( contextInfoPtr, buffer, 
 						 bitsToBytes( contextInfoPtr->ctxPKC->keySizeBits ) );
 	if( cryptStatusError( status ) )
 		return( FALSE );
 
 	/* Decrypt with the private key */
-	status = rsaDecrypt( contextInfoPtr, buffer, 
+	status = capabilityInfoPtr->decryptFunction( contextInfoPtr, buffer, 
 						 bitsToBytes( contextInfoPtr->ctxPKC->keySizeBits ) );
 	if( cryptStatusError( status ) )
 		return( FALSE );
 	return( !memcmp( buffer + 1, "abcde", 5 ) );
 	}
 
-int rsaSelfTest( void )
+static int selfTest( void )
 	{
+	const CAPABILITY_INFO *capabilityInfoPtr = getRSACapability();
 	CONTEXT_INFO contextInfoPtr;
 	PKC_INFO pkcInfoStorage, *pkcInfo;
-	static const FAR_BSS CAPABILITY_INFO capabilityInfo = \
-		{ CRYPT_ALGO_RSA, 0, NULL, 64, 128, 512, 0 };
 	BYTE buffer[ 64 ];
 	int status;
 
@@ -150,7 +147,7 @@ int rsaSelfTest( void )
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_n );
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_p );
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_q );
-	contextInfoPtr.capabilityInfo = &capabilityInfo;
+	contextInfoPtr.capabilityInfo = capabilityInfoPtr;
 	initKeyWrite( &contextInfoPtr );	/* For calcKeyID() */
 	BN_bin2bn( rsaTestKey.n, rsaTestKey.nLen, &pkcInfo->rsaParam_n );
 	BN_bin2bn( rsaTestKey.e, rsaTestKey.eLen, &pkcInfo->rsaParam_e );
@@ -162,7 +159,7 @@ int rsaSelfTest( void )
 	BN_bin2bn( rsaTestKey.e2, rsaTestKey.e2Len, &pkcInfo->rsaParam_exponent2 );
 
 	/* Perform the test en/decryption of a block of data */
-	status = rsaInitKey( &contextInfoPtr, NULL, 0 );
+	status = capabilityInfoPtr->initKeyFunction( &contextInfoPtr, NULL, 0 );
 	if( cryptStatusOK( status ) && \
 		!pairwiseConsistencyTest( &contextInfoPtr ) )
 		status = CRYPT_ERROR;
@@ -172,11 +169,13 @@ int rsaSelfTest( void )
 		memset( buffer, 0, 64 );
 		memcpy( buffer, "abcde", 5 );
 		contextInfoPtr.flags |= CONTEXT_SIDECHANNELPROTECTION;
-		status = rsaInitKey( &contextInfoPtr, NULL, 0 );
+		status = capabilityInfoPtr->initKeyFunction( &contextInfoPtr, NULL, 0 );
 		if( cryptStatusOK( status ) )
-			status = rsaEncrypt( &contextInfoPtr, buffer, 64 );
+			status = capabilityInfoPtr->encryptFunction( &contextInfoPtr, 
+														 buffer, 64 );
 		if( cryptStatusOK( status ) )
-			status = rsaDecrypt( &contextInfoPtr, buffer, 64 );
+			status = capabilityInfoPtr->decryptFunction( &contextInfoPtr, 
+														 buffer, 64 );
 		if( cryptStatusError( status ) || memcmp( buffer, "abcde", 5 ) )
 			status = CRYPT_ERROR;
 		else
@@ -185,11 +184,13 @@ int rsaSelfTest( void )
 			   works */
 			memset( buffer, 0, 64 );
 			memcpy( buffer, "abcde", 5 );
-			status = rsaInitKey( &contextInfoPtr, NULL, 0 );
+			status = capabilityInfoPtr->initKeyFunction( &contextInfoPtr, NULL, 0 );
 			if( cryptStatusOK( status ) )
-				status = rsaEncrypt( &contextInfoPtr, buffer, 64 );
+				status = capabilityInfoPtr->encryptFunction( &contextInfoPtr, 
+															 buffer, 64 );
 			if( cryptStatusOK( status ) )
-				status = rsaDecrypt( &contextInfoPtr, buffer, 64 );
+				status = capabilityInfoPtr->decryptFunction( &contextInfoPtr, 
+															 buffer, 64 );
 			if( cryptStatusError( status ) || memcmp( buffer, "abcde", 5 ) )
 				status = CRYPT_ERROR;
 			}
@@ -223,9 +224,11 @@ int rsaSelfTest( void )
 *																			*
 ****************************************************************************/
 
-/* Encrypt/signature check a single block of data  */
+/* Encrypt/signature check a single block of data.  We have to append the 
+   distinguisher 'Fn' to the name since some systems already have 'encrypt' 
+   and 'decrypt' in their standard headers */
 
-int rsaEncrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
 	BIGNUM *n = &pkcInfo->rsaParam_n, *e = &pkcInfo->rsaParam_e;
@@ -305,7 +308,7 @@ int rsaEncrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
    signature verify after each signature generation at the crypto mechanism 
    level */
 
-int rsaDecrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
 	BIGNUM *p = &pkcInfo->rsaParam_p, *q = &pkcInfo->rsaParam_q;
@@ -411,8 +414,8 @@ int rsaDecrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Load key components into an encryption context */
 
-int rsaInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-				const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	int status;
 
@@ -458,7 +461,7 @@ int rsaInitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 
 /* Generate a key into an encryption context */
 
-int rsaGenerateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
+static int generateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 	{
 	int status;
 
@@ -477,3 +480,20 @@ int rsaGenerateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 	return( status );
 	}
 
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_RSA, bitsToBytes( 0 ), "RSA",
+	bitsToBytes( MIN_PKCSIZE_BITS ), bitsToBytes( 1024 ), CRYPT_MAX_PKCSIZE,
+	selfTest, getDefaultInfo, NULL, NULL, initKey, generateKey, encryptFn, decryptFn,
+	NULL, NULL, NULL, NULL, NULL, NULL, decryptFn, encryptFn
+	};
+
+const CAPABILITY_INFO *getRSACapability( void )
+	{
+	return( &capabilityInfo );
+	}

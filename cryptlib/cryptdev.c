@@ -25,7 +25,7 @@
 
 #define NO_ENTROPY_FAILURES	5
 
-/* Prototypes for functions in crypt.c */
+/* Prototypes for functions in ctx_misc.c */
 
 const void FAR_BSS *findCapabilityInfo( const void FAR_BSS *capabilityInfoPtr,
 										const CRYPT_ALGO_TYPE cryptAlgo );
@@ -35,6 +35,11 @@ void getCapabilityInfo( CRYPT_QUERY_INFO *cryptQueryInfo,
 /* Prototypes for functions in cryptmis.c */
 
 BOOLEAN checkEntropy( const BYTE *data, const int dataLength );
+
+/* Prototypes for functions in cryptcrt.c */
+
+int createCertificateIndirect( MESSAGE_CREATEOBJECT_INFO *createInfo,
+							   const void *auxDataPtr, const int auxValue );
 
 /****************************************************************************
 *																			*
@@ -610,7 +615,7 @@ static int deviceMessageFunction( const void *objectInfoPtr,
 
 		/* Find the information for this algorithm and return the appropriate
 		   information */
-		capabilityInfoPtr = findCapabilityInfo( deviceInfoPtr->capabilityInfo,
+		capabilityInfoPtr = findCapabilityInfo( deviceInfoPtr->capabilityInfoList,
 												messageValue );
 		if( capabilityInfoPtr == NULL )
 			return( CRYPT_ERROR_NOTAVAIL );
@@ -653,7 +658,7 @@ static int deviceMessageFunction( const void *objectInfoPtr,
 
 		/* Get any auxiliary info that we may need to create the object */
 		if( messageValue == OBJECT_TYPE_CONTEXT )
-			auxInfo = deviceInfoPtr->capabilityInfo;
+			auxInfo = deviceInfoPtr->capabilityInfoList;
 
 		/* If the message has been sent to the system object, unlock it to
 		   allow it to be used by others and dispatch the message.  This is 
@@ -687,8 +692,6 @@ static int deviceMessageFunction( const void *objectInfoPtr,
 	if( message == MESSAGE_DEV_CREATEOBJECT_INDIRECT )
 		{
 		CRYPT_DEVICE iCryptDevice = deviceInfoPtr->objectHandle;
-		int createCertificateIndirect( MESSAGE_CREATEOBJECT_INFO *createInfo,
-									   const void *auxDataPtr, const int auxValue );
 		int status;
 
 		/* At the moment the only objects where can be created in this manner

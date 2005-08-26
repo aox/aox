@@ -246,6 +246,7 @@ typedef enum {
 	SSH_ATTRIBUTE_NONE,						/* No channel attribute */
 	SSH_ATTRIBUTE_ACTIVE,					/* Channel is active */
 	SSH_ATTRIBUTE_WINDOWCOUNT,				/* Data window count */
+	SSH_ATTRIBUTE_ALTCHANNELNO,				/* Secondary channel no. */
 	SSH_ATRIBUTE_LAST						/* Last channel attribute */
 	} SSH_ATTRIBUTE_TYPE;
 

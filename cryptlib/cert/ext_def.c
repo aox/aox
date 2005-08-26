@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						Certificate Attribute Definitions					*
-*						Copyright Peter Gutmann 1996-2004					*
+*						Copyright Peter Gutmann 1996-2005					*
 *																			*
 ****************************************************************************/
 
@@ -112,17 +112,17 @@ static int checkDirectoryName( const ATTRIBUTE_LIST *attributeListPtr );
 
 /* Forward declarations for alternative encoding tables used by the main
    tables.  These are declared in a somewhat peculiar manner because there's
-   no clean way in C to forward declare a static array */
+   no clean way in C to forward declare a static array.  Under VC++ with the
+   highest warning level enabled, this produces a compiler warning, so we
+   turn the warning off for this module */
 
-#if __GNUC__ > 3
-static const ATTRIBUTE_INFO FAR_BSS generalNameInfo[];
-static const ATTRIBUTE_INFO FAR_BSS holdInstructionInfo[];
-static const ATTRIBUTE_INFO FAR_BSS contentTypeInfo[];
-#else
 extern const ATTRIBUTE_INFO FAR_BSS generalNameInfo[];
 extern const ATTRIBUTE_INFO FAR_BSS holdInstructionInfo[];
 extern const ATTRIBUTE_INFO FAR_BSS contentTypeInfo[];
-#endif
+
+#if defined( _MSC_VER )
+  #pragma warning( disable: 4211 )
+#endif /* VC++ */
 
 /****************************************************************************
 *																			*
@@ -817,31 +817,31 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 	  BER_SEQUENCE, 0,
 	  FL_MORE | FL_LEVEL_STANDARD | FL_VALID_CERT | FL_VALID_ATTRCERT | FL_SETOF, 0, 0, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "cRLDistributionPoints.distributionPoint" )
+	  MKDESC( "cRLDistributionPoints.distPoint" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE, 0, 0, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "cRLDistributionPoints.distributionPoint.distributionPoint" )
+	  MKDESC( "cRLDistributionPoints.distPoint.distPoint" )
 	  BER_SEQUENCE, CTAG( 0 ),
 	  FL_MORE | FL_OPTIONAL, 0, 0, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "cRLDistributionPoints.distributionPoint.distributionPoint.fullName" )
+	  MKDESC( "cRLDistributionPoints.distPoint.distPoint.fullName" )
 	  BER_SEQUENCE, CTAG( 0 ),
 	  FL_MORE | FL_SETOF, 0, 0, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CRLDIST_FULLNAME,
-	  MKDESC( "cRLDistributionPoints.distributionPoint.distributionPoint.fullName.generalName" )
+	  MKDESC( "cRLDistributionPoints.distPoint.distPoint.fullName.generalName" )
 	  FIELDTYPE_SUBTYPED, 0,
 	  FL_MORE | FL_OPTIONAL | FL_MULTIVALUED | FL_SEQEND_2, 0, 0, 0, ( void * ) generalNameInfo },
 	{ NULL, CRYPT_CERTINFO_CRLDIST_REASONS,
-	  MKDESC( "cRLDistributionPoints.distributionPoint.reasons" )
+	  MKDESC( "cRLDistributionPoints.distPoint.reasons" )
 	  BER_BITSTRING, CTAG( 1 ),
 	  FL_MORE | FL_OPTIONAL | FL_MULTIVALUED, 0, CRYPT_CRLREASONFLAG_LAST, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "cRLDistributionPoints.distributionPoint.cRLIssuer" )
+	  MKDESC( "cRLDistributionPoints.distPoint.cRLIssuer" )
 	  BER_SEQUENCE, CTAG( 2 ),
 	  FL_MORE | FL_SETOF | FL_OPTIONAL, 0, 0, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CRLDIST_CRLISSUER,
-	  MKDESC( "cRLDistributionPoints.distributionPoint.cRLIssuer.generalName" )
+	  MKDESC( "cRLDistributionPoints.distPoint.cRLIssuer.generalName" )
 	  FIELDTYPE_SUBTYPED, 0,
 	  FL_OPTIONAL | FL_MULTIVALUED | FL_SEQEND_2, 0, 0, 0, ( void * ) generalNameInfo },
 
@@ -864,82 +864,77 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 
 		UserNotice ::= SEQUENCE {					-- OID = unotice
 			noticeRef		SEQUENCE {
-				organization	VisibleString,
+				organization	DisplayText,
 				noticeNumbers	SEQUENCE OF INTEGER	-- SIZE (1)
 				} OPTIONAL,
-			explicitText	VisibleString OPTIONAL
+			explicitText	DisplayText OPTIONAL
 			}
-	   All draft versions of the PKIX profile (RFC 2459) had the 
-	   organisation as an IA5String, but the final RFC changed it to a 
-	   VisibleString, in order to kludge around this for the certs that use 
-	   an IA5String (which in practice means only Verisign, since no-one 
-	   else uses policy qualifiers), we allow both types but put the 
-	   VisibleString option first which means that it'll get used 
-	   preferentially when encoding */
+
+	   Note that although this extension is decoded at 
+	   CRYPT_COMPLIANCELEVEL_STANDARD, policy constraints are only enforced
+	   at CRYPT_COMPLIANCELEVEL_PKIX_FULL due to the totally bizarre
+	   requirements that some of them have (see comments in chk_*.c for more
+	   on this) */
 	{ MKOID( "\x06\x03\x55\x1D\x20" ), CRYPT_CERTINFO_CERTIFICATEPOLICIES,
-	  MKDESC( "certificatePolicies" )
+	  MKDESC( "certPolicies" )
 	  BER_SEQUENCE, 0,
-	  FL_MORE | FL_LEVEL_PKIX_PARTIAL | FL_VALID_CERT | FL_SETOF, 0, 0, 0, NULL },
+	  FL_MORE | FL_LEVEL_STANDARD | FL_VALID_CERT | FL_SETOF, 0, 0, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "certificatePolicies.policyInformation" )
+	  MKDESC( "certPolicies.policyInfo" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE, 0, 0, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CERTPOLICYID,
-	  MKDESC( "certificatePolicies.policyInformation.policyIdentifier" )
+	  MKDESC( "certPolicies.policyInfo.policyIdentifier" )
 	  BER_OBJECT_IDENTIFIER, 0,
 	  FL_MORE | FL_MULTIVALUED, 3, 32, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifiers" )
+	  MKDESC( "certPolicies.policyInfo.policyQualifiers" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE | FL_SETOF | FL_OPTIONAL, 0, 0, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifier" )
+	  MKDESC( "certPolicies.policyInfo.policyQual" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE | FL_IDENTIFIER, 0, 0, 0, NULL },
 	{ MKOID( "\x06\x08\x2B\x06\x01\x05\x05\x07\x02\x01" ), 0,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifier.cps (1 3 6 1 5 5 7 2 1)" )
+	  MKDESC( "certPolicies.policyInfo.policyQual.cps (1 3 6 1 5 5 7 2 1)" )
 	  FIELDTYPE_IDENTIFIER, 0,
 	  FL_MORE, 0, 0, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CERTPOLICY_CPSURI,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifiers.qualifier.cPSuri" )
+	  MKDESC( "certPolicies.policyInfo.policyQuals.qualifier.cPSuri" )
 	  BER_STRING_IA5, 0,
-	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL | FL_SEQEND_2, MIN_URL_SIZE, MAX_URL_SIZE, 0, ( void * ) checkURL },
+	  FL_MORE | FL_MULTIVALUED | FL_NONEMPTY | FL_SEQEND_2, MIN_URL_SIZE, MAX_URL_SIZE, 0, ( void * ) checkURL },
 	{ NULL, 0,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifier" )
+	  MKDESC( "certPolicies.policyInfo.policyQual" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE | FL_IDENTIFIER, 0, 0, 0, NULL },
 	{ MKOID( "\x06\x08\x2B\x06\x01\x05\x05\x07\x02\x02" ), 0,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifier.unotice (1 3 6 1 5 5 7 2 2)" )
+	  MKDESC( "certPolicies.policyInfo.policyQual.unotice (1 3 6 1 5 5 7 2 2)" )
 	  FIELDTYPE_IDENTIFIER, 0,
 	  FL_MORE, 0, 0, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifier.userNotice" )
+	  MKDESC( "certPolicies.policyInfo.policyQual.userNotice" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE | FL_OPTIONAL, 0, 0, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifiers.userNotice.noticeRef" )
+	  MKDESC( "certPolicies.policyInfo.policyQual.userNotice.noticeRef" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL, 0, 0, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CERTPOLICY_ORGANIZATION,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifiers.userNotice.noticeRef.organization" )
-	  BER_STRING_ISO646, 0,
-	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL, 1, 200, 0, NULL },
-	{ NULL, CRYPT_CERTINFO_CERTPOLICY_ORGANIZATION,	/* Backwards-compat.kludge */
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifiers.userNotice.noticeRef.organization (Kludge)" )
-	  BER_STRING_IA5, 0,
-	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL, 1, 200, 0, NULL },
+	  MKDESC( "certPolicies.policyInfo.policyQual.userNotice.noticeRef.organization" )
+	  FIELDTYPE_DISPLAYSTRING, 0,
+	  FL_MORE | FL_MULTIVALUED | FL_NONEMPTY, 1, 200, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifiers.userNotice.noticeRef.noticeNumbers" )
+	  MKDESC( "certPolicies.policyInfo.policyQual.userNotice.noticeRef.noticeNumbers" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE | FL_OPTIONAL, 0, 0, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CERTPOLICY_NOTICENUMBERS,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifiers.userNotice.noticeRef.noticeNumbers" )
+	  MKDESC( "certPolicies.policyInfo.policyQual.userNotice.noticeRef.noticeNumbers" )
 	  BER_INTEGER, 0,
-	  FL_MORE | FL_MULTIVALUED | FL_OPTIONAL | FL_SEQEND_2, 1, 1024, 0, NULL },
+	  FL_MORE | FL_MULTIVALUED | FL_NONEMPTY | FL_SEQEND_2, 1, 1024, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CERTPOLICY_EXPLICITTEXT,
-	  MKDESC( "certificatePolicies.policyInformation.policyQualifiers.userNotice.explicitText" )
-	  BER_STRING_ISO646, 0,
-	  FL_OPTIONAL | FL_MULTIVALUED | FL_SEQEND, 1, 200, 0, NULL },
+	  MKDESC( "certPolicies.policyInfo.policyQual.userNotice.explicitText" )
+	  FIELDTYPE_DISPLAYSTRING, 0,
+	  FL_OPTIONAL | FL_NONEMPTY | FL_MULTIVALUED | FL_SEQEND, 1, 200, 0, NULL },
 
 	/* policyMappings:
 		OID = 2 5 29 33
@@ -1105,7 +1100,11 @@ static const FAR_BSS ATTRIBUTE_INFO extensionInfo[] = {
 	{ MKOID( "\x06\x0A\x60\x86\x48\x01\x86\xF8\x45\x01\x08\x01" ), CRYPT_CERTINFO_EXTKEY_VS_SERVERGATEDCRYPTO_CA,
 	  MKDESC( "extKeyUsage.serverGatedCryptoCA (2 16 840 1 113733 1 8 1)" )
 	  FIELDTYPE_IDENTIFIER, 0,
-	  FL_OPTIONAL, 0, 0, 0, NULL },
+	  FL_MORE | FL_OPTIONAL, 0, 0, 0, NULL },
+	{ NULL, 0,
+	  MKDESC( "extKeyUsage.catchAll" )
+	  FIELDTYPE_BLOB, 0,		/* Match anything and ignore it */
+	  FL_OPTIONAL | FL_NONENCODING, 0, 0, 0, NULL },
 
 	/* freshestCRL:
 		OID = 2 5 29 46
@@ -1972,11 +1971,11 @@ static const FAR_BSS ATTRIBUTE_INFO cmsAttributeInfo[] = {
 	  BER_SEQUENCE, 0,
 	  FL_MORE | FL_SETOF | FL_OPTIONAL, 0, 0, 0, NULL },
 	{ NULL, 0,
-	  MKDESC( "signingCertificate.policies.policyInformation" )
+	  MKDESC( "signingCertificate.policies.policyInfo" )
 	  BER_SEQUENCE, 0,
 	  FL_MORE, 0, 0, 0, NULL },
 	{ NULL, CRYPT_CERTINFO_CMS_SIGNINGCERT_POLICIES,
-	  MKDESC( "signingCertificate.policies.policyInformation.policyIdentifier" )
+	  MKDESC( "signingCertificate.policies.policyInfo.policyIdentifier" )
 	  BER_OBJECT_IDENTIFIER, 0,
 	  FL_MULTIVALUED | FL_OPTIONAL | FL_SEQEND_2, 3, 32, 0, NULL },
 

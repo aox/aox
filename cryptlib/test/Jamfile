@@ -1,9 +1,0 @@
-SubDir TOP cryptlib test ;
-
-Build cryptlib-test : certinst.c certs.c devices.c envelope.c highlvl.c
-    keydbx.c keyfile.c keyload.c lowlvl.c scert.c sreqresp.c ssh.c ssl.c
-    stress.c testlib.c timing.c utils.c ;
-
-Build certutil : certutil.c utils.c ;
-
-Executable certutil : cryptlib certutil ;

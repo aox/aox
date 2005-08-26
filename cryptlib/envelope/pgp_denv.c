@@ -279,7 +279,8 @@ static int processPreamble( ENVELOPE_INFO *envelopeInfoPtr )
 	{
 	PGP_DEENV_STATE state = envelopeInfoPtr->pgpDeenvState;
 	STREAM stream;
-	int packetType, length, streamPos = 0, status = CRYPT_OK;
+	int packetType, length, streamPos = 0;
+	int iterationCount = 0, status = CRYPT_OK;
 	long packetLength;
 
 	/* If we've finished processing the start of the message, header, don't
@@ -291,7 +292,7 @@ static int processPreamble( ENVELOPE_INFO *envelopeInfoPtr )
 
 	/* Keep consuming information until we run out of input or reach the
 	   plaintext data packet */
-	while( state != PGP_DEENVSTATE_DONE )
+	while( state != PGP_DEENVSTATE_DONE && iterationCount++ < 256 )
 		{
 		/* Read the PGP packet type and figure out what we've got */
 		if( state == PGP_DEENVSTATE_NONE )
@@ -812,6 +813,8 @@ static int processPreamble( ENVELOPE_INFO *envelopeInfoPtr )
 				}
 			}
 		}
+	if( iterationCount >= 256 )
+		return( CRYPT_ERROR_FAILED );
 	envelopeInfoPtr->pgpDeenvState = state;
 
 	assert( streamPos >= 0 && envelopeInfoPtr->bufPos - streamPos >= 0 );

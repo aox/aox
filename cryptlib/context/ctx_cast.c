@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib CAST-128 Encryption Routines					*
-*						Copyright Peter Gutmann 1997-2003					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,17 +9,14 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "cast.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/cast.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/cast.h"
 #endif /* Compiler-specific includes */
 
@@ -27,7 +24,7 @@
 
 /* Defines to map from EAY to native naming */
 
-#define CAST_BLOCKSIZE		CAST_BLOCK
+#define CAST_BLOCKSIZE			CAST_BLOCK
 
 /* The size of the keyscheduled CAST key */
 
@@ -54,18 +51,29 @@ static const FAR_BSS struct CAST_TEST {
 
 /* Test the CAST code against the CAST test vectors */
 
-int castSelfTest( void )
+static int selfTest( void )
 	{
+	const CAPABILITY_INFO *capabilityInfo = getCASTCapability();
+	CONTEXT_INFO contextInfo;
+	CONV_INFO contextData;
+	BYTE keyData[ CAST_EXPANDED_KEYSIZE ];
 	BYTE temp[ CAST_BLOCKSIZE ];
-	CAST_KEY castKey;
-	int i;
+	int i, status;
 
 	for( i = 0; i < sizeof( testCAST ) / sizeof( struct CAST_TEST ); i++ )
 		{
+		staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+						   &contextData, sizeof( CONV_INFO ), keyData );
 		memcpy( temp, testCAST[ i ].plainText, CAST_BLOCKSIZE );
-		CAST_set_key( &castKey, CAST_KEY_LENGTH, testCAST[ i ].key );
-		CAST_ecb_encrypt( temp, temp, &castKey, CAST_ENCRYPT );
-		if( memcmp( testCAST[ i ].cipherText, temp, CAST_BLOCKSIZE ) )
+		status = capabilityInfo->initKeyFunction( &contextInfo, 
+												  testCAST[ i ].key,
+												  CAST_KEY_LENGTH );
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, temp, 
+													  CAST_BLOCKSIZE );
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) || \
+			memcmp( testCAST[ i ].cipherText, temp, CAST_BLOCKSIZE ) )
 			return( CRYPT_ERROR );
 		}
 
@@ -80,13 +88,13 @@ int castSelfTest( void )
 
 /* Return context subtype-specific information */
 
-int castGetInfo( const CAPABILITY_INFO_TYPE type, 
-				 void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
 		return( CAST_EXPANDED_KEYSIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -97,12 +105,13 @@ int castGetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Encrypt/decrypt data in ECB mode */
 
-int castEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int blockCount = noBytes / CAST_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Encrypt a block of data */
 		CAST_ecb_encrypt( buffer, buffer, convInfo->key, CAST_ENCRYPT );
@@ -114,12 +123,13 @@ int castEncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int castDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int blockCount = noBytes / CAST_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Decrypt a block of data */
 		CAST_ecb_encrypt( buffer, buffer, convInfo->key, CAST_DECRYPT );
@@ -133,7 +143,8 @@ int castDecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CBC mode */
 
-int castEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -143,7 +154,8 @@ int castEncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int castDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -155,13 +167,14 @@ int castDecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CFB mode */
 
-int castEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -181,7 +194,7 @@ int castEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > CAST_BLOCKSIZE ) ? CAST_BLOCKSIZE : noBytes;
 
@@ -211,14 +224,15 @@ int castEncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
    faster (but less clear) with temp = buffer, buffer ^= iv, iv = temp
    all in one loop */
 
-int castDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	BYTE temp[ CAST_BLOCKSIZE ];
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -239,7 +253,7 @@ int castDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > CAST_BLOCKSIZE ) ? CAST_BLOCKSIZE : noBytes;
 
@@ -273,13 +287,14 @@ int castDecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in OFB mode */
 
-int castEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -298,7 +313,7 @@ int castEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > CAST_BLOCKSIZE ) ? CAST_BLOCKSIZE : noBytes;
 
@@ -323,13 +338,14 @@ int castEncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Decrypt data in OFB mode */
 
-int castDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -348,7 +364,7 @@ int castDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > CAST_BLOCKSIZE ) ? CAST_BLOCKSIZE : noBytes;
 
@@ -379,8 +395,8 @@ int castDecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Key schedule an CAST key */
 
-int castInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-				 const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -392,4 +408,24 @@ int castInitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	CAST_set_key( convInfo->key, CAST_KEY_LENGTH, ( BYTE * ) key );
 	return( CRYPT_OK );
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_CAST, bitsToBytes( 64 ), "CAST-128",
+	bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), bitsToBytes( 128 ),
+	selfTest, getInfo, NULL, initKeyParams, initKey, NULL,
+	encryptECB, decryptECB, encryptCBC, decryptCBC,
+	encryptCFB, decryptCFB, encryptOFB, decryptOFB 
+	};
+
+const CAPABILITY_INFO *getCASTCapability( void )
+	{
+	return( &capabilityInfo );
+	}
+
 #endif /* USE_CAST */

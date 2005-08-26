@@ -86,7 +86,8 @@ static int processKeyFingerprint( SESSION_INFO *sessionInfoPtr,
 
 	/* There's an existing fingerprint value, make sure that it matches what 
 	   we just calculated */
-	if( memcmp( attributeListPtr->value, fingerPrint, hashSize ) )
+	if( attributeListPtr->valueLength != hashSize || \
+		memcmp( attributeListPtr->value, fingerPrint, hashSize ) )
 		retExt( sessionInfoPtr, CRYPT_ERROR_WRONGKEY,
 				"Server key fingerprint doesn't match requested "
 				"fingerprint" );
@@ -96,10 +97,11 @@ static int processKeyFingerprint( SESSION_INFO *sessionInfoPtr,
 
 /* Report specific details on an authentication failure to the caller */
 
+static int processPamAuthentication( SESSION_INFO *sessionInfoPtr );	/* Fwd.dec for fn.*/
+
 static int reportAuthFailure( SESSION_INFO *sessionInfoPtr, 
 							  const int length, const BOOLEAN isPamAuth )
 	{
-	STATIC_FN int processPamAuthentication( SESSION_INFO *sessionInfoPtr );
 	STREAM stream;
 	CRYPT_ALGO_TYPE authentAlgo;
 	const BOOLEAN hasPassword = \
@@ -1048,12 +1050,17 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 		}
 	else
 		{
+		CRYPT_ALGO_TYPE pkcAlgo;
 		MESSAGE_CREATEOBJECT_INFO createInfo;
 		int sigLength;
+
+		krnlSendMessage( sessionInfoPtr->privateKey, IMESSAGE_GETATTRIBUTE,
+						 &pkcAlgo, CRYPT_CTXINFO_ALGO );
 
 		/*	...
 			string	method-name = "publickey"
 			boolean	TRUE
+			string		"ssh-rsa"	"ssh-dss"
 			string		[ client key/certificate ]
 				string	"ssh-rsa"	"ssh-dss"
 				mpint	e			p
@@ -1062,12 +1069,18 @@ static int completeClientHandshake( SESSION_INFO *sessionInfoPtr,
 				mpint				y
 			string		[ client signature ]
 				string	"ssh-rsa"	"ssh-dss"
-				string	signature	signature */
+				string	signature	signature.
+		
+		   Note the doubled-up algorithm name, the spec first requires that
+		   the public-key auth packet send the algorithm name and then
+		   includes it a second time as part of the client key info */
 		writeString32( &stream, "publickey", 0 );
 		sputc( &stream, 1 );
-		exportAttributeToStream( &stream, sessionInfoPtr->privateKey,
-								 CRYPT_IATTRIBUTE_KEY_SSH2,
-								 CRYPT_USE_DEFAULT );
+		writeAlgoString( &stream, pkcAlgo );
+		status = exportAttributeToStream( &stream, 
+										  sessionInfoPtr->privateKey,
+										  CRYPT_IATTRIBUTE_KEY_SSH2,
+										  CRYPT_USE_DEFAULT );
 		if( cryptStatusError( status ) )
 			{
 			sMemDisconnect( &stream );

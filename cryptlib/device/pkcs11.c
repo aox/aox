@@ -940,7 +940,8 @@ static int initFunction( DEVICE_INFO *deviceInfo, const char *name,
 	status = C_GetSlotList( TRUE, slotList, &slotCount );
 	if( status != CKR_OK )
 		return( mapError( pkcs11Info, status, CRYPT_ERROR_OPEN ) );
-	if( slotCount <= 0 )	/* Can happen in some circumstances */
+	if( slotCount <= 0 )
+		/* There are token slots present but no tokens in the slots */
 		return( CRYPT_ERROR_OPEN );
 
 	/* Check whether a token name (used to select the slot) has been 
@@ -1004,11 +1005,11 @@ static int initFunction( DEVICE_INFO *deviceInfo, const char *name,
 	if( tokenInfo.flags & CKF_RNG )
 		/* The device has an onboard RNG that we can use */
 		deviceInfo->getRandomFunction = getRandomFunction;
-#if 0	/* The Spyrus driver appears to return the local system time (with
-		   a GMT/localtime offset), ignoring the fact that the token has
-		   an onboard clock, so having the CKF_CLOCK_ON_TOKEN not set is
-		   accurate, although having it ignore the presence of the clock 
-		   isn't very valid */
+#if 0	/* The Spyrus driver for pre-Lynks-II cards returns the local system 
+		   time (with a GMT/localtime offset), ignoring the fact that the 
+		   token has an onboard clock, so having the CKF_CLOCK_ON_TOKEN not 
+		   set is accurate, although having it ignore the presence of the 
+		   clock isn't very valid */
 	if( !( tokenInfo.flags & CKF_CLOCK_ON_TOKEN ) && \
 		( !strCompare( tokenInfo.label, "Lynks Token", 11 ) || \
 		  !strCompare( tokenInfo.model, "Rosetta", 7 ) ) )
@@ -2111,7 +2112,7 @@ static int getItemFunction( DEVICE_INFO *deviceInfo,
 	C_GetAttributeValue( pkcs11Info->hSession, hObject, 
 						 &keySizeTemplate, 1 );
 	keySize = keySizeTemplate.ulValueLen;
-	capabilityInfoPtr = findCapabilityInfo( deviceInfo->capabilityInfo, 
+	capabilityInfoPtr = findCapabilityInfo( deviceInfo->capabilityInfoList, 
 											cryptAlgo );
 	if( capabilityInfoPtr == NULL )
 		return( CRYPT_ERROR_NOTAVAIL );
@@ -2511,7 +2512,7 @@ static int getNextItemFunction( DEVICE_INFO *deviceInfo,
 
 	assert( isWritePtr( iCertificate, sizeof( CRYPT_CERTIFICATE ) ) );
 	assert( isWritePtr( stateInfo, sizeof( int ) ) );
-	assert( checkHandleRange( *stateInfo ) || *stateInfo == CRYPT_ERROR );
+	assert( isHandleRangeValid( *stateInfo ) || *stateInfo == CRYPT_ERROR );
 
 	/* Clear return value */
 	*iCertificate = CRYPT_ERROR;
@@ -3018,8 +3019,8 @@ static int cipherDecrypt( CONTEXT_INFO *contextInfoPtr, void *buffer,
 /* Map a cryptlib algorithm and mode to a PKCS #11 mechanism type, with
    shortcuts for the most frequently-used algorithm(s) */
 
-STATIC_FN CK_MECHANISM_TYPE getMechanism( const CRYPT_ALGO_TYPE cryptAlgo,
-										  const CRYPT_MODE_TYPE cryptMode );
+static CK_MECHANISM_TYPE getMechanism( const CRYPT_ALGO_TYPE cryptAlgo,
+									   const CRYPT_MODE_TYPE cryptMode );
 
 static int cipherEncryptECB( CONTEXT_INFO *contextInfoPtr, void *buffer, 
 							 int length )
@@ -3590,7 +3591,7 @@ static int rsaGenerateKey( CONTEXT_INFO *contextInfoPtr, const int keysizeBits )
 		{ CKA_ENCRYPT, ( CK_VOID_PTR ) &bTrue, sizeof( CK_BBOOL ) },
 		{ CKA_VERIFY, ( CK_VOID_PTR ) &bTrue, sizeof( CK_BBOOL ) },
 		{ CKA_PUBLIC_EXPONENT, ( CK_VOID_PTR ) exponent, sizeof( exponent ) },
-		{ CKA_MODULUS_BITS, NULL, sizeof( CK_ULONG ) }
+		{ CKA_MODULUS_BITS, ( CK_VOID_PTR ) &modulusBits, sizeof( CK_ULONG ) }
 		};
 	CK_OBJECT_HANDLE hPublicKey, hPrivateKey;
 	CRYPT_DEVICE iCryptDevice;
@@ -3613,7 +3614,6 @@ static int rsaGenerateKey( CONTEXT_INFO *contextInfoPtr, const int keysizeBits )
 	assert( !( deviceInfo->flags & DEVICE_READONLY ) );
 
 	/* Patch in the key size and generate the keys */
-	publicKeyTemplate[ 5 ].pValue = ( CK_VOID_PTR ) &modulusBits;
 	status = C_GenerateKeyPair( pkcs11Info->hSession,
 								( CK_MECHANISM_PTR ) &mechanism,
 								publicKeyTemplate, 6, privateKeyTemplate, 6,
@@ -4300,93 +4300,52 @@ static int dsaVerify( CONTEXT_INFO *contextInfoPtr, void *buffer, int length )
 #define keysizeBytes( algo ) \
 	( ( algo ) == CRYPT_ALGO_RC5 || ( algo ) == CRYPT_ALGO_CAST )
 
-/* Since cryptlib's CAPABILITY_INFO is fixed, all of the fields are declared
-   const so that they'll (hopefully) be allocated in the code segment.  This 
-   doesn't quite work for PKCS #11 devices since things like the available key
-   lengths can vary depending on the device that's plugged in, so we declare 
-   an equivalent structure here that makes the variable fields non-const.  
-   Once the fields are set up, the result is copied into a dynamically-
-   allocated CAPABILITY_INFO block at which point the fields are treated as 
-   const by the code */
-
-typedef struct {
-	const CRYPT_ALGO_TYPE cryptAlgo;
-	const int blockSize;
-	const char *algoName;
-	int minKeySize;						/* Non-const */
-	int keySize;						/* Non-const */
-	int maxKeySize;						/* Non-const */
-	int ( *selfTestFunction )( void );
-	int ( *getInfoFunction )( const CAPABILITY_INFO_TYPE type, 
-							  void *varParam, const int constParam );
-	int ( *endFunction )( struct CI *contextInfoPtr );
-	int ( *initKeyParamsFunction )( struct CI *contextInfoPtr, const void *iv, 
-									const int ivLength, const CRYPT_MODE_TYPE mode );
-	int ( *initKeyFunction )( struct CI *contextInfoPtr, const void *key, 
-							  const int keyLength );
-	int ( *generateKeyFunction )( struct CI *contextInfoPtr, const int keySizeBits );
-	int ( *encryptFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *decryptFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *encryptCBCFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *decryptCBCFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *encryptCFBFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *decryptCFBFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *encryptOFBFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *decryptOFBFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *signFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int ( *sigCheckFunction )( struct CI *contextInfoPtr, void *buffer, int length );
-	int param1, param2, param3, param4;	/* Non-const */
-	struct CA *next;
-	} VARIABLE_CAPABILITY_INFO;
-
 /* Templates for the various capabilities.  These contain only basic 
    information, the remaining fields are filled in when the capability is 
    set up */
 
-#define bits(x)	bitsToBytes(x)
-
 static CAPABILITY_INFO FAR_BSS capabilityTemplates[] = {
 	/* Encryption capabilities */
-	{ CRYPT_ALGO_DES, bits( 64 ), "DES",
-		bits( MIN_KEYSIZE_BITS ), bits( 64 ), bits( 64 ) },
-	{ CRYPT_ALGO_3DES, bits( 64 ), "3DES",
-		bits( 64 + 8 ), bits( 128 ), bits( 192 ) },
-	{ CRYPT_ALGO_IDEA, bits( 64 ), "IDEA",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), bits( 128 ) },
-	{ CRYPT_ALGO_CAST, bits( 64 ), "CAST-128",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), bits( 128 ) },
-	{ CRYPT_ALGO_RC2, bits( 64 ), "RC2",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), bits( 1024 ) },
-	{ CRYPT_ALGO_RC4, bits( 8 ), "RC4",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), 256 },
-	{ CRYPT_ALGO_RC5, bits( 64 ), "RC5",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), bits( 832 ) },
-	{ CRYPT_ALGO_AES, bits( 128 ), "AES",
-		bits( 128 ), bits( 128 ), bits( 256 ) },
-	{ CRYPT_ALGO_BLOWFISH, bits( 64 ), "Blowfish",
-		bits( MIN_KEYSIZE_BITS ), bits( 128 ), bits( 448 ) },
-	{ CRYPT_ALGO_SKIPJACK, bits( 64 ), "Skipjack",
-		bits( 80 ), bits( 80 ), bits( 80 ) },
+	{ CRYPT_ALGO_DES, bitsToBytes( 64 ), "DES",
+		bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 64 ), bitsToBytes( 64 ) },
+	{ CRYPT_ALGO_3DES, bitsToBytes( 64 ), "3DES",
+		bitsToBytes( 64 + 8 ), bitsToBytes( 128 ), bitsToBytes( 192 ) },
+	{ CRYPT_ALGO_IDEA, bitsToBytes( 64 ), "IDEA",
+		bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), bitsToBytes( 128 ) },
+	{ CRYPT_ALGO_CAST, bitsToBytes( 64 ), "CAST-128",
+		bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), bitsToBytes( 128 ) },
+	{ CRYPT_ALGO_RC2, bitsToBytes( 64 ), "RC2",
+		bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), bitsToBytes( 1024 ) },
+	{ CRYPT_ALGO_RC4, bitsToBytes( 8 ), "RC4",
+		bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), 256 },
+	{ CRYPT_ALGO_RC5, bitsToBytes( 64 ), "RC5",
+		bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), bitsToBytes( 832 ) },
+	{ CRYPT_ALGO_AES, bitsToBytes( 128 ), "AES",
+		bitsToBytes( 128 ), bitsToBytes( 128 ), bitsToBytes( 256 ) },
+	{ CRYPT_ALGO_BLOWFISH, bitsToBytes( 64 ), "Blowfish",
+		bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), bitsToBytes( 448 ) },
+	{ CRYPT_ALGO_SKIPJACK, bitsToBytes( 64 ), "Skipjack",
+		bitsToBytes( 80 ), bitsToBytes( 80 ), bitsToBytes( 80 ) },
 
 	/* Hash capabilities */
-	{ CRYPT_ALGO_MD2, bits( 128 ), "MD2",
-		bits( 0 ), bits( 0 ), bits( 0 ) },
-	{ CRYPT_ALGO_MD5, bits( 128 ), "MD5",
-		bits( 0 ), bits( 0 ), bits( 0 ) },
-	{ CRYPT_ALGO_SHA, bits( 160 ), "SHA",
-		bits( 0 ), bits( 0 ), bits( 0 ) },
+	{ CRYPT_ALGO_MD2, bitsToBytes( 128 ), "MD2",
+		bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ) },
+	{ CRYPT_ALGO_MD5, bitsToBytes( 128 ), "MD5",
+		bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ) },
+	{ CRYPT_ALGO_SHA, bitsToBytes( 160 ), "SHA",
+		bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ) },
 #ifdef USE_SHA2
-	{ CRYPT_ALGO_SHA2, bits( 256 ), "SHA2",
-		bits( 0 ), bits( 0 ), bits( 0 ) },
+	{ CRYPT_ALGO_SHA2, bitsToBytes( 256 ), "SHA2",
+		bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ) },
 #endif /* USE_SHA2 */
 
 	/* Public-key capabilities */
-	{ CRYPT_ALGO_DH, bits( 0 ), "Diffie-Hellman",
-		bits( MIN_PKCSIZE_BITS ), bits( 1024 ), CRYPT_MAX_PKCSIZE },
-	{ CRYPT_ALGO_RSA, bits( 0 ), "RSA",
-		bits( MIN_PKCSIZE_BITS ), bits( 1024 ), CRYPT_MAX_PKCSIZE },
-	{ CRYPT_ALGO_DSA, bits( 0 ), "DSA",
-		bits( MIN_PKCSIZE_BITS ), bits( 1024 ), CRYPT_MAX_PKCSIZE },
+	{ CRYPT_ALGO_DH, bitsToBytes( 0 ), "Diffie-Hellman",
+		bitsToBytes( MIN_PKCSIZE_BITS ), bitsToBytes( 1024 ), CRYPT_MAX_PKCSIZE },
+	{ CRYPT_ALGO_RSA, bitsToBytes( 0 ), "RSA",
+		bitsToBytes( MIN_PKCSIZE_BITS ), bitsToBytes( 1024 ), CRYPT_MAX_PKCSIZE },
+	{ CRYPT_ALGO_DSA, bitsToBytes( 0 ), "DSA",
+		bitsToBytes( MIN_PKCSIZE_BITS ), bitsToBytes( 1024 ), CRYPT_MAX_PKCSIZE },
 
 	/* Hier ist der Mast zu ende */
 	{ CRYPT_ERROR }
@@ -4614,7 +4573,7 @@ static CAPABILITY_INFO *getCapability( const DEVICE_INFO *deviceInfo,
 		}
 
 	/* Set up the device-specific handlers */
-	capabilityInfo->getInfoFunction = getInfo;
+	capabilityInfo->getInfoFunction = getDefaultInfo;
 	if( cryptAlgo != CRYPT_ALGO_DH && cryptAlgo != CRYPT_ALGO_RSA && \
 		cryptAlgo != CRYPT_ALGO_DSA )
 		capabilityInfo->initKeyParamsFunction = initKeyParams;
@@ -4761,28 +4720,31 @@ static CAPABILITY_INFO *getCapability( const DEVICE_INFO *deviceInfo,
 
 static void freeCapabilities( DEVICE_INFO *deviceInfo )
 	{
-	CAPABILITY_INFO *capabilityInfoPtr = \
-				( CAPABILITY_INFO * ) deviceInfo->capabilityInfo;
+	CAPABILITY_INFO_LIST *capabilityInfoListPtr = \
+				( CAPABILITY_INFO_LIST * ) deviceInfo->capabilityInfoList;
 
 	/* If the list was empty, return now */
-	if( capabilityInfoPtr == NULL )
+	if( capabilityInfoListPtr == NULL )
 		return;
-	deviceInfo->capabilityInfo = NULL;
+	deviceInfo->capabilityInfoList = NULL;
 
-	while( capabilityInfoPtr != NULL )
+	while( capabilityInfoListPtr != NULL )
 		{
-		CAPABILITY_INFO *itemToFree = capabilityInfoPtr;
+		CAPABILITY_INFO_LIST *listItemToFree = capabilityInfoListPtr;
+		CAPABILITY_INFO *itemToFree = ( CAPABILITY_INFO * ) listItemToFree->info;
 
-		capabilityInfoPtr = capabilityInfoPtr->next;
+		capabilityInfoListPtr = capabilityInfoListPtr->next;
 		zeroise( itemToFree, sizeof( CAPABILITY_INFO ) );
 		clFree( "freeCapabilities", itemToFree );
+		zeroise( listItemToFree, sizeof( CAPABILITY_INFO_LIST ) );
+		clFree( "freeCapabilities", listItemToFree );
 		}
 	}
 
 static int getCapabilities( DEVICE_INFO *deviceInfo )
 	{
-	CAPABILITY_INFO *capabilityListTail = \
-				( CAPABILITY_INFO * ) deviceInfo->capabilityInfo;
+	CAPABILITY_INFO_LIST *capabilityInfoListTail = \
+				( CAPABILITY_INFO_LIST * ) deviceInfo->capabilityInfoList;
 	int i;
 
 	assert( sizeof( CAPABILITY_INFO ) == sizeof( VARIABLE_CAPABILITY_INFO ) );
@@ -4790,6 +4752,7 @@ static int getCapabilities( DEVICE_INFO *deviceInfo )
 	/* Add capability information for each recognised mechanism type */
 	for( i = 0; mechanismInfo[ i ].mechanism != CRYPT_ERROR; i++ )
 		{
+		CAPABILITY_INFO_LIST *newCapabilityList;
 		CAPABILITY_INFO *newCapability;
 		const CRYPT_ALGO_TYPE cryptAlgo = mechanismInfo[ i ].cryptAlgo;
 
@@ -4810,11 +4773,20 @@ static int getCapabilities( DEVICE_INFO *deviceInfo )
 					( newCapability->cryptAlgo >= CRYPT_ALGO_FIRST_PKC && \
 					  newCapability->cryptAlgo <= CRYPT_ALGO_LAST_PKC ) ? \
 					  TRUE : FALSE ) );
-		if( deviceInfo->capabilityInfo == NULL )
-			deviceInfo->capabilityInfo = newCapability;
+		if( ( newCapabilityList = \
+						clAlloc( "getCapabilities", \
+								 sizeof( CAPABILITY_INFO_LIST ) ) ) == NULL )
+			{
+			clFree( "getCapabilities", newCapability );
+			continue;
+			}
+		newCapabilityList->info = newCapability;
+		newCapabilityList->next = NULL;
+		if( deviceInfo->capabilityInfoList == NULL )
+			deviceInfo->capabilityInfoList = newCapabilityList;
 		else
-			capabilityListTail->next = newCapability;
-		capabilityListTail = newCapability;
+			capabilityInfoListTail->next = newCapabilityList;
+		capabilityInfoListTail = newCapabilityList;
 
 		/* Since there may be alternative mechanisms to the current one 
 		   defined, we have to skip mechanisms until we find a ones for a
@@ -4823,7 +4795,7 @@ static int getCapabilities( DEVICE_INFO *deviceInfo )
 			i++;
 		}
 
-	return( ( deviceInfo->capabilityInfo == NULL ) ? CRYPT_ERROR : CRYPT_OK );
+	return( ( deviceInfo->capabilityInfoList == NULL ) ? CRYPT_ERROR : CRYPT_OK );
 	}
 
 /****************************************************************************

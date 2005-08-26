@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib Keyset Interface Header File 				*
-*						Copyright Peter Gutmann 1996-2004					*
+*						Copyright Peter Gutmann 1996-2005					*
 *																			*
 ****************************************************************************/
 
@@ -56,9 +56,9 @@
 	#include <sqlext.h>
   #endif /* Borland vs.everything else */
 #endif /* USE_ODBC */
-#ifdef USE_MYSQL
-  #include <mysql.h>
-#endif /* USE_MYSQL */
+#ifdef USE_DATABASE
+  #error Need to add database backend-specific includes
+#endif /* USE_DATABASE */
 #ifndef _STREAM_DEFINED
   #if defined( INC_ALL )
 	#include "stream.h"
@@ -192,10 +192,9 @@ typedef struct {
 	BOOLEAN needLongLength;			/* Back-end needs blob length at bind.time */
 	char escapeChar;				/* SQL query escape char */
   #endif /* USE_ODBC */
-  #ifdef USE_MYSQL
-	MYSQL *connection;				/* Connection handle */
-	MYSQL_RES *result;				/* Result set */
-  #endif /* USE_MYSQL */
+  #ifdef USE_DATABASE
+	#error Need to add database backend-specific state variables
+  #endif /* USE_DATABASE */
   #ifdef USE_TCP
 	STREAM stream;					/* Network I/O stream */
   #endif /* USE_TCP */

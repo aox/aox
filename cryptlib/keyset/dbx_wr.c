@@ -417,7 +417,7 @@ int addCRL( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iCryptCRL,
 	int certDataLength, status;
 
 	assert( ( isCertStore( dbmsInfo ) && \
-			  checkHandleRange( iCryptRevokeCert ) ) || \
+			  isHandleRangeValid( iCryptRevokeCert ) ) || \
 			( !isCertStore( dbmsInfo ) && \
 			  iCryptRevokeCert == CRYPT_UNUSED ) );
 

@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib TCP/IP Interface Routines					*
-*						Copyright Peter Gutmann 1998-2004					*
+*						Copyright Peter Gutmann 1998-2005					*
 *																			*
 ****************************************************************************/
 
@@ -125,7 +125,7 @@ static WSASTARTUP pWSAStartup = NULL;
 
 /* Dynamically load and unload any necessary TCP/IP libraries.  Under Windows
    the dynamic loading is complicated by the existence of Winsock 1 vs.
-   Winsock 2, all recent systems use Winsock 2 but we allow for Winsock 1 as 
+   Winsock 2, all recent systems use Winsock 2 but we allow for Winsock 1 as
    well just in case */
 
 #ifdef __WINDOWS__
@@ -146,7 +146,6 @@ static WSASTARTUP pWSAStartup = NULL;
 
 int netInitTCP( void )
 	{
-	STATIC_FN int initSocketPool( void );
 #ifdef __WINDOWS__
 	WSADATA wsaData;
   #ifdef __WIN16__
@@ -256,9 +255,9 @@ int netInitTCP( void )
 
 #ifdef __WINDOWS__
 	if( closesocket == NULL || __WSAFDIsSet == NULL || \
-		ioctlsocket == NULL || WSACleanup == NULL || 
+		ioctlsocket == NULL || WSACleanup == NULL ||
   #ifdef DYNLOAD_WSAGETLASTERROR
-		WSAGetLastError == NULL || 
+		WSAGetLastError == NULL ||
   #endif /* DYNLOAD_WSAGETLASTERROR */
 		WSAStartup == NULL || \
 		( WSAStartup( 2, &wsaData ) && WSAStartup( 1, &wsaData ) ) )
@@ -368,11 +367,11 @@ static BOOLEAN transportOKFunction( void )
 		SOCKET netSocket;
 
 		/* If the networking subsystem isn't enabled, attempting any network
-		   operations will return ENOENT (which isn't a normal return code, 
-		   but is the least inappropriate thing to return).  In order to 
+		   operations will return ENOENT (which isn't a normal return code,
+		   but is the least inappropriate thing to return).  In order to
 		   check this before we get deep into the networking code, we create
-		   a test socket here to make sure that everything is OK.  If the 
-		   network transport is unavailable, we re-try each time we're 
+		   a test socket here to make sure that everything is OK.  If the
+		   network transport is unavailable, we re-try each time we're
 		   called in case it's been enabled in the meantime */
 		if( !isBadSocket( netSocket = socket( PF_INET, SOCK_STREAM, 0 ) ) )
 			{
@@ -393,9 +392,9 @@ static BOOLEAN transportOKFunction( void )
 *																			*
 ****************************************************************************/
 
-/* Map of common error codes to strings.  The error code supplied by the 
-   caller is usually used as the return status code, however if a more 
-   specific error code than the default is available it's specified via the 
+/* Map of common error codes to strings.  The error code supplied by the
+   caller is usually used as the return status code, however if a more
+   specific error code than the default is available it's specified via the
    cryptSpecificCode member */
 
 typedef struct {
@@ -513,7 +512,7 @@ static const FAR_BSS SOCKETERROR_INFO hostErrorInfo[] = {
 /* Get and set the low-level error information from a socket- and host-
    lookup-based error */
 
-static int mapError( STREAM *stream, const SOCKETERROR_INFO *errorInfo, 
+static int mapError( STREAM *stream, const SOCKETERROR_INFO *errorInfo,
 					 int status )
 	{
 	int i;
@@ -584,8 +583,8 @@ static int my_select( int socket_range, struct fd_set *read_bits,
 	if( read_bits != NULL && write_bits != NULL )
 		return( 1 );
 
-	/* If we're checking for writeability, the best that we can do is to 
-	   always report the socket as writeable.  Since the socket is a 
+	/* If we're checking for writeability, the best that we can do is to
+	   always report the socket as writeable.  Since the socket is a
 	   blocking socket, the data will (eventually) get written */
 	if( read_bits == NULL && write_bits != NULL )
 		{
@@ -667,10 +666,10 @@ static int my_getsockopt( int socket, int level, int option,
 	  objects waiting on them being woken up and exiting.
 
    For now we limit the socket pool to a maximum of 256 sockets (16 in
-   resource-constrained environments) both as a safety feature to protect 
-   against runaway apps and because cryptlib was never designed to function 
-   as a high-volume server application.  If necessary this can be changed to 
-   dynamically expand the socket pool in the same way that the kernel 
+   resource-constrained environments) both as a safety feature to protect
+   against runaway apps and because cryptlib was never designed to function
+   as a high-volume server application.  If necessary this can be changed to
+   dynamically expand the socket pool in the same way that the kernel
    dynamically expands its object table */
 
 #ifdef CONFIG_CONSERVE_MEMORY
@@ -713,9 +712,9 @@ static void endSocketPool( void )
 	clFree( "endSocketPool", socketInfo );
 	}
 
-/* Create/add and remove a socket to/from the pool.  The difference between 
-   creating and adding a socket is that newSocket() creates and adds a 
-   completely new socket while addSocket() adds an externally-created (via 
+/* Create/add and remove a socket to/from the pool.  The difference between
+   creating and adding a socket is that newSocket() creates and adds a
+   completely new socket while addSocket() adds an externally-created (via
    accept()) socket */
 
 static int newSocket( SOCKET *newSocketPtr, struct addrinfo *addrInfoPtr,
@@ -764,10 +763,10 @@ static int newSocket( SOCKET *newSocketPtr, struct addrinfo *addrInfoPtr,
 	/* Create a new socket entry */
 	for( i = 0; i < SOCKETPOOL_SIZE; i++ )
 		{
-		/* Check whether this is a zombie socket that we couldn't close 
+		/* Check whether this is a zombie socket that we couldn't close
 		   earlier, usually due to written data being left in the TCP/IP
 		   stack.  As a result it's probably trapped in the TIME_WAIT
-		   state, so we periodically try and close it to free up the 
+		   state, so we periodically try and close it to free up the
 		   resource */
 		if( socketInfo[ i ].refCount <= 0 && \
 			socketInfo[ i ].netSocket != INVALID_SOCKET )
@@ -893,7 +892,7 @@ static void deleteSocket( const SOCKET netSocket )
 			   that we'll periodically try and close it when we search the
 			   socket pool for these slots, and again when we close down */
 			socketInfo[ i ].iChecksum = 0;
-			memset( socketInfo[ i ].iData, 0, 
+			memset( socketInfo[ i ].iData, 0,
 					sizeof( socketInfo[ i ].iData ) );
 			socketInfo[ i ].iDataLen = 0;
 
@@ -947,10 +946,10 @@ void netSignalShutdown( void )
 
 /* Wait for I/O to become possible on a socket */
 
-typedef enum { IOWAIT_READ, IOWAIT_WRITE, IOWAIT_CONNECT, 
+typedef enum { IOWAIT_READ, IOWAIT_WRITE, IOWAIT_CONNECT,
 			   IOWAIT_ACCEPT } IOWAIT_TYPE;
 
-static int ioWait( STREAM *stream, const time_t timeout, 
+static int ioWait( STREAM *stream, const time_t timeout,
 				   const int currentByteCount, const IOWAIT_TYPE type )
 	{
 	static const struct {
@@ -973,33 +972,33 @@ static int ioWait( STREAM *stream, const time_t timeout,
 						   type == IOWAIT_CONNECT ) ? &writefds : NULL;
 	int status;
 
-	/* Set up the information needed to handle timeouts and wait on the 
-	   socket.  If there's no timeout, we wait at least 5ms on the theory 
-	   that it isn't noticeable to the caller but ensures that we at least 
+	/* Set up the information needed to handle timeouts and wait on the
+	   socket.  If there's no timeout, we wait at least 5ms on the theory
+	   that it isn't noticeable to the caller but ensures that we at least
 	   get a chance to get anything that may be pending.
-	   
-	   The exact wait time depends on the system, but usually it's quantised 
-	   to the system timer quantum.  This means that on Unix systems with a 
-	   1ms timer resolution, the wait time is quantised on a 1ms boundary.  
-	   Under Windows NT/2000/XP, it's quantised on a 10ms boundary (some 
-	   early NT systems had a granularity ranging from 7.5 - 15ms, but all 
-	   newer systems use 10ms) and for Win95/98/ME it's quantised on a 55ms 
-	   boundary.  In other words when performing a select() on a Win95 box 
-	   it'll either return immediately or wait some multiple of 55ms, even 
+
+	   The exact wait time depends on the system, but usually it's quantised
+	   to the system timer quantum.  This means that on Unix systems with a
+	   1ms timer resolution, the wait time is quantised on a 1ms boundary.
+	   Under Windows NT/2000/XP, it's quantised on a 10ms boundary (some
+	   early NT systems had a granularity ranging from 7.5 - 15ms, but all
+	   newer systems use 10ms) and for Win95/98/ME it's quantised on a 55ms
+	   boundary.  In other words when performing a select() on a Win95 box
+	   it'll either return immediately or wait some multiple of 55ms, even
 	   with the time set to 1ms.
 
-	   In theory we shouldn't have to reset either the fds or the timeval 
-	   each time through the loop since we're only waiting on one descriptor 
-	   so it's always set and the timeval is a const, however some versions 
-	   of Linux can update it if the select fails due to an EINTR (which is 
-	   the exact reason why we'd be going through the loop a second time) 
-	   and/or if a file descriptor changes status (e.g. due to data becoming 
+	   In theory we shouldn't have to reset either the fds or the timeval
+	   each time through the loop since we're only waiting on one descriptor
+	   so it's always set and the timeval is a const, however some versions
+	   of Linux can update it if the select fails due to an EINTR (which is
+	   the exact reason why we'd be going through the loop a second time)
+	   and/or if a file descriptor changes status (e.g. due to data becoming
 	   available) so we have to reset it each time to be on the safe side.
-	   
-	   The wait on connect is a slightly special case, the socket will 
-	   become writeable if the connect succeeds normally, but both readable 
+
+	   The wait on connect is a slightly special case, the socket will
+	   become writeable if the connect succeeds normally, but both readable
 	   and writeable if there's an error on the socket or if there's data
-	   already waiting on the connection (i.e. it arrives as part of the 
+	   already waiting on the connection (i.e. it arrives as part of the
 	   connect).  It's up to the caller to check for these conditions */
 	do
 		{
@@ -1019,11 +1018,11 @@ static int ioWait( STREAM *stream, const time_t timeout,
 		tv.tv_usec = ( timeout <= 0 ) ? 5000 : 0;
 
 		/* See if we can perform the I/O */
-		status = select( stream->netSocket + 1, readFDPtr, writeFDPtr, 
+		status = select( stream->netSocket + 1, readFDPtr, writeFDPtr,
 						 &exceptfds, &tv );
 
-		/* If there's a problem and it's not something transient like an 
-		   interrupted system call, exit.  For a transient problem, we just 
+		/* If there's a problem and it's not something transient like an
+		   interrupted system call, exit.  For a transient problem, we just
 		   retry the select until the overall timeout expires */
 		if( isSocketError( status ) && !isRestartableError() )
 			return( getSocketError( stream, errorInfo[ type ].status ) );
@@ -1031,19 +1030,19 @@ static int ioWait( STREAM *stream, const time_t timeout,
 	while( isSocketError( status ) && ( getTime() - startTime ) < timeout );
 
 	/* If the wait timed out, either explicitly in the select (status == 0)
-	   or implicitly in the wait loop (isSocketError()), report it as a 
+	   or implicitly in the wait loop (isSocketError()), report it as a
 	   select() timeout error */
 	if( status == 0 || isSocketError( status ) )
 		{
 		char errorMessage[ 128 ];
 
 		/* If we've already received data from a previous I/O, it counts as
-		   the transferred byte count even though we timed out this time 
+		   the transferred byte count even though we timed out this time
 		   round */
 		if( currentByteCount > 0 )
 			return( currentByteCount );
 
-		/* If it's a nonblocking wait (usually used as a poll to determine 
+		/* If it's a nonblocking wait (usually used as a poll to determine
 		   whether I/O is possible) then a timeout isn't an error */
 		if( timeout <= 0 )
 			return( OK_SPECIAL );
@@ -1051,14 +1050,14 @@ static int ioWait( STREAM *stream, const time_t timeout,
 		/* The select() timed out, exit */
 		sPrintf( errorMessage, "Timeout on %s (select()) after %d seconds",
 				 errorInfo[ type ].errorString, timeout );
-		return( setSocketError( stream, errorMessage, CRYPT_ERROR_TIMEOUT, 
+		return( setSocketError( stream, errorMessage, CRYPT_ERROR_TIMEOUT,
 								FALSE ) );
 		}
 
-#if 0	/* 12/6/04 Shouldn't be necessary any more since to get to this 
-		   point the socket has to be either readable or writeable or 
+#if 0	/* 12/6/04 Shouldn't be necessary any more since to get to this
+		   point the socket has to be either readable or writeable or
 		   subject to an exception condition, which is handled below */
-	/* If we encountered an error condition on a connect (the socket is 
+	/* If we encountered an error condition on a connect (the socket is
 	   neither readable nor writeable), exit */
 	if( ( type == IOWAIT_CONNECT ) && \
 		!( FD_ISSET( stream->netSocket, &readfds ) || \
@@ -1069,8 +1068,8 @@ static int ioWait( STREAM *stream, const time_t timeout,
 		status = getSocketError( stream, CRYPT_ERROR_OPEN );
 		if( stream->errorCode == 0 )
 			{
-			/* Some implementations don't treat a soft timeout as an error, 
-			   and at least one (Tandem) returns EINPROGRESS rather than 
+			/* Some implementations don't treat a soft timeout as an error,
+			   and at least one (Tandem) returns EINPROGRESS rather than
 			   ETIMEDOUT, so we insert a timeout error code ourselves */
 			stream->errorCode = TIMEOUT_ERROR;
 			mapError( stream, socketErrorInfo, CRYPT_UNUSED );
@@ -1080,16 +1079,16 @@ static int ioWait( STREAM *stream, const time_t timeout,
 #endif /* 0 */
 
 	/* If there's an exception condition on a socket, exit.  This is
-	   implementation-specific, traditionally under Unix this only indicates 
-	   the arrival of out-of-band data rather than any real error condition, 
-	   but in some cases it can be used to signal errors.  In these cases we 
-	   have to explicitly check for an exception condition because some 
-	   types of errors will result in select() timing out waiting for 
-	   readability, rather than indicating an error.  In addition for OOB 
-	   data we could just ignore the notification (which happens 
-	   automatically with the default setting of SO_OOBINLINE = false and a 
-	   socket owner to receive SIGURG's not set, the OOB data byte just 
-	   languishes in a side-buffer), however we shouldn't be receiving OOB 
+	   implementation-specific, traditionally under Unix this only indicates
+	   the arrival of out-of-band data rather than any real error condition,
+	   but in some cases it can be used to signal errors.  In these cases we
+	   have to explicitly check for an exception condition because some
+	   types of errors will result in select() timing out waiting for
+	   readability, rather than indicating an error.  In addition for OOB
+	   data we could just ignore the notification (which happens
+	   automatically with the default setting of SO_OOBINLINE = false and a
+	   socket owner to receive SIGURG's not set, the OOB data byte just
+	   languishes in a side-buffer), however we shouldn't be receiving OOB
 	   data so we treat it as an error */
 	if( FD_ISSET( stream->netSocket, &exceptfds ) )
 		{
@@ -1098,12 +1097,12 @@ static int ioWait( STREAM *stream, const time_t timeout,
 			{
 			/* If there's a (supposed) exception condition present but no
 			   error information available then this may be a mis-handled
-			   select() timeout.  This can happen under Winsock under 
-			   certain circumstances, and seems to be related to another 
+			   select() timeout.  This can happen under Winsock under
+			   certain circumstances, and seems to be related to another
 			   app performing network I/O at the same time as we do the
-			   wait.  Non-Winsock cases can occur because some 
-			   implementations don't treat a soft timeout as an error, and 
-			   at least one (Tandem) returns EINPROGRESS rather than 
+			   wait.  Non-Winsock cases can occur because some
+			   implementations don't treat a soft timeout as an error, and
+			   at least one (Tandem) returns EINPROGRESS rather than
 			   ETIMEDOUT, so we insert a timeout error code ourselves */
 			stream->errorCode = TIMEOUT_ERROR;
 			mapError( stream, socketErrorInfo, CRYPT_UNUSED );
@@ -1124,15 +1123,15 @@ static int ioWait( STREAM *stream, const time_t timeout,
 	return( CRYPT_OK );
 	}
 
-/* Open a connection to a remote server/wait for a connection from a remote 
-   client.  The connection-open function performs that most amazing of all 
-   things, the nonblocking connect.  This is currently done in order to 
-   allow a shorter timeout than the default fortnight or so but it also 
-   allows for two-phase connects in which we start the connect operation, 
-   perform further processing (e.g. signing and encrypting data prior to 
-   sending it over the connected socket) and then complete the connect 
-   before the first read or write.  Currently we just use a wrapper that 
-   performs the two back-to-back as a single operation, so it only functions 
+/* Open a connection to a remote server/wait for a connection from a remote
+   client.  The connection-open function performs that most amazing of all
+   things, the nonblocking connect.  This is currently done in order to
+   allow a shorter timeout than the default fortnight or so but it also
+   allows for two-phase connects in which we start the connect operation,
+   perform further processing (e.g. signing and encrypting data prior to
+   sending it over the connected socket) and then complete the connect
+   before the first read or write.  Currently we just use a wrapper that
+   performs the two back-to-back as a single operation, so it only functions
    as a timeout-management mechanism */
 
 static int preOpenSocket( STREAM *stream, const char *server,
@@ -1215,7 +1214,7 @@ static int completeOpen( STREAM *stream )
 	   BeOS doesn't allow setting a timeout (that is, it doesn't allow
 	   asynchronous connects), but it hardcodes in a timeout of about a
 	   minute so we get a vaguely similar effect */
-	status = ioWait( stream, min( stream->timeout, 30000000L ), 0, 
+	status = ioWait( stream, min( stream->timeout, 30000000L ), 0,
 					 IOWAIT_CONNECT );
 	if( cryptStatusError( status ) )
 		{
@@ -1259,9 +1258,9 @@ static int completeOpen( STREAM *stream )
 	/* Turn off Nagle (since we do our own optimised TCP handling) and make
 	   the socket blocking again.  This is necessary because with a
 	   nonblocking socket Winsock will occasionally return 0 bytes from
-	   recv() (a sign that the receiver has closed the connection, see the 
-	   comment in readSocketFunction()) even though the connection is still 
-	   fully open, and in any case there's no real need for a nonblocking 
+	   recv() (a sign that the receiver has closed the connection, see the
+	   comment in readSocketFunction()) even though the connection is still
+	   fully open, and in any case there's no real need for a nonblocking
 	   socket since we have select() handling timeouts/blocking for us */
 	setsockopt( stream->netSocket, IPPROTO_TCP, TCP_NODELAY,
 				( void * ) &trueValue, sizeof( int ) );
@@ -1352,15 +1351,15 @@ static int openServerSocket( STREAM *stream, const char *server, const int port 
 	/* Wait for a connection.  At the moment this always waits forever
 	   (actually some select()'s limit the size of the second count, so we
 	   set it to a maximum of 1 year's worth), but in the future we could
-	   have a separate timeout value for accepting incoming connections to 
+	   have a separate timeout value for accepting incoming connections to
 	   mirror the connection-wait timeout for outgoing connections.
-	   
-	   Because of the way that accept works, the socket that we eventually 
-	   and up with isn't the one that we listen on, but we have to 
-	   temporarily make it the one associated with the stream in order for 
+
+	   Because of the way that accept works, the socket that we eventually
+	   and up with isn't the one that we listen on, but we have to
+	   temporarily make it the one associated with the stream in order for
 	   ioWait() to work */
 	stream->netSocket = listenSocket;
-	status = ioWait( stream, min( stream->timeout, 30000000L ), 0, 
+	status = ioWait( stream, min( stream->timeout, 30000000L ), 0,
 					 IOWAIT_ACCEPT );
 	stream->netSocket = CRYPT_ERROR;
 	if( cryptStatusError( status ) )
@@ -1368,30 +1367,30 @@ static int openServerSocket( STREAM *stream, const char *server, const int port 
 
 	/* We have an incoming connection ready to go, accept it.  There's a
 	   potential complication here in that if a client connects and then
-	   immediately sends a RST after the TCP handshake has completed, 
+	   immediately sends a RST after the TCP handshake has completed,
 	   ioWait() will return with an indication that there's an incoming
 	   connection ready to go, but the following accept(), if it's called
 	   after the RST has arrived, will block waiting for the next incoming
 	   connection.  This is rather unlikely in practice, but could occur
 	   as part of a DoS by setting the SO_LINGER time to 0 and disconnecting
-	   immediately.  This has the effect of turning the accept() with 
+	   immediately.  This has the effect of turning the accept() with
 	   timeout into an indefinite-wait accept().
-	   
-	   To get around this, we make the socket temporarily non-blocking, so 
-	   that accept() returns an error if the client has closed the 
+
+	   To get around this, we make the socket temporarily non-blocking, so
+	   that accept() returns an error if the client has closed the
 	   connection.  The exact error varies, BSD implementations handle the
-	   error internally and return to the accept() while SVR4 
+	   error internally and return to the accept() while SVR4
 	   implementations return either EPROTO (older, pre-Posix behaviour) or
 	   ECONNABORTED (newer Posix-compliant behaviour, since EPROTO is also
 	   used for other protocol-related errors).
-	   
-	   Since BSD implementations hide the problem, they wouldn't normally 
+
+	   Since BSD implementations hide the problem, they wouldn't normally
 	   return an error, however by temporarily making the socket non-
-	   blocking we force it to return an EWOULDBLOCK if this situation 
+	   blocking we force it to return an EWOULDBLOCK if this situation
 	   occurs.  Since this could lead to a misleading returned error, we
 	   intercept it and substitute a custom error string.  Note that when
-	   we make the listen socket blocking again, we also have to make the 
-	   newly-created ephemeral socket blocking, since it inherits its 
+	   we make the listen socket blocking again, we also have to make the
+	   newly-created ephemeral socket blocking, since it inherits its
 	   attributes from the listen socket */
 	setSocketNonblocking( listenSocket );
 	netSocket = accept( listenSocket, ( struct sockaddr * ) &clientAddr,
@@ -1412,7 +1411,7 @@ static int openServerSocket( STREAM *stream, const char *server, const int port 
 	setSocketBlocking( netSocket );
 
 	/* Get the IP address of the connected client.  We could get its full
-	   name, but this can slow down connections because of the time that it 
+	   name, but this can slow down connections because of the time that it
 	   takes to do the lookup and is less authoritative because of potential
 	   spoofing.  In any case the caller can still look up the name if they
 	   need it */
@@ -1421,7 +1420,7 @@ static int openServerSocket( STREAM *stream, const char *server, const int port 
 				 &stream->clientPort );
 
 	/* We've got a new connection, add the socket to the pool.  Since this
-	   was created external to the pool we don't use newSocket() to create a 
+	   was created external to the pool we don't use newSocket() to create a
 	   new socket but only add the existing socket */
 	status = addSocket( netSocket );
 	if( cryptStatusError( status ) )
@@ -1457,12 +1456,12 @@ static int openSocketFunction( STREAM *stream, const char *server,
 		const int savedTimeout = stream->timeout;
 
 		/* Timeouts for server sockets are actually three-level rather than
-		   the usual two-level model, there's an initial (pre-connect) 
-		   timeout while we wait for an incoming connection to arrive, and 
-		   then we go to the usual session connect vs. session read/write 
-		   timeout mechanism.  To handle the pre-connect phase we set an 
-		   (effectively infinite) timeout at this point to ensure that the 
-		   server always waits forever for an incoming connection to 
+		   the usual two-level model, there's an initial (pre-connect)
+		   timeout while we wait for an incoming connection to arrive, and
+		   then we go to the usual session connect vs. session read/write
+		   timeout mechanism.  To handle the pre-connect phase we set an
+		   (effectively infinite) timeout at this point to ensure that the
+		   server always waits forever for an incoming connection to
 		   appear */
 		stream->timeout = INT_MAX - 1;
 		status = openServerSocket( stream, server, port );
@@ -1485,59 +1484,59 @@ static int openSocketFunction( STREAM *stream, const char *server,
 	}
 
 /* Close a connection.  Safely handling closes is extremely difficult due to
-   a combination of the way TCP/IP (and TCP stacks) work and various bugs 
+   a combination of the way TCP/IP (and TCP stacks) work and various bugs
    and quirks in implementations.  After a close (and particularly if short-
-   timeout non-blocking writes are used), there can still be data left in 
+   timeout non-blocking writes are used), there can still be data left in
    TCP send buffers, and also as unacknowledged segments on the network.  At
-   this point there's no easy way for the TCP stack to know how long it 
+   this point there's no easy way for the TCP stack to know how long it
    should hang around trying to get the data out and waiting for acks to come
-   back.  If it doesn't wait long enough, it'll end up discarding unsent 
-   data.  If it waits too long, it could potentially wait forever in the 
-   presence of network outages or crashed peers.  What's worse, since the 
-   socket is now closed, there's no way to report any problems that may occur 
+   back.  If it doesn't wait long enough, it'll end up discarding unsent
+   data.  If it waits too long, it could potentially wait forever in the
+   presence of network outages or crashed peers.  What's worse, since the
+   socket is now closed, there's no way to report any problems that may occur
    to the caller.
 
-   We try and handle this with a combination of shutdown() and close(), but 
-   due to implementation bugs/quirks and the TCP stack issues above this 
+   We try and handle this with a combination of shutdown() and close(), but
+   due to implementation bugs/quirks and the TCP stack issues above this
    doesn't work all of the time.  The details get very implementation-
-   specific, for example with glibc the manpage says that setting SO_LINGER 
-   causes shutdown() not to return until queued messages are sent (which is 
-   wrong, and non non-glibc implementations like PHUX and Solaris 
-   specifically point out that only close() is affected), but that 
-   shutdown() discards unsent data.  glibc in turn is dependent on the 
-   kernel it's running on top of, under Linux shutdown() returns immediately 
+   specific, for example with glibc the manpage says that setting SO_LINGER
+   causes shutdown() not to return until queued messages are sent (which is
+   wrong, and non non-glibc implementations like PHUX and Solaris
+   specifically point out that only close() is affected), but that
+   shutdown() discards unsent data.  glibc in turn is dependent on the
+   kernel it's running on top of, under Linux shutdown() returns immediately
    but data is still sent regardless of the SO_LINGER setting.
-   
+
    BSD Net/2 and later (which many stacks are derived from, including non-
-   Unix systems like OS/2) returned immediately from a close() but still 
-   sent queued data on a best-effort basis.  With SO_LINGER set and a zero 
-   timeout the close was abortive (which Linux also implemented starting 
-   with the 2.4 kernel), and with a non-zero timeout it would wait until all 
-   the data was sent, which meant that it could block almost indefinitely 
-   (minutes or even hours, this is the worst-case behaviour mentioned 
+   Unix systems like OS/2) returned immediately from a close() but still
+   sent queued data on a best-effort basis.  With SO_LINGER set and a zero
+   timeout the close was abortive (which Linux also implemented starting
+   with the 2.4 kernel), and with a non-zero timeout it would wait until all
+   the data was sent, which meant that it could block almost indefinitely
+   (minutes or even hours, this is the worst-case behaviour mentioned
    above).  This was finally fixed in 4.4BSD (although a lot of 4.3BSD-
-   derived stacks ended up with the indefinite-wait behaviour), but even 
+   derived stacks ended up with the indefinite-wait behaviour), but even
    then there was some confusion as to whether the wait time was in machine-
-   specific ticks or seconds (Posix finally declared it to be seconds).  
-   Under Winsock, close() simply discards queued data while shutdown() has 
-   the same effect as under Linux, sending enqueued data asynchronously 
+   specific ticks or seconds (Posix finally declared it to be seconds).
+   Under Winsock, close() simply discards queued data while shutdown() has
+   the same effect as under Linux, sending enqueued data asynchronously
    regardless of the SO_LINGER setting.
-	   
-   This is a real mess to sort out safely, the best that we can do is to 
-   perform a shutdown() followed later by a close().  Messing with SO_LINGER 
-   is too risky, something like performing an ioWait() doesn't work either 
-   since it just results in whoever initiated the shutdown being blocked for 
-   the I/O wait time, and waiting for a recv() of 0 bytes isn't safe because 
-   the higher-level code may need to read back a shutdown ack from the other 
-   side, which a recv() performed here would interfere with.  Under Windows 
-   we could handle it by waiting for an FD_CLOSE to be posted, but this 
+
+   This is a real mess to sort out safely, the best that we can do is to
+   perform a shutdown() followed later by a close().  Messing with SO_LINGER
+   is too risky, something like performing an ioWait() doesn't work either
+   since it just results in whoever initiated the shutdown being blocked for
+   the I/O wait time, and waiting for a recv() of 0 bytes isn't safe because
+   the higher-level code may need to read back a shutdown ack from the other
+   side, which a recv() performed here would interfere with.  Under Windows
+   we could handle it by waiting for an FD_CLOSE to be posted, but this
    requires the use of a window handle which we don't have */
 
 static void closeSocketFunction( STREAM *stream,
 								 const BOOLEAN fullDisconnect )
 	{
-	/* If it's a partial disconnect, close only the send side of the channel.  
-	   The send-side close can help with ensuring that all data queued for 
+	/* If it's a partial disconnect, close only the send side of the channel.
+	   The send-side close can help with ensuring that all data queued for
 	   transmission is sent */
 	if( !fullDisconnect )
 		{
@@ -1582,18 +1581,18 @@ static int checkSocketFunction( STREAM *stream )
    levels, once via ioWait() and a second time as an overall timeout.  If we
    only used ioWait() this could potentially stretch the overall timeout to
    (length * timeout) so we also perform a time check that leads to a worst-
-   case timeout of (timeout-1 + timeout).  This is the same as the 
+   case timeout of (timeout-1 + timeout).  This is the same as the
    implementation of SO_SND/RCVTIMEO in Berkeley-derived implementations,
    where the timeout value is actually an interval timer rather than a
    absolute timer.
 
    In addition to the standard stream-based timeout, we can also be called
    with flags specifying explicit blocking behaviour (for a read where we
-   know that we're expecting a certain amount of data) or explicit 
-   nonblocking behaviour (for speculative reads to fill a buffer).  These 
-   flags are used by the buffered-read routines, which try and speculatively 
-   read as much data as possible to avoid the many small reads required by 
-   some protocols.  We don't do the blocking read using MSG_WAITALL since 
+   know that we're expecting a certain amount of data) or explicit
+   nonblocking behaviour (for speculative reads to fill a buffer).  These
+   flags are used by the buffered-read routines, which try and speculatively
+   read as much data as possible to avoid the many small reads required by
+   some protocols.  We don't do the blocking read using MSG_WAITALL since
    this can (potentially) block forever if not all of the data arrives.
 
    Finally, if we're performing a blocking read (which is usually done when
@@ -1611,8 +1610,8 @@ static int checkSocketFunction( STREAM *stream )
 	  > 0			0			CRYPT_ERROR_TIMEOUT
 	  > 0		  > 0			byteCount
 
-   At the sread()/swrite() level if the partial-read/write flags aren't set 
-   for the stream, a byteCount < length is also converted to a 
+   At the sread()/swrite() level if the partial-read/write flags aren't set
+   for the stream, a byteCount < length is also converted to a
    CRYPTO_ERROR_TIMEOUT */
 
 static int readSocketFunction( STREAM *stream, BYTE *buffer,
@@ -1654,30 +1653,42 @@ static int readSocketFunction( STREAM *stream, BYTE *buffer,
 		if( bytesRead == 0 )
 			{
 			/* Under some odd circumstances (Winsock bugs when using non-
-			   blocking sockets, or calling select() with a timeout of 0), 
-			   recv() can return zero bytes without an EOF condition being 
-			   present, even though it should return an error status if this 
-			   happens (this could also happen under very old SysV 
-			   implementations using O_NDELAY for nonblocking I/O).  To try 
-			   and catch this, we check for a restartable read due to 
-			   something like an interrupted system call and retry the read 
+			   blocking sockets, or calling select() with a timeout of 0),
+			   recv() can return zero bytes without an EOF condition being
+			   present, even though it should return an error status if this
+			   happens (this could also happen under very old SysV
+			   implementations using O_NDELAY for nonblocking I/O).  To try
+			   and catch this, we check for a restartable read due to
+			   something like an interrupted system call and retry the read
 			   if it is.  Unfortunately this doesn't catch the Winsock zero-
 			   delay bug, but it may catch problems in other implementations.
-			   The real culprit here is the design flaw in recv(), which 
-			   uses a valid bytes-received value to indicate an out-of-band 
-			   condition that should be reported via an error code ("There's 
-			   nowt wrong wi' owt what mithen clutterbucks don't barley 
-			   grummit")
+
+			   Unfortunately this doesn't work under all circumstances
+			   either.  If the connection is genuinely closed, select() will
+			   return a data-available status and recv() will return zero,
+			   both without changing errno.  If the last status set in errno
+			   matches the isRestartableError() check, the code will loop
+			   forever.  Because of this, we can't use the following check,
+			   although since it doesn't catch the Winsock zero-delay bug
+			   anyway it's probably no big deal.
+
+			   The real culprit here is the design flaw in recv(), which
+			   uses a valid bytes-received value to indicate an out-of-band
+			   condition that should be reported via an error code ("There's
+			   nowt wrong with owt what mitherin clutterbucks don't barley
+			   grummit") */
+#if 0
 			if( isRestartableError() )
 				{
 				assert( !"Restartable read, recv() indicated no error" );
 				continue;
-				} */
+				}
+#endif /* 0 */
 
-			/* Once this Winsock bug hits, we've fallen and can't get up any 
-			   more.  WSAGetLastError() reports no error, select() reports 
-			   data available for reading, and recv() reports zero bytes 
-			   read.  If the following is used, the code will loop endlessly 
+			/* Once this Winsock bug hits, we've fallen and can't get up any
+			   more.  WSAGetLastError() reports no error, select() reports
+			   data available for reading, and recv() reports zero bytes
+			   read.  If the following is used, the code will loop endlessly
 			   waiting for data that can never be read */
 #if 0
 			getSocketError( stream, CRYPT_ERROR_READ );
@@ -1728,26 +1739,26 @@ static int writeSocketFunction( STREAM *stream, const BYTE *buffer,
 	int bytesToWrite = length, byteCount = 0;
 
 	/* Send data to the remote system.  As with the receive-data code, we
-	   have to work around a large number of quirks and socket 
-	   implementation bugs, although most of the systems that exhibited 
-	   these are now extinct, or close to it.  Some very old Winsock stacks 
-	   (Win3.x and early Win95 era) would almost always indicate that a 
-	   socket was writeable even when it wasn't.  Even older (mid-1980s) 
-	   Berkeley-derived implementations could return EWOULDBLOCK on a 
-	   blocking socket if they couldn't get required mbufs, so that even if 
-	   select() indicated that the socket was writeable, an actual attempt 
-	   to write would return an error since there were no mbufs available.  
-	   Under Win95, select() can fail to block on a non-blocking socket, so 
-	   that the send() returns EWOULDBLOCK.  One possible reason (related to 
-	   the mbuf problem) is that another thread may grab memory between the 
-	   select() and the send() so that there's no buffer space available 
-	   when send() needs it (although this should return WSAENOBUFS rather 
-	   than WSAEWOULDBLOCK).  There's also a known bug in Win95 (and 
-	   possibly Win98 as well, Q177346) under which a select() indicates 
-	   writeability but send() returns EWOULDBLOCK.  Another select() after 
+	   have to work around a large number of quirks and socket
+	   implementation bugs, although most of the systems that exhibited
+	   these are now extinct, or close to it.  Some very old Winsock stacks
+	   (Win3.x and early Win95 era) would almost always indicate that a
+	   socket was writeable even when it wasn't.  Even older (mid-1980s)
+	   Berkeley-derived implementations could return EWOULDBLOCK on a
+	   blocking socket if they couldn't get required mbufs, so that even if
+	   select() indicated that the socket was writeable, an actual attempt
+	   to write would return an error since there were no mbufs available.
+	   Under Win95, select() can fail to block on a non-blocking socket, so
+	   that the send() returns EWOULDBLOCK.  One possible reason (related to
+	   the mbuf problem) is that another thread may grab memory between the
+	   select() and the send() so that there's no buffer space available
+	   when send() needs it (although this should return WSAENOBUFS rather
+	   than WSAEWOULDBLOCK).  There's also a known bug in Win95 (and
+	   possibly Win98 as well, Q177346) under which a select() indicates
+	   writeability but send() returns EWOULDBLOCK.  Another select() after
 	   the send() then causes select() to realise the socket is non-
-	   writeable.  Finally, in some cases send() can return an error but 
-	   WSAGetLastError() indicates there's no error, so we treat it as noise 
+	   writeable.  Finally, in some cases send() can return an error but
+	   WSAGetLastError() indicates there's no error, so we treat it as noise
 	   and try again */
 	assert( timeout >= 0 );
 	while( bytesToWrite > 0 && \
@@ -1761,7 +1772,7 @@ static int writeSocketFunction( STREAM *stream, const BYTE *buffer,
 			return( ( status == OK_SPECIAL ) ? 0 : status );
 
 		/* Write the data */
-		bytesWritten = send( stream->netSocket, bufPtr, bytesToWrite, 
+		bytesWritten = send( stream->netSocket, bufPtr, bytesToWrite,
 							 MSG_NOSIGNAL );
 		if( isSocketError( bytesWritten ) )
 			{

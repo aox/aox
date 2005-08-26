@@ -1,5 +1,5 @@
 SubDir TOP cryptlib keyset ;
 
 Build cryptlib : ca_add.c ca_issue.c ca_misc.c ca_rev.c dbms.c dbx_misc.c
-    dbx_rd.c dbx_rpc.c dbx_wr.c http_crt.c ldap.c mysql.c odbc.c pgp.c
-    pkcs12.c pkcs15.c pkcs15_rd.c pkcs15_wr.c ;
+    dbx_rd.c dbx_rpc.c dbx_wr.c http_crt.c ldap.c odbc.c pgp.c pkcs12.c
+    pkcs15.c pkcs15_rd.c pkcs15_wr.c ;

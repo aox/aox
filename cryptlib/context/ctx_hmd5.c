@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib HMAC-MD5 Hash Routines						*
-*						Copyright Peter Gutmann 1997-2003					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,21 +9,16 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "md5.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/md5.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/md5.h"
 #endif /* Compiler-specific includes */
-
-#ifdef USE_HMAC_MD5
 
 /* A structure to hold the initial and current MAC state info.  Rather than
    redoing the key processing each time when we're calculating multiple MACs
@@ -32,6 +27,8 @@
 typedef struct {
 	MD5_CTX macState, initialMacState;
 	} MAC_STATE;
+
+#define MAC_STATE_SIZE		sizeof( MAC_STATE )
 
 /****************************************************************************
 *																			*
@@ -106,39 +103,38 @@ static const FAR_BSS struct {
 	{ "", 0, NULL, 0, { 0 } }
 	};
 
-int hmacMD5SelfTest( void )
+static int selfTest( void )
 	{
-	CONTEXT_INFO contextInfoPtr;
-	MAC_INFO macInfo;
-	MAC_STATE macState;
-	int i;
-
-	/* Set up the dummy contextInfoPtr structure */
-	memset( &contextInfoPtr, 0, sizeof( CONTEXT_INFO ) );
-	memset( &macInfo, 0, sizeof( MAC_INFO ) );
-	contextInfoPtr.ctxMAC = &macInfo;
-	contextInfoPtr.ctxMAC->macInfo = &macState;
+	const CAPABILITY_INFO *capabilityInfo = getHmacMD5Capability();
+	CONTEXT_INFO contextInfo;
+	MAC_INFO contextData;
+	BYTE keyData[ MAC_STATE_SIZE ];
+	int i, status;
 
 	/* Test HMAC-MD5 against the test vectors given in RFC 2104 */
 	for( i = 0; hmacValues[ i ].data != NULL; i++ )
 		{
-		/* Load the HMAC key and perform the hashing */
-		hmacMD5InitKey( &contextInfoPtr, hmacValues[ i ].key,
-						hmacValues[ i ].keyLength );
-		contextInfoPtr.flags |= CONTEXT_HASH_INITED;
-		hmacMD5Hash( &contextInfoPtr, ( BYTE * ) hmacValues[ i ].data,
-					 hmacValues[ i ].length );
-		hmacMD5Hash( &contextInfoPtr, NULL, 0 );
-		contextInfoPtr.flags = 0;
-
-		/* Retrieve the hash and make sure it matches the expected value */
-		if( memcmp( contextInfoPtr.ctxMAC->mac, hmacValues[ i ].digest,
+		staticInitContext( &contextInfo, CONTEXT_MAC, capabilityInfo,
+						   &contextData, sizeof( MAC_INFO ), keyData );
+		status = capabilityInfo->initKeyFunction( &contextInfo, 
+						hmacValues[ i ].key, hmacValues[ i ].keyLength );
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, 
+						( BYTE * ) hmacValues[ i ].data, 
+						hmacValues[ i ].length );
+		contextInfo.flags |= CONTEXT_HASH_INITED;
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
+		if( cryptStatusOK( status ) && \
+			memcmp( contextInfo.ctxMAC->mac, hmacValues[ i ].digest,
 					MD5_DIGEST_LENGTH ) )
-			break;
+			status = CRYPT_ERROR;
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) )
+			return( status );
 		}
 
-	return( ( hmacValues[ i ].data == NULL ) ? \
-			CRYPT_OK : CRYPT_ERROR );
+	return( CRYPT_OK );
 	}
 
 /****************************************************************************
@@ -149,13 +145,13 @@ int hmacMD5SelfTest( void )
 
 /* Return context subtype-specific information */
 
-int hmacMD5GetInfo( const CAPABILITY_INFO_TYPE type, 
-					void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
-		return( sizeof( MAC_STATE ) );
+		return( MAC_STATE_SIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -166,7 +162,7 @@ int hmacMD5GetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Hash data using HMAC-MD5 */
 
-int hmacMD5Hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	MAC_INFO *macInfo = contextInfoPtr->ctxMAC;
 	MD5_CTX *md5Info = &( ( MAC_STATE * ) macInfo->macInfo )->macState;
@@ -217,7 +213,7 @@ int hmacMD5Hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Set up an HMAC-MD5 key */
 
-int hmacMD5InitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
 					const int keyLength )
 	{
 	MAC_INFO *macInfo = contextInfoPtr->ctxMAC;
@@ -266,4 +262,20 @@ int hmacMD5InitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 
 	return( CRYPT_OK );
 	}
-#endif /* USE_HMAC_MD5 */
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_HMAC_MD5, bitsToBytes( 128 ), "HMAC-MD5",
+	bitsToBytes( 64 ), bitsToBytes( 128 ), CRYPT_MAX_KEYSIZE,
+	selfTest, getInfo, NULL, NULL, initKey, NULL, hash, hash
+	};
+
+const CAPABILITY_INFO *getHmacMD5Capability( void )
+	{
+	return( &capabilityInfo );
+	}

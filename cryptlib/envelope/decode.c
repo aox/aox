@@ -477,9 +477,10 @@ static int copyData( ENVELOPE_INFO *envelopeInfoPtr, const BYTE *buffer,
 		}
 
 	/* It's unencrypted or encrypted with a stream cipher, just copy over as
-	   much of the segment as we can and decrypt it if necessary */
-	memcpy( envelopeInfoPtr->buffer + envelopeInfoPtr->bufPos, buffer,
-			bytesToCopy );
+	   much of the segment as we can and decrypt it if necessary.  We use
+	   memmove() for the same reason as given above */
+	memmove( envelopeInfoPtr->buffer + envelopeInfoPtr->bufPos, buffer,
+			 bytesToCopy );
 	envelopeInfoPtr->bufPos += bytesToCopy;
 	if( envelopeInfoPtr->segmentSize != CRYPT_UNUSED )
 		envelopeInfoPtr->segmentSize -= bytesToCopy;
@@ -695,13 +696,13 @@ static int copyFromDeenvelope( ENVELOPE_INFO *envelopeInfoPtr, BYTE *buffer,
 		   definitely tell that it's reached the end of its input data but
 		   can only report that it can't go any further.
 		
-		   We can also get a Z_BUF_ERROR for some types of data corruption, 
-		   for example if we're flushing out data still present in the 
-		   zstream (avail_in == 0) and there's a problem with the data, 
-		   which the zlib code reports as a buffer error since it expects 
-		   more input but there's none available.  In this case we report it 
-		   as an underflow, which isn't always accurate but is more useful 
-		   than the generic CRYPT_ERROR_FAILED */
+		   We can also get a Z_BUF_ERROR for some types of (non-fatal) error
+		   situations, for example if we're flushing out data still present 
+		   in the zstream (avail_in == 0) and there's a problem such as the 
+		   compressor needing more data but there's none available, the zlib 
+		   code will report it as a Z_BUF_ERROR.  In this case we convert it 
+		   into a (recoverable) underflow error, which isn't always accurate 
+		   but is more useful than the generic CRYPT_ERROR_FAILED */
 		envelopeInfoPtr->zStream.next_in = bufPtr;
 		envelopeInfoPtr->zStream.avail_in = bytesIn;
 		envelopeInfoPtr->zStream.next_out = buffer;
@@ -860,7 +861,7 @@ static int syncDeenvelopeData( ENVELOPE_INFO *envelopeInfoPtr,
 	   so there shouldn't be any problems for the rare instances where the 
 	   data overlaps.  In the worst case (PKCS #7 short definite-length OCTET
 	   STRING) we only consume two bytes, the tag and one-byte length, but 
-	   since we're using memmove this shouldn't be a problem.
+	   since we're using memmove() in copyData() this shouldn't be a problem.
 
 	   Since we're in effect restarting from the payload data, we reset
 	   everything that counts to point back to the start of the buffer where
@@ -894,15 +895,16 @@ static int syncDeenvelopeData( ENVELOPE_INFO *envelopeInfoPtr,
 	   ends.  If there's anything that followed the payload, we need to move
 	   it down to the end of the decoded payload data, since
 	   copyToDeenvelope() stops copying as soon as it hits the end-of-
-	   contents octets */
+	   contents octets.  We use memmove() rather than memcpy() since we're
+	   copying to/from the same buffer */
 	if( ( envelopeInfoPtr->dataFlags & ENVDATA_ENDOFCONTENTS ) && \
 		bytesCopied < bytesLeft )
 		{
 		const int bytesToCopy = bytesLeft - bytesCopied;
 
-		memcpy( envelopeInfoPtr->buffer + envelopeInfoPtr->dataLeft,
-				envelopeInfoPtr->buffer + bytesCopied + dataStartPos,
-				bytesToCopy );
+		memmove( envelopeInfoPtr->buffer + envelopeInfoPtr->dataLeft,
+				 envelopeInfoPtr->buffer + bytesCopied + dataStartPos,
+				 bytesToCopy );
 		envelopeInfoPtr->bufPos = envelopeInfoPtr->dataLeft + bytesToCopy;
 		}
 

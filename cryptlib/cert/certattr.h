@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *			Certificate Attribute Handling Structures and Prototypes 		*
-*						Copyright Peter Gutmann 1997-2003					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
@@ -11,107 +11,123 @@
 
 /* The attribute type information.  This is used to both check the validity
    of encoded attribute data and to describe the structure of an attribute
-   when encoding it.  The following flags are applied for each entry.  The 
-   first set contains general-purpose flags that apply to the field, the 
-   second set the sequence control flags, and the last set general-purpose 
-   flags.
-   
-   The FL_CRITICAL and FL_VALID_xxx flags are only set for an attribute as a
-   whole.
-   
-   The FL_SEQEND flags are only used for encoding, for decoding the decoder 
-   maintains a parse state stack driver by the encoded data (actually that's 
-   not quite correct, when skipping to the end of some SEQUENCEs containing 
-   type-and-value pairs we also use the flags to locate the end of the 
-   SEQUENCE encoding/start of the next type-and-value entry).  The rule for 
-   the FL_SEQEND values is that the last one must return the nesting depth 
-   to 1, with the outer SEQUENCE being implicit.  In other words a SEQUENCE 
-   OF SEQUENCE {} would have a FL_SEQEND value of 1; a SEQUENCE OF
-   GeneralName would have no FL_SEQEND value 
-   
-   Some fields are of the type:
+   when encoding it.  The flags are broken down into the following groups:
 
-	SEQUENCE {
-		identifier	OBJECT IDENTIFIER
-		data		ANY DEFINED BY identifier
-		}
+	Attribute-specific flags that apply to an individual field or an
+	overall attribute.
 
-   For these types the field named with CRYPT_CERTINFO_xxx is the data field,
-   and the encapsulating sequence is flagged with FL_IDENTIFIER to indicate
-   that it should only be encoded if the data field is present.  If the data
-   field isn't present, the entire SEQUENCE is skipped, so the FL_IDENTIFIER
-   is a kind of linked FL_OPTIONAL in that the field is omitted if the data
-   field is omitted.
+	SET/SEQUENCE control flags that indicate the end of a SET/SEQUENCE or
+	nested SET/SEQUENCE.  These are only used for encoding, for decoding the 
+	decoder maintains a parse state stack driver by the encoded data 
+	(actually that's not quite correct, when skipping to the end of some 
+	SEQUENCEs containing type-and-value pairs we also use the flags to locate 
+	the end of the SEQUENCE encoding/start of the next type-and-value entry).  
+	The rule for the FL_SEQEND values is that the last one must return the 
+	nesting depth to 1, with the outer SEQUENCE being implicit.  In other 
+	words a SEQUENCE OF SEQUENCE {} would have a FL_SEQEND value of 1; a 
+	SEQUENCE OF GeneralName would have no FL_SEQEND value 
 
-   Fields of the type SET OF x or SEQUENCE OF x, where x is not a fixed
-   value (for example DNs) are flagged with FL_SETOF in the encapsulating 
-   SEQUENCE to indicate that one or more inner fields may be present.  The 
-   FL_SETOF field is bookmarked, if all the sequence data isn't read the 
-   first time through the read is restarted from the bookmark until the 
-   SEQUENCE data is exhausted.
+	Decoding level flags that indicate the compliance level at which this
+	attribute is decoded.
 
-   If a field is part of a variable-type SET OF x/SEQUENCE OF x then if it's
-   a named field it must have the FL_MULTIVALUED flag set to indicate that 
-   more than one of these can exist at the same time.  If this flag isn't 
-   set, cryptlib will detect that a field of that name already exists and 
-   refuse to allow a second instance to be added.
+	The object subtypes for which an attribute is valid.  CRLs actually 
+	contain two sets of extensions, one for the entire CRL (crlExtensions) 
+	and the other for each entry in the CRL (crlEntryExtension).  Sorting 
+	out whether we're adding a CRL extension or per-entry extension is 
+	handled by the higher-level code, which references the CRL attribute 
+	list or per-entry attribute list as appropriate.
 
-   Some fields aren't used for encoding user-supplied data but must be read
-   and written when processing an attribute (for example version numbers).
-   These are flagged with FL_NONENCODING which means they're read and written
-   but not associated with any user data.
-   
-   Some attributes are regarded as sensitive in some manner and therefore 
-   aren't copied from source to destination (e.g. from a cert request into
-   a cert) when the other attributes are copied, these are marked with
-   FL_NOCOPY */
+   The attribute flags are:
 
-#define FL_OPTIONAL			0x000001	/* Field is optional */
-#define FL_DEFAULT			0x000002	/* Field has default value */
-#define FL_EXPLICIT			0x000004	/* Field is explicitly tagged */
-#define FL_IDENTIFIER		0x000008	/* Following field contains selection OID */
-#define FL_SETOF			0x000010	/* Start of SET/SEQ OF values */
-#define FL_NONENCODING		0x000020	/* Field is a non-encoding value */
-#define FL_MULTIVALUED		0x000040	/* Field can occur multiple times */
-#define FL_NOCOPY			0x000080	/* Attr.isn't copied when attrs.copied*/
+	FL_OPTIONAL: The field is optional.
+	
+	FL_DEFAULT: The field has a default value that's set if no field data
+		is present.
 
-#define FL_SEQEND			0x000100	/* End of constructed object */
-#define FL_SEQEND_1			0x000100	/*  End of cons.obj, one nesting lvl.*/
-#define FL_SEQEND_2			0x000200	/*  End of cons.obj, two nesting lvl.*/
-#define FL_SEQEND_3			0x000300	/*  End of cons.obj, three nesting lvls.*/
-#define FL_SEQEND_MASK		0x000300	/* Mask for sequence control value */
+	FL_EXPLICIT: The field is explicitly tagged, so instead of being en/
+		decoded using the tag for the field, it's given a second level of 
+		tagging that encapsulated the field's actual tag type.
 
-#define FL_LEVEL_OBLIVIOUS	0x000000	/* Process at oblivious compliance level */
-#define FL_LEVEL_REDUCED	0x001000	/* Process at reduced compliance level */
-#define FL_LEVEL_STANDARD	0x002000	/* Process at standard compliance level */
-#define FL_LEVEL_PKIX_PARTIAL 0x003000	/* Process at partial PKIX compliance level */
-#define FL_LEVEL_PKIX_FULL	0x004000	/* Process at full PKIX compliance level */
-#define FL_LEVEL_MASK		0x007000	/* Mask for compliance level value */
+	FL_IDENTIFIER: Used for the encapsulating SEQUENCE of fields of the type:
 
-#define FL_VALID_CERT		0x010000	/* Valid in a cert */
-#define FL_VALID_ATTRCERT	0x020000	/* Valid in an attrib.cert */
-#define FL_VALID_CRL		0x040000	/* Valid in a CRL */
-#define FL_VALID_CERTREQ	0x080000	/* Valid in a cert.request */
-#define FL_VALID_REVREQ		0x100000	/* Valid in a rev.request */
-#define FL_VALID_OCSPREQ	0x200000	/* Valid in an OCSP request */
-#define FL_VALID_OCSPRESP	0x200000	/* Valid in an OCSP response */
+		SEQUENCE {
+			identifier	OBJECT IDENTIFIER
+			data		ANY DEFINED BY identifier
+			}
 
-#define FL_CRITICAL			0x400000	/* Extension is marked critical */
-#define FL_MORE				0x800000	/* Further entries follow */
+		for which the field identified by a CRYPT_CERTINFO_xxx is the 'data'
+		field, and the whole is only encoded if the data field is present.
+		The overall item is only encoded if the 'data' field is present.
 
-/* CRLs actually contain two sets of extensions, one for the entire CRL
-   (crlExtensions) and the other for each entry in the CRL
-   (crlEntryExtension).  Sorting out whether we're adding a CRL extension or 
-   per-entry extension is handled by the higher-level code, which references 
-   the CRL attribute list or per-entry attribute list as appropriate.
+	FL_SETOF: Applied to the encapsulating SET/SEQUENCE of a SET OF x/
+		SEQUENCE OF x to indicate that one or more inner fields may be 
+		present.  The field marked with FL_SETOF in the encoding/decoding
+		table is bookmarked, if all of the SET/SEQUENCE data isn't read the 
+		first time through the decoding table position is restarted from the 
+		bookmark until the SET/SEQUENCE data is exhausted.
 
-   If a constructed field is nested (for example a SEQUENCE OF SEQUENCE), the
+	FL_NONEMPTY: Used for optional elements of a SET/SEQUENCE to indicate 
+		that at least one element must be present.
+
+	FL_NONENCODING: The field is read and written, but not associated with 
+		any user data.  This is used for fields such as version numbers that 
+		aren't used for encoding user-supplied data but that must be read and 
+		written when processing an attribute 
+
+	FL_MULTIVALUED: If a cryptlib-level attribute is part of a SET OF x/
+		SEQUENCE OF x, this flag is set to indicate that more than one 
+		instance can exist at the same time.  If this flag isn't set, 
+		cryptlib will detect that an attribute of that type already exists 
+		and refuse to allow a second instance to be added.
+
+	FL_NOCOPY: The attribute is regarded as sensitive and therefore 
+		shouldn't be copied from source to destination (e.g. from a cert 
+		request into a cert) when the other attributes are copied.
+    
+	FL_CRITICAL: The overall extension is marked critical when encoding.
+
+	FL_MORE: Another field in the current extension follows.  The last field
+		in the extension has FL_MORE clear */
+
+#define FL_SEQEND			0x0000001	/* End of constructed object */
+#define FL_SEQEND_1			0x0000001	/*  End of cons.obj, one nesting lvl.*/
+#define FL_SEQEND_2			0x0000002	/*  End of cons.obj, two nesting lvl.*/
+#define FL_SEQEND_3			0x0000003	/*  End of cons.obj, three nesting lvls.*/
+#define FL_SEQEND_MASK		0x0000003	/* Mask for sequence control value */
+
+#define FL_LEVEL_OBLIVIOUS	0x0000000	/* Process at oblivious compliance level */
+#define FL_LEVEL_REDUCED	0x0000010	/* Process at reduced compliance level */
+#define FL_LEVEL_STANDARD	0x0000020	/* Process at standard compliance level */
+#define FL_LEVEL_PKIX_PARTIAL 0x0000030	/* Process at partial PKIX compliance level */
+#define FL_LEVEL_PKIX_FULL	0x0000040	/* Process at full PKIX compliance level */
+#define FL_LEVEL_MASK		0x0000070	/* Mask for compliance level value */
+
+#define FL_VALID_CERT		0x0000100	/* Valid in a cert */
+#define FL_VALID_ATTRCERT	0x0000200	/* Valid in an attrib.cert */
+#define FL_VALID_CRL		0x0000400	/* Valid in a CRL */
+#define FL_VALID_CERTREQ	0x0000800	/* Valid in a cert.request */
+#define FL_VALID_REVREQ		0x0001000	/* Valid in a rev.request */
+#define FL_VALID_OCSPREQ	0x0001000	/* Valid in an OCSP request */
+#define FL_VALID_OCSPRESP	0x0001000	/* Valid in an OCSP response */
+
+#define FL_OPTIONAL			0x0002000	/* Field is optional */
+#define FL_DEFAULT			0x0004000	/* Field has default value */
+#define FL_EXPLICIT			0x0008000	/* Field is explicitly tagged */
+#define FL_IDENTIFIER		0x0010000	/* Following field contains selection OID */
+#define FL_SETOF			0x0020000	/* Start of SET/SEQ OF values */
+#define FL_NONEMPTY			0x0040000	/* SET/SEQ must contain at least one entry */
+#define FL_NONENCODING		0x0080000	/* Field is a non-encoding value */
+#define FL_MULTIVALUED		0x0100000	/* Field can occur multiple times */
+#define FL_NOCOPY			0x0200000	/* Attr.isn't copied when attrs.copied*/
+#define FL_CRITICAL			0x0400000	/* Extension is marked critical */
+#define FL_MORE				0x0800000	/* Further entries follow */
+
+/* If a constructed field is nested (for example a SEQUENCE OF SEQUENCE), the
    FL_SEQEND may need to denote multiple levels of unnesting.  This is done
    by using FL_SEQEND_n, the following macro can be used to extract the
    actual level of nesting */
 
-#define decodeNestingLevel( value ) \
-		( ( ( int ) ( value ) >> 8 ) & ( FL_SEQEND_MASK >> 8 ) )
+#define decodeNestingLevel( value )		( ( value ) & FL_SEQEND_MASK )
 
 /* In order to be able to process broken certs, we allow for processing them 
    at various levels of standards compliance.  If the current processing 
@@ -119,7 +135,7 @@
    a blob extension */
 
 #define decodeComplianceLevel( value ) \
-		( ( ( int ) ( value ) >> 12 ) & ( FL_LEVEL_MASK >> 12 ) )
+		( ( ( value ) >> 4 ) & ( FL_LEVEL_MASK >> 4 ) )
 
 /* Some fields have an intrinsic value but no explicitly set value (that is,
    their presence communicates the information they are intended to convey,
@@ -165,6 +181,14 @@
 
 #define FIELDTYPE_SUBTYPED		-6
 
+/* Another variant of FIELDTYPE_DN is one where the field can contain one of
+   a number of string types chosen from the ASN.1 string menagerie.  Rather
+   than adding a list of the different string types marked as optional to
+   the en/decoding tables, we provide a single DisplayString meta-type which
+   has a custom decoding routine that makes the appropriate choice */
+
+#define FIELDTYPE_DISPLAYSTRING	-7
+
 /* Usually the field ID for the first field in an entry (the one containing
    the OID) is the overall attribute ID, however there are one or two
    exceptions in which the attribute ID and field ID are the same but are
@@ -177,7 +201,7 @@
    point (the first field that isn't a FIELDID_FOLLOWS code is treated as
    the attribute ID) */
 
-#define FIELDID_FOLLOWS			-7
+#define FIELDID_FOLLOWS			-8
 
 typedef struct {
 	/* Information on the overall attribute.  These fields are only set
@@ -246,6 +270,7 @@ const ATTRIBUTE_INFO *fieldIDToAttribute( const ATTRIBUTE_TYPE attributeType,
 
 /* Write an attribute field */
 
-int writeAttributeField( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr );
+int writeAttributeField( STREAM *stream, ATTRIBUTE_LIST *attributeListPtr,
+						 const int complianceLevel );
 
 #endif /* _CERTATTR_DEFINED */

@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *							cryptlib MD2 Hash Routines						*
-*						Copyright Peter Gutmann 1992-2003					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,21 +9,20 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "md2.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/md2.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/md2.h"
 #endif /* Compiler-specific includes */
 
 #ifdef USE_MD2
+
+#define HASH_STATE_SIZE		sizeof( MD2_CTX )
 
 /****************************************************************************
 *																			*
@@ -65,18 +64,36 @@ static const FAR_BSS struct {
 	{ NULL, 0, { 0 } }
 	};
 
-int md2SelfTest( void )
+static int selfTest( void )
 	{
-	BYTE digest[ MD2_DIGEST_LENGTH ];
-	int i;
+	const CAPABILITY_INFO *capabilityInfo = getMD2Capability();
+	CONTEXT_INFO contextInfo;
+	HASH_INFO contextData;
+	BYTE keyData[ HASH_STATE_SIZE ];
+	int i, status;
 
 	/* Test MD2 against the test vectors given in RFC 1319 */
 	for( i = 0; digestValues[ i ].data != NULL; i++ )
 		{
-		md2HashBuffer( NULL, digest, ( BYTE * ) digestValues[ i ].data,
-					   digestValues[ i ].length, HASH_ALL );
-		if( memcmp( digest, digestValues[ i ].digest, MD2_DIGEST_LENGTH ) )
-			return( CRYPT_ERROR );
+		staticInitContext( &contextInfo, CONTEXT_HASH, capabilityInfo,
+						   &contextData, sizeof( HASH_INFO ), keyData );
+		status = CRYPT_OK ;
+		if( digestValues[ i ].length > 0 )
+			{
+			status = capabilityInfo->encryptFunction( &contextInfo, 
+								( BYTE * ) digestValues[ i ].data, 
+								digestValues[ i ].length );
+			contextInfo.flags |= CONTEXT_HASH_INITED;
+			}
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
+		if( cryptStatusOK( status ) && \
+			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest, 
+					MD2_DIGEST_LENGTH ) )
+			status = CRYPT_ERROR;
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) )
+			return( status );
 		}
 
 	return( CRYPT_OK );
@@ -90,13 +107,13 @@ int md2SelfTest( void )
 
 /* Return context subtype-specific information */
 
-int md2GetInfo( const CAPABILITY_INFO_TYPE type, 
-				void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
-		return( sizeof( MD2_CTX ) );
+		return( HASH_STATE_SIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -107,7 +124,7 @@ int md2GetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Hash data using MD2 */
 
-int md2Hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	MD2_CTX *md2Info = ( MD2_CTX * ) contextInfoPtr->ctxHash->hashInfo;
 
@@ -167,4 +184,22 @@ void md2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
 			assert( NOTREACHED );
 		}
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_MD2, bitsToBytes( 128 ), "MD2",
+	bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ),
+	selfTest, getInfo, NULL, NULL, NULL, NULL, hash, hash
+	};
+
+const CAPABILITY_INFO *getMD2Capability( void )
+	{
+	return( &capabilityInfo );
+	}
+
 #endif /* USE_MD2 */

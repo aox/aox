@@ -4,4 +4,4 @@ Build cryptlib : ctx_3des.c ctx_aes.c ctx_bf.c ctx_cast.c ctx_des.c ctx_dh.c
     ctx_dsa.c ctx_elg.c ctx_hmd5.c ctx_hrmd.c ctx_hsha.c ctx_idea.c ctx_md2.c
     ctx_md4.c ctx_md5.c ctx_rc2.c ctx_rc4.c ctx_rc5.c ctx_ripe.c ctx_rsa.c
     ctx_sha2.c ctx_sha.c ctx_skip.c keyload.c key_rd.c key_wr.c kg_dlp.c
-    kg_prime.c kg_rsa.c ;
+    kg_prime.c kg_rsa.c ctx_misc.c ;

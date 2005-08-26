@@ -1880,8 +1880,8 @@ int iCryptCreateSignatureEx( void *signature, int *signatureLength,
 	assert( isWritePtr( signatureLength, sizeof( int ) ) );
 	assert( formatType > CRYPT_FORMAT_NONE && \
 			formatType < CRYPT_FORMAT_LAST );
-	assert( checkHandleRange( iSignContext ) );
-	assert( checkHandleRange( iHashContext ) );
+	assert( isHandleRangeValid( iSignContext ) );
+	assert( isHandleRangeValid( iHashContext ) );
 
 	/* If the signing context has a cert chain attached, the currently-
 	   selected cert may not be the leaf cert.  To ensure that we use the
@@ -1965,8 +1965,8 @@ int iCryptCheckSignatureEx( const void *signature, const int signatureLength,
 	assert( isReadPtr( signature, signatureLength ) );
 	assert( formatType > CRYPT_FORMAT_NONE && \
 			formatType < CRYPT_FORMAT_LAST );
-	assert( checkHandleRange( iSigCheckKey ) );
-	assert( checkHandleRange( iHashContext ) );
+	assert( isHandleRangeValid( iSigCheckKey ) );
+	assert( isHandleRangeValid( iHashContext ) );
 
 	/* Perform basic error checking */
 	status = krnlSendMessage( iSigCheckKey, IMESSAGE_GETDEPENDENT,

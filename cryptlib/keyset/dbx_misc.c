@@ -343,6 +343,22 @@ int getCertKeyID( char *keyID, const CRYPT_CERTIFICATE iCryptCert )
 	return( getKeyID( keyID, iCryptCert, CRYPT_IATTRIBUTE_SPKI ) );
 	}
 
+/* Some internal actions set extended error codes as a result of their 
+   operation that the user shouldn't really see.  For example performing a 
+   cert cleanup will return a no-data-found error once the last cert is
+   reached, which will be read by the user the next time they read the
+   CRYPT_ATTRIBUTE_INT_ERRORCODE/CRYPT_ATTRIBUTE_INT_ERRORMESSAGE, even 
+   though the error came from a previous internal operation.  To avoid
+   this problem, we clean up the error status info when it's been set by
+   an internal operation */
+
+int resetErrorInfo( DBMS_INFO *dbmsInfo )
+	{
+	dbmsInfo->errorCode = 0;
+	memset( dbmsInfo->errorMessage, 0, MAX_ERRMSG_SIZE );
+	return( CRYPT_OK );
+	}
+
 /* Get names and IDs for various items */
 
 char *getKeyName( const CRYPT_KEYID_TYPE keyIDtype )

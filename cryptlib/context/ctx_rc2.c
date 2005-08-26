@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib RC2 Encryption Routines					*
-*						Copyright Peter Gutmann 1996-2003					*
+*						Copyright Peter Gutmann 1996-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,17 +9,14 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "rc2.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/rc2.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/rc2.h"
 #endif /* Compiler-specific includes */
 
@@ -28,6 +25,7 @@
 /* Defines to map from EAY to native naming */
 
 #define RC2_BLOCKSIZE				RC2_BLOCK
+#define RC2_EXPANDED_KEYSIZE		sizeof( RC2_KEY )
 
 /* The RC2 key schedule provides a mechanism for reducing the effective key
    size for export-control purposes, typically used to create 40-bit 
@@ -61,19 +59,28 @@ static const FAR_BSS struct RC2_TEST {
 
 /* Test the RC2 code against the RC2 test vectors */
 
-int rc2SelfTest( void )
+static int selfTest( void )
 	{
+	const CAPABILITY_INFO *capabilityInfo = getRC2Capability();
+	CONTEXT_INFO contextInfo;
+	CONV_INFO contextData;
+	BYTE keyData[ RC2_EXPANDED_KEYSIZE ];
 	BYTE temp[ RC2_BLOCKSIZE ];
-	RC2_KEY key;
-	int i;
+	int i, status;
 
 	for( i = 0; i < sizeof( testRC2 ) / sizeof( struct RC2_TEST ); i++ )
 		{
+		staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+						   &contextData, sizeof( CONV_INFO ), keyData );
 		memcpy( temp, testRC2[ i ].plainText, RC2_BLOCKSIZE );
-		RC2_set_key( &key, 16, testRC2[ i ].key, 
-					 effectiveKeysizeBits( 16 ) );
-		RC2_ecb_encrypt( temp, temp, &key, RC2_ENCRYPT );
-		if( memcmp( testRC2[ i ].cipherText, temp, RC2_BLOCKSIZE ) )
+		status = capabilityInfo->initKeyFunction( &contextInfo, 
+												  testRC2[ i ].key, 16 );
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, temp, 
+													  RC2_BLOCKSIZE );
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) || \
+			memcmp( testRC2[ i ].cipherText, temp, RC2_BLOCKSIZE ) )
 			return( CRYPT_ERROR );
 		}
 
@@ -88,13 +95,13 @@ int rc2SelfTest( void )
 
 /* Return context subtype-specific information */
 
-int rc2GetInfo( const CAPABILITY_INFO_TYPE type, 
-				void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
-		return( sizeof( RC2_KEY ) );
+		return( RC2_EXPANDED_KEYSIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -105,13 +112,14 @@ int rc2GetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Encrypt/decrypt data in ECB mode */
 
-int rc2EncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	RC2_KEY *rc2Key = ( RC2_KEY * ) convInfo->key;
 	int blockCount = noBytes / RC2_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Encrypt a block of data */
 		RC2_ecb_encrypt( buffer, buffer, rc2Key, RC2_ENCRYPT );
@@ -123,13 +131,14 @@ int rc2EncryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int rc2DecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	RC2_KEY *rc2Key = ( RC2_KEY * ) convInfo->key;
 	int blockCount = noBytes / RC2_BLOCKSIZE;
 
-	while( blockCount-- )
+	while( blockCount-- > 0 )
 		{
 		/* Decrypt a block of data */
 		RC2_ecb_encrypt( buffer, buffer, rc2Key, RC2_DECRYPT );
@@ -143,7 +152,8 @@ int rc2DecryptECB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CBC mode */
 
-int rc2EncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -154,7 +164,8 @@ int rc2EncryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	return( CRYPT_OK );
 	}
 
-int rc2DecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -167,14 +178,15 @@ int rc2DecryptCBC( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in CFB mode */
 
-int rc2EncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	RC2_KEY *rc2Key = ( RC2_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -194,7 +206,7 @@ int rc2EncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > RC2_BLOCKSIZE ) ? RC2_BLOCKSIZE : noBytes;
 
@@ -224,7 +236,8 @@ int rc2EncryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
    faster (but less clear) with temp = buffer, buffer ^= iv, iv = temp
    all in one loop */
 
-int rc2DecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	RC2_KEY *rc2Key = ( RC2_KEY * ) convInfo->key;
@@ -232,7 +245,7 @@ int rc2DecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -253,7 +266,7 @@ int rc2DecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > RC2_BLOCKSIZE ) ? RC2_BLOCKSIZE : noBytes;
 
@@ -287,14 +300,15 @@ int rc2DecryptCFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Encrypt/decrypt data in OFB mode */
 
-int rc2EncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	RC2_KEY *rc2Key = ( RC2_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -313,7 +327,7 @@ int rc2EncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > RC2_BLOCKSIZE ) ? RC2_BLOCKSIZE : noBytes;
 
@@ -338,14 +352,15 @@ int rc2EncryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Decrypt data in OFB mode */
 
-int rc2DecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, 
+					   int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	RC2_KEY *rc2Key = ( RC2_KEY * ) convInfo->key;
 	int i, ivCount = convInfo->ivCount;
 
 	/* If there's any encrypted material left in the IV, use it now */
-	if( ivCount )
+	if( ivCount > 0 )
 		{
 		int bytesToUse;
 
@@ -364,7 +379,7 @@ int rc2DecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 		ivCount += bytesToUse;
 		}
 
-	while( noBytes )
+	while( noBytes > 0 )
 		{
 		ivCount = ( noBytes > RC2_BLOCKSIZE ) ? RC2_BLOCKSIZE : noBytes;
 
@@ -395,8 +410,8 @@ int rc2DecryptOFB( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Key schedule an RC2 key */
 
-int rc2InitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-				const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 	RC2_KEY *rc2Key = ( RC2_KEY * ) convInfo->key;
@@ -409,4 +424,24 @@ int rc2InitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	RC2_set_key( rc2Key, keyLength, key, effectiveKeysizeBits( keyLength ) );
 	return( CRYPT_OK );
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_RC2, bitsToBytes( 64 ), "RC2",
+	bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), bitsToBytes( 1024 ),
+	selfTest, getInfo, NULL, initKeyParams, initKey, NULL,
+	encryptECB, decryptECB, encryptCBC, decryptCBC,
+	encryptCFB, decryptCFB, encryptOFB, decryptOFB
+	};
+
+const CAPABILITY_INFO *getRC2Capability( void )
+	{
+	return( &capabilityInfo );
+	}
+
 #endif /* USE_RC2 */

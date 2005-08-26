@@ -591,7 +591,7 @@ int base64decode( void *dest, const int destMaxLen, const char *src,
 		return( fixedBase64decode( dest, destMaxLen, src, srcLen ) );
 
 	/* Decode the encoded object */
-	while( TRUE )
+	while( srcIndex < srcLen )
 		{
 		BYTE cx;
 
@@ -664,6 +664,10 @@ int base64decode( void *dest, const int destMaxLen, const char *src,
 				srcIndex += 4;
 				break;
 				}
+
+			/* Make sure that we haven't run off into the weeds */
+			if( srcIndex >= srcLen )
+				break;
 			}
 
 		/* Decode a block of data from the input buffer */

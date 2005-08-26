@@ -815,7 +815,7 @@ int readSSLCertChain( SESSION_INFO *sessionInfoPtr,
 				peerTypeName, 
 				isServer ? "client authentication" : \
 				isKeyxAlgo( algorithm ) ? "key exchange authentication" : \
-										  "key transport" );
+										  "encryption" );
 		}
 
 	return( CRYPT_OK );
@@ -1574,6 +1574,17 @@ static int preparePacketFunction( SESSION_INFO *sessionInfoPtr )
 
 int setAccessMethodSSL( SESSION_INFO *sessionInfoPtr )
 	{
+	static const ALTPROTOCOL_INFO altProtocolInfo = {
+		/* SSL tunnelled via an HTTP proxy.  This is a special case in that
+		   the initial connection is made using HTTP, but subsequent
+		   communications are via a direct TCP/IP connection that goes
+		   through the proxy */
+		STREAM_PROTOCOL_TCPIP,		/* Alt.protocol type */
+		"https://",					/* Alt.protocol URI type */
+		80,							/* Alt.protocol port */
+		0,							/* Protocol flags to replace */
+		SESSION_USEHTTPTUNNEL		/* Alt.protocol flags */
+		};
 	static const PROTOCOL_INFO protocolInfo = {
 		/* General session information */
 		FALSE,						/* Request-response protocol */
@@ -1600,7 +1611,8 @@ int setAccessMethodSSL( SESSION_INFO *sessionInfoPtr )
 			/* This may be adjusted during the handshake if we're talking 
 			   TLS 1.1, which prepends extra data in the form of an IV to
 			   the payload */
-		MAX_PACKET_SIZE				/* (Default) maximum packet size */
+		MAX_PACKET_SIZE,			/* (Default) maximum packet size */
+		&altProtocolInfo			/* Alt.transport protocol */
 		};
 
 	/* Set the access method pointers */

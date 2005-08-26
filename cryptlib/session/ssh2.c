@@ -648,9 +648,13 @@ static int processBodyFunction( SESSION_INFO *sessionInfoPtr,
 		{
 		STREAM stream;
 
+		/* Process the control message and reset the receive buffer 
+		   indicators to clear it */
 		sMemConnect( &stream, bufPtr, length );
 		status = processChannelControlMessage( sessionInfoPtr, &stream );
 		sMemDisconnect( &stream );
+		sessionInfoPtr->receiveBufEnd = sessionInfoPtr->receiveBufPos;
+		sessionInfoPtr->pendingPacketLength = 0;
 		if( cryptStatusError( status ) )
 			{
 			/* If we got an OK_SPECIAL status, the packet was handled 

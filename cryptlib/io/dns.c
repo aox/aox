@@ -114,6 +114,16 @@ static WSAGETLASTERROR pWSAGetLastError = NULL;
   #define DYNLOAD_WSAGETLASTERROR
 #endif /* WSAGetLastError */
 
+static int SOCKET_API my_getaddrinfo( const char *nodename, 
+									  const char *servname,
+									  const struct addrinfo *hints,
+									  struct addrinfo **res );
+static void SOCKET_API my_freeaddrinfo( struct addrinfo *ai );
+static int SOCKET_API my_getnameinfo( const struct sockaddr *sa, 
+									  SIZE_TYPE salen, char *node, 
+									  SIZE_TYPE nodelen, char *service,
+									  SIZE_TYPE servicelen, int flags );
+
 int initDNS( INSTANCE_HANDLE hTCP, INSTANCE_HANDLE hAddr )
 	{
 	/* Get the required TCP/IP functions */
@@ -145,16 +155,6 @@ int initDNS( INSTANCE_HANDLE hTCP, INSTANCE_HANDLE hAddr )
 		}
 	else
 		{
-		static int SOCKET_API my_getaddrinfo( const char *nodename, 
-											  const char *servname,
-											  const struct addrinfo *hints,
-											  struct addrinfo **res );
-		void SOCKET_API my_freeaddrinfo( struct addrinfo *ai );
-		int SOCKET_API my_getnameinfo( const struct sockaddr *sa, 
-									   SIZE_TYPE salen, char *node, 
-									   SIZE_TYPE nodelen, char *service,
-									   SIZE_TYPE servicelen, int flags );
-
 		/* If we couldn't dynamically bind the IPv6 name/address functions,
 		   use a local emulation */
 		getaddrinfo = my_getaddrinfo;
@@ -518,8 +518,8 @@ static int findHostInfo( STREAM *stream, char *hostName, int *hostPort,
 	return( CRYPT_OK );
 	}
 
-#elif defined( __UNIX__ ) && 0 && \
-	  !( ( defined( sun ) && OSVERSION <= 5 ) || \
+#elif defined( __UNIX__ ) && \
+	  !( defined( __CYGWIN__) || ( defined( sun ) && OSVERSION <= 5 ) || \
 		 defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ ) )
 
 #define SRV_PRIORITY_OFFSET	( NS_RRFIXEDSZ + 0 )

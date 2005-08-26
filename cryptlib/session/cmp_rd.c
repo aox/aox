@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *								Read CMP Messages							*
-*						Copyright Peter Gutmann 1999-2004					*
+*						Copyright Peter Gutmann 1999-2005					*
 *																			*
 ****************************************************************************/
 
@@ -543,10 +543,11 @@ int readPkiStatusInfo( STREAM *stream, int *errorCode, char *errorMessage )
 			return( CRYPT_ERROR_DUPLICATE );
 		}
 	else
-		/* There's no error information present, return a "This page 
-		   deliberately left blank" error */
-		strcpy( errorMessage, 
-				"Server returned nonspecific error information" );
+		/* If there was a problem but there's no extra error information 
+		   present, return a "This page deliberately left blank" error */
+		if( *errorCode != PKISTATUS_OK )
+			strcpy( errorMessage, 
+					"Server returned nonspecific error information" );
 
 	/* A PKI status code is a bit difficult to turn into anything useful,
 	   the best we can do is to report that the operation failed and let

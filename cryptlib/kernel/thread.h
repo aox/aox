@@ -88,7 +88,33 @@
 	destroySem( syncSem );
 
    If the thread/task handle can be used as a synchronisation object, these
-   additional operations are turned into no-ops */
+   additional operations are turned into no-ops.
+   
+   Several of the embedded OSes are extremely difficult to work with because 
+   their kernels perform no memory (or, often, resource) management of their 
+   own, assuming that all memory will be allocated by the caller.  In the
+   simplest case this means that the thread stack/workspace has to be user-
+   allocated, in the worst case every object handle variable that's normally 
+   a simple scalar value in other OSes is a composite non-scalar type that 
+   contains all of the object's data, requiring that the caller manually 
+   allocate state data for threads, mutexes, and semaphores rather than 
+   having the OS do it for them.
+   
+   For things like mutex and semaphore 'handles', which have a fixed number
+   or location, this is manageable by statically allocating the storage in
+   advance.  However it significantly complicates things like thread 
+   handling because the thread that dynamically creates a worker thread has 
+   to be around later on to clean up after it when it terminates, and the 
+   state data has to be maintained in external (non-thread) storage.  We 
+   handle this in one of two ways, either by not using cryptlib-internal 
+   threads (they're only used for initialisation and keygen, neither of
+   which will benefit much from the ability to run them in the background in
+   an embedded system), or by wrapping the threading functions in our own 
+   ones which allocate memory as required and access the information via a 
+   scalar handle.
+
+   To enable the use of thread wrappers, see the xxx_THREAD_WRAPPERS define
+   for each embedded OS type */
 
 /****************************************************************************
 *																			*
@@ -98,21 +124,7 @@
 
 #if defined( __AMX__ )
 
-/* AMX is extremely difficult to work with because the kernel performs 
-   little memory (or, in general, resource) management of its own, assuming 
-   that all memory will be allocated by the caller.  This means that the 
-   caller has to manually allocate state data for threads rather than having 
-   the OS do it for them.  This significantly complicates things like thread 
-   handling because the thread that creates a worker thread has to be around 
-   later on to clean up after it when it terminates, and the state data has 
-   to be maintained in external (non-thread) storage.  We handle this in one 
-   of two ways, either by not using cryptlib-internal threads (they're only 
-   used for initialisation and keygen, neither of which will benefit much 
-   from the ability to run them in the background in an embedded system), or 
-   by wrapping the AMX functions in our own ones which allocate memory as 
-   required and access the information via a scalar handle.
-
-   To use resource-management wrappers for the AMX thread functions,
+/* To use resource-management wrappers for the AMX thread functions,
    undefine the following */
 
 /* #define AMX_THREAD_WRAPPERS */
@@ -124,8 +136,8 @@
 #define THREAD_HANDLE			CJ_ID
 #define MUTEX_HANDLE			CJ_ID
 
-/* Mutex management functions.  AMX resource semaphores are re-entrant so we 
-   don't have to jump through the hoops that are necessary with most other 
+/* Mutex management functions.  AMX resource semaphores are re-entrant so we
+   don't have to jump through the hoops that are necessary with most other
    OSes */
 
 #define MUTEX_DECLARE_STORAGE( name ) \
@@ -154,20 +166,20 @@
    the stack space for them, unlike virtually every other embedded OS, which
    make this at most a rarely-used option.  To handle this, we use our own
    wrappers which hide this mess.  A second problem with AMX threads is that
-   there's no obvious way to pass an argument to a thread.  In theory we 
-   could convey the information by sending it via a mailbox, but this 
-   requires first conveying the mailbox ID to the new task, which has the 
+   there's no obvious way to pass an argument to a thread.  In theory we
+   could convey the information by sending it via a mailbox, but this
+   requires first conveying the mailbox ID to the new task, which has the
    same problem.
 
-   We create the thread with the same priority as the calling thread, AMX 
-   threads are created in the suspended state so after we create the thread 
+   We create the thread with the same priority as the calling thread, AMX
+   threads are created in the suspended state so after we create the thread
    we have to trigger it to start it running.
 
    The 4096 byte storage area provides enough space for the task control
    block and about half a dozen levels of function nesting (if no large on-
-   stack arrays are used), this should be enough for background init but 
-   probably won't be sufficient for the infinitely-recursive OpenSSL bignum 
-   code, so the value may need to be adjusted if background keygen is being 
+   stack arrays are used), this should be enough for background init but
+   probably won't be sufficient for the infinitely-recursive OpenSSL bignum
+   code, so the value may need to be adjusted if background keygen is being
    used */
 
 #define THREADFUNC_DEFINE( name, arg )	void name( cyg_addrword_t arg )
@@ -217,7 +229,7 @@
 #endif /* !AMX_THREAD_WRAPPERS */
 
 /* The AMX task-priority function returns the priority via a reference
-   parameter.  Because of this we have to provide a wrapper that returns 
+   parameter.  Because of this we have to provide a wrapper that returns
    it as a return value */
 
 int threadPriority( void );
@@ -304,30 +316,138 @@ int threadPriority( void );
 
 /****************************************************************************
 *																			*
+*								ChorusOS									*
+*																			*
+****************************************************************************/
+
+#elif defined( __CHORUS__ )
+
+/* To use resource-management wrappers for the AMX thread functions,
+   undefine the following */
+
+/* #define AMX_THREAD_WRAPPERS */
+
+#include <chorus.h>
+#include <exec/chExec.h>
+
+/* Object handles */
+
+#define THREAD_HANDLE			KnThreadLid
+#define MUTEX_HANDLE			KnMutex
+
+/* Mutex management functions.  ChorusOS provides no way to destroy a 
+   mutex once it's initialised, presumably it gets cleaned up when the
+   owning actor terminates */
+
+#define MUTEX_DECLARE_STORAGE( name ) \
+		KnMutex name##Mutex; \
+		BOOLEAN name##MutexInitialised; \
+		KnThreadLid name##MutexOwner; \
+		int name##MutexLockcount
+#define MUTEX_CREATE( name ) \
+		if( !krnlData->name##MutexInitialised ) \
+			{ \
+			mutexInit( &krnlData->name##Mutex ); \
+			krnlData->name##MutexInitialised = TRUE; \
+			}
+#define MUTEX_DESTROY( name ) \
+		if( krnlData->name##MutexInitialised ) \
+			{ \
+			mutexGet( &krnlData->name##Mutex ); \
+			mutexRel( &krnlData->name##Mutex ); \
+			krnlData->name##MutexInitialised = FALSE; \
+			}
+#define MUTEX_LOCK( name ) \
+		if( mutexTry( &krnlData->name##Mutex ) == 0 ) \
+			{ \
+			if( !THREAD_SAME( krnlData->name##MutexOwner, THREAD_SELF() ) ) \
+				mutexGet( &krnlData->name##Mutex ); \
+			else \
+				krnlData->name##MutexLockcount++; \
+			} \
+		krnlData->name##MutexOwner = THREAD_SELF();
+#define MUTEX_UNLOCK( name ) \
+		if( krnlData->name##MutexLockcount > 0 ) \
+			krnlData->name##MutexLockcount--; \
+		else \
+			mutexRel( &krnlData->name##Mutex );
+
+/* Thread management functions.  ChorusOS threads require that the user 
+   allocate the stack space for them, unlike virtually every other embedded 
+   OS, which make this at most a rarely-used option.  To handle this, we use 
+   our own wrappers which hide this mess.  A second problem with ChorusOS 
+   threads is that there's no easy way to pass an argument to a thread, so 
+   we have to include it as a "software register" value that the thread then
+   obtains via threadLoadR().
+
+   The 4096 byte storage area provides enough space for about half a dozen 
+   levels of function nesting (if no large on-stack arrays are used), this 
+   should be enough for background init but probably won't be sufficient for 
+   the infinitely-recursive OpenSSL bignum code, so the value may need to be 
+   adjusted if background keygen is being used.
+   
+   ChorusOS provides no way to destroy a semaphore once it's initialised, 
+   presumably it gets cleaned up when the owning actor terminates */
+
+#define THREADFUNC_DEFINE( name, arg )	void name( void )
+#define THREAD_CREATE( function, arg, threadHandle, syncHandle, status ) \
+			{ \
+			BYTE *threadStack = malloc( 4096 ); \
+			KnDefaultStartInfo startInfo = { \
+				K_START_INFO | K_START_INFO_SOFTREG, K_DEFAULT_STACK_SIZE, \
+				function, threadStack, K_USERTHREAD, arg }; \
+			\
+			semInit( &syncHandle, 1 ); \
+			if( threadCreate( K_MYACTOR, &threadHandle, K_ACTIVE, NULL,
+							  &startInfo ) != K_OK ) \
+				{ \
+				free( threadStack ); \
+				status = CRYPT_ERROR; \
+				} \
+			else \
+				status = CRYPT_OK; \
+			}
+#define THREAD_EXIT( sync )		semV( sync ); \
+								threadDelete( K_MYACTOR, K_MYSELF )
+#define THREAD_INITIALISER		NULL
+#define THREAD_SAME( thread1, thread2 )	( ( thread1 ) == ( thread2 ) )
+#define THREAD_SELF()			threadSelf()
+#define THREAD_SLEEP( ms )		{ \
+								KnTimeVal timeVal; \
+								\
+								K_MILLI_TO_TIMEVAL( &timeVal, ms ); \
+								threadDelay( &timeVal ); \
+								}
+#define THREAD_YIELD()			threadDelay( K_NOBLOCK )
+#define THREAD_WAIT( sync )		semP( sync, K_NOTIMEOUT )
+#define THREAD_CLOSE( sync )
+
+/* Because of the problems with resource management of Chorus thread stack
+   space, we no-op out threads unless we're using wrappers by ensuring that 
+   any attempt to spawn a thread inside cryptlib fails, falling back to the 
+   non-threaded alternative.  Note that cryptlib itself is still thread-
+   safe, it just can't do its init or keygen in an internal background 
+   thread */
+
+#ifndef CHORUS_THREAD_WRAPPERS
+  #undef THREAD_CREATE
+  #undef THREAD_EXIT
+  #undef THREAD_CLOSE
+  #define THREAD_CREATE( function, arg, threadHandle, syncHandle, status ) \
+								status = CRYPT_ERROR
+  #define THREAD_EXIT( sync )
+  #define THREAD_CLOSE( sync )
+#endif /* !CHORUS_THREAD_WRAPPERS */
+
+/****************************************************************************
+*																			*
 *									eCOS									*
 *																			*
 ****************************************************************************/
 
 #elif defined( __ECOS__ )
 
-/* eCOS is extremely difficult to work with because the kernel performs no
-   memory (or, in general, resource) management of its own, assuming that
-   all memory will be allocated by the caller.  This means that every
-   variable that's normally a simple scalar value in other OSes is a
-   composite non-scalar type in eCOS.  As an extension of this, the caller
-   has to manually allocate state data for threads, mutexes, and semaphores,
-   rather than having the OS do it for them.  This significantly complicates
-   things like thread handling because the thread that creates a worker
-   thread has to be around later on to clean up after it when it terminates,
-   and the state data has to be maintained in external (non-thread) storage.
-   We handle this in one of two ways, either by not using cryptlib-internal
-   threads (they're only used for initialisation and keygen, neither of
-   which will benefit much from the ability to run them in the background in
-   an embedded system), or by wrapping the eCOS functions in our own ones
-   which allocate memory as required and access the information via a scalar
-   handle.
-
-   To use resource-management wrappers for the eCOS thread functions,
+/* To use resource-management wrappers for the eCOS thread functions,
    undefine the following */
 
 /* #define ECOS_THREAD_WRAPPERS */
@@ -453,6 +573,163 @@ int threadPriority( void );
   #define THREAD_EXIT( sync )
   #define THREAD_CLOSE( sync )
 #endif /* !ECOS_THREAD_WRAPPERS */
+
+/****************************************************************************
+*																			*
+*									uC/OS-II								*
+*																			*
+****************************************************************************/
+
+#elif defined( __UCOS__ )
+
+/* uC/OS-II has a pure priority-based scheduler (no round-robin scheduling)
+   and makes a task's priority do double duty as the task ID, which means
+   that it's unlikely it'll ever get round-robin scheduling without a
+   major overhaul of the API.  Because of this, a background task started
+   inside cryptlib for initialisation or keygen will either never run or
+   always run depending on the priority it's started with, thus making it
+   equivalent to performing the operation synchronously.  This means that
+   there's no point in using cryptlib-internal tasks, so they're disabled
+   unless the following is commented out.  Note that cryptlib is still
+   thread-(task)-safe, it just won't use internal tasks for asynchronous
+   ops, because uC/OS-II's scheduling will make the synchronous */
+
+/* #define UCOS_USE_TASKS */
+
+/* Most systems handle priority-inversion-avoidance automatically, however
+   for some reason in uC/OS-II this has to be managed manually by the user.
+   This is done by specifying the priority-inherit priority level that a
+   low-priority task is raised to when a high-priority task attempts to
+   acquire a mutex that the low-priority task is currently holding.  This
+   has to be higher than the priority of any of the tasks that will try
+   to acquire the mutex, as well as being different from the task ID/
+   priority of any task (another problem caused by the task ID == priority
+   issue).  The following is a sample value that'll need to be adjusted
+   based on usage by the calling application */
+
+#define UCOS_PIP		10
+
+/* Because of the strict priority scheduling, we have to specify the task
+   priority (which then also becomes the task ID) when we create the task.
+   The following is a sample task ID, which must be less than UCOS_PIP */
+
+#define UCOS_TASKID		20
+
+#include <includes.h>
+
+/* Object handles */
+
+#define THREAD_HANDLE			INT8U
+#define MUTEX_HANDLE			OS_EVENT *
+
+/* Mutex management functions.  uC/OS-II mutexes aren't re-entrant (although
+   this is never mentioned explicitly in any documentation, the description
+   of how mutexes work in App.Note 1002 makes it clear that they're not), we
+   use the standard trylock()-style mechanism to work around this */
+
+#define MUTEX_DECLARE_STORAGE( name ) \
+		OS_EVENT *name##Mutex; \
+		BOOLEAN name##MutexInitialised; \
+		INT8U name##MutexOwner; \
+		int name##MutexLockcount
+#define MUTEX_CREATE( name ) \
+		if( !krnlData->name##MutexInitialised ) \
+			{ \
+			INT8U err; \
+			\
+			krnlData->name##Mutex = OSMutexCreate( UCOS_PIP, &err ); \
+			krnlData->name##MutexInitialised = TRUE; \
+			}
+#define MUTEX_DESTROY( name ) \
+		if( krnlData->name##MutexInitialised ) \
+			{ \
+			INT8U err; \
+			\
+			OSMutexPend( krnlData->name##Mutex, 0, &err ); \
+			OSMutexPost( krnlData->name##Mutex ); \
+			OSMutexDel( krnlData->name##Mutex, OS_DEL_ALWAYS, &err ); \
+			krnlData->name##MutexInitialised = FALSE; \
+			}
+#define MUTEX_LOCK( name ) \
+		{ \
+		INT8U err; \
+		\
+		if( OSMutexAcept( krnlData->name##Mutex, &err ) == 0 ) \
+			{ \
+			if( !THREAD_SAME( krnlData->name##MutexOwner, THREAD_SELF() ) ) \
+				OSMutexPend( krnlData->name##Mutex, 0, &err ); \
+			else \
+				krnlData->name##MutexLockcount++; \
+			} \
+		krnlData->name##MutexOwner = THREAD_SELF();
+#define MUTEX_UNLOCK( name ) \
+		if( krnlData->name##MutexLockcount > 0 ) \
+			krnlData->name##MutexLockcount--; \
+		else \
+			OSMutexPost( krnlData->name##Mutex );
+
+/* Thread management functions.  Because of the strict priority-based
+   scheduling there's no way to perform a yield, the best that we can do
+   is sleep for 1ms, which is better than performing a busy wait.
+
+   Thread sleep times are measured in implementation-specific ticks rather
+   than ms, so we have to scale the time based on the OS_TICKS_PER_SEC
+   value */
+
+#define THREADFUNC_DEFINE( name, arg )	void name( void *arg )
+#define THREAD_CREATE( function, arg, threadHandle, syncHandle, status ) \
+			{ \
+			OS_STK *threadData = malloc( 4096 ); \
+			\
+			syncHandle = OSSemCreate( 0 ); \
+			if( OSTaskCreate( function, arg, ( BYTE * ) threadData + 4095, \
+							  UCOS_TASKID ) != OS_NO_ERR ) \
+				{ \
+				free( threadData ); \
+				status = CRYPT_ERROR; \
+				} \
+			else \
+				status = CRYPT_OK; \
+			}
+#define THREAD_EXIT( sync )		OSSemPost( sync ); \
+								OSTaskDel( OS_PRIO_SELF )
+#define THREAD_INITIALISER		0
+#define THREAD_SAME( thread1, thread2 )	( ( thread1 ) == ( thread2 ) )
+#define THREAD_SELF()			threadSelf()
+#if OS_TICKS_PER_SEC >= 1000
+  #define THREAD_SLEEP( ms )	OSTimeDelay( ( OS_TICKS_PER_SEC / 1000 ) * ms )
+#else
+  #define THREAD_SLEEP( ms )	OSTimeDelay( max( ( ms * OS_TICKS_PER_SEC ) / 1000, 1 ) )
+#endif /* OS_TICKS_PER_SEC time scaling */
+#define THREAD_YIELD()			THREAD_SLEEP( 1 )
+#define THREAD_WAIT( sync )		{ \
+								INT8U err; \
+								\
+								OSSemPend( sync, 0, &err ); \
+								OSSemDel( sync ); \
+								}
+#define THREAD_CLOSE( sync )
+
+/* uC/OS-II doesn't have a thread-self function, but allows general task
+   info to be queried.  Because of this we provide a wrapper that returns
+   the task ID as its return value */
+
+INT8U threadSelf( void );
+
+/* Because of the inability to do round-robin scheduling, we no-opn out the
+   use of internal threads/tasks.  Note that cryptlib itself is still thread-
+   safe, it just can't do its init or keygen in an internal background
+   thread */
+
+#ifndef UCOS_USE_TASKS
+  #undef THREAD_CREATE
+  #undef THREAD_EXIT
+  #undef THREAD_CLOSE
+  #define THREAD_CREATE( function, arg, threadHandle, syncHandle, status ) \
+								status = CRYPT_ERROR
+  #define THREAD_EXIT( sync )
+  #define THREAD_CLOSE( sync )
+#endif /* !UCOS_USE_TASKS */
 
 /****************************************************************************
 *																			*
@@ -1044,7 +1321,7 @@ rtems_id threadSelf( void );
 	  defined( __NetBSD__ ) || defined( __QNX__ )
   #define THREAD_YIELD()		sched_yield()
 #elif defined( __XMK__ )
-  /* The XMK underlying scheduling object is the process context, for which 
+  /* The XMK underlying scheduling object is the process context, for which
      the user-visible interface is the thread.  Therefore yielding the
 	 underlying process context should yield the associated thread */
   #define THREAD_YIELD()		yield()
@@ -1111,7 +1388,7 @@ rtems_id threadSelf( void );
 #endif /* Non-scalar pthread_t's */
 
 /* XMK doesn't have a select(), however it has a sleep() as part of the timer
-   package that performs the same function.  Note that there's a second 
+   package that performs the same function.  Note that there's a second
    sleep() that takes an argument in seconds rather than ms and that sleeps
    the overall process in the PPC BSP library, but presumably this won't be
    used if the sleep() in the timer package is enabled */

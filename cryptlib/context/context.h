@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib Encryption Context Header File 				*
-*						Copyright Peter Gutmann 1992-2003					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
@@ -404,6 +404,15 @@ int createContextFromCapability( CRYPT_CONTEXT *cryptContext,
 						const CRYPT_USER cryptOwner,
 						const CAPABILITY_INFO FAR_BSS *capabilityInfoPtr,
 						const int objectFlags );
+
+/* Statically init/destroy a context for the self-check */
+
+void staticInitContext( CONTEXT_INFO *contextInfoPtr, 
+						const CONTEXT_TYPE type, 
+						const CAPABILITY_INFO *capabilityInfoPtr,
+						void *contextData, const int contextDataSize,
+						void *keyData );
+void staticDestroyContext( CONTEXT_INFO *contextInfoPtr );
 
 /* Shared functions.  These are used for all native contexts and also by 
    some device types */

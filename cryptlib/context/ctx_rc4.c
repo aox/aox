@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib RC4 Encryption Routines					*
-*						Copyright Peter Gutmann 1994-2003					*
+*						Copyright Peter Gutmann 1994-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,17 +9,14 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "rc4.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/rc4.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/rc4.h"
 #endif /* Compiler-specific includes */
 
@@ -213,20 +210,29 @@ static int rc4Test( const BYTE *key, const int keySize,
 					const BYTE *plaintext, const BYTE *ciphertext,
 					const int length )
 	{
+	const CAPABILITY_INFO *capabilityInfo = getRC4Capability();
+	CONTEXT_INFO contextInfo;
+	CONV_INFO contextData;
+	BYTE keyData[ RC4_EXPANDED_KEYSIZE ];
 	BYTE temp[ 512 ];
-	RC4_KEY rc4key;
+	int status;
 
+	staticInitContext( &contextInfo, CONTEXT_CONV, capabilityInfo,
+					   &contextData, sizeof( CONV_INFO ), keyData );
 	memcpy( temp, plaintext, length );
-	RC4_set_key( &rc4key, keySize, ( BYTE * ) key );
-	RC4( &rc4key, length, temp, temp );
-	if( memcmp( ciphertext, temp, length ) )
+	status = capabilityInfo->initKeyFunction( &contextInfo, key, keySize );
+	if( cryptStatusOK( status ) )
+		status = capabilityInfo->encryptOFBFunction( &contextInfo, temp,
+													 length );
+	staticDestroyContext( &contextInfo );
+	if( cryptStatusError( status ) || \
+		memcmp( ciphertext, temp, length ) )
 		return( CRYPT_ERROR );
 
 	return( CRYPT_OK );
 	}
 
-
-int rc4SelfTest( void )
+static int selfTest( void )
 	{
 	/* The testing gets somewhat messy here because of the variable-length
 	   arrays, which isn't normally a problem with the fixed-length keys
@@ -256,13 +262,13 @@ int rc4SelfTest( void )
 
 /* Return context subtype-specific information */
 
-int rc4GetInfo( const CAPABILITY_INFO_TYPE type, 
-				void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
 		return( RC4_EXPANDED_KEYSIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -272,9 +278,12 @@ int rc4GetInfo( const CAPABILITY_INFO_TYPE type,
 ****************************************************************************/
 
 /* Encrypt/decrypt data.  Since RC4 is a stream cipher, encryption and
-   decryption are the same operation */
+   decryption are the same operation.  We have to append the distinguisher
+   'Fn' to the name since some systems already have 'encrypt' and 'decrypt'
+   in their standard headers  */
 
-int rc4Encrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer,
+					  int noBytes )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -291,8 +300,8 @@ int rc4Encrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Create an expanded RC4 key */
 
-int rc4InitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-				const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key,
+					const int keyLength )
 	{
 	CONV_INFO *convInfo = contextInfoPtr->ctxConv;
 
@@ -304,4 +313,23 @@ int rc4InitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 	RC4_set_key( ( RC4_KEY * ) convInfo->key, keyLength, ( BYTE * ) key );
 	return( CRYPT_OK );
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_RC4, bitsToBytes( 8 ), "RC4",
+	bitsToBytes( MIN_KEYSIZE_BITS ), bitsToBytes( 128 ), 256,
+	selfTest, getInfo, NULL, initKeyParams, initKey, NULL,
+	NULL, NULL, NULL, NULL, NULL, NULL, encryptFn, encryptFn
+	};
+
+const CAPABILITY_INFO *getRC4Capability( void )
+	{
+	return( &capabilityInfo );
+	}
+
 #endif /* USE_RC4 */

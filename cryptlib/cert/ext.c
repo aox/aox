@@ -192,8 +192,7 @@ const ATTRIBUTE_INFO *fieldIDToAttribute( const ATTRIBUTE_TYPE attributeType,
 *																			*
 ****************************************************************************/
 
-/* Find the start and end of an attribute from a field within the
-   attribute */
+/* Find the start of an attribute from a field within the attribute */
 
 ATTRIBUTE_LIST *findAttributeStart( const ATTRIBUTE_LIST *attributeListPtr )
 	{
@@ -201,14 +200,6 @@ ATTRIBUTE_LIST *findAttributeStart( const ATTRIBUTE_LIST *attributeListPtr )
 			isReadPtr( attributeListPtr, sizeof( ATTRIBUTE_LIST ) ) );
 
 	return( attributeFindStart( attributeListPtr, getAttrFunction ) );
-	}
-
-static ATTRIBUTE_LIST *findAttributeEnd( const ATTRIBUTE_LIST *attributeListPtr )
-	{
-	assert( attributeListPtr == NULL || \
-			isReadPtr( attributeListPtr, sizeof( ATTRIBUTE_LIST ) ) );
-
-	return( attributeFindEnd( attributeListPtr, getAttrFunction ) );
 	}
 
 /* Find an attribute in a list of certificate attributes by object identifier

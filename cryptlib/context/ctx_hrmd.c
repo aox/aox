@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					cryptlib HMAC-RIPEMD-160 Hash Routines					*
-*					  Copyright Peter Gutmann 1997-2003						*
+*					  Copyright Peter Gutmann 1997-2005						*
 *																			*
 ****************************************************************************/
 
@@ -9,21 +9,16 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "ripemd.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/ripemd.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/ripemd.h"
 #endif /* Compiler-specific includes */
-
-#ifdef USE_HMAC_RIPEMD160
 
 /* A structure to hold the initial and current MAC state info.  Rather than
    redoing the key processing each time when we're calculating multiple MACs
@@ -32,6 +27,8 @@
 typedef struct {
 	RIPEMD160_CTX macState, initialMacState;
 	} MAC_STATE;
+
+#define MAC_STATE_SIZE		sizeof( MAC_STATE )
 
 /****************************************************************************
 *																			*
@@ -52,39 +49,38 @@ static const FAR_BSS struct {
 	{ "", 0, NULL, 0, { 0 } }
 	};
 
-int hmacRIPEMD160SelfTest( void )
+static int selfTest( void )
 	{
-	CONTEXT_INFO contextInfoPtr;
-	MAC_INFO macInfo;
-	MAC_STATE macState;
-	int i;
-
-	/* Set up the dummy contextInfoPtr structure */
-	memset( &contextInfoPtr, 0, sizeof( CONTEXT_INFO ) );
-	memset( &macInfo, 0, sizeof( MAC_INFO ) );
-	contextInfoPtr.ctxMAC = &macInfo;
-	contextInfoPtr.ctxMAC->macInfo = &macState;
+	const CAPABILITY_INFO *capabilityInfo = getHmacRipemd160Capability();
+	CONTEXT_INFO contextInfo;
+	MAC_INFO contextData;
+	BYTE keyData[ MAC_STATE_SIZE ];
+	int i, status;
 
 	/* Test HMAC-RIPEMD-160 against the test vectors given in RFC ???? */
 	for( i = 0; hmacValues[ i ].data != NULL; i++ )
 		{
-		/* Load the HMAC key and perform the hashing */
-		hmacRIPEMD160InitKey( &contextInfoPtr, hmacValues[ i ].key,
-							  hmacValues[ i ].keyLength );
-		contextInfoPtr.flags |= CONTEXT_HASH_INITED;
-		hmacRIPEMD160Hash( &contextInfoPtr, ( BYTE * ) hmacValues[ i ].data,
-						   hmacValues[ i ].length );
-		hmacRIPEMD160Hash( &contextInfoPtr, NULL, 0 );
-		contextInfoPtr.flags = 0;
-
-		/* Retrieve the hash and make sure it matches the expected value */
-		if( memcmp( contextInfoPtr.ctxMAC->mac, hmacValues[ i ].digest,
+		staticInitContext( &contextInfo, CONTEXT_MAC, capabilityInfo,
+						   &contextData, sizeof( MAC_INFO ), keyData );
+		status = capabilityInfo->initKeyFunction( &contextInfo, 
+						hmacValues[ i ].key, hmacValues[ i ].keyLength );
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, 
+						( BYTE * ) hmacValues[ i ].data, 
+						hmacValues[ i ].length );
+		contextInfo.flags |= CONTEXT_HASH_INITED;
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
+		if( cryptStatusOK( status ) && \
+			memcmp( contextInfo.ctxMAC->mac, hmacValues[ i ].digest,
 					RIPEMD160_DIGEST_LENGTH ) )
-			break;
+			status = CRYPT_ERROR;
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) )
+			return( status );
 		}
 
-	return( ( hmacValues[ i ].data == NULL ) ? \
-			CRYPT_OK : CRYPT_ERROR );
+	return( CRYPT_OK );
 	}
 
 /****************************************************************************
@@ -95,13 +91,13 @@ int hmacRIPEMD160SelfTest( void )
 
 /* Return context subtype-specific information */
 
-int hmacRIPEMD160GetInfo( const CAPABILITY_INFO_TYPE type, 
-						  void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
-		return( sizeof( MAC_STATE ) );
+		return( MAC_STATE_SIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -112,7 +108,7 @@ int hmacRIPEMD160GetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Hash data using HMAC-RIPEMD-160 */
 
-int hmacRIPEMD160Hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	MAC_INFO *macInfo = contextInfoPtr->ctxMAC;
 	RIPEMD160_CTX *ripemdInfo = &( ( MAC_STATE * ) macInfo->macInfo )->macState;
@@ -163,8 +159,8 @@ int hmacRIPEMD160Hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Set up an HMAC-RIPEMD-160 key */
 
-int hmacRIPEMD160InitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-						  const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	MAC_INFO *macInfo = contextInfoPtr->ctxMAC;
 	RIPEMD160_CTX *ripemdInfo = &( ( MAC_STATE * ) macInfo->macInfo )->macState;
@@ -210,4 +206,20 @@ int hmacRIPEMD160InitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 
 	return( CRYPT_OK );
 	}
-#endif /* USE_HMAC_RIPEMD160 */
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_HMAC_RIPEMD160, bitsToBytes( 160 ), "HMAC-RIPEMD160",
+	bitsToBytes( 64 ), bitsToBytes( 128 ), CRYPT_MAX_KEYSIZE,
+	selfTest, getInfo, NULL, NULL, initKey, NULL, hash, hash
+	};
+
+const CAPABILITY_INFO *getHmacRipemd160Capability( void )
+	{
+	return( &capabilityInfo );
+	}

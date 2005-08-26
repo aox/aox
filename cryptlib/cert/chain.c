@@ -422,7 +422,7 @@ static int sortCertChain( CRYPT_CERTIFICATE *iCertChain,
 	assert( certChainSize > 0 && certChainSize < MAX_CHAINLENGTH );
 	assert( isWritePtr( iCertChain, sizeof( CRYPT_CERTIFICATE ) * certChainSize ) );
 	assert( isWritePtr( chainInfo, sizeof( CHAIN_INFO ) * certChainSize ) );
-	assert( ( checkHandleRange( certChainStart ) && \
+	assert( ( isHandleRangeValid( certChainStart ) && \
 			  chainingInfo == NULL ) || \
 			( certChainStart == CRYPT_UNUSED && \
 			  isWritePtr( chainingInfo, sizeof( CHAINING_INFO ) ) ) );
@@ -670,7 +670,7 @@ int copyCertChain( CERT_INFO *certInfoPtr, const CRYPT_HANDLE certChain,
 	int i, status;
 
 	assert( isWritePtr( certInfoPtr, sizeof( CERT_INFO ) ) );
-	assert( checkHandleRange( certChain ) );
+	assert( isHandleRangeValid( certChain ) );
 
 	status = krnlSendMessage( certChain, IMESSAGE_GETDEPENDENT, &iChainCert, 
 							  OBJECT_TYPE_CERTIFICATE );
@@ -815,7 +815,7 @@ int readCertChain( STREAM *stream, CRYPT_CERTIFICATE *iCryptCert,
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( isWritePtr( iCryptCert, sizeof( CRYPT_CERTIFICATE ) ) );
-	assert( checkHandleRange( cryptOwner ) || \
+	assert( isHandleRangeValid( cryptOwner ) || \
 			cryptOwner == DEFAULTUSER_OBJECT_HANDLE );
 	assert( type == CRYPT_CERTTYPE_CERTCHAIN || \
 			type == CRYPT_ICERTTYPE_CMS_CERTSET || \
@@ -991,7 +991,7 @@ int assembleCertChain( CRYPT_CERTIFICATE *iCertificate,
 	int stateInfo = CRYPT_ERROR, certChainEnd = 1, status;
 
 	assert( isWritePtr( iCertificate, sizeof( CRYPT_CERTIFICATE ) ) );
-	assert( checkHandleRange( iCertSource ) );
+	assert( isHandleRangeValid( iCertSource ) );
 	assert( isReadPtr( keyID, keyIDlength ) && keyIDlength > 1 );
 
 	/* Get the initial cert based on the key ID */

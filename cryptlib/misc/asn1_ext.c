@@ -1010,7 +1010,7 @@ int sizeofContextAlgoID( const CRYPT_CONTEXT iCryptContext,
 	{
 	int cryptAlgo, status;
 
-	assert( checkHandleRange( iCryptContext ) );
+	assert( isHandleRangeValid( iCryptContext ) );
 
 	/* If it's a standard write, determine how large the algoID and 
 	   parameters are.  Because this is a rather complex operation, the
@@ -1048,7 +1048,7 @@ int writeContextAlgoID( STREAM *stream, const CRYPT_CONTEXT iCryptContext,
 	int cryptAlgo, status;
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
-	assert( checkHandleRange( iCryptContext ) );
+	assert( isHandleRangeValid( iCryptContext ) );
 
 	status = krnlSendMessage( iCryptContext, IMESSAGE_GETATTRIBUTE,
 							  &cryptAlgo, CRYPT_CTXINFO_ALGO );
@@ -1380,7 +1380,7 @@ int sizeofCMSencrHeader( const BYTE *contentOID, const long dataSize,
 	int status, cryptInfoSize;
 
 	assert( isReadPtr( contentOID, sizeofOID( contentOID ) ) );
-	assert( checkHandleRange( iCryptContext ) );
+	assert( isHandleRangeValid( iCryptContext ) );
 
 	/* Determine the encoded size of the AlgorithmIdentifier */
 	sMemOpen( &nullStream, NULL, 0 );
@@ -1394,8 +1394,9 @@ int sizeofCMSencrHeader( const BYTE *contentOID, const long dataSize,
 	   definite or indefinite forms (the size 2 is for the tag + 0x80
 	   indefinite-length indicator) */
 	if( dataSize != CRYPT_UNUSED )
-		return( ( int ) ( sizeofObject( sizeofOID( contentOID ) + \
-				cryptInfoSize + sizeofObject( dataSize ) ) - dataSize ) );
+		return( ( int ) \
+				( sizeofObject( sizeofOID( contentOID ) + \
+								cryptInfoSize + sizeofObject( dataSize ) ) - dataSize ) );
 	return( 2 + sizeofOID( contentOID ) + cryptInfoSize + 2 );
 	}
 
@@ -1460,7 +1461,7 @@ int writeCMSencrHeader( STREAM *stream, const BYTE *contentOID,
 
 	assert( isWritePtr( stream, sizeof( STREAM ) ) );
 	assert( isReadPtr( contentOID, sizeofOID( contentOID ) ) );
-	assert( checkHandleRange( iCryptContext ) );
+	assert( isHandleRangeValid( iCryptContext ) );
 
 	/* Determine the encoded size of the AlgorithmIdentifier */
 	sMemOpen( &nullStream, NULL, 0 );

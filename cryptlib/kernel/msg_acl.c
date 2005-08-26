@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *							Message ACLs Handlers							*
-*						Copyright Peter Gutmann 1997-2004					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
@@ -88,6 +88,38 @@ static const FAR_BSS COMPARE_ACL compareACLTbl[] = {
 								  ST_DEV_FORT | ST_DEV_P11 | ST_DEV_CAPI )
 #define PRIVKEY_KEYSET_OBJECT	( ST_KEYSET_FILE | ST_KEYSET_FILE_PARTIAL | \
 								  ST_DEV_FORT | ST_DEV_P11 | ST_DEV_CAPI )
+
+static const FAR_BSS CHECK_ALT_ACL checkCAACLTbl[] = {
+	/* The CA capability is spread across certs (the CA flag) 
+	   and contexts (the signing capability), which requires a two-phase 
+	   check.  First we check the primary object, and then we check the
+	   secondary one.  Since the primary object has a dependent object but
+	   the secondary one doesn't, we have to change the check type that we 
+	   perform on the secondary to reflect this.  The checking performed is
+	   therefore:
+
+		Type				Target	Object	Action		Dep.Obj.	Fded chk
+		----				------	------	------		-------		--------
+		Privkey + CA cert	Context	PKC		SIGN		Cert		CACERT
+		Cert + pubkey		Cert	Cert	SIGCHECK	PKC			SIGCHECK
+
+	   In theory we'd need to perform some sort of generic sign-or-sigcheck
+	   check for the case where the cert is the primary object, but since the
+	   cert + context combination can only occur for public-key contexts it's 
+	   safe to check for a SIGCHECK capability.  Similarly, when the context
+	   is the primary object it's always a private key, so we can check for a
+	   SIGN capability */
+	{ OBJECT_TYPE_CONTEXT, MESSAGE_CHECK_PKC_SIGN, 
+	  MK_CHKACL_ALT( OBJECT_TYPE_CERTIFICATE, ST_CERT_CERT | ST_CERT_ATTRCERT | ST_CERT_CERTCHAIN, 
+					 MESSAGE_CHECK_CACERT ) },
+	{ OBJECT_TYPE_CERTIFICATE, MESSAGE_CHECK_PKC_SIGCHECK, 
+	  MK_CHKACL_ALT( OBJECT_TYPE_CONTEXT, ST_CTX_PKC,
+					 MESSAGE_CHECK_PKC_SIGCHECK ) },
+
+	/* End-of-ACL marker */
+	{ OBJECT_TYPE_NONE,
+	  MK_CHKACL_ALT_END() }
+	};
 
 static const FAR_BSS CHECK_ACL checkACLTbl[] = {
 	/* PKC actions.  These get somewhat complex to check because the primary
@@ -190,10 +222,15 @@ static const FAR_BSS CHECK_ACL checkACLTbl[] = {
 					PUBKEY_CERT_OBJECT, ACL_FLAG_ANY_STATE ) },
 
 	/* Misc.actions.  The CA capability is spread across certs (the CA flag) 
-	   and contexts (the signing capability) */
+	   and contexts (the signing capability), which requires a two-phase 
+	   check specified in a sub-ACL.  The CA-cert check is never applied
+	   directly, but is the second part of the two-phase check performed for
+	   the CA capability */
 	{ MESSAGE_CHECK_CA,				/* Cert signing capability */
-	  MK_CHKACL_ALT( MESSAGE_CTX_SIGN, MESSAGE_CTX_SIGCHECK, 
-					 ST_CTX_PKC | ST_CERT_CERT | ST_CERT_ATTRCERT | ST_CERT_CERTCHAIN ) },
+	  MK_CHKACL_EXT( MESSAGE_NONE, ST_NONE, checkCAACLTbl ) },
+	{ MESSAGE_CHECK_CACERT,			/* CA cert, part two of CHECK_CA */
+	  MK_CHKACL( MESSAGE_CHECK_NONE,
+				 ST_CERT_CERT | ST_CERT_ATTRCERT | ST_CERT_CERTCHAIN ) },
 
 	/* End-of-ACL marker */
 	{ MESSAGE_CHECK_NONE,
@@ -439,6 +476,73 @@ static int checkActionPermitted( const OBJECT_INFO *objectInfoPtr,
 	return( CRYPT_OK );
 	}
 
+/* Find the appropriate check ACL for a given message type */
+
+static int findCheckACL( const int messageValue, 
+						 const OBJECT_TYPE objectType, 
+						 const CHECK_ACL **checkACLptr,
+						 const CHECK_ALT_ACL **checkAltACLptr )
+	{
+	const CHECK_ACL *checkACL;
+	const CHECK_ALT_ACL *checkAltACL;
+
+	/* Precondition: It's a valid check message type */
+	PRE( messageValue > MESSAGE_CHECK_NONE && \
+		 messageValue < MESSAGE_CHECK_LAST );
+
+	/* Clear return values */
+	if( checkACLptr != NULL )
+		*checkACLptr = NULL;
+	if( checkAltACLptr != NULL )
+		*checkAltACLptr = NULL;
+
+	/* Find the appropriate ACL(s) for a given check type */
+	if( messageValue > MESSAGE_CHECK_NONE && \
+		messageValue < MESSAGE_CHECK_LAST )
+		checkACL = &checkACLTbl[ messageValue - 1 ];
+	if( checkACL == NULL )
+		{
+		assert( NOTREACHED );
+		return( CRYPT_ARGERROR_VALUE );
+		}
+
+	/* Inner precondition: We have the correct ACL */
+	PRE( checkACL->checkType == messageValue );
+
+	/* If there's a sub-ACL present, find the correct ACL for this object
+	   type */
+	if( ( checkAltACL = checkACL->altACL ) != NULL )
+		{
+		int i;
+
+		for( i = 0; checkAltACL[ i ].object != CRYPT_OBJECT_NONE && \
+					checkAltACL[ i ].object != objectType; i++ );
+		if( checkAltACL[ i ].object == CRYPT_OBJECT_NONE )
+			return( CRYPT_ARGERROR_OBJECT );
+		checkAltACL = &checkAltACL[ i ];
+		if( checkAltACL->checkType > MESSAGE_CHECK_NONE && \
+			checkAltACL->checkType < MESSAGE_CHECK_LAST )
+			checkACL = &checkACLTbl[ checkAltACL->checkType - 1 ];
+		if( checkACL == NULL )
+			{
+			assert( NOTREACHED );
+			return( CRYPT_ARGERROR_VALUE );
+			}
+		}
+
+	/* Postcondition: There's a valid ACL present */
+	POST( isReadPtr( checkACL, sizeof( CHECK_ACL ) ) );
+	POST( checkACL->altACL == NULL || \
+		  isReadPtr( checkAltACL, sizeof( CHECK_ALT_ACL ) ) );
+		
+	if( checkACLptr != NULL )
+		*checkACLptr = checkACL;
+	if( checkAltACLptr != NULL )
+		*checkAltACLptr = checkAltACL;
+
+	return( CRYPT_OK );
+	}
+
 /****************************************************************************
 *																			*
 *							Init/Shutdown Functions							*
@@ -488,23 +592,16 @@ int initMessageACL( KERNEL_DATA *krnlDataPtr )
 	for( i = 0; checkACLTbl[ i ].checkType != MESSAGE_CHECK_NONE; i++ )
 		{
 		const CHECK_ACL *checkACL = &checkACLTbl[ i ];
-		int actionIndex;
+		int j;
 
 		if( checkACL->checkType <= MESSAGE_CHECK_NONE || \
 			checkACL->checkType >= MESSAGE_CHECK_LAST || \
 			checkACL->checkType != i + 1 )
 			return( CRYPT_ERROR_FAILED );
-		for( actionIndex = 0; \
-			 checkACL->actionType[ actionIndex ] != MESSAGE_NONE; \
-			 actionIndex++ )
-			{
-			if( actionIndex >= 2 )
-				return( CRYPT_ERROR_FAILED );
-			if( checkACL->actionType[ actionIndex ] != MESSAGE_NONE && \
-				( checkACL->actionType[ actionIndex ] < MESSAGE_CTX_ENCRYPT || \
-				  checkACL->actionType[ actionIndex ] > MESSAGE_CRT_SIGCHECK ) )
-				return( CRYPT_ERROR_FAILED );
-			}
+		if( checkACL->actionType != MESSAGE_NONE && \
+			( checkACL->actionType < MESSAGE_CTX_ENCRYPT || \
+			  checkACL->actionType > MESSAGE_CRT_SIGCHECK ) )
+			return( CRYPT_ERROR_FAILED );
 		if( ( checkACL->objectACL.subTypeA & \
 					~( SUBTYPE_CLASS_A | ST_CTX_ANY | ST_CERT_ANY | \
 										 ST_KEYSET_ANY | ST_DEV_ANY ) ) || \
@@ -512,6 +609,31 @@ int initMessageACL( KERNEL_DATA *krnlDataPtr )
 			return( CRYPT_ERROR_FAILED );
 		if( checkACL->objectACL.flags & ~ACL_FLAG_ANY_STATE )
 			return( CRYPT_ERROR_FAILED );
+		if( checkACL->altACL == NULL )
+			continue;
+		for( j = 0; checkACL->altACL[ j ].object != OBJECT_TYPE_NONE; j++ )
+			{
+			const CHECK_ALT_ACL *checkAltACL = &checkACL->altACL[ j ];
+
+			if( checkAltACL->object != OBJECT_TYPE_CONTEXT && \
+				checkAltACL->object != OBJECT_TYPE_CERTIFICATE )
+				return( CRYPT_ERROR_FAILED );
+			if( checkAltACL->checkType <= MESSAGE_CHECK_NONE || \
+				checkAltACL->checkType >= MESSAGE_CHECK_LAST )
+				return( CRYPT_ERROR_FAILED );
+			if( checkAltACL->depObject != OBJECT_TYPE_CONTEXT && \
+				checkAltACL->depObject != OBJECT_TYPE_CERTIFICATE )
+				return( CRYPT_ERROR_FAILED );
+			if( ( checkAltACL->depObjectACL.subTypeA & \
+						~( SUBTYPE_CLASS_A | ST_CTX_ANY | ST_CERT_ANY ) ) || \
+				checkAltACL->depObjectACL.subTypeB != ST_NONE )
+				return( CRYPT_ERROR_FAILED );
+			if( checkAltACL->depObjectACL.flags & ~ACL_FLAG_ANY_STATE )
+				return( CRYPT_ERROR_FAILED );
+			if( checkAltACL->fdCheckType <= MESSAGE_CHECK_NONE || \
+				checkAltACL->fdCheckType >= MESSAGE_CHECK_LAST )
+				return( CRYPT_ERROR_FAILED );
+			}
 		}
 
 	/* Perform a consistency check on the cert export pseudo-ACL */
@@ -1097,24 +1219,18 @@ int preDispatchCheckCheckParam( const int objectHandle,
 	const OBJECT_INFO *objectTable = krnlData->objectTable;
 	const OBJECT_INFO *objectInfoPtr = &objectTable[ objectHandle ];
 	const CHECK_ACL *checkACL = NULL;
+	int status;
 
 	/* Precondition: It's a valid check message type */
 	PRE( fullObjectCheck( objectHandle, message ) );
 	PRE( messageValue > MESSAGE_CHECK_NONE && \
 		 messageValue < MESSAGE_CHECK_LAST );
 
-	/* Find the appropriate ACL for this check type */
-	if( messageValue > MESSAGE_CHECK_NONE && \
-		messageValue < MESSAGE_CHECK_LAST )
-		checkACL = &checkACLTbl[ messageValue - 1 ];
-	if( checkACL == NULL )
-		{
-		assert( NOTREACHED );
-		return( CRYPT_ARGERROR_VALUE );
-		}
-
-	/* Inner precondition: We have the correct ACL */
-	PRE( checkACL->checkType == messageValue );
+	/* Find the ACL information for the message type */
+	status = findCheckACL( messageValue, objectInfoPtr->type, 
+						   &checkACL, NULL );
+	if( cryptStatusError( status ) )
+		return( status );
 
 	/* Check the message target.  The full object check has already been
 	   performed by the message dispatcher so all we need to check is the
@@ -1142,27 +1258,20 @@ int preDispatchCheckCheckParam( const int objectHandle,
 	   check, make sure that the requested action is permitted for this 
 	   object */
 	if( objectInfoPtr->type == OBJECT_TYPE_CONTEXT && \
-		checkACL->actionType[ 0 ] != MESSAGE_NONE )
+		checkACL->actionType != MESSAGE_NONE )
 		{
 		const BOOLEAN isInternalMessage = \
 				( message & MESSAGE_FLAG_INTERNAL ) ? TRUE : FALSE;
-		int i, status = CRYPT_ERROR;
+		int status;
 
-		/* Step through the list of permitted actions checking to see
-		   whether one of them matches.  We convert the return status to 
-		   CRYPT_ERROR_NOTAVAIL since this is more appropriate than a 
-		   generic object error */
-		for( i = 0; cryptStatusError( status ) && \
-					checkACL->actionType[ i ] != MESSAGE_NONE; i++ )
-			{
-			status = checkActionPermitted( objectInfoPtr, 
+		/* Check that the action is permitted.  We convert the return status
+		   to a CRYPT_ERROR_NOTAVAIL, which makes more sense than a generic
+		   object error */
+		status = checkActionPermitted( objectInfoPtr, 
 							isInternalMessage ? \
-								MKINTERNAL( checkACL->actionType[ i ] ) : \
-								checkACL->actionType[ i ] );
-			}
+								MKINTERNAL( checkACL->actionType ) : \
+								checkACL->actionType );
 		if( cryptStatusError( status ) )
-			/* We went through all of the permitted actions without finding 
-			   one that was OK for this context */
 			return( CRYPT_ERROR_NOTAVAIL );
 		}
 
@@ -1659,6 +1768,8 @@ int postDispatchForwardToDependentObject( const int objectHandle,
 	const OBJECT_TYPE objectType = objectInfoPtr->type;
 	const OBJECT_TYPE dependentType = isValidObject( dependentObject ) ? \
 					krnlData->objectTable[ dependentObject ].type : CRYPT_ERROR;
+	const CHECK_ALT_ACL *checkAltACL;
+	MESSAGE_CHECK_TYPE localMessageValue = messageValue;
 	int status;
 	TEMP_VAR( const MESSAGE_TYPE localMessage = message & MESSAGE_MASK );
 
@@ -1670,14 +1781,30 @@ int postDispatchForwardToDependentObject( const int objectHandle,
 		 messageValue < MESSAGE_CHECK_LAST );
 	PRE( isValidObject( dependentObject ) || dependentObject == CRYPT_ERROR );
 
-	/* If there's no context : cert relationship between the objects, don't 
-	   do anything */
-	if( !isValidObject( dependentObject ) || \
-		!( objectType == OBJECT_TYPE_CONTEXT && \
-		   dependentType == OBJECT_TYPE_CERTIFICATE ) && \
-		!( objectType == OBJECT_TYPE_CERTIFICATE && \
-		   dependentType == OBJECT_TYPE_CONTEXT ) )
-		return( CRYPT_OK );
+	/* Find the ACL information for the message type */
+	status = findCheckACL( messageValue, objectInfoPtr->type, NULL, 
+						   &checkAltACL );
+	if( cryptStatusError( status ) )
+		return( status );
+
+	/* If there's an alternative check ACL present, there's a requirement for
+	   a particular dependent object */
+	if( checkAltACL != NULL )
+		{
+		if( !isValidObject( dependentObject ) || \
+			checkAltACL->depObject != dependentType )
+			return( CRYPT_ARGERROR_OBJECT );
+		localMessageValue = checkAltACL->fdCheckType;
+		}
+	else
+		/* If there's no context : cert relationship between the objects, 
+		   don't do anything */
+		if( !isValidObject( dependentObject ) || \
+			!( objectType == OBJECT_TYPE_CONTEXT && \
+			   dependentType == OBJECT_TYPE_CERTIFICATE ) && \
+			!( objectType == OBJECT_TYPE_CERTIFICATE && \
+			   dependentType == OBJECT_TYPE_CONTEXT ) )
+			return( CRYPT_OK );
 
 	/* Postcondition */
 	POST( isValidObject( dependentObject ) );
@@ -1689,7 +1816,7 @@ int postDispatchForwardToDependentObject( const int objectHandle,
 	   object may currently be owned by another thread */
 	MUTEX_UNLOCK( objectTable );
 	status = krnlSendMessage( dependentObject, IMESSAGE_CHECK, NULL,
-							  messageValue );
+							  localMessageValue );
 	MUTEX_LOCK( objectTable );
 	return( status );
 	}

@@ -9,21 +9,20 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "sha.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/sha2.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/sha2.h"
 #endif /* Compiler-specific includes */
 
 #ifdef USE_SHA2
+
+#define HASH_STATE_SIZE		sizeof( sha2_ctx )
 
 /****************************************************************************
 *																			*
@@ -72,7 +71,7 @@ static const struct {
 		0x21, 0x92, 0x99, 0x2a, 0x27, 0x4f, 0xc1, 0xa8,
 		0x36, 0xba, 0x3c, 0x23, 0xa3, 0xfe, 0xeb, 0xbd,
 		0x45, 0x4d, 0x44, 0x23, 0x64, 0x3c, 0xe8, 0x0e,
-		0x2a, 0x9a, 0xc9, 0x4f, 0xa5, 0x4c, 0xa4, 0x9f } 
+		0x2a, 0x9a, 0xc9, 0x4f, 0xa5, 0x4c, 0xa4, 0x9f }
 		},
 	{ "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", 56,
 	  {	0x24, 0x8d, 0x6a, 0x61, 0xd2, 0x06, 0x38, 0xb8,
@@ -92,7 +91,7 @@ static const struct {
 		0x96, 0xfd, 0x15, 0xc1, 0x3b, 0x1b, 0x07, 0xf9,
 		0xaa, 0x1d, 0x3b, 0xea, 0x57, 0x78, 0x9c, 0xa0,
 		0x31, 0xad, 0x85, 0xc7, 0xa7, 0x1d, 0xd7, 0x03,
-		0x54, 0xec, 0x63, 0x12, 0x38, 0xca, 0x34, 0x45 } 
+		0x54, 0xec, 0x63, 0x12, 0x38, 0xca, 0x34, 0x45 }
 		},
 #if 0
 	{ "aaaaa...", 1000000L,
@@ -118,32 +117,35 @@ static const struct {
 	{ NULL, 0, { 0 }, { 0 }, { 0 } }
 	};
 
-int sha2SelfTest( void )
+static int selfTest( void )
 	{
-	sha2_ctx shaInfo[1];
-	BYTE digest[ SHA2_MAX_DIGEST_SIZE ];
-	int	i;
+	const CAPABILITY_INFO *capabilityInfo = getSHA2Capability();
+	CONTEXT_INFO contextInfo;
+	HASH_INFO contextData;
+	BYTE keyData[ HASH_STATE_SIZE ];
+	int i, status;
+
+	/* SHA-2 requires the largest amount of context state so we check to 
+	   make sure that the HASH_STATE_SIZE is large enough */
+	assert( sizeof( HASHINFO ) <= HASH_STATE_SIZE );
 
 	for( i = 0; sha2Values[ i ].data != NULL; i++ )
 		{
-		sha2_begin( SHA256_DIGEST_SIZE, shaInfo );
-		sha2_hash( sha2Values[ i ].data, sha2Values[ i ].length, shaInfo );
-		sha2_end( digest, shaInfo );
-		if( memcmp( digest, sha2Values[ i ].dig256, SHA256_DIGEST_SIZE ) )
-				return( CRYPT_ERROR );
-#if 0
-		sha2_begin( SHA384_DIGEST_SIZE, shaInfo );
-		sha2_hash( sha2Values[ i ].data, sha2Values[ i ].length, shaInfo );
-		sha2_end( digest, shaInfo );
-		if( memcmp( digest, sha2Values[ i ].dig384, SHA384_DIGEST_SIZE ) )
-				return( CRYPT_ERROR );
-
-		sha2_begin( SHA512_DIGEST_SIZE, shaInfo );
-		sha2_hash( sha2Values[ i ].data, sha2Values[ i ].length, shaInfo );
-		sha2_end( digest, shaInfo );
-		if( memcmp( digest, sha2Values[ i ].dig512, SHA512_DIGEST_SIZE ) )
-				return( CRYPT_ERROR );
-#endif /* 0 */
+		staticInitContext( &contextInfo, CONTEXT_HASH, capabilityInfo,
+						   &contextData, sizeof( HASH_INFO ), keyData );
+		status = capabilityInfo->encryptFunction( &contextInfo,
+							( BYTE * ) sha2Values[ i ].data,
+							sha2Values[ i ].length );
+		contextInfo.flags |= CONTEXT_HASH_INITED;
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
+		if( cryptStatusOK( status ) && \
+			memcmp( contextInfo.ctxHash->hash, sha2Values[ i ].dig256,
+					SHA256_DIGEST_SIZE ) )
+			status = CRYPT_ERROR;
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) )
+			return( status );
 		}
 	return( CRYPT_OK );
 	}
@@ -156,13 +158,13 @@ int sha2SelfTest( void )
 
 /* Return context subtype-specific information */
 
-int sha2GetInfo( const CAPABILITY_INFO_TYPE type, 
-				 void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam,
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
-		return( sizeof( sha2_ctx ) );
+		return( HASH_STATE_SIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -173,11 +175,11 @@ int sha2GetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Hash data using SHA */
 
-int sha2Hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	sha2_ctx *shaInfo = ( sha2_ctx * ) contextInfoPtr->ctxHash->hashInfo;
 
-	/* If the hash state was reset to allow another round of hashing, 
+	/* If the hash state was reset to allow another round of hashing,
 	   reinitialise things */
 	if( !( contextInfoPtr->flags & CONTEXT_HASH_INITED ) )
 		sha2_begin( SHA256_DIGEST_SIZE, shaInfo );
@@ -232,4 +234,22 @@ void sha2HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuffer,
 			assert( NOTREACHED );
 		}
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_SHA2, bitsToBytes( 256 ), "SHA-2",
+	bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ),
+	selfTest, getInfo, NULL, NULL, NULL, NULL, hash, hash
+	};
+
+const CAPABILITY_INFO *getSHA2Capability( void )
+	{
+	return( &capabilityInfo );
+	}
+
 #endif /* USE_SHA2 */

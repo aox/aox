@@ -427,7 +427,7 @@ static int writePgpKek( STREAM *stream, const CRYPT_CONTEXT iCryptContext,
 	   count */
 	assert( keySetupIterations % 16 == 0 );
 	keySetupIterations /= 32;	/* Remove fixed offset before log2 op.*/
-	while( keySetupIterations )
+	while( keySetupIterations > 0 )
 		{
 		count++;
 		keySetupIterations >>= 1;

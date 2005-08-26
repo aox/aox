@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						 cryptlib CMP Session Management					*
-*						Copyright Peter Gutmann 1999-2003					*
+*						Copyright Peter Gutmann 1999-2005					*
 *																			*
 ****************************************************************************/
 
@@ -362,9 +362,9 @@ int initServerAuthentMAC( SESSION_INFO *sessionInfoPtr,
 		else
 			strcpy( userID, "the requested user" );
 		protocolInfo->pkiFailInfo = CMPFAILINFO_SIGNERNOTTRUSTED;
-		retExt( sessionInfoPtr, status, 
-				"Couldn't find PKI user information for %s",
-				userID );
+		retExtEx( sessionInfoPtr, status, sessionInfoPtr->cryptKeyset,
+				  "Couldn't find PKI user information for %s",
+				  userID );
 		}
 	cmpInfo->userInfo = getkeyInfo.cryptHandle;
 	protocolInfo->userIDchanged = FALSE;
@@ -429,9 +429,9 @@ int initServerAuthentSign( SESSION_INFO *sessionInfoPtr,
 	if( cryptStatusError( status ) )
 		{
 		protocolInfo->pkiFailInfo = CMPFAILINFO_SIGNERNOTTRUSTED;
-		retExt( sessionInfoPtr, status, 
-				"Couldn't find PKI user information for owner of requesting "
-				"cert" );
+		retExtEx( sessionInfoPtr, status, sessionInfoPtr->cryptKeyset,
+				  "Couldn't find PKI user information for owner of "
+				  "requesting cert" );
 		}
 
 	/* If there's currently no user ID present or if it's present but it's a
@@ -473,8 +473,8 @@ int initServerAuthentSign( SESSION_INFO *sessionInfoPtr,
 	if( cryptStatusError( status ) )
 		{
 		protocolInfo->pkiFailInfo = CMPFAILINFO_SIGNERNOTTRUSTED;
-		retExt( sessionInfoPtr, status, 
-				"Couldn't find certificate for requested user" );
+		retExtEx( sessionInfoPtr, status, sessionInfoPtr->cryptKeyset,
+				  "Couldn't find certificate for requested user" );
 		}
 	sessionInfoPtr->iAuthInContext = getkeyInfo.cryptHandle;
 	protocolInfo->userIDchanged = FALSE;
@@ -916,6 +916,7 @@ static int serverTransact( SESSION_INFO *sessionInfoPtr )
 	{
 	CMP_INFO *cmpInfo = sessionInfoPtr->sessionCMP;
 	MESSAGE_CERTMGMT_INFO certMgmtInfo;
+	MESSAGE_KEYMGMT_INFO setkeyInfo;
 	CMP_PROTOCOL_INFO protocolInfo;
 	const ATTRIBUTE_LIST *userNamePtr = \
 				findSessionAttribute( sessionInfoPtr->attributeList,
@@ -1031,54 +1032,53 @@ static int serverTransact( SESSION_INFO *sessionInfoPtr )
 
 	/* Make sure that the signature on the request data is OK (unless it's a 
 	   non-signed revocation request or a request for an encryption-only 
-	   key) and add it to the cert store */
+	   key) */
 	if( protocolInfo.operation != CTAG_PB_RR && !protocolInfo.cryptOnlyKey )
 		status = krnlSendMessage( sessionInfoPtr->iCertRequest,
 								  IMESSAGE_CRT_SIGCHECK, NULL, CRYPT_UNUSED );
 	if( cryptStatusError( status ) )
-		strcpy( sessionInfoPtr->errorMessage, 
-				"Request signature check failed" );
-	else
 		{
-		MESSAGE_KEYMGMT_INFO setkeyInfo;
-
-		setMessageKeymgmtInfo( &setkeyInfo, CRYPT_KEYID_NONE, NULL, 0, NULL, 0,
-							   ( protocolInfo.operation == CTAG_PB_KUR ) ? \
-									KEYMGMT_FLAG_UPDATE : KEYMGMT_FLAG_NONE );
-		setkeyInfo.cryptHandle = sessionInfoPtr->iCertRequest;
-		status = krnlSendMessage( sessionInfoPtr->cryptKeyset,
-								  IMESSAGE_KEY_SETKEY, &setkeyInfo, 
-								  KEYMGMT_ITEM_REQUEST );
-		if( cryptStatusError( status ) )
-			{
-			/* A common error condition at this point arises when the user 
-			   tries to submit a second initialisation request for a PKI 
-			   user that has already had a cert issued for it, so we catch 
-			   this condition and provide a more informative error response
-			   than the generic message */
-			if( protocolInfo.operation == CTAG_PB_IR && \
-				status == CRYPT_ERROR_DUPLICATE )
-				{
-				strcpy( sessionInfoPtr->errorMessage, 
-						"Initialisation request couldn't be added to the "
-						"cert store because another initialisation request "
-						"has already been processed for this user" );
-				protocolInfo.pkiFailInfo = CMPFAILINFO_DUPLICATECERTREQ;
-				}
-			else
-				strcpy( sessionInfoPtr->errorMessage, 
-						"Request couldn't be added to the cert store" );
-			}
+		sendErrorResponse( sessionInfoPtr, &protocolInfo, status );
+		destroyProtocolInfo( &protocolInfo );
+		retExt( sessionInfoPtr, status, "Request signature check failed" );
 		}
+
+	/* Add the request to the cert store */
+	setMessageKeymgmtInfo( &setkeyInfo, CRYPT_KEYID_NONE, NULL, 0, NULL, 0,
+						   ( protocolInfo.operation == CTAG_PB_KUR ) ? \
+								KEYMGMT_FLAG_UPDATE : KEYMGMT_FLAG_NONE );
+	setkeyInfo.cryptHandle = sessionInfoPtr->iCertRequest;
+	status = krnlSendMessage( sessionInfoPtr->cryptKeyset,
+							  IMESSAGE_KEY_SETKEY, &setkeyInfo, 
+							  KEYMGMT_ITEM_REQUEST );
 	if( cryptStatusError( status ) )
 		{
 		/* If the cert store reports that there's a problem with the request,
 		   convert it to an invalid request error */
 		if( status == CRYPT_ARGERROR_NUM1 )
 			status = CRYPT_ERROR_INVALID;
+
+		/* A common error condition at this point arises when the user tries 
+		   to submit a second initialisation request for a PKI user that has 
+		   already had a cert issued for it, so we catch this condition and 
+		   provide a more informative error response than the generic 
+		   message */
+		if( protocolInfo.operation == CTAG_PB_IR && \
+			status == CRYPT_ERROR_DUPLICATE )
+			protocolInfo.pkiFailInfo = CMPFAILINFO_DUPLICATECERTREQ;
+
+		/* Clean up and return the appropriate error information to the
+		   caller */
 		sendErrorResponse( sessionInfoPtr, &protocolInfo, status );
 		destroyProtocolInfo( &protocolInfo );
-		return( status );
+		if( protocolInfo.operation == CTAG_PB_IR && \
+			status == CRYPT_ERROR_DUPLICATE )
+			retExtEx( sessionInfoPtr, status, sessionInfoPtr->cryptKeyset,
+					  "Initialisation request couldn't be added to the "
+					  "cert store because another initialisation request "
+					  "has already been processed for this user" );
+		retExtEx( sessionInfoPtr, status, sessionInfoPtr->cryptKeyset,
+				  "Request couldn't be added to the cert store" );
 		}
 
 	/* Create or revoke a cert from the request */
@@ -1108,9 +1108,10 @@ static int serverTransact( SESSION_INFO *sessionInfoPtr )
 			status = CRYPT_ERROR_INVALID;
 		sendErrorResponse( sessionInfoPtr, &protocolInfo, status );
 		destroyProtocolInfo( &protocolInfo );
-		retExt( sessionInfoPtr, status, "%s was denied by cert store",
-				( protocolInfo.operation != CTAG_PB_RR ) ? \
-				"Cert issue" : "Revocation" );
+		retExtEx( sessionInfoPtr, status, sessionInfoPtr->cryptKeyset,
+				  "%s was denied by cert store",
+				  ( protocolInfo.operation != CTAG_PB_RR ) ? \
+					"Cert issue" : "Revocation" );
 		}
 
 	/* Send the response to the client */
@@ -1198,7 +1199,8 @@ static int serverTransact( SESSION_INFO *sessionInfoPtr )
 		{
 		sendErrorResponse( sessionInfoPtr, &protocolInfo, status );
 		destroyProtocolInfo( &protocolInfo );
-		retExt( sessionInfoPtr, status, "Cert issue completion failed" );
+		retExtEx( sessionInfoPtr, status, sessionInfoPtr->cryptKeyset,
+				  "Cert issue completion failed" );
 		}
 
 	/* Send back the final ack and clean up.  We don't bother checking the
@@ -1506,9 +1508,11 @@ static int setAttributeFunction( SESSION_INFO *sessionInfoPtr,
 int setAccessMethodCMP( SESSION_INFO *sessionInfoPtr )
 	{
 	static const ALTPROTOCOL_INFO altProtocolInfo = {
-		STREAM_PROTOCOL_CMP,		/* Alt.xport protocol type */
-		"cmp://",					/* Alt.xport protocol URI type */
-		CMP_PORT					/* Alt.xport protocol port */
+		STREAM_PROTOCOL_CMP,		/* Alt.protocol type */
+		"cmp://",					/* Alt.protocol URI type */
+		CMP_PORT,					/* Alt.protocol port */
+		SESSION_ISHTTPTRANSPORT,	/* Protocol flags to replace */
+		SESSION_USEALTTRANSPORT		/* Alt.protocol flags */
 		};
 	static const PROTOCOL_INFO protocolInfo = {
 		/* General session information */

@@ -211,7 +211,7 @@ int caAddPKIUser( DBMS_INFO *dbmsInfo, const CRYPT_CERTIFICATE iPkiUser )
 	int certDataLength, status;
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
-	assert( checkHandleRange( iPkiUser ) );
+	assert( isHandleRangeValid( iPkiUser ) );
 
 	/* Extract the information we need from the PKI user object.  In
 	   addition to simply obtaining the information for logging purposes we
@@ -299,7 +299,7 @@ int caAddCertRequest( DBMS_INFO *dbmsInfo,
 	int reqCertIDlength, certDataLength, status;
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
-	assert( checkHandleRange( iCertRequest ) );
+	assert( isHandleRangeValid( iCertRequest ) );
 	assert( requestType == CRYPT_CERTTYPE_CERTREQUEST || \
 			requestType == CRYPT_CERTTYPE_REQUEST_CERT || \
 			requestType == CRYPT_CERTTYPE_REQUEST_REVOCATION );

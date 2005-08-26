@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib DSA Encryption Routines					*
-*						Copyright Peter Gutmann 1995-2004					*
+*						Copyright Peter Gutmann 1995-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,15 +9,12 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
 #endif /* Compiler-specific includes */
 
 /****************************************************************************
@@ -123,6 +120,7 @@ static const FAR_BSS BYTE kVal[] = {
 
 static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr )
 	{
+	const CAPABILITY_INFO *capabilityInfoPtr = getDSACapability();
 	DLP_PARAMS dlpParams;
 	BYTE buffer[ 128 ];
 	int sigSize, status;
@@ -130,8 +128,8 @@ static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr )
 	/* Generate a signature with the private key */
 	setDLPParams( &dlpParams, shaM, 20, buffer, 128 );
 	dlpParams.inLen2 = -999;
-	status = dsaSign( contextInfoPtr, ( BYTE * ) &dlpParams,
-					  sizeof( DLP_PARAMS ) );
+	status = capabilityInfoPtr->signFunction( contextInfoPtr, 
+						( BYTE * ) &dlpParams, sizeof( DLP_PARAMS ) );
 	if( cryptStatusError( status ) )
 		return( FALSE );
 
@@ -140,17 +138,16 @@ static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr )
 	setDLPParams( &dlpParams, shaM, 20, NULL, 0 );
 	dlpParams.inParam2 = buffer;
 	dlpParams.inLen2 = sigSize;
-	status = dsaSigCheck( contextInfoPtr, ( BYTE * ) &dlpParams,
-						  sizeof( DLP_PARAMS ) );
+	status = capabilityInfoPtr->sigCheckFunction( contextInfoPtr, 
+						( BYTE * ) &dlpParams, sizeof( DLP_PARAMS ) );
 	return( cryptStatusOK( status ) ? TRUE : FALSE );
 	}
 
-int dsaSelfTest( void )
+static int selfTest( void )
 	{
+	const CAPABILITY_INFO *capabilityInfoPtr = getDSACapability();
 	CONTEXT_INFO contextInfoPtr;
 	PKC_INFO pkcInfoStorage, *pkcInfo;
-	static const FAR_BSS CAPABILITY_INFO capabilityInfo = \
-		{ CRYPT_ALGO_DSA, 0, NULL, 64, 128, 512, 0 };
 	int status;
 
 	/* Initialise the key components */
@@ -169,7 +166,7 @@ int dsaSelfTest( void )
 	BN_init( &pkcInfo->dlpTmp2 );
 	BN_CTX_init( &pkcInfo->bnCTX );
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_p );
-	contextInfoPtr.capabilityInfo = &capabilityInfo;
+	contextInfoPtr.capabilityInfo = capabilityInfoPtr;
 	initKeyWrite( &contextInfoPtr );	/* For calcKeyID() */
 	BN_bin2bn( dlpTestKey.p, dlpTestKey.pLen, &pkcInfo->dlpParam_p );
 	BN_bin2bn( dlpTestKey.q, dlpTestKey.qLen, &pkcInfo->dlpParam_q );
@@ -178,7 +175,7 @@ int dsaSelfTest( void )
 	BN_bin2bn( dlpTestKey.x, dlpTestKey.xLen, &pkcInfo->dlpParam_x );
 
 	/* Perform the test sign/sig.check of the FIPS 186 test values */
-	status = dsaInitKey( &contextInfoPtr, NULL, 0 );
+	status = capabilityInfoPtr->initKeyFunction( &contextInfoPtr, NULL, 0 );
 	if( cryptStatusOK( status ) && \
 		!pairwiseConsistencyTest( &contextInfoPtr ) )
 		status = CRYPT_ERROR;
@@ -227,7 +224,7 @@ int dsaSelfTest( void )
 
 /* Sign a single block of data  */
 
-int dsaSign( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int sign( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
 	DLP_PARAMS *dlpParams = ( DLP_PARAMS * ) buffer;
@@ -315,7 +312,7 @@ int dsaSign( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Signature check a single block of data */
 
-int dsaSigCheck( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int sigCheck( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
 	DLP_PARAMS *dlpParams = ( DLP_PARAMS * ) buffer;
@@ -378,8 +375,8 @@ int dsaSigCheck( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Load key components into an encryption context */
 
-int dsaInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
-				const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	int status;
 
@@ -419,7 +416,7 @@ int dsaInitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 
 /* Generate a key into an encryption context */
 
-int dsaGenerateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
+static int generateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 	{
 	int status;
 
@@ -437,4 +434,22 @@ int dsaGenerateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 	if( cryptStatusOK( status ) )
 		status = calculateKeyID( contextInfoPtr );
 	return( status );
+	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_DSA, bitsToBytes( 0 ), "DSA",
+	bitsToBytes( MIN_PKCSIZE_BITS ), bitsToBytes( 1024 ), CRYPT_MAX_PKCSIZE,
+	selfTest, getDefaultInfo, NULL, NULL, initKey, generateKey,
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, sign, sigCheck
+	};
+
+const CAPABILITY_INFO *getDSACapability( void )
+	{
+	return( &capabilityInfo );
 	}

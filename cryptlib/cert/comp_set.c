@@ -423,8 +423,8 @@ static int copyPublicKeyInfo( CERT_INFO *certInfoPtr,
 	void *publicKeyInfoPtr;
 	int length, status;
 
-	assert( ( checkHandleRange( cryptHandle ) && srcCertInfoPtr == NULL ) || \
-			( !checkHandleRange( cryptHandle ) && srcCertInfoPtr != NULL ) );
+	assert( ( isHandleRangeValid( cryptHandle ) && srcCertInfoPtr == NULL ) || \
+			( !isHandleRangeValid( cryptHandle ) && srcCertInfoPtr != NULL ) );
 
 	/* Make sure that we haven't already got a public key present */
 	if( certInfoPtr->iPubkeyContext != CRYPT_ERROR || \

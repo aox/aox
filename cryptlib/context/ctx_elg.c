@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib Elgamal Encryption Routines					*
-*						Copyright Peter Gutmann 1997-2004					*
+*						Copyright Peter Gutmann 1997-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,15 +9,12 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
 #endif /* Compiler-specific includes */
 
 #ifdef USE_ELGAMAL
@@ -112,6 +109,7 @@ static const FAR_BSS BYTE kRandomVal[] = {
 static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr,
 										const BOOLEAN isGeneratedKey )
 	{
+	const CAPABILITY_INFO *capabilityInfoPtr = getElgamalCapability();
 	DLP_PARAMS dlpParams;
 	BYTE buffer[ ( CRYPT_MAX_PKCSIZE * 2 ) + 32 + 8 ];
 	int encrSize, status;
@@ -126,8 +124,8 @@ static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr,
 		/* Force the use of a fixed k value for the encryption test to
 		   avoid having to go via the RNG */
 		dlpParams.inLen2 = -999;
-	status = elgamalEncrypt( contextInfoPtr, ( BYTE * ) &dlpParams,
-							 sizeof( DLP_PARAMS ) );
+	status = capabilityInfoPtr->encryptFunction( contextInfoPtr, 
+						( BYTE * ) &dlpParams, sizeof( DLP_PARAMS ) );
 	if( cryptStatusError( status ) )
 		return( FALSE );
 
@@ -135,19 +133,18 @@ static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr,
 	encrSize = dlpParams.outLen;
 	setDLPParams( &dlpParams, buffer, encrSize, 
 				  buffer, ( CRYPT_MAX_PKCSIZE * 2 ) + 32 );
-	status = elgamalDecrypt( contextInfoPtr, ( BYTE * ) &dlpParams,
-							 sizeof( DLP_PARAMS ) );
+	status = capabilityInfoPtr->decryptFunction( contextInfoPtr, 
+						( BYTE * ) &dlpParams, sizeof( DLP_PARAMS ) );
 	if( cryptStatusError( status ) )
 		return( FALSE );
 	return( !memcmp( buffer + 1, "abcde", 5 ) );
 	}
 
-int elgamalSelfTest( void )
+static int selfTest( void )
 	{
+	const CAPABILITY_INFO *capabilityInfoPtr = getElgamalCapability();
 	CONTEXT_INFO contextInfoPtr;
 	PKC_INFO pkcInfoStorage, *pkcInfo;
-	static const FAR_BSS CAPABILITY_INFO capabilityInfo = \
-		{ CRYPT_ALGO_ELGAMAL, 0, NULL, 64, 128, 512, 0 };
 	int status;
 
 	/* Initialise the key components */
@@ -166,7 +163,7 @@ int elgamalSelfTest( void )
 	BN_init( &pkcInfo->dlpTmp2 );
 	BN_CTX_init( &pkcInfo->bnCTX );
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_p );
-	contextInfoPtr.capabilityInfo = &capabilityInfo;
+	contextInfoPtr.capabilityInfo = capabilityInfoPtr;
 	initKeyWrite( &contextInfoPtr );	/* For calcKeyID() */
 	BN_bin2bn( dlpTestKey.p, dlpTestKey.pLen, &pkcInfo->dlpParam_p );
 	BN_bin2bn( dlpTestKey.g, dlpTestKey.gLen, &pkcInfo->dlpParam_g );
@@ -177,17 +174,18 @@ int elgamalSelfTest( void )
 	/* Perform a test a sig generation/check and test en/decryption */
 #if 0	/* See comment in sig.code */
 	memset( buffer, '*', 20 );
-	status = elgamalSign( &contextInfoPtr, buffer, -1 );
+	status = capabilityInfoPtr->signFunction( &contextInfoPtr, buffer, -1 );
 	if( !cryptStatusError( status ) )
 		{
 		memmove( buffer + 20, buffer, status );
 		memset( buffer, '*', 20 );
-		status = elgamalSigCheck( &contextInfoPtr, buffer, 20 + status );
+		status = capabilityInfoPtr->sigCheckFunction( &contextInfoPtr, 
+													  buffer, 20 + status );
 		}
 	if( status != CRYPT_OK )
 		status = CRYPT_ERROR;
 #endif /* 0 */
-	status = elgamalInitKey( &contextInfoPtr, NULL, 0 );
+	status = capabilityInfoPtr->initKeyFunction( &contextInfoPtr, NULL, 0 );
 	if( cryptStatusOK( status ) && \
 		!pairwiseConsistencyTest( &contextInfoPtr, FALSE ) )
 		status = CRYPT_ERROR;
@@ -245,7 +243,7 @@ int elgamalSelfTest( void )
 
 /* Sign a single block of data  */
 
-int elgamalSign( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int sign( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	PKC_INFO *pkcInfo = &contextInfoPtr->ctxPKC;
 	BIGNUM *p = &pkcInfo->dlpParam_p, *g = &pkcInfo->dlpParam_g;
@@ -323,7 +321,7 @@ int elgamalSign( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Signature check a single block of data */
 
-int elgamalSigCheck( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int sigCheck( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	PKC_INFO *pkcInfo = &contextInfoPtr->ctxPKC;
 	BIGNUM *p = &pkcInfo->dlpParam_p, *g = &pkcInfo->dlpParam_g;
@@ -382,9 +380,11 @@ int elgamalSigCheck( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 *																			*
 ****************************************************************************/
 
-/* Encrypt a single block of data  */
+/* Encrypt a single block of data.  We have to append the distinguisher 'Fn' 
+   to the name since some systems already have 'encrypt' and 'decrypt' in 
+   their standard headers */
 
-int elgamalEncrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
 	DLP_PARAMS *dlpParams = ( DLP_PARAMS * ) buffer;
@@ -482,7 +482,7 @@ int elgamalEncrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Decrypt a single block of data */
 
-int elgamalDecrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
 	DLP_PARAMS *dlpParams = ( DLP_PARAMS * ) buffer;
@@ -534,7 +534,7 @@ int elgamalDecrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Load key components into an encryption context */
 
-int elgamalInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
 					const int keyLength )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
@@ -583,7 +583,7 @@ int elgamalInitKey( CONTEXT_INFO *contextInfoPtr, const void *key,
 
 /* Generate a key into an encryption context */
 
-int elgamalGenerateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
+static int generateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 	{
 	int status;
 
@@ -602,4 +602,22 @@ int elgamalGenerateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 		status = calculateKeyID( contextInfoPtr );
 	return( status );
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_ELGAMAL, bitsToBytes( 0 ), "Elgamal",
+	bitsToBytes( MIN_PKCSIZE_BITS ), bitsToBytes( 1024 ), CRYPT_MAX_PKCSIZE,
+	selfTest, getDefaultInfo, NULL, NULL, initKey, generateKey, encryptFn, decryptFn
+	};
+
+const CAPABILITY_INFO *getElgamalCapability( void )
+	{
+	return( &capabilityInfo );
+	}
+
 #endif /* USE_ELGAMAL */

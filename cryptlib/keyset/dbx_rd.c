@@ -178,7 +178,7 @@ int getItemData( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 	BOOLEAN multiCertQuery = ( options & KEYMGMT_MASK_USAGEOPTIONS ) ? \
 							 TRUE : FALSE;
 	BOOLEAN continueFetch = TRUE;
-	int certDataLength, status;
+	int certDataLength, iterationCount = 0, status;
 
 	assert( isWritePtr( dbmsInfo, sizeof( DBMS_INFO ) ) );
 	assert( isWritePtr( iCertificate, sizeof( CRYPT_CERTIFICATE ) ) );
@@ -236,7 +236,7 @@ int getItemData( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		}
 
 	/* Retrieve the results from the query */
-	while( continueFetch )
+	while( continueFetch && iterationCount++ < 100 )
 		{
 		/* Retrieve the record and base64-decode the binary cert data if
 		   necessary */
@@ -297,6 +297,8 @@ int getItemData( DBMS_INFO *dbmsInfo, CRYPT_CERTIFICATE *iCertificate,
 		/* We got what we wanted, exit */
 		continueFetch = FALSE;
 		}
+	if( iterationCount >= 100 )
+		return( CRYPT_ERROR_NOTFOUND );
 
 	/* If we've been looking through multiple certs, cancel the outstanding
 	   query, which will still be in progress */

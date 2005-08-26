@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						 cryptlib DBMS Back-end Interface					*
-*						Copyright Peter Gutmann 1996-2004					*
+*						Copyright Peter Gutmann 1996-2005					*
 *																			*
 ****************************************************************************/
 
@@ -34,7 +34,7 @@
 *																			*
 ****************************************************************************/
 
-#ifdef USE_TCP
+#ifdef USE_DATABASE_PLUGIN
 
 #ifdef USE_RPCAPI 
 
@@ -119,7 +119,7 @@ int initDispatchNet( DBMS_INFO *dbmsInfo )
 	}
 #endif /* USE_RPCAPI */
 
-#endif /* USE_TCP */
+#endif /* USE_DATABASE_PLUGIN */
 
 /****************************************************************************
 *																			*
@@ -128,9 +128,9 @@ int initDispatchNet( DBMS_INFO *dbmsInfo )
 ****************************************************************************/
 
 /* Dispatch functions for various database types.  ODBC is the native keyset
-   for Windows and (if possible) Unix, a cryptlib-native plugin (usually 
-   MySQL) is the fallback for Unix, and the rest are only accessible via 
-   database network plugins */
+   for Windows and (if possible) Unix, a cryptlib-native plugin is the 
+   fallback for Unix, and the rest are only accessible via database network 
+   plugins */
 
 #ifdef USE_ODBC
   #ifdef USE_RPCAPI
@@ -143,8 +143,7 @@ int initDispatchNet( DBMS_INFO *dbmsInfo )
 #else
   #define initDispatchODBC( dbmsInfo )		CRYPT_ERROR
 #endif /* USE_ODBC */
-#if defined( USE_MYSQL ) || defined( USE_ORACLE ) || \
-	defined( USE_POSTGRES ) 
+#if defined( USE_DATABASE ) 
   #ifdef USE_RPCAPI
 	void databaseProcessCommand( void *stateInfo, BYTE *buffer );
 	#define initDispatchDatabase( dbmsInfo ) \
@@ -155,7 +154,7 @@ int initDispatchNet( DBMS_INFO *dbmsInfo )
 #else
   #define initDispatchDatabase( dbmsInfo )	CRYPT_ERROR
 #endif /* General database interface */
-#ifdef USE_TCP
+#ifdef USE_DATABASE_PLUGIN
   #ifdef USE_RPCAPI
 	void netProcessCommand( void *stateInfo, BYTE *buffer );
 	#define initDispatchNet( dbmsInfo ) \
@@ -165,7 +164,7 @@ int initDispatchNet( DBMS_INFO *dbmsInfo )
   #endif /* USE_RPCAPI */
 #else
   #define initDispatchNet( dbmsInfo )		CRYPT_ERROR
-#endif /* USE_TCP */
+#endif /* USE_DATABASE_PLUGIN */
 
 /* Make sure that we can fit the largest possible SQL query into the RPC 
    buffer */

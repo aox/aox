@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib HTTP Interface Routines					*
-*						Copyright Peter Gutmann 1998-2004					*
+*						Copyright Peter Gutmann 1998-2005					*
 *																			*
 ****************************************************************************/
 
@@ -48,7 +48,8 @@
 #define HTTP_FLAG_CHUNKED	0x01	/* Message used chunked encoding */
 #define HTTP_FLAG_TRAILER	0x02	/* Chunked encoding has trailer */
 #define HTTP_FLAG_NOOP		0x04	/* No-op data (e.g. 100 Continue) */
-#define HTTP_FLAG_ERRORMSG	0x08	/* Content is text error message */
+#define HTTP_FLAG_TEXTMSG	0x08	/* Content is plain text, probably 
+									   an error message */
 
 /* The various HTTP header types that we can process */
 
@@ -147,6 +148,7 @@ static const FAR_BSS HTTP_STATUS_INFO httpStatusInfo[] = {
 	{ 415, "415", "Unsupported Media Type", CRYPT_ERROR_READ },
 	{ 416, "416", "Requested range not satisfiable", CRYPT_ERROR_READ },
 	{ 417, "417", "Expectation Failed", CRYPT_ERROR_READ },
+	{ 426, "426", "Upgrade Required", CRYPT_ERROR_READ },
 	{ 451, "451", "RTSP: Parameter not Understood", CRYPT_ERROR_BADDATA },
 	{ 452, "452", "RTSP: Conference not Found", CRYPT_ERROR_NOTFOUND },
 	{ 453, "453", "RTSP: Not enough Bandwidth", CRYPT_ERROR_NOTAVAIL },
@@ -652,7 +654,20 @@ static int readHeaderLines( STREAM *stream, char *lineBuffer,
 		*contentLength = 0;
 
 	/* Read each line in the header checking for any fields that we need to 
-	   handle */
+	   handle.  We check for a couple of basic problems with the header to
+	   avoid malformed-header attacks, for example an attacker could send a
+	   request with two 'Content-Length:' headers, one of which covers the
+	   entire message body and the other which indicates that there's a 
+	   second request that begins halfway through the message body.  Some
+	   proxies/caches will take the first length, some the second, if the
+	   proxy is expected to check/rewrite the request as it passes through
+	   then the single/dual-message issue can be used to bypass the checking
+	   on the tunnelled second message.  Because of this we only allow a 
+	   single Host: and Content-Length: header, and disallow a chunked 
+	   encoding in combination with a content-length (Apache does some 
+	   really strange things with chunked encodings).  Note that we can't be
+	   too finicky with the checking or we'll end up rejecting non-malicious 
+	   requests from some of the broken HTTP implementations out there */
 	for( lineCount = 0; lineCount < MAX_HEADER_LINES; lineCount++ )
 		{
 		HTTP_HEADER_TYPE headerType;
@@ -670,17 +685,25 @@ static int readHeaderLines( STREAM *stream, char *lineBuffer,
 		switch( headerType )
 			{
 			case HTTP_HEADER_HOST:
-				/* Remember that we've seen a Host: line, to meet the HTTP 
-				   1.1 requirements */
+				/* Make sure that it's a non-duplicate, and remember that 
+				   we've seen a Host: line, to meet the HTTP 1.1 
+				   requirements */
+				if( seenHost )
+					retExtStream( stream, CRYPT_ERROR_BADDATA,
+								  "Duplicate 'Host:' header line" );
 				seenHost = TRUE;
 				break;
 			
 			case HTTP_HEADER_CONTENT_LENGTH:
-				/* Get the content length.  At this point all we do is a 
-				   general sanity check that the length looks OK, a specific
-				   check against the caller-supplied minimum allowable 
-				   length is performed later since the content length may 
-				   also be provided as a chunked encoding length */
+				/* Make sure that it's a non-duplicate and get the content 
+				   length.  At this point all we do is a general sanity 
+				   check that the length looks OK, a specific check against 
+				   the caller-supplied minimum allowable length is performed 
+				   later since the content length may also be provided as a 
+				   chunked encoding length */
+				if( seenLength || ( *flags & HTTP_FLAG_CHUNKED ) )
+					retExtStream( stream, CRYPT_ERROR_BADDATA,
+								  "Duplicate 'Content-Length:' header line" );
 				localLength = aToI( lineBufPtr );
 				if( localLength <= 0 || localLength > MAX_INTLENGTH )
 					retExtStream( stream, CRYPT_ERROR_BADDATA,
@@ -690,8 +713,8 @@ static int readHeaderLines( STREAM *stream, char *lineBuffer,
 				break;
 
 			case HTTP_HEADER_CONTENT_TYPE:
-				/* Sometimes if there's an error it'll be returned at the 
-				   HTTP level rather than at the tunnelled-over-HTTP 
+				/* Sometimes if there's an error it'll be returned as content
+				   at the HTTP level rather than at the tunnelled-over-HTTP 
 				   protocol level.  The easiest way to check for this would 
 				   be to make sure that the content-type matches the 
 				   expected type and report anything else as an error.  
@@ -699,11 +722,16 @@ static int readHeaderLines( STREAM *stream, char *lineBuffer,
 				   types by PKI software using HTTP as a substrate it's not 
 				   safe to do this, so we have to default to allow-all 
 				   rather than deny-all, treating only straight text as a 
-				   problem type (although there are probably also apps out 
-				   there somewhere that send their PKI messages marked as 
-				   plain text) */
+				   problem type.
+				   
+				   Unfortunately there are also apps out there that send 
+				   their PKI messages marked as plain text, so this isn't
+				   100% foolproof, but in practice errors-via-HTTP is more
+				   common than certs-via-text.  We try and detect the 
+				   cert-as-plain-text special-case at a later point when 
+				   we've got the message body available */
 				if( !strCompare( lineBufPtr, "text/", 5 ) )
-					*flags |= HTTP_FLAG_ERRORMSG;
+					*flags |= HTTP_FLAG_TEXTMSG;
 				break;
 
 			case HTTP_HEADER_TRANSFER_ENCODING:
@@ -717,6 +745,9 @@ static int readHeaderLines( STREAM *stream, char *lineBuffer,
 
 				/* If it's a chunked encoding, the length is part of the 
 				   data and must be read later */
+				if( seenLength )
+					retExtStream( stream, CRYPT_ERROR_BADDATA,
+								  "Duplicate 'Content-Length:' header line" );
 				*flags |= HTTP_FLAG_CHUNKED;
 				break;
 
@@ -803,6 +834,11 @@ static int readHeaderLines( STREAM *stream, char *lineBuffer,
 		retExtStream( stream, CRYPT_ERROR_OVERFLOW,
 					  "Too many HTTP header lines" );
 
+	/* If this is an tunnel being opened via an HTTP proxy, we're done */
+	if( !( stream->flags & STREAM_NFLAG_ISSERVER ) && \
+		( stream->flags & STREAM_NFLAG_HTTPTUNNEL ) )
+		return( CRYPT_OK );
+
 	/* If it's a chunked encoding for which the length is kludged on before
 	   the data as a hex string, decode the length value */
 	if( *flags & HTTP_FLAG_CHUNKED )
@@ -888,15 +924,20 @@ static int writeRequestHeader( STREAM *stream, const int length )
 	int headerLength;
 
 	sMemOpen( &headerStream, headerBuffer, HTTP_LINEBUF_SIZE );
-	if( length > 0 )
-		swrite( &headerStream, "POST ", 5 );
+	if( stream->flags & STREAM_NFLAG_HTTPTUNNEL )
+		swrite( &headerStream, "CONNECT ", 8 );
 	else
-		swrite( &headerStream, "GET ", 4 );
-	if( stream->flags & STREAM_NFLAG_HTTPPROXY )
+		if( length > 0 )
+			swrite( &headerStream, "POST ", 5 );
+		else
+			swrite( &headerStream, "GET ", 4 );
+	if( ( stream->flags & STREAM_NFLAG_HTTPPROXY ) || \
+		( stream->flags & STREAM_NFLAG_HTTPTUNNEL ) )
 		{
-		/* If we're going through an HTTP proxy, send an absolute URL rather
-		   than just the relative location */
-		swrite( &headerStream, "http://", 7 );
+		/* If we're going through an HTTP proxy/tunnel, send an absolute URL 
+		   rather than just the relative location */
+		if( stream->flags & STREAM_NFLAG_HTTPPROXY )
+			swrite( &headerStream, "http://", 7 );
 		swrite( &headerStream, stream->host, hostLen );
 		if( stream->port != 80 )
 			{
@@ -907,11 +948,14 @@ static int writeRequestHeader( STREAM *stream, const int length )
 			swrite( &headerStream, portString, portStringLength );
 			}
 		}
-	if( stream->path != NULL )
-		swrite( &headerStream, stream->path, strlen( stream->path ) );
-	else
-		sputc( &headerStream, '/' );
-	if( stream->query != NULL )
+	if( !( stream->flags & STREAM_NFLAG_HTTPTUNNEL ) )
+		{
+		if( stream->path != NULL && *stream->path != '\0' )
+			swrite( &headerStream, stream->path, strlen( stream->path ) );
+		else
+			sputc( &headerStream, '/' );
+		}
+	if( stream->query != NULL && *stream->query != '\0' )
 		{
 		sputc( &headerStream, '?' );
 		encodeRFC1866( &headerStream, stream->query );
@@ -1285,12 +1329,32 @@ static int readFunction( STREAM *stream, void *buffer, int length )
 		retExtStream( stream, CRYPT_ERROR_TIMEOUT,
 					  "HTTP read timed out before all data could be read" );
 
-	/* If it's an error message, return it to the caller */
-	if( flags & HTTP_FLAG_ERRORMSG )
+	/* If it's a plain-text error message, return it to the caller */
+	if( flags & HTTP_FLAG_TEXTMSG )
 		{
-		( ( char * ) buffer )[ min( readLength, MAX_ERRMSG_SIZE - 32 ) ] = '\0';
-		retExtStream( stream, CRYPT_ERROR_READ,
-					  "HTTP server reported: '%s'", buffer );
+		BYTE *byteBufPtr = bufPtr;
+
+		/* Usually a body returned as plain text is an error message that
+		   (for some reason) is sent as content rather than an HTTP error,
+		   however in some unusual cases the content will be the requested
+		   object marked as plain text.  This only seems to occur with 
+		   straight HTTP fetches from misconfigured servers rather than when 
+		   HTTP is being used as a tunnelling mechanism for a PKI protocol, 
+		   so we can filter this by requiring that the fetch is a straight 
+		   HTTP fetch (not a request/response PKI protocol fetch), that the 
+		   request is over a minimum size (most error messages are quite 
+		   short), and that the first bytes match what would be seen in a
+		   PKI object such as a cert or CRL */
+		if( stream->protocol != STREAM_PROTOCOL_HTTP || \
+			contentLength < 256 || ( byteBufPtr[ 0 ] != 0x30 ) || \
+			!( byteBufPtr[ 1 ] & 0x80 ) || \
+			( isAlpha( byteBufPtr[ 2 ] ) && isAlpha( byteBufPtr[ 3 ] ) && \
+			  isAlpha( byteBufPtr[ 4 ] ) ) )
+			{
+			byteBufPtr[ min( readLength, MAX_ERRMSG_SIZE - 32 ) ] = '\0';
+			retExtStream( stream, CRYPT_ERROR_READ,
+						  "HTTP server reported: '%s'", buffer );
+			}
 		}
 
 	/* If we're reading chunked data, drain the input by processing the
@@ -1372,7 +1436,10 @@ static int writeFunction( STREAM *stream, const void *buffer,
 		}
 	else
 		{
-		assert( strlen( stream->contentType ) );
+		assert( ( stream->flags & STREAM_NFLAG_HTTPTUNNEL ) || \
+				strlen( stream->contentType ) );
+		assert( !( ( stream->flags & STREAM_NFLAG_HTTPPROXY ) && 
+				   ( stream->flags & STREAM_NFLAG_HTTPTUNNEL ) ) );
 		assert( stream->host != NULL );
 
 		status = writeRequestHeader( stream, localLength );

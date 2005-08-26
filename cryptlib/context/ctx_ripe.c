@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib RIPEMD-160 Hash Routines					*
-*						Copyright Peter Gutmann 1996-2003					*
+*						Copyright Peter Gutmann 1996-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,21 +9,20 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "ripemd.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
   #include "../crypt/ripemd.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
   #include "crypt/ripemd.h"
 #endif /* Compiler-specific includes */
 
 #ifdef USE_RIPEMD160
+
+#define HASH_STATE_SIZE		sizeof( RIPEMD160_CTX )
 
 /****************************************************************************
 *																			*
@@ -77,18 +76,36 @@ static const FAR_BSS struct {
 	{ NULL, 0, { 0 } }
 	};
 
-int ripemd160SelfTest( void )
+static int selfTest( void )
 	{
-	BYTE digest[ RIPEMD160_DIGEST_LENGTH ];
-	int i;
+	const CAPABILITY_INFO *capabilityInfo = getRipemd160Capability();
+	CONTEXT_INFO contextInfo;
+	HASH_INFO contextData;
+	BYTE keyData[ HASH_STATE_SIZE ];
+	int i, status;
 
 	/* Test RIPEMD160 against the test vectors from the RIPEMD-160 paper */
 	for( i = 0; digestValues[ i ].data != NULL; i++ )
 		{
-		ripemd160HashBuffer( NULL, digest, ( BYTE * ) digestValues[ i ].data,
-							 digestValues[ i ].length, HASH_ALL );
-		if( memcmp( digest, digestValues[ i ].digest, RIPEMD160_DIGEST_LENGTH ) )
-			return( CRYPT_ERROR );
+		staticInitContext( &contextInfo, CONTEXT_HASH, capabilityInfo,
+						   &contextData, sizeof( HASH_INFO ), keyData );
+		status = CRYPT_OK ;
+		if( digestValues[ i ].length > 0 )
+			{
+			status = capabilityInfo->encryptFunction( &contextInfo, 
+								( BYTE * ) digestValues[ i ].data, 
+								digestValues[ i ].length );
+			contextInfo.flags |= CONTEXT_HASH_INITED;
+			}
+		if( cryptStatusOK( status ) )
+			status = capabilityInfo->encryptFunction( &contextInfo, NULL, 0 );
+		if( cryptStatusOK( status ) && \
+			memcmp( contextInfo.ctxHash->hash, digestValues[ i ].digest, 
+					RIPEMD160_DIGEST_LENGTH ) )
+			status = CRYPT_ERROR;
+		staticDestroyContext( &contextInfo );
+		if( cryptStatusError( status ) )
+			return( status );
 		}
 
 	return( CRYPT_OK );
@@ -102,13 +119,13 @@ int ripemd160SelfTest( void )
 
 /* Return context subtype-specific information */
 
-int ripemd160GetInfo( const CAPABILITY_INFO_TYPE type, 
-					  void *varParam, const int constParam )
+static int getInfo( const CAPABILITY_INFO_TYPE type, void *varParam, 
+					const int constParam )
 	{
 	if( type == CAPABILITY_INFO_STATESIZE )
-		return( sizeof( RIPEMD160_CTX ) );
+		return( HASH_STATE_SIZE );
 
-	return( getInfo( type, varParam, constParam ) );
+	return( getDefaultInfo( type, varParam, constParam ) );
 	}
 
 /****************************************************************************
@@ -119,7 +136,7 @@ int ripemd160GetInfo( const CAPABILITY_INFO_TYPE type,
 
 /* Hash data using RIPEMD160 */
 
-int ripemd160Hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int hash( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	RIPEMD160_CTX *ripemd160Info = ( RIPEMD160_CTX * ) contextInfoPtr->ctxHash->hashInfo;
 
@@ -179,4 +196,22 @@ void ripemd160HashBuffer( HASHINFO hashInfo, BYTE *outBuffer, const BYTE *inBuff
 			assert( NOTREACHED );
 		}
 	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_RIPEMD160, bitsToBytes( 160 ), "RIPEMD-160",
+	bitsToBytes( 0 ), bitsToBytes( 0 ), bitsToBytes( 0 ),
+	selfTest, getInfo, NULL, NULL, NULL, NULL, hash, hash
+	};
+
+const CAPABILITY_INFO *getRipemd160Capability( void )
+	{
+	return( &capabilityInfo );
+	}
+
 #endif /* USE_RIPEMD160 */

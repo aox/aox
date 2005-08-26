@@ -271,7 +271,7 @@ int readPacketSSH2( SESSION_INFO *sessionInfoPtr, int expectedType,
 	SSH_INFO *sshInfo = sessionInfoPtr->sessionSSH;
 	BYTE *dataStartPtr;
 	long length;
-	int padLength = 0, packetType, status;
+	int padLength = 0, packetType, iterationCount = 0, status;
 
 	assert( isWritePtr( sessionInfoPtr, sizeof( SESSION_INFO ) ) );
 	assert( expectedType >= SSH2_MSG_DISCONNECT && \
@@ -384,8 +384,13 @@ int readPacketSSH2( SESSION_INFO *sessionInfoPtr, int expectedType,
 		packetType = sessionInfoPtr->receiveBuffer[ 1 ];
 		sshInfo->readSeqNo++;
 		}
-	while( packetType == SSH2_MSG_IGNORE || packetType == SSH2_MSG_DEBUG || \
-		   packetType == SSH2_MSG_USERAUTH_BANNER );
+	while( ( packetType == SSH2_MSG_IGNORE || \
+			 packetType == SSH2_MSG_DEBUG || \
+			 packetType == SSH2_MSG_USERAUTH_BANNER ) && \
+		   ( iterationCount++ < 1000 ) );
+	if( iterationCount >= 1000 )
+		retExt( sessionInfoPtr, CRYPT_ERROR_OVERFLOW, 
+				"Peer sent excessive number of no-op packets" );
 	sshInfo->packetType = packetType;
 
 	/* Adjust the length to account for the fixed-size fields, remember 

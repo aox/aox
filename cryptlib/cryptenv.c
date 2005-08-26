@@ -1653,7 +1653,8 @@ static int deenvelopePop( ENVELOPE_INFO *envelopeInfoPtr, void *buffer,
 														buffer, length );
 	if( cryptStatusError( status ) )
 		{
-		envelopeInfoPtr->errorState = status;
+		if( !isRecoverableError( status ) )
+			envelopeInfoPtr->errorState = status;
 		return( status );
 		}
 	*bytesCopied = status;

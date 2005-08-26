@@ -51,6 +51,13 @@
 #define PKIUSER_AUTHENTICATOR_SIZE		12
 #define PKIUSER_ENCR_AUTHENTICATOR_SIZE	32
 
+/* When processing items such as nested attributes, we include guards on some
+   of the more complex loops to avoid getting stuck in an endless loop.  The
+   following value defines how many times we can iterate a loop before
+   bailing out */
+
+#define	CERT_MAX_ITERATIONS		256
+
 /* Attribute information flags.  These are:
 
 	FLAG_INVALID: Used to catch accidental use of a boolean value for the 

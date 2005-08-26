@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *						cryptlib Enveloping Routines						*
-*					  Copyright Peter Gutmann 1996-2003						*
+*					  Copyright Peter Gutmann 1996-2005						*
 *																			*
 ****************************************************************************/
 
@@ -28,7 +28,7 @@
    before rounding to the block size to ensure the one-block expansion */
 
 #define paddedSize( size, blockSize )	\
-		( ( blockSize > 1 ) ? roundUp( payloadSize + 1, blockSize ) : size )
+		( ( blockSize > 1 ) ? roundUp( size + 1, blockSize ) : size )
 
 #ifdef USE_ENVELOPES
 
@@ -228,15 +228,13 @@ static int writeEncryptedContentHeader( STREAM *stream,
 /* EncryptedData, EnvelopedData */
 
 static void writeEncryptionHeader( STREAM *stream, const BYTE *oid,
-								   const int version, const long payloadSize,
-								   const long blockSize, const long extraSize )
+								   const int version, 
+								   const long blockedPayloadSize,
+								   const long extraSize )
 	{
-	const long blockedPayloadSize = ( payloadSize == CRYPT_UNUSED ) ? \
-						CRYPT_UNUSED : paddedSize( payloadSize, blockSize );
-
 	writeCMSheader( stream, oid, 
-					( payloadSize == CRYPT_UNUSED || extraSize == CRYPT_UNUSED ) ? \
-						CRYPT_UNUSED : \
+					( blockedPayloadSize == CRYPT_UNUSED || \
+					  extraSize == CRYPT_UNUSED ) ? CRYPT_UNUSED : \
 						sizeofShortInteger( 0 ) + extraSize + blockedPayloadSize,
 					FALSE );
 	writeShortInteger( stream, version, DEFAULT_TAG );
@@ -246,8 +244,12 @@ static int writeEncryptedDataHeader( STREAM *stream,
 									 const ENVELOPE_INFO *envelopeInfoPtr )
 	{
 	const BYTE *contentOID = getContentOID( envelopeInfoPtr->contentType );
-	const int encrContentInfoSize = sizeofCMSencrHeader( contentOID,
-			envelopeInfoPtr->payloadSize, envelopeInfoPtr->iCryptContext );
+	const long blockedPayloadSize = \
+					( envelopeInfoPtr->payloadSize == CRYPT_UNUSED ) ? \
+						CRYPT_UNUSED : \
+						paddedSize( envelopeInfoPtr->payloadSize, envelopeInfoPtr->blockSize );
+	const long encrContentInfoSize = sizeofCMSencrHeader( contentOID,
+						blockedPayloadSize, envelopeInfoPtr->iCryptContext );
 
 	if( cryptStatusError( encrContentInfoSize ) )
 		return( encrContentInfoSize );
@@ -255,8 +257,7 @@ static int writeEncryptedDataHeader( STREAM *stream,
 	/* Write the EncryptedData header and version number, and
 	   EncryptedContentInfo header */
 	writeEncryptionHeader( stream, OID_CMS_ENCRYPTEDDATA, 0,
-				envelopeInfoPtr->payloadSize, envelopeInfoPtr->blockSize,
-				encrContentInfoSize );
+						   blockedPayloadSize, encrContentInfoSize );
 	return( writeEncryptedContentHeader( stream, contentOID,
 				envelopeInfoPtr->iCryptContext, envelopeInfoPtr->payloadSize,
 				envelopeInfoPtr->blockSize ) );
@@ -266,8 +267,12 @@ static int writeEnvelopedDataHeader( STREAM *stream,
 									 const ENVELOPE_INFO *envelopeInfoPtr )
 	{
 	const BYTE *contentOID = getContentOID( envelopeInfoPtr->contentType );
-	const int encrContentInfoSize = sizeofCMSencrHeader( contentOID,
-			envelopeInfoPtr->payloadSize, envelopeInfoPtr->iCryptContext );
+	const long blockedPayloadSize = \
+					( envelopeInfoPtr->payloadSize == CRYPT_UNUSED ) ? \
+						CRYPT_UNUSED : \
+						paddedSize( envelopeInfoPtr->payloadSize, envelopeInfoPtr->blockSize );
+	const long encrContentInfoSize = sizeofCMSencrHeader( contentOID,
+						blockedPayloadSize, envelopeInfoPtr->iCryptContext );
 	const int originatorInfoSize = envelopeInfoPtr->extraDataSize > 0 ? \
 			( int ) sizeofObject( envelopeInfoPtr->extraDataSize ) : 0;
 
@@ -277,12 +282,11 @@ static int writeEnvelopedDataHeader( STREAM *stream,
 	/* Write the EnvelopedData header and version number and start of the SET
 	   OF RecipientInfo/EncryptionKeyInfo */
 	writeEncryptionHeader( stream, OID_CMS_ENVELOPEDDATA, 
-				originatorInfoSize ? 2 : 0, envelopeInfoPtr->payloadSize, 
-				envelopeInfoPtr->blockSize, 
-				( envelopeInfoPtr->cryptActionSize == CRYPT_UNUSED ) ? \
-					CRYPT_UNUSED : \
-					sizeofObject( envelopeInfoPtr->cryptActionSize ) + \
-						originatorInfoSize + encrContentInfoSize );
+					originatorInfoSize ? 2 : 0, blockedPayloadSize, 
+					( envelopeInfoPtr->cryptActionSize == CRYPT_UNUSED ) ? \
+						CRYPT_UNUSED : \
+						sizeofObject( envelopeInfoPtr->cryptActionSize ) + \
+							originatorInfoSize + encrContentInfoSize );
 #ifdef USE_KEA
 	if( originatorInfoSize > 0 )
 		{
@@ -338,8 +342,7 @@ static int writeAuthenticatedDataHeader( STREAM *stream,
 	/* Write the AuthenticatedData header and version number and start of the SET
 	   OF RecipientInfo */
 	if( envelopeInfoPtr->payloadSize == CRYPT_UNUSED )
-		writeEncryptionHeader( stream, OID_CMS_AUTHDATA, 0, CRYPT_UNUSED, 1, 
-							   CRYPT_UNUSED );
+		writeEncryptionHeader( stream, OID_CMS_AUTHDATA, 0, 1, CRYPT_UNUSED );
 	else
 		{
 		int dataSize;
@@ -349,7 +352,7 @@ static int writeAuthenticatedDataHeader( STREAM *stream,
 		dataSize = sizeofObject( sizeofOID( contentOID ) + dataSize );
 
 		writeEncryptionHeader( stream, OID_CMS_AUTHDATA, 0, 
-				envelopeInfoPtr->payloadSize, 1, 
+				envelopeInfoPtr->payloadSize, 
 				( envelopeInfoPtr->cryptActionSize == CRYPT_UNUSED ) ? \
 					CRYPT_UNUSED : \
 					sizeofObject( envelopeInfoPtr->cryptActionSize ) +

@@ -31,7 +31,7 @@ static int cmdAsyncOp( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ERROR_PARAM1 );
 
 	/* This command is a kitchen-sink operation used to manage async ops.on
@@ -77,9 +77,9 @@ static int cmdCertCheck( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
-	if( !checkHandleRange( cmd->arg[ 1 ] ) && \
+	if( !isHandleRangeValid( cmd->arg[ 1 ] ) && \
 		( cmd->arg[ 1 ] != CRYPT_UNUSED ) )
 		return( CRYPT_ARGERROR_NUM1 );
 
@@ -101,17 +101,17 @@ static int cmdCertMgmt( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->arg[ 1 ] < CRYPT_CERTACTION_FIRST_USER || \
 		cmd->arg[ 1 ] > CRYPT_CERTACTION_LAST_USER )
 		return( CRYPT_ARGERROR_VALUE );
-	if( !checkHandleRange( cmd->arg[ 2 ] ) && \
+	if( !isHandleRangeValid( cmd->arg[ 2 ] ) && \
 		!( ( cmd->arg[ 1 ] == CRYPT_CERTACTION_EXPIRE_CERT || \
 			 cmd->arg[ 1 ] == CRYPT_CERTACTION_CLEANUP ) && \
 		   cmd->arg[ 2 ] == CRYPT_UNUSED ) )
 		return( CRYPT_ARGERROR_NUM1 );
-	if( !checkHandleRange( cmd->arg[ 3 ] ) && \
+	if( !isHandleRangeValid( cmd->arg[ 3 ] ) && \
 		!( ( cmd->arg[ 1 ] == CRYPT_CERTACTION_ISSUE_CRL || \
 			 cmd->arg[ 1 ] == CRYPT_CERTACTION_EXPIRE_CERT || \
 			 cmd->arg[ 1 ] == CRYPT_CERTACTION_CLEANUP ) && \
@@ -141,9 +141,9 @@ static int cmdCertSign( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
-	if( !checkHandleRange( cmd->arg[ 1 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 1 ] ) )
 		return( CRYPT_ARGERROR_NUM1 );
 
 	return( krnlSendMessage( cmd->arg[ 0 ], MESSAGE_CRT_SIGN, NULL,
@@ -164,7 +164,7 @@ static int cmdCreateObject( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) && \
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) && \
 		cmd->arg[ 0 ] != SYSTEM_OBJECT_HANDLE )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->arg[ 1 ] <= OBJECT_TYPE_NONE || \
@@ -447,7 +447,7 @@ static int cmdDeleteAttribute( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) && \
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) && \
 		cmd->arg[ 0 ] != DEFAULTUSER_OBJECT_HANDLE )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->arg[ 0 ] == DEFAULTUSER_OBJECT_HANDLE )
@@ -485,7 +485,7 @@ static int cmdDeleteKey( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->arg[ 1 ] <= CRYPT_KEYID_NONE || \
 		cmd->arg[ 1 ] >= CRYPT_KEYID_LAST_EXTERNAL )
@@ -525,7 +525,7 @@ static int cmdDestroyObject( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
 
 	/* Decrement the object's reference count, which may or may not actually
@@ -638,7 +638,7 @@ static int cmdExportObject( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->arg[ 1 ] <= CRYPT_CERTFORMAT_NONE || \
 		cmd->arg[ 1 ] >= CRYPT_CERTFORMAT_LAST_EXTERNAL )
@@ -707,7 +707,7 @@ static int cmdFlushData( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
 
 	/* Send the flush data command to the object */
@@ -727,7 +727,7 @@ static int cmdGenKey( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
 
 	return( krnlSendMessage( cmd->arg[ 0 ], MESSAGE_CTX_GENKEY, NULL,
@@ -751,7 +751,7 @@ static int cmdGetAttribute( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) && \
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) && \
 		cmd->arg[ 0 ] != DEFAULTUSER_OBJECT_HANDLE )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->arg[ 0 ] == DEFAULTUSER_OBJECT_HANDLE )
@@ -838,7 +838,7 @@ static int cmdGetKey( void *stateInfo, COMMAND_INFO *cmd )
 	   a keyset query (this is matched to an implicit GetFirstCert performed
 	   by setting the query attribute, this isn't really possible using the
 	   external API) */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->arg[ 1 ] < CRYPT_KEYID_NONE || \
 		cmd->arg[ 1 ] >= CRYPT_KEYID_LAST_EXTERNAL )
@@ -907,7 +907,7 @@ static int cmdPopData( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->arg[ 1 ] < 1 )
 		return( CRYPT_ARGERROR_NUM1 );
@@ -934,7 +934,7 @@ static int cmdPushData( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->strArgLen[ 0 ] < 0 )
 		return( CRYPT_ARGERROR_NUM1 );
@@ -966,7 +966,7 @@ static int cmdQueryCapability( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) && \
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) && \
 		cmd->arg[ 0 ] != SYSTEM_OBJECT_HANDLE )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->arg[ 1 ] < CRYPT_ALGO_NONE || cmd->arg[ 1 ] >= CRYPT_ALGO_LAST )
@@ -1035,7 +1035,7 @@ static int cmdSetAttribute( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) && \
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) && \
 		cmd->arg[ 0 ] != DEFAULTUSER_OBJECT_HANDLE )
 		return( CRYPT_ARGERROR_OBJECT );
 	if( cmd->arg[ 0 ] == DEFAULTUSER_OBJECT_HANDLE )
@@ -1101,9 +1101,9 @@ static int cmdSetKey( void *stateInfo, COMMAND_INFO *cmd )
 	UNUSED( stateInfo );
 
 	/* Perform basic server-side error checking */
-	if( !checkHandleRange( cmd->arg[ 0 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 0 ] ) )
 		return( CRYPT_ARGERROR_OBJECT );
-	if( !checkHandleRange( cmd->arg[ 1 ] ) )
+	if( !isHandleRangeValid( cmd->arg[ 1 ] ) )
 		return( CRYPT_ARGERROR_NUM1 );
 	if( cmd->noStrArgs == 1 && \
 		( cmd->strArgLen[ 0 ] < MIN_NAME_LENGTH || \
@@ -1862,7 +1862,6 @@ static BOOLEAN initCalled = FALSE;
 
 C_RET cryptInit( void )
 	{
-	int initCryptlib( void );
 	int status;
 
 	status = initCryptlib();
@@ -1873,8 +1872,6 @@ C_RET cryptInit( void )
 
 C_RET cryptEnd( void )
 	{
-	int endCryptlib( void );
-
 	initCalled = FALSE;
 	return( endCryptlib() );
 	}
@@ -1897,7 +1894,7 @@ C_RET cryptCreateContext( C_OUT CRYPT_CONTEXT C_PTR cryptContext,
 	if( !isWritePtr( cryptContext, sizeof( CRYPT_CONTEXT ) ) )
 		return( CRYPT_ERROR_PARAM1 );
 	*cryptContext = CRYPT_ERROR;
-	if( cryptUser != CRYPT_UNUSED && !checkHandleRange( cryptUser ) )
+	if( cryptUser != CRYPT_UNUSED && !isHandleRangeValid( cryptUser ) )
 		return( CRYPT_ERROR_PARAM2 );
 	if( ( cryptAlgo <= CRYPT_ALGO_NONE || cryptAlgo >= CRYPT_ALGO_LAST ) && \
 		cryptAlgo != CRYPT_USE_DEFAULT )
@@ -1936,7 +1933,7 @@ C_RET cryptDeviceCreateContext( C_IN CRYPT_DEVICE device,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( device ) )
+	if( !isHandleRangeValid( device ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( !isWritePtr( cryptContext, sizeof( CRYPT_CONTEXT ) ) )
 		return( CRYPT_ERROR_PARAM2 );
@@ -1980,7 +1977,7 @@ C_RET cryptCreateCert( C_OUT CRYPT_CERTIFICATE C_PTR certificate,
 	if( !isWritePtr( certificate, sizeof( CRYPT_CERTIFICATE ) ) )
 		return( CRYPT_ERROR_PARAM1 );
 	*certificate = CRYPT_ERROR;
-	if( cryptUser != CRYPT_UNUSED && !checkHandleRange( cryptUser ) )
+	if( cryptUser != CRYPT_UNUSED && !isHandleRangeValid( cryptUser ) )
 		return( CRYPT_ERROR_PARAM2 );
 	if( certType <= CRYPT_CERTTYPE_NONE || \
 		certType >= CRYPT_CERTTYPE_LAST_EXTERNAL )
@@ -2028,7 +2025,7 @@ C_RET cryptDeviceOpen( C_OUT CRYPT_DEVICE C_PTR device,
 	if( !isReadPtr( device, sizeof( CRYPT_DEVICE ) ) )
 		return( CRYPT_ERROR_PARAM1 );
 	*device = CRYPT_ERROR;
-	if( cryptUser != CRYPT_UNUSED && !checkHandleRange( cryptUser ) )
+	if( cryptUser != CRYPT_UNUSED && !isHandleRangeValid( cryptUser ) )
 		return( CRYPT_ERROR_PARAM2 );
 	if( deviceType <= CRYPT_DEVICE_NONE || deviceType >= CRYPT_DEVICE_LAST )
 		return( CRYPT_ERROR_PARAM3 );
@@ -2087,7 +2084,7 @@ C_RET cryptCreateEnvelope( C_OUT CRYPT_ENVELOPE C_PTR envelope,
 	if( !isWritePtr( envelope, sizeof( CRYPT_ENVELOPE ) ) )
 		return( CRYPT_ERROR_PARAM1 );
 	*envelope = CRYPT_ERROR;
-	if( cryptUser != CRYPT_UNUSED && !checkHandleRange( cryptUser ) )
+	if( cryptUser != CRYPT_UNUSED && !isHandleRangeValid( cryptUser ) )
 		return( CRYPT_ERROR_PARAM2 );
 	if( formatType <= CRYPT_FORMAT_NONE || \
 		formatType >= CRYPT_FORMAT_LAST_EXTERNAL )
@@ -2135,7 +2132,7 @@ C_RET cryptKeysetOpen( C_OUT CRYPT_KEYSET C_PTR keyset,
 	if( !isReadPtr( keyset, sizeof( CRYPT_KEYSET ) ) )
 		return( CRYPT_ERROR_PARAM1 );
 	*keyset = CRYPT_ERROR;
-	if( cryptUser != CRYPT_UNUSED && !checkHandleRange( cryptUser ) )
+	if( cryptUser != CRYPT_UNUSED && !isHandleRangeValid( cryptUser ) )
 		return( CRYPT_ERROR_PARAM2 );
 	if( keysetType <= CRYPT_KEYSET_NONE || keysetType >= CRYPT_KEYSET_LAST )
 		return( CRYPT_ERROR_PARAM3 );
@@ -2192,7 +2189,7 @@ C_RET cryptCreateSession( C_OUT CRYPT_SESSION C_PTR session,
 	if( !isWritePtr( session, sizeof( CRYPT_SESSION ) ) )
 		return( CRYPT_ERROR_PARAM1 );
 	*session = CRYPT_ERROR;
-	if( cryptUser != CRYPT_UNUSED && !checkHandleRange( cryptUser ) )
+	if( cryptUser != CRYPT_UNUSED && !isHandleRangeValid( cryptUser ) )
 		return( CRYPT_ERROR_PARAM2 );
 	if( sessionType <= CRYPT_SESSION_NONE || \
 		sessionType >= CRYPT_SESSION_LAST )
@@ -2287,7 +2284,7 @@ C_RET cryptDestroyObject( C_IN CRYPT_HANDLE cryptHandle )
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptHandle ) )
+	if( !isHandleRangeValid( cryptHandle ) )
 		return( CRYPT_ERROR_PARAM1 );
 
 	/* Make sure that the user has remembered to initialise cryptlib */
@@ -2353,7 +2350,7 @@ C_RET cryptGetAttribute( C_IN CRYPT_HANDLE cryptHandle,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
+	if( !isHandleRangeValid( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
 		return( CRYPT_ERROR_PARAM1 );
 	if( attributeType <= CRYPT_ATTRIBUTE_NONE || attributeType >= CRYPT_ATTRIBUTE_LAST )
 		return( CRYPT_ERROR_PARAM2 );
@@ -2400,7 +2397,7 @@ C_RET cryptGetAttributeString( C_IN CRYPT_HANDLE cryptHandle,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
+	if( !isHandleRangeValid( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
 		return( CRYPT_ERROR_PARAM1 );
 	if( attributeType <= CRYPT_ATTRIBUTE_NONE || attributeType >= CRYPT_ATTRIBUTE_LAST )
 		return( CRYPT_ERROR_PARAM2 );
@@ -2472,7 +2469,7 @@ C_RET cryptSetAttribute( C_IN CRYPT_HANDLE cryptHandle,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
+	if( !isHandleRangeValid( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
 		return( CRYPT_ERROR_PARAM1 );
 	if( attributeType <= CRYPT_ATTRIBUTE_NONE || attributeType >= CRYPT_ATTRIBUTE_LAST )
 		return( CRYPT_ERROR_PARAM2 );
@@ -2516,7 +2513,7 @@ C_RET cryptSetAttributeString( C_IN CRYPT_HANDLE cryptHandle,
 	int length = valueLength, status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
+	if( !isHandleRangeValid( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
 		return( CRYPT_ERROR_PARAM1 );
 	if( attributeType <= CRYPT_ATTRIBUTE_NONE || attributeType >= CRYPT_ATTRIBUTE_LAST )
 		return( CRYPT_ERROR_PARAM2 );
@@ -2585,7 +2582,7 @@ C_RET cryptDeleteAttribute( C_IN CRYPT_HANDLE cryptHandle,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
+	if( !isHandleRangeValid( cryptHandle ) && cryptHandle != CRYPT_UNUSED )
 		return( CRYPT_ERROR_PARAM1 );
 	if( attributeType <= CRYPT_ATTRIBUTE_NONE || attributeType >= CRYPT_ATTRIBUTE_LAST )
 		return( CRYPT_ERROR_PARAM2 );
@@ -2630,7 +2627,7 @@ C_RET cryptGenerateKey( C_IN CRYPT_CONTEXT cryptContext )
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptContext ) )
+	if( !isHandleRangeValid( cryptContext ) )
 		return( CRYPT_ERROR_PARAM1 );
 
 	/* Dispatch the command */
@@ -2655,7 +2652,7 @@ C_RET cryptGenerateKeyAsync( C_IN CRYPT_CONTEXT cryptContext )
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptContext ) )
+	if( !isHandleRangeValid( cryptContext ) )
 		return( CRYPT_ERROR_PARAM1 );
 
 	/* Dispatch the command */
@@ -2683,7 +2680,7 @@ C_RET cryptAsyncQuery( C_IN CRYPT_CONTEXT cryptContext )
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptContext ) )
+	if( !isHandleRangeValid( cryptContext ) )
 		return( CRYPT_ERROR_PARAM1 );
 
 	/* Dispatch the command */
@@ -2708,7 +2705,7 @@ C_RET cryptAsyncCancel( C_IN CRYPT_CONTEXT cryptContext )
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptContext ) )
+	if( !isHandleRangeValid( cryptContext ) )
 		return( CRYPT_ERROR_PARAM1 );
 
 	/* Dispatch the command */
@@ -2739,7 +2736,7 @@ C_RET cryptEncrypt( C_IN CRYPT_CONTEXT cryptContext,
 	   only so we only check for readability.  In addition when hashing we
 	   could be doing a hash-wrapup call so we allow a zero length and only 
 	   check the buffer if the length is nonzero */
-	if( !checkHandleRange( cryptContext ) )
+	if( !isHandleRangeValid( cryptContext ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( length < 0 )
 		return( CRYPT_ERROR_PARAM3 );
@@ -2769,7 +2766,7 @@ C_RET cryptDecrypt( C_IN CRYPT_CONTEXT cryptContext,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( cryptContext ) )
+	if( !isHandleRangeValid( cryptContext ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( length < 0 )
 		return( CRYPT_ERROR_PARAM3 );
@@ -2818,9 +2815,9 @@ C_RET cryptSignCert( C_IN CRYPT_CERTIFICATE certificate,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( certificate ) )
+	if( !isHandleRangeValid( certificate ) )
 		return( CRYPT_ERROR_PARAM1 );
-	if( !checkHandleRange( signContext ) )
+	if( !isHandleRangeValid( signContext ) )
 		return( CRYPT_ERROR_PARAM2 );
 
 	/* Dispatch the command */
@@ -2844,9 +2841,9 @@ C_RET cryptCheckCert( C_IN CRYPT_HANDLE certificate,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( certificate ) )
+	if( !isHandleRangeValid( certificate ) )
 		return( CRYPT_ERROR_PARAM1 );
-	if( !checkHandleRange( sigCheckKey ) && ( sigCheckKey != CRYPT_UNUSED ) )
+	if( !isHandleRangeValid( sigCheckKey ) && ( sigCheckKey != CRYPT_UNUSED ) )
 		return( CRYPT_ERROR_PARAM2 );
 
 	/* Dispatch the command */
@@ -2890,7 +2887,7 @@ C_RET cryptImportCert( C_IN void C_PTR certObject,
 		return( CRYPT_ERROR_PARAM2 );
 	if( !isReadPtr( certObject, certObjectLength ) )
 		return( CRYPT_ERROR_PARAM1 );
-	if( cryptUser != CRYPT_UNUSED && !checkHandleRange( cryptUser ) )
+	if( cryptUser != CRYPT_UNUSED && !isHandleRangeValid( cryptUser ) )
 		return( CRYPT_ERROR_PARAM3 );
 	if( !isWritePtr( certificate, sizeof( CRYPT_CERTIFICATE ) ) )
 		return( CRYPT_ERROR_PARAM4 );
@@ -2920,7 +2917,7 @@ C_RET cryptExportCert( C_OUT void C_PTR certObject,
 	static const COMMAND_INFO cmdTemplate = \
 		{ COMMAND_EXPORTOBJECT, COMMAND_FLAG_NONE, 2, RETURN_VALUE( 1 ) };
 	static const ERRORMAP errorMap[] = \
-		{ ARG_S, ARG_D, ARG_N, ARG_O, ARG_LAST };
+		{ ARG_S, ARG_D, ARG_N, ARG_V, ARG_O, ARG_LAST };
 	COMMAND_INFO cmd;
 	int status;
 
@@ -2939,7 +2936,7 @@ C_RET cryptExportCert( C_OUT void C_PTR certObject,
 	if( certFormatType <= CRYPT_CERTFORMAT_NONE || \
 		certFormatType >= CRYPT_CERTFORMAT_LAST_EXTERNAL )
 		return( CRYPT_ERROR_PARAM4 );
-	if( !checkHandleRange( certificate ) )
+	if( !isHandleRangeValid( certificate ) )
 		return( CRYPT_ERROR_PARAM5 );
 
 	/* Dispatch the command */
@@ -2976,9 +2973,9 @@ C_RET cryptCAAddItem( C_IN CRYPT_KEYSET keyset,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( keyset ) )
+	if( !isHandleRangeValid( keyset ) )
 		return( CRYPT_ERROR_PARAM1 );
-	if( !checkHandleRange( certificate ) )
+	if( !isHandleRangeValid( certificate ) )
 		return( CRYPT_ERROR_PARAM2 );
 
 	/* Dispatch the command */
@@ -3014,7 +3011,7 @@ C_RET cryptCAGetItem( C_IN CRYPT_KEYSET keyset,
 	/* Perform basic client-side error checking.  Because of keyset queries
 	   we have to accept CRYPT_KEYID_NONE and a null keyID as well as
 	   obviously valid key ID's */
-	if( !checkHandleRange( keyset ) )
+	if( !isHandleRangeValid( keyset ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( !isWritePtr( certificate, sizeof( CRYPT_HANDLE ) ) )
 		return( CRYPT_ERROR_PARAM2 );
@@ -3100,7 +3097,7 @@ C_RET cryptCADeleteItem( C_IN CRYPT_KEYSET keyset,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( keyset ) )
+	if( !isHandleRangeValid( keyset ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( certType != CRYPT_CERTTYPE_CERTIFICATE && \
 		certType != CRYPT_CERTTYPE_CERTREQUEST && \
@@ -3164,13 +3161,13 @@ C_RET cryptCACertManagement( C_OUT CRYPT_CERTIFICATE C_PTR certificate,
 	if( action < CRYPT_CERTACTION_FIRST_USER || \
 		action > CRYPT_CERTACTION_LAST_USER )
 		return( CRYPT_ERROR_PARAM2 );
-	if( !checkHandleRange( keyset ) )
+	if( !isHandleRangeValid( keyset ) )
 		return( CRYPT_ERROR_PARAM3 );
-	if( !checkHandleRange( caKey ) && \
+	if( !isHandleRangeValid( caKey ) && \
 		!( ( action == CRYPT_CERTACTION_EXPIRE_CERT || \
 			 action == CRYPT_CERTACTION_CLEANUP ) && caKey == CRYPT_UNUSED ) )
 		return( CRYPT_ERROR_PARAM4 );
-	if( !checkHandleRange( certRequest ) && \
+	if( !isHandleRangeValid( certRequest ) && \
 		!( ( action == CRYPT_CERTACTION_ISSUE_CRL || \
 			 action == CRYPT_CERTACTION_EXPIRE_CERT || \
 			 action == CRYPT_CERTACTION_CLEANUP ) && \
@@ -3213,7 +3210,7 @@ C_RET cryptPushData( C_IN CRYPT_HANDLE envelope, C_IN void C_PTR buffer,
 	int dummy, status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( envelope ) )
+	if( !isHandleRangeValid( envelope ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( !length )
 		{
@@ -3260,7 +3257,7 @@ C_RET cryptPopData( C_IN CRYPT_ENVELOPE envelope, C_OUT void C_PTR buffer,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( envelope ) )
+	if( !isHandleRangeValid( envelope ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( !isWritePtr( buffer, length ) )
 		return( CRYPT_ERROR_PARAM2 );
@@ -3296,7 +3293,7 @@ C_RET cryptFlushData( C_IN CRYPT_HANDLE envelope )
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( envelope ) )
+	if( !isHandleRangeValid( envelope ) )
 		return( CRYPT_ERROR_PARAM1 );
 
 	/* Dispatch the command */
@@ -3336,7 +3333,7 @@ C_RET cryptGetPublicKey( C_IN CRYPT_KEYSET keyset,
 	/* Perform basic client-side error checking.  Because of keyset queries
 	   we have to accept CRYPT_KEYID_NONE and a null keyID as well as
 	   obviously valid key ID's */
-	if( !checkHandleRange( keyset ) )
+	if( !isHandleRangeValid( keyset ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( !isWritePtr( cryptKey, sizeof( CRYPT_HANDLE ) ) )
 		return( CRYPT_ERROR_PARAM2 );
@@ -3400,7 +3397,7 @@ C_RET cryptGetPrivateKey( C_IN CRYPT_HANDLE keyset,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( keyset ) )
+	if( !isHandleRangeValid( keyset ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( !isWritePtr( cryptContext, sizeof( CRYPT_CONTEXT ) ) )
 		return( CRYPT_ERROR_PARAM2 );
@@ -3465,9 +3462,9 @@ C_RET cryptAddPublicKey( C_IN CRYPT_KEYSET keyset,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( keyset ) )
+	if( !isHandleRangeValid( keyset ) )
 		return( CRYPT_ERROR_PARAM1 );
-	if( !checkHandleRange( certificate ) )
+	if( !isHandleRangeValid( certificate ) )
 		return( CRYPT_ERROR_PARAM2 );
 
 	/* Dispatch the command */
@@ -3497,13 +3494,13 @@ C_RET cryptAddPrivateKey( C_IN CRYPT_KEYSET keyset,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( keyset ) )
+	if( !isHandleRangeValid( keyset ) )
 		return( CRYPT_ERROR_PARAM1 );
-	if( !checkHandleRange( cryptKey ) )
+	if( !isHandleRangeValid( cryptKey ) )
 		return( CRYPT_ERROR_PARAM2 );
 	if( password != NULL && \
 		( !isReadPtr( password, MIN_NAME_LENGTH ) || \
-		  checkBadPassword( password ) || \
+		  isBadPassword( password ) || \
 		  strParamLen( password ) >= MAX_ATTRIBUTE_SIZE ) )
 		return( CRYPT_ERROR_PARAM3 );
 
@@ -3553,7 +3550,7 @@ C_RET cryptDeleteKey( C_IN CRYPT_KEYSET keyset,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( keyset ) )
+	if( !isHandleRangeValid( keyset ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( keyIDtype <= CRYPT_KEYID_NONE || \
 		keyIDtype >= CRYPT_KEYID_LAST_EXTERNAL )
@@ -3659,7 +3656,7 @@ C_RET cryptDeviceQueryCapability( C_IN CRYPT_DEVICE device,
 	int status;
 
 	/* Perform basic client-side error checking */
-	if( !checkHandleRange( device ) )
+	if( !isHandleRangeValid( device ) )
 		return( CRYPT_ERROR_PARAM1 );
 	if( cryptAlgo < CRYPT_ALGO_NONE || cryptAlgo >= CRYPT_ALGO_LAST )
 		return( CRYPT_ERROR_PARAM2 );

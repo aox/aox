@@ -48,17 +48,18 @@ static long scanValue( char **string, int *length )
 	long retVal = -1;
 	int count = *length;
 
-	if( count && isDigit( *strPtr ) )
+	if( count > 0 && isDigit( *strPtr ) )
 		{
 		retVal = *strPtr++ - '0';
 		count--;
 		}
-	while( count && isDigit( *strPtr ) )
+	while( count > 0 && isDigit( *strPtr ) )
 		{
 		retVal = ( retVal * 10 ) + ( *strPtr++ - '0' );
 		count--;
 		}
-	while( count && ( *strPtr == ' ' || *strPtr == '.' || *strPtr == '\t' ) )
+	while( count > 0 && \
+		   ( *strPtr == ' ' || *strPtr == '.' || *strPtr == '\t' ) )
 		{
 		strPtr++;
 		count--;
@@ -80,7 +81,8 @@ int textToOID( const char *oid, const int oidLength, BYTE *binaryOID )
 	   order */
 	if( oidLength < MIN_ASCII_OIDSIZE || oidLength > CRYPT_MAX_TEXTSIZE )
 		return( 0 );
-	while( count && ( *oidPtr == ' ' || *oidPtr == '.' || *oidPtr == '\t' ) )
+	while( count > 0 && \
+		   ( *oidPtr == ' ' || *oidPtr == '.' || *oidPtr == '\t' ) )
 		{
 		oidPtr++;	/* Skip leading whitespace */
 		count--;
@@ -94,7 +96,7 @@ int textToOID( const char *oid, const int oidLength, BYTE *binaryOID )
 	binaryOID[ 2 ] = ( BYTE )( ( value * 40 ) + val2 );
 
 	/* Convert the remaining arcs */
-	while( count )
+	while( count > 0 )
 		{
 		BOOLEAN hasHighBits = FALSE;
 
@@ -672,6 +674,7 @@ static int certificateMessageFunction( const void *objectInfoPtr,
 				break;
 
 			case MESSAGE_CHECK_CA:
+			case MESSAGE_CHECK_CACERT:
 				/* A special-case version of MESSAGE_CHECK_PKC_SIGN/
 				   MESSAGE_CHECK_PKC_SIGCHECK that applies only to 
 				   certificates */

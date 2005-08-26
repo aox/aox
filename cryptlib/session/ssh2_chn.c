@@ -40,9 +40,10 @@
    channel-type and channel-type-argument strings) */
 
 typedef struct {
-	/* General channel info */
+	/* General channel info.  The read and write channel numbers are the
+	   same for everything but Cisco software */
 	int channelID;						/* cryptlib-level channel ID */
-	long channelNo;						/* SSH-level channel ID */
+	long readChannelNo, writeChannelNo;	/* SSH-level channel ID */
 	int flags;							/* Channel flags */
 
 	/* External interface information */
@@ -68,7 +69,7 @@ typedef struct {
    currently active */
 
 #define isNullChannel( channelInfoPtr ) \
-		( ( channelInfoPtr )->channelNo == UNUSED_CHANNEL_NO )
+		( ( channelInfoPtr )->readChannelNo == UNUSED_CHANNEL_NO )
 #define isActiveChannel( channelInfoPtr ) \
 		( channelInfoPtr->flags & CHANNEL_FLAG_ACTIVE )
 
@@ -236,7 +237,8 @@ static ATTRIBUTE_LIST *findChannelAttr( const SESSION_INFO *sessionInfoPtr,
 		   after */
 		assert( attributeListPtr->valueLength == sizeof( SSH_CHANNEL_INFO ) );
 		channelInfoPtr = attributeListPtr->value;
-		if( channelInfoPtr->channelNo == channelNo )
+		if( channelInfoPtr->readChannelNo == channelNo || \
+			channelInfoPtr->writeChannelNo == channelNo )
 			return( attributeListPtr );
 		}
 
@@ -346,7 +348,13 @@ static const SSH_CHANNEL_INFO *getCurrentChannelInfo( const SESSION_INFO *sessio
 int getCurrentChannelNo( const SESSION_INFO *sessionInfoPtr,
 						 const CHANNEL_TYPE channelType )
 	{
-	return( getCurrentChannelInfo( sessionInfoPtr, channelType )->channelNo );
+	const SSH_CHANNEL_INFO *channelInfoPtr = \
+				getCurrentChannelInfo( sessionInfoPtr, channelType );
+
+	assert( channelType == CHANNEL_READ || channelType == CHANNEL_WRITE );
+
+	return( ( channelType == CHANNEL_READ ) ? \
+			channelInfoPtr->readChannelNo : channelInfoPtr->writeChannelNo );
 	}
 
 /* Get/set an attribute or SSH-specific internal attribute from the current 
@@ -423,7 +431,7 @@ int setChannelAttribute( SESSION_INFO *sessionInfoPtr,
 		channelInfoPtr = findChannelInfoID( sessionInfoPtr, dataLength );
 		if( channelInfoPtr == NULL )
 			return( CRYPT_ERROR_NOTFOUND );
-		return( selectChannel( sessionInfoPtr, channelInfoPtr->channelNo, 
+		return( selectChannel( sessionInfoPtr, channelInfoPtr->writeChannelNo, 
 							   CHANNEL_WRITE ) );
 		}
 
@@ -493,6 +501,10 @@ int setChannelExtAttribute( const SESSION_INFO *sessionInfoPtr,
 			
 		case SSH_ATTRIBUTE_WINDOWCOUNT:
 			channelInfoPtr->windowCount = dataLength;
+			return( CRYPT_OK );
+
+		case SSH_ATTRIBUTE_ALTCHANNELNO:
+			channelInfoPtr->writeChannelNo = dataLength;
 			return( CRYPT_OK );
 		}
 
@@ -574,7 +586,7 @@ int selectChannel( SESSION_INFO *sessionInfoPtr, const long channelNo,
 	return( CRYPT_OK );
 	}
 
-/* Add//create/delete a channel */
+/* Add/create/delete a channel */
 
 int addChannel( SESSION_INFO *sessionInfoPtr, const long channelNo,
 				const int maxPacketSize, const void *type, 
@@ -615,7 +627,7 @@ int addChannel( SESSION_INFO *sessionInfoPtr, const long channelNo,
 	/* Initialise the info for the new channel and create it */
 	memset( &channelInfo, 0, sizeof( SSH_CHANNEL_INFO ) );
 	channelInfo.channelID = sshInfo->channelIndex++;
-	channelInfo.channelNo = channelNo;
+	channelInfo.readChannelNo = channelInfo.writeChannelNo = channelNo;
 	channelInfo.maxPacketSize = maxPacketSize;
 	copyAttributeData( channelInfo.type, &channelInfo.typeLen, 
 					   type, typeLen, TRUE );

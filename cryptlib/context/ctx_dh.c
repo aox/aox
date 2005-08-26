@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					cryptlib Diffie-Hellman Key Exchange Routines			*
-*						Copyright Peter Gutmann 1995-2004					*
+*						Copyright Peter Gutmann 1995-2005					*
 *																			*
 ****************************************************************************/
 
@@ -9,15 +9,12 @@
 #if defined( INC_ALL )
   #include "crypt.h"
   #include "context.h"
-  #include "libs.h"
 #elif defined( INC_CHILD )
   #include "../crypt.h"
   #include "context.h"
-  #include "libs.h"
 #else
   #include "crypt.h"
   #include "context/context.h"
-  #include "context/libs.h"
 #endif /* Compiler-specific includes */
 
 /* The DH key exchange process is somewhat complex because there are two
@@ -112,10 +109,9 @@ static const FAR_BSS DLP_PRIVKEY dlpTestKey = {
 static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr, 
 										const BOOLEAN isGeneratedKey )
 	{
+	const CAPABILITY_INFO *capabilityInfoPtr = getDHCapability();
 	CONTEXT_INFO checkContextInfoPtr;
 	PKC_INFO pkcInfoStorage, *pkcInfo;
-	static const FAR_BSS CAPABILITY_INFO capabilityInfo = \
-		{ CRYPT_ALGO_DH, 0, NULL, 64, 128, 512, 0 };
 	KEYAGREE_PARAMS keyAgreeParams1, keyAgreeParams2;
 	int status;
 
@@ -137,7 +133,7 @@ static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr,
 	BN_init( &pkcInfo->tmp3 );
 	BN_CTX_init( &pkcInfo->bnCTX );
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_p );
-	checkContextInfoPtr.capabilityInfo = &capabilityInfo;
+	checkContextInfoPtr.capabilityInfo = capabilityInfoPtr;
 	initKeyWrite( &checkContextInfoPtr );	/* For calcKeyID() */
 	if( isGeneratedKey )
 		{
@@ -164,25 +160,25 @@ static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr,
 		}
 
 	/* Perform the pairwise test using the check key */
-	status = dhInitKey( &checkContextInfoPtr, NULL, 0 );
+	status = capabilityInfoPtr->initKeyFunction( &checkContextInfoPtr, NULL, 0 );
 	if( cryptStatusOK( status ) )
 		{
 		memset( &keyAgreeParams1, 0, sizeof( KEYAGREE_PARAMS ) );
-		status = dhEncrypt( contextInfoPtr, ( BYTE * ) &keyAgreeParams1,
-							sizeof( KEYAGREE_PARAMS ) );
+		status = capabilityInfoPtr->encryptFunction( contextInfoPtr, 
+					( BYTE * ) &keyAgreeParams1, sizeof( KEYAGREE_PARAMS ) );
 		}
 	if( cryptStatusOK( status ) )
 		{
 		memset( &keyAgreeParams2, 0, sizeof( KEYAGREE_PARAMS ) );
-		status = dhEncrypt( &checkContextInfoPtr, ( BYTE * ) &keyAgreeParams2,
-							sizeof( KEYAGREE_PARAMS ) );
+		status = capabilityInfoPtr->encryptFunction( &checkContextInfoPtr, 
+					( BYTE * ) &keyAgreeParams2, sizeof( KEYAGREE_PARAMS ) );
 		}
 	if( cryptStatusOK( status ) )
-		status = dhDecrypt( contextInfoPtr, ( BYTE * ) &keyAgreeParams2,
-							sizeof( KEYAGREE_PARAMS ) );
+		status = capabilityInfoPtr->decryptFunction( contextInfoPtr, 
+					( BYTE * ) &keyAgreeParams2, sizeof( KEYAGREE_PARAMS ) );
 	if( cryptStatusOK( status ) )
-		status = dhDecrypt( &checkContextInfoPtr, ( BYTE * ) &keyAgreeParams1,
-							sizeof( KEYAGREE_PARAMS ) );
+		status = capabilityInfoPtr->decryptFunction( &checkContextInfoPtr, 
+					( BYTE * ) &keyAgreeParams1, sizeof( KEYAGREE_PARAMS ) );
 	if( cryptStatusError( status ) || \
 		memcmp( keyAgreeParams1.wrappedKey, keyAgreeParams2.wrappedKey, 64 ) )
 		status = CRYPT_ERROR;
@@ -205,12 +201,11 @@ static BOOLEAN pairwiseConsistencyTest( CONTEXT_INFO *contextInfoPtr,
 	return( cryptStatusOK( status ) ? TRUE : FALSE );
 	}
 
-int dhSelfTest( void )
+static int selfTest( void )
 	{
+	const CAPABILITY_INFO *capabilityInfoPtr = getDHCapability();
 	CONTEXT_INFO contextInfoPtr;
 	PKC_INFO pkcInfoStorage, *pkcInfo;
-	static const FAR_BSS CAPABILITY_INFO capabilityInfo = \
-		{ CRYPT_ALGO_DH, 0, NULL, 64, 128, 512, 0 };
 	int status;
 
 	/* Initialise the key components */
@@ -228,7 +223,7 @@ int dhSelfTest( void )
 	BN_init( &pkcInfo->tmp3 );
 	BN_CTX_init( &pkcInfo->bnCTX );
 	BN_MONT_CTX_init( &pkcInfo->rsaParam_mont_p );
-	contextInfoPtr.capabilityInfo = &capabilityInfo;
+	contextInfoPtr.capabilityInfo = capabilityInfoPtr;
 	initKeyWrite( &contextInfoPtr );	/* For calcKeyID() */
 	BN_bin2bn( dlpTestKey.p, dlpTestKey.pLen, &pkcInfo->dlpParam_p );
 	BN_bin2bn( dlpTestKey.g, dlpTestKey.gLen, &pkcInfo->dlpParam_g );
@@ -237,7 +232,7 @@ int dhSelfTest( void )
 	BN_bin2bn( dlpTestKey.x, dlpTestKey.xLen, &pkcInfo->dlpParam_x );
 
 	/* Perform the test key exchange on a block of data */
-	status = dhInitKey( &contextInfoPtr, NULL, 0 );
+	status = capabilityInfoPtr->initKeyFunction( &contextInfoPtr, NULL, 0 );
 	if( cryptStatusOK( status ) && \
 		!pairwiseConsistencyTest( &contextInfoPtr, FALSE ) )
 		status = CRYPT_ERROR;
@@ -266,9 +261,11 @@ int dhSelfTest( void )
 *																			*
 ****************************************************************************/
 
-/* Perform phase 1 of Diffie-Hellman ("export") */
+/* Perform phase 1 of Diffie-Hellman ("export").  We have to append the 
+   distinguisher 'Fn' to the name since some systems already have 'encrypt' 
+   and 'decrypt' in their standard headers */
 
-int dhEncrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int encryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
 	KEYAGREE_PARAMS *keyAgreeParams = ( KEYAGREE_PARAMS * ) buffer;
@@ -308,7 +305,7 @@ int dhEncrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Perform phase 2 of Diffie-Hellman ("import") */
 
-int dhDecrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
+static int decryptFn( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 	{
 	KEYAGREE_PARAMS *keyAgreeParams = ( KEYAGREE_PARAMS * ) buffer;
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
@@ -352,7 +349,8 @@ int dhDecrypt( CONTEXT_INFO *contextInfoPtr, BYTE *buffer, int noBytes )
 
 /* Load key components into an encryption context */
 
-int dhInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, const int keyLength )
+static int initKey( CONTEXT_INFO *contextInfoPtr, const void *key, 
+					const int keyLength )
 	{
 	PKC_INFO *pkcInfo = contextInfoPtr->ctxPKC;
 	int status;
@@ -398,7 +396,7 @@ int dhInitKey( CONTEXT_INFO *contextInfoPtr, const void *key, const int keyLengt
 
 /* Generate a key into an encryption context */
 
-int dhGenerateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
+static int generateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 	{
 	int status;
 
@@ -416,4 +414,21 @@ int dhGenerateKey( CONTEXT_INFO *contextInfoPtr, const int keySizeBits )
 	if( cryptStatusOK( status ) )
 		status = calculateKeyID( contextInfoPtr );
 	return( status );
+	}
+
+/****************************************************************************
+*																			*
+*						Capability Access Routines							*
+*																			*
+****************************************************************************/
+
+static const CAPABILITY_INFO FAR_BSS capabilityInfo = {
+	CRYPT_ALGO_DH, bitsToBytes( 0 ), "Diffie-Hellman",
+	bitsToBytes( MIN_PKCSIZE_BITS ), bitsToBytes( 1024 ), CRYPT_MAX_PKCSIZE,
+	selfTest, getDefaultInfo, NULL, NULL, initKey, generateKey, encryptFn, decryptFn
+	};
+
+const CAPABILITY_INFO *getDHCapability( void )
+	{
+	return( &capabilityInfo );
 	}

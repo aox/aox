@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					cryptlib OS-specific Support Routines					*
-*					  Copyright Peter Gutmann 1992-2004						*
+*					  Copyright Peter Gutmann 1992-2005						*
 *																			*
 ****************************************************************************/
 
@@ -18,7 +18,7 @@
 
 /****************************************************************************
 *																			*
-*									BeOS									*
+*									AMX										*
 *																			*
 ****************************************************************************/
 
@@ -35,7 +35,6 @@ int threadPriority( void )
 	cjtkpradjust( cjtkid(), &priority );
 	return( priority );
 	}
-#endif /* AMX */
 
 /****************************************************************************
 *																			*
@@ -48,13 +47,13 @@ int threadPriority( void )
    charset-specific issues such as collating sequences, however a few OSes
    don't provide this functionality so we have to do it ourselves */
 
-#if defined( __BEOS__ ) || defined( __SYMBIAN32__ )
+#elif defined( __BEOS__ ) || defined( __SYMBIAN32__ )
 
 int strnicmp( const char *src, const char *dest, int length )
 	{
 	assert( isReadPtr( src, length ) );
 
-	while( length-- )
+	while( length-- > 0 )
 		{
 		char srcCh = *src++, destCh = *dest++;
 
@@ -77,7 +76,26 @@ int stricmp( const char *src, const char *dest )
 		return( 1 );	/* Lengths differ */
 	return( strnicmp( src, dest, length ) );
 	}
-#endif /* OSes without case-insensitive string compares */
+
+/****************************************************************************
+*																			*
+*									uC/OS-II								*
+*																			*
+****************************************************************************/
+
+#elif defined( __UCOS__ )
+
+/* uC/OS-II doesn't have a thread-self function, but allows general task 
+   info to be queried.  Because of this we provide a wrapper that returns 
+   the task ID as its return value */
+
+INT8U threadSelf( void )
+	{
+	OS_TCB osTCB;
+
+	OSTaskQuery( OS_PRIO_SELF, &osTCB );
+	return( osTCB.OSTCBPrio );
+	}
 
 /****************************************************************************
 *																			*
@@ -85,7 +103,7 @@ int stricmp( const char *src, const char *dest )
 *																			*
 ****************************************************************************/
 
-#if defined( __ITRON__ )
+#elif defined( __ITRON__ )
 
 /* The uITRON thread-self function returns the thread ID via a reference
    parameter since uITRON IDs can be negative and there'd be no way to
@@ -100,8 +118,6 @@ ID threadSelf( void )
 	return( tskid );
 	}
 
-#endif /* __ITRON__ */
-
 /****************************************************************************
 *																			*
 *								IBM Mainframe								*
@@ -113,7 +129,7 @@ ID threadSelf( void )
    following functions perform the necessary conversion using the latin-1
    code tables for systems that don't have etoa/atoe */
 
-#ifdef EBCDIC_CHARS
+#elif defined( __MVS__ ) && defined( EBCDIC_CHARS )
 
 #include <stdarg.h>
 
@@ -376,7 +392,6 @@ int aToI( const char *str )
 	asciiToEbcdic( buffer, strlen( buffer ) );
 	return( atoi( buffer ) );
 	}
-#endif /* EBCDIC_CHARS */
 
 /****************************************************************************
 *																			*
@@ -384,7 +399,7 @@ int aToI( const char *str )
 *																			*
 ****************************************************************************/
 
-#if defined( __PALMOS__ )
+#elif defined( __PALMOS__ )
 
 #include <CmnErrors.h>
 #include <CmnLaunchCodes.h>
@@ -393,9 +408,6 @@ int aToI( const char *str )
 
 uint32_t cryptlibMain( uint16_t cmd, void *cmdPBP, uint16_t launchFlags )
 	{
-	void preInit( void );
-	void postShutdown( void );
-
 	UNUSED( cmdPBP );
 	UNUSED( launchFlags );
 
@@ -415,15 +427,13 @@ uint32_t cryptlibMain( uint16_t cmd, void *cmdPBP, uint16_t launchFlags )
 	return( errNone );
 	}
 
-#endif /* __PALMOS__ */
-
 /****************************************************************************
 *																			*
 *									RTEMS									*
 *																			*
 ****************************************************************************/
 
-#if defined( __RTEMS__ )
+#elif defined( __RTEMS__ )
 
 /* The RTEMS thread-self function returns the task ID via a reference
    parameter, because of this we have to provide a wrapper that returns it
@@ -439,8 +449,6 @@ rtems_id threadSelf( void )
 	return( taskID );
 	}
 
-#endif /* __RTEMS__ */
-
 /****************************************************************************
 *																			*
 *									Tandem									*
@@ -451,7 +459,7 @@ rtems_id threadSelf( void )
    mktime() fails and the year is between then and the epoch try again with
    a time that it can convert */
 
-#if defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ )
+#elif defined( __TANDEM_NSK__ ) || defined( __TANDEM_OSS__ )
 
 #undef mktime	/* Restore the standard mktime() */
 
@@ -467,7 +475,6 @@ time_t my_mktime( struct tm *timeptr )
 		}
 	return( theTime );
 	}
-#endif /* __TANDEM_NSK__ || __TANDEM_OSS__ */
 
 /****************************************************************************
 *																			*
@@ -475,7 +482,7 @@ time_t my_mktime( struct tm *timeptr )
 *																			*
 ****************************************************************************/
 
-#if defined( __UNIX__ ) && \
+#elif defined( __UNIX__ ) && \
 	  !( defined( __MVS__ ) || defined( __TANDEM_NSK__ ) || \
 		 defined( __TANDEM_OSS__ ) )
 
@@ -511,7 +518,6 @@ long getTickCount( long startTime )
 		}
 	return( timeDifference );
 	}
-#endif /* __UNIX__ */
 
 /****************************************************************************
 *																			*
@@ -519,7 +525,7 @@ long getTickCount( long startTime )
 *																			*
 ****************************************************************************/
 
-#if defined( __WIN32__ )
+#elif defined( __WIN32__ )
 
 /* A flag to record whether we're running under the Win95 or WinNT code
    base */
@@ -713,8 +719,6 @@ void *getACLInfo( void *securityInfoPtr )
 
 BOOL WINAPI DllMain( HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved )
 	{
-	void preInit( void );
-	void postShutdown( void );
 	static DWORD dwPlatform = ( DWORD ) CRYPT_ERROR;
 
 	UNUSED( hinstDLL );
@@ -780,9 +784,8 @@ STDAPI DllRegisterServer( void )
 				 MB_ICONQUESTION | MB_OK );
 	return( E_NOINTERFACE );
 	}
-#endif /* __WIN32__ */
 
-#if defined( __WIN16__ )
+#elif defined( __WIN16__ )
 
 /* WinMain() and WEP() under Win16 are intended for DLL initialisation,
    however it isn't possible to reliably do anything terribly useful in these
@@ -827,7 +830,6 @@ int CALLBACK WEP( int nSystemExit )
 
 	return( TRUE );
 	}
-#endif /* __WIN16__ */
 
 /****************************************************************************
 *																			*
@@ -835,7 +837,7 @@ int CALLBACK WEP( int nSystemExit )
 *																			*
 ****************************************************************************/
 
-#ifdef __WINCE__
+#elif defined( __WINCE__ )
 
 /* Windows CE doesn't provide ANSI standard time functions (although it'd be
    relatively easy to do so, and they are in fact provided in MFC), so we
@@ -1017,9 +1019,6 @@ int unicodeToAscii( char *dest, const wchar_t *src, const int length )
 
 BOOL WINAPI DllMain( HANDLE hinstDLL, DWORD dwReason, LPVOID lpvReserved )
 	{
-	void preInit( void );
-	void postShutdown( void );
-
 	UNUSED( hinstDLL );
 	UNUSED( lpvReserved );
 
@@ -1046,4 +1045,109 @@ BOOL WINAPI DllMain( HANDLE hinstDLL, DWORD dwReason, LPVOID lpvReserved )
 
 	return( TRUE );
 	}
-#endif /* __WINCE__ */
+#endif /* OS-specific support */
+
+/****************************************************************************
+*																			*
+*								SysCaps Support								*
+*																			*
+****************************************************************************/
+
+#if defined( __WIN32__ )
+
+int getSysCaps( void )
+	{
+	static BOOLEAN sysCapsSet = FALSE;
+	static int sysCaps = 0;
+	BOOLEAN hasAdvFeatures = 0;
+	char vendorID[ 12 ];
+#if 0	/* Not needed for now */
+	unsigned long processorID, featureFlags;
+#endif /* 0 */
+
+	/* If we've already established the system hardware capabilities,
+	   return the cached result of the lookup */
+	if( sysCapsSet )
+		return( sysCaps );
+
+	/* Check whether the CPU supports extended features like CPUID and 
+	   RDTSC, and get any info we need related to this.  There is an
+	   IsProcessorFeaturePresent() function, but all that this provides is 
+	   an indication of the availability of rdtsc (alongside some stuff we 
+	   don't care about, like MMX and 3DNow).  Since we still need to check 
+	   for the presence of other features, we do the whole thing ourselves */
+	_asm {
+		/* Detect the CPU type */
+		pushfd
+		pop eax				/* Get EFLAGS in eax */
+		mov ebx, eax		/* Save a copy for later */
+		xor eax, 0x200000	/* Toggle the CPUID bit */
+		push eax
+		popfd				/* Update EFLAGS */
+		pushfd
+		pop eax				/* Get updated EFLAGS back in eax */
+		push ebx
+		popfd				/* Restore original EFLAGS */
+		xor eax, ebx		/* Check if we could toggle CPUID bit */
+		jz noCPUID			/* Nope, we can't do anything further */
+		mov [hasAdvFeatures], 1	/* Remember that we have CPUID */
+		or [sysCaps], SYSCAP_FLAG_RDTSC	/* Remember that we have RDTSC */
+
+		/* We have CPUID, see what we've got */
+		xor ecx, ecx
+		xor edx, edx		/* Tell VC++ that ECX, EDX will be trashed */
+		xor eax, eax		/* CPUID function 0: Get vendor ID */
+		cpuid
+		mov dword ptr [vendorID], ebx
+		mov dword ptr [vendorID+4], edx
+		mov dword ptr [vendorID+8], ecx	/* Save vendor ID string */
+#if 0
+		mov eax, 1			/* CPUID function 1: Get processor info */
+		cpuid
+		mov [processorID], eax	/* Save processor ID */
+		mov [featureFlags], edx	/* Save processor feature info */
+#endif /* 0 */
+	noCPUID:
+		}
+
+	/* If there's no CPUID support, there are no special HW capabilities
+	   available */
+	if( !hasAdvFeatures )
+		return( SYSCAP_FLAG_NONE );
+
+	/* If there's a vendor ID present, check for vendor-specific special 
+	   features */
+	if( hasAdvFeatures && !memcmp( vendorID, "CentaurHauls", 12 ) )
+		{
+	_asm {
+		xor ebx, ebx
+		xor ecx, ecx		/* Tell VC++ that EBX, ECX will be trashed */
+		mov eax, 0xC0000000	/* Centaur extended CPUID info */
+		cpuid
+		cmp eax, 0xC0000001	/* Need at least release 2 ext.feature set */
+		jb endCheck			/* No extended info available */
+		mov eax, 0xC0000001	/* Centaur extended feature flags */
+		cpuid
+		mov eax, edx		/* Save a copy of the feature flags */
+		and edx, 01100b
+		cmp edx, 01100b		/* Check for RNG present + enabled flags */
+		jz noRNG			/* No, RNG not present or enabled */
+		or [sysCaps], SYSCAP_FLAG_XSTORE	/* Remember that we have a HW RNG */
+	noRNG:
+		and eax, 011000000b
+		cmp eax, 011000000b	/* Check for ACE present + enabled flags */
+		jz endCheck			/* No, ACE not present or enabled */
+		or [sysCaps], SYSCAP_FLAG_XCRYPT	/* Remember that we have HW crypto */
+	endCheck:
+		}
+		}
+
+	return( sysCaps );
+	}
+#else
+
+int getSysCaps( void )
+	{
+	return( SYSCAP_FLAG_NONE );
+	}
+#endif /* OS-specific support */

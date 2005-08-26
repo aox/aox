@@ -961,8 +961,17 @@ int sioctl( STREAM *stream, const STREAM_IOCTL_TYPE type, void *data,
 		case STREAM_IOCTL_QUERY:
 			assert( stream->protocol == STREAM_PROTOCOL_HTTP || \
 					stream->protocol == STREAM_PROTOCOL_HTTP_TRANSACTION );
-			assert( isWritePtr( data, dataLen ) );
-			assert( dataLen > 0 && dataLen < CRYPT_MAX_TEXTSIZE );
+			assert( ( data == NULL && dataLen == 0 ) || \
+					( isWritePtr( data, dataLen ) && \
+					  dataLen > 0 && dataLen < CRYPT_MAX_TEXTSIZE ) );
+
+			/* If we're resetting the value, clear the buffer and exit */
+			if( data == NULL )
+				{
+				if( stream->queryLen > 0 )
+					memset( stream->query, 0, stream->queryLen );
+				break;
+				}
 
 			/* Set up the buffer to contain the query if necessary */
 			if( stream->queryLen <= dataLen + 1 )

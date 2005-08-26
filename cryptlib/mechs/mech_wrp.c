@@ -25,6 +25,13 @@
   #include "misc/misc_rw.h"
 #endif /* Compiler-specific includes */
 
+/* Prototypes for kernel-internal access functions */
+
+int importPrivateKeyData( STREAM *stream, const CRYPT_CONTEXT iCryptContext,
+						  const KEYFORMAT_TYPE type );
+int exportPrivateKeyData( STREAM *stream, const CRYPT_CONTEXT iCryptContext,
+						  const KEYFORMAT_TYPE type );
+
 /****************************************************************************
 *																			*
 *								Utility Routines							*
@@ -77,7 +84,7 @@ static unsigned int pgpChecksumMPI( STREAM *stream )
 
 	/* Calculate the MPI checksum */
 	checkSum = ( ( BYTE ) ( bitLength >> 8 ) ) + ( ( BYTE ) bitLength );
-	while( length-- )
+	while( length-- > 0 )
 		checkSum += sgetc( stream );
 	return( checkSum );
 	}
@@ -99,9 +106,6 @@ typedef enum { PRIVATEKEY_WRAP_NORMAL,
 static int privateKeyWrap( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo,
 						   const PRIVATEKEY_WRAP_TYPE type )
 	{
-	int exportPrivateKeyData( STREAM *stream,
-							  const CRYPT_CONTEXT iCryptContext,
-							  const KEYFORMAT_TYPE type );
 	const KEYFORMAT_TYPE formatType = ( type == PRIVATEKEY_WRAP_NORMAL ) ? \
 								KEYFORMAT_PRIVATE : KEYFORMAT_PRIVATE_OLD;
 	STREAM stream;
@@ -150,7 +154,7 @@ static int privateKeyWrap( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo,
 								   stell( &stream ) - 8;
 		int i;
 
-		/* Sample the first and last 8 bytes of data so that we can check 
+		/* Sample the first and last 8 bytes of data so that we can check
 		   that they really have been encrypted */
 		memcpy( startSample, mechanismInfo->wrappedData, 8 );
 		memcpy( endSample, endSamplePtr, 8 );
@@ -163,7 +167,7 @@ static int privateKeyWrap( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo,
 								  mechanismInfo->wrappedData,
 								  payloadSize + padSize );
 
-		/* Make sure that the original data samples differ from the final 
+		/* Make sure that the original data samples differ from the final
 		   data */
 		if( cryptStatusOK( status ) && \
 			( !memcmp( startSample, mechanismInfo->wrappedData, 8 ) || \
@@ -178,7 +182,7 @@ static int privateKeyWrap( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo,
 	if( cryptStatusError( status ) )
 		{
 		sMemClose( &stream );
-		zeroise( mechanismInfo->wrappedData, 
+		zeroise( mechanismInfo->wrappedData,
 				 mechanismInfo->wrappedDataLength );
 		}
 	else
@@ -193,9 +197,6 @@ static int privateKeyWrap( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo,
 static int privateKeyUnwrap( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo,
 							 const PRIVATEKEY_WRAP_TYPE type )
 	{
-	int importPrivateKeyData( STREAM *stream,
-							  const CRYPT_CONTEXT iCryptContext,
-							  const KEYFORMAT_TYPE type );
 	const KEYFORMAT_TYPE formatType = ( type == PRIVATEKEY_WRAP_NORMAL ) ? \
 								KEYFORMAT_PRIVATE : KEYFORMAT_PRIVATE;
 	void *buffer;
@@ -206,8 +207,8 @@ static int privateKeyUnwrap( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo,
 	assert( type == PRIVATEKEY_WRAP_NORMAL || \
 			type == PRIVATEKEY_WRAP_OLD );
 
-	/* Make sure that the data has a sane length and is a multiple of the 
-	   cipher block size (since we force the use of CBC mode we know it has 
+	/* Make sure that the data has a sane length and is a multiple of the
+	   cipher block size (since we force the use of CBC mode we know it has
 	   to have this property) */
 	status = krnlSendMessage( mechanismInfo->wrapContext,
 							  IMESSAGE_GETATTRIBUTE, &blockSize,
@@ -311,7 +312,7 @@ int importPrivateKeyPKCS8( void *dummy, MECHANISM_WRAP_INFO *mechanismInfo )
 	return( privateKeyUnwrap( dummy, mechanismInfo, PRIVATEKEY_WRAP_OLD ) );
 	}
 
-#ifdef USE_PGPKEYS 
+#ifdef USE_PGPKEYS
 
 /* Perform PGP private key wrapping/unwrapping.  There are several variations
    of this that are handled through common private key wrap mechanism
@@ -324,9 +325,6 @@ static int privateKeyUnwrapPGP( void *dummy,
 								MECHANISM_WRAP_INFO *mechanismInfo,
 								const PRIVATEKEY_WRAP_PGP_TYPE type )
 	{
-	int importPrivateKeyData( STREAM *stream, 
-							  const CRYPT_CONTEXT iCryptContext,
-							  const KEYFORMAT_TYPE type );
 	CRYPT_ALGO_TYPE cryptAlgo;
 	STREAM stream;
 	void *buffer;
@@ -348,7 +346,8 @@ static int privateKeyUnwrapPGP( void *dummy,
 	   it's far more likely to be because we decrypted with the wrong key
 	   than because any data was corrupted, so we convert it to a wrong-key
 	   error */
-	if( ( status = krnlMemalloc( &buffer, MAX_PRIVATE_KEYSIZE ) ) != CRYPT_OK )
+	if( ( status = krnlMemalloc( &buffer, \
+						mechanismInfo->wrappedDataLength ) ) != CRYPT_OK )
 		return( status );
 	memcpy( buffer, mechanismInfo->wrappedData,
 			mechanismInfo->wrappedDataLength );

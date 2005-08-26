@@ -149,7 +149,17 @@
 	#define DES_RISC1
 	#define DES_UNROLL
 	#define RC4_INDEX
-  #elif defined( __ppc__
+  #elif defined( __x86_64__ )
+	/* 'long' and 'long long' are both 64 bits, we also use DES_INT since
+	   int's are 64-bit */
+	#define L_ENDIAN
+	#undef SIXTY_FOUR_BIT
+	#define SIXTY_FOUR_BIT_LONG
+	#define DES_INT
+	#define DES_RISC1
+	#define DES_UNROLL
+	#define RC4_INDEX
+  #elif defined( __ppc__ )
 	#define B_ENDIAN
 	#define BN_LLONG
 	#define BF_PTR
@@ -414,6 +424,15 @@
 	#define RC4_INDEX
   #endif /* Assorted Windows compilers */
 #endif /* Windows */
+#ifdef __CYGWIN__
+  #define L_ENDIAN
+  #define BN_LLONG
+  #define DES_PTR
+  #define DES_RISC1
+  #define DES_UNROLL
+  #define RC4_INDEX
+#endif /* gcc native under Cygwin (i.e. not a Cygwin-hosted 
+		  cross-development toolchain */
 
 /* Xilinx XMK */
 

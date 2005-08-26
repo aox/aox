@@ -1,7 +1,7 @@
 /****************************************************************************
 *																			*
 *					  cryptlib Kernel Interface Header File 				*
-*						Copyright Peter Gutmann 1992-2004					*
+*						Copyright Peter Gutmann 1992-2005					*
 *																			*
 ****************************************************************************/
 
@@ -437,8 +437,12 @@ typedef enum {
 	MESSAGE_CHECK_PKC_KA_IMPORT_AVAIL,	/* Key agreement - import available */
 
 	/* Misc.checks for meta-capabilities not directly connected with object
-	   actions */
+	   actions.  The CA check applies to both PKC contexts and certificates, 
+	   when the message is forwarded to a dependent CA cert it's forwarded 
+	   as the internal MESSAGE_CHECK_CACERT check type, since 
+	   MESSAGE_CHECK_CA requires both a PKC context and a certificate */
 	MESSAGE_CHECK_CA,				/* Cert signing capability */
+	MESSAGE_CHECK_CACERT,			/* Internal value used for CA checks */
 	MESSAGE_CHECK_LAST				/* Last possible check type */
 	} MESSAGE_CHECK_TYPE;
 
@@ -885,6 +889,15 @@ typedef struct {
 *							Object Management Functions						*
 *																			*
 ****************************************************************************/
+
+/* cryptlib initialistion/shutdown functions */
+
+int initCryptlib( void );
+int endCryptlib( void );
+#if defined( __PALMOS__ ) || defined( __WIN32__ ) || defined( __WINCE__ )
+  void preInit( void );
+  void postShutdown( void );
+#endif /* Systems with OS-specific pre-init/post-shutdown facilities */
 
 /* Prototype for an object's message-handling function */
 

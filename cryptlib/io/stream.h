@@ -24,6 +24,8 @@
   #include <Files.h>
 #elif defined( __PALMOS__ )
   #include <VFSMgr.h>
+#elif defined( __UCOSII__ )
+  #include <fs_api.h>
 #elif !defined( CONFIG_NO_STDIO )
   #include <stdio.h>
 #endif /* System-specific file I/O headers */
@@ -82,10 +84,11 @@ typedef enum {
 #define STREAM_NFLAG_USERSOCKET	0x02000	/* Network socket was supplied by user */
 #define STREAM_NFLAG_HTTP10		0x04000	/* HTTP 1.0 stream */
 #define STREAM_NFLAG_HTTPPROXY	0x08000	/* Use HTTP proxy format for requests */
-#define STREAM_NFLAG_IDEMPOTENT	0x10000	/* Allow idempotent HTTP queries only */
-#define STREAM_NFLAG_LASTMSG	0x20000	/* Last message in exchange */
-#define STREAM_NFLAG_ENCAPS		0x40000	/* Network transport is encapsulated */
-#define STREAM_NFLAG_MASK		( 0x7F000 | STREAM_FLAG_MASK )
+#define STREAM_NFLAG_HTTPTUNNEL	0x10000	/* Use HTTP proxy tunnel for connect */
+#define STREAM_NFLAG_IDEMPOTENT	0x20000	/* Allow idempotent HTTP queries only */
+#define STREAM_NFLAG_LASTMSG	0x40000	/* Last message in exchange */
+#define STREAM_NFLAG_ENCAPS		0x80000	/* Network transport is encapsulated */
+#define STREAM_NFLAG_MASK		( 0x0FF000 | STREAM_FLAG_MASK )
 										/* Mask for network-only flags */
 
 /* Network transport-specific flags.  The flush flag is used in writes to
@@ -229,6 +232,8 @@ typedef struct ST {
 	FSSpec fsspec;				/* File system specification */
 #elif defined( __PALMOS__ )
 	FileRef fileRef;			/* File reference number */
+#elif defined( __UCOSII__ )
+	FS_FILE *pFile;				/* File associated with this stream */
 #elif defined( CONFIG_NO_STDIO )
   #if defined( __IBM4758__ )
 	char name[ 8 + 1 ];			/* Data item associated with stream */
@@ -333,6 +338,7 @@ typedef struct {
 typedef enum {
 	NET_OPTION_NONE,			/* No connect option type */
 	NET_OPTION_HOSTNAME,		/* Use host/interface name + port */
+	NET_OPTION_HOSTNAME_TUNNEL,	/* Use host + port tunnelled via proxy */
 	NET_OPTION_TRANSPORTSESSION,/* Use network transport session */
 	NET_OPTION_NETWORKSOCKET,	/* Use user-supplied network socket */
 	NET_OPTION_NETWORKSOCKET_DUMMY,	/* Dummy open to check socket OK */

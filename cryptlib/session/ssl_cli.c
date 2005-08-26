@@ -81,7 +81,7 @@ static int writeCipherSuiteList( STREAM *stream, const BOOLEAN usePSK )
 	/* Walk down the list of algorithms (and the corresponding cipher 
 	   suites) remembering each one that's available for use */
 	while( cipherSuiteList[ suiteIndex ].cryptAlgo != CRYPT_ALGO_NONE && \
-		   suiteIndex < 32 )
+		   cipherSuiteCount < 32 )
 		{
 		const CRYPT_ALGO_TYPE cryptAlgo = \
 								cipherSuiteList[ suiteIndex ].cryptAlgo;
@@ -100,7 +100,8 @@ static int writeCipherSuiteList( STREAM *stream, const BOOLEAN usePSK )
 				suiteIndex++;
 			continue;
 			}
-		while( cipherSuiteList[ suiteIndex ].cryptAlgo == cryptAlgo )
+		while( cipherSuiteList[ suiteIndex ].cryptAlgo == cryptAlgo && \
+			   cipherSuiteCount < 32 )
 			availableSuites[ cipherSuiteCount++ ] = \
 						cipherSuiteList[ suiteIndex++ ].cipherSuite;
 		}
@@ -458,7 +459,15 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 	   known to send out superfluous cert requests without the admins even 
 	   knowning that they're doing it.  All we do here is perform a basic 
 	   sanity check and remember that we may need to submit a cert later 
-	   on */
+	   on.
+
+	   Since we're about to peek ahead into the stream to see if we need to 
+	   process a server cert request, we have to refresh the stream at this 
+	   point in case the cert request wasn't bundled with the preceding 
+	   packets */
+	status = refreshHSStream( sessionInfoPtr, handshakeInfo );
+	if( cryptStatusError( status ) )
+		return( status );
 	if( sPeek( stream ) == SSL_HAND_SERVER_CERTREQUEST )
 		{
 		int length;
@@ -467,9 +476,6 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 		   present, some implementations send a zero-length list, so we 
 		   allow this as well.  The spec was changed in late TLS 1.1 drafts 
 		   to reflect this practice */
-		status = refreshHSStream( sessionInfoPtr, handshakeInfo );
-		if( cryptStatusError( status ) )
-			return( status );
 		status = checkHSPacketHeader( sessionInfoPtr, stream, 
 									  SSL_HAND_SERVER_CERTREQUEST, 
 									  1 + 1 + UINT16_SIZE );
@@ -488,7 +494,8 @@ int exchangeClientKeys( SESSION_INFO *sessionInfoPtr,
 			}
 		length = readUint16( stream );
 		if( cryptStatusError( length ) || \
-			length < 0 || cryptStatusError( sSkip( stream, length ) ) )
+			length < 0 || \
+			( length > 0 && cryptStatusError( sSkip( stream, length ) ) ) )
 			{
 			sMemDisconnect( stream );
 			retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
