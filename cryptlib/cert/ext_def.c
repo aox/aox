@@ -116,9 +116,15 @@ static int checkDirectoryName( const ATTRIBUTE_LIST *attributeListPtr );
    highest warning level enabled, this produces a compiler warning, so we
    turn the warning off for this module */
 
+#if __GNUC__ > 3
+static const ATTRIBUTE_INFO FAR_BSS generalNameInfo[];
+static const ATTRIBUTE_INFO FAR_BSS holdInstructionInfo[];
+static const ATTRIBUTE_INFO FAR_BSS contentTypeInfo[];
+#else
 extern const ATTRIBUTE_INFO FAR_BSS generalNameInfo[];
 extern const ATTRIBUTE_INFO FAR_BSS holdInstructionInfo[];
 extern const ATTRIBUTE_INFO FAR_BSS contentTypeInfo[];
+#endif
 
 #if defined( _MSC_VER )
   #pragma warning( disable: 4211 )
