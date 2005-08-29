@@ -357,7 +357,11 @@ We need to support date field searches.
 
 Orphaned bodyparts should be cleaned up somehow.
 
-  'ms vacuum' is this.
+  'ms vacuum' now does this, but it requires a full-table lock on
+  mailboxes in order to not zap bodyparts that the injector hasn't
+  linked to part_numbers yet (cf. injector.cpp:640).
+
+  Unfortunate, but how can it be done better without savepoints?
 
 
 We need mUTF-7 support.
@@ -660,14 +664,14 @@ CAcert instead of self-signed certificate?
 
 0.98
 
-  Upgrade to cryptlib 3.2.1 (Done)
+  Upgrade to cryptlib 3.2.1 (Done).
   Write a GB2312 codec.
   Fix the ocd problem.
   Textify HTML bodyparts.
   Fix the 8-bit problems in Address.
   Make msconsole's user pane work.
   Fix tsearch2.
-  ms vacuum.
+  ms vacuum (Sort of done).
 
   (All of these items have their own separate notes.)
 
