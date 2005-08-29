@@ -62,6 +62,7 @@ void deleteUser();
 void createMailbox();
 void deleteMailbox();
 void changePassword();
+void vacuum();
 void help();
 
 
@@ -155,6 +156,9 @@ int main( int ac, char *av[] )
         else
             bad( verb, noun );
     }
+    else if ( verb == "vacuum" ) {
+        vacuum();
+    }
     else {
         if ( verb != "help" )
             args->prepend( new String( verb ) );
@@ -236,7 +240,8 @@ public:
     enum Command {
         Start, ShowSchema, UpgradeSchema, ListUsers,
         CreateUser, DeleteUser, ChangePassword,
-        CreateMailbox, DeleteMailbox
+        CreateMailbox, DeleteMailbox,
+        Vacuum
     };
 
     List< Query > * chores;
@@ -321,6 +326,10 @@ public:
 
         case DeleteMailbox:
             deleteMailbox();
+            break;
+
+        case Vacuum:
+            vacuum();
             break;
         }
 
@@ -938,6 +947,21 @@ void deleteMailbox()
 }
 
 
+void vacuum()
+{
+    if ( d )
+        return;
+
+    end();
+
+    Database::setup();
+
+    d = new Dispatcher( Dispatcher::Vacuum );
+    d->query = new Query( "VACUUM ANALYZE", d );
+    d->query->execute();
+}
+
+
 void help()
 {
     String a = next().lower();
@@ -1080,6 +1104,15 @@ void help()
             "  delete mailbox -- Delete a mailbox.\n\n"
             "    Synopsis: ms delete mailbox <name>\n\n"
             "    Deletes the specified mailbox.\n"
+        );
+    }
+    else if ( a == "vacuum" ) {
+        fprintf(
+            stderr,
+            "  vacuum -- Perform routine maintenance.\n\n"
+            "    Synopsis: ms vacuum\n\n"
+            "    VACUUMs the database and cleans up orphaned bodyparts.\n"
+            "    (Should be run via crontab.)\n"
         );
     }
     else if ( a == "commands" ) {
