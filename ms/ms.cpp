@@ -949,16 +949,33 @@ void deleteMailbox()
 
 void vacuum()
 {
-    if ( d )
+    if ( !d ) {
+        parseOptions();
+        end();
+
+        Database::setup();
+        d = new Dispatcher( Dispatcher::Vacuum );
+        d->query = new Query( "vacuum analyze", d );
+        d->query->execute();
+    }
+
+    if ( !d->t && !d->query->done() )
         return;
 
-    end();
-
-    Database::setup();
-
-    d = new Dispatcher( Dispatcher::Vacuum );
-    d->query = new Query( "VACUUM ANALYZE", d );
-    d->query->execute();
+    if ( !d->t ) {
+        if ( opt( 'b' ) != 0 ) {
+            d->t = new Transaction( d );
+            d->query =
+                new Query( "lock mailboxes in exclusive mode", d );
+            d->t->enqueue( d->query );
+            d->query =
+                new Query( "delete from bodyparts where id in (select id "
+                           "from bodyparts b left join part_numbers p on "
+                           "(b.id=p.bodypart) where bodypart is null)", d );
+            d->t->enqueue( d->query );
+            d->t->commit();
+        }
+    }
 }
 
 
@@ -1110,9 +1127,14 @@ void help()
         fprintf(
             stderr,
             "  vacuum -- Perform routine maintenance.\n\n"
-            "    Synopsis: ms vacuum\n\n"
-            "    VACUUMs the database and cleans up orphaned bodyparts.\n"
-            "    (Should be run via crontab.)\n"
+            "    Synopsis: ms vacuum [-b]\n\n"
+            "    VACUUMs the database and (optionally) cleans up bodyparts\n"
+            "    that are no longer in use by any message (as a result of\n"
+            "    messages being deleted).\n\n"
+            "    The -b flag causes orphaned bodyparts to be cleaned up,\n"
+            "    which requires an exclusive lock on the mailboxes table\n"
+            "    (i.e., messages cannot be injected until it is done).\n\n"
+            "    This command should be run via crontab.\n"
         );
     }
     else if ( a == "commands" ) {
