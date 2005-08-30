@@ -254,7 +254,7 @@ void Server::logSetup()
     Loop::setup();
     if ( !Logger::global() )
         LogClient::setup( d->name );
-    Scope::current()->setLog( new Log( Log::General ) );
+    setLog( new Log( Log::General ) );
     Allocator::setReporting( true );
 }
 
