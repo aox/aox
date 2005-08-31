@@ -666,7 +666,7 @@ CAcert instead of self-signed certificate?
 
   Upgrade to cryptlib 3.2.1 (Done).
   Write a GB2312 codec.
-  Fix the ocd problem.
+  Fix the ocd problem (Done).
   Textify HTML bodyparts.
   Fix the 8-bit problems in Address.
   Make msconsole's user pane work.
