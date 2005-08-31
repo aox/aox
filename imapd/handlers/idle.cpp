@@ -17,7 +17,10 @@
     This implementation differs from that implied by the RFC in that
     +/DONE is not actually part of the command; Idle prints the +
     itself and waits for DONE during command execution. Thus, "parse
-    errors" are not done in parse().
+    errors" are not handled in parse().
+
+    For some reason, RFC 2177 permits IDLE to be called in
+    authenticated state. We must be careful not to assume otherwise.
 */
 
 
@@ -59,7 +62,13 @@ void Idle::execute()
 
 void Idle::read()
 {
+    Mailbox * m = 0;
+    if ( imap()->session() )
+        m = imap()->session()->mailbox();
+
     if ( imap()->Connection::state() != Connection::Connected ) {
+        if ( m )
+            m->removeWatcher( this );
         error( Bad, "Leaving idle mode due to connection state change" );
         imap()->reserve( 0 );
         return;
@@ -76,13 +85,9 @@ void Idle::read()
             error( Bad, "Leaving idle mode due to syntax error: " + r );
     }
 
-    imap()->reserve( 0 );
-
-    Mailbox * m = 0;
-    if ( imap()->session() )
-        m = imap()->session()->mailbox();
     if ( m )
         m->removeWatcher( this );
+    imap()->reserve( 0 );
 
     finish();
 }
