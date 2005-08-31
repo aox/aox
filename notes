@@ -211,7 +211,18 @@ Udoc web pages chores
   fits. usage.html is an orphan now; should it become a manpage?
 
 
+Make the httpd do archive pages
+
+  Shouldn't we be most of the way there? Need partial result pages and
+  real searching, though.
+
+  Notify denis@startsiden.no when external testers might want to look
+  at it.
+
+
 archives.oryx.com
+
+  Mostly need httpd archiving.
 
 
 Miscellaneous cleanups:
