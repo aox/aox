@@ -481,6 +481,8 @@ AddressParser * AddressParser::references( const String & r )
                 ok = false;
             i--;
             ap->comment( i );
+            if ( ap->d->s[i] == ',' )
+                i--;
             if ( dom.isEmpty() || lp.isEmpty() )
                 ok = false;
             if ( ok )
