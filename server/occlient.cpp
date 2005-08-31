@@ -90,26 +90,26 @@ void OCClient::react( Event e )
 
 void OCClient::parse()
 {
-    String *s = readBuffer()->removeLine();
+    String * s = readBuffer()->removeLine();
 
-    if ( !s )
-        return;
+    while ( s ) {
+        int i = s->find( ' ' );
+        String tag = s->mid( 0, i );
+        int j = s->find( ' ', i+1 );
+        String msg = s->mid( i+1, j-i-1 ).lower().stripCRLF();
+        String arg = s->mid( j+1 ).stripCRLF();
 
-    int i = s->find( ' ' );
-    String tag = s->mid( 0, i );
-    int j = s->find( ' ', i+1 );
-    String msg = s->mid( i+1, j-i-1 ).lower().stripCRLF();
-    String arg = s->mid( j+1 ).stripCRLF();
+        log( "OCClient received " + tag + "/" + msg + " <<" + arg + ">>",
+             Log::Info );
 
-    log( "OCClient received " + tag + "/" + msg + " <<" + arg + ">>",
-         Log::Info );
-
-    if ( msg == "shutdown" ) {
-        log( "Shutting down due to ocd request" );
-        Loop::shutdown();
-    }
-    else if ( msg == "mailbox" ) {
-        updateMailbox( arg );
+        if ( msg == "shutdown" ) {
+            log( "Shutting down due to ocd request" );
+            Loop::shutdown();
+        }
+        else if ( msg == "mailbox" ) {
+            updateMailbox( arg );
+        }
+        s = readBuffer()->removeLine();
     }
 }
 

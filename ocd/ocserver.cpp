@@ -60,16 +60,15 @@ void OCServer::react( Event e )
 void OCServer::parse()
 {
     String *s = readBuffer()->removeLine();
+    while ( s ) {
+        int i = s->find( ' ' );
+        String tag = s->mid( 0, i );
+        String msg = s->mid( i+1 ).stripCRLF();
 
-    if ( !s )
-        return;
-
-    int i = s->find( ' ' );
-    String tag = s->mid( 0, i );
-    String msg = s->mid( i+1 ).stripCRLF();
-
-    if ( tag == "*" )
-        OCServer::send( msg );
+        if ( tag == "*" )
+            OCServer::send( msg );
+        s = readBuffer()->removeLine();
+    };
 }
 
 
