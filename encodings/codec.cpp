@@ -126,6 +126,21 @@ Codec * Codec::byName( const String & s )
 
     Codec * codec = 0;
 #include "codec-map.inc"
+
+    if ( !codec ) {
+        // some people use "iso 8859 1", "iso_8859-1", etc.
+        i = 0;
+        name = "";
+        while ( i < (int)s.length() ) {
+            if ( s[i] == '_' || s[i] == ' ' )
+                name.append( '-' );
+            else
+                name.append( s[i] );
+            i++;
+        }
+        if ( name != s )
+            return byName( name );
+    }
     return codec;
 }
 
