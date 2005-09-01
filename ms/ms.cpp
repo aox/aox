@@ -15,7 +15,7 @@
 #include "query.h"
 #include "file.h"
 #include "list.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "user.h"
 #include "log.h"
 
@@ -81,7 +81,7 @@ int main( int ac, char *av[] )
     while ( i < ac )
         args->append( new String( av[i++] ) );
 
-    Loop::setup();
+    EventLoop::setup();
     Configuration::setup( "mailstore.conf" );
     Configuration::report();
 
@@ -167,7 +167,7 @@ int main( int ac, char *av[] )
 
     if ( d ) {
         Allocator::addEternal( d, "Event dispatcher" );
-        Loop::start();
+        EventLoop::global()->start();
     }
     return status;
 }
@@ -283,7 +283,7 @@ public:
             }
 
             if ( failures || Scope::current()->log()->disastersYet() ) {
-                Loop::shutdown();
+                EventLoop::global()->shutdown();
                 exit( -1 );
             }
 
@@ -342,7 +342,7 @@ public:
             status = -1;
         }
 
-        Loop::shutdown();
+        EventLoop::global()->shutdown();
     }
 };
 

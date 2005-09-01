@@ -5,7 +5,7 @@
 #include "log.h"
 #include "buffer.h"
 #include "configuration.h"
-#include "loop.h"
+#include "eventloop.h"
 
 
 class SmtpClientData
@@ -66,7 +66,7 @@ SmtpClient::SmtpClient( const String &sender,
         return;
     }
     connect( e );
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
     setTimeoutAfter( 10 ); // ### not RFC-compliant
 }
 

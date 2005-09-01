@@ -8,7 +8,7 @@
 #include "smtpclient.h"
 #include "logclient.h"
 #include "file.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "log.h"
 
 #include <stdlib.h>
@@ -43,7 +43,7 @@ public:
             errstr = client->error().cstr();
             status = -1;
         }
-        Loop::shutdown();
+        EventLoop::global()->shutdown();
     }
 };
 
@@ -140,7 +140,7 @@ int main( int argc, char *argv[] )
         fprintf( stderr, "Sending to <%s> from <%s>\n",
                  recipient.cstr(), sender.cstr() );
 
-    Loop::setup();
+    EventLoop::setup();
     Log * l = new Log( Log::General );
     Allocator::addEternal( l, "delivery log" );
     global.setLog( l );
@@ -149,7 +149,7 @@ int main( int argc, char *argv[] )
     Configuration::report();
     Deliverator *d = new Deliverator( sender, contents, recipient );
     Allocator::addEternal( d, "delivery object" );
-    Loop::start();
+    EventLoop::global()->start();
 
     if ( verbose > 0 && d->status < 0 ) {
         fprintf( stderr, "Error: %s\n", d->errstr );

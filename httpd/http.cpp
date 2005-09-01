@@ -5,7 +5,7 @@
 #include "dict.h"
 #include "link.h"
 #include "httpsession.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "page.h"
 #include "codec.h"
 #include "buffer.h"
@@ -87,7 +87,7 @@ HTTP::HTTP( int s )
     : Connection( s, Connection::HttpServer ), d( new HTTPData )
 {
     clear();
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
 }
 
 

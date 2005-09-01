@@ -7,7 +7,7 @@
 #include "dict.h"
 #include "list.h"
 #include "file.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "log.h"
 
 // fprintf, stderr
@@ -70,7 +70,7 @@ public:
 LogServer::LogServer( int s )
     : Connection( s, Connection::LogServer ), d( new LogServerData )
 {
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
 }
 
 
@@ -413,7 +413,7 @@ void LogServer::reopen( int )
                l->name(),
                Log::Disaster );
         ::commit();
-        Loop::shutdown(); // XXX: perhaps better to switch to syslog
+        EventLoop::global()->shutdown(); // XXX: perhaps better to switch to syslog
     }
     ::log( "SIGHUP caught. Closing and reopening log file " + logFile->name(),
            Log::Info );

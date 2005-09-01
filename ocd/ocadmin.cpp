@@ -5,7 +5,7 @@
 #include "string.h"
 #include "buffer.h"
 #include "ocserver.h"
-#include "loop.h"
+#include "eventloop.h"
 
 
 class OCAData
@@ -28,7 +28,7 @@ public:
 OCAdmin::OCAdmin( int s )
     : Connection( s, Connection::OryxConsole ), d( new OCAData )
 {
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
     enqueue( "Hi. This is Oryx OCAdmin " +
              Configuration::compiledIn( Configuration::Version ) + "\r\n" );
 }
@@ -72,7 +72,7 @@ void OCAdmin::parse()
     else if ( r == "shutdown" ) {
         OCServer::send( "shutdown\r\n" );
         enqueue( "Shutting down\r\n" );
-        Loop::shutdown();
+        EventLoop::global()->shutdown();
     }
     else if ( r == "quit" || r == "exit" ) {
         setState( Closing );

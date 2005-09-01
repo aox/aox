@@ -13,7 +13,7 @@
 #include "string.h"
 #include "header.h"
 #include "scope.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "date.h"
 #include "file.h"
 #include "user.h"
@@ -165,7 +165,7 @@ SMTP::SMTP( int s )
     respond( 220, "ESMTP + LMTP " + Configuration::hostname() );
     sendResponses();
     setTimeoutAfter( 1800 );
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
 }
 
 

@@ -119,7 +119,7 @@ RecorderServer::RecorderServer( int fd )
     d->client = new ::RecorderClient( d );
     d->log = new File( *::base + "." + peer().string(),
                        File::Append, 0644 );
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
 
     printf( "new recorder writing %s\n", d->log->name().cstr() );
 }
@@ -164,7 +164,7 @@ RecorderClient::RecorderClient( RecorderData * sd )
     : Connection(), d( sd )
 {
     connect( RecorderServer::endpoint() );
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
 }
 
 
@@ -204,7 +204,7 @@ static Endpoint * ep;
 int main( int argc, char ** argv )
 {
     Scope global;
-    Loop::setup();
+    EventLoop::setup();
 
     const char * error = 0;
     bool ok = true;
@@ -261,7 +261,7 @@ int main( int argc, char ** argv )
     Allocator::addEternal( ::base, "base of recorded file names" );
 
     global.setLog( new Log( Log::General ) );
-    Loop::start();
+    EventLoop::global()->start();
 }
 
 

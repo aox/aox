@@ -5,8 +5,8 @@
 
 #include "connection.h"
 #include "configuration.h"
+#include "eventloop.h"
 #include "string.h"
-#include "loop.h"
 #include "log.h"
 
 
@@ -20,7 +20,7 @@ public:
     {
         setType( Connection::Listener );
         if ( listen( e ) >= 0 ) {
-            Loop::addConnection( this );
+            EventLoop::global()->addConnection( this );
         }
     }
 

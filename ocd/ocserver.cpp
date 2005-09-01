@@ -5,7 +5,7 @@
 #include "list.h"
 #include "string.h"
 #include "buffer.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "allocator.h"
 
 
@@ -37,7 +37,7 @@ OCServer::OCServer( int s )
         Allocator::addEternal( servers, "list of OCServer objects" );
     }
     servers->append( this );
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
 }
 
 

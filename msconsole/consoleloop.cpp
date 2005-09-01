@@ -8,7 +8,7 @@
 #include "allocator.h"
 #include "buffer.h"
 #include "scope.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "log.h"
 
 #include <qsocketnotifier.h>
@@ -45,7 +45,7 @@ class ConsoleLoopData
 ConsoleLoop::ConsoleLoop()
     : EventLoop(), d( new ConsoleLoopData )
 {
-    Loop::setup( this );
+    EventLoop::setup( this );
 }
 
 
@@ -185,7 +185,7 @@ void EventNotifier::dispatch()
     bool ww = w;
     r = false;
     w = false;
-    Loop::loop()->dispatch( c, rr, ww, time( 0 ) );
+    EventLoop::global()->dispatch( c, rr, ww, time( 0 ) );
     wn->setEnabled( c->state() != Connection::Connected ||
                     c->writeBuffer()->size() > 0 );
 }

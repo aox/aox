@@ -26,6 +26,9 @@
 #include <unistd.h>
 
 
+static EventLoop * loop;
+
+
 class LoopData
     : public Garbage
 {
@@ -52,6 +55,21 @@ public:
 
     The main user of this class is the global event Loop.
 */
+
+
+/*! Creates the global EventLoop object or, if \a l is non-zero, sets
+    the global EventLoop to \a l. This function expects to be called
+    very early during the startup sequence.
+*/
+
+void EventLoop::setup( EventLoop * l )
+{
+    ::loop = l;
+    if ( !l )
+        ::loop = new EventLoop;
+    Allocator::addEternal( ::loop, "global event loop" );
+}
+
 
 /*! Creates a new EventLoop. */
 
@@ -432,4 +450,14 @@ bool EventLoop::inStartup() const
 void EventLoop::setStartup( bool p )
 {
     d->startup = p;
+}
+
+
+/*! Returns a pointer to the global event loop, or 0 if setup() has not
+    yet been called.
+*/
+
+EventLoop * EventLoop::global()
+{
+    return ::loop;
 }

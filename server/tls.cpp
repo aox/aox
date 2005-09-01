@@ -9,7 +9,7 @@
 #include "buffer.h"
 #include "event.h"
 #include "log.h"
-#include "loop.h"
+#include "eventloop.h"
 
 
 static Endpoint * tlsProxy = 0;
@@ -56,7 +56,7 @@ TlsServerData::Client::Client( TlsServerData * data )
 {
     setTimeoutAfter( 10 );
     connect( *tlsProxy );
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
 }
 
 
@@ -70,8 +70,8 @@ void TlsServerData::Client::react( Event e )
         d->handler->execute();
         d->serverside->close();
         d->userside->close();
-        Loop::removeConnection( d->serverside );
-        Loop::removeConnection( d->userside );
+        EventLoop::global()->removeConnection( d->serverside );
+        EventLoop::global()->removeConnection( d->userside );
         return;
     }
 

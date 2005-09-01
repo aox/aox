@@ -30,7 +30,7 @@
 
 #include "string.h"
 #include "file.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "log.h"
 #include "scope.h"
 #include "allocator.h"
@@ -251,7 +251,7 @@ void Server::files()
 
 void Server::logSetup()
 {
-    Loop::setup();
+    EventLoop::setup();
     if ( !Logger::global() )
         LogClient::setup( d->name );
     setLog( new Log( Log::General ) );
@@ -261,7 +261,7 @@ void Server::logSetup()
 
 static void shutdownLoop( int )
 {
-    Loop::shutdown();
+    EventLoop::global()->shutdown();
 }
 
 
@@ -505,7 +505,7 @@ void Server::run()
     Configuration::report();
 
     uint listeners = 0;
-    List< Connection >::Iterator it( Loop::connections() );
+    List< Connection >::Iterator it( EventLoop::global()->connections() );
     while ( it ) {
         if ( it->type() == Connection::Listener )
             listeners++;
@@ -524,8 +524,8 @@ void Server::run()
     commit();
 
     if ( !d->queries->isEmpty() )
-        Loop::loop()->setStartup( true );
-    Loop::start();
+        EventLoop::global()->setStartup( true );
+    EventLoop::global()->start();
 
     if ( Scope::current()->log()->disastersYet() )
         exit( 1 );
@@ -578,10 +578,10 @@ void Server::execute()
     }
 
     if ( failures || Scope::current()->log()->disastersYet() ) {
-        Loop::shutdown();
+        EventLoop::global()->shutdown();
         exit( 1 );
     }
 
     if ( d->queries->isEmpty() )
-        Loop::loop()->setStartup( false );
+        EventLoop::global()->setStartup( false );
 }

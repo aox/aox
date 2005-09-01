@@ -13,7 +13,7 @@
 #include "pgmessage.h"
 #include "query.h"
 #include "event.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "md5.h"
 #include "log.h"
 
@@ -122,14 +122,14 @@ Postgres::Postgres()
         connect( server() );
     }
     setTimeoutAfter( 60 );
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
     addHandle( this );
 }
 
 
 Postgres::~Postgres()
 {
-    Loop::removeConnection( this );
+    EventLoop::global()->removeConnection( this );
 }
 
 

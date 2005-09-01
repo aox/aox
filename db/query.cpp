@@ -8,7 +8,6 @@
 #include "event.h"
 #include "stringlist.h"
 #include "transaction.h"
-#include "loop.h"
 #include "log.h"
 
 

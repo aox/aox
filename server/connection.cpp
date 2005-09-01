@@ -6,7 +6,7 @@
 #include "endpoint.h"
 #include "string.h"
 #include "scope.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "log.h"
 #include "byteforwarder.h"
 #include "tls.h"
@@ -513,12 +513,12 @@ public:
     Halfpipe( int fd )
         : Connection( fd, Connection::Pipe ), partner( 0 )
     {
-        Loop::addConnection( this );
+        EventLoop::global()->addConnection( this );
     }
 
     ~Halfpipe()
     {
-        Loop::removeConnection( this );
+        EventLoop::global()->removeConnection( this );
     }
 
     void connect( Halfpipe *b ) {
@@ -552,9 +552,9 @@ void Connection::startTls( TlsServer * s )
 
     write();
 
-    Loop::removeConnection( this );
-    Loop::removeConnection( s->serverSide() );
-    Loop::removeConnection( s->userSide() );
+    EventLoop::global()->removeConnection( this );
+    EventLoop::global()->removeConnection( s->serverSide() );
+    EventLoop::global()->removeConnection( s->userSide() );
 
     ByteForwarder * b1 = new ByteForwarder( d->fd );
     ByteForwarder * b2 = new ByteForwarder( s->userSide()->fd() );
@@ -569,9 +569,9 @@ void Connection::startTls( TlsServer * s )
     s->userSide()->d->fd = -1;
     s->serverSide()->d->fd = -1;
 
-    Loop::addConnection( b1 );
-    Loop::addConnection( b2 );
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( b1 );
+    EventLoop::global()->addConnection( b2 );
+    EventLoop::global()->addConnection( this );
 
     log( "Negotiating TLS for client " + b1->peer().string(),
          Log::Debug );

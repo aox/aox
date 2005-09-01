@@ -8,7 +8,6 @@
 #include "fieldcache.h"
 #include "allocator.h"
 #include "guilog.h"
-#include "loop.h"
 #include "log.h"
 #include "syslogger.h"
 #include "database.h"

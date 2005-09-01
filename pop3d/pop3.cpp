@@ -4,7 +4,7 @@
 
 #include "string.h"
 #include "buffer.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "log.h"
 
 
@@ -42,7 +42,7 @@ POP3::POP3( int s )
 {
     ok( "POP3 server ready." );
     setTimeoutAfter( 600 );
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
 }
 
 

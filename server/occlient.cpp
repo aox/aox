@@ -8,7 +8,7 @@
 #include "endpoint.h"
 #include "mailbox.h"
 #include "buffer.h"
-#include "loop.h"
+#include "eventloop.h"
 #include "log.h"
 
 
@@ -37,7 +37,7 @@ static class OCClient * client;
 OCClient::OCClient( int s )
     : Connection( s, Connection::OryxClient ), d( new OCCData )
 {
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
 }
 
 
@@ -79,7 +79,7 @@ void OCClient::react( Event e )
 
     case Close:
     case Error:
-        Loop::shutdown();
+        EventLoop::global()->shutdown();
         break;
     }
     commit();
@@ -104,7 +104,7 @@ void OCClient::parse()
 
         if ( msg == "shutdown" ) {
             log( "Shutting down due to ocd request" );
-            Loop::shutdown();
+            EventLoop::global()->shutdown();
         }
         else if ( msg == "mailbox" ) {
             updateMailbox( arg );

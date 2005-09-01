@@ -3,6 +3,7 @@
 #include "scope.h"
 #include "allocator.h"
 #include "configuration.h"
+#include "eventloop.h"
 #include "logclient.h"
 #include "listener.h"
 #include "log.h"
@@ -215,7 +216,7 @@ public:
 TlsProxy::TlsProxy( int socket )
     : Connection( socket, Connection::TlsProxy ), d( new TlsProxyData )
 {
-    Loop::addConnection( this );
+    EventLoop::global()->addConnection( this );
     if ( !proxies ) {
         proxies = new List<TlsProxy>;
         Allocator::addEternal( proxies, "tlsproxy list" );
@@ -254,7 +255,7 @@ void TlsProxy::react( Event e )
         setState( Closing );
         if ( d->state != TlsProxyData::Initial ) {
             log( "Shutting down TLS proxy due to client close" );
-            Loop::shutdown();
+            EventLoop::global()->shutdown();
             exit( 0 );
         }
         break;
@@ -364,7 +365,7 @@ void TlsProxy::parse()
 void TlsProxy::start( TlsProxy * other, const Endpoint & client,
                       const String & protocol )
 {
-    Loop::flushAll();
+    EventLoop::global()->flushAll();
     int p1 = fork();
     if ( p1 < 0 ) {
         // error
@@ -374,8 +375,8 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     }
     else if ( p1 > 0 ) {
         // it's the parent
-        Loop::removeConnection( this );
-        Loop::removeConnection( other );
+        EventLoop::global()->removeConnection( this );
+        EventLoop::global()->removeConnection( other );
         close();
         other->close();
         return;
@@ -392,7 +393,7 @@ void TlsProxy::start( TlsProxy * other, const Endpoint & client,
     }
 
     // it's the child!
-    Loop::closeAllExcept( this, other );
+    EventLoop::global()->closeAllExcept( this, other );
     enqueue( "ok\r\n" );
     write();
     log( "Starting TLS proxy for for " + protocol + " client " +

@@ -5,7 +5,6 @@
 #include "pop3.h"
 #include "listener.h"
 #include "database.h"
-#include "loop.h"
 #include "server.h"
 #include "flag.h"
 #include "schema.h"

@@ -31,6 +31,9 @@ public:
 
     List< Connection > *connections() const;
 
+    static void setup( EventLoop * = 0 );
+    static EventLoop * global();
+
 private:
     class LoopData *d;
 };

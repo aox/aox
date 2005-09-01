@@ -2,7 +2,7 @@
 
 #include "logclient.h"
 
-#include "loop.h"
+#include "eventloop.h"
 #include "string.h"
 #include "server.h"
 #include "connection.h"
@@ -51,7 +51,7 @@ public:
 
     ~LogClientData()
     {
-        Loop::removeConnection( this );
+        EventLoop::global()->removeConnection( this );
         delete owner;
         owner = 0;
     }
@@ -59,7 +59,7 @@ public:
     void reconnect()
     {
         connect( logServer );
-        Loop::addConnection( this );
+        EventLoop::global()->addConnection( this );
     }
 
     // The log server isn't supposed to send us anything.
@@ -77,7 +77,7 @@ public:
         case Error:
             delete owner;
             owner = 0;
-            Loop::shutdown();
+            EventLoop::global()->shutdown();
             break;
         }
     }
@@ -175,7 +175,7 @@ void LogClient::setup( const String & n )
     }
     client->d->setBlocking( false );
     client->d->enqueue( "name " + client->name() + "\r\n" );
-    Loop::addConnection( client->d );
+    EventLoop::global()->addConnection( client->d );
 }
 
 

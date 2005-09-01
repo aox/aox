@@ -8,7 +8,7 @@ SubInclude TOP db ;
 SubInclude TOP message ;
 
 Build server :
-    connection.cpp endpoint.cpp event.cpp logclient.cpp loop.cpp tls.cpp
+    connection.cpp endpoint.cpp event.cpp logclient.cpp tls.cpp
     eventloop.cpp byteforwarder.cpp server.cpp ;
 
 Build mailbox : session.cpp occlient.cpp mailbox.cpp messageset.cpp
