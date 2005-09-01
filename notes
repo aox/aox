@@ -441,15 +441,7 @@ Improve LogPane so it doesn't eat so much CPU
   Or would it be better to use a list? Not sure.
 
 
-Mailbox migration looks worse and worse
-
-  Once, UpdateSchema::execute was too big for a screen. Then it became
-  to big for a sheet of printout. Before it gets too large for a
-  600-sheet paper tray, we have to break it up into n smaller
-  functions ;)
-
-  It seems sensible to introduce 'ms migrate' and perhaps 'ms migrate
-  -n' at the same time.
+ms migrate -n
 
   'ms migrate -n' could write an 1-2-line description of the first
   schema upgrade to be done, do it, report whether it failed, then

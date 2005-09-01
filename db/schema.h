@@ -21,6 +21,17 @@ public:
 
 private:
     class SchemaData *d;
+    bool singleStep();
+    bool step1();
+    bool step2();
+    bool step3();
+    bool step4();
+    bool step5();
+    bool step6();
+    bool step7();
+    bool step8();
+    bool step9();
+    bool step10();
 };
 
 
