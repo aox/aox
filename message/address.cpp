@@ -572,16 +572,24 @@ void AddressParser::address( int & i )
     else if ( s[i] == ';' ) {
         // group
         bool empty = true;
-        int j = i;
         i--;
-        while ( i != j && i > 0 && s[i] != ':' ) {
-            j = i;
+        comment( i );
+        while ( i > 0 && s[i] != ':' ) {
+            int j = i;
             address( i );
             empty = false;
             if ( i == j ) {
-                error( "No progress while parsing addresses in group", i );
+                error( "Parsing stopped while in group parser", i );
                 return;
             }
+            if ( s[i] == ',' ) {
+                i--;
+            }
+            else if ( s[i] != ':' ) {
+                error( "Expected : or ',' while parsing group", i );
+                return;
+            }
+
         }
         if ( s[i] == ':' ) {
             i--;
