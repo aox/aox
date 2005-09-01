@@ -543,6 +543,7 @@ void Header::repair()
 
     uint dateFields = 0;
     uint cteFields = 0;
+    uint mvFields = 0;
 
     List< HeaderField >::Iterator it( d->fields );
     while ( it ) {
@@ -551,6 +552,8 @@ void Header::repair()
             dateFields++;
         else if ( t == HeaderField::ContentTransferEncoding )
             cteFields++;
+        else if ( t == HeaderField::MimeVersion )
+            mvFields++;
         ++it;
     }
 
@@ -569,7 +572,7 @@ void Header::repair()
         }
     }
 
-    // Remove duplicate Content-Transfer-Encoding fields.
+    // Remove duplicate Content-Transfer-Encoding/Mime-Version fields.
     // (Thanks to the brain-damaged lemonade mailing list.)
 
     if ( cteFields > 1 ) {
@@ -582,6 +585,25 @@ void Header::repair()
             if ( t == HeaderField::ContentTransferEncoding ) {
                 i++;
                 if ( i > 1 && cte->value() == it->value() )
+                    d->fields.take( it );
+                else
+                    ++it;
+            }
+            else {
+                ++it;
+            }
+        }
+    }
+
+    if ( mvFields > 1 ) {
+        uint i = 0;
+        HeaderField * mv = field( HeaderField::MimeVersion );
+        List< HeaderField >::Iterator it( d->fields );
+        while ( it ) {
+            HeaderField::Type t = it->type();
+            if ( t == HeaderField::MimeVersion ) {
+                i++;
+                if ( i > 1 && it->value() == mv->value() )
                     d->fields.take( it );
                 else
                     ++it;

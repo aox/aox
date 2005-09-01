@@ -656,6 +656,10 @@ We should tolerate duplicated header fields, iff:
   It's a safe, loss-less workaround for known brokenness (such as the
   tendency of the lemonade list to send 2 Mime-Version or CTE fields).
 
+  We do this for CTE and MV right now. If we see any more instances of
+  duplicates in the wild, I'll generalise the code in Header::repair to
+  handle them all as described above.
+
 
 Hunt down and kill whatever stops ocd from announcing new mail promptly.
 
