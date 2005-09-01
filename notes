@@ -19,9 +19,6 @@ tls client support (smtp, postgresql)
 Set up automatic injection regression/speed testing on penne.
 
 
-Discuss the problem of content in unlabelled charsets and encodings.
-
-
 We should be able to connect to Postgres as an unprivileged user.
 
   ms migrate could then ask for a different username and password to
@@ -263,12 +260,6 @@ C/R
   configuration?
 
 
-Log::~Log() calls commit(), but Log::id is already broken.
-
-  Running "ms create user ..." is a good way to reproduce this SIGABRT
-  (caused by Log::commit using "id + ...").
-
-
 DELETE of mailboxes in inappropriately qualified (security problem)
 
   At present, the user always needs to have all three rights, and
@@ -496,12 +487,6 @@ Document IPC structure
 Add Maildir support to the migrator.
 
 
-/disaster messages seem to be logged as /debug messages.
-
-  Arnt has tested it, and thinks not. An example of this happening
-  would be good.
-
-
 /events/solutionslinux-2006.html needs a plausible audience/task.
 
   We'll use that to do a better job of /events/linuxtag-2005.html
@@ -569,21 +554,12 @@ Interop pages
   A variety needed.
 
 
-Prototocols supported
+Protocols supported
 
   A list detailing what our general idea is (internet standard,
   interoperability, utility) and linking to each actual protocol page.
 
   The URL for this is difficult.
-
-
-Releases page
-
-  Audience: People wanting to install, or curious about.
-
-  Task: Tell them which release to use and introduce our general
-  release schedule. Perhaps say a bit about the next couple of
-  releases, what we're concentrating on.
 
 
 Search ourselves, not via google
@@ -659,9 +635,6 @@ We should tolerate duplicated header fields, iff:
   We do this for CTE and MV right now. If we see any more instances of
   duplicates in the wild, I'll generalise the code in Header::repair to
   handle them all as described above.
-
-
-Hunt down and kill whatever stops ocd from announcing new mail promptly.
 
 
 CAcert instead of self-signed certificate?
