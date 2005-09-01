@@ -32,6 +32,7 @@ private:
     bool step8();
     bool step9();
     bool step10();
+    bool step11();
 };
 
 

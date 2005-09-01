@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 11;
+int currentRevision = 12;
 
 
 class SchemaData
@@ -246,6 +246,8 @@ bool Schema::singleStep()
         c = step9(); break;
     case 10:
         c = step10(); break;
+    case 11:
+        c = step11(); break;
     }
 
     return c;
@@ -791,6 +793,53 @@ bool Schema::step10()
     }
 
     if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Reverse step9(). We don't want to delete rows in mailboxes. */
+
+bool Schema::step11()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Reverting mailboxes_owner_fkey change.", Log::Debug );
+        d->q = new Query( "select version()", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+
+        String constraint = "mailboxes_owner_fkey";
+
+        Row * r = d->q->nextRow();
+        if ( r ) {
+            String version = r->getString( "version" );
+            if ( version.startsWith( "PostgreSQL 7" ) )
+                constraint = "$1";
+        }
+
+        d->q = new Query( "alter table mailboxes drop constraint "
+                          "\"" + constraint + "\"", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table mailboxes add constraint "
+                          "mailboxes_owner_fkey foreign key "
+                          "(owner) references users(id)", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 2;
+    }
+
+    if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
