@@ -14,6 +14,7 @@
 #include "handlers/authenticate.h"
 #include "handlers/capability.h"
 #include "handlers/close.h"
+#include "handlers/copy.h"
 #include "handlers/create.h"
 #include "handlers/delete.h"
 #include "handlers/expunge.h"
@@ -131,6 +132,11 @@ Command * Command::create( IMAP * imap,
 {
     Command * c = 0;
     String n = name.lower();
+    bool uid = false;
+    if ( n.startsWith( "uid " ) ) {
+        uid = true;
+        n = n.mid( 4 );
+    }
 
     bool notAuthenticated = false;
     bool authenticated = false;
@@ -183,18 +189,20 @@ Command * Command::create( IMAP * imap,
     }
 
     if ( !c ) {
-        if ( n == "fetch" || n == "uid fetch" )
-            c = new Fetch( n == "uid fetch" );
-        else if ( n == "search" || n == "uid search" )
-            c = new Search( n == "uid search" );
-        else if ( n == "expunge" || n == "uid expunge" )
-            c = new Expunge( n == "uid expunge" );
+        if ( n == "fetch" )
+            c = new Fetch( uid );
+        else if ( n == "search" )
+            c = new Search( uid );
+        else if ( n == "expunge" )
+            c = new Expunge( uid );
         else if ( n == "check" )
             c = new Check;
         else if ( n == "close" )
             c = new Close;
-        else if ( n == "store" || n == "uid store" )
-            c = new Store( n == "uid store" );
+        else if ( n == "store" )
+            c = new Store( uid );
+        else if ( n == "copy" )
+            c = new Copy( uid );
         else if ( n == "unselect" )
             c = new Unselect;
 
