@@ -550,6 +550,9 @@ bool Schema::step5()
                           "lines=bodyparts.lines from bodyparts where "
                           "part_numbers.bodypart=bodyparts.id", this );
         d->t->enqueue( d->q );
+        d->q = new Query( "alter table part_numbers alter bodypart "
+                          "drop not null", this );
+        d->t->enqueue( d->q );
         d->q = new Query( "alter table bodyparts drop lines", this );
         d->t->enqueue( d->q );
         d->t->execute();
