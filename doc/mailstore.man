@@ -232,8 +232,6 @@ settings.
 .SH FILES
 .IP $CONFIGDIR/mailstore.conf
 contains the Mailstore configuration.
-.IP $LIBDIR/.config.sh
-contains a copy of the compiled-in configuration file/directory names.
 .IP $LIBDIR/automatic-key.p15
 contains a private key and self-signed certificate used by
 .BR tlsproxy (8)

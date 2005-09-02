@@ -114,53 +114,6 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
 }
 
 
-rule WriteShellConfig
-{
-    Depends [ FGristFiles $(<) ] : <>Jamsettings ;
-    Depends install : $(<) ;
-    Depends $(<) : $(LIBDIR) ;
-}
-
-actions WriteShellConfig
-{
-    echo "#!/bin/sh" > $(<)
-    echo "#" >> $(<)
-    echo "# This file contains copies of some compile-time settings." >> $(<)
-    echo "# It is sourced by some shell scripts. Many of the values" >> $(<)
-    echo "# here are also compiled into binaries and other files, so" >> $(<)
-    echo "# this file should not be changed." >> $(<)
-    echo "#" >> $(<)
-    echo "# To make changes, you can edit mailstore-"$(VERSION)"/Jamsettings" >> $(<)
-    echo "# and recompile." >> $(<)
-    echo "#" >> $(<)
-    echo "# In case of questions, send mail to info@oryx.com." >> $(<)
-    echo "#" >> $(<)
-
-    echo PREFIX="'"$(PREFIX)"'" >> $(<)
-    echo BINDIR="'"$(BINDIR)"'" >> $(<)
-    echo SBINDIR="'"$(SBINDIR)"'" >> $(<)
-    echo MANDIR="'"$(MANDIR)"'" >> $(<)
-    echo PIDFILEDIR="'"$(PIDFILEDIR)"'" >> $(<)
-    echo JAILDIR="'"$(JAILDIR)"'" >> $(<)
-    echo CONFIGDIR="'"$(CONFIGDIR)"'" >> $(<)
-    echo "# To move the logfile, edit $(CONFIGDIR)/mailstore.conf" >> $(<)
-    echo "# Type 'man mailstore.conf' for details." >> $(<)
-    echo LOGFILE="'"$(LOGFILE)"'" >> $(<)
-    echo LOGFILEMODE="'"$(LOGFILEMODE)"'" >> $(<)
-
-    echo ORYXUSER="'"$(ORYXUSER)"'" >> $(<)
-    echo ORYXGROUP="'"$(ORYXGROUP)"'" >> $(<)
-
-    echo PGUSER="'"$(PGUSER)"'" >> $(<)
-    [ -n "$(PGBIN)" ] && echo PGBIN="'"$(PGBIN)"'" >> $(<) || true
-
-    echo DBADDRESS="'"$(DBADDRESS)"'" >> $(<)
-    echo DBNAME="'"$(DBNAME)"'" >> $(<)
-    echo DBUSER="'"$(DBUSER)"'" >> $(<)
-    [ -n "$(DBPASS)" ] && echo DBPASS="'"$(DBPASS)"'" >> $(<) || true
-}
-
-
 rule Doc {
     Depends doc : <doc>.made.$(<) ;
 

@@ -38,9 +38,6 @@ if ( $(BUILDDOC) ) {
     Depends doc : exe ;
 }
 
-WriteShellConfig $(INSTALLROOT)$(LIBDIR)/.config.sh : ;
-
-
 MkDir $(BINDIR) ;
 MkDir $(MANDIR) ;
 MkDir $(LIBDIR) ;
