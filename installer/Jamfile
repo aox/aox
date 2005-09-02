@@ -1,6 +1,28 @@
 SubDir TOP installer ;
 
 Build installer : installer.cpp ;
+
+ObjectDefines installer.cpp :
+     BINDIR='\"$(BINDIR)\"'
+     SBINDIR='\"$(SBINDIR)\"'
+     MANDIR='\"$(MANDIR)\"'
+     LIBDIR='\"$(LIBDIR)\"'
+     INITDIR='\"$(INITDIR)\"'
+     JAILDIR='\"$(JAILDIR)\"'
+     CONFIGDIR='\"$(CONFIGDIR)\"'
+     PIDFILEDIR='\"$(PIDFILEDIR)\"'
+     LOGFILE='\"$(LOGFILE)\"'
+     LOGFILEMODE='\"$(LOGFILEMODE)\"'
+     DBADDRESS='\"$(DBADDRESS)\"'
+     ORYXUSER='\"$(ORYXUSER)\"'
+     ORYXGROUP='\"$(ORYXGROUP)\"'
+     DBUSER='\"$(DBUSER)\"'
+     DBNAME='\"$(DBNAME)\"'
+     VERSION='\"$(VERSION)\"' ;
+
+NoCare <>Jamsettings ;
+Depends [ FGristFiles installer.o ] : <>Jamsettings ;
+
 Program installer :
     installer database server mailbox message user core encodings ;
 LINKLIBS on installer = -lcrypt ;
