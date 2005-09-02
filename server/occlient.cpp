@@ -79,6 +79,8 @@ void OCClient::react( Event e )
 
     case Close:
     case Error:
+        if ( state() == Connecting )
+            log( "Couldn't connect to ocd server.", Log::Disaster );
         EventLoop::global()->shutdown();
         break;
     }
