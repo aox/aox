@@ -424,6 +424,7 @@ Query * User::remove( EventHandler * owner )
     Query *q = new Query( owner );
 
     d->q = 0;
+    d->t = new Transaction( this );
     d->mode = UserData::Removing;
     d->user = owner;
     d->result = q;
@@ -437,16 +438,23 @@ Query * User::remove( EventHandler * owner )
 void User::removeHelper()
 {
     if ( !d->q ) {
+        d->q =
+            new Query( "update mailboxes set deleted='t', owner=NULL "
+                       "where id=(select inbox from users where login=$1)",
+                       this );
+        d->q->bind( 1, d->login );
+        d->t->enqueue( d->q );
         d->q = new Query( "delete from users where login=$1", this );
         d->q->bind( 1, d->login );
-        d->q->execute();
+        d->t->enqueue( d->q );
+        d->t->commit();
     }
 
-    if ( !d->q->done() )
+    if ( !d->t->done() )
         return;
 
-    if ( d->q->failed() ) {
-        d->result->setError( d->q->error() );
+    if ( d->t->failed() ) {
+        d->result->setError( d->t->error() );
     }
     else {
         d->result->setState( Query::Completed );
