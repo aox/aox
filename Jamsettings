@@ -85,12 +85,6 @@ EXEMODE = 555 ;
 #
 PGUSER = postgres ;
 
-# The directory in which psql and pg_ctl live. You can ignore this
-# setting in most cases, because psql and pg_ctl are usually in the
-# PGUSER's PATH.
-#
-#PGBIN = /opt/postgres/bin ;
-
 # The address of the Postgres server. This is the default value of the
 # db-address variable in mailstore.conf, and may be the
 # fully-qualified Unix socket path, or an IPv4/6 address.
