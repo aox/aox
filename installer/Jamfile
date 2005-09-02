@@ -1,0 +1,6 @@
+SubDir TOP installer ;
+
+Build installer : installer.cpp ;
+Program installer :
+    installer database server mailbox message user core encodings ;
+LINKLIBS on installer = -lcrypt ;

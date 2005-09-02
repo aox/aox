@@ -20,6 +20,7 @@ SubInclude TOP sasl ;
 SubInclude TOP schema ;
 SubInclude TOP scripts ;
 SubInclude TOP tlsproxy ;
+SubInclude TOP installer ;
 
 if ( $(BUILDGUI) ) {
     SubInclude TOP msconsole ;

@@ -21,5 +21,3 @@ rule ShellScript {
 
 
 ShellScript rcmailstore : $(INITDIR) ;
-ShellScript installer : $(LIBDIR) ;
-
