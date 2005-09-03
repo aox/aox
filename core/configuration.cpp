@@ -533,6 +533,10 @@ void Configuration::report()
     If \a global does not contain a textual variable called
     "hostname", this function tries to find a suitable default, and
     logs a disaster if nothing is satisfactory.
+
+    If \a global is an empty string, the function returns without trying
+    to parse a configuration file. This experimental measure is meant to
+    help bin/installer.
 */
 
 void Configuration::setup( const String & global )
@@ -540,7 +544,9 @@ void Configuration::setup( const String & global )
     d = new ConfigurationData;
     Allocator::addEternal( d, "configuration data" );
 
-    if ( global[0] == '/' )
+    if ( global.isEmpty() )
+        return;
+    else if ( global[0] == '/' )
         read( global );
     else
         read( compiledIn( ConfigDir ) + "/" + global );

@@ -116,10 +116,11 @@ public:
 
     static String hostname() { return text( Hostname ); }
 
+    static void add( const String & );
+
 private:
     static String osHostname();
 
-    static void add( const String & );
     static void read( const String & );
 
     static void log( const String &, Log::Severity );
