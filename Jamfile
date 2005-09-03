@@ -55,9 +55,9 @@ actions Message {
 fmt <<EOM | sed 's/^/  /'
 
 To set up the database user and schema automatically, run
-$(LIBDIR)/installer as root.
+$(BINDIR)/installer as root.
 
-$(LIBDIR)/installer -n shows what it would do, without making any
+$(BINDIR)/installer -n shows what it would do, without making any
 changes.
 
 Mailstore's configuration is in $(CONFIGDIR)/mailstore.conf and its
