@@ -588,12 +588,6 @@ Recording the build source wouldn't be bad.
   can add their own files?
 
 
-ms can help (read: take over the function of) scripts/installer
-
-  In the long run, it may save us the sort of trouble we've had in the
-  past with shell hackery.
-
-
 Something confuses Address::uname() and Address::name()
 
   As a result, we send unlabelled 8-bit content in display-names if
