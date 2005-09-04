@@ -16,8 +16,10 @@ ObjectDefines installer.cpp :
      DBADDRESS='\"$(DBADDRESS)\"'
      ORYXUSER='\"$(ORYXUSER)\"'
      ORYXGROUP='\"$(ORYXGROUP)\"'
+     PGUSER='\"$(PGUSER)\"'
      DBUSER='\"$(DBUSER)\"'
      DBNAME='\"$(DBNAME)\"'
+     DBPASS='\"$(DBPASS)\"'
      VERSION='\"$(VERSION)\"' ;
 
 NoCare <>Jamsettings ;
