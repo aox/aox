@@ -205,10 +205,10 @@ void database()
             create.append( "'" );
 
             if ( report ) {
+                d->state = 2;
                 printf( " - Create a PostgreSQL user named '" DBUSER "'.\n"
                         "   As user " PGUSER ", run:\n"
                         "     psql -d template1 -qc \"%s\"\n", create.cstr() );
-                d->state = 2;
             }
             else {
                 d->state = 1;
@@ -227,7 +227,7 @@ void database()
         if ( d->q->failed() ) {
             fprintf( stderr, "Couldn't create PostgreSQL user '" DBUSER "'. "
                      "Please create it by hand and re-run the installer.\n" );
-            EventLoop::global()->shutdown();
+            EventLoop::shutdown();
         }
         d->state = 2;
     }
@@ -248,10 +248,11 @@ void database()
             String create( "create database " DBNAME " with owner " DBUSER " "
                            "encoding 'UNICODE'" );
             if ( report ) {
+                d->state = 8;
                 printf( " - Create a database named '" DBNAME "'.\n"
                         "   As user " PGUSER ", run:\n"
                         "     psql -d template1 -qc \"%s\"\n", create.cstr() );
-                d->state = 5;
+                printf( " - Load the Oryx schema.\n" );
             }
             else {
                 d->state = 4;
@@ -276,6 +277,47 @@ void database()
     }
 
     if ( d->state == 5 ) {
+        // How utterly, utterly disgusting.
+        Database::disconnect();
+        Configuration::setup( "" );
+        Configuration::add( "db-user = '" PGUSER "'" );
+        Configuration::add( "db-name = '" DBNAME "'" );
+        Database::setup();
+        d->state = 6;
+        d->q = new Query( "select tablename from pg_catalog.pg_tables where "
+                          "tablename='mailstore'", d );
+        d->q->execute();
+    }
+
+    if ( d->state == 6 ) {
+        if ( !d->q->done() )
+            return;
+        if ( d->q->failed() ) {
+            fprintf( stderr, "Couldn't connect to database '" DBNAME "' to "
+                     "load the Oryx schema.\n" );
+            EventLoop::shutdown();
+        }
+        d->state = 7;
+    }
+
+    if ( d->state == 7 ) {
+        Row * r = d->q->nextRow();
+        if ( !r ) {
+            if ( report ) {
+                d->state = 8;
+                printf( " - Load the Oryx schema.\n" );
+            }
+            else {
+                d->state = 8;
+                printf( "<create schema>\n" );
+            }
+        }
+        else {
+            d->state = 8;
+        }
+    }
+
+    if ( d->state == 8 ) {
         configFile();
     }
 }
