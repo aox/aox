@@ -19,12 +19,6 @@ tls client support (smtp, postgresql)
 Set up automatic injection regression/speed testing on penne.
 
 
-We should be able to connect to Postgres as an unprivileged user.
-
-  ms migrate could then ask for a different username and password to
-  perform schema upgrades.
-
-
 Fix shutdown
 
   There's no practical way to shutdown using ocd/ocadmin. Perhaps this
