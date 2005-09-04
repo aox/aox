@@ -35,12 +35,12 @@ class LoopData
 public:
     LoopData()
         : log( new Log( Log::Server ) ), startup( false ),
-          stop( false ), shutdown( false )
+          shutdown( false )
     {}
 
     Log *log;
     bool startup;
-    bool stop, shutdown;
+    bool shutdown;
     SortedList< Connection > connections;
 };
 
@@ -51,7 +51,7 @@ public:
     An EventLoop maintains a list of participating Connection objects,
     and periodically informs them about any events (e.g., read/write,
     errors, timeouts) that occur. The loop continues until something
-    calls stop() or shutdown().
+    calls shutdown().
 
     The main user of this class is the global event Loop.
 */
@@ -132,7 +132,7 @@ List< Connection > *EventLoop::connections() const
 }
 
 
-/*! Starts the EventLoop and runs it until stop() is called. */
+/*! Starts the EventLoop and runs it until shutdown() is called. */
 
 void EventLoop::start()
 {
@@ -141,7 +141,7 @@ void EventLoop::start()
 
     log( "Starting event loop", Log::Debug );
 
-    while ( !d->stop ) {
+    while ( !d->shutdown ) {
         commit();
         Connection *c;
 
@@ -234,7 +234,7 @@ void EventLoop::start()
             }
         }
 
-        if ( !d->stop &&
+        if ( !d->shutdown &&
              ( now - gc > 7200 ||
                Allocator::allocated() > 8*1024*1024 ||
                ( now - gc > 10 && Allocator::allocated() >= 131072 ) ) )
@@ -380,16 +380,6 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
 }
 
 
-/*! Instructs this EventLoop to stop immediately, leaving participating
-    Connections unchanged.
-*/
-
-void EventLoop::stop()
-{
-    d->stop = true;
-}
-
-
 /*! Instructs this EventLoop to perform an orderly shutdown, by sending
     each participating Connection a Shutdown event before closing, and
     then deleting each one.
@@ -398,7 +388,6 @@ void EventLoop::stop()
 void EventLoop::shutdown()
 {
     d->shutdown = true;
-    d->stop = true;
 }
 
 

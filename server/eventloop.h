@@ -17,7 +17,6 @@ public:
     virtual ~EventLoop();
 
     virtual void start();
-    virtual void stop();
     virtual void shutdown();
     virtual void addConnection( Connection * );
     virtual void removeConnection( Connection * );
