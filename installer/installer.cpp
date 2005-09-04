@@ -28,6 +28,7 @@ uid_t postgres;
 class Dispatcher * d;
 bool report = false;
 bool silent = false;
+String * dbpass;
 
 
 void error( String );
@@ -53,7 +54,7 @@ int main( int ac, char *av[] )
         String s( *args.shift() );
         if ( s == "-n" )
             report = true;
-        if ( s == "-q" )
+        else if ( s == "-q" )
             silent = true;
         else
             error( "Unrecognised argument: '" + s + "'" );
@@ -191,6 +192,8 @@ void database()
         Configuration::add( "db-name = 'template1'" );
         Database::setup();
         d = new Dispatcher;
+        dbpass = new String;
+        Allocator::addEternal( dbpass, "DBPASS" );
         d->q = new Query( "select usename from pg_catalog.pg_user where "
                           "usename=$1", d );
         d->q->bind( 1, DBUSER );
@@ -212,6 +215,7 @@ void database()
                 else
                     passwd = MD5::hash( Entropy::asString( 16 ) ).hex();
             }
+            dbpass->append( passwd );
             create.append( passwd );
             create.append( "'" );
 
@@ -397,14 +401,47 @@ void database()
 
 void configFile()
 {
-    if ( report ) {
-        printf( " - Generate a default configuration file.\n" );
-    }
+    String p( *dbpass );
+    if ( p.isEmpty() )
+        p = "'(database password here)'";
 
-    if ( !silent )
-        printf( "Generating default " CONFIGDIR "/mailstore.conf.\n" );
-    if ( !silent )
-        printf( "Done.\n" );
+    String cf( CONFIGDIR "/mailstore.conf" );
+    String cfg( "logfile-mode = 400\n"
+                "db-address   = " DBADDRESS "\n"
+                "db-name      = " DBNAME "\n"
+                "db-user      = " DBUSER "\n"
+                "# Security note: Anyone who can read this password can do\n"
+                "# anything to the database, including delete all mail.\n"
+                "db-password  = " + p + "\n" );
+
+    if ( !exists( cf ) ) {
+        if ( report ) {
+            printf( " - Generate a default configuration file.\n"
+                    "   %s should contain:\n\n%s", cf.cstr(), cfg.cstr() );
+        }
+        else {
+            setreuid( 0, 0 );
+            File f( cf, File::Write, 0600 );
+            if ( !f.valid() ) {
+                fprintf( stderr, "Could not open %s for writing.\n",
+                         cf.cstr() );
+            }
+            else {
+                if ( !silent )
+                    printf( "Generating default %s\n", cf.cstr() );
+                f.write( cfg );
+
+                struct passwd * p = getpwnam( ORYXUSER );
+                struct group * g = getgrnam( ORYXGROUP );
+                if ( chown( cf.cstr(), p->pw_uid, g->gr_gid ) < 0 )
+                    fprintf( stderr, "Could not chown oryx:oryx on %s\n",
+                             cf.cstr() );
+
+                if ( !silent )
+                    printf( "Done.\n" );
+            }
+        }
+    }
 
     EventLoop::shutdown();
 }
