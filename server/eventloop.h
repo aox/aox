@@ -17,7 +17,7 @@ public:
     virtual ~EventLoop();
 
     virtual void start();
-    virtual void shutdown();
+    virtual void stop();
     virtual void addConnection( Connection * );
     virtual void removeConnection( Connection * );
     void closeAllExcept( Connection *, Connection * );
@@ -32,6 +32,7 @@ public:
 
     static void setup( EventLoop * = 0 );
     static EventLoop * global();
+    static void shutdown();
 
 private:
     class LoopData *d;

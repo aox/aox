@@ -81,7 +81,7 @@ void OCClient::react( Event e )
     case Error:
         if ( state() == Connecting )
             log( "Couldn't connect to ocd server.", Log::Disaster );
-        EventLoop::global()->shutdown();
+        EventLoop::shutdown();
         break;
     }
     commit();
@@ -106,7 +106,7 @@ void OCClient::parse()
 
         if ( msg == "shutdown" ) {
             log( "Shutting down due to ocd request" );
-            EventLoop::global()->shutdown();
+            EventLoop::shutdown();
         }
         else if ( msg == "mailbox" ) {
             updateMailbox( arg );

@@ -35,12 +35,12 @@ class LoopData
 public:
     LoopData()
         : log( new Log( Log::Server ) ), startup( false ),
-          shutdown( false )
+          stop( false )
     {}
 
     Log *log;
     bool startup;
-    bool shutdown;
+    bool stop;
     SortedList< Connection > connections;
 };
 
@@ -51,9 +51,7 @@ public:
     An EventLoop maintains a list of participating Connection objects,
     and periodically informs them about any events (e.g., read/write,
     errors, timeouts) that occur. The loop continues until something
-    calls shutdown().
-
-    The main user of this class is the global event Loop.
+    calls stop().
 */
 
 
@@ -132,7 +130,7 @@ List< Connection > *EventLoop::connections() const
 }
 
 
-/*! Starts the EventLoop and runs it until shutdown() is called. */
+/*! Starts the EventLoop and runs it until stop() is called. */
 
 void EventLoop::start()
 {
@@ -141,7 +139,7 @@ void EventLoop::start()
 
     log( "Starting event loop", Log::Debug );
 
-    while ( !d->shutdown ) {
+    while ( !d->stop ) {
         commit();
         Connection *c;
 
@@ -193,7 +191,7 @@ void EventLoop::start()
             if ( errno == EINTR ) {
                 log( Server::name() + ": Shutting down due to signal" );
                 commit();
-                shutdown();
+                stop();
             }
             else if ( errno == EBADF ) {
                 // one of the FDs was closed. we react by forgetting
@@ -234,7 +232,7 @@ void EventLoop::start()
             }
         }
 
-        if ( !d->shutdown &&
+        if ( !d->stop &&
              ( now - gc > 7200 ||
                Allocator::allocated() > 8*1024*1024 ||
                ( now - gc > 10 && Allocator::allocated() >= 131072 ) ) )
@@ -259,21 +257,19 @@ void EventLoop::start()
     // shutdown should first get rid of listeners, then a (long)
     // while later call this. Note that there is similar code in
     // ConsoleLoop.
-    if ( d->shutdown ) {
-        log( "Shutting down event loop", Log::Debug );
-        SortedList< Connection >::Iterator it( d->connections );
-        while ( it ) {
-            try {
-                Scope x( it->log() );
-                if ( it->state() == Connection::Connected )
-                    it->react( Connection::Shutdown );
-                if ( it->state() == Connection::Connected )
-                    it->write();
-            } catch ( Exception e ) {
-                // we don't really care at this point, do we?
-            }
-            ++it;
+    log( "Shutting down event loop", Log::Debug );
+    SortedList< Connection >::Iterator it( d->connections );
+    while ( it ) {
+        try {
+            Scope x( it->log() );
+            if ( it->state() == Connection::Connected )
+                it->react( Connection::Shutdown );
+            if ( it->state() == Connection::Connected )
+                it->write();
+        } catch ( Exception e ) {
+            // we don't really care at this point, do we?
         }
+        ++it;
     }
 
     log( "Event loop stopped", Log::Debug );
@@ -385,9 +381,9 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
     then deleting each one.
 */
 
-void EventLoop::shutdown()
+void EventLoop::stop()
 {
-    d->shutdown = true;
+    d->stop = true;
 }
 
 
@@ -449,4 +445,14 @@ void EventLoop::setStartup( bool p )
 EventLoop * EventLoop::global()
 {
     return ::loop;
+}
+
+
+/*! This static function is just a convenient shorthand for calling
+    stop() on the global() EventLoop.
+*/
+
+void EventLoop::shutdown()
+{
+    ::loop->stop();
 }

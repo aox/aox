@@ -413,7 +413,7 @@ void LogServer::reopen( int )
                l->name(),
                Log::Disaster );
         ::commit();
-        EventLoop::global()->shutdown(); // XXX: perhaps better to switch to syslog
+        EventLoop::shutdown(); // XXX: perhaps better to switch to syslog
     }
     ::log( "SIGHUP caught. Closing and reopening log file " + logFile->name(),
            Log::Info );

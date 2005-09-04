@@ -77,7 +77,7 @@ public:
         case Error:
             delete owner;
             owner = 0;
-            EventLoop::global()->shutdown();
+            EventLoop::shutdown();
             break;
         }
     }

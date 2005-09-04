@@ -283,7 +283,7 @@ public:
             }
 
             if ( failures || Scope::current()->log()->disastersYet() ) {
-                EventLoop::global()->shutdown();
+                EventLoop::shutdown();
                 exit( -1 );
             }
 
@@ -342,7 +342,7 @@ public:
             status = -1;
         }
 
-        EventLoop::global()->shutdown();
+        EventLoop::shutdown();
     }
 };
 

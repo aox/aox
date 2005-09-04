@@ -72,7 +72,7 @@ void OCAdmin::parse()
     else if ( r == "shutdown" ) {
         OCServer::send( "shutdown\r\n" );
         enqueue( "Shutting down\r\n" );
-        EventLoop::global()->shutdown();
+        EventLoop::shutdown();
     }
     else if ( r == "quit" || r == "exit" ) {
         setState( Closing );

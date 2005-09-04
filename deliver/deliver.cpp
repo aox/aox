@@ -43,7 +43,7 @@ public:
             errstr = client->error().cstr();
             status = -1;
         }
-        EventLoop::global()->shutdown();
+        EventLoop::shutdown();
     }
 };
 

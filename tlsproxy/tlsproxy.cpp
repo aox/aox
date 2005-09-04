@@ -255,7 +255,7 @@ void TlsProxy::react( Event e )
         setState( Closing );
         if ( d->state != TlsProxyData::Initial ) {
             log( "Shutting down TLS proxy due to client close" );
-            EventLoop::global()->shutdown();
+            EventLoop::shutdown();
             exit( 0 );
         }
         break;

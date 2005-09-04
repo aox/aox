@@ -261,7 +261,7 @@ void Server::logSetup()
 
 static void shutdownLoop( int )
 {
-    EventLoop::global()->shutdown();
+    EventLoop::shutdown();
 }
 
 
@@ -578,7 +578,7 @@ void Server::execute()
     }
 
     if ( failures || Scope::current()->log()->disastersYet() ) {
-        EventLoop::global()->shutdown();
+        EventLoop::shutdown();
         exit( 1 );
     }
 
