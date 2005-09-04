@@ -23,6 +23,7 @@
 #include <grp.h>
 
 
+uid_t postgres;
 class Dispatcher * d;
 bool report = false;
 
@@ -60,7 +61,7 @@ int main( int ac, char *av[] )
     struct passwd * p = getpwnam( PGUSER );
     if ( !p )
         error( "PostgreSQL superuser '" PGUSER "' does not exist." );
-    seteuid( p->pw_uid );
+    seteuid( postgres = p->pw_uid );
 
     if ( report )
         printf( "Reporting what the installer needs to do.\n" );
@@ -207,8 +208,8 @@ void database()
             if ( report ) {
                 d->state = 2;
                 printf( " - Create a PostgreSQL user named '" DBUSER "'.\n"
-                        "   As user " PGUSER ", run:\n"
-                        "     psql -d template1 -qc \"%s\"\n", create.cstr() );
+                        "   As user " PGUSER ", run:\n\n"
+                        "psql -d template1 -qc \"%s\"\n\n", create.cstr() );
             }
             else {
                 d->state = 1;
@@ -248,11 +249,12 @@ void database()
             String create( "create database " DBNAME " with owner " DBUSER " "
                            "encoding 'UNICODE'" );
             if ( report ) {
-                d->state = 8;
+                d->state = 7;
                 printf( " - Create a database named '" DBNAME "'.\n"
-                        "   As user " PGUSER ", run:\n"
-                        "     psql -d template1 -qc \"%s\"\n", create.cstr() );
-                printf( " - Load the Oryx schema.\n" );
+                        "   As user " PGUSER ", run:\n\n"
+                        "psql -d template1 -qc \"%s\"\n\n", create.cstr() );
+                // We let state 7 think the mailstore query returned 0
+                // rows, so that it prints an appropriate message.
             }
             else {
                 d->state = 4;
@@ -271,7 +273,7 @@ void database()
         if ( d->q->failed() ) {
             fprintf( stderr, "Couldn't create database '" DBUSER "'. "
                      "Please create it by hand and re-run the installer.\n" );
-            EventLoop::global()->shutdown();
+            EventLoop::shutdown();
         }
         d->state = 5;
     }
@@ -284,8 +286,8 @@ void database()
         Configuration::add( "db-name = '" DBNAME "'" );
         Database::setup();
         d->state = 6;
-        d->q = new Query( "select tablename from pg_catalog.pg_tables where "
-                          "tablename='mailstore'", d );
+        d->q = new Query( "select relname from pg_catalog.pg_class where "
+                          "relname='mailstore'", d );
         d->q->execute();
     }
 
@@ -293,9 +295,18 @@ void database()
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't connect to database '" DBNAME "' to "
-                     "load the Oryx schema.\n" );
-            EventLoop::shutdown();
+            if ( report ) {
+                d->state = 8;
+                printf( " - May need to load the Oryx database schema.\n   "
+                        "(Couldn't query database '" DBNAME "' to make sure "
+                        "it's needed.)\n" );
+            }
+            else {
+                fprintf( stderr, "Couldn't query database '" DBNAME "' to "
+                         "see if the schema needs to be loaded (%s).\n",
+                         d->q->error().cstr() );
+                EventLoop::shutdown();
+            }
         }
         d->state = 7;
     }
@@ -303,13 +314,59 @@ void database()
     if ( d->state == 7 ) {
         Row * r = d->q->nextRow();
         if ( !r ) {
+            String cmd( "\\set ON_ERROR_STOP\n"
+                        "SET SESSION AUTHORIZATION " DBUSER ";\n"
+                        "SET client_min_messages TO 'ERROR';\n"
+                        "\\i " LIBDIR "/schema.pg\n"
+                        "\\i " LIBDIR "/field-names\n"
+                        "\\i " LIBDIR "/flag-names\n" );
             if ( report ) {
                 d->state = 8;
-                printf( " - Load the Oryx schema.\n" );
+                printf( " - Load the Oryx database schema.\n   "
+                        "As user " PGUSER ", run:\n\n"
+                        "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
+                        cmd.cstr() );
             }
             else {
                 d->state = 8;
-                printf( "<create schema>\n" );
+
+                int n;
+                int fd[2];
+                pid_t pid = -1;
+
+                n = pipe( fd );
+                if ( n == 0 )
+                    pid = fork();
+                if ( n == 0 && pid == 0 ) {
+                    if ( setreuid( postgres, postgres ) < 0 ||
+                         dup2( fd[0], 0 ) < 0 ||
+                         close( fd[1] ) < 0 ||
+                         close( fd[0] ) < 0 )
+                        exit( -1 );
+                    execlp( PSQL, "psql", DBNAME, "-f", "-", 0 );
+                }
+                else {
+                    int status = 0;
+                    if ( pid > 0 ) {
+                        printf( "Loading Oryx database schema:\n" );
+                        write( fd[1], cmd.cstr(), cmd.length() );
+                        close( fd[1] );
+                        waitpid( pid, &status, 0 );
+                    }
+                    if ( pid < 0 || ( WIFEXITED( status ) &&
+                                      WEXITSTATUS( status ) != 0 ) )
+                    {
+                        fprintf( stderr, "Couldn't install the Oryx schema.\n"
+                                 "Please re-run the installer after doing the "
+                                 "following as user " PGUSER ":\n\n"
+                                 "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n",
+                                 cmd.cstr() );
+                        EventLoop::shutdown();
+                    }
+                    else {
+                        printf( "Done.\n" );
+                    }
+                }
             }
         }
         else {
@@ -329,5 +386,5 @@ void configFile()
         printf( " - Generate a default configuration file.\n" );
     }
 
-    EventLoop::global()->shutdown();
+    EventLoop::shutdown();
 }

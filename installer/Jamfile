@@ -17,6 +17,7 @@ ObjectDefines installer.cpp :
      ORYXUSER='\"$(ORYXUSER)\"'
      ORYXGROUP='\"$(ORYXGROUP)\"'
      PGUSER='\"$(PGUSER)\"'
+     PSQL='\"$(PSQL)\"'
      DBUSER='\"$(DBUSER)\"'
      DBNAME='\"$(DBNAME)\"'
      DBPASS='\"$(DBPASS)\"'
