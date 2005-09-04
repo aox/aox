@@ -49,7 +49,7 @@ String Entropy::asString( uint bytes )
     if ( bytes == 0 )
         return r;
     if ( fd < 0 ) {
-        ::log( "Entroy requested, but /dev/urandom is not available",
+        ::log( "Entropy requested, but /dev/urandom is not available",
                Log::Disaster );
         die( FD );
     }
