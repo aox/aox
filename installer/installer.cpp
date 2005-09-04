@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <pwd.h>
 #include <grp.h>
 
@@ -26,6 +27,7 @@
 uid_t postgres;
 class Dispatcher * d;
 bool report = false;
+bool silent = false;
 
 
 void error( String );
@@ -51,6 +53,8 @@ int main( int ac, char *av[] )
         String s( *args.shift() );
         if ( s == "-n" )
             report = true;
+        if ( s == "-q" )
+            silent = true;
         else
             error( "Unrecognised argument: '" + s + "'" );
     }
@@ -120,8 +124,11 @@ void oryxGroup()
         cmd = "/sbin/pw groupadd " ORYXGROUP;
 
     int status = 0;
-    if ( !cmd.isEmpty() )
+    if ( !cmd.isEmpty() ) {
+        if ( !silent )
+            printf( "Creating the '" ORYXGROUP "' group,\n" );
         status = system( cmd.cstr() );
+    }
 
     if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 )
         error( "Couldn't create group '" ORYXGROUP "'. Please create it by "
@@ -148,8 +155,11 @@ void oryxUser()
         cmd = "/sbin/pw useradd " ORYXUSER " -g " ORYXGROUP;
 
     int status = 0;
-    if ( !cmd.isEmpty() )
+    if ( !cmd.isEmpty() ) {
+        if ( !silent )
+            printf( "Creating the '" ORYXUSER "' user,\n" );
         status = system( cmd.cstr() );
+    }
 
     if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 )
         error( "Couldn't create user '" ORYXUSER "'. Please create it by "
@@ -213,6 +223,8 @@ void database()
             }
             else {
                 d->state = 1;
+                if ( !silent )
+                    printf( "Creating the '" DBUSER "' PostgreSQL user.\n" );
                 d->q = new Query( create, d );
                 d->q->execute();
             }
@@ -258,6 +270,8 @@ void database()
             }
             else {
                 d->state = 4;
+                if ( !silent )
+                    printf( "Creating the '" DBNAME "' database.\n" );
                 d->q = new Query( create, d );
                 d->q->execute();
             }
@@ -343,12 +357,16 @@ void database()
                          close( fd[1] ) < 0 ||
                          close( fd[0] ) < 0 )
                         exit( -1 );
+                    if ( silent )
+                        if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
+                            exit( -1 );
                     execlp( PSQL, "psql", DBNAME, "-f", "-", 0 );
                 }
                 else {
                     int status = 0;
                     if ( pid > 0 ) {
-                        printf( "Loading Oryx database schema:\n" );
+                        if ( !silent )
+                            printf( "Loading Oryx database schema:\n" );
                         write( fd[1], cmd.cstr(), cmd.length() );
                         close( fd[1] );
                         waitpid( pid, &status, 0 );
@@ -362,9 +380,6 @@ void database()
                                  "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n",
                                  cmd.cstr() );
                         EventLoop::shutdown();
-                    }
-                    else {
-                        printf( "Done.\n" );
                     }
                 }
             }
@@ -385,6 +400,11 @@ void configFile()
     if ( report ) {
         printf( " - Generate a default configuration file.\n" );
     }
+
+    if ( !silent )
+        printf( "Generating default " CONFIGDIR "/mailstore.conf.\n" );
+    if ( !silent )
+        printf( "Done.\n" );
 
     EventLoop::shutdown();
 }
