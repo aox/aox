@@ -564,6 +564,11 @@ void showBuildconf()
 {
     end();
 
+    printf( "Oryx Mailstore version %s, "
+            "http://www.oryx.com/mailstore/%s.html\n",
+            Configuration::compiledIn( Configuration::Version ).cstr(),
+            Configuration::compiledIn( Configuration::Version ).cstr() );
+
     printf( "Built on " __DATE__ " " __TIME__ "\n" );
     printf( "CONFIGDIR = %s\n",
             Configuration::compiledIn( Configuration::ConfigDir ).cstr() );
