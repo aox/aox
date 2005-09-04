@@ -58,11 +58,15 @@ Database::Database()
 
 void Database::setup()
 {
-    queries = new List< Query >;
-    Allocator::addEternal( queries, "list of queries" );
+    if ( !queries ) {
+        queries = new List< Query >;
+        Allocator::addEternal( queries, "list of queries" );
+    }
 
-    handles = new List< Database >;
-    Allocator::addEternal( handles, "list of database handles" );
+    if ( !handles ) {
+        handles = new List< Database >;
+        Allocator::addEternal( handles, "list of database handles" );
+    }
 
     String db = Configuration::text( Configuration::Db ).lower();
 
@@ -120,6 +124,25 @@ void Database::submit( List< Query > *q )
         ++it;
     }
     runQueue();
+}
+
+
+/*! This extremely evil function shuts down all Database handles. It's
+    used only by bin/installer to reconnect to the mailstore database.
+    Once it's done, setup() may be called again with an appropriately
+    altered configuration.
+
+    Don't try this at home, kids.
+*/
+
+void Database::disconnect()
+{
+    List< Database >::Iterator it( handles );
+    while ( it ) {
+        it->react( Shutdown );
+        ++it;
+    }
+
 }
 
 

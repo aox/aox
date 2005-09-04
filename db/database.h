@@ -21,6 +21,7 @@ public:
     static void setup();
     static void submit( Query * );
     static void submit( List< Query > * );
+    static void disconnect();
 
     virtual void processQueue() = 0;
 
