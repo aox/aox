@@ -262,8 +262,10 @@ void database()
 
     if ( d->state == 2 ) {
         d->state = 3;
-        d->q = new Query( "select datname from pg_catalog.pg_database where "
-                          "datname=$1", d );
+        d->q =
+            new Query( "select datname,usename,pg_encoding_to_char(encoding) "
+                       "as encoding from pg_database d join pg_user u "
+                       "on (d.datdba=u.usesysid) where datname=$1", d );
         d->q->bind( 1, DBNAME );
         d->q->execute();
     }
@@ -292,6 +294,15 @@ void database()
             }
         }
         else {
+            String u( r->getString( "usename" ) );
+            String e( r->getString( "encoding" ) );
+            if ( u != DBUSER || e != "UNICODE" ) {
+                fprintf( stderr, "Database '" DBNAME "' exists, but it %s.\n",
+                         u == DBUSER ?
+                            "is not owned by user " DBUSER :
+                            "does not have encoding UNICODE" );
+                EventLoop::shutdown();
+            }
             d->state = 5;
         }
     }
