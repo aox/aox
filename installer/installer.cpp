@@ -405,7 +405,8 @@ void configFile()
         p = "'(database password here)'";
 
     String cf( Configuration::configFile() );
-    String cfg( "logfile-mode = 400\n"
+    String cfg( "logfile      = " LOGFILE "\n"
+                "logfile-mode = " LOGFILEMODE "\n"
                 "db-address   = " DBADDRESS "\n"
                 "db-name      = " DBNAME "\n"
                 "db-user      = " DBUSER "\n"
