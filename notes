@@ -630,13 +630,14 @@ CAcert instead of self-signed certificate?
 0.98
 
   Upgrade to cryptlib 3.2.1 (Done).
-  Write a GB2312 codec.
   Fix the ocd problem (Done).
+  ms vacuum (Sort of done).
+  New installer (Done).
+  Write a GB2312 codec.
   Textify HTML bodyparts.
   Fix the 8-bit problems in Address.
   Make msconsole's user pane work.
   Fix tsearch2.
-  ms vacuum (Sort of done).
 
   (All of these items have their own separate notes.)
 
