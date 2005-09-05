@@ -405,14 +405,24 @@ void configFile()
         p = "'(database password here)'";
 
     String cf( Configuration::configFile() );
-    String cfg( "logfile      = " LOGFILE "\n"
-                "logfile-mode = " LOGFILEMODE "\n"
-                "db-address   = " DBADDRESS "\n"
-                "db-name      = " DBNAME "\n"
-                "db-user      = " DBUSER "\n"
-                "# Security note: Anyone who can read this password can do\n"
-                "# anything to the database, including delete all mail.\n"
-                "db-password  = " + p + "\n" );
+    String v( Configuration::compiledIn( Configuration::Version ) );
+    String intro(
+        "# Mailstore configuration. See mailstore.conf(5) for details.\n"
+        "# Automatically generated while installing Mailstore " + v + ".\n\n"
+        "# Specify the hostname if mailstore gets it wrong. We suggest not\n"
+        "# using the name \"localhost\".\n#\n"
+        "# hostname = fully.qualified.hostname\n\n"
+    );
+    String cfg(
+        "logfile      = " LOGFILE "\n"
+        "logfile-mode = " LOGFILEMODE "\n"
+        "db-address   = " DBADDRESS "\n"
+        "db-name      = " DBNAME "\n"
+        "db-user      = " DBUSER "\n\n"
+        "# Security note: Anyone who can read this password can do\n"
+        "# anything to the database, including delete all mail.\n"
+        "db-password  = " + p + "\n"
+    );
 
     if ( !exists( cf ) ) {
         if ( report ) {
@@ -429,6 +439,7 @@ void configFile()
             else {
                 if ( !silent )
                     printf( "Generating default %s\n", cf.cstr() );
+                f.write( intro );
                 f.write( cfg );
 
                 struct passwd * p = getpwnam( ORYXUSER );
