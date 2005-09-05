@@ -3,14 +3,8 @@ SubDir TOP installer ;
 Build installer : installer.cpp ;
 
 ObjectDefines installer.cpp :
-     BINDIR='\"$(BINDIR)\"'
-     SBINDIR='\"$(SBINDIR)\"'
-     MANDIR='\"$(MANDIR)\"'
      LIBDIR='\"$(LIBDIR)\"'
-     INITDIR='\"$(INITDIR)\"'
-     JAILDIR='\"$(JAILDIR)\"'
      CONFIGDIR='\"$(CONFIGDIR)\"'
-     PIDFILEDIR='\"$(PIDFILEDIR)\"'
      LOGFILE='\"$(LOGFILE)\"'
      LOGFILEMODE='\"$(LOGFILEMODE)\"'
      DBADDRESS='\"$(DBADDRESS)\"'
@@ -20,8 +14,7 @@ ObjectDefines installer.cpp :
      PSQL='\"$(PSQL)\"'
      DBUSER='\"$(DBUSER)\"'
      DBNAME='\"$(DBNAME)\"'
-     DBPASS='\"$(DBPASS)\"'
-     VERSION='\"$(VERSION)\"' ;
+     DBPASS='\"$(DBPASS)\"' ;
 
 NoCare <>Jamsettings ;
 Depends [ FGristFiles installer.o ] : <>Jamsettings ;
