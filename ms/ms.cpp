@@ -566,28 +566,28 @@ void showBuildconf()
 
     printf( "Oryx Mailstore version %s, "
             "http://www.oryx.com/mailstore/%s.html\n",
-            Configuration::compiledIn( Configuration::Version ).cstr(),
-            Configuration::compiledIn( Configuration::Version ).cstr() );
+            Configuration::compiledIn( Configuration::Version ),
+            Configuration::compiledIn( Configuration::Version ) );
 
     printf( "Built on " __DATE__ " " __TIME__ "\n" );
     printf( "CONFIGDIR = %s\n",
-            Configuration::compiledIn( Configuration::ConfigDir ).cstr() );
+            Configuration::compiledIn( Configuration::ConfigDir ) );
     printf( "PIDFILEDIR = %s\n",
-            Configuration::compiledIn( Configuration::PidFileDir ).cstr() );
+            Configuration::compiledIn( Configuration::PidFileDir ) );
     printf( "BINDIR = %s\n",
-            Configuration::compiledIn( Configuration::BinDir ).cstr() );
+            Configuration::compiledIn( Configuration::BinDir ) );
     printf( "MANDIR = %s\n",
-            Configuration::compiledIn( Configuration::ManDir ).cstr() );
+            Configuration::compiledIn( Configuration::ManDir ) );
     printf( "LIBDIR = %s\n",
-            Configuration::compiledIn( Configuration::LibDir ).cstr() );
+            Configuration::compiledIn( Configuration::LibDir ) );
     printf( "INITDIR = %s\n",
-            Configuration::compiledIn( Configuration::InitDir ).cstr() );
+            Configuration::compiledIn( Configuration::InitDir ) );
     printf( "ORYXUSER = %s\n",
-            Configuration::compiledIn( Configuration::OryxUser ).cstr() );
+            Configuration::compiledIn( Configuration::OryxUser ) );
     printf( "ORYXGROUP = %s\n",
-            Configuration::compiledIn( Configuration::OryxGroup ).cstr() );
+            Configuration::compiledIn( Configuration::OryxGroup ) );
     printf( "VERSION = %s\n",
-            Configuration::compiledIn( Configuration::Version ).cstr() );
+            Configuration::compiledIn( Configuration::Version ) );
 }
 
 
@@ -684,21 +684,20 @@ void showSchema()
     if ( r ) {
         int rev = r->getInt( "revision" );
 
-        String comment;
+        String s;
         if ( rev >= nv ) {
-            comment =
-                "too new for " +
-                Configuration::compiledIn( Configuration::Version );
+            s = "too new for ";
+            s.append( Configuration::compiledIn( Configuration::Version ) );
         }
         else {
-            comment = versions[rev];
+            s = versions[rev];
             if ( rev == nv-1 )
-                comment.append( ", and perhaps later versions" );
+                s.append( ", and perhaps later versions" );
         }
 
-        if ( !comment.isEmpty() )
-            comment = " (" + comment + ")";
-        printf( "%d%s\n", rev, comment.cstr() );
+        if ( !s.isEmpty() )
+            s = " (" + s + ")";
+        printf( "%d%s\n", rev, s.cstr() );
     }
 }
 

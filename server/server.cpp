@@ -310,7 +310,7 @@ void Server::fork()
 
 void Server::pidFile()
 {
-    String dir = Configuration::compiledIn( Configuration::PidFileDir );
+    String dir( Configuration::compiledIn( Configuration::PidFileDir ) );
 
     String n = dir + "/" + d->name + ".pid";
     File f( n, File::Write );
@@ -372,12 +372,10 @@ void Server::secure()
         exit( 1 );
     }
 
-    String cfn;
-    if ( d->configFile.isEmpty() )
-        cfn = Configuration::compiledIn( Configuration::ConfigDir ) +
-              "/mailstore.conf";
-    else
-        cfn = d->configFile;
+    String cfn( d->configFile );
+    if ( cfn.isEmpty() )
+        cfn = Configuration::configFile();
+
     struct stat st;
     if ( stat( cfn.cstr(), &st ) < 0 ) {
         log( "Cannot stat configuration file " + cfn,

@@ -364,7 +364,7 @@ void Configuration::parseToggle( uint n, const String & line )
 
 /*! Returns the compile-time \a setting. */
 
-String Configuration::compiledIn( CompileTimeSetting setting )
+const char * Configuration::compiledIn( CompileTimeSetting setting )
 {
     switch( setting ) {
     case ConfigDir:
@@ -399,6 +399,21 @@ String Configuration::compiledIn( CompileTimeSetting setting )
         break;
     }
     return "";
+}
+
+
+/*! Returns the fully-qualified name of the configuration file (e.g.
+    /usr/local/mailstore/mailstore.conf) based on the compiledIn()
+    value for the configuration directory.
+
+    Merely a convenience.
+*/
+
+String Configuration::configFile()
+{
+    String s( compiledIn( ConfigDir ) );
+    s.append( "/mailstore.conf" );
+    return s;
 }
 
 
@@ -549,7 +564,7 @@ void Configuration::setup( const String & global )
     else if ( global[0] == '/' )
         read( global );
     else
-        read( compiledIn( ConfigDir ) + "/" + global );
+        read( String( compiledIn( ConfigDir ) ) + "/" + global );
 
     String hn = text( Hostname );
     if ( hn.find( '.' ) < 0 )

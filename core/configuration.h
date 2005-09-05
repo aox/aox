@@ -30,7 +30,8 @@ public:
         Version, LastSetting = Version
     };
 
-    static String compiledIn( CompileTimeSetting );
+    static const char * compiledIn( CompileTimeSetting );
+    static String configFile();
 
     enum Scalar {
         DbPort,

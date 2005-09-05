@@ -30,7 +30,8 @@ OCAdmin::OCAdmin( int s )
 {
     EventLoop::global()->addConnection( this );
     enqueue( "Hi. This is Oryx OCAdmin " +
-             Configuration::compiledIn( Configuration::Version ) + "\r\n" );
+             String( Configuration::compiledIn( Configuration::Version ) ) +
+             "\r\n" );
 }
 
 

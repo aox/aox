@@ -160,9 +160,11 @@ void HTTP::process()
     if ( d->page && d->page->ready() ) {
         String text = d->page->text();
 
-        addHeader( "Server: Oryx/" +
-                   Configuration::compiledIn( Configuration::Version ) +
-                   " (http://www.oryx.com/webmail/)" );
+        String srv( "Server: Oryx/" );
+        srv.append( Configuration::compiledIn( Configuration::Version ) );
+        srv.append( " (http://www.oryx.com/webmail/)" );
+
+        addHeader( srv );
         addHeader( "Content-Length: " + fn( text.length() ) );
         addHeader( "Content-Type: " + d->page->contentType() );
 

@@ -71,8 +71,7 @@ int main( int ac, char *av[] )
     if ( report )
         printf( "Reporting what the installer needs to do.\n" );
 
-    String cf( CONFIGDIR );
-    cf.append( "/mailstore.conf" );
+    String cf( Configuration::configFile() );
     if ( !report && exists( cf ) )
         error( cf + " already exists -- exiting without changes.\n"
                " - Not creating user " ORYXUSER " in group " ORYXGROUP ".\n"
@@ -405,7 +404,7 @@ void configFile()
     if ( p.isEmpty() )
         p = "'(database password here)'";
 
-    String cf( CONFIGDIR "/mailstore.conf" );
+    String cf( Configuration::configFile() );
     String cfg( "logfile-mode = 400\n"
                 "db-address   = " DBADDRESS "\n"
                 "db-name      = " DBNAME "\n"

@@ -78,8 +78,8 @@ static void setupKey()
 
     String keyFile( Configuration::text( Configuration::TlsCertFile ) );
     if ( keyFile.isEmpty() ) {
-        String file = Configuration::compiledIn( Configuration::LibDir ) +
-                      "/" + "automatic-key.p15" ;
+        String file( Configuration::compiledIn( Configuration::LibDir ) );
+        file.append( "/automatic-key.p15" );
 
         status = cryptKeysetOpen( &keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE,
                                   file.cstr(), CRYPT_KEYOPT_NONE );
