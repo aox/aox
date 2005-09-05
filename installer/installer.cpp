@@ -68,6 +68,18 @@ int main( int ac, char *av[] )
         error( "PostgreSQL superuser '" PGUSER "' does not exist." );
     seteuid( postgres = p->pw_uid );
 
+    String dba( DBADDRESS );
+    if ( dba[0] == '/' && !exists( dba ) ) {
+        fprintf( stderr, "Warning: DBADDRESS is set to '" DBADDRESS "',"
+                 "which does not exist.\n" );
+        if ( exists( "/etc/debian_version" ) &&
+             exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
+        {
+            fprintf( stderr, "(On Debian, perhaps it should be "
+                     "/var/run/postgresql/.s.PGSQL.5432 instead.)\n" );
+        }
+    }
+
     if ( report )
         printf( "Reporting what the installer needs to do.\n" );
 
@@ -418,7 +430,7 @@ void configFile()
         "logfile-mode = " LOGFILEMODE "\n"
         "db-address   = " DBADDRESS "\n"
         "db-name      = " DBNAME "\n"
-        "db-user      = " DBUSER "\n\n"
+        "db-user      = " DBUSER "\n"
         "# Security note: Anyone who can read this password can do\n"
         "# anything to the database, including delete all mail.\n"
         "db-password  = " + p + "\n"
