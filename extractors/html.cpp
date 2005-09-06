@@ -22,8 +22,8 @@ UString HTML::asText( const UString &h )
 {
     UString r;
     UString t, s, qs, a;
-    char last, quote; /* , c;
-    uint mark = 0; */
+    char last, quote, c;
+    uint mark = 0;
 
     int tag = 0;        /* 1 inside <...> */
     int tagname = 0;    /* 1 inside tag, before whitespace */
@@ -104,7 +104,6 @@ UString HTML::asText( const UString &h )
             continue;
             break;
 
-#if 0
         case '&':
             /* May be a character reference. */
             if ( ( c = h[i+1] ) == '#' ) {
@@ -116,7 +115,8 @@ UString HTML::asText( const UString &h )
                     mark = i++;
                     while ( isdigit( h[i] ) )
                         i++;
-                    r = r + s + QChar( h.mid( mark, i-mark ).toUInt() );
+                    r.append( s );
+                    r.append( h.mid( mark, i-mark ).number( 0 ) );
                     s.truncate();
 
                     /* The terminating semicolon is required only
@@ -132,8 +132,8 @@ UString HTML::asText( const UString &h )
                     while ( isxdigit( h[i] ) )
                         i++;
                     if ( i != mark ) {
-                        r = r + s +
-                            QChar( h.mid( mark, i-mark ).toUInt( 0, 16 ) );
+                        r.append( s );
+                        r.append( h.mid( mark, i-mark ).number( 0, 16 ) );
                         s.truncate();
                     }
                     if ( h[i] != ';' )
@@ -142,14 +142,16 @@ UString HTML::asText( const UString &h )
                 else {
                     /* Not a reference. */
                     i++;
-                    r = r + s + "&#";
+                    r.append( s );
+                    r.append( '&' );
+                    r.append( '#' );
                     s.truncate();
                 }
             } else if ( isalpha( c ) ) {
                 /* Entity reference: &[a-zA-Z0-9]+;? */
                 int m, l = 0, u = ents - 1;
                 struct entity *p = 0;
-                String ent;
+                UString ent;
 
                 i++;
                 mark = i++;
@@ -164,7 +166,8 @@ UString HTML::asText( const UString &h )
                     int n;
 
                     m = (l + u)/2;
-                    n = strcmp( entities[m].name, ent );
+                    // n = strcmp( entities[m].name, ent );
+                    n = 0;
 
                     if ( n < 0 )
                         l = m + 1;
@@ -177,7 +180,8 @@ UString HTML::asText( const UString &h )
                 } while ( l <= u );
 
                 if ( p ) {
-                    r = r + s + QChar( p->chr );
+                    r.append( s );
+                    r.append( p->chr );
                     s.truncate();
                 }
             }
@@ -188,7 +192,6 @@ UString HTML::asText( const UString &h )
                 s.truncate();
             }
             break;
-#endif
 
     unspecial:
         default:
