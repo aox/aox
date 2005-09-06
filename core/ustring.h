@@ -33,7 +33,7 @@ public:
     void append( const uint );
 
     void reserve( uint );
-    void truncate( uint );
+    void truncate( uint = 0 );
 
     friend inline bool operator==( const UString &, const UString & );
     friend inline bool operator==( const UString &, const char * );

@@ -422,7 +422,8 @@ void String::reserve2( uint num )
 
 
 /*! Ensures that the string's length is either \a l or length(),
-    whichever is smaller.
+    whichever is smaller. I \a l is 0 (the default), the string will be
+    empty after the function is called.
 */
 
 void String::truncate( uint l )

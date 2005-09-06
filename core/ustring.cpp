@@ -124,7 +124,8 @@ void UString::reserve( uint size )
 
 
 /*! Truncates this string to \a l characters. If the string is shorter,
-    truncate() does nothing.
+    truncate() does nothing. If \a l is 0 (the default), the string will
+    be empty after this function is called.
 */
 
 void UString::truncate( uint l )

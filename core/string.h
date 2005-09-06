@@ -89,7 +89,7 @@ public:
 
     void reserve( uint );
     void reserve2( uint );
-    void truncate( uint );
+    void truncate( uint = 0 );
 
     enum Encoding { Binary, Base64, QP };
     String encode( Encoding, uint = 0 ) const;
