@@ -110,10 +110,9 @@ void Schema::execute()
             d->revision = r->getInt( "revision" );
 
         if ( !r || d->lock->failed() ) {
-            String s( "Bad database: Couldn't query the mailstore table." );
-            d->l->log( s, Log::Disaster );
+            fail( "Bad database: Couldn't query the mailstore table.",
+                  d->lock );
             d->revision = currentRevision;
-            d->result->setError( s );
             d->t->commit();
             d->state = 5;
         }
@@ -146,10 +145,8 @@ void Schema::execute()
             else
                 s.append( "upgrade" );
             s.append( " or contact support." );
-
-            d->l->log( s, Log::Disaster );
+            fail( s );
             d->revision = currentRevision;
-            d->result->setError( s );
             d->t->commit();
             d->state = 5;
         }
@@ -197,8 +194,7 @@ void Schema::execute()
                     fn( currentRevision );
             else
                 s = "The schema could not be validated.";
-            d->l->log( s, Log::Disaster );
-            d->result->setError( s );
+            fail( s, d->t->failedQuery() );
         }
         else if ( d->state == 6 ) {
             d->result->setState( Query::Completed );
@@ -845,4 +841,21 @@ bool Schema::step11()
     }
 
     return true;
+}
+
+
+/*! Given an error message \a s and, optionally, the query \a q that
+    caused the error, this private helper function logs a suitable set
+    of Disaster messages (including the Query::description()) and sets
+    the error message for d->result to \a s.
+*/
+
+void Schema::fail( const String &s, Query * q )
+{
+    d->result->setError( s );
+    d->l->log( s, Log::Disaster );
+    if ( q ) {
+        d->l->log( "Query: " + q->description(), Log::Disaster );
+        d->l->log( "Error: " + q->error(), Log::Disaster );
+    }
 }
