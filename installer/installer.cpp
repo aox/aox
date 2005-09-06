@@ -78,6 +78,7 @@ int main( int ac, char *av[] )
             fprintf( stderr, "(On Debian, perhaps it should be "
                      "/var/run/postgresql/.s.PGSQL.5432 instead.)\n" );
         }
+        exit( -1 );
     }
 
     if ( report )
@@ -138,7 +139,7 @@ void oryxGroup()
     int status = 0;
     if ( !cmd.isEmpty() ) {
         if ( !silent )
-            printf( "Creating the '" ORYXGROUP "' group,\n" );
+            printf( "Creating the '" ORYXGROUP "' group.\n" );
         status = system( cmd.cstr() );
     }
 
@@ -169,7 +170,7 @@ void oryxUser()
     int status = 0;
     if ( !cmd.isEmpty() ) {
         if ( !silent )
-            printf( "Creating the '" ORYXUSER "' user,\n" );
+            printf( "Creating the '" ORYXUSER "' user.\n" );
         status = system( cmd.cstr() );
     }
 
@@ -471,7 +472,7 @@ void configFile()
                 struct passwd * p = getpwnam( ORYXUSER );
                 struct group * g = getgrnam( ORYXGROUP );
                 if ( chown( cf.cstr(), p->pw_uid, g->gr_gid ) < 0 )
-                    fprintf( stderr, "Could not chown oryx:oryx on %s\n",
+                    fprintf( stderr, "Could not \"chown oryx:oryx %s\".\n",
                              cf.cstr() );
 
                 if ( !silent )
