@@ -21,6 +21,7 @@ public:
 
 private:
     class SchemaData *d;
+    void fail( const String &, Query * = 0 );
     bool singleStep();
     bool step1();
     bool step2();
