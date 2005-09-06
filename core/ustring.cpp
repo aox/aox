@@ -161,3 +161,75 @@ String UString::ascii() const
 }
 
 
+/*! Returns a string containing the data starting at position \a start
+    of this string, extending for \a num bytes. \a num may be left out,
+    in which case the rest of the string is returned.
+
+    If \a start is too large, an empty string is returned.
+*/
+
+UString UString::mid( uint start, uint num ) const
+{
+    UString r;
+
+    uint i = start;
+    r.reserve( num );
+    while ( i < len && i-start < num ) {
+        r.append( str[ i ] );
+        i++;
+    }
+
+    return r;
+}
+
+
+/*! Returns the number encoded by this string, and sets \a *ok to true
+    if that number is valid, or to false if the number is invalid. By
+    default the number is encoded in base 10, if \a base is specified
+    that base is used. \a base must be at least 2 and at most 36.
+
+    If the number is invalid (e.g. negative), the return value is undefined.
+
+    If \a ok is a null pointer, it is not modified.
+*/
+
+uint UString::number( bool * ok, uint base ) const
+{
+    uint i = 0;
+    uint n = 0;
+
+    bool good = !isEmpty();
+    while ( good && i < len ) {
+        if ( str[i] < '0' || str[i] > 'z' )
+            good = false;
+
+        uint digit = str[i] - '0';
+
+        // hex or something?
+        if ( digit > 9 ) {
+            uint c = str[i];
+            if ( c > 'Z' )
+                c = c - 32;
+            digit = c - 'A' + 10;
+        }
+
+        // is the digit too large?
+        if ( digit >= base )
+            good = false;
+
+        // Would n overflow if we multiplied by 10 and added digit?
+        if ( n > UINT_MAX/base )
+            good = false;
+        n *= base;
+        if ( n >= (UINT_MAX - UINT_MAX % base) && digit > (UINT_MAX % base) )
+            good = false;
+        n += digit;
+
+        i++;
+    }
+
+    if ( ok )
+        *ok = good;
+
+    return n;
+}
