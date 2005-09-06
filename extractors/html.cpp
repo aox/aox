@@ -2,6 +2,8 @@
 
 #include "html.h"
 
+#include "entities.h"
+
 
 /*! \class HTML html.h
     This class is responsible for extracting indexable text from HTML.
