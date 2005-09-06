@@ -3,14 +3,14 @@
 #ifndef HTML_H
 #define HTML_H
 
-#include "string.h"
+#include "ustring.h"
 
 
 class HTML
     : public Garbage
 {
 public:
-    static String asText( String );
+    static UString asText( const UString & );
 };
 
 

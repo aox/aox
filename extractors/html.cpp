@@ -2,7 +2,11 @@
 
 #include "html.h"
 
+#include "utf.h"
+#include "ustring.h"
 #include "entities.h"
+
+#include <ctype.h>
 
 
 /*! \class HTML html.h
@@ -14,11 +18,12 @@
 
 /*! Returns indexable text extracted from \a s. */
 
-String HTML::asText( String h )
+UString HTML::asText( const UString &h )
 {
-    String r;
-    String t, s, qs, a;
-    char last, quote;
+    UString r;
+    UString t, s, qs, a;
+    char last, quote; /* , c;
+    uint mark = 0; */
 
     int tag = 0;        /* 1 inside <...> */
     int tagname = 0;    /* 1 inside tag, before whitespace */
@@ -39,20 +44,24 @@ String HTML::asText( String h )
             }
             tag = 1;
             tagname = 1;
-            t = "";
+            t.truncate();
             break;
 
         case '>':
             if ( quoted )
                 goto next;
             if ( tag ) {
-                t = t.lower();
-                if ( t == "p" )
-                    s = "\n\n";
-                else if ( t == "br" )
-                    s = "\n";
-                else if ( t == "body" )
-                    r = "";
+                //t = t.lower();
+                if ( t == "p" ) {
+                    s.append( '\n' );
+                    s.append( '\n' );
+                }
+                else if ( t == "br" ) {
+                    s.append( '\n' );
+                }
+                else if ( t == "body" ) {
+                    r.truncate();
+                }
                 sgml = tag = 0;
             }
             break;
@@ -77,7 +86,7 @@ String HTML::asText( String h )
             } else if ( !quoted && last == '=' ) {
                 quoted = 1;
                 quote = h[i];
-                qs = "";
+                qs.truncate();
             }
             break;
 
@@ -88,9 +97,9 @@ String HTML::asText( String h )
             /* Whitespace shouldn't appear in last, and we compress it
                to one space. */
             if ( !tag && s.isEmpty() )
-                s = " ";
+                s.append( ' ' );
             tagname = false;
-            a = "";
+            a.truncate();
             i++;
             continue;
             break;
@@ -108,7 +117,7 @@ String HTML::asText( String h )
                     while ( isdigit( h[i] ) )
                         i++;
                     r = r + s + QChar( h.mid( mark, i-mark ).toUInt() );
-                    s = "";
+                    s.truncate();
 
                     /* The terminating semicolon is required only
                        where the next character would otherwise be
@@ -125,7 +134,7 @@ String HTML::asText( String h )
                     if ( i != mark ) {
                         r = r + s +
                             QChar( h.mid( mark, i-mark ).toUInt( 0, 16 ) );
-                        s = "";
+                        s.truncate();
                     }
                     if ( h[i] != ';' )
                         i--;
@@ -134,7 +143,7 @@ String HTML::asText( String h )
                     /* Not a reference. */
                     i++;
                     r = r + s + "&#";
-                    s = "";
+                    s.truncate();
                 }
             } else if ( isalpha( c ) ) {
                 /* Entity reference: &[a-zA-Z0-9]+;? */
@@ -149,11 +158,6 @@ String HTML::asText( String h )
                 ent = h.mid( mark, i-mark );
                 if ( h[i] != ';' )
                     i--;
-
-                if ( !sorted ) {
-                    qsort( entities, ents, sizeof( entities[0] ), _cmp_ent );
-                    sorted = 1;
-                }
 
                 /* Binary search for the named entity. */
                 do {
@@ -174,13 +178,14 @@ String HTML::asText( String h )
 
                 if ( p ) {
                     r = r + s + QChar( p->chr );
-                    s = "";
+                    s.truncate();
                 }
             }
             else {
                 /* Not a reference. */
-                r = r + s + '&';
-                s = "";
+                r.append( s );
+                r.append( '&' );
+                s.truncate();
             }
             break;
 #endif
@@ -190,11 +195,11 @@ String HTML::asText( String h )
             if ( !tag ) {
                 r.append( s );
                 r.append( h[i] );
-                s = "";
+                s.truncate();
             } else if ( tagname ) {
                 t.append( h[i] );
             } else if ( !quoted && h[i] == '=' ) {
-                a = "";
+                a.truncate();
             } else {
                 a.append( h[i] );
             }
