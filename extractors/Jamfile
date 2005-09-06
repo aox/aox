@@ -1,0 +1,4 @@
+SubDir TOP extractors ;
+SubInclude TOP core ;
+
+Build extractors : html.cpp ;
