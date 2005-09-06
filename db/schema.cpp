@@ -196,9 +196,7 @@ void Schema::execute()
                 s.append( "could not be upgraded to revision " +
                           fn( currentRevision ) );
             else
-                s.append( "validation" );
-            s.append( " failed." );
-
+                s.append( "validation failed." );
             d->l->log( s, Log::Disaster );
             d->result->setError( s );
         }
