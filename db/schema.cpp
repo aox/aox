@@ -191,12 +191,12 @@ void Schema::execute()
             return;
 
         if ( d->t->failed() && !d->result->failed() ) {
-            String s( "The schema " );
+            String s;
             if ( d->upgrade )
-                s.append( "could not be upgraded to revision " +
-                          fn( currentRevision ) );
+                s = "The schema could not be upgraded to revision " +
+                    fn( currentRevision );
             else
-                s.append( "validation failed." );
+                s = "The schema could not be validated.";
             d->l->log( s, Log::Disaster );
             d->result->setError( s );
         }
