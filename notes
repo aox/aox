@@ -627,12 +627,16 @@ CAcert instead of self-signed certificate?
   get cacert interfaces into a program, they'll do that, no doubt.
 
 
+Switch to using named constraints everywhere.
+
+
 0.98
 
   Upgrade to cryptlib 3.2.1 (Done).
   Fix the ocd problem (Done).
   ms vacuum (Sort of done).
   New installer (Done).
+  IMAP COPY.
   Write a GB2312 codec.
   Textify HTML bodyparts.
   Fix the 8-bit problems in Address.
