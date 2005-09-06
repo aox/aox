@@ -14,7 +14,7 @@ class TransactionData
 public:
     TransactionData()
         : state( Transaction::Inactive ), owner( 0 ), db( 0 ),
-          queries( 0 )
+          queries( 0 ), failedQuery( 0 )
     {}
 
     Transaction::State state;
@@ -23,6 +23,7 @@ public:
 
     List< Query > *queries;
 
+    Query * failedQuery;
     String error;
 };
 
@@ -96,14 +97,17 @@ bool Transaction::done() const
 
 
 /*! Sets this Transaction's state() to Failed, and records the error
-    message \a s.
+    message \a s. The first \a query that failed is recorded, and is
+    returned by failedQuery().
 */
 
-void Transaction::setError( const String &s )
+void Transaction::setError( Query * query, const String &s )
 {
     // We want to keep only the first recorded error.
-    if ( d->state != Failed )
+    if ( d->state != Failed ) {
+        d->failedQuery = query;
         d->error = s;
+    }
     d->state = Failed;
 }
 
@@ -115,6 +119,19 @@ void Transaction::setError( const String &s )
 String Transaction::error() const
 {
     return d->error;
+}
+
+
+/*! Returns a pointer to the first Query in this transaction that
+    failed. The return value is meaningful only if the transaction
+    has failed, and 0 otherwise.
+
+    This function is useful in composing error messages.
+*/
+
+Query * Transaction::failedQuery() const
+{
+    return d->failedQuery;
 }
 
 

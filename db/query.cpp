@@ -415,7 +415,7 @@ void Query::setError( const String &s )
     d->error = s;
     setState( Failed );
     if ( d->transaction )
-        d->transaction->setError( s );
+        d->transaction->setError( this, s );
 }
 
 

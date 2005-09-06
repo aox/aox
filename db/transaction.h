@@ -25,8 +25,10 @@ public:
     bool failed() const;
     bool done() const;
 
-    void setError( const String & );
+    void setError( Query *, const String & );
     String error() const;
+
+    Query * failedQuery() const;
 
     void enqueue( Query * );
     void execute();
