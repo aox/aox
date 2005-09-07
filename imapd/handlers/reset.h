@@ -10,10 +10,10 @@ class XOryxReset
     : public Command
 {
 public:
-    XOryxReset(): d( 0 ) {}
+    XOryxReset(): t( 0 ) {}
     void execute();
 
-    class XOryxResetData * d;
+    class Transaction * t;
 };
 
 

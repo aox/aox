@@ -6,47 +6,89 @@
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
+#include "transaction.h"
 
-
-class XOryxResetData
-    : public Garbage
-{
-public:
-    XOryxResetData(): messages( 0 ), mailboxes( 0 ) {}
-
-    Query * messages;
-    Query * mailboxes;
-};
 
 /*! \class XOryxReset reset.h
+  
+    Resets an account, in the hard way. This command breaks various
+    invariants, so it cannot be used on a production mail server. It
+    exists strictly for regression testing on Oryx' own test servers.
+    
+    Deletes all the messages in the authenticated user's inbox and
+    sets UIDNEXT to 1. (Decreasing UIDNEXT breaks both an Oryx
+    invariant and an IMAP one.)
+    
+    Deletes all mailboxes belonging to the authenticated user except
+    the input, and all messages in those mailboxes. (This breaks both
+    the Oryx mailbox cache and an IMAP invariant.)
 
-    Deletes all messages in the authenticated user's inbox and sets
-    UIDNEXT and 1. Perhaps it should also delete all unused flag
-    names.
+    Deletes all unused flag names. (This breaks the flag name cache.)
 */
 
 
 void XOryxReset::execute()
 {
-    if ( !d ) {
-        d = new XOryxResetData;
+    if ( !t ) {
+        t = new Transaction( this );
 
-        Mailbox * inbox = imap()->user()->inbox();
+        User * user = imap()->user();
+        Mailbox * inbox = user->inbox();
 
-        d->messages = new Query( "delete from messages where mailbox=$1",
-                                 this );
-        d->messages->bind( 1, inbox->id() );
-        d->messages->execute();
+        Query * q = new Query( "delete from messages where mailbox in "
+                               "(select id from mailboxes where owner=$1)",
+                               this );
+        q->bind( 1, user->id() );
+        t->enqueue( q );
+ 
+        // and just in case the inbox doesn't have the right owner,
+        // delete it too
+        q = new Query( "delete from messages where mailbox=$1",
+                       this );
+        q->bind( 1, inbox->id() );
+        t->enqueue( q );
+        
+        q = new Query( "delete from subscriptions where mailbox in "
+                       "(select id from mailboxes where owner=$1)",
+                       this );
+        q->bind( 1, user->id() );
+        t->enqueue( q );
 
-        d->mailboxes = new Query( "update mailboxes set uidnext=1 where id=$1",
-                                this );
-        d->mailboxes->bind( 1, inbox->id() );
-        d->mailboxes->execute();
+        q = new Query( "delete from permissions where mailbox in "
+                       "(select id from mailboxes where owner=$1)",
+                       this );
+        q->bind( 1, user->id() );
+        t->enqueue( q );
 
+        q = new Query( "update mailboxes set uidnext=1,first_recent=1"
+                       " where id=$1",
+                       this );
+        q->bind( 1, inbox->id() );
+        t->enqueue( q );
+        
+        q = new Query( "delete from mailboxes where owner=$1 and id!=$2",
+                       this );
+        q->bind( 1, user->id() );
+        q->bind( 2, inbox->id() );
+        t->enqueue( q );
+
+#if 0
+        // properly speaking we should kill the unused flags to... but
+        // leave the system flags. the resulting sql looks too ugly. I
+        // won't do it.
+        q = new Query( "delete from flag_names where not id in "
+                       "(select distinct flag from flags)",
+                       this );
+        t->enqueue( q );
+#endif
+
+        t->execute();
+        t->commit();
+        
         inbox->setUidnext( 1 );
         inbox->clear();
     }
 
-    if ( d->messages->done() && d->mailboxes->done() )
+    if ( t->done() )
         finish();
 }
