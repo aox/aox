@@ -198,8 +198,19 @@ String Address::name() const
 
     String r( "=?" );
     r.append( c->name().lower() );
-    r.append( "?q?" );
-    r.append( c->fromUnicode( real ).eQP( true ) );
+
+    String s = c->fromUnicode( real );
+    String q = s.eQP( true );
+    String b = s.e64();
+    if ( q.length() < b.length() ) {
+        r.append( "?q?" );
+        r.append( q );
+    }
+    else {
+        r.append( "?b?" );
+        r.append( b );
+    }
+
     r.append( "?=" );
     return r;
 }
