@@ -601,19 +601,6 @@ We should store bodyparts.text for HTML/PDF/DOC.
   have (from Mailchen) code to convert HTML.
 
 
-We should tolerate duplicated header fields, iff:
-
-  1. The RFC says there should be at most one instance of the field.
-  2. When parsed and regenerated, the two fields have the same value.
-
-  It's a safe, loss-less workaround for known brokenness (such as the
-  tendency of the lemonade list to send 2 Mime-Version or CTE fields).
-
-  We do this for CTE and MV right now. If we see any more instances of
-  duplicates in the wild, I'll generalise the code in Header::repair to
-  handle them all as described above.
-
-
 CAcert instead of self-signed certificate?
 
   www.cacert.org offers free certificates and seems to be an
@@ -636,6 +623,7 @@ Switch to using named constraints everywhere.
   Fix the ocd problem (Done).
   ms vacuum (Sort of done).
   New installer (Done).
+  Duplicate header field elimination (Done).
   IMAP COPY.
   Write a GB2312 codec.
   Textify HTML bodyparts.
