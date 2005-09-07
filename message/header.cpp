@@ -391,30 +391,30 @@ void Header::verify() const
         ++it;
     }
 
-    int occurences[(int)HeaderField::Other];
+    int occurrences[(int)HeaderField::Other];
     int i = 0;
     while ( i < HeaderField::Other )
-        occurences[i++] = 0;
+        occurrences[i++] = 0;
     it = d->fields.first();
     while ( it ) {
         HeaderField::Type t = it->type();
         ++it;
         if ( t < HeaderField::Other )
-            occurences[(int)t]++;
+            occurrences[(int)t]++;
     }
 
     i = 0;
     while ( d->error.isEmpty() && conditions[i].t != HeaderField::Other ) {
         if ( conditions[i].m == d->mode &&
-             ( occurences[conditions[i].t] < conditions[i].min ||
-               occurences[conditions[i].t] > conditions[i].max ) ) {
-            if ( conditions[i].max < occurences[conditions[i].t] )
-                d->error = fn( occurences[conditions[i].t] ) + " " +
+             ( occurrences[conditions[i].t] < conditions[i].min ||
+               occurrences[conditions[i].t] > conditions[i].max ) ) {
+            if ( conditions[i].max < occurrences[conditions[i].t] )
+                d->error = fn( occurrences[conditions[i].t] ) + " " +
                            HeaderField::fieldName( conditions[i].t ) +
                            " fields seen. At most " +
                            fn( conditions[i].max ) + " may be present.";
             else
-                d->error = fn( occurences[conditions[i].t] ) + " " +
+                d->error = fn( occurrences[conditions[i].t] ) + " " +
                            HeaderField::fieldName( conditions[i].t ) +
                            " fields seen. At least " +
                            fn( conditions[i].min ) + " must be present.";
@@ -541,25 +541,49 @@ void Header::repair()
     if ( valid() )
         return;
 
-    uint dateFields = 0;
-    uint cteFields = 0;
-    uint mvFields = 0;
+    // We remove duplicates of any field that may occur only once.
+    // (Duplication has been observed for Date/Subject/M-V/C-T-E.)
+
+    int occurrences[ (int)HeaderField::Other ];
+    int i = 0;
+    while ( i < HeaderField::Other )
+        occurrences[i++] = 0;
 
     List< HeaderField >::Iterator it( d->fields );
     while ( it ) {
         HeaderField::Type t = it->type();
-        if ( t == HeaderField::Date )
-            dateFields++;
-        else if ( t == HeaderField::ContentTransferEncoding )
-            cteFields++;
-        else if ( t == HeaderField::MimeVersion )
-            mvFields++;
+        if ( t < HeaderField::Other )
+            occurrences[(int)t]++;
         ++it;
     }
 
-    // Remove duplicated Date fields.
+    i = 0;
+    while ( conditions[i].t != HeaderField::Other ) {
+        if ( conditions[i].m == d->mode &&
+             occurrences[conditions[i].t] > conditions[i].max )
+        {
+            uint n = 0;
+            HeaderField * h = field( conditions[i].t, 0 );
+            List< HeaderField >::Iterator it( d->fields );
+            while ( it ) {
+                if ( it->type() == conditions[i].t ) {
+                    n++;
+                    if ( n > 1 && h->value() == it->value() )
+                        d->fields.take( it );
+                    else
+                        ++it;
+                }
+                else {
+                    ++it;
+                }
+            }
+        }
+        i++;
+    }
 
-    if ( dateFields > 1 ) {
+    // Date fields get slightly special treatment.
+
+    if ( occurrences[(int)HeaderField::Date] > 1 ) {
         uint i = 0;
         HeaderField * h = field( HeaderField::Date, 0 );
         while ( h && !h->valid() ) {
@@ -569,48 +593,6 @@ void Header::repair()
         if ( h ) {
             removeField( HeaderField::Date );
             add( h );
-        }
-    }
-
-    // Remove duplicate Content-Transfer-Encoding/Mime-Version fields.
-    // (Thanks to the brain-damaged lemonade mailing list.)
-
-    if ( cteFields > 1 ) {
-        ContentTransferEncoding *cte = contentTransferEncoding();
-
-        uint i = 0;
-        List< HeaderField >::Iterator it( d->fields );
-        while ( it ) {
-            HeaderField::Type t = it->type();
-            if ( t == HeaderField::ContentTransferEncoding ) {
-                i++;
-                if ( i > 1 && cte->value() == it->value() )
-                    d->fields.take( it );
-                else
-                    ++it;
-            }
-            else {
-                ++it;
-            }
-        }
-    }
-
-    if ( mvFields > 1 ) {
-        uint i = 0;
-        HeaderField * mv = field( HeaderField::MimeVersion );
-        List< HeaderField >::Iterator it( d->fields );
-        while ( it ) {
-            HeaderField::Type t = it->type();
-            if ( t == HeaderField::MimeVersion ) {
-                i++;
-                if ( i > 1 && it->value() == mv->value() )
-                    d->fields.take( it );
-                else
-                    ++it;
-            }
-            else {
-                ++it;
-            }
         }
     }
 
