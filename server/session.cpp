@@ -476,7 +476,7 @@ void SessionInitialiser::execute()
         d->messages->bind( 3, d->newUidnext );
         d->messages->execute();
 
-        if ( !d->oldUidnext ) {
+        if ( !d->session->firstUnseen() ) {
             // XXX: will this work if the sysadmin has set the flag
             // name to \seen or \SEEN? I think not?
             d->seen
