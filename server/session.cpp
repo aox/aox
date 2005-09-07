@@ -199,6 +199,17 @@ void Session::insert( uint uid )
 }
 
 
+/*! Notifies this session that it contains messages with UIDs from \a
+    lowest to \a highest (in addition to whatever other messages it
+    may contain). Both \a lowest and \a highest are inserted.
+*/
+
+void Session::insert( uint lowest, uint highest )
+{
+    d->msns.add( lowest, highest );
+}
+
+
 /*! Removes the message with \a uid from this session, adjusting MSNs
     as needed. This function does not emit any responses, nor does it
     cause responses to be emitted.
@@ -259,6 +270,8 @@ bool Session::responsesNeeded() const
 
 void Session::expunge( const MessageSet & uids )
 {
+    if ( uids.isEmpty() )
+        return;
     d->expunges.add( uids );
     log( "Added " + fn( uids.count() ) + " expunged messages, " +
          fn( d->expunges.count() ) + " in all", Log::Debug );
@@ -286,17 +299,9 @@ void Session::emitResponses()
         i++;
     }
     d->expunges.clear();
-    uint u = d->mailbox->uidnext();
-    if ( d->uidnext < u ) {
-        // this is gloriously cheap: we blithely assume that all those
-        // new UIDs correspond to messages. they usually do, of
-        // course. if any have been deleted already and are fetched,
-        // fetch will make sure there's an expunge... or a session
-        // close.
-        d->msns.add( d->uidnext, u - 1 );
-        d->uidnext = u;
+    if ( d->uidnext < d->mailbox->uidnext() ) {
         change = true;
-        refresh( 0 );
+        (void)new SessionInitialiser( this, 0 );
     }
 
     if ( change )
@@ -389,6 +394,8 @@ public:
     uint oldUidnext;
     uint newUidnext;
 
+    MessageSet expunged;
+
     bool done;
 };
 
@@ -397,6 +404,11 @@ public:
 
     The SessionInitialiser class performs the database queries
     needed to initialize an Session.
+
+    When it's created, it immediately informs its owner that so-and-so
+    many messages exist and returns. Later, it issues database queries
+    to check that the messages do exist, and if any don't, it coerces
+    its Session to emit corresponding expunges.
 
     When completed, it notifies its owner.
 */
@@ -413,10 +425,16 @@ SessionInitialiser::SessionInitialiser( Session * session,
     d->owner = owner;
     d->oldUidnext = d->session->uidnext();
     d->newUidnext = d->session->mailbox()->uidnext();
+    if ( d->oldUidnext >= d->newUidnext )
+        return;
+
     log( "Updating session on " + d->session->mailbox()->name() +
          " for UIDs [" + fn( d->oldUidnext ) + "," +
          fn( d->newUidnext ) + ">" );
 
+    d->session->setUidnext( d->newUidnext );
+    d->session->insert( d->oldUidnext, d->newUidnext-1 );
+    d->expunged.add( d->oldUidnext, d->newUidnext-1 );
     execute();
 }
 
@@ -429,15 +447,20 @@ void SessionInitialiser::execute()
 
         d->t = new Transaction( this );
 
-        d->recent = new Query( "select first_recent from mailboxes "
-                               "where id=$1 for update", this );
+        if ( d->session->readOnly() )
+            d->recent = new Query( "select first_recent from mailboxes "
+                                   "where id=$1", this );
+        else
+            d->recent = new Query( "select first_recent from mailboxes "
+                                   "where id=$1 for update", this );
         d->recent->bind( 1, d->session->mailbox()->id() );
         d->t->enqueue( d->recent );
 
         if ( !d->session->readOnly() ) {
-            Query *q = new Query( "update mailboxes set first_recent=uidnext "
+            Query *q = new Query( "update mailboxes set first_recent=$2 "
                                   "where id=$1", this );
             q->bind( 1, d->session->mailbox()->id() );
+            q->bind( 2, d->newUidnext );
             d->t->enqueue( q );
         }
 
@@ -453,30 +476,42 @@ void SessionInitialiser::execute()
         d->messages->bind( 3, d->newUidnext );
         d->messages->execute();
 
-        d->seen
-            = new Query( "select uid from messages "
-                         "where mailbox=$1 and not(uid in ("
-                         "select uid from flags where "
-                         "mailbox=$1 and flag="
-                         "(select id from flag_names where name='\\Seen'))) "
-                         "order by uid limit 1",
-                         this );
-        d->seen->bind( 1, d->session->mailbox()->id() );
-        d->seen->execute();
+        if ( !d->oldUidnext ) {
+            // XXX: will this work if the sysadmin has set the flag
+            // name to \seen or \SEEN? I think not?
+            d->seen
+                = new Query( "select uid from messages "
+                             "where mailbox=$1 and not(uid in ("
+                             "select uid from flags where "
+                             "mailbox=$1 and flag="
+                             "(select id from flag_names where name='\\Seen'))) "
+                             "order by uid limit 1",
+                             this );
+            d->seen->bind( 1, d->session->mailbox()->id() );
+            d->seen->execute();
+        }
     }
 
     Row * r = 0;
 
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );
-        d->session->insert( uid );
+        d->expunged.remove( uid );
     }
 
-    while( (r=d->seen->nextRow()) )
-        d->session->setFirstUnseen( r->getInt( "uid" ) );
+    if ( d->seen )
+        while( (r=d->seen->nextRow()) )
+            d->session->setFirstUnseen( r->getInt( "uid" ) );
 
-    if ( !d->t->done() || !d->messages->done() || !d->seen->done() )
+    if ( !d->t->done() )
         return;
+    if ( !d->messages->done() )
+        return;
+    if ( d->seen && !d->seen->done() )
+        return;
+    d->done = true;
+
+    d->session->expunge( d->expunged );
 
     uint recent = d->recent->nextRow()->getInt( "first_recent" );
     uint n = recent;
@@ -485,8 +520,6 @@ void SessionInitialiser::execute()
 
     log( "Saw " + fn( d->messages->rows() ) + " new messages, " +
          fn( recent ) + " recent ones", Log::Debug );
-    d->done = true;
-    d->session->setUidnext( d->newUidnext );
     if ( d->owner )
         d->owner->execute();
 }

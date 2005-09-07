@@ -42,6 +42,7 @@ public:
     void setFirstUnseen( uint );
 
     void insert( uint );
+    void insert( uint, uint );
     void remove( uint );
 
     MessageSet recent() const;
