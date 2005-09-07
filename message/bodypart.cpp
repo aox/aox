@@ -466,10 +466,13 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
 
     ContentType * ct = h->contentType();
     if ( !ct || ct->type() == "text" ) {
-        bool specified = true;
+        bool specified = false;
         Codec * c = 0;
         if ( ct ) {
-            c = Codec::byName( ct->parameter( "charset" ) );
+            String csn = ct->parameter( "charset" );
+            if ( !csn.isEmpty() )
+                specified = true;
+            c = Codec::byName( csn );
             if ( c && c->name().lower() == "us-ascii" ) {
                 // Some MTAs appear to say this in case there is no
                 // Content-Type field - without checking whether the
@@ -499,9 +502,11 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             }
         }
         if ( !c->valid() && error.isEmpty() ) {
-            String cs = c->name();
+            String cs;
             if ( ct && specified )
                 cs = ct->parameter( "charset" );
+            if ( cs.isEmpty() )
+                cs = c->name();
             error = "Error converting body to Unicode from " + cs;
         }
 
