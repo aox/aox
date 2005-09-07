@@ -639,4 +639,20 @@ Switch to using named constraints everywhere.
   What should we do for 0.99?
 
 
+Privilege separation
+
+  We talked about privilege separation. One pgsql user to update the
+  schema, another to read mail.
+
+  How about deleting things? Is that something we might want to
+  restrict?
+
+  Somehow I feel more and more uncertain each time I type
+  'delete from messages where mailbox>6;' or similar commands.
+
+  Pergaps privilege separation could be used to grant me rm -rf access
+  to the regular database, but build a higher wall on kalyani. Sounds
+  good.
+
+
 We need to do the right thing.
