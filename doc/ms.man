@@ -24,9 +24,10 @@ are expected to grow a great many features during Mailstore's beta phase.
 For the moment, the command-line grammar for
 .ms
 is entirely ad-hoc.
-.BI "ms help" command
+.BI "ms help command"
 gives help for each command.
-.B "ms help commands" lists all commands.
+.B "ms help commands"
+lists all commands.
 .SH OPTIONS
 At present there no command-line switches.
 .B
