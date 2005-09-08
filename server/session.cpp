@@ -19,7 +19,7 @@ public:
     SessionData()
         : readOnly( true ), mailbox( 0 ),
           uidnext( 0 ), firstUnseen( 0 ),
-          permissions( 0 ), si( 0 ),
+          permissions( 0 ),
           announced( 0 )
     {}
 
@@ -31,7 +31,6 @@ public:
     uint uidnext;
     uint firstUnseen;
     Permissions *permissions;
-    SessionInitialiser *si;
     uint announced;
 };
 
@@ -67,7 +66,16 @@ Session::~Session()
 
 bool Session::initialised() const
 {
-    return d->uidnext != 0;
+    if ( d->firstUnseen )
+        return true;
+    if ( !d->uidnext )
+        return false;
+    // tricky. if we don't have a firstUnseen, we may or may not be
+    // completely set up. it depends on whether we have any messages
+    // at all.
+    if ( d->msns.isEmpty() )
+        return true;
+    return false;
 }
 
 
