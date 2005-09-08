@@ -213,13 +213,22 @@ void Store::pretendToFetch()
     uint max = d->s.count();
     uint i = 1;
     ImapSession * s = imap()->session();
+    String without( " FLAGS (" + d->flagNames.join( " " ) + "))" );
+    String with;
+    if ( d->flagNames.isEmpty() )
+        with = " FLAGS (\\recent))";
+    else
+        with = " FLAGS (\\recent " + d->flagNames.join( " " ) + "))";
     while ( i <= max ) {
         uint uid = d->s.value( i );
         uint msn = s->msn( uid );
         i++;
-        respond( fn( msn ) + " FETCH (UID " +
-                 fn( uid ) + " FLAGS (" +
-                 d->flagNames.join( " " ) + "))" );
+        if ( s->isRecent( uid ) )
+            respond( fn( msn ) + " FETCH (UID " +
+                     fn( uid ) + with );
+        else
+            respond( fn( msn ) + " FETCH (UID " +
+                     fn( uid ) + without );
     }
 }
 
