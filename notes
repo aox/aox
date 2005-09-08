@@ -400,7 +400,7 @@ canonical and deliver need severe cleaning up.
 Finish the valgrind skin that should help us to diagnose memory abuse.
 
 
-Look over RFC 3501 to see what is left unimplemented.
+Incomplete base IMAP features: RENAME, LSUB
 
 
 Finish the comparison with cyrus-imapd (which I'll install on fugue).
