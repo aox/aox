@@ -12,11 +12,6 @@ is responsible for message passing, cache updates and various other
 houskeeping tasks for Oryx Mailstore. It must always be running while
 Mailstore runs, but should never be visible to the user.
 .SH OPTIONS
-Mostly, 
-.B ocd
-is configured using
-.BR mailstore.conf (5).
-The only command-line options at present are:
 .IP "-c filename"
 Read configuration variables from
 .I filename
@@ -24,6 +19,22 @@ instead of from
 .IR $CONFIGDIR/mailstore.conf .
 .IP -f
 Fork into background during startup.
+.SH CONFIGURATION
+.B ocd
+is configured using
+.BR mailstore.conf (5).
+.PP
+The only configuration variables specific to this server are
+.IR ocd-address ,
+.IR ocd-port ,
+.IR ocadmin-address ,
+and
+.IR ocadmin-port .
+.SH DEPENDENCIES
+.B ocd
+needs to connect to
+.B logd
+at startup.
 .SH DIAGNOSTICS
 In case of error,
 .B ocd
