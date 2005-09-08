@@ -254,9 +254,29 @@ Mailbox *Mailbox::parent() const
     has none.
 */
 
-List< Mailbox > *Mailbox::children() const
+List< Mailbox >* Mailbox::children() const
 {
     return d->children;
+}
+
+
+/*! Returns true if this mailbox has at least one real, existing child
+    mailbox, including indirect children, and false if not.
+*/
+
+bool Mailbox::hasChildren() const
+{
+    if ( !d->children )
+        return false;
+    List<Mailbox>::Iterator it( *d->children );
+    while ( it ) {
+        if ( !it->deleted() && !it->synthetic() )
+            return true;
+        if ( it->hasChildren() )
+            return true;
+        ++it;
+    }
+    return false;
 }
 
 

@@ -309,10 +309,7 @@ void Listext::sendListResponse( Mailbox * mailbox )
     bool exists = true;
     if ( mailbox->synthetic() || mailbox->deleted() )
         exists = false;
-    bool children = false;
-    if ( mailbox->children() && !mailbox->children()->isEmpty() )
-        children = true;
-    // matchparent also needs some flags from the caller
+    bool children = mailbox->hasChildren();
 
     // translate those flags into mailbox attributes
     if ( !exists )

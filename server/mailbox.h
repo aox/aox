@@ -32,6 +32,7 @@ public:
 
     Mailbox *parent() const;
     List< Mailbox > *children() const;
+    bool hasChildren() const;
 
     Message * message( uint, bool = true ) const;
     void clear();
