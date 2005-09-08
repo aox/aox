@@ -89,7 +89,8 @@ void Database::setup()
 
     Endpoint srv( Configuration::DbAddress, Configuration::DbPort );
     if ( !srv.valid() ) {
-        ::log( "Invalid server address: " + srv.string(), Log::Disaster );
+        ::log( "Invalid database server address: " + srv.string(),
+               Log::Disaster );
         return;
     }
 
