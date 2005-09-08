@@ -396,10 +396,8 @@ void Mailbox::setUidnext( uint n )
     if ( n == d->uidnext )
         return;
     d->uidnext = n;
-    log( "set uidnext for " + name() + " to " + fn( n ) );
     if ( !d->watchers )
         return;
-    log( "notifying " + fn( d->watchers->count() ) + " watchers" );
     List<EventHandler>::Iterator it( d->watchers );
     while ( it ) {
         EventHandler * h = it;
