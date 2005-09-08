@@ -55,11 +55,6 @@ Therefore,
 must have the right to open
 .IR logfile .
 .SH OPTIONS
-Mostly, 
-.B logd
-is configured using
-.BR mailstore.conf (5).
-The only command-line options at present are:
 .IP "-c filename"
 Read configuration variables from
 .I filename
@@ -67,10 +62,15 @@ instead of from
 .IR $CONFIGDIR/mailstore.conf .
 .IP -f
 Fork into background during startup.
+.SH CONFIGURATION
+.B logd
+is configured using
+.BR mailstore.conf (5).
 .PP
 .B logd
-uses the following variables from
-.BR mailstore.conf (5):
+uses the following configuration variables:
+.IR log-address ,
+.IR log-port ,
 .I logfile
 (default $LOGFILE),
 .I log-level
@@ -82,9 +82,6 @@ uses the following variables from
 .I jail-group
 (default
 .IR $ORYXGROUP ).
-See
-.BR mailstore.conf (5)
-for more information about these.
 .SH DIAGNOSTICS
 In case of error,
 .B smtpd
