@@ -28,11 +28,6 @@ link into all of our servers.
 should always be running when Mailstore is in use, but you should
 never need to interact with it directly.
 .SH OPTIONS
-Mostly, 
-.B tlsproxy
-is configured using
-.BR mailstore.conf (5).
-The only command-line options at present are:
 .IP "-c filename"
 Read configuration variables from
 .I filename
@@ -40,6 +35,27 @@ instead of from
 .IR $CONFIGDIR/mailstore.conf .
 .IP -f
 Fork into background during startup.
+.SH CONFIGURATION
+.B tlsproxy
+is configured using
+.BR mailstore.conf (5).
+.PP
+The configuration variables specific to this server are
+.IR use-tls ,
+.IR tls-certificate ,
+.IR tlsproxy-address ,
+and
+.IR tlsproxy-port .
+Other variables may be consulted to determine how to connect to the log
+server, how to secure the server, and so on.
+.PP
+The default configuration enables the use of TLS with an
+automatically-generated, self-signed certificate.
+.SH DEPENDENCIES
+On startup,
+.B tlsproxy
+needs to be able to connect to
+.BR logd .
 .SH DIAGNOSTICS
 In case of error,
 .B tlsproxy
