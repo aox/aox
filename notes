@@ -453,10 +453,6 @@ ms add user spews errors
 
 Document IPC structure
 
-  The man page for each program should say what it needs to
-  connect. And I supose it had better list the configuration variables
-  used by that program, too.
-
   Some man page, or some web page, or both, should say who's
   connnecting to who and why.
 
