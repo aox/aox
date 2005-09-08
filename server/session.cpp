@@ -245,8 +245,7 @@ MessageSet Session::recent() const
 
 bool Session::isRecent( uint uid ) const
 {
-    // return d->recent.contains( uid );
-    return false;
+    return d->recent.contains( uid );
 }
 
 
