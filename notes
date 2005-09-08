@@ -418,9 +418,6 @@ Complete POP3 support.
 Complete ACL support.
 
 
-Implement COPY (for IMAP messages).
-
-
 Make http://oryx.com not be broken (and oryx.{,co.}in too).
 
   (Arnt can do this using one of his many new IP addresses.)
