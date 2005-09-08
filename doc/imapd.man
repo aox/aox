@@ -44,7 +44,6 @@ The default configuration enables
 and disables
 .IR use-imaps .
 .SH DEPENDENCIES
-.PP
 On startup,
 .B imapd
 needs to be able to connect to
