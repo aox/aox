@@ -35,19 +35,18 @@ void XOryxReset::execute()
         User * user = imap()->user();
         Mailbox * inbox = user->inbox();
 
-        Query * q = new Query( "delete from messages where mailbox in "
-                               "(select id from mailboxes where owner=$1)",
+        Query * q = new Query( "update mailboxes set owner=$1 where id=$2",
                                this );
+        q->bind( 1, user->id() );
+        q->bind( 2, inbox->id() );
+        t->enqueue( q );
+        
+        q = new Query( "delete from messages where mailbox in "
+                       "(select id from mailboxes where owner=$1)",
+                       this );
         q->bind( 1, user->id() );
         t->enqueue( q );
  
-        // and just in case the inbox doesn't have the right owner,
-        // delete it too
-        q = new Query( "delete from messages where mailbox=$1",
-                       this );
-        q->bind( 1, inbox->id() );
-        t->enqueue( q );
-        
         q = new Query( "delete from subscriptions where mailbox in "
                        "(select id from mailboxes where owner=$1)",
                        this );
@@ -60,18 +59,25 @@ void XOryxReset::execute()
         q->bind( 1, user->id() );
         t->enqueue( q );
 
-        q = new Query( "update mailboxes set uidnext=1,first_recent=1"
-                       " where id=$1",
+        q = new Query( "update mailboxes set "
+                       "deleted='t',uidnext=1,first_recent=1 "
+                       "where owner=$1",
+                       this );
+        q->bind( 1, user->id() );
+        t->enqueue( q );
+
+        q = new Query( "update mailboxes set deleted='f' "
+                       "where id=$1",
                        this );
         q->bind( 1, inbox->id() );
         t->enqueue( q );
-        
-        q = new Query( "delete from mailboxes where owner=$1 and id!=$2",
-                       this );
-        q->bind( 1, user->id() );
-        q->bind( 2, inbox->id() );
-        t->enqueue( q );
 
+        a = new Query( "select id from mailboxes "
+                       "where owner=$1 and deleted='t'",
+                       this );
+        a->bind( 1, user->id() );
+        t->enqueue( a );
+        
 #if 0
         // properly speaking we should kill the unused flags to... but
         // leave the system flags. the resulting sql looks too ugly. I
@@ -87,6 +93,15 @@ void XOryxReset::execute()
         
         inbox->setUidnext( 1 );
         inbox->clear();
+    }
+
+    if ( a ) {
+        Row * r;
+        while ( (r=a->nextRow()) != 0 ) {
+            Mailbox * m = Mailbox::find( r->getInt( "id" ) );
+            if ( m )
+                m->setDeleted( true );
+        }
     }
 
     if ( t->done() )

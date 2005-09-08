@@ -14,6 +14,7 @@ public:
     void execute();
 
     class Transaction * t;
+    class Query * a;
 };
 
 
