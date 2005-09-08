@@ -611,7 +611,7 @@ Switch to using named constraints everywhere.
   ms vacuum (Sort of done).
   New installer (Done).
   Duplicate header field elimination (Done).
-  IMAP COPY.
+  IMAP COPY (Done).
   Write a GB2312 codec.
   Textify HTML bodyparts.
   Fix the 8-bit problems in Address.
