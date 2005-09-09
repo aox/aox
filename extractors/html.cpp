@@ -149,40 +149,34 @@ UString HTML::asText( const UString &h )
                 }
             } else if ( isalpha( c ) ) {
                 /* Entity reference: &[a-zA-Z0-9]+;? */
-                int m, l = 0, u = ents - 1;
-                struct entity *p = 0;
-                UString ent;
-
                 i++;
                 mark = i++;
                 while ( isalnum( h[i] ) )
                     i++;
-                ent = h.mid( mark, i-mark );
+                UString ent( h.mid( mark, i-mark ) );
                 if ( h[i] != ';' )
                     i--;
 
-                /* Binary search for the named entity. */
-                do {
-                    int n;
+                int n = 0;
+                while ( n < ents ) {
+                    uint l = 0;
+                    bool match = true;
+                    while ( l < ent.length() ) {
+                        if ( ent[l] != entities[n].name[l] ) {
+                            match = false;
+                            break;
+                        }
+                        l++;
+                    }
 
-                    m = (l + u)/2;
-                    // n = strcmp( entities[m].name, ent );
-                    n = 0;
-
-                    if ( n < 0 )
-                        l = m + 1;
-                    else if ( n > 0 )
-                        u = m - 1;
-                    else {
-                        p = &entities[m];
+                    if ( match && entities[n].name[l] == '\0' ) {
+                        r.append( s );
+                        r.append( entities[n].chr );
+                        s.truncate();
                         break;
                     }
-                } while ( l <= u );
 
-                if ( p ) {
-                    r.append( s );
-                    r.append( p->chr );
-                    s.truncate();
+                    n++;
                 }
             }
             else {
