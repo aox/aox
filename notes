@@ -626,6 +626,24 @@ Switch to using named constraints everywhere.
   What should we do for 0.99?
 
 
+GB2312 codec
+
+  Thing's much used. Qt and ICU provide interoperability tests.
+
+
+ISO-2022-JP
+
+  Lightly used, but easy to implement... I think. We can test
+  interoperability against Qt.
+
+  The specification in RFC 1468 does not quite match the real
+  world. RFC 1468 demands that senders end two-byte characters, but
+  mrc, at least, occasionally sends one-byte characters. The last byte
+  has to be dropped. There are messages on the IMAP list that
+  demonstrate this. (Rather disturbed mailchen until I submitted a
+  patch for Qt.)
+
+
 Privilege separation
 
   We talked about privilege separation. One pgsql user to update the
