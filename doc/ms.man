@@ -59,7 +59,6 @@ is zero if all goes well, and a non-zero in case of errors.
 Diagnostics are logged using Mailstore's
 .BR logd (8),
 just like the servers do. Disasters are also logged via stderr.
-returns 2.
 .SH BUGS
 There is no command-line option to set the configuration file.
 .SH AUTHOR
