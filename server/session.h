@@ -54,6 +54,7 @@ public:
 
     void setUidnext( uint );
     void expunge( const MessageSet & );
+    void clearExpunged();
 
     uint announced() const;
     void setAnnounced( uint );

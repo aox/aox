@@ -181,7 +181,7 @@ uint Session::count() const
 }
 
 
-/*! Returns the UOD of the first unseen message in this session, or 0
+/*! Returns the UID of the first unseen message in this session, or 0
     if the number isn't known.
 */
 
@@ -560,4 +560,15 @@ const MessageSet & Session::expunged() const
 const MessageSet & Session::messages() const
 {
     return d->msns;
+}
+
+
+/*! Clears the list of expunged messages without calling
+    emitExpunge().
+*/
+
+void Session::clearExpunged()
+{
+    d->msns.remove( d->expunges );
+    d->expunges.clear();
 }

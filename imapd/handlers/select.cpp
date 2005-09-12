@@ -98,6 +98,7 @@ void Select::execute()
 
     if ( !d->session->initialised() )
         return;
+    d->session->clearExpunged();
 
     const List<Flag> * l = Flag::flags();
     List<Flag>::Iterator i( l );
@@ -115,7 +116,8 @@ void Select::execute()
 
     respond( fn( d->session->count() ) + " EXISTS" );
     respond( fn( d->session->recent().count() ) + " RECENT" );
-    respond( "OK [UNSEEN " + fn( d->session->firstUnseen() ) + "]"
+    respond( "OK [UNSEEN " +
+             fn( d->session->msn( d->session->firstUnseen() ) ) + "]"
              " first unseen" );
 
     uint n = d->session->uidnext();
