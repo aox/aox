@@ -202,7 +202,7 @@ String Address::name() const
     String s = c->fromUnicode( real );
     String q = s.eQP( true );
     String b = s.e64();
-    if ( q.length() < b.length() ) {
+    if ( q.length() <= b.length() ) {
         r.append( "?q?" );
         r.append( q );
     }
