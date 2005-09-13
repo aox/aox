@@ -158,7 +158,7 @@ void IMAP::react( Event e )
     runCommands();
     expireCommands();
 
-    if ( timeout() == 0 ) {
+    if ( e == Read || timeout() == 0 ) {
         switch ( state() ) {
         case NotAuthenticated:
             setTimeoutAfter( 60 );
