@@ -64,6 +64,8 @@ public:
     virtual void emitExpunge( uint );
     virtual void emitExists( uint );
 
+    void removeSessionInitialiser();
+
 private:
     class SessionData *d;
 };
@@ -77,6 +79,8 @@ public:
 
     bool done() const;
     void execute();
+
+    void addWatcher( EventHandler * );
 
 private:
     class SessionInitialiserData * d;

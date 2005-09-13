@@ -17,20 +17,25 @@ class SessionData
 {
 public:
     SessionData()
-        : readOnly( true ), mailbox( 0 ),
+        : readOnly( true ),
+          watchers( 0 ),
+          initialiser( 0 ),
+          mailbox( 0 ),
           uidnext( 0 ), firstUnseen( 0 ),
           permissions( 0 ),
           announced( 0 )
     {}
 
     bool readOnly;
-    Mailbox *mailbox;
+    List<EventHandler> * watchers;
+    SessionInitialiser * initialiser;
+    Mailbox * mailbox;
     MessageSet msns;
     MessageSet recent;
     MessageSet expunges;
     uint uidnext;
     uint firstUnseen;
-    Permissions *permissions;
+    Permissions * permissions;
     uint announced;
 };
 
@@ -66,16 +71,11 @@ Session::~Session()
 
 bool Session::initialised() const
 {
-    if ( d->firstUnseen )
-        return true;
     if ( !d->uidnext )
         return false;
-    // tricky. if we don't have a firstUnseen, we may or may not be
-    // completely set up. it depends on whether we have any messages
-    // at all.
-    if ( d->msns.isEmpty() )
-        return true;
-    return false;
+    if ( d->initialiser )
+        return false;
+    return true;
 }
 
 
@@ -280,8 +280,6 @@ void Session::expunge( const MessageSet & uids )
     if ( uids.isEmpty() )
         return;
     d->expunges.add( uids );
-    log( "Added " + fn( uids.count() ) + " expunged messages, " +
-         fn( d->expunges.count() ) + " in all", Log::Debug );
 }
 
 
@@ -308,7 +306,8 @@ void Session::emitResponses()
     d->expunges.clear();
     if ( d->uidnext < d->mailbox->uidnext() ) {
         change = true;
-        (void)new SessionInitialiser( this, 0 );
+        if ( !d->initialiser )
+            d->initialiser = new SessionInitialiser( this, 0 );
     }
 
     if ( change )
@@ -370,10 +369,12 @@ void Session::setAnnounced( uint n )
 /*! Refreshes this session, notifying \a handler when it's done.
 */
 
-void Session::refresh( EventHandler *handler )
+void Session::refresh( EventHandler * handler )
 {
-    if ( d->uidnext < d->mailbox->uidnext() )
-        (void)new SessionInitialiser( this, handler );
+    if ( handler && d->initialiser )
+        d->initialiser->addWatcher( handler );
+    else if ( d->uidnext < d->mailbox->uidnext() )
+        d->initialiser = new SessionInitialiser( this, handler );
 }
 
 
@@ -384,14 +385,14 @@ class SessionInitialiserData
 {
 public:
     SessionInitialiserData()
-        : session( 0 ), owner( 0 ),
+        : session( 0 ),
           t( 0 ), recent( 0 ), messages( 0 ), seen( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
           done( false )
         {}
 
     Session * session;
-    EventHandler * owner;
+    List<EventHandler> watchers;
 
     Transaction * t;
     Query * recent;
@@ -410,7 +411,7 @@ public:
 /*! \class SessionInitialiser imapsession.h
 
     The SessionInitialiser class performs the database queries
-    needed to initialize an Session.
+    needed to initialise an Session.
 
     When it's created, it immediately informs its owner that so-and-so
     many messages exist and returns. Later, it issues database queries
@@ -429,7 +430,7 @@ SessionInitialiser::SessionInitialiser( Session * session,
     : EventHandler(), d( new SessionInitialiserData )
 {
     d->session = session;
-    d->owner = owner;
+    addWatcher( owner );
     d->oldUidnext = d->session->uidnext();
     d->newUidnext = d->session->mailbox()->uidnext();
     if ( d->oldUidnext >= d->newUidnext )
@@ -448,6 +449,9 @@ SessionInitialiser::SessionInitialiser( Session * session,
 
 void SessionInitialiser::execute()
 {
+    if ( d->done )
+        return;
+
     if ( !d->t ) {
         // We update first_recent for our mailbox. Concurrent selects of
         // this mailbox will block until this transaction has committed.
@@ -506,6 +510,13 @@ void SessionInitialiser::execute()
         d->expunged.remove( uid );
     }
 
+    if ( (r=d->recent->nextRow()) != 0 ) {
+        uint recent = r->getInt( "first_recent" );
+        uint n = recent;
+        while ( n < d->newUidnext )
+            d->session->addRecent( n++ );
+    }
+
     if ( d->seen )
         while( (r=d->seen->nextRow()) )
             d->session->setFirstUnseen( r->getInt( "uid" ) );
@@ -516,23 +527,21 @@ void SessionInitialiser::execute()
         return;
     if ( d->seen && !d->seen->done() )
         return;
+
     d->done = true;
-
     d->session->expunge( d->expunged );
+    d->session->removeSessionInitialiser();
 
-    uint recent = d->recent->nextRow()->getInt( "first_recent" );
-    uint n = recent;
-    while ( n < d->newUidnext )
-        d->session->addRecent( n++ );
-
-    log( "Saw " + fn( d->messages->rows() ) + " new messages, " +
-         fn( recent ) + " recent ones", Log::Debug );
-    if ( d->owner )
-        d->owner->execute();
+    List<EventHandler>::Iterator it( d->watchers );
+    while ( it ) {
+        EventHandler * e = it;
+        ++it;
+        e->execute();
+    }
 }
 
 
-/*! Returns true once the initializer has done its job, and false
+/*! Returns true once the initialiser has done its job, and false
     until then.
 */
 
@@ -571,4 +580,25 @@ void Session::clearExpunged()
 {
     d->msns.remove( d->expunges );
     d->expunges.clear();
+}
+
+
+/*! The SessionInitialiser calls this when initialised() can return
+    true. Noone else should ever call it.
+*/
+
+void Session::removeSessionInitialiser()
+{
+    d->initialiser = 0;
+}
+
+
+/*! Records that \a e should be notified when the initialiser has
+    finished its work.
+*/
+
+void SessionInitialiser::addWatcher( EventHandler * e )
+{
+    if ( e )
+        d->watchers.append( e );
 }
