@@ -353,7 +353,7 @@ We need to support date field searches.
 
 Orphaned bodyparts should be cleaned up somehow.
 
-  'ms vacuum' now does this, but it requires a full-table lock on
+  'ms vacuum -b' now does this, but it requires a full-table lock on
   mailboxes in order to not zap bodyparts that the injector hasn't
   linked to part_numbers yet (cf. injector.cpp:640).
 
@@ -658,13 +658,6 @@ Privilege separation
   Pergaps privilege separation could be used to grant me rm -rf access
   to the regular database, but build a higher wall on kalyani. Sounds
   good.
-
-
-mv vacuum doesn't work
-
-  I have a database where just eight bodyparts are in used (as
-  evidenced by 'select distinct bodypart from part_numbers'). However,
-  mv vacuum leaves 249 rows in bodyparts. I don't understand why.
 
 
 We need to do the right thing.
