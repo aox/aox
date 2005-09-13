@@ -360,7 +360,11 @@ uint Endpoint::sockaddrSize() const
 }
 
 
-/*! Returns the string representation of an endpoint. */
+/*! Returns the string representation of an endpoint. Note that this
+    cannot be parsed - it's strictly for human consumption.
+
+    The returned value does not contain slash, backslash or parens.
+*/
 
 String Endpoint::string() const
 {
@@ -375,7 +379,7 @@ String Endpoint::string() const
 
     case IPv4:
     case IPv6:
-        s = address() + "(:" + fn( d->port ) + ")";
+        s = address() + ":" + fn( d->port );
         break;
     }
 
