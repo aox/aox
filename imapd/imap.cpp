@@ -118,7 +118,7 @@ IMAP::IMAP( int s )
     enqueue( "* OK [CAPABILITY " +
              Capability::capabilities( this ) + "] " +
              Configuration::hostname() + " IMAP Server\r\n" );
-    setTimeoutAfter( 1800 );
+    setTimeoutAfter( 120 );
     EventLoop::global()->addConnection( this );
 }
 
@@ -161,7 +161,7 @@ void IMAP::react( Event e )
     if ( e == Read || timeout() == 0 ) {
         switch ( state() ) {
         case NotAuthenticated:
-            setTimeoutAfter( 60 );
+            setTimeoutAfter( 120 );
             break;
         case Authenticated:
         case Selected:

@@ -13,9 +13,10 @@ void Logout::execute()
 {
     respond( "BYE logout" );
     imap()->setState( IMAP::Logout );
-    // close the connection in five seconds instead of at once, to
-    // avoid problems with squirrelmail. squirrelmail detects the EOF
-    // before it has parsed the prior BYE.
-    imap()->setTimeoutAfter( 5 );
+    // close the connection in a second instead of at once, to avoid
+    // problems with squirrelmail. squirrelmail reacts to the EOF
+    // before it has reacted to the prior BYE, if they arrive in the
+    // same packet.
+    imap()->setTimeoutAfter( 1 );
     finish();
 }
