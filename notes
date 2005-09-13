@@ -660,4 +660,11 @@ Privilege separation
   good.
 
 
+mv vacuum doesn't work
+
+  I have a database where just eight bodyparts are in used (as
+  evidenced by 'select distinct bodypart from part_numbers'). However,
+  mv vacuum leaves 249 rows in bodyparts. I don't understand why.
+
+
 We need to do the right thing.
