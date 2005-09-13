@@ -11,7 +11,7 @@
 
 void Logout::execute()
 {
-    respond( "BYE" );
+    respond( "BYE logout" );
     imap()->setState( IMAP::Logout );
     finish();
 }
