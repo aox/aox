@@ -115,7 +115,8 @@ IMAP::IMAP( int s )
     if ( s < 0 )
         return;
 
-    enqueue( "* OK [CAPABILITY " + Capability::capabilities( this ) + "] " +
+    enqueue( "* OK [CAPABILITY " +
+             Capability::capabilities( this ) + "] " +
              Configuration::hostname() + " IMAP Server\r\n" );
     setTimeoutAfter( 1800 );
     EventLoop::global()->addConnection( this );
@@ -128,13 +129,14 @@ void IMAP::react( Event e )
 {
     switch ( e ) {
     case Read:
-        setTimeoutAfter( 1800 );
         parse();
         break;
 
     case Timeout:
-        log( "Idle timeout" );
-        enqueue( "* BYE autologout\r\n" );
+        if ( state() != Logout ) {
+            log( "Idle timeout" );
+            enqueue( "* BYE autologout\r\n" );
+        }
         Connection::setState( Closing );
         if ( d->reader )
             d->reader->read();
@@ -156,10 +158,20 @@ void IMAP::react( Event e )
     runCommands();
     expireCommands();
 
-    if ( timeout() == 0 )
-        setTimeoutAfter( 1800 );
-    if ( state() == Logout )
-        Connection::setState( Closing );
+    if ( timeout() == 0 ) {
+        switch ( state() ) {
+        case NotAuthenticated:
+            setTimeoutAfter( 60 );
+            break;
+        case Authenticated:
+        case Selected:
+            setTimeoutAfter( 1800 );
+            break;
+        case Logout:
+            break;
+        }
+
+    }
 
     if ( state() == Logout || d->commands.isEmpty() )
         commit();
