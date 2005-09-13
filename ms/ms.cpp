@@ -55,6 +55,7 @@ void showStatus();
 void showBuildconf();
 void showConfiguration();
 void showSchema();
+void showCounts();
 void upgradeSchema();
 void listUsers();
 void createUser();
@@ -114,6 +115,8 @@ int main( int ac, char *av[] )
             showConfiguration();
         else if ( noun == "schema" )
             showSchema();
+        else if ( noun == "counts" )
+            showCounts();
         else
             bad( verb, noun );
     }
@@ -238,7 +241,7 @@ class Dispatcher
 {
 public:
     enum Command {
-        Start, ShowSchema, UpgradeSchema, ListUsers,
+        Start, ShowCounts, ShowSchema, UpgradeSchema, ListUsers,
         CreateUser, DeleteUser, ChangePassword,
         CreateMailbox, DeleteMailbox,
         Vacuum
@@ -294,6 +297,10 @@ public:
         switch ( command ) {
         case Start:
             start();
+            break;
+
+        case ShowCounts:
+            showCounts();
             break;
 
         case ShowSchema:
@@ -657,6 +664,50 @@ void showConfiguration()
         ++it;
     }
 }
+
+
+void showCounts()
+{
+    if ( !d ) {
+        end();
+
+        Database::setup();
+
+        d = new Dispatcher( Dispatcher::ShowCounts );
+        d->query = new Query( "select "
+                              "(select count(*) from mailboxes"
+                              " where deleted='f') as mailboxes,"
+                              "(select count(*) from messages) as messages,"
+                              "(select count(*) from bodyparts) as bodyparts,"
+                              "(select count(*) from addresses) as addresses,"
+                              "(select sum(rfc822size) from messages) as size,"
+                              "(select count(*) from users) as users", d );
+        d->query->execute();
+    }
+
+    if ( d && !d->query->done() )
+        return;
+
+    Row * r = d->query->nextRow();
+    if ( r ) {
+        uint mailboxes = r->getInt( "mailboxes" );
+        uint messages = r->getInt( "messages" );
+        uint bodyparts = r->getInt( "bodyparts" );
+        uint addresses = r->getInt( "addresses" );
+        uint size = r->getInt( "size" );
+        uint users = r->getInt( "users" );
+
+        printf( "Users: %d\n"
+                "Mailboxes: %d\n"
+                "Messages: %d\n"
+                "Bodyparts: %d\n"
+                "Addresses: %d\n"
+                "Total Message Size: %d\n",
+                users, mailboxes, messages, bodyparts, addresses, size );
+    }
+}
+
+
 
 
 void showSchema()
@@ -1056,6 +1107,15 @@ void help()
             "    (As configured in Jamsettings.)\n"
         );
     }
+    else if ( a == "show" && b.startsWith( "count" ) ) {
+        fprintf(
+            stderr,
+            "  show counts -- Show number of users, messages etc..\n\n"
+            "    Synopsis: ms show counts\n\n"
+            "    Displays the number of rows in the most important tables,\n"
+            "    as well as the total size of the mail stored.\n"
+        );
+    }
     else if ( a == "show" && b == "schema" ) {
         fprintf(
             stderr,
@@ -1150,6 +1210,7 @@ void help()
             "    stop\n"
             "    restart\n\n"
             "    show status        -- Are the servers running?\n"
+            "    show counts        -- Shows number of users, messages etc.\n"
             "    show configuration -- Displays runtime configuration.\n"
             "    show build         -- Displays compile-time configuration.\n"
             "\n"
