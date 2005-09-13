@@ -38,8 +38,10 @@ void Lsub::parse()
 void Lsub::execute()
 {
     if ( !q ) {
-        q = new Query( "select * from subscriptions where owner=$1 and "
-                       "mailbox like $2", this );
+        q = new Query( "select mailboxes.id from subscriptions, mailboxes "
+                       "where subscriptions.owner=$1 and "
+                       "subscriptions.mailbox=mailboxes.id and "
+                       "mailboxes.name ilike $2", this );
         q->bind( 1, imap()->user()->id() );
         String like = combinedName( ref, pat );
         uint slash = 0;
