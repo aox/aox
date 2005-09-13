@@ -4,7 +4,6 @@
 #define STATUS_H
 
 #include "command.h"
-#include "string.h"
 
 
 class Status
@@ -17,10 +16,7 @@ public:
     void execute();
 
 private:
-    String name;
-    bool messages, uidnext, uidvalidity, recent, unseen;
-    class Mailbox *m;
-    class ImapSession *session;
+    class StatusData * d;
 };
 
 

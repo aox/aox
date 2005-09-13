@@ -2,9 +2,30 @@
 
 #include "status.h"
 
+#include "flag.h"
 #include "imap.h"
+#include "query.h"
 #include "mailbox.h"
+#include "session.h"
 #include "imapsession.h"
+
+
+class StatusData
+    : public Garbage
+{
+public:
+    StatusData() :
+        messages( false ), uidnext( false ), uidvalidity( false ),
+        recent( false ), unseen( false ),
+        mailbox( 0 ), session( 0 ), unseenCount( 0 )
+        {}
+    String name;
+    bool messages, uidnext, uidvalidity, recent, unseen;
+    Mailbox * mailbox;
+    Session * session;
+    Permissions * permissions;
+    Query * unseenCount;
+};
 
 
 /*! \class Status status.h
@@ -12,39 +33,39 @@
 */
 
 Status::Status()
-    : messages( false ), uidnext( false ), uidvalidity( false ),
-      recent( false ), unseen( false ),
-      m( 0 ), session( 0 )
-{}
+    : d( new StatusData )
+{
+}
 
 
 void Status::parse()
 {
     space();
-    name = astring();
+    d->name = astring();
     space();
     require( "(" );
 
-    while ( 1 ) {
+    bool atEnd = false;
+    while ( !atEnd ) {
         String item = letters( 1, 11 ).lower();
 
         if ( item == "messages" )
-            messages = true;
+            d->messages = true;
         else if ( item == "recent" )
-            recent = true;
+            d->recent = true;
         else if ( item == "uidnext" )
-            uidnext = true;
+            d->uidnext = true;
         else if ( item == "uidvalidity" )
-            uidvalidity = true;
+            d->uidvalidity = true;
         else if ( item == "unseen" )
-            unseen = true;
+            d->unseen = true;
         else
-            error( Bad, "Unknown STATUS item " + item );
+            error( Bad, "Unknown STATUS item: " + item );
 
         if ( nextChar() == ' ' )
             space();
         else
-            break;
+            atEnd = true;
     }
 
     require( ")" );
@@ -54,38 +75,88 @@ void Status::parse()
 
 void Status::execute()
 {
-#if 0
-    if ( !m ) {
-        m = Mailbox::find( imap()->mailboxName( name ) );
-        if ( !m ) {
-            error( No, "Can't open " + name );
+    // first part: set up what we need.
+    if ( !d->mailbox ) {
+        d->mailbox = Mailbox::find( imap()->mailboxName( d->name ) );
+        if ( !d->mailbox ) {
+            error( No, "Can't open " + d->name );
             finish();
             return;
         }
-
-        if ( unseen || recent )
-            session = new ImapSession( m, true, this );
     }
 
-    if ( session && !session->loaded() )
+    if ( !d->permissions )
+        d->permissions = new Permissions( d->mailbox, imap()->user(), this );
+
+    if ( !d->session && ( d->messages || d->recent ) ) {
+        if ( imap()->session() &&
+             imap()->session()->mailbox() == d->mailbox )
+            d->session = imap()->session();
+        else
+            d->session = new Session( d->mailbox, true );
+        d->session->refresh( this );
+    }
+
+    if ( d->unseen && !d->unseenCount ) {
+        // UNSEEN is a bit of a special case. we have to issue our own
+        // select and make the database reveal the number.
+        d->unseenCount 
+            = new Query( "select "
+                         "(select count(*) from messages "
+                         "where mailbox=$1)::integer"
+                         "-"
+                         "(select count(*) from flags "
+                         "where mailbox=$1 and flag=$2)::integer"
+                         " as count", this );
+        d->unseenCount->bind( 1, d->mailbox->id() );
+        Flag * f = Flag::find( "\\seen" );
+        if ( f ) {
+            d->unseenCount->bind( 1, f->id() );
+            d->unseenCount->execute();
+        }
+        else {
+            // what can we do? at least not crash.
+            d->unseen = false;
+            d->unseenCount = false;
+        }
+
+    }
+        
+
+    // second part: wait until we have the information
+    if ( d->permissions && !d->permissions->ready() )
+        return;
+    if ( d->session && !d->session->initialised() )
+        return;
+    if ( d->unseenCount && !d->unseenCount->done() )
         return;
 
-    String status;
+    // third part: do we have permission to return this? now?
+    if ( d->permissions &&
+         !d->permissions->allowed( Permissions::Read ) ) {
+        error( No, "No read access for " + d->mailbox->name() );
+        return;
+    }
 
-    if ( messages )
-        status.append( "MESSAGES " + fn( m->count() ) + " " );
-    if ( recent )
-        status.append( "RECENT " + fn( m->recent() ) + " " );
-    if ( uidnext )
-        status.append( "UIDNEXT " + fn( m->uidnext() ) + " " );
-    if ( uidvalidity )
-        status.append( "UIDVALIDITY " + fn( m->uidvalidity() ) + " " );
-    if ( unseen )
-        status.append( "UNSEEN " + fn( m->unseen() ) + " " );
+    // fourth part: return the payload.
+    StringList status;
 
-    status.truncate( status.length()-1 );
-    respond( "STATUS " + name + " (" + status + ")" );
-#endif
+    if ( d->messages )
+        status.append( "MESSAGES " + fn( d->session->count() ) );
+    if ( d->recent )
+        status.append( "RECENT " + fn( d->session->recent().count() ) );
+    if ( d->uidnext )
+        status.append( "UIDNEXT " + fn( d->mailbox->uidnext() ) );
+    if ( d->uidvalidity )
+        status.append( "UIDVALIDITY " +
+                       fn( d->mailbox->uidvalidity() ) );
+    if ( d->unseen ) {
+        Row * r = d->unseenCount->nextRow();
+        if ( r )
+            status.append( "UNSEEN " + fn( r->getInt( "count" ) ) );
+    }
+
+    respond( "STATUS " + d->name + " (" + status.join( " " ) + ")" );
 
     finish();
 }
