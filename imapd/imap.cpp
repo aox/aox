@@ -318,6 +318,7 @@ void IMAP::addCommand()
     // If we're already working, block this. Otherwise, run it.
     // runCommands() will unblock it sooner or later.
 
+    expireCommands();
     if ( !d->commands.isEmpty() &&
          cmd->state() == Command::Executing && cmd->ok() )
     {
