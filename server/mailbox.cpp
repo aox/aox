@@ -113,7 +113,8 @@ public:
 
         if ( owner ) {
             if ( query->failed() )
-                log( "Couldn't create mailbox tree.", Log::Disaster );
+                log( "Couldn't create mailbox tree: " + query->error(),
+                     Log::Disaster );
             owner->execute();
         }
     }
