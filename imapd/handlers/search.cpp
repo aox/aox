@@ -619,8 +619,8 @@ void Search::Condition::simplify()
     }
 
     if ( a == Contains && f == Flags && s8.lower() == "\\recent" ) {
-        // the database cannot look at UIDs, so we turn this query
-        // into a test for the relevant UIDs.
+        // the database cannot look at the recent flag, so we turn
+        // this query into a test for the relevant UIDs.
         f = Uid;
         s = c->imap()->session()->recent();
         // later we may simplify this again
@@ -1213,7 +1213,7 @@ Search::Condition::MatchResult Search::Condition::match( Message * m,
         return No;
     }
     else if ( a == Contains && f == Flags ) {
-        if ( s8 == "recent" ) {
+        if ( s8 == "\\recent" ) {
             ImapSession * s = c->imap()->session();
             if ( s->isRecent( uid ) )
                 return Yes;
