@@ -37,8 +37,7 @@ public:
     Message * message( uint, bool = true ) const;
     void clear();
 
-    static void setup();
-    static void slurp( EventHandler * );
+    static void setup( class EventHandler * = 0 );
     static Mailbox * find( const String &, bool = false );
     static Mailbox * obtain( const String &, bool create = true );
     static Mailbox * closestParent( const String & );

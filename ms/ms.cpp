@@ -865,7 +865,7 @@ void createUser()
     }
 
     d = new Dispatcher( Dispatcher::CreateUser );
-    Mailbox::slurp( d );
+    Mailbox::setup( d );
     d->query = u->create( d );
     if ( d->query->failed() )
         error( d->query->error() );
@@ -891,7 +891,7 @@ void deleteUser()
     u->setLogin( login );
 
     d = new Dispatcher( Dispatcher::DeleteUser );
-    Mailbox::slurp( d );
+    Mailbox::setup( d );
     d->query = u->remove( d );
     if ( d->query->failed() )
         error( d->query->error() );
@@ -921,7 +921,7 @@ void changePassword()
     u->setSecret( passwd );
 
     d = new Dispatcher( Dispatcher::ChangePassword );
-    Mailbox::slurp( d );
+    Mailbox::setup( d );
     d->query = u->changeSecret( d );
     if ( d->query->failed() )
         error( d->query->error() );
@@ -942,7 +942,7 @@ void createMailbox()
 
         d = new Dispatcher( Dispatcher::CreateMailbox );
         d->s = name;
-        Mailbox::slurp( d );
+        Mailbox::setup( d );
         if ( !owner.isEmpty() ) {
             d->user = new User;
             d->user->setLogin( owner );
@@ -984,7 +984,7 @@ void deleteMailbox()
 
         d = new Dispatcher( Dispatcher::DeleteMailbox );
         d->s = name;
-        Mailbox::slurp( d );
+        Mailbox::setup( d );
         return;
     }
 

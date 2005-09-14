@@ -38,8 +38,8 @@ public:
     bool deleted;
     uint owner;
 
-    Mailbox *parent;
-    List< Mailbox > *children;
+    Mailbox * parent;
+    List< Mailbox > * children;
     Map<Message> * messages;
     Fetcher * flagFetcher;
     Fetcher * headerFetcher;
@@ -124,35 +124,20 @@ public:
 /*! This static function is responsible for building a tree of
     Mailboxes from the contents of the mailboxes table. It expects to
     be called by ::main().
+
+    If \a owner is non-null (the default is null), this function calls
+    EventHandler::waitFor() on \a owner to wait for setup to complete.
 */
 
-void Mailbox::setup()
-{
-    ::root = new Mailbox( "/" );
-    Allocator::addEternal( ::root, "root mailbox" );
-
-    MailboxReader * mr =
-        new MailboxReader( "select * from mailboxes", "" );
-    mr->query->execute();
-}
-
-
-/*! This function is a replacement for setup(). It does the same thing
-    as its elder sibling, but returns a Query and notifies \a owner of
-    completion.
-
-    This function and setup() are mutually exclusive. ::main() should
-    call only one of them.
-*/
-
-void Mailbox::slurp( EventHandler * owner )
+void Mailbox::setup( EventHandler * owner )
 {
     ::root = new Mailbox( "/" );
     Allocator::addEternal( ::root, "root mailbox" );
 
     MailboxReader * mr =
         new MailboxReader( "select * from mailboxes", "", owner );
-    owner->waitFor( mr->query );
+    if ( owner )
+        owner->waitFor( mr->query );
     mr->query->execute();
 }
 
@@ -399,6 +384,7 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
         return 0;
 
     Mailbox * m = new Mailbox( name );
+    m->d->parent = parent;
     parent->d->children->append( m );
     return m;
 }
