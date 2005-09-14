@@ -46,6 +46,10 @@ public:
     present itself asText().
 
     This class is also responsible for parsing bodyparts in messages.
+
+    The naming of text()/data()/asText()/hasText()/hasData()/plainText()
+    is rather unfortunate, because they're each referring to a slightly
+    different sort of text.
 */
 
 /*! Constructs an empty Bodypart.
@@ -619,4 +623,26 @@ void Bodypart::setMessage( Message * m )
 bool Bodypart::isBodypart() const
 {
     return true;
+}
+
+
+/*! Returns true only if this Bodypart has a text() representation for
+    storage in the database. This function is meant only for use by the
+    Injector.
+*/
+
+bool Bodypart::hasText() const
+{
+    return false;
+}
+
+
+/*! Returns true only if this Bodypart has a data() representation for
+    storage in the database. This function is meant only for use by the
+    Injector.
+*/
+
+bool Bodypart::hasData() const
+{
+    return false;
 }
