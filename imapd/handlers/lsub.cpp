@@ -6,6 +6,20 @@
 #include "query.h"
 #include "mailbox.h"
 
+class LsubData
+    : public Garbage
+{
+public:
+    LsubData() : q( 0 ), ref( 0 ) {}
+
+    Query * q;
+    Mailbox * ref;
+    Mailbox * top;
+    uint prefix;
+    String pat;
+
+};
+
 
 /*! \class Lsub lsub.h
     LIST for subscribed mailboxes (RFC 3501 section 6.3.9)
@@ -20,7 +34,7 @@
 /*! Constructs an empty LSUB handler. */
 
 Lsub::Lsub()
-    : q( 0 ), ref( 0 ), pfxl( 0 )
+    : d( new LsubData )
 {
 }
 
@@ -30,49 +44,71 @@ void Lsub::parse()
     space();
     reference();
     space();
-    pat = listMailbox();
+    d->pat = listMailbox();
     end();
 }
 
 
 void Lsub::execute()
 {
-    if ( !q ) {
-        q = new Query( "select mailboxes.id from subscriptions, mailboxes "
-                       "where subscriptions.owner=$1 and "
-                       "subscriptions.mailbox=mailboxes.id and "
-                       "mailboxes.name ilike $2", this );
-        q->bind( 1, imap()->user()->id() );
-        String like = combinedName( ref, pat );
-        uint slash = 0;
-        uint i = 0;
-        while ( i < like.length() && like[i] != '%' && like[i] != '*' ) {
-            if ( like[i] == '/' )
-                slash = i;
-            i++;
+    if ( !d->q ) {
+        d->q = new Query( "select mailbox from subscriptions where owner=$1",
+                       this );
+        d->q->bind( 1, imap()->user()->id() );
+        d->q->execute();
+
+        if ( d->pat[0] == '/' || d->pat[0] == '*' ) {
+            d->top = Mailbox::root();
+            d->prefix = 0;
         }
-        like = like.mid( i ) + "/%";
-        q->bind( 2, like + "%" );
-        q->execute();
-    }
-
-    while ( q->hasResults() ) {
-        Row * r = q->nextRow();
-        String name = r->getString( "mailbox" );
-
-        if ( match( name, 0, pat, 0 ) == 2 ) {
-            String flags = "";
-            Mailbox * m = Mailbox::find( name );
-            if ( !m )
-                flags = "\\noselect";
-
-            respond( "LSUB (" + flags + ") \"/\" " + name.mid( pfxl ) );
+        else {
+            d->top = d->ref;
+            d->prefix = d->ref->name().length() + 1;
         }
     }
 
-    if ( !q->done() )
-        return;
-    finish();
+
+    Row * r = 0;
+    while ( (r=d->q->nextRow()) != 0 ) {
+        Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
+
+        Mailbox * p = m;
+        while ( p && p != d->top )
+            p = p->parent();
+        if ( p ) {
+            p = m;
+            bool output = false;
+            while ( p && !output ) {
+                uint r = match( d->pat, d->prefix, p->name(), 0 );
+                if ( r == 2 )
+                    output = true;
+                else if ( p == d->top )
+                    p = 0;
+                else
+                    p = p->parent();
+            }
+            if ( output ) {
+                String flags = "";
+                if ( p != m || p->synthetic() || p->deleted() )
+                    flags = "\\noselect";
+                m = p;
+                Mailbox * home = imap()->user()->home();
+                while ( p && p != home )
+                    p = p->parent();
+                uint l = 0;
+                if ( p == home )
+                    l = home->name().length() + 1;
+                // we quote a little too much here. we don't quite if
+                // the string is 1*astring-char. we could also include
+                // list-wildcards in the quite-free set.
+                respond( "LSUB (" + flags + ") \"/\" " +
+                         imapQuoted( m->name().mid( l ), AString ) );
+            }
+        }
+    }
+
+    if ( d->q->done() )
+        finish();
 }
 
 
@@ -85,20 +121,14 @@ void Lsub::reference()
 {
     String name = astring();
 
-    pfxl = imap()->user()->home()->name().length() + 1;
+    if ( name[0] == '/' )
+        d->ref = Mailbox::obtain( name, false );
+    else if ( name.isEmpty() )
+        d->ref = imap()->user()->home();
+    else
+        d->ref = Mailbox::obtain( imap()->user()->home()->name() + "/" + name,
+                                  false );
 
-    if ( name[0] == '/' ) {
-        ref = Mailbox::obtain( name, false );
-        pfxl = 0;
-    }
-    else if ( name.isEmpty() ) {
-        ref = imap()->user()->home();
-    }
-    else {
-        ref = Mailbox::obtain( imap()->user()->home()->name() + "/" + name,
-                               false );
-    }
-
-    if ( !ref )
+    if ( !d->ref )
         error( No, "Cannot find reference name " + name );
 }

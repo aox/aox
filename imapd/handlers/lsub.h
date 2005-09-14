@@ -4,7 +4,6 @@
 #define LSUB_H
 
 #include "listext.h"
-#include "string.h"
 
 
 class Lsub
@@ -20,10 +19,7 @@ private:
     void reference();
 
 private:
-    class Query *q;
-    class Mailbox * ref;
-    uint pfxl;
-    String pat;
+    class LsubData * d;
 };
 
 
