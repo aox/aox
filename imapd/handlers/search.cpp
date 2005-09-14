@@ -40,12 +40,14 @@ class SearchData
 {
 public:
     SearchData()
-        : uid( false ), done( false ), root( 0 ), conditions( 0 ),
+        : uid( false ), done( false ), simplified( false ),
+          root( 0 ), conditions( 0 ),
           codec( 0 ), query( 0 ), argc( 0 ), mboxId( 0 )
     {}
 
     bool uid;
     bool done;
+    bool simplified;
     String charset;
     Search::Condition * root;
     List< Search::Condition > * conditions;
@@ -87,9 +89,6 @@ void Search::parse()
     end();
 
     prepare();
-    log( "OK debug: query as parsed: " + d->root->debugString(), Log::Debug );
-    d->root->simplify();
-    log( "OK debug: simplified query: " + d->root->debugString(), Log::Debug );
 }
 
 
@@ -237,7 +236,7 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "keyword" ) {
             space();
-            add( Flags, Contains, atom() );
+            add( Flags, Contains, atom().lower() );
         }
         else if ( keyword == "unkeyword" ) {
             space();
@@ -297,6 +296,15 @@ void Search::parseKey( bool alsoCharset )
 
 void Search::execute()
 {
+    if ( !d->simplified ) {
+        if ( d->root->needSession() && !imap()->session()->initialised() ) {
+            imap()->session()->refresh( this );
+            return;
+        }
+        d->root->simplify();
+        d->simplified = true;
+    }
+
     if ( !d->query ) {
         if ( !ok() )
             return;
@@ -1205,7 +1213,7 @@ Search::Condition::MatchResult Search::Condition::match( Message * m,
         return No;
     }
     else if ( a == Contains && f == Flags ) {
-        if ( uid > 0 && s8 == "recent" ) {
+        if ( s8 == "recent" ) {
             ImapSession * s = c->imap()->session();
             if ( s->isRecent( uid ) )
                 return Yes;
@@ -1246,4 +1254,25 @@ UString Search::uastring()
                "astring not valid under encoding " + d->codec->name() +
                ": " + raw );
     return canon;
+}
+
+
+/*! Returns true if this condition needs an updated Session to be
+    correctly evaluated, and false if not.
+*/
+
+bool Search::Condition::needSession() const
+{
+    if ( a == Contains && f == Flags && s8 == "\\recent" )
+        return true;
+
+    if ( a == And || a == Or ) {
+        List< Condition >::Iterator i( l );
+        while ( i ) {
+            if ( i->needSession() )
+                return true;
+            ++i;
+        }
+    }
+    return false;
 }

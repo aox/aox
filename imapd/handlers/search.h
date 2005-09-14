@@ -67,6 +67,7 @@ private:
         String where() const;
         String debugString() const;
         void simplify();
+        bool needSession() const;
         enum MatchResult {
             Yes,
             No,
