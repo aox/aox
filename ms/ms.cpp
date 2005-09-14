@@ -703,8 +703,9 @@ void showCounts()
                 "Messages: %d\n"
                 "Bodyparts: %d\n"
                 "Addresses: %d\n"
-                "Total Message Size: %d\n",
-                users, mailboxes, messages, bodyparts, addresses, size );
+                "Total Message Size: %s\n",
+                users, mailboxes, messages, bodyparts, addresses,
+                String::humanNumber( size ).cstr() );
     }
 }
 
