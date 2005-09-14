@@ -98,9 +98,9 @@ void Lsub::execute()
                 uint l = 0;
                 if ( p == home )
                     l = home->name().length() + 1;
-                // we quote a little too much here. we don't quite if
+                // we quote a little too much here. we don't quote if
                 // the string is 1*astring-char. we could also include
-                // list-wildcards in the quite-free set.
+                // list-wildcards in the quote-free set.
                 respond( "LSUB (" + flags + ") \"/\" " +
                          imapQuoted( m->name().mid( l ), AString ) );
             }
