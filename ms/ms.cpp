@@ -674,14 +674,15 @@ void showCounts()
         Database::setup();
 
         d = new Dispatcher( Dispatcher::ShowCounts );
-        d->query = new Query( "select "
-                              "(select count(*) from mailboxes"
-                              " where deleted='f') as mailboxes,"
-                              "(select count(*) from messages) as messages,"
-                              "(select count(*) from bodyparts) as bodyparts,"
-                              "(select count(*) from addresses) as addresses,"
-                              "(select sum(rfc822size) from messages) as size,"
-                              "(select count(*) from users) as users", d );
+        d->query =
+            new Query( "select "
+                       "(select count(*) from mailboxes"
+                       " where deleted='f')::int as mailboxes,"
+                       "(select count(*) from messages)::int as messages,"
+                       "(select count(*) from bodyparts)::int as bodyparts,"
+                       "(select count(*) from addresses)::int as addresses,"
+                       "(select sum(rfc822size) from messages)::int as size,"
+                       "(select count(*) from users)::int as users", d );
         d->query->execute();
     }
 
