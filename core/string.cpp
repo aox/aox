@@ -534,9 +534,9 @@ String String::quoted( char c, char q ) const
     in some context. So far RFC822 atoms, 2822 atoms, IMAP atoms and
     MIME tokens are considered.
 
-    This function considers the biggest common subset of all those
-    character classes to be the Totally boring subset. If \a b is not
-    its default value, it may include other characters.
+    This function considers the intersection of those character
+    classes to be the Totally boring subset. If \a b is not its
+    default value, it may include other characters.
 */
 
 bool String::boring( Boring b ) const
