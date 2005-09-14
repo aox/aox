@@ -278,6 +278,9 @@ Mailbox *Mailbox::root()
 
 /*! Returns a pointer to the Mailbox with \a id, or a null pointer if
     there is no such (known) Mailbox.
+
+    Deleted mailboxes are included in the search, but synthetic ones
+    aren't.
 */
 
 Mailbox * Mailbox::find( uint id )
