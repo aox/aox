@@ -14,7 +14,6 @@ class ListextData
 public:
     ListextData():
         reference( 0 ),
-        prefixLength( 0 ),
         responses( 0 ),
         extended( false ),
         returnSubscribed( false ), returnChildren( false ),
@@ -24,7 +23,6 @@ public:
 
     Mailbox * reference;
     StringList patterns;
-    uint prefixLength;
 
     uint responses;
 
@@ -319,8 +317,17 @@ void Listext::sendListResponse( Mailbox * mailbox )
     else
         a.append( "\\hasnochildren" );
 
+    Mailbox * home = imap()->user()->home();
+    Mailbox * p = mailbox;
+    while ( p && p != home )
+        p = p->parent();
+    String name = mailbox->name();
+    if ( p )
+        name = name.mid( home->name().length() + 1 );
+
     respond( "LIST (" + a.join( " " ) + ") \"/\" " +
-             mailbox->name().mid( d->prefixLength ) );
+             imapQuoted( name, AString ) );
+
     d->responses++;
 }
 
@@ -334,20 +341,14 @@ void Listext::reference()
 {
     String name = astring();
 
-    d->prefixLength = imap()->user()->home()->name().length() + 1;
-
-    if ( name[0] == '/' ) {
+    if ( name[0] == '/' )
         d->reference = Mailbox::obtain( name, false );
-        d->prefixLength = 0;
-    }
-    else if ( name.isEmpty() ) {
+    else if ( name.isEmpty() )
         d->reference = imap()->user()->home();
-    }
-    else {
+    else
         d->reference
             = Mailbox::obtain( imap()->user()->home()->name() + "/" + name,
                                false );
-    }
 
     if ( !d->reference )
         error( No, "Cannot find reference name " + name );
