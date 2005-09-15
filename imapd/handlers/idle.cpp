@@ -35,8 +35,7 @@ void Idle::execute()
     if ( imap()->session() )
         m = imap()->session()->mailbox();
 
-    log( "idle: " + fn( idling ) + " " + ( m ? m->name() : String("NO MAILBOX") ) );
-    // if we're already idling, emit possible reponses and
+    // if we're already idling, emit possible responses
     if ( idling && m )
         imap()->session()->emitResponses();
 
