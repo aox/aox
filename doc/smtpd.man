@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH smtpd 8 2005-09-19 www.oryx.com "Mailstore Documentation"
+.TH smtpd 8 2005-10-17 www.oryx.com "Mailstore Documentation"
 .SH NAME
 smtpd - SMTP and LMTP server for Oryx Mailstore.
 .SH SYNOPSIS
@@ -76,8 +76,8 @@ detailed) information in the log file.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 0.98, released 2005-09-19,
-http://www.oryx.com/mailstore/0.98.html.
+This man page covers Oryx Mailstore version 0.99, released 2005-10-17,
+http://www.oryx.com/mailstore/0.99.html.
 .SH SEE ALSO
 .BR mailstore (7),
 .BR mailstore.conf (5),
