@@ -44,9 +44,6 @@ public:
     uint numEncodedLines() const;
     void setNumEncodedLines( uint );
 
-    bool hasText() const;
-    bool hasData() const;
-
     String asText() const;
 
 private:
