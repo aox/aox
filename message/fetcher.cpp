@@ -367,17 +367,21 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
     else {
         Bodypart * bp = m->bodypart( part, true );
 
+        // We would like to ask for "coalesce(data,text) as data" here
+        // so as to avoid fetching text unnecessarily, but bytea can't
+        // be coalesced with text.
+
+        if ( !r->isNull( "data" ) )
+            bp->setData( r->getString( "data" ) );
+        else if ( !r->isNull( "text" ) )
+            bp->setData( r->getString( "text" ) );
+
         if ( !r->isNull( "rawbytes" ) )
             bp->setNumBytes( r->getInt( "rawbytes" ) );
         if ( !r->isNull( "bytes" ) )
             bp->setNumEncodedBytes( r->getInt( "bytes" ) );
         if ( !r->isNull( "lines" ) )
             bp->setNumEncodedLines( r->getInt( "lines" ) );
-
-        if ( !r->isNull( "text" ) )
-            bp->setData( r->getString( "text" ) );
-        else if ( !r->isNull( "data" ) )
-            bp->setData( r->getString( "data" ) );
     }
 }
 
