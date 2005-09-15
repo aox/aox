@@ -6,6 +6,7 @@
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
+#include "occlient.h"
 #include "permissions.h"
 #include "transaction.h"
 
@@ -51,7 +52,7 @@ void Delete::execute()
             error( No, "No such mailbox: " + d->n );
         else if ( d->m->synthetic() )
             error( No, d->m->name() + " does not really exist anyway" );
-        if ( d->m == imap()->user()->inbox() )
+        else if ( d->m == imap()->user()->inbox() )
             error( No, "Cannot delete INBOX" );
         if ( !ok() )
             return;
@@ -68,7 +69,7 @@ void Delete::execute()
     }
 
 
-    // XXX: should check that m isn't someone's inbox
+    // the database will check that m isn't someone's inbox
 
     if ( ok() && !d->t )
         d->t = d->m->remove( this );
@@ -82,5 +83,5 @@ void Delete::execute()
 
     finish();
 
-    // XXX We need to inform the OCServer about what we did.
+    OCClient::send( "mailbox " + d->m->name().quoted() + " deleted" );
 }
