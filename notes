@@ -637,4 +637,29 @@ Privilege separation
   good.
 
 
+Prepared statements are good. We should use them.
+
+  Strictly speaking, we are. It's just that most of the time, we
+  prepare a statement and then use it exactly once.
+
+  I see three ways out of this.
+
+  1. We promise betterment and create lots more PreparedStatement
+     objects around the place. Starting tomorrow.
+
+  2. We add some magic to Query, so it can reuse already-prepared
+     statements, even though they're not declared as such. Query could
+     use a cache or dict to recognize the strings that ought to be
+     prepared.
+
+  3. We could have a look at kalyani's logs and change the most
+     heavily used queries to prepared statements. Repeat in four
+     months.
+
+  The first isn't realistic, I think. The other two are. Each has
+  points in its favour... automatic recognition handles client
+  selects, which is good, and profiling uses less memory and keeps us
+  focused on actual performance.
+
+
 We need to do the right thing.
