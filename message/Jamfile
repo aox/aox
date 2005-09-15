@@ -1,10 +1,12 @@
 HDRS += [ FDirName $(TOP) message ] ;
+HDRS += [ FDirName $(TOP) extractors ] ;
 
 SubDir TOP message ;
 SubInclude TOP core ;
 SubInclude TOP encodings ;
 SubInclude TOP db ;
 SubInclude TOP server ;
+SubInclude TOP extractors ;
 
 Build message :
     multipart.cpp message.cpp bodypart.cpp header.cpp parser.cpp

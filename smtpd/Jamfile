@@ -6,5 +6,5 @@ Build smtp : smtp.cpp ;
 Build smtpmain : smtpd.cpp ;
 
 Server smtpd : smtp smtpmain database message server mailbox core
-    encodings user ;
+    encodings user extractors ;
 LINKLIBS on smtpd = -lcrypt ;

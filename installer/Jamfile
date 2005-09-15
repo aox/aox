@@ -20,5 +20,6 @@ NoCare <>Jamsettings ;
 Depends [ FGristFiles installer.o ] : <>Jamsettings ;
 
 Program installer :
-    installer database server mailbox message user core encodings ;
+    installer database server mailbox message user core encodings 
+    extractors ;
 LINKLIBS on installer = -lcrypt ;

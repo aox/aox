@@ -9,5 +9,5 @@ Build pop3 : pop3.cpp ;
 Build pop3main : pop3d.cpp ;
 
 Server pop3d : pop3main pop3 database message server sasl mailbox core
-    encodings user ;
+    encodings user extractors ;
 LINKLIBS on pop3d = -lcrypt ;

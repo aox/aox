@@ -33,7 +33,7 @@ Build msconsole : console.cpp userpane.cpp mailboxpane.cpp msconsole.cpp
 
 Program msconsole :
     msconsole database server mailbox message user core encodings
-    admintools ;
+    admintools extractors ;
 
 Moc .msconsole.moc.cpp : console.h userpane.h mailboxpane.h searchedit.h
     consoleloop.h migrationpane.h permissioneditor.h migrator.h

@@ -5,5 +5,5 @@ SubInclude TOP server ;
 
 Build ms : ms.cpp ;
 Program ms :
-    ms database server mailbox message user core encodings ;
+    ms database server mailbox message user core encodings extractors ;
 LINKLIBS on ms = -lcrypt ;

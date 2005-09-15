@@ -20,6 +20,7 @@
 #include "md5.h"
 #include "utf.h"
 #include "log.h"
+#include "html.h"
 
 
 class IdHelper;
@@ -635,8 +636,6 @@ void Injector::insertBodypart( Bodypart *b,
         data = b->data();
     String hash = MD5::hash( data ).hex();
 
-    String text = u.fromUnicode( b->text() );
-
     // This insert may fail if a bodypart with this hash already
     // exists. We don't care, as long as the select below works.
     i = new Query( *intoBodyparts, d->bidHelper );
@@ -644,11 +643,11 @@ void Injector::insertBodypart( Bodypart *b,
     i->bind( 2, b->numBytes() );
 
     if ( storeText ) {
-        // String text( data );
-        text = data;
+        String text( data );
 
+        // This should also move into Bodypart::.
         if ( storeData )
-            text = "Searchable plain text";
+            text = u.fromUnicode( HTML::asText( b->text() ) );
 
         i->bind( 3, text, Query::Binary );
     }
