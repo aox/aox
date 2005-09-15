@@ -295,7 +295,7 @@ RFC 2359
   Not really important, but simple and nice. arnt started on it, and
   will probably finish it eventually.
 
-  Status now is that all seems okay, but we don't have COPY at all.
+  Status now is that all seems okay.
 
 
 Split the folder view into pages.
@@ -398,9 +398,6 @@ canonical and deliver need severe cleaning up.
 
 
 Finish the valgrind skin that should help us to diagnose memory abuse.
-
-
-Incomplete base IMAP features: RENAME, LSUB
 
 
 Finish the comparison with cyrus-imapd (which I'll install on fugue).
@@ -582,10 +579,10 @@ Something confuses Address::uname() and Address::name()
   the difference.
 
 
-We should store bodyparts.text for HTML/PDF/DOC.
+We should store bodyparts.text for PDF/DOC.
 
   We need non-GPLed code to convert PDF and DOC to plaintext. We already
-  have (from Mailchen) code to convert HTML.
+  use the code from Mailchen to convert HTML.
 
 
 CAcert instead of self-signed certificate?
@@ -608,15 +605,12 @@ Switch to using named constraints everywhere.
 
   Upgrade to cryptlib 3.2.1 (Done).
   Fix the ocd problem (Done).
-  ms vacuum (Sort of done).
+  ms vacuum (Done).
   New installer (Done).
   Duplicate header field elimination (Done).
   IMAP COPY (Done).
-  Write a GB2312 codec.
-  Textify HTML bodyparts.
-  Fix the 8-bit problems in Address.
-  Make msconsole's user pane work.
-  Fix tsearch2.
+  Textify HTML bodyparts (Done).
+  LSUB/SUBSCRIBE fixes (partially done).
 
   (All of these items have their own separate notes.)
 
@@ -626,6 +620,10 @@ Switch to using named constraints everywhere.
   What should we do for 0.99?
 
   ACL (infrastructure exists, IMAP interface needed).
+  Write a GB2312 codec.
+  Fix the 8-bit problems in Address.
+  Make msconsole's user pane work.
+  Fix tsearch2.
 
 
 GB2312 codec
