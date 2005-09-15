@@ -374,7 +374,7 @@ void SMTP::mail()
 
 void SMTP::rcpt()
 {
-    if ( d->state != RcptTo || d->state == Data ) {
+    if ( d->state != RcptTo && d->state != Data ) {
         respond( 503, "Must specify sender before recipient(s)" );
         return;
     }
