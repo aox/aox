@@ -155,7 +155,8 @@ void Mailbox::refresh()
 }
 
 
-/*! Creates a Mailbox named \a name. */
+/*! Creates a Mailbox named \a name. This constructor is only meant to
+    be used via Mailbox::obtain(). */
 
 Mailbox::Mailbox( const String &name )
     : d( new MailboxData )
@@ -350,8 +351,9 @@ Mailbox * Mailbox::closestParent( const String & name )
 /*! Obtain a mailbox with \a name, creating Mailbox objects as
     necessary and permitted.
 
-    if \a create is true (this is the default) and there is no such Mailbox,
-    obtain() creates one, including parents, etc.
+    if \a create is true (this is the default) and there is no such
+    Mailbox, obtain() creates one, including any necessary parents.
+    The new mailbox is initially synthetic().
 
     If \a create is false and there is no such Mailbox, obtain()
     returns null without creating anything.
@@ -375,11 +377,12 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
     if ( !create && !parent->children() )
         return 0;
 
-    if ( !parent->children() )
+    if ( !parent->d->children )
         parent->d->children = new List<Mailbox>;
-    List<Mailbox>::Iterator it( parent->children() );
+    List<Mailbox>::Iterator it( parent->d->children );
+    String lower = name.lower();
     while ( it ) {
-        if ( it->name() == name )
+        if ( it->name().lower() == lower )
             return it;
         ++it;
     }
@@ -430,36 +433,39 @@ void Mailbox::setDeleted( bool del )
 
 /*! Creates this mailbox by updating the mailboxes table, and notifies
     \a ev of completion. Returns a running Transaction which indicates
-    the progress of the operation, or 0 if the attempt fails
-    immediately.
+    the progress of the operation, or 0 if the mailbox already exists.
 
     If \a owner is non-null, the new mailbox is owned by by \a owner.
 */
 
-Transaction *Mailbox::create( EventHandler *ev, User * owner )
+Transaction *Mailbox::create( EventHandler * ev, User * owner )
 {
     Transaction * t = new Transaction( ev );
+    Query * q;
     if ( synthetic() ) {
-        Query * q = new Query( "insert into mailboxes "
-                               "(name,owner,uidnext,uidvalidity,deleted) "
-                               "values ($1,$2,1,1,'f')",
-                               0 );
+        q = new Query( "insert into mailboxes "
+                       "(name,owner,uidnext,uidvalidity,deleted) "
+                       "values ($1,$2,1,1,'f')",
+                       0 );
         q->bind( 1, name() );
-        if ( owner )
-            q->bind( 1, owner->id() );
-        else
-            q->bindNull( 1 );
-        t->enqueue( q );
     }
     else if ( deleted() ) {
-        Query * q = new Query( "update mailboxes set deleted='f' where id=$1",
-                               0 );
+        q = new Query( "update mailboxes "
+                       "set deleted='f',owner=$2 "
+                       "where id=$1",
+                       0 );
         q->bind( 1, id() );
-        t->enqueue( q );
     }
     else {
         return 0;
     }
+
+    if ( owner )
+        q->bind( 2, owner->id() );
+    else
+        q->bindNull( 2 );
+    t->enqueue( q );
+
     MailboxReader * mr =
         new MailboxReader( "select * from mailboxes where name=$1",
                            name() );

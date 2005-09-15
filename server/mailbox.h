@@ -16,9 +16,9 @@ class String;
 class Mailbox
     : public Garbage
 {
-public:
     Mailbox( const String & );
 
+public:
     String name() const;
     uint id() const;
     uint uidnext() const;

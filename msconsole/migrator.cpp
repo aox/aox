@@ -516,7 +516,7 @@ void MailboxMigrator::execute()
         d->destination = Mailbox::find( d->source->partialName() );
         if ( !d->destination ) {
             log( "Need to create destination mailbox" );
-            d->destination = new Mailbox( d->source->partialName() );
+            d->destination = Mailbox::obtain( d->source->partialName(), true );
             d->mailboxCreator = d->destination->create( this, 0 );
             // this is slightly wrong: the mailbox owner is set to
             // 0. once we create users as part of the migration
