@@ -237,14 +237,14 @@ void User::refresh( EventHandler * user )
             "select u.id, u.address, u.inbox, n.name as parentspace, "
             "u.login, u.id, u.secret, a.name, a.localpart, a.domain "
             "from users u, addresses a, namespaces n where "
-            "u.login=$1 and u.address=a.id and n.id=u.parentspace"
+            "lower(u.login)=$1 and u.address=a.id and n.id=u.parentspace"
         );
 
         psa = new PreparedStatement(
             "select u.id, u.address, u.inbox, n.name as parentspace, "
             "u.login, u.id, u.secret, a.name, a.localpart, a.domain "
             "from users u, addresses a, namespaces n where "
-            "u.address=a.id and a.localpart=$1 and lower(a.domain)=$2 "
+            "u.address=a.id and lower(a.localpart)=$1 and lower(a.domain)=$2 "
             "and n.id=u.parentspace"
         );
         Allocator::addEternal( psl, "select user by login" );
@@ -252,11 +252,11 @@ void User::refresh( EventHandler * user )
     }
     if ( !d->login.isEmpty() ) {
         d->q = new Query( *psl, this );
-        d->q->bind( 1, d->login );
+        d->q->bind( 1, d->login.lower() );
     }
     else if ( d->address ) {
         d->q = new Query( *psa, this );
-        d->q->bind( 1, d->address->localpart() );
+        d->q->bind( 1, d->address->localpart().lower() );
         d->q->bind( 2, d->address->domain().lower() );
     }
     if ( d->q ) {
