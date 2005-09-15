@@ -276,20 +276,6 @@ RENAME isn't implemented
   though.
 
 
-Case sensitivity
-
-  Do we want case sensitive user names? Email addresses? I think not,
-  but perhaps some sites do want that.
-
-  If we have any case sensitivity, we should try to be case-friendly:
-
-     a login AbhIjIt "QREWCejfhfeuwhrxfa"
-     * ALERT User name "Abhijit", not "AbhIjIt"
-     a NO no such user
-
-  Bad security? User-friendly.
-
-
 RFC 2359
 
   Not really important, but simple and nice. arnt started on it, and
@@ -601,28 +587,20 @@ CAcert instead of self-signed certificate?
 Switch to using named constraints everywhere.
 
 
-0.98
-
-  Upgrade to cryptlib 3.2.1 (Done).
-  Fix the ocd problem (Done).
-  ms vacuum (Done).
-  New installer (Done).
-  Duplicate header field elimination (Done).
-  IMAP COPY (Done).
-  Textify HTML bodyparts (Done).
-  LSUB/SUBSCRIBE fixes (partially done).
-
-  (All of these items have their own separate notes.)
-
-
 0.99
 
   move installer back to LIBDIR.
-  ACL (infrastructure exists, IMAP interface needed).
+  ACL (infrastructure partly exists, IMAP interface needed).
   Write a GB2312 codec.
   Fix the 8-bit problems in Address.
-  Make msconsole's user pane work.
+  Make msconsole's user pane do something.
   Fix tsearch2.
+  Case insensitivity wherever it touches addresses (done).
+  LSUB etc (done).
+  ANNOTATE or VIEWS or ideally both.
+  Listext.
+
+  (Most of these items have their own separate notes.)
 
 
 GB2312 codec
