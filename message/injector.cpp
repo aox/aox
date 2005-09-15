@@ -573,21 +573,32 @@ void Injector::insertBodyparts()
     while ( bi ) {
         Bodypart *b = bi->bodypart;
 
-        bool text = true;
-        bool data = true;
+        // These decisions should move into Bodypart member functions.
+
+        bool text = false;
+        bool data = false;
 
         ContentType *ct = b->contentType();
         if ( ct ) {
-            if ( ct->type() != "text" )
-                text = false;
-            if ( ct->type() == "multipart" && ct->subtype() != "signed" )
-                data = false;
-            if ( ct->type() == "message" && ct->subtype() == "rfc822" )
-                data = false;
+            if ( ct->type() == "text" ) {
+                text = true;
+                if ( ct->subtype() == "html" )
+                    data = true;
+            }
+            else {
+                data = true;
+                if ( ct->type() == "multipart" && ct->subtype() != "signed" )
+                    data = false;
+                if ( ct->type() == "message" && ct->subtype() == "rfc822" )
+                    data = false;
+            }
+        }
+        else {
+            text = true;
         }
 
         if ( text || data ) {
-            insertBodypart( b, text, queries, selects );
+            insertBodypart( b, data, text, queries, selects );
             insertedParts->append( bi );
         }
 
@@ -598,16 +609,19 @@ void Injector::insertBodyparts()
 }
 
 
-/*! This private function inserts one row into the bodyparts table
-    corresponding to \a b. If \a storeAsText is true, the text of the
-    bodypart is stored, otherwise the data is stored.
+/*! This private function inserts a row corresponding to \a b into the
+    bodyparts table. If \a storeData is true, the contents are stored
+    in the data column. If only \a storeText is true, the contents are
+    stored in the text column instead. If they are both true, the data
+    is stored in the data column, and a searchable representation is
+    stored in the text column.
 
     It appends any queries it creates to \a queries, and appends the
     final id-select to \a selects.
 */
 
 void Injector::insertBodypart( Bodypart *b,
-                               bool storeAsText,
+                               bool storeData, bool storeText,
                                List< Query > *queries,
                                List< Query > *selects )
 {
@@ -615,25 +629,38 @@ void Injector::insertBodypart( Bodypart *b,
     Query *i, *s;
 
     String data;
-    if ( storeAsText )
+    if ( storeText )
         data = u.fromUnicode( b->text() );
-    else
+    else if ( storeData )
         data = b->data();
     String hash = MD5::hash( data ).hex();
+
+    String text = u.fromUnicode( b->text() );
 
     // This insert may fail if a bodypart with this hash already
     // exists. We don't care, as long as the select below works.
     i = new Query( *intoBodyparts, d->bidHelper );
     i->bind( 1, hash );
     i->bind( 2, b->numBytes() );
-    if ( storeAsText ) {
-        i->bind( 3, data, Query::Binary );
-        i->bindNull( 4 );
+
+    if ( storeText ) {
+        // String text( data );
+        text = data;
+
+        if ( storeData )
+            text = "Searchable plain text";
+
+        i->bind( 3, text, Query::Binary );
     }
     else {
         i->bindNull( 3 );
-        i->bind( 4, data, Query::Binary );
     }
+
+    if ( storeData )
+        i->bind( 4, data, Query::Binary );
+    else
+        i->bindNull( 4 );
+
     i->allowFailure();
     queries->append( i );
 
