@@ -4,6 +4,7 @@
 
 #include "imap.h"
 #include "mailbox.h"
+#include "occlient.h"
 #include "permissions.h"
 #include "transaction.h"
 
@@ -12,10 +13,11 @@ class CreateData
     : public Garbage
 {
 public:
-    CreateData(): t( 0 ), p( 0 ) {}
+    CreateData(): t( 0 ), p( 0 ), m( 0 ) {}
     String name;
     Transaction * t;
     Permissions * p;
+    Mailbox * m;
 };
 
 
@@ -56,15 +58,13 @@ void Create::execute()
             error( No, "Cannot create mailboxes under " + m->name() );
     }
     if ( ok() && !d->t ) {
-        Mailbox * m = Mailbox::find( d->name, true );
-        if ( !m )
-            m = new Mailbox( d->name );
-        if ( !m->synthetic() && !m->deleted() ) {
+        d->m = Mailbox::obtain( d->name, true );
+        if ( d->m )
+            d->t = d->m->create( this, imap()->user() );
+        else
+            error( No, d->name + " is not a valid mailbox name" );
+        if ( !d->t )
             error( No, d->name + " already exists" );
-            return;
-        }
-
-        d->t = m->create( this, imap()->user() );
     }
 
     if ( d->t && d->t->failed() )
@@ -75,5 +75,5 @@ void Create::execute()
 
     finish();
 
-    // XXX We need to tell the OCServer what we did.
+    OCClient::send( "mailbox " + d->m->name().quoted() + " new" );
 }
