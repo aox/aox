@@ -617,8 +617,7 @@ Switch to using named constraints everywhere.
 
 0.99
 
-  What should we do for 0.99?
-
+  move installer back to LIBDIR.
   ACL (infrastructure exists, IMAP interface needed).
   Write a GB2312 codec.
   Fix the 8-bit problems in Address.
