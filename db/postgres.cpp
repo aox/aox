@@ -626,11 +626,11 @@ void Postgres::unknown( char type )
 
 void Postgres::error( const String &s )
 {
-    removeHandle( this );
+    log( s, Log::Error );
 
     d->error = true;
     d->active = false;
-    log( s, Log::Error );
+    setState( Broken );
 
     List< Query >::Iterator q( d->queries );
     while ( q ) {
@@ -638,6 +638,8 @@ void Postgres::error( const String &s )
         q->notify();
         ++q;
     }
+
+    removeHandle( this );
 
     writeBuffer()->remove( writeBuffer()->size() );
     Connection::setState( Closing );

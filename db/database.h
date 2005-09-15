@@ -16,7 +16,9 @@ class Database
 public:
     Database();
 
-    enum State { Connecting, Idle, InTransaction, FailedTransaction };
+    enum State {
+        Connecting, Idle, InTransaction, FailedTransaction, Broken
+    };
 
     static void setup();
     static void submit( Query * );
