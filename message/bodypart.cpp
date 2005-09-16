@@ -510,8 +510,13 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             error = "Error converting body to Unicode from " + cs;
         }
 
-        if ( ct && c->name().lower() != "us-ascii" )
+        if ( c->name().lower() != "us-ascii" ) {
+            if ( !ct ) {
+                h->add( "Content-Type", "text/plain" );
+                ct = h->contentType();
+            }
             ct->addParameter( "charset", c->name().lower() );
+        }
         else if ( ct )
             ct->removeParameter( "charset" );
 
