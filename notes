@@ -662,4 +662,11 @@ Prepared statements are good. We should use them.
   focused on actual performance.
 
 
+Default c-t-e of PGP signatures
+
+  Right now we give them binary. q-p or 7bit would be better, I think.
+
+  What other application/* types are really text?
+
+
 We need to do the right thing.
