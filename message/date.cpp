@@ -385,7 +385,9 @@ void Date::setRfc822( const String & s )
         if ( !ok )
             return;
 
-        if ( d->year < 100 )
+        if ( d->year < 20 )
+            d->year += 2000;
+        else if ( d->year < 100 )
             d->year += 1900;
 
         // ok. time is next. conveniently : is a tspecial.
