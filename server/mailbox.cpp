@@ -99,7 +99,10 @@ public:
         while ( query->hasResults() ) {
             Row *r = query->nextRow();
 
-            Mailbox * m = Mailbox::obtain( r->getString( "name" ) );
+            String n =  r->getString( "name" );
+            Mailbox * m = Mailbox::obtain( n );
+            if ( n != m->d->name )
+                m->d->name = n;
             m->d->id = r->getInt( "id" );
             m->d->deleted = r->getBoolean( "deleted" );
             m->d->uidvalidity = r->getInt( "uidvalidity" );
