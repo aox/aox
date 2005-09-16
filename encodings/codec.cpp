@@ -238,8 +238,49 @@ Codec * Codec::byString( const String & s )
             max = i;
         i++;
     }
-    if ( !occurences[max] )
+    if ( !occurences[max] ) {
+        // Sometimes, people use 8-bit punctation or the pound/euro
+        // signs in otherwise ASCII text. Let's look for the common
+        // cases.
+        bool latin1 = true;
+        bool latin9 = true;
+        bool windows1252 = true;
+        b = 0;
+        while ( b < s.length() ) {
+            char c = s[b];
+            b++;
+            if ( c >= 160 ) {
+                if ( c != 0xAB /* laquo */ &&
+                     c != 0xBB /* raquo */ &&
+                     c != 0xA3 /* pound */ ) {
+                    latin1 = false;
+                    windows1252 = false;
+                }
+                if ( c != 0xAB /* laquo */ &&
+                     c != 0xBB /* raquo */ &&
+                     c != 0xA3 /* pound */ &&
+                     c != 0xA4 /* euro */ ) {
+                    latin9 = false;
+                }
+            }
+            else if ( c >= 128 ) {
+                latin1 = false;
+                latin9 = false;
+                if ( c != 0x80 /* euro */ &&
+                     // the rest are all quotes
+                     c != 0x82 && c != 0x84 && c != 0x8B &&
+                     c < 0x91 && c > 0x94 && c != 0x9b )
+                    windows1252 = false;
+            }
+        }
+        if ( latin1 )
+            return new Iso88591Codec;
+        if ( latin9 )
+            return new Iso885915Codec;
+        if ( windows1252 )
+            return new Cp1252Codec;
         return 0;
+    }
 
     switch( (Encoding)max ) {
     case Iso88592:
