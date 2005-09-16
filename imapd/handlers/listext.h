@@ -24,6 +24,8 @@ public:
 
     String listMailbox();
 
+    Mailbox * top();
+
 private:
     void addReturnOption( const String & );
     void addSelectOption( const String & );
@@ -33,6 +35,8 @@ private:
     void sendListResponse( Mailbox * );
 
     void reference();
+
+    void listSubscribedMailbox( Mailbox * );
 
 private:
     class ListextData * d;

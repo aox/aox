@@ -5,6 +5,7 @@
 #include "string.h"
 #include "stringlist.h"
 #include "mailbox.h"
+#include "query.h"
 #include "user.h"
 
 
@@ -13,25 +14,26 @@ class ListextData
 {
 public:
     ListextData():
+        selectQuery( 0 ),
+        subscribed( 0 ),
         reference( 0 ),
-        responses( 0 ),
         extended( false ),
         returnSubscribed( false ), returnChildren( false ),
         selectSubscribed( false ), selectRemote( false ),
-        selectMatchParent( false )
+        selectRecursiveMatch( false )
     {}
 
+    Query * selectQuery;
+    List<Mailbox> * subscribed;
     Mailbox * reference;
     StringList patterns;
-
-    uint responses;
 
     bool extended;
     bool returnSubscribed;
     bool returnChildren;
     bool selectSubscribed;
     bool selectRemote;
-    bool selectMatchParent;
+    bool selectRecursiveMatch;
 };
 
 
@@ -110,26 +112,45 @@ void Listext::parse()
         require( ")" );
     }
     end();
+
+    if ( d->selectRecursiveMatch && !d->selectSubscribed )
+        error( Bad, "Recursivematch alone won't do" );
+
+    if ( d->selectSubscribed )
+        d->returnSubscribed = true;
+
+    if ( d->returnSubscribed )
+        d->subscribed = new List<Mailbox>;
 }
 
 
 void Listext::execute()
 {
-    if ( d->selectMatchParent && !d->selectRemote && !d->selectSubscribed ) {
-        error( Bad, "MATCH-PARENT is not valid on its own" );
-        return;
+    if ( d->returnSubscribed || d->selectSubscribed ) {
+        if ( !d->selectQuery ) {
+            d->selectQuery = new Query( "select mailbox from subscriptions "
+                                        "where owner=$1", this );
+            d->selectQuery->bind( 1, imap()->user()->id() );
+            d->selectQuery->execute();
+        }
+        Row * r = 0;
+        while ( (r=d->selectQuery->nextRow()) != 0 )
+            d->subscribed->append( Mailbox::find( r->getInt( "mailbox" ) ) );
+        if ( !d->selectQuery->done() )
+            return;
+        if ( d->selectQuery->failed() )
+            respond( "* NO Unable to get list of selected mailboxes: " +
+                     d->selectQuery->error() );
     }
 
     StringList::Iterator it( d->patterns );
     while ( it ) {
         if ( it->isEmpty() )
             respond( "LIST \"/\" \"\"" );
-        else if ( (*it)[0] == '/' )
+        else if ( it->startsWith( "/" ) )
             listChildren( Mailbox::root(), *it );
-        else if ( d->reference )
-            listChildren( d->reference, *it );
         else
-            listChildren( imap()->user()->home(), *it );
+            listChildren( d->reference, *it );
         ++it;
     }
 
@@ -160,8 +181,8 @@ void Listext::addSelectOption( const String & option )
         d->selectSubscribed = true;
     else if ( option == "remote" )
         d->selectRemote = true;
-    else if ( option == "matchparent" )
-        d->selectMatchParent = true;
+    else if ( option == "recursivematch" )
+        d->selectRecursiveMatch = true;
     else
         error( Bad, "Unknown selection option: " + option );
 }
@@ -227,7 +248,7 @@ uint Listext::match( const String & pattern, uint p,
     recursively to handle children.)
 */
 
-void Listext::list( Mailbox *m, const String &p )
+void Listext::list( Mailbox * m, const String & p )
 {
     if ( !m )
         return;
@@ -235,13 +256,11 @@ void Listext::list( Mailbox *m, const String &p )
     bool matches = false;
     bool matchChildren = false;
 
-    String name = m->name();
-
     uint s = 0;
     if ( p[0] != '/' && p[0] != '*' )
         s = d->reference->name().length() + 1;
 
-    switch( match( p, 0, name, s ) ) {
+    switch( match( p, 0, m->name(), s ) ) {
     case 0:
         break;
     case 1:
@@ -249,28 +268,30 @@ void Listext::list( Mailbox *m, const String &p )
         break;
     default:
         matchChildren = true;
-        if ( !m->deleted() )
-            matches = true;
+        matches = true;
         break;
     }
 
-    uint responses = d->responses;
-
-    bool reported = false;
     if ( matches ) {
-        sendListResponse( m ); // simple case: send in the "right" order
-        reported = true;
+        if ( d->selectSubscribed ) {
+            List<Mailbox>::Iterator it( *d->subscribed );
+            while ( it && it != m )
+                ++it;
+            if ( !it )
+                matches = false;
+        }
+        else {
+            if ( m->deleted() )
+                matches = false;
+        }
     }
+
+
+    if ( matches )
+        sendListResponse( m );
 
     if ( matchChildren )
         listChildren( m, p );
-
-    if ( reported )
-        ; // no need to repeat it
-    else if ( responses < d->responses && d->selectMatchParent )
-        sendListResponse( m ); // some child matched and we matchparent
-    else if ( responses < d->responses && m->deleted() )
-        sendListResponse( m ); // some child matched and it's deleted
 }
 
 
@@ -289,7 +310,8 @@ void Listext::listChildren( Mailbox * mailbox, const String & pattern )
 }
 
 
-/*! Sends a LIST response for \a mailbox.
+/*! Sends a LIST or LSUB response for \a mailbox, depending on whether
+    \a lsub is false or true.
 
     Open issue: If \a mailbox is the inbox, what should we send?
     INBOX, or the fully qualified name, or the name relative to the
@@ -301,21 +323,40 @@ void Listext::sendListResponse( Mailbox * mailbox )
     if ( !mailbox )
         return;
 
+    bool childSubscribed = false;
     StringList a;
 
-    // set up the underlying flags
-    bool exists = true;
+    // add the easy mailbox attributes
+    if ( mailbox->deleted() )
+        a.append( "\\nonexistent" );
     if ( mailbox->synthetic() || mailbox->deleted() )
-        exists = false;
-    bool children = mailbox->hasChildren();
-
-    // translate those flags into mailbox attributes
-    if ( !exists )
         a.append( "\\noselect" );
-    if ( children )
+    if ( mailbox->hasChildren() )
         a.append( "\\haschildren" );
-    else
+    else if ( !mailbox->deleted() )
         a.append( "\\hasnochildren" );
+
+    // then there's subscription, which isn't too pretty
+    if ( d->subscribed ) {
+        List<Mailbox>::Iterator it( *d->subscribed );
+        while ( it && it != mailbox )
+            ++it;
+        if ( it )
+            a.append( "\\subscribed" );
+
+        if ( d->selectRecursiveMatch ) {
+            // recursivematch is hard work... almost O(world)
+            it = d->subscribed->first();
+            while ( it && !childSubscribed ) {
+                Mailbox * p = it;
+                while ( p && p != mailbox )
+                    p = p->parent();
+                if ( p )
+                    childSubscribed = true;
+                ++it;
+            }
+        }
+    }
 
     Mailbox * home = imap()->user()->home();
     Mailbox * p = mailbox;
@@ -323,12 +364,13 @@ void Listext::sendListResponse( Mailbox * mailbox )
         p = p->parent();
     String name = mailbox->name();
     if ( p )
-        name = name.mid( home->name().length() + 1 );
+        name = imapQuoted( name.mid( home->name().length() + 1 ), AString );
 
-    respond( "LIST (" + a.join( " " ) + ") \"/\" " +
-             imapQuoted( name, AString ) );
+    String ext = "";
+    if ( childSubscribed )
+        ext = " ((\"childinfo\" (\"subscribed\")))";
 
-    d->responses++;
+    respond( "LIST (" + a.join( " " ) + ") \"/\" " + name + ext );
 }
 
 
