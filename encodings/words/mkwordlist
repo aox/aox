@@ -36,8 +36,6 @@ encode( "czech.words", "iso-8859-2" );
 encode( "norwegian.words", "iso-8859-15" );
 encode( "norwegian.words", "macroman" );
 
-encode( "not.words", "iso-8859-15" );
-
 #
 # NOTE: the file names above must match those in jamfile
 #
