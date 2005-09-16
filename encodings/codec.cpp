@@ -139,7 +139,29 @@ Codec * Codec::byName( const String & s )
             i++;
         }
         if ( name != s )
-            return byName( name );
+            codec = byName( name );
+        if ( !codec ) {
+            // if that didn't help, let's also insert a hyphen at all
+            // letter/number transitions, and see whether that
+            // helps. (also, because the recursive call does the
+            // above.)
+            i = 0;
+            name = "";
+            while ( i < (int)s.length() ) {
+                name.append( s[i] );
+                if ( ( ( s[i] >= 'a' && s[i] <= 'z' ) ||
+                       ( s[i] >= 'A' && s[i] <= 'Z' ) ) &&
+                     ( s[i+1] >= '0' && s[i+1] <= '9' ) )
+                    name.append( '-' );
+                else if ( ( s[i] >= '0' && s[i] <= '9' ) &&
+                          ( ( s[i+1] >= 'a' && s[i+1] <= 'z' ) ||
+                            ( s[i+1] >= 'A' && s[i+1] <= 'Z' ) ) )
+                    name.append( '-' );
+                i++;
+            }
+            if ( name != s )
+                codec = byName( name );
+        }
     }
     return codec;
 }
