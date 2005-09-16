@@ -146,7 +146,7 @@ void MimeField::parseParameters( Parser822 *p )
         p->step();
         p->whitespace();
         String n = p->mimeToken().lower();
-        p->whitespace();
+        p->comment();
 
         if ( n.isEmpty() ) {
             setError( "Empty parameter" );
@@ -160,7 +160,7 @@ void MimeField::parseParameters( Parser822 *p )
         p->step();
         String v = p->mimeValue();
         addParameter( n, v );
-        p->whitespace();
+        p->comment();
     }
 
     if ( !p->atEnd() )

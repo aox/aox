@@ -290,6 +290,8 @@ String Parser822::atom()
 
 String Parser822::mimeToken()
 {
+    comment();
+
     String output;
     char c = s[i];
 
@@ -316,6 +318,7 @@ String Parser822::mimeToken()
 
 String Parser822::mimeValue()
 {
+    comment();
     if ( s[i] == '"' )
         return string();
     return mimeToken();
