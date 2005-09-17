@@ -243,7 +243,7 @@ create table annotation_names (
 create table annotations (
     mailbox     integer not null,
     uid         integer not null,
-    owner       integer references users.id,
+    owner       integer references users(id),
     name        integer not null references annotation_names(id),
     value       text,
     type        text,
