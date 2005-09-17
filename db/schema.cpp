@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 12;
+int currentRevision = 13;
 
 
 class SchemaData
@@ -242,6 +242,8 @@ bool Schema::singleStep()
         c = step10(); break;
     case 11:
         c = step11(); break;
+    case 12:
+        c = step12(); break;
     }
 
     return c;
@@ -809,6 +811,42 @@ bool Schema::step11()
         d->q = new Query( "alter table mailboxes add constraint "
                           "mailboxes_owner_fkey foreign key "
                           "(owner) references users(id)", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create the annotation_names and annotations tables. */
+
+bool Schema::step12()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Creating annotations/annotation_names.", Log::Debug );
+        d->q = new Query( "create table annotation_names"
+                          "(id serial primary key, name text unique)",
+                          this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create table annotations"
+                          "(mailbox integer not null,uid integer not null,"
+                          "owner integer references users(id),name integer "
+                          "not null references annotation_names(id),"
+                          "value text,type text,language text,"
+                          "displayname text,"
+                          "unique(mailbox,uid,owner,name),"
+                          "foreign key (mailbox,uid) references "
+                          "messages(mailbox,uid) on delete cascade)",
+                          this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;

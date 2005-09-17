@@ -34,6 +34,7 @@ private:
     bool step9();
     bool step10();
     bool step11();
+    bool step12();
 };
 
 
