@@ -394,11 +394,6 @@ Complete POP3 support.
 Complete ACL support.
 
 
-Make http://oryx.com not be broken (and oryx.{,co.}in too).
-
-  (Arnt can do this using one of his many new IP addresses.)
-
-
 Improve LogPane so it doesn't eat so much CPU
 
   The right way is to have a constant number of list view items, each
@@ -662,6 +657,12 @@ msconsole needs work
 
   - The user pane should do something.
   - The migrator should disable and re-enable indices.
+
+
+The IMAP SORT extension seems really easy
+
+  Squirrelmail wants it. Strongly. And it's not terribly difficult to
+  implement, to put it mildly.
 
 
 We need to do the right thing.
