@@ -103,7 +103,7 @@ void Listext::parse()
     }
 
     // list-return-opts = "RETURN (" [return-option *(SP return-option)] ")"
-    if ( present( "return (" ) ) {
+    if ( present( " return (" ) ) {
         d->extended = true;
 
         addReturnOption( atom().lower() );
@@ -351,7 +351,7 @@ void Listext::sendListResponse( Mailbox * mailbox )
                 Mailbox * p = it;
                 while ( p && p != mailbox )
                     p = p->parent();
-                if ( p )
+                if ( p && p != it )
                     childSubscribed = true;
                 ++it;
             }
