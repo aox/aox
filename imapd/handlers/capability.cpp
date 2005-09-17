@@ -49,11 +49,14 @@ void Capability::execute()
 
 String Capability::capabilities( IMAP * i )
 {
+    bool drafts = Configuration::toggle( Configuration::AnnounceDraftSupport );
     StringList c;
 
     c.append( "IMAP4rev1" );
 
     // the remainder of the capabilities are kept sorted by name
+
+    // ugly X-DRAFT prefixes are disregarded when sorting by name
 
     if ( i->supports( "anonymous" ) )
         c.append( "AUTH=ANONYMOUS" );
@@ -67,11 +70,15 @@ String Capability::capabilities( IMAP * i )
     c.append( "BINARY" );
     c.append( "ID" );
     c.append( "IDLE" );
+    if ( drafts )
+        c.append( "X-DRAFT-W12-LISTEXT" );
     c.append( "LITERAL+" );
     if ( !i->supports( "login" ) )
         c.append( "LOGINDISABLED" );
     c.append( "NAMESPACE" );
-    if ( Configuration::toggle( Configuration::AnnounceDraftSupport ) )
+    if ( drafts )
+        c.append( "POSTADDRESS" );
+    if ( drafts )
         c.append( "SASL-IR" );
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );

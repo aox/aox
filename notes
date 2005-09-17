@@ -25,13 +25,6 @@ Fix shutdown
   is another aspect of the problem above.
 
 
-Implement listext
-
-  List and lsub are basically good now, but listext is only partially
-  implemented, and not advertised. The implementation also trails the
-  listext draft. Update and complete that.
-
-
 Resource limits on memory allocation
 
 
@@ -598,7 +591,7 @@ Switch to using named constraints everywhere.
   Case insensitivity wherever it touches addresses (done).
   LSUB etc (done).
   ANNOTATE or VIEWS or ideally both.
-  Listext.
+  Listext (done, needs more testing).
 
   (Most of these items have their own separate notes.)
 

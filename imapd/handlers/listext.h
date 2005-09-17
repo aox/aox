@@ -17,8 +17,6 @@ public:
     void parse();
     void execute();
 
-    String combinedName( Mailbox *, const String & );
-
     uint match( const String & pattern, uint p,
                 const String & name, uint n );
 

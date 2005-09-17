@@ -4,9 +4,11 @@
 
 #include "string.h"
 #include "stringlist.h"
+#include "address.h"
 #include "mailbox.h"
 #include "query.h"
 #include "user.h"
+#include "map.h"
 
 
 class ListextData
@@ -16,21 +18,27 @@ public:
     ListextData():
         selectQuery( 0 ),
         subscribed( 0 ),
+        postAddressQuery( 0 ),
+        postAddresses( 0 ),
         reference( 0 ),
         extended( false ),
         returnSubscribed( false ), returnChildren( false ),
+        returnPostAddress( false ),
         selectSubscribed( false ), selectRemote( false ),
         selectRecursiveMatch( false )
     {}
 
     Query * selectQuery;
     List<Mailbox> * subscribed;
+    Query * postAddressQuery;
+    Map<Address> * postAddresses;
     Mailbox * reference;
     StringList patterns;
 
     bool extended;
     bool returnSubscribed;
     bool returnChildren;
+    bool returnPostAddress;
     bool selectSubscribed;
     bool selectRemote;
     bool selectRecursiveMatch;
@@ -43,7 +51,8 @@ public:
     List command from imap4rev1 with the extensions added since.
 
     The extension grammar is intentionally kept minimal, since it's
-    still a draft. Currently based on draft-ietf-imapext-list-extensions-09.
+    still a draft. Currently based on
+    draft-ietf-imapext-list-extensions-13.
 
     Mailstore does not support remote mailboxes, so the listext option
     to show remote mailboxes is silently ignored.
@@ -121,6 +130,9 @@ void Listext::parse()
 
     if ( d->returnSubscribed )
         d->subscribed = new List<Mailbox>;
+
+    if ( d->returnPostAddress )
+        d->postAddresses = new Map<Address>;
 }
 
 
@@ -136,13 +148,40 @@ void Listext::execute()
         Row * r = 0;
         while ( (r=d->selectQuery->nextRow()) != 0 )
             d->subscribed->append( Mailbox::find( r->getInt( "mailbox" ) ) );
+    }
+    if ( d->returnPostAddress ) {
+        if ( !d->postAddressQuery ) {
+            d->postAddressQuery 
+                = new Query( "select a.localpart, a.domain, u.inbox "
+                             "from addresses a, users u "
+                             "where a.id = u.address",
+                             this );
+            d->postAddressQuery->execute();
+        }
+        Row * r = 0;
+        while ( (r=d->postAddressQuery->nextRow()) != 0 ) {
+            Address * a = new Address( "", r->getString( "localpart" ),
+                                       r->getString( "domain" ) );
+            uint mailbox = r->getInt( "inbox" );
+            d->postAddresses->insert( mailbox, a );
+        }
+    }
+
+    if ( d->selectQuery ) {
         if ( !d->selectQuery->done() )
             return;
         if ( d->selectQuery->failed() )
             respond( "* NO Unable to get list of selected mailboxes: " +
                      d->selectQuery->error() );
     }
-
+    if ( d->postAddressQuery ) {
+        if ( !d->postAddressQuery->done() )
+            return;
+        if ( d->postAddressQuery->failed() )
+            respond( "* NO Unable to get list of inboxes: " +
+                     d->postAddressQuery->error() );
+    }
+    
     StringList::Iterator it( d->patterns );
     while ( it ) {
         if ( it->isEmpty() )
@@ -167,6 +206,8 @@ void Listext::addReturnOption( const String & option )
         d->returnSubscribed = true;
     else if ( option == "children" )
         d->returnChildren = true;
+    else if ( option == "postaddress" )
+        d->returnPostAddress = true;
     else
         error( Bad, "Unknown return option: " + option );
 }
@@ -358,6 +399,11 @@ void Listext::sendListResponse( Mailbox * mailbox )
         }
     }
 
+    // postaddress, on the other hand, is distinctly easy
+    Address * postAddress = 0;
+    if ( d->postAddresses )
+        postAddress = d->postAddresses->find( mailbox->id() );
+
     Mailbox * home = imap()->user()->home();
     Mailbox * p = mailbox;
     while ( p && p != home )
@@ -367,17 +413,21 @@ void Listext::sendListResponse( Mailbox * mailbox )
         name = imapQuoted( name.mid( home->name().length() + 1 ), AString );
 
     String ext = "";
-    if ( childSubscribed )
-        ext = " ((\"childinfo\" (\"subscribed\")))";
+    if ( childSubscribed || postAddress ) {
+        ext = " (";
+        if ( childSubscribed )
+            ext.append( "(\"childinfo\" (\"subscribed\"))" );
+        if ( postAddress )
+            ext.append( "(\"postaddress\" \"" +
+                        postAddress->toString() + "\")" );
+        ext.append( ")" );
+    }
 
     respond( "LIST (" + a.join( " " ) + ") \"/\" " + name + ext );
 }
 
 
-/*! Parses a reference name and returns a pointer to the relevant
-    mailbox. Returns a null pointer and logs an error if something is
-    wrong.
-*/
+/*! Parses a reference name, and logs an error if something is wrong. */
 
 void Listext::reference()
 {
@@ -394,25 +444,6 @@ void Listext::reference()
 
     if ( !d->reference )
         error( No, "Cannot find reference name " + name );
-}
-
-
-/*! Returns the combined name formed by interpreting the mailbox \a
-    name in the context of the \a reference mailbox.
-
-    If \a name starts with a slash, \a reference isn't dereferenceds,
-    so it can be a null pointer. \a name need not be a valid mailbox
-    name, it can also be e.g. a pattern.
-*/
-
-String Listext::combinedName( Mailbox * reference, const String & name )
-{
-    if ( name.startsWith( "/" ) )
-        return name;
-    else if ( reference )
-        return reference->name() + "/" + name;
-
-    return imap()->user()->home()->name() + "/" + name;
 }
 
 
