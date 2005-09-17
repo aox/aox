@@ -668,6 +668,10 @@ Default c-t-e of PGP signatures
 
   What other application/* types are really text?
 
+  From a conversation the other day: we could avoid base64 encoding an
+  entity whose content-type is not text if it contains only printable
+  ASCII. I don't know if it's worth doing, though.
+
 
 msconsole needs work
 
