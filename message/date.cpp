@@ -343,6 +343,9 @@ void Date::setRfc822( const String & s )
     // accept 13 dec 03, dec 13 03 and dec 13 2003.
 
     String s1 = a;
+    p.comment(); // and we'll accept 13, dec 2003
+    if ( p.next() == ',' )
+        (void)p.character();
     String s2 = p.string();
     if ( s1[0] > '9' ) {
         a = s1;
