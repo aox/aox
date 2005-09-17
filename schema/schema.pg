@@ -229,3 +229,24 @@ create table subscriptions (
     owner       integer not null references users(id),
     mailbox     integer not null references mailboxes(id)
 );
+
+
+-- One entry per vendor- or RFC-defined name to be used in annotations
+
+create table annotation_names (
+    id          serial primary key,
+    name        text unique
+};
+
+-- One entry per annotation
+
+create table annotations (
+    mailbox     integer not null,
+    uid         integer not null,
+    owner       integer,
+    name        integer not null references annotation_names(id),
+    value       text,
+    type        text,
+    language    text,
+    displayname text
+);
