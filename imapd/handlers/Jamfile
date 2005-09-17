@@ -1,6 +1,7 @@
 SubDir TOP imapd handlers ;
 
 Build imap :
+    acl.cpp
     authenticate.cpp
     append.cpp
     capability.cpp
