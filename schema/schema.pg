@@ -236,7 +236,7 @@ create table subscriptions (
 create table annotation_names (
     id          serial primary key,
     name        text unique
-};
+);
 
 -- One entry per annotation
 
@@ -249,7 +249,7 @@ create table annotations (
     type        text,
     language    text,
     displayname text,
-    primary key (mailbox, uid, owner, name),
+    unique (mailbox, uid, owner, name),
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade
