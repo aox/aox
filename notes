@@ -665,6 +665,10 @@ Default c-t-e of PGP signatures
   entity whose content-type is not text if it contains only printable
   ASCII. I don't know if it's worth doing, though.
 
+  The problem with doing that is that it treats sequences of CR LF, CR
+  and LF as equivalent. An application/foobar object that happens to
+  contain only CR, LF and printable ASCII can be broken.
+
 
 msconsole needs work
 
