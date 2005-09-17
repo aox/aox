@@ -248,5 +248,9 @@ create table annotations (
     value       text,
     type        text,
     language    text,
-    displayname text
+    displayname text,
+    primary key (mailbox, uid, owner),
+    foreign key (mailbox,uid)
+                references messages(mailbox, uid)
+                on delete cascade
 );
