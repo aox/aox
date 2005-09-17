@@ -413,13 +413,15 @@ void Listext::sendListResponse( Mailbox * mailbox )
         name = imapQuoted( name.mid( home->name().length() + 1 ), AString );
 
     String ext = "";
-    if ( childSubscribed || postAddress ) {
+    if ( childSubscribed || d->returnPostAddress ) {
         ext = " (";
         if ( childSubscribed )
             ext.append( "(\"childinfo\" (\"subscribed\"))" );
         if ( postAddress )
-            ext.append( "(\"postaddress\" \"" +
-                        postAddress->toString() + "\")" );
+            ext.append( "(\"postaddress\" " +
+                        imapQuoted( postAddress->toString(), NString ) + ")" );
+        else
+            ext.append( "(\"postaddress\" NIL)" );
         ext.append( ")" );
     }
 
