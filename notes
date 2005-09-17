@@ -376,7 +376,7 @@ We should be able to use a read-only local database mirror.
 canonical and deliver need severe cleaning up.
 
 
-Finish the valgrind skin that should help us to diagnose memory abuse.
+Write a valgrind skin that should help us to diagnose memory abuse.
 
 
 Finish the comparison with cyrus-imapd (which I'll install on fugue).
@@ -457,19 +457,7 @@ Implement a "save mangled copy" feature in msconsole. (AMS)
 Get more word lists for Codec::byString( const String & )
 
   Word lists need to contain at least one non-ASCII character, and to
-  be fairly common words. Such lists are available from a few sources,
-  including but not limited to:
-
-  1. Project Gutenberg has ebooks from which we could generate lists.
-  2. /usr/dict/words exists in many languages.
-  3. ispell, but there may be license issues.
-  4. http://wortschatz.uni-leipzig.de/html/wliste.html
-
-
-Use Codec::byString() to handle just-send-8
-
-  But first, put together lots of tests. And before that, enjoy what's
-  left of a Friday evening.
+  be fairly common words.
 
 
 Add a web page about the charset encoding.
