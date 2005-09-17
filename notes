@@ -669,4 +669,10 @@ Default c-t-e of PGP signatures
   What other application/* types are really text?
 
 
+msconsole needs work
+
+  - The user pane should do something.
+  - The migrator should disable and re-enable indices.
+
+
 We need to do the right thing.
