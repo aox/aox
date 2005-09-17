@@ -243,14 +243,14 @@ create table annotation_names (
 create table annotations (
     mailbox     integer not null,
     uid         integer not null,
-    owner       integer,
+    owner       integer references users.id,
     name        integer not null references annotation_names(id),
     value       text,
     type        text,
     language    text,
     displayname text,
-    primary key (mailbox, uid, owner),
-    foreign key (mailbox,uid)
+    primary key (mailbox, uid, owner, name),
+    foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade
 );
