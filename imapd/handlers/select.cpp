@@ -3,12 +3,13 @@
 #include "select.h"
 
 #include "imap.h"
+#include "flag.h"
+#include "user.h"
+#include "query.h"
+#include "message.h"
 #include "mailbox.h"
 #include "messageset.h"
 #include "imapsession.h"
-#include "message.h"
-#include "flag.h"
-#include "user.h"
 #include "permissions.h"
 
 
@@ -18,12 +19,14 @@ class SelectData
 public:
     SelectData()
         : readOnly( false ), annotate( false ),
+          usedFlags( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
 
     String name;
     bool readOnly;
     bool annotate;
+    Query * usedFlags;
     Mailbox * mailbox;
     ImapSession * session;
     Permissions * permissions;
@@ -68,7 +71,7 @@ void Select::parse()
         require( ")" );
     }
     end();
-    
+
 }
 
 
@@ -115,19 +118,31 @@ void Select::execute()
         d->session->refresh( this );
     }
 
+    if ( !d->usedFlags ) {
+        d->usedFlags = new Query( "select distinct flag from flags where "
+                                  "mailbox=$1 "
+                                  "order by flag",
+                                  this );
+        d->usedFlags->bind( 1, d->mailbox->id() );
+        d->usedFlags->execute();
+    }
+
+    if ( !d->usedFlags->done() )
+        return;
+
     if ( !d->session->initialised() )
         return;
     d->session->clearExpunged();
 
-    const List<Flag> * l = Flag::flags();
-    List<Flag>::Iterator i( l );
-    String flags;
-    if ( i ) {
-        flags = i->name();
-        i++;
-        while ( i ) {
-            flags = flags + " " + i->name();
-            ++i;
+    String flags = "\\Deleted \\Answered \\Flagged \\Draft \\Seen";
+    if ( d->usedFlags->hasResults() ) {
+        Row * r = 0;
+        while ( (r=d->usedFlags->nextRow()) != 0 ) {
+            Flag * f = Flag::find( r->getInt( "flag" ) );
+            if ( f && !f->system() ) {
+                flags.append( " " );
+                flags.append( f->name() );
+            }
         }
     }
 

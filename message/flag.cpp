@@ -127,6 +127,25 @@ uint Flag::id() const
 }
 
 
+/*! Returns true if this is one of the system flag, and false if this
+    is a user-defined flag.
+
+    Currently, the system flags are the ones defined in RFC 3501.
+*/
+
+bool Flag::system() const
+{
+    if ( d->name[0] != '\\' || d->name.length() < 5 || d->name.length() > 9 )
+        return false;
+    String n = d->name.mid( 1 ).lower();
+    if ( n == "seen" || n == "answered" || n == "flagged" ||
+         n == "deleted" || n == "draft" )
+        return true;
+    return false;
+    
+}
+
+
 /*! Returns a pointer to the flag named \a name, or a null pointer of
     there isn't one. The comparison is case insensitive.
 */
