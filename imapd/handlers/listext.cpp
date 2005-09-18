@@ -417,7 +417,9 @@ void Listext::sendListResponse( Mailbox * mailbox )
         ext = " (";
         if ( childSubscribed )
             ext.append( "(\"childinfo\" (\"subscribed\"))" );
-        if ( postAddress )
+        if ( !d->returnPostAddress )
+            ; // don't return postaddress information
+        else if ( postAddress )
             ext.append( "(\"postaddress\" " +
                         imapQuoted( postAddress->toString(), NString ) + ")" );
         else
