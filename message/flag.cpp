@@ -2,13 +2,17 @@
 
 #include "flag.h"
 
+#include "allocator.h"
 #include "string.h"
 #include "query.h"
-#include "allocator.h"
+#include "dict.h"
+#include "map.h"
 #include "log.h"
 
 
-static List<Flag> * flags;
+static Dict<Flag> * flagsByName;
+static Map<Flag> * flagsById;
+static uint largestFlagId;
 
 
 class FlagFetcherData
@@ -25,49 +29,52 @@ public:
 /*! \class FlagFetcher flag.h
 
     The FlagFetcher class fetches all (or some) flags from the
-    database. The first FlagFetcher (created by Flag::setup() in most
-    cases) takes the current arena and stores all future flags into
-    that Arena.
+    database.
 */
 
 
 /*! Constructs a FlagFetcher which will proceed to do whatever is
-    smart and good. If \a owner is not null, the FlagFetcher will
+    right and good. If \a owner is not null, the FlagFetcher will
     notify its \a owner when done.
 */
 
 FlagFetcher::FlagFetcher( EventHandler * owner )
     : d( new FlagFetcherData )
 {
-    uint n = 0;
-    if ( ::flags ) {
-        List<Flag>::Iterator it( ::flags );
-        while ( it ) {
-            if ( n < it->id() )
-                n = it->id();
-            ++it;
-        }
-    }
-    d->q = new Query( "select id,name from flag_names where id>" + fn( n ),
+    d->o = owner;
+    // XXX: the >= in the next line may be an off-by-one. it's
+    // harmless, though, since the reader checks whether such a flag
+    // exists.
+    d->q = new Query( "select id,name from flag_names "
+                      "where id>=$1 order by id",
                       this );
+    d->q->bind( 1, ::largestFlagId );
     d->q->execute();
-    ::flags = new List<Flag>;
-    Allocator::addEternal( ::flags, "list of existing flags" );
+    if ( ::flagsByName )
+        return;
+    ::flagsByName = new Dict<Flag>;
+    Allocator::addEternal( ::flagsByName, "list of existing flags" );
+    ::flagsById = new Map<Flag>;
+    Allocator::addEternal( ::flagsById, "list of existing flags" );
 }
 
 
 void FlagFetcher::execute()
 {
-    if ( !d->q->done() )
-        return;
-
     Row * r = d->q->nextRow();
     while ( r ) {
         String n = r->getString( "name" );
         uint i = r->getInt( "id" );
-        (void)new Flag( n, i );
+        // is this the only FlagFetcher working now? best to be careful
+        if ( !::flagsById->contains( i ) )
+            (void)new Flag( n, i );
+        if ( i > ::largestFlagId )
+            ::largestFlagId = i;
         r = d->q->nextRow();
     }
+    if ( !d->q->done() )
+        return;
+
     if ( d->o )
         d->o->execute();
 }
@@ -105,9 +112,10 @@ Flag::Flag( const String & name, uint id )
 {
     d->name = name;
     d->id = id;
-    if ( !::flags )
-        ::flags = new List<Flag>;
-    ::flags->append( this );
+    if ( !::flagsByName )
+        Flag::setup();
+    ::flagsByName->insert( name.lower(), this );
+    ::flagsById->insert( id, this );
 }
 
 
@@ -152,16 +160,9 @@ bool Flag::system() const
 
 Flag * Flag::find( const String & name )
 {
-    if ( !::flags )
+    if ( !::flagsByName )
         return 0;
-    String n = name.lower();
-    List<Flag>::Iterator it( ::flags );
-    while ( it ) {
-        if ( n == it->name().lower() )
-            return it;
-        ++it;
-    }
-    return 0;
+    return ::flagsByName->find( name.lower() );
 }
 
 
@@ -171,25 +172,9 @@ Flag * Flag::find( const String & name )
 
 Flag * Flag::find( uint id )
 {
-    if ( !::flags )
+    if ( !::flagsById )
         return 0;
-    List<Flag>::Iterator it( ::flags );
-    while ( it ) {
-        if ( it->id() == id )
-            return it;
-        ++it;
-    }
-    return 0;
-}
-
-
-/*! Returns a list of all known flags. The list must not be manipulated. */
-
-const List<Flag> * Flag::flags()
-{
-    if ( !::flags )
-        ::flags = new List<Flag>;
-    return ::flags;
+    return ::flagsById->find( id );
 }
 
 
@@ -235,7 +220,6 @@ FlagCreator::FlagCreator( EventHandler * owner, const StringList & flags )
 
     StringList::Iterator it( flags );
     while ( it ) {
-        //log( Log::Info, "Adding new flag " + *it + " to the database" );
         Query * q = new Query( "insert into flag_names (name) values ($1)",
                                this );
         q->bind( 1, *it );
@@ -248,13 +232,13 @@ FlagCreator::FlagCreator( EventHandler * owner, const StringList & flags )
 
 void FlagCreator::execute()
 {
+    bool done = true;
     List<Query>::Iterator it( d->queries );
-    while ( it ) {
-        if ( it->done() )
-            d->queries.take( it );
-        else
-            ++it;
+    while ( it && done ) {
+        if ( !it->done() )
+            done = false;
+        ++it;
     }
-    if ( d->queries.isEmpty() )
+    if ( done )
         (void)new FlagFetcher( d->owner );
 }

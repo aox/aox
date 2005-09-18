@@ -23,7 +23,6 @@ public:
     static Flag * find( const String & );
     static Flag * find( uint );
 
-    static const List<Flag> * flags();
     static void setup();
 
 private:
