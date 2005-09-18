@@ -59,6 +59,16 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
 }
 
 
+class FlagData
+    : public Garbage
+{
+public:
+    FlagData() : id( 0 ) {}
+    String name;
+    uint id;
+};
+
+
 void FlagFetcher::execute()
 {
     Row * r = d->q->nextRow();
@@ -66,8 +76,10 @@ void FlagFetcher::execute()
         String n = r->getString( "name" );
         uint i = r->getInt( "id" );
         // is this the only FlagFetcher working now? best to be careful
-        if ( !::flagsById->contains( i ) )
-            (void)new Flag( n, i );
+        Flag * f = Flag::find( i );
+        if ( !f )
+            f = new Flag( n, i );
+        f->d->name = n;
         if ( i > ::largestFlagId )
             ::largestFlagId = i;
         r = d->q->nextRow();
@@ -91,16 +103,6 @@ void FlagFetcher::execute()
     find() a specific flag either by name or id, and also one to get a
     list of all known flags().
 */
-
-
-class FlagData
-    : public Garbage
-{
-public:
-    FlagData() : id( 0 ) {}
-    String name;
-    uint id;
-};
 
 
 /*! Constructs a flag named \a name and with id \a id. Both \a name

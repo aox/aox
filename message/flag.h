@@ -27,6 +27,7 @@ public:
 
 private:
     class FlagData * d;
+    friend class FlagFetcher;
 };
 
 

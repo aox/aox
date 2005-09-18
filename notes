@@ -678,4 +678,12 @@ The IMAP SORT extension seems really easy
   Interacts with ANNOTATE.
 
 
+The flag_names has the wrong constraint
+
+  Flag names are case insensitive, but the database constraint assumes
+  that they are case sensitive.
+
+  Maybe we should rather use unique(lower(name)).
+
+
 We need to do the right thing.
