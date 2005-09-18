@@ -53,6 +53,11 @@ void XOryxReset::execute()
         q->bind( 1, user->id() );
         t->enqueue( q );
 
+        q = new Query( "delete from annotations where owner=$1",
+                       this );
+        q->bind( 1, user->id() );
+        t->enqueue( q );
+
         q = new Query( "delete from permissions where mailbox in "
                        "(select id from mailboxes where owner=$1)",
                        this );
@@ -78,16 +83,6 @@ void XOryxReset::execute()
         a->bind( 1, user->id() );
         t->enqueue( a );
         
-#if 0
-        // properly speaking we should kill the unused flags to... but
-        // leave the system flags. the resulting sql looks too ugly. I
-        // won't do it.
-        q = new Query( "delete from flag_names where not id in "
-                       "(select distinct flag from flags)",
-                       this );
-        t->enqueue( q );
-#endif
-
         t->execute();
         t->commit();
         
