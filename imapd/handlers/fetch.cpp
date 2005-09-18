@@ -87,6 +87,10 @@ Fetch::Fetch( bool u )
     : Command(), d( new FetchData )
 {
     d->uid = u;
+    if ( u )
+        setGroup( 1 );
+    else
+        setGroup( 2 );
 }
 
 

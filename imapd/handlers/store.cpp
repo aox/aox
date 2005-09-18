@@ -56,6 +56,7 @@ Store::Store( bool u )
     : d( new StoreData )
 {
     d->uid = u;
+    setGroup( 3 );
 }
 
 

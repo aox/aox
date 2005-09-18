@@ -35,6 +35,7 @@ public:
 Status::Status()
     : d( new StatusData )
 {
+    setGroup( 4 );
 }
 
 

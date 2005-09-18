@@ -68,6 +68,7 @@ public:
 Listext::Listext()
     : d( new ListextData )
 {
+    setGroup( 4 );
 }
 
 

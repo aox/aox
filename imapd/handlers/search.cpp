@@ -71,6 +71,10 @@ Search::Search( bool u )
     : d( new SearchData )
 {
     d->uid = u;
+    if ( u )
+        setGroup( 1 );
+    else
+        setGroup( 2 );
 }
 
 
@@ -117,6 +121,8 @@ void Search::parseKey( bool alsoCharset )
     else if ( c == '*' || ( c >= '0' && c <= '9' ) ) {
         // it's a pure set
         add( set( true ) );
+        if ( !d->uid )
+            setGroup( 0 );
     }
     else {
         // first comes a keyword. they all are letters only, so:

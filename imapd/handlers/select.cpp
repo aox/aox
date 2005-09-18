@@ -48,6 +48,7 @@ Select::Select( bool ro )
     : d( new SelectData )
 {
     d->readOnly = ro;
+    setGroup( 4 );
 }
 
 
