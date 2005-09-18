@@ -301,8 +301,7 @@ void IMAP::addCommand()
 
     // Try to create a command handler.
 
-    Command *cmd
-        = Command::create( this, command, tag, d->args );
+    Command * cmd = Command::create( this, command, tag, d->args );
 
     if ( !cmd ) {
         log( "Unknown command. Line: '" + *s + "'", Log::Error );
@@ -477,7 +476,7 @@ void IMAP::runCommands()
         }
 
         // if no commands are running, start the oldest blocked command
-        // and all others in its group.
+        // and any following commands in the same group.
 
         i = d->commands.first();
         while ( i && i->state() != Command::Executing )
@@ -488,16 +487,22 @@ void IMAP::runCommands()
                 ++i;
         }
         if ( i ) {
-            Command *c = i;
-            do {
-                if ( i->group() == c->group() &&
-                     i->state() == Command::Blocked && i->ok() )
-                {
+            if ( i->state() == Command::Blocked ) {
+                i->setState( Command::Executing );
+                done = false;
+            }
+            if ( i->group() ) {
+                Command * c = i;
+                ++i;
+                while ( i &&
+                        i->group() == c->group() &&
+                        i->state() == Command::Blocked &&
+                        i->ok() ) {
                     i->setState( Command::Executing );
                     done = false;
+                    i++;
                 }
-                ++i;
-            } while ( c->group() > 0 && i );
+            }
         }
     }
 
