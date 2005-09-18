@@ -8,6 +8,7 @@
 #include "occlient.h"
 #include "mailbox.h"
 #include "query.h"
+#include "user.h"
 
 
 class CopyData
@@ -165,6 +166,21 @@ void Copy::execute()
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             d->transaction->enqueue( q );
+
+            q = new Query( "insert into annotations "
+                           "(mailbox, uid, owner, name, value, "
+                           "type, language, displayname) "
+                           "select $1, $2, $5, name, value, "
+                           "type, language, displayname "
+                           "from annotations "
+                           "where mailbox=$3 and uid=$4 and "
+                           "(owner is null or owner=$5)",
+                           0 );
+            q->bind( 1, tmailbox );
+            q->bind( 2, tuid );
+            q->bind( 3, cmailbox );
+            q->bind( 4, cuid );
+            q->bind( 4, imap()->user()->id() );
 
             tuid++;
             i++;

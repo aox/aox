@@ -144,7 +144,7 @@ ANNOTATE support
   - SELECT/EXAMINE: done
   - FETCH
   - STORE
-  - COPY
+  - COPY: done (untested for lack of other support)
   - APPEND
   - SEARCH
   - SORT
