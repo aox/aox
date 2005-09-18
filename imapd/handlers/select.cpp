@@ -17,14 +17,16 @@ class SelectData
 {
 public:
     SelectData()
-        : mailbox( 0 ), session( 0 ), permissions( 0 )
+        : readOnly( false ), annotate( false ),
+          mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
 
     String name;
     bool readOnly;
+    bool annotate;
     Mailbox * mailbox;
-    ImapSession *session;
-    Permissions *permissions;
+    ImapSession * session;
+    Permissions * permissions;
 };
 
 
@@ -50,7 +52,23 @@ void Select::parse()
 {
     space();
     d->name = astring();
+    if ( present( " (" ) ) {
+        bool more = true;
+        while ( ok() && more ) {
+            // select-param can be a list or an astring. in our case,
+            // only astring is legal, since we advertise no extension
+            // that permits the list.
+            String param = astring().lower();
+            if ( param == "annotate" )
+                d->annotate = true;
+            else
+                error( Bad, "Unknown select-param: " + param );
+            more = present( " " );
+        }
+        require( ")" );
+    }
     end();
+    
 }
 
 
@@ -93,6 +111,7 @@ void Select::execute()
             imap()->endSession();
         d->session = new ImapSession( imap(), d->mailbox, d->readOnly );
         d->session->setPermissions( d->permissions );
+        d->session->setAnnotateUpdates( d->annotate );
         d->session->refresh( this );
     }
 

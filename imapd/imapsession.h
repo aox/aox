@@ -21,8 +21,11 @@ public:
     void emitExpunge( uint );
     void emitExists( uint );
 
+    void setAnnotateUpdates( bool );
+    bool annotateUpdates() const;
+
 private:
-    class IMAP *i;
+    class ImapSessionData * d;
 };
 
 

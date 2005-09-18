@@ -138,6 +138,17 @@ ANNOTATE support
   draft should be stable, so we can implement whenever we want to and
   have the time.
 
+  Status:
+  - schema changes: done
+  - session state: done
+  - SELECT/EXAMINE: done
+  - FETCH
+  - STORE
+  - COPY
+  - APPEND
+  - SEARCH
+  - SORT
+
 
 ANNOTATEMORE
 
@@ -663,6 +674,8 @@ The IMAP SORT extension seems really easy
 
   Squirrelmail wants it. Strongly. And it's not terribly difficult to
   implement, to put it mildly.
+
+  Interacts with ANNOTATE.
 
 
 We need to do the right thing.
