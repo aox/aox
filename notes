@@ -586,6 +586,7 @@ Switch to using named constraints everywhere.
   LSUB etc (done).
   ANNOTATE or VIEWS or ideally both.
   Listext (done, needs more testing).
+  Fix httpd segfaults.
 
   (Most of these items have their own separate notes.)
 
@@ -684,6 +685,12 @@ The flag_names has the wrong constraint
   that they are case sensitive.
 
   Maybe we should rather use unique(lower(name)).
+
+
+We MUST support HTTPS for the webmail interface.
+
+
+We should figure out some way to not store plaintext passwords.
 
 
 We need to do the right thing.
