@@ -808,6 +808,7 @@ void listMailboxes()
         return;
     }
 
+    parseOptions();
     String pattern = next();
     end();
 
@@ -815,9 +816,18 @@ void listMailboxes()
 
     d = new Dispatcher( Dispatcher::ListMailboxes );
 
-    String s( "select name from mailboxes where not deleted" );
+    String s( "select name from mailboxes" );
+
+    StringList where;
+    if ( opt( 'd' ) == 0 )
+        where.append( "not deleted" );
     if ( !pattern.isEmpty() )
-        s.append( " and name like $1" );
+        where.append( "name like $1" );
+
+    if ( !where.isEmpty() ) {
+        s.append( " where " );
+        s.append( where.join( " and " ) );
+    }
     d->query = new Query( s, d );
     if ( !pattern.isEmpty() )
         d->query->bind( 1, sqlPattern( pattern ) );
@@ -1181,9 +1191,10 @@ void help()
         fprintf(
             stderr,
             "  list mailboxes -- Display existing mailboxes.\n\n"
-            "    Synopsis: ms list mailboxes [pattern]\n\n"
+            "    Synopsis: ms list mailboxes [-d] [pattern]\n\n"
             "    Displays a list of mailboxes matching the specified shell\n"
             "    glob pattern. Without a pattern, all mailboxes are listed.\n\n"
+            "    The -d flag includes deleted mailboxes in the list.\n\n"
             "    ls is an acceptable abbreviation for list.\n\n"
             "    Examples:\n\n"
             "      ms list mailboxes\n"
