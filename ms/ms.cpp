@@ -132,7 +132,7 @@ int main( int ac, char *av[] )
         String noun = next().lower();
         if ( noun == "users" )
             listUsers();
-        if ( noun == "mailboxes" )
+        else if ( noun == "mailboxes" )
             listMailboxes();
         else
             bad( verb, noun );
@@ -779,6 +779,25 @@ void upgradeSchema()
 }
 
 
+String sqlPattern( String s )
+{
+    String p;
+
+    uint i = 0;
+    while ( s[i] ) {
+        if ( s[i] == '*' )
+            p.append( '%' );
+        else if ( s[i] == '?' )
+            p.append( '_' );
+        else
+            p.append( s[i] );
+        i++;
+    }
+
+    return p;
+}
+
+
 void listMailboxes()
 {
     if ( d ) {
@@ -800,20 +819,8 @@ void listMailboxes()
     if ( !pattern.isEmpty() )
         s.append( " and name like $1" );
     d->query = new Query( s, d );
-    if ( !pattern.isEmpty() ) {
-        String p;
-        uint i = 0;
-        while ( pattern[i] ) {
-            if ( pattern[i] == '*' )
-                p.append( '%' );
-            else if ( pattern[i] == '?' )
-                p.append( '_' );
-            else
-                p.append( pattern[i] );
-            i++;
-        }
-        d->query->bind( 1, p );
-    }
+    if ( !pattern.isEmpty() )
+        d->query->bind( 1, sqlPattern( pattern ) );
     d->query->execute();
 }
 
@@ -863,20 +870,8 @@ void listUsers()
     if ( !pattern.isEmpty() )
         s.append( " where login like $1" );
     d->query = new Query( s, d );
-    if ( !pattern.isEmpty() ) {
-        String p;
-        uint i = 0;
-        while ( pattern[i] ) {
-            if ( pattern[i] == '*' )
-                p.append( '%' );
-            else if ( pattern[i] == '?' )
-                p.append( '_' );
-            else
-                p.append( pattern[i] );
-            i++;
-        }
-        d->query->bind( 1, p );
-    }
+    if ( !pattern.isEmpty() )
+        d->query->bind( 1, sqlPattern( pattern ) );
     d->query->execute();
 }
 
