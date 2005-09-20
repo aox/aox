@@ -57,6 +57,7 @@ void showConfiguration();
 void showSchema();
 void showCounts();
 void upgradeSchema();
+void listMailboxes();
 void listUsers();
 void createUser();
 void deleteUser();
@@ -131,6 +132,8 @@ int main( int ac, char *av[] )
         String noun = next().lower();
         if ( noun == "users" )
             listUsers();
+        if ( noun == "mailboxes" )
+            listMailboxes();
         else
             bad( verb, noun );
     }
@@ -241,8 +244,8 @@ class Dispatcher
 {
 public:
     enum Command {
-        Start, ShowCounts, ShowSchema, UpgradeSchema, ListUsers,
-        CreateUser, DeleteUser, ChangePassword,
+        Start, ShowCounts, ShowSchema, UpgradeSchema, ListMailboxes,
+        ListUsers, CreateUser, DeleteUser, ChangePassword,
         CreateMailbox, DeleteMailbox,
         Vacuum
     };
@@ -309,6 +312,10 @@ public:
 
         case UpgradeSchema:
             upgradeSchema();
+            break;
+
+        case ListMailboxes:
+            listMailboxes();
             break;
 
         case ListUsers:
@@ -772,6 +779,45 @@ void upgradeSchema()
 }
 
 
+void listMailboxes()
+{
+    if ( d ) {
+        while ( d->query->hasResults() ) {
+            Row * r = d->query->nextRow();
+            printf( "%s\n", r->getString( "name" ).cstr() );
+        }
+        return;
+    }
+
+    String pattern = next();
+    end();
+
+    Database::setup();
+
+    d = new Dispatcher( Dispatcher::ListMailboxes );
+
+    String s( "select name from mailboxes where not deleted" );
+    if ( !pattern.isEmpty() )
+        s.append( " and name like $1" );
+    d->query = new Query( s, d );
+    if ( !pattern.isEmpty() ) {
+        String p;
+        uint i = 0;
+        while ( pattern[i] ) {
+            if ( pattern[i] == '*' )
+                p.append( '%' );
+            else if ( pattern[i] == '?' )
+                p.append( '_' );
+            else
+                p.append( pattern[i] );
+            i++;
+        }
+        d->query->bind( 1, p );
+    }
+    d->query->execute();
+}
+
+
 bool validUsername( String s )
 {
     uint i = 0;
@@ -1134,6 +1180,19 @@ void help()
             "    Synopsis: ms update schema\n\n"
             "    Checks that the database schema is one that this version\n"
             "    of Mailstore is compatible with, and updates it if needed.\n"
+        );
+    }
+    else if ( a == "list" && b == "mailboxes" ) {
+        fprintf(
+            stderr,
+            "  list mailboxes -- Display existing mailboxes.\n\n"
+            "    Synopsis: ms list mailboxes [pattern]\n\n"
+            "    Displays a list of mailboxes matching the specified shell\n"
+            "    glob pattern. Without a pattern, all mailboxes are listed.\n\n"
+            "    ls is an acceptable abbreviation for list.\n\n"
+            "    Examples:\n\n"
+            "      ms list mailboxes\n"
+            "      ms ls mailboxes /users/ab?cd*\n"
         );
     }
     else if ( a == "list" && b == "users" ) {
