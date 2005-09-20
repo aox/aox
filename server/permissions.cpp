@@ -35,8 +35,8 @@ public:
     It can evaluate its list and provide the list of rights available
     for any given user.
 
-    The rights are based on RFC 2086 (and its updated internet-draft)
-    and are:
+    The rights are based on RFC 2086, its updated internet-draft and
+    the ANNOTATE draft. The rights are:
 
     Lookup ("l"): Mailbox is visible to LIST/LSUB commands, SUBSCRIBE
     mailbox. This is always granted to everyone, for the moment.
@@ -69,6 +69,9 @@ public:
     Admin ("a"): Administer (perform SETACL/DELETEACL/GETACL). This is
     always granted to the owner of a mailbox, and may be granted to
     others.
+    
+    WriteSharedAnnotation ("n"): Write a shared annotation. This is
+    always granted to the mailbox owner, and may be granted to others.
 
     For the moment, this class cannot modify the database. It can only
     verify that a user has a given right, and will notify an event
@@ -205,6 +208,9 @@ char Permissions::rightChar( Permissions::Right right )
         break;
     case Permissions::Admin:
         c = 'a';
+        break;
+    case Permissions::WriteSharedAnnotation:
+        c = 'n';
         break;
     case Permissions::NumRights:
         break;

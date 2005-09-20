@@ -25,6 +25,7 @@ public:
         DeleteMessages, // t
         Expunge, // e
         Admin, // a
+        WriteSharedAnnotation, // n
         // New rights go above this line.
         NumRights
     };
