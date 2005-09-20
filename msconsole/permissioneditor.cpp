@@ -244,7 +244,7 @@ public:
 
     PermissionEditorRow is a container for the widgets needed to
     control a single row in the grid used by PermissionEditor. It
-    exists only to provide teh button() and label() functions.
+    exists only to provide the button() and label() functions.
 */
 
 

@@ -45,7 +45,7 @@ allocation as the map builds intermediate tree nodes.
 
 /*! \fn void Map::remove( uint i )
 
-Removes the object at index \a i from teh Map. This may cause memory
+Removes the object at index \a i from the Map. This may cause memory
 allocation, as it's a thin wrapper around insert( \a i, 0 ).
 */
 
