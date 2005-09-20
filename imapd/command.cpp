@@ -970,7 +970,8 @@ uint Command::msn()
 
 
 /*! Parses a flag name and returns it as a string, or calls error() if
-    no valid flag name was present.
+    no valid flag name was present. The return value may contain both
+    upper and lower case letters.
 */
 
 String Command::flag()
