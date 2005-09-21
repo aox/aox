@@ -803,7 +803,23 @@ void listMailboxes()
     if ( d ) {
         while ( d->query->hasResults() ) {
             Row * r = d->query->nextRow();
-            printf( "%s\n", r->getString( "name" ).cstr() );
+
+            String s( r->getString( "name" ) );
+            if ( opt( 's' ) > 0 ) {
+                int messages = r->getInt( "messages" );
+                int size = r->getInt( "size" );
+                s.append( " (" );
+                s.append( fn( messages ) );
+                if ( messages == 1 )
+                    s.append( " message, " );
+                else
+                    s.append( " messages, " );
+                s.append( String::humanNumber( size ) );
+                s.append( " bytes" );
+                s.append( ")" );
+            }
+
+            printf( "%s\n", s.cstr() );
         }
         return;
     }
@@ -815,6 +831,9 @@ void listMailboxes()
 
         if ( s == "-d" ) {
             options[(int)'d']++;
+        }
+        else if ( s == "-s" ) {
+            options[(int)'s']++;
         }
         else if ( s == "-o" ) {
             args->take( it );
@@ -837,8 +856,14 @@ void listMailboxes()
 
     d = new Dispatcher( Dispatcher::ListMailboxes );
 
-    String s( "select name,login as owner from mailboxes m "
-              "left join users u on (m.owner=u.id)" );
+    String s( "select name,login as owner" );
+
+    if ( opt( 's' ) > 0 )
+        s.append( ",(select count(*) from messages where mailbox=m.id)::int "
+                  "as messages,(select sum(rfc822size) from messages "
+                  "where mailbox=m.id)::int as size" );
+
+    s.append( " from mailboxes m left join users u on (m.owner=u.id)" );
 
     int n = 1;
     StringList where;
@@ -1225,6 +1250,8 @@ void help()
             "    The -d flag includes deleted mailboxes in the list.\n\n"
             "    The \"-o username\" flag restricts the list to mailboxes\n"
             "    owned by the specified user.\n\n"
+            "    The -s flag shows a count of messages and the total size\n"
+            "    of messages in each mailbox.\n\n"
             "    ls is an acceptable abbreviation for list.\n\n"
             "    Examples:\n\n"
             "      ms list mailboxes\n"
