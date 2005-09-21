@@ -1,6 +1,5 @@
 SubDir TOP encodings ;
 SubInclude TOP core ;
-SubInclude TOP encodings words ;
 
 HDRS += [ FDirName $(TOP) encodings ] ;
 

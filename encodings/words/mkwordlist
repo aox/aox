@@ -1,12 +1,10 @@
 #!/usr/bin/perl -w
 
-die "must have one argument (path to *.words)" unless ($#ARGV == 0);
-chdir( $ARGV[0] );
-
 # a function to reencode a file and stick anything unique into the array
 sub encode {
     my $in = $_[0];
     my $cs = $_[1];
+    die "cannot find $in, stopped" unless ( -f $in );
     open ( I, "recode utf-8...$cs < $in 2>/dev/null |" ) || die "ugga";
     foreach ( <I> ) {
 	chomp;
@@ -49,19 +47,16 @@ foreach ( sort keys %forms ) {
 # if we didn't produce anything, recode probably isn't present. give a
 # nice compiler error
 
-if ( !$numForms ) {
-    print '#error "recode needed to compile character encoding autodetection"', "\n\n";
-    # and avoid a gcc bug
-    $forms{"mumble"} = "iso-8859-2";
-    $source{"mumble"} = "a workaround in the source";
-    $numForms = 1;
-}
+die "What went wrong? I am unhappy." if ( !$numForms );
+
 
 $enum{"macroman"} = "MacRoman";
 $enum{"iso-8859-2"} = "Iso88592";
 $enum{"iso-8859-15"} = "Iso885915";
 
-print "enum Encoding { Iso88592, Iso885915, MacRoman, NumEncodings };\n",
+open( O, "> wordlist.inc" ) || die "could not open wordlit.inc for writing";
+
+print O "enum Encoding { Iso88592, Iso885915, MacRoman, NumEncodings };\n",
 "static const uint NumForms = ", $numForms, ";\n",
 "static const struct {\n",
 "    const char * encodedForm;\n",
@@ -69,8 +64,8 @@ print "enum Encoding { Iso88592, Iso885915, MacRoman, NumEncodings };\n",
 "} forms[", $numForms, "] = {\n";
 
 foreach ( sort keys %forms ) {
-    print "    { \"$_\", $enum{$forms{$_}} }, // from $source{$_}\n"
+    print O "    { \"$_\", $enum{$forms{$_}} }, // from $source{$_}\n"
         if ( $forms{$_} ne "inconclusive" );
 }
 
-print "};\n";
+print O "};\n";
