@@ -17,7 +17,7 @@ public:
     StatusData() :
         messages( false ), uidnext( false ), uidvalidity( false ),
         recent( false ), unseen( false ),
-        mailbox( 0 ), session( 0 ), unseenCount( 0 )
+        mailbox( 0 ), session( 0 ), permissions( 0 ), unseenCount( 0 )
         {}
     String name;
     bool messages, uidnext, uidvalidity, recent, unseen;
