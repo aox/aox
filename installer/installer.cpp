@@ -70,7 +70,7 @@ int main( int ac, char *av[] )
 
     String dba( DBADDRESS );
     if ( dba[0] == '/' && !exists( dba ) ) {
-        fprintf( stderr, "Warning: DBADDRESS is set to '" DBADDRESS "',"
+        fprintf( stderr, "Warning: DBADDRESS is set to '" DBADDRESS "', "
                  "which does not exist.\n" );
         if ( exists( "/etc/debian_version" ) &&
              exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
