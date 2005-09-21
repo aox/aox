@@ -808,7 +808,28 @@ void listMailboxes()
         return;
     }
 
-    parseOptions();
+    String owner;
+    StringList::Iterator it( args );
+    while ( it ) {
+        String s = *it;
+
+        if ( s == "-d" ) {
+            options[(int)'d']++;
+        }
+        else if ( s == "-o" ) {
+            args->take( it );
+            if ( args->isEmpty() )
+                error( "No username specified with -o." );
+            options[(int)'o']++;
+            owner = *it;
+        }
+        else {
+            break;
+        }
+
+        args->take( it );
+    }
+
     String pattern = next();
     end();
 
@@ -816,21 +837,28 @@ void listMailboxes()
 
     d = new Dispatcher( Dispatcher::ListMailboxes );
 
-    String s( "select name from mailboxes" );
+    String s( "select name,login as owner from mailboxes m "
+              "left join users u on (m.owner=u.id)" );
 
+    int n = 1;
     StringList where;
     if ( opt( 'd' ) == 0 )
         where.append( "not deleted" );
     if ( !pattern.isEmpty() )
-        where.append( "name like $1" );
+        where.append( "name like $" + fn( n++ ) );
+    if ( opt( 'o' ) > 0 )
+        where.append( "login like $" + fn( n ) );
 
     if ( !where.isEmpty() ) {
         s.append( " where " );
         s.append( where.join( " and " ) );
     }
+
     d->query = new Query( s, d );
     if ( !pattern.isEmpty() )
         d->query->bind( 1, sqlPattern( pattern ) );
+    if ( !owner.isEmpty() )
+        d->query->bind( n, owner );
     d->query->execute();
 }
 
@@ -1191,10 +1219,12 @@ void help()
         fprintf(
             stderr,
             "  list mailboxes -- Display existing mailboxes.\n\n"
-            "    Synopsis: ms list mailboxes [-d] [pattern]\n\n"
+            "    Synopsis: ms list mailboxes [-d] [-o user] [pattern]\n\n"
             "    Displays a list of mailboxes matching the specified shell\n"
             "    glob pattern. Without a pattern, all mailboxes are listed.\n\n"
             "    The -d flag includes deleted mailboxes in the list.\n\n"
+            "    The \"-o username\" flag restricts the list to mailboxes\n"
+            "    owned by the specified user.\n\n"
             "    ls is an acceptable abbreviation for list.\n\n"
             "    Examples:\n\n"
             "      ms list mailboxes\n"
