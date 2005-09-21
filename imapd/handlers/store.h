@@ -27,6 +27,7 @@ private:
 
 private:
     bool processFlagNames();
+    bool processAnnotationNames();
     void removeFlags( bool opposite = false );
     void addFlags();
     void replaceFlags();
@@ -34,6 +35,9 @@ private:
     void pretendToFetch();
     void sendFetches();
     bool dumpFetchResponses();
+    void replaceAnnotations();
+    void parseAnnotationEntry();
+    void checkAnnotations();
 };
 
 

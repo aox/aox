@@ -5,6 +5,7 @@
 #include "permissions.h"
 #include "transaction.h"
 #include "imapsession.h"
+#include "annotation.h"
 #include "messageset.h"
 #include "mailbox.h"
 #include "message.h"
@@ -13,6 +14,7 @@
 #include "flag.h"
 #include "list.h"
 #include "imap.h"
+#include "user.h"
 
 
 class StoreData
@@ -20,14 +22,14 @@ class StoreData
 {
 public:
     StoreData()
-        : op( Replace ), silent( false ), uid( false ),
+        : op( ReplaceFlags ), silent( false ), uid( false ),
           checkedPermission( false ), fetching( false ),
-          transaction( 0 ), flagCreator( 0 )
+          transaction( 0 ), flagCreator( 0 ), annotationCreator( 0 )
     {}
     MessageSet s;
     StringList flagNames;
 
-    enum Op { Add, Replace, Remove } op;
+    enum Op { AddFlags, ReplaceFlags, RemoveFlags, ReplaceAnnotations } op;
 
     bool silent;
     bool uid;
@@ -38,6 +40,22 @@ public:
     Transaction * transaction;
     List<Flag> flags;
     FlagCreator * flagCreator;
+    AnnotationCreator * annotationCreator;
+
+    struct Annotation
+        : public Garbage
+    {
+        Annotation(): annotation( 0 ), shared( false ) {}
+        String name;
+        String value;
+        String contentType;
+        String contentLanguage;
+        String displayName;
+        ::Annotation * annotation;
+        bool shared;
+    };
+
+    List<Annotation> annotations;
 };
 
 
@@ -66,34 +84,112 @@ void Store::parse()
     d->s = set( !d->uid );
     space();
 
-    if ( present( "-" ) )
-        d->op = StoreData::Remove;
-    else if ( present( "+" ) )
-        d->op = StoreData::Add;
-
-    require( "flags" );
-    d->silent = present( ".silent" );
-    space();
-
-    if ( present( "(" ) ) {
-        d->flagNames.append( flag() );
-        while ( present( " " ) )
-            d->flagNames.append( flag() );
+    if ( present( "ANNOTATION (" ) ) {
+        bool more = true;
+        while ( more ) {
+            parseAnnotationEntry();
+            more = present( " " );
+        }
         require( ")" );
+        end();
+        d->op = StoreData::ReplaceAnnotations;
     }
     else {
-        d->flagNames.append( flag() );
-        while ( present( " " ) )
+        if ( present( "-" ) )
+            d->op = StoreData::RemoveFlags;
+        else if ( present( "+" ) )
+            d->op = StoreData::AddFlags;
+
+        require( "flags" );
+        d->silent = present( ".silent" );
+        space();
+
+        if ( present( "(" ) ) {
             d->flagNames.append( flag() );
+            while ( present( " " ) )
+                d->flagNames.append( flag() );
+            require( ")" );
+        }
+        else {
+            d->flagNames.append( flag() );
+            while ( present( " " ) )
+                d->flagNames.append( flag() );
+        }
     }
 
     end();
 }
 
 
-/*! Stores all the flags, using potentially enormous numbers if
-    database queries. The command is kept atomic by the use of a
-    Transaction.
+
+
+/*! Parses and stores a single annotation entry for later
+    processing. Leaves the cursor on the following character
+    (space/paren).
+*/
+
+void Store::parseAnnotationEntry()
+{
+    String entry = string();
+    if ( entry.startsWith( "/flags/" ) )
+        error( Bad, "Cannot set top-level flags using STORE ANNOTATION" );
+    if ( entry.find( "//" ) >= 0 )
+        error( Bad, "Annotation entry names cannot contain //" );
+    if ( entry.endsWith( "/" ) )
+        error( Bad, "Annotation entry names cannot end with /" );
+    space();
+    require( "(" );
+    bool more = true;
+    while ( more ) {
+        String attrib = string();
+        if ( attrib.find( ".." ) >= 0 )
+            error( Bad, "Consecutive dots not allowed in attribute names" );
+        else if ( attrib.startsWith( "vendor." ) )
+            error( No, "Vendor extensions not supported; "
+                   "contact info@oryx.com" );
+        bool shared = false;
+        if ( attrib.endsWith( ".shared" ) ) {
+            shared = true;
+            attrib = attrib.mid( 0, attrib.length()-7 );
+        }
+        else if ( attrib.endsWith( ".priv" ) ) {
+            attrib = attrib.mid( 0, attrib.length()-5 );
+        }
+        else {
+            error( Bad, "Must store either .priv or .shared attributes" );
+        }
+        space();
+        String value = string();
+        List<StoreData::Annotation>::Iterator it( d->annotations );
+        while ( it && ( it->name != entry || it->shared != shared ) )
+            ++it;
+        StoreData::Annotation * a = it;
+        if ( !it ) {
+            a = new StoreData::Annotation;
+            d->annotations.append( a );
+            a->shared = shared;
+        }
+        if ( attrib == "value" )
+            a->value = value;
+        else if ( attrib == "content-type" )
+            a->contentType = value;
+        else if ( attrib == "content-language" )
+            a->contentLanguage = value;
+        else if ( attrib == "display-name" )
+            a->displayName = value;
+        else
+            error( Bad, "Unknown attribute: " + attrib );
+                
+        more = present( " " );
+    }
+    require( ")" );
+}
+
+
+
+/*! Stores all the annotations/flags, using potentially enormous
+    numbers if database queries. The command is kept atomic by the use
+    of a Transaction.
 */
 
 void Store::execute()
@@ -108,43 +204,73 @@ void Store::execute()
         if ( !p->ready() )
             return;
         d->checkedPermission = true;
-        bool deleted = false;
-        bool seen = false;
-        bool other = false;
-        StringList::Iterator it( d->flagNames );
-        while ( it ) {
-            if ( *it == "\\deleted" )
-                deleted = true;
-            else if ( *it == "\\seen" )
-                seen = true;
-            else
-                other = true;
-            ++it;
+        if ( d->op == StoreData::ReplaceAnnotations ) {
+            bool hasPriv = false;
+            bool hasShared = false;
+            List<StoreData::Annotation>::Iterator it( d->annotations );
+            while ( it ) {
+                if ( it->shared )
+                    hasShared = true;
+                else
+                    hasPriv = true;
+                ++it;
+            }
+            if ( hasPriv && !p->allowed( Permissions::Read ) )
+                error( No, "Insufficient privileges to "
+                       "write private annotations" );
+            if ( hasShared &&
+                 !p->allowed( Permissions::WriteSharedAnnotation ) )
+                error( No, "Insufficient privileges to "
+                       "write shared annotations" );
         }
-        if ( seen && !p->allowed( Permissions::KeepSeen ) )
-            error( No, "Insufficient privileges to set \\Seen" );
-        else if ( deleted && !p->allowed( Permissions::DeleteMessages ) )
-            error( No, "Insufficient privileges to set \\Deleted" );
-        else if ( other && !p->allowed( Permissions::Write ) )
-            error( No, "Insufficient privileges to set flags" );
-        if ( !ok() )
-            return;
+        else {
+            bool deleted = false;
+            bool seen = false;
+            bool other = false;
+            StringList::Iterator it( d->flagNames );
+            while ( it ) {
+                if ( it->lower() == "\\deleted" )
+                    deleted = true;
+                else if ( it->lower() == "\\seen" )
+                    seen = true;
+                else
+                    other = true;
+                ++it;
+            }
+            if ( seen && !p->allowed( Permissions::KeepSeen ) )
+                error( No, "Insufficient privileges to set \\Seen" );
+            else if ( deleted && !p->allowed( Permissions::DeleteMessages ) )
+                error( No, "Insufficient privileges to set \\Deleted" );
+            else if ( other && !p->allowed( Permissions::Write ) )
+                error( No, "Insufficient privileges to set flags" );
+            if ( !ok() )
+                return;
+        }
     }
 
-    if ( !processFlagNames() )
-        return;
+    if ( d->op == StoreData::ReplaceAnnotations ) {
+        if ( !processAnnotationNames() )
+            return;
+    }
+    else {
+        if ( !processFlagNames() )
+            return;
+    }
 
     if ( !d->transaction ) {
         d->transaction = new Transaction( this );
         switch( d->op ) {
-        case StoreData::Replace:
+        case StoreData::ReplaceFlags:
             replaceFlags();
             break;
-        case StoreData::Add:
+        case StoreData::AddFlags:
             addFlags();
             break;
-        case StoreData::Remove:
+        case StoreData::RemoveFlags:
             removeFlags();
+            break;
+        case StoreData::ReplaceAnnotations:
+            replaceAnnotations();
             break;
         }
         d->transaction->commit();
@@ -158,16 +284,27 @@ void Store::execute()
             finish();
             return;
         }
-        else {
+        else if ( d->op != StoreData::ReplaceAnnotations ) {
             recordFlags();
         }
-        if ( d->op != StoreData::Replace && !d->silent )
-            sendFetches();
-        d->fetching = true;
+        if ( !d->silent ) {
+            switch( d->op ) {
+            case StoreData::AddFlags:
+            case StoreData::RemoveFlags:
+                sendFetches();
+                d->fetching = true;
+                break;
+            case StoreData::ReplaceFlags:
+                d->fetching = true;
+                break;
+            case StoreData::ReplaceAnnotations:
+                break;
+            }
+        }
     }
 
     if ( d->fetching && !d->silent ) {
-        if ( d->op == StoreData::Replace )
+        if ( d->op == StoreData::ReplaceFlags )
             pretendToFetch();
         else if ( !dumpFetchResponses() )
             return;
@@ -201,12 +338,32 @@ bool Store::processFlagNames()
 }
 
 
+/*! Persuades the database to know all the annotation entry names
+    we'll be using.
+*/
+
+bool Store::processAnnotationNames()
+{
+    List<StoreData::Annotation>::Iterator it( d->annotations );
+    StringList unknown;
+    while ( it ) {
+        if ( !Annotation::find( it->name ) )
+            unknown.append( it->name );
+        ++it;
+    }
+    if ( unknown.isEmpty() )
+        return true;
+    if ( !d->flagCreator )
+        d->annotationCreator = new AnnotationCreator( this, unknown );
+    return false;
+    
+}
+
+
 /*! Dumps the command back to the client in the form of fetch
     responses. This function is used to tell the client "yes, your
     store flags command was processed as submitted" without bothering
     the database.
-
-    This function mishandles the "\recent" flag.
 */
 
 void Store::pretendToFetch()
@@ -394,7 +551,7 @@ void Store::recordFlags()
         i--;
         Message * m = mb->message( uid, false );
         if ( m && m->hasFlags() ) {
-            if ( d->op == StoreData::Replace ) {
+            if ( d->op == StoreData::ReplaceFlags ) {
                 // we have a correct value, so remember it
                 m->setFlagsFetched( true );
                 List<Flag> * current = m->flags();
@@ -409,5 +566,73 @@ void Store::recordFlags()
                 m->setFlagsFetched( false );
             }
         }
+    }
+}
+
+
+/*! Replaces one or more annotations with the provided replacements. */
+
+void Store::replaceAnnotations()
+{
+    List<StoreData::Annotation>::Iterator it( d->annotations );
+    String w = d->s.where();
+    Mailbox * m = imap()->session()->mailbox();
+    User * u = imap()->user();
+    while ( it ) {
+        if ( it->value.isEmpty() ) {
+            Query * q = new Query( "delete from annotations where "
+                                   "mailbox=$1 and (" + w + ") and "
+                                   "name=$2 and owner=$3", 0 );
+            q->bind( 1, m->id() );
+            q->bind( 2, it->annotation->id() );
+            if ( it->shared )
+                q->bindNull( 3 );
+            else
+                q->bind( 3, u->id() );
+            d->transaction->enqueue( q );
+        }
+        else {
+            Query * q = new Query( "insert into annotations "
+                                   "(mailbox, uid, owner, name, value, type, "
+                                   " language, displayname) "
+                                   "select $1,uid,$3,$2,null,null,null,null "
+                                   "from messages where "
+                                   "mailbox=$2 and (" + w + ") and uid not in "
+                                   "(select uid from annotations where "
+                                   "mailbox=$2 and (" + w + ") and "
+                                   "owner=$3 and name=$2)",
+                                   0 );
+            q->bind( 1, m->id() );
+            q->bind( 2, it->annotation->id() );
+            if ( it->shared )
+                q->bindNull( 3 );
+            else
+                q->bind( 3, u->id() );
+            d->transaction->enqueue( q );
+            q = new Query( "update annotations set "
+                           "value=$1, type=$2, language=$3, displayname=$4 "
+                           "where mailbox=$5 and (" + w + ") and name=$6",
+                           0 );
+            if ( it->value.isEmpty() )
+                q->bind( 1, it->value );
+            else
+                q->bindNull( 1 );
+            if ( it->contentType.isEmpty() )
+                q->bind( 2, it->contentType );
+            else
+                q->bindNull( 2 );
+            if ( it->contentLanguage.isEmpty() )
+                q->bind( 3, it->contentLanguage );
+            else
+                q->bindNull( 3 );
+            if ( it->displayName.isEmpty() )
+                q->bind( 4, it->displayName );
+            else
+                q->bindNull( 4 );
+            q->bind( 5, m->id() );
+            q->bind( 6, it->annotation->id() );
+            d->transaction->enqueue( q );
+        }
+        ++it;
     }
 }
