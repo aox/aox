@@ -145,7 +145,8 @@ void oryxGroup()
 
     if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 )
         error( "Couldn't create group '" ORYXGROUP "'. Please create it by "
-               "hand and re-run the installer." );
+               "hand and re-run the installer.\n"
+               "The command which failed was '" + cmd + "'" );
 }
 
 
@@ -175,9 +176,11 @@ void oryxUser()
     }
 
     if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 )
-        error( "Couldn't create user '" ORYXUSER "'. Please create it by "
-               "hand and re-run the installer. The new user does not need "
-               "a valid login shell or password." );
+        error( "Couldn't create user '" ORYXUSER "'.\n"
+               "Please create it by hand and re-run the installer.\n"
+               "The new user does not need "
+               "a valid login shell or password.\n"
+               "The command which failed was '" + cmd + "'" );
 }
 
 
