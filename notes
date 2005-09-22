@@ -726,5 +726,11 @@ ms restart and ms start don't check all they could
      mailstore.conf contains a bad address.
 
 
+Something like soft-bounce might just be useful
+
+  enabled: smtp/lmtp always give 4xx errors. disabled: either 4xx or
+  5xx depending on the type of error.
+
+
 We need to do the right thing.
 
