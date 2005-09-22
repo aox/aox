@@ -701,5 +701,20 @@ Installer doesn't work on either debian or freebsd
   Having a -h/--help is good too.
 
 
+Man pages
+
+  Various man pages are now out of date, most of all
+  ms(8). installer(8) does not exist.
+
+
+String allocation is about half as fast as it could be
+
+  String and StringData are allocated independently. String could
+  override the allocation method and allocate sizeof( String ) +
+  sizeof( StringData ), and then forcibly set d.
+
+  The same applies to other classes which we instantiate very often.
+
+
 We need to do the right thing.
 
