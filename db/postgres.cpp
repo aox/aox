@@ -577,7 +577,9 @@ void Postgres::unknown( char type )
                 if ( msg.detail() != "" )
                     s.append( " (" + msg.detail() + ")" );
 
-                if ( !q || !q->canFail() )
+                if ( !q ||
+                     !( q->canFail() || 
+                        ( q->transaction() && q->transaction()->failed() ) ) )
                     log( s, Log::Error );
 
                 // Has the current query failed?
