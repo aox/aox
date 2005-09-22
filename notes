@@ -708,5 +708,23 @@ String allocation is about half as fast as it could be
   The same applies to other classes which we instantiate very often.
 
 
+ms restart and ms start don't check all they could
+
+  Improvements:
+
+  1. ms restart and ms start should bind to the IP addresses specified
+     by all the relevant servers (but not the ports) and try to
+     connect to the ports.
+
+  2. ms restart can issue 'ms start' when the last established
+     connection dies. currently it calls sleep(1).
+
+  3. ms start can expect all the connects to fail. if a connect
+     succeeds, someone else is using that port, so our server won't.
+
+  4. Both of them should expect all the binds to succeed. if not,
+     mailstore.conf contains a bad address.
+
+
 We need to do the right thing.
 
