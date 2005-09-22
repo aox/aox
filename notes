@@ -693,14 +693,6 @@ We MUST support HTTPS for the webmail interface.
 We should figure out some way to not store plaintext passwords.
 
 
-Installer doesn't work on either debian or freebsd
-
-  It needs command-line switches to set the various defines. ORYXUSER,
-  ORYXGROUP, PGUSER, DBADDRESS come to mind.
-
-  Having a -h/--help is good too.
-
-
 Man pages
 
   Various man pages are now out of date, most of all
