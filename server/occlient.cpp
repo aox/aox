@@ -102,7 +102,7 @@ void OCClient::parse()
         String arg = s->mid( j+1 ).stripCRLF();
 
         log( "OCClient received " + tag + "/" + msg + " <<" + arg + ">>",
-             Log::Info );
+             Log::Debug );
 
         if ( msg == "shutdown" ) {
             log( "Shutting down due to ocd request" );
