@@ -179,7 +179,7 @@ void Store::parseAnnotationEntry()
             a->displayName = value;
         else
             error( Bad, "Unknown attribute: " + attrib );
-                
+
         more = present( " " );
     }
     require( ")" );
@@ -347,7 +347,9 @@ bool Store::processAnnotationNames()
     List<StoreData::Annotation>::Iterator it( d->annotations );
     StringList unknown;
     while ( it ) {
-        if ( !Annotation::find( it->name ) )
+        if ( !it->annotation )
+            it->annotation = Annotation::find( it->name );
+        if ( !it->annotation )
             unknown.append( it->name );
         ++it;
     }
@@ -356,7 +358,7 @@ bool Store::processAnnotationNames()
     if ( !d->flagCreator )
         d->annotationCreator = new AnnotationCreator( this, unknown );
     return false;
-    
+
 }
 
 
@@ -570,6 +572,15 @@ void Store::recordFlags()
 }
 
 
+static void bind( Query * q, uint i, const String & n )
+{
+    if ( n.isEmpty() )
+        q->bindNull( i );
+    else
+        q->bind( i, n );
+}
+
+
 /*! Replaces one or more annotations with the provided replacements. */
 
 void Store::replaceAnnotations()
@@ -579,58 +590,49 @@ void Store::replaceAnnotations()
     Mailbox * m = imap()->session()->mailbox();
     User * u = imap()->user();
     while ( it ) {
+        Query * q;
+        String o = "owner=$3";
+        if ( it->shared )
+            o = "owner is null";
         if ( it->value.isEmpty() ) {
-            Query * q = new Query( "delete from annotations where "
+            q = new Query( "delete from annotations where "
                                    "mailbox=$1 and (" + w + ") and "
-                                   "name=$2 and owner=$3", 0 );
+                                   "name=$2 and " + o, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, it->annotation->id() );
-            if ( it->shared )
-                q->bindNull( 3 );
-            else
-                q->bind( 3, u->id() );
+            q->bind( 3, u->id() );
             d->transaction->enqueue( q );
         }
         else {
-            Query * q = new Query( "insert into annotations "
-                                   "(mailbox, uid, owner, name, value, type, "
-                                   " language, displayname) "
-                                   "select $1,uid,$3,$2,null,null,null,null "
-                                   "from messages where "
-                                   "mailbox=$2 and (" + w + ") and uid not in "
-                                   "(select uid from annotations where "
-                                   "mailbox=$2 and (" + w + ") and "
-                                   "owner=$3 and name=$2)",
-                                   0 );
+            String existing = "where mailbox=$1 and (" + w + ") and name=$2 "
+                              "and " + o;
+            q = new Query( "update annotations set "
+                           "value=$4, type=$5, language=$6, displayname=$7 " +
+                           existing, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, it->annotation->id() );
-            if ( it->shared )
-                q->bindNull( 3 );
-            else
-                q->bind( 3, u->id() );
+            q->bind( 3, u->id() );
+            bind( q, 4, it->value );
+            bind( q, 5, it->contentType );
+            bind( q, 6, it->contentLanguage );
+            bind( q, 7, it->displayName );
             d->transaction->enqueue( q );
-            q = new Query( "update annotations set "
-                           "value=$1, type=$2, language=$3, displayname=$4 "
-                           "where mailbox=$5 and (" + w + ") and name=$6",
+
+            q = new Query( "insert into annotations "
+                           "(mailbox, uid, owner, name, value, type, "
+                           " language, displayname) "
+                           "select $1,uid,$3,$2,$4,$5,$6,$7 "
+                           "from messages where "
+                           "mailbox=$1 and (" + w + ") and uid not in "
+                           "(select uid from annotations " + existing + ")",
                            0 );
-            if ( it->value.isEmpty() )
-                q->bind( 1, it->value );
-            else
-                q->bindNull( 1 );
-            if ( it->contentType.isEmpty() )
-                q->bind( 2, it->contentType );
-            else
-                q->bindNull( 2 );
-            if ( it->contentLanguage.isEmpty() )
-                q->bind( 3, it->contentLanguage );
-            else
-                q->bindNull( 3 );
-            if ( it->displayName.isEmpty() )
-                q->bind( 4, it->displayName );
-            else
-                q->bindNull( 4 );
-            q->bind( 5, m->id() );
-            q->bind( 6, it->annotation->id() );
+            q->bind( 1, m->id() );
+            q->bind( 2, it->annotation->id() );
+            q->bind( 3, u->id() );
+            bind( q, 4, it->value );
+            bind( q, 5, it->contentType );
+            bind( q, 6, it->contentLanguage );
+            bind( q, 7, it->displayName );
             d->transaction->enqueue( q );
         }
         ++it;
