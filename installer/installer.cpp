@@ -31,6 +31,10 @@ bool silent = false;
 String * dbpass;
 
 
+const char * ORYXGROUP;
+const char * ORYXUSER;
+
+
 void help();
 void error( String );
 bool exists( String );
@@ -47,20 +51,36 @@ int main( int ac, char *av[] )
 {
     Scope global;
 
+    ORYXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
+    ORYXUSER = Configuration::compiledIn( Configuration::OryxUser );
+
     StringList args;
     while ( ac-- > 0 )
         args.append( new String( *av++ ) );
     args.shift();
     while ( !args.isEmpty() ) {
         String s( *args.shift() );
-        if ( s == "-n" )
-            report = true;
-        else if ( s == "-q" )
-            silent = true;
-        else if ( s == "-?" || s == "-h" || s == "--help" )
+        if ( s == "-?" || s == "-h" || s == "--help" ) {
             help();
-        else
+        }
+        else if ( s == "-q" ) {
+            silent = true;
+        }
+        else if ( s == "-n" ) {
+            report = true;
+        }
+        else if ( s == "-g" || s == "-u" ) {
+            if ( args.isEmpty() )
+                error( s + " specified with no argument." );
+            String p( *args.shift() );
+            if ( s == "-g" )
+                ORYXGROUP = p.cstr();
+            else if ( s == "-u" )
+                ORYXUSER = p.cstr();
+        }
+        else {
             error( "Unrecognised argument: '" + s + "'" );
+        }
     }
 
     if ( getuid() != 0 )
@@ -91,7 +111,8 @@ int main( int ac, char *av[] )
     String cf( Configuration::configFile() );
     if ( !report && exists( cf ) )
         error( cf + " already exists -- exiting without changes.\n"
-               " - Not creating user " ORYXUSER " in group " ORYXGROUP ".\n"
+               " - Not creating user " + ORYXUSER + " in group " +
+               ORYXGROUP + ".\n"
                " - Not creating PostgreSQL user " DBUSER ".\n"
                " - Not creating PostgreSQL database " DBNAME ".\n"
                " - Not creating the Oryx schema.\n"
@@ -122,8 +143,8 @@ void help()
         "    installer [-n] [-q] [-g group] [-u user] [-p postgres] "
         "[-a address]\n\n"
         "  This program does the following:\n\n"
-        "    1. Create a Unix group named " ORYXGROUP ".\n"
-        "    2. Create a Unix user named " ORYXUSER ".\n"
+        "    1. Create a Unix group named %s.\n"
+        "    2. Create a Unix user named %s.\n"
         "    3. Create a Postgres user named " DBUSER ".\n"
         "    4. Create a Postgres database named " DBNAME ".\n"
         "    5. Load the Oryx database schema.\n"
@@ -133,13 +154,15 @@ void help()
         "  The -n flag causes the program to report what it would do,\n"
         "  but not actually do anything.\n\n"
         "  The \"-g group\" flag allows you to specify a Unix group\n"
-        "  other than the default of '" ORYXGROUP "'.\n\n"
+        "  other than the default of '%s'.\n\n"
         "  The \"-u user\" flag allows you to specify a Unix username\n"
-        "  other than the default of '" ORYXUSER "'.\n\n"
+        "  other than the default of '%s'.\n\n"
         "  The \"-p postgres\" flag allows you to specify the name of\n"
         "  the PostgreSQL superuser. The default is '" PGUSER "'.\n\n"
         "  The \"-a address\" flag allows you to specify a different\n"
-        "  address for the Postgres server. The default is '" DBADDRESS "'.\n"
+        "  address for the Postgres server. The default is '" DBADDRESS "'.\n",
+        ORYXGROUP, ORYXUSER,
+        ORYXGROUP, ORYXUSER
     );
     exit( 0 );
 }
@@ -166,28 +189,42 @@ void oryxGroup()
         return;
 
     if ( report ) {
-        printf( " - Create a group named '" ORYXGROUP "' (e.g. \"groupadd "
-                ORYXGROUP "\").\n" );
+        printf( " - Create a group named '%s' (e.g. \"groupadd %s\").\n",
+                ORYXGROUP, ORYXGROUP );
         return;
     }
 
     String cmd;
-    if ( exists( "/usr/sbin/groupadd" ) )
-        cmd = "/usr/sbin/groupadd " ORYXGROUP;
-    else if ( exists( "/sbin/pw" ) )
-        cmd = "/sbin/pw groupadd " ORYXGROUP;
+    if ( exists( "/usr/sbin/groupadd" ) ) {
+        cmd.append( "/usr/sbin/groupadd " );
+        cmd.append( ORYXGROUP );
+    }
+    else if ( exists( "/sbin/pw" ) ) {
+        cmd.append( "/usr/sbin/pw groupadd " );
+        cmd.append( ORYXGROUP );
+    }
 
     int status = 0;
     if ( !cmd.isEmpty() ) {
         if ( !silent )
-            printf( "Creating the '" ORYXGROUP "' group.\n" );
+            printf( "Creating the '%s' group.\n", ORYXGROUP );
         status = system( cmd.cstr() );
     }
 
-    if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 )
-        error( "Couldn't create group '" ORYXGROUP "'. Please create it by "
-               "hand and re-run the installer.\n"
-               "The command which failed was '" + cmd + "'" );
+    if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 ) {
+        String s;
+        if ( cmd.isEmpty() )
+            s.append( "Don't know how to create group " );
+        else
+            s.append( "Couldn't create group " );
+        s.append( "'" );
+        s.append( ORYXGROUP );
+        s.append( "'. " );
+        s.append( "Please create it by hand and re-run the installer.\n" );
+        if ( !cmd.isEmpty() )
+            s.append( "The command which failed was '" + cmd + "'" );
+        error( s );
+    }
 }
 
 
@@ -198,30 +235,49 @@ void oryxUser()
         return;
 
     if ( report ) {
-        printf( " - Create a user named '" ORYXUSER "' in the '" ORYXGROUP "' "
-                "group (e.g. \"useradd -g " ORYXGROUP " " ORYXUSER "\").\n" );
+        printf( " - Create a user named '%s' in the '%s' group "
+                "(e.g. \"useradd -g %s %s\").\n",
+                ORYXUSER, ORYXGROUP, ORYXGROUP, ORYXUSER );
         return;
     }
 
     String cmd;
-    if ( exists( "/usr/sbin/useradd" ) )
-        cmd = "/usr/sbin/useradd -g " ORYXGROUP " " ORYXUSER;
-    else if ( exists( "/sbin/pw" ) )
-        cmd = "/sbin/pw useradd " ORYXUSER " -g " ORYXGROUP;
+    if ( exists( "/usr/sbin/useradd" ) ) {
+        cmd.append( "/usr/sbin/useradd -g " );
+        cmd.append( ORYXGROUP );
+        cmd.append( " " );
+        cmd.append( ORYXUSER );
+    }
+    else if ( exists( "/sbin/pw" ) ) {
+        cmd.append( "/usr/sbin/pw useradd " );
+        cmd.append( ORYXUSER );
+        cmd.append( " -g " );
+        cmd.append( ORYXGROUP );
+    }
 
     int status = 0;
     if ( !cmd.isEmpty() ) {
         if ( !silent )
-            printf( "Creating the '" ORYXUSER "' user.\n" );
+            printf( "Creating the '%s' user.\n", ORYXUSER );
         status = system( cmd.cstr() );
     }
 
-    if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 )
-        error( "Couldn't create user '" ORYXUSER "'.\n"
-               "Please create it by hand and re-run the installer.\n"
-               "The new user does not need "
-               "a valid login shell or password.\n"
-               "The command which failed was '" + cmd + "'" );
+    if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 ) {
+        String s;
+        if ( cmd.isEmpty() )
+            s.append( "Don't know how to create user " );
+        else
+            s.append( "Couldn't create user " );
+        s.append( "'" );
+        s.append( ORYXUSER );
+        s.append( "'. " );
+        s.append( "Please create it by hand and re-run the installer.\n" );
+        s.append( "The new user does not need a valid login shell or "
+                  "password.\n" );
+        if ( !cmd.isEmpty() )
+            s.append( "The command which failed was '" + cmd + "'" );
+        error( s );
+    }
 }
 
 

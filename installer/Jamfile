@@ -8,8 +8,6 @@ ObjectDefines installer.cpp :
      LOGFILE='\"$(LOGFILE)\"'
      LOGFILEMODE='\"$(LOGFILEMODE)\"'
      DBADDRESS='\"$(DBADDRESS)\"'
-     ORYXUSER='\"$(ORYXUSER)\"'
-     ORYXGROUP='\"$(ORYXGROUP)\"'
      PGUSER='\"$(PGUSER)\"'
      PSQL='\"$(PSQL)\"'
      DBUSER='\"$(DBUSER)\"'
