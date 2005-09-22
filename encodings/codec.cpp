@@ -274,14 +274,16 @@ Codec * Codec::byString( const String & s )
             if ( c >= 160 ) {
                 if ( c != 0xAB /* laquo */ &&
                      c != 0xBB /* raquo */ &&
-                     c != 0xA3 /* pound */ ) {
+                     c != 0xA3 /* pound */ &&
+                     c != 0xB4 /* acute accent - line ' */ ) {
                     latin1 = false;
                     windows1252 = false;
                 }
                 if ( c != 0xAB /* laquo */ &&
                      c != 0xBB /* raquo */ &&
                      c != 0xA3 /* pound */ &&
-                     c != 0xA4 /* euro */ ) {
+                     c != 0xA4 /* euro */ &&
+                     c != 0xB4 /* acute accent - line ' */ ) {
                     latin9 = false;
                 }
             }
