@@ -542,9 +542,18 @@ Address * SMTP::address()
         return 0;
     }
     p.step();
-    String localpart = p.dotAtom();
+    String localpart;
+    if ( p.next() == '"' ) {
+        p.step();
+        localpart = p.phrase();
+        if ( p.next() == '"' )
+            p.step();
+    }
+    else {
+        localpart = p.dotAtom();
+    }
     if ( localpart.isEmpty() ) {
-        respond( 503, "Empty localparts are not allowed" );
+        respond( 503, "Parse error parsing localpart" );
         return 0;
     }
     if ( p.next() != '@' ) {
