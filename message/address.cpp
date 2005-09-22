@@ -556,6 +556,13 @@ void AddressParser::address( int & i )
         if ( s[i] == '<' ) {
             i--;
             name = phrase( i );
+            while ( i > 0 && s[i] > 127 ) {
+                // we're looking at an unencoded 8-bit name. we react
+                // to that by ignoring the display-name.
+                name = "";
+                i--;
+                (void)phrase( i );
+            }
             if ( s[i] == '@' ) {
                 // we may be looking at address "lp@domain
                 // <lp@domain>", or at some other error. we respond to
