@@ -411,7 +411,7 @@ void SMTP::rcptAnswer( User * u )
         d->state = Data;
     }
     else {
-        respond( 550, to + " is not a legal destination address" );
+        respond( 450, to + " is not a legal destination address" );
     }
     sendResponses();
 }
