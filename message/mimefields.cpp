@@ -149,6 +149,8 @@ void MimeField::parseParameters( Parser822 *p )
         p->comment();
 
         if ( n.isEmpty() ) {
+            if ( p->atEnd() )
+                return; // for 'Content-Type: text/html;'
             setError( "Empty parameter" );
             return;
         }
