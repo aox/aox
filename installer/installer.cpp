@@ -31,6 +31,7 @@ bool silent = false;
 String * dbpass;
 
 
+void help();
 void error( String );
 bool exists( String );
 void oryxGroup();
@@ -56,6 +57,8 @@ int main( int ac, char *av[] )
             report = true;
         else if ( s == "-q" )
             silent = true;
+        else if ( s == "-?" || s == "-h" || s == "--help" )
+            help();
         else
             error( "Unrecognised argument: '" + s + "'" );
     }
@@ -107,6 +110,38 @@ int main( int ac, char *av[] )
     if ( d )
         Allocator::addEternal( d, "dispatcher" );
     EventLoop::global()->start();
+}
+
+
+void help()
+{
+    fprintf(
+        stderr,
+        "  Mailstore installer\n\n"
+        "  Synopsis:\n\n"
+        "    installer [-n] [-q] [-g group] [-u user] [-p postgres] "
+        "[-a address]\n\n"
+        "  This program does the following:\n\n"
+        "    1. Create a Unix group named " ORYXGROUP ".\n"
+        "    2. Create a Unix user named " ORYXUSER ".\n"
+        "    3. Create a Postgres user named " DBUSER ".\n"
+        "    4. Create a Postgres database named " DBNAME ".\n"
+        "    5. Load the Oryx database schema.\n"
+        "    6. Generate an initial configuration file.\n\n"
+        "  Options:\n\n"
+        "  The -q flag suppresses all normal output.\n\n"
+        "  The -n flag causes the program to report what it would do,\n"
+        "  but not actually do anything.\n\n"
+        "  The \"-g group\" flag allows you to specify a Unix group\n"
+        "  other than the default of '" ORYXGROUP "'.\n\n"
+        "  The \"-u user\" flag allows you to specify a Unix username\n"
+        "  other than the default of '" ORYXUSER "'.\n\n"
+        "  The \"-p postgres\" flag allows you to specify the name of\n"
+        "  the PostgreSQL superuser. The default is '" PGUSER "'.\n\n"
+        "  The \"-a address\" flag allows you to specify a different\n"
+        "  address for the Postgres server. The default is '" DBADDRESS "'.\n"
+    );
+    exit( 0 );
 }
 
 
