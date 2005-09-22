@@ -95,7 +95,6 @@ int main( int ac, char *av[] )
         error( "PostgreSQL superuser '" + String( PGUSER ) +
                "' does not exist." );
     postgres = p->pw_uid;
-    seteuid( postgres );
 
     String dba( DBADDRESS );
     if ( dba[0] == '/' && !exists( dba ) ) {
@@ -123,12 +122,9 @@ int main( int ac, char *av[] )
                " - Not creating the Oryx schema.\n"
                " - Not creating stub configuration file." );
 
-    // adding users wants to be root.
-    seteuid( 0 );
     oryxGroup();
     oryxUser();
 
-    // doing the rest wants to be postgres
     seteuid( postgres );
     EventLoop::setup();
     database();
@@ -433,8 +429,15 @@ void database()
     if ( d->state == 5 ) {
         // How utterly, utterly disgusting.
         Database::disconnect();
+
+        if ( String( ORYXUSER ) == DBUSER ) {
+            struct passwd * u = getpwnam( ORYXUSER );
+            if ( u )
+                seteuid( u->pw_uid );
+        }
+
         Configuration::setup( "" );
-        Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
+        Configuration::add( "db-user = '" DBUSER "'" );
         Configuration::add( "db-name = '" DBNAME "'" );
         Database::setup();
         d->state = 6;
