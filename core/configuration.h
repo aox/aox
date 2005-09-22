@@ -26,6 +26,8 @@ public:
         InitDir,
         OryxUser,
         OryxGroup,
+        PgUser,
+        DefaultDbAddress,
         // additional settings go ABOVE THIS LINE
         Version, LastSetting = Version
     };

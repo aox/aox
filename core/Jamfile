@@ -22,6 +22,7 @@ ObjectDefines configuration.cpp :
      PIDFILEDIR='\"$(PIDFILEDIR)\"'
      LOGFILE='\"$(LOGFILE)\"'
      LOGFILEMODE='\"$(LOGFILEMODE)\"'
+     PGUSER='\"$(PGUSER)\"'
      DBADDRESS='\"$(DBADDRESS)\"'
      ORYXUSER='\"$(ORYXUSER)\"'
      ORYXGROUP='\"$(ORYXGROUP)\"'

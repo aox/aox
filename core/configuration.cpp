@@ -394,6 +394,12 @@ const char * Configuration::compiledIn( CompileTimeSetting setting )
     case OryxGroup:
         return ORYXGROUP;
         break;
+    case PgUser:
+        return PGUSER;
+        break;
+    case DefaultDbAddress:
+        return DBADDRESS;
+        break;
     case Version:
         return VERSION;
         break;

@@ -31,8 +31,10 @@ bool silent = false;
 String * dbpass;
 
 
-const char * ORYXGROUP;
+const char * PGUSER;
 const char * ORYXUSER;
+const char * ORYXGROUP;
+const char * DBADDRESS;
 
 
 void help();
@@ -51,8 +53,10 @@ int main( int ac, char *av[] )
 {
     Scope global;
 
-    ORYXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
+    PGUSER = Configuration::compiledIn( Configuration::PgUser );
     ORYXUSER = Configuration::compiledIn( Configuration::OryxUser );
+    ORYXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
+    DBADDRESS = Configuration::compiledIn( Configuration::DefaultDbAddress );
 
     StringList args;
     while ( ac-- > 0 )
@@ -88,14 +92,15 @@ int main( int ac, char *av[] )
 
     struct passwd * p = getpwnam( PGUSER );
     if ( !p )
-        error( "PostgreSQL superuser '" PGUSER "' does not exist." );
+        error( "PostgreSQL superuser '" + String( PGUSER ) +
+               "' does not exist." );
     postgres = p->pw_uid;
     seteuid( postgres );
 
     String dba( DBADDRESS );
     if ( dba[0] == '/' && !exists( dba ) ) {
-        fprintf( stderr, "Warning: DBADDRESS is set to '" DBADDRESS "', "
-                 "which does not exist.\n" );
+        fprintf( stderr, "Warning: DBADDRESS is set to '%s', "
+                 "which does not exist.\n", DBADDRESS );
         if ( exists( "/etc/debian_version" ) &&
              exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
         {
@@ -158,11 +163,12 @@ void help()
         "  The \"-u user\" flag allows you to specify a Unix username\n"
         "  other than the default of '%s'.\n\n"
         "  The \"-p postgres\" flag allows you to specify the name of\n"
-        "  the PostgreSQL superuser. The default is '" PGUSER "'.\n\n"
+        "  the PostgreSQL superuser. The default is '%s'.\n\n"
         "  The \"-a address\" flag allows you to specify a different\n"
-        "  address for the Postgres server. The default is '" DBADDRESS "'.\n",
+        "  address for the Postgres server. The default is '%s'.\n",
         ORYXGROUP, ORYXUSER,
-        ORYXGROUP, ORYXUSER
+        ORYXGROUP, ORYXUSER,
+        PGUSER, DBADDRESS
     );
     exit( 0 );
 }
@@ -300,7 +306,7 @@ void database()
 {
     if ( !d ) {
         Configuration::setup( "" );
-        Configuration::add( "db-user = '" PGUSER "'" );
+        Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
         Database::setup();
         d = new Dispatcher;
@@ -334,8 +340,9 @@ void database()
             if ( report ) {
                 d->state = 2;
                 printf( " - Create a PostgreSQL user named '" DBUSER "'.\n"
-                        "   As user " PGUSER ", run:\n\n"
-                        "psql -d template1 -qc \"%s\"\n\n", create.cstr() );
+                        "   As user %s, run:\n\n"
+                        "psql -d template1 -qc \"%s\"\n\n",
+                        PGUSER, create.cstr() );
             }
             else {
                 d->state = 1;
@@ -382,8 +389,9 @@ void database()
             if ( report ) {
                 d->state = 7;
                 printf( " - Create a database named '" DBNAME "'.\n"
-                        "   As user " PGUSER ", run:\n\n"
-                        "psql -d template1 -qc \"%s\"\n\n", create.cstr() );
+                        "   As user %s, run:\n\n"
+                        "psql -d template1 -qc \"%s\"\n\n",
+                        PGUSER, create.cstr() );
                 // We let state 7 think the mailstore query returned 0
                 // rows, so that it prints an appropriate message.
             }
@@ -426,7 +434,7 @@ void database()
         // How utterly, utterly disgusting.
         Database::disconnect();
         Configuration::setup( "" );
-        Configuration::add( "db-user = '" PGUSER "'" );
+        Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = '" DBNAME "'" );
         Database::setup();
         d->state = 6;
@@ -467,9 +475,9 @@ void database()
             if ( report ) {
                 d->state = 8;
                 printf( " - Load the Oryx database schema.\n   "
-                        "As user " PGUSER ", run:\n\n"
+                        "As user %s, run:\n\n"
                         "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
-                        cmd.cstr() );
+                        PGUSER, cmd.cstr() );
             }
             else {
                 d->state = 8;
@@ -506,9 +514,9 @@ void database()
                     {
                         fprintf( stderr, "Couldn't install the Oryx schema.\n"
                                  "Please re-run the installer after doing the "
-                                 "following as user " PGUSER ":\n\n"
+                                 "following as user %s:\n\n"
                                  "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n",
-                                 cmd.cstr() );
+                                 PGUSER, cmd.cstr() );
                         EventLoop::shutdown();
                     }
                 }
@@ -543,7 +551,7 @@ void configFile()
     String cfg(
         "logfile      = " LOGFILE "\n"
         "logfile-mode = " LOGFILEMODE "\n"
-        "db-address   = " DBADDRESS "\n"
+        "db-address   = " + String( DBADDRESS ) + "\n"
         "db-name      = " DBNAME "\n"
         "db-user      = " DBUSER "\n"
         "# Security note: Anyone who can read this password can do\n"

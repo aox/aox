@@ -7,8 +7,6 @@ ObjectDefines installer.cpp :
      CONFIGDIR='\"$(CONFIGDIR)\"'
      LOGFILE='\"$(LOGFILE)\"'
      LOGFILEMODE='\"$(LOGFILEMODE)\"'
-     DBADDRESS='\"$(DBADDRESS)\"'
-     PGUSER='\"$(PGUSER)\"'
      PSQL='\"$(PSQL)\"'
      DBUSER='\"$(DBUSER)\"'
      DBNAME='\"$(DBNAME)\"'
