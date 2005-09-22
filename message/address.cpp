@@ -526,6 +526,14 @@ void AddressParser::address( int & i )
         add( "", "", "" );
         i = i - 2;
     }
+    else if ( i > 2 && s[i] == '>' && s[i-1] == ';' && s[i-2] == ':' ) {
+        // it's a microsoft-broken '<Unknown-Recipient:;>'
+        i = i - 3;
+        String name = phrase( i );
+        add( name, 0, 0 );
+        if ( s[i] == '<' )
+            i--;
+    }        
     else if ( s[i] == '>' ) {
         // name-addr
         i--;
