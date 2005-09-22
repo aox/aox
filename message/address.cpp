@@ -587,6 +587,30 @@ void AddressParser::address( int & i )
         else
             add( name, lp, dom );
     }
+    else if ( i > 1 && s[i] == '=' && s[i-1] == '?' && s[i-2] == '>' ) {
+        // we're looking at "=?charset?q?safdsafsdfs<a@b>?=". how ugly.
+        i = i - 3;
+        String dom = domain( i );
+        if ( s[i] == '@' ) {
+            i--;
+            String lp = localpart( i );
+            if ( s[i] == '<' ) {
+                i--;
+                (void)atom( i ); // discard the "supplied" display-name
+                add( "", lp, dom );
+            }
+            else {
+                error( "Expected '<' while in "
+                       "=?...?...<localpart@domain>?=", i );
+                return;
+            }
+        }
+        else {
+            error( "Expected '@' while in "
+                   "=?...?...<localpart@domain>?=", i );
+            return;
+        }
+    }
     else if ( s[i] == ';' ) {
         // group
         bool empty = true;
@@ -831,9 +855,6 @@ String AddressParser::atom( int & i )
 /*! This private function parses an RFC 2822 phrase (a sequence of
     words, more or less) ending at \a i, and returns the phrase as a
     string.
-
-    No RFC 2047 decoding is done by this function; that has to be
-    handled by upper layers to conform to the RFC.
 */
 
 String AddressParser::phrase( int & i )
