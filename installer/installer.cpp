@@ -504,17 +504,10 @@ void database()
                         if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                             exit( -1 );
                     execlp( PSQL, "psql", DBNAME, "-f", "-", 0 );
-                    execl( String( pgHome + "/bin/" + PSQL ).cstr(),
-                           "psql", DBNAME, "-f", "-", 0 );
-                    String path( getenv( "PATH" ) );
-                    fprintf( stderr, "Couldn't execute psql. "
-                             "Tried the following directories:\n" );
-                    StringList::Iterator it( *StringList::split( ':', path ) );
-                    while ( it ) {
-                        fprintf( stderr, "    %s\n", it->cstr() );
-                        ++it;
-                    }
-                    fprintf( stderr, "    %s/bin\n", pgHome.cstr() );
+                    String psql( pgHome + "/bin/psql" );
+                    if ( exists( psql ) )
+                        execl( psql.cstr(), "psql", DBNAME, "-f", "-", 0 );
+                    exit( -1 );
                 }
                 else {
                     int status = 0;
@@ -528,10 +521,14 @@ void database()
                     if ( pid < 0 || ( WIFEXITED( status ) &&
                                       WEXITSTATUS( status ) != 0 ) )
                     {
-                        fprintf( stderr, "Couldn't install the Oryx schema.\n"
-                                 "Please re-run the installer after doing the "
-                                 "following as user %s:\n\n"
-                                 "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n",
+                        fprintf( stderr, "Couldn't install the Oryx schema" );
+                        if ( WEXITSTATUS( status ) == 255 )
+                            fprintf( stderr, " (no psql in $PATH or "
+                                     "~postgres/bin)" );
+                        fprintf( stderr, ".\n" );
+                        fprintf( stderr, "Please re-run the installer after "
+                                 "doing the following as user %s:\n\n"
+                                 "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
                                  PGUSER, cmd.cstr() );
                         EventLoop::shutdown();
                     }
