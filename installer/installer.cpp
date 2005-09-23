@@ -521,11 +521,12 @@ void database()
                     if ( pid < 0 || ( WIFEXITED( status ) &&
                                       WEXITSTATUS( status ) != 0 ) )
                     {
-                        fprintf( stderr, "Couldn't install the Oryx schema" );
+                        fprintf( stderr,
+                                 "Couldn't install the Oryx schema.\n" );
                         if ( WEXITSTATUS( status ) == 255 )
-                            fprintf( stderr, " (no psql in $PATH or "
-                                     "~postgres/bin)" );
-                        fprintf( stderr, ".\n" );
+                            fprintf( stderr,
+                                     "No psql in ~postgres/bin:%s\n",
+                                     getenv( "PATH" ) );
                         fprintf( stderr, "Please re-run the installer after "
                                  "doing the following as user %s:\n\n"
                                  "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
