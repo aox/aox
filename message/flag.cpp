@@ -98,10 +98,9 @@ void FlagFetcher::execute()
     The Flag class represents a single message flag, ie. a named
     binary variable that may be set on any Message.
 
-    A Flag has a name() and an integer id(), both of which are
-    unique. The id is used to store flags. There is a function to
-    find() a specific flag either by name or id, and also one to get a
-    list of all known flags().
+    A Flag has a name() and an integer id(), both of which are unique.
+    The id is used to store flags. There are functions to find() a
+    specific flag either by name or id.
 */
 
 
