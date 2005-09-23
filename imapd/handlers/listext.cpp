@@ -58,8 +58,7 @@ public:
     to show remote mailboxes is silently ignored.
 
     This class contains a few utility functions used by Lsub, since
-    the two share so much behaviour, namely match(), reference() and
-    combinedName().
+    the two share so much behaviour (e.g. match(), reference()).
 */
 
 
@@ -352,8 +351,7 @@ void Listext::listChildren( Mailbox * mailbox, const String & pattern )
 }
 
 
-/*! Sends a LIST or LSUB response for \a mailbox, depending on whether
-    \a lsub is false or true.
+/*! Sends a LIST or LSUB response for \a mailbox.
 
     Open issue: If \a mailbox is the inbox, what should we send?
     INBOX, or the fully qualified name, or the name relative to the
