@@ -525,7 +525,7 @@ void database()
                                  "Couldn't install the Oryx schema.\n" );
                         if ( WEXITSTATUS( status ) == 255 )
                             fprintf( stderr,
-                                     "No psql in ~postgres/bin:%s\n",
+                                     "No psql in %s:~postgres/bin)\n",
                                      getenv( "PATH" ) );
                         fprintf( stderr, "Please re-run the installer after "
                                  "doing the following as user %s:\n\n"
