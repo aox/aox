@@ -56,9 +56,6 @@ public:
 
     Mailstore does not support remote mailboxes, so the listext option
     to show remote mailboxes is silently ignored.
-
-    This class contains a few utility functions used by Lsub, since
-    the two share so much behaviour (e.g. match(), reference()).
 */
 
 
