@@ -456,6 +456,13 @@ void TlsProxy::decrypt()
     do {
         len = 0;
         status = cryptPopData( cs, buffer, 4096, &len );
+        if ( status == CRYPT_ERROR_READ ) {
+            log( "Client closed the connection" );
+            commit();
+            userside->close();
+            serverside->close();
+            exit( 0 );
+        }
         handleError( status, "cryptPopData" );
         if ( len > 0 )
             serverside->writeBuffer()->append( buffer, len );

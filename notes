@@ -332,12 +332,6 @@ Update doc/recorder.man
 Look into supporting the MySQL protocol after 1.0
 
 
-Look at cryptlib error messages after 0.96.
-
-  We report some things as errors that may be just ordinary EOF-like
-  conditions.
-
-
 We need to support date field searches.
 
 
