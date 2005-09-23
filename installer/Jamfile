@@ -1,4 +1,6 @@
 SubDir TOP installer ;
+SubInclude TOP core ;
+SubInclude TOP db ;
 
 Build installer : installer.cpp ;
 
