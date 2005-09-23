@@ -25,6 +25,7 @@
 
 
 uid_t postgres;
+String pgHome;
 class Dispatcher * d;
 bool report = false;
 bool silent = false;
@@ -95,6 +96,7 @@ int main( int ac, char *av[] )
         error( "PostgreSQL superuser '" + String( PGUSER ) +
                "' does not exist." );
     postgres = p->pw_uid;
+    pgHome = String( p->pw_dir );
 
     String dba( DBADDRESS );
     if ( dba[0] == '/' && !exists( dba ) ) {
@@ -502,6 +504,17 @@ void database()
                         if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                             exit( -1 );
                     execlp( PSQL, "psql", DBNAME, "-f", "-", 0 );
+                    execl( String( pgHome + "/bin/" + PSQL ).cstr(),
+                           "psql", DBNAME, "-f", "-", 0 );
+                    String path( getenv( "PATH" ) );
+                    fprintf( stderr, "Couldn't execute psql. "
+                             "Tried the following directories:\n" );
+                    StringList::Iterator it( *StringList::split( ':', path ) );
+                    while ( it ) {
+                        fprintf( stderr, "    %s\n", it->cstr() );
+                        ++it;
+                    }
+                    fprintf( stderr, "    %s/bin\n", pgHome.cstr() );
                 }
                 else {
                     int status = 0;
