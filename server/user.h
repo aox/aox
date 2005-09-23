@@ -44,7 +44,6 @@ public:
     Query * create( EventHandler * );
     Query * remove( EventHandler * );
     Query * changeSecret( EventHandler * );
-    void rename( const String &, EventHandler * );
 
     void execute();
 
@@ -52,9 +51,8 @@ public:
     String error() const;
 
 private:
-    void createHelper();
-    void renameHelper();
     void refreshHelper();
+    void createHelper();
     void removeHelper();
     void csHelper();
 

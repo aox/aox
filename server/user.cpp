@@ -39,7 +39,6 @@ public:
     enum Operation {
         LoungingAround,
         Creating,
-        Renaming,
         Refreshing,
         Removing,
         ChangingSecret
@@ -200,9 +199,6 @@ void User::execute()
     switch( d->mode ) {
     case UserData::Creating:
         createHelper();
-        break;
-    case UserData::Renaming:
-        renameHelper();
         break;
     case UserData::Refreshing:
         refreshHelper();
@@ -511,39 +507,6 @@ void User::csHelper()
         d->result->setState( Query::Completed );
 
     d->result->notify();
-}
-
-
-/*! Renames this User to \a newLogin and notifies \a user when the
-    operation is complete. exists() must be true to call this
-    function.
-*/
-
-void User::rename( const String & newLogin, EventHandler * user  )
-{
-    if ( !exists() ) {
-        d->error = "Cannot rename nonexistent user";
-        return;
-    }
-    d->q = new Query( "update users set login=$1 where id=$2", this );
-    d->q->bind( 1, newLogin );
-    d->q->bind( 2, d->id );
-    d->q->execute();
-    d->login = newLogin;
-}
-
-
-/*! Finishes the work of rename(). */
-
-void User::renameHelper()
-{
-    if ( !d->q->done() )
-        return;
-    if ( d->q->failed() ) {
-        d->error = "SQL error during user update: " + d->q->error();
-        refresh( d->user );
-    }
-    d->user->execute();
 }
 
 
