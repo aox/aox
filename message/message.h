@@ -51,9 +51,11 @@ public:
     bool hasHeaders() const;
     bool hasTrivia() const;
     bool hasBodies() const;
+    bool hasAnnotations() const;
     void setFlagsFetched( bool );
     void setHeadersFetched();
     void setBodiesFetched();
+    void setAnnotationsFetched();
 
     static String baseSubject( const String & );
 
@@ -65,9 +67,6 @@ private:
     friend class Bodypart;
     friend class MessageBodyFetcher;
     friend class MessageFlagFetcher;
-
-    void fetchedExtraFlags();
-    void fetchedBodies();
 };
 
 

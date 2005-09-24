@@ -1,6 +1,7 @@
 #include "fetcher.h"
 
 #include "messageset.h"
+#include "annotation.h"
 #include "allocator.h"
 #include "bodypart.h"
 #include "mailbox.h"
@@ -44,6 +45,7 @@ static PreparedStatement * header;
 static PreparedStatement * trivia;
 static PreparedStatement * flags;
 static PreparedStatement * body;
+static PreparedStatement * anno;
 
 
 /*! \class Fetcher fetcher.h
@@ -71,33 +73,42 @@ Fetcher::Fetcher( Mailbox * m )
     : EventHandler(), d( new FetcherData )
 {
     d->mailbox = m;
-    if ( !::header ) {
-        const char * q =
-            "select h.uid, h.part, f.name, h.value from "
-            "header_fields h, field_names f where "
-            "h.field = f.id and "
-            "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
-            "order by h.uid, h.part, h.id";
-        ::header = new PreparedStatement( q );
-        q = "select uid, idate, rfc822size from messages "
-            "where uid>=$1 and uid<=$2 and mailbox=$3 "
-            "order by uid";
-        ::trivia = new PreparedStatement( q );
-        q = "select p.uid, p.part, b.text, b.data, "
-            "b.bytes as rawbytes, p.bytes, p.lines "
-            "from part_numbers p left join bodyparts b on p.bodypart=b.id "
-            "where p.uid>=$1 and p.uid<=$2 and p.mailbox=$3 and p.part != '' "
-            "order by p.uid, p.part";
-        ::body = new PreparedStatement( q );
-        q = "select uid, flag from flags "
-            "where uid>=$1 and uid<=$2 and mailbox=$3 "
-            "order by uid, flag";
-        ::flags = new PreparedStatement( q );
-        Allocator::addEternal( header, "statement to fetch headers" );
-        Allocator::addEternal( trivia, "statement to fetch ~nothing" );
-        Allocator::addEternal( body, "statement to fetch bodies" );
-        Allocator::addEternal( flags, "statement to fetch flags" );
-    }
+    if ( ::header )
+        return;
+
+    const char * q =
+        "select h.uid, h.part, f.name, h.value from "
+        "header_fields h, field_names f where "
+        "h.field = f.id and "
+        "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
+        "order by h.uid, h.part, h.id";
+    ::header = new PreparedStatement( q );
+    q = "select uid, idate, rfc822size from messages "
+        "where uid>=$1 and uid<=$2 and mailbox=$3 "
+        "order by uid";
+    ::trivia = new PreparedStatement( q );
+    q = "select p.uid, p.part, b.text, b.data, "
+        "b.bytes as rawbytes, p.bytes, p.lines "
+        "from part_numbers p left join bodyparts b on p.bodypart=b.id "
+        "where p.uid>=$1 and p.uid<=$2 and p.mailbox=$3 and p.part != '' "
+        "order by p.uid, p.part";
+    ::body = new PreparedStatement( q );
+    q = "select uid, flag from flags "
+        "where uid>=$1 and uid<=$2 and mailbox=$3 "
+        "order by uid, flag";
+    ::flags = new PreparedStatement( q );
+    q = "select a.uid, a.owner, "
+        "a.value, a.type, a.language, a.displayname, "
+        "an.name, an.id "
+        "from annotations a, annotation_names an "
+        "where a.uid>=$1 and a.uid<=$2 and a.mailbox=$3 "
+        "and a.name=an.id";
+    ::anno = new PreparedStatement( q );
+    Allocator::addEternal( header, "statement to fetch headers" );
+    Allocator::addEternal( trivia, "statement to fetch ~nothing" );
+    Allocator::addEternal( body, "statement to fetch bodies" );
+    Allocator::addEternal( flags, "statement to fetch flags" );
+    Allocator::addEternal( anno, "statement to fetch annotations" );
 }
 
 
@@ -424,4 +435,26 @@ void MessageTriviaFetcher::decode( Message * m , Row * r )
 void MessageTriviaFetcher::setDone( Message * )
 {
     // hard work
+}
+
+
+PreparedStatement * MessageAnnotationFetcher::query() const
+{
+    return ::anno;
+}
+
+
+void MessageAnnotationFetcher::decode( Message * m, Row * r )
+{
+    Annotation * a = Annotation::find( r->getInt( "id" ) );
+    if ( !a )
+        a = new Annotation( r->getString( "name" ),
+                            r->getInt( "id" ) );
+    
+}
+
+
+void MessageAnnotationFetcher::setDone( Message * m )
+{
+    m->setAnnotationsFetched();
 }

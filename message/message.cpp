@@ -21,7 +21,7 @@ public:
         : strict( false ), uid( 0 ), mailbox( 0 ),
           rfc822Size( 0 ), internalDate( 0 ),
           hasFlags( false ), hasHeaders( false ),
-          hasBodies( false )
+          hasBodies( false ), hasAnnotations( false )
 
     {}
 
@@ -42,6 +42,7 @@ public:
     bool hasFlags;
     bool hasHeaders;
     bool hasBodies;
+    bool hasAnnotations;
 };
 
 
@@ -455,13 +456,13 @@ bool Message::hasBodies() const
 }
 
 
-/*! This private helper is used by MessageBodyFetcher to signal that the
-    body data for this message have been fetched.
+/*! Returns true if this message has read its annotations from the
+    database, and false if it has not.
 */
 
-void Message::fetchedBodies()
+bool Message::hasAnnotations() const
 {
-    d->hasBodies = true;
+    return d->hasAnnotations; 
 }
 
 
@@ -492,6 +493,15 @@ void Message::setHeadersFetched()
 void Message::setBodiesFetched()
 {
     d->hasBodies = true;
+}
+
+
+/*! Records that all the annotations on this Message have been
+    fetched. */
+
+void Message::setAnnotationsFetched()
+{
+    d->hasAnnotations = true;
 }
 
 

@@ -28,6 +28,7 @@ public:
           parent( 0 ), children( 0 ), messages( 0 ),
           flagFetcher( 0 ), headerFetcher( 0 ),
           triviaFetcher( 0 ), bodyFetcher( 0 ),
+          annotationFetcher( 0 ),
           watchers( 0 )
     {}
 
@@ -45,6 +46,7 @@ public:
     Fetcher * headerFetcher;
     Fetcher * triviaFetcher;
     Fetcher * bodyFetcher;
+    Fetcher * annotationFetcher;
     List<EventHandler> * watchers;
 };
 
@@ -596,6 +598,19 @@ void Mailbox::fetchFlags( const MessageSet & messages,
 }
 
 
+/*! Starts retrieving the annotations of \a messages, and will notify
+    \a handler whenever at least one message becomes available.
+*/
+
+void Mailbox::fetchAnnotations( const MessageSet & messages,
+                                EventHandler * handler )
+{
+    if ( !d->annotationFetcher )
+        d->annotationFetcher = new MessageAnnotationFetcher( this );
+    d->annotationFetcher->insert( messages, handler );
+}
+
+
 /*! Makes the Mailbox forget that \a f exists. The next time the
     Mailbox needs a suitable Fetcher, it will create one.
 */
@@ -610,6 +625,8 @@ void Mailbox::forget( Fetcher * f )
         d->bodyFetcher = 0;
     else if ( d->triviaFetcher == f )
         d->triviaFetcher = 0;
+    else if ( d->annotationFetcher == f )
+        d->annotationFetcher = 0;
 }
 
 

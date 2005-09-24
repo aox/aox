@@ -30,6 +30,7 @@ public:
           flags( false ), envelope( false ),
           body( false ), bodystructure( false ),
           internaldate( false ), rfc822size( false ),
+          annotation( false ),
           needHeader( false ), needBody( false )
     {}
 
@@ -63,6 +64,7 @@ public:
     bool bodystructure;
     bool internaldate;
     bool rfc822size;
+    bool annotation;
     List<Section> sections;
 
     // and the sections imply that we...
@@ -191,6 +193,9 @@ void Fetch::parseAttribute( bool alsoMacro )
     }
     else if ( keyword == "rfc822.size" ) {
         d->rfc822size = true;
+    }
+    else if ( keyword == "annotation" ) {
+        d->annotation = true;
     }
     else if ( keyword == "rfc822.text" ) {
         d->peek = false;
@@ -411,7 +416,7 @@ void Fetch::execute()
 
 void Fetch::sendFetchQueries()
 {
-    MessageSet headers, bodies, flags, trivia;
+    MessageSet headers, bodies, flags, trivia, annotations;
     Mailbox * mb = imap()->session()->mailbox();
 
     uint i = 1;
@@ -426,6 +431,8 @@ void Fetch::sendFetchQueries()
             flags.add( uid );
         if ( ( d->rfc822size || d->internaldate ) && !m->hasTrivia() )
             trivia.add( uid );
+        if ( d->annotation && !m->hasAnnotations() )
+            annotations.add( uid );
         i++;
     }
 
@@ -433,6 +440,7 @@ void Fetch::sendFetchQueries()
     mb->fetchHeaders( headers, this );
     mb->fetchBodies( bodies, this );
     mb->fetchTrivia( trivia, this );
+    mb->fetchAnnotations( annotations, this );
 
     // if we're not peeking, send off a query to set \seen, and don't
     // wait for any results.
@@ -618,6 +626,8 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
         l.append( "BODY " + bodyStructure( m, false ) );
     if ( d->bodystructure )
         l.append( "BODYSTRUCTURE " + bodyStructure( m, true ) );
+    if ( d->annotation )
+        l.append( "ANNOTATION " + annotation( m ) );
 
     List< FetchData::Section >::Iterator it( d->sections );
     while ( it ) {
@@ -906,4 +916,14 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
     }
 
     return "(" + l.join( " " ) + ")";
+}
+
+
+/*! Returns the IMAP ANNOTATION production for \a m. */
+
+String Fetch::annotation( Multipart * m )
+{
+    // this is a little bit of a noop. I just want to get back to code
+    // I can submit.
+    return "ANNOTATION ()";
 }

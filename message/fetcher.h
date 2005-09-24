@@ -84,4 +84,16 @@ public:
 };
 
 
+class MessageAnnotationFetcher
+    : public Fetcher
+{
+public:
+    MessageAnnotationFetcher( Mailbox * m ): Fetcher( m ) {}
+
+    PreparedStatement * query() const;
+    void decode( Message *, Row * );
+    void setDone( Message * );
+};
+
+
 #endif

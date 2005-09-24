@@ -60,6 +60,7 @@ public:
     void fetchTrivia( const MessageSet &, EventHandler * );
     void fetchBodies( const MessageSet &, EventHandler * );
     void fetchFlags( const MessageSet &, EventHandler * );
+    void fetchAnnotations( const MessageSet &, EventHandler * );
     void forget( Fetcher * );
 
     void addWatcher( EventHandler * );

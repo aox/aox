@@ -166,6 +166,7 @@ void Store::parseAnnotationEntry()
         StoreData::Annotation * a = it;
         if ( !it ) {
             a = new StoreData::Annotation;
+            a->name = entry;
             d->annotations.append( a );
             a->shared = shared;
         }

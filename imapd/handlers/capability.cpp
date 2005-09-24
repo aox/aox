@@ -68,6 +68,7 @@ String Capability::capabilities( IMAP * i )
         c.append( "AUTH=PLAIN" );
 
     c.append( "ACL" );
+    c.append( "ANNOTATE" );
     c.append( "BINARY" );
     c.append( "ID" );
     c.append( "IDLE" );
