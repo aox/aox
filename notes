@@ -726,5 +726,13 @@ Something like soft-bounce might just be useful
   5xx depending on the type of error.
 
 
+"ms check" works... uh...
+
+  To see it, add "loglevel=debug" to mailstore.conf and run ms
+  check. You'll get exactly the message you should.
+
+  Now change it to "log-level=debug" and rerun ms check.
+
+
 We need to do the right thing.
 
