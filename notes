@@ -734,5 +734,11 @@ Something like soft-bounce might just be useful
   Now change it to "log-level=debug" and rerun ms check.
 
 
+installer could look for user postgres
+
+  If PGUSER doesn't exist according to getpwnam, it could try postgres
+  and pgsql. does the result need to be written to mailstore.conf? no?
+
+
 We need to do the right thing.
 
