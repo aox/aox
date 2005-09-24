@@ -67,6 +67,7 @@ String Capability::capabilities( IMAP * i )
     if ( i->supports( "plain" ) )
         c.append( "AUTH=PLAIN" );
 
+    c.append( "ACL" );
     c.append( "BINARY" );
     c.append( "ID" );
     c.append( "IDLE" );
@@ -78,6 +79,7 @@ String Capability::capabilities( IMAP * i )
     c.append( "NAMESPACE" );
     if ( drafts )
         c.append( "POSTADDRESS" );
+    c.append( "RIGHTS=" );
     if ( drafts )
         c.append( "SASL-IR" );
     if ( TlsServer::available() && !i->hasTls() )
