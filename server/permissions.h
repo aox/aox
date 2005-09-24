@@ -4,6 +4,7 @@
 #define PERMISSIONS_H
 
 #include "event.h"
+#include "string.h"
 
 
 class Permissions
@@ -34,7 +35,11 @@ public:
     void execute();
     bool allowed( Right );
 
+    String string() const;
+
     static char rightChar( Permissions::Right );
+
+    static String all();
 
 private:
     class PermissionData *d;

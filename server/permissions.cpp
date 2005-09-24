@@ -2,6 +2,7 @@
 
 #include "permissions.h"
 
+#include "stringlist.h"
 #include "mailbox.h"
 #include "event.h"
 #include "query.h"
@@ -169,6 +170,42 @@ void Permissions::execute()
 }
 
 
+/*! Returns a string representation of this ACL entry, suitable for use
+    in a MYRIGHTS response.
+
+    (This is subject to change.)
+*/
+
+String Permissions::string() const
+{
+    String s;
+
+    bool cr = false;
+    bool dr = false;
+
+    uint i = 0;
+    while ( i < Permissions::NumRights ) {
+        if ( d->allowed[i] ) {
+            Right r = (Right)i;
+            if ( r == CreateMailboxes )
+                cr = true;
+            else if ( r == DeleteMailbox || r == DeleteMessages ||
+                      r == Expunge )
+                dr = true;
+            s.append( rightChar( r ) );
+        }
+        i++;
+    }
+
+    if ( cr )
+        s.append( "c" );
+    if ( dr )
+        s.append( "d" );
+
+    return s;
+}
+
+
 /*! This static helper returns the RFC 2086 name for \a right.
 */
 
@@ -176,44 +213,57 @@ char Permissions::rightChar( Permissions::Right right )
 {
     char c = '\0';
     switch ( right ) {
-    case Permissions::Lookup:
+    case Lookup:
         c = 'l';
         break;
-    case Permissions::Read:
+    case Read:
         c = 'r';
         break;
-    case Permissions::KeepSeen:
+    case KeepSeen:
         c = 's';
         break;
-    case Permissions::Write:
+    case Write:
         c = 'w';
         break;
-    case Permissions::Insert:
+    case Insert:
         c = 'i';
         break;
-    case Permissions::Post:
+    case Post:
         c = 'p';
         break;
-    case Permissions::CreateMailboxes:
+    case CreateMailboxes:
         c = 'k';
         break;
-    case Permissions::DeleteMailbox:
+    case DeleteMailbox:
         c = 'x';
         break;
-    case Permissions::DeleteMessages:
+    case DeleteMessages:
         c = 't';
         break;
-    case Permissions::Expunge:
+    case Expunge:
         c = 'e';
         break;
-    case Permissions::Admin:
+    case Admin:
         c = 'a';
         break;
-    case Permissions::WriteSharedAnnotation:
+    case WriteSharedAnnotation:
         c = 'n';
         break;
-    case Permissions::NumRights:
+    case NumRights:
         break;
     }
     return c;
+}
+
+
+/*! Returns a string containing all available rights characters. */
+
+String Permissions::all()
+{
+    String s;
+    uint i = 0;
+    while ( i < NumRights )
+        s.append( rightChar( (Right)i++ ) );
+    s.append( "cd" );
+    return s;
 }

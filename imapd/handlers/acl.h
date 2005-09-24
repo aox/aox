@@ -6,66 +6,13 @@
 #include "command.h"
 
 
-class SetAcl
+class Acl
     : public Command
 {
 public:
-    SetAcl();
+    enum Type { SetAcl, DeleteAcl, GetAcl, ListRights, MyRights };
 
-    void parse();
-    void execute();
-
-private:
-    class AclData * d;
-};
-
-
-class DeleteAcl
-    : public Command
-{
-public:
-    DeleteAcl();
-
-    void parse();
-    void execute();
-
-private:
-    class AclData * d;
-};
-
-class GetAcl
-    : public Command
-{
-public:
-    GetAcl();
-
-    void parse();
-    void execute();
-
-private:
-    class AclData * d;
-};
-
-
-class ListRights
-    : public Command
-{
-public:
-    ListRights();
-
-    void parse();
-    void execute();
-
-private:
-    class AclData * d;
-};
-
-
-class MyRights
-    : public Command
-{
-public:
-    MyRights();
+    Acl( Type );
 
     void parse();
     void execute();

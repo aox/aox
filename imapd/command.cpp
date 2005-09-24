@@ -10,6 +10,7 @@
 #include "log.h"
 
 // Keep these alphabetical.
+#include "handlers/acl.h"
 #include "handlers/append.h"
 #include "handlers/authenticate.h"
 #include "handlers/capability.h"
@@ -179,6 +180,16 @@ Command * Command::create( IMAP * imap,
             c = new Unsubscribe;
         else if ( n == "append" )
             c = new Append;
+        else if ( n == "setacl" )
+            c = new Acl( Acl::SetAcl );
+        else if ( n == "deleteacl" )
+            c = new Acl( Acl::DeleteAcl );
+        else if ( n == "getacl" )
+            c = new Acl( Acl::GetAcl );
+        else if ( n == "listrights" )
+            c = new Acl( Acl::ListRights );
+        else if ( n == "myrights" )
+            c = new Acl( Acl::MyRights );
         else if ( n == "x-oryx-reset" )
             c = new XOryxReset;
 
