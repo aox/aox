@@ -281,6 +281,7 @@ void Permissions::set( const String &rights )
         d->allowed[i] = v;
         i++;
     }
+    d->allowed[(int)Lookup] = true;
 }
 
 
@@ -311,4 +312,5 @@ void Permissions::disallow( const String &rights )
             d->allowed[i] = false;
         i++;
     }
+    d->allowed[(int)Lookup] = true;
 }
