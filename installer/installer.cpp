@@ -74,7 +74,7 @@ int main( int ac, char *av[] )
         else if ( s == "-n" ) {
             report = true;
         }
-        else if ( s == "-g" || s == "-u" ) {
+        else if ( s == "-g" || s == "-u" || s == "-p" ) {
             if ( args.isEmpty() )
                 error( s + " specified with no argument." );
             String p( *args.shift() );
@@ -82,6 +82,8 @@ int main( int ac, char *av[] )
                 ORYXGROUP = p.cstr();
             else if ( s == "-u" )
                 ORYXUSER = p.cstr();
+            else if ( s == "-p" )
+                PGUSER = p.cstr();
         }
         else {
             error( "Unrecognised argument: '" + s + "'" );
@@ -94,7 +96,7 @@ int main( int ac, char *av[] )
     struct passwd * p = getpwnam( PGUSER );
     if ( !p )
         error( "PostgreSQL superuser '" + String( PGUSER ) +
-               "' does not exist." );
+               "' does not exist (rerun with -p username)." );
     postgres = p->pw_uid;
     pgHome = String( p->pw_dir );
 
@@ -504,7 +506,15 @@ void database()
                         if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                             exit( -1 );
                     execlp( PSQL, "psql", DBNAME, "-f", "-", 0 );
+
                     String psql( pgHome + "/bin/psql" );
+                    if ( !exists( psql ) ) {
+                        struct passwd * p = getpwnam( "pgsql" );
+                        if ( p )
+                            psql = String( p->pw_dir ) + "/bin/psql";
+                        if ( !exists( psql ) )
+                            psql = "/usr/local/pgsql/bin/psql";
+                    }
                     if ( exists( psql ) )
                         execl( psql.cstr(), "psql", DBNAME, "-f", "-", 0 );
                     exit( -1 );
@@ -524,9 +534,9 @@ void database()
                         fprintf( stderr,
                                  "Couldn't install the Oryx schema.\n" );
                         if ( WEXITSTATUS( status ) == 255 )
-                            fprintf( stderr,
-                                     "(No psql in PATH=%s:~postgres/bin)\n",
-                                     getenv( "PATH" ) );
+                            fprintf( stderr, "(No psql in PATH=%s or %s)\n",
+                                     getenv( "PATH" ), "~postgres/bin:"
+                                     "~pgsql/bin:/usr/local/pgsql/bin" );
                         fprintf( stderr, "Please re-run the installer after "
                                  "doing the following as user %s:\n\n"
                                  "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
