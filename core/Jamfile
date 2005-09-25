@@ -9,6 +9,8 @@ Build encodings : ustring.cpp ;
 
 Build admintools : syslogger.cpp ;
 
+PGUSER ?= "" ;
+
 # just for configuration.cpp, we want to propagagate the compile-time
 # settings so they can be used and logged at runtime.
 ObjectDefines configuration.cpp :
@@ -23,15 +25,12 @@ ObjectDefines configuration.cpp :
      LOGFILE='\"$(LOGFILE)\"'
      LOGFILEMODE='\"$(LOGFILEMODE)\"'
      DBADDRESS='\"$(DBADDRESS)\"'
+     PGUSER='\"$(PGUSER)\"'
      ORYXUSER='\"$(ORYXUSER)\"'
      ORYXGROUP='\"$(ORYXGROUP)\"'
      DBUSER='\"$(DBUSER)\"'
      DBNAME='\"$(DBNAME)\"'
      VERSION='\"$(VERSION)\"' ;
-
-if $(PGUSER) {
-    ObjectDefines configuration.cpp : PGUSER='\"$(PGUSER)\"' ;
-}
 
 # make sure configuration.o is rebuilt when the settings change. a bit hacky.
 NoCare <>Jamsettings ;
