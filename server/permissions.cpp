@@ -9,7 +9,7 @@
 #include "user.h"
 
 
-static char * rights = "lrswipkxtean";
+const char * Permissions::rights = "lrswipkxtean";
 
 
 class PermissionData
@@ -201,7 +201,7 @@ String Permissions::string() const
             else if ( r == DeleteMailbox || r == DeleteMessages ||
                       r == Expunge )
                 dr = true;
-            s.append( charredRight( r ) );
+            s.append( rightChar( r ) );
         }
         i++;
     }
@@ -220,19 +220,9 @@ String Permissions::string() const
 
 /*! This static helper returns the RFC 2086 name for \a right. */
 
-char Permissions::charredRight( Permissions::Right right )
+char Permissions::rightChar( Permissions::Right right )
 {
-    return ::rights[ (int)right ];
-}
-
-
-/*! Returns the right corresponding to \a c. This function should be
-    called only if \a c is a validRight().
-*/
-
-Permissions::Right Permissions::rightedChar( char c )
-{
-    return (Right)String( ::rights ).find( c );
+    return rights[ (int)right ];
 }
 
 
@@ -240,7 +230,7 @@ Permissions::Right Permissions::rightedChar( char c )
 
 bool Permissions::validRight( char c )
 {
-    return String( ::rights ).find( c ) >= 0;
+    return String( rights ).find( c ) >= 0;
 }
 
 
@@ -249,7 +239,7 @@ bool Permissions::validRight( char c )
 bool Permissions::validRights( const String &s )
 {
     uint i = 0;
-    String r( ::rights );
+    String r( rights );
     while ( i < s.length() ) {
         if ( r.find( s[i] ) < 0 )
             return false;
@@ -263,7 +253,7 @@ bool Permissions::validRights( const String &s )
 
 String Permissions::all()
 {
-    return String( ::rights ) + "cd";
+    return String( rights ) + "cd";
 }
 
 
@@ -276,7 +266,7 @@ void Permissions::set( const String &rights )
     uint i = 0;
     while ( i < Permissions::NumRights ) {
         bool v = false;
-        if ( rights.find( charredRight( (Right)i ) ) >= 0 )
+        if ( rights.find( rightChar( (Right)i ) ) >= 0 )
             v = true;
         d->allowed[i] = v;
         i++;
@@ -293,7 +283,7 @@ void Permissions::allow( const String &rights )
 {
     uint i = 0;
     while ( i < Permissions::NumRights ) {
-        if ( rights.find( charredRight( (Right)i ) ) >= 0 )
+        if ( rights.find( rightChar( (Right)i ) ) >= 0 )
             d->allowed[i] = true;
         i++;
     }
@@ -308,7 +298,7 @@ void Permissions::disallow( const String &rights )
 {
     uint i = 0;
     while ( i < Permissions::NumRights ) {
-        if ( rights.find( charredRight( (Right)i ) ) >= 0 )
+        if ( rights.find( rightChar( (Right)i ) ) >= 0 )
             d->allowed[i] = false;
         i++;
     }

@@ -147,7 +147,7 @@ void Acl::execute()
                     String * s = new String;
                     Permissions::Right r = (Permissions::Right)i;
                     if ( r != Permissions::Lookup ) {
-                        s->append( Permissions::charredRight( r ) );
+                        s->append( Permissions::rightChar( r ) );
                         l.append( s );
                     }
                     i++;

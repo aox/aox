@@ -43,13 +43,14 @@ public:
 
     String string() const;
 
-    static char charredRight( Permissions::Right );
-    static Right rightedChar( char );
+    static char rightChar( Permissions::Right );
 
     static bool validRight( char );
     static bool validRights( const String & );
 
     static String all();
+
+    static const char * rights;
 
 private:
     class PermissionData * d;

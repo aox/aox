@@ -382,7 +382,7 @@ void PermissionEditor::add( const String & identifier, const String & rights )
                                             identifier.length() ) );
     uint i = 0;
     while( i < Permissions::NumRights ) {
-        char rc = Permissions::charredRight( (Permissions::Right)i );
+        char rc = Permissions::rightChar( (Permissions::Right)i );
         if ( rights.find( rc ) >= 0 )
             r->button( (Permissions::Right)i )->setChecked( true );
         i++;
@@ -404,7 +404,7 @@ void PermissionEditor::addColumn()
     uint i = 0;
     String rights( defaultRights );
     while( i < Permissions::NumRights ) {
-        char rc = Permissions::charredRight( (Permissions::Right)i );
+        char rc = Permissions::rightChar( (Permissions::Right)i );
         if ( rights.find( rc ) >= 0 )
             r->button( (Permissions::Right)i )->setChecked( true );
         i++;
