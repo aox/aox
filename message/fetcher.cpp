@@ -438,6 +438,11 @@ void MessageTriviaFetcher::setDone( Message * )
 }
 
 
+/*! \class MessageAnnotationFetcher message.h
+
+    This class serves no purpose except to confuse udoc.
+*/
+
 PreparedStatement * MessageAnnotationFetcher::query() const
 {
     return ::anno;
