@@ -297,18 +297,24 @@ void Bodypart::parseMultipart( uint i, uint end,
     uint start = 0;
     bool last = false;
     uint pn = 1;
-    while ( !last && i < end ) {
-        if ( i < end &&
-             rfc2822[i] == '-' && rfc2822[i+1] == '-' &&
-             ( i == 0 || rfc2822[i-1] == 13 || rfc2822[i-1] == 10 ) &&
-             rfc2822[i+2] == divider[0] &&
-             rfc2822.mid( i+2, divider.length() ) == divider )
+    while ( !last && i <= end ) {
+        if ( i >= end ||
+             ( rfc2822[i] == '-' && rfc2822[i+1] == '-' &&
+               ( i == 0 || rfc2822[i-1] == 13 || rfc2822[i-1] == 10 ) &&
+               rfc2822[i+2] == divider[0] &&
+               rfc2822.mid( i+2, divider.length() ) == divider ) )
         {
-            uint j = i + 2 + divider.length();
+            uint j = i;
             bool l = false;
-            if ( rfc2822[j] == '-' && rfc2822[j+1] == '-' ) {
-                j += 2;
+            if ( i >= end ) {
                 l = true;
+            }
+            else {
+                j = i + 2 + divider.length();
+                if ( rfc2822[j] == '-' && rfc2822[j+1] == '-' ) {
+                    j += 2;
+                    l = true;
+                }
             }
             while ( rfc2822[j] == ' ' || rfc2822[j] == '\t' )
                 j++;
