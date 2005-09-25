@@ -217,11 +217,11 @@ void Acl::execute()
             int op = 0;
             String s( d->rights );
             if ( s[0] == '+' || s[0] == '-' ) {
-                s = s.mid( 1 );
                 if ( s[0] == '+' )
                     op = 1;
                 else
                     op = 2;
+                s = s.mid( 1 );
             }
 
             if ( d->q->hasResults() ) {
