@@ -185,20 +185,25 @@ void findPgUser()
 {
     struct passwd * p = 0;
 
-    if ( PGUSER ) {
+    if ( *PGUSER ) {
         p = getpwnam( PGUSER );
         if ( !p )
             error( "PostgreSQL superuser '" + String( PGUSER ) +
                    "' does not exist (rerun with -p username)." );
     }
 
-    if ( !p )
-        p = getpwnam( "postgres" );
-    if ( !p )
-        p = getpwnam( "pgsql" );
-    if ( !p )
+    if ( !p ) {
+        PGUSER = "postgres";
+        p = getpwnam( PGUSER );
+    }
+    if ( !p ) {
+        PGUSER = "pgsql";
+        p = getpwnam( PGUSER );
+    }
+    if ( !p ) {
         error( "PostgreSQL superuser unknown. Please re-run the "
                "installer with \"-p username\" to specify one." );
+    }
 
     postgres = p->pw_uid;
 
