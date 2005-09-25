@@ -253,7 +253,6 @@ void Acl::execute()
                 d->t->enqueue( d->q );
             }
             else if ( d->setOp != 2 ) {
-                // We shouldn't be doing this for the owner, should we?
                 d->q = new Query( "insert into permissions "
                                   "(mailbox,identifier,rights) "
                                   "values ($1,$2,$3)", this );
