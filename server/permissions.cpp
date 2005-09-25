@@ -276,7 +276,7 @@ void Permissions::set( const String &rights )
     uint i = 0;
     while ( i < Permissions::NumRights ) {
         bool v = false;
-        if ( rights.find( charredRight( (Right)i ) ) > 0 )
+        if ( rights.find( charredRight( (Right)i ) ) >= 0 )
             v = true;
         d->allowed[i] = v;
         i++;
@@ -292,7 +292,7 @@ void Permissions::allow( const String &rights )
 {
     uint i = 0;
     while ( i < Permissions::NumRights ) {
-        if ( rights.find( charredRight( (Right)i ) ) > 0 )
+        if ( rights.find( charredRight( (Right)i ) ) >= 0 )
             d->allowed[i] = true;
         i++;
     }
@@ -307,7 +307,7 @@ void Permissions::disallow( const String &rights )
 {
     uint i = 0;
     while ( i < Permissions::NumRights ) {
-        if ( rights.find( charredRight( (Right)i ) ) > 0 )
+        if ( rights.find( charredRight( (Right)i ) ) >= 0 )
             d->allowed[i] = false;
         i++;
     }
