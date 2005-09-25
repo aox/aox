@@ -25,7 +25,6 @@
 
 
 uid_t postgres;
-String pgHome;
 class Dispatcher * d;
 bool report = false;
 bool silent = false;
@@ -41,6 +40,7 @@ const char * DBADDRESS;
 void help();
 void error( String );
 bool exists( String );
+void findPgUser();
 void oryxGroup();
 void oryxUser();
 void database();
@@ -91,12 +91,7 @@ int main( int ac, char *av[] )
     if ( getuid() != 0 )
         error( "Please run the installer as root." );
 
-    struct passwd * p = getpwnam( PGUSER );
-    if ( !p )
-        error( "PostgreSQL superuser '" + String( PGUSER ) +
-               "' does not exist (rerun with -p username)." );
-    postgres = p->pw_uid;
-    pgHome = String( p->pw_dir );
+    findPgUser();
 
     String dba( DBADDRESS );
     if ( dba[0] == '/' && !exists( dba ) ) {
@@ -183,6 +178,39 @@ bool exists( String f )
 {
     struct stat st;
     return stat( f.cstr(), &st ) == 0;
+}
+
+
+void findPgUser()
+{
+    struct passwd * p = 0;
+
+    if ( PGUSER ) {
+        p = getpwnam( PGUSER );
+        if ( !p )
+            error( "PostgreSQL superuser '" + String( PGUSER ) +
+                   "' does not exist (rerun with -p username)." );
+    }
+
+    if ( !p ) {
+        struct passwd * p1 = getpwnam( "postgres" );
+        struct passwd * p2 = getpwnam( "pgsql" );
+
+        if ( p1 && !p2 )
+            p = p1;
+        else if ( p2 && !p1 )
+            p = p2;
+        else
+            error( "PostgreSQL superuser unknown. Please re-run the "
+                   "installer with \"-p username\" to specify one." );
+    }
+
+    postgres = p->pw_uid;
+
+    String path( getenv( "PATH" ) );
+    path.append( ":" + String( p->pw_dir ) + "/bin" );
+    path.append( ":/usr/local/pgsql/bin" );
+    setenv( "PATH", path.cstr(), 1 );
 }
 
 
@@ -503,18 +531,7 @@ void database()
                     if ( silent )
                         if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                             exit( -1 );
-                    execlp( PSQL, "psql", DBNAME, "-f", "-", 0 );
-
-                    String psql( pgHome + "/bin/psql" );
-                    if ( !exists( psql ) ) {
-                        struct passwd * p = getpwnam( "pgsql" );
-                        if ( p )
-                            psql = String( p->pw_dir ) + "/bin/psql";
-                        if ( !exists( psql ) )
-                            psql = "/usr/local/pgsql/bin/psql";
-                    }
-                    if ( exists( psql ) )
-                        execl( psql.cstr(), "psql", DBNAME, "-f", "-", 0 );
+                    execlp( "psql", "psql", DBNAME, "-f", "-", 0 );
                     exit( -1 );
                 }
                 else {
@@ -532,9 +549,8 @@ void database()
                         fprintf( stderr,
                                  "Couldn't install the Oryx schema.\n" );
                         if ( WEXITSTATUS( status ) == 255 )
-                            fprintf( stderr, "(No psql in PATH=%s or %s)\n",
-                                     getenv( "PATH" ), "~postgres/bin:"
-                                     "~pgsql/bin:/usr/local/pgsql/bin" );
+                            fprintf( stderr, "(No psql in PATH=%s)\n",
+                                     getenv( "PATH" ) );
                         fprintf( stderr, "Please re-run the installer after "
                                  "doing the following as user %s:\n\n"
                                  "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
