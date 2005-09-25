@@ -154,18 +154,9 @@ void Permissions::execute()
         return;
 
     while ( d->q->hasResults() ) {
-        Row *r = d->q->nextRow();
-
-        String rights;
+        Row * r = d->q->nextRow();
         if ( !r->isNull( "rights" ) )
-            rights = r->getString( "rights" );
-
-        uint i = 0;
-        while ( i < Permissions::NumRights ) {
-            int n = rights.find( charredRight( (Permissions::Right)i ) );
-            if ( n >= 0 )
-                d->allowed[i] = true;
-        }
+            allow( r->getString( "rights" ) );
     }
 
     d->ready = true;
@@ -245,4 +236,34 @@ String Permissions::all()
         s.append( charredRight( (Right)i++ ) );
     s.append( "cd" );
     return s;
+}
+
+
+/*! This function adds the specified \a rights to this object.
+    Any unrecognised right characters are ignored.
+*/
+
+void Permissions::allow( const String &rights )
+{
+    uint i = 0;
+    while ( i < Permissions::NumRights ) {
+        if ( rights.find( charredRight( (Right)i ) ) > 0 )
+            d->allowed[i] = true;
+        i++;
+    }
+}
+
+
+/*! This function removes the specified \a rights from this object.
+    Any unrecognised right characters are ignored.
+*/
+
+void Permissions::disallow( const String &rights )
+{
+    uint i = 0;
+    while ( i < Permissions::NumRights ) {
+        if ( rights.find( charredRight( (Right)i ) ) > 0 )
+            d->allowed[i] = false;
+        i++;
+    }
 }

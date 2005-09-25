@@ -33,7 +33,10 @@ public:
 
     bool ready();
     void execute();
+
     bool allowed( Right );
+    void allow( const String & );
+    void disallow( const String & );
 
     String string() const;
 
@@ -44,7 +47,7 @@ public:
     static String all();
 
 private:
-    class PermissionData *d;
+    class PermissionData * d;
 };
 
 
