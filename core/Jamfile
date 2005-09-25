@@ -22,13 +22,16 @@ ObjectDefines configuration.cpp :
      PIDFILEDIR='\"$(PIDFILEDIR)\"'
      LOGFILE='\"$(LOGFILE)\"'
      LOGFILEMODE='\"$(LOGFILEMODE)\"'
-     PGUSER='\"$(PGUSER)\"'
      DBADDRESS='\"$(DBADDRESS)\"'
      ORYXUSER='\"$(ORYXUSER)\"'
      ORYXGROUP='\"$(ORYXGROUP)\"'
      DBUSER='\"$(DBUSER)\"'
      DBNAME='\"$(DBNAME)\"'
      VERSION='\"$(VERSION)\"' ;
+
+if $(PGUSER) {
+    ObjectDefines configuration.cpp : PGUSER='\"$(PGUSER)\"' ;
+}
 
 # make sure configuration.o is rebuilt when the settings change. a bit hacky.
 NoCare <>Jamsettings ;

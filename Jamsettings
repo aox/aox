@@ -83,7 +83,7 @@ EXEMODE = 555 ;
 
 # The Unix username of the PostgreSQL superuser.
 #
-PGUSER = postgres ;
+#PGUSER = postgres ;
 
 # The path to the psql(1) client. The default value assumes that it is
 # somewhere in the PATH.
