@@ -188,6 +188,13 @@ void Acl::execute()
             d->q->execute();
         }
         else if ( d->type == SetAcl ) {
+            if ( ( d->setOp == 0 && d->rights.find( 'l' ) < 0 ) ||
+                 ( d->setOp == 2 && d->rights.find( 'l' ) >= 0 ) )
+            {
+                error( No, "can't remove Lookup right" );
+                return;
+            }
+
             d->t = new Transaction( this );
             d->q = new Query( "lock permissions in exclusive mode", this );
             d->t->enqueue( d->q );
