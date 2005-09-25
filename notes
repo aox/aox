@@ -734,10 +734,26 @@ Something like soft-bounce might just be useful
   Now change it to "log-level=debug" and rerun ms check.
 
 
-installer could look for user postgres
+recognising spam
 
-  If PGUSER doesn't exist according to getpwnam, it could try postgres
-  and pgsql. does the result need to be written to mailstore.conf? no?
+  The good spam filters now all seem to require local training with
+  both spam and nonspam corpora. We can do clever stuff... sometimes.
+
+  Instead of filtering at delivery, we can filter when a message
+  becomes \recent. When we increase first_recent, we hand each new
+  message to the categoriser, and set $Spam or $Nonspam based on its
+  answer.
+
+  This lets the categoriser use all the information that's available
+  right up to the moment the user looks at his mail.
+
+  We can also build corpora for training easily. All messages to which
+  users have replied are nonspam, replies to messages from local users
+  are nonspam, messages in certain folders are spam, messages with a
+  certain flag are spam.
+
+  We can connect to a local server to ask whether a message is spam.
+  They seem to work that way, but with n different protocols.
 
 
 We need to do the right thing.
