@@ -83,6 +83,21 @@ public:
     or not.
 */
 
+/*! Constructs a Permissions object for \a mailbox and \a authid with
+    the specified \a rights.
+*/
+
+Permissions::Permissions( Mailbox * mailbox, const String &authid,
+                          const String &rights )
+    : d( new PermissionData )
+{
+    d->mailbox = mailbox;
+    d->user = new User;
+    d->user->setLogin( authid );
+    set( rights );
+}
+
+
 /*! Constructs an Permissions object for \a mailbox and \a user, and
     calls execute() to calculate permissions, issuing queries if
     necessary. If any queries are needed, \a handler will be notified
@@ -226,6 +241,21 @@ bool Permissions::validRight( char c )
 }
 
 
+/*! Returns true only if \a s represents a valid set of rights. */
+
+bool Permissions::validRights( const String &s )
+{
+    uint i = 0;
+    String r( ::rights );
+    while ( i < s.length() ) {
+        if ( r.find( s[i] ) < 0 )
+            return false;
+        i++;
+    }
+    return true;
+}
+
+
 /*! Returns a string containing all available rights characters. */
 
 String Permissions::all()
@@ -239,13 +269,20 @@ String Permissions::all()
 }
 
 
-/*! Removes all permitted rights from this object. */
+/*! Sets this object's permitted rights to \a rights, and removes all
+    other rights.
+*/
 
-void Permissions::clear()
+void Permissions::set( const String &rights )
 {
     uint i = 0;
-    while ( i < Permissions::NumRights )
-        d->allowed[i++] = false;
+    while ( i < Permissions::NumRights ) {
+        bool v = false;
+        if ( rights.find( charredRight( (Right)i ) ) > 0 )
+            v = true;
+        d->allowed[i] = v;
+        i++;
+    }
 }
 
 

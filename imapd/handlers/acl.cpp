@@ -78,8 +78,17 @@ void Acl::execute()
              d->mailbox->deleted() )
         {
             error( No, d->mbox + " does not exist" );
-            finish();
             return;
+        }
+
+        if ( d->type == SetAcl ) {
+            String s( d->rights );
+            if ( s[0] == '+' || s[0] == '-' )
+                s = s.mid( 1 );
+            if ( !Permissions::validRights( s ) ) {
+                error( Bad, "Invalid rights" );
+                return;
+            }
         }
 
         if ( !( d->type == MyRights || d->type == GetAcl ) ) {
@@ -110,7 +119,6 @@ void Acl::execute()
     if ( d->state == 2 ) {
         if ( !d->permissions->allowed( Permissions::Admin ) ) {
             error( No, d->mbox + " is not accessible" );
-            finish();
             return;
         }
 
@@ -206,23 +214,50 @@ void Acl::execute()
             if ( !d->q->done() )
                 return;
 
+            int op = 0;
+            String s( d->rights );
+            if ( s[0] == '+' || s[0] == '-' ) {
+                s = s.mid( 1 );
+                if ( s[0] == '+' )
+                    op = 1;
+                else
+                    op = 2;
+            }
+
             if ( d->q->hasResults() ) {
+                Row * r = d->q->nextRow();
+                Permissions * target =
+                    new Permissions( d->mailbox, d->authid,
+                                     r->getString( "rights" ) );
+                if ( op == 0 )
+                    target->set( s );
+                else if ( op == 1 )
+                    target->allow( s );
+                else if ( op == 2 )
+                    target->disallow( s );
+
                 d->q = new Query( "update permissions set rights=$3 where "
                                   "mailbox=$1 and identifier=$2", this );
                 d->q->bind( 1, d->mailbox->id() );
                 d->q->bind( 2, d->authid );
-                d->q->bind( 3, d->rights );
+                d->q->bind( 3, target->string() );
+                d->t->enqueue( d->q );
             }
-            else {
+            else if ( op != 2 ) {
+                // We shouldn't be doing this for the owner, should we?
                 d->q = new Query( "insert into permissions "
                                   "(mailbox,identifier,rights) "
                                   "values ($1,$2,$3)", this );
                 d->q->bind( 1, d->mailbox->id() );
                 d->q->bind( 2, d->authid );
-                d->q->bind( 3, d->rights );
+                d->q->bind( 3, s );
+                d->t->enqueue( d->q );
+            }
+            else {
+                // We can't remove rights from a non-existent entry.
+                // That sounds OK, but should we return BAD instead?
             }
 
-            d->t->enqueue( d->q );
             d->state = 4;
             d->t->commit();
         }

@@ -11,6 +11,8 @@ class Permissions
     : public EventHandler
 {
 public:
+    Permissions( class Mailbox *, const String &, const String & );
+
     Permissions( class Mailbox *, class User *,
                  class EventHandler * );
 
@@ -34,7 +36,7 @@ public:
     bool ready();
     void execute();
 
-    void clear();
+    void set( const String & );
     void allow( const String & );
     void disallow( const String & );
     bool allowed( Right );
@@ -43,7 +45,9 @@ public:
 
     static char charredRight( Permissions::Right );
     static Right rightedChar( char );
+
     static bool validRight( char );
+    static bool validRights( const String & );
 
     static String all();
 
