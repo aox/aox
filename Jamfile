@@ -55,14 +55,14 @@ Chmod $(JAILDIR) ;
 actions Message {
 fmt <<EOM | sed 's/^/  /'
 
-To set up the database user and schema automatically, run
+To set up the database and generate a configuration file, run
 $(BINDIR)/installer as root.
 
 $(BINDIR)/installer -n shows what it would do, without making any
 changes.
 
-Mailstore's configuration is in $(CONFIGDIR)/mailstore.conf and its
-logfile is $(LOGFILE) by default. The man pages are in $(MANDIR).
+The new Mailstore configuration will be in $(CONFIGDIR)/mailstore.conf
+and the logfile is $(LOGFILE) by default. Man pages are in $(MANDIR).
 
 If you have any problems, the FAQ is at http://www.oryx.com/faq/ and
 our email address is info@oryx.com.
