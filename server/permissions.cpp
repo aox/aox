@@ -230,7 +230,9 @@ char Permissions::rightChar( Permissions::Right right )
 
 bool Permissions::validRight( char c )
 {
-    return String( rights ).find( c ) >= 0;
+    if ( String( rights ).find( c ) >= 0 || c == 'c' || c == 'd' )
+        return true;
+    return false;
 }
 
 
@@ -241,7 +243,7 @@ bool Permissions::validRights( const String &s )
     uint i = 0;
     String r( rights );
     while ( i < s.length() ) {
-        if ( r.find( s[i] ) < 0 )
+        if ( !validRight( s[i] ) )
             return false;
         i++;
     }
@@ -271,6 +273,16 @@ void Permissions::set( const String &rights )
         d->allowed[i] = v;
         i++;
     }
+
+    if ( rights.find( 'c' ) >= 0 )
+        d->allowed[(int)CreateMailboxes] = true;
+
+    if ( rights.find( 'd' ) >= 0 ) {
+        d->allowed[(int)Expunge] = true;
+        d->allowed[(int)DeleteMessages] = true;
+        d->allowed[(int)DeleteMailbox] = true;
+    }
+
     d->allowed[(int)Lookup] = true;
 }
 
@@ -287,6 +299,15 @@ void Permissions::allow( const String &rights )
             d->allowed[i] = true;
         i++;
     }
+
+    if ( rights.find( 'c' ) >= 0 )
+        d->allowed[(int)CreateMailboxes] = true;
+
+    if ( rights.find( 'd' ) >= 0 ) {
+        d->allowed[(int)Expunge] = true;
+        d->allowed[(int)DeleteMessages] = true;
+        d->allowed[(int)DeleteMailbox] = true;
+    }
 }
 
 
@@ -302,5 +323,15 @@ void Permissions::disallow( const String &rights )
             d->allowed[i] = false;
         i++;
     }
+
+    if ( rights.find( 'c' ) >= 0 )
+        d->allowed[(int)CreateMailboxes] = false;
+
+    if ( rights.find( 'd' ) >= 0 ) {
+        d->allowed[(int)Expunge] = false;
+        d->allowed[(int)DeleteMessages] = false;
+        d->allowed[(int)DeleteMailbox] = false;
+    }
+
     d->allowed[(int)Lookup] = true;
 }
