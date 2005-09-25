@@ -239,6 +239,16 @@ String Permissions::all()
 }
 
 
+/*! Removes all permitted rights from this object. */
+
+void Permissions::clear()
+{
+    uint i = 0;
+    while ( i < Permissions::NumRights )
+        d->allowed[i++] = false;
+}
+
+
 /*! This function adds the specified \a rights to this object.
     Any unrecognised right characters are ignored.
 */

@@ -34,9 +34,10 @@ public:
     bool ready();
     void execute();
 
-    bool allowed( Right );
+    void clear();
     void allow( const String & );
     void disallow( const String & );
+    bool allowed( Right );
 
     String string() const;
 
