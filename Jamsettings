@@ -112,7 +112,7 @@ DBADDRESS = /tmp/.s.PGSQL.5432 ;
 #
 DBNAME = mailstore ;
 DBUSER = oryx ;
-# DBPASS = secret ;
+DBPASS = "" ;
 
 
 # this file is included from Jamrules.

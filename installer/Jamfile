@@ -4,8 +4,6 @@ SubInclude TOP db ;
 
 Build installer : installer.cpp ;
 
-DBPASS ?= "" ;
-
 ObjectDefines installer.cpp :
      LIBDIR='\"$(LIBDIR)\"'
      CONFIGDIR='\"$(CONFIGDIR)\"'
