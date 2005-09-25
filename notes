@@ -570,17 +570,17 @@ Switch to using named constraints everywhere.
 
 0.99
 
+  LSUB etc (done).
+  Case insensitivity wherever it touches addresses (done).
+  Listext (done, needs more testing).
+  ACL (Done, but needs more testing).
   move installer back to LIBDIR.
-  ACL (infrastructure partly exists, IMAP interface needed).
-  Write a GB2312 codec.
   Fix the 8-bit problems in Address.
   Make msconsole's user pane do something.
-  Fix tsearch2.
-  Case insensitivity wherever it touches addresses (done).
-  LSUB etc (done).
   ANNOTATE or VIEWS or ideally both.
-  Listext (done, needs more testing).
+  Write a GB2312 codec.
   Fix httpd segfaults.
+  Fix tsearch2.
 
   (Most of these items have their own separate notes.)
 
