@@ -211,9 +211,6 @@ void Acl::execute()
             respond( "ACL " + d->mbox + " " + l.join( " " ) );
         }
         else if ( d->type == SetAcl ) {
-            if ( !d->q->done() )
-                return;
-
             int op = 0;
             String s( d->rights );
             if ( s[0] == '+' || s[0] == '-' ) {
