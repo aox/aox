@@ -59,12 +59,10 @@ int main( int ac, char *av[] )
     ORYXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
     DBADDRESS = Configuration::compiledIn( Configuration::DefaultDbAddress );
 
-    StringList args;
-    while ( ac-- > 0 )
-        args.append( new String( *av++ ) );
-    args.shift();
-    while ( !args.isEmpty() ) {
-        String s( *args.shift() );
+    av++;
+    while ( ac-- > 1 ) {
+        String s( *av++ );
+
         if ( s == "-?" || s == "-h" || s == "--help" ) {
             help();
         }
@@ -75,15 +73,15 @@ int main( int ac, char *av[] )
             report = true;
         }
         else if ( s == "-g" || s == "-u" || s == "-p" ) {
-            if ( args.isEmpty() )
+            if ( ac == 1 )
                 error( s + " specified with no argument." );
-            String p( *args.shift() );
             if ( s == "-g" )
-                ORYXGROUP = p.cstr();
+                ORYXGROUP = *av++;
             else if ( s == "-u" )
-                ORYXUSER = p.cstr();
+                ORYXUSER = *av++;
             else if ( s == "-p" )
-                PGUSER = p.cstr();
+                PGUSER = *av++;
+            ac--;
         }
         else {
             error( "Unrecognised argument: '" + s + "'" );
