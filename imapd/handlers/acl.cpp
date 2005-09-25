@@ -188,6 +188,13 @@ void Acl::execute()
             d->q->execute();
         }
         else if ( d->type == SetAcl ) {
+            if ( d->user->id() == d->mailbox->owner() ) {
+                // We should presumably not disallow pointless changes
+                // that add rights that already exist, but...
+                error( No, "can't change owner's rights" );
+                return;
+            }
+
             if ( ( d->setOp == 0 && d->rights.find( 'l' ) < 0 ) ||
                  ( d->setOp == 2 && d->rights.find( 'l' ) >= 0 ) )
             {
