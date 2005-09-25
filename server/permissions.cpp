@@ -263,12 +263,7 @@ bool Permissions::validRights( const String &s )
 
 String Permissions::all()
 {
-    String s;
-    uint i = 0;
-    while ( i < NumRights )
-        s.append( charredRight( (Right)i++ ) );
-    s.append( "cd" );
-    return s;
+    return String( ::rights ) + "cd";
 }
 
 
