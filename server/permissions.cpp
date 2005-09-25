@@ -211,6 +211,9 @@ String Permissions::string() const
     if ( dr )
         s.append( "d" );
 
+    if ( s.isEmpty() )
+        s = "\"\"";
+
     return s;
 }
 
