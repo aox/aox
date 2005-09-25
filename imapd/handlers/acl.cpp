@@ -15,7 +15,8 @@ class AclData {
 public:
     AclData()
         : state( 0 ), type( Acl::SetAcl ), mailbox( 0 ),
-          permissions( 0 ), user( 0 ), q( 0 ), t( 0 )
+          permissions( 0 ), user( 0 ), q( 0 ), t( 0 ),
+          setOp( 0 )
     {}
 
     int state;
@@ -31,6 +32,8 @@ public:
     User * user;
     Query * q;
     Transaction * t;
+
+    int setOp;
 };
 
 
@@ -64,6 +67,13 @@ void Acl::parse()
     if ( d->type == SetAcl ) {
         space();
         d->rights = astring();
+        if ( d->rights[0] == '+' || d->rights[0] == '-' ) {
+            if ( d->rights[0] == '+' )
+                d->setOp = 1;
+            else
+                d->setOp = 2;
+            d->rights = d->rights.mid( 1 );
+        }
     }
 
     end();
@@ -81,14 +91,12 @@ void Acl::execute()
             return;
         }
 
-        if ( d->type == SetAcl ) {
-            String s( d->rights );
-            if ( s[0] == '+' || s[0] == '-' )
-                s = s.mid( 1 );
-            if ( !Permissions::validRights( s ) ) {
-                error( Bad, "Invalid rights" );
-                return;
-            }
+        if ( d->type == SetAcl &&
+             !Permissions::validRights( d->rights ) )
+        {
+            // Should we complain about -l too?
+            error( Bad, "Invalid rights" );
+            return;
         }
 
         if ( !( d->type == MyRights || d->type == GetAcl ) ) {
@@ -211,27 +219,17 @@ void Acl::execute()
             respond( "ACL " + d->mbox + " " + l.join( " " ) );
         }
         else if ( d->type == SetAcl ) {
-            int op = 0;
-            String s( d->rights );
-            if ( s[0] == '+' || s[0] == '-' ) {
-                if ( s[0] == '+' )
-                    op = 1;
-                else
-                    op = 2;
-                s = s.mid( 1 );
-            }
-
             if ( d->q->hasResults() ) {
                 Row * r = d->q->nextRow();
                 Permissions * target =
                     new Permissions( d->mailbox, d->authid,
                                      r->getString( "rights" ) );
-                if ( op == 0 )
-                    target->set( s );
-                else if ( op == 1 )
-                    target->allow( s );
-                else if ( op == 2 )
-                    target->disallow( s );
+                if ( d->setOp == 0 )
+                    target->set( d->rights );
+                else if ( d->setOp == 1 )
+                    target->allow( d->rights );
+                else if ( d->setOp == 2 )
+                    target->disallow( d->rights );
 
                 d->q = new Query( "update permissions set rights=$3 where "
                                   "mailbox=$1 and identifier=$2", this );
@@ -240,14 +238,14 @@ void Acl::execute()
                 d->q->bind( 3, target->string() );
                 d->t->enqueue( d->q );
             }
-            else if ( op != 2 ) {
+            else if ( d->setOp != 2 ) {
                 // We shouldn't be doing this for the owner, should we?
                 d->q = new Query( "insert into permissions "
                                   "(mailbox,identifier,rights) "
                                   "values ($1,$2,$3)", this );
                 d->q->bind( 1, d->mailbox->id() );
                 d->q->bind( 2, d->authid );
-                d->q->bind( 3, s );
+                d->q->bind( 3, d->rights );
                 d->t->enqueue( d->q );
             }
             else {
