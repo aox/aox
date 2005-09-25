@@ -37,7 +37,9 @@ public:
 
     String string() const;
 
-    static char rightChar( Permissions::Right );
+    static char charredRight( Permissions::Right );
+    static Right rightedChar( char );
+    static bool validRight( char );
 
     static String all();
 

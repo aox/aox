@@ -9,6 +9,9 @@
 #include "user.h"
 
 
+static char * rights = "lrswipkxtean";
+
+
 class PermissionData
     : public Garbage
 {
@@ -159,7 +162,7 @@ void Permissions::execute()
 
         uint i = 0;
         while ( i < Permissions::NumRights ) {
-            int n = rights.find( rightChar( (Permissions::Right)i ) );
+            int n = rights.find( charredRight( (Permissions::Right)i ) );
             if ( n >= 0 )
                 d->allowed[i] = true;
         }
@@ -192,7 +195,7 @@ String Permissions::string() const
             else if ( r == DeleteMailbox || r == DeleteMessages ||
                       r == Expunge )
                 dr = true;
-            s.append( rightChar( r ) );
+            s.append( charredRight( r ) );
         }
         i++;
     }
@@ -206,53 +209,29 @@ String Permissions::string() const
 }
 
 
-/*! This static helper returns the RFC 2086 name for \a right.
+/*! This static helper returns the RFC 2086 name for \a right. */
+
+char Permissions::charredRight( Permissions::Right right )
+{
+    return ::rights[ (int)right ];
+}
+
+
+/*! Returns the right corresponding to \a c. This function should be
+    called only if \a c is a validRight().
 */
 
-char Permissions::rightChar( Permissions::Right right )
+Permissions::Right Permissions::rightedChar( char c )
 {
-    char c = '\0';
-    switch ( right ) {
-    case Lookup:
-        c = 'l';
-        break;
-    case Read:
-        c = 'r';
-        break;
-    case KeepSeen:
-        c = 's';
-        break;
-    case Write:
-        c = 'w';
-        break;
-    case Insert:
-        c = 'i';
-        break;
-    case Post:
-        c = 'p';
-        break;
-    case CreateMailboxes:
-        c = 'k';
-        break;
-    case DeleteMailbox:
-        c = 'x';
-        break;
-    case DeleteMessages:
-        c = 't';
-        break;
-    case Expunge:
-        c = 'e';
-        break;
-    case Admin:
-        c = 'a';
-        break;
-    case WriteSharedAnnotation:
-        c = 'n';
-        break;
-    case NumRights:
-        break;
-    }
-    return c;
+    return (Right)String( ::rights ).find( c );
+}
+
+
+/*! Returns true only if \a c represents a valid right. */
+
+bool Permissions::validRight( char c )
+{
+    return String( ::rights ).find( c ) >= 0;
 }
 
 
@@ -263,7 +242,7 @@ String Permissions::all()
     String s;
     uint i = 0;
     while ( i < NumRights )
-        s.append( rightChar( (Right)i++ ) );
+        s.append( charredRight( (Right)i++ ) );
     s.append( "cd" );
     return s;
 }
