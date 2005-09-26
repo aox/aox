@@ -45,6 +45,7 @@ private:
         Rfc822Size,
         Flags,
         Uid,
+        Annotation,
         NoField
     };
 
@@ -57,6 +58,7 @@ private:
         Field f;
         Action a;
         String s8;
+        String s8b;
         UString s16;
         MessageSet s;
         uint n;
@@ -85,6 +87,7 @@ private:
         String whereRfc822Size() const;
         String whereFlags() const;
         String whereUid() const;
+        String whereAnnotation() const;
         String whereNoField() const;
     };
 
@@ -106,7 +109,7 @@ private:
 
     void considerCache();
 
-    UString uastring();
+    UString ustring( Command::QuoteMode stringType );
 
 private:
     class SearchData * d;

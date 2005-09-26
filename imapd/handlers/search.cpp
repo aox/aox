@@ -3,7 +3,9 @@
 #include "search.h"
 
 #include "imapsession.h"
+#include "annotation.h"
 #include "messageset.h"
+#include "listext.h"
 #include "mailbox.h"
 #include "message.h"
 #include "codec.h"
@@ -12,8 +14,31 @@
 #include "imap.h"
 #include "flag.h"
 #include "list.h"
+#include "user.h"
 #include "log.h"
 #include "utf.h"
+
+
+static const char * legalAnnotationAttributes[] = {
+    "value",
+    "value.priv",
+    "value.shared",
+    "content-type",
+    "content-type.priv",
+    "content-type.shared",
+    "content-language",
+    "content-language.priv",
+    "content-language.shared",
+    "display-language",
+    "display-language.priv",
+    "display-language.shared",
+    "size",
+    "size.priv",
+    "size.shared",
+    0
+};
+
+
 
 class SearchQuery: public Query {
 public:
@@ -42,7 +67,7 @@ public:
     SearchData()
         : uid( false ), done( false ), simplified( false ),
           root( 0 ), conditions( 0 ),
-          codec( 0 ), query( 0 ), argc( 0 ), mboxId( 0 )
+          codec( 0 ), query( 0 ), argc( 0 ), mboxId( 0 ), user( 0 )
     {}
 
     bool uid;
@@ -61,6 +86,8 @@ public:
         return argc;
     };
     uint mboxId;
+
+    User * user;
 };
 
 /*! Constructs an empty Search. If \a u is true, it's an UID SEARCH,
@@ -209,31 +236,31 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "from" ) {
             space();
-            add( Header, Contains, "from", uastring() );
+            add( Header, Contains, "from", ustring( AString ) );
         }
         else if ( keyword == "to" ) {
             space();
-            add( Header, Contains, "to", uastring() );
+            add( Header, Contains, "to", ustring( AString ) );
         }
         else if ( keyword == "cc" ) {
             space();
-            add( Header, Contains, "cc", uastring() );
+            add( Header, Contains, "cc", ustring( AString ) );
         }
         else if ( keyword == "bcc" ) {
             space();
-            add( Header, Contains, "bcc", uastring() );
+            add( Header, Contains, "bcc", ustring( AString ) );
         }
         else if ( keyword == "subject" ) {
             space();
-            add( Header, Contains, "subject", uastring() );
+            add( Header, Contains, "subject", ustring( AString ) );
         }
         else if ( keyword == "body" ) {
             space();
-            add( Body, Contains, "", uastring() );
+            add( Body, Contains, "", ustring( AString ) );
         }
         else if ( keyword == "text" ) {
             space();
-            UString a = uastring();
+            UString a = ustring( AString );
             push( Or );
             add( Body, Contains, "", a );
             // field name is null for any-field searches
@@ -254,7 +281,7 @@ void Search::parseKey( bool alsoCharset )
             space();
             String s1 = astring();
             space();
-            UString s2 = uastring();
+            UString s2 = ustring( AString );
             add( Header, Contains, s1, s2 );
         }
         else if ( keyword == "uid" ) {
@@ -282,6 +309,26 @@ void Search::parseKey( bool alsoCharset )
         else if ( keyword == "smaller" ) {
             space();
             add( Rfc822Size, Smaller, number() );
+        }
+        else if ( keyword == "annotation" ) {
+            space();
+            prepare();
+            Condition * c = new Condition;
+            c->c = this;
+            c->d = d;
+            c->f = Annotation;
+            c->a = Contains;
+            c->s8 = string();
+            space();
+            c->s8b = string();
+            space();
+            c->s16 = ustring( NString );
+            uint i = 0;
+            while ( ::legalAnnotationAttributes[i] &&
+                    c->s8b != ::legalAnnotationAttributes[i] )
+                i++;
+            if ( !::legalAnnotationAttributes[i] )
+                error( Bad, "Unknown annotation attribute: " + c->s8b );
         }
         else if ( alsoCharset && keyword == "charset" ) {
             space();
@@ -314,6 +361,8 @@ void Search::execute()
     if ( !d->query ) {
         if ( !ok() )
             return;
+
+        d->user = imap()->user();
 
         considerCache();
         if ( d->done ) {
@@ -660,6 +709,9 @@ void Search::Condition::simplify()
                 a = None;
             // the All Messages case is harder.
             break;
+        case Annotation:
+            // can't simplify this
+            break;
         case NoField:
             // contains is orthogonal to nofield, so this we cannot
             // simplify
@@ -785,6 +837,9 @@ String Search::Condition::where() const
         break;
     case Uid:
         return whereUid();
+        break;
+    case Annotation:
+        return whereAnnotation();
         break;
     case NoField:
         return whereNoField();
@@ -1045,6 +1100,94 @@ String Search::Condition::whereUid() const
 }
 
 
+/*! This implements searches on whether a message has/does not have
+    the right annotation.
+*/
+
+String Search::Condition::whereAnnotation() const
+{
+    ::Annotation * a = ::Annotation::find( s8 );
+    String annotations;
+    String sep = "";
+    if ( a ) {
+        annotations = "name=" + fn( a->id() );
+    }
+    else {
+        uint n = 0;
+        uint u = 0;
+        while ( u <= ::Annotation::largestId() ) {
+            a = ::Annotation::find( u );
+            u++;
+            if ( a && Listext::match( s8, 0, a->name(), 0 ) == 2 ) {
+                n++;
+                annotations.append( sep );
+                annotations.append( "name=" );
+                annotations.append( fn( a->id() ) );
+                if ( sep.isEmpty() )
+                    sep = " or ";
+            }
+        }
+        if ( n > 3 && s8.find( '%' ) < 0 ) {
+            // if there are many, we're better off using set logic.
+            uint pattern = d->argument();
+            annotations = "name in ("
+                          "select id from annotation_names where name like $" +
+                          fn( pattern ) +
+                          ")";
+            String sql = 0;
+            uint i = 0;
+            while ( i < s8.length() ) {
+                if ( s8[i] == '*' )
+                    sql.append( '%' );
+                else
+                    sql.append( s8[i] );
+                i++;
+            }
+            d->query->bind( pattern, sql );
+        }
+        else if ( n > 1 ) {
+            annotations = "(" + annotations + ")";
+        }
+    }
+
+    String user;
+    String attribute;
+    if ( s8b.endsWith( ".priv" ) ) {
+        attribute = s8b.mid( 0, s8b.length()-5 ).lower();
+        uint userId = d->argument();
+        user = "user=$" + fn( userId );
+        d->query->bind( userId, d->user->id() );
+    }
+    else if ( s8b.endsWith( ".shared" ) ) {
+        attribute = s8b.mid( 0, s8b.length()-7 ).lower();
+        user = "user is null";
+    }
+    else {
+        attribute = s8b.lower();
+        uint userId = d->argument();
+        user = "(user is null or user=$" + fn( userId ) + ")";
+        d->query->bind( userId, d->user->id() );
+    }
+
+    String field = "value";
+    if ( attribute == "content-type" )
+        field = "type";
+    else if ( attribute == "content-language" )
+        field = "language";
+    else if ( attribute == "display-name" )
+        field = "displayname";
+    else if ( attribute == "size" )
+        field = "length(value)";
+
+    uint like = d->argument();
+    d->query->bind( like, q( s16 ) );
+
+    return "messages.uid in (select uid from annotations "
+        "where mailbox=$" + fn( d->mboxId ) + " and " + user + " and " +
+        annotations + " and " + field + " ilike " + matchAny( like ) + ")";
+}
+
+
 /*! This implements any search that's not bound to a specific field,
     generally booleans and "all".
 */
@@ -1174,6 +1317,8 @@ String Search::Condition::debugString() const
     case Uid:
         return s.where();
         break;
+    case Annotation:
+        w = "annotation " + s8b + " of ";
     };
 
     r = w + " " + o + " ";
@@ -1248,12 +1393,24 @@ Search::Condition::MatchResult Search::Condition::match( Message * m,
     specified in the CHARSET argument to SEARCH.
 */
 
-UString Search::uastring()
+UString Search::ustring( Command::QuoteMode stringType )
 {
     if ( !d->codec )
         d->codec = new AsciiCodec;
 
-    String raw = astring();
+    String raw;
+    switch( stringType )
+    {
+    case AString:
+        raw = astring();
+        break;
+    case NString:
+        raw = nstring();
+        break;
+    case PlainString:
+        raw = string();
+        break;
+    }
     UString canon = d->codec->toUnicode( raw );
     if ( !d->codec->valid() )
         error( Bad,

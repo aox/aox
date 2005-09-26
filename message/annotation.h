@@ -23,6 +23,8 @@ public:
 
     static void setup();
 
+    static uint largestId();
+
 private:
     class AnnotationData * d;
     friend class AnnotationFetcher;

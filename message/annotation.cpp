@@ -228,3 +228,11 @@ void AnnotationCreator::execute()
     if ( done )
         (void)new AnnotationFetcher( d->owner );
 }
+
+
+/*! Returns the largest ID yet seen in for an annotation entry name. */
+
+uint Annotation::largestId()
+{
+    return ::largestAnnotationId;
+}

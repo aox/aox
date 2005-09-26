@@ -17,8 +17,8 @@ public:
     void parse();
     void execute();
 
-    uint match( const String & pattern, uint p,
-                const String & name, uint n );
+    static uint match( const String & pattern, uint p,
+                       const String & name, uint n );
 
     String listMailbox();
 
