@@ -176,7 +176,7 @@ void OCClient::updateMailbox( const String & arg )
         else {
             if ( m->uidnext() != n )
                 log( "OCClient set mailbox " + m->name() +
-                     " to uidnext " + fn( n ), Log::Info );
+                     " to uidnext " + fn( n ), Log::Debug );
             m->setUidnext( n );
         }
     }
