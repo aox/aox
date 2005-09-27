@@ -329,6 +329,7 @@ void Search::parseKey( bool alsoCharset )
                 i++;
             if ( !::legalAnnotationAttributes[i] )
                 error( Bad, "Unknown annotation attribute: " + c->s8b );
+            d->conditions->first()->l->append( c );
         }
         else if ( alsoCharset && keyword == "charset" ) {
             space();
@@ -1155,17 +1156,17 @@ String Search::Condition::whereAnnotation() const
     if ( s8b.endsWith( ".priv" ) ) {
         attribute = s8b.mid( 0, s8b.length()-5 ).lower();
         uint userId = d->argument();
-        user = "user=$" + fn( userId );
+        user = "owner=$" + fn( userId );
         d->query->bind( userId, d->user->id() );
     }
     else if ( s8b.endsWith( ".shared" ) ) {
         attribute = s8b.mid( 0, s8b.length()-7 ).lower();
-        user = "user is null";
+        user = "owner is null";
     }
     else {
         attribute = s8b.lower();
         uint userId = d->argument();
-        user = "(user is null or user=$" + fn( userId ) + ")";
+        user = "(owner is null or owner=$" + fn( userId ) + ")";
         d->query->bind( userId, d->user->id() );
     }
 
@@ -1179,12 +1180,16 @@ String Search::Condition::whereAnnotation() const
     else if ( attribute == "size" )
         field = "length(value)";
 
-    uint like = d->argument();
-    d->query->bind( like, q( s16 ) );
+    String like = " is not null";
+    if ( !s16.isEmpty() ) {
+        uint i = d->argument();
+        d->query->bind( i, q( s16 ) );
+        like = " ilike " + matchAny( i );
+    }
 
     return "messages.uid in (select uid from annotations "
         "where mailbox=$" + fn( d->mboxId ) + " and " + user + " and " +
-        annotations + " and " + field + " ilike " + matchAny( like ) + ")";
+        annotations + " and " + field + like + ")";
 }
 
 
