@@ -436,18 +436,6 @@ void Fetch::sendFetchQueries()
         i++;
     }
 
-    if ( d->set.count() == 1 ) {
-        // some clients keep asking for one message at a time. very
-        // stupid. let's improve matters a little.
-        uint uid = d->set.value( 1 );
-        if ( trivia.count() == 1 )
-            trivia.add( uid, uid + 15 );
-        if ( headers.count() == 1 )
-            headers.add( uid, uid + 15 );
-        if ( flags.count() == 1 )
-            flags.add( uid, uid + 15 );
-    }
-
     mb->fetchFlags( flags, this );
     mb->fetchHeaders( headers, this );
     mb->fetchBodies( bodies, this );
