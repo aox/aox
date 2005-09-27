@@ -756,5 +756,20 @@ recognising spam
   They seem to work that way, but with n different protocols.
 
 
+predictive db fetching
+
+  This change adds a hack to imapd/handlers/fetch.cpp, to defeat
+  pessimal clients like thunderbird.
+
+  It's inchoate.
+
+  It seems to me that the proper way would be to record something in
+  MessageFetcher and extend fetches there. For example, keep a cache
+  of (fetch type, mailbox, uid, uid range) tuples. Each fetch creates
+  one such tuple. If the fetch includes the uid, it's expanded by the
+  uid range. If the fetch is not predicted by any tuple, add a new
+  tuple for the n UIDs following the highest requested UID.
+
+
 We need to do the right thing.
 
