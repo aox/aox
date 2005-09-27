@@ -52,7 +52,9 @@ public:
         state( Command::Executing ), group( 0 ),
         permittedStates( 0 ),
         imap( 0 )
-    {}
+    {
+        (void)::gettimeofday( &started, 0 );
+    }
 
     String tag;
 
