@@ -60,7 +60,6 @@ public:
     IMAPS( int );
 
     void finish();
-    void react( Event );
 
 private:
     class IMAPSData * d;

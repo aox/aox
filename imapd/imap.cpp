@@ -673,11 +673,10 @@ class IMAPSData
     : public Garbage
 {
 public:
-    IMAPSData() : tlsServer( 0 ), helper( 0 ), connected( false ) {}
+    IMAPSData() : tlsServer( 0 ), helper( 0 ) {}
     TlsServer * tlsServer;
     String banner;
     class ImapsHelper * helper;
-    bool connected;
 };
 
 class ImapsHelper: public EventHandler
@@ -709,6 +708,7 @@ IMAPS::IMAPS( int s )
         d->banner = *tmp;
     d->helper = new ImapsHelper( this );
     d->tlsServer = new TlsServer( d->helper, peer(), "IMAPS" );
+    EventLoop::global()->removeConnection( this );
 }
 
 
@@ -724,16 +724,6 @@ void IMAPS::finish()
         return;
     }
 
-    d->connected = true;
     startTls( d->tlsServer );
     enqueue( d->banner + "\r\n" );
-}
-
-
-void IMAPS::react( Event e )
-{
-    if ( !d->connected )
-        return;
-
-    IMAP::react( e );
 }
