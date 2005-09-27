@@ -668,6 +668,7 @@ void Search::Condition::simplify()
         f = again->f;
         a = again->a;
         s8 = again->s8;
+        s8b = again->s8b;
         s16 = again->s16;
         s = again->s;
         n = again->n;
@@ -793,6 +794,7 @@ void Search::Condition::simplify()
         f = p->f;
         a = p->a;
         s8 = p->s8;
+        s8b = p->s8b;
         s16 = p->s16;
         s = p->s;
         l = p->l;
