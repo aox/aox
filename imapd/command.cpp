@@ -38,6 +38,8 @@
 #include "handlers/unselect.h"
 #include "handlers/reset.h"
 
+#include <sys/time.h> // gettimeofday, struct timeval
+
 
 class CommandData
     : public Garbage
@@ -69,6 +71,8 @@ public:
     String errorText;
 
     uint permittedStates;
+
+    struct timeval started;
 
     IMAP * imap;
 };
@@ -264,7 +268,7 @@ Command * Command::create( IMAP * imap,
         c->d->canExpunge = true;
 
     c->setLog( new Log( Log::IMAP ) );
-    c->log( "Command: " + tag + "/" + n, Log::Debug );
+    c->log( "IMAP Command: " + n + " Tag: " + tag, Log::Debug );
 
     return c;
 }
@@ -349,7 +353,33 @@ Command::State Command::state() const
 
 void Command::setState( State s )
 {
+    if ( d->state == s )
+        return;
+
     d->state = s;
+    switch( s ) {
+    case Blocked:
+        log( "IMAP command execution deferred", Log::Debug );
+        break;
+    case Executing:
+        (void)::gettimeofday( &d->started, 0 );
+        log( "Executing IMAP command", Log::Debug );
+        break;
+    case Finished:
+        struct timeval end;
+        (void)::gettimeofday( &end, 0 );
+        long elapsed = ( end.tv_sec * 1000000 + end.tv_usec ) -
+                       ( d->started.tv_sec * 1000000 + d->started.tv_usec );
+        Log::Severity level = Log::Debug;
+        if ( elapsed > 1500 ) // XXX needs tweaking
+            level = Log::Error;
+        String m;
+        m.append( "Executed IMAP command in " );
+        m.append( fn( ( elapsed + 499 ) / 1000 ) );
+        m.append( "ms" );
+        log( m, level );
+        break;
+    }
 }
 
 
