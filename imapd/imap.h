@@ -18,7 +18,7 @@ public:
     IMAP( int );
 
     void parse();
-    void react( Event );
+    virtual void react( Event );
     void reserve( Command * );
 
     enum State { NotAuthenticated, Authenticated, Selected, Logout };
@@ -60,6 +60,7 @@ public:
     IMAPS( int );
 
     void finish();
+    void react( Event );
 
 private:
     class IMAPSData * d;
