@@ -592,48 +592,56 @@ void Store::replaceAnnotations()
     User * u = imap()->user();
     while ( it ) {
         Query * q;
-        String o = "owner=$3";
-        if ( it->shared )
-            o = "owner is null";
         if ( it->value.isEmpty() ) {
+            String o = "owner=$3";
+            if ( it->shared )
+                o = "owner is null";
             q = new Query( "delete from annotations where "
                                    "mailbox=$1 and (" + w + ") and "
                                    "name=$2 and " + o, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, it->annotation->id() );
-            q->bind( 3, u->id() );
+            if ( !it->shared )
+                q->bind( 3, u->id() );
             d->transaction->enqueue( q );
         }
         else {
+            String o = "owner=$7";
+            if ( it->shared )
+                o = "owner is null";
             String existing = "where mailbox=$1 and (" + w + ") and name=$2 "
                               "and " + o;
             q = new Query( "update annotations set "
-                           "value=$4, type=$5, language=$6, displayname=$7 " +
+                           "value=$3, type=$4, language=$5, displayname=$6 " +
                            existing, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, it->annotation->id() );
-            q->bind( 3, u->id() );
-            bind( q, 4, it->value );
-            bind( q, 5, it->contentType );
-            bind( q, 6, it->contentLanguage );
-            bind( q, 7, it->displayName );
+            bind( q, 3, it->value );
+            bind( q, 4, it->contentType );
+            bind( q, 5, it->contentLanguage );
+            bind( q, 6, it->displayName );
+            if ( !it->shared )
+                q->bind( 7, u->id() );
             d->transaction->enqueue( q );
 
             q = new Query( "insert into annotations "
-                           "(mailbox, uid, owner, name, value, type, "
-                           " language, displayname) "
-                           "select $1,uid,$3,$2,$4,$5,$6,$7 "
+                           "(mailbox, uid, name, value, type, "
+                           " language, displayname, owner) "
+                           "select $1,uid,$2,$3,$4,$5,$6,$7 "
                            "from messages where "
                            "mailbox=$1 and (" + w + ") and uid not in "
                            "(select uid from annotations " + existing + ")",
                            0 );
             q->bind( 1, m->id() );
             q->bind( 2, it->annotation->id() );
-            q->bind( 3, u->id() );
-            bind( q, 4, it->value );
-            bind( q, 5, it->contentType );
-            bind( q, 6, it->contentLanguage );
-            bind( q, 7, it->displayName );
+            bind( q, 3, it->value );
+            bind( q, 4, it->contentType );
+            bind( q, 5, it->contentLanguage );
+            bind( q, 6, it->displayName );
+            if ( it->shared )
+                q->bindNull( 7 );
+            else
+                q->bind( 7, u->id() );
             d->transaction->enqueue( q );
         }
         ++it;
