@@ -224,6 +224,7 @@ FlagCreator::FlagCreator( EventHandler * owner, const StringList & flags )
         Query * q = new Query( "insert into flag_names (name) values ($1)",
                                this );
         q->bind( 1, *it );
+        q->allowFailure();
         q->execute();
         d->queries.append( q );
         ++it;

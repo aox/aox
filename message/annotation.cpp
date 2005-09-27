@@ -209,6 +209,7 @@ AnnotationCreator::AnnotationCreator( EventHandler * owner, const StringList & a
             = new Query( "insert into annotation_names (name) values ($1)",
                          this );
         q->bind( 1, *it );
+        q->allowFailure();
         q->execute();
         d->queries.append( q );
         ++it;
