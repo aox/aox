@@ -154,9 +154,9 @@ static void generateKey( String file, String label, String secret )
                                 CRYPT_KEYUSAGE_KEYCERTSIGN |
                                 CRYPT_KEYUSAGE_KEYENCIPHERMENT );
     handleError( status, "cryptSetAttribute(KEYUSAGE)" );
-    status = cryptSetAttribute( cert, CRYPT_CERTINFO_EXTKEY_SERVERAUTH,
-                                CRYPT_UNUSED );
-    handleError( status, "cryptSetAttribute(EXTKEY)" );
+
+    // We should set CRYPT_CERTINFO_EXTKEY_SERVERAUTH, but we don't do
+    // it because Mozilla reject our certificate if we do.
 
     // Sign it with the private key and update the keyset.
     status = cryptSignCert( cert, privateKey );
