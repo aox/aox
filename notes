@@ -28,46 +28,6 @@ Fix shutdown
 Resource limits on memory allocation
 
 
-Inbox lifetime/mailbox reuse
-
-  A newly created used needs an inbox. Since the user name may be the
-  same as a former user, the mailbox may exist already, and may
-  contain messages belonging to the former user.
-
-  This behaviour has the benefit that "ms create user" is a perfect
-  undelete for "ms delete user", but if the new user has no relation
-  to the previous homonymous user, our behaviour is less desirable.
-
-  I assume ms create user needs a command-line argument and msconsole
-  needs to prompt its user.
-
-
-Add support for "ms restart now" and "ms restart gracefully"
-
-  Complications include: Some daemon must run as root, outside the
-  jail. ocd perhaps? For cluster use, things grow complicated very
-  quickly.
-
-  Preliminary approach: Have ocd run chrooted in BINDIR instead of
-  JAILDIR, and by default listen only to a unix socket.
-
-
-EXPUNGE fixes:
-
-  Crab says: We need to do what RFC2180 says.
-
-  Arnt says: RFC 2180 gives four possible approaches for FETCH and as
-  many for STORE. IMO, as of this change our handling of STORE and
-  FETCH is as good as any of those four. Less advanced, but a lot
-  simpler.
-
-  Hm. There is a bit of a race condition, e.g. if store and expunge
-  are sent at the same time, or very nearly so. One of them will be
-  processed first. If that's expunge, store will fail with a "no -
-  database error". I suppose that's okay. It only happens if the store
-  is processed before we spread the word about the expunged message.
-
-
 Consider RFC2231:
 
   2231 says: IMAP4 [RFC-2060] servers SHOULD decode parameter value
@@ -143,10 +103,10 @@ ANNOTATE support
   - session state: done
   - SELECT/EXAMINE: done
   - FETCH
-  - STORE
+  - STORE: done
   - COPY: done (untested for lack of other support)
   - APPEND
-  - SEARCH
+  - SEARCH: done
   - SORT
 
 
@@ -347,25 +307,10 @@ Orphaned bodyparts should be cleaned up somehow.
 We need mUTF-7 support.
 
 
-We need more IMAP scripts and message parsing and assembly tests.
-
-
 Write better field wrapping code
 
   HeaderField::wrap is terribly hackish right now. Besides, ::unwrap()
   should become the higher-level parser's job.
-
-
-We assume that all Content-Type fields conform to MIME.
-
-  In fact, RFC 1049 defines a non-MIME Content-Type (and Arnt says the
-  Sun mailer had an incompatible one). The "Content-Type: text" parser
-  hack I added turns out to have been for such a non-MIME field.
-
-  I don't know what to do about this.
-
-  We do nothing about it until we see user demand for it. If/when we
-  do see that, we'll discuss the need with that user.
 
 
 We should be able to use a read-only local database mirror.
@@ -394,9 +339,6 @@ Read the GiST papers and look at tsearch2 again.
 
 
 Complete POP3 support.
-
-
-Complete ACL support.
 
 
 Improve LogPane so it doesn't eat so much CPU
@@ -627,31 +569,6 @@ Privilege separation
   good.
 
 
-Prepared statements are good. We should use them.
-
-  Strictly speaking, we are. It's just that most of the time, we
-  prepare a statement and then use it exactly once.
-
-  I see three ways out of this.
-
-  1. We promise betterment and create lots more PreparedStatement
-     objects around the place. Starting tomorrow.
-
-  2. We add some magic to Query, so it can reuse already-prepared
-     statements, even though they're not declared as such. Query could
-     use a cache or dict to recognize the strings that ought to be
-     prepared.
-
-  3. We could have a look at kalyani's logs and change the most
-     heavily used queries to prepared statements. Repeat in four
-     months.
-
-  The first isn't realistic, I think. The other two are. Each has
-  points in its favour... automatic recognition handles client
-  selects, which is good, and profiling uses less memory and keeps us
-  focused on actual performance.
-
-
 Default c-t-e of PGP signatures
 
   Right now we give them binary. q-p or 7bit would be better, I think.
@@ -667,10 +584,15 @@ Default c-t-e of PGP signatures
   contain only CR, LF and printable ASCII can be broken.
 
 
-msconsole needs work
+msconsole user pane
 
-  - The user pane should do something.
-  - The migrator should disable and re-enable indices.
+  The user pane should do something.
+
+
+msconsole migrator should work without indices
+
+  If the database is otherwise idle, msconsole could disable indicex
+  and perhaps transactions, and go much faster.
 
 
 The IMAP SORT extension seems really easy
