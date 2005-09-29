@@ -12,6 +12,8 @@ public:
     {}
 
     bool uid;
+    String mechanism;
+    String charset;
 };
 
 
@@ -33,6 +35,12 @@ Thread::Thread( bool u )
 
 void Thread::parse()
 {
+    space();
+    d->mechanism = atom().lower();
+    if ( d->mechanism != "orderedsubject" )
+        error( Bad, "Unsupported THREAD mechanism: " + d->mechanism );
+    space();
+    d->charset = astring();
     end();
 }
 
