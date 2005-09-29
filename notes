@@ -585,6 +585,14 @@ Switch to using named constraints everywhere.
   (Most of these items have their own separate notes.)
 
 
+Next few releases
+
+  IMAP VIEW
+  webmail ditto
+  msconsole reasonably complete
+  grand unified cache
+
+
 GB2312 codec
 
   Thing's much used. Qt and ICU provide interoperability tests.
