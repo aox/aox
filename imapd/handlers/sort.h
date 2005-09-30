@@ -3,17 +3,18 @@
 #ifndef SORT_H
 #define SORT_H
 
-#include "command.h"
+#include "search.h"
 
 
 class Sort
-    : public Command
+    : public Search
 {
 public:
     Sort( bool u );
 
     void parse();
     void execute();
+    void process();
 
 private:
     class SortData * d;

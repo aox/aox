@@ -8,12 +8,7 @@ class SortData
 {
 public:
     SortData()
-        : uid( false )
     {}
-
-    bool uid;
-
-    String charset;
 };
 
 
@@ -25,9 +20,9 @@ public:
 /*! Creates a new handler for SORT (or UID SORT, if \a u is true). */
 
 Sort::Sort( bool u )
-    : d( new SortData )
+    : Search( u ),
+      d( new SortData )
 {
-    d->uid = u;
 }
 
 
@@ -72,12 +67,26 @@ void Sort::parse()
 
     require( ")" );
     space();
-    d->charset = astring();
+    setCharset( astring() );
+
+    space();
+    parseKey();
+    while ( nextChar() == ' ' ) {
+        space();
+        parseKey();
+    }
     end();
+
+    prepare();
 }
 
 
 void Sort::execute()
 {
     finish();
+}
+
+
+void Sort::process()
+{
 }

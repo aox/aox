@@ -19,9 +19,12 @@ public:
 
     void parse();
     void execute();
+    virtual void process();
 
-private:
+protected:
+    void setCharset( const String & );
     void parseKey( bool alsoCharset = false );
+    void prepare();
 
 private:
     enum Action {
@@ -100,8 +103,6 @@ private:
 
     Condition * push( Action );
     void pop();
-
-    void prepare();
 
     String debugString();
 

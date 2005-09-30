@@ -3,17 +3,18 @@
 #ifndef THREAD_H
 #define THREAD_H
 
-#include "command.h"
+#include "search.h"
 
 
 class Thread
-    : public Command
+    : public Search
 {
 public:
     Thread( bool u );
 
     void parse();
     void execute();
+    void process();
 
 private:
     class ThreadData * d;

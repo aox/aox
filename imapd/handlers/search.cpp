@@ -333,11 +333,7 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( alsoCharset && keyword == "charset" ) {
             space();
-            d->charset = astring();
-            d->codec = Codec::byName( d->charset );
-            if ( d->codec == 0 )
-                error( No, "[BADCHARSET] Unknown character encoding: " +
-                       d->charset );
+            setCharset( astring() );
         }
         else {
             error( Bad, "unknown search key: " + keyword );
@@ -389,6 +385,17 @@ void Search::execute()
         return;
     }
 
+    process();
+    finish();
+}
+
+
+/*! This virtual function is called by execute() once the results are
+    ready to be returned to the client.
+*/
+
+void Search::process()
+{
     ImapSession * s = imap()->session();
     Row * r;
     String result( "SEARCH" );
@@ -401,7 +408,6 @@ void Search::execute()
     }
 
     respond( result );
-    finish();
 }
 
 
@@ -1445,4 +1451,18 @@ bool Search::Condition::needSession() const
         }
     }
     return false;
+}
+
+
+/*! This helper function is called by the parser to set the CHARSET for
+    this search to \a s.
+*/
+
+void Search::setCharset( const String &s )
+{
+    d->charset = s;
+    d->codec = Codec::byName( d->charset );
+    if ( d->codec == 0 )
+        error( No, "[BADCHARSET] Unknown character encoding: " +
+               d->charset );
 }

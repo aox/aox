@@ -8,12 +8,9 @@ class ThreadData
 {
 public:
     ThreadData()
-        : uid( false )
     {}
 
-    bool uid;
     String mechanism;
-    String charset;
 };
 
 
@@ -27,9 +24,9 @@ public:
 */
 
 Thread::Thread( bool u )
-    : d( new ThreadData )
+    : Search( u ),
+      d( new ThreadData )
 {
-    d->uid = u;
 }
 
 
@@ -40,12 +37,26 @@ void Thread::parse()
     if ( d->mechanism != "orderedsubject" )
         error( Bad, "Unsupported THREAD mechanism: " + d->mechanism );
     space();
-    d->charset = astring();
+    setCharset( astring() );
+
+    space();
+    parseKey();
+    while ( nextChar() == ' ' ) {
+        space();
+        parseKey();
+    }
     end();
+
+    prepare();
 }
 
 
 void Thread::execute()
 {
     finish();
+}
+
+
+void Thread::process()
+{
 }
