@@ -47,4 +47,20 @@ private:
 };
 
 
+class ConsoleGarbageCollector
+    : public QObject
+{
+    Q_OBJECT
+public:
+    ConsoleGarbageCollector();
+
+public slots:
+    void sweep();
+
+private:
+    QTimer * heartbeat;
+    uint sweepTime;
+};
+
+
 #endif

@@ -46,6 +46,7 @@ ConsoleLoop::ConsoleLoop()
     : EventLoop(), d( new ConsoleLoopData )
 {
     EventLoop::setup( this );
+    (void)new ConsoleGarbageCollector;
 }
 
 
@@ -196,4 +197,42 @@ void EventNotifier::dispatch()
 Connection * EventNotifier::connection() const
 {
     return c;
+}
+
+
+/*! \class ConsoleGarbageCollector consoleloop.h
+
+    This class is responsible for calling Allocator::free() at
+    suitable intervals. When is up to it.
+*/
+
+ConsoleGarbageCollector::ConsoleGarbageCollector()
+    : QObject( 0 ),
+      heartbeat( 0 ), sweepTime( time( 0 ) )
+{
+    heartbeat = new QTimer( this );
+    connect( heartbeat, SIGNAL(timeout()),
+             this, SLOT(sweep()) );
+    heartbeat->start( 333 );
+}
+
+
+/*! The heart of ConsoleGarbageCollector. Calls Allocator::free() when
+    appropriate. Currently calls it at least every minute, but more
+    often if a lot of memory is being allocated.
+
+    AFTER each call to Allocator::free(), this function resets its
+    timer, so time spent in GC is not counted towards whether GC
+    should be called.
+*/
+
+void ConsoleGarbageCollector::sweep()
+{
+    uint now = time( 0 );
+    if ( now - sweepTime > 7200 ||
+         Allocator::allocated() > 8*1024*1024 ||
+         ( now - sweepTime > 10 && Allocator::allocated() >= 131072 ) ) {
+        Allocator::free();
+        sweepTime = time( 0 );
+    }
 }
