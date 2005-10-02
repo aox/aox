@@ -234,7 +234,7 @@ String MigratorMessage::original() const
 
 
 /*! Necessary only to satisfy g++, which wants virtual
-    constructors. */
+    destructors. */
 
 MigratorSource::~MigratorSource()
 {
@@ -263,8 +263,8 @@ void Migrator::start( class MigratorSource * source )
 
 /*! Returns true if a Migrator operation is currently running, and
     false otherwise. An operation is running even if there's nothing
-    it can do at the moment because of syntax errors or permission
-    problems.
+    it can do at the moment. As long as there's something it may do in
+    the future, it's running.
 */
 
 bool Migrator::running() const
@@ -295,30 +295,26 @@ void Migrator::refill()
             d->working->take( mm );
             if ( d->working->isEmpty() )
                 lastTaken = true;
-            delete mm;
         }
     }
-    while ( d->working->count() < 4 ) {
+    if ( d->working->count() < 4 ) {
         MigratorMailbox * m = d->source->nextMailbox();
-        if ( !m ) {
-            if ( lastTaken && d->working->isEmpty() )
-                emit done();
-            // every year I like this sort of return a little less. hm.
-            return;
-        }
-        MailboxMigrator * n = new MailboxMigrator( m, this );
-        if ( n->valid() ) {
-            d->working->append( n );
-            n->createListViewItem( d->current );
-            n->execute();
-        }
-        else {
-            delete n;
+        while ( m && d->working->count() < 4 ) {
+            if ( m ) {
+                MailboxMigrator * n = new MailboxMigrator( m, this );
+                if ( n->valid() ) {
+                    d->working->append( n );
+                    n->createListViewItem( d->current );
+                    n->execute();
+                }
+            }
+            m = d->source->nextMailbox();
         }
     }
     if ( lastTaken && d->working->isEmpty() )
         emit done();
 }
+
 
 class MigratorMessageItem
     : public QListViewItem
@@ -350,7 +346,7 @@ MigratorMessageItem::MigratorMessageItem( QListViewItem * parent,
 
 void MigratorMessageItem::activate()
 {
-    QWidget * w = new QWidget( 0 );
+    QWidget * w = new QWidget( 0, 0, WDestructiveClose );
     QGridLayout * g = new QGridLayout( w, 2, 2, 6 );
 
     QLabel * l = new QLabel( Migrator::tr( "Message:" ), w );
@@ -433,22 +429,12 @@ MailboxMigrator::MailboxMigrator( MigratorMailbox * source,
     : EventHandler(), d( new MailboxMigratorData )
 {
     Scope x( &d->log );
-    Allocator::addEternal( d, "mailbox migrator gcable data" );
 
     d->source = source;
     d->migrator = migrator;
 
     log( "Starting migration of mailbox " + d->source->partialName() );
     commit();
-}
-
-
-MailboxMigrator::~MailboxMigrator()
-{
-    Scope x( &d->log );
-    log( "Finishing" );
-    commit();
-    Allocator::removeEternal( d );
 }
 
 
@@ -506,6 +492,7 @@ void MailboxMigrator::execute()
                        ": " +
                        d->mailboxCreator->error();
             log( d->error, Log::Error );
+            commit();
             d->migrator->refill();
             return;
         }
@@ -516,7 +503,8 @@ void MailboxMigrator::execute()
         d->destination = Mailbox::find( d->source->partialName() );
         if ( !d->destination ) {
             log( "Need to create destination mailbox" );
-            d->destination = Mailbox::obtain( d->source->partialName(), true );
+            d->destination
+                = Mailbox::obtain( d->source->partialName(), true );
             d->mailboxCreator = d->destination->create( this, 0 );
             // this is slightly wrong: the mailbox owner is set to
             // 0. once we create users as part of the migration
@@ -527,6 +515,7 @@ void MailboxMigrator::execute()
 
     if ( d->injector ) {
         // we've already injected one message. must get another.
+        commit();
         d->message = d->source->nextMessage();
     }
     else {
@@ -558,11 +547,12 @@ void MailboxMigrator::execute()
         d->migrator->refill();
     }
 
-    commit();
+    if ( done() )
+        commit();
 }
 
 
-/*! Returns true if this message has processed every message in its
+/*! Returns true if this mailbox has processed every message in its
     source to completion, and false if there may be something left to
     do.
 */

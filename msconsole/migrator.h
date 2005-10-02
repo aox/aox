@@ -78,7 +78,6 @@ class MailboxMigrator: public EventHandler
 public:
     MailboxMigrator( class MigratorMailbox *,
                      class Migrator * );
-    virtual ~MailboxMigrator();
 
     bool valid() const;
     bool done() const;

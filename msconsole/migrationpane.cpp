@@ -122,21 +122,18 @@ MigrationPane::~MigrationPane()
 
 void MigrationPane::startMigration()
 {
-    MigratorSource * s = 0;
-    if ( d->migrator->running() ) {
+    if ( !d->migrator->running() ) {
+        MigratorSource * s = 0;
+        if ( d->mh->isOn() )
+            s = new MhDirectory( d->mhRoot->text().latin1() );
+        if ( d->mbox->isOn() )
+            s = new MboxDirectory( d->mboxRoot->text().latin1() );
+        if ( d->cyrus->isOn() )
+            s = new CyrusDirectory( d->cyrusRoot->text().latin1() );
+        if ( s )
+            d->migrator->start( s );
     }
-    else if ( d->mh->isOn() ) {
-        s = new MhDirectory( d->mhRoot->text().latin1() );
-    }
-    else if ( d->mbox->isOn() ) {
-        s = new MboxDirectory( d->mboxRoot->text().latin1() );
-    }
-    else if ( d->cyrus->isOn() ) {
-        s = new CyrusDirectory( d->cyrusRoot->text().latin1() );
-    }
-    if ( s ) {
-        d->migrator->start( s );
-    }
+
     disenablify();
 }
 
