@@ -701,5 +701,11 @@ predictive db fetching
   tuple for the n UIDs following the highest requested UID.
 
 
+Losing add PSQL connections is bad
+
+  If we have no connections, need to open one and can't, we ought to
+  shutdown. Log a disaster, shutdown all servers.
+
+
 We need to do the right thing.
 
