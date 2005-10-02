@@ -86,8 +86,9 @@ int main( int argc, char *argv[] )
     // our own event loop, merging qt's and ours
     Allocator::addEternal( new ConsoleLoop, "event loop" );
 
-    Log l( Log::General );
-    global.setLog( &l );
+    Log * l = new Log( Log::General );
+    Allocator::addEternal( l, "log object" );
+    global.setLog( l );
     Allocator::addEternal( new GuiLog, "log object" );
 
     Database::setup();
@@ -96,8 +97,8 @@ int main( int argc, char *argv[] )
     Configuration::report();
     Mailbox::setup();
 
-    l.log( "Starting up" );
-    l.commit();
+    l->log( "Starting up" );
+    l->commit();
 
     // typical Qt crud
     qInstallMsgHandler( errorHandler );
