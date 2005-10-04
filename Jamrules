@@ -17,6 +17,7 @@ if $(ICC) {
     C++ = icc ;
     C++FLAGS += -wd1476 ;
     BUILD = build/icc ;
+    LINKFLAGS += -lcxa -lunwind ;
 }
 else {
     C++ = g++ ;
