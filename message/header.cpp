@@ -581,18 +581,43 @@ void Header::repair()
         i++;
     }
 
-    // Date fields get slightly special treatment.
+    // We retain only the first valid Date field.
 
     if ( occurrences[(int)HeaderField::Date] > 1 ) {
-        uint i = 0;
-        HeaderField * h = field( HeaderField::Date, 0 );
-        while ( h && !h->valid() ) {
-            i++;
-            h = field( HeaderField::Date, i );
+        uint n = 0;
+        List< HeaderField >::Iterator it( d->fields );
+        while ( it ) {
+            if ( it->type() == HeaderField::Date ) {
+                if ( n > 0 || !it->valid() ) {
+                    d->fields.take( it );
+                }
+                else {
+                    n++;
+                    ++it;
+                }
+            }
+            else {
+                ++it;
+            }
         }
-        if ( h ) {
-            removeField( HeaderField::Date );
-            add( h );
+    }
+
+    // We discard all but the first Message-Id.
+
+    if ( occurrences[(int)HeaderField::MessageId] > 1 ) {
+        uint n = 0;
+        List< HeaderField >::Iterator it( d->fields );
+        while ( it ) {
+            if ( it->type() == HeaderField::MessageId ) {
+                if ( n > 0 )
+                    d->fields.take( it );
+                else
+                    ++it;
+                n++;
+            }
+            else {
+                ++it;
+            }
         }
     }
 
