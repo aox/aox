@@ -9,7 +9,6 @@
 #include "allocator.h"
 #include "guilog.h"
 #include "log.h"
-#include "syslogger.h"
 #include "database.h"
 #include "console.h"
 #include "consoleloop.h"

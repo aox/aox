@@ -7,8 +7,6 @@ Build core : global.cpp scope.cpp string.cpp
 
 Build encodings : ustring.cpp ;
 
-Build admintools : syslogger.cpp ;
-
 PGUSER ?= "" ;
 
 # just for configuration.cpp, we want to propagagate the compile-time
