@@ -391,13 +391,21 @@ void Server::secure()
              Log::Disaster );
         exit( 1 );
     }
-    if ( (st.st_mode & 077) != 0 ) {
-        // not sure this is right. perhaps group membership is okay.
-        // but we'll fail safely for the time being.
+    if ( st.st_gid != gr->gr_gid ) {
         log( "Configuration file " + cfn +
-             " must be readable for " + user + " only (mode is " +
+             " must be in group " + user +
+             " (gid " + fn( gr->gr_gid ) + ")" +
+             " (is in gid " +
+             fn( st.st_gid ) + ")",
+             Log::Disaster );
+        exit( 1 );
+    }
+    if ( (st.st_mode & 027) != 0 ) {
+        log( "Configuration file " + cfn +
+             " must be readable for user " + user + "/group " + group +
+             " only (mode is " +
              fn( st.st_mode & 0777, 8 ) + ", should be " +
-             fn( st.st_mode & 0700, 8 ) + ")",
+             fn( st.st_mode & 0740, 8 ) + ")",
              Log::Disaster );
         exit( 1 );
     }
