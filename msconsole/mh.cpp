@@ -119,8 +119,7 @@ MigratorMessage * MhMailbox::nextMessage()
     File m( f );
     i = 0;
     String c( m.contents() );
-    if ( c.mid( 0, 5 ) == "From " ) {
-        i = 0;
+    if ( c.startsWith( "From " ) ) {
         while ( i < c.length() && c[i] != '\n' )
             i++;
         i++;
