@@ -1136,6 +1136,8 @@ static char qphexdigits[17] = "0123456789ABCDEF";
 
 String String::eQP( bool underscore ) const
 {
+    if ( isEmpty() )
+        return *this;
     uint i = 0;
     String r;
     // worst case: three bytes, plus soft line feeds every 48 chars
