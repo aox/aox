@@ -448,10 +448,15 @@ bool MailboxMigrator::valid() const
 {
     if ( !d->validated ) {
         d->validated = true;
-        d->message = d->source->nextMessage();
-        if ( d->message )
-            d->valid = true;
         Scope x( &d->log );
+        if ( d->source->partialName().isEmpty() ) {
+            log( "Root directory cannot contain messages" );
+        }
+        else {
+            d->message = d->source->nextMessage();
+            if ( d->message )
+                d->valid = true;
+        }
         if ( d->valid )
             log( "Source apparently is a valid mailbox" );
         else
@@ -505,10 +510,14 @@ void MailboxMigrator::execute()
             log( "Need to create destination mailbox" );
             d->destination
                 = Mailbox::obtain( d->source->partialName(), true );
-            d->mailboxCreator = d->destination->create( this, 0 );
-            // this is slightly wrong: the mailbox owner is set to
-            // 0. once we create users as part of the migration
-            // process, this needs improvement.
+            if ( d->destination ) {
+                d->mailboxCreator = d->destination->create( this, 0 );
+            }
+            else {
+                log( "Unable to migrate " + d->source->partialName() );
+                d->migrator->refill();
+                d->message = 0;
+            }
             return;
         }
     }
