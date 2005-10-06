@@ -533,7 +533,7 @@ void AddressParser::address( int & i )
         add( name, 0, 0 );
         if ( s[i] == '<' )
             i--;
-    }        
+    }
     else if ( s[i] == '>' ) {
         // name-addr
         i--;
@@ -561,17 +561,17 @@ void AddressParser::address( int & i )
                 } while ( i >= 0 && s[i] != '<' && !rdom.isEmpty() );
             }
         }
-        if ( s[i] == '<' ) {
+        if ( i >= 0 && s[i] == '<' ) {
             i--;
             name = phrase( i );
-            while ( i > 0 && s[i] > 127 ) {
+            while ( i >= 0 && s[i] > 127 ) {
                 // we're looking at an unencoded 8-bit name. we react
                 // to that by ignoring the display-name.
                 name = "";
                 i--;
                 (void)phrase( i );
             }
-            if ( s[i] == '@' ) {
+            if ( i >= 0 && s[i] == '@' ) {
                 // we may be looking at address "lp@domain
                 // <lp@domain>", or at some other error. we respond to
                 // this particular error by ignoring the display-name.
