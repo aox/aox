@@ -263,6 +263,8 @@ String Address::toString() const
         r = d->name + ":;";
         break;
     case Local:
+        // note that this returns the localpart unquoted, no matter
+        // what it contains.
         r = d->localpart;
         break;
     case Normal:
@@ -274,7 +276,10 @@ String Address::toString() const
         else {
             r.append( name() );
             r.append( " <" );
-            r.append( d->localpart );
+            if ( localpartIsSensible() )
+                r.append( d->localpart );
+            else
+                r.append( d->localpart.quoted() );
             r.append( "@" );
             r.append( d->domain );
             r.append( ">" );
@@ -1034,4 +1039,38 @@ void Address::uniquify( List<Address> * l )
 Address::Type Address::type() const
 {
     return d->type;
+}
+
+
+/*! Returns true if this is a sensible-looking localpart, and false if
+    it needs quoting. We should never permit one of our users to need
+    quoting, but we must permit foreign addresses that do.
+*/
+
+bool Address::localpartIsSensible() const
+{
+    uint i = 0;
+    while ( i < d->localpart.length() ) {
+        char c = d->localpart[i];
+        if ( c == '.' ) {
+            if ( d->localpart[i+1] == '.' )
+                return false;
+        }
+        else if ( ! ( ( c >= 'a' && c <= 'z' ) ||
+                 ( c >= 'A' && c <= 'Z' ) ||
+                 ( c >= '0' && c <= '9' ) ||
+                 c == '!' || c == '#' ||
+                 c == '$' || c == '%' ||
+                 c == '&' || c == '\'' ||
+                 c == '*' || c == '+' ||
+                 c == '-' || c == '/' ||
+                 c == '=' || c == '?' ||
+                 c == '^' || c == '_' ||
+                 c == '`' || c == '{' ||
+                 c == '|' || c == '}' ||
+                 c == '~' ) )
+            return false;
+        i++;
+    }
+    return true;
 }

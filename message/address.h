@@ -37,6 +37,8 @@ public:
 
     static void uniquify( List<Address> * );
 
+    bool localpartIsSensible() const;
+
 private:
     class AddressData * d;
 
