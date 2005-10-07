@@ -15,10 +15,16 @@
 #include "tls.h"
 #include "configuration.h"
 #include "schema.h"
+#include "file.h"
 #include "log.h"
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 
 /*! \nodoc */
+
 
 int main( int argc, char * argv[] )
 {
@@ -30,8 +36,12 @@ int main( int argc, char * argv[] )
     String mc( Configuration::text( Configuration::MessageCopy ) );
     String mcd( Configuration::text( Configuration::MessageCopyDir ) );
     if ( mc == "all" || mc == "errors" || mc == "delivered" ) {
+        struct stat st;
         if ( mcd.isEmpty() )
             log( "message-copy-directory not set", Log::Disaster );
+        else if ( ::stat( mcd.cstr(), &st ) < 0 || !S_ISDIR( st.st_mode ) )
+            log( "Inaccessible message-copy-directory: " + mcd,
+                 Log::Disaster );
         s.setChrootMode( Server::MessageCopyDir );
     }
     else if ( mc == "none" ) {
