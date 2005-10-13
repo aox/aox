@@ -346,40 +346,51 @@ void Date::setRfc822( const String & s )
     p.comment(); // and we'll accept 13, dec 2003
     if ( p.next() == ',' )
         (void)p.character();
-    String s2 = p.string();
-    if ( s1[0] > '9' ) {
-        a = s1;
-        s1 = s2;
-        s2 = a;
-    }
     bool ok = false;
-    d->day = s1.number( &ok );
-    if ( !ok )
-        return;
-
-    d->month = month( s2 );
-
-    if ( d->month == 0 ) {
-        // also accept numerical months. fucked, but...
-        ok = false;
-        d->month = s2.number( &ok );
-        if ( d->month > 12 || !ok )
-            d->month = 0;
+    String s2;
+    bool yearAtEnd = false;
+    // this whole block is for Date: 13-Dec-2003
+    if ( s1[2] == '-' ) {
+        d->day = s1.mid( 0, 2 ).number( &ok );
+        if ( !ok )
+            return;
+        d->month = month( s1.mid( 3, 3 ) );
+        if ( !d->month )
+            return;
+        a = s1.mid( 7 );
     }
     else {
-        // Some programs (which urgently need potty training) put a dot
-        // after the month's name.
-        if ( p.next() == '.' )
-            p.step();
+        // and this bit for the legal way
+        s2 = p.string();
+        if ( s1[0] > '9' ) {
+            a = s1;
+            s1 = s2;
+            s2 = a;
+        }
+        d->day = s1.number( &ok );
+        if ( !ok )
+            return;
+
+        d->month = month( s2 );
+
+        if ( d->month == 0 ) {
+            // also accept numerical months. fucked, but...
+            ok = false;
+            d->month = s2.number( &ok );
+            if ( d->month > 12 || !ok )
+                d->month = 0;
+        }
+        else {
+            // Some programs (which urgently need potty training) put a dot
+            // after the month's name.
+            if ( p.next() == '.' )
+                p.step();
+        }
+
+        a = p.string();
+        if ( a.length() < 3 && p.next() == ':' )
+            yearAtEnd = true;
     }
-
-    if ( d->month == 0 )
-        return;
-
-    a = p.string();
-    bool yearAtEnd = false;
-    if ( a.length() < 3 && p.next() == ':' )
-        yearAtEnd = true;
 
     if ( !yearAtEnd ) {
         // we process the year where it should be.
