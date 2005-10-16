@@ -429,7 +429,7 @@ void HeaderField::parseContentLocation( const String &s )
     p.comment();
 
     if ( !p.atEnd() )
-        setError( "Junk at end of '" + value().simplified() + "'" );
+        setError( "Junk at end of '" + s.simplified() + "'" );
 }
 
 
