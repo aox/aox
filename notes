@@ -722,3 +722,13 @@ Losing add PSQL connections is bad
 Trip Agenda
 
   Views!
+
+
+AMS: 2005-10-18
+
+  1. Fix up the web pages to conform to Sujai's latest.
+  2. Make the few remaining Hassath changes.
+  3. Fix the transaction bug.
+
+
+
