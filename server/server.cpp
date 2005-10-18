@@ -392,7 +392,7 @@ void Server::secure()
              Log::Disaster );
         exit( 1 );
     }
-    if ( st.st_gid != gr->gr_gid ) {
+    if ( (gid_t)st.st_gid != (gid_t)gr->gr_gid ) {
         log( "Configuration file " + cfn +
              " must be in group " + user +
              " (gid " + fn( gr->gr_gid ) + ")" +
