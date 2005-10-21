@@ -102,7 +102,7 @@ Postgres::Postgres()
         connect( server() );
     }
 
-    setTimeoutAfter( 60 );
+    setTimeoutAfter( 10 );
     EventLoop::global()->addConnection( this );
     addHandle( this );
 }
