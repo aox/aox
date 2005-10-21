@@ -72,7 +72,7 @@ int main( int ac, char *av[] )
         else if ( s == "-n" ) {
             report = true;
         }
-        else if ( s == "-g" || s == "-u" || s == "-p" ) {
+        else if ( s == "-g" || s == "-u" || s == "-p" || s == "-a" ) {
             if ( ac == 1 )
                 error( s + " specified with no argument." );
             if ( s == "-g" )
@@ -81,6 +81,8 @@ int main( int ac, char *av[] )
                 ORYXUSER = *av++;
             else if ( s == "-p" )
                 PGUSER = *av++;
+            else if ( s == "-a" )
+                DBADDRESS = *av++;
             ac--;
         }
         else {
@@ -332,6 +334,7 @@ void database()
 {
     if ( !d ) {
         Configuration::setup( "" );
+        Configuration::add( "db-address = '" + String( DBADDRESS ) + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
         Database::setup();
