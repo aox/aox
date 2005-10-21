@@ -360,10 +360,16 @@ void User::createHelper()
         String m = r->getString( "name" ) + "/" + d->login + "/INBOX";
         d->inbox = Mailbox::obtain( m, true );
 
-        // XXX: Should this use Mailbox::create, or is it "trivial"?
-        d->q = new Query( "insert into mailboxes (name) values ($1)",
-                          this );
-        d->q->bind( 1, m );
+        if ( d->inbox->deleted() ) {
+            d->q = new Query( "update mailboxes set deleted='f' where id=$1",
+                              this );
+            d->q->bind( 1, d->inbox->id() );
+        }
+        else {
+            d->q = new Query( "insert into mailboxes (name) values ($1)",
+                              this );
+            d->q->bind( 1, m );
+        }
         d->t->enqueue( d->q );
 
         Query * q2
