@@ -365,6 +365,8 @@ void TlsProxy::parse()
 void TlsProxy::start( TlsProxy * other, const Endpoint & client,
                       const String & protocol )
 {
+    proxies->take( proxies->find( this ) );
+    proxies->take( proxies->find( other ) );
     EventLoop::global()->flushAll();
     int p1 = fork();
     if ( p1 < 0 ) {
