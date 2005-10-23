@@ -248,10 +248,16 @@ void TlsProxy::react( Event e )
 
     case Error:
     case Timeout:
-        exit( 0 );
+        if ( d->state == TlsProxyData::Initial ) {
+            proxies->take( proxies->find( this ) );
+            setState( Closing );
+        }
+        else {
+            exit( 0 );
+        }
         break;
-
     case Close:
+        proxies->take( proxies->find( this ) );
         setState( Closing );
         if ( d->state != TlsProxyData::Initial ) {
             log( "Shutting down TLS proxy due to client close" );
