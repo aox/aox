@@ -24,7 +24,7 @@ public:
     StoreData()
         : op( ReplaceFlags ), silent( false ), uid( false ),
           checkedPermission( false ), fetching( false ),
-          transaction( 0 ), flagCreator( 0 ), annotationCreator( 0 )
+          transaction( 0 ), flagCreator( 0 ), annotationNameCreator( 0 )
     {}
     MessageSet s;
     StringList flagNames;
@@ -40,18 +40,18 @@ public:
     Transaction * transaction;
     List<Flag> flags;
     FlagCreator * flagCreator;
-    AnnotationCreator * annotationCreator;
+    AnnotationNameCreator * annotationNameCreator;
 
     struct Annotation
         : public Garbage
     {
-        Annotation(): annotation( 0 ), shared( false ) {}
+        Annotation(): annotationName( 0 ), shared( false ) {}
         String name;
         String value;
         String contentType;
         String contentLanguage;
         String displayName;
-        ::Annotation * annotation;
+        ::AnnotationName * annotationName;
         bool shared;
     };
 
@@ -348,16 +348,16 @@ bool Store::processAnnotationNames()
     List<StoreData::Annotation>::Iterator it( d->annotations );
     StringList unknown;
     while ( it ) {
-        if ( !it->annotation )
-            it->annotation = Annotation::find( it->name );
-        if ( !it->annotation )
+        if ( !it->annotationName )
+            it->annotationName = AnnotationName::find( it->name );
+        if ( !it->annotationName )
             unknown.append( it->name );
         ++it;
     }
     if ( unknown.isEmpty() )
         return true;
     if ( !d->flagCreator )
-        d->annotationCreator = new AnnotationCreator( this, unknown );
+        d->annotationNameCreator = new AnnotationNameCreator( this, unknown );
     return false;
 
 }
@@ -600,7 +600,7 @@ void Store::replaceAnnotations()
                                    "mailbox=$1 and (" + w + ") and "
                                    "name=$2 and " + o, 0 );
             q->bind( 1, m->id() );
-            q->bind( 2, it->annotation->id() );
+            q->bind( 2, it->annotationName->id() );
             if ( !it->shared )
                 q->bind( 3, u->id() );
             d->transaction->enqueue( q );
@@ -615,7 +615,7 @@ void Store::replaceAnnotations()
                            "value=$3, type=$4, language=$5, displayname=$6 " +
                            existing, 0 );
             q->bind( 1, m->id() );
-            q->bind( 2, it->annotation->id() );
+            q->bind( 2, it->annotationName->id() );
             bind( q, 3, it->value );
             bind( q, 4, it->contentType );
             bind( q, 5, it->contentLanguage );
@@ -633,7 +633,7 @@ void Store::replaceAnnotations()
                            "(select uid from annotations " + existing + ")",
                            0 );
             q->bind( 1, m->id() );
-            q->bind( 2, it->annotation->id() );
+            q->bind( 2, it->annotationName->id() );
             bind( q, 3, it->value );
             bind( q, 4, it->contentType );
             bind( q, 5, it->contentLanguage );

@@ -57,6 +57,8 @@ public:
     void setBodiesFetched();
     void setAnnotationsFetched();
 
+    void replaceAnnotation( class Annotation * );
+
     static String baseSubject( const String & );
 
 private:

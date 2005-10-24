@@ -9,51 +9,78 @@
 #include "stringlist.h"
 
 
-class Annotation
+class AnnotationName
     : public Garbage
 {
 public:
-    Annotation( const String &, uint );
+    AnnotationName( const String &, uint );
 
     String name() const;
     uint id() const;
 
-    static Annotation * find( const String & );
-    static Annotation * find( uint );
+    static AnnotationName * find( const String & );
+    static AnnotationName * find( uint );
 
     static void setup();
 
     static uint largestId();
 
 private:
+    class AnnotationNameData * d;
+    friend class AnnotationNameFetcher;
+};
+
+
+class AnnotationNameFetcher
+    : public EventHandler
+{
+public:
+    AnnotationNameFetcher( EventHandler * owner );
+
+    void execute();
+
+private:
+    class AnnotationNameFetcherData * d;
+    friend class AnnotationName;
+};
+
+
+class AnnotationNameCreator
+    : public EventHandler
+{
+public:
+    AnnotationNameCreator( EventHandler *, const StringList & );
+
+    void execute();
+
+private:
+    class AnnotationNameCreatorData * d;
+    friend class AnnotationName;
+};
+
+
+class Annotation
+    : public Garbage
+{
+public:
+    Annotation();
+
+    void setValue( const String & );
+    String value() const;
+    void setType( const String & );
+    String type() const;
+    void setLanguage( const String & );
+    String language() const;
+    void setDisplayName( const String & );
+    String displayname() const;
+    void setEntryName( AnnotationName * );
+    AnnotationName * entryName() const;
+    void setOwnerId( uint );
+    uint ownerId() const;
+
+private:
     class AnnotationData * d;
-    friend class AnnotationFetcher;
 };
 
-
-class AnnotationFetcher : public EventHandler
-{
-public:
-    AnnotationFetcher( EventHandler * owner );
-
-    void execute();
-
-private:
-    class AnnotationFetcherData * d;
-    friend class Annotation;
-};
-
-
-class AnnotationCreator : public EventHandler
-{
-public:
-    AnnotationCreator( EventHandler *, const StringList & );
-
-    void execute();
-
-private:
-    class AnnotationCreatorData * d;
-    friend class Annotation;
-};
 
 #endif

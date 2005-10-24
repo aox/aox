@@ -88,11 +88,14 @@ class MessageAnnotationFetcher
     : public Fetcher
 {
 public:
-    MessageAnnotationFetcher( Mailbox * m ): Fetcher( m ) {}
+    MessageAnnotationFetcher( Mailbox * m ): Fetcher( m ), f( 0 ) {}
 
     PreparedStatement * query() const;
     void decode( Message *, Row * );
     void setDone( Message * );
+
+private:
+    class AnnotationNameFetcher * f;
 };
 
 

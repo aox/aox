@@ -3,9 +3,10 @@
 #include "message.h"
 
 #include "mailbox.h"
-#include "bodypart.h"
 #include "address.h"
+#include "bodypart.h"
 #include "mimefields.h"
+#include "annotation.h"
 #include "allocator.h"
 #include "flag.h"
 
@@ -18,7 +19,7 @@ class MessageData
 {
 public:
     MessageData()
-        : strict( false ), uid( 0 ), mailbox( 0 ),
+        : strict( false ), uid( 0 ), mailbox( 0 ), annotations( 0 ),
           rfc822Size( 0 ), internalDate( 0 ),
           hasFlags( false ), hasHeaders( false ),
           hasBodies( false ), hasAnnotations( false )
@@ -34,6 +35,8 @@ public:
 
     uint uid;
     const Mailbox * mailbox;
+
+    List<Annotation> * annotations;
 
     uint rfc822Size;
     uint internalDate;
@@ -612,4 +615,23 @@ String Message::baseSubject( const String & subject )
 bool Message::isMessage() const
 {
     return true;
+}
+
+
+/*! Adds \a a to the list of known annotations for this message,
+    forgetting any previous annotation with the same
+    Annotation::ownerId() and Annotation::entryName().
+*/
+
+void Message::replaceAnnotation( class Annotation * a )
+{
+    if ( !d->annotations )
+        d->annotations = new List<Annotation>;
+    List<Annotation>::Iterator it( *d->annotations );
+    while ( it && ( it->ownerId() != a->ownerId() ||
+                    it->entryName() != a->entryName() ) )
+        ++it;
+    if ( it )
+        d->annotations->take( it );
+    d->annotations->append( a );
 }

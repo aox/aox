@@ -440,7 +440,8 @@ void MessageTriviaFetcher::setDone( Message * )
 
 /*! \class MessageAnnotationFetcher message.h
 
-    This class serves no purpose except to confuse udoc.
+    This class fetches the annotations for a message. Both the shared
+    annotations and all private annotations are fetched at once.
 */
 
 PreparedStatement * MessageAnnotationFetcher::query() const
@@ -451,11 +452,22 @@ PreparedStatement * MessageAnnotationFetcher::query() const
 
 void MessageAnnotationFetcher::decode( Message * m, Row * r )
 {
-    Annotation * a = Annotation::find( r->getInt( "id" ) );
-    if ( !a )
-        a = new Annotation( r->getString( "name" ),
-                            r->getInt( "id" ) );
-    
+    AnnotationName * an = AnnotationName::find( r->getInt( "id" ) );
+    if ( !an ) {
+        an = new AnnotationName( r->getString( "name" ), r->getInt( "id" ) );
+        (void)new AnnotationNameFetcher( 0 ); // why create this, really?
+    }
+
+    Annotation * a = new Annotation;
+    a->setEntryName( an );
+
+    a->setOwnerId( r->getInt( "owner" ) );
+    a->setValue( r->getString( "value" ) );
+    a->setType( r->getString( "type" ) );
+    a->setLanguage( r->getString( "language" ) );
+    a->setDisplayName( r->getString( "displayname" ) );
+
+    m->replaceAnnotation( a );
 }
 
 

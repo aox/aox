@@ -1115,7 +1115,7 @@ String Search::Condition::whereUid() const
 
 String Search::Condition::whereAnnotation() const
 {
-    ::Annotation * a = ::Annotation::find( s8 );
+    ::AnnotationName * a = ::AnnotationName::find( s8 );
     String annotations;
     String sep = "";
     if ( a ) {
@@ -1124,8 +1124,8 @@ String Search::Condition::whereAnnotation() const
     else {
         uint n = 0;
         uint u = 0;
-        while ( u <= ::Annotation::largestId() ) {
-            a = ::Annotation::find( u );
+        while ( u <= ::AnnotationName::largestId() ) {
+            a = ::AnnotationName::find( u );
             u++;
             if ( a && Listext::match( s8, 0, a->name(), 0 ) == 2 ) {
                 n++;

@@ -10,36 +10,36 @@
 #include "log.h"
 
 
-static Dict<Annotation> * annotationsByName;
-static Map<Annotation> * annotationsById;
-static uint largestAnnotationId;
+static Dict<AnnotationName> * annotationNamesByName;
+static Map<AnnotationName> * annotationNamesById;
+static uint largestAnnotationNameId;
 
 
-class AnnotationFetcherData
+class AnnotationNameFetcherData
     : public Garbage
 {
 public:
-    AnnotationFetcherData(): o( 0 ), q( 0 ) {}
+    AnnotationNameFetcherData(): o( 0 ), q( 0 ) {}
 
     EventHandler * o;
     Query * q;
 };
 
 
-/*! \class AnnotationFetcher flag.h
+/*! \class AnnotationNameFetcher flag.h
 
-    The AnnotationFetcher class fetches all (or some) annotations from the
+    The AnnotationNameFetcher class fetches all (or some) annotations from the
     database.
 */
 
 
-/*! Constructs a AnnotationFetcher which will proceed to do whatever
-    is right and good. If \a owner is not null, the AnnotationFetcher
+/*! Constructs a AnnotationNameFetcher which will proceed to do whatever
+    is right and good. If \a owner is not null, the AnnotationNameFetcher
     will notify its \a owner when done.
 */
 
-AnnotationFetcher::AnnotationFetcher( EventHandler * owner )
-    : d( new AnnotationFetcherData )
+AnnotationNameFetcher::AnnotationNameFetcher( EventHandler * owner )
+    : d( new AnnotationNameFetcherData )
 {
     d->o = owner;
     // XXX: the >= in the next line may be an off-by-one. it's
@@ -48,42 +48,42 @@ AnnotationFetcher::AnnotationFetcher( EventHandler * owner )
     d->q = new Query( "select id,name from annotation_names "
                       "where id>=$1 order by id",
                       this );
-    d->q->bind( 1, ::largestAnnotationId );
+    d->q->bind( 1, ::largestAnnotationNameId );
     d->q->execute();
-    if ( ::annotationsByName )
+    if ( ::annotationNamesByName )
         return;
-    ::annotationsByName = new Dict<Annotation>;
-    Allocator::addEternal( ::annotationsByName,
+    ::annotationNamesByName = new Dict<AnnotationName>;
+    Allocator::addEternal( ::annotationNamesByName,
                            "list of existing annotations" );
-    ::annotationsById = new Map<Annotation>;
-    Allocator::addEternal( ::annotationsById,
+    ::annotationNamesById = new Map<AnnotationName>;
+    Allocator::addEternal( ::annotationNamesById,
                            "list of existing annotations" );
 }
 
 
-class AnnotationData
+class AnnotationNameData
     : public Garbage
 {
 public:
-    AnnotationData() : id( 0 ) {}
+    AnnotationNameData() : id( 0 ) {}
     String name;
     uint id;
 };
 
 
-void AnnotationFetcher::execute()
+void AnnotationNameFetcher::execute()
 {
     Row * r = d->q->nextRow();
     while ( r ) {
         String n = r->getString( "name" );
         uint i = r->getInt( "id" );
-        // is this the only AnnotationFetcher working now? best to be careful
-        Annotation * f = Annotation::find( i );
+        // is this the only AnnotationNameFetcher working now? best to be careful
+        AnnotationName * f = AnnotationName::find( i );
         if ( !f )
-            f = new Annotation( n, i );
+            f = new AnnotationName( n, i );
         f->d->name = n;
-        if ( i > ::largestAnnotationId )
-            ::largestAnnotationId = i;
+        if ( i > ::largestAnnotationNameId )
+            ::largestAnnotationNameId = i;
         r = d->q->nextRow();
     }
     if ( !d->q->done() )
@@ -95,15 +95,15 @@ void AnnotationFetcher::execute()
 
 
 
-/*! \class Annotation flag.h
+/*! \class AnnotationName flag.h
 
-    The Annotation class represents a single message flag, ie. a named
+    The AnnotationName class represents a single message flag, ie. a named
     binary variable that may be set on any Message.
 
-    A Annotation has a name() and an integer id(), both of which are
+    A AnnotationName has a name() and an integer id(), both of which are
     unique. The id is used to store annotations. There is a function to
     find() a specific flag either by name or id, and also one to get a
-    list of all known annotations().
+    list of all known annotationNames().
 */
 
 
@@ -111,21 +111,21 @@ void AnnotationFetcher::execute()
     and \a id must be unique.
 */
 
-Annotation::Annotation( const String & name, uint id )
-    : d( new AnnotationData )
+AnnotationName::AnnotationName( const String & name, uint id )
+    : d( new AnnotationNameData )
 {
     d->name = name;
     d->id = id;
-    if ( !::annotationsByName )
-        Annotation::setup();
-    ::annotationsByName->insert( name.lower(), this );
-    ::annotationsById->insert( id, this );
+    if ( !::annotationNamesByName )
+        AnnotationName::setup();
+    ::annotationNamesByName->insert( name, this );
+    ::annotationNamesById->insert( id, this );
 }
 
 
 /*! Returns the name of this flag, as specified to the constructor. */
 
-String Annotation::name() const
+String AnnotationName::name() const
 {
     return d->name;
 }
@@ -133,7 +133,7 @@ String Annotation::name() const
 
 /*! Returns the id of this flag, as specified to the constructor. */
 
-uint Annotation::id() const
+uint AnnotationName::id() const
 {
     return d->id;
 }
@@ -143,11 +143,11 @@ uint Annotation::id() const
     there isn't one. The comparison is case insensitive.
 */
 
-Annotation * Annotation::find( const String & name )
+AnnotationName * AnnotationName::find( const String & name )
 {
-    if ( !::annotationsByName )
+    if ( !::annotationNamesByName )
         return 0;
-    return ::annotationsByName->find( name.lower() );
+    return ::annotationNamesByName->find( name );
 }
 
 
@@ -155,57 +155,57 @@ Annotation * Annotation::find( const String & name )
     there isn't one.
 */
 
-Annotation * Annotation::find( uint id )
+AnnotationName * AnnotationName::find( uint id )
 {
-    if ( !::annotationsById )
+    if ( !::annotationNamesById )
         return 0;
-    return ::annotationsById->find( id );
+    return ::annotationNamesById->find( id );
 }
 
 
-/*! Initializes the Annotation subsystem, fetching all known
-    annotations from the database.
+/*! Initializes the AnnotationName subsystem, fetching all known
+    annotationNames from the database.
 */
 
-void Annotation::setup()
+void AnnotationName::setup()
 {
-    (void)new AnnotationFetcher( 0 );
+    (void)new AnnotationNameFetcher( 0 );
 }
 
 
-class AnnotationCreatorData
+class AnnotationNameCreatorData
     : public Garbage
 {
 public:
-    AnnotationCreatorData(): owner( 0 ) {}
+    AnnotationNameCreatorData(): owner( 0 ) {}
     EventHandler * owner;
     List<Query> queries;
 };
 
-/*! \class AnnotationCreator flag.h
+/*! \class AnnotationNameCreator flag.h
 
-    The AnnotationCreator class creates annotations in the database
+    The AnnotationNameCreator class creates annotations in the database
     and then updates the Annotation index in RAM.
 
-    When created, a AnnotationCreator object immediately sends queries
+    When created, a AnnotationNameCreator object immediately sends queries
     to insert the necessary rows, and when that is done, it creates a
-    AnnotationFetcher. Only when the AnnotationFetcher is done is the
+    AnnotationNameFetcher. Only when the AnnotationNameFetcher is done is the
     owner notified.
 */
 
-/*! Constructs a AnnotationCreator which inserts \a annotations in the
+/*! Constructs a AnnotationNameCreator which inserts \a annotations in the
     database and notifies \a owner when the insertion is complete,
     both in RAM and in the database.
 */
 
-AnnotationCreator::AnnotationCreator( EventHandler * owner, const StringList & annotations )
-    : d( new AnnotationCreatorData )
+AnnotationNameCreator::AnnotationNameCreator( EventHandler * owner, const StringList & annotations )
+    : d( new AnnotationNameCreatorData )
 {
     d->owner = owner;
 
     StringList::Iterator it( annotations );
     while ( it ) {
-        Query * q 
+        Query * q
             = new Query( "insert into annotation_names (name) values ($1)",
                          this );
         q->bind( 1, *it );
@@ -217,7 +217,7 @@ AnnotationCreator::AnnotationCreator( EventHandler * owner, const StringList & a
 }
 
 
-void AnnotationCreator::execute()
+void AnnotationNameCreator::execute()
 {
     bool done = true;
     List<Query>::Iterator it( d->queries );
@@ -227,13 +227,159 @@ void AnnotationCreator::execute()
         ++it;
     }
     if ( done )
-        (void)new AnnotationFetcher( d->owner );
+        (void)new AnnotationNameFetcher( d->owner );
 }
 
 
 /*! Returns the largest ID yet seen in for an annotation entry name. */
 
-uint Annotation::largestId()
+uint AnnotationName::largestId()
 {
-    return ::largestAnnotationId;
+    return ::largestAnnotationNameId;
+}
+
+
+class AnnotationData
+    : public Garbage
+{
+public:
+    AnnotationData(): entryName( 0 ), ownerId( 0 ) {}
+    String value;
+    String type;
+    String language;
+    String displayName;
+    AnnotationName * entryName;
+    uint ownerId;
+};
+
+
+/*! \class Annotation annotation.h
+  
+    The Annotation class models a single annotation for a message,
+    ie. it has an entr name, a value, an owner and associated data.
+    The Annotation object doesn't register itself or maintain pointers
+    to other objects - it's a simple value.
+    Message::replaceAnnotation() and Message::annotations() are the
+    main function that use Annotation.
+*/
+
+
+
+/*!  Constructs an empty Annotation. */
+
+Annotation::Annotation()
+    : d( new AnnotationData )
+{
+    // nothing more necessary
+}
+
+
+/*! Records that the value of this annotation is \a v. The initial
+    value is an empty string.
+*/
+
+void Annotation::setValue( const String & v )
+{
+    d->value = v;
+}
+
+
+/*! Returns the annotation's value, as set by setValue(). */
+
+String Annotation::value() const
+{
+    return d->value;
+}
+
+
+/*! Records that the type of this annotation is \a t. The initial
+    value is an empty string, corresponding to
+    text/plain;charset=utf-8.
+*/
+
+void Annotation::setType( const String & t )
+{
+    d->type = t;
+}
+
+
+/*! Returns the annotation's type, as set by setType(). */
+
+String Annotation::type() const
+{
+    return d->type;
+}
+
+
+/*! Records that the content-language of this annotation is \a l. The
+    initial value is an empty string.
+*/
+
+void Annotation::setLanguage( const String & l )
+{
+    d->language = l;
+}
+
+
+/*! Returns the annotation's language, as set by setLanguage(). */
+
+String Annotation::language() const
+{
+    return d->language;
+}
+
+
+/*! Records that the display-name of this annotation is \a n. The
+    initial value is an empty string.
+*/
+
+void Annotation::setDisplayName( const String & n )
+{
+    d->displayName = n;
+}
+
+
+/*! Returns the annotation's display-name, as set by setDisplayName(). */
+
+String Annotation::displayname() const
+{
+    return d->displayName;
+}
+
+
+/*! Records that the entry name of this annotation is \a n. The
+    initial value is a null pointer, which is invalid.
+
+    Annotation does not enforce validity.
+*/
+
+void Annotation::setEntryName( AnnotationName * n )
+{
+    d->entryName = n;
+}
+
+
+/*! Returns the annotation's entry name, as set by setEntryName(). */
+
+AnnotationName * Annotation::entryName() const
+{
+    return d->entryName;
+}
+
+
+/*! Records that the user id owning this annotation is \a id. The
+    initial value is 0, corresponding to a shared annotation.
+*/
+
+void Annotation::setOwnerId( uint id )
+{
+    d->ownerId = id;
+}
+
+
+/*! Returns the annotation's owner ID, as set by setOwnerId(). */
+
+uint Annotation::ownerId() const
+{
+    return d->ownerId;
 }
