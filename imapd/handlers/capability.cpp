@@ -14,7 +14,7 @@
 /*! \class Capability capability.h
     Announces supported features (RFC 3501 section 6.1.1)
 
-    We announce the following capabilities:
+    We announce the following standard capabilities:
 
     RFC 3501: IMAP4rev1, STARTTLS, LOGINDISABLED.
     RFC 2088: LITERAL+
@@ -27,15 +27,10 @@
     RFC 2195: AUTH=CRAM-MD5
     RFC 2831: AUTH=DIGEST-MD5
     RFC 3516: BINARY
-
-    The configuration variable announce-draft-support controls whether
-    or not we announce features described in Internet-Drafts. Only the
-    SASL-IR (draft-siemborski-imap-sasl-initial-response) extension is
-    supported, with LISTEXT (draft-ietf-imapext-list-extensions) to be
-    implemented soon.
-
-    For the moment, announce-draft-support defaults to true. Before
-    the 1.0 release, we'll change its default to false.
+    
+    We also announce a number of draft capabilities, if the
+    configuration variable announce-draft-support is set to true. By
+    default it's not.
 */
 
 void Capability::execute()
