@@ -534,7 +534,7 @@ void database()
                     if ( silent )
                         if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                             exit( -1 );
-                    execlp( "psql", "psql", DBNAME, "-f", "-", 0 );
+                    execlp( "psql", "psql", DBNAME, "-f", "-", (const char*) 0 );
                     exit( -1 );
                 }
                 else {
