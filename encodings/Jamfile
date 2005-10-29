@@ -6,5 +6,4 @@ HDRS += [ FDirName $(TOP) encodings ] ;
 SubDirHdrs [ FDirName $(TOP) encodings words ] ;
 
 Build encodings : codec.cpp iso8859.cpp cp.cpp koi.cpp mac.cpp utf.cpp
-    unknown.cpp ;
-
+    unknown.cpp gb2312.cpp ;
