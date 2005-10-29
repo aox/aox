@@ -584,6 +584,8 @@ void Postgres::unknown( char type )
 
                 // Has the current query failed?
                 if ( q && msg.severity() == PgMessage::Error ) {
+                    if ( q->inputLines() )
+                        d->sendingCopy = false;
                     d->queries.shift();
                     q->setError( msg.message() );
                     q->notify();
