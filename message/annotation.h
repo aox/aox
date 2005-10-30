@@ -13,7 +13,9 @@ class AnnotationName
     : public Garbage
 {
 public:
+    AnnotationName( const String & );
     AnnotationName( const String &, uint );
+    ~AnnotationName();
 
     String name() const;
     uint id() const;
@@ -72,7 +74,7 @@ public:
     void setLanguage( const String & );
     String language() const;
     void setDisplayName( const String & );
-    String displayname() const;
+    String displayName() const;
     void setEntryName( AnnotationName * );
     AnnotationName * entryName() const;
     void setOwnerId( uint );

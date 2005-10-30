@@ -77,11 +77,15 @@ void AnnotationNameFetcher::execute()
     while ( r ) {
         String n = r->getString( "name" );
         uint i = r->getInt( "id" );
-        // is this the only AnnotationNameFetcher working now? best to be careful
         AnnotationName * f = AnnotationName::find( i );
-        if ( !f )
+        if ( !f ) {
             f = new AnnotationName( n, i );
-        f->d->name = n;
+            f->d->name = n;
+        }
+        else if ( !f->d->id ) {
+            f->d->id = i;
+            ::annotationNamesById->insert( i, f );
+        }
         if ( i > ::largestAnnotationNameId )
             ::largestAnnotationNameId = i;
         r = d->q->nextRow();
@@ -102,13 +106,35 @@ void AnnotationNameFetcher::execute()
 
     A AnnotationName has a name() and an integer id(), both of which are
     unique. The id is used to store annotations. There is a function to
-    find() a specific flag either by name or id, and also one to get a
-    list of all known annotationNames().
+    find() a specific name either by name or id.
+
+    Creating an AnnotationName directly is unsafe; all users should
+    first call AnnotationName::find() to find an existing suitable
+    object. All AnnotationName objects can be found by a string; those
+    which have an id() can be found by it.
 */
 
 
-/*! Constructs a flag named \a name and with id \a id. Both \a name
-    and \a id must be unique.
+
+
+/*!  Constructs a temporary annotation name named \a name. */
+
+AnnotationName::AnnotationName( const String & name )
+    : d( new AnnotationNameData )
+{
+    d->name = name;
+    d->id = 0;
+    if ( !::annotationNamesByName )
+        AnnotationName::setup();
+    ::annotationNamesByName->insert( name, this );
+}
+
+
+/*! Constructs an annotation name named \a name and with id \a
+    id. Both \a name and \a id must be unique.
+
+    Before using this, check whether find( \a name ) finds a temporary
+    object.
 */
 
 AnnotationName::AnnotationName( const String & name, uint id )
@@ -198,7 +224,8 @@ public:
     both in RAM and in the database.
 */
 
-AnnotationNameCreator::AnnotationNameCreator( EventHandler * owner, const StringList & annotations )
+AnnotationNameCreator::AnnotationNameCreator( EventHandler * owner,
+                                              const StringList & annotations )
     : d( new AnnotationNameCreatorData )
 {
     d->owner = owner;
@@ -260,7 +287,7 @@ public:
     The Annotation object doesn't register itself or maintain pointers
     to other objects - it's a simple value.
     Message::replaceAnnotation() and Message::annotations() are the
-    main function that use Annotation.
+    main functions using Annotation.
 */
 
 
@@ -341,7 +368,7 @@ void Annotation::setDisplayName( const String & n )
 
 /*! Returns the annotation's display-name, as set by setDisplayName(). */
 
-String Annotation::displayname() const
+String Annotation::displayName() const
 {
     return d->displayName;
 }

@@ -42,19 +42,6 @@ public:
     FlagCreator * flagCreator;
     AnnotationNameCreator * annotationNameCreator;
 
-    struct Annotation
-        : public Garbage
-    {
-        Annotation(): annotationName( 0 ), shared( false ) {}
-        String name;
-        String value;
-        String contentType;
-        String contentLanguage;
-        String displayName;
-        ::AnnotationName * annotationName;
-        bool shared;
-    };
-
     List<Annotation> annotations;
 };
 
@@ -139,7 +126,11 @@ void Store::parseAnnotationEntry()
         error( Bad, "Annotation entry names cannot end with /" );
     space();
     require( "(" );
+    if ( !ok() )
+        return;
+    AnnotationName * n = AnnotationName::find( entry );
     bool more = true;
+    uint id = imap()->user()->id();
     while ( more ) {
         String attrib = string();
         if ( attrib.find( ".." ) >= 0 )
@@ -160,24 +151,31 @@ void Store::parseAnnotationEntry()
         }
         space();
         String value = string();
-        List<StoreData::Annotation>::Iterator it( d->annotations );
-        while ( it && ( it->name != entry || it->shared != shared ) )
-            ++it;
-        StoreData::Annotation * a = it;
+        List<Annotation>::Iterator it( d->annotations );
+        if ( shared )
+            while ( it && ( it->entryName()->name() != entry || it->ownerId() != id ) )
+                ++it;
+        else
+            while ( it && ( it->entryName()->name() != entry || it->ownerId() != 0 ) )
+                ++it;
+        Annotation * a = it;
         if ( !it ) {
-            a = new StoreData::Annotation;
-            a->name = entry;
+            a = new Annotation;
+            if ( shared )
+                a->setOwnerId( 0 );
+            else
+                a->setOwnerId( id );
+            a->setEntryName( n );
             d->annotations.append( a );
-            a->shared = shared;
         }
         if ( attrib == "value" )
-            a->value = value;
+            a->setValue( value );
         else if ( attrib == "content-type" )
-            a->contentType = value;
+            a->setType( value );
         else if ( attrib == "content-language" )
-            a->contentLanguage = value;
+            a->setLanguage( value );
         else if ( attrib == "display-name" )
-            a->displayName = value;
+            a->setDisplayName( value );
         else
             error( Bad, "Unknown attribute: " + attrib );
 
@@ -208,9 +206,9 @@ void Store::execute()
         if ( d->op == StoreData::ReplaceAnnotations ) {
             bool hasPriv = false;
             bool hasShared = false;
-            List<StoreData::Annotation>::Iterator it( d->annotations );
+            List<Annotation>::Iterator it( d->annotations );
             while ( it ) {
-                if ( it->shared )
+                if ( it->ownerId() )
                     hasShared = true;
                 else
                     hasPriv = true;
@@ -345,13 +343,11 @@ bool Store::processFlagNames()
 
 bool Store::processAnnotationNames()
 {
-    List<StoreData::Annotation>::Iterator it( d->annotations );
+    List<Annotation>::Iterator it( d->annotations );
     StringList unknown;
     while ( it ) {
-        if ( !it->annotationName )
-            it->annotationName = AnnotationName::find( it->name );
-        if ( !it->annotationName )
-            unknown.append( it->name );
+        if ( !it->entryName()->id() )
+            unknown.append( it->entryName()->name() );
         ++it;
     }
     if ( unknown.isEmpty() )
@@ -586,28 +582,28 @@ static void bind( Query * q, uint i, const String & n )
 
 void Store::replaceAnnotations()
 {
-    List<StoreData::Annotation>::Iterator it( d->annotations );
+    List<Annotation>::Iterator it( d->annotations );
     String w = d->s.where();
     Mailbox * m = imap()->session()->mailbox();
     User * u = imap()->user();
     while ( it ) {
         Query * q;
-        if ( it->value.isEmpty() ) {
+        if ( it->value().isEmpty() ) {
             String o = "owner=$3";
-            if ( it->shared )
+            if ( !it->ownerId() )
                 o = "owner is null";
             q = new Query( "delete from annotations where "
                                    "mailbox=$1 and (" + w + ") and "
                                    "name=$2 and " + o, 0 );
             q->bind( 1, m->id() );
-            q->bind( 2, it->annotationName->id() );
-            if ( !it->shared )
+            q->bind( 2, it->entryName()->id() );
+            if ( it->ownerId() )
                 q->bind( 3, u->id() );
             d->transaction->enqueue( q );
         }
         else {
             String o = "owner=$7";
-            if ( it->shared )
+            if ( !it->ownerId() )
                 o = "owner is null";
             String existing = "where mailbox=$1 and (" + w + ") and name=$2 "
                               "and " + o;
@@ -615,12 +611,12 @@ void Store::replaceAnnotations()
                            "value=$3, type=$4, language=$5, displayname=$6 " +
                            existing, 0 );
             q->bind( 1, m->id() );
-            q->bind( 2, it->annotationName->id() );
-            bind( q, 3, it->value );
-            bind( q, 4, it->contentType );
-            bind( q, 5, it->contentLanguage );
-            bind( q, 6, it->displayName );
-            if ( !it->shared )
+            q->bind( 2, it->entryName()->id() );
+            bind( q, 3, it->value() );
+            bind( q, 4, it->type() );
+            bind( q, 5, it->language() );
+            bind( q, 6, it->displayName() );
+            if ( it->ownerId() )
                 q->bind( 7, u->id() );
             d->transaction->enqueue( q );
 
@@ -633,15 +629,15 @@ void Store::replaceAnnotations()
                            "(select uid from annotations " + existing + ")",
                            0 );
             q->bind( 1, m->id() );
-            q->bind( 2, it->annotationName->id() );
-            bind( q, 3, it->value );
-            bind( q, 4, it->contentType );
-            bind( q, 5, it->contentLanguage );
-            bind( q, 6, it->displayName );
-            if ( it->shared )
-                q->bindNull( 7 );
+            q->bind( 2, it->entryName()->id() );
+            bind( q, 3, it->value() );
+            bind( q, 4, it->type() );
+            bind( q, 5, it->language() );
+            bind( q, 6, it->displayName() );
+            if ( it->ownerId() )
+                q->bind( 7, it->ownerId() );
             else
-                q->bind( 7, u->id() );
+                q->bindNull( 7 );
             d->transaction->enqueue( q );
         }
         ++it;

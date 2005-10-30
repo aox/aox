@@ -8,6 +8,7 @@
 
 
 class EventHandler;
+class Annotation;
 class Bodypart;
 class Mailbox;
 class String;
@@ -46,6 +47,7 @@ public:
     uint internalDate() const;
 
     List<Flag> * flags() const;
+    List<Annotation> * annotations() const;
 
     bool hasFlags() const;
     bool hasHeaders() const;
