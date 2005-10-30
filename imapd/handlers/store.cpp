@@ -129,6 +129,8 @@ void Store::parseAnnotationEntry()
     if ( !ok() )
         return;
     AnnotationName * n = AnnotationName::find( entry );
+    if ( !n )
+        n = new AnnotationName( entry );
     bool more = true;
     uint id = imap()->user()->id();
     while ( more ) {

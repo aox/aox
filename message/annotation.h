@@ -15,7 +15,6 @@ class AnnotationName
 public:
     AnnotationName( const String & );
     AnnotationName( const String &, uint );
-    ~AnnotationName();
 
     String name() const;
     uint id() const;
