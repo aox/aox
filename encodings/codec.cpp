@@ -254,71 +254,72 @@ Codec * Codec::byString( const String & s )
             b = e;
     }
     i = 0;
-    uint max = 0;
+    uint max = NumEncodings;
     while ( i < NumEncodings ) {
         if ( occurences[i] > occurences[max] )
             max = i;
         i++;
     }
-    if ( !occurences[max] ) {
-        // Sometimes, people use 8-bit punctation or the pound/euro
-        // signs in otherwise ASCII text. Let's look for the common
-        // cases.
-        bool latin1 = true;
-        bool latin9 = true;
-        bool windows1252 = true;
-        b = 0;
-        while ( b < s.length() ) {
-            char c = s[b];
-            b++;
-            if ( c >= 160 ) {
-                if ( c != 0xAB /* laquo */ &&
-                     c != 0xBB /* raquo */ &&
-                     c != 0xA3 /* pound */ &&
-                     c != 0xB4 /* acute accent - line ' */ ) {
-                    latin1 = false;
-                    windows1252 = false;
-                }
-                if ( c != 0xAB /* laquo */ &&
-                     c != 0xBB /* raquo */ &&
-                     c != 0xA3 /* pound */ &&
-                     c != 0xA4 /* euro */ &&
-                     c != 0xB4 /* acute accent - line ' */ ) {
-                    latin9 = false;
-                }
-            }
-            else if ( c >= 128 ) {
-                latin1 = false;
-                latin9 = false;
-                if ( c != 0x80 /* euro */ &&
-                     // the rest are all quotes
-                     c != 0x82 && c != 0x84 && c != 0x8B &&
-                     c < 0x91 && c > 0x94 && c != 0x9b )
-                    windows1252 = false;
-            }
-        }
-        if ( latin1 )
-            return new Iso88591Codec;
-        if ( latin9 )
+    if ( max < NumEncodings ) {
+        switch( (Encoding)max ) {
+        case Iso88592:
+            return new Iso88592Codec;
+            break;
+        case Iso885915:
             return new Iso885915Codec;
-        if ( windows1252 )
-            return new Cp1252Codec;
-        return 0;
+            break;
+        case MacRoman:
+            return new MacRomanCodec;
+            break;
+        case NumEncodings:
+            // nothing found...
+            break;
+        }
     }
 
-    switch( (Encoding)max ) {
-    case Iso88592:
-        return new Iso88592Codec;
-        break;
-    case Iso885915:
-        return new Iso885915Codec;
-        break;
-    case MacRoman:
-        return new MacRomanCodec;
-        break;
-    case NumEncodings:
-        break;
+    // Sometimes, people use 8-bit punctation or the pound/euro signs
+    // in otherwise ASCII text. Let's look for the common cases.
+    bool latin1 = true;
+    bool latin9 = true;
+    bool windows1252 = true;
+    b = 0;
+    while ( b < s.length() ) {
+        char c = s[b];
+        b++;
+        if ( c >= 160 ) {
+            if ( c == 0xA4 /* euro */ ) {
+                latin1 = false;
+                windows1252 = false;
+            }
+            else if ( c == 0xAB /* laquo */ ||
+                      c == 0xBB /* raquo */ ||
+                      c == 0xA3 /* pound */ ||
+                      c == 0xB4 /* acute accent - like ' */ ||
+                      c == 0xB0 /* degree sign */ ) {
+                ; // can be any of the three character sets
+            }
+            else {
+                latin9 = false;
+                latin1 = false;
+                windows1252 = false;
+            }
+        }
+        else if ( c >= 128 ) {
+            latin1 = false;
+            latin9 = false;
+            if ( c != 0x80 /* euro */ &&
+                 // the rest are all quotes
+                 c != 0x82 && c != 0x84 && c != 0x8B &&
+                 c < 0x91 && c > 0x94 && c != 0x9b )
+                windows1252 = false;
+        }
     }
+    if ( latin1 )
+        return new Iso88591Codec;
+    if ( latin9 )
+        return new Iso885915Codec;
+    if ( windows1252 )
+        return new Cp1252Codec;
     return 0;
 }
 
