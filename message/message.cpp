@@ -635,3 +635,13 @@ void Message::replaceAnnotation( class Annotation * a )
         d->annotations->take( it );
     d->annotations->append( a );
 }
+
+
+/*! Returns a pointer to the list of annotations belonging to this
+    message, or 0 if there are none.
+*/
+
+List< Annotation > * Message::annotations() const
+{
+    return d->annotations;
+}
