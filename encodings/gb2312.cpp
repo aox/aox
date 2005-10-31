@@ -36,12 +36,17 @@ String Gb2312Codec::fromUnicode( const UString &u )
     uint i = 0;
     while ( i < u.length() ) {
         uint n = u[i];
-        if ( n < 128 )
+        if ( n < 128 ) {
             s.append( (char)n );
-        else if ( unicodeToGb[n] != 0 )
-            s.append( unicodeToGb[n] );
-        else
+        }
+        else if ( unicodeToGb[n] != 0 ) {
+            n = unicodeToGb[n];
+            s.append( ( n >> 8 ) );
+            s.append( ( n & 0xff ) );
+        }
+        else {
             setState( Invalid );
+        }
         i++;
     }
 
@@ -65,8 +70,8 @@ UString Gb2312Codec::toUnicode( const String &s )
         else {
             char d = s[++n];
 
-            uint i = c-128;
-            uint j = d-128;
+            uint i = c-128-32-1;
+            uint j = d-128-32-1;
 
             if ( i > 93 || d < 128 || j > 93 || gbToUnicode[i][j] == 0 )
                 setState( Invalid );
