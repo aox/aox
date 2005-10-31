@@ -476,6 +476,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         Codec * c = 0;
         if ( ct ) {
             String csn = ct->parameter( "charset" );
+            if ( csn.lower() == "default" )
+                csn = "";
             if ( !csn.isEmpty() )
                 specified = true;
             c = Codec::byName( csn );
