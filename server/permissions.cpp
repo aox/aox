@@ -25,11 +25,11 @@ public:
     }
 
     bool ready;
-    Mailbox *mailbox;
-    User *user;
-    EventHandler *owner;
+    Mailbox * mailbox;
+    User * user;
+    EventHandler * owner;
     bool allowed[ Permissions::NumRights ];
-    Query *q;
+    Query * q;
 };
 
 
@@ -334,4 +334,20 @@ void Permissions::disallow( const String &rights )
     }
 
     d->allowed[(int)Lookup] = true;
+}
+
+
+/*! Returns a pointer to the mailbox for which this object remembers rights. */
+
+Mailbox * Permissions::mailbox() const
+{
+    return d->mailbox;
+}
+
+
+/*! Returns a pointer to the user for which this object remembers rights. */
+
+User * Permissions::user() const
+{
+    return d->user;
 }

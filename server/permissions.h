@@ -43,6 +43,9 @@ public:
 
     String string() const;
 
+    Mailbox * mailbox() const;
+    User * user() const;
+
     static char rightChar( Permissions::Right );
 
     static bool validRight( char );
