@@ -105,8 +105,8 @@ public:
             Mailbox * m = Mailbox::obtain( n );
             if ( n != m->d->name )
                 m->d->name = n;
-            m->d->id = r->getInt( "id" );
-            m->d->deleted = r->getBoolean( "deleted" );
+            m->setId( r->getInt( "id" ) );
+            m->setDeleted( r->getBoolean( "deleted" ) );
             m->d->uidvalidity = r->getInt( "uidvalidity" );
             m->setUidnext( r->getInt( "uidnext" ) );
             if ( !r->isNull( "owner" ) )
@@ -184,6 +184,16 @@ String Mailbox::name() const
 uint Mailbox::id() const
 {
     return d->id;
+}
+
+
+/*! Notifies this Mailbox that its database ID is \a i. If \a i is 0,
+    the Mailbox is synthetic.
+*/
+
+void Mailbox::setId( uint i ) const
+{
+    d->id = i;
 }
 
 

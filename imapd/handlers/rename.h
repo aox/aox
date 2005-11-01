@@ -10,16 +10,13 @@ class Rename
     : public Command
 {
 public:
-    Rename()
-        : m( 0 )
-    {}
+    Rename();
 
     void parse();
     void execute();
 
 private:
-    String a, b;
-    class Mailbox *m;
+    class RenameData * d;
 };
 
 
