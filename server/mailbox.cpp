@@ -205,6 +205,16 @@ uint Mailbox::uidnext() const
 }
 
 
+/*! Notifies this Mailbox that its correct uidvalidity is \a i. Should
+    generally not be called.
+*/
+
+void Mailbox::setUidvalidity( uint i )
+{
+    d->uidvalidity = i;
+}
+
+
 /*! Returns the UIDVALIDITY value of this Mailbox. This never changes. */
 
 uint Mailbox::uidvalidity() const

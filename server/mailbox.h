@@ -29,6 +29,7 @@ public:
     uint owner() const;
 
     void setUidnext( uint );
+    void setUidvalidity( uint );
     void setDeleted( bool );
 
     Mailbox *parent() const;
