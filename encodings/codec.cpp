@@ -254,13 +254,13 @@ Codec * Codec::byString( const String & s )
             b = e;
     }
     i = 0;
-    uint max = NumEncodings;
+    uint max = 0;
     while ( i < NumEncodings ) {
         if ( occurences[i] > occurences[max] )
             max = i;
         i++;
     }
-    if ( max < NumEncodings ) {
+    if ( occurences[max] ) {
         switch( (Encoding)max ) {
         case Iso88592:
             return new Iso88592Codec;
