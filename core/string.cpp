@@ -1405,6 +1405,9 @@ static inline bool isMungableChar( char c ) {
          ( c == '=' ||
            c == '"' ||
            c == ':' ||
+           c == '?' ||
+           c == '-' ||
+           c == '+' ||
            c == '_' ) )
         return true;
     return false;
@@ -1441,9 +1444,11 @@ String String::anonymised() const
 
         if ( munge ) { // all-digit "words"
             uint i = b;
-            while ( i <= e && d->str[i] >= '0' && d->str[i] <= '0' )
+            while ( i <= e && 
+                    ( ( d->str[i] >= '0' && d->str[i] <= '9' ) ||
+                      d->str[i] == '+' || d->str[i] == '-' ) )
                 i++;
-            if ( i <= e )
+            if ( i > e )
                 munge = false;
         }
             
@@ -1487,11 +1492,13 @@ String String::anonymised() const
         }
         else {
             r.append( mid( b, e-b ) );
-            b = e;
         }
+        b = e;
 
-        while ( b < d->len && !isMungableChar( d->str[b] ) )
+        while ( b < d->len && !isMungableChar( d->str[b] ) ) {
             r.append( d->str[b] );
+            b++;
+        }
     }
 
     return r;
