@@ -11,6 +11,7 @@
 #include "mac.h"
 #include "utf.h"
 #include "unknown.h"
+#include "gb2312.h"
 
 
 /*! \class Codec codec.h
