@@ -14,6 +14,14 @@ file contains all global configuration settings for Oryx Mailstore. It
 is read by each server at startup. Syntax errors, unknown variables
 etc. are logged via
 .BR logd (8).
+.PP
+There is only one required variable, namely 
+.IR db-password .
+.PP
+Usually,
+.I mailstore.conf
+is created at installation time, by running
+.BR $SBINDIR/installer .
 .SH "SECURITY NOTE"
 Anyone who can read
 .I mailstore.conf
