@@ -182,6 +182,8 @@ Codec * Codec::byString( const UString & u )
     while ( i < u.length() && s > 0 ) {
         if ( (uint)u[i] < lastSupportedChar )
             s = s & charsetSupport[u[i]];
+        else
+            s = 0;
         i++;
     }
     Codec * c = 0;
