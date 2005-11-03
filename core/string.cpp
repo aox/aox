@@ -1407,7 +1407,8 @@ static inline bool isMungableChar( char c ) {
            c == ':' ||
            c == '?' ||
            c == '-' ||
-           c == '+' ||
+           c == '(' ||
+           c == ')' ||
            c == '_' ) )
         return true;
     return false;
@@ -1442,21 +1443,11 @@ String String::anonymised() const
         if ( munge && d->str[e-1] == ':' ) // header field names
             munge = false;
 
-        if ( munge ) { // all-digit "words"
-            uint i = b;
-            while ( i <= e && 
-                    ( ( d->str[i] >= '0' && d->str[i] <= '9' ) ||
-                      d->str[i] == '+' || d->str[i] == '-' ) )
-                i++;
-            if ( i > e )
-                munge = false;
-        }
-            
         if ( munge ) { // mime parameters
             uint i = b;
-            while ( i <= e && d->str[i] != '"' && d->str[i] != '=' )
+            while ( i < e && d->str[i] != '"' && d->str[i] != '=' )
                 i++;
-            if ( i <= e )
+            if ( i < e )
                 munge = false;
         }
 
@@ -1479,9 +1470,7 @@ String String::anonymised() const
             uint i = 0;
             while ( b + i < e ) {
                 char c = d->str[b+i];
-                if ( c >= '0' && c <= '9' )
-                    r.append( '0' + (i%10) );
-                else if ( c >= 'a' && c <= 'z' )
+                if ( c >= 'a' && c <= 'z' )
                     r.append( 'a' + (i%26) );
                 else if ( c >= 'A' && c <= 'Z' )
                     r.append( 'a' + (i%26) );
