@@ -235,17 +235,7 @@ DELETE of mailboxes in inappropriately qualified (security problem)
 
 RENAME isn't implemented
 
-  Implementing it should be a reasonably simple matter. May be best
-  to put it off until ocd forwards information about mailboxes,
-  though.
-
-
-RFC 2359
-
-  Not really important, but simple and nice. arnt started on it, and
-  will probably finish it eventually.
-
-  Status now is that all seems okay.
+  It's now implemented, but untested and almost certainly does not work.
 
 
 Split the folder view into pages.

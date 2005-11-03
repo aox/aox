@@ -21,6 +21,7 @@
     RFC 2177: IDLE
     RFC 2971: ID
     RFC 2342: NAMESPACE
+    RFC 2359: UIDPLUS
     RFC 3691: UNSELECT
     RFC 2245: AUTH=ANONYMOUS
     RFC 2595: AUTH=PLAIN
@@ -84,6 +85,7 @@ String Capability::capabilities( IMAP * i )
         c.append( "STARTTLS" );
     if ( drafts )
         c.append( "THREAD=ORDEREDSUBJECT" );
+    c.append( "UIDPLUS" );
     c.append( "UNSELECT" );
 
     return c.join( " " );
