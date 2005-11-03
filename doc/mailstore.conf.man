@@ -296,7 +296,7 @@ If
 .I message-copy-directory
 does not exist or is not writable,
 Mailstore logs an error at startup and exits.
-.PP
+.IP
 Each file in
 .I message-copy-directory
 contains one or more header lines, namely
@@ -308,7 +308,7 @@ then an empty line, then the verbatim received mail message. If there is an
 .B Error
 line, the message was not delivered, and the rest of the line
 describes the problem.
-.PP
+.IP
 The file's name is a unique string of numbers and hyphens. It ends with
 "-err" if there was an error injecting the message into the database.
 .SS IMAP
@@ -410,18 +410,18 @@ hostname = test1.example.com
 HOSTNAME = mailserver.example.org
 .PP
 The value is case insensitive wherever possible. (Exceptions
-include logfile, db-user and db-pass.)
+include logfile, db-user and db-password.)
 .PP
 There are three datatypes: Strings, numbers and toggles.
 .PP
 Strings may be written as a single unquoted word or quoted with either
 single or double quotes, as shown in these three examples:
 .IP
-dbpass = single.word
+db-password = single.word
 .br
-dbpass = "rock'n'roll" # a 12-character password
+db-password = "rock'n'roll" # a 12-character password
 .br
-dbpass = 'two words, quoted' # a 17-character one
+db-password = 'two words, quoted' # a 17-character one
 .PP
 Only single-line strings can be used. Single-word strings may contain
 the characters a-z, A-Z, 0-9, dot, hyphen and slash.
