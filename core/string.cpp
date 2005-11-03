@@ -1369,3 +1369,130 @@ String String::humanNumber( uint n )
     r.append( s );
     return r;
 }
+
+
+// all the keywords we know about, found by grepping through message/*.cpp
+static const char * keywords[] = {
+    "7bit", "8bit", "binary", "bcc", "cc", "comments", "content-description",
+    "content-disposition", "content-id", "content-language",
+    "content-location", "content-md5", "content-transfer-encoding",
+    "content-type", "date", "fri", "from", "in-reply-to", "jan",
+    "keywords", "may", "message-id", "mime-version", "mon", "orig-date",
+    "received", "references", "reply-to", "resent-bcc", "resent-cc",
+    "resent-date", "resent-from", "resent-message-id", "resent-sender",
+    "resent-to", "return-path", "sender", "sep", "subject", "to",
+    "us-ascii", "adt", "akdt", "akst", "apr", "ast", "attachment",
+    "base64", "body", "boundary", "brt", "bst", "bytes", "cadt", "cast",
+    "cct", "cdt", "ces", "cest", "cet", "charset", "cst", "cut", "data",
+    "dec", "deleted", "digest", "eadt", "east", "edt", "eet", "est",
+    "feb", "flag", "fri", "gmt", "grnlnddt", "grnlndst", "hadt", "hast",
+    "helo", "hkt", "hst", "html", "id", "idate", "inline", "jan", "jst",
+    "kdt", "kst", "lhlo", "lines", "lockuidnext", "mar", "mdt", "message",
+    "mest", "mesz", "met", "metdst", "mez", "mezt", "mon", "msd", "msk",
+    "mst", "multipart", "name", "ndt", "nov", "nst", "nzdt", "nzst", "oct",
+    "part", "plain", "pdt", "pst", "quit", "quoted-printable", "rawbytes",
+    "rfc822", "rfc822size", "root", "sast", "sat", "seen", "sep",
+    "supplied", "text", "tue", "uid", "us-ascii", "ut", "utc", "value",
+    "wadt", "wast", "wed", "wet", "ydt", "yst",
+    0
+};
+    
+// helper for String::anonymised()
+static inline bool isMungableChar( char c ) {
+    if ( ( c >= 'a' && c <= 'z' ) ||
+         ( c >= 'A' && c <= 'Z' ) ||
+         ( c >= '0' && c <= '9' ) ||
+         ( c == '=' ||
+           c == '"' ||
+           c == ':' ||
+           c == '_' ) )
+        return true;
+    return false;
+}
+
+
+/*! Returns a copy of this string where most/all content has been
+    replaced with the letter 'x' or the digit '4', but if the message
+    was an RFC822 message, it keeps the same parse tree.
+
+    Specifically, most ASCII words are changed to xxxx, while most/all
+    syntax elements are kept.
+
+    This function is very, very slow. That's okay since it's only used
+    for sending bug reports to us, and we all know, that's not a common
+    case.
+*/
+
+String String::anonymised() const
+{
+    uint b = 0;
+    String r;
+    while ( b < length() ) {
+        uint e = b;
+        while ( e < d->len && isMungableChar( d->str[e] ) )
+            e++;
+        // we have a word.
+        bool munge = true;
+        if ( e == b )
+            munge = false;
+
+        if ( munge && d->str[e-1] == ':' ) // header field names
+            munge = false;
+
+        if ( munge ) { // all-digit "words"
+            uint i = b;
+            while ( i <= e && d->str[i] >= '0' && d->str[i] <= '0' )
+                i++;
+            if ( i <= e )
+                munge = false;
+        }
+            
+        if ( munge ) { // mime parameters
+            uint i = b;
+            while ( i <= e && d->str[i] != '"' && d->str[i] != '=' )
+                i++;
+            if ( i <= e )
+                munge = false;
+        }
+
+        if ( munge && // boundary lines
+             b + 2 <= e &&
+             d->str[b] == '-' && d->str[b+1] == '-' ) {
+            munge = false;
+        }
+
+        if ( munge ) { // any keyword
+            String m = mid( b, e-b ).lower();
+            uint i = 0;
+            while ( keywords[i] && m != keywords[i] )
+                i++;
+            if ( keywords[i] )
+                munge = false;
+        }
+
+        if ( munge ) {
+            uint i = 0;
+            while ( b + i < e ) {
+                char c = d->str[b+i];
+                if ( c >= '0' && c <= '9' )
+                    r.append( '0' + (i%10) );
+                else if ( c >= 'a' && c <= 'z' )
+                    r.append( 'a' + (i%26) );
+                else if ( c >= 'A' && c <= 'Z' )
+                    r.append( 'a' + (i%26) );
+                else
+                    r.append( c );
+                i++;
+            }
+        }
+        else {
+            r.append( mid( b, e-b ) );
+            b = e;
+        }
+
+        while ( b < d->len && !isMungableChar( d->str[b] ) )
+            r.append( d->str[b] );
+    }
+
+    return r;
+}

@@ -65,6 +65,7 @@ void createMailbox();
 void deleteMailbox();
 void changePassword();
 void vacuum();
+void anonymise( const String & );
 void help();
 
 
@@ -164,6 +165,9 @@ int main( int ac, char *av[] )
     }
     else if ( verb == "vacuum" ) {
         vacuum();
+    }
+    else if ( verb == "anonymise" ) {
+        anonymise( next() );
     }
     else {
         if ( verb != "help" )
@@ -1142,6 +1146,16 @@ void vacuum()
 }
 
 
+void anonymise( const String & s )
+{
+    File f( s );
+    if ( f.valid() )
+        fprintf( stdout, "%s\n", f.contents().anonymised().cstr() );
+    else
+        error( "Couldn't open file: " + s );
+}
+
+
 void help()
 {
     String a = next().lower();
@@ -1325,6 +1339,16 @@ void help()
             "    which requires an exclusive lock on the mailboxes table\n"
             "    (i.e., messages cannot be injected until it is done).\n\n"
             "    This command should be run via crontab.\n"
+        );
+    }
+    else if ( a == "anonymise" ) {
+        fprintf(
+            stderr,
+            "  anonymise -- Anonymise a named mail message.\n\n"
+            "    Synopsis: ms anonymise filename\n\n"
+            "    Reads a mail message from the named file, obscures most or all\n"
+            "    content and prints the result on stdout. The output resembles the\n"
+            "    original closely enough to be used in a bug report.\n"
         );
     }
     else if ( a == "commands" ) {

@@ -121,6 +121,8 @@ public:
 
     void print() const;
 
+    String anonymised() const;
+
 private:
     StringData * d;
 };
