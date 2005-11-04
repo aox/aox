@@ -3,6 +3,7 @@
 #include "fetch.h"
 
 #include "imapsession.h"
+#include "annotation.h"
 #include "messageset.h"
 #include "stringlist.h"
 #include "mimefields.h"
@@ -18,6 +19,7 @@
 #include "imap.h"
 #include "flag.h"
 #include "date.h"
+#include "user.h"
 #include "utf.h"
 
 
@@ -919,11 +921,58 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
 }
 
 
+// helper for Fetch::annotation
+static void appendAttribute( StringList & l, const char * a, const char * t, const String & v )
+{
+    if ( v.isEmpty() )
+        return;
+    String tmp;
+    tmp.append( a );
+    tmp.append( t );
+    tmp.append( " " );
+    tmp.append( Command::imapQuoted( v, Command::NString ) );
+    l.append( tmp );
+}
+
+
 /*! Returns the IMAP ANNOTATION production for \a m. */
 
 String Fetch::annotation( Multipart * m )
 {
-    // this is a little bit of a noop. I just want to get back to code
-    // I can submit.
-    return "ANNOTATION ()";
+    if ( !m->isMessage() )
+        return "";
+
+    uint user = imap()->user()->id();
+    String r( "ANNOTATION (" );
+    const char * sep = 0;
+    AnnotationName * an = 0;
+    List<Annotation>::Iterator i( ((Message*)m)->annotations() );
+    while ( i ) {
+        Annotation * a = i;
+        ++i;
+        if ( a->ownerId() == 0 || a->ownerId() == user ) {
+            const char * suffix = ".shared";
+            if ( a->ownerId() )
+                suffix = ".priv";
+            if ( an != a->entryName() ) {
+                r.append( sep );
+                sep = ")(";
+                an = a->entryName();
+                r.append( imapQuoted( an->name() ) );
+            }
+            r.append( " (" );
+            StringList attributes;
+            appendAttribute( attributes, "value", suffix, a->value() );
+            if ( !attributes.isEmpty() )
+                appendAttribute( attributes, "size", suffix, 
+                                 String::fromNumber( a->value().length() ) );
+            appendAttribute( attributes, "content-type", suffix, a->type() );
+            appendAttribute( attributes, "content-language", suffix, a->language() );
+            appendAttribute( attributes, "display-name", suffix, a->displayName() );
+            r.append( attributes.join( " " ) );
+            r.append( ")" );
+        }
+    }
+    r.append( ")" );
+    return r;
 }
