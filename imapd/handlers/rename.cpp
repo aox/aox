@@ -149,6 +149,10 @@ void Rename::execute()
         // 1. the first mailbox
         RenameData::MailboxPair * p = new RenameData::MailboxPair;
         p->from = Mailbox::find( imap()->mailboxName( d->fromName ) );
+        if ( p->from == 0 ) {
+            error( No, "No such mailbox: " + d->fromName );
+            return;
+        }
         p->toName = d->toName;
         d->process( p, 0 );
 
