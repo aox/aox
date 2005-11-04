@@ -77,12 +77,12 @@ void AnnotationNameFetcher::execute()
     while ( r ) {
         String n = r->getString( "name" );
         uint i = r->getInt( "id" );
-        AnnotationName * f = AnnotationName::find( i );
+        AnnotationName * f = AnnotationName::find( n );
         if ( !f ) {
             f = new AnnotationName( n, i );
             f->d->name = n;
         }
-        else if ( !f->d->id ) {
+        else if ( f->d->id == 0 ) {
             f->d->id = i;
             ::annotationNamesById->insert( i, f );
         }
