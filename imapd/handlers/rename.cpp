@@ -153,9 +153,8 @@ void Rename::execute()
             error( No, "No such mailbox: " + d->fromName );
             return;
         }
-        p->toName = d->toName;
-        p->toParent =
-            Mailbox::closestParent( imap()->mailboxName( d->toName ) );
+        p->toName = imap()->mailboxName( d->toName );
+        p->toParent = Mailbox::closestParent( p->toName );
         d->process( p, 0 );
 
         // 2. for each mailbox, any children it may have.
