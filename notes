@@ -102,10 +102,10 @@ ANNOTATE support
   - schema changes: done
   - session state: done
   - SELECT/EXAMINE: done
-  - FETCH
-  - STORE: done
+  - FETCH: written, not tested, probably broken
+  - STORE: done, currently broken
   - COPY: done (untested for lack of other support)
-  - APPEND
+  - APPEND: can call code currently in STORE
   - SEARCH: done
   - SORT
 
@@ -669,7 +669,7 @@ predictive db fetching
   tuple for the n UIDs following the highest requested UID.
 
 
-Losing add PSQL connections is bad
+Losing all PSQL connections is bad
 
   If we have no connections, need to open one and can't, we ought to
   shutdown. Log a disaster, shutdown all servers.
@@ -678,7 +678,7 @@ Losing add PSQL connections is bad
 1.0
 
   Write a GB2312 codec (Done!).
-  move installer back to LIBDIR.
+  move installer back to LIBDIR (done).
   Solve the mailbox/migrator memory problems.
   Make msconsole's user pane do something.
   ANNOTATE or VIEWS or ideally both.

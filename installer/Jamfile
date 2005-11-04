@@ -17,7 +17,8 @@ ObjectDefines installer.cpp :
 NoCare <>Jamsettings ;
 Depends [ FGristFiles installer.o ] : <>Jamsettings ;
 
-Program installer :
+Executable installer :
     installer database server mailbox message user core encodings 
     extractors ;
+InstallBin $(INSTALLROOT)$(LIBDIR) : installer ;
 LINKLIBS on installer = -lcrypt ;
