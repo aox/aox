@@ -154,13 +154,17 @@ void Rename::execute()
             return;
         }
         p->toName = d->toName;
+        p->toParent =
+            Mailbox::closestParent( imap()->mailboxName( d->toName ) );
         d->process( p, 0 );
 
         // 2. for each mailbox, any children it may have.
         List<RenameData::MailboxPair>::Iterator it( d->renames );
         while ( it ) {
             Mailbox * m = it->from;
-            List<Mailbox>::Iterator c( m->children() );
+            List<Mailbox>::Iterator c;
+            if ( m->children() )
+                c = m->children();
             while ( c ) {
                 p = new RenameData::MailboxPair;
                 p->from = c;
