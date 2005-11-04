@@ -102,10 +102,11 @@ Fetcher::Fetcher( Mailbox * m )
         "an.name, an.id "
         "from annotations a, annotation_names an "
         "where a.uid>=$1 and a.uid<=$2 and a.mailbox=$3 "
-        "and a.name=an.id";
+        "and a.name=an.id "
+        "order by a.uid, an.id, a.owner";
     ::anno = new PreparedStatement( q );
     Allocator::addEternal( header, "statement to fetch headers" );
-    Allocator::addEternal( trivia, "statement to fetch ~nothing" );
+    Allocator::addEternal( trivia, "statement to fetch approximately nothing" );
     Allocator::addEternal( body, "statement to fetch bodies" );
     Allocator::addEternal( flags, "statement to fetch flags" );
     Allocator::addEternal( anno, "statement to fetch annotations" );
