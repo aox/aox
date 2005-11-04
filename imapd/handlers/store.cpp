@@ -354,7 +354,7 @@ bool Store::processAnnotationNames()
     }
     if ( unknown.isEmpty() )
         return true;
-    if ( !d->flagCreator )
+    if ( !d->annotationNameCreator )
         d->annotationNameCreator = new AnnotationNameCreator( this, unknown );
     return false;
 
