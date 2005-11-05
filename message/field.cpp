@@ -485,7 +485,7 @@ String HeaderField::encode( const String &s )
             ew = "=?" + c->name() + "?";
             String qp = cw.eQP( true );
             String b64 = cw.e64();
-            if ( qp.length() < b64.length() ) {
+            if ( qp.length() =< b64.length() ) {
                 ew.append( "q?" );
                 ew.append( qp );
             }
