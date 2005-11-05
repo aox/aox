@@ -135,11 +135,6 @@ void Store::parseAnnotationEntry()
     uint id = imap()->user()->id();
     while ( more ) {
         String attrib = string();
-        if ( attrib.find( ".." ) >= 0 )
-            error( Bad, "Consecutive dots not allowed in attribute names" );
-        else if ( attrib.startsWith( "vendor." ) )
-            error( No, "Vendor extensions not supported; "
-                   "contact info@oryx.com" );
         bool shared = false;
         if ( attrib.endsWith( ".shared" ) ) {
             shared = true;
@@ -189,7 +184,7 @@ void Store::parseAnnotationEntry()
 
 
 /*! Stores all the annotations/flags, using potentially enormous
-    numbers if database queries. The command is kept atomic by the use
+    numbers of database queries. The command is kept atomic by the use
     of a Transaction.
 */
 
