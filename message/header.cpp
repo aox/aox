@@ -679,8 +679,7 @@ void Header::encode8BitFields( class Codec * c )
         HeaderField * f = it;
         ++it;
         if ( f->type() == HeaderField::Subject ||
-             f->type() == HeaderField::Other ||
-             f->type() == HeaderField::Comments ||
+             f->type() == HeaderField::Other || // <- dubious. must be more finegrained
              f->type() == HeaderField::Keywords ||
              f->type() == HeaderField::ContentDescription ) {
             String v = f->value();
