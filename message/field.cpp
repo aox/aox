@@ -217,9 +217,9 @@ void HeaderField::setName( const String &n )
 }
 
 
-/*! Returns the canonical, folded (and, if required, RFC 2047-encoded)
-    version of the contents of this HeaderField. This is the string we
-    can use to form headers that are handed out to clients.
+/*! Returns the RFC 2822 representation of this header field, with its
+    contents properly folded and, if necessary, RFC 2047 encoded. This
+    is a string we can hand out to clients.
 */
 
 String HeaderField::value()
@@ -240,8 +240,12 @@ void HeaderField::setValue( const String &s )
 }
 
 
-/*! Returns the canonical, unfolded, UTF-8 encoded version of value().
-    This is the value we store in the database.
+/*! Returns the contents of this header field in a representation that
+    is meant for storage in the database (unfolded and UTF-8 encoded,
+    with RFC 2047 encoded-words expanded). Only the Injector should
+    need to use this function.
+
+    Use value() if you want a valid RFC 2822 representation.
 */
 
 String HeaderField::data()
