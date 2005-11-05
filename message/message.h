@@ -65,6 +65,7 @@ public:
 
 private:
     static Header * parseHeader( uint &, uint, const String &, Header::Mode );
+    void fix8BitHeaderFields();
 
 private:
     class MessageData * d;

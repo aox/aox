@@ -8,6 +8,7 @@
 #include "mimefields.h"
 #include "annotation.h"
 #include "allocator.h"
+#include "codec.h"
 #include "flag.h"
 
 
@@ -110,6 +111,8 @@ Message::Message( const String & rfc2822 )
     }
 
     header()->simplify();
+
+    fix8BitHeaderFields();
 
     d->rfc822Size = rfc822().length();
 }
@@ -644,4 +647,40 @@ void Message::replaceAnnotation( class Annotation * a )
 List< Annotation > * Message::annotations() const
 {
     return d->annotations;
+}
+
+
+/*! Tries to handle unlabelled 8-bit content in header fields, in
+    cooperation with Header::fix8Bit().
+
+    The idea is that if we know which encodings are used for the text
+    bodies, and all bodies agree, then any unlabelled header fields
+    probably use that encoding, too. At least if they're legal
+    according to the relevant codec.
+*/
+
+void Message::fix8BitHeaderFields()
+{
+    String charset;
+    List<Bodypart>::Iterator i( children() );
+    while ( i ) {
+        ContentType * ct = 0;
+        if ( i->header() )
+            ct = i->header()->contentType();
+        if ( ct->type() == "text" ) {
+            String cs = ct->parameter( "charset" ).lower();
+            if ( cs.isEmpty() )
+                ; // no conclusion from this part
+            else if ( charset.isEmpty() )
+                charset = cs; // use this charser...?
+            else if ( cs != charset )
+                return; // multiple charsets specified
+        }
+        i++;
+    }
+    if ( !charset.isEmpty() ) {
+        Codec * c = Codec::byString( charset );
+        if ( c )
+            header()->encode8BitFields( c );
+    }
 }

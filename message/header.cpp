@@ -7,7 +7,10 @@
 #include "mimefields.h"
 #include "addressfield.h"
 #include "address.h"
+#include "ustring.h"
+#include "codec.h"
 #include "date.h"
+#include "utf.h"
 
 
 static const char *crlf = "\015\012";
@@ -641,12 +644,12 @@ String Header::asText() const
 }
 
 
-/*! This function appends the string representation of the field \a hf
-    to \a r. Does nothing if \a hf is 0.
+/*! Appends the string representation of the field \a hf to \a r. Does
+    nothing if \a hf is 0.
 
     This function doesn't wrap. That's probably a bug. How to fix it?
 
-    (The details of this function are liable to change.)
+    (The details of the function are liable to change.)
 */
 
 void Header::appendField( String &r, HeaderField *hf ) const
@@ -658,4 +661,41 @@ void Header::appendField( String &r, HeaderField *hf ) const
     r.append( ": " );
     r.append( hf->value() );
     r.append( crlf );
+}
+
+
+/*! Scans for fields containing unlabelled 8-bit content and encodes
+    them using \a c.
+
+    At the moment, this covers most unstructured fields. The exact
+    scope of the function may change.
+*/
+
+void Header::encode8BitFields( class Codec * c )
+{
+    Utf8Codec utf8;
+    List< HeaderField >::Iterator it( d->fields );
+    while ( it ) {
+        HeaderField * f = it;
+        ++it;
+        if ( f->type() == HeaderField::Subject ||
+             f->type() == HeaderField::Other ||
+             f->type() == HeaderField::Comments ||
+             f->type() == HeaderField::Keywords ||
+             f->type() == HeaderField::ContentDescription ) {
+            String v = f->value();
+            uint i = 0;
+            while ( v[i] < 128 && v[i] > 0 )
+                i++;
+            if ( i < v.length() ) {
+                c->setState( Codec::Valid );
+                UString u = c->toUnicode( v );
+                if ( c->wellformed() )
+                    f->setData( utf8.fromUnicode( u ) );
+                else if ( d->error.isEmpty() )
+                    d->error = "Cannot parse header field " + f->name() +
+                               " either as US-ASCII or " + c->name();
+            }
+        }
+    }
 }
