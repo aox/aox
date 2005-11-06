@@ -93,14 +93,12 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
         p->toPermissions = new Permissions( p->toParent, c->imap()->user(), c );
     renames.append( p );
 
-    String fn = c->imap()->mailboxName( p->toName );
-    Mailbox * to = Mailbox::obtain( fn, false );
+    Mailbox * to = Mailbox::obtain( p->toName, false );
     if ( to && !( to->synthetic() || to->deleted() ) ) {
         c->error( Rename::No, "Destination mailbox exists: " + p->toName );
         t->rollback();
         return;
     }
-    p->toName = fn;
 
     // get rid of anything that may be in the way
     Query * q = 0;
@@ -158,10 +156,12 @@ void Rename::execute()
             error( No, "No such mailbox: " + d->fromName );
             return;
         }
-        p->toName = d->toName;
-        p->toParent =
-            Mailbox::closestParent( imap()->mailboxName( p->toName ) );
+        p->toName = imap()->mailboxName( d->toName );
+        p->toParent = Mailbox::closestParent( p->toName );
         d->process( p, 0 );
+
+        if ( !ok() )
+            return;
 
         // 2. for each mailbox, any children it may have.
         List<RenameData::MailboxPair>::Iterator it( d->renames );
@@ -176,6 +176,8 @@ void Rename::execute()
                 p->toParent =
                     Mailbox::closestParent( imap()->mailboxName( p->toName ) );
                 d->process( p, it );
+                if ( !ok() )
+                    break;
                 ++c;
             }
             ++it;
