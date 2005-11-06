@@ -93,7 +93,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
         p->toPermissions = new Permissions( p->toParent, c->imap()->user(), c );
     renames.append( p );
 
-    Mailbox * to = Mailbox::obtain( p->toName );
+    Mailbox * to = Mailbox::obtain( p->toName, false );
     if ( to && !to->deleted() )
         c->error( Rename::No, "Destination mailbox exists: " + p->toName );
 
@@ -118,8 +118,9 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     q->bind( 3, p->from->id() );
     t->enqueue( q );
 
-    // insert a deleted placeholder to ensure that uidnext/uidvalidity will be okay if a new
-    // mailbox is created with the same name as this one used to have
+    // insert a deleted placeholder to ensure that uidnext/uidvalidity
+    // will be okay if a new mailbox is created with the same name as
+    // this one used to have
     q = new Query( "insert into mailboxes "
                    "(name,owner,uidnext,uidvalidity,deleted) "
                    "values ($1.$2,$3,$4,'t')", 0 );
@@ -194,53 +195,59 @@ void Rename::execute()
     // to carry it out.
 
     if ( !d->ready ) {
-        List<RenameData::MailboxPair>::Iterator it( d->renames );
+        List< RenameData::MailboxPair >::Iterator it( d->renames );
         while ( it ) {
             if ( !it->fromPermissions->ready() ||
                  !it->toPermissions->ready() )
                 return;
-            if ( !it->fromPermissions->allowed( Permissions::DeleteMailbox ) )
+            if ( !it->fromPermissions->allowed( Permissions::DeleteMailbox ) ) {
                 error( No, "Not permitted to remove " + it->from->name() );
+                break;
+            }
             if ( it->toPermissions &&
                  !it->toPermissions->allowed( Permissions::CreateMailboxes ) )
+            {
                 error( No, "Not permitted to create " + it->toName );
+                break;
+            }
             ++it;
         }
+
+        if ( !ok() )
+            d->t->rollback();
+        else
+            d->t->commit();
         d->ready = true;
     }
-    
-    if ( !ok() || !d->ready )
+
+    if ( !ok() || !d->t->done() )
         return;
 
-    if ( d->t->state() == Transaction::Inactive )
-        d->t->commit();
-
-    if ( d->t->state() == Transaction::Failed ) {
+    if ( d->t->failed() ) {
         error( No, "Database failure: " + d->t->error() );
         return;
     }
 
-    if ( d->t->state() == Transaction::Completed ) {
-        finish();
-        List<RenameData::MailboxPair>::Iterator it( d->renames );
-        while ( it ) {
-            Mailbox * to = Mailbox::obtain( it->toName, true );
-            Mailbox * from = it->from;
-            to->setId( from->id() );
-            to->setDeleted( false );
-            to->setUidnext( from->uidnext() );
-            to->setUidvalidity( it->toUidvalidity );
-            from->setId( 0 );
-            from->refresh();
-            OCClient::send( "mailbox " + to->name().quoted() + " new" );
-            if ( d->mrcInboxHack && from == imap()->user()->inbox() ) {
-                OCClient::send( "mailbox " + from->name().quoted() + " new" );
-            }
-            else {
-                from->setDeleted( true );
-                OCClient::send( "mailbox " + from->name().quoted() + " deleted" );
-            }
-            ++it;
+    List< RenameData::MailboxPair >::Iterator it( d->renames );
+    while ( it ) {
+        Mailbox * to = Mailbox::obtain( it->toName, true );
+        Mailbox * from = it->from;
+        to->setId( from->id() );
+        to->setDeleted( false );
+        to->setUidnext( from->uidnext() );
+        to->setUidvalidity( it->toUidvalidity );
+        from->setId( 0 );
+        from->refresh();
+        OCClient::send( "mailbox " + to->name().quoted() + " new" );
+        if ( d->mrcInboxHack && from == imap()->user()->inbox() ) {
+            OCClient::send( "mailbox " + from->name().quoted() + " new" );
         }
+        else {
+            from->setDeleted( true );
+            OCClient::send( "mailbox " + from->name().quoted() + " deleted" );
+        }
+        ++it;
     }
+
+    finish();
 }    
