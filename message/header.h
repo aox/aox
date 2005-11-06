@@ -50,7 +50,7 @@ public:
 
     void simplify();
     void repair();
-    void encode8BitFields( class Codec * );
+    void fix8BitFields( class Codec * );
 
     String asText() const;
 

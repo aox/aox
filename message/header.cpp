@@ -671,7 +671,7 @@ void Header::appendField( String &r, HeaderField *hf ) const
     scope of the function may change.
 */
 
-void Header::encode8BitFields( class Codec * c )
+void Header::fix8BitFields( class Codec * c )
 {
     Utf8Codec utf8;
     List< HeaderField >::Iterator it( d->fields );
@@ -679,9 +679,12 @@ void Header::encode8BitFields( class Codec * c )
         HeaderField * f = it;
         ++it;
         if ( f->type() == HeaderField::Subject ||
-             f->type() == HeaderField::Other || // <- dubious. must be more finegrained
+             f->type() == HeaderField::Comments ||
              f->type() == HeaderField::Keywords ||
-             f->type() == HeaderField::ContentDescription ) {
+             f->type() == HeaderField::ContentDescription ||
+             f->type() == HeaderField::Other )
+             // ^ dubious. must be more finegrained
+        {
             String v = f->value();
             uint i = 0;
             while ( v[i] < 128 && v[i] > 0 )

@@ -651,7 +651,7 @@ List< Annotation > * Message::annotations() const
 
 
 /*! Tries to handle unlabelled 8-bit content in header fields, in
-    cooperation with Header::fix8Bit().
+    cooperation with Header::fix8BitFields().
 
     The idea is that if we know which encodings are used for the text
     bodies, and all bodies agree, then any unlabelled header fields
@@ -681,6 +681,6 @@ void Message::fix8BitHeaderFields()
     if ( !charset.isEmpty() ) {
         Codec * c = Codec::byString( charset );
         if ( c )
-            header()->encode8BitFields( c );
+            header()->fix8BitFields( c );
     }
 }
