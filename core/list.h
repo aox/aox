@@ -67,7 +67,10 @@ public:
         Iterator()                   { cur = 0; }
         Iterator( Node *n )          { cur = n; }
         Iterator( const List< T > *l ) {
-            cur = l->head;
+            if ( l )
+                cur = l->head;
+            else
+                cur = 0;
         }
         Iterator( const List< T > &l ) {
             cur = l.head;

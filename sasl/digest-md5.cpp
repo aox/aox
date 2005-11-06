@@ -187,9 +187,7 @@ void DigestMD5::readResponse( const String &r )
     d->cachedNonce = 0;
     if ( ok && state() == AwaitingInitialResponse ) {
         String ncv = nonce->value().unquoted();
-        List< Nonce >::Iterator it;
-        if ( cache )
-            it = cache->first();
+        List< Nonce >::Iterator it( cache );
         while ( it ) {
             if ( it->value == ncv )
                 break;

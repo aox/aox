@@ -89,9 +89,8 @@ void MessageSet::add( uint n1, uint n2 )
         return;
     }
 
-    List< SetData::Range >::Iterator i;
+    List< SetData::Range >::Iterator i( d->l );
 
-    i = d->l.first();
     while ( i && i->start < n1 )
         ++i;
     d->l.insert( i, new SetData::Range( n1, n2-n1+1 ) );

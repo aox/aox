@@ -488,9 +488,7 @@ static String sectionResponse( FetchData::Section * s,
                 hdr = 0;
         }
 
-        List< HeaderField >::Iterator it;
-        if ( hdr )
-            it = hdr->fields()->first();
+        List< HeaderField >::Iterator it( hdr->fields() );
         while ( it ) {
             bool include = false;
             if ( !fields ) {
