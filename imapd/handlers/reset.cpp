@@ -10,15 +10,15 @@
 
 
 /*! \class XOryxReset reset.h
-  
+
     Resets an account, in the hard way. This command breaks various
     invariants, so it cannot be used on a production mail server. It
     exists strictly for regression testing on Oryx' own test servers.
-    
+
     Deletes all the messages in the authenticated user's inbox and
     sets UIDNEXT to 1. (Decreasing UIDNEXT breaks both an Oryx
     invariant and an IMAP one.)
-    
+
     Deletes all mailboxes belonging to the authenticated user except
     the input, and all messages in those mailboxes. (This breaks both
     the Oryx mailbox cache and an IMAP invariant.)
@@ -40,13 +40,13 @@ void XOryxReset::execute()
         q->bind( 1, user->id() );
         q->bind( 2, inbox->id() );
         t->enqueue( q );
-        
+
         q = new Query( "delete from messages where mailbox in "
                        "(select id from mailboxes where owner=$1)",
                        this );
         q->bind( 1, user->id() );
         t->enqueue( q );
- 
+
         q = new Query( "delete from subscriptions where mailbox in "
                        "(select id from mailboxes where owner=$1)",
                        this );
@@ -64,6 +64,10 @@ void XOryxReset::execute()
         q->bind( 1, user->id() );
         t->enqueue( q );
 
+        a = new Query( "select id from mailboxes where owner=$1", this );
+        a->bind( 1, user->id() );
+        t->enqueue( a );
+
         q = new Query( "update mailboxes set "
                        "deleted='t',owner=null,uidnext=1,first_recent=1 "
                        "where owner=$1",
@@ -71,21 +75,12 @@ void XOryxReset::execute()
         q->bind( 1, user->id() );
         t->enqueue( q );
 
-        q = new Query( "update mailboxes set deleted='f' "
-                       "where id=$1",
-                       this );
+        q = new Query( "update mailboxes set deleted='f' where id=$1", this );
         q->bind( 1, inbox->id() );
         t->enqueue( q );
 
-        a = new Query( "select id from mailboxes "
-                       "where owner=$1 and deleted='t'",
-                       this );
-        a->bind( 1, user->id() );
-        t->enqueue( a );
-        
-        t->execute();
         t->commit();
-        
+
         inbox->setUidnext( 1 );
         inbox->clear();
     }
@@ -94,7 +89,7 @@ void XOryxReset::execute()
         Row * r;
         while ( (r=a->nextRow()) != 0 ) {
             Mailbox * m = Mailbox::find( r->getInt( "id" ) );
-            if ( m )
+            if ( m && m->id() != imap()->user()->inbox()->id() )
                 m->setDeleted( true );
         }
     }
