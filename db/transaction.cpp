@@ -169,7 +169,8 @@ void Transaction::rollback()
 {
     Query *q = new Query( "ROLLBACK", d->owner );
     q->setTransaction( this );
-    d->queries->append( q );
+    if ( d->queries )
+        d->queries->append( q );
     execute();
 }
 
