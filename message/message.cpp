@@ -667,12 +667,12 @@ void Message::fix8BitHeaderFields()
         ContentType * ct = 0;
         if ( i->header() )
             ct = i->header()->contentType();
-        if ( ct->type() == "text" ) {
+        if ( ct && ct->type() == "text" ) {
             String cs = ct->parameter( "charset" ).lower();
             if ( cs.isEmpty() )
                 ; // no conclusion from this part
             else if ( charset.isEmpty() )
-                charset = cs; // use this charser...?
+                charset = cs; // use this charset...?
             else if ( cs != charset )
                 return; // multiple charsets specified
         }
