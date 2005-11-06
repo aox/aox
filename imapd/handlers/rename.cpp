@@ -204,7 +204,7 @@ void Rename::execute()
         List< RenameData::MailboxPair >::Iterator it( d->renames );
         while ( it ) {
             if ( !it->fromPermissions->ready() ||
-                 !it->toPermissions->ready() )
+                 ( it->toPermissions && !it->toPermissions->ready() ) )
                 return;
             if ( !it->fromPermissions->allowed( Permissions::DeleteMailbox ) ) {
                 error( No, "Not permitted to remove " + it->from->name() );
