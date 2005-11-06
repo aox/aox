@@ -94,8 +94,11 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     renames.append( p );
 
     Mailbox * to = Mailbox::obtain( p->toName, false );
-    if ( to && !to->deleted() )
+    if ( to && !to->deleted() ) {
         c->error( Rename::No, "Destination mailbox exists: " + p->toName );
+        t->rollback();
+        return;
+    }
 
     // get rid of anything that may be in the way
     Query * q = 0;
@@ -161,9 +164,7 @@ void Rename::execute()
         List<RenameData::MailboxPair>::Iterator it( d->renames );
         while ( it ) {
             Mailbox * m = it->from;
-            List<Mailbox>::Iterator c;
-            if ( m->children() )
-                c = m->children();
+            List<Mailbox>::Iterator c( m->children() );
             while ( c ) {
                 p = new RenameData::MailboxPair;
                 p->from = c;
