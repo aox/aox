@@ -95,7 +95,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
 
     String fn = c->imap()->mailboxName( p->toName );
     Mailbox * to = Mailbox::obtain( fn, false );
-    if ( to && !to->deleted() ) {
+    if ( to && !( to->synthetic() || to->deleted() ) ) {
         c->error( Rename::No, "Destination mailbox exists: " + p->toName );
         t->rollback();
         return;
