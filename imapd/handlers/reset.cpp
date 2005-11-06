@@ -65,7 +65,7 @@ void XOryxReset::execute()
         t->enqueue( q );
 
         q = new Query( "update mailboxes set "
-                       "deleted='t',uidnext=1,first_recent=1 "
+                       "deleted='t',owner=null,uidnext=1,first_recent=1 "
                        "where owner=$1",
                        this );
         q->bind( 1, user->id() );

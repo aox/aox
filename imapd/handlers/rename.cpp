@@ -124,12 +124,11 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     // will be okay if a new mailbox is created with the same name as
     // this one used to have
     q = new Query( "insert into mailboxes "
-                   "(name,owner,uidnext,uidvalidity,deleted) "
-                   "values ($1,$2,$3,$4,'t')", 0 );
+                   "(name,uidnext,uidvalidity,deleted) "
+                   "values ($1,$2,$3,'t')", 0 );
     q->bind( 1, p->from->name() );
-    q->bind( 2, c->imap()->user()->id() );
-    q->bind( 3, p->from->uidnext() );
-    q->bind( 4, p->from->uidvalidity() );
+    q->bind( 2, p->from->uidnext() );
+    q->bind( 3, p->from->uidvalidity() );
     t->enqueue( q );
 }
 
