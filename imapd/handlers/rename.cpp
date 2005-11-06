@@ -110,8 +110,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     }
 
     // move the mailbox
-    q = new Query( "update mailboxes "
-                   "set name=$1,uidvalidity=$2 "
+    q = new Query( "update mailboxes set name=$1,uidvalidity=$2 "
                    "where id=$3", 0 );
     q->bind( 1, p->toName );
     q->bind( 2, p->toUidvalidity );
@@ -123,7 +122,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     // this one used to have
     q = new Query( "insert into mailboxes "
                    "(name,owner,uidnext,uidvalidity,deleted) "
-                   "values ($1.$2,$3,$4,'t')", 0 );
+                   "values ($1,$2,$3,$4,'t')", 0 );
     q->bind( 1, p->from->name() );
     q->bind( 2, c->imap()->user()->id() );
     q->bind( 3, p->from->uidnext() );
