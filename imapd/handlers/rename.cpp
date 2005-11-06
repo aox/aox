@@ -171,7 +171,10 @@ void Rename::execute()
             while ( c ) {
                 p = new RenameData::MailboxPair;
                 p->from = c;
-                p->toName = it->toName + c->name().mid( it->from->name().length() );
+                p->toName =
+                    it->toName + c->name().mid( it->from->name().length() );
+                p->toParent =
+                    Mailbox::closestParent( imap()->mailboxName( p->toName ) );
                 d->process( p, it );
                 ++c;
             }
