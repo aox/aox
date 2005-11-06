@@ -75,8 +75,10 @@ void XOryxReset::execute()
         q->bind( 1, user->id() );
         t->enqueue( q );
 
-        q = new Query( "update mailboxes set deleted='f' where id=$1", this );
-        q->bind( 1, inbox->id() );
+        q = new Query( "update mailboxes set deleted='f',owner=$1 "
+                       "where id=$1", this );
+        q->bind( 1, user->id() );
+        q->bind( 2, inbox->id() );
         t->enqueue( q );
 
         t->commit();
