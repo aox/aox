@@ -64,26 +64,20 @@ void XOryxReset::execute()
         q->bind( 1, user->id() );
         t->enqueue( q );
 
-        q = new Query( "update mailboxes set "
-                       "deleted='t',uidnext=1,first_recent=1 "
-                       "where owner=$1",
-                       this );
-        q->bind( 1, user->id() );
-        t->enqueue( q );
-
-        q = new Query( "update mailboxes set deleted='f' "
-                       "where id=$1",
-                       this );
-        q->bind( 1, inbox->id() );
-        t->enqueue( q );
-
-        a = new Query( "select id from mailboxes "
-                       "where owner=$1 and deleted='t'",
-                       this );
+        a = new Query( "select id from mailboxes where owner=$1 "
+                       "and id<>$2", this );
         a->bind( 1, user->id() );
+        a->bind( 2, inbox->id() );
         t->enqueue( a );
         
-        t->execute();
+        q = new Query( "update mailboxes set "
+                       "deleted='t',owner=null,uidnext=1,first_recent=1 "
+                       "where owner=$1 and id<>$2",
+                       this );
+        q->bind( 1, user->id() );
+        a->bind( 2, inbox->id() );
+        t->enqueue( q );
+
         t->commit();
         
         inbox->setUidnext( 1 );
@@ -94,8 +88,10 @@ void XOryxReset::execute()
         Row * r;
         while ( (r=a->nextRow()) != 0 ) {
             Mailbox * m = Mailbox::find( r->getInt( "id" ) );
-            if ( m )
+            if ( m ) {
                 m->setDeleted( true );
+                m->setOwner( 0 );
+            }
         }
     }
 
