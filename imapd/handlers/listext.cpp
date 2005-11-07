@@ -319,7 +319,7 @@ void Listext::list( Mailbox * m, const String & p )
                 matches = false;
         }
         else {
-            if ( m->deleted() )
+            if ( ( m->synthetic() || m->deleted() ) && !m->hasChildren() )
                 matches = false;
         }
     }
