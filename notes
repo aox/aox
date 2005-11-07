@@ -233,11 +233,6 @@ DELETE of mailboxes in inappropriately qualified (security problem)
   mailbox is later recreated.
 
 
-RENAME isn't implemented
-
-  It's now implemented, but untested and almost certainly does not work.
-
-
 Split the folder view into pages.
 
   The injector needs to do threading to make the paging possible.
@@ -679,6 +674,7 @@ Losing all PSQL connections is bad
 
   Write a GB2312 codec (Done!).
   move installer back to LIBDIR (done).
+  RENAME (almost done).
   Solve the mailbox/migrator memory problems.
   Make msconsole's user pane do something.
   ANNOTATE or VIEWS or ideally both.
