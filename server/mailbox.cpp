@@ -515,6 +515,11 @@ Transaction *Mailbox::remove( EventHandler *ev )
     q->bind( 1, id() );
     t->enqueue( q );
 
+    q = new Query( "delete from permissions where id==$1",
+                   0 );
+    q->bind( 1, id() );
+    t->enqueue( q );
+
     MailboxReader * mr =
         new MailboxReader( "select * from mailboxes where name=$1",
                            name() );
