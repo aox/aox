@@ -512,8 +512,8 @@ Transaction *Mailbox::remove( EventHandler *ev )
         return 0;
 
     Transaction * t = new Transaction( ev );
-    Query * q = new Query( "update mailboxes set deleted='t',owner=null "
-                           "where id=$1", 0 );
+    Query * q = new Query( "update mailboxes set deleted='t' where id=$1",
+                           0 );
     q->bind( 1, id() );
     t->enqueue( q );
 
