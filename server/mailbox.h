@@ -28,6 +28,7 @@ public:
     bool synthetic() const;
     uint owner() const;
 
+    void setOwner( uint );
     void setUidnext( uint );
     void setUidvalidity( uint );
     void setDeleted( bool );

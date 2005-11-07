@@ -110,7 +110,7 @@ public:
             m->d->uidvalidity = r->getInt( "uidvalidity" );
             m->setUidnext( r->getInt( "uidnext" ) );
             if ( !r->isNull( "owner" ) )
-                m->d->owner = r->getInt( "owner" );
+                m->setOwner( r->getInt( "owner" ) );
 
             if ( m->d->id )
                 ::mailboxes->insert( m->d->id, m );
@@ -416,6 +416,16 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
     m->d->parent = parent;
     parent->d->children->append( m );
     return m;
+}
+
+
+/*! Sets this Mailbox's owner to \a n (which is assumed to be a valid
+    user id).
+*/
+
+void Mailbox::setOwner( uint n )
+{
+    d->owner = n;
 }
 
 
