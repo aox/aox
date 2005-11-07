@@ -278,9 +278,7 @@ List< Mailbox >* Mailbox::children() const
 
 bool Mailbox::hasChildren() const
 {
-    if ( !d->children )
-        return false;
-    List<Mailbox>::Iterator it( *d->children );
+    List<Mailbox>::Iterator it( d->children );
     while ( it ) {
         if ( !it->deleted() && !it->synthetic() )
             return true;
