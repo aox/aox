@@ -349,7 +349,7 @@ Mailbox * Mailbox::closestParent( const String & name )
     Mailbox * good = ::root;
     uint i = 1;
     while ( candidate && candidate->name() != name ) {
-        if ( candidate && !candidate->deleted() )
+        if ( candidate && !candidate->deleted() && !candidate->synthetic() )
             good = candidate;
         if ( name[i] == '/' )
             return 0; // two slashes -> syntax error
