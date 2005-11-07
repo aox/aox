@@ -174,7 +174,8 @@ void Rename::execute()
                     it->toName + c->name().mid( it->from->name().length() );
                 p->toParent =
                     Mailbox::closestParent( imap()->mailboxName( p->toName ) );
-                d->process( p, it );
+                if ( !( c->synthetic() || c->deleted() ) )
+                    d->process( p, it );
                 if ( !ok() )
                     break;
                 ++c;
