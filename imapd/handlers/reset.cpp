@@ -75,7 +75,7 @@ void XOryxReset::execute()
                        "where owner=$1 and id<>$2",
                        this );
         q->bind( 1, user->id() );
-        a->bind( 2, inbox->id() );
+        q->bind( 2, inbox->id() );
         t->enqueue( q );
 
         t->commit();
