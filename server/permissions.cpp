@@ -142,10 +142,10 @@ bool Permissions::allowed( Right r )
 void Permissions::execute()
 {
     if ( !d->q ) {
-        // The user and superuser always have all rights.
+        // The owner and superuser always have all rights.
         if ( d->user->id() == d->mailbox->owner() ||
              d->user->home() == d->mailbox ||
-             d->user->inbox()->id() == d->mailbox->id() ||
+             d->mailbox->name().startsWith( d->user->home()->name() + "/" ) ||
              0 /* d->user->isRoot() */ )
         {
             uint i = 0;
