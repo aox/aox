@@ -42,7 +42,8 @@ String GbkCodec::fromUnicode( const UString &u )
         }
         else if ( unicodeToGbk[n] != 0 ) {
             n = unicodeToGbk[n];
-            s.append( n >> 8 );
+            if ( n != 0x80 )
+                s.append( n >> 8 );
             s.append( n & 0xff );
         }
         else {
@@ -67,6 +68,9 @@ UString GbkCodec::toUnicode( const String &s )
 
         if ( c < 128 ) {
             u.append( c );
+        }
+        else if ( c == 0x80 ) {
+            u.append( gbkToUnicode[0x80] );
         }
         else {
             char d = s[++n];
