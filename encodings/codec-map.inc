@@ -42,5 +42,6 @@ else if ( name == "windows-1255" ) codec = new Cp1255Codec;
 else if ( name == "windows-1256" ) codec = new Cp1256Codec;
 else if ( name == "windows-1257" ) codec = new Cp1257Codec;
 else if ( name == "windows-1258" ) codec = new Cp1258Codec;
-else if ( name == "gb2312" ) codec = new Gb2312Codec;
+else if ( name == "GB2312" ) codec = new Gb2312Codec;
+else if ( name == "GBK" ) codec = new GbkCodec;
 else ;

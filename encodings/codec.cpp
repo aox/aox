@@ -12,6 +12,7 @@
 #include "utf.h"
 #include "unknown.h"
 #include "gb2312.h"
+#include "gbk.h"
 
 
 /*! \class Codec codec.h
