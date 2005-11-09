@@ -194,8 +194,10 @@ void Rename::execute()
         q->bind( 1, imap()->mailboxName( d->fromName ) );
         q->bind( 2, imap()->user()->id() );
         d->t->enqueue( q );
-        q = new Query( "update mailboxes set deleted='f' where name=$1", 0 );
-        q->bind( 1, d->fromName );
+        q = new Query( "update mailboxes set deleted='f',owner=$2 "
+                       "where name=$1", 0 );
+        q->bind( 1, imap()->mailboxName( d->fromName ) );
+        q->bind( 2, imap()->user()->id() );
         d->t->enqueue( q );
     }
 
@@ -258,4 +260,4 @@ void Rename::execute()
     }
 
     finish();
-}    
+}
