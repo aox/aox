@@ -242,6 +242,21 @@ bool Mailbox::synthetic() const
 }
 
 
+/*! Returns true if this Mailbox represents a user's "home directory",
+    e.g. /users/ams. (This is currently determined only by looking at
+    the mailbox name, but it should be based on a flag that is set by
+    the tree builder.)
+*/
+
+bool Mailbox::isHome() const
+{
+    if ( d->name.startsWith( "/users/" ) &&
+         d->name.find( '/', 7 ) == -1 )
+        return true;
+    return false;
+}
+
+
 /*! Returns the numeric user id of the owner of this mailbox, or 0 if
     the mailbox has no defined owner (or is not yet known to have one).
 */
@@ -349,7 +364,8 @@ Mailbox * Mailbox::closestParent( const String & name )
     Mailbox * good = ::root;
     uint i = 1;
     while ( candidate && candidate->name() != name ) {
-        if ( candidate && ( !candidate->deleted() && !candidate->synthetic() ) )
+        if ( candidate && !candidate->deleted() &&
+             ( !candidate->synthetic() || candidate->isHome() ) )
             good = candidate;
         if ( name[i] == '/' )
             return 0; // two slashes -> syntax error

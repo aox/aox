@@ -26,6 +26,7 @@ public:
     uint uidvalidity() const;
     bool deleted() const;
     bool synthetic() const;
+    bool isHome() const;
     uint owner() const;
 
     void setOwner( uint );
