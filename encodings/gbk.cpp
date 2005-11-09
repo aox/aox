@@ -5,9 +5,19 @@
 #include "ustring.h"
 
 
+static const uint gbkToUnicode[65536] = {
+#include "gbk.inc"
+};
+
+static const uint unicodeToGbk[65536] = {
+#include "gbk-rev.inc"
+};
+
+
 /*! \class GbkCodec gbk.h
     This class implements a translator between Unicode and GBK (in
-    the EUC-CN encoding).
+    the EUC-CN encoding). The CP936 data is used for the mapping.
+    This should be merged with the GB2312 codec eventually.
 */
 
 /*! Creates a new GBK Codec object. */
@@ -29,6 +39,11 @@ String GbkCodec::fromUnicode( const UString &u )
         uint n = u[i];
         if ( n < 128 ) {
             s.append( (char)n );
+        }
+        else if ( unicodeToGbk[n] != 0 ) {
+            n = unicodeToGbk[n];
+            s.append( n >> 8 );
+            s.append( n & 0xff );
         }
         else {
             setState( Invalid );
@@ -54,7 +69,12 @@ UString GbkCodec::toUnicode( const String &s )
             u.append( c );
         }
         else {
-            setState( Invalid );
+            char d = s[++n];
+            uint p = (c << 8) | d;
+            if ( gbkToUnicode[p] != 0 )
+                u.append( gbkToUnicode[p] );
+            else
+                setState( Invalid );
         }
 
         n++;
