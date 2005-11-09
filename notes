@@ -371,7 +371,7 @@ Add Maildir support to the migrator.
 Should we allow Sender-less multiple-From mailboxes?
 
 
-Implement more encodings: BIG5/SJIS/GBK. (AMS)
+Implement more encodings: BIG5/SJIS/ISO-2022-JP. (AMS)
 
 
 Implement a "save mangled copy" feature in msconsole. (AMS)
@@ -672,7 +672,7 @@ Losing all PSQL connections is bad
 
 1.0
 
-  Write a GB2312 codec (Done!).
+  Write a GB2312/GBK codec (Done!).
   move installer back to LIBDIR (done).
   RENAME (almost done).
   Solve the mailbox/migrator memory problems.
