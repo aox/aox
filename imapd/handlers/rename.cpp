@@ -182,24 +182,25 @@ void Rename::execute()
             }
             ++it;
         }
+
+        if ( ok() && d->mrcInboxHack ) {
+            Query * q =
+                new Query( "update users set "
+                           "inbox=(select id from mailboxes where name=$1) "
+                           "where id=$2", 0 );
+            q->bind( 1, imap()->mailboxName( d->fromName ) );
+            q->bind( 2, imap()->user()->id() );
+            d->t->enqueue( q );
+            q = new Query( "update mailboxes set deleted='f',owner=$2 "
+                           "where name=$1", 0 );
+            q->bind( 1, imap()->mailboxName( d->fromName ) );
+            q->bind( 2, imap()->user()->id() );
+            d->t->enqueue( q );
+        }
     }
 
     if ( !ok() )
         return;
-
-    if ( d->mrcInboxHack ) {
-        Query * q = new Query( "update users "
-                               "set inbox=(select id from mailboxes where name=$1) "
-                               "where id=$2", 0 );
-        q->bind( 1, imap()->mailboxName( d->fromName ) );
-        q->bind( 2, imap()->user()->id() );
-        d->t->enqueue( q );
-        q = new Query( "update mailboxes set deleted='f',owner=$2 "
-                       "where name=$1", 0 );
-        q->bind( 1, imap()->mailboxName( d->fromName ) );
-        q->bind( 2, imap()->user()->id() );
-        d->t->enqueue( q );
-    }
 
     // the transaction is now set up. let's see if we have permission
     // to carry it out.
