@@ -678,12 +678,13 @@ void Header::fix8BitFields( class Codec * c )
     while ( it ) {
         HeaderField * f = it;
         ++it;
-        if ( f->type() == HeaderField::Subject ||
-             f->type() == HeaderField::Comments ||
-             f->type() == HeaderField::Keywords ||
-             f->type() == HeaderField::ContentDescription ||
-             f->type() == HeaderField::Other )
-             // ^ dubious. must be more finegrained
+        if ( !f->parsed() &&
+             ( f->type() == HeaderField::Subject ||
+               f->type() == HeaderField::Comments ||
+               f->type() == HeaderField::Keywords ||
+               f->type() == HeaderField::ContentDescription ||
+               // XXX: This should be more fine-grained:
+               f->type() == HeaderField::Other ) )
         {
             String v = f->value();
             uint i = 0;

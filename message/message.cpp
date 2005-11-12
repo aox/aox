@@ -114,6 +114,15 @@ Message::Message( const String & rfc2822 )
 
     fix8BitHeaderFields();
 
+    List< HeaderField >::Iterator it( header()->fields() );
+    while ( it ) {
+        if ( !it->parsed() ) {
+            d->error = "Unable to parse header field " + it->name();
+            break;
+        }
+        ++it;
+    }
+
     d->rfc822Size = rfc822().length();
 }
 

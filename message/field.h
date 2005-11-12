@@ -58,6 +58,7 @@ public:
     void setData( const String & );
 
     bool valid() const;
+    bool parsed() const;
     String error() const;
     void setError( const String & );
 
@@ -75,6 +76,7 @@ private:
     class HeaderFieldData *d;
 
     void parseText( const String & );
+    void parseOther( const String & );
     void parseMimeVersion( const String & );
     void parseContentLocation( const String & );
 };

@@ -57,12 +57,18 @@ class HeaderFieldData
 {
 public:
     HeaderFieldData()
-        : type( HeaderField::Other ), hasData( false )
+        : type( HeaderField::Other ), hasData( false ), hasValue( false )
     {}
 
     HeaderField::Type type;
-    String name, data, error;
+
+    String name;
+    String data;
+    String value;
+    String error;
+
     bool hasData;
+    bool hasValue;
 };
 
 
@@ -224,10 +230,10 @@ void HeaderField::setName( const String &n )
 
 String HeaderField::value()
 {
-    if ( d->hasData )
+    if ( !d->hasValue )
         reassemble( d->data );
 
-    return d->data;
+    return d->value;
 }
 
 
@@ -235,8 +241,10 @@ String HeaderField::value()
 
 void HeaderField::setValue( const String &s )
 {
-    d->hasData = false;
-    d->data = s;
+    d->hasValue = true;
+    d->value = s;
+    if ( d->data == d->value )
+        d->data = s;
 }
 
 
@@ -251,7 +259,7 @@ void HeaderField::setValue( const String &s )
 String HeaderField::data()
 {
     if ( !d->hasData )
-        parse( d->data );
+        parse( d->value );
 
     return d->data;
 }
@@ -263,6 +271,8 @@ void HeaderField::setData( const String &s )
 {
     d->hasData = true;
     d->data = s;
+    if ( d->value == d->data )
+        d->value = s;
 }
 
 
@@ -274,6 +284,16 @@ void HeaderField::setData( const String &s )
 bool HeaderField::valid() const
 {
     return d->error.isEmpty();
+}
+
+
+/*! Returns true if this field has been successfully parsed, and
+    currently contains the database representation of its contents.
+*/
+
+bool HeaderField::parsed() const
+{
+    return d->hasData;
 }
 
 
@@ -306,7 +326,7 @@ void HeaderField::parse( const String &s )
 {
     // Most fields share the same external and database representations.
     // For any that don't (cf. 2047) , we'll just setData() again later.
-    setData( s );
+    setValue( s );
 
     switch ( d->type ) {
     case From:
@@ -353,11 +373,8 @@ void HeaderField::parse( const String &s )
     case Received:
     case ContentMd5:
     case ContentDescription:
-        // no action necessary
-        break;
-
     case Other:
-        // no action possible
+        parseOther( s );
         break;
     }
 }
@@ -372,10 +389,11 @@ void HeaderField::reassemble( const String &s )
 {
     switch ( d->type ) {
     default:
-        // We assume that most fields share an external and database
-        // representation.
+        // setData() and fill in subclass structures.
         parse( s );
-        setValue( data() );
+        // We assume that, for most fields, we can use the database
+        // representation in an RFC822 message.
+        setValue( d->data );
         break;
 
     case Subject:
@@ -393,7 +411,30 @@ void HeaderField::reassemble( const String &s )
 void HeaderField::parseText( const String &s )
 {
     Parser822 p( unwrap( s ) );
-    setData( p.text() );
+    String t( p.text() );
+    if ( p.atEnd() )
+        setData( t );
+}
+
+
+/*! Parses any (presumably unstructured) fields not covered by a more
+    specific function, and accepts them only if they do not contain NULs
+    or 8-bit characters.
+*/
+
+void HeaderField::parseOther( const String &s )
+{
+    bool bad = false;
+
+    uint i = 0;
+    while ( i < s.length() ) {
+        if ( s[i] == '\0' || s[i] > 127 )
+            bad = true;
+        i++;
+    }
+
+    if ( !bad )
+        setData( s );
 }
 
 
@@ -412,6 +453,7 @@ void HeaderField::parseMimeVersion( const String &s )
     p.comment();
     if ( v != "1.0" || !p.atEnd() )
         setError( "Could not parse '" + v.simplified() + "'" );
+    setData( v );
 }
 
 
