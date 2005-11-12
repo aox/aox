@@ -679,7 +679,7 @@ void Message::fix8BitHeaderFields()
         i++;
     }
     if ( !charset.isEmpty() ) {
-        Codec * c = Codec::byString( charset );
+        Codec * c = Codec::byName( charset );
         if ( c )
             header()->fix8BitFields( c );
     }
