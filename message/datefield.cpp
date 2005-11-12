@@ -24,7 +24,6 @@ void DateField::parse( const String &s )
     d->setRfc822( s );
     if ( !d->valid() )
         setError( "Could not parse '" + s.simplified() + "'" );
-    setValue( d->rfc822() );
     setData( d->rfc822() );
 }
 
