@@ -52,7 +52,6 @@ public:
     void setName( const String & );
 
     virtual String value();
-    void setValue( const String & );
 
     virtual String data();
     void setData( const String & );
@@ -74,6 +73,7 @@ public:
 private:
     static HeaderField *fieldNamed( const String & );
     class HeaderFieldData *d;
+    void setValue( const String & );
 
     void parseText( const String & );
     void parseOther( const String & );
