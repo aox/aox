@@ -694,7 +694,7 @@ void Header::fix8BitFields( class Codec * c )
                 c->setState( Codec::Valid );
                 UString u = c->toUnicode( v );
                 if ( c->wellformed() )
-                    f->setData( utf8.fromUnicode( u ) );
+                    f->setData( HeaderField::encode( utf8.fromUnicode( u ) ) );
                 else if ( d->error.isEmpty() )
                     d->error = "Cannot parse header field " + f->name() +
                                " either as US-ASCII or " + c->name();
