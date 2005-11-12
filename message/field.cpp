@@ -161,6 +161,8 @@ HeaderField *HeaderField::create( const String &name,
 {
     HeaderField *hf = fieldNamed( name );
     hf->parse( value );
+    if ( hf->d->hasData )
+        hf->d->hasValue = false;
     return hf;
 }
 
