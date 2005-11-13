@@ -86,3 +86,6 @@ UString GbkCodec::toUnicode( const String &s )
 
     return u;
 }
+
+// for charset.pl:
+//codec GBK GbkCodec

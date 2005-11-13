@@ -1,4 +1,6 @@
-if ( name == "IBM437" ) codec = new Cp437Codec;
+if ( name == "GB2312" ) codec = new Gb2312Codec;
+else if ( name == "GBK" ) codec = new GbkCodec;
+else if ( name == "IBM437" ) codec = new Cp437Codec;
 else if ( name == "IBM775" ) codec = new Cp775Codec;
 else if ( name == "IBM850" ) codec = new Cp850Codec;
 else if ( name == "IBM852" ) codec = new Cp852Codec;
@@ -42,6 +44,4 @@ else if ( name == "windows-1255" ) codec = new Cp1255Codec;
 else if ( name == "windows-1256" ) codec = new Cp1256Codec;
 else if ( name == "windows-1257" ) codec = new Cp1257Codec;
 else if ( name == "windows-1258" ) codec = new Cp1258Codec;
-else if ( name == "GB2312" ) codec = new Gb2312Codec;
-else if ( name == "GBK" ) codec = new GbkCodec;
 else ;

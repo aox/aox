@@ -84,3 +84,6 @@ UString Gb2312Codec::toUnicode( const String &s )
 
     return u;
 }
+
+// for charset.pl:
+//codec GB2312 Gb2312Codec
