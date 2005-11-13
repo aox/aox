@@ -923,6 +923,15 @@ String AddressParser::phrase( int & i )
             r = word;
         }
     }
+    if ( !r.isEmpty() ) {
+        // if r was/contained a "quoted-phrase" containing unabelled
+        // 8-bit, detect and eliminate.
+        uint n = 0;
+        while ( n < r.length() && r[n] < 128 )
+            n++;
+        if ( r[n] >= 128 )
+            r = "";
+    }
     if ( i < start && r.find( '=' ) >= 0 ) {
         // if it seems to be an encoded-word, we parse the same input
         // using Parser822 and let it decode 2047. slow and wasteful.
@@ -945,7 +954,9 @@ String AddressParser::localpart( int & i )
     // for easier testing.
     String lp;
     if ( d->s[i] == '"' ) {
-        lp = phrase( i ); // ick.
+        // phrase() tries to handle unlabelled 8-bit and decode
+        // 2047. this is inappropriate here, but what can we do?
+        lp = phrase( i );
     }
     else {
         // atoms, separated by '.' and (obsoletely) spaces. the spaces
