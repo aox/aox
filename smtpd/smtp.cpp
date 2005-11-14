@@ -140,6 +140,7 @@ public:
     TlsServer * tlsServer;
     SmtpTlsStarter * tlsHelper;
     bool negotiatingTls;
+    StringList commands;
 };
 
 
@@ -244,6 +245,7 @@ void SMTP::parse()
                     i++;
                 cmd = line.mid( 0, i++ ).lower().simplified();
             }
+            d->commands.append( cmd );
             d->arg = line.mid( i );
             if ( cmd == "helo" )
                 helo();
@@ -296,7 +298,8 @@ void SMTP::setHeloString()
 void SMTP::helo()
 {
     if ( d->state != Initial && d->state != MailFrom ) {
-        respond( 503, "HELO permitted initially only" );
+        respond( 503, "Bad sequence of commands:" +
+                 d->commands.join( ", " ) );
         return;
     }
     setHeloString();
@@ -313,7 +316,8 @@ void SMTP::helo()
 void SMTP::ehlo()
 {
     if ( d->state != Initial && d->state != MailFrom ) {
-        respond( 503, "HELO permitted initially only" );
+        respond( 503, "Bad sequence of commands:" +
+                 d->commands.join( ", " ) );
         return;
     }
     setHeloString();
@@ -338,6 +342,8 @@ void SMTP::lhlo()
 
 void SMTP::rset()
 {
+    d->commands.clear();
+    d->commands.append( "rset" );
     d->state = MailFrom;
     respond( 250, "State reset" );
 }
@@ -348,7 +354,8 @@ void SMTP::rset()
 void SMTP::mail()
 {
     if ( d->state != MailFrom ) {
-        respond( 503, "Bad sequence of commands" );
+        respond( 503, "Bad sequence of commands:" +
+                 d->commands.join( ", " ) );
         return;
     }
     if ( d->arg.mid( 0,2 ) == "<>" ) {
@@ -375,7 +382,8 @@ void SMTP::mail()
 void SMTP::rcpt()
 {
     if ( d->state != RcptTo && d->state != Data ) {
-        respond( 503, "Must specify sender before recipient(s)" );
+        respond( 503, "Bad sequence of commands:" +
+                 d->commands.join( ", " ) );
         return;
     }
     Address * to = address();
@@ -425,7 +433,8 @@ void SMTP::rcptAnswer( User * u )
 void SMTP::data()
 {
     if ( d->state != Data ) {
-        respond( 503, "Bad sequence of commands" );
+        respond( 503, "Bad sequence of commands:" +
+                 d->commands.join( ", " ) );
         return;
     }
 
