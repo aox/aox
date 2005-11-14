@@ -688,3 +688,10 @@ Trip Agenda
   Views!
 
 
+Replace Mailbox::isHome with something correct.
+
+  It should look for a mailbox whose owner is different from its
+  parent's owner.
+
+
+
