@@ -298,7 +298,7 @@ void SMTP::setHeloString()
 void SMTP::helo()
 {
     if ( d->state != Initial && d->state != MailFrom ) {
-        respond( 503, "Bad sequence of commands:" +
+        respond( 503, "Bad sequence of commands: " +
                  d->commands.join( ", " ) );
         return;
     }
@@ -316,7 +316,7 @@ void SMTP::helo()
 void SMTP::ehlo()
 {
     if ( d->state != Initial && d->state != MailFrom ) {
-        respond( 503, "Bad sequence of commands:" +
+        respond( 503, "Bad sequence of commands: " +
                  d->commands.join( ", " ) );
         return;
     }
@@ -354,7 +354,7 @@ void SMTP::rset()
 void SMTP::mail()
 {
     if ( d->state != MailFrom ) {
-        respond( 503, "Bad sequence of commands:" +
+        respond( 503, "Bad sequence of commands: " +
                  d->commands.join( ", " ) );
         return;
     }
@@ -382,7 +382,7 @@ void SMTP::mail()
 void SMTP::rcpt()
 {
     if ( d->state != RcptTo && d->state != Data ) {
-        respond( 503, "Bad sequence of commands:" +
+        respond( 503, "Bad sequence of commands: " +
                  d->commands.join( ", " ) );
         return;
     }
@@ -433,7 +433,7 @@ void SMTP::rcptAnswer( User * u )
 void SMTP::data()
 {
     if ( d->state != Data ) {
-        respond( 503, "Bad sequence of commands:" +
+        respond( 503, "Bad sequence of commands: " +
                  d->commands.join( ", " ) );
         return;
     }
