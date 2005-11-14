@@ -329,6 +329,9 @@ void Date::setRfc822( const String & s )
     // skip over introductory day of week
     a = p.string();
     p.comment();
+    if ( p.next() == '.' ) // sometimes people add an incorrect dot.
+        (void)p.character();
+
     if ( p.next() == ',' ) {
         (void)p.character();
         a = p.string();
