@@ -1,3 +1,9 @@
+Release (2005-12-12: 1.01)
+
+  - VIEW
+  - ANNOTATE
+
+
 ocd needs work (mike@waspfactory.org)
 
   1. The code (along with user/mailbox) needs cleaning up.
@@ -663,12 +669,6 @@ Privilege separation
   Pergaps privilege separation could be used to grant me rm -rf access
   to the regular database, but build a higher wall on kalyani. Sounds
   good.
-
-
-1.01
-
-  - VIEW
-  - ANNOTATE
 
 
 
