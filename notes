@@ -274,9 +274,6 @@ Should we allow Sender-less multiple-From mailboxes?
 Add Maildir support to the migrator.
 
 
-Implement more encodings: BIG5/SJIS/ISO-2022-JP. (AMS)
-
-
 Get more word lists for Codec::byString( const String & )
 
   Word lists need to contain at least one non-ASCII character, and to
@@ -330,6 +327,9 @@ Next few releases
   webmail ditto
   msconsole reasonably complete
   grand unified cache
+
+
+Implement more encodings: BIG5/SJIS/ISO-2022-JP/EUC-KR. (AMS)
 
 
 ISO-2022-JP
