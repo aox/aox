@@ -13,12 +13,6 @@ Don't duplicate the contents of address_fields in header_fields.
 AddressCache and FieldNameCache are utter crocks, and must die.
 
 
-tls client support (smtp, postgresql)
-
-
-Set up automatic injection regression/speed testing on penne.
-
-
 Fix shutdown
 
   There's no practical way to shutdown using ocd/ocadmin. Perhaps this
@@ -56,9 +50,6 @@ Logging to syslog
   it can't reopen the logfile.
 
 
-We need a SIEVE interpreter.
-
-
 Clean up SubDir/SubInclude
 
   Rename them as Modules. Module X, Use X. Tie library use and headers
@@ -67,6 +58,9 @@ Clean up SubDir/SubInclude
 
   Also give Program a third argument, so it takes the result name, the
   file sets to compile, and (new ->) the file containing main()
+
+
+We need a SIEVE interpreter.
 
 
 Autoresponder
@@ -141,29 +135,6 @@ SASL NTLM authentication
 
   http://www.innovation.ch/java/ntlm.html seems to be a reasonable
   description. Cyrus also implements it.
-
-
-"Writing Secure Code"
-
-  We have a page about security, /mailstore/security.html, and a
-  section of the mailstore.7 man page mentions it too.
-
-  We need to look at ISBN 0735617228 and improve security.html with
-  points from it. It could also be that we'll improve the code itself.
-
-
-udoc stuff:
-
-  1. Support a single level of nested classes. (What file names to use
-     for output?)
-  2. Support enum annotation.
-  3. Suppress empty <p>, duplicate anchor names in output.
-
-
-Udoc web pages chores
-
-  Add "Related Pages" etc. Clarify where background.html
-  fits. usage.html is an orphan now; should it become a manpage?
 
 
 Make the httpd do archive pages
@@ -266,14 +237,6 @@ We should reject 8-bit content in headers.
   > self-evidential truth.)
 
 
-Play with PITR and write /ams/pitr.html
-
-
-Update doc/recorder.man
-
-  Must decide whether to use .SS or .IP, etc.
-
-
 Look into supporting the MySQL protocol after 1.0
 
 
@@ -314,12 +277,6 @@ canonical and deliver need severe cleaning up.
 Write a valgrind skin that should help us to diagnose memory abuse.
 
 
-Finish the comparison with cyrus-imapd (which I'll install on fugue).
-
-  What comparison is this? Will it end up as a file in corp/docs/misc,
-  on our web site, or where?
-
-
 Read the GiST papers and look at tsearch2 again.
 
 
@@ -354,21 +311,10 @@ ms add user spews errors
   Should be easyish to fix.
 
 
-Document IPC structure
-
-  Some man page, or some web page, or both, should say who's
-  connnecting to who and why.
+Should we allow Sender-less multiple-From mailboxes?
 
 
 Add Maildir support to the migrator.
-
-
-/events/solutionslinux-2006.html needs a plausible audience/task.
-
-  We'll use that to do a better job of /events/linuxtag-2005.html
-
-
-Should we allow Sender-less multiple-From mailboxes?
 
 
 Implement more encodings: BIG5/SJIS/ISO-2022-JP. (AMS)
@@ -385,49 +331,6 @@ Get more word lists for Codec::byString( const String & )
 
   Word lists need to contain at least one non-ASCII character, and to
   be fairly common words.
-
-
-Add a web page about the charset encoding.
-
-  It's a novel and good algorithm, so we can make a good page about
-  it. We also can link to data sources there.
-
-  The documentation for Codec::byString() should mention that page's
-  URL.
-
-
-Make a web page about our licensing
-
-  Not sure what to say there. the purpose of the page would be to
-  direct people to one of the two others, really. and to be linked to
-  from the home page.
-
-
-The "Database" link on home page
-
-  Where should it go? People might click it wondering why to use a
-  database instead of flat files and wanting to know what we do with
-  databases.
-
-
-Interop pages
-
-  A variety needed.
-
-
-Protocols supported
-
-  A list detailing what our general idea is (internet standard,
-  interoperability, utility) and linking to each actual protocol page.
-
-  The URL for this is difficult.
-
-
-Search ourselves, not via google
-
-  Or maybe farm that out, get google to search with an approximation
-  of our design. http://www.google.com/faq_freewebsearch.html may be
-  interesting.
 
 
 We should test multipart/signed and multipart/encrypted support.
@@ -574,16 +477,7 @@ The flag_names has the wrong constraint
   Maybe we should rather use unique(lower(name)).
 
 
-We MUST support HTTPS for the webmail interface.
-
-
 We should figure out some way to not store plaintext passwords.
-
-
-Man pages
-
-  Various man pages are now out of date, most of all
-  ms(8). installer(8) does not exist.
 
 
 String allocation is about half as fast as it could be
@@ -683,15 +577,121 @@ Losing all PSQL connections is bad
   SORT/THREAD.
 
 
-Trip Agenda
-
-  Views!
-
-
 Replace Mailbox::isHome with something correct.
 
   It should look for a mailbox whose owner is different from its
   parent's owner.
+
+
+TLS client support (smtp, postgresql)
+
+
+We MUST support HTTPS for the webmail interface.
+
+
+We can't load pemtrans keys any more.
+
+  It works when linked against Cryptlib 3.1, but no longer.
+
+
+STARTTLS is really slow.
+
+
+"Writing Secure Code"
+
+  We have a page about security, /mailstore/security.html, and a
+  section of the mailstore.7 man page mentions it too.
+
+  We need to look at ISBN 0735617228 and improve security.html with
+  points from it. It could also be that we'll improve the code itself.
+
+
+udoc stuff:
+
+  1. Support a single level of nested classes. (What file names to use
+     for output?)
+  2. Support enum annotation.
+  3. Suppress empty <p>, duplicate anchor names in output.
+
+
+Udoc web pages chores
+
+  Add "Related Pages" etc. Clarify where background.html
+  fits. usage.html is an orphan now; should it become a manpage?
+
+
+Play with PITR and write /ams/pitr.html
+
+
+Update doc/recorder.man
+
+  Must decide whether to use .SS or .IP, etc.
+
+
+Finish the comparison with cyrus-imapd (which I'll install on fugue).
+
+  What comparison is this? Will it end up as a file in corp/docs/misc,
+  on our web site, or where?
+
+
+Document IPC structure
+
+  Some man page, or some web page, or both, should say who's
+  connnecting to who and why.
+
+
+/events/solutionslinux-2006.html needs a plausible audience/task.
+
+  We'll use that to do a better job of /events/linuxtag-2005.html
+
+
+Add a web page about the charset encoding.
+
+  It's a novel and good algorithm, so we can make a good page about
+  it. We also can link to data sources there.
+
+  The documentation for Codec::byString() should mention that page's
+  URL.
+
+
+Make a web page about our licensing
+
+  Not sure what to say there. the purpose of the page would be to
+  direct people to one of the two others, really. and to be linked to
+  from the home page.
+
+
+The "Database" link on home page
+
+  Where should it go? People might click it wondering why to use a
+  database instead of flat files and wanting to know what we do with
+  databases.
+
+
+Interop pages
+
+  A variety needed.
+
+
+Protocols supported
+
+  A list detailing what our general idea is (internet standard,
+  interoperability, utility) and linking to each actual protocol page.
+
+  The URL for this is difficult.
+
+
+Search ourselves, not via google
+
+  Or maybe farm that out, get google to search with an approximation
+  of our design. http://www.google.com/faq_freewebsearch.html may be
+  interesting.
+
+
+Man pages
+
+  Various man pages are now out of date, most of all
+  ms(8). installer(8) does not exist.
 
 
 
