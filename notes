@@ -10,16 +10,10 @@ Don't duplicate the contents of address_fields in header_fields.
   and the HeaderFetcher should assemble addresses from address_fields.
 
 
+We need to support date field searches.
+
+
 AddressCache and FieldNameCache are utter crocks, and must die.
-
-
-Fix shutdown
-
-  There's no practical way to shutdown using ocd/ocadmin. Perhaps this
-  is another aspect of the problem above.
-
-
-Resource limits on memory allocation
 
 
 Consider RFC2231:
@@ -35,21 +29,6 @@ Consider RFC2231:
   shouldn't.
 
 
-Keeping stderr open
-
-  Maybe we should keep it open forever. Maybe that should be a
-  command-line option - but what should the default be?
-
-
-Logging to syslog
-
-  logfile=syslog:local2 could mean "log to syslog with the local2
-  facility". that's ugly syntax. parsing and blah.
-
-  if we implement this, the logd HUP handler can switch to syslog if
-  it can't reopen the logfile.
-
-
 Clean up SubDir/SubInclude
 
   Rename them as Modules. Module X, Use X. Tie library use and headers
@@ -58,25 +37,6 @@ Clean up SubDir/SubInclude
 
   Also give Program a third argument, so it takes the result name, the
   file sets to compile, and (new ->) the file containing main()
-
-
-We need a SIEVE interpreter.
-
-
-Autoresponder
-
-  We'll need one, nicely programmable, connected to our sieve.
-
-  I was reminded of this by Google's wording:
-
-  Thank you for writing to Google. This automated response is just to
-  let you know that we've received your email, and you'll hear from us
-  soon.
-
-  Thank you for using Google.
-
-  Regards,
-  The Google Team
 
 
 Search folders
@@ -109,6 +69,25 @@ ANNOTATEMORE
   Ditto. Separate point so that we can do one without the other.
 
 
+We need a SIEVE interpreter.
+
+
+Autoresponder
+
+  We'll need one, nicely programmable, connected to our sieve.
+
+  I was reminded of this by Google's wording:
+
+  Thank you for writing to Google. This automated response is just to
+  let you know that we've received your email, and you'll hear from us
+  soon.
+
+  Thank you for using Google.
+
+  Regards,
+  The Google Team
+
+
 Message arrival tag
 
   Once annotate is done, we want a tag, ie. a magic annotation which
@@ -128,6 +107,28 @@ Message Retention Policy Framework
   can support that well.
 
 
+C/R
+
+  C/R sucks. But it has its uses, so we can benefit from implementing
+  it somehow. Here are some classes of messages we may want to treat
+  specially:
+
+  - replies to own mail
+  - messages in languages not understood by the user
+  - mail from previously unknown addresses
+  - mail from freemail providers
+  - vacation responses from unknowns
+  - messages likely, but not certain to be out-of-office-autoreply
+
+  The questions are: How can we ensure that we almost never challenge
+  real mail, while simultaneously challenging most/all messages that
+  don't come from valid senders? How can we provide suitable
+  configuration?
+
+
+We should figure out some way to not store plaintext passwords.
+
+
 SASL NTLM authentication
 
   It may be odd and undocumented, and it may not be as strong as
@@ -135,6 +136,9 @@ SASL NTLM authentication
 
   http://www.innovation.ch/java/ntlm.html seems to be a reasonable
   description. Cyrus also implements it.
+
+
+httpd segfaults when you click on a message (Harri).
 
 
 Make the httpd do archive pages
@@ -157,36 +161,6 @@ Miscellaneous cleanups:
   * Avoid unnecessary header file inclusion
   * Enable the #ifdef'ed out tests
   * Do the "uint characters[256]" thing to simplify parsing.
-
-
-GC speedups
-
-  At the moment, sweep() tends to look at all of RAM. if we move the
-  .marked bits into a bitmap like the "allocated" bitmap, we can avoid
-  that.
-
-  It would also be very good if we could avoid sweeping every
-  Allocator during every sweep. Perhaps we should sweep only
-  Allocators that are full or have seen some activity. Or something.
-
-
-C/R
-
-  C/R sucks. But it has its uses, so we can benefit from implementing
-  it somehow. Here are some classes of messages we may want to treat
-  specially:
-
-  - replies to own mail
-  - messages in languages not understood by the user
-  - mail from previously unknown addresses
-  - mail from freemail providers
-  - vacation responses from unknowns
-  - messages likely, but not certain to be out-of-office-autoreply
-
-  The questions are: How can we ensure that we almost never challenge
-  real mail, while simultaneously challenging most/all messages that
-  don't come from valid senders? How can we provide suitable
-  configuration?
 
 
 DELETE of mailboxes in inappropriately qualified (security problem)
@@ -218,29 +192,7 @@ The tsearch2 trigger doesn't work
 A failing parse message should invalidate the prepared statement cache.
 
 
-We should reject 8-bit content in headers.
-
-  > Is that to say that we don't?
-
-  I found a message with some junk in the header (^H and some other
-  stuff) killed Postgres (A message saying "Unicode characters above
-  0x10000 are not supported", then a server crash) when I delivered it.
-  It wasn't in a field that could be 2047 encoded, and I can't see what
-  to do about it other than reject it. We certainly shouldn't be trying
-  to feed it into Postgres unmodified.
-
-  > I know that we don't in the cases where we discard the data
-  > unparsed. For example, comments in Date fields. But do we reject
-  > anything else? And what are the arguments for rejecting, anyway?
-  >
-  > (Not trying to be a bastard. This one just seemed a little short on
-  > self-evidential truth.)
-
-
 Look into supporting the MySQL protocol after 1.0
-
-
-We need to support date field searches.
 
 
 Orphaned bodyparts should be cleaned up somehow.
@@ -292,23 +244,22 @@ Improve LogPane so it doesn't eat so much CPU
   Or would it be better to use a list? Not sure.
 
 
-ms migrate -n
+Implement a "save mangled copy" feature in msconsole. (AMS)
 
-  'ms migrate -n' could write an 1-2-line description of the first
-  schema upgrade to be done, do it, report whether it failed, then
-  roll the transaction back instead of committing it.
+  People can use this to send us copies of messages that cause injection
+  errors, without having to go through them by hand to remove sensitive
+  information.
 
 
-ms add user spews errors
+msconsole user pane
 
-  # /usr/local/mailstore/bin/ms add user arnt secret arnt@oryx.com
-  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
-  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
-  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
-  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
-  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+  The user pane should do something.
 
-  Should be easyish to fix.
+
+msconsole migrator should work without indices
+
+  If the database is otherwise idle, msconsole could disable indicex
+  and perhaps transactions, and go much faster.
 
 
 Should we allow Sender-less multiple-From mailboxes?
@@ -318,13 +269,6 @@ Add Maildir support to the migrator.
 
 
 Implement more encodings: BIG5/SJIS/ISO-2022-JP. (AMS)
-
-
-Implement a "save mangled copy" feature in msconsole. (AMS)
-
-  People can use this to send us copies of messages that cause injection
-  errors, without having to go through them by hand to remove sensitive
-  information.
 
 
 Get more word lists for Codec::byString( const String & )
@@ -337,30 +281,6 @@ We should test multipart/signed and multipart/encrypted support.
 
   We must add a selection of RFC 1847 messages to canonical, and make
   sure they survive the round trip. No doubt there will be bugs.
-
-
-Recording the build source wouldn't be bad.
-
-  tarball could establish the identity conclusively:
-
-  p4 have Jamfile | sed 's/\/Jamfile.*//'
-  p4 counter change
-
-  It would then need to sync the temporary client to that change
-  instead of to head. Fine.
-
-  This would naturally go into the 'what was built' field. But I don't
-  like tarball changing anything. Should we perhaps have a new file,
-  buildinfo, with one-per-line fields that eventually are shown by 'ms
-  show build'?
-
-  $ cat buildinfo
-  Source tree: //oryx/rel/0.97
-  Change number: 50894
-
-  Any distributors wanting to add patches would be encouraged to add
-  something to the file. Or should we pick up buildinfo.*, so people
-  can add their own files?
 
 
 Something confuses Address::uname() and Address::name()
@@ -419,22 +339,6 @@ ISO-2022-JP
   patch for Qt.)
 
 
-Privilege separation
-
-  We talked about privilege separation. One pgsql user to update the
-  schema, another to read mail.
-
-  How about deleting things? Is that something we might want to
-  restrict?
-
-  Somehow I feel more and more uncertain each time I type
-  'delete from messages where mailbox>6;' or similar commands.
-
-  Pergaps privilege separation could be used to grant me rm -rf access
-  to the regular database, but build a higher wall on kalyani. Sounds
-  good.
-
-
 Default c-t-e of PGP signatures
 
   Right now we give them binary. q-p or 7bit would be better, I think.
@@ -448,17 +352,6 @@ Default c-t-e of PGP signatures
   The problem with doing that is that it treats sequences of CR LF, CR
   and LF as equivalent. An application/foobar object that happens to
   contain only CR, LF and printable ASCII can be broken.
-
-
-msconsole user pane
-
-  The user pane should do something.
-
-
-msconsole migrator should work without indices
-
-  If the database is otherwise idle, msconsole could disable indicex
-  and perhaps transactions, and go much faster.
 
 
 The IMAP SORT extension seems really easy
@@ -477,7 +370,15 @@ The flag_names has the wrong constraint
   Maybe we should rather use unique(lower(name)).
 
 
-We should figure out some way to not store plaintext passwords.
+GC speedups
+
+  At the moment, sweep() tends to look at all of RAM. if we move the
+  .marked bits into a bitmap like the "allocated" bitmap, we can avoid
+  that.
+
+  It would also be very good if we could avoid sweeping every
+  Allocator during every sweep. Perhaps we should sweep only
+  Allocators that are full or have seen some activity. Or something.
 
 
 String allocation is about half as fast as it could be
@@ -489,36 +390,10 @@ String allocation is about half as fast as it could be
   The same applies to other classes which we instantiate very often.
 
 
-ms restart and ms start don't check all they could
-
-  Improvements:
-
-  1. ms restart and ms start should bind to the IP addresses specified
-     by all the relevant servers (but not the ports) and try to
-     connect to the ports.
-
-  2. ms restart can issue 'ms start' when the last established
-     connection dies. currently it calls sleep(1).
-
-  3. ms start can expect all the connects to fail. if a connect
-     succeeds, someone else is using that port, so our server won't.
-
-  4. Both of them should expect all the binds to succeed. if not,
-     mailstore.conf contains a bad address.
-
-
 Something like soft-bounce might just be useful
 
   enabled: smtp/lmtp always give 4xx errors. disabled: either 4xx or
   5xx depending on the type of error.
-
-
-"ms check" works... uh...
-
-  To see it, add "loglevel=debug" to mailstore.conf and run ms
-  check. You'll get exactly the message you should.
-
-  Now change it to "log-level=debug" and rerun ms check.
 
 
 recognising spam
@@ -562,9 +437,6 @@ Losing all PSQL connections is bad
 
   If we have no connections, need to open one and can't, we ought to
   shutdown. Log a disaster, shutdown all servers.
-
-
-httpd segfaults when you click on a message (Harri).
 
 
 Replace Mailbox::isHome with something correct.
@@ -682,6 +554,115 @@ Man pages
 
   Various man pages are now out of date, most of all
   ms(8). installer(8) does not exist.
+
+
+Fix shutdown
+
+  There's no practical way to shutdown using ocd/ocadmin. Perhaps this
+  is another aspect of the problem above.
+
+
+Resource limits on memory allocation
+
+
+Keeping stderr open
+
+  Maybe we should keep it open forever. Maybe that should be a
+  command-line option - but what should the default be?
+
+
+Logging to syslog
+
+  logfile=syslog:local2 could mean "log to syslog with the local2
+  facility". that's ugly syntax. parsing and blah.
+
+  if we implement this, the logd HUP handler can switch to syslog if
+  it can't reopen the logfile.
+
+
+ms migrate -n
+
+  'ms migrate -n' could write an 1-2-line description of the first
+  schema upgrade to be done, do it, report whether it failed, then
+  roll the transaction back instead of committing it.
+
+
+ms add user spews errors
+
+  # /usr/local/mailstore/bin/ms add user arnt secret arnt@oryx.com
+  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+  /usr/local/mailstore/bin/ms: SQL error: duplicate key violates unique constraint "mailboxes_name_key"
+
+  Should be easyish to fix.
+
+
+Recording the build source wouldn't be bad.
+
+  tarball could establish the identity conclusively:
+
+  p4 have Jamfile | sed 's/\/Jamfile.*//'
+  p4 counter change
+
+  It would then need to sync the temporary client to that change
+  instead of to head. Fine.
+
+  This would naturally go into the 'what was built' field. But I don't
+  like tarball changing anything. Should we perhaps have a new file,
+  buildinfo, with one-per-line fields that eventually are shown by 'ms
+  show build'?
+
+  $ cat buildinfo
+  Source tree: //oryx/rel/0.97
+  Change number: 50894
+
+  Any distributors wanting to add patches would be encouraged to add
+  something to the file. Or should we pick up buildinfo.*, so people
+  can add their own files?
+
+
+ms restart and ms start don't check all they could
+
+  Improvements:
+
+  1. ms restart and ms start should bind to the IP addresses specified
+     by all the relevant servers (but not the ports) and try to
+     connect to the ports.
+
+  2. ms restart can issue 'ms start' when the last established
+     connection dies. currently it calls sleep(1).
+
+  3. ms start can expect all the connects to fail. if a connect
+     succeeds, someone else is using that port, so our server won't.
+
+  4. Both of them should expect all the binds to succeed. if not,
+     mailstore.conf contains a bad address.
+
+
+"ms check" works... uh...
+
+  To see it, add "loglevel=debug" to mailstore.conf and run ms
+  check. You'll get exactly the message you should.
+
+  Now change it to "log-level=debug" and rerun ms check.
+
+
+Privilege separation
+
+  We talked about privilege separation. One pgsql user to update the
+  schema, another to read mail.
+
+  How about deleting things? Is that something we might want to
+  restrict?
+
+  Somehow I feel more and more uncertain each time I type
+  'delete from messages where mailbox>6;' or similar commands.
+
+  Pergaps privilege separation could be used to grant me rm -rf access
+  to the regular database, but build a higher wall on kalyani. Sounds
+  good.
 
 
 1.01
