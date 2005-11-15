@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH pop3d 8 2005-11-14 www.oryx.com "Mailstore Documentation"
+.TH pop3d 8 2005-12-12 www.oryx.com "Mailstore Documentation"
 .SH NAME
 pop3d - POP3 server for Oryx Mailstore.
 .SH SYNOPSIS
@@ -55,8 +55,8 @@ It will be made usable towards the end of the 0.9x releases.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.0, released 2005-11-14,
-http://www.oryx.com/mailstore/1.0.html.
+This man page covers Oryx Mailstore version 1.01, released 2005-12-12,
+http://www.oryx.com/mailstore/1.01.html.
 .SH SEE ALSO
 .BR mailstore (7),
 .BR mailstore.conf (5),
