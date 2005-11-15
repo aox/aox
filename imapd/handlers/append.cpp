@@ -27,7 +27,7 @@ public:
     Message * message;
     Injector * injector;
     List< String > flags;
-    Permissions *permissions;
+    Permissions * permissions;
 };
 
 
@@ -36,12 +36,8 @@ public:
 
     Parsing mostly relies on the Message class, execution on the
     Injector. There is no way to insert anything but conformant
-    messages, unlike some other IMAP servers. How could we do
-    that? Not at all, I think.
-
-    The MULTIAPPEND extension is probably not supportable. Append on
-    its own uses much more memory than other commands, and in a
-    different way. MULTIAPPEND would worsen that.
+    messages, unlike some other IMAP servers. How could we do that? 
+    Not at all, I think.
 */
 
 Append::Append()
