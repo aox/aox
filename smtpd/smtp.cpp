@@ -128,6 +128,7 @@ public:
 
     int code;
     StringList response;
+    String firstError;
     SMTP::State state;
     Address * from;
     List<User> to;
@@ -279,6 +280,21 @@ void SMTP::parse()
 }
 
 
+/*! Sends a 503 'bad sequence of commands' error, making the text as
+  informative as possible.
+*/
+
+void SMTP::sendGenericError()
+{
+    if ( d->firstError.isEmpty() )
+        respond( 503, "Bad sequence of commands: " +
+                 d->commands.join( ", " ) );
+    else
+        respond( 503, "Command invalid after earlier failure: " +
+                 d->firstError );
+}
+
+
 /*! Parses the HELO string, massages it for logging purposes and does
     nothing more. We may not like the string, but we can't do anything
     about it.
@@ -298,8 +314,7 @@ void SMTP::setHeloString()
 void SMTP::helo()
 {
     if ( d->state != Initial && d->state != MailFrom ) {
-        respond( 503, "Bad sequence of commands: " +
-                 d->commands.join( ", " ) );
+        sendGenericError();
         return;
     }
     setHeloString();
@@ -316,8 +331,7 @@ void SMTP::helo()
 void SMTP::ehlo()
 {
     if ( d->state != Initial && d->state != MailFrom ) {
-        respond( 503, "Bad sequence of commands: " +
-                 d->commands.join( ", " ) );
+        sendGenericError();
         return;
     }
     setHeloString();
@@ -344,6 +358,7 @@ void SMTP::rset()
 {
     d->commands.clear();
     d->commands.append( "rset" );
+    d->firstError.truncate();
     d->state = MailFrom;
     respond( 250, "State reset" );
 }
@@ -354,8 +369,7 @@ void SMTP::rset()
 void SMTP::mail()
 {
     if ( d->state != MailFrom ) {
-        respond( 503, "Bad sequence of commands: " +
-                 d->commands.join( ", " ) );
+        sendGenericError();
         return;
     }
     if ( d->arg.mid( 0,2 ) == "<>" ) {
@@ -382,8 +396,7 @@ void SMTP::mail()
 void SMTP::rcpt()
 {
     if ( d->state != RcptTo && d->state != Data ) {
-        respond( 503, "Bad sequence of commands: " +
-                 d->commands.join( ", " ) );
+        sendGenericError();
         return;
     }
     Address * to = address();
@@ -433,8 +446,7 @@ void SMTP::rcptAnswer( User * u )
 void SMTP::data()
 {
     if ( d->state != Data ) {
-        respond( 503, "Bad sequence of commands: " +
-                 d->commands.join( ", " ) );
+        sendGenericError();
         return;
     }
 
@@ -644,6 +656,9 @@ void SMTP::sendResponses()
     } while ( it );
 
     write();
+
+    if ( d->code >= 400 && d->firstError.isEmpty() )
+        d->firstError.append( d->response.join( " " ) );
 
     d->code = 0;
     d->response.clear();

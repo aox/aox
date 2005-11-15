@@ -54,6 +54,8 @@ public:
 
     void setHeloString();
 
+    void sendGenericError();
+
 private:
     class SMTPData * d;
     friend class LMTP;
