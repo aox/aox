@@ -46,6 +46,8 @@ protected:
     static String user();
     static String password();
 
+    static void recordExecution();
+
 private:
     State st;
 };

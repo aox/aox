@@ -196,6 +196,7 @@ void Postgres::processQuery( Query *q )
     s.append( "execute for " );
     s.append( q->description() );
     log( s, Log::Debug );
+    recordExecution();
 }
 
 
@@ -658,8 +659,19 @@ void Postgres::shutdown()
 {
     PgTerminate msg;
     msg.enqueue( writeBuffer() );
-    removeHandle( this );
 
+    if ( d->transaction ) {
+        d->transaction->setError( 0, "Database connection shutdown" );
+        d->transaction->notify();
+    }
+    List< Query >::Iterator q( d->queries );
+    while ( q ) {
+        q->setError( "Database connection shutdown" );
+        q->notify();
+        ++q;
+    }
+
+    removeHandle( this );
     d->active = false;
 }
 

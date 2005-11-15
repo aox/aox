@@ -18,7 +18,9 @@
 
 List< Query > *Database::queries;
 static List< Database > *handles;
+static time_t lastExecuted;
 static time_t lastCreated;
+
 
 static void newHandle()
 {
@@ -153,6 +155,9 @@ void Database::disconnect()
 
 void Database::runQueue()
 {
+    // First, we look for an existing handle that is free to process
+    // queries.
+
     List< Database >::Iterator it( handles );
     while ( it ) {
         if ( it->state() == Idle ) {
@@ -162,14 +167,26 @@ void Database::runQueue()
         ++it;
     }
 
+    // If we don't have one, we can either assume that one of the busy
+    // ones will become free and pick up any queued queries, or we can
+    // create a new one.
+
     uint max = Configuration::scalar( Configuration::DbMaxHandles );
     int interval = Configuration::scalar( Configuration::DbHandleInterval );
-    if ( handles->count() == 0 ||
-         ( handles->count() < max &&
-           time( 0 ) - lastCreated >= interval &&
+
+    if ( ( handles->count() == 0 ||
+           time( 0 ) - lastCreated >= interval ) &&
            ( server().protocol() != Endpoint::Unix ||
-             server().address().startsWith( File::root() ) ) ) )
+             server().address().startsWith( File::root() ) ) )
+    {
+        if ( handles->count() >= max ) {
+            if ( lastExecuted >= time( 0 ) - interval )
+                return;
+            handles->first()->react( Close );
+        }
+
         newHandle();
+    }
 }
 
 
@@ -280,4 +297,15 @@ uint Database::numHandles()
         ++it;
     }
     return n;
+}
+
+
+/*! This static function records the time at which a Database subclass
+    issues a query to the database server. It is used to manage the
+    creation of new database handles.
+*/
+
+void Database::recordExecution()
+{
+    lastExecuted = time( 0 );
 }
