@@ -564,17 +564,7 @@ Losing all PSQL connections is bad
   shutdown. Log a disaster, shutdown all servers.
 
 
-1.0
-
-  Write a GB2312/GBK codec (Done!).
-  move installer back to LIBDIR (done).
-  RENAME (Done).
-  Solve the mailbox/migrator memory problems.
-  Make msconsole's user pane do something.
-  ANNOTATE or VIEWS or ideally both.
-  Fix httpd segfaults.
-  Fix tsearch2.
-  SORT/THREAD.
+httpd segfaults when you click on a message (Harri).
 
 
 Replace Mailbox::isHome with something correct.
@@ -692,6 +682,12 @@ Man pages
 
   Various man pages are now out of date, most of all
   ms(8). installer(8) does not exist.
+
+
+1.01
+
+  - VIEW
+  - ANNOTATE
 
 
 
