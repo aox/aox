@@ -299,8 +299,22 @@ String Query::string() const
 }
 
 
-/*! Returns a pointer to the list of Values bound to this Query.
+/*! This function sets the contents of this Query to \a s. It is used
+    (e.g. by Selector) when arguments need to be bound before the SQL
+    statement is completely constructed.
+
+    It has no effect on queries that have already been submitted to
+    the database.
 */
+
+void Query::setString( const String &s )
+{
+    if ( d->state == Inactive )
+        d->query = s;
+}
+
+
+/*! Returns a pointer to the list of Values bound to this Query. */
 
 Query::InputLine *Query::values() const
 {
@@ -321,8 +335,16 @@ List< Query::InputLine > *Query::inputLines() const
 }
 
 
+/*! Sets the owner of this Query to \a ev. */
+
+void Query::setOwner( EventHandler * ev )
+{
+    d->owner = ev;
+}
+
+
 /*! Returns a pointer to the owner of this Query, as specified during
-    construction.
+    construction or with setOwner().
 */
 
 EventHandler *Query::owner() const

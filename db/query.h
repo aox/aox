@@ -19,7 +19,7 @@ class Query
     : public Garbage
 {
 public:
-    Query( EventHandler * );
+    Query( EventHandler * = 0 );
     Query( const String &, EventHandler * );
     Query( const PreparedStatement &, EventHandler * );
     virtual ~Query() {}
@@ -80,12 +80,14 @@ public:
 
     virtual String name() const;
     virtual String string() const;
+    virtual void setString( const String & );
 
     typedef SortedList< Query::Value > InputLine;
 
     InputLine *values() const;
     List< InputLine > *inputLines() const;
 
+    void setOwner( EventHandler * );
     EventHandler *owner() const;
     void notify();
 
