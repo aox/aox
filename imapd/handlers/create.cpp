@@ -13,11 +13,12 @@ class CreateData
     : public Garbage
 {
 public:
-    CreateData(): t( 0 ), p( 0 ), m( 0 ) {}
+    CreateData(): t( 0 ), p( 0 ), m( 0 ), parent( 0 ) {}
     String name;
     Transaction * t;
     Permissions * p;
     Mailbox * m;
+    Mailbox * parent;
 };
 
 
@@ -49,15 +50,24 @@ void Create::parse()
 void Create::execute()
 {
     if ( !d->p ) {
-        Mailbox * m = Mailbox::closestParent( d->name );
-        if ( !m )
+        d->parent = Mailbox::closestParent( d->name );
+        if ( !d->parent ) {
             error( No, "Syntax error in mailbox name: " + d->name );
-        else
-            d->p = new Permissions( m, imap()->user(), this );
-        if ( d->p && !d->p->allowed( Permissions::CreateMailboxes ) )
-            error( No, "Cannot create mailboxes under " + m->name() );
+            return;
+        }
+
+        d->p = new Permissions( d->parent, imap()->user(), this );
     }
-    if ( ok() && !d->t ) {
+
+    if ( !d->p->ready() )
+        return;
+
+    if ( !d->p->allowed( Permissions::CreateMailboxes ) ) {
+        error( No, "Cannot create mailboxes under " + d->parent->name() );
+        return;
+    }
+
+    if ( !d->t ) {
         d->m = Mailbox::obtain( d->name, true );
         if ( d->m )
             d->t = d->m->create( this, imap()->user() );
