@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 13;
+int currentRevision = 14;
 
 
 class SchemaData
@@ -244,6 +244,8 @@ bool Schema::singleStep()
         c = stepTo12(); break;
     case 12:
         c = stepTo13(); break;
+    case 13:
+        c = stepTo14(); break;
     }
 
     return c;
@@ -847,6 +849,46 @@ bool Schema::stepTo13()
                           "foreign key (mailbox,uid) references "
                           "messages(mailbox,uid) on delete cascade)",
                           this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add the tables required to support views. */
+
+bool Schema::stepTo14()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Creating views/view_messages.", Log::Debug );
+        d->q = new Query( "create table views ("
+                          "id serial primary key,"
+                          "source integer not null references mailboxes(id) "
+                          "on delete cascade,"
+                          "view integer not null references mailboxes(id) "
+                          "on delete cascade unique,"
+                          "suidnext integer not null,"
+                          "selector text)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create table view_messages ("
+                          "view integer not null references views(view) "
+                          "on delete cascade,"
+                          "uid integer not null,"
+                          "source integer not null,"
+                          "suid integer not null,"
+                          "foreign key (source, suid) "
+                          "references messages(mailbox, uid) "
+                          "on delete cascade)", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;

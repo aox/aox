@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (13);
+insert into mailstore (revision) values (14);
 
 
 -- One entry for each unique address we've encountered.
@@ -251,6 +251,31 @@ create table annotations (
     displayname text,
     unique (mailbox, uid, owner, name),
     foreign key (mailbox, uid)
+                references messages(mailbox, uid)
+                on delete cascade
+);
+
+-- One entry per view.
+
+create table views (
+    id          serial primary key,
+    source      integer not null references mailboxes(id)
+                on delete cascade,
+    view        integer not null references mailboxes(id)
+                on delete cascade unique,
+    suidnext    integer not null,
+    selector    text
+);
+
+-- One entry per message that belongs to a view.
+
+create table view_messages (
+    view        integer not null references views(view)
+                on delete cascade,
+    uid         integer not null,
+    source      integer not null,
+    suid        integer not null,
+    foreign key (source, suid)
                 references messages(mailbox, uid)
                 on delete cascade
 );
