@@ -14,7 +14,6 @@
 #include "imap.h"
 #include "flag.h"
 #include "list.h"
-#include "user.h"
 #include "log.h"
 #include "utf.h"
 
@@ -39,12 +38,25 @@ static const char * legalAnnotationAttributes[] = {
 };
 
 
-
-class SearchQuery: public Query {
+class SearchData
+    : public Garbage
+{
 public:
-    SearchQuery( EventHandler * e ): Query( e ) {}
-    String string() const { return s; }
-    String s;
+    SearchData()
+        : uid( false ), done( false ), codec( 0 ), root( 0 ),
+          query( 0 )
+    {}
+
+    bool uid;
+    bool done;
+
+    String charset;
+    Codec * codec;
+
+    Selector * root;
+    List< Selector > selectors;
+
+    Query * query;
 };
 
 
@@ -60,37 +72,8 @@ public:
     up and uses the database.
 */
 
-class SearchData
-    : public Garbage
-{
-public:
-    SearchData()
-        : uid( false ), done( false ), simplified( false ),
-          root( 0 ), conditions( 0 ),
-          codec( 0 ), query( 0 ), argc( 0 ), mboxId( 0 ), user( 0 )
-    {}
 
-    bool uid;
-    bool done;
-    bool simplified;
-    String charset;
-    Search::Condition * root;
-    List< Search::Condition > * conditions;
-
-    Codec * codec;
-    SearchQuery * query;
-
-    uint argc;
-    uint argument() {
-        ++argc;
-        return argc;
-    };
-    uint mboxId;
-
-    User * user;
-};
-
-/*! Constructs an empty Search. If \a u is true, it's an UID SEARCH,
+/*! Constructs an empty Search. If \a u is true, it's a UID SEARCH,
     otherwise it's the MSN variety.
 */
 
@@ -102,6 +85,9 @@ Search::Search( bool u )
         setGroup( 1 );
     else
         setGroup( 2 );
+
+    d->root = new Selector;
+    d->selectors.append( d->root );
 }
 
 
@@ -119,7 +105,7 @@ void Search::parse()
     }
     end();
 
-    prepare();
+    d->root->simplify();
 }
 
 
@@ -134,7 +120,7 @@ void Search::parseKey( bool alsoCharset )
     char c = nextChar();
     if ( c == '(' ) {
         // it's an "and" list.
-        push( And );
+        push( Selector::And );
         do {
             step();
             parseKey();
@@ -147,7 +133,7 @@ void Search::parseKey( bool alsoCharset )
     }
     else if ( c == '*' || ( c >= '0' && c <= '9' ) ) {
         // it's a pure set
-        add( set( true ) );
+        add( new Selector( set( true ) ) );
         if ( !d->uid )
             setGroup( 0 );
     }
@@ -155,126 +141,153 @@ void Search::parseKey( bool alsoCharset )
         // first comes a keyword. they all are letters only, so:
         String keyword = letters( 2, 15 ).lower();
         if ( keyword == "all" ) {
-            add( NoField, All );
+            add( new Selector( Selector::NoField, Selector::All ) );
         }
         else if ( keyword == "answered" ) {
-            add( Flags, Contains, "\\answered" );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\answered" ) );
         }
         else if ( keyword == "deleted" ) {
-            add( Flags, Contains, "\\deleted" );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\deleted" ) );
         }
         else if ( keyword == "flagged" ) {
-            add( Flags, Contains, "\\flagged" );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\flagged" ) );
         }
         else if ( keyword == "new" ) {
-            push( And );
-            add( Flags, Contains, "\\recent" );
-            add( Flags, Contains, "\\seen" );
+            push( Selector::And );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\recent" ) );
+            push( Selector::Not );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\seen" ) );
+            pop();
             pop();
         }
         else if ( keyword == "old" ) {
-            push( Not );
-            add( Flags, Contains, "\\recent" );
+            push( Selector::Not );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\recent" ) );
             pop();
         }
         else if ( keyword == "recent" ) {
-            add( Flags, Contains, "\\recent" );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\recent" ) );
         }
         else if ( keyword == "seen" ) {
-            add( Flags, Contains, "\\seen" );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\seen" ) );
         }
         else if ( keyword == "unanswered" ) {
-            push( Not );
-            add( Flags, Contains, "\\answered" );
+            push( Selector::Not );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\answered" ) );
             pop();
         }
         else if ( keyword == "undeleted" ) {
-            push( Not );
-            add( Flags, Contains, "\\deleted" );
+            push( Selector::Not );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\deleted" ) );
             pop();
         }
         else if ( keyword == "unflagged" ) {
-            push( Not );
-            add( Flags, Contains, "\\flagged" );
+            push( Selector::Not );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\flagged" ) );
             pop();
         }
         else if ( keyword == "unseen" ) {
-            push( Not );
-            add( Flags, Contains, "\\seen" );
+            push( Selector::Not );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\seen" ) );
             pop();
         }
         else if ( keyword == "draft" ) {
-            add( Flags, Contains, "\\draft" );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\draft" ) );
         }
         else if ( keyword == "undraft" ) {
-            push( Not );
-            add( Flags, Contains, "\\draft" );
+            push( Selector::Not );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               "\\draft" ) );
             pop();
         }
         else if ( keyword == "on" ) {
             space();
-            add( InternalDate, OnDate, date() );
+            add( new Selector( Selector::InternalDate, Selector::OnDate,
+                               date() ) );
         }
         else if ( keyword == "before" ) {
-            add( InternalDate, BeforeDate, date() );
+            add( new Selector( Selector::InternalDate, Selector::BeforeDate,
+                               date() ) );
         }
         else if ( keyword == "since" ) {
             space();
-            add( InternalDate, SinceDate, date() );
+            add( new Selector( Selector::InternalDate, Selector::SinceDate,
+                               date() ) );
         }
         else if ( keyword == "sentbefore" ) {
             space();
-            add( Sent, BeforeDate, date() );
+            add( new Selector( Selector::Sent, Selector::BeforeDate,
+                               date() ) );
         }
         else if ( keyword == "senton" ) {
             space();
-            add( Sent, OnDate, date() );
+            add( new Selector( Selector::Sent, Selector::OnDate, date() ) );
         }
         else if ( keyword == "sentsince" ) {
             space();
-            add( Sent, SinceDate, date() );
+            add( new Selector( Selector::Sent, Selector::SinceDate, date() ) );
         }
         else if ( keyword == "from" ) {
             space();
-            add( Header, Contains, "from", ustring( AString ) );
+            add( new Selector( Selector::Header, Selector::Contains,
+                               "from", ustring( AString ) ) );
         }
         else if ( keyword == "to" ) {
             space();
-            add( Header, Contains, "to", ustring( AString ) );
+            add( new Selector( Selector::Header, Selector::Contains,
+                               "to", ustring( AString ) ) );
         }
         else if ( keyword == "cc" ) {
             space();
-            add( Header, Contains, "cc", ustring( AString ) );
+            add( new Selector( Selector::Header, Selector::Contains,
+                               "cc", ustring( AString ) ) );
         }
         else if ( keyword == "bcc" ) {
             space();
-            add( Header, Contains, "bcc", ustring( AString ) );
+            add( new Selector( Selector::Header, Selector::Contains,
+                               "bcc", ustring( AString ) ) );
         }
         else if ( keyword == "subject" ) {
             space();
-            add( Header, Contains, "subject", ustring( AString ) );
+            add( new Selector( Selector::Header, Selector::Contains,
+                               "subject", ustring( AString ) ) );
         }
         else if ( keyword == "body" ) {
             space();
-            add( Body, Contains, "", ustring( AString ) );
+            add( new Selector( Selector::Body, Selector::Contains,
+                               ustring( AString ) ) );
         }
         else if ( keyword == "text" ) {
             space();
             UString a = ustring( AString );
-            push( Or );
-            add( Body, Contains, "", a );
+            push( Selector::Or );
+            add( new Selector( Selector::Body, Selector::Contains, a ) );
             // field name is null for any-field searches
-            add( Header, Contains, 0, a );
+            add( new Selector( Selector::Header, Selector::Contains, 0, a ) );
             pop();
         }
         else if ( keyword == "keyword" ) {
             space();
-            add( Flags, Contains, atom().lower() );
+            add( new Selector( Selector::Flags, Selector::Contains,
+                               atom().lower() ) );
         }
         else if ( keyword == "unkeyword" ) {
             space();
-            push( Not );
-            add( Flags, Contains, atom() );
+            push( Selector::Not );
+            add( new Selector( Selector::Flags, Selector::Contains, atom() ) );
             pop();
         }
         else if ( keyword == "header" ) {
@@ -282,15 +295,15 @@ void Search::parseKey( bool alsoCharset )
             String s1 = astring();
             space();
             UString s2 = ustring( AString );
-            add( Header, Contains, s1, s2 );
+            add( new Selector( Selector::Header, Selector::Contains, s1, s2 ) );
         }
         else if ( keyword == "uid" ) {
             space();
-            add( set( false ) );
+            add( new Selector( set( false ) ) );
         }
         else if ( keyword == "or" ) {
             space();
-            push( Or );
+            push( Selector::Or );
             parseKey();
             space();
             parseKey();
@@ -298,38 +311,37 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "not" ) {
             space();
-            push( Not );
+            push( Selector::Not );
             parseKey();
             pop();
         }
         else if ( keyword == "larger" ) {
             space();
-            add( Rfc822Size, Larger, number() );
+            add( new Selector( Selector::Rfc822Size, Selector::Larger,
+                               number() ) );
         }
         else if ( keyword == "smaller" ) {
             space();
-            add( Rfc822Size, Smaller, number() );
+            add( new Selector( Selector::Rfc822Size, Selector::Smaller,
+                               number() ) );
         }
         else if ( keyword == "annotation" ) {
             space();
-            prepare();
-            Condition * c = new Condition;
-            c->c = this;
-            c->d = d;
-            c->f = Annotation;
-            c->a = Contains;
-            c->s8 = string();
+            String a = string();
             space();
-            c->s8b = string();
+            String b = string();
             space();
-            c->s16 = ustring( NString );
+            UString c = ustring( NString );
+
             uint i = 0;
             while ( ::legalAnnotationAttributes[i] &&
-                    c->s8b != ::legalAnnotationAttributes[i] )
+                    b != ::legalAnnotationAttributes[i] )
                 i++;
             if ( !::legalAnnotationAttributes[i] )
-                error( Bad, "Unknown annotation attribute: " + c->s8b );
-            d->conditions->first()->l->append( c );
+                error( Bad, "Unknown annotation attribute: " + b );
+
+            add( new Selector( Selector::Annotation, Selector::Contains,
+                               a, b, c ) );
         }
         else if ( alsoCharset && keyword == "charset" ) {
             space();
@@ -346,34 +358,15 @@ void Search::parseKey( bool alsoCharset )
 
 void Search::execute()
 {
-    if ( !d->simplified ) {
-        if ( d->root->needSession() && !imap()->session()->initialised() ) {
-            imap()->session()->refresh( this );
-            return;
-        }
-        d->root->simplify();
-        d->simplified = true;
-    }
-
     if ( !d->query ) {
-        if ( !ok() )
-            return;
-
-        d->user = imap()->user();
-
         considerCache();
         if ( d->done ) {
             finish();
             return;
         }
 
-        d->query = new SearchQuery( this );
-        d->mboxId = d->argument();
-        d->query->bind( d->mboxId, imap()->session()->mailbox()->id() );
-        d->query->s = "select distinct messages.uid from messages";
-        d->query->s.append( " where messages.mailbox=$" + fn( d->mboxId ) +
-                            " and (" + d->root->where() + ") order by"
-                            " messages.uid" );
+        d->query =
+            d->root->query( imap()->user(), imap()->session(), this );
         d->query->execute();
     }
 
@@ -427,16 +420,16 @@ void Search::considerCache()
         uint uid = s->uid( c );
         Message * m = s->mailbox()->message( uid, false );
         switch ( d->root->match( m, uid ) ) {
-        case Search::Condition::Yes:
+        case Selector::Yes:
             matches.append( " " );
             if ( !d->uid )
                 matches.append( fn( c ) );
             else
                 matches.append( fn( uid ) );
             break;
-        case Search::Condition::No:
+        case Selector::No:
             break;
-        case Search::Condition::Punt:
+        case Selector::Punt:
             log( "Search must go to database: message " + fn( uid ) +
                  " could not be tested in RAM",
                  Log::Debug );
@@ -497,908 +490,33 @@ String Search::date()
 }
 
 
-/*! This private helper adds a new Condition to the current list. \a
-    f, \a a and \a s8 are used as-is. s16 is set to an empty string.
+/*! Appends a new Selector of type \a a to the list of selectors. */
 
-    This function isn't well-defined for cases where \a a is And, Or
-    or Not.
-*/
-
-Search::Condition * Search::add( Field f, Action a,
-                                 const String & s8 )
+void Search::push( Selector::Action a )
 {
-    prepare();
-    Condition * c = new Condition;
-    c->c = this;
-    c->d = d;
-    c->f = f;
-    c->a = a;
-    c->s8 = s8;
-    d->conditions->first()->l->append( c );
-    return c;
+    Selector * s = new Selector( a );
+    add( s );
+    d->selectors.append( s );
 }
 
 
-/*! This private helper adds a new Condition to the current list. \a
-    f, \a a, \a s8 and \a s16 are used as-is.
-
-    This function isn't well-defined for cases where \a a is And, Or
-    or Not.
+/*! Adds the new Selector \a s to the boolean Selector currently being
+    constructed.
 */
 
-Search::Condition * Search::add( Field f, Action a,
-                                 const String & s8, const UString & s16 )
+void Search::add( Selector * s )
 {
-    prepare();
-    Condition * c = new Condition;
-    c->c = this;
-    c->d = d;
-    c->f = f;
-    c->a = a;
-    if ( f == Header )
-        c->s8 = s8.headerCased();
-    else
-        c->s8 = s8;
-    c->s16 = s16;
-    d->conditions->first()->l->append( c );
-    return c;
+    d->selectors.last()->add( s );
 }
 
 
-/*! This private helper adds a new Condition to the current list. \a
-    f, \a a and \a n are used as-is.
-
-    This function isn't well-defined for cases where \a a is And, Or
-    or Not.
-*/
-
-Search::Condition * Search::add( Field f, Action a, uint n )
-{
-    prepare();
-    Condition * c = new Condition;
-    c->c = this;
-    c->d = d;
-    c->f = f;
-    c->a = a;
-    c->n = n;
-    d->conditions->first()->l->append( c );
-    return c;
-}
-
-
-/*! This private helper adds a new Condition to the current list,
-    constraining the list to \a set.
-
-*/
-
-Search::Condition * Search::add( const MessageSet & set )
-{
-    prepare();
-    Condition * c = new Condition;
-    c->c = this;
-    c->d = d;
-    c->f = Uid;
-    c->a = Contains;
-    c->s = set;
-    d->conditions->first()->l->append( c );
-    return c;
-}
-
-
-/*! Creates a new logical Condition, adds it to the current list if
-    there is one, and pushes a new current list on the stack.
-
-    \a a must be And, Or or Not. This isn't checked.
-*/
-
-Search::Condition * Search::push( Action a )
-{
-    prepare();
-    Condition * c = new Condition;
-    c->c = this;
-    c->d = d;
-    c->a = a;
-    c->l = new List<Condition>;
-    if ( d->conditions->first() )
-        d->conditions->first()->l->append( c );
-    d->conditions->prepend( c );
-    return c;
-}
-
-
-/*! Removes the current list of Conditions from the stack. The list
-    can still be referenced - it is the list of arguments in the new
-    top.
+/*! Removes the current And/Or/Not Selector from the list, marking the
+    end of its creation.
 */
 
 void Search::pop()
 {
-    d->conditions->shift();
-}
-
-
-/*! This private helper takes care that invariants aren't broken. It
-    should mostly be a noop, but in cases of syntax errors, it is
-    perhaps possible that we might segfault without this function.
-*/
-
-void Search::prepare()
-{
-    if ( !d->conditions )
-        d->conditions = new List<Condition>;
-    if ( !d->conditions->isEmpty() )
-        return;
-
-    Condition * c = new Condition;
-    c->c = this;
-    c->d = d;
-    c->a = And;
-    c->l = new List<Condition>;
-    d->conditions->prepend( c );
-
-    if ( !d->root )
-        d->root = c;
-}
-
-
-/*! \class Search::Condition search.h
-
-    The Search::Condition class represents a single condition in a
-    search, which is either a leaf condition or an AND/OR operator.
-
-    The class can simplify() and regularize itself, such that all
-    equivalent search inputs give the same result, and and it can
-    express itself in a form amenable to testing. Rather simple.
-*/
-
-
-/*! This helper transforms this search conditions and all its children
-    into a simpler form, if possible. There are three goals to this:
-
-    1. Provide a regular search expression, so that we can eventually
-    detect and prepare statements for often-repeated searches.
-
-    2. Ditto, so that we can test that equivalent input gives
-    identical output.
-
-    3. Avoid search expressions which would be horribly inefficient or
-    just plain impossible for the RDBMS.
-*/
-
-void Search::Condition::simplify()
-{
-    // not (not x) -> x
-    if ( a == Not && l->first()->a == Not ) {
-        Condition * again = l->first()->l->first();
-
-        f = again->f;
-        a = again->a;
-        s8 = again->s8;
-        s8b = again->s8b;
-        s16 = again->s16;
-        s = again->s;
-        n = again->n;
-        l = again->l;
-    }
-
-    if ( a == Contains && f == Flags && s8.lower() == "\\recent" ) {
-        // the database cannot look at the recent flag, so we turn
-        // this query into a test for the relevant UIDs.
-        f = Uid;
-        s = c->imap()->session()->recent();
-        // later we may simplify this again
-    }
-
-    if ( a == Larger && n == 0 ) {
-        // > 0 matches everything
-        a = All;
-    }
-    else if ( a == Contains ) {
-        // x contains y may match everything
-        switch ( f ) {
-        case InternalDate:
-        case Sent:
-            a = None;
-            break;
-        case Header:
-        case Body:
-            if ( s16.isEmpty() )
-                a = All;
-            break;
-        case Rfc822Size:
-            break;
-        case Flags:
-            if ( !Flag::find( s8 ) )
-                a = None;
-            break;
-        case Uid:
-            // if s contains all messages or is empty...
-            if ( s.isEmpty() )
-                a = None;
-            // the All Messages case is harder.
-            break;
-        case Annotation:
-            // can't simplify this
-            break;
-        case NoField:
-            // contains is orthogonal to nofield, so this we cannot
-            // simplify
-            break;
-        }
-        // contains empty string too
-    }
-    else if ( a == Contains && f == Uid ) {
-        if ( s.isEmpty() )
-            a = None; // contains a set of nonexistent messages
-        else if ( s.where() == "uid>=1" )
-            a = All; // contains any messages at all
-    }
-    else if ( a == And ) {
-        // zero-element and becomes all, "none and x" becomes none
-        List< Condition >::Iterator i( l );
-        while ( i && a == And ) {
-            List< Condition >::Iterator p( i );
-            ++i;
-            p->simplify();
-            if ( p->a == All )
-                l->take( p );
-            else if ( p->a == None )
-                a = None;
-        }
-        if ( a == And && l->isEmpty() )
-            a = All;
-
-    }
-    else if ( a == Or ) {
-        // zero-element or becomes all, "all or x" becomes all
-        List< Condition >::Iterator i( l );
-        while ( i && a == Or ) {
-            List< Condition >::Iterator p( i );
-            ++i;
-            p->simplify();
-            if ( p->a == None )
-                l->take( p );
-            else if ( p->a == All )
-                a = All;
-        }
-        if ( a == And && l->isEmpty() )
-            a = All;
-
-    }
-    if ( a == All || a == None )
-        f = NoField;
-
-    if ( a != And && a != Or )
-        return;
-
-    // an empty and/or means everything matches
-    if ( l->isEmpty() ) {
-        a = All;
-        return;
-    }
-
-    // or (a or (b c)) -> or (a b c). ditto and.
-    if ( l ) {
-        List< Condition >::Iterator i( l );
-        while ( i ) {
-            List< Condition >::Iterator p( i );
-            ++i;
-            if ( p->a == a ) {
-                List<Condition>::Iterator c( p->l );
-                while ( c ) {
-                    l->prepend( c );
-                    ++c;
-                }
-                l->take( p );
-            }
-        }
-    }
-
-    // a single-element and/or can be removed and its argument substituted
-    if ( l->count() == 1 ) {
-        List< Condition >::Iterator p( l );
-        f = p->f;
-        a = p->a;
-        s8 = p->s8;
-        s8b = p->s8b;
-        s16 = p->s16;
-        s = p->s;
-        l = p->l;
-        return;
-    }
-
-    // at this point, for proper uniqueness, we ought to sort the
-    // children, killing any duplicates in the process. then we'll
-    // have a single query for each job. but that can wait. this will
-    // do for testing.
-}
-
-
-/*! Gives an SQL string representing this condition.
-
-    The string may include $n placeholders; where() and its helpers
-    will bind them as required.
-*/
-
-String Search::Condition::where() const
-{
-    switch( f ) {
-    case InternalDate:
-        return whereInternalDate();
-        break;
-    case Sent:
-        return whereSent();
-        break;
-    case Header:
-        if ( s8.isEmpty() )
-            return whereHeader();
-        else
-            return whereHeaderField();
-        break;
-    case Body:
-        return whereBody();
-        break;
-    case Rfc822Size:
-        return whereRfc822Size();
-        break;
-    case Flags:
-        return whereFlags();
-        break;
-    case Uid:
-        return whereUid();
-        break;
-    case Annotation:
-        return whereAnnotation();
-        break;
-    case NoField:
-        return whereNoField();
-        break;
-    }
-    c->error( Command::No, "Internal error for " + debugString() );
-    return "";
-}
-
-/*! This implements the INTERNALDATE part of where().
-*/
-
-String Search::Condition::whereInternalDate() const
-{
-    uint day = s8.mid( 0, 2 ).number( 0 );
-    String month = s8.mid( 3, 3 );
-    uint year = s8.mid( 7 ).number( 0 );
-    // XXX: local time zone is ignored here
-    Date d1;
-    d1.setDate( year, month, day, 0, 0, 0, 0 );
-    Date d2;
-    d2.setDate( year, month, day, 23, 59, 59, 0 );
-    uint n1 = d->argument();
-    d->query->bind( n1, d1.unixTime() );
-    uint n2 = d->argument();
-    d->query->bind( n2, d2.unixTime() );
-
-    if ( a == OnDate ) {
-        return "messages.idate>=$" + fn( n1 ) +
-            " and messages.idate<=$" + fn( n2 );
-    }
-    else if ( a == SinceDate ) {
-        return "messages.idate>=$" + fn( n1 );
-    }
-    else if ( a == BeforeDate ) {
-        return "messages.idate<=$" + fn( n2 );
-    }
-    c->error( Command::No, "Cannot search for: " + debugString() );
-    return "";
-}
-
-/*! This implements the SENTON/SENTBEFORE/SENTSINCE part of where().
-*/
-
-String Search::Condition::whereSent() const
-{
-    c->error( Command::No,
-              "Searching on the Date field unimplemented, sorry" );
-    return "";
-}
-
-
-static String matchAny( int n )
-{
-    return "'%'||$" + fn( n ) + "||'%'";
-}
-
-
-static String q( const UString & orig )
-{
-    Utf8Codec c;
-    String r( c.fromUnicode( orig ) );
-    // escape % somehow?
-    return r;
-}
-
-
-/*! This implements searches on a single header field.
-*/
-
-String Search::Condition::whereHeaderField() const
-{
-    uint f = 1;
-    while ( f <= HeaderField::LastAddressField &&
-            HeaderField::fieldName( (HeaderField::Type)f ) != s8 )
-        f++;
-    if ( f <= HeaderField::LastAddressField )
-        return whereAddressField( s8 );
-
-    uint fnum = d->argument();
-    d->query->bind( fnum, s8 );
-    uint like = d->argument();
-    d->query->bind( like, q( s16 ) );
-
-    return
-        "messages.uid in "
-        "(select uid from header_fields where mailbox=$" + fn( d->mboxId ) +
-        " and field=(select id from field_names where name=$" + fn( fnum ) +
-        ") and value ilike " + matchAny( like ) + ")";
-}
-
-
-/*! This implements searches on the single address field \a field, or
-    on all address fields if \a field is empty. \a d as usual.
-*/
-
-String Search::Condition::whereAddressField( const String & field ) const
-{
-    String r( "messages.uid in (" );
-    r.append( "select uid from address_fields af join addresses a "
-              "on (af.address=a.id)" );
-
-    uint fnum = 0;
-    if ( !field.isEmpty() ) {
-        fnum = d->argument();
-        d->query->bind( fnum, s8 );
-        r.append( " join field_names fn on (af.field=fn.id)" );
-    }
-
-    r.append( " where af.mailbox=$" + fn( d->mboxId ) );
-    if ( fnum != 0 )
-        r.append( " and fn.name=$" + fn( fnum ) );
-
-    String raw( q( s16 ) );
-    int at = raw.find( '@' );
-
-    if ( at < 0 ) {
-        uint name = d->argument();
-        d->query->bind( name, raw );
-        r.append( " and "
-                  "(a.name ilike " + matchAny( name ) + " or"
-                  " a.localpart ilike " + matchAny( name ) + " or"
-                  " a.domain ilike " + matchAny( name ) + ")" );
-    }
-    else {
-        String lc, dc;
-        if ( at > 0 ) {
-            uint lp = d->argument();
-            if ( raw.startsWith( "<" ) ) {
-                d->query->bind( lp, raw.mid( 1, at-1 ) );
-                lc = "a.localpart ilike $" + fn( lp );
-            }
-            else {
-                d->query->bind( lp, raw.mid( 0, at ) );
-                lc = "a.localpart ilike '%'||$" + fn( lp ) + " ";
-            }
-        }
-        if ( at < (int)raw.length() - 1 ) {
-            uint dom = d->argument();
-            if ( raw.endsWith( ">" ) ) {
-                d->query->bind( dom, raw.mid( at+1, raw.length()-at-2 ) );
-                dc = "a.domain ilike $" + fn( dom );
-            }
-            else {
-                d->query->bind( dom, raw.mid( at+1 ) );
-                dc = "a.domain ilike $" + fn( dom ) + "||'%'";
-            }
-        }
-        if ( lc.isEmpty() && dc.isEmpty() ) {
-            // imap SEARCH FROM "@" matches messages with a nonempty
-            // from field. the sort of thing only a test suite would
-            // do.
-        }
-        if ( !lc.isEmpty() ) {
-            r.append( " and " );
-            r.append( lc );
-        }
-        if ( !dc.isEmpty() ) {
-            r.append( " and " );
-            r.append( dc );
-        }
-    }
-    r.append( ")" );
-    return r;
-}
-
-/*! This implements searches on all header fields.
-*/
-
-String Search::Condition::whereHeader() const
-{
-    uint str = d->argument();
-    d->query->bind( str, q( s16 ) );
-    return
-        "messages.uid in "
-        "(select uid from header_fields hf"
-        " where hf.mailbox=$" + fn( d->mboxId ) + " and"
-        " hf.value ilike " + matchAny( str ) + ") "
-        "or " + whereAddressField();
-}
-
-
-/*! This implements searches on (text) bodyparts. We cannot and will
-    not do "full-text" search on the contents of e.g. jpeg
-    pictures. (For some formats we search on the text part, because
-    the injector sets bodyparts.text based on bodyparts.data.)
-*/
-
-String Search::Condition::whereBody() const
-{
-    String s;
-
-    uint bt = d->argument();
-    d->query->bind( bt, q( s16 ) );
-
-    s = "messages.uid in "
-        "(select pn.uid from part_numbers pn, bodyparts b"
-        " where pn.mailbox=$" + fn( d->mboxId ) + " and"
-        " pn.bodypart=b.id and ";
-
-    String db = Database::type();
-    if ( db.lower().endsWith( "tsearch2" ) )
-        s.append( "b.ftidx @@ to_tsquery('default', $" + fn( bt ) + ")" );
-    else
-        s.append( "b.text ilike " + matchAny( bt ) );
-
-    s.append( ")" );
-    return s;
-}
-
-
-/*! This implements searches on the rfc822size of messages.
-*/
-
-String Search::Condition::whereRfc822Size() const
-{
-    uint s = d->argument();
-    d->query->bind( s, n );
-    if ( a == Smaller )
-        return "messages.rfc822size<$" + fn( s );
-    else if ( a == Larger )
-        return "messages.rfc822size>$" + fn( s );
-    c->error( Command::No, "Internal error: " + debugString() );
-    return "";
-}
-
-
-/*! This implements searches on whether a message has/does not have
-    flags.
-*/
-
-String Search::Condition::whereFlags() const
-{
-    // the database can look in the ordinary way. we make it easy, if we can.
-    Flag * f = Flag::find( s8 );
-    uint name = d->argument();
-    if ( f ) {
-        d->query->bind( name, f->id() );
-        return "messages.uid in ("
-            "select uid from flags where flags.mailbox=$" + fn( d->mboxId ) +
-            " and flags.flag=$" + fn( name ) + ")";
-    }
-    d->query->bind( name, s8 ); // do we need to smash case on flags?
-    return
-        "messages.uid in "
-        "(select uid from flags where mailbox=$" + fn( d->mboxId ) +
-        " and flag=(select id from flag_names where name=$" +
-        fn( name ) + "))";
-}
-
-
-/*! This implements searches on whether a message has the right UID.
-*/
-
-String Search::Condition::whereUid() const
-{
-    return s.where( "messages" );
-}
-
-
-/*! This implements searches on whether a message has/does not have
-    the right annotation.
-*/
-
-String Search::Condition::whereAnnotation() const
-{
-    ::AnnotationName * a = ::AnnotationName::find( s8 );
-    String annotations;
-    String sep = "";
-    if ( a ) {
-        annotations = "name=" + fn( a->id() );
-    }
-    else {
-        uint n = 0;
-        uint u = 0;
-        while ( u <= ::AnnotationName::largestId() ) {
-            a = ::AnnotationName::find( u );
-            u++;
-            if ( a && Listext::match( s8, 0, a->name(), 0 ) == 2 ) {
-                n++;
-                annotations.append( sep );
-                annotations.append( "name=" );
-                annotations.append( fn( a->id() ) );
-                if ( sep.isEmpty() )
-                    sep = " or ";
-            }
-        }
-        if ( n > 3 && s8.find( '%' ) < 0 ) {
-            // if there are many, we're better off using set logic.
-            uint pattern = d->argument();
-            annotations = "name in ("
-                          "select id from annotation_names where name like $" +
-                          fn( pattern ) +
-                          ")";
-            String sql = 0;
-            uint i = 0;
-            while ( i < s8.length() ) {
-                if ( s8[i] == '*' )
-                    sql.append( '%' );
-                else
-                    sql.append( s8[i] );
-                i++;
-            }
-            d->query->bind( pattern, sql );
-        }
-        else if ( n > 1 ) {
-            annotations = "(" + annotations + ")";
-        }
-    }
-
-    String user;
-    String attribute;
-    if ( s8b.endsWith( ".priv" ) ) {
-        attribute = s8b.mid( 0, s8b.length()-5 ).lower();
-        uint userId = d->argument();
-        user = "owner=$" + fn( userId );
-        d->query->bind( userId, d->user->id() );
-    }
-    else if ( s8b.endsWith( ".shared" ) ) {
-        attribute = s8b.mid( 0, s8b.length()-7 ).lower();
-        user = "owner is null";
-    }
-    else {
-        attribute = s8b.lower();
-        uint userId = d->argument();
-        user = "(owner is null or owner=$" + fn( userId ) + ")";
-        d->query->bind( userId, d->user->id() );
-    }
-
-    String field = "value";
-    if ( attribute == "content-type" )
-        field = "type";
-    else if ( attribute == "content-language" )
-        field = "language";
-    else if ( attribute == "display-name" )
-        field = "displayname";
-    else if ( attribute == "size" )
-        field = "length(value)";
-
-    String like = " is not null";
-    if ( !s16.isEmpty() ) {
-        uint i = d->argument();
-        d->query->bind( i, q( s16 ) );
-        like = " ilike " + matchAny( i );
-    }
-
-    return "messages.uid in (select uid from annotations "
-        "where mailbox=$" + fn( d->mboxId ) + " and " + user + " and " +
-        annotations + " and " + field + like + ")";
-}
-
-
-/*! This implements any search that's not bound to a specific field,
-    generally booleans and "all".
-*/
-
-String Search::Condition::whereNoField() const
-{
-    if ( a == And || a == Or ) {
-        if ( l->isEmpty() ) {
-            if ( a == And )
-                return "true";
-            return "false";
-        }
-        List<Condition>::Iterator i( l );
-        String r = "(" + i->where();
-        ++i;
-        String sep;
-        if ( a == And )
-            sep = ") and (";
-        else
-            sep = ") or (";
-        while ( i ) {
-            r.append( sep );
-            r.append( i->where() );
-            ++i;
-        }
-        r.append( ")" );
-        return r;
-    }
-    else if ( a == Not ) {
-        return "not (" + l->first()->where() + ")";
-    }
-    else if ( a == All ) {
-        return "true";
-    }
-    else if ( a == None ) {
-        return "false";
-    }
-    c->error( Command::No, "Internal error: " + debugString() );
-    return "";
-}
-
-
-/*! Give an ASCII representatation of this object, suitable for debug
-    output or for equality testing.
-*/
-
-String Search::Condition::debugString() const
-{
-    String r;
-
-    String o, w;
-
-    switch ( a ) {
-    case OnDate:
-        o = "on";
-        break;
-    case SinceDate:
-        o = "since";
-        break;
-    case BeforeDate:
-        o = "before";
-        break;
-    case Contains:
-        o = "contains";
-        break;
-    case Larger:
-        o = "larger";
-        break;
-    case Smaller:
-        o = "smaller";
-        break;
-    case And:
-    case Or:
-        break;
-    case Not:
-        return "not " + l->first()->debugString();
-    case All:
-        return "all";
-        break;
-    case None:
-        return "none";
-        break;
-    };
-
-    if ( o.isEmpty() ) {
-        r = "(";
-        List< Condition >::Iterator i( l );
-        while ( i ) {
-            r += i->debugString();
-            ++i;
-            if ( i ) {
-                if ( a == And )
-                    r += " and ";
-                else
-                    r += " or ";
-            }
-        }
-        r += ")";
-        return r;
-    }
-
-    switch( f ) {
-    case InternalDate:
-        w = "delivery";
-        break;
-    case Sent:
-        w = "sent";
-        break;
-    case Header:
-        if ( s8.isEmpty() )
-            w = "header";
-        else
-            w = "header field " + s8;
-        break;
-    case Body:
-        w = "body";
-        break;
-    case Rfc822Size:
-        w = "rfc822 size";
-        break;
-    case Flags:
-        w = "set of flags";
-        break;
-    case NoField:
-        w = "none";
-        break;
-    case Uid:
-        return s.where();
-        break;
-    case Annotation:
-        w = "annotation " + s8b + " of ";
-    };
-
-    r = w + " " + o + " ";
-    if ( s16.isEmpty() )
-        r.append( s8 );
-    else
-        r.append( s16.ascii() );
-
-    return r;
-
-}
-
-
-/*! Matches \a m against this condition, provided the match is
-    reasonably simple and quick, and returns either Yes, No, or (if
-    the match is difficult, expensive or depends on data that isn't
-    available) Punt.
-*/
-
-Search::Condition::MatchResult Search::Condition::match( Message * m,
-                                                         uint uid )
-{
-    if ( a == And || a == Or ) {
-        List< Condition >::Iterator i( l );
-        while ( i ) {
-            MatchResult sub = i->match( m, uid );
-            if ( sub == Punt )
-                return Punt;
-            if ( a == And && sub == No )
-                return No;
-            if ( a == Or && sub == Yes )
-                return Yes;
-            ++i;
-        }
-        if ( a == And )
-            return Yes;
-        else
-            return No;
-    }
-    else if ( a == Contains && f == Uid ) {
-        if ( s.contains( uid ) )
-            return Yes;
-        return No;
-    }
-    else if ( a == Contains && f == Flags ) {
-        if ( s8 == "\\recent" ) {
-            ImapSession * s = c->imap()->session();
-            if ( s->isRecent( uid ) )
-                return Yes;
-            return No;
-        }
-        return Punt;
-    }
-    else if ( a == Not ) {
-        MatchResult sub = l->first()->match( m, uid );
-        if ( sub == Punt )
-            return Punt;
-        else if ( sub == Yes )
-            return No;
-        else
-            return Yes;
-    }
-    else if ( a == All ) {
-        return Yes;
-    }
-
-    return Punt;
+    d->selectors.pop();
 }
 
 
@@ -1430,27 +548,6 @@ UString Search::ustring( Command::QuoteMode stringType )
                "astring not valid under encoding " + d->codec->name() +
                ": " + raw );
     return canon;
-}
-
-
-/*! Returns true if this condition needs an updated Session to be
-    correctly evaluated, and false if not.
-*/
-
-bool Search::Condition::needSession() const
-{
-    if ( a == Contains && f == Flags && s8 == "\\recent" )
-        return true;
-
-    if ( a == And || a == Or ) {
-        List< Condition >::Iterator i( l );
-        while ( i ) {
-            if ( i->needSession() )
-                return true;
-            ++i;
-        }
-    }
-    return false;
 }
 
 

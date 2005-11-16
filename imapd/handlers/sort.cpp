@@ -76,8 +76,6 @@ void Sort::parse()
         parseKey();
     }
     end();
-
-    prepare();
 }
 
 

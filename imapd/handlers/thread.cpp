@@ -46,8 +46,6 @@ void Thread::parse()
         parseKey();
     }
     end();
-
-    prepare();
 }
 
 
