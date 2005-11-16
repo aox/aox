@@ -27,6 +27,8 @@ protected:
     void parseKey( bool alsoCharset = false );
     void prepare();
 
+    Selector * selector() const;
+
 private:
     void push( Selector::Action );
     void add( Selector * );

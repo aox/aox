@@ -563,3 +563,13 @@ void Search::setCharset( const String &s )
         error( No, "[BADCHARSET] Unknown character encoding: " +
                d->charset );
 }
+
+
+/*! Returns the root Selector constructed while parsing this Search
+    command.
+*/
+
+Selector * Search::selector() const
+{
+    return d->root;
+}
