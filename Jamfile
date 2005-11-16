@@ -57,10 +57,10 @@ actions Message {
 fmt <<EOM | sed 's/^/  /'
 
 To set up the database and generate a configuration file, run
-$(BINDIR)/installer as root. The new configuration file will be in
+$(LIBDIR)/installer as root. The new configuration file will be in
 $(CONFIGDIR)/mailstore.conf.
 
-$(BINDIR)/installer -n shows what it would do, without making any
+$(LIBDIR)/installer -n shows what it would do, without making any
 changes.
 
 The logfile is $(LOGFILE) by default and man pages are in $(MANDIR).
