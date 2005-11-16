@@ -14,13 +14,6 @@
 
 static uint lmatch( const String &, uint, const String &, uint );
 
-class SearchQuery: public Query {
-public:
-    SearchQuery( EventHandler * e ): Query( e ) {}
-    String string() const { return s; }
-    String s;
-};
-
 
 class SelectorData
     : public Garbage
@@ -46,7 +39,7 @@ public:
 
     uint mboxId;
     int placeholder;
-    SearchQuery * query;
+    Query * query;
 
     Selector * parent;
     List< Selector > * children;
@@ -374,16 +367,15 @@ void Selector::simplify()
 Query * Selector::query( User * user, Session * session,
                          EventHandler * owner )
 {
-    d->query = new SearchQuery( owner );
+    d->query = new Query( owner );
     d->user = user;
     d->session = session;
     d->placeholder = 0;
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, session->mailbox()->id() );
-    d->query->s = "select distinct messages.uid from messages";
-    d->query->s.append( " where messages.mailbox=$" + fn( d->mboxId ) +
-                        " and (" + where() + ") order by"
-                        " messages.uid" );
+    d->query->setString( "select distinct uid from messages "
+                         "where mailbox=$" + fn( d->mboxId ) +
+                         " and (" + where() + ") order by uid" );
     return d->query;
 }
 
