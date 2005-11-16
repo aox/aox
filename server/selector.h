@@ -63,6 +63,8 @@ public:
     };
     MatchResult match( class Message *, uint );
 
+    String string();
+
 private:
     class SelectorData * d;
 

@@ -1063,3 +1063,11 @@ String Selector::mboxId()
 {
     return fn( root()->d->mboxId );
 }
+
+
+/*! Returns the string representation of this Selector. */
+
+String Selector::string()
+{
+    return "Not yet implemented";
+}
