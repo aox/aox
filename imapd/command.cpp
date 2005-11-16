@@ -29,6 +29,7 @@
 #include "handlers/namespace.h"
 #include "handlers/noop.h"
 #include "handlers/rename.h"
+#include "handlers/reset.h"
 #include "handlers/search.h"
 #include "handlers/select.h"
 #include "handlers/sort.h"
@@ -38,7 +39,7 @@
 #include "handlers/subscribe.h"
 #include "handlers/thread.h"
 #include "handlers/unselect.h"
-#include "handlers/reset.h"
+#include "handlers/view.h"
 
 #include <sys/time.h> // gettimeofday, struct timeval
 
@@ -200,6 +201,8 @@ Command * Command::create( IMAP * imap,
             c = new Acl( Acl::MyRights );
         else if ( n == "x-oryx-reset" )
             c = new XOryxReset;
+        else if ( n == "view" )
+            c = new View;
 
         if ( c ) {
             authenticated = true;

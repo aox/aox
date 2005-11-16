@@ -30,4 +30,5 @@ Build imap :
     subscribe.cpp
     thread.cpp
     unselect.cpp
+    view.cpp
     ;
