@@ -671,7 +671,16 @@ Privilege separation
   good.
 
 
-Check all Permissions users to see if they look at ready().
+Check all Permissions users to see if they look at ready(). (AMS)
+
+
+Check all IMAP command handlers for proper Transaction use. (AMS)
+
+
+Migrate all users of the old Mailbox::create. (AMS)
+
+  There should be corresponding new interfaces for User::create/remove
+  and Mailbox::remove.
 
 
 
