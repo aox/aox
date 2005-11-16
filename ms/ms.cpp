@@ -1249,7 +1249,7 @@ void help()
         fprintf(
             stderr,
             "  upgrade schema -- Upgrade the database schema.\n\n"
-            "    Synopsis: ms update schema\n\n"
+            "    Synopsis: ms upgrade schema\n\n"
             "    Checks that the database schema is one that this version\n"
             "    of Mailstore is compatible with, and updates it if needed.\n"
         );
