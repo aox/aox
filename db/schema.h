@@ -23,18 +23,18 @@ private:
     class SchemaData *d;
     void fail( const String &, Query * = 0 );
     bool singleStep();
-    bool step1();
-    bool step2();
-    bool step3();
-    bool step4();
-    bool step5();
-    bool step6();
-    bool step7();
-    bool step8();
-    bool step9();
-    bool step10();
-    bool step11();
-    bool step12();
+    bool stepTo2();
+    bool stepTo3();
+    bool stepTo4();
+    bool stepTo5();
+    bool stepTo6();
+    bool stepTo7();
+    bool stepTo8();
+    bool stepTo9();
+    bool stepTo10();
+    bool stepTo11();
+    bool stepTo12();
+    bool stepTo13();
 };
 
 

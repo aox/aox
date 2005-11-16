@@ -221,29 +221,29 @@ bool Schema::singleStep()
 
     switch ( d->revision ) {
     case 1:
-        c = step1(); break;
+        c = stepTo2(); break;
     case 2:
-        c = step2(); break;
+        c = stepTo3(); break;
     case 3:
-        c = step3(); break;
+        c = stepTo4(); break;
     case 4:
-        c = step4(); break;
+        c = stepTo5(); break;
     case 5:
-        c = step5(); break;
+        c = stepTo6(); break;
     case 6:
-        c = step6(); break;
+        c = stepTo7(); break;
     case 7:
-        c = step7(); break;
+        c = stepTo8(); break;
     case 8:
-        c = step8(); break;
+        c = stepTo9(); break;
     case 9:
-        c = step9(); break;
+        c = stepTo10(); break;
     case 10:
-        c = step10(); break;
+        c = stepTo11(); break;
     case 11:
-        c = step11(); break;
+        c = stepTo12(); break;
     case 12:
-        c = step12(); break;
+        c = stepTo13(); break;
     }
 
     return c;
@@ -254,7 +254,7 @@ bool Schema::singleStep()
     the made-up length restriction on the earlier varchar field.
 */
 
-bool Schema::step1()
+bool Schema::stepTo2()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Changing users.login/secret to text", Log::Debug );
@@ -296,7 +296,7 @@ bool Schema::step1()
 
 /*! Merges the binary_parts table into bodyparts. */
 
-bool Schema::step2()
+bool Schema::stepTo3()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Merging bodyparts and binary_parts", Log::Debug );
@@ -426,7 +426,7 @@ bool Schema::step2()
     now renamed just "flags".
 */
 
-bool Schema::step3()
+bool Schema::stepTo4()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Creating flags from messages/extra_flags.", Log::Debug );
@@ -504,7 +504,7 @@ bool Schema::step3()
 
 /*! Add some indices on header_fields, address_fields, and flags. */
 
-bool Schema::step4()
+bool Schema::stepTo5()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Adding hf_mup, af_mu, fl_mu indices.", Log::Debug );
@@ -534,7 +534,7 @@ bool Schema::step4()
 
 /*! Move bodyparts.bytes/lines to the part_numbers table. */
 
-bool Schema::step5()
+bool Schema::stepTo6()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Moving bytes/lines to part_numbers.", Log::Debug );
@@ -570,7 +570,7 @@ bool Schema::step5()
 
 /*! Add header_fields.position. */
 
-bool Schema::step6()
+bool Schema::stepTo7()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Adding header_fields.position.", Log::Debug );
@@ -644,7 +644,7 @@ bool Schema::step6()
 
 /*! Make address_fields refer to header_fields. */
 
-bool Schema::step7()
+bool Schema::stepTo8()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Making address_fields refer to header_fields.",
@@ -693,7 +693,7 @@ bool Schema::step7()
 
 /*! Remove the recent_messages table altogether. */
 
-bool Schema::step8()
+bool Schema::stepTo9()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Removing recent_messages.", Log::Debug );
@@ -730,7 +730,7 @@ bool Schema::step8()
 
 /*! Add "on delete cascade" to the mailboxes.owner reference. */
 
-bool Schema::step9()
+bool Schema::stepTo10()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Altering mailboxes_owner_fkey.", Log::Debug );
@@ -778,7 +778,7 @@ bool Schema::step9()
 
 /*! Delete the revisions sequence. */
 
-bool Schema::step10()
+bool Schema::stepTo11()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Deleting revisions.", Log::Debug );
@@ -799,9 +799,9 @@ bool Schema::step10()
 }
 
 
-/*! Reverse step9(). We don't want to delete rows in mailboxes. */
+/*! Reverse stepTo10(). We don't want to delete rows in mailboxes. */
 
-bool Schema::step11()
+bool Schema::stepTo12()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Reverting mailboxes_owner_fkey change.", Log::Debug );
@@ -829,7 +829,7 @@ bool Schema::step11()
 
 /*! Create the annotation_names and annotations tables. */
 
-bool Schema::step12()
+bool Schema::stepTo13()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Creating annotations/annotation_names.", Log::Debug );
