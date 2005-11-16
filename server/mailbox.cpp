@@ -487,6 +487,48 @@ void Mailbox::setDeleted( bool del )
     If \a owner is non-null, the new mailbox is owned by by \a owner.
 */
 
+Query * Mailbox::create( Transaction * t, User * owner )
+{
+    Query * q;
+
+    if ( deleted() ) {
+        q = new Query( "update mailboxes set deleted='f',owner=$2 "
+                       "where id=$1", 0 );
+        q->bind( 1, id() );
+    }
+    else if ( id() == 0 ) {
+        q = new Query( "insert into mailboxes "
+                       "(name,owner,uidnext,uidvalidity,deleted) "
+                       "values ($1,$2,1,1,'f')", 0 );
+        q->bind( 1, name() );
+    }
+    else {
+        return 0;
+    }
+
+    if ( owner )
+        q->bind( 2, owner->id() );
+    else
+        q->bindNull( 2 );
+
+    t->enqueue( q );
+
+    MailboxReader * mr =
+        new MailboxReader( "select * from mailboxes where name=$1",
+                           name() );
+    t->enqueue( mr->query );
+
+    return q;
+}
+
+
+/*! Creates this mailbox by updating the mailboxes table, and notifies
+    \a ev of completion. Returns a running Transaction which indicates
+    the progress of the operation, or 0 if the mailbox already exists.
+
+    If \a owner is non-null, the new mailbox is owned by by \a owner.
+*/
+
 Transaction *Mailbox::create( EventHandler * ev, User * owner )
 {
     Transaction * t = new Transaction( ev );
