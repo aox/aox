@@ -4,6 +4,7 @@
 
 #include "configuration.h"
 #include "stringlist.h"
+#include "eventloop.h"
 #include "injector.h"
 #include "message.h"
 #include "address.h"
@@ -13,7 +14,6 @@
 #include "string.h"
 #include "header.h"
 #include "scope.h"
-#include "eventloop.h"
 #include "date.h"
 #include "file.h"
 #include "user.h"
@@ -181,8 +181,7 @@ void SMTP::react( Event e )
 
     case Timeout:
         log( "Idle timeout" );
-        enqueue( String( "421 Timeout\r\n" ) );
-        Connection::setState( Closing );
+        respond( 421, "Timeout" );
         break;
 
     case Connect:
@@ -192,9 +191,10 @@ void SMTP::react( Event e )
         break;
 
     case Shutdown:
-        enqueue( String( "421 Server must shut down\r\n" ) );
+        respond( 421, "Server shutdown" );
         break;
     }
+    sendResponses();
 }
 
 
@@ -272,10 +272,9 @@ void SMTP::parse()
                 quit();
             else
                 respond( 500, "Unknown command (" + cmd.upper() + ")" );
-        }
 
-        if ( d->code )
             sendResponses();
+        }
     }
 }
 
@@ -290,7 +289,7 @@ void SMTP::sendGenericError()
         respond( 503, "Bad sequence of commands: " +
                  d->commands.join( ", " ) );
     else
-        respond( 503, "Command invalid after earlier failure: " +
+        respond( 421, "Command invalid after earlier failure: " +
                  d->firstError );
 }
 
@@ -635,7 +634,7 @@ void SMTP::respond( int c, const String & s )
 void SMTP::sendResponses()
 {
     if ( !d->code )
-        respond( 250, "OK" ); // to provide a good default
+        return;
 
     String n = fn( d->code );
     StringList::Iterator it( d->response );
@@ -658,7 +657,10 @@ void SMTP::sendResponses()
     write();
 
     if ( d->code >= 400 && d->firstError.isEmpty() )
-        d->firstError.append( d->response.join( " " ) );
+        d->firstError.append( n + " " + d->response.join( " " ) );
+
+    if ( d->code == 421 )
+        Connection::setState( Closing );
 
     d->code = 0;
     d->response.clear();
