@@ -105,7 +105,9 @@ void Search::parse()
     }
     end();
 
+    respond( "OK Selector: " + d->root->string() );
     d->root->simplify();
+    respond( "OK Simplified Selector: " + d->root->string() );
 }
 
 
@@ -418,8 +420,7 @@ void Search::considerCache()
     while ( c < msn && !needDb ) {
         c++;
         uint uid = s->uid( c );
-        Message * m = s->mailbox()->message( uid, false );
-        switch ( d->root->match( m, uid ) ) {
+        switch ( d->root->match( s, uid ) ) {
         case Selector::Yes:
             matches.append( " " );
             if ( !d->uid )

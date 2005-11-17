@@ -264,7 +264,7 @@ void Selector::simplify()
         case Rfc822Size:
             break;
         case Flags:
-            if ( !Flag::find( d->s8 ) )
+            if ( d->s8 != "\\recent" && !Flag::find( d->s8 ) )
                 d->a = None;
             break;
         case Uid:
@@ -933,18 +933,18 @@ String Selector::debugString() const
 }
 
 
-/*! Matches \a m against this condition, provided the match is
-    reasonably simple and quick, and returns either Yes, No, or (if
-    the match is difficult, expensive or depends on data that isn't
-    available) Punt.
+/*! Matches the message with the given \a uid in the session \a s
+    against this condition, provided the match is reasonably simple and
+    quick, and returns either Yes, No, or (if the match is difficult,
+    expensive or depends on data that isn't available) Punt.
 */
 
-Selector::MatchResult Selector::match( Message * m, uint uid )
+Selector::MatchResult Selector::match( Session * s, uint uid )
 {
     if ( d->a == And || d->a == Or ) {
         List< Selector >::Iterator i( d->children );
         while ( i ) {
-            MatchResult sub = i->match( m, uid );
+            MatchResult sub = i->match( s, uid );
             if ( sub == Punt )
                 return Punt;
             if ( d->a == And && sub == No )
@@ -965,8 +965,6 @@ Selector::MatchResult Selector::match( Message * m, uint uid )
     }
     else if ( d->a == Contains && d->f == Flags ) {
         if ( d->s8 == "\\recent" ) {
-            // XXX: Will segfault. We promise.
-            Session * s = root()->d->session;
             if ( s->isRecent( uid ) )
                 return Yes;
             return No;
@@ -974,7 +972,7 @@ Selector::MatchResult Selector::match( Message * m, uint uid )
         return Punt;
     }
     else if ( d->a == Not ) {
-        MatchResult sub = d->children->first()->match( m, uid );
+        MatchResult sub = d->children->first()->match( s, uid );
         if ( sub == Punt )
             return Punt;
         else if ( sub == Yes )

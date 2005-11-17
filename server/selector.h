@@ -61,7 +61,7 @@ public:
         No,
         Punt // really "ThrowHandsUpInAirAndDespair"
     };
-    MatchResult match( class Message *, uint );
+    MatchResult match( class Session *, uint );
 
     String string();
 
