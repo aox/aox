@@ -1074,7 +1074,106 @@ String Selector::mboxId()
 
 String Selector::string()
 {
-    return "Not yet implemented";
+    Utf8Codec u;
+    String r( "(" );
+
+    switch ( d->a ) {
+    case OnDate:
+        if ( d->f == InternalDate )
+            r.append( "received" );
+        else if ( d->f == Sent )
+            r.append( "sent" );
+        r.append( "on" );
+        r.append( " " );
+        r.append( d->s8.quoted() );
+        break;
+    case SinceDate:
+        if ( d->f == InternalDate )
+            r.append( "received" );
+        else if ( d->f == Sent )
+            r.append( "sent" );
+        r.append( "since" );
+        r.append( " " );
+        r.append( d->s8.quoted() );
+        break;
+    case BeforeDate:
+        if ( d->f == InternalDate )
+            r.append( "received" );
+        else if ( d->f == Sent )
+            r.append( "sent" );
+        r.append( "before" );
+        r.append( " " );
+        r.append( d->s8.quoted() );
+        break;
+    case Contains:
+        if ( d->f == Header ) {
+            r.append( "header" );
+            r.append( " " );
+            r.append( d->s8.quoted() );
+            r.append( " " );
+            r.append( u.fromUnicode( d->s16 ).quoted() );
+        }
+        else if ( d->f == Body ) {
+            r.append( "body" );
+            r.append( " " );
+            r.append( u.fromUnicode( d->s16 ).quoted() );
+        }
+        else if ( d->f == Flags ) {
+            r.append( "flag" );
+            r.append( " " );
+            r.append( d->s8.quoted() );
+        }
+        else if ( d->f == Uid ) {
+            r.append( "messageset" );
+            r.append( " " );
+            r.append( d->s.set().quoted() );
+        }
+        else if ( d->f == Annotation ) {
+            r.append( "annotation" );
+            r.append( " " );
+            r.append( d->s8.quoted() );
+            r.append( " " );
+            r.append( d->s8b.quoted() );
+            r.append( " " );
+            r.append( u.fromUnicode( d->s16 ).quoted() );
+        }
+        break;
+    case Larger:
+        r.append( "messagelarger" );
+        r.append( " " );
+        r.append( d->n );
+        break;
+    case Smaller:
+        r.append( "messagesmaller" );
+        r.append( " " );
+        r.append( d->n );
+        break;
+    case And:
+        r.append( "and" );
+        break;
+    case Or:
+        r.append( "or" );
+        break;
+    case Not:
+        r.append( "not" );
+        break;
+    case All:
+        r.append( "true" );
+        break;
+    case None:
+        r.append( "false" );
+        break;
+    }
+
+    List< Selector >::Iterator it( d->children );
+    while ( it ) {
+        r.append( " " );
+        r.append( it->string() );
+        ++it;
+    }
+
+    r.append( ")" );
+    return r;
 }
 
 
