@@ -72,7 +72,9 @@ Selector::Selector()
 }
 
 
-/*! ... */
+/*! Creates a selector with Field \a f, Action \a a, and the integer
+    value \a n.
+*/
 
 Selector::Selector( Field f, Action a, uint n )
     : d( new SelectorData )
@@ -83,7 +85,9 @@ Selector::Selector( Field f, Action a, uint n )
 }
 
 
-/*! ... */
+/*! Creates a selector with Field \a f, Action \a a, and the string
+    value \a s.
+*/
 
 Selector::Selector( Field f, Action a, const String &s )
     : d( new SelectorData )
@@ -94,7 +98,9 @@ Selector::Selector( Field f, Action a, const String &s )
 }
 
 
-/*! ... */
+/*! Creates a selector with Field \a f, Action \a a, and the UString
+    value \a u.
+*/
 
 Selector::Selector( Field f, Action a, const UString &u )
     : d( new SelectorData )
@@ -105,7 +111,9 @@ Selector::Selector( Field f, Action a, const UString &u )
 }
 
 
-/*! ... */
+/*! Creates a selector with Field \a f, Action \a a, the String value
+    \a s, and the UString value \a u.
+*/
 
 Selector::Selector( Field f, Action a, const String &s, const UString &u )
     : d( new SelectorData )
@@ -117,7 +125,9 @@ Selector::Selector( Field f, Action a, const String &s, const UString &u )
 }
 
 
-/*! ... */
+/*! Creates a selector with Field \a f, Action \a a, the String values
+    \a s and \a t, and the UString value \a u.
+*/
 
 Selector::Selector( Field f, Action a, const String &s,
                     const String &t, const UString &u )
@@ -131,7 +141,7 @@ Selector::Selector( Field f, Action a, const String &s,
 }
 
 
-/*! ... */
+/*! Creates a selector from the MessageSet \a s. */
 
 Selector::Selector( const MessageSet &s )
     : d( new SelectorData )
@@ -142,7 +152,7 @@ Selector::Selector( const MessageSet &s )
 }
 
 
-/*! ... */
+/*! Creates a selector with Action \a a. */
 
 Selector::Selector( Action a )
     : d( new SelectorData )
@@ -362,6 +372,9 @@ void Selector::simplify()
 
 /*! Returns a query representing this Selector or 0 if anything goes
     wrong, in which case error() contains a description of the problem.
+    The Selector is expressed as SQL in the context of the specified
+    \a user and \a session. The \a owner will be notified of query
+    results.
 */
 
 Query * Selector::query( User * user, Session * session,
@@ -1062,4 +1075,14 @@ String Selector::mboxId()
 String Selector::string()
 {
     return "Not yet implemented";
+}
+
+
+/*! Returns the first error recorded with setError, or an empty string
+    if none has been recorded yet.
+*/
+
+String Selector::error()
+{
+    return root()->d->error;
 }
