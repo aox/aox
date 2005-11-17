@@ -480,9 +480,9 @@ void Mailbox::setDeleted( bool del )
 }
 
 
-/*! Creates this mailbox by updating the mailboxes table, and notifies
-    \a ev of completion. Returns a running Transaction which indicates
-    the progress of the operation, or 0 if the mailbox already exists.
+/*! Adds queries to create this mailbox to the Transaction \a t. Returns
+    a query which indicates the progress of the operation, or 0 if the
+    mailbox already exists.
 
     If \a owner is non-null, the new mailbox is owned by by \a owner.
 */
