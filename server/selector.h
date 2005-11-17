@@ -36,8 +36,6 @@ public:
     Selector( const MessageSet & );
     Selector( Action );
 
-    Selector & operator =( const Selector & );
-
     uint placeHolder();
 
     const Selector * root() const;
