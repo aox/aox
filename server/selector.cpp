@@ -1129,12 +1129,12 @@ String Selector::string()
     case Larger:
         r.append( "messagelarger" );
         r.append( " " );
-        r.append( d->n );
+        r.append( fn( d->n ) );
         break;
     case Smaller:
         r.append( "messagesmaller" );
         r.append( " " );
-        r.append( d->n );
+        r.append( fn( d->n ) );
         break;
     case And:
         r.append( "and" );
@@ -1212,12 +1212,13 @@ Selector * Selector::fromString( const String &s )
                     i++;
                 i++;
             }
-            if ( s[i] != ')' )
+            if ( s[i++] != ')' )
                 return 0;
 
-            Selector * child = fromString( s.mid( j, i-j+1 ) );
+            Selector * child = fromString( s.mid( j, i-j ) );
             if ( !child )
                 return 0;
+            child->d->parent = r;
             r->d->children->append( child );
         }
 
@@ -1353,6 +1354,19 @@ Selector * Selector::fromString( const String &s )
             r->d->a = Smaller;
 
         if ( s[i++] != ' ' )
+            return 0;
+
+        uint j = i;
+        if ( s[i] <= '9' && s[i] >= '1' )
+            i++;
+        else
+            return 0;
+        while ( s[i] <= '9' && s[i] >= '0' )
+            i++;
+
+        bool ok;
+        r->d->n = s.mid( j, i-j ).number( &ok );
+        if ( !ok )
             return 0;
     }
     else if ( op == "true" ) {

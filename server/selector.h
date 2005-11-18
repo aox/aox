@@ -41,8 +41,6 @@ public:
     const Selector * root() const;
     const Selector * parent() const;
 
-    Session * session() const;
-
     String error();
     void setError( const String & );
 
