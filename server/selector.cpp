@@ -1207,12 +1207,28 @@ Selector * Selector::fromString( const String &s )
             uint j = i;
             if ( s[i++] != '(' )
                 return 0;
-            while ( s[i] != ')' ) {
-                if ( s[i] == '\\' )
+
+            int parenLevel = 1;
+            while ( parenLevel > 0 && i < s.length() ) {
+                if ( s[i] == '"' ) {
                     i++;
+                    while ( s[i] != '"' && i < s.length() ) {
+                        if ( s[i] == '\\' )
+                            i++;
+                        i++;
+                    }
+                    if ( s[i] != '"' )
+                        return 0;
+                }
+                else if ( s[i] == '(' ) {
+                    parenLevel++;
+                }
+                else if ( s[i] == ')' ) {
+                    parenLevel--;
+                }
                 i++;
             }
-            if ( s[i++] != ')' )
+            if ( parenLevel != 0 )
                 return 0;
 
             Selector * child = fromString( s.mid( j, i-j ) );
@@ -1248,15 +1264,15 @@ Selector * Selector::fromString( const String &s )
         uint j = i;
         if ( s[i++] != '"' )
             return 0;
-        while ( s[i] != '"' ) {
+        while ( s[i] != '"' && i < s.length() ) {
             if ( s[i] == '\\' )
                 i++;
             i++;
         }
-        if ( s[i] != '"' )
+        if ( s[i++] != '"' )
             return 0;
 
-        r->d->s8 = s.mid( j, i-j+1 ).unquoted();
+        r->d->s8 = s.mid( j, i-j ).unquoted();
     }
     else if ( op == "header" || op == "body" || op == "flag" ||
               op == "messageset" || op == "annotation" )
@@ -1281,15 +1297,15 @@ Selector * Selector::fromString( const String &s )
             uint j = i;
             if ( s[i++] != '"' )
                 return 0;
-            while ( s[i] != '"' ) {
+            while ( s[i] != '"' && i < s.length() ) {
                 if ( s[i] == '\\' )
                     i++;
                 i++;
             }
-            if ( s[i] != '"' )
+            if ( s[i++] != '"' )
                 return 0;
 
-            String t = s.mid( j, i-j+1 ).unquoted();
+            String t = s.mid( j, i-j ).unquoted();
 
             if ( r->d->f == Uid ) {
                 StringList * l = StringList::split( ',', t );
@@ -1313,15 +1329,15 @@ Selector * Selector::fromString( const String &s )
             uint j = i;
             if ( s[i++] != '"' )
                 return 0;
-            while ( s[i] != '"' ) {
+            while ( s[i] != '"' && i < s.length() ) {
                 if ( s[i] == '\\' )
                     i++;
                 i++;
             }
-            if ( s[i] != '"' )
+            if ( s[i++] != '"' )
                 return 0;
 
-            r->d->s8b = s.mid( j, i-j+1 ).unquoted();
+            r->d->s8b = s.mid( j, i-j ).unquoted();
         }
 
         if ( r->d->f == Header || r->d->f == Body ||
@@ -1333,16 +1349,16 @@ Selector * Selector::fromString( const String &s )
             uint j = i;
             if ( s[i++] != '"' )
                 return 0;
-            while ( s[i] != '"' ) {
+            while ( s[i] != '"' && i < s.length() ) {
                 if ( s[i] == '\\' )
                     i++;
                 i++;
             }
-            if ( s[i] != '"' )
+            if ( s[i++] != '"' )
                 return 0;
 
             Utf8Codec u;
-            r->d->s16 = u.toUnicode( s.mid( j, i-j+1 ).unquoted() );
+            r->d->s16 = u.toUnicode( s.mid( j, i-j ).unquoted() );
             if ( !u.valid() )
                 return 0;
         }
