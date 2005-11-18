@@ -63,6 +63,8 @@ public:
 
     String string();
 
+    static Selector * fromString( const String & );
+
 private:
     class SelectorData * d;
 

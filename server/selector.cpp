@@ -7,6 +7,7 @@
 #include "date.h"
 #include "session.h"
 #include "mailbox.h"
+#include "stringlist.h"
 #include "annotation.h"
 #include "field.h"
 #include "user.h"
@@ -1171,4 +1172,201 @@ String Selector::string()
 String Selector::error()
 {
     return root()->d->error;
+}
+
+
+/*! This static function takes a canonical string representation \a s,
+    and returns the Selector corresponding to it, or 0 if there was a
+    parsing error.
+*/
+
+Selector * Selector::fromString( const String &s )
+{
+    Selector * r = new Selector;
+
+    uint i = 0;
+
+    if ( s[i++] != '(' )
+        return 0;
+
+    String op;
+    while ( s[i] <= 'z' && s[i] >= 'a' )
+        op.append( s[i++] );
+
+    if ( op == "and" || op == "or" || op == "not" ) {
+        if ( op == "and" )
+            r->d->a = And;
+        else if ( op == "or" )
+            r->d->a = Or;
+        else if ( op == "not" )
+            r->d->a = Not;
+
+        while ( s[i] == ' ' ) {
+            i++;
+
+            uint j = i;
+            if ( s[i++] != '(' )
+                return 0;
+            while ( s[i] != ')' ) {
+                if ( s[i] == '\\' )
+                    i++;
+                i++;
+            }
+            if ( s[i] != ')' )
+                return 0;
+
+            Selector * child = fromString( s.mid( j, i-j+1 ) );
+            if ( !child )
+                return 0;
+            r->d->children->append( child );
+        }
+
+        if ( r->d->children->isEmpty() ||
+             ( op == "not" && r->d->children->count() != 1 ) )
+            return 0;
+    }
+    else if ( op == "receivedon" || op == "senton" ||
+              op == "receivedsince" || op == "sentsince" ||
+              op == "receivedbefore" || op == "sentbefore" )
+    {
+        if ( op.endsWith( "on" ) )
+            r->d->a = OnDate;
+        else if ( op.endsWith( "since" ) )
+            r->d->a = SinceDate;
+        else
+            r->d->a = BeforeDate;
+
+        if ( op.startsWith( "received" ) )
+            r->d->f = InternalDate;
+        else
+            r->d->f = Sent;
+
+        if ( s[i++] != ' ' )
+            return 0;
+
+        uint j = i;
+        if ( s[i++] != '"' )
+            return 0;
+        while ( s[i] != '"' ) {
+            if ( s[i] == '\\' )
+                i++;
+            i++;
+        }
+        if ( s[i] != '"' )
+            return 0;
+
+        r->d->s8 = s.mid( j, i-j+1 ).unquoted();
+    }
+    else if ( op == "header" || op == "body" || op == "flag" ||
+              op == "messageset" || op == "annotation" )
+    {
+        r->d->a = Contains;
+
+        if ( op == "header" )
+            r->d->f = Header;
+        else if ( op == "body" )
+            r->d->f = Body;
+        else if ( op == "flag" )
+            r->d->f = Flags;
+        else if ( op == "messageset" )
+            r->d->f = Uid;
+        else if ( op == "annotation" )
+            r->d->f = Annotation;
+
+        if ( r->d->f != Body ) {
+            if ( s[i++] != ' ' )
+                return 0;
+
+            uint j = i;
+            if ( s[i++] != '"' )
+                return 0;
+            while ( s[i] != '"' ) {
+                if ( s[i] == '\\' )
+                    i++;
+                i++;
+            }
+            if ( s[i] != '"' )
+                return 0;
+
+            String t = s.mid( j, i-j+1 ).unquoted();
+
+            if ( r->d->f == Uid ) {
+                StringList * l = StringList::split( ',', t );
+                StringList::Iterator it( l );
+                while ( it ) {
+                    StringList * range = StringList::split( ':', *it );
+                    r->d->s.add( range->first()->number( 0 ),
+                                 range->last()->number( 0 ) );
+                    ++it;
+                }
+            }
+            else {
+                r->d->s8 = t;
+            }
+        }
+
+        if ( r->d->f == Annotation ) {
+            if ( s[i++] != ' ' )
+                return 0;
+
+            uint j = i;
+            if ( s[i++] != '"' )
+                return 0;
+            while ( s[i] != '"' ) {
+                if ( s[i] == '\\' )
+                    i++;
+                i++;
+            }
+            if ( s[i] != '"' )
+                return 0;
+
+            r->d->s8b = s.mid( j, i-j+1 ).unquoted();
+        }
+
+        if ( r->d->f == Header || r->d->f == Body ||
+             r->d->f == Annotation )
+        {
+            if ( s[i++] != ' ' )
+                return 0;
+
+            uint j = i;
+            if ( s[i++] != '"' )
+                return 0;
+            while ( s[i] != '"' ) {
+                if ( s[i] == '\\' )
+                    i++;
+                i++;
+            }
+            if ( s[i] != '"' )
+                return 0;
+
+            Utf8Codec u;
+            r->d->s16 = u.toUnicode( s.mid( j, i-j+1 ).unquoted() );
+            if ( !u.valid() )
+                return 0;
+        }
+    }
+    else if ( op == "messagelarger" || op == "messagesmaller" ) {
+        if ( op.endsWith( "larger" ) )
+            r->d->a = Larger;
+        else
+            r->d->a = Smaller;
+
+        if ( s[i++] != ' ' )
+            return 0;
+    }
+    else if ( op == "true" ) {
+        r->d->a = All;
+    }
+    else if ( op == "false" ) {
+        r->d->a = None;
+    }
+    else {
+        return 0;
+    }
+
+    if ( s[i++] != ')' || i < s.length() )
+        return 0;
+
+    return r;
 }
