@@ -556,12 +556,6 @@ Search ourselves, not via google
   interesting.
 
 
-Man pages
-
-  Various man pages are now out of date, most of all
-  ms(8). installer(8) does not exist.
-
-
 Fix shutdown
 
   There's no practical way to shutdown using ocd/ocadmin. Perhaps this
