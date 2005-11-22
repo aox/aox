@@ -9,8 +9,8 @@ msconsole - Oryx Mailstore management console.
 .PP
 .B msconsole
 is a tool to do GUI-based management of Oryx Mailstore, including
-tasks such as creating users. There is also a command-line tool, see
-.BR mailstore (8)
+tasks such as creating users. There is also a command-line tool. See
+.BR ms (8)
 for more information.
 .PP
 Documentation is provided within the program; press Shift-F1 anywhere
@@ -19,6 +19,9 @@ in any field to get help for that particular field, etc.
 On X11, most normal options are supported, see the
 .BR X (7X)
 manual page for details.
+.SH BUGS
+.B msconsole
+isn't usable yet.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION

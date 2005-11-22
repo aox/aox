@@ -51,7 +51,7 @@ exits with exit code 1, an error message on stderr and (usually more
 detailed) information in the log file.
 .SH BUGS
 The POP3 service in Mailstore is currently more or less nonexistent.
-It will be made usable towards the end of the 0.9x releases.
+It will be made usable in the 1.x releases.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
