@@ -235,7 +235,15 @@ void Selector::simplify()
     // not (not x) -> x
     if ( d->a == Not && d->children->first()->d->a == Not ) {
         Selector * again = d->children->first()->d->children->first();
-        d = again->d;
+
+        d->f = again->d->f;
+        d->a = again->d->a;
+        d->s8 = again->d->s8;
+        d->s8b = again->d->s8b;
+        d->s16 = again->d->s16;
+        d->s = again->d->s;
+        d->n = again->d->n;
+        d->children = again->d->children;
     }
 
     if ( d->a == Larger && d->n == 0 ) {
@@ -296,6 +304,7 @@ void Selector::simplify()
         }
         if ( d->a == And && d->children->isEmpty() )
             d->a = All;
+
         if ( d->a != And )
             d->children->clear();
     }
@@ -313,9 +322,9 @@ void Selector::simplify()
         }
         if ( d->a == And && d->children->isEmpty() )
             d->a = All;
+
         if ( d->a != Or )
             d->children->clear();
-
     }
     if ( d->a == All || d->a == None )
         d->f = NoField;
@@ -349,7 +358,14 @@ void Selector::simplify()
     // d->a single-element and/or can be removed and its argument substituted
     if ( d->children->count() == 1 ) {
         List< Selector >::Iterator p( d->children );
-        d = p->d;
+
+        d->f = p->d->f;
+        d->a = p->d->a;
+        d->s8 = p->d->s8;
+        d->s8b = p->d->s8b;
+        d->s16 = p->d->s16;
+        d->s = p->d->s;
+        d->children = p->d->children;
         return;
     }
 
