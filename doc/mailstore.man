@@ -146,7 +146,7 @@ start if they're too privileged.
 .PP
 Note that
 .BR logd (8)
-must have permission to create
+must have permission to create the
 .IR logfile .
 .SH MAIL STORAGE
 Oryx Mailstore does not store mail in the RFC-822 format. It parses each
