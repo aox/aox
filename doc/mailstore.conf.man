@@ -1,7 +1,7 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
 .TH mailstore.conf 5 2005-12-12 www.oryx.com "Mailstore Documentation"
 .SH NAME
-mailstore.conf - overall configuration for Oryx Mailstore.
+mailstore.conf - configuration file for Oryx Mailstore.
 .SH SYNOPSIS
 .B $CONFIGDIR/mailstore.conf
 .br
@@ -11,17 +11,16 @@ mailstore.conf - overall configuration for Oryx Mailstore.
 The
 .I mailstore.conf
 file contains all global configuration settings for Oryx Mailstore. It
-is read by each server at startup. Syntax errors, unknown variables
-etc. are logged via
+is read by each server at startup. Syntax errors, unknown variables,
+and other errors are logged via
 .BR logd (8).
+.PP
+.I mailstore.conf
+is usually created at installation time, by running
+.BR $SBINDIR/installer .
 .PP
 There is only one required variable, namely 
 .IR db-password .
-.PP
-Usually,
-.I mailstore.conf
-is created at installation time, by running
-.BR $SBINDIR/installer .
 .SH "SECURITY NOTE"
 Anyone who can read
 .I mailstore.conf
@@ -77,7 +76,7 @@ default is
 .IR $DBUSER .
 .IP db-password
 The password Mailstore should use to connect to the database. The
-default is an empty password.
+default is an empty string.
 .IP
 During installation, Mailstore sets up a randomly-chosen password by
 default.
@@ -125,9 +124,7 @@ by default and controls the permissions used by
 if it creates
 .IR logfile .
 The format (three octal digits) is the same as that used by
-.BR chmod (1)
-and
-.BR chmod (2).
+.BR chmod (1).
 .IP log-level
 is
 .I info
@@ -152,13 +149,12 @@ lose privileges.
 Turning security off has exactly one advantage: it simplifies
 debugging.
 .IP jail-directory
-is the directory where the servers jail themselves,
+is
 .I $JAILDIR
-by default. On startup, each server uses
+by default. On startup, each secure server uses
 .BR chroot (2)
-into this directory, which should be empty.
-.I jail-directory
-should be empty and unreadable to
+to jail themselves into this directory, which should be empty and
+unreadable to
 .IR jail-user .
 .IP jail-user
 is the user name under which the servers run, and is
@@ -228,11 +224,11 @@ passwords, use the
 variable above.
 .IP auth-anonymous
 controls whether the servers offer anonymous login,
-.I disabled by
-default.
+.I disabled
+by default.
 .SS "Mail delivery"
 .IP use-lmtp
-controls whether the
+controls whether
 .BR smtpd (8)
 should accept mail via LMTP (RFC 2033). The default is
 .IR enabled .
@@ -246,14 +242,14 @@ should connect. The default is
 You may use an IPv4 or IPv6 address, or the fully-qualified path to a
 Unix socket.
 .IP lmtp-port
-specifies which port the
+specifies which port
 .BR smtpd (8)
 should listen to, and which port
 .BR deliver (8)
 should connect to. The default is
 .IR 2026 .
 .IP use-smtp
-controls whether the
+controls whether
 .BR smtpd (8)
 should accept mail via SMTP/ESMTP (RFC 2821/1869). SMTP is
 .I disabled
@@ -264,15 +260,10 @@ specifies the address where
 should listen for SMTP connections The default is an empty string,
 which means all available IPv4 and IPv6 interfaces.
 .IP smtp-port
-specifies which port the
+specifies which port
 .BR smtpd (8)
 should listen to. The default is
-.I 25
-(but since
-.I use-smtp
-is normally disabled,
-.I smtp-port
-is unused.)
+.IR 25 .
 .IP message-copy
 specifies whether or not to keep filesystem copies of incoming
 messages, e.g. to burn a mail log to CD/DVD regularly.
@@ -316,49 +307,59 @@ The file's name is a unique string of numbers and hyphens. It ends with
 must be enabled for
 .BR imapd (8)
 to accept IMAP connections. The default is
-.I true .
+.IR true .
 .IP imap-address
-is the address where the IMAP server listens for new connections. The
+is the address where
+.BR imapd (8)
+listens for new connections. The
 default, an empty string, means to listen on all available IPv4 and
 IPv6 addresses.
 .IP imap-port
-is the port where the IMAP server accepts connections,
+is the port where 
+.BR imapd (8)
+accepts connections,
 .I 143
 by default.
 .IP use-imaps
-is enabled if the IMAP server should also accept SSL-wrapped
-connections. The default is
-.I false .
+is enabled if
+.BR imapd (8)
+should also accept SSL-wrapped connections. The default is
+.IR false .
 .IP imaps-address
-is the address where the IMAP server listens for new SSL-wrapped
-connections. As for
+is the address where
+.BR imapd (8)
+listens for new SSL-wrapped connections. As for
 .IR imap-address ,
 the default is an empty string, which means all available IPv4 and
 IPv6 addresses.
 .IP imaps-port
-is the port where the IMAP server accepts SSL-wrapped connections,
+is the port where
+.BR imapd (8)
+accepts SSL-wrapped connections,
 .I 993
 by default.
 .IP announce-draft-support
 is enabled if the IMAP server should advertise support for
-drafts. Oryx tracks the draft versions of several IMAP extensions
-etc. Currently the default is
-.IR enabled .
-In version 1.0, the default will change to
-.IR disabled ,
-since these drafts can change without notice and 1.0 cannot.
+drafts. Oryx tracks the draft versions of several IMAP extensions.
+The default is
+.IR disabled 
+since version 1.0, since these drafts can change without notice, and 1.0
+cannot.
 .SS POP
 .IP use-pop
 must be enabled for
 .BR pop3d (8)
 to accept POP3 connections. The default is
-.I false .
+.IR false .
 .IP pop-address
-is the address where the POP server listens for new connections. The
-default, an empty string, means to listen on all available IPv4 and
-IPv6 addresses.
+is the address where
+.BR pop3d (8)
+listens for new connections. The default, an empty string, means to
+listen on all available IPv4 and IPv6 addresses.
 .IP pop-port
-is the port where the POP server accepts connections,
+is the port where
+.BR pop3d (8)
+accepts connections,
 .I 110
 by default.
 .SS HTTP
@@ -367,16 +368,20 @@ decides whether Mailstore offers HTTP service at all, and is
 .I no
 by default.
 .IP http-address
-is the address where the HTTP server listens for new connections. The
-default, an empty string, means to listen on all available IPv4 and
-IPv6 addresses.
+is the address where
+.BR httpd (8)
+listens for new connections. The default, an empty string, means to
+listen on all available IPv4 and IPv6 addresses.
 .IP http-port
-is the port where the HTTP server accepts connections,
+is the port where
+.BR httpd (8)
+accepts connections,
 .I 8808
 by default.
 .IP accept-any-http-host
-decides whether the HTTP server accepts any hostname supplied
-by the server, and is
+decides whether
+.BR httpd (8)
+accepts any hostname supplied by the server, and is
 .I enabled
 by default. Properly speaking, it would be better to disable this, but
 that would add complexity without giving anything in return.
@@ -394,11 +399,14 @@ is not specified, tlsproxy generates a private key and a self-signed
 certificate at runtime and stores both in
 .IR $CONFIGDIR/automatic-key.p15 .
 .IP tlsproxy-address
-is the address where the tlsproxy listens for new connections. The
-default is
+is the address where
+.BR tlsproxy (8)
+listens for new connections. The default is
 .IR 127.0.0.1 .
 .IP tlsproxy-port
-is the port where the tlsproxy accepts connections,
+is the port where
+.BR tlsproxy (8)
+accepts connections,
 .I 2061
 by default.
 .SH SYNTAX
@@ -433,7 +441,7 @@ Toggles are written as a single word.
 .IR Yes ,
 .IR true ,
 .IR on ,
-.I 1
+.IR 1 ,
 and
 .I enabled
 all
@@ -441,7 +449,7 @@ mean that the toggle is enabled, while
 .IR no ,
 .IR false ,
 .IR off ,
-.I 0
+.IR 0 ,
 and
 .I disabled
 unsurprisingly mean disabled. Toggles are case-insensitive.
@@ -458,8 +466,6 @@ after the value. Comments extend from '#' to the end of the line.
 hostname=stuff.nonsense.example.com # also a comment
 .br
  logfile    =   /dev/null# and this is a comment
-.br
-p
 .br
 # empty lines are ignored
 .SH AUTHOR
