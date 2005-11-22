@@ -56,18 +56,21 @@ void Delete::execute()
             error( No, "Cannot delete INBOX" );
         if ( !ok() )
             return;
-    }
-
-    if ( ok() && !d->p ) {
         d->p = new Permissions( d->m, imap()->user(), this );
-        if ( !d->p->allowed( Permissions::DeleteMailbox ) ||
-             !d->p->allowed( Permissions::DeleteMessages ) ||
-             !d->p->allowed( Permissions::Expunge ) )
-            error( No, "Not allowed to delete mailbox " + d->m->name() );
-        // XXX should make this more fine-grained. and there's a
-        // race with APPEND/COPY too.
     }
 
+    if ( !d->p->ready() )
+        return;
+
+    if ( !d->p->allowed( Permissions::DeleteMailbox ) ||
+         !d->p->allowed( Permissions::DeleteMessages ) ||
+         !d->p->allowed( Permissions::Expunge ) )
+    {
+        // XXX should make this more fine-grained. and there's a
+        // race with APPEND/COPY too. (See notes.)
+        error( No, "Not allowed to delete mailbox " + d->m->name() );
+        return;
+    }
 
     // the database will check that m isn't someone's inbox
 
