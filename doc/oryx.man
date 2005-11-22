@@ -19,13 +19,13 @@ We think the need to manage and use large archives of electronic mail
 constitutes one such niche.
 .SH "CONTACT DETAILS"
 We prefer communication by email, to info@oryx.com. Faxes may be sent to
-+49 89 32356409, and paper mail to
++49 89 45029758, and paper mail to
 .IP
 Oryx Mail Systems GmbH
 .br
-Joseph-Dollinger-Bogen 14
+Schweppermannstr. 8
 .br
-D-80807 Munich
+D-81671 Munich
 .br
 Germany
 .SH "PRODUCTS AND SERVICES"
