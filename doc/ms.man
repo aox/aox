@@ -4,6 +4,18 @@
 ms - management tool for Oryx Mailstore.
 .SH SYNOPSIS
 .B $BINDIR/ms
+.I verb
+.I noun
+[
+.I options
+] [
+.I arguments
+]
+.PP
+.B ms help commands
+.PP
+.B ms help
+.I command
 .SH DESCRIPTION
 .nh
 .PP
@@ -15,34 +27,106 @@ Examples of such tasks are adding users, changing the access control
 for mailboxes, etc. In principle, everything one would want to do
 using a shell script should be doable using
 .BR ms .
-Both
-.B ms
+.SH COMMANDS
+.IP "ms start [-v]"
+Starts the Oryx servers in the correct order.
+.IP "ms stop [-v]"
+Stops the running Oryx servers in the correct order.
+.IP "ms restart [-v]"
+Restarts the servers in the correct order (currently equivalent to start
+&& stop).
+.IP "ms show status [-v]"
+Displays a summary of the running Oryx servers.
+.IP "ms show configuration [-p -v] [variable-name]"
+Displays variables configured in
+.IR mailstore.conf .
+.IP
+If a
+.I variable-name
+is specified, only that variable is displayed.
+.IP
+The -v flag displays only the value of the variable.
+.IP
+The -p flag restricts the results to variables whose value has been
+changed from the default.
+.IP
+.I configuration
+may be abbreviated as
+.IR cf .
+.IP "ms show build"
+Displays the build settings used for this installation (as configured
+in Jamsettings).
+.IP "ms show counts"
+Displays the number of rows in the most important tables, as well as the
+total size of the mail stored.
+.IP "ms show schema"
+Displays the revision of the existing database schema.
+.IP "ms upgrade schema"
+Checks that the database schema is one that this version of Mailstore is
+compatible with, and updates it if needed.
+.IP "ms list mailboxes [-d] [-o username] [pattern]"
+Displays a list of mailboxes matching the specified shell glob pattern.
+Without a pattern, all mailboxes are listed.
+.IP
+The -d flag includes deleted mailboxes in the list.
+.IP
+The "-o username" flag restricts the list to mailboxes owned by the
+specified user.
+.IP
+The -s flag shows a count of messages and the total size of the messages
+in each mailbox.
+.IP
+.I ls
+is an acceptable abbreviation for
+.IR list .
+.IP "ms list users [pattern]"
+Displays a list of users matching the specified shell glob pattern.
+Without a pattern, all users are listed.
+.IP "ms create user <username> <password> <email-address>"
+Creates a new Mailstore user with the specified username, password, and
+email address.
+.IP
+.I add
 and
-.BR msconsole (8)
-are expected to grow a great many features during Mailstore's beta phase.
-.PP
-For the moment, the command-line grammar for
-.ms
-is entirely ad-hoc.
-.BI "ms help command"
-gives help for each command.
-.B "ms help commands"
-lists all commands.
+.I new
+are acceptable abbreviations for
+.IR create .
+.IP "ms delete user <username>"
+Deletes the specified Mailstore user.
+.IP
+.I del
+and
+.I remove
+are acceptable abbreviations for
+.IR delete .
+.IP "ms change password <username> <new-password>"
+Changes the specified user's password.
+.IP "ms create mailbox <name> [username]"
+Creates a new mailbox with the specified name and, if a username is
+specified, owned by that user.
+.IP "ms delete mailbox <name>"
+Deletes the specified mailbox.
+.IP "ms vacuum [-b]"
+VACUUMs the database and (optionally) cleans up bodyparts that are no
+longer in use by any message (as a result of messages being deleted).
+.IP
+The -b flag causes orphaned bodyparts to be cleaned up, which requires
+an exclusive lock on the mailboxes table (i.e., messages cannot be
+injected until it is done).
+.IP
+This command should be run via crontab.
+.IP "ms anonymise <file>"
+Reads a mail message from the named file, obscures most or all content
+and prints the result on stdout. The output resembles the original
+closely enough to be used in a bug report.
 .SH OPTIONS
-At present there no command-line switches.
-.B
-ms
-derives its entire configuration from
-.IR mailstore.conf (5).
+The -v flag enables (slightly) more verbose diagnostic output wherever
+it is supported (see the descriptions of each command above).
 .SH EXAMPLES
 To add a user called "nirmala", whose password is "angstskrik" and
 whose main email address is "nirmala@example.com":
 .IP
 ms create user nirmala angstskrik nirmala@example.com
-.PP
-To change Nirmala's email address to nirmala@eksempel.no:
-.IP
-ms rename user nirmala nirmala@eksempel.no
 .PP
 To change Nirmala's password to "temmelig hemmelig":
 .IP
