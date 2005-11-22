@@ -1,0 +1,75 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH installer 8 2005-12-12 www.oryx.com "Mailstore Documentation"
+.SH NAME
+installer - Oryx Mailstore installer.
+.SH SYNOPSIS
+.B $LIBDIR/installer
+[
+.I -n
+] [
+.I -q
+] ...
+.SH DESCRIPTION
+.nh
+.PP
+This program does the following:
+.IP 1. 3
+Creates a Unix group named $ORYXGROUP.
+.IP 2. 3
+Creates a Unix user named $ORYXUSER.
+.IP 3. 3
+Creates a Postgres user named $DBUSER.
+.IP 4. 3
+Creates a Postgres database named $DBNAME owned by $DBUSER.
+.IP 5. 3
+Loads the Oryx database schema.
+.IP 6. 3
+Generates an initial configuration file.
+.PP
+.B installer
+should be run after
+.I "jam install" 
+when installing from source.
+.SH OPTIONS
+.IP -q 4
+Suppresses all normal output.
+.IP -n 4
+Causes the program to report what it would do, but not actually do
+anything.
+.IP "-g group" 4
+Allows you to specify a Unix group other than the default of $ORYXGROUP.
+.IP "-u user" 4
+Allows you to specify a Unix username other than the default of
+$ORYXUSER.
+.IP "-p postgres" 4
+Allows you to specify the name of the PostgreSQL superuser. The default
+is $PGUSER.
+.IP "-a address" 4
+Allows you to specify a different address for the Postgres server. The
+default is $DBADDRESS.
+.PP
+The defaults come from
+.IR Jamsettings .
+.SH DIAGNOSTICS
+The return code is zero if all goes well, and a non-zero in case of
+errors.
+.PP
+Diagnostics are logged using Mailstore's
+.BR logd (8),
+just like the servers do. Disasters are also logged via stderr.
+.SH AUTHOR
+The Oryx Mailstore developers, info@oryx.com.
+.SH VERSION
+This man page covers Oryx Mailstore version 1.01, released 2005-12-12,
+http://www.oryx.com/mailstore/1.01.html.
+.SH SEE ALSO
+.BR mailstore (7),
+.BR mailstore.conf (5),
+.BR imapd (8),
+.BR logd (8),
+.BR ocd (8),
+.BR pop3d (8),
+.BR smtpd (8),
+.BR tlsproxy (8),
+.BR oryx (7),
+http://www.oryx.com/mailstore/
