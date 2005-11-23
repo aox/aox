@@ -12,7 +12,7 @@ class PopCommand
 {
 public:
     enum Command {
-        Quit
+        Quit, Capa, Noop
     };
 
     PopCommand( class POP *, Command );

@@ -125,7 +125,7 @@ void POP::parse()
 
         int n = s->find( ' ' );
         if ( n < 0 ) {
-            cmd = *s;
+            cmd = s->lower();
         }
         else {
             cmd = s->mid( 0, n ).lower();
@@ -134,7 +134,7 @@ void POP::parse()
 
         bool unknown = false;
 
-        if ( d->sawUser && ( cmd != "quit" && cmd != "pass" ) ) {
+        if ( d->sawUser && !( cmd == "quit" || cmd == "pass" ) ) {
             d->sawUser = false;
             unknown = true;
         }
@@ -142,14 +142,7 @@ void POP::parse()
             newCommand( d->commands, this, PopCommand::Quit );
         }
         else if ( cmd == "capa" && args.isEmpty() ) {
-            // We make no attempt here to use the capabilities defined
-            // in imapd/handlers/capability.cpp.
-            ok( "Supported capabilities:" );
-            enqueue( "USER\r\n" );
-            enqueue( "RESP-CODES\r\n" );
-            enqueue( "PIPELINING\r\n" );
-            enqueue( "IMPLEMENTATION Oryx POP3 Server.\r\n" );
-            enqueue( ".\r\n" );
+            newCommand( d->commands, this, PopCommand::Capa );
         }
         else if ( d->state == Authorization ) {
             if ( cmd == "user" && !args.isEmpty() ) {
@@ -168,7 +161,7 @@ void POP::parse()
         }
         else if ( d->state == Transaction ) {
             if ( cmd == "noop" && args.isEmpty() ) {
-                ok( "Done." );
+                newCommand( d->commands, this, PopCommand::Noop );
             }
             else {
                 unknown = true;
@@ -180,7 +173,6 @@ void POP::parse()
 
         if ( unknown )
             err( "Bad command." );
-
 
         runCommands();
     }

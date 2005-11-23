@@ -44,6 +44,7 @@ PopCommand::PopCommand( POP * pop, Command cmd )
 void PopCommand::finish()
 {
     d->done = true;
+    d->pop->write();
     d->pop->runCommands();
 }
 
@@ -66,6 +67,19 @@ void PopCommand::execute()
         log( "Closing connection due to QUIT command", Log::Debug );
         d->pop->setState( POP::Update );
         d->pop->ok( "Goodbye" );
+        break;
+
+    case Capa:
+        d->pop->ok( "Supported capabilities:" );
+        d->pop->enqueue( "USER\r\n" );
+        d->pop->enqueue( "RESP-CODES\r\n" );
+        d->pop->enqueue( "PIPELINING\r\n" );
+        d->pop->enqueue( "IMPLEMENTATION Oryx POP3 Server.\r\n" );
+        d->pop->enqueue( ".\r\n" );
+        break;
+
+    case Noop:
+        d->pop->ok( "Done" );
         break;
     }
 
