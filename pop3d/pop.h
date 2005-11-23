@@ -29,7 +29,12 @@ public:
     void ok( const String & );
     void err( const String & );
 
-    void reserve( int );
+    void setReserved( bool );
+    void setReader( class PopCommand * );
+
+    bool supports( const String & ) const;
+
+    static void setup();
 
 private:
     class PopData *d;

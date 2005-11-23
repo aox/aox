@@ -17,6 +17,7 @@ public:
 
     PopCommand( class POP *, Command, class StringList * );
 
+    void read();
     void execute();
     void finish();
     bool done();
@@ -26,6 +27,7 @@ private:
 
     String nextArg();
     bool startTls();
+    bool auth();
     bool pass();
 };
 

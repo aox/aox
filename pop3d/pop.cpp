@@ -8,6 +8,7 @@
 #include "eventloop.h"
 #include "popcommand.h"
 #include "stringlist.h"
+#include "configuration.h"
 
 
 class PopData
@@ -16,7 +17,8 @@ class PopData
 public:
     PopData()
         : state( POP::Authorization ), sawUser( false ),
-          commands( new List< PopCommand > ), reader( 0 )
+          commands( new List< PopCommand > ), reader( 0 ),
+          reserved( false )
     {}
 
     POP::State state;
@@ -26,8 +28,16 @@ public:
     String pass;
 
     List< PopCommand > * commands;
-    int reader;
+    PopCommand * reader;
+    bool reserved;
 };
+
+
+static bool allowPlaintext = true;
+static bool supportsPlain = true;
+static bool supportsCramMd5 = true;
+static bool supportsDigestMd5 = true;
+static bool supportsAnonymous = true;
 
 
 static void newCommand( List< PopCommand > *, POP *,
@@ -113,70 +123,75 @@ void POP::parse()
     Buffer *b = readBuffer();
 
     while ( b->size() > 0 ) {
-        if ( d->reader )
-            break;
+        if ( !d->reader ) {
+            if ( d->reserved )
+                break;
 
-        String *s = b->removeLine( 255 );
+            String *s = b->removeLine( 255 );
 
-        if ( !s ) {
-            log( "Connection closed due to overlong line (" +
-                 fn( b->size() ) + " bytes)", Log::Error );
-            err( "Line too long. Closing connection." );
-            Connection::setState( Closing );
-            return;
-        }
-
-        bool unknown = false;
-
-        StringList * args = StringList::split( ' ', *s );
-        String cmd = args->take( args->first() )->lower();
-
-        if ( d->sawUser && !( cmd == "quit" || cmd == "pass" ) ) {
-            d->sawUser = false;
-            unknown = true;
-        }
-        else if ( cmd == "quit" && args->isEmpty() ) {
-            newCommand( d->commands, this, PopCommand::Quit );
-        }
-        else if ( cmd == "capa" && args->isEmpty() ) {
-            newCommand( d->commands, this, PopCommand::Capa );
-        }
-        else if ( d->state == Authorization ) {
-            if ( cmd == "stls" ) {
-                if ( hasTls() )
-                    err( "Nested STLS" );
-                else
-                    newCommand( d->commands, this, PopCommand::Stls );
+            if ( !s ) {
+                log( "Connection closed due to overlong line (" +
+                     fn( b->size() ) + " bytes)", Log::Error );
+                err( "Line too long. Closing connection." );
+                Connection::setState( Closing );
+                return;
             }
-            else if ( cmd == "auth" ) {
-                newCommand( d->commands, this, PopCommand::Auth, args );
-            }
-            else if ( cmd == "user" && args->count() == 1 ) {
-                d->sawUser = true;
-                newCommand( d->commands, this, PopCommand::User, args );
-            }
-            else if ( d->sawUser && cmd == "pass" && args->count() == 1 ) {
+
+            bool unknown = false;
+
+            StringList * args = StringList::split( ' ', *s );
+            String cmd = args->take( args->first() )->lower();
+
+            if ( d->sawUser && !( cmd == "quit" || cmd == "pass" ) ) {
                 d->sawUser = false;
-                newCommand( d->commands, this, PopCommand::Pass, args );
+                unknown = true;
+            }
+            else if ( cmd == "quit" && args->isEmpty() ) {
+                newCommand( d->commands, this, PopCommand::Quit );
+            }
+            else if ( cmd == "capa" && args->isEmpty() ) {
+                newCommand( d->commands, this, PopCommand::Capa );
+            }
+            else if ( d->state == Authorization ) {
+                if ( cmd == "stls" ) {
+                    if ( hasTls() )
+                        err( "Nested STLS" );
+                    else
+                        newCommand( d->commands, this, PopCommand::Stls );
+                }
+                else if ( cmd == "auth" ) {
+                    newCommand( d->commands, this, PopCommand::Auth, args );
+                }
+                else if ( cmd == "user" && args->count() == 1 ) {
+                    d->sawUser = true;
+                    newCommand( d->commands, this, PopCommand::User, args );
+                }
+                else if ( d->sawUser && cmd == "pass" && args->count() == 1 ) {
+                    d->sawUser = false;
+                    newCommand( d->commands, this, PopCommand::Pass, args );
+                }
+                else {
+                    unknown = true;
+                }
+            }
+            else if ( d->state == Transaction ) {
+                if ( cmd == "noop" && args->isEmpty() ) {
+                    newCommand( d->commands, this, PopCommand::Noop );
+                }
+                else {
+                    unknown = true;
+                }
             }
             else {
                 unknown = true;
             }
-        }
-        else if ( d->state == Transaction ) {
-            if ( cmd == "noop" && args->isEmpty() ) {
-                newCommand( d->commands, this, PopCommand::Noop );
-            }
-            else {
-                unknown = true;
-            }
+
+            if ( unknown )
+                err( "Bad command." );
         }
         else {
-            unknown = true;
+            d->reader->read();
         }
-
-        if ( unknown )
-            err( "Bad command." );
 
         runCommands();
     }
@@ -249,10 +264,79 @@ String POP::user() const
 }
 
 
-/*! ...
+/*! Reserves the input stream to inhibit parsing if \a r is true. If
+    \a r is false, then the server processes input as usual. Used by
+    STLS to inhibit parsing.
 */
 
-void POP::reserve( int i )
+void POP::setReserved( bool r )
 {
-    d->reader = i;
+    d->reserved = r;
+}
+
+
+/*! Reserves the input stream for processing by \a cmd, which may be 0
+    to indicate that the input should be processed as usual. Used by
+    AUTH to parse non-command input.
+*/
+
+void POP::setReader( PopCommand * cmd )
+{
+    d->reader = cmd;
+    d->reserved = d->reader;
+}
+
+
+/*! Returns true only if this POP server supports the authentication
+    mechanism named \a s (which must be in lowercase).
+
+    XXX: This is copied from IMAP. What to do about the duplication?
+*/
+
+bool POP::supports( const String &s ) const
+{
+    if ( ::supportsDigestMd5 && s == "digest-md5" )
+        return true;
+
+    if ( ::supportsCramMd5 && s == "cram-md5" )
+        return true;
+
+    if ( ::allowPlaintext || hasTls() ) {
+        if ( ::supportsPlain && s == "plain" )
+            return true;
+        if ( ::supportsAnonymous && s == "anonymous" )
+            return true;
+        if ( s == "login" )
+            return true;
+    }
+
+    return false;
+}
+
+
+/*! This setup function expects to be called from ::main().
+
+    It reads and validates any relevant configuration variables, and
+    logs a disaster if it encounters an error.
+*/
+
+void POP::setup()
+{
+    ::supportsPlain = Configuration::toggle( Configuration::AuthPlain );
+    ::supportsCramMd5 =
+          Configuration::toggle( Configuration::AuthCramMd5 );
+    ::supportsDigestMd5 =
+          Configuration::toggle( Configuration::AuthDigestMd5 );
+    ::supportsAnonymous =
+          Configuration::toggle( Configuration::AuthAnonymous );
+
+    String s =
+        Configuration::text( Configuration::AllowPlaintextPasswords ).lower();
+    if ( s == "always" )
+        ::allowPlaintext = true;
+    else if ( s == "never" )
+        ::allowPlaintext = false;
+    else
+        ::log( "Unknown value for allow-plaintext-passwords: " + s,
+               Log::Disaster );
 }

@@ -5,6 +5,7 @@
 #include "tls.h"
 #include "plain.h"
 #include "query.h"
+#include "buffer.h"
 #include "mechanism.h"
 #include "stringlist.h"
 
@@ -15,7 +16,7 @@ class PopCommandData
 public:
     PopCommandData()
         : pop( 0 ), args( 0 ), done( false ),
-          tlsServer( 0 ), m( 0 ), q( 0 )
+          tlsServer( 0 ), m( 0 ), q( 0 ), r( 0 )
     {}
 
     POP * pop;
@@ -27,6 +28,7 @@ public:
     TlsServer * tlsServer;
     SaslMechanism * m;
     Query * q;
+    String * r;
 };
 
 
@@ -74,6 +76,16 @@ bool PopCommand::done()
 }
 
 
+/*! Tries to read a single response line from the client. Upon return,
+    d->r points to the response, or is 0 if no response could be read.
+*/
+
+void PopCommand::read()
+{
+    d->r = d->pop->readBuffer()->removeLine();
+}
+
+
 void PopCommand::execute()
 {
     switch ( d->cmd ) {
@@ -102,7 +114,8 @@ void PopCommand::execute()
         break;
 
     case Auth:
-        d->pop->err( "Unimplemented." );
+        if ( !auth() )
+            return;
         break;
 
     case User:
@@ -130,16 +143,83 @@ bool PopCommand::startTls()
 {
     if ( !d->tlsServer ) {
         d->tlsServer = new TlsServer( this, d->pop->peer(), "POP" );
-        d->pop->reserve( 1 );
+        d->pop->setReserved( true );
     }
 
     if ( !d->tlsServer->done() )
         return false;
 
     d->pop->ok( "Begin TLS negotiation." );
-    d->pop->reserve( 0 );
+    d->pop->setReserved( false );
     d->pop->write();
     d->pop->startTls( d->tlsServer );
+
+    return true;
+}
+
+
+/*! Handles the AUTH command. */
+
+bool PopCommand::auth()
+{
+    if ( !d->m ) {
+        String t = nextArg().lower();
+        if ( d->pop->supports( t ) )
+            d->m = SaslMechanism::create( t, this );
+        if ( !d->m ) {
+            d->pop->err( "SASL mechanism " + t + " not supported." );
+            return true;
+        }
+        d->pop->setReader( this );
+
+        String r = nextArg();
+        if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
+            if ( !r.isEmpty() )
+                d->m->readResponse( d->r->de64() );
+            else
+                d->m->setState( SaslMechanism::IssuingChallenge );
+        }
+    }
+
+    // This code is essentially a copy of imapd/handlers/authenticate.
+    // I'll think about how to avoid the duplication later.
+    while ( !d->m->done() ) {
+        if ( d->m->state() == SaslMechanism::IssuingChallenge ) {
+            String c = d->m->challenge().e64();
+
+            if ( !d->m->done() ) {
+                d->pop->enqueue( "+ "+ c +"\r\n" );
+                d->m->setState( SaslMechanism::AwaitingResponse );
+                d->r = 0;
+                return false;
+            }
+        }
+        else if ( d->m->state() == SaslMechanism::AwaitingResponse && d->r ) {
+            if ( *d->r == "*" ) {
+                d->pop->err( "Authentication terminated" );
+                d->pop->setReader( 0 );
+                return true;
+            }
+            d->m->readResponse( d->r->de64() );
+            d->r = 0;
+        }
+
+        if ( !d->m->done() ) {
+            d->m->query();
+            if ( d->m->state() == SaslMechanism::Authenticating )
+                return false;
+        }
+    }
+
+    if ( d->m->state() == SaslMechanism::Succeeded ) {
+        d->pop->ok( "Authentication succeeded." );
+        d->pop->setState( POP::Transaction );
+    }
+    else {
+        d->pop->err( "Authentication failed." );
+    }
+
+    d->pop->setReader( 0 );
     return true;
 }
 

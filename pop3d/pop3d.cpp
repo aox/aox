@@ -44,6 +44,7 @@ int main( int argc, char * argv[] )
     AddressCache::setup();
     FieldNameCache::setup();
     Flag::setup();
+    POP::setup();
 
     s.run();
 }
