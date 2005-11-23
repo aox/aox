@@ -11,7 +11,11 @@ class PopCommand
     : public EventHandler
 {
 public:
-    PopCommand( POP * );
+    enum Command {
+        Quit
+    };
+
+    PopCommand( class POP *, Command );
 
     void execute();
     void finish();

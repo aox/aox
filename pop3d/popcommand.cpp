@@ -12,6 +12,7 @@ public:
     {}
 
     POP * pop;
+    PopCommand::Command cmd;
     bool done;
 };
 
@@ -23,12 +24,15 @@ public:
 */
 
 
-/*! Creates a new PopCommand object for the POP server \a pop. */
+/*! Creates a new PopCommand object representing the command \a cmd, for
+    the POP server \a pop.
+*/
 
-PopCommand::PopCommand( POP * pop )
+PopCommand::PopCommand( POP * pop, Command cmd )
     : d( new PopCommandData )
 {
     d->pop = pop;
+    d->cmd = cmd;
 }
 
 
@@ -57,4 +61,13 @@ bool PopCommand::done()
 
 void PopCommand::execute()
 {
+    switch ( d->cmd ) {
+    case Quit:
+        log( "Closing connection due to QUIT command", Log::Debug );
+        d->pop->setState( POP::Update );
+        d->pop->ok( "Goodbye" );
+        break;
+    }
+
+    finish();
 }

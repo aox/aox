@@ -28,6 +28,10 @@ public:
 };
 
 
+static void newCommand( List< PopCommand > *, POP *,
+                        PopCommand::Command );
+
+
 /*! \class POP3 pop.h
     This class implements a POP3 server.
 
@@ -135,9 +139,7 @@ void POP::parse()
             unknown = true;
         }
         else if ( cmd == "quit" && args.isEmpty() ) {
-            log( "Closing connection due to QUIT command", Log::Debug );
-            ok( "Goodbye" );
-            setState( Update );
+            newCommand( d->commands, this, PopCommand::Quit );
         }
         else if ( cmd == "capa" && args.isEmpty() ) {
             // We make no attempt here to use the capabilities defined
@@ -178,6 +180,9 @@ void POP::parse()
 
         if ( unknown )
             err( "Bad command." );
+
+
+        runCommands();
     }
 }
 
@@ -217,4 +222,11 @@ void POP::runCommands()
         d->commands->take( it );
     if ( it )
         it->execute();
+}
+
+
+static void newCommand( List< PopCommand > * l, POP * pop,
+                        PopCommand::Command cmd )
+{
+    l->append( new PopCommand( pop, cmd ) );
 }

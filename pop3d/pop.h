@@ -23,11 +23,11 @@ public:
 
     void runCommands();
 
-private:
-    class PopData *d;
-
     void ok( const String & );
     void err( const String & );
+
+private:
+    class PopData *d;
 };
 
 
