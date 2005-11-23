@@ -1,6 +1,6 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "pop3.h"
+#include "pop.h"
 
 #include "string.h"
 #include "buffer.h"
@@ -13,10 +13,10 @@ class PopData
 {
 public:
     PopData()
-        : state( POP3::Authorization ), sawUser( false )
+        : state( POP::Authorization ), sawUser( false )
     {}
 
-    POP3::State state;
+    POP::State state;
 
     bool sawUser;
     String user;
@@ -24,7 +24,7 @@ public:
 };
 
 
-/*! \class POP3 pop3.h
+/*! \class POP3 pop.h
     This class implements a POP3 server.
 
     The Post Office Protocol is defined by RFC 1939, and updated by RFCs
@@ -36,7 +36,7 @@ public:
 /*! Creates a POP3 server for the fd \a s, and sends the initial banner.
 */
 
-POP3::POP3( int s )
+POP::POP( int s )
     : Connection( s, Connection::Pop3Server ),
       d( new PopData )
 {
@@ -50,7 +50,7 @@ POP3::POP3( int s )
     Transaction, or Update (as defined in POP3::State).
 */
 
-void POP3::setState( State s )
+void POP::setState( State s )
 {
     d->state = s;
 }
@@ -58,13 +58,13 @@ void POP3::setState( State s )
 
 /*! Returns the server's current state. */
 
-POP3::State POP3::state() const
+POP::State POP::state() const
 {
     return d->state;
 }
 
 
-void POP3::react( Event e )
+void POP::react( Event e )
 {
     switch ( e ) {
     case Read:
@@ -98,7 +98,7 @@ void POP3::react( Event e )
 
 /*! Parses POP3 client commands. */
 
-void POP3::parse()
+void POP::parse()
 {
     Buffer *b = readBuffer();
 
@@ -180,7 +180,7 @@ void POP3::parse()
 
 /*! Sends \a s as a positive +OK response. */
 
-void POP3::ok( const String &s )
+void POP::ok( const String &s )
 {
     enqueue( "+OK " + s + "\r\n" );
 }
@@ -188,7 +188,7 @@ void POP3::ok( const String &s )
 
 /*! Sends \a s as a negative -ERR response. */
 
-void POP3::err( const String &s )
+void POP::err( const String &s )
 {
     enqueue( "-ERR " + s + "\r\n" );
 }

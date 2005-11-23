@@ -1,18 +1,18 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef POP3_H
-#define POP3_H
+#ifndef POP_H
+#define POP_H
 
 #include "connection.h"
 
 class String;
 
 
-class POP3
+class POP
     : public Connection
 {
 public:
-    POP3( int );
+    POP( int );
 
     enum State { Authorization, Transaction, Update };
     void setState( State );
