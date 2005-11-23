@@ -83,9 +83,13 @@ void PopCommand::execute()
 
     case Capa:
         d->pop->ok( "Supported capabilities:" );
+        // d->pop->enqueue( "TOP\r\n" );
+        // d->pop->enqueue( "SASL\r\n" );
+        // d->pop->enqueue( "STLS\r\n" );
         d->pop->enqueue( "USER\r\n" );
         d->pop->enqueue( "RESP-CODES\r\n" );
         d->pop->enqueue( "PIPELINING\r\n" );
+        // d->pop->enqueue( "UIDL\r\n" );
         d->pop->enqueue( "IMPLEMENTATION Oryx POP3 Server.\r\n" );
         d->pop->enqueue( ".\r\n" );
         break;
