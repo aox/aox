@@ -5,7 +5,9 @@
 
 #include "connection.h"
 
+class User;
 class String;
+class Session;
 
 
 class POP
@@ -18,8 +20,11 @@ public:
     void setState( State );
     State state() const;
 
-    void setUser( const String & );
-    String user() const;
+    void setUser( User * );
+    User * user() const;
+
+    void setSession( Session * );
+    Session * session() const;
 
     void parse();
     void react( Event );

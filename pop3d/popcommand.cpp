@@ -3,11 +3,15 @@
 #include "popcommand.h"
 
 #include "tls.h"
+#include "user.h"
 #include "plain.h"
 #include "query.h"
 #include "buffer.h"
+#include "session.h"
+#include "mailbox.h"
 #include "mechanism.h"
 #include "stringlist.h"
+#include "permissions.h"
 
 
 class PopCommandData
@@ -16,7 +20,9 @@ class PopCommandData
 public:
     PopCommandData()
         : pop( 0 ), args( 0 ), done( false ),
-          tlsServer( 0 ), m( 0 ), q( 0 ), r( 0 )
+          tlsServer( 0 ), m( 0 ), q( 0 ), r( 0 ),
+          user( 0 ), mailbox( 0 ), permissions( 0 ),
+          session( 0 )
     {}
 
     POP * pop;
@@ -29,6 +35,10 @@ public:
     SaslMechanism * m;
     Query * q;
     String * r;
+    User * user;
+    Mailbox * mailbox;
+    Permissions * permissions;
+    Session * session;
 };
 
 
@@ -119,12 +129,17 @@ void PopCommand::execute()
         break;
 
     case User:
-        d->pop->setUser( nextArg() );
-        d->pop->ok( "Send PASS." );
+        if ( !user() )
+            return;
         break;
 
     case Pass:
         if ( !pass() )
+            return;
+        break;
+
+    case Session:
+        if ( !session() )
             return;
         break;
 
@@ -217,7 +232,6 @@ bool PopCommand::auth()
         else if ( d->m->state() == SaslMechanism::AwaitingResponse && d->r ) {
             if ( *d->r == "*" ) {
                 d->pop->err( "Authentication terminated" );
-                d->pop->setReader( 0 );
                 return true;
             }
             d->m->readResponse( d->r->de64() );
@@ -232,14 +246,35 @@ bool PopCommand::auth()
     }
 
     if ( d->m->state() == SaslMechanism::Succeeded ) {
-        d->pop->ok( "Authentication succeeded." );
-        d->pop->setState( POP::Transaction );
-    }
-    else {
-        d->pop->err( "Authentication failed." );
+        d->pop->setReader( 0 );
+        d->cmd = Session;
+        return session();
     }
 
-    d->pop->setReader( 0 );
+    d->pop->err( "Authentication failed." );
+    return true;
+}
+
+
+/*! Handles the USER command. */
+
+bool PopCommand::user()
+{
+    if ( !d->user ) {
+        d->user = new ::User;
+        d->pop->setUser( d->user );
+        d->user->setLogin( nextArg() );
+        d->user->refresh( this );
+    }
+
+    if ( d->user->state() == User::Unverified )
+        return false;
+
+    if ( d->user->state() == User::Nonexistent )
+        d->pop->err( "No such user." );
+    else
+        d->pop->ok( "Done." );
+
     return true;
 }
 
@@ -250,7 +285,7 @@ bool PopCommand::pass()
 {
     if ( !d->m ) {
         d->m = new Plain( this );
-        d->m->setLogin( d->pop->user() );
+        d->m->setLogin( d->pop->user()->login() );
         d->m->setSecret( nextArg() );
     }
 
@@ -258,14 +293,53 @@ bool PopCommand::pass()
     if ( !d->m->done() )
         return false;
 
-    if ( d->m->state() == SaslMechanism::Succeeded ) {
-        d->pop->ok( "Authentication succeeded." );
-        d->pop->setState( POP::Transaction );
-    }
-    else {
-        d->pop->err( "Authentication failed." );
+    if ( d->m->state() == SaslMechanism::Succeeded )
+        return session();
+
+    d->pop->err( "Authentication failed." );
+    return true;
+}
+
+
+/*! Acquires a Session object for the POP server when it enters
+    Transaction state.
+*/
+
+bool PopCommand::session()
+{
+    if ( !d->mailbox ) {
+        d->mailbox = d->pop->user()->inbox();
+        d->permissions =
+            new Permissions( d->mailbox, d->pop->user(), this );
     }
 
+    if ( !d->permissions->ready() )
+        return false;
+
+    if ( !d->session ) {
+        if ( !d->permissions->allowed( Permissions::Read ) ) {
+            d->pop->err( "Insufficient privileges" );
+            return true;
+        }
+        else {
+            bool ro = true;
+            if ( d->permissions->allowed( Permissions::KeepSeen ) &&
+                 d->permissions->allowed( Permissions::DeleteMessages ) &&
+                 d->permissions->allowed( Permissions::Expunge ) )
+                ro = false;
+            d->session = new ::Session( d->mailbox, ro );
+            d->session->setPermissions( d->permissions );
+            d->pop->setSession( d->session );
+            d->session->refresh( this );
+        }
+    }
+
+    if ( !d->session->initialised() )
+        return false;
+
+    d->session->clearExpunged();
+    d->pop->setState( POP::Transaction );
+    d->pop->ok( "Done." );
     return true;
 }
 

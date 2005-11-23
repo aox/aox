@@ -3,8 +3,10 @@
 #include "pop.h"
 
 #include "log.h"
+#include "user.h"
 #include "string.h"
 #include "buffer.h"
+#include "session.h"
 #include "eventloop.h"
 #include "popcommand.h"
 #include "stringlist.h"
@@ -16,20 +18,20 @@ class PopData
 {
 public:
     PopData()
-        : state( POP::Authorization ), sawUser( false ),
+        : state( POP::Authorization ), sawUser( false ), user( 0 ),
           commands( new List< PopCommand > ), reader( 0 ),
-          reserved( false )
+          reserved( false ), session( 0 )
     {}
 
     POP::State state;
 
     bool sawUser;
-    String user;
-    String pass;
+    User * user;
 
     List< PopCommand > * commands;
     PopCommand * reader;
     bool reserved;
+    Session * session;
 };
 
 
@@ -226,6 +228,7 @@ void POP::ok( const String &s )
 void POP::err( const String &s )
 {
     enqueue( "-ERR " + s + "\r\n" );
+    setReader( 0 );
 }
 
 
@@ -259,13 +262,13 @@ static void newCommand( List< PopCommand > * l, POP * pop,
 }
 
 
-/*! Sets the current user of this POP server to \a s. Called upon
+/*! Sets the current user of this POP server to \a u. Called upon
     receipt of a valid USER command.
 */
 
-void POP::setUser( const String &s )
+void POP::setUser( User * u )
 {
-    d->user = s;
+    d->user = u;
 }
 
 
@@ -273,7 +276,7 @@ void POP::setUser( const String &s )
     setUser() has never been called upon receipt of a USER command.
 */
 
-String POP::user() const
+User * POP::user() const
 {
     return d->user;
 }
@@ -354,4 +357,22 @@ void POP::setup()
     else
         ::log( "Unknown value for allow-plaintext-passwords: " + s,
                Log::Disaster );
+}
+
+
+/*! Sets this POP server's Session object to \a s. */
+
+void POP::setSession( Session * s )
+{
+    d->session = s;
+}
+
+
+/*! Returns this POP server's Session object, or 0 if none has been
+    specified with setSession.
+*/
+
+Session * POP::session() const
+{
+    return d->session;
 }

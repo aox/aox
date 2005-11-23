@@ -13,7 +13,8 @@ class PopCommand
 public:
     enum Command {
         Quit, Capa, Noop, Stls, Auth, User, Pass,
-        Stat, List, Retr, Dele, Rset
+        Stat, List, Retr, Dele, Rset,
+        Session
     };
 
     PopCommand( class POP *, Command, class StringList * );
@@ -29,7 +30,9 @@ private:
     String nextArg();
     bool startTls();
     bool auth();
+    bool user();
     bool pass();
+    bool session();
 };
 
 
