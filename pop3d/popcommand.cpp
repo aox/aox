@@ -7,6 +7,7 @@
 #include "plain.h"
 #include "query.h"
 #include "buffer.h"
+#include "message.h"
 #include "session.h"
 #include "mailbox.h"
 #include "mechanism.h"
@@ -22,7 +23,7 @@ public:
         : pop( 0 ), args( 0 ), done( false ),
           tlsServer( 0 ), m( 0 ), q( 0 ), r( 0 ),
           user( 0 ), mailbox( 0 ), permissions( 0 ),
-          session( 0 )
+          session( 0 ), sentFetch( false ), started( false )
     {}
 
     POP * pop;
@@ -39,6 +40,9 @@ public:
     Mailbox * mailbox;
     Permissions * permissions;
     Session * session;
+    MessageSet set;
+    bool sentFetch;
+    bool started;
 };
 
 
@@ -102,11 +106,11 @@ void PopCommand::execute()
     case Quit:
         log( "Closing connection due to QUIT command", Log::Debug );
         d->pop->setState( POP::Update );
-        d->pop->ok( "Goodbye." );
+        d->pop->ok( "Goodbye" );
         break;
 
     case Capa:
-        d->pop->ok( "Supported capabilities:" );
+        d->pop->ok( "Capabilities:" );
         // d->pop->enqueue( "TOP\r\n" );
         d->pop->enqueue( "SASL\r\n" );
         d->pop->enqueue( "STLS\r\n" );
@@ -144,19 +148,21 @@ void PopCommand::execute()
         break;
 
     case Stat:
-        d->pop->ok( "0 0" );
+        if ( !stat() )
+            return;
         break;
 
     case List:
-        d->pop->err( "Unimplemented." );
+        if ( !list() )
+            return;
         break;
 
     case Retr:
-        d->pop->err( "Unimplemented." );
+        d->pop->err( "Unimplemented" );
         break;
 
     case Dele:
-        d->pop->err( "Unimplemented." );
+        d->pop->err( "Unimplemented" );
         break;
 
     case Noop:
@@ -184,7 +190,7 @@ bool PopCommand::startTls()
     if ( !d->tlsServer->done() )
         return false;
 
-    d->pop->ok( "Begin TLS negotiation." );
+    d->pop->ok( "Done" );
     d->pop->setReserved( false );
     d->pop->write();
     d->pop->startTls( d->tlsServer );
@@ -202,7 +208,7 @@ bool PopCommand::auth()
         if ( d->pop->supports( t ) )
             d->m = SaslMechanism::create( t, this );
         if ( !d->m ) {
-            d->pop->err( "SASL mechanism " + t + " not supported." );
+            d->pop->err( "SASL mechanism " + t + " not supported" );
             return true;
         }
         d->pop->setReader( this );
@@ -251,7 +257,7 @@ bool PopCommand::auth()
         return session();
     }
 
-    d->pop->err( "Authentication failed." );
+    d->pop->err( "Authentication failed" );
     return true;
 }
 
@@ -271,9 +277,9 @@ bool PopCommand::user()
         return false;
 
     if ( d->user->state() == User::Nonexistent )
-        d->pop->err( "No such user." );
+        d->pop->err( "No such user" );
     else
-        d->pop->ok( "Done." );
+        d->pop->ok( "Done" );
 
     return true;
 }
@@ -296,7 +302,7 @@ bool PopCommand::pass()
     if ( d->m->state() == SaslMechanism::Succeeded )
         return session();
 
-    d->pop->err( "Authentication failed." );
+    d->pop->err( "Authentication failed" );
     return true;
 }
 
@@ -339,7 +345,128 @@ bool PopCommand::session()
 
     d->session->clearExpunged();
     d->pop->setState( POP::Transaction );
-    d->pop->ok( "Done." );
+    d->pop->ok( "Done" );
+    return true;
+}
+
+
+/*! Handles the guts of the STAT/LIST data acquisition. If \a n is 0,
+    then all messages in the Session are considered. Otherwise, only
+    the size of message with the specified MSN is fetched.
+*/
+
+bool PopCommand::fetch822Size()
+{
+    ::Session * s = d->pop->session();
+
+    uint n = d->set.count();
+    while ( n >= 1 ) {
+        uint uid = d->set.value( n );
+        Message * m = s->mailbox()->message( uid );
+        if ( m && !m->hasTrivia() )
+            break;
+        n--;
+    }
+
+    if ( n == 0 )
+        return true;
+
+    if ( !d->sentFetch ) {
+        s->mailbox()->fetchTrivia( d->set, this );
+        d->sentFetch = true;
+    }
+
+    return false;
+}
+
+
+/*! Handles the STAT command. */
+
+bool PopCommand::stat()
+{
+    ::Session * s = d->pop->session();
+
+    if ( !d->started ) {
+        d->started = true;
+        uint n = s->count();
+        while ( n >= 1 ) {
+            d->set.add( s->uid( n ) );
+            n--;
+        }
+    }
+
+    if ( !fetch822Size() )
+        return false;
+
+    uint size = 0;
+    uint n = s->count();
+    while ( n >= 1 ) {
+        Message * m = s->mailbox()->message( s->uid( n ) );
+        if ( m )
+            size += m->rfc822Size();
+        n--;
+    }
+
+    d->pop->ok( fn( s->count() ) + " " + fn( size ) );
+    return true;
+}
+
+
+/*! Handles the LIST command. */
+
+bool PopCommand::list()
+{
+    ::Session * s = d->pop->session();
+
+    if ( !d->started ) {
+        d->started = true;
+
+        if ( d->args->count() == 0 ) {
+            uint n = s->count();
+            while ( n >= 1 ) {
+                d->set.add( s->uid( n ) );
+                n--;
+            }
+        }
+        else {
+            bool ok;
+            String arg = *d->args->first();
+            uint msn = arg.number( &ok );
+            if ( !ok || msn > s->count() ) {
+                d->pop->err( "Bad message number" );
+                return true;
+            }
+            d->set.add( s->uid( msn ) );
+        }
+    }
+
+    if ( !fetch822Size() )
+        return false;
+
+    if ( d->args->count() == 1 ) {
+        uint uid = d->set.smallest();
+        Message * m = s->mailbox()->message( uid );
+
+        if ( m )
+            d->pop->ok( fn( s->msn( uid ) ) + " " + 
+                        fn( m->rfc822Size() ) );
+        else
+            d->pop->err( "No such message" );
+    }
+    else {
+        uint i = 1;
+
+        d->pop->ok( "Done" );
+        while ( i <= d->set.count() ) {
+            uint uid = d->set.value( i );
+            Message * m = s->mailbox()->message( uid );
+            if ( m )
+                d->pop->enqueue( fn( s->msn( uid ) ) + " " + 
+                                 fn( m->rfc822Size() ) + "\r\n" );
+            i++;
+        }
+        d->pop->enqueue( ".\r\n" );
+    }
     return true;
 }
 

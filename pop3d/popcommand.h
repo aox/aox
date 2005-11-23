@@ -33,6 +33,9 @@ private:
     bool user();
     bool pass();
     bool session();
+    bool fetch822Size();
+    bool stat();
+    bool list();
 };
 
 

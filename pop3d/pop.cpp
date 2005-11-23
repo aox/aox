@@ -204,7 +204,7 @@ void POP::parse()
             }
 
             if ( unknown )
-                err( "Bad command." );
+                err( "Bad command" );
         }
         else {
             d->reader->read();
