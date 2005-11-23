@@ -5,7 +5,7 @@ SubInclude TOP sasl ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 
-Build pop : pop.cpp ;
+Build pop : pop.cpp popcommand.cpp ;
 Build pop3d : pop3d.cpp ;
 
 Server pop3d : pop3d pop database message server sasl mailbox core
