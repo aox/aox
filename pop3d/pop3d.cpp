@@ -32,5 +32,5 @@ int main( int argc, char * argv[] )
     Schema::check( &s );
     Flag::setup();
 
-    s.execute();
+    s.run();
 }
