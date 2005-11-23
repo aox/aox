@@ -10,9 +10,12 @@
 class PopCommand
     : public EventHandler
 {
-    PopCommand();
+public:
+    PopCommand( POP * );
 
     void execute();
+    void finish();
+    bool done();
 
 private:
     class PopCommandData * d;

@@ -2,10 +2,11 @@
 
 #include "pop.h"
 
+#include "log.h"
 #include "string.h"
 #include "buffer.h"
 #include "eventloop.h"
-#include "log.h"
+#include "popcommand.h"
 
 
 class PopData
@@ -13,7 +14,8 @@ class PopData
 {
 public:
     PopData()
-        : state( POP::Authorization ), sawUser( false )
+        : state( POP::Authorization ), sawUser( false ),
+          commands( new List< PopCommand > )
     {}
 
     POP::State state;
@@ -21,6 +23,8 @@ public:
     bool sawUser;
     String user;
     String pass;
+
+    List< PopCommand > * commands;
 };
 
 
@@ -191,4 +195,26 @@ void POP::ok( const String &s )
 void POP::err( const String &s )
 {
     enqueue( "-ERR " + s + "\r\n" );
+}
+
+
+/*! The POP server maintains a list of commands received from the
+    client and processes them one at a time in the order they were
+    received. This function executes the first command in the list,
+    or if the first command has completed, removes it and executes
+    the next one.
+
+    It should be called when a new command has been created (i.e.,
+    by POP::parse()) or when a running command finishes.
+*/
+
+void POP::runCommands()
+{
+    List< PopCommand >::Iterator it( d->commands );
+    if ( !it )
+        return;
+    if ( it->done() )
+        d->commands->take( it );
+    if ( it )
+        it->execute();
 }

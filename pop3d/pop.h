@@ -21,6 +21,8 @@ public:
     void parse();
     void react( Event );
 
+    void runCommands();
+
 private:
     class PopData *d;
 

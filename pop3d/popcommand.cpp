@@ -7,7 +7,12 @@ class PopCommandData
     : public Garbage
 {
 public:
-    PopCommandData() {}
+    PopCommandData()
+        : pop( 0 ), done( false )
+    {}
+
+    POP * pop;
+    bool done;
 };
 
 
@@ -18,11 +23,35 @@ public:
 */
 
 
-/*! Creates a new PopCommand object. */
+/*! Creates a new PopCommand object for the POP server \a pop. */
 
-PopCommand::PopCommand()
+PopCommand::PopCommand( POP * pop )
     : d( new PopCommandData )
 {
+    d->pop = pop;
+}
+
+
+/*! Marks this command as having finished execute()-ing. Any responses
+    are written to the client, and the POP server is instructed to move
+    on to processing the next command.
+*/
+
+void PopCommand::finish()
+{
+    d->done = true;
+    d->pop->runCommands();
+}
+
+
+/*! Returns true if this PopCommand has finished executing, and false if
+    execute() hasn't been called, or if it has work left to do. Once the
+    work is done, execute() calls finish() to signal completion.
+*/
+
+bool PopCommand::done()
+{
+    return d->done;
 }
 
 
