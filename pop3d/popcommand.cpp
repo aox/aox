@@ -128,7 +128,27 @@ void PopCommand::execute()
             return;
         break;
 
+    case Stat:
+        d->pop->ok( "0 0" );
+        break;
+
+    case List:
+        d->pop->err( "Unimplemented." );
+        break;
+
+    case Retr:
+        d->pop->err( "Unimplemented." );
+        break;
+
+    case Dele:
+        d->pop->err( "Unimplemented." );
+        break;
+
     case Noop:
+        d->pop->ok( "Done" );
+        break;
+
+    case Rset:
         d->pop->ok( "Done" );
         break;
     }

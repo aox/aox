@@ -12,7 +12,8 @@ class PopCommand
 {
 public:
     enum Command {
-        Quit, Capa, Noop, Stls, Auth, User, Pass
+        Quit, Capa, Noop, Stls, Auth, User, Pass,
+        Stat, List, Retr, Dele, Rset
     };
 
     PopCommand( class POP *, Command, class StringList * );

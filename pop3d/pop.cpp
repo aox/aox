@@ -175,8 +175,23 @@ void POP::parse()
                 }
             }
             else if ( d->state == Transaction ) {
-                if ( cmd == "noop" && args->isEmpty() ) {
+                if ( cmd == "stat" && args->isEmpty() ) {
+                    newCommand( d->commands, this, PopCommand::Stat );
+                }
+                else if ( cmd == "list" ) {
+                    newCommand( d->commands, this, PopCommand::List, args );
+                }
+                else if ( cmd == "retr" && args->count() == 1 ) {
+                    newCommand( d->commands, this, PopCommand::Retr, args );
+                }
+                else if ( cmd == "dele" && args->count() == 1 ) {
+                    newCommand( d->commands, this, PopCommand::Dele, args );
+                }
+                else if ( cmd == "noop" && args->isEmpty() ) {
                     newCommand( d->commands, this, PopCommand::Noop );
+                }
+                else if ( cmd == "rset" && args->isEmpty() ) {
+                    newCommand( d->commands, this, PopCommand::Rset );
                 }
                 else {
                     unknown = true;
