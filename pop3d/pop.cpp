@@ -7,6 +7,7 @@
 #include "buffer.h"
 #include "eventloop.h"
 #include "popcommand.h"
+#include "stringlist.h"
 
 
 class PopData
@@ -29,7 +30,7 @@ public:
 
 
 static void newCommand( List< PopCommand > *, POP *,
-                        PopCommand::Command );
+                        PopCommand::Command, StringList * = 0 );
 
 
 /*! \class POP3 pop.h
@@ -121,46 +122,36 @@ void POP::parse()
             return;
         }
 
-        String cmd, args;
-
-        int n = s->find( ' ' );
-        if ( n < 0 ) {
-            cmd = s->lower();
-        }
-        else {
-            cmd = s->mid( 0, n ).lower();
-            args = s->mid( n );
-        }
-
         bool unknown = false;
+
+        StringList * args = StringList::split( ' ', *s );
+        String cmd = args->take( args->first() )->lower();
 
         if ( d->sawUser && !( cmd == "quit" || cmd == "pass" ) ) {
             d->sawUser = false;
             unknown = true;
         }
-        else if ( cmd == "quit" && args.isEmpty() ) {
+        else if ( cmd == "quit" && args->isEmpty() ) {
             newCommand( d->commands, this, PopCommand::Quit );
         }
-        else if ( cmd == "capa" && args.isEmpty() ) {
+        else if ( cmd == "capa" && args->isEmpty() ) {
             newCommand( d->commands, this, PopCommand::Capa );
         }
         else if ( d->state == Authorization ) {
-            if ( cmd == "user" && !args.isEmpty() ) {
+            if ( cmd == "user" && args->count() == 1 ) {
                 d->sawUser = true;
-                d->user = args.mid( 1 );
-                ok( "Send PASS." );
+                newCommand( d->commands, this, PopCommand::User, args );
             }
-            else if ( d->sawUser && cmd == "pass" && !args.isEmpty() ) {
+            else if ( d->sawUser && cmd == "pass" && args->count() == 1 ) {
                 d->sawUser = false;
-                d->pass = args.mid( 1 );
-                err( "Authentication failed." );
+                newCommand( d->commands, this, PopCommand::Pass, args );
             }
             else {
                 unknown = true;
             }
         }
         else if ( d->state == Transaction ) {
-            if ( cmd == "noop" && args.isEmpty() ) {
+            if ( cmd == "noop" && args->isEmpty() ) {
                 newCommand( d->commands, this, PopCommand::Noop );
             }
             else {
@@ -218,7 +209,28 @@ void POP::runCommands()
 
 
 static void newCommand( List< PopCommand > * l, POP * pop,
-                        PopCommand::Command cmd )
+                        PopCommand::Command cmd,
+                        StringList * args )
 {
-    l->append( new PopCommand( pop, cmd ) );
+    l->append( new PopCommand( pop, cmd, args ) );
+}
+
+
+/*! Sets the current user of this POP server to \a s. Called upon
+    receipt of a valid USER command.
+*/
+
+void POP::setUser( const String &s )
+{
+    d->user = s;
+}
+
+
+/*! Returns the current user of this POP server, or an empty string if
+    setUser() has never been called upon receipt of a USER command.
+*/
+
+String POP::user() const
+{
+    return d->user;
 }

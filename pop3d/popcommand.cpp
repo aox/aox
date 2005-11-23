@@ -2,18 +2,29 @@
 
 #include "popcommand.h"
 
+#include "query.h"
+#include "plain.h"
+#include "mechanism.h"
+#include "stringlist.h"
+
 
 class PopCommandData
     : public Garbage
 {
 public:
     PopCommandData()
-        : pop( 0 ), done( false )
+        : pop( 0 ), args( 0 ), done( false ),
+          m( 0 ), q( 0 )
     {}
 
     POP * pop;
     PopCommand::Command cmd;
+    StringList * args;
+
     bool done;
+
+    SaslMechanism * m;
+    Query * q;
 };
 
 
@@ -28,11 +39,12 @@ public:
     the POP server \a pop.
 */
 
-PopCommand::PopCommand( POP * pop, Command cmd )
+PopCommand::PopCommand( POP * pop, Command cmd, StringList * args )
     : d( new PopCommandData )
 {
     d->pop = pop;
     d->cmd = cmd;
+    d->args = args;
 }
 
 
@@ -66,7 +78,7 @@ void PopCommand::execute()
     case Quit:
         log( "Closing connection due to QUIT command", Log::Debug );
         d->pop->setState( POP::Update );
-        d->pop->ok( "Goodbye" );
+        d->pop->ok( "Goodbye." );
         break;
 
     case Capa:
@@ -81,7 +93,57 @@ void PopCommand::execute()
     case Noop:
         d->pop->ok( "Done" );
         break;
+
+    case User:
+        d->pop->setUser( nextArg() );
+        d->pop->ok( "Send PASS." );
+        break;
+
+    case Pass:
+        if ( !pass() )
+            return;
+        break;
     }
 
     finish();
+}
+
+
+/*! Handles the PASS command. */
+
+bool PopCommand::pass()
+{
+    if ( !d->m ) {
+        d->m = new Plain( this );
+        d->m->setLogin( d->pop->user() );
+        d->m->setSecret( nextArg() );
+    }
+
+    d->m->query();
+    if ( !d->m->done() )
+        return false;
+
+    if ( d->m->state() == SaslMechanism::Succeeded ) {
+        d->pop->ok( "Authentication succeeded." );
+        d->pop->setState( POP::Transaction );
+    }
+    else {
+        d->pop->err( "Authentication failed." );
+    }
+
+    return true;
+}
+
+
+/*! This function returns the next argument supplied by the client for
+    this command, or an empty string if there are no more arguments.
+    (Should we assume that nextArg will never be called more times
+    than there are arguments? The POP parser does enforce this.)
+*/
+
+String PopCommand::nextArg()
+{
+    if ( d->args && !d->args->isEmpty() )
+        return *d->args->take( d->args->first() );
+    return "";
 }

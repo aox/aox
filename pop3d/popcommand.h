@@ -12,10 +12,10 @@ class PopCommand
 {
 public:
     enum Command {
-        Quit, Capa, Noop
+        Quit, Capa, Noop, User, Pass
     };
 
-    PopCommand( class POP *, Command );
+    PopCommand( class POP *, Command, class StringList * );
 
     void execute();
     void finish();
@@ -23,6 +23,9 @@ public:
 
 private:
     class PopCommandData * d;
+
+    String nextArg();
+    bool pass();
 };
 
 
