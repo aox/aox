@@ -29,6 +29,8 @@ public:
     void ok( const String & );
     void err( const String & );
 
+    void reserve( int );
+
 private:
     class PopData *d;
 };

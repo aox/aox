@@ -2,8 +2,9 @@
 
 #include "popcommand.h"
 
-#include "query.h"
+#include "tls.h"
 #include "plain.h"
+#include "query.h"
 #include "mechanism.h"
 #include "stringlist.h"
 
@@ -14,7 +15,7 @@ class PopCommandData
 public:
     PopCommandData()
         : pop( 0 ), args( 0 ), done( false ),
-          m( 0 ), q( 0 )
+          tlsServer( 0 ), m( 0 ), q( 0 )
     {}
 
     POP * pop;
@@ -23,6 +24,7 @@ public:
 
     bool done;
 
+    TlsServer * tlsServer;
     SaslMechanism * m;
     Query * q;
 };
@@ -84,8 +86,8 @@ void PopCommand::execute()
     case Capa:
         d->pop->ok( "Supported capabilities:" );
         // d->pop->enqueue( "TOP\r\n" );
-        // d->pop->enqueue( "SASL\r\n" );
-        // d->pop->enqueue( "STLS\r\n" );
+        d->pop->enqueue( "SASL\r\n" );
+        d->pop->enqueue( "STLS\r\n" );
         d->pop->enqueue( "USER\r\n" );
         d->pop->enqueue( "RESP-CODES\r\n" );
         d->pop->enqueue( "PIPELINING\r\n" );
@@ -94,8 +96,13 @@ void PopCommand::execute()
         d->pop->enqueue( ".\r\n" );
         break;
 
-    case Noop:
-        d->pop->ok( "Done" );
+    case Stls:
+        if ( !startTls() )
+            return;
+        break;
+
+    case Auth:
+        d->pop->err( "Unimplemented." );
         break;
 
     case User:
@@ -107,9 +114,33 @@ void PopCommand::execute()
         if ( !pass() )
             return;
         break;
+
+    case Noop:
+        d->pop->ok( "Done" );
+        break;
     }
 
     finish();
+}
+
+
+/*! Handles the STLS command. */
+
+bool PopCommand::startTls()
+{
+    if ( !d->tlsServer ) {
+        d->tlsServer = new TlsServer( this, d->pop->peer(), "POP" );
+        d->pop->reserve( 1 );
+    }
+
+    if ( !d->tlsServer->done() )
+        return false;
+
+    d->pop->ok( "Begin TLS negotiation." );
+    d->pop->reserve( 0 );
+    d->pop->write();
+    d->pop->startTls( d->tlsServer );
+    return true;
 }
 
 

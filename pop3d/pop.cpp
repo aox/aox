@@ -16,7 +16,7 @@ class PopData
 public:
     PopData()
         : state( POP::Authorization ), sawUser( false ),
-          commands( new List< PopCommand > )
+          commands( new List< PopCommand > ), reader( 0 )
     {}
 
     POP::State state;
@@ -26,6 +26,7 @@ public:
     String pass;
 
     List< PopCommand > * commands;
+    int reader;
 };
 
 
@@ -112,6 +113,9 @@ void POP::parse()
     Buffer *b = readBuffer();
 
     while ( b->size() > 0 ) {
+        if ( d->reader )
+            break;
+
         String *s = b->removeLine( 255 );
 
         if ( !s ) {
@@ -138,7 +142,16 @@ void POP::parse()
             newCommand( d->commands, this, PopCommand::Capa );
         }
         else if ( d->state == Authorization ) {
-            if ( cmd == "user" && args->count() == 1 ) {
+            if ( cmd == "stls" ) {
+                if ( hasTls() )
+                    err( "Nested STLS" );
+                else
+                    newCommand( d->commands, this, PopCommand::Stls );
+            }
+            else if ( cmd == "auth" ) {
+                newCommand( d->commands, this, PopCommand::Auth, args );
+            }
+            else if ( cmd == "user" && args->count() == 1 ) {
                 d->sawUser = true;
                 newCommand( d->commands, this, PopCommand::User, args );
             }
@@ -233,4 +246,13 @@ void POP::setUser( const String &s )
 String POP::user() const
 {
     return d->user;
+}
+
+
+/*! ...
+*/
+
+void POP::reserve( int i )
+{
+    d->reader = i;
 }
