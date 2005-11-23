@@ -9,9 +9,7 @@ SubInclude TOP httpd ;
 SubInclude TOP logd ;
 SubInclude TOP imapd ;
 SubInclude TOP ms ;
-# SubInclude TOP pop3d ;
-# pop3d is actually fairly close to working. let's say it's the
-# "hello" part of "hello world".
+SubInclude TOP pop3d ;
 SubInclude TOP smtpd ;
 SubInclude TOP server ;
 SubInclude TOP db ;
