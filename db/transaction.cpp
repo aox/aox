@@ -186,7 +186,8 @@ void Transaction::commit()
 {
     Query *q = new Query( "COMMIT", d->owner );
     q->setTransaction( this );
-    d->queries->append( q );
+    if ( d->queries )
+        d->queries->append( q );
     execute();
 }
 
