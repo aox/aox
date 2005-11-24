@@ -657,10 +657,10 @@ Privilege separation
   good.
 
 
-Migrate all users of the old Mailbox::create. (AMS)
+Make User::create/remove/Mailbox::remove work like Mailbox::create.
 
-  There should be corresponding new interfaces for User::create/remove
-  and Mailbox::remove.
+  That is, they should enqueue a Query in a user-supplied transaction,
+  rather than creating a Transaction of their own.
 
 
 
