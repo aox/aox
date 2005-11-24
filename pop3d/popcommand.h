@@ -36,6 +36,7 @@ private:
     bool fetch822Size();
     bool stat();
     bool list();
+    bool retr();
 };
 
 

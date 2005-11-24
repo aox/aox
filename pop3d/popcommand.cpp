@@ -23,7 +23,8 @@ public:
         : pop( 0 ), args( 0 ), done( false ),
           tlsServer( 0 ), m( 0 ), q( 0 ), r( 0 ),
           user( 0 ), mailbox( 0 ), permissions( 0 ),
-          session( 0 ), sentFetch( false ), started( false )
+          session( 0 ), sentFetch( false ), started( false ),
+          message( 0 )
     {}
 
     POP * pop;
@@ -43,6 +44,7 @@ public:
     MessageSet set;
     bool sentFetch;
     bool started;
+    Message * message;
 };
 
 
@@ -158,7 +160,8 @@ void PopCommand::execute()
         break;
 
     case Retr:
-        d->pop->err( "Unimplemented" );
+        if ( !retr() )
+            return;
         break;
 
     case Dele:
@@ -432,7 +435,7 @@ bool PopCommand::list()
             bool ok;
             String arg = *d->args->first();
             uint msn = arg.number( &ok );
-            if ( !ok || msn > s->count() ) {
+            if ( !ok || msn < 1 || msn > s->count() ) {
                 d->pop->err( "Bad message number" );
                 return true;
             }
@@ -467,6 +470,48 @@ bool PopCommand::list()
         }
         d->pop->enqueue( ".\r\n" );
     }
+    return true;
+}
+
+
+/*! Handles the RETR command. */
+
+bool PopCommand::retr()
+{
+    ::Session * s = d->pop->session();
+
+    if ( !d->started ) {
+        bool ok;
+        uint msn = nextArg().number( &ok );
+        if ( !ok || msn < 1 || msn > s->count() ||
+             ( d->message = s->mailbox()->message( s->uid( msn ) ) ) == 0 )
+        {
+            d->pop->err( "Bad message number" );
+            return true;
+        }
+        d->set.add( s->uid( msn ) );
+        s->mailbox()->fetchBodies( d->set, this );
+        s->mailbox()->fetchHeaders( d->set, this );
+        d->started = true;
+    }
+
+    if ( !( d->message->hasBodies() && d->message->hasHeaders() ) )
+        return false;
+
+    d->pop->ok( "Done" );
+
+    Buffer * b = new Buffer;
+    b->append( d->message->rfc822() );
+
+    String * t;
+    while ( ( t = b->removeLine() ) != 0 ) {
+        if ( t->startsWith( "." ) )
+            d->pop->enqueue( "." );
+        d->pop->enqueue( *t );
+        d->pop->enqueue( "\r\n" );
+    }
+
+    d->pop->enqueue( ".\r\n" );
     return true;
 }
 
