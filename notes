@@ -657,9 +657,6 @@ Privilege separation
   good.
 
 
-Check all IMAP command handlers for proper Transaction use. (AMS)
-
-
 Migrate all users of the old Mailbox::create. (AMS)
 
   There should be corresponding new interfaces for User::create/remove
