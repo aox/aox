@@ -490,8 +490,10 @@ bool PopCommand::retr()
             return true;
         }
         d->set.add( s->uid( msn ) );
-        s->mailbox()->fetchBodies( d->set, this );
-        s->mailbox()->fetchHeaders( d->set, this );
+        if ( !d->message->hasBodies() )
+            s->mailbox()->fetchBodies( d->set, this );
+        if ( !d->message->hasHeaders() )
+            s->mailbox()->fetchHeaders( d->set, this );
         d->started = true;
     }
 
@@ -508,6 +510,14 @@ bool PopCommand::retr()
         if ( t->startsWith( "." ) )
             d->pop->enqueue( "." );
         d->pop->enqueue( *t );
+        d->pop->enqueue( "\r\n" );
+    }
+
+    String st = b->string( b->size() );
+    if ( !st.isEmpty() ) {
+        if ( st.startsWith( "." ) )
+            d->pop->enqueue( "." );
+        d->pop->enqueue( st );
         d->pop->enqueue( "\r\n" );
     }
 
