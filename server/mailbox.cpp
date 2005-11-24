@@ -522,50 +522,6 @@ Query * Mailbox::create( Transaction * t, User * owner )
 }
 
 
-/*! Creates this mailbox by updating the mailboxes table, and notifies
-    \a ev of completion. Returns a running Transaction which indicates
-    the progress of the operation, or 0 if the mailbox already exists.
-
-    If \a owner is non-null, the new mailbox is owned by by \a owner.
-*/
-
-Transaction *Mailbox::create( EventHandler * ev, User * owner )
-{
-    Transaction * t = new Transaction( ev );
-    Query * q;
-    if ( synthetic() ) {
-        q = new Query( "insert into mailboxes "
-                       "(name,owner,uidnext,uidvalidity,deleted) "
-                       "values ($1,$2,1,1,'f')",
-                       0 );
-        q->bind( 1, name() );
-    }
-    else if ( deleted() ) {
-        q = new Query( "update mailboxes "
-                       "set deleted='f',owner=$2 "
-                       "where id=$1",
-                       0 );
-        q->bind( 1, id() );
-    }
-    else {
-        return 0;
-    }
-
-    if ( owner )
-        q->bind( 2, owner->id() );
-    else
-        q->bindNull( 2 );
-    t->enqueue( q );
-
-    MailboxReader * mr =
-        new MailboxReader( "select * from mailboxes where name=$1",
-                           name() );
-    t->enqueue( mr->query );
-    t->commit();
-    return t;
-}
-
-
 /*! Deletes this mailbox by updating the mailboxes table, and notifies
     \a ev of completion. Returns a running Transaction which indicates
     the progress of the operation, or 0 if the attempt fails

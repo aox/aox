@@ -69,12 +69,16 @@ void Create::execute()
 
     if ( !d->t ) {
         d->m = Mailbox::obtain( d->name, true );
-        if ( d->m )
-            d->t = d->m->create( this, imap()->user() );
-        else
+        d->t = new Transaction( this );
+        if ( !d->m ) {
             error( No, d->name + " is not a valid mailbox name" );
-        if ( !d->t )
+            return;
+        }
+        else if ( d->m->create( d->t, imap()->user() ) == 0 ) {
             error( No, d->name + " already exists" );
+            return;
+        }
+        d->t->commit();
     }
 
     if ( d->t && d->t->failed() )

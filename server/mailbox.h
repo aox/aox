@@ -57,7 +57,6 @@ public:
 
     class Query * create( class Transaction *, class User * );
 
-    Transaction *create( EventHandler *, class User * );
     Transaction *remove( EventHandler * );
 
     void refresh();

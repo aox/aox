@@ -510,8 +510,11 @@ void MailboxMigrator::execute()
             log( "Need to create destination mailbox" );
             d->destination
                 = Mailbox::obtain( d->source->partialName(), true );
-            if ( d->destination ) {
-                d->mailboxCreator = d->destination->create( this, 0 );
+            d->mailboxCreator = new Transaction( this );
+            if ( d->destination &&
+                 d->destination->create( d->mailboxCreator, 0 ) == 0 )
+            {
+                d->mailboxCreator->commit();
             }
             else {
                 log( "Unable to migrate " + d->source->partialName() );

@@ -1066,9 +1066,11 @@ void createMailbox()
         Mailbox * m = Mailbox::obtain( d->s );
         if ( d->user && d->user->state() == User::Nonexistent )
             error( "No user named " + d->user->login() );
-        d->t = m->create( d, d->user );
-        if ( !d->t )
+
+        d->t = new Transaction( d );
+        if ( m->create( d->t, d->user ) == 0 )
             error( "Couldn't create mailbox " + d->s );
+        d->t->commit();
     }
 
     if ( d->t && !d->t->done() )
