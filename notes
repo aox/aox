@@ -1,8 +1,17 @@
-Release (2005-12-12: 1.01)
+Next release (2005-12-12: 1.01)
 
   - VIEW
   - POP3
   - ANNOTATE(?)
+
+
+Next few releases
+
+  - SORT/THREAD
+  - Working webmail
+  - Working msconsole
+  - Grand unified cache
+  - More character encodings (BIG5/SJIS/ISO-2022-JP/EUC-KR)
 
 
 ocd needs work (mike@waspfactory.org)
@@ -44,13 +53,6 @@ Clean up SubDir/SubInclude
 
   Also give Program a third argument, so it takes the result name, the
   file sets to compile, and (new ->) the file containing main()
-
-
-Search folders
-
-  This gets more tricky each time I think about it. In particular, if
-  the search encompasses dynamic message attributes, then assigning
-  UIDs reliably requires us to store the UIDs in the database.
 
 
 ANNOTATE support
@@ -320,17 +322,6 @@ CAcert instead of self-signed certificate?
 
 
 Switch to using named constraints everywhere.
-
-
-Next few releases
-
-  IMAP VIEW
-  webmail ditto
-  msconsole reasonably complete
-  grand unified cache
-
-
-Implement more encodings: BIG5/SJIS/ISO-2022-JP/EUC-KR. (AMS)
 
 
 ISO-2022-JP
