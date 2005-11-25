@@ -256,7 +256,8 @@ create table annotations (
                 on delete cascade
 );
 
--- One entry per view.
+-- One entry per view: the view is a mailbox that contains the result
+-- of applying the selector to the source mailbox.
 
 create table views (
     id          serial primary key,
@@ -264,11 +265,13 @@ create table views (
                 on delete cascade,
     view        integer not null references mailboxes(id)
                 on delete cascade unique,
+    -- We need to keep track of how far we've searched already.
     suidnext    integer not null,
     selector    text
 );
 
--- One entry per message that belongs to a view.
+-- One entry per message that belongs to a view: the (view,uid) maps to
+-- the real message (source,suid).
 
 create table view_messages (
     view        integer not null references views(view)
