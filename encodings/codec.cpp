@@ -275,6 +275,12 @@ Codec * Codec::byString( const String & s )
         case MacRoman:
             return new MacRomanCodec;
             break;
+        case Cp437:
+            return new Cp437Codec;
+            break;
+        case Cp865:
+            return new Cp865Codec;
+            break;
         case NumEncodings:
             // nothing found...
             break;

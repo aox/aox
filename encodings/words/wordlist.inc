@@ -1,33 +1,51 @@
-enum Encoding { Iso88592, Iso885915, MacRoman, NumEncodings };
-static const uint NumForms = 8071;
+enum Encoding {
+    Iso88592, Iso885915, MacRoman, Cp437, Cp865, NumEncodings
+};
+static const uint NumForms = 12864;
 static const struct {
     const char * encodedForm;
     Encoding encoding;
-} forms[8071] = {
+} forms[12864] = {
+    { "abaissÇ", Cp437 }, // from french.words
     { "abaissé", MacRoman }, // from french.words
     { "abaissÈ", Iso885915 }, // from french.words
+    { "abandonnÇ", Cp437 }, // from french.words
     { "abandonné", MacRoman }, // from french.words
     { "abandonnÈ", Iso885915 }, // from french.words
+    { "abgelîst", Cp437 }, // from german.words
     { "abgelöst", MacRoman }, // from german.words
     { "abgelˆst", Iso885915 }, // from german.words
+    { "abhÑngig", Cp437 }, // from german.words
     { "abhängig", MacRoman }, // from german.words
     { "abh‰ngig", Iso885915 }, // from german.words
+    { "abonnÇs", Cp437 }, // from french.words
     { "abonnés", MacRoman }, // from french.words
     { "abonnÈs", Iso885915 }, // from french.words
     { "abschließen", MacRoman }, // from german.words
     { "abschlieﬂen", Iso885915 }, // from german.words
+    { "abschlie·en", Cp437 }, // from german.words
+    { "acadÇmique", Cp437 }, // from french.words
     { "académique", MacRoman }, // from french.words
     { "acadÈmique", Iso885915 }, // from french.words
+    { "acceptÇ", Cp437 }, // from french.words
+    { "acceptÇe", Cp437 }, // from french.words
     { "accepté", MacRoman }, // from french.words
     { "acceptée", MacRoman }, // from french.words
     { "acceptÈ", Iso885915 }, // from french.words
     { "acceptÈe", Iso885915 }, // from french.words
+    { "accompagnÇ", Cp437 }, // from french.words
+    { "accompagnÇe", Cp437 }, // from french.words
+    { "accompagnÇs", Cp437 }, // from french.words
     { "accompagné", MacRoman }, // from french.words
     { "accompagnée", MacRoman }, // from french.words
     { "accompagnés", MacRoman }, // from french.words
     { "accompagnÈ", Iso885915 }, // from french.words
     { "accompagnÈe", Iso885915 }, // from french.words
     { "accompagnÈs", Iso885915 }, // from french.words
+    { "accordÇ", Cp437 }, // from french.words
+    { "accordÇe", Cp437 }, // from french.words
+    { "accordÇes", Cp437 }, // from french.words
+    { "accordÇs", Cp437 }, // from french.words
     { "accordé", MacRoman }, // from french.words
     { "accordée", MacRoman }, // from french.words
     { "accordées", MacRoman }, // from french.words
@@ -36,8 +54,14 @@ static const struct {
     { "accordÈe", Iso885915 }, // from french.words
     { "accordÈes", Iso885915 }, // from french.words
     { "accordÈs", Iso885915 }, // from french.words
+    { "accusÇ", Cp437 }, // from french.words
     { "accusé", MacRoman }, // from french.words
     { "accusÈ", Iso885915 }, // from french.words
+    { "accÇder", Cp437 }, // from french.words
+    { "accÇlÇration", Cp437 }, // from french.words
+    { "accÇlÇrer", Cp437 }, // from french.words
+    { "accÇlÇrÇ", Cp437 }, // from french.words
+    { "accÇlÇrÇe", Cp437 }, // from french.words
     { "accéder", MacRoman }, // from french.words
     { "accélération", MacRoman }, // from french.words
     { "accélérer", MacRoman }, // from french.words
@@ -48,6 +72,10 @@ static const struct {
     { "accÈlÈrer", Iso885915 }, // from french.words
     { "accÈlÈrÈ", Iso885915 }, // from french.words
     { "accÈlÈrÈe", Iso885915 }, // from french.words
+    { "achetÇ", Cp437 }, // from french.words
+    { "achetÇe", Cp437 }, // from french.words
+    { "achetÇes", Cp437 }, // from french.words
+    { "achetÇs", Cp437 }, // from french.words
     { "acheté", MacRoman }, // from french.words
     { "achetée", MacRoman }, // from french.words
     { "achetées", MacRoman }, // from french.words
@@ -56,18 +84,28 @@ static const struct {
     { "achetÈe", Iso885915 }, // from french.words
     { "achetÈes", Iso885915 }, // from french.words
     { "achetÈs", Iso885915 }, // from french.words
+    { "achevÇ", Cp437 }, // from french.words
     { "achevé", MacRoman }, // from french.words
     { "achevÈ", Iso885915 }, // from french.words
+    { "acquÇreur", Cp437 }, // from french.words
+    { "acquÇrir", Cp437 }, // from french.words
     { "acquéreur", MacRoman }, // from french.words
     { "acquérir", MacRoman }, // from french.words
     { "acquÈreur", Iso885915 }, // from french.words
     { "acquÈrir", Iso885915 }, // from french.words
+    { "activitÇ", Cp437 }, // from french.words
+    { "activitÇs", Cp437 }, // from french.words
     { "activité", MacRoman }, // from french.words
     { "activités", MacRoman }, // from french.words
     { "activitÈ", Iso885915 }, // from french.words
     { "activitÈs", Iso885915 }, // from french.words
+    { "actualitÇ", Cp437 }, // from french.words
     { "actualité", MacRoman }, // from french.words
     { "actualitÈ", Iso885915 }, // from french.words
+    { "adaptÇ", Cp437 }, // from french.words
+    { "adaptÇe", Cp437 }, // from french.words
+    { "adaptÇes", Cp437 }, // from french.words
+    { "adaptÇs", Cp437 }, // from french.words
     { "adapté", MacRoman }, // from french.words
     { "adaptée", MacRoman }, // from french.words
     { "adaptées", MacRoman }, // from french.words
@@ -76,80 +114,130 @@ static const struct {
     { "adaptÈe", Iso885915 }, // from french.words
     { "adaptÈes", Iso885915 }, // from french.words
     { "adaptÈs", Iso885915 }, // from french.words
+    { "adoptÇ", Cp437 }, // from french.words
+    { "adoptÇe", Cp437 }, // from french.words
     { "adopté", MacRoman }, // from french.words
     { "adoptée", MacRoman }, // from french.words
     { "adoptÈ", Iso885915 }, // from french.words
     { "adoptÈe", Iso885915 }, // from french.words
+    { "adressÇ", Cp437 }, // from french.words
     { "adressé", MacRoman }, // from french.words
     { "adressÈ", Iso885915 }, // from french.words
+    { "adÇquat", Cp437 }, // from french.words
+    { "adÇquate", Cp437 }, // from french.words
     { "adéquat", MacRoman }, // from french.words
     { "adéquate", MacRoman }, // from french.words
     { "adÈquat", Iso885915 }, // from french.words
     { "adÈquate", Iso885915 }, // from french.words
+    { "affectÇ", Cp437 }, // from french.words
+    { "affectÇs", Cp437 }, // from french.words
     { "affecté", MacRoman }, // from french.words
     { "affectés", MacRoman }, // from french.words
     { "affectÈ", Iso885915 }, // from french.words
     { "affectÈs", Iso885915 }, // from french.words
+    { "affichÇ", Cp437 }, // from french.words
+    { "affichÇe", Cp437 }, // from french.words
+    { "affichÇs", Cp437 }, // from french.words
     { "affiché", MacRoman }, // from french.words
     { "affichée", MacRoman }, // from french.words
     { "affichés", MacRoman }, // from french.words
     { "affichÈ", Iso885915 }, // from french.words
     { "affichÈe", Iso885915 }, // from french.words
     { "affichÈs", Iso885915 }, // from french.words
+    { "affiliÇs", Cp437 }, // from french.words
     { "affiliés", MacRoman }, // from french.words
     { "affiliÈs", Iso885915 }, // from french.words
+    { "affirmÇ", Cp437 }, // from french.words
     { "affirmé", MacRoman }, // from french.words
     { "affirmÈ", Iso885915 }, // from french.words
+    { "affëre", Cp865 }, // from norwegian.words
     { "affære", MacRoman }, // from norwegian.words
     { "affÊre", Iso885915 }, // from norwegian.words
+    { "agrÇable", Cp437 }, // from french.words
+    { "agrÇablement", Cp437 }, // from french.words
+    { "agrÇables", Cp437 }, // from french.words
+    { "agrÇÇ", Cp437 }, // from french.words
+    { "agréable", MacRoman }, // from french.words
     { "agréablement", MacRoman }, // from french.words
     { "agréables", MacRoman }, // from french.words
     { "agréé", MacRoman }, // from french.words
+    { "agrÈable", Iso885915 }, // from french.words
     { "agrÈablement", Iso885915 }, // from french.words
     { "agrÈables", Iso885915 }, // from french.words
     { "agrÈÈ", Iso885915 }, // from french.words
+    { "aidÇ", Cp437 }, // from french.words
     { "aidé", MacRoman }, // from french.words
     { "aidÈ", Iso885915 }, // from french.words
+    { "aimÇ", Cp437 }, // from french.words
     { "aimé", MacRoman }, // from french.words
     { "aimÈ", Iso885915 }, // from french.words
+    { "aisÇ", Cp437 }, // from french.words
+    { "aisÇe", Cp437 }, // from french.words
+    { "aisÇment", Cp437 }, // from french.words
     { "aisé", MacRoman }, // from french.words
     { "aisée", MacRoman }, // from french.words
     { "aisément", MacRoman }, // from french.words
     { "aisÈ", Iso885915 }, // from french.words
     { "aisÈe", Iso885915 }, // from french.words
     { "aisÈment", Iso885915 }, // from french.words
+    { "ajoutÇ", Cp437 }, // from french.words
+    { "ajoutÇe", Cp437 }, // from french.words
     { "ajouté", MacRoman }, // from french.words
     { "ajoutée", MacRoman }, // from french.words
     { "ajoutÈ", Iso885915 }, // from french.words
     { "ajoutÈe", Iso885915 }, // from french.words
     { "akciov˝", Iso88592 }, // from czech.words
+    { "aksjonërene", Cp865 }, // from norwegian.words
     { "aksjonærene", MacRoman }, // from norwegian.words
     { "aksjonÊrene", Iso885915 }, // from norwegian.words
+    { "aktõr", Cp865 }, // from norwegian.words
+    { "aktõrene", Cp865 }, // from norwegian.words
+    { "aktõrer", Cp865 }, // from norwegian.words
     { "aktør", MacRoman }, // from norwegian.words
     { "aktørene", MacRoman }, // from norwegian.words
     { "aktører", MacRoman }, // from norwegian.words
     { "akt¯r", Iso885915 }, // from norwegian.words
     { "akt¯rene", Iso885915 }, // from norwegian.words
     { "akt¯rer", Iso885915 }, // from norwegian.words
+    { "alliÇs", Cp437 }, // from french.words
     { "alliés", MacRoman }, // from french.words
     { "alliÈs", Iso885915 }, // from french.words
+    { "allmÑhlich", Cp437 }, // from german.words
     { "allmählich", MacRoman }, // from german.words
     { "allm‰hlich", Iso885915 }, // from german.words
+    { "allÇ", Cp437 }, // from french.words
     { "allé", MacRoman }, // from french.words
     { "allÈ", Iso885915 }, // from french.words
+    { "altsÜ", Cp865 }, // from norwegian.words
     { "altså", MacRoman }, // from norwegian.words
     { "altsÂ", Iso885915 }, // from norwegian.words
+    { "amatõrer", Cp865 }, // from norwegian.words
     { "amatører", MacRoman }, // from norwegian.words
     { "amat¯rer", Iso885915 }, // from norwegian.words
+    { "ambassadõr", Cp865 }, // from norwegian.words
     { "ambassadør", MacRoman }, // from norwegian.words
     { "ambassad¯r", Iso885915 }, // from norwegian.words
+    { "ambisiõse", Cp865 }, // from norwegian.words
     { "ambisiøse", MacRoman }, // from norwegian.words
     { "ambisi¯se", Iso885915 }, // from norwegian.words
+    { "amenÇ", Cp437 }, // from french.words
     { "amené", MacRoman }, // from french.words
     { "amenÈ", Iso885915 }, // from french.words
     { "americk˝", Iso88592 }, // from czech.words
+    { "amÇlioration", Cp437 }, // from french.words
+    { "amÇliorations", Cp437 }, // from french.words
+    { "amÇliore", Cp437 }, // from french.words
+    { "amÇliorer", Cp437 }, // from french.words
+    { "amÇliorÇ", Cp437 }, // from french.words
+    { "amÇliorÇe", Cp437 }, // from french.words
+    { "amÇricain", Cp437 }, // from french.words
+    { "amÇricaine", Cp437 }, // from french.words
+    { "amÇricaines", Cp437 }, // from french.words
+    { "amÇricains", Cp437 }, // from french.words
     { "amélioration", MacRoman }, // from french.words
+    { "améliorations", MacRoman }, // from french.words
     { "améliore", MacRoman }, // from french.words
+    { "améliorer", MacRoman }, // from french.words
     { "amélioré", MacRoman }, // from french.words
     { "améliorée", MacRoman }, // from french.words
     { "américain", MacRoman }, // from french.words
@@ -157,21 +245,30 @@ static const struct {
     { "américaines", MacRoman }, // from french.words
     { "américains", MacRoman }, // from french.words
     { "amÈlioration", Iso885915 }, // from french.words
+    { "amÈliorations", Iso885915 }, // from french.words
     { "amÈliore", Iso885915 }, // from french.words
+    { "amÈliorer", Iso885915 }, // from french.words
     { "amÈliorÈ", Iso885915 }, // from french.words
     { "amÈliorÈe", Iso885915 }, // from french.words
     { "amÈricain", Iso885915 }, // from french.words
     { "amÈricaine", Iso885915 }, // from french.words
     { "amÈricaines", Iso885915 }, // from french.words
     { "amÈricains", Iso885915 }, // from french.words
+    { "anfõrt", Cp865 }, // from norwegian.words
     { "anført", MacRoman }, // from norwegian.words
     { "anf¯rt", Iso885915 }, // from norwegian.words
+    { "angefÅhrt", Cp437 }, // from german.words
     { "angeführt", MacRoman }, // from german.words
     { "angef¸hrt", Iso885915 }, // from german.words
+    { "angehîren", Cp437 }, // from german.words
+    { "angehîrt", Cp437 }, // from german.words
     { "angehören", MacRoman }, // from german.words
     { "angehört", MacRoman }, // from german.words
     { "angehˆren", Iso885915 }, // from german.words
     { "angehˆrt", Iso885915 }, // from german.words
+    { "angekÅndigt", Cp437 }, // from german.words
+    { "angekÅndigte", Cp437 }, // from german.words
+    { "angekÅndigten", Cp437 }, // from german.words
     { "angekündigt", MacRoman }, // from german.words
     { "angekündigte", MacRoman }, // from german.words
     { "angekündigten", MacRoman }, // from german.words
@@ -180,14 +277,23 @@ static const struct {
     { "angek¸ndigten", Iso885915 }, // from german.words
     { "angepaßt", MacRoman }, // from german.words
     { "angepaﬂt", Iso885915 }, // from german.words
+    { "angepa·t", Cp437 }, // from german.words
+    { "angÜr", Cp865 }, // from norwegian.words
     { "angår", MacRoman }, // from norwegian.words
     { "angÂr", Iso885915 }, // from norwegian.words
+    { "animÇ", Cp437 }, // from french.words
+    { "animÇs", Cp437 }, // from french.words
     { "animé", MacRoman }, // from french.words
     { "animés", MacRoman }, // from french.words
     { "animÈ", Iso885915 }, // from french.words
     { "animÈs", Iso885915 }, // from french.words
+    { "anlÑ·lich", Cp437 }, // from german.words
     { "anläßlich", MacRoman }, // from german.words
     { "anl‰ﬂlich", Iso885915 }, // from german.words
+    { "annoncÇ", Cp437 }, // from french.words
+    { "annoncÇe", Cp437 }, // from french.words
+    { "annoncÇes", Cp437 }, // from french.words
+    { "annoncÇs", Cp437 }, // from french.words
     { "annoncé", MacRoman }, // from french.words
     { "annoncée", MacRoman }, // from french.words
     { "annoncées", MacRoman }, // from french.words
@@ -196,6 +302,9 @@ static const struct {
     { "annoncÈe", Iso885915 }, // from french.words
     { "annoncÈes", Iso885915 }, // from french.words
     { "annoncÈs", Iso885915 }, // from french.words
+    { "annÇe", Cp437 }, // from french.words
+    { "annÇes", Cp437 }, // from french.words
+    { "annÑhernd", Cp437 }, // from german.words
     { "annähernd", MacRoman }, // from german.words
     { "année", MacRoman }, // from french.words
     { "années", MacRoman }, // from french.words
@@ -208,24 +317,43 @@ static const struct {
     { "anschlieﬂen", Iso885915 }, // from german.words
     { "anschlieﬂend", Iso885915 }, // from german.words
     { "anschlieﬂenden", Iso885915 }, // from german.words
+    { "anschlie·en", Cp437 }, // from german.words
+    { "anschlie·end", Cp437 }, // from german.words
+    { "anschlie·enden", Cp437 }, // from german.words
+    { "anslÜr", Cp865 }, // from norwegian.words
+    { "anslÜtt", Cp865 }, // from norwegian.words
     { "anslår", MacRoman }, // from norwegian.words
     { "anslått", MacRoman }, // from norwegian.words
     { "anslÂr", Iso885915 }, // from norwegian.words
     { "anslÂtt", Iso885915 }, // from norwegian.words
+    { "anticipÇ", Cp437 }, // from french.words
+    { "anticipÇe", Cp437 }, // from french.words
     { "anticipé", MacRoman }, // from french.words
     { "anticipée", MacRoman }, // from french.words
     { "anticipÈ", Iso885915 }, // from french.words
     { "anticipÈe", Iso885915 }, // from french.words
+    { "antÇrieurement", Cp437 }, // from french.words
+    { "antÇrieures", Cp437 }, // from french.words
     { "antérieurement", MacRoman }, // from french.words
     { "antérieures", MacRoman }, // from french.words
     { "antÈrieurement", Iso885915 }, // from french.words
     { "antÈrieures", Iso885915 }, // from french.words
+    { "appelÇ", Cp437 }, // from french.words
+    { "appelÇe", Cp437 }, // from french.words
+    { "appelÇes", Cp437 }, // from french.words
+    { "appelÇs", Cp437 }, // from french.words
+    { "appelé", MacRoman }, // from french.words
     { "appelée", MacRoman }, // from french.words
     { "appelées", MacRoman }, // from french.words
     { "appelés", MacRoman }, // from french.words
+    { "appelÈ", Iso885915 }, // from french.words
     { "appelÈe", Iso885915 }, // from french.words
     { "appelÈes", Iso885915 }, // from french.words
     { "appelÈs", Iso885915 }, // from french.words
+    { "appliquÇ", Cp437 }, // from french.words
+    { "appliquÇe", Cp437 }, // from french.words
+    { "appliquÇes", Cp437 }, // from french.words
+    { "appliquÇs", Cp437 }, // from french.words
     { "appliqué", MacRoman }, // from french.words
     { "appliquée", MacRoman }, // from french.words
     { "appliquées", MacRoman }, // from french.words
@@ -234,14 +362,25 @@ static const struct {
     { "appliquÈe", Iso885915 }, // from french.words
     { "appliquÈes", Iso885915 }, // from french.words
     { "appliquÈs", Iso885915 }, // from french.words
+    { "apportÇ", Cp437 }, // from french.words
+    { "apportÇes", Cp437 }, // from french.words
     { "apporté", MacRoman }, // from french.words
     { "apportées", MacRoman }, // from french.words
     { "apportÈ", Iso885915 }, // from french.words
     { "apportÈes", Iso885915 }, // from french.words
+    { "appropriÇ", Cp437 }, // from french.words
     { "approprié", MacRoman }, // from french.words
     { "appropriÈ", Iso885915 }, // from french.words
+    { "approuvÇ", Cp437 }, // from french.words
     { "approuvé", MacRoman }, // from french.words
     { "approuvÈ", Iso885915 }, // from french.words
+    { "apprÇciable", Cp437 }, // from french.words
+    { "apprÇciation", Cp437 }, // from french.words
+    { "apprÇcie", Cp437 }, // from french.words
+    { "apprÇcient", Cp437 }, // from french.words
+    { "apprÇcier", Cp437 }, // from french.words
+    { "apprÇciÇ", Cp437 }, // from french.words
+    { "apprÇciÇe", Cp437 }, // from french.words
     { "appréciable", MacRoman }, // from french.words
     { "appréciation", MacRoman }, // from french.words
     { "apprécie", MacRoman }, // from french.words
@@ -256,38 +395,61 @@ static const struct {
     { "apprÈcier", Iso885915 }, // from french.words
     { "apprÈciÈ", Iso885915 }, // from french.words
     { "apprÈciÈe", Iso885915 }, // from french.words
+    { "appÇtit", Cp437 }, // from french.words
     { "appétit", MacRoman }, // from french.words
     { "appÈtit", Iso885915 }, // from french.words
+    { "armÇe", Cp437 }, // from french.words
     { "armée", MacRoman }, // from french.words
     { "armÈe", Iso885915 }, // from french.words
+    { "arrangõr", Cp865 }, // from norwegian.words
+    { "arrangõren", Cp865 }, // from norwegian.words
+    { "arrangõrene", Cp865 }, // from norwegian.words
     { "arrangør", MacRoman }, // from norwegian.words
     { "arrangøren", MacRoman }, // from norwegian.words
     { "arrangørene", MacRoman }, // from norwegian.words
     { "arrang¯r", Iso885915 }, // from norwegian.words
     { "arrang¯ren", Iso885915 }, // from norwegian.words
     { "arrang¯rene", Iso885915 }, // from norwegian.words
+    { "arrivÇ", Cp437 }, // from french.words
+    { "arrivÇe", Cp437 }, // from french.words
+    { "arrivÇs", Cp437 }, // from french.words
     { "arrivé", MacRoman }, // from french.words
     { "arrivée", MacRoman }, // from french.words
     { "arrivés", MacRoman }, // from french.words
     { "arrivÈ", Iso885915 }, // from french.words
     { "arrivÈe", Iso885915 }, // from french.words
     { "arrivÈs", Iso885915 }, // from french.words
+    { "asbjõrn", Cp865 }, // from norwegian.words
     { "asbjørn", MacRoman }, // from norwegian.words
     { "asbj¯rn", Iso885915 }, // from norwegian.words
+    { "askõy", Cp865 }, // from norwegian.words
     { "askøy", MacRoman }, // from norwegian.words
     { "ask¯y", Iso885915 }, // from norwegian.words
+    { "assemblÇe", Cp437 }, // from french.words
+    { "assemblÇes", Cp437 }, // from french.words
     { "assemblée", MacRoman }, // from french.words
     { "assemblées", MacRoman }, // from french.words
     { "assemblÈe", Iso885915 }, // from french.words
     { "assemblÈes", Iso885915 }, // from french.words
+    { "assistÇ", Cp437 }, // from french.words
+    { "assistÇe", Cp437 }, // from french.words
+    { "assisté", MacRoman }, // from french.words
     { "assistée", MacRoman }, // from french.words
+    { "assistÈ", Iso885915 }, // from french.words
     { "assistÈe", Iso885915 }, // from french.words
+    { "associÇ", Cp437 }, // from french.words
+    { "associÇe", Cp437 }, // from french.words
+    { "associÇs", Cp437 }, // from french.words
     { "associé", MacRoman }, // from french.words
     { "associée", MacRoman }, // from french.words
     { "associés", MacRoman }, // from french.words
     { "associÈ", Iso885915 }, // from french.words
     { "associÈe", Iso885915 }, // from french.words
     { "associÈs", Iso885915 }, // from french.words
+    { "assurÇ", Cp437 }, // from french.words
+    { "assurÇe", Cp437 }, // from french.words
+    { "assurÇment", Cp437 }, // from french.words
+    { "assurÇs", Cp437 }, // from french.words
     { "assuré", MacRoman }, // from french.words
     { "assurée", MacRoman }, // from french.words
     { "assurément", MacRoman }, // from french.words
@@ -296,76 +458,119 @@ static const struct {
     { "assurÈe", Iso885915 }, // from french.words
     { "assurÈment", Iso885915 }, // from french.words
     { "assurÈs", Iso885915 }, // from french.words
+    { "asylsõkere", Cp865 }, // from norwegian.words
     { "asylsøkere", MacRoman }, // from norwegian.words
     { "asyls¯kere", Iso885915 }, // from norwegian.words
+    { "atmosfëre", Cp865 }, // from norwegian.words
+    { "atmosfëren", Cp865 }, // from norwegian.words
     { "atmosfære", MacRoman }, // from norwegian.words
     { "atmosfæren", MacRoman }, // from norwegian.words
     { "atmosfÊre", Iso885915 }, // from norwegian.words
     { "atmosfÊren", Iso885915 }, // from norwegian.words
+    { "atomvÜpen", Cp865 }, // from norwegian.words
     { "atomvåpen", MacRoman }, // from norwegian.words
     { "atomvÂpen", Iso885915 }, // from norwegian.words
+    { "attachÇ", Cp437 }, // from french.words
+    { "attachÇs", Cp437 }, // from french.words
     { "attaché", MacRoman }, // from french.words
     { "attachés", MacRoman }, // from french.words
     { "attachÈ", Iso885915 }, // from french.words
     { "attachÈs", Iso885915 }, // from french.words
+    { "attirÇ", Cp437 }, // from french.words
+    { "attiré", MacRoman }, // from french.words
+    { "attirÈ", Iso885915 }, // from french.words
+    { "attpÜtil", Cp865 }, // from norwegian.words
     { "attpåtil", MacRoman }, // from norwegian.words
     { "attpÂtil", Iso885915 }, // from norwegian.words
+    { "attribuÇ", Cp437 }, // from french.words
     { "attribué", MacRoman }, // from french.words
     { "attribuÈ", Iso885915 }, // from french.words
+    { "aufgefÅhrt", Cp437 }, // from german.words
     { "aufgeführt", MacRoman }, // from german.words
     { "aufgef¸hrt", Iso885915 }, // from german.words
+    { "aufgeklÑrt", Cp437 }, // from german.words
     { "aufgeklärt", MacRoman }, // from german.words
     { "aufgekl‰rt", Iso885915 }, // from german.words
+    { "aufgelîst", Cp437 }, // from german.words
     { "aufgelöst", MacRoman }, // from german.words
     { "aufgelˆst", Iso885915 }, // from german.words
+    { "aufhîren", Cp437 }, // from german.words
     { "aufhören", MacRoman }, // from german.words
     { "aufhˆren", Iso885915 }, // from german.words
+    { "augmentÇ", Cp437 }, // from french.words
+    { "augmentÇe", Cp437 }, // from french.words
     { "augmenté", MacRoman }, // from french.words
     { "augmentée", MacRoman }, // from french.words
     { "augmentÈ", Iso885915 }, // from french.words
     { "augmentÈe", Iso885915 }, // from french.words
+    { "ausdrÅcklich", Cp437 }, // from german.words
     { "ausdrücklich", MacRoman }, // from german.words
     { "ausdr¸cklich", Iso885915 }, // from german.words
+    { "ausfÅhren", Cp437 }, // from german.words
+    { "ausfÅhrlich", Cp437 }, // from german.words
     { "ausführen", MacRoman }, // from german.words
     { "ausführlich", MacRoman }, // from german.words
     { "ausf¸hren", Iso885915 }, // from german.words
     { "ausf¸hrlich", Iso885915 }, // from german.words
+    { "ausgefÅhrt", Cp437 }, // from german.words
     { "ausgeführt", MacRoman }, // from german.words
     { "ausgef¸hrt", Iso885915 }, // from german.words
+    { "ausgelîst", Cp437 }, // from german.words
     { "ausgelöst", MacRoman }, // from german.words
     { "ausgelˆst", Iso885915 }, // from german.words
+    { "ausgerÅstet", Cp437 }, // from german.words
     { "ausgerüstet", MacRoman }, // from german.words
     { "ausger¸stet", Iso885915 }, // from german.words
+    { "ausgewÑhlt", Cp437 }, // from german.words
+    { "ausgewÑhlte", Cp437 }, // from german.words
+    { "ausgewÑhlten", Cp437 }, // from german.words
+    { "ausgewählt", MacRoman }, // from german.words
     { "ausgewählte", MacRoman }, // from german.words
     { "ausgewählten", MacRoman }, // from german.words
+    { "ausgew‰hlt", Iso885915 }, // from german.words
     { "ausgew‰hlte", Iso885915 }, // from german.words
     { "ausgew‰hlten", Iso885915 }, // from german.words
+    { "ausgeÅbt", Cp437 }, // from german.words
     { "ausgeübt", MacRoman }, // from german.words
     { "ausge¸bt", Iso885915 }, // from german.words
+    { "auslÑndische", Cp437 }, // from german.words
+    { "auslÑndischen", Cp437 }, // from german.words
+    { "auslÑndischer", Cp437 }, // from german.words
     { "ausländische", MacRoman }, // from german.words
+    { "ausländischen", MacRoman }, // from german.words
     { "ausländischer", MacRoman }, // from german.words
+    { "auslîsen", Cp437 }, // from german.words
     { "auslösen", MacRoman }, // from german.words
     { "ausl‰ndische", Iso885915 }, // from german.words
+    { "ausl‰ndischen", Iso885915 }, // from german.words
     { "ausl‰ndischer", Iso885915 }, // from german.words
     { "auslˆsen", Iso885915 }, // from german.words
     { "ausschließen", MacRoman }, // from german.words
     { "ausschließlich", MacRoman }, // from german.words
     { "ausschlieﬂen", Iso885915 }, // from german.words
     { "ausschlieﬂlich", Iso885915 }, // from german.words
+    { "ausschlie·en", Cp437 }, // from german.words
+    { "ausschlie·lich", Cp437 }, // from german.words
+    { "auswÑhlen", Cp437 }, // from german.words
     { "auswählen", MacRoman }, // from german.words
     { "ausw‰hlen", Iso885915 }, // from german.words
     { "auszuschließen", MacRoman }, // from german.words
     { "auszuschlieﬂen", Iso885915 }, // from german.words
+    { "auszuschlie·en", Cp437 }, // from german.words
+    { "ausÅben", Cp437 }, // from german.words
     { "ausüben", MacRoman }, // from german.words
     { "aus¸ben", Iso885915 }, // from german.words
-    { "automneépendra", MacRoman }, // from french.words
-    { "automneÈpendra", Iso885915 }, // from french.words
+    { "autorisÇ", Cp437 }, // from french.words
+    { "autorisÇe", Cp437 }, // from french.words
+    { "autorisÇs", Cp437 }, // from french.words
     { "autorisé", MacRoman }, // from french.words
     { "autorisée", MacRoman }, // from french.words
     { "autorisés", MacRoman }, // from french.words
     { "autorisÈ", Iso885915 }, // from french.words
     { "autorisÈe", Iso885915 }, // from french.words
     { "autorisÈs", Iso885915 }, // from french.words
+    { "autoritÇ", Cp437 }, // from french.words
+    { "autoritÇs", Cp437 }, // from french.words
     { "autorité", MacRoman }, // from french.words
     { "autorités", MacRoman }, // from french.words
     { "autoritÈ", Iso885915 }, // from french.words
@@ -382,6 +587,16 @@ static const struct {
     { "auﬂerhalb", Iso885915 }, // from german.words
     { "auﬂerordentlich", Iso885915 }, // from german.words
     { "auﬂerordentlichen", Iso885915 }, // from german.words
+    { "au·en", Cp437 }, // from german.words
+    { "au·er", Cp437 }, // from german.words
+    { "au·erdem", Cp437 }, // from german.words
+    { "au·erhalb", Cp437 }, // from german.words
+    { "au·erordentlich", Cp437 }, // from german.words
+    { "au·erordentlichen", Cp437 }, // from german.words
+    { "avancÇ", Cp437 }, // from french.words
+    { "avancÇe", Cp437 }, // from french.words
+    { "avancÇes", Cp437 }, // from french.words
+    { "avancÇs", Cp437 }, // from french.words
     { "avancé", MacRoman }, // from french.words
     { "avancée", MacRoman }, // from french.words
     { "avancées", MacRoman }, // from french.words
@@ -390,10 +605,19 @@ static const struct {
     { "avancÈe", Iso885915 }, // from french.words
     { "avancÈes", Iso885915 }, // from french.words
     { "avancÈs", Iso885915 }, // from french.words
+    { "avdelingsdirektõr", Cp865 }, // from norwegian.words
     { "avdelingsdirektør", MacRoman }, // from norwegian.words
     { "avdelingsdirekt¯r", Iso885915 }, // from norwegian.words
+    { "avdõde", Cp865 }, // from norwegian.words
     { "avdøde", MacRoman }, // from norwegian.words
     { "avd¯de", Iso885915 }, // from norwegian.words
+    { "avgjõr", Cp865 }, // from norwegian.words
+    { "avgjõre", Cp865 }, // from norwegian.words
+    { "avgjõrelse", Cp865 }, // from norwegian.words
+    { "avgjõrelsen", Cp865 }, // from norwegian.words
+    { "avgjõrelser", Cp865 }, // from norwegian.words
+    { "avgjõrende", Cp865 }, // from norwegian.words
+    { "avgjõres", Cp865 }, // from norwegian.words
     { "avgjør", MacRoman }, // from norwegian.words
     { "avgjøre", MacRoman }, // from norwegian.words
     { "avgjørelse", MacRoman }, // from norwegian.words
@@ -408,17 +632,27 @@ static const struct {
     { "avgj¯relser", Iso885915 }, // from norwegian.words
     { "avgj¯rende", Iso885915 }, // from norwegian.words
     { "avgj¯res", Iso885915 }, // from norwegian.words
+    { "avgÜrde", Cp865 }, // from norwegian.words
     { "avgårde", MacRoman }, // from norwegian.words
     { "avgÂrde", Iso885915 }, // from norwegian.words
+    { "avhõr", Cp865 }, // from norwegian.words
+    { "avhõrt", Cp865 }, // from norwegian.words
     { "avhør", MacRoman }, // from norwegian.words
     { "avhørt", MacRoman }, // from norwegian.words
     { "avh¯r", Iso885915 }, // from norwegian.words
     { "avh¯rt", Iso885915 }, // from norwegian.words
+    { "avkjõl", Cp865 }, // from norwegian.words
     { "avkjøl", MacRoman }, // from norwegian.words
     { "avkj¯l", Iso885915 }, // from norwegian.words
+    { "avouÇ", Cp437 }, // from french.words
     { "avoué", MacRoman }, // from french.words
     { "avouÈ", Iso885915 }, // from french.words
+    { "avslÜtt", Cp865 }, // from norwegian.words
     { "avslått", MacRoman }, // from norwegian.words
+    { "avslõre", Cp865 }, // from norwegian.words
+    { "avslõrer", Cp865 }, // from norwegian.words
+    { "avslõrt", Cp865 }, // from norwegian.words
+    { "avslõrte", Cp865 }, // from norwegian.words
     { "avsløre", MacRoman }, // from norwegian.words
     { "avslører", MacRoman }, // from norwegian.words
     { "avslørt", MacRoman }, // from norwegian.words
@@ -428,12 +662,20 @@ static const struct {
     { "avsl¯rer", Iso885915 }, // from norwegian.words
     { "avsl¯rt", Iso885915 }, // from norwegian.words
     { "avsl¯rte", Iso885915 }, // from norwegian.words
+    { "avÇrÇ", Cp437 }, // from french.words
     { "avéré", MacRoman }, // from french.words
     { "avÈrÈ", Iso885915 }, // from french.words
+    { "axÇ", Cp437 }, // from french.words
+    { "axÇe", Cp437 }, // from french.words
     { "axé", MacRoman }, // from french.words
     { "axée", MacRoman }, // from french.words
     { "axÈ", Iso885915 }, // from french.words
     { "axÈe", Iso885915 }, // from french.words
+    { "aÇrien", Cp437 }, // from french.words
+    { "aÇrienne", Cp437 }, // from french.words
+    { "aÇriennes", Cp437 }, // from french.words
+    { "aÇronautique", Cp437 }, // from french.words
+    { "aÇroports", Cp437 }, // from french.words
     { "aérien", MacRoman }, // from french.words
     { "aérienne", MacRoman }, // from french.words
     { "aériennes", MacRoman }, // from french.words
@@ -444,14 +686,22 @@ static const struct {
     { "aÈriennes", Iso885915 }, // from french.words
     { "aÈronautique", Iso885915 }, // from french.words
     { "aÈroports", Iso885915 }, // from french.words
+    { "bactÇries", Cp437 }, // from french.words
     { "bactéries", MacRoman }, // from french.words
     { "bactÈries", Iso885915 }, // from french.words
+    { "baissÇ", Cp437 }, // from french.words
     { "baissé", MacRoman }, // from french.words
     { "baissÈ", Iso885915 }, // from french.words
+    { "baptisÇ", Cp437 }, // from french.words
+    { "baptisÇe", Cp437 }, // from french.words
     { "baptisé", MacRoman }, // from french.words
     { "baptisée", MacRoman }, // from french.words
     { "baptisÈ", Iso885915 }, // from french.words
     { "baptisÈe", Iso885915 }, // from french.words
+    { "basÇ", Cp437 }, // from french.words
+    { "basÇe", Cp437 }, // from french.words
+    { "basÇes", Cp437 }, // from french.words
+    { "basÇs", Cp437 }, // from french.words
     { "basé", MacRoman }, // from french.words
     { "basée", MacRoman }, // from french.words
     { "basées", MacRoman }, // from french.words
@@ -460,14 +710,22 @@ static const struct {
     { "basÈe", Iso885915 }, // from french.words
     { "basÈes", Iso885915 }, // from french.words
     { "basÈs", Iso885915 }, // from french.words
+    { "beautÇ", Cp437 }, // from french.words
     { "beauté", MacRoman }, // from french.words
     { "beautÈ", Iso885915 }, // from french.words
     { "beeinflußt", MacRoman }, // from german.words
     { "beeinfluﬂt", Iso885915 }, // from german.words
+    { "beeinflu·t", Cp437 }, // from german.words
+    { "beeintrÑchtigt", Cp437 }, // from german.words
     { "beeinträchtigt", MacRoman }, // from german.words
     { "beeintr‰chtigt", Iso885915 }, // from german.words
     { "befaßt", MacRoman }, // from german.words
     { "befaﬂt", Iso885915 }, // from german.words
+    { "befa·t", Cp437 }, // from german.words
+    { "befÅrchten", Cp437 }, // from german.words
+    { "befÅrchtet", Cp437 }, // from german.words
+    { "befÅrwortet", Cp437 }, // from german.words
+    { "befîrdert", Cp437 }, // from german.words
     { "befördert", MacRoman }, // from german.words
     { "befürchten", MacRoman }, // from german.words
     { "befürchtet", MacRoman }, // from german.words
@@ -476,8 +734,16 @@ static const struct {
     { "bef¸rchten", Iso885915 }, // from german.words
     { "bef¸rchtet", Iso885915 }, // from german.words
     { "bef¸rwortet", Iso885915 }, // from german.words
+    { "begnÅgen", Cp437 }, // from german.words
     { "begnügen", MacRoman }, // from german.words
     { "begn¸gen", Iso885915 }, // from german.words
+    { "begrÅnden", Cp437 }, // from german.words
+    { "begrÅndet", Cp437 }, // from german.words
+    { "begrÅndete", Cp437 }, // from german.words
+    { "begrÅndeten", Cp437 }, // from german.words
+    { "begrÅ·en", Cp437 }, // from german.words
+    { "begrÅ·t", Cp437 }, // from german.words
+    { "begrÅ·te", Cp437 }, // from german.words
     { "begründen", MacRoman }, // from german.words
     { "begründet", MacRoman }, // from german.words
     { "begründete", MacRoman }, // from german.words
@@ -492,21 +758,32 @@ static const struct {
     { "begr¸ﬂen", Iso885915 }, // from german.words
     { "begr¸ﬂt", Iso885915 }, // from german.words
     { "begr¸ﬂte", Iso885915 }, // from german.words
+    { "begÜtt", Cp865 }, // from norwegian.words
     { "begått", MacRoman }, // from norwegian.words
     { "begÂtt", Iso885915 }, // from norwegian.words
+    { "behÑlt", Cp437 }, // from german.words
     { "behält", MacRoman }, // from german.words
+    { "behõver", Cp865 }, // from norwegian.words
     { "behøver", MacRoman }, // from norwegian.words
     { "beh‰lt", Iso885915 }, // from german.words
     { "beh¯ver", Iso885915 }, // from norwegian.words
+    { "bekrÑftigt", Cp437 }, // from german.words
+    { "bekrÑftigte", Cp437 }, // from german.words
     { "bekräftigt", MacRoman }, // from german.words
     { "bekräftigte", MacRoman }, // from german.words
     { "bekr‰ftigt", Iso885915 }, // from german.words
     { "bekr‰ftigte", Iso885915 }, // from german.words
+    { "bekÑmpfen", Cp437 }, // from german.words
+    { "bekÑmpft", Cp437 }, // from german.words
     { "bekämpfen", MacRoman }, // from german.words
     { "bekämpft", MacRoman }, // from german.words
     { "bek‰mpfen", Iso885915 }, // from german.words
     { "bek‰mpft", Iso885915 }, // from german.words
+    { "belÑuft", Cp437 }, // from german.words
     { "beläuft", MacRoman }, // from german.words
+    { "belõnnet", Cp865 }, // from norwegian.words
+    { "belõp", Cp865 }, // from norwegian.words
+    { "belõpet", Cp865 }, // from norwegian.words
     { "belønnet", MacRoman }, // from norwegian.words
     { "beløp", MacRoman }, // from norwegian.words
     { "beløpet", MacRoman }, // from norwegian.words
@@ -514,12 +791,19 @@ static const struct {
     { "bel¯nnet", Iso885915 }, // from norwegian.words
     { "bel¯p", Iso885915 }, // from norwegian.words
     { "bel¯pet", Iso885915 }, // from norwegian.words
+    { "bemÅhen", Cp437 }, // from german.words
+    { "bemÅht", Cp437 }, // from german.words
+    { "bemÅhte", Cp437 }, // from german.words
     { "bemühen", MacRoman }, // from german.words
     { "bemüht", MacRoman }, // from german.words
     { "bemühte", MacRoman }, // from german.words
     { "bem¸hen", Iso885915 }, // from german.words
     { "bem¸ht", Iso885915 }, // from german.words
     { "bem¸hte", Iso885915 }, // from german.words
+    { "benîtigen", Cp437 }, // from german.words
+    { "benîtigt", Cp437 }, // from german.words
+    { "benîtigte", Cp437 }, // from german.words
+    { "benîtigten", Cp437 }, // from german.words
     { "benötigen", MacRoman }, // from german.words
     { "benötigt", MacRoman }, // from german.words
     { "benötigte", MacRoman }, // from german.words
@@ -528,7 +812,19 @@ static const struct {
     { "benˆtigt", Iso885915 }, // from german.words
     { "benˆtigte", Iso885915 }, // from german.words
     { "benˆtigten", Iso885915 }, // from german.words
+    { "berÅcksichtigen", Cp437 }, // from german.words
+    { "berÅcksichtigt", Cp437 }, // from german.words
+    { "berÅhmt", Cp437 }, // from german.words
+    { "berÅhmte", Cp437 }, // from german.words
+    { "berÅhmten", Cp437 }, // from german.words
+    { "berÅhrt", Cp437 }, // from german.words
+    { "berÑt", Cp437 }, // from german.words
     { "berät", MacRoman }, // from german.words
+    { "berõmt", Cp865 }, // from norwegian.words
+    { "berõmte", Cp865 }, // from norwegian.words
+    { "berõrer", Cp865 }, // from norwegian.words
+    { "berõrt", Cp865 }, // from norwegian.words
+    { "berõrte", Cp865 }, // from norwegian.words
     { "berücksichtigen", MacRoman }, // from german.words
     { "berücksichtigt", MacRoman }, // from german.words
     { "berühmt", MacRoman }, // from german.words
@@ -554,14 +850,26 @@ static const struct {
     { "ber¸hrt", Iso885915 }, // from german.words
     { "besaß", MacRoman }, // from german.words
     { "besaﬂ", Iso885915 }, // from german.words
+    { "besa·", Cp437 }, // from german.words
+    { "beschließen", MacRoman }, // from german.words
     { "beschließt", MacRoman }, // from german.words
+    { "beschlieﬂen", Iso885915 }, // from german.words
     { "beschlieﬂt", Iso885915 }, // from german.words
+    { "beschlie·en", Cp437 }, // from german.words
+    { "beschlie·t", Cp437 }, // from german.words
     { "beschloß", MacRoman }, // from german.words
     { "beschloﬂ", Iso885915 }, // from german.words
+    { "beschlo·", Cp437 }, // from german.words
+    { "beschrÑnken", Cp437 }, // from german.words
+    { "beschrÑnkt", Cp437 }, // from german.words
     { "beschränken", MacRoman }, // from german.words
     { "beschränkt", MacRoman }, // from german.words
     { "beschr‰nken", Iso885915 }, // from german.words
     { "beschr‰nkt", Iso885915 }, // from german.words
+    { "beschÑdigt", Cp437 }, // from german.words
+    { "beschÑftigen", Cp437 }, // from german.words
+    { "beschÑftigt", Cp437 }, // from german.words
+    { "beschÑftigte", Cp437 }, // from german.words
     { "beschädigt", MacRoman }, // from german.words
     { "beschäftigen", MacRoman }, // from german.words
     { "beschäftigt", MacRoman }, // from german.words
@@ -570,6 +878,13 @@ static const struct {
     { "besch‰ftigen", Iso885915 }, // from german.words
     { "besch‰ftigt", Iso885915 }, // from german.words
     { "besch‰ftigte", Iso885915 }, // from german.words
+    { "bestÑtigen", Cp437 }, // from german.words
+    { "bestÑtigt", Cp437 }, // from german.words
+    { "bestÑtigte", Cp437 }, // from german.words
+    { "bestÑtigten", Cp437 }, // from german.words
+    { "bestÜ", Cp865 }, // from norwegian.words
+    { "bestÜende", Cp865 }, // from norwegian.words
+    { "bestÜr", Cp865 }, // from norwegian.words
     { "bestätigen", MacRoman }, // from german.words
     { "bestätigt", MacRoman }, // from german.words
     { "bestätigte", MacRoman }, // from german.words
@@ -584,6 +899,14 @@ static const struct {
     { "bestÂ", Iso885915 }, // from norwegian.words
     { "bestÂende", Iso885915 }, // from norwegian.words
     { "bestÂr", Iso885915 }, // from norwegian.words
+    { "besõk", Cp865 }, // from norwegian.words
+    { "besõke", Cp865 }, // from norwegian.words
+    { "besõkende", Cp865 }, // from norwegian.words
+    { "besõker", Cp865 }, // from norwegian.words
+    { "besõket", Cp865 }, // from norwegian.words
+    { "besõksforbud", Cp865 }, // from norwegian.words
+    { "besõkt", Cp865 }, // from norwegian.words
+    { "besõkte", Cp865 }, // from norwegian.words
     { "besøk", MacRoman }, // from norwegian.words
     { "besøke", MacRoman }, // from norwegian.words
     { "besøkende", MacRoman }, // from norwegian.words
@@ -600,33 +923,53 @@ static const struct {
     { "bes¯ksforbud", Iso885915 }, // from norwegian.words
     { "bes¯kt", Iso885915 }, // from norwegian.words
     { "bes¯kte", Iso885915 }, // from norwegian.words
+    { "betrÑchtlich", Cp437 }, // from german.words
+    { "betrÑgt", Cp437 }, // from german.words
     { "beträchtlich", MacRoman }, // from german.words
     { "beträgt", MacRoman }, // from german.words
     { "betr‰chtlich", Iso885915 }, // from german.words
     { "betr‰gt", Iso885915 }, // from german.words
+    { "bevëpnet", Cp865 }, // from norwegian.words
     { "bevæpnet", MacRoman }, // from norwegian.words
     { "bevÊpnet", Iso885915 }, // from norwegian.words
     { "bewußt", MacRoman }, // from german.words
     { "bewuﬂt", Iso885915 }, // from german.words
+    { "bewu·t", Cp437 }, // from german.words
+    { "bewÑhrt", Cp437 }, // from german.words
+    { "bewÑltigen", Cp437 }, // from german.words
     { "bewährt", MacRoman }, // from german.words
     { "bewältigen", MacRoman }, // from german.words
+    { "bewîlkt", Cp437 }, // from german.words
     { "bewölkt", MacRoman }, // from german.words
     { "bew‰hrt", Iso885915 }, // from german.words
     { "bew‰ltigen", Iso885915 }, // from german.words
     { "bewˆlkt", Iso885915 }, // from german.words
     { "bezpeËn˝", Iso88592 }, // from czech.words
+    { "bezÅglich", Cp437 }, // from german.words
     { "bezüglich", MacRoman }, // from german.words
     { "bez¸glich", Iso885915 }, // from german.words
+    { "bilfõrere", Cp865 }, // from norwegian.words
     { "bilførere", MacRoman }, // from norwegian.words
     { "bilf¯rere", Iso885915 }, // from norwegian.words
+    { "bispedõmme", Cp865 }, // from norwegian.words
     { "bispedømme", MacRoman }, // from norwegian.words
     { "bisped¯mme", Iso885915 }, // from norwegian.words
+    { "bispemõtet", Cp865 }, // from norwegian.words
     { "bispemøtet", MacRoman }, // from norwegian.words
     { "bispem¯tet", Iso885915 }, // from norwegian.words
+    { "bistÜ", Cp865 }, // from norwegian.words
     { "bistå", MacRoman }, // from norwegian.words
     { "bistÂ", Iso885915 }, // from norwegian.words
     { "bißchen", MacRoman }, // from german.words
     { "biﬂchen", Iso885915 }, // from german.words
+    { "bi·chen", Cp437 }, // from german.words
+    { "bjõrg", Cp865 }, // from norwegian.words
+    { "bjõrgvin", Cp865 }, // from norwegian.words
+    { "bjõrn", Cp865 }, // from norwegian.words
+    { "bjõrnar", Cp865 }, // from norwegian.words
+    { "bjõrnebye", Cp865 }, // from norwegian.words
+    { "bjõrnestad", Cp865 }, // from norwegian.words
+    { "bjõrnstad", Cp865 }, // from norwegian.words
     { "bjørg", MacRoman }, // from norwegian.words
     { "bjørgvin", MacRoman }, // from norwegian.words
     { "bjørn", MacRoman }, // from norwegian.words
@@ -641,6 +984,7 @@ static const struct {
     { "bj¯rnebye", Iso885915 }, // from norwegian.words
     { "bj¯rnestad", Iso885915 }, // from norwegian.words
     { "bj¯rnstad", Iso885915 }, // from norwegian.words
+    { "blessÇs", Cp437 }, // from french.words
     { "blessés", MacRoman }, // from french.words
     { "blessÈs", Iso885915 }, // from french.words
     { "bloß", MacRoman }, // from german.words
@@ -649,6 +993,14 @@ static const struct {
     { "bloﬂ", Iso885915 }, // from german.words
     { "bloﬂe", Iso885915 }, // from german.words
     { "bloﬂen", Iso885915 }, // from german.words
+    { "blo·", Cp437 }, // from german.words
+    { "blo·e", Cp437 }, // from german.words
+    { "blo·en", Cp437 }, // from german.words
+    { "blÜ", Cp865 }, // from norwegian.words
+    { "blÜser", Cp865 }, // from norwegian.words
+    { "blÜst", Cp865 }, // from norwegian.words
+    { "blÜste", Cp865 }, // from norwegian.words
+    { "blÜtt", Cp865 }, // from norwegian.words
     { "blå", MacRoman }, // from norwegian.words
     { "blåser", MacRoman }, // from norwegian.words
     { "blåst", MacRoman }, // from norwegian.words
@@ -660,21 +1012,31 @@ static const struct {
     { "blÂste", Iso885915 }, // from norwegian.words
     { "blÂtt", Iso885915 }, // from norwegian.words
     { "blÌzk˝", Iso88592 }, // from czech.words
+    { "bodõ", Cp865 }, // from norwegian.words
     { "bodø", MacRoman }, // from norwegian.words
     { "bod¯", Iso885915 }, // from norwegian.words
+    { "boliglÜn", Cp865 }, // from norwegian.words
     { "boliglån", MacRoman }, // from norwegian.words
     { "boliglÂn", Iso885915 }, // from norwegian.words
+    { "branchÇ", Cp437 }, // from french.words
     { "branché", MacRoman }, // from french.words
     { "branchÈ", Iso885915 }, // from french.words
-    { "brasilianischereißen", MacRoman }, // from german.words
-    { "brasilianischereiﬂen", Iso885915 }, // from german.words
+    { "brendesëther", Cp865 }, // from norwegian.words
     { "brendesæther", MacRoman }, // from norwegian.words
     { "brendesÊther", Iso885915 }, // from norwegian.words
     { "britsk˝", Iso88592 }, // from czech.words
+    { "brÜ", Cp865 }, // from norwegian.words
+    { "brÜk", Cp865 }, // from norwegian.words
+    { "brÜten", Cp865 }, // from norwegian.words
+    { "brÜtt", Cp865 }, // from norwegian.words
     { "brå", MacRoman }, // from norwegian.words
     { "bråk", MacRoman }, // from norwegian.words
     { "bråten", MacRoman }, // from norwegian.words
     { "brått", MacRoman }, // from norwegian.words
+    { "brõd", Cp865 }, // from norwegian.words
+    { "brõdre", Cp865 }, // from norwegian.words
+    { "brõdrene", Cp865 }, // from norwegian.words
+    { "brõt", Cp865 }, // from norwegian.words
     { "brød", MacRoman }, // from norwegian.words
     { "brødre", MacRoman }, // from norwegian.words
     { "brødrene", MacRoman }, // from norwegian.words
@@ -687,14 +1049,22 @@ static const struct {
     { "br¯dre", Iso885915 }, // from norwegian.words
     { "br¯drene", Iso885915 }, // from norwegian.words
     { "br¯t", Iso885915 }, // from norwegian.words
+    { "buchstÑblich", Cp437 }, // from german.words
     { "buchstäblich", MacRoman }, // from german.words
     { "buchst‰blich", Iso885915 }, // from german.words
+    { "budgÇtaire", Cp437 }, // from french.words
+    { "budgÇtaires", Cp437 }, // from french.words
     { "budgétaire", MacRoman }, // from french.words
     { "budgétaires", MacRoman }, // from french.words
     { "budgÈtaire", Iso885915 }, // from french.words
     { "budgÈtaires", Iso885915 }, // from french.words
+    { "bygningsrÜdet", Cp865 }, // from norwegian.words
     { "bygningsrådet", MacRoman }, // from norwegian.words
     { "bygningsrÂdet", Iso885915 }, // from norwegian.words
+    { "byrÜdet", Cp865 }, // from norwegian.words
+    { "byrÜdets", Cp865 }, // from norwegian.words
+    { "byrÜkrater", Cp865 }, // from norwegian.words
+    { "byrÜkrati", Cp865 }, // from norwegian.words
     { "byrådet", MacRoman }, // from norwegian.words
     { "byrådets", MacRoman }, // from norwegian.words
     { "byråkrater", MacRoman }, // from norwegian.words
@@ -703,8 +1073,32 @@ static const struct {
     { "byrÂdets", Iso885915 }, // from norwegian.words
     { "byrÂkrater", Iso885915 }, // from norwegian.words
     { "byrÂkrati", Iso885915 }, // from norwegian.words
+    { "byÜsen", Cp865 }, // from norwegian.words
     { "byåsen", MacRoman }, // from norwegian.words
     { "byÂsen", Iso885915 }, // from norwegian.words
+    { "bÅrgerliche", Cp437 }, // from german.words
+    { "bÅrgerlichen", Cp437 }, // from german.words
+    { "bÇbÇ", Cp437 }, // from french.words
+    { "bÇbÇs", Cp437 }, // from french.words
+    { "bÇnÇfice", Cp437 }, // from french.words
+    { "bÇnÇfices", Cp437 }, // from french.words
+    { "bÇnÇficiaire", Cp437 }, // from french.words
+    { "bÇnÇficiaires", Cp437 }, // from french.words
+    { "bÇnÇficiant", Cp437 }, // from french.words
+    { "bÇnÇficie", Cp437 }, // from french.words
+    { "bÇnÇficient", Cp437 }, // from french.words
+    { "bÇnÇficier", Cp437 }, // from french.words
+    { "bÇnÇficiÇ", Cp437 }, // from french.words
+    { "bÇnÇfique", Cp437 }, // from french.words
+    { "bÇton", Cp437 }, // from french.words
+    { "bÜde", Cp865 }, // from norwegian.words
+    { "bÜnd", Cp865 }, // from norwegian.words
+    { "bÜrd", Cp865 }, // from norwegian.words
+    { "bÜret", Cp865 }, // from norwegian.words
+    { "bÜt", Cp865 }, // from norwegian.words
+    { "bÜten", Cp865 }, // from norwegian.words
+    { "bÜtene", Cp865 }, // from norwegian.words
+    { "bÜter", Cp865 }, // from norwegian.words
     { "både", MacRoman }, // from norwegian.words
     { "bånd", MacRoman }, // from norwegian.words
     { "bård", MacRoman }, // from norwegian.words
@@ -726,8 +1120,35 @@ static const struct {
     { "bénéficié", MacRoman }, // from french.words
     { "bénéfique", MacRoman }, // from french.words
     { "béton", MacRoman }, // from french.words
+    { "bëkkelaget", Cp865 }, // from norwegian.words
+    { "bër", Cp865 }, // from norwegian.words
+    { "bëre", Cp865 }, // from norwegian.words
+    { "bërekraftig", Cp865 }, // from norwegian.words
+    { "bërer", Cp865 }, // from norwegian.words
+    { "bërum", Cp865 }, // from norwegian.words
+    { "bîse", Cp437 }, // from german.words
+    { "bîsen", Cp437 }, // from german.words
     { "böse", MacRoman }, // from german.words
     { "bösen", MacRoman }, // from german.words
+    { "bõ", Cp865 }, // from norwegian.words
+    { "bõd", Cp865 }, // from norwegian.words
+    { "bõe", Cp865 }, // from norwegian.words
+    { "bõkene", Cp865 }, // from norwegian.words
+    { "bõker", Cp865 }, // from norwegian.words
+    { "bõlge", Cp865 }, // from norwegian.words
+    { "bõlger", Cp865 }, // from norwegian.words
+    { "bõmlo", Cp865 }, // from norwegian.words
+    { "bõndene", Cp865 }, // from norwegian.words
+    { "bõnder", Cp865 }, // from norwegian.words
+    { "bõnes", Cp865 }, // from norwegian.words
+    { "bõnn", Cp865 }, // from norwegian.words
+    { "bõnner", Cp865 }, // from norwegian.words
+    { "bõr", Cp865 }, // from norwegian.words
+    { "bõrge", Cp865 }, // from norwegian.words
+    { "bõrre", Cp865 }, // from norwegian.words
+    { "bõrs", Cp865 }, // from norwegian.words
+    { "bõrsen", Cp865 }, // from norwegian.words
+    { "bõter", Cp865 }, // from norwegian.words
     { "bürgerliche", MacRoman }, // from german.words
     { "bürgerlichen", MacRoman }, // from german.words
     { "bækkelaget", MacRoman }, // from norwegian.words
@@ -808,46 +1229,76 @@ static const struct {
     { "b¸rgerlichen", Iso885915 }, // from german.words
     { "b˝t", Iso88592 }, // from czech.words
     { "b˝val˝", Iso88592 }, // from czech.words
+    { "b˝vat", Iso88592 }, // from czech.words
+    { "cachÇ", Cp437 }, // from french.words
+    { "cachÇs", Cp437 }, // from french.words
     { "caché", MacRoman }, // from french.words
     { "cachés", MacRoman }, // from french.words
     { "cachÈ", Iso885915 }, // from french.words
     { "cachÈs", Iso885915 }, // from french.words
+    { "calculÇ", Cp437 }, // from french.words
+    { "calculÇe", Cp437 }, // from french.words
     { "calculé", MacRoman }, // from french.words
     { "calculée", MacRoman }, // from french.words
     { "calculÈ", Iso885915 }, // from french.words
     { "calculÈe", Iso885915 }, // from french.words
+    { "camÇra", Cp437 }, // from french.words
+    { "camÇras", Cp437 }, // from french.words
     { "caméra", MacRoman }, // from french.words
     { "caméras", MacRoman }, // from french.words
     { "camÈra", Iso885915 }, // from french.words
     { "camÈras", Iso885915 }, // from french.words
+    { "capacitÇ", Cp437 }, // from french.words
+    { "capacitÇs", Cp437 }, // from french.words
     { "capacité", MacRoman }, // from french.words
+    { "capacités", MacRoman }, // from french.words
     { "capacitÈ", Iso885915 }, // from french.words
+    { "capacitÈs", Iso885915 }, // from french.words
+    { "caractÇrise", Cp437 }, // from french.words
+    { "caractÇristique", Cp437 }, // from french.words
+    { "caractÇristiques", Cp437 }, // from french.words
     { "caractérise", MacRoman }, // from french.words
     { "caractéristique", MacRoman }, // from french.words
     { "caractéristiques", MacRoman }, // from french.words
     { "caractÈrise", Iso885915 }, // from french.words
     { "caractÈristique", Iso885915 }, // from french.words
     { "caractÈristiques", Iso885915 }, // from french.words
+    { "carrÇ", Cp437 }, // from french.words
+    { "carrÇment", Cp437 }, // from french.words
+    { "carrÇs", Cp437 }, // from french.words
     { "carré", MacRoman }, // from french.words
     { "carrément", MacRoman }, // from french.words
     { "carrés", MacRoman }, // from french.words
     { "carrÈ", Iso885915 }, // from french.words
     { "carrÈment", Iso885915 }, // from french.words
     { "carrÈs", Iso885915 }, // from french.words
+    { "cathÇdrale", Cp437 }, // from french.words
     { "cathédrale", MacRoman }, // from french.words
     { "cathÈdrale", Iso885915 }, // from french.words
+    { "catÇgorie", Cp437 }, // from french.words
+    { "catÇgories", Cp437 }, // from french.words
     { "catégorie", MacRoman }, // from french.words
+    { "catégories", MacRoman }, // from french.words
     { "catÈgorie", Iso885915 }, // from french.words
+    { "catÈgories", Iso885915 }, // from french.words
+    { "causÇ", Cp437 }, // from french.words
     { "causé", MacRoman }, // from french.words
     { "causÈ", Iso885915 }, // from french.words
     { "celkov˝", Iso88592 }, // from czech.words
     { "cel˝", Iso88592 }, // from czech.words
+    { "censÇ", Cp437 }, // from french.words
     { "censé", MacRoman }, // from french.words
     { "censÈ", Iso885915 }, // from french.words
+    { "cessÇ", Cp437 }, // from french.words
     { "cessé", MacRoman }, // from french.words
     { "cessÈ", Iso885915 }, // from french.words
+    { "changÇ", Cp437 }, // from french.words
     { "changé", MacRoman }, // from french.words
     { "changÈ", Iso885915 }, // from french.words
+    { "chargÇ", Cp437 }, // from french.words
+    { "chargÇe", Cp437 }, // from french.words
+    { "chargÇes", Cp437 }, // from french.words
+    { "chargÇs", Cp437 }, // from french.words
     { "chargé", MacRoman }, // from french.words
     { "chargée", MacRoman }, // from french.words
     { "chargées", MacRoman }, // from french.words
@@ -856,71 +1307,115 @@ static const struct {
     { "chargÈe", Iso885915 }, // from french.words
     { "chargÈes", Iso885915 }, // from french.words
     { "chargÈs", Iso885915 }, // from french.words
+    { "chaussÇe", Cp437 }, // from french.words
     { "chaussée", MacRoman }, // from french.words
     { "chaussÈe", Iso885915 }, // from french.words
+    { "cherchÇ", Cp437 }, // from french.words
     { "cherché", MacRoman }, // from french.words
     { "cherchÈ", Iso885915 }, // from french.words
+    { "chrÇtien", Cp437 }, // from french.words
     { "chrétien", MacRoman }, // from french.words
     { "chrÈtien", Iso885915 }, // from french.words
     { "chtÌt", Iso88592 }, // from czech.words
+    { "chutÇ", Cp437 }, // from french.words
     { "chuté", MacRoman }, // from french.words
     { "chutÈ", Iso885915 }, // from french.words
+    { "chybÏt", Iso88592 }, // from czech.words
+    { "cinÇaste", Cp437 }, // from french.words
+    { "cinÇma", Cp437 }, // from french.words
     { "cinéaste", MacRoman }, // from french.words
     { "cinéma", MacRoman }, // from french.words
     { "cinÈaste", Iso885915 }, // from french.words
     { "cinÈma", Iso885915 }, // from french.words
+    { "citÇ", Cp437 }, // from french.words
+    { "citÇes", Cp437 }, // from french.words
+    { "citÇs", Cp437 }, // from french.words
+    { "cité", MacRoman }, // from french.words
     { "citées", MacRoman }, // from french.words
     { "cités", MacRoman }, // from french.words
+    { "citÈ", Iso885915 }, // from french.words
     { "citÈes", Iso885915 }, // from french.words
     { "citÈs", Iso885915 }, // from french.words
+    { "clartÇ", Cp437 }, // from french.words
     { "clarté", MacRoman }, // from french.words
     { "clartÈ", Iso885915 }, // from french.words
+    { "classÇ", Cp437 }, // from french.words
+    { "classÇs", Cp437 }, // from french.words
     { "classé", MacRoman }, // from french.words
     { "classés", MacRoman }, // from french.words
     { "classÈ", Iso885915 }, // from french.words
     { "classÈs", Iso885915 }, // from french.words
+    { "clichÇ", Cp437 }, // from dutch.words
     { "cliché", MacRoman }, // from dutch.words
     { "clichÈ", Iso885915 }, // from dutch.words
+    { "clÇ", Cp437 }, // from french.words
+    { "clÇs", Cp437 }, // from french.words
     { "clé", MacRoman }, // from french.words
     { "clés", MacRoman }, // from french.words
     { "clÈ", Iso885915 }, // from french.words
     { "clÈs", Iso885915 }, // from french.words
+    { "cohÇrence", Cp437 }, // from french.words
+    { "cohÇsion", Cp437 }, // from french.words
     { "cohérence", MacRoman }, // from french.words
     { "cohésion", MacRoman }, // from french.words
     { "cohÈrence", Iso885915 }, // from french.words
     { "cohÈsion", Iso885915 }, // from french.words
+    { "colorÇs", Cp437 }, // from french.words
     { "colorés", MacRoman }, // from french.words
     { "colorÈs", Iso885915 }, // from french.words
+    { "combinÇ", Cp437 }, // from french.words
     { "combiné", MacRoman }, // from french.words
     { "combinÈ", Iso885915 }, // from french.words
+    { "comitÇs", Cp437 }, // from french.words
     { "comités", MacRoman }, // from french.words
     { "comitÈs", Iso885915 }, // from french.words
+    { "commandÇ", Cp437 }, // from french.words
     { "commandé", MacRoman }, // from french.words
     { "commandÈ", Iso885915 }, // from french.words
+    { "commencÇ", Cp437 }, // from french.words
     { "commencé", MacRoman }, // from french.words
     { "commencÈ", Iso885915 }, // from french.words
+    { "commercialisÇ", Cp437 }, // from french.words
+    { "commercialisÇs", Cp437 }, // from french.words
     { "commercialisé", MacRoman }, // from french.words
     { "commercialisés", MacRoman }, // from french.words
     { "commercialisÈ", Iso885915 }, // from french.words
     { "commercialisÈs", Iso885915 }, // from french.words
+    { "communautÇ", Cp437 }, // from french.words
+    { "communautÇs", Cp437 }, // from french.words
+    { "communauté", MacRoman }, // from french.words
     { "communautés", MacRoman }, // from french.words
+    { "communautÈ", Iso885915 }, // from french.words
     { "communautÈs", Iso885915 }, // from french.words
+    { "communiquÇ", Cp437 }, // from french.words
     { "communiqué", MacRoman }, // from french.words
     { "communiquÈ", Iso885915 }, // from french.words
+    { "comparÇ", Cp437 }, // from french.words
     { "comparé", MacRoman }, // from french.words
     { "comparÈ", Iso885915 }, // from french.words
+    { "compatibilitÇ", Cp437 }, // from french.words
     { "compatibilité", MacRoman }, // from french.words
     { "compatibilitÈ", Iso885915 }, // from french.words
+    { "compensÇe", Cp437 }, // from french.words
     { "compensée", MacRoman }, // from french.words
     { "compensÈe", Iso885915 }, // from french.words
+    { "complexitÇ", Cp437 }, // from french.words
     { "complexité", MacRoman }, // from french.words
     { "complexitÈ", Iso885915 }, // from french.words
+    { "complicitÇ", Cp437 }, // from french.words
     { "complicité", MacRoman }, // from french.words
     { "complicitÈ", Iso885915 }, // from french.words
+    { "compliquÇ", Cp437 }, // from french.words
+    { "compliquÇe", Cp437 }, // from french.words
     { "compliqué", MacRoman }, // from french.words
     { "compliquée", MacRoman }, // from french.words
     { "compliquÈ", Iso885915 }, // from french.words
     { "compliquÈe", Iso885915 }, // from french.words
+    { "complÇment", Cp437 }, // from french.words
+    { "complÇmentaire", Cp437 }, // from french.words
+    { "complÇmentaires", Cp437 }, // from french.words
+    { "complÇter", Cp437 }, // from french.words
+    { "complÇtÇ", Cp437 }, // from french.words
     { "complément", MacRoman }, // from french.words
     { "complémentaire", MacRoman }, // from french.words
     { "complémentaires", MacRoman }, // from french.words
@@ -931,16 +1426,32 @@ static const struct {
     { "complÈmentaires", Iso885915 }, // from french.words
     { "complÈter", Iso885915 }, // from french.words
     { "complÈtÈ", Iso885915 }, // from french.words
+    { "composÇ", Cp437 }, // from french.words
+    { "composÇe", Cp437 }, // from french.words
+    { "composÇs", Cp437 }, // from french.words
+    { "composé", MacRoman }, // from french.words
     { "composée", MacRoman }, // from french.words
     { "composés", MacRoman }, // from french.words
+    { "composÈ", Iso885915 }, // from french.words
     { "composÈe", Iso885915 }, // from french.words
     { "composÈs", Iso885915 }, // from french.words
+    { "comprÇhension", Cp437 }, // from french.words
     { "compréhension", MacRoman }, // from french.words
     { "comprÈhension", Iso885915 }, // from french.words
+    { "comptabilitÇ", Cp437 }, // from french.words
     { "comptabilité", MacRoman }, // from french.words
     { "comptabilitÈ", Iso885915 }, // from french.words
+    { "comptÇ", Cp437 }, // from french.words
     { "compté", MacRoman }, // from french.words
     { "comptÈ", Iso885915 }, // from french.words
+    { "compÇtence", Cp437 }, // from french.words
+    { "compÇtences", Cp437 }, // from french.words
+    { "compÇtent", Cp437 }, // from french.words
+    { "compÇtitif", Cp437 }, // from french.words
+    { "compÇtitifs", Cp437 }, // from french.words
+    { "compÇtition", Cp437 }, // from french.words
+    { "compÇtitions", Cp437 }, // from french.words
+    { "compÇtitivitÇ", Cp437 }, // from french.words
     { "compétence", MacRoman }, // from french.words
     { "compétences", MacRoman }, // from french.words
     { "compétent", MacRoman }, // from french.words
@@ -957,84 +1468,145 @@ static const struct {
     { "compÈtition", Iso885915 }, // from french.words
     { "compÈtitions", Iso885915 }, // from french.words
     { "compÈtitivitÈ", Iso885915 }, // from french.words
+    { "comÇdie", Cp437 }, // from french.words
+    { "comÇdien", Cp437 }, // from french.words
+    { "comÇdiens", Cp437 }, // from french.words
     { "comédie", MacRoman }, // from french.words
     { "comédien", MacRoman }, // from french.words
     { "comédiens", MacRoman }, // from french.words
     { "comÈdie", Iso885915 }, // from french.words
     { "comÈdien", Iso885915 }, // from french.words
     { "comÈdiens", Iso885915 }, // from french.words
+    { "concentrÇ", Cp437 }, // from french.words
     { "concentré", MacRoman }, // from french.words
     { "concentrÈ", Iso885915 }, // from french.words
+    { "concernÇ", Cp437 }, // from french.words
+    { "concernÇe", Cp437 }, // from french.words
+    { "concernÇes", Cp437 }, // from french.words
+    { "concernÇs", Cp437 }, // from french.words
     { "concerné", MacRoman }, // from french.words
     { "concernée", MacRoman }, // from french.words
     { "concernées", MacRoman }, // from french.words
+    { "concernés", MacRoman }, // from french.words
     { "concernÈ", Iso885915 }, // from french.words
     { "concernÈe", Iso885915 }, // from french.words
     { "concernÈes", Iso885915 }, // from french.words
+    { "concernÈs", Iso885915 }, // from french.words
+    { "concrÇtiser", Cp437 }, // from french.words
     { "concrétiser", MacRoman }, // from french.words
     { "concrÈtiser", Iso885915 }, // from french.words
+    { "condamnÇ", Cp437 }, // from french.words
+    { "condamnÇs", Cp437 }, // from french.words
     { "condamné", MacRoman }, // from french.words
     { "condamnés", MacRoman }, // from french.words
     { "condamnÈ", Iso885915 }, // from french.words
     { "condamnÈs", Iso885915 }, // from french.words
+    { "confirmÇ", Cp437 }, // from french.words
+    { "confirmÇe", Cp437 }, // from french.words
     { "confirmé", MacRoman }, // from french.words
     { "confirmée", MacRoman }, // from french.words
     { "confirmÈ", Iso885915 }, // from french.words
     { "confirmÈe", Iso885915 }, // from french.words
+    { "confiÇ", Cp437 }, // from french.words
+    { "confiÇe", Cp437 }, // from french.words
     { "confié", MacRoman }, // from french.words
     { "confiée", MacRoman }, // from french.words
     { "confiÈ", Iso885915 }, // from french.words
     { "confiÈe", Iso885915 }, // from french.words
+    { "conformitÇ", Cp437 }, // from french.words
     { "conformité", MacRoman }, // from french.words
     { "conformitÈ", Iso885915 }, // from french.words
+    { "conformÇment", Cp437 }, // from french.words
     { "conformément", MacRoman }, // from french.words
     { "conformÈment", Iso885915 }, // from french.words
+    { "confrontÇ", Cp437 }, // from french.words
+    { "confrontÇe", Cp437 }, // from french.words
+    { "confrontÇs", Cp437 }, // from french.words
     { "confronté", MacRoman }, // from french.words
     { "confrontée", MacRoman }, // from french.words
     { "confrontés", MacRoman }, // from french.words
     { "confrontÈ", Iso885915 }, // from french.words
     { "confrontÈe", Iso885915 }, // from french.words
     { "confrontÈs", Iso885915 }, // from french.words
+    { "confÇrence", Cp437 }, // from french.words
+    { "confÇrences", Cp437 }, // from french.words
     { "conférence", MacRoman }, // from french.words
+    { "conférences", MacRoman }, // from french.words
     { "confÈrence", Iso885915 }, // from french.words
+    { "confÈrences", Iso885915 }, // from french.words
+    { "congÇ", Cp437 }, // from french.words
     { "congé", MacRoman }, // from french.words
     { "congÈ", Iso885915 }, // from french.words
+    { "conquÇrir", Cp437 }, // from french.words
     { "conquérir", MacRoman }, // from french.words
     { "conquÈrir", Iso885915 }, // from french.words
+    { "consacrÇ", Cp437 }, // from french.words
+    { "consacrÇe", Cp437 }, // from french.words
+    { "consacrÇs", Cp437 }, // from french.words
     { "consacré", MacRoman }, // from french.words
     { "consacrée", MacRoman }, // from french.words
     { "consacrés", MacRoman }, // from french.words
     { "consacrÈ", Iso885915 }, // from french.words
     { "consacrÈe", Iso885915 }, // from french.words
     { "consacrÈs", Iso885915 }, // from french.words
+    { "conseillÇ", Cp437 }, // from french.words
     { "conseillé", MacRoman }, // from french.words
     { "conseillÈ", Iso885915 }, // from french.words
+    { "conservÇ", Cp437 }, // from french.words
+    { "conservÇe", Cp437 }, // from french.words
     { "conservé", MacRoman }, // from french.words
     { "conservée", MacRoman }, // from french.words
     { "conservÈ", Iso885915 }, // from french.words
     { "conservÈe", Iso885915 }, // from french.words
+    { "considÇrable", Cp437 }, // from french.words
+    { "considÇrablement", Cp437 }, // from french.words
+    { "considÇrables", Cp437 }, // from french.words
+    { "considÇration", Cp437 }, // from french.words
+    { "considÇrations", Cp437 }, // from french.words
+    { "considÇrer", Cp437 }, // from french.words
+    { "considÇrÇ", Cp437 }, // from french.words
+    { "considÇrÇe", Cp437 }, // from french.words
+    { "considÇrÇes", Cp437 }, // from french.words
+    { "considÇrÇs", Cp437 }, // from french.words
     { "considérable", MacRoman }, // from french.words
+    { "considérablement", MacRoman }, // from french.words
     { "considérables", MacRoman }, // from french.words
     { "considération", MacRoman }, // from french.words
     { "considérations", MacRoman }, // from french.words
+    { "considérer", MacRoman }, // from french.words
     { "considéré", MacRoman }, // from french.words
+    { "considérée", MacRoman }, // from french.words
     { "considérées", MacRoman }, // from french.words
     { "considérés", MacRoman }, // from french.words
     { "considÈrable", Iso885915 }, // from french.words
+    { "considÈrablement", Iso885915 }, // from french.words
     { "considÈrables", Iso885915 }, // from french.words
     { "considÈration", Iso885915 }, // from french.words
     { "considÈrations", Iso885915 }, // from french.words
+    { "considÈrer", Iso885915 }, // from french.words
     { "considÈrÈ", Iso885915 }, // from french.words
+    { "considÈrÈe", Iso885915 }, // from french.words
     { "considÈrÈes", Iso885915 }, // from french.words
     { "considÈrÈs", Iso885915 }, // from french.words
+    { "consolidÇ", Cp437 }, // from french.words
     { "consolidé", MacRoman }, // from french.words
     { "consolidÈ", Iso885915 }, // from french.words
+    { "consommÇ", Cp437 }, // from french.words
     { "consommé", MacRoman }, // from french.words
     { "consommÈ", Iso885915 }, // from french.words
+    { "constatÇ", Cp437 }, // from french.words
     { "constaté", MacRoman }, // from french.words
     { "constatÈ", Iso885915 }, // from french.words
+    { "constituÇ", Cp437 }, // from french.words
+    { "constituÇe", Cp437 }, // from french.words
+    { "constitué", MacRoman }, // from french.words
     { "constituée", MacRoman }, // from french.words
+    { "constituÈ", Iso885915 }, // from french.words
     { "constituÈe", Iso885915 }, // from french.words
+    { "consÇcutive", Cp437 }, // from french.words
+    { "consÇquence", Cp437 }, // from french.words
+    { "consÇquences", Cp437 }, // from french.words
+    { "consÇquent", Cp437 }, // from french.words
     { "consécutive", MacRoman }, // from french.words
     { "conséquence", MacRoman }, // from french.words
     { "conséquences", MacRoman }, // from french.words
@@ -1043,38 +1615,82 @@ static const struct {
     { "consÈquence", Iso885915 }, // from french.words
     { "consÈquences", Iso885915 }, // from french.words
     { "consÈquent", Iso885915 }, // from french.words
+    { "continuitÇ", Cp437 }, // from french.words
     { "continuité", MacRoman }, // from french.words
     { "continuitÈ", Iso885915 }, // from french.words
+    { "continuÇ", Cp437 }, // from french.words
     { "continué", MacRoman }, // from french.words
     { "continuÈ", Iso885915 }, // from french.words
+    { "contribuÇ", Cp437 }, // from french.words
     { "contribué", MacRoman }, // from french.words
     { "contribuÈ", Iso885915 }, // from french.words
+    { "convivialitÇ", Cp437 }, // from french.words
     { "convivialité", MacRoman }, // from french.words
     { "convivialitÈ", Iso885915 }, // from french.words
+    { "coopÇration", Cp437 }, // from french.words
+    { "coopÇrative", Cp437 }, // from french.words
     { "coopération", MacRoman }, // from french.words
     { "coopérative", MacRoman }, // from french.words
     { "coopÈration", Iso885915 }, // from french.words
     { "coopÈrative", Iso885915 }, // from french.words
+    { "coordonnÇes", Cp437 }, // from french.words
     { "coordonnées", MacRoman }, // from french.words
     { "coordonnÈes", Iso885915 }, // from french.words
+    { "corrÇlation", Cp437 }, // from french.words
     { "corrélation", MacRoman }, // from french.words
     { "corrÈlation", Iso885915 }, // from french.words
+    { "cosmÇtiques", Cp437 }, // from french.words
     { "cosmétiques", MacRoman }, // from french.words
     { "cosmÈtiques", Iso885915 }, // from french.words
+    { "cotÇ", Cp437 }, // from french.words
+    { "cotÇe", Cp437 }, // from french.words
+    { "cotÇes", Cp437 }, // from french.words
+    { "cotÇs", Cp437 }, // from french.words
     { "coté", MacRoman }, // from french.words
+    { "cotée", MacRoman }, // from french.words
     { "cotées", MacRoman }, // from french.words
     { "cotés", MacRoman }, // from french.words
     { "cotÈ", Iso885915 }, // from french.words
+    { "cotÈe", Iso885915 }, // from french.words
     { "cotÈes", Iso885915 }, // from french.words
     { "cotÈs", Iso885915 }, // from french.words
+    { "coupÇ", Cp437 }, // from french.words
     { "coupé", MacRoman }, // from french.words
     { "coupÈ", Iso885915 }, // from french.words
+    { "coîperatieve", Cp437 }, // from dutch.words
+    { "coîrdinatie", Cp437 }, // from dutch.words
     { "coöperatieve", MacRoman }, // from dutch.words
     { "coördinatie", MacRoman }, // from dutch.words
     { "coˆperatieve", Iso885915 }, // from dutch.words
     { "coˆrdinatie", Iso885915 }, // from dutch.words
+    { "criminalitÇ", Cp437 }, // from french.words
     { "criminalité", MacRoman }, // from french.words
     { "criminalitÈ", Iso885915 }, // from french.words
+    { "crÇance", Cp437 }, // from french.words
+    { "crÇances", Cp437 }, // from french.words
+    { "crÇancier", Cp437 }, // from french.words
+    { "crÇanciers", Cp437 }, // from french.words
+    { "crÇant", Cp437 }, // from french.words
+    { "crÇateur", Cp437 }, // from french.words
+    { "crÇateurs", Cp437 }, // from french.words
+    { "crÇatif", Cp437 }, // from french.words
+    { "crÇatifs", Cp437 }, // from french.words
+    { "crÇation", Cp437 }, // from french.words
+    { "crÇations", Cp437 }, // from french.words
+    { "crÇativitÇ", Cp437 }, // from french.words
+    { "crÇatrice", Cp437 }, // from french.words
+    { "crÇdibilitÇ", Cp437 }, // from french.words
+    { "crÇdible", Cp437 }, // from french.words
+    { "crÇdit", Cp437 }, // from french.words
+    { "crÇdits", Cp437 }, // from french.words
+    { "crÇe", Cp437 }, // from french.words
+    { "crÇent", Cp437 }, // from french.words
+    { "crÇer", Cp437 }, // from french.words
+    { "crÇneau", Cp437 }, // from french.words
+    { "crÇÇ", Cp437 }, // from french.words
+    { "crÇÇe", Cp437 }, // from french.words
+    { "crÇÇes", Cp437 }, // from french.words
+    { "crÇÇs", Cp437 }, // from french.words
     { "créance", MacRoman }, // from french.words
     { "créances", MacRoman }, // from french.words
     { "créancier", MacRoman }, // from french.words
@@ -1098,6 +1714,7 @@ static const struct {
     { "créneau", MacRoman }, // from french.words
     { "créé", MacRoman }, // from french.words
     { "créée", MacRoman }, // from french.words
+    { "créées", MacRoman }, // from french.words
     { "créés", MacRoman }, // from french.words
     { "crÈance", Iso885915 }, // from french.words
     { "crÈances", Iso885915 }, // from french.words
@@ -1122,100 +1739,167 @@ static const struct {
     { "crÈneau", Iso885915 }, // from french.words
     { "crÈÈ", Iso885915 }, // from french.words
     { "crÈÈe", Iso885915 }, // from french.words
+    { "crÈÈes", Iso885915 }, // from french.words
     { "crÈÈs", Iso885915 }, // from french.words
+    { "culpabilitÇ", Cp437 }, // from french.words
     { "culpabilité", MacRoman }, // from french.words
     { "culpabilitÈ", Iso885915 }, // from french.words
+    { "curiositÇ", Cp437 }, // from french.words
     { "curiosité", MacRoman }, // from french.words
     { "curiositÈ", Iso885915 }, // from french.words
+    { "cuvÇe", Cp437 }, // from french.words
     { "cuvée", MacRoman }, // from french.words
     { "cuvÈe", Iso885915 }, // from french.words
+    { "cÇder", Cp437 }, // from french.words
+    { "cÇdÇ", Cp437 }, // from french.words
+    { "cÇramique", Cp437 }, // from french.words
     { "céder", MacRoman }, // from french.words
     { "cédé", MacRoman }, // from french.words
     { "céramique", MacRoman }, // from french.words
     { "cÈder", Iso885915 }, // from french.words
     { "cÈdÈ", Iso885915 }, // from french.words
     { "cÈramique", Iso885915 }, // from french.words
+    { "dafÅr", Cp437 }, // from german.words
     { "dafür", MacRoman }, // from german.words
     { "daf¸r", Iso885915 }, // from german.words
+    { "dahlstrõm", Cp865 }, // from norwegian.words
     { "dahlstrøm", MacRoman }, // from norwegian.words
     { "dahlstr¯m", Iso885915 }, // from norwegian.words
     { "dalπÌ", Iso88592 }, // from czech.words
     { "dan˝", Iso88592 }, // from czech.words
+    { "darÅber", Cp437 }, // from german.words
     { "darüber", MacRoman }, // from german.words
     { "dar¸ber", Iso885915 }, // from german.words
+    { "davërende", Cp865 }, // from norwegian.words
     { "daværende", MacRoman }, // from norwegian.words
     { "davÊrende", Iso885915 }, // from norwegian.words
     { "daÚ", Iso88592 }, // from czech.words
     { "daÚov˝", Iso88592 }, // from czech.words
+    { "defilÇ", Cp437 }, // from dutch.words
     { "defilé", MacRoman }, // from dutch.words
     { "defilÈ", Iso885915 }, // from dutch.words
+    { "degrÇ", Cp437 }, // from french.words
+    { "degrÇs", Cp437 }, // from french.words
+    { "degré", MacRoman }, // from french.words
     { "degrés", MacRoman }, // from french.words
+    { "degrÈ", Iso885915 }, // from french.words
     { "degrÈs", Iso885915 }, // from french.words
+    { "demandÇ", Cp437 }, // from french.words
+    { "demandÇe", Cp437 }, // from french.words
+    { "demandÇs", Cp437 }, // from french.words
     { "demandé", MacRoman }, // from french.words
     { "demandée", MacRoman }, // from french.words
     { "demandés", MacRoman }, // from french.words
     { "demandÈ", Iso885915 }, // from french.words
     { "demandÈe", Iso885915 }, // from french.words
     { "demandÈs", Iso885915 }, // from french.words
+    { "demnÑchst", Cp437 }, // from german.words
     { "demnächst", MacRoman }, // from german.words
     { "demn‰chst", Iso885915 }, // from german.words
     { "demokratick˝", Iso88592 }, // from czech.words
+    { "densitÇ", Cp437 }, // from french.words
     { "densité", MacRoman }, // from french.words
     { "densitÈ", Iso885915 }, // from french.words
+    { "dessinÇ", Cp437 }, // from french.words
+    { "dessinÇe", Cp437 }, // from french.words
     { "dessiné", MacRoman }, // from french.words
     { "dessinée", MacRoman }, // from french.words
     { "dessinÈ", Iso885915 }, // from french.words
     { "dessinÈe", Iso885915 }, // from french.words
+    { "destinÇ", Cp437 }, // from french.words
+    { "destinÇe", Cp437 }, // from french.words
+    { "destinÇes", Cp437 }, // from french.words
+    { "destinÇs", Cp437 }, // from french.words
     { "destiné", MacRoman }, // from french.words
+    { "destinée", MacRoman }, // from french.words
     { "destinées", MacRoman }, // from french.words
     { "destinés", MacRoman }, // from french.words
     { "destinÈ", Iso885915 }, // from french.words
+    { "destinÈe", Iso885915 }, // from french.words
     { "destinÈes", Iso885915 }, // from french.words
     { "destinÈs", Iso885915 }, // from french.words
+    { "diesjÑhrigen", Cp437 }, // from german.words
+    { "diesjährigen", MacRoman }, // from german.words
+    { "diesj‰hrigen", Iso885915 }, // from german.words
+    { "difficultÇ", Cp437 }, // from french.words
+    { "difficultÇs", Cp437 }, // from french.words
     { "difficulté", MacRoman }, // from french.words
     { "difficultés", MacRoman }, // from french.words
     { "difficultÈ", Iso885915 }, // from french.words
     { "difficultÈs", Iso885915 }, // from french.words
+    { "diffusÇ", Cp437 }, // from french.words
+    { "diffusÇe", Cp437 }, // from french.words
     { "diffusé", MacRoman }, // from french.words
     { "diffusée", MacRoman }, // from french.words
     { "diffusÈ", Iso885915 }, // from french.words
     { "diffusÈe", Iso885915 }, // from french.words
+    { "diffÇremment", Cp437 }, // from french.words
+    { "diffÇrence", Cp437 }, // from french.words
+    { "diffÇrences", Cp437 }, // from french.words
+    { "diffÇrent", Cp437 }, // from french.words
+    { "diffÇrente", Cp437 }, // from french.words
+    { "diffÇrentes", Cp437 }, // from french.words
+    { "diffÇrentiel", Cp437 }, // from french.words
+    { "diffÇrents", Cp437 }, // from french.words
     { "différemment", MacRoman }, // from french.words
     { "différence", MacRoman }, // from french.words
+    { "différences", MacRoman }, // from french.words
+    { "différent", MacRoman }, // from french.words
+    { "différente", MacRoman }, // from french.words
     { "différentes", MacRoman }, // from french.words
     { "différentiel", MacRoman }, // from french.words
     { "différents", MacRoman }, // from french.words
     { "diffÈremment", Iso885915 }, // from french.words
     { "diffÈrence", Iso885915 }, // from french.words
+    { "diffÈrences", Iso885915 }, // from french.words
+    { "diffÈrent", Iso885915 }, // from french.words
+    { "diffÈrente", Iso885915 }, // from french.words
     { "diffÈrentes", Iso885915 }, // from french.words
     { "diffÈrentiel", Iso885915 }, // from french.words
     { "diffÈrents", Iso885915 }, // from french.words
+    { "diminuÇ", Cp437 }, // from french.words
     { "diminué", MacRoman }, // from french.words
     { "diminuÈ", Iso885915 }, // from french.words
+    { "directiecomitÇ", Cp437 }, // from dutch.words
     { "directiecomité", MacRoman }, // from dutch.words
     { "directiecomitÈ", Iso885915 }, // from dutch.words
+    { "direktõr", Cp865 }, // from norwegian.words
+    { "direktõren", Cp865 }, // from norwegian.words
     { "direktør", MacRoman }, // from norwegian.words
     { "direktøren", MacRoman }, // from norwegian.words
     { "direkt¯r", Iso885915 }, // from norwegian.words
     { "direkt¯ren", Iso885915 }, // from norwegian.words
+    { "dirigÇ", Cp437 }, // from french.words
+    { "dirigÇe", Cp437 }, // from french.words
     { "dirigé", MacRoman }, // from french.words
     { "dirigée", MacRoman }, // from french.words
     { "dirigÈ", Iso885915 }, // from french.words
     { "dirigÈe", Iso885915 }, // from french.words
+    { "discrÇtion", Cp437 }, // from french.words
     { "discrétion", MacRoman }, // from french.words
     { "discrÈtion", Iso885915 }, // from french.words
+    { "disponibilitÇ", Cp437 }, // from french.words
     { "disponibilité", MacRoman }, // from french.words
     { "disponibilitÈ", Iso885915 }, // from french.words
+    { "disposÇ", Cp437 }, // from french.words
+    { "disposÇs", Cp437 }, // from french.words
     { "disposé", MacRoman }, // from french.words
     { "disposés", MacRoman }, // from french.words
     { "disposÈ", Iso885915 }, // from french.words
     { "disposÈs", Iso885915 }, // from french.words
+    { "distribuÇ", Cp437 }, // from french.words
+    { "distribuÇs", Cp437 }, // from french.words
     { "distribué", MacRoman }, // from french.words
     { "distribués", MacRoman }, // from french.words
     { "distribuÈ", Iso885915 }, // from french.words
     { "distribuÈs", Iso885915 }, // from french.words
+    { "diversifiÇ", Cp437 }, // from french.words
+    { "diversifié", MacRoman }, // from french.words
+    { "diversifiÈ", Iso885915 }, // from french.words
+    { "diversitÇ", Cp437 }, // from french.words
     { "diversité", MacRoman }, // from french.words
     { "diversitÈ", Iso885915 }, // from french.words
+    { "divisÇ", Cp437 }, // from french.words
     { "divisé", MacRoman }, // from french.words
     { "divisÈ", Iso885915 }, // from french.words
     { "dlouh˝", Iso88592 }, // from czech.words
@@ -1223,34 +1907,72 @@ static const struct {
     { "dobr˝", Iso88592 }, // from czech.words
     { "dojÌt", Iso88592 }, // from czech.words
     { "dok·zat", Iso88592 }, // from czech.words
+    { "dominÇ", Cp437 }, // from french.words
     { "dominé", MacRoman }, // from french.words
     { "dominÈ", Iso885915 }, // from french.words
     { "dom·cÌ", Iso88592 }, // from czech.words
+    { "donnÇ", Cp437 }, // from french.words
+    { "donnÇe", Cp437 }, // from french.words
+    { "donnÇes", Cp437 }, // from french.words
+    { "donnÇs", Cp437 }, // from french.words
     { "donné", MacRoman }, // from french.words
+    { "donnée", MacRoman }, // from french.words
     { "données", MacRoman }, // from french.words
     { "donnés", MacRoman }, // from french.words
     { "donnÈ", Iso885915 }, // from french.words
+    { "donnÈe", Iso885915 }, // from french.words
     { "donnÈes", Iso885915 }, // from french.words
     { "donnÈs", Iso885915 }, // from french.words
+    { "dorÇ", Cp437 }, // from french.words
+    { "dorÇnavant", Cp437 }, // from french.words
     { "doré", MacRoman }, // from french.words
+    { "dorénavant", MacRoman }, // from french.words
     { "dorÈ", Iso885915 }, // from french.words
+    { "dorÈnavant", Iso885915 }, // from french.words
     { "dosavadnÌ", Iso88592 }, // from czech.words
+    { "dost·vat", Iso88592 }, // from czech.words
+    { "dos·hnout", Iso88592 }, // from czech.words
+    { "dotÇ", Cp437 }, // from french.words
+    { "dotÇe", Cp437 }, // from french.words
+    { "dotÇs", Cp437 }, // from french.words
     { "doté", MacRoman }, // from french.words
     { "dotée", MacRoman }, // from french.words
     { "dotés", MacRoman }, // from french.words
     { "dotÈ", Iso885915 }, // from french.words
     { "dotÈe", Iso885915 }, // from french.words
     { "dotÈs", Iso885915 }, // from french.words
+    { "doublÇ", Cp437 }, // from french.words
     { "doublé", MacRoman }, // from french.words
     { "doublÈ", Iso885915 }, // from french.words
+    { "drapsforsõk", Cp865 }, // from norwegian.words
     { "drapsforsøk", MacRoman }, // from norwegian.words
     { "drapsfors¯k", Iso885915 }, // from norwegian.words
     { "draußen", MacRoman }, // from german.words
     { "drauﬂen", Iso885915 }, // from german.words
+    { "drau·en", Cp437 }, // from german.words
     { "dreißig", MacRoman }, // from german.words
     { "dreiﬂig", Iso885915 }, // from german.words
+    { "drei·ig", Cp437 }, // from german.words
+    { "drÅben", Cp437 }, // from german.words
+    { "drÅcken", Cp437 }, // from german.words
+    { "drÅckt", Cp437 }, // from german.words
+    { "drÅckte", Cp437 }, // from german.words
+    { "drÑngen", Cp437 }, // from german.words
+    { "drÑngt", Cp437 }, // from german.words
     { "drängen", MacRoman }, // from german.words
     { "drängt", MacRoman }, // from german.words
+    { "drõfte", Cp865 }, // from norwegian.words
+    { "drõfter", Cp865 }, // from norwegian.words
+    { "drõftet", Cp865 }, // from norwegian.words
+    { "drõm", Cp865 }, // from norwegian.words
+    { "drõmme", Cp865 }, // from norwegian.words
+    { "drõmmen", Cp865 }, // from norwegian.words
+    { "drõmmer", Cp865 }, // from norwegian.words
+    { "drõmt", Cp865 }, // from norwegian.words
+    { "drõmte", Cp865 }, // from norwegian.words
+    { "drõy", Cp865 }, // from norwegian.words
+    { "drõye", Cp865 }, // from norwegian.words
+    { "drõyt", Cp865 }, // from norwegian.words
     { "drüben", MacRoman }, // from german.words
     { "drücken", MacRoman }, // from german.words
     { "drückt", MacRoman }, // from german.words
@@ -1285,18 +2007,267 @@ static const struct {
     { "dr¸cken", Iso885915 }, // from german.words
     { "dr¸ckt", Iso885915 }, // from german.words
     { "dr¸ckte", Iso885915 }, // from german.words
+    { "durchfÅhren", Cp437 }, // from german.words
     { "durchführen", MacRoman }, // from german.words
     { "durchf¸hren", Iso885915 }, // from german.words
+    { "durchgefÅhrt", Cp437 }, // from german.words
     { "durchgeführt", MacRoman }, // from german.words
     { "durchgef¸hrt", Iso885915 }, // from german.words
+    { "durchzufÅhren", Cp437 }, // from german.words
     { "durchzuführen", MacRoman }, // from german.words
     { "durchzuf¸hren", Iso885915 }, // from german.words
+    { "durÇ", Cp437 }, // from french.words
+    { "durÇe", Cp437 }, // from french.words
+    { "durÇes", Cp437 }, // from french.words
     { "duré", MacRoman }, // from french.words
     { "durée", MacRoman }, // from french.words
     { "durées", MacRoman }, // from french.words
     { "durÈ", Iso885915 }, // from french.words
     { "durÈe", Iso885915 }, // from french.words
     { "durÈes", Iso885915 }, // from french.words
+    { "dÅnn", Cp437 }, // from german.words
+    { "dÅrfe", Cp437 }, // from german.words
+    { "dÅrfen", Cp437 }, // from german.words
+    { "dÅrfte", Cp437 }, // from german.words
+    { "dÅrften", Cp437 }, // from german.words
+    { "dÇ", Cp437 }, // from dutch.words
+    { "dÇbarque", Cp437 }, // from french.words
+    { "dÇbarrasser", Cp437 }, // from french.words
+    { "dÇbat", Cp437 }, // from french.words
+    { "dÇbats", Cp437 }, // from french.words
+    { "dÇbit", Cp437 }, // from french.words
+    { "dÇbiteur", Cp437 }, // from french.words
+    { "dÇbiteurs", Cp437 }, // from french.words
+    { "dÇboires", Cp437 }, // from french.words
+    { "dÇbouche", Cp437 }, // from french.words
+    { "dÇboucher", Cp437 }, // from french.words
+    { "dÇbouchÇ", Cp437 }, // from french.words
+    { "dÇbouchÇs", Cp437 }, // from french.words
+    { "dÇbourser", Cp437 }, // from french.words
+    { "dÇbut", Cp437 }, // from french.words
+    { "dÇbute", Cp437 }, // from french.words
+    { "dÇbuts", Cp437 }, // from french.words
+    { "dÇbutÇ", Cp437 }, // from french.words
+    { "dÇcalage", Cp437 }, // from french.words
+    { "dÇceler", Cp437 }, // from french.words
+    { "dÇcembre", Cp437 }, // from french.words
+    { "dÇcennie", Cp437 }, // from french.words
+    { "dÇcennies", Cp437 }, // from french.words
+    { "dÇception", Cp437 }, // from french.words
+    { "dÇcevants", Cp437 }, // from french.words
+    { "dÇcharge", Cp437 }, // from french.words
+    { "dÇchets", Cp437 }, // from french.words
+    { "dÇcide", Cp437 }, // from french.words
+    { "dÇcident", Cp437 }, // from french.words
+    { "dÇcider", Cp437 }, // from french.words
+    { "dÇcideurs", Cp437 }, // from french.words
+    { "dÇcidÇ", Cp437 }, // from french.words
+    { "dÇcidÇe", Cp437 }, // from french.words
+    { "dÇcidÇment", Cp437 }, // from french.words
+    { "dÇcision", Cp437 }, // from french.words
+    { "dÇcisions", Cp437 }, // from french.words
+    { "dÇclaration", Cp437 }, // from french.words
+    { "dÇclarations", Cp437 }, // from french.words
+    { "dÇclare", Cp437 }, // from french.words
+    { "dÇclarent", Cp437 }, // from french.words
+    { "dÇclarer", Cp437 }, // from french.words
+    { "dÇclarÇ", Cp437 }, // from french.words
+    { "dÇclarÇs", Cp437 }, // from french.words
+    { "dÇclenche", Cp437 }, // from french.words
+    { "dÇclin", Cp437 }, // from french.words
+    { "dÇcline", Cp437 }, // from french.words
+    { "dÇco", Cp437 }, // from french.words
+    { "dÇcor", Cp437 }, // from french.words
+    { "dÇcoratifs", Cp437 }, // from french.words
+    { "dÇcoration", Cp437 }, // from french.words
+    { "dÇcors", Cp437 }, // from french.words
+    { "dÇcote", Cp437 }, // from french.words
+    { "dÇcoule", Cp437 }, // from french.words
+    { "dÇcoupe", Cp437 }, // from french.words
+    { "dÇcouvert", Cp437 }, // from french.words
+    { "dÇcouverte", Cp437 }, // from french.words
+    { "dÇcouvertes", Cp437 }, // from french.words
+    { "dÇcouvre", Cp437 }, // from french.words
+    { "dÇcouvrent", Cp437 }, // from french.words
+    { "dÇcouvrir", Cp437 }, // from french.words
+    { "dÇcret", Cp437 }, // from french.words
+    { "dÇcrire", Cp437 }, // from french.words
+    { "dÇcrit", Cp437 }, // from french.words
+    { "dÇcroche", Cp437 }, // from french.words
+    { "dÇcrocher", Cp437 }, // from french.words
+    { "dÇcrochÇ", Cp437 }, // from french.words
+    { "dÇcÇdÇ", Cp437 }, // from french.words
+    { "dÇdiÇ", Cp437 }, // from french.words
+    { "dÇductibles", Cp437 }, // from french.words
+    { "dÇduction", Cp437 }, // from french.words
+    { "dÇduire", Cp437 }, // from french.words
+    { "dÇfaire", Cp437 }, // from french.words
+    { "dÇfaite", Cp437 }, // from french.words
+    { "dÇfaut", Cp437 }, // from french.words
+    { "dÇfauts", Cp437 }, // from french.words
+    { "dÇfavorable", Cp437 }, // from french.words
+    { "dÇfend", Cp437 }, // from french.words
+    { "dÇfendre", Cp437 }, // from french.words
+    { "dÇfendu", Cp437 }, // from french.words
+    { "dÇfense", Cp437 }, // from french.words
+    { "dÇfenseurs", Cp437 }, // from french.words
+    { "dÇfensive", Cp437 }, // from french.words
+    { "dÇfi", Cp437 }, // from french.words
+    { "dÇficit", Cp437 }, // from french.words
+    { "dÇficits", Cp437 }, // from french.words
+    { "dÇfini", Cp437 }, // from french.words
+    { "dÇfinie", Cp437 }, // from french.words
+    { "dÇfinir", Cp437 }, // from french.words
+    { "dÇfinis", Cp437 }, // from french.words
+    { "dÇfinit", Cp437 }, // from french.words
+    { "dÇfinitif", Cp437 }, // from french.words
+    { "dÇfinition", Cp437 }, // from french.words
+    { "dÇfinitive", Cp437 }, // from french.words
+    { "dÇfinitivement", Cp437 }, // from french.words
+    { "dÇfis", Cp437 }, // from french.words
+    { "dÇflation", Cp437 }, // from french.words
+    { "dÇfunt", Cp437 }, // from french.words
+    { "dÇgage", Cp437 }, // from french.words
+    { "dÇgager", Cp437 }, // from french.words
+    { "dÇgagÇ", Cp437 }, // from french.words
+    { "dÇgradation", Cp437 }, // from french.words
+    { "dÇgustation", Cp437 }, // from french.words
+    { "dÇguster", Cp437 }, // from french.words
+    { "dÇjeuner", Cp437 }, // from french.words
+    { "dÇlai", Cp437 }, // from french.words
+    { "dÇlais", Cp437 }, // from french.words
+    { "dÇlicat", Cp437 }, // from french.words
+    { "dÇlicate", Cp437 }, // from french.words
+    { "dÇlicieux", Cp437 }, // from french.words
+    { "dÇlit", Cp437 }, // from french.words
+    { "dÇlocalisation", Cp437 }, // from french.words
+    { "dÇlÇgation", Cp437 }, // from french.words
+    { "dÇlÇguÇ", Cp437 }, // from french.words
+    { "dÇlÇguÇs", Cp437 }, // from french.words
+    { "dÇmarche", Cp437 }, // from french.words
+    { "dÇmarches", Cp437 }, // from french.words
+    { "dÇmarrage", Cp437 }, // from french.words
+    { "dÇmarre", Cp437 }, // from french.words
+    { "dÇmarrer", Cp437 }, // from french.words
+    { "dÇmarrÇ", Cp437 }, // from french.words
+    { "dÇmission", Cp437 }, // from french.words
+    { "dÇmocratie", Cp437 }, // from french.words
+    { "dÇmocratique", Cp437 }, // from french.words
+    { "dÇmonstration", Cp437 }, // from french.words
+    { "dÇmontre", Cp437 }, // from french.words
+    { "dÇmontrent", Cp437 }, // from french.words
+    { "dÇmontrer", Cp437 }, // from french.words
+    { "dÇmontrÇ", Cp437 }, // from french.words
+    { "dÇmÇnagement", Cp437 }, // from french.words
+    { "dÇnicher", Cp437 }, // from french.words
+    { "dÇnomination", Cp437 }, // from french.words
+    { "dÇnonce", Cp437 }, // from french.words
+    { "dÇnoncer", Cp437 }, // from french.words
+    { "dÇpart", Cp437 }, // from french.words
+    { "dÇpartement", Cp437 }, // from french.words
+    { "dÇpartements", Cp437 }, // from french.words
+    { "dÇparts", Cp437 }, // from french.words
+    { "dÇpassant", Cp437 }, // from french.words
+    { "dÇpasse", Cp437 }, // from french.words
+    { "dÇpassent", Cp437 }, // from french.words
+    { "dÇpasser", Cp437 }, // from french.words
+    { "dÇpassÇ", Cp437 }, // from french.words
+    { "dÇpend", Cp437 }, // from french.words
+    { "dÇpendance", Cp437 }, // from french.words
+    { "dÇpendant", Cp437 }, // from french.words
+    { "dÇpendent", Cp437 }, // from french.words
+    { "dÇpendra", Cp437 }, // from french.words
+    { "dÇpense", Cp437 }, // from french.words
+    { "dÇpenser", Cp437 }, // from french.words
+    { "dÇpenses", Cp437 }, // from french.words
+    { "dÇpit", Cp437 }, // from french.words
+    { "dÇplace", Cp437 }, // from french.words
+    { "dÇplacement", Cp437 }, // from french.words
+    { "dÇplacements", Cp437 }, // from french.words
+    { "dÇplacer", Cp437 }, // from french.words
+    { "dÇploie", Cp437 }, // from french.words
+    { "dÇposer", Cp437 }, // from french.words
+    { "dÇposÇ", Cp437 }, // from french.words
+    { "dÇposÇe", Cp437 }, // from french.words
+    { "dÇpression", Cp437 }, // from french.words
+    { "dÇprÇciation", Cp437 }, // from french.words
+    { "dÇputÇ", Cp437 }, // from french.words
+    { "dÇputÇs", Cp437 }, // from french.words
+    { "dÇrapage", Cp437 }, // from french.words
+    { "dÇrive", Cp437 }, // from french.words
+    { "dÇrivÇs", Cp437 }, // from french.words
+    { "dÇroule", Cp437 }, // from french.words
+    { "dÇroulement", Cp437 }, // from french.words
+    { "dÇroulent", Cp437 }, // from french.words
+    { "dÇroulera", Cp437 }, // from french.words
+    { "dÇrÇgulation", Cp437 }, // from french.words
+    { "dÇs", Cp437 }, // from french.words
+    { "dÇsastre", Cp437 }, // from french.words
+    { "dÇsert", Cp437 }, // from french.words
+    { "dÇsespoir", Cp437 }, // from french.words
+    { "dÇsigne", Cp437 }, // from french.words
+    { "dÇsigner", Cp437 }, // from french.words
+    { "dÇsignÇ", Cp437 }, // from french.words
+    { "dÇsir", Cp437 }, // from french.words
+    { "dÇsire", Cp437 }, // from french.words
+    { "dÇsirent", Cp437 }, // from french.words
+    { "dÇsireux", Cp437 }, // from french.words
+    { "dÇsirs", Cp437 }, // from french.words
+    { "dÇsordre", Cp437 }, // from french.words
+    { "dÇsormais", Cp437 }, // from french.words
+    { "dÇtachement", Cp437 }, // from french.words
+    { "dÇtail", Cp437 }, // from french.words
+    { "dÇtaillÇ", Cp437 }, // from french.words
+    { "dÇtaillÇe", Cp437 }, // from french.words
+    { "dÇtails", Cp437 }, // from french.words
+    { "dÇtecter", Cp437 }, // from french.words
+    { "dÇtecteurs", Cp437 }, // from french.words
+    { "dÇtection", Cp437 }, // from french.words
+    { "dÇtenait", Cp437 }, // from french.words
+    { "dÇtenir", Cp437 }, // from french.words
+    { "dÇtente", Cp437 }, // from french.words
+    { "dÇtenteur", Cp437 }, // from french.words
+    { "dÇtenteurs", Cp437 }, // from french.words
+    { "dÇtention", Cp437 }, // from french.words
+    { "dÇtenu", Cp437 }, // from french.words
+    { "dÇtenue", Cp437 }, // from french.words
+    { "dÇtenues", Cp437 }, // from french.words
+    { "dÇtenus", Cp437 }, // from french.words
+    { "dÇterminant", Cp437 }, // from french.words
+    { "dÇtermination", Cp437 }, // from french.words
+    { "dÇtermine", Cp437 }, // from french.words
+    { "dÇterminer", Cp437 }, // from french.words
+    { "dÇterminÇ", Cp437 }, // from french.words
+    { "dÇterminÇe", Cp437 }, // from french.words
+    { "dÇterminÇes", Cp437 }, // from french.words
+    { "dÇtiennent", Cp437 }, // from french.words
+    { "dÇtient", Cp437 }, // from french.words
+    { "dÇtour", Cp437 }, // from french.words
+    { "dÇtriment", Cp437 }, // from french.words
+    { "dÇtruire", Cp437 }, // from french.words
+    { "dÇtruit", Cp437 }, // from french.words
+    { "dÇtÇrioration", Cp437 }, // from french.words
+    { "dÇvaluation", Cp437 }, // from french.words
+    { "dÇveloppant", Cp437 }, // from french.words
+    { "dÇveloppe", Cp437 }, // from french.words
+    { "dÇveloppement", Cp437 }, // from french.words
+    { "dÇveloppements", Cp437 }, // from french.words
+    { "dÇveloppent", Cp437 }, // from french.words
+    { "dÇvelopper", Cp437 }, // from french.words
+    { "dÇveloppÇ", Cp437 }, // from french.words
+    { "dÇveloppÇe", Cp437 }, // from french.words
+    { "dÇveloppÇes", Cp437 }, // from french.words
+    { "dÇveloppÇs", Cp437 }, // from french.words
+    { "dÇvoile", Cp437 }, // from french.words
+    { "dÇvoiler", Cp437 }, // from french.words
+    { "dÇvolu", Cp437 }, // from french.words
+    { "dÑnische", Cp437 }, // from german.words
+    { "dÑnischen", Cp437 }, // from german.words
+    { "dÜ", Cp865 }, // from norwegian.words
+    { "dÜrlig", Cp865 }, // from norwegian.words
+    { "dÜrlige", Cp865 }, // from norwegian.words
+    { "dÜrligere", Cp865 }, // from norwegian.words
+    { "dÜrligste", Cp865 }, // from norwegian.words
     { "dänische", MacRoman }, // from german.words
     { "dänischen", MacRoman }, // from german.words
     { "då", MacRoman }, // from norwegian.words
@@ -1340,21 +2311,28 @@ static const struct {
     { "décidément", MacRoman }, // from french.words
     { "décision", MacRoman }, // from french.words
     { "décisions", MacRoman }, // from french.words
+    { "déclaration", MacRoman }, // from french.words
     { "déclarations", MacRoman }, // from french.words
+    { "déclare", MacRoman }, // from french.words
     { "déclarent", MacRoman }, // from french.words
     { "déclarer", MacRoman }, // from french.words
     { "déclaré", MacRoman }, // from french.words
     { "déclarés", MacRoman }, // from french.words
     { "déclenche", MacRoman }, // from french.words
     { "déclin", MacRoman }, // from french.words
+    { "décline", MacRoman }, // from french.words
     { "déco", MacRoman }, // from french.words
+    { "décor", MacRoman }, // from french.words
     { "décoratifs", MacRoman }, // from french.words
     { "décoration", MacRoman }, // from french.words
     { "décors", MacRoman }, // from french.words
+    { "décote", MacRoman }, // from french.words
     { "découle", MacRoman }, // from french.words
     { "découpe", MacRoman }, // from french.words
+    { "découvert", MacRoman }, // from french.words
     { "découverte", MacRoman }, // from french.words
     { "découvertes", MacRoman }, // from french.words
+    { "découvre", MacRoman }, // from french.words
     { "découvrent", MacRoman }, // from french.words
     { "découvrir", MacRoman }, // from french.words
     { "décret", MacRoman }, // from french.words
@@ -1376,8 +2354,10 @@ static const struct {
     { "défend", MacRoman }, // from french.words
     { "défendre", MacRoman }, // from french.words
     { "défendu", MacRoman }, // from french.words
+    { "défense", MacRoman }, // from french.words
     { "défenseurs", MacRoman }, // from french.words
     { "défensive", MacRoman }, // from french.words
+    { "défi", MacRoman }, // from french.words
     { "déficit", MacRoman }, // from french.words
     { "déficits", MacRoman }, // from french.words
     { "défini", MacRoman }, // from french.words
@@ -1386,7 +2366,9 @@ static const struct {
     { "définis", MacRoman }, // from french.words
     { "définit", MacRoman }, // from french.words
     { "définitif", MacRoman }, // from french.words
+    { "définition", MacRoman }, // from french.words
     { "définitive", MacRoman }, // from french.words
+    { "définitivement", MacRoman }, // from french.words
     { "défis", MacRoman }, // from french.words
     { "déflation", MacRoman }, // from french.words
     { "défunt", MacRoman }, // from french.words
@@ -1415,6 +2397,7 @@ static const struct {
     { "démarré", MacRoman }, // from french.words
     { "démission", MacRoman }, // from french.words
     { "démocratie", MacRoman }, // from french.words
+    { "démocratique", MacRoman }, // from french.words
     { "démonstration", MacRoman }, // from french.words
     { "démontre", MacRoman }, // from french.words
     { "démontrent", MacRoman }, // from french.words
@@ -1425,12 +2408,12 @@ static const struct {
     { "dénomination", MacRoman }, // from french.words
     { "dénonce", MacRoman }, // from french.words
     { "dénoncer", MacRoman }, // from french.words
-    { "dépaiples", MacRoman }, // from french.words
     { "départ", MacRoman }, // from french.words
     { "département", MacRoman }, // from french.words
     { "départements", MacRoman }, // from french.words
     { "départs", MacRoman }, // from french.words
     { "dépassant", MacRoman }, // from french.words
+    { "dépasse", MacRoman }, // from french.words
     { "dépassent", MacRoman }, // from french.words
     { "dépasser", MacRoman }, // from french.words
     { "dépassé", MacRoman }, // from french.words
@@ -1438,13 +2421,16 @@ static const struct {
     { "dépendance", MacRoman }, // from french.words
     { "dépendant", MacRoman }, // from french.words
     { "dépendent", MacRoman }, // from french.words
+    { "dépendra", MacRoman }, // from french.words
     { "dépense", MacRoman }, // from french.words
     { "dépenser", MacRoman }, // from french.words
     { "dépenses", MacRoman }, // from french.words
+    { "dépit", MacRoman }, // from french.words
     { "déplace", MacRoman }, // from french.words
     { "déplacement", MacRoman }, // from french.words
     { "déplacements", MacRoman }, // from french.words
     { "déplacer", MacRoman }, // from french.words
+    { "déploie", MacRoman }, // from french.words
     { "déposer", MacRoman }, // from french.words
     { "déposé", MacRoman }, // from french.words
     { "déposée", MacRoman }, // from french.words
@@ -1516,9 +2502,30 @@ static const struct {
     { "développé", MacRoman }, // from french.words
     { "développée", MacRoman }, // from french.words
     { "développées", MacRoman }, // from french.words
+    { "développés", MacRoman }, // from french.words
     { "dévoile", MacRoman }, // from french.words
     { "dévoiler", MacRoman }, // from french.words
     { "dévolu", MacRoman }, // from french.words
+    { "dëhlie", Cp865 }, // from norwegian.words
+    { "dõ", Cp865 }, // from norwegian.words
+    { "dõd", Cp865 }, // from norwegian.words
+    { "dõde", Cp865 }, // from norwegian.words
+    { "dõden", Cp865 }, // from norwegian.words
+    { "dõdsfall", Cp865 }, // from norwegian.words
+    { "dõende", Cp865 }, // from norwegian.words
+    { "dõgn", Cp865 }, // from norwegian.words
+    { "dõgnet", Cp865 }, // from norwegian.words
+    { "dõmme", Cp865 }, // from norwegian.words
+    { "dõmt", Cp865 }, // from norwegian.words
+    { "dõmte", Cp865 }, // from norwegian.words
+    { "dõr", Cp865 }, // from norwegian.words
+    { "dõra", Cp865 }, // from norwegian.words
+    { "dõren", Cp865 }, // from norwegian.words
+    { "dõrene", Cp865 }, // from norwegian.words
+    { "dõrer", Cp865 }, // from norwegian.words
+    { "dõrum", Cp865 }, // from norwegian.words
+    { "dõtre", Cp865 }, // from norwegian.words
+    { "dõtrene", Cp865 }, // from norwegian.words
     { "dünn", MacRoman }, // from german.words
     { "dürfe", MacRoman }, // from german.words
     { "dürfen", MacRoman }, // from german.words
@@ -1544,6 +2551,8 @@ static const struct {
     { "dørum", MacRoman }, // from norwegian.words
     { "døtre", MacRoman }, // from norwegian.words
     { "døtrene", MacRoman }, // from norwegian.words
+    { "d·t", Iso88592 }, // from czech.words
+    { "d·vat", Iso88592 }, // from czech.words
     { "d‰nische", Iso885915 }, // from german.words
     { "d‰nischen", Iso885915 }, // from german.words
     { "dÂ", Iso885915 }, // from norwegian.words
@@ -1588,21 +2597,28 @@ static const struct {
     { "dÈcidÈment", Iso885915 }, // from french.words
     { "dÈcision", Iso885915 }, // from french.words
     { "dÈcisions", Iso885915 }, // from french.words
+    { "dÈclaration", Iso885915 }, // from french.words
     { "dÈclarations", Iso885915 }, // from french.words
+    { "dÈclare", Iso885915 }, // from french.words
     { "dÈclarent", Iso885915 }, // from french.words
     { "dÈclarer", Iso885915 }, // from french.words
     { "dÈclarÈ", Iso885915 }, // from french.words
     { "dÈclarÈs", Iso885915 }, // from french.words
     { "dÈclenche", Iso885915 }, // from french.words
     { "dÈclin", Iso885915 }, // from french.words
+    { "dÈcline", Iso885915 }, // from french.words
     { "dÈco", Iso885915 }, // from french.words
+    { "dÈcor", Iso885915 }, // from french.words
     { "dÈcoratifs", Iso885915 }, // from french.words
     { "dÈcoration", Iso885915 }, // from french.words
     { "dÈcors", Iso885915 }, // from french.words
+    { "dÈcote", Iso885915 }, // from french.words
     { "dÈcoule", Iso885915 }, // from french.words
     { "dÈcoupe", Iso885915 }, // from french.words
+    { "dÈcouvert", Iso885915 }, // from french.words
     { "dÈcouverte", Iso885915 }, // from french.words
     { "dÈcouvertes", Iso885915 }, // from french.words
+    { "dÈcouvre", Iso885915 }, // from french.words
     { "dÈcouvrent", Iso885915 }, // from french.words
     { "dÈcouvrir", Iso885915 }, // from french.words
     { "dÈcret", Iso885915 }, // from french.words
@@ -1624,8 +2640,10 @@ static const struct {
     { "dÈfend", Iso885915 }, // from french.words
     { "dÈfendre", Iso885915 }, // from french.words
     { "dÈfendu", Iso885915 }, // from french.words
+    { "dÈfense", Iso885915 }, // from french.words
     { "dÈfenseurs", Iso885915 }, // from french.words
     { "dÈfensive", Iso885915 }, // from french.words
+    { "dÈfi", Iso885915 }, // from french.words
     { "dÈficit", Iso885915 }, // from french.words
     { "dÈficits", Iso885915 }, // from french.words
     { "dÈfini", Iso885915 }, // from french.words
@@ -1634,7 +2652,9 @@ static const struct {
     { "dÈfinis", Iso885915 }, // from french.words
     { "dÈfinit", Iso885915 }, // from french.words
     { "dÈfinitif", Iso885915 }, // from french.words
+    { "dÈfinition", Iso885915 }, // from french.words
     { "dÈfinitive", Iso885915 }, // from french.words
+    { "dÈfinitivement", Iso885915 }, // from french.words
     { "dÈfis", Iso885915 }, // from french.words
     { "dÈflation", Iso885915 }, // from french.words
     { "dÈfunt", Iso885915 }, // from french.words
@@ -1663,6 +2683,7 @@ static const struct {
     { "dÈmarrÈ", Iso885915 }, // from french.words
     { "dÈmission", Iso885915 }, // from french.words
     { "dÈmocratie", Iso885915 }, // from french.words
+    { "dÈmocratique", Iso885915 }, // from french.words
     { "dÈmonstration", Iso885915 }, // from french.words
     { "dÈmontre", Iso885915 }, // from french.words
     { "dÈmontrent", Iso885915 }, // from french.words
@@ -1673,12 +2694,12 @@ static const struct {
     { "dÈnomination", Iso885915 }, // from french.words
     { "dÈnonce", Iso885915 }, // from french.words
     { "dÈnoncer", Iso885915 }, // from french.words
-    { "dÈpaiples", Iso885915 }, // from french.words
     { "dÈpart", Iso885915 }, // from french.words
     { "dÈpartement", Iso885915 }, // from french.words
     { "dÈpartements", Iso885915 }, // from french.words
     { "dÈparts", Iso885915 }, // from french.words
     { "dÈpassant", Iso885915 }, // from french.words
+    { "dÈpasse", Iso885915 }, // from french.words
     { "dÈpassent", Iso885915 }, // from french.words
     { "dÈpasser", Iso885915 }, // from french.words
     { "dÈpassÈ", Iso885915 }, // from french.words
@@ -1686,13 +2707,16 @@ static const struct {
     { "dÈpendance", Iso885915 }, // from french.words
     { "dÈpendant", Iso885915 }, // from french.words
     { "dÈpendent", Iso885915 }, // from french.words
+    { "dÈpendra", Iso885915 }, // from french.words
     { "dÈpense", Iso885915 }, // from french.words
     { "dÈpenser", Iso885915 }, // from french.words
     { "dÈpenses", Iso885915 }, // from french.words
+    { "dÈpit", Iso885915 }, // from french.words
     { "dÈplace", Iso885915 }, // from french.words
     { "dÈplacement", Iso885915 }, // from french.words
     { "dÈplacements", Iso885915 }, // from french.words
     { "dÈplacer", Iso885915 }, // from french.words
+    { "dÈploie", Iso885915 }, // from french.words
     { "dÈposer", Iso885915 }, // from french.words
     { "dÈposÈ", Iso885915 }, // from french.words
     { "dÈposÈe", Iso885915 }, // from french.words
@@ -1764,9 +2788,11 @@ static const struct {
     { "dÈveloppÈ", Iso885915 }, // from french.words
     { "dÈveloppÈe", Iso885915 }, // from french.words
     { "dÈveloppÈes", Iso885915 }, // from french.words
+    { "dÈveloppÈs", Iso885915 }, // from french.words
     { "dÈvoile", Iso885915 }, // from french.words
     { "dÈvoiler", Iso885915 }, // from french.words
     { "dÈvolu", Iso885915 }, // from french.words
+    { "dÏlat", Iso88592 }, // from czech.words
     { "dÌtÏ", Iso88592 }, // from czech.words
     { "d¯", Iso885915 }, // from norwegian.words
     { "d¯d", Iso885915 }, // from norwegian.words
@@ -1795,69 +2821,107 @@ static const struct {
     { "d¸rfen", Iso885915 }, // from german.words
     { "d¸rfte", Iso885915 }, // from german.words
     { "d¸rften", Iso885915 }, // from german.words
+    { "effectuÇ", Cp437 }, // from french.words
+    { "effectuÇe", Cp437 }, // from french.words
+    { "effectuÇes", Cp437 }, // from french.words
+    { "effectuÇs", Cp437 }, // from french.words
+    { "effectué", MacRoman }, // from french.words
     { "effectuée", MacRoman }, // from french.words
     { "effectuées", MacRoman }, // from french.words
     { "effectués", MacRoman }, // from french.words
+    { "effectuÈ", Iso885915 }, // from french.words
     { "effectuÈe", Iso885915 }, // from french.words
     { "effectuÈes", Iso885915 }, // from french.words
     { "effectuÈs", Iso885915 }, // from french.words
+    { "efficacitÇ", Cp437 }, // from french.words
     { "efficacité", MacRoman }, // from french.words
     { "efficacitÈ", Iso885915 }, // from french.words
+    { "eidsvÜg", Cp865 }, // from norwegian.words
     { "eidsvåg", MacRoman }, // from norwegian.words
     { "eidsvÂg", Iso885915 }, // from norwegian.words
+    { "eigenstÑndige", Cp437 }, // from german.words
     { "eigenständige", MacRoman }, // from german.words
     { "eigenst‰ndige", Iso885915 }, // from german.words
+    { "einfÅhren", Cp437 }, // from german.words
     { "einführen", MacRoman }, // from german.words
     { "einf¸hren", Iso885915 }, // from german.words
+    { "eingefÅhrt", Cp437 }, // from german.words
     { "eingeführt", MacRoman }, // from german.words
     { "eingef¸hrt", Iso885915 }, // from german.words
+    { "eingerÑumt", Cp437 }, // from german.words
     { "eingeräumt", MacRoman }, // from german.words
     { "einger‰umt", Iso885915 }, // from german.words
+    { "eingeschrÑnkt", Cp437 }, // from german.words
     { "eingeschränkt", MacRoman }, // from german.words
     { "eingeschr‰nkt", Iso885915 }, // from german.words
     { "einigermaßen", MacRoman }, // from german.words
     { "einigermaﬂen", Iso885915 }, // from german.words
+    { "einigerma·en", Cp437 }, // from german.words
     { "einschließlich", MacRoman }, // from german.words
     { "einschlieﬂlich", Iso885915 }, // from german.words
+    { "einschlie·lich", Cp437 }, // from german.words
+    { "einzufÅhren", Cp437 }, // from german.words
     { "einzuführen", MacRoman }, // from german.words
     { "einzuf¸hren", Iso885915 }, // from german.words
     { "ekonomick˝", Iso88592 }, // from czech.words
+    { "ekstraordinëre", Cp865 }, // from norwegian.words
+    { "ekstraordinërt", Cp865 }, // from norwegian.words
     { "ekstraordinære", MacRoman }, // from norwegian.words
     { "ekstraordinært", MacRoman }, // from norwegian.words
     { "ekstraordinÊre", Iso885915 }, // from norwegian.words
     { "ekstraordinÊrt", Iso885915 }, // from norwegian.words
+    { "employÇ", Cp437 }, // from french.words
+    { "employÇes", Cp437 }, // from french.words
+    { "employÇs", Cp437 }, // from french.words
     { "employé", MacRoman }, // from french.words
     { "employées", MacRoman }, // from french.words
     { "employés", MacRoman }, // from french.words
     { "employÈ", Iso885915 }, // from french.words
     { "employÈes", Iso885915 }, // from french.words
     { "employÈs", Iso885915 }, // from french.words
+    { "emportÇ", Cp437 }, // from french.words
     { "emporté", MacRoman }, // from french.words
     { "emportÈ", Iso885915 }, // from french.words
+    { "empruntÇ", Cp437 }, // from french.words
     { "emprunté", MacRoman }, // from french.words
     { "empruntÈ", Iso885915 }, // from french.words
+    { "empîrt", Cp437 }, // from german.words
     { "empört", MacRoman }, // from german.words
     { "empˆrt", Iso885915 }, // from german.words
+    { "encadrÇ", Cp437 }, // from french.words
     { "encadré", MacRoman }, // from french.words
     { "encadrÈ", Iso885915 }, // from french.words
+    { "endgÅltig", Cp437 }, // from german.words
+    { "endgÅltige", Cp437 }, // from german.words
+    { "endgÅltigen", Cp437 }, // from german.words
     { "endgültig", MacRoman }, // from german.words
     { "endgültige", MacRoman }, // from german.words
     { "endgültigen", MacRoman }, // from german.words
     { "endg¸ltig", Iso885915 }, // from german.words
     { "endg¸ltige", Iso885915 }, // from german.words
     { "endg¸ltigen", Iso885915 }, // from german.words
+    { "enestÜende", Cp865 }, // from norwegian.words
     { "enestående", MacRoman }, // from norwegian.words
     { "enestÂende", Iso885915 }, // from norwegian.words
+    { "engagÇ", Cp437 }, // from french.words
+    { "engagÇe", Cp437 }, // from french.words
+    { "engagÇs", Cp437 }, // from french.words
     { "engagé", MacRoman }, // from french.words
     { "engagée", MacRoman }, // from french.words
     { "engagés", MacRoman }, // from french.words
     { "engagÈ", Iso885915 }, // from french.words
     { "engagÈe", Iso885915 }, // from french.words
     { "engagÈs", Iso885915 }, // from french.words
+    { "engendrÇ", Cp437 }, // from french.words
     { "engendré", MacRoman }, // from french.words
     { "engendrÈ", Iso885915 }, // from french.words
+    { "ennÜ", Cp865 }, // from norwegian.words
     { "ennå", MacRoman }, // from norwegian.words
     { "ennÂ", Iso885915 }, // from norwegian.words
+    { "enregistrÇ", Cp437 }, // from french.words
+    { "enregistrÇe", Cp437 }, // from french.words
+    { "enregistrÇes", Cp437 }, // from french.words
+    { "enregistrÇs", Cp437 }, // from french.words
     { "enregistré", MacRoman }, // from french.words
     { "enregistrée", MacRoman }, // from french.words
     { "enregistrées", MacRoman }, // from french.words
@@ -1866,54 +2930,83 @@ static const struct {
     { "enregistrÈe", Iso885915 }, // from french.words
     { "enregistrÈes", Iso885915 }, // from french.words
     { "enregistrÈs", Iso885915 }, // from french.words
+    { "entamÇ", Cp437 }, // from french.words
+    { "entamÇe", Cp437 }, // from french.words
     { "entamé", MacRoman }, // from french.words
     { "entamée", MacRoman }, // from french.words
     { "entamÈ", Iso885915 }, // from french.words
     { "entamÈe", Iso885915 }, // from french.words
+    { "entfÅhrt", Cp437 }, // from german.words
+    { "entfÑllt", Cp437 }, // from german.words
     { "entfällt", MacRoman }, // from german.words
     { "entführt", MacRoman }, // from german.words
     { "entf‰llt", Iso885915 }, // from german.words
     { "entf¸hrt", Iso885915 }, // from german.words
+    { "enthÑlt", Cp437 }, // from german.words
     { "enthält", MacRoman }, // from german.words
     { "enth‰lt", Iso885915 }, // from german.words
+    { "entitÇ", Cp437 }, // from french.words
+    { "entitÇs", Cp437 }, // from french.words
     { "entité", MacRoman }, // from french.words
     { "entités", MacRoman }, // from french.words
     { "entitÈ", Iso885915 }, // from french.words
     { "entitÈs", Iso885915 }, // from french.words
+    { "entourÇ", Cp437 }, // from french.words
     { "entouré", MacRoman }, // from french.words
     { "entourÈ", Iso885915 }, // from french.words
+    { "entrÇ", Cp437 }, // from french.words
+    { "entrÇe", Cp437 }, // from french.words
+    { "entrÇes", Cp437 }, // from french.words
     { "entré", MacRoman }, // from french.words
     { "entrée", MacRoman }, // from french.words
     { "entrées", MacRoman }, // from french.words
     { "entrÈ", Iso885915 }, // from french.words
     { "entrÈe", Iso885915 }, // from french.words
     { "entrÈes", Iso885915 }, // from french.words
+    { "enttÑuscht", Cp437 }, // from german.words
     { "enttäuscht", MacRoman }, // from german.words
     { "entt‰uscht", Iso885915 }, // from german.words
+    { "envisagÇ", Cp437 }, // from french.words
+    { "envisagÇe", Cp437 }, // from french.words
     { "envisagé", MacRoman }, // from french.words
     { "envisagée", MacRoman }, // from french.words
     { "envisagÈ", Iso885915 }, // from french.words
     { "envisagÈe", Iso885915 }, // from french.words
+    { "envoyÇ", Cp437 }, // from french.words
+    { "envoyÇs", Cp437 }, // from french.words
     { "envoyé", MacRoman }, // from french.words
     { "envoyés", MacRoman }, // from french.words
     { "envoyÈ", Iso885915 }, // from french.words
     { "envoyÈs", Iso885915 }, // from french.words
     { "erfaßt", MacRoman }, // from german.words
     { "erfaﬂt", Iso885915 }, // from german.words
+    { "erfa·t", Cp437 }, // from german.words
+    { "erfÅllen", Cp437 }, // from german.words
+    { "erfÅllt", Cp437 }, // from german.words
+    { "erfÑhrt", Cp437 }, // from german.words
     { "erfährt", MacRoman }, // from german.words
     { "erfüllen", MacRoman }, // from german.words
     { "erfüllt", MacRoman }, // from german.words
     { "erf‰hrt", Iso885915 }, // from german.words
     { "erf¸llen", Iso885915 }, // from german.words
     { "erf¸llt", Iso885915 }, // from german.words
+    { "ergÑnzen", Cp437 }, // from german.words
+    { "ergÑnzt", Cp437 }, // from german.words
+    { "ergÑnzte", Cp437 }, // from german.words
     { "ergänzen", MacRoman }, // from german.words
     { "ergänzt", MacRoman }, // from german.words
     { "ergänzte", MacRoman }, // from german.words
     { "erg‰nzen", Iso885915 }, // from german.words
     { "erg‰nzt", Iso885915 }, // from german.words
     { "erg‰nzte", Iso885915 }, // from german.words
+    { "erhÑlt", Cp437 }, // from german.words
+    { "erhÑltlich", Cp437 }, // from german.words
     { "erhält", MacRoman }, // from german.words
     { "erhältlich", MacRoman }, // from german.words
+    { "erhîhen", Cp437 }, // from german.words
+    { "erhîht", Cp437 }, // from german.words
+    { "erhîhte", Cp437 }, // from german.words
+    { "erhîhten", Cp437 }, // from german.words
     { "erhöhen", MacRoman }, // from german.words
     { "erhöht", MacRoman }, // from german.words
     { "erhöhte", MacRoman }, // from german.words
@@ -1924,40 +3017,64 @@ static const struct {
     { "erhˆht", Iso885915 }, // from german.words
     { "erhˆhte", Iso885915 }, // from german.words
     { "erhˆhten", Iso885915 }, // from german.words
+    { "erklÑren", Cp437 }, // from german.words
+    { "erklÑrt", Cp437 }, // from german.words
+    { "erklÑrte", Cp437 }, // from german.words
+    { "erklÑrten", Cp437 }, // from german.words
     { "erklären", MacRoman }, // from german.words
     { "erklärt", MacRoman }, // from german.words
     { "erklärte", MacRoman }, // from german.words
-    { "erklärtenerzog", MacRoman }, // from german.words
+    { "erklärten", MacRoman }, // from german.words
+    { "erklëring", Cp865 }, // from norwegian.words
+    { "erklërt", Cp865 }, // from norwegian.words
+    { "erklërte", Cp865 }, // from norwegian.words
     { "erklæring", MacRoman }, // from norwegian.words
     { "erklært", MacRoman }, // from norwegian.words
     { "erklærte", MacRoman }, // from norwegian.words
     { "erkl‰ren", Iso885915 }, // from german.words
     { "erkl‰rt", Iso885915 }, // from german.words
     { "erkl‰rte", Iso885915 }, // from german.words
-    { "erkl‰rtenerzog", Iso885915 }, // from german.words
+    { "erkl‰rten", Iso885915 }, // from german.words
     { "erklÊring", Iso885915 }, // from norwegian.words
     { "erklÊrt", Iso885915 }, // from norwegian.words
     { "erklÊrte", Iso885915 }, // from norwegian.words
+    { "erlÑutert", Cp437 }, // from german.words
+    { "erlÑuterte", Cp437 }, // from german.words
     { "erläutert", MacRoman }, // from german.words
     { "erläuterte", MacRoman }, // from german.words
     { "erl‰utert", Iso885915 }, // from german.words
     { "erl‰uterte", Iso885915 }, // from german.words
+    { "ermîglichen", Cp437 }, // from german.words
+    { "ermîglicht", Cp437 }, // from german.words
     { "ermöglichen", MacRoman }, // from german.words
     { "ermöglicht", MacRoman }, // from german.words
     { "ermˆglichen", Iso885915 }, // from german.words
     { "ermˆglicht", Iso885915 }, // from german.words
     { "erschließen", MacRoman }, // from german.words
     { "erschlieﬂen", Iso885915 }, // from german.words
+    { "erschlie·en", Cp437 }, // from german.words
+    { "erschÅttert", Cp437 }, // from german.words
+    { "erschîpft", Cp437 }, // from german.words
+    { "erschöpft", MacRoman }, // from german.words
     { "erschüttert", MacRoman }, // from german.words
+    { "erschˆpft", Iso885915 }, // from german.words
     { "ersch¸ttert", Iso885915 }, // from german.words
+    { "erwÑhnt", Cp437 }, // from german.words
     { "erwähnt", MacRoman }, // from german.words
     { "erw‰hnt", Iso885915 }, // from german.words
+    { "erzÑhlen", Cp437 }, // from german.words
+    { "erzÑhlt", Cp437 }, // from german.words
+    { "erzÑhlte", Cp437 }, // from german.words
     { "erzählen", MacRoman }, // from german.words
     { "erzählt", MacRoman }, // from german.words
     { "erzählte", MacRoman }, // from german.words
     { "erz‰hlen", Iso885915 }, // from german.words
     { "erz‰hlt", Iso885915 }, // from german.words
     { "erz‰hlte", Iso885915 }, // from german.words
+    { "erîffnen", Cp437 }, // from german.words
+    { "erîffnet", Cp437 }, // from german.words
+    { "erîffnete", Cp437 }, // from german.words
+    { "erîrtert", Cp437 }, // from german.words
     { "eröffnen", MacRoman }, // from german.words
     { "eröffnet", MacRoman }, // from german.words
     { "eröffnete", MacRoman }, // from german.words
@@ -1966,8 +3083,13 @@ static const struct {
     { "erˆffnet", Iso885915 }, // from german.words
     { "erˆffnete", Iso885915 }, // from german.words
     { "erˆrtert", Iso885915 }, // from german.words
+    { "escomptÇ", Cp437 }, // from french.words
     { "escompté", MacRoman }, // from french.words
     { "escomptÈ", Iso885915 }, // from french.words
+    { "espÇrant", Cp437 }, // from french.words
+    { "espÇrer", Cp437 }, // from french.words
+    { "espÇrons", Cp437 }, // from french.words
+    { "espÜs", Cp865 }, // from norwegian.words
     { "espås", MacRoman }, // from norwegian.words
     { "espérant", MacRoman }, // from french.words
     { "espérer", MacRoman }, // from french.words
@@ -1976,22 +3098,37 @@ static const struct {
     { "espÈrant", Iso885915 }, // from french.words
     { "espÈrer", Iso885915 }, // from french.words
     { "espÈrons", Iso885915 }, // from french.words
+    { "essayÇ", Cp437 }, // from french.words
     { "essayé", MacRoman }, // from french.words
     { "essayÈ", Iso885915 }, // from french.words
+    { "esthÇtique", Cp437 }, // from french.words
     { "esthétique", MacRoman }, // from french.words
     { "esthÈtique", Iso885915 }, // from french.words
+    { "estimÇ", Cp437 }, // from french.words
+    { "estimÇe", Cp437 }, // from french.words
     { "estimé", MacRoman }, // from french.words
     { "estimée", MacRoman }, // from french.words
     { "estimÈ", Iso885915 }, // from french.words
     { "estimÈe", Iso885915 }, // from french.words
+    { "etterfõlger", Cp865 }, // from norwegian.words
     { "etterfølger", MacRoman }, // from norwegian.words
     { "etterf¯lger", Iso885915 }, // from norwegian.words
+    { "etterpÜ", Cp865 }, // from norwegian.words
     { "etterpå", MacRoman }, // from norwegian.words
     { "etterpÂ", Iso885915 }, // from norwegian.words
+    { "etterspõrsel", Cp865 }, // from norwegian.words
+    { "etterspõrselen", Cp865 }, // from norwegian.words
     { "etterspørsel", MacRoman }, // from norwegian.words
     { "etterspørselen", MacRoman }, // from norwegian.words
     { "ettersp¯rsel", Iso885915 }, // from norwegian.words
     { "ettersp¯rselen", Iso885915 }, // from norwegian.words
+    { "europÇen", Cp437 }, // from french.words
+    { "europÇenne", Cp437 }, // from french.words
+    { "europÇennes", Cp437 }, // from french.words
+    { "europÇens", Cp437 }, // from french.words
+    { "europÑische", Cp437 }, // from german.words
+    { "europÑischen", Cp437 }, // from german.words
+    { "europÑischer", Cp437 }, // from german.words
     { "europäische", MacRoman }, // from german.words
     { "europäischen", MacRoman }, // from german.words
     { "europäischer", MacRoman }, // from german.words
@@ -2007,28 +3144,49 @@ static const struct {
     { "europÈennes", Iso885915 }, // from french.words
     { "europÈens", Iso885915 }, // from french.words
     { "evropsk˝", Iso88592 }, // from czech.words
+    { "examinÇ", Cp437 }, // from french.words
     { "examiné", MacRoman }, // from french.words
     { "examinÈ", Iso885915 }, // from french.words
+    { "exercÇ", Cp437 }, // from french.words
+    { "exercÇe", Cp437 }, // from french.words
+    { "exercé", MacRoman }, // from french.words
     { "exercée", MacRoman }, // from french.words
+    { "exercÈ", Iso885915 }, // from french.words
     { "exercÈe", Iso885915 }, // from french.words
+    { "exigÇ", Cp437 }, // from french.words
     { "exigé", MacRoman }, // from french.words
     { "exigÈ", Iso885915 }, // from french.words
+    { "exonÇration", Cp437 }, // from french.words
     { "exonération", MacRoman }, // from french.words
     { "exonÈration", Iso885915 }, // from french.words
+    { "expliquÇ", Cp437 }, // from french.words
     { "expliqué", MacRoman }, // from french.words
     { "expliquÈ", Iso885915 }, // from french.words
+    { "explosÇ", Cp437 }, // from french.words
     { "explosé", MacRoman }, // from french.words
     { "explosÈ", Iso885915 }, // from french.words
+    { "exposÇ", Cp437 }, // from french.words
+    { "exposÇes", Cp437 }, // from french.words
+    { "exposÇs", Cp437 }, // from french.words
     { "exposé", MacRoman }, // from french.words
     { "exposées", MacRoman }, // from french.words
+    { "exposés", MacRoman }, // from french.words
     { "exposÈ", Iso885915 }, // from french.words
     { "exposÈes", Iso885915 }, // from french.words
+    { "exposÈs", Iso885915 }, // from french.words
+    { "exprimÇ", Cp437 }, // from french.words
     { "exprimé", MacRoman }, // from french.words
     { "exprimÈ", Iso885915 }, // from french.words
+    { "expÇrience", Cp437 }, // from french.words
+    { "expÇriences", Cp437 }, // from french.words
     { "expérience", MacRoman }, // from french.words
     { "expériences", MacRoman }, // from french.words
     { "expÈrience", Iso885915 }, // from french.words
     { "expÈriences", Iso885915 }, // from french.words
+    { "extÇrieur", Cp437 }, // from french.words
+    { "extÇrieure", Cp437 }, // from french.words
+    { "extÇrieures", Cp437 }, // from french.words
+    { "extÇrieurs", Cp437 }, // from french.words
     { "extérieur", MacRoman }, // from french.words
     { "extérieure", MacRoman }, // from french.words
     { "extérieures", MacRoman }, // from french.words
@@ -2037,62 +3195,90 @@ static const struct {
     { "extÈrieure", Iso885915 }, // from french.words
     { "extÈrieures", Iso885915 }, // from french.words
     { "extÈrieurs", Iso885915 }, // from french.words
+    { "exÇcuter", Cp437 }, // from french.words
+    { "exÇcutif", Cp437 }, // from french.words
+    { "exÇcutÇ", Cp437 }, // from french.words
     { "exécuter", MacRoman }, // from french.words
     { "exécutif", MacRoman }, // from french.words
     { "exécuté", MacRoman }, // from french.words
     { "exÈcuter", Iso885915 }, // from french.words
     { "exÈcutif", Iso885915 }, // from french.words
     { "exÈcutÈ", Iso885915 }, // from french.words
+    { "eõs", Cp865 }, // from norwegian.words
     { "eøs", MacRoman }, // from norwegian.words
     { "e¯s", Iso885915 }, // from norwegian.words
+    { "fabriquÇ", Cp437 }, // from french.words
+    { "fabriquÇs", Cp437 }, // from french.words
     { "fabriqué", MacRoman }, // from french.words
     { "fabriqués", MacRoman }, // from french.words
     { "fabriquÈ", Iso885915 }, // from french.words
     { "fabriquÈs", Iso885915 }, // from french.words
+    { "facilitÇ", Cp437 }, // from french.words
+    { "facilitÇs", Cp437 }, // from french.words
     { "facilité", MacRoman }, // from french.words
     { "facilités", MacRoman }, // from french.words
     { "facilitÈ", Iso885915 }, // from french.words
     { "facilitÈs", Iso885915 }, // from french.words
+    { "facultÇ", Cp437 }, // from french.words
     { "faculté", MacRoman }, // from french.words
     { "facultÈ", Iso885915 }, // from french.words
+    { "fartõy", Cp865 }, // from norwegian.words
+    { "fartõyer", Cp865 }, // from norwegian.words
+    { "fartõyet", Cp865 }, // from norwegian.words
     { "fartøy", MacRoman }, // from norwegian.words
     { "fartøyer", MacRoman }, // from norwegian.words
     { "fartøyet", MacRoman }, // from norwegian.words
     { "fart¯y", Iso885915 }, // from norwegian.words
     { "fart¯yer", Iso885915 }, // from norwegian.words
     { "fart¯yet", Iso885915 }, // from norwegian.words
+    { "fastslÜ", Cp865 }, // from norwegian.words
+    { "fastslÜr", Cp865 }, // from norwegian.words
     { "fastslå", MacRoman }, // from norwegian.words
     { "fastslår", MacRoman }, // from norwegian.words
     { "fastslÂ", Iso885915 }, // from norwegian.words
     { "fastslÂr", Iso885915 }, // from norwegian.words
+    { "favõr", Cp865 }, // from norwegian.words
     { "favør", MacRoman }, // from norwegian.words
     { "fav¯r", Iso885915 }, // from norwegian.words
     { "faßt", MacRoman }, // from german.words
     { "faﬂt", Iso885915 }, // from german.words
-    { "fdfører", MacRoman }, // from norwegian.words
-    { "fdf¯rer", Iso885915 }, // from norwegian.words
+    { "fa·t", Cp437 }, // from german.words
     { "feder·lnÌ", Iso88592 }, // from czech.words
+    { "fermetÇ", Cp437 }, // from french.words
     { "fermeté", MacRoman }, // from french.words
     { "fermetÈ", Iso885915 }, // from french.words
+    { "fermÇ", Cp437 }, // from french.words
+    { "fermÇe", Cp437 }, // from french.words
+    { "fermÇs", Cp437 }, // from french.words
     { "fermé", MacRoman }, // from french.words
     { "fermée", MacRoman }, // from french.words
     { "fermés", MacRoman }, // from french.words
     { "fermÈ", Iso885915 }, // from french.words
     { "fermÈe", Iso885915 }, // from french.words
     { "fermÈs", Iso885915 }, // from french.words
+    { "fiabilitÇ", Cp437 }, // from french.words
     { "fiabilité", MacRoman }, // from french.words
     { "fiabilitÈ", Iso885915 }, // from french.words
+    { "fidÇlitÇ", Cp437 }, // from french.words
     { "fidélité", MacRoman }, // from french.words
     { "fidÈlitÈ", Iso885915 }, // from french.words
+    { "fiertÇ", Cp437 }, // from french.words
     { "fierté", MacRoman }, // from french.words
     { "fiertÈ", Iso885915 }, // from french.words
+    { "financÇ", Cp437 }, // from french.words
+    { "financÇe", Cp437 }, // from french.words
     { "financé", MacRoman }, // from french.words
     { "financée", MacRoman }, // from french.words
     { "financÈ", Iso885915 }, // from french.words
     { "financÈe", Iso885915 }, // from french.words
     { "finanËnÌ", Iso88592 }, // from czech.words
+    { "fiscalitÇ", Cp437 }, // from french.words
     { "fiscalité", MacRoman }, // from french.words
     { "fiscalitÈ", Iso885915 }, // from french.words
+    { "fixÇ", Cp437 }, // from french.words
+    { "fixÇe", Cp437 }, // from french.words
+    { "fixÇes", Cp437 }, // from french.words
+    { "fixÇs", Cp437 }, // from french.words
     { "fixé", MacRoman }, // from french.words
     { "fixée", MacRoman }, // from french.words
     { "fixées", MacRoman }, // from french.words
@@ -2101,24 +3287,37 @@ static const struct {
     { "fixÈe", Iso885915 }, // from french.words
     { "fixÈes", Iso885915 }, // from french.words
     { "fixÈs", Iso885915 }, // from french.words
+    { "fjorÜret", Cp865 }, // from norwegian.words
+    { "fjorÜrets", Cp865 }, // from norwegian.words
     { "fjoråret", MacRoman }, // from norwegian.words
     { "fjorårets", MacRoman }, // from norwegian.words
     { "fjorÂret", Iso885915 }, // from norwegian.words
     { "fjorÂrets", Iso885915 }, // from norwegian.words
+    { "fjõrtoft", Cp865 }, // from norwegian.words
+    { "fjõset", Cp865 }, // from norwegian.words
     { "fjørtoft", MacRoman }, // from norwegian.words
     { "fjøset", MacRoman }, // from norwegian.words
     { "fj¯rtoft", Iso885915 }, // from norwegian.words
     { "fj¯set", Iso885915 }, // from norwegian.words
+    { "flexibilitÇ", Cp437 }, // from french.words
     { "flexibilité", MacRoman }, // from french.words
     { "flexibilitÈ", Iso885915 }, // from french.words
     { "fließen", MacRoman }, // from german.words
     { "fließt", MacRoman }, // from german.words
     { "flieﬂen", Iso885915 }, // from german.words
     { "flieﬂt", Iso885915 }, // from german.words
+    { "flie·en", Cp437 }, // from german.words
+    { "flie·t", Cp437 }, // from german.words
+    { "florõ", Cp865 }, // from norwegian.words
     { "florø", MacRoman }, // from norwegian.words
     { "flor¯", Iso885915 }, // from norwegian.words
+    { "flÅchtete", Cp437 }, // from german.words
+    { "flÇchi", Cp437 }, // from french.words
+    { "flÜten", Cp865 }, // from norwegian.words
     { "flåten", MacRoman }, // from norwegian.words
     { "fléchi", MacRoman }, // from french.words
+    { "flõy", Cp865 }, // from norwegian.words
+    { "flõyen", Cp865 }, // from norwegian.words
     { "flüchtete", MacRoman }, // from german.words
     { "fløy", MacRoman }, // from norwegian.words
     { "fløyen", MacRoman }, // from norwegian.words
@@ -2127,16 +3326,25 @@ static const struct {
     { "fl¯y", Iso885915 }, // from norwegian.words
     { "fl¯yen", Iso885915 }, // from norwegian.words
     { "fl¸chtete", Iso885915 }, // from german.words
+    { "fondÇ", Cp437 }, // from french.words
+    { "fondÇe", Cp437 }, // from french.words
     { "fondé", MacRoman }, // from french.words
     { "fondée", MacRoman }, // from french.words
     { "fondÈ", Iso885915 }, // from french.words
     { "fondÈe", Iso885915 }, // from french.words
+    { "forbrukerrÜdet", Cp865 }, // from norwegian.words
     { "forbrukerrådet", MacRoman }, // from norwegian.words
     { "forbrukerrÂdet", Iso885915 }, // from norwegian.words
+    { "forcÇ", Cp437 }, // from french.words
+    { "forcÇment", Cp437 }, // from french.words
     { "forcé", MacRoman }, // from french.words
     { "forcément", MacRoman }, // from french.words
     { "forcÈ", Iso885915 }, // from french.words
     { "forcÈment", Iso885915 }, // from french.words
+    { "foregÜ", Cp865 }, // from norwegian.words
+    { "foregÜende", Cp865 }, // from norwegian.words
+    { "foregÜr", Cp865 }, // from norwegian.words
+    { "foregÜtt", Cp865 }, // from norwegian.words
     { "foregå", MacRoman }, // from norwegian.words
     { "foregående", MacRoman }, // from norwegian.words
     { "foregår", MacRoman }, // from norwegian.words
@@ -2145,12 +3353,20 @@ static const struct {
     { "foregÂende", Iso885915 }, // from norwegian.words
     { "foregÂr", Iso885915 }, // from norwegian.words
     { "foregÂtt", Iso885915 }, // from norwegian.words
+    { "forelÜ", Cp865 }, // from norwegian.words
     { "forelå", MacRoman }, // from norwegian.words
+    { "forelõpig", Cp865 }, // from norwegian.words
+    { "forelõpige", Cp865 }, // from norwegian.words
     { "foreløpig", MacRoman }, // from norwegian.words
     { "foreløpige", MacRoman }, // from norwegian.words
     { "forelÂ", Iso885915 }, // from norwegian.words
     { "forel¯pig", Iso885915 }, // from norwegian.words
     { "forel¯pige", Iso885915 }, // from norwegian.words
+    { "foreslÜ", Cp865 }, // from norwegian.words
+    { "foreslÜr", Cp865 }, // from norwegian.words
+    { "foreslÜs", Cp865 }, // from norwegian.words
+    { "foreslÜtt", Cp865 }, // from norwegian.words
+    { "foreslÜtte", Cp865 }, // from norwegian.words
     { "foreslå", MacRoman }, // from norwegian.words
     { "foreslår", MacRoman }, // from norwegian.words
     { "foreslås", MacRoman }, // from norwegian.words
@@ -2161,15 +3377,23 @@ static const struct {
     { "foreslÂs", Iso885915 }, // from norwegian.words
     { "foreslÂtt", Iso885915 }, // from norwegian.words
     { "foreslÂtte", Iso885915 }, // from norwegian.words
+    { "forespõrsel", Cp865 }, // from norwegian.words
     { "forespørsel", MacRoman }, // from norwegian.words
     { "foresp¯rsel", Iso885915 }, // from norwegian.words
+    { "forestÜende", Cp865 }, // from norwegian.words
     { "forestående", MacRoman }, // from norwegian.words
     { "forestÂende", Iso885915 }, // from norwegian.words
+    { "forgÇ", Cp437 }, // from french.words
     { "forgé", MacRoman }, // from french.words
     { "forgÈ", Iso885915 }, // from french.words
+    { "forhÜnd", Cp865 }, // from norwegian.words
+    { "forhÜpentlig", Cp865 }, // from norwegian.words
+    { "forhÜpentligvis", Cp865 }, // from norwegian.words
     { "forhånd", MacRoman }, // from norwegian.words
     { "forhåpentlig", MacRoman }, // from norwegian.words
     { "forhåpentligvis", MacRoman }, // from norwegian.words
+    { "forhõrsrett", Cp865 }, // from norwegian.words
+    { "forhõrsretten", Cp865 }, // from norwegian.words
     { "forhørsrett", MacRoman }, // from norwegian.words
     { "forhørsretten", MacRoman }, // from norwegian.words
     { "forhÂnd", Iso885915 }, // from norwegian.words
@@ -2177,8 +3401,13 @@ static const struct {
     { "forhÂpentligvis", Iso885915 }, // from norwegian.words
     { "forh¯rsrett", Iso885915 }, // from norwegian.words
     { "forh¯rsretten", Iso885915 }, // from norwegian.words
+    { "formalitÇs", Cp437 }, // from french.words
     { "formalités", MacRoman }, // from french.words
     { "formalitÈs", Iso885915 }, // from french.words
+    { "formÇ", Cp437 }, // from french.words
+    { "formÇs", Cp437 }, // from french.words
+    { "formÜl", Cp865 }, // from norwegian.words
+    { "formÜlet", Cp865 }, // from norwegian.words
     { "formål", MacRoman }, // from norwegian.words
     { "formålet", MacRoman }, // from norwegian.words
     { "formé", MacRoman }, // from french.words
@@ -2187,40 +3416,127 @@ static const struct {
     { "formÂlet", Iso885915 }, // from norwegian.words
     { "formÈ", Iso885915 }, // from french.words
     { "formÈs", Iso885915 }, // from french.words
+    { "fornõyd", Cp865 }, // from norwegian.words
+    { "fornõyde", Cp865 }, // from norwegian.words
     { "fornøyd", MacRoman }, // from norwegian.words
     { "fornøyde", MacRoman }, // from norwegian.words
     { "forn¯yd", Iso885915 }, // from norwegian.words
     { "forn¯yde", Iso885915 }, // from norwegian.words
+    { "forskningsrÜd", Cp865 }, // from norwegian.words
+    { "forskningsrÜdet", Cp865 }, // from norwegian.words
     { "forskningsråd", MacRoman }, // from norwegian.words
     { "forskningsrådet", MacRoman }, // from norwegian.words
     { "forskningsrÂd", Iso885915 }, // from norwegian.words
     { "forskningsrÂdet", Iso885915 }, // from norwegian.words
+    { "forstÜ", Cp865 }, // from norwegian.words
+    { "forstÜelig", Cp865 }, // from norwegian.words
+    { "forstÜelse", Cp865 }, // from norwegian.words
+    { "forstÜr", Cp865 }, // from norwegian.words
+    { "forstÜtt", Cp865 }, // from norwegian.words
     { "forstå", MacRoman }, // from norwegian.words
+    { "forståelig", MacRoman }, // from norwegian.words
+    { "forståelse", MacRoman }, // from norwegian.words
+    { "forstår", MacRoman }, // from norwegian.words
+    { "forstått", MacRoman }, // from norwegian.words
     { "forstÂ", Iso885915 }, // from norwegian.words
+    { "forstÂelig", Iso885915 }, // from norwegian.words
+    { "forstÂelse", Iso885915 }, // from norwegian.words
+    { "forstÂr", Iso885915 }, // from norwegian.words
+    { "forstÂtt", Iso885915 }, // from norwegian.words
+    { "forsõk", Cp865 }, // from norwegian.words
+    { "forsõke", Cp865 }, // from norwegian.words
+    { "forsõker", Cp865 }, // from norwegian.words
+    { "forsõket", Cp865 }, // from norwegian.words
+    { "forsõkt", Cp865 }, // from norwegian.words
+    { "forsõkte", Cp865 }, // from norwegian.words
+    { "forsøk", MacRoman }, // from norwegian.words
+    { "forsøke", MacRoman }, // from norwegian.words
+    { "forsøker", MacRoman }, // from norwegian.words
+    { "forsøket", MacRoman }, // from norwegian.words
+    { "forsøkt", MacRoman }, // from norwegian.words
+    { "forsøkte", MacRoman }, // from norwegian.words
+    { "fors¯k", Iso885915 }, // from norwegian.words
+    { "fors¯ke", Iso885915 }, // from norwegian.words
+    { "fors¯ker", Iso885915 }, // from norwegian.words
+    { "fors¯ket", Iso885915 }, // from norwegian.words
+    { "fors¯kt", Iso885915 }, // from norwegian.words
+    { "fors¯kte", Iso885915 }, // from norwegian.words
+    { "forÜrsaket", Cp865 }, // from norwegian.words
+    { "forårsaket", MacRoman }, // from norwegian.words
+    { "forõvrig", Cp865 }, // from norwegian.words
+    { "forøvrig", MacRoman }, // from norwegian.words
+    { "forÂrsaket", Iso885915 }, // from norwegian.words
+    { "for¯vrig", Iso885915 }, // from norwegian.words
+    { "fossÇ", Cp437 }, // from french.words
     { "fossé", MacRoman }, // from french.words
     { "fossÈ", Iso885915 }, // from french.words
     { "fotbalov˝", Iso88592 }, // from czech.words
+    { "foulÇe", Cp437 }, // from french.words
     { "foulée", MacRoman }, // from french.words
     { "foulÈe", Iso885915 }, // from french.words
+    { "fragilitÇ", Cp437 }, // from french.words
     { "fragilité", MacRoman }, // from french.words
     { "fragilitÈ", Iso885915 }, // from french.words
+    { "franchisÇs", Cp437 }, // from french.words
     { "franchisés", MacRoman }, // from french.words
     { "franchisÈs", Iso885915 }, // from french.words
+    { "franzîsische", Cp437 }, // from german.words
+    { "franzîsischen", Cp437 }, // from german.words
+    { "franzîsischer", Cp437 }, // from german.words
     { "französische", MacRoman }, // from german.words
     { "französischen", MacRoman }, // from german.words
     { "französischer", MacRoman }, // from german.words
     { "franzˆsische", Iso885915 }, // from german.words
     { "franzˆsischen", Iso885915 }, // from german.words
     { "franzˆsischer", Iso885915 }, // from german.words
+    { "frappÇ", Cp437 }, // from french.words
     { "frappé", MacRoman }, // from french.words
     { "frappÈ", Iso885915 }, // from french.words
+    { "fravër", Cp865 }, // from norwegian.words
+    { "fravërende", Cp865 }, // from norwegian.words
+    { "fravær", MacRoman }, // from norwegian.words
+    { "fraværende", MacRoman }, // from norwegian.words
+    { "fravÊr", Iso885915 }, // from norwegian.words
+    { "fravÊrende", Iso885915 }, // from norwegian.words
+    { "fremfõrt", Cp865 }, // from norwegian.words
+    { "fremført", MacRoman }, // from norwegian.words
+    { "fremf¯rt", Iso885915 }, // from norwegian.words
+    { "fremgÜr", Cp865 }, // from norwegian.words
+    { "fremgår", MacRoman }, // from norwegian.words
+    { "fremgÂr", Iso885915 }, // from norwegian.words
+    { "fremstÜ", Cp865 }, // from norwegian.words
+    { "fremstÜr", Cp865 }, // from norwegian.words
+    { "fremstå", MacRoman }, // from norwegian.words
+    { "fremstår", MacRoman }, // from norwegian.words
+    { "fremstÂ", Iso885915 }, // from norwegian.words
+    { "fremstÂr", Iso885915 }, // from norwegian.words
+    { "frÅh", Cp437 }, // from german.words
+    { "frÅhe", Cp437 }, // from german.words
+    { "frÅhen", Cp437 }, // from german.words
+    { "frÅher", Cp437 }, // from german.words
+    { "frÅhere", Cp437 }, // from german.words
+    { "frÅheren", Cp437 }, // from german.words
+    { "frÅherer", Cp437 }, // from german.words
+    { "frÅhestens", Cp437 }, // from german.words
+    { "frÅhzeitig", Cp437 }, // from german.words
+    { "frÇquemment", Cp437 }, // from french.words
+    { "frÇquence", Cp437 }, // from french.words
+    { "frÇquent", Cp437 }, // from french.words
+    { "frÇquentation", Cp437 }, // from french.words
+    { "frÇquente", Cp437 }, // from french.words
+    { "frÇquents", Cp437 }, // from french.words
+    { "frÜ", Cp865 }, // from norwegian.words
+    { "frå", MacRoman }, // from norwegian.words
     { "fréquemment", MacRoman }, // from french.words
     { "fréquence", MacRoman }, // from french.words
     { "fréquent", MacRoman }, // from french.words
     { "fréquentation", MacRoman }, // from french.words
     { "fréquente", MacRoman }, // from french.words
     { "fréquents", MacRoman }, // from french.words
+    { "frîhlich", Cp437 }, // from german.words
     { "fröhlich", MacRoman }, // from german.words
+    { "frõken", Cp865 }, // from norwegian.words
+    { "frõya", Cp865 }, // from norwegian.words
     { "früh", MacRoman }, // from german.words
     { "frühe", MacRoman }, // from german.words
     { "frühen", MacRoman }, // from german.words
@@ -2230,6 +3546,9 @@ static const struct {
     { "früherer", MacRoman }, // from german.words
     { "frühestens", MacRoman }, // from german.words
     { "frühzeitig", MacRoman }, // from german.words
+    { "frøken", MacRoman }, // from norwegian.words
+    { "frøya", MacRoman }, // from norwegian.words
+    { "frÂ", Iso885915 }, // from norwegian.words
     { "frÈquemment", Iso885915 }, // from french.words
     { "frÈquence", Iso885915 }, // from french.words
     { "frÈquent", Iso885915 }, // from french.words
@@ -2237,6 +3556,8 @@ static const struct {
     { "frÈquente", Iso885915 }, // from french.words
     { "frÈquents", Iso885915 }, // from french.words
     { "frˆhlich", Iso885915 }, // from german.words
+    { "fr¯ken", Iso885915 }, // from norwegian.words
+    { "fr¯ya", Iso885915 }, // from norwegian.words
     { "fr¸h", Iso885915 }, // from german.words
     { "fr¸he", Iso885915 }, // from german.words
     { "fr¸hen", Iso885915 }, // from german.words
@@ -2246,10 +3567,66 @@ static const struct {
     { "fr¸herer", Iso885915 }, // from german.words
     { "fr¸hestens", Iso885915 }, // from german.words
     { "fr¸hzeitig", Iso885915 }, // from german.words
+    { "fullfõre", Cp865 }, // from norwegian.words
+    { "fullfõrt", Cp865 }, // from norwegian.words
+    { "fullføre", MacRoman }, // from norwegian.words
+    { "fullført", MacRoman }, // from norwegian.words
+    { "fullf¯re", Iso885915 }, // from norwegian.words
+    { "fullf¯rt", Iso885915 }, // from norwegian.words
+    { "fumÇ", Cp437 }, // from french.words
+    { "fumÇe", Cp437 }, // from french.words
     { "fumé", MacRoman }, // from french.words
     { "fumée", MacRoman }, // from french.words
     { "fumÈ", Iso885915 }, // from french.words
     { "fumÈe", Iso885915 }, // from french.words
+    { "fylkesordfõrer", Cp865 }, // from norwegian.words
+    { "fylkesordfører", MacRoman }, // from norwegian.words
+    { "fylkesordf¯rer", Iso885915 }, // from norwegian.words
+    { "fÅgt", Cp437 }, // from german.words
+    { "fÅgte", Cp437 }, // from german.words
+    { "fÅhle", Cp437 }, // from german.words
+    { "fÅhlen", Cp437 }, // from german.words
+    { "fÅhlt", Cp437 }, // from german.words
+    { "fÅhlte", Cp437 }, // from german.words
+    { "fÅhlten", Cp437 }, // from german.words
+    { "fÅhre", Cp437 }, // from german.words
+    { "fÅhren", Cp437 }, // from german.words
+    { "fÅhrende", Cp437 }, // from german.words
+    { "fÅhrenden", Cp437 }, // from german.words
+    { "fÅhrender", Cp437 }, // from german.words
+    { "fÅhrt", Cp437 }, // from german.words
+    { "fÅhrte", Cp437 }, // from german.words
+    { "fÅhrten", Cp437 }, // from german.words
+    { "fÅllen", Cp437 }, // from german.words
+    { "fÅllt", Cp437 }, // from german.words
+    { "fÅnf", Cp437 }, // from german.words
+    { "fÅnfte", Cp437 }, // from german.words
+    { "fÅnften", Cp437 }, // from german.words
+    { "fÅnfzehn", Cp437 }, // from german.words
+    { "fÅnfzig", Cp437 }, // from german.words
+    { "fÅrchten", Cp437 }, // from german.words
+    { "fÅrchtet", Cp437 }, // from german.words
+    { "fÅrs", Cp437 }, // from german.words
+    { "fÇdÇral", Cp437 }, // from french.words
+    { "fÇdÇrale", Cp437 }, // from french.words
+    { "fÇdÇration", Cp437 }, // from french.words
+    { "fÇdÇrations", Cp437 }, // from french.words
+    { "fÇdÇraux", Cp437 }, // from french.words
+    { "fÇminin", Cp437 }, // from french.words
+    { "fÇminine", Cp437 }, // from french.words
+    { "fÇminins", Cp437 }, // from french.words
+    { "fÇminitÇ", Cp437 }, // from french.words
+    { "fÇriÇs", Cp437 }, // from french.words
+    { "fÇvrier", Cp437 }, // from french.words
+    { "fÑhig", Cp437 }, // from german.words
+    { "fÑhrt", Cp437 }, // from german.words
+    { "fÑllig", Cp437 }, // from german.words
+    { "fÑllt", Cp437 }, // from german.words
+    { "fÑngt", Cp437 }, // from german.words
+    { "fÜ", Cp865 }, // from norwegian.words
+    { "fÜr", Cp865 }, // from norwegian.words
+    { "fÜs", Cp865 }, // from norwegian.words
+    { "fÜtt", Cp865 }, // from norwegian.words
     { "fähig", MacRoman }, // from german.words
     { "fährt", MacRoman }, // from german.words
     { "fällig", MacRoman }, // from german.words
@@ -2270,8 +3647,50 @@ static const struct {
     { "féminité", MacRoman }, // from french.words
     { "fériés", MacRoman }, // from french.words
     { "février", MacRoman }, // from french.words
+    { "fërre", Cp865 }, // from norwegian.words
+    { "fërreste", Cp865 }, // from norwegian.words
+    { "fërõyene", Cp865 }, // from norwegian.words
+    { "fîrdern", Cp437 }, // from german.words
+    { "fîrdert", Cp437 }, // from german.words
     { "fördern", MacRoman }, // from german.words
     { "fördert", MacRoman }, // from german.words
+    { "fõde", Cp865 }, // from norwegian.words
+    { "fõdsel", Cp865 }, // from norwegian.words
+    { "fõdselen", Cp865 }, // from norwegian.words
+    { "fõdt", Cp865 }, // from norwegian.words
+    { "fõle", Cp865 }, // from norwegian.words
+    { "fõlelse", Cp865 }, // from norwegian.words
+    { "fõlelsen", Cp865 }, // from norwegian.words
+    { "fõlelsene", Cp865 }, // from norwegian.words
+    { "fõlelser", Cp865 }, // from norwegian.words
+    { "fõler", Cp865 }, // from norwegian.words
+    { "fõles", Cp865 }, // from norwegian.words
+    { "fõlge", Cp865 }, // from norwegian.words
+    { "fõlgelig", Cp865 }, // from norwegian.words
+    { "fõlgende", Cp865 }, // from norwegian.words
+    { "fõlger", Cp865 }, // from norwegian.words
+    { "fõlges", Cp865 }, // from norwegian.words
+    { "fõlt", Cp865 }, // from norwegian.words
+    { "fõlte", Cp865 }, // from norwegian.words
+    { "fõr", Cp865 }, // from norwegian.words
+    { "fõrde", Cp865 }, // from norwegian.words
+    { "fõre", Cp865 }, // from norwegian.words
+    { "fõrer", Cp865 }, // from norwegian.words
+    { "fõreren", Cp865 }, // from norwegian.words
+    { "fõrerkort", Cp865 }, // from norwegian.words
+    { "fõrerkortet", Cp865 }, // from norwegian.words
+    { "fõres", Cp865 }, // from norwegian.words
+    { "fõrst", Cp865 }, // from norwegian.words
+    { "fõrste", Cp865 }, // from norwegian.words
+    { "fõrsteamanuensis", Cp865 }, // from norwegian.words
+    { "fõrstestatsadvokat", Cp865 }, // from norwegian.words
+    { "fõrstkommende", Cp865 }, // from norwegian.words
+    { "fõrt", Cp865 }, // from norwegian.words
+    { "fõrte", Cp865 }, // from norwegian.words
+    { "fõrti", Cp865 }, // from norwegian.words
+    { "fõttene", Cp865 }, // from norwegian.words
+    { "fõtter", Cp865 }, // from norwegian.words
+    { "fõyer", Cp865 }, // from norwegian.words
     { "fügt", MacRoman }, // from german.words
     { "fügte", MacRoman }, // from german.words
     { "fühle", MacRoman }, // from german.words
@@ -2287,6 +3706,7 @@ static const struct {
     { "führt", MacRoman }, // from german.words
     { "führte", MacRoman }, // from german.words
     { "führten", MacRoman }, // from german.words
+    { "füllen", MacRoman }, // from german.words
     { "füllt", MacRoman }, // from german.words
     { "fünf", MacRoman }, // from german.words
     { "fünfte", MacRoman }, // from german.words
@@ -2413,6 +3833,7 @@ static const struct {
     { "f¸hrt", Iso885915 }, // from german.words
     { "f¸hrte", Iso885915 }, // from german.words
     { "f¸hrten", Iso885915 }, // from german.words
+    { "f¸llen", Iso885915 }, // from german.words
     { "f¸llt", Iso885915 }, // from german.words
     { "f¸nf", Iso885915 }, // from german.words
     { "f¸nfte", Iso885915 }, // from german.words
@@ -2422,18 +3843,35 @@ static const struct {
     { "f¸rchten", Iso885915 }, // from german.words
     { "f¸rchtet", Iso885915 }, // from german.words
     { "f¸rs", Iso885915 }, // from german.words
+    { "gagnÇ", Cp437 }, // from french.words
     { "gagné", MacRoman }, // from french.words
     { "gagnÈ", Iso885915 }, // from french.words
+    { "gardÇ", Cp437 }, // from french.words
     { "gardé", MacRoman }, // from french.words
     { "gardÈ", Iso885915 }, // from french.words
+    { "gebÅrtige", Cp437 }, // from german.words
     { "gebürtige", MacRoman }, // from german.words
     { "geb¸rtige", Iso885915 }, // from german.words
+    { "gedrÅckt", Cp437 }, // from german.words
+    { "gedrÑngt", Cp437 }, // from german.words
     { "gedrängt", MacRoman }, // from german.words
     { "gedrückt", MacRoman }, // from german.words
     { "gedr‰ngt", Iso885915 }, // from german.words
     { "gedr¸ckt", Iso885915 }, // from german.words
     { "gefaßt", MacRoman }, // from german.words
     { "gefaﬂt", Iso885915 }, // from german.words
+    { "gefa·t", Cp437 }, // from german.words
+    { "gefÅhrt", Cp437 }, // from german.words
+    { "gefÅhrte", Cp437 }, // from german.words
+    { "gefÅhrten", Cp437 }, // from german.words
+    { "gefÅllt", Cp437 }, // from german.words
+    { "gefÑhrden", Cp437 }, // from german.words
+    { "gefÑhrdet", Cp437 }, // from german.words
+    { "gefÑhrlich", Cp437 }, // from german.words
+    { "gefÑhrliche", Cp437 }, // from german.words
+    { "gefÑhrlichen", Cp437 }, // from german.words
+    { "gefÑhrlicher", Cp437 }, // from german.words
+    { "gefÑllt", Cp437 }, // from german.words
     { "gefährden", MacRoman }, // from german.words
     { "gefährdet", MacRoman }, // from german.words
     { "gefährlich", MacRoman }, // from german.words
@@ -2441,10 +3879,12 @@ static const struct {
     { "gefährlichen", MacRoman }, // from german.words
     { "gefährlicher", MacRoman }, // from german.words
     { "gefällt", MacRoman }, // from german.words
+    { "gefîrdert", Cp437 }, // from german.words
     { "gefördert", MacRoman }, // from german.words
     { "geführt", MacRoman }, // from german.words
     { "geführte", MacRoman }, // from german.words
     { "geführten", MacRoman }, // from german.words
+    { "gefüllt", MacRoman }, // from german.words
     { "gef‰hrden", Iso885915 }, // from german.words
     { "gef‰hrdet", Iso885915 }, // from german.words
     { "gef‰hrlich", Iso885915 }, // from german.words
@@ -2456,20 +3896,35 @@ static const struct {
     { "gef¸hrt", Iso885915 }, // from german.words
     { "gef¸hrte", Iso885915 }, // from german.words
     { "gef¸hrten", Iso885915 }, // from german.words
+    { "gef¸llt", Iso885915 }, // from german.words
+    { "gegenwÑrtig", Cp437 }, // from german.words
+    { "gegenwÑrtige", Cp437 }, // from german.words
+    { "gegenwÑrtigen", Cp437 }, // from german.words
     { "gegenwärtig", MacRoman }, // from german.words
     { "gegenwärtige", MacRoman }, // from german.words
     { "gegenwärtigen", MacRoman }, // from german.words
     { "gegenw‰rtig", Iso885915 }, // from german.words
     { "gegenw‰rtige", Iso885915 }, // from german.words
     { "gegenw‰rtigen", Iso885915 }, // from german.words
+    { "gegenÅber", Cp437 }, // from german.words
     { "gegenüber", MacRoman }, // from german.words
     { "gegen¸ber", Iso885915 }, // from german.words
+    { "gegrÅndet", Cp437 }, // from german.words
+    { "gegrÅndete", Cp437 }, // from german.words
+    { "gegrÅndeten", Cp437 }, // from german.words
     { "gegründet", MacRoman }, // from german.words
     { "gegründete", MacRoman }, // from german.words
     { "gegründeten", MacRoman }, // from german.words
     { "gegr¸ndet", Iso885915 }, // from german.words
     { "gegr¸ndete", Iso885915 }, // from german.words
     { "gegr¸ndeten", Iso885915 }, // from german.words
+    { "gehîre", Cp437 }, // from german.words
+    { "gehîren", Cp437 }, // from german.words
+    { "gehîrende", Cp437 }, // from german.words
+    { "gehîrenden", Cp437 }, // from german.words
+    { "gehîrt", Cp437 }, // from german.words
+    { "gehîrte", Cp437 }, // from german.words
+    { "gehîrten", Cp437 }, // from german.words
     { "gehöre", MacRoman }, // from german.words
     { "gehören", MacRoman }, // from german.words
     { "gehörende", MacRoman }, // from german.words
@@ -2484,20 +3939,29 @@ static const struct {
     { "gehˆrt", Iso885915 }, // from german.words
     { "gehˆrte", Iso885915 }, // from german.words
     { "gehˆrten", Iso885915 }, // from german.words
+    { "geklÑrt", Cp437 }, // from german.words
     { "geklärt", MacRoman }, // from german.words
     { "gekl‰rt", Iso885915 }, // from german.words
+    { "gekÅndigt", Cp437 }, // from german.words
+    { "gekÅrzt", Cp437 }, // from german.words
+    { "gekÑmpft", Cp437 }, // from german.words
     { "gekämpft", MacRoman }, // from german.words
     { "gekündigt", MacRoman }, // from german.words
     { "gekürzt", MacRoman }, // from german.words
     { "gek‰mpft", Iso885915 }, // from german.words
     { "gek¸ndigt", Iso885915 }, // from german.words
     { "gek¸rzt", Iso885915 }, // from german.words
+    { "gelîscht", Cp437 }, // from german.words
+    { "gelîst", Cp437 }, // from german.words
     { "gelöscht", MacRoman }, // from german.words
     { "gelöst", MacRoman }, // from german.words
     { "gelˆscht", Iso885915 }, // from german.words
     { "gelˆst", Iso885915 }, // from german.words
+    { "gemÑ·", Cp437 }, // from german.words
     { "gemäß", MacRoman }, // from german.words
     { "gem‰ﬂ", Iso885915 }, // from german.words
+    { "generalsekretër", Cp865 }, // from norwegian.words
+    { "generalsekretëren", Cp865 }, // from norwegian.words
     { "generalsekretær", MacRoman }, // from norwegian.words
     { "generalsekretæren", MacRoman }, // from norwegian.words
     { "generalsekretÊr", Iso885915 }, // from norwegian.words
@@ -2507,24 +3971,41 @@ static const struct {
     { "genießt", MacRoman }, // from german.words
     { "genieﬂen", Iso885915 }, // from german.words
     { "genieﬂt", Iso885915 }, // from german.words
+    { "genie·en", Cp437 }, // from german.words
+    { "genie·t", Cp437 }, // from german.words
+    { "genÅgen", Cp437 }, // from german.words
+    { "genÅgend", Cp437 }, // from german.words
+    { "genÅgt", Cp437 }, // from german.words
     { "genügen", MacRoman }, // from german.words
     { "genügend", MacRoman }, // from german.words
     { "genügt", MacRoman }, // from german.words
     { "gen¸gen", Iso885915 }, // from german.words
     { "gen¸gend", Iso885915 }, // from german.words
     { "gen¸gt", Iso885915 }, // from german.words
+    { "geprÅft", Cp437 }, // from german.words
+    { "geprÑgt", Cp437 }, // from german.words
+    { "geprÑgten", Cp437 }, // from german.words
+    { "geprägt", MacRoman }, // from german.words
     { "geprägten", MacRoman }, // from german.words
     { "geprüft", MacRoman }, // from german.words
+    { "gepr‰gt", Iso885915 }, // from german.words
     { "gepr‰gten", Iso885915 }, // from german.words
     { "gepr¸ft", Iso885915 }, // from german.words
+    { "geringfÅgig", Cp437 }, // from german.words
     { "geringfügig", MacRoman }, // from german.words
     { "geringf¸gig", Iso885915 }, // from german.words
+    { "gerÅckt", Cp437 }, // from german.words
+    { "gerÑt", Cp437 }, // from german.words
+    { "gerÑumt", Cp437 }, // from german.words
     { "gerät", MacRoman }, // from german.words
     { "geräumt", MacRoman }, // from german.words
     { "gerückt", MacRoman }, // from german.words
     { "ger‰t", Iso885915 }, // from german.words
     { "ger‰umt", Iso885915 }, // from german.words
     { "ger¸ckt", Iso885915 }, // from german.words
+    { "geschÅtzt", Cp437 }, // from german.words
+    { "geschÑtzt", Cp437 }, // from german.words
+    { "geschÑtzten", Cp437 }, // from german.words
     { "geschätzt", MacRoman }, // from german.words
     { "geschätzten", MacRoman }, // from german.words
     { "geschützt", MacRoman }, // from german.words
@@ -2533,7 +4014,12 @@ static const struct {
     { "gesch¸tzt", Iso885915 }, // from german.words
     { "gestoßen", MacRoman }, // from german.words
     { "gestoﬂen", Iso885915 }, // from german.words
+    { "gesto·en", Cp437 }, // from german.words
+    { "gestÅrzt", Cp437 }, // from german.words
+    { "gestÅtzt", Cp437 }, // from german.words
+    { "gestÑrkt", Cp437 }, // from german.words
     { "gestärkt", MacRoman }, // from german.words
+    { "gestîrt", Cp437 }, // from german.words
     { "gestört", MacRoman }, // from german.words
     { "gestürzt", MacRoman }, // from german.words
     { "gestützt", MacRoman }, // from german.words
@@ -2541,14 +4027,29 @@ static const struct {
     { "gestˆrt", Iso885915 }, // from german.words
     { "gest¸rzt", Iso885915 }, // from german.words
     { "gest¸tzt", Iso885915 }, // from german.words
+    { "getîtet", Cp437 }, // from german.words
     { "getötet", MacRoman }, // from german.words
     { "getˆtet", Iso885915 }, // from german.words
     { "gewissermaßen", MacRoman }, // from german.words
     { "gewissermaﬂen", Iso885915 }, // from german.words
+    { "gewisserma·en", Cp437 }, // from german.words
     { "gewiß", MacRoman }, // from german.words
     { "gewiﬂ", Iso885915 }, // from german.words
+    { "gewi·", Cp437 }, // from german.words
     { "gewußt", MacRoman }, // from german.words
     { "gewuﬂt", Iso885915 }, // from german.words
+    { "gewu·t", Cp437 }, // from german.words
+    { "gewÅnscht", Cp437 }, // from german.words
+    { "gewÅnschte", Cp437 }, // from german.words
+    { "gewÅnschten", Cp437 }, // from german.words
+    { "gewÅrdigt", Cp437 }, // from german.words
+    { "gewÑhlt", Cp437 }, // from german.words
+    { "gewÑhlte", Cp437 }, // from german.words
+    { "gewÑhlten", Cp437 }, // from german.words
+    { "gewÑhren", Cp437 }, // from german.words
+    { "gewÑhrleisten", Cp437 }, // from german.words
+    { "gewÑhrleistet", Cp437 }, // from german.words
+    { "gewÑhrt", Cp437 }, // from german.words
     { "gewählt", MacRoman }, // from german.words
     { "gewählte", MacRoman }, // from german.words
     { "gewählten", MacRoman }, // from german.words
@@ -2556,6 +4057,9 @@ static const struct {
     { "gewährleisten", MacRoman }, // from german.words
     { "gewährleistet", MacRoman }, // from german.words
     { "gewährt", MacRoman }, // from german.words
+    { "gewîhnlich", Cp437 }, // from german.words
+    { "gewîhnlichen", Cp437 }, // from german.words
+    { "gewîhnt", Cp437 }, // from german.words
     { "gewöhnlich", MacRoman }, // from german.words
     { "gewöhnlichen", MacRoman }, // from german.words
     { "gewöhnt", MacRoman }, // from german.words
@@ -2577,16 +4081,28 @@ static const struct {
     { "gew¸nschte", Iso885915 }, // from german.words
     { "gew¸nschten", Iso885915 }, // from german.words
     { "gew¸rdigt", Iso885915 }, // from german.words
+    { "gezÑhlt", Cp437 }, // from german.words
     { "gezählt", MacRoman }, // from german.words
     { "gez‰hlt", Iso885915 }, // from german.words
+    { "geÅbt", Cp437 }, // from german.words
+    { "geÑndert", Cp437 }, // from german.words
+    { "geÑu·ert", Cp437 }, // from german.words
     { "geändert", MacRoman }, // from german.words
     { "geäußert", MacRoman }, // from german.words
+    { "geîffnet", Cp437 }, // from german.words
     { "geöffnet", MacRoman }, // from german.words
     { "geübt", MacRoman }, // from german.words
     { "ge‰ndert", Iso885915 }, // from german.words
     { "ge‰uﬂert", Iso885915 }, // from german.words
     { "geˆffnet", Iso885915 }, // from german.words
     { "ge¸bt", Iso885915 }, // from german.words
+    { "gjennomfõre", Cp865 }, // from norwegian.words
+    { "gjennomfõrer", Cp865 }, // from norwegian.words
+    { "gjennomfõres", Cp865 }, // from norwegian.words
+    { "gjennomfõring", Cp865 }, // from norwegian.words
+    { "gjennomfõringen", Cp865 }, // from norwegian.words
+    { "gjennomfõrt", Cp865 }, // from norwegian.words
+    { "gjennomfõrte", Cp865 }, // from norwegian.words
     { "gjennomføre", MacRoman }, // from norwegian.words
     { "gjennomfører", MacRoman }, // from norwegian.words
     { "gjennomføres", MacRoman }, // from norwegian.words
@@ -2601,18 +4117,28 @@ static const struct {
     { "gjennomf¯ringen", Iso885915 }, // from norwegian.words
     { "gjennomf¯rt", Iso885915 }, // from norwegian.words
     { "gjennomf¯rte", Iso885915 }, // from norwegian.words
+    { "gjennomgÜ", Cp865 }, // from norwegian.words
+    { "gjennomgÜende", Cp865 }, // from norwegian.words
+    { "gjennomgÜtt", Cp865 }, // from norwegian.words
     { "gjennomgå", MacRoman }, // from norwegian.words
     { "gjennomgående", MacRoman }, // from norwegian.words
     { "gjennomgått", MacRoman }, // from norwegian.words
     { "gjennomgÂ", Iso885915 }, // from norwegian.words
     { "gjennomgÂende", Iso885915 }, // from norwegian.words
     { "gjennomgÂtt", Iso885915 }, // from norwegian.words
+    { "gjenstÜende", Cp865 }, // from norwegian.words
+    { "gjenstÜr", Cp865 }, // from norwegian.words
     { "gjenstående", MacRoman }, // from norwegian.words
     { "gjenstår", MacRoman }, // from norwegian.words
     { "gjenstÂende", Iso885915 }, // from norwegian.words
     { "gjenstÂr", Iso885915 }, // from norwegian.words
+    { "gjenvërende", Cp865 }, // from norwegian.words
     { "gjenværende", MacRoman }, // from norwegian.words
     { "gjenvÊrende", Iso885915 }, // from norwegian.words
+    { "gjõr", Cp865 }, // from norwegian.words
+    { "gjõre", Cp865 }, // from norwegian.words
+    { "gjõres", Cp865 }, // from norwegian.words
+    { "gjõvik", Cp865 }, // from norwegian.words
     { "gjør", MacRoman }, // from norwegian.words
     { "gjøre", MacRoman }, // from norwegian.words
     { "gjøres", MacRoman }, // from norwegian.words
@@ -2623,14 +4149,23 @@ static const struct {
     { "gj¯vik", Iso885915 }, // from norwegian.words
     { "gleichermaßen", MacRoman }, // from german.words
     { "gleichermaﬂen", Iso885915 }, // from german.words
+    { "gleicherma·en", Cp437 }, // from german.words
+    { "glÅcklich", Cp437 }, // from german.words
     { "glücklich", MacRoman }, // from german.words
     { "gl¸cklich", Iso885915 }, // from german.words
+    { "goksõr", Cp865 }, // from norwegian.words
     { "goksør", MacRoman }, // from norwegian.words
     { "goks¯r", Iso885915 }, // from norwegian.words
+    { "granÜsen", Cp865 }, // from norwegian.words
     { "granåsen", MacRoman }, // from norwegian.words
     { "granÂsen", Iso885915 }, // from norwegian.words
+    { "gravitÇ", Cp437 }, // from french.words
     { "gravité", MacRoman }, // from french.words
     { "gravitÈ", Iso885915 }, // from french.words
+    { "grimpÇ", Cp437 }, // from french.words
+    { "grimpé", MacRoman }, // from french.words
+    { "grimpÈ", Iso885915 }, // from french.words
+    { "grodÜs", Cp865 }, // from norwegian.words
     { "grodås", MacRoman }, // from norwegian.words
     { "grodÂs", Iso885915 }, // from norwegian.words
     { "groß", MacRoman }, // from german.words
@@ -2647,16 +4182,46 @@ static const struct {
     { "groﬂer", Iso885915 }, // from german.words
     { "groﬂes", Iso885915 }, // from german.words
     { "groﬂz¸gig", Iso885915 }, // from german.words
+    { "gro·", Cp437 }, // from german.words
+    { "gro·e", Cp437 }, // from german.words
+    { "gro·em", Cp437 }, // from german.words
+    { "gro·en", Cp437 }, // from german.words
+    { "gro·er", Cp437 }, // from german.words
+    { "gro·es", Cp437 }, // from german.words
+    { "gro·zÅgig", Cp437 }, // from german.words
+    { "grundsÑtzlich", Cp437 }, // from german.words
+    { "grundsÑtzliche", Cp437 }, // from german.words
     { "grundsätzlich", MacRoman }, // from german.words
     { "grundsätzliche", MacRoman }, // from german.words
     { "grunds‰tzlich", Iso885915 }, // from german.words
     { "grunds‰tzliche", Iso885915 }, // from german.words
+    { "grÅn", Cp437 }, // from german.words
+    { "grÅnden", Cp437 }, // from german.words
+    { "grÅndete", Cp437 }, // from german.words
+    { "grÅndlich", Cp437 }, // from german.words
+    { "grÅne", Cp437 }, // from german.words
+    { "grÅnen", Cp437 }, // from german.words
+    { "grÇ", Cp437 }, // from french.words
+    { "grÜ", Cp865 }, // from norwegian.words
+    { "grÜt", Cp865 }, // from norwegian.words
+    { "grÜte", Cp865 }, // from norwegian.words
+    { "grÜter", Cp865 }, // from norwegian.words
+    { "grÜtt", Cp865 }, // from norwegian.words
     { "grå", MacRoman }, // from norwegian.words
     { "gråt", MacRoman }, // from norwegian.words
     { "gråte", MacRoman }, // from norwegian.words
     { "gråter", MacRoman }, // from norwegian.words
     { "grått", MacRoman }, // from norwegian.words
     { "gré", MacRoman }, // from french.words
+    { "grî·er", Cp437 }, // from german.words
+    { "grî·ere", Cp437 }, // from german.words
+    { "grî·eren", Cp437 }, // from german.words
+    { "grî·erer", Cp437 }, // from german.words
+    { "grî·eres", Cp437 }, // from german.words
+    { "grî·te", Cp437 }, // from german.words
+    { "grî·ten", Cp437 }, // from german.words
+    { "grî·tenteils", Cp437 }, // from german.words
+    { "grî·ter", Cp437 }, // from german.words
     { "größer", MacRoman }, // from german.words
     { "größere", MacRoman }, // from german.words
     { "größeren", MacRoman }, // from german.words
@@ -2666,6 +4231,11 @@ static const struct {
     { "größten", MacRoman }, // from german.words
     { "größtenteils", MacRoman }, // from german.words
     { "größter", MacRoman }, // from german.words
+    { "grõnland", Cp865 }, // from norwegian.words
+    { "grõnn", Cp865 }, // from norwegian.words
+    { "grõnne", Cp865 }, // from norwegian.words
+    { "grõnnsaker", Cp865 }, // from norwegian.words
+    { "grõnt", Cp865 }, // from norwegian.words
     { "grün", MacRoman }, // from german.words
     { "gründen", MacRoman }, // from german.words
     { "gründete", MacRoman }, // from german.words
@@ -2703,8 +4273,54 @@ static const struct {
     { "gr¸ndlich", Iso885915 }, // from german.words
     { "gr¸ne", Iso885915 }, // from german.words
     { "gr¸nen", Iso885915 }, // from german.words
+    { "gulrõtter", Cp865 }, // from norwegian.words
     { "gulrøtter", MacRoman }, // from norwegian.words
     { "gulr¯tter", Iso885915 }, // from norwegian.words
+    { "gÅltig", Cp437 }, // from german.words
+    { "gÅltige", Cp437 }, // from german.words
+    { "gÅltigen", Cp437 }, // from german.words
+    { "gÅnstig", Cp437 }, // from german.words
+    { "gÅnstige", Cp437 }, // from german.words
+    { "gÅnstigen", Cp437 }, // from german.words
+    { "gÅnstiger", Cp437 }, // from german.words
+    { "gÇant", Cp437 }, // from french.words
+    { "gÇants", Cp437 }, // from french.words
+    { "gÇnie", Cp437 }, // from french.words
+    { "gÇnocide", Cp437 }, // from french.words
+    { "gÇnÇral", Cp437 }, // from french.words
+    { "gÇnÇrale", Cp437 }, // from french.words
+    { "gÇnÇralement", Cp437 }, // from french.words
+    { "gÇnÇrales", Cp437 }, // from french.words
+    { "gÇnÇralisÇe", Cp437 }, // from french.words
+    { "gÇnÇration", Cp437 }, // from french.words
+    { "gÇnÇrations", Cp437 }, // from french.words
+    { "gÇnÇraux", Cp437 }, // from french.words
+    { "gÇnÇrer", Cp437 }, // from french.words
+    { "gÇnÇreuse", Cp437 }, // from french.words
+    { "gÇnÇreux", Cp437 }, // from french.words
+    { "gÇnÇrique", Cp437 }, // from french.words
+    { "gÇnÇrositÇ", Cp437 }, // from french.words
+    { "gÇnÇrÇ", Cp437 }, // from french.words
+    { "gÇnÇtique", Cp437 }, // from french.words
+    { "gÇographique", Cp437 }, // from french.words
+    { "gÇographiques", Cp437 }, // from french.words
+    { "gÇrant", Cp437 }, // from french.words
+    { "gÇrer", Cp437 }, // from french.words
+    { "gÇrÇ", Cp437 }, // from french.words
+    { "gÇrÇe", Cp437 }, // from french.words
+    { "gÇrÇs", Cp437 }, // from french.words
+    { "gÇÇn", Cp437 }, // from dutch.words
+    { "gÑbe", Cp437 }, // from german.words
+    { "gÑngigen", Cp437 }, // from german.words
+    { "gÑnzlich", Cp437 }, // from german.words
+    { "gÜ", Cp865 }, // from norwegian.words
+    { "gÜende", Cp865 }, // from norwegian.words
+    { "gÜr", Cp865 }, // from norwegian.words
+    { "gÜrd", Cp865 }, // from norwegian.words
+    { "gÜrde", Cp865 }, // from norwegian.words
+    { "gÜrden", Cp865 }, // from norwegian.words
+    { "gÜrsdagens", Cp865 }, // from norwegian.words
+    { "gÜtt", Cp865 }, // from norwegian.words
     { "gäbe", MacRoman }, // from german.words
     { "gängigen", MacRoman }, // from german.words
     { "gänzlich", MacRoman }, // from german.words
@@ -2741,7 +4357,11 @@ static const struct {
     { "gérer", MacRoman }, // from french.words
     { "géré", MacRoman }, // from french.words
     { "gérée", MacRoman }, // from french.words
+    { "gérés", MacRoman }, // from french.words
     { "géén", MacRoman }, // from dutch.words
+    { "gõran", Cp865 }, // from norwegian.words
+    { "gõteborg", Cp865 }, // from norwegian.words
+    { "gõy", Cp865 }, // from norwegian.words
     { "gültig", MacRoman }, // from german.words
     { "gültige", MacRoman }, // from german.words
     { "gültigen", MacRoman }, // from german.words
@@ -2788,6 +4408,7 @@ static const struct {
     { "gÈrer", Iso885915 }, // from french.words
     { "gÈrÈ", Iso885915 }, // from french.words
     { "gÈrÈe", Iso885915 }, // from french.words
+    { "gÈrÈs", Iso885915 }, // from french.words
     { "gÈÈn", Iso885915 }, // from dutch.words
     { "g¯ran", Iso885915 }, // from norwegian.words
     { "g¯teborg", Iso885915 }, // from norwegian.words
@@ -2799,16 +4420,22 @@ static const struct {
     { "g¸nstige", Iso885915 }, // from german.words
     { "g¸nstigen", Iso885915 }, // from german.words
     { "g¸nstiger", Iso885915 }, // from german.words
+    { "habituÇ", Cp437 }, // from french.words
+    { "habituÇs", Cp437 }, // from french.words
     { "habitué", MacRoman }, // from french.words
     { "habitués", MacRoman }, // from french.words
     { "habituÈ", Iso885915 }, // from french.words
     { "habituÈs", Iso885915 }, // from french.words
+    { "hagesëther", Cp865 }, // from norwegian.words
     { "hagesæther", MacRoman }, // from norwegian.words
     { "hagesÊther", Iso885915 }, // from norwegian.words
+    { "halvÜr", Cp865 }, // from norwegian.words
     { "halvår", MacRoman }, // from norwegian.words
     { "halvÂr", Iso885915 }, // from norwegian.words
+    { "handicapÇs", Cp437 }, // from french.words
     { "handicapés", MacRoman }, // from french.words
     { "handicapÈs", Iso885915 }, // from french.words
+    { "hauptsÑchlich", Cp437 }, // from german.words
     { "hauptsächlich", MacRoman }, // from german.words
     { "haupts‰chlich", Iso885915 }, // from german.words
     { "heiß", MacRoman }, // from german.words
@@ -2819,40 +4446,98 @@ static const struct {
     { "heiﬂe", Iso885915 }, // from german.words
     { "heiﬂen", Iso885915 }, // from german.words
     { "heiﬂt", Iso885915 }, // from german.words
+    { "hei·", Cp437 }, // from german.words
+    { "hei·e", Cp437 }, // from german.words
+    { "hei·en", Cp437 }, // from german.words
+    { "hei·t", Cp437 }, // from german.words
+    { "herkîmmlichen", Cp437 }, // from german.words
     { "herkömmlichen", MacRoman }, // from german.words
     { "herkˆmmlichen", Iso885915 }, // from german.words
+    { "hierfÅr", Cp437 }, // from german.words
     { "hierfür", MacRoman }, // from german.words
     { "hierf¸r", Iso885915 }, // from german.words
     { "hieß", MacRoman }, // from german.words
     { "hieﬂ", Iso885915 }, // from german.words
+    { "hie·", Cp437 }, // from german.words
+    { "hiÇrarchie", Cp437 }, // from french.words
     { "hiérarchie", MacRoman }, // from french.words
     { "hiÈrarchie", Iso885915 }, // from french.words
+    { "hjõrne", Cp865 }, // from norwegian.words
+    { "hjõrnet", Cp865 }, // from norwegian.words
     { "hjørne", MacRoman }, // from norwegian.words
     { "hjørnet", MacRoman }, // from norwegian.words
     { "hj¯rne", Iso885915 }, // from norwegian.words
     { "hj¯rnet", Iso885915 }, // from norwegian.words
     { "hlavnÌ", Iso88592 }, // from czech.words
     { "hospod·¯sk˝", Iso88592 }, // from czech.words
+    { "hovedÜrsaken", Cp865 }, // from norwegian.words
     { "hovedårsaken", MacRoman }, // from norwegian.words
     { "hovedÂrsaken", Iso885915 }, // from norwegian.words
     { "hovo¯it", Iso88592 }, // from czech.words
+    { "hr·t", Iso88592 }, // from czech.words
     { "hr·Ë", Iso88592 }, // from czech.words
+    { "humanitÑre", Cp437 }, // from german.words
     { "humanitäre", MacRoman }, // from german.words
+    { "humanitër", Cp865 }, // from norwegian.words
+    { "humanitëre", Cp865 }, // from norwegian.words
     { "humanitær", MacRoman }, // from norwegian.words
     { "humanitære", MacRoman }, // from norwegian.words
     { "humanit‰re", Iso885915 }, // from german.words
     { "humanitÊr", Iso885915 }, // from norwegian.words
     { "humanitÊre", Iso885915 }, // from norwegian.words
+    { "humõr", Cp865 }, // from norwegian.words
+    { "humõret", Cp865 }, // from norwegian.words
     { "humør", MacRoman }, // from norwegian.words
     { "humøret", MacRoman }, // from norwegian.words
     { "hum¯r", Iso885915 }, // from norwegian.words
     { "hum¯ret", Iso885915 }, // from norwegian.words
+    { "hvitlõk", Cp865 }, // from norwegian.words
     { "hvitløk", MacRoman }, // from norwegian.words
     { "hvitl¯k", Iso885915 }, // from norwegian.words
+    { "hypothÇcaire", Cp437 }, // from french.words
+    { "hypothÇcaires", Cp437 }, // from french.words
     { "hypothécaire", MacRoman }, // from french.words
     { "hypothécaires", MacRoman }, // from french.words
     { "hypothÈcaire", Iso885915 }, // from french.words
     { "hypothÈcaires", Iso885915 }, // from french.words
+    { "hÇlas", Cp437 }, // from french.words
+    { "hÇritage", Cp437 }, // from french.words
+    { "hÇritiers", Cp437 }, // from french.words
+    { "hÇritÇ", Cp437 }, // from french.words
+    { "hÇros", Cp437 }, // from french.words
+    { "hÇsiter", Cp437 }, // from french.words
+    { "hÇsitÇ", Cp437 }, // from french.words
+    { "hÇt", Cp437 }, // from dutch.words
+    { "hÑlt", Cp437 }, // from german.words
+    { "hÑngen", Cp437 }, // from german.words
+    { "hÑngt", Cp437 }, // from german.words
+    { "hÑrter", Cp437 }, // from german.words
+    { "hÑtte", Cp437 }, // from german.words
+    { "hÑtten", Cp437 }, // from german.words
+    { "hÑufig", Cp437 }, // from german.words
+    { "hÑufiger", Cp437 }, // from german.words
+    { "hÑufigsten", Cp437 }, // from german.words
+    { "hÜ", Cp865 }, // from norwegian.words
+    { "hÜgensen", Cp865 }, // from norwegian.words
+    { "hÜkon", Cp865 }, // from norwegian.words
+    { "hÜland", Cp865 }, // from norwegian.words
+    { "hÜnd", Cp865 }, // from norwegian.words
+    { "hÜndarbeid", Cp865 }, // from norwegian.words
+    { "hÜndball", Cp865 }, // from norwegian.words
+    { "hÜnden", Cp865 }, // from norwegian.words
+    { "hÜndfull", Cp865 }, // from norwegian.words
+    { "hÜndtere", Cp865 }, // from norwegian.words
+    { "hÜndtering", Cp865 }, // from norwegian.words
+    { "hÜndverk", Cp865 }, // from norwegian.words
+    { "hÜp", Cp865 }, // from norwegian.words
+    { "hÜpe", Cp865 }, // from norwegian.words
+    { "hÜper", Cp865 }, // from norwegian.words
+    { "hÜpet", Cp865 }, // from norwegian.words
+    { "hÜplõs", Cp865 }, // from norwegian.words
+    { "hÜplõst", Cp865 }, // from norwegian.words
+    { "hÜr", Cp865 }, // from norwegian.words
+    { "hÜret", Cp865 }, // from norwegian.words
+    { "hÜvard", Cp865 }, // from norwegian.words
     { "hält", MacRoman }, // from german.words
     { "hängen", MacRoman }, // from german.words
     { "hängt", MacRoman }, // from german.words
@@ -2891,6 +4576,21 @@ static const struct {
     { "hésiter", MacRoman }, // from french.words
     { "hésité", MacRoman }, // from french.words
     { "hét", MacRoman }, // from dutch.words
+    { "hër", Cp865 }, // from norwegian.words
+    { "hëren", Cp865 }, // from norwegian.words
+    { "hërverk", Cp865 }, // from norwegian.words
+    { "hîchst", Cp437 }, // from german.words
+    { "hîchste", Cp437 }, // from german.words
+    { "hîchsten", Cp437 }, // from german.words
+    { "hîchstens", Cp437 }, // from german.words
+    { "hîchster", Cp437 }, // from german.words
+    { "hîher", Cp437 }, // from german.words
+    { "hîhere", Cp437 }, // from german.words
+    { "hîheren", Cp437 }, // from german.words
+    { "hîherer", Cp437 }, // from german.words
+    { "hîren", Cp437 }, // from german.words
+    { "hîrt", Cp437 }, // from german.words
+    { "hîrte", Cp437 }, // from german.words
     { "höchst", MacRoman }, // from german.words
     { "höchste", MacRoman }, // from german.words
     { "höchsten", MacRoman }, // from german.words
@@ -2903,6 +4603,40 @@ static const struct {
     { "hören", MacRoman }, // from german.words
     { "hört", MacRoman }, // from german.words
     { "hörte", MacRoman }, // from german.words
+    { "hõdd", Cp865 }, // from norwegian.words
+    { "hõflig", Cp865 }, // from norwegian.words
+    { "hõgskole", Cp865 }, // from norwegian.words
+    { "hõgskolen", Cp865 }, // from norwegian.words
+    { "hõnefoss", Cp865 }, // from norwegian.words
+    { "hõr", Cp865 }, // from norwegian.words
+    { "hõre", Cp865 }, // from norwegian.words
+    { "hõrer", Cp865 }, // from norwegian.words
+    { "hõres", Cp865 }, // from norwegian.words
+    { "hõring", Cp865 }, // from norwegian.words
+    { "hõrt", Cp865 }, // from norwegian.words
+    { "hõrte", Cp865 }, // from norwegian.words
+    { "hõst", Cp865 }, // from norwegian.words
+    { "hõste", Cp865 }, // from norwegian.words
+    { "hõsten", Cp865 }, // from norwegian.words
+    { "hõstens", Cp865 }, // from norwegian.words
+    { "hõstet", Cp865 }, // from norwegian.words
+    { "hõvik", Cp865 }, // from norwegian.words
+    { "hõy", Cp865 }, // from norwegian.words
+    { "hõyde", Cp865 }, // from norwegian.words
+    { "hõyden", Cp865 }, // from norwegian.words
+    { "hõydepunkt", Cp865 }, // from norwegian.words
+    { "hõyder", Cp865 }, // from norwegian.words
+    { "hõye", Cp865 }, // from norwegian.words
+    { "hõyere", Cp865 }, // from norwegian.words
+    { "hõyest", Cp865 }, // from norwegian.words
+    { "hõyeste", Cp865 }, // from norwegian.words
+    { "hõyesterett", Cp865 }, // from norwegian.words
+    { "hõykommissër", Cp865 }, // from norwegian.words
+    { "hõyland", Cp865 }, // from norwegian.words
+    { "hõyre", Cp865 }, // from norwegian.words
+    { "hõyres", Cp865 }, // from norwegian.words
+    { "hõyst", Cp865 }, // from norwegian.words
+    { "hõyt", Cp865 }, // from norwegian.words
     { "hær", MacRoman }, // from norwegian.words
     { "hæren", MacRoman }, // from norwegian.words
     { "hærverk", MacRoman }, // from norwegian.words
@@ -3027,8 +4761,14 @@ static const struct {
     { "h¯yres", Iso885915 }, // from norwegian.words
     { "h¯yst", Iso885915 }, // from norwegian.words
     { "h¯yt", Iso885915 }, // from norwegian.words
+    { "identitÇ", Cp437 }, // from french.words
     { "identité", MacRoman }, // from french.words
     { "identitÈ", Iso885915 }, // from french.words
+    { "idÇal", Cp437 }, // from french.words
+    { "idÇale", Cp437 }, // from french.words
+    { "idÇalement", Cp437 }, // from french.words
+    { "idÇe", Cp437 }, // from french.words
+    { "idÇes", Cp437 }, // from french.words
     { "idéal", MacRoman }, // from french.words
     { "idéale", MacRoman }, // from french.words
     { "idéalement", MacRoman }, // from french.words
@@ -3039,28 +4779,43 @@ static const struct {
     { "idÈalement", Iso885915 }, // from french.words
     { "idÈe", Iso885915 }, // from french.words
     { "idÈes", Iso885915 }, // from french.words
+    { "ifõlge", Cp865 }, // from norwegian.words
+    { "ifõrt", Cp865 }, // from norwegian.words
     { "ifølge", MacRoman }, // from norwegian.words
     { "iført", MacRoman }, // from norwegian.words
     { "if¯lge", Iso885915 }, // from norwegian.words
     { "if¯rt", Iso885915 }, // from norwegian.words
+    { "illustrÇ", Cp437 }, // from french.words
     { "illustré", MacRoman }, // from french.words
     { "illustrÈ", Iso885915 }, // from french.words
+    { "imaginÇ", Cp437 }, // from french.words
     { "imaginé", MacRoman }, // from french.words
     { "imaginÈ", Iso885915 }, // from french.words
+    { "immÇdiat", Cp437 }, // from french.words
+    { "immÇdiate", Cp437 }, // from french.words
+    { "immÇdiatement", Cp437 }, // from french.words
     { "immédiat", MacRoman }, // from french.words
     { "immédiate", MacRoman }, // from french.words
     { "immédiatement", MacRoman }, // from french.words
     { "immÈdiat", Iso885915 }, // from french.words
     { "immÈdiate", Iso885915 }, // from french.words
     { "immÈdiatement", Iso885915 }, // from french.words
+    { "implantÇ", Cp437 }, // from french.words
+    { "implantÇe", Cp437 }, // from french.words
     { "implanté", MacRoman }, // from french.words
     { "implantée", MacRoman }, // from french.words
     { "implantÈ", Iso885915 }, // from french.words
     { "implantÈe", Iso885915 }, // from french.words
+    { "impliquÇ", Cp437 }, // from french.words
+    { "impliquÇs", Cp437 }, // from french.words
     { "impliqué", MacRoman }, // from french.words
     { "impliqués", MacRoman }, // from french.words
     { "impliquÈ", Iso885915 }, // from french.words
     { "impliquÈs", Iso885915 }, // from french.words
+    { "imposÇ", Cp437 }, // from french.words
+    { "imposÇe", Cp437 }, // from french.words
+    { "imposÇes", Cp437 }, // from french.words
+    { "imposÇs", Cp437 }, // from french.words
     { "imposé", MacRoman }, // from french.words
     { "imposée", MacRoman }, // from french.words
     { "imposées", MacRoman }, // from french.words
@@ -3069,82 +4824,138 @@ static const struct {
     { "imposÈe", Iso885915 }, // from french.words
     { "imposÈes", Iso885915 }, // from french.words
     { "imposÈs", Iso885915 }, // from french.words
+    { "imprimÇ", Cp437 }, // from french.words
+    { "imprimÇs", Cp437 }, // from french.words
     { "imprimé", MacRoman }, // from french.words
     { "imprimés", MacRoman }, // from french.words
     { "imprimÈ", Iso885915 }, // from french.words
     { "imprimÈs", Iso885915 }, // from french.words
+    { "impÇratif", Cp437 }, // from french.words
+    { "impÇratifs", Cp437 }, // from french.words
+    { "impÇrativement", Cp437 }, // from french.words
     { "impératif", MacRoman }, // from french.words
     { "impératifs", MacRoman }, // from french.words
+    { "impérativement", MacRoman }, // from french.words
     { "impÈratif", Iso885915 }, // from french.words
     { "impÈratifs", Iso885915 }, // from french.words
+    { "impÈrativement", Iso885915 }, // from french.words
+    { "inchangÇ", Cp437 }, // from french.words
     { "inchangé", MacRoman }, // from french.words
     { "inchangÈ", Iso885915 }, // from french.words
+    { "incitÇ", Cp437 }, // from french.words
     { "incité", MacRoman }, // from french.words
     { "incitÈ", Iso885915 }, // from french.words
+    { "inconvÇnient", Cp437 }, // from french.words
+    { "inconvÇnients", Cp437 }, // from french.words
     { "inconvénient", MacRoman }, // from french.words
     { "inconvénients", MacRoman }, // from french.words
     { "inconvÈnient", Iso885915 }, // from french.words
     { "inconvÈnients", Iso885915 }, // from french.words
+    { "inculpÇ", Cp437 }, // from french.words
     { "inculpé", MacRoman }, // from french.words
     { "inculpÈ", Iso885915 }, // from french.words
+    { "indemnitÇ", Cp437 }, // from french.words
+    { "indemnitÇs", Cp437 }, // from french.words
     { "indemnité", MacRoman }, // from french.words
     { "indemnités", MacRoman }, // from french.words
     { "indemnitÈ", Iso885915 }, // from french.words
     { "indemnitÈs", Iso885915 }, // from french.words
+    { "indexÇ", Cp437 }, // from french.words
     { "indexé", MacRoman }, // from french.words
     { "indexÈ", Iso885915 }, // from french.words
+    { "indiffÇrent", Cp437 }, // from french.words
     { "indifférent", MacRoman }, // from french.words
     { "indiffÈrent", Iso885915 }, // from french.words
+    { "indiquÇ", Cp437 }, // from french.words
     { "indiqué", MacRoman }, // from french.words
     { "indiquÈ", Iso885915 }, // from french.words
+    { "industrialisÇs", Cp437 }, // from french.words
     { "industrialisés", MacRoman }, // from french.words
     { "industrialisÈs", Iso885915 }, // from french.words
+    { "indÇniable", Cp437 }, // from french.words
+    { "indÇpendamment", Cp437 }, // from french.words
+    { "indÇpendance", Cp437 }, // from french.words
+    { "indÇpendant", Cp437 }, // from french.words
+    { "indÇpendante", Cp437 }, // from french.words
+    { "indÇpendantes", Cp437 }, // from french.words
+    { "indÇpendants", Cp437 }, // from french.words
+    { "indÇterminÇe", Cp437 }, // from french.words
     { "indéniable", MacRoman }, // from french.words
     { "indépendamment", MacRoman }, // from french.words
     { "indépendance", MacRoman }, // from french.words
     { "indépendant", MacRoman }, // from french.words
     { "indépendante", MacRoman }, // from french.words
+    { "indépendantes", MacRoman }, // from french.words
+    { "indépendants", MacRoman }, // from french.words
     { "indéterminée", MacRoman }, // from french.words
     { "indÈniable", Iso885915 }, // from french.words
     { "indÈpendamment", Iso885915 }, // from french.words
     { "indÈpendance", Iso885915 }, // from french.words
     { "indÈpendant", Iso885915 }, // from french.words
     { "indÈpendante", Iso885915 }, // from french.words
+    { "indÈpendantes", Iso885915 }, // from french.words
+    { "indÈpendants", Iso885915 }, // from french.words
     { "indÈterminÈe", Iso885915 }, // from french.words
+    { "influencÇ", Cp437 }, // from french.words
     { "influencé", MacRoman }, // from french.words
     { "influencÈ", Iso885915 }, // from french.words
+    { "informasjonsdirektõr", Cp865 }, // from norwegian.words
     { "informasjonsdirektør", MacRoman }, // from norwegian.words
     { "informasjonsdirekt¯r", Iso885915 }, // from norwegian.words
+    { "informÇ", Cp437 }, // from french.words
+    { "informÇs", Cp437 }, // from french.words
     { "informé", MacRoman }, // from french.words
     { "informés", MacRoman }, // from french.words
     { "informÈ", Iso885915 }, // from french.words
     { "informÈs", Iso885915 }, // from french.words
+    { "infÇrieur", Cp437 }, // from french.words
+    { "infÇrieure", Cp437 }, // from french.words
+    { "infÇrieures", Cp437 }, // from french.words
+    { "infÇrieurs", Cp437 }, // from french.words
     { "inférieur", MacRoman }, // from french.words
     { "inférieure", MacRoman }, // from french.words
+    { "inférieures", MacRoman }, // from french.words
     { "inférieurs", MacRoman }, // from french.words
     { "infÈrieur", Iso885915 }, // from french.words
     { "infÈrieure", Iso885915 }, // from french.words
+    { "infÈrieures", Iso885915 }, // from french.words
     { "infÈrieurs", Iso885915 }, // from french.words
+    { "ingeniõr", Cp865 }, // from norwegian.words
+    { "ingeniõrer", Cp865 }, // from norwegian.words
     { "ingeniør", MacRoman }, // from norwegian.words
     { "ingeniører", MacRoman }, // from norwegian.words
     { "ingeni¯r", Iso885915 }, // from norwegian.words
     { "ingeni¯rer", Iso885915 }, // from norwegian.words
+    { "ingrÇdients", Cp437 }, // from french.words
     { "ingrédients", MacRoman }, // from french.words
     { "ingrÈdients", Iso885915 }, // from french.words
+    { "ingÇnieur", Cp437 }, // from french.words
+    { "ingÇnieurs", Cp437 }, // from french.words
     { "ingénieur", MacRoman }, // from french.words
     { "ingénieurs", MacRoman }, // from french.words
     { "ingÈnieur", Iso885915 }, // from french.words
     { "ingÈnieurs", Iso885915 }, // from french.words
+    { "initiÇs", Cp437 }, // from french.words
     { "initiés", MacRoman }, // from french.words
     { "initiÈs", Iso885915 }, // from french.words
+    { "innebëre", Cp865 }, // from norwegian.words
+    { "innebërer", Cp865 }, // from norwegian.words
     { "innebære", MacRoman }, // from norwegian.words
     { "innebærer", MacRoman }, // from norwegian.words
     { "innebÊre", Iso885915 }, // from norwegian.words
     { "innebÊrer", Iso885915 }, // from norwegian.words
+    { "innendõrs", Cp865 }, // from norwegian.words
     { "innendørs", MacRoman }, // from norwegian.words
     { "innend¯rs", Iso885915 }, // from norwegian.words
+    { "innevërende", Cp865 }, // from norwegian.words
     { "inneværende", MacRoman }, // from norwegian.words
     { "innevÊrende", Iso885915 }, // from norwegian.words
+    { "innfõre", Cp865 }, // from norwegian.words
+    { "innfõres", Cp865 }, // from norwegian.words
+    { "innfõring", Cp865 }, // from norwegian.words
+    { "innfõringen", Cp865 }, // from norwegian.words
+    { "innfõrt", Cp865 }, // from norwegian.words
+    { "innfõrte", Cp865 }, // from norwegian.words
     { "innføre", MacRoman }, // from norwegian.words
     { "innføres", MacRoman }, // from norwegian.words
     { "innføring", MacRoman }, // from norwegian.words
@@ -3157,56 +4968,109 @@ static const struct {
     { "innf¯ringen", Iso885915 }, // from norwegian.words
     { "innf¯rt", Iso885915 }, // from norwegian.words
     { "innf¯rte", Iso885915 }, // from norwegian.words
+    { "inngÜ", Cp865 }, // from norwegian.words
+    { "inngÜr", Cp865 }, // from norwegian.words
+    { "inngÜtt", Cp865 }, // from norwegian.words
     { "inngå", MacRoman }, // from norwegian.words
     { "inngår", MacRoman }, // from norwegian.words
     { "inngått", MacRoman }, // from norwegian.words
     { "inngÂ", Iso885915 }, // from norwegian.words
     { "inngÂr", Iso885915 }, // from norwegian.words
     { "inngÂtt", Iso885915 }, // from norwegian.words
+    { "innkjõp", Cp865 }, // from norwegian.words
     { "innkjøp", MacRoman }, // from norwegian.words
     { "innkj¯p", Iso885915 }, // from norwegian.words
+    { "innpÜ", Cp865 }, // from norwegian.words
     { "innpå", MacRoman }, // from norwegian.words
     { "innpÂ", Iso885915 }, // from norwegian.words
+    { "innrõmme", Cp865 }, // from norwegian.words
+    { "innrõmmer", Cp865 }, // from norwegian.words
+    { "innrõmmet", Cp865 }, // from norwegian.words
     { "innrømme", MacRoman }, // from norwegian.words
     { "innrømmer", MacRoman }, // from norwegian.words
     { "innrømmet", MacRoman }, // from norwegian.words
     { "innr¯mme", Iso885915 }, // from norwegian.words
     { "innr¯mmer", Iso885915 }, // from norwegian.words
     { "innr¯mmet", Iso885915 }, // from norwegian.words
+    { "inquiÇtant", Cp437 }, // from french.words
+    { "inquiÇtudes", Cp437 }, // from french.words
     { "inquiétant", MacRoman }, // from french.words
     { "inquiétudes", MacRoman }, // from french.words
     { "inquiÈtant", Iso885915 }, // from french.words
     { "inquiÈtudes", Iso885915 }, // from french.words
+    { "inspirÇ", Cp437 }, // from french.words
+    { "inspirÇe", Cp437 }, // from french.words
     { "inspiré", MacRoman }, // from french.words
     { "inspirée", MacRoman }, // from french.words
     { "inspirÈ", Iso885915 }, // from french.words
     { "inspirÈe", Iso885915 }, // from french.words
+    { "installÇ", Cp437 }, // from french.words
+    { "installÇe", Cp437 }, // from french.words
+    { "installÇes", Cp437 }, // from french.words
+    { "installÇs", Cp437 }, // from french.words
+    { "installé", MacRoman }, // from french.words
+    { "installée", MacRoman }, // from french.words
     { "installées", MacRoman }, // from french.words
     { "installés", MacRoman }, // from french.words
+    { "installÈ", Iso885915 }, // from french.words
+    { "installÈe", Iso885915 }, // from french.words
     { "installÈes", Iso885915 }, // from french.words
     { "installÈs", Iso885915 }, // from french.words
+    { "instruktõr", Cp865 }, // from norwegian.words
     { "instruktør", MacRoman }, // from norwegian.words
     { "instrukt¯r", Iso885915 }, // from norwegian.words
+    { "interiõr", Cp865 }, // from norwegian.words
     { "interiør", MacRoman }, // from norwegian.words
     { "interi¯r", Iso885915 }, // from norwegian.words
+    { "intermÇdiaire", Cp437 }, // from french.words
+    { "intermÇdiaires", Cp437 }, // from french.words
     { "intermédiaire", MacRoman }, // from french.words
     { "intermédiaires", MacRoman }, // from french.words
     { "intermÈdiaire", Iso885915 }, // from french.words
     { "intermÈdiaires", Iso885915 }, // from french.words
+    { "interprÇtation", Cp437 }, // from french.words
     { "interprétation", MacRoman }, // from french.words
     { "interprÈtation", Iso885915 }, // from french.words
+    { "interrogÇ", Cp437 }, // from french.words
+    { "interrogÇes", Cp437 }, // from french.words
     { "interrogé", MacRoman }, // from french.words
     { "interrogées", MacRoman }, // from french.words
     { "interrogÈ", Iso885915 }, // from french.words
     { "interrogÈes", Iso885915 }, // from french.words
+    { "intitulÇ", Cp437 }, // from french.words
     { "intitulé", MacRoman }, // from french.words
     { "intitulÈ", Iso885915 }, // from french.words
+    { "intÇgrale", Cp437 }, // from french.words
+    { "intÇgralement", Cp437 }, // from french.words
+    { "intÇgrante", Cp437 }, // from french.words
+    { "intÇgration", Cp437 }, // from french.words
+    { "intÇgrer", Cp437 }, // from french.words
+    { "intÇgrÇ", Cp437 }, // from french.words
+    { "intÇgrÇe", Cp437 }, // from french.words
+    { "intÇgrÇes", Cp437 }, // from french.words
+    { "intÇgrÇs", Cp437 }, // from french.words
+    { "intÇressant", Cp437 }, // from french.words
+    { "intÇressante", Cp437 }, // from french.words
+    { "intÇressantes", Cp437 }, // from french.words
+    { "intÇressants", Cp437 }, // from french.words
+    { "intÇresse", Cp437 }, // from french.words
+    { "intÇressent", Cp437 }, // from french.words
+    { "intÇresser", Cp437 }, // from french.words
+    { "intÇressÇ", Cp437 }, // from french.words
+    { "intÇressÇe", Cp437 }, // from french.words
+    { "intÇressÇes", Cp437 }, // from french.words
+    { "intÇressÇs", Cp437 }, // from french.words
+    { "intÇrieur", Cp437 }, // from french.words
+    { "intÇrieure", Cp437 }, // from french.words
+    { "intÇrieurs", Cp437 }, // from french.words
+    { "intÇrimaire", Cp437 }, // from french.words
     { "intégrale", MacRoman }, // from french.words
     { "intégralement", MacRoman }, // from french.words
     { "intégrante", MacRoman }, // from french.words
     { "intégration", MacRoman }, // from french.words
     { "intégrer", MacRoman }, // from french.words
     { "intégré", MacRoman }, // from french.words
+    { "intégrée", MacRoman }, // from french.words
     { "intégrées", MacRoman }, // from french.words
     { "intégrés", MacRoman }, // from french.words
     { "intéressant", MacRoman }, // from french.words
@@ -3219,6 +5083,7 @@ static const struct {
     { "intéressé", MacRoman }, // from french.words
     { "intéressée", MacRoman }, // from french.words
     { "intéressées", MacRoman }, // from french.words
+    { "intéressés", MacRoman }, // from french.words
     { "intérieur", MacRoman }, // from french.words
     { "intérieure", MacRoman }, // from french.words
     { "intérieurs", MacRoman }, // from french.words
@@ -3229,6 +5094,7 @@ static const struct {
     { "intÈgration", Iso885915 }, // from french.words
     { "intÈgrer", Iso885915 }, // from french.words
     { "intÈgrÈ", Iso885915 }, // from french.words
+    { "intÈgrÈe", Iso885915 }, // from french.words
     { "intÈgrÈes", Iso885915 }, // from french.words
     { "intÈgrÈs", Iso885915 }, // from french.words
     { "intÈressant", Iso885915 }, // from french.words
@@ -3241,22 +5107,31 @@ static const struct {
     { "intÈressÈ", Iso885915 }, // from french.words
     { "intÈressÈe", Iso885915 }, // from french.words
     { "intÈressÈes", Iso885915 }, // from french.words
+    { "intÈressÈs", Iso885915 }, // from french.words
     { "intÈrieur", Iso885915 }, // from french.words
     { "intÈrieure", Iso885915 }, // from french.words
     { "intÈrieurs", Iso885915 }, // from french.words
     { "intÈrimaire", Iso885915 }, // from french.words
+    { "inventÇ", Cp437 }, // from french.words
     { "inventé", MacRoman }, // from french.words
     { "inventÈ", Iso885915 }, // from french.words
+    { "invitÇ", Cp437 }, // from french.words
+    { "invitÇs", Cp437 }, // from french.words
     { "invité", MacRoman }, // from french.words
     { "invités", MacRoman }, // from french.words
     { "invitÈ", Iso885915 }, // from french.words
     { "invitÈs", Iso885915 }, // from french.words
+    { "inÇdit", Cp437 }, // from french.words
+    { "inÇvitable", Cp437 }, // from french.words
+    { "inÇvitablement", Cp437 }, // from french.words
     { "inédit", MacRoman }, // from french.words
     { "inévitable", MacRoman }, // from french.words
     { "inévitablement", MacRoman }, // from french.words
     { "inÈdit", Iso885915 }, // from french.words
     { "inÈvitable", Iso885915 }, // from french.words
     { "inÈvitablement", Iso885915 }, // from french.words
+    { "isolÇ", Cp437 }, // from french.words
+    { "isolÇs", Cp437 }, // from french.words
     { "isolé", MacRoman }, // from french.words
     { "isolés", MacRoman }, // from french.words
     { "isolÈ", Iso885915 }, // from french.words
@@ -3267,14 +5142,24 @@ static const struct {
     { "jednoduch˝", Iso88592 }, // from czech.words
     { "jednotliv˝", Iso88592 }, // from czech.words
     { "jedn·nÌ", Iso88592 }, // from czech.words
+    { "jetÇ", Cp437 }, // from french.words
     { "jeté", MacRoman }, // from french.words
     { "jetÈ", Iso885915 }, // from french.words
     { "jin˝", Iso88592 }, // from czech.words
     { "jist˝", Iso88592 }, // from czech.words
+    { "journÇe", Cp437 }, // from french.words
+    { "journÇes", Cp437 }, // from french.words
     { "journée", MacRoman }, // from french.words
     { "journées", MacRoman }, // from french.words
     { "journÈe", Iso885915 }, // from french.words
     { "journÈes", Iso885915 }, // from french.words
+    { "jouÇ", Cp437 }, // from french.words
+    { "joué", MacRoman }, // from french.words
+    { "jouÈ", Iso885915 }, // from french.words
+    { "jugÇ", Cp437 }, // from french.words
+    { "jugÇe", Cp437 }, // from french.words
+    { "jugÇes", Cp437 }, // from french.words
+    { "jugÇs", Cp437 }, // from french.words
     { "jugé", MacRoman }, // from french.words
     { "jugée", MacRoman }, // from french.words
     { "jugées", MacRoman }, // from french.words
@@ -3283,15 +5168,39 @@ static const struct {
     { "jugÈe", Iso885915 }, // from french.words
     { "jugÈes", Iso885915 }, // from french.words
     { "jugÈs", Iso885915 }, // from french.words
+    { "justifiÇ", Cp437 }, // from french.words
+    { "justifiÇe", Cp437 }, // from french.words
     { "justifié", MacRoman }, // from french.words
     { "justifiée", MacRoman }, // from french.words
     { "justifiÈ", Iso885915 }, // from french.words
     { "justifiÈe", Iso885915 }, // from french.words
+    { "jÅdische", Cp437 }, // from german.words
+    { "jÅdischen", Cp437 }, // from german.words
+    { "jÅdischer", Cp437 }, // from german.words
+    { "jÅnger", Cp437 }, // from german.words
+    { "jÅngere", Cp437 }, // from german.words
+    { "jÅngeren", Cp437 }, // from german.words
+    { "jÅngst", Cp437 }, // from german.words
+    { "jÅngste", Cp437 }, // from german.words
+    { "jÅngsten", Cp437 }, // from german.words
+    { "jÅngster", Cp437 }, // from german.words
+    { "jÑhrlich", Cp437 }, // from german.words
+    { "jÑhrliche", Cp437 }, // from german.words
+    { "jÑhrlichen", Cp437 }, // from german.words
     { "jährlich", MacRoman }, // from german.words
     { "jährliche", MacRoman }, // from german.words
     { "jährlichen", MacRoman }, // from german.words
+    { "jëren", Cp865 }, // from norwegian.words
+    { "jõdene", Cp865 }, // from norwegian.words
+    { "jõder", Cp865 }, // from norwegian.words
+    { "jõdisk", Cp865 }, // from norwegian.words
+    { "jõdiske", Cp865 }, // from norwegian.words
+    { "jõrgen", Cp865 }, // from norwegian.words
+    { "jõrgensen", Cp865 }, // from norwegian.words
+    { "jõrn", Cp865 }, // from norwegian.words
     { "jüdische", MacRoman }, // from german.words
     { "jüdischen", MacRoman }, // from german.words
+    { "jüdischer", MacRoman }, // from german.words
     { "jünger", MacRoman }, // from german.words
     { "jüngere", MacRoman }, // from german.words
     { "jüngeren", MacRoman }, // from german.words
@@ -3321,6 +5230,7 @@ static const struct {
     { "j¯rn", Iso885915 }, // from norwegian.words
     { "j¸dische", Iso885915 }, // from german.words
     { "j¸dischen", Iso885915 }, // from german.words
+    { "j¸discher", Iso885915 }, // from german.words
     { "j¸nger", Iso885915 }, // from german.words
     { "j¸ngere", Iso885915 }, // from german.words
     { "j¸ngeren", Iso885915 }, // from german.words
@@ -3328,16 +5238,49 @@ static const struct {
     { "j¸ngste", Iso885915 }, // from german.words
     { "j¸ngsten", Iso885915 }, // from german.words
     { "j¸ngster", Iso885915 }, // from german.words
+    { "karmõy", Cp865 }, // from norwegian.words
     { "karmøy", MacRoman }, // from norwegian.words
     { "karm¯y", Iso885915 }, // from norwegian.words
+    { "kirkegÜrd", Cp865 }, // from norwegian.words
+    { "kirkegÜrden", Cp865 }, // from norwegian.words
     { "kirkegård", MacRoman }, // from norwegian.words
     { "kirkegården", MacRoman }, // from norwegian.words
     { "kirkegÂrd", Iso885915 }, // from norwegian.words
     { "kirkegÂrden", Iso885915 }, // from norwegian.words
+    { "kirkemõtet", Cp865 }, // from norwegian.words
     { "kirkemøtet", MacRoman }, // from norwegian.words
     { "kirkem¯tet", Iso885915 }, // from norwegian.words
+    { "kirkerÜdet", Cp865 }, // from norwegian.words
     { "kirkerådet", MacRoman }, // from norwegian.words
     { "kirkerÂdet", Iso885915 }, // from norwegian.words
+    { "kjëre", Cp865 }, // from norwegian.words
+    { "kjëreste", Cp865 }, // from norwegian.words
+    { "kjëresten", Cp865 }, // from norwegian.words
+    { "kjërlighet", Cp865 }, // from norwegian.words
+    { "kjërligheten", Cp865 }, // from norwegian.words
+    { "kjõkken", Cp865 }, // from norwegian.words
+    { "kjõkkenet", Cp865 }, // from norwegian.words
+    { "kjõlig", Cp865 }, // from norwegian.words
+    { "kjõlvannet", Cp865 }, // from norwegian.words
+    { "kjõnn", Cp865 }, // from norwegian.words
+    { "kjõp", Cp865 }, // from norwegian.words
+    { "kjõpe", Cp865 }, // from norwegian.words
+    { "kjõper", Cp865 }, // from norwegian.words
+    { "kjõpere", Cp865 }, // from norwegian.words
+    { "kjõpes", Cp865 }, // from norwegian.words
+    { "kjõpet", Cp865 }, // from norwegian.words
+    { "kjõpt", Cp865 }, // from norwegian.words
+    { "kjõpte", Cp865 }, // from norwegian.words
+    { "kjõre", Cp865 }, // from norwegian.words
+    { "kjõrer", Cp865 }, // from norwegian.words
+    { "kjõres", Cp865 }, // from norwegian.words
+    { "kjõretõy", Cp865 }, // from norwegian.words
+    { "kjõretõyer", Cp865 }, // from norwegian.words
+    { "kjõring", Cp865 }, // from norwegian.words
+    { "kjõrt", Cp865 }, // from norwegian.words
+    { "kjõrte", Cp865 }, // from norwegian.words
+    { "kjõtt", Cp865 }, // from norwegian.words
+    { "kjõttet", Cp865 }, // from norwegian.words
     { "kjære", MacRoman }, // from norwegian.words
     { "kjæreste", MacRoman }, // from norwegian.words
     { "kjæresten", MacRoman }, // from norwegian.words
@@ -3394,7 +5337,11 @@ static const struct {
     { "kj¯rte", Iso885915 }, // from norwegian.words
     { "kj¯tt", Iso885915 }, // from norwegian.words
     { "kj¯ttet", Iso885915 }, // from norwegian.words
+    { "klÑren", Cp437 }, // from german.words
     { "klären", MacRoman }, // from german.words
+    { "klër", Cp865 }, // from norwegian.words
+    { "klërne", Cp865 }, // from norwegian.words
+    { "klõver", Cp865 }, // from norwegian.words
     { "klær", MacRoman }, // from norwegian.words
     { "klærne", MacRoman }, // from norwegian.words
     { "kløver", MacRoman }, // from norwegian.words
@@ -3403,9 +5350,25 @@ static const struct {
     { "klÊrne", Iso885915 }, // from norwegian.words
     { "kl¯ver", Iso885915 }, // from norwegian.words
     { "koaliËnÌ", Iso88592 }, // from czech.words
+    { "kolbjõrnsen", Cp865 }, // from norwegian.words
     { "kolbjørnsen", MacRoman }, // from norwegian.words
     { "kolbj¯rnsen", Iso885915 }, // from norwegian.words
+    { "kommunaldirektõr", Cp865 }, // from norwegian.words
+    { "kommunaldirektør", MacRoman }, // from norwegian.words
+    { "kommunaldirekt¯r", Iso885915 }, // from norwegian.words
+    { "kommunalrÜd", Cp865 }, // from norwegian.words
+    { "kommunalråd", MacRoman }, // from norwegian.words
+    { "kommunalrÂd", Iso885915 }, // from norwegian.words
     { "konkrÈtnÌ", Iso88592 }, // from czech.words
+    { "kontantstõtte", Cp865 }, // from norwegian.words
+    { "kontantstøtte", MacRoman }, // from norwegian.words
+    { "kontantst¯tte", Iso885915 }, // from norwegian.words
+    { "krybbedõd", Cp865 }, // from norwegian.words
+    { "krybbedød", MacRoman }, // from norwegian.words
+    { "krybbed¯d", Iso885915 }, // from norwegian.words
+    { "krÑftig", Cp437 }, // from german.words
+    { "krÑftige", Cp437 }, // from german.words
+    { "krÑftigen", Cp437 }, // from german.words
     { "kräftig", MacRoman }, // from german.words
     { "kräftige", MacRoman }, // from german.words
     { "kräftigen", MacRoman }, // from german.words
@@ -3414,11 +5377,52 @@ static const struct {
     { "kr‰ftige", Iso885915 }, // from german.words
     { "kr‰ftigen", Iso885915 }, // from german.words
     { "kvalitnÌ", Iso88592 }, // from czech.words
+    { "kvërner", Cp865 }, // from norwegian.words
+    { "kværner", MacRoman }, // from norwegian.words
+    { "kvÊrner", Iso885915 }, // from norwegian.words
+    { "kÅhl", Cp437 }, // from german.words
+    { "kÅmmern", Cp437 }, // from german.words
+    { "kÅmmert", Cp437 }, // from german.words
+    { "kÅndigen", Cp437 }, // from german.words
+    { "kÅndigt", Cp437 }, // from german.words
+    { "kÅndigte", Cp437 }, // from german.words
+    { "kÅndigten", Cp437 }, // from german.words
+    { "kÅnftig", Cp437 }, // from german.words
+    { "kÅnftige", Cp437 }, // from german.words
+    { "kÅnftigen", Cp437 }, // from german.words
+    { "kÅnstlerische", Cp437 }, // from german.words
+    { "kÅnstlerischen", Cp437 }, // from german.words
+    { "kÅnstlich", Cp437 }, // from german.words
+    { "kÅnstliche", Cp437 }, // from german.words
+    { "kÅnstlichen", Cp437 }, // from german.words
+    { "kÅrzen", Cp437 }, // from german.words
+    { "kÅrzer", Cp437 }, // from german.words
+    { "kÅrzlich", Cp437 }, // from german.words
+    { "kÑme", Cp437 }, // from german.words
+    { "kÑmen", Cp437 }, // from german.words
+    { "kÑmpfen", Cp437 }, // from german.words
+    { "kÑmpft", Cp437 }, // from german.words
+    { "kÑmpfte", Cp437 }, // from german.words
+    { "kÜr", Cp865 }, // from norwegian.words
+    { "kÜre", Cp865 }, // from norwegian.words
+    { "kÜret", Cp865 }, // from norwegian.words
+    { "kÜrstõ", Cp865 }, // from norwegian.words
     { "käme", MacRoman }, // from german.words
     { "kämen", MacRoman }, // from german.words
     { "kämpfen", MacRoman }, // from german.words
     { "kämpft", MacRoman }, // from german.words
     { "kämpfte", MacRoman }, // from german.words
+    { "kår", MacRoman }, // from norwegian.words
+    { "kåre", MacRoman }, // from norwegian.words
+    { "kåret", MacRoman }, // from norwegian.words
+    { "kårstø", MacRoman }, // from norwegian.words
+    { "kînne", Cp437 }, // from german.words
+    { "kînnen", Cp437 }, // from german.words
+    { "kînnte", Cp437 }, // from german.words
+    { "kînnten", Cp437 }, // from german.words
+    { "kîrperlich", Cp437 }, // from german.words
+    { "kîrperliche", Cp437 }, // from german.words
+    { "kîrperlichen", Cp437 }, // from german.words
     { "könne", MacRoman }, // from german.words
     { "können", MacRoman }, // from german.words
     { "könnte", MacRoman }, // from german.words
@@ -3426,6 +5430,9 @@ static const struct {
     { "körperlich", MacRoman }, // from german.words
     { "körperliche", MacRoman }, // from german.words
     { "körperlichen", MacRoman }, // from german.words
+    { "kõ", Cp865 }, // from norwegian.words
+    { "kõbenhavn", Cp865 }, // from norwegian.words
+    { "kõen", Cp865 }, // from norwegian.words
     { "kühl", MacRoman }, // from german.words
     { "kümmern", MacRoman }, // from german.words
     { "kümmert", MacRoman }, // from german.words
@@ -3444,11 +5451,18 @@ static const struct {
     { "kürzen", MacRoman }, // from german.words
     { "kürzer", MacRoman }, // from german.words
     { "kürzlich", MacRoman }, // from german.words
+    { "kø", MacRoman }, // from norwegian.words
+    { "københavn", MacRoman }, // from norwegian.words
+    { "køen", MacRoman }, // from norwegian.words
     { "k‰me", Iso885915 }, // from german.words
     { "k‰men", Iso885915 }, // from german.words
     { "k‰mpfen", Iso885915 }, // from german.words
     { "k‰mpft", Iso885915 }, // from german.words
     { "k‰mpfte", Iso885915 }, // from german.words
+    { "kÂr", Iso885915 }, // from norwegian.words
+    { "kÂre", Iso885915 }, // from norwegian.words
+    { "kÂret", Iso885915 }, // from norwegian.words
+    { "kÂrst¯", Iso885915 }, // from norwegian.words
     { "kˆnne", Iso885915 }, // from german.words
     { "kˆnnen", Iso885915 }, // from german.words
     { "kˆnnte", Iso885915 }, // from german.words
@@ -3456,6 +5470,9 @@ static const struct {
     { "kˆrperlich", Iso885915 }, // from german.words
     { "kˆrperliche", Iso885915 }, // from german.words
     { "kˆrperlichen", Iso885915 }, // from german.words
+    { "k¯", Iso885915 }, // from norwegian.words
+    { "k¯benhavn", Iso885915 }, // from norwegian.words
+    { "k¯en", Iso885915 }, // from norwegian.words
     { "k¸hl", Iso885915 }, // from german.words
     { "k¸mmern", Iso885915 }, // from german.words
     { "k¸mmert", Iso885915 }, // from german.words
@@ -3474,29 +5491,72 @@ static const struct {
     { "k¸rzen", Iso885915 }, // from german.words
     { "k¸rzer", Iso885915 }, // from german.words
     { "k¸rzlich", Iso885915 }, // from german.words
+    { "laissÇ", Cp437 }, // from french.words
     { "laissé", MacRoman }, // from french.words
     { "laissÈ", Iso885915 }, // from french.words
+    { "laksevÜg", Cp865 }, // from norwegian.words
+    { "laksevåg", MacRoman }, // from norwegian.words
+    { "laksevÂg", Iso885915 }, // from norwegian.words
+    { "lancÇ", Cp437 }, // from french.words
+    { "lancÇe", Cp437 }, // from french.words
+    { "lancÇes", Cp437 }, // from french.words
+    { "lancÇs", Cp437 }, // from french.words
     { "lancé", MacRoman }, // from french.words
+    { "lancée", MacRoman }, // from french.words
     { "lancées", MacRoman }, // from french.words
     { "lancés", MacRoman }, // from french.words
     { "lancÈ", Iso885915 }, // from french.words
+    { "lancÈe", Iso885915 }, // from french.words
     { "lancÈes", Iso885915 }, // from french.words
     { "lancÈs", Iso885915 }, // from french.words
+    { "landsmõte", Cp865 }, // from norwegian.words
+    { "landsmõtet", Cp865 }, // from norwegian.words
+    { "landsmøte", MacRoman }, // from norwegian.words
+    { "landsmøtet", MacRoman }, // from norwegian.words
+    { "landsm¯te", Iso885915 }, // from norwegian.words
+    { "landsm¯tet", Iso885915 }, // from norwegian.words
+    { "landÜs", Cp865 }, // from norwegian.words
+    { "landås", MacRoman }, // from norwegian.words
+    { "landÂs", Iso885915 }, // from norwegian.words
+    { "langjÑhrige", Cp437 }, // from german.words
+    { "langjÑhrigen", Cp437 }, // from german.words
     { "langjährige", MacRoman }, // from german.words
     { "langjährigen", MacRoman }, // from german.words
     { "langj‰hrige", Iso885915 }, // from german.words
     { "langj‰hrigen", Iso885915 }, // from german.words
+    { "legendÑren", Cp437 }, // from german.words
     { "legendären", MacRoman }, // from german.words
     { "legend‰ren", Iso885915 }, // from german.words
     { "letoπnÌ", Iso88592 }, // from czech.words
+    { "leverandõr", Cp865 }, // from norwegian.words
+    { "leverandõrer", Cp865 }, // from norwegian.words
+    { "leverandør", MacRoman }, // from norwegian.words
+    { "leverandører", MacRoman }, // from norwegian.words
+    { "leverand¯r", Iso885915 }, // from norwegian.words
+    { "leverand¯rer", Iso885915 }, // from norwegian.words
+    { "levÇ", Cp437 }, // from french.words
+    { "levÇe", Cp437 }, // from french.words
     { "levé", MacRoman }, // from french.words
     { "levée", MacRoman }, // from french.words
     { "levÈ", Iso885915 }, // from french.words
     { "levÈe", Iso885915 }, // from french.words
+    { "libellÇes", Cp437 }, // from french.words
+    { "libellÇs", Cp437 }, // from french.words
     { "libellées", MacRoman }, // from french.words
     { "libellés", MacRoman }, // from french.words
     { "libellÈes", Iso885915 }, // from french.words
     { "libellÈs", Iso885915 }, // from french.words
+    { "libertÇ", Cp437 }, // from french.words
+    { "liberté", MacRoman }, // from french.words
+    { "libertÈ", Iso885915 }, // from french.words
+    { "libÇral", Cp437 }, // from french.words
+    { "libÇrale", Cp437 }, // from french.words
+    { "libÇrales", Cp437 }, // from french.words
+    { "libÇralisation", Cp437 }, // from french.words
+    { "libÇration", Cp437 }, // from french.words
+    { "libÇraux", Cp437 }, // from french.words
+    { "libÇrer", Cp437 }, // from french.words
+    { "libÇrÇ", Cp437 }, // from french.words
     { "libéral", MacRoman }, // from french.words
     { "libérale", MacRoman }, // from french.words
     { "libérales", MacRoman }, // from french.words
@@ -3513,6 +5573,7 @@ static const struct {
     { "libÈraux", Iso885915 }, // from french.words
     { "libÈrer", Iso885915 }, // from french.words
     { "libÈrÈ", Iso885915 }, // from french.words
+    { "licenciÇ", Cp437 }, // from french.words
     { "licencié", MacRoman }, // from french.words
     { "licenciÈ", Iso885915 }, // from french.words
     { "lidsk˝", Iso88592 }, // from czech.words
@@ -3522,6 +5583,22 @@ static const struct {
     { "lieﬂ", Iso885915 }, // from german.words
     { "lieﬂe", Iso885915 }, // from german.words
     { "lieﬂen", Iso885915 }, // from german.words
+    { "lie·", Cp437 }, // from german.words
+    { "lie·e", Cp437 }, // from german.words
+    { "lie·en", Cp437 }, // from german.words
+    { "likesÜ", Cp865 }, // from norwegian.words
+    { "likeså", MacRoman }, // from norwegian.words
+    { "likesÂ", Iso885915 }, // from norwegian.words
+    { "lillebõ", Cp865 }, // from norwegian.words
+    { "lillebø", MacRoman }, // from norwegian.words
+    { "lilleb¯", Iso885915 }, // from norwegian.words
+    { "lillestrõm", Cp865 }, // from norwegian.words
+    { "lillestrøm", MacRoman }, // from norwegian.words
+    { "lillestr¯m", Iso885915 }, // from norwegian.words
+    { "limitÇ", Cp437 }, // from french.words
+    { "limitÇe", Cp437 }, // from french.words
+    { "limitÇes", Cp437 }, // from french.words
+    { "limitÇs", Cp437 }, // from french.words
     { "limité", MacRoman }, // from french.words
     { "limitée", MacRoman }, // from french.words
     { "limitées", MacRoman }, // from french.words
@@ -3530,37 +5607,100 @@ static const struct {
     { "limitÈe", Iso885915 }, // from french.words
     { "limitÈes", Iso885915 }, // from french.words
     { "limitÈs", Iso885915 }, // from french.words
+    { "lindÜs", Cp865 }, // from norwegian.words
+    { "lindås", MacRoman }, // from norwegian.words
+    { "lindÂs", Iso885915 }, // from norwegian.words
+    { "linÇaire", Cp437 }, // from french.words
     { "linéaire", MacRoman }, // from french.words
     { "linÈaire", Iso885915 }, // from french.words
+    { "liquiditÇ", Cp437 }, // from french.words
+    { "liquiditÇs", Cp437 }, // from french.words
     { "liquidité", MacRoman }, // from french.words
     { "liquidités", MacRoman }, // from french.words
     { "liquiditÈ", Iso885915 }, // from french.words
     { "liquiditÈs", Iso885915 }, // from french.words
+    { "litterëre", Cp865 }, // from norwegian.words
+    { "litterære", MacRoman }, // from norwegian.words
+    { "litterÊre", Iso885915 }, // from norwegian.words
+    { "littÇraire", Cp437 }, // from french.words
+    { "littÇralement", Cp437 }, // from french.words
+    { "littÇrature", Cp437 }, // from french.words
     { "littéraire", MacRoman }, // from french.words
     { "littéralement", MacRoman }, // from french.words
     { "littérature", MacRoman }, // from french.words
     { "littÈraire", Iso885915 }, // from french.words
     { "littÈralement", Iso885915 }, // from french.words
     { "littÈrature", Iso885915 }, // from french.words
+    { "livrÇ", Cp437 }, // from french.words
+    { "livrÇs", Cp437 }, // from french.words
     { "livré", MacRoman }, // from french.words
     { "livrés", MacRoman }, // from french.words
     { "livrÈ", Iso885915 }, // from french.words
     { "livrÈs", Iso885915 }, // from french.words
+    { "liÇ", Cp437 }, // from french.words
+    { "liÇe", Cp437 }, // from french.words
+    { "liÇes", Cp437 }, // from french.words
+    { "liÇgeois", Cp437 }, // from french.words
+    { "liÇgeoise", Cp437 }, // from french.words
+    { "liÇs", Cp437 }, // from french.words
+    { "lié", MacRoman }, // from french.words
     { "liée", MacRoman }, // from french.words
     { "liées", MacRoman }, // from french.words
     { "liégeois", MacRoman }, // from french.words
     { "liégeoise", MacRoman }, // from french.words
     { "liés", MacRoman }, // from french.words
+    { "liÈ", Iso885915 }, // from french.words
     { "liÈe", Iso885915 }, // from french.words
     { "liÈes", Iso885915 }, // from french.words
     { "liÈgeois", Iso885915 }, // from french.words
     { "liÈgeoise", Iso885915 }, // from french.words
     { "liÈs", Iso885915 }, // from french.words
+    { "longÇvitÇ", Cp437 }, // from french.words
     { "longévité", MacRoman }, // from french.words
     { "longÈvitÈ", Iso885915 }, // from french.words
+    { "louÇ", Cp437 }, // from french.words
     { "loué", MacRoman }, // from french.words
     { "louÈ", Iso885915 }, // from french.words
     { "loÚsk˝", Iso88592 }, // from czech.words
+    { "lÇgal", Cp437 }, // from french.words
+    { "lÇgale", Cp437 }, // from french.words
+    { "lÇgalement", Cp437 }, // from french.words
+    { "lÇgales", Cp437 }, // from french.words
+    { "lÇgendaire", Cp437 }, // from french.words
+    { "lÇgende", Cp437 }, // from french.words
+    { "lÇger", Cp437 }, // from french.words
+    { "lÇgers", Cp437 }, // from french.words
+    { "lÇgion", Cp437 }, // from french.words
+    { "lÇgislateur", Cp437 }, // from french.words
+    { "lÇgislation", Cp437 }, // from french.words
+    { "lÇgislatives", Cp437 }, // from french.words
+    { "lÇgislature", Cp437 }, // from french.words
+    { "lÇgitime", Cp437 }, // from french.words
+    { "lÇgitimitÇ", Cp437 }, // from french.words
+    { "lÇgumes", Cp437 }, // from french.words
+    { "lÑchelt", Cp437 }, // from german.words
+    { "lÑcherlich", Cp437 }, // from german.words
+    { "lÑdt", Cp437 }, // from german.words
+    { "lÑgen", Cp437 }, // from german.words
+    { "lÑndlichen", Cp437 }, // from german.words
+    { "lÑnger", Cp437 }, // from german.words
+    { "lÑngere", Cp437 }, // from german.words
+    { "lÑngerem", Cp437 }, // from german.words
+    { "lÑngeren", Cp437 }, // from german.words
+    { "lÑngerer", Cp437 }, // from german.words
+    { "lÑngst", Cp437 }, // from german.words
+    { "lÑsst", Cp437 }, // from german.words
+    { "lÑuft", Cp437 }, // from german.words
+    { "lÑ·t", Cp437 }, // from german.words
+    { "lÜ", Cp865 }, // from norwegian.words
+    { "lÜn", Cp865 }, // from norwegian.words
+    { "lÜne", Cp865 }, // from norwegian.words
+    { "lÜnekassen", Cp865 }, // from norwegian.words
+    { "lÜnet", Cp865 }, // from norwegian.words
+    { "lÜnt", Cp865 }, // from norwegian.words
+    { "lÜt", Cp865 }, // from norwegian.words
+    { "lÜtene", Cp865 }, // from norwegian.words
+    { "lÜter", Cp865 }, // from norwegian.words
     { "lächelt", MacRoman }, // from german.words
     { "lächerlich", MacRoman }, // from german.words
     { "lädt", MacRoman }, // from german.words
@@ -3575,6 +5715,9 @@ static const struct {
     { "lässt", MacRoman }, // from german.words
     { "läuft", MacRoman }, // from german.words
     { "läßt", MacRoman }, // from german.words
+    { "lå", MacRoman }, // from norwegian.words
+    { "lån", MacRoman }, // from norwegian.words
+    { "låne", MacRoman }, // from norwegian.words
     { "lånekassen", MacRoman }, // from norwegian.words
     { "lånet", MacRoman }, // from norwegian.words
     { "lånt", MacRoman }, // from norwegian.words
@@ -3587,6 +5730,7 @@ static const struct {
     { "légales", MacRoman }, // from french.words
     { "légendaire", MacRoman }, // from french.words
     { "légende", MacRoman }, // from french.words
+    { "léger", MacRoman }, // from french.words
     { "légers", MacRoman }, // from french.words
     { "légion", MacRoman }, // from french.words
     { "législateur", MacRoman }, // from french.words
@@ -3596,10 +5740,70 @@ static const struct {
     { "légitime", MacRoman }, // from french.words
     { "légitimité", MacRoman }, // from french.words
     { "légumes", MacRoman }, // from french.words
+    { "lërdal", Cp865 }, // from norwegian.words
+    { "lërdom", Cp865 }, // from norwegian.words
+    { "lëre", Cp865 }, // from norwegian.words
+    { "lërebõker", Cp865 }, // from norwegian.words
+    { "lërer", Cp865 }, // from norwegian.words
+    { "lërere", Cp865 }, // from norwegian.words
+    { "lëreren", Cp865 }, // from norwegian.words
+    { "lërerforbundet", Cp865 }, // from norwegian.words
+    { "lërerlag", Cp865 }, // from norwegian.words
+    { "lërerne", Cp865 }, // from norwegian.words
+    { "lëring", Cp865 }, // from norwegian.words
+    { "lërt", Cp865 }, // from norwegian.words
+    { "lërte", Cp865 }, // from norwegian.words
+    { "lîschen", Cp437 }, // from german.words
+    { "lîsen", Cp437 }, // from german.words
+    { "lîst", Cp437 }, // from german.words
+    { "lîste", Cp437 }, // from german.words
     { "löschen", MacRoman }, // from german.words
     { "lösen", MacRoman }, // from german.words
     { "löst", MacRoman }, // from german.words
     { "löste", MacRoman }, // from german.words
+    { "lõd", Cp865 }, // from norwegian.words
+    { "lõft", Cp865 }, // from norwegian.words
+    { "lõfte", Cp865 }, // from norwegian.words
+    { "lõfter", Cp865 }, // from norwegian.words
+    { "lõftet", Cp865 }, // from norwegian.words
+    { "lõgn", Cp865 }, // from norwegian.words
+    { "lõk", Cp865 }, // from norwegian.words
+    { "lõken", Cp865 }, // from norwegian.words
+    { "lõnn", Cp865 }, // from norwegian.words
+    { "lõnne", Cp865 }, // from norwegian.words
+    { "lõnnen", Cp865 }, // from norwegian.words
+    { "lõnner", Cp865 }, // from norwegian.words
+    { "lõnning", Cp865 }, // from norwegian.words
+    { "lõnnsom", Cp865 }, // from norwegian.words
+    { "lõnnsomhet", Cp865 }, // from norwegian.words
+    { "lõnnsomme", Cp865 }, // from norwegian.words
+    { "lõnnsomt", Cp865 }, // from norwegian.words
+    { "lõp", Cp865 }, // from norwegian.words
+    { "lõpe", Cp865 }, // from norwegian.words
+    { "lõpende", Cp865 }, // from norwegian.words
+    { "lõper", Cp865 }, // from norwegian.words
+    { "lõpere", Cp865 }, // from norwegian.words
+    { "lõperne", Cp865 }, // from norwegian.words
+    { "lõpet", Cp865 }, // from norwegian.words
+    { "lõpt", Cp865 }, // from norwegian.words
+    { "lõr", Cp865 }, // from norwegian.words
+    { "lõrdag", Cp865 }, // from norwegian.words
+    { "lõrdagens", Cp865 }, // from norwegian.words
+    { "lõrdager", Cp865 }, // from norwegian.words
+    { "lõrenskog", Cp865 }, // from norwegian.words
+    { "lõs", Cp865 }, // from norwegian.words
+    { "lõse", Cp865 }, // from norwegian.words
+    { "lõser", Cp865 }, // from norwegian.words
+    { "lõses", Cp865 }, // from norwegian.words
+    { "lõslatt", Cp865 }, // from norwegian.words
+    { "lõsnet", Cp865 }, // from norwegian.words
+    { "lõsning", Cp865 }, // from norwegian.words
+    { "lõsningen", Cp865 }, // from norwegian.words
+    { "lõsninger", Cp865 }, // from norwegian.words
+    { "lõst", Cp865 }, // from norwegian.words
+    { "lõste", Cp865 }, // from norwegian.words
+    { "lõvvik", Cp865 }, // from norwegian.words
+    { "lõypen", Cp865 }, // from norwegian.words
     { "lærdal", MacRoman }, // from norwegian.words
     { "lærdom", MacRoman }, // from norwegian.words
     { "lære", MacRoman }, // from norwegian.words
@@ -3670,6 +5874,9 @@ static const struct {
     { "l‰sst", Iso885915 }, // from german.words
     { "l‰uft", Iso885915 }, // from german.words
     { "l‰ﬂt", Iso885915 }, // from german.words
+    { "lÂ", Iso885915 }, // from norwegian.words
+    { "lÂn", Iso885915 }, // from norwegian.words
+    { "lÂne", Iso885915 }, // from norwegian.words
     { "lÂnekassen", Iso885915 }, // from norwegian.words
     { "lÂnet", Iso885915 }, // from norwegian.words
     { "lÂnt", Iso885915 }, // from norwegian.words
@@ -3695,6 +5902,7 @@ static const struct {
     { "lÈgales", Iso885915 }, // from french.words
     { "lÈgendaire", Iso885915 }, // from french.words
     { "lÈgende", Iso885915 }, // from french.words
+    { "lÈger", Iso885915 }, // from french.words
     { "lÈgers", Iso885915 }, // from french.words
     { "lÈgion", Iso885915 }, // from french.words
     { "lÈgislateur", Iso885915 }, // from french.words
@@ -3753,37 +5961,59 @@ static const struct {
     { "l¯ste", Iso885915 }, // from norwegian.words
     { "l¯vvik", Iso885915 }, // from norwegian.words
     { "l¯ypen", Iso885915 }, // from norwegian.words
+    { "magnÇtique", Cp437 }, // from french.words
     { "magnétique", MacRoman }, // from french.words
     { "magnÈtique", Iso885915 }, // from french.words
+    { "majoritÇ", Cp437 }, // from french.words
     { "majorité", MacRoman }, // from french.words
     { "majoritÈ", Iso885915 }, // from french.words
+    { "majorÇ", Cp437 }, // from french.words
     { "majoré", MacRoman }, // from french.words
     { "majorÈ", Iso885915 }, // from french.words
+    { "malgrÇ", Cp437 }, // from french.words
     { "malgré", MacRoman }, // from french.words
     { "malgrÈ", Iso885915 }, // from french.words
     { "mal˝", Iso88592 }, // from czech.words
+    { "manifestÇ", Cp437 }, // from french.words
     { "manifesté", MacRoman }, // from french.words
     { "manifestÈ", Iso885915 }, // from french.words
+    { "manquÇ", Cp437 }, // from french.words
     { "manqué", MacRoman }, // from french.words
     { "manquÈ", Iso885915 }, // from french.words
+    { "marchÇ", Cp437 }, // from french.words
+    { "marchÇs", Cp437 }, // from french.words
     { "marché", MacRoman }, // from french.words
     { "marchés", MacRoman }, // from french.words
     { "marchÈ", Iso885915 }, // from french.words
     { "marchÈs", Iso885915 }, // from french.words
+    { "mariÇ", Cp437 }, // from french.words
+    { "mariÇe", Cp437 }, // from french.words
+    { "mariÇs", Cp437 }, // from french.words
+    { "marié", MacRoman }, // from french.words
     { "mariée", MacRoman }, // from french.words
     { "mariés", MacRoman }, // from french.words
+    { "mariÈ", Iso885915 }, // from french.words
     { "mariÈe", Iso885915 }, // from french.words
     { "mariÈs", Iso885915 }, // from french.words
+    { "markedsfõre", Cp865 }, // from norwegian.words
+    { "markedsfõring", Cp865 }, // from norwegian.words
     { "markedsføre", MacRoman }, // from norwegian.words
     { "markedsføring", MacRoman }, // from norwegian.words
     { "markedsf¯re", Iso885915 }, // from norwegian.words
     { "markedsf¯ring", Iso885915 }, // from norwegian.words
+    { "marquÇ", Cp437 }, // from french.words
+    { "marquÇe", Cp437 }, // from french.words
     { "marqué", MacRoman }, // from french.words
     { "marquée", MacRoman }, // from french.words
     { "marquÈ", Iso885915 }, // from french.words
     { "marquÈe", Iso885915 }, // from french.words
+    { "maturitÇ", Cp437 }, // from french.words
     { "maturité", MacRoman }, // from french.words
     { "maturitÈ", Iso885915 }, // from french.words
+    { "matÇriau", Cp437 }, // from french.words
+    { "matÇriaux", Cp437 }, // from french.words
+    { "matÇriel", Cp437 }, // from french.words
+    { "matÇriels", Cp437 }, // from french.words
     { "matériau", MacRoman }, // from french.words
     { "matériaux", MacRoman }, // from french.words
     { "matériel", MacRoman }, // from french.words
@@ -3794,20 +6024,34 @@ static const struct {
     { "matÈriels", Iso885915 }, // from french.words
     { "maßgeblich", MacRoman }, // from german.words
     { "maﬂgeblich", Iso885915 }, // from german.words
+    { "ma·geblich", Cp437 }, // from german.words
+    { "medfõre", Cp865 }, // from norwegian.words
+    { "medfõrer", Cp865 }, // from norwegian.words
     { "medføre", MacRoman }, // from norwegian.words
     { "medfører", MacRoman }, // from norwegian.words
     { "medf¯re", Iso885915 }, // from norwegian.words
     { "medf¯rer", Iso885915 }, // from norwegian.words
+    { "menacÇ", Cp437 }, // from french.words
     { "menacé", MacRoman }, // from french.words
     { "menacÈ", Iso885915 }, // from french.words
+    { "meningslõst", Cp865 }, // from norwegian.words
     { "meningsløst", MacRoman }, // from norwegian.words
     { "meningsl¯st", Iso885915 }, // from norwegian.words
+    { "meningsmÜling", Cp865 }, // from norwegian.words
+    { "meningsmÜlingene", Cp865 }, // from norwegian.words
     { "meningsmåling", MacRoman }, // from norwegian.words
     { "meningsmålingene", MacRoman }, // from norwegian.words
     { "meningsmÂling", Iso885915 }, // from norwegian.words
     { "meningsmÂlingene", Iso885915 }, // from norwegian.words
+    { "mentalitÇ", Cp437 }, // from french.words
+    { "mentalitÇs", Cp437 }, // from french.words
     { "mentalité", MacRoman }, // from french.words
+    { "mentalités", MacRoman }, // from french.words
     { "mentalitÈ", Iso885915 }, // from french.words
+    { "mentalitÈs", Iso885915 }, // from french.words
+    { "menÇ", Cp437 }, // from french.words
+    { "menÇe", Cp437 }, // from french.words
+    { "menÇes", Cp437 }, // from french.words
     { "mené", MacRoman }, // from french.words
     { "menée", MacRoman }, // from french.words
     { "menées", MacRoman }, // from french.words
@@ -3815,11 +6059,18 @@ static const struct {
     { "menÈe", Iso885915 }, // from french.words
     { "menÈes", Iso885915 }, // from french.words
     { "mezin·rodnÌ", Iso88592 }, // from czech.words
+    { "midtõsten", Cp865 }, // from norwegian.words
     { "midtøsten", MacRoman }, // from norwegian.words
     { "midt¯sten", Iso885915 }, // from norwegian.words
+    { "militÑrisch", Cp437 }, // from german.words
+    { "militÑrische", Cp437 }, // from german.words
+    { "militÑrischen", Cp437 }, // from german.words
     { "militärisch", MacRoman }, // from german.words
     { "militärische", MacRoman }, // from german.words
     { "militärischen", MacRoman }, // from german.words
+    { "militër", Cp865 }, // from norwegian.words
+    { "militëre", Cp865 }, // from norwegian.words
+    { "militërt", Cp865 }, // from norwegian.words
     { "militær", MacRoman }, // from norwegian.words
     { "militære", MacRoman }, // from norwegian.words
     { "militært", MacRoman }, // from norwegian.words
@@ -3829,6 +6080,14 @@ static const struct {
     { "militÊr", Iso885915 }, // from norwegian.words
     { "militÊre", Iso885915 }, // from norwegian.words
     { "militÊrt", Iso885915 }, // from norwegian.words
+    { "miljõ", Cp865 }, // from norwegian.words
+    { "miljõer", Cp865 }, // from norwegian.words
+    { "miljõet", Cp865 }, // from norwegian.words
+    { "miljõvennlig", Cp865 }, // from norwegian.words
+    { "miljõvennlige", Cp865 }, // from norwegian.words
+    { "miljõvern", Cp865 }, // from norwegian.words
+    { "miljõverndepartementet", Cp865 }, // from norwegian.words
+    { "miljõvernminister", Cp865 }, // from norwegian.words
     { "miljø", MacRoman }, // from norwegian.words
     { "miljøer", MacRoman }, // from norwegian.words
     { "miljøet", MacRoman }, // from norwegian.words
@@ -3845,66 +6104,104 @@ static const struct {
     { "milj¯vern", Iso885915 }, // from norwegian.words
     { "milj¯verndepartementet", Iso885915 }, // from norwegian.words
     { "milj¯vernminister", Iso885915 }, // from norwegian.words
+    { "millÇnaire", Cp437 }, // from french.words
+    { "millÇsime", Cp437 }, // from french.words
     { "millénaire", MacRoman }, // from french.words
     { "millésime", MacRoman }, // from french.words
     { "millÈnaire", Iso885915 }, // from french.words
     { "millÈsime", Iso885915 }, // from french.words
     { "mimo¯·dn˝", Iso88592 }, // from czech.words
+    { "mindreÜrige", Cp865 }, // from norwegian.words
     { "mindreårige", MacRoman }, // from norwegian.words
     { "mindreÂrige", Iso885915 }, // from norwegian.words
+    { "minoritÇ", Cp437 }, // from french.words
     { "minorité", MacRoman }, // from french.words
     { "minoritÈ", Iso885915 }, // from french.words
     { "minul˝", Iso88592 }, // from czech.words
+    { "misfornõyd", Cp865 }, // from norwegian.words
     { "misfornøyd", MacRoman }, // from norwegian.words
     { "misforn¯yd", Iso885915 }, // from norwegian.words
+    { "misforstÜelser", Cp865 }, // from norwegian.words
+    { "misforstÜtt", Cp865 }, // from norwegian.words
     { "misforståelser", MacRoman }, // from norwegian.words
     { "misforstått", MacRoman }, // from norwegian.words
     { "misforstÂelser", Iso885915 }, // from norwegian.words
     { "misforstÂtt", Iso885915 }, // from norwegian.words
+    { "misnõye", Cp865 }, // from norwegian.words
     { "misnøye", MacRoman }, // from norwegian.words
     { "misn¯ye", Iso885915 }, // from norwegian.words
+    { "mittelstÑndische", Cp437 }, // from german.words
+    { "mittelstÑndischen", Cp437 }, // from german.words
     { "mittelständische", MacRoman }, // from german.words
     { "mittelständischen", MacRoman }, // from german.words
     { "mittelst‰ndische", Iso885915 }, // from german.words
     { "mittelst‰ndischen", Iso885915 }, // from german.words
     { "mißbraucht", MacRoman }, // from german.words
     { "miﬂbraucht", Iso885915 }, // from german.words
+    { "mi·braucht", Cp437 }, // from german.words
     { "mlad˝", Iso88592 }, // from czech.words
+    { "mobilitÇ", Cp437 }, // from french.words
     { "mobilité", MacRoman }, // from french.words
     { "mobilitÈ", Iso885915 }, // from french.words
+    { "modalitÇs", Cp437 }, // from french.words
     { "modalités", MacRoman }, // from french.words
     { "modalitÈs", Iso885915 }, // from french.words
+    { "modernitÇ", Cp437 }, // from french.words
     { "modernité", MacRoman }, // from french.words
     { "modernitÈ", Iso885915 }, // from french.words
     { "modernÌ", Iso88592 }, // from czech.words
+    { "modifiÇ", Cp437 }, // from french.words
+    { "modifiÇe", Cp437 }, // from french.words
+    { "modifié", MacRoman }, // from french.words
     { "modifiée", MacRoman }, // from french.words
+    { "modifiÈ", Iso885915 }, // from french.words
     { "modifiÈe", Iso885915 }, // from french.words
+    { "modÇration", Cp437 }, // from french.words
+    { "modÇrÇ", Cp437 }, // from french.words
+    { "modÇrÇe", Cp437 }, // from french.words
     { "modération", MacRoman }, // from french.words
     { "modéré", MacRoman }, // from french.words
     { "modérée", MacRoman }, // from french.words
     { "modÈration", Iso885915 }, // from french.words
     { "modÈrÈ", Iso885915 }, // from french.words
     { "modÈrÈe", Iso885915 }, // from french.words
+    { "moitiÇ", Cp437 }, // from french.words
     { "moitié", MacRoman }, // from french.words
     { "moitiÈ", Iso885915 }, // from french.words
+    { "molÇcules", Cp437 }, // from french.words
+    { "molécules", MacRoman }, // from french.words
+    { "molÈcules", Iso885915 }, // from french.words
+    { "montrÇ", Cp437 }, // from french.words
     { "montré", MacRoman }, // from french.words
     { "montrÈ", Iso885915 }, // from french.words
+    { "montÇ", Cp437 }, // from french.words
+    { "montÇe", Cp437 }, // from french.words
     { "monté", MacRoman }, // from french.words
     { "montée", MacRoman }, // from french.words
     { "montÈ", Iso885915 }, // from french.words
     { "montÈe", Iso885915 }, // from french.words
+    { "monÇtaire", Cp437 }, // from french.words
+    { "monÇtaires", Cp437 }, // from french.words
     { "monétaire", MacRoman }, // from french.words
     { "monétaires", MacRoman }, // from french.words
     { "monÈtaire", Iso885915 }, // from french.words
     { "monÈtaires", Iso885915 }, // from french.words
+    { "morositÇ", Cp437 }, // from french.words
     { "morosité", MacRoman }, // from french.words
     { "morositÈ", Iso885915 }, // from french.words
     { "moænost", Iso88592 }, // from czech.words
     { "moæn˝", Iso88592 }, // from czech.words
+    { "multimÇdia", Cp437 }, // from french.words
+    { "multimÇdias", Cp437 }, // from french.words
+    { "multimédia", MacRoman }, // from french.words
     { "multimédias", MacRoman }, // from french.words
+    { "multimÈdia", Iso885915 }, // from french.words
     { "multimÈdias", Iso885915 }, // from french.words
+    { "multipliÇ", Cp437 }, // from french.words
     { "multiplié", MacRoman }, // from french.words
     { "multipliÈ", Iso885915 }, // from french.words
+    { "musÇe", Cp437 }, // from french.words
+    { "musÇes", Cp437 }, // from french.words
     { "musée", MacRoman }, // from french.words
     { "musées", MacRoman }, // from french.words
     { "musÈe", Iso885915 }, // from french.words
@@ -3913,6 +6210,8 @@ static const struct {
     { "mutmaßlichen", MacRoman }, // from german.words
     { "mutmaﬂliche", Iso885915 }, // from german.words
     { "mutmaﬂlichen", Iso885915 }, // from german.words
+    { "mutma·liche", Cp437 }, // from german.words
+    { "mutma·lichen", Cp437 }, // from german.words
     { "muß", MacRoman }, // from german.words
     { "mußte", MacRoman }, // from german.words
     { "mußten", MacRoman }, // from german.words
@@ -3920,6 +6219,94 @@ static const struct {
     { "muﬂ", Iso885915 }, // from german.words
     { "muﬂte", Iso885915 }, // from german.words
     { "muﬂten", Iso885915 }, // from german.words
+    { "mu·", Cp437 }, // from german.words
+    { "mu·te", Cp437 }, // from german.words
+    { "mu·ten", Cp437 }, // from german.words
+    { "mystÇrieux", Cp437 }, // from french.words
+    { "mystérieux", MacRoman }, // from french.words
+    { "mystÈrieux", Iso885915 }, // from french.words
+    { "mÅde", Cp437 }, // from german.words
+    { "mÅhsam", Cp437 }, // from german.words
+    { "mÅsse", Cp437 }, // from german.words
+    { "mÅssen", Cp437 }, // from german.words
+    { "mÅssten", Cp437 }, // from german.words
+    { "mÅ·te", Cp437 }, // from german.words
+    { "mÅ·ten", Cp437 }, // from german.words
+    { "mÇcanique", Cp437 }, // from french.words
+    { "mÇcaniques", Cp437 }, // from french.words
+    { "mÇcanisme", Cp437 }, // from french.words
+    { "mÇcanismes", Cp437 }, // from french.words
+    { "mÇdaille", Cp437 }, // from french.words
+    { "mÇdecin", Cp437 }, // from french.words
+    { "mÇdecine", Cp437 }, // from french.words
+    { "mÇdecins", Cp437 }, // from french.words
+    { "mÇdia", Cp437 }, // from french.words
+    { "mÇdias", Cp437 }, // from french.words
+    { "mÇdiatique", Cp437 }, // from french.words
+    { "mÇdical", Cp437 }, // from french.words
+    { "mÇdicale", Cp437 }, // from french.words
+    { "mÇdicales", Cp437 }, // from french.words
+    { "mÇdicament", Cp437 }, // from french.words
+    { "mÇdicaments", Cp437 }, // from french.words
+    { "mÇdicaux", Cp437 }, // from french.words
+    { "mÇdiocre", Cp437 }, // from french.words
+    { "mÇdiocres", Cp437 }, // from french.words
+    { "mÇfiance", Cp437 }, // from french.words
+    { "mÇlange", Cp437 }, // from french.words
+    { "mÇlanger", Cp437 }, // from french.words
+    { "mÇlodies", Cp437 }, // from french.words
+    { "mÇmoire", Cp437 }, // from french.words
+    { "mÇmoires", Cp437 }, // from french.words
+    { "mÇnage", Cp437 }, // from french.words
+    { "mÇnagers", Cp437 }, // from french.words
+    { "mÇnages", Cp437 }, // from french.words
+    { "mÇpris", Cp437 }, // from french.words
+    { "mÇrite", Cp437 }, // from french.words
+    { "mÇritent", Cp437 }, // from french.words
+    { "mÇt", Cp437 }, // from dutch.words
+    { "mÇtal", Cp437 }, // from french.words
+    { "mÇtallique", Cp437 }, // from french.words
+    { "mÇtalliques", Cp437 }, // from french.words
+    { "mÇtaux", Cp437 }, // from french.words
+    { "mÇthode", Cp437 }, // from french.words
+    { "mÇthodes", Cp437 }, // from french.words
+    { "mÇtier", Cp437 }, // from french.words
+    { "mÇtiers", Cp437 }, // from french.words
+    { "mÇtro", Cp437 }, // from french.words
+    { "mÇÇr", Cp437 }, // from dutch.words
+    { "mÑchtig", Cp437 }, // from german.words
+    { "mÑchtige", Cp437 }, // from german.words
+    { "mÑchtigen", Cp437 }, // from german.words
+    { "mÑnnliche", Cp437 }, // from german.words
+    { "mÑnnlichen", Cp437 }, // from german.words
+    { "mÜ", Cp865 }, // from norwegian.words
+    { "mÜl", Cp865 }, // from norwegian.words
+    { "mÜle", Cp865 }, // from norwegian.words
+    { "mÜlene", Cp865 }, // from norwegian.words
+    { "mÜler", Cp865 }, // from norwegian.words
+    { "mÜles", Cp865 }, // from norwegian.words
+    { "mÜlestokk", Cp865 }, // from norwegian.words
+    { "mÜlet", Cp865 }, // from norwegian.words
+    { "mÜling", Cp865 }, // from norwegian.words
+    { "mÜlingen", Cp865 }, // from norwegian.words
+    { "mÜlinger", Cp865 }, // from norwegian.words
+    { "mÜlsetting", Cp865 }, // from norwegian.words
+    { "mÜlsettingen", Cp865 }, // from norwegian.words
+    { "mÜlt", Cp865 }, // from norwegian.words
+    { "mÜltid", Cp865 }, // from norwegian.words
+    { "mÜned", Cp865 }, // from norwegian.words
+    { "mÜneden", Cp865 }, // from norwegian.words
+    { "mÜnedene", Cp865 }, // from norwegian.words
+    { "mÜneder", Cp865 }, // from norwegian.words
+    { "mÜneders", Cp865 }, // from norwegian.words
+    { "mÜneds", Cp865 }, // from norwegian.words
+    { "mÜnen", Cp865 }, // from norwegian.words
+    { "mÜte", Cp865 }, // from norwegian.words
+    { "mÜten", Cp865 }, // from norwegian.words
+    { "mÜter", Cp865 }, // from norwegian.words
+    { "mÜtte", Cp865 }, // from norwegian.words
+    { "mÜttet", Cp865 }, // from norwegian.words
+    { "mächtig", MacRoman }, // from german.words
     { "mächtige", MacRoman }, // from german.words
     { "mächtigen", MacRoman }, // from german.words
     { "männliche", MacRoman }, // from german.words
@@ -3956,7 +6343,9 @@ static const struct {
     { "mécanisme", MacRoman }, // from french.words
     { "mécanismes", MacRoman }, // from french.words
     { "médaille", MacRoman }, // from french.words
+    { "médecin", MacRoman }, // from french.words
     { "médecine", MacRoman }, // from french.words
+    { "médecins", MacRoman }, // from french.words
     { "média", MacRoman }, // from french.words
     { "médias", MacRoman }, // from french.words
     { "médiatique", MacRoman }, // from french.words
@@ -3964,17 +6353,19 @@ static const struct {
     { "médicale", MacRoman }, // from french.words
     { "médicales", MacRoman }, // from french.words
     { "médicament", MacRoman }, // from french.words
+    { "médicaments", MacRoman }, // from french.words
     { "médicaux", MacRoman }, // from french.words
     { "médiocre", MacRoman }, // from french.words
     { "médiocres", MacRoman }, // from french.words
     { "méfiance", MacRoman }, // from french.words
     { "mélange", MacRoman }, // from french.words
     { "mélanger", MacRoman }, // from french.words
-    { "mélodi", MacRoman }, // from french.words
+    { "mélodies", MacRoman }, // from french.words
     { "mémoire", MacRoman }, // from french.words
     { "mémoires", MacRoman }, // from french.words
     { "ménage", MacRoman }, // from french.words
     { "ménagers", MacRoman }, // from french.words
+    { "ménages", MacRoman }, // from french.words
     { "mépris", MacRoman }, // from french.words
     { "mérite", MacRoman }, // from french.words
     { "méritent", MacRoman }, // from french.words
@@ -3984,10 +6375,22 @@ static const struct {
     { "métalliques", MacRoman }, // from french.words
     { "métaux", MacRoman }, // from french.words
     { "méthode", MacRoman }, // from french.words
+    { "méthodes", MacRoman }, // from french.words
     { "métier", MacRoman }, // from french.words
     { "métiers", MacRoman }, // from french.words
     { "métro", MacRoman }, // from french.words
     { "méér", MacRoman }, // from dutch.words
+    { "mëland", Cp865 }, // from norwegian.words
+    { "mîchte", Cp437 }, // from german.words
+    { "mîchten", Cp437 }, // from german.words
+    { "mîge", Cp437 }, // from german.words
+    { "mîgen", Cp437 }, // from german.words
+    { "mîglich", Cp437 }, // from german.words
+    { "mîgliche", Cp437 }, // from german.words
+    { "mîglichen", Cp437 }, // from german.words
+    { "mîglicher", Cp437 }, // from german.words
+    { "mîglicherweise", Cp437 }, // from german.words
+    { "mîglichst", Cp437 }, // from german.words
     { "möchte", MacRoman }, // from german.words
     { "möchten", MacRoman }, // from german.words
     { "möge", MacRoman }, // from german.words
@@ -3998,6 +6401,26 @@ static const struct {
     { "möglicher", MacRoman }, // from german.words
     { "möglicherweise", MacRoman }, // from german.words
     { "möglichst", MacRoman }, // from german.words
+    { "mõbler", Cp865 }, // from norwegian.words
+    { "mõdre", Cp865 }, // from norwegian.words
+    { "mõhlenpris", Cp865 }, // from norwegian.words
+    { "mõller", Cp865 }, // from norwegian.words
+    { "mõnster", Cp865 }, // from norwegian.words
+    { "mõnsteret", Cp865 }, // from norwegian.words
+    { "mõnstre", Cp865 }, // from norwegian.words
+    { "mõre", Cp865 }, // from norwegian.words
+    { "mõrk", Cp865 }, // from norwegian.words
+    { "mõrke", Cp865 }, // from norwegian.words
+    { "mõrket", Cp865 }, // from norwegian.words
+    { "mõrkt", Cp865 }, // from norwegian.words
+    { "mõte", Cp865 }, // from norwegian.words
+    { "mõtene", Cp865 }, // from norwegian.words
+    { "mõter", Cp865 }, // from norwegian.words
+    { "mõtes", Cp865 }, // from norwegian.words
+    { "mõtet", Cp865 }, // from norwegian.words
+    { "mõtt", Cp865 }, // from norwegian.words
+    { "mõtte", Cp865 }, // from norwegian.words
+    { "mõttes", Cp865 }, // from norwegian.words
     { "müde", MacRoman }, // from german.words
     { "mühsam", MacRoman }, // from german.words
     { "müsse", MacRoman }, // from german.words
@@ -4026,6 +6449,7 @@ static const struct {
     { "møtt", MacRoman }, // from norwegian.words
     { "møtte", MacRoman }, // from norwegian.words
     { "møttes", MacRoman }, // from norwegian.words
+    { "m‰chtig", Iso885915 }, // from german.words
     { "m‰chtige", Iso885915 }, // from german.words
     { "m‰chtigen", Iso885915 }, // from german.words
     { "m‰nnliche", Iso885915 }, // from german.words
@@ -4063,7 +6487,9 @@ static const struct {
     { "mÈcanisme", Iso885915 }, // from french.words
     { "mÈcanismes", Iso885915 }, // from french.words
     { "mÈdaille", Iso885915 }, // from french.words
+    { "mÈdecin", Iso885915 }, // from french.words
     { "mÈdecine", Iso885915 }, // from french.words
+    { "mÈdecins", Iso885915 }, // from french.words
     { "mÈdia", Iso885915 }, // from french.words
     { "mÈdias", Iso885915 }, // from french.words
     { "mÈdiatique", Iso885915 }, // from french.words
@@ -4071,17 +6497,19 @@ static const struct {
     { "mÈdicale", Iso885915 }, // from french.words
     { "mÈdicales", Iso885915 }, // from french.words
     { "mÈdicament", Iso885915 }, // from french.words
+    { "mÈdicaments", Iso885915 }, // from french.words
     { "mÈdicaux", Iso885915 }, // from french.words
     { "mÈdiocre", Iso885915 }, // from french.words
     { "mÈdiocres", Iso885915 }, // from french.words
     { "mÈfiance", Iso885915 }, // from french.words
     { "mÈlange", Iso885915 }, // from french.words
     { "mÈlanger", Iso885915 }, // from french.words
-    { "mÈlodi", Iso885915 }, // from french.words
+    { "mÈlodies", Iso885915 }, // from french.words
     { "mÈmoire", Iso885915 }, // from french.words
     { "mÈmoires", Iso885915 }, // from french.words
     { "mÈnage", Iso885915 }, // from french.words
     { "mÈnagers", Iso885915 }, // from french.words
+    { "mÈnages", Iso885915 }, // from french.words
     { "mÈpris", Iso885915 }, // from french.words
     { "mÈrite", Iso885915 }, // from french.words
     { "mÈritent", Iso885915 }, // from french.words
@@ -4091,10 +6519,12 @@ static const struct {
     { "mÈtalliques", Iso885915 }, // from french.words
     { "mÈtaux", Iso885915 }, // from french.words
     { "mÈthode", Iso885915 }, // from french.words
+    { "mÈthodes", Iso885915 }, // from french.words
     { "mÈtier", Iso885915 }, // from french.words
     { "mÈtiers", Iso885915 }, // from french.words
     { "mÈtro", Iso885915 }, // from french.words
     { "mÈÈr", Iso885915 }, // from dutch.words
+    { "mÏnit", Iso88592 }, // from czech.words
     { "mÏsto", Iso88592 }, // from czech.words
     { "mÏstsk˝", Iso88592 }, // from czech.words
     { "mÏsÌc", Iso88592 }, // from czech.words
@@ -4141,13 +6571,19 @@ static const struct {
     { "nabÌdka", Iso88592 }, // from czech.words
     { "nabÌdnout", Iso88592 }, // from czech.words
     { "nabÌzet", Iso88592 }, // from czech.words
+    { "nachdrÅcklich", Cp437 }, // from german.words
     { "nachdrücklich", MacRoman }, // from german.words
     { "nachdr¸cklich", Iso885915 }, // from german.words
+    { "nachtrÑglich", Cp437 }, // from german.words
     { "nachträglich", MacRoman }, // from german.words
     { "nachtr‰glich", Iso885915 }, // from german.words
     { "najÌt", Iso88592 }, // from czech.words
+    { "nationalitÇ", Cp437 }, // from french.words
     { "nationalité", MacRoman }, // from french.words
     { "nationalitÈ", Iso885915 }, // from french.words
+    { "natÅrlich", Cp437 }, // from german.words
+    { "natÅrliche", Cp437 }, // from german.words
+    { "natÅrlichen", Cp437 }, // from german.words
     { "natürlich", MacRoman }, // from german.words
     { "natürliche", MacRoman }, // from german.words
     { "natürlichen", MacRoman }, // from german.words
@@ -4155,47 +6591,77 @@ static const struct {
     { "nat¸rliche", Iso885915 }, // from german.words
     { "nat¸rlichen", Iso885915 }, // from german.words
     { "neb˝t", Iso88592 }, // from czech.words
+    { "nedbõr", Cp865 }, // from norwegian.words
     { "nedbør", MacRoman }, // from norwegian.words
     { "nedb¯r", Iso885915 }, // from norwegian.words
+    { "nedskjëringer", Cp865 }, // from norwegian.words
     { "nedskjæringer", MacRoman }, // from norwegian.words
     { "nedskjÊringer", Iso885915 }, // from norwegian.words
+    { "nervîs", Cp437 }, // from german.words
     { "nervös", MacRoman }, // from german.words
+    { "nervõs", Cp865 }, // from norwegian.words
     { "nervøs", MacRoman }, // from norwegian.words
     { "nervˆs", Iso885915 }, // from german.words
     { "nerv¯s", Iso885915 }, // from norwegian.words
+    { "niederlÑndische", Cp437 }, // from german.words
+    { "niederlÑndischen", Cp437 }, // from german.words
     { "niederländische", MacRoman }, // from german.words
     { "niederländischen", MacRoman }, // from german.words
     { "niederl‰ndische", Iso885915 }, // from german.words
     { "niederl‰ndischen", Iso885915 }, // from german.words
+    { "niedersÑchsische", Cp437 }, // from german.words
+    { "niedersÑchsischen", Cp437 }, // from german.words
     { "niedersächsische", MacRoman }, // from german.words
     { "niedersächsischen", MacRoman }, // from german.words
     { "nieders‰chsische", Iso885915 }, // from german.words
     { "nieders‰chsischen", Iso885915 }, // from german.words
+    { "nivÜ", Cp865 }, // from norwegian.words
+    { "nivÜer", Cp865 }, // from norwegian.words
+    { "nivÜet", Cp865 }, // from norwegian.words
     { "nivå", MacRoman }, // from norwegian.words
     { "nivåer", MacRoman }, // from norwegian.words
     { "nivået", MacRoman }, // from norwegian.words
     { "nivÂ", Iso885915 }, // from norwegian.words
     { "nivÂer", Iso885915 }, // from norwegian.words
     { "nivÂet", Iso885915 }, // from norwegian.words
+    { "niÇt", Cp437 }, // from dutch.words
     { "niét", MacRoman }, // from dutch.words
     { "niÈt", Iso885915 }, // from dutch.words
+    { "noksÜ", Cp865 }, // from norwegian.words
     { "nokså", MacRoman }, // from norwegian.words
     { "noksÂ", Iso885915 }, // from norwegian.words
+    { "nominasjonsmõtet", Cp865 }, // from norwegian.words
     { "nominasjonsmøtet", MacRoman }, // from norwegian.words
     { "nominasjonsm¯tet", Iso885915 }, // from norwegian.words
+    { "nommÇ", Cp437 }, // from french.words
+    { "nommé", MacRoman }, // from french.words
+    { "nommÈ", Iso885915 }, // from french.words
+    { "nordsjõen", Cp865 }, // from norwegian.words
     { "nordsjøen", MacRoman }, // from norwegian.words
     { "nordsj¯en", Iso885915 }, // from norwegian.words
+    { "norrõna", Cp865 }, // from norwegian.words
     { "norrøna", MacRoman }, // from norwegian.words
     { "norr¯na", Iso885915 }, // from norwegian.words
+    { "notoriÇtÇ", Cp437 }, // from french.words
     { "notoriété", MacRoman }, // from french.words
     { "notoriÈtÈ", Iso885915 }, // from french.words
+    { "nouveautÇ", Cp437 }, // from french.words
+    { "nouveautÇs", Cp437 }, // from french.words
     { "nouveauté", MacRoman }, // from french.words
     { "nouveautés", MacRoman }, // from french.words
     { "nouveautÈ", Iso885915 }, // from french.words
     { "nouveautÈs", Iso885915 }, // from french.words
     { "nov˝", Iso88592 }, // from czech.words
+    { "nuclÇaire", Cp437 }, // from french.words
+    { "nuclÇaires", Cp437 }, // from french.words
+    { "nucléaire", MacRoman }, // from french.words
     { "nucléaires", MacRoman }, // from french.words
+    { "nuclÈaire", Iso885915 }, // from french.words
     { "nuclÈaires", Iso885915 }, // from french.words
+    { "numÇrique", Cp437 }, // from french.words
+    { "numÇriques", Cp437 }, // from french.words
+    { "numÇro", Cp437 }, // from french.words
+    { "numÇros", Cp437 }, // from french.words
     { "numérique", MacRoman }, // from french.words
     { "numériques", MacRoman }, // from french.words
     { "numéro", MacRoman }, // from french.words
@@ -4205,16 +6671,63 @@ static const struct {
     { "numÈro", Iso885915 }, // from french.words
     { "numÈros", Iso885915 }, // from french.words
     { "nutn˝", Iso88592 }, // from czech.words
+    { "nybõ", Cp865 }, // from norwegian.words
     { "nybø", MacRoman }, // from norwegian.words
     { "nyb¯", Iso885915 }, // from norwegian.words
+    { "nygÜrd", Cp865 }, // from norwegian.words
     { "nygård", MacRoman }, // from norwegian.words
     { "nygÂrd", Iso885915 }, // from norwegian.words
+    { "nyhetsbyrÜet", Cp865 }, // from norwegian.words
     { "nyhetsbyrået", MacRoman }, // from norwegian.words
     { "nyhetsbyrÂet", Iso885915 }, // from norwegian.words
+    { "nyttÜr", Cp865 }, // from norwegian.words
     { "nyttår", MacRoman }, // from norwegian.words
     { "nyttÂr", Iso885915 }, // from norwegian.words
+    { "nyÜret", Cp865 }, // from norwegian.words
     { "nyåret", MacRoman }, // from norwegian.words
     { "nyÂret", Iso885915 }, // from norwegian.words
+    { "nÅtzlich", Cp437 }, // from german.words
+    { "nÅtzt", Cp437 }, // from german.words
+    { "nÇ", Cp437 }, // from french.words
+    { "nÇanmoins", Cp437 }, // from french.words
+    { "nÇcessaire", Cp437 }, // from french.words
+    { "nÇcessairement", Cp437 }, // from french.words
+    { "nÇcessaires", Cp437 }, // from french.words
+    { "nÇcessite", Cp437 }, // from french.words
+    { "nÇcessitent", Cp437 }, // from french.words
+    { "nÇcessitÇ", Cp437 }, // from french.words
+    { "nÇe", Cp437 }, // from french.words
+    { "nÇerlandais", Cp437 }, // from french.words
+    { "nÇerlandaise", Cp437 }, // from french.words
+    { "nÇerlandaises", Cp437 }, // from french.words
+    { "nÇgatif", Cp437 }, // from french.words
+    { "nÇgatifs", Cp437 }, // from french.words
+    { "nÇgative", Cp437 }, // from french.words
+    { "nÇgatives", Cp437 }, // from french.words
+    { "nÇgligeable", Cp437 }, // from french.words
+    { "nÇgliger", Cp437 }, // from french.words
+    { "nÇgoce", Cp437 }, // from french.words
+    { "nÇgociation", Cp437 }, // from french.words
+    { "nÇgociations", Cp437 }, // from french.words
+    { "nÇgocie", Cp437 }, // from french.words
+    { "nÇgocier", Cp437 }, // from french.words
+    { "nÇgociÇ", Cp437 }, // from french.words
+    { "nÇs", Cp437 }, // from french.words
+    { "nÑchste", Cp437 }, // from german.words
+    { "nÑchsten", Cp437 }, // from german.words
+    { "nÑchster", Cp437 }, // from german.words
+    { "nÑchstes", Cp437 }, // from german.words
+    { "nÑchtlichen", Cp437 }, // from german.words
+    { "nÑher", Cp437 }, // from german.words
+    { "nÑhert", Cp437 }, // from german.words
+    { "nÑmlich", Cp437 }, // from german.words
+    { "nÜ", Cp865 }, // from norwegian.words
+    { "nÜdd", Cp865 }, // from norwegian.words
+    { "nÜdde", Cp865 }, // from norwegian.words
+    { "nÜde", Cp865 }, // from norwegian.words
+    { "nÜlen", Cp865 }, // from norwegian.words
+    { "nÜr", Cp865 }, // from norwegian.words
+    { "nÜvërende", Cp865 }, // from norwegian.words
     { "nächste", MacRoman }, // from german.words
     { "nächsten", MacRoman }, // from german.words
     { "nächster", MacRoman }, // from german.words
@@ -4230,6 +6743,7 @@ static const struct {
     { "nålen", MacRoman }, // from norwegian.words
     { "når", MacRoman }, // from norwegian.words
     { "nåværende", MacRoman }, // from norwegian.words
+    { "né", MacRoman }, // from french.words
     { "néanmoins", MacRoman }, // from french.words
     { "nécessaire", MacRoman }, // from french.words
     { "nécessairement", MacRoman }, // from french.words
@@ -4241,22 +6755,65 @@ static const struct {
     { "néerlandais", MacRoman }, // from french.words
     { "néerlandaise", MacRoman }, // from french.words
     { "néerlandaises", MacRoman }, // from french.words
+    { "négatif", MacRoman }, // from french.words
     { "négatifs", MacRoman }, // from french.words
     { "négative", MacRoman }, // from french.words
     { "négatives", MacRoman }, // from french.words
     { "négligeable", MacRoman }, // from french.words
     { "négliger", MacRoman }, // from french.words
+    { "négoce", MacRoman }, // from french.words
     { "négociation", MacRoman }, // from french.words
     { "négociations", MacRoman }, // from french.words
     { "négocie", MacRoman }, // from french.words
     { "négocier", MacRoman }, // from french.words
     { "négocié", MacRoman }, // from french.words
     { "nés", MacRoman }, // from french.words
+    { "nër", Cp865 }, // from norwegian.words
+    { "nëre", Cp865 }, // from norwegian.words
+    { "nërhet", Cp865 }, // from norwegian.words
+    { "nërheten", Cp865 }, // from norwegian.words
+    { "nëring", Cp865 }, // from norwegian.words
+    { "nëringen", Cp865 }, // from norwegian.words
+    { "nëringer", Cp865 }, // from norwegian.words
+    { "nërings", Cp865 }, // from norwegian.words
+    { "nëringsdrivende", Cp865 }, // from norwegian.words
+    { "nëringsliv", Cp865 }, // from norwegian.words
+    { "nëringslivet", Cp865 }, // from norwegian.words
+    { "nëringslivets", Cp865 }, // from norwegian.words
+    { "nërliggende", Cp865 }, // from norwegian.words
+    { "nërmer", Cp865 }, // from norwegian.words
+    { "nërmere", Cp865 }, // from norwegian.words
+    { "nërmest", Cp865 }, // from norwegian.words
+    { "nërmeste", Cp865 }, // from norwegian.words
+    { "nërmet", Cp865 }, // from norwegian.words
+    { "nërmiljõet", Cp865 }, // from norwegian.words
+    { "nërt", Cp865 }, // from norwegian.words
+    { "nërvër", Cp865 }, // from norwegian.words
+    { "nëss", Cp865 }, // from norwegian.words
+    { "nîrdlich", Cp437 }, // from german.words
+    { "nîrdlichen", Cp437 }, // from german.words
+    { "nîtig", Cp437 }, // from german.words
+    { "nîtige", Cp437 }, // from german.words
+    { "nîtigen", Cp437 }, // from german.words
     { "nördlich", MacRoman }, // from german.words
     { "nördlichen", MacRoman }, // from german.words
     { "nötig", MacRoman }, // from german.words
     { "nötige", MacRoman }, // from german.words
     { "nötigen", MacRoman }, // from german.words
+    { "nõd", Cp865 }, // from norwegian.words
+    { "nõdhjelp", Cp865 }, // from norwegian.words
+    { "nõdt", Cp865 }, // from norwegian.words
+    { "nõdvendig", Cp865 }, // from norwegian.words
+    { "nõdvendige", Cp865 }, // from norwegian.words
+    { "nõdvendigvis", Cp865 }, // from norwegian.words
+    { "nõkkelen", Cp865 }, // from norwegian.words
+    { "nõktern", Cp865 }, // from norwegian.words
+    { "nõler", Cp865 }, // from norwegian.words
+    { "nõstet", Cp865 }, // from norwegian.words
+    { "nõyaktig", Cp865 }, // from norwegian.words
+    { "nõye", Cp865 }, // from norwegian.words
+    { "nõyer", Cp865 }, // from norwegian.words
+    { "nõytral", Cp865 }, // from norwegian.words
     { "nützlich", MacRoman }, // from german.words
     { "nützt", MacRoman }, // from german.words
     { "nær", MacRoman }, // from norwegian.words
@@ -4337,6 +6894,7 @@ static const struct {
     { "nÊrt", Iso885915 }, // from norwegian.words
     { "nÊrvÊr", Iso885915 }, // from norwegian.words
     { "nÊss", Iso885915 }, // from norwegian.words
+    { "nÈ", Iso885915 }, // from french.words
     { "nÈanmoins", Iso885915 }, // from french.words
     { "nÈcessaire", Iso885915 }, // from french.words
     { "nÈcessairement", Iso885915 }, // from french.words
@@ -4348,11 +6906,13 @@ static const struct {
     { "nÈerlandais", Iso885915 }, // from french.words
     { "nÈerlandaise", Iso885915 }, // from french.words
     { "nÈerlandaises", Iso885915 }, // from french.words
+    { "nÈgatif", Iso885915 }, // from french.words
     { "nÈgatifs", Iso885915 }, // from french.words
     { "nÈgative", Iso885915 }, // from french.words
     { "nÈgatives", Iso885915 }, // from french.words
     { "nÈgligeable", Iso885915 }, // from french.words
     { "nÈgliger", Iso885915 }, // from french.words
+    { "nÈgoce", Iso885915 }, // from french.words
     { "nÈgociation", Iso885915 }, // from french.words
     { "nÈgociations", Iso885915 }, // from french.words
     { "nÈgocie", Iso885915 }, // from french.words
@@ -4383,32 +6943,48 @@ static const struct {
     { "n¸tzlich", Iso885915 }, // from german.words
     { "n¸tzt", Iso885915 }, // from german.words
     { "obchodnÌ", Iso88592 }, // from czech.words
+    { "obligÇ", Cp437 }, // from french.words
+    { "obligÇe", Cp437 }, // from french.words
+    { "obligÇs", Cp437 }, // from french.words
     { "obligé", MacRoman }, // from french.words
     { "obligée", MacRoman }, // from french.words
     { "obligés", MacRoman }, // from french.words
     { "obligÈ", Iso885915 }, // from french.words
     { "obligÈe", Iso885915 }, // from french.words
     { "obligÈs", Iso885915 }, // from french.words
+    { "observatõrer", Cp865 }, // from norwegian.words
     { "observatører", MacRoman }, // from norwegian.words
     { "observat¯rer", Iso885915 }, // from norwegian.words
+    { "observÇ", Cp437 }, // from french.words
     { "observé", MacRoman }, // from french.words
     { "observÈ", Iso885915 }, // from french.words
     { "obËansk˝", Iso88592 }, // from czech.words
+    { "occupÇ", Cp437 }, // from french.words
+    { "occupÇe", Cp437 }, // from french.words
+    { "occupÇs", Cp437 }, // from french.words
     { "occupé", MacRoman }, // from french.words
     { "occupée", MacRoman }, // from french.words
     { "occupés", MacRoman }, // from french.words
     { "occupÈ", Iso885915 }, // from french.words
     { "occupÈe", Iso885915 }, // from french.words
     { "occupÈs", Iso885915 }, // from french.words
+    { "octroyÇ", Cp437 }, // from french.words
     { "octroyé", MacRoman }, // from french.words
     { "octroyÈ", Iso885915 }, // from french.words
     { "odborn˝", Iso88592 }, // from czech.words
+    { "oddbjõrn", Cp865 }, // from norwegian.words
     { "oddbjørn", MacRoman }, // from norwegian.words
     { "oddbj¯rn", Iso885915 }, // from norwegian.words
     { "odmÌtnout", Iso88592 }, // from czech.words
+    { "odpovÌdat", Iso88592 }, // from czech.words
+    { "ogsÜ", Cp865 }, // from norwegian.words
     { "også", MacRoman }, // from norwegian.words
     { "ogsÂ", Iso885915 }, // from norwegian.words
     { "olympijsk˝", Iso88592 }, // from czech.words
+    { "omrÜde", Cp865 }, // from norwegian.words
+    { "omrÜdene", Cp865 }, // from norwegian.words
+    { "omrÜder", Cp865 }, // from norwegian.words
+    { "omrÜdet", Cp865 }, // from norwegian.words
     { "område", MacRoman }, // from norwegian.words
     { "områdene", MacRoman }, // from norwegian.words
     { "områder", MacRoman }, // from norwegian.words
@@ -4417,10 +6993,16 @@ static const struct {
     { "omrÂdene", Iso885915 }, // from norwegian.words
     { "omrÂder", Iso885915 }, // from norwegian.words
     { "omrÂdet", Iso885915 }, // from norwegian.words
+    { "onÇreux", Cp437 }, // from french.words
     { "onéreux", MacRoman }, // from french.words
     { "onÈreux", Iso885915 }, // from french.words
+    { "oppegÜende", Cp865 }, // from norwegian.words
     { "oppegående", MacRoman }, // from norwegian.words
     { "oppegÂende", Iso885915 }, // from norwegian.words
+    { "oppfõlging", Cp865 }, // from norwegian.words
+    { "oppfõrer", Cp865 }, // from norwegian.words
+    { "oppfõrsel", Cp865 }, // from norwegian.words
+    { "oppfõrt", Cp865 }, // from norwegian.words
     { "oppfølging", MacRoman }, // from norwegian.words
     { "oppfører", MacRoman }, // from norwegian.words
     { "oppførsel", MacRoman }, // from norwegian.words
@@ -4429,18 +7011,29 @@ static const struct {
     { "oppf¯rer", Iso885915 }, // from norwegian.words
     { "oppf¯rsel", Iso885915 }, // from norwegian.words
     { "oppf¯rt", Iso885915 }, // from norwegian.words
+    { "oppgjõr", Cp865 }, // from norwegian.words
+    { "oppgjõret", Cp865 }, // from norwegian.words
     { "oppgjør", MacRoman }, // from norwegian.words
     { "oppgjøret", MacRoman }, // from norwegian.words
     { "oppgj¯r", Iso885915 }, // from norwegian.words
     { "oppgj¯ret", Iso885915 }, // from norwegian.words
+    { "oppkjõp", Cp865 }, // from norwegian.words
     { "oppkjøp", MacRoman }, // from norwegian.words
     { "oppkj¯p", Iso885915 }, // from norwegian.words
+    { "opplëring", Cp865 }, // from norwegian.words
+    { "opplõsning", Cp865 }, // from norwegian.words
+    { "opplõst", Cp865 }, // from norwegian.words
     { "opplæring", MacRoman }, // from norwegian.words
     { "oppløsning", MacRoman }, // from norwegian.words
     { "oppløst", MacRoman }, // from norwegian.words
     { "opplÊring", Iso885915 }, // from norwegian.words
     { "oppl¯sning", Iso885915 }, // from norwegian.words
     { "oppl¯st", Iso885915 }, // from norwegian.words
+    { "oppnÜ", Cp865 }, // from norwegian.words
+    { "oppnÜdd", Cp865 }, // from norwegian.words
+    { "oppnÜdde", Cp865 }, // from norwegian.words
+    { "oppnÜr", Cp865 }, // from norwegian.words
+    { "oppnÜs", Cp865 }, // from norwegian.words
     { "oppnå", MacRoman }, // from norwegian.words
     { "oppnådd", MacRoman }, // from norwegian.words
     { "oppnådde", MacRoman }, // from norwegian.words
@@ -4451,36 +7044,62 @@ static const struct {
     { "oppnÂdde", Iso885915 }, // from norwegian.words
     { "oppnÂr", Iso885915 }, // from norwegian.words
     { "oppnÂs", Iso885915 }, // from norwegian.words
+    { "opportunitÇ", Cp437 }, // from french.words
+    { "opportunitÇs", Cp437 }, // from french.words
     { "opportunité", MacRoman }, // from french.words
     { "opportunités", MacRoman }, // from french.words
     { "opportunitÈ", Iso885915 }, // from french.words
     { "opportunitÈs", Iso885915 }, // from french.words
+    { "opposÇ", Cp437 }, // from french.words
     { "opposé", MacRoman }, // from french.words
     { "opposÈ", Iso885915 }, // from french.words
+    { "opprõr", Cp865 }, // from norwegian.words
+    { "opprõrerne", Cp865 }, // from norwegian.words
+    { "opprõrt", Cp865 }, // from norwegian.words
     { "opprør", MacRoman }, // from norwegian.words
     { "opprørerne", MacRoman }, // from norwegian.words
     { "opprørt", MacRoman }, // from norwegian.words
     { "oppr¯r", Iso885915 }, // from norwegian.words
     { "oppr¯rerne", Iso885915 }, // from norwegian.words
     { "oppr¯rt", Iso885915 }, // from norwegian.words
+    { "oppstÜ", Cp865 }, // from norwegian.words
+    { "oppstÜr", Cp865 }, // from norwegian.words
+    { "oppstÜtt", Cp865 }, // from norwegian.words
     { "oppstå", MacRoman }, // from norwegian.words
     { "oppstår", MacRoman }, // from norwegian.words
     { "oppstått", MacRoman }, // from norwegian.words
     { "oppstÂ", Iso885915 }, // from norwegian.words
     { "oppstÂr", Iso885915 }, // from norwegian.words
     { "oppstÂtt", Iso885915 }, // from norwegian.words
+    { "oppsõke", Cp865 }, // from norwegian.words
+    { "oppsõker", Cp865 }, // from norwegian.words
     { "oppsøke", MacRoman }, // from norwegian.words
     { "oppsøker", MacRoman }, // from norwegian.words
     { "opps¯ke", Iso885915 }, // from norwegian.words
     { "opps¯ker", Iso885915 }, // from norwegian.words
+    { "opptrÜdt", Cp865 }, // from norwegian.words
+    { "opptrÜdte", Cp865 }, // from norwegian.words
     { "opptrådt", MacRoman }, // from norwegian.words
     { "opptrådte", MacRoman }, // from norwegian.words
     { "opptrÂdt", Iso885915 }, // from norwegian.words
     { "opptrÂdte", Iso885915 }, // from norwegian.words
+    { "oppÜ", Cp865 }, // from norwegian.words
     { "oppå", MacRoman }, // from norwegian.words
     { "oppÂ", Iso885915 }, // from norwegian.words
+    { "optÇ", Cp437 }, // from french.words
     { "opté", MacRoman }, // from french.words
     { "optÈ", Iso885915 }, // from french.words
+    { "opÇrateur", Cp437 }, // from french.words
+    { "opÇrateurs", Cp437 }, // from french.words
+    { "opÇration", Cp437 }, // from french.words
+    { "opÇrationnel", Cp437 }, // from french.words
+    { "opÇrationnelle", Cp437 }, // from french.words
+    { "opÇrationnels", Cp437 }, // from french.words
+    { "opÇrations", Cp437 }, // from french.words
+    { "opÇrer", Cp437 }, // from french.words
+    { "opÇrÇ", Cp437 }, // from french.words
+    { "opérateur", MacRoman }, // from french.words
+    { "opérateurs", MacRoman }, // from french.words
     { "opération", MacRoman }, // from french.words
     { "opérationnel", MacRoman }, // from french.words
     { "opérationnelle", MacRoman }, // from french.words
@@ -4488,6 +7107,8 @@ static const struct {
     { "opérations", MacRoman }, // from french.words
     { "opérer", MacRoman }, // from french.words
     { "opéré", MacRoman }, // from french.words
+    { "opÈrateur", Iso885915 }, // from french.words
+    { "opÈrateurs", Iso885915 }, // from french.words
     { "opÈration", Iso885915 }, // from french.words
     { "opÈrationnel", Iso885915 }, // from french.words
     { "opÈrationnelle", Iso885915 }, // from french.words
@@ -4495,14 +7116,22 @@ static const struct {
     { "opÈrations", Iso885915 }, // from french.words
     { "opÈrer", Iso885915 }, // from french.words
     { "opÈrÈ", Iso885915 }, // from french.words
+    { "ordfõrer", Cp865 }, // from norwegian.words
+    { "ordfõreren", Cp865 }, // from norwegian.words
     { "ordfører", MacRoman }, // from norwegian.words
     { "ordføreren", MacRoman }, // from norwegian.words
     { "ordf¯rer", Iso885915 }, // from norwegian.words
     { "ordf¯reren", Iso885915 }, // from norwegian.words
+    { "ordinër", Cp865 }, // from norwegian.words
+    { "ordinëre", Cp865 }, // from norwegian.words
     { "ordinær", MacRoman }, // from norwegian.words
     { "ordinære", MacRoman }, // from norwegian.words
     { "ordinÊr", Iso885915 }, // from norwegian.words
     { "ordinÊre", Iso885915 }, // from norwegian.words
+    { "organisÇ", Cp437 }, // from french.words
+    { "organisÇe", Cp437 }, // from french.words
+    { "organisÇes", Cp437 }, // from french.words
+    { "organisÇs", Cp437 }, // from french.words
     { "organisé", MacRoman }, // from french.words
     { "organisée", MacRoman }, // from french.words
     { "organisées", MacRoman }, // from french.words
@@ -4511,26 +7140,39 @@ static const struct {
     { "organisÈe", Iso885915 }, // from french.words
     { "organisÈes", Iso885915 }, // from french.words
     { "organisÈs", Iso885915 }, // from french.words
+    { "orientÇ", Cp437 }, // from french.words
+    { "orientÇe", Cp437 }, // from french.words
+    { "orientÇs", Cp437 }, // from french.words
     { "orienté", MacRoman }, // from french.words
     { "orientée", MacRoman }, // from french.words
     { "orientés", MacRoman }, // from french.words
     { "orientÈ", Iso885915 }, // from french.words
     { "orientÈe", Iso885915 }, // from french.words
     { "orientÈs", Iso885915 }, // from french.words
+    { "originalitÇ", Cp437 }, // from french.words
     { "originalité", MacRoman }, // from french.words
     { "originalitÈ", Iso885915 }, // from french.words
     { "osobnÌ", Iso88592 }, // from czech.words
     { "ostatnÌ", Iso88592 }, // from czech.words
+    { "osterõy", Cp865 }, // from norwegian.words
     { "osterøy", MacRoman }, // from norwegian.words
     { "oster¯y", Iso885915 }, // from norwegian.words
+    { "osteuropÑischen", Cp437 }, // from german.words
     { "osteuropäischen", MacRoman }, // from german.words
     { "osteurop‰ischen", Iso885915 }, // from german.words
+    { "osÇ", Cp437 }, // from french.words
     { "osé", MacRoman }, // from french.words
     { "osÈ", Iso885915 }, // from french.words
     { "otev¯Ìt", Iso88592 }, // from czech.words
     { "ot·zka", Iso88592 }, // from czech.words
+    { "oubliÇ", Cp437 }, // from french.words
     { "oublié", MacRoman }, // from french.words
     { "oubliÈ", Iso885915 }, // from french.words
+    { "overfõre", Cp865 }, // from norwegian.words
+    { "overfõres", Cp865 }, // from norwegian.words
+    { "overfõring", Cp865 }, // from norwegian.words
+    { "overfõringer", Cp865 }, // from norwegian.words
+    { "overfõrt", Cp865 }, // from norwegian.words
     { "overføre", MacRoman }, // from norwegian.words
     { "overføres", MacRoman }, // from norwegian.words
     { "overføring", MacRoman }, // from norwegian.words
@@ -4541,30 +7183,49 @@ static const struct {
     { "overf¯ring", Iso885915 }, // from norwegian.words
     { "overf¯ringer", Iso885915 }, // from norwegian.words
     { "overf¯rt", Iso885915 }, // from norwegian.words
+    { "overvÜke", Cp865 }, // from norwegian.words
+    { "overvÜking", Cp865 }, // from norwegian.words
     { "overvåke", MacRoman }, // from norwegian.words
     { "overvåking", MacRoman }, // from norwegian.words
     { "overvÂke", Iso885915 }, // from norwegian.words
     { "overvÂking", Iso885915 }, // from norwegian.words
+    { "oznaËit", Iso88592 }, // from czech.words
+    { "ozn·mit", Iso88592 }, // from czech.words
+    { "oËek·vat", Iso88592 }, // from czech.words
+    { "palÑstinensische", Cp437 }, // from german.words
+    { "palÑstinensischen", Cp437 }, // from german.words
     { "palästinensische", MacRoman }, // from german.words
     { "palästinensischen", MacRoman }, // from german.words
     { "pal‰stinensische", Iso885915 }, // from german.words
     { "pal‰stinensischen", Iso885915 }, // from german.words
+    { "paritÇ", Cp437 }, // from french.words
     { "parité", MacRoman }, // from french.words
     { "paritÈ", Iso885915 }, // from french.words
+    { "parlÇ", Cp437 }, // from french.words
     { "parlé", MacRoman }, // from french.words
     { "parlÈ", Iso885915 }, // from french.words
+    { "partagÇ", Cp437 }, // from french.words
+    { "partagÇs", Cp437 }, // from french.words
     { "partagé", MacRoman }, // from french.words
     { "partagés", MacRoman }, // from french.words
     { "partagÈ", Iso885915 }, // from french.words
     { "partagÈs", Iso885915 }, // from french.words
+    { "participÇ", Cp437 }, // from french.words
     { "participé", MacRoman }, // from french.words
     { "participÈ", Iso885915 }, // from french.words
+    { "particularitÇ", Cp437 }, // from french.words
     { "particularité", MacRoman }, // from french.words
     { "particularitÈ", Iso885915 }, // from french.words
+    { "passionnÇ", Cp437 }, // from french.words
+    { "passionnÇs", Cp437 }, // from french.words
     { "passionné", MacRoman }, // from french.words
     { "passionnés", MacRoman }, // from french.words
     { "passionnÈ", Iso885915 }, // from french.words
     { "passionnÈs", Iso885915 }, // from french.words
+    { "passÇ", Cp437 }, // from french.words
+    { "passÇe", Cp437 }, // from french.words
+    { "passÇes", Cp437 }, // from french.words
+    { "passÇs", Cp437 }, // from french.words
     { "passé", MacRoman }, // from french.words
     { "passée", MacRoman }, // from french.words
     { "passées", MacRoman }, // from french.words
@@ -4574,10 +7235,16 @@ static const struct {
     { "passÈes", Iso885915 }, // from french.words
     { "passÈs", Iso885915 }, // from french.words
     { "pat¯it", Iso88592 }, // from czech.words
+    { "pauvretÇ", Cp437 }, // from french.words
     { "pauvreté", MacRoman }, // from french.words
     { "pauvretÈ", Iso885915 }, // from french.words
+    { "pavÇ", Cp437 }, // from french.words
     { "pavé", MacRoman }, // from french.words
     { "pavÈ", Iso885915 }, // from french.words
+    { "payÇ", Cp437 }, // from french.words
+    { "payÇe", Cp437 }, // from french.words
+    { "payÇes", Cp437 }, // from french.words
+    { "payÇs", Cp437 }, // from french.words
     { "payé", MacRoman }, // from french.words
     { "payée", MacRoman }, // from french.words
     { "payées", MacRoman }, // from french.words
@@ -4588,19 +7255,33 @@ static const struct {
     { "payÈs", Iso885915 }, // from french.words
     { "paßt", MacRoman }, // from german.words
     { "paﬂt", Iso885915 }, // from german.words
+    { "pa·t", Cp437 }, // from german.words
+    { "pensionnÇs", Cp437 }, // from french.words
     { "pensionnés", MacRoman }, // from french.words
     { "pensionnÈs", Iso885915 }, // from french.words
+    { "pensÇ", Cp437 }, // from french.words
+    { "pensÇe", Cp437 }, // from french.words
     { "pensé", MacRoman }, // from french.words
     { "pensée", MacRoman }, // from french.words
     { "pensÈ", Iso885915 }, // from french.words
     { "pensÈe", Iso885915 }, // from french.words
     { "penÌze", Iso88592 }, // from czech.words
+    { "percÇe", Cp437 }, // from french.words
     { "percée", MacRoman }, // from french.words
     { "percÈe", Iso885915 }, // from french.words
+    { "personnalitÇ", Cp437 }, // from french.words
+    { "personnalitÇs", Cp437 }, // from french.words
+    { "personnalité", MacRoman }, // from french.words
     { "personnalités", MacRoman }, // from french.words
+    { "personnalitÈ", Iso885915 }, // from french.words
     { "personnalitÈs", Iso885915 }, // from french.words
+    { "persuadÇ", Cp437 }, // from french.words
     { "persuadé", MacRoman }, // from french.words
     { "persuadÈ", Iso885915 }, // from french.words
+    { "persînlich", Cp437 }, // from german.words
+    { "persînliche", Cp437 }, // from german.words
+    { "persînlichen", Cp437 }, // from german.words
+    { "persînlicher", Cp437 }, // from german.words
     { "persönlich", MacRoman }, // from german.words
     { "persönliche", MacRoman }, // from german.words
     { "persönlichen", MacRoman }, // from german.words
@@ -4609,43 +7290,66 @@ static const struct {
     { "persˆnliche", Iso885915 }, // from german.words
     { "persˆnlichen", Iso885915 }, // from german.words
     { "persˆnlicher", Iso885915 }, // from german.words
+    { "pesÇ", Cp437 }, // from french.words
     { "pesé", MacRoman }, // from french.words
     { "pesÈ", Iso885915 }, // from french.words
+    { "placÇ", Cp437 }, // from french.words
+    { "placÇe", Cp437 }, // from french.words
+    { "placÇes", Cp437 }, // from french.words
+    { "placÇs", Cp437 }, // from french.words
+    { "placé", MacRoman }, // from french.words
     { "placée", MacRoman }, // from french.words
     { "placées", MacRoman }, // from french.words
     { "placés", MacRoman }, // from french.words
+    { "placÈ", Iso885915 }, // from french.words
     { "placÈe", Iso885915 }, // from french.words
     { "placÈes", Iso885915 }, // from french.words
     { "placÈs", Iso885915 }, // from french.words
+    { "planÇtaire", Cp437 }, // from french.words
     { "planétaire", MacRoman }, // from french.words
     { "planÈtaire", Iso885915 }, // from french.words
     { "pln˝", Iso88592 }, // from czech.words
+    { "plongÇ", Cp437 }, // from french.words
+    { "plongÇe", Cp437 }, // from french.words
     { "plongé", MacRoman }, // from french.words
     { "plongée", MacRoman }, // from french.words
     { "plongÈ", Iso885915 }, // from french.words
     { "plongÈe", Iso885915 }, // from french.words
+    { "plÑdiert", Cp437 }, // from german.words
+    { "plÑdierte", Cp437 }, // from german.words
     { "plädiert", MacRoman }, // from german.words
     { "plädierte", MacRoman }, // from german.words
+    { "plîtzlich", Cp437 }, // from german.words
     { "plötzlich", MacRoman }, // from german.words
     { "pl‰diert", Iso885915 }, // from german.words
     { "pl‰dierte", Iso885915 }, // from german.words
     { "plˆtzlich", Iso885915 }, // from german.words
+    { "poda¯it", Iso88592 }, // from czech.words
     { "podmÌnka", Iso88592 }, // from czech.words
     { "podnikatelsk˝", Iso88592 }, // from czech.words
     { "podobn˝", Iso88592 }, // from czech.words
+    { "poignÇe", Cp437 }, // from french.words
     { "poignée", MacRoman }, // from french.words
     { "poignÈe", Iso885915 }, // from french.words
     { "pokraËovat", Iso88592 }, // from czech.words
     { "politick˝", Iso88592 }, // from czech.words
+    { "politiinspektõr", Cp865 }, // from norwegian.words
     { "politiinspektør", MacRoman }, // from norwegian.words
     { "politiinspekt¯r", Iso885915 }, // from norwegian.words
+    { "polÇmique", Cp437 }, // from french.words
     { "polémique", MacRoman }, // from french.words
     { "polÈmique", Iso885915 }, // from french.words
+    { "pondÇration", Cp437 }, // from french.words
     { "pondération", MacRoman }, // from french.words
     { "pondÈration", Iso885915 }, // from french.words
+    { "popularitÇ", Cp437 }, // from french.words
     { "popularité", MacRoman }, // from french.words
     { "popularitÈ", Iso885915 }, // from french.words
+    { "populÑr", Cp437 }, // from german.words
     { "populär", MacRoman }, // from german.words
+    { "populër", Cp865 }, // from norwegian.words
+    { "populëre", Cp865 }, // from norwegian.words
+    { "populërt", Cp865 }, // from norwegian.words
     { "populær", MacRoman }, // from norwegian.words
     { "populære", MacRoman }, // from norwegian.words
     { "populært", MacRoman }, // from norwegian.words
@@ -4653,19 +7357,31 @@ static const struct {
     { "populÊr", Iso885915 }, // from norwegian.words
     { "populÊre", Iso885915 }, // from norwegian.words
     { "populÊrt", Iso885915 }, // from norwegian.words
+    { "portÇ", Cp437 }, // from french.words
+    { "portÇe", Cp437 }, // from french.words
+    { "portÇs", Cp437 }, // from french.words
+    { "porté", MacRoman }, // from french.words
     { "portée", MacRoman }, // from french.words
     { "portés", MacRoman }, // from french.words
+    { "portÈ", Iso885915 }, // from french.words
     { "portÈe", Iso885915 }, // from french.words
     { "portÈs", Iso885915 }, // from french.words
     { "poslednÌ", Iso88592 }, // from czech.words
+    { "possibilitÇ", Cp437 }, // from french.words
+    { "possibilitÇs", Cp437 }, // from french.words
     { "possibilité", MacRoman }, // from french.words
     { "possibilités", MacRoman }, // from french.words
     { "possibilitÈ", Iso885915 }, // from french.words
     { "possibilitÈs", Iso885915 }, // from french.words
+    { "possÇdait", Cp437 }, // from french.words
+    { "possÇder", Cp437 }, // from french.words
     { "possédait", MacRoman }, // from french.words
     { "posséder", MacRoman }, // from french.words
     { "possÈdait", Iso885915 }, // from french.words
     { "possÈder", Iso885915 }, // from french.words
+    { "posÇ", Cp437 }, // from french.words
+    { "posÇe", Cp437 }, // from french.words
+    { "posÇes", Cp437 }, // from french.words
     { "posé", MacRoman }, // from french.words
     { "posée", MacRoman }, // from french.words
     { "posées", MacRoman }, // from french.words
@@ -4674,12 +7390,17 @@ static const struct {
     { "posÈes", Iso885915 }, // from french.words
     { "pot¯ebn˝", Iso88592 }, // from czech.words
     { "pot¯ebovat", Iso88592 }, // from czech.words
+    { "poussÇ", Cp437 }, // from french.words
+    { "poussÇe", Cp437 }, // from french.words
     { "poussé", MacRoman }, // from french.words
     { "poussée", MacRoman }, // from french.words
     { "poussÈ", Iso885915 }, // from french.words
     { "poussÈe", Iso885915 }, // from french.words
     { "pouæÌt", Iso88592 }, // from czech.words
+    { "pouæÌvat", Iso88592 }, // from czech.words
     { "povaæovat", Iso88592 }, // from czech.words
+    { "poÇsie", Cp437 }, // from french.words
+    { "poÇtique", Cp437 }, // from french.words
     { "poésie", MacRoman }, // from french.words
     { "poétique", MacRoman }, // from french.words
     { "poËet", Iso88592 }, // from czech.words
@@ -4687,8 +7408,12 @@ static const struct {
     { "poËÌtaË", Iso88592 }, // from czech.words
     { "poÈsie", Iso885915 }, // from french.words
     { "poÈtique", Iso885915 }, // from french.words
+    { "po¯·dat", Iso88592 }, // from czech.words
     { "pracovnÌ", Iso88592 }, // from czech.words
     { "pracovnÌk", Iso88592 }, // from czech.words
+    { "pratiquÇ", Cp437 }, // from french.words
+    { "pratiquÇe", Cp437 }, // from french.words
+    { "pratiquÇs", Cp437 }, // from french.words
     { "pratiqué", MacRoman }, // from french.words
     { "pratiquée", MacRoman }, // from french.words
     { "pratiqués", MacRoman }, // from french.words
@@ -4696,14 +7421,24 @@ static const struct {
     { "pratiquÈe", Iso885915 }, // from french.words
     { "pratiquÈs", Iso885915 }, // from french.words
     { "praæsk˝", Iso88592 }, // from czech.words
+    { "pressÇ", Cp437 }, // from french.words
     { "pressé", MacRoman }, // from french.words
     { "pressÈ", Iso885915 }, // from french.words
-    { "preßlich", MacRoman }, // from german.words
-    { "preﬂlich", Iso885915 }, // from german.words
+    { "primërt", Cp865 }, // from norwegian.words
     { "primært", MacRoman }, // from norwegian.words
     { "primÊrt", Iso885915 }, // from norwegian.words
+    { "prioritÇ", Cp437 }, // from french.words
+    { "prioritÇs", Cp437 }, // from french.words
+    { "priorité", MacRoman }, // from french.words
     { "priorités", MacRoman }, // from french.words
+    { "prioritÈ", Iso885915 }, // from french.words
     { "prioritÈs", Iso885915 }, // from french.words
+    { "privilÇgie", Cp437 }, // from french.words
+    { "privilÇgier", Cp437 }, // from french.words
+    { "privilÇgiÇ", Cp437 }, // from french.words
+    { "privilÇgiÇe", Cp437 }, // from french.words
+    { "privilÇgiÇes", Cp437 }, // from french.words
+    { "privilÇgiÇs", Cp437 }, // from french.words
     { "privilégie", MacRoman }, // from french.words
     { "privilégier", MacRoman }, // from french.words
     { "privilégié", MacRoman }, // from french.words
@@ -4716,36 +7451,63 @@ static const struct {
     { "privilÈgiÈe", Iso885915 }, // from french.words
     { "privilÈgiÈes", Iso885915 }, // from french.words
     { "privilÈgiÈs", Iso885915 }, // from french.words
+    { "privÇe", Cp437 }, // from french.words
+    { "privÇes", Cp437 }, // from french.words
+    { "privÇs", Cp437 }, // from french.words
     { "privée", MacRoman }, // from french.words
     { "privées", MacRoman }, // from french.words
+    { "privés", MacRoman }, // from french.words
     { "privÈe", Iso885915 }, // from french.words
     { "privÈes", Iso885915 }, // from french.words
+    { "privÈs", Iso885915 }, // from french.words
+    { "probabilitÇ", Cp437 }, // from french.words
     { "probabilité", MacRoman }, // from french.words
     { "probabilitÈ", Iso885915 }, // from french.words
+    { "problÇmatique", Cp437 }, // from french.words
     { "problématique", MacRoman }, // from french.words
     { "problÈm", Iso88592 }, // from czech.words
     { "problÈmatique", Iso885915 }, // from french.words
+    { "procÇder", Cp437 }, // from french.words
+    { "procÇdure", Cp437 }, // from french.words
+    { "procÇdures", Cp437 }, // from french.words
+    { "procÇdÇs", Cp437 }, // from french.words
+    { "procéder", MacRoman }, // from french.words
     { "procédure", MacRoman }, // from french.words
     { "procédures", MacRoman }, // from french.words
     { "procédés", MacRoman }, // from french.words
+    { "procÈder", Iso885915 }, // from french.words
     { "procÈdure", Iso885915 }, // from french.words
     { "procÈdures", Iso885915 }, // from french.words
     { "procÈdÈs", Iso885915 }, // from french.words
+    { "productivitÇ", Cp437 }, // from french.words
+    { "productivité", MacRoman }, // from french.words
+    { "productivitÈ", Iso885915 }, // from french.words
+    { "profitÇ", Cp437 }, // from french.words
     { "profité", MacRoman }, // from french.words
     { "profitÈ", Iso885915 }, // from french.words
+    { "profondÇment", Cp437 }, // from french.words
     { "profondément", MacRoman }, // from french.words
     { "profondÈment", Iso885915 }, // from french.words
+    { "progressÇ", Cp437 }, // from french.words
     { "progressé", MacRoman }, // from french.words
     { "progressÈ", Iso885915 }, // from french.words
     { "prohl·sit", Iso88592 }, // from czech.words
+    { "prolongÇ", Cp437 }, // from french.words
+    { "prolongÇe", Cp437 }, // from french.words
     { "prolongé", MacRoman }, // from french.words
     { "prolongée", MacRoman }, // from french.words
     { "prolongÈ", Iso885915 }, // from french.words
     { "prolongÈe", Iso885915 }, // from french.words
+    { "prononcÇ", Cp437 }, // from french.words
+    { "prononcÇe", Cp437 }, // from french.words
     { "prononcé", MacRoman }, // from french.words
     { "prononcée", MacRoman }, // from french.words
     { "prononcÈ", Iso885915 }, // from french.words
     { "prononcÈe", Iso885915 }, // from french.words
+    { "proposÇ", Cp437 }, // from french.words
+    { "proposÇe", Cp437 }, // from french.words
+    { "proposÇes", Cp437 }, // from french.words
+    { "proposÇs", Cp437 }, // from french.words
     { "proposé", MacRoman }, // from french.words
     { "proposée", MacRoman }, // from french.words
     { "proposées", MacRoman }, // from french.words
@@ -4754,27 +7516,144 @@ static const struct {
     { "proposÈe", Iso885915 }, // from french.words
     { "proposÈes", Iso885915 }, // from french.words
     { "proposÈs", Iso885915 }, // from french.words
+    { "propriÇtaire", Cp437 }, // from french.words
+    { "propriÇtaires", Cp437 }, // from french.words
+    { "propriÇtÇ", Cp437 }, // from french.words
+    { "propriÇtÇs", Cp437 }, // from french.words
     { "propriétaire", MacRoman }, // from french.words
+    { "propriétaires", MacRoman }, // from french.words
     { "propriété", MacRoman }, // from french.words
     { "propriétés", MacRoman }, // from french.words
     { "propriÈtaire", Iso885915 }, // from french.words
+    { "propriÈtaires", Iso885915 }, // from french.words
     { "propriÈtÈ", Iso885915 }, // from french.words
     { "propriÈtÈs", Iso885915 }, // from french.words
+    { "prospÇritÇ", Cp437 }, // from french.words
     { "prospérité", MacRoman }, // from french.words
     { "prospÈritÈ", Iso885915 }, // from french.words
     { "prost¯edek", Iso88592 }, // from czech.words
     { "prost¯edÌ", Iso88592 }, // from czech.words
+    { "protÇger", Cp437 }, // from french.words
+    { "protÇgÇ", Cp437 }, // from french.words
+    { "protÇgÇe", Cp437 }, // from french.words
+    { "protÇgÇs", Cp437 }, // from french.words
+    { "protéger", MacRoman }, // from french.words
     { "protégé", MacRoman }, // from french.words
     { "protégée", MacRoman }, // from french.words
     { "protégés", MacRoman }, // from french.words
+    { "protÈger", Iso885915 }, // from french.words
     { "protÈgÈ", Iso885915 }, // from french.words
     { "protÈgÈe", Iso885915 }, // from french.words
     { "protÈgÈs", Iso885915 }, // from french.words
+    { "prouvÇ", Cp437 }, // from french.words
     { "prouvé", MacRoman }, // from french.words
     { "prouvÈ", Iso885915 }, // from french.words
+    { "provoquÇ", Cp437 }, // from french.words
     { "provoqué", MacRoman }, // from french.words
     { "provoquÈ", Iso885915 }, // from french.words
-    { "präsenseits", MacRoman }, // from german.words
+    { "proximitÇ", Cp437 }, // from french.words
+    { "proximité", MacRoman }, // from french.words
+    { "proximitÈ", Iso885915 }, // from french.words
+    { "prÅfen", Cp437 }, // from german.words
+    { "prÅft", Cp437 }, // from german.words
+    { "prÇalable", Cp437 }, // from french.words
+    { "prÇalablement", Cp437 }, // from french.words
+    { "prÇavis", Cp437 }, // from french.words
+    { "prÇcaution", Cp437 }, // from french.words
+    { "prÇcautions", Cp437 }, // from french.words
+    { "prÇcieuse", Cp437 }, // from french.words
+    { "prÇcieuses", Cp437 }, // from french.words
+    { "prÇcieux", Cp437 }, // from french.words
+    { "prÇcis", Cp437 }, // from french.words
+    { "prÇcise", Cp437 }, // from french.words
+    { "prÇciser", Cp437 }, // from french.words
+    { "prÇcises", Cp437 }, // from french.words
+    { "prÇcision", Cp437 }, // from french.words
+    { "prÇcisÇ", Cp437 }, // from french.words
+    { "prÇcisÇment", Cp437 }, // from french.words
+    { "prÇcoce", Cp437 }, // from french.words
+    { "prÇcompte", Cp437 }, // from french.words
+    { "prÇcÇdemment", Cp437 }, // from french.words
+    { "prÇcÇdent", Cp437 }, // from french.words
+    { "prÇcÇdente", Cp437 }, // from french.words
+    { "prÇcÇdentes", Cp437 }, // from french.words
+    { "prÇcÇdents", Cp437 }, // from french.words
+    { "prÇcÇdÇ", Cp437 }, // from french.words
+    { "prÇdilection", Cp437 }, // from french.words
+    { "prÇdit", Cp437 }, // from french.words
+    { "prÇdÇcesseur", Cp437 }, // from french.words
+    { "prÇfÇrable", Cp437 }, // from french.words
+    { "prÇfÇrence", Cp437 }, // from french.words
+    { "prÇfÇrer", Cp437 }, // from french.words
+    { "prÇfÇrons", Cp437 }, // from french.words
+    { "prÇfÇrÇ", Cp437 }, // from french.words
+    { "prÇjudice", Cp437 }, // from french.words
+    { "prÇmaturÇ", Cp437 }, // from french.words
+    { "prÇnom", Cp437 }, // from french.words
+    { "prÇoccupation", Cp437 }, // from french.words
+    { "prÇoccupations", Cp437 }, // from french.words
+    { "prÇoccupe", Cp437 }, // from french.words
+    { "prÇparation", Cp437 }, // from french.words
+    { "prÇparations", Cp437 }, // from french.words
+    { "prÇpare", Cp437 }, // from french.words
+    { "prÇparent", Cp437 }, // from french.words
+    { "prÇparer", Cp437 }, // from french.words
+    { "prÇparÇ", Cp437 }, // from french.words
+    { "prÇparÇs", Cp437 }, // from french.words
+    { "prÇpension", Cp437 }, // from french.words
+    { "prÇsence", Cp437 }, // from french.words
+    { "prÇsent", Cp437 }, // from french.words
+    { "prÇsentait", Cp437 }, // from french.words
+    { "prÇsentant", Cp437 }, // from french.words
+    { "prÇsentation", Cp437 }, // from french.words
+    { "prÇsente", Cp437 }, // from french.words
+    { "prÇsentent", Cp437 }, // from french.words
+    { "prÇsenter", Cp437 }, // from french.words
+    { "prÇsentera", Cp437 }, // from french.words
+    { "prÇsentes", Cp437 }, // from french.words
+    { "prÇsents", Cp437 }, // from french.words
+    { "prÇsentÇ", Cp437 }, // from french.words
+    { "prÇsentÇe", Cp437 }, // from french.words
+    { "prÇsentÇes", Cp437 }, // from french.words
+    { "prÇsentÇs", Cp437 }, // from french.words
+    { "prÇserver", Cp437 }, // from french.words
+    { "prÇside", Cp437 }, // from french.words
+    { "prÇsidence", Cp437 }, // from french.words
+    { "prÇsident", Cp437 }, // from french.words
+    { "prÇsidente", Cp437 }, // from french.words
+    { "prÇsidentielle", Cp437 }, // from french.words
+    { "prÇsidents", Cp437 }, // from french.words
+    { "prÇtend", Cp437 }, // from french.words
+    { "prÇtendent", Cp437 }, // from french.words
+    { "prÇtendre", Cp437 }, // from french.words
+    { "prÇtexte", Cp437 }, // from french.words
+    { "prÇvaut", Cp437 }, // from french.words
+    { "prÇvenir", Cp437 }, // from french.words
+    { "prÇvention", Cp437 }, // from french.words
+    { "prÇventive", Cp437 }, // from french.words
+    { "prÇvenu", Cp437 }, // from french.words
+    { "prÇvenus", Cp437 }, // from french.words
+    { "prÇvient", Cp437 }, // from french.words
+    { "prÇvisible", Cp437 }, // from french.words
+    { "prÇvision", Cp437 }, // from french.words
+    { "prÇvisions", Cp437 }, // from french.words
+    { "prÇvoient", Cp437 }, // from french.words
+    { "prÇvoir", Cp437 }, // from french.words
+    { "prÇvoit", Cp437 }, // from french.words
+    { "prÇvoyait", Cp437 }, // from french.words
+    { "prÇvoyant", Cp437 }, // from french.words
+    { "prÇvoyons", Cp437 }, // from french.words
+    { "prÇvu", Cp437 }, // from french.words
+    { "prÇvue", Cp437 }, // from french.words
+    { "prÇvues", Cp437 }, // from french.words
+    { "prÇvus", Cp437 }, // from french.words
+    { "prÑsent", Cp437 }, // from german.words
+    { "prÑsentieren", Cp437 }, // from german.words
+    { "prÑsentiert", Cp437 }, // from german.words
+    { "prÑsentierte", Cp437 }, // from german.words
+    { "prÑsentierten", Cp437 }, // from german.words
+    { "prÑzise", Cp437 }, // from german.words
+    { "präsent", MacRoman }, // from german.words
     { "präsentieren", MacRoman }, // from german.words
     { "präsentiert", MacRoman }, // from german.words
     { "präsentierte", MacRoman }, // from german.words
@@ -4787,15 +7666,19 @@ static const struct {
     { "précautions", MacRoman }, // from french.words
     { "précieuse", MacRoman }, // from french.words
     { "précieuses", MacRoman }, // from french.words
+    { "précieux", MacRoman }, // from french.words
     { "précis", MacRoman }, // from french.words
+    { "précise", MacRoman }, // from french.words
     { "préciser", MacRoman }, // from french.words
     { "précises", MacRoman }, // from french.words
+    { "précision", MacRoman }, // from french.words
     { "précisé", MacRoman }, // from french.words
     { "précisément", MacRoman }, // from french.words
     { "précoce", MacRoman }, // from french.words
     { "précompte", MacRoman }, // from french.words
     { "précédemment", MacRoman }, // from french.words
     { "précédent", MacRoman }, // from french.words
+    { "précédente", MacRoman }, // from french.words
     { "précédentes", MacRoman }, // from french.words
     { "précédents", MacRoman }, // from french.words
     { "précédé", MacRoman }, // from french.words
@@ -4813,6 +7696,7 @@ static const struct {
     { "préoccupation", MacRoman }, // from french.words
     { "préoccupations", MacRoman }, // from french.words
     { "préoccupe", MacRoman }, // from french.words
+    { "préparation", MacRoman }, // from french.words
     { "préparations", MacRoman }, // from french.words
     { "prépare", MacRoman }, // from french.words
     { "préparent", MacRoman }, // from french.words
@@ -4820,7 +7704,6 @@ static const struct {
     { "préparé", MacRoman }, // from french.words
     { "préparés", MacRoman }, // from french.words
     { "prépension", MacRoman }, // from french.words
-    { "présee", MacRoman }, // from french.words
     { "présence", MacRoman }, // from french.words
     { "présent", MacRoman }, // from french.words
     { "présentait", MacRoman }, // from french.words
@@ -4832,6 +7715,7 @@ static const struct {
     { "présentera", MacRoman }, // from french.words
     { "présentes", MacRoman }, // from french.words
     { "présents", MacRoman }, // from french.words
+    { "présenté", MacRoman }, // from french.words
     { "présentée", MacRoman }, // from french.words
     { "présentées", MacRoman }, // from french.words
     { "présentés", MacRoman }, // from french.words
@@ -4863,8 +7747,16 @@ static const struct {
     { "prévoyant", MacRoman }, // from french.words
     { "prévoyons", MacRoman }, // from french.words
     { "prévu", MacRoman }, // from french.words
+    { "prévue", MacRoman }, // from french.words
     { "prévues", MacRoman }, // from french.words
     { "prévus", MacRoman }, // from french.words
+    { "prõv", Cp865 }, // from norwegian.words
+    { "prõvd", Cp865 }, // from norwegian.words
+    { "prõvde", Cp865 }, // from norwegian.words
+    { "prõve", Cp865 }, // from norwegian.words
+    { "prõvene", Cp865 }, // from norwegian.words
+    { "prõver", Cp865 }, // from norwegian.words
+    { "prüfen", MacRoman }, // from german.words
     { "prüft", MacRoman }, // from german.words
     { "prøv", MacRoman }, // from norwegian.words
     { "prøvd", MacRoman }, // from norwegian.words
@@ -4874,7 +7766,7 @@ static const struct {
     { "prøver", MacRoman }, // from norwegian.words
     { "pr·vnÌ", Iso88592 }, // from czech.words
     { "pr·vo", Iso88592 }, // from czech.words
-    { "pr‰senseits", Iso885915 }, // from german.words
+    { "pr‰sent", Iso885915 }, // from german.words
     { "pr‰sentieren", Iso885915 }, // from german.words
     { "pr‰sentiert", Iso885915 }, // from german.words
     { "pr‰sentierte", Iso885915 }, // from german.words
@@ -4887,15 +7779,19 @@ static const struct {
     { "prÈcautions", Iso885915 }, // from french.words
     { "prÈcieuse", Iso885915 }, // from french.words
     { "prÈcieuses", Iso885915 }, // from french.words
+    { "prÈcieux", Iso885915 }, // from french.words
     { "prÈcis", Iso885915 }, // from french.words
+    { "prÈcise", Iso885915 }, // from french.words
     { "prÈciser", Iso885915 }, // from french.words
     { "prÈcises", Iso885915 }, // from french.words
+    { "prÈcision", Iso885915 }, // from french.words
     { "prÈcisÈ", Iso885915 }, // from french.words
     { "prÈcisÈment", Iso885915 }, // from french.words
     { "prÈcoce", Iso885915 }, // from french.words
     { "prÈcompte", Iso885915 }, // from french.words
     { "prÈcÈdemment", Iso885915 }, // from french.words
     { "prÈcÈdent", Iso885915 }, // from french.words
+    { "prÈcÈdente", Iso885915 }, // from french.words
     { "prÈcÈdentes", Iso885915 }, // from french.words
     { "prÈcÈdents", Iso885915 }, // from french.words
     { "prÈcÈdÈ", Iso885915 }, // from french.words
@@ -4913,6 +7809,7 @@ static const struct {
     { "prÈoccupation", Iso885915 }, // from french.words
     { "prÈoccupations", Iso885915 }, // from french.words
     { "prÈoccupe", Iso885915 }, // from french.words
+    { "prÈparation", Iso885915 }, // from french.words
     { "prÈparations", Iso885915 }, // from french.words
     { "prÈpare", Iso885915 }, // from french.words
     { "prÈparent", Iso885915 }, // from french.words
@@ -4920,7 +7817,6 @@ static const struct {
     { "prÈparÈ", Iso885915 }, // from french.words
     { "prÈparÈs", Iso885915 }, // from french.words
     { "prÈpension", Iso885915 }, // from french.words
-    { "prÈsee", Iso885915 }, // from french.words
     { "prÈsence", Iso885915 }, // from french.words
     { "prÈsent", Iso885915 }, // from french.words
     { "prÈsentait", Iso885915 }, // from french.words
@@ -4932,6 +7828,7 @@ static const struct {
     { "prÈsentera", Iso885915 }, // from french.words
     { "prÈsentes", Iso885915 }, // from french.words
     { "prÈsents", Iso885915 }, // from french.words
+    { "prÈsentÈ", Iso885915 }, // from french.words
     { "prÈsentÈe", Iso885915 }, // from french.words
     { "prÈsentÈes", Iso885915 }, // from french.words
     { "prÈsentÈs", Iso885915 }, // from french.words
@@ -4963,6 +7860,7 @@ static const struct {
     { "prÈvoyant", Iso885915 }, // from french.words
     { "prÈvoyons", Iso885915 }, // from french.words
     { "prÈvu", Iso885915 }, // from french.words
+    { "prÈvue", Iso885915 }, // from french.words
     { "prÈvues", Iso885915 }, // from french.words
     { "prÈvus", Iso885915 }, // from french.words
     { "pr¯v", Iso885915 }, // from norwegian.words
@@ -4972,22 +7870,89 @@ static const struct {
     { "pr¯vene", Iso885915 }, // from norwegian.words
     { "pr¯ver", Iso885915 }, // from norwegian.words
     { "pr˘mÏrn˝", Iso88592 }, // from czech.words
+    { "pr¸fen", Iso885915 }, // from german.words
     { "pr¸ft", Iso885915 }, // from german.words
     { "ps·t", Iso88592 }, // from czech.words
+    { "publicitÇ", Cp437 }, // from french.words
+    { "publicitÇs", Cp437 }, // from french.words
     { "publicité", MacRoman }, // from french.words
     { "publicités", MacRoman }, // from french.words
     { "publicitÈ", Iso885915 }, // from french.words
     { "publicitÈs", Iso885915 }, // from french.words
+    { "publiÇ", Cp437 }, // from french.words
+    { "publiÇe", Cp437 }, // from french.words
+    { "publiÇes", Cp437 }, // from french.words
+    { "publiÇs", Cp437 }, // from french.words
+    { "publié", MacRoman }, // from french.words
     { "publiée", MacRoman }, // from french.words
     { "publiées", MacRoman }, // from french.words
     { "publiés", MacRoman }, // from french.words
+    { "publiÈ", Iso885915 }, // from french.words
     { "publiÈe", Iso885915 }, // from french.words
     { "publiÈes", Iso885915 }, // from french.words
     { "publiÈs", Iso885915 }, // from french.words
+    { "puretÇ", Cp437 }, // from french.words
     { "pureté", MacRoman }, // from french.words
     { "puretÈ", Iso885915 }, // from french.words
+    { "purÇe", Cp437 }, // from french.words
     { "purée", MacRoman }, // from french.words
     { "purÈe", Iso885915 }, // from french.words
+    { "pÅnktlich", Cp437 }, // from german.words
+    { "pÇdagogique", Cp437 }, // from french.words
+    { "pÇdophilie", Cp437 }, // from french.words
+    { "pÇnal", Cp437 }, // from french.words
+    { "pÇnale", Cp437 }, // from french.words
+    { "pÇnible", Cp437 }, // from french.words
+    { "pÇnurie", Cp437 }, // from french.words
+    { "pÇnÇtration", Cp437 }, // from french.words
+    { "pÇnÇtrer", Cp437 }, // from french.words
+    { "pÇrennitÇ", Cp437 }, // from french.words
+    { "pÇril", Cp437 }, // from french.words
+    { "pÇriode", Cp437 }, // from french.words
+    { "pÇriodes", Cp437 }, // from french.words
+    { "pÇriphÇrie", Cp437 }, // from french.words
+    { "pÇriphÇriques", Cp437 }, // from french.words
+    { "pÇtrole", Cp437 }, // from french.words
+    { "pÇtrolier", Cp437 }, // from french.words
+    { "pÇtroliers", Cp437 }, // from french.words
+    { "pÜ", Cp865 }, // from norwegian.words
+    { "pÜdriver", Cp865 }, // from norwegian.words
+    { "pÜdro", Cp865 }, // from norwegian.words
+    { "pÜfallende", Cp865 }, // from norwegian.words
+    { "pÜfõlgende", Cp865 }, // from norwegian.words
+    { "pÜfõrt", Cp865 }, // from norwegian.words
+    { "pÜgikk", Cp865 }, // from norwegian.words
+    { "pÜgrepet", Cp865 }, // from norwegian.words
+    { "pÜgÜende", Cp865 }, // from norwegian.words
+    { "pÜgÜr", Cp865 }, // from norwegian.words
+    { "pÜgÜtt", Cp865 }, // from norwegian.words
+    { "pÜkjõrt", Cp865 }, // from norwegian.words
+    { "pÜl", Cp865 }, // from norwegian.words
+    { "pÜlagt", Cp865 }, // from norwegian.words
+    { "pÜlegg", Cp865 }, // from norwegian.words
+    { "pÜpeker", Cp865 }, // from norwegian.words
+    { "pÜpekt", Cp865 }, // from norwegian.words
+    { "pÜpekte", Cp865 }, // from norwegian.words
+    { "pÜrõrende", Cp865 }, // from norwegian.words
+    { "pÜske", Cp865 }, // from norwegian.words
+    { "pÜsken", Cp865 }, // from norwegian.words
+    { "pÜstand", Cp865 }, // from norwegian.words
+    { "pÜstanden", Cp865 }, // from norwegian.words
+    { "pÜstandene", Cp865 }, // from norwegian.words
+    { "pÜstander", Cp865 }, // from norwegian.words
+    { "pÜstÜ", Cp865 }, // from norwegian.words
+    { "pÜstÜr", Cp865 }, // from norwegian.words
+    { "pÜstÜtt", Cp865 }, // from norwegian.words
+    { "pÜta", Cp865 }, // from norwegian.words
+    { "pÜtalemyndigheten", Cp865 }, // from norwegian.words
+    { "pÜtatt", Cp865 }, // from norwegian.words
+    { "pÜtrengende", Cp865 }, // from norwegian.words
+    { "pÜvente", Cp865 }, // from norwegian.words
+    { "pÜvirke", Cp865 }, // from norwegian.words
+    { "pÜvirker", Cp865 }, // from norwegian.words
+    { "pÜvirket", Cp865 }, // from norwegian.words
+    { "pÜvirkning", Cp865 }, // from norwegian.words
+    { "pÜvist", Cp865 }, // from norwegian.words
     { "på", MacRoman }, // from norwegian.words
     { "pådriver", MacRoman }, // from norwegian.words
     { "pådro", MacRoman }, // from norwegian.words
@@ -5040,8 +8005,10 @@ static const struct {
     { "périodes", MacRoman }, // from french.words
     { "périphérie", MacRoman }, // from french.words
     { "périphériques", MacRoman }, // from french.words
+    { "pétrole", MacRoman }, // from french.words
     { "pétrolier", MacRoman }, // from french.words
     { "pétroliers", MacRoman }, // from french.words
+    { "põlser", Cp865 }, // from norwegian.words
     { "pünktlich", MacRoman }, // from german.words
     { "pølser", MacRoman }, // from norwegian.words
     { "pÂ", Iso885915 }, // from norwegian.words
@@ -5096,12 +8063,16 @@ static const struct {
     { "pÈriodes", Iso885915 }, // from french.words
     { "pÈriphÈrie", Iso885915 }, // from french.words
     { "pÈriphÈriques", Iso885915 }, // from french.words
+    { "pÈtrole", Iso885915 }, // from french.words
     { "pÈtrolier", Iso885915 }, // from french.words
     { "pÈtroliers", Iso885915 }, // from french.words
     { "p¯edpokl·dat", Iso88592 }, // from czech.words
     { "p¯edseda", Iso88592 }, // from czech.words
+    { "p¯edstavovat", Iso88592 }, // from czech.words
     { "p¯ijmout", Iso88592 }, // from czech.words
+    { "p¯ijÌt", Iso88592 }, // from czech.words
     { "p¯inÈst", Iso88592 }, // from czech.words
+    { "p¯ipravit", Iso88592 }, // from czech.words
     { "p¯lser", Iso885915 }, // from norwegian.words
     { "p¯Ìm˝", Iso88592 }, // from czech.words
     { "p¯Ìpad", Iso88592 }, // from czech.words
@@ -5110,125 +8081,209 @@ static const struct {
     { "p˘sobit", Iso88592 }, // from czech.words
     { "p˘vodnÌ", Iso88592 }, // from czech.words
     { "p¸nktlich", Iso885915 }, // from german.words
+    { "qualifiÇ", Cp437 }, // from french.words
+    { "qualifiÇe", Cp437 }, // from french.words
+    { "qualifiÇs", Cp437 }, // from french.words
     { "qualifié", MacRoman }, // from french.words
     { "qualifiée", MacRoman }, // from french.words
     { "qualifiés", MacRoman }, // from french.words
     { "qualifiÈ", Iso885915 }, // from french.words
     { "qualifiÈe", Iso885915 }, // from french.words
     { "qualifiÈs", Iso885915 }, // from french.words
+    { "qualitÇ", Cp437 }, // from french.words
+    { "qualitÇs", Cp437 }, // from french.words
     { "qualité", MacRoman }, // from french.words
+    { "qualités", MacRoman }, // from french.words
     { "qualitÈ", Iso885915 }, // from french.words
+    { "qualitÈs", Iso885915 }, // from french.words
+    { "quantitÇ", Cp437 }, // from french.words
+    { "quantitÇs", Cp437 }, // from french.words
     { "quantité", MacRoman }, // from french.words
     { "quantités", MacRoman }, // from french.words
     { "quantitÈ", Iso885915 }, // from french.words
     { "quantitÈs", Iso885915 }, // from french.words
+    { "quittÇ", Cp437 }, // from french.words
     { "quitté", MacRoman }, // from french.words
     { "quittÈ", Iso885915 }, // from french.words
+    { "quotitÇ", Cp437 }, // from french.words
     { "quotité", MacRoman }, // from french.words
     { "quotitÈ", Iso885915 }, // from french.words
+    { "rachetÇ", Cp437 }, // from french.words
+    { "rachetÇe", Cp437 }, // from french.words
     { "racheté", MacRoman }, // from french.words
     { "rachetée", MacRoman }, // from french.words
     { "rachetÈ", Iso885915 }, // from french.words
     { "rachetÈe", Iso885915 }, // from french.words
+    { "radõy", Cp865 }, // from norwegian.words
     { "radøy", MacRoman }, // from norwegian.words
     { "rad¯y", Iso885915 }, // from norwegian.words
+    { "raffinÇ", Cp437 }, // from french.words
+    { "raffinÇe", Cp437 }, // from french.words
     { "raffiné", MacRoman }, // from french.words
     { "raffinée", MacRoman }, // from french.words
     { "raffinÈ", Iso885915 }, // from french.words
     { "raffinÈe", Iso885915 }, // from french.words
+    { "ramenÇ", Cp437 }, // from french.words
     { "ramené", MacRoman }, // from french.words
     { "ramenÈ", Iso885915 }, // from french.words
+    { "rapiditÇ", Cp437 }, // from french.words
     { "rapidité", MacRoman }, // from french.words
     { "rapiditÈ", Iso885915 }, // from french.words
+    { "rappelÇ", Cp437 }, // from french.words
     { "rappelé", MacRoman }, // from french.words
     { "rappelÈ", Iso885915 }, // from french.words
+    { "rapportÇ", Cp437 }, // from french.words
     { "rapporté", MacRoman }, // from french.words
     { "rapportÈ", Iso885915 }, // from french.words
+    { "raretÇ", Cp437 }, // from french.words
     { "rareté", MacRoman }, // from french.words
     { "raretÈ", Iso885915 }, // from french.words
+    { "ratÇ", Cp437 }, // from french.words
     { "raté", MacRoman }, // from french.words
     { "ratÈ", Iso885915 }, // from french.words
+    { "recherchÇ", Cp437 }, // from french.words
     { "recherché", MacRoman }, // from french.words
     { "recherchÈ", Iso885915 }, // from french.words
+    { "recommandÇ", Cp437 }, // from french.words
+    { "recommandÇe", Cp437 }, // from french.words
     { "recommandé", MacRoman }, // from french.words
     { "recommandée", MacRoman }, // from french.words
     { "recommandÈ", Iso885915 }, // from french.words
     { "recommandÈe", Iso885915 }, // from french.words
+    { "reculÇ", Cp437 }, // from french.words
     { "reculé", MacRoman }, // from french.words
     { "reculÈ", Iso885915 }, // from french.words
+    { "redaktõr", Cp865 }, // from norwegian.words
+    { "redaktõren", Cp865 }, // from norwegian.words
     { "redaktør", MacRoman }, // from norwegian.words
     { "redaktøren", MacRoman }, // from norwegian.words
     { "redakt¯r", Iso885915 }, // from norwegian.words
     { "redakt¯ren", Iso885915 }, // from norwegian.words
+    { "redegjõrelse", Cp865 }, // from norwegian.words
     { "redegjørelse", MacRoman }, // from norwegian.words
     { "redegj¯relse", Iso885915 }, // from norwegian.words
+    { "refusÇ", Cp437 }, // from french.words
     { "refusé", MacRoman }, // from french.words
     { "refusÈ", Iso885915 }, // from french.words
+    { "regelmÑ·ig", Cp437 }, // from german.words
+    { "regelmÑ·ige", Cp437 }, // from german.words
+    { "regelmÑ·igen", Cp437 }, // from german.words
     { "regelmäßig", MacRoman }, // from german.words
     { "regelmäßige", MacRoman }, // from german.words
     { "regelmäßigen", MacRoman }, // from german.words
     { "regelm‰ﬂig", Iso885915 }, // from german.words
     { "regelm‰ﬂige", Iso885915 }, // from german.words
     { "regelm‰ﬂigen", Iso885915 }, // from german.words
+    { "regissõr", Cp865 }, // from norwegian.words
+    { "regissõren", Cp865 }, // from norwegian.words
     { "regissør", MacRoman }, // from norwegian.words
     { "regissøren", MacRoman }, // from norwegian.words
     { "regiss¯r", Iso885915 }, // from norwegian.words
     { "regiss¯ren", Iso885915 }, // from norwegian.words
+    { "regulÑren", Cp437 }, // from german.words
     { "regulären", MacRoman }, // from german.words
     { "regul‰ren", Iso885915 }, // from german.words
+    { "reißen", MacRoman }, // from german.words
     { "reißt", MacRoman }, // from german.words
+    { "reiﬂen", Iso885915 }, // from german.words
     { "reiﬂt", Iso885915 }, // from german.words
+    { "rei·en", Cp437 }, // from german.words
+    { "rei·t", Cp437 }, // from german.words
+    { "rejetÇ", Cp437 }, // from french.words
     { "rejeté", MacRoman }, // from french.words
     { "rejetÈ", Iso885915 }, // from french.words
+    { "relevÇ", Cp437 }, // from french.words
     { "relevé", MacRoman }, // from french.words
     { "relevÈ", Iso885915 }, // from french.words
+    { "religiîse", Cp437 }, // from german.words
+    { "religiîsen", Cp437 }, // from german.words
     { "religiöse", MacRoman }, // from german.words
     { "religiösen", MacRoman }, // from german.words
+    { "religiõs", Cp865 }, // from norwegian.words
+    { "religiõse", Cp865 }, // from norwegian.words
     { "religiøs", MacRoman }, // from norwegian.words
     { "religiøse", MacRoman }, // from norwegian.words
     { "religiˆse", Iso885915 }, // from german.words
     { "religiˆsen", Iso885915 }, // from german.words
     { "religi¯s", Iso885915 }, // from norwegian.words
     { "religi¯se", Iso885915 }, // from norwegian.words
+    { "reliÇ", Cp437 }, // from french.words
+    { "reliÇs", Cp437 }, // from french.words
     { "relié", MacRoman }, // from french.words
     { "reliés", MacRoman }, // from french.words
     { "reliÈ", Iso885915 }, // from french.words
     { "reliÈs", Iso885915 }, // from french.words
+    { "remarquÇ", Cp437 }, // from french.words
     { "remarqué", MacRoman }, // from french.words
     { "remarquÈ", Iso885915 }, // from french.words
+    { "remboursÇ", Cp437 }, // from french.words
     { "remboursé", MacRoman }, // from french.words
     { "remboursÈ", Iso885915 }, // from french.words
+    { "remontÇ", Cp437 }, // from french.words
+    { "remontÇe", Cp437 }, // from french.words
     { "remonté", MacRoman }, // from french.words
     { "remontée", MacRoman }, // from french.words
     { "remontÈ", Iso885915 }, // from french.words
     { "remontÈe", Iso885915 }, // from french.words
+    { "remplacÇ", Cp437 }, // from french.words
+    { "remplacÇs", Cp437 }, // from french.words
     { "remplacé", MacRoman }, // from french.words
     { "remplacés", MacRoman }, // from french.words
     { "remplacÈ", Iso885915 }, // from french.words
     { "remplacÈs", Iso885915 }, // from french.words
+    { "remportÇ", Cp437 }, // from french.words
     { "remporté", MacRoman }, // from french.words
     { "remportÈ", Iso885915 }, // from french.words
+    { "remÇdier", Cp437 }, // from french.words
     { "remédier", MacRoman }, // from french.words
     { "remÈdier", Iso885915 }, // from french.words
+    { "rencontrÇ", Cp437 }, // from french.words
+    { "rencontrÇs", Cp437 }, // from french.words
     { "rencontré", MacRoman }, // from french.words
     { "rencontrés", MacRoman }, // from french.words
     { "rencontrÈ", Iso885915 }, // from french.words
     { "rencontrÈs", Iso885915 }, // from french.words
+    { "renforcÇ", Cp437 }, // from french.words
+    { "renforcÇe", Cp437 }, // from french.words
     { "renforcé", MacRoman }, // from french.words
     { "renforcée", MacRoman }, // from french.words
     { "renforcÈ", Iso885915 }, // from french.words
     { "renforcÈe", Iso885915 }, // from french.words
+    { "renommÇe", Cp437 }, // from french.words
     { "renommée", MacRoman }, // from french.words
     { "renommÈe", Iso885915 }, // from french.words
+    { "renoncÇ", Cp437 }, // from french.words
     { "renoncé", MacRoman }, // from french.words
     { "renoncÈ", Iso885915 }, // from french.words
+    { "rentabilitÇ", Cp437 }, // from french.words
+    { "rentabilité", MacRoman }, // from french.words
+    { "rentabilitÈ", Iso885915 }, // from french.words
+    { "rentrÇe", Cp437 }, // from french.words
+    { "rentrÇes", Cp437 }, // from french.words
     { "rentrée", MacRoman }, // from french.words
     { "rentrées", MacRoman }, // from french.words
     { "rentrÈe", Iso885915 }, // from french.words
     { "rentrÈes", Iso885915 }, // from french.words
+    { "reprÇsentaient", Cp437 }, // from french.words
+    { "reprÇsentait", Cp437 }, // from french.words
+    { "reprÇsentant", Cp437 }, // from french.words
+    { "reprÇsentants", Cp437 }, // from french.words
+    { "reprÇsentatif", Cp437 }, // from french.words
+    { "reprÇsentation", Cp437 }, // from french.words
+    { "reprÇsentations", Cp437 }, // from french.words
+    { "reprÇsente", Cp437 }, // from french.words
+    { "reprÇsentent", Cp437 }, // from french.words
+    { "reprÇsenter", Cp437 }, // from french.words
+    { "reprÇsentÇ", Cp437 }, // from french.words
+    { "reprÇsentÇe", Cp437 }, // from french.words
+    { "reprÇsentÇes", Cp437 }, // from french.words
+    { "reprÇsentÇs", Cp437 }, // from french.words
+    { "reprÑsentiert", Cp437 }, // from german.words
     { "repräsentiert", MacRoman }, // from german.words
     { "représentaient", MacRoman }, // from french.words
     { "représentait", MacRoman }, // from french.words
+    { "représentant", MacRoman }, // from french.words
+    { "représentants", MacRoman }, // from french.words
     { "représentatif", MacRoman }, // from french.words
     { "représentation", MacRoman }, // from french.words
     { "représentations", MacRoman }, // from french.words
@@ -5242,6 +8297,8 @@ static const struct {
     { "repr‰sentiert", Iso885915 }, // from german.words
     { "reprÈsentaient", Iso885915 }, // from french.words
     { "reprÈsentait", Iso885915 }, // from french.words
+    { "reprÈsentant", Iso885915 }, // from french.words
+    { "reprÈsentants", Iso885915 }, // from french.words
     { "reprÈsentatif", Iso885915 }, // from french.words
     { "reprÈsentation", Iso885915 }, // from french.words
     { "reprÈsentations", Iso885915 }, // from french.words
@@ -5252,36 +8309,253 @@ static const struct {
     { "reprÈsentÈe", Iso885915 }, // from french.words
     { "reprÈsentÈes", Iso885915 }, // from french.words
     { "reprÈsentÈs", Iso885915 }, // from french.words
+    { "repÇrer", Cp437 }, // from french.words
     { "repérer", MacRoman }, // from french.words
     { "repÈrer", Iso885915 }, // from french.words
+    { "respectÇ", Cp437 }, // from french.words
     { "respecté", MacRoman }, // from french.words
     { "respectÈ", Iso885915 }, // from french.words
+    { "responsabilitÇ", Cp437 }, // from french.words
+    { "responsabilitÇs", Cp437 }, // from french.words
     { "responsabilité", MacRoman }, // from french.words
     { "responsabilités", MacRoman }, // from french.words
     { "responsabilitÈ", Iso885915 }, // from french.words
     { "responsabilitÈs", Iso885915 }, // from french.words
+    { "restÇ", Cp437 }, // from french.words
+    { "restÇe", Cp437 }, // from french.words
+    { "restÇs", Cp437 }, // from french.words
     { "resté", MacRoman }, // from french.words
     { "restée", MacRoman }, // from french.words
     { "restés", MacRoman }, // from french.words
     { "restÈ", Iso885915 }, // from french.words
     { "restÈe", Iso885915 }, // from french.words
     { "restÈs", Iso885915 }, // from french.words
+    { "retirÇ", Cp437 }, // from french.words
     { "retiré", MacRoman }, // from french.words
     { "retirÈ", Iso885915 }, // from french.words
+    { "retombÇ", Cp437 }, // from french.words
+    { "retombÇes", Cp437 }, // from french.words
     { "retombé", MacRoman }, // from french.words
+    { "retombées", MacRoman }, // from french.words
     { "retombÈ", Iso885915 }, // from french.words
+    { "retombÈes", Iso885915 }, // from french.words
+    { "retrouvÇ", Cp437 }, // from french.words
+    { "retrouvÇe", Cp437 }, // from french.words
     { "retrouvé", MacRoman }, // from french.words
     { "retrouvée", MacRoman }, // from french.words
     { "retrouvÈ", Iso885915 }, // from french.words
     { "retrouvÈe", Iso885915 }, // from french.words
+    { "risquÇ", Cp437 }, // from french.words
     { "risqué", MacRoman }, // from french.words
     { "risquÈ", Iso885915 }, // from french.words
     { "riß", MacRoman }, // from german.words
     { "riﬂ", Iso885915 }, // from german.words
+    { "ri·", Cp437 }, // from german.words
+    { "rosÇ", Cp437 }, // from french.words
     { "rosé", MacRoman }, // from french.words
     { "rosÈ", Iso885915 }, // from french.words
     { "rusk˝", Iso88592 }, // from czech.words
     { "rychl˝", Iso88592 }, // from czech.words
+    { "rÅcken", Cp437 }, // from german.words
+    { "rÅckgÑngig", Cp437 }, // from german.words
+    { "rÅcklÑufig", Cp437 }, // from german.words
+    { "rÅckt", Cp437 }, // from german.words
+    { "rÅckte", Cp437 }, // from german.words
+    { "rÇaction", Cp437 }, // from french.words
+    { "rÇactions", Cp437 }, // from french.words
+    { "rÇagi", Cp437 }, // from french.words
+    { "rÇagir", Cp437 }, // from french.words
+    { "rÇagit", Cp437 }, // from french.words
+    { "rÇalisable", Cp437 }, // from french.words
+    { "rÇalisant", Cp437 }, // from french.words
+    { "rÇalisateur", Cp437 }, // from french.words
+    { "rÇalisation", Cp437 }, // from french.words
+    { "rÇalisations", Cp437 }, // from french.words
+    { "rÇalise", Cp437 }, // from french.words
+    { "rÇalisent", Cp437 }, // from french.words
+    { "rÇaliser", Cp437 }, // from french.words
+    { "rÇalisme", Cp437 }, // from french.words
+    { "rÇaliste", Cp437 }, // from french.words
+    { "rÇalistes", Cp437 }, // from french.words
+    { "rÇalisÇ", Cp437 }, // from french.words
+    { "rÇalisÇe", Cp437 }, // from french.words
+    { "rÇalisÇes", Cp437 }, // from french.words
+    { "rÇalisÇs", Cp437 }, // from french.words
+    { "rÇalitÇ", Cp437 }, // from french.words
+    { "rÇalitÇs", Cp437 }, // from french.words
+    { "rÇcemment", Cp437 }, // from french.words
+    { "rÇcent", Cp437 }, // from french.words
+    { "rÇcente", Cp437 }, // from french.words
+    { "rÇcentes", Cp437 }, // from french.words
+    { "rÇcents", Cp437 }, // from french.words
+    { "rÇception", Cp437 }, // from french.words
+    { "rÇcession", Cp437 }, // from french.words
+    { "rÇcit", Cp437 }, // from french.words
+    { "rÇcits", Cp437 }, // from french.words
+    { "rÇclamation", Cp437 }, // from french.words
+    { "rÇclame", Cp437 }, // from french.words
+    { "rÇclament", Cp437 }, // from french.words
+    { "rÇclamer", Cp437 }, // from french.words
+    { "rÇcolte", Cp437 }, // from french.words
+    { "rÇcolter", Cp437 }, // from french.words
+    { "rÇcompense", Cp437 }, // from french.words
+    { "rÇcupÇration", Cp437 }, // from french.words
+    { "rÇcupÇrer", Cp437 }, // from french.words
+    { "rÇcupÇrÇ", Cp437 }, // from french.words
+    { "rÇdaction", Cp437 }, // from french.words
+    { "rÇdiger", Cp437 }, // from french.words
+    { "rÇdigÇ", Cp437 }, // from french.words
+    { "rÇduction", Cp437 }, // from french.words
+    { "rÇductions", Cp437 }, // from french.words
+    { "rÇduire", Cp437 }, // from french.words
+    { "rÇduisant", Cp437 }, // from french.words
+    { "rÇduisent", Cp437 }, // from french.words
+    { "rÇduit", Cp437 }, // from french.words
+    { "rÇduite", Cp437 }, // from french.words
+    { "rÇduites", Cp437 }, // from french.words
+    { "rÇduits", Cp437 }, // from french.words
+    { "rÇel", Cp437 }, // from french.words
+    { "rÇelle", Cp437 }, // from french.words
+    { "rÇellement", Cp437 }, // from french.words
+    { "rÇelles", Cp437 }, // from french.words
+    { "rÇels", Cp437 }, // from french.words
+    { "rÇflexe", Cp437 }, // from french.words
+    { "rÇflexion", Cp437 }, // from french.words
+    { "rÇflexions", Cp437 }, // from french.words
+    { "rÇflÇchir", Cp437 }, // from french.words
+    { "rÇforme", Cp437 }, // from french.words
+    { "rÇformes", Cp437 }, // from french.words
+    { "rÇfugiÇs", Cp437 }, // from french.words
+    { "rÇfÇrence", Cp437 }, // from french.words
+    { "rÇfÇrences", Cp437 }, // from french.words
+    { "rÇfÇrendum", Cp437 }, // from french.words
+    { "rÇgie", Cp437 }, // from french.words
+    { "rÇgime", Cp437 }, // from french.words
+    { "rÇgimes", Cp437 }, // from french.words
+    { "rÇgion", Cp437 }, // from french.words
+    { "rÇgional", Cp437 }, // from french.words
+    { "rÇgionale", Cp437 }, // from french.words
+    { "rÇgionales", Cp437 }, // from french.words
+    { "rÇgionaux", Cp437 }, // from french.words
+    { "rÇgions", Cp437 }, // from french.words
+    { "rÇglage", Cp437 }, // from french.words
+    { "rÇglementation", Cp437 }, // from french.words
+    { "rÇglementations", Cp437 }, // from french.words
+    { "rÇgler", Cp437 }, // from french.words
+    { "rÇglÇ", Cp437 }, // from french.words
+    { "rÇgression", Cp437 }, // from french.words
+    { "rÇgulation", Cp437 }, // from french.words
+    { "rÇgulier", Cp437 }, // from french.words
+    { "rÇguliers", Cp437 }, // from french.words
+    { "rÇjouir", Cp437 }, // from french.words
+    { "rÇmunÇration", Cp437 }, // from french.words
+    { "rÇmunÇrations", Cp437 }, // from french.words
+    { "rÇnovation", Cp437 }, // from french.words
+    { "rÇnovÇ", Cp437 }, // from french.words
+    { "rÇorganisation", Cp437 }, // from french.words
+    { "rÇpandu", Cp437 }, // from french.words
+    { "rÇpandue", Cp437 }, // from french.words
+    { "rÇparation", Cp437 }, // from french.words
+    { "rÇparations", Cp437 }, // from french.words
+    { "rÇparer", Cp437 }, // from french.words
+    { "rÇparti", Cp437 }, // from french.words
+    { "rÇparties", Cp437 }, // from french.words
+    { "rÇpartir", Cp437 }, // from french.words
+    { "rÇpartis", Cp437 }, // from french.words
+    { "rÇpartition", Cp437 }, // from french.words
+    { "rÇpercussions", Cp437 }, // from french.words
+    { "rÇpertoire", Cp437 }, // from french.words
+    { "rÇplique", Cp437 }, // from french.words
+    { "rÇpond", Cp437 }, // from french.words
+    { "rÇpondant", Cp437 }, // from french.words
+    { "rÇpondent", Cp437 }, // from french.words
+    { "rÇpondre", Cp437 }, // from french.words
+    { "rÇpondu", Cp437 }, // from french.words
+    { "rÇponse", Cp437 }, // from french.words
+    { "rÇponses", Cp437 }, // from french.words
+    { "rÇpression", Cp437 }, // from french.words
+    { "rÇputation", Cp437 }, // from french.words
+    { "rÇputÇ", Cp437 }, // from french.words
+    { "rÇputÇe", Cp437 }, // from french.words
+    { "rÇputÇs", Cp437 }, // from french.words
+    { "rÇpÇter", Cp437 }, // from french.words
+    { "rÇpÇtition", Cp437 }, // from french.words
+    { "rÇseau", Cp437 }, // from french.words
+    { "rÇseaux", Cp437 }, // from french.words
+    { "rÇservation", Cp437 }, // from french.words
+    { "rÇserve", Cp437 }, // from french.words
+    { "rÇserver", Cp437 }, // from french.words
+    { "rÇserves", Cp437 }, // from french.words
+    { "rÇservoir", Cp437 }, // from french.words
+    { "rÇservÇ", Cp437 }, // from french.words
+    { "rÇservÇe", Cp437 }, // from french.words
+    { "rÇservÇes", Cp437 }, // from french.words
+    { "rÇservÇs", Cp437 }, // from french.words
+    { "rÇside", Cp437 }, // from french.words
+    { "rÇsidence", Cp437 }, // from french.words
+    { "rÇsidentiel", Cp437 }, // from french.words
+    { "rÇsiduelle", Cp437 }, // from french.words
+    { "rÇsistance", Cp437 }, // from french.words
+    { "rÇsistant", Cp437 }, // from french.words
+    { "rÇsiste", Cp437 }, // from french.words
+    { "rÇsister", Cp437 }, // from french.words
+    { "rÇsistÇ", Cp437 }, // from french.words
+    { "rÇsolu", Cp437 }, // from french.words
+    { "rÇsolument", Cp437 }, // from french.words
+    { "rÇsolution", Cp437 }, // from french.words
+    { "rÇsoudre", Cp437 }, // from french.words
+    { "rÇsultant", Cp437 }, // from french.words
+    { "rÇsultat", Cp437 }, // from french.words
+    { "rÇsultats", Cp437 }, // from french.words
+    { "rÇsulte", Cp437 }, // from french.words
+    { "rÇsume", Cp437 }, // from french.words
+    { "rÇsumÇ", Cp437 }, // from french.words
+    { "rÇtablir", Cp437 }, // from french.words
+    { "rÇtablissement", Cp437 }, // from french.words
+    { "rÇticences", Cp437 }, // from french.words
+    { "rÇtrospective", Cp437 }, // from french.words
+    { "rÇuni", Cp437 }, // from french.words
+    { "rÇunies", Cp437 }, // from french.words
+    { "rÇunion", Cp437 }, // from french.words
+    { "rÇunions", Cp437 }, // from french.words
+    { "rÇunir", Cp437 }, // from french.words
+    { "rÇunis", Cp437 }, // from french.words
+    { "rÇunissant", Cp437 }, // from french.words
+    { "rÇunit", Cp437 }, // from french.words
+    { "rÇussi", Cp437 }, // from french.words
+    { "rÇussie", Cp437 }, // from french.words
+    { "rÇussir", Cp437 }, // from french.words
+    { "rÇussit", Cp437 }, // from french.words
+    { "rÇussite", Cp437 }, // from french.words
+    { "rÇvision", Cp437 }, // from french.words
+    { "rÇvolte", Cp437 }, // from french.words
+    { "rÇvolution", Cp437 }, // from french.words
+    { "rÇvolutionnaire", Cp437 }, // from french.words
+    { "rÇvÇlateur", Cp437 }, // from french.words
+    { "rÇvÇlation", Cp437 }, // from french.words
+    { "rÇvÇler", Cp437 }, // from french.words
+    { "rÇvÇlÇ", Cp437 }, // from french.words
+    { "rÑt", Cp437 }, // from german.words
+    { "rÑumen", Cp437 }, // from german.words
+    { "rÑumt", Cp437 }, // from german.words
+    { "rÑumte", Cp437 }, // from german.words
+    { "rÜ", Cp865 }, // from norwegian.words
+    { "rÜd", Cp865 }, // from norwegian.words
+    { "rÜdalen", Cp865 }, // from norwegian.words
+    { "rÜder", Cp865 }, // from norwegian.words
+    { "rÜdet", Cp865 }, // from norwegian.words
+    { "rÜdgivende", Cp865 }, // from norwegian.words
+    { "rÜdgiver", Cp865 }, // from norwegian.words
+    { "rÜdgivere", Cp865 }, // from norwegian.words
+    { "rÜdhus", Cp865 }, // from norwegian.words
+    { "rÜdhuset", Cp865 }, // from norwegian.words
+    { "rÜdighet", Cp865 }, // from norwegian.words
+    { "rÜdmann", Cp865 }, // from norwegian.words
+    { "rÜdmannen", Cp865 }, // from norwegian.words
+    { "rÜdmannens", Cp865 }, // from norwegian.words
+    { "rÜr", Cp865 }, // from norwegian.words
+    { "rÜtt", Cp865 }, // from norwegian.words
+    { "rÜvarer", Cp865 }, // from norwegian.words
     { "rät", MacRoman }, // from german.words
     { "räumen", MacRoman }, // from german.words
     { "räumt", MacRoman }, // from german.words
@@ -5321,9 +8595,12 @@ static const struct {
     { "réalistes", MacRoman }, // from french.words
     { "réalisé", MacRoman }, // from french.words
     { "réalisée", MacRoman }, // from french.words
+    { "réalisées", MacRoman }, // from french.words
+    { "réalisés", MacRoman }, // from french.words
     { "réalité", MacRoman }, // from french.words
     { "réalités", MacRoman }, // from french.words
     { "récemment", MacRoman }, // from french.words
+    { "récent", MacRoman }, // from french.words
     { "récente", MacRoman }, // from french.words
     { "récentes", MacRoman }, // from french.words
     { "récents", MacRoman }, // from french.words
@@ -5339,6 +8616,7 @@ static const struct {
     { "récolter", MacRoman }, // from french.words
     { "récompense", MacRoman }, // from french.words
     { "récupération", MacRoman }, // from french.words
+    { "récupérer", MacRoman }, // from french.words
     { "récupéré", MacRoman }, // from french.words
     { "rédaction", MacRoman }, // from french.words
     { "rédiger", MacRoman }, // from french.words
@@ -5346,6 +8624,7 @@ static const struct {
     { "réduction", MacRoman }, // from french.words
     { "réductions", MacRoman }, // from french.words
     { "réduire", MacRoman }, // from french.words
+    { "réduisant", MacRoman }, // from french.words
     { "réduisent", MacRoman }, // from french.words
     { "réduit", MacRoman }, // from french.words
     { "réduite", MacRoman }, // from french.words
@@ -5356,6 +8635,7 @@ static const struct {
     { "réellement", MacRoman }, // from french.words
     { "réelles", MacRoman }, // from french.words
     { "réels", MacRoman }, // from french.words
+    { "réflexe", MacRoman }, // from french.words
     { "réflexion", MacRoman }, // from french.words
     { "réflexions", MacRoman }, // from french.words
     { "réfléchir", MacRoman }, // from french.words
@@ -5369,19 +8649,24 @@ static const struct {
     { "régime", MacRoman }, // from french.words
     { "régimes", MacRoman }, // from french.words
     { "région", MacRoman }, // from french.words
+    { "régional", MacRoman }, // from french.words
     { "régionale", MacRoman }, // from french.words
     { "régionales", MacRoman }, // from french.words
     { "régionaux", MacRoman }, // from french.words
     { "régions", MacRoman }, // from french.words
     { "réglage", MacRoman }, // from french.words
+    { "réglementation", MacRoman }, // from french.words
     { "réglementations", MacRoman }, // from french.words
     { "régler", MacRoman }, // from french.words
     { "réglé", MacRoman }, // from french.words
+    { "régression", MacRoman }, // from french.words
     { "régulation", MacRoman }, // from french.words
     { "régulier", MacRoman }, // from french.words
     { "réguliers", MacRoman }, // from french.words
     { "réjouir", MacRoman }, // from french.words
+    { "rémunération", MacRoman }, // from french.words
     { "rémunérations", MacRoman }, // from french.words
+    { "rénovation", MacRoman }, // from french.words
     { "rénové", MacRoman }, // from french.words
     { "réorganisation", MacRoman }, // from french.words
     { "répandu", MacRoman }, // from french.words
@@ -5422,6 +8707,7 @@ static const struct {
     { "réservée", MacRoman }, // from french.words
     { "réservées", MacRoman }, // from french.words
     { "réservés", MacRoman }, // from french.words
+    { "réside", MacRoman }, // from french.words
     { "résidence", MacRoman }, // from french.words
     { "résidentiel", MacRoman }, // from french.words
     { "résiduelle", MacRoman }, // from french.words
@@ -5433,6 +8719,7 @@ static const struct {
     { "résolu", MacRoman }, // from french.words
     { "résolument", MacRoman }, // from french.words
     { "résolution", MacRoman }, // from french.words
+    { "résoudre", MacRoman }, // from french.words
     { "résultant", MacRoman }, // from french.words
     { "résultat", MacRoman }, // from french.words
     { "résultats", MacRoman }, // from french.words
@@ -5445,6 +8732,7 @@ static const struct {
     { "rétrospective", MacRoman }, // from french.words
     { "réuni", MacRoman }, // from french.words
     { "réunies", MacRoman }, // from french.words
+    { "réunion", MacRoman }, // from french.words
     { "réunions", MacRoman }, // from french.words
     { "réunir", MacRoman }, // from french.words
     { "réunis", MacRoman }, // from french.words
@@ -5457,15 +8745,46 @@ static const struct {
     { "réussite", MacRoman }, // from french.words
     { "révision", MacRoman }, // from french.words
     { "révolte", MacRoman }, // from french.words
+    { "révolution", MacRoman }, // from french.words
     { "révolutionnaire", MacRoman }, // from french.words
     { "révélateur", MacRoman }, // from french.words
     { "révélation", MacRoman }, // from french.words
     { "révéler", MacRoman }, // from french.words
     { "révélé", MacRoman }, // from french.words
+    { "rîmische", Cp437 }, // from german.words
+    { "rîmischen", Cp437 }, // from german.words
     { "römische", MacRoman }, // from german.words
     { "römischen", MacRoman }, // from german.words
+    { "rõd", Cp865 }, // from norwegian.words
+    { "rõde", Cp865 }, // from norwegian.words
+    { "rõdland", Cp865 }, // from norwegian.words
+    { "rõdt", Cp865 }, // from norwegian.words
+    { "rõdtrõyene", Cp865 }, // from norwegian.words
+    { "rõdvin", Cp865 }, // from norwegian.words
+    { "rõk", Cp865 }, // from norwegian.words
+    { "rõkke", Cp865 }, // from norwegian.words
+    { "rõmme", Cp865 }, // from norwegian.words
+    { "rõnbeck", Cp865 }, // from norwegian.words
+    { "rõnning", Cp865 }, // from norwegian.words
+    { "rõpe", Cp865 }, // from norwegian.words
+    { "rõper", Cp865 }, // from norwegian.words
+    { "rõr", Cp865 }, // from norwegian.words
+    { "rõre", Cp865 }, // from norwegian.words
+    { "rõrende", Cp865 }, // from norwegian.words
+    { "rõrer", Cp865 }, // from norwegian.words
+    { "rõros", Cp865 }, // from norwegian.words
+    { "rõrt", Cp865 }, // from norwegian.words
+    { "rõst", Cp865 }, // from norwegian.words
+    { "rõste", Cp865 }, // from norwegian.words
+    { "rõtter", Cp865 }, // from norwegian.words
+    { "rõyk", Cp865 }, // from norwegian.words
+    { "rõyke", Cp865 }, // from norwegian.words
+    { "rõyken", Cp865 }, // from norwegian.words
+    { "rõyker", Cp865 }, // from norwegian.words
+    { "rõyking", Cp865 }, // from norwegian.words
     { "rücken", MacRoman }, // from german.words
     { "rückgängig", MacRoman }, // from german.words
+    { "rückläufig", MacRoman }, // from german.words
     { "rückt", MacRoman }, // from german.words
     { "rückte", MacRoman }, // from german.words
     { "rød", MacRoman }, // from norwegian.words
@@ -5534,9 +8853,12 @@ static const struct {
     { "rÈalistes", Iso885915 }, // from french.words
     { "rÈalisÈ", Iso885915 }, // from french.words
     { "rÈalisÈe", Iso885915 }, // from french.words
+    { "rÈalisÈes", Iso885915 }, // from french.words
+    { "rÈalisÈs", Iso885915 }, // from french.words
     { "rÈalitÈ", Iso885915 }, // from french.words
     { "rÈalitÈs", Iso885915 }, // from french.words
     { "rÈcemment", Iso885915 }, // from french.words
+    { "rÈcent", Iso885915 }, // from french.words
     { "rÈcente", Iso885915 }, // from french.words
     { "rÈcentes", Iso885915 }, // from french.words
     { "rÈcents", Iso885915 }, // from french.words
@@ -5552,6 +8874,7 @@ static const struct {
     { "rÈcolter", Iso885915 }, // from french.words
     { "rÈcompense", Iso885915 }, // from french.words
     { "rÈcupÈration", Iso885915 }, // from french.words
+    { "rÈcupÈrer", Iso885915 }, // from french.words
     { "rÈcupÈrÈ", Iso885915 }, // from french.words
     { "rÈdaction", Iso885915 }, // from french.words
     { "rÈdiger", Iso885915 }, // from french.words
@@ -5559,6 +8882,7 @@ static const struct {
     { "rÈduction", Iso885915 }, // from french.words
     { "rÈductions", Iso885915 }, // from french.words
     { "rÈduire", Iso885915 }, // from french.words
+    { "rÈduisant", Iso885915 }, // from french.words
     { "rÈduisent", Iso885915 }, // from french.words
     { "rÈduit", Iso885915 }, // from french.words
     { "rÈduite", Iso885915 }, // from french.words
@@ -5569,6 +8893,7 @@ static const struct {
     { "rÈellement", Iso885915 }, // from french.words
     { "rÈelles", Iso885915 }, // from french.words
     { "rÈels", Iso885915 }, // from french.words
+    { "rÈflexe", Iso885915 }, // from french.words
     { "rÈflexion", Iso885915 }, // from french.words
     { "rÈflexions", Iso885915 }, // from french.words
     { "rÈflÈchir", Iso885915 }, // from french.words
@@ -5582,19 +8907,24 @@ static const struct {
     { "rÈgime", Iso885915 }, // from french.words
     { "rÈgimes", Iso885915 }, // from french.words
     { "rÈgion", Iso885915 }, // from french.words
+    { "rÈgional", Iso885915 }, // from french.words
     { "rÈgionale", Iso885915 }, // from french.words
     { "rÈgionales", Iso885915 }, // from french.words
     { "rÈgionaux", Iso885915 }, // from french.words
     { "rÈgions", Iso885915 }, // from french.words
     { "rÈglage", Iso885915 }, // from french.words
+    { "rÈglementation", Iso885915 }, // from french.words
     { "rÈglementations", Iso885915 }, // from french.words
     { "rÈgler", Iso885915 }, // from french.words
     { "rÈglÈ", Iso885915 }, // from french.words
+    { "rÈgression", Iso885915 }, // from french.words
     { "rÈgulation", Iso885915 }, // from french.words
     { "rÈgulier", Iso885915 }, // from french.words
     { "rÈguliers", Iso885915 }, // from french.words
     { "rÈjouir", Iso885915 }, // from french.words
+    { "rÈmunÈration", Iso885915 }, // from french.words
     { "rÈmunÈrations", Iso885915 }, // from french.words
+    { "rÈnovation", Iso885915 }, // from french.words
     { "rÈnovÈ", Iso885915 }, // from french.words
     { "rÈorganisation", Iso885915 }, // from french.words
     { "rÈpandu", Iso885915 }, // from french.words
@@ -5635,6 +8965,7 @@ static const struct {
     { "rÈservÈe", Iso885915 }, // from french.words
     { "rÈservÈes", Iso885915 }, // from french.words
     { "rÈservÈs", Iso885915 }, // from french.words
+    { "rÈside", Iso885915 }, // from french.words
     { "rÈsidence", Iso885915 }, // from french.words
     { "rÈsidentiel", Iso885915 }, // from french.words
     { "rÈsiduelle", Iso885915 }, // from french.words
@@ -5646,6 +8977,7 @@ static const struct {
     { "rÈsolu", Iso885915 }, // from french.words
     { "rÈsolument", Iso885915 }, // from french.words
     { "rÈsolution", Iso885915 }, // from french.words
+    { "rÈsoudre", Iso885915 }, // from french.words
     { "rÈsultant", Iso885915 }, // from french.words
     { "rÈsultat", Iso885915 }, // from french.words
     { "rÈsultats", Iso885915 }, // from french.words
@@ -5658,6 +8990,7 @@ static const struct {
     { "rÈtrospective", Iso885915 }, // from french.words
     { "rÈuni", Iso885915 }, // from french.words
     { "rÈunies", Iso885915 }, // from french.words
+    { "rÈunion", Iso885915 }, // from french.words
     { "rÈunions", Iso885915 }, // from french.words
     { "rÈunir", Iso885915 }, // from french.words
     { "rÈunis", Iso885915 }, // from french.words
@@ -5670,6 +9003,7 @@ static const struct {
     { "rÈussite", Iso885915 }, // from french.words
     { "rÈvision", Iso885915 }, // from french.words
     { "rÈvolte", Iso885915 }, // from french.words
+    { "rÈvolution", Iso885915 }, // from french.words
     { "rÈvolutionnaire", Iso885915 }, // from french.words
     { "rÈvÈlateur", Iso885915 }, // from french.words
     { "rÈvÈlation", Iso885915 }, // from french.words
@@ -5708,57 +9042,100 @@ static const struct {
     { "r˘zn˝", Iso88592 }, // from czech.words
     { "r¸cken", Iso885915 }, // from german.words
     { "r¸ckg‰ngig", Iso885915 }, // from german.words
+    { "r¸ckl‰ufig", Iso885915 }, // from german.words
     { "r¸ckt", Iso885915 }, // from german.words
     { "r¸ckte", Iso885915 }, // from german.words
+    { "sacrÇ", Cp437 }, // from french.words
     { "sacré", MacRoman }, // from french.words
     { "sacrÈ", Iso885915 }, // from french.words
+    { "salariÇ", Cp437 }, // from french.words
+    { "salariÇs", Cp437 }, // from french.words
     { "salarié", MacRoman }, // from french.words
+    { "salariés", MacRoman }, // from french.words
     { "salariÈ", Iso885915 }, // from french.words
+    { "salariÈs", Iso885915 }, // from french.words
+    { "salÇe", Cp437 }, // from french.words
     { "salée", MacRoman }, // from french.words
     { "salÈe", Iso885915 }, // from french.words
+    { "sammenslÜing", Cp865 }, // from norwegian.words
     { "sammenslåing", MacRoman }, // from norwegian.words
     { "sammenslÂing", Iso885915 }, // from norwegian.words
+    { "sammenstõt", Cp865 }, // from norwegian.words
+    { "sammenstõtet", Cp865 }, // from norwegian.words
     { "sammenstøt", MacRoman }, // from norwegian.words
     { "sammenstøtet", MacRoman }, // from norwegian.words
     { "sammenst¯t", Iso885915 }, // from norwegian.words
     { "sammenst¯tet", Iso885915 }, // from norwegian.words
+    { "samrÜd", Cp865 }, // from norwegian.words
     { "samråd", MacRoman }, // from norwegian.words
     { "samrÂd", Iso885915 }, // from norwegian.words
+    { "samvër", Cp865 }, // from norwegian.words
     { "samvær", MacRoman }, // from norwegian.words
     { "samvÊr", Iso885915 }, // from norwegian.words
+    { "santÇ", Cp437 }, // from french.words
     { "santé", MacRoman }, // from french.words
     { "santÈ", Iso885915 }, // from french.words
+    { "sauvÇ", Cp437 }, // from french.words
     { "sauvé", MacRoman }, // from french.words
     { "sauvÈ", Iso885915 }, // from french.words
     { "saß", MacRoman }, // from german.words
     { "saßen", MacRoman }, // from german.words
     { "saﬂ", Iso885915 }, // from german.words
     { "saﬂen", Iso885915 }, // from german.words
+    { "sa·", Cp437 }, // from german.words
+    { "sa·en", Cp437 }, // from german.words
     { "schießen", MacRoman }, // from german.words
     { "schießt", MacRoman }, // from german.words
     { "schieﬂen", Iso885915 }, // from german.words
     { "schieﬂt", Iso885915 }, // from german.words
+    { "schie·en", Cp437 }, // from german.words
+    { "schie·t", Cp437 }, // from german.words
     { "schließen", MacRoman }, // from german.words
+    { "schließlich", MacRoman }, // from german.words
     { "schließt", MacRoman }, // from german.words
     { "schlieﬂen", Iso885915 }, // from german.words
+    { "schlieﬂlich", Iso885915 }, // from german.words
     { "schlieﬂt", Iso885915 }, // from german.words
+    { "schlie·en", Cp437 }, // from german.words
+    { "schlie·lich", Cp437 }, // from german.words
+    { "schlie·t", Cp437 }, // from german.words
     { "schloß", MacRoman }, // from german.words
     { "schloﬂ", Iso885915 }, // from german.words
+    { "schlo·", Cp437 }, // from german.words
+    { "schlÑgt", Cp437 }, // from german.words
     { "schlägt", MacRoman }, // from german.words
     { "schl‰gt", Iso885915 }, // from german.words
     { "schoß", MacRoman }, // from german.words
     { "schoﬂ", Iso885915 }, // from german.words
+    { "scho·", Cp437 }, // from german.words
+    { "schrõder", Cp865 }, // from norwegian.words
     { "schrøder", MacRoman }, // from norwegian.words
     { "schr¯der", Iso885915 }, // from norwegian.words
+    { "schwÑcher", Cp437 }, // from german.words
+    { "schwÑrmt", Cp437 }, // from german.words
     { "schwächer", MacRoman }, // from german.words
     { "schwärmt", MacRoman }, // from german.words
     { "schw‰cher", Iso885915 }, // from german.words
     { "schw‰rmt", Iso885915 }, // from german.words
+    { "schÅtzen", Cp437 }, // from german.words
+    { "schÅtzt", Cp437 }, // from german.words
+    { "schÇma", Cp437 }, // from french.words
+    { "schÇmas", Cp437 }, // from french.words
+    { "schÑtzen", Cp437 }, // from german.words
+    { "schÑtzt", Cp437 }, // from german.words
+    { "schÑtzungsweise", Cp437 }, // from german.words
     { "schätzen", MacRoman }, // from german.words
     { "schätzt", MacRoman }, // from german.words
     { "schätzungsweise", MacRoman }, // from german.words
     { "schéma", MacRoman }, // from french.words
     { "schémas", MacRoman }, // from french.words
+    { "schîn", Cp437 }, // from german.words
+    { "schîne", Cp437 }, // from german.words
+    { "schînen", Cp437 }, // from german.words
+    { "schîner", Cp437 }, // from german.words
+    { "schînes", Cp437 }, // from german.words
+    { "schînste", Cp437 }, // from german.words
+    { "schînsten", Cp437 }, // from german.words
     { "schön", MacRoman }, // from german.words
     { "schöne", MacRoman }, // from german.words
     { "schönen", MacRoman }, // from german.words
@@ -5782,77 +9159,124 @@ static const struct {
     { "schˆnsten", Iso885915 }, // from german.words
     { "sch¸tzen", Iso885915 }, // from german.words
     { "sch¸tzt", Iso885915 }, // from german.words
+    { "scÇnario", Cp437 }, // from french.words
+    { "scÇnarios", Cp437 }, // from french.words
     { "scénario", MacRoman }, // from french.words
     { "scénarios", MacRoman }, // from french.words
     { "scÈnario", Iso885915 }, // from french.words
     { "scÈnarios", Iso885915 }, // from french.words
+    { "secrÇtaire", Cp437 }, // from french.words
+    { "secrÇtariat", Cp437 }, // from french.words
     { "secrétaire", MacRoman }, // from french.words
     { "secrétariat", MacRoman }, // from french.words
     { "secrÈtaire", Iso885915 }, // from french.words
     { "secrÈtariat", Iso885915 }, // from french.words
+    { "sekretër", Cp865 }, // from norwegian.words
     { "sekretær", MacRoman }, // from norwegian.words
     { "sekretÊr", Iso885915 }, // from norwegian.words
     { "selbstbewußt", MacRoman }, // from german.words
     { "selbstbewuﬂt", Iso885915 }, // from german.words
+    { "selbstbewu·t", Cp437 }, // from german.words
+    { "selbstverstÑndlich", Cp437 }, // from german.words
     { "selbstverständlich", MacRoman }, // from german.words
     { "selbstverst‰ndlich", Iso885915 }, // from german.words
+    { "selbstÑndig", Cp437 }, // from german.words
     { "selbständig", MacRoman }, // from german.words
     { "selbst‰ndig", Iso885915 }, // from german.words
+    { "selvfõlge", Cp865 }, // from norwegian.words
+    { "selvfõlgelig", Cp865 }, // from norwegian.words
     { "selvfølge", MacRoman }, // from norwegian.words
     { "selvfølgelig", MacRoman }, // from norwegian.words
     { "selvf¯lge", Iso885915 }, // from norwegian.words
     { "selvf¯lgelig", Iso885915 }, // from norwegian.words
+    { "sensibilitÇ", Cp437 }, // from french.words
     { "sensibilité", MacRoman }, // from french.words
     { "sensibilitÈ", Iso885915 }, // from french.words
+    { "sensualitÇ", Cp437 }, // from french.words
     { "sensualité", MacRoman }, // from french.words
     { "sensualitÈ", Iso885915 }, // from french.words
+    { "sentralbyrÜ", Cp865 }, // from norwegian.words
     { "sentralbyrå", MacRoman }, // from norwegian.words
     { "sentralbyrÂ", Iso885915 }, // from norwegian.words
+    { "seriõs", Cp865 }, // from norwegian.words
+    { "seriõse", Cp865 }, // from norwegian.words
+    { "seriõst", Cp865 }, // from norwegian.words
     { "seriøs", MacRoman }, // from norwegian.words
     { "seriøse", MacRoman }, // from norwegian.words
     { "seriøst", MacRoman }, // from norwegian.words
     { "seri¯s", Iso885915 }, // from norwegian.words
     { "seri¯se", Iso885915 }, // from norwegian.words
     { "seri¯st", Iso885915 }, // from norwegian.words
+    { "sexualitÇ", Cp437 }, // from french.words
     { "sexualité", MacRoman }, // from french.words
     { "sexualitÈ", Iso885915 }, // from french.words
+    { "sidÇrurgie", Cp437 }, // from french.words
+    { "sidÇrurgique", Cp437 }, // from french.words
+    { "sidÇrurgiste", Cp437 }, // from french.words
     { "sidérurgie", MacRoman }, // from french.words
     { "sidérurgique", MacRoman }, // from french.words
     { "sidérurgiste", MacRoman }, // from french.words
     { "sidÈrurgie", Iso885915 }, // from french.words
     { "sidÈrurgique", Iso885915 }, // from french.words
     { "sidÈrurgiste", Iso885915 }, // from french.words
+    { "sigbjõrn", Cp865 }, // from norwegian.words
     { "sigbjørn", MacRoman }, // from norwegian.words
     { "sigbj¯rn", Iso885915 }, // from norwegian.words
+    { "signalÇ", Cp437 }, // from french.words
     { "signalé", MacRoman }, // from french.words
     { "signalÈ", Iso885915 }, // from french.words
+    { "signÇ", Cp437 }, // from french.words
+    { "signÇe", Cp437 }, // from french.words
+    { "signÇs", Cp437 }, // from french.words
     { "signé", MacRoman }, // from french.words
     { "signée", MacRoman }, // from french.words
     { "signés", MacRoman }, // from french.words
     { "signÈ", Iso885915 }, // from french.words
     { "signÈe", Iso885915 }, // from french.words
     { "signÈs", Iso885915 }, // from french.words
+    { "sikkerhetsrÜdet", Cp865 }, // from norwegian.words
     { "sikkerhetsrådet", MacRoman }, // from norwegian.words
     { "sikkerhetsrÂdet", Iso885915 }, // from norwegian.words
     { "siln˝", Iso88592 }, // from czech.words
+    { "simplicitÇ", Cp437 }, // from french.words
     { "simplicité", MacRoman }, // from french.words
     { "simplicitÈ", Iso885915 }, // from french.words
+    { "simultanÇment", Cp437 }, // from french.words
     { "simultanément", MacRoman }, // from french.words
     { "simultanÈment", Iso885915 }, // from french.words
+    { "situÇ", Cp437 }, // from french.words
+    { "situÇe", Cp437 }, // from french.words
+    { "situÇes", Cp437 }, // from french.words
+    { "situÇs", Cp437 }, // from french.words
+    { "situé", MacRoman }, // from french.words
     { "située", MacRoman }, // from french.words
     { "situées", MacRoman }, // from french.words
     { "situés", MacRoman }, // from french.words
+    { "situÈ", Iso885915 }, // from french.words
     { "situÈe", Iso885915 }, // from french.words
     { "situÈes", Iso885915 }, // from french.words
     { "situÈs", Iso885915 }, // from french.words
+    { "sivilingeniõr", Cp865 }, // from norwegian.words
     { "sivilingeniør", MacRoman }, // from norwegian.words
     { "sivilingeni¯r", Iso885915 }, // from norwegian.words
+    { "sjanselõs", Cp865 }, // from norwegian.words
     { "sjanseløs", MacRoman }, // from norwegian.words
     { "sjansel¯s", Iso885915 }, // from norwegian.words
+    { "sjefredaktõr", Cp865 }, // from norwegian.words
     { "sjefredaktør", MacRoman }, // from norwegian.words
     { "sjefredakt¯r", Iso885915 }, // from norwegian.words
+    { "sjÜfõr", Cp865 }, // from norwegian.words
+    { "sjÜfõren", Cp865 }, // from norwegian.words
     { "sjåfør", MacRoman }, // from norwegian.words
     { "sjåføren", MacRoman }, // from norwegian.words
+    { "sjõ", Cp865 }, // from norwegian.words
+    { "sjõberg", Cp865 }, // from norwegian.words
+    { "sjõen", Cp865 }, // from norwegian.words
+    { "sjõfolk", Cp865 }, // from norwegian.words
+    { "sjõl", Cp865 }, // from norwegian.words
+    { "sjõlv", Cp865 }, // from norwegian.words
+    { "sjõlyst", Cp865 }, // from norwegian.words
+    { "sjõs", Cp865 }, // from norwegian.words
     { "sjø", MacRoman }, // from norwegian.words
     { "sjøberg", MacRoman }, // from norwegian.words
     { "sjøen", MacRoman }, // from norwegian.words
@@ -5871,6 +9295,18 @@ static const struct {
     { "sj¯lv", Iso885915 }, // from norwegian.words
     { "sj¯lyst", Iso885915 }, // from norwegian.words
     { "sj¯s", Iso885915 }, // from norwegian.words
+    { "skjër", Cp865 }, // from norwegian.words
+    { "skjëre", Cp865 }, // from norwegian.words
+    { "skjërer", Cp865 }, // from norwegian.words
+    { "skjëres", Cp865 }, // from norwegian.words
+    { "skjõnn", Cp865 }, // from norwegian.words
+    { "skjõnne", Cp865 }, // from norwegian.words
+    { "skjõnner", Cp865 }, // from norwegian.words
+    { "skjõnnhet", Cp865 }, // from norwegian.words
+    { "skjõnt", Cp865 }, // from norwegian.words
+    { "skjõnte", Cp865 }, // from norwegian.words
+    { "skjõrt", Cp865 }, // from norwegian.words
+    { "skjõt", Cp865 }, // from norwegian.words
     { "skjær", MacRoman }, // from norwegian.words
     { "skjære", MacRoman }, // from norwegian.words
     { "skjærer", MacRoman }, // from norwegian.words
@@ -5895,22 +9331,33 @@ static const struct {
     { "skj¯nte", Iso885915 }, // from norwegian.words
     { "skj¯rt", Iso885915 }, // from norwegian.words
     { "skj¯t", Iso885915 }, // from norwegian.words
+    { "skoleÜret", Cp865 }, // from norwegian.words
     { "skoleåret", MacRoman }, // from norwegian.words
     { "skoleÂret", Iso885915 }, // from norwegian.words
     { "skonËit", Iso88592 }, // from czech.words
     { "skuteËn˝", Iso88592 }, // from czech.words
+    { "skytevÜpen", Cp865 }, // from norwegian.words
     { "skytevåpen", MacRoman }, // from norwegian.words
     { "skytevÂpen", Iso885915 }, // from norwegian.words
+    { "skÜrdal", Cp865 }, // from norwegian.words
+    { "skÜret", Cp865 }, // from norwegian.words
     { "skårdal", MacRoman }, // from norwegian.words
     { "skåret", MacRoman }, // from norwegian.words
+    { "skõyter", Cp865 }, // from norwegian.words
     { "skøyter", MacRoman }, // from norwegian.words
     { "skÂrdal", Iso885915 }, // from norwegian.words
     { "skÂret", Iso885915 }, // from norwegian.words
     { "sk¯yter", Iso885915 }, // from norwegian.words
+    { "slalÜm", Cp865 }, // from norwegian.words
     { "slalåm", MacRoman }, // from norwegian.words
     { "slalÂm", Iso885915 }, // from norwegian.words
     { "slovensk˝", Iso88592 }, // from czech.words
     { "sluæba", Iso88592 }, // from czech.words
+    { "slÜ", Cp865 }, // from norwegian.words
+    { "slÜr", Cp865 }, // from norwegian.words
+    { "slÜs", Cp865 }, // from norwegian.words
+    { "slÜss", Cp865 }, // from norwegian.words
+    { "slÜtt", Cp865 }, // from norwegian.words
     { "slå", MacRoman }, // from norwegian.words
     { "slår", MacRoman }, // from norwegian.words
     { "slås", MacRoman }, // from norwegian.words
@@ -5921,63 +9368,134 @@ static const struct {
     { "slÂs", Iso885915 }, // from norwegian.words
     { "slÂss", Iso885915 }, // from norwegian.words
     { "slÂtt", Iso885915 }, // from norwegian.words
+    { "smÜ", Cp865 }, // from norwegian.words
+    { "smÜtt", Cp865 }, // from norwegian.words
     { "små", MacRoman }, // from norwegian.words
     { "smått", MacRoman }, // from norwegian.words
+    { "smõr", Cp865 }, // from norwegian.words
     { "smør", MacRoman }, // from norwegian.words
     { "smÂ", Iso885915 }, // from norwegian.words
     { "smÂtt", Iso885915 }, // from norwegian.words
+    { "smÏt", Iso88592 }, // from czech.words
     { "sm¯r", Iso885915 }, // from norwegian.words
     { "snaæit", Iso88592 }, // from czech.words
+    { "snõ", Cp865 }, // from norwegian.words
+    { "snõen", Cp865 }, // from norwegian.words
     { "snø", MacRoman }, // from norwegian.words
     { "snøen", MacRoman }, // from norwegian.words
     { "snÌmek", Iso88592 }, // from czech.words
+    { "snÌæit", Iso88592 }, // from czech.words
     { "sn¯", Iso885915 }, // from norwegian.words
     { "sn¯en", Iso885915 }, // from norwegian.words
+    { "sobriÇtÇ", Cp437 }, // from french.words
+    { "sobriété", MacRoman }, // from french.words
+    { "sobriÈtÈ", Iso885915 }, // from french.words
+    { "sociÇtÇ", Cp437 }, // from french.words
+    { "sociÇtÇs", Cp437 }, // from french.words
     { "société", MacRoman }, // from french.words
     { "sociétés", MacRoman }, // from french.words
     { "soci·lnÌ", Iso88592 }, // from czech.words
     { "sociÈtÈ", Iso885915 }, // from french.words
     { "sociÈtÈs", Iso885915 }, // from french.words
+    { "soirÇe", Cp437 }, // from french.words
+    { "soirÇes", Cp437 }, // from french.words
     { "soirée", MacRoman }, // from french.words
     { "soirées", MacRoman }, // from french.words
     { "soirÈe", Iso885915 }, // from french.words
     { "soirÈes", Iso885915 }, // from french.words
+    { "solidaritÇ", Cp437 }, // from french.words
     { "solidarité", MacRoman }, // from french.words
     { "solidaritÈ", Iso885915 }, // from french.words
+    { "soliditÇ", Cp437 }, // from french.words
+    { "solidité", MacRoman }, // from french.words
+    { "soliditÈ", Iso885915 }, // from french.words
+    { "sollicitÇ", Cp437 }, // from french.words
     { "sollicité", MacRoman }, // from french.words
     { "sollicitÈ", Iso885915 }, // from french.words
+    { "solskjër", Cp865 }, // from norwegian.words
     { "solskjær", MacRoman }, // from norwegian.words
     { "solskjÊr", Iso885915 }, // from norwegian.words
+    { "sophistiquÇ", Cp437 }, // from french.words
+    { "sophistiquÇs", Cp437 }, // from french.words
+    { "sophistiqué", MacRoman }, // from french.words
+    { "sophistiqués", MacRoman }, // from french.words
+    { "sophistiquÈ", Iso885915 }, // from french.words
+    { "sophistiquÈs", Iso885915 }, // from french.words
+    { "sorgfÑltig", Cp437 }, // from german.words
     { "sorgfältig", MacRoman }, // from german.words
     { "sorgf‰ltig", Iso885915 }, // from german.words
+    { "souhaitÇ", Cp437 }, // from french.words
     { "souhaité", MacRoman }, // from french.words
     { "souhaitÈ", Iso885915 }, // from french.words
     { "soukrom˝", Iso88592 }, // from czech.words
+    { "soulignÇ", Cp437 }, // from french.words
     { "souligné", MacRoman }, // from french.words
     { "soulignÈ", Iso885915 }, // from french.words
+    { "souverÑn", Cp437 }, // from german.words
     { "souverän", MacRoman }, // from german.words
     { "souver‰n", Iso885915 }, // from german.words
     { "souËasn˝", Iso88592 }, // from czech.words
+    { "soviÇtique", Cp437 }, // from french.words
     { "soviétique", MacRoman }, // from french.words
     { "soviÈtique", Iso885915 }, // from french.words
     { "sovÏtsk˝", Iso88592 }, // from czech.words
+    { "spektakulÑre", Cp437 }, // from german.words
+    { "spektakulÑren", Cp437 }, // from german.words
     { "spektakuläre", MacRoman }, // from german.words
     { "spektakulären", MacRoman }, // from german.words
     { "spektakul‰re", Iso885915 }, // from german.words
     { "spektakul‰ren", Iso885915 }, // from german.words
+    { "spillefõrer", Cp865 }, // from norwegian.words
     { "spillefører", MacRoman }, // from norwegian.words
     { "spillef¯rer", Iso885915 }, // from norwegian.words
     { "spojen˝", Iso88592 }, // from czech.words
     { "spoleËn˝", Iso88592 }, // from czech.words
+    { "spontanÇment", Cp437 }, // from french.words
     { "spontanément", MacRoman }, // from french.words
     { "spontanÈment", Iso885915 }, // from french.words
     { "sportovnÌ", Iso88592 }, // from czech.words
+    { "sprÜk", Cp865 }, // from norwegian.words
+    { "sprÜket", Cp865 }, // from norwegian.words
+    { "sprÜklig", Cp865 }, // from norwegian.words
     { "språk", MacRoman }, // from norwegian.words
     { "språket", MacRoman }, // from norwegian.words
     { "språklig", MacRoman }, // from norwegian.words
     { "sprÂk", Iso885915 }, // from norwegian.words
     { "sprÂket", Iso885915 }, // from norwegian.words
     { "sprÂklig", Iso885915 }, // from norwegian.words
+    { "spÅrbar", Cp437 }, // from german.words
+    { "spÅren", Cp437 }, // from german.words
+    { "spÅrt", Cp437 }, // from german.words
+    { "spÇcial", Cp437 }, // from french.words
+    { "spÇciale", Cp437 }, // from french.words
+    { "spÇcialement", Cp437 }, // from french.words
+    { "spÇciales", Cp437 }, // from french.words
+    { "spÇcialisation", Cp437 }, // from french.words
+    { "spÇcialiste", Cp437 }, // from french.words
+    { "spÇcialistes", Cp437 }, // from french.words
+    { "spÇcialisÇ", Cp437 }, // from french.words
+    { "spÇcialisÇe", Cp437 }, // from french.words
+    { "spÇcialisÇes", Cp437 }, // from french.words
+    { "spÇcialisÇs", Cp437 }, // from french.words
+    { "spÇcialitÇ", Cp437 }, // from french.words
+    { "spÇcialitÇs", Cp437 }, // from french.words
+    { "spÇciaux", Cp437 }, // from french.words
+    { "spÇcificitÇ", Cp437 }, // from french.words
+    { "spÇcificitÇs", Cp437 }, // from french.words
+    { "spÇcifique", Cp437 }, // from french.words
+    { "spÇcifiquement", Cp437 }, // from french.words
+    { "spÇcifiques", Cp437 }, // from french.words
+    { "spÇculateurs", Cp437 }, // from french.words
+    { "spÇculatif", Cp437 }, // from french.words
+    { "spÇculation", Cp437 }, // from french.words
+    { "spÇculative", Cp437 }, // from french.words
+    { "spÑt", Cp437 }, // from german.words
+    { "spÑten", Cp437 }, // from german.words
+    { "spÑter", Cp437 }, // from german.words
+    { "spÑtere", Cp437 }, // from german.words
+    { "spÑteren", Cp437 }, // from german.words
+    { "spÑtestens", Cp437 }, // from german.words
+    { "spÜr", Cp865 }, // from norwegian.words
     { "spät", MacRoman }, // from german.words
     { "späten", MacRoman }, // from german.words
     { "später", MacRoman }, // from german.words
@@ -5986,21 +9504,35 @@ static const struct {
     { "spätestens", MacRoman }, // from german.words
     { "spår", MacRoman }, // from norwegian.words
     { "spécial", MacRoman }, // from french.words
+    { "spéciale", MacRoman }, // from french.words
     { "spécialement", MacRoman }, // from french.words
     { "spéciales", MacRoman }, // from french.words
     { "spécialisation", MacRoman }, // from french.words
     { "spécialiste", MacRoman }, // from french.words
     { "spécialistes", MacRoman }, // from french.words
+    { "spécialisé", MacRoman }, // from french.words
+    { "spécialisée", MacRoman }, // from french.words
     { "spécialisées", MacRoman }, // from french.words
+    { "spécialisés", MacRoman }, // from french.words
     { "spécialité", MacRoman }, // from french.words
     { "spécialités", MacRoman }, // from french.words
     { "spéciaux", MacRoman }, // from french.words
+    { "spécificité", MacRoman }, // from french.words
     { "spécificités", MacRoman }, // from french.words
+    { "spécifique", MacRoman }, // from french.words
     { "spécifiquement", MacRoman }, // from french.words
+    { "spécifiques", MacRoman }, // from french.words
     { "spéculateurs", MacRoman }, // from french.words
     { "spéculatif", MacRoman }, // from french.words
     { "spéculation", MacRoman }, // from french.words
     { "spéculative", MacRoman }, // from french.words
+    { "spõr", Cp865 }, // from norwegian.words
+    { "spõrre", Cp865 }, // from norwegian.words
+    { "spõrs", Cp865 }, // from norwegian.words
+    { "spõrsmÜl", Cp865 }, // from norwegian.words
+    { "spõrsmÜlene", Cp865 }, // from norwegian.words
+    { "spõrsmÜlet", Cp865 }, // from norwegian.words
+    { "spõrsmÜlstegn", Cp865 }, // from norwegian.words
     { "spürbar", MacRoman }, // from german.words
     { "spüren", MacRoman }, // from german.words
     { "spürt", MacRoman }, // from german.words
@@ -6019,17 +9551,24 @@ static const struct {
     { "sp‰testens", Iso885915 }, // from german.words
     { "spÂr", Iso885915 }, // from norwegian.words
     { "spÈcial", Iso885915 }, // from french.words
+    { "spÈciale", Iso885915 }, // from french.words
     { "spÈcialement", Iso885915 }, // from french.words
     { "spÈciales", Iso885915 }, // from french.words
     { "spÈcialisation", Iso885915 }, // from french.words
     { "spÈcialiste", Iso885915 }, // from french.words
     { "spÈcialistes", Iso885915 }, // from french.words
+    { "spÈcialisÈ", Iso885915 }, // from french.words
+    { "spÈcialisÈe", Iso885915 }, // from french.words
     { "spÈcialisÈes", Iso885915 }, // from french.words
+    { "spÈcialisÈs", Iso885915 }, // from french.words
     { "spÈcialitÈ", Iso885915 }, // from french.words
     { "spÈcialitÈs", Iso885915 }, // from french.words
     { "spÈciaux", Iso885915 }, // from french.words
+    { "spÈcificitÈ", Iso885915 }, // from french.words
     { "spÈcificitÈs", Iso885915 }, // from french.words
+    { "spÈcifique", Iso885915 }, // from french.words
     { "spÈcifiquement", Iso885915 }, // from french.words
+    { "spÈcifiques", Iso885915 }, // from french.words
     { "spÈculateurs", Iso885915 }, // from french.words
     { "spÈculatif", Iso885915 }, // from french.words
     { "spÈculation", Iso885915 }, // from french.words
@@ -6044,19 +9583,30 @@ static const struct {
     { "sp¸rbar", Iso885915 }, // from german.words
     { "sp¸ren", Iso885915 }, // from german.words
     { "sp¸rt", Iso885915 }, // from german.words
+    { "stabilitÇ", Cp437 }, // from french.words
+    { "stabilité", MacRoman }, // from french.words
+    { "stabilitÈ", Iso885915 }, // from french.words
+    { "stabëk", Cp865 }, // from norwegian.words
     { "stabæk", MacRoman }, // from norwegian.words
     { "stabÊk", Iso885915 }, // from norwegian.words
     { "star˝", Iso88592 }, // from czech.words
+    { "statsrÜd", Cp865 }, // from norwegian.words
+    { "statsrÜden", Cp865 }, // from norwegian.words
+    { "statsrÜder", Cp865 }, // from norwegian.words
     { "statsråd", MacRoman }, // from norwegian.words
     { "statsråden", MacRoman }, // from norwegian.words
     { "statsråder", MacRoman }, // from norwegian.words
     { "statsrÂd", Iso885915 }, // from norwegian.words
     { "statsrÂden", Iso885915 }, // from norwegian.words
     { "statsrÂder", Iso885915 }, // from norwegian.words
+    { "statssekretër", Cp865 }, // from norwegian.words
     { "statssekretær", MacRoman }, // from norwegian.words
     { "statssekretÊr", Iso885915 }, // from norwegian.words
+    { "statsstõtte", Cp865 }, // from norwegian.words
     { "statsstøtte", MacRoman }, // from norwegian.words
     { "statsst¯tte", Iso885915 }, // from norwegian.words
+    { "staËit", Iso88592 }, // from czech.words
+    { "steensnës", Cp865 }, // from norwegian.words
     { "steensnæs", MacRoman }, // from norwegian.words
     { "steensnÊs", Iso885915 }, // from norwegian.words
     { "stejn˝", Iso88592 }, // from czech.words
@@ -6064,23 +9614,42 @@ static const struct {
     { "stießen", MacRoman }, // from german.words
     { "stieﬂ", Iso885915 }, // from german.words
     { "stieﬂen", Iso885915 }, // from german.words
+    { "stie·", Cp437 }, // from german.words
+    { "stie·en", Cp437 }, // from german.words
+    { "stjÜlet", Cp865 }, // from norwegian.words
     { "stjålet", MacRoman }, // from norwegian.words
+    { "stjõrdal", Cp865 }, // from norwegian.words
     { "stjørdal", MacRoman }, // from norwegian.words
     { "stjÂlet", Iso885915 }, // from norwegian.words
     { "stj¯rdal", Iso885915 }, // from norwegian.words
+    { "storslalÜm", Cp865 }, // from norwegian.words
     { "storslalåm", MacRoman }, // from norwegian.words
     { "storslalÂm", Iso885915 }, // from norwegian.words
     { "stoßen", MacRoman }, // from german.words
     { "stoﬂen", Iso885915 }, // from german.words
+    { "sto·en", Cp437 }, // from german.words
+    { "stratÇgie", Cp437 }, // from french.words
+    { "stratÇgies", Cp437 }, // from french.words
+    { "stratÇgique", Cp437 }, // from french.words
+    { "stratÇgiques", Cp437 }, // from french.words
     { "stratégie", MacRoman }, // from french.words
     { "stratégies", MacRoman }, // from french.words
+    { "stratégique", MacRoman }, // from french.words
     { "stratégiques", MacRoman }, // from french.words
-    { "stratéés", MacRoman }, // from french.words
     { "stratÈgie", Iso885915 }, // from french.words
     { "stratÈgies", Iso885915 }, // from french.words
+    { "stratÈgique", Iso885915 }, // from french.words
     { "stratÈgiques", Iso885915 }, // from french.words
-    { "stratÈÈs", Iso885915 }, // from french.words
+    { "strÜlende", Cp865 }, // from norwegian.words
     { "strålende", MacRoman }, // from norwegian.words
+    { "strõk", Cp865 }, // from norwegian.words
+    { "strõket", Cp865 }, // from norwegian.words
+    { "strõm", Cp865 }, // from norwegian.words
+    { "strõmme", Cp865 }, // from norwegian.words
+    { "strõmmen", Cp865 }, // from norwegian.words
+    { "strõmmer", Cp865 }, // from norwegian.words
+    { "strõmmet", Cp865 }, // from norwegian.words
+    { "strõmsgodset", Cp865 }, // from norwegian.words
     { "strøk", MacRoman }, // from norwegian.words
     { "strøket", MacRoman }, // from norwegian.words
     { "strøm", MacRoman }, // from norwegian.words
@@ -6098,8 +9667,34 @@ static const struct {
     { "str¯mmer", Iso885915 }, // from norwegian.words
     { "str¯mmet", Iso885915 }, // from norwegian.words
     { "str¯msgodset", Iso885915 }, // from norwegian.words
+    { "styremõte", Cp865 }, // from norwegian.words
     { "styremøte", MacRoman }, // from norwegian.words
     { "styrem¯te", Iso885915 }, // from norwegian.words
+    { "stÅnde", Cp437 }, // from german.words
+    { "stÅnden", Cp437 }, // from german.words
+    { "stÅrzen", Cp437 }, // from german.words
+    { "stÅrzt", Cp437 }, // from german.words
+    { "stÅrzte", Cp437 }, // from german.words
+    { "stÅtzen", Cp437 }, // from german.words
+    { "stÅtzt", Cp437 }, // from german.words
+    { "stÑdtische", Cp437 }, // from german.words
+    { "stÑdtischen", Cp437 }, // from german.words
+    { "stÑndig", Cp437 }, // from german.words
+    { "stÑndige", Cp437 }, // from german.words
+    { "stÑndigen", Cp437 }, // from german.words
+    { "stÑrken", Cp437 }, // from german.words
+    { "stÑrker", Cp437 }, // from german.words
+    { "stÑrkere", Cp437 }, // from german.words
+    { "stÑrkeren", Cp437 }, // from german.words
+    { "stÑrkste", Cp437 }, // from german.words
+    { "stÑrksten", Cp437 }, // from german.words
+    { "stÜ", Cp865 }, // from norwegian.words
+    { "stÜende", Cp865 }, // from norwegian.words
+    { "stÜl", Cp865 }, // from norwegian.words
+    { "stÜle", Cp865 }, // from norwegian.words
+    { "stÜr", Cp865 }, // from norwegian.words
+    { "stÜsted", Cp865 }, // from norwegian.words
+    { "stÜtt", Cp865 }, // from norwegian.words
     { "städtische", MacRoman }, // from german.words
     { "städtischen", MacRoman }, // from german.words
     { "ständig", MacRoman }, // from german.words
@@ -6118,9 +9713,27 @@ static const struct {
     { "står", MacRoman }, // from norwegian.words
     { "ståsted", MacRoman }, // from norwegian.words
     { "stått", MacRoman }, // from norwegian.words
+    { "stîren", Cp437 }, // from german.words
+    { "stîrt", Cp437 }, // from german.words
+    { "stî·t", Cp437 }, // from german.words
     { "stören", MacRoman }, // from german.words
     { "stört", MacRoman }, // from german.words
     { "stößt", MacRoman }, // from german.words
+    { "stõ", Cp865 }, // from norwegian.words
+    { "stõrre", Cp865 }, // from norwegian.words
+    { "stõrrelse", Cp865 }, // from norwegian.words
+    { "stõrrelsen", Cp865 }, // from norwegian.words
+    { "stõrrelser", Cp865 }, // from norwegian.words
+    { "stõrst", Cp865 }, // from norwegian.words
+    { "stõrste", Cp865 }, // from norwegian.words
+    { "stõtt", Cp865 }, // from norwegian.words
+    { "stõtte", Cp865 }, // from norwegian.words
+    { "stõtten", Cp865 }, // from norwegian.words
+    { "stõtter", Cp865 }, // from norwegian.words
+    { "stõttespillere", Cp865 }, // from norwegian.words
+    { "stõttet", Cp865 }, // from norwegian.words
+    { "stõv", Cp865 }, // from norwegian.words
+    { "stõy", Cp865 }, // from norwegian.words
     { "stünde", MacRoman }, // from german.words
     { "stünden", MacRoman }, // from german.words
     { "stürzen", MacRoman }, // from german.words
@@ -6188,18 +9801,31 @@ static const struct {
     { "st¸rzte", Iso885915 }, // from german.words
     { "st¸tzen", Iso885915 }, // from german.words
     { "st¸tzt", Iso885915 }, // from german.words
+    { "succÇdÇ", Cp437 }, // from french.words
+    { "succédé", MacRoman }, // from french.words
+    { "succÈdÈ", Iso885915 }, // from french.words
+    { "sunnmõre", Cp865 }, // from norwegian.words
     { "sunnmøre", MacRoman }, // from norwegian.words
     { "sunnm¯re", Iso885915 }, // from norwegian.words
+    { "supermarchÇs", Cp437 }, // from french.words
     { "supermarchés", MacRoman }, // from french.words
     { "supermarchÈs", Iso885915 }, // from french.words
+    { "supplÇment", Cp437 }, // from french.words
+    { "supplÇmentaire", Cp437 }, // from french.words
+    { "supplÇmentaires", Cp437 }, // from french.words
     { "supplément", MacRoman }, // from french.words
     { "supplémentaire", MacRoman }, // from french.words
     { "supplémentaires", MacRoman }, // from french.words
     { "supplÈment", Iso885915 }, // from french.words
     { "supplÈmentaire", Iso885915 }, // from french.words
     { "supplÈmentaires", Iso885915 }, // from french.words
+    { "supprimÇ", Cp437 }, // from french.words
     { "supprimé", MacRoman }, // from french.words
     { "supprimÈ", Iso885915 }, // from french.words
+    { "supÇrieur", Cp437 }, // from french.words
+    { "supÇrieure", Cp437 }, // from french.words
+    { "supÇrieures", Cp437 }, // from french.words
+    { "supÇrieurs", Cp437 }, // from french.words
     { "supérieur", MacRoman }, // from french.words
     { "supérieure", MacRoman }, // from french.words
     { "supérieures", MacRoman }, // from french.words
@@ -6208,23 +9834,106 @@ static const struct {
     { "supÈrieure", Iso885915 }, // from french.words
     { "supÈrieures", Iso885915 }, // from french.words
     { "supÈrieurs", Iso885915 }, // from french.words
+    { "suscitÇ", Cp437 }, // from french.words
     { "suscité", MacRoman }, // from french.words
     { "suscitÈ", Iso885915 }, // from french.words
+    { "suÇdois", Cp437 }, // from french.words
+    { "suÇdoise", Cp437 }, // from french.words
     { "suédois", MacRoman }, // from french.words
     { "suédoise", MacRoman }, // from french.words
     { "suÈdois", Iso885915 }, // from french.words
     { "suÈdoise", Iso885915 }, // from french.words
+    { "svëre", Cp865 }, // from norwegian.words
+    { "svërt", Cp865 }, // from norwegian.words
+    { "svõmming", Cp865 }, // from norwegian.words
+    { "svære", MacRoman }, // from norwegian.words
+    { "svært", MacRoman }, // from norwegian.words
+    { "svømming", MacRoman }, // from norwegian.words
+    { "svÊre", Iso885915 }, // from norwegian.words
+    { "svÊrt", Iso885915 }, // from norwegian.words
     { "svÏt", Iso88592 }, // from czech.words
     { "svÏtov˝", Iso88592 }, // from czech.words
+    { "sv¯mming", Iso885915 }, // from norwegian.words
+    { "synnõve", Cp865 }, // from norwegian.words
+    { "synnøve", MacRoman }, // from norwegian.words
+    { "synn¯ve", Iso885915 }, // from norwegian.words
+    { "synthÇtique", Cp437 }, // from french.words
     { "synthétique", MacRoman }, // from french.words
     { "synthÈtique", Iso885915 }, // from french.words
+    { "systÇmatique", Cp437 }, // from french.words
+    { "systÇmatiquement", Cp437 }, // from french.words
     { "systématique", MacRoman }, // from french.words
     { "systématiquement", MacRoman }, // from french.words
     { "systÈm", Iso88592 }, // from czech.words
     { "systÈmatique", Iso885915 }, // from french.words
     { "systÈmatiquement", Iso885915 }, // from french.words
+    { "sÅdlich", Cp437 }, // from german.words
+    { "sÅdlichen", Cp437 }, // from german.words
+    { "sÇance", Cp437 }, // from french.words
+    { "sÇances", Cp437 }, // from french.words
+    { "sÇcuritÇ", Cp437 }, // from french.words
+    { "sÇduction", Cp437 }, // from french.words
+    { "sÇduire", Cp437 }, // from french.words
+    { "sÇduisant", Cp437 }, // from french.words
+    { "sÇduit", Cp437 }, // from french.words
+    { "sÇjour", Cp437 }, // from french.words
+    { "sÇjours", Cp437 }, // from french.words
+    { "sÇlection", Cp437 }, // from french.words
+    { "sÇlectionner", Cp437 }, // from french.words
+    { "sÇlectionnÇ", Cp437 }, // from french.words
+    { "sÇlectionnÇs", Cp437 }, // from french.words
+    { "sÇminaire", Cp437 }, // from french.words
+    { "sÇminaires", Cp437 }, // from french.words
+    { "sÇnateur", Cp437 }, // from french.words
+    { "sÇparation", Cp437 }, // from french.words
+    { "sÇpare", Cp437 }, // from french.words
+    { "sÇparer", Cp437 }, // from french.words
+    { "sÇparÇ", Cp437 }, // from french.words
+    { "sÇparÇe", Cp437 }, // from french.words
+    { "sÇparÇment", Cp437 }, // from french.words
+    { "sÇparÇs", Cp437 }, // from french.words
+    { "sÇquences", Cp437 }, // from french.words
+    { "sÇrie", Cp437 }, // from french.words
+    { "sÇries", Cp437 }, // from french.words
+    { "sÇrieuse", Cp437 }, // from french.words
+    { "sÇrieusement", Cp437 }, // from french.words
+    { "sÇrieuses", Cp437 }, // from french.words
+    { "sÇrieux", Cp437 }, // from french.words
+    { "sÇrÇnitÇ", Cp437 }, // from french.words
+    { "sÑchsischen", Cp437 }, // from german.words
+    { "sÑmtliche", Cp437 }, // from german.words
+    { "sÜ", Cp865 }, // from norwegian.words
+    { "sÜkalt", Cp865 }, // from norwegian.words
+    { "sÜkalte", Cp865 }, // from norwegian.words
+    { "sÜledes", Cp865 }, // from norwegian.words
+    { "sÜnn", Cp865 }, // from norwegian.words
+    { "sÜnne", Cp865 }, // from norwegian.words
+    { "sÜnt", Cp865 }, // from norwegian.words
+    { "sÜpass", Cp865 }, // from norwegian.words
+    { "sÜr", Cp865 }, // from norwegian.words
+    { "sÜrbar", Cp865 }, // from norwegian.words
+    { "sÜrbare", Cp865 }, // from norwegian.words
+    { "sÜret", Cp865 }, // from norwegian.words
+    { "sÜrt", Cp865 }, // from norwegian.words
+    { "sÜvel", Cp865 }, // from norwegian.words
+    { "sÜvidt", Cp865 }, // from norwegian.words
     { "sächsischen", MacRoman }, // from german.words
     { "sämtliche", MacRoman }, // from german.words
+    { "så", MacRoman }, // from norwegian.words
+    { "såkalt", MacRoman }, // from norwegian.words
+    { "såkalte", MacRoman }, // from norwegian.words
+    { "således", MacRoman }, // from norwegian.words
+    { "sånn", MacRoman }, // from norwegian.words
+    { "sånne", MacRoman }, // from norwegian.words
+    { "sånt", MacRoman }, // from norwegian.words
+    { "såpass", MacRoman }, // from norwegian.words
+    { "sår", MacRoman }, // from norwegian.words
+    { "sårbar", MacRoman }, // from norwegian.words
+    { "sårbare", MacRoman }, // from norwegian.words
+    { "såret", MacRoman }, // from norwegian.words
+    { "sårt", MacRoman }, // from norwegian.words
+    { "såvel", MacRoman }, // from norwegian.words
+    { "såvidt", MacRoman }, // from norwegian.words
     { "séance", MacRoman }, // from french.words
     { "séances", MacRoman }, // from french.words
     { "sécurité", MacRoman }, // from french.words
@@ -6256,8 +9965,69 @@ static const struct {
     { "sérieuses", MacRoman }, // from french.words
     { "sérieux", MacRoman }, // from french.words
     { "sérénité", MacRoman }, // from french.words
+    { "sële", Cp865 }, // from norwegian.words
+    { "sërdeles", Cp865 }, // from norwegian.words
+    { "sërlig", Cp865 }, // from norwegian.words
+    { "sëther", Cp865 }, // from norwegian.words
+    { "sëtre", Cp865 }, // from norwegian.words
+    { "sõk", Cp865 }, // from norwegian.words
+    { "sõke", Cp865 }, // from norwegian.words
+    { "sõkelys", Cp865 }, // from norwegian.words
+    { "sõkelyset", Cp865 }, // from norwegian.words
+    { "sõker", Cp865 }, // from norwegian.words
+    { "sõkere", Cp865 }, // from norwegian.words
+    { "sõkerne", Cp865 }, // from norwegian.words
+    { "sõknad", Cp865 }, // from norwegian.words
+    { "sõknaden", Cp865 }, // from norwegian.words
+    { "sõknader", Cp865 }, // from norwegian.words
+    { "sõksmÜl", Cp865 }, // from norwegian.words
+    { "sõkt", Cp865 }, // from norwegian.words
+    { "sõkte", Cp865 }, // from norwegian.words
+    { "sõlv", Cp865 }, // from norwegian.words
+    { "sõlvi", Cp865 }, // from norwegian.words
+    { "sõn", Cp865 }, // from norwegian.words
+    { "sõndag", Cp865 }, // from norwegian.words
+    { "sõndagen", Cp865 }, // from norwegian.words
+    { "sõndagens", Cp865 }, // from norwegian.words
+    { "sõndager", Cp865 }, // from norwegian.words
+    { "sõndagsÜpne", Cp865 }, // from norwegian.words
+    { "sõndrÜl", Cp865 }, // from norwegian.words
+    { "sõnn", Cp865 }, // from norwegian.words
+    { "sõnnen", Cp865 }, // from norwegian.words
+    { "sõnner", Cp865 }, // from norwegian.words
+    { "sõr", Cp865 }, // from norwegian.words
+    { "sõrensen", Cp865 }, // from norwegian.words
+    { "sõrge", Cp865 }, // from norwegian.words
+    { "sõrgelig", Cp865 }, // from norwegian.words
+    { "sõrger", Cp865 }, // from norwegian.words
+    { "sõrget", Cp865 }, // from norwegian.words
+    { "sõrlandet", Cp865 }, // from norwegian.words
+    { "sõrli", Cp865 }, // from norwegian.words
+    { "sõrlige", Cp865 }, // from norwegian.words
+    { "sõrover", Cp865 }, // from norwegian.words
+    { "sõsken", Cp865 }, // from norwegian.words
+    { "sõster", Cp865 }, // from norwegian.words
+    { "sõsteren", Cp865 }, // from norwegian.words
+    { "sõstre", Cp865 }, // from norwegian.words
+    { "sõstrene", Cp865 }, // from norwegian.words
+    { "sõt", Cp865 }, // from norwegian.words
+    { "sõte", Cp865 }, // from norwegian.words
+    { "sõvn", Cp865 }, // from norwegian.words
     { "südlich", MacRoman }, // from german.words
     { "südlichen", MacRoman }, // from german.words
+    { "sæle", MacRoman }, // from norwegian.words
+    { "særdeles", MacRoman }, // from norwegian.words
+    { "særlig", MacRoman }, // from norwegian.words
+    { "sæther", MacRoman }, // from norwegian.words
+    { "sætre", MacRoman }, // from norwegian.words
+    { "søk", MacRoman }, // from norwegian.words
+    { "søke", MacRoman }, // from norwegian.words
+    { "søkelys", MacRoman }, // from norwegian.words
+    { "søkelyset", MacRoman }, // from norwegian.words
+    { "søker", MacRoman }, // from norwegian.words
+    { "søkere", MacRoman }, // from norwegian.words
+    { "søkerne", MacRoman }, // from norwegian.words
+    { "søknad", MacRoman }, // from norwegian.words
     { "søknaden", MacRoman }, // from norwegian.words
     { "søknader", MacRoman }, // from norwegian.words
     { "søksmål", MacRoman }, // from norwegian.words
@@ -6295,6 +10065,26 @@ static const struct {
     { "søvn", MacRoman }, // from norwegian.words
     { "s‰chsischen", Iso885915 }, // from german.words
     { "s‰mtliche", Iso885915 }, // from german.words
+    { "sÂ", Iso885915 }, // from norwegian.words
+    { "sÂkalt", Iso885915 }, // from norwegian.words
+    { "sÂkalte", Iso885915 }, // from norwegian.words
+    { "sÂledes", Iso885915 }, // from norwegian.words
+    { "sÂnn", Iso885915 }, // from norwegian.words
+    { "sÂnne", Iso885915 }, // from norwegian.words
+    { "sÂnt", Iso885915 }, // from norwegian.words
+    { "sÂpass", Iso885915 }, // from norwegian.words
+    { "sÂr", Iso885915 }, // from norwegian.words
+    { "sÂrbar", Iso885915 }, // from norwegian.words
+    { "sÂrbare", Iso885915 }, // from norwegian.words
+    { "sÂret", Iso885915 }, // from norwegian.words
+    { "sÂrt", Iso885915 }, // from norwegian.words
+    { "sÂvel", Iso885915 }, // from norwegian.words
+    { "sÂvidt", Iso885915 }, // from norwegian.words
+    { "sÊle", Iso885915 }, // from norwegian.words
+    { "sÊrdeles", Iso885915 }, // from norwegian.words
+    { "sÊrlig", Iso885915 }, // from norwegian.words
+    { "sÊther", Iso885915 }, // from norwegian.words
+    { "sÊtre", Iso885915 }, // from norwegian.words
     { "sÈance", Iso885915 }, // from french.words
     { "sÈances", Iso885915 }, // from french.words
     { "sÈcuritÈ", Iso885915 }, // from french.words
@@ -6326,6 +10116,14 @@ static const struct {
     { "sÈrieuses", Iso885915 }, // from french.words
     { "sÈrieux", Iso885915 }, // from french.words
     { "sÈrÈnitÈ", Iso885915 }, // from french.words
+    { "s¯k", Iso885915 }, // from norwegian.words
+    { "s¯ke", Iso885915 }, // from norwegian.words
+    { "s¯kelys", Iso885915 }, // from norwegian.words
+    { "s¯kelyset", Iso885915 }, // from norwegian.words
+    { "s¯ker", Iso885915 }, // from norwegian.words
+    { "s¯kere", Iso885915 }, // from norwegian.words
+    { "s¯kerne", Iso885915 }, // from norwegian.words
+    { "s¯knad", Iso885915 }, // from norwegian.words
     { "s¯knaden", Iso885915 }, // from norwegian.words
     { "s¯knader", Iso885915 }, // from norwegian.words
     { "s¯ksmÂl", Iso885915 }, // from norwegian.words
@@ -6363,8 +10161,12 @@ static const struct {
     { "s¯vn", Iso885915 }, // from norwegian.words
     { "s¸dlich", Iso885915 }, // from german.words
     { "s¸dlichen", Iso885915 }, // from german.words
+    { "tagsÅber", Cp437 }, // from german.words
     { "tagsüber", MacRoman }, // from german.words
     { "tags¸ber", Iso885915 }, // from german.words
+    { "tatsÑchlich", Cp437 }, // from german.words
+    { "tatsÑchliche", Cp437 }, // from german.words
+    { "tatsÑchlichen", Cp437 }, // from german.words
     { "tatsächlich", MacRoman }, // from german.words
     { "tatsächliche", MacRoman }, // from german.words
     { "tatsächlichen", MacRoman }, // from german.words
@@ -6372,27 +10174,42 @@ static const struct {
     { "tats‰chliche", Iso885915 }, // from german.words
     { "tats‰chlichen", Iso885915 }, // from german.words
     { "technick˝", Iso88592 }, // from czech.words
+    { "tempÇrament", Cp437 }, // from french.words
+    { "tempÇrature", Cp437 }, // from french.words
+    { "tempÇratures", Cp437 }, // from french.words
     { "tempérament", MacRoman }, // from french.words
     { "température", MacRoman }, // from french.words
     { "températures", MacRoman }, // from french.words
     { "tempÈrament", Iso885915 }, // from french.words
     { "tempÈrature", Iso885915 }, // from french.words
     { "tempÈratures", Iso885915 }, // from french.words
+    { "tentÇ", Cp437 }, // from french.words
+    { "tentÇs", Cp437 }, // from french.words
     { "tenté", MacRoman }, // from french.words
     { "tentés", MacRoman }, // from french.words
     { "tentÈ", Iso885915 }, // from french.words
     { "tentÈs", Iso885915 }, // from french.words
+    { "tenÜringer", Cp865 }, // from norwegian.words
     { "tenåringer", MacRoman }, // from norwegian.words
     { "tenÂringer", Iso885915 }, // from norwegian.words
+    { "terminÇ", Cp437 }, // from french.words
+    { "terminÇe", Cp437 }, // from french.words
     { "terminé", MacRoman }, // from french.words
     { "terminée", MacRoman }, // from french.words
     { "terminÈ", Iso885915 }, // from french.words
     { "terminÈe", Iso885915 }, // from french.words
     { "termÌn", Iso88592 }, // from czech.words
+    { "testÇ", Cp437 }, // from french.words
     { "testé", MacRoman }, // from french.words
     { "testÈ", Iso885915 }, // from french.words
+    { "thorbjõrn", Cp865 }, // from norwegian.words
     { "thorbjørn", MacRoman }, // from norwegian.words
     { "thorbj¯rn", Iso885915 }, // from norwegian.words
+    { "thÇ", Cp437 }, // from french.words
+    { "thÇorie", Cp437 }, // from french.words
+    { "thÇorique", Cp437 }, // from french.words
+    { "thÇoriquement", Cp437 }, // from french.words
+    { "thÇrapie", Cp437 }, // from french.words
     { "thé", MacRoman }, // from french.words
     { "théorie", MacRoman }, // from french.words
     { "théorique", MacRoman }, // from french.words
@@ -6403,16 +10220,25 @@ static const struct {
     { "thÈorique", Iso885915 }, // from french.words
     { "thÈoriquement", Iso885915 }, // from french.words
     { "thÈrapie", Iso885915 }, // from french.words
+    { "tilbehõr", Cp865 }, // from norwegian.words
     { "tilbehør", MacRoman }, // from norwegian.words
     { "tilbeh¯r", Iso885915 }, // from norwegian.words
+    { "tilbõd", Cp865 }, // from norwegian.words
     { "tilbød", MacRoman }, // from norwegian.words
     { "tilb¯d", Iso885915 }, // from norwegian.words
+    { "tilfõre", Cp865 }, // from norwegian.words
+    { "tilfõrt", Cp865 }, // from norwegian.words
+    { "tilfõyer", Cp865 }, // from norwegian.words
     { "tilføre", MacRoman }, // from norwegian.words
     { "tilført", MacRoman }, // from norwegian.words
     { "tilføyer", MacRoman }, // from norwegian.words
     { "tilf¯re", Iso885915 }, // from norwegian.words
     { "tilf¯rt", Iso885915 }, // from norwegian.words
     { "tilf¯yer", Iso885915 }, // from norwegian.words
+    { "tilhõrende", Cp865 }, // from norwegian.words
+    { "tilhõrer", Cp865 }, // from norwegian.words
+    { "tilhõrighet", Cp865 }, // from norwegian.words
+    { "tilhõrte", Cp865 }, // from norwegian.words
     { "tilhørende", MacRoman }, // from norwegian.words
     { "tilhører", MacRoman }, // from norwegian.words
     { "tilhørighet", MacRoman }, // from norwegian.words
@@ -6421,68 +10247,114 @@ static const struct {
     { "tilh¯rer", Iso885915 }, // from norwegian.words
     { "tilh¯righet", Iso885915 }, // from norwegian.words
     { "tilh¯rte", Iso885915 }, // from norwegian.words
+    { "tilnërmet", Cp865 }, // from norwegian.words
     { "tilnærmet", MacRoman }, // from norwegian.words
     { "tilnÊrmet", Iso885915 }, // from norwegian.words
+    { "tilstedevërelse", Cp865 }, // from norwegian.words
     { "tilstedeværelse", MacRoman }, // from norwegian.words
     { "tilstedevÊrelse", Iso885915 }, // from norwegian.words
+    { "tilstÜtt", Cp865 }, // from norwegian.words
     { "tilstått", MacRoman }, // from norwegian.words
     { "tilstÂtt", Iso885915 }, // from norwegian.words
+    { "tilvërelse", Cp865 }, // from norwegian.words
+    { "tilvërelsen", Cp865 }, // from norwegian.words
     { "tilværelse", MacRoman }, // from norwegian.words
     { "tilværelsen", MacRoman }, // from norwegian.words
     { "tilvÊrelse", Iso885915 }, // from norwegian.words
     { "tilvÊrelsen", Iso885915 }, // from norwegian.words
+    { "tirÇ", Cp437 }, // from french.words
+    { "tirÇs", Cp437 }, // from french.words
     { "tiré", MacRoman }, // from french.words
     { "tirés", MacRoman }, // from french.words
     { "tirÈ", Iso885915 }, // from french.words
     { "tirÈs", Iso885915 }, // from french.words
+    { "tiÜr", Cp865 }, // from norwegian.words
     { "tiår", MacRoman }, // from norwegian.words
     { "tiÂr", Iso885915 }, // from norwegian.words
+    { "tolÇrance", Cp437 }, // from french.words
     { "tolérance", MacRoman }, // from french.words
     { "tolÈrance", Iso885915 }, // from french.words
+    { "tombÇ", Cp437 }, // from french.words
+    { "tombÇe", Cp437 }, // from french.words
     { "tombé", MacRoman }, // from french.words
     { "tombée", MacRoman }, // from french.words
     { "tombÈ", Iso885915 }, // from french.words
     { "tombÈe", Iso885915 }, // from french.words
+    { "toppmõte", Cp865 }, // from norwegian.words
+    { "toppmõtet", Cp865 }, // from norwegian.words
     { "toppmøte", MacRoman }, // from norwegian.words
     { "toppmøtet", MacRoman }, // from norwegian.words
     { "toppm¯te", Iso885915 }, // from norwegian.words
     { "toppm¯tet", Iso885915 }, // from norwegian.words
+    { "torbjõrn", Cp865 }, // from norwegian.words
     { "torbjørn", MacRoman }, // from norwegian.words
     { "torbj¯rn", Iso885915 }, // from norwegian.words
+    { "totalitÇ", Cp437 }, // from french.words
     { "totalité", MacRoman }, // from french.words
     { "totalitÈ", Iso885915 }, // from french.words
+    { "touchÇ", Cp437 }, // from french.words
+    { "touchÇs", Cp437 }, // from french.words
     { "touché", MacRoman }, // from french.words
     { "touchés", MacRoman }, // from french.words
     { "touchÈ", Iso885915 }, // from french.words
     { "touchÈs", Iso885915 }, // from french.words
+    { "tournÇ", Cp437 }, // from french.words
+    { "tournÇe", Cp437 }, // from french.words
     { "tourné", MacRoman }, // from french.words
     { "tournée", MacRoman }, // from french.words
     { "tournÈ", Iso885915 }, // from french.words
     { "tournÈe", Iso885915 }, // from french.words
+    { "tracÇ", Cp437 }, // from french.words
     { "tracé", MacRoman }, // from french.words
     { "tracÈ", Iso885915 }, // from french.words
+    { "traitÇ", Cp437 }, // from french.words
+    { "traitÇes", Cp437 }, // from french.words
+    { "traitÇs", Cp437 }, // from french.words
     { "traité", MacRoman }, // from french.words
+    { "traitées", MacRoman }, // from french.words
     { "traités", MacRoman }, // from french.words
     { "traitÈ", Iso885915 }, // from french.words
+    { "traitÈes", Iso885915 }, // from french.words
     { "traitÈs", Iso885915 }, // from french.words
+    { "transformÇ", Cp437 }, // from french.words
+    { "transformÇe", Cp437 }, // from french.words
     { "transformé", MacRoman }, // from french.words
     { "transformée", MacRoman }, // from french.words
     { "transformÈ", Iso885915 }, // from french.words
     { "transformÈe", Iso885915 }, // from french.words
+    { "transfÇrer", Cp437 }, // from french.words
     { "transférer", MacRoman }, // from french.words
     { "transfÈrer", Iso885915 }, // from french.words
+    { "travaillÇ", Cp437 }, // from french.words
+    { "travaillé", MacRoman }, // from french.words
+    { "travaillÈ", Iso885915 }, // from french.words
+    { "traversÇ", Cp437 }, // from french.words
+    { "traversÇe", Cp437 }, // from french.words
     { "traversé", MacRoman }, // from french.words
     { "traversée", MacRoman }, // from french.words
     { "traversÈ", Iso885915 }, // from french.words
     { "traversÈe", Iso885915 }, // from french.words
+    { "triplÇ", Cp437 }, // from french.words
     { "triplé", MacRoman }, // from french.words
     { "triplÈ", Iso885915 }, // from french.words
+    { "tromsõ", Cp865 }, // from norwegian.words
     { "tromsø", MacRoman }, // from norwegian.words
     { "troms¯", Iso885915 }, // from norwegian.words
+    { "trouvÇ", Cp437 }, // from french.words
+    { "trouvÇe", Cp437 }, // from french.words
     { "trouvé", MacRoman }, // from french.words
     { "trouvée", MacRoman }, // from french.words
     { "trouvÈ", Iso885915 }, // from french.words
     { "trouvÈe", Iso885915 }, // from french.words
+    { "trÇsor", Cp437 }, // from french.words
+    { "trÇsorerie", Cp437 }, // from french.words
+    { "trÇsors", Cp437 }, // from french.words
+    { "trÑgt", Cp437 }, // from german.words
+    { "trÑumen", Cp437 }, // from german.words
+    { "trÑumt", Cp437 }, // from german.words
+    { "trÜd", Cp865 }, // from norwegian.words
+    { "trÜdte", Cp865 }, // from norwegian.words
+    { "trÜkket", Cp865 }, // from norwegian.words
     { "trägt", MacRoman }, // from german.words
     { "träumen", MacRoman }, // from german.words
     { "träumt", MacRoman }, // from german.words
@@ -6492,6 +10364,13 @@ static const struct {
     { "trésor", MacRoman }, // from french.words
     { "trésorerie", MacRoman }, // from french.words
     { "trésors", MacRoman }, // from french.words
+    { "trër", Cp865 }, // from norwegian.words
+    { "trërne", Cp865 }, // from norwegian.words
+    { "trõbbel", Cp865 }, // from norwegian.words
+    { "trõndelag", Cp865 }, // from norwegian.words
+    { "trõnderne", Cp865 }, // from norwegian.words
+    { "trõst", Cp865 }, // from norwegian.words
+    { "trõste", Cp865 }, // from norwegian.words
     { "trær", MacRoman }, // from norwegian.words
     { "trærne", MacRoman }, // from norwegian.words
     { "trøbbel", MacRoman }, // from norwegian.words
@@ -6515,9 +10394,45 @@ static const struct {
     { "tr¯nderne", Iso885915 }, // from norwegian.words
     { "tr¯st", Iso885915 }, // from norwegian.words
     { "tr¯ste", Iso885915 }, // from norwegian.words
+    { "tuÇ", Cp437 }, // from french.words
     { "tué", MacRoman }, // from french.words
     { "tuÈ", Iso885915 }, // from french.words
     { "tvo¯it", Iso88592 }, // from czech.words
+    { "tÅrkische", Cp437 }, // from german.words
+    { "tÅrkischen", Cp437 }, // from german.words
+    { "tÇ", Cp437 }, // from dutch.words
+    { "tÇl", Cp437 }, // from french.words
+    { "tÇlÇ", Cp437 }, // from french.words
+    { "tÇlÇcommunication", Cp437 }, // from french.words
+    { "tÇlÇcommunications", Cp437 }, // from french.words
+    { "tÇlÇcoms", Cp437 }, // from french.words
+    { "tÇlÇphone", Cp437 }, // from french.words
+    { "tÇlÇphoner", Cp437 }, // from french.words
+    { "tÇlÇphones", Cp437 }, // from french.words
+    { "tÇlÇphonie", Cp437 }, // from french.words
+    { "tÇlÇphonique", Cp437 }, // from french.words
+    { "tÇlÇphoniques", Cp437 }, // from french.words
+    { "tÇlÇspectateurs", Cp437 }, // from french.words
+    { "tÇlÇtexte", Cp437 }, // from french.words
+    { "tÇlÇvision", Cp437 }, // from french.words
+    { "tÇlÇvisÇe", Cp437 }, // from french.words
+    { "tÇmoignage", Cp437 }, // from french.words
+    { "tÇmoignages", Cp437 }, // from french.words
+    { "tÇmoigne", Cp437 }, // from french.words
+    { "tÇmoignent", Cp437 }, // from french.words
+    { "tÇmoin", Cp437 }, // from french.words
+    { "tÇmoins", Cp437 }, // from french.words
+    { "tÑglich", Cp437 }, // from german.words
+    { "tÑgliche", Cp437 }, // from german.words
+    { "tÑglichen", Cp437 }, // from german.words
+    { "tÑtig", Cp437 }, // from german.words
+    { "tÑtigen", Cp437 }, // from german.words
+    { "tÜle", Cp865 }, // from norwegian.words
+    { "tÜler", Cp865 }, // from norwegian.words
+    { "tÜlmodig", Cp865 }, // from norwegian.words
+    { "tÜlmodighet", Cp865 }, // from norwegian.words
+    { "tÜrene", Cp865 }, // from norwegian.words
+    { "tÜrer", Cp865 }, // from norwegian.words
     { "täglich", MacRoman }, // from german.words
     { "tägliche", MacRoman }, // from german.words
     { "täglichen", MacRoman }, // from german.words
@@ -6533,11 +10448,13 @@ static const struct {
     { "tél", MacRoman }, // from french.words
     { "télé", MacRoman }, // from french.words
     { "télécommunication", MacRoman }, // from french.words
+    { "télécommunications", MacRoman }, // from french.words
     { "télécoms", MacRoman }, // from french.words
     { "téléphone", MacRoman }, // from french.words
     { "téléphoner", MacRoman }, // from french.words
     { "téléphones", MacRoman }, // from french.words
     { "téléphonie", MacRoman }, // from french.words
+    { "téléphonique", MacRoman }, // from french.words
     { "téléphoniques", MacRoman }, // from french.words
     { "téléspectateurs", MacRoman }, // from french.words
     { "télétexte", MacRoman }, // from french.words
@@ -6549,9 +10466,26 @@ static const struct {
     { "témoignent", MacRoman }, // from french.words
     { "témoin", MacRoman }, // from french.words
     { "témoins", MacRoman }, // from french.words
+    { "tîdlich", Cp437 }, // from german.words
+    { "tîdlichen", Cp437 }, // from german.words
+    { "tîten", Cp437 }, // from german.words
     { "tödlich", MacRoman }, // from german.words
     { "tödlichen", MacRoman }, // from german.words
     { "töten", MacRoman }, // from german.words
+    { "tõff", Cp865 }, // from norwegian.words
+    { "tõffe", Cp865 }, // from norwegian.words
+    { "tõffere", Cp865 }, // from norwegian.words
+    { "tõft", Cp865 }, // from norwegian.words
+    { "tõmmer", Cp865 }, // from norwegian.words
+    { "tõmt", Cp865 }, // from norwegian.words
+    { "tõnder", Cp865 }, // from norwegian.words
+    { "tõnsberg", Cp865 }, // from norwegian.words
+    { "tõr", Cp865 }, // from norwegian.words
+    { "tõrke", Cp865 }, // from norwegian.words
+    { "tõrket", Cp865 }, // from norwegian.words
+    { "tõrr", Cp865 }, // from norwegian.words
+    { "tõrre", Cp865 }, // from norwegian.words
+    { "tõrt", Cp865 }, // from norwegian.words
     { "türkische", MacRoman }, // from german.words
     { "türkischen", MacRoman }, // from german.words
     { "tøff", MacRoman }, // from norwegian.words
@@ -6583,11 +10517,13 @@ static const struct {
     { "tÈl", Iso885915 }, // from french.words
     { "tÈlÈ", Iso885915 }, // from french.words
     { "tÈlÈcommunication", Iso885915 }, // from french.words
+    { "tÈlÈcommunications", Iso885915 }, // from french.words
     { "tÈlÈcoms", Iso885915 }, // from french.words
     { "tÈlÈphone", Iso885915 }, // from french.words
     { "tÈlÈphoner", Iso885915 }, // from french.words
     { "tÈlÈphones", Iso885915 }, // from french.words
     { "tÈlÈphonie", Iso885915 }, // from french.words
+    { "tÈlÈphonique", Iso885915 }, // from french.words
     { "tÈlÈphoniques", Iso885915 }, // from french.words
     { "tÈlÈspectateurs", Iso885915 }, // from french.words
     { "tÈlÈtexte", Iso885915 }, // from french.words
@@ -6622,24 +10558,45 @@ static const struct {
     { "t˝den", Iso88592 }, // from czech.words
     { "t˝kat", Iso88592 }, // from czech.words
     { "t˝m", Iso88592 }, // from czech.words
+    { "udÏlat", Iso88592 }, // from czech.words
+    { "uforstÜelig", Cp865 }, // from norwegian.words
     { "uforståelig", MacRoman }, // from norwegian.words
     { "uforstÂelig", Iso885915 }, // from norwegian.words
+    { "uk·zat", Iso88592 }, // from czech.words
+    { "ullevÜl", Cp865 }, // from norwegian.words
     { "ullevål", MacRoman }, // from norwegian.words
     { "ullevÂl", Iso885915 }, // from norwegian.words
+    { "ultÇrieure", Cp437 }, // from french.words
+    { "ultÇrieurement", Cp437 }, // from french.words
     { "ultérieure", MacRoman }, // from french.words
     { "ultérieurement", MacRoman }, // from french.words
     { "ultÈrieure", Iso885915 }, // from french.words
     { "ultÈrieurement", Iso885915 }, // from french.words
     { "umfaßt", MacRoman }, // from german.words
     { "umfaﬂt", Iso885915 }, // from german.words
+    { "umfa·t", Cp437 }, // from german.words
+    { "umoænit", Iso88592 }, // from czech.words
+    { "umoæÚovat", Iso88592 }, // from czech.words
+    { "unabhÑngig", Cp437 }, // from german.words
+    { "unabhÑngige", Cp437 }, // from german.words
+    { "unabhÑngigen", Cp437 }, // from german.words
     { "unabhängig", MacRoman }, // from german.words
     { "unabhängige", MacRoman }, // from german.words
     { "unabhängigen", MacRoman }, // from german.words
     { "unabh‰ngig", Iso885915 }, // from german.words
     { "unabh‰ngige", Iso885915 }, // from german.words
     { "unabh‰ngigen", Iso885915 }, // from german.words
+    { "underdirektõr", Cp865 }, // from norwegian.words
     { "underdirektør", MacRoman }, // from norwegian.words
     { "underdirekt¯r", Iso885915 }, // from norwegian.words
+    { "undersõke", Cp865 }, // from norwegian.words
+    { "undersõkelse", Cp865 }, // from norwegian.words
+    { "undersõkelsen", Cp865 }, // from norwegian.words
+    { "undersõkelsene", Cp865 }, // from norwegian.words
+    { "undersõkelser", Cp865 }, // from norwegian.words
+    { "undersõker", Cp865 }, // from norwegian.words
+    { "undersõkt", Cp865 }, // from norwegian.words
+    { "undersõkte", Cp865 }, // from norwegian.words
     { "undersøke", MacRoman }, // from norwegian.words
     { "undersøkelse", MacRoman }, // from norwegian.words
     { "undersøkelsen", MacRoman }, // from norwegian.words
@@ -6656,53 +10613,78 @@ static const struct {
     { "unders¯ker", Iso885915 }, // from norwegian.words
     { "unders¯kt", Iso885915 }, // from norwegian.words
     { "unders¯kte", Iso885915 }, // from norwegian.words
+    { "ungefÑhr", Cp437 }, // from german.words
     { "ungefähr", MacRoman }, // from german.words
     { "ungef‰hr", Iso885915 }, // from german.words
+    { "ungeklÑrt", Cp437 }, // from german.words
     { "ungeklärt", MacRoman }, // from german.words
     { "ungekl‰rt", Iso885915 }, // from german.words
     { "ungewiß", MacRoman }, // from german.words
     { "ungewiﬂ", Iso885915 }, // from german.words
+    { "ungewi·", Cp437 }, // from german.words
+    { "ungewîhnlich", Cp437 }, // from german.words
+    { "ungewîhnliche", Cp437 }, // from german.words
+    { "ungewîhnlichen", Cp437 }, // from german.words
     { "ungewöhnlich", MacRoman }, // from german.words
     { "ungewöhnliche", MacRoman }, // from german.words
     { "ungewöhnlichen", MacRoman }, // from german.words
     { "ungewˆhnlich", Iso885915 }, // from german.words
     { "ungewˆhnliche", Iso885915 }, // from german.words
     { "ungewˆhnlichen", Iso885915 }, // from german.words
+    { "unitÇ", Cp437 }, // from french.words
+    { "unitÇs", Cp437 }, // from french.words
     { "unité", MacRoman }, // from french.words
     { "unités", MacRoman }, // from french.words
     { "unitÈ", Iso885915 }, // from french.words
     { "unitÈs", Iso885915 }, // from french.words
+    { "universitÇs", Cp437 }, // from french.words
     { "universités", MacRoman }, // from french.words
     { "universitÈs", Iso885915 }, // from french.words
+    { "unlÑngst", Cp437 }, // from german.words
     { "unlängst", MacRoman }, // from german.words
     { "unl‰ngst", Iso885915 }, // from german.words
+    { "unmîglich", Cp437 }, // from german.words
     { "unmöglich", MacRoman }, // from german.words
     { "unmˆglich", Iso885915 }, // from german.words
+    { "unngÜ", Cp865 }, // from norwegian.words
+    { "unngÜr", Cp865 }, // from norwegian.words
+    { "unngÜtt", Cp865 }, // from norwegian.words
     { "unngå", MacRoman }, // from norwegian.words
     { "unngår", MacRoman }, // from norwegian.words
     { "unngått", MacRoman }, // from norwegian.words
     { "unngÂ", Iso885915 }, // from norwegian.words
     { "unngÂr", Iso885915 }, // from norwegian.words
     { "unngÂtt", Iso885915 }, // from norwegian.words
+    { "unnîtig", Cp437 }, // from german.words
     { "unnötig", MacRoman }, // from german.words
     { "unnˆtig", Iso885915 }, // from german.words
+    { "unterhÑlt", Cp437 }, // from german.words
     { "unterhält", MacRoman }, // from german.words
     { "unterh‰lt", Iso885915 }, // from german.words
+    { "unterstÅtzen", Cp437 }, // from german.words
+    { "unterstÅtzt", Cp437 }, // from german.words
+    { "unterstÅtzte", Cp437 }, // from german.words
     { "unterstützen", MacRoman }, // from german.words
     { "unterstützt", MacRoman }, // from german.words
     { "unterstützte", MacRoman }, // from german.words
     { "unterst¸tzen", Iso885915 }, // from german.words
     { "unterst¸tzt", Iso885915 }, // from german.words
     { "unterst¸tzte", Iso885915 }, // from german.words
+    { "unverstÑndlich", Cp437 }, // from german.words
     { "unverständlich", MacRoman }, // from german.words
     { "unverst‰ndlich", Iso885915 }, // from german.words
+    { "unverzÅglich", Cp437 }, // from german.words
     { "unverzüglich", MacRoman }, // from german.words
     { "unverz¸glich", Iso885915 }, // from german.words
+    { "unverÑndert", Cp437 }, // from german.words
     { "unverändert", MacRoman }, // from german.words
     { "unver‰ndert", Iso885915 }, // from german.words
+    { "unõdvendig", Cp865 }, // from norwegian.words
     { "unødvendig", MacRoman }, // from norwegian.words
     { "un¯dvendig", Iso885915 }, // from norwegian.words
-    { "uo¯it", Iso88592 }, // from czech.words
+    { "ursprÅnglich", Cp437 }, // from german.words
+    { "ursprÅngliche", Cp437 }, // from german.words
+    { "ursprÅnglichen", Cp437 }, // from german.words
     { "ursprünglich", MacRoman }, // from german.words
     { "ursprüngliche", MacRoman }, // from german.words
     { "ursprünglichen", MacRoman }, // from german.words
@@ -6710,10 +10692,17 @@ static const struct {
     { "urspr¸ngliche", Iso885915 }, // from german.words
     { "urspr¸nglichen", Iso885915 }, // from german.words
     { "urËit˝", Iso88592 }, // from czech.words
+    { "usÇes", Cp437 }, // from french.words
     { "usées", MacRoman }, // from french.words
     { "usÈes", Iso885915 }, // from french.words
+    { "utendõrs", Cp865 }, // from norwegian.words
     { "utendørs", MacRoman }, // from norwegian.words
     { "utend¯rs", Iso885915 }, // from norwegian.words
+    { "utfõre", Cp865 }, // from norwegian.words
+    { "utfõrer", Cp865 }, // from norwegian.words
+    { "utfõres", Cp865 }, // from norwegian.words
+    { "utfõrt", Cp865 }, // from norwegian.words
+    { "utfõrte", Cp865 }, // from norwegian.words
     { "utføre", MacRoman }, // from norwegian.words
     { "utfører", MacRoman }, // from norwegian.words
     { "utføres", MacRoman }, // from norwegian.words
@@ -6724,15 +10713,30 @@ static const struct {
     { "utf¯res", Iso885915 }, // from norwegian.words
     { "utf¯rt", Iso885915 }, // from norwegian.words
     { "utf¯rte", Iso885915 }, // from norwegian.words
+    { "utgjõr", Cp865 }, // from norwegian.words
+    { "utgjõre", Cp865 }, // from norwegian.words
     { "utgjør", MacRoman }, // from norwegian.words
     { "utgjøre", MacRoman }, // from norwegian.words
     { "utgj¯r", Iso885915 }, // from norwegian.words
     { "utgj¯re", Iso885915 }, // from norwegian.words
+    { "utilisÇ", Cp437 }, // from french.words
+    { "utilisÇe", Cp437 }, // from french.words
+    { "utilisÇes", Cp437 }, // from french.words
+    { "utilisÇs", Cp437 }, // from french.words
     { "utilisé", MacRoman }, // from french.words
+    { "utilisée", MacRoman }, // from french.words
     { "utilisées", MacRoman }, // from french.words
+    { "utilisés", MacRoman }, // from french.words
     { "utilisÈ", Iso885915 }, // from french.words
+    { "utilisÈe", Iso885915 }, // from french.words
     { "utilisÈes", Iso885915 }, // from french.words
+    { "utilisÈs", Iso885915 }, // from french.words
+    { "utlÜn", Cp865 }, // from norwegian.words
     { "utlån", MacRoman }, // from norwegian.words
+    { "utlõp", Cp865 }, // from norwegian.words
+    { "utlõse", Cp865 }, // from norwegian.words
+    { "utlõst", Cp865 }, // from norwegian.words
+    { "utlõste", Cp865 }, // from norwegian.words
     { "utløp", MacRoman }, // from norwegian.words
     { "utløse", MacRoman }, // from norwegian.words
     { "utløst", MacRoman }, // from norwegian.words
@@ -6742,8 +10746,12 @@ static const struct {
     { "utl¯se", Iso885915 }, // from norwegian.words
     { "utl¯st", Iso885915 }, // from norwegian.words
     { "utl¯ste", Iso885915 }, // from norwegian.words
+    { "utpÜ", Cp865 }, // from norwegian.words
     { "utpå", MacRoman }, // from norwegian.words
     { "utpÂ", Iso885915 }, // from norwegian.words
+    { "utõver", Cp865 }, // from norwegian.words
+    { "utõvere", Cp865 }, // from norwegian.words
+    { "utõverne", Cp865 }, // from norwegian.words
     { "utøver", MacRoman }, // from norwegian.words
     { "utøvere", MacRoman }, // from norwegian.words
     { "utøverne", MacRoman }, // from norwegian.words
@@ -6752,33 +10760,51 @@ static const struct {
     { "ut¯verne", Iso885915 }, // from norwegian.words
     { "uveden˝", Iso88592 }, // from czech.words
     { "uv·dÏt", Iso88592 }, // from czech.words
+    { "uvÈst", Iso88592 }, // from czech.words
     { "uzav¯Ìt", Iso88592 }, // from czech.words
+    { "uõnsket", Cp865 }, // from norwegian.words
     { "uønsket", MacRoman }, // from norwegian.words
     { "u¯nsket", Iso885915 }, // from norwegian.words
+    { "validitÇ", Cp437 }, // from french.words
     { "validité", MacRoman }, // from french.words
     { "validitÈ", Iso885915 }, // from french.words
+    { "vallÇe", Cp437 }, // from french.words
     { "vallée", MacRoman }, // from french.words
     { "vallÈe", Iso885915 }, // from french.words
+    { "varaordfõrer", Cp865 }, // from norwegian.words
     { "varaordfører", MacRoman }, // from norwegian.words
     { "varaordf¯rer", Iso885915 }, // from norwegian.words
+    { "variÇtÇ", Cp437 }, // from french.words
+    { "variÇtÇs", Cp437 }, // from french.words
     { "variété", MacRoman }, // from french.words
     { "variétés", MacRoman }, // from french.words
     { "variÈtÈ", Iso885915 }, // from french.words
     { "variÈtÈs", Iso885915 }, // from french.words
+    { "vebjõrn", Cp865 }, // from norwegian.words
     { "vebjørn", MacRoman }, // from norwegian.words
     { "vebj¯rn", Iso885915 }, // from norwegian.words
+    { "vedrõrende", Cp865 }, // from norwegian.words
     { "vedrørende", MacRoman }, // from norwegian.words
     { "vedr¯rende", Iso885915 }, // from norwegian.words
     { "velik˝", Iso88592 }, // from czech.words
     { "velk˝", Iso88592 }, // from czech.words
+    { "velstÜende", Cp865 }, // from norwegian.words
     { "velstående", MacRoman }, // from norwegian.words
     { "velstÂende", Iso885915 }, // from norwegian.words
     { "veranlaßt", MacRoman }, // from german.words
     { "veranlaﬂt", Iso885915 }, // from german.words
+    { "veranla·t", Cp437 }, // from german.words
+    { "verdrÑngt", Cp437 }, // from german.words
     { "verdrängt", MacRoman }, // from german.words
     { "verdr‰ngt", Iso885915 }, // from german.words
     { "verfaßt", MacRoman }, // from german.words
     { "verfaﬂt", Iso885915 }, // from german.words
+    { "verfa·t", Cp437 }, // from german.words
+    { "verfÅgbar", Cp437 }, // from german.words
+    { "verfÅgbaren", Cp437 }, // from german.words
+    { "verfÅgen", Cp437 }, // from german.words
+    { "verfÅgt", Cp437 }, // from german.words
+    { "verfÅgte", Cp437 }, // from german.words
     { "verfügbar", MacRoman }, // from german.words
     { "verfügbaren", MacRoman }, // from german.words
     { "verfügen", MacRoman }, // from german.words
@@ -6789,16 +10815,26 @@ static const struct {
     { "verf¸gen", Iso885915 }, // from german.words
     { "verf¸gt", Iso885915 }, // from german.words
     { "verf¸gte", Iso885915 }, // from german.words
+    { "vergrî·ert", Cp437 }, // from german.words
     { "vergrößert", MacRoman }, // from german.words
     { "vergrˆﬂert", Iso885915 }, // from german.words
+    { "verhÑlt", Cp437 }, // from german.words
+    { "verhÑngt", Cp437 }, // from german.words
     { "verhält", MacRoman }, // from german.words
     { "verhängt", MacRoman }, // from german.words
     { "verh‰lt", Iso885915 }, // from german.words
     { "verh‰ngt", Iso885915 }, // from german.words
+    { "verknÅpft", Cp437 }, // from german.words
     { "verknüpft", MacRoman }, // from german.words
     { "verkn¸pft", Iso885915 }, // from german.words
+    { "verktõy", Cp865 }, // from norwegian.words
     { "verktøy", MacRoman }, // from norwegian.words
     { "verkt¯y", Iso885915 }, // from norwegian.words
+    { "verkÅnden", Cp437 }, // from german.words
+    { "verkÅndet", Cp437 }, // from german.words
+    { "verkÅndete", Cp437 }, // from german.words
+    { "verkÅrzt", Cp437 }, // from german.words
+    { "verkîrpert", Cp437 }, // from german.words
     { "verkörpert", MacRoman }, // from german.words
     { "verkünden", MacRoman }, // from german.words
     { "verkündet", MacRoman }, // from german.words
@@ -6813,6 +10849,12 @@ static const struct {
     { "verließen", MacRoman }, // from german.words
     { "verlieﬂ", Iso885915 }, // from german.words
     { "verlieﬂen", Iso885915 }, // from german.words
+    { "verlie·", Cp437 }, // from german.words
+    { "verlie·en", Cp437 }, // from german.words
+    { "verlÑngern", Cp437 }, // from german.words
+    { "verlÑngert", Cp437 }, // from german.words
+    { "verlÑuft", Cp437 }, // from german.words
+    { "verlÑ·t", Cp437 }, // from german.words
     { "verlängern", MacRoman }, // from german.words
     { "verlängert", MacRoman }, // from german.words
     { "verläuft", MacRoman }, // from german.words
@@ -6823,22 +10865,38 @@ static const struct {
     { "verl‰ﬂt", Iso885915 }, // from german.words
     { "vermißt", MacRoman }, // from german.words
     { "vermiﬂt", Iso885915 }, // from german.words
+    { "vermi·t", Cp437 }, // from german.words
+    { "vernachlÑssigt", Cp437 }, // from german.words
     { "vernachlässigt", MacRoman }, // from german.words
     { "vernachl‰ssigt", Iso885915 }, // from german.words
+    { "vernÅnftig", Cp437 }, // from german.words
+    { "vernÅnftige", Cp437 }, // from german.words
     { "vernünftig", MacRoman }, // from german.words
     { "vernünftige", MacRoman }, // from german.words
     { "vern¸nftig", Iso885915 }, // from german.words
     { "vern¸nftige", Iso885915 }, // from german.words
     { "verpaßt", MacRoman }, // from german.words
     { "verpaﬂt", Iso885915 }, // from german.words
+    { "verpa·t", Cp437 }, // from german.words
+    { "verrÅckt", Cp437 }, // from german.words
+    { "verrÑt", Cp437 }, // from german.words
     { "verrät", MacRoman }, // from german.words
     { "verrückt", MacRoman }, // from german.words
     { "verr‰t", Iso885915 }, // from german.words
     { "verr¸ckt", Iso885915 }, // from german.words
+    { "verschÑrft", Cp437 }, // from german.words
     { "verschärft", MacRoman }, // from german.words
     { "versch‰rft", Iso885915 }, // from german.words
     { "verstoßen", MacRoman }, // from german.words
     { "verstoﬂen", Iso885915 }, // from german.words
+    { "versto·en", Cp437 }, // from german.words
+    { "verstÑndigen", Cp437 }, // from german.words
+    { "verstÑndigt", Cp437 }, // from german.words
+    { "verstÑndlich", Cp437 }, // from german.words
+    { "verstÑrken", Cp437 }, // from german.words
+    { "verstÑrkt", Cp437 }, // from german.words
+    { "verstÑrkte", Cp437 }, // from german.words
+    { "verstÑrkten", Cp437 }, // from german.words
     { "verständigen", MacRoman }, // from german.words
     { "verständigt", MacRoman }, // from german.words
     { "verständlich", MacRoman }, // from german.words
@@ -6853,6 +10911,11 @@ static const struct {
     { "verst‰rkt", Iso885915 }, // from german.words
     { "verst‰rkte", Iso885915 }, // from german.words
     { "verst‰rkten", Iso885915 }, // from german.words
+    { "versÇ", Cp437 }, // from french.words
+    { "versÇe", Cp437 }, // from french.words
+    { "versÇes", Cp437 }, // from french.words
+    { "versÇs", Cp437 }, // from french.words
+    { "versÑumt", Cp437 }, // from german.words
     { "versäumt", MacRoman }, // from german.words
     { "versé", MacRoman }, // from french.words
     { "versée", MacRoman }, // from french.words
@@ -6863,13 +10926,24 @@ static const struct {
     { "versÈe", Iso885915 }, // from french.words
     { "versÈes", Iso885915 }, // from french.words
     { "versÈs", Iso885915 }, // from french.words
+    { "verzîgert", Cp437 }, // from german.words
     { "verzögert", MacRoman }, // from german.words
     { "verzˆgert", Iso885915 }, // from german.words
+    { "verÅbt", Cp437 }, // from german.words
+    { "verÑndern", Cp437 }, // from german.words
+    { "verÑndert", Cp437 }, // from german.words
+    { "verÑnderte", Cp437 }, // from german.words
+    { "verÑnderten", Cp437 }, // from german.words
+    { "verÑrgert", Cp437 }, // from german.words
     { "verändern", MacRoman }, // from german.words
     { "verändert", MacRoman }, // from german.words
     { "veränderte", MacRoman }, // from german.words
     { "veränderten", MacRoman }, // from german.words
     { "verärgert", MacRoman }, // from german.words
+    { "verîffentlichen", Cp437 }, // from german.words
+    { "verîffentlicht", Cp437 }, // from german.words
+    { "verîffentlichte", Cp437 }, // from german.words
+    { "verîffentlichten", Cp437 }, // from german.words
     { "veröffentlichen", MacRoman }, // from german.words
     { "veröffentlicht", MacRoman }, // from german.words
     { "veröffentlichte", MacRoman }, // from german.words
@@ -6887,22 +10961,33 @@ static const struct {
     { "ver¸bt", Iso885915 }, // from german.words
     { "ve¯ejn˝", Iso88592 }, // from czech.words
     { "vhodn˝", Iso88592 }, // from czech.words
+    { "viderefõre", Cp865 }, // from norwegian.words
     { "videreføre", MacRoman }, // from norwegian.words
     { "videref¯re", Iso885915 }, // from norwegian.words
+    { "videregÜende", Cp865 }, // from norwegian.words
     { "videregående", MacRoman }, // from norwegian.words
     { "videregÂende", Iso885915 }, // from norwegian.words
+    { "vidÇo", Cp437 }, // from french.words
+    { "vidÇos", Cp437 }, // from french.words
     { "vidéo", MacRoman }, // from french.words
     { "vidéos", MacRoman }, // from french.words
     { "vidÈo", Iso885915 }, // from french.words
     { "vidÈos", Iso885915 }, // from french.words
+    { "vidÏt", Iso88592 }, // from czech.words
+    { "vielfÑltigen", Cp437 }, // from german.words
     { "vielfältigen", MacRoman }, // from german.words
     { "vielf‰ltigen", Iso885915 }, // from german.words
+    { "vilkÜr", Cp865 }, // from norwegian.words
+    { "vilkÜrene", Cp865 }, // from norwegian.words
     { "vilkår", MacRoman }, // from norwegian.words
     { "vilkårene", MacRoman }, // from norwegian.words
     { "vilkÂr", Iso885915 }, // from norwegian.words
     { "vilkÂrene", Iso885915 }, // from norwegian.words
+    { "visibilitÇ", Cp437 }, // from french.words
     { "visibilité", MacRoman }, // from french.words
     { "visibilitÈ", Iso885915 }, // from french.words
+    { "visÇ", Cp437 }, // from french.words
+    { "visÇs", Cp437 }, // from french.words
     { "visé", MacRoman }, // from french.words
     { "visés", MacRoman }, // from french.words
     { "visÈ", Iso885915 }, // from french.words
@@ -6912,7 +10997,13 @@ static const struct {
     { "vl·dnÌ", Iso88592 }, // from czech.words
     { "vnit¯nÌ", Iso88592 }, // from czech.words
     { "vojensk˝", Iso88592 }, // from czech.words
+    { "volatilitÇ", Cp437 }, // from french.words
+    { "volatilité", MacRoman }, // from french.words
+    { "volatilitÈ", Iso885915 }, // from french.words
     { "volebnÌ", Iso88592 }, // from czech.words
+    { "vollstÑndig", Cp437 }, // from german.words
+    { "vollstÑndige", Cp437 }, // from german.words
+    { "vollstÑndigen", Cp437 }, // from german.words
     { "vollständig", MacRoman }, // from german.words
     { "vollständige", MacRoman }, // from german.words
     { "vollständigen", MacRoman }, // from german.words
@@ -6920,24 +11011,63 @@ static const struct {
     { "vollst‰ndige", Iso885915 }, // from german.words
     { "vollst‰ndigen", Iso885915 }, // from german.words
     { "voln˝", Iso88592 }, // from czech.words
+    { "volontÇ", Cp437 }, // from french.words
     { "volonté", MacRoman }, // from french.words
     { "volontÈ", Iso885915 }, // from french.words
+    { "volÇs", Cp437 }, // from french.words
     { "volés", MacRoman }, // from french.words
     { "volÈs", Iso885915 }, // from french.words
+    { "vorgefÅhrt", Cp437 }, // from german.words
     { "vorgeführt", MacRoman }, // from german.words
     { "vorgef¸hrt", Iso885915 }, // from german.words
+    { "vorlÑufig", Cp437 }, // from german.words
+    { "vorlÑufige", Cp437 }, // from german.words
+    { "vorlÑufigen", Cp437 }, // from german.words
+    { "vorläufig", MacRoman }, // from german.words
     { "vorläufige", MacRoman }, // from german.words
     { "vorläufigen", MacRoman }, // from german.words
+    { "vorl‰ufig", Iso885915 }, // from german.words
     { "vorl‰ufige", Iso885915 }, // from german.words
     { "vorl‰ufigen", Iso885915 }, // from german.words
+    { "vorÅbergehend", Cp437 }, // from german.words
     { "vorübergehend", MacRoman }, // from german.words
     { "vor¸bergehend", Iso885915 }, // from german.words
+    { "votÇ", Cp437 }, // from french.words
     { "voté", MacRoman }, // from french.words
     { "votÈ", Iso885915 }, // from french.words
     { "vr·tit", Iso88592 }, // from czech.words
     { "vych·zet", Iso88592 }, // from czech.words
+    { "vyhr·t", Iso88592 }, // from czech.words
     { "vysok˝", Iso88592 }, // from czech.words
+    { "vytvo¯it", Iso88592 }, // from czech.words
     { "vyuæÌt", Iso88592 }, // from czech.words
+    { "vzÌt", Iso88592 }, // from czech.words
+    { "vÇcu", Cp437 }, // from french.words
+    { "vÇhicule", Cp437 }, // from french.words
+    { "vÇhicules", Cp437 }, // from french.words
+    { "vÇlo", Cp437 }, // from french.words
+    { "vÇrifier", Cp437 }, // from french.words
+    { "vÇritable", Cp437 }, // from french.words
+    { "vÇritablement", Cp437 }, // from french.words
+    { "vÇritables", Cp437 }, // from french.words
+    { "vÇritÇ", Cp437 }, // from french.words
+    { "vÜge", Cp865 }, // from norwegian.words
+    { "vÜgen", Cp865 }, // from norwegian.words
+    { "vÜger", Cp865 }, // from norwegian.words
+    { "vÜget", Cp865 }, // from norwegian.words
+    { "vÜkne", Cp865 }, // from norwegian.words
+    { "vÜkner", Cp865 }, // from norwegian.words
+    { "vÜknet", Cp865 }, // from norwegian.words
+    { "vÜlerenga", Cp865 }, // from norwegian.words
+    { "vÜpen", Cp865 }, // from norwegian.words
+    { "vÜpenhvile", Cp865 }, // from norwegian.words
+    { "vÜpnene", Cp865 }, // from norwegian.words
+    { "vÜr", Cp865 }, // from norwegian.words
+    { "vÜre", Cp865 }, // from norwegian.words
+    { "vÜren", Cp865 }, // from norwegian.words
+    { "vÜrens", Cp865 }, // from norwegian.words
+    { "vÜrt", Cp865 }, // from norwegian.words
+    { "vÜt", Cp865 }, // from norwegian.words
     { "våge", MacRoman }, // from norwegian.words
     { "vågen", MacRoman }, // from norwegian.words
     { "våger", MacRoman }, // from norwegian.words
@@ -6963,6 +11093,17 @@ static const struct {
     { "véritable", MacRoman }, // from french.words
     { "véritablement", MacRoman }, // from french.words
     { "véritables", MacRoman }, // from french.words
+    { "vérité", MacRoman }, // from french.words
+    { "vëpnede", Cp865 }, // from norwegian.words
+    { "vëpnet", Cp865 }, // from norwegian.words
+    { "vër", Cp865 }, // from norwegian.words
+    { "vëre", Cp865 }, // from norwegian.words
+    { "vërende", Cp865 }, // from norwegian.words
+    { "vëret", Cp865 }, // from norwegian.words
+    { "vërnes", Cp865 }, // from norwegian.words
+    { "vërs", Cp865 }, // from norwegian.words
+    { "vërt", Cp865 }, // from norwegian.words
+    { "vîllig", Cp437 }, // from german.words
     { "völlig", MacRoman }, // from german.words
     { "væpnede", MacRoman }, // from norwegian.words
     { "væpnet", MacRoman }, // from norwegian.words
@@ -7007,11 +11148,14 @@ static const struct {
     { "vÈritable", Iso885915 }, // from french.words
     { "vÈritablement", Iso885915 }, // from french.words
     { "vÈritables", Iso885915 }, // from french.words
+    { "vÈritÈ", Iso885915 }, // from french.words
     { "vÈst", Iso88592 }, // from czech.words
     { "vÏc", Iso88592 }, // from czech.words
     { "vÏdeck˝", Iso88592 }, // from czech.words
+    { "vÏdÏt", Iso88592 }, // from czech.words
     { "vÏnovat", Iso88592 }, // from czech.words
     { "vÏtπina", Iso88592 }, // from czech.words
+    { "vÏ¯it", Iso88592 }, // from czech.words
     { "vˆllig", Iso885915 }, // from german.words
     { "v˝chodnÌ", Iso88592 }, // from czech.words
     { "v˝roba", Iso88592 }, // from czech.words
@@ -7028,21 +11172,45 @@ static const struct {
     { "weiﬂe", Iso885915 }, // from german.words
     { "weiﬂen", Iso885915 }, // from german.words
     { "weiﬂer", Iso885915 }, // from german.words
+    { "wei·", Cp437 }, // from german.words
+    { "wei·e", Cp437 }, // from german.words
+    { "wei·en", Cp437 }, // from german.words
+    { "wei·er", Cp437 }, // from german.words
+    { "wofÅr", Cp437 }, // from german.words
     { "wofür", MacRoman }, // from german.words
     { "wof¸r", Iso885915 }, // from german.words
+    { "womîglich", Cp437 }, // from german.words
     { "womöglich", MacRoman }, // from german.words
     { "womˆglich", Iso885915 }, // from german.words
     { "wußte", MacRoman }, // from german.words
     { "wußten", MacRoman }, // from german.words
     { "wuﬂte", Iso885915 }, // from german.words
     { "wuﬂten", Iso885915 }, // from german.words
+    { "wu·te", Cp437 }, // from german.words
+    { "wu·ten", Cp437 }, // from german.words
+    { "wÅnsche", Cp437 }, // from german.words
+    { "wÅnschen", Cp437 }, // from german.words
+    { "wÅnscht", Cp437 }, // from german.words
+    { "wÅrde", Cp437 }, // from german.words
+    { "wÅrden", Cp437 }, // from german.words
+    { "wÇl", Cp437 }, // from dutch.words
+    { "wÑchst", Cp437 }, // from german.words
+    { "wÑhlen", Cp437 }, // from german.words
+    { "wÑhlt", Cp437 }, // from german.words
+    { "wÑhlte", Cp437 }, // from german.words
+    { "wÑhrend", Cp437 }, // from german.words
+    { "wÑre", Cp437 }, // from german.words
+    { "wÑren", Cp437 }, // from german.words
     { "wächst", MacRoman }, // from german.words
     { "wählen", MacRoman }, // from german.words
     { "wählt", MacRoman }, // from german.words
+    { "wählte", MacRoman }, // from german.words
     { "während", MacRoman }, // from german.words
     { "wäre", MacRoman }, // from german.words
     { "wären", MacRoman }, // from german.words
     { "wél", MacRoman }, // from dutch.words
+    { "wîchentlich", Cp437 }, // from german.words
+    { "wîrtlich", Cp437 }, // from german.words
     { "wöchentlich", MacRoman }, // from german.words
     { "wörtlich", MacRoman }, // from german.words
     { "wünsche", MacRoman }, // from german.words
@@ -7053,6 +11221,7 @@ static const struct {
     { "w‰chst", Iso885915 }, // from german.words
     { "w‰hlen", Iso885915 }, // from german.words
     { "w‰hlt", Iso885915 }, // from german.words
+    { "w‰hlte", Iso885915 }, // from german.words
     { "w‰hrend", Iso885915 }, // from german.words
     { "w‰re", Iso885915 }, // from german.words
     { "w‰ren", Iso885915 }, // from german.words
@@ -7064,17 +11233,26 @@ static const struct {
     { "w¸nscht", Iso885915 }, // from german.words
     { "w¸rde", Iso885915 }, // from german.words
     { "w¸rden", Iso885915 }, // from german.words
+    { "ytterliggÜende", Cp865 }, // from norwegian.words
     { "ytterliggående", MacRoman }, // from norwegian.words
     { "ytterliggÂende", Iso885915 }, // from norwegian.words
+    { "zab˝vat", Iso88592 }, // from czech.words
     { "zahraniËnÌ", Iso88592 }, // from czech.words
     { "zajÌmav˝", Iso88592 }, // from czech.words
+    { "zaËÌnat", Iso88592 }, // from czech.words
+    { "zaËÌt", Iso88592 }, // from czech.words
     { "za¯ÌzenÌ", Iso88592 }, // from czech.words
     { "zboæÌ", Iso88592 }, // from czech.words
     { "zdravotnÌ", Iso88592 }, // from czech.words
     { "zd·t", Iso88592 }, // from czech.words
+    { "zeitgenîssischen", Cp437 }, // from german.words
     { "zeitgenössischen", MacRoman }, // from german.words
     { "zeitgenˆssischen", Iso885915 }, // from german.words
     { "zemÏ", Iso88592 }, // from czech.words
+    { "zerstîren", Cp437 }, // from german.words
+    { "zerstîrt", Cp437 }, // from german.words
+    { "zerstîrte", Cp437 }, // from german.words
+    { "zerstîrten", Cp437 }, // from german.words
     { "zerstören", MacRoman }, // from german.words
     { "zerstört", MacRoman }, // from german.words
     { "zerstörte", MacRoman }, // from german.words
@@ -7090,22 +11268,45 @@ static const struct {
     { "zn·t", Iso88592 }, // from czech.words
     { "zpr·va", Iso88592 }, // from czech.words
     { "zp˘sob", Iso88592 }, // from czech.words
+    { "zufÑllig", Cp437 }, // from german.words
     { "zufällig", MacRoman }, // from german.words
     { "zuf‰llig", Iso885915 }, // from german.words
+    { "zugehîrigen", Cp437 }, // from german.words
     { "zugehörigen", MacRoman }, // from german.words
     { "zugehˆrigen", Iso885915 }, // from german.words
+    { "zugÑnglich", Cp437 }, // from german.words
     { "zugänglich", MacRoman }, // from german.words
     { "zug‰nglich", Iso885915 }, // from german.words
+    { "zukÅnftig", Cp437 }, // from german.words
+    { "zukÅnftige", Cp437 }, // from german.words
+    { "zukÅnftigen", Cp437 }, // from german.words
     { "zukünftig", MacRoman }, // from german.words
     { "zukünftige", MacRoman }, // from german.words
     { "zukünftigen", MacRoman }, // from german.words
     { "zuk¸nftig", Iso885915 }, // from german.words
     { "zuk¸nftige", Iso885915 }, // from german.words
     { "zuk¸nftigen", Iso885915 }, // from german.words
+    { "zulÑssig", Cp437 }, // from german.words
     { "zulässig", MacRoman }, // from german.words
     { "zul‰ssig", Iso885915 }, // from german.words
+    { "zunÑchst", Cp437 }, // from german.words
     { "zunächst", MacRoman }, // from german.words
     { "zun‰chst", Iso885915 }, // from german.words
+    { "zurÅck", Cp437 }, // from german.words
+    { "zurÅckgegangen", Cp437 }, // from german.words
+    { "zurÅckgehen", Cp437 }, // from german.words
+    { "zurÅckgekehrt", Cp437 }, // from german.words
+    { "zurÅckgenommen", Cp437 }, // from german.words
+    { "zurÅckgetreten", Cp437 }, // from german.words
+    { "zurÅckgewiesen", Cp437 }, // from german.words
+    { "zurÅckgezogen", Cp437 }, // from german.words
+    { "zurÅckgreifen", Cp437 }, // from german.words
+    { "zurÅckhaltend", Cp437 }, // from german.words
+    { "zurÅckkehren", Cp437 }, // from german.words
+    { "zurÅckliegenden", Cp437 }, // from german.words
+    { "zurÅckziehen", Cp437 }, // from german.words
+    { "zurÅckzufÅhren", Cp437 }, // from german.words
+    { "zurÅckzukehren", Cp437 }, // from german.words
     { "zurück", MacRoman }, // from german.words
     { "zurückgegangen", MacRoman }, // from german.words
     { "zurückgehen", MacRoman }, // from german.words
@@ -7118,6 +11319,7 @@ static const struct {
     { "zurückhaltend", MacRoman }, // from german.words
     { "zurückkehren", MacRoman }, // from german.words
     { "zurückliegenden", MacRoman }, // from german.words
+    { "zurückziehen", MacRoman }, // from german.words
     { "zurückzuführen", MacRoman }, // from german.words
     { "zurückzukehren", MacRoman }, // from german.words
     { "zur¸ck", Iso885915 }, // from german.words
@@ -7132,16 +11334,25 @@ static const struct {
     { "zur¸ckhaltend", Iso885915 }, // from german.words
     { "zur¸ckkehren", Iso885915 }, // from german.words
     { "zur¸ckliegenden", Iso885915 }, // from german.words
+    { "zur¸ckziehen", Iso885915 }, // from german.words
     { "zur¸ckzuf¸hren", Iso885915 }, // from german.words
     { "zur¸ckzukehren", Iso885915 }, // from german.words
     { "zusammengefaßt", MacRoman }, // from german.words
     { "zusammengefaﬂt", Iso885915 }, // from german.words
+    { "zusammengefa·t", Cp437 }, // from german.words
+    { "zustÑndig", Cp437 }, // from german.words
+    { "zustÑndige", Cp437 }, // from german.words
+    { "zustÑndigen", Cp437 }, // from german.words
     { "zuständig", MacRoman }, // from german.words
     { "zuständige", MacRoman }, // from german.words
     { "zuständigen", MacRoman }, // from german.words
     { "zust‰ndig", Iso885915 }, // from german.words
     { "zust‰ndige", Iso885915 }, // from german.words
     { "zust‰ndigen", Iso885915 }, // from german.words
+    { "zusÑtzlich", Cp437 }, // from german.words
+    { "zusÑtzliche", Cp437 }, // from german.words
+    { "zusÑtzlichen", Cp437 }, // from german.words
+    { "zusÑtzlicher", Cp437 }, // from german.words
     { "zusätzlich", MacRoman }, // from german.words
     { "zusätzliche", MacRoman }, // from german.words
     { "zusätzlichen", MacRoman }, // from german.words
@@ -7152,12 +11363,22 @@ static const struct {
     { "zus‰tzlicher", Iso885915 }, // from german.words
     { "zvl·πtnÌ", Iso88592 }, // from czech.words
     { "zv˝πit", Iso88592 }, // from czech.words
+    { "zwangslÑufig", Cp437 }, // from german.words
     { "zwangsläufig", MacRoman }, // from german.words
     { "zwangsl‰ufig", Iso885915 }, // from german.words
+    { "zweitgrî·te", Cp437 }, // from german.words
     { "zweitgrößte", MacRoman }, // from german.words
     { "zweitgrˆﬂte", Iso885915 }, // from german.words
+    { "zwîlf", Cp437 }, // from german.words
     { "zwölf", MacRoman }, // from german.words
     { "zwˆlf", Iso885915 }, // from german.words
+    { "zÅgig", Cp437 }, // from german.words
+    { "zÇlf", Cp437 }, // from dutch.words
+    { "zÇro", Cp437 }, // from french.words
+    { "zÑhlen", Cp437 }, // from german.words
+    { "zÑhlt", Cp437 }, // from german.words
+    { "zÑhlte", Cp437 }, // from german.words
+    { "zÑhlten", Cp437 }, // from german.words
     { "zählen", MacRoman }, // from german.words
     { "zählt", MacRoman }, // from german.words
     { "zählte", MacRoman }, // from german.words
@@ -7180,12 +11401,14 @@ static const struct {
     { "z‰hlten", Iso885915 }, // from german.words
     { "zÈlf", Iso885915 }, // from dutch.words
     { "zÈro", Iso885915 }, // from french.words
+    { "zÌskat", Iso88592 }, // from czech.words
     { "z˘stat", Iso88592 }, // from czech.words
     { "z˘st·vat", Iso88592 }, // from czech.words
     { "z¸gig", Iso885915 }, // from german.words
     { "Ägypten", MacRoman }, // from german.words
     { "Ähnlich", MacRoman }, // from german.words
     { "Ämter", MacRoman }, // from german.words
+    { "Ändern", MacRoman }, // from german.words
     { "Änderung", MacRoman }, // from german.words
     { "Änderungen", MacRoman }, // from german.words
     { "Ängste", MacRoman }, // from german.words
@@ -7196,6 +11419,297 @@ static const struct {
     { "Ästhetik", MacRoman }, // from german.words
     { "Äußerung", MacRoman }, // from german.words
     { "Äußerungen", MacRoman }, // from german.words
+    { "Åben", Cp437 }, // from german.words
+    { "Åber", Cp437 }, // from german.words
+    { "Åberall", Cp437 }, // from german.words
+    { "Åberaus", Cp437 }, // from german.words
+    { "Åberdies", Cp437 }, // from german.words
+    { "Åberdurchschnittlich", Cp437 }, // from german.words
+    { "Åberein", Cp437 }, // from german.words
+    { "Åberfallen", Cp437 }, // from german.words
+    { "ÅberflÅssig", Cp437 }, // from german.words
+    { "Åberfordert", Cp437 }, // from german.words
+    { "Åbergeben", Cp437 }, // from german.words
+    { "Åberhaupt", Cp437 }, // from german.words
+    { "Åberholt", Cp437 }, // from german.words
+    { "Åberlassen", Cp437 }, // from german.words
+    { "Åberleben", Cp437 }, // from german.words
+    { "Åberlebt", Cp437 }, // from german.words
+    { "Åberlegen", Cp437 }, // from german.words
+    { "Åberlegt", Cp437 }, // from german.words
+    { "Åbermittelt", Cp437 }, // from german.words
+    { "Åbernahm", Cp437 }, // from german.words
+    { "Åbernehmen", Cp437 }, // from german.words
+    { "Åbernimmt", Cp437 }, // from german.words
+    { "Åbernommen", Cp437 }, // from german.words
+    { "ÅberprÅfen", Cp437 }, // from german.words
+    { "ÅberprÅft", Cp437 }, // from german.words
+    { "Åberraschend", Cp437 }, // from german.words
+    { "Åberraschende", Cp437 }, // from german.words
+    { "Åberraschenden", Cp437 }, // from german.words
+    { "Åberrascht", Cp437 }, // from german.words
+    { "Åbers", Cp437 }, // from german.words
+    { "Åberschreiten", Cp437 }, // from german.words
+    { "Åberschritten", Cp437 }, // from german.words
+    { "Åbersehen", Cp437 }, // from german.words
+    { "Åbersetzt", Cp437 }, // from german.words
+    { "Åberstanden", Cp437 }, // from german.words
+    { "Åbertragen", Cp437 }, // from german.words
+    { "Åbertrieben", Cp437 }, // from german.words
+    { "Åbertroffen", Cp437 }, // from german.words
+    { "Åberwachen", Cp437 }, // from german.words
+    { "Åberwacht", Cp437 }, // from german.words
+    { "Åberwiegend", Cp437 }, // from german.words
+    { "Åberwiesen", Cp437 }, // from german.words
+    { "Åberwinden", Cp437 }, // from german.words
+    { "Åberwunden", Cp437 }, // from german.words
+    { "Åberzeugen", Cp437 }, // from german.words
+    { "Åberzeugend", Cp437 }, // from german.words
+    { "Åberzeugt", Cp437 }, // from german.words
+    { "Åberzogen", Cp437 }, // from german.words
+    { "Åblich", Cp437 }, // from german.words
+    { "Åbliche", Cp437 }, // from german.words
+    { "Åblichen", Cp437 }, // from german.words
+    { "Åbrig", Cp437 }, // from german.words
+    { "Åbrigen", Cp437 }, // from german.words
+    { "Åbrigens", Cp437 }, // from german.words
+    { "Åbt", Cp437 }, // from german.words
+    { "Åbte", Cp437 }, // from german.words
+    { "Çcart", Cp437 }, // from french.words
+    { "Çcarts", Cp437 }, // from french.words
+    { "Çchange", Cp437 }, // from french.words
+    { "Çchanger", Cp437 }, // from french.words
+    { "Çchanges", Cp437 }, // from french.words
+    { "Çchantillon", Cp437 }, // from french.words
+    { "Çchappe", Cp437 }, // from french.words
+    { "Çchappent", Cp437 }, // from french.words
+    { "Çchapper", Cp437 }, // from french.words
+    { "ÇchappÇ", Cp437 }, // from french.words
+    { "Çchec", Cp437 }, // from french.words
+    { "Çchecs", Cp437 }, // from french.words
+    { "Çchelle", Cp437 }, // from french.words
+    { "ÇchouÇ", Cp437 }, // from french.words
+    { "Çcht", Cp437 }, // from dutch.words
+    { "Çchte", Cp437 }, // from dutch.words
+    { "ÇchÇance", Cp437 }, // from french.words
+    { "ÇchÇances", Cp437 }, // from french.words
+    { "ÇchÇant", Cp437 }, // from french.words
+    { "Çclairage", Cp437 }, // from french.words
+    { "Çclat", Cp437 }, // from french.words
+    { "Çcole", Cp437 }, // from french.words
+    { "Çcoles", Cp437 }, // from french.words
+    { "Çcologique", Cp437 }, // from french.words
+    { "Çcologiques", Cp437 }, // from french.words
+    { "Çcologistes", Cp437 }, // from french.words
+    { "Çconomie", Cp437 }, // from french.words
+    { "Çconomies", Cp437 }, // from french.words
+    { "Çconomique", Cp437 }, // from french.words
+    { "Çconomiquement", Cp437 }, // from french.words
+    { "Çconomiques", Cp437 }, // from french.words
+    { "Çconomiste", Cp437 }, // from french.words
+    { "Çconomistes", Cp437 }, // from french.words
+    { "ÇcoulÇ", Cp437 }, // from french.words
+    { "ÇcoulÇe", Cp437 }, // from french.words
+    { "Çcoute", Cp437 }, // from french.words
+    { "Çcouter", Cp437 }, // from french.words
+    { "Çcran", Cp437 }, // from french.words
+    { "Çcrans", Cp437 }, // from french.words
+    { "Çcrin", Cp437 }, // from french.words
+    { "Çcrire", Cp437 }, // from french.words
+    { "Çcrit", Cp437 }, // from french.words
+    { "Çcrite", Cp437 }, // from french.words
+    { "Çcrits", Cp437 }, // from french.words
+    { "Çcriture", Cp437 }, // from french.words
+    { "Çcrivain", Cp437 }, // from french.words
+    { "Çcrivains", Cp437 }, // from french.words
+    { "Çcu", Cp437 }, // from french.words
+    { "Çd", Cp437 }, // from french.words
+    { "Çditeur", Cp437 }, // from french.words
+    { "Çditeurs", Cp437 }, // from french.words
+    { "Çdition", Cp437 }, // from french.words
+    { "Çditions", Cp437 }, // from french.words
+    { "ÇditÇ", Cp437 }, // from french.words
+    { "Çducation", Cp437 }, // from french.words
+    { "Çgal", Cp437 }, // from french.words
+    { "Çgale", Cp437 }, // from french.words
+    { "Çgalement", Cp437 }, // from french.words
+    { "Çgales", Cp437 }, // from french.words
+    { "Çgard", Cp437 }, // from french.words
+    { "Çglise", Cp437 }, // from french.words
+    { "Çlaborer", Cp437 }, // from french.words
+    { "ÇlaborÇ", Cp437 }, // from french.words
+    { "ÇlaborÇe", Cp437 }, // from french.words
+    { "Çlan", Cp437 }, // from french.words
+    { "Çlargi", Cp437 }, // from french.words
+    { "Çlargir", Cp437 }, // from french.words
+    { "Çlecteurs", Cp437 }, // from french.words
+    { "Çlections", Cp437 }, // from french.words
+    { "Çlectoral", Cp437 }, // from french.words
+    { "Çlectorale", Cp437 }, // from french.words
+    { "ÇlectricitÇ", Cp437 }, // from french.words
+    { "Çlectrique", Cp437 }, // from french.words
+    { "Çlectriques", Cp437 }, // from french.words
+    { "Çlectronique", Cp437 }, // from french.words
+    { "Çlectroniques", Cp437 }, // from french.words
+    { "ÇlevÇ", Cp437 }, // from french.words
+    { "ÇlevÇe", Cp437 }, // from french.words
+    { "ÇlevÇes", Cp437 }, // from french.words
+    { "ÇlevÇs", Cp437 }, // from french.words
+    { "Çliminer", Cp437 }, // from french.words
+    { "ÇloignÇ", Cp437 }, // from french.words
+    { "Çlu", Cp437 }, // from french.words
+    { "Çlus", Cp437 }, // from french.words
+    { "ÇlÇgance", Cp437 }, // from french.words
+    { "ÇlÇgant", Cp437 }, // from french.words
+    { "ÇlÇgante", Cp437 }, // from french.words
+    { "ÇlÇment", Cp437 }, // from french.words
+    { "ÇlÇments", Cp437 }, // from french.words
+    { "Çmanant", Cp437 }, // from french.words
+    { "Çmane", Cp437 }, // from french.words
+    { "Çmergents", Cp437 }, // from french.words
+    { "Çmet", Cp437 }, // from french.words
+    { "Çmettant", Cp437 }, // from french.words
+    { "Çmetteur", Cp437 }, // from french.words
+    { "Çmetteurs", Cp437 }, // from french.words
+    { "Çmettre", Cp437 }, // from french.words
+    { "Çmis", Cp437 }, // from french.words
+    { "Çmise", Cp437 }, // from french.words
+    { "Çmises", Cp437 }, // from french.words
+    { "Çmission", Cp437 }, // from french.words
+    { "Çmissions", Cp437 }, // from french.words
+    { "Çmotion", Cp437 }, // from french.words
+    { "Çmotions", Cp437 }, // from french.words
+    { "Çn", Cp437 }, // from dutch.words
+    { "Çnergie", Cp437 }, // from french.words
+    { "ÇnergÇtique", Cp437 }, // from french.words
+    { "Çnorme", Cp437 }, // from french.words
+    { "Çnormes", Cp437 }, // from french.words
+    { "ÇnormÇment", Cp437 }, // from french.words
+    { "Çpais", Cp437 }, // from french.words
+    { "Çpargnants", Cp437 }, // from french.words
+    { "Çpargne", Cp437 }, // from french.words
+    { "Çpaules", Cp437 }, // from french.words
+    { "Çpices", Cp437 }, // from french.words
+    { "Çpingle", Cp437 }, // from french.words
+    { "Çpisode", Cp437 }, // from french.words
+    { "Çpoque", Cp437 }, // from french.words
+    { "Çpouse", Cp437 }, // from french.words
+    { "Çpoux", Cp437 }, // from french.words
+    { "Çpreuve", Cp437 }, // from french.words
+    { "Çpreuves", Cp437 }, // from french.words
+    { "Çprouve", Cp437 }, // from french.words
+    { "Çquilibre", Cp437 }, // from french.words
+    { "ÇquilibrÇ", Cp437 }, // from french.words
+    { "ÇquilibrÇe", Cp437 }, // from french.words
+    { "Çquipe", Cp437 }, // from french.words
+    { "Çquipement", Cp437 }, // from french.words
+    { "Çquipements", Cp437 }, // from french.words
+    { "Çquipes", Cp437 }, // from french.words
+    { "ÇquipÇ", Cp437 }, // from french.words
+    { "ÇquipÇe", Cp437 }, // from french.words
+    { "ÇquipÇes", Cp437 }, // from french.words
+    { "ÇquipÇs", Cp437 }, // from french.words
+    { "Çquivalent", Cp437 }, // from french.words
+    { "Çquivalente", Cp437 }, // from french.words
+    { "Çquivaut", Cp437 }, // from french.words
+    { "Çtabli", Cp437 }, // from french.words
+    { "Çtablie", Cp437 }, // from french.words
+    { "Çtablies", Cp437 }, // from french.words
+    { "Çtablir", Cp437 }, // from french.words
+    { "Çtablis", Cp437 }, // from french.words
+    { "Çtablissement", Cp437 }, // from french.words
+    { "Çtablissements", Cp437 }, // from french.words
+    { "Çtablit", Cp437 }, // from french.words
+    { "Çtage", Cp437 }, // from french.words
+    { "Çtages", Cp437 }, // from french.words
+    { "Çtaient", Cp437 }, // from french.words
+    { "Çtait", Cp437 }, // from french.words
+    { "Çtant", Cp437 }, // from french.words
+    { "Çtape", Cp437 }, // from french.words
+    { "Çtapes", Cp437 }, // from french.words
+    { "Çtat", Cp437 }, // from french.words
+    { "Çtats", Cp437 }, // from french.words
+    { "Çtendre", Cp437 }, // from french.words
+    { "Çtendu", Cp437 }, // from french.words
+    { "Çtendue", Cp437 }, // from french.words
+    { "Çthique", Cp437 }, // from french.words
+    { "Çtions", Cp437 }, // from french.words
+    { "Çtiquette", Cp437 }, // from french.words
+    { "Çtiquettes", Cp437 }, // from french.words
+    { "Çtoile", Cp437 }, // from french.words
+    { "Çtoiles", Cp437 }, // from french.words
+    { "Çtonnant", Cp437 }, // from french.words
+    { "Çtonnante", Cp437 }, // from french.words
+    { "ÇtonnÇ", Cp437 }, // from french.words
+    { "Çtrange", Cp437 }, // from french.words
+    { "Çtranger", Cp437 }, // from french.words
+    { "Çtrangers", Cp437 }, // from french.words
+    { "Çtroit", Cp437 }, // from french.words
+    { "Çtroite", Cp437 }, // from french.words
+    { "Çtroitement", Cp437 }, // from french.words
+    { "Çtude", Cp437 }, // from french.words
+    { "Çtudes", Cp437 }, // from french.words
+    { "Çtudiant", Cp437 }, // from french.words
+    { "Çtudiants", Cp437 }, // from french.words
+    { "Çtudie", Cp437 }, // from french.words
+    { "Çtudier", Cp437 }, // from french.words
+    { "ÇtudiÇ", Cp437 }, // from french.words
+    { "ÇtÇ", Cp437 }, // from french.words
+    { "Çvaluation", Cp437 }, // from french.words
+    { "Çvalue", Cp437 }, // from french.words
+    { "Çvaluer", Cp437 }, // from french.words
+    { "ÇvaluÇ", Cp437 }, // from french.words
+    { "ÇvaluÇe", Cp437 }, // from french.words
+    { "Çventail", Cp437 }, // from french.words
+    { "Çventuel", Cp437 }, // from french.words
+    { "Çventuelle", Cp437 }, // from french.words
+    { "Çventuellement", Cp437 }, // from french.words
+    { "Çventuelles", Cp437 }, // from french.words
+    { "Çventuels", Cp437 }, // from french.words
+    { "Çvidemment", Cp437 }, // from french.words
+    { "Çvidence", Cp437 }, // from french.words
+    { "Çvident", Cp437 }, // from french.words
+    { "Çvidente", Cp437 }, // from french.words
+    { "Çvitant", Cp437 }, // from french.words
+    { "Çvite", Cp437 }, // from french.words
+    { "Çviter", Cp437 }, // from french.words
+    { "Çvolue", Cp437 }, // from french.words
+    { "Çvoluent", Cp437 }, // from french.words
+    { "Çvoluer", Cp437 }, // from french.words
+    { "Çvolution", Cp437 }, // from french.words
+    { "Çvolutions", Cp437 }, // from french.words
+    { "ÇvoluÇ", Cp437 }, // from french.words
+    { "Çvoquant", Cp437 }, // from french.words
+    { "Çvoque", Cp437 }, // from french.words
+    { "Çvoquent", Cp437 }, // from french.words
+    { "Çvoquer", Cp437 }, // from french.words
+    { "ÇvoquÇ", Cp437 }, // from french.words
+    { "ÇvÇnement", Cp437 }, // from french.words
+    { "ÇvÇnements", Cp437 }, // from french.words
+    { "ÇÇn", Cp437 }, // from dutch.words
+    { "Ñgyptischen", Cp437 }, // from german.words
+    { "Ñhnlich", Cp437 }, // from german.words
+    { "Ñhnliche", Cp437 }, // from german.words
+    { "Ñhnlichen", Cp437 }, // from german.words
+    { "Ñhnlicher", Cp437 }, // from german.words
+    { "Ñhnliches", Cp437 }, // from german.words
+    { "Ñlter", Cp437 }, // from german.words
+    { "Ñltere", Cp437 }, // from german.words
+    { "Ñlteren", Cp437 }, // from german.words
+    { "Ñlterer", Cp437 }, // from german.words
+    { "Ñlteste", Cp437 }, // from german.words
+    { "Ñltesten", Cp437 }, // from german.words
+    { "Ñndern", Cp437 }, // from german.words
+    { "Ñndert", Cp437 }, // from german.words
+    { "Ñnderte", Cp437 }, // from german.words
+    { "Ñrgert", Cp437 }, // from german.words
+    { "Ñu·ere", Cp437 }, // from german.words
+    { "Ñu·eren", Cp437 }, // from german.words
+    { "Ñu·ern", Cp437 }, // from german.words
+    { "Ñu·erst", Cp437 }, // from german.words
+    { "Ñu·ert", Cp437 }, // from german.words
+    { "Ñu·erte", Cp437 }, // from german.words
+    { "Ñu·erten", Cp437 }, // from german.words
     { "Öffentlichkeit", MacRoman }, // from german.words
     { "Öffentlichkeitsarbeit", MacRoman }, // from german.words
     { "Öffnung", MacRoman }, // from german.words
@@ -7203,9 +11717,10 @@ static const struct {
     { "Ökologie", MacRoman }, // from german.words
     { "Ökonomie", MacRoman }, // from german.words
     { "Öl", MacRoman }, // from german.words
-    { "Ön", MacRoman }, // from german.words
+    { "Österreich", MacRoman }, // from german.words
     { "Österreicher", MacRoman }, // from german.words
     { "Österreichs", MacRoman }, // from german.words
+    { "Ü", Cp865 }, // from norwegian.words
     { "Über", MacRoman }, // from german.words
     { "Überall", MacRoman }, // from german.words
     { "Überblick", MacRoman }, // from german.words
@@ -7229,8 +11744,57 @@ static const struct {
     { "Überstunden", MacRoman }, // from german.words
     { "Übertragung", MacRoman }, // from german.words
     { "Überwachung", MacRoman }, // from german.words
+    { "Überwindung", MacRoman }, // from german.words
     { "Überzeugung", MacRoman }, // from german.words
     { "Übung", MacRoman }, // from german.words
+    { "Üdne", Cp865 }, // from norwegian.words
+    { "Üge", Cp865 }, // from norwegian.words
+    { "Ügot", Cp865 }, // from norwegian.words
+    { "Ügotnes", Cp865 }, // from norwegian.words
+    { "Ülesund", Cp865 }, // from norwegian.words
+    { "Ünd", Cp865 }, // from norwegian.words
+    { "Ündelig", Cp865 }, // from norwegian.words
+    { "Ündelige", Cp865 }, // from norwegian.words
+    { "Üpen", Cp865 }, // from norwegian.words
+    { "Üpenbart", Cp865 }, // from norwegian.words
+    { "Üpenhet", Cp865 }, // from norwegian.words
+    { "Üpent", Cp865 }, // from norwegian.words
+    { "Üpne", Cp865 }, // from norwegian.words
+    { "Üpner", Cp865 }, // from norwegian.words
+    { "Üpnes", Cp865 }, // from norwegian.words
+    { "Üpnet", Cp865 }, // from norwegian.words
+    { "Üpning", Cp865 }, // from norwegian.words
+    { "Üpningen", Cp865 }, // from norwegian.words
+    { "Ür", Cp865 }, // from norwegian.words
+    { "Üra", Cp865 }, // from norwegian.words
+    { "Ürdal", Cp865 }, // from norwegian.words
+    { "Ürene", Cp865 }, // from norwegian.words
+    { "Üret", Cp865 }, // from norwegian.words
+    { "Ürets", Cp865 }, // from norwegian.words
+    { "Ürevis", Cp865 }, // from norwegian.words
+    { "Ürhundre", Cp865 }, // from norwegian.words
+    { "Ürhundreskiftet", Cp865 }, // from norwegian.words
+    { "Üringen", Cp865 }, // from norwegian.words
+    { "Ürlig", Cp865 }, // from norwegian.words
+    { "Ürlige", Cp865 }, // from norwegian.words
+    { "Ürrekke", Cp865 }, // from norwegian.words
+    { "Ürs", Cp865 }, // from norwegian.words
+    { "Ürsak", Cp865 }, // from norwegian.words
+    { "Ürsaken", Cp865 }, // from norwegian.words
+    { "Ürsakene", Cp865 }, // from norwegian.words
+    { "Ürsaker", Cp865 }, // from norwegian.words
+    { "Ürsmõte", Cp865 }, // from norwegian.words
+    { "Ürsmõtet", Cp865 }, // from norwegian.words
+    { "Ürsskiftet", Cp865 }, // from norwegian.words
+    { "Ürstad", Cp865 }, // from norwegian.words
+    { "Ürsverk", Cp865 }, // from norwegian.words
+    { "Üs", Cp865 }, // from norwegian.words
+    { "Üsane", Cp865 }, // from norwegian.words
+    { "Üse", Cp865 }, // from norwegian.words
+    { "Üsmund", Cp865 }, // from norwegian.words
+    { "Üstedet", Cp865 }, // from norwegian.words
+    { "Ütte", Cp865 }, // from norwegian.words
+    { "Üttende", Cp865 }, // from norwegian.words
     { "ägyptischen", MacRoman }, // from german.words
     { "ähnlich", MacRoman }, // from german.words
     { "ähnliche", MacRoman }, // from german.words
@@ -7240,6 +11804,7 @@ static const struct {
     { "älter", MacRoman }, // from german.words
     { "ältere", MacRoman }, // from german.words
     { "älteren", MacRoman }, // from german.words
+    { "älterer", MacRoman }, // from german.words
     { "älteste", MacRoman }, // from german.words
     { "ältesten", MacRoman }, // from german.words
     { "ändern", MacRoman }, // from german.words
@@ -7328,6 +11893,7 @@ static const struct {
     { "écologique", MacRoman }, // from french.words
     { "écologiques", MacRoman }, // from french.words
     { "écologistes", MacRoman }, // from french.words
+    { "économie", MacRoman }, // from french.words
     { "économies", MacRoman }, // from french.words
     { "économique", MacRoman }, // from french.words
     { "économiquement", MacRoman }, // from french.words
@@ -7352,24 +11918,30 @@ static const struct {
     { "éd", MacRoman }, // from french.words
     { "éditeur", MacRoman }, // from french.words
     { "éditeurs", MacRoman }, // from french.words
+    { "édition", MacRoman }, // from french.words
+    { "éditions", MacRoman }, // from french.words
     { "édité", MacRoman }, // from french.words
     { "éducation", MacRoman }, // from french.words
     { "égal", MacRoman }, // from french.words
     { "égale", MacRoman }, // from french.words
     { "également", MacRoman }, // from french.words
     { "égales", MacRoman }, // from french.words
+    { "égard", MacRoman }, // from french.words
     { "église", MacRoman }, // from french.words
+    { "égypten", Cp437 }, // from german.words
+    { "éhnlich", Cp437 }, // from german.words
+    { "élaborer", MacRoman }, // from french.words
     { "élaboré", MacRoman }, // from french.words
     { "élaborée", MacRoman }, // from french.words
     { "élan", MacRoman }, // from french.words
     { "élargi", MacRoman }, // from french.words
     { "élargir", MacRoman }, // from french.words
-    { "éle", MacRoman }, // from french.words
     { "électeurs", MacRoman }, // from french.words
     { "élections", MacRoman }, // from french.words
     { "électoral", MacRoman }, // from french.words
     { "électorale", MacRoman }, // from french.words
     { "électricité", MacRoman }, // from french.words
+    { "électrique", MacRoman }, // from french.words
     { "électriques", MacRoman }, // from french.words
     { "électronique", MacRoman }, // from french.words
     { "électroniques", MacRoman }, // from french.words
@@ -7401,9 +11973,15 @@ static const struct {
     { "émissions", MacRoman }, // from french.words
     { "émotion", MacRoman }, // from french.words
     { "émotions", MacRoman }, // from french.words
+    { "émter", Cp437 }, // from german.words
     { "én", MacRoman }, // from dutch.words
+    { "éndern", Cp437 }, // from german.words
+    { "énderung", Cp437 }, // from german.words
+    { "énderungen", Cp437 }, // from german.words
     { "énergie", MacRoman }, // from french.words
     { "énergétique", MacRoman }, // from french.words
+    { "éngste", Cp437 }, // from german.words
+    { "énorme", MacRoman }, // from french.words
     { "énormes", MacRoman }, // from french.words
     { "énormément", MacRoman }, // from french.words
     { "épais", MacRoman }, // from french.words
@@ -7414,6 +11992,8 @@ static const struct {
     { "épingle", MacRoman }, // from french.words
     { "épisode", MacRoman }, // from french.words
     { "époque", MacRoman }, // from french.words
+    { "épouse", MacRoman }, // from french.words
+    { "époux", MacRoman }, // from french.words
     { "épreuve", MacRoman }, // from french.words
     { "épreuves", MacRoman }, // from french.words
     { "éprouve", MacRoman }, // from french.words
@@ -7431,6 +12011,11 @@ static const struct {
     { "équivalent", MacRoman }, // from french.words
     { "équivalente", MacRoman }, // from french.words
     { "équivaut", MacRoman }, // from french.words
+    { "éra", Cp437 }, // from german.words
+    { "érger", Cp437 }, // from german.words
+    { "érzte", Cp437 }, // from german.words
+    { "érzten", Cp437 }, // from german.words
+    { "ésthetik", Cp437 }, // from german.words
     { "établi", MacRoman }, // from french.words
     { "établie", MacRoman }, // from french.words
     { "établies", MacRoman }, // from french.words
@@ -7440,9 +12025,11 @@ static const struct {
     { "établissements", MacRoman }, // from french.words
     { "établit", MacRoman }, // from french.words
     { "étage", MacRoman }, // from french.words
+    { "étages", MacRoman }, // from french.words
     { "étaient", MacRoman }, // from french.words
     { "était", MacRoman }, // from french.words
     { "étant", MacRoman }, // from french.words
+    { "étape", MacRoman }, // from french.words
     { "étapes", MacRoman }, // from french.words
     { "état", MacRoman }, // from french.words
     { "états", MacRoman }, // from french.words
@@ -7455,6 +12042,7 @@ static const struct {
     { "étiquettes", MacRoman }, // from french.words
     { "étoile", MacRoman }, // from french.words
     { "étoiles", MacRoman }, // from french.words
+    { "étonnant", MacRoman }, // from french.words
     { "étonnante", MacRoman }, // from french.words
     { "étonné", MacRoman }, // from french.words
     { "étrange", MacRoman }, // from french.words
@@ -7471,6 +12059,8 @@ static const struct {
     { "étudier", MacRoman }, // from french.words
     { "étudié", MacRoman }, // from french.words
     { "été", MacRoman }, // from french.words
+    { "éu·erung", Cp437 }, // from german.words
+    { "éu·erungen", Cp437 }, // from german.words
     { "évaluation", MacRoman }, // from french.words
     { "évalue", MacRoman }, // from french.words
     { "évaluer", MacRoman }, // from french.words
@@ -7503,6 +12093,65 @@ static const struct {
     { "événement", MacRoman }, // from french.words
     { "événements", MacRoman }, // from french.words
     { "één", MacRoman }, // from dutch.words
+    { "ëre", Cp865 }, // from norwegian.words
+    { "ëren", Cp865 }, // from norwegian.words
+    { "ërend", Cp865 }, // from norwegian.words
+    { "ërlig", Cp865 }, // from norwegian.words
+    { "îffentlich", Cp437 }, // from german.words
+    { "îffentliche", Cp437 }, // from german.words
+    { "îffentlichen", Cp437 }, // from german.words
+    { "îffentlicher", Cp437 }, // from german.words
+    { "îffnen", Cp437 }, // from german.words
+    { "îffnet", Cp437 }, // from german.words
+    { "îffnete", Cp437 }, // from german.words
+    { "îfter", Cp437 }, // from german.words
+    { "îkologisch", Cp437 }, // from german.words
+    { "îkologische", Cp437 }, // from german.words
+    { "îkologischen", Cp437 }, // from german.words
+    { "îkonomische", Cp437 }, // from german.words
+    { "îkonomischen", Cp437 }, // from german.words
+    { "îrtliche", Cp437 }, // from german.words
+    { "îrtlichen", Cp437 }, // from german.words
+    { "îsterreichische", Cp437 }, // from german.words
+    { "îsterreichischen", Cp437 }, // from german.words
+    { "îstlich", Cp437 }, // from german.words
+    { "îstlichen", Cp437 }, // from german.words
+    { "ôffentlichkeit", Cp437 }, // from german.words
+    { "ôffentlichkeitsarbeit", Cp437 }, // from german.words
+    { "ôffnung", Cp437 }, // from german.words
+    { "ôffnungszeiten", Cp437 }, // from german.words
+    { "ôkologie", Cp437 }, // from german.words
+    { "ôkonomie", Cp437 }, // from german.words
+    { "ôl", Cp437 }, // from german.words
+    { "ôsterreich", Cp437 }, // from german.words
+    { "ôsterreicher", Cp437 }, // from german.words
+    { "ôsterreichs", Cp437 }, // from german.words
+    { "öber", Cp437 }, // from german.words
+    { "öberall", Cp437 }, // from german.words
+    { "öberblick", Cp437 }, // from german.words
+    { "öberdies", Cp437 }, // from german.words
+    { "öbereinstimmung", Cp437 }, // from german.words
+    { "öberfall", Cp437 }, // from german.words
+    { "öbergabe", Cp437 }, // from german.words
+    { "öbergang", Cp437 }, // from german.words
+    { "öberhaupt", Cp437 }, // from german.words
+    { "öberleben", Cp437 }, // from german.words
+    { "öberlebenden", Cp437 }, // from german.words
+    { "öberlegungen", Cp437 }, // from german.words
+    { "öbernahme", Cp437 }, // from german.words
+    { "öberprÅfung", Cp437 }, // from german.words
+    { "öberraschung", Cp437 }, // from german.words
+    { "öberraschungen", Cp437 }, // from german.words
+    { "öberschrift", Cp437 }, // from german.words
+    { "öberschu·", Cp437 }, // from german.words
+    { "öbersetzung", Cp437 }, // from german.words
+    { "öbersicht", Cp437 }, // from german.words
+    { "öberstunden", Cp437 }, // from german.words
+    { "öbertragung", Cp437 }, // from german.words
+    { "öberwachung", Cp437 }, // from german.words
+    { "öberwindung", Cp437 }, // from german.words
+    { "öberzeugung", Cp437 }, // from german.words
+    { "öbung", Cp437 }, // from german.words
     { "öffentlich", MacRoman }, // from german.words
     { "öffentliche", MacRoman }, // from german.words
     { "öffentlichen", MacRoman }, // from german.words
@@ -7522,6 +12171,73 @@ static const struct {
     { "österreichischen", MacRoman }, // from german.words
     { "östlich", MacRoman }, // from german.words
     { "östlichen", MacRoman }, // from german.words
+    { "õ", Cp865 }, // from norwegian.words
+    { "õdegaard", Cp865 }, // from norwegian.words
+    { "õdegÜrd", Cp865 }, // from norwegian.words
+    { "õdela", Cp865 }, // from norwegian.words
+    { "õdelagt", Cp865 }, // from norwegian.words
+    { "õdelegge", Cp865 }, // from norwegian.words
+    { "õdeleggende", Cp865 }, // from norwegian.words
+    { "õdelegger", Cp865 }, // from norwegian.words
+    { "õivind", Cp865 }, // from norwegian.words
+    { "õke", Cp865 }, // from norwegian.words
+    { "õkende", Cp865 }, // from norwegian.words
+    { "õker", Cp865 }, // from norwegian.words
+    { "õkes", Cp865 }, // from norwegian.words
+    { "õket", Cp865 }, // from norwegian.words
+    { "õkland", Cp865 }, // from norwegian.words
+    { "õkning", Cp865 }, // from norwegian.words
+    { "õkningen", Cp865 }, // from norwegian.words
+    { "õkokrim", Cp865 }, // from norwegian.words
+    { "õkologisk", Cp865 }, // from norwegian.words
+    { "õkologiske", Cp865 }, // from norwegian.words
+    { "õkonomi", Cp865 }, // from norwegian.words
+    { "õkonomien", Cp865 }, // from norwegian.words
+    { "õkonomisk", Cp865 }, // from norwegian.words
+    { "õkonomiske", Cp865 }, // from norwegian.words
+    { "õkt", Cp865 }, // from norwegian.words
+    { "õkte", Cp865 }, // from norwegian.words
+    { "õl", Cp865 }, // from norwegian.words
+    { "õnske", Cp865 }, // from norwegian.words
+    { "õnskelig", Cp865 }, // from norwegian.words
+    { "õnsker", Cp865 }, // from norwegian.words
+    { "õnskes", Cp865 }, // from norwegian.words
+    { "õnsket", Cp865 }, // from norwegian.words
+    { "õre", Cp865 }, // from norwegian.words
+    { "õrene", Cp865 }, // from norwegian.words
+    { "õrer", Cp865 }, // from norwegian.words
+    { "õret", Cp865 }, // from norwegian.words
+    { "õrjan", Cp865 }, // from norwegian.words
+    { "õst", Cp865 }, // from norwegian.words
+    { "õstenstad", Cp865 }, // from norwegian.words
+    { "õsterrike", Cp865 }, // from norwegian.words
+    { "õsterrikske", Cp865 }, // from norwegian.words
+    { "õstfold", Cp865 }, // from norwegian.words
+    { "õstlandet", Cp865 }, // from norwegian.words
+    { "õstlige", Cp865 }, // from norwegian.words
+    { "õstover", Cp865 }, // from norwegian.words
+    { "õve", Cp865 }, // from norwegian.words
+    { "õvelser", Cp865 }, // from norwegian.words
+    { "õverst", Cp865 }, // from norwegian.words
+    { "õverste", Cp865 }, // from norwegian.words
+    { "õvre", Cp865 }, // from norwegian.words
+    { "õvrig", Cp865 }, // from norwegian.words
+    { "õvrige", Cp865 }, // from norwegian.words
+    { "õy", Cp865 }, // from norwegian.words
+    { "õya", Cp865 }, // from norwegian.words
+    { "õyangen", Cp865 }, // from norwegian.words
+    { "õye", Cp865 }, // from norwegian.words
+    { "õyeblikk", Cp865 }, // from norwegian.words
+    { "õyeblikkelig", Cp865 }, // from norwegian.words
+    { "õyeblikket", Cp865 }, // from norwegian.words
+    { "õyen", Cp865 }, // from norwegian.words
+    { "õyer", Cp865 }, // from norwegian.words
+    { "õyet", Cp865 }, // from norwegian.words
+    { "õygarden", Cp865 }, // from norwegian.words
+    { "õyne", Cp865 }, // from norwegian.words
+    { "õynene", Cp865 }, // from norwegian.words
+    { "õystein", Cp865 }, // from norwegian.words
+    { "õyvind", Cp865 }, // from norwegian.words
     { "üben", MacRoman }, // from german.words
     { "über", MacRoman }, // from german.words
     { "überall", MacRoman }, // from german.words
@@ -7619,7 +12335,38 @@ static const struct {
     { "ønske", MacRoman }, // from norwegian.words
     { "ønskelig", MacRoman }, // from norwegian.words
     { "ønsker", MacRoman }, // from norwegian.words
-    { "ønskyet", MacRoman }, // from norwegian.words
+    { "ønskes", MacRoman }, // from norwegian.words
+    { "ønsket", MacRoman }, // from norwegian.words
+    { "øre", MacRoman }, // from norwegian.words
+    { "ørene", MacRoman }, // from norwegian.words
+    { "ører", MacRoman }, // from norwegian.words
+    { "øret", MacRoman }, // from norwegian.words
+    { "ørjan", MacRoman }, // from norwegian.words
+    { "øst", MacRoman }, // from norwegian.words
+    { "østenstad", MacRoman }, // from norwegian.words
+    { "østerrike", MacRoman }, // from norwegian.words
+    { "østerrikske", MacRoman }, // from norwegian.words
+    { "østfold", MacRoman }, // from norwegian.words
+    { "østlandet", MacRoman }, // from norwegian.words
+    { "østlige", MacRoman }, // from norwegian.words
+    { "østover", MacRoman }, // from norwegian.words
+    { "øve", MacRoman }, // from norwegian.words
+    { "øvelser", MacRoman }, // from norwegian.words
+    { "øverst", MacRoman }, // from norwegian.words
+    { "øverste", MacRoman }, // from norwegian.words
+    { "øvre", MacRoman }, // from norwegian.words
+    { "øvrig", MacRoman }, // from norwegian.words
+    { "øvrige", MacRoman }, // from norwegian.words
+    { "øy", MacRoman }, // from norwegian.words
+    { "øya", MacRoman }, // from norwegian.words
+    { "øyangen", MacRoman }, // from norwegian.words
+    { "øye", MacRoman }, // from norwegian.words
+    { "øyeblikk", MacRoman }, // from norwegian.words
+    { "øyeblikkelig", MacRoman }, // from norwegian.words
+    { "øyeblikket", MacRoman }, // from norwegian.words
+    { "øyen", MacRoman }, // from norwegian.words
+    { "øyer", MacRoman }, // from norwegian.words
+    { "øyet", MacRoman }, // from norwegian.words
     { "øygarden", MacRoman }, // from norwegian.words
     { "øyne", MacRoman }, // from norwegian.words
     { "øynene", MacRoman }, // from norwegian.words
@@ -7628,6 +12375,7 @@ static const struct {
     { "ƒgypten", Iso885915 }, // from german.words
     { "ƒhnlich", Iso885915 }, // from german.words
     { "ƒmter", Iso885915 }, // from german.words
+    { "ƒndern", Iso885915 }, // from german.words
     { "ƒnderung", Iso885915 }, // from german.words
     { "ƒnderungen", Iso885915 }, // from german.words
     { "ƒngste", Iso885915 }, // from german.words
@@ -7645,7 +12393,7 @@ static const struct {
     { "÷kologie", Iso885915 }, // from german.words
     { "÷konomie", Iso885915 }, // from german.words
     { "÷l", Iso885915 }, // from german.words
-    { "÷n", Iso885915 }, // from german.words
+    { "÷sterreich", Iso885915 }, // from german.words
     { "÷sterreicher", Iso885915 }, // from german.words
     { "÷sterreichs", Iso885915 }, // from german.words
     { "‹ber", Iso885915 }, // from german.words
@@ -7671,6 +12419,7 @@ static const struct {
     { "‹berstunden", Iso885915 }, // from german.words
     { "‹bertragung", Iso885915 }, // from german.words
     { "‹berwachung", Iso885915 }, // from german.words
+    { "‹berwindung", Iso885915 }, // from german.words
     { "‹berzeugung", Iso885915 }, // from german.words
     { "‹bung", Iso885915 }, // from german.words
     { "‰gyptischen", Iso885915 }, // from german.words
@@ -7682,6 +12431,7 @@ static const struct {
     { "‰lter", Iso885915 }, // from german.words
     { "‰ltere", Iso885915 }, // from german.words
     { "‰lteren", Iso885915 }, // from german.words
+    { "‰lterer", Iso885915 }, // from german.words
     { "‰lteste", Iso885915 }, // from german.words
     { "‰ltesten", Iso885915 }, // from german.words
     { "‰ndern", Iso885915 }, // from german.words
@@ -7749,6 +12499,7 @@ static const struct {
     { "Êrend", Iso885915 }, // from norwegian.words
     { "Êrlig", Iso885915 }, // from norwegian.words
     { "Ëas", Iso88592 }, // from czech.words
+    { "Ëekat", Iso88592 }, // from czech.words
     { "Ëesk˝", Iso88592 }, // from czech.words
     { "Ëinit", Iso88592 }, // from czech.words
     { "Ëinnost", Iso88592 }, // from czech.words
@@ -7756,6 +12507,7 @@ static const struct {
     { "ËlovÏk", Iso88592 }, // from czech.words
     { "Ë·st", Iso88592 }, // from czech.words
     { "ËÌslo", Iso88592 }, // from czech.words
+    { "ËÌst", Iso88592 }, // from czech.words
     { "Ècart", Iso885915 }, // from french.words
     { "Ècarts", Iso885915 }, // from french.words
     { "Èchange", Iso885915 }, // from french.words
@@ -7782,6 +12534,7 @@ static const struct {
     { "Ècologique", Iso885915 }, // from french.words
     { "Ècologiques", Iso885915 }, // from french.words
     { "Ècologistes", Iso885915 }, // from french.words
+    { "Èconomie", Iso885915 }, // from french.words
     { "Èconomies", Iso885915 }, // from french.words
     { "Èconomique", Iso885915 }, // from french.words
     { "Èconomiquement", Iso885915 }, // from french.words
@@ -7806,24 +12559,28 @@ static const struct {
     { "Èd", Iso885915 }, // from french.words
     { "Èditeur", Iso885915 }, // from french.words
     { "Èditeurs", Iso885915 }, // from french.words
+    { "Èdition", Iso885915 }, // from french.words
+    { "Èditions", Iso885915 }, // from french.words
     { "ÈditÈ", Iso885915 }, // from french.words
     { "Èducation", Iso885915 }, // from french.words
     { "Ègal", Iso885915 }, // from french.words
     { "Ègale", Iso885915 }, // from french.words
     { "Ègalement", Iso885915 }, // from french.words
     { "Ègales", Iso885915 }, // from french.words
+    { "Ègard", Iso885915 }, // from french.words
     { "Èglise", Iso885915 }, // from french.words
+    { "Èlaborer", Iso885915 }, // from french.words
     { "ÈlaborÈ", Iso885915 }, // from french.words
     { "ÈlaborÈe", Iso885915 }, // from french.words
     { "Èlan", Iso885915 }, // from french.words
     { "Èlargi", Iso885915 }, // from french.words
     { "Èlargir", Iso885915 }, // from french.words
-    { "Èle", Iso885915 }, // from french.words
     { "Èlecteurs", Iso885915 }, // from french.words
     { "Èlections", Iso885915 }, // from french.words
     { "Èlectoral", Iso885915 }, // from french.words
     { "Èlectorale", Iso885915 }, // from french.words
     { "ÈlectricitÈ", Iso885915 }, // from french.words
+    { "Èlectrique", Iso885915 }, // from french.words
     { "Èlectriques", Iso885915 }, // from french.words
     { "Èlectronique", Iso885915 }, // from french.words
     { "Èlectroniques", Iso885915 }, // from french.words
@@ -7858,6 +12615,7 @@ static const struct {
     { "Èn", Iso885915 }, // from dutch.words
     { "Ènergie", Iso885915 }, // from french.words
     { "ÈnergÈtique", Iso885915 }, // from french.words
+    { "Ènorme", Iso885915 }, // from french.words
     { "Ènormes", Iso885915 }, // from french.words
     { "ÈnormÈment", Iso885915 }, // from french.words
     { "Èpais", Iso885915 }, // from french.words
@@ -7868,6 +12626,8 @@ static const struct {
     { "Èpingle", Iso885915 }, // from french.words
     { "Èpisode", Iso885915 }, // from french.words
     { "Èpoque", Iso885915 }, // from french.words
+    { "Èpouse", Iso885915 }, // from french.words
+    { "Èpoux", Iso885915 }, // from french.words
     { "Èpreuve", Iso885915 }, // from french.words
     { "Èpreuves", Iso885915 }, // from french.words
     { "Èprouve", Iso885915 }, // from french.words
@@ -7894,9 +12654,11 @@ static const struct {
     { "Ètablissements", Iso885915 }, // from french.words
     { "Ètablit", Iso885915 }, // from french.words
     { "Ètage", Iso885915 }, // from french.words
+    { "Ètages", Iso885915 }, // from french.words
     { "Ètaient", Iso885915 }, // from french.words
     { "Ètait", Iso885915 }, // from french.words
     { "Ètant", Iso885915 }, // from french.words
+    { "Ètape", Iso885915 }, // from french.words
     { "Ètapes", Iso885915 }, // from french.words
     { "Ètat", Iso885915 }, // from french.words
     { "Ètats", Iso885915 }, // from french.words
@@ -7909,6 +12671,7 @@ static const struct {
     { "Ètiquettes", Iso885915 }, // from french.words
     { "Ètoile", Iso885915 }, // from french.words
     { "Ètoiles", Iso885915 }, // from french.words
+    { "Ètonnant", Iso885915 }, // from french.words
     { "Ètonnante", Iso885915 }, // from french.words
     { "ÈtonnÈ", Iso885915 }, // from french.words
     { "Ètrange", Iso885915 }, // from french.words
@@ -8009,13 +12772,45 @@ static const struct {
     { "¯nske", Iso885915 }, // from norwegian.words
     { "¯nskelig", Iso885915 }, // from norwegian.words
     { "¯nsker", Iso885915 }, // from norwegian.words
-    { "¯nskyet", Iso885915 }, // from norwegian.words
+    { "¯nskes", Iso885915 }, // from norwegian.words
+    { "¯nsket", Iso885915 }, // from norwegian.words
+    { "¯re", Iso885915 }, // from norwegian.words
+    { "¯rene", Iso885915 }, // from norwegian.words
+    { "¯rer", Iso885915 }, // from norwegian.words
+    { "¯ret", Iso885915 }, // from norwegian.words
+    { "¯rjan", Iso885915 }, // from norwegian.words
+    { "¯st", Iso885915 }, // from norwegian.words
+    { "¯stenstad", Iso885915 }, // from norwegian.words
+    { "¯sterrike", Iso885915 }, // from norwegian.words
+    { "¯sterrikske", Iso885915 }, // from norwegian.words
+    { "¯stfold", Iso885915 }, // from norwegian.words
+    { "¯stlandet", Iso885915 }, // from norwegian.words
+    { "¯stlige", Iso885915 }, // from norwegian.words
+    { "¯stover", Iso885915 }, // from norwegian.words
+    { "¯ve", Iso885915 }, // from norwegian.words
+    { "¯velser", Iso885915 }, // from norwegian.words
+    { "¯verst", Iso885915 }, // from norwegian.words
+    { "¯verste", Iso885915 }, // from norwegian.words
+    { "¯vre", Iso885915 }, // from norwegian.words
+    { "¯vrig", Iso885915 }, // from norwegian.words
+    { "¯vrige", Iso885915 }, // from norwegian.words
+    { "¯y", Iso885915 }, // from norwegian.words
+    { "¯ya", Iso885915 }, // from norwegian.words
+    { "¯yangen", Iso885915 }, // from norwegian.words
+    { "¯ye", Iso885915 }, // from norwegian.words
+    { "¯yeblikk", Iso885915 }, // from norwegian.words
+    { "¯yeblikkelig", Iso885915 }, // from norwegian.words
+    { "¯yeblikket", Iso885915 }, // from norwegian.words
+    { "¯yen", Iso885915 }, // from norwegian.words
+    { "¯yer", Iso885915 }, // from norwegian.words
+    { "¯yet", Iso885915 }, // from norwegian.words
     { "¯ygarden", Iso885915 }, // from norwegian.words
     { "¯yne", Iso885915 }, // from norwegian.words
     { "¯ynene", Iso885915 }, // from norwegian.words
     { "¯ystein", Iso885915 }, // from norwegian.words
     { "¯yvind", Iso885915 }, // from norwegian.words
     { "¯Ìci", Iso88592 }, // from czech.words
+    { "¯Ìkat", Iso88592 }, // from czech.words
     { "˙roveÚ", Iso88592 }, // from czech.words
     { "˙spÏπn˝", Iso88592 }, // from czech.words
     { "˙¯ad", Iso88592 }, // from czech.words

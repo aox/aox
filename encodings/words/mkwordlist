@@ -8,6 +8,7 @@ sub encode {
     open ( I, "recode utf-8...$cs < $in 2>/dev/null |" ) || die "ugga";
     foreach ( <I> ) {
 	chomp;
+	s/\015//;
 	if ( /^[a-z\200-\377]+$/ && /[\200-\377]/ ) {
 	    if ( defined( $forms{$_} ) ) {
 		$forms{$_} = "inconclusive";
@@ -22,17 +23,21 @@ sub encode {
 # call encode once for each interesting combination of words and encodings
 encode( "german.words", "iso-8859-15" );
 encode( "german.words", "macroman" );
+encode( "german.words", "cp437" );
 
 encode( "french.words", "iso-8859-15" );
 encode( "french.words", "macroman" );
+encode( "french.words", "cp437" );
 
 encode( "dutch.words", "iso-8859-15" );
 encode( "dutch.words", "macroman" );
+encode( "dutch.words", "cp437" );
 
 encode( "czech.words", "iso-8859-2" );
 
 encode( "norwegian.words", "iso-8859-15" );
 encode( "norwegian.words", "macroman" );
+encode( "norwegian.words", "cp865" );
 
 #
 # NOTE: the file names above must match those in jamfile
@@ -53,10 +58,14 @@ die "What went wrong? I am unhappy." if ( !$numForms );
 $enum{"macroman"} = "MacRoman";
 $enum{"iso-8859-2"} = "Iso88592";
 $enum{"iso-8859-15"} = "Iso885915";
+$enum{"cp437"} = "Cp437";
+$enum{"cp865"} = "Cp865";
 
 open( O, "> wordlist.inc" ) || die "could not open wordlit.inc for writing";
 
-print O "enum Encoding { Iso88592, Iso885915, MacRoman, NumEncodings };\n",
+print O "enum Encoding {\n",
+"    Iso88592, Iso885915, MacRoman, Cp437, Cp865, NumEncodings\n",
+"};\n",
 "static const uint NumForms = ", $numForms, ";\n",
 "static const struct {\n",
 "    const char * encodedForm;\n",
