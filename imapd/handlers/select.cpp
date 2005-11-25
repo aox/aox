@@ -151,9 +151,10 @@ void Select::execute()
 
     respond( fn( d->session->count() ) + " EXISTS" );
     respond( fn( d->session->recent().count() ) + " RECENT" );
-    respond( "OK [UNSEEN " +
-             fn( d->session->msn( d->session->firstUnseen() ) ) + "]"
-             " first unseen" );
+
+    uint unseen = d->session->msn( d->session->firstUnseen() );
+    if ( unseen != 0 )
+        respond( "OK [UNSEEN " + fn( unseen ) + "] first unseen" );
 
     uint n = d->session->uidnext();
     respond( "OK [UIDNEXT " + fn( n ) + "] next uid" );
