@@ -179,10 +179,10 @@ void Mailbox::setup( EventHandler * owner )
     (This is still a hack.)
 */
 
-void Mailbox::refresh()
+Query * Mailbox::refresh()
 {
     MailboxReader * mr = new MailboxReader( name() );
-    mr->query->execute();
+    return mr->query;
 }
 
 

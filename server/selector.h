@@ -44,7 +44,8 @@ public:
     String error();
     void setError( const String & );
 
-    Query * query( class User *, class Session *, class EventHandler * );
+    Query * query( class User *, class Mailbox *,
+                   class Session *, class EventHandler * );
 
     void simplify();
 

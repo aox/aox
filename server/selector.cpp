@@ -64,7 +64,7 @@ XXX:
 */
 
 
-/*! Creates a new root selector. */
+/*! Creates a new root "And" selector. */
 
 Selector::Selector()
     : d( new SelectorData )
@@ -383,15 +383,15 @@ void Selector::simplify()
     results.
 */
 
-Query * Selector::query( User * user, Session * session,
-                         EventHandler * owner )
+Query * Selector::query( User * user, Mailbox * mailbox,
+                         Session * session, EventHandler * owner )
 {
     d->query = new Query( owner );
     d->user = user;
     d->session = session;
     d->placeholder = 0;
     d->mboxId = placeHolder();
-    d->query->bind( d->mboxId, session->mailbox()->id() );
+    d->query->bind( d->mboxId, mailbox->id() );
     d->query->setString( "select distinct uid from messages "
                          "where mailbox=$" + fn( d->mboxId ) +
                          " and (" + where() + ") order by uid" );
@@ -673,7 +673,10 @@ String Selector::whereFlags()
     if ( d->a == Contains && d->f == Flags && d->s8.lower() == "\\recent" ) {
         // the database cannot look at the recent flag, so we turn
         // this query into a test for the relevant UIDs.
-        return root()->d->session->recent().where( "messages" );
+        if ( root()->d->session )
+            return root()->d->session->recent().where( "messages" );
+        else
+            return "false";
     }
 
     // the database can look in the ordinary way. we make it easy, if we can.

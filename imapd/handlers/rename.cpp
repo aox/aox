@@ -248,7 +248,7 @@ void Rename::execute()
         to->setUidnext( from->uidnext() );
         to->setUidvalidity( it->toUidvalidity );
         from->setId( 0 );
-        from->refresh();
+        from->refresh()->execute();
         OCClient::send( "mailbox " + to->name().quoted() + " new" );
         if ( d->mrcInboxHack && from == imap()->user()->inbox() ) {
             OCClient::send( "mailbox " + from->name().quoted() + " new" );

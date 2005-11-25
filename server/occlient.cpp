@@ -5,10 +5,11 @@
 #include "scope.h"
 #include "string.h"
 #include "configuration.h"
+#include "eventloop.h"
 #include "endpoint.h"
 #include "mailbox.h"
 #include "buffer.h"
-#include "eventloop.h"
+#include "query.h"
 #include "log.h"
 
 
@@ -157,13 +158,13 @@ void OCClient::updateMailbox( const String & arg )
     if ( rest == "new" ) {
         log( "OCClient announced mailbox " + m->name(), Log::Debug );
         m->setDeleted( false );
-        m->refresh();
+        m->refresh()->execute();
     }
     else if ( rest == "deleted" ) {
         if ( !m->deleted() )
             log( "OCClient deleted mailbox " + m->name(), Log::Debug );
         m->setDeleted( true );
-        m->refresh();
+        m->refresh()->execute();
     }
 
     else if ( rest.startsWith( "uidnext=" ) ) {

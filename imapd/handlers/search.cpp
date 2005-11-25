@@ -366,7 +366,8 @@ void Search::execute()
         }
 
         d->query =
-            d->root->query( imap()->user(), imap()->session(), this );
+            d->root->query( imap()->user(), imap()->session()->mailbox(),
+                            imap()->session(), this );
         d->query->execute();
     }
 

@@ -71,8 +71,7 @@ public:
 
     Query * create( class Transaction *, class User * );
     Query * remove( class Transaction * );
-
-    void refresh();
+    Query * refresh();
 
     void fetchHeaders( const MessageSet &, EventHandler * );
     void fetchTrivia( const MessageSet &, EventHandler * );
