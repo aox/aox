@@ -57,6 +57,12 @@ void XOryxReset::execute()
         q->bind( 1, user->id() );
         t->enqueue( q );
 
+        q = new Query( "delete from views where source in "
+                       "(select id from mailboxes where owner=$1)",
+                       this );
+        q->bind( 1, user->id() );
+        t->enqueue( q );
+
         q = new Query( "delete from permissions where mailbox in "
                        "(select id from mailboxes where owner=$1)",
                        this );
