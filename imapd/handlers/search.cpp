@@ -105,9 +105,7 @@ void Search::parse()
     }
     end();
 
-    respond( "OK Selector: " + d->root->string() );
     d->root->simplify();
-    respond( "OK Simplified Selector: " + d->root->string() );
 }
 
 
