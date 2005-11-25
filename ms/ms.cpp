@@ -351,7 +351,8 @@ public:
             break;
         }
 
-        if ( ( query && !query->done() ) || ( t && !t->done() ) )
+        if ( ( query && !query->done() ) || ( t && !t->done() ) ||
+             ( d->user && d->user->state() == User::Unverified ) )
             return;
 
         if ( query && query->failed() ) {
