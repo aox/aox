@@ -241,6 +241,8 @@ Codec * Codec::byString( const String & s )
                 while ( top >= bottom ) {
                     i = (bottom + top)/2;
                     if ( w < forms[i].encodedForm ) {
+                        if ( i == 0 )
+                            break;
                         top = i-1;
                     }
                     else if ( w == forms[i].encodedForm ) {
