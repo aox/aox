@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 14;
+int currentRevision = 15;
 
 
 class SchemaData
@@ -895,6 +895,67 @@ bool Schema::stepTo14()
     }
 
     if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add "on delete cascade" to the subscriptions/annotations.owner
+    references.
+*/
+
+bool Schema::stepTo15()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Altering subscriptions_owner_fkey.", Log::Debug );
+        d->q = new Query( "select version()", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+
+        String ca( "subscriptions_owner_fkey" );
+        String cb( "annotations_owner_fkey" );
+
+        Row * r = d->q->nextRow();
+        if ( r ) {
+            String version = r->getString( "version" );
+            if ( version.startsWith( "PostgreSQL 7" ) ) {
+                ca = "$1";
+                cb = "$1";
+            }
+        }
+
+        d->q = new Query( "alter table subscriptions drop constraint "
+                          "\"" + ca + "\"", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table subscriptions add constraint "
+                          "subscriptions_owner_fkey foreign key "
+                          "(owner) references users(id) "
+                          "on delete cascade", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table annotations drop constraint "
+                          "\"" + cb + "\"", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table annotations add constraint "
+                          "annotations_owner_fkey foreign key "
+                          "(owner) references users(id) "
+                          "on delete cascade", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 2;
+    }
+
+    if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
