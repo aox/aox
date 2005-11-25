@@ -657,10 +657,10 @@ Privilege separation
   good.
 
 
-Make User::create/remove/Mailbox::remove work like Mailbox::create.
+Make User::create/remove work like Mailbox::create/remove. (AMS)
 
-  That is, they should enqueue a Query in a user-supplied transaction,
-  rather than creating a Transaction of their own.
+
+"ms add mailbox foo ams" complains that user ams doesn't exist.
 
 
 
