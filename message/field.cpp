@@ -99,7 +99,16 @@ HeaderField *HeaderField::fieldNamed( const String &name )
     HeaderField *hf;
 
     switch ( t ) {
-    default:
+    case InReplyTo:
+    case Subject:
+    case Comments:
+    case Keywords:
+    case ContentDescription:
+    case MimeVersion:
+    case Received:
+    case ContentLocation:
+    case ContentMd5:
+    case Other:
         hf = new HeaderField( fieldNames[i].type );
         break;
 
@@ -116,6 +125,7 @@ HeaderField *HeaderField::fieldNamed( const String &name )
     case ResentCc:
     case ResentBcc:
     case MessageId:
+    case ContentId:
     case ResentMessageId:
     case References:
         hf = new AddressField( t );
