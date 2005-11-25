@@ -20,13 +20,22 @@ class Mailbox
     Mailbox( const String & );
 
 public:
+    enum Type { Synthetic, Ordinary, Deleted, View };
+
     String name() const;
     uint id() const;
     void setId( uint ) const;
     uint uidnext() const;
     uint uidvalidity() const;
-    bool deleted() const;
+
+    void setType( Type );
+    Type type() const;
+
     bool synthetic() const;
+    bool ordinary() const;
+    bool deleted() const;
+    bool view() const;
+
     bool isHome() const;
     uint owner() const;
 

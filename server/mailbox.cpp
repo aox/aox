@@ -22,9 +22,8 @@ class MailboxData
 {
 public:
     MailboxData()
-        : id( 0 ),
-          uidnext( 0 ), uidvalidity( 0 ),
-          deleted( false ), owner( 0 ),
+        : type( Mailbox::Synthetic ), id( 0 ),
+          uidnext( 0 ), uidvalidity( 0 ), owner( 0 ),
           parent( 0 ), children( 0 ), messages( 0 ),
           flagFetcher( 0 ), headerFetcher( 0 ),
           triviaFetcher( 0 ), bodyFetcher( 0 ),
@@ -33,10 +32,12 @@ public:
     {}
 
     String name;
+
+    Mailbox::Type type;
+
     uint id;
     uint uidnext;
     uint uidvalidity;
-    bool deleted;
     uint owner;
 
     Mailbox * parent;
@@ -86,28 +87,41 @@ public:
     MailboxReader( EventHandler * ev )
         : owner( ev ), query( 0 )
     {
-        query = new Query( "select * from mailboxes", this );
+        query =
+            new Query( "select m.*,v.id as view from "
+                       "mailboxes m left join views v on (m.id=v.view)",
+                       this );
     }
 
 
     MailboxReader( const String & n )
         : owner( 0 ), query( 0 )
     {
-        query = new Query( "select * from mailboxes where name=$1", this );
+        query =
+            new Query( "select m.*,v.id as view from "
+                       "mailboxes m left join views v on (m.id=v.view) "
+                       "where name=$1", this );
         query->bind( 1, n );
     }
 
 
     void execute() {
         while ( query->hasResults() ) {
-            Row *r = query->nextRow();
+            Row * r = query->nextRow();
 
-            String n =  r->getString( "name" );
+            String n = r->getString( "name" );
             Mailbox * m = Mailbox::obtain( n );
             if ( n != m->d->name )
                 m->d->name = n;
             m->setId( r->getInt( "id" ) );
-            m->setDeleted( r->getBoolean( "deleted" ) );
+
+            if ( r->getBoolean( "deleted" ) )
+                m->setType( Mailbox::Deleted );
+            else if ( r->isNull( "view" ) )
+                m->setType( Mailbox::Ordinary );
+            else
+                m->setType( Mailbox::View );
+
             m->d->uidvalidity = r->getInt( "uidvalidity" );
             m->setUidnext( r->getInt( "uidnext" ) );
             if ( !r->isNull( "owner" ) )
@@ -179,8 +193,29 @@ String Mailbox::name() const
 }
 
 
+/*! Sets the type of this Mailbox to \a t. The initial value is
+    Synthetic (because it has to be something).
+*/
+
+void Mailbox::setType( Type t )
+{
+    d->type = t;
+}
+
+
+/*! Returns the type of this Mailbox. May be Synthetic, Ordinary,
+    Deleted, or View.
+*/
+
+Mailbox::Type Mailbox::type() const
+{
+    return d->type;
+}
+
+
 /*! Returns the database ID of this Mailbox, or 0 if this Mailbox is
-    synthetic(). */
+    synthetic().
+*/
 
 uint Mailbox::id() const
 {
@@ -224,14 +259,6 @@ uint Mailbox::uidvalidity() const
 }
 
 
-/*! Returns true if this mailbox is currently deleted. */
-
-bool Mailbox::deleted() const
-{
-    return d->deleted;
-}
-
-
 /*! Returns true if this Mailbox has been synthesized in-RAM in order
     to fully connect the mailbox tree, and false if the Mailbox exists
     in the database.
@@ -239,7 +266,31 @@ bool Mailbox::deleted() const
 
 bool Mailbox::synthetic() const
 {
-    return !id();
+    return d->type == Synthetic;
+}
+
+
+/*! Returns true if this mailbox isn't "special". */
+
+bool Mailbox::ordinary() const
+{
+    return d->type == Ordinary;
+}
+
+
+/*! Returns true if this mailbox is currently deleted. */
+
+bool Mailbox::deleted() const
+{
+    return d->type == Deleted;
+}
+
+
+/*! Returns true if this mailbox is really a view. */
+
+bool Mailbox::view() const
+{
+    return d->type == Ordinary;
 }
 
 
@@ -472,12 +523,16 @@ void Mailbox::setUidnext( uint n )
 
 /*! Changes this Mailbox's deletedness to \a del.
 
-    Only OCClient is meant to call this function -- see setUidnext().
+    Only OCClient is *meant* to call this function -- see setUidnext().
+    But don't check to see if that's really true.
 */
 
 void Mailbox::setDeleted( bool del )
 {
-    d->deleted = del;
+    if ( del )
+        d->type = Deleted;
+    else
+        d->type = Ordinary;
 }
 
 
