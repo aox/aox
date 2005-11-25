@@ -660,7 +660,4 @@ Privilege separation
 Make User::create/remove work like Mailbox::create/remove. (AMS)
 
 
-"ms add mailbox foo ams" complains that user ams doesn't exist.
-
-
 
