@@ -81,7 +81,7 @@ Fetcher::Fetcher( Mailbox * m )
         "header_fields h, field_names f where "
         "h.field = f.id and "
         "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
-        "order by h.uid, h.part, h.id";
+        "order by h.uid, h.part, h.position";
     ::header = new PreparedStatement( q );
     q = "select uid, idate, rfc822size from messages "
         "where uid>=$1 and uid<=$2 and mailbox=$3 "
