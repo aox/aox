@@ -4,6 +4,7 @@
 
 #include "transaction.h"
 #include "messageset.h"
+#include "selector.h"
 #include "mailbox.h"
 #include "message.h"
 #include "event.h"
@@ -477,15 +478,76 @@ void SessionInitialiser::execute()
 
         d->t->commit();
 
-        d->messages
-            = new Query( "select uid "
-                         "from messages where mailbox=$1 and "
-                         "uid>=$2 and uid<$3",
-                         this );
-        d->messages->bind( 1, d->session->mailbox()->id() );
+        Mailbox * m = d->session->mailbox();
+
+        Transaction * t = new Transaction( this );
+
+
+        if ( m->ordinary() ) {
+            d->messages
+                = new Query( "select uid "
+                             "from messages where mailbox=$1 and "
+                             "uid>=$2 and uid<$3",
+                             this );
+        }
+        else {
+
+            Query * q;
+
+            q = new Query( "select uidnext from mailboxes where id=$1 "
+                           "for update", this );
+            q->bind( 1, m->id() );
+            t->enqueue( q );
+
+            q = new Query( "create temporary sequence vs start with " +
+                           fn( m->uidnext() ), this );
+            t->enqueue( q );
+
+            MessageSet ms;
+            ms.add( m->uidnext(), UINT_MAX );
+
+            Selector * sel = new Selector;
+            sel->add( new Selector( ms ) );
+            sel->add( Selector::fromString( m->selector() ) );
+            sel->simplify();
+
+            q = sel->query( 0, m->source(), 0, 0 );
+
+            uint view = sel->placeHolder();
+            uint source = sel->placeHolder();
+
+            String s( "insert into view_messages (view,uid,source,suid) "
+                      "select $" + fn( view ) + ",nextval('vs'),$" +
+                      fn( source ) + "," );
+            s.append( q->string().mid( 7 ) );
+
+            q->setString( s );
+            q->bind( view, m->id() );
+            q->bind( source, m->source()->id() );
+
+            t->enqueue( q );
+
+            q = new Query( "update mailboxes set uidnext=1+"
+                           "(select max(uid) from view_messages"
+                           " where view=$1) where id=$1", this );
+            q->bind( 1, m->id() );
+            t->enqueue( q );
+
+            t->enqueue( m->refresh() );
+
+            d->messages
+                = new Query( "select uid "
+                             "from view_messages where view=$1 and "
+                             "uid>=$2 and uid<$3",
+                             this );
+        }
+
+        d->messages->bind( 1, m->id() );
         d->messages->bind( 2, d->oldUidnext );
         d->messages->bind( 3, d->newUidnext );
-        d->messages->execute();
+
+        t->enqueue( d->messages );
+        t->commit();
 
         if ( !d->session->firstUnseen() ) {
             // XXX: will this work if the sysadmin has set the flag
