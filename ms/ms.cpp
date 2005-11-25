@@ -1103,9 +1103,10 @@ void deleteMailbox()
         Mailbox * m = Mailbox::obtain( d->s, false );
         if ( !m )
             error( "No mailbox named " + d->s );
-        d->t = m->remove( d );
-        if ( !d->t )
+        d->t = new Transaction( d );
+        if ( m->remove( d->t ) == 0 )
             error( "Couldn't delete mailbox " + d->s );
+        d->t->commit();
     }
 
     if ( d->t && !d->t->done() )

@@ -11,6 +11,7 @@ class MessageSet;
 class Message;
 class Fetcher;
 class String;
+class Query;
 
 
 class Mailbox
@@ -55,9 +56,8 @@ public:
         return name() <= b.name();
     }
 
-    class Query * create( class Transaction *, class User * );
-
-    Transaction *remove( EventHandler * );
+    Query * create( class Transaction *, class User * );
+    Query * remove( class Transaction * );
 
     void refresh();
 

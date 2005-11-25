@@ -74,17 +74,24 @@ void Delete::execute()
 
     // the database will check that m isn't someone's inbox
 
-    if ( ok() && !d->t )
-        d->t = d->m->remove( this );
-
-    if ( d->t && d->t->failed() ) {
-        error( No, "Database error during deletion: " + d->t->error() );
+    if ( !d->t ) {
+        d->t = new Transaction( this );
+        if ( d->m->remove( d->t ) == 0 ) {
+            error( No, "Can't delete mailbox " + d->m->name() );
+            return;
+        }
+        d->t->commit();
     }
 
-    if ( !ok() || !d->t->done() )
+    if ( !d->t->done() )
         return;
 
-    finish();
+    if ( d->t->failed() ) {
+        error( No, "Database error: " + d->t->error() );
+        return;
+    }
 
     OCClient::send( "mailbox " + d->m->name().quoted() + " deleted" );
+
+    finish();
 }

@@ -480,9 +480,9 @@ void Mailbox::setDeleted( bool del )
 }
 
 
-/*! Adds queries to create this mailbox to the Transaction \a t. Returns
-    a query which indicates the progress of the operation, or 0 if the
-    mailbox already exists.
+/*! If this Mailbox does not exist, this function enqueues a Query to
+    create it in the Transaction \a t and returns the Query. Otherwise
+    it returns 0 and does nothing. It does not commit the transaction.
 
     If \a owner is non-null, the new mailbox is owned by by \a owner.
 */
@@ -522,18 +522,16 @@ Query * Mailbox::create( Transaction * t, User * owner )
 }
 
 
-/*! Deletes this mailbox by updating the mailboxes table, and notifies
-    \a ev of completion. Returns a running Transaction which indicates
-    the progress of the operation, or 0 if the attempt fails
-    immediately.
+/*! If this Mailbox can be deleted, this function enqueues a Query to do
+    so in the Transaction \a t and returns the Query. If not, it returns
+    0 and does nothing. It does not commit the transaction.
 */
 
-Transaction *Mailbox::remove( EventHandler *ev )
+Query * Mailbox::remove( Transaction * t )
 {
     if ( synthetic() || deleted() )
         return 0;
 
-    Transaction * t = new Transaction( ev );
     Query * q =
         new Query( "update mailboxes set deleted='t',owner=null "
                    "where id=$1", 0 );
@@ -552,8 +550,8 @@ Transaction *Mailbox::remove( EventHandler *ev )
         new MailboxReader( "select * from mailboxes where name=$1",
                            name() );
     t->enqueue( mr->query );
-    t->commit();
-    return t;
+
+    return q;
 }
 
 

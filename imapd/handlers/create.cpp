@@ -81,13 +81,15 @@ void Create::execute()
         d->t->commit();
     }
 
-    if ( d->t && d->t->failed() )
-        error( No, "Database error: " + d->t->error() );
-
-    if ( !d->t || !d->t->done() || !ok() )
+    if ( !d->t->done() )
         return;
 
-    finish();
+    if ( d->t->failed() ) {
+        error( No, "Database error: " + d->t->error() );
+        return;
+    }
 
     OCClient::send( "mailbox " + d->m->name().quoted() + " new" );
+
+    finish();
 }
