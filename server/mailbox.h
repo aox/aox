@@ -44,9 +44,13 @@ public:
     void setUidvalidity( uint );
     void setDeleted( bool );
 
-    Mailbox *parent() const;
+    Mailbox * parent() const;
     List< Mailbox > *children() const;
     bool hasChildren() const;
+
+    Mailbox * source() const;
+    uint sourceUidnext() const;
+    String selector() const;
 
     Message * message( uint, bool = true ) const;
     void clear();

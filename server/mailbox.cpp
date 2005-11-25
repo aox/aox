@@ -28,7 +28,8 @@ public:
           flagFetcher( 0 ), headerFetcher( 0 ),
           triviaFetcher( 0 ), bodyFetcher( 0 ),
           annotationFetcher( 0 ),
-          watchers( 0 )
+          watchers( 0 ),
+          source( 0 ), sUidnext( 0 )
     {}
 
     String name;
@@ -49,6 +50,10 @@ public:
     Fetcher * bodyFetcher;
     Fetcher * annotationFetcher;
     List<EventHandler> * watchers;
+
+    uint source;
+    uint sUidnext;
+    String selector;
 };
 
 
@@ -88,7 +93,7 @@ public:
         : owner( ev ), query( 0 )
     {
         query =
-            new Query( "select m.*,v.id as view from "
+            new Query( "select m.*,source,view,suidnext,selector from "
                        "mailboxes m left join views v on (m.id=v.view)",
                        this );
     }
@@ -98,7 +103,7 @@ public:
         : owner( 0 ), query( 0 )
     {
         query =
-            new Query( "select m.*,v.id as view from "
+            new Query( "select m.*,source,view,suidnext,selector from "
                        "mailboxes m left join views v on (m.id=v.view) "
                        "where name=$1", this );
         query->bind( 1, n );
@@ -126,6 +131,12 @@ public:
             m->setUidnext( r->getInt( "uidnext" ) );
             if ( !r->isNull( "owner" ) )
                 m->setOwner( r->getInt( "owner" ) );
+
+            if ( m->type() == Mailbox::View ) {
+                m->d->source = r->getInt( "source" );
+                m->d->sUidnext = r->getInt( "suidnext" );
+                m->d->selector = r->getString( "selector" );
+            }
 
             if ( m->d->id )
                 ::mailboxes->insert( m->d->id, m );
@@ -354,6 +365,37 @@ bool Mailbox::hasChildren() const
         ++it;
     }
     return false;
+}
+
+
+/*! Returns a pointer to the source Mailbox that this View is based on,
+    or 0 if this Mailbox is not a View.
+*/
+
+Mailbox * Mailbox::source() const
+{
+    return Mailbox::find( d->source );
+}
+
+
+/*! Returns the UIDNEXT of the source() Mailbox at the time we last
+    refreshed the view, or 0 if this is not a view() or the view has
+    never been updated.
+*/
+
+uint Mailbox::sourceUidnext() const
+{
+    return d->sUidnext;
+}
+
+
+/*! Returns the text of the selector that defines this view, or an empty
+    string if this is not a View.
+*/
+
+String Mailbox::selector() const
+{
+    return d->selector;
 }
 
 
