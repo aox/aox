@@ -36,7 +36,7 @@ class Dispatcher * d;
 
 
 char * servers[] = {
-    "logd", "ocd", "tlsproxy", "imapd", "smtpd", "httpd"
+    "logd", "ocd", "tlsproxy", "imapd", "smtpd", "httpd", "pop3d"
 };
 const int nservers = sizeof( servers ) / sizeof( servers[0] );
 
@@ -413,6 +413,8 @@ void startServer( const char * s )
               Configuration::toggle( Configuration::UseLmtp );
     else if ( t == "httpd" )
         use = Configuration::toggle( Configuration::UseHttp );
+    else if ( t == "pop3d" )
+        use = Configuration::toggle( Configuration::UsePop );
 
     if ( !use ) {
         if ( opt( 'v' ) > 0 )
