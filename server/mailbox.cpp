@@ -301,7 +301,7 @@ bool Mailbox::deleted() const
 
 bool Mailbox::view() const
 {
-    return d->type == Ordinary;
+    return d->type == View;
 }
 
 
