@@ -380,7 +380,8 @@ void Selector::simplify()
     wrong, in which case error() contains a description of the problem.
     The Selector is expressed as SQL in the context of the specified
     \a user and \a session. The \a owner will be notified of query
-    results.
+    results. The \a mailbox to search is passed in separately, because
+    we can't use the Session's mailbox while building views.
 */
 
 Query * Selector::query( User * user, Mailbox * mailbox,
