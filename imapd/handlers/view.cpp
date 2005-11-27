@@ -95,6 +95,7 @@ void View::execute()
         d->q->bind( 2, selector()->string() );
         d->q->bind( 3, d->ms->id() );
         d->t->enqueue( d->q );
+        d->t->enqueue( d->mv->refresh() );
         d->t->commit();
     }
 
