@@ -436,31 +436,28 @@ SessionInitialiser::SessionInitialiser( Session * session,
     d->session = session;
     addWatcher( owner );
     d->oldUidnext = d->session->uidnext();
-    d->newUidnext = d->session->mailbox()->uidnext();
-    if ( d->oldUidnext >= d->newUidnext )
+    uint newUidnext = d->session->mailbox()->uidnext();
+    if ( d->oldUidnext >= newUidnext )
         return;
 
     log( "Updating session on " + d->session->mailbox()->name() +
          " for UIDs [" + fn( d->oldUidnext ) + "," +
-         fn( d->newUidnext ) + ">" );
+         fn( newUidnext ) + ">" );
 
-    d->session->setUidnext( d->newUidnext );
-    d->session->insert( d->oldUidnext, d->newUidnext-1 );
-    d->expunged.add( d->oldUidnext, d->newUidnext-1 );
+    d->session->setUidnext( newUidnext );
+    d->session->insert( d->oldUidnext, newUidnext-1 );
+    d->expunged.add( d->oldUidnext, newUidnext-1 );
     execute();
 }
 
 
 void SessionInitialiser::execute()
 {
-    if ( d->done )
-        return;
+    Mailbox * m = d->session->mailbox();
 
     if ( !d->t ) {
         // We update first_recent for our mailbox. Concurrent selects of
         // this mailbox will block until this transaction has committed.
-
-        Mailbox * m = d->session->mailbox();
 
         d->t = new Transaction( this );
 
@@ -477,14 +474,14 @@ void SessionInitialiser::execute()
             Query *q = new Query( "update mailboxes set first_recent=$2 "
                                   "where id=$1", this );
             q->bind( 1, d->session->mailbox()->id() );
-            q->bind( 2, d->newUidnext );
+            q->bind( 2, d->session->mailbox()->uidnext() );
             d->t->enqueue( q );
         }
 
         if ( m->ordinary() ) {
             d->messages =
                 new Query( "select uid from messages where mailbox=$1 "
-                           "and uid>=$2 and uid<$3", this );
+                           "and uid>=$2", this );
         }
         else {
             Query * q;
@@ -512,8 +509,8 @@ void SessionInitialiser::execute()
             uint source = sel->placeHolder();
 
             String s( "insert into view_messages (view,uid,source,suid) "
-                      "select $" + fn( view ) + "::int,nextval('vs'),$" +
-                      fn( source ) + "::int,uid from (" + q->string() + ")"
+                      "select $" + fn( view ) + ",nextval('vs'),$" +
+                      fn( source ) + ",uid from (" + q->string() + ")"
                       " as THANK_YOU_SQL_WEENIES" );
 
             q->setString( s );
@@ -537,7 +534,7 @@ void SessionInitialiser::execute()
 
             d->messages =
                 new Query( "select uid from view_messages where "
-                           "view=$1 and uid>=$2 and uid<$3", this );
+                           "view=$1 and uid>=$2", this );
 
             q = new Query( "drop sequence vs", this );
             d->t->enqueue( q );
@@ -545,10 +542,9 @@ void SessionInitialiser::execute()
 
         d->messages->bind( 1, m->id() );
         d->messages->bind( 2, d->oldUidnext );
-        d->messages->bind( 3, d->newUidnext );
 
         d->t->enqueue( d->messages );
-        d->t->commit();
+        d->t->execute();
 
         if ( !d->session->firstUnseen() ) {
             // XXX: will this work if the sysadmin has set the flag
@@ -570,28 +566,37 @@ void SessionInitialiser::execute()
 
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );
-        d->expunged.remove( uid );
+        if ( d->expunged.contains( uid ) )
+            d->expunged.remove( uid );
+        else
+            d->session->insert( uid );
     }
 
     if ( (r=d->recent->nextRow()) != 0 ) {
         uint recent = r->getInt( "first_recent" );
         uint n = recent;
-        while ( n < d->newUidnext )
+        while ( n < d->session->uidnext() )
             d->session->addRecent( n++ );
     }
 
-    if ( d->seen )
-        while( (r=d->seen->nextRow()) )
-            d->session->setFirstUnseen( r->getInt( "uid" ) );
+    if ( !d->t->done() && d->messages->done() && !d->done ) {
+        if ( m->type() == Mailbox::View )
+            d->session->setUidnext( m->uidnext() );
+        d->t->commit();
+        d->done = true;
+    }
 
     if ( !d->t->done() )
         return;
-    if ( !d->messages->done() )
-        return;
-    if ( d->seen && !d->seen->done() )
-        return;
 
-    d->done = true;
+    if ( d->seen ) {
+        if ( !d->seen->done() )
+            return;
+
+        while( (r=d->seen->nextRow()) )
+            d->session->setFirstUnseen( r->getInt( "uid" ) );
+    }
+
     d->session->expunge( d->expunged );
     d->session->removeSessionInitialiser();
 
