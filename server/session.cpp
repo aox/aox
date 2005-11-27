@@ -313,6 +313,11 @@ void Session::emitResponses()
         if ( !d->initialiser )
             d->initialiser = new SessionInitialiser( this, 0 );
     }
+    else if ( d->mailbox->type() == Mailbox::View &&
+              d->mailbox->source()->uidnext() > d->mailbox->sourceUidnext() ) {
+        if ( !d->initialiser )
+            d->initialiser = new SessionInitialiser( this, 0 );
+    }
 
     if ( change )
         emitExists( d->msns.count() );
@@ -378,6 +383,9 @@ void Session::refresh( EventHandler * handler )
     if ( handler && d->initialiser )
         d->initialiser->addWatcher( handler );
     else if ( d->uidnext < d->mailbox->uidnext() )
+        d->initialiser = new SessionInitialiser( this, handler );
+    else if ( d->mailbox->type() == Mailbox::View &&
+              d->mailbox->source()->uidnext() > d->mailbox->sourceUidnext() )
         d->initialiser = new SessionInitialiser( this, handler );
 }
 
