@@ -266,6 +266,9 @@ bool Session::responsesNeeded() const
 {
     if ( d->mailbox->uidnext() > d->uidnext )
         return true;
+    if ( d->mailbox->type() == Mailbox::View &&
+         d->mailbox->source()->uidnext() > d->mailbox->sourceUidnext() )
+        return true;
     if ( !d->expunges.isEmpty() )
         return true;
     return false;
@@ -457,6 +460,8 @@ void SessionInitialiser::execute()
         // We update first_recent for our mailbox. Concurrent selects of
         // this mailbox will block until this transaction has committed.
 
+        Mailbox * m = d->session->mailbox();
+
         d->t = new Transaction( this );
 
         if ( d->session->readOnly() )
@@ -476,34 +481,22 @@ void SessionInitialiser::execute()
             d->t->enqueue( q );
         }
 
-        d->t->commit();
-
-        Mailbox * m = d->session->mailbox();
-
-        Transaction * t = new Transaction( this );
-
-
         if ( m->ordinary() ) {
-            d->messages
-                = new Query( "select uid "
-                             "from messages where mailbox=$1 and "
-                             "uid>=$2 and uid<$3",
-                             this );
+            d->messages =
+                new Query( "select uid from messages where mailbox=$1 "
+                           "and uid>=$2 and uid<$3", this );
         }
         else {
             Query * q;
 
-            // XXX: We shouldn't be dropping this lock (above) and then
-            // re-acquiring it. This should all be in the same
-            // transaction. (Fix later.)
             q = new Query( "select uidnext from mailboxes where id=$1 "
                            "for update", this );
             q->bind( 1, m->id() );
-            t->enqueue( q );
+            d->t->enqueue( q );
 
             q = new Query( "create temporary sequence vs start with " +
                            fn( m->uidnext() ), this );
-            t->enqueue( q );
+            d->t->enqueue( q );
 
             MessageSet ms;
             ms.add( m->sourceUidnext(), UINT_MAX );
@@ -526,36 +519,36 @@ void SessionInitialiser::execute()
             q->setString( s );
             q->bind( view, m->id() );
             q->bind( source, m->source()->id() );
-            t->enqueue( q );
+            d->t->enqueue( q );
 
             q = new Query( "update mailboxes set uidnext=nextval('vs') "
                            "where id=$1", this );
             q->bind( 1, m->id() );
-            t->enqueue( q );
+            d->t->enqueue( q );
 
             q = new Query( "update views set suidnext="
                            "(select uidnext from mailboxes where id=$1) "
                            "where view=$2", this );
             q->bind( 1, m->source()->id() );
             q->bind( 2, m->id() );
-            t->enqueue( q );
+            d->t->enqueue( q );
 
-            t->enqueue( m->refresh() );
+            d->t->enqueue( m->refresh() );
 
             d->messages =
                 new Query( "select uid from view_messages where "
                            "view=$1 and uid>=$2 and uid<$3", this );
 
             q = new Query( "drop sequence vs", this );
-            t->enqueue( q );
+            d->t->enqueue( q );
         }
 
         d->messages->bind( 1, m->id() );
         d->messages->bind( 2, d->oldUidnext );
         d->messages->bind( 3, d->newUidnext );
 
-        t->enqueue( d->messages );
-        t->commit();
+        d->t->enqueue( d->messages );
+        d->t->commit();
 
         if ( !d->session->firstUnseen() ) {
             // XXX: will this work if the sysadmin has set the flag
