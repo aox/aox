@@ -491,9 +491,11 @@ void SessionInitialiser::execute()
                              this );
         }
         else {
-
             Query * q;
 
+            // XXX: We shouldn't be dropping this lock (above) and then
+            // re-acquiring it. This should all be in the same
+            // transaction. (Fix later.)
             q = new Query( "select uidnext from mailboxes where id=$1 "
                            "for update", this );
             q->bind( 1, m->id() );
@@ -504,7 +506,7 @@ void SessionInitialiser::execute()
             t->enqueue( q );
 
             MessageSet ms;
-            ms.add( m->uidnext(), UINT_MAX );
+            ms.add( m->sourceUidnext(), UINT_MAX );
 
             Selector * sel = new Selector;
             sel->add( new Selector( ms ) );
@@ -517,29 +519,35 @@ void SessionInitialiser::execute()
             uint source = sel->placeHolder();
 
             String s( "insert into view_messages (view,uid,source,suid) "
-                      "select $" + fn( view ) + ",nextval('vs'),$" +
-                      fn( source ) + "," );
-            s.append( q->string().mid( 7 ) );
+                      "select $" + fn( view ) + "::int,nextval('vs'),$" +
+                      fn( source ) + "::int,uid from (" + q->string() + ")"
+                      " as THANK_YOU_SQL_WEENIES" );
 
             q->setString( s );
             q->bind( view, m->id() );
             q->bind( source, m->source()->id() );
-
             t->enqueue( q );
 
-            q = new Query( "update mailboxes set uidnext=1+"
-                           "(select max(uid) from view_messages"
-                           " where view=$1) where id=$1", this );
+            q = new Query( "update mailboxes set uidnext=nextval('vs') "
+                           "where id=$1", this );
             q->bind( 1, m->id() );
+            t->enqueue( q );
+
+            q = new Query( "update views set suidnext="
+                           "(select uidnext from mailboxes where id=$1) "
+                           "where view=$2", this );
+            q->bind( 1, m->source()->id() );
+            q->bind( 2, m->id() );
             t->enqueue( q );
 
             t->enqueue( m->refresh() );
 
-            d->messages
-                = new Query( "select uid "
-                             "from view_messages where view=$1 and "
-                             "uid>=$2 and uid<$3",
-                             this );
+            d->messages =
+                new Query( "select uid from view_messages where "
+                           "view=$1 and uid>=$2 and uid<$3", this );
+
+            q = new Query( "drop sequence vs", this );
+            t->enqueue( q );
         }
 
         d->messages->bind( 1, m->id() );
