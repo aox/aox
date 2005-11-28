@@ -133,7 +133,11 @@ void Search::parseKey( bool alsoCharset )
     }
     else if ( c == '*' || ( c >= '0' && c <= '9' ) ) {
         // it's a pure set
-        add( new Selector( set( true ) ) );
+        MessageSet s( set( true ) );
+        Mailbox * m = imap()->session()->mailbox();
+        if ( m->view() )
+            s = m->sourceUids( s );
+        add( new Selector( s ) );
         if ( !d->uid )
             setGroup( 0 );
     }
@@ -299,7 +303,11 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "uid" ) {
             space();
-            add( new Selector( set( false ) ) );
+            MessageSet s( set( false ) );
+            Mailbox * m = imap()->session()->mailbox();
+            if ( m->view() )
+                s = m->sourceUids( s );
+            add( new Selector( s ) );
         }
         else if ( keyword == "or" ) {
             space();
@@ -365,9 +373,25 @@ void Search::execute()
             return;
         }
 
+        Mailbox * m = imap()->session()->mailbox();
+        if ( m->view() )
+            m = m->source();
+
         d->query =
-            d->root->query( imap()->user(), imap()->session()->mailbox(),
-                            imap()->session(), this );
+            d->root->query( imap()->user(), m, imap()->session(), this );
+
+        m = imap()->session()->mailbox();
+        if ( m->view() ) {
+            uint source = d->root->placeHolder();
+            uint view = d->root->placeHolder();
+            String s( "select uid from view_messages where source=$" +
+                      fn( source ) + " and view=$" + fn( view ) +
+                      " and suid in (" + d->query->string() + ")" );
+            d->query->bind( source, m->source()->id() );
+            d->query->bind( view, m->id() );
+            d->query->setString( s );
+        }
+
         d->query->execute();
     }
 
