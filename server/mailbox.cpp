@@ -13,6 +13,7 @@
 #include "message.h"
 #include "fetcher.h"
 #include "allocator.h"
+#include "messageset.h"
 #include "stringlist.h"
 #include "transaction.h"
 
@@ -29,7 +30,7 @@ public:
           triviaFetcher( 0 ), bodyFetcher( 0 ),
           annotationFetcher( 0 ),
           watchers( 0 ),
-          source( 0 ), sUidnext( 0 )
+          source( 0 ), sUidnext( 0 ), sourceUids( 0 )
     {}
 
     String name;
@@ -54,6 +55,8 @@ public:
     uint source;
     uint sUidnext;
     String selector;
+
+    Map< uint > * sourceUids;
 };
 
 
@@ -133,6 +136,8 @@ public:
                 m->setOwner( r->getInt( "owner" ) );
 
             if ( m->type() == Mailbox::View ) {
+                if ( !m->d->sourceUids )
+                    m->d->sourceUids = new Map< uint >;
                 m->d->source = r->getInt( "source" );
                 m->d->sUidnext = r->getInt( "suidnext" );
                 m->d->selector = r->getString( "selector" );
@@ -667,6 +672,8 @@ Message * Mailbox::message( uint uid, bool create ) const
 {
     if ( synthetic() || deleted() )
         return 0;
+    if ( view() )
+        return source()->message( sourceUid( uid ), create );
     if ( !d->messages )
         d->messages = new Map<Message>;
     Message * m = d->messages->find( uid );
@@ -698,6 +705,10 @@ void Mailbox::clear()
 void Mailbox::fetchHeaders( const MessageSet & messages,
                             EventHandler * handler )
 {
+    if ( view() ) {
+        source()->fetchHeaders( sourceUids( messages ), handler );
+        return;
+    }
     if ( !d->headerFetcher )
         d->headerFetcher = new MessageHeaderFetcher( this );
     d->headerFetcher->insert( messages, handler );
@@ -712,6 +723,10 @@ void Mailbox::fetchHeaders( const MessageSet & messages,
 void Mailbox::fetchTrivia( const MessageSet & messages,
                            EventHandler * handler )
 {
+    if ( view() ) {
+        source()->fetchTrivia( sourceUids( messages ), handler );
+        return;
+    }
     if ( !d->triviaFetcher )
         d->triviaFetcher = new MessageTriviaFetcher( this );
     d->triviaFetcher->insert( messages, handler );
@@ -725,6 +740,10 @@ void Mailbox::fetchTrivia( const MessageSet & messages,
 void Mailbox::fetchBodies( const MessageSet & messages,
                            EventHandler * handler )
 {
+    if ( view() ) {
+        source()->fetchBodies( sourceUids( messages ), handler );
+        return;
+    }
     if ( !d->bodyFetcher )
         d->bodyFetcher = new MessageBodyFetcher( this );
     d->bodyFetcher->insert( messages, handler );
@@ -739,6 +758,10 @@ void Mailbox::fetchBodies( const MessageSet & messages,
 void Mailbox::fetchFlags( const MessageSet & messages,
                           EventHandler * handler )
 {
+    if ( view() ) {
+        source()->fetchFlags( sourceUids( messages ), handler );
+        return;
+    }
     if ( !d->flagFetcher )
         d->flagFetcher = new MessageFlagFetcher( this );
     d->flagFetcher->insert( messages, handler );
@@ -752,6 +775,10 @@ void Mailbox::fetchFlags( const MessageSet & messages,
 void Mailbox::fetchAnnotations( const MessageSet & messages,
                                 EventHandler * handler )
 {
+    if ( view() ) {
+        source()->fetchAnnotations( sourceUids( messages ), handler );
+        return;
+    }
     if ( !d->annotationFetcher )
         d->annotationFetcher = new MessageAnnotationFetcher( this );
     d->annotationFetcher->insert( messages, handler );
@@ -805,4 +832,45 @@ void Mailbox::removeWatcher( EventHandler * eh )
     d->watchers->remove( eh );
     if ( d->watchers->isEmpty() )
         d->watchers = 0;
+}
+
+
+/*! Sets the source uid for \a uid to \a suid.
+    (For use by the SessionInitialiser.)
+*/
+
+void Mailbox::setSourceUid( uint uid, uint suid )
+{
+    d->sourceUids->insert( uid, new uint( suid ) );
+}
+
+
+/*! Returns the source UID for the specified \a uid, or 0 if the \a uid
+    is not known.
+*/
+
+uint Mailbox::sourceUid( uint uid ) const
+{
+    uint * suid = d->sourceUids->find( uid );
+    if ( suid )
+        return *suid;
+    return 0;
+}
+
+
+/*! This function returns the source UIDs for the messages with UIDs
+    specified in \a u. Any unknown UIDs will be mapped to 0.
+*/
+
+MessageSet Mailbox::sourceUids( const MessageSet &u ) const
+{
+    MessageSet s;
+
+    uint i = u.count();
+    while ( i > 0 ) {
+        s.add( sourceUid( u.value( i ) ) );
+        i--;
+    }
+
+    return s;
 }

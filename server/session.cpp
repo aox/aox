@@ -11,7 +11,6 @@
 #include "query.h"
 #include "flag.h"
 #include "log.h"
-#include "map.h"
 
 
 class SessionData
@@ -25,8 +24,7 @@ public:
           mailbox( 0 ),
           uidnext( 0 ), firstUnseen( 0 ),
           permissions( 0 ),
-          announced( 0 ),
-          sourceUids( 0 )
+          announced( 0 )
     {}
 
     bool readOnly;
@@ -40,7 +38,6 @@ public:
     uint firstUnseen;
     Permissions * permissions;
     uint announced;
-    Map< uint > * sourceUids;
 };
 
 
@@ -59,9 +56,6 @@ Session::Session( Mailbox *m, bool readOnly )
 {
     d->mailbox = m;
     d->readOnly = readOnly;
-
-    if ( m->view() )
-        d->sourceUids = new Map< uint >;
 }
 
 
@@ -585,8 +579,8 @@ void SessionInitialiser::execute()
         else
             d->session->insert( uid );
 
-        if ( !r->isNull( "suid" ) )
-            d->session->setSourceUid( uid, r->getInt( "suid" ) );
+        if ( m->view() )
+            m->setSourceUid( uid, r->getInt( "suid" ) );
     }
 
     if ( (r=d->recent->nextRow()) != 0 ) {
@@ -686,27 +680,4 @@ void SessionInitialiser::addWatcher( EventHandler * e )
 {
     if ( e )
         d->watchers.append( e );
-}
-
-
-/*! Sets the source uid for \a uid to \a suid.
-    (For use by the SessionInitialiser.)
-*/
-
-void Session::setSourceUid( uint uid, uint suid )
-{
-    d->sourceUids->insert( uid, new uint( suid ) );
-}
-
-
-/*! Returns the source UID for the specified \a uid, or 0 if the \a uid
-    is not known.
-*/
-
-uint Session::sourceUid( uint uid ) const
-{
-    uint * suid = d->sourceUids->find( uid );
-    if ( suid )
-        return *suid;
-    return 0;
 }

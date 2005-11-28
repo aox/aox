@@ -52,6 +52,10 @@ public:
     uint sourceUidnext() const;
     String selector() const;
 
+    void setSourceUid( uint, uint );
+    uint sourceUid( uint ) const;
+    MessageSet sourceUids( const MessageSet & ) const;
+
     Message * message( uint, bool = true ) const;
     void clear();
 
