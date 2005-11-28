@@ -462,6 +462,14 @@ bool Store::dumpFetchResponses()
 
 void Store::removeFlags( bool opposite )
 {
+    Mailbox * m = imap()->session()->mailbox();
+    MessageSet s( d->s );
+
+    if ( m->view() ) {
+        s = m->sourceUids( s );
+        m = m->source();
+    }
+
     List<Flag>::Iterator it( d->flags );
     String flags;
     if ( opposite )
@@ -477,9 +485,9 @@ void Store::removeFlags( bool opposite )
     flags.append( ")" );
 
     Query * q = new Query( "delete from flags where mailbox=$1 and " +
-                           flags + " and (" + d->s.where() + ")",
+                           flags + " and (" + s.where() + ")",
                            this );
-    q->bind( 1, imap()->session()->mailbox()->id() );
+    q->bind( 1, m->id() );
     d->transaction->enqueue( q );
 }
 
@@ -513,10 +521,17 @@ Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
 
 void Store::addFlags()
 {
+    Mailbox * m = imap()->session()->mailbox();
+    MessageSet s( d->s );
+
+    if ( m->view() ) {
+        s = m->sourceUids( s );
+        m = m->source();
+    }
+
     List<Flag>::Iterator it( d->flags );
     while ( it ) {
-        Query * q = addFlagsQuery( it, imap()->session()->mailbox(),
-                                   d->s, this );
+        Query * q = addFlagsQuery( it, m, s, this );
         d->transaction->enqueue( q );
         ++it;
     }
@@ -579,9 +594,16 @@ static void bind( Query * q, uint i, const String & n )
 
 void Store::replaceAnnotations()
 {
-    List<Annotation>::Iterator it( d->annotations );
-    String w = d->s.where();
     Mailbox * m = imap()->session()->mailbox();
+    MessageSet s( d->s );
+
+    if ( m->view() ) {
+        s = m->sourceUids( s );
+        m = m->source();
+    }
+
+    List<Annotation>::Iterator it( d->annotations );
+    String w = s.where();
     User * u = imap()->user();
     while ( it ) {
         Query * q;
