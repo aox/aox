@@ -660,4 +660,7 @@ Privilege separation
 Make User::create/remove work like Mailbox::create/remove. (AMS)
 
 
+Make sure UIDs never exceed 2**31 (and break getInt).
+
+
 
