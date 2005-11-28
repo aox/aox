@@ -29,7 +29,7 @@
     RFC 2195: AUTH=CRAM-MD5
     RFC 2831: AUTH=DIGEST-MD5
     RFC 3516: BINARY
-    
+
     We also announce a number of draft capabilities, if the
     configuration variable announce-draft-support is set to true. By
     default it's not.
@@ -88,6 +88,8 @@ String Capability::capabilities( IMAP * i )
         c.append( "THREAD=ORDEREDSUBJECT" );
     c.append( "UIDPLUS" );
     c.append( "UNSELECT" );
+    if ( drafts )
+        c.append( "VIEW" );
 
     return c.join( " " );
 }
