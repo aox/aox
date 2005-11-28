@@ -66,6 +66,9 @@ public:
 
     void removeSessionInitialiser();
 
+    void setSourceUid( uint, uint );
+    uint sourceUid( uint ) const;
+
 private:
     class SessionData *d;
 };

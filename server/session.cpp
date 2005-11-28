@@ -11,6 +11,7 @@
 #include "query.h"
 #include "flag.h"
 #include "log.h"
+#include "map.h"
 
 
 class SessionData
@@ -24,7 +25,8 @@ public:
           mailbox( 0 ),
           uidnext( 0 ), firstUnseen( 0 ),
           permissions( 0 ),
-          announced( 0 )
+          announced( 0 ),
+          sourceUids( 0 )
     {}
 
     bool readOnly;
@@ -38,6 +40,7 @@ public:
     uint firstUnseen;
     Permissions * permissions;
     uint announced;
+    Map< uint > * sourceUids;
 };
 
 
@@ -56,6 +59,9 @@ Session::Session( Mailbox *m, bool readOnly )
 {
     d->mailbox = m;
     d->readOnly = readOnly;
+
+    if ( m->view() )
+        d->sourceUids = new Map< uint >;
 }
 
 
@@ -84,7 +90,7 @@ bool Session::initialised() const
     isn't one.
 */
 
-Mailbox *Session::mailbox() const
+Mailbox * Session::mailbox() const
 {
     return d->mailbox;
 }
@@ -105,7 +111,7 @@ bool Session::readOnly() const
     answer queries (with allows()) because Select waited for it to be.
 */
 
-Permissions *Session::permissions() const
+Permissions * Session::permissions() const
 {
     return d->permissions;
 }
@@ -541,7 +547,7 @@ void SessionInitialiser::execute()
             d->t->enqueue( m->refresh() );
 
             d->messages =
-                new Query( "select uid from view_messages where "
+                new Query( "select uid,suid from view_messages where "
                            "view=$1 and uid>=$2", this );
 
             q = new Query( "drop sequence vs", this );
@@ -578,6 +584,9 @@ void SessionInitialiser::execute()
             d->expunged.remove( uid );
         else
             d->session->insert( uid );
+
+        if ( !r->isNull( "suid" ) )
+            d->session->setSourceUid( uid, r->getInt( "suid" ) );
     }
 
     if ( (r=d->recent->nextRow()) != 0 ) {
@@ -677,4 +686,27 @@ void SessionInitialiser::addWatcher( EventHandler * e )
 {
     if ( e )
         d->watchers.append( e );
+}
+
+
+/*! Sets the source uid for \a uid to \a suid.
+    (For use by the SessionInitialiser.)
+*/
+
+void Session::setSourceUid( uint uid, uint suid )
+{
+    d->sourceUids->insert( uid, new uint( suid ) );
+}
+
+
+/*! Returns the source UID for the specified \a uid, or 0 if the \a uid
+    is not known.
+*/
+
+uint Session::sourceUid( uint uid ) const
+{
+    uint * suid = d->sourceUids->find( uid );
+    if ( suid )
+        return *suid;
+    return 0;
 }
