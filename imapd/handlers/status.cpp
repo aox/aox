@@ -89,7 +89,9 @@ void Status::execute()
     if ( !d->permissions )
         d->permissions = new Permissions( d->mailbox, imap()->user(), this );
 
-    if ( !d->session && ( d->messages || d->recent ) ) {
+    if ( !d->session && ( d->messages || d->recent ||
+                          ( d->mailbox->view() && d->uidnext ) ) )
+    {
         if ( imap()->session() &&
              imap()->session()->mailbox() == d->mailbox )
             d->session = imap()->session();
@@ -122,7 +124,6 @@ void Status::execute()
         }
 
     }
-        
 
     // second part: wait until we have the information
     if ( d->permissions && !d->permissions->ready() )
