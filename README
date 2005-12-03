@@ -1,0 +1,58 @@
+To build Oryx Mailstore from source, you need the Jam build tool,
+available at http://www.perforce.com/jam/jam.html as well as in most
+Linux/BSD distributions.
+
+To run Mailstore you need PostgreSQL, version 7.4.2 or any later
+version. (7.4 and 7.4.1 may also work; we haven't tested that.)
+
+Building and installing Mailstore is a five-step process:
+
+1. Edit Jamsettings to reflect your preferences. Note that in Jam,
+   variable assignments require spaces: "A = b ;" is good, "A=b;" is a
+   syntax error.
+
+2. Type 'jam' to build and 'jam install' as root to install the
+   programs and other files.
+
+3. If you configured ORYXUSER and ORYXGROUP to something special, make
+   sure that user and that group exist.
+
+   Create the PostgreSQL user, mailstore and tables needed, as well as
+   the mailstore.conf file. You can do this automatically using the
+   script LIBDIR/installer (/usr/local/mailstore/lib/installer by
+   default), or you can do it by hand. If you run LIBDIR/installer -n,
+   it does nothing except tell you exactly what needs to be done.
+
+3. If mailstore.conf was created automatically for you, you may want
+   to have a look at it and perhaps change something. It's not
+   necessary.
+
+   The man page for mailstore.conf explains all the possible settings.
+
+At this point, you're ready to run "INITDIR/rcmailstore start" to start
+Mailstore. After a change, "rcmailstore restart" restarts.
+
+Create the Mailstore users you need, e.g.
+
+      ms create user nirmala pw nirmala@example.org
+
+to create a user with login "nirmala", password "pw" and email address
+"nirmala@example.org".
+
+There are mailing lists for Mailstore users and announcements. To
+subscribe to the users list, send mail:
+
+   To: mailstore-users-request@oryx.com
+   Subject: subscribe
+
+   subscribe
+
+To subscribe to the low-volume announcements list, send mail:
+
+   To: mailstore-announce-request@oryx.com
+   Subject: subscribe
+
+   subscribe
+
+If you encounter any problems or have any suggestions, please write to
+info@oryx.com. Your comments help us improve Mailstore.
