@@ -320,6 +320,7 @@ Codec * Codec::byString( const String & s )
             latin1 = false;
             latin9 = false;
             if ( c != 0x80 /* euro */ &&
+                 c != 0x96 /* dash */ &&
                  // the rest are all quotes
                  c != 0x82 && c != 0x84 && c != 0x8B &&
                  c < 0x91 && c > 0x94 && c != 0x9b )
