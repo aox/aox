@@ -671,4 +671,15 @@ Make sure UIDs never exceed 2**31 (and break getInt).
     source mailbox's UIDs.
 
 
+Rendering webmail HTML is presumably good, but...
+
+  Knowledge is better than presumption.
+
+  Webmail services have a lot of known holes. Cross site scripting and
+  suchlike. We can add known sploits/demos to our rendering tests, and
+  check that we're not vulnerable.
+
+  Two I saw today: http://www.sec-consult.com/232.html and
+  http://www.sec-consult.com/233.html
+
 
