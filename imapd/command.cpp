@@ -199,8 +199,6 @@ Command * Command::create( IMAP * imap,
             c = new Acl( Acl::ListRights );
         else if ( n == "myrights" )
             c = new Acl( Acl::MyRights );
-        else if ( n == "x-oryx-reset" )
-            c = new XOryxReset;
         else if ( n == "view" )
             c = new View;
 
