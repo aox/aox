@@ -32,12 +32,10 @@
 #include "handlers/reset.h"
 #include "handlers/search.h"
 #include "handlers/select.h"
-#include "handlers/sort.h"
 #include "handlers/starttls.h"
 #include "handlers/status.h"
 #include "handlers/store.h"
 #include "handlers/subscribe.h"
-#include "handlers/thread.h"
 #include "handlers/unselect.h"
 #include "handlers/view.h"
 
@@ -219,14 +217,10 @@ Command * Command::create( IMAP * imap,
             c = new Check;
         else if ( n == "close" )
             c = new Close;
-        else if ( n == "sort" )
-            c = new Sort( uid );
         else if ( n == "store" )
             c = new Store( uid );
         else if ( n == "copy" )
             c = new Copy( uid );
-        else if ( n == "thread" )
-            c = new Thread( uid );
         else if ( n == "unselect" )
             c = new Unselect;
 

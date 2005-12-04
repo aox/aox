@@ -296,6 +296,8 @@ Codec * Codec::byString( const String & s )
     bool windows1252 = true;
     b = 0;
     while ( b < s.length() ) {
+        while ( b < s.length() && s[b] < 128 )
+            b++; // just for ease of single-stepping
         char c = s[b];
         b++;
         if ( c >= 160 ) {
@@ -307,6 +309,8 @@ Codec * Codec::byString( const String & s )
                       c == 0xBB /* raquo */ ||
                       c == 0xA3 /* pound */ ||
                       c == 0xB4 /* acute accent - like ' */ ||
+                      c == 0xA9 /* copyright */ ||
+                      c == 0xAE /* registered trademark */ ||
                       c == 0xB0 /* degree sign */ ) {
                 ; // can be any of the three character sets
             }
@@ -320,6 +324,7 @@ Codec * Codec::byString( const String & s )
             latin1 = false;
             latin9 = false;
             if ( c != 0x80 /* euro */ &&
+                 c != 0x96 /* dash */ &&
                  // the rest are all quotes
                  c != 0x82 && c != 0x84 && c != 0x8B &&
                  c < 0x91 && c > 0x94 && c != 0x9b )

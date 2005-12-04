@@ -115,11 +115,9 @@ Message::Message( const String & rfc2822 )
     fix8BitHeaderFields();
 
     List< HeaderField >::Iterator it( header()->fields() );
-    while ( it ) {
-        if ( !it->parsed() ) {
+    while ( it && d->error.isEmpty() ) {
+        if ( !it->parsed() )
             d->error = "Unable to parse header field " + it->name();
-            break;
-        }
         ++it;
     }
 
@@ -477,7 +475,7 @@ bool Message::hasBodies() const
 
 bool Message::hasAnnotations() const
 {
-    return d->hasAnnotations; 
+    return d->hasAnnotations;
 }
 
 
@@ -671,7 +669,7 @@ List< Annotation > * Message::annotations() const
 void Message::fix8BitHeaderFields()
 {
     String charset;
-    List<Bodypart>::Iterator i( children() );
+    List<Bodypart>::Iterator i( allBodyparts() );
     while ( i ) {
         ContentType * ct = 0;
         if ( i->header() )
