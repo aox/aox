@@ -23,12 +23,10 @@ Build imap :
     reset.cpp
     search.cpp
     select.cpp
-    sort.cpp
     starttls.cpp
     status.cpp
     store.cpp
     subscribe.cpp
-    thread.cpp
     unselect.cpp
     view.cpp
     ;
