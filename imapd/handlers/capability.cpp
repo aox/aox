@@ -80,12 +80,8 @@ String Capability::capabilities( IMAP * i )
     c.append( "RIGHTS=" );
     if ( drafts )
         c.append( "SASL-IR" );
-    if ( drafts )
-        c.append( "SORT" );
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
-    if ( drafts )
-        c.append( "THREAD=ORDEREDSUBJECT" );
     c.append( "UIDPLUS" );
     c.append( "UNSELECT" );
     if ( drafts )
