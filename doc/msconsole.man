@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH msconsole 8 2005-12-12 www.oryx.com "Mailstore Documentation"
+.TH msconsole 8 2005-12-19 www.oryx.com "Mailstore Documentation"
 .SH NAME
 msconsole - Oryx Mailstore management console.
 .SH SYNOPSIS
@@ -25,7 +25,7 @@ isn't usable yet.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.01, released 2005-12-12,
+This man page covers Oryx Mailstore version 1.01, released 2005-12-19,
 http://www.oryx.com/mailstore/1.01.html.
 .SH SEE ALSO
 .BR mailstore (7),
