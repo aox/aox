@@ -17,7 +17,7 @@ and other errors are logged via
 .PP
 .I mailstore.conf
 is usually created at installation time, by running
-.BR $SBINDIR/installer .
+.BR $LIBDIR/installer .
 .PP
 There is only one required variable, namely 
 .IR db-password .

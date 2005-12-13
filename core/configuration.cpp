@@ -557,7 +557,7 @@ void Configuration::report()
 
     If \a global is an empty string, the function returns without trying
     to parse a configuration file. This experimental measure is meant to
-    help bin/installer.
+    help lib/installer.
 */
 
 void Configuration::setup( const String & global )

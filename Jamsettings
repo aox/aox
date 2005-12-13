@@ -97,7 +97,7 @@ PSQL = psql ;
 DBADDRESS = /tmp/.s.PGSQL.5432 ;
 
 # A Postgres user and database for Mailstore to use. If necessary, these
-# are created by BINDIR/installer. To use an existing user/database,
+# are created by LIBDIR/installer. To use an existing user/database,
 # change these values and set DBPASS below.
 #
 # Notes: DBUSER must own the DBNAME database.  Because PostgreSQL

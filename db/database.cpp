@@ -131,7 +131,7 @@ void Database::submit( List< Query > *q )
 
 
 /*! This extremely evil function shuts down all Database handles. It's
-    used only by bin/installer to reconnect to the mailstore database.
+    used only by lib/installer to reconnect to the mailstore database.
     Once it's done, setup() may be called again with an appropriately
     altered configuration.
 
