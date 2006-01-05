@@ -84,10 +84,22 @@ EventLoop::~EventLoop()
 }
 
 
-/*! Adds \a c to this EventLoop's list of active Connections. */
+/*! Adds \a c to this EventLoop's list of active Connections.
 
-void EventLoop::addConnection( Connection *c )
+    If shutdown() has been called already, addConnection() ignores \a
+    c, so that shutdown proceeds unhampered. This is likely to disturb
+    \a c a little, but it's better than the alternative: Aborting the
+    shutdown.
+*/
+
+void EventLoop::addConnection( Connection * c )
 {
+    if ( d->stop ) {
+        log( "Cannot add new Connection objects during shutdown",
+             Log::Error );
+        return;
+    }
+
     Scope x( d->log );
 
     if ( d->connections.find( c ) )
