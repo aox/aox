@@ -469,7 +469,7 @@ void HeaderField::parseMimeVersion( const String &s )
     String v = p.dotAtom();
     p.comment();
     if ( v != "1.0" || !p.atEnd() )
-        setError( "Could not parse '" + v.simplified() + "'" );
+        setError( "Could not parse '" + s + "'" );
     setData( v );
 }
 
