@@ -669,6 +669,7 @@ List< Annotation > * Message::annotations() const
 void Message::fix8BitHeaderFields()
 {
     String charset;
+    String fallback = "us-ascii";
     List<Bodypart>::Iterator i( allBodyparts() );
     while ( i ) {
         ContentType * ct = 0;
@@ -682,12 +683,14 @@ void Message::fix8BitHeaderFields()
                 charset = cs; // use this charset...?
             else if ( cs != charset )
                 return; // multiple charsets specified
+            if ( ct && ct->subtype() == "html" )
+                fallback = "iso-8859-1";
         }
         i++;
     }
-    if ( !charset.isEmpty() ) {
-        Codec * c = Codec::byName( charset );
-        if ( c )
-            header()->fix8BitFields( c );
-    }
+    if ( charset.isEmpty() )
+        charset = fallback;
+    Codec * c = Codec::byName( charset );
+    if ( c )
+        header()->fix8BitFields( c );
 }
