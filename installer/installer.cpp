@@ -604,6 +604,10 @@ void configFile()
         if ( report ) {
             printf( " - Generate a default configuration file.\n"
                     "   %s should contain:\n\n%s", cf.cstr(), cfg.cstr() );
+            printf( " - Set permissions and ownership on %s.\n"
+                    "   chmod 0600 %s\n"
+                    "   chown %s:%s %s\n",
+                    cf.cstr(), cf.cstr(), ORYXUSER, ORYXGROUP, cf.cstr() );
         }
         else {
             setreuid( 0, 0 );
