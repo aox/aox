@@ -396,38 +396,7 @@ static Codec * guessTextCodec( const String & body )
 
 static Codec * guessHtmlCodec( const String & body )
 {
-    String b = body.mid( 0, 2048 ).lower().simplified();
-    int i = 0;
-    while ( i >= 0 ) {
-        // Some user-agents add a certain meta http-equiv instead of
-        // the content-type header. We scan for that. We can use it to
-        // work around certain observed breakage. Two problems:
-        // 1. This is not correct because this isn't HTTP, so
-        // http-equiv is inoperative, strictly speaking.
-        // 2. It's also not correct because we're just scanning for
-        // the particular pattern which happens to be used by the
-        // brokenware, not parsing properly.
-        i = b.find( "<meta http-equiv=\"content-type\" content=\"", i );
-        if ( i >= 0 ) {
-            i = i + 41; // length of the meta above
-            int j = i;
-            while ( j < (int)b.length() &&
-                    b[j] != '"' )
-                j++;
-            HeaderField * hf
-                = HeaderField::create( "Content-Type",
-                                       b.mid( i, j-i ) );
-            String cs = ((MimeField*)hf)->parameter( "charset" );
-            Codec * c = 0;
-            if ( !cs.isEmpty() )
-                c = Codec::byName( cs );
-            if ( c )
-                return c;
-        }
-    }
-
-    // That didn't work. Let's see if the general function has
-    // something for us.
+    // Let's see if the general function has something for us.
     Codec * c = guessTextCodec( body );
     if ( c )
         return c;
@@ -475,6 +444,40 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     if ( !ct || ct->type() == "text" ) {
         bool specified = false;
         Codec * c = 0;
+        if ( ct && ct->type() == "text" && ct->subtype() == "html" ) {
+            String b = body.mid( 0, 2048 ).lower().simplified();
+            int i = 0;
+            while ( i >= 0 ) {
+                // Some user-agents add a certain meta http-equiv
+                // instead of the content-type header. We scan for
+                // that. We can use it to work around certain observed
+                // breakage. Two problems:
+                // 1. This is not correct because this isn't HTTP, so
+                // http-equiv is inoperative, strictly speaking.
+                // 2. It's also not correct because we're just scanning for
+                // the particular pattern which happens to be used by
+                // the brokenware, not parsing properly.
+                i = b.find( "<meta http-equiv=\"content-type\" content=\"", i );
+                if ( i >= 0 ) {
+                    i = i + 41; // length of the meta above
+                    int j = i;
+                    while ( j < (int)b.length() &&
+                            b[j] != '"' )
+                        j++;
+                    HeaderField * hf
+                        = HeaderField::create( "Content-Type",
+                                               b.mid( i, j-i ) );
+                    String cs = ((MimeField*)hf)->parameter( "charset" );
+                    if ( !cs.isEmpty() ) {
+                        ct->removeParameter( "charset" );
+                        ct->addParameter( "charset", cs );
+                        i = -1;
+                        specified = true;
+                    }
+                }
+            }
+        }
+            
         if ( ct ) {
             String csn = ct->parameter( "charset" );
             if ( csn.lower() == "default" )
