@@ -141,6 +141,7 @@ void Database::submit( List< Query > *q )
 void Database::disconnect()
 {
     List< Database >::Iterator it( handles );
+    handles = 0;
     while ( it ) {
         it->react( Shutdown );
         ++it;
