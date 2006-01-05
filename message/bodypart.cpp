@@ -8,6 +8,7 @@
 #include "iso8859.h"
 #include "ustring.h"
 #include "message.h"
+#include "unknown.h"
 #include "mimefields.h"
 
 
@@ -499,15 +500,13 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body );
         if ( !c->valid() && !specified ) {
-            Codec * guess = 0;
             if ( ct && ct->subtype() == "html" )
-                guess = guessHtmlCodec( body );
+                c = guessHtmlCodec( body );
             else
-                guess = guessTextCodec( body );
-            if ( guess ) {
-                c = guess;
-                bp->d->text = c->toUnicode( body );
-            }
+                c = guessTextCodec( body );
+            if ( !c )
+                c = new Unknown8BitCodec;
+            bp->d->text = c->toUnicode( body );
         }
         if ( !c->valid() && error.isEmpty() ) {
             String cs;
