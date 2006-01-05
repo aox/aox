@@ -6,6 +6,7 @@
 #include "stringlist.h"
 #include "eventloop.h"
 #include "injector.h"
+#include "entropy.h"
 #include "message.h"
 #include "address.h"
 #include "mailbox.h"
@@ -33,40 +34,44 @@ uint sequence;
 class SmtpDbClient: public EventHandler
 {
 public:
-    SmtpDbClient( SMTP * s );
+    SmtpDbClient( SMTP * s, SMTPData * d );
     void execute();
 
     SMTP * owner;
+    SMTPData * d;
     Injector * injector;
+    bool harder;
+
+    void addField( Header *, String &, HeaderField::Type, const String & );
 };
 
 
-SmtpDbClient::SmtpDbClient( SMTP * s )
-    : EventHandler(), owner( s ), injector( 0 )
+SmtpDbClient::SmtpDbClient( SMTP * s, SMTPData * smtpd )
+    : EventHandler(), owner( s ), d( smtpd ), injector( 0 ), harder( false )
 {
 }
 
 
-void SmtpDbClient::execute()
+void SmtpDbClient::addField( Header * h, String & r,
+                             HeaderField::Type t, const String & s )
 {
-    if ( !injector || !injector->done() )
+    if ( !h )
         return;
 
-    if ( injector->failed() &&
-         injector->message()->header() ) {
-        Header * h = injector->message()->header();
-        String id = h->messageId();
-        if ( !id.isEmpty() )
-            log( "Message-ID: " + id );
-        String from;
-        HeaderField * f = h->field( HeaderField::From );
-        if ( f )
-            from = f->value();
-        if ( !from.isEmpty() )
-            log( "From: " + from );
-    }
+    String v;
 
-    owner->reportInjection();
+    HeaderField * f = h->field( t );
+    if ( f && f->valid() )
+        v = f->value();
+    else
+        v = s;
+
+    if ( v.isEmpty() )
+        return;
+    r.append( HeaderField::fieldName( t ) );
+    r.append( ": " );
+    r.append( v );
+    r.append( "\r\n" );
 }
 
 
@@ -121,7 +126,7 @@ class SMTPData
 public:
     SMTPData():
         code( 0 ), state( SMTP::Initial ),
-        from( 0 ), protocol( "smtp" ),
+        from( 0 ), mailboxes( 0 ), protocol( "smtp" ),
         injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false )
     {}
@@ -132,6 +137,7 @@ public:
     SMTP::State state;
     Address * from;
     List<User> to;
+    SortedList<Mailbox> * mailboxes;
     String body;
     String arg;
     String helo;
@@ -142,7 +148,79 @@ public:
     SmtpTlsStarter * tlsHelper;
     bool negotiatingTls;
     StringList commands;
+    String id;
 };
+
+
+void SmtpDbClient::execute()
+{
+    if ( !injector || !injector->done() )
+        return;
+
+    if ( injector->failed() &&
+         injector->message()->header() ) {
+        Header * h = injector->message()->header();
+        String id = h->messageId();
+        if ( !id.isEmpty() )
+            log( "Message-ID: " + id );
+        String from;
+        HeaderField * f = h->field( HeaderField::From );
+        if ( f )
+            from = f->value();
+        if ( !from.isEmpty() )
+            log( "From: " + from );
+    }
+
+    if ( injector->failed() && !harder ) {
+        harder = true;
+        String boundary = Entropy::asString( 15 ).e64();
+        Header * h = injector->message()->header();
+        String wrapper;
+        addField( h, wrapper, HeaderField::From, 
+                  "Mail Storage Database <invalid@invalid.invalid>" );
+        Date now;
+        now.setCurrentTime();
+        addField( h, wrapper, HeaderField::Date, now.rfc822() );
+        addField( h, wrapper, HeaderField::To, "Unknown-Recipients:;" );
+        addField( h, wrapper, HeaderField::Cc, "" );
+        addField( h, wrapper, HeaderField::References, "" );
+        addField( h, wrapper, HeaderField::InReplyTo, "" );
+        wrapper.append( "Subject: Message arrived but could not be stored\r\n"
+                        "MIME-Version: 1.0\r\n"
+                        "Content-Type: multipart/mixed; boundary=" +
+                        boundary + "\r\n"
+                        "\r\n\r\nYou are looking at an easter egg\r\n"
+                        "--" + boundary + "\r\n"
+                        "Content-Type: text/plain; format=flowed" );
+        // but which charset does this thing use?
+        String e = injector->error();
+        uint n = 0;
+        while ( n < e.length() && e[n] < 128 )
+            n++;
+        if ( n < e.length() )
+            wrapper.append( ", charset=unknown-8bit" );
+        wrapper.append( "\r\n\r\nThe appended message was received, "
+                        "but could not be stored in the mail \r\n"
+                        "database on " + Configuration::hostname() +
+                        ".\r\n\r\nThe error detected was: \r\n" );
+        wrapper.append( injector->error() );
+        wrapper.append( "\r\n\r\n--" + boundary + "\r\n" );
+        wrapper.append( "Content-Type: application/octet-stream\r\n"
+                        "Content-Transfer-Encoding: 8bit\r\n"
+                        "Content-Disposition: attachment; filename=" +
+                        d->id + "\r\n"
+                        "\r\n" +
+                        d->body + "\r\n--" + boundary + "--\r\n" );
+
+        Message * m = new Message( wrapper );
+        Injector * i = new Injector( m, d->mailboxes, this );
+        injector = i;
+        i->execute();
+        return;
+    }
+
+    owner->reportInjection();
+}
 
 
 /*! \class SMTP smtp.h
@@ -449,6 +527,12 @@ void SMTP::data()
         return;
     }
 
+    d->id = fn( time(0) );
+    d->id.append( '-' );
+    d->id.append( fn( getpid() ) ); 
+    d->id.append( '-' );
+    d->id.append( fn( ++sequence ) );
+
     // if a client sends lots of bad addresses, this results in 'go
     // ahead (sending to 0 recipients'.
     respond( 354,
@@ -563,15 +647,10 @@ Address * SMTP::address()
     }
     p.step();
     String localpart;
-    if ( p.next() == '"' ) {
-        p.step();
-        localpart = p.phrase();
-        if ( p.next() == '"' )
-            p.step();
-    }
-    else {
+    if ( p.next() == '"' )
+        localpart = p.string();
+    else
         localpart = p.dotAtom();
-    }
     if ( localpart.isEmpty() ) {
         respond( 503, "Parse error parsing localpart" );
         return 0;
@@ -713,25 +792,28 @@ void SMTP::inject()
     received.append( Configuration::hostname() );
     received.append( " with " );
     received.append( d->protocol );
+    received.append( " id " );
+    received.append( d->id );
     received.append( "; " );
     received.append( now.rfc822() );
     received.append( "\r\n" );
 
-    Message * m = new Message( received + d->body );
+    d->body = received + d->body;
+    Message * m = new Message( d->body );
     m->header()->removeField( HeaderField::ReturnPath );
     if ( d->from )
         m->header()->add( "Return-Path", d->from->toString() );
 
-    SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
+    d->mailboxes = new SortedList<Mailbox>;
     List<User>::Iterator it( d->to );
     while ( it ) {
-        mailboxes->insert( it->inbox() );
+        d->mailboxes->insert( it->inbox() );
         ++it;
     }
 
-    d->helper = new SmtpDbClient( this );
+    d->helper = new SmtpDbClient( this, d );
     m->setInternalDate( now.unixTime() );
-    d->injector = new Injector( m, mailboxes, d->helper );
+    d->injector = new Injector( m, d->mailboxes, d->helper );
     d->helper->injector = d->injector;
     d->injector->execute();
 }
@@ -757,11 +839,7 @@ bool SMTP::writeCopy()
 
     String copy( Configuration::text( Configuration::MessageCopyDir ) );
     copy.append( '/' );
-    copy.append( fn( time(0) ) );
-    copy.append( '-' );
-    copy.append( fn( getpid() ) );
-    copy.append( '-' );
-    copy.append( fn( ++sequence ) );
+    copy.append( d->id );
 
     String e;
     if ( d->injector && d->injector->failed() ) {
@@ -817,6 +895,10 @@ void SMTP::reportInjection()
 
     if ( d->injector->failed() ) {
         respond( 451, d->injector->error() );
+    }
+    else if ( d->helper->harder ) {
+        d->helper->injector->announce();
+        respond( 250, "Worked around: " + d->injector->error() );
     }
     else {
         d->injector->announce();
@@ -892,8 +974,10 @@ void LMTP::reportInjection()
     while ( it ) {
         Address * a = it->address();
         String prefix = a->localpart() + "@" + a->domain() + ": ";
-        if ( d->injector->failed() )
+        if ( d->helper->injector->failed() )
             respond( 451, prefix + d->injector->error() );
+        else if ( d->helper->harder )
+            respond( 250, prefix + "Worked around: " + d->injector->error() );
         else
             respond( 250, prefix + "injected into " +
                      it->inbox()->name() );
