@@ -39,6 +39,14 @@ while( <G> ) {
     }
 }
 
+foreach ( sort keys %a ) {
+    if ( /^windows-([0-9]*)$/ ) {
+	$a{"cp-" . $1} = $a{$_};
+    } elsif ( /^ibm([0-9]*)$/ ) {
+	$a{"cp-" . $1} = $a{$_};
+    }
+}
+
 
 open( O, "> codec-aliases.inc" );
 foreach ( sort keys %a ) {
