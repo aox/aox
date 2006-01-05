@@ -17,11 +17,8 @@
 #include "md5.h"
 #include "log.h"
 
-// crypt
-#define _XOPEN_SOURCE 4
-#include <unistd.h>
-
-// setreuid(), getpwnam()
+// crypt(), setreuid(), getpwnam()
+#define _XOPEN_SOURCE 600
 #include <sys/types.h>
 #include <unistd.h>
 #include <pwd.h>
