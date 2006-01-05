@@ -266,10 +266,12 @@ String Header::messageId( HeaderField::Type t ) const
 
 List< Address > *Header::addresses( HeaderField::Type t ) const
 {
-    List< Address > *a = 0;
-    AddressField *af = addressField( t );
+    List< Address > * a = 0;
+    AddressField * af = addressField( t );
     if ( af )
         a = af->addresses();
+    if ( a && a->isEmpty() )
+        a = 0;
     return a;
 }
 
@@ -532,6 +534,15 @@ void Header::simplify()
     if ( sameAddresses( addressField( HeaderField::From ),
                         addressField( HeaderField::Sender ) ) )
         removeField( HeaderField::Sender );
+
+    if ( !addresses( HeaderField::To ) )
+        removeField( HeaderField::To );
+    if ( !addresses( HeaderField::Cc ) )
+        removeField( HeaderField::Cc );
+    if ( !addresses( HeaderField::Bcc ) )
+        removeField( HeaderField::Bcc );
+    if ( !addresses( HeaderField::ReplyTo ) )
+        removeField( HeaderField::ReplyTo );
 }
 
 
@@ -676,7 +687,7 @@ void Header::fix8BitFields( class Codec * c )
     Utf8Codec utf8;
     List< HeaderField >::Iterator it( d->fields );
     while ( it ) {
-        HeaderField * f = it;
+        List< HeaderField >::Iterator f = it;
         ++it;
         if ( !f->parsed() &&
              ( f->type() == HeaderField::Subject ||
@@ -695,6 +706,8 @@ void Header::fix8BitFields( class Codec * c )
                 UString u = c->toUnicode( v );
                 if ( c->wellformed() )
                     f->setData( HeaderField::encode( utf8.fromUnicode( u ) ) );
+                else if ( f->type() == HeaderField::Other )
+                    d->fields.remove( f );
                 else if ( d->error.isEmpty() )
                     d->error = "Cannot parse header field " + f->name() +
                                " either as US-ASCII or " + c->name();

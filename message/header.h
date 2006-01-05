@@ -32,7 +32,7 @@ public:
     void add( const String &, const String & );
     void removeField( HeaderField::Type );
 
-    List< HeaderField > *fields() const;
+    List< HeaderField > * fields() const;
     HeaderField * field( HeaderField::Type, uint = 0 ) const;
     AddressField * addressField( HeaderField::Type, uint = 0 ) const;
 
