@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH installer 8 2005-12-19 www.oryx.com "Mailstore Documentation"
+.TH installer 8 2006-01-16 www.oryx.com "Mailstore Documentation"
 .SH NAME
 installer - Oryx Mailstore installer.
 .SH SYNOPSIS
@@ -60,8 +60,8 @@ just like the servers do. Disasters are also logged via stderr.
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.01, released 2005-12-19,
-http://www.oryx.com/mailstore/1.01.html.
+This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),
 .BR mailstore.conf (5),

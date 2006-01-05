@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH mailstore.conf 5 2005-12-19 www.oryx.com "Mailstore Documentation"
+.TH mailstore.conf 5 2006-01-16 www.oryx.com "Mailstore Documentation"
 .SH NAME
 mailstore.conf - configuration file for Oryx Mailstore.
 .SH SYNOPSIS
@@ -471,8 +471,8 @@ hostname=stuff.nonsense.example.com # also a comment
 .SH AUTHOR
 The Oryx Mailstore developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.01, released 2005-12-19,
-http://www.oryx.com/mailstore/1.01.html.
+This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),
 .BR deliver (8),
