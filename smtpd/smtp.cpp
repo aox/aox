@@ -61,6 +61,8 @@ void SmtpDbClient::addField( Header * h, String & r,
     String v;
 
     HeaderField * f = h->field( t );
+    if ( f )
+        (void)f->data(); // ensure that valid() is called. what a hack.
     if ( f && f->valid() )
         v = f->value();
     else
@@ -157,7 +159,8 @@ void SmtpDbClient::execute()
     if ( !injector || !injector->done() )
         return;
 
-    if ( injector->failed() &&
+    if ( !harder && 
+         injector->failed() &&
          injector->message()->header() ) {
         Header * h = injector->message()->header();
         String id = h->messageId();
@@ -176,8 +179,13 @@ void SmtpDbClient::execute()
         String boundary = Entropy::asString( 15 ).e64();
         Header * h = injector->message()->header();
         String wrapper;
-        addField( h, wrapper, HeaderField::From, 
-                  "Mail Storage Database <invalid@invalid.invalid>" );
+        List<Address> * from = h->addresses( HeaderField::From );
+        if ( from && from->count() == 1 &&
+             from->first()->type() == Address::Normal )
+            wrapper.append( "From: " + from->first()->toString() );
+        else
+            wrapper.append( "From: "
+                            "Mail Storage Database <invalid@invalid.invalid>" );
         Date now;
         now.setCurrentTime();
         addField( h, wrapper, HeaderField::Date, now.rfc822() );
@@ -213,9 +221,8 @@ void SmtpDbClient::execute()
                         d->body + "\r\n--" + boundary + "--\r\n" );
 
         Message * m = new Message( wrapper );
-        Injector * i = new Injector( m, d->mailboxes, this );
-        injector = i;
-        i->execute();
+        injector = new Injector( m, d->mailboxes, this );
+        injector->execute();
         return;
     }
 
