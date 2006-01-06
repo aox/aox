@@ -184,10 +184,12 @@ void SmtpDbClient::execute()
         List<Address> * from = h->addresses( HeaderField::From );
         if ( from && from->count() == 1 &&
              from->first()->type() == Address::Normal )
-            wrapper.append( "From: " + from->first()->toString() );
+            wrapper.append( "From: " + from->first()->localpart() + "@" +
+                            from->first()->domain() + "\r\n" );
         else
             wrapper.append( "From: "
-                            "Mail Storage Database <invalid@invalid.invalid>" );
+                            "Mail Storage Database <invalid@invalid.invalid>"
+                            "\r\n" );
         Date now;
         now.setCurrentTime();
         addField( h, wrapper, HeaderField::Date, now.rfc822() );
