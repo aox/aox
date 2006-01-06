@@ -183,7 +183,9 @@ void SmtpDbClient::execute()
         String wrapper;
         List<Address> * from = h->addresses( HeaderField::From );
         if ( from && from->count() == 1 &&
-             from->first()->type() == Address::Normal )
+             from->first()->type() == Address::Normal &&
+             from->first()->localpart().boring() &&
+             from->first()->domain().boring() )
             wrapper.append( "From: " + from->first()->localpart() + "@" +
                             from->first()->domain() + "\r\n" );
         else
