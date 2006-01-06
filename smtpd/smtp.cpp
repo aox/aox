@@ -175,6 +175,8 @@ void SmtpDbClient::execute()
     }
 
     if ( injector->failed() && !harder ) {
+        log( "Wrapping message " + d->id + " due to syntax problem: " +
+             injector->error() );
         harder = true;
         String boundary = Entropy::asString( 15 ).e64();
         Header * h = injector->message()->header();
