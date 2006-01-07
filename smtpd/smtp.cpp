@@ -159,7 +159,7 @@ void SmtpDbClient::execute()
     if ( !injector || !injector->done() )
         return;
 
-    if ( !harder && 
+    if ( !harder &&
          injector->failed() &&
          injector->message()->header() ) {
         Header * h = injector->message()->header();
@@ -212,7 +212,7 @@ void SmtpDbClient::execute()
         while ( n < e.length() && e[n] < 128 )
             n++;
         if ( n < e.length() )
-            wrapper.append( ", charset=unknown-8bit" );
+            wrapper.append( "; charset=unknown-8bit" );
         wrapper.append( "\r\n\r\nThe appended message was received, "
                         "but could not be stored in the mail \r\n"
                         "database on " + Configuration::hostname() +
@@ -542,7 +542,7 @@ void SMTP::data()
 
     d->id = fn( time(0) );
     d->id.append( '-' );
-    d->id.append( fn( getpid() ) ); 
+    d->id.append( fn( getpid() ) );
     d->id.append( '-' );
     d->id.append( fn( ++sequence ) );
 
