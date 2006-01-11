@@ -512,7 +512,8 @@ const char *HeaderField::fieldName( HeaderField::Type t )
 /*! This static function returns the RFC 2047-encoded version of \a s,
     which is assumed to be a UTF-8 encoded string.
 
-    XXX: This is still really quite suboptimal.
+    XXX: This doesn't split encoded-words to ensure that each
+    encoded-word is shorter than 75 characters.
 */
 
 String HeaderField::encode( const String &s )
@@ -522,8 +523,12 @@ String HeaderField::encode( const String &s )
     uint n = 0;
     Utf8Codec u;
     uint last = 0;
+    bool encoded = false;
 
     do {
+        if ( !t.isEmpty() )
+            t.append( " " );
+
         String w;
         n = s.find( ' ', last );
         if ( n > 0 ) {
@@ -535,32 +540,35 @@ String HeaderField::encode( const String &s )
         }
         last = n;
 
-        UString us = u.toUnicode( w );
-        Codec *c = Codec::byString( us );
-        String cw = c->fromUnicode( us );
-
-        String ew;
-        if ( c->name().lower() != "us-ascii" ) {
-            ew = "=?" + c->name() + "?";
+        uint i = 0;
+        while ( i < w.length() && w[i] > 0 && w[i] < 128 )
+            i++;
+        if ( i >= w.length() ) {
+            t.append( w );
+            encoded = false;
+        }
+        else {
+            if ( encoded )
+                w = " " + w;
+            encoded = true;
+            UString us = u.toUnicode( w );
+            Codec * c = Codec::byString( us );
+            String cw = c->fromUnicode( us );
+            t.append( "=?" );
+            t.append( c->name() );
+            t.append( "?" );
             String qp = cw.eQP( true );
             String b64 = cw.e64();
             if ( qp.length() <= b64.length() ) {
-                ew.append( "q?" );
-                ew.append( qp );
+                t.append( "q?" );
+                t.append( qp );
             }
             else {
-                ew.append( "b?" );
-                ew.append( b64 );
+                t.append( "b?" );
+                t.append( b64 );
             }
-            ew.append( "?=" );
+            t.append( "?=" );
         }
-        else {
-            ew = cw;
-        }
-
-        t.append( ew );
-        if ( last > 0 )
-            t.append( " " );
     }
     while ( last > 0 );
 
