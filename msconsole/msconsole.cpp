@@ -79,7 +79,7 @@ int main( int argc, char *argv[] )
 
     Scope global;
 
-    // typical mailstore crud
+    // typical archiveopteryx crud
     Configuration::setup( "mailstore.conf" );
 
     // our own event loop, merging qt's and ours

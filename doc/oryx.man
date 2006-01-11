@@ -1,7 +1,7 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH oryx 7 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH oryx 7 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-Oryx Mail Systems GmbH - the company behind Mailstore
+Oryx Mail Systems GmbH - the company behind Archiveopteryx
 .SH SYNOPSIS
 .B telnet oryx.com 25
 .SH DESCRIPTION
@@ -29,10 +29,10 @@ D-81671 Munich
 .br
 Germany
 .SH "PRODUCTS AND SERVICES"
-All future Oryx products are based on or connected with Oryx Mailstore.
+All future Oryx products are based on or connected with Archiveopteryx.
 .PP
-Our emphasis for the first releases is to get Mailstore tested in the
-field. Until Mailstore is battle-hardened, we do not wish to accept
+Our emphasis for the first releases is to get Archiveopteryx tested in the
+field. Until Archiveopteryx is battle-hardened, we do not wish to accept
 money for it.
 .PP
 However, enquiries are always welcome.
@@ -48,9 +48,9 @@ to avoid employee burnout, so that a stable, long-term team of exceptional
 quality can build stable, reliable products.
 .SH AUTHOR
 .PP
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

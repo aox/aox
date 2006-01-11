@@ -2,30 +2,29 @@
 #
 # No copyright is claimed for this file.
 #
-# See http://www.oryx.com/mailstore/ for more about Oryx Mailstore, or
-# write to info@oryx.com.
+# See http://www.archiveopteryx.org/ for more about Archiveopteryx.
 
 # Note: Jamsettings variables are evaluated at build time.
 cd $BINDIR
 
 case "$1" in
     start)
-        echo -n "Starting Oryx Mailstore: "
+        echo -n "Starting Archiveopteryx: "
         ./ms start
         echo "done."
         ;;
     stop)
-        echo -n "Stopping Oryx Mailstore: "
+        echo -n "Stopping Archiveopteryx: "
         ./ms stop
         echo "done."
         ;;
     restart)
-        echo -n "Restarting Oryx Mailstore: "
+        echo -n "Restarting Archiveopteryx: "
         ./ms restart
         echo "done."
         ;;
     *)
-        echo "Usage: mailstore {start|stop|restart}"
+        echo "Usage: archiveopteryx {start|stop|restart}"
         exit 1
         ;;
 esac

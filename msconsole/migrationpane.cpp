@@ -56,7 +56,7 @@ public:
 /*! \class MigrationPane migrationpane.h
 
     The MigrationPane class provides options to migrate mailbox
-    hierchies from other mailstores to Oryx.
+    hierchies from other mailstores to Archiveopteryx.
 */
 
 

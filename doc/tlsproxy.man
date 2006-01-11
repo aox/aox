@@ -1,13 +1,13 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH tlsproxy 8 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH tlsproxy 8 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-tlsproxy - TLS/SSL helper for Oryx Mailstore.
+tlsproxy - TLS/SSL helper for Archiveopteryx.
 .SH SYNOPSIS
 .B $BINDIR/tlsproxy [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP
-The Oryx Mailstore
+The Archiveopteryx
 .B tlsproxy
 is a separate process which performs TLS and SSLv3 processing on behalf of
 .BR imapd (8),
@@ -18,14 +18,14 @@ TLS processing is kept separate from these other servers for
 architectural reasons:
 .PP
 TLS occasionally causes processing delays, for example while
-regenerating keys. Since most of Mailstore is event-driven, these
+regenerating keys. Since most of Archiveopteryx is event-driven, these
 delays would block other users.
 .PP
 Further, there is a lot of code in cryptlib, which we prefer not to
 link into all of our servers.
 .PP
 .B tlsproxy
-should always be running when Mailstore is in use, but you should
+should always be running when Archiveopteryx is in use, but you should
 never need to interact with it directly.
 .SH OPTIONS
 .IP "-c filename"
@@ -77,9 +77,9 @@ of TLS, but far from all.
 .IP $LIBDIR/automatic-key.p15
 is used to store the automatically generated key and certificate.
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

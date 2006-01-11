@@ -1,7 +1,7 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH mailstore.conf 5 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH mailstore.conf 5 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-mailstore.conf - configuration file for Oryx Mailstore.
+mailstore.conf - configuration file for Archiveopteryx.
 .SH SYNOPSIS
 .B $CONFIGDIR/mailstore.conf
 .br
@@ -10,7 +10,7 @@ mailstore.conf - configuration file for Oryx Mailstore.
 .PP
 The
 .I mailstore.conf
-file contains all global configuration settings for Oryx Mailstore. It
+file contains all global configuration settings for Archiveopteryx. It
 is read by each server at startup. Syntax errors, unknown variables,
 and other errors are logged via
 .BR logd (8).
@@ -71,17 +71,17 @@ The port number of the database server. The default is
 The name of the database to use. The default is
 .IR $DBNAME .
 .IP db-user
-The user name Mailstore should use to connect to the database. The
+The user name Archiveopteryx should use to connect to the database. The
 default is
 .IR $DBUSER .
 .IP db-password
-The password Mailstore should use to connect to the database. The
+The password Archiveopteryx should use to connect to the database. The
 default is an empty string.
 .IP
-During installation, Mailstore sets up a randomly-chosen password by
+During installation, Archiveopteryx sets up a randomly-chosen password by
 default.
 .IP db-max-handles
-The maximum number of database handles that Mailstore may open. The
+The maximum number of database handles that Archiveopteryx may open. The
 default is
 .IR 4 .
 .IP
@@ -141,7 +141,7 @@ is logged with a severity greater than
 .IP security
 is
 .I enabled
-by default, and should be enabled whenever Mailstore is
+by default, and should be enabled whenever Archiveopteryx is
 used in production. If security is disabled, the servers do not need
 to be started as root, they keep stderr open, and they do not try to
 lose privileges.
@@ -169,7 +169,7 @@ by default. On startup, the servers change GID to this user.
 .IP ocd-address
 The address where
 .BR ocd (8)
-listens for connections from other Mailstore servers. The default is
+listens for connections from other Archiveopteryx servers. The default is
 .IR 127.0.0.1 .
 You may use an IPv4 or IPv6 address, or the fully-qualified path to a
 Unix socket.
@@ -202,7 +202,7 @@ May be set to
 .I always
 (which is the default) or
 .IR never .
-(Future versions of Mailstore will offer more settings.)
+(Future versions of Archiveopteryx will offer more settings.)
 .IP auth-digest-md5
 controls whether the servers offer the digest-md5 SASL mechanism.
 .I Enabled
@@ -286,7 +286,7 @@ is set.
 If
 .I message-copy-directory
 does not exist or is not writable,
-Mailstore logs an error at startup and exits.
+Archiveopteryx logs an error at startup and exits.
 .IP
 Each file in
 .I message-copy-directory
@@ -364,7 +364,7 @@ accepts connections,
 by default.
 .SS HTTP
 .IP use-http
-decides whether Mailstore offers HTTP service at all, and is
+decides whether Archiveopteryx offers HTTP service at all, and is
 .I no
 by default.
 .IP http-address
@@ -387,7 +387,7 @@ by default. Properly speaking, it would be better to disable this, but
 that would add complexity without giving anything in return.
 .SS TLS
 .IP use-tls
-regulates whether Mailstore supports TLS at all. The default is
+regulates whether Archiveopteryx supports TLS at all. The default is
 .IR enabled .
 .IP tls-certificate
 is the absolute file name of the TLS private key and signed certificate,
@@ -469,9 +469,9 @@ hostname=stuff.nonsense.example.com # also a comment
 .br
 # empty lines are ignored
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

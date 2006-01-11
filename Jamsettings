@@ -74,7 +74,7 @@ EXEMODE = 555 ;
 
 
 # Uncomment the next line to use a cryptlib from the system. The
-# default is to use the one bundled with the mailstore source.
+# default is to use the one bundled with the archiveopteryx source.
 # USE_SYSTEM_CRYPTLIB = yes ;
 # You may also need to add/change something in tlsproxy/Jamfile.
 
@@ -96,9 +96,9 @@ PSQL = psql ;
 #
 DBADDRESS = /tmp/.s.PGSQL.5432 ;
 
-# A Postgres user and database for Mailstore to use. If necessary, these
-# are created by LIBDIR/installer. To use an existing user/database,
-# change these values and set DBPASS below.
+# A Postgres user and database for Archiveopteryx to use. If
+# necessary, these are created by LIBDIR/installer. To use an existing
+# user/database, change these values and set DBPASS below.
 #
 # Notes: DBUSER must own the DBNAME database.  Because PostgreSQL
 # likes using IDENT, it's convenient if DBUSER is the same as

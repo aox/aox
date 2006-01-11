@@ -138,7 +138,7 @@ void help()
 {
     fprintf(
         stderr,
-        "  Mailstore installer\n\n"
+        "  Archiveopteryx installer\n\n"
         "  Synopsis:\n\n"
         "    installer [-n] [-q] [-g group] [-u user] [-p postgres] "
         "[-a address]\n\n"
@@ -583,10 +583,10 @@ void configFile()
     String cf( Configuration::configFile() );
     String v( Configuration::compiledIn( Configuration::Version ) );
     String intro(
-        "# Mailstore configuration. See mailstore.conf(5) for details.\n"
-        "# Automatically generated while installing Mailstore " + v + ".\n\n"
-        "# Specify the hostname if mailstore gets it wrong. We suggest not\n"
-        "# using the name \"localhost\".\n#\n"
+        "# Archiveopteryx configuration. See mailstore.conf(5) for details.\n"
+        "# Automatically generated while installing Archiveopteryx " + v + ".\n\n"
+        "# Specify the hostname if Archiveopteryx gets it wrong at runtime.\n"
+	"# We suggest not using the name \"localhost\".\n#\n"
         "# hostname = fully.qualified.hostname\n\n"
     );
     String cfg(

@@ -1,11 +1,11 @@
-To build Oryx Mailstore from source, you need the Jam build tool,
+To build Archiveopteryx from source, you need the Jam build tool,
 available at http://www.perforce.com/jam/jam.html as well as in most
 Linux/BSD distributions.
 
-To run Mailstore you need PostgreSQL, version 7.4.2 or any later
-version. (7.4 and 7.4.1 may also work; we haven't tested that.)
+To run it you need PostgreSQL, version 7.4.2 or any later version. (7.4
+and 7.4.1 may also work; we haven't tested that.)
 
-Building and installing Mailstore is a five-step process:
+Building and installing Archiveopteryx is a five-step process:
 
 1. Edit Jamsettings to reflect your preferences. Note that in Jam,
    variable assignments require spaces: "A = b ;" is good, "A=b;" is a
@@ -29,17 +29,17 @@ Building and installing Mailstore is a five-step process:
 
    The man page for mailstore.conf explains all the possible settings.
 
-At this point, you're ready to run "INITDIR/rcmailstore start" to start
-Mailstore. After a change, "rcmailstore restart" restarts.
+At this point, you're ready to run "BINDIR/ms start" to start
+Archiveopteryx. After a change, "ms restart" restarts.
 
-Create the Mailstore users you need, e.g.
+Create the Archiveopteryx users you need, e.g.
 
       ms create user nirmala pw nirmala@example.org
 
 to create a user with login "nirmala", password "pw" and email address
 "nirmala@example.org".
 
-There are mailing lists for Mailstore users and announcements. To
+There are mailing lists for Archiveopteryx users and announcements. To
 subscribe to the users list, send mail:
 
    To: mailstore-users-request@oryx.com
@@ -55,4 +55,4 @@ To subscribe to the low-volume announcements list, send mail:
    subscribe
 
 If you encounter any problems or have any suggestions, please write to
-info@oryx.com. Your comments help us improve Mailstore.
+info@oryx.com. Your comments help us improve Archiveopteryx.

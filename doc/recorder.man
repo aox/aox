@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH recorder 8 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH recorder 8 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
 recorder - IMAP connection recorder
 .SH SYNOPSIS
@@ -57,10 +57,10 @@ in
 (see the
 .BR mailstore.conf (5)
 man page for more information.)
-.SS "Restart Mailstore"
+.SS "Restart Archiveopteryx"
 The change to
 .I use-tls
-only takes effect when you restart Mailstore, e.g. by issuing the
+only takes effect when you restart Archiveopteryx, e.g. by issuing the
 following command
 .IP
 $LIBDIR/rcmailstore restart
@@ -86,9 +86,9 @@ to change all the letters in passwords and confidential words to 'x'.
 .PP
 That's it. Now you can send an excellent bug report to info@oryx.com.
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

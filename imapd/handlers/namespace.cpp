@@ -9,9 +9,9 @@
 /*! \class Namespace namespace.h
     Implements the NAMESPACE extension specified in RFC 2342.
 
-    Mailstore uses a single namespace, and this command informs the
-    client about how this space is set up.
-    
+    Archiveopteryx uses a single namespace, and this command informs
+    the client about how this space is set up.
+
     Because of client confusion, we no longer tell anyone about
     /users/<name>. It is the same as "", but we don't tell the client
     that explicitly.

@@ -54,8 +54,8 @@ public:
     still a draft. Currently based on
     draft-ietf-imapext-list-extensions-13.
 
-    Mailstore does not support remote mailboxes, so the listext option
-    to show remote mailboxes is silently ignored.
+    Archiveopteryx does not support remote mailboxes, so the listext
+    option to show remote mailboxes is silently ignored.
 */
 
 
@@ -148,7 +148,7 @@ void Listext::execute()
     }
     if ( d->returnPostAddress ) {
         if ( !d->postAddressQuery ) {
-            d->postAddressQuery 
+            d->postAddressQuery
                 = new Query( "select a.localpart, a.domain, u.inbox "
                              "from addresses a, users u "
                              "where a.id = u.address",
@@ -178,7 +178,7 @@ void Listext::execute()
             respond( "* NO Unable to get list of inboxes: " +
                      d->postAddressQuery->error() );
     }
-    
+
     StringList::Iterator it( d->patterns );
     while ( it ) {
         if ( it->isEmpty() )

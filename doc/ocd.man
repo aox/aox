@@ -1,7 +1,7 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH imapd 8 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH imapd 8 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-ocd - cluster coordination server for Oryx Mailstore.
+ocd - cluster coordination server for Archiveopteryx.
 .SH SYNOPSIS
 .B $BINDIR/ocd [-f] [-c configfile]
 .SH DESCRIPTION
@@ -9,8 +9,8 @@ ocd - cluster coordination server for Oryx Mailstore.
 .PP
 .B ocd
 is responsible for message passing, cache updates and various other
-houskeeping tasks for Oryx Mailstore. It must always be running while
-Mailstore runs, but should never be visible to the user.
+houskeeping tasks for Archiveopteryx. It must always be running while
+Archiveopteryx runs, but should never be visible to the user.
 .SH OPTIONS
 .IP "-c filename"
 Read configuration variables from
@@ -45,9 +45,9 @@ At some future date,
 .B ocd
 will offer a management console. It doesn't yet, though.
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

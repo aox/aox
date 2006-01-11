@@ -1,7 +1,7 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH deliver 8 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH deliver 8 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-deliver - deliver mail into Oryx Mailstore.
+deliver - deliver mail into Archiveopteryx.
 .SH SYNOPSIS
 .B $BINDIR/deliver [-f sender] destination [filename]
 .SH DESCRIPTION
@@ -10,9 +10,9 @@ deliver - deliver mail into Oryx Mailstore.
 The
 .B deliver
 program injects a single mail message in RFC-822 format into Oryx
-Mailstore.
+Archiveopteryx.
 .PP
-It connects to Mailstore's LMTP server and delivers the message
+It connects to Archiveopteryx's LMTP server and delivers the message
 there.
 .B deliver
 is meant as a compatibility shim for use with e.g.
@@ -70,9 +70,9 @@ is right and the code wrong. Low priority.
 .PP
 There is no command-line option to set the configuration file.
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

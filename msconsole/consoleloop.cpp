@@ -38,7 +38,7 @@ class ConsoleLoopData
 */
 
 
-/*! Constructs an event loop for the Mailstore Console, setting up
+/*! Constructs an event loop for the Archiveopteryx Console, setting up
     both Qt's event loop and our own.
 */
 

@@ -576,7 +576,7 @@ void Postgres::unknown( char type )
                     s.append( " (" + msg.detail() + ")" );
 
                 if ( !q ||
-                     !( q->canFail() || 
+                     !( q->canFail() ||
                         ( q->transaction() && q->transaction()->failed() ) ) )
                     log( s, Log::Error );
 

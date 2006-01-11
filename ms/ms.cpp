@@ -585,7 +585,7 @@ void showBuildconf()
 {
     end();
 
-    printf( "Oryx Mailstore version %s, "
+    printf( "Archiveopteryx version %s, "
             "http://www.oryx.com/mailstore/%s.html\n",
             Configuration::compiledIn( Configuration::Version ),
             Configuration::compiledIn( Configuration::Version ) );
@@ -1256,8 +1256,8 @@ void help()
             stderr,
             "  upgrade schema -- Upgrade the database schema.\n\n"
             "    Synopsis: ms upgrade schema\n\n"
-            "    Checks that the database schema is one that this version\n"
-            "    of Mailstore is compatible with, and updates it if needed.\n"
+            "    Checks that the database schema is one that this version of\n"
+            "    Archiveopteryx is compatible with, and updates it if needed.\n"
         );
     }
     else if ( a == "list" && b == "mailboxes" ) {
@@ -1296,7 +1296,7 @@ void help()
             stderr,
             "  create user -- Create a new user.\n\n"
             "    Synopsis: ms create user <login> <password> <e@ma.il>\n\n"
-            "    Creates a new Mailstore user with the specified login\n"
+            "    Creates a new Archiveopteryx user with the specified login\n"
             "    name, password, and email address.\n"
         );
     }
@@ -1305,7 +1305,7 @@ void help()
             stderr,
             "  delete user -- Delete a user.\n\n"
             "    Synopsis: ms create user <login>\n\n"
-            "    Deletes the Mailstore user with the specified login.\n"
+            "    Deletes the Archiveopteryx user with the specified login.\n"
         );
     }
     else if ( a == "change" && b == "password" ) {
@@ -1385,7 +1385,7 @@ void help()
     else {
         fprintf(
             stderr,
-            "  ms -- A command-line interface to Oryx Mailstore.\n\n"
+            "  ms -- A command-line interface to Archiveopteryx.\n\n"
             "    Synopsis: %s <verb> <noun> [options] [arguments]\n\n"
             "    Use \"ms help commands\" for a list of commands.\n"
             "    Use \"ms help start\" for help with \"start\".\n",

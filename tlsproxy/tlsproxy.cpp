@@ -73,7 +73,7 @@ static void setupKey()
     CRYPT_KEYSET keyset;
 
     // XXX: Should we be using hardcoded values here?
-    String label( "Mailstore private key" );
+    String label( "Archiveopteryx private key" );
     String secret( "secret" );
 
     String keyFile( Configuration::text( Configuration::TlsCertFile ) );
@@ -202,8 +202,8 @@ public:
 /*! \class TlsProxy tlsproxy.h
     The TlsProxy class provides half a tls proxy.
 
-    It answers a request from another Mailstore server, hands out an
-    identification number, and can build a complete proxy.
+    It answers a request from another Archiveopteryx server, hands out
+    an identification number, and can build a complete proxy.
 
     The proxy needs two connections, one plaintext and one
     encrupted. Data comes in on one end, is encrypted/decrypted, is sent
@@ -296,7 +296,7 @@ void TlsProxy::read()
 }
 
 
-/*! Parses the incoming request from other mailstore servers and
+/*! Parses the incoming request from other archiveopteryx servers and
     starts setting up the TLS proxy. This Connection will be the
     encrypted one (user-side) and the other the plaintext
     (server-side) one.

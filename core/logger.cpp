@@ -82,5 +82,5 @@ Logger *Logger::global()
 
 String Logger::name() const
 {
-    return "Mailstore";
+    return "Archiveopteryx";
 }

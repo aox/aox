@@ -1,7 +1,7 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH ms 8 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH ms 8 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-ms - management tool for Oryx Mailstore.
+ms - management tool for Archiveopteryx.
 .SH SYNOPSIS
 .B $BINDIR/ms
 .I verb
@@ -21,7 +21,7 @@ ms - management tool for Oryx Mailstore.
 .PP
 .B ms
 is a command-line program to perform various system administration
-tasks for Oryx Mailstore.
+tasks for Archiveopteryx.
 .PP
 Examples of such tasks are adding users, changing the access control
 for mailboxes, etc. In principle, everything one would want to do
@@ -62,7 +62,7 @@ total size of the mail stored.
 .IP "ms show schema"
 Displays the revision of the existing database schema.
 .IP "ms upgrade schema"
-Checks that the database schema is one that this version of Mailstore is
+Checks that the database schema is one that this version of Archiveopteryx is
 compatible with, and updates it if needed.
 .IP "ms list mailboxes [-d] [-o username] [pattern]"
 Displays a list of mailboxes matching the specified shell glob pattern.
@@ -83,7 +83,7 @@ is an acceptable abbreviation for
 Displays a list of users matching the specified shell glob pattern.
 Without a pattern, all users are listed.
 .IP "ms create user <username> <password> <email-address>"
-Creates a new Mailstore user with the specified username, password, and
+Creates a new Archiveopteryx user with the specified username, password, and
 email address.
 .IP
 .I add
@@ -92,7 +92,7 @@ and
 are acceptable abbreviations for
 .IR create .
 .IP "ms delete user <username>"
-Deletes the specified Mailstore user.
+Deletes the specified Archiveopteryx user.
 .IP
 .I del
 and
@@ -140,15 +140,15 @@ The return code of
 .B ms
 is zero if all goes well, and a non-zero in case of errors.
 .PP
-Diagnostics are logged using Mailstore's
+Diagnostics are logged using Archiveopteryx's
 .BR logd (8),
 just like the servers do. Disasters are also logged via stderr.
 .SH BUGS
 There is no command-line option to set the configuration file.
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

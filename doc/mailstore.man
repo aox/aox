@@ -1,7 +1,7 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH mailstore 7 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH mailstore 7 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-Overview of Oryx Mailstore.
+Overview of Archiveopteryx.
 .SH SYNOPSIS
 .B /etc/init.d/mailstore {start,stop}
 .PP
@@ -9,14 +9,14 @@ Overview of Oryx Mailstore.
 .SH DESCRIPTION
 .nh
 .PP
-Oryx Mailstore is a mail server system optimised for long-term storage
+Archiveopteryx is a mail server system optimised for long-term storage
 and heavy access. It comprises a set of server programs that provide
 access to mail stored in a relational database (PostgreSQL).
 .SH "GETTING STARTED"
-The following five steps should suffice to install Mailstore. If they
+The following five steps should suffice to install Archiveopteryx. If they
 don't, or if anything is unclear, more detailed instructions are
 available at http://www.oryx.com/mailstore/installation.html.
-.SS "1. Install Mailstore"
+.SS "1. Install Archiveopteryx"
 Usually, this is as simple as:
 .IP
 .B "apt-get install mailstore"
@@ -32,7 +32,7 @@ Use
 .IP
 .B $LIBDIR/rcmailstore start
 .PP
-to start Mailstore using the default configuration from
+to start Archiveopteryx using the default configuration from
 .BR mailstore.conf ,
 which tries hard to be sensible.
 .SS "2. Add a user"
@@ -57,15 +57,15 @@ formail -s deliver yourname@domain < mbox
 The mail you just delivered is in your inbox, and you can read it with
 any IMAP or POP3 client.
 .SS "5. Configure your MTA"
-The normal way to deliver mail from your MTA into Mailstore is via LMTP.
-By default, Mailstore listens on 127.0.0.1 port 2026.
+The normal way to deliver mail from your MTA into Archiveopteryx is via LMTP.
+By default, Archiveopteryx listens on 127.0.0.1 port 2026.
 .PP
 On www.oryx.com we describe configuring some common MTAs to work with
-Mailstore. See e.g.  http://www.oryx.com/mailstore/postfix.html for
+Archiveopteryx. See e.g.  http://www.oryx.com/mailstore/postfix.html for
 .BR postfix (1).
 .SH ARCHITECTURE
 .PP
-Mailstore consists of a number of frontend servers, each of which uses
+Archiveopteryx consists of a number of frontend servers, each of which uses
 four backend servers:
 .IP RDBMS
 The RDBMS is where all the mail is stored. At present only PostgreSQL
@@ -122,9 +122,9 @@ and as many as required will run the frontends.
 The man pages for each server explain the use and configuration of
 each. See
 .BR mailstore.conf (5)
-for more about configuring Mailstore in general.
+for more about configuring Archiveopteryx in general.
 .SH SECURITY
-All Mailstore servers run in chroot directories.
+All Archiveopteryx servers run in chroot directories.
 .PP
 The user-facing servers run in a special jail directory. They have
 neither read nor write access to this directory.
@@ -149,7 +149,7 @@ Note that
 must have permission to create the
 .IR logfile .
 .SH MAIL STORAGE
-Oryx Mailstore does not store mail in the RFC-822 format. It parses each
+Archiveopteryx does not store mail in the RFC-822 format. It parses each
 message upon delivery, and stores a normalized representation, optimized
 for fast and reliable search and categorization.
 .PP
@@ -160,14 +160,14 @@ RFC-2047 encoding undone. Finding all messages sent from/to a given
 name is extremely fast, because only a single SQL SELECT is necessary,
 and it accesses just two small tables.
 .IP "Long-term Stability"
-Mailstore handles today's common syntax problems and stores the
+Archiveopteryx handles today's common syntax problems and stores the
 correct form in the database. Because of that, the mail reader which
 looks at old mail in the year 2020 will not need to be bug compatible
 with today's version of Microsoft Outlook.
 .IP "Scalability and Flexibility"
-Only the database size limits Mailstore's capacity. Many other servers
+Only the database size limits Archiveopteryx's capacity. Many other servers
 limit individual folders to 2GB (or less), or cannot support more than
-a few thousand subfolders/messages in a folder. With Mailstore, you
+a few thousand subfolders/messages in a folder. With Archiveopteryx, you
 don't need to invent workarounds for such artificial limitations.
 .IP Robustness
 Because mail is stored normalized and parsed, large attachments are
@@ -175,7 +175,7 @@ generally stored only once, and mail parsing exploits are rendered
 harmless before reaching the MUA. A movie clip sent to a hundred
 recipients is not a problem, because it's stored just once.
 .SH LICENSING
-Starting with version 1.0, Oryx Mailstore will be available under two
+Starting with version 1.0, Archiveopteryx will be available under two
 licences, namely the OSL 2.1 license and a commercial software license.
 .PP
 The OSL 2.1 (see http://www.oryx.com/mailstore/opensource.html) is a
@@ -224,22 +224,22 @@ variable in
 .BR mailstore.conf (5).
 .PP
 These variables can be changed only by editing the file Jamsettings
-and recompiling Mailstore. Jamsettings also contains some variables
+and recompiling Archiveopteryx. Jamsettings also contains some variables
 used only during compilation and/or installation, and some which
 provide defaults for
 .BR mailstore.conf (5)
 settings.
 .SH FILES
 .IP $CONFIGDIR/mailstore.conf
-contains the Mailstore configuration.
+contains the Archiveopteryx configuration.
 .IP $LIBDIR/automatic-key.p15
 contains a private key and self-signed certificate used by
 .BR tlsproxy (8)
 (and indirectly by the other servers).
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore.conf (5),

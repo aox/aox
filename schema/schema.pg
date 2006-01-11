@@ -1,4 +1,4 @@
--- This table contains information internal to mailstore.
+-- This table contains information internal to the mailstore.
 -- For now, its only purpose is to coordinate schema updates.
 
 create table mailstore (
@@ -28,7 +28,7 @@ create table namespaces (
 insert into namespaces (name) values ('/users');
 
 
--- One entry per Mailstore user.
+-- One entry per Archiveopteryx user.
 -- Used for authentication, access control, and mail routing.
 
 create table users (

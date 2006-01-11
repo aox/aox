@@ -70,9 +70,9 @@ ServerData * Server::d;
 /*! \class Server server.h
 
     The Server class performs the server startup functions that are
-    common to most/all Mailstore servers. The functions are performed
-    in a fixed order - you call setup( x ) to continue up to stage x,
-    then return.
+    common to most/all Archiveopteryx servers. The functions are
+    performed in a fixed order - you call setup( x ) to continue up to
+    stage x, then return.
 
     The function execute() finishes startup, runs an event loop, and
     eventually exits the program.

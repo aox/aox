@@ -19,7 +19,7 @@
 
     The Entropy class provides entropy.
 
-    When someone in Mailstore needs entropy, Entropy provides it, in
+    When someone in Archiveopteryx needs entropy, Entropy provides it, in
     the form of a string or a number.
 
     If true entropy isn't available, Entropy provides

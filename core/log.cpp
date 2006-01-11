@@ -81,7 +81,7 @@ void Log::log( const String &m, Severity s )
     Logger *l = Logger::global();
     if ( s == Disaster ) {
         disasters = true;
-        String n = "Mailstore";
+        String n = "Archiveopteryx";
         if ( l )
             n = l->name();
         fprintf( stderr, "%s: %s\n", n.cstr(), m.simplified().cstr() );

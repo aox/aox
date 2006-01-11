@@ -1,7 +1,7 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH smtpd 8 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH smtpd 8 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-smtpd - SMTP and LMTP server for Oryx Mailstore.
+smtpd - SMTP and LMTP server for Archiveopteryx.
 .SH SYNOPSIS
 .B $BINDIR/smtpd [-f] [-c configfile]
 .SH DESCRIPTION
@@ -9,7 +9,7 @@ smtpd - SMTP and LMTP server for Oryx Mailstore.
 .PP
 This
 .B smtpd
-is the SMTP and LMTP server from Oryx Mailstore, a fast, high-capacity
+is the SMTP and LMTP server from Archiveopteryx, a fast, high-capacity
 mail server which uses a database for mail storage.
 .PP
 .B smtpd
@@ -21,7 +21,7 @@ It can copy mail to
 .BR mailstore.conf (5))
 to ensure that there are complete low-level copies of all attempted
 mail deliveries. This can be used to burn a record of mail to CD/DVD,
-or to have a backup in case there is a problem with Mailstore.
+or to have a backup in case there is a problem with Archiveopteryx.
 Messages are copied even if database fails (usually due to syntax
 errors), so this feature can be useful for debugging.
 .SH OPTIONS
@@ -74,9 +74,9 @@ In case of error,
 exits with exit code 1, an error message on stderr and (usually more
 detailed) information in the log file.
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

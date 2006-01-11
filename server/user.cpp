@@ -49,8 +49,8 @@ public:
 
 /*! \class User user.h
 
-    The User class models a single Mailstore user, which may be able
-    to log in, own Mailbox objects, etc.
+    The User class models a single Archiveopteryx user, which may be
+    able to log in, own Mailbox objects, etc.
 */
 
 
@@ -172,8 +172,8 @@ Address * User::address()
 /*! Returns the user's "home directory" - the mailbox under which all
     of the user's mailboxes reside.
 
-    This is read-only since at the moment, the mailstore servers only
-    permit one setting: "/users/" + login. However, the database
+    This is read-only since at the moment, the Archiveopteryx servers
+    only permit one setting: "/users/" + login. However, the database
     permits more namespaces than just "/users", so one day this may
     change.
 */

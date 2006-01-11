@@ -1,14 +1,14 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH msconsole 8 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH msconsole 8 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-msconsole - Oryx Mailstore management console.
+msconsole - Archiveopteryx management console.
 .SH SYNOPSIS
 .B $BINDIR/msconsole
 .SH DESCRIPTION
 .nh
 .PP
 .B msconsole
-is a tool to do GUI-based management of Oryx Mailstore, including
+is a tool to do GUI-based management of Archiveopteryx, including
 tasks such as creating users. There is also a command-line tool. See
 .BR ms (8)
 for more information.
@@ -23,9 +23,9 @@ manual page for details.
 .B msconsole
 isn't usable yet.
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

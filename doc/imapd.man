@@ -1,7 +1,7 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH imapd 8 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH imapd 8 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-imapd - IMAP4rev1 server for Oryx Mailstore.
+imapd - IMAP4rev1 server for Archiveopteryx.
 .SH SYNOPSIS
 .B $BINDIR/imapd [-f] [-c configfile]
 .SH DESCRIPTION
@@ -9,7 +9,7 @@ imapd - IMAP4rev1 server for Oryx Mailstore.
 .PP
 This
 .B imapd
-is the IMAP4rev1 server from Oryx Mailstore, a fast, high-capacity
+is the IMAP4rev1 server from Archiveopteryx, a fast, high-capacity
 mail server which uses a database for mail storage.
 .SH OPTIONS
 .IP "-c filename"
@@ -95,11 +95,11 @@ draft-siemborski-imap-sasl-initial-response: SASL-IR.
 also supports SSL wrapping on port 993, as Netscape once made popular.
 .PP
 http://www.oryx.com/mailstore/imap.html elaborates more on the IMAP
-support in Mailstore.
+support in Archiveopteryx.
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

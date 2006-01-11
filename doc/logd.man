@@ -1,25 +1,25 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH imapd 8 2006-01-16 www.oryx.com "Mailstore Documentation"
+.TH imapd 8 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-logd - logging server for Oryx Mailstore.
+logd - logging server for Archiveopteryx.
 .SH SYNOPSIS
 .B $BINDIR/logd [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP
-The Oryx Mailstore
+The Archiveopteryx
 .B logd
 is an internal server which receives, buffers and filters log entries
-from other parts of Mailstore, so that useful messages are logged, while
+from other parts of Archiveopteryx, so that useful messages are logged, while
 noise is suppressed.
 .PP
-Mailstore's log system uses transactions and four log levels:
+Archiveopteryx's log system uses transactions and four log levels:
 .IR Disaster ,
 .IR Error ,
 .I Info
 and
 .IR Debug .
-Each program in Mailstore sends its log messages to
+Each program in Archiveopteryx sends its log messages to
 .BR logd ,
 which stores them in RAM until a transaction ends.
 .PP
@@ -92,9 +92,9 @@ $CONFIGDIR/mailstore.conf
 .br
 $BINDIR/logd
 .SH AUTHOR
-The Oryx Mailstore developers, info@oryx.com.
+The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Oryx Mailstore version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.02, released 2006-01-16,
 http://www.oryx.com/mailstore/1.02.html.
 .SH SEE ALSO
 .BR mailstore (7),

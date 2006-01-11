@@ -47,10 +47,10 @@ public:
 */
 
 
-/*! Constructs a mailstore console window. Does not show it. */
+/*! Constructs an archiveopteryx console window. Does not show it. */
 
 Console::Console()
-    : QWidget( 0, "mailstore console" ), d( new ConsoleData )
+    : QWidget( 0, "console" ), d( new ConsoleData )
 {
     Allocator::addEternal( d, "console GC-able data" );
     d->splitter = new QSplitter( this );
