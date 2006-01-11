@@ -391,9 +391,15 @@ AddressParser::AddressParser( String s )
             i--;
     }
     Address::uniquify( &d->a );
-    if ( i >= 0 ) {
+    if ( i >= 0 )
         // there's stuff left over that we can't parse
-    }
+        error( "Unable to parse complete address list", i );
+    if ( !d->e.isEmpty() && s.find( '@' ) < 0 )
+        // some spammers like to say "Don't answer by email", so give a
+        // good error message for that
+        d->e = "Address list contains no '@' characters "
+               "(and has other errors): " +
+               s.simplified();
 }
 
 
@@ -553,6 +559,8 @@ void AddressParser::address( int & i )
             if ( s[i] == '@' ) {
                 i--;
                 lp = localpart( i );
+                if ( lp.isEmpty() && i >= 0 && s[i] > 127 )
+                    error( "localpart contains 8-bit character", i );
             }
             if ( i >= 0 && s[i] == ':' ) {
                 i--;
@@ -666,8 +674,10 @@ void AddressParser::address( int & i )
             lp = dom;
             dom = "";
         }
-        if ( lp.isEmpty() )
-            error( "Empty localpart ", i );
+        if ( lp.isEmpty() && i >= 0 && s[i] > 127 )
+            error( "localpart contains 8-bit character", i );
+        else if ( lp.isEmpty() )
+            error( "Empty localpart", i );
         else
             add( name, lp, dom );
     }
@@ -984,9 +994,13 @@ String AddressParser::localpart( int & i )
 
 void AddressParser::error( const char * s, int i )
 {
-    if ( d->e.isEmpty() )
-        d->e = String( s ) + " at position " + fn( i > 0 ? i : 0 ) +
-               " (text ...'" + d->s.mid( i, 20 ).simplified() + "'...)";
+    if ( !d->e.isEmpty() )
+        return;
+    if ( i < 0 )
+        i = 0;
+    d->e = String( s ) + " at position " + fn( i ) +
+           " (nearby text: '" +
+           d->s.mid( i > 8 ? i-8 : 0, 20 ).simplified() + ")";
 }
 
 
