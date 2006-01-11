@@ -160,9 +160,9 @@ void HTTP::process()
     if ( d->page && d->page->ready() ) {
         String text = d->page->text();
 
-        String srv( "Server: Oryx/" );
+        String srv( "Server: Archiveopteryx/" );
         srv.append( Configuration::compiledIn( Configuration::Version ) );
-        srv.append( " (http://www.oryx.com/webmail/)" );
+        srv.append( " (http://www.archiveopteryx.org)" );
 
         addHeader( srv );
         addHeader( "Content-Length: " + fn( text.length() ) );

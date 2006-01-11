@@ -117,7 +117,7 @@ IMAP::IMAP( int s )
 
     enqueue( "* OK [CAPABILITY " +
              Capability::capabilities( this ) + "] " +
-             Configuration::hostname() + " IMAP Server\r\n" );
+             Configuration::hostname() + " Archiveopteryx IMAP Server\r\n" );
     setTimeoutAfter( 120 );
     EventLoop::global()->addConnection( this );
 }

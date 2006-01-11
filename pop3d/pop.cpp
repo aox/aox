@@ -62,7 +62,7 @@ POP::POP( int s )
     : Connection( s, Connection::Pop3Server ),
       d( new PopData )
 {
-    ok( "POP3 server ready." );
+    ok( "Archiveopteryx POP3 server ready." );
     setTimeoutAfter( 600 );
     EventLoop::global()->addConnection( this );
 }
