@@ -31,8 +31,10 @@ sub add() {
     foreach $cp ( split( /,/, <I> ) ) {
 	$cp =~ s/\s+//g;
 	$cp = hex $cp;
-	$s{$cp}{$n} = n;
-	$max = $cp if( $cp > $max );
+        if ( $cp < 128 || $cp >= 160 ) {
+	    $s{$cp}{$n} = $n;
+	    $max = $cp if( $cp > $max );
+	}
     }
 }
 
