@@ -427,11 +427,12 @@ void Header::verify() const
         i++;
     }
 
-    AddressField *f = addressField( HeaderField::From );
-    AddressField *s = addressField( HeaderField::Sender );
-    if ( f && f->addresses()->count() > 1 &&
-         !( s && s->addresses()->count() == 1 ) )
-        d->error = "Sender is mandatory with multiple From addresses.";
+    // strictly speaking, if From contains more than one address,
+    // sender should contain one. we don't enforce that, because it
+    // causes too much spam to be rejected that would otherwise go
+    // through. we'll filter spam with something that's a little less
+    // accidental, and which does not clutter up the logs with so many
+    // misleading error messages.
 
     // we graciously ignore all the Resent-This-Or-That restrictions.
 }

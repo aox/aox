@@ -394,12 +394,6 @@ AddressParser::AddressParser( String s )
     if ( i >= 0 )
         // there's stuff left over that we can't parse
         error( "Unable to parse complete address list", i );
-    if ( !d->e.isEmpty() && s.find( '@' ) < 0 )
-        // some spammers like to say "Don't answer by email", so give a
-        // good error message for that
-        d->e = "Address list contains no '@' characters "
-               "(and has other errors): " +
-               s.simplified();
 }
 
 
