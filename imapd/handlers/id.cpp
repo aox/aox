@@ -44,9 +44,10 @@ void Id::execute()
 {
     String v( Configuration::compiledIn( Configuration::Version ) );
     respond( "ID ("
-             "\"name\" \"Oryx Mail Server\" "
+             "\"name\" \"Archiveopteryx\" "
              "\"version\" \"" + v + "\" "
              "\"compile-time\" \"" __DATE__ " " __TIME__ "\" "
+             "\"homepage-url\" \"http://www.archiveopteryx.org\" "
              "\"support-url\" \"http://www.oryx.com\" "
              "\"support-email\" \"info@oryx.com\" "
              "\"vendor\" \"Oryx Mail Systems GmbH\")" );
