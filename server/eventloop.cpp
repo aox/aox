@@ -202,14 +202,8 @@ void EventLoop::start()
 
         if ( n < 0 ) {
             if ( errno == EINTR ) {
-                if ( !signalHandled() ) {
-                    log( Server::name() + ": Shutting down due to signal" );
-                    commit();
-                    stop();
-                }
-                else {
-                    setSignalHandled( false );
-                }
+                // We should see this only for signals we've handled,
+                // and we don't need to do anything further.
             }
             else if ( errno == EBADF ) {
                 // one of the FDs was closed. we react by forgetting
@@ -453,28 +447,6 @@ bool EventLoop::inStartup() const
 void EventLoop::setStartup( bool p )
 {
     d->startup = p;
-}
-
-
-/*! Returns true if the most recent call to setSignalHandled() had a
-    true argument, indicating that a handler dealt with some signal;
-    and false otherwise.
-*/
-
-bool EventLoop::signalHandled() const
-{
-    return d->signalHandled;
-}
-
-
-/*! This function is called by signal handlers with \a p set to true, to
-    indicate that they have been invoked; and by the EventLoop itself to
-    reset that status.
-*/
-
-void EventLoop::setSignalHandled( bool p )
-{
-    d->signalHandled = p;
 }
 
 

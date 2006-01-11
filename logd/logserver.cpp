@@ -423,5 +423,4 @@ void LogServer::reopen( int )
     ::log( "SIGHUP caught. Reopened log file " + logFile->name(),
            Log::Info );
     ::commit();
-    EventLoop::global()->setSignalHandled( true );
 }

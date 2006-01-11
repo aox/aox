@@ -28,9 +28,6 @@ public:
     bool inStartup() const;
     void setStartup( bool );
 
-    bool signalHandled() const;
-    void setSignalHandled( bool );
-
     List< Connection > *connections() const;
 
     static void setup( EventLoop * = 0 );
