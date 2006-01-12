@@ -16,7 +16,6 @@ struct AllocationBlock
         struct {
             uint magic: 15;
             uint number: 15;
-            uint marked: 1;
         } x;
         uint y;
     };
@@ -160,7 +159,7 @@ Allocator * Allocator::allocator( uint size )
 
 Allocator::Allocator( uint s )
     : base( 0 ), step( s ), taken( 0 ), capacity( 0 ),
-      bitmap( 0 ), buffer( 0 ),
+      used( 0 ), marked( 0 ), buffer( 0 ),
       next( 0 )
 {
     if ( s < ( 1 << 20 ) )
@@ -170,10 +169,12 @@ Allocator::Allocator( uint s )
     uint l = capacity * s;
     buffer = ::malloc( l );
     uint bl = sizeof( uint ) * (capacity + bits - 1)/bits;
-    bitmap = (uint*)::malloc( bl );
+    used = (uint*)::malloc( bl );
+    marked = (uint*)::malloc( bl );
 
     memset( buffer, 0, l );
-    memset( bitmap, 0, bl );
+    memset( used, 0, bl );
+    memset( marked, 0, bl );
 
     uint hs = (uint)buffer;
     uint he = hs + l;
@@ -199,10 +200,11 @@ Allocator::~Allocator()
     ::byStart[(uint)buffer >> 20] = 0;
 
     ::free( buffer );
-    ::free( bitmap );
+    ::free( used );
+    ::free( marked );
 
     next = 0;
-    bitmap = 0;
+    used = 0;
     buffer = 0;
 }
 
@@ -215,7 +217,7 @@ void * Allocator::allocate( uint size, uint pointers )
 {
     if ( taken < capacity ) {
         while ( base < capacity ) {
-            uint bm = bitmap[base/bits];
+            uint bm = used[base/bits];
             if ( bm != UINT_MAX ) {
                 uint j = base%bits;
                 while ( bm & ( 1 << j ) )
@@ -230,8 +232,8 @@ void * Allocator::allocate( uint size, uint pointers )
                     }
                     b->x.number = pointers;
                     b->x.magic = ::magic;
-                    b->x.marked = false;
-                    bitmap[base/bits] |= ( 1 << j );
+                    marked[base/bits] |= ( 1 << j );
+                    used[base/bits] |= ( 1 << j );
                     taken++;
                     base++;
                     return &(b->payload);
@@ -258,7 +260,7 @@ void Allocator::deallocate( void * p )
     uint i = ((uint)p - (uint)buffer) / step;
     if ( i >= capacity )
         return;
-    if ( ! (bitmap[i/bits] & 1 << (i%bits)) )
+    if ( ! (used[i/bits] & 1 << (i%bits)) )
         return;
 
     AllocationBlock * m = (AllocationBlock *)block( i );
@@ -268,10 +270,10 @@ void Allocator::deallocate( void * p )
                  Log::Disaster );
         die( Memory );
     }
-    bitmap[i/bits] &= ~(1 << i);
+    used[i/bits] &= ~(1 << i);
+    marked[i/bits] &= ~(1 << i);
     taken--;
     m->x.magic = 0;
-    m->x.marked = false;
 
     if ( base > i )
         base = i;
@@ -315,7 +317,7 @@ void Allocator::mark( void * p )
     uint i = ((uint)p - (uint)a->buffer) / a->step;
     if ( i >= a->capacity )
         return;
-    if ( ! (a->bitmap[i/bits] & 1 << (i%bits)) )
+    if ( ! (a->used[i/bits] & 1 << (i%bits)) )
         return;
     // fine. we have the block of memory.
     AllocationBlock * b = (AllocationBlock*)a->block( i );
@@ -329,10 +331,10 @@ void Allocator::mark( void * p )
         return;
     }
     // is it already marked?
-    if ( b->x.marked )
+    if ( (a->marked[i/bits] & 1 << (i%bits)) )
         return;
     // no. mark it
-    b->x.marked = true;
+    a->marked[i/bits] &= ~(1 << (i%bits));
     // ... and its children
     uint n = b->x.number;
     while ( n ) {
@@ -405,25 +407,25 @@ void Allocator::sweep()
     uint b = 0;
     while ( taken > 0 && b * bits < capacity ) {
         uint i = 0;
-        while ( i < bits && bitmap[b] ) {
-            AllocationBlock * m
-                = (AllocationBlock *)block( b * bits + i );
-            if ( m && (bitmap[b] & (1<<i)) ) {
-                if ( m->x.magic != ::magic ) {
-                    if ( verbose )
-                        log( "Memory corrupt at 0x" + fn( (uint)m, 16 ),
-                             Log::Disaster );
-                    die( Memory );
-                }
-                if ( !m->x.marked ) {
-                    bitmap[b] &= ~(1 << i);
+        while ( ( used[b] & ~marked[b] ) ) {
+            if ( !( marked[b] & ( 1 << i ) ) ) {
+                AllocationBlock * m
+                    = (AllocationBlock *)block( b * bits + i );
+                if ( m && (used[b] & (1<<i)) ) {
+                    if ( m->x.magic != ::magic ) {
+                        if ( verbose )
+                            log( "Memory corrupt at 0x" + fn( (uint)m, 16 ),
+                                 Log::Disaster );
+                        die( Memory );
+                    }
+                    used[b] &= ~(1 << i);
                     taken--;
                     m->x.magic = 0;
-                    memset( m->payload, 0, step-bytes ); // ARNT
+                    memset( m->payload, 0, step-bytes );
                 }
-                m->x.marked = false;
             }
             i++;
+            marked[b] = 0;
         }
         b++;
     }
@@ -568,14 +570,14 @@ uint Allocator::scan1( void * p, bool print, uint level, uint limit )
     AllocationBlock * b = (AllocationBlock *)a->block( i );
     if ( !b )
         return 0;
-    if ( ! (a->bitmap[i/bits] & 1 << (i%bits)) )
+    if ( ! (a->used[i/bits] & 1 << (i%bits)) )
+        return 0;
+    if ( (a->marked[i/bits] & 1 << (i%bits)) )
         return 0;
     if ( b->x.magic != ::magic )
         return 0;
-    if ( b->x.marked )
-        return 0;
 
-    b->x.marked = true;
+    a->marked[i/bits] |= (1 << (i%bits));
     uint n = b->x.number;
     while ( n ) {
         n--;
@@ -622,14 +624,14 @@ void Allocator::scan2( void * p )
     AllocationBlock * b = (AllocationBlock *)a->block( i );
     if ( !b )
         return;
-    if ( ! (a->bitmap[i/bits] & 1 << (i%bits)) )
+    if ( ! (a->used[i/bits] & 1 << (i%bits)) )
+        return;
+    if ( ! (a->marked[i/bits] & 1 << (i%bits)) )
         return;
     if ( b->x.magic != ::magic )
         return;
-    if ( !b->x.marked )
-        return;
 
-    b->x.marked = false;
+    a->marked[i/bits] &= ~(1 << (i%bits));
     uint n = b->x.number;
     while ( n ) {
         n--;

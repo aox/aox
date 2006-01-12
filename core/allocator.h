@@ -54,7 +54,8 @@ private:
     uint step;
     uint taken;
     uint capacity;
-    uint * bitmap;
+    uint * used;
+    uint * marked;
     void * buffer;
     Allocator * next;
 
