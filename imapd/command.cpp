@@ -199,6 +199,8 @@ Command * Command::create( IMAP * imap,
             c = new Acl( Acl::MyRights );
         else if ( n == "view" )
             c = new View;
+        else if ( n == "x-oryx-reset" )
+            c = new XOryxReset;
 
         if ( c ) {
             authenticated = true;
