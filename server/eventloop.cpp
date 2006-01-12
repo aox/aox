@@ -35,13 +35,12 @@ class LoopData
 public:
     LoopData()
         : log( new Log( Log::Server ) ), startup( false ),
-          stop( false ), signalHandled( false )
+          stop( false )
     {}
 
     Log *log;
     bool startup;
     bool stop;
-    bool signalHandled;
     SortedList< Connection > connections;
 };
 
