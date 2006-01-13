@@ -1,8 +1,9 @@
-Next release (2005-12-12: 1.01)
+Next release (2006-02-13: 1.03)
 
-  - VIEW
+  - VIEW improvements
   - POP3
   - ANNOTATE(?)
+  - codec error message
 
 
 Next few releases
@@ -12,6 +13,20 @@ Next few releases
   - Working msconsole
   - Grand unified cache
   - More character encodings (BIG5/SJIS/ISO-2022-JP/EUC-KR)
+
+
+Codec error messages
+
+  Needed: Codec::error() which reports where in the string the problem
+  was and what code point it concerned.
+
+  When the problem is illegal syntax (e.g. 0x80 0x20 in UTF-8), a
+  special codepoint has to mean 'not a code point'.
+
+  This sounds good: A setter to set a general error message, one to
+  set 'codepoint x at position y is not defined' and one to mean
+  'non-codepoint at position y. And a getter to return an error
+  message.
 
 
 ocd needs work (mike@waspfactory.org)
