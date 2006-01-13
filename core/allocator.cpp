@@ -232,7 +232,7 @@ void * Allocator::allocate( uint size, uint pointers )
                     }
                     b->x.number = pointers;
                     b->x.magic = ::magic;
-                    marked[base/bits] |= ( 1 << j );
+                    marked[base/bits] &= ~( 1 << j );
                     used[base/bits] |= ( 1 << j );
                     taken++;
                     base++;
