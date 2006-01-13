@@ -25,10 +25,10 @@ which stores them in RAM until a transaction ends.
 .PP
 If a message is logged with severity
 .IR log-level
-(usually set to
-.IR Error )
-or greater, it is immediately written to the log file. If the severity
-is
+(set to
+.I Info
+by default) or greater, it is immediately written to the log file. If
+the severity is
 .IR Error
 or greater, all preceding messages of lower severity are also logged.
 Otherwise, when a transaction ends, 
