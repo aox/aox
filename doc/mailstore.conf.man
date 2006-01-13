@@ -126,17 +126,19 @@ if it creates
 The format (three octal digits) is the same as that used by
 .BR chmod (1).
 .IP log-level
-is
-.I info
-by default and can also be set to either
-.I debug
+may be set to
+.IR debug ,
+.IR info ,
 or
-.IR error .
-If a message is logged with this severity or above, the log server
-immediately writes it to the log file. Messages with lower severity
+.IR error ,
+in increasing order of severity (it is
+.I info
+by default). If a message is logged with this severity or above, the log
+server writes it to the logfile immediately. Messages with lower severity
 are considered only when the transaction is commited, or when a message
-is logged with a severity greater than
-.IR error .
+is logged with a severity of
+.I error 
+or greater.
 .SS Security
 .IP security
 is
