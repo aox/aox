@@ -18,6 +18,7 @@ public:
     void execute();
 
     static void check( EventHandler * );
+    static int currentRevision();
 
 private:
     class SchemaData *d;

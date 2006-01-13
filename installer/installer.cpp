@@ -8,6 +8,7 @@
 #include "eventloop.h"
 #include "database.h"
 #include "entropy.h"
+#include "schema.h"
 #include "query.h"
 #include "event.h"
 #include "file.h"
@@ -484,7 +485,7 @@ void database()
             return;
         if ( d->q->failed() ) {
             if ( report ) {
-                d->state = 8;
+                d->state = 9;
                 printf( " - May need to load the Oryx database schema.\n   "
                         "(Couldn't query database '" DBNAME "' to make sure "
                         "it's needed.)\n" );
@@ -509,14 +510,14 @@ void database()
                         "\\i " LIBDIR "/field-names\n"
                         "\\i " LIBDIR "/flag-names\n" );
             if ( report ) {
-                d->state = 8;
+                d->state = 9;
                 printf( " - Load the Oryx database schema.\n   "
                         "As user %s, run:\n\n"
                         "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
                         PGUSER, cmd.cstr() );
             }
             else {
-                d->state = 8;
+                d->state = 9;
 
                 int n;
                 int fd[2];
@@ -565,10 +566,41 @@ void database()
         }
         else {
             d->state = 8;
+            d->q = new Query( "select revision from mailstore", d );
+            d->q->execute();
         }
     }
 
     if ( d->state == 8 ) {
+        if ( !d->q->done() )
+            return;
+
+        Row * r = d->q->nextRow();
+        if ( !r || d->q->failed() ) {
+            if ( report ) {
+                d->state = 9;
+                printf( " - May need to upgrade the Oryx database schema.\n   "
+                        "(Couldn't query mailstore table to make sure it's "
+                        "needed.)\n" );
+            }
+            else {
+                fprintf( stderr, "Couldn't query database '" DBNAME "' to "
+                         "see if the schema needs to be upgraded (%s).\n",
+                         d->q->error().cstr() );
+                EventLoop::shutdown();
+            }
+        }
+        else if ( r->getInt( "revision" ) != Schema::currentRevision() ) {
+            d->state = 9;
+            printf( " - You need to upgrade the Oryx database schema.\n   "
+                    "Please run 'ms upgrade schema' by hand.\n" );
+        }
+        else {
+            d->state = 9;
+        }
+    }
+
+    if ( d->state == 9 ) {
         configFile();
     }
 }

@@ -112,47 +112,47 @@ void Schema::execute()
         if ( !r || d->lock->failed() ) {
             fail( "Bad database: Couldn't query the mailstore table.",
                   d->lock );
-            d->revision = currentRevision;
+            d->revision = ::currentRevision;
             d->t->commit();
             d->state = 5;
         }
-        else if ( d->revision == currentRevision ) {
+        else if ( d->revision == ::currentRevision ) {
             d->result->setState( Query::Completed );
             d->t->commit();
             d->state = 5;
         }
-        else if ( d->upgrade && d->revision < currentRevision ) {
+        else if ( d->upgrade && d->revision < ::currentRevision ) {
             d->l->log( "Updating schema from revision " +
                        fn( d->revision ) + " to revision " +
-                       fn( currentRevision ) );
+                       fn( ::currentRevision ) );
             d->state = 2;
         }
         else {
             String s( "The existing schema (revision #" );
             s.append( fn( d->revision ) );
             s.append( ") is " );
-            if ( d->revision < currentRevision )
+            if ( d->revision < ::currentRevision )
                 s.append( "older" );
             else
                 s.append( "newer" );
             s.append( " than this server (version " );
             s.append( Configuration::compiledIn( Configuration::Version ) );
             s.append( ") expected (revision #" );
-            s.append( fn( currentRevision ) );
+            s.append( fn( ::currentRevision ) );
             s.append( "). Please " );
-            if ( d->revision < currentRevision )
+            if ( d->revision < ::currentRevision )
                 s.append( "run 'ms upgrade schema'" );
             else
                 s.append( "upgrade" );
             s.append( " or contact support." );
             fail( s );
-            d->revision = currentRevision;
+            d->revision = ::currentRevision;
             d->t->commit();
             d->state = 5;
         }
     }
 
-    while ( d->revision < currentRevision ) {
+    while ( d->revision < ::currentRevision ) {
         if ( d->state == 2 ) {
             if ( !singleStep() )
                 return;
@@ -175,7 +175,7 @@ void Schema::execute()
             d->state = 2;
             d->revision++;
 
-            if ( d->revision == currentRevision ) {
+            if ( d->revision == ::currentRevision ) {
                 d->t->commit();
                 d->state = 6;
                 break;
@@ -191,14 +191,14 @@ void Schema::execute()
             String s;
             if ( d->upgrade )
                 s = "The schema could not be upgraded to revision " +
-                    fn( currentRevision );
+                    fn( ::currentRevision );
             else
                 s = "The schema could not be validated.";
             fail( s, d->t->failedQuery() );
         }
         else if ( d->state == 6 ) {
             d->result->setState( Query::Completed );
-            d->l->log( "Schema updated to revision " + fn( currentRevision ) );
+            d->l->log( "Schema updated to revision " + fn( ::currentRevision ) );
         }
         d->state = 7;
     }
@@ -982,4 +982,14 @@ void Schema::fail( const String &s, Query * q )
         d->l->log( "Query: " + q->description(), Log::Disaster );
         d->l->log( "Error: " + q->error(), Log::Disaster );
     }
+}
+
+
+/*! This static function returns the schema revision current at the time
+    this server was compiled.
+*/
+
+int Schema::currentRevision()
+{
+    return ::currentRevision;
 }
