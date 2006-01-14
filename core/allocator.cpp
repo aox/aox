@@ -334,7 +334,7 @@ void Allocator::mark( void * p )
     if ( (a->marked[i/bits] & 1 << (i%bits)) )
         return;
     // no. mark it
-    a->marked[i/bits] &= ~(1 << (i%bits));
+    a->marked[i/bits] |= (1 << (i%bits));
     // ... and its children
     uint n = b->x.number;
     while ( n ) {
@@ -407,7 +407,7 @@ void Allocator::sweep()
     uint b = 0;
     while ( taken > 0 && b * bits < capacity ) {
         uint i = 0;
-        while ( ( used[b] & ~marked[b] ) ) {
+        while ( ( used[b] & ~marked[b] ) && i < 32 ) {
             if ( !( marked[b] & ( 1 << i ) ) ) {
                 AllocationBlock * m
                     = (AllocationBlock *)block( b * bits + i );
@@ -425,8 +425,8 @@ void Allocator::sweep()
                 }
             }
             i++;
-            marked[b] = 0;
         }
+        marked[b] = 0;
         b++;
     }
     base = 0;
