@@ -18,7 +18,7 @@ only accepts mail for local delivery; it will not relay or forward mail.
 It can copy mail to
 .I message-copy-directory
 (see
-.BR mailstore.conf (5))
+.BR archiveopteryx.conf (5))
 to ensure that there are complete low-level copies of all attempted
 mail deliveries. This can be used to burn a record of mail to CD/DVD,
 or to have a backup in case there is a problem with Archiveopteryx.
@@ -28,13 +28,13 @@ errors), so this feature can be useful for debugging.
 .IP "-c filename"
 Read configuration variables from
 .I filenameinstead of from
-.IR $CONFIGDIR/mailstore.conf .
+.IR $CONFIGDIR/archiveopteryx.conf .
 .IP -f
 Fork into background during startup.
 .SH CONFIGURATION
 .B smtpd
 is configured using
-.BR mailstore.conf (5).
+.BR archiveopteryx.conf (5).
 .PP
 The configuration variables specific to this server are
 .IR use-lmtp ,
@@ -77,10 +77,10 @@ detailed) information in the log file.
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 1.02, released 2006-01-16,
-http://www.oryx.com/mailstore/1.02.html.
+http://www.oryx.com/archiveopteryx/1.02.html.
 .SH SEE ALSO
-.BR mailstore (7),
-.BR mailstore.conf (5),
+.BR archiveopteryx (7),
+.BR archiveopteryx.conf (5),
 .BR deliver (8),
 .BR imapd (8),
 .BR logd (8),
@@ -88,4 +88,4 @@ http://www.oryx.com/mailstore/1.02.html.
 .BR pop3d (8),
 .BR tlsproxy (8),
 .BR oryx (7),
-http://www.oryx.com/mailstore/
+http://www.oryx.com/archiveopteryx/

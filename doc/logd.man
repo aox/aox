@@ -59,13 +59,13 @@ must have the right to open
 Read configuration variables from
 .I filename
 instead of from
-.IR $CONFIGDIR/mailstore.conf .
+.IR $CONFIGDIR/archiveopteryx.conf .
 .IP -f
 Fork into background during startup.
 .SH CONFIGURATION
 .B logd
 is configured using
-.BR mailstore.conf (5).
+.BR archiveopteryx.conf (5).
 .PP
 .B logd
 uses the following configuration variables:
@@ -88,17 +88,17 @@ In case of error,
 exits with exit code 1, an error message on stderr and (usually more
 detailed) information in the log file.
 .SH FILES
-$CONFIGDIR/mailstore.conf
+$CONFIGDIR/archiveopteryx.conf
 .br
 $BINDIR/logd
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 1.02, released 2006-01-16,
-http://www.oryx.com/mailstore/1.02.html.
+http://www.oryx.com/archiveopteryx/1.02.html.
 .SH SEE ALSO
-.BR mailstore (7),
-.BR mailstore.conf (5),
+.BR archiveopteryx (7),
+.BR archiveopteryx.conf (5),
 .br
 .BR deliver (8),
 .BR ms (8),
@@ -110,4 +110,4 @@ http://www.oryx.com/mailstore/1.02.html.
 .BR tlsproxy (8),
 .br
 .BR oryx (7),
-http://www.oryx.com/mailstore/
+http://www.oryx.com/archiveopteryx/

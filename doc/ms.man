@@ -39,7 +39,7 @@ Restarts the servers in the correct order (currently equivalent to start
 Displays a summary of the running Oryx servers.
 .IP "ms show configuration [-p -v] [variable-name]"
 Displays variables configured in
-.IR mailstore.conf .
+.IR archiveopteryx.conf .
 .IP
 If a
 .I variable-name
@@ -149,10 +149,10 @@ There is no command-line option to set the configuration file.
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 1.02, released 2006-01-16,
-http://www.oryx.com/mailstore/1.02.html.
+http://www.oryx.com/archiveopteryx/1.02.html.
 .SH SEE ALSO
-.BR mailstore (7),
-.BR mailstore.conf (5),
+.BR archiveopteryx (7),
+.BR archiveopteryx.conf (5),
 .BR imapd (8),
 .BR logd (8),
 .BR ocd (8),
@@ -160,4 +160,4 @@ http://www.oryx.com/mailstore/1.02.html.
 .BR smtpd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
-http://www.oryx.com/mailstore/
+http://www.oryx.com/archiveopteryx/

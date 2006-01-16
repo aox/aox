@@ -17,17 +17,17 @@ Building and installing Archiveopteryx is a five-step process:
 3. If you configured ORYXUSER and ORYXGROUP to something special, make
    sure that user and that group exist.
 
-   Create the PostgreSQL user, mailstore and tables needed, as well as
-   the mailstore.conf file. You can do this automatically using the
-   script LIBDIR/installer (/usr/local/mailstore/lib/installer by
+   Create the PostgreSQL user, database and tables needed, as well as
+   the archiveopteryx.conf file. You can do this automatically using the
+   script LIBDIR/installer (/usr/local/archiveopteryx/lib/installer by
    default), or you can do it by hand. If you run LIBDIR/installer -n,
    it does nothing except tell you exactly what needs to be done.
 
-3. If mailstore.conf was created automatically for you, you may want
-   to have a look at it and perhaps change something. It's not
+3. If archiveopteryx.conf was created automatically for you, you may
+   want to have a look at it and perhaps change something. It's not
    necessary.
 
-   The man page for mailstore.conf explains all the possible settings.
+   The man page for archiveopteryx.conf explains the various settings.
 
 At this point, you're ready to run "BINDIR/ms start" to start
 Archiveopteryx. After a change, "ms restart" restarts.

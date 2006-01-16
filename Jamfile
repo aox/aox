@@ -56,7 +56,7 @@ fmt <<EOM | sed 's/^/  /'
 
 To set up the database and generate a configuration file, run
 $(LIBDIR)/installer as root. The new configuration file will be in
-$(CONFIGDIR)/mailstore.conf.
+$(CONFIGDIR)/archiveopteryx.conf.
 
 $(LIBDIR)/installer -n shows what it would do, without making any
 changes.

@@ -1,6 +1,6 @@
 # This file contains compile-time configuration variables. Most of
 # these are compiled into the binaries. A few may be overridden at
-# runtime using mailstore.conf.
+# runtime using archiveopteryx.conf.
 #
 # Remember the spaces around '=' and before ';'.
 
@@ -13,7 +13,7 @@ INSTALLROOT = "" ;
 
 # A convenient prefix used by most directory and file names,.
 #
-PREFIX = /usr/local/mailstore ;
+PREFIX = /usr/local/archiveopteryx ;
 
 # The directory for user and sysadmin tools
 #
@@ -90,8 +90,8 @@ EXEMODE = 555 ;
 #
 PSQL = psql ;
 
-# The address of the Postgres server. This is the default value of the
-# db-address variable in mailstore.conf, and may be the
+# The address of the Postgres server. This is the default value of
+# the db-address variable in archiveopteryx.conf, and may be the
 # fully-qualified Unix socket path, or an IPv4/6 address.
 #
 DBADDRESS = /tmp/.s.PGSQL.5432 ;
@@ -108,9 +108,9 @@ DBADDRESS = /tmp/.s.PGSQL.5432 ;
 # don't need to set DBPASS unless you want to use an existing DBUSER.
 #
 # These settings correspond to the db-name, db-user, and db-password
-# variables in mailstore.conf.
+# variables in archiveopteryx.conf.
 #
-DBNAME = mailstore ;
+DBNAME = archiveopteryx ;
 DBUSER = oryx ;
 DBPASS = "" ;
 

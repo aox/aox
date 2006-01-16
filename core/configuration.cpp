@@ -409,8 +409,8 @@ const char * Configuration::compiledIn( CompileTimeSetting setting )
 
 
 /*! Returns the fully-qualified name of the configuration file (e.g.
-    /usr/local/mailstore/mailstore.conf) based on the compiledIn()
-    value for the configuration directory.
+    /usr/local/archiveopteryx/archiveopteryx.conf) based on the
+    compiledIn() value for the configuration directory.
 
     Merely a convenience.
 */
@@ -418,7 +418,7 @@ const char * Configuration::compiledIn( CompileTimeSetting setting )
 String Configuration::configFile()
 {
     String s( compiledIn( ConfigDir ) );
-    s.append( "/mailstore.conf" );
+    s.append( "/archiveopteryx.conf" );
     return s;
 }
 

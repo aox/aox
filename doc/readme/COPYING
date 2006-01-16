@@ -1,10 +1,11 @@
-Oryx Mailstore is licensed to you by Oryx Mail Systems GmbH under the
+Archiveopteryx is licensed to you by Oryx Mail Systems GmbH under the
 Open Software License version 2.1, a copy of which is enclosed in the
 file osl-2.1.txt.
 
 (If you cannot or do not wish to meet the requirements of the OSL 2.1,
 contact info@oryx.com for alternative terms.)
 
-Cryptlib (the files in the cryptlib subdirectory) is not part of Oryx
-Mailstore, merely bundled with it. For Cryptlib's licensing terms, see
+Cryptlib (the files in the cryptlib subdirectory) is not part of
+Archiveopteryx, merely bundled for convenience. For Cryptlib's
+licensing terms, see:
 http://www.cs.auckland.ac.nz/~pgut001/cryptlib/download.html.

@@ -108,7 +108,7 @@ int main( int argc, char *argv[] )
         exit( -1 );
     }
 
-    Configuration::setup( "mailstore.conf" );
+    Configuration::setup( "archiveopteryx.conf" );
 
     String contents = message.contents();
 

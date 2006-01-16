@@ -16,13 +16,13 @@ mail server which uses a database for mail storage.
 Read configuration variables from
 .I filename
 instead of from
-.IR $CONFIGDIR/mailstore.conf .
+.IR $CONFIGDIR/archiveopteryx.conf .
 .IP -f
 Fork into background during startup.
 .SH CONFIGURATION
 .B imapd
 is configured using
-.BR mailstore.conf (5).
+.BR archiveopteryx.conf (5).
 .PP
 The configuration variables specific to this server are
 .IR use-imap ,
@@ -94,16 +94,16 @@ draft-siemborski-imap-sasl-initial-response: SASL-IR.
 .B imapd
 also supports SSL wrapping on port 993, as Netscape once made popular.
 .PP
-http://www.oryx.com/mailstore/imap.html elaborates more on the IMAP
+http://www.oryx.com/archiveopteryx/imap.html elaborates more on the IMAP
 support in Archiveopteryx.
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 1.02, released 2006-01-16,
-http://www.oryx.com/mailstore/1.02.html.
+http://www.oryx.com/archiveopteryx/1.02.html.
 .SH SEE ALSO
-.BR mailstore (7),
-.BR mailstore.conf (5),
+.BR archiveopteryx (7),
+.BR archiveopteryx.conf (5),
 .BR deliver (8),
 .BR logd (8),
 .BR ocd (8),
@@ -111,4 +111,4 @@ http://www.oryx.com/mailstore/1.02.html.
 .BR smtpd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
-http://www.oryx.com/mailstore/
+http://www.oryx.com/archiveopteryx/

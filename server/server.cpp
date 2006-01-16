@@ -211,7 +211,7 @@ void Server::setup( Stage s )
 void Server::configuration()
 {
     if ( d->configFile.isEmpty() )
-        Configuration::setup( "mailstore.conf" );
+        Configuration::setup( "archiveopteryx.conf" );
     else
         Configuration::setup( d->configFile );
 

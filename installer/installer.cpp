@@ -615,7 +615,7 @@ void configFile()
     String cf( Configuration::configFile() );
     String v( Configuration::compiledIn( Configuration::Version ) );
     String intro(
-        "# Archiveopteryx configuration. See mailstore.conf(5) for details.\n"
+        "# Archiveopteryx configuration. See archiveopteryx.conf(5) for details.\n"
         "# Automatically generated while installing Archiveopteryx " + v + ".\n\n"
         "# Specify the hostname if Archiveopteryx gets it wrong at runtime.\n"
 	"# We suggest not using the name \"localhost\".\n#\n"

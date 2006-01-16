@@ -85,7 +85,7 @@ int main( int ac, char *av[] )
         args->append( new String( av[i++] ) );
 
     EventLoop::setup();
-    Configuration::setup( "mailstore.conf" );
+    Configuration::setup( "archiveopteryx.conf" );
     Configuration::report();
 
     if ( Scope::current()->log()->disastersYet() )
@@ -586,7 +586,7 @@ void showBuildconf()
     end();
 
     printf( "Archiveopteryx version %s, "
-            "http://www.oryx.com/mailstore/%s.html\n",
+            "http://www.oryx.com/archiveopteryx/%s.html\n",
             Configuration::compiledIn( Configuration::Version ),
             Configuration::compiledIn( Configuration::Version ) );
 
@@ -1212,7 +1212,7 @@ void help()
             stderr,
             "  show configuration -- Display configuration variables.\n\n"
             "    Synopsis: ms show conf [ -p -v ] [variable-name]\n\n"
-            "    Displays variables configured in mailstore.conf.\n\n"
+            "    Displays variables configured in archiveopteryx.conf.\n\n"
             "    If a variable-name is specified, only that variable\n"
             "    is displayed.\n\n"
             "    The -v flag displays only the value of the variable.\n"

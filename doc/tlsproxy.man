@@ -32,13 +32,13 @@ never need to interact with it directly.
 Read configuration variables from
 .I filename
 instead of from
-.IR $CONFIGDIR/mailstore.conf .
+.IR $CONFIGDIR/archiveopteryx.conf .
 .IP -f
 Fork into background during startup.
 .SH CONFIGURATION
 .B tlsproxy
 is configured using
-.BR mailstore.conf (5).
+.BR archiveopteryx.conf (5).
 .PP
 The configuration variables specific to this server are
 .IR use-tls ,
@@ -80,10 +80,10 @@ is used to store the automatically generated key and certificate.
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 1.02, released 2006-01-16,
-http://www.oryx.com/mailstore/1.02.html.
+http://www.oryx.com/archiveopteryx/1.02.html.
 .SH SEE ALSO
-.BR mailstore (7),
-.BR mailstore.conf (5),
+.BR archiveopteryx (7),
+.BR archiveopteryx.conf (5),
 .BR deliver (8),
 .BR imapd (8),
 .BR logd (8),
@@ -91,4 +91,4 @@ http://www.oryx.com/mailstore/1.02.html.
 .BR pop3d (8),
 .BR smtpd (8),
 .BR oryx (7),
-http://www.oryx.com/mailstore/
+http://www.oryx.com/archiveopteryx/

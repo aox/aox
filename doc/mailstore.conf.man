@@ -1,21 +1,21 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH mailstore.conf 5 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
+.TH archiveopteryx.conf 5 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-mailstore.conf - configuration file for Archiveopteryx.
+archiveopteryx.conf - configuration file for Archiveopteryx.
 .SH SYNOPSIS
-.B $CONFIGDIR/mailstore.conf
+.B $CONFIGDIR/archiveopteryx.conf
 .br
 .SH DESCRIPTION
 .nh
 .PP
 The
-.I mailstore.conf
+.I archiveopteryx.conf
 file contains all global configuration settings for Archiveopteryx. It
 is read by each server at startup. Syntax errors, unknown variables,
 and other errors are logged via
 .BR logd (8).
 .PP
-.I mailstore.conf
+.I archiveopteryx.conf
 is usually created at installation time, by running
 .BR $LIBDIR/installer .
 .PP
@@ -23,12 +23,12 @@ There is only one required variable, namely
 .IR db-password .
 .SH "SECURITY NOTE"
 Anyone who can read
-.I mailstore.conf
+.I archiveopteryx.conf
 can see the database password, and use this password to damage or
 destroy the mail database.
 .PP
 By default,
-.I mailstore.conf
+.I archiveopteryx.conf
 is readable only by root.
 .SH SETTINGS
 .PP
@@ -195,7 +195,7 @@ listens for admin requests.
 .I 2051
 by default.
 .SS "User Authentication"
-http://www.oryx.com/mailstore/sasl.html describes SASL and
+http://www.oryx.com/archiveopteryx/sasl.html describes SASL and
 authentication in more detail.
 .IP allow-plaintext-passwords
 controls whether the servers permit plaintext passwords, and how such
@@ -474,9 +474,9 @@ hostname=stuff.nonsense.example.com # also a comment
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 1.02, released 2006-01-16,
-http://www.oryx.com/mailstore/1.02.html.
+http://www.oryx.com/archiveopteryx/1.02.html.
 .SH SEE ALSO
-.BR mailstore (7),
+.BR archiveopteryx (7),
 .BR deliver (8),
 .BR imapd (8),
 .BR logd (8),
@@ -485,4 +485,4 @@ http://www.oryx.com/mailstore/1.02.html.
 .BR smtpd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
-http://www.oryx.com/mailstore/
+http://www.oryx.com/archiveopteryx/

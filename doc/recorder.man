@@ -53,9 +53,9 @@ To disable TLS, set the variable
 to
 .I disabled
 in
-.I $CONFIGDIR/mailstore.conf
+.I $CONFIGDIR/archiveopteryx.conf
 (see the
-.BR mailstore.conf (5)
+.BR archiveopteryx.conf (5)
 man page for more information.)
 .SS "Restart Archiveopteryx"
 The change to
@@ -63,7 +63,7 @@ The change to
 only takes effect when you restart Archiveopteryx, e.g. by issuing the
 following command
 .IP
-$LIBDIR/rcmailstore restart
+$LIBDIR/rcarchiveopteryx restart
 .SS "Start recorder"
 To make recorder listen on the normal port 143 and forward connections
 to the real server:
@@ -89,10 +89,10 @@ That's it. Now you can send an excellent bug report to info@oryx.com.
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 1.02, released 2006-01-16,
-http://www.oryx.com/mailstore/1.02.html.
+http://www.oryx.com/archiveopteryx/1.02.html.
 .SH SEE ALSO
-.BR mailstore (7),
-.BR mailstore.conf (5),
+.BR archiveopteryx (7),
+.BR archiveopteryx.conf (5),
 .BR deliver (8),
 .BR logd (8),
 .BR ocd (8),
@@ -100,4 +100,4 @@ http://www.oryx.com/mailstore/1.02.html.
 .BR smtpd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
-http://www.oryx.com/mailstore/
+http://www.oryx.com/archiveopteryx/

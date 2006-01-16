@@ -80,7 +80,7 @@ int main( int argc, char *argv[] )
     Scope global;
 
     // typical archiveopteryx crud
-    Configuration::setup( "mailstore.conf" );
+    Configuration::setup( "archiveopteryx.conf" );
 
     // our own event loop, merging qt's and ours
     Allocator::addEternal( new ConsoleLoop, "event loop" );

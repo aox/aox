@@ -20,4 +20,4 @@ rule ShellScript {
 }
 
 
-ShellScript rcmailstore : $(INITDIR) ;
+ShellScript rcarchiveopteryx : $(INITDIR) ;
