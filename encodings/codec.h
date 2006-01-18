@@ -27,8 +27,11 @@ public:
     enum State { Valid, BadlyFormed, Invalid };
     void setState( State st ) { s = st; }
     State state() const { return s; }
+    String error() const;
+    void recordError( uint );
+    void recordError( uint, uint );
 
-    static Codec * byName( const String & );
+    static Codec * byName(  const String & );
     static Codec * byString( const UString & );
     static Codec * byString( const String & );
 
@@ -37,6 +40,7 @@ public:
 private:
     State s;
     String n;
+    String e;
 };
 
 

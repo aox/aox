@@ -95,6 +95,45 @@ Codec::~Codec()
 */
 
 
+/*! Returns an error message describing why the codec is in Invalid
+    state. If the codec is in Valid or BadlyFormed states, error()
+    returns an empty string.
+*/
+
+String Codec::error() const
+{
+    if ( state() != Invalid )
+        return "";
+    return e;
+}
+
+
+/*! Records that at octet index \a pos, an error happened and no code
+    point could be found. This also sets the state() to Invalid.
+*/
+
+void Codec::recordError( uint pos )
+{
+    setState( Invalid );
+    e = "Parse error at index " + fn( pos ) +
+        ": Could not find a valid " + name() + " code point";
+}
+
+
+/*! Records that \a codepoint (at octet index \a pos) is not valid and
+    could not be converted to Unicode. This also sets the state() to
+    Invalid.
+*/
+
+void Codec::recordError( uint pos, uint codepoint )
+{
+    setState( Invalid );
+    e = "Parse error at index " + fn( pos ) +
+        ": Code point " + fn( codepoint ) +
+        " is undefined in " + name();
+}
+
+
 static struct {
     const char * alias;
     const char * name;
@@ -393,7 +432,11 @@ UString TableCodec::toUnicode( const String & s )
     u.reserve( s.length() );
     uint i = 0;
     while ( i < s.length() ) {
-        u.append( t[s[i]] );
+        uint c = s[i];
+        if ( t[c] )
+            u.append( t[c] );
+        else
+            recordError( i, c );
         i++;
     }
     return u;
@@ -471,7 +514,7 @@ UString AsciiCodec::toUnicode( const String & s )
     while ( i < s.length() ) {
         u.append( s[i] );
         if ( s[i] == 0 || s[i] > 127 )
-            setState( Invalid );
+            recordError( i, s[i] );
         i++;
     }
     return u;
@@ -502,4 +545,3 @@ UString AsciiCodec::toUnicode( const String & s )
 */
 
 //codec US-ASCII AsciiCodec
-

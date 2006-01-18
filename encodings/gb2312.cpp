@@ -66,20 +66,24 @@ UString Gb2312Codec::toUnicode( const String &s )
 
         if ( c < 128 ) {
             u.append( c );
+            n++;
         }
         else {
-            char d = s[++n];
+            char d = s[n + 1];
 
             uint i = c-128-32-1;
             uint j = d-128-32-1;
 
-            if ( i > 93 || d < 128 || j > 93 || gbToUnicode[i][j] == 0 )
-                setState( Invalid );
+            if ( i > 93 || d < 128 || j > 93 )
+                recordError( n );
+            if ( gbToUnicode[i][j] == 0 )
+                recordError( n, i * 94 + j );
             else
                 u.append( gbToUnicode[i][j] );
+
+            n += 2;
         }
 
-        n++;
     }
 
     return u;

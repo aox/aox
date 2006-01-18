@@ -154,7 +154,7 @@ UString Utf8Codec::toUnicode( const String & s )
             i += 6;
         }
         else {
-            setState( Invalid );
+            recordError( i );
             return u;
         }
         u.append( c );

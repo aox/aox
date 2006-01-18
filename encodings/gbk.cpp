@@ -78,7 +78,7 @@ UString GbkCodec::toUnicode( const String &s )
             if ( gbkToUnicode[p] != 0 )
                 u.append( gbkToUnicode[p] );
             else
-                setState( Invalid );
+                recordError( n-1, p );
         }
 
         n++;
