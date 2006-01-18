@@ -53,6 +53,11 @@ void XOryxReset::execute()
         q->bind( 1, user->id() );
         t->enqueue( q );
 
+        q = new Query( "delete from subscriptions where owner=$1",
+                       this );
+        q->bind( 1, user->id() );
+        t->enqueue( q );
+
         q = new Query( "delete from annotations where owner=$1", this );
         q->bind( 1, user->id() );
         t->enqueue( q );
