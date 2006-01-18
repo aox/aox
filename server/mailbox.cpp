@@ -519,17 +519,22 @@ Mailbox * Mailbox::obtain( const String & name, bool create )
         parent->d->children = new List<Mailbox>;
     List<Mailbox>::Iterator it( parent->d->children );
     String lower = name.lower();
-    while ( it ) {
-        if ( it->name().lower() == lower )
-            return it;
+    String candidate;
+    if ( it )
+        candidate = it->name().lower();
+    while ( it && candidate < lower ) {
         ++it;
+        if ( it )
+            candidate = it->name().lower();
     }
+    if ( candidate == lower )
+        return it;
     if ( !create )
         return 0;
 
     Mailbox * m = new Mailbox( name );
     m->d->parent = parent;
-    parent->d->children->append( m );
+    parent->d->children->insert( it, m );
     return m;
 }
 
