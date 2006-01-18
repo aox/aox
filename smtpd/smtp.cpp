@@ -205,26 +205,49 @@ void SmtpDbClient::execute()
                         boundary + "\r\n"
                         "\r\n\r\nYou are looking at an easter egg\r\n"
                         "--" + boundary + "\r\n"
-                        "Content-Type: text/plain; format=flowed" );
-        // but which charset does this thing use?
-        String e = injector->error();
-        uint n = 0;
-        while ( n < e.length() && e[n] < 128 )
-            n++;
-        if ( n < e.length() )
-            wrapper.append( "; charset=unknown-8bit" );
-        wrapper.append( "\r\n\r\nThe appended message was received, "
+                        "Content-Type: text/plain; format=flowed" ); // contd..
+
+        String report = "The appended message was received, "
                         "but could not be stored in the mail \r\n"
                         "database on " + Configuration::hostname() +
-                        ".\r\n\r\nThe error detected was: \r\n" );
-        wrapper.append( injector->error() );
+                        ".\r\n\r\nThe error detected was: \r\n";
+        report.append( injector->error() );
+        report.append( "\r\n\r\n"
+                       "Here are a few header fields from the message "
+                       "(possibly corrupted due \r\nto syntax errors):\r\n"
+                       "\r\n" );
+        addField( h, report, HeaderField::From, "" );
+        addField( h, report, HeaderField::To, "" );
+        addField( h, report, HeaderField::Subject, "" );
+        report.append( "\r\n"
+                       "The complete message as received is appended." );
+
+        // but which charset does the report use?
+        uint n = 0;
+        while ( n < report.length() && report[n] < 128 )
+            n++;
+        if ( n < report.length() )
+            wrapper.append( "; charset=unknown-8bit" ); // ... continues c-t
+        wrapper.append( "\r\n\r\n" );
+        wrapper.append( report );
         wrapper.append( "\r\n\r\n--" + boundary + "\r\n" );
-        wrapper.append( "Content-Type: application/octet-stream\r\n"
-                        "Content-Transfer-Encoding: 8bit\r\n"
-                        "Content-Disposition: attachment; filename=" +
+        n = 0;
+        while ( n < d->body.length() &&
+                d->body[n] < 128 && 
+                ( d->body[n] >= 32 ||
+                  d->body[n] == 10 ||
+                  d->body[n] == 13 ) )
+            n++;
+        if ( n < d->body.length() )
+            wrapper.append( "Content-Type: application/octet-stream\r\n"
+                            "Content-Transfer-Encoding: 8bit\r\n" );
+        else
+            wrapper.append( "Content-Type: text/plain\r\n" );
+        wrapper.append( "Content-Disposition: attachment; filename=" +
                         d->id + "\r\n"
-                        "\r\n" +
-                        d->body + "\r\n--" + boundary + "--\r\n" );
+                        "\r\n" );
+        wrapper.append( d->body );
+        wrapper.append( "\r\n--" + boundary + "--\r\n" );
 
         Message * m = new Message( wrapper );
         injector = new Injector( m, d->mailboxes, this );
