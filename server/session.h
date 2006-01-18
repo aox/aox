@@ -64,6 +64,7 @@ public:
     virtual void emitExpunge( uint );
     virtual void emitExists( uint );
 
+    void addSessionInitialiser( class SessionInitialiser * );
     void removeSessionInitialiser();
 
 private:

@@ -311,12 +311,12 @@ void Session::emitResponses()
     if ( d->uidnext < d->mailbox->uidnext() ) {
         change = true;
         if ( !d->initialiser )
-            d->initialiser = new SessionInitialiser( this, 0 );
+            (void)new SessionInitialiser( this, 0 );
     }
     else if ( d->mailbox->type() == Mailbox::View &&
               d->mailbox->source()->uidnext() > d->mailbox->sourceUidnext() ) {
         if ( !d->initialiser )
-            d->initialiser = new SessionInitialiser( this, 0 );
+            (void)new SessionInitialiser( this, 0 );
     }
 
     if ( change )
@@ -383,10 +383,10 @@ void Session::refresh( EventHandler * handler )
     if ( handler && d->initialiser )
         d->initialiser->addWatcher( handler );
     else if ( d->uidnext < d->mailbox->uidnext() )
-        d->initialiser = new SessionInitialiser( this, handler );
+        (void)new SessionInitialiser( this, handler );
     else if ( d->mailbox->type() == Mailbox::View &&
               d->mailbox->source()->uidnext() > d->mailbox->sourceUidnext() )
-        d->initialiser = new SessionInitialiser( this, handler );
+        (void)new SessionInitialiser( this, handler );
 }
 
 
@@ -452,6 +452,7 @@ SessionInitialiser::SessionInitialiser( Session * session,
          " for UIDs [" + fn( d->oldUidnext ) + "," +
          fn( newUidnext ) + ">" );
 
+    d->session->addSessionInitialiser( this );
     d->session->setUidnext( newUidnext );
     d->session->insert( d->oldUidnext, newUidnext-1 );
     d->expunged.add( d->oldUidnext, newUidnext-1 );
@@ -680,4 +681,16 @@ void SessionInitialiser::addWatcher( EventHandler * e )
 {
     if ( e )
         d->watchers.append( e );
+}
+
+
+/*! The SessionInitialiser calls this when it's creating itself, so
+    initialised() can return false untol removeSessionInitialiser() is
+    called. Noone else should ever call it.
+
+*/
+
+void Session::addSessionInitialiser( class SessionInitialiser * s )
+{
+    d->initialiser = s;
 }
