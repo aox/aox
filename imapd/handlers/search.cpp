@@ -367,6 +367,10 @@ void Search::parseKey( bool alsoCharset )
 void Search::execute()
 {
     if ( !d->query ) {
+        if ( d->root->needSession() && !imap()->session()->initialised() ) {
+            imap()->session()->refresh( this );
+            return;
+        }
         considerCache();
         if ( d->done ) {
             finish();
