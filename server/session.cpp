@@ -679,7 +679,7 @@ void Session::removeSessionInitialiser()
 
 void SessionInitialiser::addWatcher( EventHandler * e )
 {
-    if ( e && d->watchers.find( e ) != d->watchers.end() )
+    if ( e && d->watchers.find( e ) == d->watchers.end() )
         d->watchers.append( e );
 }
 
