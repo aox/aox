@@ -3,7 +3,7 @@ Next release (2006-02-16: 1.03)
   - VIEW improvements
   - POP3
   - ANNOTATE(?)
-  - codec error message
+  - codec error message (done)
 
 
 Next few releases
@@ -15,18 +15,14 @@ Next few releases
   - More character encodings (BIG5/SJIS/ISO-2022-JP/EUC-KR)
 
 
-Codec error messages
+Grand Unified Cache
 
-  Needed: Codec::error() which reports where in the string the problem
-  was and what code point it concerned.
+  A template class Cache that goes from uint to an object of the
+  specified type.
 
-  When the problem is illegal syntax (e.g. 0x80 0x20 in UTF-8), a
-  special codepoint has to mean 'not a code point'.
-
-  This sounds good: A setter to set a general error message, one to
-  set 'codepoint x at position y is not defined' and one to mean
-  'non-codepoint at position y. And a getter to return an error
-  message.
+  The Cache objects keep a total global list of anything at all, and
+  Allocator can request that the oldest items are dropped from the
+  cache.
 
 
 ocd needs work (mike@waspfactory.org)
