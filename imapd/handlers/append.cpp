@@ -156,7 +156,7 @@ void Append::execute()
         d->injector->execute();
     }
 
-    if ( !imap()->session()->initialised() ) {
+    if ( imap()->session() && !imap()->session()->initialised() ) {
         imap()->session()->refresh( this );
         return;
     }
