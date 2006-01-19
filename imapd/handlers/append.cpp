@@ -155,6 +155,11 @@ void Append::execute()
         d->injector = new Injector( d->message, m, this );
         d->injector->execute();
     }
+
+    imap()->session()->refresh( this );
+    if ( !imap()->session()->initialised() )
+        return;
+
     if ( d->injector->done() ) {
         if ( d->injector->failed() ) {
             error( No, "Could not append to " + d->mbx );
