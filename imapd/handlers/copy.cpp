@@ -195,6 +195,12 @@ void Copy::execute()
         d->transaction->commit();
     }
 
+    if ( imap()->session() && d->mailbox == imap()->session()->mailbox() ) {
+        imap()->session()->refresh( this );
+        if ( !imap()->session()->initialised() )
+            return;
+    }
+
     if ( !d->transaction->done() )
         return;
 
