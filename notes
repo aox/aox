@@ -282,9 +282,6 @@ msconsole migrator should work without indices
   and perhaps transactions, and go much faster.
 
 
-Should we allow Sender-less multiple-From mailboxes?
-
-
 Add Maildir support to the migrator.
 
 
