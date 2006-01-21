@@ -38,7 +38,7 @@ public:
     {}
 
     int fd;
-    int timeout;
+    uint timeout;
     Buffer *r, *w;
     Connection::State state;
 
@@ -320,7 +320,7 @@ String Connection::description() const
     0 means that the connection does not want Timeout events.
 */
 
-int Connection::timeout() const
+uint Connection::timeout() const
 {
     return d->timeout;
 }
@@ -328,7 +328,7 @@ int Connection::timeout() const
 
 /*! Sets the connection timeout to \a tm seconds from the epoch. */
 
-void Connection::setTimeout( int tm )
+void Connection::setTimeout( uint tm )
 {
     d->timeout = tm;
 }
@@ -337,9 +337,9 @@ void Connection::setTimeout( int tm )
 /*! Sets the connection timeout to \a n seconds from the current time.
 */
 
-void Connection::setTimeoutAfter( int n )
+void Connection::setTimeoutAfter( uint n )
 {
-    d->timeout = time(0) + n;
+    d->timeout = n + (uint)time(0);
 }
 
 
@@ -347,7 +347,7 @@ void Connection::setTimeoutAfter( int n )
     Does nothing if no timeout is set.
 */
 
-void Connection::extendTimeout( int n )
+void Connection::extendTimeout( uint n )
 {
     if ( d->timeout != 0 )
         d->timeout += n;

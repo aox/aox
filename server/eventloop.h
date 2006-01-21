@@ -23,7 +23,7 @@ public:
     void closeAllExcept( Connection *, Connection * );
     void flushAll();
 
-    void dispatch( Connection *, bool, bool, int );
+    void dispatch( Connection *, bool, bool, uint );
 
     bool inStartup() const;
     void setStartup( bool );
@@ -33,6 +33,9 @@ public:
     static void setup( EventLoop * = 0 );
     static EventLoop * global();
     static void shutdown();
+
+    virtual void addTimer( class Timer * );
+    virtual void removeTimer( class Timer * );
 
 private:
     class LoopData *d;

@@ -9,7 +9,7 @@ SubInclude TOP message ;
 
 Build server :
     connection.cpp endpoint.cpp event.cpp logclient.cpp tls.cpp
-    eventloop.cpp byteforwarder.cpp server.cpp ;
+    eventloop.cpp byteforwarder.cpp server.cpp timer.cpp ;
 
 Build mailbox :
     session.cpp occlient.cpp mailbox.cpp messageset.cpp

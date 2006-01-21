@@ -8,6 +8,7 @@
 #include "string.h"
 #include "server.h"
 #include "scope.h"
+#include "timer.h"
 #include "list.h"
 #include "log.h"
 #include "sys.h"
@@ -42,6 +43,7 @@ public:
     bool startup;
     bool stop;
     SortedList< Connection > connections;
+    List< Timer > timers;
 };
 
 
@@ -153,9 +155,9 @@ void EventLoop::start()
 
     while ( !d->stop ) {
         commit();
-        Connection *c;
+        Connection * c;
 
-        int timeout = INT_MAX;
+        uint timeout = INT_MAX;
         int maxfd = -1;
         if ( d->connections.count() > 0 )
             maxfd = d->connections.last()->fd();
@@ -185,14 +187,23 @@ void EventLoop::start()
             ++it;
         }
 
+        // Figure out whether any timers need attention soon
+
+        List< Timer >::Iterator t( d->timers );
+        while ( t ) {
+            if ( t->active() && t->timeout() < timeout )
+                timeout = t->timeout();
+            ++t;
+        }
+        
         // Look for interesting input
 
         struct timeval tv;
         tv.tv_sec = timeout - time( 0 );
         tv.tv_usec = 0;
 
-        if ( tv.tv_sec < 1 )
-            tv.tv_sec = 1;
+        if ( tv.tv_sec < 0 )
+            tv.tv_sec = 0;
         if ( tv.tv_sec > 60 )
             tv.tv_sec = 60;
 
@@ -206,8 +217,8 @@ void EventLoop::start()
             }
             else if ( errno == EBADF ) {
                 // one of the FDs was closed. we react by forgetting
-                // that connection, and letting the rest of the server
-                // go on.
+                // that connection, letting the rest of the server go
+                // on.
                 SortedList< Connection >::Iterator it( d->connections );
                 while ( it ) {
                     Connection * c = it;
@@ -243,14 +254,33 @@ void EventLoop::start()
             }
         }
 
+        // Collect garbage if we haven't done so in a while
+
         if ( !d->stop &&
              ( now - gc > 7200 ||
                Allocator::allocated() > 8*1024*1024 ||
                ( now - gc > 10 && Allocator::allocated() >= 131072 ) ) )
-            {
-                Allocator::free();
-                gc = time( 0 );
+        {
+            Allocator::free();
+            gc = time( 0 );
+        }
+
+        // Any interesting timers?
+
+        if ( !d->timers.isEmpty() ) {
+            uint now = time( 0 );
+            t = d->timers.first();
+            while ( t ) {
+                if ( t->active() && t->timeout() <= now ) {
+                    EventHandler * e = t->owner();
+                    d->timers.take( t++ ); // eeek
+                    e->execute();
+                }
+                else {
+                    ++t;
+                }
             }
+        }
 
         // Figure out what each connection cares about.
 
@@ -295,7 +325,7 @@ void EventLoop::start()
     must sent a Timeout event.
 */
 
-void EventLoop::dispatch( Connection *c, bool r, bool w, int now )
+void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
 {
     try {
         Scope x( c->log() );
@@ -466,4 +496,26 @@ EventLoop * EventLoop::global()
 void EventLoop::shutdown()
 {
     ::loop->stop();
+}
+
+
+/*! Records that \a t exists, so that the event loop will process \a
+    t.
+*/
+
+void EventLoop::addTimer( Timer * t )
+{
+    d->timers.append( t );
+}
+
+
+/*! Forgets that \a t exists. The event loop will henceforth never
+    call \a t.
+*/
+
+void EventLoop::removeTimer( Timer * t )
+{
+    List<Timer>::Iterator i( d->timers.find( t ) );
+    if ( i )
+        d->timers.take( i );
 }

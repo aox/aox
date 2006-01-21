@@ -47,10 +47,10 @@ public:
     bool valid() const;
 
     int fd() const;
-    int timeout() const;
-    void setTimeout( int );
-    void setTimeoutAfter( int );
-    void extendTimeout( int );
+    uint timeout() const;
+    void setTimeout( uint );
+    void setTimeoutAfter( uint );
+    void extendTimeout( uint );
     void setBlocking( bool );
 
     Buffer * writeBuffer() const;
