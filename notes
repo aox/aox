@@ -694,4 +694,10 @@ Rendering webmail HTML is presumably good, but...
 We need a script to make subscribing people easier.
 
 
+Making injection faster.
+
+  - If we use a separate transaction to acquire the UID, then we hold
+    the mailbox lock for (how much?) less time.
+
+
 
