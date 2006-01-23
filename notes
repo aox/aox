@@ -696,8 +696,23 @@ We need a script to make subscribing people easier.
 
 Making injection faster.
 
-  - If we use a separate transaction to acquire the UID, then we hold
-    the mailbox lock for (how much?) less time.
+  If we use a separate transaction to acquire the UID, then we hold
+  the mailbox lock for (how much?) less time.
 
+  We hold the lock MUCH shorter. Just enough to 'select x for update',
+  'update x' and commit, which is pretty close to the shortest possible
+  database transaction.
+
+  Pro: Injection can use 100% of the database server. It's no longer a
+  bottleneck. If the database server has 16 CPUs, then we can use 16 CPUs
+  for whatever load we have. No locks can cause CPUs to sit around
+  waiting (almost).
+
+  Contra: For a short while, uidnext has moved but the message has not
+  appeared in the database. In that time, the imapd can currently infer
+  that the message has existed and been expunged, which sits badly with
+  imap caching semantics. But I think we can deal with that, e.g. by
+  saying that ocd is updated last, and a lower value seen via ocd wins
+  over a higher value in the database. Something like that.
 
 
