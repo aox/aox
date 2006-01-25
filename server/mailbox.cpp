@@ -9,6 +9,7 @@
 #include "query.h"
 #include "scope.h"
 #include "event.h"
+#include "timer.h"
 #include "string.h"
 #include "message.h"
 #include "fetcher.h"
@@ -30,7 +31,8 @@ public:
           triviaFetcher( 0 ), bodyFetcher( 0 ),
           annotationFetcher( 0 ),
           watchers( 0 ),
-          source( 0 ), sUidnext( 0 ), sourceUids( 0 )
+          source( 0 ), sUidnext( 0 ), sourceUids( 0 ),
+          clear( 0 )
     {}
 
     String name;
@@ -57,6 +59,22 @@ public:
     String selector;
 
     Map< uint > * sourceUids;
+
+    class Timer
+        : public EventHandler
+    {
+    public:
+        Timer( Mailbox * mailbox )
+            : t( new ::Timer( this, 10 ) ), m( mailbox ) {}
+        ~Timer() { delete t; }
+        void execute() { m->clear(); }
+
+    private:
+        ::Timer * t;
+        Mailbox * m;
+    };
+
+    Timer * clear;
 };
 
 
@@ -667,10 +685,6 @@ Query * Mailbox::remove( Transaction * t )
     there is no such message and \a create is true, message() creates
     one dynamically. \a create is true by default. If this Mailbox
     cannot contain messages, message() returns a null pointer.
-
-    This is a bit of a memory leak - messages are never deleted. When
-    the last session on a Mailbox is closed, we should drop these
-    messages. But we don't, yet.
 */
 
 Message * Mailbox::message( uint uid, bool create ) const
@@ -692,13 +706,21 @@ Message * Mailbox::message( uint uid, bool create ) const
 }
 
 
-/*! Forgets all about the Message objects in this Mailbox. This
-    interacts very poorly with active fetchers. Basically, if there's
-    a fetcher active, clear() will cause horrid confusion.
+/*! Forgets all about the Message objects in this Mailbox, provided no
+    Fetcher is currently active.
 */
 
 void Mailbox::clear()
 {
+    d->clear = 0;
+
+    if ( d->headerFetcher ||
+         d->flagFetcher ||
+         d->bodyFetcher ||
+         d->triviaFetcher ||
+         d->annotationFetcher )
+        return;
+
     d->messages = 0;
 }
 
@@ -714,6 +736,8 @@ void Mailbox::fetchHeaders( const MessageSet & messages,
         source()->fetchHeaders( sourceUids( messages ), handler );
         return;
     }
+    delete d->clear;
+    d->clear = 0;
     if ( !d->headerFetcher )
         d->headerFetcher = new MessageHeaderFetcher( this );
     d->headerFetcher->insert( messages, handler );
@@ -732,6 +756,8 @@ void Mailbox::fetchTrivia( const MessageSet & messages,
         source()->fetchTrivia( sourceUids( messages ), handler );
         return;
     }
+    delete d->clear;
+    d->clear = 0;
     if ( !d->triviaFetcher )
         d->triviaFetcher = new MessageTriviaFetcher( this );
     d->triviaFetcher->insert( messages, handler );
@@ -749,6 +775,8 @@ void Mailbox::fetchBodies( const MessageSet & messages,
         source()->fetchBodies( sourceUids( messages ), handler );
         return;
     }
+    delete d->clear;
+    d->clear = 0;
     if ( !d->bodyFetcher )
         d->bodyFetcher = new MessageBodyFetcher( this );
     d->bodyFetcher->insert( messages, handler );
@@ -767,6 +795,8 @@ void Mailbox::fetchFlags( const MessageSet & messages,
         source()->fetchFlags( sourceUids( messages ), handler );
         return;
     }
+    delete d->clear;
+    d->clear = 0;
     if ( !d->flagFetcher )
         d->flagFetcher = new MessageFlagFetcher( this );
     d->flagFetcher->insert( messages, handler );
@@ -784,6 +814,8 @@ void Mailbox::fetchAnnotations( const MessageSet & messages,
         source()->fetchAnnotations( sourceUids( messages ), handler );
         return;
     }
+    delete d->clear;
+    d->clear = 0;
     if ( !d->annotationFetcher )
         d->annotationFetcher = new MessageAnnotationFetcher( this );
     d->annotationFetcher->insert( messages, handler );
@@ -792,6 +824,9 @@ void Mailbox::fetchAnnotations( const MessageSet & messages,
 
 /*! Makes the Mailbox forget that \a f exists. The next time the
     Mailbox needs a suitable Fetcher, it will create one.
+
+    Ten seconds after the last Fetcher has been forgotten, the Mailbox
+    also forgets all of its messages - unless a new Fetcher is created.
 */
 
 void Mailbox::forget( Fetcher * f )
@@ -806,6 +841,16 @@ void Mailbox::forget( Fetcher * f )
         d->triviaFetcher = 0;
     else if ( d->annotationFetcher == f )
         d->annotationFetcher = 0;
+
+    if ( d->headerFetcher ||
+         d->flagFetcher ||
+         d->bodyFetcher ||
+         d->triviaFetcher ||
+         d->annotationFetcher )
+        return;
+
+    delete d->clear;
+    d->clear = new MailboxData::Timer( this );
 }
 
 
