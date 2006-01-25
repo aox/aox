@@ -4,6 +4,7 @@ Next release (2006-02-16: 1.03)
   - POP3
   - ANNOTATE(?)
   - codec error message (done)
+  - message cache/size management
 
 
 Next few releases
@@ -11,18 +12,7 @@ Next few releases
   - SORT/THREAD
   - Working webmail
   - Working msconsole
-  - Grand unified cache
   - More character encodings (BIG5/SJIS/ISO-2022-JP/EUC-KR)
-
-
-Grand Unified Cache
-
-  A template class Cache that goes from uint to an object of the
-  specified type.
-
-  The Cache objects keep a total global list of anything at all, and
-  Allocator can request that the oldest items are dropped from the
-  cache.
 
 
 ocd needs work (mike@waspfactory.org)
