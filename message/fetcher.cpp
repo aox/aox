@@ -210,8 +210,6 @@ void Fetcher::execute()
 
 void Fetcher::insert( const MessageSet & messages, EventHandler * handler )
 {
-    if ( messages.isEmpty() )
-        return;
     FetcherData::Handler * h = new FetcherData::Handler;
     h->o = handler;
     h->s = messages;
