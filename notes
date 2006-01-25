@@ -447,11 +447,6 @@ TLS client support (smtp, postgresql)
 We MUST support HTTPS for the webmail interface.
 
 
-We can't load pemtrans keys any more.
-
-  It works when linked against Cryptlib 3.1, but no longer.
-
-
 STARTTLS is really slow.
 
 
