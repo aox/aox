@@ -39,7 +39,7 @@ String Gb2312Codec::fromUnicode( const UString &u )
         if ( n < 128 ) {
             s.append( (char)n );
         }
-        else if ( unicodeToGb[n] != 0 ) {
+        else if ( n < 65536 && unicodeToGb[n] != 0 ) {
             n = unicodeToGb[n];
             s.append( ( n >> 8 ) );
             s.append( ( n & 0xff ) );
