@@ -39,4 +39,4 @@ Moc .msconsole.moc.cpp : console.h userpane.h mailboxpane.h searchedit.h
     consoleloop.h migrationpane.h permissioneditor.h migrator.h
     logpane.h ;
 
-LINKLIBS on msconsole = -lqt -lcrypt ;
+LINKLIBS on console.cpp = -lqt ;

@@ -64,6 +64,7 @@ rule SubInclude
     SubDir TOP $(_tokens) ;
 }
 
+
 rule Build
 {
     LOCATE_TARGET = [ FDirName $(TOP) $(BUILD) $(SUBDIR_TOKENS) ] ;
@@ -71,14 +72,24 @@ rule Build
     set-$(<) += [ FGristFiles $(>:S=$(SUFOBJ)) ] ;
 }
 
+
+rule UseLibrary
+{
+    LINKLIBS on [ FGristFiles $(<:S=$(SUFOBJ)) ] += -l$(>) ;
+}
+
+
 rule Executable
 {
-    local target ;
+    local target a ;
     Depends exe : $(<) ;
     Depends $(<) : $(set-$(>)) ;
     MakeLocate $(<) : [ FDirName $(TOP) bin ] ;
     Clean clean : $(<) ;
     Link $(<) : $(set-$(>)) ;
+    for a in $(set-$(>)) {
+        on $(a) LINKLIBS on $(<) += $(LINKLIBS) ;
+    }
 }
 
 rule Program
@@ -92,6 +103,7 @@ rule Server
     Executable $(<) : $(>) ;
     InstallBin $(INSTALLROOT)$(SBINDIR) : $(<) ;
 }
+
 
 actions EngraveConfig {
 sed -e 's!$BINDIR!'$(BINDIR)'!' \

@@ -6,4 +6,4 @@ Build recorder : recorder.cpp ;
 
 # we put this in the INSTALLDIR/sbin directory
 Server recorder : recorder server database core ;
-LINKLIBS on recorder += -lcrypt ;
+

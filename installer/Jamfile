@@ -21,4 +21,4 @@ Executable installer :
     installer database server mailbox message user core encodings 
     extractors ;
 InstallBin $(INSTALLROOT)$(LIBDIR) : installer ;
-LINKLIBS on installer = -lcrypt ;
+

@@ -17,7 +17,6 @@ else {
 Build tls : tlsproxy.cpp ;
 
 Server tlsproxy : tls server database core cryptlib ;
-LINKLIBS on tlsproxy += -lcrypt ;
 
 if ( $(USE_SYSTEM_CRYPTLIB) = "yes" ) {
     # additional flags that may be needed to link against cryptlib,

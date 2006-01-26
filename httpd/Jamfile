@@ -10,5 +10,5 @@ Build httpmain : httpd.cpp ;
 
 Server httpd : http httpmain database message server mailbox core
     encodings user extractors ;
-LINKLIBS on httpd = -lcrypt ;
+
 

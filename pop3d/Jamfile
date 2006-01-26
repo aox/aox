@@ -10,4 +10,3 @@ Build pop3d : pop3d.cpp ;
 
 Server pop3d : pop3d pop database message server sasl mailbox core
     encodings user extractors ;
-LINKLIBS on pop3d = -lcrypt ;

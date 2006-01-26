@@ -14,5 +14,3 @@ Build imapd : imapd.cpp ;
 
 Server imapd : imap imapd database message server sasl mailbox core
     encodings user extractors ;
-
-LINKLIBS on imapd = -lcrypt ;

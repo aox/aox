@@ -5,3 +5,5 @@ SubInclude TOP server ;
 
 Build database : database.cpp postgres.cpp pgmessage.cpp cache.cpp
     query.cpp transaction.cpp schema.cpp ;
+
+UseLibrary postgres.cpp : crypt ;
