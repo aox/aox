@@ -4,7 +4,7 @@ Next release (2006-02-16: 1.03)
   - POP3
   - ANNOTATE(?)
   - codec error message (done)
-  - message cache/size management
+  - message cache/size management (done)
 
 
 Next few releases
