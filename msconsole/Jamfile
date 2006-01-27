@@ -31,6 +31,8 @@ Build msconsole : console.cpp userpane.cpp mailboxpane.cpp msconsole.cpp
     dirtree.cpp mbox.cpp mh.cpp cyrus.cpp
     .msconsole.moc.cpp ;
 
+UseLibrary console.cpp : qt ;
+
 Program msconsole :
     msconsole database server mailbox message user core encodings
     admintools extractors ;
@@ -38,5 +40,3 @@ Program msconsole :
 Moc .msconsole.moc.cpp : console.h userpane.h mailboxpane.h searchedit.h
     consoleloop.h migrationpane.h permissioneditor.h migrator.h
     logpane.h ;
-
-UseLibrary console.cpp : qt ;
