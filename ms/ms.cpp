@@ -475,8 +475,9 @@ void start()
         return;
 
     Row * r = d->query->nextRow();
-    if ( !r || r->getInt( "test" ) != 42 )
-        error( "Couldn't execute a simple Postgres query." );
+    if ( d->query->failed() || !r || r->getInt( "test" ) != 42 )
+        error( "Couldn't execute a simple Postgres query: " +
+               d->query->error() );
 
     int i = 0;
     while ( i < nservers )
