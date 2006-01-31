@@ -42,7 +42,7 @@ public:
 
     void refresh( EventHandler * );
     Query * create( EventHandler * );
-    Query * remove( EventHandler * );
+    Query * remove( class Transaction * );
     Query * changeSecret( EventHandler * );
 
     void execute();
@@ -53,7 +53,6 @@ public:
 private:
     void refreshHelper();
     void createHelper();
-    void removeHelper();
     void csHelper();
 
 private:

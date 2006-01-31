@@ -40,7 +40,6 @@ public:
         LoungingAround,
         Creating,
         Refreshing,
-        Removing,
         ChangingSecret
     };
     Operation mode;
@@ -202,9 +201,6 @@ void User::execute()
         break;
     case UserData::Refreshing:
         refreshHelper();
-        break;
-    case UserData::Removing:
-        removeHelper();
         break;
     case UserData::ChangingSecret:
         csHelper();
@@ -410,60 +406,19 @@ void User::createHelper()
 }
 
 
-/*! This function is used to remove a user on behalf of \a owner.
-
-    It returns a pointer to a Query that can be used to track the
-    progress of the operation. If (and only if) this Query hasn't
-    already failed upon return from this function, the caller must
-    call execute() to initiate the operation.
+/*! Enqueues a query to remove this user in the Transaction \a t, and
+    returns the Query. Does not commit the Transaction.
 
     XXX: This function doesn't tell ocd about the user going away, and
     ocd wouldn't know what to do about it anyway.
 */
 
-Query * User::remove( EventHandler * owner )
+Query * User::remove( Transaction * t )
 {
-    Query *q = new Query( owner );
-
-    d->q = 0;
-    d->t = new Transaction( this );
-    d->mode = UserData::Removing;
-    d->user = owner;
-    d->result = q;
-
+    Query * q = new Query( "delete from users where login=$1", 0 );
+    q->bind( 1, d->login );
+    t->enqueue( q );
     return q;
-}
-
-
-/*! Finishes the work of remove(). */
-
-void User::removeHelper()
-{
-    if ( !d->q ) {
-        d->q =
-            new Query( "update mailboxes set deleted='t', owner=NULL "
-                       "where id=(select inbox from users where login=$1)",
-                       this );
-        d->q->bind( 1, d->login );
-        d->t->enqueue( d->q );
-        d->q = new Query( "delete from users where login=$1", this );
-        d->q->bind( 1, d->login );
-        d->t->enqueue( d->q );
-        d->t->commit();
-    }
-
-    if ( !d->t->done() )
-        return;
-
-    if ( d->t->failed() ) {
-        d->result->setError( d->t->error() );
-    }
-    else {
-        d->result->setState( Query::Completed );
-        d->id = 0;
-    }
-
-    d->result->notify();
 }
 
 
