@@ -1350,8 +1350,10 @@ void help()
         fprintf(
             stderr,
             "  delete user -- Delete a user.\n\n"
-            "    Synopsis: ms create user <login>\n\n"
-            "    Deletes the Archiveopteryx user with the specified login.\n"
+            "    Synopsis: ms create user [-f] <login>\n\n"
+            "    Deletes the Archiveopteryx user with the specified login.\n\n"
+            "    The -f flag causes any mailboxes owned by the user to be "
+            "deleted too.\n"
         );
     }
     else if ( a == "change" && b == "password" ) {

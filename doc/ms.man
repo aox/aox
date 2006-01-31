@@ -91,8 +91,10 @@ and
 .I new
 are acceptable abbreviations for
 .IR create .
-.IP "ms delete user <username>"
-Deletes the specified Archiveopteryx user.
+.IP "ms delete user [-f] <username>"
+Deletes the specified Archiveopteryx user. If
+.I -f
+is specified, any mailboxes owned by the user are also deleted.
 .IP
 .I del
 and
