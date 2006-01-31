@@ -949,40 +949,52 @@ void listUsers()
 
 void createUser()
 {
-    if ( d )
-        return;
+    if ( !d ) {
+        parseOptions();
+        String login = next();
+        String passwd = next();
+        String address = next();
+        end();
 
-    parseOptions();
-    String login = next();
-    String passwd = next();
-    String address = next();
-    end();
+        if ( login.isEmpty() || passwd.isEmpty() )
+            error( "No login name and password supplied." );
+        if ( !validUsername( login ) )
+            error( "Invalid username: " + login );
 
-    if ( login.isEmpty() || passwd.isEmpty() )
-        error( "No login name and password supplied." );
-    if ( !validUsername( login ) )
-        error( "Invalid username: " + login );
+        d = new Dispatcher( Dispatcher::CreateUser );
 
-    User * u = new User;
-    u->setLogin( login );
-    u->setSecret( passwd );
-    if ( !u->valid() )
-        error( u->error() );
-    if ( !address.isEmpty() ) {
-        AddressParser p( address );
-        if ( !p.error().isEmpty() )
-            error( p.error() );
-        if ( p.addresses()->count() != 1 )
-            error( "At most one address may be present" );
-        u->setAddress( p.addresses()->first() );
+        d->user = new User;
+        d->user->setLogin( login );
+        d->user->setSecret( passwd );
+        if ( !d->user->valid() )
+            error( d->user->error() );
+
+        if ( !address.isEmpty() ) {
+            AddressParser p( address );
+            if ( !p.error().isEmpty() )
+                error( p.error() );
+            if ( p.addresses()->count() != 1 )
+                error( "At most one address may be present" );
+            d->user->setAddress( p.addresses()->first() );
+        }
+
+        Mailbox::setup( d );
+        d->user->refresh( d );
     }
 
-    d = new Dispatcher( Dispatcher::CreateUser );
-    Mailbox::setup( d );
-    d->query = u->create( d );
+    if ( !d->query ) {
+        if ( d->user->state() == User::Unverified )
+            return;
+
+        if ( d->user->state() != User::Nonexistent )
+            error( "User " + d->user->login() + " already exists." );
+
+        d->query = d->user->create( d );
+        d->user->execute();
+    }
+
     if ( d->query->failed() )
         error( d->query->error() );
-    u->execute();
 }
 
 
