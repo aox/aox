@@ -988,27 +988,72 @@ void createUser()
 
 void deleteUser()
 {
-    if ( d )
+    if ( !d ) {
+        parseOptions();
+        String login = next();
+        end();
+
+        Database::setup();
+
+        if ( login.isEmpty() )
+            error( "No login name supplied." );
+        if ( !validUsername( login ) )
+            error( "Invalid username: " + login );
+
+        d = new Dispatcher( Dispatcher::DeleteUser );
+        Mailbox::setup( d );
+
+        d->user = new User;
+        d->user->setLogin( login );
+        d->user->refresh( d );
+
+        d->query =
+            new Query( "select m.id,m.name from mailboxes m join users u "
+                       "on (m.owner=u.id) where u.login=$1", d );
+        d->query->bind( 1, login );
+        d->query->execute();
+    }
+
+    if ( d->user->state() == User::Unverified )
         return;
 
-    parseOptions();
-    String login = next();
-    end();
+    if ( !d->query->done() )
+        return;
 
-    if ( login.isEmpty() )
-        error( "No login name supplied." );
-    if ( !validUsername( login ) )
-        error( "Invalid username: " + login );
+    if ( !d->t ) {
+        if ( d->user->state() == User::Nonexistent )
+            error( "No user named " + d->user->login() );
 
-    User * u = new User;
-    u->setLogin( login );
+        if ( !opt( 'f' ) && d->query->hasResults() ) {
+            fprintf( stderr, "User %s still owns the following mailboxes:\n",
+                     d->user->login().cstr() );
+            while ( d->query->hasResults() ) {
+                Row * r = d->query->nextRow();
+                String s = r->getString( "name" );
+                fprintf( stderr, "%s\n", s.cstr() );
+            }
+            fprintf( stderr, "(Use 'ms delete user -f %s' to delete the "
+                     "mailboxes too.)\n", d->user->login().cstr() );
+            exit( -1 );
+        }
 
-    d = new Dispatcher( Dispatcher::DeleteUser );
-    Mailbox::setup( d );
-    d->query = u->remove( d );
-    if ( d->query->failed() )
-        error( d->query->error() );
-    u->execute();
+        d->t = new Transaction( d );
+        while ( d->query->hasResults() ) {
+            Row * r = d->query->nextRow();
+            String s = r->getString( "name" );
+            Mailbox * m = Mailbox::obtain( s, false );
+            if ( !m || m->remove( d->t ) == 0 )
+                error( "Couldn't delete mailbox " + s );
+        }
+        d->query = d->user->remove( d->t );
+        d->t->commit();
+    }
+
+    if ( d->t && !d->t->done() )
+        return;
+
+    if ( d->t->failed() )
+        error( "Couldn't delete user: " + d->t->error() );
 }
 
 
