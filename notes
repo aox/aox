@@ -1,7 +1,7 @@
 Next release (2006-02-16: 1.03)
 
   - VIEW improvements
-  - POP3
+  - POP3 (done)
   - ANNOTATE(?)
   - codec error message (done)
   - message cache/size management (done)
@@ -52,8 +52,9 @@ Clean up SubDir/SubInclude
   to modules, so users get just the -I and -l arguments needed from
   the modules used (even if the entire tree is being compiled).
 
-  Also give Program a third argument, so it takes the result name, the
-  file sets to compile, and (new ->) the file containing main()
+  This turns out to be a little harder than I thought. Basically we'd
+  want include directories to follow the Build rule, not the SubDir
+  rule.
 
 
 ANNOTATE support
@@ -240,9 +241,6 @@ Write a valgrind skin that should help us to diagnose memory abuse.
 
 
 Read the GiST papers and look at tsearch2 again.
-
-
-Complete POP3 support.
 
 
 Improve LogPane so it doesn't eat so much CPU
