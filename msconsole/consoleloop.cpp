@@ -187,8 +187,14 @@ void EventNotifier::dispatch()
     r = false;
     w = false;
     EventLoop::global()->dispatch( c, rr, ww, time( 0 ) );
-    wn->setEnabled( c->state() != Connection::Connected ||
-                    c->writeBuffer()->size() > 0 );
+    if ( c->state() == Connection::Invalid )
+        return;
+
+    if ( c->state() == Connection::Connected &&
+         c->writeBuffer()->size() > 0 )
+        wn->setEnabled( false );
+    else
+        wn->setEnabled( true );
 }
 
 
