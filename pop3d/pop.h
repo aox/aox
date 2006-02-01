@@ -39,6 +39,8 @@ public:
 
     bool supports( const String & ) const;
 
+    void markForDeletion( uint );
+
     static void setup();
 
 private:

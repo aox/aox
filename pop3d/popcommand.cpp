@@ -5,7 +5,6 @@
 #include "tls.h"
 #include "user.h"
 #include "plain.h"
-#include "query.h"
 #include "buffer.h"
 #include "message.h"
 #include "session.h"
@@ -21,7 +20,7 @@ class PopCommandData
 public:
     PopCommandData()
         : pop( 0 ), args( 0 ), done( false ),
-          tlsServer( 0 ), m( 0 ), q( 0 ), r( 0 ),
+          tlsServer( 0 ), m( 0 ), r( 0 ),
           user( 0 ), mailbox( 0 ), permissions( 0 ),
           session( 0 ), sentFetch( false ), started( false ),
           message( 0 )
@@ -35,7 +34,6 @@ public:
 
     TlsServer * tlsServer;
     SaslMechanism * m;
-    Query * q;
     String * r;
     User * user;
     Mailbox * mailbox;
@@ -113,15 +111,16 @@ void PopCommand::execute()
 
     case Capa:
         d->pop->ok( "Capabilities:" );
-        // d->pop->enqueue( "TOP\r\n" );
-        d->pop->enqueue( "SASL\r\n" );
-        d->pop->enqueue( "STLS\r\n" );
-        d->pop->enqueue( "USER\r\n" );
-        d->pop->enqueue( "RESP-CODES\r\n" );
-        d->pop->enqueue( "PIPELINING\r\n" );
-        // d->pop->enqueue( "UIDL\r\n" );
-        d->pop->enqueue( "IMPLEMENTATION Oryx POP3 Server.\r\n" );
-        d->pop->enqueue( ".\r\n" );
+        d->pop->enqueue( // "TOP\r\n"
+                         "SASL\r\n"
+                         "STLS\r\n"
+                         "USER\r\n"
+                         "RESP-CODES\r\n"
+                         "PIPELINING\r\n"
+                         // "UIDL\r\n"
+                         "IMPLEMENTATION Archiveopteryx POP3 Server, "
+                         "http://www.archiveopteryx.org.\r\n"
+                         ".\r\n" );
         break;
 
     case Stls:
@@ -165,7 +164,8 @@ void PopCommand::execute()
         break;
 
     case Dele:
-        d->pop->err( "Unimplemented" );
+        if ( !dele() )
+            return;
         break;
 
     case Noop:
@@ -537,4 +537,31 @@ String PopCommand::nextArg()
     if ( d->args && !d->args->isEmpty() )
         return *d->args->take( d->args->first() );
     return "";
+}
+
+
+/*! Marks the specified message for later deletion. Although the RFC
+    prohibits the client from marking the same message twice, we
+    blithely allow it.
+
+    The message is not marked in the database, since if it were, a
+    different IMAP or POP command could delete it before this POP
+    enters Update state.
+*/
+
+bool PopCommand::dele()
+{
+    bool ok;
+    uint msn = nextArg().number( &ok );
+    uint uid = 0;
+    if ( ok )
+        uid = d->pop->session()->uid( msn );
+    if ( uid ) {
+        d->pop->markForDeletion( uid );
+        d->pop->ok( "Done" );
+    }
+    else {
+        d->pop->err( "Invalid message number" );
+    }
+    return true;
 }

@@ -37,6 +37,7 @@ private:
     bool stat();
     bool list();
     bool retr();
+    bool dele();
 };
 
 

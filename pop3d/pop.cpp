@@ -4,8 +4,10 @@
 
 #include "log.h"
 #include "user.h"
+#include "query.h"
 #include "string.h"
 #include "buffer.h"
+#include "mailbox.h"
 #include "session.h"
 #include "eventloop.h"
 #include "popcommand.h"
@@ -32,6 +34,7 @@ public:
     PopCommand * reader;
     bool reserved;
     Session * session;
+    MessageSet toBeDeleted;
 };
 
 
@@ -70,10 +73,20 @@ POP::POP( int s )
 
 /*! Sets this server's state to \a s, which may be one of Authorization,
     Transaction, or Update (as defined in POP3::State).
+
+    If the state is set to Update, DELE actions are
+    initiated. setState() returns immediately.
 */
 
 void POP::setState( State s )
 {
+    if ( s == Update && d->state != Update && !d->toBeDeleted.isEmpty() ) {
+        Query * q = new Query( "delete from messages where mailbox=$1 and "
+                               + d->toBeDeleted.where(),
+                               0 );
+        q->bind( 1, d->session->mailbox()->id() );
+        q->execute();
+    }
     d->state = s;
 }
 
@@ -375,4 +388,17 @@ void POP::setSession( Session * s )
 Session * POP::session() const
 {
     return d->session;
+}
+
+
+/*! Records that message \a uid should be deleted when the POP server
+    goes into Update state.
+
+    This is not written anywhere; the deletion state is kept in RAM
+    only. If the client breaks the connection off, we don't delete.
+*/
+
+void POP::markForDeletion( uint uid )
+{
+    d->toBeDeleted.add( uid );
 }
