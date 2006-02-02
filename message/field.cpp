@@ -459,7 +459,8 @@ void HeaderField::parseOther( const String &s )
     found.
 
     Only version 1.0 is accepted. Since some message generators
-    incorrectly send comments, this parser accepts them.
+    incorrectly send comments or trailing garbage, this parser accepts
+    them.
 */
 
 void HeaderField::parseMimeVersion( const String &s )
@@ -467,8 +468,7 @@ void HeaderField::parseMimeVersion( const String &s )
     Parser822 p( s );
     p.comment();
     String v = p.dotAtom();
-    p.comment();
-    if ( v != "1.0" || !p.atEnd() )
+    if ( v != "1.0" )
         setError( "Could not parse '" + s.simplified() + "'" );
     setData( v );
 }
