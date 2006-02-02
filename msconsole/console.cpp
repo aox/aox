@@ -102,11 +102,13 @@ Console::Console()
     d->panes->insert( i, w );
     d->items->insert( w, i );
 
+#if 0
     w = new LogPane( this );
     d->stack->addWidget( w );
     i = new QListViewItem( d->paneList, tr( "Event Log" ) );
     d->panes->insert( i, w );
     d->items->insert( w, i );
+#endif
 
     // and something to cut-and-paste for future panes
 #if 0

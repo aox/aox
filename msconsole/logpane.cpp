@@ -41,7 +41,7 @@ LogPane::LogPane( QWidget * parent )
     QGridLayout * tll = new QGridLayout( this, 2, 3, 6 );
 
     d->maxLines = new QSpinBox( this );
-    d->maxLines->setMaxValue( 10000 );
+    d->maxLines->setMaxValue( 128 );
     d->maxLines->setMinValue( 128 );
     tll->addWidget( d->maxLines, 0, 2 );
 

@@ -24,66 +24,78 @@ GuiLog::GuiLog()
     // nothing
 }
 
+static uint uniq;
+
+
+
+class LogMessage
+{
+public:
+    LogMessage( const String & id, Log::Facility f, Log::Severity s,
+                const String & m )
+        : transaction( id ),
+          facility( f ),
+          severity( s ),
+          message( m ),
+          time( ::time( 0 ) ),
+          number( ++uniq )
+        {}
+
+    String transaction;
+    Log::Facility facility;
+    Log::Severity severity;
+    String message;
+    uint time;
+    uint number;
+};
+
 
 class LogItem
     : public QListViewItem
 {
 public:
-    LogItem( QListView * parent,
-             QListViewItem * after,
-             const String & id, Log::Facility f, Log::Severity s,
-             const String & m );
-
+    LogItem( QListView * parent );
     QString text( int ) const;
-
     QString key( int, bool ) const;
 
-    QString transaction;
-    Log::Facility facility;
-    Log::Severity severity;
-    QString message;
-    uint time;
     uint number;
 };
 
-static uint uniq;
 
-
-LogItem::LogItem( QListView * parent,
-                  QListViewItem * after,
-                  const String & id, Log::Facility f, Log::Severity s,
-                  const String & m )
-    : QListViewItem( parent, after ),
-      transaction( QString::fromLatin1( id.data(), id.length() ) ),
-      facility( f ), severity( s ),
-      message( QString::fromLatin1( m.data(), m.length() ) ),
-      time( ::time( 0 ) ), number( ++uniq )
+LogItem::LogItem( QListView * parent )
+    : QListViewItem( parent ),
+      number( parent->childCount() )
 {
 }
 
 
+static LogMessage ** recentMessages;
+static uint messageBase;
+
+
 QString LogItem::text( int col ) const
 {
+    LogMessage * m = recentMessages[(number+::messageBase)%128];
     QString r;
     switch( col ) {
     case 0:
-        r = transaction;
+        r = QString::fromLatin1( m->transaction.data(), m->transaction.length() );
         break;
     case 1:
         { // a new scope so the Date object doesn't cross a label
             Date date;
-            date.setUnixTime( time );
+            date.setUnixTime( m->time );
             r = QString::fromLatin1( date.isoTime().cstr() );
         }
         break;
     case 2:
-        r = QString::fromLatin1( Log::facility( facility ) );
+        r = QString::fromLatin1( Log::facility( m->facility ) );
         break;
     case 3:
-        r = QString::fromLatin1( Log::severity( severity ) );
+        r = QString::fromLatin1( Log::severity( m->severity ) );
         break;
     case 4:
-        r = message;
+        r = QString::fromLatin1( m->message.data(), m->message.length() );
         break;
     default:
         break;
@@ -93,22 +105,21 @@ QString LogItem::text( int col ) const
 
 QString LogItem::key( int col, bool ) const
 {
+    LogMessage * m = recentMessages[(number+::messageBase)%128];
     QString r;
     switch( col ) {
     case 0:
-        r = transaction;
+    case 4:
+        r = text( col );
         break;
     case 1:
-        r.sprintf( "%08x %08x", time, number );
+        r.sprintf( "%08x %08x", m->time, m->number );
         break;
     case 2:
-        r[0] = '0' + (uint)facility;
+        r[0] = '0' + (uint)m->facility;
         break;
     case 3:
-        r[0] = '0' + (uint)severity;
-        break;
-    case 4:
-        r = message;
+        r[0] = '0' + (uint)m->severity;
         break;
     default:
         break;
@@ -117,9 +128,7 @@ QString LogItem::key( int col, bool ) const
 }
 
 
-static QListViewItem * item;
 static LogPane * logPane;
-static uint counter;
 
 
 void GuiLog::send( const String & id,
@@ -128,24 +137,13 @@ void GuiLog::send( const String & id,
 {
     if ( !::logPane )
         return;
-
-    ::item = new LogItem( ::logPane->listView(), item, id, f, s, m );
-    ::counter++;
-    if ( ::counter < 128 )
-        return;
-    ::counter = 0;
-    uint n = ::logPane->maxLines();
-    if ( (uint)::logPane->listView()->childCount() <= n )
-        return;
-
-    QListViewItem * i = ::logPane->listView()->firstChild();
-    n = (uint)::logPane->listView()->childCount() - n;
-    while ( n && i && i != ::item ) {
-        QListViewItem * t = i;
-        i = i->nextSibling();
-        delete t;
-        n--;
-    }
+    
+    ::recentMessages[::messageBase] = new LogMessage( id, f, s, m );
+    ::messageBase = (::messageBase + 1) % 128;
+    if ( (uint)::logPane->listView()->childCount() < 128 )
+        (void)new LogItem( ::logPane->listView() );
+    if ( ::logPane->listView()->isVisible() )
+        ::logPane->listView()->update();
 }
 
 
