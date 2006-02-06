@@ -1388,7 +1388,10 @@ void help()
             "  create mailbox -- Create a new mailbox.\n\n"
             "    Synopsis: ms create mailbox <name> [username]\n\n"
             "    Creates a new mailbox with the specified name and,\n"
-            "    if a username is specified, owned by that user.\n"
+            "    if a username is specified, owned by that user.\n\n"
+            "    The mailbox name must be fully-qualified (begin with /),\n"
+            "    unless a username is specified, in which case unqualified\n"
+            "    names are assumed to be under the user's home directory.\n"
         );
     }
     else if ( a == "delete" && b == "mailbox" ) {

@@ -106,6 +106,13 @@ Changes the specified user's password.
 .IP "ms create mailbox <name> [username]"
 Creates a new mailbox with the specified name and, if a username is
 specified, owned by that user.
+.IP
+The mailbox
+.I name
+must be fully-qualified (begin with /), unless a
+.I username
+is specified, in which case unqualified names are assumed to be under
+the user's home directory.
 .IP "ms delete mailbox <name>"
 Deletes the specified mailbox.
 .IP "ms vacuum [-b]"
