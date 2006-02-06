@@ -1124,9 +1124,15 @@ void createMailbox()
         return;
 
     if ( !d->t ) {
-        Mailbox * m = Mailbox::obtain( d->s );
         if ( d->user && d->user->state() == User::Nonexistent )
             error( "No user named " + d->user->login() );
+
+        if ( d->user && !d->s.startsWith( "/" ) )
+            d->s = d->user->home()->name() + "/" + d->s;
+
+        Mailbox * m = Mailbox::obtain( d->s );
+        if ( !m )
+            error( "Can't create mailbox named " + d->s );
 
         d->t = new Transaction( d );
         if ( m->create( d->t, d->user ) == 0 )
