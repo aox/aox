@@ -3,7 +3,7 @@
 .SH NAME
 recorder - IMAP connection recorder
 .SH SYNOPSIS
-.B $BINDIR/recorder srcport address destport file
+.B $SBINDIR/recorder srcport address destport file
 .SH DESCRIPTION
 .nh
 .PP
@@ -68,7 +68,7 @@ $LIBDIR/rcarchiveopteryx restart
 To make recorder listen on the normal port 143 and forward connections
 to the real server:
 .IP
-$BINDIR/recorder 1430 192.0.2.17 143 /tmp/bugreport
+$SBINDIR/recorder 1430 192.0.2.17 143 /tmp/bugreport
 .SS "Connect to recorder"
 With the IMAP client, you connect to port 1430 on this host instead of
 the real server, and work as usual. Please don't do much more than is

@@ -3,7 +3,7 @@
 .SH NAME
 smtpd - SMTP and LMTP server for Archiveopteryx.
 .SH SYNOPSIS
-.B $BINDIR/smtpd [-f] [-c configfile]
+.B $SBINDIR/smtpd [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP

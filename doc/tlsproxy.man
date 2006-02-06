@@ -3,7 +3,7 @@
 .SH NAME
 tlsproxy - TLS/SSL helper for Archiveopteryx.
 .SH SYNOPSIS
-.B $BINDIR/tlsproxy [-f] [-c configfile]
+.B $SBINDIR/tlsproxy [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP

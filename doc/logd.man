@@ -3,7 +3,7 @@
 .SH NAME
 logd - logging server for Archiveopteryx.
 .SH SYNOPSIS
-.B $BINDIR/logd [-f] [-c configfile]
+.B $SBINDIR/logd [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP
@@ -90,7 +90,7 @@ detailed) information in the log file.
 .SH FILES
 $CONFIGDIR/archiveopteryx.conf
 .br
-$BINDIR/logd
+$SBINDIR/logd
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION

@@ -3,7 +3,7 @@
 .SH NAME
 pop3d - POP3 server for Archiveopteryx.
 .SH SYNOPSIS
-.B $BINDIR/pop3d [-f] [-c configfile]
+.B $SBINDIR/pop3d [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP

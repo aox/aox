@@ -3,7 +3,7 @@
 .SH NAME
 imapd - IMAP4rev1 server for Archiveopteryx.
 .SH SYNOPSIS
-.B $BINDIR/imapd [-f] [-c configfile]
+.B $SBINDIR/imapd [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP

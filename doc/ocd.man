@@ -3,7 +3,7 @@
 .SH NAME
 ocd - cluster coordination server for Archiveopteryx.
 .SH SYNOPSIS
-.B $BINDIR/ocd [-f] [-c configfile]
+.B $SBINDIR/ocd [-f] [-c configfile]
 .SH DESCRIPTION
 .nh
 .PP
