@@ -362,7 +362,6 @@ void Allocator::free()
     i = 0;
     while ( i < 32 ) {
         Allocator * a = allocators[i];
-        Allocator * p = 0;
         while ( a ) {
             uint taken = a->taken;
             if ( a->taken )
@@ -370,12 +369,16 @@ void Allocator::free()
             freed = freed + ( taken - a->taken ) * a->step;
             total = total + a->taken * a->step;
             objects += a->taken;
-            Allocator * n = a->next;
-            if ( a->taken == 0 && p ) {
-                p->next = a->next;
-                delete a;
+            a = a->next;
+        }
+        a = allocators[i];
+        while ( a ) {
+            while ( a->next && !a->next->taken ) {
+                Allocator * n = a->next;
+                a->next = a->next->next;
+                delete n;
             }
-            a = n;
+            a = a->next;
         }
         i++;
     }
