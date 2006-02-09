@@ -435,6 +435,9 @@ void Listext::reference()
 {
     String name = astring();
 
+    if ( name.endsWith( "/" ) )
+        name.truncate( name.length()-1 );
+
     if ( name[0] == '/' )
         d->reference = Mailbox::obtain( name, false );
     else if ( name.isEmpty() )
