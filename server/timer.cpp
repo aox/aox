@@ -35,10 +35,11 @@ Timer::Timer( class EventHandler * owner, uint delay )
     : Garbage(), d( new TimerData )
 {
     uint now = time( 0 );
-    if ( delay + now >= now ) {
-        d->timeout = 0; // end of the universe...
-        EventLoop::global()->addTimer( this );
-    }
+    if ( delay + now < now )
+        return; // would be after the end of the universe...
+    d->owner = owner;
+    d->timeout = delay + now;
+    EventLoop::global()->addTimer( this );
 }
 
 
