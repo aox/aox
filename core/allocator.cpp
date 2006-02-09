@@ -395,7 +395,7 @@ void Allocator::free()
              " objects",
              Log::Info );
     if ( verbose && ::allocated >= 16 * 524288 ) {
-        String objects( "Objects: " );
+        String objects;
         i = 0;
         while ( i < 32 ) {
             uint n = 0;
