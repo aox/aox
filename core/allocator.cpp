@@ -371,9 +371,9 @@ void Allocator::free()
             total = total + a->taken * a->step;
             objects += a->taken;
             Allocator * n = a->next;
-            if ( taken == 0 && a->taken == 0 && p ) {
-                //p->next = a->next;
-                //delete a;
+            if ( a->taken == 0 && p ) {
+                p->next = a->next;
+                delete a;
             }
             a = n;
         }
@@ -394,6 +394,29 @@ void Allocator::free()
              fn( objects ) +
              " objects",
              Log::Info );
+    if ( verbose && ::allocated >= 16 * 524288 ) {
+        String objects( "Objects: " );
+        i = 0;
+        while ( i < 32 ) {
+            uint n = 0;
+            Allocator * a = allocators[i];
+            while ( a ) {
+                n = n + a->taken;
+                a = a->next;
+            }
+            if ( n ) {
+                if ( objects.isEmpty() )
+                    objects = "Objects: ";
+                else
+                    objects.append( "," );
+                uint size = allocators[i]->step - bytes;
+                objects.append( " size " + fn( size ) + ": " + fn( n ) );
+                objects.append( " (" + String::humanNumber( (size+bytes) * n ) + ")" );
+            }
+            i++;
+        }
+        log( objects, Log::Info );
+    }
     ::allocated = 0;
 }
 
