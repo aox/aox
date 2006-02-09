@@ -394,24 +394,27 @@ void Allocator::free()
              fn( objects ) +
              " objects",
              Log::Info );
-    if ( verbose && ::allocated >= 16 * 524288 ) {
+    if ( verbose && ::allocated >= 524288 ) {
         String objects;
         i = 0;
         while ( i < 32 ) {
             uint n = 0;
+            uint max = 0;
             Allocator * a = allocators[i];
             while ( a ) {
                 n = n + a->taken;
+                max = max + a->capacity;
                 a = a->next;
             }
             if ( n ) {
                 if ( objects.isEmpty() )
-                    objects = "Objects: ";
+                    objects = "Objects:";
                 else
                     objects.append( "," );
-                uint size = allocators[i]->step - bytes;
-                objects.append( " size " + fn( size ) + ": " + fn( n ) );
-                objects.append( " (" + String::humanNumber( (size+bytes) * n ) + ")" );
+                uint size = allocators[i]->step;
+                objects.append( " size " + fn( size-bytes ) + ": " + fn( n ) + " (" +
+                                String::humanNumber( size * n ) + " used, " +
+                                String::humanNumber( size * max ) + " allocated)" );
             }
             i++;
         }
