@@ -360,6 +360,7 @@ void Allocator::free()
     }
     // and sweep
     i = 0;
+    uint blocks = 0;
     while ( i < 32 ) {
         Allocator * a = allocators[i];
         while ( a ) {
@@ -373,6 +374,7 @@ void Allocator::free()
         }
         a = allocators[i];
         while ( a ) {
+            blocks++;
             while ( a->next && !a->next->taken ) {
                 Allocator * n = a->next;
                 a->next = a->next->next;
@@ -392,12 +394,14 @@ void Allocator::free()
              " then freed " +
              String::humanNumber( freed ) +
              " bytes, leaving " +
-             String::humanNumber( total ) +
-             " bytes allocated in " +
              fn( objects ) +
-             " objects",
+             " objects of " +
+             String::humanNumber( total ) +
+             " bytes, across " +
+             fn( blocks ) +
+             " 1MB blocks",
              Log::Info );
-    if ( verbose && ::allocated >= 524288 ) {
+    if ( verbose && total > 8 * 1024 * 1024 ) {
         String objects;
         i = 0;
         while ( i < 32 ) {
