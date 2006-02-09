@@ -444,31 +444,42 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     if ( !ct || ct->type() == "text" ) {
         bool specified = false;
         Codec * c = 0;
+
         if ( ct && ct->type() == "text" && ct->subtype() == "html" ) {
+            // Some user-agents add a <meta http-equiv="content-type">
+            // instead of the Content-Type field. We scan for that, to
+            // work around certain observed breakage.
+            //
+            // This isn't correct because:
+            // 1. This isn't HTTP, so http-equiv is irrelevant.
+            // 2. We're just scanning for the particular pattern which
+            // happens to be used by the brokenware, not parsing HTML.
+            //
+            // XXX: I wonder if this code shouldn't be invoked only if
+            // no charset is specified in the MIME header, or if there
+            // is an error using the specified charset (i.e., a dozen
+            // lines lower).
+
             String b = body.mid( 0, 2048 ).lower().simplified();
+
             int i = 0;
+            // XXX: Do we really need this loop?
             while ( i >= 0 ) {
-                // Some user-agents add a certain meta http-equiv
-                // instead of the content-type header. We scan for
-                // that. We can use it to work around certain observed
-                // breakage. Two problems:
-                // 1. This is not correct because this isn't HTTP, so
-                // http-equiv is inoperative, strictly speaking.
-                // 2. It's also not correct because we're just scanning for
-                // the particular pattern which happens to be used by
-                // the brokenware, not parsing properly.
                 i = b.find( "<meta http-equiv=\"content-type\" content=\"", i );
                 if ( i >= 0 ) {
                     i = i + 41; // length of the meta above
                     int j = i;
-                    while ( j < (int)b.length() &&
-                            b[j] != '"' )
+                    while ( j < (int)b.length() && b[j] != '"' )
                         j++;
                     HeaderField * hf
                         = HeaderField::create( "Content-Type",
                                                b.mid( i, j-i ) );
                     String cs = ((MimeField*)hf)->parameter( "charset" );
-                    if ( !cs.isEmpty() ) {
+                    if ( !cs.isEmpty() && Codec::byName( cs ) != 0 ) {
+                        // XXX: If ct does specify a charset, we should
+                        // try to figure out which of the two is more
+                        // appropriate to this message, instead of just
+                        // zapping the mail one with the HTTP one.
                         ct->removeParameter( "charset" );
                         ct->addParameter( "charset", cs );
                         i = -1;
@@ -477,7 +488,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 }
             }
         }
-            
+
         if ( ct ) {
             String csn = ct->parameter( "charset" );
             if ( csn.lower() == "default" )
@@ -502,6 +513,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
 
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body );
+
         if ( !c->valid() && !specified ) {
             if ( ct && ct->subtype() == "html" )
                 c = guessHtmlCodec( body );
@@ -511,6 +523,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 c = new Unknown8BitCodec;
             bp->d->text = c->toUnicode( body );
         }
+
         if ( !c->valid() && error.isEmpty() ) {
             String cs;
             if ( ct && specified )
@@ -521,7 +534,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             if ( !c->error().isEmpty() &&
                  ct->parameter( "charset" ).lower() == c->name().lower() )
                 error.append( ": " + c->error() );
-                    
         }
 
         if ( c->name().lower() != "us-ascii" ) {
@@ -531,8 +543,9 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             }
             ct->addParameter( "charset", c->name().lower() );
         }
-        else if ( ct )
+        else if ( ct ) {
             ct->removeParameter( "charset" );
+        }
 
         // XXX: Can we avoid this re-conversion?
         body = c->fromUnicode( bp->d->text );
