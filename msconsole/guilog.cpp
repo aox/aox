@@ -8,6 +8,8 @@
 #include "logpane.h"
 #include "date.h"
 
+#include <qwidgetstack.h>
+
 // time()
 #include <time.h>
 
@@ -152,6 +154,9 @@ void GuiLog::send( const String & id,
         (void)new LogItem( ::logPane->listView() );
     if ( ::logPane->listView()->isVisible() )
         ::logPane->listView()->update();
+    if ( ( s == Log::Disaster || s == Log::Error ) &&
+         ::logPane->parent() && ::logPane->parent()->inherits( "QWidgetStack" ) )
+        ((QWidgetStack*)::logPane->parent())->raiseWidget( ::logPane );
 }
 
 
