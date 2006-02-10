@@ -32,6 +32,7 @@ static uint uniq;
 
 
 class LogMessage
+    : public Garbage
 {
 public:
     LogMessage( const String & id, Log::Facility f, Log::Severity s,
