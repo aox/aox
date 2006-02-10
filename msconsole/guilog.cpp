@@ -4,6 +4,7 @@
 
 #include "guilog.h"
 
+#include "allocator.h"
 #include "logpane.h"
 #include "date.h"
 
@@ -64,7 +65,7 @@ public:
 
 LogItem::LogItem( QListView * parent )
     : QListViewItem( parent ),
-      number( parent->childCount() )
+      number( parent->childCount()-1 )
 {
 }
 
@@ -75,7 +76,9 @@ static uint messageBase;
 
 QString LogItem::text( int col ) const
 {
-    LogMessage * m = recentMessages[(number+::messageBase)%128];
+    LogMessage * m = recentMessages[number];
+    if ( !m )
+        return "";
     QString r;
     switch( col ) {
     case 0:
@@ -105,7 +108,9 @@ QString LogItem::text( int col ) const
 
 QString LogItem::key( int col, bool ) const
 {
-    LogMessage * m = recentMessages[(number+::messageBase)%128];
+    LogMessage * m = recentMessages[number];
+    if ( !m )
+        return "";
     QString r;
     switch( col ) {
     case 0:
@@ -137,6 +142,9 @@ void GuiLog::send( const String & id,
 {
     if ( !::logPane )
         return;
+
+    if ( !::recentMessages )
+        ::recentMessages = (LogMessage**)Allocator::alloc( 128 * sizeof( LogMessage* ) );
     
     ::recentMessages[::messageBase] = new LogMessage( id, f, s, m );
     ::messageBase = (::messageBase + 1) % 128;
