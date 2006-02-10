@@ -636,14 +636,11 @@ int processHelloSSL( SESSION_INFO *sessionInfoPtr,
 			retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 					"Invalid compression suite information" );
 		}
-#if 0
 	// we accept (and ignore) any compression methods unknown to us
 	for( i = 0; i < suiteLength; i++ )
 		{
-		if( sgetc( stream ) != 0 )
-			status = CRYPT_ERROR_BADDATA;
+		    (void)sgetc( stream );
 		}
-#endif
 	if( cryptStatusError( status ) )
 		retExt( sessionInfoPtr, CRYPT_ERROR_BADDATA,
 				"Invalid compression algorithm information" );
