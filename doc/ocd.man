@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH imapd 8 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
+.TH imapd 8 2006-03-13 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
 ocd - cluster coordination server for Archiveopteryx.
 .SH SYNOPSIS
@@ -47,7 +47,7 @@ will offer a management console. It doesn't yet, though.
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.04, released 2006-03-13,
 http://www.oryx.com/archiveopteryx/1.02.html.
 .SH SEE ALSO
 .BR archiveopteryx (7),

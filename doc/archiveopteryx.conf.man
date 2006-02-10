@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH archiveopteryx.conf 5 2006-01-16 www.oryx.com "Archiveopteryx Documentation"
+.TH archiveopteryx.conf 5 2006-03-13 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
 archiveopteryx.conf - configuration file for Archiveopteryx.
 .SH SYNOPSIS
@@ -473,7 +473,7 @@ hostname=stuff.nonsense.example.com # also a comment
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 1.02, released 2006-01-16,
+This man page covers Archiveopteryx version 1.04, released 2006-03-13,
 http://www.oryx.com/archiveopteryx/1.02.html.
 .SH SEE ALSO
 .BR archiveopteryx (7),
