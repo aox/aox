@@ -692,3 +692,23 @@ When TlsServer dies, imaps (993) must go away
   It doesn't at the moment. Anything else?
 
 
+Faster mapping from unicode to 8-bit encodings
+
+  At the moment, we use a while loop to find the right codepoint in an
+  array[256]. Mapping U+00EF to latin-1 requires looping from 0 to
+  0xEF, checking those 239 entries.
+
+  We could use a DAG of partial mappings to make it faster. Much
+  faster. Mapping U+20AC to 8895-15 would require just one lookup: In
+  the first partial table for 8859-15. Mapping U+0065 to 8859-15 would
+  require three: In the first (U+20AC, one entry long), in the
+  fallback (U+00A0, 96 entries long) and in the last (U+0000, 160
+  entries long).
+
+  Effectively, 8859-15 would be a first table of exceptions and then
+  fall back to 8859-1.
+
+  The tables could be built automatically, compiled in, and would be
+  tested by our existing apparatur.
+
+
