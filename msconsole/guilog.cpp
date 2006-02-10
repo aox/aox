@@ -149,9 +149,17 @@ void GuiLog::send( const String & id,
         ::recentMessages = (LogMessage**)Allocator::alloc( 128 * sizeof( LogMessage* ) );
     
     ::recentMessages[::messageBase] = new LogMessage( id, f, s, m );
+    uint current = ::messageBase;
     ::messageBase = (::messageBase + 1) % 128;
     if ( (uint)::logPane->listView()->childCount() < 128 )
         (void)new LogItem( ::logPane->listView() );
+    QListViewItem * i = ::logPane->listView()->firstChild();
+    while ( current && i ) {
+        i = i->nextSibling();
+        current--;
+    }
+    if ( i )
+        ::logPane->listView()->setCurrentItem( i );
     if ( ::logPane->listView()->isVisible() )
         ::logPane->listView()->update();
     if ( ( s == Log::Disaster || s == Log::Error ) &&
