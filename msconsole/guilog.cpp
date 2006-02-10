@@ -145,21 +145,25 @@ void GuiLog::send( const String & id,
     if ( !::logPane )
         return;
 
-    if ( !::recentMessages )
-        ::recentMessages = (LogMessage**)Allocator::alloc( 128 * sizeof( LogMessage* ) );
+    if ( !::recentMessages ) {
+        ::recentMessages = (LogMessage**)Allocator::alloc( 1024 * sizeof( LogMessage* ) );
+        Allocator::addEternal( ::recentMessages, "gui log item queue" );
+    }
     
     ::recentMessages[::messageBase] = new LogMessage( id, f, s, m );
     uint current = ::messageBase;
-    ::messageBase = (::messageBase + 1) % 128;
-    if ( (uint)::logPane->listView()->childCount() < 128 )
+    ::messageBase = (::messageBase + 1) % 1024;
+    if ( (uint)::logPane->listView()->childCount() < 1024 )
         (void)new LogItem( ::logPane->listView() );
-    QListViewItem * i = ::logPane->listView()->firstChild();
-    while ( current && i ) {
-        i = i->nextSibling();
-        current--;
+    if ( s != Log::Debug ) {
+        QListViewItem * i = ::logPane->listView()->firstChild();
+        while ( current && i ) {
+            i = i->nextSibling();
+            current--;
+        }
+        if ( i )
+            ::logPane->listView()->setCurrentItem( i );
     }
-    if ( i )
-        ::logPane->listView()->setCurrentItem( i );
     if ( ::logPane->listView()->isVisible() )
         ::logPane->listView()->update();
     if ( ( s == Log::Disaster || s == Log::Error ) &&

@@ -41,8 +41,8 @@ LogPane::LogPane( QWidget * parent )
     QGridLayout * tll = new QGridLayout( this, 2, 3, 6 );
 
     d->maxLines = new QSpinBox( this );
-    d->maxLines->setMaxValue( 128 );
-    d->maxLines->setMinValue( 128 );
+    d->maxLines->setMaxValue( 1024 );
+    d->maxLines->setMinValue( 1024 );
     tll->addWidget( d->maxLines, 0, 2 );
 
     QLabel * l = new QLabel( tr( "&Maximum log size" ), this );
