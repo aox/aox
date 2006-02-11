@@ -388,7 +388,8 @@ PgAuthRequest::PgAuthRequest( Buffer *b )
          ( t == MD5 && l != 4 ) )
         throw Syntax;
 
-    s = decodeByten( l );
+    if ( l != 0 )
+        s = decodeByten( l );
     end();
 }
 
