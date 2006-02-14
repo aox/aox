@@ -1,0 +1,94 @@
+// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+
+#include "euc-jp.h"
+
+#include "ustring.h"
+
+
+static const uint eucJpToUnicode[94][94] = {
+#include "euc-jp.inc"
+};
+
+static const uint unicodeToEucJp[65536] = {
+#include "euc-jp-rev.inc"
+};
+
+
+/*! \class EucJpCodec euc-jp.h
+
+    This class implements a translator between Unicode and the JIS X
+    0208:1990 character set using the EUC-JP encoding.
+*/
+
+/*! Creates a new EucJpCodec object. */
+
+EucJpCodec::EucJpCodec()
+    : Codec( "EUC-JP" )
+{
+}
+
+
+/*! Returns the EUC-JP-encoded representation of the UString \a u. */
+
+String EucJpCodec::fromUnicode( const UString &u )
+{
+    String s;
+
+    uint i = 0;
+    while ( i < u.length() ) {
+        uint n = u[i];
+        if ( n < 128 ) {
+            s.append( (char)n );
+        }
+        else if ( n < 65536 && unicodeToEucJp[n] != 0 ) {
+            n = unicodeToEucJp[n];
+            s.append( ( n >> 8 ) );
+            s.append( ( n & 0xff ) );
+        }
+        else {
+            setState( Invalid );
+        }
+        i++;
+    }
+
+    return s;
+}
+
+
+/*! Returns the Unicode representation of the String \a s. */
+
+UString EucJpCodec::toUnicode( const String &s )
+{
+    UString u;
+
+    uint n = 0;
+    while ( n < s.length() ) {
+        char c = s[n];
+
+        if ( c < 128 ) {
+            u.append( c );
+            n++;
+        }
+        else {
+            char d = s[n + 1];
+
+            uint i = c-128-32-1;
+            uint j = d-128-32-1;
+
+            if ( i > 93 || d < 128 || j > 93 )
+                recordError( n );
+            if ( eucJpToUnicode[i][j] == 0 )
+                recordError( n, i * 94 + j );
+            else
+                u.append( eucJpToUnicode[i][j] );
+
+            n += 2;
+        }
+
+    }
+
+    return u;
+}
+
+// for charset.pl:
+//codec EUC-JP EucJpCodec
