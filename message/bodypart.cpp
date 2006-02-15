@@ -463,7 +463,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             String b = body.mid( 0, 2048 ).lower().simplified();
 
             int i = 0;
-            // XXX: Do we really need this loop?
             while ( i >= 0 ) {
                 i = b.find( "<meta http-equiv=\"content-type\" content=\"", i );
                 if ( i >= 0 ) {
