@@ -687,7 +687,10 @@ static String hf( Header * f, HeaderField::Type t )
     List<Address>::Iterator it( a );
     while ( it ) {
         r.append( "(" );
-        r.append( Command::imapQuoted( it->name(), Command::NString ) );
+        if ( it->name().boring() )
+            r.append( Command::imapQuoted( it->name(), Command::NString ) );
+        else
+            r.append( Command::imapQuoted( it->name().quoted(), Command::NString ) );
         r.append( " NIL " );
         r.append( Command::imapQuoted( it->localpart(), Command::NString ) );
         r.append( " " );
@@ -890,19 +893,19 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
     else if ( mp->isMessage() )
         bp = ((Message*)mp)->children()->first();
 
-    if ( bp )
+    if ( bp ) {
         l.append( fn( bp->numEncodedBytes() ) );
-
-    if ( bp && ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
-        // body-type-msg   = media-message SP body-fields SP envelope
-        //                   SP body SP body-fld-lines
-        l.append( envelope( bp->message() ) );
-        l.append( bodyStructure( bp->message(), extended ) );
-        l.append( fn( bp->numEncodedLines() ) );
-    }
-    else if ( !ct || ct->type() == "text" ) {
-        // body-type-text  = media-text SP body-fields SP body-fld-lines
-        l.append( fn( bp->numEncodedLines() ) );
+        if ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) {
+            // body-type-msg   = media-message SP body-fields SP envelope
+            //                   SP body SP body-fld-lines
+            l.append( envelope( bp->message() ) );
+            l.append( bodyStructure( bp->message(), extended ) );
+            l.append( fn( bp->numEncodedLines() ) );
+        }
+        else if ( !ct || ct->type() == "text" ) {
+            // body-type-text  = media-text SP body-fields SP body-fld-lines
+            l.append( fn( bp->numEncodedLines() ) );
+        }
     }
 
     if ( extended ) {
