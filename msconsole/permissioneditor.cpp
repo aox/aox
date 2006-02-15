@@ -129,6 +129,11 @@ PermissionEditor::PermissionEditor( QWidget * parent )
         = new QLabel( "Admin", this );
     QToolTip::add( d->rights[Permissions::Admin],
                    tr( "<p>If set, the user can modify these rights.</p>" ) );
+
+    d->rights[Permissions::WriteSharedAnnotation]
+        = new QLabel( "Annotate", this );
+    QToolTip::add( d->rights[Permissions::WriteSharedAnnotation],
+                   tr( "<p>If set, the user can annotate messages.</p>" ) );
 }
 
 
@@ -154,7 +159,8 @@ void PermissionEditor::setMailbox( Mailbox * mailbox )
     d->rows->setAutoDelete( true );
 
     d->mailbox = mailbox;
-    (void)new PermissionEditorFetcher( this, mailbox );
+    if ( !mailbox->synthetic() )
+        (void)new PermissionEditorFetcher( this, mailbox );
 
     // Mailbox::owner() really should return User*
     PermissionEditorRow * r = new PermissionEditorRow( this );

@@ -51,8 +51,8 @@ MailboxPane::MailboxPane( QWidget * parent )
 
     d->mailboxes = new QListView( this, "mailbox list" );
     d->mailboxes->setRootIsDecorated( true );
-    d->mailboxes->addColumn( " " );
-    d->mailboxes->header()->hide();
+    d->mailboxes->addColumn( tr( "Name" ) );
+    d->mailboxes->addColumn( tr( "Type" ) );
     tll->addWidget( d->mailboxes, 1, 0 );
     l->setBuddy( d->mailboxes );
 
@@ -98,8 +98,20 @@ public:
     }
     QString text ( int column ) const
     {
-        if ( column > 0 )
+        if ( column > 1 )
             return "";
+        if ( column == 1 ) {
+            switch( m->type() ) {
+            case Mailbox::Synthetic:
+                return MailboxPane::tr( "Synthetic" );
+            case Mailbox::Ordinary:
+                return MailboxPane::tr( "Normal" );
+            case Mailbox::Deleted:
+                return MailboxPane::tr( "Deleted" );
+            case Mailbox::View:
+                return MailboxPane::tr( "View" );
+            };
+        }
         return QString::fromUtf8( m->name().cstr() );
     }
 
