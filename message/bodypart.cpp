@@ -618,6 +618,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         }
         bp->setMessage( m );
         m->setParent( bp );
+        if ( !m->error().isEmpty() )
+            error = "In message/rfc822 part: " + m->error();
     }
 
     return bp;
