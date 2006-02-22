@@ -2,10 +2,11 @@
 
 #include "address.h"
 
-#include "dict.h"
+#include "field.h"
 #include "stringlist.h"
 #include "ustring.h"
 #include "parser.h"
+#include "dict.h"
 #include "utf.h"
 
 
@@ -190,29 +191,17 @@ String Address::name() const
     if ( atom )
         return d->name;
 
+
+    
     Utf8Codec u;
     UString real( u.toUnicode( d->name ) );
+    
     Codec * c = Codec::byString( real );
     if ( c->name() == "US-ASCII" )
         return d->name.quoted( '"', '\\' );
 
-    String r( "=?" );
-    r.append( c->name().lower() );
-
-    String s = c->fromUnicode( real );
-    String q = s.eQP( true );
-    String b = s.e64();
-    if ( q.length() <= b.length() ) {
-        r.append( "?q?" );
-        r.append( q );
-    }
-    else {
-        r.append( "?b?" );
-        r.append( b );
-    }
-
-    r.append( "?=" );
-    return r;
+    // XXX: this discards and immediately recomputes real.
+    return HeaderField::encode( d->name );
 }
 
 
