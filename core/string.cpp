@@ -179,11 +179,29 @@ String & String::operator=( const char * s )
     call to reserve() causes a detach().
 */
 
-const char *String::cstr()
+const char * String::cstr()
 {
     reserve( length()+1 );
     d->str[d->len] = '\0';
     return data();
+}
+
+
+/*! This const version of cstr() is the same as the non-const version
+    above. The only difference is that it can be called on a const
+    object, and that it may cause some memory allocation elsewhere.
+*/
+
+const char * String::cstr() const
+{
+    if ( d && d->max > d->len ) {
+        d->str[d->len] = '\0';
+        return data();
+    }
+    String tmp;
+    tmp.reserve( length() + 1 );
+    tmp = *this;
+    return tmp.cstr();
 }
 
 

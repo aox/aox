@@ -52,7 +52,8 @@ public:
     inline bool isEmpty() const { return !d || !d->len; }
     inline uint length() const { return d ? d->len : 0; }
     inline const char *data() const { return d ? (const char*)d->str : 0; }
-    const char *cstr();
+    const char * cstr();
+    const char * cstr() const;
 
     String lower() const;
     String upper() const;
