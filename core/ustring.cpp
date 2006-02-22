@@ -233,3 +233,71 @@ uint UString::number( bool * ok, uint base ) const
 
     return n;
 }
+
+
+/*! Modifies this string so that all linefeeds are CRLF, and so that
+    the string ends with CRLF.
+*/
+
+void UString::useCRLF()
+{
+    bool needed = false;
+    if ( len < 2 || str[len-1] != 10 || str[len-2] != 13 )
+        needed = true;
+    uint i = 0;
+    while ( !needed && i < len ) {
+        if ( str[i] == 10 ) {
+            needed = true;
+        }
+        else if ( str[i] == 13 ) {
+            if ( i < len-1 && str[i+1] == 10 )
+                i++;
+            else
+                needed = true;
+        }
+        i++;
+    }
+    if ( !needed )
+        return;
+
+    i = 0;
+    uint l = 0;
+    while ( i < len ) {
+        if ( str[i] == 10 || str[i] == 13 )
+            l++;
+        i++;
+    }
+
+    uint * prev = str;
+    uint plen = len;
+    str = 0;
+    max = 0;
+    len = 0;
+
+    reserve( plen + 2 * l + 2 );
+    i = 0;
+    len = 0;
+    while ( i < plen ) {
+        bool lf = false;
+        if ( prev[i] == 13 && i < plen-1 && prev[i+1] == 10 ) {
+            i++;
+            lf = true;
+        }
+        else if ( prev[i] == 13 || prev[i] == 10 ) {
+            lf = true;
+        }
+
+        if ( lf ) {
+            str[len++] = 13;
+            str[len++] = 10;
+        }
+        else {
+            str[len++] = prev[i];
+        }
+        i++;
+        if ( i == plen && !lf ) {
+            str[len++] = 13;
+            str[len++] = 10;
+        }
+    }
+}
