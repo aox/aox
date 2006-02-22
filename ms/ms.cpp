@@ -7,15 +7,16 @@
 #include "configuration.h"
 #include "addresscache.h"
 #include "transaction.h"
+#include "eventloop.h"
 #include "database.h"
 #include "occlient.h"
 #include "address.h"
 #include "mailbox.h"
 #include "schema.h"
+#include "logger.h"
 #include "query.h"
 #include "file.h"
 #include "list.h"
-#include "eventloop.h"
 #include "user.h"
 #include "log.h"
 
@@ -72,6 +73,39 @@ void help();
 /*! \nodoc */
 
 
+class StderrLog
+    : public Logger
+{
+public:
+    StderrLog();
+    void send( const String &,
+               Log::Facility, Log::Severity,
+               const String & );
+    void commit( const String &, Log::Severity ) {}
+};
+
+StderrLog::StderrLog()
+    : Logger()
+{
+    // nothing?
+}
+
+
+void StderrLog::send( const String & id,
+                      Log::Facility, Log::Severity s,
+                      const String & m )
+{
+    if ( s == Log::Debug )
+        return;
+
+    fprintf( stderr, "%-10s %-7s %s\n",
+             id.cstr(), Log::severity( s ), m.cstr() );
+    
+    if ( s == Log::Disaster )
+        exit( 1 );
+}
+
+
 int main( int ac, char *av[] )
 {
     Scope global;
@@ -85,7 +119,13 @@ int main( int ac, char *av[] )
         args->append( new String( av[i++] ) );
 
     EventLoop::setup();
+
     Configuration::setup( "archiveopteryx.conf" );
+    Log * l = new Log( Log::General );
+    Allocator::addEternal( l, "log object" );
+    global.setLog( l );
+    Allocator::addEternal( new StderrLog, "log object" );
+
     Configuration::report();
 
     if ( Scope::current()->log()->disastersYet() )
