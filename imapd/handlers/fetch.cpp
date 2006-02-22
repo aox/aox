@@ -687,7 +687,8 @@ static String hf( Header * f, HeaderField::Type t )
     List<Address>::Iterator it( a );
     while ( it ) {
         r.append( "(" );
-        r.append( Command::imapQuoted( it->name(), Command::NString ) );
+        r.append( Command::imapQuoted( HeaderField::encode( it->uname() ),
+                                       Command::NString ) );
         r.append( " NIL " );
         r.append( Command::imapQuoted( it->localpart(), Command::NString ) );
         r.append( " " );
@@ -922,7 +923,8 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
 
 
 // helper for Fetch::annotation
-static void appendAttribute( StringList & l, const char * a, const char * t, const String & v )
+static void appendAttribute( StringList & l, const char * a, const char * t,
+                             const String & v )
 {
     if ( v.isEmpty() )
         return;
@@ -964,7 +966,7 @@ String Fetch::annotation( Multipart * m )
             StringList attributes;
             appendAttribute( attributes, "value", suffix, a->value() );
             if ( !attributes.isEmpty() )
-                appendAttribute( attributes, "size", suffix, 
+                appendAttribute( attributes, "size", suffix,
                                  String::fromNumber( a->value().length() ) );
             appendAttribute( attributes, "content-type", suffix, a->type() );
             appendAttribute( attributes, "content-language", suffix, a->language() );
