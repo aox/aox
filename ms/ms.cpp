@@ -82,6 +82,7 @@ public:
                Log::Facility, Log::Severity,
                const String & );
     void commit( const String &, Log::Severity ) {}
+    virtual String name() const;
 };
 
 StderrLog::StderrLog()
@@ -95,16 +96,23 @@ void StderrLog::send( const String & id,
                       Log::Facility, Log::Severity s,
                       const String & m )
 {
-    if ( s == Log::Debug )
-        return;
+    // Log already does this
+    if ( s == Log::Error )
+        fprintf( stderr, "%s: %s\n", name().cstr(), m.cstr() );
 
-    fprintf( stderr, "%-10s %-7s %s\n",
-             id.cstr(), Log::severity( s ), m.cstr() );
+    // Debug we ignore, Info we ignore for now.
     
-    if ( s == Log::Disaster )
+    // and in case of a disaster, we quit. the hard way.
+    if ( s == Log::Disaster ) {
+        fprintf( stderr, "%s: Fatal error. Exiting.\n", name().cstr() );
         exit( 1 );
+    }
 }
 
+String StderrLog::name() const
+{
+    return "ms";
+}
 
 int main( int ac, char *av[] )
 {
