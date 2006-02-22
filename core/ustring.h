@@ -43,8 +43,6 @@ public:
     UString mid( uint, uint = UINT_MAX ) const;
     uint number( bool *, uint = 10 ) const;
     
-    void useCRLF();
-
 private:
     uint len;
     uint max;

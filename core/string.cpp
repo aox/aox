@@ -1510,3 +1510,36 @@ String String::anonymised() const
 
     return r;
 }
+
+
+
+/*! Returns a copy of this string where every linefeed is CRLF, and
+    where the last two characters are CRLF.
+*/
+
+String String::crlf() const
+{
+    String r;
+    r.reserve( length() );
+    uint i = 0;
+    bool lf = false;
+    while ( i < d->len ) {
+        lf = false;
+        char c = d->str[i++];
+
+        if ( c == 13 || c == 10 ) {
+            lf = true;
+            if ( c == 13 && i < d->len && d->str[i] == 10 )
+                i++;
+        }
+
+        if ( lf )
+            r.append( "\r\n" );
+        else
+            r.append( c );
+    }
+    if ( !lf )
+        r.append( "\r\n" );
+
+    return r;
+}

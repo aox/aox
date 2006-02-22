@@ -438,7 +438,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
 
     String body;
     if ( end > start )
-        body = rfc2822.mid( start, end-start ).decode( e );
+        body = rfc2822.mid( start, end-start ).crlf().decode( e );
 
     ContentType * ct = h->contentType();
     if ( !ct || ct->type() == "text" ) {
@@ -511,7 +511,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             c = new AsciiCodec;
 
         bp->d->hasText = true;
-        bp->d->text = c->toUnicode( body );
+        bp->d->text = c->toUnicode( body.crlf() );
 
         if ( !c->valid() && !specified ) {
             if ( ct && ct->subtype() == "html" )
@@ -546,7 +546,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             ct->removeParameter( "charset" );
         }
 
-        // XXX: Can we avoid this re-conversion?
         body = c->fromUnicode( bp->d->text );
         bool qp = body.needsQP();
 
@@ -580,7 +579,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     if ( cte )
         body = body.encode( cte->encoding() );
     // XXX: if cte->encoding() is base64, this encodes without
-    // CFLF. that seems rather suboptimal.
+    // CRLF. that seems rather suboptimal.
     bp->d->numEncodedBytes = body.length();
 
     if ( bp->d->hasText ||

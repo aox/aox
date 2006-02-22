@@ -124,6 +124,8 @@ public:
 
     String anonymised() const;
 
+    String crlf() const;
+
 private:
     StringData * d;
 };
