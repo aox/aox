@@ -519,8 +519,8 @@ void Postgres::unknown( char type )
             case PgMessage::Fatal:
                 // special-case IDENT query failures since they can be
                 // so off-putting to novices.
-                if ( msg.message().startsWith( "Ident authentication "
-                                               "failed for user \"") ) {
+                if ( msg.message().lower().startsWith( "ident authentication "
+                                                       "failed for user \"") ) {
                     String s = msg.message();
                     int b = s.find( '"' );
                     int e = s.find( '"', b+1 );
@@ -544,11 +544,9 @@ void Postgres::unknown( char type )
                     }
                     else {
                         log( "PostgreSQL refuses authentication because this "
-                             "process is not running as user " + s,
-                             Log::Disaster );
-                        log( "See "
+                             "process is not running as user " + s + ". See "
                              "http://www.oryx.com/faq/mailstore.html#ident",
-                             Log::Info );
+                             Log::Disaster );
                     }
                 }
                 else {
