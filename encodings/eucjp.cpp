@@ -1,20 +1,20 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "euc-jp.h"
+#include "eucjp.h"
 
 #include "ustring.h"
 
 
 static const uint eucJpToUnicode[94][94] = {
-#include "euc-jp.inc"
+#include "eucjp.inc"
 };
 
 static const uint unicodeToEucJp[65536] = {
-#include "euc-jp-rev.inc"
+#include "eucjp-rev.inc"
 };
 
 
-/*! \class EucJpCodec euc-jp.h
+/*! \class EucJpCodec eucjp.h
 
     This class implements a translator between Unicode and the JIS X
     0208:1990 character set using the EUC-JP encoding.
