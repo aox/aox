@@ -238,7 +238,6 @@ static struct RI {
 	{ "/usr/sbin/netstat", "-in", SC( -1 ), NULL, 0, 0, 0, TRUE },
 	{ "/bin/netstat", "-in", SC( -1 ), NULL, 0, 0, 0, TRUE },
 	{ "/usr/etc/netstat", "-in", SC( -1 ), NULL, 0, 0, 0, FALSE },
-	{ "/usr/sbin/ntptrace", "-r2 -t1 -nv", SC( -1 ), NULL, 0, 0, 0, FALSE },
 #ifndef __SCO_VERSION__
 	{ "/usr/sbin/snmp_request", "localhost public get 1.3.6.1.2.1.7.1.0", SC( -1 ), NULL, 0, 0, 0, FALSE }, /* UDP in */
 	{ "/usr/sbin/snmp_request", "localhost public get 1.3.6.1.2.1.7.4.0", SC( -1 ), NULL, 0, 0, 0, FALSE }, /* UDP out */
@@ -276,6 +275,7 @@ static struct RI {
 #if defined( __sgi ) || defined( __hpux )
 	{ "/bin/ps", "-el", SC( 0.3 ), NULL, 0, 0, 0, TRUE },
 #endif /* SGI || PHUX */
+	{ "/usr/sbin/ntptrace", "-r2 -t1 -nv", SC( -1 ), NULL, 0, 0, 0, FALSE },
 	{ "/usr/ucb/ps", "aux", SC( 0.3 ), NULL, 0, 0, 0, TRUE },
 	{ "/usr/bin/ps", "aux", SC( 0.3 ), NULL, 0, 0, 0, TRUE },
 	{ "/bin/ps", "aux", SC( 0.3 ), NULL, 0, 0, 0, FALSE },
