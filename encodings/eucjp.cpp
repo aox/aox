@@ -42,8 +42,8 @@ String EucJpCodec::fromUnicode( const UString &u )
         }
         else if ( n < 65536 && unicodeToEucJp[n] != 0 ) {
             n = unicodeToEucJp[n];
-            s.append( ( n >> 8 ) );
-            s.append( ( n & 0xff ) );
+            s.append( ( n >> 8 ) | 0x80 );
+            s.append( ( n & 0xff ) | 0x80 );
         }
         else {
             setState( Invalid );
