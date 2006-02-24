@@ -5,11 +5,11 @@
 #include "ustring.h"
 
 
-static const uint eucJpToUnicode[94][94] = {
+static const uint toU[94][94] = {
 #include "eucjp.inc"
 };
 
-static const uint unicodeToEucJp[65536] = {
+static const uint toE[65536] = {
 #include "eucjp-rev.inc"
 };
 
@@ -40,8 +40,8 @@ String EucJpCodec::fromUnicode( const UString &u )
         if ( n < 128 ) {
             s.append( (char)n );
         }
-        else if ( n < 65536 && unicodeToEucJp[n] != 0 ) {
-            n = unicodeToEucJp[n];
+        else if ( n < 65536 && toE[n] != 0 ) {
+            n = toE[n];
             s.append( ( n >> 8 ) | 0x80 );
             s.append( ( n & 0xff ) | 0x80 );
         }
@@ -77,10 +77,10 @@ UString EucJpCodec::toUnicode( const String &s )
 
             if ( i > 93 || d < 128 || j > 93 )
                 recordError( n );
-            if ( eucJpToUnicode[i][j] == 0 )
+            if ( toU[i][j] == 0 || toU[i][j] == 0xFFFD )
                 recordError( n, i * 94 + j );
             else
-                u.append( eucJpToUnicode[i][j] );
+                u.append( toU[i][j] );
 
             n += 2;
         }
