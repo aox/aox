@@ -77,7 +77,7 @@ UString EucJpCodec::toUnicode( const String &s )
 
             if ( i > 93 || d < 128 || j > 93 )
                 recordError( n );
-            if ( toU[i][j] == 0 || toU[i][j] == 0xFFFD )
+            if ( toU[i][j] == 0xFFFD )
                 recordError( n, i * 94 + j );
             else
                 u.append( toU[i][j] );
