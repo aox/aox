@@ -1523,7 +1523,10 @@ String String::crlf() const
     r.reserve( length() );
     uint i = 0;
     bool lf = false;
-    while ( i < d->len ) {
+    uint len = 0;
+    if ( d )
+        len = d->len;
+    while ( i < len ) {
         lf = false;
         char c = d->str[i++];
 

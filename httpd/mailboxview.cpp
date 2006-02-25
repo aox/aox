@@ -182,8 +182,8 @@ MailboxView::Thread * MailboxView::thread( const String & subject )
 }
 
 
-/*! Returns the MailboxView::Thread that starts at \a uid. If \a uid
-    doesn't start a thread, this function returns a null pointer.
+/*! Returns the MailboxView::Thread that contains \a uid. If no thread
+    contains \a uid, this function returns a null pointer.
 */
 
 MailboxView::Thread * MailboxView::thread( uint uid )
