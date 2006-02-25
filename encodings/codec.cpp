@@ -134,6 +134,18 @@ void Codec::recordError( uint pos, uint codepoint )
 }
 
 
+/*! Records that the error \a s occurred. This is meant for errors other
+    than invalid or undefined codepoints, and should be needed only by a
+    stateful Codec. Also sets the state() to Invalid.
+*/
+
+void Codec::recordError( const String &s )
+{
+    setState( Invalid );
+    e = s;
+}
+
+
 static struct {
     const char * alias;
     const char * name;

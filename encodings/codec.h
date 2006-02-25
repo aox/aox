@@ -30,6 +30,7 @@ public:
     String error() const;
     void recordError( uint );
     void recordError( uint, uint );
+    void recordError( const String & );
 
     static Codec * byName(  const String & );
     static Codec * byString( const UString & );
