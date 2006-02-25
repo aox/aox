@@ -19,15 +19,25 @@ static const uint toE[65536] = {
     This codec translates between Unicode and JIS X 0208:1990, encoded
     with EUC-JP.
 
-    The following conflicting codepoints are not yet handled:
+    The following ambiguities exist:
 
-    1. K+213D: U+2014 (ICU, Java) vs. U+2015 (Qt, Perl)
-    2. K+215D: U+FF0D (Qt) vs. U+2212 (Java, Perl, ICU)
-    3. K+2171: U+00A2 (Qt, Perl, Java) vs. U+FFE0 (ICU)
-    4. K+2172: U+00A3 (Qt, Perl, Java) vs. U+FFE1 (ICU)
-    5. K+224C: U+00AC (Qt, Perl, Java) vs. U+FFE2 (ICU)
+    1. Most variants of EUC-JP assume the range 0x20-0x7E to be ASCII,
+       but one apparently uses JIS X 0201 instead, in which 0x5C maps
+       to U+00A5 (YEN SIGN) instead of the REVERSE SOLIDUS; and 0x7E
+       maps to U+203E (OVERLINE) instead of the TILDE. (Ignored.)
 
-    The ICU interpretation in each case seems eminently sensible.
+    2. (Halfwidth Katakana and IBM/NEC special characters have simply
+       been ignored.)
+
+    3. The following conflicting codepoints are not yet handled:
+
+        1. K+213D: U+2014 (ICU, Java) vs. U+2015 (Qt, Perl)
+        2. K+215D: U+FF0D (Qt) vs. U+2212 (Java, Perl, ICU)
+        3. K+2171: U+00A2 (Qt, Perl, Java) vs. U+FFE0 (ICU)
+        4. K+2172: U+00A3 (Qt, Perl, Java) vs. U+FFE1 (ICU)
+        5. K+224C: U+00AC (Qt, Perl, Java) vs. U+FFE2 (ICU)
+
+    See <http://www.w3.org/TR/japanese-xml/#AEN29832832>
 */
 
 /*! Creates a new EucJpCodec object. */
