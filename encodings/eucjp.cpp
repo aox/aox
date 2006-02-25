@@ -16,8 +16,18 @@ static const uint toE[65536] = {
 
 /*! \class EucJpCodec eucjp.h
 
-    This class implements a translator between Unicode and the JIS X
-    0208:1990 character set using the EUC-JP encoding.
+    This codec translates between Unicode and JIS X 0208:1990, encoded
+    with EUC-JP.
+
+    The following conflicting codepoints are not yet handled:
+
+    1. K+213D: U+2014 (ICU, Java) vs. U+2015 (Qt, Perl)
+    2. K+215D: U+FF0D (Qt) vs. U+2212 (Java, Perl, ICU)
+    3. K+2171: U+00A2 (Qt, Perl, Java) vs. U+FFE0 (ICU)
+    4. K+2172: U+00A3 (Qt, Perl, Java) vs. U+FFE1 (ICU)
+    5. K+224C: U+00AC (Qt, Perl, Java) vs. U+FFE2 (ICU)
+
+    The ICU interpretation in each case seems eminently sensible.
 */
 
 /*! Creates a new EucJpCodec object. */
