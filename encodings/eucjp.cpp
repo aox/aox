@@ -6,11 +6,11 @@
 
 
 static const uint toU[94][94] = {
-#include "eucjp.inc"
+#include "jisx0208.inc"
 };
 
 static const uint toE[65536] = {
-#include "eucjp-rev.inc"
+#include "jisx0208-rev.inc"
 };
 
 
