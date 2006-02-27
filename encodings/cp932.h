@@ -1,16 +1,16 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef SHIFTJIS
-#define SHIFTJIS
+#ifndef CP932
+#define CP932
 
 #include "codec.h"
 
 
-class ShiftJisCodec
+class Cp932Codec
     : public Codec
 {
 public:
-    ShiftJisCodec();
+    Cp932Codec();
 
     String fromUnicode( const UString & );
     UString toUnicode( const String & );
