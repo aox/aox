@@ -43,7 +43,8 @@ String Cp932Codec::fromUnicode( const UString &u )
         }
         else if ( toE[n] != 0 ) {
             n = toE[n];
-            s.append( n >> 8 );
+            if ( n >> 8 != 0 )
+                s.append( n >> 8 );
             s.append( n & 0xff );
         }
         else {
@@ -70,7 +71,18 @@ UString Cp932Codec::toUnicode( const String &s )
             u.append( c );
         }
         else {
-            char d = s[++n];
+            char d;
+
+            if ( ( c >= 0x81 && c <= 0x9F ) ||
+                 ( c >= 0xE0 && c <= 0xFC ) )
+            {
+                d = s[++n];
+            }
+            else {
+                d = c;
+                c = 0;
+            }
+
             uint p = (c << 8) | d;
             if ( toU[p] != 0xFFFD )
                 u.append( toU[p] );
