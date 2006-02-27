@@ -1,18 +1,13 @@
-Next release (2006-02-16: 1.03)
+Next release (2006-03-13: 1.04)
 
-  - VIEW improvements
-  - POP3 (done)
-  - ANNOTATE(?)
-  - codec error message (done)
-  - message cache/size management (done)
-
+  - ?
 
 Next few releases
 
   - SORT/THREAD
   - Working webmail
   - Working msconsole
-  - More character encodings (BIG5/SJIS/ISO-2022-JP/EUC-KR)
+  - More character encodings (BIG5/EUC-KR)
 
 
 ocd needs work (mike@waspfactory.org)
@@ -318,19 +313,6 @@ CAcert instead of self-signed certificate?
 
 
 Switch to using named constraints everywhere.
-
-
-ISO-2022-JP
-
-  Lightly used, but easy to implement... I think. We can test
-  interoperability against Qt.
-
-  The specification in RFC 1468 does not quite match the real
-  world. RFC 1468 demands that senders end two-byte characters, but
-  mrc, at least, occasionally sends one-byte characters. The last byte
-  has to be dropped. There are messages on the IMAP list that
-  demonstrate this. (Rather disturbed mailchen until I submitted a
-  patch for Qt.)
 
 
 Default c-t-e of PGP signatures
