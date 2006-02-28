@@ -1,13 +1,13 @@
 Next release (2006-03-13: 1.04)
 
-  - ?
+  - ISO-2022-JP/EUC-JP/Big5/Shift_JIS.
 
 Next few releases
 
   - SORT/THREAD
   - Working webmail
   - Working msconsole
-  - More character encodings (BIG5/EUC-KR)
+  - More character encodings (EUC-KR)
 
 
 ocd needs work (mike@waspfactory.org)
