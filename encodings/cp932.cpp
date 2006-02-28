@@ -97,4 +97,4 @@ UString Cp932Codec::toUnicode( const String &s )
 }
 
 // for charset.pl:
-//codec CP932 Cp932Codec
+//codec Shift_JIS Cp932Codec

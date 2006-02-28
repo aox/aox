@@ -94,4 +94,4 @@ UString Cp950Codec::toUnicode( const String &s )
 }
 
 // for charset.pl:
-//codec CP950 Cp950Codec
+//codec Big5 Cp950Codec
