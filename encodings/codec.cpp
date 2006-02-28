@@ -344,17 +344,34 @@ Codec * Codec::byString( const String & s )
         }
     }
 
-    // Sometimes, people use 8-bit punctation or the pound/euro signs
-    // in otherwise ASCII text. Let's look for the common cases.
+    // Let's look through the string for hints about the charset that it
+    // uses (stray 8-bit punctuation, escape sequences, etc.).
+
+    uint n8 = 0;
+
     bool latin1 = true;
     bool latin9 = true;
     bool windows1252 = true;
+
+    bool iso2022esc = false;
+
     b = 0;
     while ( b < s.length() ) {
-        while ( b < s.length() && s[b] < 128 )
+        while ( b < s.length() && ( s[b] < 128 || s[b] != 0x1B ) )
             b++; // just for ease of single-stepping
+
         char c = s[b];
         b++;
+
+        if ( c == 0x1B ) {
+            if ( ( s[b] == '(' || s[b] == '$' ) &&
+                 ( s[b+1] == 'B' || s[b+1] == 'J' || s[b+1] == '@' ) )
+                iso2022esc = true;
+        }
+        else {
+            n8++;
+        }
+
         if ( c >= 160 ) {
             if ( c == 0xA4 /* euro */ ) {
                 latin1 = false;
@@ -386,12 +403,16 @@ Codec * Codec::byString( const String & s )
                 windows1252 = false;
         }
     }
+
+    if ( iso2022esc && n8 == 0 )
+        return new Iso2022JpCodec;
     if ( latin1 )
         return new Iso88591Codec;
     if ( latin9 )
         return new Iso885915Codec;
     if ( windows1252 )
         return new Cp1252Codec;
+
     return 0;
 }
 
