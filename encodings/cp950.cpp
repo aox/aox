@@ -23,7 +23,7 @@ static const uint toE[65536] = {
 /*! Creates a new Cp950Codec object. */
 
 Cp950Codec::Cp950Codec()
-    : Codec( "CP950" )
+    : Codec( "Big5" )
 {
 }
 

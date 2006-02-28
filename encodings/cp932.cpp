@@ -24,7 +24,7 @@ static const uint toE[65536] = {
 /*! Creates a new Cp932Codec object. */
 
 Cp932Codec::Cp932Codec()
-    : Codec( "CP932" )
+    : Codec( "Shift_JIS" )
 {
 }
 
