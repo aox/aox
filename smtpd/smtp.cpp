@@ -251,6 +251,7 @@ void SmtpDbClient::execute()
 
         Message * m = new Message( wrapper );
         injector = new Injector( m, d->mailboxes, this );
+        d->injector = injector;
         injector->execute();
         return;
     }
