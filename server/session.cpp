@@ -684,10 +684,9 @@ void SessionInitialiser::addWatcher( EventHandler * e )
 }
 
 
-/*! The SessionInitialiser calls this when it's creating itself, so
-    initialised() can return false untol removeSessionInitialiser() is
-    called. Noone else should ever call it.
-
+/*! The SessionInitialiser calls this when it's creating itself (thus,
+    \a s refers to itself), so that initialised() can return false until
+    removeSessionInitialiser() is called. Noone else should ever call it.
 */
 
 void Session::addSessionInitialiser( class SessionInitialiser * s )

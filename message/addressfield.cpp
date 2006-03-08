@@ -151,8 +151,8 @@ void AddressField::update()
 }
 
 
-/*! Parses the RFC 2822 address-list production and records the first
-    problem found.
+/*! Parses the RFC 2822 address-list production from \a s and records
+    the first problem found.
 */
 
 void AddressField::parseAddressList( const String &s )
@@ -163,8 +163,8 @@ void AddressField::parseAddressList( const String &s )
 }
 
 
-/*! Parses the RFC 2822 mailbox-list production and records the first
-    problem found.
+/*! Parses the RFC 2822 mailbox-list production from \a s and records
+    the first problem found.
 */
 
 void AddressField::parseMailboxList( const String &s )
@@ -181,8 +181,8 @@ void AddressField::parseMailboxList( const String &s )
 }
 
 
-/*! Parses the RFC 2822 mailbox production and records the first
-    problem found.
+/*! Parses the RFC 2822 mailbox production from \a s and records the
+    first problem found.
 */
 
 void AddressField::parseMailbox( const String &s )
@@ -195,8 +195,8 @@ void AddressField::parseMailbox( const String &s )
 }
 
 
-/*! Parses the contents of an RFC 2822 references field. This is
-    nominally 1*msg-id, but in practice we need to be a little more
+/*! Parses the contents of an RFC 2822 references field in \a s. This
+    is nominally 1*msg-id, but in practice we need to be a little more
     flexible. Overlooks common problems and records the first serious
     problems found.
 */
@@ -209,8 +209,8 @@ void AddressField::parseReferences( const String &s )
 }
 
 
-/*! Parses the RFC 2822 msg-id production. Unlike most other functions
-    in AddressField, this function ignores all errors found.
+/*! Parses the RFC 2822 msg-id production from \a s. Unlike most other
+    functions in AddressField, this function ignores all errors found.
 
     There are so many bad message-ids that we cannot reject mail. We
     do better to behave as if such mail has no message-id field at

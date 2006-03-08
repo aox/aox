@@ -400,7 +400,9 @@ Log::Severity LogServer::severity( const String &l )
 }
 
 
-/*! Logs a final line in the logfile and reopens it. */
+/*! Logs a final line in the logfile and reopens it. The unused \a int
+    argument exists because this function is used as a signal handler.
+*/
 
 void LogServer::reopen( int )
 {

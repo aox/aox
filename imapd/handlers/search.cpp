@@ -548,8 +548,9 @@ void Search::pop()
 }
 
 
-/*! Reads an astring and returns it as unicode, using the charset
-    specified in the CHARSET argument to SEARCH.
+/*! Reads an argument of type \a stringType (which may be AString,
+    NString, or PlainString) and returns it as unicode, using the
+    charset specified in the CHARSET argument to SEARCH.
 */
 
 UString Search::ustring( Command::QuoteMode stringType )

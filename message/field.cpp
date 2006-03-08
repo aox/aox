@@ -421,8 +421,9 @@ void HeaderField::reassemble( const String &s )
 }
 
 
-/*! Parses the *text production, as modified to include encoded-words by
-    RFC 2047. This is used to parse the Subject and Comments fields.
+/*! Parses the *text production from \a s, as modified to include
+    encoded-words by RFC 2047. This is used to parse the Subject
+    and Comments fields.
 */
 
 void HeaderField::parseText( const String &s )
@@ -434,9 +435,9 @@ void HeaderField::parseText( const String &s )
 }
 
 
-/*! Parses any (presumably unstructured) fields not covered by a more
-    specific function, and accepts them only if they do not contain NULs
-    or 8-bit characters.
+/*! Parses any (otherwise uncovered and presumably unstructured) field
+    in \a s, and accepts it only if it does not contain NULs or 8-bit
+    characters.
 */
 
 void HeaderField::parseOther( const String &s )
@@ -455,8 +456,8 @@ void HeaderField::parseOther( const String &s )
 }
 
 
-/*! Parses the Mime-Version syntax and records the first problem
-    found.
+/*! Parses the Mime-Version field from \a s and records the first
+    problem found.
 
     Only version 1.0 is accepted. Since some message generators
     incorrectly send comments or trailing garbage, this parser accepts
@@ -474,8 +475,8 @@ void HeaderField::parseMimeVersion( const String &s )
 }
 
 
-/*! Parses the Content-Location header field and records the first
-    problem found.
+/*! Parses the Content-Location header field in \a s and records the
+    first problem found.
 */
 
 void HeaderField::parseContentLocation( const String &s )

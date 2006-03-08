@@ -417,6 +417,9 @@ static Codec * guessHtmlCodec( const String & body )
     including \a end) as a single bodypart with MIME/RFC822 header \a h.
 
     This removes the "charset" argument from the Content-Type field in \a h.
+
+    In case of error, \a error is set to a suitable error message. If
+    \a error is nonempty, it isn't changed.
 */
 
 Bodypart * Bodypart::parseBodypart( uint start, uint end,

@@ -343,7 +343,7 @@ ContentDisposition::ContentDisposition()
 }
 
 
-/*! Parses a Content-Disposition field. */
+/*! Parses a Content-Disposition field in \a s. */
 
 void ContentDisposition::parse( const String &s )
 {
@@ -400,7 +400,7 @@ ContentLanguage::~ContentLanguage()
 }
 
 
-/*! Parses a Content-Language field. */
+/*! Parses a Content-Language field in \a s. */
 
 void ContentLanguage::parse( const String &s )
 {

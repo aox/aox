@@ -43,7 +43,9 @@ public:
 */
 
 
-/*! Creates a new ACL handler. */
+/*! Creates a new ACL handler of type \a t, which may be SetAcl,
+    DeleteAcl, GetAcl, ListRights, or MyRights.
+*/
 
 Acl::Acl( Type t )
     : d( new AclData )

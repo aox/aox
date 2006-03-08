@@ -692,8 +692,8 @@ private:
     depends on the ability to empty its writeBuffer().
 */
 
-/*! Constructs an empty IMAPS object. Immediately starts negotiating
-    TLS.
+/*! Constructs an IMAPS server on file descriptor \a s, and starts to
+    negotiate TLS immediately.
 */
 
 IMAPS::IMAPS( int s )

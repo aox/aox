@@ -209,8 +209,9 @@ Allocator::~Allocator()
 }
 
 
-/*! Allocates a chunk of memory, notes that at most \a size bytes are
-    in use, and returns a pointer to it.
+/*! Allocates a chunk of memory (which may contain up to \a pointers
+    pointers), notes that at most \a size bytes are in use, and returns
+    a pointer to it.
 */
 
 void * Allocator::allocate( uint size, uint pointers )
@@ -494,7 +495,8 @@ void * Allocator::block( uint i )
 
 
 /*! Records that \a *p is an allocation root, i.e. that whatever it
-    points to is a valid object.
+    points to is a valid object. \a t is a description of this root
+    (e.g. "array of connection objects").
 */
 
 void Allocator::addEternal( void * p, const char * t )

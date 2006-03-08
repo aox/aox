@@ -23,9 +23,7 @@
   ByteForwarder is used as a helper for TlsServer.
 */
 
-/*!  Constructs an empty
-
-*/
+/*! Constructs an empty ByteForwarder on the file descriptor \a s. */
 
 ByteForwarder::ByteForwarder( int s )
     : Connection( s, Pipe ), s( 0 )

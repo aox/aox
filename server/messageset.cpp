@@ -247,6 +247,9 @@ uint MessageSet::index( uint value ) const
 /*! Returns an SQL WHERE clause describing the set. No optimization is
     done (yet). The "WHERE" prefix is not included, only e.g "uid>3 and
     uid<77".
+
+    If \a table is non-empty, all column references are qualified with
+    its value (i.e., table.column).
 */
 
 String MessageSet::where( const String & table ) const

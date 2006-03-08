@@ -45,7 +45,8 @@ public:
     sessions, although the message itself is no longer accessible.
 */
 
-/*! Creates a new Expunge handler.
+/*! Creates a new EXPUNGE handler if \a u is false, or a UID EXPUNGE
+    handler if it is true.
 */
 
 Expunge::Expunge( bool u )

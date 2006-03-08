@@ -126,9 +126,9 @@ void OCClient::send( const String &s )
 }
 
 
-/*! Parse and acts on a single mailbox update. A Mailbox update
-    changes a single aspect of a mailbox, which may be whether it is
-    deleted or what its UIDNEXT value is.
+/*! Parses and acts on a single mailbox update line in \a arg. A Mailbox
+    update changes a single aspect of a mailbox, which may be whether it
+    is deleted or what its UIDNEXT value is.
 
     The format is: Mailbox name quoted using String::quoted(),
     followed by a space, followed by the attribute name (deleted or

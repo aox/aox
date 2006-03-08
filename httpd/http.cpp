@@ -426,8 +426,8 @@ void HTTP::parseRequest( String l )
 }
 
 
-/*! Parses a single HTTP header and stores its contents
-    appropriately. May step on to the Done state.
+/*! Parses a single HTTP header in the String \a h and stores its
+    contents appropriately. May step on to the Done state.
 */
 
 void HTTP::parseHeader( const String & h )
@@ -600,7 +600,9 @@ void HTTP::parseAcceptEncoding( const String & encoding, uint q )
 }
 
 
-/*! Parses the "Connection" header and records the parsed information. */
+/*! Parses the "Connection" header \a v and records the parsed
+    information.
+*/
 
 void HTTP::parseConnection( const String & v )
 {
@@ -610,7 +612,8 @@ void HTTP::parseConnection( const String & v )
 }
 
 
-/*! Parses the "Host" header and records the parsed information. */
+/*! Parses the "Host" header \a v and records the parsed information.
+*/
 
 void HTTP::parseHost( const String & v )
 {
@@ -663,7 +666,8 @@ void HTTP::parseIfUnmodifiedSince( const String & )
 }
 
 
-/*! Parses the "Referer" header and records the parsed information. */
+/*! Parses the "Referer" header \a v and records the parsed information.
+*/
 
 void HTTP::parseReferer( const String & v )
 {
@@ -689,7 +693,7 @@ void HTTP::parseUserAgent( const String & )
 }
 
 
-/*! Parses a single component of a Cookie header. */
+/*! Parses a single component of the Cookie header \a s. */
 
 void HTTP::parseCookie( const String &s )
 {
@@ -705,7 +709,7 @@ void HTTP::parseCookie( const String &s )
 }
 
 
-/*! Parses a Content-Length header. */
+/*! Parses the Content-Length header \a s. */
 
 void HTTP::parseContentLength( const String &s )
 {

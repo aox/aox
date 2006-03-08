@@ -19,7 +19,8 @@ StringList::StringList()
 
 /*! \fn void StringList::append( String * s )
 
-    Reimplemented (as an inline) to work around the shadowing rules of C++.
+    Appends the String \a s to this StringList. (Inline reimplementation
+    to work around the shadowing rules of C++.)
 */
 
 
