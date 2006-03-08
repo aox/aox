@@ -54,6 +54,7 @@ void Error::report()
     if ( !errors )
         return;
 
+    fprintf( stderr, "udoc: %d errors seen\n", errors->count() );
     List<Error>::Iterator it( errors );
     while ( it ) {
         it->blather();
