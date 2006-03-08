@@ -119,20 +119,28 @@ void DocBlock::generate()
     if ( f && !isReimp ) {
         String a = f->arguments();
         uint i = 0;
+        uint s = 0;
+        char p = ' ';
         while ( i < a.length() ) {
-            while ( i < a.length() && a[i] != ',' && a[i] != ')' )
-                i++;
-            if ( i < a.length() ) {
-                uint j = i - 1;
-                while ( j > 0 && a[j] != ' ' && a[j] != '&' && a[j] != '*' )
-                    j--;
-                String name = a.mid( j, i-j ).simplified();
-                if ( j > 0 && j < i &&
-                     !name.isEmpty() && !arguments.contains( name ) )
-                    (void)new Error( file, line,
-                                     "Undocumented argument: " + name );
-                i++;
+            char c = a[i];
+            if ( c == ',' || c == ')' ) {
+                if ( s > 0 ) {
+                    String name = a.mid( s, i-s ).simplified();
+                    if ( name.endsWith( "[]" ) )
+                        name.truncate( name.length()-2 );
+                    if ( !arguments.contains( name ) )
+                        (void)new Error( file, line,
+                                         "Undocumented argument: " + name );
+                    s = 0;
+                }
             }
+            else if ( ( p == '(' || p == ' ' || p == '*' || p == '&' ) &&
+                      ( ( c >= 'a' && c <= 'z' ) ||
+                        ( c >= 'A' && c <= 'Z' ) ) ) {
+                s = i;
+            }
+            p = c;
+            i++;
         }
     }
     if ( this->i && !introduces )
