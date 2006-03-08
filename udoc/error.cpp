@@ -47,7 +47,7 @@ Error::Error( File * file, uint line, const String & text )
 }
 
 
-/*! Reports all stored errors. \a x */
+/*! Reports all stored errors. */
 
 void Error::report()
 {
