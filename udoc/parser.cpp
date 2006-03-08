@@ -17,7 +17,7 @@
     at the beginning of \a s. */
 
 Parser::Parser( const String & s )
-    : t( s ), i( 0 ), ln( 0 ), li( 0 )
+    : t( s ), i( 0 ), ln( 1 ), li( 0 )
 {
     // nothing necessary
 }
