@@ -144,6 +144,7 @@ UString Iso2022JpCodec::toUnicode( const String &s )
                     recordError( n, ku * 94 + ten );
                 else
                     u.append( toU[ku][ten] );
+                ku = ten = 0;
             }
         }
 
