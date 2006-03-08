@@ -451,7 +451,7 @@ String Parser822::encodedWord( EncodedText type )
     between and returns the decoded UTF-8 representation.
 */
 
-String Parser822::encodedWords( EncodedText type )
+String Parser822::encodedWords()
 {
     String out;
 

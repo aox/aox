@@ -36,7 +36,7 @@ public:
 
     enum EncodedText { Text, Comment, Phrase };
     String encodedWord( EncodedText = Text );
-    String encodedWords( EncodedText = Text );
+    String encodedWords();
     String phrase();
     String text();
 
