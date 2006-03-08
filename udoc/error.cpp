@@ -47,15 +47,17 @@ Error::Error( File * file, uint line, const String & text )
 }
 
 
-/*! Reports all stored errors. */
+/*! Reports all stored errors. \a x */
 
 void Error::report()
 {
     if ( !errors )
         return;
 
-    fprintf( stderr, "udoc: %d errors seen\n", errors->count() );
     List<Error>::Iterator it( errors );
+    if ( errors->count() > 10 )
+        fprintf( stderr, "%s:%d: This is the first of %d errors\n",
+                 it->f->name().cstr(), it->l, errors->count() );
     while ( it ) {
         it->blather();
         ++it;
@@ -67,8 +69,7 @@ void Error::report()
 
 void Error::blather()
 {
-    String n( f->name() );
-    fprintf( stderr, "%s:%d: %s\n", n.cstr(), l, t.cstr() );
+    fprintf( stderr, "%s:%d: %s\n", f->name().cstr(), l, t.cstr() );
 }
 
 
