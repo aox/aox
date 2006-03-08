@@ -28,7 +28,7 @@ MboxDirectory::MboxDirectory( const String & path )
 }
 
 
-bool MboxDirectory::isMailbox( const String &path, struct stat *st )
+bool MboxDirectory::isMailbox( const String &, struct stat *st )
 {
     if ( S_ISREG( st->st_mode ) )
         return true;

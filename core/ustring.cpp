@@ -44,8 +44,8 @@ UString::UString()
 /*!  Constructs an exact copy of \a other on the current arena. */
 
 UString::UString( const UString & other )
-    : len( 0 ), max( 0 ),
-      str( 0 )
+    : Garbage(),
+      len( 0 ), max( 0 ), str( 0 )
 {
     *this = other;
 }

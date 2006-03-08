@@ -47,6 +47,7 @@ MessageSet::MessageSet()
 */
 
 MessageSet::MessageSet( const MessageSet & other )
+    : Garbage()
 {
     d = 0;
     *this = other;

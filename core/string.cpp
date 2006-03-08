@@ -79,7 +79,7 @@ String::String( const char *s, uint n )
 /*! Creates a copy of \a s. */
 
 String::String( const String &s )
-    : d( 0 )
+    : Garbage(), d( 0 )
 {
     *this = s;
 }

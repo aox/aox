@@ -109,25 +109,25 @@ Postscript * Postscript::current()
 }
 
 
-/*! As Output::startHeadline( \a i ) */
+/*! As Output::startHeadline() */
 
-void Postscript::startHeadline( Intro * i )
+void Postscript::startHeadline( Intro * )
 {
     endParagraph();
 }
 
 
-/*! As Output::startHeadline( \a c ). */
+/*! As Output::startHeadline(). */
 
-void Postscript::startHeadline( Class * c )
+void Postscript::startHeadline( Class * )
 {
     endParagraph();
 }
 
 
-/*! As Output::startHeadline( \a f ). */
+/*! As Output::startHeadline(). */
 
-void Postscript::startHeadline( Function * f )
+void Postscript::startHeadline( Function * )
 {
     endParagraph();
 }

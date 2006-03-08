@@ -92,7 +92,7 @@ StderrLog::StderrLog()
 }
 
 
-void StderrLog::send( const String & id,
+void StderrLog::send( const String &,
                       Log::Facility, Log::Severity s,
                       const String & m )
 {

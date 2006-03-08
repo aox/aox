@@ -336,7 +336,7 @@ void DocBlock::setState( State newState, const String & w, uint l )
 }
 
 
-/*! Handles the "\overload" directive. \a l is the nine number where
+/*! Handles the "\overload" directive. \a l is the line number where
     directive was seen and \a n is the word number (0 for the first
     word in a documentation block).
 */
@@ -351,6 +351,9 @@ void DocBlock::overload( uint l, uint n )
                          "\\overload repeated" );
     else
         f->setOverload();
+
+    if ( n )
+        (void)new Error( file, l, "\\overload must be the first directive" );
 }
 
 

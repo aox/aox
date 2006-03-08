@@ -113,7 +113,7 @@ Address::Address( const String &n, const String &l, const String &o )
 /*!  Constructs a copy of \a other. */
 
 Address::Address( const Address & other )
-    : d( 0 )
+    : Garbage(), d( 0 )
 {
     *this = other;
 }

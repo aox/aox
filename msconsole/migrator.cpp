@@ -320,7 +320,7 @@ class MigratorMessageItem
     : public QListViewItem
 {
 public:
-    MigratorMessageItem( QListViewItem *, QListViewItem *,
+    MigratorMessageItem( QListViewItem *,
                          MigratorMessage *, const QString & );
     void activate();
     QString description;
@@ -330,7 +330,6 @@ public:
 
 
 MigratorMessageItem::MigratorMessageItem( QListViewItem * parent,
-                                          QListViewItem * lastItem,
                                           MigratorMessage * message,
                                           const QString & e )
     : QListViewItem( parent ),
@@ -480,8 +479,7 @@ void MailboxMigrator::execute()
     if ( d->injector && d->injector->failed() ) {
         QString e = QString::fromLatin1( "Database Error: " ) +
                     QString::fromLatin1( d->injector->error().cstr() );
-        d->lastItem = new MigratorMessageItem( d->lvi, d->lastItem,
-                                               d->message, e );
+        d->lastItem = new MigratorMessageItem( d->lvi, d->message, e );
     }
     else if ( d->injector ) {
         d->migrated++;
@@ -541,8 +539,7 @@ void MailboxMigrator::execute()
         commit();
         QString e = QString::fromLatin1( "Syntax Error: " ) +
                     QString::fromLatin1( d->message->error().cstr() );
-        d->lastItem = new MigratorMessageItem( d->lvi, d->lastItem,
-                                               d->message, e );
+        d->lastItem = new MigratorMessageItem( d->lvi, d->message, e );
         d->message = d->source->nextMessage();
     }
 

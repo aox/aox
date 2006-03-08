@@ -59,7 +59,7 @@ Endpoint::Endpoint()
 /*! Constructs a copy of \a other. */
 
 Endpoint::Endpoint( const Endpoint & other )
-    : d( new EndpointData )
+    : Garbage(), d( new EndpointData )
 {
     *this = other;
 }
