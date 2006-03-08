@@ -128,7 +128,7 @@ void DocBlock::generate()
                     String name = a.mid( s, i-s ).simplified();
                     if ( name.endsWith( "[]" ) )
                         name.truncate( name.length()-2 );
-                    if ( !arguments.contains( name ) )
+                    if ( name.find( ' ' ) < 0 && !arguments.contains( name ) )
                         (void)new Error( file, line,
                                          "Undocumented argument: " + name );
                     s = 0;
