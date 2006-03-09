@@ -438,3 +438,30 @@ String MessageSet::set() const
     }
     return r;
 }
+
+
+/*! Adds some gaps from \a other, such that this set is expanded to
+    contain a small number of contiguous ranges.
+
+    A gap is added to this set if no numbers in the gap are in \a
+    other, and the numbers just above and below the gap are in this
+    set.
+
+    This function's performance is not as good as it could be: It
+    calls index() for each boundary value, so its performance is
+    O(n*n). Or perhaps O(n*(n-1)), it doesn't really matter.
+*/
+
+void MessageSet::addGapsFrom( const MessageSet & other )
+{
+    List< SetData::Range >::Iterator it( other.d->l );
+    while ( it ) {
+        uint last = it->start + it->length - 1;
+        ++it;
+        if ( it ) {
+            uint i = index( last );
+            if ( i && i+1 == index( it->start ) )
+                add( last+1, it->start-1 );
+        }
+    }
+}

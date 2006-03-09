@@ -39,6 +39,8 @@ public:
 
     MessageSet intersection( const MessageSet & ) const;
 
+    void addGapsFrom( const MessageSet & );
+
 private:
     class SetData * d;
 };
