@@ -438,6 +438,13 @@ void Fetch::sendFetchQueries()
         i++;
     }
 
+    MessageSet legal;
+    headers.addGapsFrom( legal );
+    bodies.addGapsFrom( legal );
+    flags.addGapsFrom( legal );
+    trivia.addGapsFrom( legal );
+    annotations.addGapsFrom( legal );
+
     mb->fetchFlags( flags, this );
     mb->fetchHeaders( headers, this );
     mb->fetchBodies( bodies, this );

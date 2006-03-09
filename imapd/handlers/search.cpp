@@ -137,6 +137,8 @@ void Search::parseKey( bool alsoCharset )
         Mailbox * m = imap()->session()->mailbox();
         if ( m->view() )
             s = m->sourceUids( s );
+        else
+            s.addGapsFrom( imap()->session()->messages() );
         add( new Selector( s ) );
         if ( !d->uid )
             setGroup( 0 );
@@ -307,6 +309,8 @@ void Search::parseKey( bool alsoCharset )
             Mailbox * m = imap()->session()->mailbox();
             if ( m->view() )
                 s = m->sourceUids( s );
+            else
+                s.addGapsFrom( imap()->session()->messages() );
             add( new Selector( s ) );
         }
         else if ( keyword == "or" ) {
