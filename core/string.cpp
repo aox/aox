@@ -1546,3 +1546,13 @@ String String::crlf() const
 
     return r;
 }
+
+
+/*! Returns true if this string contains at least one instance of \a s. */
+
+bool String::contains( const String & s ) const
+{
+    if ( find( s ) >= 0 )
+        return true;
+    return false;
+}
