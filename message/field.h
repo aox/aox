@@ -65,6 +65,7 @@ public:
     virtual void reassemble( const String & );
 
     static const char *fieldName( HeaderField::Type );
+    static uint fieldType( const String & );
 
     static String encode( const String & );
     static String unwrap( const String & );
