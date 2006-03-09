@@ -288,13 +288,10 @@ String MessageSet::where( const String & table ) const
         ++it;
     }
     // look at me! look at me! I optimize!
-    if ( s.startsWith( "(" ) && s.endsWith( ")" ) ) {
-        uint i = s.length()-1;
-        while ( i > 0 && s[i] != '(' )
-            i--;
-        if ( i == 0 ) // oooh! I remove the unnecessary parens!
-            s = s.mid( 1, s.length()-2 );
-    }
+    if ( s.startsWith( "(" ) && s.endsWith( ")" ) &&
+         !s.mid( 1 ).contains( "(" ) )
+        // oooh! I remove the unnecessary parens!
+        s = s.mid( 1, s.length()-2 );
     return s;
 }
 
