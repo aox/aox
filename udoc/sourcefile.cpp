@@ -89,7 +89,7 @@ void SourceFile::parse()
             else {
                 HeaderFile * h = HeaderFile::find( hn );
                 if ( !h ) {
-                    if ( name().find( "/" ) >= 0 ) {
+                    if ( name().contains( "/" ) ) {
                         String dir = name();
                         uint i = dir.length()-1;
                         while ( i > 0 && dir[i] != '/' )

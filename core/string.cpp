@@ -1556,3 +1556,13 @@ bool String::contains( const String & s ) const
         return true;
     return false;
 }
+
+
+/*! Returns true if this string contains at least one instance of \a c. */
+
+bool String::contains( const char c ) const
+{
+    if ( find( c ) >= 0 )
+        return true;
+    return false;
+}

@@ -73,7 +73,7 @@ public:
     Admin ("a"): Administer (perform SETACL/DELETEACL/GETACL). This is
     always granted to the owner of a mailbox, and may be granted to
     others.
-    
+
     WriteSharedAnnotation ("n"): Write a shared annotation. This is
     always granted to the mailbox owner, and may be granted to others.
 
@@ -230,7 +230,7 @@ char Permissions::rightChar( Permissions::Right right )
 
 bool Permissions::validRight( char c )
 {
-    if ( String( rights ).find( c ) >= 0 || c == 'c' || c == 'd' )
+    if ( c == 'c' || c == 'd' || String( rights ).contains( c ) )
         return true;
     return false;
 }
@@ -268,16 +268,16 @@ void Permissions::set( const String &rights )
     uint i = 0;
     while ( i < Permissions::NumRights ) {
         bool v = false;
-        if ( rights.find( rightChar( (Right)i ) ) >= 0 )
+        if ( rights.contains( rightChar( (Right)i ) ) )
             v = true;
         d->allowed[i] = v;
         i++;
     }
 
-    if ( rights.find( 'c' ) >= 0 )
+    if ( rights.contains( 'c' ) )
         d->allowed[(int)CreateMailboxes] = true;
 
-    if ( rights.find( 'd' ) >= 0 ) {
+    if ( rights.contains( 'd' ) ) {
         d->allowed[(int)Expunge] = true;
         d->allowed[(int)DeleteMessages] = true;
         d->allowed[(int)DeleteMailbox] = true;
@@ -295,15 +295,15 @@ void Permissions::allow( const String &rights )
 {
     uint i = 0;
     while ( i < Permissions::NumRights ) {
-        if ( rights.find( rightChar( (Right)i ) ) >= 0 )
+        if ( rights.contains( rightChar( (Right)i ) ) )
             d->allowed[i] = true;
         i++;
     }
 
-    if ( rights.find( 'c' ) >= 0 )
+    if ( rights.contains( 'c' ) )
         d->allowed[(int)CreateMailboxes] = true;
 
-    if ( rights.find( 'd' ) >= 0 ) {
+    if ( rights.contains( 'd' ) ) {
         d->allowed[(int)Expunge] = true;
         d->allowed[(int)DeleteMessages] = true;
         d->allowed[(int)DeleteMailbox] = true;
@@ -319,15 +319,15 @@ void Permissions::disallow( const String &rights )
 {
     uint i = 0;
     while ( i < Permissions::NumRights ) {
-        if ( rights.find( rightChar( (Right)i ) ) >= 0 )
+        if ( rights.contains( rightChar( (Right)i ) ) )
             d->allowed[i] = false;
         i++;
     }
 
-    if ( rights.find( 'c' ) >= 0 )
+    if ( rights.contains( 'c' ) )
         d->allowed[(int)CreateMailboxes] = false;
 
-    if ( rights.find( 'd' ) >= 0 ) {
+    if ( rights.contains( 'd' ) ) {
         d->allowed[(int)Expunge] = false;
         d->allowed[(int)DeleteMessages] = false;
         d->allowed[(int)DeleteMailbox] = false;

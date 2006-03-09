@@ -120,7 +120,7 @@ void Store::parseAnnotationEntry()
     String entry = string();
     if ( entry.startsWith( "/flags/" ) )
         error( Bad, "Cannot set top-level flags using STORE ANNOTATION" );
-    if ( entry.find( "//" ) >= 0 )
+    if ( entry.contains( "//" ) )
         error( Bad, "Annotation entry names cannot contain //" );
     if ( entry.endsWith( "/" ) )
         error( Bad, "Annotation entry names cannot end with /" );

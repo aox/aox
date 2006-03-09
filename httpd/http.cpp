@@ -607,7 +607,7 @@ void HTTP::parseAcceptEncoding( const String & encoding, uint q )
 void HTTP::parseConnection( const String & v )
 {
     String l = " " + v.lower() + " ";
-    if ( v.find( " close " ) >= 0 )
+    if ( v.contains( " close " ) )
         d->connectionClose = true;
 }
 
@@ -620,7 +620,7 @@ void HTTP::parseHost( const String & v )
     if ( Configuration::toggle( Configuration::AcceptAnyHttpHost ) )
         return;
     String supplied = v.lower();
-    if ( supplied.find( ':' ) >= 0 )
+    if ( supplied.contains( ':' ) )
         supplied = supplied.mid( 0, supplied.find( ':' ) ).simplified();
     String correct = Configuration::text( Configuration::Hostname ).lower();
     if ( supplied == correct )

@@ -925,7 +925,7 @@ String AddressParser::phrase( int & i )
         if ( r[n] >= 128 )
             r = "";
     }
-    if ( i < start && r.find( '=' ) >= 0 ) {
+    if ( i < start && r.contains( '=' ) ) {
         // if it seems to be an encoded-word, we parse the same input
         // using Parser822 and let it decode 2047. slow and wasteful.
         Parser822 p( d->s.mid( i+1, start-i ) );

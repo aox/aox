@@ -197,8 +197,8 @@ void Acl::execute()
                 return;
             }
 
-            if ( ( d->setOp == 0 && d->rights.find( 'l' ) < 0 ) ||
-                 ( d->setOp == 2 && d->rights.find( 'l' ) >= 0 ) )
+            if ( ( d->setOp == 0 && !d->rights.contains( 'l' ) ) ||
+                 ( d->setOp == 2 && d->rights.contains( 'l' ) ) )
             {
                 error( No, "can't remove Lookup right" );
                 return;

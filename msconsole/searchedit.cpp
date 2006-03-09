@@ -185,7 +185,7 @@ void SearchEdit::search()
         fprintf( stderr, "stepping to next (of %d)\n", d->matches.count() );
         fprintf( stderr, " - before: %d \n", d->matches.at() );
         QWidget * w = 0;
-        if ( d->matches.find( d->current ) >= 0 ) {
+        if ( d->matches.contains( d->current ) ) {
             w = d->matches.next();
             if ( !w )
                 w = d->matches.first();
@@ -231,11 +231,11 @@ bool SearchEdit::matches( QWidget * w )
 
     QString s = w->property( "text" ).asString().lower();
     QString l = d->searchText.lower();
-    if ( s.find( l ) >= 0 )
+    if ( s.contains( l ) )
         return true;
 
     s = QToolTip::textFor( w ).lower();
-    if ( s.find( l ) >= 0 )
+    if ( s.contains( l ) )
         return true;
 
     return false;

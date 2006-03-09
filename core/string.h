@@ -81,6 +81,7 @@ public:
     int find( char, int=0 ) const;
     int find( const String &, int=0 ) const;
     bool contains( const String & ) const;
+    bool contains( const char ) const;
 
     void append( char );
     void appendNumber( int, int = 10 );

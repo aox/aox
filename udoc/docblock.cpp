@@ -278,7 +278,7 @@ void DocBlock::plainWord( const String & w, uint l )
             Class * scope = c;
             if ( f && !scope )
                 scope = f->parent();
-            if ( name.find( ':' ) >= 0 ) {
+            if ( name.contains( ':' ) ) {
                 link = Function::find( name );
             }
             else {
