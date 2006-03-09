@@ -447,9 +447,10 @@ String MessageSet::set() const
     other, and the numbers just above and below the gap are in this
     set.
 
-    This function's performance is not as good as it could be: It
-    calls index() for each boundary value, so its performance is
-    O(n*n). Or perhaps O(n*(n-1)), it doesn't really matter.
+    At first glance, this function's performance is O(n*n) where n is
+    the number of gaps. However, in practice almost every case is
+    O(n), because the way index() is used in this function, index()
+    tends to be O(1) instead of O(n).
 */
 
 void MessageSet::addGapsFrom( const MessageSet & other )
