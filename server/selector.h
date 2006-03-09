@@ -11,6 +11,9 @@
 #include "messageset.h"
 
 
+class StringList;
+
+
 class Selector
     : public Garbage
 {
@@ -73,6 +76,7 @@ private:
     String whereHeader();
     String whereHeaderField();
     String whereAddressField( const String & = "" );
+    String whereAddressFields( const StringList &, const UString & );
     String whereBody();
     String whereRfc822Size();
     String whereFlags();

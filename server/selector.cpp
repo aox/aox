@@ -355,7 +355,7 @@ void Selector::simplify()
         }
     }
 
-    // d->a single-element and/or can be removed and its argument substituted
+    // a single-element and/or can be removed and its argument substituted
     if ( d->children->count() == 1 ) {
         List< Selector >::Iterator p( d->children );
 
@@ -371,7 +371,7 @@ void Selector::simplify()
 
     // at this point, for proper uniqueness, we ought to sort the
     // children, killing any duplicates in the process. then we'll
-    // have d->a single query for each job. but that can wait. this will
+    // have a single query for each job. but that can wait. this will
     // do for testing.
 }
 
@@ -503,7 +503,7 @@ static String q( const UString & orig )
 }
 
 
-/*! This implements searches on d->a single header field.
+/*! This implements searches on a single header field.
 */
 
 String Selector::whereHeaderField()
@@ -531,27 +531,50 @@ String Selector::whereHeaderField()
 
 
 /*! This implements searches on the single address field \a field, or
-    on all address fields if \a field is empty. \a d as usual.
+    on all address fields if \a field is empty.
 */
 
 String Selector::whereAddressField( const String & field )
+{
+    StringList l;
+    if ( !field.isEmpty() )
+        l.append( field );
+    return whereAddressFields( l, d->s16 );
+}
+
+
+/*! This implements searching for \a name on the address \a fields, or
+    on all address fields if \a fields is the empty list.
+*/
+
+String Selector::whereAddressFields( const StringList & fields,
+                                     const UString & name )
 {
     String r( "messages.uid in (" );
     r.append( "select uid from address_fields af join addresses a "
               "on (af.address=a.id)" );
 
-    uint fnum = 0;
-    if ( !field.isEmpty() ) {
-        fnum = placeHolder();
-        root()->d->query->bind( fnum, d->s8 );
+    if ( !fields.isEmpty() )
         r.append( " join field_names fn on (af.field=fn.id)" );
-    }
 
     r.append( " where af.mailbox=$" + mboxId() );
-    if ( fnum != 0 )
-        r.append( " and fn.name=$" + fn( fnum ) );
+    if ( !fields.isEmpty() ) {
+        r.append( " and (" );
+        bool first = true;
+        StringList::Iterator it( fields );
+        while ( it ) {
+            uint fnum = placeHolder();
+            root()->d->query->bind( fnum, *it );
+            if ( !first )
+                r.append( " or " );
+            r.append( "fn.name=$" + fn( fnum ) );
+            first = false;
+            ++it;
+        }
+        r.append( ")" );
+    }
 
-    String raw( q( d->s16 ) );
+    String raw( q( name ) );
     int at = raw.find( '@' );
 
     if ( at < 0 ) {
@@ -603,6 +626,7 @@ String Selector::whereAddressField( const String & field )
     r.append( ")" );
     return r;
 }
+
 
 /*! This implements searches on all header fields.
 */
@@ -801,6 +825,11 @@ String Selector::whereAnnotation()
 
 /*! This implements any search that's not bound to a specific field,
     generally booleans and "all".
+
+    As a hack, oops, as an optimization, this function also looks for
+    an OR list of address-field searches, and if any, lifts the shared
+    parts of those seaches out so the DBMS processes the search
+    faster.
 */
 
 String Selector::whereNoField()
@@ -811,19 +840,41 @@ String Selector::whereNoField()
                 return "true";
             return "false";
         }
-        List<Selector>::Iterator i( d->children );
-        String r = "(" + i->where();
-        ++i;
-        String sep;
-        if ( d->a == And )
-            sep = ") and (";
-        else
-            sep = ") or (";
-        while ( i ) {
-            r.append( sep );
-            r.append( i->where() );
-            ++i;
+        StringList conditions;
+        UString address;
+        StringList addressFields;
+        if ( d->a == Or ) {
+            List<Selector>::Iterator i( d->children );
+            while ( i && ( i->d->f != Header || i->d->s8.isEmpty() ) )
+                i++;
+            if ( i )
+                address = i->d->s16; // this is the address we optimze for
         }
+        List<Selector>::Iterator i( d->children );
+        while ( i ) {
+            bool af = false;
+            if ( d->a == Or &&
+                 i->d->f == Header &&
+                 !address.isEmpty() && 
+                 !i->d->s8.isEmpty() &&
+                 address == i->d->s16 ) {
+                uint t = HeaderField::fieldType( i->d->s8 );
+                if ( t > 0 && t <= HeaderField::LastAddressField )
+                    af = true;
+            }
+            if ( af )
+                addressFields.append( i->d->s8.headerCased() );
+            else
+                conditions.append( i->where() );
+            i++;
+        }
+        if ( !addressFields.isEmpty() )
+            conditions.append( whereAddressFields( addressFields, address ) );
+        String r = "(";
+        if ( d->a == And )
+            r.append( conditions.join( ") and (" ) );
+        else
+            r.append( conditions.join( ") or (" ) );
         r.append( ")" );
         return r;
     }
