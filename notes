@@ -720,3 +720,25 @@ Faster mapping from unicode to 8-bit encodings
   tested by our existing apparatur.
 
 
+New command 'ms show value'?
+
+  I wrote this to Harri:
+
+    A hint. In archiveopteryx.conf, add this:
+
+        message-copy = all
+
+    And run this script every night as a crontab:
+
+        #!/bin/sh
+        D=`ms show configuration message-copy-directory | sed 's/.* = //'`
+        [ -d "$D" ] && find $D -type f -mtime +2 -print | xargs -r rm
+
+    Then you'll have a handy-dandy copy of all incoming mail for the
+    last two days.
+
+  Perhaps we should have a new 'ms show value', which returns just the
+  value? Should it even check that the *-directory values refer to
+  existing directories?
+
+
