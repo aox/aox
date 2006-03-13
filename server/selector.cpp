@@ -727,7 +727,22 @@ String Selector::whereFlags()
 
 String Selector::whereUid()
 {
-    return d->s.where( "messages" );
+    if ( !d->s.isRange() )
+        return d->s.where( "messages" );
+
+    // if we can, use a placeholder, so we can prepare a statement (we
+    // don't at the moment, but it'll help).
+    if ( d->s.count() == 1 ) {
+        uint value = placeHolder();
+        root()->d->query->bind( value, d->s.value( 1 ) );
+        return "messages.uid=$" + fn( value );
+    }
+
+    uint min = placeHolder();
+    uint max = placeHolder();
+    root()->d->query->bind( min, d->s.value( 1 ) );
+    root()->d->query->bind( max, d->s.largest() );
+    return "messages.uid>=$" + fn( min ) + " and messages.uid<=$" + fn( max );
 }
 
 
