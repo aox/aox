@@ -2,6 +2,32 @@ Next release (2006-03-13: 1.04)
 
   - ISO-2022-JP/EUC-JP/Big5/Shift_JIS.
 
+
+Test suite errors
+
+  - The following test suite problems must be fixed:
+
+    imap/qmailbounce
+    lmtp/charsetbroken
+    lmtp/constraintviolation
+    lmtp/rubbishsubject
+    lmtp/segfault2312
+    lmtp/illegalutf8
+    canonical/i/9
+    canonical/o/50
+    canonical/o/51
+    canonical/o/64
+    canonical/o/65
+    canonical/o/67
+    canonical/o/70
+    canonical/o/72
+    canonical/o/76
+    canonical/o/80
+    canonical/o/81
+    canonical/o/91
+    canonical/o/93
+
+
 Next few releases
 
   - SORT/THREAD
