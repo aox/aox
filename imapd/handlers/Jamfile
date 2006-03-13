@@ -19,8 +19,8 @@ Build imap :
     lsub.cpp
     namespace.cpp
     noop.cpp
+    obliterate.cpp
     rename.cpp
-    reset.cpp
     search.cpp
     select.cpp
     starttls.cpp
