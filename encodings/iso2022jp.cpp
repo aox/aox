@@ -112,7 +112,7 @@ UString Iso2022JpCodec::toUnicode( const String &s )
             }
             else {
                 // We reject any unknown escape sequences.
-                recordError( n );
+                recordError( n, s );
                 break;
             }
             n += 2;
@@ -121,7 +121,7 @@ UString Iso2022JpCodec::toUnicode( const String &s )
             // Bare SI/SO are forbidden. RFC 1468's strictures against
             // CRLF (being an ABNF gimmick) are ignored here.
             if ( c == 0x0E || c == 0x0F ) {
-                recordError( n );
+                recordError( n, s );
                 break;
             }
             u.append( c );
@@ -135,7 +135,7 @@ UString Iso2022JpCodec::toUnicode( const String &s )
 
                 if ( ku < 33 || ku > 126 ||
                      ten < 33 || ten > 126 )
-                    recordError( n );
+                    recordError( n, s );
 
                 ku -= 33;
                 ten -= 33;

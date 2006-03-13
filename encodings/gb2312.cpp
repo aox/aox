@@ -75,7 +75,7 @@ UString Gb2312Codec::toUnicode( const String &s )
             uint j = d-128-32-1;
 
             if ( i > 93 || d < 128 || j > 93 )
-                recordError( n );
+                recordError( n, s );
             if ( gbToUnicode[i][j] == 0 )
                 recordError( n, i * 94 + j );
             else

@@ -29,6 +29,7 @@ public:
     State state() const { return s; }
     String error() const;
     void recordError( uint );
+    void recordError( uint, const String & );
     void recordError( uint, uint );
     void recordError( const String & );
 

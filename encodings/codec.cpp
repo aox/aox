@@ -112,8 +112,9 @@ String Codec::error() const
 }
 
 
-/*! Records that at octet index \a pos, an error happened and no code
-    point could be found. This also sets the state() to Invalid.
+/*! Records that at octet index \a pos, an error happened
+    and no code point could be found. This also sets the state() to
+    Invalid.
 */
 
 void Codec::recordError( uint pos )
@@ -121,6 +122,23 @@ void Codec::recordError( uint pos )
     setState( Invalid );
     e = "Parse error at index " + fn( pos ) +
         ": Could not find a valid " + name() + " code point";
+}
+
+
+/*! Records that at octet index \a pos in \a input, an error happened
+    and no code point could be found. This also sets the state() to
+    Invalid.
+*/
+
+void Codec::recordError( uint pos, const String & input )
+{
+    setState( Invalid );
+    e = "Parse error at index " + fn( pos ) +
+        ": Could not find a valid " + name() + " code point "
+        " (next few bytes: 0x" + fn( input[pos], 16 ) +
+        " 0x" + fn( input[pos+1], 16 ) +
+        " 0x" + fn( input[pos+2], 16 ) +
+        " 0x" + fn( input[pos+3], 16 ) + ")";
 }
 
 
