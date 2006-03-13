@@ -11,10 +11,14 @@ class XObliterate
 {
 public:
     XObliterate(): t( 0 ) {}
+
+    void parse();
     void execute();
 
-    class Transaction * t;
+private:
+    String n;
     class Query * a;
+    class Transaction * t;
 };
 
 

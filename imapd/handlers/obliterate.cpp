@@ -27,16 +27,29 @@
 */
 
 
+void XObliterate::parse()
+{
+    space();
+    n = astring();
+    end();
+}
+
+
 void XObliterate::execute()
 {
+    if ( n != "whip" )
+        return;
+
     if ( !t ) {
         t = new Transaction( this );
 
         User * user = imap()->user();
         Mailbox * inbox = user->inbox();
 
-        Query * q = new Query( "update mailboxes set owner=$1 where id=$2",
-                               this );
+        Query * q;
+
+        q = new Query( "update mailboxes set owner=$1 where id=$2",
+                       this );
         q->bind( 1, user->id() );
         q->bind( 2, inbox->id() );
         t->enqueue( q );
