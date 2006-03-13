@@ -1,6 +1,6 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "reset.h"
+#include "obliterate.h"
 
 #include "imap.h"
 #include "user.h"
@@ -9,7 +9,7 @@
 #include "transaction.h"
 
 
-/*! \class XOryxReset reset.h
+/*! \class XObliterate obliterate.h
 
     Resets an account, in the hard way. This command breaks various
     invariants, so it cannot be used on a production mail server. It
@@ -27,7 +27,7 @@
 */
 
 
-void XOryxReset::execute()
+void XObliterate::execute()
 {
     if ( !t ) {
         t = new Transaction( this );

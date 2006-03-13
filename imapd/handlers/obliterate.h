@@ -1,16 +1,16 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef RESET_H
-#define RESET_H
+#ifndef OBLITERATE_H
+#define OBLITERATE_H
 
 #include "command.h"
 
 
-class XOryxReset
+class XObliterate
     : public Command
 {
 public:
-    XOryxReset(): t( 0 ) {}
+    XObliterate(): t( 0 ) {}
     void execute();
 
     class Transaction * t;
