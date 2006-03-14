@@ -738,11 +738,16 @@ String Selector::whereUid()
         return "messages.uid=$" + fn( value );
     }
 
-    uint min = placeHolder();
-    uint max = placeHolder();
-    root()->d->query->bind( min, d->s.value( 1 ) );
-    root()->d->query->bind( max, d->s.largest() );
-    return "messages.uid>=$" + fn( min ) + " and messages.uid<=$" + fn( max );
+    uint min = d->s.value( 1 );
+    uint max = d->s.largest();
+    uint minp = placeHolder();
+    root()->d->query->bind( minp, min );
+    if ( max == UINT_MAX )
+        return "messages.uid>=$" + fn( minp );
+    uint maxp = placeHolder();
+    root()->d->query->bind( maxp, max );
+    return "messages.uid>=$" + fn( minp ) +
+        " and messages.uid<=$" + fn( maxp );
 }
 
 
