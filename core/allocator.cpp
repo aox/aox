@@ -28,6 +28,9 @@ const uint SizeLimit = 512 * 1024 * 1024;
 
 static int total;
 static uint allocated;
+static uint tos;
+static uint peak;
+static AllocationBlock ** stack;
 
 
 /*! Allocates \a s bytes of collectible memory, which may contain up
@@ -304,8 +307,9 @@ inline Allocator * Allocator::owner( void * p )
 }
 
 
-/*! This private helper marks \a p and (recursively) all objects to
-    which \a p points.
+/*! This private helper checks that \a p is a valid pointer to
+    unmarked GCable memory, marks it, and puts it on a stack so that
+    mark() can process it and add its children to the stack.
 */
 
 void Allocator::mark( void * p )
@@ -336,13 +340,45 @@ void Allocator::mark( void * p )
         return;
     // no. mark it
     a->marked[i/bits] |= (1 << (i%bits));
-    // ... and its children
-    uint n = b->x.number;
-    while ( n ) {
-        n--;
-        if ( b->payload[n] )
-            mark( b->payload[n] );
+    // is there any chance that it contains children?
+    if ( !b->x.number )
+        return;
+    // is there space on the stack for this object?
+    if ( tos == 524288 ) {
+        log( "Ran out of stack space while collecting garbage",
+             Log::Disaster );
+        return;
     }
+    // yes. put it on the stack so the children, too, can be marked.
+    if ( !stack ) {
+        stack = (AllocationBlock**)malloc( 524288 * sizeof(AllocationBlock *) );
+        tos = 0;
+    }
+    stack[tos++] = b;
+    if ( tos > peak )
+        peak = tos;
+}
+
+
+/*! This private helper processes all the stacked pointers, scanning
+    them for valid pointers and marking() any that exist.
+*/
+
+void Allocator::mark()
+{
+    while ( tos > 0 ) {
+        AllocationBlock * b = stack[--tos];
+        // mark its children
+        uint n = b->x.number;
+        while ( n ) {
+            n--;
+            if ( b->payload[n] )
+                mark( b->payload[n] );
+        }
+    }
+    delete stack;
+    stack = 0;
+    tos = 0;
 }
 
 
@@ -359,6 +395,7 @@ void Allocator::free()
         mark( ::roots[i].root );
         i++;
     }
+    mark();
     // and sweep
     i = 0;
     uint blocks = 0;
@@ -400,7 +437,8 @@ void Allocator::free()
              String::humanNumber( total ) +
              " bytes, across " +
              fn( blocks ) +
-             " 1MB blocks",
+             " 1MB blocks. Recursion depth: " +
+             fn( peak ) + ".",
              Log::Info );
     if ( verbose && total > 8 * 1024 * 1024 ) {
         String objects;
