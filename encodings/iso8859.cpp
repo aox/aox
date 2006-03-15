@@ -51,6 +51,8 @@ UString Iso88591Codec::toUnicode( const String & s )
     uint i = 0;
     while ( i < s.length() ) {
         u.append( s[i] );
+        if ( s[i] >= 0x80 && s[i] < 0xA0 )
+            setState( BadlyFormed );
         i++;
     }
     return u;
@@ -64,7 +66,7 @@ static const uint table88592[256] = {
 
 /*! \class Iso88592Codec iso8859.h
 
-    The Iso88592Codec class converts between ISO 8859-3 and Unicode,
+    The Iso88592Codec class converts between ISO 8859-2 and Unicode,
     using tables published by the Unicode Consortium. We have scripts
     to update the tables if/when a new revision of ISO 8859-2 is
     published.
@@ -88,14 +90,14 @@ static const uint table88593[256] = {
 
 /*! \class Iso88593Codec iso8859.h
 
-    The Iso88593Codec class converts between ISO 8859-2 and Unicode,
+    The Iso88593Codec class converts between ISO 8859-3 and Unicode,
     using tables published by the Unicode Consortium. We have scripts
-    to update the tables if/when a new revision of ISO 8859-2 is
+    to update the tables if/when a new revision of ISO 8859-3 is
     published.
 */
 
 
-/*!  Constructs a codec for ISO 8859-2, using the table provided by
+/*!  Constructs a codec for ISO 8859-3, using the table provided by
      the Unicode consortium.
 */
 
