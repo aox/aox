@@ -361,7 +361,7 @@ void Allocator::mark( void * p )
 
 
 /*! This private helper processes all the stacked pointers, scanning
-    them for valid pointers and marking() any that exist.
+    them for valid pointers and marking any that exist.
 */
 
 void Allocator::mark()
