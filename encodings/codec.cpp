@@ -396,11 +396,11 @@ Codec * Codec::byString( const String & s )
         else if ( c >= 128 ) {
             latin1 = false;
             latin9 = false;
-            if ( c != 0x80 /* euro */ &&
-                 c != 0x96 /* dash */ &&
-                 // the rest are all quotes
-                 c != 0x82 && c != 0x84 && c != 0x8B &&
-                 c < 0x91 && c > 0x94 && c != 0x9b )
+            if ( ! (c == 0x80 /* euro */ ||
+                    c == 0x96 /* dash */ ||
+                    // the rest are all quotes
+                    c == 0x82 || c == 0x84 || c == 0x8B || c == 0x9b ||
+                    ( c >= 0x91 && c <= 0x94 ) ) )
                 windows1252 = false;
         }
     }
@@ -433,7 +433,7 @@ Codec * Codec::byString( const String & s )
 */
 
 
-/*! Converts \a u from Unicde to the subclass' character encoding. All
+/*! Converts \a u from Unicode to the subclass' character encoding. All
     Unicode code points which cannot be representated in that encoding
     are converted to '?'.
 */
