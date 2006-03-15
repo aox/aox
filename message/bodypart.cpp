@@ -381,10 +381,10 @@ static Codec * guessTextCodec( const String & body )
     }
 
     // step 2. could it be pure ascii?
-    Codec * c = new AsciiCodec;
-    (void)c->toUnicode( body );
-    if ( c->wellformed() )
-        return c;
+    Codec * a = new AsciiCodec;
+    (void)a->toUnicode( body );
+    if ( a->wellformed() )
+        return a;
 
     // some multibyte encodings have to go before utf-8, or else utf-8
     // will match. this applies at least to iso-2002-jp, but may also
@@ -394,21 +394,26 @@ static Codec * guessTextCodec( const String & body )
     // step 3. does it look good as utf-8?
     Codec * u = new Utf8Codec;
     (void)u->toUnicode( body );
-    if ( u->wellformed() )
+    if ( u->wellformed() ) {
+        // if it's actually ascii, return that.
+        if ( a->valid() )
+            return a;
         return u;
+    }
 
     // step 4. guess a codec based on the bodypart content.
-    c = Codec::byString( body );
-    if ( c ) {
+    Codec * g = Codec::byString( body );
+    if ( g ) {
         // this probably isn't necessary... but it doesn't hurt to be sure.
-        (void)c->toUnicode( body );
-        if ( c->wellformed() )
-            return c;
+        (void)g->toUnicode( body );
+        if ( g->wellformed() )
+            return g;
     }
 
     // step 5. is utf-8 at all plausible?
     if ( u->valid() )
         return u;
+    // should we use g here if valid()?
 
     return 0;
 }
