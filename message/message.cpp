@@ -664,6 +664,10 @@ List< Annotation > * Message::annotations() const
     bodies, and all bodies agree, then any unlabelled header fields
     probably use that encoding, too. At least if they're legal
     according to the relevant codec.
+
+    If we can't get charset information from any body, we try to see
+    if a single codec can encode the entire header, and if so, use
+    that.
 */
 
 void Message::fix8BitHeaderFields()
@@ -688,9 +692,13 @@ void Message::fix8BitHeaderFields()
         }
         i++;
     }
-    if ( charset.isEmpty() )
-        charset = fallback;
-    Codec * c = Codec::byName( charset );
+    Codec * c = 0;
+    if ( !charset.isEmpty() )
+        c = Codec::byName( charset );
+    else
+        c = Codec::byString( header()->asText() );
+    if ( !c )
+        c = Codec::byName( fallback );
     if ( c )
         header()->fix8BitFields( c );
 }
