@@ -549,6 +549,10 @@ UString AsciiCodec::toUnicode( const String & s )
         u.append( s[i] );
         if ( s[i] == 0 || s[i] > 127 )
             recordError( i, s[i] );
+        else if ( s[i] < 32 &&
+                  s[i] != 10 && s[i] != 13 && s[i] != 9 &&
+                  state() == Valid )
+            setState( BadlyFormed );
         i++;
     }
     return u;
