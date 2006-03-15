@@ -560,17 +560,10 @@ void AddressParser::address( int & i )
         if ( i >= 0 && s[i] == '<' ) {
             i--;
             name = phrase( i );
-            while ( i >= 0 && s[i] > 127 ) {
-                // we're looking at an unencoded 8-bit name. we react
-                // to that by ignoring the display-name.
-                name = "";
-                i--;
-                (void)phrase( i );
-            }
-            if ( i >= 0 && s[i] == '@' ) {
-                // we may be looking at address "lp@domain
-                // <lp@domain>", or at some other error. we respond to
-                // this particular error by ignoring the display-name.
+            while ( i >= 0 && ( s[i] > 127 || s[i] == '@' ) ) {
+                // we're looking at an unencoded 8-bit name, or at
+                // 'lp@domain<lp@domain>'. we react to that by
+                // ignoring the display-name.
                 i--;
                 (void)phrase( i );
                 name = "";
