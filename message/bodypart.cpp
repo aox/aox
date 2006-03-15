@@ -10,6 +10,7 @@
 #include "ustring.h"
 #include "message.h"
 #include "unknown.h"
+#include "iso2022jp.h"
 #include "mimefields.h"
 
 
@@ -367,29 +368,47 @@ void Bodypart::parseMultipart( uint i, uint end,
 
 static Codec * guessTextCodec( const String & body )
 {
-    // step 1. could it be pure ascii?
+    // step 1. try iso-2022-jp. this goes first because it's so
+    // restrictive, and because 2022 strings also match the ascii and
+    // utf-8 tests.
+    if ( body[0] == 0x1B &&
+         ( body[1] == '(' || body[1] == '$' ) &&
+         ( body[2] == 'B' || body[2] == 'J' || body[2] == '@' ) ) {
+        Codec * c = new Iso2022JpCodec;
+        c->toUnicode( body );
+        if ( c->wellformed() )
+            return c;
+    }
+
+    // step 2. could it be pure ascii?
     Codec * c = new AsciiCodec;
     (void)c->toUnicode( body );
-    if ( c->valid() )
+    if ( c->wellformed() )
         return c;
 
-    // step 2. could it be utf-8?
-    c = new Utf8Codec;
-    (void)c->toUnicode( body );
-    if ( c->valid() )
-        return c;
+    // some multibyte encodings have to go before utf-8, or else utf-8
+    // will match. this applies at least to iso-2002-jp, but may also
+    // apply to other encodings that use octet values 0x01-0x07f
+    // exclusively.
 
-    // step 3. could it be ... (we probably want to check Big5, GB18030
-    // and other multibytes here.)
+    // step 3. does it look good as utf-8?
+    Codec * u = new Utf8Codec;
+    (void)u->toUnicode( body );
+    if ( u->wellformed() )
+        return u;
 
     // step 4. guess a codec based on the bodypart content.
     c = Codec::byString( body );
     if ( c ) {
         // this probably isn't necessary... but it doesn't hurt to be sure.
         (void)c->toUnicode( body );
-        if ( c->valid() )
+        if ( c->wellformed() )
             return c;
     }
+
+    // step 5. is utf-8 at all plausible?
+    if ( u->valid() )
+        return u;
 
     return 0;
 }
@@ -523,14 +542,31 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body.crlf() );
 
-        if ( !c->valid() && !specified ) {
+        if ( !c->wellformed() && !specified ) {
+            Codec * g = 0;
             if ( ct && ct->subtype() == "html" )
-                c = guessHtmlCodec( body );
+                g = guessHtmlCodec( body );
             else
-                c = guessTextCodec( body );
-            if ( !c )
-                c = new Unknown8BitCodec;
-            bp->d->text = c->toUnicode( body );
+                g = guessTextCodec( body );
+            UString guessed;
+            if ( g )
+                guessed = g->toUnicode( body );
+            if ( !g ) {
+                // if we couldn't guess anything, keep what we had if
+                // it's valid, else use unknown-8bit.
+                if ( !c->valid() ) {
+                    c = new Unknown8BitCodec;
+                    bp->d->text = c->toUnicode( body );
+                }
+            }
+            else {
+                // if we could guess something, is our guess better
+                // than what we had?
+                if ( g->wellformed() && !c->wellformed() ) {
+                    c = g;
+                    bp->d->text = guessed;
+                }
+            }
         }
 
         if ( !c->valid() && error.isEmpty() ) {
