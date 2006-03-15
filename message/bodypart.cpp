@@ -2,6 +2,7 @@
 
 #include "bodypart.h"
 
+#include "cp.h"
 #include "utf.h"
 #include "codec.h"
 #include "header.h"
@@ -404,6 +405,12 @@ static Codec * guessHtmlCodec( const String & body )
     // HTML prescribes that 8859-1 is the default. Let's see if 8859-1
     // works.
     c = new Iso88591Codec;
+    (void)c->toUnicode( body );
+    if ( c->valid() )
+        return c;
+    // Some people believe that Windows codepage 1252 is HTML. Let's
+    // see if that works.
+    c = new Cp1252Codec;
     (void)c->toUnicode( body );
     if ( c->valid() )
         return c;
