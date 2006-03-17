@@ -201,8 +201,8 @@ void SmtpDbClient::execute()
         addField( h, wrapper, HeaderField::InReplyTo, "" );
         wrapper.append( "Subject: Message arrived but could not be stored\r\n"
                         "MIME-Version: 1.0\r\n"
-                        "Content-Type: multipart/mixed; boundary=" +
-                        boundary + "\r\n"
+                        "Content-Type: multipart/mixed; boundary=\"" +
+                        boundary + "\"\r\n"
                         "\r\n\r\nYou are looking at an easter egg\r\n"
                         "--" + boundary + "\r\n"
                         "Content-Type: text/plain; format=flowed" ); // contd..
