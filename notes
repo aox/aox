@@ -14,14 +14,7 @@ Test suite errors
     lmtp/segfault2312
     lmtp/illegalutf8
     canonical/i/9
-    canonical/o/65
-    canonical/o/67
-    canonical/o/70
-    canonical/o/72
-    canonical/o/76
-    canonical/o/80
-    canonical/o/81
-    canonical/o/93
+    canonical/i/22
 
 
 Next few releases
