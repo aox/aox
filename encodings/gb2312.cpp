@@ -68,20 +68,13 @@ UString Gb2312Codec::toUnicode( const String &s )
             u.append( c );
             n++;
         }
-        else if ( s[n+1] < 128 ) {
-            // If we see half of a multibyte character followed by
-            // ASCII, we'll pretend we never saw the leading byte.
-            setState( BadlyFormed );
-            u.append( s[n+1] );
-            n += 2;
-        }
         else {
             char d = s[n + 1];
 
             uint i = c-128-32-1;
             uint j = d-128-32-1;
 
-            if ( i > 93 || j > 93 )
+            if ( i > 93 || d < 128 || j > 93 )
                 recordError( n, s );
             if ( gbToUnicode[i][j] == 0 )
                 recordError( n, i * 94 + j );
@@ -90,6 +83,7 @@ UString Gb2312Codec::toUnicode( const String &s )
 
             n += 2;
         }
+
     }
 
     return u;
