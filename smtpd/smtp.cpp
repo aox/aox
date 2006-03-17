@@ -145,6 +145,7 @@ public:
     String helo;
     String protocol;
     Injector * injector;
+    String injectorError;
     SmtpDbClient * helper;
     TlsServer * tlsServer;
     SmtpTlsStarter * tlsHelper;
@@ -251,6 +252,7 @@ void SmtpDbClient::execute()
 
         Message * m = new Message( wrapper );
         injector = new Injector( m, d->mailboxes, this );
+        d->injectorError = d->injector->error();
         d->injector = injector;
         injector->execute();
         return;
@@ -935,7 +937,7 @@ void SMTP::reportInjection()
     }
     else if ( d->helper->harder ) {
         d->helper->injector->announce();
-        respond( 250, "Worked around: " + d->injector->error() );
+        respond( 250, "Worked around: " + d->injectorError );
     }
     else {
         d->injector->announce();
@@ -1014,7 +1016,7 @@ void LMTP::reportInjection()
         if ( d->helper->injector->failed() )
             respond( 451, prefix + d->injector->error() );
         else if ( d->helper->harder )
-            respond( 250, prefix + "Worked around: " + d->injector->error() );
+            respond( 250, prefix + "Worked around: " + d->injectorError );
         else
             respond( 250, prefix + "injected into " +
                      it->inbox()->name() );
