@@ -135,7 +135,7 @@ void Codec::recordError( uint pos, const String & input )
     setState( Invalid );
     e = "Parse error at index " + fn( pos ) +
         ": Could not find a valid " + name() + " code point "
-        " (next few bytes: 0x" + fn( input[pos], 16 ) +
+        "(next few bytes: 0x" + fn( input[pos], 16 ) +
         " 0x" + fn( input[pos+1], 16 ) +
         " 0x" + fn( input[pos+2], 16 ) +
         " 0x" + fn( input[pos+3], 16 ) + ")";
