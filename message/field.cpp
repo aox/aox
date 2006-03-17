@@ -8,6 +8,7 @@
 #include "datefield.h"
 #include "mimefields.h"
 #include "addressfield.h"
+#include "stringlist.h"
 #include "parser.h"
 #include "utf.h"
 
@@ -525,73 +526,6 @@ uint HeaderField::fieldType( const String & n )
 }
 
 
-/*! This static function returns the RFC 2047-encoded version of \a s,
-    which is assumed to be a UTF-8 encoded string.
-
-    XXX: This doesn't split encoded-words to ensure that each
-    encoded-word is shorter than 75 characters.
-*/
-
-String HeaderField::encodeText( const String &s )
-{
-    String t;
-
-    uint n = 0;
-    Utf8Codec u;
-    uint last = 0;
-    bool encoded = false;
-
-    do {
-        if ( !t.isEmpty() )
-            t.append( " " );
-
-        String w;
-        n = s.find( ' ', last );
-        if ( n > 0 ) {
-            w = s.mid( last, n-last );
-            n++;
-        }
-        else {
-            w = s.mid( last );
-        }
-        last = n;
-
-        uint i = 0;
-        while ( i < w.length() && w[i] > 0 && w[i] < 128 )
-            i++;
-        if ( i >= w.length() ) {
-            t.append( w );
-            encoded = false;
-        }
-        else {
-            if ( encoded )
-                w = " " + w;
-            encoded = true;
-            UString us = u.toUnicode( w );
-            Codec * c = Codec::byString( us );
-            String cw = c->fromUnicode( us );
-            t.append( "=?" );
-            t.append( c->name() );
-            t.append( "?" );
-            String qp = cw.eQP( true );
-            String b64 = cw.e64();
-            if ( qp.length() <= b64.length() ) {
-                t.append( "q?" );
-                t.append( qp );
-            }
-            else {
-                t.append( "b?" );
-                t.append( b64 );
-            }
-            t.append( "?=" );
-        }
-    }
-    while ( last > 0 );
-
-    return t;
-}
-
-
 /*! Returns an unwrapped version of the string \a s, where any CRLF-SP
     is replaced by a single space.
 
@@ -676,6 +610,119 @@ String HeaderField::wrap( const String &s )
         t.append( w );
     }
     while ( last > 0 );
+
+    return t;
+}
+
+
+/*! This static function returns an RFC2047 encoded-word representing
+    \a w, which is assumed to be a UTF-8 encoded string.
+
+    XXX: This doesn't split encoded-words to ensure that each
+    encoded-word is shorter than 75 characters.
+*/
+
+String HeaderField::encodeWord( const String &w )
+{
+    Utf8Codec u;
+    UString us( u.toUnicode( w ) );
+    Codec * c = Codec::byString( us );
+    String cw( c->fromUnicode( us ) );
+
+    String t( "=?" );
+    t.append( c->name() );
+    t.append( "?" );
+    String qp = cw.eQP( true );
+    String b64 = cw.e64();
+    if ( qp.length() <= b64.length() ) {
+        t.append( "q?" );
+        t.append( qp );
+    }
+    else {
+        t.append( "b?" );
+        t.append( b64 );
+    }
+    t.append( "?=" );
+
+    return t;
+}
+
+
+/*! This static function returns the RFC 2047-encoded version of \a s,
+    which is assumed to be a UTF-8 encoded string.
+*/
+
+String HeaderField::encodeText( const String &s )
+{
+    String t;
+
+    uint n = 0;
+    uint last = 0;
+    bool encoded = false;
+
+    do {
+        if ( !t.isEmpty() )
+            t.append( " " );
+
+        String w;
+        n = s.find( ' ', last );
+        if ( n > 0 ) {
+            w = s.mid( last, n-last );
+            n++;
+        }
+        else {
+            w = s.mid( last );
+        }
+        last = n;
+
+        uint i = 0;
+        while ( i < w.length() && w[i] > 0 && w[i] < 128 )
+            i++;
+        if ( i >= w.length() ) {
+            t.append( w );
+            encoded = false;
+        }
+        else {
+            if ( encoded )
+                w = " " + w;
+            encoded = true;
+            t.append( encodeWord( w ) );
+        }
+    }
+    while ( last > 0 );
+
+    return t;
+}
+
+
+/*! This static function returns the RFC 2047-encoded version of \a s,
+    which is assumed to be a UTF-8 encoded phrase.
+*/
+
+String HeaderField::encodePhrase( const String &s )
+{
+    String t;
+    StringList::Iterator it( StringList::split( ' ', s ) );
+
+    while ( it ) {
+        String w( *it );
+        ++it;
+
+        if ( !t.isEmpty() )
+            t.append( " " );
+
+        if ( w.boring() ) {
+            t.append( w );
+        }
+        else {
+            while ( it && !(*it).boring() ) {
+                w.append( " " );
+                w.append( *it );
+                ++it;
+            }
+            t.append( encodeWord( w ) );
+        }
+    }
 
     return t;
 }

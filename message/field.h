@@ -67,10 +67,12 @@ public:
     static const char *fieldName( HeaderField::Type );
     static uint fieldType( const String & );
 
-    static String encodeText( const String & );
-
     static String unwrap( const String & );
     String wrap( const String & );
+
+    static String encodeWord( const String & );
+    static String encodeText( const String & );
+    static String encodePhrase( const String & );
 
 private:
     static HeaderField *fieldNamed( const String & );

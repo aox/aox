@@ -202,7 +202,7 @@ String Address::name() const
     if ( ascii )
         return d->name.quoted( '"', '\\' );
 
-    return HeaderField::encodeText( d->name );
+    return HeaderField::encodePhrase( d->name );
 }
 
 
