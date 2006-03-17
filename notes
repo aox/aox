@@ -700,11 +700,6 @@ We sometimes prefer KOI8-R in dubious circumstances.
   See o/22 (/tlan@stud.ntnu.no).
 
 
-How should we handle the trailing space in =?us-ascii?q?a_?=?
-
-  We eat it right now. Very greedy.
-
-
 lmtp/segfault2312
 
   Why on earth does the error message change when I update the index in
