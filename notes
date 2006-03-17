@@ -13,8 +13,6 @@ Test suite errors
     lmtp/rubbishsubject
     lmtp/segfault2312
     lmtp/illegalutf8
-    canonical/i/9
-    canonical/i/22
 
 
 Next few releases
