@@ -166,10 +166,13 @@ void Address::setId( uint id )
 String Address::name() const
 {
     bool atom = true;
+    bool ascii = true;
+
     uint i = 0;
-    while ( atom && i < d->name.length() ) {
-        // source: 2822 section 3.2.4
+    while ( i < d->name.length() ) {
         char c = d->name[i];
+
+        // source: 2822 section 3.2.4
         if ( ( c >= 'a' && c <= 'z' ) ||
              ( c >= 'A' && c <= 'Z' ) ||
              ( c >= '0' && c <= '9' ) ||
@@ -179,28 +182,26 @@ String Address::name() const
              c == '^' || c == '_' || c == '`' || c == '{' ||
              c == '|' || c == '}' || c == '~' ||
              // extra
-             c == ' ' ) {
+             c == ' ' )
+        {
             // still an atom
         }
         else {
             atom = false;
         }
+
+        if ( c == '\0' || c > 127 )
+            ascii = false;
+
         i++;
     }
 
     if ( atom )
         return d->name;
 
-
-    
-    Utf8Codec u;
-    UString real( u.toUnicode( d->name ) );
-    
-    Codec * c = Codec::byString( real );
-    if ( c->name() == "US-ASCII" )
+    if ( ascii )
         return d->name.quoted( '"', '\\' );
 
-    // XXX: this discards and immediately recomputes real.
     return HeaderField::encode( d->name );
 }
 
