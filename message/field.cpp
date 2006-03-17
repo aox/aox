@@ -624,6 +624,9 @@ String HeaderField::wrap( const String &s )
 
 String HeaderField::encodeWord( const String &w )
 {
+    if ( w.isEmpty() )
+        return "";
+
     Utf8Codec u;
     UString us( u.toUnicode( w ) );
     Codec * c = Codec::byString( us );

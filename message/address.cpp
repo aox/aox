@@ -196,7 +196,7 @@ String Address::name() const
         i++;
     }
 
-    if ( atom )
+    if ( atom || i == 0 )
         return d->name;
 
     if ( ascii )
