@@ -694,7 +694,7 @@ static String hf( Header * f, HeaderField::Type t )
     List<Address>::Iterator it( a );
     while ( it ) {
         r.append( "(" );
-        r.append( Command::imapQuoted( HeaderField::encode( it->uname() ),
+        r.append( Command::imapQuoted( HeaderField::encodeText( it->uname() ),
                                        Command::NString ) );
         r.append( " NIL " );
         r.append( Command::imapQuoted( it->localpart(), Command::NString ) );

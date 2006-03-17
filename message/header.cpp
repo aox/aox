@@ -705,13 +705,17 @@ void Header::fix8BitFields( class Codec * c )
             if ( i < v.length() ) {
                 c->setState( Codec::Valid );
                 UString u = c->toUnicode( v );
-                if ( c->wellformed() )
-                    f->setData( HeaderField::encode( utf8.fromUnicode( u ) ) );
-                else if ( f->type() == HeaderField::Other )
+                if ( c->wellformed() ) {
+                    String s( utf8.fromUnicode( u ) );
+                    f->setData( HeaderField::encodeText( s ) );
+                }
+                else if ( f->type() == HeaderField::Other ) {
                     d->fields.remove( f );
-                else if ( d->error.isEmpty() )
+                }
+                else if ( d->error.isEmpty() ) {
                     d->error = "Cannot parse header field " + f->name() +
                                " either as US-ASCII or " + c->name();
+                }
             }
         }
     }

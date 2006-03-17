@@ -415,7 +415,7 @@ void HeaderField::reassemble( const String &s )
 
     case Subject:
     case Comments:
-        setValue( wrap( encode( s ) ) );
+        setValue( wrap( encodeText( s ) ) );
         break;
     }
 }
@@ -532,7 +532,7 @@ uint HeaderField::fieldType( const String & n )
     encoded-word is shorter than 75 characters.
 */
 
-String HeaderField::encode( const String &s )
+String HeaderField::encodeText( const String &s )
 {
     String t;
 
