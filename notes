@@ -706,4 +706,29 @@ lmtp/segfault2312
   the test? ("Parse error at index 18859".)
 
 
+Multipart/signed automatic processing
+
+  We could check signatures automatically on delivery, and reject bad
+  signed messages.
+
+  The big benefit is that some forgeries are rejected, even though the
+  reader and the reading MUA doesn't do anything different.
+
+  The disadvantage is that we (probably?) can't verify all signatures,
+  which gives a false sense of security for the undetactable forgeries.
+
+  In case of PKCS7, it's possible to self-sign. Those we cannot
+  check. In that case we remove the signature entirely from the MIME
+  structure, so it doesn't look checked to the end-user.
+
+  PGP cannot be checked, except it sort of can. We can have a small
+  default keyring including the heise.de CA key and so on, and treat
+  that as root CAs, using the keyservers to dig up intermediate keys.
+
+
+PGP automatic processing
+
+  Apparently there are five different PGP wrapping formats. We could
+  detect four and transform them to the proper MIME format.
+
 
