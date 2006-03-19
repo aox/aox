@@ -376,7 +376,7 @@ void Allocator::mark()
                 mark( b->payload[n] );
         }
     }
-    free( stack );
+    ::free( stack );
     stack = 0;
     tos = 0;
 }
