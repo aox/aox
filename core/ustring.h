@@ -42,7 +42,7 @@ public:
 
     UString mid( uint, uint = UINT_MAX ) const;
     uint number( bool *, uint = 10 ) const;
-    
+
 private:
     uint len;
     uint max;
