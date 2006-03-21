@@ -732,3 +732,8 @@ PGP automatic processing
   detect four and transform them to the proper MIME format.
 
 
+'ms show asdf'
+
+  Should display the possible 'show' arguments. Does not.
+
+
