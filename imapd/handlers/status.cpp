@@ -103,7 +103,7 @@ void Status::execute()
     if ( d->unseen && !d->unseenCount ) {
         // UNSEEN is a bit of a special case. we have to issue our own
         // select and make the database reveal the number.
-        d->unseenCount 
+        d->unseenCount
             = new Query( "select "
                          "(select count(*) from messages "
                          "where mailbox=$1)::integer"

@@ -151,7 +151,6 @@ bool Flag::system() const
          n == "deleted" || n == "draft" )
         return true;
     return false;
-    
 }
 
 

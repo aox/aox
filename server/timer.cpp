@@ -19,7 +19,7 @@ public:
 
 
 /*! \class Timer timer.h
-  
+
     The Timer class provides a way to ask for a callback at a time of
     your chooring, or a little later.
 

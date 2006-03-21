@@ -10,7 +10,7 @@ class ImapSessionData
 {
 public:
     ImapSessionData(): i( 0 ), annotateUpdates( false ) {}
-    class IMAP * i;    
+    class IMAP * i;
     bool annotateUpdates;
 };
 

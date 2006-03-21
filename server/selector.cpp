@@ -875,7 +875,7 @@ String Selector::whereNoField()
             bool af = false;
             if ( d->a == Or &&
                  i->d->f == Header &&
-                 !address.isEmpty() && 
+                 !address.isEmpty() &&
                  !i->d->s8.isEmpty() &&
                  address == i->d->s16 ) {
                 uint t = HeaderField::fieldType( i->d->s8 );

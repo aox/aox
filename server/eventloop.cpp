@@ -195,7 +195,7 @@ void EventLoop::start()
                 timeout = t->timeout();
             ++t;
         }
-        
+
         // Look for interesting input
 
         struct timeval tv;

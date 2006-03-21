@@ -564,7 +564,7 @@ void Server::waitFor( Query *q )
 /*! This function actually waits for the queries added with waitFor()
     to complete before ending the EventLoop startup phase. If any of
     these queries fail, the function exits.
-    
+
     If all succeed, the function closes stderr. We assume that when
     this function has completed, startup is complete, and stderr will
     no longer be needed.

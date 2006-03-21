@@ -150,7 +150,7 @@ void GuiLog::send( const String & id,
         ::recentMessages = (LogMessage**)Allocator::alloc( 1024 * sizeof( LogMessage* ) );
         Allocator::addEternal( ::recentMessages, "gui log item queue" );
     }
-    
+
     ::recentMessages[::messageBase] = new LogMessage( id, f, s, m );
     uint current = ::messageBase;
     ::messageBase = (::messageBase + 1) % 1024;

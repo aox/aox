@@ -1414,7 +1414,7 @@ static const char * keywords[] = {
     "wadt", "wast", "wed", "wet", "ydt", "yst",
     0
 };
-    
+
 // helper for String::anonymised()
 static inline bool isMungableChar( char c ) {
     if ( ( c >= 'a' && c <= 'z' ) ||

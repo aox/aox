@@ -125,7 +125,7 @@ void AddressField::update()
             if ( first ) {
                 first = false;
             }
-            else if ( ( c + wsep.length() + a.length() > 78 ) || 
+            else if ( ( c + wsep.length() + a.length() > 78 ) ||
                       ( c + wsep.length() + a.length() == 78 && it ) )
             {
                 s.append( lsep );

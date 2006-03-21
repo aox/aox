@@ -227,5 +227,4 @@ void Copy::execute()
              "] done",
              Tagged );
     finish();
-    
 }

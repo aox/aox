@@ -451,7 +451,7 @@ bool PopCommand::list()
         Message * m = s->mailbox()->message( uid );
 
         if ( m )
-            d->pop->ok( fn( s->msn( uid ) ) + " " + 
+            d->pop->ok( fn( s->msn( uid ) ) + " " +
                         fn( m->rfc822Size() ) );
         else
             d->pop->err( "No such message" );
@@ -464,7 +464,7 @@ bool PopCommand::list()
             uint uid = d->set.value( i );
             Message * m = s->mailbox()->message( uid );
             if ( m )
-                d->pop->enqueue( fn( s->msn( uid ) ) + " " + 
+                d->pop->enqueue( fn( s->msn( uid ) ) + " " +
                                  fn( m->rfc822Size() ) + "\r\n" );
             i++;
         }

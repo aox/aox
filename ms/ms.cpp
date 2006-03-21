@@ -101,7 +101,7 @@ void StderrLog::send( const String &,
         fprintf( stderr, "%s: %s\n", name().cstr(), m.cstr() );
 
     // Debug we ignore, Info we ignore for now.
-    
+
     // and in case of a disaster, we quit. the hard way.
     if ( s == Log::Disaster ) {
         fprintf( stderr, "%s: Fatal error. Exiting.\n", name().cstr() );

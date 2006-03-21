@@ -466,7 +466,7 @@ String Parser822::encodedWords()
         while ( i < s.length() &&
                 ( s[i] == ' ' || s[i] == '\t' ) )
             i++;
-        
+
         if ( i == n )
             break;
 

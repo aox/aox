@@ -36,7 +36,7 @@ public:
 
     Parsing mostly relies on the Message class, execution on the
     Injector. There is no way to insert anything but conformant
-    messages, unlike some other IMAP servers. How could we do that? 
+    messages, unlike some other IMAP servers. How could we do that?
     Not at all, I think.
 */
 

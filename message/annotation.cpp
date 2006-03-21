@@ -281,7 +281,7 @@ public:
 
 
 /*! \class Annotation annotation.h
-  
+
     The Annotation class models a single annotation for a message,
     ie. it has an entr name, a value, an owner and associated data.
     The Annotation object doesn't register itself or maintain pointers

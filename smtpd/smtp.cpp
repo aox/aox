@@ -234,7 +234,7 @@ void SmtpDbClient::execute()
         wrapper.append( "\r\n\r\n--" + boundary + "\r\n" );
         n = 0;
         while ( n < d->body.length() &&
-                d->body[n] < 128 && 
+                d->body[n] < 128 &&
                 ( d->body[n] >= 32 ||
                   d->body[n] == 10 ||
                   d->body[n] == 13 ) )
