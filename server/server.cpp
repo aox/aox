@@ -221,8 +221,8 @@ void Server::configuration()
 }
 
 
-/*! Closes all files except stderr. Attaches stdin and stdout to
-    /dev/null just in case something uses them. stderr is kept open so
+/*! Closes all files except stdout and stderr. Attaches stdin to
+    /dev/null in case something uses it. stderr is kept open so
     that we can tell our daddy about any disasters.
 */
 
@@ -231,11 +231,10 @@ void Server::files()
     int s = getdtablesize();
     while ( s > 0 ) {
         s--;
-        if ( s != 2 )
+        if ( s != 2 && s != 1 )
             close( s );
     }
     s = open( "/dev/null", O_RDWR );
-    dup( 0 );
 
     Entropy::setup();
 }

@@ -16,6 +16,7 @@
 
 static uint id;
 static File *logFile;
+static bool logStdout;
 static Log::Severity logLevel;
 
 
@@ -262,10 +263,15 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
     msg.append( line );
     msg.append( "\n" );
 
-    if ( logFile )
+    if ( logFile ) {
         logFile->write( msg );
-    else
-        fprintf( stderr, "%s", msg.cstr() );
+    }
+    else {
+        FILE * f = stderr;
+        if ( logStdout )
+            f = stdout;
+        fprintf( f, "%s", msg.cstr() );
+    }
 }
 
 
@@ -297,6 +303,11 @@ void LogServer::setLogFile( const String &name, const String &mode )
 
     if ( !ok ) {
         ::log( "Invalid logfile-mode " + mode, Log::Disaster );
+        return;
+    }
+
+    if ( name == "-" ) {
+        logStdout = true;
         return;
     }
 

@@ -111,11 +111,15 @@ The port number at which
 listens, and to which the other servers connect. The default is
 .IR 2054 .
 .IP logfile
-is the name of the file to which
+tells
 .BR logd (8)
-writes log events. The file name must be absolute (start with '/'),
-and the default is
-.IR $LOGFILE .
+where to write log events. It may be set to an absolute file name
+(starting with '/'), or
+.IR "-" ,
+which causes everything to be logged to
+.IR stdout .
+The default is to log to
+.IR $LOGFILE . 
 .IP logfile-mode
 is
 .I $LOGFILEMODE
