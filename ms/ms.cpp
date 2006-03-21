@@ -743,6 +743,8 @@ void showCounts()
                        " where deleted='f')::int as mailboxes,"
                        "(select count(*) from messages)::int as messages,"
                        "(select count(*) from bodyparts)::int as bodyparts,"
+                       "(select sum(length(text)) from bodyparts)::int as textsize,"
+                       "(select sum(length(data)) from bodyparts)::int as datasize,"
                        "(select count(*) from addresses)::int as addresses,"
                        "(select sum(rfc822size) from messages)::int as size,"
                        "(select count(*) from users)::int as users", d );
@@ -754,21 +756,43 @@ void showCounts()
 
     Row * r = d->query->nextRow();
     if ( r ) {
-        uint mailboxes = r->getInt( "mailboxes" );
-        uint messages = r->getInt( "messages" );
-        uint bodyparts = r->getInt( "bodyparts" );
-        uint addresses = r->getInt( "addresses" );
-        uint size = r->getInt( "size" );
-        uint users = r->getInt( "users" );
+        uint mailboxes = 0;
+        if ( !r->isNull( "mailboxes" ) )
+            mailboxes = r->getInt( "mailboxes" );
+        uint messages = 0;
+        if ( !r->isNull( "messages" ) )
+            messages = r->getInt( "messages" );
+        uint bodyparts = 0;
+        if ( !r->isNull( "bodyparts" ) )
+            bodyparts = r->getInt( "bodyparts" );
+        uint addresses = 0;
+        if ( !r->isNull( "addresses" ) )
+            addresses = r->getInt( "addresses" );
+        uint textSize = 0;
+        if ( !r->isNull( "textsize" ) )
+            textSize = r->getInt( "textsize" );
+        uint dataSize = 0;
+        if ( !r->isNull( "datasize" ) )
+            dataSize = r->getInt( "datasize" );
+        uint size = 0;
+        if ( !r->isNull( "size" ) )
+            size = r->getInt( "size" );
+        uint users = 0;
+        if ( !r->isNull( "users" ) )
+            users = r->getInt( "users" );
 
         printf( "Users: %d\n"
                 "Mailboxes: %d\n"
-                "Messages: %d\n"
-                "Bodyparts: %d\n"
-                "Addresses: %d\n"
-                "Total Message Size: %s\n",
-                users, mailboxes, messages, bodyparts, addresses,
-                String::humanNumber( size ).cstr() );
+                "Messages: %d (%s total size)\n"
+                "Bodyparts: %d (%s text, %s data)\n"
+                "Addresses: %d\n",
+                users,
+                mailboxes,
+                messages, String::humanNumber( size ).cstr(),
+                bodyparts, 
+                String::humanNumber( textSize ).cstr(),
+                String::humanNumber( dataSize ).cstr(),
+                addresses );
     }
 }
 
