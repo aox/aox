@@ -48,9 +48,9 @@ void Login::execute()
         m = new Plain( this );
         m->setLogin( n );
         m->setSecret( p );
+        m->execute();
     }
 
-    m->query();
     if ( !m->done() )
         return;
 

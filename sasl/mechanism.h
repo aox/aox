@@ -4,14 +4,14 @@
 #define MECHANISM_H
 
 #include "log.h"
+#include "event.h"
 #include "string.h"
 
-class EventHandler;
 class User;
 
 
 class SaslMechanism
-    : public Garbage
+    : public EventHandler
 {
 public:
     SaslMechanism( EventHandler * );
@@ -25,9 +25,7 @@ public:
     State state() const;
     void setState( State );
 
-    EventHandler *command() const;
-
-    void query();
+    void execute();
     virtual String challenge();
     virtual void readResponse( const String & ) = 0;
     virtual void verify();

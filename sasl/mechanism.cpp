@@ -44,14 +44,15 @@ public:
     Each mechanism handler is implemented as a state machine, starting
     in the IssuingChallenge state, entering the AwaitingResponse state
     after a challenge() has been issued, reading the client's response
-    with readResponse(), entering the Authenticating state in query(),
+    with readResponse(), entering the Authenticating state in execute(),
     and entering either the Succeeded or Failed state when verify() is
     able to make a final decision.
 
     The caller is expected to retrieve and send the challenge() to the
     client when the handler is in the IssuingChallenge state; to call
     the readResponse() function when the client sends a response, and
-    to call query() while the handler has not yet reached a decision.
+    to call execute() to begin verification. The mechanism will call
+    its owner back when it is done().
 
     If the mechanism supports a SASL initial response, it starts in the
     AwaitingInitialResponse state, and the caller may choose to either
@@ -106,19 +107,11 @@ SaslMechanism::SaslMechanism( EventHandler *cmd )
 */
 
 
-/*! Returns a pointer to the Command that created this SaslMechanism. */
-
-EventHandler *SaslMechanism::command() const
-{
-    return d->command;
-}
-
-
 /*! Returns this SaslMechanism's state, which is one of the following:
 
     1. IssuingChallenge: Wants the server to issue another challenge().
     2. AwaitingResponse: Waiting for readResponse() to be called.
-    3. Authenticating: Waiting for query() to hear from the database.
+    3. Authenticating: Waiting for execute() to hear from the database.
     4. Succeeded: The authentication request succeeded.
     5. Failed: The authentication request failed.
 
@@ -176,13 +169,13 @@ String SaslMechanism::challenge()
     the request and set the state appropriately.
 */
 
-void SaslMechanism::query()
+void SaslMechanism::execute()
 {
     if ( !d->user ) {
         setState( Authenticating );
         d->user = new User;
         d->user->setLogin( d->login );
-        d->user->refresh( command() );
+        d->user->refresh( this );
     }
 
     // Stopgap hack to block the race condition whereby the User may
@@ -196,6 +189,9 @@ void SaslMechanism::query()
 
     if ( state() == Authenticating && d->user->state() != User::Unverified )
         verify();
+
+    if ( done() )
+        d->command->execute();
 }
 
 
@@ -240,7 +236,7 @@ String SaslMechanism::login() const
 
 /*! This function tells the SaslMechanism that the client supplied the
     \a name as its authorization identity. This is usually called by
-    readResponse(), and the value is used by query().
+    readResponse(), and the value is used by execute().
 */
 
 void SaslMechanism::setLogin( const String &name )
@@ -261,7 +257,7 @@ String SaslMechanism::secret() const
 
 /*! This function tells the SaslMechanism that the client supplied the
     \a secret with its credentials. Usually called by readResponse(),
-    and the value is used by query().
+    and the value is used by execute().
 */
 
 void SaslMechanism::setSecret( const String &secret )
@@ -272,7 +268,7 @@ void SaslMechanism::setSecret( const String &secret )
 
 /*! Returns the secret stored on the server for the login name supplied
     by the client. This function expects to be called by verify(), i.e.
-    after query() has obtained the stored secret from the database.
+    after execute() has obtained the stored secret from the database.
 */
 
 String SaslMechanism::storedSecret() const
@@ -283,7 +279,7 @@ String SaslMechanism::storedSecret() const
 
 /*! This function is only meant to be used while testing SaslMechanism
     subclasses. It sets the stored secret to \a s, rather than waiting
-    for it to be retrieved from the database by query().
+    for it to be retrieved from the database by execute().
 */
 
 void SaslMechanism::setStoredSecret( const String &s )
