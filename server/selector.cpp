@@ -786,6 +786,9 @@ String Selector::whereFlags()
 
 String Selector::whereUid()
 {
+    if ( d->s.isEmpty() )
+        return "false";
+
     if ( !d->s.isRange() )
         return "(" + d->s.where( "m" ) + ")";
 
