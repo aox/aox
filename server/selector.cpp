@@ -24,7 +24,14 @@ public:
         : f( Selector::NoField ), a( Selector::None ), mboxId( 0 ),
           placeholder( 0 ), query( 0 ), parent( 0 ),
           children( new List< Selector > ),
-          session( 0 )
+          session( 0 ),
+          needHeaderFields( false ),
+          needAddresses( false ),
+          needAddressFields( false ),
+          needFlags( false ),
+          needAnnotations( false ),
+          needPartNumbers( false ),
+          needBodyparts( false )
     {}
 
     Selector::Field f;
@@ -46,17 +53,24 @@ public:
     List< Selector > * children;
     Session * session;
     User * user;
+
+    bool needHeaderFields;
+    bool needAddresses;
+    bool needAddressFields;
+    bool needFlags;
+    bool needAnnotations;
+    bool needPartNumbers;
+    bool needBodyparts;
 };
 
 
 /*! \class Selector selector.h
-    This class represents d->a set of conditions to select messages from a
-    mailbox.
 
-XXX:
+    This class represents a set of conditions to select messages from
+    a mailbox.
 
-    The Selector class represents a single condition in a
-    search, which is either a leaf condition or an AND/OR operator.
+    The Selector class represents a single condition in a search,
+    which is either a leaf condition or an AND/OR operator.
 
     The class can simplify() and regularize itself, such that all
     equivalent search inputs give the same result, and and it can
@@ -376,6 +390,16 @@ void Selector::simplify()
 }
 
 
+static String join( const char * table )
+{
+    String r( table );
+    r.append( ".uid=m.uid and m.mailbox=" );
+    r.append( table );
+    r.append( ".mailbox" );
+    return r;
+}
+
+
 /*! Returns a query representing this Selector or 0 if anything goes
     wrong, in which case error() contains a description of the problem.
     The Selector is expressed as SQL in the context of the specified
@@ -393,13 +417,41 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->placeholder = 0;
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, mailbox->id() );
-    d->query->setString( "select distinct uid from messages "
-                         "where mailbox=$" + fn( d->mboxId ) +
-                         " and (" + where() + ") order by uid" );
+    String q = "select distinct m.uid from messages m";
+
+    String w = where();
+
+    // make sure that any indirect joins below don't produce bad
+    // syntax.  for example, if we look at bodyparts we have to join
+    // it to messages via part_numbers.
+    if ( d->needAddresses )
+        d->needAddressFields = true;
+    if ( d->needBodyparts )
+        d->needPartNumbers = true;
+
+    if ( d->needHeaderFields )
+        q.append( " join header_fields hf on (" + join( "hf" ) + ")" );
+    if ( d->needAddressFields )
+        q.append( " join address_fields af on (" + join( "af" ) + ")" );
+    if ( d->needAddresses )
+        q.append( " join addresses a on (af.address=a.id)" );
+    if ( d->needFlags )
+        q.append( " join flags f on (" + join( "f" ) + ")" );
+    if ( d->needAnnotations )
+        q.append( " join annotations a on (" + join( "a" ) + ")" );
+    if ( d->needPartNumbers )
+        q.append( " join part_numbers pn on (" + join( "pn" ) + ")" );
+    if ( d->needBodyparts )
+        q.append( " join bodyparts bp on (bp.id=pn.bodypart)" );
+
+    q.append( " where m.mailbox=$" + fn( d->mboxId ) );
+    if ( !w.isEmpty() )
+        q.append( " and " + w );
+    q.append( " order by m.uid" );
+
+    d->query->setString( q );
     return d->query;
 }
-
-
 
 
 /*! Gives an SQL string representing this condition.
@@ -464,19 +516,17 @@ String Selector::whereInternalDate()
     uint n2 = placeHolder();
     root()->d->query->bind( n2, d2.unixTime() );
 
-    if ( d->a == OnDate ) {
-        return "messages.idate>=$" + fn( n1 ) +
-            " and messages.idate<=$" + fn( n2 );
-    }
-    else if ( d->a == SinceDate ) {
-        return "messages.idate>=$" + fn( n1 );
-    }
-    else if ( d->a == BeforeDate ) {
-        return "messages.idate<=$" + fn( n2 );
-    }
+    if ( d->a == OnDate )
+        return "(m.idate>=$" + fn( n1 ) + " and m.idate<=$" + fn( n2 ) + ")";
+    else if ( d->a == SinceDate )
+        return "m.idate>=$" + fn( n1 );
+    else if ( d->a == BeforeDate )
+        return "m.idate<=$" + fn( n2 );
+
     setError( "Cannot search for: " + debugString() );
     return "";
 }
+
 
 /*! This implements the SENTON/SENTBEFORE/SENTSINCE part of where().
 */
@@ -522,11 +572,11 @@ String Selector::whereHeaderField()
     uint like = placeHolder();
     root()->d->query->bind( like, q( d->s16 ) );
 
+    root()->d->needHeaderFields = true;
+
     return
-        "messages.uid in "
-        "(select uid from header_fields where mailbox=$" + mboxId() +
-        " and field=(select id from field_names where name=$" + fn( fnum ) +
-        ") and value ilike " + matchAny( like ) + ")";
+        "(hf.value ilike " + matchAny( like ) + " and "
+        "hf.field=(select id from field_names where name=$" + fn( fnum ) + "))";
 }
 
 
@@ -550,28 +600,30 @@ String Selector::whereAddressField( const String & field )
 String Selector::whereAddressFields( const StringList & fields,
                                      const UString & name )
 {
-    String r( "messages.uid in (" );
-    r.append( "select uid from address_fields af join addresses a "
-              "on (af.address=a.id)" );
+    root()->d->needAddresses = true;
+    root()->d->needAddressFields = true;
+    Query * query = root()->d->query;
 
-    if ( !fields.isEmpty() )
-        r.append( " join field_names fn on (af.field=fn.id)" );
-
-    r.append( " where af.mailbox=$" + mboxId() );
-    if ( !fields.isEmpty() ) {
-        r.append( " and (" );
+    String r( "(" );
+    String s;
+    if ( fields.isEmpty() ) {
+        // any address field.
+    }
+    else {
+        r.append( "af.field in (select id from field_names fn where (" );
         bool first = true;
         StringList::Iterator it( fields );
         while ( it ) {
             uint fnum = placeHolder();
-            root()->d->query->bind( fnum, *it );
+            query->bind( fnum, *it );
             if ( !first )
                 r.append( " or " );
             r.append( "fn.name=$" + fn( fnum ) );
             first = false;
             ++it;
         }
-        r.append( ")" );
+        r.append( "))" );
+        s = " and ";
     }
 
     String raw( q( name ) );
@@ -579,9 +631,9 @@ String Selector::whereAddressFields( const StringList & fields,
 
     if ( at < 0 ) {
         uint name = placeHolder();
-        root()->d->query->bind( name, raw );
-        r.append( " and "
-                  "(a.name ilike " + matchAny( name ) + " or"
+        query->bind( name, raw );
+        r.append( s );
+        r.append( "(a.name ilike " + matchAny( name ) + " or"
                   " a.localpart ilike " + matchAny( name ) + " or"
                   " a.domain ilike " + matchAny( name ) + ")" );
     }
@@ -590,22 +642,22 @@ String Selector::whereAddressFields( const StringList & fields,
         if ( at > 0 ) {
             uint lp = placeHolder();
             if ( raw.startsWith( "<" ) ) {
-                root()->d->query->bind( lp, raw.mid( 1, at-1 ) );
+                query->bind( lp, raw.mid( 1, at-1 ) );
                 lc = "a.localpart ilike $" + fn( lp );
             }
             else {
-                root()->d->query->bind( lp, raw.mid( 0, at ) );
+                query->bind( lp, raw.mid( 0, at ) );
                 lc = "a.localpart ilike '%'||$" + fn( lp ) + " ";
             }
         }
         if ( at < (int)raw.length() - 1 ) {
             uint dom = placeHolder();
             if ( raw.endsWith( ">" ) ) {
-                root()->d->query->bind( dom, raw.mid( at+1, raw.length()-at-2 ) );
+                query->bind( dom, raw.mid( at+1, raw.length()-at-2 ) );
                 dc = "a.domain ilike $" + fn( dom );
             }
             else {
-                root()->d->query->bind( dom, raw.mid( at+1 ) );
+                query->bind( dom, raw.mid( at+1 ) );
                 dc = "a.domain ilike $" + fn( dom ) + "||'%'";
             }
         }
@@ -615,11 +667,11 @@ String Selector::whereAddressFields( const StringList & fields,
             // do.
         }
         if ( !lc.isEmpty() ) {
-            r.append( " and " );
+            r.append( s );
             r.append( lc );
         }
         if ( !dc.isEmpty() ) {
-            r.append( " and " );
+            r.append( s );
             r.append( dc );
         }
     }
@@ -633,14 +685,13 @@ String Selector::whereAddressFields( const StringList & fields,
 
 String Selector::whereHeader()
 {
+    root()->d->needHeaderFields = true;
+    
     uint str = placeHolder();
     root()->d->query->bind( str, q( d->s16 ) );
     return
-        "messages.uid in "
-        "(select uid from header_fields hf"
-        " where hf.mailbox=$" + mboxId() + " and"
-        " hf.value ilike " + matchAny( str ) + ") "
-        "or " + whereAddressField();
+        "(" + whereAddressField() + " or "
+        "hf.value ilike " + matchAny( str ) + ")";
 }
 
 
@@ -652,23 +703,19 @@ String Selector::whereHeader()
 
 String Selector::whereBody()
 {
+    root()->d->needBodyparts = true;
+
     String s;
 
     uint bt = placeHolder();
     root()->d->query->bind( bt, q( d->s16 ) );
 
-    s = "messages.uid in "
-        "(select pn.uid from part_numbers pn, bodyparts b"
-        " where pn.mailbox=$" + mboxId() + " and"
-        " pn.bodypart=b.id and ";
-
     String db = Database::type();
     if ( db.lower().endsWith( "tsearch2" ) )
-        s.append( "b.ftidx @@ to_tsquery('default', $" + fn( bt ) + ")" );
+        s.append( "bp.ftidx @@ to_tsquery('default', $" + fn( bt ) + ")" );
     else
-        s.append( "b.text ilike " + matchAny( bt ) );
+        s.append( "bp.text ilike " + matchAny( bt ) );
 
-    s.append( ")" );
     return s;
 }
 
@@ -704,21 +751,18 @@ String Selector::whereFlags()
             return "false";
     }
 
+    root()->d->needFlags = true;
     // the database can look in the ordinary way. we make it easy, if we can.
     Flag * f = Flag::find( d->s8 );
     uint name = placeHolder();
     if ( f ) {
         root()->d->query->bind( name, f->id() );
-        return "messages.uid in ("
-            "select uid from flags where flags.mailbox=$" + mboxId() +
-            " and flags.flag=$" + fn( name ) + ")";
+        return "f.flag=$" + fn( name );
     }
     root()->d->query->bind( name, d->s8 ); // do we need to smash case on flags?
     return
-        "messages.uid in "
-        "(select uid from flags where mailbox=$" + mboxId() +
-        " and flag=(select id from flag_names where name=$" +
-        fn( name ) + "))";
+        "f.flag="
+        "(select id from flag_names where name ilike $" + fn( name ) + ")";
 }
 
 
@@ -728,14 +772,14 @@ String Selector::whereFlags()
 String Selector::whereUid()
 {
     if ( !d->s.isRange() )
-        return d->s.where( "messages" );
+        return d->s.where( "m" );
 
     // if we can, use a placeholder, so we can prepare a statement (we
     // don't at the moment, but it'll help).
     if ( d->s.count() == 1 ) {
         uint value = placeHolder();
         root()->d->query->bind( value, d->s.value( 1 ) );
-        return "messages.uid=$" + fn( value );
+        return "m.uid=$" + fn( value );
     }
 
     uint min = d->s.value( 1 );
@@ -743,11 +787,10 @@ String Selector::whereUid()
     uint minp = placeHolder();
     root()->d->query->bind( minp, min );
     if ( max == UINT_MAX )
-        return "messages.uid>=$" + fn( minp );
+        return "m.uid>=$" + fn( minp );
     uint maxp = placeHolder();
     root()->d->query->bind( maxp, max );
-    return "messages.uid>=$" + fn( minp ) +
-        " and messages.uid<=$" + fn( maxp );
+    return "m.uid>=$" + fn( minp ) + " and m.uid<=$" + fn( maxp );
 }
 
 
@@ -757,11 +800,11 @@ String Selector::whereUid()
 
 String Selector::whereAnnotation()
 {
+    root()->d->needAnnotations = true;
     ::AnnotationName * a = ::AnnotationName::find( d->s8 );
     String annotations;
-    String sep = "";
     if ( a ) {
-        annotations = "name=" + fn( a->id() );
+        annotations = "a.name=" + fn( a->id() );
     }
     else {
         uint n = 0;
@@ -771,17 +814,16 @@ String Selector::whereAnnotation()
             u++;
             if ( a && lmatch( d->s8, 0, a->name(), 0 ) == 2 ) {
                 n++;
-                annotations.append( sep );
-                annotations.append( "name=" );
+                if ( !annotations.isEmpty() )
+                    annotations.append( " or " );
+                annotations.append( "a.name=" );
                 annotations.append( fn( a->id() ) );
-                if ( sep.isEmpty() )
-                    sep = " or ";
             }
         }
         if ( n > 3 && d->s8.find( '%' ) < 0 ) {
             // if there are many, we're better off using set logic.
             uint pattern = placeHolder();
-            annotations = "name in ("
+            annotations = "a.name in ("
                           "select id from annotation_names where name like $" +
                           fn( pattern ) +
                           ")";
@@ -806,17 +848,17 @@ String Selector::whereAnnotation()
     if ( d->s8b.endsWith( ".priv" ) ) {
         attribute = d->s8b.mid( 0, d->s8b.length()-5 ).lower();
         uint userId = placeHolder();
-        user = "owner=$" + fn( userId );
+        user = "a.owner=$" + fn( userId );
         root()->d->query->bind( userId, root()->d->user->id() );
     }
     else if ( d->s8b.endsWith( ".shared" ) ) {
         attribute = d->s8b.mid( 0, d->s8b.length()-7 ).lower();
-        user = "owner is null";
+        user = "a.owner is null";
     }
     else {
         attribute = d->s8b.lower();
         uint userId = placeHolder();
-        user = "(owner is null or owner=$" + fn( userId ) + ")";
+        user = "(a.owner is null or a.owner=$" + fn( userId ) + ")";
         root()->d->query->bind( userId, root()->d->user->id() );
     }
 
@@ -837,9 +879,7 @@ String Selector::whereAnnotation()
         like = " ilike " + matchAny( i );
     }
 
-    return "messages.uid in (select uid from annotations "
-        "where mailbox=$" + mboxId() + " and " + user + " and " +
-        annotations + " and " + field + like + ")";
+    return "(" + user + " and " + annotations + " and " + field + like + ")";
 }
 
 
@@ -892,14 +932,14 @@ String Selector::whereNoField()
             conditions.append( whereAddressFields( addressFields, address ) );
         String r = "(";
         if ( d->a == And )
-            r.append( conditions.join( ") and (" ) );
+            r.append( conditions.join( " and " ) );
         else
-            r.append( conditions.join( ") or (" ) );
+            r.append( conditions.join( " or " ) );
         r.append( ")" );
         return r;
     }
     else if ( d->a == Not ) {
-        return "not (" + d->children->first()->where() + ")";
+        return "not " + d->children->first()->where() + "";
     }
     else if ( d->a == All ) {
         return "true";
@@ -1149,7 +1189,8 @@ String Selector::mboxId()
 }
 
 
-/*! Returns the string representation of this Selector. */
+/*! Returns the string representation of this Selector. This is what's
+    stored in the views.selector column in the database. */
 
 String Selector::string()
 {
