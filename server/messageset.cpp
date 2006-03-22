@@ -168,7 +168,7 @@ uint MessageSet::largest() const
 
 
 /*! Returns true if this set is a simple range, and 0 if it's more
-    complex. (One and two-member sets are necessarily always ranges.)
+    complex. (One-member sets are necessarily always ranges.)
 */
 
 bool MessageSet::isRange() const

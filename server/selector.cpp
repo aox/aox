@@ -28,7 +28,6 @@ public:
           needHeaderFields( false ),
           needAddresses( false ),
           needAddressFields( false ),
-          needFlags( false ),
           needAnnotations( false ),
           needPartNumbers( false ),
           needBodyparts( false )
@@ -54,10 +53,13 @@ public:
     Session * session;
     User * user;
 
+    // XXX: eek! this is just a set of integers supporting idempotent
+    // insertion.
+    MessageSet needFlags;
+
     bool needHeaderFields;
     bool needAddresses;
     bool needAddressFields;
-    bool needFlags;
     bool needAnnotations;
     bool needPartNumbers;
     bool needBodyparts;
@@ -435,8 +437,19 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         q.append( " join address_fields af on (" + join( "af" ) + ")" );
     if ( d->needAddresses )
         q.append( " join addresses a on (af.address=a.id)" );
-    if ( d->needFlags )
-        q.append( " join flags f on (" + join( "f" ) + ")" );
+    if ( !d->needFlags.isEmpty() ) {
+        uint i = 1;
+        while ( i <= d->needFlags.count() ) {
+            uint f = d->needFlags.value( i );
+            String n = "f" + fn( f );
+            uint p = placeHolder();
+            d->query->bind( p, f );
+            i++;
+            q.append( " left join flags " + n + " on (" + join( n.cstr() ) +
+                      " and " + n + ".flag=$" + fn( p ) + ")" );
+            
+        }
+    }
     if ( d->needAnnotations )
         q.append( " join annotations a on (" + join( "a" ) + ")" );
     if ( d->needPartNumbers )
@@ -742,7 +755,7 @@ String Selector::whereRfc822Size()
 
 String Selector::whereFlags()
 {
-    if ( d->a == Contains && d->f == Flags && d->s8.lower() == "\\recent" ) {
+    if ( d->s8.lower() == "\\recent" ) {
         // the database cannot look at the recent flag, so we turn
         // this query into a test for the relevant UIDs.
         if ( root()->d->session )
@@ -751,18 +764,15 @@ String Selector::whereFlags()
             return "false";
     }
 
-    root()->d->needFlags = true;
-    // the database can look in the ordinary way. we make it easy, if we can.
     Flag * f = Flag::find( d->s8 );
-    uint name = placeHolder();
-    if ( f ) {
-        root()->d->query->bind( name, f->id() );
-        return "f.flag=$" + fn( name );
+    if ( !f ) {
+        // if we don't know about this flag, it doesn't exist in this
+        // session and is never set, as far as this client is concerned.
+        return "false";
     }
-    root()->d->query->bind( name, d->s8 ); // do we need to smash case on flags?
-    return
-        "f.flag="
-        "(select id from flag_names where name ilike $" + fn( name ) + ")";
+
+    d->needFlags.add( f->id() );
+    return "f" + fn( f->id() ) + ".flag is not null";
 }
 
 
@@ -772,7 +782,7 @@ String Selector::whereFlags()
 String Selector::whereUid()
 {
     if ( !d->s.isRange() )
-        return d->s.where( "m" );
+        return "(" + d->s.where( "m" ) + ")";
 
     // if we can, use a placeholder, so we can prepare a statement (we
     // don't at the moment, but it'll help).
@@ -790,7 +800,7 @@ String Selector::whereUid()
         return "m.uid>=$" + fn( minp );
     uint maxp = placeHolder();
     root()->d->query->bind( maxp, max );
-    return "m.uid>=$" + fn( minp ) + " and m.uid<=$" + fn( maxp );
+    return "(m.uid>=$" + fn( minp ) + " and m.uid<=$" + fn( maxp ) + ")";
 }
 
 
