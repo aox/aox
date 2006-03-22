@@ -148,9 +148,9 @@ or greater.
 is
 .I enabled
 by default, and should be enabled whenever Archiveopteryx is
-used in production. If security is disabled, the servers do not need
-to be started as root, they keep stderr open, and they do not try to
-lose privileges.
+used in production. It causes the servers to lock themselves into a
+.I chroot
+jail and drop root privileges once startup is complete.
 .IP
 Turning security off has exactly one advantage: it simplifies
 debugging.
