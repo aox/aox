@@ -431,25 +431,27 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     if ( d->needBodyparts )
         d->needPartNumbers = true;
 
+    // flags are hard. we need to join in one relation per flag, so
+    // that we don't accidentally think 'uid 123 has "\seen"' is
+    // equivalent with 'uid 123 does not have "\deleted"'.
+    if ( !d->needFlags.isEmpty() ) {
+        uint i = 1;
+        while ( i <= d->needFlags.count() ) {
+            uint f = d->needFlags.value( i );
+            String n = "f" + fn( f );
+            i++;
+            q.append( " left join flags " + n + " on (" + join( n.cstr() ) +
+                      " and " + n + ".flag=" + fn( f ) + ")" );
+            
+        }
+    }
+
     if ( d->needHeaderFields )
         q.append( " join header_fields hf on (" + join( "hf" ) + ")" );
     if ( d->needAddressFields )
         q.append( " join address_fields af on (" + join( "af" ) + ")" );
     if ( d->needAddresses )
         q.append( " join addresses a on (af.address=a.id)" );
-    if ( !d->needFlags.isEmpty() ) {
-        uint i = 1;
-        while ( i <= d->needFlags.count() ) {
-            uint f = d->needFlags.value( i );
-            String n = "f" + fn( f );
-            uint p = placeHolder();
-            d->query->bind( p, f );
-            i++;
-            q.append( " left join flags " + n + " on (" + join( n.cstr() ) +
-                      " and " + n + ".flag=$" + fn( p ) + ")" );
-            
-        }
-    }
     if ( d->needAnnotations )
         q.append( " join annotations a on (" + join( "a" ) + ")" );
     if ( d->needPartNumbers )
@@ -755,13 +757,16 @@ String Selector::whereRfc822Size()
 
 String Selector::whereFlags()
 {
-    if ( d->s8.lower() == "\\recent" ) {
+    if ( d->s8 == "\\recent" ) {
         // the database cannot look at the recent flag, so we turn
         // this query into a test for the relevant UIDs.
+        String r;
         if ( root()->d->session )
-            return root()->d->session->recent().where( "messages" );
-        else
+            r = root()->d->session->recent().where( "m" );
+        // where() returns an empty string if recent() is an empty set
+        if ( r.isEmpty() )
             return "false";
+        return r;
     }
 
     Flag * f = Flag::find( d->s8 );
@@ -771,7 +776,7 @@ String Selector::whereFlags()
         return "false";
     }
 
-    d->needFlags.add( f->id() );
+    root()->d->needFlags.add( f->id() );
     return "f" + fn( f->id() ) + ".flag is not null";
 }
 
