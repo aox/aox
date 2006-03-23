@@ -692,7 +692,7 @@ void Injector::insertMessages()
         qm->bind( 1, m->id(), Query::Binary );
         qm->bind( 2, uid, Query::Binary );
         qm->bind( 3, d->message->internalDate(), Query::Binary );
-        qm->bind( 4, d->message->rfc822Size(), Query::Binary );
+        qm->bind( 4, d->message->rfc822().length(), Query::Binary );
         qm->submitLine();
 
         ++mi;

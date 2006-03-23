@@ -84,11 +84,10 @@ Message::Message( const String & rfc2822 )
     : d( new MessageData )
 {
     d->rfc2822 = rfc2822;
-    d->rfc822Size = rfc2822.length();
 
     uint i = 0;
 
-    setHeader( parseHeader( i, d->rfc822Size, rfc2822, Header::Rfc2822 ) );
+    setHeader( parseHeader( i, rfc2822.length(), rfc2822, Header::Rfc2822 ) );
     header()->repair();
     if ( !header()->valid() ) {
         d->error = header()->error();
@@ -120,8 +119,6 @@ Message::Message( const String & rfc2822 )
             d->error = "Unable to parse header field " + it->name();
         ++it;
     }
-
-    d->rfc822Size = rfc822().length();
 }
 
 
