@@ -737,3 +737,10 @@ PGP automatic processing
   Should display the possible 'show' arguments. Does not.
 
 
+imap/hackedsize#2 doesn't work.
+
+  - The Received field added by smtpd changes.
+  - The x-obliterate breaks ocd, so the select response is weird.
+
+
+
