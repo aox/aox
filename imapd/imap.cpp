@@ -312,7 +312,8 @@ void IMAP::addCommand()
     // Use this Command to parse the command line.
 
     cmd->step( i );
-    cmd->parse();
+    if ( cmd->validIn( d->state ) )
+        cmd->parse();
 
     // If we're already working, block this. Otherwise, run it.
     // runCommands() will unblock it sooner or later.
