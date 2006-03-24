@@ -309,19 +309,7 @@ void IMAP::addCommand()
         return;
     }
 
-    // Use this Command to parse the command line.
-
     cmd->step( i );
-    if ( cmd->validIn( d->state ) )
-        cmd->parse();
-
-    // If we're already working, block this. Otherwise, run it.
-    // runCommands() will unblock it sooner or later.
-
-    expireCommands();
-    if ( !d->commands.isEmpty() &&
-         cmd->state() == Command::Executing && cmd->ok() )
-        cmd->setState( Command::Blocked );
     d->commands.append( cmd );
 }
 
@@ -501,6 +489,43 @@ void IMAP::runCommands()
                 }
             }
         }
+
+        // if there are any unparsed commands, start at the oldest
+        // unparsed commands and parse contiguous commands until a
+        // command isn't valid in this state.
+
+        i = d->commands.first();
+        while ( i && i->state() != Command::Unparsed )
+            ++i;
+        if ( i ) {
+            // check whether there is at least one executing command
+            while ( i && i->state() == Command::Unparsed ) {
+                List< Command >::Iterator r( d->commands );
+                while ( r && r->state() != Command::Executing )
+                    ++r;
+                Command * c = i;
+                ++i;
+                if ( c->validIn( d->state ) ) {
+                    done = false;
+                    c->parse();
+                    // we've parsed it. did it return an error, should
+                    // we block it, or perhaps execute it right away?
+                    if ( c->state() == Command::Unparsed && c->ok() ) {
+                        if ( r )
+                            c->setState( Command::Blocked );
+                        else
+                            c->setState( Command::Executing );
+                    }
+                }
+                else if ( !r ) {
+                    done = false;
+                    // if this command isn't valid in this state, and
+                    // no earlier command can possibly change the
+                    // state, then we have to reject the command.
+                    c->error( Command::Bad, "Not permitted in this state" );
+                }
+            }
+        }
     }
 
     d->runningCommands = false;
@@ -530,9 +555,6 @@ void IMAP::run( Command * c )
 {
     if ( c->state() != Command::Executing )
         return;
-
-    if ( !c->validIn( d->state ) )
-        c->error( Command::Bad, "Not permitted in this state" );
 
     if ( c->ok() )
         c->execute();

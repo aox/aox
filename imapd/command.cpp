@@ -50,7 +50,7 @@ public:
         at( 0 ), args( 0 ),
         responded( false ), tagged( false ),
         canExpunge( false ), error( false ),
-        state( Command::Executing ), group( 0 ),
+        state( Command::Unparsed ), group( 0 ),
         permittedStates( 0 ),
         imap( 0 )
     {
@@ -284,6 +284,10 @@ Command * Command::create( IMAP * imap,
     by calling error(). It may also not do any database lookups or
     other "slow" work.
 
+    If this function (or a reimplementation) is called and does not
+    call error() or set the command's state, IMAP changes the state to
+    Executing afterwards.
+
     The default implementation is suitable for argumentless commands
     such as logout, capability and starttls.
 */
@@ -363,6 +367,9 @@ void Command::setState( State s )
 
     d->state = s;
     switch( s ) {
+    case Unparsed:
+        // this is the initial state, it should never be called.
+        break;
     case Blocked:
         log( "IMAP command execution deferred", Log::Debug );
         break;
@@ -962,6 +969,7 @@ MessageSet Command::set( bool parseMsns = false )
         }
     };
 
+    uint expunged = 0;
     if ( s ) {
         // if the parsed set contains some expunged messages, remove
         // them and give the client a tagged OK with a note.
@@ -971,6 +979,7 @@ MessageSet Command::set( bool parseMsns = false )
             uint u = e.value( i );
             result.remove( u );
             respond( "OK Ignoring expunged message with UID " + fn( u ) );
+            expunged = u;
             i++;
         }
         // in addition to expunged messages, we may want to remove any
@@ -978,6 +987,11 @@ MessageSet Command::set( bool parseMsns = false )
         result = result.intersection( s->messages() );
     }
 
+    // if the client fetches only expunged messages and we cannot send
+    // it EXPUNGE responses, reject the command with NO, as in RFC
+    // 2180 section 4.1.1
+    if ( parseMsns && expunged && result.isEmpty() )
+        error( No, "Message " + fn( s->msn( expunged ) ) + " is expunged" );
     return result;
 }
 

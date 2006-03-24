@@ -26,7 +26,7 @@ public:
     virtual void read();
     bool ok() const;
 
-    enum State { Blocked, Executing, Finished };
+    enum State { Unparsed, Blocked, Executing, Finished };
     State state() const;
     void setState( State );
 
