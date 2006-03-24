@@ -27,6 +27,7 @@ public:
           transaction( 0 ), flagCreator( 0 ), annotationNameCreator( 0 )
     {}
     MessageSet s;
+    MessageSet expunged;
     StringList flagNames;
 
     enum Op { AddFlags, ReplaceFlags, RemoveFlags, ReplaceAnnotations } op;
@@ -69,6 +70,8 @@ void Store::parse()
 {
     space();
     d->s = set( !d->uid );
+    d->expunged = imap()->session()->expunged().intersection( d->s );
+    shrink( &d->s );
     space();
 
     if ( present( "ANNOTATION (" ) ) {
@@ -150,10 +153,12 @@ void Store::parseAnnotationEntry()
         String value = string();
         List<Annotation>::Iterator it( d->annotations );
         if ( shared )
-            while ( it && ( it->entryName()->name() != entry || it->ownerId() != id ) )
+            while ( it && ( it->entryName()->name() != entry ||
+                            it->ownerId() != id ) )
                 ++it;
         else
-            while ( it && ( it->entryName()->name() != entry || it->ownerId() != 0 ) )
+            while ( it && ( it->entryName()->name() != entry ||
+                            it->ownerId() != 0 ) )
                 ++it;
         Annotation * a = it;
         if ( !it ) {
@@ -191,6 +196,8 @@ void Store::parseAnnotationEntry()
 void Store::execute()
 {
     if ( d->s.isEmpty() ) {
+        if ( !d->expunged.isEmpty() )
+            error( No, "Cannot store on expunged messages" );
         finish();
         return;
     }

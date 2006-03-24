@@ -61,6 +61,7 @@ void Expunge::parse()
     if ( d->uid ) {
         space();
         d->uids = set( false );
+        shrink( &d->uids );
     }
     end();
 }

@@ -57,6 +57,7 @@ public:
     int state;
     bool peek;
     MessageSet set;
+    MessageSet expunged;
 
     // we want to ask for...
     bool uid;
@@ -383,6 +384,9 @@ void Fetch::execute()
     ImapSession * s = imap()->session();
 
     if ( d->state == 0 ) {
+        if ( !d->uid )
+            d->expunged = imap()->session()->expunged().intersection( d->set );
+        shrink( &d->set );
         if ( !d->peek && s->readOnly() )
             d->peek = true;
         d->state = 1;
@@ -408,8 +412,12 @@ void Fetch::execute()
 
     d->state = 2;
 
-    if ( d->set.isEmpty() )
-        finish();
+    if ( !d->set.isEmpty() )
+        return;
+
+    if ( !d->expunged.isEmpty() )
+        error( No, "UID(s) " + d->expunged.set() + " has/have been expunged" );
+    finish();
 }
 
 

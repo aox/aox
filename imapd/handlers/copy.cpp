@@ -53,6 +53,7 @@ void Copy::parse()
 {
     space();
     d->set = set( !d->uid );
+    shrink( &d->set );
     space();
     d->target = astring();
     end();

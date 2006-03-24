@@ -75,6 +75,8 @@ public:
     static String imapQuoted( const String &,
                               const QuoteMode = PlainString );
 
+    void shrink( MessageSet * );
+
 private:
     class CommandData *d;
 

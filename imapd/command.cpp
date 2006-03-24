@@ -968,31 +968,30 @@ MessageSet Command::set( bool parseMsns = false )
                 done = true;
         }
     };
+    return result;
+}
 
-    uint expunged = 0;
-    if ( s ) {
-        // if the parsed set contains some expunged messages, remove
-        // them and give the client a tagged OK with a note.
-        MessageSet e( s->expunged().intersection( result ) );
-        uint i = 1;
-        while ( i <= e.count() ) {
-            uint u = e.value( i );
-            result.remove( u );
-            respond( "OK Ignoring expunged message with UID " + fn( u ) );
-            expunged = u;
-            i++;
-        }
-        // in addition to expunged messages, we may want to remove any
-        // UIDs that just happen to be invalid? probably yes.
-        result = result.intersection( s->messages() );
+
+
+/*! Shrinks \a set by removing expunged and nonexistent UIDs. Quiet:
+    Does not emit any kind of error or response.
+*/
+
+void Command::shrink( MessageSet * set )
+{
+    ImapSession * s = imap()->session();
+    if ( !s || !set || set->isEmpty() )
+        return;
+
+    MessageSet e( s->expunged().intersection( *set ) );
+    uint i = 1;
+    while ( i <= e.count() ) {
+        uint u = e.value( i );
+        set->remove( u );
+        i++;
     }
 
-    // if the client fetches only expunged messages and we cannot send
-    // it EXPUNGE responses, reject the command with NO, as in RFC
-    // 2180 section 4.1.1
-    if ( parseMsns && expunged && result.isEmpty() )
-        error( No, "Message " + fn( s->msn( expunged ) ) + " is expunged" );
-    return result;
+    *set = set->intersection( s->messages() );
 }
 
 
@@ -1127,5 +1126,3 @@ String Command::imapQuoted( const String & s, const QuoteMode mode )
     // well well well. literal it is.
     return "{" + fn( s.length() ) + "}\r\n" + s;
 }
-
-
