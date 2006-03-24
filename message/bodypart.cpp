@@ -601,13 +601,17 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bool qp = body.needsQP();
 
         if ( cte ) {
-            if ( !qp )
+            if ( !qp ) {
                 h->removeField( HeaderField::ContentTransferEncoding );
-            else if ( cte->encoding() != String::QP )
+                cte = 0;
+            }
+            else if ( cte->encoding() != String::QP ) {
                 cte->setEncoding( String::QP );
+            }
         }
         else if ( qp ) {
             h->add( "Content-Transfer-Encoding", "quoted-printable" );
+            cte = h->contentTransferEncoding();
         }
         h->simplify();
     }
