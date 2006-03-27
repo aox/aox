@@ -14,6 +14,7 @@ public:
     enum Access {
         Read, Write, Append, ExclusiveWrite
     };
+    File( int );
     File( const String &, uint = 0 );
     File( const String &, File::Access, uint = 0644 );
     ~File();

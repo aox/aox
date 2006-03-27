@@ -593,6 +593,6 @@ void Server::execute()
     if ( d->queries->isEmpty() )
         EventLoop::global()->setStartup( false );
 
-    close( 2 );
+    dup2( 0, 1 );
     dup2( 0, 2 );
 }

@@ -51,6 +51,19 @@ public:
 */
 
 
+/*! Creates a new unnamed File representing the specified \a fd. This is
+    used only by the LogServer to write to stdout.
+*/
+
+File::File( int fd )
+    : d( new FileData )
+{
+    d->fd = fd;
+    if ( d->fd >= 0 )
+        d->ok = true;
+}
+
+
 /*! Creates a new File object representing \a name, and tries to open it
     and read up to \a maxLength bytes, or the whole file if \a maxLength
     is 0. If \a name is an empty string, stdin is read instead.

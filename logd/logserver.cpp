@@ -12,11 +12,12 @@
 
 // fprintf, stderr
 #include <stdio.h>
+// dup
+#include <unistd.h>
 
 
 static uint id;
 static File *logFile;
-static bool logStdout;
 static Log::Severity logLevel;
 
 
@@ -263,15 +264,10 @@ void LogServer::output( String tag, Log::Facility f, Log::Severity s,
     msg.append( line );
     msg.append( "\n" );
 
-    if ( logFile ) {
+    if ( logFile )
         logFile->write( msg );
-    }
-    else {
-        FILE * f = stderr;
-        if ( logStdout )
-            f = stdout;
-        fprintf( f, "%s", msg.cstr() );
-    }
+    else
+        fprintf( stderr, "%s", msg.cstr() );
 }
 
 
@@ -306,16 +302,17 @@ void LogServer::setLogFile( const String &name, const String &mode )
         return;
     }
 
-    if ( name == "-" ) {
-        logStdout = true;
-        return;
-    }
+    File * l;
+    if ( name == "-" )
+        l = new File( dup( 1 ) );
+    else
+        l = new File( name, File::Append, m );
 
-    File * l = new File( name, File::Append, m );
     if ( !l->valid() ) {
         ::log( "Could not open log file " + name, Log::Disaster );
         return;
     }
+
     logFile = l;
     Allocator::addEternal( logFile, "logfile name" );
 }
@@ -417,7 +414,7 @@ Log::Severity LogServer::severity( const String &l )
 
 void LogServer::reopen( int )
 {
-    if ( !logFile )
+    if ( !logFile || logFile->name().isEmpty() )
         return;
 
     File * l = new File( logFile->name(), File::Append );
