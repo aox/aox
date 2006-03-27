@@ -743,4 +743,9 @@ imap/hackedsize#2 doesn't work.
   - The x-obliterate breaks ocd, so the select response is weird.
 
 
+ms add mailbox/ms del mailbox/ms add mailbox doesn't work.
+
+  Tries to insert when update is needed.
+
+
 
