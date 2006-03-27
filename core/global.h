@@ -3,7 +3,7 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-// add NO includes here. this is included from almost everywhere.
+#include <stddef.h>
 
 #if !defined(U32_MAX)
 #define U32_MAX (0xffffffffU)
@@ -36,8 +36,8 @@ class Garbage
 public:
     Garbage() {}
 
-    void *operator new( uint );
-    void *operator new[]( uint );
+    void *operator new( size_t );
+    void *operator new[]( size_t );
     void operator delete( void * );
     void operator delete[]( void * );
 

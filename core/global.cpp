@@ -31,9 +31,9 @@ void die( Exception e )
 */
 
 
-void *Garbage::operator new( uint s )
+void *Garbage::operator new( size_t s )
 {
-    return Allocator::alloc( s );
+    return Allocator::alloc( (uint)s );
 }
 
 
@@ -43,9 +43,9 @@ void Garbage::operator delete( void * )
 }
 
 
-void *Garbage::operator new[]( uint s )
+void *Garbage::operator new[]( size_t s )
 {
-    return Allocator::alloc( s );
+    return Allocator::alloc( (uint)s );
 }
 
 

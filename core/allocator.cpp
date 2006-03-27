@@ -18,10 +18,10 @@ struct AllocationBlock
             uint number: 15;
         } x;
         uint y;
+        void * z;
     };
     void* payload[1];
 };
-
 
 const uint SizeLimit = 512 * 1024 * 1024;
 
@@ -38,6 +38,9 @@ static AllocationBlock ** stack;
     bytes, alloc() uses the largest legal value. The default value is
     UINT_MAX, which in practise means that the entire object may
     consist of pointers.
+
+    Note that \a s is a uint, not a size_t. In our universe, it isn't
+    possible to allocate more than 4GB at a time. So it is.
 */
 
 
@@ -80,14 +83,14 @@ void Allocator::dealloc( void * p )
 }
 
 
-const uint bytes = sizeof(uint);
-const uint bits = 8 * sizeof(uint);
+const uint bytes = sizeof(void*);
+const uint bits = 8 * sizeof(void*);
 const uint magic = 0x7d34;
 
 
 static Allocator * allocators[32];
-static uint heapStart;
-static uint heapLength;
+static unsigned long int heapStart;
+static unsigned long int heapLength;
 
 
 static struct {
@@ -98,7 +101,8 @@ static struct {
 
 static uint numRoots;
 
-static Allocator * byStart[0x1000];
+static const unsigned long int bufferSize = 0x10000;
+static Allocator * byStart[bufferSize];
 
 static bool verbose;
 
@@ -110,14 +114,16 @@ static bool verbose;
 Allocator * Allocator::allocator( uint size )
 {
     uint i = 0;
-    while ( size + bytes > 8U << i )
+    uint b = 8;
+    if ( bits == 64 )
+        b = 16;
+    while ( size + bytes > b << i )
         i++;
     if ( !allocators[i] ) {
-        Allocator * a = new Allocator( 8 << i );
+        Allocator * a = new Allocator( b << i );
         allocators[i] = a;
         if ( verbose )
-            log( "Allocating " + fn( a->capacity * a->step ) +
-                 " bytes at 0x" + fn( (uint)a->buffer, 16 ) +
+            log( "Allocating " + String::humanNumber( a->capacity * a->step ) +
                  " for " + fn( a->capacity ) + " " +
                  fn( a->step - bytes ) + "-byte objects\n",
                  Log::Debug );
@@ -157,7 +163,7 @@ Allocator * Allocator::allocator( uint size )
 
 
 /*! This private constructor creates an Allocator to dispense objects
-    of size at most \a s - sizeof(int) bytes.
+    of size at most \a s - sizeof(void*) bytes.
 */
 
 Allocator::Allocator( uint s )
@@ -171,16 +177,16 @@ Allocator::Allocator( uint s )
         capacity = 1;
     uint l = capacity * s;
     buffer = ::malloc( l );
-    uint bl = sizeof( uint ) * (capacity + bits - 1)/bits;
-    used = (uint*)::malloc( bl );
-    marked = (uint*)::malloc( bl );
+    uint bl = sizeof( ulong ) * (capacity + bits - 1)/bits;
+    used = (ulong*)::malloc( bl );
+    marked = (ulong*)::malloc( bl );
 
     memset( buffer, 0, l );
     memset( used, 0, bl );
     memset( marked, 0, bl );
 
-    uint hs = (uint)buffer;
-    uint he = hs + l;
+    ulong hs = (ulong)buffer;
+    ulong he = hs + l;
     if ( heapStart ) {
         if ( ::heapStart < hs )
             hs = ::heapStart;
@@ -190,7 +196,11 @@ Allocator::Allocator( uint s )
     ::heapStart = hs;
     ::heapLength = he - hs;
 
-    ::byStart[(uint)buffer >> 20] = this;
+    ulong bucket = ((ulong)buffer >> 20)%bufferSize;
+    if ( ::byStart[bucket] )
+        die( Memory ); // if this happens, we're almost certainly
+                       // using MUCH too much memory
+    ::byStart[bucket] = this;
 }
 
 
@@ -200,7 +210,8 @@ Allocator::Allocator( uint s )
 
 Allocator::~Allocator()
 {
-    ::byStart[(uint)buffer >> 20] = 0;
+    ulong bucket = ((ulong)buffer >> 20)%bufferSize;
+    ::byStart[bucket] = 0;
 
     ::free( buffer );
     ::free( used );
@@ -221,10 +232,10 @@ void * Allocator::allocate( uint size, uint pointers )
 {
     if ( taken < capacity ) {
         while ( base < capacity ) {
-            uint bm = used[base/bits];
-            if ( bm != UINT_MAX ) {
+            ulong bm = used[base/bits];
+            if ( bm != ~(0UL) ) {
                 uint j = base%bits;
-                while ( bm & ( 1 << j ) )
+                while ( bm & ( 1UL << j ) )
                     j++;
                 base = (base & ~(bits-1)) + j;
                 AllocationBlock * b = (AllocationBlock*)block( base );
@@ -236,8 +247,8 @@ void * Allocator::allocate( uint size, uint pointers )
                     }
                     b->x.number = pointers;
                     b->x.magic = ::magic;
-                    marked[base/bits] &= ~( 1 << j );
-                    used[base/bits] |= ( 1 << j );
+                    marked[base/bits] &= ~( 1UL << j );
+                    used[base/bits] |= ( 1UL << j );
                     taken++;
                     base++;
                     return &(b->payload);
@@ -261,21 +272,17 @@ void * Allocator::allocate( uint size, uint pointers )
 
 void Allocator::deallocate( void * p )
 {
-    uint i = ((uint)p - (uint)buffer) / step;
+    ulong i = ((ulong)p - (ulong)buffer) / step;
     if ( i >= capacity )
         return;
-    if ( ! (used[i/bits] & 1 << (i%bits)) )
+    if ( ! (used[i/bits] & 1UL << (i%bits)) )
         return;
 
     AllocationBlock * m = (AllocationBlock *)block( i );
-    if ( m->x.magic != ::magic ) {
-        if ( verbose )
-            log( "Memory corrupt at 0x" + fn( (uint)m, 16 ),
-                 Log::Disaster );
+    if ( m->x.magic != ::magic )
         die( Memory );
-    }
-    used[i/bits] &= ~(1 << i);
-    marked[i/bits] &= ~(1 << i);
+    used[i/bits] &= ~(1UL << i);
+    marked[i/bits] &= ~(1UL << i);
     taken--;
     m->x.magic = 0;
 
@@ -294,15 +301,15 @@ inline Allocator * Allocator::owner( void * p )
 {
     if ( !p )
         return 0;
-    uint q = (uint)p - ::heapStart;
+    ulong q = (ulong)p - ::heapStart;
     if ( q >= ::heapLength )
         return 0;
-    uint ai = (uint)p >> 20;
+    ulong ai = ((ulong)p >> 20)%bufferSize;
     Allocator * a = 0;
     do {
         a = (Allocator*)(::byStart[ai]);
         ai--;
-    } while ( ai && ( !a || (uint)a->buffer > (uint)p ) );
+    } while ( ai && ( !a || (ulong)a->buffer > (ulong)p ) );
     return a;
 }
 
@@ -316,30 +323,24 @@ void Allocator::mark( void * p )
 {
     Allocator * a = owner( p );
     // a is the allocator we may want. does its area encompass p?
-    if ( !a || (uint)a->buffer > (uint)p )
+    if ( !a || (ulong)a->buffer > (ulong)p )
         return;
     // perhaps, but let's look closer
-    uint i = ((uint)p - (uint)a->buffer) / a->step;
+    ulong i = ((ulong)p - (ulong)a->buffer) / a->step;
     if ( i >= a->capacity )
         return;
-    if ( ! (a->used[i/bits] & 1 << (i%bits)) )
+    if ( ! (a->used[i/bits] & 1UL << (i%bits)) )
         return;
     // fine. we have the block of memory.
     AllocationBlock * b = (AllocationBlock*)a->block( i );
     // does it have our magic marker?
-    if ( b->x.magic != ::magic ) {
-        if ( verbose )
-            log( "Would have marked non-object at 0x" + fn( (uint)b, 16 ) +
-                 " because of a pointer to 0x" + fn( (uint)p, 16 ),
-                 Log::Disaster );
+    if ( b->x.magic != ::magic )
         die( Memory );
-        return;
-    }
     // is it already marked?
-    if ( (a->marked[i/bits] & 1 << (i%bits)) )
+    if ( (a->marked[i/bits] & 1UL << (i%bits)) )
         return;
     // no. mark it
-    a->marked[i/bits] |= (1 << (i%bits));
+    a->marked[i/bits] |= (1UL << (i%bits));
     // is there any chance that it contains children?
     if ( !b->x.number )
         return;
@@ -458,9 +459,11 @@ void Allocator::free()
                 else
                     objects.append( "," );
                 uint size = allocators[i]->step;
-                objects.append( " size " + fn( size-bytes ) + ": " + fn( n ) + " (" +
+                objects.append( " size " + fn( size-bytes ) + ": " +
+                                fn( n ) + " (" +
                                 String::humanNumber( size * n ) + " used, " +
-                                String::humanNumber( size * max ) + " allocated)" );
+                                String::humanNumber( size * max ) +
+                                " allocated)" );
             }
             i++;
         }
@@ -479,18 +482,14 @@ void Allocator::sweep()
     uint b = 0;
     while ( taken > 0 && b * bits < capacity ) {
         uint i = 0;
-        while ( ( used[b] & ~marked[b] ) && i < 32 ) {
-            if ( !( marked[b] & ( 1 << i ) ) ) {
+        while ( ( used[b] & ~marked[b] ) ) {
+            if ( (used[b] & (1UL<<i)) && !(marked[b] & (1UL<<i)) ) {
                 AllocationBlock * m
                     = (AllocationBlock *)block( b * bits + i );
-                if ( m && (used[b] & (1<<i)) ) {
-                    if ( m->x.magic != ::magic ) {
-                        if ( verbose )
-                            log( "Memory corrupt at 0x" + fn( (uint)m, 16 ),
-                                 Log::Disaster );
+                if ( m ) {
+                    if ( m->x.magic != ::magic )
                         die( Memory );
-                    }
-                    used[b] &= ~(1 << i);
+                    used[b] &= ~(1UL << i);
                     taken--;
                     m->x.magic = 0;
                     memset( m->payload, 0, step-bytes );
@@ -513,13 +512,11 @@ void * Allocator::block( uint i )
 {
     if ( i >= capacity )
         return 0;
-    return (void *)(i * step + (uint)buffer);
+    return (void *)(i * step + (ulong)buffer);
 }
 
 
-/*! \fn uint Allocator::rounded( uint size )
-
-    Returns the biggest number of bytes which can be allocated at the
+/*! Returns the biggest number of bytes which can be allocated at the
     same effective cost as \a size.
 
     Suppose allocating 24, 25 or 28 bytes all cause Allocator to use
@@ -530,6 +527,16 @@ void * Allocator::block( uint i )
     This can be used by String and UString to optimize their memory
     usage. Perhaps also by other classes.
 */
+
+uint Allocator::rounded( uint size )
+{
+    uint i = 3;
+    if ( bits == 64 )
+        i = 4;
+    while ( 1UL << i < size + bytes )
+        i++;
+    return (1UL << i) - bytes;
+}
 
 
 /*! Records that \a *p is an allocation root, i.e. that whatever it
@@ -639,7 +646,7 @@ uint Allocator::scan1( void * p, bool print, uint level, uint limit )
     if ( !a )
         return 0;
 
-    uint i = ((uint)p - (uint)a->buffer) / a->step;
+    ulong i = ((ulong)p - (ulong)a->buffer) / a->step;
     AllocationBlock * b = (AllocationBlock *)a->block( i );
     if ( !b )
         return 0;
@@ -678,7 +685,7 @@ uint Allocator::scan1( void * p, bool print, uint level, uint limit )
         "            ",
         "                "
     };
-    printf( "%s0x%08x (%s)\n", levelspaces[level], (uint)p, s );
+    printf( "%s0x%08lx (%s)\n", levelspaces[level], (ulong)p, s );
     return sz;
 }
 
@@ -693,7 +700,7 @@ void Allocator::scan2( void * p )
     if ( !a )
         return;
 
-    uint i = ((uint)p - (uint)a->buffer) / a->step;
+    ulong i = ((ulong)p - (ulong)a->buffer) / a->step;
     AllocationBlock * b = (AllocationBlock *)a->block( i );
     if ( !b )
         return;

@@ -16,12 +16,7 @@ public:
 
     void * block( uint );
 
-    static uint rounded( uint size ) {
-        uint i = 0;
-        while ( 8U << i < size + 4 )
-            i++;
-        return (8U << i) - 4U;
-    }
+    static uint rounded( uint size );
 
     static Allocator * allocator( uint size );
 
@@ -50,12 +45,14 @@ public:
     static void scan( void * );
 
 private:
+    typedef unsigned long int ulong;
+
     uint base;
     uint step;
     uint taken;
     uint capacity;
-    uint * used;
-    uint * marked;
+    ulong * used;
+    ulong * marked;
     void * buffer;
     Allocator * next;
 
