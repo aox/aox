@@ -1323,6 +1323,11 @@ void help()
     String a = next().lower();
     String b = next().lower();
 
+    if ( a == "add" || a == "new" )
+        a = "create";
+    else if ( a == "del" || a == "remove" )
+        a = "delete";
+
     // We really need a better way of constructing help texts.
     // (And better help text, now that I think about it.)
 
