@@ -27,13 +27,16 @@ public:
     const char *errstr;
     int status;
 
-    Deliverator( const String &s, const String &c, const String &r )
+    Deliverator( const String &s, const String &c, const String &r,
+                 const String &m )
         : sender( s ), contents( c ), recipient( r ),
           client( 0 ), errstr( 0 ), status( 0 )
     {
         Allocator::addEternal( this, "deliver object" );
         client = new SmtpClient( sender, contents, recipient,
                                  this );
+        if ( !m.isEmpty() )
+            client->setMailbox( m );
     }
 
     virtual ~Deliverator() {}
@@ -54,6 +57,7 @@ int main( int argc, char *argv[] )
 
     String sender;
     String recipient;
+    String mailbox;
     String filename;
     bool error = false;
     int verbose = 0;
@@ -65,6 +69,11 @@ int main( int argc, char *argv[] )
             case 'f':
                 if ( argc - n > 1 )
                     sender = argv[++n];
+                break;
+
+            case 'm':
+                if ( argc - n > 1 )
+                    mailbox = argv[++n];
                 break;
 
             case 'v':
@@ -147,7 +156,7 @@ int main( int argc, char *argv[] )
     LogClient::setup( "deliver" );
 
     Configuration::report();
-    Deliverator *d = new Deliverator( sender, contents, recipient );
+    Deliverator *d = new Deliverator( sender, contents, recipient, mailbox );
     Allocator::addEternal( d, "delivery object" );
     EventLoop::global()->start();
 
