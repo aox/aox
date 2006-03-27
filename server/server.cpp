@@ -529,8 +529,11 @@ void Server::run()
     }
     commit();
 
+    dup2( 0, 1 );
     if ( !d->queries->isEmpty() )
         EventLoop::global()->setStartup( true );
+    else
+        dup2( 0, 2 );
     EventLoop::global()->start();
 
     if ( Scope::current()->log()->disastersYet() )
@@ -593,6 +596,5 @@ void Server::execute()
     if ( d->queries->isEmpty() )
         EventLoop::global()->setStartup( false );
 
-    close( 1 );
-    close( 2 );
+    dup2( 0, 2 );
 }
