@@ -346,7 +346,7 @@ void SMTP::parse()
         d->negotiatingTls = false;
 
         // we have a line; read it
-        String line = r->string( ++i );
+        String line = r->string( ++i ).crlf();
         r->remove( i );
         if ( d->state == Body ) {
             body( line );
@@ -457,7 +457,7 @@ void SMTP::ehlo()
     //for the moment not
     //respond( 250, "STARTTLS" );
     respond( 250, "DSN" );
-    respond( 250, "STORE" );
+    respond( 250, "X-ORYX-STORE" );
     d->state = MailFrom;
     d->protocol = "esmtp";
 }
@@ -614,23 +614,12 @@ void SMTP::data()
 
 void SMTP::body( String & line )
 {
-    int i = line.length() ;
-    if ( i > 0 && line[i-1] == 10 )
-        i--;
-    if ( i > 0 && line[i-1] == 13 )
-        i--;
-    line.truncate( i );
-    if ( i == 1 && line[0] == '.' ) {
+    if ( line == ".\r\n" )
         inject();
-    }
-    else if ( line[0] == '.' ) {
+    else if ( line[0] == '.' )
         d->body.append( line.mid( 1 ) );
-        d->body.append( "\r\n" );
-    }
-    else {
+    else
         d->body.append( line );
-        d->body.append( "\r\n" );
-    }
 }
 
 
