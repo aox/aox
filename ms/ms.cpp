@@ -978,7 +978,6 @@ bool validUsername( String s )
               ( s[i] == '@' || s[i] == '.' || s[i] == '-' ) ) )
         i++;
     if ( i < s.length() ||
-         s == "anonymous" ||
          s == "anyone" ||
          s == "group" ||
          s == "user" )
