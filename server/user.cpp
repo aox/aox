@@ -484,10 +484,6 @@ bool User::valid()
         d->error = "Login name must be supplied";
         return false;
     }
-    if ( d->secret.isEmpty() ) {
-        d->error = "Login name <" + d->login + "> has no password";
-        return false;
-    }
 
     return true;
 }
