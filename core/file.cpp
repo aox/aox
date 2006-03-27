@@ -53,7 +53,7 @@ public:
 
 /*! Creates a new File object representing \a name, and tries to open it
     and read up to \a maxLength bytes, or the whole file if \a maxLength
-    is 0.
+    is 0. If \a name is an empty string, stdin is read instead.
 */
 
 File::File( const String &name, uint maxLength )
@@ -92,7 +92,9 @@ void File::init( const String &name, File::Access a,
 
     switch ( a ) {
     case Read:
-        d->fd = ::open( chn.cstr(), O_RDONLY );
+        d->fd = 0;
+        if ( !d->n.isEmpty() )
+            d->fd = ::open( chn.cstr(), O_RDONLY );
         break;
     case Write:
         d->fd = ::open( chn.cstr(), O_WRONLY|O_CREAT|O_TRUNC, mode );
