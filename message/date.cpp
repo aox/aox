@@ -97,7 +97,8 @@ void Date::setCurrentTime()
 
 void Date::setUnixTime( uint t )
 {
-    struct tm gmt = *(::gmtime((time_t *)&t));
+    time_t tmp = t;
+    struct tm gmt = *(::gmtime(&tmp));
 
     d->reset();
 
