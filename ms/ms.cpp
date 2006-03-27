@@ -607,15 +607,34 @@ void showStatus()
     while ( i < nservers ) {
         int pid = serverPid( servers[i] );
         printf( "%s", servers[i] );
+
+        bool started = false;
+        String t( servers[i] );
+        if ( t == "tlsproxy" )
+            started = Configuration::toggle( Configuration::UseTls );
+        else if ( t == "imapd" )
+            started = Configuration::toggle( Configuration::UseImap ) ||
+                      Configuration::toggle( Configuration::UseImaps );
+        else if ( t == "smtpd" )
+            started = Configuration::toggle( Configuration::UseSmtp ) ||
+                      Configuration::toggle( Configuration::UseLmtp );
+        else if ( t == "httpd" )
+            started = Configuration::toggle( Configuration::UseHttp );
+        else if ( t == "pop3d" )
+            started = Configuration::toggle( Configuration::UsePop );
+
+        const char * noState = started ? "not running" : "not started";
+
         if ( pid < 0 )
-            printf( " (not running)" );
+            printf( " (%s)", noState );
         else if ( kill( pid, 0 ) != 0 && errno == ESRCH )
             if ( opt( 'v' ) > 0 )
-                printf( " (not running, stale pidfile)" );
+                printf( " (%s, stale pidfile)", noState );
             else
-                printf( " (not running)" );
+                printf( " (%s)", noState );
         else if ( opt( 'v' ) > 0 )
             printf( " (%d)", pid );
+
         if ( i != nservers-1 )
             if ( opt( 'v' ) > 0 )
                 printf( "\n  " );
