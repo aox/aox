@@ -1530,10 +1530,16 @@ String String::crlf() const
         lf = false;
         char c = d->str[i++];
 
-        if ( c == 13 || c == 10 ) {
+        if ( c == 10 ) {
             lf = true;
-            if ( c == 13 && i < d->len && d->str[i] == 10 )
+        }
+        else if ( c == 13 ) {
+            lf = true;
+            if ( i < d->len && d->str[i] == 10 )
                 i++;
+            else if ( i < d->len-1 &&
+                      d->str[i] == 13 && d->str[i+1] == 10 )
+                i += 2;
         }
 
         if ( lf )
