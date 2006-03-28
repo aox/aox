@@ -114,6 +114,7 @@ SaslMechanism::SaslMechanism( EventHandler *cmd )
     3. Authenticating: Waiting for execute() to hear from the database.
     4. Succeeded: The authentication request succeeded.
     5. Failed: The authentication request failed.
+    6. Terminated: The exchange was terminated by client request.
 
     The initial value is IssuingChallenge.
 */
@@ -223,7 +224,8 @@ void SaslMechanism::verify()
 
 bool SaslMechanism::done() const
 {
-    return ( d->state == Failed || d->state == Succeeded );
+    return ( d->state == Failed || d->state == Succeeded ||
+             d->state == Terminated );
 }
 
 

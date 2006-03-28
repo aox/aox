@@ -97,12 +97,12 @@ void Authenticate::execute()
         }
         else if ( m->state() == SaslMechanism::AwaitingResponse && r ) {
             if ( *r == "*" ) {
-                error( Bad, "authentication terminated" );
-                finish();
-                return;
+                m->setState( SaslMechanism::Terminated );
             }
-            m->readResponse( r->de64() );
-            m->execute();
+            else {
+                m->readResponse( r->de64() );
+                m->execute();
+            }
             r = 0;
         }
     }
@@ -112,8 +112,10 @@ void Authenticate::execute()
 
     if ( m->state() == SaslMechanism::Succeeded )
         imap()->authenticated( m->user() );
+    else if ( m->state() == SaslMechanism::Terminated )
+        error( Bad, "authentication terminated" );
     else
-        error( No, "Sorry" );
+        error( No, "sorry" );
 
     imap()->reserve( 0 );
     finish();

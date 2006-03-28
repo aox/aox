@@ -20,7 +20,7 @@ public:
     enum State {
         AwaitingInitialResponse,
         IssuingChallenge, AwaitingResponse, Authenticating,
-        Succeeded, Failed
+        Succeeded, Failed, Terminated
     };
     State state() const;
     void setState( State );

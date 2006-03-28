@@ -239,11 +239,12 @@ bool PopCommand::auth()
         }
         else if ( d->m->state() == SaslMechanism::AwaitingResponse && d->r ) {
             if ( *d->r == "*" ) {
-                d->pop->err( "Authentication terminated" );
-                return true;
+                d->m->setState( SaslMechanism::Terminated );
             }
-            d->m->readResponse( d->r->de64() );
-            d->m->execute();
+            else {
+                d->m->readResponse( d->r->de64() );
+                d->m->execute();
+            }
             d->r = 0;
         }
     }
@@ -256,8 +257,13 @@ bool PopCommand::auth()
         d->cmd = Session;
         return session();
     }
+    else if ( d->m->state() == SaslMechanism::Terminated ) {
+        d->pop->err( "Authentication terminated" );
+    }
+    else {
+        d->pop->err( "Authentication failed" );
+    }
 
-    d->pop->err( "Authentication failed" );
     return true;
 }
 
