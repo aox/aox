@@ -246,8 +246,10 @@ bool PopCommand::auth()
             d->m->execute();
             d->r = 0;
         }
-        return false;
     }
+
+    if ( !d->m->done() )
+        return false;
 
     if ( d->m->state() == SaslMechanism::Succeeded ) {
         d->pop->setReader( 0 );

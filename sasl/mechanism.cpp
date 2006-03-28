@@ -171,6 +171,9 @@ String SaslMechanism::challenge()
 
 void SaslMechanism::execute()
 {
+    if ( done() )
+        return;
+
     if ( !d->user ) {
         setState( Authenticating );
         d->user = new User;

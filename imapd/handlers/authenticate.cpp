@@ -105,8 +105,10 @@ void Authenticate::execute()
             m->execute();
             r = 0;
         }
-        return;
     }
+
+    if ( !m->done() )
+        return;
 
     if ( m->state() == SaslMechanism::Succeeded )
         imap()->authenticated( m->user() );
