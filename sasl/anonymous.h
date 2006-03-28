@@ -13,6 +13,7 @@ public:
     Anonymous( EventHandler * );
 
     void readResponse( const String & );
+    void verify();
 };
 
 

@@ -25,3 +25,7 @@ void Anonymous::readResponse( const String &r )
 }
 
 
+void Anonymous::verify()
+{
+    setState( Succeeded );
+}
