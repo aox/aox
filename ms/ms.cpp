@@ -1046,10 +1046,8 @@ void createUser()
         String address = next();
         end();
 
-        if ( login.isEmpty() )
-            error( "No login name supplied." );
-        if ( passwd.isEmpty() )
-            fprintf( stderr, "ms: Warning: using empty password.\n" );
+        if ( login.isEmpty() || passwd.isEmpty() )
+            error( "Both login name and password must be non-empty." );
         if ( !validUsername( login ) )
             error( "Invalid username: " + login );
 
