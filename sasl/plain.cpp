@@ -28,11 +28,11 @@ Plain::Plain( EventHandler *c )
 
 void Plain::readResponse( const String & response )
 {
-    String authenticateId;
     String authorizeId;
+    String authenticateId;
     String secret;
 
-    bool ok = parse( authenticateId, authorizeId, secret, response );
+    bool ok = parse( authorizeId, authenticateId, secret, response );
     if ( !ok || authenticateId != authorizeId ) {
         setState( Failed );
 
@@ -44,7 +44,7 @@ void Plain::readResponse( const String & response )
         return;
     }
 
-    setLogin( authorizeId );
+    setLogin( authenticateId );
     setSecret( secret );
 }
 
@@ -53,48 +53,44 @@ void Plain::readResponse( const String & response )
     \a authorizeId, and \a pw.
 */
 
-bool Plain::parse( String & authenticateId,
-                   String & authorizeId,
-                   String & pw,
-                   const String & response )
+bool Plain::parse( String & authorizeId, String & authenticateId,
+                   String & pw, const String & response )
 {
-    uint i = response.length();
-    uint j = UINT_MAX;
-    int m = 0;
-
-    authenticateId.truncate( 0 );
     authorizeId.truncate( 0 );
+    authenticateId.truncate( 0 );
     pw.truncate( 0 );
 
-    while ( i > 0 ) {
-        i--;
-        if ( i == 0 || response[i-1] == 0 ) {
-            String s = response.mid( i, j-i-1 );
+    int m = 0;
+    uint i = 0;
+    uint last = 0;
+
+    while ( i <= response.length() ) {
+        if ( response[i] == '\0' ) {
+            String s = response.mid( last, i-last );
+            last = i+1;
             if ( m == 0 )
-                pw = s;
-            else if ( m == 1 )
                 authorizeId = s;
-            else if ( m == 2 )
+            else if ( m == 1 )
                 authenticateId = s;
+            else if ( m == 2 )
+                pw = s;
             else
                 return false;
-            j = i;
             m++;
         }
+        i++;
     }
 
     if ( m < 2 )
         return false;
 
-    if ( authenticateId.isEmpty() )
-        authenticateId = authorizeId;
+    if ( authorizeId.isEmpty() )
+        authorizeId = authenticateId;
 
-    if ( authenticateId.length() < 1 ||
-         authorizeId.length() < 1 ||
+    if ( authorizeId.length() < 1 ||
+         authenticateId.length() < 1 ||
          pw.length() < 1 )
         return false;
 
     return true;
 }
-
-
