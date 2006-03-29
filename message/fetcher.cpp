@@ -210,6 +210,8 @@ void Fetcher::execute()
 
 void Fetcher::insert( const MessageSet & messages, EventHandler * handler )
 {
+    log( "fetching set <" + messages.set() + "> from " + d->mailbox->name(),
+         Log::Debug );
     FetcherData::Handler * h = new FetcherData::Handler;
     h->o = handler;
     h->s = messages;
