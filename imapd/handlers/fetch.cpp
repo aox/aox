@@ -446,7 +446,7 @@ void Fetch::sendFetchQueries()
         i++;
     }
 
-    MessageSet legal;
+    const MessageSet & legal = imap()->session()->messages();
     headers.addGapsFrom( legal );
     bodies.addGapsFrom( legal );
     flags.addGapsFrom( legal );
