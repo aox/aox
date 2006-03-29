@@ -556,14 +556,14 @@ void SessionInitialiser::execute()
         d->t->execute();
 
         if ( !d->session->firstUnseen() ) {
-            // XXX: will this work if the sysadmin has set the flag
-            // name to \seen or \SEEN? I think not?
+            // XXX: a slightly unpleasant query. three seqscans, two
+            // of them on large tables.
             d->seen
                 = new Query( "select uid from messages "
                              "where mailbox=$1 and not(uid in ("
                              "select uid from flags where "
                              "mailbox=$1 and flag="
-                             "(select id from flag_names where name='\\Seen'))) "
+                             "(select id from flag_names where lower(name)='\\seen'))) "
                              "order by uid limit 1",
                              this );
             d->seen->bind( 1, d->session->mailbox()->id() );
