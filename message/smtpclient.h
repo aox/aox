@@ -21,8 +21,6 @@ public:
 
     void react( Event );
 
-    void setMailbox( const String & );
-
     bool failed() const;
     String error() const;
 

@@ -24,7 +24,6 @@ public:
     String sender;
     String message;
     String recipient;
-    String mailbox;
     EventHandler *owner;
 };
 
@@ -198,12 +197,6 @@ void SmtpClient::sendCommand()
         send = "rcpt to:<" + d->recipient + ">";
         break;
     case 'r':
-        if ( !d->mailbox.isEmpty() )
-            send = "store in:" + d->mailbox;
-        else
-            send = "data";
-        break;
-    case 's':
         send = "data";
         break;
     case 'b':
@@ -257,14 +250,4 @@ String SmtpClient::dotted( const String & s )
     r.append( ".\r\n" );
 
     return r;
-}
-
-
-/*! Sets the target mailbox (for the private STORE IN extension) to
-    \a s.
-*/
-
-void SmtpClient::setMailbox( const String &s )
-{
-    d->mailbox = s;
 }

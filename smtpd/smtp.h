@@ -26,7 +26,6 @@ public:
     void rset();
     void mail();
     void rcpt();
-    void store();
     void data();
     void body( String & );
     virtual void noop();

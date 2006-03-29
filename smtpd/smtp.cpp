@@ -127,8 +127,8 @@ class SMTPData
 {
 public:
     SMTPData():
-        code( 0 ), state( SMTP::Initial ), from( 0 ),
-        mailboxes( new SortedList<Mailbox> ), protocol( "smtp" ),
+        code( 0 ), state( SMTP::Initial ),
+        from( 0 ), mailboxes( 0 ), protocol( "smtp" ),
         injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false )
     {}
@@ -358,7 +358,7 @@ void SMTP::parse()
                     line[i] != ' ' && line[i] != 13 && line[i] != 10 )
                 i++;
             String cmd = line.mid( 0, i ).lower();
-            if ( cmd == "mail" || cmd == "rcpt" || cmd == "store" ) {
+            if ( cmd == "mail" || cmd == "rcpt" ) {
                 while ( i < line.length() && line[i] != ':' )
                     i++;
                 cmd = line.mid( 0, i++ ).lower().simplified();
@@ -377,8 +377,6 @@ void SMTP::parse()
                 mail();
             else if ( cmd == "rcpt to" )
                 rcpt();
-            else if ( cmd == "store in" )
-                store();
             else if ( cmd == "data" )
                 data();
             else if ( cmd == "noop" )
@@ -457,7 +455,6 @@ void SMTP::ehlo()
     //for the moment not
     //respond( 250, "STARTTLS" );
     respond( 250, "DSN" );
-    respond( 250, "X-ORYX-STORE" );
     d->state = MailFrom;
     d->protocol = "esmtp";
 }
@@ -505,7 +502,6 @@ void SMTP::mail()
     }
 
     d->to.clear();
-    d->mailboxes->clear();
     sendResponses();
 }
 
@@ -554,31 +550,6 @@ void SMTP::rcptAnswer( User * u )
     else {
         respond( 450, to + " is not a legal destination address" );
     }
-    sendResponses();
-}
-
-
-/*! A private extension to allow the target mailbox to be specified by
-    the client.
-*/
-
-void SMTP::store()
-{
-    if ( d->state != Data ) {
-        sendGenericError();
-        return;
-    }
-
-    String mailbox( d->arg.stripCRLF() );
-    Mailbox * m = Mailbox::find( mailbox );
-    if ( m ) {
-        d->mailboxes->append( m );
-        respond( 250, "Will store in " + mailbox );
-    }
-    else {
-        respond( 450, mailbox + " is not a valid mailbox" );
-    }
-
     sendResponses();
 }
 
@@ -861,12 +832,11 @@ void SMTP::inject()
     if ( d->from )
         m->header()->add( "Return-Path", d->from->toString() );
 
-    if ( d->mailboxes->isEmpty() ) {
-        List<User>::Iterator it( d->to );
-        while ( it ) {
-            d->mailboxes->insert( it->inbox() );
-            ++it;
-        }
+    d->mailboxes = new SortedList<Mailbox>;
+    List<User>::Iterator it( d->to );
+    while ( it ) {
+        d->mailboxes->insert( it->inbox() );
+        ++it;
     }
 
     d->helper = new SmtpDbClient( this, d );
