@@ -505,6 +505,7 @@ void SMTP::mail()
     }
 
     d->to.clear();
+    d->mailboxes = 0;
     sendResponses();
 }
 
