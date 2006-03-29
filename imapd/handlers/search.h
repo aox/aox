@@ -39,6 +39,8 @@ private:
 
     UString ustring( Command::QuoteMode stringType );
 
+    MessageSet set( bool );
+
 private:
     class SearchData * d;
     friend class SearchData;

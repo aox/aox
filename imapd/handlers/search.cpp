@@ -133,13 +133,7 @@ void Search::parseKey( bool alsoCharset )
     }
     else if ( c == '*' || ( c >= '0' && c <= '9' ) ) {
         // it's a pure set
-        MessageSet s( set( true ) );
-        Mailbox * m = imap()->session()->mailbox();
-        if ( m->view() )
-            s = m->sourceUids( s );
-        else
-            s.addGapsFrom( imap()->session()->messages() );
-        add( new Selector( s ) );
+        add( new Selector( set( true ) ) );
         if ( !d->uid )
             setGroup( 0 );
     }
@@ -305,13 +299,7 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "uid" ) {
             space();
-            MessageSet s( set( false ) );
-            Mailbox * m = imap()->session()->mailbox();
-            if ( m->view() )
-                s = m->sourceUids( s );
-            else
-                s.addGapsFrom( imap()->session()->messages() );
-            add( new Selector( s ) );
+            add( new Selector( set( false ) ) );
         }
         else if ( keyword == "or" ) {
             space();
@@ -605,4 +593,21 @@ void Search::setCharset( const String &s )
 Selector * Search::selector() const
 {
     return d->root;
+}
+
+
+/*! This reimplementation of Command::set() simplifies the set by
+    including messages that don't exist, and returns UIDs in the
+    underlying mailbox rather than a view.
+*/
+
+MessageSet Search::set( bool parseMsns )
+{
+    MessageSet s( Command::set( parseMsns ) );
+    Mailbox * m = imap()->session()->mailbox();
+    if ( m->view() )
+        return m->sourceUids( s );
+    
+    s.addGapsFrom( imap()->session()->messages() );
+    return s;
 }
