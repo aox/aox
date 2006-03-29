@@ -188,14 +188,18 @@ void Fetcher::execute()
         d->mailbox->forget( this );
         return;
     }
-    // now, what to do. for the moment, we avoid even more messageset
-    // magic and take the lowest-numbered message and a few more.
-    // later, we'll want to be smarter.
+    // now, what to do. if we've been asked to fetch a simple range,
+    // do it.
     d->smallest = merged.smallest();
-    uint i = 1;
-    while ( i <= merged.count() && i < 512 &&
-            merged.value( i ) - d->smallest < i + 4 )
-        d->largest = merged.value( i++ );
+    if ( merged.isRange() ) {
+        d->largest = merged.largest();
+    }
+    else {
+        // if not, fetch the first range, and a few more messages.
+        uint i = 1;
+        while ( i <= merged.count() && merged.value( i ) - d->smallest < i + 4 )
+            d->largest = merged.value( i++ );
+    }
     d->query = new Query( *query(), this );
     d->query->bind( 1, d->smallest );
     d->query->bind( 2, d->largest );
@@ -210,8 +214,6 @@ void Fetcher::execute()
 
 void Fetcher::insert( const MessageSet & messages, EventHandler * handler )
 {
-    log( "fetching set <" + messages.set() + "> from " + d->mailbox->name(),
-         Log::Debug );
     FetcherData::Handler * h = new FetcherData::Handler;
     h->o = handler;
     h->s = messages;
