@@ -24,12 +24,16 @@ class FileData
     : public Garbage
 {
 public:
-    FileData(): fd( -1 ), t( 0 ), ok( false ) {}
+    FileData()
+        : fd( -1 ), t( 0 ), ok( false ), lines( 0 )
+    {}
+
     int fd;
     String n;
     String c;
     uint t;
     bool ok;
+    StringList * lines;
 };
 
 
@@ -185,6 +189,29 @@ String File::name() const
 String File::contents() const
 {
     return d->c;
+}
+
+
+/*! Returns a non-zero pointer to a StringList containing the lines of
+    text read from this File. The lines are returned unmodified, with
+    trailing CRLF, if any, intact.
+*/
+
+StringList * File::lines()
+{
+    if ( !d->lines ) {
+        d->lines = new StringList;
+
+        int i = 0;
+        int last = 0;
+        while ( ( i = d->c.find( '\n', last ) ) != -1 ) {
+            d->lines->append( new String( d->c.mid( last, i-last+1 ) ) );
+            last = i+1;
+        }
+        d->lines->append( new String( d->c.mid( last ) ) );
+    }
+
+    return d->lines;
 }
 
 

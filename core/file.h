@@ -5,6 +5,7 @@
 
 #include "global.h"
 #include "string.h"
+#include "stringlist.h"
 
 
 class File
@@ -23,6 +24,7 @@ public:
 
     String name() const;
     String contents() const;
+    StringList * lines();
 
     uint modificationTime() const;
 
