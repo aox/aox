@@ -2,6 +2,7 @@
 
 #include "entropy.h"
 
+#include "configuration.h"
 #include "string.h"
 #include "log.h"
 
@@ -26,6 +27,7 @@
     cryptographically strong pseudorandom numbers.
 */
 
+
 static int fd = -1;
 
 
@@ -35,7 +37,9 @@ void Entropy::setup()
 {
     if ( fd > -1 )
         ::close( fd );
-    fd = ::open( "/dev/urandom", O_RDONLY );
+
+    String source( Configuration::text( Configuration::RandomnessSource ) );
+    fd = ::open( source.cstr(), O_RDONLY );
 }
 
 
@@ -49,7 +53,8 @@ String Entropy::asString( uint bytes )
     if ( bytes == 0 )
         return r;
     if ( fd < 0 ) {
-        ::log( "Entropy requested, but /dev/urandom is not available",
+        String source( Configuration::text( Configuration::RandomnessSource ) );
+        ::log( "Entropy requested, but " + source + " is not available",
                Log::Disaster );
         die( FD );
     }
@@ -81,5 +86,3 @@ uint Entropy::asNumber( uint bytes )
     String e = asString( bytes );
     return e[0] | ( e[1] << 8 )  | ( e[2] << 16 )  | ( e[3] << 24 );
 }
-
-

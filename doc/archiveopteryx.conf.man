@@ -171,6 +171,11 @@ should not have read or write access to the jail directory.
 is the group name under which the servers run, and is
 .I $ORYXGROUP
 by default. On startup, the servers change GID to this user.
+.IP randomness-source
+is the fully-qualified name of a file that acts as a source for random
+bytes, whenever they are needed (e.g. SASL challenges). Set to
+.I /dev/urandom
+by default.
 .SS "Cluster Configuration"
 .IP ocd-address
 The address where

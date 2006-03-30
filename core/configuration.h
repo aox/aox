@@ -86,6 +86,7 @@ public:
         WebmailJS,
         MessageCopy,
         MessageCopyDir,
+        RandomnessSource,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };
