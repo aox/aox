@@ -85,7 +85,7 @@ void Authenticate::execute()
 
     // Now, feed the handler until it can make up its mind.
 
-    if ( !m->done() ) {
+    while ( !m->done() ) {
         if ( m->state() == SaslMechanism::IssuingChallenge ) {
             String c = m->challenge().e64();
 
@@ -93,6 +93,7 @@ void Authenticate::execute()
                 imap()->enqueue( "+ "+ c +"\r\n" );
                 m->setState( SaslMechanism::AwaitingResponse );
                 r = 0;
+                return;
             }
         }
         else if ( m->state() == SaslMechanism::AwaitingResponse && r ) {
@@ -101,9 +102,13 @@ void Authenticate::execute()
             }
             else {
                 m->readResponse( r->de64() );
-                m->execute();
+                r = 0;
+                if ( !m->done() ) {
+                    m->execute();
+                    if ( m->state() == SaslMechanism::Authenticating )
+                        return;
+                }
             }
-            r = 0;
         }
     }
 

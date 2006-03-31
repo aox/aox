@@ -361,5 +361,3 @@ bool DigestMD5::parse( const String &s, List< Variable > &l )
 
     return true;
 }
-
-

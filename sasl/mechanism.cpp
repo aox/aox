@@ -191,11 +191,12 @@ void SaslMechanism::execute()
     else
         d->storedSecret = d->user->secret();
 
-    if ( state() == Authenticating && d->user->state() != User::Unverified )
+    if ( state() == Authenticating &&
+         d->user->state() != User::Unverified )
+    {
         verify();
-
-    if ( done() )
         d->command->execute();
+    }
 }
 
 
