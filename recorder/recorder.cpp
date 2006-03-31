@@ -121,7 +121,7 @@ RecorderServer::RecorderServer( int fd )
                        File::Append, 0644 );
     EventLoop::global()->addConnection( this );
 
-    printf( "new recorder writing %s\n", d->log->name().cstr() );
+    printf( "New recorder writing %s\n", d->log->name().cstr() );
 }
 
 

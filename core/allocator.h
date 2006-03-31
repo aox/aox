@@ -21,10 +21,7 @@ public:
     static Allocator * allocator( uint size );
 
     static void free();
-    static void addEternal( void *, const char * );
-    static void addEternal( const void * p, const char * c ) {
-        addEternal( (void*)p, c );
-    }
+    static void addEternal( const void *, const char * );
 
     static void removeEternal( void * );
     static void removeEternal( const void * );

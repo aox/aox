@@ -598,7 +598,8 @@ Selector * Search::selector() const
 
 /*! This reimplementation of Command::set() simplifies the set by
     including messages that don't exist, and returns UIDs in the
-    underlying mailbox rather than a view.
+    underlying mailbox rather than a view. \a parseMsns is as for
+    Command::set().
 */
 
 MessageSet Search::set( bool parseMsns )

@@ -544,9 +544,9 @@ uint Allocator::rounded( uint size )
     (e.g. "array of connection objects").
 */
 
-void Allocator::addEternal( void * p, const char * t )
+void Allocator::addEternal( const void * p, const char * t )
 {
-    ::roots[::numRoots].root = p;
+    ::roots[::numRoots].root = (void*)p;
     ::roots[::numRoots].name = t;
     ::roots[::numRoots].size = 0;
     ::numRoots++;
@@ -559,7 +559,6 @@ void Allocator::addEternal( void * p, const char * t )
          Log::Disaster );
     die( Memory );
 }
-
 
 
 /*! Records that \a *p is no longer an allocation root. The object may
