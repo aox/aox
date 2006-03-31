@@ -262,6 +262,7 @@ bool PopCommand::auth()
 
     if ( d->m->state() == SaslMechanism::Succeeded ) {
         d->pop->setReader( 0 );
+        d->pop->setUser( d->m->user() );
         d->cmd = Session;
         return session();
     }
