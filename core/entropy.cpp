@@ -38,7 +38,7 @@ void Entropy::setup()
     if ( fd > -1 )
         ::close( fd );
 
-    String source( Configuration::text( Configuration::RandomnessSource ) );
+    String source( Configuration::text( Configuration::EntropySource ) );
     fd = ::open( source.cstr(), O_RDONLY );
 }
 
@@ -53,7 +53,7 @@ String Entropy::asString( uint bytes )
     if ( bytes == 0 )
         return r;
     if ( fd < 0 ) {
-        String source( Configuration::text( Configuration::RandomnessSource ) );
+        String source( Configuration::text( Configuration::EntropySource ) );
         ::log( "Entropy requested, but " + source + " is not available",
                Log::Disaster );
         die( FD );
