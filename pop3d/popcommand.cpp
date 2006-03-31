@@ -238,8 +238,11 @@ bool PopCommand::auth()
                 return false;
             }
         }
-        else if ( d->m->state() == SaslMechanism::AwaitingResponse && d->r ) {
-            if ( *d->r == "*" ) {
+        else if ( d->m->state() == SaslMechanism::AwaitingResponse ) {
+            if ( !d->r ) {
+                return false;
+            }
+            else if ( *d->r == "*" ) {
                 d->m->setState( SaslMechanism::Terminated );
             }
             else {

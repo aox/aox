@@ -96,8 +96,11 @@ void Authenticate::execute()
                 return;
             }
         }
-        else if ( m->state() == SaslMechanism::AwaitingResponse && r ) {
-            if ( *r == "*" ) {
+        else if ( m->state() == SaslMechanism::AwaitingResponse ) {
+            if ( !r ) {
+                return;
+            }
+            else if ( *r == "*" ) {
                 m->setState( SaslMechanism::Terminated );
             }
             else {
