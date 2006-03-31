@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 15;
+int currentRevision = 16;
 
 
 class SchemaData
@@ -248,6 +248,8 @@ bool Schema::singleStep()
         c = stepTo14(); break;
     case 14:
         c = stepTo15(); break;
+    case 15:
+        c = stepTo16(); break;
     }
 
     return c;
@@ -958,6 +960,31 @@ bool Schema::stepTo15()
     }
 
     if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add the aliases table. */
+
+bool Schema::stepTo16()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Creating aliases table.", Log::Debug );
+        d->q = new Query( "create table aliases (address text,mailbox "
+                          "integer not null references mailboxes(id))",
+                          this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
