@@ -171,11 +171,15 @@ should not have read or write access to the jail directory.
 is the group name under which the servers run, and is
 .I $ORYXGROUP
 by default. On startup, the servers change GID to this user.
-.IP randomness-source
+.IP entropy-source
 is the fully-qualified name of a file that acts as a source for random
 bytes, whenever they are needed (e.g. SASL challenges). Set to
 .I /dev/urandom
-by default.
+by default. If this is instead set to
+.IR /dev/random ,
+Archiveopteryx never uses anything less than perfectly random
+numbers. In this case, make sure that there's enough entropy, or else
+a series of rapid login attempts can block the entire server.
 .SS "Cluster Configuration"
 .IP ocd-address
 The address where

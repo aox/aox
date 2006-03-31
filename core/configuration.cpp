@@ -182,7 +182,7 @@ static struct {
     { "webmail-js-page", Configuration::WebmailJS, "" },
     { "message-copy", Configuration::MessageCopy, "none" },
     { "message-copy-directory", Configuration::MessageCopyDir, "" },
-    { "randomness-source", Configuration::RandomnessSource, "/dev/urandom" }
+    { "entropy-source", Configuration::EntropySource, "/dev/urandom" }
 };
 
 
