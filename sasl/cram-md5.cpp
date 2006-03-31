@@ -28,25 +28,13 @@ CramMD5::CramMD5( EventHandler *c )
 
 String CramMD5::challenge()
 {
-    uint t = time(0);
+    String hn( Configuration::hostname() );
+    String random( Entropy::asString( 12 ).e64() );
 
-    uint r = 10000;
-    while ( r > 9999 )
-        r = Entropy::asNumber( 2 ) % 16384;
-
-    String hn = Configuration::hostname();
     if ( hn.isEmpty() || hn.find( '.' ) < 0 )
         hn = "oryx.invalid";
 
-    challengeSent = "<" + fn( r ) + "." + fn( t ) + "@" + hn + ">";
-
-    /* draft-ietf-sasl-crammd5-02 specifies the above challenge format,
-       but Lyndon Nerenberg says that the next revision will specify an
-       opaque random string, probably like the following:
-
-    challengeSent = "<" + Entropy::asString( 12 ).e64() +
-                    "@" + Configuration::hostname() + ">";
-    */
+    challengeSent = "<" + random + "@" + hn + ">";
 
     return challengeSent;
 }
