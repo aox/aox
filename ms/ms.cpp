@@ -65,6 +65,8 @@ void deleteUser();
 void createMailbox();
 void deleteMailbox();
 void changePassword();
+void createAlias();
+void deleteAlias();
 void vacuum();
 void anonymise( const String & );
 void help();
@@ -190,8 +192,6 @@ int main( int ac, char *av[] )
         String noun = next().lower();
 
         Database::setup();
-        OCClient::setup();
-        AddressCache::setup();
 
         if ( verb == "create" && noun == "user" )
             createUser();
@@ -201,6 +201,10 @@ int main( int ac, char *av[] )
             createMailbox();
         else if ( verb == "delete" && noun == "mailbox" )
             deleteMailbox();
+        else if ( verb == "create" && noun == "alias" )
+            createAlias();
+        else if ( verb == "delete" && noun == "alias" )
+            deleteAlias();
         else
             bad( verb, noun );
     }
@@ -298,7 +302,7 @@ public:
     enum Command {
         Start, ShowCounts, ShowSchema, UpgradeSchema, ListMailboxes,
         ListUsers, CreateUser, DeleteUser, ChangePassword,
-        CreateMailbox, DeleteMailbox,
+        CreateMailbox, DeleteMailbox, CreateAlias, DeleteAlias,
         Vacuum
     };
 
@@ -307,7 +311,7 @@ public:
     Query * query;
     User * user;
     Transaction * t;
-    String s;
+    String s, s2;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
@@ -392,6 +396,14 @@ public:
 
         case DeleteMailbox:
             deleteMailbox();
+            break;
+
+        case CreateAlias:
+            createAlias();
+            break;
+
+        case DeleteAlias:
+            deleteAlias();
             break;
 
         case Vacuum:
@@ -823,7 +835,7 @@ void showSchema()
     const char * versions[] = {
         "", "", "0.91", "0.92", "0.92", "0.92 to 0.93", "0.93",
         "0.93", "0.94 to 0.95", "0.96 to 0.97", "0.97", "0.97",
-        "0.98", "0.99", "1.0", "1.01"
+        "0.98", "0.99", "1.0", "1.01", "1.05"
     };
     int nv = sizeof( versions ) / sizeof( versions[0] );
 
@@ -1051,6 +1063,9 @@ void createUser()
         if ( !validUsername( login ) )
             error( "Invalid username: " + login );
 
+        OCClient::setup();
+        AddressCache::setup();
+
         d = new Dispatcher( Dispatcher::CreateUser );
 
         d->user = new User;
@@ -1095,12 +1110,13 @@ void deleteUser()
         String login = next();
         end();
 
-        Database::setup();
-
         if ( login.isEmpty() )
             error( "No login name supplied." );
         if ( !validUsername( login ) )
             error( "Invalid username: " + login );
+
+        OCClient::setup();
+        AddressCache::setup();
 
         d = new Dispatcher( Dispatcher::DeleteUser );
         Mailbox::setup( d );
@@ -1200,6 +1216,9 @@ void createMailbox()
         if ( name.isEmpty() )
             error( "No mailbox name supplied." );
 
+        OCClient::setup();
+        AddressCache::setup();
+
         d = new Dispatcher( Dispatcher::CreateMailbox );
         d->s = name;
         Mailbox::setup( d );
@@ -1245,10 +1264,11 @@ void deleteMailbox()
         String name = next();
         end();
 
-        Database::setup();
-
         if ( name.isEmpty() )
             error( "No mailbox name supplied." );
+
+        OCClient::setup();
+        AddressCache::setup();
 
         d = new Dispatcher( Dispatcher::DeleteMailbox );
         d->s = name;
@@ -1271,6 +1291,80 @@ void deleteMailbox()
 
     if ( d->t->failed() )
         error( "Couldn't delete mailbox: " + d->t->error() );
+}
+
+
+void createAlias()
+{
+    if ( !d ) {
+        parseOptions();
+        String address = next();
+        String mailbox = next();
+        end();
+
+        if ( address.isEmpty() )
+            error( "No address specified." );
+
+        if ( mailbox.isEmpty() )
+            error( "No mailbox specified." );
+
+        AddressParser a( address );
+        if ( !a.error().isEmpty() )
+            error( "Invalid address specified: '" + address + "'" );
+
+        d = new Dispatcher( Dispatcher::CreateAlias );
+
+        d->s = address;
+        d->s2 = mailbox;
+
+        Mailbox::setup( d );
+        return;
+    }
+
+    if ( !d->query ) {
+        Mailbox * m = Mailbox::obtain( d->s2, false );
+        if ( !m )
+            error( "Invalid mailbox specified: '" + d->s2 + "'" );
+
+        d->query =
+            new Query( "insert into aliases (address, mailbox) "
+                       "values ($1, $2)", d );
+        d->query->bind( 1, d->s );
+        d->query->bind( 2, m->id() );
+        d->query->execute();
+    }
+
+    if ( !d->query->done() )
+        return;
+
+    if ( d->query->failed() )
+        error( "Couldn't create alias: " + d->query->error() );
+}
+
+
+void deleteAlias()
+{
+    if ( !d ) {
+        parseOptions();
+        String address = next();
+        end();
+
+        if ( address.isEmpty() )
+            error( "No address specified." );
+
+        d = new Dispatcher( Dispatcher::DeleteAlias );
+
+        d->query =
+            new Query( "delete from aliases where address=$1", d );
+        d->query->bind( 1, address );
+        d->query->execute();
+    }
+
+    if ( !d->query->done() )
+        return;
+
+    if ( d->query->failed() )
+        error( "Couldn't delete alias: " + d->query->error() );
 }
 
 
@@ -1495,6 +1589,27 @@ void help()
             "  delete mailbox -- Delete a mailbox.\n\n"
             "    Synopsis: ms delete mailbox <name>\n\n"
             "    Deletes the specified mailbox.\n"
+        );
+    }
+    else if ( a == "create" && b == "alias" ) {
+        fprintf(
+            stderr,
+            "  create alias -- Create a delivery alias.\n\n"
+            "    Synopsis: ms create alias <address> <mailbox>\n\n"
+            "    Creates an alias that instructs the L/SMTP server to accept\n"
+            "    mail to a given address, and deliver it to a given mailbox.\n"
+            "    (Ordinarily, mail is accepted only to a user's main address,\n"
+            "    and stored in their INBOX. Aliases take precedence over this\n"
+            "    mechanism.)\n"
+        );
+    }
+    else if ( a == "delete" && b == "alias" ) {
+        fprintf(
+            stderr,
+            "  delete alias -- Delete a delivery alias.\n\n"
+            "    Synopsis: ms delete alias <address>\n\n"
+            "    Deletes the alias that associated the specified address\n"
+            "    with a mailbox.\n"
         );
     }
     else if ( a == "vacuum" ) {
