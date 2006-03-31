@@ -39,7 +39,7 @@ public:
     bool ok() const;
     void inject();
     virtual void reportInjection();
-    void rcptAnswer( class User * );
+    void rcptAnswer( Address *, Mailbox * );
     bool writeCopy();
 
     enum State {

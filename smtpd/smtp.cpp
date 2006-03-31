@@ -15,6 +15,7 @@
 #include "string.h"
 #include "header.h"
 #include "scope.h"
+#include "query.h"
 #include "date.h"
 #include "file.h"
 #include "user.h"
@@ -99,27 +100,63 @@ void SmtpTlsStarter::execute()
 }
 
 
-class SmtpUserHelper: public EventHandler
+class AliasLookup
+    : public EventHandler
 {
-public:
-    SmtpUserHelper( SMTP * s, User * u );
-    void execute();
-
+private:
     SMTP * owner;
-    User * user;
+    Address * a;
+    Query * q;
+    User * u;
+
+public:
+    AliasLookup( SMTP * smtp, Address * address )
+        : owner( smtp ), q( 0 ), u( 0 )
+    {
+        // Our addresses are case-insensitive on input.
+        a = new Address( "", address->localpart().lower(),
+                         address->domain().lower() );
+    }
+
+    void execute()
+    {
+        if ( !q ) {
+            String addr( a->localpart() + "@" + a->domain() );
+            q = new Query( "select mailbox from aliases where "
+                           "lower(address)=$1", this );
+            q->bind( 1, addr );
+            q->execute();
+        }
+
+        if ( q->done() && !u ) {
+            Row * r = q->nextRow();
+            if ( r ) {
+                Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
+                owner->rcptAnswer( a, m );
+            }
+            else {
+                u = new User;
+                u->setAddress( a );
+                u->refresh( this );
+            }
+        }
+
+        if ( u && u->state() != User::Unverified )
+            owner->rcptAnswer( a, u->inbox() );
+    }
 };
 
 
-SmtpUserHelper::SmtpUserHelper( SMTP * s, User * u )
-    : EventHandler(), owner( s ), user( u )
+class Alias
+    : public Garbage
 {
-}
-
-
-void SmtpUserHelper::execute()
-{
-    owner->rcptAnswer( user );
-}
+public:
+    Alias( Address * a, Mailbox * m )
+        : address( a ), mailbox( m )
+    {}
+    Address * address;
+    Mailbox * mailbox;
+};
 
 
 class SMTPData
@@ -138,7 +175,7 @@ public:
     String firstError;
     SMTP::State state;
     Address * from;
-    List<User> to;
+    List<Alias> to;
     SortedList<Mailbox> * mailboxes;
     String body;
     String arg;
@@ -506,8 +543,7 @@ void SMTP::mail()
 }
 
 
-/*! rcpt() handles RCPT TO.
-*/
+/*! rcpt() handles RCPT TO. */
 
 void SMTP::rcpt()
 {
@@ -515,6 +551,7 @@ void SMTP::rcpt()
         sendGenericError();
         return;
     }
+
     Address * to = address();
     if ( !to ) {
         respond( 550, "Unknown address" );
@@ -525,24 +562,20 @@ void SMTP::rcpt()
         return;
     }
 
-    User * u = new User;
-    u->setAddress( to );
-    u->refresh( new SmtpUserHelper( this, u ) );
+    ( new AliasLookup( this, to ) )->execute();
 }
 
 
-/*! Delivers the SMTP answer for \a u, based on the database lookup.
-
-    Should this report e.g. User::error()?
+/*! Answers the RCPT to the address \a a, based on the translation (by
+    AliasLookup) to a mailbox \a m.
 */
 
-void SMTP::rcptAnswer( User * u )
+void SMTP::rcptAnswer( Address * a, Mailbox * m )
 {
-    Address *a = u->address();
-    String to = a->localpart() + "@" + a->domain();
+    String to( a->localpart() + "@" + a->domain() );
 
-    if ( u && u->valid() ) {
-        d->to.append( u );
+    if ( m && !m->deleted() ) {
+        d->to.append( new Alias( a, m ) );
         respond( 250, "Will send to " + to );
         log( "Delivering message to " + to );
         d->state = Data;
@@ -550,6 +583,7 @@ void SMTP::rcptAnswer( User * u )
     else {
         respond( 450, to + " is not a legal destination address" );
     }
+
     sendResponses();
 }
 
@@ -833,9 +867,9 @@ void SMTP::inject()
         m->header()->add( "Return-Path", d->from->toString() );
 
     d->mailboxes = new SortedList<Mailbox>;
-    List<User>::Iterator it( d->to );
+    List< Alias >::Iterator it( d->to );
     while ( it ) {
-        d->mailboxes->insert( it->inbox() );
+        d->mailboxes->insert( it->mailbox );
         ++it;
     }
 
@@ -888,10 +922,10 @@ bool SMTP::writeCopy()
         f.write( "<>" );
     f.write( "\n" );
 
-    List<User>::Iterator it( d->to );
+    List<Alias>::Iterator it( d->to );
     while ( it ) {
         f.write( "To: " );
-        f.write( it->address()->toString() );
+        f.write( it->address->toString() );
         f.write( "\n" );
         ++it;
     }
@@ -998,17 +1032,18 @@ void LMTP::reportInjection()
            ( !d->injector || d->injector->failed() ) ) )
         writeCopy();
 
-    List<User>::Iterator it( d->to );
+    List<Alias>::Iterator it( d->to );
     while ( it ) {
-        Address * a = it->address();
-        String prefix = a->localpart() + "@" + a->domain() + ": ";
+        String prefix( it->address->localpart() + "@" +
+                       it->address->domain() + ": " );
+
         if ( d->helper->injector->failed() )
             respond( 451, prefix + d->injector->error() );
         else if ( d->helper->harder )
             respond( 250, prefix + "Worked around: " + d->injectorError );
         else
-            respond( 250, prefix + "injected into " +
-                     it->inbox()->name() );
+            respond( 250, prefix + "injected into " + it->mailbox->name() );
+
         ++it;
     }
 
