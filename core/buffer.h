@@ -8,6 +8,7 @@
 
 
 class String;
+class Filter;
 
 
 class Buffer
@@ -15,6 +16,8 @@ class Buffer
 {
 public:
     Buffer();
+
+    void addFilter( Filter * );
 
     void append( const String & );
     void append( const char *, uint = 0 );
@@ -54,6 +57,8 @@ private:
     };
 
     List< Vector > vecs;
+    Filter * filter;
+    Buffer * next;
     uint firstused, firstfree;
     bool seenEOF;
     uint bytes;

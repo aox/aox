@@ -3,7 +3,7 @@ SubDir TOP core ;
 Build core : global.cpp scope.cpp string.cpp
     buffer.cpp list.cpp map.cpp dict.cpp table.cpp allocator.cpp
     md5.cpp file.cpp logger.cpp log.cpp configuration.cpp
-    stringlist.cpp entropy.cpp ;
+    stringlist.cpp entropy.cpp filter.cpp ;
 
 Build encodings : ustring.cpp ;
 

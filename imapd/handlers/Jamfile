@@ -5,9 +5,10 @@ Build imap :
     authenticate.cpp
     append.cpp
     capability.cpp
-    create.cpp
-    copy.cpp
     close.cpp
+    compress.cpp
+    copy.cpp
+    create.cpp
     delete.cpp
     expunge.cpp
     fetch.cpp
@@ -30,3 +31,5 @@ Build imap :
     unselect.cpp
     view.cpp
     ;
+
+UseLibrary compress.cpp : z ;

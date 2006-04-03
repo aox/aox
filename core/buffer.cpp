@@ -4,6 +4,7 @@
 
 #include "sys.h"
 #include "list.h"
+#include "filter.h"
 #include "string.h"
 #include "allocator.h"
 
@@ -33,7 +34,8 @@
 /*! Creates an empty Buffer. */
 
 Buffer::Buffer()
-    : firstused( 0 ), firstfree( 0 ), seenEOF( false ),
+    : filter( 0 ), next( 0 ),
+      firstused( 0 ), firstfree( 0 ), seenEOF( false ),
       bytes( 0 ), err( 0 )
 {
 }
@@ -108,11 +110,17 @@ void Buffer::append(const String &s)
 
 void Buffer::read( int fd )
 {
+    if ( next )
+        next->read( fd );
+
     char buf[8192];
 
     int n = 0;
     do {
-        n = ::read( fd, &buf, 8192 );
+        if ( filter )
+            n = filter->read( buf, 8192, next );
+        else
+            n = ::read( fd, &buf, 8192 );
 
         if ( n > 0 ) {
             seenEOF = false;
@@ -143,8 +151,13 @@ void Buffer::write( int fd )
     do {
         Vector *v = vecs.firstElement();
 
-        if ( !v )
+        if ( !v ) {
+            if ( filter && next )
+                filter->flush( next );
+            if ( next )
+                next->write( fd );
             return;
+        }
 
         int max = v->len;
         if ( vecs.count() == 1 )
@@ -152,7 +165,11 @@ void Buffer::write( int fd )
         int n = max - firstused;
 
         written = 0;
-        if ( n )
+        if ( !n )
+            ;
+        else if ( filter )
+            written = filter->write( (char*)v->base+firstused, n, next );
+        else
             written = ::write( fd, v->base+firstused, n );
         if ( written > 0 ) {
             remove( written );
@@ -296,6 +313,24 @@ String Buffer::string( uint num ) const
     }
 
     return result;
+}
+
+
+/*! Adds \a f to this Buffer, creating another Buffer behind \a
+    f. All current contents are moved to the Buffer behind \a f.
+
+    This implies that for a read buffer, all unread contents will be
+    filtered.
+*/
+
+void Buffer::addFilter( Filter * f )
+{
+    filter = f;
+    next = new Buffer;
+
+    uint s = size();
+    next->append( string( s ) );
+    remove( s );
 }
 
 
