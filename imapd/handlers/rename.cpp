@@ -107,9 +107,8 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
         q->bind( 4, to->id() );
         t->enqueue( q );
         // and bump uidvalidity to inform any caches
-        p->toUidvalidity = 1 + p->from->uidvalidity();
-        if ( p->toUidvalidity <= to->uidvalidity() )
-            p->toUidvalidity = 1 + to->uidvalidity();
+        if ( to->uidvalidity() > p->from->uidvalidity() || to->uidnext() > 1 )
+            p->toUidvalidity = to->uidvalidity() + 1;
     }
 
     // move the mailbox
