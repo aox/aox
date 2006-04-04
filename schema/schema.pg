@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (16);
+insert into mailstore (revision) values (17);
 
 
 -- One entry for each unique address we've encountered.
@@ -35,7 +35,6 @@ create table users (
     id          serial primary key,
     login       text unique,
     secret      text,
-    address     integer not null references addresses(id),
     parentspace integer not null references namespaces(id)
 );
 
@@ -81,8 +80,19 @@ create table mailboxes (
 );
 
 
-alter table users add inbox integer references mailboxes(id);
-alter table users alter inbox set not null;
+-- One entry per delivery alias: mail to the given address should be
+-- accepted and delivered into the given mailbox.
+
+create table aliases (
+    id          serial primary key,
+    address     integer not null references addresses(id),
+    mailbox     integer not null references mailboxes(id)
+                on delete cascade
+);
+
+
+alter table users add alias integer references aliases(id);
+alter table users alter alias set not null;
 
 
 -- One row per <identifier, right> entry for a mailbox.
@@ -281,15 +291,5 @@ create table view_messages (
     suid        integer not null,
     foreign key (source, suid)
                 references messages(mailbox, uid)
-                on delete cascade
-);
-
-
--- One entry per delivery alias: mail to the given address should be
--- accepted and delivered into the given mailbox.
-
-create table aliases (
-    address     text,
-    mailbox     integer not null references mailboxes(id)
                 on delete cascade
 );
