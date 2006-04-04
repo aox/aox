@@ -58,6 +58,12 @@ void XObliterate::execute()
         q->bind( 2, inbox->id() );
         t->enqueue( q );
 
+        q = new Query( "delete from aliases "
+                       "where mailbox=$1 and "
+                       "id not in (select alias from users)",
+                       this );
+        t->enqueue( q );
+
         q = new Query( "delete from messages where mailbox in "
                        "(select id from mailboxes where owner=$1)",
                        this );
@@ -98,13 +104,16 @@ void XObliterate::execute()
         t->enqueue( a );
 
         q = new Query( "update mailboxes set "
-                       "deleted='t',owner=null,uidnext=1,first_recent=1 "
+                       "deleted='t',owner=null,"
+                       "uidvalidity=1,"
+                       "uidnext=1,first_recent=1 "
                        "where owner=$1 and id<>$2", this );
         q->bind( 1, user->id() );
         q->bind( 2, inbox->id() );
         t->enqueue( q );
 
-        q = new Query( "update mailboxes set uidnext=1,first_recent=1 "
+        q = new Query( "update mailboxes "
+                       "set uidnext=1,first_recent=1,uidvalidity=1 "
                        "where id=$1", this );
         q->bind( 1, inbox->id() );
         t->enqueue( q );
