@@ -138,15 +138,16 @@ void Rename::execute()
     if ( !d->t ) {
         d->t = new Transaction( this );
         if ( d->mrcInboxHack ) {
-            // ensure that nothing's delivered to inbox during the move.
-            Query * q = new Query( "select inbox from users "
-                                   "where id=$1 "
+            // ensure that nothing's delivered to the renamed inbox,
+            // only to the newly created mailbox of the same name.
+            Query * q = new Query( "select mailbox from aliases "
+                                   "where mailbox=$1 "
                                    "for update", 0 );
-            q->bind( 1, imap()->user()->id() );
+            q->bind( 1, imap()->user()->inbox()->id() );
             d->t->enqueue( q );
         }
     }
-
+        
     if ( d->renames.isEmpty() ) {
         // 1. the first mailbox
         RenameData::MailboxPair * p = new RenameData::MailboxPair;
@@ -155,6 +156,7 @@ void Rename::execute()
             error( No, "No such mailbox: " + d->fromName );
             return;
         }
+        
         p->toName = imap()->mailboxName( d->toName );
         p->toParent = Mailbox::closestParent( p->toName );
         d->process( p, 0 );
@@ -185,11 +187,11 @@ void Rename::execute()
 
         if ( ok() && d->mrcInboxHack ) {
             Query * q =
-                new Query( "update users set "
-                           "inbox=(select id from mailboxes where name=$1) "
-                           "where id=$2", 0 );
+                new Query( "update aliases set "
+                           "mailbox=(select id from mailboxes where name=$1) "
+                           "where mailbox=$2", 0 );
             q->bind( 1, imap()->mailboxName( d->fromName ) );
-            q->bind( 2, imap()->user()->id() );
+            q->bind( 2, p->from->id() );
             d->t->enqueue( q );
             q = new Query( "update mailboxes set deleted='f',owner=$2 "
                            "where name=$1", 0 );
