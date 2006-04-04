@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 16;
+int currentRevision = 17;
 
 
 class SchemaData
@@ -250,6 +250,8 @@ bool Schema::singleStep()
         c = stepTo15(); break;
     case 15:
         c = stepTo16(); break;
+    case 16:
+        c = stepTo17(); break;
     }
 
     return c;
@@ -979,6 +981,52 @@ bool Schema::stepTo16()
         d->q = new Query( "create table aliases (address text,mailbox "
                           "integer not null references mailboxes(id))",
                           this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Drop the aliases table from #16 (never released) and recreate it,
+    with a reference to the address, and a link from users.
+*/
+
+bool Schema::stepTo17()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Recreating unified aliases table.", Log::Debug );
+        d->q = new Query( "drop table aliases", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create table aliases (id serial primary key, "
+                          "address integer not null unique references "
+                          "addresses(id), mailbox integer not null "
+                          "references mailboxes(id))", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "insert into aliases (address, mailbox) "
+                          "select address,inbox from users", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table users add alias integer "
+                          "references aliases(id)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "update users set alias=(select id from aliases "
+                          "where aliases.address=users.address and "
+                          "mailbox=inbox)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table users alter alias set not null", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table users drop address", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table users drop inbox", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
