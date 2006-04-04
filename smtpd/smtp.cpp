@@ -107,11 +107,10 @@ private:
     SMTP * owner;
     Address * a;
     Query * q;
-    User * u;
 
 public:
     AliasLookup( SMTP * smtp, Address * address )
-        : owner( smtp ), q( 0 ), u( 0 )
+        : owner( smtp ), q( 0 )
     {
         // Our addresses are case-insensitive on input.
         a = new Address( "", address->localpart().lower(),
@@ -121,28 +120,24 @@ public:
     void execute()
     {
         if ( !q ) {
-            String addr( a->localpart() + "@" + a->domain() );
-            q = new Query( "select mailbox from aliases where "
-                           "lower(address)=$1", this );
-            q->bind( 1, addr );
+            q = new Query( "select mailbox from aliases al join addresses a "
+                           "on (al.address=a.id) where lower(a.localpart)=$1 "
+                           "and lower(a.domain)=$2", this );
+            q->bind( 1, a->localpart() );
+            q->bind( 2, a->domain() );
             q->execute();
         }
 
-        if ( q->done() && !u ) {
-            Row * r = q->nextRow();
-            if ( r ) {
-                Mailbox * m = Mailbox::find( r->getInt( "mailbox" ) );
-                owner->rcptAnswer( a, m );
-            }
-            else {
-                u = new User;
-                u->setAddress( a );
-                u->refresh( this );
-            }
-        }
+        if ( !q->done() )
+            return;
 
-        if ( u && u->state() != User::Unverified )
-            owner->rcptAnswer( a, u->inbox() );
+        Mailbox * m = 0;
+
+        Row * r = q->nextRow();
+        if ( r )
+            m = Mailbox::find( r->getInt( "mailbox" ) );
+
+        owner->rcptAnswer( a, m );
     }
 };
 
