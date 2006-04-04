@@ -37,8 +37,12 @@ void XObliterate::parse()
 
 void XObliterate::execute()
 {
-    if ( n != "whip" )
+    if ( n != "whip" ) {
+        error( No,
+               "Wenn Du zur Fliegenden Archiv gehst, "
+               "vergesse nicht die Peitsche" );
         return;
+    }
 
     if ( !t ) {
         t = new Transaction( this );
