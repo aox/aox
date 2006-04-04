@@ -226,21 +226,24 @@ void User::refresh( EventHandler * user )
     d->user = user;
     if ( !psl ) {
         psl = new PreparedStatement(
-            "select u.id, u.address, u.inbox, n.name as parentspace, "
-            "u.login, u.id, u.secret, a.name, a.localpart, a.domain "
-            "from users u, addresses a, namespaces n where "
-            "lower(u.login)=$1 and u.address=a.id and n.id=u.parentspace"
+            "select u.id, u.login, u.secret, a.name, a.localpart, "
+            "a.domain, al.mailbox as inbox, n.name as parentspace "
+            "from users u join aliases al on (u.alias=al.id) "
+            "join addresses a on (al.address=a.id) "
+            "join namespaces n on (u.parentspace=n.id) "
+            "where lower(u.login)=$1"
         );
 
         psa = new PreparedStatement(
-            "select u.id, u.address, u.inbox, n.name as parentspace, "
-            "u.login, u.id, u.secret, a.name, a.localpart, a.domain "
-            "from users u, addresses a, namespaces n where "
-            "u.address=a.id and lower(a.localpart)=$1 and lower(a.domain)=$2 "
-            "and n.id=u.parentspace"
+            "select u.id, u.login, u.secret, a.name, a.localpart, "
+            "a.domain, al.mailbox as inbox, n.name as parentspace "
+            "from users u join aliases al on (u.alias=al.id) "
+            "join addresses a on (al.address=a.id) "
+            "join namespaces n on (u.parentspace=n.id) "
+            "where lower(a.localpart)=$1 and lower(a.domain)=$2"
         );
         Allocator::addEternal( psl, "select user by login" );
-        Allocator::addEternal( psa, "select user by account" );
+        Allocator::addEternal( psa, "select user by address" );
     }
     if ( !d->login.isEmpty() ) {
         d->q = new Query( *psl, this );
@@ -274,11 +277,9 @@ void User::refreshHelper()
         d->id = r->getInt( "id" );
         d->login = r->getString( "login" );
         d->secret = r->getString( "secret" );
-        d->id = r->getInt( "id" );
         d->inbox = Mailbox::find( r->getInt( "inbox" ) );
         d->home = Mailbox::obtain( r->getString( "parentspace" ) + "/" +
-                                   d->login,
-                                   true );
+                                   d->login, true );
         String n = r->getString( "name" );
         String l = r->getString( "localpart" );
         String h = r->getString( "domain" );
