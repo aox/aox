@@ -120,13 +120,12 @@ public:
     void execute()
     {
         if ( !q ) {
-            q = new Query( "select distinct al.mailbox "
-                           "from aliases al "
+            q = new Query( "select mailbox from aliases al "
                            "join addresses a on (al.address=a.id) "
                            "join mailboxes m on (al.mailbox=m.id) "
-                           "where m.deleted='f' "
-                           "and lower(a.localpart)=$1 and "
-                           "and lower(a.domain)=$2", this );
+                           "where m.deleted='f' and "
+                           "lower(a.localpart)=$1 and "
+                           "lower(a.domain)=$2", this );
             q->bind( 1, a->localpart() );
             q->bind( 2, a->domain() );
             q->execute();
