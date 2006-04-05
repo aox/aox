@@ -656,14 +656,8 @@ Query * Mailbox::remove( Transaction * t )
     if ( synthetic() || deleted() )
         return 0;
 
-    // this bit fails if the alias is needed by a user, and thus, the
-    // rest of the transaction fails.
     Query * q =
-        new Query( "delete from aliases where mailbox=$1", 0 );
-    q->bind( 1, id() );
-    t->enqueue( q );
-
-    q = new Query( "update mailboxes set deleted='t',owner=null "
+        new Query( "update mailboxes set deleted='t',owner=null "
                    "where id=$1", 0 );
     q->bind( 1, id() );
     t->enqueue( q );

@@ -1152,6 +1152,7 @@ void deleteUser()
             exit( -1 );
         }
 
+        List<Query> aliases;
         d->t = new Transaction( d );
         while ( d->query->hasResults() ) {
             Row * r = d->query->nextRow();
@@ -1159,8 +1160,16 @@ void deleteUser()
             Mailbox * m = Mailbox::obtain( s, false );
             if ( !m || m->remove( d->t ) == 0 )
                 error( "Couldn't delete mailbox " + s );
+            Query * q = new Query( "delete from aliases where mailbox=$1", 0 );
+            q->bind( 1, r->getInt( "id" ) );
+            aliases.append( q );
         }
         d->query = d->user->remove( d->t );
+        List<Query>::Iterator i( aliases );
+        while ( i ) {
+            d->t->enqueue( i );
+            i++;
+        }
         d->t->commit();
     }
 
