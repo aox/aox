@@ -182,7 +182,7 @@ void Listext::execute()
     StringList::Iterator it( d->patterns );
     while ( it ) {
         if ( it->isEmpty() )
-            respond( "LIST \"/\" \"\"" );
+            respond( "LIST () \"/\" \"\"" );
         else if ( it->startsWith( "/" ) )
             listChildren( Mailbox::root(), *it );
         else
