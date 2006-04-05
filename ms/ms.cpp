@@ -311,12 +311,13 @@ public:
     Query * query;
     User * user;
     Transaction * t;
-    String s, s2;
+    Address * address;
+    String s;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
           command( cmd ), query( 0 ),
-          user( 0 ), t( 0 )
+          user( 0 ), t( 0 ), address( 0 )
     {
     }
 
@@ -1304,28 +1305,39 @@ void createAlias()
         if ( mailbox.isEmpty() )
             error( "No mailbox specified." );
 
-        AddressParser a( address );
-        if ( !a.error().isEmpty() )
-            error( "Invalid address specified: '" + address + "'" );
+        AddressParser p( address );
+        if ( !p.error().isEmpty() )
+            error( "Invalid address: " + p.error() );
+
+        AddressCache::setup();
 
         d = new Dispatcher( Dispatcher::CreateAlias );
 
-        d->s = address;
-        d->s2 = mailbox;
+        d->s = mailbox;
+        d->address = p.addresses()->first();
+
+        d->t = new Transaction( d );
+        List< Address > l;
+        l.append( d->address );
+        AddressCache::lookup( d->t, &l, d );
+        d->t->commit();
 
         Mailbox::setup( d );
         return;
     }
 
+    if ( !d->t->done() )
+        return;
+
     if ( !d->query ) {
-        Mailbox * m = Mailbox::obtain( d->s2, false );
+        Mailbox * m = Mailbox::obtain( d->s, false );
         if ( !m )
-            error( "Invalid mailbox specified: '" + d->s2 + "'" );
+            error( "Invalid mailbox specified: '" + d->s + "'" );
 
         d->query =
             new Query( "insert into aliases (address, mailbox) "
                        "values ($1, $2)", d );
-        d->query->bind( 1, d->s );
+        d->query->bind( 1, d->address->id() );
         d->query->bind( 2, m->id() );
         d->query->execute();
     }
@@ -1354,9 +1366,9 @@ void deleteAlias()
         if ( p.addresses()->count() != 1 )
             error( "At most one address may be present" );
 
-        d = new Dispatcher( Dispatcher::DeleteAlias );
-
         Address * a = p.addresses()->first();
+
+        d = new Dispatcher( Dispatcher::DeleteAlias );
 
         d->query =
             new Query( "delete from aliases where address=(select id "
