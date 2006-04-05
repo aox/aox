@@ -149,9 +149,9 @@ void Listext::execute()
     if ( d->returnPostAddress ) {
         if ( !d->postAddressQuery ) {
             d->postAddressQuery
-                = new Query( "select a.localpart, a.domain, u.inbox "
-                             "from addresses a, users u "
-                             "where a.id = u.address",
+                = new Query( "select a.localpart, a.domain, al.mailbox "
+                             "from addresses a, aliases al "
+                             "where a.id = al.address",
                              this );
             d->postAddressQuery->execute();
         }
@@ -159,7 +159,7 @@ void Listext::execute()
         while ( (r=d->postAddressQuery->nextRow()) != 0 ) {
             Address * a = new Address( "", r->getString( "localpart" ),
                                        r->getString( "domain" ) );
-            uint mailbox = r->getInt( "inbox" );
+            uint mailbox = r->getInt( "mailbox" );
             d->postAddresses->insert( mailbox, a );
         }
     }
