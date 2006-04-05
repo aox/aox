@@ -1348,11 +1348,22 @@ void deleteAlias()
         if ( address.isEmpty() )
             error( "No address specified." );
 
+        AddressParser p( address );
+        if ( !p.error().isEmpty() )
+            error( "Invalid address: " + p.error() );
+        if ( p.addresses()->count() != 1 )
+            error( "At most one address may be present" );
+
         d = new Dispatcher( Dispatcher::DeleteAlias );
 
+        Address * a = p.addresses()->first();
+
         d->query =
-            new Query( "delete from aliases where address=$1", d );
-        d->query->bind( 1, address );
+            new Query( "delete from aliases where address=(select id "
+                       "from addresses where lower(localpart)=$1 and "
+                       "lower(domain)=$2 and name='')", d );
+        d->query->bind( 1, a->localpart().lower() );
+        d->query->bind( 2, a->domain().lower() );
         d->query->execute();
     }
 
