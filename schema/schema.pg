@@ -85,7 +85,7 @@ create table mailboxes (
 
 create table aliases (
     id          serial primary key,
-    address     integer not null references addresses(id),
+    address     integer not null unique references addresses(id),
     mailbox     integer not null references mailboxes(id)
                 on delete cascade
 );
