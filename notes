@@ -748,4 +748,28 @@ ms add mailbox/ms del mailbox/ms add mailbox doesn't work.
   Tries to insert when update is needed.
 
 
+LDAP server/address book
+
+  Joins rock. We can join ALL OUR TABLES and get INCREDIBLE
+  FLEXIBILITY AND POWER.
+
+  LDAP AB can provide several address books based on the archive:
+
+   - all addresses visible anywhere
+   - all addresses in your mailboxes
+   - all addresses in mailboxes to which your groups have access
+     (the join for this is a little hard)
+   - all v-card bodyparts
+   - all v-cards in your mailboxes
+   - all v-cards in mailboxes to which your groups have access
+     (I suppose one might even say "breathtakingly complex join")
+
+  Admins can enable/disable each of those depending on site policy.
+
+
+Groups and ACL
+
+  We don't need groups as of now, but they do have their handy-dandy
+  aspects. If we add groups, see the LDAP AB item.
+
 
