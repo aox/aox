@@ -369,16 +369,23 @@ void User::createHelper()
         }
         d->t->enqueue( d->q );
 
+        Query * q1
+            = new Query( "insert into aliases (address, mailbox) values "
+                         "($1, (select id from mailboxes where name=$2))",
+                         this );
+        q1->bind( 1, a->id() );
+        q1->bind( 2, m );
+        d->t->enqueue( q1 );
+
         Query * q2
             = new Query( "insert into users "
-                         "(address,inbox,parentspace,login,secret) values "
-                         "($1,(select id from mailboxes where name=$2),"
-                         "(select max(id) from namespaces),$3,$4)",
+                         "(alias,parentspace,login,secret) values "
+                         "((select id from aliases where address=$1),"
+                         "(select max(id) from namespaces),$2,$3)",
                          this );
         q2->bind( 1, a->id() );
-        q2->bind( 2, m );
-        q2->bind( 3, d->login );
-        q2->bind( 4, d->secret );
+        q2->bind( 2, d->login );
+        q2->bind( 3, d->secret );
         d->t->enqueue( q2 );
 
         Query *q3 =
