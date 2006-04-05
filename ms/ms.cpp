@@ -1058,10 +1058,16 @@ void createUser()
         String address = next();
         end();
 
-        if ( login.isEmpty() || passwd.isEmpty() )
-            error( "Both login name and password must be non-empty." );
+        if ( login.isEmpty() || passwd.isEmpty() || address.isEmpty() )
+            error( "Login name, password, and address must be non-empty." );
         if ( !validUsername( login ) )
             error( "Invalid username: " + login );
+
+        AddressParser p( address );
+        if ( !p.error().isEmpty() )
+            error( "Invalid address: " + p.error() );
+        if ( p.addresses()->count() != 1 )
+            error( "At most one address may be present" );
 
         OCClient::setup();
         AddressCache::setup();
@@ -1071,17 +1077,7 @@ void createUser()
         d->user = new User;
         d->user->setLogin( login );
         d->user->setSecret( passwd );
-        if ( !d->user->valid() )
-            error( d->user->error() );
-
-        if ( !address.isEmpty() ) {
-            AddressParser p( address );
-            if ( !p.error().isEmpty() )
-                error( p.error() );
-            if ( p.addresses()->count() != 1 )
-                error( "At most one address may be present" );
-            d->user->setAddress( p.addresses()->first() );
-        }
+        d->user->setAddress( p.addresses()->first() );
 
         Mailbox::setup( d );
         d->user->refresh( d );
