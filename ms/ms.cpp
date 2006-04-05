@@ -1040,7 +1040,8 @@ void listUsers()
     d = new Dispatcher( Dispatcher::ListUsers );
 
     String s( "select login, localpart||'@'||domain as address "
-              "from users u join addresses a on (u.address=a.id)" );
+              "from users u join aliases al on (u.alias=al.id) "
+              "join addresses a on (al.address=a.id)" );
     if ( !pattern.isEmpty() )
         s.append( " where login like $1" );
     d->query = new Query( s, d );
