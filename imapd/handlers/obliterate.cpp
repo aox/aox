@@ -40,7 +40,7 @@ void XObliterate::execute()
     if ( n != "whip" ) {
         error( No,
                "Wenn Du zur Fliegenden Archiv gehst, "
-               "vergesse nicht die Peitsche" );
+               "vergiss nicht die Peitsche" );
         return;
     }
 
