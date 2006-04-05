@@ -1165,10 +1165,10 @@ void deleteUser()
             aliases.append( q );
         }
         d->query = d->user->remove( d->t );
-        List<Query>::Iterator i( aliases );
-        while ( i ) {
-            d->t->enqueue( i );
-            i++;
+        List<Query>::Iterator it( aliases );
+        while ( it ) {
+            d->t->enqueue( it );
+            ++it;
         }
         d->t->commit();
     }
