@@ -27,7 +27,7 @@ public:
 };
 
 
-/*! \class Link page.h
+/*! \class Link link.h
 
     The Link class is the basic Oryx web page class. It decides what
     needs to be done based on URL path components and tells a Page to
