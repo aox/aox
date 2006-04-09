@@ -102,6 +102,10 @@ void SourceFile::parse()
                                          "Cannot find header file " + hn +
                                          " (for class " + className + ")" );
                 }
+                if ( !c->members() || c->members()->isEmpty() )
+                    (void)new Error( this, p.line(),
+                                     "Cannot find any " + className +
+                                     " members in " + hn );
             }
             d = p.textUntil( "*/" );
         }
