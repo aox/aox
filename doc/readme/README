@@ -1,43 +1,70 @@
-To build Archiveopteryx from source, you need the Jam build tool,
-available at http://www.perforce.com/jam/jam.html as well as in most
-Linux/BSD distributions.
+Archiveopteryx
+http://www.archiveopteryx.org
 
-To run it you need PostgreSQL, version 7.4.2 or any later version. (7.4
-and 7.4.1 may also work; we haven't tested that.)
 
-Building and installing Archiveopteryx is a five-step process:
+See http://www.archiveopteryx.org/overview.html for an introduction.
 
-1. Edit Jamsettings to reflect your preferences. Note that in Jam,
-   variable assignments require spaces: "A = b ;" is good, "A=b;" is a
-   syntax error.
 
-2. Type 'jam' to build and 'jam install' as root to install the
-   programs and other files.
+Requirements
+------------
 
-3. If you configured ORYXUSER and ORYXGROUP to something special, make
-   sure that user and that group exist.
+You need g++ (and associated packages) to build this software.
 
-   Create the PostgreSQL user, database and tables needed, as well as
-   the archiveopteryx.conf file. You can do this automatically using the
-   script LIBDIR/installer (/usr/local/archiveopteryx/lib/installer by
-   default), or you can do it by hand. If you run LIBDIR/installer -n,
-   it does nothing except tell you exactly what needs to be done.
+You need to have PostgreSQL installed to use Archiveopteryx. We
+recommend the latest 8.x version (but anything newer than 7.4.2
+should work; see http://www.archiveopteryx.org/postgresql/).
 
-3. If archiveopteryx.conf was created automatically for you, you may
-   want to have a look at it and perhaps change something. It's not
-   necessary.
 
-   The man page for archiveopteryx.conf explains the various settings.
+Installation
+------------
 
-At this point, you're ready to run "BINDIR/ms start" to start
-Archiveopteryx. After a change, "ms restart" restarts.
+For detailed installation instructions, see:
+http://www.archiveopteryx.org/installation.html
 
-Create the Archiveopteryx users you need, e.g.
+Here's a brief overview:
 
-      ms create user nirmala pw nirmala@example.org
+1. Type "make" to compile the software.
 
-to create a user with login "nirmala", password "pw" and email address
-"nirmala@example.org".
+   (You shouldn't need to change any of the compile-time settings in
+   Jamsettings, but if you do, you'll have to use "jam" to build the
+   software instead. See http://www.archiveopteryx.org/jam.html)
+
+2. Type "make install" (or "jam install") as root to install the
+   software into /usr/local/archiveopteryx.
+
+   (You may want to add /usr/local/archiveopteryx/man to your MANPATH.
+   The archiveopteryx(7) manual page introduces the software.)
+
+3. Run "lib/installer" to create a Unix user and group, a PostgreSQL
+   user, the necessary database tables, and to generate an initial
+   configuration file.
+
+   See installer(8) for details, or run "lib/installer -n" to see what
+   commands the installer would run, without running them.
+
+   See archiveopteryx.conf(5) for details about the configuration file.
+
+4. Start the servers: "bin/ms start".
+
+   You should see output in /usr/local/archiveopteryx/logfile.
+
+   (You can also use lib/rcarchiveopteryx as an init script.)
+
+5. Create some users, e.g. with:
+
+       bin/ms add user nirmala pwd nirmala@example.com
+
+   Archiveopteryx will create a user named nirmala (with password "pwd")
+   and accept mail sent to the given address, and store it in a mailbox
+   named /users/nirmala/INBOX, which can be accessed via IMAP or POP.
+
+6. Configure your MTA to deliver incoming mail into Archiveopteryx via
+   LMTP (or via bin/deliver, if your MTA doesn't speak LMTP). See, e.g.
+   http://www.archiveopteryx.org/postfix.html and exim.html for details.
+
+
+Mailing Lists
+-------------
 
 There are mailing lists for Archiveopteryx users and announcements. To
 subscribe to the users list, send mail:
@@ -53,6 +80,7 @@ To subscribe to the low-volume announcements list, send mail:
    Subject: subscribe
 
    subscribe
+
 
 If you encounter any problems or have any suggestions, please write to
 info@oryx.com. Your comments help us improve Archiveopteryx.
