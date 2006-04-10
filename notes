@@ -1,6 +1,8 @@
-Next release (2006-03-13: 1.04)
+Next release (2006-05-08: 1.06)
 
-  - ISO-2022-JP/EUC-JP/Big5/Shift_JIS.
+  - Extra indexes where needed.
+  - Properly working tsearch2.
+  - Webmail archive pages.
 
 
 Next few releases
