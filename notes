@@ -1,6 +1,16 @@
 Next release (2006-05-08: 1.06)
 
+  Done:
+
+  - ms add/del/add mailbox fix.
+  - Create /usr/local/archiveopteryx/messages automatically.
+  - Allow UTF8 instead of UNICODE for Postgres encoding.
+  - Make installer check permissions and ownership.
   - Build correctly on 64 bit systems.
+    (But need to change Makefile generation to suit.)
+
+  Desired:
+
   - Extra indexes where needed.
   - Properly working tsearch2.
   - Webmail archive pages.
