@@ -13,6 +13,11 @@ if $(OPTIM) = "-O" {
 OPTIM ?= ;
 RANLIB = ;
 
+USE_X86_ASM = ;
+if ( $(JAMUNAME[1]) = "i686" || $(JAMUNAME[1]) = "i586" ) {
+    USE_X86_ASM = 1 ;
+}
+
 if $(ICC) {
     C++ = icc ;
     C++FLAGS += -wd1476 ;

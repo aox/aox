@@ -6,7 +6,7 @@ CIPHERS =
     md4dgst.c md5dgst.c rc2cbc.c rc2ecb.c rc2skey.c rc4skey.c rc5ecb.c
     rc5skey.c rmddgst.c sha1dgst.c sha2.c skipjack.c ;
 
-if $(USE_ASM) {
+if $(USE_X86_ASM) {
     CIPHERS += b-elf.s c-elf.s d-elf.s m5-elf.s r4-elf.s r5-elf.s
                rm-elf.s s1-elf.s ;
 }
