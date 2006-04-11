@@ -135,8 +135,7 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
 rule Doc {
     Depends doc : <doc>.made.$(<) ;
 
-    RemoveDoc docclean ;
-    Depends clean : docclean ;
+    RemoveDirectories clean ;
 
     Clean clean : <doc>.made.$(<) ;
     Depends <doc>.made.$(<) : $(set-$(>):S=.cpp) ;
@@ -145,9 +144,9 @@ rule Doc {
     UDOCBIN = udoc ;
 }
 
-actions together RemoveDoc {
-    echo rm -rf doc/man/man3
-    echo rm -rf doc/html
+
+actions together RemoveDirectories {
+    rm -rf $(TOP)/doc/man/man3 $(TOP)/doc/html $(TOP)/$(BUILD)
 }
 
 actions together Doc2 bind UDOCBIN {
