@@ -246,7 +246,9 @@ void oryxGroup()
         status = system( cmd.cstr() );
     }
 
-    if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 ) {
+    if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 ||
+         getgrnam( ORYXGROUP ) == 0 )
+    {
         String s;
         if ( cmd.isEmpty() )
             s.append( "Don't know how to create group " );
@@ -297,7 +299,9 @@ void oryxUser()
         status = system( cmd.cstr() );
     }
 
-    if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 ) {
+    if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 ||
+         getpwnam( ORYXUSER ) == 0 )
+    {
         String s;
         if ( cmd.isEmpty() )
             s.append( "Don't know how to create user " );
