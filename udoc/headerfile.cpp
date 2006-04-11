@@ -163,6 +163,9 @@ void HeaderFile::parse()
                                          className + "::" + n );
                     }
                 }
+                else if ( p.lookingAt( "typedef " ) ) {
+                    ok = true;
+                }
                 else {
                     t = p.type();
                     n = p.identifier();
