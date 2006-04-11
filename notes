@@ -6,14 +6,14 @@ Next release (2006-05-08: 1.06)
   - Create /usr/local/archiveopteryx/messages automatically.
   - Allow UTF8 instead of UNICODE for Postgres encoding.
   - Make installer check permissions and ownership.
-  - Build correctly on 64 bit systems.
-    (But need to change Makefile generation to suit.)
+  - Build correctly on 64 bit systems. (done, including makefile)
 
   Desired:
 
   - Extra indexes where needed.
   - Properly working tsearch2.
   - Webmail archive pages.
+  - DNS lookups for configuration variables
 
 
 Next few releases
