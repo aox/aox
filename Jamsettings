@@ -44,6 +44,10 @@ PIDFILEDIR = /var/run/oryx ;
 #
 JAILDIR = $(PREFIX)/jail ;
 
+# This is the default message-copy-directory.
+#
+MESSAGEDIR = $(PREFIX)/messages ;
+
 # The directory where the configuration file is located.
 #
 CONFIGDIR = $(PREFIX) ;

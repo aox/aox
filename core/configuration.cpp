@@ -181,7 +181,7 @@ static struct {
     { "webmail-css-page", Configuration::WebmailCSS, "http://www.oryx.com/webmail/default.css" },
     { "webmail-js-page", Configuration::WebmailJS, "" },
     { "message-copy", Configuration::MessageCopy, "none" },
-    { "message-copy-directory", Configuration::MessageCopyDir, "" },
+    { "message-copy-directory", Configuration::MessageCopyDir, MESSAGEDIR },
     { "entropy-source", Configuration::EntropySource, "/dev/urandom" }
 };
 

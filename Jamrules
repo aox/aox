@@ -113,6 +113,7 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
     -e 's!$INITDIR!'$(INITDIR)'!' \
     -e 's!$PIDFILEDIR!'$(PIDFILEDIR)'!' \
     -e 's!$JAILDIR!'$(JAILDIR)'!' \
+    -e 's!$MESSAGEDIR!'$(MESSAGEDIR)'!' \
     -e 's!$CONFIGDIR!'$(CONFIGDIR)'!' \
     -e 's!$LOGFILEMODE!'$(LOGFILEMODE)'!' \
     -e 's!$LOGFILE!'$(LOGFILE)'!' \

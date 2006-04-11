@@ -46,6 +46,7 @@ void oryxGroup();
 void oryxUser();
 void database();
 void configFile();
+void permissions();
 
 
 /*! \nodoc */
@@ -640,11 +641,7 @@ void configFile()
     if ( !exists( cf ) ) {
         if ( report ) {
             printf( " - Generate a default configuration file.\n"
-                    "   %s should contain:\n\n%s", cf.cstr(), cfg.cstr() );
-            printf( " - Set permissions and ownership on %s.\n"
-                    "   chmod 0600 %s\n"
-                    "   chown %s:%s %s\n",
-                    cf.cstr(), cf.cstr(), ORYXUSER, ORYXGROUP, cf.cstr() );
+                    "   %s should contain:\n\n%s\n", cf.cstr(), cfg.cstr() );
         }
         else {
             setreuid( 0, 0 );
@@ -658,18 +655,83 @@ void configFile()
                     printf( "Generating default %s\n", cf.cstr() );
                 f.write( intro );
                 f.write( cfg );
-
-                struct passwd * p = getpwnam( ORYXUSER );
-                struct group * g = getgrnam( ORYXGROUP );
-                if ( chown( cf.cstr(), p->pw_uid, g->gr_gid ) < 0 )
-                    fprintf( stderr, "Could not \"chown oryx:oryx %s\".\n",
-                             cf.cstr() );
-
-                if ( !silent )
-                    printf( "Done.\n" );
             }
         }
     }
+
+    permissions();
+}
+
+
+void permissions()
+{
+    struct stat st;
+
+    struct passwd * p = getpwnam( ORYXUSER );
+    struct group * g = getgrnam( ORYXGROUP );
+
+    String cf( Configuration::configFile() );
+
+    // If the configuration file doesn't exist, or has the wrong
+    // ownership or permissions:
+    if ( stat( cf.cstr(), &st ) != 0 || !p || !g ||
+         st.st_uid != p->pw_uid || st.st_gid != g->gr_gid ||
+         st.st_mode & S_IRWXU != ( S_IRUSR|S_IWUSR ) )
+    {
+        if ( report ) {
+            printf( " - Set permissions and ownership on %s.\n"
+                    "   chmod 0600 %s\n"
+                    "   chown %s:%s %s\n",
+                    cf.cstr(), cf.cstr(), ORYXUSER, ORYXGROUP, cf.cstr() );
+        }
+        else {
+            if ( !silent )
+                printf( "Setting ownership and permissions on %s\n",
+                        cf.cstr() );
+
+            if ( chmod( cf.cstr(), 0600 ) < 0 )
+                fprintf( stderr, "Could not \"chmod 0600 %s\".\n",
+                         cf.cstr() );
+
+            if ( chown( cf.cstr(), p->pw_uid, g->gr_gid ) < 0 )
+                fprintf( stderr, "Could not \"chown oryx:oryx %s\".\n",
+                         cf.cstr() );
+        }
+    }
+
+    String mcd( Configuration::text( Configuration::MessageCopyDir ) );
+
+    // If the message-copy-directory exists and has the wrong ownership
+    // or permissions.
+    if ( stat( mcd.cstr(), &st ) == 0 && 
+         ( !( p && g ) ||
+           ( st.st_uid != p->pw_uid || st.st_gid != g->gr_gid ||
+             st.st_mode & S_IRWXU != S_IRWXU ) ) )
+    {
+        if ( report ) {
+            printf( " - Set permissions and ownership on %s.\n"
+                    "   chmod 0700 %s\n"
+                    "   chown %s:%s %s\n",
+                    mcd.cstr(), mcd.cstr(), ORYXUSER, ORYXGROUP,
+                    mcd.cstr() );
+        }
+        else {
+            if ( !silent )
+                printf( "Setting ownership and permissions on %s\n",
+                        mcd.cstr() );
+
+            if ( chmod( mcd.cstr(), 0700 ) < 0 )
+                fprintf( stderr, "Could not \"chmod 0600 %s\".\n",
+                         mcd.cstr() );
+
+            if ( chown( mcd.cstr(), p->pw_uid, g->gr_gid ) < 0 )
+                fprintf( stderr, "Could not \"chown oryx:oryx %s\".\n",
+                         mcd.cstr() );
+        }
+    }
+
+    if ( !report && !silent )
+        printf( "Done.\n" );
 
     EventLoop::shutdown();
 }

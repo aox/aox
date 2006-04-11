@@ -18,6 +18,7 @@ ObjectDefines configuration.cpp :
      LIBDIR='\"$(LIBDIR)\"'
      INITDIR='\"$(INITDIR)\"'
      JAILDIR='\"$(JAILDIR)\"'
+     MESSAGEDIR='\"$(MESSAGEDIR)\"'
      CONFIGDIR='\"$(CONFIGDIR)\"'
      PIDFILEDIR='\"$(PIDFILEDIR)\"'
      LOGFILE='\"$(LOGFILE)\"'
