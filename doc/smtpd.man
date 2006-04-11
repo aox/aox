@@ -77,7 +77,7 @@ detailed) information in the log file.
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 1.06, released 2006-05-08,
-http://www.oryx.com/archiveopteryx/1.02.html.
+http://www.archiveopteryx.org/1.02.html.
 .SH SEE ALSO
 .BR archiveopteryx (7),
 .BR archiveopteryx.conf (5),
@@ -88,4 +88,4 @@ http://www.oryx.com/archiveopteryx/1.02.html.
 .BR pop3d (8),
 .BR tlsproxy (8),
 .BR oryx (7),
-http://www.oryx.com/archiveopteryx/
+http://www.archiveopteryx.org

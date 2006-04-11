@@ -15,7 +15,7 @@ access to mail stored in a relational database (PostgreSQL).
 .SH "GETTING STARTED"
 The following five steps should suffice to install Archiveopteryx. If they
 don't, or if anything is unclear, more detailed instructions are
-available at http://www.oryx.com/archiveopteryx/installation.html.
+available at http://www.archiveopteryx.org/installation.html.
 .SS "1. Install Archiveopteryx"
 Usually, this is as simple as:
 .IP
@@ -25,7 +25,7 @@ Usually, this is as simple as:
 .B "portinstall archiveopteryx"
 (on FreeBSD)
 .PP
-http://www.oryx.com/archiveopteryx/installation.html explains what to do in
+http://www.archiveopteryx.org/installation.html explains what to do in
 other cases.
 .PP
 Use
@@ -61,7 +61,7 @@ The normal way to deliver mail from your MTA into Archiveopteryx is via LMTP.
 By default, Archiveopteryx listens on 127.0.0.1 port 2026.
 .PP
 On www.oryx.com we describe configuring some common MTAs to work with
-Archiveopteryx. See e.g.  http://www.oryx.com/archiveopteryx/postfix.html for
+Archiveopteryx. See e.g.  http://www.archiveopteryx.org/postfix.html for
 .BR postfix (1).
 .SH ARCHITECTURE
 .PP
@@ -178,13 +178,13 @@ recipients is not a problem, because it's stored just once.
 Starting with version 1.0, Archiveopteryx will be available under two
 licences, namely the OSL 2.1 license and a commercial software license.
 .PP
-The OSL 2.1 (see http://www.oryx.com/archiveopteryx/opensource.html) is a
+The OSL 2.1 (see http://www.archiveopteryx.org/opensource.html) is a
 fairly restrictive open source license similar to the more well-known
 GNU licenses. It includes a disclaimer of responsibility.
 .PP
 Our commercial license offers more flexibility than the OSL and a full
 warranty. There are also extra services. Contact info@oryx.com for
-more details, or see http://www.oryx.com/archiveopteryx/commercial.html.
+more details, or see http://www.archiveopteryx.org/commercial.html.
 .SH DEFAULTS
 The configurable file and directory names in this build are as follows:
 .IP SBINDIR
@@ -240,7 +240,7 @@ contains a private key and self-signed certificate used by
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 1.06, released 2006-05-08,
-http://www.oryx.com/archiveopteryx/1.02.html.
+http://www.archiveopteryx.org/1.02.html.
 .SH SEE ALSO
 .BR archiveopteryx.conf (5),
 .BR deliver (8),
@@ -251,4 +251,4 @@ http://www.oryx.com/archiveopteryx/1.02.html.
 .BR smtpd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
-http://www.oryx.com/archiveopteryx/
+http://www.archiveopteryx.org
