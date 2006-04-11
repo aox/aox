@@ -189,8 +189,25 @@ void HeaderFile::parse()
                         ok = true;
                     }
                 }
-                if ( ok )
-                    p.scan( ";" );
+                if ( ok ) {
+                    p.whitespace();
+                    if ( p.lookingAt( "{" ) ) {
+                        uint level = 0;
+                        while ( level > 0 || p.lookingAt( "{" ) ) {
+                            if ( p.lookingAt( "{" ) ) {
+                                level++;
+                            }
+                            else if ( p.lookingAt( "}" ) ) {
+                                level--;
+                            }
+                            p.step();
+                            p.whitespace();
+                        }
+                    }
+                    else {
+                        p.scan( ";" );
+                    }
+                }
             } while ( ok );
         }
         p.scan( "\nclass " );
