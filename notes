@@ -1,5 +1,6 @@
 Next release (2006-05-08: 1.06)
 
+  - Build correctly on 64 bit systems.
   - Extra indexes where needed.
   - Properly working tsearch2.
   - Webmail archive pages.
