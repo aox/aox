@@ -6,8 +6,13 @@ CCFLAGS = -fomit-frame-pointer -O3 ; # -mtune=pentium ;
 OrdinaryHDRS = $(HDRS) ;
 HDRS = [ FDirName $(TOP) cryptlib ] ;
 OrdinaryDEFINES = $(DEFINES) ;
-DEFINES = DATA_LITTLEENDIAN NO_THREADS NDEBUG OSVERSION=2 USE_ASM
+DEFINES = DATA_LITTLEENDIAN NO_THREADS NDEBUG OSVERSION=2
     _REENTRANT __UNIX__ ;
+
+USE_ASM = 1 ;
+if $(USE_ASM) {
+    DEFINES += USE_ASM ;
+}
 
 # There are a few warnings in cryptlib. since we're not going to fix
 # them (one of them even is a gcc bug), we disregard them.
