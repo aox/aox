@@ -69,7 +69,7 @@ void SourceFile::parse()
             p.scan( " " );
             String className = p.identifier();
             if ( className.isEmpty() ) {
-                (void)new Error( this, p.line(),
+                (void)new Error( this, l,
                                  "\\class must be followed by a class name" );
             }
             c = Class::find( className );
@@ -83,7 +83,7 @@ void SourceFile::parse()
                 hn.append( p.word() );
             }
             if ( hn.length() < 2 || hn.mid( hn.length() - 2) != ".h" ) {
-                (void)new Error( this, p.line(),
+                (void)new Error( this, l,
                                  "Missing header file name" );
             }
             else {
@@ -98,12 +98,12 @@ void SourceFile::parse()
                     }
                     h = new HeaderFile( hn );
                     if ( !h->valid() )
-                        (void)new Error( this, p.line(),
+                        (void)new Error( this, l,
                                          "Cannot find header file " + hn +
                                          " (for class " + className + ")" );
                 }
                 if ( !c->members() || c->members()->isEmpty() )
-                    (void)new Error( this, p.line(),
+                    (void)new Error( this, l,
                                      "Cannot find any " + className +
                                      " members in " + hn );
             }
