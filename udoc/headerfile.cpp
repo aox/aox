@@ -179,6 +179,9 @@ void HeaderFile::parse()
                     }
                 }
                 if ( !n.isEmpty() ) {
+                    p.whitespace();
+                    if ( p.lookingAt( ";" ) )
+                        ok = true;
                     String a = p.argumentList();
                     if ( !n.isEmpty() && n.find( ':' ) < 0 &&
                          !a.isEmpty() ) {
