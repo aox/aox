@@ -25,6 +25,8 @@ Creates a Postgres database named $DBNAME owned by $DBUSER.
 Loads the Oryx database schema.
 .IP 6. 3
 Generates an initial configuration file.
+.IP 7. 3
+Adjusts ownership and permissions if necessary.
 .PP
 .B installer
 should be run after
