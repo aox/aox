@@ -431,9 +431,6 @@ TLS client support (smtp, postgresql)
 We MUST support HTTPS for the webmail interface.
 
 
-STARTTLS is really slow.
-
-
 "Writing Secure Code"
 
   We have a page about security, /mailstore/security.html, and a
@@ -463,12 +460,6 @@ Play with PITR and write /ams/pitr.html
 Update doc/recorder.man
 
   Must decide whether to use .SS or .IP, etc.
-
-
-Finish the comparison with cyrus-imapd (which I'll install on fugue).
-
-  What comparison is this? Will it end up as a file in corp/docs/misc,
-  on our web site, or where?
 
 
 Document IPC structure
@@ -532,12 +523,6 @@ Fix shutdown
 
 
 Resource limits on memory allocation
-
-
-Keeping stderr open
-
-  Maybe we should keep it open forever. Maybe that should be a
-  command-line option - but what should the default be?
 
 
 Logging to syslog
@@ -646,9 +631,6 @@ Rendering webmail HTML is presumably good, but...
 
   Two I saw today: http://www.sec-consult.com/232.html and
   http://www.sec-consult.com/233.html
-
-
-We need a script to make subscribing people easier.
 
 
 Making injection faster.
