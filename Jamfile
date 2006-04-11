@@ -72,8 +72,9 @@ changes.
 
 The logfile is $(LOGFILE) by default and man pages are in $(MANDIR).
 
-If you have any problems, the FAQ is at http://www.oryx.com/faq/ and
-our email address is info@oryx.com.
+If you have any problems, the FAQ is at
+http://www.archiveopteryx.org/faq/ and you can always ask
+info@oryx.com for help.
 
 EOM
 }
