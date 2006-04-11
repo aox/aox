@@ -1234,6 +1234,7 @@ void createMailbox()
             d->user->setLogin( owner );
             d->user->refresh( d );
         }
+        return;
     }
 
     if ( d && ( d->user && d->user->state() == User::Unverified ) )
