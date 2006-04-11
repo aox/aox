@@ -240,7 +240,7 @@ contains a private key and self-signed certificate used by
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
 This man page covers Archiveopteryx version 1.06, released 2006-05-08,
-http://www.archiveopteryx.org/1.02.html.
+http://www.archiveopteryx.org/1.06.html.
 .SH SEE ALSO
 .BR archiveopteryx.conf (5),
 .BR deliver (8),
