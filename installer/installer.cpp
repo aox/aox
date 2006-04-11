@@ -670,6 +670,13 @@ void permissions()
     struct passwd * p = getpwnam( ORYXUSER );
     struct group * g = getgrnam( ORYXGROUP );
 
+    // This should never happen, but I'm feeling paranoid.
+    if ( !report && !( p && g ) ) {
+        fprintf( stderr, "getpwnam(ORYXUSER)/getgrnam(ORYXGROUP) failed "
+                 "in non-reporting mode.\n" );
+        exit( -1 );
+    }
+
     String cf( Configuration::configFile() );
 
     // If the configuration file doesn't exist, or has the wrong
@@ -702,7 +709,7 @@ void permissions()
     String mcd( Configuration::text( Configuration::MessageCopyDir ) );
 
     // If the message-copy-directory exists and has the wrong ownership
-    // or permissions.
+    // or permissions:
     if ( stat( mcd.cstr(), &st ) == 0 && 
          ( !( p && g ) ||
            ( st.st_uid != p->pw_uid || st.st_gid != g->gr_gid ||
@@ -727,6 +734,36 @@ void permissions()
             if ( chown( mcd.cstr(), p->pw_uid, g->gr_gid ) < 0 )
                 fprintf( stderr, "Could not \"chown oryx:oryx %s\".\n",
                          mcd.cstr() );
+        }
+    }
+
+    String jd( Configuration::text( Configuration::JailDir ) );
+
+    // If the jail directory exists and has the wrong ownership or
+    // permissions (i.e. we own it or have any rights to it):
+    if ( stat( jd.cstr(), &st ) == 0 &&
+         ( ( st.st_uid != 0 && !( p && st.st_uid != p->pw_uid ) ) ||
+           ( st.st_gid != 0 && !( g && st.st_gid != g->gr_gid ) ) ||
+           ( st.st_mode & S_IRWXO ) != 0 ) )
+    {
+        if ( report ) {
+            printf( " - Set permissions and ownership on %s.\n"
+                    "   chmod 0700 %s\n"
+                    "   chown root:root %s\n",
+                    jd.cstr(), jd.cstr(), jd.cstr() );
+        }
+        else {
+            if ( !silent )
+                printf( "Setting ownership and permissions on %s\n",
+                        jd.cstr() );
+
+            if ( chmod( jd.cstr(), 0700 ) < 0 )
+                fprintf( stderr, "Could not \"chmod 0600 %s\".\n",
+                         jd.cstr() );
+
+            if ( chown( jd.cstr(), 0, 0 ) < 0 )
+                fprintf( stderr, "Could not \"chown root:root %s\".\n",
+                         jd.cstr() );
         }
     }
 
