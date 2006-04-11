@@ -435,9 +435,10 @@ void database()
         }
         else {
             const char * s = 0;
+            String encoding( r->getString( "encoding" ) );
             if ( r->getString( "usename" ) != DBUSER )
                 s = "is not owned by user " DBUSER;
-            else if ( r->getString( "encoding" ) != "UNICODE" )
+            else if ( encoding != "UNICODE" && encoding != "UTF8" )
                 s = "does not have encoding UNICODE";
             if ( s ) {
                 fprintf( stderr, " - Database '" DBNAME "' exists, but it %s."
