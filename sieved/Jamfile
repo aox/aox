@@ -1,0 +1,12 @@
+SubDir TOP sieved ;
+
+SubInclude TOP db ;
+SubInclude TOP sasl ;
+SubInclude TOP server ;
+SubInclude TOP message ;
+
+Build sieve : sieve.cpp sievecommand.cpp ;
+Build sieved : sieved.cpp ;
+
+Server sieved : sieved sieve database message server sasl mailbox core
+    encodings user extractors ;
