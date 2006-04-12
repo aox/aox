@@ -144,7 +144,8 @@ static struct {
     { "lmtp-port", Configuration::LmtpPort, 2026 },
     { "http-port", Configuration::HttpPort, 8808 },
     { "db-max-handles", Configuration::DbMaxHandles, 4 },
-    { "db-handle-interval", Configuration::DbHandleInterval, 120 }
+    { "db-handle-interval", Configuration::DbHandleInterval, 120 },
+    { "sieve-port", Configuration::SievePort, 2000 }
 };
 
 
@@ -182,7 +183,8 @@ static struct {
     { "webmail-js-page", Configuration::WebmailJS, "" },
     { "message-copy", Configuration::MessageCopy, "none" },
     { "message-copy-directory", Configuration::MessageCopyDir, MESSAGEDIR },
-    { "entropy-source", Configuration::EntropySource, "/dev/urandom" }
+    { "entropy-source", Configuration::EntropySource, "/dev/urandom" },
+    { "sieve-address", Configuration::SieveAddress, "127.0.0.1" }
 };
 
 
@@ -206,7 +208,8 @@ static struct {
     { "auth-digest-md5", Configuration::AuthDigestMd5, true },
     { "auth-anonymous", Configuration::AuthAnonymous, false },
     { "accept-any-http-host", Configuration::AcceptAnyHttpHost, true },
-    { "announce-draft-support", Configuration::AnnounceDraftSupport, false }
+    { "announce-draft-support", Configuration::AnnounceDraftSupport, false },
+    { "use-sieve", Configuration::UseSieve, false }
 };
 
 

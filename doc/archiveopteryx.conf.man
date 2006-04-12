@@ -400,6 +400,24 @@ accepts any hostname supplied by the server, and is
 .I enabled
 by default. Properly speaking, it would be better to disable this, but
 that would add complexity without giving anything in return.
+.SS SIEVE
+.IP use-sieve
+controls whether or not the
+.I managesieve
+server is started. The default is
+.IR disabled .
+.IP sieve-address
+specifies the address where
+.BR sieved (8)
+should listen for connections. The default is
+.IR 127.0.0.1 .
+You may use an IPv4 or IPv6 address, or an empty string to listen on all
+available interfaces.
+.IP sieve-port
+specifies which port
+.BR sieved (8)
+should listen to. The default is
+.IR 2000 .
 .SS TLS
 .IP use-tls
 regulates whether Archiveopteryx supports TLS at all. The default is
