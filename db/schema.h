@@ -40,6 +40,7 @@ private:
     bool stepTo15();
     bool stepTo16();
     bool stepTo17();
+    bool stepTo18();
 };
 
 

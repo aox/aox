@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 17;
+int currentRevision = 18;
 
 
 class SchemaData
@@ -252,6 +252,8 @@ bool Schema::singleStep()
         c = stepTo16(); break;
     case 16:
         c = stepTo17(); break;
+    case 17:
+        c = stepTo18(); break;
     }
 
     return c;
@@ -1027,6 +1029,32 @@ bool Schema::stepTo17()
         d->q = new Query( "alter table users drop address", this );
         d->t->enqueue( d->q );
         d->q = new Query( "alter table users drop inbox", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add the scripts table. */
+
+bool Schema::stepTo18()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Creating scripts table.", Log::Debug );
+        d->q = new Query( "create table scripts (id serial primary key,"
+                          "owner integer not null references users(id),"
+                          "name text, active boolean not null default 'f',"
+                          "script text)", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
