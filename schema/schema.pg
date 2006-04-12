@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (17);
+insert into mailstore (revision) values (18);
 
 
 -- One entry for each unique address we've encountered.
@@ -292,4 +292,15 @@ create table view_messages (
     foreign key (source, suid)
                 references messages(mailbox, uid)
                 on delete cascade
+);
+
+
+-- One entry per SIEVE script owned by a user.
+
+create table scripts (
+    id          serial primary key,
+    owner       integer not null references users(id),
+    name        text,
+    active      boolean not null default 'f',
+    script      text
 );
