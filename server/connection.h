@@ -32,7 +32,8 @@ public:
         RecorderClient,
         RecorderServer,
         Listener,
-        Pipe
+        Pipe,
+        SieveServer
     };
     Connection();
     Connection( int, Type );
