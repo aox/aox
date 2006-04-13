@@ -23,8 +23,11 @@ case "$1" in
         ./ms restart
         echo "done."
         ;;
+    status)
+        ./ms show status
+        ;;
     *)
-        echo "Usage: archiveopteryx {start|stop|restart}"
+        echo "Usage: archiveopteryx {start|stop|restart|status}"
         exit 1
         ;;
 esac
