@@ -8,6 +8,13 @@ Next release (2006-05-08: 1.06)
   - Make installer check permissions and ownership.
   - Build correctly on 64 bit systems. (done, including makefile)
   - Makefile now displays correct post-installation message.
+  - The beginnings of a MANAGESIEVE server.
+  - Fix "USER bad" followed by "USER good" in POP3.
+  - Add TOP and UIDL support to POP3.
+  - Add checkFilePermissions() to ms.
+  - Rename ms to aox.
+  - Rename rcarchiveopteryx to archiveopteryx.
+  - Try to install README to READMEDIR.
 
   Desired:
 
