@@ -120,7 +120,7 @@ void StderrLog::send( const String &,
 
 String StderrLog::name() const
 {
-    return "ms";
+    return "aox";
 }
 
 
@@ -260,10 +260,10 @@ int opt( char c )
 void bad( String verb, String noun )
 {
     if ( noun.isEmpty() )
-        fprintf( stderr, "ms %s: No argument supplied.\n",
+        fprintf( stderr, "aox %s: No argument supplied.\n",
                  verb.cstr() );
     else
-        fprintf( stderr, "ms %s: Unknown argument: %s.\n",
+        fprintf( stderr, "aox %s: Unknown argument: %s.\n",
                  verb.cstr(), noun.cstr() );
     exit( -1 );
 }
@@ -271,7 +271,7 @@ void bad( String verb, String noun )
 
 void error( String m )
 {
-    fprintf( stderr, "ms: %s\n", m.cstr() );
+    fprintf( stderr, "aox: %s\n", m.cstr() );
     exit( -1 );
 }
 
@@ -455,7 +455,7 @@ int serverPid( const char * s )
     bool ok;
     int pid = f.contents().stripCRLF().number( &ok );
     if ( !ok ) {
-        fprintf( stderr, "ms: Bad pid file: %s\n", pf.cstr() );
+        fprintf( stderr, "aox: Bad pid file: %s\n", pf.cstr() );
         return -1;
     }
 
@@ -1699,7 +1699,7 @@ void help()
             "    change password\n"
             "    create mailbox\n"
             "    delete mailbox\n\n"
-            "  Use \"ms help command name\" for more specific help.\n"
+            "  Use \"aox help command name\" for more specific help.\n"
         );
     }
     else {
@@ -1707,8 +1707,8 @@ void help()
             stderr,
             "  ms -- A command-line interface to Archiveopteryx.\n\n"
             "    Synopsis: %s <verb> <noun> [options] [arguments]\n\n"
-            "    Use \"ms help commands\" for a list of commands.\n"
-            "    Use \"ms help start\" for help with \"start\".\n",
+            "    Use \"aox help commands\" for a list of commands.\n"
+            "    Use \"aox help start\" for help with \"start\".\n",
             ms
         );
     }
