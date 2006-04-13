@@ -28,12 +28,6 @@ tasks for Archiveopteryx.
 See the
 .BR aox (8)
 man page for more information.
-Examples of such tasks are adding users, changing the access control
-for mailboxes, etc. In principle, everything one would want to do
-using a shell script should be doable using
-.BR aox .
-.PP
-The 
 .SH COMMANDS
 .IP "aox start [-v]"
 Starts the Oryx servers in the correct order.
