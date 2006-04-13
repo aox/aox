@@ -196,6 +196,9 @@ void POP::parse()
                 else if ( cmd == "list" ) {
                     newCommand( d->commands, this, PopCommand::List, args );
                 }
+                else if ( cmd == "top" && args->count() == 2 ) {
+                    newCommand( d->commands, this, PopCommand::Top, args );
+                }
                 else if ( cmd == "retr" && args->count() == 1 ) {
                     newCommand( d->commands, this, PopCommand::Retr, args );
                 }

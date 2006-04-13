@@ -23,7 +23,7 @@ public:
           tlsServer( 0 ), m( 0 ), r( 0 ),
           user( 0 ), mailbox( 0 ), permissions( 0 ),
           session( 0 ), sentFetch( false ), started( false ),
-          message( 0 )
+          message( 0 ), n( 0 )
     {}
 
     POP * pop;
@@ -43,6 +43,7 @@ public:
     bool sentFetch;
     bool started;
     Message * message;
+    int n;
 };
 
 
@@ -158,8 +159,13 @@ void PopCommand::execute()
             return;
         break;
 
+    case Top:
+        if ( !retr( true ) )
+            return;
+        break;
+
     case Retr:
-        if ( !retr() )
+        if ( !retr( false ) )
             return;
         break;
 
@@ -489,9 +495,11 @@ bool PopCommand::list()
 }
 
 
-/*! Handles the RETR command. */
+/*! Handles both the RETR (if \a lines is false) and TOP (if \a lines
+    is true) commands.
+*/
 
-bool PopCommand::retr()
+bool PopCommand::retr( bool lines )
 {
     ::Session * s = d->pop->session();
 
@@ -504,6 +512,15 @@ bool PopCommand::retr()
             d->pop->err( "Bad message number" );
             return true;
         }
+
+        if ( lines ) {
+            d->n = nextArg().number( &ok );
+            if ( !ok ) {
+                d->pop->err( "Bad line count" );
+                return true;
+            }
+        }
+
         d->set.add( s->uid( msn ) );
         if ( !d->message->hasBodies() )
             s->mailbox()->fetchBodies( d->set, this );
@@ -520,8 +537,12 @@ bool PopCommand::retr()
     Buffer * b = new Buffer;
     b->append( d->message->rfc822() );
 
+    int ln = d->n;
+
     String * t;
-    while ( ( t = b->removeLine() ) != 0 ) {
+    while ( ( t = b->removeLine() ) != 0 &&
+            ( d->n == 0 || ln-- > 0 ) )
+    {
         if ( t->startsWith( "." ) )
             d->pop->enqueue( "." );
         d->pop->enqueue( *t );
@@ -529,7 +550,9 @@ bool PopCommand::retr()
     }
 
     String st = b->string( b->size() );
-    if ( !st.isEmpty() ) {
+    if ( !st.isEmpty() &&
+         ( d->n == 0 || ln-- > 0 ) )
+    {
         if ( st.startsWith( "." ) )
             d->pop->enqueue( "." );
         d->pop->enqueue( st );
@@ -538,20 +561,6 @@ bool PopCommand::retr()
 
     d->pop->enqueue( ".\r\n" );
     return true;
-}
-
-
-/*! This function returns the next argument supplied by the client for
-    this command, or an empty string if there are no more arguments.
-    (Should we assume that nextArg will never be called more times
-    than there are arguments? The POP parser does enforce this.)
-*/
-
-String PopCommand::nextArg()
-{
-    if ( d->args && !d->args->isEmpty() )
-        return *d->args->take( d->args->first() );
-    return "";
 }
 
 
@@ -579,4 +588,18 @@ bool PopCommand::dele()
         d->pop->err( "Invalid message number" );
     }
     return true;
+}
+
+
+/*! This function returns the next argument supplied by the client for
+    this command, or an empty string if there are no more arguments.
+    (Should we assume that nextArg will never be called more times
+    than there are arguments? The POP parser does enforce this.)
+*/
+
+String PopCommand::nextArg()
+{
+    if ( d->args && !d->args->isEmpty() )
+        return *d->args->take( d->args->first() );
+    return "";
 }
