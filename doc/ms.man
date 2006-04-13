@@ -1,0 +1,53 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH aox 8 2006-05-08 www.oryx.com "Archiveopteryx Documentation"
+.SH NAME
+aox - management tool for Archiveopteryx.
+.SH SYNOPSIS
+.B $BINDIR/aox
+.I verb
+.I noun
+[
+.I options
+] [
+.I arguments
+]
+.PP
+.B aox help commands
+.PP
+.B aox help
+.I command
+.SH DESCRIPTION
+.nh
+.PP
+.B ms
+is the old name for
+.BR aox ,
+the command-line program to perform various system administration
+tasks for Archiveopteryx.
+.PP
+See the
+.BR aox (8)
+man page for more information.
+Examples of such tasks are adding users, changing the access control
+for mailboxes, etc. In principle, everything one would want to do
+using a shell script should be doable using
+.BR aox .
+.PP
+The 
+.SH COMMANDS
+.IP "aox start [-v]"
+Starts the Oryx servers in the correct order.
+.IP "aox stop [-v]"
+Stops the running Oryx servers in the correct order.
+.IP "aox restart [-v]"
+Restarts the servers in the correct order (currently equivalent to start
+&& stop).
+.IP "aox show status [-v]"
+Displays a summary of the running Oryx servers.
+.IP "aox show configuration [-p -v] [variable-name]"
+Displays variables configured in
+.IR archiveopteryx.conf .
+.IP
+.SH SEE ALSO
+.BR aox (7),
+http://www.archiveopteryx.org
