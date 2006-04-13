@@ -33,7 +33,7 @@
 #include <grp.h>
 
 
-char * ms;
+char * aox;
 StringList * args;
 int options[256];
 int status;
@@ -129,7 +129,7 @@ int main( int ac, char *av[] )
     Scope global;
 
     args = new StringList;
-    ms = *av++;
+    aox = *av++;
     ac--;
 
     int i = 0;
@@ -1159,7 +1159,7 @@ void deleteUser()
                 String s = r->getString( "name" );
                 fprintf( stderr, "%s\n", s.cstr() );
             }
-            fprintf( stderr, "(Use 'ms delete user -f %s' to delete the "
+            fprintf( stderr, "(Use 'aox delete user -f %s' to delete the "
                      "mailboxes too.)\n", d->user->login().cstr() );
             exit( -1 );
         }
@@ -1468,7 +1468,7 @@ void help()
         fprintf(
             stderr,
             "  start -- Start the servers.\n\n"
-            "    Synopsis: ms start [-v]\n\n"
+            "    Synopsis: aox start [-v]\n\n"
             "    Starts the Oryx servers in the correct order.\n"
             "    The -v flag enables (slightly) verbose diagnostic output.\n"
         );
@@ -1477,7 +1477,7 @@ void help()
         fprintf(
             stderr,
             "  stop -- Stop the running servers.\n\n"
-            "    Synopsis: ms stop [-v]\n\n"
+            "    Synopsis: aox stop [-v]\n\n"
             "    Stops the running Oryx servers in the correct order.\n"
             "    The -v flag enables (slightly) verbose diagnostic output.\n"
         );
@@ -1486,7 +1486,7 @@ void help()
         fprintf(
             stderr,
             "  restart -- Restart the servers.\n\n"
-            "    Synopsis: ms restart [-v]\n\n"
+            "    Synopsis: aox restart [-v]\n\n"
             "    Restarts the Oryx servers in the correct order.\n"
             "    (Currently equivalent to start && stop.)\n\n"
             "    The -v flag enables (slightly) verbose diagnostic output.\n"
@@ -1496,7 +1496,7 @@ void help()
         fprintf(
             stderr,
             "  show status -- Display a summary of the running servers.\n\n"
-            "    Synopsis: ms show status [-v]\n\n"
+            "    Synopsis: aox show status [-v]\n\n"
             "    Displays a summary of the running Oryx servers.\n"
             "    The -v flag enables (slightly) verbose diagnostic output.\n"
         );
@@ -1505,7 +1505,7 @@ void help()
         fprintf(
             stderr,
             "  show configuration -- Display configuration variables.\n\n"
-            "    Synopsis: ms show conf [ -p -v ] [variable-name]\n\n"
+            "    Synopsis: aox show conf [ -p -v ] [variable-name]\n\n"
             "    Displays variables configured in archiveopteryx.conf.\n\n"
             "    If a variable-name is specified, only that variable\n"
             "    is displayed.\n\n"
@@ -1514,16 +1514,16 @@ void help()
             "    value has been changed from the default.\n\n"
             "    configuration may be abbreviated as cf.\n\n"
             "    Examples:\n\n"
-            "      ms show configuration\n"
-            "      ms show cf -p\n"
-            "      ms show cf -v imap-address\n"
+            "      aox show configuration\n"
+            "      aox show cf -p\n"
+            "      aox show cf -v imap-address\n"
         );
     }
     else if ( a == "show" && b.startsWith( "build" ) ) {
         fprintf(
             stderr,
             "  show build -- Display build settings.\n\n"
-            "    Synopsis: ms show build\n\n"
+            "    Synopsis: aox show build\n\n"
             "    Displays the build settings used for this installation.\n"
             "    (As configured in Jamsettings.)\n"
         );
@@ -1532,7 +1532,7 @@ void help()
         fprintf(
             stderr,
             "  show counts -- Show number of users, messages etc..\n\n"
-            "    Synopsis: ms show counts\n\n"
+            "    Synopsis: aox show counts\n\n"
             "    Displays the number of rows in the most important tables,\n"
             "    as well as the total size of the mail stored.\n"
         );
@@ -1541,7 +1541,7 @@ void help()
         fprintf(
             stderr,
             "  show schema -- Display schema revision.\n\n"
-            "    Synopsis: ms show schema\n\n"
+            "    Synopsis: aox show schema\n\n"
             "    Displays the revision of the existing database schema.\n"
         );
     }
@@ -1549,7 +1549,7 @@ void help()
         fprintf(
             stderr,
             "  upgrade schema -- Upgrade the database schema.\n\n"
-            "    Synopsis: ms upgrade schema\n\n"
+            "    Synopsis: aox upgrade schema\n\n"
             "    Checks that the database schema is one that this version of\n"
             "    Archiveopteryx is compatible with, and updates it if needed.\n"
         );
@@ -1558,7 +1558,7 @@ void help()
         fprintf(
             stderr,
             "  list mailboxes -- Display existing mailboxes.\n\n"
-            "    Synopsis: ms list mailboxes [-d] [-o user] [pattern]\n\n"
+            "    Synopsis: aox list mailboxes [-d] [-o user] [pattern]\n\n"
             "    Displays a list of mailboxes matching the specified shell\n"
             "    glob pattern. Without a pattern, all mailboxes are listed.\n\n"
             "    The -d flag includes deleted mailboxes in the list.\n\n"
@@ -1568,28 +1568,28 @@ void help()
             "    of messages in each mailbox.\n\n"
             "    ls is an acceptable abbreviation for list.\n\n"
             "    Examples:\n\n"
-            "      ms list mailboxes\n"
-            "      ms ls mailboxes /users/ab?cd*\n"
+            "      aox list mailboxes\n"
+            "      aox ls mailboxes /users/ab?cd*\n"
         );
     }
     else if ( a == "list" && b == "users" ) {
         fprintf(
             stderr,
             "  list users -- Display existing users.\n\n"
-            "    Synopsis: ms list users [pattern]\n\n"
+            "    Synopsis: aox list users [pattern]\n\n"
             "    Displays a list of users matching the specified shell\n"
             "    glob pattern. Without a pattern, all users are listed.\n\n"
             "    ls is an acceptable abbreviation for list.\n\n"
             "    Examples:\n\n"
-            "      ms list users\n"
-            "      ms ls users ab?cd*\n"
+            "      aox list users\n"
+            "      aox ls users ab?cd*\n"
         );
     }
     else if ( a == "create" && b == "user" ) {
         fprintf(
             stderr,
             "  create user -- Create a new user.\n\n"
-            "    Synopsis: ms create user <login> <password> <e@ma.il>\n\n"
+            "    Synopsis: aox create user <login> <password> <e@ma.il>\n\n"
             "    Creates a new Archiveopteryx user with the specified login\n"
             "    name, password, and email address.\n"
         );
@@ -1598,7 +1598,7 @@ void help()
         fprintf(
             stderr,
             "  delete user -- Delete a user.\n\n"
-            "    Synopsis: ms create user [-f] <login>\n\n"
+            "    Synopsis: aox create user [-f] <login>\n\n"
             "    Deletes the Archiveopteryx user with the specified login.\n\n"
             "    The -f flag causes any mailboxes owned by the user to be "
             "deleted too.\n"
@@ -1608,7 +1608,7 @@ void help()
         fprintf(
             stderr,
             "  change password -- Change a user's password.\n\n"
-            "    Synopsis: ms change password <login> <new-password>\n\n"
+            "    Synopsis: aox change password <login> <new-password>\n\n"
             "    Changes the specified user's password.\n"
         );
     }
@@ -1616,7 +1616,7 @@ void help()
         fprintf(
             stderr,
             "  create mailbox -- Create a new mailbox.\n\n"
-            "    Synopsis: ms create mailbox <name> [username]\n\n"
+            "    Synopsis: aox create mailbox <name> [username]\n\n"
             "    Creates a new mailbox with the specified name and,\n"
             "    if a username is specified, owned by that user.\n\n"
             "    The mailbox name must be fully-qualified (begin with /),\n"
@@ -1628,7 +1628,7 @@ void help()
         fprintf(
             stderr,
             "  delete mailbox -- Delete a mailbox.\n\n"
-            "    Synopsis: ms delete mailbox <name>\n\n"
+            "    Synopsis: aox delete mailbox <name>\n\n"
             "    Deletes the specified mailbox.\n"
         );
     }
@@ -1636,7 +1636,7 @@ void help()
         fprintf(
             stderr,
             "  create alias -- Create a delivery alias.\n\n"
-            "    Synopsis: ms create alias <address> <mailbox>\n\n"
+            "    Synopsis: aox create alias <address> <mailbox>\n\n"
             "    Creates an alias that instructs the L/SMTP server to accept\n"
             "    mail to a given address, and deliver it to a given mailbox.\n"
             "    (Ordinarily, mail is accepted only to a user's main address,\n"
@@ -1648,7 +1648,7 @@ void help()
         fprintf(
             stderr,
             "  delete alias -- Delete a delivery alias.\n\n"
-            "    Synopsis: ms delete alias <address>\n\n"
+            "    Synopsis: aox delete alias <address>\n\n"
             "    Deletes the alias that associated the specified address\n"
             "    with a mailbox.\n"
         );
@@ -1657,7 +1657,7 @@ void help()
         fprintf(
             stderr,
             "  vacuum -- Perform routine maintenance.\n\n"
-            "    Synopsis: ms vacuum [-b]\n\n"
+            "    Synopsis: aox vacuum [-b]\n\n"
             "    VACUUMs the database and (optionally) cleans up bodyparts\n"
             "    that are no longer in use by any message (as a result of\n"
             "    messages being deleted).\n\n"
@@ -1671,7 +1671,7 @@ void help()
         fprintf(
             stderr,
             "  anonymise -- Anonymise a named mail message.\n\n"
-            "    Synopsis: ms anonymise filename\n\n"
+            "    Synopsis: aox anonymise filename\n\n"
             "    Reads a mail message from the named file, obscures most or all\n"
             "    content and prints the result on stdout. The output resembles the\n"
             "    original closely enough to be used in a bug report.\n"
@@ -1680,7 +1680,7 @@ void help()
     else if ( a == "commands" ) {
         fprintf(
             stderr,
-            "  Available ms commands:\n\n"
+            "  Available aox commands:\n\n"
             "    start              -- Server management.\n"
             "    stop\n"
             "    restart\n\n"
@@ -1705,11 +1705,11 @@ void help()
     else {
         fprintf(
             stderr,
-            "  ms -- A command-line interface to Archiveopteryx.\n\n"
+            "  aox -- A command-line interface to Archiveopteryx.\n\n"
             "    Synopsis: %s <verb> <noun> [options] [arguments]\n\n"
             "    Use \"aox help commands\" for a list of commands.\n"
             "    Use \"aox help start\" for help with \"start\".\n",
-            ms
+            aox
         );
     }
 }

@@ -8,7 +8,7 @@ SubInclude TOP ocd ;
 SubInclude TOP httpd ;
 SubInclude TOP logd ;
 SubInclude TOP imapd ;
-SubInclude TOP ms ;
+SubInclude TOP aox ;
 SubInclude TOP pop3d ;
 SubInclude TOP smtpd ;
 SubInclude TOP server ;

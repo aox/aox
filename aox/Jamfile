@@ -1,9 +1,9 @@
-SubDir TOP ms ;
+SubDir TOP aox ;
 SubInclude TOP encodings ;
 SubInclude TOP message ;
 SubInclude TOP server ;
 
-Build aox : ms.cpp ;
+Build aox : aox.cpp ;
 Program aox :
     aox database server mailbox message user core encodings extractors ;
 
