@@ -101,7 +101,7 @@ http://www.archiveopteryx.org/1.06.html.
 .BR archiveopteryx.conf (5),
 .br
 .BR deliver (8),
-.BR ms (8),
+.BR aox (8),
 .br
 .BR imapd (8),
 .BR ocd (8),

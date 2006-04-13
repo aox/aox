@@ -10,7 +10,7 @@ msconsole - Archiveopteryx management console.
 .B msconsole
 is a tool to do GUI-based management of Archiveopteryx, including
 tasks such as creating users. There is also a command-line tool. See
-.BR ms (8)
+.BR aox (8)
 for more information.
 .PP
 Documentation is provided within the program; press Shift-F1 anywhere

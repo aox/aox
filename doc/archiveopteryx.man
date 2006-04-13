@@ -38,7 +38,7 @@ which tries hard to be sensible.
 .SS "2. Add a user"
 Run
 .IP
-ms add user
+aox add user
 .I name
 .I password
 .I address@domain
