@@ -538,11 +538,16 @@ bool PopCommand::retr( bool lines )
     b->append( d->message->rfc822() );
 
     int ln = d->n;
+    bool header = true;
 
     String * t;
-    while ( ( t = b->removeLine() ) != 0 &&
-            ( d->n == 0 || ln-- > 0 ) )
-    {
+    while ( ( t = b->removeLine() ) != 0 ) {
+        if ( header && t->isEmpty() )
+            header = false;
+
+        if ( !header && lines && ln-- < 0 )
+            break;
+
         if ( t->startsWith( "." ) )
             d->pop->enqueue( "." );
         d->pop->enqueue( *t );
@@ -550,9 +555,7 @@ bool PopCommand::retr( bool lines )
     }
 
     String st = b->string( b->size() );
-    if ( !st.isEmpty() &&
-         ( d->n == 0 || ln-- > 0 ) )
-    {
+    if ( !st.isEmpty() && !( !header && lines && ln-- < 0 ) ) {
         if ( st.startsWith( "." ) )
             d->pop->enqueue( "." );
         d->pop->enqueue( st );

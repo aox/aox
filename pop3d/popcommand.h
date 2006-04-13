@@ -13,7 +13,7 @@ class PopCommand
 public:
     enum Command {
         Quit, Capa, Noop, Stls, Auth, User, Pass,
-        Stat, List, Retr, Dele, Rset, Top, Uidl,
+        Stat, List, Retr, Dele, Rset, Top,
         Session
     };
 
