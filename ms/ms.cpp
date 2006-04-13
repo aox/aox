@@ -15,6 +15,7 @@
 #include "schema.h"
 #include "logger.h"
 #include "query.h"
+#include "dict.h"
 #include "file.h"
 #include "list.h"
 #include "user.h"
@@ -27,6 +28,9 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <sys/stat.h>
+#include <pwd.h>
+#include <grp.h>
 
 
 char * ms;
@@ -70,6 +74,7 @@ void deleteAlias();
 void vacuum();
 void anonymise( const String & );
 void help();
+void checkFilePermissions();
 
 
 /*! \nodoc */
@@ -86,6 +91,7 @@ public:
     void commit( const String &, Log::Severity ) {}
     virtual String name() const;
 };
+
 
 StderrLog::StderrLog()
     : Logger()
@@ -111,10 +117,12 @@ void StderrLog::send( const String &,
     }
 }
 
+
 String StderrLog::name() const
 {
     return "ms";
 }
+
 
 int main( int ac, char *av[] )
 {
@@ -519,6 +527,7 @@ void start()
 {
     if ( !d ) {
         parseOptions();
+        checkFilePermissions();
         end();
 
         String sbin( Configuration::compiledIn( Configuration::SbinDir ) );
@@ -599,6 +608,7 @@ void stop()
 void restart()
 {
     parseOptions();
+    checkFilePermissions();
     end();
 
     stop();
@@ -610,6 +620,7 @@ void restart()
 void showStatus()
 {
     parseOptions();
+    checkFilePermissions();
     end();
 
     printf( "Servers: " );
@@ -667,7 +678,7 @@ void showBuildconf()
     end();
 
     printf( "Archiveopteryx version %s, "
-            "http://www.oryx.com/archiveopteryx/%s.html\n",
+            "http://www.archiveopteryx.org/%s.html\n",
             Configuration::compiledIn( Configuration::Version ),
             Configuration::compiledIn( Configuration::Version ) );
 
@@ -821,7 +832,7 @@ void showCounts()
                 users,
                 mailboxes,
                 messages, String::humanNumber( size ).cstr(),
-                bodyparts, 
+                bodyparts,
                 String::humanNumber( textSize ).cstr(),
                 String::humanNumber( dataSize ).cstr(),
                 addresses );
@@ -1700,5 +1711,244 @@ void help()
             "    Use \"ms help start\" for help with \"start\".\n",
             ms
         );
+    }
+}
+
+
+class Path
+    : public Garbage
+{
+public:
+    enum Type { 
+        Readable,
+        ReadableFile,
+        ReadableDir,
+        WritableFile,
+        WritableDir,
+        CreatableFile,
+        JailDir
+    };
+
+    Path( const String &, Type );
+    bool checked;
+    bool ok;
+    void check();
+    static bool allOk;
+
+    Path * parent;
+    const char * message;
+    Dict<Path> variables;
+    String name;
+    Type type;
+
+    static uint uid;
+    static uint gid;
+};
+
+
+uint Path::uid;
+uint Path::gid;
+bool Path::allOk;
+static Dict<Path> paths;
+
+
+static void addPath( Path::Type type,
+                     Configuration::Text variable )
+{
+    String name = Configuration::text( variable );
+    Path * p = paths.find( name );
+    if ( name.startsWith( "/" ) ) {
+        if ( !p ) {
+            p = new Path( name, type );
+            paths.insert( name, p );
+        }
+    }
+
+    while ( p ) {
+        if ( p->type != type )
+            // this isn't 100% good enough, is it... let's write the
+            // huge code to produce the right message if it ever bites
+            // anyone.
+            p->message = "has conflicting permission requirements";
+        p->variables.insert( Configuration::name( variable ), p );
+        p = p->parent;
+    }
+}
+
+
+static String parentOf( const String & name )
+{
+    uint i = name.length();
+    while ( i > 0 && name[i] != '/' )
+        i--;
+    String pn = name.mid( 0, i );
+    if ( i == 0 )
+        pn = "/";
+    return pn;
+}
+
+
+Path::Path( const String & s, Type t )
+    : Garbage(),
+      checked( false ), ok( true ),
+      parent( 0 ), message( 0 ),
+      name( s ), type( t )
+{
+    String pn = parentOf( name );
+    if ( pn.length() < name.length() ) {
+        Path * p = paths.find( pn );
+        if ( !p ) {
+            if ( t == CreatableFile || t == WritableFile )
+                p = new Path( pn, WritableDir );
+            else
+                p = new Path( pn, ReadableDir );
+            paths.insert( pn, p );
+        }
+    }
+}
+
+
+void Path::check()
+{
+    if ( checked )
+        return;
+    if ( parent && !parent->checked )
+        parent->check();
+
+    checked = true;
+    if ( parent && !parent->ok ) {
+        ok = false;
+        return;
+    }
+
+    struct stat st;
+    uint rights = 0;
+    bool isdir = false;
+    bool isfile = false;
+    const char * message = 0;
+    bool exist = false;
+    if ( stat( name.cstr(), &st ) >= 0 ) {
+        exist = true;
+        if ( st.st_uid == uid )
+            rights = st.st_mode >> 6;
+        else if ( st.st_uid == uid )
+            rights = st.st_mode >> 3;
+        else
+            rights = st.st_mode;
+        rights &= 7;
+        isdir = S_ISDIR(st.st_mode);
+        isfile = S_ISREG(st.st_mode);
+    }
+
+    switch( type ) {
+    case Readable:
+        if ( !exist )
+            message = "does not exist";
+        else if ( isdir )
+            message = "is not a normal file";
+        else if ( (rights & 4) != 4 )
+            message = "is not readable";
+        break;
+    case ReadableFile:
+        if ( !exist )
+            message = "does not exist";
+        else if ( !isfile )
+            message = "is not a normal file";
+        else if ( (rights & 4) != 4 )
+            message = "is not readable";
+        break;
+    case ReadableDir:
+        if ( !exist )
+            message = "does not exist";
+        else if ( !isdir )
+            message = "is not a directory";
+        else if ( (rights & 5) != 5 )
+            message = "is not readable and searchable";
+        break;
+    case WritableFile:
+        if ( exist && !isfile )
+            message = "is not a normal file";
+        else if ( (rights & 2) != 2 )
+            message = "is not writable";
+        break;
+    case WritableDir:
+        if ( !exist )
+            message = "does not exist";
+        else if ( !isdir )
+            message = "is not a directory";
+        else if ( (rights & 3) != 3 )
+            message = "is not readable and searchable";
+        break;
+    case CreatableFile:
+        if ( exist && !isfile )
+            message = "is not a normal file";
+        break;
+    case JailDir:
+        if ( !isdir )
+            message = "is not a directory";
+        if ( rights )
+            message = "is accessible and should not be";
+        break;
+    }
+
+    if ( !message )
+        return;
+    fprintf( stderr, "%s %s.\n", name.cstr(), message );
+    StringList::Iterator i( variables.keys() );
+    while ( i ) {
+        fprintf( stderr, " - affected variable: %s\n", i->cstr() );
+        ++i;
+    }
+    ok = false;
+    allOk = false;
+}
+
+
+void checkFilePermissions()
+{
+    String user( Configuration::text( Configuration::JailUser ) );
+    struct passwd * pw = getpwnam( user.cstr() );
+    if ( !pw ) {
+        fprintf( stderr,
+                 "%s (jail-user) is not a valid login.\n", user.cstr() );
+        exit( 1 );
+    }
+    if ( pw->pw_uid == 0 ) {
+        fprintf( stderr,
+                 "%s (jail-user) has UID 0.\n", user.cstr() );
+        exit( 1 );
+    }
+
+    String group( Configuration::text( Configuration::JailGroup ) );
+    struct group * gr = getgrnam( group.cstr() );
+    if ( !gr ) {
+        fprintf( stderr,
+                 "%s (jail-group) is not a valid group.\n", group.cstr() );
+        exit( 1 );
+    }
+    Path::uid = pw->pw_uid;
+    Path::gid = gr->gr_gid;
+    Path::allOk = true;
+
+    if ( Configuration::text( Configuration::MessageCopy ).lower() != "none" )
+        addPath( Path::WritableDir, Configuration::MessageCopyDir );
+    addPath( Path::JailDir, Configuration::JailDir );
+    addPath( Path::ReadableFile, Configuration::TlsCertFile );
+    addPath( Path::Readable, Configuration::EntropySource );
+    addPath( Path::CreatableFile, Configuration::LogFile );
+
+    // should also do all the *-address ones, if they're AF_UNIX. but
+    // not now.
+
+    StringList::Iterator i( paths.keys() );
+    while ( i ) {
+        paths.find( *i )->check();
+        ++i;
+    }
+    if ( !Path::allOk ) {
+        fprintf( stderr,
+                 "Checking as user %s (uid %d), group %s (gid %d)\n",
+                 user.cstr(), Path::uid, group.cstr(), Path::gid );
+        exit( 1 );
     }
 }
