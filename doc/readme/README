@@ -30,10 +30,12 @@ Here's a brief overview:
    software instead. See http://www.archiveopteryx.org/jam.html)
 
 2. Type "make install" (or "jam install") as root to install the
-   software into /usr/local/archiveopteryx.
+   software into /usr/local/archiveopteryx (then switch to that
+   directory to continue).
 
-   (You may want to add /usr/local/archiveopteryx/man to your MANPATH.
-   The archiveopteryx(7) manual page introduces the software.)
+   The archiveopteryx(7) manual page introduces the software.
+
+   (You may want to add /usr/local/archiveopteryx/man to your MANPATH.)
 
 3. Run "lib/installer" to create a Unix user and group, a PostgreSQL
    user, the necessary database tables, and to generate an initial
@@ -46,9 +48,13 @@ Here's a brief overview:
 
 4. Start the servers: "bin/ms start".
 
-   You should see output in /usr/local/archiveopteryx/logfile.
+   ms is the command-line administration tool for Archiveopteryx.
+   See ms(8) or run "bin/ms help" for usage instructions.
 
-   (You can also use lib/rcarchiveopteryx as an init script.)
+   The servers write log output to /usr/local/archiveopteryx/logfile.
+
+   (To start the servers automatically at boot, use lib/rcarchiveopteryx
+   as an init script.)
 
 5. Create some users, e.g. with:
 
