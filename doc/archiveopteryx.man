@@ -30,7 +30,7 @@ other cases.
 .PP
 Use
 .IP
-.B $LIBDIR/rcarchiveopteryx start
+.B $LIBDIR/archiveopteryx start
 .PP
 to start Archiveopteryx using the default configuration from
 .BR archiveopteryx.conf ,

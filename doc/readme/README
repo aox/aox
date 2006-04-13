@@ -53,7 +53,7 @@ Here's a brief overview:
 
    The servers write log output to /usr/local/archiveopteryx/logfile.
 
-   (To start the servers automatically at boot, use lib/rcarchiveopteryx
+   (To start the servers automatically at boot, use lib/archiveopteryx
    as an init script.)
 
 5. Create some users, e.g. with:

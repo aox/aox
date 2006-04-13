@@ -63,7 +63,7 @@ The change to
 only takes effect when you restart Archiveopteryx, e.g. by issuing the
 following command:
 .IP
-$LIBDIR/rcarchiveopteryx restart
+$LIBDIR/archiveopteryx restart
 .SS "Start recorder"
 To make recorder listen on the normal port 143 and forward connections
 to the real server:
