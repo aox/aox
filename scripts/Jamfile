@@ -20,4 +20,4 @@ rule ShellScript {
 }
 
 
-ShellScript rcarchiveopteryx : $(INITDIR) ;
+ShellScript archiveopteryx : $(INITDIR) ;
