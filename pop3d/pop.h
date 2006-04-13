@@ -41,6 +41,8 @@ public:
 
     void markForDeletion( uint );
 
+    void badUser();
+
     static void setup();
 
 private:

@@ -402,3 +402,14 @@ void POP::markForDeletion( uint uid )
 {
     d->toBeDeleted.add( uid );
 }
+
+
+/*! This is used by PopCommand::user() to reset "sawUser" if a previous
+    USER command failed. This is needed so that subsequent USER commands
+    are not incorrectly rejected.
+*/
+
+void POP::badUser()
+{
+    d->sawUser = false;
+}

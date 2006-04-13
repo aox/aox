@@ -291,10 +291,13 @@ bool PopCommand::user()
     if ( d->user->state() == User::Unverified )
         return false;
 
-    if ( d->user->state() == User::Nonexistent )
+    if ( d->user->state() == User::Nonexistent ) {
         d->pop->err( "No such user" );
-    else
+        d->pop->badUser();
+    }
+    else {
         d->pop->ok( "Done" );
+    }
 
     return true;
 }
