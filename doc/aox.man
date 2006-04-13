@@ -1,9 +1,9 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH ms 8 2006-05-08 www.oryx.com "Archiveopteryx Documentation"
+.TH aox 8 2006-05-08 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
-ms - management tool for Archiveopteryx.
+aox - management tool for Archiveopteryx.
 .SH SYNOPSIS
-.B $BINDIR/ms
+.B $BINDIR/aox
 .I verb
 .I noun
 [
@@ -12,32 +12,32 @@ ms - management tool for Archiveopteryx.
 .I arguments
 ]
 .PP
-.B ms help commands
+.B aox help commands
 .PP
-.B ms help
+.B aox help
 .I command
 .SH DESCRIPTION
 .nh
 .PP
-.B ms
+.B aox
 is a command-line program to perform various system administration
 tasks for Archiveopteryx.
 .PP
 Examples of such tasks are adding users, changing the access control
 for mailboxes, etc. In principle, everything one would want to do
 using a shell script should be doable using
-.BR ms .
+.BR aox .
 .SH COMMANDS
-.IP "ms start [-v]"
+.IP "aox start [-v]"
 Starts the Oryx servers in the correct order.
-.IP "ms stop [-v]"
+.IP "aox stop [-v]"
 Stops the running Oryx servers in the correct order.
-.IP "ms restart [-v]"
+.IP "aox restart [-v]"
 Restarts the servers in the correct order (currently equivalent to start
 && stop).
-.IP "ms show status [-v]"
+.IP "aox show status [-v]"
 Displays a summary of the running Oryx servers.
-.IP "ms show configuration [-p -v] [variable-name]"
+.IP "aox show configuration [-p -v] [variable-name]"
 Displays variables configured in
 .IR archiveopteryx.conf .
 .IP
@@ -53,18 +53,18 @@ changed from the default.
 .I configuration
 may be abbreviated as
 .IR cf .
-.IP "ms show build"
+.IP "aox show build"
 Displays the build settings used for this installation (as configured
 in Jamsettings).
-.IP "ms show counts"
+.IP "aox show counts"
 Displays the number of rows in the most important tables, as well as the
 total size of the mail stored.
-.IP "ms show schema"
+.IP "aox show schema"
 Displays the revision of the existing database schema.
-.IP "ms upgrade schema"
+.IP "aox upgrade schema"
 Checks that the database schema is one that this version of Archiveopteryx is
 compatible with, and updates it if needed.
-.IP "ms list mailboxes [-d] [-o username] [pattern]"
+.IP "aox list mailboxes [-d] [-o username] [pattern]"
 Displays a list of mailboxes matching the specified shell glob pattern.
 Without a pattern, all mailboxes are listed.
 .IP
@@ -79,10 +79,10 @@ in each mailbox.
 .I ls
 is an acceptable abbreviation for
 .IR list .
-.IP "ms list users [pattern]"
+.IP "aox list users [pattern]"
 Displays a list of users matching the specified shell glob pattern.
 Without a pattern, all users are listed.
-.IP "ms create user <username> <password> <email-address>"
+.IP "aox create user <username> <password> <email-address>"
 Creates a new Archiveopteryx user with the specified username, password, and
 email address.
 .IP
@@ -91,7 +91,7 @@ and
 .I new
 are acceptable abbreviations for
 .IR create .
-.IP "ms delete user [-f] <username>"
+.IP "aox delete user [-f] <username>"
 Deletes the specified Archiveopteryx user. If
 .I -f
 is specified, any mailboxes owned by the user are also deleted.
@@ -101,9 +101,9 @@ and
 .I remove
 are acceptable abbreviations for
 .IR delete .
-.IP "ms change password <username> <new-password>"
+.IP "aox change password <username> <new-password>"
 Changes the specified user's password.
-.IP "ms create mailbox <name> [username]"
+.IP "aox create mailbox <name> [username]"
 Creates a new mailbox with the specified name and, if a username is
 specified, owned by that user.
 .IP
@@ -113,9 +113,9 @@ must be fully-qualified (begin with /), unless a
 .I username
 is specified, in which case unqualified names are assumed to be under
 the user's home directory.
-.IP "ms delete mailbox <name>"
+.IP "aox delete mailbox <name>"
 Deletes the specified mailbox.
-.IP "ms vacuum [-b]"
+.IP "aox vacuum [-b]"
 VACUUMs the database and (optionally) cleans up bodyparts that are no
 longer in use by any message (as a result of messages being deleted).
 .IP
@@ -124,7 +124,7 @@ an exclusive lock on the mailboxes table (i.e., messages cannot be
 injected until it is done).
 .IP
 This command should be run via crontab.
-.IP "ms anonymise <file>"
+.IP "aox anonymise <file>"
 Reads a mail message from the named file, obscures most or all content
 and prints the result on stdout. The output resembles the original
 closely enough to be used in a bug report.
@@ -135,18 +135,18 @@ it is supported (see the descriptions of each command above).
 To add a user called "nirmala", whose password is "angstskrik" and
 whose main email address is "nirmala@example.com":
 .IP
-ms create user nirmala angstskrik nirmala@example.com
+aox create user nirmala angstskrik nirmala@example.com
 .PP
 To change Nirmala's password to "temmelig hemmelig":
 .IP
-ms change password nirmala 'temmelig hemmelig'
+aox change password nirmala 'temmelig hemmelig'
 .PP
 To remove that user:
 .IP
-ms remove user nirmala
+aox remove user nirmala
 .SH DIAGNOSTICS
 The return code of
-.B ms
+.B aox
 is zero if all goes well, and a non-zero in case of errors.
 .PP
 Diagnostics are logged using Archiveopteryx's
