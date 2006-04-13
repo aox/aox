@@ -193,7 +193,7 @@ void POP::parse()
                 if ( cmd == "stat" && args->isEmpty() ) {
                     newCommand( d->commands, this, PopCommand::Stat );
                 }
-                else if ( cmd == "list" ) {
+                else if ( cmd == "list" && args->count() < 2 ) {
                     newCommand( d->commands, this, PopCommand::List, args );
                 }
                 else if ( cmd == "top" && args->count() == 2 ) {
@@ -210,6 +210,9 @@ void POP::parse()
                 }
                 else if ( cmd == "rset" && args->isEmpty() ) {
                     newCommand( d->commands, this, PopCommand::Rset );
+                }
+                else if ( cmd == "uidl" && args->count() < 2 ) {
+                    newCommand( d->commands, this, PopCommand::Uidl, args );
                 }
                 else {
                     unknown = true;

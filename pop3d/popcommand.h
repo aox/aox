@@ -13,7 +13,7 @@ class PopCommand
 public:
     enum Command {
         Quit, Capa, Noop, Stls, Auth, User, Pass,
-        Stat, List, Retr, Dele, Rset, Top,
+        Stat, List, Retr, Dele, Rset, Top, Uidl,
         Session
     };
 
@@ -38,6 +38,7 @@ private:
     bool list();
     bool retr( bool );
     bool dele();
+    bool uidl();
 };
 
 

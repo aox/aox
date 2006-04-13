@@ -181,6 +181,11 @@ void PopCommand::execute()
     case Rset:
         d->pop->ok( "Done" );
         break;
+
+    case Uidl:
+        if ( !uidl() )
+            return;
+        break;
     }
 
     finish();
@@ -590,6 +595,41 @@ bool PopCommand::dele()
     else {
         d->pop->err( "Invalid message number" );
     }
+    return true;
+}
+
+
+/*! Handles the UIDL command. */
+
+bool PopCommand::uidl()
+{
+    ::Session * s = d->pop->session();
+
+    if ( d->args->count() == 1 ) {
+        bool ok;
+        uint msn = nextArg().number( &ok );
+        if ( !ok || msn < 1 || msn > s->count() ) {
+            d->pop->err( "Bad message number" );
+            return true;
+        }
+        uint uid = s->uid( msn );
+        d->pop->ok( fn( msn ) + " " + fn( s->mailbox()->uidvalidity() ) +
+                    fn( uid ) );
+    }
+    else {
+        uint msn = 1;
+
+        d->pop->ok( "Done" );
+        while ( msn <= s->count() ) {
+            uint uid = s->uid( msn );
+            d->pop->enqueue( fn( msn ) + " " +
+                             fn( s->mailbox()->uidvalidity() ) +
+                             fn( uid ) + "\r\n" );
+            msn++;
+        }
+        d->pop->enqueue( ".\r\n" );
+    }
+
     return true;
 }
 
