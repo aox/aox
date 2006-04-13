@@ -52,6 +52,10 @@ MESSAGEDIR = $(PREFIX)/messages ;
 #
 CONFIGDIR = $(PREFIX) ;
 
+# The directory where the README and other files are installed.
+#
+READMEDIR = $(PREFIX) ;
+
 # The log file's default name. (This is the only configurable file
 # name, all the others are directory names.)
 #

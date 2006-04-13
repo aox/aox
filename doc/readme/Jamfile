@@ -1,0 +1,13 @@
+SubDir TOP doc readme ;
+
+rule ReadmeFile {
+    local s ;
+    s = $(<) ;
+    SEARCH on $(s) = . $(SEARCH_SOURCE) ;
+
+    Depends install : $(<) ;
+
+    InstallFile $(INSTALLROOT)$(READMEDIR) : $(<) ;
+}
+
+ReadmeFile README ;
