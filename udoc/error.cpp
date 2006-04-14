@@ -55,11 +55,13 @@ void Error::report()
         return;
 
     List<Error>::Iterator it( errors );
-    if ( errors->count() > 10 )
-        fprintf( stderr, "%s:%d: This is the first of %d errors\n",
-                 it->f->name().cstr(), it->l, errors->count() );
+    bool first = true;
     while ( it ) {
         it->blather();
+        if ( first && errors->count() > 10 )
+            fprintf( stderr, "%s:%d: This is the first of %d errors\n",
+                     it->f->name().cstr(), it->l, errors->count() );
+        first = false;
         ++it;
     }
 }
