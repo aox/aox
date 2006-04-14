@@ -95,12 +95,7 @@ void Copy::execute()
         d->firstUid = r->getInt( "uidnext" );
 
         Mailbox * current = imap()->session()->mailbox();
-        Query * q = new Query( "update mailboxes "
-                               "set uidnext=$1 where id=$2",
-                               this );
-        q->bind( 1, d->firstUid + d->set.count() );
-        q->bind( 2, d->mailbox->id() );
-        d->transaction->enqueue( q );
+        Query * q;
 
         uint cmailbox = current->id();
         uint tmailbox = d->mailbox->id();
