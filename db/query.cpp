@@ -728,9 +728,10 @@ String PreparedStatement::query() const
     Has no member functions or useful documentation yet.
 */
 
+
 /*! Returns the name of \a type, mostly for logging purposes. */
 
-String Column::typeName( Column::Type type )
+String Column::typeName( Type type )
 {
     String n;
     switch( type ) {

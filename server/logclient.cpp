@@ -179,6 +179,8 @@ void LogClient::setup( const String & n )
 }
 
 
+/*! Returns the logclient's name, as set using setup(). */
+
 String LogClient::name() const
 {
     return d->name;

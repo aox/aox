@@ -59,6 +59,13 @@ Codec::~Codec()
 }
 
 
+/*! \fn String Codec::name() const
+
+    Returns the name of the codec, as supplied to the constructor.
+*/
+
+
+
 /*! \fn String Codec::fromUnicode( const UString & u )
 
     This pure virtual function maps \a u from Unicode to the codec's

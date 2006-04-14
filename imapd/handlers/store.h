@@ -37,7 +37,6 @@ private:
     bool dumpFetchResponses();
     void replaceAnnotations();
     void parseAnnotationEntry();
-    void checkAnnotations();
 };
 
 

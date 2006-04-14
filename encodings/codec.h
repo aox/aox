@@ -37,7 +37,7 @@ public:
     static Codec * byString( const UString & );
     static Codec * byString( const String & );
 
-    String name() { return n; }
+    String name() const { return n; }
 
 private:
     State s;

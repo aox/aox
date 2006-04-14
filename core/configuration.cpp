@@ -276,6 +276,10 @@ void Configuration::add( const String & l )
 }
 
 
+/*! Parses \a line as a scalar and stores at Configuration::Scalar \a
+    n. If there are any errors, the name of \a n is used for reporting.
+*/
+
 void Configuration::parseScalar( uint n, const String & line )
 {
     uint i = 0;
@@ -299,6 +303,10 @@ void Configuration::parseScalar( uint n, const String & line )
              Log::Error );
 }
 
+
+/*! Parses \a line as a text and stores at Configuration::Text \a
+    n. If there are any errors, the name of \a n is used for reporting.
+*/
 
 void Configuration::parseText( uint n, const String & line )
 {
@@ -336,6 +344,10 @@ void Configuration::parseText( uint n, const String & line )
              Log::Disaster );
 }
 
+
+/*! Parses \a line as a toggle and stores at Configuration::Toggle \a
+    n. If there are any errors, the name of \a n is used for reporting.
+*/
 
 void Configuration::parseToggle( uint n, const String & line )
 {

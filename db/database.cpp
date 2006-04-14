@@ -201,7 +201,7 @@ void Database::runQueue()
     Connecting, Idle, InTransaction, FailedTransaction.
 */
 
-void Database::setState( Database::State s )
+void Database::setState( State s )
 {
     st = s;
 }
