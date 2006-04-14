@@ -26,7 +26,7 @@ public:
 };
 
 
-/*! \class AnnotationNameFetcher flag.h
+/*! \class AnnotationNameFetcher annotation.h
 
     The AnnotationNameFetcher class fetches all (or some) annotations from the
     database.
@@ -99,7 +99,7 @@ void AnnotationNameFetcher::execute()
 
 
 
-/*! \class AnnotationName flag.h
+/*! \class AnnotationName annotation.h
 
     The AnnotationName class represents a single message flag, ie. a named
     binary variable that may be set on any Message.
@@ -208,7 +208,7 @@ public:
     List<Query> queries;
 };
 
-/*! \class AnnotationNameCreator flag.h
+/*! \class AnnotationNameCreator annotation.h
 
     The AnnotationNameCreator class creates annotations in the database
     and then updates the Annotation index in RAM.
