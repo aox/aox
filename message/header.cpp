@@ -509,8 +509,10 @@ void Header::simplify()
             ct = 0;
         }
     }
-
-    if ( ct == 0 && cte == 0 && cde == 0 && cdi == 0 ) {
+    
+    if ( ct == 0 && cte == 0 && cde == 0 && cdi == 0 &&
+         !field( HeaderField::ContentLocation ) &&
+         !field( HeaderField::ContentBase ) ) {
         removeField( HeaderField::MimeVersion );
     }
     else {

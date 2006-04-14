@@ -38,6 +38,7 @@ public:
         MimeVersion,
         Received,
         ContentLanguage, ContentLocation, ContentMd5,
+        ContentBase,
         Other
     };
 
@@ -83,6 +84,7 @@ private:
     void parseOther( const String & );
     void parseMimeVersion( const String & );
     void parseContentLocation( const String & );
+    void parseContentBase( const String & );
 };
 
 

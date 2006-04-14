@@ -45,6 +45,7 @@ static struct {
     { "Content-Description", HeaderField::ContentDescription },
     { "Content-Language", HeaderField::ContentLanguage },
     { "Content-Location", HeaderField::ContentLocation },
+    { "Content-Base", HeaderField::ContentBase },
     { "Content-Md5", HeaderField::ContentMd5 },
     { "Content-Id", HeaderField::ContentId },
     { "Mime-Version", HeaderField::MimeVersion },
@@ -108,6 +109,7 @@ HeaderField *HeaderField::fieldNamed( const String &name )
     case MimeVersion:
     case Received:
     case ContentLocation:
+    case ContentBase:
     case ContentMd5:
     case Other:
         hf = new HeaderField( fieldNames[i].type );
@@ -386,6 +388,9 @@ void HeaderField::parse( const String &s )
         parseContentLocation( s );
         break;
 
+    case ContentBase:
+        parseContentBase( s );
+
     case InReplyTo:
     case Keywords:
     case Received:
@@ -484,17 +489,62 @@ void HeaderField::parseContentLocation( const String &s )
 {
     Parser822 p( s );
     String t;
-    char c;
 
-    // We pretend a URI is just something without spaces in it.
-    // Why the HELL couldn't this have been quoted?
-    p.comment();
-    while ( ( c = p.character() ) != '\0' && c != ' ' && c != '\t' )
-        t.append( c );
-    p.comment();
+    p.whitespace();
+    uint b = p.index();
+    uint e = b;
+    bool ok = true;
+    while ( ok ) {
+        ok = false;
+        char c = p.character();
+        // RFC 1738 unreserved
+        if ( ( c >= 'a' && c <= 'z' ) || // alpha
+             ( c >= 'A' && c <= 'Z' ) ||
+             ( c >= '0' && c <= '9' ) || // letter
+             ( c == '$' || c ==  '-' || // safe
+               c ==  '_' || c == '.' ||
+               c == '+' ) ||
+             ( c == '!' || c ==  '*' || // extra
+               c ==  '\'' || c ==  '(' ||
+               c ==  ')' || c ==  ',' ) ) {
+            ok = true;
+        }
+        // RFC 1738 reserved
+        else if ( c == ';' || c == '/' || c == '?' ||
+                  c == ':' || c == '@' || c == '&' ||
+                  c == '=' ) {
+            ok = true;
+        }
+        // RFC 1738 escape
+        else if ( c == '%' ) {
+            String hex;
+            hex.append( p.character() );
+            hex.append( p.character() );
+            (void)hex.number( &ok, 16 );
+        }
+        if ( ok )
+            e = p.index();
+    }
+    p.whitespace();
 
     if ( !p.atEnd() )
-        setError( "Junk at end of '" + s.simplified() + "'" );
+        setError( "Junk at position " + fn( e ) + ": " + s.mid( e ) );
+    setData( s.mid( b, e-b ) );
+}
+
+
+/*! Parses the Content-Location header field in \a s and records the
+    first problem found. Somewhat overflexibly assumes that if there
+    is a colon, the URL is absolute, so it accepts -:/asr as a valid
+    URL.
+*/
+
+void HeaderField::parseContentBase( const String & s )
+{
+    parseContentLocation( s );
+    uint i = data().find( ':' );
+    if ( i <= 0 )
+        setError( "URL has no scheme" );
 }
 
 
