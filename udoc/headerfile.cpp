@@ -186,12 +186,18 @@ void HeaderFile::parse()
                     if ( p.lookingAt( ";" ) )
                         ok = true;
                     String a = p.argumentList();
+                    p.whitespace();
+                    bool fc = false;
+                    if ( p.lookingAt( "const" ) ) {
+                        fc = true;
+                        p.word();
+                    }
                     if ( !n.isEmpty() && n.find( ':' ) < 0 &&
                          !a.isEmpty() ) {
                         n = className + "::" + n;
-                        Function * f = Function::find( n, a );
+                        Function * f = Function::find( n, a, fc );
                         if ( !f )
-                            f = new Function( t, n, a, this, l );
+                            f = new Function( t, n, a, fc, this, l );
                         ok = true;
                     }
                 }

@@ -417,6 +417,8 @@ void DocBlock::generateFunctionPreamble()
             e = s;
         }
     }
+    if ( f->isConst() )
+        Output::addText( " const" );
     Output::endParagraph();
 }
 

@@ -154,13 +154,19 @@ Function * SourceFile::function( Parser * p )
         t = "";
     }
     String a = p->argumentList();
+    p->whitespace();
+    bool cn = false;
+    if ( p->lookingAt( "const" ) ) {
+        p->word();
+        cn = true;
+    }
     if ( !n.isEmpty() && n.find( ':' ) > 0 &&
          !a.isEmpty() ) {
-        f = Function::find( n, a );
+        f = Function::find( n, a, cn );
         if ( f )
             f->setArgumentList( a );
         else
-            f = new Function( t, n, a, this, l );
+            f = new Function( t, n, a, cn, this, l );
     }
     else {
         (void)new Error( this, l, "Unable to parse function name" );

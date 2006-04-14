@@ -19,10 +19,12 @@ public:
     Function( const String & type,
               const String & name,
               const String & arguments,
+              bool constness,
               File * originFile, uint originLine );
 
     static Function * find( const String & name,
-                            const String & arguments = "" );
+                            const String & arguments = "",
+                            bool constness = false );
 
     Function * super() const;
 
@@ -31,6 +33,7 @@ public:
     String type() const { return t; }
     String name() const { return n; }
     String arguments() const { return args; }
+    bool isConst() { return cn; }
 
     void setArgumentList( const String & );
     bool hasArgument( const String & ) const;
@@ -53,6 +56,7 @@ private:
     uint l;
     DocBlock * db;
     bool ol;
+    bool cn;
 };
 
 #endif

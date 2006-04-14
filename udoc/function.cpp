@@ -23,16 +23,19 @@ static List<Function> * functions = 0;
 
 
 /*!  Constructs a function whose return type is \a type, whose full
-    name (including class) is \a name and whose arguments are \a
-    arguments. \a originFile and \a originLine point to the function's
-    defining source, which will be used in any error messages.
+    name (including class) is \a name, whose arguments are \a
+    arguments, and with \a constness. \a originFile and \a originLine
+    point to the function's defining source, which will be used in any
+    error messages.
 */
 
 Function::Function( const String & type,
                     const String & name,
                     const String & arguments,
+                    bool constness,
                     File * originFile, uint originLine )
-    : c( 0 ), t( type ), f( originFile ), l( originLine ), db( 0 ), ol( false )
+    : c( 0 ), t( type ), f( originFile ), l( originLine ), db( 0 ), ol( false ),
+      cn( constness )
 {
     if ( !functions )
         functions = new List<Function>;
@@ -56,12 +59,17 @@ Function::Function( const String & type,
 
 
 /*! Returns a pointer to the Function object that is named (fully
-    qualified) \a name and accepts \a arguments. If there is no such
-    Function object, find() returns 0.
+    qualified) \a name, accepts \a arguments, and is/is not const as
+    described by \a constness. If there is no such Function object,
+    find() returns 0.
+    
+    If only \a name is supplied, any \a arguments and \a constness are
+    accepted.
 */
 
 Function * Function::find( const String & name,
-                           const String & arguments )
+                           const String & arguments,
+                           bool constness )
 {
     if ( !functions )
         return 0;
@@ -76,7 +84,7 @@ Function * Function::find( const String & name,
     else {
         String t = typesOnly( arguments );
         while ( (f=it) != 0 &&
-                !( f->n == name && f->a == t ) )
+                !( f->n == name && f->a == t && f->cn == constness ) )
             ++it;
     }
     return f;
