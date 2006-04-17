@@ -45,7 +45,22 @@ public:
 
 
 /*! \fn Dict::Dict()
-  Creates an empty dictionary.
+    Creates an empty dictionary.
+*/
+
+/*! \fn T * Dict::find( const String &s ) const
+    Looks for the object identified by \a s in the dictionary, and
+    returns a pointer to it (or 0 if no such object was found).
+*/
+
+/*! \fn void Dict::insert( const String &s, T* r )
+    Inserts the object \a r into the dictionary, identified by the
+    string \a s.
+*/
+
+/*! \fn bool Dict::contains( const String &s ) const
+    Returns true if an object identified by \a s exists in the
+    dictionary, and false otherwise.
 */
 
 

@@ -24,6 +24,8 @@ MD5::MD5()
 }
 
 
+/*! Initialises an MD5 context for use. */
+
 void MD5::init()
 {
     int i = 0;
@@ -229,6 +231,8 @@ String MD5::HMAC( const String &secret, const String &text )
 /* This is the central step in the MD5 algorithm. */
 #define MD5STEP(f, w, x, y, z, data, s) \
         ( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
+
+/*! Apply the MD5 hash function to the input block. */
 
 void MD5::transform()
 {

@@ -128,7 +128,7 @@
 */
 
 
-/*! \class List::Iterator list.h
+/*-! \class List::Iterator list.h
     This class can be used to iterate over the elements of a List<T>.
 
     An Iterator behaves like a pointer to an element in the List. In a

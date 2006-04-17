@@ -368,6 +368,58 @@ PgMessage::PgMessage( Buffer *b )
     Log.
 */
 
+/*! \fn String PgMessage::code() const
+    Returns (as a string) the SQLstate code associated with the message.
+*/
+
+
+/*! \fn String PgMessage::message() const
+    Returns the contents of the message.
+*/
+
+
+/*! \fn String PgMessage::detail() const
+    Returns a detailed description of the message(), if available, or
+    an empty string otherwise.
+*/
+
+
+/*! \fn String PgMessage::hint() const
+    Returns a hint to the user about what to do next, if available, or
+    an empty string otherwise.
+*/
+
+
+/*! \fn String PgMessage::position() const
+    Returns (as a string) the position in the query of whatever problem
+    caused this message to be generated (or an empty string if no such
+    thing was specified by the server).
+*/
+
+
+/*! \fn String PgMessage::where() const
+    Returns a string describing where the error occurred, if available,
+    or an empty string otherwise.
+*/
+
+
+/*! \fn String PgMessage::file() const
+    Returns the name of the source file that generated the message, if
+    available, or an empty string otherwise.
+*/
+
+
+/*! \fn String PgMessage::line() const
+    Returns (as a string) the line number where the message was
+    generated, if available, or an empty string otherwise.
+*/
+
+
+/*! \fn String PgMessage::routine() const
+    Returns the name of the routine that generated this message, if
+    available, or an empty string otherwise.
+*/
+
 
 /*! \class PgAuthRequest pgmessage.h
     S: An authentication request from the server.

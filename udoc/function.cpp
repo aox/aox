@@ -58,11 +58,32 @@ Function::Function( const String & type,
 }
 
 
+/*! \fn String Function::type() const
+    Returns the type of this Function.
+*/
+
+/*! \fn String Function::name() const
+    Returns the name of this Function.
+*/
+
+/*! \fn String Function::arguments() const
+    Returns the arguments of this Function as a string.
+*/
+
+/*! \fn bool Function::isConst()
+    Returns true if this function is const, and false otherwise.
+*/
+
+/*! \fn void Function::setDocBlock( DocBlock * db )
+    Sets this Function's DocBlock to \a db.
+*/
+
+
 /*! Returns a pointer to the Function object that is named (fully
     qualified) \a name, accepts \a arguments, and is/is not const as
     described by \a constness. If there is no such Function object,
     find() returns 0.
-    
+
     If only \a name is supplied, any \a arguments and \a constness are
     accepted.
 */

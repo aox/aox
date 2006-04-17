@@ -40,6 +40,15 @@ public:
     Creates an empty Table.
 */
 
+/*! \fn T * Table::find( uint i )
+    Returns a pointer to the object that \a i is mapped to, or 0 if
+    there is no such object.
+*/
+
+/*! \fn bool Table::contains( uint i )
+    Returns true if \a i is mapped to an object in the Table, and
+    false otherwise.
+*/
 
 /*! Creates an empty TableBase */
 
