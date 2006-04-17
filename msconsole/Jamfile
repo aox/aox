@@ -15,7 +15,8 @@ rule Moc
     LEAVES $(o) ;
 
     DEPENDS $(o) : $(t) ;
-    DEPENDS $(t) : $(>) ;
+    DEPENDS $(t) : $(>) $(LOCATE_TARGET) ;
+    MkDir $(LOCATE_TARGET) ;
     Moc2 $(t) : $(>) ;
 }
 
