@@ -160,12 +160,13 @@ void help()
         "  The \"-u user\" flag allows you to specify a Unix username\n"
         "  other than the default of '%s'.\n\n"
         "  The \"-p postgres\" flag allows you to specify the name of\n"
-        "  the PostgreSQL superuser. The default is '%s'.\n\n"
+        "  the PostgreSQL superuser. The default is to try postgres\n"
+        "  and pgsql in turn.\n\n"
         "  The \"-a address\" flag allows you to specify a different\n"
         "  address for the Postgres server. The default is '%s'.\n",
         ORYXGROUP, ORYXUSER,
         ORYXGROUP, ORYXUSER,
-        PGUSER, DBADDRESS
+        DBADDRESS
     );
     exit( 0 );
 }
