@@ -169,7 +169,7 @@ void Rename::execute()
             Mailbox * m = it->from;
             List<Mailbox>::Iterator c( m->children() );
             while ( c ) {
-                p = new RenameData::MailboxPair;
+                RenameData::MailboxPair * p = new RenameData::MailboxPair;
                 p->from = c;
                 p->toName =
                     it->toName + c->name().mid( it->from->name().length() );
