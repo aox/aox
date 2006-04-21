@@ -12,6 +12,7 @@
 
 
 class CopyData
+    : public Garbage
 {
 public:
     CopyData() :
