@@ -100,6 +100,8 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
         return;
     }
 
+    p->toUidvalidity = p->from->uidvalidity();
+
     // get rid of anything that may be in the way
     Query * q = 0;
     if ( to ) {
@@ -107,7 +109,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
         q->bind( 4, to->id() );
         t->enqueue( q );
         // and bump uidvalidity to inform any caches
-        if ( to->uidvalidity() > p->from->uidvalidity() || to->uidnext() > 1 )
+        if ( to->uidvalidity() > p->toUidvalidity || to->uidnext() > 1 )
             p->toUidvalidity = to->uidvalidity() + 1;
     }
 
