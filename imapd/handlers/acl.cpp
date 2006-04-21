@@ -11,7 +11,9 @@
 #include "transaction.h"
 
 
-class AclData {
+class AclData
+    : public Garbage
+{
 public:
     AclData()
         : state( 0 ), type( Acl::SetAcl ), mailbox( 0 ),
