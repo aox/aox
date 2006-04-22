@@ -318,6 +318,7 @@ Query * User::create( EventHandler * owner )
         d->q = 0;
         d->t = new Transaction( this );
         d->mode = UserData::Creating;
+        d->state = Unverified;
         d->user = owner;
         d->result = q;
     }
@@ -402,9 +403,11 @@ void User::createHelper()
         return;
 
     if ( d->t->failed() ) {
+        d->state = Nonexistent;
         d->result->setError( d->t->error() );
     }
     else {
+        d->state = Refreshed;
         d->result->setState( Query::Completed );
 
         OCClient::send( "mailbox " + d->inbox->name().quoted() + " new" );
