@@ -243,6 +243,10 @@ int main( int argc, char ** argv )
     if ( ok ) {
         ep = new Endpoint( argv[2], port );
         Allocator::addEternal( ep, "target server endpoint" );
+        if ( !ep->valid() ) {
+            ok = false;
+            error = "Invalid server address";
+        }
     }
 
     if ( !ok ) {
@@ -250,7 +254,7 @@ int main( int argc, char ** argv )
                  "Error: %s\n"
                  "Usage: recorder port address port filebase\n"
                  "       First port: The recorder's own port.\n"
-                 "       Address: The server to forward to.\n"
+                 "       Address: The IP address of the server to forward to.\n"
                  "       Second port: The server port to forward to.\n"
                  "       Filebase: The filename base (.<blah> is added).\n",
                  error );
