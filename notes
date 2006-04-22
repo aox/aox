@@ -736,11 +736,6 @@ PGP automatic processing
   detect four and transform them to the proper MIME format.
 
 
-'ms show asdf'
-
-  Should display the possible 'show' arguments. Does not.
-
-
 imap/hackedsize#2 doesn't work.
 
   - The Received field added by smtpd changes.

@@ -48,7 +48,7 @@ const int nservers = sizeof( servers ) / sizeof( servers[0] );
 
 String next();
 int opt( char );
-void bad( String, String );
+void bad( const String &, const String &, const String & = "" );
 void error( String );
 void parseOptions();
 void end();
@@ -178,14 +178,14 @@ int main( int ac, char *av[] )
         else if ( noun == "counts" )
             showCounts();
         else
-            bad( verb, noun );
+            bad( verb, noun, "status, build, cf, schema, counts" );
     }
     else if ( verb == "upgrade" ) {
         String noun = next().lower();
         if ( noun == "schema" )
             upgradeSchema();
         else
-            bad( verb, noun );
+            bad( verb, noun, "schema" );
     }
     else if ( verb == "list" || verb == "ls" ) {
         String noun = next().lower();
@@ -194,7 +194,7 @@ int main( int ac, char *av[] )
         else if ( noun == "mailboxes" )
             listMailboxes();
         else
-            bad( verb, noun );
+            bad( verb, noun, "users, mailboxes" );
     }
     else if ( verb == "create" || verb == "delete" ) {
         String noun = next().lower();
@@ -214,14 +214,14 @@ int main( int ac, char *av[] )
         else if ( verb == "delete" && noun == "alias" )
             deleteAlias();
         else
-            bad( verb, noun );
+            bad( verb, noun, "user, mailbox, alias" );
     }
     else if ( verb == "change" ) {
         String noun = next().lower();
         if ( noun == "password" )
             changePassword();
         else
-            bad( verb, noun );
+            bad( verb, noun, "password" );
     }
     else if ( verb == "vacuum" ) {
         vacuum();
@@ -257,11 +257,14 @@ int opt( char c )
 }
 
 
-void bad( String verb, String noun )
+void bad( const String &verb, const String &noun, const String &ok )
 {
     if ( noun.isEmpty() )
         fprintf( stderr, "aox %s: No argument supplied.\n",
                  verb.cstr() );
+    else if ( !ok.isEmpty() )
+        fprintf( stderr, "aox %s: Unknown argument: %s (try %s).\n",
+                 verb.cstr(), noun.cstr(), ok.cstr() );
     else
         fprintf( stderr, "aox %s: Unknown argument: %s.\n",
                  verb.cstr(), noun.cstr() );
