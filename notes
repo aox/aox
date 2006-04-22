@@ -15,6 +15,13 @@ Next release (2006-05-08: 1.06)
   - Rename ms to aox.
   - Rename rcarchiveopteryx to archiveopteryx.
   - Try to install README to READMEDIR.
+  - lib/archiveopteryx status
+  - Assorted udoc fixes.
+  - Content-Location/Content-Base parsing.
+  - MkDir moc's LOCATE_TARGET after jam clean.
+  - Delete views based on view as well as source.
+  - Fix two rename bugs: bad inbox in aliases, and uidvalidity=0.
+  - Add derivations from Garbage to fix some segfaults.
 
   Desired:
 
