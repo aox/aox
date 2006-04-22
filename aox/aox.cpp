@@ -1834,7 +1834,7 @@ void Path::check()
         exist = true;
         if ( st.st_uid == uid )
             rights = st.st_mode >> 6;
-        else if ( st.st_uid == uid )
+        else if ( st.st_gid == gid )
             rights = st.st_mode >> 3;
         else
             rights = st.st_mode;
@@ -1880,7 +1880,7 @@ void Path::check()
         else if ( !isdir )
             message = "is not a directory";
         else if ( (rights & 3) != 3 )
-            message = "is not readable and searchable";
+            message = "is not writable and searchable";
         break;
     case CreatableFile:
         if ( exist && !isfile )
