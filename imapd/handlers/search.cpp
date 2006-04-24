@@ -417,8 +417,10 @@ void Search::process()
         uint n = r->getInt( "uid" );
         if ( !d->uid )
             n = s->msn( n );
-        result.append( " " );
-        result.append( fn( n ) );
+        if ( n ) {
+            result.append( " " );
+            result.append( fn( n ) );
+        }
     }
 
     respond( result );
