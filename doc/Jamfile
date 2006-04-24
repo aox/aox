@@ -1,6 +1,5 @@
 SubDir TOP doc ;
 SubInclude TOP core ;
-SubInclude TOP doc readme ;
 
 
 rule Man {
