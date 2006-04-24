@@ -36,7 +36,6 @@ Next few releases
 
   - SORT/THREAD
   - Working webmail
-  - Working msconsole
   - More character encodings (EUC-KR)
 
 
@@ -268,30 +267,9 @@ Write a valgrind skin that should help us to diagnose memory abuse.
 Read the GiST papers and look at tsearch2 again.
 
 
-Improve LogPane so it doesn't eat so much CPU
+migrator should work without indices
 
-  The right way is to have a constant number of list view items, each
-  of which look at a circular buffer. GuiLog just overwrites the
-  "next" item in the circular buffer.
-
-  Or would it be better to use a list? Not sure.
-
-
-Implement a "save mangled copy" feature in msconsole. (AMS)
-
-  People can use this to send us copies of messages that cause injection
-  errors, without having to go through them by hand to remove sensitive
-  information.
-
-
-msconsole user pane
-
-  The user pane should do something.
-
-
-msconsole migrator should work without indices
-
-  If the database is otherwise idle, msconsole could disable indicex
+  If the database is otherwise idle, the migrator could disable indicex
   and perhaps transactions, and go much faster.
 
 
@@ -333,9 +311,7 @@ CAcert instead of self-signed certificate?
 
   www.cacert.org offers free certificates and seems to be an
   up-and-coming thing.  In a few months, we may want to add 'obtain
-  valid cert from cacert' to ms or msconsole.
-
-  Or better yet, add a wizard to msconsole to get a real cert.
+  valid cert from cacert'.
 
   Btw, cacert.org is a very nice place to get praise and a link from. High
   nerd factor. If we have the first really-easy-to-use interface to

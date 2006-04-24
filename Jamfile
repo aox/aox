@@ -22,10 +22,6 @@ SubInclude TOP installer ;
 SubInclude TOP extractors ;
 SubInclude TOP sieved ;
 
-if ( $(BUILDGUI) ) {
-    SubInclude TOP msconsole ;
-}
-
 if ( $(BUILDDOC) ) {
     SubInclude TOP udoc ;
 }
