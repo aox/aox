@@ -1075,7 +1075,7 @@ void createUser()
         end();
 
         if ( login.isEmpty() || passwd.isEmpty() || address.isEmpty() )
-            error( "Login name, password, and address must be non-empty." );
+            error( "Username, password, and address must be non-empty." );
         if ( !validUsername( login ) )
             error( "Invalid username: " + login );
 
@@ -1123,7 +1123,7 @@ void deleteUser()
         end();
 
         if ( login.isEmpty() )
-            error( "No login name supplied." );
+            error( "No username supplied." );
         if ( !validUsername( login ) )
             error( "Invalid username: " + login );
 
@@ -1209,7 +1209,7 @@ void changePassword()
     Database::setup();
 
     if ( login.isEmpty() || passwd.isEmpty() )
-        error( "No login name and password supplied." );
+        error( "No username and password supplied." );
     if ( !validUsername( login ) )
         error( "Invalid username: " + login );
 
@@ -1592,17 +1592,17 @@ void help()
         fprintf(
             stderr,
             "  create user -- Create a new user.\n\n"
-            "    Synopsis: aox create user <login> <password> <e@ma.il>\n\n"
-            "    Creates a new Archiveopteryx user with the specified login\n"
-            "    name, password, and email address.\n"
+            "    Synopsis: aox create user <username> <password> <e@ma.il>\n\n"
+            "    Creates a new Archiveopteryx user with the given username,\n"
+            "    password, and email address.\n"
         );
     }
     else if ( a == "delete" && b == "user" ) {
         fprintf(
             stderr,
             "  delete user -- Delete a user.\n\n"
-            "    Synopsis: aox create user [-f] <login>\n\n"
-            "    Deletes the Archiveopteryx user with the specified login.\n\n"
+            "    Synopsis: aox create user [-f] <username>\n\n"
+            "    Deletes the Archiveopteryx user with the specified name.\n\n"
             "    The -f flag causes any mailboxes owned by the user to be "
             "deleted too.\n"
         );
@@ -1611,7 +1611,7 @@ void help()
         fprintf(
             stderr,
             "  change password -- Change a user's password.\n\n"
-            "    Synopsis: aox change password <login> <new-password>\n\n"
+            "    Synopsis: aox change password <username> <new-password>\n\n"
             "    Changes the specified user's password.\n"
         );
     }
@@ -1913,7 +1913,7 @@ void checkFilePermissions()
     struct passwd * pw = getpwnam( user.cstr() );
     if ( !pw ) {
         fprintf( stderr,
-                 "%s (jail-user) is not a valid login.\n", user.cstr() );
+                 "%s (jail-user) is not a valid username.\n", user.cstr() );
         exit( 1 );
     }
     if ( pw->pw_uid == 0 ) {
