@@ -232,7 +232,10 @@ String MD5::HMAC( const String &secret, const String &text )
 #define MD5STEP(f, w, x, y, z, data, s) \
         ( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
 
-/*! Apply the MD5 hash function to the input block. */
+/*! The basic MD5 transformation: updates the MD5 hash context based on
+    the next 64 bit block of input. (Padding, if necessary, is handled
+    by the caller.)
+*/
 
 void MD5::transform()
 {
