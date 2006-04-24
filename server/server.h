@@ -24,6 +24,7 @@ public:
 
     enum Stage {
         Configuration,
+        NameResolution,
         Files,
         LogSetup,
         Loop,
@@ -47,6 +48,7 @@ private:
     static class ServerData * d;
 
     void configuration();
+    void nameResolution();
     void files();
     void loop();
     void logSetup();

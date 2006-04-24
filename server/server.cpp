@@ -151,6 +151,9 @@ void Server::setup( Stage s )
             case Configuration:
                 configuration();
                 break;
+            case NameResolution:
+                nameResolution();
+                break;
             case Files:
                 files();
                 break;
@@ -218,6 +221,16 @@ void Server::configuration()
     // evil hack : work around unix brain damage. there's no way to
     // turn human-format dates into GMT, mktime always things locally.
     setenv( "TZ", "UTC", 1 );
+}
+
+
+/*! Resolves any domain names used in the configuration file before we
+    chroot.
+*/
+
+void Server::nameResolution()
+{
+    // Hi Arnt!
 }
 
 
