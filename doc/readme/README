@@ -35,7 +35,7 @@ Here's a brief overview:
 
    The archiveopteryx(7) manual page introduces the software.
 
-   (You may want to add /usr/local/archiveopteryx/man to your MANPATH.)
+   (You may want to add $MANDIR to your MANPATH.)
 
 3. Run "lib/installer" to create a Unix user and group, a PostgreSQL
    user, the necessary database tables, and to generate an initial
