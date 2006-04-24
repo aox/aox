@@ -62,20 +62,6 @@ MODE on $(MESSAGEDIR) = 700 ;
 Chmod $(MESSAGEDIR) ;
 
 
-rule ReadmeFile {
-    local t ;
-    t = [ FDirName $(TOP) $(BUILD) $(<) ] ;
-    Depends readme : $(t) ;
-    Clean clean : $(t) ;
-    Depends $(t) : $(<) ;
-    SEARCH on $(<) = [ FDirName $(TOP) doc readme ] [ FDirName $(TOP) ] ;
-    EngraveConfig $(t) : $(<) ;
-    InstallFile $(INSTALLROOT)$(READMEDIR) : $(t) ;
-}
-
-ReadmeFile README ;
-
-
 actions Message {
 fmt <<EOM | sed 's/^/  /'
 

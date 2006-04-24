@@ -1,0 +1,20 @@
+SubDir TOP doc readme ;
+
+
+rule ReadmeFile {
+    local t ;
+    t = [ FDirName $(TOP) $(BUILD) $(<) ] ;
+    Depends readme : $(t) ;
+    Clean clean : $(t) ;
+    Depends $(t) : $(<) ;
+    SEARCH on $(<) = $(SEARCH_SOURCE) ;
+    EngraveConfig $(t) : $(<) ;
+    InstallFile $(INSTALLROOT)$(READMEDIR) : $(t) ;
+}
+
+
+ReadmeFile README ;
+ReadmeFile COPYING ;
+ReadmeFile osl-2.1.txt ;
+
+
