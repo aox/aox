@@ -45,7 +45,7 @@ Allows you to specify a Unix username other than the default of
 $ORYXUSER.
 .IP "-p postgres" 4
 Allows you to specify the name of the PostgreSQL superuser. The default
-is to try postgres and pgsql in turn.
+is to try $PGUSER (if set), postgres and pgsql in turn.
 .IP "-a address" 4
 Allows you to specify a different address for the Postgres server. The
 default is $DBADDRESS.
