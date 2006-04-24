@@ -70,6 +70,7 @@ void createMailbox();
 void deleteMailbox();
 void changePassword();
 void changeUsername();
+void changeAddress();
 void createAlias();
 void deleteAlias();
 void vacuum();
@@ -223,8 +224,10 @@ int main( int ac, char *av[] )
             changePassword();
         else if ( noun == "username" )
             changeUsername();
+        else if ( noun == "address" )
+            changeAddress();
         else
-            bad( verb, noun, "password, username" );
+            bad( verb, noun, "password, username, address" );
     }
     else if ( verb == "vacuum" ) {
         vacuum();
@@ -314,8 +317,9 @@ class Dispatcher
 {
 public:
     enum Command {
-        Start, ShowCounts, ShowSchema, UpgradeSchema, ListMailboxes,
-        ListUsers, CreateUser, DeleteUser, ChangePassword, ChangeUsername,
+        Start, ShowCounts, ShowSchema, UpgradeSchema,
+        ListMailboxes, ListUsers, CreateUser, DeleteUser,
+        ChangePassword, ChangeUsername, ChangeAddress,
         CreateMailbox, DeleteMailbox, CreateAlias, DeleteAlias,
         Vacuum
     };
@@ -407,6 +411,10 @@ public:
 
         case ChangeUsername:
             changeUsername();
+            break;
+
+        case ChangeAddress:
+            changeAddress();
             break;
 
         case CreateMailbox:
@@ -1262,6 +1270,72 @@ void changeUsername()
 }
 
 
+void changeAddress()
+{
+    if ( !d ) {
+        parseOptions();
+        String name = next();
+        String address = next();
+        end();
+
+        if ( name.isEmpty() || address.isEmpty() )
+            error( "Username and address must be non-empty." );
+        if ( !validUsername( name ) )
+            error( "Invalid username: " + name );
+
+        AddressParser p( address );
+        if ( !p.error().isEmpty() )
+            error( "Invalid address: " + p.error() );
+        if ( p.addresses()->count() != 1 )
+            error( "At most one address may be present" );
+
+        Database::setup();
+        AddressCache::setup();
+
+        d = new Dispatcher( Dispatcher::ChangeAddress );
+        d->address = p.addresses()->first();
+        d->user = new User;
+        d->user->setLogin( name );
+
+        Mailbox::setup( d );
+        d->user->refresh( d );
+    }
+
+    if ( !d->t ) {
+        if ( d->user->state() == User::Unverified )
+            return;
+
+        if ( d->user->state() == User::Nonexistent )
+            error( "No user named " + d->user->login() );
+
+        d->t = new Transaction( d );
+        List< Address > l;
+        l.append( d->address );
+        AddressCache::lookup( d->t, &l, d );
+        d->t->execute();
+    }
+
+    if ( d->address->id() == 0 )
+        return;
+
+    if ( !d->query ) {
+        d->query =
+            new Query( "update aliases set address=$2 where id="
+                       "(select alias from users where id=$1)", d );
+        d->query->bind( 1, d->user->id() );
+        d->query->bind( 2, d->address->id() );
+        d->t->enqueue( d->query );
+        d->t->commit();
+    }
+
+    if ( !d->t->done() )
+        return;
+
+    if ( d->t->failed() )
+        error( "Couldn't change address: " + d->t->error() );
+}
+
+
 void createMailbox()
 {
     if ( !d ) {
@@ -1369,6 +1443,8 @@ void createAlias()
         AddressParser p( address );
         if ( !p.error().isEmpty() )
             error( "Invalid address: " + p.error() );
+        if ( p.addresses()->count() != 1 )
+            error( "At most one address may be present" );
 
         AddressCache::setup();
 
@@ -1657,6 +1733,14 @@ void help()
             "  change username -- Change a user's name.\n\n"
             "    Synopsis: aox change username <username> <new-username>\n\n"
             "    Changes the specified user's username.\n"
+        );
+    }
+    else if ( a == "change" && b == "address" ) {
+        fprintf(
+            stderr,
+            "  change address -- Change a user's email address.\n\n"
+            "    Synopsis: aox change address <username> <new-address>\n\n"
+            "    Changes the specified user's email address.\n"
         );
     }
     else if ( a == "create" && b == "mailbox" ) {

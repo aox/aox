@@ -23,6 +23,8 @@ Next release (2006-05-08: 1.06)
   - Fix two rename bugs: bad inbox in aliases, and uidvalidity=0.
   - Add derivations from Garbage to fix some segfaults.
   - Add "aox change username ..." (Thomas)
+    (XXX: What should we do about /users/oldname/*?)
+  - Add "aox change address ..." (Thomas)
 
   Desired:
 
