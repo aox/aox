@@ -103,6 +103,8 @@ are acceptable abbreviations for
 .IR delete .
 .IP "aox change password <username> <new-password>"
 Changes the specified user's password.
+.IP "aox change username <username> <new-username>"
+Renames the specified user.
 .IP "aox create mailbox <name> [username]"
 Creates a new mailbox with the specified name and, if a username is
 specified, owned by that user.

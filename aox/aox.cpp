@@ -69,6 +69,7 @@ void deleteUser();
 void createMailbox();
 void deleteMailbox();
 void changePassword();
+void changeUsername();
 void createAlias();
 void deleteAlias();
 void vacuum();
@@ -220,8 +221,10 @@ int main( int ac, char *av[] )
         String noun = next().lower();
         if ( noun == "password" )
             changePassword();
+        else if ( noun == "username" )
+            changeUsername();
         else
-            bad( verb, noun, "password" );
+            bad( verb, noun, "password, username" );
     }
     else if ( verb == "vacuum" ) {
         vacuum();
@@ -312,7 +315,7 @@ class Dispatcher
 public:
     enum Command {
         Start, ShowCounts, ShowSchema, UpgradeSchema, ListMailboxes,
-        ListUsers, CreateUser, DeleteUser, ChangePassword,
+        ListUsers, CreateUser, DeleteUser, ChangePassword, ChangeUsername,
         CreateMailbox, DeleteMailbox, CreateAlias, DeleteAlias,
         Vacuum
     };
@@ -400,6 +403,10 @@ public:
 
         case ChangePassword:
             changePassword();
+            break;
+
+        case ChangeUsername:
+            changeUsername();
             break;
 
         case CreateMailbox:
@@ -1226,6 +1233,35 @@ void changePassword()
 }
 
 
+void changeUsername()
+{
+    if ( d )
+        return;
+
+    parseOptions();
+    String name = next();
+    String newname = next();
+    end();
+
+    Database::setup();
+
+    if ( name.isEmpty() || newname.isEmpty() )
+        error( "Old and new usernames not supplied." );
+
+    if ( !validUsername( name ) )
+        error( "Invalid username: " + name );
+    if ( !validUsername( newname ) )
+        error( "Invalid username: " + newname );
+
+    d = new Dispatcher( Dispatcher::ChangeUsername );
+    Query * q =
+        new Query( "update users set login=$2 where login=$1", d );
+    q->bind( 1, name );
+    q->bind( 2, newname );
+    q->execute();
+}
+
+
 void createMailbox()
 {
     if ( !d ) {
@@ -1613,6 +1649,14 @@ void help()
             "  change password -- Change a user's password.\n\n"
             "    Synopsis: aox change password <username> <new-password>\n\n"
             "    Changes the specified user's password.\n"
+        );
+    }
+    else if ( a == "change" && b == "username" ) {
+        fprintf(
+            stderr,
+            "  change username -- Change a user's name.\n\n"
+            "    Synopsis: aox change username <username> <new-username>\n\n"
+            "    Changes the specified user's username.\n"
         );
     }
     else if ( a == "create" && b == "mailbox" ) {

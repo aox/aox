@@ -22,6 +22,7 @@ Next release (2006-05-08: 1.06)
   - Delete views based on view as well as source.
   - Fix two rename bugs: bad inbox in aliases, and uidvalidity=0.
   - Add derivations from Garbage to fix some segfaults.
+  - Add "aox change username ..." (Thomas)
 
   Desired:
 
