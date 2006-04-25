@@ -323,8 +323,8 @@ void Fetch::parseBody( bool binary )
         s->part = part;
     }
 
-    d->needHeader = true; // need that for the charset and boundary
-    d->needBody = true;
+    bool needHeader = true; // need that for the charset and boundary
+    bool needBody = true;
 
     // Parse any section-text.
     String item = dotLetters( 0, 17 ).lower();
@@ -333,17 +333,17 @@ void Fetch::parseBody( bool binary )
     }
     else if ( item == "text" ) {
         if ( s->part.isEmpty() )
-            d->needHeader = false;
+            needHeader = false;
     }
     else if ( item == "header" ) {
         if ( s->part.isEmpty() )
-            d->needBody = false;
+            needBody = false;
     }
     else if ( item == "header.fields" ||
               item == "header.fields.not" )
     {
         if ( s->part.isEmpty() )
-            d->needBody = false;
+            needBody = false;
         space();
         require( "(" );
         s->fields.append( new String( astring().headerCased() ) );
@@ -376,6 +376,10 @@ void Fetch::parseBody( bool binary )
     }
 
     d->sections.append( s );
+    if ( needHeader )
+        d->needHeader = true;
+    if ( needBody )
+        d->needBody = true;
 }
 
 
