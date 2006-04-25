@@ -41,7 +41,7 @@ class Dispatcher * d;
 
 
 char * servers[] = {
-    "logd", "ocd", "tlsproxy", "imapd", "smtpd", "httpd", "pop3d"
+    "logd", "ocd", "tlsproxy", "archiveopteryx"
 };
 const int nservers = sizeof( servers ) / sizeof( servers[0] );
 
