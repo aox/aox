@@ -9,7 +9,8 @@ rule ReadmeFile {
     Depends $(t) : $(<) ;
     SEARCH on $(<) = $(SEARCH_SOURCE) ;
     EngraveConfig $(t) : $(<) ;
-    InstallFile $(INSTALLROOT)$(READMEDIR) : $(t) ;
+    SEARCH on $(<) = $(t) ;
+    InstallFile $(INSTALLROOT)$(READMEDIR) : $(<) ;
 }
 
 
