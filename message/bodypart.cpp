@@ -99,8 +99,15 @@ ContentType * Bodypart::contentType() const
     if ( !parent() )
         return 0;
     ct = parent()->header()->contentType();
-    if ( ct && ct->type() == "multipart" )
-        return 0;
+    if ( ct ) {
+        if ( ct->type() == "multipart" ) {
+            ct = 0;
+        }
+        else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
+            Bodypart * bp = parent()->children()->firstElement();
+            ct = bp->header()->contentType();
+        }
+    }
     return ct;
 }
 
