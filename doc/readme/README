@@ -60,7 +60,7 @@ Here's a brief overview:
 
 5. Create some users, e.g. with:
 
-       bin/ms add user nirmala pwd nirmala@example.com
+       bin/aox add user nirmala pwd nirmala@example.com
 
    Archiveopteryx will create a user named nirmala (with password "pwd")
    and accept mail sent to the given address, and store it in a mailbox
