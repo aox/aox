@@ -4,20 +4,13 @@ SubDir TOP scripts ;
 rule ShellScript {
     local s t ;
 
-    t = $(1) ;
-    MakeLocate $(t) : [ FDirName $(TOP) bin ] ;
-    Depends exe : $(t) ;
-
-    s = $(1:G=<$SUBDIR>) ;
+    t = $(INSTALLROOT)$(INITDIR)/$(<) ;
+    s = $(<:G=script) ;
+    Depends $(t) : $(s) ;
+    Depends install : $(t) ;
     SEARCH on $(s) = $(SEARCH_SOURCE) ;
-
-    Depends $(t) : $(s) <>Jamsettings ;
     EngraveConfig $(t) : $(s) ;
-
-    InstallBin $(2) : $(t) ;
-
-    Clean clean : $(t) ;
 }
 
 
-ShellScript archiveopteryx : $(INITDIR) ;
+ShellScript archiveopteryx ;
