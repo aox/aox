@@ -5,6 +5,8 @@ SubInclude TOP sasl ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 
+HDRS += [ FDirName $(TOP) sieved ] ;
+
 Build sieve : sieve.cpp sievecommand.cpp ;
 Build sieved : sieved.cpp ;
 

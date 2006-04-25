@@ -5,6 +5,8 @@ SubInclude TOP sasl ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 
+HDRS += [ FDirName $(TOP) pop3d ] ;
+
 Build pop : pop.cpp popcommand.cpp ;
 Build pop3d : pop3d.cpp ;
 

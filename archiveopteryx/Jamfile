@@ -1,0 +1,15 @@
+SubDir TOP archiveopteryx ;
+
+SubInclude TOP imapd ;
+SubInclude TOP pop3d ;
+SubInclude TOP sieved ;
+SubInclude TOP httpd ;
+SubInclude TOP smtpd ;
+
+
+Build archiveopteryx : archiveopteryx.cpp ;
+
+Server archiveopteryx :
+    archiveopteryx imap pop http sieve smtp database message server
+    sasl mailbox core encodings user extractors ;
+
