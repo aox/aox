@@ -10,21 +10,21 @@ cd $BINDIR
 case "$1" in
     start)
         echo -n "Starting Archiveopteryx: "
-        ./ms start
+        ./aox start
         echo "done."
         ;;
     stop)
         echo -n "Stopping Archiveopteryx: "
-        ./ms stop
+        ./aox stop
         echo "done."
         ;;
     restart)
         echo -n "Restarting Archiveopteryx: "
-        ./ms restart
+        ./aox restart
         echo "done."
         ;;
     status)
-        ./ms show status
+        ./aox show status
         ;;
     *)
         echo "Usage: archiveopteryx {start|stop|restart|status}"
