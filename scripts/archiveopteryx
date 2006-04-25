@@ -4,7 +4,7 @@
 #
 # See http://www.archiveopteryx.org/ for more about Archiveopteryx.
 
-# Note: Jamsettings variables are evaluated at build time.
+# Note: BINDIR is evaluated at build time.
 cd $BINDIR
 
 case "$1" in
