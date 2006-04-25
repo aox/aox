@@ -2,7 +2,9 @@ Archiveopteryx
 http://www.archiveopteryx.org
 
 
-See http://www.archiveopteryx.org/overview.html for an introduction.
+See http://www.archiveopteryx.org/overview.html for an introduction
+and http://www.archiveopteryx.org/$VERSION.html for information about
+version $VERSION.
 
 
 Requirements
@@ -30,7 +32,7 @@ Here's a brief overview:
    software instead. See http://www.archiveopteryx.org/jam.html)
 
 2. Type "make install" (or "jam install") as root to install the
-   software into /usr/local/archiveopteryx (then switch to that
+   software into $PREFIX (then switch to that
    directory to continue).
 
    The archiveopteryx(7) manual page introduces the software.
@@ -46,12 +48,12 @@ Here's a brief overview:
 
    See archiveopteryx.conf(5) for details about the configuration file.
 
-4. Start the servers: "bin/ms start".
+4. Start the servers: "bin/aox start".
 
    ms is the command-line administration tool for Archiveopteryx.
-   See ms(8) or run "bin/ms help" for usage instructions.
+   See aox(8) or run "bin/aox help" for usage instructions.
 
-   The servers write log output to /usr/local/archiveopteryx/logfile.
+   The servers write log output to $LOGFILE.
 
    (To start the servers automatically at boot, use lib/archiveopteryx
    as an init script.)
