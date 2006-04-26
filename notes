@@ -6,25 +6,27 @@ Next release (2006-05-08: 1.06)
   - Create /usr/local/archiveopteryx/messages automatically.
   - Allow UTF8 instead of UNICODE for Postgres encoding.
   - Make installer check permissions and ownership.
-  - Build correctly on 64 bit systems. (done, including makefile)
+  * Build correctly on 64 bit systems. (done, including makefile)
   - Makefile now displays correct post-installation message.
   - The beginnings of a MANAGESIEVE server.
   - Fix "USER bad" followed by "USER good" in POP3.
-  - Add TOP and UIDL support to POP3.
+  * Add TOP and UIDL support to POP3.
   - Add checkFilePermissions() to ms.
-  - Rename ms to aox.
+  * Rename ms to aox.
   - Rename rcarchiveopteryx to archiveopteryx.
-  - Try to install README to READMEDIR.
+  - Install expanded README to $READMEDIR.
   - lib/archiveopteryx status
   - Assorted udoc fixes.
   - Content-Location/Content-Base parsing.
-  - MkDir moc's LOCATE_TARGET after jam clean.
+  - MkDir moc's LOCATE_TARGET and man3/html after jam clean.
   - Delete views based on view as well as source.
   - Fix two rename bugs: bad inbox in aliases, and uidvalidity=0.
   - Add derivations from Garbage to fix some segfaults.
   - Add "aox change username ..." (Thomas)
-    (XXX: What should we do about /users/oldname/*?)
   - Add "aox change address ..." (Thomas)
+  - Fix the i/97 problem.
+  - Don't set needHeaders to false in FETCH.
+  - Generate a more verbose configuration file.
 
   Desired:
 
