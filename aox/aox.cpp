@@ -1243,30 +1243,97 @@ void changePassword()
 
 void changeUsername()
 {
-    if ( d )
+    if ( !d ) {
+        parseOptions();
+        String name = next();
+        String newname = next();
+        end();
+
+        Database::setup();
+        AddressCache::setup();
+
+        if ( name.isEmpty() || newname.isEmpty() )
+            error( "Old and new usernames not supplied." );
+        if ( !validUsername( name ) )
+            error( "Invalid username: " + name );
+        if ( !validUsername( newname ) )
+            error( "Invalid username: " + newname );
+
+        d = new Dispatcher( Dispatcher::ChangeUsername );
+
+        d->user = new User;
+        d->user->setLogin( name );
+        d->s = newname;
+
+        Mailbox::setup( d );
+        d->user->refresh( d );
+    }
+
+    if ( !d->t ) {
+        if ( d->user->state() == User::Unverified )
+            return;
+
+        if ( d->user->state() == User::Nonexistent )
+            error( "No user named " + d->user->login() );
+
+        d->t = new Transaction( d );
+
+        Query * q =
+            new Query( "update users set login=$2 where id=$1", d );
+        q->bind( 1, d->user->id() );
+        q->bind( 2, d->s );
+        d->t->enqueue( q );
+
+        d->query =
+            new Query( "select name from mailboxes where deleted='f' and "
+                       "name like '/users/'||$1||'/%'", d );
+        d->query->bind( 1, d->user->login() );
+        d->t->enqueue( d->query );
+
+        d->t->execute();
+    }
+
+    if ( d->query && d->query->done() ) {
+        while ( d->query->hasResults() ) {
+            Row * r = d->query->nextRow();
+
+            String name = r->getString( "name" );
+            String newname( "/users/" + d->s );
+            newname.append( name.mid( 7+d->user->login().length() ) );
+
+            Query * q;
+
+            Mailbox * from = Mailbox::obtain( name );
+            uint uidvalidity = from->uidvalidity();
+
+            Mailbox * to = Mailbox::obtain( newname );
+            if ( to->deleted() ) {
+                if ( to->uidvalidity() > uidvalidity ||
+                     to->uidnext() > 1 )
+                    uidvalidity = to->uidvalidity() + 1;
+                q = new Query( "delete from mailboxes where id=$1", d );
+                q->bind( 1, to->id() );
+                d->t->enqueue( q );
+            }
+
+            q = new Query( "update mailboxes set name=$2,uidvalidity=$3 "
+                           "where id=$1", d );
+            q->bind( 1, from->id() );
+            q->bind( 2, newname );
+            q->bind( 3, uidvalidity );
+
+            d->t->enqueue( q );
+        }
+
+        d->t->commit();
+        d->query = 0;
+    }
+
+    if ( !d->t->done() )
         return;
 
-    parseOptions();
-    String name = next();
-    String newname = next();
-    end();
-
-    Database::setup();
-
-    if ( name.isEmpty() || newname.isEmpty() )
-        error( "Old and new usernames not supplied." );
-
-    if ( !validUsername( name ) )
-        error( "Invalid username: " + name );
-    if ( !validUsername( newname ) )
-        error( "Invalid username: " + newname );
-
-    d = new Dispatcher( Dispatcher::ChangeUsername );
-    Query * q =
-        new Query( "update users set login=$2 where login=$1", d );
-    q->bind( 1, name );
-    q->bind( 2, newname );
-    q->execute();
+    if ( d->t->failed() )
+        error( "Couldn't change username: " + d->t->error() );
 }
 
 
@@ -1850,7 +1917,7 @@ class Path
     : public Garbage
 {
 public:
-    enum Type { 
+    enum Type {
         Readable,
         ReadableFile,
         ReadableDir,
