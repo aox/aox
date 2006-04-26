@@ -624,19 +624,42 @@ void configFile()
     String intro(
         "# Archiveopteryx configuration. See archiveopteryx.conf(5) for details.\n"
         "# Automatically generated while installing Archiveopteryx " + v + ".\n\n"
-        "# Specify the hostname if Archiveopteryx gets it wrong at runtime.\n"
-	"# We suggest not using the name \"localhost\".\n#\n"
-        "# hostname = fully.qualified.hostname\n\n"
     );
     String cfg(
-        "logfile      = " LOGFILE "\n"
-        "logfile-mode = " LOGFILEMODE "\n"
-        "db-address   = " + String( DBADDRESS ) + "\n"
-        "db-name      = " DBNAME "\n"
-        "db-user      = " DBUSER "\n"
+        "db-address = " + String( DBADDRESS ) + "\n"
+        "db-name = " DBNAME "\n"
+        "db-user = " DBUSER "\n"
         "# Security note: Anyone who can read this password can do\n"
         "# anything to the database, including delete all mail.\n"
-        "db-password  = " + p + "\n"
+        "db-password = " + p + "\n\n"
+        "logfile = " LOGFILE "\n"
+        "logfile-mode = " LOGFILEMODE "\n"
+    );
+
+    String other(
+        "\n"
+        "# Specify the hostname if Archiveopteryx gets it wrong at runtime.\n"
+        "# (We suggest not using the name \"localhost\".)\n"
+        "# hostname = fully.qualified.hostname\n\n"
+        "# Uncomment the next line to start the POP3 server.\n"
+        "# use-pop = true\n\n"
+        "# Change the following to tell smtpd(8) to accept connections on\n"
+        "# an address other than the default localhost.\n"
+        "# lmtp-address = 192.0.2.1\n"
+        "# lmtp-port = 2026\n\n"
+        "# Uncomment the following to keep a filesystem copy of all messages\n"
+        "# that couldn't be parsed and delivered into the database.\n"
+        "# message-copy = errors\n"
+        "# message-copy-directory = /usr/local/archiveopteryx/messages\n\n"
+        "# Uncomment the following to reject all plaintext authentication.\n"
+        "# allow-plaintext-passwords = never\n\n"
+        "# Uncomment the next line to use your own TLS certificate.\n"
+        "# tls-certificate = /usr/local/archiveopteryx/...\n\n"
+        "# Uncomment the next line to log more debugging information.\n"
+        "# log-level = debug\n\n"
+        "# Uncomment the following ONLY if necessary for debugging.\n"
+        "# security = off\n"
+        "# use-tls = false\n"
     );
 
     if ( !exists( cf ) ) {
@@ -656,6 +679,7 @@ void configFile()
                     printf( "Generating default %s\n", cf.cstr() );
                 f.write( intro );
                 f.write( cfg );
+                f.write( other );
             }
         }
     }
