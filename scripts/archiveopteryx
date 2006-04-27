@@ -4,6 +4,20 @@
 #
 # See http://www.archiveopteryx.org/ for more about Archiveopteryx.
 
+# Try to keep various init.d managers happy:
+#
+# chkconfig: - 99 01
+# description: Start Archiveopteryx <http://www.archiveopteryx.org>
+#
+### BEGIN INIT INFO
+# Provides:       archiveopteryx
+# Required-Start: $postgresql
+# Required-Stop:
+# Default-Start:  3 5
+# Default-Stop:
+# Description:    Start Archiveopteryx <http://www.archiveopteryx.org>
+### END INIT INFO
+
 # Note: BINDIR is evaluated at build time.
 cd $BINDIR
 
