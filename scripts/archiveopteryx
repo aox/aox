@@ -11,7 +11,7 @@
 #
 ### BEGIN INIT INFO
 # Provides:       archiveopteryx
-# Required-Start: $postgresql
+# Required-Start: postgresql sendmail
 # Required-Stop:
 # Default-Start:  3 5
 # Default-Stop:
