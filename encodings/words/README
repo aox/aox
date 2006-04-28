@@ -23,10 +23,13 @@ The data files in this directory are based on the following sources:
    The file czech.words is largely based on a list supplied by Eva
    Schlittermann. Supplements desired.
 
-3. http://www.hf.uio.no/tekstlab/frekvensordlister/aviser.frek.html
-   http://www.hf.uio.no/tekstlab/frekvensordlister/aviser.frek2.html
+3. The original web pages have been deleted sometime since we fetched
+   them. Archive.org has copies:
+
+   http://web.archive.org/web/20050324200652/http://www.hf.uio.no/tekstlab/frekvensordlister/aviser.frek.html
+   .../aviser.frek2.html etc
    ...
-   http://www.hf.uio.no/tekstlab/frekvensordlister/aviser.frek10.html
+   .../aviser.frek10.html
 
    These ten pages contain the 10,000 most frequent words in Norwegian
    newspapers, as counted by the University of Oslo's Tekstlab project
