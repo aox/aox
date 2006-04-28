@@ -284,6 +284,6 @@ void WebPage::startPage( const String & name, const String & title )
     addText( title );
     output( "</title>\n" );
     output( "<link rel=stylesheet href=\"udoc.css\" type=\"text/css\">\n"
-            "<link rel=generator href=\"http://www.oryx.com/udoc/\">\n"
+            "<link rel=generator href=\"http://www.archiveopteryx.org/udoc/\">\n"
             "</head><body>\n" );
 }
