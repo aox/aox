@@ -711,8 +711,8 @@ void showBuildconf()
     int i = 0;
     while ( buildinfo[i] && *buildinfo[i] )
         printf( "%s\n", buildinfo[i++] );
-    printf( "\n" );
 
+    printf( "Jamsettings:\n" );
     printf( "CONFIGDIR = %s\n",
             Configuration::compiledIn( Configuration::ConfigDir ) );
     printf( "PIDFILEDIR = %s\n",
