@@ -27,6 +27,8 @@ Next release (2006-05-08: 1.06)
   - Fix the i/97 problem.
   - Don't set needHeaders to false in FETCH.
   - Generate a more verbose configuration file.
+  - A more cooperative init script (RedHat, SuSE/LSB).
+  - "aox show build" includes buildinfo (changes needed to tarball).
 
   Desired:
 
