@@ -28,7 +28,7 @@ Next release (2006-05-08: 1.06)
   - Don't set needHeaders to false in FETCH.
   - Generate a more verbose configuration file.
   - A more cooperative init script (RedHat, SuSE/LSB).
-  - "aox show build" includes buildinfo (changes needed to tarball).
+  - "aox show build" includes buildinfo.
 
   Desired:
 
@@ -547,30 +547,6 @@ ms migrate -n
   'ms migrate -n' could write an 1-2-line description of the first
   schema upgrade to be done, do it, report whether it failed, then
   roll the transaction back instead of committing it.
-
-
-Recording the build source wouldn't be bad.
-
-  tarball could establish the identity conclusively:
-
-  p4 have Jamfile | sed 's/\/Jamfile.*//'
-  p4 counter change
-
-  It would then need to sync the temporary client to that change
-  instead of to head. Fine.
-
-  This would naturally go into the 'what was built' field. But I don't
-  like tarball changing anything. Should we perhaps have a new file,
-  buildinfo, with one-per-line fields that eventually are shown by 'ms
-  show build'?
-
-  $ cat buildinfo
-  Source tree: //oryx/rel/0.97
-  Change number: 50894
-
-  Any distributors wanting to add patches would be encouraged to add
-  something to the file. Or should we pick up buildinfo.*, so people
-  can add their own files?
 
 
 ms restart and ms start don't check all they could
