@@ -85,7 +85,9 @@ void Authenticate::execute()
 
     // Now, feed the handler until it can make up its mind.
 
-    while ( !m->done() ) {
+    while ( !m->done() &&
+            ( m->state() == SaslMechanism::IssuingChallenge ||
+              m->state() == SaslMechanism::AwaitingResponse ) ) {
         if ( m->state() == SaslMechanism::IssuingChallenge ) {
             String c = m->challenge().e64();
 
@@ -96,7 +98,7 @@ void Authenticate::execute()
                 return;
             }
         }
-        else if ( m->state() == SaslMechanism::AwaitingResponse ) {
+        if ( m->state() == SaslMechanism::AwaitingResponse ) {
             if ( !r ) {
                 return;
             }
@@ -106,14 +108,14 @@ void Authenticate::execute()
             else {
                 m->readResponse( r->de64() );
                 r = 0;
-                if ( !m->done() ) {
+                if ( !m->done() )
                     m->execute();
-                    if ( m->state() == SaslMechanism::Authenticating )
-                        return;
-                }
             }
-        }
-    }
+        } 
+   }
+
+    if ( m->state() == SaslMechanism::Authenticating )
+        return;
 
     if ( !m->done() )
         return;
