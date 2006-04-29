@@ -6,7 +6,9 @@ rule ReadmeFile {
     t = [ FDirName $(TOP) $(BUILD) $(<) ] ;
     Depends readme : $(t) ;
     Clean clean : $(t) ;
-    Depends $(t) : $(<) ;
+    LOCATE_TARGET = [ FDirName $(TOP) $(BUILD) ] ;
+    Depends $(t) : $(<) $(LOCATE_TARGET) ;
+    MkDir $(LOCATE_TARGET) ;
     SEARCH on $(<) = $(SEARCH_SOURCE) ;
     EngraveConfig $(t) : $(<) ;
     SEARCH on $(<) = $(t) ;
