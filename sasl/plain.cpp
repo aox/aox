@@ -12,8 +12,8 @@
     "AUTH=LOGIN". We don't support that, because there's no usable
     specification for it and the implementations vary significantly,
     probably incompatibly. See
-    http://www.washington.edu/imap/listarch/1999/msg00078.html for
-    details.)
+    http://web.archive.org/web/20030117014240/http://www.washington.edu/imap/listarch/1999/msg00078.html
+    for details.)
 */
 
 #include "plain.h"
