@@ -29,6 +29,7 @@ Next release (2006-05-08: 1.06)
   - Generate a more verbose configuration file.
   - A more cooperative init script (RedHat, SuSE/LSB).
   - "aox show build" includes buildinfo.
+  - SASL infinite loop fixed (in IMAP, but not pop3d).
 
   Desired:
 
