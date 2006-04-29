@@ -7,3 +7,16 @@ Build aox : aox.cpp ;
 Program aox :
     aox database server mailbox message user core encodings extractors ;
 
+rule BuildInfo {
+    Depends $(<) : $(>) ;
+    Clean clean : $(<) ;
+    SEARCH on $(>) = .. ;
+    MakeLocate $(<) : $(LOCATE_SOURCE) ;
+}
+
+actions BuildInfo {
+    sed -e 's/##.*//' -e 's/[\\"]/\\&/g' < $(>) | \
+    grep . | sed -e 's/^/"/' -e 's/$/",/' > $(<)
+}
+
+BuildInfo buildinfo.inc : buildinfo ;

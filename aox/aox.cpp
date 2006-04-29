@@ -46,6 +46,12 @@ char * servers[] = {
 const int nservers = sizeof( servers ) / sizeof( servers[0] );
 
 
+char * buildinfo[] = {
+#include "buildinfo.inc"
+    ""
+};
+
+
 String next();
 int opt( char );
 void bad( const String &, const String &, const String & = "" );
@@ -701,6 +707,12 @@ void showBuildconf()
             Configuration::compiledIn( Configuration::Version ) );
 
     printf( "Built on " __DATE__ " " __TIME__ "\n" );
+
+    int i = 0;
+    while ( buildinfo[i] && *buildinfo[i] )
+        printf( "%s\n", buildinfo[i++] );
+    printf( "\n" );
+
     printf( "CONFIGDIR = %s\n",
             Configuration::compiledIn( Configuration::ConfigDir ) );
     printf( "PIDFILEDIR = %s\n",
