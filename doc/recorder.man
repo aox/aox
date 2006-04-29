@@ -65,8 +65,8 @@ following command:
 .IP
 $LIBDIR/archiveopteryx restart
 .SS "Start recorder"
-To make recorder listen on the normal port 143 and forward connections
-to the real server:
+To make recorder listen on port 1430 and forward connections
+to the real server on port 143:
 .IP
 $SBINDIR/recorder 1430 192.0.2.17 143 /tmp/bugreport
 .SS "Connect to recorder"
