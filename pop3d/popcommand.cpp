@@ -238,7 +238,9 @@ bool PopCommand::auth()
 
     // This code is essentially a copy of imapd/handlers/authenticate.
     // I'll think about how to avoid the duplication later.
-    while ( !d->m->done() ) {
+    while ( !d->m->done() &&
+            ( d->m->state() == SaslMechanism::IssuingChallenge ||
+              d->m->state() == SaslMechanism::AwaitingResponse ) ) {
         if ( d->m->state() == SaslMechanism::IssuingChallenge ) {
             String c = d->m->challenge().e64();
 
@@ -261,12 +263,13 @@ bool PopCommand::auth()
                 d->r = 0;
                 if ( !d->m->done() ) {
                     d->m->execute();
-                    if ( d->m->state() == SaslMechanism::Authenticating )
-                        return false;
                 }
             }
         }
     }
+
+    if ( d->m->state() == SaslMechanism::Authenticating )
+        return false;
 
     if ( !d->m->done() )
         return false;
