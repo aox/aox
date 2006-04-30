@@ -50,6 +50,9 @@ void * Allocator::alloc( uint s, uint n )
         die( Memory );
     if ( n > s / sizeof( void* ) )
         n = s / sizeof( void* );
+    if ( s > 262144 ) {
+        fprintf( stderr, "%s", "" );
+    }
     Allocator * a = Allocator::allocator( s );
     while ( a->base == a->capacity && a->next )
         a = a->next;
