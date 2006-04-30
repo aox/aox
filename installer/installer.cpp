@@ -287,7 +287,7 @@ void oryxUser()
         cmd.append( " " );
         cmd.append( ORYXUSER );
     }
-    else if ( exists( "/sbin/pw" ) ) {
+    else if ( exists( "/usr/sbin/pw" ) ) {
         cmd.append( "/usr/sbin/pw useradd " );
         cmd.append( ORYXUSER );
         cmd.append( " -g " );
@@ -736,7 +736,7 @@ void permissions()
 
     // If the message-copy-directory exists and has the wrong ownership
     // or permissions:
-    if ( stat( mcd.cstr(), &st ) == 0 && 
+    if ( stat( mcd.cstr(), &st ) == 0 &&
          ( !( p && g ) ||
            ( st.st_uid != p->pw_uid ||
              (gid_t)st.st_gid != (gid_t)g->gr_gid ||
