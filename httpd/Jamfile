@@ -6,9 +6,3 @@ SubInclude TOP encodings ;
 HDRS += [ FDirName $(TOP) httpd ] ;
 
 Build http : http.cpp page.cpp link.cpp httpsession.cpp mailboxview.cpp ;
-Build httpmain : httpd.cpp ;
-
-Server httpd : http httpmain database message server mailbox core
-    encodings user extractors ;
-
-

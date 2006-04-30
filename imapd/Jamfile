@@ -9,8 +9,3 @@ HDRS += [ FDirName $(TOP) imapd ] ;
 SubInclude TOP imapd handlers ;
 
 Build imap : imap.cpp imapsession.cpp command.cpp ;
-
-Build imapd : imapd.cpp ;
-
-Server imapd : imap imapd database message server sasl mailbox core
-    encodings user extractors ;

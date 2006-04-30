@@ -27,5 +27,5 @@ Man 5 : archiveopteryx.conf.man ;
 Man 7 : oryx.man archiveopteryx.man ;
 
 Man 8 :
-    deliver.man imapd.man logd.man ocd.man pop3d.man smtpd.man
-    tlsproxy.man installer.man aox.man ms.man recorder.man msconsole.man ;
+    deliver.man logd.man ocd.man
+    tlsproxy.man installer.man aox.man ms.man recorder.man ;

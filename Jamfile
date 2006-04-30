@@ -5,12 +5,8 @@ SubInclude TOP deliver ;
 SubInclude TOP doc ;
 SubInclude TOP encodings ;
 SubInclude TOP ocd ;
-SubInclude TOP httpd ;
 SubInclude TOP logd ;
-SubInclude TOP imapd ;
 SubInclude TOP aox ;
-SubInclude TOP pop3d ;
-SubInclude TOP smtpd ;
 SubInclude TOP server ;
 SubInclude TOP db ;
 SubInclude TOP recorder ;
@@ -20,7 +16,6 @@ SubInclude TOP scripts ;
 SubInclude TOP tlsproxy ;
 SubInclude TOP installer ;
 SubInclude TOP extractors ;
-SubInclude TOP sieved ;
 SubInclude TOP archiveopteryx ;
 
 if ( $(BUILDDOC) ) {

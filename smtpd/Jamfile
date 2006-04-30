@@ -5,7 +5,3 @@ SubInclude TOP message ;
 HDRS += [ FDirName $(TOP) smtpd ] ;
 
 Build smtp : smtp.cpp ;
-Build smtpmain : smtpd.cpp ;
-
-Server smtpd : smtp smtpmain database message server mailbox core
-    encodings user extractors ;
