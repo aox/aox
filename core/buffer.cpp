@@ -72,8 +72,8 @@ void Buffer::append( const char *s, uint l )
         int remains = l - copied;
         Vector *f = new Vector;
         f->len = remains;
-        if ( f->len < 16384 )
-            f->len = 16384;
+        if ( f->len < 1500 )
+            f->len = 1500;
         f->len = Allocator::rounded( f->len );
         f->base = (char*)Allocator::alloc( f->len );
 
