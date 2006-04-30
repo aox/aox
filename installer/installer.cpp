@@ -707,7 +707,8 @@ void permissions()
     // If the configuration file doesn't exist, or has the wrong
     // ownership or permissions:
     if ( stat( cf.cstr(), &st ) != 0 || !p || !g ||
-         st.st_uid != p->pw_uid || st.st_gid != g->gr_gid ||
+         st.st_uid != p->pw_uid ||
+         (gid_t)st.st_gid != (gid_t)g->gr_gid ||
          st.st_mode & S_IRWXU != ( S_IRUSR|S_IWUSR ) )
     {
         if ( report ) {
@@ -737,7 +738,8 @@ void permissions()
     // or permissions:
     if ( stat( mcd.cstr(), &st ) == 0 && 
          ( !( p && g ) ||
-           ( st.st_uid != p->pw_uid || st.st_gid != g->gr_gid ||
+           ( st.st_uid != p->pw_uid ||
+             (gid_t)st.st_gid != (gid_t)g->gr_gid ||
              st.st_mode & S_IRWXU != S_IRWXU ) ) )
     {
         if ( report ) {
@@ -767,8 +769,10 @@ void permissions()
     // If the jail directory exists and has the wrong ownership or
     // permissions (i.e. we own it or have any rights to it):
     if ( stat( jd.cstr(), &st ) == 0 &&
-         ( ( st.st_uid != 0 && !( p && st.st_uid != p->pw_uid ) ) ||
-           ( st.st_gid != 0 && !( g && st.st_gid != g->gr_gid ) ) ||
+         ( ( st.st_uid != 0 &&
+             !( p && st.st_uid != p->pw_uid ) ) ||
+           ( st.st_gid != 0 &&
+             !( g && (gid_t)st.st_gid != (gid_t)g->gr_gid ) ) ||
            ( st.st_mode & S_IRWXO ) != 0 ) )
     {
         if ( report ) {
