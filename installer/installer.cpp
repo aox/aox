@@ -236,7 +236,7 @@ void oryxGroup()
         cmd.append( "/usr/sbin/groupadd " );
         cmd.append( ORYXGROUP );
     }
-    else if ( exists( "/sbin/pw" ) ) {
+    else if ( exists( "/usr/sbin/pw" ) ) {
         cmd.append( "/usr/sbin/pw groupadd " );
         cmd.append( ORYXGROUP );
     }
