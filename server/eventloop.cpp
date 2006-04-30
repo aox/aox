@@ -290,6 +290,8 @@ void EventLoop::start()
             int fd = c->fd();
             if ( fd >= 0 )
                 dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
+            else
+                removeConnection( c );
             ++it;
         }
     }
