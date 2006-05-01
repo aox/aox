@@ -19,6 +19,10 @@
 #include "fieldcache.h"
 #include "addresscache.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 
 /*! \nodoc */
 
