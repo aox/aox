@@ -501,7 +501,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             // is an error using the specified charset (i.e., a dozen
             // lines lower).
 
-            String b = body.mid( 0, 2048 ).lower().simplified();
+            String b = body.lower().simplified();
 
             int i = 0;
             while ( i >= 0 ) {
