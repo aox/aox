@@ -1,0 +1,9 @@
+SubDir TOP aoximport ;
+SubInclude TOP encodings ;
+SubInclude TOP message ;
+SubInclude TOP server ;
+
+Build aoximport : aoximport.cpp ;
+Program aoximport :
+    aoximport database server mailbox message user core encodings extractors ;
+
