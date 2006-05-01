@@ -70,6 +70,7 @@ void showCounts();
 void upgradeSchema();
 void listMailboxes();
 void listUsers();
+void listAliases();
 void createUser();
 void deleteUser();
 void createMailbox();
@@ -201,8 +202,10 @@ int main( int ac, char *av[] )
             listUsers();
         else if ( noun == "mailboxes" )
             listMailboxes();
+        else if ( noun == "aliases" )
+            listAliases();
         else
-            bad( verb, noun, "users, mailboxes" );
+            bad( verb, noun, "users, mailboxes, aliases" );
     }
     else if ( verb == "create" || verb == "delete" ) {
         String noun = next().lower();
@@ -323,11 +326,10 @@ class Dispatcher
 {
 public:
     enum Command {
-        Start, ShowCounts, ShowSchema, UpgradeSchema,
-        ListMailboxes, ListUsers, CreateUser, DeleteUser,
-        ChangePassword, ChangeUsername, ChangeAddress,
-        CreateMailbox, DeleteMailbox, CreateAlias, DeleteAlias,
-        Vacuum
+        Start, ShowCounts, ShowSchema, UpgradeSchema, ListMailboxes,
+        ListUsers, ListAliases, CreateUser, DeleteUser, ChangePassword,
+        ChangeUsername, ChangeAddress, CreateMailbox, DeleteMailbox,
+        CreateAlias, DeleteAlias, Vacuum
     };
 
     List< Query > * chores;
@@ -401,6 +403,10 @@ public:
 
         case ListUsers:
             listUsers();
+            break;
+
+        case ListAliases:
+            listAliases();
             break;
 
         case CreateUser:
@@ -1085,6 +1091,38 @@ void listUsers()
               "join addresses a on (al.address=a.id)" );
     if ( !pattern.isEmpty() )
         s.append( " where login like $1" );
+    d->query = new Query( s, d );
+    if ( !pattern.isEmpty() )
+        d->query->bind( 1, sqlPattern( pattern ) );
+    d->query->execute();
+}
+
+
+void listAliases()
+{
+    if ( d ) {
+        while ( d->query->hasResults() ) {
+            Row * r = d->query->nextRow();
+            printf( "%s: %s\n",
+                    r->getString( "address" ).cstr(),
+                    r->getString( "name" ).cstr() );
+        }
+        return;
+    }
+
+    String pattern = next();
+    end();
+
+    Database::setup();
+
+    d = new Dispatcher( Dispatcher::ListAliases );
+
+    String s( "select localpart||'@'||domain as address, m.name "
+              "from aliases join addresses a on (address=a.id) "
+              "join mailboxes m on (mailbox=m.id)" );
+    if ( !pattern.isEmpty() )
+        s.append( " where localpart||'@'||domain like $1 or "
+                  "m.name like $1" );
     d->query = new Query( s, d );
     if ( !pattern.isEmpty() )
         d->query->bind( 1, sqlPattern( pattern ) );
@@ -1779,6 +1817,20 @@ void help()
             "      aox ls users ab?cd*\n"
         );
     }
+    else if ( a == "list" && b == "aliases" ) {
+        fprintf(
+            stderr,
+            "  list aliases -- Display delivery aliases.\n\n"
+            "    Synopsis: aox list aliases [pattern]\n\n"
+            "    Displays a list of aliases where either the address or the\n"
+            "    target mailbox matches the specified shell glob pattern.\n"
+            "    Without a pattern, all aliases are listed.\n\n"
+            "    ls is an acceptable abbreviation for list.\n\n"
+            "    Examples:\n\n"
+            "      aox list aliases\n"
+            "      aox ls aliases /users/\\*\n"
+        );
+    }
     else if ( a == "create" && b == "user" ) {
         fprintf(
             stderr,
@@ -1903,12 +1955,15 @@ void help()
             "    upgrade schema     -- Upgrades an older schema to work with\n"
             "                          the current server.\n"
             "\n"
-            "    list users         -- User and mailbox management.\n"
-            "    create user\n"
-            "    delete user\n"
-            "    change password\n"
-            "    create mailbox\n"
-            "    delete mailbox\n\n"
+            "                       -- User and mailbox management.\n"
+            "    list <users|mailboxes|aliases>\n"
+            "    create <user|mailbox|alias>\n"
+            "    delete <user|mailbox|alias>\n"
+            "    change <username|password|address>\n"
+            "\n"
+            "    vacuum             -- VACUUM the database.\n"
+            "    anonymise          -- Anonymise a message for a bug report.\n"
+            "\n"
             "  Use \"aox help command name\" for more specific help.\n"
         );
     }

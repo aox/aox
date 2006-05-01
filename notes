@@ -30,6 +30,7 @@ Next release (2006-05-08: 1.06)
   - A more cooperative init script (RedHat, SuSE/LSB).
   - "aox show build" includes buildinfo.
   - SASL infinite loop fixed.
+  - aox list aliases
 
   Must-Do:
 
@@ -49,14 +50,6 @@ Next few releases
   - SORT/THREAD
   - Working webmail
   - More character encodings (EUC-KR)
-
-
-ms list aliases
-
-  # aox list aliases
-  aox list: Unknown argument: aliases (try users, mailboxes).
-  # aox list alias
-  aox list: Unknown argument: alias (try users, mailboxes)
 
 
 ocd needs work (mike@waspfactory.org)
