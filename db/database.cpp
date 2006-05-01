@@ -228,14 +228,20 @@ void Database::addHandle( Database * d )
 void Database::removeHandle( Database * d )
 {
     handles->remove( d );
-    if ( handles->isEmpty() ) {
-        List< Query >::Iterator q( queries );
-        while ( q ) {
-            q->setError( "No available database handles." );
-            q->notify();
-            ++q;
-        }
+    if ( !handles->isEmpty() )
+        return;
+
+    List< Query >::Iterator q( queries );
+    while ( q ) {
+        q->setError( "No available database handles." );
+        q->notify();
+        ++q;
     }
+
+    if ( server().protocol() == Endpoint::Unix &&
+         !server().address().startsWith( File::root() ) )
+        ::log( "All database handles closed; cannot create any new ones.",
+               Log::Disaster );
 }
 
 

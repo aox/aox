@@ -428,12 +428,6 @@ predictive db fetching
   tuple for the n UIDs following the highest requested UID.
 
 
-Losing all PSQL connections is bad
-
-  If we have no connections, need to open one and can't, we ought to
-  shutdown. Log a disaster, shutdown all servers.
-
-
 Replace Mailbox::isHome with something correct.
 
   It should look for a mailbox whose owner is different from its
