@@ -51,6 +51,14 @@ Next few releases
   - More character encodings (EUC-KR)
 
 
+ms list aliases
+
+  # aox list aliases
+  aox list: Unknown argument: aliases (try users, mailboxes).
+  # aox list alias
+  aox list: Unknown argument: alias (try users, mailboxes)
+
+
 ocd needs work (mike@waspfactory.org)
 
   1. The code (along with user/mailbox) needs cleaning up.
