@@ -458,47 +458,56 @@ void AddressParser::add( String name,
     AddressParser because References and Message-ID both use the
     address productions in RFC 822/1034.
 
+    This function does it best to skip ahead to the next message-id if
+    there is a syntax error in one. It silently ignores the
+    errors. This is because it's so common to have a bad message-id in
+    the references field of an otherwise impeccable message.
 */
 
 AddressParser * AddressParser::references( const String & r )
 {
     AddressParser * ap = new AddressParser( "" );
     ap->d->s = r;
-    bool ok = true;
     int i = r.length() - 1;
     ap->comment( i );
-    while ( ok && i > 0 && r[i] == '>' ) {
-        i--;
+    while ( i > 0 ) {
+        int l = i;
+        bool ok = true;
         String dom;
-        if ( r[i] != '<' )
-            dom = ap->domain( i );
-        if ( r[i] == '<' ) {
-            // Some people send illegal message-ids, the most common
-            // being "<no.id>". We cater to it for the time being. In
-            // References we handle it by ignoring it.
-            i--;
+        String lp;
+        if ( r[i] != '>' ) {
+            ok = false;
         }
         else {
-            if ( r[i] != '@' )
-                ok = false;
             i--;
-            String lp = ap->localpart( i );
-            if ( r[i] != '<' )
+            dom = ap->domain( i );
+            if ( r[i] == '@' )
+                i--;
+            else
                 ok = false;
-            i--;
+            lp = ap->localpart( i );
+            if ( r[i] == '<' )
+                i--;
+            else
+                ok = false;
             ap->comment( i );
             if ( ap->d->s[i] == ',' ) {
                 i--;
                 ap->comment( i );
             }
-            if ( dom.isEmpty() || lp.isEmpty() )
-                ok = false;
-            if ( ok )
-                ap->add( 0, lp, dom );
+        }
+        if ( ok && !dom.isEmpty() && !lp.isEmpty() ) {
+            ap->add( 0, lp, dom );
+        }
+        else {
+            i = l;
+            i--;
+            while ( i >= 0 && r[i] != ' ' )
+                i--;
+            ap->comment( i );
         }
     }
-    if ( !ok || i >= 0 )
-        ap->error( "Syntax error", i );
+    ap->d->e = "";
     return ap;
 }
 
