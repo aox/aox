@@ -298,8 +298,7 @@ void EventLoop::start()
 
     // This is for event loop shutdown. A little brutal. Proper
     // shutdown should first get rid of listeners, then a (long)
-    // while later call this. Note that there is similar code in
-    // ConsoleLoop.
+    // while later call this.
     log( "Shutting down event loop", Log::Debug );
     SortedList< Connection >::Iterator it( d->connections );
     while ( it ) {
