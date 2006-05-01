@@ -3,12 +3,14 @@
 #include "append.h"
 
 #include "date.h"
-#include "string.h"
+#include "imap.h"
+#include "flag.h"
 #include "list.h"
+#include "query.h"
+#include "string.h"
 #include "message.h"
 #include "mailbox.h"
 #include "injector.h"
-#include "imap.h"
 #include "imapsession.h"
 
 
@@ -26,7 +28,7 @@ public:
     Mailbox * mailbox;
     Message * message;
     Injector * injector;
-    List< String > flags;
+    StringList flags;
     Permissions * permissions;
 };
 
@@ -150,6 +152,21 @@ void Append::execute()
     }
 
     if ( !d->injector ) {
+        if ( !d->flags.isEmpty() ) {
+            StringList unknown;
+            StringList::Iterator it( d->flags );
+            while ( it ) {
+                Flag * f = Flag::find( *it );
+                if ( !f )
+                    unknown.append( *it );
+                ++it;
+            }
+            // we create names for any flags we don't know before we
+            // insert the message, or in parallel. if we can't insert
+            // the message, we'll make the flags anyway.
+            if ( !unknown.isEmpty() )
+                (void)new FlagCreator( this, unknown );
+        }
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
         m->append( d->mailbox );
         d->injector = new Injector( d->message, m, this );
@@ -166,6 +183,30 @@ void Append::execute()
             error( No, "Could not append to " + d->mbx );
         }
         else {
+            List<Query> l;
+            if ( !d->flags.isEmpty() ) {
+                StringList::Iterator i( d->flags );
+                while ( i ) {
+                    Flag * f = Flag::find( *i );
+                    if ( f ) {
+                        Query * q 
+                            = new Query( "insert into flags (flag,uid,mailbox) "
+                                         "values ($1,$2,$3)",
+                                         0 );
+                        q->bind( 1, f->id() );
+                        q->bind( 2, d->injector->uid( d->mailbox ) );
+                        q->bind( 3, d->mailbox->id() );
+                        l.append( q );
+                    }
+                    else {
+                        // discards all the queries created above.
+                        // ok. this very seldom happens anyway.
+                        return;
+                    }
+                    ++i;
+                }
+            }
+            
             d->injector->announce();
             respond( "OK [APPENDUID " +
                      fn( d->mailbox->uidvalidity() ) +
@@ -173,6 +214,11 @@ void Append::execute()
                      fn( d->injector->uid( d->mailbox ) ) +
                      "] done",
                      Tagged );
+            List<Query>::Iterator i( l );
+            while ( i ) {
+                i->execute();
+                ++i;
+            }
         }
         finish();
     }
