@@ -618,7 +618,8 @@ Query * Mailbox::create( Transaction * t, User * owner )
     Query * q;
 
     if ( deleted() ) {
-        q = new Query( "update mailboxes set deleted='f',owner=$2 "
+        q = new Query( "update mailboxes "
+                       "set deleted='f',owner=$2,first_recent=uidnext "
                        "where id=$1", 0 );
         q->bind( 1, id() );
     }
