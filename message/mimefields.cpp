@@ -219,10 +219,16 @@ void ContentType::parse( const String &s )
 
     // Parse: type "/" subtype *( ";" attribute = value )
     if ( ( t = p.mimeToken().lower() ) != "" && p.character() == '/' &&
-         ( st = p.mimeToken().lower() ) != "" )
+         ( st = p.mimeToken().lower() ) != "" ) {
         parseParameters( &p );
-    else
+    }
+    else if ( s == "text" ) {
+        t = "text";
+        st = "plain";
+    }
+    else {
         setError( "Invalid Content-Type: '" + s + "'" );
+    }
 
     if ( valid() && t == "multipart" && parameter( "boundary" ).isEmpty() )
         setError( "Multipart entities must have a boundary parameter." );
