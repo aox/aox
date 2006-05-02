@@ -48,8 +48,8 @@ int main( int argc, char *argv[] )
         }
         else if ( mc == "none" ) {
             if ( !mcd.isEmpty() )
-                log( "Disregarding message-copy-directory "
-                     "because message-copy is set to none " );
+                log( "Disregarding message-copy-directory (value " + mcd +
+                     ") because message-copy is set to none " );
         }
         else {
             log( "Invalid value for message-copy: " + mc, Log::Disaster );
