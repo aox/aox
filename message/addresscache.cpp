@@ -147,8 +147,9 @@ void AddressLookup::execute() {
 
         uint id = r->getInt( "id" );
         address->setId( id );
-        Address *a = new Address( address->uname(), address->localpart(),
-                                  address->domain() );
+        Address *a = new Address( address->uname().cstr(),
+                                  address->localpart().cstr(),
+                                  address->domain().cstr() );
         a->setId( id );
 
         String s( a->toString() );
