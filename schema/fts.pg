@@ -1,22 +1,59 @@
+-- There are a couple of things you need to do manually:
+--
+--     1. psql archiveopteryx -f contrib/tsearch2.sql
+--     2. createlang plpgsql archiveopteryx
+--     3. Find out what your current locale is (e.g. "show lc_ctype")
+--        and execute the following statement (assuming a locale of
+--        'en_US.UTF-8'):
+--
+--        update pg_ts_cfg set locale='en_US.UTF-8' where \
+--        ts_name='default';
+--
+-- The remainder of the script may then be executed with psql -f fts.pg.
+
+
+-- Allow Archiveopteryx to use tsearch2.
+
 grant select on pg_ts_dict to oryx;
 grant select on pg_ts_parser to oryx;
 grant select on pg_ts_cfg to oryx;
 grant select on pg_ts_cfgmap to oryx;
+
+
+-- Create a new GiST index on bodyparts.text, and a trigger to update
+-- the index every time a new entry is inserted.
 
 alter table bodyparts add ftidx tsvector;
 update bodyparts set ftidx=to_tsvector('default',text);
 create index bodyparts_ftidx on bodyparts using gist(ftidx);
 vacuum full analyze bodyparts;
 
-alter table header_fields add subjectidx tsvector;
-update header_fields set subjectidx=to_tsvector('default',text);
-create index hf_subjectidx on header_fields using gist(subjectidx);
-vacuum full analyze header_fields;
-
 create trigger bodyparts_ftupdate before insert on bodyparts
 for each row execute procedure tsearch2(ftidx, text);
 
--- (How do I restrict this to only Subject inserts?)
--- create trigger hf_ftupdate before insert on header_fields
--- for each row execute procedure tsearch2(subjectidx, value);
 
+-- XXX: The following code is disabled, because we use copy ... binary
+-- to populate header_fields, and there's no binary input function for
+-- the tsvector type. Do we have to use INSERT if we're running with
+-- db = postgres+tsearch2?
+--
+-- Create a new GiST index on header_fields.value for Subject fields,
+-- and a trigger to update the index every time a new Subject field
+-- is inserted.
+--
+-- alter table header_fields add subjectidx tsvector;
+-- update header_fields set subjectidx=to_tsvector('default',value) where field=20;
+-- create index hf_subjectidx on header_fields using gist(subjectidx) where field=20;
+-- vacuum full analyze header_fields;
+-- 
+-- create function tsearch2_subject() returns trigger as $$
+-- begin
+--     if NEW.field = 20 then
+--         perform tsearch2(NEW.subjectidx, NEW.value);
+--     end if;
+--     return NEW;
+-- end;
+-- $$ language plpgsql;
+-- 
+-- create trigger hf_ftupdate before insert on header_fields
+-- for each row execute procedure tsearch2_subject();

@@ -31,6 +31,7 @@ Next release (2006-05-08: 1.06)
   - "aox show build" includes buildinfo.
   - SASL infinite loop fixed.
   - aox list aliases
+  - tsearch2 works properly for bodyparts, but not header_fields.
 
   Must-Do:
 
@@ -40,7 +41,6 @@ Next release (2006-05-08: 1.06)
   Desired:
 
   - Extra indexes where needed.
-  - Properly working tsearch2.
   - Webmail archive pages.
   - DNS lookups for configuration variables
 
