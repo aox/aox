@@ -16,7 +16,7 @@ rule BuildInfo {
 
 actions BuildInfo {
     sed -e 's/##.*//' -e 's/[\\"]/\\&/g' < $(>) | \
-    grep . | sed -e 's/^/"/' -e 's/$/",/' > $(<)
+    grep . | sed -e 's/\(.*\)/"\1",/' > $(<)
 }
 
 BuildInfo buildinfo.inc : buildinfo ;
