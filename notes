@@ -32,6 +32,12 @@ Next release (2006-05-08: 1.06)
   - SASL infinite loop fixed.
   - aox list aliases
   - tsearch2 works properly for bodyparts, but not header_fields.
+  - Handle content-type: text.
+  - Make APPEND honour supplied flags.
+  - installer: FreeBSD fixes.
+  - Ignore bad References.
+  - Some memory usage fixes.
+  - Set first_recent when resurrecting a deleted mailbox.
 
   Must-Do:
 
