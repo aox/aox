@@ -47,7 +47,7 @@ int main( int argc, char *argv[] )
             s.setChrootMode( Server::MessageCopyDir );
         }
         else if ( mc == "none" ) {
-            if ( !mcd.isEmpty() )
+            if ( Configuration::present( Configuration::MessageCopyDir ) )
                 log( "Disregarding message-copy-directory (value " + mcd +
                      ") because message-copy is set to none " );
         }
