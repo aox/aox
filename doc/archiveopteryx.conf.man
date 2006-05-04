@@ -295,8 +295,9 @@ keeps only those messages that could not be delivered because of errors, and
 keeps copies of all messages.
 .IP message-copy-directory
 specifies a directory to which mail delivered via LMTP/SMTP is copied, if
-.I message-COPY
-is set.
+.I message-copy
+is set. Its default value is
+.IR $MESSAGEDIR .
 .IP
 If
 .I message-copy-directory

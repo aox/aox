@@ -43,5 +43,5 @@ Displays variables configured in
 .IR archiveopteryx.conf .
 .IP
 .SH SEE ALSO
-.BR aox (7),
+.BR archiveopteryx (7),
 http://www.archiveopteryx.org

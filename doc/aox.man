@@ -82,6 +82,10 @@ is an acceptable abbreviation for
 .IP "aox list users [pattern]"
 Displays a list of users matching the specified shell glob pattern.
 Without a pattern, all users are listed.
+.IP "aox list aliases [pattern]"
+Displays a list of aliases where either the address or the target
+mailbox matches the specified shell glob pattern. Without a pattern,
+all aliases are listed.
 .IP "aox create user <username> <password> <email-address>"
 Creates a new Archiveopteryx user with the specified username, password, and
 email address.
