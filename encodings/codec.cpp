@@ -209,42 +209,59 @@ Codec * Codec::byName( const String & s )
     Codec * codec = 0;
 #include "codec-map.inc"
 
-    if ( !codec ) {
-        // some people use "iso 8859 1", "iso_8859-1", etc.
-        i = 0;
-        name = "";
-        while ( i < (int)s.length() ) {
-            if ( s[i] == '_' || s[i] == ' ' )
-                name.append( '-' );
-            else
-                name.append( s[i] );
-            i++;
-        }
-        if ( name != s )
-            codec = byName( name );
-        if ( !codec ) {
-            // if that didn't help, let's also insert a hyphen at all
-            // letter/number transitions, and see whether that
-            // helps. (also, because the recursive call does the
-            // above.)
-            i = 0;
-            name = "";
-            while ( i < (int)s.length() ) {
-                name.append( s[i] );
-                if ( ( ( s[i] >= 'a' && s[i] <= 'z' ) ||
-                       ( s[i] >= 'A' && s[i] <= 'Z' ) ) &&
-                     ( s[i+1] >= '0' && s[i+1] <= '9' ) )
-                    name.append( '-' );
-                else if ( ( s[i] >= '0' && s[i] <= '9' ) &&
-                          ( ( s[i+1] >= 'a' && s[i+1] <= 'z' ) ||
-                            ( s[i+1] >= 'A' && s[i+1] <= 'Z' ) ) )
-                    name.append( '-' );
-                i++;
-            }
-            if ( name != s )
-                codec = byName( name );
-        }
+    if ( codec )
+        return codec;
+
+    // some people use "iso 8859 1", "iso_8859-1", etc.
+    i = 0;
+    name = "";
+    while ( i < (int)s.length() ) {
+        if ( s[i] == '_' || s[i] == ' ' )
+            name.append( '-' );
+        else
+            name.append( s[i] );
+        i++;
     }
+    if ( name != s )
+        codec = byName( name );
+    if ( codec )
+        return codec;
+
+    // if that didn't help, let's also insert a hyphen at all
+    // letter/number transitions, and see whether that
+    // helps. (also, because the recursive call does the
+    // above.)
+    i = 0;
+    name = "";
+    while ( i < (int)s.length() ) {
+        if ( s[i] == '_' || s[i] == ' ' )
+            name.append( '-' );
+        else
+            name.append( s[i] );
+        if ( ( ( s[i] >= 'a' && s[i] <= 'z' ) ||
+               ( s[i] >= 'A' && s[i] <= 'Z' ) ) &&
+             ( s[i+1] >= '0' && s[i+1] <= '9' ) )
+            name.append( '-' );
+        else if ( ( s[i] >= '0' && s[i] <= '9' ) &&
+                  ( ( s[i+1] >= 'a' && s[i+1] <= 'z' ) ||
+                    ( s[i+1] >= 'A' && s[i+1] <= 'Z' ) ) )
+            name.append( '-' );
+        i++;
+    }
+    if ( name != s )
+        codec = byName( name );
+
+    if ( codec )
+        return codec;
+
+    // at this point, name has lost some of its chaos, so these four
+    // easy tests should find all the variations of unknown-8bit.
+    if ( name == "unknown" ||
+         name.startsWith( "unknown-" ) ||
+         name.endsWith( "-unknown" ) ||
+         name.contains( "-unknown-" ) )
+        codec = new Unknown8BitCodec;
+
     return codec;
 }
 
