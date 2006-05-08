@@ -265,7 +265,7 @@ void ContentType::parse( const String &s )
         }
         else if ( p.character() == '/' ) {
             // eek. this makes mime look like the special case.
-            st = p.mimeToken();
+            st = p.mimeToken().lower();
             parseParameters( &p );
         }
     }
