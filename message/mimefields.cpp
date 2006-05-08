@@ -216,19 +216,62 @@ ContentType::~ContentType()
 void ContentType::parse( const String &s )
 {
     Parser822 p( s );
+    p.whitespace();
 
-    // Parse: type "/" subtype *( ";" attribute = value )
-    if ( ( t = p.mimeToken().lower() ) != "" && p.character() == '/' &&
-         ( st = p.mimeToken().lower() ) != "" ) {
-        parseParameters( &p );
-    }
-    else if ( s == "text" ) {
+    if ( p.atEnd() ) {
         t = "text";
         st = "plain";
     }
     else {
-        setError( "Invalid Content-Type: '" + s + "'" );
+        t = p.mimeToken().lower();
+        if ( p.atEnd() ) {
+            if ( s == "text" ) {
+                t = "text"; // elm? mailtool? someone does this, anyway.
+                st = "plain";
+            }
+            // the remainder is from RFC 1049
+            else if ( s == "postscript" ) {
+                t = "application";
+                st = "postscript";
+            }
+            else if ( s == "postscript" ) {
+                t = "application";
+                st = "postscript";
+            }
+            else if ( s == "sgml" ) {
+                t = "text";
+                st = "sgml";
+            }
+            else if ( s == "tex" ) {
+                t = "application";
+                st = "x-tex";
+            }
+            else if ( s == "troff" ) {
+                t = "application";
+                st = "x-troff";
+            }
+            else if ( s == "dvi" ) {
+                t = "application";
+                st = "x-dvi";
+            }
+            else if ( s.startsWith( "x-" ) ) {
+                st = "x-rfc1049-" + s;
+                t = "application";
+            }
+            else {
+                // scribe and undefined types
+                setError( "Invalid Content-Type: '" + s + "'" );
+            }
+        }
+        else if ( p.character() == '/' ) {
+            // eek. this makes mime look like the special case.
+            st = p.mimeToken();
+            parseParameters( &p );
+        }
     }
+
+    if ( t.isEmpty() || st.isEmpty() )
+        setError( "Both type and subtype must be nonempty: '" + s + "'" );
 
     if ( valid() && t == "multipart" && parameter( "boundary" ).isEmpty() )
         setError( "Multipart entities must have a boundary parameter." );
@@ -281,9 +324,7 @@ void ContentTransferEncoding::parse( const String &s )
     String t = p.mimeToken().lower();
     p.comment();
 
-    if ( t == "8bit" || t == "binary" )
-        t = "7bit";
-    if ( t == "7bit" )
+    if ( t == "7bit" || t == "8bit" || t == "binary" || t == "unknown" )
         e = String::Binary;
     else if ( t == "quoted-printable" )
         e = String::QP;
