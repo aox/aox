@@ -24,7 +24,7 @@ grant select on pg_ts_cfgmap to oryx;
 -- the index every time a new entry is inserted.
 
 alter table bodyparts add ftidx tsvector;
-update bodyparts set ftidx=to_tsvector('default',text);
+update bodyparts set ftidx=to_tsvector('default',text) where length(text) < 1048576;
 create index bodyparts_ftidx on bodyparts using gist(ftidx);
 vacuum full analyze bodyparts;
 
@@ -35,7 +35,8 @@ for each row execute procedure tsearch2(ftidx, text);
 -- XXX: The following code is disabled, because we use copy ... binary
 -- to populate header_fields, and there's no binary input function for
 -- the tsvector type. Do we have to use INSERT if we're running with
--- db = postgres+tsearch2?
+-- db = postgres+tsearch2? If so, perhaps we can use COPY on structured
+-- and INSERT on unstructured fields?
 --
 -- Create a new GiST index on header_fields.value for Subject fields,
 -- and a trigger to update the index every time a new Subject field
