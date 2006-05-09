@@ -216,7 +216,7 @@ Look into supporting the MySQL protocol after 1.0
 
 Orphaned bodyparts should be cleaned up somehow.
 
-  'ms vacuum -b' now does this, but it requires a full-table lock on
+  'aox vacuum -b' now does this, but it requires a full-table lock on
   mailboxes in order to not zap bodyparts that the injector hasn't
   linked to part_numbers yet (cf. injector.cpp:640).
 
@@ -514,37 +514,29 @@ Logging to syslog
   it can't reopen the logfile.
 
 
-ms migrate -n
+aox migrate -n
 
-  'ms migrate -n' could write an 1-2-line description of the first
+  'aox migrate -n' could write an 1-2-line description of the first
   schema upgrade to be done, do it, report whether it failed, then
   roll the transaction back instead of committing it.
 
 
-ms restart and ms start don't check all they could
+aox restart and aox start don't check all they could
 
   Improvements:
 
-  1. ms restart and ms start should bind to the IP addresses specified
+  1. aox restart and aox start should bind to the IP addresses specified
      by all the relevant servers (but not the ports) and try to
      connect to the ports.
 
-  2. ms restart can issue 'ms start' when the last established
+  2. aox restart can issue 'aox start' when the last established
      connection dies. currently it calls sleep(1).
 
-  3. ms start can expect all the connects to fail. if a connect
+  3. aox start can expect all the connects to fail. if a connect
      succeeds, someone else is using that port, so our server won't.
 
   4. Both of them should expect all the binds to succeed. if not,
      mailstore.conf contains a bad address.
-
-
-"ms check" works... uh...
-
-  To see it, add "loglevel=debug" to mailstore.conf and run ms
-  check. You'll get exactly the message you should.
-
-  Now change it to "log-level=debug" and rerun ms check.
 
 
 Privilege separation
