@@ -147,6 +147,10 @@ C/R
 
 We should figure out some way to not store plaintext passwords.
 
+  In practice, the only way is to subcontract the dirty work to an
+  LDAP server. We act as a MITM while doing SASL authentication and
+  that's all.
+
 
 SASL NTLM authentication
 
@@ -155,6 +159,13 @@ SASL NTLM authentication
 
   http://www.innovation.ch/java/ntlm.html seems to be a reasonable
   description. Cyrus also implements it.
+
+
+SASL LOGIN authentication
+
+  Implemented in Certain Clients ;)
+
+  There's a draft by Ken Murchison.
 
 
 httpd segfaults when you click on a message (Harri).
@@ -336,17 +347,6 @@ The flag_names has the wrong constraint
   Maybe we should rather use unique(lower(name)).
 
 
-GC speedups
-
-  At the moment, sweep() tends to look at all of RAM. if we move the
-  .marked bits into a bitmap like the "allocated" bitmap, we can avoid
-  that.
-
-  It would also be very good if we could avoid sweeping every
-  Allocator during every sweep. Perhaps we should sweep only
-  Allocators that are full or have seen some activity. Or something.
-
-
 String allocation is about half as fast as it could be
 
   String and StringData are allocated independently. String could
@@ -446,11 +446,6 @@ Document IPC structure
 
   Some man page, or some web page, or both, should say who's
   connnecting to who and why.
-
-
-/events/solutionslinux-2006.html needs a plausible audience/task.
-
-  We'll use that to do a better job of /events/linuxtag-2005.html
 
 
 Add a web page about the charset encoding.

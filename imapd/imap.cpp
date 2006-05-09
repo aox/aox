@@ -133,6 +133,10 @@ void IMAP::react( Event e )
         break;
 
     case Timeout:
+        if ( !d->commands.isEmpty() ) {
+            enqueue( "* OK making progress" );
+            break;
+        }
         if ( state() != Logout ) {
             log( "Idle timeout" );
             enqueue( "* BYE autologout\r\n" );
@@ -165,7 +169,10 @@ void IMAP::react( Event e )
             break;
         case Authenticated:
         case Selected:
-            setTimeoutAfter( 1800 );
+            if ( d->commands.isEmpty() )
+                setTimeoutAfter( 1800 );
+            else
+                setTimeoutAfter( 120 );
             break;
         case Logout:
             break;
