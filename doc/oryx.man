@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH oryx 7 2006-05-08 www.oryx.com "Archiveopteryx Documentation"
+.TH oryx 7 2006-06-05 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
 Oryx Mail Systems GmbH - the company behind Archiveopteryx
 .SH SYNOPSIS
@@ -50,8 +50,8 @@ quality can build stable, reliable products.
 .PP
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 1.06, released 2006-05-08,
-http://www.archiveopteryx.org/1.06.html.
+This man page covers Archiveopteryx version 1.07, released 2006-06-05,
+http://www.archiveopteryx.org/1.07.html.
 .SH SEE ALSO
 .BR archiveopteryx (7),
 .BR archiveopteryx.conf (5),
