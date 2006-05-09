@@ -1,54 +1,19 @@
-Next release (2006-05-08: 1.06)
+Next release (2006-06-05: 1.07)
 
   Done:
 
-  - ms add/del/add mailbox fix.
-  - Create /usr/local/archiveopteryx/messages automatically.
-  - Allow UTF8 instead of UNICODE for Postgres encoding.
-  - Make installer check permissions and ownership.
-  * Build correctly on 64 bit systems. (done, including makefile)
-  - Makefile now displays correct post-installation message.
-  - The beginnings of a MANAGESIEVE server.
-  - Fix "USER bad" followed by "USER good" in POP3.
-  * Add TOP and UIDL support to POP3.
-  - Add checkFilePermissions() to ms.
-  * Rename ms to aox.
-  - Rename rcarchiveopteryx to archiveopteryx.
-  - Install expanded README to $READMEDIR.
-  - lib/archiveopteryx status
-  - Assorted udoc fixes.
-  - Content-Location/Content-Base parsing.
-  - MkDir moc's LOCATE_TARGET and man3/html after jam clean.
-  - Delete views based on view as well as source.
-  - Fix two rename bugs: bad inbox in aliases, and uidvalidity=0.
-  - Add derivations from Garbage to fix some segfaults.
-  - Add "aox change username ..." (Thomas)
-  - Add "aox change address ..." (Thomas)
-  - Fix the i/97 and i/101 problems.
-  - Don't set needHeaders to false in FETCH.
-  - Generate a more verbose configuration file.
-  - A more cooperative init script (RedHat, SuSE/LSB).
-  - "aox show build" includes buildinfo.
-  - SASL infinite loop fixed.
-  - aox list aliases
-  - tsearch2 works properly for bodyparts, but not header_fields.
-  - Handle content-type: text.
-  - Make APPEND honour supplied flags.
-  - installer: FreeBSD fixes.
-  - Ignore bad References.
-  - Some memory usage fixes.
-  - Set first_recent when resurrecting a deleted mailbox.
+  (nothing)
 
   Must-Do:
 
   - Update everything that talks about 'imapd(8)' and other extinct
     manpages.
+  - DNS lookups for configuration variables
 
   Desired:
 
   - Extra indexes where needed.
   - Webmail archive pages.
-  - DNS lookups for configuration variables
 
 
 Next few releases
