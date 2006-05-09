@@ -610,6 +610,11 @@ Making injection faster.
   saying that ocd is updated last, and a lower value seen via ocd wins
   over a higher value in the database. Something like that.
 
+  A note to the note: If we use full-text indexing and inject
+  bodyparts before the start of the transaction (ie. not using
+  savepoints), then we'll be able to load the db server nicely just by
+  injecting bodyparts.
+
 
 When TlsServer dies, imaps (993) must go away
 
@@ -634,11 +639,6 @@ Faster mapping from unicode to 8-bit encodings
 
   The tables could be built automatically, compiled in, and would be
   tested by our existing apparatur.
-
-
-We sometimes prefer KOI8-R in dubious circumstances.
-
-  See o/22 (/tlan@stud.ntnu.no).
 
 
 Multipart/signed automatic processing
