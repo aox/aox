@@ -470,24 +470,24 @@ void SessionInitialiser::execute()
 
         d->t = new Transaction( this );
 
-        if ( d->session->readOnly() )
-            d->recent = new Query( "select first_recent from mailboxes "
-                                   "where id=$1", this );
-        else
-            d->recent = new Query( "select first_recent from mailboxes "
-                                   "where id=$1 for update", this );
-        d->recent->bind( 1, d->session->mailbox()->id() );
-        d->t->enqueue( d->recent );
-
-        if ( !d->session->readOnly() ) {
-            Query *q = new Query( "update mailboxes set first_recent=$2 "
-                                  "where id=$1", this );
-            q->bind( 1, d->session->mailbox()->id() );
-            q->bind( 2, d->session->mailbox()->uidnext() );
-            d->t->enqueue( q );
-        }
-
         if ( m->ordinary() ) {
+            if ( d->session->readOnly() )
+                d->recent = new Query( "select first_recent from mailboxes "
+                                       "where id=$1", this );
+            else
+                d->recent = new Query( "select first_recent from mailboxes "
+                                       "where id=$1 for update", this );
+            d->recent->bind( 1, d->session->mailbox()->id() );
+            d->t->enqueue( d->recent );
+
+            if ( !d->session->readOnly() ) {
+                Query * q = new Query( "update mailboxes set first_recent=$2 "
+                                       "where id=$1", this );
+                q->bind( 1, d->session->mailbox()->id() );
+                q->bind( 2, d->session->mailbox()->uidnext() );
+                d->t->enqueue( q );
+            }
+
             d->messages =
                 new Query( "select uid from messages where mailbox=$1 "
                            "and uid>=$2", this );
@@ -584,7 +584,7 @@ void SessionInitialiser::execute()
             m->setSourceUid( uid, r->getInt( "suid" ) );
     }
 
-    if ( (r=d->recent->nextRow()) != 0 ) {
+    if ( d->recent && (r=d->recent->nextRow()) != 0 ) {
         uint recent = r->getInt( "first_recent" );
         uint n = recent;
         while ( n < d->session->uidnext() )

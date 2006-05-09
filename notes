@@ -569,14 +569,6 @@ Make User::create/remove work like Mailbox::create/remove. (AMS)
 Make sure UIDs never exceed 2**31 (and break getInt).
 
 
-\Recent is broken in a number of ways on views.
-
-  - SessionInitialiser doesn't update first_recent after extending
-    uidnext for views.
-  - Selector uses d->session's Recent map, but SEARCH passes in the
-    source mailbox's UIDs.
-
-
 Rendering webmail HTML is presumably good, but...
 
   Knowledge is better than presumption.
