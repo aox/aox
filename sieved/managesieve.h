@@ -1,7 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef SIEVE_H
-#define SIEVE_H
+#ifndef MANAGESIEVE_H
+#define MANAGESIEVE_H
 
 #include "connection.h"
 
@@ -9,11 +9,11 @@ class User;
 class String;
 
 
-class Sieve
+class ManageSieve
     : public Connection
 {
 public:
-    Sieve( int );
+    ManageSieve( int );
 
     enum State { Unauthorised, Authorised };
     void setState( State );
@@ -32,7 +32,7 @@ public:
     void send( const String & );
 
     void setReserved( bool );
-    void setReader( class SieveCommand * );
+    void setReader( class ManageSieveCommand * );
 
     bool supports( const String & ) const;
 
@@ -41,7 +41,7 @@ public:
     static void setup();
 
 private:
-    class SieveData *d;
+    class ManageSieveData *d;
 };
 
 

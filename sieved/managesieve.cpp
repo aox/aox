@@ -1,6 +1,6 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "sieve.h"
+#include "managesieve.h"
 
 #include "log.h"
 #include "user.h"
@@ -9,26 +9,26 @@
 #include "buffer.h"
 #include "eventloop.h"
 #include "stringlist.h"
-#include "sievecommand.h"
 #include "configuration.h"
+#include "managesievecommand.h"
 
 
-class SieveData
+class ManageSieveData
     : public Garbage
 {
 public:
-    SieveData()
-        : state( Sieve::Unauthorised ), user( 0 ),
-          commands( new List< SieveCommand > ), reader( 0 ),
+    ManageSieveData()
+        : state( ManageSieve::Unauthorised ), user( 0 ),
+          commands( new List< ManageSieveCommand > ), reader( 0 ),
           reserved( false )
     {}
 
-    Sieve::State state;
+    ManageSieve::State state;
 
     User * user;
 
-    List< SieveCommand > * commands;
-    SieveCommand * reader;
+    List< ManageSieveCommand > * commands;
+    ManageSieveCommand * reader;
     bool reserved;
 };
 
@@ -40,22 +40,22 @@ static bool supportsDigestMd5 = true;
 static bool supportsAnonymous = true;
 
 
-static void newCommand( List< SieveCommand > *, Sieve *,
-                        SieveCommand::Command, StringList * = 0 );
+static void newCommand( List< ManageSieveCommand > *, ManageSieve *,
+                        ManageSieveCommand::Command, StringList * = 0 );
 
 
-/*! \class Sieve sieve.h
-    This class implements a Sieve server.
+/*! \class ManageSieve sieve.h
+    This class implements a ManageSieve server.
 
-    The Sieve protocol is defined in draft-martin-managesieve-06.txt.
+    The ManageSieve protocol is defined in draft-martin-managesieve-06.txt.
 */
 
-/*! Creates a Sieve server for the fd \a s, and sends the initial banner.
+/*! Creates a ManageSieve server for the fd \a s, and sends the initial banner.
 */
 
-Sieve::Sieve( int s )
-    : Connection( s, Connection::SieveServer ),
-      d( new SieveData )
+ManageSieve::ManageSieve( int s )
+    : Connection( s, Connection::ManageSieveServer ),
+      d( new ManageSieveData )
 {
     capabilities();
     setTimeoutAfter( 1800 );
@@ -64,10 +64,10 @@ Sieve::Sieve( int s )
 
 
 /*! Sets this server's state to \a s, which may be either Unauthorised
-    or Authorised (as defined in Sieve::State).
+    or Authorised (as defined in ManageSieve::State).
 */
 
-void Sieve::setState( State s )
+void ManageSieve::setState( State s )
 {
     d->state = s;
 }
@@ -75,13 +75,13 @@ void Sieve::setState( State s )
 
 /*! Returns the server's current state. */
 
-Sieve::State Sieve::state() const
+ManageSieve::State ManageSieve::state() const
 {
     return d->state;
 }
 
 
-void Sieve::react( Event e )
+void ManageSieve::react( Event e )
 {
     switch ( e ) {
     case Read:
@@ -109,9 +109,9 @@ void Sieve::react( Event e )
 }
 
 
-/*! Parses Sieve client commands. */
+/*! Parses ManageSieve client commands. */
 
-void Sieve::parse()
+void ManageSieve::parse()
 {
     Buffer *b = readBuffer();
 
@@ -136,20 +136,20 @@ void Sieve::parse()
             String cmd = args->take( args->first() )->lower();
 
             if ( cmd == "logout" && args->isEmpty() ) {
-                newCommand( d->commands, this, SieveCommand::Logout );
+                newCommand( d->commands, this, ManageSieveCommand::Logout );
             }
             else if ( cmd == "capability" && args->isEmpty() ) {
-                newCommand( d->commands, this, SieveCommand::Capability );
+                newCommand( d->commands, this, ManageSieveCommand::Capability );
             }
             else if ( d->state == Unauthorised ) {
                 if ( cmd == "starttls" ) {
                     if ( hasTls() )
                         no( "Nested STARTTLS" );
                     else
-                        newCommand( d->commands, this, SieveCommand::StartTls );
+                        newCommand( d->commands, this, ManageSieveCommand::StartTls );
                 }
                 else if ( cmd == "authenticate" ) {
-                    newCommand( d->commands, this, SieveCommand::Authenticate,
+                    newCommand( d->commands, this, ManageSieveCommand::Authenticate,
                                 args );
                 }
                 else {
@@ -158,26 +158,26 @@ void Sieve::parse()
             }
             else if ( d->state == Authorised ) {
                 if ( cmd == "havespace" && args->count() == 2 ) {
-                    newCommand( d->commands, this, SieveCommand::HaveSpace,
+                    newCommand( d->commands, this, ManageSieveCommand::HaveSpace,
                                 args );
                 }
                 else if ( cmd == "putscript" && args->count() == 2 ) {
-                    newCommand( d->commands, this, SieveCommand::PutScript,
+                    newCommand( d->commands, this, ManageSieveCommand::PutScript,
                                 args );
                 }
                 else if ( cmd == "setactive" && args->count() == 1 ) {
-                    newCommand( d->commands, this, SieveCommand::SetActive,
+                    newCommand( d->commands, this, ManageSieveCommand::SetActive,
                                 args );
                 }
                 else if ( cmd == "listscripts" && args->isEmpty() ) {
-                    newCommand( d->commands, this, SieveCommand::ListScripts );
+                    newCommand( d->commands, this, ManageSieveCommand::ListScripts );
                 }
                 else if ( cmd == "getscript" && args->count() == 1 ) {
-                    newCommand( d->commands, this, SieveCommand::GetScript,
+                    newCommand( d->commands, this, ManageSieveCommand::GetScript,
                                 args );
                 }
                 else if ( cmd == "deletescript" && args->count() == 1 ) {
-                    newCommand( d->commands, this, SieveCommand::DeleteScript,
+                    newCommand( d->commands, this, ManageSieveCommand::DeleteScript,
                                 args );
                 }
                 else {
@@ -202,7 +202,7 @@ void Sieve::parse()
 
 /*! Sends \a s as a positive OK response. */
 
-void Sieve::ok( const String &s )
+void ManageSieve::ok( const String &s )
 {
     enqueue( "OK" );
     if ( !s.isEmpty() )
@@ -213,7 +213,7 @@ void Sieve::ok( const String &s )
 
 /*! Sends \a s as a negative NO response. */
 
-void Sieve::no( const String &s )
+void ManageSieve::no( const String &s )
 {
     enqueue( "NO" );
     if ( !s.isEmpty() )
@@ -225,26 +225,26 @@ void Sieve::no( const String &s )
 
 /*! Sends the literal response \a s without adding a tag. */
 
-void Sieve::send( const String &s )
+void ManageSieve::send( const String &s )
 {
     enqueue( s );
     enqueue( "\r\n" );
 }
 
 
-/*! The Sieve server maintains a list of commands received from the
+/*! The ManageSieve server maintains a list of commands received from the
     client and processes them one at a time in the order they were
     received. This function executes the first command in the list,
     or if the first command has completed, removes it and executes
     the next one.
 
     It should be called when a new command has been created (i.e.,
-    by Sieve::parse()) or when a running command finishes.
+    by ManageSieve::parse()) or when a running command finishes.
 */
 
-void Sieve::runCommands()
+void ManageSieve::runCommands()
 {
-    List< SieveCommand >::Iterator it( d->commands );
+    List< ManageSieveCommand >::Iterator it( d->commands );
     if ( !it )
         return;
     if ( it->done() )
@@ -254,29 +254,29 @@ void Sieve::runCommands()
 }
 
 
-static void newCommand( List< SieveCommand > * l, Sieve * sieve,
-                        SieveCommand::Command cmd,
+static void newCommand( List< ManageSieveCommand > * l, ManageSieve * sieve,
+                        ManageSieveCommand::Command cmd,
                         StringList * args )
 {
-    l->append( new SieveCommand( sieve, cmd, args ) );
+    l->append( new ManageSieveCommand( sieve, cmd, args ) );
 }
 
 
-/*! Sets the current user of this Sieve server to \a u. Called upon
+/*! Sets the current user of this ManageSieve server to \a u. Called upon
     successful completion of an Authenticate command.
 */
 
-void Sieve::setUser( User * u )
+void ManageSieve::setUser( User * u )
 {
     d->user = u;
 }
 
 
-/*! Returns the current user of this Sieve server, or an empty string if
+/*! Returns the current user of this ManageSieve server, or an empty string if
     setUser() has never been called after a successful authentication.
 */
 
-User * Sieve::user() const
+User * ManageSieve::user() const
 {
     return d->user;
 }
@@ -287,7 +287,7 @@ User * Sieve::user() const
     STLS to inhibit parsing.
 */
 
-void Sieve::setReserved( bool r )
+void ManageSieve::setReserved( bool r )
 {
     d->reserved = r;
 }
@@ -298,20 +298,20 @@ void Sieve::setReserved( bool r )
     AUTH to parse non-command input.
 */
 
-void Sieve::setReader( SieveCommand * cmd )
+void ManageSieve::setReader( ManageSieveCommand * cmd )
 {
     d->reader = cmd;
     d->reserved = d->reader;
 }
 
 
-/*! Returns true only if this Sieve server supports the authentication
+/*! Returns true only if this ManageSieve server supports the authentication
     mechanism named \a s (which must be in lowercase).
 
     XXX: This is copied from IMAP. What to do about the duplication?
 */
 
-bool Sieve::supports( const String &s ) const
+bool ManageSieve::supports( const String &s ) const
 {
     if ( ::supportsDigestMd5 && s == "digest-md5" )
         return true;
@@ -338,7 +338,7 @@ bool Sieve::supports( const String &s ) const
     logs a disaster if it encounters an error.
 */
 
-void Sieve::setup()
+void ManageSieve::setup()
 {
     ::supportsPlain = Configuration::toggle( Configuration::AuthPlain );
     ::supportsCramMd5 =
@@ -362,12 +362,12 @@ void Sieve::setup()
 
 /*! Enqueues a suitably-formatted list of our capabilities. */
 
-void Sieve::capabilities()
+void ManageSieve::capabilities()
 {
     String v( Configuration::compiledIn( Configuration::Version ) );
     enqueue( "\"IMPLEMENTATION\" \"Archiveopteryx " + v + "\"\r\n" );
     enqueue( "\"SASL\" \"\"\r\n" );
-    enqueue( "\"SIEVE\" \"\"\r\n" );
+    enqueue( "\"MANAGESIEVE\" \"\"\r\n" );
     enqueue( "\"STARTTLS\"\r\n" );
     enqueue( "OK\r\n" );
 }

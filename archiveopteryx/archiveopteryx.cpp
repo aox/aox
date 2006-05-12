@@ -7,7 +7,7 @@
 #include "imap.h"
 #include "http.h"
 #include "smtp.h"
-#include "sieve.h"
+#include "managesieve.h"
 
 #include "tls.h"
 #include "flag.h"
@@ -76,9 +76,9 @@ int main( int argc, char *argv[] )
         Configuration::HttpAddress, Configuration::HttpPort,
         false
         );
-    Listener< Sieve >::create(
+    Listener< ManageSieve >::create(
         "Sieve", Configuration::toggle( Configuration::UseSieve ),
-        Configuration::SieveAddress, Configuration::SievePort,
+        Configuration::ManageSieveAddress, Configuration::ManageSievePort,
         false
         );
     Listener< SMTP >::create(

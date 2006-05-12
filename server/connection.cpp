@@ -288,8 +288,8 @@ String Connection::description() const
     case Pipe:
         r = "Byte forwarder";
         break;
-    case SieveServer:
-        r = "Sieve server";
+    case ManageSieveServer:
+        r = "ManageSieve server";
         break;
     }
     Endpoint her = peer();

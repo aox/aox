@@ -1,6 +1,6 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "sievecommand.h"
+#include "managesievecommand.h"
 
 #include "tls.h"
 #include "user.h"
@@ -11,18 +11,18 @@
 #include "transaction.h"
 
 
-class SieveCommandData
+class ManageSieveCommandData
     : public Garbage
 {
 public:
-    SieveCommandData()
+    ManageSieveCommandData()
         : sieve( 0 ), args( 0 ), done( false ),
           tlsServer( 0 ), m( 0 ), r( 0 ),
           user( 0 ), t( 0 ), query( 0 )
     {}
 
-    Sieve * sieve;
-    SieveCommand::Command cmd;
+    ManageSieve * sieve;
+    ManageSieveCommand::Command cmd;
     StringList * args;
 
     bool done;
@@ -38,18 +38,18 @@ public:
 };
 
 
-/*! \class SieveCommand sievecommand.h
-    This class represents a single Sieve command. It is analogous to a
+/*! \class ManageSieveCommand sievecommand.h
+    This class represents a single ManageSieve command. It is analogous to a
     POP Command. Almost identical, in fact.
 */
 
 
-/*! Creates a new SieveCommand object representing the command \a cmd,
-    for the Sieve server \a sieve.
+/*! Creates a new ManageSieveCommand object representing the command \a cmd,
+    for the ManageSieve server \a sieve.
 */
 
-SieveCommand::SieveCommand( Sieve * sieve, Command cmd, StringList * args )
-    : d( new SieveCommandData )
+ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve, Command cmd, StringList * args )
+    : d( new ManageSieveCommandData )
 {
     d->sieve = sieve;
     d->cmd = cmd;
@@ -58,11 +58,11 @@ SieveCommand::SieveCommand( Sieve * sieve, Command cmd, StringList * args )
 
 
 /*! Marks this command as having finished execute()-ing. Any responses
-    are written to the client, and the Sieve server is instructed to move
+    are written to the client, and the ManageSieve server is instructed to move
     on to processing the next command.
 */
 
-void SieveCommand::finish()
+void ManageSieveCommand::finish()
 {
     d->done = true;
     d->sieve->write();
@@ -70,12 +70,12 @@ void SieveCommand::finish()
 }
 
 
-/*! Returns true if this SieveCommand has finished executing, and false if
+/*! Returns true if this ManageSieveCommand has finished executing, and false if
     execute() hasn't been called, or if it has work left to do. Once the
     work is done, execute() calls finish() to signal completion.
 */
 
-bool SieveCommand::done()
+bool ManageSieveCommand::done()
 {
     return d->done;
 }
@@ -85,13 +85,13 @@ bool SieveCommand::done()
     d->r points to the response, or is 0 if no response could be read.
 */
 
-void SieveCommand::read()
+void ManageSieveCommand::read()
 {
     d->r = d->sieve->readBuffer()->removeLine();
 }
 
 
-void SieveCommand::execute()
+void ManageSieveCommand::execute()
 {
     switch ( d->cmd ) {
     case Logout:
@@ -151,10 +151,10 @@ void SieveCommand::execute()
 
 /*! Handles the STARTTLS command. */
 
-bool SieveCommand::startTls()
+bool ManageSieveCommand::startTls()
 {
     if ( !d->tlsServer ) {
-        d->tlsServer = new TlsServer( this, d->sieve->peer(), "Sieve" );
+        d->tlsServer = new TlsServer( this, d->sieve->peer(), "ManageSieve" );
         d->sieve->setReserved( true );
     }
 
@@ -168,14 +168,14 @@ bool SieveCommand::startTls()
 
     // XXX: We're supposed to resend the capability list after the TLS
     // negotiation is complete. How on earth can we do that?
-    
+
     return true;
 }
 
 
 /*! Handles the AUTHENTICATE command. */
 
-bool SieveCommand::authenticate()
+bool ManageSieveCommand::authenticate()
 {
     if ( !d->m ) {
         String t = nextArg().lower();
@@ -248,7 +248,7 @@ bool SieveCommand::authenticate()
 
 /*! Handles the HAVESPACE command. */
 
-bool SieveCommand::haveSpace()
+bool ManageSieveCommand::haveSpace()
 {
     // Why support quotas when we can lie through our teeth?
     d->sieve->ok( "" );
@@ -258,7 +258,7 @@ bool SieveCommand::haveSpace()
 
 /*! Handles the PUTSCRIPT command. */
 
-bool SieveCommand::putScript()
+bool ManageSieveCommand::putScript()
 {
     if ( !d->query ) {
         d->s = nextArg();
@@ -287,7 +287,7 @@ bool SieveCommand::putScript()
 
 /*! Handles the LISTSCRIPTS command. */
 
-bool SieveCommand::listScripts()
+bool ManageSieveCommand::listScripts()
 {
     if ( !d->query ) {
         d->query =
@@ -318,7 +318,7 @@ bool SieveCommand::listScripts()
 
 /*! Handles the SETACTIVE command. */
 
-bool SieveCommand::setActive()
+bool ManageSieveCommand::setActive()
 {
     if ( !d->t ) {
         d->s = nextArg();
@@ -350,7 +350,7 @@ bool SieveCommand::setActive()
 
 /*! Handles the GETSCRIPT command. */
 
-bool SieveCommand::getScript()
+bool ManageSieveCommand::getScript()
 {
     if ( !d->query ) {
         d->s = nextArg();
@@ -382,7 +382,7 @@ bool SieveCommand::getScript()
 
 /*! Handles the DELETESCRIPT command. */
 
-bool SieveCommand::deleteScript()
+bool ManageSieveCommand::deleteScript()
 {
     if ( !d->t ) {
         d->s = nextArg();
@@ -434,10 +434,10 @@ bool SieveCommand::deleteScript()
 /*! This function returns the next argument supplied by the client for
     this command, or an empty string if there are no more arguments.
     (Should we assume that nextArg will never be called more times
-    than there are arguments? The Sieve parser does enforce this.)
+    than there are arguments? The ManageSieve parser does enforce this.)
 */
 
-String SieveCommand::nextArg()
+String ManageSieveCommand::nextArg()
 {
     if ( d->args && !d->args->isEmpty() )
         return *d->args->take( d->args->first() );

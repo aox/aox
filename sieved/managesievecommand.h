@@ -1,13 +1,13 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#ifndef SIEVECOMMAND_H
-#define SIEVECOMMAND_H
+#ifndef MANAGESIEVECOMMAND_H
+#define MANAGESIEVECOMMAND_H
 
 #include "event.h"
-#include "sieve.h"
+#include "managesieve.h"
 
 
-class SieveCommand
+class ManageSieveCommand
     : public EventHandler
 {
 public:
@@ -16,7 +16,7 @@ public:
         PutScript, ListScripts, SetActive, GetScript, DeleteScript
     };
 
-    SieveCommand( class Sieve *, Command, class StringList * );
+    ManageSieveCommand( class ManageSieve *, Command, class StringList * );
 
     void read();
     void execute();
@@ -24,7 +24,7 @@ public:
     bool done();
 
 private:
-    class SieveCommandData * d;
+    class ManageSieveCommandData * d;
 
     String nextArg();
     bool startTls();

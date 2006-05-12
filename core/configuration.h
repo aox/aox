@@ -49,7 +49,7 @@ public:
         HttpPort,
         DbMaxHandles,
         DbHandleInterval,
-        SievePort,
+        ManageSievePort,
         // additional scalars go ABOVE THIS LINE
         NumScalars
     };
@@ -88,7 +88,7 @@ public:
         MessageCopy,
         MessageCopyDir,
         EntropySource,
-        SieveAddress,
+        ManageSieveAddress,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };

@@ -145,7 +145,7 @@ static struct {
     { "http-port", Configuration::HttpPort, 8808 },
     { "db-max-handles", Configuration::DbMaxHandles, 4 },
     { "db-handle-interval", Configuration::DbHandleInterval, 120 },
-    { "sieve-port", Configuration::SievePort, 2000 }
+    { "managesieve-port", Configuration::ManageSievePort, 2000 }
 };
 
 
@@ -184,7 +184,7 @@ static struct {
     { "message-copy", Configuration::MessageCopy, "none" },
     { "message-copy-directory", Configuration::MessageCopyDir, MESSAGEDIR },
     { "entropy-source", Configuration::EntropySource, "/dev/urandom" },
-    { "sieve-address", Configuration::SieveAddress, "127.0.0.1" }
+    { "managesieve-address", Configuration::ManageSieveAddress, "127.0.0.1" }
 };
 
 

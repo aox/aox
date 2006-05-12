@@ -407,14 +407,14 @@ controls whether or not the
 .I managesieve
 server is started. The default is
 .IR disabled .
-.IP sieve-address
+.IP managesieve-address
 specifies the address where
 .BR sieved (8)
 should listen for connections. The default is
 .IR 127.0.0.1 .
 You may use an IPv4 or IPv6 address, or an empty string to listen on all
 available interfaces.
-.IP sieve-port
+.IP managesieve-port
 specifies which port
 .BR sieved (8)
 should listen to. The default is
