@@ -106,7 +106,7 @@ int main( int argc, char *argv[] )
     Flag::setup();
     IMAP::setup();
     POP::setup();
-    Sieve::setup();
+    ManageSieve::setup();
 
     s.run();
 }
