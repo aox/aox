@@ -258,7 +258,8 @@ void EventLoop::start()
 
         if ( !d->stop &&
              ( now - gc > 7200 ||
-               Allocator::allocated() > 8*1024*1024 ||
+               ( Allocator::allocated() > 8*1024*1024 &&
+                 Allocator::allocated() * 5 > Allocator::inUse() ) ||
                ( now - gc > 10 && Allocator::allocated() >= 131072 ) ) )
         {
             Allocator::free();

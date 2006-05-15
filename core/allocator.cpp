@@ -618,6 +618,14 @@ uint Allocator::allocated()
 }
 
 
+/*! Returns the number of bytes in use after the last sweep. */
+
+uint Allocator::inUse()
+{
+    return ::total;
+}
+
+
 /*! Returns the amount of memory gobbled up when this Allocator
     allocates memory. This is a little bigger than the biggest object
     this Allocator can provide.

@@ -29,6 +29,7 @@ public:
     static void setReporting( bool );
 
     static uint allocated();
+    static uint inUse();
 
     static void * alloc( uint, uint = UINT_MAX );
     static void dealloc( void * );
