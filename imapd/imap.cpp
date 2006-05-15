@@ -134,7 +134,7 @@ void IMAP::react( Event e )
 
     case Timeout:
         if ( !d->commands.isEmpty() ) {
-            enqueue( "* OK commands being processed:" +
+            enqueue( "* OK commands being processed: " +
                      fn( d->commands.count() ) + "\r\n" );
             break;
         }
