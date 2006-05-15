@@ -23,10 +23,45 @@ Next few releases
   - More character encodings (EUC-KR)
 
 
+Better caching.
+
+  FieldNameCache etc. can use less memory by reading all field and
+  flag names into RAM at startup. That way, the memory used won't be
+  scattered across many blocks.
+
+
+Port 587
+
+  Submit is not very different from SMTP and LMTP, for which we have
+  servers. The backend is different. We don't have the backend. But as
+  soon as we have a sieve, we have the backend, because it's the same
+  code that redirect needs.
+
+  Once we have 587, I want to implement RFC 2852, RFC 388[5-8] and
+  draft-vaudreuil-futuredelivery. I so much want 2852 and
+  futuredelivery for myself.
+
+
+Memory use for common operations
+
+  Some use _vastly_ too much memory. I saw a single IMAP FETCH for a
+  mere 4200 messages use 173MB yesterday.
+
+  The most elegant way to solve that would be to supervise memory
+  usage for a known sequence. Inject these ten thousand messages,
+  check memory use (via a hack), connect to the imap port run this and
+  that, check again, connect to the imap port run this and that, check
+  again, connect to the imap port run this and that, check
+  again... just a bunch of checks. Ignore output.
+
+
 ocd needs work (mike@waspfactory.org)
 
   1. The code (along with user/mailbox) needs cleaning up.
   2. Should synchronise field names etc.
+
+  Note that we can drop ocd in the non-cluster case starting with
+  1.07. Simply not start it.
 
 
 Don't duplicate the contents of address_fields in header_fields.
