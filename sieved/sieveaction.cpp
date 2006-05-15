@@ -9,14 +9,12 @@ class SieveActionData
 public:
     SieveActionData()
         : type( SieveAction::FileInto ),
-          mailbox( 0 ), address( 0 ),
-          message( 0 )
+          mailbox( 0 ), address( 0 )
         {}
 
     SieveAction::Type type;
     Mailbox * mailbox;
     Address * address;
-    Message * message;
 };
 
 
@@ -32,16 +30,15 @@ public:
 
 
 
-/*! Constructs a SieveAction of \a type on \a message. The constructed
-    object is not immediately valid; depending on \a type you may have
-    to call e.g. setMailbox().
+/*! Constructs a SieveAction of \a type. The constructed object is not
+    immediately valid; depending on \a type you may have to call
+    e.g. setMailbox().
 */
 
-SieveAction::SieveAction( Type type, Message * message )
+SieveAction::SieveAction( Type type )
     : Garbage(), d( new SieveActionData )
 {
     d->type = type;
-    d->message = message;
 }
 
 

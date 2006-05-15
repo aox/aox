@@ -2,6 +2,9 @@
 
 #include "sievecommand.h"
 
+#include "sieveaction.h"
+#include "sieve.h"
+
 
 class SieveCommandData
     : public Garbage
@@ -90,4 +93,36 @@ void SieveCommand::setAddress( Address * address )
 Address * SieveCommand::address() const
 {
     return d->address;
+}
+
+
+/*! Evaluates this command in the context of \a sieve, and adds any
+    necessary SieveAction objects to \a sieve.
+*/
+
+void SieveCommand::evaluate( Sieve * sieve )
+{
+    SieveAction * s = 0;
+    switch( d->type ) {
+        case If:
+            break;
+        case Require:
+            break;
+        case Stop:
+            break;
+        case Reject:
+            break;
+        case FileInto:
+            s = new SieveAction( SieveAction::FileInto );
+            s->setMailbox( mailbox() );
+            break;
+        case Redirect:
+            break;
+        case Keep:
+            break;
+        case Discard:
+            break;
+    }
+    if ( s )
+        sieve->addAction( s );
 }

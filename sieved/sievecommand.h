@@ -7,6 +7,7 @@
 
 class Mailbox;
 class Address;
+class Sieve;
 
 
 class SieveCommand
@@ -25,6 +26,8 @@ public:
 
     void setAddress( Address * );
     Address * address() const;
+
+    void evaluate( Sieve * );
 
 private:
     class SieveCommandData * d;

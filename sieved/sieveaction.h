@@ -17,7 +17,7 @@ class SieveAction
 public:
     enum Type { Reject, FileInto, Redirect, Discard };
 
-    SieveAction( Type, Message * );
+    SieveAction( Type );
 
     Type type() const;
 

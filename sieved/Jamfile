@@ -8,5 +8,5 @@ SubInclude TOP message ;
 HDRS += [ FDirName $(TOP) sieved ] ;
 
 Build sieve : managesieve.cpp managesievecommand.cpp
-    sieveaction.cpp sievecommand.cpp sievescript.cpp ;
+    sieveaction.cpp sievecommand.cpp sievescript.cpp sieve.cpp ;
 
