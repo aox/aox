@@ -7,33 +7,41 @@ class SieveActionData
     : public Garbage
 {
 public:
-    SieveActionData(): type( SieveAction::Keep ), mailbox( 0 ), address( 0 ) {}
+    SieveActionData()
+        : type( SieveAction::FileInto ),
+          mailbox( 0 ), address( 0 ),
+          message( 0 )
+        {}
 
     SieveAction::Type type;
     Mailbox * mailbox;
     Address * address;
+    Message * message;
 };
 
 
 /*! \class SieveAction sieveaction.h
-  
+
     The SieveAction class models a single sieve action as specified in
     RFC 3028 section 4, ie. something a SieveScript decides to do, and
     that the Sieve interpreter does after sieving a message.
-*/  
 
-
-
-/*! Constructs a SieveAction of \a type. The constructed objects is
-    not immediately valid; depending on \a type you may have to call
-    e.g. setMailbox().
-
+    SieveAction objects are created by SieveCommand objects while
+    evaluating themselves in the context of a Message.
 */
 
-SieveAction::SieveAction( Type type )
-    : SieveCommand( SieveCommand::Action ), d( new SieveActionData )
+
+
+/*! Constructs a SieveAction of \a type on \a message. The constructed
+    object is not immediately valid; depending on \a type you may have
+    to call e.g. setMailbox().
+*/
+
+SieveAction::SieveAction( Type type, Message * message )
+    : Garbage(), d( new SieveActionData )
 {
     d->type = type;
+    d->message = message;
 }
 
 

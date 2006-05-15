@@ -3,20 +3,21 @@
 #ifndef SIEVEACTION_H
 #define SIEVEACTION_H
 
-#include "sievecommand.h"
+#include "global.h"
 
 class Mailbox;
 class Address;
 class Message;
+class EventHandler;
 
 
 class SieveAction
-    : public SieveCommand
+    : public Garbage
 {
 public:
-    enum Type { Reject, Fileinto, Redirect, Keep, Discard };
+    enum Type { Reject, FileInto, Redirect, Discard };
 
-    SieveAction( Type );
+    SieveAction( Type, Message * );
 
     Type type() const;
 
@@ -25,6 +26,10 @@ public:
 
     void setAddress( Address * );
     Address * address() const;
+
+    void execute( EventHandler * owner );
+    bool done() const;
+    bool failed() const;
 
 private:
     class SieveActionData * d;
