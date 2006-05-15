@@ -123,9 +123,6 @@ ANNOTATEMORE
   Ditto. Separate point so that we can do one without the other.
 
 
-We need a SIEVE interpreter.
-
-
 Autoresponder
 
   We'll need one, nicely programmable, connected to our sieve.
