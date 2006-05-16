@@ -184,6 +184,63 @@ We should figure out some way to not store plaintext passwords.
   that's all.
 
 
+Optimising common cases commonly helps
+
+  Now that the lmtp and pop/imap/webmail servers share address space,
+  an injected message can also be short-circuited into the Mailbox if
+  there are any Sessions on the Mailbox. Or perhaps if there are any
+  watched Sessions on the Mailbox.
+
+  When that's done, a message can be handed out to IMAP/POP/Webmail
+  clients without database activity. More speed, less DB work.
+
+  In order for this to work well, we must have better caching, so the
+  Mailbox doesn't fill up too much. Necessary for other reasons
+  too. See separate item.
+
+
+Caching Messages in Mailbox
+
+  Instead of storing Messages in Mailbox, we could cache them. The
+  Mailbox could throw them away regularly. When we want to fetch one,
+  we could call a Mailbox function to return a pointer to the object,
+  and the caller would be responsible for keeping the pointer around
+  until any DB activity is complete and the Message object can be
+  processed.
+
+  Messages could be discarded by Mailbox if they have all the
+  information for which the Mailbox is currently fetching
+  something. Ie. if the only Fetcher currently existing is a
+  FlagFetcher, then a Message can be discarded if it hasFlags().
+
+  The number of Messages in RAM may follow a Poisson
+  distribution. Sounds likely. If so, the cache-clearing algorithm
+  must work well both for the very small and very large parts of the
+  graph.
+
+
+Database::processQuery() hurts performance
+
+  At present, processQuery() sends several queries to one database
+  handle. That's much less than ideal. For example, if an IMAP clients
+  sends 'fetch 1:10000 flags body.peek[header.fields (from to cc subject)]'
+  then we generate two queries, each for 10000 messages, and send both
+  to the same database handle. Only when the second query's answer
+  start coming back do we start sending results to the client.
+
+  It would be better to spread queries across all available
+  handles. Of course that would give sharper load peaks on the DB
+  server.
+
+  Right now, it seems most appropriate to move processQuery() into
+  Database (not virtual) and call the virtual function processQuery(
+  Query * ) to let Postgres send a query.
+
+  (When mutt opens a large mailbox now, its progress counter stays at
+  1 for the longest time, then sprints to max faster than the eye can
+  see.)
+
+
 SASL NTLM authentication
 
   It may be odd and undocumented, and it may not be as strong as
