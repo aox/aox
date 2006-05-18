@@ -766,3 +766,9 @@ Groups and ACL
   aspects. If we add groups, see the LDAP AB item.
 
 
+udoc RFC x
+
+  Someday when I'm bored, I'll make RFC \d+ a link to the relevant RFC
+  in the .html output.
+
+
