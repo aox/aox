@@ -119,7 +119,7 @@ void POP::react( Event e )
         break;
 
     case Shutdown:
-        // RFC1939 says that if the server times out, it should close
+        // RFC 1939 says that if the server times out, it should close
         // silently. It doesn't talk about server shutdown, so it
         // sounds sensible to do nothing in that case as well.
         break;

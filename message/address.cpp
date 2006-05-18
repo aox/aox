@@ -155,7 +155,7 @@ void Address::setId( uint id )
 }
 
 
-/*! Returns the name stored in this Address. The name is the RFC2822
+/*! Returns the name stored in this Address. The name is the RFC 2822
     display-part, or in case of memberless groups, the display-name of
     the group.
 
@@ -206,7 +206,7 @@ String Address::name() const
 }
 
 
-/*! Returns a UTF-8 encoded string containing the RFC2047-decoded
+/*! Returns a UTF-8 encoded string containing the RFC 2047-decoded
     name() belonging to this address.
 */
 
@@ -314,11 +314,11 @@ public:
 
     In the interests of simplicity, AddressParser parses everything as
     if it were a list of addresses - either of the mailbox-list or
-    address-list productions in RFC2822. The user of this class must
+    address-list productions in RFC 2822. The user of this class must
     check that the supplied addresses fit the (often more specific)
     requirements.
 
-    AddressParser supports most of RFC822 and 2822, but mostly omits
+    AddressParser supports most of RFC 822 and 2822, but mostly omits
     address groups. An empty address group is translated into a single
     Address, a nonempty group is translated into the equivalent number
     of addresses.
@@ -429,7 +429,7 @@ void AddressParser::add( String name,
         if ( d->e.isEmpty() )
             d->e = "Localpart too long (" +
                    fn( localpart.length() ) +
-                   " characters, RFC2821's maximum is 64): " +
+                   " characters, RFC 2821's maximum is 64): " +
                    localpart + "@" + domain;
         return;
     }

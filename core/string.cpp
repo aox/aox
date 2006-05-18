@@ -549,7 +549,7 @@ String String::quoted( char c, char q ) const
 
 /*! Returns true if this string is really boring, and false if it's
     empty or contains at least one character that may warrant quoting
-    in some context. So far RFC822 atoms, 2822 atoms, IMAP atoms and
+    in some context. So far RFC 822 atoms, 2822 atoms, IMAP atoms and
     MIME tokens are considered.
 
     This function considers the intersection of those character
@@ -1435,7 +1435,7 @@ static inline bool isMungableChar( char c ) {
 
 /*! Returns a copy of this string where most/all content has been
     replaced with the letter 'x' or the digit '4', but if the message
-    was an RFC822 message, it keeps the same parse tree.
+    was an RFC 822 message, it keeps the same parse tree.
 
     Specifically, most ASCII words are changed to xxxx, while most/all
     syntax elements are kept.

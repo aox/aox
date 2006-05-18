@@ -415,7 +415,7 @@ void HeaderField::reassemble( const String &s )
         // setData() and fill in subclass structures.
         parse( s );
         // We assume that, for most fields, we can use the database
-        // representation in an RFC822 message.
+        // representation in an RFC 822 message.
         setValue( d->data );
         break;
 
@@ -665,7 +665,7 @@ String HeaderField::wrap( const String &s )
 }
 
 
-/*! This static function returns an RFC2047 encoded-word representing
+/*! This static function returns an RFC 2047 encoded-word representing
     \a w, which is assumed to be a UTF-8 encoded string.
 
     XXX: This doesn't split encoded-words to ensure that each

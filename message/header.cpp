@@ -35,10 +35,10 @@ public:
 
 
 /*! \class Header header.h
-    The Header class models an RFC2822 or MIME header.
+    The Header class models an RFC 2822 or MIME header.
 
     Essentially, it's a container for HeaderField objects which can
-    check whether its contents make sense and are legal (see RFC2822
+    check whether its contents make sense and are legal (see RFC 2822
     page 19), and will give them to callers on demand.
 
     Fields are available by calling field() with the right type. This
@@ -218,7 +218,7 @@ Date *Header::date( HeaderField::Type t ) const
 
 
 /*! Returns the header's subject. For the moment, this is a simple
-    string. It'll have to morph soon, to handle RFC2047 at least.
+    string. It'll have to morph soon, to handle RFC 2047 at least.
 */
 
 String Header::subject() const
@@ -231,7 +231,7 @@ String Header::subject() const
 
 
 /*! Returns the header's in-reply-to value. This comes straight from
-    the RFC2822 representation.
+    the RFC 2822 representation.
 */
 
 String Header::inReplyTo() const

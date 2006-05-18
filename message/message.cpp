@@ -51,10 +51,10 @@ public:
 
 
 /*! \class Message message.h
-    The Message class is the top-level RFC822 message parser and generator.
+    The Message class is the top-level RFC 822 message parser and generator.
 
     Its core is an email message, and its two duties are conversion to
-    and from RFC822 format.
+    and from RFC 822 format.
 
     I'm writing it towards this: It can parse messages, with the aid of
     Header and HeaderField, and split them into MIME bodyparts. It can
@@ -170,7 +170,7 @@ Header * Message::parseHeader( uint & i, uint end,
 }
 
 
-/*! Returns true if this message is a valid RFC2822 message, and false
+/*! Returns true if this message is a valid RFC 2822 message, and false
     if it has known/detected errors. Returns true if the message is
     known to be incomplete.
 */
@@ -191,7 +191,7 @@ String Message::error() const
 }
 
 
-/*! Returns the message formatted in RFC822 (actually 2822) format.
+/*! Returns the message formatted in RFC 822 (actually 2822) format.
     The return value is a canonical expression of the message, not
     whatever was parsed.
 */

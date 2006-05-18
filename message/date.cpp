@@ -41,7 +41,7 @@ public:
 
 The Date class contains a date, with attendant time and timezeone.
 
-It can parse RFC822 format dates, as well as encode dates in rfc822,
+It can parse RFC 822 format dates, as well as encode dates in rfc822,
 imap and ISO-8601 formats. It cannot change itself or interact with
 other dates: This is meant purely as decode-and-store class.
 */

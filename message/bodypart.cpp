@@ -452,7 +452,7 @@ static Codec * guessHtmlCodec( const String & body )
 
 
 /*! Parses the part of \a rfc2822 from \a start to \a end (not
-    including \a end) as a single bodypart with MIME/RFC822 header \a h.
+    including \a end) as a single bodypart with MIME/RFC 822 header \a h.
 
     This removes the "charset" argument from the Content-Type field in \a h.
 

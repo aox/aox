@@ -9,22 +9,22 @@
 
 /*! \class Parser822 parser.h
 
-    The Parser822 class provides parser help for RFC822-like grammars.
+    The Parser822 class provides parser help for RFC 822-like grammars.
     It properly is more like a lexer than a parser, but also not quite
     like a lexer.
 
     Parser822 provides a cursor, and member functions to read many
-    RFC2822 productions at the cursor. Generally, each member returns
+    RFC 2822 productions at the cursor. Generally, each member returns
     the production read or an empty string.
 */
 
 
 /*! \fn Parser822::Parser822( const String & s )
-    Creates a new RFC822 parser object to parse \a s.
+    Creates a new RFC 822 parser object to parse \a s.
 */
 
 
-/*! Returns true if \a c belongs to the RFC2822 'atext' production, and
+/*! Returns true if \a c belongs to the RFC 2822 'atext' production, and
     false in all other circumstances.
 */
 
@@ -194,7 +194,7 @@ char Parser822::character()
 
     This isn't correct at the moment, but I think it will eventually be...
 
-    Note that our definition of domain differs from the RFC822 one. We
+    Note that our definition of domain differs from the RFC 822 one. We
     only accept three forms: Something that may be a DNS A record,
     something that may be an IPv4 address in '[]' and something that may
     be an IPv6 address, again in '[]'. Examples: 'lupinella.troll.no',
@@ -230,7 +230,7 @@ String Parser822::domain()
 
 
 /*! Sets this Parser822 object to parse MIME strings if \a m is true,
-    and RFC2822 strings if \a m is false. The only difference is the
+    and RFC 2822 strings if \a m is false. The only difference is the
     definition of specials.
 */
 
@@ -284,7 +284,7 @@ String Parser822::atom()
 }
 
 
-/*! Returns a single MIME token (as defined in RFC2045 section 5), which
+/*! Returns a single MIME token (as defined in RFC 2045 section 5), which
     is an atom minus [/?=] plus [.].
 */
 
@@ -311,7 +311,7 @@ String Parser822::mimeToken()
 }
 
 
-/*! Returns a single MIME value (as defined in RFC2045 section 5), which
+/*! Returns a single MIME value (as defined in RFC 2045 section 5), which
     is an atom minus [/?=] plus [.] (i.e., a MIME token) or a quoted
     string.
 */
@@ -325,7 +325,7 @@ String Parser822::mimeValue()
 }
 
 
-/*! Steps past a MIME encoded-word (as defined in RFC2047) and returns
+/*! Steps past a MIME encoded-word (as defined in RFC 2047) and returns
     its decoded UTF-8 representation, or an empty string if the cursor
     does not point to a valid encoded-word. The caller is responsible
     for checking that the encoded-word is separated from neighbouring
