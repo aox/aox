@@ -523,7 +523,7 @@ void SMTP::mail()
         sendGenericError();
         return;
     }
-    if ( d->arg.mid( 0,2 ) == "<>" ) {
+    if ( d->arg.simplified().startsWith( "<>" ) ) {
         log( "Received message from <>" );
         respond( 250, "Accepted message from mailer-daemon" );
         d->state = RcptTo;
