@@ -80,6 +80,11 @@ void Select::execute()
 {
     if ( !d->mailbox ) {
         d->mailbox = Mailbox::find( imap()->mailboxName( d->name ) );
+        // if the mailbox doesn't exist, see whether it's a full name
+        // without the leading slash. kio does that, so let's be
+        // gentle and interoperable until that bug can be fixed.
+        if ( !d->mailbox && !d->name.startsWith( "/" ) )
+            d->mailbox = Mailbox::find( "/" + d->name );
         if ( !d->mailbox )
             error( No, d->name + " does not exist" );
         else if ( d->mailbox->synthetic() )
