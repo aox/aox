@@ -371,6 +371,7 @@ static struct {
     { HeaderField::ContentType, 0, 1, Header::Mime },
     { HeaderField::ContentTransferEncoding, 0, 1, Header::Rfc2822 },
     { HeaderField::ContentTransferEncoding, 0, 1, Header::Mime },
+    { HeaderField::ReturnPath, 0, 1, Header::Rfc2822 },
     { HeaderField::Other, 0, 0, Header::Rfc2822 } // magic end marker
 };
 
@@ -605,6 +606,27 @@ void Header::repair()
         List< HeaderField >::Iterator it( d->fields );
         while ( it ) {
             if ( it->type() == HeaderField::Date ) {
+                if ( n > 0 || !it->valid() ) {
+                    d->fields.take( it );
+                }
+                else {
+                    n++;
+                    ++it;
+                }
+            }
+            else {
+                ++it;
+            }
+        }
+    }
+
+    // We retain only the first valid Return-Path field.
+
+    if ( occurrences[(int)HeaderField::ReturnPath] > 1 ) {
+        uint n = 0;
+        List< HeaderField >::Iterator it( d->fields );
+        while ( it ) {
+            if ( it->type() == HeaderField::ReturnPath ) {
                 if ( n > 0 || !it->valid() ) {
                     d->fields.take( it );
                 }
