@@ -65,13 +65,10 @@ The Archiveopteryx developers, info@oryx.com.
 This man page covers Archiveopteryx version 1.07, released 2006-06-05,
 http://www.archiveopteryx.org/1.07.html.
 .SH SEE ALSO
-.BR archiveopteryx (7),
+.BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
-.BR imapd (8),
 .BR logd (8),
 .BR ocd (8),
-.BR pop3d (8),
-.BR smtpd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
 http://www.archiveopteryx.org

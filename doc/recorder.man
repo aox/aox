@@ -13,7 +13,7 @@ program relays data between an IMAP client and server, and records the
 session in a format which allows Oryx to replay and analyse it later.
 .PP
 If you have problems getting
-.BR imapd (8)
+.BR archiveopteryx (8)
 to work with a particular IMAP client, you can make the client connect
 to the
 .BR recorder ,
@@ -33,11 +33,10 @@ be able to find out what's happening.
 Oryx has debug tools that can replay the connection, so we can fix any
 bugs on the server's side. In some cases, we can also add the file to
 our regression tests, so we can be sure that new versions of
-.BR imapd (8)
+.BR archiveopteryx (8)
 do not have the same error.
 .SH EXAMPLE
-To intercept and record traffic to the
-.BR imapd (8)
+To intercept and record traffic to the IMAP server
 on 192.0.2.4.17 and place a record of the connections in files called
 .I /tmp/bugreport*
 you can do the following:
@@ -92,13 +91,11 @@ The Archiveopteryx developers, info@oryx.com.
 This man page covers Archiveopteryx version 1.07, released 2006-06-05,
 http://www.archiveopteryx.org/1.07.html.
 .SH SEE ALSO
-.BR archiveopteryx (7),
+.BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
 .BR deliver (8),
 .BR logd (8),
 .BR ocd (8),
-.BR pop3d (8),
-.BR smtpd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
 http://www.archiveopteryx.org

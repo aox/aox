@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH imapd 8 2006-06-05 www.oryx.com "Archiveopteryx Documentation"
+.TH logd 8 2006-06-05 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
 logd - logging server for Archiveopteryx.
 .SH SYNOPSIS
@@ -97,17 +97,11 @@ The Archiveopteryx developers, info@oryx.com.
 This man page covers Archiveopteryx version 1.07, released 2006-06-05,
 http://www.archiveopteryx.org/1.07.html.
 .SH SEE ALSO
-.BR archiveopteryx (7),
+.BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
-.br
 .BR deliver (8),
 .BR aox (8),
-.br
-.BR imapd (8),
 .BR ocd (8),
-.BR pop3d (8),
-.BR smtpd (8),
 .BR tlsproxy (8),
-.br
 .BR oryx (7),
 http://www.archiveopteryx.org

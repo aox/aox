@@ -87,20 +87,9 @@ Each server is described more fully in its own man page:
 and
 .BR tlsproxy (8)
 for the backends, and
-.BR imapd (8),
-.BR popd (8)
-and
-.BR smtpd (8)
-for the frontend servers:
-.IP imapd
-The IMAP daemon provides IMAP4rev1 access to the mailstore, with numerous
-extensions. Each server process can provide access to a few hundred
-clients.
-.IP pop3d
-POP3 access to the mailstore is also possible. Each server process can
-provide access to a few hundred clients.
-.IP smtpd/lmtpd
-is used to inject mail into the database.
+.BR archiveopteryx (8)
+for the frontend server, which serves IMAP, POP3, LMTP and/or SMTP and
+perhaps webmail.
 .PP
 Normally, there is one
 .BR ocd (8)
@@ -117,7 +106,7 @@ database backend, one host (perhaps the same) will run
 .BR ocd (8)
 and
 .BR logd (8)
-and as many as required will run the frontends.
+and as many as required will run frontends.
 .PP
 The man pages for each server explain the use and configuration of
 each. See
@@ -242,13 +231,11 @@ The Archiveopteryx developers, info@oryx.com.
 This man page covers Archiveopteryx version 1.07, released 2006-06-05,
 http://www.archiveopteryx.org/1.07.html.
 .SH SEE ALSO
+.BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),
 .BR deliver (8),
-.BR imapd (8),
 .BR logd (8),
 .BR ocd (8),
-.BR pop3d (8),
-.BR smtpd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
 http://www.archiveopteryx.org

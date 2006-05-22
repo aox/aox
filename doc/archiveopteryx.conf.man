@@ -244,12 +244,12 @@ by default.
 .SS "Mail delivery"
 .IP use-lmtp
 controls whether
-.BR smtpd (8)
+.BR archiveopteryx (8)
 should accept mail via LMTP (RFC 2033). The default is
 .IR enabled .
 .IP lmtp-address
 specifies the address where
-.BR smtpd (8)
+.BR archiveopteryx (8)
 should listen for LMTP connections, and to which
 .BR deliver (8)
 should connect. The default is
@@ -258,25 +258,25 @@ You may use an IPv4 or IPv6 address, or the fully-qualified path to a
 Unix socket.
 .IP lmtp-port
 specifies which port
-.BR smtpd (8)
+.BR archiveopteryx (8)
 should listen to, and which port
 .BR deliver (8)
 should connect to. The default is
 .IR 2026 .
 .IP use-smtp
 controls whether
-.BR smtpd (8)
+.BR archiveopteryx (8)
 should accept mail via SMTP/ESMTP (RFC 2821/1869). SMTP is
 .I disabled
 by default.
 .IP smtp-address
 specifies the address where
-.BR smtpd (8)
+.BR archiveopteryx (8)
 should listen for SMTP connections The default is an empty string,
 which means all available IPv4 and IPv6 interfaces.
 .IP smtp-port
 specifies which port
-.BR smtpd (8)
+.BR archiveopteryx (8)
 should listen to. The default is
 .IR 25 .
 .IP message-copy
@@ -321,36 +321,36 @@ The file's name is a unique string of numbers and hyphens. It ends with
 .SS IMAP
 .IP use-imap
 must be enabled for
-.BR imapd (8)
+.BR archiveopteryx (8)
 to accept IMAP connections. The default is
 .IR true .
 .IP imap-address
 is the address where
-.BR imapd (8)
+.BR archiveopteryx (8)
 listens for new connections. The
 default, an empty string, means to listen on all available IPv4 and
 IPv6 addresses.
 .IP imap-port
 is the port where 
-.BR imapd (8)
+.BR archiveopteryx (8)
 accepts connections,
 .I 143
 by default.
 .IP use-imaps
 is enabled if
-.BR imapd (8)
+.BR archiveopteryx (8)
 should also accept SSL-wrapped connections. The default is
 .IR false .
 .IP imaps-address
 is the address where
-.BR imapd (8)
+.BR archiveopteryx (8)
 listens for new SSL-wrapped connections. As for
 .IR imap-address ,
 the default is an empty string, which means all available IPv4 and
 IPv6 addresses.
 .IP imaps-port
 is the port where
-.BR imapd (8)
+.BR archiveopteryx (8)
 accepts SSL-wrapped connections,
 .I 993
 by default.
@@ -364,17 +364,17 @@ cannot.
 .SS POP
 .IP use-pop
 must be enabled for
-.BR pop3d (8)
+.BR archiveopteryx (8)
 to accept POP3 connections. The default is
 .IR false .
 .IP pop-address
 is the address where
-.BR pop3d (8)
+.BR archiveopteryx (8)
 listens for new connections. The default, an empty string, means to
 listen on all available IPv4 and IPv6 addresses.
 .IP pop-port
 is the port where
-.BR pop3d (8)
+.BR archiveopteryx (8)
 accepts connections,
 .I 110
 by default.
@@ -385,18 +385,18 @@ decides whether Archiveopteryx offers HTTP service at all, and is
 by default.
 .IP http-address
 is the address where
-.BR httpd (8)
+.BR archiveopteryx (8)
 listens for new connections. The default, an empty string, means to
 listen on all available IPv4 and IPv6 addresses.
 .IP http-port
 is the port where
-.BR httpd (8)
+.BR archiveopteryx (8)
 accepts connections,
 .I 8808
 by default.
 .IP accept-any-http-host
 decides whether
-.BR httpd (8)
+.BR archiveopteryx (8)
 accepts any hostname supplied by the server, and is
 .I enabled
 by default. Properly speaking, it would be better to disable this, but
@@ -409,14 +409,14 @@ server is started. The default is
 .IR disabled .
 .IP managesieve-address
 specifies the address where
-.BR sieved (8)
+.BR archiveopteryx (8)
 should listen for connections. The default is
 .IR 127.0.0.1 .
 You may use an IPv4 or IPv6 address, or an empty string to listen on all
 available interfaces.
 .IP managesieve-port
 specifies which port
-.BR sieved (8)
+.BR archiveopteryx (8)
 should listen to. The default is
 .IR 2000 .
 .SS TLS
@@ -508,13 +508,10 @@ The Archiveopteryx developers, info@oryx.com.
 This man page covers Archiveopteryx version 1.07, released 2006-06-05,
 http://www.archiveopteryx.org/1.07.html.
 .SH SEE ALSO
-.BR archiveopteryx (7),
+.BR archiveopteryx (8),
 .BR deliver (8),
-.BR imapd (8),
 .BR logd (8),
 .BR ocd (8),
-.BR pop3d (8),
-.BR smtpd (8),
 .BR tlsproxy (8),
 .BR oryx (7),
 http://www.archiveopteryx.org

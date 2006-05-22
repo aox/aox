@@ -24,8 +24,9 @@ rule Man {
 
 Man 5 : archiveopteryx.conf.man ;
 
-Man 7 : oryx.man archiveopteryx.man ;
+Man 7 : oryx.man ;
 
 Man 8 :
+    archiveopteryx.man
     deliver.man logd.man ocd.man
     tlsproxy.man installer.man aox.man ms.man recorder.man ;
