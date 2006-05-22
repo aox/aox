@@ -673,7 +673,14 @@ void Header::repair()
         add( "Date", date.rfc822() );
     }
 
+    // If there is no From field, try to use either Return-Path or Sender
+
     if ( occurrences[(int)HeaderField::From] == 0 ) {
+        List<Address> * a = addresses( HeaderField::ReturnPath );
+        if ( !a || a->isEmpty() || a->first()->type() != Address::Normal )
+            a = addresses( HeaderField::Sender );
+        if ( a && a->first() && a->first()->type() == Address::Normal )
+            add( "From", a->first()->toString() );
     }
 
     d->verified = false;
