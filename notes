@@ -2,13 +2,14 @@ Next release (2006-06-05: 1.07)
 
   Done:
 
-  (nothing)
+  - *d collected in one great server
+  - man pages updated accordingly
 
   Must-Do:
 
-  - Update everything that talks about 'imapd(8)' and other extinct
-    manpages.
+  - src/doc/archiveopteryx.man needs update
   - DNS lookups for configuration variables
+  - Less RAM! Less RAM!
 
   Desired:
 
@@ -18,7 +19,7 @@ Next release (2006-06-05: 1.07)
 
 Next few releases
 
-  - SORT/THREAD
+  - Sieve
   - Working webmail
   - More character encodings (EUC-KR)
 
