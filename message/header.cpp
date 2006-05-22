@@ -638,6 +638,44 @@ void Header::repair()
         }
     }
 
+    // If there is no Date field, we look for a sensible date.
+    
+    if ( occurrences[(int)HeaderField::Date] == 0 ) {
+        List< HeaderField >::Iterator it( d->fields );
+        Date date;
+        while ( it ) {
+            // First, we take the date from the oldest valid-looking Received field.
+            if ( it->type() == HeaderField::Received ) {
+                String v = it->value();
+                int i = v.find( ';' );
+                if ( i >= 0 && !v.mid( i+1 ).contains( ';' ) ) {
+                    Date tmp;
+                    tmp.setRfc822( v.mid( i+1 ) );
+                    if ( tmp.valid() )
+                        date = tmp;
+                }
+            }
+            ++it;
+        }
+
+        if ( !date.valid() ) {
+            // If there weren't any good-looking Received fields, we
+            // might look for a Date field in an emcompassing message,
+            // but we can't because at this point, we can't access
+            // Multipart::parent().
+        }
+
+        if ( !date.valid() ) {
+            // As last resort, use the current date, time and timezone.
+            date.setCurrentTime();
+        }
+
+        add( "Date", date.rfc822() );
+    }
+
+    if ( occurrences[(int)HeaderField::From] == 0 ) {
+    }
+
     d->verified = false;
 }
 
