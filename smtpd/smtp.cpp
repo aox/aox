@@ -858,11 +858,8 @@ void SMTP::inject()
     received.append( now.rfc822() );
     received.append( "\r\n" );
 
-    d->body = received + d->body;
+    d->body = received + "Return-Path: " + d->from->toString() + "\r\n" + d->body;
     Message * m = new Message( d->body );
-    m->header()->removeField( HeaderField::ReturnPath );
-    if ( d->from )
-        m->header()->add( "Return-Path", d->from->toString() );
 
     d->mailboxes = new SortedList<Mailbox>;
     List< Alias >::Iterator it( d->to );
