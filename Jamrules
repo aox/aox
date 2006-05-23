@@ -136,8 +136,10 @@ rule Doc {
     local output = [ Glob doc/html : *.html ] [ Glob doc/man/man3  : *.3* ] ;
     NOCARE $(output) ;
     Depends $(output) : $(set-$(>):S=.cpp) ;
+    
+    UDOCBIN = udoc ;
 
-    Depends $(<) : $(output) udoc ;
+    Depends $(<) : $(output) $(UDOCBIN) ;
     NOTFILE $(<) ;
     if ! $(output) {
         ALWAYS $(<) ;
