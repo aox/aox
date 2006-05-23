@@ -13,12 +13,15 @@ private:
     Resolver();
 
     static Resolver * resolver();
-    String string( uint & );
-    void query( uint );
+    String readString( uint & );
+    void query( uint, StringList * );
 
 public:
     static StringList resolve( const String & );
     static StringList errors();
+
+private:
+    class ResolverData * d;
 };
 
 

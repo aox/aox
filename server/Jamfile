@@ -9,7 +9,13 @@ SubInclude TOP message ;
 
 Build server :
     connection.cpp endpoint.cpp event.cpp logclient.cpp tls.cpp
-    eventloop.cpp byteforwarder.cpp server.cpp timer.cpp ;
+    eventloop.cpp byteforwarder.cpp server.cpp timer.cpp resolver.cpp ;
+
+# We must link with -lresolv on linux, but not on the BSDs.
+if $(OS) = "LINUX" {
+    UseLibrary resolver.cpp : resolv ;
+}
+
 
 Build mailbox :
     session.cpp occlient.cpp mailbox.cpp messageset.cpp

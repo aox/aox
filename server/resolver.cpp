@@ -2,6 +2,10 @@
 
 #include "resolver.h"
 
+#include "dict.h"
+#include "allocator.h"
+#include "configuration.h"
+
 #include <netinet/in.h>
 #include <arpa/nameser.h>
 #include <resolv.h>
@@ -13,6 +17,9 @@ class ResolverData
 public:
     StringList errors;
     Dict<StringList> names;
+    String reply;
+    String host;
+    bool bad;
 };
 
 
@@ -54,40 +61,37 @@ Resolver::Resolver()
     errors().
 */
 
-StringList Resolver::resolve( const String & )
+StringList Resolver::resolve( const String & name )
 {
     Resolver * r = resolver();
-    String name = s.lower();
-    if ( r->d->names.contains( name ) )
-        return *r->d->find( name );
+    r->d->host = name.lower();
+    if ( r->d->names.contains( r->d->host ) )
+        return *r->d->names.find( r->d->host );
 
-    StringList results;
-    if ( name == "localhost" ) {
-        results.append( "::1" );
-        results.append( "127.0.0.1" );
+    StringList * results = new StringList;
+    if ( r->d->host == "localhost" ) {
+        results->append( "::1" );
+        results->append( "127.0.0.1" );
     }
-    else if ( name.contains( ':' ) ) {
+    else if ( r->d->host.contains( ':' ) ) {
         // it's an ipv6 address
     }
-    else if ( name.contains( '.' ) && name.mid( name.length()-1 ) <= '9' ) {
+    else if ( r->d->host.contains( '.' ) && r->d->host[r->d->host.length()-1] <= '9' ) {
         // it's an ipv4 address
     }
-    else if ( name.startsWith( '/' ) ) {
+    else if ( r->d->host.startsWith( "/" ) ) {
         // it's a unix pipe
     }
     else {
         // it's a domain name. we use res_search since getnameinfo()
         // had such bad karma when we tried it.
-        if ( Configuration::toggle( Configuration::UseIPv6 ) ) {
-        }
-        if ( Configuration::toggle( Configuration::UseIPv4 ) ) {
-            int len = res_search( name.cstr(), C_IN, T_INADDR, answer, 4096 );
-            if ( len > 0 )
-                results.append( parse( answer ) );
-        }
+        if ( Configuration::toggle( Configuration::UseIPv6 ) )
+            r->query( T_AAAA, results );
+        if ( Configuration::toggle( Configuration::UseIPv4 ) )
+            r->query( T_A, results );
     }
-    r->d->names.insert( name, results );
-    return results;
+    r->d->names.insert( r->d->host, results );
+    return *results;
 }
 
 
@@ -99,6 +103,9 @@ StringList Resolver::errors()
 {
     return resolver()->d->errors;
 }
+
+
+static Resolver * resolver = 0;
 
 
 /*! This private helper ensures that there is a resolver, and returns
@@ -122,27 +129,26 @@ Resolver * Resolver::resolver()
    returns an empty string, but logs no error.
 */
 
-
 String Resolver::readString( uint & i )
 {
     bool ok = true;
     bool bad = false;
     String r;
-    b = d->reply[i];
+    uint c = d->reply[i];
     if ( i >= d->reply.length() ) {
         ok = false;
     }
-    if ( b == 0 ) {
+    if ( c == 0 ) {
         // all is in perfect order
     }
-    else if ( b < 64 ) {
+    else if ( c < 64 ) {
         i++;
-        r.append( d->reply+i, b );
-        b += i;
+        r.append( d->reply.mid( i, c ) );
+        c += i;
         // and just in case that wasn't all, do a spot of tail recursion
-        r.append( readString() );
+        r.append( readString( i ) );
     }
-    else if ( b >= 192 ) {
+    else if ( c >= 192 ) {
         uint qi = ( ( d->reply[i] & 0x3f ) << 8 ) + d->reply[i+1];
         if ( qi < i )
             r.append( readString( qi ) );
@@ -162,29 +168,32 @@ String Resolver::readString( uint & i )
 
 
 
-/*! This private function issues a DNS query of \a type for \a name
-    and caches all results. \a type is passed through to ::res_query()
-    unchanged.
+/*! This private function issues a DNS query of \a type and appends
+    the results to \a results. Truncated packets are silently accepted
+    (the partial RR is ignored).  \a type is passed through to
+    ::res_query() unchanged.
 */
 
-void Resolver::query( String name, uint t )
+void Resolver::query( uint type, StringList * results )
 {
+    d->bad = false;
     d->reply.reserve( 4096 );
-    int len = res_search( name.cstr(), C_IN, t, d->reply, 4096 );
+    int len = res_search( d->host.cstr(), C_IN, type,
+                          (u_char*)d->reply.data(), d->reply.capacity() );
     if ( len <= 0 ) {
-        d->errors.append( "Error while looking up " + name );
+        d->errors.append( "Error while looking up " + d->host );
         return;
     }
         
-    d->reply.truncate( len );
+    d->reply.setLength( len );
     
     uint p = 12;
 
     if ( len < 12 )
         return;
 
-    uint qdcount = (  answer[4] << 8 ) +  answer[5];
-    uint ancount = (  answer[6] << 8 ) +  answer[7];
+    uint qdcount = (  d->reply[4] << 8 ) +  d->reply[5];
+    uint ancount = (  d->reply[6] << 8 ) +  d->reply[7];
 
     // skip the query section
     while ( p < d->reply.length() && qdcount && !d->bad ) {
@@ -200,7 +209,7 @@ void Resolver::query( String name, uint t )
         uint type = ( d->reply[p] << 8 ) + d->reply[p+1];
         uint rdlength = ( d->reply[p+8] << 8 ) + d->reply[p+9];
         p += 10;
-        if ( type == T_INADDR ) {
+        if ( type == T_A ) {
             if ( rdlength == 4 ) {
                 uint i = 0;
                 while ( i < rdlength ) {
@@ -211,7 +220,7 @@ void Resolver::query( String name, uint t )
                 }
             }
         }
-        else if ( type == T_INADDR6 ) {
+        else if ( type == T_AAAA ) {
             if ( rdlength == 16 ) {
                 uint i = 0;
                 while ( i < rdlength ) {
@@ -222,10 +231,12 @@ void Resolver::query( String name, uint t )
                 }
             }
         }
-        p += rdlength;
-        if ( p <= d->reply.length() && !d->bad && !a.isEmpty() ) {
-            
+        else if ( type == T_CNAME ) {
+            // hm.
         }
+        p += rdlength;
+        if ( p <= d->reply.length() && !d->bad && !a.isEmpty() )
+            results->append( a );
         ancount--;
     }
 
