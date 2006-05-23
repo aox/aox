@@ -123,10 +123,10 @@ Resolver * Resolver::resolver()
 }
 
 
-/* Reads and returns a single string from the stored DNS reply at
-   offset \a i, modifying \a i. If errors occur, an error is
-   logged. If the parser runs off the end of the reply, readString()
-   returns an empty string, but logs no error.
+/*! Reads and returns a single string from the stored DNS reply at
+    offset \a i, modifying \a i. If errors occur, an error is
+    logged. If the parser runs off the end of the reply, readString()
+    returns an empty string, but logs no error.
 */
 
 String Resolver::readString( uint & i )
