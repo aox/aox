@@ -165,7 +165,7 @@ public:
                 ::mailboxes->insert( m->d->id, m );
         }
 
-        if ( owner ) {
+        if ( query->done() && owner ) {
             if ( query->failed() )
                 log( "Couldn't create mailbox tree: " + query->error(),
                      Log::Disaster );
