@@ -133,15 +133,22 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
 
 
 rule Doc {
-    Depends doc : <doc>.made.$(<) ;
+    local output = [ Glob doc/html : *.html ] [ Glob doc/man/man3  : *.3* ] ;
+    NOCARE $(output) ;
+    Depends $(output) : $(set-$(>):S=.cpp) ;
 
+    Depends $(<) : $(output) udoc ;
+    NOTFILE $(<) ;
+    if ! $(output) {
+        ALWAYS $(<) ;
+    }
+
+    Doc2 $(<) : $(set-$(>):S=.cpp) ;
+
+    Depends doc : $(<) ;
+
+    Clean clean : $(output) ;
     RemoveDirectories clean ;
-
-    Clean clean : <doc>.made.$(<) ;
-    Depends <doc>.made.$(<) : $(set-$(>):S=.cpp) ;
-    Doc2 <doc>.made.$(<) : $(set-$(>):S=.cpp) ;
-    Depends <doc>.made.$(<) : $(UDOCBIN) ;
-    UDOCBIN = udoc ;
 }
 
 
@@ -150,9 +157,8 @@ actions together RemoveDirectories {
 }
 
 actions together Doc2 bind UDOCBIN {
-    mkdir -p doc/man/man3 doc/html
+    mkdir -p doc/man/man3 doc/html build/doc
     $(UDOCBIN) -o 'Oryx Mail Systems GmbH' -u 'http://www.oryx.com' -m doc/man/man3 -w doc/html $(>)
-    touch $(<)
 }
 
 
