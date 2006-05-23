@@ -1,9 +1,8 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "cstring.h"
-
 #include "dirtree.h"
 
+#include "sys.h"
 #include "file.h"
 #include "stringlist.h"
 

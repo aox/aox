@@ -1,20 +1,18 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "cstring.h"
-
-#include "transaction.h"
-#include "allocator.h"
 #include "migrator.h"
-#include "injector.h"
-#include "mailbox.h"
-#include "scope.h"
-#include "list.h"
 
-#include <qlabel.h>
-#include <qstyle.h>
-#include <qlayout.h>
-#include <qtextedit.h>
-#include <qapplication.h>
+#include "list.h"
+#include "scope.h"
+#include "mailbox.h"
+#include "allocator.h"
+#include "transaction.h"
+#include "eventloop.h"
+#include "injector.h"
+#include "dirtree.h"
+#include "mbox.h"
+
+#include <stdio.h>
 
 
 class MigratorData
@@ -22,19 +20,17 @@ class MigratorData
 {
 public:
     MigratorData()
-        : source( 0 ), working( 0 ),
-          errors( 0 ), current( 0 ), done( 0 ),
-          messagesDone( 0 )
-        {}
+        : working( 0 ), target( 0 ),
+          messagesDone( 0 ), status( 0 )
+    {}
 
-    MigratorSource * source;
-    List<MailboxMigrator> * working;
-
-    QListViewItem * errors;
-    QListViewItem * current;
-    QListViewItem * done;
+    String destination;
+    List< MigratorSource > sources;
+    List< MailboxMigrator > * working;
+    Mailbox * target;
 
     uint messagesDone;
+    int status;
 };
 
 
@@ -50,43 +46,12 @@ public:
 */
 
 
-/*! Constructs an Migrator. start() must be called to supply this
-    object with a source.
-*/
+/*! Constructs a new Migrator. */
 
-Migrator::Migrator( QWidget * parent )
-    : QListView( parent ), d( new MigratorData )
+Migrator::Migrator()
+    : d( new MigratorData )
 {
     Allocator::addEternal( d, "migrator gcable data" );
-
-    addColumn( tr( "Name" ) );
-    addColumn( tr( "Messages" ) );
-
-    setColumnAlignment( 1, AlignRight );
-
-    setColumnWidthMode( 0, Manual );
-    setColumnWidthMode( 1, Manual );
-
-    setAllColumnsShowFocus( true );
-
-    setSorting( -1 );
-
-    d->errors = new QListViewItem( this,
-                                   tr( "Mailboxes with errors" ), "0" );
-    d->errors->setExpandable( true );
-    d->errors->setOpen( true );
-    d->errors->setSelectable( false );
-
-    d->current = new QListViewItem( this,
-                                    tr( "Mailboxes being converted" ), "" );
-    d->current->setExpandable( true );
-    d->current->setOpen( true );
-    d->current->setSelectable( false );
-
-    d->done = new QListViewItem( this, tr( "Migrated mailboxes" ), "0" );
-    d->done->setExpandable( true );
-    d->done->setOpen( true );
-    d->done->setSelectable( false );
 }
 
 
@@ -96,14 +61,98 @@ Migrator::~Migrator()
 }
 
 
-void Migrator::resizeEvent( QResizeEvent * e )
+/*! Sets this Migrator's destination to a Mailbox named \a s. */
+
+void Migrator::setDestination( const String &s )
 {
-    uint sbv = style().pixelMetric( QStyle::PM_ScrollBarExtent );
-    setColumnWidth( 0, contentsRect().width() - columnWidth( 1 ) - sbv );
-    resizeContents( contentsRect().width(), contentsHeight() );
-    QListView::resizeEvent( e );
+    d->destination = s;
 }
 
+
+/*! Creates a MigratorSource object from the string \a s, and adds it to
+    this Migrator's list of sources.
+*/
+
+void Migrator::addSource( const String &s )
+{
+    d->sources.append( new MboxDirectory( s ) );
+}
+
+
+/*! Fills up the quota of working mailboxes, so we're continuously
+    migrating four mailboxes.
+*/
+
+void Migrator::execute()
+{
+    if ( !d->target ) {
+        d->target = Mailbox::find( d->destination );
+        if ( !d->target ) {
+            d->status = -1;
+            fprintf( stderr, "aoximport: Target mailbox does not exist: %s\n",
+                     d->destination.cstr() );
+            EventLoop::global()->shutdown();
+            return;
+        }
+    }
+
+    if ( !d->working ) {
+        log( "Starting migration" );
+        d->working = new List< MailboxMigrator >;
+    }
+
+    List< MailboxMigrator >::Iterator it( d->working );
+    while ( it ) {
+        List< MailboxMigrator >::Iterator mm( it );
+        if ( mm->done() ) {
+            d->messagesDone += mm->migrated();
+            d->working->take( mm );
+        }
+        ++it;
+    }
+
+    if ( d->working->count() < 4 ) {
+        List< MigratorSource >::Iterator sources( d->sources );
+        while ( sources ) {
+            MigratorSource * source = sources;
+
+            MigratorMailbox * m( source->nextMailbox() );
+            while ( m && d->working->count() < 4 ) {
+                MailboxMigrator * n = new MailboxMigrator( m, this );
+                if ( n->valid() ) {
+                    d->working->append( n );
+                    n->execute();
+                }
+                m = source->nextMailbox();
+            }
+
+            if ( !m && d->working->count() < 4 ) {
+                d->sources.take( sources );
+                source = 0;
+                if ( sources )
+                    source = sources;
+            }
+            else {
+                break;
+            }
+        }
+    }
+
+    if ( d->working->isEmpty() && d->sources.isEmpty() ) {
+        d->status = 0;
+        EventLoop::global()->shutdown();
+    }
+}
+
+
+/*! Returns the status code of this Migrator object.
+    (Nascent function, nascent documentation.)
+*/
+
+int Migrator::status() const
+{
+    return d->status;
+}
 
 
 /*! \class MigratorSource migrator.h
@@ -124,7 +173,13 @@ void Migrator::resizeEvent( QResizeEvent * e )
 
 MigratorSource::MigratorSource()
 {
-    // what could we possibly need to do?
+}
+
+
+/*! Necessary only to satisfy g++, which wants virtual destructors. */
+
+MigratorSource::~MigratorSource()
+{
 }
 
 
@@ -162,7 +217,15 @@ MigratorSource::MigratorSource()
 MigratorMailbox::MigratorMailbox( const String & partialName )
     : n( partialName )
 {
-    // nothing
+}
+
+
+/*! Necessary only to satisfy g++, which wants virtual
+    constructors.
+*/
+
+MigratorMailbox::~MigratorMailbox()
+{
 }
 
 
@@ -198,13 +261,11 @@ String MigratorMailbox::partialName()
 MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
     : Message( rfc822 ), s( desc ), o( rfc822 )
 {
-    // nothing more
 }
 
 
 MigratorMessage::~MigratorMessage()
 {
-    // nothing necessary
 }
 
 
@@ -233,153 +294,6 @@ String MigratorMessage::original() const
 }
 
 
-/*! Necessary only to satisfy g++, which wants virtual
-    destructors. */
-
-MigratorSource::~MigratorSource()
-{
-}
-
-
-/*! Necessary only to satisfy g++, which wants virtual
-    constructors.
-*/
-
-MigratorMailbox::~MigratorMailbox()
-{
-}
-
-
-/*! Starts migrating data from \a source. Returns immediately, while
-    migration probably takes a few minutes or hours. */
-
-void Migrator::start( class MigratorSource * source )
-{
-    log( "Starting migration" );
-    d->source = source;
-    refill();
-}
-
-
-/*! Returns true if a Migrator operation is currently running, and
-    false otherwise. An operation is running even if there's nothing
-    it can do at the moment. As long as there's something it may do in
-    the future, it's running.
-*/
-
-bool Migrator::running() const
-{
-    return d->working && !d->working->isEmpty();
-}
-
-
-/*! Fills up the quota of working mailboxes, so we're continuously
-    migrating four mailboxes.
-*/
-
-void Migrator::refill()
-{
-    bool lastTaken = false;
-    if ( !d->working )
-        d->working = new List<MailboxMigrator>;
-    List<MailboxMigrator>::Iterator it( d->working );
-    while ( it ) {
-        List<MailboxMigrator>::Iterator mm( it );
-        ++it;
-        if ( mm->done() ) {
-            QListViewItem * i = mm->listViewItem();
-            d->current->takeItem( i );
-            d->done->insertItem( i );
-            d->messagesDone += mm->migrated();
-            d->done->setText( 1, QString::number( d->messagesDone ) );
-            d->working->take( mm );
-            if ( d->working->isEmpty() )
-                lastTaken = true;
-        }
-    }
-    if ( d->working->count() < 4 ) {
-        MigratorMailbox * m = d->source->nextMailbox();
-        while ( m && d->working->count() < 4 ) {
-            if ( m ) {
-                MailboxMigrator * n = new MailboxMigrator( m, this );
-                if ( n->valid() ) {
-                    d->working->append( n );
-                    n->createListViewItem( d->current );
-                    n->execute();
-                }
-            }
-            m = d->source->nextMailbox();
-        }
-    }
-    if ( lastTaken && d->working->isEmpty() )
-        emit done();
-}
-
-
-class MigratorMessageItem
-    : public QListViewItem
-{
-public:
-    MigratorMessageItem( QListViewItem *,
-                         MigratorMessage *, const QString & );
-    void activate();
-    QString description;
-    QString error;
-    QString text;
-};
-
-
-MigratorMessageItem::MigratorMessageItem( QListViewItem * parent,
-                                          MigratorMessage * message,
-                                          const QString & e )
-    : QListViewItem( parent ),
-      description( QString::fromLatin1( message->description().cstr() ) ),
-      error( QString::fromLatin1( e ) ),
-      text( QString::fromLatin1( message->original().cstr() ) )
-{
-    setMultiLinesEnabled( true );
-
-    setText( 0, description + QString::fromLatin1( "\n" ) + error );
-}
-
-
-void MigratorMessageItem::activate()
-{
-    QWidget * w = new QWidget( 0, 0, WDestructiveClose );
-    QGridLayout * g = new QGridLayout( w, 2, 2, 6 );
-
-    QLabel * l = new QLabel( Migrator::tr( "Message:" ), w );
-    g->addWidget( l, 0, 0 );
-    l = new QLabel( Migrator::tr( "Error:" ), w );
-    g->addWidget( l, 1, 0 );
-    l = new QLabel( description, w );
-    g->addWidget( l, 0, 1 );
-    l = new QLabel( error, w );
-    g->addWidget( l, 1, 1 );
-
-    QTextEdit * t = new QTextEdit( w );
-    t->setTextFormat( QTextEdit::PlainText );
-    t->setReadOnly( true );
-    t->setText( text );
-    g->addMultiCellWidget( t, 2, 2, 0, 1 );
-
-    // should also have 'mangle' and 'report as error'
-    // buttons. 'mangle' should change all ASCII letters to 'x' with
-    // certain exceptions. what are the exceptions? letters in the
-    // words from, to, subject, content-type, boundary, anything
-    // starting with '--', anything containing '=', what more?
-
-    w->show();
-
-    QWidget * tlw = listView()->topLevelWidget();
-    w->resize( tlw->width()-20, tlw->height()-20 );
-    int w80 = t->fontMetrics().width( "abcd" ) * 20;
-    if ( w->width() < w80 && w80 < QApplication::desktop()->width() )
-        w->resize( w80, w->height() );
-}
-
-
-
 class MailboxMigratorData
     : public Garbage
 {
@@ -391,10 +305,10 @@ public:
           validated( false ), valid( false ),
           injector( 0 ),
           migrated( 0 ),
-          lvi( 0 ), lastItem( 0 ),
           mailboxCreator( 0 ),
           log( Log::General )
-        {}
+    {}
+
     MigratorMailbox * source;
     Mailbox * destination;
     Migrator * migrator;
@@ -403,8 +317,6 @@ public:
     bool valid;
     Injector * injector;
     uint migrated;
-    QListViewItem * lvi;
-    QListViewItem * lastItem;
     Transaction * mailboxCreator;
     String error;
     Log log;
@@ -477,14 +389,11 @@ void MailboxMigrator::execute()
     Scope x( &d->log );
 
     if ( d->injector && d->injector->failed() ) {
-        QString e = QString::fromLatin1( "Database Error: " ) +
-                    QString::fromLatin1( d->injector->error().cstr() );
-        d->lastItem = new MigratorMessageItem( d->lvi, d->message, e );
+        String e( "Database error: " );
+        e.append( d->injector->error() );
     }
     else if ( d->injector ) {
         d->migrated++;
-        if ( d->lvi )
-            d->lvi->setText( 1, QString::number( d->migrated ) );
     }
     else if ( d->mailboxCreator ) {
         if ( d->mailboxCreator->failed() ) {
@@ -496,7 +405,7 @@ void MailboxMigrator::execute()
                        d->mailboxCreator->error();
             log( d->error, Log::Error );
             commit();
-            d->migrator->refill();
+            //d->migrator->refill();
             return;
         }
         if ( !d->mailboxCreator->done() )
@@ -516,7 +425,7 @@ void MailboxMigrator::execute()
             }
             else {
                 log( "Unable to migrate " + d->source->partialName() );
-                d->migrator->refill();
+                //d->migrator->refill();
                 d->message = 0;
             }
             return;
@@ -537,9 +446,8 @@ void MailboxMigrator::execute()
         log( "Syntax problem: " + d->message->error() );
         log( "Cannot migrate message " + d->message->description() );
         commit();
-        QString e = QString::fromLatin1( "Syntax Error: " ) +
-                    QString::fromLatin1( d->message->error().cstr() );
-        d->lastItem = new MigratorMessageItem( d->lvi, d->message, e );
+        String e( "Syntax error: " );
+        e.append( d->message->error() );
         d->message = d->source->nextMessage();
     }
 
@@ -553,7 +461,7 @@ void MailboxMigrator::execute()
         d->injector->execute();
     }
     else {
-        d->migrator->refill();
+        //d->migrator->refill();
     }
 
     if ( done() )
@@ -573,29 +481,6 @@ bool MailboxMigrator::done() const
     if ( d->message )
         return false;
     return true;
-}
-
-
-/*! Creates a QListViewItem describing this migrator as a child of \a
-    parent. This function must be called before listViewItem(), and
-    can be called only once.
-*/
-
-void MailboxMigrator::createListViewItem( QListViewItem * parent )
-{
-    String n( d->source->partialName() );
-    d->lvi = new QListViewItem( parent,
-                                QString::fromLatin1( n.cstr() ),
-                                "0" );
-    d->lvi->setSelectable( false );
-}
-
-
-/*! Returns a pointer to the item created by createListViewItem(). */
-
-QListViewItem * MailboxMigrator::listViewItem() const
-{
-    return d->lvi;
 }
 
 

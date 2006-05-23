@@ -17,6 +17,7 @@ SubInclude TOP tlsproxy ;
 SubInclude TOP installer ;
 SubInclude TOP extractors ;
 SubInclude TOP archiveopteryx ;
+SubInclude TOP aoximport ;
 
 if ( $(BUILDDOC) ) {
     SubInclude TOP udoc ;

@@ -3,28 +3,22 @@
 #ifndef MIGRATOR_H
 #define MIGRATOR_H
 
-#include <qlistview.h>
-
 #include "message.h"
 #include "event.h"
 
 
-class Migrator: public QListView
+class Migrator
+    : public EventHandler
 {
-    Q_OBJECT
 public:
-    Migrator( QWidget * parent );
+    Migrator();
     ~Migrator();
 
-    void start( class MigratorSource * );
+    void setDestination( const String & );
+    void addSource( const String & );
 
-    bool running() const;
-    void refill();
-
-    void resizeEvent( QResizeEvent * );
-
-signals:
-    void done();
+    void execute();
+    int status() const;
 
 private:
     class MigratorData * d;
@@ -58,7 +52,8 @@ private:
 };
 
 
-class MigratorMessage: public Message
+class MigratorMessage
+    : public Message
 {
 public:
     MigratorMessage( const String &, const String & );
@@ -73,7 +68,8 @@ private:
 };
 
 
-class MailboxMigrator: public EventHandler
+class MailboxMigrator
+    : public EventHandler
 {
 public:
     MailboxMigrator( class MigratorMailbox *,
@@ -84,9 +80,6 @@ public:
     String error() const;
 
     void execute();
-
-    void createListViewItem( QListViewItem * );
-    QListViewItem * listViewItem() const;
 
     uint migrated() const;
 

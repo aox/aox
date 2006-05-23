@@ -3,7 +3,7 @@ SubInclude TOP encodings ;
 SubInclude TOP message ;
 SubInclude TOP server ;
 
-Build aoximport : aoximport.cpp ;
+Build aoximport : aoximport.cpp migrator.cpp dirtree.cpp mbox.cpp ;
 Program aoximport :
     aoximport database server mailbox message user core encodings extractors ;
 

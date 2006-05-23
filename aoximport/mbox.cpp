@@ -1,7 +1,5 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "cstring.h"
-
 #include "mbox.h"
 
 #include "stringlist.h"
