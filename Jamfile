@@ -27,9 +27,9 @@ Doc oryxdoc : core database encodings imap logd mailbox message ocd sasl
     server smtp tls user http ;
 
 if ( $(BUILDDOC) ) {
-    Depends install : doc ;
-    Depends all : doc ;
-    Depends doc : exe ;
+    Depends install : oryxdoc ;
+    Depends all : oryxdoc ;
+    Depends oryxdoc : exe ;
 }
 
 MkDir $(BINDIR) ;
