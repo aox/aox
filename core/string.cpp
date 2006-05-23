@@ -164,6 +164,13 @@ String & String::operator=( const char * s )
     terminator or padding. */
 
 
+/*! \fn uint String::capacity() const
+
+    Returns the capacity of the string variable, that is, how long the
+    string can be before it has to allocate memory.
+*/
+
+
 /*! \fn const char *String::data() const
 
     Returns a pointer to the string's byte representation, which is
@@ -392,7 +399,11 @@ void String::appendNumber( uint n, int base )
 
 /*! Ensures that there is at least \a num bytes available in this
     string. This implicitly causes the string to become modifiable and
-    have a nonzero number of available bytes. */
+    have a nonzero number of available bytes.
+
+    After calling reserve(), capacity() is at least as large as \a
+    num, while length() has not changed.
+*/
 
 void String::reserve( uint num )
 {
@@ -440,7 +451,7 @@ void String::reserve2( uint num )
 
 
 /*! Ensures that the string's length is either \a l or length(),
-    whichever is smaller. I \a l is 0 (the default), the string will be
+    whichever is smaller. If \a l is 0 (the default), the string will be
     empty after the function is called.
 */
 
@@ -450,6 +461,20 @@ void String::truncate( uint l )
         detach();
         d->len = l;
     }
+}
+
+
+/*! Ensures that the string's length is \a l. If \a l is 0, the string
+    will be empty after the function is called. If \a l is longer than
+    the string used to be, the new part is uninitialised.
+*/
+
+void String::setLength( uint l )
+{
+    reserve( l );
+    if ( l )
+        d->len = d->max;
+    truncate( l );
 }
 
 

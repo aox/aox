@@ -51,7 +51,8 @@ public:
 
     inline bool isEmpty() const { return !d || !d->len; }
     inline uint length() const { return d ? d->len : 0; }
-    inline const char *data() const { return d ? (const char*)d->str : 0; }
+    inline uint capacity() const { return d ? d->max : 0; }
+    inline const char * data() const { return d ? (const char*)d->str : 0; }
     const char * cstr();
     const char * cstr() const;
 
@@ -93,6 +94,7 @@ public:
     void reserve( uint );
     void reserve2( uint );
     void truncate( uint = 0 );
+    void setLength( uint );
 
     enum Encoding { Binary, Base64, QP };
     String encode( Encoding, uint = 0 ) const;
