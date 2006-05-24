@@ -547,7 +547,7 @@ void Postgres::unknown( char type )
                     else {
                         log( "PostgreSQL refuses authentication because this "
                              "process is not running as user " + s + ". See "
-                             "http://www.oryx.com/faq/mailstore.html#ident",
+                             "http://aox.org/faq/mailstore.html#ident",
                              Log::Disaster );
                     }
                 }
