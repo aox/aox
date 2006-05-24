@@ -17,6 +17,8 @@ public:
     void setDestination( const String & );
     void addSource( const String & );
 
+    Mailbox * target() const;
+
     void execute();
     int status() const;
 

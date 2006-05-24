@@ -40,9 +40,9 @@ public:
     mailbox migration (and managing the migration, too).
 
     Its API consists of the two functions start() and running(). The
-    refill() function does the heavy loading, by ensuring that the
+    execute() function does the heavy loading, by ensuring that the
     Migrator always has four MailboxMigrator objects working. (The
-    MailboxMigrator objects must call refill() when they're done.)
+    MailboxMigrator objects must call execute() when they're done.)
 */
 
 
@@ -76,6 +76,16 @@ void Migrator::setDestination( const String &s )
 void Migrator::addSource( const String &s )
 {
     d->sources.append( new MboxDirectory( s ) );
+}
+
+
+/*! Returns the target mailbox, as inferred from setDestination(). This
+    function is a ghastly, short-term hack.
+*/
+
+Mailbox * Migrator::target() const
+{
+    return d->target;
 }
 
 
@@ -360,14 +370,9 @@ bool MailboxMigrator::valid() const
     if ( !d->validated ) {
         d->validated = true;
         Scope x( &d->log );
-        if ( d->source->partialName().isEmpty() ) {
-            log( "Root directory cannot contain messages" );
-        }
-        else {
-            d->message = d->source->nextMessage();
-            if ( d->message )
-                d->valid = true;
-        }
+        d->message = d->source->nextMessage();
+        if ( d->message )
+            d->valid = true;
         if ( d->valid )
             log( "Source apparently is a valid mailbox" );
         else
@@ -405,29 +410,18 @@ void MailboxMigrator::execute()
                        d->mailboxCreator->error();
             log( d->error, Log::Error );
             commit();
-            //d->migrator->refill();
+            d->migrator->execute();
             return;
         }
         if ( !d->mailboxCreator->done() )
             return;
     }
     else if ( !d->destination ) {
-        d->destination = Mailbox::find( d->source->partialName() );
+        d->destination = d->migrator->target();
         if ( !d->destination ) {
-            log( "Need to create destination mailbox" );
-            d->destination
-                = Mailbox::obtain( d->source->partialName(), true );
-            d->mailboxCreator = new Transaction( this );
-            if ( d->destination &&
-                 d->destination->create( d->mailboxCreator, 0 ) == 0 )
-            {
-                d->mailboxCreator->commit();
-            }
-            else {
-                log( "Unable to migrate " + d->source->partialName() );
-                //d->migrator->refill();
-                d->message = 0;
-            }
+            log( "Unable to migrate " + d->source->partialName() );
+            d->message = 0;
+            d->migrator->execute();
             return;
         }
     }
@@ -461,7 +455,7 @@ void MailboxMigrator::execute()
         d->injector->execute();
     }
     else {
-        //d->migrator->refill();
+        d->migrator->execute();
     }
 
     if ( done() )

@@ -5,9 +5,12 @@
 #include "migrator.h"
 #include "allocator.h"
 #include "configuration.h"
+#include "addresscache.h"
+#include "fieldcache.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "database.h"
+#include "occlient.h"
 #include "mailbox.h"
 #include "log.h"
 
@@ -45,6 +48,10 @@ int main( int ac, char ** av )
 
     Database::setup();
     Mailbox::setup( m );
+
+    OCClient::setup();
+    AddressCache::setup();
+    FieldNameCache::setup();
 
     EventLoop::global()->start();
 
