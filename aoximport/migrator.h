@@ -12,7 +12,6 @@ class Migrator
 {
 public:
     Migrator();
-    ~Migrator();
 
     void setDestination( const String & );
     void addSource( const String & );

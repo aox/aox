@@ -51,13 +51,6 @@ public:
 Migrator::Migrator()
     : d( new MigratorData )
 {
-    Allocator::addEternal( d, "migrator gcable data" );
-}
-
-
-Migrator::~Migrator()
-{
-    Allocator::removeEternal( d );
 }
 
 
@@ -157,6 +150,8 @@ void Migrator::execute()
 
 /*! Returns the status code of this Migrator object.
     (Nascent function, nascent documentation.)
+    
+    Why is this an int instead of an enum?
 */
 
 int Migrator::status() const
@@ -167,9 +162,9 @@ int Migrator::status() const
 
 /*! \class MigratorSource migrator.h
 
-    The MigratorSource class models something from which Oryx can
-    migrate messages. Each particular server or mailbox format
-    provides a subclass.
+    The MigratorSource class models something from which
+    Archiveopteryx can migrate messages. Each particular server or
+    mailbox format provides a subclass.
 
     The only function is nextMailbox(), which returns a pointer to
     each mailbox within the MigratorSource in turn, and then a null
