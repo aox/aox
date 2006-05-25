@@ -49,7 +49,7 @@ void ProgressReporter::execute()
 {
     uint n = d->m->messagesMigrated();
     fprintf( stdout,
-             "Processed %4d messages in %4d mailboxes, %.1f/s, "
+             "Processed %d messages in %d mailboxes, %.1f/s, "
              "memory usage %s+%s\n",
              n, d->m->mailboxesMigrated() + d->m->migrators(),
              ((double)( n - d->l )) / d->i,
