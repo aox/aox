@@ -5,6 +5,7 @@
 #include "migrator.h"
 #include "allocator.h"
 #include "configuration.h"
+#include "progressreporter.h"
 #include "addresscache.h"
 #include "fieldcache.h"
 #include "logclient.h"
@@ -53,7 +54,12 @@ int main( int ac, char ** av )
     AddressCache::setup();
     FieldNameCache::setup();
 
+    ProgressReporter * p = new ProgressReporter( m, 5 );
+    // 5? command-line option?
+
     EventLoop::global()->start();
+
+    p->execute();
 
     return m->status();
 }

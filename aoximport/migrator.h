@@ -21,6 +21,10 @@ public:
     void execute();
     int status() const;
 
+    uint messagesMigrated() const;
+    uint mailboxesMigrated() const;
+    uint migrators() const;
+
 private:
     class MigratorData * d;
 };

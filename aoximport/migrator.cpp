@@ -21,7 +21,8 @@ class MigratorData
 public:
     MigratorData()
         : working( 0 ), target( 0 ),
-          messagesDone( 0 ), status( 0 )
+          messagesDone( 0 ), mailboxesDone( 0 ),
+          status( 0 )
     {}
 
     String destination;
@@ -30,6 +31,7 @@ public:
     Mailbox * target;
 
     uint messagesDone;
+    uint mailboxesDone;
     int status;
 };
 
@@ -109,6 +111,7 @@ void Migrator::execute()
         List< MailboxMigrator >::Iterator mm( it );
         if ( mm->done() ) {
             d->messagesDone += mm->migrated();
+            d->mailboxesDone++;
             d->working->take( mm );
         }
         ++it;
@@ -136,6 +139,8 @@ void Migrator::execute()
                     source = sources;
             }
             else {
+                // what does this do, exactly? our of which loop does
+                // it break?
                 break;
             }
         }
@@ -488,4 +493,41 @@ uint MailboxMigrator::migrated() const
 String MailboxMigrator::error() const
 {
     return d->error;
+}
+
+
+/*! Returns the number of messages successfully migrated so far. */
+
+uint Migrator::messagesMigrated() const
+{
+    uint n = d->messagesDone;
+    List<MailboxMigrator>::Iterator i( d->working );
+    while ( i ) {
+        n += i->migrated();
+        ++i;
+    }
+    return n;
+}
+
+
+/*! Returns the number of mailboxes completely processed so far. The
+    mailboxes which are currently being processed are not counted
+    here.
+*/
+
+uint Migrator::mailboxesMigrated() const
+{
+    return d->mailboxesDone;
+}
+
+
+/*! Returns the number of currently active migrators, which is also
+    the number of mailboxes currently being processed.
+*/
+
+uint Migrator::migrators() const
+{
+    if ( d->working )
+        return d->working->count();
+    return 0;
 }
