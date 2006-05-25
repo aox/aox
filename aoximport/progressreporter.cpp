@@ -2,6 +2,7 @@
 
 #include "progressreporter.h"
 
+#include "allocator.h"
 #include "migrator.h"
 #include "timer.h"
 
@@ -24,7 +25,7 @@ public:
 
 /*! \class ProgressReporter progressreporter.h
 
-    The ProgressReporter class privides regular information on stdout
+    The ProgressReporter class provides regular information on stdout
     about the import operation.
 */
 
@@ -48,9 +49,12 @@ void ProgressReporter::execute()
 {
     uint n = d->m->messagesMigrated();
     fprintf( stdout,
-             "Processed %4d messages in %4d mailboxes, %.1f/s\n",
+             "Processed %4d messages in %4d mailboxes, %.1f/s, "
+             "memory usage %s+%s\n",
              n, d->m->mailboxesMigrated() + d->m->migrators(),
-             ((double)( n - d->l )) / d->i );
+             ((double)( n - d->l )) / d->i,
+             String::humanNumber( Allocator::inUse() ).cstr(),
+             String::humanNumber( Allocator::allocated() ).cstr() );
     d->l = n;
 }
 
