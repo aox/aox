@@ -918,6 +918,7 @@ String AddressParser::phrase( int & i )
             word.append( r );
             r = word;
         }
+        comment( i );
     }
     if ( !r.isEmpty() ) {
         // if r was/contained a "quoted-phrase" containing unabelled
