@@ -12,12 +12,16 @@ class Timer
 {
 public:
     Timer( class EventHandler *, uint );
-    ~Timer();
 
     bool active() const;
     uint timeout() const;
 
     class EventHandler * owner();
+
+    void execute();
+
+    void setRepeating( bool );
+    bool repeating() const;
 
 private:
     class TimerData * d;

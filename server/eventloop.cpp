@@ -272,14 +272,10 @@ void EventLoop::start()
             uint now = time( 0 );
             t = d->timers.first();
             while ( t ) {
-                if ( t->active() && t->timeout() <= now ) {
-                    EventHandler * e = t->owner();
-                    d->timers.take( t++ ); // eeek
-                    e->execute();
-                }
-                else {
-                    ++t;
-                }
+                Timer * tmp = t;
+                ++t;
+                if ( tmp->active() && tmp->timeout() <= now )
+                    tmp->execute();
             }
         }
 
