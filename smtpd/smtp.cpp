@@ -858,7 +858,10 @@ void SMTP::inject()
     received.append( now.rfc822() );
     received.append( "\r\n" );
 
-    d->body = received + "Return-Path: " + d->from->toString() + "\r\n" + d->body;
+    String rp;
+    if ( d->from )
+        rp = "Return-Path: " + d->from->toString() + "\r\n";
+    d->body = received + rp + d->body;
     Message * m = new Message( d->body );
 
     d->mailboxes = new SortedList<Mailbox>;
