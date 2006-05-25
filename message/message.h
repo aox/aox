@@ -63,6 +63,11 @@ public:
 
     static String baseSubject( const String & );
 
+    static Message * wrapUnparsableMessage( const String &,
+                                            const String &,
+                                            const String &,
+                                            const String & = "" );
+
 private:
     static Header * parseHeader( uint &, uint, const String &, Header::Mode );
     void fix8BitHeaderFields();

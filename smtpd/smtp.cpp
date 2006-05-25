@@ -42,39 +42,12 @@ public:
     SMTPData * d;
     Injector * injector;
     bool harder;
-
-    void addField( Header *, String &, HeaderField::Type, const String & );
 };
 
 
 SmtpDbClient::SmtpDbClient( SMTP * s, SMTPData * smtpd )
     : EventHandler(), owner( s ), d( smtpd ), injector( 0 ), harder( false )
 {
-}
-
-
-void SmtpDbClient::addField( Header * h, String & r,
-                             HeaderField::Type t, const String & s )
-{
-    if ( !h )
-        return;
-
-    String v;
-
-    HeaderField * f = h->field( t );
-    if ( f )
-        (void)f->data(); // ensure that valid() is called. what a hack.
-    if ( f && f->valid() )
-        v = f->value();
-    else
-        v = s;
-
-    if ( v.isEmpty() )
-        return;
-    r.append( HeaderField::fieldName( t ) );
-    r.append( ": " );
-    r.append( v );
-    r.append( "\r\n" );
 }
 
 
@@ -214,78 +187,14 @@ void SmtpDbClient::execute()
         log( "Wrapping message " + d->id + " due to syntax problem: " +
              injector->error() );
         harder = true;
-        String boundary = Entropy::asString( 15 ).e64();
-        Header * h = injector->message()->header();
-        String wrapper;
-        List<Address> * from = h->addresses( HeaderField::From );
-        if ( from && from->count() == 1 &&
-             from->first()->type() == Address::Normal &&
-             from->first()->localpart().boring() &&
-             from->first()->domain().boring() )
-            wrapper.append( "From: " + from->first()->localpart() + "@" +
-                            from->first()->domain() + "\r\n" );
-        else
-            wrapper.append( "From: "
-                            "Mail Storage Database <invalid@invalid.invalid>"
-                            "\r\n" );
-        Date now;
-        now.setCurrentTime();
-        addField( h, wrapper, HeaderField::Date, now.rfc822() );
-        addField( h, wrapper, HeaderField::To, "Unknown-Recipients:;" );
-        addField( h, wrapper, HeaderField::Cc, "" );
-        addField( h, wrapper, HeaderField::References, "" );
-        addField( h, wrapper, HeaderField::InReplyTo, "" );
-        wrapper.append( "Subject: Message arrived but could not be stored\r\n"
-                        "MIME-Version: 1.0\r\n"
-                        "Content-Type: multipart/mixed; boundary=\"" +
-                        boundary + "\"\r\n"
-                        "\r\n\r\nYou are looking at an easter egg\r\n"
-                        "--" + boundary + "\r\n"
-                        "Content-Type: text/plain; format=flowed" ); // contd..
 
-        String report = "The appended message was received, "
-                        "but could not be stored in the mail \r\n"
-                        "database on " + Configuration::hostname() +
-                        ".\r\n\r\nThe error detected was: \r\n";
-        report.append( injector->error() );
-        report.append( "\r\n\r\n"
-                       "Here are a few header fields from the message "
-                       "(possibly corrupted due \r\nto syntax errors):\r\n"
-                       "\r\n" );
-        addField( h, report, HeaderField::From, "" );
-        addField( h, report, HeaderField::To, "" );
-        addField( h, report, HeaderField::Subject, "" );
-        report.append( "\r\n"
-                       "The complete message as received is appended." );
-
-        // but which charset does the report use?
-        uint n = 0;
-        while ( n < report.length() && report[n] < 128 )
-            n++;
-        if ( n < report.length() )
-            wrapper.append( "; charset=unknown-8bit" ); // ... continues c-t
-        wrapper.append( "\r\n\r\n" );
-        wrapper.append( report );
-        wrapper.append( "\r\n\r\n--" + boundary + "\r\n" );
-        n = 0;
-        while ( n < d->body.length() &&
-                d->body[n] < 128 &&
-                ( d->body[n] >= 32 ||
-                  d->body[n] == 10 ||
-                  d->body[n] == 13 ) )
-            n++;
-        if ( n < d->body.length() )
-            wrapper.append( "Content-Type: application/octet-stream\r\n"
-                            "Content-Transfer-Encoding: 8bit\r\n" );
-        else
-            wrapper.append( "Content-Type: text/plain\r\n" );
-        wrapper.append( "Content-Disposition: attachment; filename=" +
-                        d->id + "\r\n"
-                        "\r\n" );
-        wrapper.append( d->body );
-        wrapper.append( "\r\n--" + boundary + "--\r\n" );
-
-        Message * m = new Message( wrapper );
+        Message * m 
+            = Message::wrapUnparsableMessage( d->body,
+                                              injector->error(),
+                                              "Message arrived but could "
+                                              "not be stored",
+                                              d->id );
+                                                      
         injector = new Injector( m, d->mailboxes, this );
         d->injectorError = d->injector->error();
         d->injector = injector;

@@ -6,9 +6,12 @@
 #include "address.h"
 #include "bodypart.h"
 #include "mimefields.h"
+#include "configuration.h"
 #include "annotation.h"
 #include "allocator.h"
+#include "entropy.h"
 #include "codec.h"
+#include "date.h"
 #include "flag.h"
 
 
@@ -698,4 +701,212 @@ void Message::fix8BitHeaderFields()
         c = Codec::byName( fallback );
     if ( c )
         header()->fix8BitFields( c );
+}
+
+
+// returns a short string, e.g. "c", which can be used as a mime
+// boundary surrounding this bodypart without causing problems.
+
+static String acceptableBoundary( const String & part )
+{
+    uint i = 0;
+    uint boundaries = 0;
+    static char boundaryChars[33] = "0123456789abcdefghijklmnopqrstuv";
+    while ( i < part.length() ) {
+        if ( part[i] == '-' && part[i+1] == '-' ) {
+            uint j = 0;
+            while ( j < 32 && boundaryChars[j] != part[i+2] )
+                j++;
+            if ( j < 32 )
+                boundaries |= ( 1 << j );
+        }
+        while ( i < part.length() && part[i] != 10 )
+            i++;
+        while ( i < part.length() && ( part[i] == 13 || part[i] == 10 ) )
+            i++;
+    }
+
+    i = 0;
+    while ( i < 32 && ( boundaries & ( 1 << i ) ) != 0 )
+        i++;
+    if ( i < 32 ) {
+        String r;
+        r.append( boundaryChars[i] );
+        return r;
+    }
+    
+    // in the all too likely case that some unfriendly soul tries
+    // to attack us, we'd better have some alternative plan,
+    // e.g. a string containing eight random base64 characters.
+    String r = Entropy::asString( 6 ).e64();
+    while ( part.contains( r ) )
+        // if at first you don't succeed, try again with a bigger hammer!
+        r = Entropy::asString( 36 ).e64();
+    return r;
+}
+
+
+// scans the message for a header field of the appropriate name, and
+// returns the field value. The name must not contain the trailing ':'.
+
+static String invalidField( const String & message, const String & name )
+{
+    uint i = 0;
+    while ( i < message.length() ) {
+        uint j = i;
+        while ( i < message.length() &&
+                message[i] != '\n' && message[i] != ':' )
+            i++;
+        if ( message[i] != ':' )
+            return "";
+        String h = message.mid( j, i-j ).headerCased();
+        i++;
+        j = i;
+        while ( i < message.length() &&
+                ( message[i] != '\n' ||
+                  ( message[i] == '\n' &&
+                    ( message[i+1] == ' ' || message[i+1] == '\t' ) ) ) )
+            i++;
+        if ( h == name )
+            return message.mid( j, i-j );
+        i++;
+        if ( message[i] == 10 || message[i] == 13 )
+            return "";
+    }
+    return "";
+}
+
+
+// looks for field in message and adds it to wrapper, if valid.
+
+static void addField( String & wrapper,
+                      const String & field, const String & message,
+                      const String & dflt = "" )
+{
+    String value = invalidField( message, field );
+    HeaderField * hf = 0;
+    if ( !value.isEmpty() )
+        hf = HeaderField::create( field, value );
+    if ( hf && hf->valid() ) {
+        wrapper.append( field );
+        wrapper.append( ": " );
+        wrapper.append( hf->value() );
+        wrapper.append( "\r\n" );
+    }
+    else if ( !dflt.isEmpty() ) {
+        wrapper.append( field );
+        wrapper.append( ": " );
+        wrapper.append( dflt );
+        wrapper.append( "\r\n" );
+    }
+}
+
+
+
+/*! Wraps an unparsable \a message up in another, which contains a short
+    \a error message, a little helpful text (or so one hopes), and the
+    original message in a blob.
+
+    \a defaultSubject is the subject text to use if no halfway
+    sensible text can be extracted from \a message. \a id is used as
+    content-disposition filename if supplied and nonempty.
+*/
+
+Message * Message::wrapUnparsableMessage( const String & message,
+                                          const String & error,
+                                          const String & defaultSubject,
+                                          const String & id )
+{
+    String boundary = acceptableBoundary( message );
+    String wrapper;
+
+    addField( wrapper, "From", message,
+              "Mail Storage Database <invalid@invalid.invalid>" );
+
+    String subject = invalidField( message, "Subject" );
+    HeaderField * hf = 0;
+    if ( !subject.isEmpty() )
+        hf = HeaderField::create( "Subject", subject );
+    if ( hf && hf->valid() )
+        subject = "Unparsable message: " + hf->value();
+    else
+        subject = defaultSubject;
+    if ( !subject.isEmpty() )
+        wrapper.append( "Subject: " + subject + "\r\n" );
+
+    Date now;
+    now.setCurrentTime();
+    addField( wrapper, "Date", message, now.rfc822() );
+    addField( wrapper, "To", message, "Unknown-Recipients:;" );
+    addField( wrapper, "Cc", message );
+    addField( wrapper, "References", message );
+    addField( wrapper, "In-Reply-To", message );
+        
+    wrapper.append( "MIME-Version: 1.0\r\n"
+                    "Content-Type: multipart/mixed; boundary=\"" +
+                    boundary + "\"\r\n"
+                    "\r\n\r\nYou are looking at an easter egg\r\n"
+                    "--" + boundary + "\r\n"
+                    "Content-Type: text/plain; format=flowed" ); // contd..
+
+    String report = "The appended message was received, "
+                    "but could not be stored in the mail \r\n"
+                    "database on " + Configuration::hostname() +
+                    ".\r\n\r\nThe error detected was: \r\n";
+    report.append( error );
+    report.append( "\r\n\r\n"
+                   "Here are a few header fields from the message "
+                   "(possibly corrupted due \r\nto syntax errors):\r\n"
+                   "\r\n" );
+    if ( !invalidField( message, "From" ).isEmpty() ) {
+        report.append( "From:" );
+        report.append( invalidField( message, "From" ) );
+        report.append( "\r\n" );
+    }
+    if ( !invalidField( message, "Subject" ).isEmpty() ) {
+        report.append( "Subject:" );
+        report.append( invalidField( message, "Subject" ) );
+        report.append( "\r\n" );
+    }
+    if ( !invalidField( message, "To" ).isEmpty() ) {
+        report.append( "To:" );
+        report.append( invalidField( message, "To" ) );
+        report.append( "\r\n" );
+    }
+    report.append( "\r\n"
+                   "The complete message as received is appended." );
+
+    // but which charset does the report use?
+    uint n = 0;
+    while ( n < report.length() && report[n] < 128 )
+        n++;
+    if ( n < report.length() )
+        wrapper.append( "; charset=unknown-8bit" ); // ... continues c-t
+    wrapper.append( "\r\n\r\n" );
+    wrapper.append( report );
+    wrapper.append( "\r\n\r\n--" + boundary + "\r\n" );
+    n = 0;
+    while ( n < message.length() &&
+            message[n] < 128 &&
+            ( message[n] >= 32 ||
+              message[n] == 10 ||
+              message[n] == 13 ) )
+        n++;
+    if ( n < message.length() )
+        wrapper.append( "Content-Type: application/octet-stream\r\n"
+                        "Content-Transfer-Encoding: 8bit\r\n" );
+    else
+        wrapper.append( "Content-Type: text/plain\r\n" );
+    wrapper.append( "Content-Disposition: attachment" );
+    if ( !id.isEmpty() ) {
+        wrapper.append( "; filename=" );
+        if ( id.boring() )
+            wrapper.append( id );
+        else
+            wrapper.append( id.quoted() );
+    }
+    wrapper.append( "\r\n\r\n" );
+    wrapper.append( message );
+    wrapper.append( "\r\n--" + boundary + "--\r\n" );
+    return new Message( wrapper );
 }

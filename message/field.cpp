@@ -164,7 +164,8 @@ HeaderField *HeaderField::fieldNamed( const String &name )
 
 /*! This static function returns a pointer to a new HeaderField object
     that represents the given field \a name (case-insensitive) and its
-    \a value (which is parsed appropriately).
+    \a value (which is parsed appropriately). Neither \a name nor
+    value may contain the separating ':'.
 
     This function is for use by the message parser.
 */

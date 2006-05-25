@@ -58,7 +58,7 @@ private:
 
 
 class MigratorMessage
-    : public Message
+    : public Garbage
 {
 public:
     MigratorMessage( const String &, const String & );
@@ -67,9 +67,12 @@ public:
     String description() const;
     String original() const;
 
+    Message * message();
+
 private:
     String s;
     String o;
+    Message * m;
 };
 
 

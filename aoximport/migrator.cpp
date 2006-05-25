@@ -269,8 +269,16 @@ String MigratorMailbox::partialName()
 */
 
 MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
-    : Message( rfc822 ), s( desc ), o( rfc822 )
+    : s( desc ), o( rfc822 ), m( 0 )
 {
+    m = new Message( o );
+    if ( !m ) {
+        // aoximprts needs some sort of -v/-vv/-vvv framework?
+        fprintf( stdout, "Message %s: Working around error: %s\n",
+                 desc.cstr(), m->error().cstr() );
+        m = Message::wrapUnparsableMessage( o, m->error(), 
+                                            "Unparsable message" );
+    }
 }
 
 
@@ -301,6 +309,14 @@ String MigratorMessage::description() const
 String MigratorMessage::original() const
 {
     return o;
+}
+
+
+/*! Returns the parsed/corrected/inferred Message generated from original(). */
+
+Message * MigratorMessage::message()
+{
+    return m;
 }
 
 
@@ -360,9 +376,7 @@ MailboxMigrator::MailboxMigrator( MigratorMailbox * source,
 
 
 /*! Returns true if this migrator's source contains at least one
-    message. Whether the message is syntactically valid is
-    irrelevant.
-
+    message. Whether the message is syntactically valid is irrelevant.
 */
 
 bool MailboxMigrator::valid() const
@@ -377,8 +391,6 @@ bool MailboxMigrator::valid() const
             log( "Source apparently is a valid mailbox" );
         else
             log( "Source is not a valid mailbox" );
-        if ( d->message && d->message->valid() )
-            log( "Valid message seen" );
         commit();
     }
 
@@ -396,6 +408,7 @@ void MailboxMigrator::execute()
     if ( d->injector && d->injector->failed() ) {
         String e( "Database error: " );
         e.append( d->injector->error() );
+        // and then what? e is unused.
     }
     else if ( d->injector ) {
         d->migrated++;
@@ -435,22 +448,12 @@ void MailboxMigrator::execute()
         log( "Ready to start injecting messages" );
     }
 
-    while ( d->message && !d->message->valid() ) {
-        Scope x( new Log( Log::General ) );
-        log( "Syntax problem: " + d->message->error() );
-        log( "Cannot migrate message " + d->message->description() );
-        commit();
-        String e( "Syntax error: " );
-        e.append( d->message->error() );
-        d->message = d->source->nextMessage();
-    }
-
     if ( d->message ) {
         Scope x( new Log( Log::General ) );
         log( "Starting migration of message " + d->message->description() );
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
         m->append( d->destination );
-        d->injector = new Injector( d->message, m, this );
+        d->injector = new Injector( d->message->message(), m, this );
         d->injector->setLog( x.log() );
         d->injector->execute();
     }
