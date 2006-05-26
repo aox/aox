@@ -4,7 +4,7 @@
 
 
 static const uint tableUnknown[256] = {
-    0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007,
+    0xED00, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007,
     0x0008, 0x0009, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E, 0x000F,
     0x0010, 0x0011, 0x0012, 0x0013, 0x0014, 0x0015, 0x0016, 0x0017,
     0x0018, 0x0019, 0x001A, 0x001B, 0x001C, 0x001D, 0x001E, 0x001F,
@@ -44,10 +44,13 @@ static const uint tableUnknown[256] = {
     The unknown-8bit codec is specified in MIME as something one may
     use when sending 8-bit text of unknown provenance.
 
-    The Oryx codec maps the upper 128 code points to the Unicode
-    private use area, U+ED80 to U+EDFF. This section of the private
-    use are was chosen at random (except that we googled to see if
-    anyone else to was using it).
+    This codec maps the upper 128 code points to the Unicode private
+    use area, U+ED80 to U+EDFF. This section of the private use are
+    was chosen at random (except that we googled to see if anyone else
+    to was using it). 0 is mapped to U+ED00 since some people actually
+    do send null bytes, and at least one MTA accepts then. If any of
+    1-127 should be unknown rather than ascii, we'll use the remaining
+    EDxy code points for that.
 */
 
 
