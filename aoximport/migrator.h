@@ -11,7 +11,8 @@ class Migrator
     : public EventHandler
 {
 public:
-    Migrator();
+    enum Mode { Mbox, Cyrus, Mh };
+    Migrator( Mode );
 
     void setDestination( const String & );
     void addSource( const String & );

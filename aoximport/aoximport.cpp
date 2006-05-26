@@ -24,7 +24,7 @@ int main( int ac, char ** av )
     Scope global;
 
     if ( ac < 3 ) {
-        fprintf( stderr, "Usage: %s <destination> <source [, source ...]>\n"
+        fprintf( stderr, "Usage: %s <destination> <mode> <source [, source ...]>\n"
                  "See aoximport(8) for details.\n", av[0] );
         exit( -1 );
     }
@@ -39,11 +39,28 @@ int main( int ac, char ** av )
 
     Configuration::report();
 
-    Migrator * m = new Migrator;
+    Migrator * m = 0;
+    String mode = av[2];
+    mode = mode.lower();
+    if ( mode == "mbox" ) {
+        m = new Migrator( Migrator::Mbox );
+    }
+    else if ( mode == "mh" ) {
+        m = new Migrator( Migrator::Mh );
+    }
+    else if ( mode == "cyrus" ) {
+        m = new Migrator( Migrator::Cyrus );
+    }
+    else {
+        fprintf( stderr, "Usage: %s <destination> <mode> <source [, source ...]>\n"
+                 "Possible modes are mbox, cyrus and mh.\n"
+                 "See aoximport(8) for details.\n", av[0] );
+        exit( -1 );
+    }
     Allocator::addEternal( m, "migrator" );
 
     m->setDestination( av[1] );
-    int i = 2;
+    int i = 3;
     while ( i < ac )
         m->addSource( av[i++] );
 

@@ -10,7 +10,9 @@
 #include "eventloop.h"
 #include "injector.h"
 #include "dirtree.h"
+#include "cyrus.h"
 #include "mbox.h"
+#include "mh.h"
 
 #include <stdio.h>
 
@@ -22,7 +24,7 @@ public:
     MigratorData()
         : working( 0 ), target( 0 ),
           messagesDone( 0 ), mailboxesDone( 0 ),
-          status( 0 )
+          status( 0 ), mode( Migrator::Mbox )
     {}
 
     String destination;
@@ -33,6 +35,7 @@ public:
     uint messagesDone;
     uint mailboxesDone;
     int status;
+    Migrator::Mode mode;
 };
 
 
@@ -48,11 +51,12 @@ public:
 */
 
 
-/*! Constructs a new Migrator. */
+/*! Constructs a new Migrator for mailboxes of type \a m. */
 
-Migrator::Migrator()
+Migrator::Migrator( Mode m )
     : d( new MigratorData )
 {
+    d->mode = m;
 }
 
 
@@ -70,7 +74,17 @@ void Migrator::setDestination( const String &s )
 
 void Migrator::addSource( const String &s )
 {
-    d->sources.append( new MboxDirectory( s ) );
+    switch( d->mode ) {
+    case Mbox:
+        d->sources.append( new MboxDirectory( s ) );
+        break;
+    case Cyrus:
+        d->sources.append( new CyrusDirectory( s ) );
+        break;
+    case Mh:
+        d->sources.append( new MhDirectory( s ) );
+        break;
+    }
 }
 
 
