@@ -57,6 +57,14 @@ Timer::Timer( class EventHandler * owner, uint delay )
 }
 
 
+/*! Kills this timer right now, preventing any future callbacks. */
+
+Timer::~Timer()
+{
+    EventLoop::global()->removeTimer( this );
+}
+
+
 /*! Returns true if this timer will call the EventHandler::execute()
     function of owner() at some point, and falls if it will not.
 

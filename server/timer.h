@@ -12,6 +12,7 @@ class Timer
 {
 public:
     Timer( class EventHandler *, uint );
+    ~Timer();
 
     bool active() const;
     uint timeout() const;
