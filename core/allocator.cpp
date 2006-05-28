@@ -3,6 +3,7 @@
 #include "allocator.h"
 
 #include "sys.h"
+#include "entropy.h"
 #include "string.h"
 #include "log.h"
 
@@ -770,5 +771,90 @@ void Allocator::scanRoots()
             fprintf( stdout, "%s(%d) => %d\n", roots[n].name, n,
                      sizeOf( roots[n].root ) );
         n++;
+    }
+}
+
+
+/*! This debug function selects an allocated memory block at random
+    and dumps its contents to stdout.
+
+    Each allocated byte has the same chance of being chosen, so this
+    function has a tendency to pick large objects. (Although, if
+    almost all of the allocated objects are 32-byte objects, this
+    function is almost certain to pick a 32-byte object.)
+*/
+
+void Allocator::dumpRandomObject()
+{
+    uint r = Entropy::asNumber( 4 );
+
+    // count the number of blocks.
+    uint i = 0;
+    uint t = 0;
+    while ( i < 32 ) {
+        Allocator * a = allocators[i];
+        while ( a ) {
+            t = t + a->taken * a->step;
+            a = a->next;
+        }
+        i++;
+    }
+
+    // pick a random byte
+    r = r % t;
+    
+    // find that block
+    i = 0;
+    t = 0;
+    Allocator * a = 0;
+    AllocationBlock * b = 0;
+    while ( !b && i < 32 ) {
+        a = allocators[i];
+        while ( a && !b ) {
+            if ( t + a->taken * a->step > r ) {
+                uint n = 0;
+                while ( !b && n < a->capacity ) {
+                    if ( a->used[n/bits] & (1UL<<(n%bits)) ) {
+                        t += a->step;
+                        if ( t > r )
+                            b = (AllocationBlock *)a->block( n );
+                    }
+                    n++;
+                }
+            }
+            if ( !b )
+                a = a->next;
+        }
+        i++;
+    }
+
+    // dump the object: is it a string?
+    bool s = true;
+    i = 0;
+    while ( i < 100 && i < a->step-bytes ) {
+        if ( b->payload != 0 &&
+             ( ((char*)b->payload)[i] < 32 || ((char*)b->payload)[i] > 126 ) )
+            s = false;
+        i++;
+    }
+    if ( s ) {
+        // yes, so dump it as one.
+        fprintf( stdout, "String, maximum length %d, content %s\n",
+                 a->step - bytes, (char*)b->payload );
+    }
+    else {
+        // no, so dump it as hex
+        fprintf( stdout, "Data, maximum length %d, content:\n",
+                 a->step - bytes );
+        i = 0;
+        bool crlf = false;
+        while ( i < 200 && i < a->step-bytes ) {
+            fprintf( stdout, "%02x %s",
+                     ((char*)b->payload)[i], crlf ? "\n" : "" );
+            i++;
+            crlf = ( i % 16 == 0 );
+        }
+        if ( crlf )
+            fprintf( stdout, "%s\n", i < a->step-bytes ? "..." : "" );
     }
 }

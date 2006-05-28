@@ -42,6 +42,8 @@ public:
     static uint sizeOf( void * );
     static void scan( void * );
 
+    static void dumpRandomObject();
+
 private:
     typedef unsigned long int ulong;
 
