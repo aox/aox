@@ -107,6 +107,10 @@ void Timer::execute()
 {
     if ( d->repeating ) {
         d->timeout += d->interval;
+        uint now = time( 0 );
+        // if we can't make the required frequency, get as close as we can
+        if ( d->timeout <= now )
+            d->timeout = now + 1;
     }
     else {
         d->timeout = 0;
