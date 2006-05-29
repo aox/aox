@@ -840,15 +840,15 @@ void Allocator::dumpRandomObject()
     // dump the object: is it a string?
     bool s = true;
     i = 0;
-    while ( i < 100 && i < a->step-bytes ) {
-        if ( b->payload != 0 &&
-             ( ((char*)b->payload)[i] < 32 || ((char*)b->payload)[i] > 126 ) )
-            s = false;
+    while ( s && i < 200 && i < a->step-bytes ) {
+        char c = ((char*)b->payload)[i];
+        if ( c > 126 || ( c < 32 && c != 10 && c != 13 ) )
+             s = false;
         i++;
     }
     if ( s ) {
         // yes, so dump it as one.
-        fprintf( stdout, "String, maximum length %d, content %s\n",
+        fprintf( stdout, "String, maximum length %d, content:\n%s\n",
                  a->step - bytes, (char*)b->payload );
     }
     else {
