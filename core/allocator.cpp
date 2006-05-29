@@ -433,7 +433,7 @@ void Allocator::free()
         i++;
     }
 
-    dumpRandomObject();
+    // dumpRandomObject();
 
     if ( !freed )
         return;
