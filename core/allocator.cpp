@@ -814,7 +814,7 @@ void Allocator::dumpRandomObject()
                     n++;
                 }
             }
-            t = t + a->taken * a->step
+            t = t + a->taken * a->step;
             if ( !b )
                 a = a->next;
         }
