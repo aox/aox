@@ -259,6 +259,7 @@ void * Allocator::allocate( uint size, uint pointers )
                     used[base/bits] |= ( 1UL << j );
                     taken++;
                     base++;
+                    memset( b->payload, 0, pointers*sizeof(void*) );
                     return &(b->payload);
                 }
             }
@@ -502,7 +503,6 @@ void Allocator::sweep()
                     used[b] &= ~(1UL << i);
                     taken--;
                     m->x.magic = 0;
-                    memset( m->payload, 0, step-bytes );
                 }
             }
             i++;
