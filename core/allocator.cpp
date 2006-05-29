@@ -428,6 +428,8 @@ void Allocator::free()
         i++;
     }
 
+    dumpRandomObject();
+
     if ( !freed )
         return;
 
@@ -828,6 +830,13 @@ void Allocator::dumpRandomObject()
         i++;
     }
 
+    if ( !a || !b ) {
+        // yes, so dump it as one.
+        fprintf( stdout, "Found nothing to dump (%d,%d)\n",
+                 r, t );
+        return;
+    }
+
     // dump the object: is it a string?
     bool s = true;
     i = 0;
@@ -849,12 +858,12 @@ void Allocator::dumpRandomObject()
         i = 0;
         bool crlf = false;
         while ( i < 200 && i < a->step-bytes ) {
+            crlf = ( i % 16 == 15 );
             fprintf( stdout, "%02x %s",
                      ((char*)b->payload)[i], crlf ? "\n" : "" );
             i++;
-            crlf = ( i % 16 == 0 );
         }
-        if ( crlf )
+        if ( !crlf )
             fprintf( stdout, "%s\n", i < a->step-bytes ? "..." : "" );
     }
 }

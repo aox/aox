@@ -13,6 +13,7 @@
 #include "database.h"
 #include "occlient.h"
 #include "mailbox.h"
+#include "entropy.h"
 #include "log.h"
 
 #include <stdio.h>
@@ -64,6 +65,7 @@ int main( int ac, char ** av )
     while ( i < ac )
         m->addSource( av[i++] );
 
+    Entropy::setup();
     Database::setup();
     Mailbox::setup( m );
 
