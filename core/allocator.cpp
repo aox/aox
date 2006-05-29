@@ -3,7 +3,6 @@
 #include "allocator.h"
 
 #include "sys.h"
-#include "entropy.h"
 #include "string.h"
 #include "log.h"
 
@@ -11,7 +10,8 @@
 #include <stdio.h>
 
 extern "C" {
-       void *memcpy(void *dest, const void *src, size_t n);
+    void *memcpy(void *dest, const void *src, size_t n);
+    long int random(void);
 };
 
 
@@ -792,8 +792,11 @@ void Allocator::scanRoots()
 
 void Allocator::dumpRandomObject()
 {
+    if ( !::total )
+        return;
+
     // pick a random byte
-    uint r = Entropy::asNumber( 4 ) % ::total;
+    uint r = (uint)random() % ::total;
 
     // find that block
     uint i = 0;
