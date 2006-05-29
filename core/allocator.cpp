@@ -10,6 +10,10 @@
 // fprintf
 #include <stdio.h>
 
+extern "C" {
+       void *memcpy(void *dest, const void *src, size_t n);
+};
+
 
 struct AllocationBlock
 {
@@ -847,9 +851,13 @@ void Allocator::dumpRandomObject()
         i++;
     }
     if ( s ) {
+        char buffer[201];
+        memcpy( buffer, b->payload,
+                a->step - bytes > 200 ? 200 : a->step - bytes );
+        buffer[200] = '\0';
         // yes, so dump it as one.
-        fprintf( stdout, "String, maximum length %d, content:\n200%s\n",
-                 a->step - bytes, (char*)b->payload );
+        fprintf( stdout, "String, maximum length %d, content:\n%s\n",
+                 a->step - bytes, buffer );
     }
     else {
         // no, so dump it as hex
