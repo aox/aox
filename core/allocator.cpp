@@ -792,26 +792,12 @@ void Allocator::scanRoots()
 
 void Allocator::dumpRandomObject()
 {
-    uint r = Entropy::asNumber( 4 );
+    // pick a random byte
+    uint r = Entropy::asNumber( 4 ) % ::total;
 
-    // count the number of blocks.
+    // find that block
     uint i = 0;
     uint t = 0;
-    while ( i < 32 ) {
-        Allocator * a = allocators[i];
-        while ( a ) {
-            t = t + a->taken * a->step;
-            a = a->next;
-        }
-        i++;
-    }
-
-    // pick a random byte
-    r = r % t;
-    
-    // find that block
-    i = 0;
-    t = 0;
     Allocator * a = 0;
     AllocationBlock * b = 0;
     while ( !b && i < 32 ) {
@@ -828,6 +814,7 @@ void Allocator::dumpRandomObject()
                     n++;
                 }
             }
+            t = t + a->taken * a->step
             if ( !b )
                 a = a->next;
         }
@@ -835,9 +822,10 @@ void Allocator::dumpRandomObject()
     }
 
     if ( !a || !b ) {
-        // yes, so dump it as one.
-        fprintf( stdout, "Found nothing to dump (%d,%d)\n",
-                 r, t );
+        // shouldn't happen, but, well, before the first GC the rules
+        // are different.
+        fprintf( stdout, "Found nothing to dump (%d, %d, %d)\n",
+                 t, r, total );
         return;
     }
 
