@@ -847,13 +847,15 @@ void Allocator::dumpRandomObject()
                 a->step - bytes > 200 ? 200 : a->step - bytes );
         buffer[200] = '\0';
         // yes, so dump it as one.
-        fprintf( stdout, "String, maximum length %d, content:\n%s\n",
-                 a->step - bytes, buffer );
+        fprintf( stdout,
+                 "String, maximum length %d, address %08x, content:\n%s\n",
+                 a->step - bytes, (uint)(b->payload), buffer );
     }
     else {
         // no, so dump it as hex
-        fprintf( stdout, "Data, maximum length %d, content:\n",
-                 a->step - bytes );
+        fprintf( stdout,
+                 "Data, maximum length %d, address %08x, content:\n",
+                 a->step - bytes, (uint)(b->payload) );
         i = 0;
         bool crlf = false;
         while ( i < 200 && i < a->step-bytes ) {
