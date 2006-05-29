@@ -8,6 +8,29 @@
 #include "string.h"
 
 
+/*! \class UStringData ustring.h
+
+    This private helper class contains the actual string data. It has
+    three fields, all accessible only to UString. The only noteworthy
+    field is max, which is 0 in the case of a shared/read-only string,
+    and nonzero in the case of a string which can be modified.
+*/
+
+
+/*! \fn UStringData::UStringData()
+
+    Creates a zero-length string. This is naturally read-only.
+*/
+
+/*! Creates a new String with \a words capacity. */
+
+UStringData::UStringData( int words )
+    : str( 0 ), len( 0 ), max( words )
+{
+    str = (uint*)Allocator::alloc( words*sizeof(uint), 0 );
+}
+
+
 /*! \class UString ustring.h
     The UString class provides a normalized Unicode string.
 
@@ -34,8 +57,7 @@
 /*!  Constructs an empty Unicode String. */
 
 UString::UString()
-    : len( 0 ), max( 0 ),
-      str( 0 )
+    : Garbage(), d( 0 )
 {
     // nothing more
 }
@@ -44,8 +66,7 @@ UString::UString()
 /*!  Constructs an exact copy of \a other on the current arena. */
 
 UString::UString( const UString & other )
-    : Garbage(),
-      len( 0 ), max( 0 ), str( 0 )
+    : Garbage(), d( new UStringData )
 {
     *this = other;
 }
@@ -55,8 +76,28 @@ UString::UString( const UString & other )
 
 UString::~UString()
 {
-    // woo.
+    if ( modifiable() ) {
+        Allocator::dealloc( d->str );
+        Allocator::dealloc( d );
+    }
+    d = 0;
 }
+
+
+/*! Deletes \a p. (This function exists only so that gcc -O3 doesn't
+    decide that UString objects don't need destruction.)
+*/
+
+void UString::operator delete( void * p )
+{
+    if ( ((UString *)p)->modifiable() ) {
+        Allocator::dealloc( ((UString *)p)->d->str );
+        Allocator::dealloc( ((UString *)p)->d );
+    }
+    ((UString *)p)->d = 0;
+}
+
+
 
 
 /*! Makes this string into an exact copy of \a other and returns a
@@ -64,13 +105,10 @@ UString::~UString()
 
 UString & UString::operator=( const UString & other )
 {
-    if ( other.str != str ) {
-        reserve( other.len );
-        memmove( str, other.str, other.len * sizeof(int) );
-        len = other.len;
-    }
+    d = other.d;
+    if ( d )
+        d->max = 0;
     return *this;
-
 }
 
 
@@ -88,10 +126,20 @@ UString & UString::operator+=( const UString & other )
 
 void UString::append( const UString & other )
 {
-    reserve( len + other.len );
-    uint * dest = str + len;
-    memmove( dest, other.str, other.len * sizeof(uint) );
-    len += other.len;
+    if ( !other.length() )
+        return;
+    if ( !length() && ( !modifiable() || d->max < other.length() ) ) {
+        // if this isn't modifiable, we just make a copy of the other
+        // string. only sensible thing to do. if it's modifiable, but
+        // we don't have enough bytes, we also just glue ourselves
+        // onto the other. maybe we'll need to copy later, but maybe
+        // not.
+        *this = other;
+        return;
+    }
+    reserve( length() + other.length() );
+    memmove( d->str+d->len, other.d->str, sizeof(uint)*other.d->len );
+    d->len += other.d->len;
 }
 
 
@@ -99,27 +147,60 @@ void UString::append( const UString & other )
 
 void UString::append( const uint cp )
 {
-    reserve( len + 1 );
-    str[len++] = cp;
+    reserve( length() + 1 );
+    d->str[d->len] = cp;
+    d->len++;
 }
 
 
-/*! Ensures that at least \a size bytes are available for this
+/*! Ensures that at least \a num characters are available for this
     string. Users of UString should generally not need to call this;
     it is called by append() etc. as needed.
 */
 
-void UString::reserve( uint size )
+void UString::reserve( uint num )
 {
-    if ( max >= size )
-        return;
+    if ( !num )
+        num = 1;
+    if ( !d || d->max < num )
+        reserve2( num );
+}
 
-    size = Allocator::rounded( size * sizeof( uint ) ) / sizeof( uint );
-    uint * s = (uint*)Allocator::alloc( sizeof( uint ) * size, 0 );
-    if ( len )
-        memmove( s, str, sizeof( uint ) * len );
-    str = s;
-    max = size;
+
+/*! Equivalent to reserve(). reserve( \a num ) calls this function to
+    do the heavy lifting. This function is not inline, while reserve()
+    is, and calls to this function should be interesting wrt. memory
+    allocation statistics.
+
+    Noone except reserve() should call reserve2().
+*/
+
+void UString::reserve2( uint num )
+{
+    num = Allocator::rounded( num );
+
+    if ( !d ) {
+        // empty string: give it a d and be done
+        d = new UStringData( num );
+    }
+    else if ( d->max ) {
+        // we owned the old string: modify d
+        uint * s = (uint*)Allocator::alloc( num*sizeof(uint), 0 );
+        if ( d->len )
+            memmove( s, d->str, d->len*sizeof(uint) );
+        d->str = s;
+        d->max = num;
+    }
+    else {
+        // the old was shared: detach and use
+        UStringData * nd = new UStringData( num );
+        nd->len = d->len;
+        if ( nd->len > num )
+            nd->len = num;
+        if ( d->len )
+            memmove( nd->str, d->str, nd->len*sizeof(uint) );
+        d = nd;
+    }
 }
 
 
@@ -130,8 +211,10 @@ void UString::reserve( uint size )
 
 void UString::truncate( uint l )
 {
-    if ( l < len )
-        len = l;
+    if ( l < length() ) {
+        detach();
+        d->len = l;
+    }
 }
 
 
@@ -148,11 +231,11 @@ void UString::truncate( uint l )
 String UString::ascii() const
 {
     String r;
-    r.reserve( len );
+    r.reserve( length() );
     uint i = 0;
-    while ( i < len ) {
-        if ( str[i] >= ' ' && str[i] < 127 )
-            r.append( (char)str[i] );
+    while ( i < length() ) {
+        if ( d->str[i] >= ' ' && d->str[i] < 127 )
+            r.append( (char)(d->str[i]) );
         else
             r.append( '?' );
         i++;
@@ -170,16 +253,20 @@ String UString::ascii() const
 
 UString UString::mid( uint start, uint num ) const
 {
-    UString r;
+    if ( !d )
+        num = 0;
+    else if ( num > d->len || start + num > d->len )
+        num = d->len - start;
 
-    uint i = start;
-    r.reserve( num );
-    while ( i < len && i-start < num ) {
-        r.append( str[ i ] );
-        i++;
-    }
+    UString result;
+    if ( !num || start >= length() )
+        return result;
 
-    return r;
+    d->max = 0;
+    result.d = new UStringData;
+    result.d->str = d->str + start;
+    result.d->len = num;
+    return result;
 }
 
 
@@ -195,41 +282,5 @@ UString UString::mid( uint start, uint num ) const
 
 uint UString::number( bool * ok, uint base ) const
 {
-    uint i = 0;
-    uint n = 0;
-
-    bool good = !isEmpty();
-    while ( good && i < len ) {
-        if ( str[i] < '0' || str[i] > 'z' )
-            good = false;
-
-        uint digit = str[i] - '0';
-
-        // hex or something?
-        if ( digit > 9 ) {
-            uint c = str[i];
-            if ( c > 'Z' )
-                c = c - 32;
-            digit = c - 'A' + 10;
-        }
-
-        // is the digit too large?
-        if ( digit >= base )
-            good = false;
-
-        // Would n overflow if we multiplied by 10 and added digit?
-        if ( n > UINT_MAX/base )
-            good = false;
-        n *= base;
-        if ( n >= (UINT_MAX - UINT_MAX % base) && digit > (UINT_MAX % base) )
-            good = false;
-        n += digit;
-
-        i++;
-    }
-
-    if ( ok )
-        *ok = good;
-
-    return n;
+    return ascii().number( ok, base );
 }

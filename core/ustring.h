@@ -8,6 +8,23 @@
 class String;
 
 
+class UStringData
+    : public Garbage
+{
+private:
+    UStringData(): str( 0 ), len( 0 ), max( 0 ) {}
+    UStringData( int );
+
+    friend class UString;
+    friend bool operator==( const class UString &, const class UString & );
+    friend bool operator==( const UString &, const char * );
+
+    uint * str;
+    uint len;
+    uint max;
+};
+
+
 class UString
     : public Garbage
 {
@@ -19,15 +36,17 @@ public:
     UString & operator=( const UString & );
     UString & operator+=( const UString & str );
 
+    void operator delete( void * );
+
     // const, returns zero when used beyond the end
     uint operator[]( uint i ) const {
-        if ( i >= len )
+        if ( !d || i >= d->len )
             return 0;
-        return str[i];
+        return d->str[i];
     }
 
-    bool isEmpty() const { return len == 0; }
-    uint length() const { return len; }
+    bool isEmpty() const { return !d || d->len == 0; }
+    uint length() const { return d ? d->len : 0; }
 
     void append( const UString & );
     void append( const uint );
@@ -35,18 +54,21 @@ public:
     void reserve( uint );
     void truncate( uint = 0 );
 
-    friend inline bool operator==( const UString &, const UString & );
-    friend inline bool operator==( const UString &, const char * );
-
     String ascii() const;
 
     UString mid( uint, uint = UINT_MAX ) const;
     uint number( bool *, uint = 10 ) const;
 
+    inline void detach() { if ( !modifiable() ) reserve( length() ); }
+
+    bool modifiable() const { return d && d->max > 0; }
+
 private:
-    uint len;
-    uint max;
-    uint *str;
+    void reserve2( uint );
+
+
+private:
+    class UStringData * d;
 };
 
 
