@@ -848,7 +848,7 @@ void Allocator::dumpRandomObject()
     }
     if ( s ) {
         // yes, so dump it as one.
-        fprintf( stdout, "String, maximum length %d, content:\n%s\n",
+        fprintf( stdout, "String, maximum length %d, content:\n200%s\n",
                  a->step - bytes, (char*)b->payload );
     }
     else {
