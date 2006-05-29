@@ -185,6 +185,34 @@ We should figure out some way to not store plaintext passwords.
   that's all.
 
 
+Using rrdtool
+
+  What could we want to graph with rrdtool? Lots.
+
+  - RAM used
+  - CPU seconds used
+  - database size
+  - messages in the db
+  - average response time
+  - 95th percentile response time
+  - messages injected
+  - messages per user
+  - message size per user
+  - logged-in users
+  - concurrent connections (per protocol)
+  - logins (per protocol)
+  - login failures (per protocol)
+
+  More?
+
+  The natural way to do it would be to have archiveopteryx collect
+  some/most variables in RAM, and provide a query via aox+ocd. some
+  things (messages/message size per user at least) are better done as
+  a db query from aox directly.
+
+  'aox show statistics'?
+
+
 Optimising common cases commonly helps
 
   Now that the lmtp and pop/imap/webmail servers share address space,
