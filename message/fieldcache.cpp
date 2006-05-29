@@ -99,7 +99,7 @@ void FieldLookup::execute() {
         String *name = new String( field );
         name->detach();
         idCache->insert( id, name );
-        uint * tmp = (uint*)Allocator::alloc( sizeof(uint) );
+        uint * tmp = (uint*)Allocator::alloc( sizeof(uint), 0 );
         *tmp = id;
         nameCache->insert( *name, tmp );
     }

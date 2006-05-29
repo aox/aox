@@ -151,7 +151,7 @@ void File::init( const String &name, File::Access a,
     int l;
     int total = 0;
     int size = n+1;
-    char *b = (char *)Allocator::alloc( size );
+    char *b = (char *)Allocator::alloc( size, 0 );
     b[0] = '\0';
     b[n] = '\0';
 

@@ -402,7 +402,7 @@ bool Schema::stepTo3()
             }
             else {
                 uint * tmp
-                    = (uint*)Allocator::alloc( sizeof(uint) );
+                    = (uint*)Allocator::alloc( sizeof(uint), 0 );
                 *tmp = id;
                 hashes.insert( hash, tmp );
             }

@@ -75,7 +75,7 @@ void Buffer::append( const char *s, uint l )
         if ( f->len < 1500 )
             f->len = 1500;
         f->len = Allocator::rounded( f->len );
-        f->base = (char*)Allocator::alloc( f->len );
+        f->base = (char*)Allocator::alloc( f->len, 0 );
 
         if ( vecs.isEmpty() )
             firstused = 0;
