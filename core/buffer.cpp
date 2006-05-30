@@ -113,14 +113,14 @@ void Buffer::read( int fd )
     if ( next )
         next->read( fd );
 
-    char buf[8192];
+    char buf[8184];
 
     int n = 0;
     do {
         if ( filter )
-            n = filter->read( buf, 8192, next );
+            n = filter->read( buf, 8184, next );
         else
-            n = ::read( fd, &buf, 8192 );
+            n = ::read( fd, &buf, 8184 );
 
         if ( n > 0 ) {
             seenEOF = false;
