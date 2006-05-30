@@ -1,20 +1,29 @@
+Next release (2006-07-10: 1.07)
+
+  Done:
+
+
+  Must-Do:
+
+  (This is a joke. We never do any of it.)
+
+  Misc:
+
+  - Sieve
+  - Condstore, flag views
+  - Date searches
+  - compress=deflate
+  - Test and use Resolver
+  - Stable, flexible aoximport
+
+
 Next release (2006-06-05: 1.07)
 
   Done:
 
   - *d collected in one great server
   - man pages updated accordingly
-
-  Must-Do:
-
-  - src/doc/archiveopteryx.man needs update
-  - DNS lookups for configuration variables
   - Less RAM! Less RAM!
-
-  Desired:
-
-  - Extra indexes where needed.
-  - Webmail archive pages.
 
 
 Next few releases
