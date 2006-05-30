@@ -1,0 +1,47 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH aoximport 8 2006-06-05 www.oryx.com "Archiveopteryx Documentation"
+.SH NAME
+aoximport - import messages into Archiveopteryx.
+.SH SYNOPSIS
+.B $BINDIR/aoximport
+.I mailbox
+.I type
+.I source-file
+[
+.I source-file ...
+]
+.SH DESCRIPTION
+.nh
+.PP
+.B aoximport
+is used to import messages into Archiveopteryx en masse from other
+mailboxes (mbox, MH, and Cyrus mailboxes are currently supported).
+.SH SYNTAX
+In the synopsis above,
+.I mailbox
+is the fully-qualified name of the destination mailbox (which must
+exist) into which messages are imported.
+.I type
+may be
+.IR mbox ,
+.IR mh ,
+or
+.IR cyrus .
+The remaining arguments are interpreted as mailbox filenames of the
+specified
+.IR type .
+.SH EXAMPLES
+To import messages from the mbox files in ~/Mail/imap/* to a mailbox
+named /users/nirmala/imap:
+.IP
+aoximport /users/nirmala/imap mbox ~/Mail/imap/*
+.SH AUTHOR
+The Archiveopteryx developers, info@oryx.com.
+.SH VERSION
+This man page covers Archiveopteryx version 1.07, released 2006-06-05,
+http://www.archiveopteryx.org/1.07.html.
+.SH SEE ALSO
+.BR aox (8),
+.BR archiveopteryx (7),
+.BR oryx (7),
+http://www.archiveopteryx.org
