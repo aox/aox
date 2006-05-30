@@ -52,6 +52,33 @@ Port 587
   futuredelivery for myself.
 
 
+Message tracking
+
+  RFCs 3885-8 specify ways to track messages that have been sent. We
+  can implement that fairly easily.
+
+  If we route outgoing mail via a smarthost, that smarthost has to
+  support MTRK in order for tracking to work well.
+
+  We can track mail provided that at least one of these is true:
+
+  - we deliver directly to the end server (looking at received fields
+    for mail from the same address can help ascertain that the best mx
+    really is that)
+
+  - we deliver via an MTRK-capable server
+
+  - we deliver into our own database
+
+  Sounds likely to be true maybe 80-90% of the time.
+
+  If none are true, we can at least say, easily, where we delivered,
+  when, and why.
+
+  We could implement the tracking protocol (and I'd write a query blah
+  in mailchen), and also provide a query interface via the web.
+
+
 Memory use for common operations
 
   Some use _vastly_ too much memory. I saw a single IMAP FETCH for a
