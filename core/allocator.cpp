@@ -9,11 +9,6 @@
 // fprintf
 #include <stdio.h>
 
-extern "C" {
-    void *memcpy(void *dest, const void *src, size_t n);
-    long int random(void);
-};
-
 
 struct AllocationBlock
 {
@@ -781,6 +776,14 @@ void Allocator::scanRoots()
 }
 
 
+// XXX This is a hack. Internal use only. Don't expect the function to
+// remain unchanged, or even to remain at all.
+
+extern "C" {
+    void *memcpy(void *dest, const void *src, size_t n);
+    long int random(void);
+};
+
 /*! This debug function selects an allocated memory block at random
     and dumps its contents to stdout.
 
@@ -843,9 +846,9 @@ void Allocator::dumpRandomObject()
     }
     if ( s ) {
         char buffer[201];
+        memset( buffer, 0, 201 );
         memcpy( buffer, b->payload,
                 a->step - bytes > 200 ? 200 : a->step - bytes );
-        buffer[200] = '\0';
         // yes, so dump it as one.
         fprintf( stdout,
                  "String, maximum length %d, address %08x, content:\n%s\n",
