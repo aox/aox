@@ -338,12 +338,13 @@ public:
     User * user;
     Transaction * t;
     Address * address;
+    Mailbox * m;
     String s;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
           command( cmd ), query( 0 ),
-          user( 0 ), t( 0 ), address( 0 )
+          user( 0 ), t( 0 ), address( 0 ), m( 0 )
     {
     }
 
@@ -1488,12 +1489,12 @@ void createMailbox()
         if ( d->user && !d->s.startsWith( "/" ) )
             d->s = d->user->home()->name() + "/" + d->s;
 
-        Mailbox * m = Mailbox::obtain( d->s );
-        if ( !m )
+        d->m = Mailbox::obtain( d->s );
+        if ( !d->m )
             error( "Can't create mailbox named " + d->s );
 
         d->t = new Transaction( d );
-        if ( m->create( d->t, d->user ) == 0 )
+        if ( d->m->create( d->t, d->user ) == 0 )
             error( "Couldn't create mailbox " + d->s );
         d->t->commit();
     }
@@ -1503,6 +1504,8 @@ void createMailbox()
 
     if ( d->t->failed() )
         error( "Couldn't create mailbox: " + d->t->error() );
+
+    OCClient::send( "mailbox " + d->m->name().quoted() + " new" );
 }
 
 
@@ -1526,11 +1529,11 @@ void deleteMailbox()
     }
 
     if ( !d->t ) {
-        Mailbox * m = Mailbox::obtain( d->s, false );
-        if ( !m )
+        d->m = Mailbox::obtain( d->s, false );
+        if ( !d->m )
             error( "No mailbox named " + d->s );
         d->t = new Transaction( d );
-        if ( m->remove( d->t ) == 0 )
+        if ( d->m->remove( d->t ) == 0 )
             error( "Couldn't delete mailbox " + d->s );
         d->t->commit();
     }
@@ -1540,6 +1543,8 @@ void deleteMailbox()
 
     if ( d->t->failed() )
         error( "Couldn't delete mailbox: " + d->t->error() );
+
+    OCClient::send( "mailbox " + d->m->name().quoted() + " deleted" );
 }
 
 
