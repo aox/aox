@@ -3,6 +3,7 @@
 #include "view.h"
 
 #include "mailbox.h"
+#include "occlient.h"
 #include "transaction.h"
 #include "permissions.h"
 
