@@ -105,5 +105,7 @@ void View::execute()
     if ( d->t->failed() )
         error( No, "Database error: " + d->t->error() );
 
+    OCClient::send( "mailbox " + d->mv->name().quoted() + " new" );
+
     finish();
 }
