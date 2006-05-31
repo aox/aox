@@ -1,14 +1,14 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+#include <resolv.h>
+
 #include "resolver.h"
 
 #include "dict.h"
 #include "allocator.h"
 #include "configuration.h"
-
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <resolv.h>
 
 
 class ResolverData
