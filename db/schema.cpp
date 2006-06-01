@@ -114,8 +114,8 @@ void Schema::execute()
 {
     if ( d->state == 0 ) {
         d->lock =
-            new Query( "select substr(version(),0,17) as version, "
-                       "revision from mailstore for update", this );
+            new Query( "select version() as version, revision from "
+                       "mailstore for update", this );
         d->t->enqueue( d->lock );
         d->t->execute();
         d->state = 1;
@@ -128,7 +128,12 @@ void Schema::execute()
         Row *r = d->lock->nextRow();
         if ( r ) {
             d->revision = r->getInt( "revision" );
-            d->version = r->getString( "version" ).mid( 11 );
+            // We'll blithely assume that "select version()" returns a
+            // string that begins with "PostgreSQL x.y.z " and extract
+            // the "x.y.z" part for version().
+            String s( r->getString( "version" ) );
+            int n = s.find( ' ', 11 );
+            d->version = s.mid( 11, n-11 );
         }
 
         if ( !r || d->lock->failed() ) {
