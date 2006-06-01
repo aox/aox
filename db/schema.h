@@ -7,6 +7,7 @@
 
 
 class Query;
+class String;
 
 
 class Schema
@@ -16,6 +17,8 @@ public:
     Schema( EventHandler *, bool = false, bool = true );
     Query * result() const;
     void execute();
+
+    String version() const;
 
     static void check( EventHandler * );
     static int currentRevision();

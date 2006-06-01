@@ -34,6 +34,7 @@ public:
     Query *result;
     bool upgrade;
     bool commit;
+    String version;
 };
 
 
@@ -97,13 +98,24 @@ void Schema::check( EventHandler * owner )
 }
 
 
+/*! After execute() has completed, this function returns the version
+    ("8.1.3") of the running Postgres server.
+*/
+
+String Schema::version() const
+{
+    return d->version;
+}
+
+
 /*! Checks or upgrades the schema as required. */
 
 void Schema::execute()
 {
     if ( d->state == 0 ) {
         d->lock =
-            new Query( "select revision from mailstore for update", this );
+            new Query( "select substr(version(),0,17) as version, "
+                       "revision from mailstore for update", this );
         d->t->enqueue( d->lock );
         d->t->execute();
         d->state = 1;
@@ -114,8 +126,10 @@ void Schema::execute()
             return;
 
         Row *r = d->lock->nextRow();
-        if ( r )
+        if ( r ) {
             d->revision = r->getInt( "revision" );
+            d->version = r->getString( "version" ).mid( 11 );
+        }
 
         if ( !r || d->lock->failed() ) {
             fail( "Bad database: Couldn't query the mailstore table.",

@@ -340,11 +340,13 @@ public:
     Address * address;
     Mailbox * m;
     String s;
+    Schema * schema;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
           command( cmd ), query( 0 ),
-          user( 0 ), t( 0 ), address( 0 ), m( 0 )
+          user( 0 ), t( 0 ), address( 0 ), m( 0 ),
+          schema( 0 )
     {
     }
 
@@ -925,21 +927,29 @@ void showSchema()
 
 void upgradeSchema()
 {
-    if ( d )
+    if ( !d ) {
+        end();
+
+        Database::setup();
+
+        bool commit = true;
+        if ( opt( 'n' ) > 0 )
+            commit = false;
+
+        d = new Dispatcher( Dispatcher::UpgradeSchema );
+        d->schema = new Schema( d, true, commit );
+        d->query = d->schema->result();
+        d->schema->execute();
+    }
+
+    if ( !d->query->done() )
         return;
 
-    end();
-
-    Database::setup();
-
-    bool commit = true;
-    if ( opt( 'n' ) > 0 )
-        commit = false;
-
-    d = new Dispatcher( Dispatcher::UpgradeSchema );
-    Schema * s = new Schema( d, true, commit );
-    d->waitFor( s->result() );
-    s->execute();
+    if ( !d->schema->version().startsWith( "8.1" ) )
+        fprintf( stderr,
+                 "NOTE: Archiveopteryx will require PostgreSQL 8.1.x in "
+                 "release 1.12.\nPlease upgrade the running server (%s) "
+                 "at your convenience.\n", d->schema->version().cstr() );
 }
 
 
