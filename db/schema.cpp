@@ -141,7 +141,7 @@ void Schema::execute()
             s.append( fn( ::currentRevision ) );
             s.append( "). Please " );
             if ( d->revision < ::currentRevision )
-                s.append( "run 'ms upgrade schema'" );
+                s.append( "run 'aox upgrade schema'" );
             else
                 s.append( "upgrade" );
             s.append( " or contact support." );
