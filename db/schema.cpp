@@ -22,7 +22,7 @@ public:
         : l( new Log( Log::Database ) ),
           state( 0 ), substate( 0 ), revision( 0 ),
           lock( 0 ), seq( 0 ), update( 0 ), q( 0 ), t( 0 ),
-          result( 0 ), upgrade( false )
+          result( 0 ), upgrade( false ), commit( true )
     {}
 
     Log *l;
@@ -33,6 +33,7 @@ public:
     Transaction *t;
     Query *result;
     bool upgrade;
+    bool commit;
 };
 
 
@@ -47,15 +48,22 @@ public:
 /*! Creates a new Schema object to check that the existing schema is one
     that the running server understands. If \a upgrade is true (which it
     is not, by default) and the schema is too old, it will be upgraded.
+    (If \a upgrade is false, a "please upgrade" message will be issued.)
+
+    If \a commit is false (which it also is not, by default), the SQL
+    statements performed during the upgrade will not be COMMITted, but
+    their success or failure will be reported.
+
     The \a owner will be notified of progress via the Query returned by
     result().
 */
 
-Schema::Schema( EventHandler * owner, bool upgrade )
+Schema::Schema( EventHandler * owner, bool upgrade, bool commit )
     : d( new SchemaData )
 {
     d->result = new Query( owner );
     d->upgrade = upgrade;
+    d->commit = commit;
     d->t = new Transaction( this );
 }
 
@@ -176,7 +184,10 @@ void Schema::execute()
             d->revision++;
 
             if ( d->revision == ::currentRevision ) {
-                d->t->commit();
+                if ( d->commit )
+                    d->t->commit();
+                else
+                    d->t->rollback();
                 d->state = 6;
                 break;
             }

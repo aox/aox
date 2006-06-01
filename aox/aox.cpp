@@ -932,8 +932,12 @@ void upgradeSchema()
 
     Database::setup();
 
+    bool commit = true;
+    if ( opt( 'n' ) > 0 )
+        commit = false;
+
     d = new Dispatcher( Dispatcher::UpgradeSchema );
-    Schema * s = new Schema( d, true );
+    Schema * s = new Schema( d, true, commit );
     d->waitFor( s->result() );
     s->execute();
 }

@@ -13,7 +13,7 @@ class Schema
     : public EventHandler
 {
 public:
-    Schema( EventHandler *, bool = false );
+    Schema( EventHandler *, bool = false, bool = true );
     Query * result() const;
     void execute();
 
