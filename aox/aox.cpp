@@ -945,10 +945,11 @@ void upgradeSchema()
     if ( !d->query->done() )
         return;
 
-    if ( !d->schema->version().startsWith( "8.1" ) )
+    if ( d->schema->version().startsWith( "7" ) ||
+         d->schema->version().startsWith( "8.0" ) )
         fprintf( stderr,
-                 "NOTE: Archiveopteryx will require PostgreSQL 8.1.x in "
-                 "release 1.12.\nPlease upgrade the running server (%s) "
+                 "Note: Archiveopteryx will require PostgreSQL 8.1.0 or higher "
+                 "around July, 2007.\nPlease upgrade the running server (%s) "
                  "at your convenience.\n", d->schema->version().cstr() );
 }
 
