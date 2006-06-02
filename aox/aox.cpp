@@ -928,6 +928,7 @@ void showSchema()
 void upgradeSchema()
 {
     if ( !d ) {
+        parseOptions();
         end();
 
         Database::setup();
@@ -1801,9 +1802,14 @@ void help()
         fprintf(
             stderr,
             "  upgrade schema -- Upgrade the database schema.\n\n"
-            "    Synopsis: aox upgrade schema\n\n"
+            "    Synopsis: aox upgrade schema [-n]\n\n"
             "    Checks that the database schema is one that this version of\n"
             "    Archiveopteryx is compatible with, and updates it if needed.\n"
+            "\n"
+            "    The -n flag causes aox to perform the SQL statements for the\n"
+            "    schema upgrade and report on their status without COMMITting\n"
+            "    the transaction (i.e. see what the upgrade would do, without\n"
+            "    changing anything).\n"
         );
     }
     else if ( a == "list" && b == "mailboxes" ) {
