@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (18);
+insert into mailstore (revision) values (19);
 
 
 -- One entry for each unique address we've encountered.
@@ -188,6 +188,15 @@ create table address_fields (
                 position, field) on delete cascade
 );
 create index af_mu on address_fields (mailbox, uid);
+
+
+-- The Date field from each message.
+
+create table date_fields (
+    mailbox     integer not null,
+    uid         integer not null,
+    value       timestamp with time zone
+);
 
 
 -- One entry per unique thread.
