@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 18;
+int currentRevision = 19;
 
 
 class SchemaData
@@ -284,6 +284,8 @@ bool Schema::singleStep()
         c = stepTo17(); break;
     case 17:
         c = stepTo18(); break;
+    case 18:
+        c = stepTo19(); break;
     }
 
     return c;
@@ -1085,6 +1087,34 @@ bool Schema::stepTo18()
                           "owner integer not null references users(id),"
                           "name text, active boolean not null default 'f',"
                           "script text)", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add the date_fields table. */
+
+bool Schema::stepTo19()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Creating date_fields table.", Log::Debug );
+        d->q = new Query( "create table date_fields (mailbox "
+                          "integer not null, uid integer not null, "
+                          "value timestamp with time zone, "
+                          "foreign key (mailbox,uid) references "
+                          "messages(mailbox,uid) on delete cascade )",
+                          this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
