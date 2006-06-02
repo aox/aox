@@ -195,7 +195,10 @@ create index af_mu on address_fields (mailbox, uid);
 create table date_fields (
     mailbox     integer not null,
     uid         integer not null,
-    value       timestamp with time zone
+    value       timestamp with time zone,
+    foreign key (mailbox, uid)
+                references messages(mailbox, uid)
+                on delete cascade
 );
 
 
