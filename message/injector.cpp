@@ -500,6 +500,7 @@ void Injector::buildAddressLinks()
 void Injector::buildFieldLinks()
 {
     d->fieldLinks = new List< FieldLink >;
+    d->dateLinks = new List< FieldLink >;
     d->otherFields = new List< String >;
 
     buildLinksForHeader( d->message->header(), "" );
