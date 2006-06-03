@@ -559,16 +559,27 @@ String Selector::whereSent()
 
     Date d1;
     d1.setDate( year, month, day, 0, 0, 0, 0 );
-
     uint n = placeHolder();
-    root()->d->query->bind( n, d1.isoDate() );
 
-    if ( d->a == OnDate )
-        return "df.value=$" + fn( n );
-    else if ( d->a == SinceDate )
+    if ( d->a == OnDate ) {
+        d1.setDate( year, month, day+1, 0, 0, 0, 0 );
+        root()->d->query->bind( n, d1.isoDate() );
+
+        uint n2 = placeHolder();
+        d1.setDate( year, month, day, 0, 0, 0, 0 );
+        root()->d->query->bind( n2, d1.isoDate() );
+
+        return "(df.value<$" + fn( n ) + " and "
+               "df.value>=$" + fn( n2 ) + ")";
+    }
+    else if ( d->a == SinceDate ) {
+        root()->d->query->bind( n, d1.isoDate() );
         return "df.value>=$" + fn( n );
-    else if ( d->a == BeforeDate )
+    }
+    else if ( d->a == BeforeDate ) {
+        root()->d->query->bind( n, d1.isoDate() );
         return "df.value<=$" + fn( n );
+    }
 
     setError( "Cannot search for: " + debugString() );
     return "";
