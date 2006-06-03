@@ -25,6 +25,7 @@ public:
           placeholder( 0 ), query( 0 ), parent( 0 ),
           children( new List< Selector > ),
           session( 0 ),
+          needDateFields( false ),
           needHeaderFields( false ),
           needAddresses( false ),
           needAddressFields( false ),
@@ -57,6 +58,7 @@ public:
     // insertion.
     MessageSet needFlags;
 
+    bool needDateFields;
     bool needHeaderFields;
     bool needAddresses;
     bool needAddressFields;
@@ -442,10 +444,11 @@ Query * Selector::query( User * user, Mailbox * mailbox,
             i++;
             q.append( " left join flags " + n + " on (" + join( n.cstr() ) +
                       " and " + n + ".flag=" + fn( f ) + ")" );
-            
         }
     }
 
+    if ( d->needDateFields )
+        q.append( " join date_fields df on (" + join( "df" ) + ")" );
     if ( d->needHeaderFields )
         q.append( " join header_fields hf on (" + join( "hf" ) + ")" );
     if ( d->needAddressFields )
@@ -548,7 +551,30 @@ String Selector::whereInternalDate()
 
 String Selector::whereSent()
 {
-    setError( "Searching on the Date field unimplemented, sorry" );
+    root()->d->needDateFields = true;
+
+    uint day = d->s8.mid( 0, 2 ).number( 0 );
+    String month = d->s8.mid( 3, 3 );
+    uint year = d->s8.mid( 7 ).number( 0 );
+    // XXX: local time zone is ignored here
+    Date d1;
+    d1.setDate( year, month, day, 0, 0, 0, 0 );
+    Date d2;
+    d2.setDate( year, month, day, 23, 59, 59, 0 );
+    uint n1 = placeHolder();
+    root()->d->query->bind( n1, d1.isoDate() );
+    uint n2 = placeHolder();
+    root()->d->query->bind( n2, d2.isoDate() );
+
+    if ( d->a == OnDate )
+        return "(df.value>=$" + fn( n1 ) + " and"
+               " df.value<=$" + fn( n2 ) + ")";
+    else if ( d->a == SinceDate )
+        return "df.value>=$" + fn( n1 );
+    else if ( d->a == BeforeDate )
+        return "df.value<=$" + fn( n2 );
+
+    setError( "Cannot search for: " + debugString() );
     return "";
 }
 
@@ -701,7 +727,7 @@ String Selector::whereAddressFields( const StringList & fields,
 String Selector::whereHeader()
 {
     root()->d->needHeaderFields = true;
-    
+
     uint str = placeHolder();
     root()->d->query->bind( str, q( d->s16 ) );
     return
