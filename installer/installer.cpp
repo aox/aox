@@ -351,16 +351,12 @@ void database()
 
         d->q = new Query( "select version() as version", d );
         d->q->execute();
-
-        // XXX: This is SO VERY evil. I should have used an enum, so I
-        // could insert new states easily.
-        d->state = 666;
     }
 
     if ( !d->q->done() )
         return;
 
-    if ( d->state == 666 ) {
+    if ( d->state == 0 ) {
         Row * r = d->q->nextRow();
         if ( d->q->failed() || !r ) {
             fprintf( stderr, "Couldn't check PostgreSQL server version.\n" );
@@ -391,11 +387,11 @@ void database()
                               "usename=$1", d );
             d->q->bind( 1, DBUSER );
             d->q->execute();
-            d->state = 0;
+            d->state = 1;
         }
     }
 
-    if ( d->state == 0 ) {
+    if ( d->state == 1 ) {
         if ( !d->q->done() )
             return;
 
@@ -415,14 +411,14 @@ void database()
             create.append( "'" );
 
             if ( report ) {
-                d->state = 2;
+                d->state = 3;
                 printf( " - Create a PostgreSQL user named '" DBUSER "'.\n"
                         "   As user %s, run:\n\n"
                         "psql -d template1 -qc \"%s\"\n\n",
                         PGUSER, create.cstr() );
             }
             else {
-                d->state = 1;
+                d->state = 2;
                 if ( !silent )
                     printf( "Creating the '" DBUSER "' PostgreSQL user.\n" );
                 d->q = new Query( create, d );
@@ -430,11 +426,11 @@ void database()
             }
         }
         else {
-            d->state = 2;
+            d->state = 3;
         }
     }
 
-    if ( d->state == 1 ) {
+    if ( d->state == 2 ) {
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
@@ -442,11 +438,11 @@ void database()
                      "Please create it by hand and re-run the installer.\n" );
             EventLoop::shutdown();
         }
-        d->state = 2;
+        d->state = 3;
     }
 
-    if ( d->state == 2 ) {
-        d->state = 3;
+    if ( d->state == 3 ) {
+        d->state = 4;
         d->q =
             new Query( "select datname::text,usename::text,"
                        "pg_encoding_to_char(encoding)::text as encoding "
@@ -456,7 +452,7 @@ void database()
         d->q->execute();
     }
 
-    if ( d->state == 3 ) {
+    if ( d->state == 4 ) {
         if ( !d->q->done() )
             return;
         Row * r = d->q->nextRow();
@@ -464,16 +460,16 @@ void database()
             String create( "create database " DBNAME " with owner " DBUSER " "
                            "encoding 'UNICODE'" );
             if ( report ) {
-                d->state = 7;
+                d->state = 8;
                 printf( " - Create a database named '" DBNAME "'.\n"
                         "   As user %s, run:\n\n"
                         "psql -d template1 -qc \"%s\"\n\n",
                         PGUSER, create.cstr() );
-                // We let state 7 think the mailstore query returned 0
+                // We let state 8 think the mailstore query returned 0
                 // rows, so that it prints an appropriate message.
             }
             else {
-                d->state = 4;
+                d->state = 5;
                 if ( !silent )
                     printf( "Creating the '" DBNAME "' database.\n" );
                 d->q = new Query( create, d );
@@ -493,11 +489,11 @@ void database()
                 if ( !report )
                     exit( -1 );
             }
-            d->state = 5;
+            d->state = 6;
         }
     }
 
-    if ( d->state == 4 ) {
+    if ( d->state == 5 ) {
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
@@ -505,10 +501,10 @@ void database()
                      "Please create it by hand and re-run the installer.\n" );
             EventLoop::shutdown();
         }
-        d->state = 5;
+        d->state = 6;
     }
 
-    if ( d->state == 5 ) {
+    if ( d->state == 6 ) {
         // How utterly, utterly disgusting.
         Database::disconnect();
 
@@ -522,18 +518,18 @@ void database()
         Configuration::add( "db-user = '" DBUSER "'" );
         Configuration::add( "db-name = '" DBNAME "'" );
         Database::setup();
-        d->state = 6;
+        d->state = 7;
         d->q = new Query( "select relname from pg_catalog.pg_class where "
                           "relname='mailstore'", d );
         d->q->execute();
     }
 
-    if ( d->state == 6 ) {
+    if ( d->state == 7 ) {
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
             if ( report ) {
-                d->state = 9;
+                d->state = 10;
                 printf( " - May need to load the Oryx database schema.\n   "
                         "(Couldn't query database '" DBNAME "' to make sure "
                         "it's needed.)\n" );
@@ -545,10 +541,10 @@ void database()
                 EventLoop::shutdown();
             }
         }
-        d->state = 7;
+        d->state = 8;
     }
 
-    if ( d->state == 7 ) {
+    if ( d->state == 8 ) {
         Row * r = d->q->nextRow();
         if ( !r ) {
             String cmd( "\\set ON_ERROR_STOP\n"
@@ -558,14 +554,14 @@ void database()
                         "\\i " LIBDIR "/field-names\n"
                         "\\i " LIBDIR "/flag-names\n" );
             if ( report ) {
-                d->state = 9;
+                d->state = 10;
                 printf( " - Load the Oryx database schema.\n   "
                         "As user %s, run:\n\n"
                         "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
                         PGUSER, cmd.cstr() );
             }
             else {
-                d->state = 9;
+                d->state = 10;
 
                 int n;
                 int fd[2];
@@ -613,20 +609,20 @@ void database()
             }
         }
         else {
-            d->state = 8;
+            d->state = 9;
             d->q = new Query( "select revision from mailstore", d );
             d->q->execute();
         }
     }
 
-    if ( d->state == 8 ) {
+    if ( d->state == 9 ) {
         if ( !d->q->done() )
             return;
 
         Row * r = d->q->nextRow();
         if ( !r || d->q->failed() ) {
             if ( report ) {
-                d->state = 9;
+                d->state = 10;
                 printf( " - May need to upgrade the Oryx database schema.\n   "
                         "(Couldn't query mailstore table to make sure it's "
                         "needed.)\n" );
@@ -639,16 +635,16 @@ void database()
             }
         }
         else if ( r->getInt( "revision" ) != Schema::currentRevision() ) {
-            d->state = 9;
+            d->state = 10;
             printf( " - You need to upgrade the Oryx database schema.\n   "
                     "Please run 'ms upgrade schema' by hand.\n" );
         }
         else {
-            d->state = 9;
+            d->state = 10;
         }
     }
 
-    if ( d->state == 9 ) {
+    if ( d->state == 10 ) {
         configFile();
     }
 }
