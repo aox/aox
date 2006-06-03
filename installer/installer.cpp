@@ -348,16 +348,57 @@ void database()
         d = new Dispatcher;
         dbpass = new String;
         Allocator::addEternal( dbpass, "DBPASS" );
-        d->q = new Query( "select usename from pg_catalog.pg_user where "
-                          "usename=$1", d );
-        d->q->bind( 1, DBUSER );
+
+        d->q = new Query( "select version() as version", d );
         d->q->execute();
+
+        // XXX: This is SO VERY evil. I should have used an enum, so I
+        // could insert new states easily.
+        d->state = 666;
     }
 
     if ( !d->q->done() )
         return;
 
+    if ( d->state == 666 ) {
+        Row * r = d->q->nextRow();
+        if ( d->q->failed() || !r ) {
+            fprintf( stderr, "Couldn't check PostgreSQL server version.\n" );
+            EventLoop::shutdown();
+        }
+        else {
+            String s( r->getString( "version" ) );
+            int n = s.find( ' ', 11 );
+            String v( s.mid( 11, n-11 ) );
+
+            if ( !s.startsWith( "PostgreSQL" ) || n < 0 ||
+                 ( v.startsWith( "7" ) && !v.startsWith( "7.4" ) ) ||
+                 v == "7.4.0" || v == "7.4.1" || !v.startsWith( "8" ) )
+            {
+                fprintf( stderr, "Archiveopteryx requires PostgreSQL 7.4.2 "
+                         "or higher (found only '%s').\n", v.cstr() );
+                EventLoop::shutdown();
+            }
+
+            if ( v.startsWith( "7" ) || v.startsWith( "8.0" ) ) {
+                fprintf( stderr, "Note: Starting May 2007, Archiveopteryx "
+                         "will require PostgreSQL 8.1.0 or higher. Please "
+                         "upgrade the running server (%s) at your "
+                         "convenience.\n", v.cstr() );
+            }
+
+            d->q = new Query( "select usename from pg_catalog.pg_user where "
+                              "usename=$1", d );
+            d->q->bind( 1, DBUSER );
+            d->q->execute();
+            d->state = 0;
+        }
+    }
+
     if ( d->state == 0 ) {
+        if ( !d->q->done() )
+            return;
+
         Row * r = d->q->nextRow();
         if ( !r ) {
             Entropy::setup();
