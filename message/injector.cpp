@@ -79,8 +79,8 @@ public:
           owner( 0 ), message( 0 ), transaction( 0 ),
           mailboxes( 0 ), bodyparts( 0 ),
           uidHelper( 0 ), bidHelper( 0 ),
-          addressLinks( 0 ), fieldLinks( 0 ), otherFields( 0 ),
-          fieldLookup( 0 ), addressLookup( 0 )
+          addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
+          otherFields( 0 ), fieldLookup( 0 ), addressLookup( 0 )
     {}
 
     int step;
@@ -100,6 +100,7 @@ public:
 
     List< AddressLink > * addressLinks;
     List< FieldLink > * fieldLinks;
+    List< FieldLink > * dateLinks;
     List< String > * otherFields;
 
     CacheLookup * fieldLookup;
@@ -328,7 +329,7 @@ void Injector::execute()
     if ( d->step == 2 && !d->transaction->failed() ) {
         // We expect buildFieldLinks() to have completed immediately.
         // Once insertBodyparts() is completed, we can start adding to
-        // the part_numbers and header_fields tables.
+        // the part_numbers, header_fields, and date_fields tables.
 
         // Since the bodyparts inserts are outside the transaction, we
         // have to take particular care about handling errors there.
@@ -343,6 +344,7 @@ void Injector::execute()
 
         linkBodyparts();
         linkHeaderFields();
+        linkDates();
 
         d->transaction->execute();
         d->step = 3;
@@ -553,6 +555,9 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
             d->otherFields->append( new String ( hf->name() ) );
 
         d->fieldLinks->append( link );
+
+        if ( part.isEmpty() && hf->type() == HeaderField::Date )
+            d->dateLinks->append( link );
 
         ++it;
     }
@@ -846,6 +851,40 @@ void Injector::linkAddresses()
             q->bind( 4, link->position, Query::Binary );
             q->bind( 5, link->type, Query::Binary );
             q->bind( 6, link->address->id(), Query::Binary );
+            q->submitLine();
+
+            ++it;
+        }
+
+        ++mi;
+    }
+
+    d->transaction->enqueue( q );
+}
+
+
+/*! This private function inserts entries into the date_fields table
+    for each new message.
+*/
+
+void Injector::linkDates()
+{
+    Query *q =
+        new Query( "copy date_fields (mailbox,uid,value) "
+                   "from stdin with binary", 0 );
+
+    List< ObjectId >::Iterator mi( d->mailboxes );
+    while ( mi ) {
+        uint uid = mi->id;
+        Mailbox *m = mi->mailbox;
+
+        List< FieldLink >::Iterator it( d->dateLinks );
+        while ( it ) {
+            FieldLink *link = it;
+
+            q->bind( 1, m->id(), Query::Binary );
+            q->bind( 2, uid, Query::Binary );
+            q->bind( 6, link->hf->data(), Query::Binary );
             q->submitLine();
 
             ++it;

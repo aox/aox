@@ -50,6 +50,7 @@ private:
     void linkBodyparts();
     void linkHeaderFields();
     void linkAddresses();
+    void linkDates();
     void logMessageDetails();
 };
 
