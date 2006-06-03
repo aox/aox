@@ -870,10 +870,6 @@ void Injector::linkAddresses()
 
 void Injector::linkDates()
 {
-    Query *q =
-        new Query( "copy date_fields (mailbox,uid,value) "
-                   "from stdin with binary", 0 );
-
     List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {
         uint uid = mi->id;
@@ -883,18 +879,21 @@ void Injector::linkDates()
         while ( it ) {
             FieldLink *link = it;
 
-            q->bind( 1, m->id(), Query::Binary );
-            q->bind( 2, uid, Query::Binary );
-            q->bind( 6, link->hf->data(), Query::Binary );
-            q->submitLine();
+            Query *q =
+                new Query( "insert into date_fields (mailbox,uid,value) "
+                           "values ($1,$2,$3)", 0 );
+
+            q->bind( 1, m->id() );
+            q->bind( 2, uid );
+            q->bind( 3, link->hf->data() );
+
+            d->transaction->enqueue( q );
 
             ++it;
         }
 
         ++mi;
     }
-
-    d->transaction->enqueue( q );
 }
 
 
