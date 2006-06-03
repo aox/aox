@@ -562,15 +562,15 @@ String Selector::whereSent()
     uint n = placeHolder();
 
     if ( d->a == OnDate ) {
-        d1.setDate( year, month, day+1, 0, 0, 0, 0 );
-        root()->d->query->bind( n, d1.isoDate() );
+        d1.setDate( year, month, day, 23, 59, 59, 0 );
+        root()->d->query->bind( n, d1.isoDate() + " " + d1.isoTime() );
 
         uint n2 = placeHolder();
         d1.setDate( year, month, day, 0, 0, 0, 0 );
         root()->d->query->bind( n2, d1.isoDate() );
 
-        return "(df.value<$" + fn( n ) + " and "
-               "df.value>=$" + fn( n2 ) + ")";
+        return "(df.value<=$" + fn( n ) + " and"
+               " df.value>=$" + fn( n2 ) + ")";
     }
     else if ( d->a == SinceDate ) {
         root()->d->query->bind( n, d1.isoDate() );
