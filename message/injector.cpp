@@ -7,8 +7,9 @@
 #include "address.h"
 #include "message.h"
 #include "ustring.h"
-#include "bodypart.h"
 #include "mailbox.h"
+#include "bodypart.h"
+#include "datefield.h"
 #include "mimefields.h"
 #include "fieldcache.h"
 #include "addressfield.h"
@@ -17,10 +18,10 @@
 #include "allocator.h"
 #include "occlient.h"
 #include "scope.h"
+#include "html.h"
 #include "md5.h"
 #include "utf.h"
 #include "log.h"
-#include "html.h"
 
 
 class IdHelper;
@@ -877,7 +878,8 @@ void Injector::linkDates()
 
         List< FieldLink >::Iterator it( d->dateLinks );
         while ( it ) {
-            FieldLink *link = it;
+            FieldLink * link = it;
+            DateField * df = (DateField *)link->hf;
 
             Query *q =
                 new Query( "insert into date_fields (mailbox,uid,value) "
@@ -885,7 +887,7 @@ void Injector::linkDates()
 
             q->bind( 1, m->id() );
             q->bind( 2, uid );
-            q->bind( 3, link->hf->data() );
+            q->bind( 3, df->date()->imap() );
 
             d->transaction->enqueue( q );
 
