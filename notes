@@ -837,3 +837,12 @@ udoc RFC x
   in the .html output.
 
 
+Get rid of FORTRAN typing
+
+  Instead of using UString, we sometimes use String and "assume it to
+  be UTF-8", except that sometimes we forget to assume that. Fix that.
+  Also unfuck HeaderField::encode{Word,Phrase} in a different way -
+  they use different tests for whether 2047 encoding is necessary, and
+  I don't think either is right.
+
+
