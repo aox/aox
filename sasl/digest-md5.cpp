@@ -52,6 +52,8 @@ public:
 */
 
 
+/*! Creates a digest-md5 SASL authentication object on behalf of \a c */
+
 DigestMD5::DigestMD5( EventHandler *c )
     : SaslMechanism( c, SaslMechanism::DigestMD5 ), d( new DigestData )
 {

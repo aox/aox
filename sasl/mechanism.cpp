@@ -73,11 +73,12 @@ public:
 /*! This static method creates and returns a pointer to a handler for
     the named \a mechanism on behalf of \a command. Returns 0 if the
     \a mechanism is unsupported or not allowed. Ignores case in
-    comparing the name.
+    comparing the name. Uses \a privacy to decide whether the \a mechanism
+    is allowed().
 */
 
 SaslMechanism * SaslMechanism::create( const String & mechanism,
-                                       EventHandler *command,
+                                       EventHandler * command,
                                        bool privacy )
 {
     String s( mechanism.lower() );
@@ -92,7 +93,7 @@ SaslMechanism * SaslMechanism::create( const String & mechanism,
     else if ( s == "digest-md5" )
         m = new ::DigestMD5( command );
 
-    if ( allowed( m->type(), privacy ) )
+    if ( m && !allowed( m->type(), privacy ) )
         return 0;
     
     return m;

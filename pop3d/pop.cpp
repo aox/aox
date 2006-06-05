@@ -38,13 +38,6 @@ public:
 };
 
 
-static bool allowPlaintext = true;
-static bool supportsPlain = true;
-static bool supportsCramMd5 = true;
-static bool supportsDigestMd5 = true;
-static bool supportsAnonymous = true;
-
-
 static void newCommand( List< PopCommand > *, POP *,
                         PopCommand::Command, StringList * = 0 );
 
@@ -321,61 +314,6 @@ void POP::setReader( PopCommand * cmd )
 {
     d->reader = cmd;
     d->reserved = d->reader;
-}
-
-
-/*! Returns true only if this POP server supports the authentication
-    mechanism named \a s (which must be in lowercase).
-
-    XXX: This is copied from IMAP. What to do about the duplication?
-*/
-
-bool POP::supports( const String &s ) const
-{
-    if ( ::supportsDigestMd5 && s == "digest-md5" )
-        return true;
-
-    if ( ::supportsCramMd5 && s == "cram-md5" )
-        return true;
-
-    if ( ::allowPlaintext || hasTls() ) {
-        if ( ::supportsPlain && s == "plain" )
-            return true;
-        if ( ::supportsAnonymous && s == "anonymous" )
-            return true;
-        if ( s == "login" )
-            return true;
-    }
-
-    return false;
-}
-
-
-/*! This setup function expects to be called from ::main().
-
-    It reads and validates any relevant configuration variables, and
-    logs a disaster if it encounters an error.
-*/
-
-void POP::setup()
-{
-    ::supportsPlain = Configuration::toggle( Configuration::AuthPlain );
-    ::supportsCramMd5 =
-          Configuration::toggle( Configuration::AuthCramMd5 );
-    ::supportsDigestMd5 =
-          Configuration::toggle( Configuration::AuthDigestMd5 );
-    ::supportsAnonymous =
-          Configuration::toggle( Configuration::AuthAnonymous );
-
-    String s =
-        Configuration::text( Configuration::AllowPlaintextPasswords ).lower();
-    if ( s == "always" )
-        ::allowPlaintext = true;
-    else if ( s == "never" )
-        ::allowPlaintext = false;
-    else
-        ::log( "Unknown value for allow-plaintext-passwords: " + s,
-               Log::Disaster );
 }
 
 

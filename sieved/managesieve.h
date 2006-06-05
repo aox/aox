@@ -34,11 +34,7 @@ public:
     void setReserved( bool );
     void setReader( class ManageSieveCommand * );
 
-    bool supports( const String & ) const;
-
     void capabilities();
-
-    static void setup();
 
 private:
     class ManageSieveData *d;

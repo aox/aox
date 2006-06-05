@@ -11,6 +11,8 @@
 #include "anonymous.h"
 
 
+/*! Creates an anonymous SASL authentication object on behalf of \a c */
+
 Anonymous::Anonymous( EventHandler *c )
     : SaslMechanism( c, SaslMechanism::Anonymous )
 {

@@ -37,13 +37,9 @@ public:
     void setReserved( bool );
     void setReader( class PopCommand * );
 
-    bool supports( const String & ) const;
-
     void markForDeletion( uint );
 
     void badUser();
-
-    static void setup();
 
 private:
     class PopData *d;

@@ -20,6 +20,8 @@
 */
 
 
+/*! Creates a cram-md5 SASL authentication object on behalf of \a c */
+
 CramMD5::CramMD5( EventHandler *c )
     : SaslMechanism( c, SaslMechanism::CramMD5 )
 {

@@ -18,6 +18,7 @@
 
 #include "plain.h"
 
+/*! Creates a plain-text SASL authentication object on behalf of \a c */
 
 Plain::Plain( EventHandler *c )
     : SaslMechanism( c, SaslMechanism::Plain )

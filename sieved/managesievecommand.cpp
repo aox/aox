@@ -179,8 +179,7 @@ bool ManageSieveCommand::authenticate()
 {
     if ( !d->m ) {
         String t = nextArg().lower();
-        if ( d->sieve->supports( t ) )
-            d->m = SaslMechanism::create( t, this, d->sieve->hasTls() );
+        d->m = SaslMechanism::create( t, this, d->sieve->hasTls() );
         if ( !d->m ) {
             d->sieve->no( "SASL mechanism " + t + " not supported" );
             return true;
@@ -190,15 +189,17 @@ bool ManageSieveCommand::authenticate()
         String r = nextArg();
         if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
             if ( !r.isEmpty() )
-                d->m->readResponse( d->r->de64() );
+                d->m->readResponse( r.de64() );
             else
                 d->m->setState( SaslMechanism::IssuingChallenge );
         }
     }
 
-    // This code is essentially a copy of imapd/handlers/authenticate.
+    // This code is essentially a mangled copy of imapd/handlers/authenticate.
     // I'll think about how to avoid the duplication later.
-    while ( !d->m->done() ) {
+    while ( !d->m->done() &&
+            ( d->m->state() == SaslMechanism::IssuingChallenge ||
+              d->m->state() == SaslMechanism::AwaitingResponse ) ) {
         if ( d->m->state() == SaslMechanism::IssuingChallenge ) {
             String c = d->m->challenge().e64();
 
@@ -439,7 +440,18 @@ bool ManageSieveCommand::deleteScript()
 
 String ManageSieveCommand::nextArg()
 {
-    if ( d->args && !d->args->isEmpty() )
-        return *d->args->take( d->args->first() );
+    if ( !d->args )
+        return "";
+    if ( d->args->isEmpty() )
+        return "";
+    String s = *d->args->take( d->args->first() );
+    if ( s.startsWith( "{" ) ) {
+        // XXX so what do we do here?
+        while ( true )
+            ; // XXX indeed
+    }
+    else if ( s.isQuoted() ) {
+        return s.unquoted();
+    }
     return "";
 }
