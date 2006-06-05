@@ -846,3 +846,8 @@ Get rid of FORTRAN typing
   I don't think either is right.
 
 
+VIEW CREATE seems unpredictable
+
+  Occasionally, the \view flag doesn't appear quickly on the created mailbox.
+
+
