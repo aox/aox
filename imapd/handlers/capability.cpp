@@ -55,14 +55,7 @@ String Capability::capabilities( IMAP * i )
 
     // ugly X-DRAFT prefixes are disregarded when sorting by name
 
-    if ( i->supports( "anonymous" ) )
-        c.append( "AUTH=ANONYMOUS" );
-    if ( i->supports( "cram-md5" ) )
-        c.append( "AUTH=CRAM-MD5" );
-    if ( i->supports( "digest-md5" ) )
-        c.append( "AUTH=DIGEST-MD5" );
-    if ( i->supports( "plain" ) )
-        c.append( "AUTH=PLAIN" );
+    c.append( SaslMechanism::allowedMechanisms( "AUTH=", i->hasTls() ) );
 
     c.append( "ACL" );
     c.append( "ANNOTATE" );
@@ -72,7 +65,7 @@ String Capability::capabilities( IMAP * i )
     if ( drafts )
         c.append( "X-DRAFT-W12-LISTEXT" );
     c.append( "LITERAL+" );
-    if ( !i->supports( "login" ) )
+    if ( !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )
         c.append( "LOGINDISABLED" );
     c.append( "NAMESPACE" );
     if ( drafts )

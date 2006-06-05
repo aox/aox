@@ -12,7 +12,7 @@
 
 
 Anonymous::Anonymous( EventHandler *c )
-    : SaslMechanism( c )
+    : SaslMechanism( c, SaslMechanism::Anonymous )
 {
     setState( AwaitingInitialResponse );
 }

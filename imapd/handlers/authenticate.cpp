@@ -65,8 +65,7 @@ void Authenticate::execute()
     // First, create a mechanism handler.
 
     if ( !m ) {
-        if ( imap()->supports( t ) )
-            m = SaslMechanism::create( t, this );
+        m = SaslMechanism::create( t, this, imap()->hasTls() );
         if ( !m ) {
             error( No, "Mechanism " + t + " not supported" );
             return;

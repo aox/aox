@@ -166,7 +166,7 @@ bool Sieve::failed( Address * address )
 
 
 /*! Returns a single-line result string for use e.g. as SMTP/LMTP
-    response. If neither fialed() nor succeeded() returns true for \a
+    response. If neither failed() nor succeeded() returns true for \a
     address, the result of result() is undefined.
 */
 

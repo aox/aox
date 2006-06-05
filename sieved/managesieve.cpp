@@ -7,6 +7,7 @@
 #include "query.h"
 #include "string.h"
 #include "buffer.h"
+#include "mechanism.h"
 #include "eventloop.h"
 #include "stringlist.h"
 #include "configuration.h"
@@ -365,9 +366,9 @@ void ManageSieve::setup()
 void ManageSieve::capabilities()
 {
     String v( Configuration::compiledIn( Configuration::Version ) );
+    enqueue( "\"SIEVE\" \"Fileinto Refuse Reject\"\r\n" );
     enqueue( "\"IMPLEMENTATION\" \"Archiveopteryx " + v + "\"\r\n" );
-    enqueue( "\"SASL\" \"\"\r\n" );
-    enqueue( "\"MANAGESIEVE\" \"\"\r\n" );
+    enqueue( "\"SASL\" \"" + SaslMechanism::allowedMechanisms( "", hasTls() ) + "\"\r\n" );
     enqueue( "\"STARTTLS\"\r\n" );
     enqueue( "OK\r\n" );
 }

@@ -21,7 +21,7 @@
 
 
 CramMD5::CramMD5( EventHandler *c )
-    : SaslMechanism( c )
+    : SaslMechanism( c, SaslMechanism::CramMD5 )
 {
 }
 

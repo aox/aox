@@ -656,31 +656,6 @@ void IMAP::endSession()
 }
 
 
-/*! Returns true only if this IMAP server supports the authentication
-    mechanism named \a s (which must be in lowercase).
-*/
-
-bool IMAP::supports( const String &s ) const
-{
-    if ( ::supportsDigestMd5 && s == "digest-md5" )
-        return true;
-
-    if ( ::supportsCramMd5 && s == "cram-md5" )
-        return true;
-
-    if ( ::allowPlaintext || hasTls() ) {
-        if ( ::supportsPlain && s == "plain" )
-            return true;
-        if ( ::supportsAnonymous && s == "anonymous" )
-            return true;
-        if ( s == "login" )
-            return true;
-    }
-
-    return false;
-}
-
-
 /*! Returns the total number of unfinished commands. */
 
 uint IMAP::activeCommands() const

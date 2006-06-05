@@ -38,7 +38,6 @@ public:
     String mailboxName( const String & ) const;
 
     static void setup();
-    bool supports( const String & ) const;
 
     uint activeCommands() const;
     void unblockCommands();

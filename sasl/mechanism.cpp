@@ -1,9 +1,10 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
+#include "configuration.h"
+#include "stringlist.h"
 #include "mechanism.h"
 #include "event.h"
 #include "query.h"
-#include "configuration.h"
 #include "user.h"
 
 // Supported authentication mechanisms, for create().
@@ -21,7 +22,7 @@ public:
     SaslData()
         : state( SaslMechanism::IssuingChallenge ),
           command( 0 ), qd( false ), user( 0 ),
-          l( 0 )
+          l( 0 ), type( SaslMechanism::Plain )
     {}
 
     SaslMechanism::State state;
@@ -33,6 +34,7 @@ public:
     String secret;
     String storedSecret;
     Log *l;
+    SaslMechanism::Type type;
 };
 
 
@@ -70,35 +72,43 @@ public:
 
 /*! This static method creates and returns a pointer to a handler for
     the named \a mechanism on behalf of \a command. Returns 0 if the
-    \a mechanism is unsupported. Ignores case in comparing the name.
+    \a mechanism is unsupported or not allowed. Ignores case in
+    comparing the name.
 */
 
-SaslMechanism *SaslMechanism::create( const String &mechanism,
-                                      EventHandler *command )
+SaslMechanism * SaslMechanism::create( const String & mechanism,
+                                       EventHandler *command,
+                                       bool privacy )
 {
     String s( mechanism.lower() );
+    SaslMechanism * m = 0;
 
     if ( s == "anonymous" )
-        return new Anonymous( command );
+        m = new ::Anonymous( command );
     else if ( s == "plain" )
-        return new Plain( command );
+        m = new ::Plain( command );
     else if ( s == "cram-md5" )
-        return new CramMD5( command );
+        m = new ::CramMD5( command );
     else if ( s == "digest-md5" )
-        return new DigestMD5( command );
-    return 0;
+        m = new ::DigestMD5( command );
+
+    if ( allowed( m->type(), privacy ) )
+        return 0;
+    
+    return m;
 }
 
 
-/*! Constructs an SaslMechanism in ChallengeNeeded mode on behalf of
-    \a cmd.
+/*! Constructs an SaslMechanism of \a type in ChallengeNeeded mode on
+    behalf of \a cmd.
 */
 
-SaslMechanism::SaslMechanism( EventHandler *cmd )
+SaslMechanism::SaslMechanism( EventHandler * cmd, Type type )
     : d( new SaslData )
 {
     d->l = new Log( Log::Authentication );
     d->command = cmd;
+    d->type = type;
 }
 
 
@@ -326,4 +336,72 @@ User * SaslMechanism::user() const
     if ( state() == Succeeded )
         return d->user;
     return 0;
+}
+
+
+/*! Returns true if \a mechanism is currently allowed, and false if
+    not. If \a privacy is true, allowed() assumes that the connection
+    does not use plain-text transmission.
+*/
+
+bool SaslMechanism::allowed( Type mechanism, bool privacy )
+{
+    bool a = false;
+    bool pt = false;
+    switch( mechanism ) {
+    case Anonymous:
+        a = Configuration::toggle( Configuration::AuthAnonymous );
+        break;
+    case Plain:
+        a = Configuration::toggle( Configuration::AuthPlain );
+        pt = true;
+        break;
+    case CramMD5:
+        a = Configuration::toggle( Configuration::AuthCramMd5 );
+        break;
+    case DigestMD5:
+        a = Configuration::toggle( Configuration::AuthDigestMd5 );
+        break;
+    }
+
+    if ( pt && !privacy ) {
+        String s = Configuration::text( Configuration::AllowPlaintextPasswords ).lower();
+        if ( s == "never" )
+            a = false;
+        // XXX add "warn" etc. here
+    }
+
+    return a;
+}
+
+
+/*! Returns a list of space-separated allowed mechanisms.  If \a
+    privacy is false and plain-text passwords disallowed, such
+    mechanisms are not included.
+
+    Each mechanism is prefixed by \a prefix.
+*/
+
+String SaslMechanism::allowedMechanisms( const String & prefix, bool privacy )
+{
+    StringList l;
+    if ( allowed( Anonymous, privacy ) )
+        l.append( "ANONYMOUS" );
+    if ( allowed( CramMD5, privacy ) )
+        l.append( "CRAM-MD5" );
+    if ( allowed( DigestMD5, privacy ) )
+        l.append( "DIGEST-MD5" );
+    if ( allowed( Plain, privacy ) )
+        l.append( "PLAIN" );
+    if ( l.isEmpty() )
+        return "";
+    return prefix + l.join( " " + prefix );
+}
+
+
+/*! Returns this object's SASL type, as set by the constructor. */
+
+SaslMechanism::Type SaslMechanism::type() const
+{
+    return d->type;
 }

@@ -40,7 +40,7 @@ void Login::parse()
 void Login::execute()
 {
     if ( !m ) {
-        if ( !imap()->supports( "login" ) ) {
+        if ( !SaslMechanism::allowed( SaslMechanism::Plain, imap()->hasTls() ) ) {
             error( Bad, "LOGIN is disabled" );
             finish();
             return;

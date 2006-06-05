@@ -20,7 +20,7 @@
 
 
 Plain::Plain( EventHandler *c )
-    : SaslMechanism( c )
+    : SaslMechanism( c, SaslMechanism::Plain )
 {
     setState( AwaitingInitialResponse );
 }

@@ -14,8 +14,15 @@ class SaslMechanism
     : public EventHandler
 {
 public:
-    SaslMechanism( EventHandler * );
     virtual ~SaslMechanism() {}
+    
+    enum Type {
+        Anonymous,
+        Plain,
+        CramMD5,
+        DigestMD5
+    };
+    Type type() const;
 
     enum State {
         AwaitingInitialResponse,
@@ -41,10 +48,14 @@ public:
     void setStoredSecret( const String & );
     virtual void setChallenge( const String & );
 
-    static SaslMechanism * create( const String &, EventHandler * );
+    static SaslMechanism * create( const String &, EventHandler *, bool );
+    static bool allowed( Type, bool );
+    static String allowedMechanisms( const String &, bool );
 
     void log( const String &, Log::Severity = Log::Info );
 
+protected:
+    SaslMechanism( EventHandler *, Type );
 private:
     class SaslData *d;
 };

@@ -53,7 +53,7 @@ public:
 
 
 DigestMD5::DigestMD5( EventHandler *c )
-    : SaslMechanism( c ), d( new DigestData )
+    : SaslMechanism( c, SaslMechanism::DigestMD5 ), d( new DigestData )
 {
     setState( AwaitingInitialResponse );
     d->realm = Configuration::hostname();

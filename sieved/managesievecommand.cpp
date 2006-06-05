@@ -180,7 +180,7 @@ bool ManageSieveCommand::authenticate()
     if ( !d->m ) {
         String t = nextArg().lower();
         if ( d->sieve->supports( t ) )
-            d->m = SaslMechanism::create( t, this );
+            d->m = SaslMechanism::create( t, this, d->sieve->hasTls() );
         if ( !d->m ) {
             d->sieve->no( "SASL mechanism " + t + " not supported" );
             return true;
