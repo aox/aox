@@ -842,3 +842,19 @@ VIEW CREATE seems unpredictable
   Occasionally, the \view flag doesn't appear quickly on the created mailbox.
 
 
+Plugins
+
+  It's not given that we want to accept all mail. If we don't, who
+  makes the decision? A sieve script may, and refuse/reject mail it
+  does not like. And a little bit of pluginnery may. I think we'd do
+  well to support the postfix plugin protocol, so all postfix policy
+  servers can work with aox. (All? Or just half? Doesn't postfix have
+  two types of policy plugins?)
+
+  We may even support site-wide and group-wide sieve scripts and
+  permit a sieve script to invoke the plugin. A sieve statement like
+  this?
+
+     UsePolicyServer localhost 10023 ;
+
+
