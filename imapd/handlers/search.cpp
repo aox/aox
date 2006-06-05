@@ -487,6 +487,9 @@ String Search::date()
     result.append( digits( 1, 2 ) );
     if ( nextChar() != '-' )
         error( Bad, "expected -, saw " + following() );
+    uint day = result.number( 0 );
+    if ( result.length() < 2 )
+        result = "0" + result;
     result.append( "-" );
     step();
     String month = letters( 3, 3 ).lower();
@@ -501,13 +504,20 @@ String Search::date()
         error( Bad, "expected -, saw " + following() );
     result.append( "-" );
     step();
-    result.append( digits( 4, 4 ) );
+    uint year = digits( 4, 4 ).number( 0 );
+    if ( year < 1500 )
+        error( Bad, "Years before 1500 not supported" );
+    result.append( String::fromNumber( year ) );
     if ( q ) {
         if ( nextChar() != '"' )
             error( Bad, "Expected \", saw " + following() );
         else
             step();
     }
+    Date tmp;
+    tmp.setDate( year, month, day, 0, 0, 0, 0 );
+    if ( !tmp.valid() )
+        error( Bad, "Invalid date: " + result );
     return result;
 }
 
