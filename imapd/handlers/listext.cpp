@@ -435,7 +435,7 @@ void Listext::reference()
 {
     String name = astring();
 
-    if ( name.endsWith( "/" ) )
+    if ( name.length() > 1 && name.endsWith( "/" ) )
         name.truncate( name.length()-1 );
 
     if ( name[0] == '/' )
