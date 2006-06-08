@@ -407,7 +407,7 @@ void Listext::sendListResponse( Mailbox * mailbox )
     while ( p && p != home )
         p = p->parent();
     String name = mailbox->name();
-    if ( p )
+    if ( p && p != mailbox )
         name = imapQuoted( name.mid( home->name().length() + 1 ), AString );
 
     String ext = "";
