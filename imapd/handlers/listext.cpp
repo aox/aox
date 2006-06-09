@@ -410,10 +410,8 @@ void Listext::sendListResponse( Mailbox * mailbox )
     String refName = d->reference->name();
     if ( !refName.endsWith( "/" ) )
         refName.append( "/" );
-    if ( name.startsWith( refName ) ) {
-        name = d->referenceName;
-        name.append( mailbox->name().mid( refName.length() ) );
-    }
+    if ( name.startsWith( refName ) )
+        name = d->referenceName + mailbox->name().mid( refName.length() );
     name = imapQuoted( name, AString );
 
     String ext = "";
