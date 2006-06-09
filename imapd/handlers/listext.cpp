@@ -402,12 +402,20 @@ void Listext::sendListResponse( Mailbox * mailbox )
     if ( d->postAddresses )
         postAddress = d->postAddresses->find( mailbox->id() );
 
+    bool sawRef = false;
+
     Mailbox * home = imap()->user()->home();
     Mailbox * p = mailbox;
-    while ( p && p != home )
+
+    while ( p && p != home ) {
         p = p->parent();
+        if ( p == d->reference )
+            sawRef = true;
+    }
+
     String name = mailbox->name();
-    if ( p && p != mailbox )
+
+    if ( sawRef && home == p )
         name = imapQuoted( name.mid( home->name().length() + 1 ), AString );
 
     String ext = "";
