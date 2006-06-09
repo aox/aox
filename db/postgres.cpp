@@ -126,17 +126,17 @@ void Postgres::processQueue()
     while ( q && q->state() != Query::Submitted ) {
         l->shift(); // is this safe? how do we know it won't ditch queries?
         q = l->firstElement();
+        if ( !d->transaction && q && q->transaction() ) {
+            d->transaction = q->transaction();
+            d->transaction->setState( Transaction::Executing );
+            d->transaction->setDatabase( this );
+            l = d->transaction->queries();
+            q = l->firstElement();
+        }
     }
     if ( !q )
         return;
     
-    if ( !d->transaction && q->transaction() ) {
-        d->transaction = q->transaction();
-        d->transaction->setState( Transaction::Executing );
-        d->transaction->setDatabase( this );
-        l = d->transaction->queries();
-    }
-
     if ( !d->error ) {
         l->shift();
         q->setState( Query::Executing );
