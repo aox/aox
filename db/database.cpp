@@ -163,7 +163,8 @@ void Database::runQueue()
     while ( it ) {
         if ( it->state() == Idle ) {
             it->processQueue();
-            return;
+            if ( queries->isEmpty() )
+                return;
         }
         ++it;
     }
