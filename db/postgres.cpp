@@ -137,19 +137,18 @@ void Postgres::processQueue()
     if ( !q )
         return;
     
-    if ( !d->error ) {
-        l->shift();
-        q->setState( Query::Executing );
-        d->queries.append( q );
-        processQuery( q );
-
-        if ( q->inputLines() )
-            d->sendingCopy = true;
-    }
-    else {
+    if ( d->error ) {
         q->setError( "Database handle no longer usable." );
         return;
     }
+
+    l->shift();
+    q->setState( Query::Executing );
+    d->queries.append( q );
+    processQuery( q );
+
+    if ( q->inputLines() )
+        d->sendingCopy = true;
 
     extendTimeout( 5 );
     write();
