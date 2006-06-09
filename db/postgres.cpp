@@ -114,7 +114,6 @@ Postgres::~Postgres()
 void Postgres::processQueue()
 {
     Query *q;
-    int n = 0;
 
     if ( d->sendingCopy )
         return;
@@ -123,39 +122,37 @@ void Postgres::processQueue()
     if ( d->transaction )
         l = d->transaction->queries();
 
-    while ( ( q = l->firstElement() ) != 0 ) {
-        if ( q->state() != Query::Submitted )
-            break;
+    q = l->firstElement();
+    while ( q && q->state() != Query::Submitted ) {
+        l->shift(); // is this safe? how do we know it won't ditch queries?
+        q = l->firstElement();
+    }
+    if ( !q )
+        return;
+    
+    if ( !d->transaction && q->transaction() ) {
+        d->transaction = q->transaction();
+        d->transaction->setState( Transaction::Executing );
+        d->transaction->setDatabase( this );
+        l = d->transaction->queries();
+    }
 
+    if ( !d->error ) {
         l->shift();
         q->setState( Query::Executing );
+        d->queries.append( q );
+        processQuery( q );
 
-        if ( !d->transaction && q->transaction() ) {
-            d->transaction = q->transaction();
-            d->transaction->setState( Transaction::Executing );
-            d->transaction->setDatabase( this );
-            l = d->transaction->queries();
-        }
-
-        if ( !d->error ) {
-            d->queries.append( q );
-            processQuery( q );
-            n++;
-
-            if ( q->inputLines() ) {
-                d->sendingCopy = true;
-                break;
-            }
-        }
-        else {
-            q->setError( "Database handle no longer usable." );
-        }
+        if ( q->inputLines() )
+            d->sendingCopy = true;
+    }
+    else {
+        q->setError( "Database handle no longer usable." );
+        return;
     }
 
-    if ( n > 0 ) {
-        extendTimeout( 5 );
-        write();
-    }
+    extendTimeout( 5 );
+    write();
 }
 
 
