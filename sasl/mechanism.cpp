@@ -218,12 +218,16 @@ void SaslMechanism::execute()
 
     The default implementation is suitable for Anonymous or Plain text
     authentication. It returns true if the stored secret is empty, or
-    matches the client-supplied secret.
+    matches the client-supplied secret, or if the user is trying to
+    log in as anonymous and that's permitted.
 */
 
 void SaslMechanism::verify()
 {
-    if ( storedSecret().isEmpty() || storedSecret() == secret() )
+    if ( Configuration::toggle( Configuration::AuthAnonymous ) &&
+         d->user->login() == "anonymous" )
+        setState( Succeeded );
+    else if ( storedSecret().isEmpty() || storedSecret() == secret() )
         setState( Succeeded );
     else
         setState( Failed );
