@@ -4,9 +4,10 @@
 
 #include "configuration.h"
 #include "allocator.h"
+#include "entropy.h"
 #include "string.h"
 #include "list.h"
-#include "entropy.h"
+#include "user.h"
 #include "md5.h"
 
 #include <time.h>
@@ -256,7 +257,9 @@ void DigestMD5::verify()
         MD5::hash( A2 ).hex()
     );
 
-    if ( R.hex() == d->response ) {
+    if ( R.hex() == d->response ||
+         ( Configuration::toggle( Configuration::AuthAnonymous ) && 
+           user() && user()->login() == "anonymous" ) ) {
         setState( IssuingChallenge );
 
         if ( d->cachedNonce &&

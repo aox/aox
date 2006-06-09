@@ -4,8 +4,9 @@
 
 #include "string.h"
 #include "entropy.h"
-#include "md5.h"
 #include "configuration.h"
+#include "user.h"
+#include "md5.h"
 
 #include <time.h>
 
@@ -63,7 +64,10 @@ void CramMD5::readResponse( const String &s )
 
 void CramMD5::verify()
 {
-    if ( secret() == MD5::HMAC( storedSecret(), challengeSent ).hex() )
+    if ( Configuration::toggle( Configuration::AuthAnonymous ) &&
+         user() && user()->login() == "anonymous" )
+        setState( Succeeded );
+    else if ( secret() == MD5::HMAC( storedSecret(), challengeSent ).hex() )
         setState( Succeeded );
     else
         setState( Failed );
