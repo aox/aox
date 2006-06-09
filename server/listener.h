@@ -92,15 +92,20 @@ public:
                 ::log( "Cannot listen for " + svc + " on port " + fn( p ) +
                        " (tried IPv4 and IPv6)",
                        Log::Disaster );
+            else
+                ::log( "Started: " + l->description() );
         }
         else {
             Endpoint e( address, port );
             l = new Listener< T >( e, svc, i );
-            if ( !e.valid() || l->state() != Listening )
+            if ( !e.valid() || l->state() != Listening ) {
+                delete l;
                 ::log( "Cannot listen for " + svc + " on " + e.address(),
                        Log::Disaster );
-            else
+            }
+            else {
                 ::log( "Started: " + l->description() );
+            }
         }
     }
 
