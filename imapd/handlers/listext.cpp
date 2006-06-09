@@ -33,6 +33,7 @@ public:
     Query * postAddressQuery;
     Map<Address> * postAddresses;
     Mailbox * reference;
+    String referenceName;
     StringList patterns;
 
     bool extended;
@@ -405,21 +406,15 @@ void Listext::sendListResponse( Mailbox * mailbox )
     if ( d->postAddresses )
         postAddress = d->postAddresses->find( mailbox->id() );
 
-    bool sawRef = false;
-
-    Mailbox * home = imap()->user()->home();
-    Mailbox * p = mailbox;
-
-    while ( p && p != home ) {
-        p = p->parent();
-        if ( p == d->reference )
-            sawRef = true;
-    }
-
     String name = mailbox->name();
-
-    if ( sawRef && home == p )
-        name = imapQuoted( name.mid( home->name().length() + 1 ), AString );
+    String refName = d->reference->name();
+    if ( !refName.endsWith( "/" ) )
+        refName.append( "/" );
+    if ( name.startsWith( refName ) ) {
+        name = d->referenceName;
+        name.append( mailbox->name().mid( refName.length() ) );
+    }
+    name = imapQuoted( name, AString );
 
     String ext = "";
     if ( childSubscribed || d->returnPostAddress ) {
@@ -445,6 +440,9 @@ void Listext::sendListResponse( Mailbox * mailbox )
 void Listext::reference()
 {
     String name = astring();
+    d->referenceName = name;
+    if ( !d->referenceName.isEmpty() && !d->referenceName.endsWith( "/" ) )
+        d->referenceName.append( "/" );
 
     if ( name.length() > 1 && name.endsWith( "/" ) )
         name.truncate( name.length()-1 );
