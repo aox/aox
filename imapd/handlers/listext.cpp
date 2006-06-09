@@ -302,7 +302,7 @@ void Listext::list( Mailbox * m, const String & p )
             s++;
     }
 
-    switch( match( p, 0, m->name(), s ) ) {
+    switch( match( p, 0, m->name().lower(), s ) ) {
     case 0:
         break;
     case 1:
@@ -480,5 +480,5 @@ String Listext::listMailbox()
     }
     if ( result.isEmpty() )
         error( Bad, "list-mailbox expected, saw: " + following() );
-    return result;
+    return result.lower();
 }
