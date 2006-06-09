@@ -827,7 +827,10 @@ Message * Message::wrapUnparsableMessage( const String & message,
     HeaderField * hf = 0;
     if ( !subject.isEmpty() )
         hf = HeaderField::create( "Subject", subject );
-    if ( hf && hf->valid() )
+    uint n = 0;
+    while ( n && subject[n] < 127 && subject[n] >= 32 )
+        n++;
+    if ( hf && hf->valid() && n >= subject.length() )
         subject = "Unparsable message: " + hf->value();
     else
         subject = defaultSubject;
@@ -877,7 +880,7 @@ Message * Message::wrapUnparsableMessage( const String & message,
                    "The complete message as received is appended." );
 
     // but which charset does the report use?
-    uint n = 0;
+    n = 0;
     while ( n < report.length() && report[n] < 128 )
         n++;
     if ( n < report.length() )
