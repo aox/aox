@@ -295,8 +295,11 @@ void Listext::list( Mailbox * m, const String & p )
     bool matchChildren = false;
 
     uint s = 0;
-    if ( p[0] != '/' && p[0] != '*' )
-        s = d->reference->name().length() + 1;
+    if ( p[0] != '/' && p[0] != '*' ) {
+        s = d->reference->name().length();
+        if ( !d->reference->name().endsWith( "/" ) )
+            s++;
+    }
 
     switch( match( p, 0, m->name(), s ) ) {
     case 0:
