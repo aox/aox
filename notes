@@ -83,6 +83,22 @@ Memory use for common operations
   again... just a bunch of checks. Ignore output.
 
 
+Mutt mailbox selection speed
+
+  Is better than it was, but we still don't seem to push the responses
+  out as quickly as we could. must look at why.
+
+
+COPY is slow
+
+  Inject 11k messages, copy with thunderbird, watch why it fails.
+
+
+Opera often can't expunge
+
+  Trace it once or twice, guess what's wrong.
+
+
 ocd needs work (mike@waspfactory.org)
 
   1. The code (along with user/mailbox) needs cleaning up.
