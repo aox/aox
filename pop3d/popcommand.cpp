@@ -228,10 +228,14 @@ bool PopCommand::auth()
 
         String r = nextArg();
         if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
-            if ( !r.isEmpty() )
-                d->m->readResponse( d->r->de64() );
-            else
+            if ( !r.isEmpty() ) {
+                d->m->readResponse( r.de64() );
+                if ( !d->m->done() )
+                    d->m->execute();
+            }
+            else {
                 d->m->setState( SaslMechanism::IssuingChallenge );
+            }
         }
     }
 

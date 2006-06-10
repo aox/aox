@@ -74,10 +74,14 @@ void Authenticate::execute()
 
         // Does it accept a SASL initial response? Do we have one?
         if ( m->state() == SaslMechanism::AwaitingInitialResponse ) {
-            if ( r )
+            if ( r ) {
                 m->readResponse( r->de64() );
-            else
+                if ( !m->done() )
+                    m->execute();
+            }
+            else {
                 m->setState( SaslMechanism::IssuingChallenge );
+            }
             r = 0;
         }
     }
@@ -110,8 +114,8 @@ void Authenticate::execute()
                 if ( !m->done() )
                     m->execute();
             }
-        } 
-   }
+        }
+    }
 
     if ( m->state() == SaslMechanism::Authenticating )
         return;
