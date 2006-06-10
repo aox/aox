@@ -828,7 +828,7 @@ Message * Message::wrapUnparsableMessage( const String & message,
     if ( !subject.isEmpty() )
         hf = HeaderField::create( "Subject", subject );
     uint n = 0;
-    while ( n && subject[n] < 127 && subject[n] >= 32 )
+    while ( n < subject.length() && subject[n] < 127 && subject[n] >= 32 )
         n++;
     if ( hf && hf->valid() && n >= subject.length() )
         subject = "Unparsable message: " + hf->value();
