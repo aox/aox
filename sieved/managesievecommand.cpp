@@ -188,10 +188,14 @@ bool ManageSieveCommand::authenticate()
 
         String r = nextArg();
         if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
-            if ( !r.isEmpty() )
+            if ( !r.isEmpty() ) {
                 d->m->readResponse( r.de64() );
-            else
+                if ( !d->m->done() )
+                    d->m->execute();
+            }
+            else {
                 d->m->setState( SaslMechanism::IssuingChallenge );
+            }
         }
     }
 
@@ -235,6 +239,7 @@ bool ManageSieveCommand::authenticate()
     if ( d->m->state() == SaslMechanism::Succeeded ) {
         d->sieve->setReader( 0 );
         d->sieve->setUser( d->m->user() );
+        d->sieve->ok( "" );
     }
     else if ( d->m->state() == SaslMechanism::Terminated ) {
         d->sieve->no( "Authentication terminated" );
@@ -453,5 +458,5 @@ String ManageSieveCommand::nextArg()
     else if ( s.isQuoted() ) {
         return s.unquoted();
     }
-    return "";
+    return s;
 }
