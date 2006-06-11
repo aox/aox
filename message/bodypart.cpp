@@ -339,12 +339,8 @@ void Bodypart::parseMultipart( uint i, uint end,
                     Header * h = Message::parseHeader( start, j,
                                                        rfc2822,
                                                        Header::Mime );
-                    if ( h->contentType() )
-                        ; // if supplied, it's good.
-                    else if ( digest )
-                        h->add( "Content-Type", "message/rfc822" );
-                    else
-                        h->add( "Content-Type", "text/plain" );
+                    if ( digest )
+                        h->setDefaultType( Header::MessageRfc822 );
 
                     // Strip the [CR]LF that belongs to the boundary.
                     if ( rfc2822[i-1] == 10 ) {
@@ -357,7 +353,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                                                    error );
                     bp->d->number = pn;
                     children->append( bp );
-                    bp->setParent( parent ); // A1
+                    bp->setParent( parent );
                     pn++;
                 }
                 last = l;
@@ -482,12 +478,23 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         body = rfc2822.mid( start, end-start ).crlf().decode( e );
 
     ContentType * ct = h->contentType();
-    if ( !ct || ct->type() == "text" ) {
+    if ( !ct ) {
+        switch ( h->defaultType() ) {
+        case Header::TextPlain:
+            h->add( "Content-Type", "text/plain" );
+            break;
+        case Header::MessageRfc822:
+            h->add( "Content-Type", "message/rfc822" );
+            break;
+        }
+        ct = h->contentType();
+    }
+    if ( ct->type() == "text" ) {
         bool specified = false;
         bool unknown = false;
         Codec * c = 0;
 
-        if ( ct && ct->type() == "text" && ct->subtype() == "html" ) {
+        if ( ct->type() == "text" && ct->subtype() == "html" ) {
             // Some user-agents add a <meta http-equiv="content-type">
             // instead of the Content-Type field. We scan for that, to
             // work around certain observed breakage.
@@ -600,16 +607,10 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 error.append( ": " + c->error() );
         }
 
-        if ( c->name().lower() != "us-ascii" ) {
-            if ( !ct ) {
-                h->add( "Content-Type", "text/plain" );
-                ct = h->contentType();
-            }
+        if ( c->name().lower() != "us-ascii" )
             ct->addParameter( "charset", c->name().lower() );
-        }
-        else if ( ct ) {
+        else if ( ct )
             ct->removeParameter( "charset" );
-        }
 
         body = c->fromUnicode( bp->d->text );
         bool qp = body.needsQP();
@@ -627,7 +628,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             h->add( "Content-Transfer-Encoding", "quoted-printable" );
             cte = h->contentTransferEncoding();
         }
-        h->simplify();
     }
     else {
         bp->d->data = body;
@@ -640,7 +640,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 h->add( "Content-Transfer-Encoding", "base64" );
                 cte = h->contentTransferEncoding();
             }
-            h->simplify();
         }
     }
 
@@ -651,9 +650,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     // CRLF. that seems rather suboptimal.
     bp->d->numEncodedBytes = body.length();
 
-    if ( bp->d->hasText ||
-         ( ct && ct->type() == "message" && ct->subtype() == "rfc822" ) )
-    {
+    if ( bp->d->hasText || ( ct->type() == "message" && ct->subtype() == "rfc822" ) ) {
         uint n = 0;
         uint i = 0;
         uint l = body.length();
@@ -667,10 +664,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bp->setNumEncodedLines( n );
     }
 
-    if ( !ct ) {
-        ;
-    }
-    else if ( ct->type() == "multipart" ) {
+    if ( ct->type() == "multipart" ) {
         parseMultipart( start, end, rfc2822,
                         ct->parameter( "boundary" ),
                         ct->subtype() == "digest",
@@ -692,6 +686,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         if ( !m->error().isEmpty() )
             error = "In message/rfc822 part: " + m->error();
     }
+
+    h->simplify();
 
     return bp;
 }

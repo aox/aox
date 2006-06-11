@@ -54,6 +54,10 @@ public:
 
     String asText() const;
 
+    enum DefaultType { TextPlain, MessageRfc822 };
+    void setDefaultType( DefaultType );
+    DefaultType defaultType() const;
+
 private:
     class HeaderData * d;
 

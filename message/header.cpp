@@ -22,10 +22,12 @@ class HeaderData
 public:
     HeaderData()
         : mode( Header::Rfc2822 ),
+          defaultType( Header::TextPlain ),
           verified( false )
     {}
 
     Header::Mode mode;
+    Header::DefaultType defaultType;
 
     bool verified;
     String error;
@@ -502,12 +504,23 @@ void Header::simplify()
 
     ContentType *ct = contentType();
     if ( ct ) {
-        if ( ct->type() == "text" && ct->subtype() == "plain" &&
-             ct->parameters()->isEmpty() &&
-             cte == 0 && cdi == 0 && cde == 0 )
-        {
-            removeField( HeaderField::ContentType );
-            ct = 0;
+        if ( ct->parameters()->isEmpty() && cte == 0 && cdi == 0 && cde == 0 ) {
+            bool remove = false;
+            switch( d->defaultType ) {
+            case TextPlain:
+                if ( ct->type() == "text" && ct->subtype() == "plain" )
+                    remove = true;
+                break;
+            case MessageRfc822:
+                if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
+                    remove = true;
+                }
+                break;
+            }
+            if ( remove ) {
+                removeField( HeaderField::ContentType );
+                ct = 0;
+            }
         }
     }
     
@@ -517,8 +530,16 @@ void Header::simplify()
         removeField( HeaderField::MimeVersion );
     }
     else {
-        if ( ct == 0 )
-            add( "Content-Type", "text/plain" );
+        if ( ct == 0 ) {
+            switch( d->defaultType ) {
+            case TextPlain:
+                add( "Content-Type", "text/plain" );
+                break;
+            case MessageRfc822:
+                add( "Content-Type", "message/rfc822" );
+                break;
+            }
+        }
         if ( mode() == Rfc2822 && !field( HeaderField::MimeVersion ) )
             add( "Mime-Version", "1.0" );
     }
@@ -788,4 +809,24 @@ void Header::fix8BitFields( class Codec * c )
             }
         }
     }
+}
+
+
+/*! Notifies this Header that if no ContentType is set, its default
+    type is \a t. The initial value is TextPlain.
+*/
+
+void Header::setDefaultType( DefaultType t )
+{
+    d->defaultType = t;
+}
+
+
+/*! Returns whatever was set using setDefaultType(), or TextPlain if
+    setDefaultType() hasn't been called.
+*/
+
+Header::DefaultType Header::defaultType() const
+{
+    return d->defaultType;
 }
