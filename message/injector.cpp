@@ -78,6 +78,7 @@ public:
     InjectorData()
         : step( 0 ), failed( false ),
           owner( 0 ), message( 0 ), transaction( 0 ),
+          beforeTransaction( 0 ),
           mailboxes( 0 ), bodyparts( 0 ),
           uidHelper( 0 ), bidHelper( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
@@ -90,6 +91,7 @@ public:
     EventHandler *owner;
     const Message *message;
     Transaction *transaction;
+    List<Query> * beforeTransaction;
 
     // The *idHelpers fill in the IDs corresponding to each Object in
     // these lists.
@@ -304,17 +306,31 @@ void Injector::execute()
 
         d->transaction = new Transaction( this );
 
-        // The bodyparts inserts happen outside d->transaction.
+        // The bodyparts inserts happen outside d->transaction, the
+        // concomitant selects go inside.
         insertBodyparts();
+
+        // These three could move down to the next step. Should they?
         selectUids();
         buildAddressLinks();
         buildFieldLinks();
-
-        d->transaction->execute();
         d->step = 1;
     }
 
-    if ( d->step == 1 && !d->transaction->failed() ) {
+    if ( d->step == 1 ) {
+        // Wait for all queries that have to be run before the
+        // transaction to complete, then start the transaction.
+        List<Query>::Iterator i( d->beforeTransaction );
+        while ( i && !i->done() )
+            ++i;
+        if ( i )
+            return;
+        
+        d->transaction->execute();
+        d->step = 2;
+    }
+
+    if ( d->step == 2 && !d->transaction->failed() ) {
         // Once we have UIDs for each Mailbox, we can insert rows into
         // messages.
 
@@ -324,21 +340,13 @@ void Injector::execute()
         insertMessages();
 
         d->transaction->execute();
-        d->step = 2;
+        d->step = 3;
     }
 
-    if ( d->step == 2 && !d->transaction->failed() ) {
+    if ( d->step == 3 && !d->transaction->failed() ) {
         // We expect buildFieldLinks() to have completed immediately.
-        // Once insertBodyparts() is completed, we can start adding to
-        // the part_numbers, header_fields, and date_fields tables.
-
-        // Since the bodyparts inserts are outside the transaction, we
-        // have to take particular care about handling errors there.
-        if ( d->bidHelper->failed ) {
-            d->transaction->rollback();
-            d->failed = true;
-            d->step = 5;
-        }
+        // Once we have the bodypart IDs, we can start adding to the
+        // part_numbers, header_fields, and date_fields tables.
 
         if ( !d->fieldLookup->done() || !d->bidHelper->done() )
             return;
@@ -348,10 +356,10 @@ void Injector::execute()
         linkDates();
 
         d->transaction->execute();
-        d->step = 3;
+        d->step = 4;
     }
 
-    if ( d->step == 3 && !d->transaction->failed() ) {
+    if ( d->step == 4 && !d->transaction->failed() ) {
         // Fill in address_fields once the address lookup is complete.
         // (We could have done this without waiting for the bodyparts
         // to be inserted, but it didn't seem worthwhile.)
@@ -360,17 +368,17 @@ void Injector::execute()
             return;
 
         linkAddresses();
-        d->step = 4;
-    }
-
-    if ( d->step == 4 || d->transaction->failed() ) {
-        // Now we just wait for everything to finish.
-        if ( d->step < 5 )
-            d->transaction->commit();
         d->step = 5;
     }
 
-    if ( d->step == 5 ) {
+    if ( d->step == 5 || d->transaction->failed() ) {
+        // Now we just wait for everything to finish.
+        if ( d->step < 6 )
+            d->transaction->commit();
+        d->step = 6;
+    }
+
+    if ( d->step == 6 ) {
         if ( !d->transaction->done() )
             return;
         if ( !d->failed )
@@ -389,14 +397,15 @@ void Injector::finish()
     // XXX: If we fail early in the transaction, we'll continue to
     // be notified of individual query failures. We don't want to
     // pass them on, because d->owner would have killed itself.
-    if ( d->owner ) {
-        if ( d->failed )
-            log( "Injection failed: " + error() );
-        else
-            log( "Injection succeeded" );
-        d->owner->execute();
-        d->owner = 0;
-    }
+    if ( !d->owner )
+        return;
+
+    if ( d->failed )
+        log( "Injection failed: " + error() );
+    else
+        log( "Injection succeeded" );
+    d->owner->execute();
+    d->owner = 0;
 }
 
 
@@ -572,7 +581,7 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
 
 void Injector::insertBodyparts()
 {
-    List< Query > *queries = new List< Query >;
+    d->beforeTransaction = new List<Query>;
     List< Query > *selects = new List< Query >;
     List< ObjectId > *insertedParts = new List< ObjectId >;
     d->bidHelper = new IdHelper( insertedParts, selects, this );
@@ -606,14 +615,12 @@ void Injector::insertBodyparts()
         }
 
         if ( text || data ) {
-            insertBodypart( b, data, text, queries, selects );
+            insertBodypart( b, data, text, selects );
             insertedParts->append( bi );
         }
 
         ++bi;
     }
-
-    Database::submit( queries );
 }
 
 
@@ -630,8 +637,7 @@ void Injector::insertBodyparts()
 
 void Injector::insertBodypart( Bodypart *b,
                                bool storeData, bool storeText,
-                               List< Query > *queries,
-                               List< Query > *selects )
+                               List< Query > * selects )
 {
     Utf8Codec u;
     Query *i, *s;
@@ -645,7 +651,7 @@ void Injector::insertBodypart( Bodypart *b,
 
     // This insert may fail if a bodypart with this hash already
     // exists. We don't care, as long as the select below works.
-    i = new Query( *intoBodyparts, d->bidHelper );
+    i = new Query( *intoBodyparts, this );
     i->bind( 1, hash );
     i->bind( 2, b->numBytes() );
 
@@ -668,16 +674,13 @@ void Injector::insertBodypart( Bodypart *b,
         i->bindNull( 4 );
 
     i->allowFailure();
-    queries->append( i );
+    d->beforeTransaction->append( i );
+    i->execute();
 
-    // XXX: The following query MUST be executed after the insert above.
-    // But since they aren't inside the transaction, we can't be sure it
-    // will be. Nor can we be sure that the row we just inserted wasn't
-    // deleted along with bodyparts orphaned by EXPUNGE.
     s = new Query( *idBodypart, d->bidHelper );
     s->bind( 1, hash );
-    queries->append( s );
     selects->append( s );
+    d->transaction->enqueue( s );
 }
 
 
