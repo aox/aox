@@ -357,7 +357,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                                                    error );
                     bp->d->number = pn;
                     children->append( bp );
-                    bp->setParent( parent );
+                    bp->setParent( parent ); // A1
                     pn++;
                 }
                 last = l;
@@ -484,6 +484,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     ContentType * ct = h->contentType();
     if ( !ct || ct->type() == "text" ) {
         bool specified = false;
+        bool unknown = false;
         Codec * c = 0;
 
         if ( ct && ct->type() == "text" && ct->subtype() == "html" ) {
@@ -536,6 +537,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             if ( !csn.isEmpty() )
                 specified = true;
             c = Codec::byName( csn );
+            if ( !c )
+                unknown = true;
             if ( c && c->name().lower() == "us-ascii" ) {
                 // Some MTAs appear to say this in case there is no
                 // Content-Type field - without checking whether the
@@ -582,14 +585,18 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         }
 
         if ( !c->valid() && error.isEmpty() ) {
-            String cs;
-            if ( ct && specified )
-                cs = ct->parameter( "charset" );
-            if ( cs.isEmpty() )
-                cs = c->name();
-            error = "Could not convert body to Unicode from " + cs;
-            if ( !c->error().isEmpty() &&
-                 ct && ct->parameter( "charset" ).lower() == c->name().lower() )
+            error = "Could not convert body to Unicode";
+            if ( specified ) {
+                String cs;
+                if ( ct )
+                    cs = ct->parameter( "charset" );
+                if ( cs.isEmpty() )
+                    cs = c->name();
+                error.append( " from " + cs );
+            }
+            if ( specified && unknown )
+                error.append( ": Character set not implemented" );
+            else if ( !c->error().isEmpty() )
                 error.append( ": " + c->error() );
         }
 
