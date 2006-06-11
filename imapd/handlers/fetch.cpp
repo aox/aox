@@ -414,6 +414,12 @@ void Fetch::execute()
         }
     }
 
+    // in the case of fetch, we sometimes have thousands of responses,
+    // so it's important to push the first responses to the client as
+    // quickly as possible. if that means that two concurrent fetches
+    // can send interleaved reponses - oh well. it's legal anyway.
+    imap()->write();
+
     d->state = 2;
 
     if ( !d->set.isEmpty() )
