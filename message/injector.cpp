@@ -631,8 +631,8 @@ void Injector::insertBodyparts()
     is stored in the data column, and a searchable representation is
     stored in the text column.
 
-    It appends any queries it creates to \a queries, and appends the
-    final id-select to \a selects.
+    It appends any queries it creates to d->beforeTransaction, and
+    appends the id-select to \a selects.
 */
 
 void Injector::insertBodypart( Bodypart *b,
