@@ -388,11 +388,10 @@ Look into supporting the MySQL protocol after 1.0
 
 Orphaned bodyparts should be cleaned up somehow.
 
-  'aox vacuum -b' now does this, but it requires a full-table lock on
-  mailboxes in order to not zap bodyparts that the injector hasn't
-  linked to part_numbers yet (cf. injector.cpp:640).
-
-  Unfortunate, but how can it be done better without savepoints?
+  Perhaps the best way is to insert a time_t on bodyparts, and not let
+  'aox vacuum -b' delete any bodypart less than x seconds old, where x
+  is larger than the legal time limit on an LMTP transaction. 86400
+  sounds good.
 
 
 We need mUTF-7 support.
