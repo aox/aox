@@ -388,10 +388,31 @@ Look into supporting the MySQL protocol after 1.0
 
 Orphaned bodyparts should be cleaned up somehow.
 
-  Perhaps the best way is to insert a time_t on bodyparts, and not let
-  'aox vacuum -b' delete any bodypart less than x seconds old, where x
-  is larger than the legal time limit on an LMTP transaction. 86400
-  sounds good.
+  We need a bool on bodyparts, saying whether it's okay to delete this
+  bodypart or not: "perhaps" and "no".
+
+  The injector sets it to "no way" when it does 'insert into
+  bodyparts'. vacuum -b works in 2-3 steps. First it deletes the
+  already-marked and unused bodyparts:
+
+    delete from bodyparts where id in (
+      select id from bodyparts b left join part_numbers p on (b.id=p.bodypart)
+        where bodypart is null and deletable='t');
+
+  If the delete fails, vacuum -b responds by cleaning up so it'll work
+  next time:
+
+    update bodyparts set deletable='f' where id in (
+      select id from bodyparts b join part_numbers p on (b.id=p.bodypart)
+        where deletable='t');
+
+  Finally it readies the database for the next crontab run:
+
+    update bodyparts set deletable='t' where id in (
+      select id from bodyparts b left join part_numbers p on (b.id=p.bodypart)
+        where bodypart is null and deletable='f');
+
+  No mailbox lock required.
 
 
 We need mUTF-7 support.
