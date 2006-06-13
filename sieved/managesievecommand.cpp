@@ -450,13 +450,9 @@ String ManageSieveCommand::nextArg()
     if ( d->args->isEmpty() )
         return "";
     String s = *d->args->take( d->args->first() );
-    if ( s.startsWith( "{" ) ) {
-        // XXX so what do we do here?
-        while ( true )
-            ; // XXX indeed
-    }
-    else if ( s.isQuoted() ) {
+    if ( s.startsWith( "{" ) )
+        return *d->args->take( d->args->first() );
+    else if ( s.isQuoted() )
         return s.unquoted();
-    }
-    return s;
+    return "";
 }

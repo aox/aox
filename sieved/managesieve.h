@@ -38,6 +38,8 @@ public:
 
 private:
     class ManageSieveData *d;
+
+    void addCommand();
 };
 
 

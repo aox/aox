@@ -21,7 +21,8 @@ public:
     ManageSieveData()
         : state( ManageSieve::Unauthorised ), user( 0 ),
           commands( new List< ManageSieveCommand > ), reader( 0 ),
-          reserved( false )
+          reserved( false ), readingLiteral( false ),
+          literalSize( 0 ), args( 0 )
     {}
 
     ManageSieve::State state;
@@ -31,6 +32,11 @@ public:
     List< ManageSieveCommand > * commands;
     ManageSieveCommand * reader;
     bool reserved;
+
+    bool readingLiteral;
+    uint literalSize;
+
+    StringList * args;
 };
 
 
@@ -110,11 +116,22 @@ void ManageSieve::parse()
     Buffer *b = readBuffer();
 
     while ( b->size() > 0 ) {
-        if ( !d->reader ) {
+        if ( d->reader ) {
+            d->reader->read();
+        }
+        else if ( d->readingLiteral ) {
+            if ( b->size() < d->literalSize )
+                return;
+
+            d->args->append( b->string( d->literalSize ) );
+            b->remove( d->literalSize );
+            d->readingLiteral = false;
+        }
+        else {
             if ( d->reserved )
                 break;
 
-            String *s = b->removeLine( 255 );
+            String *s = b->removeLine( 2048 );
 
             if ( !s ) {
                 log( "Connection closed due to overlong line (" +
@@ -124,73 +141,104 @@ void ManageSieve::parse()
                 return;
             }
 
-            bool unknown = false;
+            StringList * l = StringList::split( ' ', *s );
 
-            StringList * args = StringList::split( ' ', *s );
-            String cmd = args->take( args->first() )->lower();
+            if ( !d->args )
+                d->args = new StringList;
 
-            if ( cmd == "logout" && args->isEmpty() ) {
-                newCommand( d->commands, this, ManageSieveCommand::Logout );
-            }
-            else if ( cmd == "capability" && args->isEmpty() ) {
-                newCommand( d->commands, this, ManageSieveCommand::Capability );
-            }
-            else if ( d->state == Unauthorised ) {
-                if ( cmd == "starttls" ) {
-                    if ( hasTls() )
-                        no( "Nested STARTTLS" );
-                    else
-                        newCommand( d->commands, this, ManageSieveCommand::StartTls );
-                }
-                else if ( cmd == "authenticate" ) {
-                    newCommand( d->commands, this, ManageSieveCommand::Authenticate,
-                                args );
-                }
-                else {
-                    unknown = true;
-                }
-            }
-            else if ( d->state == Authorised ) {
-                if ( cmd == "havespace" && args->count() == 2 ) {
-                    newCommand( d->commands, this, ManageSieveCommand::HaveSpace,
-                                args );
-                }
-                else if ( cmd == "putscript" && args->count() == 2 ) {
-                    newCommand( d->commands, this, ManageSieveCommand::PutScript,
-                                args );
-                }
-                else if ( cmd == "setactive" && args->count() == 1 ) {
-                    newCommand( d->commands, this, ManageSieveCommand::SetActive,
-                                args );
-                }
-                else if ( cmd == "listscripts" && args->isEmpty() ) {
-                    newCommand( d->commands, this, ManageSieveCommand::ListScripts );
-                }
-                else if ( cmd == "getscript" && args->count() == 1 ) {
-                    newCommand( d->commands, this, ManageSieveCommand::GetScript,
-                                args );
-                }
-                else if ( cmd == "deletescript" && args->count() == 1 ) {
-                    newCommand( d->commands, this, ManageSieveCommand::DeleteScript,
-                                args );
-                }
-                else {
-                    unknown = true;
-                }
-            }
-            else {
-                unknown = true;
+            StringList::Iterator it( l );
+            while ( it ) {
+                d->args->append( it );
+                ++it;
             }
 
-            if ( unknown )
-                no( "Unknown command" );
-        }
-        else {
-            d->reader->read();
+            String lit = *d->args->last();
+
+            if ( lit[0] == '{' && lit.endsWith( "+}" ) ) {
+                bool ok;
+                d->literalSize = lit.mid( 1, lit.length()-3 ).number( &ok );
+                if ( ok )
+                    d->readingLiteral = true;
+                else
+                    no( "\"Bad literal\"" );
+            }
+
+            if ( !d->readingLiteral )
+                addCommand();
         }
 
         runCommands();
     }
+}
+
+
+/*! Creates a newCommand() based on the arguments received from the
+    client.
+*/
+
+void ManageSieve::addCommand()
+{
+    bool unknown = false;
+
+    String cmd = d->args->take( d->args->first() )->lower();
+
+    if ( cmd == "logout" && d->args->isEmpty() ) {
+        newCommand( d->commands, this, ManageSieveCommand::Logout );
+    }
+    else if ( cmd == "capability" && d->args->isEmpty() ) {
+        newCommand( d->commands, this, ManageSieveCommand::Capability );
+    }
+    else if ( d->state == Unauthorised ) {
+        if ( cmd == "starttls" ) {
+            if ( hasTls() )
+                no( "\"Nested STARTTLS\"" );
+            else
+                newCommand( d->commands, this,
+                            ManageSieveCommand::StartTls );
+        }
+        else if ( cmd == "authenticate" ) {
+            newCommand( d->commands, this,
+                        ManageSieveCommand::Authenticate, d->args );
+        }
+        else {
+            unknown = true;
+        }
+    }
+    else if ( d->state == Authorised ) {
+        if ( cmd == "havespace" && d->args->count() == 2 ) {
+            newCommand( d->commands, this,
+                        ManageSieveCommand::HaveSpace, d->args );
+        }
+        else if ( cmd == "putscript" && d->args->count() == 2 ) {
+            newCommand( d->commands, this,
+                        ManageSieveCommand::PutScript, d->args );
+        }
+        else if ( cmd == "setactive" && d->args->count() == 1 ) {
+            newCommand( d->commands, this,
+                        ManageSieveCommand::SetActive, d->args );
+        }
+        else if ( cmd == "listscripts" && d->args->isEmpty() ) {
+            newCommand( d->commands, this,
+                        ManageSieveCommand::ListScripts );
+        }
+        else if ( cmd == "getscript" && d->args->count() == 1 ) {
+            newCommand( d->commands, this,
+                        ManageSieveCommand::GetScript, d->args );
+        }
+        else if ( cmd == "deletescript" && d->args->count() == 1 ) {
+            newCommand( d->commands, this,
+                        ManageSieveCommand::DeleteScript, d->args );
+        }
+        else {
+            unknown = true;
+        }
+    }
+    else {
+        unknown = true;
+    }
+
+    if ( unknown )
+        no( "\"Unknown command\"" );
 }
 
 
