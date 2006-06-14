@@ -156,8 +156,7 @@ void Database::disconnect()
 
 void Database::runQueue()
 {
-    // First, we look for an existing handle that is free to process
-    // queries.
+    // First, we give each idle handle a Query to process
 
     Query * first = queries->firstElement();
 
@@ -171,8 +170,9 @@ void Database::runQueue()
         ++it;
     }
 
-    // If we don't have one, we can either assume that one of the busy
-    // ones will become free and pick up any queued queries, or we can
+    // If we didn't manage to process even one query, or there aren't
+    // any handles now, we can either assume that one of the busy ones
+    // will become free and pick up any queued queries, or we can
     // create a new one.
 
     uint max = Configuration::scalar( Configuration::DbMaxHandles );
@@ -181,8 +181,8 @@ void Database::runQueue()
     if ( ( handles->count() == 0 ||
            queries->firstElement() == first ||
            time( 0 ) - lastCreated >= interval ) &&
-           ( server().protocol() != Endpoint::Unix ||
-             server().address().startsWith( File::root() ) ) )
+         ( server().protocol() != Endpoint::Unix ||
+           server().address().startsWith( File::root() ) ) )
     {
         if ( handles->count() >= max ) {
             if ( lastExecuted >= time( 0 ) - interval )
