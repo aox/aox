@@ -159,6 +159,8 @@ void Database::runQueue()
     // First, we look for an existing handle that is free to process
     // queries.
 
+    Query * first = queries->firstElement();
+
     List< Database >::Iterator it( handles );
     while ( it ) {
         if ( it->state() == Idle ) {
@@ -177,6 +179,7 @@ void Database::runQueue()
     int interval = Configuration::scalar( Configuration::DbHandleInterval );
 
     if ( ( handles->count() == 0 ||
+           queries->firstElement() == first ||
            time( 0 ) - lastCreated >= interval ) &&
            ( server().protocol() != Endpoint::Unix ||
              server().address().startsWith( File::root() ) ) )
