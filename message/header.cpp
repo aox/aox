@@ -581,7 +581,7 @@ void Header::repair()
         return;
 
     // We remove duplicates of any field that may occur only once.
-    // (Duplication has been observed for Date/Subject/M-V/C-T-E.)
+    // (Duplication has been observed for Date/Subject/M-V/C-T-E/C-T.)
 
     int occurrences[ (int)HeaderField::Other ];
     int i = 0;
@@ -724,6 +724,41 @@ void Header::repair()
             a = addresses( HeaderField::Sender );
         if ( a && a->first() && a->first()->type() == Address::Normal )
             add( "From", a->first()->toString() );
+    }
+    
+    // If there are several content-type fields, and they agree except
+    // that one has options and the others not, remove the option-less
+    // ones.
+
+    if ( occurrences[(int)HeaderField::ContentType] > 1 ) {
+        ContentType * ct = contentType();
+        ContentType * other = ct;
+        ContentType * good = 0;
+        uint n = 0;
+        bool bad = false;
+        while ( other && !bad ) {
+            if ( other->parameter( "charset" ).lower() == "us-ascii" )
+                other->removeParameter( "charset" ); // XXX: wrong place for this line
+            if ( other->type() != ct->type() ||
+                 other->subtype() != ct->subtype() ) {
+                bad = true;
+            }
+            else if ( !other->parameters()->isEmpty() ) {
+                if ( good )
+                    bad = true;
+                good = other;
+            }
+            other = (ContentType *)field( HeaderField::ContentType, ++n );
+        }
+        if ( good && !bad ) {
+            List<HeaderField>::Iterator it( d->fields );
+            while ( it ) {
+                if ( it->type() == HeaderField::ContentType && it != good )
+                    d->fields.take( it );
+                else
+                    ++it;
+            }
+        }
     }
 
     d->verified = false;
