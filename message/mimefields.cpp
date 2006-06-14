@@ -40,7 +40,8 @@ MimeField::MimeField( HeaderField::Type t )
 }
 
 
-/*! Returns a pointer to a list of the parameters for this MimeField. */
+/*! Returns a pointer to a list of the parameters for this MimeField.
+    This is never a null pointer. */
 
 StringList *MimeField::parameters() const
 {
