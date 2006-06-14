@@ -41,7 +41,7 @@ public:
 
 
 static void newCommand( List< ManageSieveCommand > *, ManageSieve *,
-                        ManageSieveCommand::Command, StringList * = 0 );
+                        ManageSieveCommand::Command, StringList * = 0, int = -1 );
 
 
 /*! \class ManageSieve sieve.h
@@ -160,7 +160,7 @@ void ManageSieve::parse()
                 if ( ok )
                     d->readingLiteral = true;
                 else
-                    no( "\"Bad literal\"" );
+                    no( "Bad literal" );
             }
 
             if ( !d->readingLiteral )
@@ -172,8 +172,8 @@ void ManageSieve::parse()
 }
 
 
-/*! Creates a newCommand() based on the arguments received from the
-    client.
+/*! Creates a new ManageSieveCommand based on the arguments received
+    from the client.
 */
 
 void ManageSieve::addCommand()
@@ -182,16 +182,16 @@ void ManageSieve::addCommand()
 
     String cmd = d->args->take( d->args->first() )->lower();
 
-    if ( cmd == "logout" && d->args->isEmpty() ) {
-        newCommand( d->commands, this, ManageSieveCommand::Logout );
+    if ( cmd == "logout" ) {
+        newCommand( d->commands, this, ManageSieveCommand::Logout, d->args, 0 );
     }
-    else if ( cmd == "capability" && d->args->isEmpty() ) {
-        newCommand( d->commands, this, ManageSieveCommand::Capability );
+    else if ( cmd == "capability" ) {
+        newCommand( d->commands, this, ManageSieveCommand::Capability, d->args, 0 );
     }
     else if ( d->state == Unauthorised ) {
         if ( cmd == "starttls" ) {
             if ( hasTls() )
-                no( "\"Nested STARTTLS\"" );
+                no( "Nested STARTTLS" );
             else
                 newCommand( d->commands, this,
                             ManageSieveCommand::StartTls );
@@ -205,29 +205,29 @@ void ManageSieve::addCommand()
         }
     }
     else if ( d->state == Authorised ) {
-        if ( cmd == "havespace" && d->args->count() == 2 ) {
+        if ( cmd == "havespace" ) {
             newCommand( d->commands, this,
-                        ManageSieveCommand::HaveSpace, d->args );
+                        ManageSieveCommand::HaveSpace, d->args, 2 );
         }
-        else if ( cmd == "putscript" && d->args->count() == 2 ) {
+        else if ( cmd == "putscript" ) {
             newCommand( d->commands, this,
-                        ManageSieveCommand::PutScript, d->args );
+                        ManageSieveCommand::PutScript, d->args, 2 );
         }
-        else if ( cmd == "setactive" && d->args->count() == 1 ) {
+        else if ( cmd == "setactive" ) {
             newCommand( d->commands, this,
-                        ManageSieveCommand::SetActive, d->args );
+                        ManageSieveCommand::SetActive, d->args, 2 );
         }
-        else if ( cmd == "listscripts" && d->args->isEmpty() ) {
+        else if ( cmd == "listscripts" ) {
             newCommand( d->commands, this,
-                        ManageSieveCommand::ListScripts );
+                        ManageSieveCommand::ListScripts, 0 );
         }
-        else if ( cmd == "getscript" && d->args->count() == 1 ) {
+        else if ( cmd == "getscript" ) {
             newCommand( d->commands, this,
-                        ManageSieveCommand::GetScript, d->args );
+                        ManageSieveCommand::GetScript, d->args, 1 );
         }
-        else if ( cmd == "deletescript" && d->args->count() == 1 ) {
+        else if ( cmd == "deletescript" ) {
             newCommand( d->commands, this,
-                        ManageSieveCommand::DeleteScript, d->args );
+                        ManageSieveCommand::DeleteScript, d->args, 1 );
         }
         else {
             unknown = true;
@@ -238,7 +238,9 @@ void ManageSieve::addCommand()
     }
 
     if ( unknown )
-        no( "\"Unknown command\"" );
+        no( "Unknown command" );
+
+    d->args = 0;
 }
 
 
@@ -248,7 +250,7 @@ void ManageSieve::ok( const String &s )
 {
     enqueue( "OK" );
     if ( !s.isEmpty() )
-        enqueue( " " + s );
+        enqueue( " " + s.quoted() );
     enqueue( "\r\n" );
 }
 
@@ -259,7 +261,7 @@ void ManageSieve::no( const String &s )
 {
     enqueue( "NO" );
     if ( !s.isEmpty() )
-        enqueue( " " + s );
+        enqueue( " " + s.quoted() );
     enqueue( "\r\n" );
     setReader( 0 );
 }
@@ -298,9 +300,16 @@ void ManageSieve::runCommands()
 
 static void newCommand( List< ManageSieveCommand > * l, ManageSieve * sieve,
                         ManageSieveCommand::Command cmd,
-                        StringList * args )
+                        StringList * args, int argc )
 {
-    l->append( new ManageSieveCommand( sieve, cmd, args ) );
+    int ac = 0;
+    if ( args )
+        ac = (int)args->count();
+    if ( argc >= 0 && ac != argc )
+        sieve->no( "Wrong number of arguments (expected " +
+                   fn( argc ) + ", received " + fn( args->count() ) + ")" );
+    else
+        l->append( new ManageSieveCommand( sieve, cmd, args ) );
 }
 
 
