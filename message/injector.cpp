@@ -310,10 +310,6 @@ void Injector::execute()
         // concomitant selects go inside.
         insertBodyparts();
 
-        // These three could move down to the next step. Should they?
-        selectUids();
-        buildAddressLinks();
-        buildFieldLinks();
         d->step = 1;
     }
 
@@ -321,11 +317,14 @@ void Injector::execute()
         // Wait for all queries that have to be run before the
         // transaction to complete, then start the transaction.
         List<Query>::Iterator i( d->beforeTransaction );
-        while ( i && !i->done() )
+        while ( i && i->done() )
             ++i;
         if ( i )
             return;
-        
+
+        selectUids();
+        buildAddressLinks();
+        buildFieldLinks();
         d->transaction->execute();
         d->step = 2;
     }
