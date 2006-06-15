@@ -165,17 +165,25 @@ void Database::disconnect()
 
 void Database::runQueue()
 {
+    int connecting = 0;
+
     // First, we give each idle handle a Query to process
 
     Query * first = queries->firstElement();
 
     List< Database >::Iterator it( handles );
     while ( it ) {
-        if ( it->state() == Idle ) {
+        State st = it->state();
+
+        if ( st == Idle ) {
             it->processQueue();
             if ( queries->isEmpty() )
                 return;
         }
+        else if ( st == Connecting ) {
+            connecting++;
+        }
+
         ++it;
     }
 
@@ -188,8 +196,8 @@ void Database::runQueue()
     int interval = Configuration::scalar( Configuration::DbHandleInterval );
 
     if ( ( handles->count() == 0 ||
-           queries->firstElement() == first ||
-           time( 0 ) - lastCreated >= interval ) &&
+           time( 0 ) - lastCreated >= interval ||
+           ( queries->firstElement() == first && connecting == 0 ) ) &&
          ( server().protocol() != Endpoint::Unix ||
            server().address().startsWith( File::root() ) ) )
     {
