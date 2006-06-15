@@ -341,6 +341,7 @@ void database()
 {
     if ( !d ) {
         Configuration::setup( "" );
+        Configuration::add( "db-max-handles = 1" );
         Configuration::add( "db-address = '" + String( DBADDRESS ) + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
