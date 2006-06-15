@@ -497,7 +497,7 @@ void database()
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't create database '" DBUSER "'. "
+            fprintf( stderr, "Couldn't create database '" DBNAME "'. "
                      "Please create it by hand and re-run the installer.\n" );
             EventLoop::shutdown();
         }
