@@ -9,76 +9,76 @@
 
 # Prepended to directory names during installation, but not during use.
 #
-INSTALLROOT = "" ; 
+INSTALLROOT ?= "" ; 
 
 # A convenient prefix used by most directory and file names,.
 #
-PREFIX = /usr/local/archiveopteryx ;
+PREFIX ?= /usr/local/archiveopteryx ;
 
 # The directory for user and sysadmin tools
 #
-BINDIR = $(PREFIX)/bin ;
+BINDIR ?= $(PREFIX)/bin ;
 
 # The directory where the servers are installed
 #
-SBINDIR = $(PREFIX)/sbin ;
+SBINDIR ?= $(PREFIX)/sbin ;
 
 # The directory where the man pages are installed
 #
-MANDIR = $(PREFIX)/man ;
+MANDIR ?= $(PREFIX)/man ;
 
 # Supporting files
 # 
-LIBDIR = $(PREFIX)/lib ;
+LIBDIR ?= $(PREFIX)/lib ;
 
 # The startup/shutdown script's directory
 #
-INITDIR = $(LIBDIR) ;
+INITDIR ?= $(LIBDIR) ;
 
 # Where to write pid files for the servers
 #
-PIDFILEDIR = /var/run/oryx ;
+PIDFILEDIR ?= /var/run/oryx ;
 
 # The servers chroot to an empty, unreadable jail directory at
 # startup.
 #
-JAILDIR = $(PREFIX)/jail ;
+JAILDIR ?= $(PREFIX)/jail ;
 
 # This is the default message-copy-directory.
 #
-MESSAGEDIR = $(PREFIX)/messages ;
+MESSAGEDIR ?= $(PREFIX)/messages ;
 
 # The directory where the configuration file is located.
 #
-CONFIGDIR = $(PREFIX) ;
+CONFIGDIR ?= $(PREFIX) ;
 
 # The directory where the README and other files are installed.
 #
-READMEDIR = $(PREFIX) ;
+READMEDIR ?= $(PREFIX) ;
 
 # The log file's default name. (This is the only configurable file
 # name, all the others are directory names.)
 #
-LOGFILE = $(PREFIX)/logfile ;
+LOGFILE ?= $(PREFIX)/logfile ;
 
 # The default mode for the log file.
 #
-LOGFILEMODE = 400 ;
+LOGFILEMODE ?= 400 ;
 
 # The user and group needed.
 
-ORYXUSER = oryx ;
-ORYXGROUP = oryx ;
+ORYXUSER ?= oryx ;
+ORYXGROUP ?= oryx ;
 
 # How to compile
 
-C++FLAGS = -g -W -Wall -Werror -funsigned-char ;
-LINKFLAGS = -g ;
+C++FLAGS ?= -g -W -Wall -Werror -funsigned-char ;
+LINKFLAGS ?= -g ;
 
 
 # Mode for installed binaries
 
-EXEMODE = 555 ;
+EXEMODE ?= 555 ;
 
 
 # Uncomment the next line to use a cryptlib from the system. The
@@ -91,18 +91,18 @@ EXEMODE = 555 ;
 
 # The Unix username of the PostgreSQL superuser.
 #
-#PGUSER = postgres ;
+#PGUSER ?= postgres ;
 
 # The path to the psql(1) client. The default value assumes that it is
 # somewhere in the PATH.
 #
-PSQL = psql ;
+PSQL ?= psql ;
 
 # The address of the Postgres server. This is the default value of
 # the db-address variable in archiveopteryx.conf, and may be the
 # fully-qualified Unix socket path, or an IPv4/6 address.
 #
-DBADDRESS = /tmp/.s.PGSQL.5432 ;
+DBADDRESS ?= /tmp/.s.PGSQL.5432 ;
 
 # A Postgres user and database for Archiveopteryx to use. If
 # necessary, these are created by LIBDIR/installer. To use an existing
@@ -118,9 +118,9 @@ DBADDRESS = /tmp/.s.PGSQL.5432 ;
 # These settings correspond to the db-name, db-user, and db-password
 # variables in archiveopteryx.conf.
 #
-DBNAME = archiveopteryx ;
-DBUSER = oryx ;
-DBPASS = "" ;
+DBNAME ?= archiveopteryx ;
+DBUSER ?= oryx ;
+DBPASS ?= "" ;
 
 
 # this file is included from Jamrules.
