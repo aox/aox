@@ -96,7 +96,17 @@ void Database::setup()
         return;
     }
 
-    newHandle();
+    uint desired = 1;
+    if ( Configuration::toggle( Configuration::Security ) &&
+         srv.protocol() == Endpoint::Unix )
+        desired = Configuration::scalar( Configuration::DbMaxHandles );
+    if ( desired > 4 )
+        desired = 4;
+
+    while ( desired ) {
+        newHandle();
+        desired--;
+    }
 }
 
 
