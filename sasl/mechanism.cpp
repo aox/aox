@@ -208,6 +208,9 @@ void SaslMechanism::execute()
         verify();
         d->command->execute();
     }
+    else if ( state() == Failed ) {
+        d->command->execute();
+    }
 }
 
 
