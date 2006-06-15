@@ -111,7 +111,8 @@ void Header::add( HeaderField *hf )
     HeaderField::Type t = hf->type();
 
     if ( t == HeaderField::To || t == HeaderField::Cc ||
-         t == HeaderField::Bcc || t == HeaderField::ReplyTo )
+         t == HeaderField::Bcc || t == HeaderField::ReplyTo ||
+         t == HeaderField::From )
     {
         AddressField *first = addressField( t );
         AddressField *next = (AddressField *)hf;
