@@ -141,11 +141,11 @@ void Database::submit( List< Query > *q )
 void Database::disconnect()
 {
     List< Database >::Iterator it( handles );
+    handles = 0;
     while ( it ) {
         it->react( Shutdown );
         ++it;
     }
-    handles = 0;
 }
 
 
@@ -230,6 +230,9 @@ void Database::addHandle( Database * d )
 
 void Database::removeHandle( Database * d )
 {
+    if ( !handles )
+        return;
+
     handles->remove( d );
     if ( !handles->isEmpty() )
         return;
