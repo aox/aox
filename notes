@@ -2,6 +2,7 @@ Next release (2006-07-10: 1.07)
 
   Done:
 
+  - Date searches
 
   Must-Do:
 
@@ -11,7 +12,6 @@ Next release (2006-07-10: 1.07)
 
   - Sieve
   - Condstore, flag views
-  - Date searches
   - compress=deflate
   - Test and use Resolver
   - Stable, flexible aoximport
