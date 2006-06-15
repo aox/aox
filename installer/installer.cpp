@@ -434,8 +434,9 @@ void database()
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't create PostgreSQL user '" DBUSER "'. "
-                     "Please create it by hand and re-run the installer.\n" );
+            fprintf( stderr, "Couldn't create PostgreSQL user '" DBUSER
+                     "' (%s).\nPlease create it by hand and re-run the "
+                     "installer.\n", d->q->error().cstr() );
             EventLoop::shutdown();
         }
         d->state = 3;
@@ -497,8 +498,9 @@ void database()
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't create database '" DBNAME "'. "
-                     "Please create it by hand and re-run the installer.\n" );
+            fprintf( stderr, "Couldn't create database '" DBNAME "' (%s).\n"
+                     "Please create it by hand and re-run the installer.\n",
+                     d->q->error().cstr() );
             EventLoop::shutdown();
         }
         d->state = 6;
@@ -532,7 +534,7 @@ void database()
                 d->state = 10;
                 printf( " - May need to load the Oryx database schema.\n   "
                         "(Couldn't query database '" DBNAME "' to make sure "
-                        "it's needed.)\n" );
+                        "it's needed: %s.)\n", d->q->error().cstr() );
             }
             else {
                 fprintf( stderr, "Couldn't query database '" DBNAME "' to "
