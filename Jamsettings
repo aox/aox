@@ -17,23 +17,23 @@ PREFIX ?= /usr/local/archiveopteryx ;
 
 # The directory for user and sysadmin tools
 #
-BINDIR ?= $(PREFIX)/bin ;
+BINDIR = $(PREFIX)/bin ;
 
 # The directory where the servers are installed
 #
-SBINDIR ?= $(PREFIX)/sbin ;
+SBINDIR = $(PREFIX)/sbin ;
 
 # The directory where the man pages are installed
 #
-MANDIR ?= $(PREFIX)/man ;
+MANDIR = $(PREFIX)/man ;
 
 # Supporting files
 # 
-LIBDIR ?= $(PREFIX)/lib ;
+LIBDIR = $(PREFIX)/lib ;
 
 # The startup/shutdown script's directory
 #
-INITDIR ?= $(LIBDIR) ;
+INITDIR = $(LIBDIR) ;
 
 # Where to write pid files for the servers
 #
@@ -42,24 +42,24 @@ PIDFILEDIR ?= /var/run/oryx ;
 # The servers chroot to an empty, unreadable jail directory at
 # startup.
 #
-JAILDIR ?= $(PREFIX)/jail ;
+JAILDIR = $(PREFIX)/jail ;
 
 # This is the default message-copy-directory.
 #
-MESSAGEDIR ?= $(PREFIX)/messages ;
+MESSAGEDIR = $(PREFIX)/messages ;
 
 # The directory where the configuration file is located.
 #
-CONFIGDIR ?= $(PREFIX) ;
+CONFIGDIR = $(PREFIX) ;
 
 # The directory where the README and other files are installed.
 #
-READMEDIR ?= $(PREFIX) ;
+READMEDIR = $(PREFIX) ;
 
 # The log file's default name. (This is the only configurable file
 # name, all the others are directory names.)
 #
-LOGFILE ?= $(PREFIX)/logfile ;
+LOGFILE = $(PREFIX)/logfile ;
 
 # The default mode for the log file.
 #
@@ -72,8 +72,8 @@ ORYXGROUP ?= oryx ;
 
 # How to compile
 
-C++FLAGS ?= -g -W -Wall -Werror -funsigned-char ;
-LINKFLAGS ?= -g ;
+C++FLAGS = -g -W -Wall -Werror -funsigned-char ;
+LINKFLAGS = -g ;
 
 
 # Mode for installed binaries
