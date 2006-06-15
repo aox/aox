@@ -361,6 +361,7 @@ void database()
         if ( d->q->failed() || !r ) {
             fprintf( stderr, "Couldn't check PostgreSQL server version.\n" );
             EventLoop::shutdown();
+            return;
         }
         else {
             String s( r->getString( "version" ) );
@@ -374,6 +375,7 @@ void database()
                 fprintf( stderr, "Archiveopteryx requires PostgreSQL 7.4.2 "
                          "or higher (found only '%s').\n", v.cstr() );
                 EventLoop::shutdown();
+                return;
             }
 
             if ( v.startsWith( "7" ) || v.startsWith( "8.0" ) ) {
@@ -438,6 +440,7 @@ void database()
                      "' (%s).\nPlease create it by hand and re-run the "
                      "installer.\n", d->q->error().cstr() );
             EventLoop::shutdown();
+            return;
         }
         d->state = 3;
     }
@@ -502,6 +505,7 @@ void database()
                      "Please create it by hand and re-run the installer.\n",
                      d->q->error().cstr() );
             EventLoop::shutdown();
+            return;
         }
         d->state = 6;
     }
@@ -541,6 +545,7 @@ void database()
                          "see if the schema needs to be loaded (%s).\n",
                          d->q->error().cstr() );
                 EventLoop::shutdown();
+                return;
             }
         }
         d->state = 8;
@@ -606,6 +611,7 @@ void database()
                                  "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
                                  PGUSER, cmd.cstr() );
                         EventLoop::shutdown();
+                        return;
                     }
                 }
             }
@@ -634,6 +640,7 @@ void database()
                          "see if the schema needs to be upgraded (%s).\n",
                          d->q->error().cstr() );
                 EventLoop::shutdown();
+                return;
             }
         }
         else if ( r->getInt( "revision" ) != Schema::currentRevision() ) {
