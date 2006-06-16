@@ -469,7 +469,7 @@ String Listext::listMailbox()
     String result;
     char c = nextChar();
     if ( c == '"' || c == '{' )
-        return string();
+        return string().lower();
     while ( c > ' ' && c < 127 &&
             c != '(' && c != ')' && c != '{' &&
             c != '"' && c != '\\' )
