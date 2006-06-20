@@ -168,9 +168,7 @@ String Parser822::string()
             output.append( s[++i] );
             i++;
         }
-        else if ( s[i] == 32 || s[i] == 9 || s[i] == 10 || s[i] == 13 ) {
-            // this is strictly speaking wrong. CRLF should be killed,
-            // all others left alone.
+        else if ( s[i] == 10 || s[i] == 13 ) {
             output.append( ' ' );
             whitespace();
         }
