@@ -35,6 +35,7 @@ public:
     String data;
     UString text;
     bool hasText;
+    String error;
 };
 
 
@@ -291,9 +292,6 @@ String Bodypart::asText() const
     the correct \a parent. \a divider does not contain the leading or
     trailing hyphens. \a digest is true for multipart/digest and false
     for other types.
-
-    In case of error, \a error is set to a suitable error message. If
-    \a error is nonempty, it isn't changed.
 */
 
 void Bodypart::parseMultipart( uint i, uint end,
@@ -301,8 +299,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                                const String & divider,
                                bool digest,
                                List<Bodypart> * children,
-                               Bodypart *parent,
-                               String & error )
+                               Bodypart *parent )
 {
     uint start = 0;
     bool last = false;
@@ -349,8 +346,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                             i--;
                     }
 
-                    Bodypart * bp = parseBodypart( start, i, rfc2822, h,
-                                                   error );
+                    Bodypart * bp = parseBodypart( start, i, rfc2822, h );
                     bp->d->number = pn;
                     children->append( bp );
                     bp->setParent( parent );
@@ -451,14 +447,11 @@ static Codec * guessHtmlCodec( const String & body )
     including \a end) as a single bodypart with MIME/RFC 822 header \a h.
 
     This removes the "charset" argument from the Content-Type field in \a h.
-
-    In case of error, \a error is set to a suitable error message. If
-    \a error is nonempty, it isn't changed.
 */
 
 Bodypart * Bodypart::parseBodypart( uint start, uint end,
                                     const String & rfc2822,
-                                    Header * h, String & error )
+                                    Header * h )
 {
     if ( rfc2822[start] == 13 )
         start++;
@@ -591,20 +584,20 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             }
         }
 
-        if ( !c->valid() && error.isEmpty() ) {
-            error = "Could not convert body to Unicode";
+        if ( !c->valid() && bp->d->error.isEmpty() ) {
+            bp->d->error = "Could not convert body to Unicode";
             if ( specified ) {
                 String cs;
                 if ( ct )
                     cs = ct->parameter( "charset" );
                 if ( cs.isEmpty() )
                     cs = c->name();
-                error.append( " from " + cs );
+                bp->d->error.append( " from " + cs );
             }
             if ( specified && unknown )
-                error.append( ": Character set not implemented" );
+                bp->d->error.append( ": Character set not implemented" );
             else if ( !c->error().isEmpty() )
-                error.append( ": " + c->error() );
+                bp->d->error.append( ": " + c->error() );
         }
 
         if ( c->name().lower() != "us-ascii" )
@@ -668,7 +661,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         parseMultipart( start, end, rfc2822,
                         ct->parameter( "boundary" ),
                         ct->subtype() == "digest",
-                        bp->children(), bp, error );
+                        bp->children(), bp );
     }
     else if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
         // There are sometimes blank lines before the message.
@@ -683,8 +676,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         }
         bp->setMessage( m );
         m->setParent( bp );
-        if ( !m->error().isEmpty() )
-            error = "In message/rfc822 part: " + m->error();
     }
 
     h->simplify();
@@ -719,4 +710,14 @@ void Bodypart::setMessage( Message * m )
 bool Bodypart::isBodypart() const
 {
     return true;
+}
+
+
+/*! Returns an error message describing why this bodypart is bad, or
+    an empty string if nothing seems to be the matter.
+*/
+
+String Bodypart::error() const
+{
+    return d->error;
 }

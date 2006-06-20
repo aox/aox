@@ -102,12 +102,11 @@ Message::Message( const String & rfc2822 )
         Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
                                   ct->parameter( "boundary" ),
                                   ct->subtype() == "digest",
-                                  children(), 0, d->error );
+                                  children(), 0 );
     }
     else {
-        Bodypart * bp =
-            Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
-                                     header(), d->error );
+        Bodypart * bp = Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
+                                                 header() );
         children()->append( bp );
     }
 
@@ -115,10 +114,27 @@ Message::Message( const String & rfc2822 )
 
     fix8BitHeaderFields();
 
-    List< HeaderField >::Iterator it( header()->fields() );
+    List<Bodypart>::Iterator b( allBodyparts() );
+    while ( b && d->error.isEmpty() ) {
+        if ( b->header() && b->header() != header() ) {
+            List<HeaderField>::Iterator it( b->header()->fields() );
+            while ( it && d->error.isEmpty() ) {
+                if ( !it->parsed() )
+                    d->error = "In bodypart " + partNumber( b ) +
+                               ": Unable to parse header field " + it->name();
+                ++it;
+            }
+        }
+        if ( d->error.isEmpty() && !b->error().isEmpty() )
+            d->error = "In bodypart " + partNumber( b ) + ": " + b->error();
+        ++b;
+    }
+
+    // do this at the very end, so we prefer to give error messages about anything else
+    List<HeaderField>::Iterator it( header()->fields() );
     while ( it && d->error.isEmpty() ) {
         if ( !it->parsed() )
-            d->error = "Unable to parse header field " + it->name();
+            d->error = ": Unable to parse header field " + it->name();
         ++it;
     }
 }

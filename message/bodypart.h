@@ -46,6 +46,8 @@ public:
 
     String asText() const;
 
+    String error() const;
+
 private:
     class BodypartData * d;
     friend class Message;
@@ -53,10 +55,9 @@ private:
     Bodypart();
     static void parseMultipart( uint, uint, const String &,
                                 const String &, bool,
-                                List< Bodypart > *, Bodypart *,
-                                String & );
+                                List< Bodypart > *, Bodypart * );
     static Bodypart *parseBodypart( uint, uint, const String &,
-                                    Header *, String & );
+                                    Header * );
 };
 
 
