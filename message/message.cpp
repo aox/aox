@@ -159,9 +159,7 @@ Header * Message::parseHeader( uint & i, uint end,
                 j++;
             if ( j && rfc2822[j-1] == '\r' )
                 j--;
-            String value = rfc2822.mid( i, j-i );
-            if ( !value.simplified().isEmpty() )
-                h->add( name, value );
+            h->add( name, rfc2822.mid( i, j-i ) );
             i = j;
             if ( rfc2822[i] == '\r' && rfc2822[i+1] == '\n' )
                 i++;
