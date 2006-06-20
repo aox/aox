@@ -117,6 +117,9 @@ Message::Message( const String & rfc2822 )
     List<Bodypart>::Iterator b( allBodyparts() );
     while ( b && d->error.isEmpty() ) {
         if ( b->header() && b->header() != header() ) {
+            if ( !b->header()->error().isEmpty() ) {
+                d->error = "In header of bodypart " + partNumber( b ) + ": " + b->header()->error();
+            }
             List<HeaderField>::Iterator it( b->header()->fields() );
             while ( it && d->error.isEmpty() ) {
                 if ( !it->parsed() )
