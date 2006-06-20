@@ -146,12 +146,26 @@ Message::Message( const String & rfc2822 )
 /*! Creates and returns a Header in mode \a m by parsing the part of
     \a rfc2822 from index \a i to index \a end, not including \a
     end. \a i is changed to the index of the first unparsed character.
+
+    If there is a leading From-space line, parseHeader() skips it and
+    discards its content. Skipping is fine, but should we discard?
 */
 
 Header * Message::parseHeader( uint & i, uint end,
                                const String & rfc2822,
                                Header::Mode m )
 {
+    if ( rfc2822.mid( i, 5 ) == "From " ) {
+        uint j = i + 5;
+        while ( j < end && rfc2822[j] != '\r' && rfc2822[j] != '\n' )
+            j++;
+        while ( j < end && rfc2822[j] == '\r' )
+            j++;
+        while ( j < end && rfc2822[j] == '\n' )
+            j++;
+        if ( j < end )
+            i = j;
+    }
     Header * h = new Header( m );
     bool done = false;
     while ( !done ) {
