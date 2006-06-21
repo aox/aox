@@ -23,12 +23,20 @@ public:
           permissions( 0 )
     {}
 
+    struct Flag {
+        Flag(): flag( 0 ), inserter( 0 ) {}
+        Flag( const String & n ): parsedName( n ), flag( 0 ), inserter( 0 ) {}
+        String parsedName;
+        ::Flag * flag;
+        Query * inserter;
+    };
+
     Date date;
     String mbx;
     Mailbox * mailbox;
     Message * message;
     Injector * injector;
-    StringList flags;
+    List<Flag> flags;
     Permissions * permissions;
 };
 
@@ -59,10 +67,10 @@ void Append::parse()
 
     if ( present( "(" ) ) {
         if ( nextChar() != ')' ) {
-            d->flags.append( new String( flag() ) );
+            d->flags.append( new AppendData::Flag( flag() ) );
             while( nextChar() == ' ' ) {
                 space();
-                d->flags.append( new String( flag() ) );
+                d->flags.append( new AppendData::Flag( flag() ) );
             }
         }
         require( ")" );
@@ -154,11 +162,11 @@ void Append::execute()
     if ( !d->injector ) {
         if ( !d->flags.isEmpty() ) {
             StringList unknown;
-            StringList::Iterator it( d->flags );
+            List<AppendData::Flag>::Iterator it( d->flags );
             while ( it ) {
-                Flag * f = Flag::find( *it );
-                if ( !f )
-                    unknown.append( *it );
+                it->flag = Flag::find( it->parsedName );
+                if ( !it->flag )
+                    unknown.append( it->parsedName );
                 ++it;
             }
             // we create names for any flags we don't know before we
@@ -178,48 +186,42 @@ void Append::execute()
         return;
     }
 
-    if ( d->injector->done() ) {
-        if ( d->injector->failed() ) {
-            error( No, "Could not append to " + d->mbx );
-        }
-        else {
-            List<Query> l;
-            if ( !d->flags.isEmpty() ) {
-                StringList::Iterator i( d->flags );
-                while ( i ) {
-                    Flag * f = Flag::find( *i );
-                    if ( f ) {
-                        Query * q 
-                            = new Query( "insert into flags (flag,uid,mailbox) "
+    if ( d->injector->failed() )
+        error( No, "Could not append to " + d->mbx );
+
+    if ( !d->injector->done() || d->injector->failed() )
+        return;
+
+    if ( !d->flags.isEmpty() ) {
+        List<AppendData::Flag>::Iterator i( d->flags );
+        bool ok = true;
+        while ( i ) {
+            if ( !i->flag )
+                i->flag = Flag::find( i->parsedName );
+            if ( i->flag && !i->inserter ) {
+                i->inserter = new Query( "insert into flags (flag,uid,mailbox) "
                                          "values ($1,$2,$3)",
-                                         0 );
-                        q->bind( 1, f->id() );
-                        q->bind( 2, d->injector->uid( d->mailbox ) );
-                        q->bind( 3, d->mailbox->id() );
-                        l.append( q );
-                    }
-                    else {
-                        // discards all the queries created above.
-                        // ok. this very seldom happens anyway.
-                        return;
-                    }
-                    ++i;
-                }
+                                         this );
+                i->inserter->bind( 1, i->flag->id() );
+                i->inserter->bind( 2, d->injector->uid( d->mailbox ) );
+                i->inserter->bind( 3, d->mailbox->id() );
+                i->inserter->execute();
             }
-            
-            d->injector->announce();
-            respond( "OK [APPENDUID " +
-                     fn( d->mailbox->uidvalidity() ) +
-                     " " +
-                     fn( d->injector->uid( d->mailbox ) ) +
-                     "] done",
-                     Tagged );
-            List<Query>::Iterator i( l );
-            while ( i ) {
-                i->execute();
-                ++i;
-            }
+            if ( !i->inserter || !i->inserter->done() )
+                ok = false;
+            ++i;
         }
-        finish();
+        if ( !ok )
+            return;
     }
+            
+    d->injector->announce();
+    respond( "OK [APPENDUID " +
+             fn( d->mailbox->uidvalidity() ) +
+             " " +
+             fn( d->injector->uid( d->mailbox ) ) +
+             "] done",
+             Tagged );
+
+    finish();
 }
