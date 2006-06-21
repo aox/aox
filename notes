@@ -70,6 +70,20 @@ Message tracking
   in mailchen), and also provide a query interface via the web.
 
 
+aox reinject
+
+  Said command would search for unparsable messages in the DB, try
+  each to see whether it can be parsed by the current version, and if
+  so, inject the message in the relevant mailbox and delete the
+  "cannot parse" message. While it does so, reinject should emit lots
+  of progress information. Lots.
+
+  Some problems there - what if the correct message would be sieved
+  differently? do we have all the information we need, e.g.
+  internaldate? how can we search for these bodyparts in the first
+  place?
+
+
 Memory use for common operations
 
   Some use _vastly_ too much memory. I saw a single IMAP FETCH for a
