@@ -552,10 +552,6 @@ void Header::simplify()
     if ( m && m->value().isEmpty() )
         removeField( HeaderField::MessageId );
 
-    AddressField *s = addressField( HeaderField::Sender );
-    if ( s && s->addresses()->isEmpty() )
-        removeField( HeaderField::Sender );
-
     if ( sameAddresses( addressField( HeaderField::From ),
                         addressField( HeaderField::ReplyTo ) ) )
         removeField( HeaderField::ReplyTo );
@@ -564,6 +560,10 @@ void Header::simplify()
                         addressField( HeaderField::Sender ) ) )
         removeField( HeaderField::Sender );
 
+    if ( !addresses( HeaderField::Sender ) )
+        removeField( HeaderField::Sender );
+    if ( !addresses( HeaderField::ReturnPath ) )
+        removeField( HeaderField::ReturnPath );
     if ( !addresses( HeaderField::To ) )
         removeField( HeaderField::To );
     if ( !addresses( HeaderField::Cc ) )

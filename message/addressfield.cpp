@@ -35,6 +35,16 @@ void AddressField::parse( const String &s )
 
     case HeaderField::ReturnPath:
         parseMailbox( s );
+        if ( !valid() || addresses()->count() != 1 ||
+             ( addresses()->first()->type() != Address::Bounce &&
+               addresses()->first()->type() != Address::Normal ) ) {
+            // return-path sometimes contains strange addresses when
+            // migrating from older stores. if it does, just kill
+            // it. this never happens when receiving mail, since we'll
+            // make a return-path of our own.
+            setError( "" );
+            a->clear();
+        }
         break;
 
     case HeaderField::ResentSender:
