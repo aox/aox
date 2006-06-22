@@ -2,6 +2,7 @@
 
 #include "migrator.h"
 
+#include "file.h"
 #include "list.h"
 #include "scope.h"
 #include "mailbox.h"
@@ -15,6 +16,8 @@
 #include "mh.h"
 
 #include <stdio.h>
+#include <sys/stat.h> // mkdir
+#include <sys/types.h> // mkdir
 
 
 class MigratorData
@@ -266,14 +269,17 @@ String MigratorMailbox::partialName()
 }
 
 
+static uint anonuniq = 0;
+static uint plainuniq = 0;
+
+
 /*! \class MigratorMessage migrator.h
 
     The MigratorMessage provides a message and a source. It's used by
     Migrator and MigratorMailbox to generate and inject messages.
 
-    The message is not necessarily valid() - its user must check
-    that. During construction all parsing is done, so valid() and
-    error() returns their final result as soon as the object has been
+    All parsing is done during construction, so valid() and error()
+    returns their final result as soon as the object has been
     constructed.
 */
 
@@ -286,13 +292,36 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
     : s( desc ), o( rfc822 ), m( 0 )
 {
     m = new Message( o );
-    if ( !m ) {
-        // aoximprts needs some sort of -v/-vv/-vvv framework?
+    if ( m->error().isEmpty() )
+        return;
+
+    if ( Migrator::verbosity() > 0 )
         fprintf( stdout, "Message %s: Working around error: %s\n",
                  desc.cstr(), m->error().cstr() );
-        m = Message::wrapUnparsableMessage( o, m->error(), 
-                                            "Unparsable message" );
+    if ( Migrator::errorCopies() ) {
+        String a = o.anonymised();
+        Message * am = new Message( a );
+        String dir;
+        String name;
+        String c;
+        if ( am->error() == m->error() ) {
+            dir = "errors/anonymised";
+            name = fn( ++anonuniq );
+            c = a;
+        }
+        else {
+            dir = "errors/plaintext";
+            name = fn( ++plainuniq );
+            c = o;
+        }
+        ::mkdir( "errors", 0777 );
+        ::mkdir( dir.cstr(), 0777 );
+        File f( dir + "/" + name, File::Write );
+        f.write( c );
+        if ( Migrator::verbosity() > 1 )
+            fprintf( stdout, " - Wrote to %s\n", f.name().cstr() );
     }
+    m = Message::wrapUnparsableMessage( o, m->error(), "Unparsable message" );
 }
 
 
@@ -547,4 +576,51 @@ uint Migrator::migrators() const
     if ( d->working )
         return d->working->count();
     return 0;
+}
+
+
+static uint verbosity = 1;
+
+
+/*! Records that \a v is the desired verbosity of the Migrator. Higher
+    numbers imply more information on stdout/stderr. The initial
+    value is 1.
+*/
+
+void Migrator::setVerbosity( uint v )
+{
+    ::verbosity = v;
+}
+
+
+/*! Returns the current verbosity level, as set via setVerbosity(). */
+
+uint Migrator::verbosity()
+{
+    return ::verbosity;
+}
+
+
+static bool errorCopies = false;
+
+
+/*! Makes this migrator copy any failing messages if \a copy is true,
+    and not copy if \a copy is false. The messages are copied into a
+    hardwired directory name, which I haven't decided yet at the time
+    of writing.
+
+    The initial value is false;
+*/
+
+void Migrator::setErrorCopies( bool copy )
+{
+    ::errorCopies = copy;
+}
+
+
+/*! Returns the value set by setErrorCopies(). */
+
+bool Migrator::errorCopies()
+{
+    return ::errorCopies;
 }

@@ -23,12 +23,10 @@
 int main( int ac, char ** av )
 {
     Scope global;
+    bool bad = false;
 
-    if ( ac < 3 ) {
-        fprintf( stderr, "Usage: %s <destination> <mode> <source [, source ...]>\n"
-                 "See aoximport(8) for details.\n", av[0] );
-        exit( -1 );
-    }
+    if ( ac < 3 )
+        bad = true;
 
     Configuration::setup( "archiveopteryx.conf" );
 
@@ -40,30 +38,59 @@ int main( int ac, char ** av )
 
     Configuration::report();
 
-    Migrator * m = 0;
-    String mode = av[2];
+    int i = 1;
+    while( i < ac && *av[i] == '-' ) {
+        uint j = 1;
+        while ( av[i][j] ) {
+            switch( av[i][j] ) {
+            case 'v':
+                Migrator::setVerbosity( Migrator::verbosity() + 1 );
+                break;
+            case 'q':
+                Migrator::setVerbosity( 0 );
+                break;
+            case 'e':
+                Migrator::setErrorCopies( true );
+                break;
+            default:
+                bad = true;
+                break;
+            }
+            j++;
+        }
+        i++;
+    }
+
+    String destination;
+    if ( i < ac )
+        destination = av[i++];
+    String mode;
+    if ( i < ac )
+        mode = av[i++];
     mode = mode.lower();
-    if ( mode == "mbox" ) {
+    Migrator * m = 0;
+    if ( mode == "mbox" )
         m = new Migrator( Migrator::Mbox );
-    }
-    else if ( mode == "mh" ) {
+    else if ( mode == "mh" )
         m = new Migrator( Migrator::Mh );
-    }
-    else if ( mode == "cyrus" ) {
+    else if ( mode == "cyrus" )
         m = new Migrator( Migrator::Cyrus );
+    else
+        bad = true;
+    if ( m ) {
+        Allocator::addEternal( m, "migrator" );
+        m->setDestination( destination );
+        while ( i < ac )
+            m->addSource( av[i++] );
     }
-    else {
-        fprintf( stderr, "Usage: %s <destination> <mode> <source [, source ...]>\n"
-                 "Possible modes are mbox, cyrus and mh.\n"
+
+    if ( bad ) {
+        fprintf( stderr,
+                 "Usage: %s [-vq] "
+                 "<destination> <mode> <source [, source ...]>\n"
                  "See aoximport(8) for details.\n", av[0] );
         exit( -1 );
     }
-    Allocator::addEternal( m, "migrator" );
-
-    m->setDestination( av[1] );
-    int i = 3;
-    while ( i < ac )
-        m->addSource( av[i++] );
 
     Entropy::setup();
     Database::setup();

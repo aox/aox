@@ -26,6 +26,12 @@ public:
     uint mailboxesMigrated() const;
     uint migrators() const;
 
+    static void setVerbosity( uint );
+    static uint verbosity();
+
+    static void setErrorCopies( bool );
+    static bool errorCopies();
+
 private:
     class MigratorData * d;
 };
