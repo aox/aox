@@ -655,9 +655,24 @@ void AddressParser::address( int & i )
             dom = "";
         }
         route( i );
+        comment( i );
+        if ( lp.isEmpty() && i >= 1 && s[i] == ';' && s[i-1] == ':' ) {
+            // To: unlisted-recipients:; (no To-header on input)@zmailer.site
+            int j = i;
+            i -= 2;
+            String n = phrase( i );
+            if ( n.isEmpty() ) {
+                i = j;
+            }
+            else {
+                lp = "";
+                dom = "";
+                name = n;
+            }
+        }
         if ( lp.isEmpty() && i >= 0 && s[i] > 127 )
             error( "localpart contains 8-bit character", i );
-        else if ( lp.isEmpty() )
+        else if ( lp.isEmpty() && !dom.isEmpty() )
             error( "Empty localpart", i );
         else
             add( name, lp, dom );
