@@ -25,6 +25,10 @@ public:
     State state() const;
     void setState( State );
 
+    enum ClientCapability { Condstore, Annotate, NumClientCapabilities };
+    bool clientSupports( ClientCapability ) const;
+    void setClientSupports( ClientCapability );
+
     bool idle() const;
     void setIdle( bool );
 

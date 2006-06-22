@@ -37,7 +37,11 @@ public:
           runningCommands( false ), readingLiteral( false ),
           literalSize( 0 ), session( 0 ), mailbox( 0 ), login( 0 ),
           idle( false )
-    {}
+    {
+        uint i = 0;
+        while ( i < IMAP::NumClientCapabilities )
+            clientCapabilities[i++] = false;
+    }
 
     IMAP::State state;
 
@@ -55,6 +59,7 @@ public:
     User * login;
 
     bool idle;
+    bool clientCapabilities[IMAP::NumClientCapabilities];
 };
 
 
@@ -728,4 +733,25 @@ void IMAPS::finish()
 
     startTls( d->tlsServer );
     enqueue( d->banner + "\r\n" );
+}
+
+
+/*! Returns true if the client has shown that it supports a given \a
+    capability, and false if this is still unknown.
+*/
+
+bool IMAP::clientSupports( ClientCapability capability ) const
+{
+    return d->clientCapabilities[capability];
+}
+
+
+/*! Records that the client supports \a capability. The initial value
+    is valse for all capabilities, and there is no way to disable a
+    capability once enabled.
+*/
+
+void IMAP::setClientSupports( ClientCapability capability )
+{
+    d->clientCapabilities[capability] = true;
 }
