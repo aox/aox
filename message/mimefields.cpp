@@ -144,7 +144,8 @@ void MimeField::parseParameters( Parser822 *p )
     p->whitespace();
 
     while ( p->next() == ';' ) {
-        p->step();
+        while ( p->next() == ';' )
+            p->step();
         p->whitespace();
         String n = p->mimeToken().lower();
         p->comment();
