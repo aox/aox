@@ -522,6 +522,10 @@ void AddressParser::address( int & i )
     d->lastComment = "";
     comment( i );
     String & s = d->s;
+    while ( i > 0 && s[i] == ',' ) {
+        i--;
+        comment( i );
+    }
     if ( i < 0 ) {
         // nothing there. error of some sort.
     }
