@@ -265,9 +265,16 @@ void ContentType::parse( const String &s )
                 setError( "Invalid Content-Type: '" + s + "'" );
             }
         }
-        else if ( p.character() == '/' ) {
-            // eek. this makes mime look like the special case.
-            st = p.mimeToken().lower();
+        else {
+            if ( p.next() == '/' ) {
+                // eek. this makes mime look like the special case.
+                p.step();
+                st = p.mimeToken().lower();
+            }
+            else if ( t == "binary" ) {
+                t = "application";
+                st = "octet-stream";
+            }
             parseParameters( &p );
         }
     }
