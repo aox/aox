@@ -9,9 +9,8 @@ class ImapSessionData
     : public Garbage
 {
 public:
-    ImapSessionData(): i( 0 ), annotateUpdates( false ) {}
+    ImapSessionData(): i( 0 ) {}
     class IMAP * i;
-    bool annotateUpdates;
 };
 
 
@@ -59,26 +58,4 @@ void ImapSession::emitExists( uint number )
         d->i->enqueue( "* OK [UIDNEXT " + fn( n ) + "] next uid\r\n" );
         setAnnounced( n );
     }
-}
-
-
-/*! Notifies this session whether annotation changes should be
-    published. If \a b is true, this session should be notified of
-    annotation changes made by others, and if \a b is false, not.  The
-    initial value is false.
-*/
-
-void ImapSession::setAnnotateUpdates( bool b )
-{
-    d->annotateUpdates = b;
-}
-
-
-/*! Returns the value set using setAnnotateUpdates(), or false if
-    setAnnotateUpdates() has not been called.
-*/
-
-bool ImapSession::annotateUpdates() const
-{
-    return d->annotateUpdates;
 }

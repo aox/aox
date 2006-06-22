@@ -18,7 +18,7 @@ class SelectData
 {
 public:
     SelectData()
-        : readOnly( false ), annotate( false ),
+        : readOnly( false ), annotate( false ), condstore( false ),
           usedFlags( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
@@ -26,6 +26,7 @@ public:
     String name;
     bool readOnly;
     bool annotate;
+    bool condstore;
     Query * usedFlags;
     Mailbox * mailbox;
     ImapSession * session;
@@ -65,6 +66,8 @@ void Select::parse()
             String param = astring().lower();
             if ( param == "annotate" )
                 d->annotate = true;
+            else if ( param == "condstore" )
+                d->condstore = true;
             else
                 error( Bad, "Unknown select-param: " + param );
             more = present( " " );
@@ -79,6 +82,10 @@ void Select::parse()
 void Select::execute()
 {
     if ( !d->mailbox ) {
+        if ( d->condstore )
+            imap()->setClientSupports( IMAP::Condstore );
+        if ( d->annotate )
+            imap()->setClientSupports( IMAP::Annotate );
         d->mailbox = Mailbox::find( imap()->mailboxName( d->name ) );
         // if the mailbox doesn't exist, see whether it's a full name
         // without the leading slash. kio does that, so let's be
@@ -120,7 +127,6 @@ void Select::execute()
             imap()->endSession();
         d->session = new ImapSession( imap(), d->mailbox, d->readOnly );
         d->session->setPermissions( d->permissions );
-        d->session->setAnnotateUpdates( d->annotate );
         d->session->refresh( this );
     }
 
