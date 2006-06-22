@@ -524,8 +524,11 @@ void Header::simplify()
             }
         }
     }
-    
-    if ( ct == 0 && cte == 0 && cde == 0 && cdi == 0 &&
+
+    if ( mode() == Mime ) {
+        removeField( HeaderField::MimeVersion );
+    }
+    else if ( ct == 0 && cte == 0 && cde == 0 && cdi == 0 &&
          !field( HeaderField::ContentLocation ) &&
          !field( HeaderField::ContentBase ) ) {
         removeField( HeaderField::MimeVersion );
@@ -688,7 +691,8 @@ void Header::repair()
         List< HeaderField >::Iterator it( d->fields );
         Date date;
         while ( it ) {
-            // First, we take the date from the oldest valid-looking Received field.
+            // First, we take the date from the oldest valid-looking
+            // Received field.
             if ( it->type() == HeaderField::Received ) {
                 String v = it->value();
                 int i = v.find( ';' );
@@ -739,7 +743,8 @@ void Header::repair()
         bool bad = false;
         while ( other && !bad ) {
             if ( other->parameter( "charset" ).lower() == "us-ascii" )
-                other->removeParameter( "charset" ); // XXX: wrong place for this line
+                // XXX: wrong place for this code
+                other->removeParameter( "charset" );
             if ( other->type() != ct->type() ||
                  other->subtype() != ct->subtype() ) {
                 bad = true;
