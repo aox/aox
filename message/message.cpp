@@ -134,7 +134,8 @@ Message::Message( const String & rfc2822 )
         ++b;
     }
 
-    // do this at the very end, so we prefer to give error messages about anything else
+    // do this at the very end, so we prefer to give error messages
+    // about anything else
     List<HeaderField>::Iterator it( header()->fields() );
     while ( it && d->error.isEmpty() ) {
         if ( !it->parsed() )
