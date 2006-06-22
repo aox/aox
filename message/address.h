@@ -68,6 +68,7 @@ private:
     String localpart( int & );
     String atom( int & );
     static String unqp( const String & );
+    void route( int & );
 
     void error( const char *, int );
 

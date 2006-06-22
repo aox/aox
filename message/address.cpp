@@ -559,17 +559,7 @@ void AddressParser::address( int & i )
                 if ( lp.isEmpty() && i >= 0 && s[i] > 127 )
                     error( "localpart contains 8-bit character", i );
             }
-            if ( i >= 0 && s[i] == ':' ) {
-                i--;
-                String rdom;
-                do {
-                    rdom = domain( i );
-                    if ( i < 0 || s[i] != '@' )
-                        error( "no @ preceding route-addr", i );
-                    else
-                        i--;
-                } while ( i >= 0 && s[i] != '<' && !rdom.isEmpty() );
-            }
+            route( i );
         }
         if ( i >= 0 && s[i] == '<' ) {
             i--;
@@ -664,6 +654,7 @@ void AddressParser::address( int & i )
             lp = dom;
             dom = "";
         }
+        route( i );
         if ( lp.isEmpty() && i >= 0 && s[i] > 127 )
             error( "localpart contains 8-bit character", i );
         else if ( lp.isEmpty() )
@@ -1089,4 +1080,24 @@ bool Address::localpartIsSensible() const
         i++;
     }
     return true;
+}
+
+
+/*! If \a i points to an obs-route, this function silently skips the
+    route.
+*/
+
+void AddressParser::route( int & i )
+{
+    if ( i >= 0 && d->s[i] == ':' ) {
+        i--;
+        String rdom = domain( i );
+        if ( rdom == "mailto" )
+            return;
+        while ( i >= 0 && d->s[i] == ',' && !rdom.isEmpty() ) {
+            rdom = domain( i );
+            if ( i >= 0 && d->s[i] == '@' )
+                i--;
+        }
+    }
 }
