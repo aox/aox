@@ -304,7 +304,7 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
         String dir;
         String name;
         String c;
-        if ( am->error() == m->error() ) {
+        if ( am->error().anonymised() == m->error().anonymised() ) {
             dir = "errors/anonymised";
             name = fn( ++anonuniq );
             c = a;
