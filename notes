@@ -181,6 +181,24 @@ ANNOTATEMORE
   Ditto. Separate point so that we can do one without the other.
 
 
+CONDSTORE
+
+  RFC 4551. Needed. What we need to do:
+
+  - client capabilities, so we can send untagged responses (done)
+  - OK untagged responses to SELECT/EXAMINE (3.1)
+  - STORE UNCHANGEDSINCE/MODIFIED
+  - FETCH CHANGEDSINCE
+  - FETCH MODSEQ
+  - SEARCH MODSEQ
+  - SEARCH response
+  - STATUS HIGHESTMODSEQ
+  - SELECT/EXAMIME CONDSTORE
+  - updating the modseq in store
+  - updating the modseq for non-peek fetches, if unseen
+  - schema update... how?
+
+
 Autoresponder
 
   We'll need one, nicely programmable, connected to our sieve.
