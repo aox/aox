@@ -193,7 +193,7 @@ CONDSTORE
   - SEARCH MODSEQ
   - SEARCH response
   - STATUS HIGHESTMODSEQ
-  - SELECT/EXAMIME CONDSTORE
+  - SELECT/EXAMIME CONDSTORE (done)
   - updating the modseq in store
   - updating the modseq for non-peek fetches, if unseen
   - schema update... how?
