@@ -244,7 +244,7 @@ Injector::~Injector()
 
 bool Injector::done() const
 {
-    return ( d->step >= 5 || d->failed );
+    return ( d->failed || ( d->step == 6 && d->transaction->done() ) );
 }
 
 
