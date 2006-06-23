@@ -120,10 +120,12 @@ void XObliterate::execute()
         q->bind( 1, inbox->id() );
         t->enqueue( q );
 
-        t->commit();
-
         inbox->setUidnext( 1 );
         inbox->clear();
+
+        t->enqueue( inbox->refresh() );
+
+        t->commit();
     }
 
     if ( a ) {
