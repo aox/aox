@@ -214,7 +214,7 @@ void Append::execute()
         if ( !ok )
             return;
     }
-            
+
     d->injector->announce();
     respond( "OK [APPENDUID " +
              fn( d->mailbox->uidvalidity() ) +
