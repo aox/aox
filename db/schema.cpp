@@ -1145,7 +1145,8 @@ bool Schema::stepTo20()
                           "mailbox, uid, substring(value from "
                           "'^[^(]*')::timestamp with time zone from "
                           "header_fields where field=(select id from "
-                          "field_names where name='Date')", this );
+                          "field_names where name='Date') and "
+                          "value like '%:%'", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
