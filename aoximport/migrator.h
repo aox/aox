@@ -11,7 +11,7 @@ class Migrator
     : public EventHandler
 {
 public:
-    enum Mode { Mbox, Cyrus, Mh };
+    enum Mode { Mbox, Cyrus, Mh, Maildir };
     Migrator( Mode );
 
     void setDestination( const String & );

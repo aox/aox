@@ -75,6 +75,8 @@ int main( int ac, char ** av )
         m = new Migrator( Migrator::Mh );
     else if ( mode == "cyrus" )
         m = new Migrator( Migrator::Cyrus );
+    else if ( mode == "maildir" )
+        m = new Migrator( Migrator::Maildir );
     else
         bad = true;
     if ( m ) {

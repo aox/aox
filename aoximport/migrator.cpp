@@ -11,6 +11,7 @@
 #include "eventloop.h"
 #include "injector.h"
 #include "dirtree.h"
+#include "maildir.h"
 #include "cyrus.h"
 #include "mbox.h"
 #include "mh.h"
@@ -86,6 +87,9 @@ void Migrator::addSource( const String &s )
         break;
     case Mh:
         d->sources.append( new MhDirectory( s ) );
+        break;
+    case Maildir:
+        d->sources.append( new MaildirDirectory( s ) );
         break;
     }
 }
