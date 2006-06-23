@@ -124,19 +124,17 @@ void XObliterate::execute()
         inbox->clear();
 
         t->enqueue( inbox->refresh() );
-
-        t->commit();
     }
 
     if ( a ) {
         Row * r;
         while ( (r=a->nextRow()) != 0 ) {
             Mailbox * m = Mailbox::find( r->getInt( "id" ) );
-            if ( m ) {
-                m->setDeleted( true );
-                m->setOwner( 0 );
-            }
+            if ( m )
+                t->enqueue( m->refresh() );
         }
+        if ( a->done() )
+            t->commit();
     }
 
     if ( t->done() )
