@@ -103,6 +103,7 @@ void XObliterate::execute()
         a->bind( 1, user->id() );
         a->bind( 2, inbox->id() );
         t->enqueue( a );
+        t->execute();
 
         q = new Query( "update mailboxes set "
                        "deleted='t',owner=null,"
@@ -130,8 +131,11 @@ void XObliterate::execute()
         Row * r;
         while ( (r=a->nextRow()) != 0 ) {
             Mailbox * m = Mailbox::find( r->getInt( "id" ) );
-            if ( m )
+            if ( m ) {
+                m->setUidnext( 1 );
+                m->setOwner( 0 );
                 t->enqueue( m->refresh() );
+            }
         }
         if ( a->done() )
             t->commit();
