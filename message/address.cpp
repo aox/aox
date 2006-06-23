@@ -1104,15 +1104,20 @@ bool Address::localpartIsSensible() const
 
 void AddressParser::route( int & i )
 {
-    if ( i >= 0 && d->s[i] == ':' ) {
-        i--;
-        String rdom = domain( i );
-        if ( rdom == "mailto" )
-            return;
-        while ( i >= 0 && d->s[i] == ',' && !rdom.isEmpty() ) {
-            rdom = domain( i );
-            if ( i >= 0 && d->s[i] == '@' )
-                i--;
-        }
+    if ( i < 0 || d->s[i] != ':' || !error().isEmpty() )
+        return;
+
+    i--;
+    String rdom = domain( i );
+    if ( rdom == "mailto" )
+        return;
+    while ( i >= 0 && !rdom.isEmpty() &&
+            ( d->s[i] == ',' || d->s[i] == '@' ) ) {
+        if ( i >= 0 && d->s[i] == '@' )
+            i--;
+        while ( i >= 0 && d->s[i] == ',' )
+            i--;
+        rdom = domain( i );
     }
+    d->e = "";
 }
