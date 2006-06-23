@@ -21,6 +21,11 @@ public:
     Injector( const Message *, SortedList< Mailbox > *, EventHandler * );
     virtual ~Injector();
 
+    enum State {
+        Inactive, InsertingBodyparts, SelectingUids, InsertingMessages,
+        LinkingFields, LinkingAddresses, AwaitingCompletion, Done
+    };
+
     bool done() const;
     bool failed() const;
     String error() const;

@@ -76,7 +76,7 @@ class InjectorData
 {
 public:
     InjectorData()
-        : step( 0 ), failed( false ),
+        : state( Injector::Inactive ), failed( false ),
           owner( 0 ), message( 0 ), transaction( 0 ),
           beforeTransaction( 0 ),
           mailboxes( 0 ), bodyparts( 0 ),
@@ -85,7 +85,8 @@ public:
           otherFields( 0 ), fieldLookup( 0 ), addressLookup( 0 )
     {}
 
-    int step;
+    Injector::State state;
+
     bool failed;
 
     EventHandler *owner;
@@ -244,7 +245,7 @@ Injector::~Injector()
 
 bool Injector::done() const
 {
-    return ( d->failed || ( d->step == 6 && d->transaction->done() ) );
+    return ( d->failed || d->state == Done );
 }
 
 
@@ -290,7 +291,7 @@ void Injector::execute()
     //
     // -- AMS 20050412
 
-    if ( d->step == 0 ) {
+    if ( d->state == Inactive ) {
         if ( !d->message->valid() ) {
             d->failed = true;
             finish();
@@ -310,10 +311,10 @@ void Injector::execute()
         // concomitant selects go inside.
         insertBodyparts();
 
-        d->step = 1;
+        d->state = InsertingBodyparts;
     }
 
-    if ( d->step == 1 ) {
+    if ( d->state == InsertingBodyparts ) {
         // Wait for all queries that have to be run before the
         // transaction to complete, then start the transaction.
         List<Query>::Iterator i( d->beforeTransaction );
@@ -326,10 +327,11 @@ void Injector::execute()
         buildAddressLinks();
         buildFieldLinks();
         d->transaction->execute();
-        d->step = 2;
+
+        d->state = SelectingUids;
     }
 
-    if ( d->step == 2 && !d->transaction->failed() ) {
+    if ( d->state == SelectingUids && !d->transaction->failed() ) {
         // Once we have UIDs for each Mailbox, we can insert rows into
         // messages.
 
@@ -339,10 +341,10 @@ void Injector::execute()
         insertMessages();
 
         d->transaction->execute();
-        d->step = 3;
+        d->state = InsertingMessages;
     }
 
-    if ( d->step == 3 && !d->transaction->failed() ) {
+    if ( d->state == InsertingMessages && !d->transaction->failed() ) {
         // We expect buildFieldLinks() to have completed immediately.
         // Once we have the bodypart IDs, we can start adding to the
         // part_numbers, header_fields, and date_fields tables.
@@ -355,10 +357,10 @@ void Injector::execute()
         linkDates();
 
         d->transaction->execute();
-        d->step = 4;
+        d->state = LinkingFields;
     }
 
-    if ( d->step == 4 && !d->transaction->failed() ) {
+    if ( d->state == LinkingFields && !d->transaction->failed() ) {
         // Fill in address_fields once the address lookup is complete.
         // (We could have done this without waiting for the bodyparts
         // to be inserted, but it didn't seem worthwhile.)
@@ -367,21 +369,22 @@ void Injector::execute()
             return;
 
         linkAddresses();
-        d->step = 5;
+        d->state = LinkingAddresses;
     }
 
-    if ( d->step == 5 || d->transaction->failed() ) {
+    if ( d->state == LinkingAddresses || d->transaction->failed() ) {
         // Now we just wait for everything to finish.
-        if ( d->step < 6 )
+        if ( d->state < AwaitingCompletion )
             d->transaction->commit();
-        d->step = 6;
+        d->state = AwaitingCompletion;
     }
 
-    if ( d->step == 6 ) {
+    if ( d->state == AwaitingCompletion ) {
         if ( !d->transaction->done() )
             return;
         if ( !d->failed )
             d->failed = d->transaction->failed();
+        d->state = Done;
         finish();
     }
 }
