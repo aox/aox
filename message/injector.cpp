@@ -3,6 +3,7 @@
 #include "injector.h"
 
 #include "dict.h"
+#include "flag.h"
 #include "query.h"
 #include "address.h"
 #include "message.h"
@@ -31,6 +32,7 @@ static PreparedStatement *lockUidnext;
 static PreparedStatement *incrUidnext;
 static PreparedStatement *idBodypart;
 static PreparedStatement *intoBodyparts;
+static PreparedStatement *insertFlag;
 
 
 // These structs represent one part of each entry in the header_fields
@@ -109,6 +111,17 @@ public:
 
     CacheLookup * fieldLookup;
     CacheLookup * addressLookup;
+
+    class Flag
+        : public Garbage
+    {
+    public:
+        Flag( const String & n ): name( n ), flag( 0 ) {}
+        String name;
+        ::Flag * flag;
+    };
+
+    List<Flag> flags;
 };
 
 
@@ -165,6 +178,7 @@ public:
     sorted.
 */
 
+
 /*! This setup function expects to be called by ::main() to perform what
     little initialisation is required by the Injector.
 */
@@ -195,20 +209,28 @@ void Injector::setup()
             "values ($1,$2,$3,$4)"
         );
     Allocator::addEternal( intoBodyparts, "intoBodyparts" );
+
+    insertFlag =
+        new PreparedStatement(
+            "insert into flags (flag,uid,mailbox) "
+            "values ($1,$2,$3)"
+        );
+    Allocator::addEternal( insertFlag, "insertFlag" );
 }
 
 
-/*! Creates a new Injector object to deliver the \a message into each of
-    the \a mailboxes on behalf of the \a owner, which is notified when
-    the delivery attempt is completed. Message delivery commences when
-    the execute() function is called.
+/*! Creates a new Injector object to deliver the \a message with \a
+    flags into each of the \a mailboxes on behalf of the \a owner,
+    which is notified when the delivery attempt is completed. Message
+    delivery commences when the execute() function is called.
 
     The caller must not change \a mailboxes after this call.
 */
 
 Injector::Injector( const Message * message,
                     SortedList< Mailbox > * mailboxes,
-                    EventHandler * owner )
+                    EventHandler * owner,
+                    const StringList & flags )
     : d( new InjectorData )
 {
     if ( !lockUidnext )
@@ -228,6 +250,12 @@ Injector::Injector( const Message * message,
     while ( bi ) {
         d->bodyparts->append( new ObjectId( 0, bi ) );
         ++bi;
+    }
+
+    StringList::Iterator fi( flags );
+    while ( fi ) {
+        d->flags.append( new InjectorData::Flag( *fi ) );
+        ++fi;
     }
 }
 
@@ -310,6 +338,7 @@ void Injector::execute()
         // The bodyparts inserts happen outside d->transaction, the
         // concomitant selects go inside.
         insertBodyparts();
+        createFlags();
 
         d->state = InsertingBodyparts;
     }
@@ -369,6 +398,19 @@ void Injector::execute()
             return;
 
         linkAddresses();
+        d->state = LinkingFlags;
+    }
+
+    if ( d->state == LinkingFlags ) {
+        List<InjectorData::Flag>::Iterator i( d->flags );
+        while ( i ) {
+            if ( !i->flag )
+                i->flag = Flag::find( i->name );
+            if ( !i->flag )
+                return;
+            ++i;
+        }
+        linkFlags();
         d->state = LinkingAddresses;
     }
 
@@ -986,4 +1028,46 @@ uint Injector::uid( Mailbox * mailbox ) const
 const Message * Injector::message() const
 {
     return d->message;
+}
+
+
+/*! Starts creating Flag objects for the flags we need to store for
+    this message.
+*/
+
+void Injector::createFlags()
+{
+    StringList unknown;
+    List<InjectorData::Flag>::Iterator it( d->flags );
+    while ( it ) {
+        it->flag = Flag::find( it->name );
+        if ( !it->flag )
+            unknown.append( it->name );
+        ++it;
+    }
+
+    if ( !unknown.isEmpty() )
+        (void)new FlagCreator( this, unknown );
+}
+
+
+/*! Inserts the flag table entries linking flag_names to the
+    mailboxes/uids we occupy.
+*/
+
+void Injector::linkFlags()
+{
+    List<InjectorData::Flag>::Iterator i( d->flags );
+    while ( i ) {
+        List<ObjectId>::Iterator m( d->mailboxes );
+        while ( m ) {
+            Query * q = new Query( *insertFlag, this );
+            q->bind( 1, i->flag->id() );
+            q->bind( 2, m->id );
+            q->bind( 3, m->mailbox->id() );
+            d->transaction->enqueue( q );
+            ++m;
+        }
+        ++i;
+    }
 }

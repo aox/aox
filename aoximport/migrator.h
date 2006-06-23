@@ -73,6 +73,7 @@ public:
 
     String description() const;
     String original() const;
+    class StringList flags() const;
 
     Message * message();
 

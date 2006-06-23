@@ -4,7 +4,6 @@
 
 #include "date.h"
 #include "imap.h"
-#include "flag.h"
 #include "list.h"
 #include "query.h"
 #include "string.h"
@@ -23,20 +22,12 @@ public:
           permissions( 0 )
     {}
 
-    struct Flag {
-        Flag(): flag( 0 ), inserter( 0 ) {}
-        Flag( const String & n ): parsedName( n ), flag( 0 ), inserter( 0 ) {}
-        String parsedName;
-        ::Flag * flag;
-        Query * inserter;
-    };
-
     Date date;
     String mbx;
     Mailbox * mailbox;
     Message * message;
     Injector * injector;
-    List<Flag> flags;
+    StringList flags;
     Permissions * permissions;
 };
 
@@ -67,10 +58,10 @@ void Append::parse()
 
     if ( present( "(" ) ) {
         if ( nextChar() != ')' ) {
-            d->flags.append( new AppendData::Flag( flag() ) );
+            d->flags.append( flag() );
             while( nextChar() == ' ' ) {
                 space();
-                d->flags.append( new AppendData::Flag( flag() ) );
+                d->flags.append( flag() );
             }
         }
         require( ")" );
@@ -160,24 +151,9 @@ void Append::execute()
     }
 
     if ( !d->injector ) {
-        if ( !d->flags.isEmpty() ) {
-            StringList unknown;
-            List<AppendData::Flag>::Iterator it( d->flags );
-            while ( it ) {
-                it->flag = Flag::find( it->parsedName );
-                if ( !it->flag )
-                    unknown.append( it->parsedName );
-                ++it;
-            }
-            // we create names for any flags we don't know before we
-            // insert the message, or in parallel. if we can't insert
-            // the message, we'll make the flags anyway.
-            if ( !unknown.isEmpty() )
-                (void)new FlagCreator( this, unknown );
-        }
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
         m->append( d->mailbox );
-        d->injector = new Injector( d->message, m, this );
+        d->injector = new Injector( d->message, m, this, d->flags );
         d->injector->execute();
     }
 
@@ -191,29 +167,6 @@ void Append::execute()
 
     if ( !d->injector->done() || d->injector->failed() )
         return;
-
-    if ( !d->flags.isEmpty() ) {
-        List<AppendData::Flag>::Iterator i( d->flags );
-        bool ok = true;
-        while ( i ) {
-            if ( !i->flag )
-                i->flag = Flag::find( i->parsedName );
-            if ( i->flag && !i->inserter ) {
-                i->inserter = new Query( "insert into flags (flag,uid,mailbox) "
-                                         "values ($1,$2,$3)",
-                                         this );
-                i->inserter->bind( 1, i->flag->id() );
-                i->inserter->bind( 2, d->injector->uid( d->mailbox ) );
-                i->inserter->bind( 3, d->mailbox->id() );
-                i->inserter->execute();
-            }
-            if ( !i->inserter || !i->inserter->done() )
-                ok = false;
-            ++i;
-        }
-        if ( !ok )
-            return;
-    }
 
     d->injector->announce();
     respond( "OK [APPENDUID " +

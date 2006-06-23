@@ -194,8 +194,9 @@ void SmtpDbClient::execute()
                                               "Message arrived but could "
                                               "not be stored",
                                               d->id );
-                                                      
-        injector = new Injector( m, d->mailboxes, this );
+
+        StringList noFlags;
+        injector = new Injector( m, d->mailboxes, this, noFlags );
         d->injectorError = d->injector->error();
         d->injector = injector;
         injector->execute();
@@ -782,7 +783,8 @@ void SMTP::inject()
 
     d->helper = new SmtpDbClient( this, d );
     m->setInternalDate( now.unixTime() );
-    d->injector = new Injector( m, d->mailboxes, d->helper );
+    StringList noFlags;
+    d->injector = new Injector( m, d->mailboxes, d->helper, noFlags );
     d->helper->injector = d->injector;
     d->injector->execute();
 }

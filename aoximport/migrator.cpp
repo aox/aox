@@ -176,7 +176,7 @@ void Migrator::execute()
 
 /*! Returns the status code of this Migrator object.
     (Nascent function, nascent documentation.)
-    
+
     Why is this an int instead of an enum?
 */
 
@@ -500,7 +500,8 @@ void MailboxMigrator::execute()
         log( "Starting migration of message " + d->message->description() );
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
         m->append( d->destination );
-        d->injector = new Injector( d->message->message(), m, this );
+        d->injector = new Injector( d->message->message(), m, this,
+                                    d->message->flags() );
         d->injector->setLog( x.log() );
         d->injector->execute();
     }
@@ -627,4 +628,15 @@ void Migrator::setErrorCopies( bool copy )
 bool Migrator::errorCopies()
 {
     return ::errorCopies;
+}
+
+
+/*! Returns the list of flags that should be set on the injected
+    message.
+*/
+
+StringList MigratorMessage::flags() const
+{
+    StringList r;
+    return r;
 }

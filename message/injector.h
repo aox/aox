@@ -12,18 +12,22 @@ class Header;
 class Message;
 class Mailbox;
 class Bodypart;
+class StringList;
 
 
 class Injector
     : public EventHandler
 {
 public:
-    Injector( const Message *, SortedList< Mailbox > *, EventHandler * );
+    Injector( const Message *, SortedList< Mailbox > *, EventHandler *,
+              const StringList & flags );
     virtual ~Injector();
 
     enum State {
         Inactive, InsertingBodyparts, SelectingUids, InsertingMessages,
-        LinkingFields, LinkingAddresses, AwaitingCompletion, Done
+        LinkingFields, LinkingFlags, LinkingAddresses,
+        
+        AwaitingCompletion, Done
     };
 
     bool done() const;
@@ -55,6 +59,8 @@ private:
     void linkHeaderFields();
     void linkAddresses();
     void linkDates();
+    void createFlags();
+    void linkFlags();
     void logMessageDetails();
 };
 
