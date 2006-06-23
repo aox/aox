@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 19;
+int currentRevision = 20;
 
 
 class SchemaData
@@ -286,6 +286,8 @@ bool Schema::singleStep()
         c = stepTo18(); break;
     case 18:
         c = stepTo19(); break;
+    case 19:
+        c = stepTo20(); break;
     }
 
     return c;
@@ -1115,6 +1117,35 @@ bool Schema::stepTo19()
                           "foreign key (mailbox,uid) references "
                           "messages(mailbox,uid) on delete cascade )",
                           this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Populate the date_fields table from header_fields. */
+
+bool Schema::stepTo20()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Populating the date_fields table.", Log::Debug );
+        d->q = new Query( "delete from date_fields", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "insert into date_fields select "
+                          "mailbox, uid, substring(value from "
+                          "'^[^(]*')::timestamp with time zone from "
+                          "header_fields where field=(select id from "
+                          "field_names where name='Date')", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
