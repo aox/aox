@@ -1416,11 +1416,12 @@ String String::humanNumber( uint n )
 
 // all the keywords we know about, found by grepping through message/*.cpp
 static const char * keywords[] = {
-    "7bit", "8bit", "binary", "bcc", "cc", "comments", "content-description",
-    "content-disposition", "content-id", "content-language",
-    "content-location", "content-md5", "content-transfer-encoding",
-    "content-type", "date", "fri", "from", "in-reply-to", "jan",
-    "keywords", "may", "message-id", "mime-version", "mon", "orig-date",
+    "7bit", "8bit", "alternative", "aug", "binary", "bcc", "cc", "comments",
+    "content-description", "content-disposition", "content-id",
+    "content-language", "content-location", "content-md5",
+    "content-transfer-encoding", "content-type", "date", "fri", "from",
+    "in-reply-to", "jun", "jul", "keywords", "may", "message-id",
+    "mime-version", "mon", "orig-date",
     "received", "references", "reply-to", "resent-bcc", "resent-cc",
     "resent-date", "resent-from", "resent-message-id", "resent-sender",
     "resent-to", "return-path", "sender", "sep", "subject", "to",
@@ -1437,6 +1438,7 @@ static const char * keywords[] = {
     "rfc822", "rfc822size", "root", "sast", "sat", "seen", "sep",
     "supplied", "text", "tue", "uid", "us-ascii", "ut", "utc", "value",
     "wadt", "wast", "wed", "wet", "ydt", "yst",
+    "mixed",
     0
 };
 
