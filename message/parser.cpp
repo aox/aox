@@ -168,9 +168,14 @@ String Parser822::string()
             output.append( s[++i] );
             i++;
         }
-        else if ( s[i] == 10 || s[i] == 13 ) {
-            output.append( ' ' );
+        else if ( s[i] == 9 || s[i] == 10 || s[i] == 13 || s[i] == ' ' ) {
+            uint wsp = i;
             whitespace();
+            String t( s.mid( wsp, i-wsp ) );
+            if ( t.contains( "\r" ) || t.contains( "\n" ) )
+                output.append( ' ' );
+            else
+                output.append( t );
         }
         else {
             output.append( s[i++] );
