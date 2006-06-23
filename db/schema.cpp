@@ -7,6 +7,7 @@
 #include "transaction.h"
 #include "stringlist.h"
 #include "allocator.h"
+#include "date.h"
 #include "dict.h"
 #include "md5.h"
 
@@ -1141,18 +1142,53 @@ bool Schema::stepTo20()
         d->l->log( "Populating the date_fields table.", Log::Debug );
         d->q = new Query( "delete from date_fields", this );
         d->t->enqueue( d->q );
-        d->q = new Query( "insert into date_fields select "
-                          "mailbox, uid, substring(value from "
-                          "'^[^(]*')::timestamp with time zone from "
-                          "header_fields where field=(select id from "
-                          "field_names where name='Date') and "
-                          "value like '%:%'", this );
+        d->q = new Query( "declare dates cursor for "
+                          "select mailbox,uid,value from header_fields "
+                          "where field=(select id from field_names where "
+                          "name='Date')", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "fetch 1024 from dates", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
     }
 
     if ( d->substate == 1 ) {
+        while ( d->q->hasResults() ) {
+            Row *r = d->q->nextRow();
+            Date date;
+
+            date.setRfc822( r->getString( "value" ) );
+
+            if ( date.valid() ) {
+                Query *u =
+                    new Query( "insert into date_fields (mailbox,uid,value) "
+                               "values ($1,$2,$3)", this );
+                u->bind( 1, r->getInt( "mailbox" ) );
+                u->bind( 2, r->getInt( "uid" ) );
+                u->bind( 3, date.imap() );
+                d->t->enqueue( u );
+            }
+        }
+
+        if ( !d->q->done() )
+            return false;
+
+        if ( d->q->rows() != 0 ) {
+            d->q = new Query( "fetch 512 from dates", this );
+            d->t->enqueue( d->q );
+            d->t->execute();
+            return false;
+        }
+        else {
+            d->substate = 2;
+            d->q = new Query( "close parts", this );
+            d->t->enqueue( d->q );
+            d->t->execute();
+        }
+    }
+
+    if ( d->substate == 2 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
