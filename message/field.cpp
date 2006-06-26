@@ -488,13 +488,20 @@ void HeaderField::parseMimeVersion( const String &s )
 
 void HeaderField::parseContentLocation( const String &s )
 {
-    Parser822 p( s );
+    uint e = s.length()-1;
+    while ( e > 0 &&
+            ( s[e] == ' ' || s[e] == '\t' || 
+              s[e] == '\n' || s[e] == 'r' ) )
+        e--;
+
+    Parser822 p( s.mid( 0, e+1 ) );
     String t;
 
     p.whitespace();
     uint b = p.index();
-    uint e = b;
+    e = b;
     bool ok = true;
+    String r;
     while ( ok ) {
         ok = false;
         char c = p.character();
@@ -509,12 +516,14 @@ void HeaderField::parseContentLocation( const String &s )
                c ==  '\'' || c ==  '(' ||
                c ==  ')' || c ==  ',' ) ) {
             ok = true;
+            r.append( c );
         }
         // RFC 1738 reserved
         else if ( c == ';' || c == '/' || c == '?' ||
                   c == ':' || c == '@' || c == '&' ||
                   c == '=' ) {
             ok = true;
+            r.append( c );
         }
         // RFC 1738 escape
         else if ( c == '%' ) {
@@ -522,6 +531,19 @@ void HeaderField::parseContentLocation( const String &s )
             hex.append( p.character() );
             hex.append( p.character() );
             (void)hex.number( &ok, 16 );
+            r.append( '%' );
+            r.append( hex.lower() );
+        }
+        // seen in real life, sent by buggy programs
+        else if ( c == ' ' ) {
+            ok = true;
+            r.append( "%20" );
+        }
+        // and another kind of bug, except that in this case, is there
+        // a right way? let's not flame programs which do this.
+        else if ( c == '\r' || c == '\n' ) {
+            ok = true;
+            p.whitespace();
         }
         if ( ok )
             e = p.index();
@@ -530,7 +552,7 @@ void HeaderField::parseContentLocation( const String &s )
 
     if ( !p.atEnd() )
         setError( "Junk at position " + fn( e ) + ": " + s.mid( e ) );
-    setData( s.mid( b, e-b ) );
+    setData( r );
 }
 
 
