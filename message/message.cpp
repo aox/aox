@@ -151,22 +151,34 @@ Message::Message( const String & rfc2822 )
 
     If there is a leading From-space line, parseHeader() skips it and
     discards its content. Skipping is fine, but should we discard?
+
+    Some messages copied from Courier start with a line like " Feb 12
+    12:12:12 2012". This code skips that, too.
 */
 
 Header * Message::parseHeader( uint & i, uint end,
                                const String & rfc2822,
                                Header::Mode m )
 {
-    if ( rfc2822.mid( i, 5 ) == "From " ) {
-        uint j = i + 5;
-        while ( j < end && rfc2822[j] != '\r' && rfc2822[j] != '\n' )
-            j++;
-        while ( j < end && rfc2822[j] == '\r' )
-            j++;
-        while ( j < end && rfc2822[j] == '\n' )
-            j++;
-        if ( j < end )
-            i = j;
+    if ( rfc2822[0] == 'F' || rfc2822[0] == ' ' ) {
+        String beginning = rfc2822.mid( i, 5 );
+        if ( beginning == "From " ||
+             beginning == " Jan " || beginning == " Feb " ||
+             beginning == " Mar " || beginning == " Apr " ||
+             beginning == " May " || beginning == " Jun " ||
+             beginning == " Jul " || beginning == " Aug " ||
+             beginning == " Sep " || beginning == " Oct " ||
+             beginning == " Nov " || beginning == " Dec " ) {
+            uint j = i + 5;
+            while ( j < end && rfc2822[j] != '\r' && rfc2822[j] != '\n' )
+                j++;
+            while ( j < end && rfc2822[j] == '\r' )
+                j++;
+            while ( j < end && rfc2822[j] == '\n' )
+                j++;
+            if ( j < end )
+                i = j;
+        }
     }
     Header * h = new Header( m );
     bool done = false;
