@@ -771,7 +771,7 @@ void SMTP::inject()
     String rp;
     if ( d->from )
         rp = "Return-Path: " + d->from->toString() + "\r\n";
-    d->body = received + rp + d->body;
+    d->body = rp + received + d->body;
     Message * m = new Message( d->body );
 
     d->mailboxes = new SortedList<Mailbox>;
