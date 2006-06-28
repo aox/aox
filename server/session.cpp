@@ -563,7 +563,8 @@ void SessionInitialiser::execute()
                              "where mailbox=$1 and not(uid in ("
                              "select uid from flags where "
                              "mailbox=$1 and flag="
-                             "(select id from flag_names where lower(name)='\\seen'))) "
+                             "(select id from flag_names where "
+                             "lower(name)='\\seen'))) "
                              "order by uid limit 1",
                              this );
             d->seen->bind( 1, d->session->mailbox()->id() );
