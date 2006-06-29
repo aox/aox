@@ -56,6 +56,7 @@ public:
     bool opened;
     String path;
     MessageSet messages;
+    MessageSet seen;
 };
 
 
@@ -106,6 +107,35 @@ MigratorMessage *CyrusMailbox::nextMessage()
             }
             closedir( dir );
         }
+        File seen( d->path + "/cyrus.seen", File::Read );
+        StringList::Iterator l( seen.lines() );
+        bool ok = true;
+        while ( l && ok ) {
+            String line = l->simplified();
+            ++l;
+            while ( line.contains( ' ' ) )
+                line = line.mid( line.find( ' ' ) + 1 );
+            uint e = 0;
+            while ( ok && e < line.length() ) {
+                uint b = e;
+                while ( line[e] >= '0' && line[e] <= '9' )
+                    e++;
+                uint first = line.mid( b, e-b ).number( &ok );
+                uint second = first;
+                if ( line[e] == ':' ) {
+                    e++;
+                    b = e;
+                    while ( line[e] >= '0' && line[e] <= '9' )
+                        e++;
+                    second = line.mid( b, e-b ).number( &ok );
+                }
+                if ( line[e] == ',' || e >= line.length() )
+                    d->seen.add( first, second );
+                else
+                    ok = false;
+                e++;
+            }
+        }
     }
 
     if ( d->messages.isEmpty() )
@@ -116,5 +146,8 @@ MigratorMessage *CyrusMailbox::nextMessage()
 
     String f( d->path + "/" + String::fromNumber( i ) + "." );
     File m( f );
-    return new MigratorMessage( m.contents(), f );
+    MigratorMessage * mm = new MigratorMessage( m.contents(), f );
+    if ( d->seen.contains( i ) )
+        mm->addFlag( "\\seen" );
+    return mm;
 }
