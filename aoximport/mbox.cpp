@@ -116,6 +116,30 @@ MigratorMessage * MboxMailbox::nextMessage()
                                " (offset " + fn( d->offset ) + ")" );
     d->offset = i;
     d->msn++;
+    List<HeaderField>::Iterator it( m->message()->header()->fields() );
+    while( it && it->name() != "Status" )
+        ++it;
+    if ( it ) {
+        String v = it->value().simplified();
+        uint f = 0;
+        while ( f < v.length() ) {
+            switch( v[f] ) {
+            case 'R':
+            case 'O':
+                m->addFlag( "\\seen" );
+                break;
+            case 'D':
+                m->addFlag( "\\deleted" );
+                break;
+            case 'U':
+            case 'S':
+                // should clear \\seen, but that's already the case
+                break;
+            }
+            ++f;
+        }
+        
+    }
 
     return m;
 }
