@@ -39,6 +39,10 @@ encode( "norwegian.words", "iso-8859-15" );
 encode( "norwegian.words", "macroman" );
 encode( "norwegian.words", "cp865" );
 
+encode( "swedish.words", "iso-8859-15" );
+encode( "swedish.words", "macroman" );
+encode( "swedish.words", "cp865" );
+
 #
 # NOTE: the file names above must match those in jamfile
 #

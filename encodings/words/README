@@ -23,7 +23,11 @@ The data files in this directory are based on the following sources:
    The file czech.words is largely based on a list supplied by Eva
    Schlittermann. Supplements desired.
 
-3. The original web pages have been deleted sometime since we fetched
+3. These ten pages contain the 10,000 most frequent words in Norwegian
+   newspapers, as counted by the University of Oslo's Tekstlab project
+   (http://www.hf.uio.no/tekstlab/).
+
+   The original web pages have been deleted sometime since we fetched
    them. Archive.org has copies:
 
    http://web.archive.org/web/20050324200652/http://www.hf.uio.no/tekstlab/frekvensordlister/aviser.frek.html
@@ -31,6 +35,37 @@ The data files in this directory are based on the following sources:
    ...
    .../aviser.frek10.html
 
-   These ten pages contain the 10,000 most frequent words in Norwegian
-   newspapers, as counted by the University of Oslo's Tekstlab project
-   (http://www.hf.uio.no/tekstlab/).
+4. ftp://ftp.spraakbanken.gu.se/pub/statistik/PAROLE/parole_most_freq_10k.tgz
+
+   Note that swedish.words contains less than 25% of the
+   parole_most_freq_10k and is modified a little. For any purpose
+   other than this algorithm, we recommend going to the source,
+   http://spraakbanken.gu.se.
+
+   GU distributes its language data under the following license:
+
+   # --------------------------------------------------------- # 
+   # ---- license                                         ---- # 
+   #---------------------------------------------------------- # 
+   Copyright (c) 2003 Språkbanken, Göteborgs universitet
+   
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this resource and associated documentation files (the
+   "Resource"), to deal in the Resource without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Resource, and to
+   permit persons to whom the Resource is furnished to do so, subject to
+   the following conditions:
+   
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Resource.
+   
+   THE RESOURCE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   RESOURCE OR THE USE OR OTHER DEALINGS IN THE RESOURCE.
+   #---------------------------------------------------------- # 
+

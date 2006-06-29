@@ -1,11 +1,11 @@
 enum Encoding {
     Iso88592, Iso885915, MacRoman, Cp437, Cp865, NumEncodings
 };
-static const uint NumForms = 12864;
+static const uint NumForms = 20235;
 static const struct {
     const char * encodedForm;
     Encoding encoding;
-} forms[12864] = {
+} forms[20235] = {
     { "abaissÇ", Cp437 }, // from french.words
     { "abaissé", MacRoman }, // from french.words
     { "abaissÈ", Iso885915 }, // from french.words
@@ -114,6 +114,9 @@ static const struct {
     { "adaptÈe", Iso885915 }, // from french.words
     { "adaptÈes", Iso885915 }, // from french.words
     { "adaptÈs", Iso885915 }, // from french.words
+    { "adjî", Cp865 }, // from swedish.words
+    { "adjö", MacRoman }, // from swedish.words
+    { "adjˆ", Iso885915 }, // from swedish.words
     { "adoptÇ", Cp437 }, // from french.words
     { "adoptÇe", Cp437 }, // from french.words
     { "adopté", MacRoman }, // from french.words
@@ -150,8 +153,20 @@ static const struct {
     { "affirmÇ", Cp437 }, // from french.words
     { "affirmé", MacRoman }, // from french.words
     { "affirmÈ", Iso885915 }, // from french.words
+    { "affÑr", Cp865 }, // from swedish.words
+    { "affÑren", Cp865 }, // from swedish.words
+    { "affÑrer", Cp865 }, // from swedish.words
+    { "affÑrerna", Cp865 }, // from swedish.words
+    { "affär", MacRoman }, // from swedish.words
+    { "affären", MacRoman }, // from swedish.words
+    { "affärer", MacRoman }, // from swedish.words
+    { "affärerna", MacRoman }, // from swedish.words
     { "affëre", Cp865 }, // from norwegian.words
     { "affære", MacRoman }, // from norwegian.words
+    { "aff‰r", Iso885915 }, // from swedish.words
+    { "aff‰ren", Iso885915 }, // from swedish.words
+    { "aff‰rer", Iso885915 }, // from swedish.words
+    { "aff‰rerna", Iso885915 }, // from swedish.words
     { "affÊre", Iso885915 }, // from norwegian.words
     { "agrÇable", Cp437 }, // from french.words
     { "agrÇablement", Cp437 }, // from french.words
@@ -190,12 +205,24 @@ static const struct {
     { "aksjonërene", Cp865 }, // from norwegian.words
     { "aksjonærene", MacRoman }, // from norwegian.words
     { "aksjonÊrene", Iso885915 }, // from norwegian.words
+    { "aktieÑgare", Cp865 }, // from swedish.words
+    { "aktieÑgarna", Cp865 }, // from swedish.words
+    { "aktieägare", MacRoman }, // from swedish.words
+    { "aktieägarna", MacRoman }, // from swedish.words
+    { "aktie‰gare", Iso885915 }, // from swedish.words
+    { "aktie‰garna", Iso885915 }, // from swedish.words
+    { "aktîrer", Cp865 }, // from swedish.words
+    { "aktîrerna", Cp865 }, // from swedish.words
+    { "aktörer", MacRoman }, // from swedish.words
+    { "aktörerna", MacRoman }, // from swedish.words
     { "aktõr", Cp865 }, // from norwegian.words
     { "aktõrene", Cp865 }, // from norwegian.words
     { "aktõrer", Cp865 }, // from norwegian.words
     { "aktør", MacRoman }, // from norwegian.words
     { "aktørene", MacRoman }, // from norwegian.words
     { "aktører", MacRoman }, // from norwegian.words
+    { "aktˆrer", Iso885915 }, // from swedish.words
+    { "aktˆrerna", Iso885915 }, // from swedish.words
     { "akt¯r", Iso885915 }, // from norwegian.words
     { "akt¯rene", Iso885915 }, // from norwegian.words
     { "akt¯rer", Iso885915 }, // from norwegian.words
@@ -203,8 +230,32 @@ static const struct {
     { "alliés", MacRoman }, // from french.words
     { "alliÈs", Iso885915 }, // from french.words
     { "allmÑhlich", Cp437 }, // from german.words
+    { "allmÑn", Cp865 }, // from swedish.words
+    { "allmÑnhet", Cp865 }, // from swedish.words
+    { "allmÑnheten", Cp865 }, // from swedish.words
+    { "allmÑnhetens", Cp865 }, // from swedish.words
+    { "allmÑnna", Cp865 }, // from swedish.words
+    { "allmÑnt", Cp865 }, // from swedish.words
     { "allmählich", MacRoman }, // from german.words
+    { "allmän", MacRoman }, // from swedish.words
+    { "allmänhet", MacRoman }, // from swedish.words
+    { "allmänheten", MacRoman }, // from swedish.words
+    { "allmänhetens", MacRoman }, // from swedish.words
+    { "allmänna", MacRoman }, // from swedish.words
+    { "allmänt", MacRoman }, // from swedish.words
     { "allm‰hlich", Iso885915 }, // from german.words
+    { "allm‰n", Iso885915 }, // from swedish.words
+    { "allm‰nhet", Iso885915 }, // from swedish.words
+    { "allm‰nheten", Iso885915 }, // from swedish.words
+    { "allm‰nhetens", Iso885915 }, // from swedish.words
+    { "allm‰nna", Iso885915 }, // from swedish.words
+    { "allm‰nt", Iso885915 }, // from swedish.words
+    { "alltfîr", Cp865 }, // from swedish.words
+    { "alltför", MacRoman }, // from swedish.words
+    { "alltfˆr", Iso885915 }, // from swedish.words
+    { "alltjÑmt", Cp865 }, // from swedish.words
+    { "alltjämt", MacRoman }, // from swedish.words
+    { "alltj‰mt", Iso885915 }, // from swedish.words
     { "allÇ", Cp437 }, // from french.words
     { "allé", MacRoman }, // from french.words
     { "allÈ", Iso885915 }, // from french.words
@@ -214,8 +265,11 @@ static const struct {
     { "amatõrer", Cp865 }, // from norwegian.words
     { "amatører", MacRoman }, // from norwegian.words
     { "amat¯rer", Iso885915 }, // from norwegian.words
+    { "ambassadîr", Cp865 }, // from swedish.words
+    { "ambassadör", MacRoman }, // from swedish.words
     { "ambassadõr", Cp865 }, // from norwegian.words
     { "ambassadør", MacRoman }, // from norwegian.words
+    { "ambassadˆr", Iso885915 }, // from swedish.words
     { "ambassad¯r", Iso885915 }, // from norwegian.words
     { "ambisiõse", Cp865 }, // from norwegian.words
     { "ambisiøse", MacRoman }, // from norwegian.words
@@ -254,6 +308,12 @@ static const struct {
     { "amÈricaine", Iso885915 }, // from french.words
     { "amÈricaines", Iso885915 }, // from french.words
     { "amÈricains", Iso885915 }, // from french.words
+    { "andrÇ", Cp865 }, // from swedish.words
+    { "andrÇe", Cp865 }, // from swedish.words
+    { "andré", MacRoman }, // from swedish.words
+    { "andrée", MacRoman }, // from swedish.words
+    { "andrÈ", Iso885915 }, // from swedish.words
+    { "andrÈe", Iso885915 }, // from swedish.words
     { "anfõrt", Cp865 }, // from norwegian.words
     { "anført", MacRoman }, // from norwegian.words
     { "anf¯rt", Iso885915 }, // from norwegian.words
@@ -275,21 +335,69 @@ static const struct {
     { "angek¸ndigt", Iso885915 }, // from german.words
     { "angek¸ndigte", Iso885915 }, // from german.words
     { "angek¸ndigten", Iso885915 }, // from german.words
+    { "angelÑgen", Cp865 }, // from swedish.words
+    { "angelÑgenhet", Cp865 }, // from swedish.words
+    { "angelÑget", Cp865 }, // from swedish.words
+    { "angelÑgna", Cp865 }, // from swedish.words
+    { "angelägen", MacRoman }, // from swedish.words
+    { "angelägenhet", MacRoman }, // from swedish.words
+    { "angeläget", MacRoman }, // from swedish.words
+    { "angelägna", MacRoman }, // from swedish.words
+    { "angel‰gen", Iso885915 }, // from swedish.words
+    { "angel‰genhet", Iso885915 }, // from swedish.words
+    { "angel‰get", Iso885915 }, // from swedish.words
+    { "angel‰gna", Iso885915 }, // from swedish.words
     { "angepaßt", MacRoman }, // from german.words
     { "angepaﬂt", Iso885915 }, // from german.words
     { "angepa·t", Cp437 }, // from german.words
     { "angÜr", Cp865 }, // from norwegian.words
     { "angår", MacRoman }, // from norwegian.words
     { "angÂr", Iso885915 }, // from norwegian.words
+    { "anhÑngare", Cp865 }, // from swedish.words
+    { "anhängare", MacRoman }, // from swedish.words
+    { "anhîriga", Cp865 }, // from swedish.words
+    { "anhöriga", MacRoman }, // from swedish.words
+    { "anh‰ngare", Iso885915 }, // from swedish.words
+    { "anhˆriga", Iso885915 }, // from swedish.words
     { "animÇ", Cp437 }, // from french.words
     { "animÇs", Cp437 }, // from french.words
     { "animé", MacRoman }, // from french.words
     { "animés", MacRoman }, // from french.words
     { "animÈ", Iso885915 }, // from french.words
     { "animÈs", Iso885915 }, // from french.words
+    { "anlÑggning", Cp865 }, // from swedish.words
+    { "anlÑggningar", Cp865 }, // from swedish.words
+    { "anlÑggningen", Cp865 }, // from swedish.words
+    { "anlÑnde", Cp865 }, // from swedish.words
+    { "anlÑnder", Cp865 }, // from swedish.words
     { "anlÑ·lich", Cp437 }, // from german.words
+    { "anläggning", MacRoman }, // from swedish.words
+    { "anläggningar", MacRoman }, // from swedish.words
+    { "anläggningen", MacRoman }, // from swedish.words
+    { "anlände", MacRoman }, // from swedish.words
+    { "anländer", MacRoman }, // from swedish.words
     { "anläßlich", MacRoman }, // from german.words
+    { "anl‰ggning", Iso885915 }, // from swedish.words
+    { "anl‰ggningar", Iso885915 }, // from swedish.words
+    { "anl‰ggningen", Iso885915 }, // from swedish.words
+    { "anl‰nde", Iso885915 }, // from swedish.words
+    { "anl‰nder", Iso885915 }, // from swedish.words
     { "anl‰ﬂlich", Iso885915 }, // from german.words
+    { "anmÑla", Cp865 }, // from swedish.words
+    { "anmÑlan", Cp865 }, // from swedish.words
+    { "anmÑlningar", Cp865 }, // from swedish.words
+    { "anmÑlt", Cp865 }, // from swedish.words
+    { "anmÑrkningsvÑrt", Cp865 }, // from swedish.words
+    { "anmäla", MacRoman }, // from swedish.words
+    { "anmälan", MacRoman }, // from swedish.words
+    { "anmälningar", MacRoman }, // from swedish.words
+    { "anmält", MacRoman }, // from swedish.words
+    { "anmärkningsvärt", MacRoman }, // from swedish.words
+    { "anm‰la", Iso885915 }, // from swedish.words
+    { "anm‰lan", Iso885915 }, // from swedish.words
+    { "anm‰lningar", Iso885915 }, // from swedish.words
+    { "anm‰lt", Iso885915 }, // from swedish.words
+    { "anm‰rkningsv‰rt", Iso885915 }, // from swedish.words
     { "annoncÇ", Cp437 }, // from french.words
     { "annoncÇe", Cp437 }, // from french.words
     { "annoncÇes", Cp437 }, // from french.words
@@ -326,6 +434,27 @@ static const struct {
     { "anslått", MacRoman }, // from norwegian.words
     { "anslÂr", Iso885915 }, // from norwegian.words
     { "anslÂtt", Iso885915 }, // from norwegian.words
+    { "anstrÑngningar", Cp865 }, // from swedish.words
+    { "ansträngningar", MacRoman }, // from swedish.words
+    { "anstr‰ngningar", Iso885915 }, // from swedish.words
+    { "anstÑlla", Cp865 }, // from swedish.words
+    { "anstÑlld", Cp865 }, // from swedish.words
+    { "anstÑllda", Cp865 }, // from swedish.words
+    { "anstÑllning", Cp865 }, // from swedish.words
+    { "anställa", MacRoman }, // from swedish.words
+    { "anställd", MacRoman }, // from swedish.words
+    { "anställda", MacRoman }, // from swedish.words
+    { "anställning", MacRoman }, // from swedish.words
+    { "anst‰lla", Iso885915 }, // from swedish.words
+    { "anst‰lld", Iso885915 }, // from swedish.words
+    { "anst‰llda", Iso885915 }, // from swedish.words
+    { "anst‰llning", Iso885915 }, // from swedish.words
+    { "ansîkan", Cp865 }, // from swedish.words
+    { "ansîkningar", Cp865 }, // from swedish.words
+    { "ansökan", MacRoman }, // from swedish.words
+    { "ansökningar", MacRoman }, // from swedish.words
+    { "ansˆkan", Iso885915 }, // from swedish.words
+    { "ansˆkningar", Iso885915 }, // from swedish.words
     { "anticipÇ", Cp437 }, // from french.words
     { "anticipÇe", Cp437 }, // from french.words
     { "anticipé", MacRoman }, // from french.words
@@ -338,6 +467,39 @@ static const struct {
     { "antérieures", MacRoman }, // from french.words
     { "antÈrieurement", Iso885915 }, // from french.words
     { "antÈrieures", Iso885915 }, // from french.words
+    { "anvÑnd", Cp865 }, // from swedish.words
+    { "anvÑnda", Cp865 }, // from swedish.words
+    { "anvÑndas", Cp865 }, // from swedish.words
+    { "anvÑnde", Cp865 }, // from swedish.words
+    { "anvÑnder", Cp865 }, // from swedish.words
+    { "anvÑndes", Cp865 }, // from swedish.words
+    { "anvÑndning", Cp865 }, // from swedish.words
+    { "anvÑndningen", Cp865 }, // from swedish.words
+    { "anvÑnds", Cp865 }, // from swedish.words
+    { "anvÑnt", Cp865 }, // from swedish.words
+    { "anvÑnts", Cp865 }, // from swedish.words
+    { "använd", MacRoman }, // from swedish.words
+    { "använda", MacRoman }, // from swedish.words
+    { "användas", MacRoman }, // from swedish.words
+    { "använde", MacRoman }, // from swedish.words
+    { "använder", MacRoman }, // from swedish.words
+    { "användes", MacRoman }, // from swedish.words
+    { "användning", MacRoman }, // from swedish.words
+    { "användningen", MacRoman }, // from swedish.words
+    { "används", MacRoman }, // from swedish.words
+    { "använt", MacRoman }, // from swedish.words
+    { "använts", MacRoman }, // from swedish.words
+    { "anv‰nd", Iso885915 }, // from swedish.words
+    { "anv‰nda", Iso885915 }, // from swedish.words
+    { "anv‰ndas", Iso885915 }, // from swedish.words
+    { "anv‰nde", Iso885915 }, // from swedish.words
+    { "anv‰nder", Iso885915 }, // from swedish.words
+    { "anv‰ndes", Iso885915 }, // from swedish.words
+    { "anv‰ndning", Iso885915 }, // from swedish.words
+    { "anv‰ndningen", Iso885915 }, // from swedish.words
+    { "anv‰nds", Iso885915 }, // from swedish.words
+    { "anv‰nt", Iso885915 }, // from swedish.words
+    { "anv‰nts", Iso885915 }, // from swedish.words
     { "appelÇ", Cp437 }, // from french.words
     { "appelÇe", Cp437 }, // from french.words
     { "appelÇes", Cp437 }, // from french.words
@@ -398,15 +560,57 @@ static const struct {
     { "appÇtit", Cp437 }, // from french.words
     { "appétit", MacRoman }, // from french.words
     { "appÈtit", Iso885915 }, // from french.words
+    { "arbetsfîrmedlingen", Cp865 }, // from swedish.words
+    { "arbetsförmedlingen", MacRoman }, // from swedish.words
+    { "arbetsfˆrmedlingen", Iso885915 }, // from swedish.words
+    { "arbetslîs", Cp865 }, // from swedish.words
+    { "arbetslîsa", Cp865 }, // from swedish.words
+    { "arbetslîshet", Cp865 }, // from swedish.words
+    { "arbetslîsheten", Cp865 }, // from swedish.words
+    { "arbetslös", MacRoman }, // from swedish.words
+    { "arbetslösa", MacRoman }, // from swedish.words
+    { "arbetslöshet", MacRoman }, // from swedish.words
+    { "arbetslösheten", MacRoman }, // from swedish.words
+    { "arbetslˆs", Iso885915 }, // from swedish.words
+    { "arbetslˆsa", Iso885915 }, // from swedish.words
+    { "arbetslˆshet", Iso885915 }, // from swedish.words
+    { "arbetslˆsheten", Iso885915 }, // from swedish.words
+    { "arbetsmiljî", Cp865 }, // from swedish.words
+    { "arbetsmiljö", MacRoman }, // from swedish.words
+    { "arbetsmiljˆ", Iso885915 }, // from swedish.words
+    { "arbetsrÑtt", Cp865 }, // from swedish.words
+    { "arbetsrÑtten", Cp865 }, // from swedish.words
+    { "arbetsrätt", MacRoman }, // from swedish.words
+    { "arbetsrätten", MacRoman }, // from swedish.words
+    { "arbetsr‰tt", Iso885915 }, // from swedish.words
+    { "arbetsr‰tten", Iso885915 }, // from swedish.words
+    { "arbetstidsfîrkortning", Cp865 }, // from swedish.words
+    { "arbetstidsförkortning", MacRoman }, // from swedish.words
+    { "arbetstidsfˆrkortning", Iso885915 }, // from swedish.words
+    { "arbetstillfÑllen", Cp865 }, // from swedish.words
+    { "arbetstillfällen", MacRoman }, // from swedish.words
+    { "arbetstillf‰llen", Iso885915 }, // from swedish.words
+    { "armÇ", Cp865 }, // from swedish.words
     { "armÇe", Cp437 }, // from french.words
+    { "armÇn", Cp865 }, // from swedish.words
+    { "armÇns", Cp865 }, // from swedish.words
+    { "armé", MacRoman }, // from swedish.words
     { "armée", MacRoman }, // from french.words
+    { "armén", MacRoman }, // from swedish.words
+    { "arméns", MacRoman }, // from swedish.words
+    { "armÈ", Iso885915 }, // from swedish.words
     { "armÈe", Iso885915 }, // from french.words
+    { "armÈn", Iso885915 }, // from swedish.words
+    { "armÈns", Iso885915 }, // from swedish.words
+    { "arrangîrerna", Cp865 }, // from swedish.words
+    { "arrangörerna", MacRoman }, // from swedish.words
     { "arrangõr", Cp865 }, // from norwegian.words
     { "arrangõren", Cp865 }, // from norwegian.words
     { "arrangõrene", Cp865 }, // from norwegian.words
     { "arrangør", MacRoman }, // from norwegian.words
     { "arrangøren", MacRoman }, // from norwegian.words
     { "arrangørene", MacRoman }, // from norwegian.words
+    { "arrangˆrerna", Iso885915 }, // from swedish.words
     { "arrang¯r", Iso885915 }, // from norwegian.words
     { "arrang¯ren", Iso885915 }, // from norwegian.words
     { "arrang¯rene", Iso885915 }, // from norwegian.words
@@ -461,10 +665,19 @@ static const struct {
     { "asylsõkere", Cp865 }, // from norwegian.words
     { "asylsøkere", MacRoman }, // from norwegian.words
     { "asyls¯kere", Iso885915 }, // from norwegian.words
+    { "ateljÇ", Cp865 }, // from swedish.words
+    { "ateljé", MacRoman }, // from swedish.words
+    { "ateljÈ", Iso885915 }, // from swedish.words
+    { "atmosfÑr", Cp865 }, // from swedish.words
+    { "atmosfÑren", Cp865 }, // from swedish.words
+    { "atmosfär", MacRoman }, // from swedish.words
+    { "atmosfären", MacRoman }, // from swedish.words
     { "atmosfëre", Cp865 }, // from norwegian.words
     { "atmosfëren", Cp865 }, // from norwegian.words
     { "atmosfære", MacRoman }, // from norwegian.words
     { "atmosfæren", MacRoman }, // from norwegian.words
+    { "atmosf‰r", Iso885915 }, // from swedish.words
+    { "atmosf‰ren", Iso885915 }, // from swedish.words
     { "atmosfÊre", Iso885915 }, // from norwegian.words
     { "atmosfÊren", Iso885915 }, // from norwegian.words
     { "atomvÜpen", Cp865 }, // from norwegian.words
@@ -605,6 +818,9 @@ static const struct {
     { "avancÈe", Iso885915 }, // from french.words
     { "avancÈes", Iso885915 }, // from french.words
     { "avancÈs", Iso885915 }, // from french.words
+    { "avbrît", Cp865 }, // from swedish.words
+    { "avbröt", MacRoman }, // from swedish.words
+    { "avbrˆt", Iso885915 }, // from swedish.words
     { "avdelingsdirektõr", Cp865 }, // from norwegian.words
     { "avdelingsdirektør", MacRoman }, // from norwegian.words
     { "avdelingsdirekt¯r", Iso885915 }, // from norwegian.words
@@ -634,7 +850,25 @@ static const struct {
     { "avgj¯res", Iso885915 }, // from norwegian.words
     { "avgÜrde", Cp865 }, // from norwegian.words
     { "avgårde", MacRoman }, // from norwegian.words
+    { "avgîr", Cp865 }, // from swedish.words
+    { "avgîra", Cp865 }, // from swedish.words
+    { "avgîrande", Cp865 }, // from swedish.words
+    { "avgîrandet", Cp865 }, // from swedish.words
+    { "avgîras", Cp865 }, // from swedish.words
+    { "avgîrs", Cp865 }, // from swedish.words
+    { "avgör", MacRoman }, // from swedish.words
+    { "avgöra", MacRoman }, // from swedish.words
+    { "avgörande", MacRoman }, // from swedish.words
+    { "avgörandet", MacRoman }, // from swedish.words
+    { "avgöras", MacRoman }, // from swedish.words
+    { "avgörs", MacRoman }, // from swedish.words
     { "avgÂrde", Iso885915 }, // from norwegian.words
+    { "avgˆr", Iso885915 }, // from swedish.words
+    { "avgˆra", Iso885915 }, // from swedish.words
+    { "avgˆrande", Iso885915 }, // from swedish.words
+    { "avgˆrandet", Iso885915 }, // from swedish.words
+    { "avgˆras", Iso885915 }, // from swedish.words
+    { "avgˆrs", Iso885915 }, // from swedish.words
     { "avhõr", Cp865 }, // from norwegian.words
     { "avhõrt", Cp865 }, // from norwegian.words
     { "avhør", MacRoman }, // from norwegian.words
@@ -644,11 +878,27 @@ static const struct {
     { "avkjõl", Cp865 }, // from norwegian.words
     { "avkjøl", MacRoman }, // from norwegian.words
     { "avkj¯l", Iso885915 }, // from norwegian.words
+    { "avlÑgsna", Cp865 }, // from swedish.words
+    { "avlägsna", MacRoman }, // from swedish.words
+    { "avl‰gsna", Iso885915 }, // from swedish.words
     { "avouÇ", Cp437 }, // from french.words
     { "avoué", MacRoman }, // from french.words
     { "avouÈ", Iso885915 }, // from french.words
+    { "avsevÑrt", Cp865 }, // from swedish.words
+    { "avsevärt", MacRoman }, // from swedish.words
+    { "avsev‰rt", Iso885915 }, // from swedish.words
     { "avslÜtt", Cp865 }, // from norwegian.words
     { "avslått", MacRoman }, // from norwegian.words
+    { "avslîja", Cp865 }, // from swedish.words
+    { "avslîjade", Cp865 }, // from swedish.words
+    { "avslîjades", Cp865 }, // from swedish.words
+    { "avslîjar", Cp865 }, // from swedish.words
+    { "avslîjas", Cp865 }, // from swedish.words
+    { "avslöja", MacRoman }, // from swedish.words
+    { "avslöjade", MacRoman }, // from swedish.words
+    { "avslöjades", MacRoman }, // from swedish.words
+    { "avslöjar", MacRoman }, // from swedish.words
+    { "avslöjas", MacRoman }, // from swedish.words
     { "avslõre", Cp865 }, // from norwegian.words
     { "avslõrer", Cp865 }, // from norwegian.words
     { "avslõrt", Cp865 }, // from norwegian.words
@@ -658,10 +908,18 @@ static const struct {
     { "avslørt", MacRoman }, // from norwegian.words
     { "avslørte", MacRoman }, // from norwegian.words
     { "avslÂtt", Iso885915 }, // from norwegian.words
+    { "avslˆja", Iso885915 }, // from swedish.words
+    { "avslˆjade", Iso885915 }, // from swedish.words
+    { "avslˆjades", Iso885915 }, // from swedish.words
+    { "avslˆjar", Iso885915 }, // from swedish.words
+    { "avslˆjas", Iso885915 }, // from swedish.words
     { "avsl¯re", Iso885915 }, // from norwegian.words
     { "avsl¯rer", Iso885915 }, // from norwegian.words
     { "avsl¯rt", Iso885915 }, // from norwegian.words
     { "avsl¯rte", Iso885915 }, // from norwegian.words
+    { "avstÑngd", Cp865 }, // from swedish.words
+    { "avstängd", MacRoman }, // from swedish.words
+    { "avst‰ngd", Iso885915 }, // from swedish.words
     { "avÇrÇ", Cp437 }, // from french.words
     { "avéré", MacRoman }, // from french.words
     { "avÈrÈ", Iso885915 }, // from french.words
@@ -692,12 +950,18 @@ static const struct {
     { "baissÇ", Cp437 }, // from french.words
     { "baissé", MacRoman }, // from french.words
     { "baissÈ", Iso885915 }, // from french.words
+    { "baklÑnges", Cp865 }, // from swedish.words
+    { "baklänges", MacRoman }, // from swedish.words
+    { "bakl‰nges", Iso885915 }, // from swedish.words
     { "baptisÇ", Cp437 }, // from french.words
     { "baptisÇe", Cp437 }, // from french.words
     { "baptisé", MacRoman }, // from french.words
     { "baptisée", MacRoman }, // from french.words
     { "baptisÈ", Iso885915 }, // from french.words
     { "baptisÈe", Iso885915 }, // from french.words
+    { "barsebÑck", Cp865 }, // from swedish.words
+    { "barsebäck", MacRoman }, // from swedish.words
+    { "barseb‰ck", Iso885915 }, // from swedish.words
     { "basÇ", Cp437 }, // from french.words
     { "basÇe", Cp437 }, // from french.words
     { "basÇes", Cp437 }, // from french.words
@@ -713,6 +977,27 @@ static const struct {
     { "beautÇ", Cp437 }, // from french.words
     { "beauté", MacRoman }, // from french.words
     { "beautÈ", Iso885915 }, // from french.words
+    { "bedîma", Cp865 }, // from swedish.words
+    { "bedîmare", Cp865 }, // from swedish.words
+    { "bedîmer", Cp865 }, // from swedish.words
+    { "bedîmning", Cp865 }, // from swedish.words
+    { "bedîmningar", Cp865 }, // from swedish.words
+    { "bedîmningen", Cp865 }, // from swedish.words
+    { "bedîms", Cp865 }, // from swedish.words
+    { "bedöma", MacRoman }, // from swedish.words
+    { "bedömare", MacRoman }, // from swedish.words
+    { "bedömer", MacRoman }, // from swedish.words
+    { "bedömning", MacRoman }, // from swedish.words
+    { "bedömningar", MacRoman }, // from swedish.words
+    { "bedömningen", MacRoman }, // from swedish.words
+    { "bedöms", MacRoman }, // from swedish.words
+    { "bedˆma", Iso885915 }, // from swedish.words
+    { "bedˆmare", Iso885915 }, // from swedish.words
+    { "bedˆmer", Iso885915 }, // from swedish.words
+    { "bedˆmning", Iso885915 }, // from swedish.words
+    { "bedˆmningar", Iso885915 }, // from swedish.words
+    { "bedˆmningen", Iso885915 }, // from swedish.words
+    { "bedˆms", Iso885915 }, // from swedish.words
     { "beeinflußt", MacRoman }, // from german.words
     { "beeinfluﬂt", Iso885915 }, // from german.words
     { "beeinflu·t", Cp437 }, // from german.words
@@ -725,11 +1010,14 @@ static const struct {
     { "befÅrchten", Cp437 }, // from german.words
     { "befÅrchtet", Cp437 }, // from german.words
     { "befÅrwortet", Cp437 }, // from german.words
+    { "befÑl", Cp865 }, // from swedish.words
+    { "befäl", MacRoman }, // from swedish.words
     { "befîrdert", Cp437 }, // from german.words
     { "befördert", MacRoman }, // from german.words
     { "befürchten", MacRoman }, // from german.words
     { "befürchtet", MacRoman }, // from german.words
     { "befürwortet", MacRoman }, // from german.words
+    { "bef‰l", Iso885915 }, // from swedish.words
     { "befˆrdert", Iso885915 }, // from german.words
     { "bef¸rchten", Iso885915 }, // from german.words
     { "bef¸rchtet", Iso885915 }, // from german.words
@@ -744,6 +1032,22 @@ static const struct {
     { "begrÅ·en", Cp437 }, // from german.words
     { "begrÅ·t", Cp437 }, // from german.words
     { "begrÅ·te", Cp437 }, // from german.words
+    { "begrÑnsa", Cp865 }, // from swedish.words
+    { "begrÑnsad", Cp865 }, // from swedish.words
+    { "begrÑnsade", Cp865 }, // from swedish.words
+    { "begrÑnsar", Cp865 }, // from swedish.words
+    { "begrÑnsas", Cp865 }, // from swedish.words
+    { "begrÑnsat", Cp865 }, // from swedish.words
+    { "begrÑnsning", Cp865 }, // from swedish.words
+    { "begrÑnsningar", Cp865 }, // from swedish.words
+    { "begränsa", MacRoman }, // from swedish.words
+    { "begränsad", MacRoman }, // from swedish.words
+    { "begränsade", MacRoman }, // from swedish.words
+    { "begränsar", MacRoman }, // from swedish.words
+    { "begränsas", MacRoman }, // from swedish.words
+    { "begränsat", MacRoman }, // from swedish.words
+    { "begränsning", MacRoman }, // from swedish.words
+    { "begränsningar", MacRoman }, // from swedish.words
     { "begründen", MacRoman }, // from german.words
     { "begründet", MacRoman }, // from german.words
     { "begründete", MacRoman }, // from german.words
@@ -751,6 +1055,14 @@ static const struct {
     { "begrüßen", MacRoman }, // from german.words
     { "begrüßt", MacRoman }, // from german.words
     { "begrüßte", MacRoman }, // from german.words
+    { "begr‰nsa", Iso885915 }, // from swedish.words
+    { "begr‰nsad", Iso885915 }, // from swedish.words
+    { "begr‰nsade", Iso885915 }, // from swedish.words
+    { "begr‰nsar", Iso885915 }, // from swedish.words
+    { "begr‰nsas", Iso885915 }, // from swedish.words
+    { "begr‰nsat", Iso885915 }, // from swedish.words
+    { "begr‰nsning", Iso885915 }, // from swedish.words
+    { "begr‰nsningar", Iso885915 }, // from swedish.words
     { "begr¸nden", Iso885915 }, // from german.words
     { "begr¸ndet", Iso885915 }, // from german.words
     { "begr¸ndete", Iso885915 }, // from german.words
@@ -758,29 +1070,94 @@ static const struct {
     { "begr¸ﬂen", Iso885915 }, // from german.words
     { "begr¸ﬂt", Iso885915 }, // from german.words
     { "begr¸ﬂte", Iso885915 }, // from german.words
+    { "begÑr", Cp865 }, // from swedish.words
+    { "begÑra", Cp865 }, // from swedish.words
+    { "begÑran", Cp865 }, // from swedish.words
+    { "begÑrde", Cp865 }, // from swedish.words
+    { "begÑrt", Cp865 }, // from swedish.words
     { "begÜtt", Cp865 }, // from norwegian.words
+    { "begär", MacRoman }, // from swedish.words
+    { "begära", MacRoman }, // from swedish.words
+    { "begäran", MacRoman }, // from swedish.words
+    { "begärde", MacRoman }, // from swedish.words
+    { "begärt", MacRoman }, // from swedish.words
     { "begått", MacRoman }, // from norwegian.words
+    { "beg‰r", Iso885915 }, // from swedish.words
+    { "beg‰ra", Iso885915 }, // from swedish.words
+    { "beg‰ran", Iso885915 }, // from swedish.words
+    { "beg‰rde", Iso885915 }, // from swedish.words
+    { "beg‰rt", Iso885915 }, // from swedish.words
     { "begÂtt", Iso885915 }, // from norwegian.words
     { "behÑlt", Cp437 }, // from german.words
+    { "behÑrska", Cp865 }, // from swedish.words
+    { "behÑrskar", Cp865 }, // from swedish.words
     { "behält", MacRoman }, // from german.words
+    { "behärska", MacRoman }, // from swedish.words
+    { "behärskar", MacRoman }, // from swedish.words
+    { "behîll", Cp865 }, // from swedish.words
+    { "behîva", Cp865 }, // from swedish.words
+    { "behîvas", Cp865 }, // from swedish.words
+    { "behîvde", Cp865 }, // from swedish.words
+    { "behîvdes", Cp865 }, // from swedish.words
+    { "behîver", Cp865 }, // from swedish.words
+    { "behîvs", Cp865 }, // from swedish.words
+    { "behîvt", Cp865 }, // from swedish.words
+    { "behöll", MacRoman }, // from swedish.words
+    { "behöva", MacRoman }, // from swedish.words
+    { "behövas", MacRoman }, // from swedish.words
+    { "behövde", MacRoman }, // from swedish.words
+    { "behövdes", MacRoman }, // from swedish.words
+    { "behöver", MacRoman }, // from swedish.words
+    { "behövs", MacRoman }, // from swedish.words
+    { "behövt", MacRoman }, // from swedish.words
     { "behõver", Cp865 }, // from norwegian.words
     { "behøver", MacRoman }, // from norwegian.words
     { "beh‰lt", Iso885915 }, // from german.words
+    { "beh‰rska", Iso885915 }, // from swedish.words
+    { "beh‰rskar", Iso885915 }, // from swedish.words
+    { "behˆll", Iso885915 }, // from swedish.words
+    { "behˆva", Iso885915 }, // from swedish.words
+    { "behˆvas", Iso885915 }, // from swedish.words
+    { "behˆvde", Iso885915 }, // from swedish.words
+    { "behˆvdes", Iso885915 }, // from swedish.words
+    { "behˆver", Iso885915 }, // from swedish.words
+    { "behˆvs", Iso885915 }, // from swedish.words
+    { "behˆvt", Iso885915 }, // from swedish.words
     { "beh¯ver", Iso885915 }, // from norwegian.words
+    { "bekrÑfta", Cp865 }, // from swedish.words
+    { "bekrÑftade", Cp865 }, // from swedish.words
+    { "bekrÑftar", Cp865 }, // from swedish.words
+    { "bekrÑftelse", Cp865 }, // from swedish.words
     { "bekrÑftigt", Cp437 }, // from german.words
     { "bekrÑftigte", Cp437 }, // from german.words
+    { "bekräfta", MacRoman }, // from swedish.words
+    { "bekräftade", MacRoman }, // from swedish.words
+    { "bekräftar", MacRoman }, // from swedish.words
+    { "bekräftelse", MacRoman }, // from swedish.words
     { "bekräftigt", MacRoman }, // from german.words
     { "bekräftigte", MacRoman }, // from german.words
+    { "bekr‰fta", Iso885915 }, // from swedish.words
+    { "bekr‰ftade", Iso885915 }, // from swedish.words
+    { "bekr‰ftar", Iso885915 }, // from swedish.words
+    { "bekr‰ftelse", Iso885915 }, // from swedish.words
     { "bekr‰ftigt", Iso885915 }, // from german.words
     { "bekr‰ftigte", Iso885915 }, // from german.words
+    { "bekvÑmt", Cp865 }, // from swedish.words
+    { "bekvämt", MacRoman }, // from swedish.words
+    { "bekv‰mt", Iso885915 }, // from swedish.words
+    { "bekÑmpa", Cp865 }, // from swedish.words
     { "bekÑmpfen", Cp437 }, // from german.words
     { "bekÑmpft", Cp437 }, // from german.words
+    { "bekämpa", MacRoman }, // from swedish.words
     { "bekämpfen", MacRoman }, // from german.words
     { "bekämpft", MacRoman }, // from german.words
+    { "bek‰mpa", Iso885915 }, // from swedish.words
     { "bek‰mpfen", Iso885915 }, // from german.words
     { "bek‰mpft", Iso885915 }, // from german.words
     { "belÑuft", Cp437 }, // from german.words
     { "beläuft", MacRoman }, // from german.words
+    { "belîning", Cp865 }, // from swedish.words
+    { "belöning", MacRoman }, // from swedish.words
     { "belõnnet", Cp865 }, // from norwegian.words
     { "belõp", Cp865 }, // from norwegian.words
     { "belõpet", Cp865 }, // from norwegian.words
@@ -788,15 +1165,19 @@ static const struct {
     { "beløp", MacRoman }, // from norwegian.words
     { "beløpet", MacRoman }, // from norwegian.words
     { "bel‰uft", Iso885915 }, // from german.words
+    { "belˆning", Iso885915 }, // from swedish.words
     { "bel¯nnet", Iso885915 }, // from norwegian.words
     { "bel¯p", Iso885915 }, // from norwegian.words
     { "bel¯pet", Iso885915 }, // from norwegian.words
     { "bemÅhen", Cp437 }, // from german.words
     { "bemÅht", Cp437 }, // from german.words
     { "bemÅhte", Cp437 }, // from german.words
+    { "bemÑrkelse", Cp865 }, // from swedish.words
+    { "bemärkelse", MacRoman }, // from swedish.words
     { "bemühen", MacRoman }, // from german.words
     { "bemüht", MacRoman }, // from german.words
     { "bemühte", MacRoman }, // from german.words
+    { "bem‰rkelse", Iso885915 }, // from swedish.words
     { "bem¸hen", Iso885915 }, // from german.words
     { "bem¸ht", Iso885915 }, // from german.words
     { "bem¸hte", Iso885915 }, // from german.words
@@ -812,14 +1193,53 @@ static const struct {
     { "benˆtigt", Iso885915 }, // from german.words
     { "benˆtigte", Iso885915 }, // from german.words
     { "benˆtigten", Iso885915 }, // from german.words
+    { "bergstrîm", Cp865 }, // from swedish.words
+    { "bergström", MacRoman }, // from swedish.words
+    { "bergstrˆm", Iso885915 }, // from swedish.words
     { "berÅcksichtigen", Cp437 }, // from german.words
     { "berÅcksichtigt", Cp437 }, // from german.words
     { "berÅhmt", Cp437 }, // from german.words
     { "berÅhmte", Cp437 }, // from german.words
     { "berÅhmten", Cp437 }, // from german.words
     { "berÅhrt", Cp437 }, // from german.words
+    { "berÑknas", Cp865 }, // from swedish.words
+    { "berÑknat", Cp865 }, // from swedish.words
+    { "berÑkningar", Cp865 }, // from swedish.words
     { "berÑt", Cp437 }, // from german.words
+    { "berÑtta", Cp865 }, // from swedish.words
+    { "berÑttade", Cp865 }, // from swedish.words
+    { "berÑttar", Cp865 }, // from swedish.words
+    { "berÑttas", Cp865 }, // from swedish.words
+    { "berÑttat", Cp865 }, // from swedish.words
+    { "berÑttelse", Cp865 }, // from swedish.words
+    { "berÑttelsen", Cp865 }, // from swedish.words
+    { "berÑttelser", Cp865 }, // from swedish.words
+    { "beräknas", MacRoman }, // from swedish.words
+    { "beräknat", MacRoman }, // from swedish.words
+    { "beräkningar", MacRoman }, // from swedish.words
     { "berät", MacRoman }, // from german.words
+    { "berätta", MacRoman }, // from swedish.words
+    { "berättade", MacRoman }, // from swedish.words
+    { "berättar", MacRoman }, // from swedish.words
+    { "berättas", MacRoman }, // from swedish.words
+    { "berättat", MacRoman }, // from swedish.words
+    { "berättelse", MacRoman }, // from swedish.words
+    { "berättelsen", MacRoman }, // from swedish.words
+    { "berättelser", MacRoman }, // from swedish.words
+    { "berîm", Cp865 }, // from swedish.words
+    { "berîmd", Cp865 }, // from swedish.words
+    { "berîmda", Cp865 }, // from swedish.words
+    { "berîmde", Cp865 }, // from swedish.words
+    { "berîr", Cp865 }, // from swedish.words
+    { "berîrda", Cp865 }, // from swedish.words
+    { "berîrs", Cp865 }, // from swedish.words
+    { "beröm", MacRoman }, // from swedish.words
+    { "berömd", MacRoman }, // from swedish.words
+    { "berömda", MacRoman }, // from swedish.words
+    { "berömde", MacRoman }, // from swedish.words
+    { "berör", MacRoman }, // from swedish.words
+    { "berörda", MacRoman }, // from swedish.words
+    { "berörs", MacRoman }, // from swedish.words
     { "berõmt", Cp865 }, // from norwegian.words
     { "berõmte", Cp865 }, // from norwegian.words
     { "berõrer", Cp865 }, // from norwegian.words
@@ -836,7 +1256,25 @@ static const struct {
     { "berører", MacRoman }, // from norwegian.words
     { "berørt", MacRoman }, // from norwegian.words
     { "berørte", MacRoman }, // from norwegian.words
+    { "ber‰knas", Iso885915 }, // from swedish.words
+    { "ber‰knat", Iso885915 }, // from swedish.words
+    { "ber‰kningar", Iso885915 }, // from swedish.words
     { "ber‰t", Iso885915 }, // from german.words
+    { "ber‰tta", Iso885915 }, // from swedish.words
+    { "ber‰ttade", Iso885915 }, // from swedish.words
+    { "ber‰ttar", Iso885915 }, // from swedish.words
+    { "ber‰ttas", Iso885915 }, // from swedish.words
+    { "ber‰ttat", Iso885915 }, // from swedish.words
+    { "ber‰ttelse", Iso885915 }, // from swedish.words
+    { "ber‰ttelsen", Iso885915 }, // from swedish.words
+    { "ber‰ttelser", Iso885915 }, // from swedish.words
+    { "berˆm", Iso885915 }, // from swedish.words
+    { "berˆmd", Iso885915 }, // from swedish.words
+    { "berˆmda", Iso885915 }, // from swedish.words
+    { "berˆmde", Iso885915 }, // from swedish.words
+    { "berˆr", Iso885915 }, // from swedish.words
+    { "berˆrda", Iso885915 }, // from swedish.words
+    { "berˆrs", Iso885915 }, // from swedish.words
     { "ber¯mt", Iso885915 }, // from norwegian.words
     { "ber¯mte", Iso885915 }, // from norwegian.words
     { "ber¯rer", Iso885915 }, // from norwegian.words
@@ -878,6 +1316,19 @@ static const struct {
     { "besch‰ftigen", Iso885915 }, // from german.words
     { "besch‰ftigt", Iso885915 }, // from german.words
     { "besch‰ftigte", Iso885915 }, // from german.words
+    { "beslît", Cp865 }, // from swedish.words
+    { "beslöt", MacRoman }, // from swedish.words
+    { "beslˆt", Iso885915 }, // from swedish.words
+    { "bestÑlla", Cp865 }, // from swedish.words
+    { "bestÑllde", Cp865 }, // from swedish.words
+    { "bestÑllt", Cp865 }, // from swedish.words
+    { "bestÑmd", Cp865 }, // from swedish.words
+    { "bestÑmda", Cp865 }, // from swedish.words
+    { "bestÑmde", Cp865 }, // from swedish.words
+    { "bestÑmma", Cp865 }, // from swedish.words
+    { "bestÑmmelser", Cp865 }, // from swedish.words
+    { "bestÑmmer", Cp865 }, // from swedish.words
+    { "bestÑmt", Cp865 }, // from swedish.words
     { "bestÑtigen", Cp437 }, // from german.words
     { "bestÑtigt", Cp437 }, // from german.words
     { "bestÑtigte", Cp437 }, // from german.words
@@ -885,6 +1336,16 @@ static const struct {
     { "bestÜ", Cp865 }, // from norwegian.words
     { "bestÜende", Cp865 }, // from norwegian.words
     { "bestÜr", Cp865 }, // from norwegian.words
+    { "beställa", MacRoman }, // from swedish.words
+    { "beställde", MacRoman }, // from swedish.words
+    { "beställt", MacRoman }, // from swedish.words
+    { "bestämd", MacRoman }, // from swedish.words
+    { "bestämda", MacRoman }, // from swedish.words
+    { "bestämde", MacRoman }, // from swedish.words
+    { "bestämma", MacRoman }, // from swedish.words
+    { "bestämmelser", MacRoman }, // from swedish.words
+    { "bestämmer", MacRoman }, // from swedish.words
+    { "bestämt", MacRoman }, // from swedish.words
     { "bestätigen", MacRoman }, // from german.words
     { "bestätigt", MacRoman }, // from german.words
     { "bestätigte", MacRoman }, // from german.words
@@ -892,6 +1353,16 @@ static const struct {
     { "bestå", MacRoman }, // from norwegian.words
     { "bestående", MacRoman }, // from norwegian.words
     { "består", MacRoman }, // from norwegian.words
+    { "best‰lla", Iso885915 }, // from swedish.words
+    { "best‰llde", Iso885915 }, // from swedish.words
+    { "best‰llt", Iso885915 }, // from swedish.words
+    { "best‰md", Iso885915 }, // from swedish.words
+    { "best‰mda", Iso885915 }, // from swedish.words
+    { "best‰mde", Iso885915 }, // from swedish.words
+    { "best‰mma", Iso885915 }, // from swedish.words
+    { "best‰mmelser", Iso885915 }, // from swedish.words
+    { "best‰mmer", Iso885915 }, // from swedish.words
+    { "best‰mt", Iso885915 }, // from swedish.words
     { "best‰tigen", Iso885915 }, // from german.words
     { "best‰tigt", Iso885915 }, // from german.words
     { "best‰tigte", Iso885915 }, // from german.words
@@ -899,6 +1370,39 @@ static const struct {
     { "bestÂ", Iso885915 }, // from norwegian.words
     { "bestÂende", Iso885915 }, // from norwegian.words
     { "bestÂr", Iso885915 }, // from norwegian.words
+    { "besvÑr", Cp865 }, // from swedish.words
+    { "besvÑrande", Cp865 }, // from swedish.words
+    { "besvÑrlig", Cp865 }, // from swedish.words
+    { "besvÑrliga", Cp865 }, // from swedish.words
+    { "besvÑrligt", Cp865 }, // from swedish.words
+    { "besvär", MacRoman }, // from swedish.words
+    { "besvärande", MacRoman }, // from swedish.words
+    { "besvärlig", MacRoman }, // from swedish.words
+    { "besvärliga", MacRoman }, // from swedish.words
+    { "besvärligt", MacRoman }, // from swedish.words
+    { "besv‰r", Iso885915 }, // from swedish.words
+    { "besv‰rande", Iso885915 }, // from swedish.words
+    { "besv‰rlig", Iso885915 }, // from swedish.words
+    { "besv‰rliga", Iso885915 }, // from swedish.words
+    { "besv‰rligt", Iso885915 }, // from swedish.words
+    { "besÑttningen", Cp865 }, // from swedish.words
+    { "besättningen", MacRoman }, // from swedish.words
+    { "besîk", Cp865 }, // from swedish.words
+    { "besîka", Cp865 }, // from swedish.words
+    { "besîkare", Cp865 }, // from swedish.words
+    { "besîkarna", Cp865 }, // from swedish.words
+    { "besîker", Cp865 }, // from swedish.words
+    { "besîket", Cp865 }, // from swedish.words
+    { "besîkt", Cp865 }, // from swedish.words
+    { "besîkte", Cp865 }, // from swedish.words
+    { "besök", MacRoman }, // from swedish.words
+    { "besöka", MacRoman }, // from swedish.words
+    { "besökare", MacRoman }, // from swedish.words
+    { "besökarna", MacRoman }, // from swedish.words
+    { "besöker", MacRoman }, // from swedish.words
+    { "besöket", MacRoman }, // from swedish.words
+    { "besökt", MacRoman }, // from swedish.words
+    { "besökte", MacRoman }, // from swedish.words
     { "besõk", Cp865 }, // from norwegian.words
     { "besõke", Cp865 }, // from norwegian.words
     { "besõkende", Cp865 }, // from norwegian.words
@@ -915,6 +1419,15 @@ static const struct {
     { "besøksforbud", MacRoman }, // from norwegian.words
     { "besøkt", MacRoman }, // from norwegian.words
     { "besøkte", MacRoman }, // from norwegian.words
+    { "bes‰ttningen", Iso885915 }, // from swedish.words
+    { "besˆk", Iso885915 }, // from swedish.words
+    { "besˆka", Iso885915 }, // from swedish.words
+    { "besˆkare", Iso885915 }, // from swedish.words
+    { "besˆkarna", Iso885915 }, // from swedish.words
+    { "besˆker", Iso885915 }, // from swedish.words
+    { "besˆket", Iso885915 }, // from swedish.words
+    { "besˆkt", Iso885915 }, // from swedish.words
+    { "besˆkte", Iso885915 }, // from swedish.words
     { "bes¯k", Iso885915 }, // from norwegian.words
     { "bes¯ke", Iso885915 }, // from norwegian.words
     { "bes¯kende", Iso885915 }, // from norwegian.words
@@ -924,13 +1437,25 @@ static const struct {
     { "bes¯kt", Iso885915 }, // from norwegian.words
     { "bes¯kte", Iso885915 }, // from norwegian.words
     { "betrÑchtlich", Cp437 }, // from german.words
+    { "betrÑffande", Cp865 }, // from swedish.words
+    { "betrÑffar", Cp865 }, // from swedish.words
     { "betrÑgt", Cp437 }, // from german.words
     { "beträchtlich", MacRoman }, // from german.words
+    { "beträffande", MacRoman }, // from swedish.words
+    { "beträffar", MacRoman }, // from swedish.words
     { "beträgt", MacRoman }, // from german.words
     { "betr‰chtlich", Iso885915 }, // from german.words
+    { "betr‰ffande", Iso885915 }, // from swedish.words
+    { "betr‰ffar", Iso885915 }, // from swedish.words
     { "betr‰gt", Iso885915 }, // from german.words
+    { "betÑnkande", Cp865 }, // from swedish.words
+    { "betänkande", MacRoman }, // from swedish.words
+    { "bet‰nkande", Iso885915 }, // from swedish.words
+    { "bevÑpnade", Cp865 }, // from swedish.words
+    { "beväpnade", MacRoman }, // from swedish.words
     { "bevëpnet", Cp865 }, // from norwegian.words
     { "bevæpnet", MacRoman }, // from norwegian.words
+    { "bev‰pnade", Iso885915 }, // from swedish.words
     { "bevÊpnet", Iso885915 }, // from norwegian.words
     { "bewußt", MacRoman }, // from german.words
     { "bewuﬂt", Iso885915 }, // from german.words
@@ -960,9 +1485,28 @@ static const struct {
     { "bistÜ", Cp865 }, // from norwegian.words
     { "bistå", MacRoman }, // from norwegian.words
     { "bistÂ", Iso885915 }, // from norwegian.words
+    { "bitrÑdande", Cp865 }, // from swedish.words
+    { "biträdande", MacRoman }, // from swedish.words
+    { "bitr‰dande", Iso885915 }, // from swedish.words
     { "bißchen", MacRoman }, // from german.words
     { "biﬂchen", Iso885915 }, // from german.words
     { "bi·chen", Cp437 }, // from german.words
+    { "bjîd", Cp865 }, // from swedish.words
+    { "bjîds", Cp865 }, // from swedish.words
+    { "bjîrck", Cp865 }, // from swedish.words
+    { "bjîrk", Cp865 }, // from swedish.words
+    { "bjîrklund", Cp865 }, // from swedish.words
+    { "bjîrkman", Cp865 }, // from swedish.words
+    { "bjîrn", Cp865 }, // from swedish.words
+    { "bjîrnen", Cp865 }, // from swedish.words
+    { "bjöd", MacRoman }, // from swedish.words
+    { "bjöds", MacRoman }, // from swedish.words
+    { "björck", MacRoman }, // from swedish.words
+    { "björk", MacRoman }, // from swedish.words
+    { "björklund", MacRoman }, // from swedish.words
+    { "björkman", MacRoman }, // from swedish.words
+    { "björn", MacRoman }, // from swedish.words
+    { "björnen", MacRoman }, // from swedish.words
     { "bjõrg", Cp865 }, // from norwegian.words
     { "bjõrgvin", Cp865 }, // from norwegian.words
     { "bjõrn", Cp865 }, // from norwegian.words
@@ -977,6 +1521,14 @@ static const struct {
     { "bjørnebye", MacRoman }, // from norwegian.words
     { "bjørnestad", MacRoman }, // from norwegian.words
     { "bjørnstad", MacRoman }, // from norwegian.words
+    { "bjˆd", Iso885915 }, // from swedish.words
+    { "bjˆds", Iso885915 }, // from swedish.words
+    { "bjˆrck", Iso885915 }, // from swedish.words
+    { "bjˆrk", Iso885915 }, // from swedish.words
+    { "bjˆrklund", Iso885915 }, // from swedish.words
+    { "bjˆrkman", Iso885915 }, // from swedish.words
+    { "bjˆrn", Iso885915 }, // from swedish.words
+    { "bjˆrnen", Iso885915 }, // from swedish.words
     { "bj¯rg", Iso885915 }, // from norwegian.words
     { "bj¯rgvin", Iso885915 }, // from norwegian.words
     { "bj¯rn", Iso885915 }, // from norwegian.words
@@ -1015,9 +1567,27 @@ static const struct {
     { "bodõ", Cp865 }, // from norwegian.words
     { "bodø", MacRoman }, // from norwegian.words
     { "bod¯", Iso885915 }, // from norwegian.words
+    { "bohuslÑn", Cp865 }, // from swedish.words
+    { "bohuslän", MacRoman }, // from swedish.words
+    { "bohusl‰n", Iso885915 }, // from swedish.words
+    { "bokstÑver", Cp865 }, // from swedish.words
+    { "bokstäver", MacRoman }, // from swedish.words
+    { "bokst‰ver", Iso885915 }, // from swedish.words
     { "boliglÜn", Cp865 }, // from norwegian.words
     { "boliglån", MacRoman }, // from norwegian.words
     { "boliglÂn", Iso885915 }, // from norwegian.words
+    { "borgmÑstare", Cp865 }, // from swedish.words
+    { "borgmästare", MacRoman }, // from swedish.words
+    { "borgm‰stare", Iso885915 }, // from swedish.words
+    { "borlÑnge", Cp865 }, // from swedish.words
+    { "borlänge", MacRoman }, // from swedish.words
+    { "borl‰nge", Iso885915 }, // from swedish.words
+    { "bostadsfîrmedlingen", Cp865 }, // from swedish.words
+    { "bostadsförmedlingen", MacRoman }, // from swedish.words
+    { "bostadsfˆrmedlingen", Iso885915 }, // from swedish.words
+    { "bostÑder", Cp865 }, // from swedish.words
+    { "bostäder", MacRoman }, // from swedish.words
+    { "bost‰der", Iso885915 }, // from swedish.words
     { "branchÇ", Cp437 }, // from french.words
     { "branché", MacRoman }, // from french.words
     { "branchÈ", Iso885915 }, // from french.words
@@ -1025,14 +1595,43 @@ static const struct {
     { "brendesæther", MacRoman }, // from norwegian.words
     { "brendesÊther", Iso885915 }, // from norwegian.words
     { "britsk˝", Iso88592 }, // from czech.words
+    { "brynÑs", Cp865 }, // from swedish.words
+    { "brynäs", MacRoman }, // from swedish.words
+    { "bryn‰s", Iso885915 }, // from swedish.words
+    { "brÑnde", Cp865 }, // from swedish.words
+    { "brÑnna", Cp865 }, // from swedish.words
+    { "brÑnnvin", Cp865 }, // from swedish.words
+    { "brÑnsle", Cp865 }, // from swedish.words
     { "brÜ", Cp865 }, // from norwegian.words
     { "brÜk", Cp865 }, // from norwegian.words
     { "brÜten", Cp865 }, // from norwegian.words
     { "brÜtt", Cp865 }, // from norwegian.words
+    { "brände", MacRoman }, // from swedish.words
+    { "bränna", MacRoman }, // from swedish.words
+    { "brännvin", MacRoman }, // from swedish.words
+    { "bränsle", MacRoman }, // from swedish.words
     { "brå", MacRoman }, // from norwegian.words
     { "bråk", MacRoman }, // from norwegian.words
     { "bråten", MacRoman }, // from norwegian.words
     { "brått", MacRoman }, // from norwegian.words
+    { "brîd", Cp865 }, // from swedish.words
+    { "brîder", Cp865 }, // from swedish.words
+    { "brîderna", Cp865 }, // from swedish.words
+    { "brîdet", Cp865 }, // from swedish.words
+    { "brîllop", Cp865 }, // from swedish.words
+    { "brîst", Cp865 }, // from swedish.words
+    { "brîstet", Cp865 }, // from swedish.words
+    { "brît", Cp865 }, // from swedish.words
+    { "brîts", Cp865 }, // from swedish.words
+    { "bröd", MacRoman }, // from swedish.words
+    { "bröder", MacRoman }, // from swedish.words
+    { "bröderna", MacRoman }, // from swedish.words
+    { "brödet", MacRoman }, // from swedish.words
+    { "bröllop", MacRoman }, // from swedish.words
+    { "bröst", MacRoman }, // from swedish.words
+    { "bröstet", MacRoman }, // from swedish.words
+    { "bröt", MacRoman }, // from swedish.words
+    { "bröts", MacRoman }, // from swedish.words
     { "brõd", Cp865 }, // from norwegian.words
     { "brõdre", Cp865 }, // from norwegian.words
     { "brõdrene", Cp865 }, // from norwegian.words
@@ -1041,10 +1640,23 @@ static const struct {
     { "brødre", MacRoman }, // from norwegian.words
     { "brødrene", MacRoman }, // from norwegian.words
     { "brøt", MacRoman }, // from norwegian.words
+    { "br‰nde", Iso885915 }, // from swedish.words
+    { "br‰nna", Iso885915 }, // from swedish.words
+    { "br‰nnvin", Iso885915 }, // from swedish.words
+    { "br‰nsle", Iso885915 }, // from swedish.words
     { "brÂ", Iso885915 }, // from norwegian.words
     { "brÂk", Iso885915 }, // from norwegian.words
     { "brÂten", Iso885915 }, // from norwegian.words
     { "brÂtt", Iso885915 }, // from norwegian.words
+    { "brˆd", Iso885915 }, // from swedish.words
+    { "brˆder", Iso885915 }, // from swedish.words
+    { "brˆderna", Iso885915 }, // from swedish.words
+    { "brˆdet", Iso885915 }, // from swedish.words
+    { "brˆllop", Iso885915 }, // from swedish.words
+    { "brˆst", Iso885915 }, // from swedish.words
+    { "brˆstet", Iso885915 }, // from swedish.words
+    { "brˆt", Iso885915 }, // from swedish.words
+    { "brˆts", Iso885915 }, // from swedish.words
     { "br¯d", Iso885915 }, // from norwegian.words
     { "br¯dre", Iso885915 }, // from norwegian.words
     { "br¯drene", Iso885915 }, // from norwegian.words
@@ -1058,6 +1670,9 @@ static const struct {
     { "budgétaires", MacRoman }, // from french.words
     { "budgÈtaire", Iso885915 }, // from french.words
     { "budgÈtaires", Iso885915 }, // from french.words
+    { "byggnadsnÑmnden", Cp865 }, // from swedish.words
+    { "byggnadsnämnden", MacRoman }, // from swedish.words
+    { "byggnadsn‰mnden", Iso885915 }, // from swedish.words
     { "bygningsrÜdet", Cp865 }, // from norwegian.words
     { "bygningsrådet", MacRoman }, // from norwegian.words
     { "bygningsrÂdet", Iso885915 }, // from norwegian.words
@@ -1091,6 +1706,18 @@ static const struct {
     { "bÇnÇficiÇ", Cp437 }, // from french.words
     { "bÇnÇfique", Cp437 }, // from french.words
     { "bÇton", Cp437 }, // from french.words
+    { "bÑck", Cp865 }, // from swedish.words
+    { "bÑckstrîm", Cp865 }, // from swedish.words
+    { "bÑgge", Cp865 }, // from swedish.words
+    { "bÑnk", Cp865 }, // from swedish.words
+    { "bÑnken", Cp865 }, // from swedish.words
+    { "bÑr", Cp865 }, // from swedish.words
+    { "bÑra", Cp865 }, // from swedish.words
+    { "bÑrande", Cp865 }, // from swedish.words
+    { "bÑst", Cp865 }, // from swedish.words
+    { "bÑsta", Cp865 }, // from swedish.words
+    { "bÑste", Cp865 }, // from swedish.words
+    { "bÑttre", Cp865 }, // from swedish.words
     { "bÜde", Cp865 }, // from norwegian.words
     { "bÜnd", Cp865 }, // from norwegian.words
     { "bÜrd", Cp865 }, // from norwegian.words
@@ -1099,6 +1726,18 @@ static const struct {
     { "bÜten", Cp865 }, // from norwegian.words
     { "bÜtene", Cp865 }, // from norwegian.words
     { "bÜter", Cp865 }, // from norwegian.words
+    { "bäck", MacRoman }, // from swedish.words
+    { "bäckström", MacRoman }, // from swedish.words
+    { "bägge", MacRoman }, // from swedish.words
+    { "bänk", MacRoman }, // from swedish.words
+    { "bänken", MacRoman }, // from swedish.words
+    { "bär", MacRoman }, // from swedish.words
+    { "bära", MacRoman }, // from swedish.words
+    { "bärande", MacRoman }, // from swedish.words
+    { "bäst", MacRoman }, // from swedish.words
+    { "bästa", MacRoman }, // from swedish.words
+    { "bäste", MacRoman }, // from swedish.words
+    { "bättre", MacRoman }, // from swedish.words
     { "både", MacRoman }, // from norwegian.words
     { "bånd", MacRoman }, // from norwegian.words
     { "bård", MacRoman }, // from norwegian.words
@@ -1126,10 +1765,44 @@ static const struct {
     { "bërekraftig", Cp865 }, // from norwegian.words
     { "bërer", Cp865 }, // from norwegian.words
     { "bërum", Cp865 }, // from norwegian.words
+    { "bîcker", Cp865 }, // from swedish.words
+    { "bîckerna", Cp865 }, // from swedish.words
+    { "bîjde", Cp865 }, // from swedish.words
+    { "bîn", Cp865 }, // from swedish.words
+    { "bînder", Cp865 }, // from swedish.words
+    { "bînderna", Cp865 }, // from swedish.words
+    { "bîr", Cp865 }, // from swedish.words
+    { "bîrja", Cp865 }, // from swedish.words
+    { "bîrjade", Cp865 }, // from swedish.words
+    { "bîrjan", Cp865 }, // from swedish.words
+    { "bîrjar", Cp865 }, // from swedish.words
+    { "bîrjat", Cp865 }, // from swedish.words
+    { "bîrje", Cp865 }, // from swedish.words
+    { "bîrjesson", Cp865 }, // from swedish.words
+    { "bîrsen", Cp865 }, // from swedish.words
+    { "bîrsens", Cp865 }, // from swedish.words
     { "bîse", Cp437 }, // from german.words
     { "bîsen", Cp437 }, // from german.words
+    { "bîter", Cp865 }, // from swedish.words
+    { "böcker", MacRoman }, // from swedish.words
+    { "böckerna", MacRoman }, // from swedish.words
+    { "böjde", MacRoman }, // from swedish.words
+    { "bön", MacRoman }, // from swedish.words
+    { "bönder", MacRoman }, // from swedish.words
+    { "bönderna", MacRoman }, // from swedish.words
+    { "bör", MacRoman }, // from swedish.words
+    { "börja", MacRoman }, // from swedish.words
+    { "började", MacRoman }, // from swedish.words
+    { "början", MacRoman }, // from swedish.words
+    { "börjar", MacRoman }, // from swedish.words
+    { "börjat", MacRoman }, // from swedish.words
+    { "börje", MacRoman }, // from swedish.words
+    { "börjesson", MacRoman }, // from swedish.words
+    { "börsen", MacRoman }, // from swedish.words
+    { "börsens", MacRoman }, // from swedish.words
     { "böse", MacRoman }, // from german.words
     { "bösen", MacRoman }, // from german.words
+    { "böter", MacRoman }, // from swedish.words
     { "bõ", Cp865 }, // from norwegian.words
     { "bõd", Cp865 }, // from norwegian.words
     { "bõe", Cp865 }, // from norwegian.words
@@ -1176,6 +1849,18 @@ static const struct {
     { "børs", MacRoman }, // from norwegian.words
     { "børsen", MacRoman }, // from norwegian.words
     { "bøter", MacRoman }, // from norwegian.words
+    { "b‰ck", Iso885915 }, // from swedish.words
+    { "b‰ckstrˆm", Iso885915 }, // from swedish.words
+    { "b‰gge", Iso885915 }, // from swedish.words
+    { "b‰nk", Iso885915 }, // from swedish.words
+    { "b‰nken", Iso885915 }, // from swedish.words
+    { "b‰r", Iso885915 }, // from swedish.words
+    { "b‰ra", Iso885915 }, // from swedish.words
+    { "b‰rande", Iso885915 }, // from swedish.words
+    { "b‰st", Iso885915 }, // from swedish.words
+    { "b‰sta", Iso885915 }, // from swedish.words
+    { "b‰ste", Iso885915 }, // from swedish.words
+    { "b‰ttre", Iso885915 }, // from swedish.words
     { "bÂde", Iso885915 }, // from norwegian.words
     { "bÂnd", Iso885915 }, // from norwegian.words
     { "bÂrd", Iso885915 }, // from norwegian.words
@@ -1204,8 +1889,25 @@ static const struct {
     { "bÈnÈfique", Iso885915 }, // from french.words
     { "bÈton", Iso885915 }, // from french.words
     { "bÏæn˝", Iso88592 }, // from czech.words
+    { "bˆcker", Iso885915 }, // from swedish.words
+    { "bˆckerna", Iso885915 }, // from swedish.words
+    { "bˆjde", Iso885915 }, // from swedish.words
+    { "bˆn", Iso885915 }, // from swedish.words
+    { "bˆnder", Iso885915 }, // from swedish.words
+    { "bˆnderna", Iso885915 }, // from swedish.words
+    { "bˆr", Iso885915 }, // from swedish.words
+    { "bˆrja", Iso885915 }, // from swedish.words
+    { "bˆrjade", Iso885915 }, // from swedish.words
+    { "bˆrjan", Iso885915 }, // from swedish.words
+    { "bˆrjar", Iso885915 }, // from swedish.words
+    { "bˆrjat", Iso885915 }, // from swedish.words
+    { "bˆrje", Iso885915 }, // from swedish.words
+    { "bˆrjesson", Iso885915 }, // from swedish.words
+    { "bˆrsen", Iso885915 }, // from swedish.words
+    { "bˆrsens", Iso885915 }, // from swedish.words
     { "bˆse", Iso885915 }, // from german.words
     { "bˆsen", Iso885915 }, // from german.words
+    { "bˆter", Iso885915 }, // from swedish.words
     { "b¯", Iso885915 }, // from norwegian.words
     { "b¯d", Iso885915 }, // from norwegian.words
     { "b¯e", Iso885915 }, // from norwegian.words
@@ -1307,9 +2009,15 @@ static const struct {
     { "chargÈe", Iso885915 }, // from french.words
     { "chargÈes", Iso885915 }, // from french.words
     { "chargÈs", Iso885915 }, // from french.words
+    { "chauffîren", Cp865 }, // from swedish.words
+    { "chauffören", MacRoman }, // from swedish.words
+    { "chauffˆren", Iso885915 }, // from swedish.words
     { "chaussÇe", Cp437 }, // from french.words
     { "chaussée", MacRoman }, // from french.words
     { "chaussÈe", Iso885915 }, // from french.words
+    { "chefredaktîr", Cp865 }, // from swedish.words
+    { "chefredaktör", MacRoman }, // from swedish.words
+    { "chefredaktˆr", Iso885915 }, // from swedish.words
     { "cherchÇ", Cp437 }, // from french.words
     { "cherché", MacRoman }, // from french.words
     { "cherchÈ", Iso885915 }, // from french.words
@@ -1762,8 +2470,14 @@ static const struct {
     { "dafÅr", Cp437 }, // from german.words
     { "dafür", MacRoman }, // from german.words
     { "daf¸r", Iso885915 }, // from german.words
+    { "dagslÑget", Cp865 }, // from swedish.words
+    { "dagsläget", MacRoman }, // from swedish.words
+    { "dagsl‰get", Iso885915 }, // from swedish.words
+    { "dahlstrîm", Cp865 }, // from swedish.words
+    { "dahlström", MacRoman }, // from swedish.words
     { "dahlstrõm", Cp865 }, // from norwegian.words
     { "dahlstrøm", MacRoman }, // from norwegian.words
+    { "dahlstrˆm", Iso885915 }, // from swedish.words
     { "dahlstr¯m", Iso885915 }, // from norwegian.words
     { "dalπÌ", Iso88592 }, // from czech.words
     { "dan˝", Iso88592 }, // from czech.words
@@ -1784,6 +2498,9 @@ static const struct {
     { "degrés", MacRoman }, // from french.words
     { "degrÈ", Iso885915 }, // from french.words
     { "degrÈs", Iso885915 }, // from french.words
+    { "delÑgare", Cp865 }, // from swedish.words
+    { "delägare", MacRoman }, // from swedish.words
+    { "del‰gare", Iso885915 }, // from swedish.words
     { "demandÇ", Cp437 }, // from french.words
     { "demandÇe", Cp437 }, // from french.words
     { "demandÇs", Cp437 }, // from french.words
@@ -1800,12 +2517,18 @@ static const struct {
     { "densitÇ", Cp437 }, // from french.words
     { "densité", MacRoman }, // from french.words
     { "densitÈ", Iso885915 }, // from french.words
+    { "dessfîrinnan", Cp865 }, // from swedish.words
+    { "dessförinnan", MacRoman }, // from swedish.words
+    { "dessfˆrinnan", Iso885915 }, // from swedish.words
     { "dessinÇ", Cp437 }, // from french.words
     { "dessinÇe", Cp437 }, // from french.words
     { "dessiné", MacRoman }, // from french.words
     { "dessinée", MacRoman }, // from french.words
     { "dessinÈ", Iso885915 }, // from french.words
     { "dessinÈe", Iso885915 }, // from french.words
+    { "dessvÑrre", Cp865 }, // from swedish.words
+    { "dessvärre", MacRoman }, // from swedish.words
+    { "dessv‰rre", Iso885915 }, // from swedish.words
     { "destinÇ", Cp437 }, // from french.words
     { "destinÇe", Cp437 }, // from french.words
     { "destinÇes", Cp437 }, // from french.words
@@ -1863,10 +2586,13 @@ static const struct {
     { "directiecomitÇ", Cp437 }, // from dutch.words
     { "directiecomité", MacRoman }, // from dutch.words
     { "directiecomitÈ", Iso885915 }, // from dutch.words
+    { "direktîr", Cp865 }, // from swedish.words
+    { "direktör", MacRoman }, // from swedish.words
     { "direktõr", Cp865 }, // from norwegian.words
     { "direktõren", Cp865 }, // from norwegian.words
     { "direktør", MacRoman }, // from norwegian.words
     { "direktøren", MacRoman }, // from norwegian.words
+    { "direktˆr", Iso885915 }, // from swedish.words
     { "direkt¯r", Iso885915 }, // from norwegian.words
     { "direkt¯ren", Iso885915 }, // from norwegian.words
     { "dirigÇ", Cp437 }, // from french.words
@@ -1944,6 +2670,9 @@ static const struct {
     { "doublÇ", Cp437 }, // from french.words
     { "doublé", MacRoman }, // from french.words
     { "doublÈ", Iso885915 }, // from french.words
+    { "draghjÑlp", Cp865 }, // from swedish.words
+    { "draghjälp", MacRoman }, // from swedish.words
+    { "draghj‰lp", Iso885915 }, // from swedish.words
     { "drapsforsõk", Cp865 }, // from norwegian.words
     { "drapsforsøk", MacRoman }, // from norwegian.words
     { "drapsfors¯k", Iso885915 }, // from norwegian.words
@@ -1961,6 +2690,24 @@ static const struct {
     { "drÑngt", Cp437 }, // from german.words
     { "drängen", MacRoman }, // from german.words
     { "drängt", MacRoman }, // from german.words
+    { "drîja", Cp865 }, // from swedish.words
+    { "drîjde", Cp865 }, // from swedish.words
+    { "drîjer", Cp865 }, // from swedish.words
+    { "drîm", Cp865 }, // from swedish.words
+    { "drîmde", Cp865 }, // from swedish.words
+    { "drîmma", Cp865 }, // from swedish.words
+    { "drîmmar", Cp865 }, // from swedish.words
+    { "drîmmen", Cp865 }, // from swedish.words
+    { "drîmmer", Cp865 }, // from swedish.words
+    { "dröja", MacRoman }, // from swedish.words
+    { "dröjde", MacRoman }, // from swedish.words
+    { "dröjer", MacRoman }, // from swedish.words
+    { "dröm", MacRoman }, // from swedish.words
+    { "drömde", MacRoman }, // from swedish.words
+    { "drömma", MacRoman }, // from swedish.words
+    { "drömmar", MacRoman }, // from swedish.words
+    { "drömmen", MacRoman }, // from swedish.words
+    { "drömmer", MacRoman }, // from swedish.words
     { "drõfte", Cp865 }, // from norwegian.words
     { "drõfter", Cp865 }, // from norwegian.words
     { "drõftet", Cp865 }, // from norwegian.words
@@ -1991,6 +2738,15 @@ static const struct {
     { "drøyt", MacRoman }, // from norwegian.words
     { "dr‰ngen", Iso885915 }, // from german.words
     { "dr‰ngt", Iso885915 }, // from german.words
+    { "drˆja", Iso885915 }, // from swedish.words
+    { "drˆjde", Iso885915 }, // from swedish.words
+    { "drˆjer", Iso885915 }, // from swedish.words
+    { "drˆm", Iso885915 }, // from swedish.words
+    { "drˆmde", Iso885915 }, // from swedish.words
+    { "drˆmma", Iso885915 }, // from swedish.words
+    { "drˆmmar", Iso885915 }, // from swedish.words
+    { "drˆmmen", Iso885915 }, // from swedish.words
+    { "drˆmmer", Iso885915 }, // from swedish.words
     { "dr¯fte", Iso885915 }, // from norwegian.words
     { "dr¯fter", Iso885915 }, // from norwegian.words
     { "dr¯ftet", Iso885915 }, // from norwegian.words
@@ -2261,15 +3017,55 @@ static const struct {
     { "dÇvoile", Cp437 }, // from french.words
     { "dÇvoiler", Cp437 }, // from french.words
     { "dÇvolu", Cp437 }, // from french.words
+    { "dÑ", Cp865 }, // from swedish.words
+    { "dÑck", Cp865 }, // from swedish.words
+    { "dÑhlie", Cp865 }, // from swedish.words
+    { "dÑmpa", Cp865 }, // from swedish.words
     { "dÑnische", Cp437 }, // from german.words
     { "dÑnischen", Cp437 }, // from german.words
+    { "dÑr", Cp865 }, // from swedish.words
+    { "dÑrav", Cp865 }, // from swedish.words
+    { "dÑrefter", Cp865 }, // from swedish.words
+    { "dÑremot", Cp865 }, // from swedish.words
+    { "dÑrfîr", Cp865 }, // from swedish.words
+    { "dÑribland", Cp865 }, // from swedish.words
+    { "dÑrifrÜn", Cp865 }, // from swedish.words
+    { "dÑrigenom", Cp865 }, // from swedish.words
+    { "dÑrinne", Cp865 }, // from swedish.words
+    { "dÑrmed", Cp865 }, // from swedish.words
+    { "dÑrpÜ", Cp865 }, // from swedish.words
+    { "dÑrtill", Cp865 }, // from swedish.words
+    { "dÑruppe", Cp865 }, // from swedish.words
+    { "dÑrute", Cp865 }, // from swedish.words
+    { "dÑrutîver", Cp865 }, // from swedish.words
+    { "dÑrvid", Cp865 }, // from swedish.words
     { "dÜ", Cp865 }, // from norwegian.words
     { "dÜrlig", Cp865 }, // from norwegian.words
     { "dÜrlige", Cp865 }, // from norwegian.words
     { "dÜrligere", Cp865 }, // from norwegian.words
     { "dÜrligste", Cp865 }, // from norwegian.words
+    { "dä", MacRoman }, // from swedish.words
+    { "däck", MacRoman }, // from swedish.words
+    { "dählie", MacRoman }, // from swedish.words
+    { "dämpa", MacRoman }, // from swedish.words
     { "dänische", MacRoman }, // from german.words
     { "dänischen", MacRoman }, // from german.words
+    { "där", MacRoman }, // from swedish.words
+    { "därav", MacRoman }, // from swedish.words
+    { "därefter", MacRoman }, // from swedish.words
+    { "däremot", MacRoman }, // from swedish.words
+    { "därför", MacRoman }, // from swedish.words
+    { "däribland", MacRoman }, // from swedish.words
+    { "därifrån", MacRoman }, // from swedish.words
+    { "därigenom", MacRoman }, // from swedish.words
+    { "därinne", MacRoman }, // from swedish.words
+    { "därmed", MacRoman }, // from swedish.words
+    { "därpå", MacRoman }, // from swedish.words
+    { "därtill", MacRoman }, // from swedish.words
+    { "däruppe", MacRoman }, // from swedish.words
+    { "därute", MacRoman }, // from swedish.words
+    { "därutöver", MacRoman }, // from swedish.words
+    { "därvid", MacRoman }, // from swedish.words
     { "då", MacRoman }, // from norwegian.words
     { "dårlig", MacRoman }, // from norwegian.words
     { "dårlige", MacRoman }, // from norwegian.words
@@ -2507,6 +3303,68 @@ static const struct {
     { "dévoiler", MacRoman }, // from french.words
     { "dévolu", MacRoman }, // from french.words
     { "dëhlie", Cp865 }, // from norwegian.words
+    { "dî", Cp865 }, // from swedish.words
+    { "dîd", Cp865 }, // from swedish.words
+    { "dîda", Cp865 }, // from swedish.words
+    { "dîdade", Cp865 }, // from swedish.words
+    { "dîdades", Cp865 }, // from swedish.words
+    { "dîdar", Cp865 }, // from swedish.words
+    { "dîdas", Cp865 }, // from swedish.words
+    { "dîdat", Cp865 }, // from swedish.words
+    { "dîdats", Cp865 }, // from swedish.words
+    { "dîden", Cp865 }, // from swedish.words
+    { "dîdens", Cp865 }, // from swedish.words
+    { "dîds", Cp865 }, // from swedish.words
+    { "dîdsfall", Cp865 }, // from swedish.words
+    { "dîende", Cp865 }, // from swedish.words
+    { "dîk", Cp865 }, // from swedish.words
+    { "dîlja", Cp865 }, // from swedish.words
+    { "dîljer", Cp865 }, // from swedish.words
+    { "dîma", Cp865 }, // from swedish.words
+    { "dîmd", Cp865 }, // from swedish.words
+    { "dîmda", Cp865 }, // from swedish.words
+    { "dîmde", Cp865 }, // from swedish.words
+    { "dîmdes", Cp865 }, // from swedish.words
+    { "dîms", Cp865 }, // from swedish.words
+    { "dîmts", Cp865 }, // from swedish.words
+    { "dîr", Cp865 }, // from swedish.words
+    { "dîrr", Cp865 }, // from swedish.words
+    { "dîrrar", Cp865 }, // from swedish.words
+    { "dîrrarna", Cp865 }, // from swedish.words
+    { "dîrren", Cp865 }, // from swedish.words
+    { "dîtt", Cp865 }, // from swedish.words
+    { "dîttrar", Cp865 }, // from swedish.words
+    { "dö", MacRoman }, // from swedish.words
+    { "död", MacRoman }, // from swedish.words
+    { "döda", MacRoman }, // from swedish.words
+    { "dödade", MacRoman }, // from swedish.words
+    { "dödades", MacRoman }, // from swedish.words
+    { "dödar", MacRoman }, // from swedish.words
+    { "dödas", MacRoman }, // from swedish.words
+    { "dödat", MacRoman }, // from swedish.words
+    { "dödats", MacRoman }, // from swedish.words
+    { "döden", MacRoman }, // from swedish.words
+    { "dödens", MacRoman }, // from swedish.words
+    { "döds", MacRoman }, // from swedish.words
+    { "dödsfall", MacRoman }, // from swedish.words
+    { "döende", MacRoman }, // from swedish.words
+    { "dök", MacRoman }, // from swedish.words
+    { "dölja", MacRoman }, // from swedish.words
+    { "döljer", MacRoman }, // from swedish.words
+    { "döma", MacRoman }, // from swedish.words
+    { "dömd", MacRoman }, // from swedish.words
+    { "dömda", MacRoman }, // from swedish.words
+    { "dömde", MacRoman }, // from swedish.words
+    { "dömdes", MacRoman }, // from swedish.words
+    { "döms", MacRoman }, // from swedish.words
+    { "dömts", MacRoman }, // from swedish.words
+    { "dör", MacRoman }, // from swedish.words
+    { "dörr", MacRoman }, // from swedish.words
+    { "dörrar", MacRoman }, // from swedish.words
+    { "dörrarna", MacRoman }, // from swedish.words
+    { "dörren", MacRoman }, // from swedish.words
+    { "dött", MacRoman }, // from swedish.words
+    { "döttrar", MacRoman }, // from swedish.words
     { "dõ", Cp865 }, // from norwegian.words
     { "dõd", Cp865 }, // from norwegian.words
     { "dõde", Cp865 }, // from norwegian.words
@@ -2553,8 +3411,28 @@ static const struct {
     { "døtrene", MacRoman }, // from norwegian.words
     { "d·t", Iso88592 }, // from czech.words
     { "d·vat", Iso88592 }, // from czech.words
+    { "d‰", Iso885915 }, // from swedish.words
+    { "d‰ck", Iso885915 }, // from swedish.words
+    { "d‰hlie", Iso885915 }, // from swedish.words
+    { "d‰mpa", Iso885915 }, // from swedish.words
     { "d‰nische", Iso885915 }, // from german.words
     { "d‰nischen", Iso885915 }, // from german.words
+    { "d‰r", Iso885915 }, // from swedish.words
+    { "d‰rav", Iso885915 }, // from swedish.words
+    { "d‰refter", Iso885915 }, // from swedish.words
+    { "d‰remot", Iso885915 }, // from swedish.words
+    { "d‰rfˆr", Iso885915 }, // from swedish.words
+    { "d‰ribland", Iso885915 }, // from swedish.words
+    { "d‰rifrÂn", Iso885915 }, // from swedish.words
+    { "d‰rigenom", Iso885915 }, // from swedish.words
+    { "d‰rinne", Iso885915 }, // from swedish.words
+    { "d‰rmed", Iso885915 }, // from swedish.words
+    { "d‰rpÂ", Iso885915 }, // from swedish.words
+    { "d‰rtill", Iso885915 }, // from swedish.words
+    { "d‰ruppe", Iso885915 }, // from swedish.words
+    { "d‰rute", Iso885915 }, // from swedish.words
+    { "d‰rutˆver", Iso885915 }, // from swedish.words
+    { "d‰rvid", Iso885915 }, // from swedish.words
     { "dÂ", Iso885915 }, // from norwegian.words
     { "dÂrlig", Iso885915 }, // from norwegian.words
     { "dÂrlige", Iso885915 }, // from norwegian.words
@@ -2794,6 +3672,37 @@ static const struct {
     { "dÈvolu", Iso885915 }, // from french.words
     { "dÏlat", Iso88592 }, // from czech.words
     { "dÌtÏ", Iso88592 }, // from czech.words
+    { "dˆ", Iso885915 }, // from swedish.words
+    { "dˆd", Iso885915 }, // from swedish.words
+    { "dˆda", Iso885915 }, // from swedish.words
+    { "dˆdade", Iso885915 }, // from swedish.words
+    { "dˆdades", Iso885915 }, // from swedish.words
+    { "dˆdar", Iso885915 }, // from swedish.words
+    { "dˆdas", Iso885915 }, // from swedish.words
+    { "dˆdat", Iso885915 }, // from swedish.words
+    { "dˆdats", Iso885915 }, // from swedish.words
+    { "dˆden", Iso885915 }, // from swedish.words
+    { "dˆdens", Iso885915 }, // from swedish.words
+    { "dˆds", Iso885915 }, // from swedish.words
+    { "dˆdsfall", Iso885915 }, // from swedish.words
+    { "dˆende", Iso885915 }, // from swedish.words
+    { "dˆk", Iso885915 }, // from swedish.words
+    { "dˆlja", Iso885915 }, // from swedish.words
+    { "dˆljer", Iso885915 }, // from swedish.words
+    { "dˆma", Iso885915 }, // from swedish.words
+    { "dˆmd", Iso885915 }, // from swedish.words
+    { "dˆmda", Iso885915 }, // from swedish.words
+    { "dˆmde", Iso885915 }, // from swedish.words
+    { "dˆmdes", Iso885915 }, // from swedish.words
+    { "dˆms", Iso885915 }, // from swedish.words
+    { "dˆmts", Iso885915 }, // from swedish.words
+    { "dˆr", Iso885915 }, // from swedish.words
+    { "dˆrr", Iso885915 }, // from swedish.words
+    { "dˆrrar", Iso885915 }, // from swedish.words
+    { "dˆrrarna", Iso885915 }, // from swedish.words
+    { "dˆrren", Iso885915 }, // from swedish.words
+    { "dˆtt", Iso885915 }, // from swedish.words
+    { "dˆttrar", Iso885915 }, // from swedish.words
     { "d¯", Iso885915 }, // from norwegian.words
     { "d¯d", Iso885915 }, // from norwegian.words
     { "d¯de", Iso885915 }, // from norwegian.words
@@ -2821,6 +3730,9 @@ static const struct {
     { "d¸rfen", Iso885915 }, // from german.words
     { "d¸rfte", Iso885915 }, // from german.words
     { "d¸rften", Iso885915 }, // from german.words
+    { "edstrîm", Cp865 }, // from swedish.words
+    { "edström", MacRoman }, // from swedish.words
+    { "edstrˆm", Iso885915 }, // from swedish.words
     { "effectuÇ", Cp437 }, // from french.words
     { "effectuÇe", Cp437 }, // from french.words
     { "effectuÇes", Cp437 }, // from french.words
@@ -2836,6 +3748,9 @@ static const struct {
     { "efficacitÇ", Cp437 }, // from french.words
     { "efficacité", MacRoman }, // from french.words
     { "efficacitÈ", Iso885915 }, // from french.words
+    { "eftertrÑdare", Cp865 }, // from swedish.words
+    { "efterträdare", MacRoman }, // from swedish.words
+    { "eftertr‰dare", Iso885915 }, // from swedish.words
     { "eidsvÜg", Cp865 }, // from norwegian.words
     { "eidsvåg", MacRoman }, // from norwegian.words
     { "eidsvÂg", Iso885915 }, // from norwegian.words
@@ -2870,6 +3785,15 @@ static const struct {
     { "ekstraordinært", MacRoman }, // from norwegian.words
     { "ekstraordinÊre", Iso885915 }, // from norwegian.words
     { "ekstraordinÊrt", Iso885915 }, // from norwegian.words
+    { "ekstrîm", Cp865 }, // from swedish.words
+    { "ekström", MacRoman }, // from swedish.words
+    { "ekstrˆm", Iso885915 }, // from swedish.words
+    { "ekÇus", Cp865 }, // from swedish.words
+    { "ekéus", MacRoman }, // from swedish.words
+    { "ekÈus", Iso885915 }, // from swedish.words
+    { "elÑnde", Cp865 }, // from swedish.words
+    { "elände", MacRoman }, // from swedish.words
+    { "el‰nde", Iso885915 }, // from swedish.words
     { "employÇ", Cp437 }, // from french.words
     { "employÇes", Cp437 }, // from french.words
     { "employÇs", Cp437 }, // from french.words
@@ -2912,9 +3836,18 @@ static const struct {
     { "engagÈ", Iso885915 }, // from french.words
     { "engagÈe", Iso885915 }, // from french.words
     { "engagÈs", Iso885915 }, // from french.words
+    { "engelsmÑnnen", Cp865 }, // from swedish.words
+    { "engelsmännen", MacRoman }, // from swedish.words
+    { "engelsm‰nnen", Iso885915 }, // from swedish.words
     { "engendrÇ", Cp437 }, // from french.words
     { "engendré", MacRoman }, // from french.words
     { "engendrÈ", Iso885915 }, // from french.words
+    { "engstrîm", Cp865 }, // from swedish.words
+    { "engström", MacRoman }, // from swedish.words
+    { "engstrˆm", Iso885915 }, // from swedish.words
+    { "enkÑt", Cp865 }, // from swedish.words
+    { "enkät", MacRoman }, // from swedish.words
+    { "enk‰t", Iso885915 }, // from swedish.words
     { "ennÜ", Cp865 }, // from norwegian.words
     { "ennå", MacRoman }, // from norwegian.words
     { "ennÂ", Iso885915 }, // from norwegian.words
@@ -2954,15 +3887,15 @@ static const struct {
     { "entourÇ", Cp437 }, // from french.words
     { "entouré", MacRoman }, // from french.words
     { "entourÈ", Iso885915 }, // from french.words
-    { "entrÇ", Cp437 }, // from french.words
     { "entrÇe", Cp437 }, // from french.words
     { "entrÇes", Cp437 }, // from french.words
-    { "entré", MacRoman }, // from french.words
+    { "entrÇn", Cp865 }, // from swedish.words
     { "entrée", MacRoman }, // from french.words
     { "entrées", MacRoman }, // from french.words
-    { "entrÈ", Iso885915 }, // from french.words
+    { "entrén", MacRoman }, // from swedish.words
     { "entrÈe", Iso885915 }, // from french.words
     { "entrÈes", Iso885915 }, // from french.words
+    { "entrÈn", Iso885915 }, // from swedish.words
     { "enttÑuscht", Cp437 }, // from german.words
     { "enttäuscht", MacRoman }, // from german.words
     { "entt‰uscht", Iso885915 }, // from german.words
@@ -2978,6 +3911,9 @@ static const struct {
     { "envoyés", MacRoman }, // from french.words
     { "envoyÈ", Iso885915 }, // from french.words
     { "envoyÈs", Iso885915 }, // from french.words
+    { "erbjîd", Cp865 }, // from swedish.words
+    { "erbjöd", MacRoman }, // from swedish.words
+    { "erbjˆd", Iso885915 }, // from swedish.words
     { "erfaßt", MacRoman }, // from german.words
     { "erfaﬂt", Iso885915 }, // from german.words
     { "erfa·t", Cp437 }, // from german.words
@@ -3038,6 +3974,21 @@ static const struct {
     { "erklÊring", Iso885915 }, // from norwegian.words
     { "erklÊrt", Iso885915 }, // from norwegian.words
     { "erklÊrte", Iso885915 }, // from norwegian.words
+    { "erkÑnde", Cp865 }, // from swedish.words
+    { "erkÑnna", Cp865 }, // from swedish.words
+    { "erkÑnnande", Cp865 }, // from swedish.words
+    { "erkÑnner", Cp865 }, // from swedish.words
+    { "erkÑnt", Cp865 }, // from swedish.words
+    { "erkände", MacRoman }, // from swedish.words
+    { "erkänna", MacRoman }, // from swedish.words
+    { "erkännande", MacRoman }, // from swedish.words
+    { "erkänner", MacRoman }, // from swedish.words
+    { "erkänt", MacRoman }, // from swedish.words
+    { "erk‰nde", Iso885915 }, // from swedish.words
+    { "erk‰nna", Iso885915 }, // from swedish.words
+    { "erk‰nnande", Iso885915 }, // from swedish.words
+    { "erk‰nner", Iso885915 }, // from swedish.words
+    { "erk‰nt", Iso885915 }, // from swedish.words
     { "erlÑutert", Cp437 }, // from german.words
     { "erlÑuterte", Cp437 }, // from german.words
     { "erläutert", MacRoman }, // from german.words
@@ -3059,6 +4010,27 @@ static const struct {
     { "erschüttert", MacRoman }, // from german.words
     { "erschˆpft", Iso885915 }, // from german.words
     { "ersch¸ttert", Iso885915 }, // from german.words
+    { "ersÑtta", Cp865 }, // from swedish.words
+    { "ersÑttare", Cp865 }, // from swedish.words
+    { "ersÑttas", Cp865 }, // from swedish.words
+    { "ersÑtter", Cp865 }, // from swedish.words
+    { "ersÑttning", Cp865 }, // from swedish.words
+    { "ersÑttningen", Cp865 }, // from swedish.words
+    { "ersÑtts", Cp865 }, // from swedish.words
+    { "ersätta", MacRoman }, // from swedish.words
+    { "ersättare", MacRoman }, // from swedish.words
+    { "ersättas", MacRoman }, // from swedish.words
+    { "ersätter", MacRoman }, // from swedish.words
+    { "ersättning", MacRoman }, // from swedish.words
+    { "ersättningen", MacRoman }, // from swedish.words
+    { "ersätts", MacRoman }, // from swedish.words
+    { "ers‰tta", Iso885915 }, // from swedish.words
+    { "ers‰ttare", Iso885915 }, // from swedish.words
+    { "ers‰ttas", Iso885915 }, // from swedish.words
+    { "ers‰tter", Iso885915 }, // from swedish.words
+    { "ers‰ttning", Iso885915 }, // from swedish.words
+    { "ers‰ttningen", Iso885915 }, // from swedish.words
+    { "ers‰tts", Iso885915 }, // from swedish.words
     { "erwÑhnt", Cp437 }, // from german.words
     { "erwähnt", MacRoman }, // from german.words
     { "erw‰hnt", Iso885915 }, // from german.words
@@ -3075,14 +4047,17 @@ static const struct {
     { "erîffnet", Cp437 }, // from german.words
     { "erîffnete", Cp437 }, // from german.words
     { "erîrtert", Cp437 }, // from german.words
+    { "erîvra", Cp865 }, // from swedish.words
     { "eröffnen", MacRoman }, // from german.words
     { "eröffnet", MacRoman }, // from german.words
     { "eröffnete", MacRoman }, // from german.words
     { "erörtert", MacRoman }, // from german.words
+    { "erövra", MacRoman }, // from swedish.words
     { "erˆffnen", Iso885915 }, // from german.words
     { "erˆffnet", Iso885915 }, // from german.words
     { "erˆffnete", Iso885915 }, // from german.words
     { "erˆrtert", Iso885915 }, // from german.words
+    { "erˆvra", Iso885915 }, // from swedish.words
     { "escomptÇ", Cp437 }, // from french.words
     { "escompté", MacRoman }, // from french.words
     { "escomptÈ", Iso885915 }, // from french.words
@@ -3219,6 +4194,9 @@ static const struct {
     { "facilités", MacRoman }, // from french.words
     { "facilitÈ", Iso885915 }, // from french.words
     { "facilitÈs", Iso885915 }, // from french.words
+    { "fackfîreningsrîrelsen", Cp865 }, // from swedish.words
+    { "fackföreningsrörelsen", MacRoman }, // from swedish.words
+    { "fackfˆreningsrˆrelsen", Iso885915 }, // from swedish.words
     { "facultÇ", Cp437 }, // from french.words
     { "faculté", MacRoman }, // from french.words
     { "facultÈ", Iso885915 }, // from french.words
@@ -3231,12 +4209,24 @@ static const struct {
     { "fart¯y", Iso885915 }, // from norwegian.words
     { "fart¯yer", Iso885915 }, // from norwegian.words
     { "fart¯yet", Iso885915 }, // from norwegian.words
+    { "farvÑl", Cp865 }, // from swedish.words
+    { "farväl", MacRoman }, // from swedish.words
+    { "farv‰l", Iso885915 }, // from swedish.words
+    { "fastighetsÑgare", Cp865 }, // from swedish.words
+    { "fastighetsägare", MacRoman }, // from swedish.words
+    { "fastighets‰gare", Iso885915 }, // from swedish.words
     { "fastslÜ", Cp865 }, // from norwegian.words
     { "fastslÜr", Cp865 }, // from norwegian.words
     { "fastslå", MacRoman }, // from norwegian.words
     { "fastslår", MacRoman }, // from norwegian.words
     { "fastslÂ", Iso885915 }, // from norwegian.words
     { "fastslÂr", Iso885915 }, // from norwegian.words
+    { "faststÑlla", Cp865 }, // from swedish.words
+    { "fastställa", MacRoman }, // from swedish.words
+    { "fastst‰lla", Iso885915 }, // from swedish.words
+    { "fastÑn", Cp865 }, // from swedish.words
+    { "fastän", MacRoman }, // from swedish.words
+    { "fast‰n", Iso885915 }, // from swedish.words
     { "favõr", Cp865 }, // from norwegian.words
     { "favør", MacRoman }, // from norwegian.words
     { "fav¯r", Iso885915 }, // from norwegian.words
@@ -3272,6 +4262,9 @@ static const struct {
     { "financÈ", Iso885915 }, // from french.words
     { "financÈe", Iso885915 }, // from french.words
     { "finanËnÌ", Iso88592 }, // from czech.words
+    { "finlÑndska", Cp865 }, // from swedish.words
+    { "finländska", MacRoman }, // from swedish.words
+    { "finl‰ndska", Iso885915 }, // from swedish.words
     { "fiscalitÇ", Cp437 }, // from french.words
     { "fiscalité", MacRoman }, // from french.words
     { "fiscalitÈ", Iso885915 }, // from french.words
@@ -3293,10 +4286,25 @@ static const struct {
     { "fjorårets", MacRoman }, // from norwegian.words
     { "fjorÂret", Iso885915 }, // from norwegian.words
     { "fjorÂrets", Iso885915 }, // from norwegian.words
+    { "fjÑllen", Cp865 }, // from swedish.words
+    { "fjÑrde", Cp865 }, // from swedish.words
+    { "fjÑrdedel", Cp865 }, // from swedish.words
+    { "fjÑrdepar", Cp865 }, // from swedish.words
+    { "fjÑrran", Cp865 }, // from swedish.words
+    { "fjällen", MacRoman }, // from swedish.words
+    { "fjärde", MacRoman }, // from swedish.words
+    { "fjärdedel", MacRoman }, // from swedish.words
+    { "fjärdepar", MacRoman }, // from swedish.words
+    { "fjärran", MacRoman }, // from swedish.words
     { "fjõrtoft", Cp865 }, // from norwegian.words
     { "fjõset", Cp865 }, // from norwegian.words
     { "fjørtoft", MacRoman }, // from norwegian.words
     { "fjøset", MacRoman }, // from norwegian.words
+    { "fj‰llen", Iso885915 }, // from swedish.words
+    { "fj‰rde", Iso885915 }, // from swedish.words
+    { "fj‰rdedel", Iso885915 }, // from swedish.words
+    { "fj‰rdepar", Iso885915 }, // from swedish.words
+    { "fj‰rran", Iso885915 }, // from swedish.words
     { "fj¯rtoft", Iso885915 }, // from norwegian.words
     { "fj¯set", Iso885915 }, // from norwegian.words
     { "flexibilitÇ", Cp437 }, // from french.words
@@ -3316,6 +4324,10 @@ static const struct {
     { "flÜten", Cp865 }, // from norwegian.words
     { "flåten", MacRoman }, // from norwegian.words
     { "fléchi", MacRoman }, // from french.words
+    { "flîg", Cp865 }, // from swedish.words
+    { "flît", Cp865 }, // from swedish.words
+    { "flög", MacRoman }, // from swedish.words
+    { "flöt", MacRoman }, // from swedish.words
     { "flõy", Cp865 }, // from norwegian.words
     { "flõyen", Cp865 }, // from norwegian.words
     { "flüchtete", MacRoman }, // from german.words
@@ -3323,9 +4335,17 @@ static const struct {
     { "fløyen", MacRoman }, // from norwegian.words
     { "flÂten", Iso885915 }, // from norwegian.words
     { "flÈchi", Iso885915 }, // from french.words
+    { "flˆg", Iso885915 }, // from swedish.words
+    { "flˆt", Iso885915 }, // from swedish.words
     { "fl¯y", Iso885915 }, // from norwegian.words
     { "fl¯yen", Iso885915 }, // from norwegian.words
     { "fl¸chtete", Iso885915 }, // from german.words
+    { "folkomrîstning", Cp865 }, // from swedish.words
+    { "folkomrîstningen", Cp865 }, // from swedish.words
+    { "folkomröstning", MacRoman }, // from swedish.words
+    { "folkomröstningen", MacRoman }, // from swedish.words
+    { "folkomrˆstning", Iso885915 }, // from swedish.words
+    { "folkomrˆstningen", Iso885915 }, // from swedish.words
     { "fondÇ", Cp437 }, // from french.words
     { "fondÇe", Cp437 }, // from french.words
     { "fondé", MacRoman }, // from french.words
@@ -3461,6 +4481,18 @@ static const struct {
     { "fors¯ket", Iso885915 }, // from norwegian.words
     { "fors¯kt", Iso885915 }, // from norwegian.words
     { "fors¯kte", Iso885915 }, // from norwegian.words
+    { "fortsÑtta", Cp865 }, // from swedish.words
+    { "fortsÑtter", Cp865 }, // from swedish.words
+    { "fortsÑttning", Cp865 }, // from swedish.words
+    { "fortsÑttningen", Cp865 }, // from swedish.words
+    { "fortsätta", MacRoman }, // from swedish.words
+    { "fortsätter", MacRoman }, // from swedish.words
+    { "fortsättning", MacRoman }, // from swedish.words
+    { "fortsättningen", MacRoman }, // from swedish.words
+    { "forts‰tta", Iso885915 }, // from swedish.words
+    { "forts‰tter", Iso885915 }, // from swedish.words
+    { "forts‰ttning", Iso885915 }, // from swedish.words
+    { "forts‰ttningen", Iso885915 }, // from swedish.words
     { "forÜrsaket", Cp865 }, // from norwegian.words
     { "forårsaket", MacRoman }, // from norwegian.words
     { "forõvrig", Cp865 }, // from norwegian.words
@@ -3477,15 +4509,54 @@ static const struct {
     { "fragilitÇ", Cp437 }, // from french.words
     { "fragilité", MacRoman }, // from french.words
     { "fragilitÈ", Iso885915 }, // from french.words
+    { "framfîr", Cp865 }, // from swedish.words
+    { "framfîra", Cp865 }, // from swedish.words
+    { "framfîrallt", Cp865 }, // from swedish.words
+    { "framfîrde", Cp865 }, // from swedish.words
+    { "framfîrs", Cp865 }, // from swedish.words
+    { "framför", MacRoman }, // from swedish.words
+    { "framföra", MacRoman }, // from swedish.words
+    { "framförallt", MacRoman }, // from swedish.words
+    { "framförde", MacRoman }, // from swedish.words
+    { "framförs", MacRoman }, // from swedish.words
+    { "framfˆr", Iso885915 }, // from swedish.words
+    { "framfˆra", Iso885915 }, // from swedish.words
+    { "framfˆrallt", Iso885915 }, // from swedish.words
+    { "framfˆrde", Iso885915 }, // from swedish.words
+    { "framfˆrs", Iso885915 }, // from swedish.words
+    { "framhîll", Cp865 }, // from swedish.words
+    { "framhöll", MacRoman }, // from swedish.words
+    { "framhˆll", Iso885915 }, // from swedish.words
+    { "framstÑlla", Cp865 }, // from swedish.words
+    { "framställa", MacRoman }, // from swedish.words
+    { "framst‰lla", Iso885915 }, // from swedish.words
+    { "framtrÑdande", Cp865 }, // from swedish.words
+    { "framtrÑdde", Cp865 }, // from swedish.words
+    { "framtrÑder", Cp865 }, // from swedish.words
+    { "framträdande", MacRoman }, // from swedish.words
+    { "framträdde", MacRoman }, // from swedish.words
+    { "framträder", MacRoman }, // from swedish.words
+    { "framtr‰dande", Iso885915 }, // from swedish.words
+    { "framtr‰dde", Iso885915 }, // from swedish.words
+    { "framtr‰der", Iso885915 }, // from swedish.words
+    { "framîver", Cp865 }, // from swedish.words
+    { "framöver", MacRoman }, // from swedish.words
+    { "framˆver", Iso885915 }, // from swedish.words
     { "franchisÇs", Cp437 }, // from french.words
     { "franchisés", MacRoman }, // from french.words
     { "franchisÈs", Iso885915 }, // from french.words
+    { "fransmÑnnen", Cp865 }, // from swedish.words
+    { "fransmännen", MacRoman }, // from swedish.words
+    { "fransm‰nnen", Iso885915 }, // from swedish.words
+    { "franzÇn", Cp865 }, // from swedish.words
+    { "franzén", MacRoman }, // from swedish.words
     { "franzîsische", Cp437 }, // from german.words
     { "franzîsischen", Cp437 }, // from german.words
     { "franzîsischer", Cp437 }, // from german.words
     { "französische", MacRoman }, // from german.words
     { "französischen", MacRoman }, // from german.words
     { "französischer", MacRoman }, // from german.words
+    { "franzÈn", Iso885915 }, // from swedish.words
     { "franzˆsische", Iso885915 }, // from german.words
     { "franzˆsischen", Iso885915 }, // from german.words
     { "franzˆsischer", Iso885915 }, // from german.words
@@ -3510,6 +4581,12 @@ static const struct {
     { "fremstår", MacRoman }, // from norwegian.words
     { "fremstÂ", Iso885915 }, // from norwegian.words
     { "fremstÂr", Iso885915 }, // from norwegian.words
+    { "frimÑrken", Cp865 }, // from swedish.words
+    { "frimärken", MacRoman }, // from swedish.words
+    { "frim‰rken", Iso885915 }, // from swedish.words
+    { "fruktansvÑrt", Cp865 }, // from swedish.words
+    { "fruktansvärt", MacRoman }, // from swedish.words
+    { "fruktansv‰rt", Iso885915 }, // from swedish.words
     { "frÅh", Cp437 }, // from german.words
     { "frÅhe", Cp437 }, // from german.words
     { "frÅhen", Cp437 }, // from german.words
@@ -3525,7 +4602,21 @@ static const struct {
     { "frÇquentation", Cp437 }, // from french.words
     { "frÇquente", Cp437 }, // from french.words
     { "frÇquents", Cp437 }, // from french.words
+    { "frÑmja", Cp865 }, // from swedish.words
+    { "frÑmmande", Cp865 }, // from swedish.words
+    { "frÑmst", Cp865 }, // from swedish.words
+    { "frÑmsta", Cp865 }, // from swedish.words
+    { "frÑmste", Cp865 }, // from swedish.words
+    { "frÑsch", Cp865 }, // from swedish.words
+    { "frÑste", Cp865 }, // from swedish.words
     { "frÜ", Cp865 }, // from norwegian.words
+    { "främja", MacRoman }, // from swedish.words
+    { "främmande", MacRoman }, // from swedish.words
+    { "främst", MacRoman }, // from swedish.words
+    { "främsta", MacRoman }, // from swedish.words
+    { "främste", MacRoman }, // from swedish.words
+    { "fräsch", MacRoman }, // from swedish.words
+    { "fräste", MacRoman }, // from swedish.words
     { "frå", MacRoman }, // from norwegian.words
     { "fréquemment", MacRoman }, // from french.words
     { "fréquence", MacRoman }, // from french.words
@@ -3534,7 +4625,15 @@ static const struct {
     { "fréquente", MacRoman }, // from french.words
     { "fréquents", MacRoman }, // from french.words
     { "frîhlich", Cp437 }, // from german.words
+    { "frîken", Cp865 }, // from swedish.words
+    { "frîlunda", Cp865 }, // from swedish.words
+    { "frîn", Cp865 }, // from swedish.words
+    { "frîs", Cp865 }, // from swedish.words
     { "fröhlich", MacRoman }, // from german.words
+    { "fröken", MacRoman }, // from swedish.words
+    { "frölunda", MacRoman }, // from swedish.words
+    { "frön", MacRoman }, // from swedish.words
+    { "frös", MacRoman }, // from swedish.words
     { "frõken", Cp865 }, // from norwegian.words
     { "frõya", Cp865 }, // from norwegian.words
     { "früh", MacRoman }, // from german.words
@@ -3548,6 +4647,13 @@ static const struct {
     { "frühzeitig", MacRoman }, // from german.words
     { "frøken", MacRoman }, // from norwegian.words
     { "frøya", MacRoman }, // from norwegian.words
+    { "fr‰mja", Iso885915 }, // from swedish.words
+    { "fr‰mmande", Iso885915 }, // from swedish.words
+    { "fr‰mst", Iso885915 }, // from swedish.words
+    { "fr‰msta", Iso885915 }, // from swedish.words
+    { "fr‰mste", Iso885915 }, // from swedish.words
+    { "fr‰sch", Iso885915 }, // from swedish.words
+    { "fr‰ste", Iso885915 }, // from swedish.words
     { "frÂ", Iso885915 }, // from norwegian.words
     { "frÈquemment", Iso885915 }, // from french.words
     { "frÈquence", Iso885915 }, // from french.words
@@ -3556,6 +4662,10 @@ static const struct {
     { "frÈquente", Iso885915 }, // from french.words
     { "frÈquents", Iso885915 }, // from french.words
     { "frˆhlich", Iso885915 }, // from german.words
+    { "frˆken", Iso885915 }, // from swedish.words
+    { "frˆlunda", Iso885915 }, // from swedish.words
+    { "frˆn", Iso885915 }, // from swedish.words
+    { "frˆs", Iso885915 }, // from swedish.words
     { "fr¯ken", Iso885915 }, // from norwegian.words
     { "fr¯ya", Iso885915 }, // from norwegian.words
     { "fr¸h", Iso885915 }, // from german.words
@@ -3567,12 +4677,24 @@ static const struct {
     { "fr¸herer", Iso885915 }, // from german.words
     { "fr¸hestens", Iso885915 }, // from german.words
     { "fr¸hzeitig", Iso885915 }, // from german.words
+    { "fullfîlja", Cp865 }, // from swedish.words
+    { "fullfölja", MacRoman }, // from swedish.words
     { "fullfõre", Cp865 }, // from norwegian.words
     { "fullfõrt", Cp865 }, // from norwegian.words
     { "fullføre", MacRoman }, // from norwegian.words
     { "fullført", MacRoman }, // from norwegian.words
+    { "fullfˆlja", Iso885915 }, // from swedish.words
     { "fullf¯re", Iso885915 }, // from norwegian.words
     { "fullf¯rt", Iso885915 }, // from norwegian.words
+    { "fullmÑktige", Cp865 }, // from swedish.words
+    { "fullmäktige", MacRoman }, // from swedish.words
+    { "fullm‰ktige", Iso885915 }, // from swedish.words
+    { "fullstÑndig", Cp865 }, // from swedish.words
+    { "fullstÑndigt", Cp865 }, // from swedish.words
+    { "fullständig", MacRoman }, // from swedish.words
+    { "fullständigt", MacRoman }, // from swedish.words
+    { "fullst‰ndig", Iso885915 }, // from swedish.words
+    { "fullst‰ndigt", Iso885915 }, // from swedish.words
     { "fumÇ", Cp437 }, // from french.words
     { "fumÇe", Cp437 }, // from french.words
     { "fumé", MacRoman }, // from french.words
@@ -3620,18 +4742,70 @@ static const struct {
     { "fÇvrier", Cp437 }, // from french.words
     { "fÑhig", Cp437 }, // from german.words
     { "fÑhrt", Cp437 }, // from german.words
+    { "fÑlla", Cp865 }, // from swedish.words
+    { "fÑllde", Cp865 }, // from swedish.words
     { "fÑllig", Cp437 }, // from german.words
     { "fÑllt", Cp437 }, // from german.words
+    { "fÑlt", Cp865 }, // from swedish.words
+    { "fÑltet", Cp865 }, // from swedish.words
+    { "fÑngelse", Cp865 }, // from swedish.words
+    { "fÑngelsestraff", Cp865 }, // from swedish.words
+    { "fÑngelset", Cp865 }, // from swedish.words
     { "fÑngt", Cp437 }, // from german.words
+    { "fÑrd", Cp865 }, // from swedish.words
+    { "fÑrdas", Cp865 }, // from swedish.words
+    { "fÑrden", Cp865 }, // from swedish.words
+    { "fÑrdig", Cp865 }, // from swedish.words
+    { "fÑrdiga", Cp865 }, // from swedish.words
+    { "fÑrdigt", Cp865 }, // from swedish.words
+    { "fÑrg", Cp865 }, // from swedish.words
+    { "fÑrgade", Cp865 }, // from swedish.words
+    { "fÑrgen", Cp865 }, // from swedish.words
+    { "fÑrger", Cp865 }, // from swedish.words
+    { "fÑrgerna", Cp865 }, // from swedish.words
+    { "fÑrjan", Cp865 }, // from swedish.words
+    { "fÑrjestad", Cp865 }, // from swedish.words
+    { "fÑrre", Cp865 }, // from swedish.words
+    { "fÑrsk", Cp865 }, // from swedish.words
+    { "fÑrska", Cp865 }, // from swedish.words
+    { "fÑst", Cp865 }, // from swedish.words
+    { "fÑsta", Cp865 }, // from swedish.words
+    { "fÑste", Cp865 }, // from swedish.words
     { "fÜ", Cp865 }, // from norwegian.words
     { "fÜr", Cp865 }, // from norwegian.words
     { "fÜs", Cp865 }, // from norwegian.words
     { "fÜtt", Cp865 }, // from norwegian.words
     { "fähig", MacRoman }, // from german.words
     { "fährt", MacRoman }, // from german.words
+    { "fälla", MacRoman }, // from swedish.words
+    { "fällde", MacRoman }, // from swedish.words
     { "fällig", MacRoman }, // from german.words
     { "fällt", MacRoman }, // from german.words
+    { "fält", MacRoman }, // from swedish.words
+    { "fältet", MacRoman }, // from swedish.words
+    { "fängelse", MacRoman }, // from swedish.words
+    { "fängelsestraff", MacRoman }, // from swedish.words
+    { "fängelset", MacRoman }, // from swedish.words
     { "fängt", MacRoman }, // from german.words
+    { "färd", MacRoman }, // from swedish.words
+    { "färdas", MacRoman }, // from swedish.words
+    { "färden", MacRoman }, // from swedish.words
+    { "färdig", MacRoman }, // from swedish.words
+    { "färdiga", MacRoman }, // from swedish.words
+    { "färdigt", MacRoman }, // from swedish.words
+    { "färg", MacRoman }, // from swedish.words
+    { "färgade", MacRoman }, // from swedish.words
+    { "färgen", MacRoman }, // from swedish.words
+    { "färger", MacRoman }, // from swedish.words
+    { "färgerna", MacRoman }, // from swedish.words
+    { "färjan", MacRoman }, // from swedish.words
+    { "färjestad", MacRoman }, // from swedish.words
+    { "färre", MacRoman }, // from swedish.words
+    { "färsk", MacRoman }, // from swedish.words
+    { "färska", MacRoman }, // from swedish.words
+    { "fäst", MacRoman }, // from swedish.words
+    { "fästa", MacRoman }, // from swedish.words
+    { "fäste", MacRoman }, // from swedish.words
     { "få", MacRoman }, // from norwegian.words
     { "får", MacRoman }, // from norwegian.words
     { "fås", MacRoman }, // from norwegian.words
@@ -3650,10 +4824,696 @@ static const struct {
     { "fërre", Cp865 }, // from norwegian.words
     { "fërreste", Cp865 }, // from norwegian.words
     { "fërõyene", Cp865 }, // from norwegian.words
+    { "fîda", Cp865 }, // from swedish.words
+    { "fîdd", Cp865 }, // from swedish.words
+    { "fîdda", Cp865 }, // from swedish.words
+    { "fîddes", Cp865 }, // from swedish.words
+    { "fîdelse", Cp865 }, // from swedish.words
+    { "fîder", Cp865 }, // from swedish.words
+    { "fîds", Cp865 }, // from swedish.words
+    { "fîga", Cp865 }, // from swedish.words
+    { "fîlja", Cp865 }, // from swedish.words
+    { "fîljaktligen", Cp865 }, // from swedish.words
+    { "fîljande", Cp865 }, // from swedish.words
+    { "fîljas", Cp865 }, // from swedish.words
+    { "fîljd", Cp865 }, // from swedish.words
+    { "fîljde", Cp865 }, // from swedish.words
+    { "fîljden", Cp865 }, // from swedish.words
+    { "fîljder", Cp865 }, // from swedish.words
+    { "fîljderna", Cp865 }, // from swedish.words
+    { "fîljdes", Cp865 }, // from swedish.words
+    { "fîljer", Cp865 }, // from swedish.words
+    { "fîljs", Cp865 }, // from swedish.words
+    { "fîljt", Cp865 }, // from swedish.words
+    { "fîll", Cp865 }, // from swedish.words
+    { "fînster", Cp865 }, // from swedish.words
+    { "fînstren", Cp865 }, // from swedish.words
+    { "fînstret", Cp865 }, // from swedish.words
+    { "fîr", Cp865 }, // from swedish.words
+    { "fîra", Cp865 }, // from swedish.words
+    { "fîrakt", Cp865 }, // from swedish.words
+    { "fîrankring", Cp865 }, // from swedish.words
+    { "fîrare", Cp865 }, // from swedish.words
+    { "fîraren", Cp865 }, // from swedish.words
+    { "fîras", Cp865 }, // from swedish.words
+    { "fîrband", Cp865 }, // from swedish.words
+    { "fîrbannad", Cp865 }, // from swedish.words
+    { "fîrbannade", Cp865 }, // from swedish.words
+    { "fîrbannat", Cp865 }, // from swedish.words
+    { "fîrbereda", Cp865 }, // from swedish.words
+    { "fîrberedd", Cp865 }, // from swedish.words
+    { "fîrberedelser", Cp865 }, // from swedish.words
+    { "fîrberedelserna", Cp865 }, // from swedish.words
+    { "fîrbereder", Cp865 }, // from swedish.words
+    { "fîrberett", Cp865 }, // from swedish.words
+    { "fîrbi", Cp865 }, // from swedish.words
+    { "fîrbindelse", Cp865 }, // from swedish.words
+    { "fîrbindelser", Cp865 }, // from swedish.words
+    { "fîrbjuda", Cp865 }, // from swedish.words
+    { "fîrbjuder", Cp865 }, // from swedish.words
+    { "fîrbjudet", Cp865 }, // from swedish.words
+    { "fîrbjudna", Cp865 }, // from swedish.words
+    { "fîrblev", Cp865 }, // from swedish.words
+    { "fîrbli", Cp865 }, // from swedish.words
+    { "fîrblir", Cp865 }, // from swedish.words
+    { "fîrbud", Cp865 }, // from swedish.words
+    { "fîrbudet", Cp865 }, // from swedish.words
+    { "fîrbund", Cp865 }, // from swedish.words
+    { "fîrbundet", Cp865 }, // from swedish.words
+    { "fîrbundets", Cp865 }, // from swedish.words
+    { "fîrbundskapten", Cp865 }, // from swedish.words
+    { "fîrbundskaptenen", Cp865 }, // from swedish.words
+    { "fîrbÑttra", Cp865 }, // from swedish.words
+    { "fîrbÑttrad", Cp865 }, // from swedish.words
+    { "fîrbÑttrade", Cp865 }, // from swedish.words
+    { "fîrbÑttras", Cp865 }, // from swedish.words
+    { "fîrbÑttrats", Cp865 }, // from swedish.words
+    { "fîrbÑttring", Cp865 }, // from swedish.words
+    { "fîrbÑttringar", Cp865 }, // from swedish.words
+    { "fîrde", Cp865 }, // from swedish.words
+    { "fîrdel", Cp865 }, // from swedish.words
+    { "fîrdela", Cp865 }, // from swedish.words
+    { "fîrdelar", Cp865 }, // from swedish.words
+    { "fîrdelarna", Cp865 }, // from swedish.words
+    { "fîrdelas", Cp865 }, // from swedish.words
+    { "fîrdelen", Cp865 }, // from swedish.words
+    { "fîrdelning", Cp865 }, // from swedish.words
+    { "fîrdelningen", Cp865 }, // from swedish.words
     { "fîrdern", Cp437 }, // from german.words
     { "fîrdert", Cp437 }, // from german.words
+    { "fîrdes", Cp865 }, // from swedish.words
+    { "fîrdjupa", Cp865 }, // from swedish.words
+    { "fîrdomar", Cp865 }, // from swedish.words
+    { "fîre", Cp865 }, // from swedish.words
+    { "fîrebild", Cp865 }, // from swedish.words
+    { "fîrebilder", Cp865 }, // from swedish.words
+    { "fîrebygga", Cp865 }, // from swedish.words
+    { "fîrebyggande", Cp865 }, // from swedish.words
+    { "fîredrag", Cp865 }, // from swedish.words
+    { "fîredrar", Cp865 }, // from swedish.words
+    { "fîredrog", Cp865 }, // from swedish.words
+    { "fîrefaller", Cp865 }, // from swedish.words
+    { "fîrefîll", Cp865 }, // from swedish.words
+    { "fîregÜende", Cp865 }, // from swedish.words
+    { "fîregÜngare", Cp865 }, // from swedish.words
+    { "fîrekom", Cp865 }, // from swedish.words
+    { "fîrekomma", Cp865 }, // from swedish.words
+    { "fîrekommande", Cp865 }, // from swedish.words
+    { "fîrekommer", Cp865 }, // from swedish.words
+    { "fîrekommit", Cp865 }, // from swedish.words
+    { "fîreligger", Cp865 }, // from swedish.words
+    { "fîremÜl", Cp865 }, // from swedish.words
+    { "fîrena", Cp865 }, // from swedish.words
+    { "fîrenade", Cp865 }, // from swedish.words
+    { "fîrenar", Cp865 }, // from swedish.words
+    { "fîrenas", Cp865 }, // from swedish.words
+    { "fîrening", Cp865 }, // from swedish.words
+    { "fîreningar", Cp865 }, // from swedish.words
+    { "fîreningarna", Cp865 }, // from swedish.words
+    { "fîreningen", Cp865 }, // from swedish.words
+    { "fîreningens", Cp865 }, // from swedish.words
+    { "fîrenta", Cp865 }, // from swedish.words
+    { "fîreslagit", Cp865 }, // from swedish.words
+    { "fîreslagna", Cp865 }, // from swedish.words
+    { "fîreslog", Cp865 }, // from swedish.words
+    { "fîreslÜ", Cp865 }, // from swedish.words
+    { "fîreslÜr", Cp865 }, // from swedish.words
+    { "fîreslÜs", Cp865 }, // from swedish.words
+    { "fîresprÜkar", Cp865 }, // from swedish.words
+    { "fîrestÑlla", Cp865 }, // from swedish.words
+    { "fîrestÑller", Cp865 }, // from swedish.words
+    { "fîrestÑllning", Cp865 }, // from swedish.words
+    { "fîrestÑllningar", Cp865 }, // from swedish.words
+    { "fîrestÑllningen", Cp865 }, // from swedish.words
+    { "fîrestÜende", Cp865 }, // from swedish.words
+    { "fîretag", Cp865 }, // from swedish.words
+    { "fîretagande", Cp865 }, // from swedish.words
+    { "fîretagare", Cp865 }, // from swedish.words
+    { "fîretagarna", Cp865 }, // from swedish.words
+    { "fîretagen", Cp865 }, // from swedish.words
+    { "fîretagens", Cp865 }, // from swedish.words
+    { "fîretaget", Cp865 }, // from swedish.words
+    { "fîretagets", Cp865 }, // from swedish.words
+    { "fîretagsledare", Cp865 }, // from swedish.words
+    { "fîreteelse", Cp865 }, // from swedish.words
+    { "fîreteelser", Cp865 }, // from swedish.words
+    { "fîretrÑdare", Cp865 }, // from swedish.words
+    { "fîretrÑder", Cp865 }, // from swedish.words
+    { "fîrfall", Cp865 }, // from swedish.words
+    { "fîrfattare", Cp865 }, // from swedish.words
+    { "fîrfattaren", Cp865 }, // from swedish.words
+    { "fîrfattarens", Cp865 }, // from swedish.words
+    { "fîrfattarna", Cp865 }, // from swedish.words
+    { "fîrfattarskap", Cp865 }, // from swedish.words
+    { "fîrflutet", Cp865 }, // from swedish.words
+    { "fîrflutna", Cp865 }, // from swedish.words
+    { "fîrfogande", Cp865 }, // from swedish.words
+    { "fîrfÑrligt", Cp865 }, // from swedish.words
+    { "fîrgÑves", Cp865 }, // from swedish.words
+    { "fîrhand", Cp865 }, // from swedish.words
+    { "fîrhandla", Cp865 }, // from swedish.words
+    { "fîrhandlar", Cp865 }, // from swedish.words
+    { "fîrhandling", Cp865 }, // from swedish.words
+    { "fîrhandlingar", Cp865 }, // from swedish.words
+    { "fîrhandlingarna", Cp865 }, // from swedish.words
+    { "fîrhindra", Cp865 }, // from swedish.words
+    { "fîrhoppning", Cp865 }, // from swedish.words
+    { "fîrhoppningar", Cp865 }, // from swedish.words
+    { "fîrhoppningen", Cp865 }, // from swedish.words
+    { "fîrhoppningsvis", Cp865 }, // from swedish.words
+    { "fîrhÜllande", Cp865 }, // from swedish.words
+    { "fîrhÜllanden", Cp865 }, // from swedish.words
+    { "fîrhÜllandena", Cp865 }, // from swedish.words
+    { "fîrhÜllandet", Cp865 }, // from swedish.words
+    { "fîrhÜllandevis", Cp865 }, // from swedish.words
+    { "fîrhÜller", Cp865 }, // from swedish.words
+    { "fîrhÜllningssÑtt", Cp865 }, // from swedish.words
+    { "fîrhîr", Cp865 }, // from swedish.words
+    { "fîrklara", Cp865 }, // from swedish.words
+    { "fîrklarade", Cp865 }, // from swedish.words
+    { "fîrklarar", Cp865 }, // from swedish.words
+    { "fîrklaras", Cp865 }, // from swedish.words
+    { "fîrklarat", Cp865 }, // from swedish.words
+    { "fîrklaring", Cp865 }, // from swedish.words
+    { "fîrklaringar", Cp865 }, // from swedish.words
+    { "fîrklaringen", Cp865 }, // from swedish.words
+    { "fîrknippas", Cp865 }, // from swedish.words
+    { "fîrlag", Cp865 }, // from swedish.words
+    { "fîrlaget", Cp865 }, // from swedish.words
+    { "fîrlora", Cp865 }, // from swedish.words
+    { "fîrlorad", Cp865 }, // from swedish.words
+    { "fîrlorade", Cp865 }, // from swedish.words
+    { "fîrlorar", Cp865 }, // from swedish.words
+    { "fîrlorare", Cp865 }, // from swedish.words
+    { "fîrlorat", Cp865 }, // from swedish.words
+    { "fîrlust", Cp865 }, // from swedish.words
+    { "fîrlusten", Cp865 }, // from swedish.words
+    { "fîrluster", Cp865 }, // from swedish.words
+    { "fîrlusterna", Cp865 }, // from swedish.words
+    { "fîrlÑnga", Cp865 }, // from swedish.words
+    { "fîrlÑngning", Cp865 }, // from swedish.words
+    { "fîrlÑngningen", Cp865 }, // from swedish.words
+    { "fîrlÜt", Cp865 }, // from swedish.words
+    { "fîrlÜta", Cp865 }, // from swedish.words
+    { "fîrmedla", Cp865 }, // from swedish.words
+    { "fîrmedlar", Cp865 }, // from swedish.words
+    { "fîrmiddag", Cp865 }, // from swedish.words
+    { "fîrmiddagen", Cp865 }, // from swedish.words
+    { "fîrmodligen", Cp865 }, // from swedish.words
+    { "fîrmÜ", Cp865 }, // from swedish.words
+    { "fîrmÜdde", Cp865 }, // from swedish.words
+    { "fîrmÜga", Cp865 }, // from swedish.words
+    { "fîrmÜgan", Cp865 }, // from swedish.words
+    { "fîrmÜn", Cp865 }, // from swedish.words
+    { "fîrmÜner", Cp865 }, // from swedish.words
+    { "fîrmÜr", Cp865 }, // from swedish.words
+    { "fîrmîgenhet", Cp865 }, // from swedish.words
+    { "fîrneka", Cp865 }, // from swedish.words
+    { "fîrnekade", Cp865 }, // from swedish.words
+    { "fîrnekar", Cp865 }, // from swedish.words
+    { "fîrnuft", Cp865 }, // from swedish.words
+    { "fîrnya", Cp865 }, // from swedish.words
+    { "fîrnyelse", Cp865 }, // from swedish.words
+    { "fîrr", Cp865 }, // from swedish.words
+    { "fîrra", Cp865 }, // from swedish.words
+    { "fîrre", Cp865 }, // from swedish.words
+    { "fîrresten", Cp865 }, // from swedish.words
+    { "fîrrÑn", Cp865 }, // from swedish.words
+    { "fîrs", Cp865 }, // from swedish.words
+    { "fîrsamling", Cp865 }, // from swedish.words
+    { "fîrsamlingen", Cp865 }, // from swedish.words
+    { "fîrse", Cp865 }, // from swedish.words
+    { "fîrsenad", Cp865 }, // from swedish.words
+    { "fîrsiktig", Cp865 }, // from swedish.words
+    { "fîrsiktiga", Cp865 }, // from swedish.words
+    { "fîrsiktigt", Cp865 }, // from swedish.words
+    { "fîrskrÑckt", Cp865 }, // from swedish.words
+    { "fîrslag", Cp865 }, // from swedish.words
+    { "fîrslagen", Cp865 }, // from swedish.words
+    { "fîrslaget", Cp865 }, // from swedish.words
+    { "fîrsoning", Cp865 }, // from swedish.words
+    { "fîrsprÜng", Cp865 }, // from swedish.words
+    { "fîrst", Cp865 }, // from swedish.words
+    { "fîrsta", Cp865 }, // from swedish.words
+    { "fîrste", Cp865 }, // from swedish.words
+    { "fîrstod", Cp865 }, // from swedish.words
+    { "fîrstÑrka", Cp865 }, // from swedish.words
+    { "fîrstÑrker", Cp865 }, // from swedish.words
+    { "fîrstÑrkning", Cp865 }, // from swedish.words
+    { "fîrstÑrks", Cp865 }, // from swedish.words
+    { "fîrstÑrkt", Cp865 }, // from swedish.words
+    { "fîrstÜ", Cp865 }, // from swedish.words
+    { "fîrstÜelse", Cp865 }, // from swedish.words
+    { "fîrstÜr", Cp865 }, // from swedish.words
+    { "fîrstÜs", Cp865 }, // from swedish.words
+    { "fîrstÜtt", Cp865 }, // from swedish.words
+    { "fîrstîr", Cp865 }, // from swedish.words
+    { "fîrstîra", Cp865 }, // from swedish.words
+    { "fîrstîrt", Cp865 }, // from swedish.words
+    { "fîrsvann", Cp865 }, // from swedish.words
+    { "fîrsvar", Cp865 }, // from swedish.words
+    { "fîrsvara", Cp865 }, // from swedish.words
+    { "fîrsvarade", Cp865 }, // from swedish.words
+    { "fîrsvarar", Cp865 }, // from swedish.words
+    { "fîrsvarare", Cp865 }, // from swedish.words
+    { "fîrsvaret", Cp865 }, // from swedish.words
+    { "fîrsvarets", Cp865 }, // from swedish.words
+    { "fîrsvarsminister", Cp865 }, // from swedish.words
+    { "fîrsvarsministern", Cp865 }, // from swedish.words
+    { "fîrsvinna", Cp865 }, // from swedish.words
+    { "fîrsvinner", Cp865 }, // from swedish.words
+    { "fîrsvunna", Cp865 }, // from swedish.words
+    { "fîrsvunnen", Cp865 }, // from swedish.words
+    { "fîrsvunnit", Cp865 }, // from swedish.words
+    { "fîrsÑkra", Cp865 }, // from swedish.words
+    { "fîrsÑkrade", Cp865 }, // from swedish.words
+    { "fîrsÑkrar", Cp865 }, // from swedish.words
+    { "fîrsÑkring", Cp865 }, // from swedish.words
+    { "fîrsÑkringar", Cp865 }, // from swedish.words
+    { "fîrsÑkringsbolag", Cp865 }, // from swedish.words
+    { "fîrsÑkringsbolagen", Cp865 }, // from swedish.words
+    { "fîrsÑkringsbolaget", Cp865 }, // from swedish.words
+    { "fîrsÑkringskassan", Cp865 }, // from swedish.words
+    { "fîrsÑljning", Cp865 }, // from swedish.words
+    { "fîrsÑljningen", Cp865 }, // from swedish.words
+    { "fîrsÑmras", Cp865 }, // from swedish.words
+    { "fîrsîk", Cp865 }, // from swedish.words
+    { "fîrsîka", Cp865 }, // from swedish.words
+    { "fîrsîken", Cp865 }, // from swedish.words
+    { "fîrsîker", Cp865 }, // from swedish.words
+    { "fîrsîket", Cp865 }, // from swedish.words
+    { "fîrsîkt", Cp865 }, // from swedish.words
+    { "fîrsîkte", Cp865 }, // from swedish.words
+    { "fîrsîrja", Cp865 }, // from swedish.words
+    { "fîrsîrjning", Cp865 }, // from swedish.words
+    { "fîrt", Cp865 }, // from swedish.words
+    { "fîrtid", Cp865 }, // from swedish.words
+    { "fîrtjusning", Cp865 }, // from swedish.words
+    { "fîrtjust", Cp865 }, // from swedish.words
+    { "fîrtjÑnar", Cp865 }, // from swedish.words
+    { "fîrtjÑnst", Cp865 }, // from swedish.words
+    { "fîrtroende", Cp865 }, // from swedish.words
+    { "fîrtroendet", Cp865 }, // from swedish.words
+    { "fîrtryck", Cp865 }, // from swedish.words
+    { "fîrts", Cp865 }, // from swedish.words
+    { "fîrtvivlan", Cp865 }, // from swedish.words
+    { "fîrut", Cp865 }, // from swedish.words
+    { "fîrutom", Cp865 }, // from swedish.words
+    { "fîrutsatt", Cp865 }, // from swedish.words
+    { "fîrutse", Cp865 }, // from swedish.words
+    { "fîrutsÑtter", Cp865 }, // from swedish.words
+    { "fîrutsÑttning", Cp865 }, // from swedish.words
+    { "fîrutsÑttningar", Cp865 }, // from swedish.words
+    { "fîrutsÑttningarna", Cp865 }, // from swedish.words
+    { "fîrutsÑttningen", Cp865 }, // from swedish.words
+    { "fîrvaltning", Cp865 }, // from swedish.words
+    { "fîrvaltningen", Cp865 }, // from swedish.words
+    { "fîrvandla", Cp865 }, // from swedish.words
+    { "fîrvandlades", Cp865 }, // from swedish.words
+    { "fîrvandlas", Cp865 }, // from swedish.words
+    { "fîrvandlats", Cp865 }, // from swedish.words
+    { "fîrverkliga", Cp865 }, // from swedish.words
+    { "fîrverkligas", Cp865 }, // from swedish.words
+    { "fîrvirrad", Cp865 }, // from swedish.words
+    { "fîrvirrade", Cp865 }, // from swedish.words
+    { "fîrvirring", Cp865 }, // from swedish.words
+    { "fîrvisso", Cp865 }, // from swedish.words
+    { "fîrvÑg", Cp865 }, // from swedish.words
+    { "fîrvÑnta", Cp865 }, // from swedish.words
+    { "fîrvÑntan", Cp865 }, // from swedish.words
+    { "fîrvÑntar", Cp865 }, // from swedish.words
+    { "fîrvÑntas", Cp865 }, // from swedish.words
+    { "fîrvÑntningar", Cp865 }, // from swedish.words
+    { "fîrvÑntningarna", Cp865 }, // from swedish.words
+    { "fîrvÜnad", Cp865 }, // from swedish.words
+    { "fîrvÜnade", Cp865 }, // from swedish.words
+    { "fîrvÜnande", Cp865 }, // from swedish.words
+    { "fîrvÜnansvÑrt", Cp865 }, // from swedish.words
+    { "fîrvÜnar", Cp865 }, // from swedish.words
+    { "fîrvÜning", Cp865 }, // from swedish.words
+    { "fîrÑlder", Cp865 }, // from swedish.words
+    { "fîrÑldrar", Cp865 }, // from swedish.words
+    { "fîrÑldrarna", Cp865 }, // from swedish.words
+    { "fîrÑldrarnas", Cp865 }, // from swedish.words
+    { "fîrÑlskad", Cp865 }, // from swedish.words
+    { "fîrÑndra", Cp865 }, // from swedish.words
+    { "fîrÑndrade", Cp865 }, // from swedish.words
+    { "fîrÑndrades", Cp865 }, // from swedish.words
+    { "fîrÑndras", Cp865 }, // from swedish.words
+    { "fîrÑndrat", Cp865 }, // from swedish.words
+    { "fîrÑndrats", Cp865 }, // from swedish.words
+    { "fîrÑndring", Cp865 }, // from swedish.words
+    { "fîrÑndringar", Cp865 }, // from swedish.words
+    { "fîrÑndringarna", Cp865 }, // from swedish.words
+    { "fîrÑndringen", Cp865 }, // from swedish.words
+    { "fîrîdande", Cp865 }, // from swedish.words
+    { "fîtter", Cp865 }, // from swedish.words
+    { "fîtterna", Cp865 }, // from swedish.words
+    { "föda", MacRoman }, // from swedish.words
+    { "född", MacRoman }, // from swedish.words
+    { "födda", MacRoman }, // from swedish.words
+    { "föddes", MacRoman }, // from swedish.words
+    { "födelse", MacRoman }, // from swedish.words
+    { "föder", MacRoman }, // from swedish.words
+    { "föds", MacRoman }, // from swedish.words
+    { "föga", MacRoman }, // from swedish.words
+    { "följa", MacRoman }, // from swedish.words
+    { "följaktligen", MacRoman }, // from swedish.words
+    { "följande", MacRoman }, // from swedish.words
+    { "följas", MacRoman }, // from swedish.words
+    { "följd", MacRoman }, // from swedish.words
+    { "följde", MacRoman }, // from swedish.words
+    { "följden", MacRoman }, // from swedish.words
+    { "följder", MacRoman }, // from swedish.words
+    { "följderna", MacRoman }, // from swedish.words
+    { "följdes", MacRoman }, // from swedish.words
+    { "följer", MacRoman }, // from swedish.words
+    { "följs", MacRoman }, // from swedish.words
+    { "följt", MacRoman }, // from swedish.words
+    { "föll", MacRoman }, // from swedish.words
+    { "fönster", MacRoman }, // from swedish.words
+    { "fönstren", MacRoman }, // from swedish.words
+    { "fönstret", MacRoman }, // from swedish.words
+    { "för", MacRoman }, // from swedish.words
+    { "föra", MacRoman }, // from swedish.words
+    { "förakt", MacRoman }, // from swedish.words
+    { "förankring", MacRoman }, // from swedish.words
+    { "förare", MacRoman }, // from swedish.words
+    { "föraren", MacRoman }, // from swedish.words
+    { "föras", MacRoman }, // from swedish.words
+    { "förband", MacRoman }, // from swedish.words
+    { "förbannad", MacRoman }, // from swedish.words
+    { "förbannade", MacRoman }, // from swedish.words
+    { "förbannat", MacRoman }, // from swedish.words
+    { "förbereda", MacRoman }, // from swedish.words
+    { "förberedd", MacRoman }, // from swedish.words
+    { "förberedelser", MacRoman }, // from swedish.words
+    { "förberedelserna", MacRoman }, // from swedish.words
+    { "förbereder", MacRoman }, // from swedish.words
+    { "förberett", MacRoman }, // from swedish.words
+    { "förbi", MacRoman }, // from swedish.words
+    { "förbindelse", MacRoman }, // from swedish.words
+    { "förbindelser", MacRoman }, // from swedish.words
+    { "förbjuda", MacRoman }, // from swedish.words
+    { "förbjuder", MacRoman }, // from swedish.words
+    { "förbjudet", MacRoman }, // from swedish.words
+    { "förbjudna", MacRoman }, // from swedish.words
+    { "förblev", MacRoman }, // from swedish.words
+    { "förbli", MacRoman }, // from swedish.words
+    { "förblir", MacRoman }, // from swedish.words
+    { "förbud", MacRoman }, // from swedish.words
+    { "förbudet", MacRoman }, // from swedish.words
+    { "förbund", MacRoman }, // from swedish.words
+    { "förbundet", MacRoman }, // from swedish.words
+    { "förbundets", MacRoman }, // from swedish.words
+    { "förbundskapten", MacRoman }, // from swedish.words
+    { "förbundskaptenen", MacRoman }, // from swedish.words
+    { "förbättra", MacRoman }, // from swedish.words
+    { "förbättrad", MacRoman }, // from swedish.words
+    { "förbättrade", MacRoman }, // from swedish.words
+    { "förbättras", MacRoman }, // from swedish.words
+    { "förbättrats", MacRoman }, // from swedish.words
+    { "förbättring", MacRoman }, // from swedish.words
+    { "förbättringar", MacRoman }, // from swedish.words
+    { "förde", MacRoman }, // from swedish.words
+    { "fördel", MacRoman }, // from swedish.words
+    { "fördela", MacRoman }, // from swedish.words
+    { "fördelar", MacRoman }, // from swedish.words
+    { "fördelarna", MacRoman }, // from swedish.words
+    { "fördelas", MacRoman }, // from swedish.words
+    { "fördelen", MacRoman }, // from swedish.words
+    { "fördelning", MacRoman }, // from swedish.words
+    { "fördelningen", MacRoman }, // from swedish.words
     { "fördern", MacRoman }, // from german.words
     { "fördert", MacRoman }, // from german.words
+    { "fördes", MacRoman }, // from swedish.words
+    { "fördjupa", MacRoman }, // from swedish.words
+    { "fördomar", MacRoman }, // from swedish.words
+    { "före", MacRoman }, // from swedish.words
+    { "förebild", MacRoman }, // from swedish.words
+    { "förebilder", MacRoman }, // from swedish.words
+    { "förebygga", MacRoman }, // from swedish.words
+    { "förebyggande", MacRoman }, // from swedish.words
+    { "föredrag", MacRoman }, // from swedish.words
+    { "föredrar", MacRoman }, // from swedish.words
+    { "föredrog", MacRoman }, // from swedish.words
+    { "förefaller", MacRoman }, // from swedish.words
+    { "föreföll", MacRoman }, // from swedish.words
+    { "föregående", MacRoman }, // from swedish.words
+    { "föregångare", MacRoman }, // from swedish.words
+    { "förekom", MacRoman }, // from swedish.words
+    { "förekomma", MacRoman }, // from swedish.words
+    { "förekommande", MacRoman }, // from swedish.words
+    { "förekommer", MacRoman }, // from swedish.words
+    { "förekommit", MacRoman }, // from swedish.words
+    { "föreligger", MacRoman }, // from swedish.words
+    { "föremål", MacRoman }, // from swedish.words
+    { "förena", MacRoman }, // from swedish.words
+    { "förenade", MacRoman }, // from swedish.words
+    { "förenar", MacRoman }, // from swedish.words
+    { "förenas", MacRoman }, // from swedish.words
+    { "förening", MacRoman }, // from swedish.words
+    { "föreningar", MacRoman }, // from swedish.words
+    { "föreningarna", MacRoman }, // from swedish.words
+    { "föreningen", MacRoman }, // from swedish.words
+    { "föreningens", MacRoman }, // from swedish.words
+    { "förenta", MacRoman }, // from swedish.words
+    { "föreslagit", MacRoman }, // from swedish.words
+    { "föreslagna", MacRoman }, // from swedish.words
+    { "föreslog", MacRoman }, // from swedish.words
+    { "föreslå", MacRoman }, // from swedish.words
+    { "föreslår", MacRoman }, // from swedish.words
+    { "föreslås", MacRoman }, // from swedish.words
+    { "förespråkar", MacRoman }, // from swedish.words
+    { "föreställa", MacRoman }, // from swedish.words
+    { "föreställer", MacRoman }, // from swedish.words
+    { "föreställning", MacRoman }, // from swedish.words
+    { "föreställningar", MacRoman }, // from swedish.words
+    { "föreställningen", MacRoman }, // from swedish.words
+    { "förestående", MacRoman }, // from swedish.words
+    { "företag", MacRoman }, // from swedish.words
+    { "företagande", MacRoman }, // from swedish.words
+    { "företagare", MacRoman }, // from swedish.words
+    { "företagarna", MacRoman }, // from swedish.words
+    { "företagen", MacRoman }, // from swedish.words
+    { "företagens", MacRoman }, // from swedish.words
+    { "företaget", MacRoman }, // from swedish.words
+    { "företagets", MacRoman }, // from swedish.words
+    { "företagsledare", MacRoman }, // from swedish.words
+    { "företeelse", MacRoman }, // from swedish.words
+    { "företeelser", MacRoman }, // from swedish.words
+    { "företrädare", MacRoman }, // from swedish.words
+    { "företräder", MacRoman }, // from swedish.words
+    { "förfall", MacRoman }, // from swedish.words
+    { "författare", MacRoman }, // from swedish.words
+    { "författaren", MacRoman }, // from swedish.words
+    { "författarens", MacRoman }, // from swedish.words
+    { "författarna", MacRoman }, // from swedish.words
+    { "författarskap", MacRoman }, // from swedish.words
+    { "förflutet", MacRoman }, // from swedish.words
+    { "förflutna", MacRoman }, // from swedish.words
+    { "förfogande", MacRoman }, // from swedish.words
+    { "förfärligt", MacRoman }, // from swedish.words
+    { "förgäves", MacRoman }, // from swedish.words
+    { "förhand", MacRoman }, // from swedish.words
+    { "förhandla", MacRoman }, // from swedish.words
+    { "förhandlar", MacRoman }, // from swedish.words
+    { "förhandling", MacRoman }, // from swedish.words
+    { "förhandlingar", MacRoman }, // from swedish.words
+    { "förhandlingarna", MacRoman }, // from swedish.words
+    { "förhindra", MacRoman }, // from swedish.words
+    { "förhoppning", MacRoman }, // from swedish.words
+    { "förhoppningar", MacRoman }, // from swedish.words
+    { "förhoppningen", MacRoman }, // from swedish.words
+    { "förhoppningsvis", MacRoman }, // from swedish.words
+    { "förhållande", MacRoman }, // from swedish.words
+    { "förhållanden", MacRoman }, // from swedish.words
+    { "förhållandena", MacRoman }, // from swedish.words
+    { "förhållandet", MacRoman }, // from swedish.words
+    { "förhållandevis", MacRoman }, // from swedish.words
+    { "förhåller", MacRoman }, // from swedish.words
+    { "förhållningssätt", MacRoman }, // from swedish.words
+    { "förhör", MacRoman }, // from swedish.words
+    { "förklara", MacRoman }, // from swedish.words
+    { "förklarade", MacRoman }, // from swedish.words
+    { "förklarar", MacRoman }, // from swedish.words
+    { "förklaras", MacRoman }, // from swedish.words
+    { "förklarat", MacRoman }, // from swedish.words
+    { "förklaring", MacRoman }, // from swedish.words
+    { "förklaringar", MacRoman }, // from swedish.words
+    { "förklaringen", MacRoman }, // from swedish.words
+    { "förknippas", MacRoman }, // from swedish.words
+    { "förlag", MacRoman }, // from swedish.words
+    { "förlaget", MacRoman }, // from swedish.words
+    { "förlora", MacRoman }, // from swedish.words
+    { "förlorad", MacRoman }, // from swedish.words
+    { "förlorade", MacRoman }, // from swedish.words
+    { "förlorar", MacRoman }, // from swedish.words
+    { "förlorare", MacRoman }, // from swedish.words
+    { "förlorat", MacRoman }, // from swedish.words
+    { "förlust", MacRoman }, // from swedish.words
+    { "förlusten", MacRoman }, // from swedish.words
+    { "förluster", MacRoman }, // from swedish.words
+    { "förlusterna", MacRoman }, // from swedish.words
+    { "förlänga", MacRoman }, // from swedish.words
+    { "förlängning", MacRoman }, // from swedish.words
+    { "förlängningen", MacRoman }, // from swedish.words
+    { "förlåt", MacRoman }, // from swedish.words
+    { "förlåta", MacRoman }, // from swedish.words
+    { "förmedla", MacRoman }, // from swedish.words
+    { "förmedlar", MacRoman }, // from swedish.words
+    { "förmiddag", MacRoman }, // from swedish.words
+    { "förmiddagen", MacRoman }, // from swedish.words
+    { "förmodligen", MacRoman }, // from swedish.words
+    { "förmå", MacRoman }, // from swedish.words
+    { "förmådde", MacRoman }, // from swedish.words
+    { "förmåga", MacRoman }, // from swedish.words
+    { "förmågan", MacRoman }, // from swedish.words
+    { "förmån", MacRoman }, // from swedish.words
+    { "förmåner", MacRoman }, // from swedish.words
+    { "förmår", MacRoman }, // from swedish.words
+    { "förmögenhet", MacRoman }, // from swedish.words
+    { "förneka", MacRoman }, // from swedish.words
+    { "förnekade", MacRoman }, // from swedish.words
+    { "förnekar", MacRoman }, // from swedish.words
+    { "förnuft", MacRoman }, // from swedish.words
+    { "förnya", MacRoman }, // from swedish.words
+    { "förnyelse", MacRoman }, // from swedish.words
+    { "förr", MacRoman }, // from swedish.words
+    { "förra", MacRoman }, // from swedish.words
+    { "förre", MacRoman }, // from swedish.words
+    { "förresten", MacRoman }, // from swedish.words
+    { "förrän", MacRoman }, // from swedish.words
+    { "förs", MacRoman }, // from swedish.words
+    { "församling", MacRoman }, // from swedish.words
+    { "församlingen", MacRoman }, // from swedish.words
+    { "förse", MacRoman }, // from swedish.words
+    { "försenad", MacRoman }, // from swedish.words
+    { "försiktig", MacRoman }, // from swedish.words
+    { "försiktiga", MacRoman }, // from swedish.words
+    { "försiktigt", MacRoman }, // from swedish.words
+    { "förskräckt", MacRoman }, // from swedish.words
+    { "förslag", MacRoman }, // from swedish.words
+    { "förslagen", MacRoman }, // from swedish.words
+    { "förslaget", MacRoman }, // from swedish.words
+    { "försoning", MacRoman }, // from swedish.words
+    { "försprång", MacRoman }, // from swedish.words
+    { "först", MacRoman }, // from swedish.words
+    { "första", MacRoman }, // from swedish.words
+    { "förste", MacRoman }, // from swedish.words
+    { "förstod", MacRoman }, // from swedish.words
+    { "förstärka", MacRoman }, // from swedish.words
+    { "förstärker", MacRoman }, // from swedish.words
+    { "förstärkning", MacRoman }, // from swedish.words
+    { "förstärks", MacRoman }, // from swedish.words
+    { "förstärkt", MacRoman }, // from swedish.words
+    { "förstå", MacRoman }, // from swedish.words
+    { "förståelse", MacRoman }, // from swedish.words
+    { "förstår", MacRoman }, // from swedish.words
+    { "förstås", MacRoman }, // from swedish.words
+    { "förstått", MacRoman }, // from swedish.words
+    { "förstör", MacRoman }, // from swedish.words
+    { "förstöra", MacRoman }, // from swedish.words
+    { "förstört", MacRoman }, // from swedish.words
+    { "försvann", MacRoman }, // from swedish.words
+    { "försvar", MacRoman }, // from swedish.words
+    { "försvara", MacRoman }, // from swedish.words
+    { "försvarade", MacRoman }, // from swedish.words
+    { "försvarar", MacRoman }, // from swedish.words
+    { "försvarare", MacRoman }, // from swedish.words
+    { "försvaret", MacRoman }, // from swedish.words
+    { "försvarets", MacRoman }, // from swedish.words
+    { "försvarsminister", MacRoman }, // from swedish.words
+    { "försvarsministern", MacRoman }, // from swedish.words
+    { "försvinna", MacRoman }, // from swedish.words
+    { "försvinner", MacRoman }, // from swedish.words
+    { "försvunna", MacRoman }, // from swedish.words
+    { "försvunnen", MacRoman }, // from swedish.words
+    { "försvunnit", MacRoman }, // from swedish.words
+    { "försäkra", MacRoman }, // from swedish.words
+    { "försäkrade", MacRoman }, // from swedish.words
+    { "försäkrar", MacRoman }, // from swedish.words
+    { "försäkring", MacRoman }, // from swedish.words
+    { "försäkringar", MacRoman }, // from swedish.words
+    { "försäkringsbolag", MacRoman }, // from swedish.words
+    { "försäkringsbolagen", MacRoman }, // from swedish.words
+    { "försäkringsbolaget", MacRoman }, // from swedish.words
+    { "försäkringskassan", MacRoman }, // from swedish.words
+    { "försäljning", MacRoman }, // from swedish.words
+    { "försäljningen", MacRoman }, // from swedish.words
+    { "försämras", MacRoman }, // from swedish.words
+    { "försök", MacRoman }, // from swedish.words
+    { "försöka", MacRoman }, // from swedish.words
+    { "försöken", MacRoman }, // from swedish.words
+    { "försöker", MacRoman }, // from swedish.words
+    { "försöket", MacRoman }, // from swedish.words
+    { "försökt", MacRoman }, // from swedish.words
+    { "försökte", MacRoman }, // from swedish.words
+    { "försörja", MacRoman }, // from swedish.words
+    { "försörjning", MacRoman }, // from swedish.words
+    { "fört", MacRoman }, // from swedish.words
+    { "förtid", MacRoman }, // from swedish.words
+    { "förtjusning", MacRoman }, // from swedish.words
+    { "förtjust", MacRoman }, // from swedish.words
+    { "förtjänar", MacRoman }, // from swedish.words
+    { "förtjänst", MacRoman }, // from swedish.words
+    { "förtroende", MacRoman }, // from swedish.words
+    { "förtroendet", MacRoman }, // from swedish.words
+    { "förtryck", MacRoman }, // from swedish.words
+    { "förts", MacRoman }, // from swedish.words
+    { "förtvivlan", MacRoman }, // from swedish.words
+    { "förut", MacRoman }, // from swedish.words
+    { "förutom", MacRoman }, // from swedish.words
+    { "förutsatt", MacRoman }, // from swedish.words
+    { "förutse", MacRoman }, // from swedish.words
+    { "förutsätter", MacRoman }, // from swedish.words
+    { "förutsättning", MacRoman }, // from swedish.words
+    { "förutsättningar", MacRoman }, // from swedish.words
+    { "förutsättningarna", MacRoman }, // from swedish.words
+    { "förutsättningen", MacRoman }, // from swedish.words
+    { "förvaltning", MacRoman }, // from swedish.words
+    { "förvaltningen", MacRoman }, // from swedish.words
+    { "förvandla", MacRoman }, // from swedish.words
+    { "förvandlades", MacRoman }, // from swedish.words
+    { "förvandlas", MacRoman }, // from swedish.words
+    { "förvandlats", MacRoman }, // from swedish.words
+    { "förverkliga", MacRoman }, // from swedish.words
+    { "förverkligas", MacRoman }, // from swedish.words
+    { "förvirrad", MacRoman }, // from swedish.words
+    { "förvirrade", MacRoman }, // from swedish.words
+    { "förvirring", MacRoman }, // from swedish.words
+    { "förvisso", MacRoman }, // from swedish.words
+    { "förväg", MacRoman }, // from swedish.words
+    { "förvänta", MacRoman }, // from swedish.words
+    { "förväntan", MacRoman }, // from swedish.words
+    { "förväntar", MacRoman }, // from swedish.words
+    { "förväntas", MacRoman }, // from swedish.words
+    { "förväntningar", MacRoman }, // from swedish.words
+    { "förväntningarna", MacRoman }, // from swedish.words
+    { "förvånad", MacRoman }, // from swedish.words
+    { "förvånade", MacRoman }, // from swedish.words
+    { "förvånande", MacRoman }, // from swedish.words
+    { "förvånansvärt", MacRoman }, // from swedish.words
+    { "förvånar", MacRoman }, // from swedish.words
+    { "förvåning", MacRoman }, // from swedish.words
+    { "förälder", MacRoman }, // from swedish.words
+    { "föräldrar", MacRoman }, // from swedish.words
+    { "föräldrarna", MacRoman }, // from swedish.words
+    { "föräldrarnas", MacRoman }, // from swedish.words
+    { "förälskad", MacRoman }, // from swedish.words
+    { "förändra", MacRoman }, // from swedish.words
+    { "förändrade", MacRoman }, // from swedish.words
+    { "förändrades", MacRoman }, // from swedish.words
+    { "förändras", MacRoman }, // from swedish.words
+    { "förändrat", MacRoman }, // from swedish.words
+    { "förändrats", MacRoman }, // from swedish.words
+    { "förändring", MacRoman }, // from swedish.words
+    { "förändringar", MacRoman }, // from swedish.words
+    { "förändringarna", MacRoman }, // from swedish.words
+    { "förändringen", MacRoman }, // from swedish.words
+    { "förödande", MacRoman }, // from swedish.words
+    { "fötter", MacRoman }, // from swedish.words
+    { "fötterna", MacRoman }, // from swedish.words
     { "fõde", Cp865 }, // from norwegian.words
     { "fõdsel", Cp865 }, // from norwegian.words
     { "fõdselen", Cp865 }, // from norwegian.words
@@ -3758,9 +5618,35 @@ static const struct {
     { "føyer", MacRoman }, // from norwegian.words
     { "f‰hig", Iso885915 }, // from german.words
     { "f‰hrt", Iso885915 }, // from german.words
+    { "f‰lla", Iso885915 }, // from swedish.words
+    { "f‰llde", Iso885915 }, // from swedish.words
     { "f‰llig", Iso885915 }, // from german.words
     { "f‰llt", Iso885915 }, // from german.words
+    { "f‰lt", Iso885915 }, // from swedish.words
+    { "f‰ltet", Iso885915 }, // from swedish.words
+    { "f‰ngelse", Iso885915 }, // from swedish.words
+    { "f‰ngelsestraff", Iso885915 }, // from swedish.words
+    { "f‰ngelset", Iso885915 }, // from swedish.words
     { "f‰ngt", Iso885915 }, // from german.words
+    { "f‰rd", Iso885915 }, // from swedish.words
+    { "f‰rdas", Iso885915 }, // from swedish.words
+    { "f‰rden", Iso885915 }, // from swedish.words
+    { "f‰rdig", Iso885915 }, // from swedish.words
+    { "f‰rdiga", Iso885915 }, // from swedish.words
+    { "f‰rdigt", Iso885915 }, // from swedish.words
+    { "f‰rg", Iso885915 }, // from swedish.words
+    { "f‰rgade", Iso885915 }, // from swedish.words
+    { "f‰rgen", Iso885915 }, // from swedish.words
+    { "f‰rger", Iso885915 }, // from swedish.words
+    { "f‰rgerna", Iso885915 }, // from swedish.words
+    { "f‰rjan", Iso885915 }, // from swedish.words
+    { "f‰rjestad", Iso885915 }, // from swedish.words
+    { "f‰rre", Iso885915 }, // from swedish.words
+    { "f‰rsk", Iso885915 }, // from swedish.words
+    { "f‰rska", Iso885915 }, // from swedish.words
+    { "f‰st", Iso885915 }, // from swedish.words
+    { "f‰sta", Iso885915 }, // from swedish.words
+    { "f‰ste", Iso885915 }, // from swedish.words
     { "fÂ", Iso885915 }, // from norwegian.words
     { "fÂr", Iso885915 }, // from norwegian.words
     { "fÂs", Iso885915 }, // from norwegian.words
@@ -3779,8 +5665,351 @@ static const struct {
     { "fÈminitÈ", Iso885915 }, // from french.words
     { "fÈriÈs", Iso885915 }, // from french.words
     { "fÈvrier", Iso885915 }, // from french.words
+    { "fˆda", Iso885915 }, // from swedish.words
+    { "fˆdd", Iso885915 }, // from swedish.words
+    { "fˆdda", Iso885915 }, // from swedish.words
+    { "fˆddes", Iso885915 }, // from swedish.words
+    { "fˆdelse", Iso885915 }, // from swedish.words
+    { "fˆder", Iso885915 }, // from swedish.words
+    { "fˆds", Iso885915 }, // from swedish.words
+    { "fˆga", Iso885915 }, // from swedish.words
+    { "fˆlja", Iso885915 }, // from swedish.words
+    { "fˆljaktligen", Iso885915 }, // from swedish.words
+    { "fˆljande", Iso885915 }, // from swedish.words
+    { "fˆljas", Iso885915 }, // from swedish.words
+    { "fˆljd", Iso885915 }, // from swedish.words
+    { "fˆljde", Iso885915 }, // from swedish.words
+    { "fˆljden", Iso885915 }, // from swedish.words
+    { "fˆljder", Iso885915 }, // from swedish.words
+    { "fˆljderna", Iso885915 }, // from swedish.words
+    { "fˆljdes", Iso885915 }, // from swedish.words
+    { "fˆljer", Iso885915 }, // from swedish.words
+    { "fˆljs", Iso885915 }, // from swedish.words
+    { "fˆljt", Iso885915 }, // from swedish.words
+    { "fˆll", Iso885915 }, // from swedish.words
+    { "fˆnster", Iso885915 }, // from swedish.words
+    { "fˆnstren", Iso885915 }, // from swedish.words
+    { "fˆnstret", Iso885915 }, // from swedish.words
+    { "fˆr", Iso885915 }, // from swedish.words
+    { "fˆra", Iso885915 }, // from swedish.words
+    { "fˆrakt", Iso885915 }, // from swedish.words
+    { "fˆrankring", Iso885915 }, // from swedish.words
+    { "fˆrare", Iso885915 }, // from swedish.words
+    { "fˆraren", Iso885915 }, // from swedish.words
+    { "fˆras", Iso885915 }, // from swedish.words
+    { "fˆrband", Iso885915 }, // from swedish.words
+    { "fˆrbannad", Iso885915 }, // from swedish.words
+    { "fˆrbannade", Iso885915 }, // from swedish.words
+    { "fˆrbannat", Iso885915 }, // from swedish.words
+    { "fˆrbereda", Iso885915 }, // from swedish.words
+    { "fˆrberedd", Iso885915 }, // from swedish.words
+    { "fˆrberedelser", Iso885915 }, // from swedish.words
+    { "fˆrberedelserna", Iso885915 }, // from swedish.words
+    { "fˆrbereder", Iso885915 }, // from swedish.words
+    { "fˆrberett", Iso885915 }, // from swedish.words
+    { "fˆrbi", Iso885915 }, // from swedish.words
+    { "fˆrbindelse", Iso885915 }, // from swedish.words
+    { "fˆrbindelser", Iso885915 }, // from swedish.words
+    { "fˆrbjuda", Iso885915 }, // from swedish.words
+    { "fˆrbjuder", Iso885915 }, // from swedish.words
+    { "fˆrbjudet", Iso885915 }, // from swedish.words
+    { "fˆrbjudna", Iso885915 }, // from swedish.words
+    { "fˆrblev", Iso885915 }, // from swedish.words
+    { "fˆrbli", Iso885915 }, // from swedish.words
+    { "fˆrblir", Iso885915 }, // from swedish.words
+    { "fˆrbud", Iso885915 }, // from swedish.words
+    { "fˆrbudet", Iso885915 }, // from swedish.words
+    { "fˆrbund", Iso885915 }, // from swedish.words
+    { "fˆrbundet", Iso885915 }, // from swedish.words
+    { "fˆrbundets", Iso885915 }, // from swedish.words
+    { "fˆrbundskapten", Iso885915 }, // from swedish.words
+    { "fˆrbundskaptenen", Iso885915 }, // from swedish.words
+    { "fˆrb‰ttra", Iso885915 }, // from swedish.words
+    { "fˆrb‰ttrad", Iso885915 }, // from swedish.words
+    { "fˆrb‰ttrade", Iso885915 }, // from swedish.words
+    { "fˆrb‰ttras", Iso885915 }, // from swedish.words
+    { "fˆrb‰ttrats", Iso885915 }, // from swedish.words
+    { "fˆrb‰ttring", Iso885915 }, // from swedish.words
+    { "fˆrb‰ttringar", Iso885915 }, // from swedish.words
+    { "fˆrde", Iso885915 }, // from swedish.words
+    { "fˆrdel", Iso885915 }, // from swedish.words
+    { "fˆrdela", Iso885915 }, // from swedish.words
+    { "fˆrdelar", Iso885915 }, // from swedish.words
+    { "fˆrdelarna", Iso885915 }, // from swedish.words
+    { "fˆrdelas", Iso885915 }, // from swedish.words
+    { "fˆrdelen", Iso885915 }, // from swedish.words
+    { "fˆrdelning", Iso885915 }, // from swedish.words
+    { "fˆrdelningen", Iso885915 }, // from swedish.words
     { "fˆrdern", Iso885915 }, // from german.words
     { "fˆrdert", Iso885915 }, // from german.words
+    { "fˆrdes", Iso885915 }, // from swedish.words
+    { "fˆrdjupa", Iso885915 }, // from swedish.words
+    { "fˆrdomar", Iso885915 }, // from swedish.words
+    { "fˆre", Iso885915 }, // from swedish.words
+    { "fˆrebild", Iso885915 }, // from swedish.words
+    { "fˆrebilder", Iso885915 }, // from swedish.words
+    { "fˆrebygga", Iso885915 }, // from swedish.words
+    { "fˆrebyggande", Iso885915 }, // from swedish.words
+    { "fˆredrag", Iso885915 }, // from swedish.words
+    { "fˆredrar", Iso885915 }, // from swedish.words
+    { "fˆredrog", Iso885915 }, // from swedish.words
+    { "fˆrefaller", Iso885915 }, // from swedish.words
+    { "fˆrefˆll", Iso885915 }, // from swedish.words
+    { "fˆregÂende", Iso885915 }, // from swedish.words
+    { "fˆregÂngare", Iso885915 }, // from swedish.words
+    { "fˆrekom", Iso885915 }, // from swedish.words
+    { "fˆrekomma", Iso885915 }, // from swedish.words
+    { "fˆrekommande", Iso885915 }, // from swedish.words
+    { "fˆrekommer", Iso885915 }, // from swedish.words
+    { "fˆrekommit", Iso885915 }, // from swedish.words
+    { "fˆreligger", Iso885915 }, // from swedish.words
+    { "fˆremÂl", Iso885915 }, // from swedish.words
+    { "fˆrena", Iso885915 }, // from swedish.words
+    { "fˆrenade", Iso885915 }, // from swedish.words
+    { "fˆrenar", Iso885915 }, // from swedish.words
+    { "fˆrenas", Iso885915 }, // from swedish.words
+    { "fˆrening", Iso885915 }, // from swedish.words
+    { "fˆreningar", Iso885915 }, // from swedish.words
+    { "fˆreningarna", Iso885915 }, // from swedish.words
+    { "fˆreningen", Iso885915 }, // from swedish.words
+    { "fˆreningens", Iso885915 }, // from swedish.words
+    { "fˆrenta", Iso885915 }, // from swedish.words
+    { "fˆreslagit", Iso885915 }, // from swedish.words
+    { "fˆreslagna", Iso885915 }, // from swedish.words
+    { "fˆreslog", Iso885915 }, // from swedish.words
+    { "fˆreslÂ", Iso885915 }, // from swedish.words
+    { "fˆreslÂr", Iso885915 }, // from swedish.words
+    { "fˆreslÂs", Iso885915 }, // from swedish.words
+    { "fˆresprÂkar", Iso885915 }, // from swedish.words
+    { "fˆrest‰lla", Iso885915 }, // from swedish.words
+    { "fˆrest‰ller", Iso885915 }, // from swedish.words
+    { "fˆrest‰llning", Iso885915 }, // from swedish.words
+    { "fˆrest‰llningar", Iso885915 }, // from swedish.words
+    { "fˆrest‰llningen", Iso885915 }, // from swedish.words
+    { "fˆrestÂende", Iso885915 }, // from swedish.words
+    { "fˆretag", Iso885915 }, // from swedish.words
+    { "fˆretagande", Iso885915 }, // from swedish.words
+    { "fˆretagare", Iso885915 }, // from swedish.words
+    { "fˆretagarna", Iso885915 }, // from swedish.words
+    { "fˆretagen", Iso885915 }, // from swedish.words
+    { "fˆretagens", Iso885915 }, // from swedish.words
+    { "fˆretaget", Iso885915 }, // from swedish.words
+    { "fˆretagets", Iso885915 }, // from swedish.words
+    { "fˆretagsledare", Iso885915 }, // from swedish.words
+    { "fˆreteelse", Iso885915 }, // from swedish.words
+    { "fˆreteelser", Iso885915 }, // from swedish.words
+    { "fˆretr‰dare", Iso885915 }, // from swedish.words
+    { "fˆretr‰der", Iso885915 }, // from swedish.words
+    { "fˆrfall", Iso885915 }, // from swedish.words
+    { "fˆrfattare", Iso885915 }, // from swedish.words
+    { "fˆrfattaren", Iso885915 }, // from swedish.words
+    { "fˆrfattarens", Iso885915 }, // from swedish.words
+    { "fˆrfattarna", Iso885915 }, // from swedish.words
+    { "fˆrfattarskap", Iso885915 }, // from swedish.words
+    { "fˆrflutet", Iso885915 }, // from swedish.words
+    { "fˆrflutna", Iso885915 }, // from swedish.words
+    { "fˆrfogande", Iso885915 }, // from swedish.words
+    { "fˆrf‰rligt", Iso885915 }, // from swedish.words
+    { "fˆrg‰ves", Iso885915 }, // from swedish.words
+    { "fˆrhand", Iso885915 }, // from swedish.words
+    { "fˆrhandla", Iso885915 }, // from swedish.words
+    { "fˆrhandlar", Iso885915 }, // from swedish.words
+    { "fˆrhandling", Iso885915 }, // from swedish.words
+    { "fˆrhandlingar", Iso885915 }, // from swedish.words
+    { "fˆrhandlingarna", Iso885915 }, // from swedish.words
+    { "fˆrhindra", Iso885915 }, // from swedish.words
+    { "fˆrhoppning", Iso885915 }, // from swedish.words
+    { "fˆrhoppningar", Iso885915 }, // from swedish.words
+    { "fˆrhoppningen", Iso885915 }, // from swedish.words
+    { "fˆrhoppningsvis", Iso885915 }, // from swedish.words
+    { "fˆrhÂllande", Iso885915 }, // from swedish.words
+    { "fˆrhÂllanden", Iso885915 }, // from swedish.words
+    { "fˆrhÂllandena", Iso885915 }, // from swedish.words
+    { "fˆrhÂllandet", Iso885915 }, // from swedish.words
+    { "fˆrhÂllandevis", Iso885915 }, // from swedish.words
+    { "fˆrhÂller", Iso885915 }, // from swedish.words
+    { "fˆrhÂllningss‰tt", Iso885915 }, // from swedish.words
+    { "fˆrhˆr", Iso885915 }, // from swedish.words
+    { "fˆrklara", Iso885915 }, // from swedish.words
+    { "fˆrklarade", Iso885915 }, // from swedish.words
+    { "fˆrklarar", Iso885915 }, // from swedish.words
+    { "fˆrklaras", Iso885915 }, // from swedish.words
+    { "fˆrklarat", Iso885915 }, // from swedish.words
+    { "fˆrklaring", Iso885915 }, // from swedish.words
+    { "fˆrklaringar", Iso885915 }, // from swedish.words
+    { "fˆrklaringen", Iso885915 }, // from swedish.words
+    { "fˆrknippas", Iso885915 }, // from swedish.words
+    { "fˆrlag", Iso885915 }, // from swedish.words
+    { "fˆrlaget", Iso885915 }, // from swedish.words
+    { "fˆrlora", Iso885915 }, // from swedish.words
+    { "fˆrlorad", Iso885915 }, // from swedish.words
+    { "fˆrlorade", Iso885915 }, // from swedish.words
+    { "fˆrlorar", Iso885915 }, // from swedish.words
+    { "fˆrlorare", Iso885915 }, // from swedish.words
+    { "fˆrlorat", Iso885915 }, // from swedish.words
+    { "fˆrlust", Iso885915 }, // from swedish.words
+    { "fˆrlusten", Iso885915 }, // from swedish.words
+    { "fˆrluster", Iso885915 }, // from swedish.words
+    { "fˆrlusterna", Iso885915 }, // from swedish.words
+    { "fˆrl‰nga", Iso885915 }, // from swedish.words
+    { "fˆrl‰ngning", Iso885915 }, // from swedish.words
+    { "fˆrl‰ngningen", Iso885915 }, // from swedish.words
+    { "fˆrlÂt", Iso885915 }, // from swedish.words
+    { "fˆrlÂta", Iso885915 }, // from swedish.words
+    { "fˆrmedla", Iso885915 }, // from swedish.words
+    { "fˆrmedlar", Iso885915 }, // from swedish.words
+    { "fˆrmiddag", Iso885915 }, // from swedish.words
+    { "fˆrmiddagen", Iso885915 }, // from swedish.words
+    { "fˆrmodligen", Iso885915 }, // from swedish.words
+    { "fˆrmÂ", Iso885915 }, // from swedish.words
+    { "fˆrmÂdde", Iso885915 }, // from swedish.words
+    { "fˆrmÂga", Iso885915 }, // from swedish.words
+    { "fˆrmÂgan", Iso885915 }, // from swedish.words
+    { "fˆrmÂn", Iso885915 }, // from swedish.words
+    { "fˆrmÂner", Iso885915 }, // from swedish.words
+    { "fˆrmÂr", Iso885915 }, // from swedish.words
+    { "fˆrmˆgenhet", Iso885915 }, // from swedish.words
+    { "fˆrneka", Iso885915 }, // from swedish.words
+    { "fˆrnekade", Iso885915 }, // from swedish.words
+    { "fˆrnekar", Iso885915 }, // from swedish.words
+    { "fˆrnuft", Iso885915 }, // from swedish.words
+    { "fˆrnya", Iso885915 }, // from swedish.words
+    { "fˆrnyelse", Iso885915 }, // from swedish.words
+    { "fˆrr", Iso885915 }, // from swedish.words
+    { "fˆrra", Iso885915 }, // from swedish.words
+    { "fˆrre", Iso885915 }, // from swedish.words
+    { "fˆrresten", Iso885915 }, // from swedish.words
+    { "fˆrr‰n", Iso885915 }, // from swedish.words
+    { "fˆrs", Iso885915 }, // from swedish.words
+    { "fˆrsamling", Iso885915 }, // from swedish.words
+    { "fˆrsamlingen", Iso885915 }, // from swedish.words
+    { "fˆrse", Iso885915 }, // from swedish.words
+    { "fˆrsenad", Iso885915 }, // from swedish.words
+    { "fˆrsiktig", Iso885915 }, // from swedish.words
+    { "fˆrsiktiga", Iso885915 }, // from swedish.words
+    { "fˆrsiktigt", Iso885915 }, // from swedish.words
+    { "fˆrskr‰ckt", Iso885915 }, // from swedish.words
+    { "fˆrslag", Iso885915 }, // from swedish.words
+    { "fˆrslagen", Iso885915 }, // from swedish.words
+    { "fˆrslaget", Iso885915 }, // from swedish.words
+    { "fˆrsoning", Iso885915 }, // from swedish.words
+    { "fˆrsprÂng", Iso885915 }, // from swedish.words
+    { "fˆrst", Iso885915 }, // from swedish.words
+    { "fˆrsta", Iso885915 }, // from swedish.words
+    { "fˆrste", Iso885915 }, // from swedish.words
+    { "fˆrstod", Iso885915 }, // from swedish.words
+    { "fˆrst‰rka", Iso885915 }, // from swedish.words
+    { "fˆrst‰rker", Iso885915 }, // from swedish.words
+    { "fˆrst‰rkning", Iso885915 }, // from swedish.words
+    { "fˆrst‰rks", Iso885915 }, // from swedish.words
+    { "fˆrst‰rkt", Iso885915 }, // from swedish.words
+    { "fˆrstÂ", Iso885915 }, // from swedish.words
+    { "fˆrstÂelse", Iso885915 }, // from swedish.words
+    { "fˆrstÂr", Iso885915 }, // from swedish.words
+    { "fˆrstÂs", Iso885915 }, // from swedish.words
+    { "fˆrstÂtt", Iso885915 }, // from swedish.words
+    { "fˆrstˆr", Iso885915 }, // from swedish.words
+    { "fˆrstˆra", Iso885915 }, // from swedish.words
+    { "fˆrstˆrt", Iso885915 }, // from swedish.words
+    { "fˆrsvann", Iso885915 }, // from swedish.words
+    { "fˆrsvar", Iso885915 }, // from swedish.words
+    { "fˆrsvara", Iso885915 }, // from swedish.words
+    { "fˆrsvarade", Iso885915 }, // from swedish.words
+    { "fˆrsvarar", Iso885915 }, // from swedish.words
+    { "fˆrsvarare", Iso885915 }, // from swedish.words
+    { "fˆrsvaret", Iso885915 }, // from swedish.words
+    { "fˆrsvarets", Iso885915 }, // from swedish.words
+    { "fˆrsvarsminister", Iso885915 }, // from swedish.words
+    { "fˆrsvarsministern", Iso885915 }, // from swedish.words
+    { "fˆrsvinna", Iso885915 }, // from swedish.words
+    { "fˆrsvinner", Iso885915 }, // from swedish.words
+    { "fˆrsvunna", Iso885915 }, // from swedish.words
+    { "fˆrsvunnen", Iso885915 }, // from swedish.words
+    { "fˆrsvunnit", Iso885915 }, // from swedish.words
+    { "fˆrs‰kra", Iso885915 }, // from swedish.words
+    { "fˆrs‰krade", Iso885915 }, // from swedish.words
+    { "fˆrs‰krar", Iso885915 }, // from swedish.words
+    { "fˆrs‰kring", Iso885915 }, // from swedish.words
+    { "fˆrs‰kringar", Iso885915 }, // from swedish.words
+    { "fˆrs‰kringsbolag", Iso885915 }, // from swedish.words
+    { "fˆrs‰kringsbolagen", Iso885915 }, // from swedish.words
+    { "fˆrs‰kringsbolaget", Iso885915 }, // from swedish.words
+    { "fˆrs‰kringskassan", Iso885915 }, // from swedish.words
+    { "fˆrs‰ljning", Iso885915 }, // from swedish.words
+    { "fˆrs‰ljningen", Iso885915 }, // from swedish.words
+    { "fˆrs‰mras", Iso885915 }, // from swedish.words
+    { "fˆrsˆk", Iso885915 }, // from swedish.words
+    { "fˆrsˆka", Iso885915 }, // from swedish.words
+    { "fˆrsˆken", Iso885915 }, // from swedish.words
+    { "fˆrsˆker", Iso885915 }, // from swedish.words
+    { "fˆrsˆket", Iso885915 }, // from swedish.words
+    { "fˆrsˆkt", Iso885915 }, // from swedish.words
+    { "fˆrsˆkte", Iso885915 }, // from swedish.words
+    { "fˆrsˆrja", Iso885915 }, // from swedish.words
+    { "fˆrsˆrjning", Iso885915 }, // from swedish.words
+    { "fˆrt", Iso885915 }, // from swedish.words
+    { "fˆrtid", Iso885915 }, // from swedish.words
+    { "fˆrtjusning", Iso885915 }, // from swedish.words
+    { "fˆrtjust", Iso885915 }, // from swedish.words
+    { "fˆrtj‰nar", Iso885915 }, // from swedish.words
+    { "fˆrtj‰nst", Iso885915 }, // from swedish.words
+    { "fˆrtroende", Iso885915 }, // from swedish.words
+    { "fˆrtroendet", Iso885915 }, // from swedish.words
+    { "fˆrtryck", Iso885915 }, // from swedish.words
+    { "fˆrts", Iso885915 }, // from swedish.words
+    { "fˆrtvivlan", Iso885915 }, // from swedish.words
+    { "fˆrut", Iso885915 }, // from swedish.words
+    { "fˆrutom", Iso885915 }, // from swedish.words
+    { "fˆrutsatt", Iso885915 }, // from swedish.words
+    { "fˆrutse", Iso885915 }, // from swedish.words
+    { "fˆruts‰tter", Iso885915 }, // from swedish.words
+    { "fˆruts‰ttning", Iso885915 }, // from swedish.words
+    { "fˆruts‰ttningar", Iso885915 }, // from swedish.words
+    { "fˆruts‰ttningarna", Iso885915 }, // from swedish.words
+    { "fˆruts‰ttningen", Iso885915 }, // from swedish.words
+    { "fˆrvaltning", Iso885915 }, // from swedish.words
+    { "fˆrvaltningen", Iso885915 }, // from swedish.words
+    { "fˆrvandla", Iso885915 }, // from swedish.words
+    { "fˆrvandlades", Iso885915 }, // from swedish.words
+    { "fˆrvandlas", Iso885915 }, // from swedish.words
+    { "fˆrvandlats", Iso885915 }, // from swedish.words
+    { "fˆrverkliga", Iso885915 }, // from swedish.words
+    { "fˆrverkligas", Iso885915 }, // from swedish.words
+    { "fˆrvirrad", Iso885915 }, // from swedish.words
+    { "fˆrvirrade", Iso885915 }, // from swedish.words
+    { "fˆrvirring", Iso885915 }, // from swedish.words
+    { "fˆrvisso", Iso885915 }, // from swedish.words
+    { "fˆrv‰g", Iso885915 }, // from swedish.words
+    { "fˆrv‰nta", Iso885915 }, // from swedish.words
+    { "fˆrv‰ntan", Iso885915 }, // from swedish.words
+    { "fˆrv‰ntar", Iso885915 }, // from swedish.words
+    { "fˆrv‰ntas", Iso885915 }, // from swedish.words
+    { "fˆrv‰ntningar", Iso885915 }, // from swedish.words
+    { "fˆrv‰ntningarna", Iso885915 }, // from swedish.words
+    { "fˆrvÂnad", Iso885915 }, // from swedish.words
+    { "fˆrvÂnade", Iso885915 }, // from swedish.words
+    { "fˆrvÂnande", Iso885915 }, // from swedish.words
+    { "fˆrvÂnansv‰rt", Iso885915 }, // from swedish.words
+    { "fˆrvÂnar", Iso885915 }, // from swedish.words
+    { "fˆrvÂning", Iso885915 }, // from swedish.words
+    { "fˆr‰lder", Iso885915 }, // from swedish.words
+    { "fˆr‰ldrar", Iso885915 }, // from swedish.words
+    { "fˆr‰ldrarna", Iso885915 }, // from swedish.words
+    { "fˆr‰ldrarnas", Iso885915 }, // from swedish.words
+    { "fˆr‰lskad", Iso885915 }, // from swedish.words
+    { "fˆr‰ndra", Iso885915 }, // from swedish.words
+    { "fˆr‰ndrade", Iso885915 }, // from swedish.words
+    { "fˆr‰ndrades", Iso885915 }, // from swedish.words
+    { "fˆr‰ndras", Iso885915 }, // from swedish.words
+    { "fˆr‰ndrat", Iso885915 }, // from swedish.words
+    { "fˆr‰ndrats", Iso885915 }, // from swedish.words
+    { "fˆr‰ndring", Iso885915 }, // from swedish.words
+    { "fˆr‰ndringar", Iso885915 }, // from swedish.words
+    { "fˆr‰ndringarna", Iso885915 }, // from swedish.words
+    { "fˆr‰ndringen", Iso885915 }, // from swedish.words
+    { "fˆrˆdande", Iso885915 }, // from swedish.words
+    { "fˆtter", Iso885915 }, // from swedish.words
+    { "fˆtterna", Iso885915 }, // from swedish.words
     { "f¯de", Iso885915 }, // from norwegian.words
     { "f¯dsel", Iso885915 }, // from norwegian.words
     { "f¯dselen", Iso885915 }, // from norwegian.words
@@ -3918,6 +6147,7 @@ static const struct {
     { "gegr¸ndet", Iso885915 }, // from german.words
     { "gegr¸ndete", Iso885915 }, // from german.words
     { "gegr¸ndeten", Iso885915 }, // from german.words
+    { "gehîr", Cp865 }, // from swedish.words
     { "gehîre", Cp437 }, // from german.words
     { "gehîren", Cp437 }, // from german.words
     { "gehîrende", Cp437 }, // from german.words
@@ -3925,6 +6155,7 @@ static const struct {
     { "gehîrt", Cp437 }, // from german.words
     { "gehîrte", Cp437 }, // from german.words
     { "gehîrten", Cp437 }, // from german.words
+    { "gehör", MacRoman }, // from swedish.words
     { "gehöre", MacRoman }, // from german.words
     { "gehören", MacRoman }, // from german.words
     { "gehörende", MacRoman }, // from german.words
@@ -3932,6 +6163,7 @@ static const struct {
     { "gehört", MacRoman }, // from german.words
     { "gehörte", MacRoman }, // from german.words
     { "gehörten", MacRoman }, // from german.words
+    { "gehˆr", Iso885915 }, // from swedish.words
     { "gehˆre", Iso885915 }, // from german.words
     { "gehˆren", Iso885915 }, // from german.words
     { "gehˆrende", Iso885915 }, // from german.words
@@ -3960,19 +6192,58 @@ static const struct {
     { "gemÑ·", Cp437 }, // from german.words
     { "gemäß", MacRoman }, // from german.words
     { "gem‰ﬂ", Iso885915 }, // from german.words
+    { "generaldirektîr", Cp865 }, // from swedish.words
+    { "generaldirektör", MacRoman }, // from swedish.words
+    { "generaldirektˆr", Iso885915 }, // from swedish.words
     { "generalsekretër", Cp865 }, // from norwegian.words
     { "generalsekretëren", Cp865 }, // from norwegian.words
     { "generalsekretær", MacRoman }, // from norwegian.words
     { "generalsekretæren", MacRoman }, // from norwegian.words
     { "generalsekretÊr", Iso885915 }, // from norwegian.words
     { "generalsekretÊren", Iso885915 }, // from norwegian.words
+    { "generîs", Cp865 }, // from swedish.words
+    { "generîsa", Cp865 }, // from swedish.words
+    { "generös", MacRoman }, // from swedish.words
+    { "generösa", MacRoman }, // from swedish.words
     { "gener·lnÌ", Iso88592 }, // from czech.words
+    { "generˆs", Iso885915 }, // from swedish.words
+    { "generˆsa", Iso885915 }, // from swedish.words
+    { "gengÑld", Cp865 }, // from swedish.words
+    { "gengäld", MacRoman }, // from swedish.words
+    { "geng‰ld", Iso885915 }, // from swedish.words
     { "genießen", MacRoman }, // from german.words
     { "genießt", MacRoman }, // from german.words
     { "genieﬂen", Iso885915 }, // from german.words
     { "genieﬂt", Iso885915 }, // from german.words
     { "genie·en", Cp437 }, // from german.words
     { "genie·t", Cp437 }, // from german.words
+    { "genomfîr", Cp865 }, // from swedish.words
+    { "genomfîra", Cp865 }, // from swedish.words
+    { "genomfîras", Cp865 }, // from swedish.words
+    { "genomfîrd", Cp865 }, // from swedish.words
+    { "genomfîrde", Cp865 }, // from swedish.words
+    { "genomfîrdes", Cp865 }, // from swedish.words
+    { "genomfîrs", Cp865 }, // from swedish.words
+    { "genomfîrt", Cp865 }, // from swedish.words
+    { "genomfîrts", Cp865 }, // from swedish.words
+    { "genomför", MacRoman }, // from swedish.words
+    { "genomföra", MacRoman }, // from swedish.words
+    { "genomföras", MacRoman }, // from swedish.words
+    { "genomförd", MacRoman }, // from swedish.words
+    { "genomförde", MacRoman }, // from swedish.words
+    { "genomfördes", MacRoman }, // from swedish.words
+    { "genomförs", MacRoman }, // from swedish.words
+    { "genomfört", MacRoman }, // from swedish.words
+    { "genomförts", MacRoman }, // from swedish.words
+    { "genomfˆr", Iso885915 }, // from swedish.words
+    { "genomfˆra", Iso885915 }, // from swedish.words
+    { "genomfˆras", Iso885915 }, // from swedish.words
+    { "genomfˆrd", Iso885915 }, // from swedish.words
+    { "genomfˆrde", Iso885915 }, // from swedish.words
+    { "genomfˆrdes", Iso885915 }, // from swedish.words
+    { "genomfˆrs", Iso885915 }, // from swedish.words
+    { "genomfˆrt", Iso885915 }, // from swedish.words
+    { "genomfˆrts", Iso885915 }, // from swedish.words
     { "genÅgen", Cp437 }, // from german.words
     { "genÅgend", Cp437 }, // from german.words
     { "genÅgt", Cp437 }, // from german.words
@@ -4147,12 +6418,60 @@ static const struct {
     { "gj¯re", Iso885915 }, // from norwegian.words
     { "gj¯res", Iso885915 }, // from norwegian.words
     { "gj¯vik", Iso885915 }, // from norwegian.words
+    { "glasîgon", Cp865 }, // from swedish.words
+    { "glasögon", MacRoman }, // from swedish.words
+    { "glasˆgon", Iso885915 }, // from swedish.words
     { "gleichermaßen", MacRoman }, // from german.words
     { "gleichermaﬂen", Iso885915 }, // from german.words
     { "gleicherma·en", Cp437 }, // from german.words
     { "glÅcklich", Cp437 }, // from german.words
+    { "glÑdja", Cp865 }, // from swedish.words
+    { "glÑdjande", Cp865 }, // from swedish.words
+    { "glÑdje", Cp865 }, // from swedish.words
+    { "glÑdjen", Cp865 }, // from swedish.words
+    { "glÑnsande", Cp865 }, // from swedish.words
+    { "glädja", MacRoman }, // from swedish.words
+    { "glädjande", MacRoman }, // from swedish.words
+    { "glädje", MacRoman }, // from swedish.words
+    { "glädjen", MacRoman }, // from swedish.words
+    { "glänsande", MacRoman }, // from swedish.words
+    { "glîm", Cp865 }, // from swedish.words
+    { "glîmde", Cp865 }, // from swedish.words
+    { "glîmma", Cp865 }, // from swedish.words
+    { "glîmmer", Cp865 }, // from swedish.words
+    { "glîmt", Cp865 }, // from swedish.words
+    { "glöm", MacRoman }, // from swedish.words
+    { "glömde", MacRoman }, // from swedish.words
+    { "glömma", MacRoman }, // from swedish.words
+    { "glömmer", MacRoman }, // from swedish.words
+    { "glömt", MacRoman }, // from swedish.words
     { "glücklich", MacRoman }, // from german.words
+    { "gl‰dja", Iso885915 }, // from swedish.words
+    { "gl‰djande", Iso885915 }, // from swedish.words
+    { "gl‰dje", Iso885915 }, // from swedish.words
+    { "gl‰djen", Iso885915 }, // from swedish.words
+    { "gl‰nsande", Iso885915 }, // from swedish.words
+    { "glˆm", Iso885915 }, // from swedish.words
+    { "glˆmde", Iso885915 }, // from swedish.words
+    { "glˆmma", Iso885915 }, // from swedish.words
+    { "glˆmmer", Iso885915 }, // from swedish.words
+    { "glˆmt", Iso885915 }, // from swedish.words
     { "gl¸cklich", Iso885915 }, // from german.words
+    { "godkÑnd", Cp865 }, // from swedish.words
+    { "godkÑnda", Cp865 }, // from swedish.words
+    { "godkÑnna", Cp865 }, // from swedish.words
+    { "godkÑnnande", Cp865 }, // from swedish.words
+    { "godkÑnt", Cp865 }, // from swedish.words
+    { "godkänd", MacRoman }, // from swedish.words
+    { "godkända", MacRoman }, // from swedish.words
+    { "godkänna", MacRoman }, // from swedish.words
+    { "godkännande", MacRoman }, // from swedish.words
+    { "godkänt", MacRoman }, // from swedish.words
+    { "godk‰nd", Iso885915 }, // from swedish.words
+    { "godk‰nda", Iso885915 }, // from swedish.words
+    { "godk‰nna", Iso885915 }, // from swedish.words
+    { "godk‰nnande", Iso885915 }, // from swedish.words
+    { "godk‰nt", Iso885915 }, // from swedish.words
     { "goksõr", Cp865 }, // from norwegian.words
     { "goksør", MacRoman }, // from norwegian.words
     { "goks¯r", Iso885915 }, // from norwegian.words
@@ -4189,6 +6508,9 @@ static const struct {
     { "gro·er", Cp437 }, // from german.words
     { "gro·es", Cp437 }, // from german.words
     { "gro·zÅgig", Cp437 }, // from german.words
+    { "grundlÑggande", Cp865 }, // from swedish.words
+    { "grundläggande", MacRoman }, // from swedish.words
+    { "grundl‰ggande", Iso885915 }, // from swedish.words
     { "grundsÑtzlich", Cp437 }, // from german.words
     { "grundsÑtzliche", Cp437 }, // from german.words
     { "grundsätzlich", MacRoman }, // from german.words
@@ -4202,17 +6524,41 @@ static const struct {
     { "grÅne", Cp437 }, // from german.words
     { "grÅnen", Cp437 }, // from german.words
     { "grÇ", Cp437 }, // from french.words
+    { "grÑdde", Cp865 }, // from swedish.words
+    { "grÑns", Cp865 }, // from swedish.words
+    { "grÑnsen", Cp865 }, // from swedish.words
+    { "grÑnser", Cp865 }, // from swedish.words
+    { "grÑnserna", Cp865 }, // from swedish.words
+    { "grÑs", Cp865 }, // from swedish.words
+    { "grÑset", Cp865 }, // from swedish.words
+    { "grÑsmattan", Cp865 }, // from swedish.words
+    { "grÑt", Cp865 }, // from swedish.words
+    { "grÑva", Cp865 }, // from swedish.words
     { "grÜ", Cp865 }, // from norwegian.words
     { "grÜt", Cp865 }, // from norwegian.words
     { "grÜte", Cp865 }, // from norwegian.words
     { "grÜter", Cp865 }, // from norwegian.words
     { "grÜtt", Cp865 }, // from norwegian.words
+    { "grädde", MacRoman }, // from swedish.words
+    { "gräns", MacRoman }, // from swedish.words
+    { "gränsen", MacRoman }, // from swedish.words
+    { "gränser", MacRoman }, // from swedish.words
+    { "gränserna", MacRoman }, // from swedish.words
+    { "gräs", MacRoman }, // from swedish.words
+    { "gräset", MacRoman }, // from swedish.words
+    { "gräsmattan", MacRoman }, // from swedish.words
+    { "grät", MacRoman }, // from swedish.words
+    { "gräva", MacRoman }, // from swedish.words
     { "grå", MacRoman }, // from norwegian.words
     { "gråt", MacRoman }, // from norwegian.words
     { "gråte", MacRoman }, // from norwegian.words
     { "gråter", MacRoman }, // from norwegian.words
     { "grått", MacRoman }, // from norwegian.words
     { "gré", MacRoman }, // from french.words
+    { "grîn", Cp865 }, // from swedish.words
+    { "grîna", Cp865 }, // from swedish.words
+    { "grînsaker", Cp865 }, // from swedish.words
+    { "grînt", Cp865 }, // from swedish.words
     { "grî·er", Cp437 }, // from german.words
     { "grî·ere", Cp437 }, // from german.words
     { "grî·eren", Cp437 }, // from german.words
@@ -4222,6 +6568,10 @@ static const struct {
     { "grî·ten", Cp437 }, // from german.words
     { "grî·tenteils", Cp437 }, // from german.words
     { "grî·ter", Cp437 }, // from german.words
+    { "grön", MacRoman }, // from swedish.words
+    { "gröna", MacRoman }, // from swedish.words
+    { "grönsaker", MacRoman }, // from swedish.words
+    { "grönt", MacRoman }, // from swedish.words
     { "größer", MacRoman }, // from german.words
     { "größere", MacRoman }, // from german.words
     { "größeren", MacRoman }, // from german.words
@@ -4247,12 +6597,26 @@ static const struct {
     { "grønne", MacRoman }, // from norwegian.words
     { "grønnsaker", MacRoman }, // from norwegian.words
     { "grønt", MacRoman }, // from norwegian.words
+    { "gr‰dde", Iso885915 }, // from swedish.words
+    { "gr‰ns", Iso885915 }, // from swedish.words
+    { "gr‰nsen", Iso885915 }, // from swedish.words
+    { "gr‰nser", Iso885915 }, // from swedish.words
+    { "gr‰nserna", Iso885915 }, // from swedish.words
+    { "gr‰s", Iso885915 }, // from swedish.words
+    { "gr‰set", Iso885915 }, // from swedish.words
+    { "gr‰smattan", Iso885915 }, // from swedish.words
+    { "gr‰t", Iso885915 }, // from swedish.words
+    { "gr‰va", Iso885915 }, // from swedish.words
     { "grÂ", Iso885915 }, // from norwegian.words
     { "grÂt", Iso885915 }, // from norwegian.words
     { "grÂte", Iso885915 }, // from norwegian.words
     { "grÂter", Iso885915 }, // from norwegian.words
     { "grÂtt", Iso885915 }, // from norwegian.words
     { "grÈ", Iso885915 }, // from french.words
+    { "grˆn", Iso885915 }, // from swedish.words
+    { "grˆna", Iso885915 }, // from swedish.words
+    { "grˆnsaker", Iso885915 }, // from swedish.words
+    { "grˆnt", Iso885915 }, // from swedish.words
     { "grˆﬂer", Iso885915 }, // from german.words
     { "grˆﬂere", Iso885915 }, // from german.words
     { "grˆﬂeren", Iso885915 }, // from german.words
@@ -4311,8 +6675,23 @@ static const struct {
     { "gÇrÇs", Cp437 }, // from french.words
     { "gÇÇn", Cp437 }, // from dutch.words
     { "gÑbe", Cp437 }, // from german.words
+    { "gÑlla", Cp865 }, // from swedish.words
+    { "gÑllande", Cp865 }, // from swedish.words
+    { "gÑllde", Cp865 }, // from swedish.words
+    { "gÑller", Cp865 }, // from swedish.words
+    { "gÑllt", Cp865 }, // from swedish.words
+    { "gÑng", Cp865 }, // from swedish.words
+    { "gÑnget", Cp865 }, // from swedish.words
     { "gÑngigen", Cp437 }, // from german.words
+    { "gÑngse", Cp865 }, // from swedish.words
     { "gÑnzlich", Cp437 }, // from german.words
+    { "gÑrna", Cp865 }, // from swedish.words
+    { "gÑrning", Cp865 }, // from swedish.words
+    { "gÑst", Cp865 }, // from swedish.words
+    { "gÑster", Cp865 }, // from swedish.words
+    { "gÑsterna", Cp865 }, // from swedish.words
+    { "gÑstspel", Cp865 }, // from swedish.words
+    { "gÑvle", Cp865 }, // from swedish.words
     { "gÜ", Cp865 }, // from norwegian.words
     { "gÜende", Cp865 }, // from norwegian.words
     { "gÜr", Cp865 }, // from norwegian.words
@@ -4322,8 +6701,23 @@ static const struct {
     { "gÜrsdagens", Cp865 }, // from norwegian.words
     { "gÜtt", Cp865 }, // from norwegian.words
     { "gäbe", MacRoman }, // from german.words
+    { "gälla", MacRoman }, // from swedish.words
+    { "gällande", MacRoman }, // from swedish.words
+    { "gällde", MacRoman }, // from swedish.words
+    { "gäller", MacRoman }, // from swedish.words
+    { "gällt", MacRoman }, // from swedish.words
+    { "gäng", MacRoman }, // from swedish.words
+    { "gänget", MacRoman }, // from swedish.words
     { "gängigen", MacRoman }, // from german.words
+    { "gängse", MacRoman }, // from swedish.words
     { "gänzlich", MacRoman }, // from german.words
+    { "gärna", MacRoman }, // from swedish.words
+    { "gärning", MacRoman }, // from swedish.words
+    { "gäst", MacRoman }, // from swedish.words
+    { "gäster", MacRoman }, // from swedish.words
+    { "gästerna", MacRoman }, // from swedish.words
+    { "gästspel", MacRoman }, // from swedish.words
+    { "gävle", MacRoman }, // from swedish.words
     { "gå", MacRoman }, // from norwegian.words
     { "gående", MacRoman }, // from norwegian.words
     { "går", MacRoman }, // from norwegian.words
@@ -4359,6 +6753,36 @@ static const struct {
     { "gérée", MacRoman }, // from french.words
     { "gérés", MacRoman }, // from french.words
     { "géén", MacRoman }, // from dutch.words
+    { "gîmde", Cp865 }, // from swedish.words
+    { "gîmma", Cp865 }, // from swedish.words
+    { "gîmmer", Cp865 }, // from swedish.words
+    { "gîr", Cp865 }, // from swedish.words
+    { "gîra", Cp865 }, // from swedish.words
+    { "gîran", Cp865 }, // from swedish.words
+    { "gîransson", Cp865 }, // from swedish.words
+    { "gîras", Cp865 }, // from swedish.words
+    { "gîrs", Cp865 }, // from swedish.words
+    { "gîsta", Cp865 }, // from swedish.words
+    { "gîta", Cp865 }, // from swedish.words
+    { "gîteborg", Cp865 }, // from swedish.words
+    { "gîteborgare", Cp865 }, // from swedish.words
+    { "gîteborgarna", Cp865 }, // from swedish.words
+    { "gîteborgs", Cp865 }, // from swedish.words
+    { "gömde", MacRoman }, // from swedish.words
+    { "gömma", MacRoman }, // from swedish.words
+    { "gömmer", MacRoman }, // from swedish.words
+    { "gör", MacRoman }, // from swedish.words
+    { "göra", MacRoman }, // from swedish.words
+    { "göran", MacRoman }, // from swedish.words
+    { "göransson", MacRoman }, // from swedish.words
+    { "göras", MacRoman }, // from swedish.words
+    { "görs", MacRoman }, // from swedish.words
+    { "gösta", MacRoman }, // from swedish.words
+    { "göta", MacRoman }, // from swedish.words
+    { "göteborg", MacRoman }, // from swedish.words
+    { "göteborgare", MacRoman }, // from swedish.words
+    { "göteborgarna", MacRoman }, // from swedish.words
+    { "göteborgs", MacRoman }, // from swedish.words
     { "gõran", Cp865 }, // from norwegian.words
     { "gõteborg", Cp865 }, // from norwegian.words
     { "gõy", Cp865 }, // from norwegian.words
@@ -4373,8 +6797,23 @@ static const struct {
     { "gøteborg", MacRoman }, // from norwegian.words
     { "gøy", MacRoman }, // from norwegian.words
     { "g‰be", Iso885915 }, // from german.words
+    { "g‰lla", Iso885915 }, // from swedish.words
+    { "g‰llande", Iso885915 }, // from swedish.words
+    { "g‰llde", Iso885915 }, // from swedish.words
+    { "g‰ller", Iso885915 }, // from swedish.words
+    { "g‰llt", Iso885915 }, // from swedish.words
+    { "g‰ng", Iso885915 }, // from swedish.words
+    { "g‰nget", Iso885915 }, // from swedish.words
     { "g‰ngigen", Iso885915 }, // from german.words
+    { "g‰ngse", Iso885915 }, // from swedish.words
     { "g‰nzlich", Iso885915 }, // from german.words
+    { "g‰rna", Iso885915 }, // from swedish.words
+    { "g‰rning", Iso885915 }, // from swedish.words
+    { "g‰st", Iso885915 }, // from swedish.words
+    { "g‰ster", Iso885915 }, // from swedish.words
+    { "g‰sterna", Iso885915 }, // from swedish.words
+    { "g‰stspel", Iso885915 }, // from swedish.words
+    { "g‰vle", Iso885915 }, // from swedish.words
     { "gÂ", Iso885915 }, // from norwegian.words
     { "gÂende", Iso885915 }, // from norwegian.words
     { "gÂr", Iso885915 }, // from norwegian.words
@@ -4410,6 +6849,21 @@ static const struct {
     { "gÈrÈe", Iso885915 }, // from french.words
     { "gÈrÈs", Iso885915 }, // from french.words
     { "gÈÈn", Iso885915 }, // from dutch.words
+    { "gˆmde", Iso885915 }, // from swedish.words
+    { "gˆmma", Iso885915 }, // from swedish.words
+    { "gˆmmer", Iso885915 }, // from swedish.words
+    { "gˆr", Iso885915 }, // from swedish.words
+    { "gˆra", Iso885915 }, // from swedish.words
+    { "gˆran", Iso885915 }, // from swedish.words
+    { "gˆransson", Iso885915 }, // from swedish.words
+    { "gˆras", Iso885915 }, // from swedish.words
+    { "gˆrs", Iso885915 }, // from swedish.words
+    { "gˆsta", Iso885915 }, // from swedish.words
+    { "gˆta", Iso885915 }, // from swedish.words
+    { "gˆteborg", Iso885915 }, // from swedish.words
+    { "gˆteborgare", Iso885915 }, // from swedish.words
+    { "gˆteborgarna", Iso885915 }, // from swedish.words
+    { "gˆteborgs", Iso885915 }, // from swedish.words
     { "g¯ran", Iso885915 }, // from norwegian.words
     { "g¯teborg", Iso885915 }, // from norwegian.words
     { "g¯y", Iso885915 }, // from norwegian.words
@@ -4429,12 +6883,21 @@ static const struct {
     { "hagesëther", Cp865 }, // from norwegian.words
     { "hagesæther", MacRoman }, // from norwegian.words
     { "hagesÊther", Iso885915 }, // from norwegian.words
+    { "halvvÑgs", Cp865 }, // from swedish.words
+    { "halvvägs", MacRoman }, // from swedish.words
+    { "halvv‰gs", Iso885915 }, // from swedish.words
     { "halvÜr", Cp865 }, // from norwegian.words
     { "halvår", MacRoman }, // from norwegian.words
     { "halvÂr", Iso885915 }, // from norwegian.words
+    { "handelshîgskolan", Cp865 }, // from swedish.words
+    { "handelshögskolan", MacRoman }, // from swedish.words
+    { "handelshˆgskolan", Iso885915 }, // from swedish.words
     { "handicapÇs", Cp437 }, // from french.words
     { "handicapés", MacRoman }, // from french.words
     { "handicapÈs", Iso885915 }, // from french.words
+    { "hannÇ", Cp865 }, // from swedish.words
+    { "hanné", MacRoman }, // from swedish.words
+    { "hannÈ", Iso885915 }, // from swedish.words
     { "hauptsÑchlich", Cp437 }, // from german.words
     { "hauptsächlich", MacRoman }, // from german.words
     { "haupts‰chlich", Iso885915 }, // from german.words
@@ -4450,6 +6913,9 @@ static const struct {
     { "hei·e", Cp437 }, // from german.words
     { "hei·en", Cp437 }, // from german.words
     { "hei·t", Cp437 }, // from german.words
+    { "hellstrîm", Cp865 }, // from swedish.words
+    { "hellström", MacRoman }, // from swedish.words
+    { "hellstrˆm", Iso885915 }, // from swedish.words
     { "herkîmmlichen", Cp437 }, // from german.words
     { "herkömmlichen", MacRoman }, // from german.words
     { "herkˆmmlichen", Iso885915 }, // from german.words
@@ -4462,33 +6928,102 @@ static const struct {
     { "hiÇrarchie", Cp437 }, // from french.words
     { "hiérarchie", MacRoman }, // from french.words
     { "hiÈrarchie", Iso885915 }, // from french.words
+    { "hjÑlp", Cp865 }, // from swedish.words
+    { "hjÑlpa", Cp865 }, // from swedish.words
+    { "hjÑlpen", Cp865 }, // from swedish.words
+    { "hjÑlper", Cp865 }, // from swedish.words
+    { "hjÑlpmedel", Cp865 }, // from swedish.words
+    { "hjÑlpt", Cp865 }, // from swedish.words
+    { "hjÑlpte", Cp865 }, // from swedish.words
+    { "hjÑltar", Cp865 }, // from swedish.words
+    { "hjÑlte", Cp865 }, // from swedish.words
+    { "hjÑrna", Cp865 }, // from swedish.words
+    { "hjÑrnan", Cp865 }, // from swedish.words
+    { "hjÑrnans", Cp865 }, // from swedish.words
+    { "hjÑrta", Cp865 }, // from swedish.words
+    { "hjÑrtan", Cp865 }, // from swedish.words
+    { "hjÑrtat", Cp865 }, // from swedish.words
+    { "hjÑrter", Cp865 }, // from swedish.words
+    { "hjÑrtinfarkt", Cp865 }, // from swedish.words
+    { "hjälp", MacRoman }, // from swedish.words
+    { "hjälpa", MacRoman }, // from swedish.words
+    { "hjälpen", MacRoman }, // from swedish.words
+    { "hjälper", MacRoman }, // from swedish.words
+    { "hjälpmedel", MacRoman }, // from swedish.words
+    { "hjälpt", MacRoman }, // from swedish.words
+    { "hjälpte", MacRoman }, // from swedish.words
+    { "hjältar", MacRoman }, // from swedish.words
+    { "hjälte", MacRoman }, // from swedish.words
+    { "hjärna", MacRoman }, // from swedish.words
+    { "hjärnan", MacRoman }, // from swedish.words
+    { "hjärnans", MacRoman }, // from swedish.words
+    { "hjärta", MacRoman }, // from swedish.words
+    { "hjärtan", MacRoman }, // from swedish.words
+    { "hjärtat", MacRoman }, // from swedish.words
+    { "hjärter", MacRoman }, // from swedish.words
+    { "hjärtinfarkt", MacRoman }, // from swedish.words
     { "hjõrne", Cp865 }, // from norwegian.words
     { "hjõrnet", Cp865 }, // from norwegian.words
     { "hjørne", MacRoman }, // from norwegian.words
     { "hjørnet", MacRoman }, // from norwegian.words
+    { "hj‰lp", Iso885915 }, // from swedish.words
+    { "hj‰lpa", Iso885915 }, // from swedish.words
+    { "hj‰lpen", Iso885915 }, // from swedish.words
+    { "hj‰lper", Iso885915 }, // from swedish.words
+    { "hj‰lpmedel", Iso885915 }, // from swedish.words
+    { "hj‰lpt", Iso885915 }, // from swedish.words
+    { "hj‰lpte", Iso885915 }, // from swedish.words
+    { "hj‰ltar", Iso885915 }, // from swedish.words
+    { "hj‰lte", Iso885915 }, // from swedish.words
+    { "hj‰rna", Iso885915 }, // from swedish.words
+    { "hj‰rnan", Iso885915 }, // from swedish.words
+    { "hj‰rnans", Iso885915 }, // from swedish.words
+    { "hj‰rta", Iso885915 }, // from swedish.words
+    { "hj‰rtan", Iso885915 }, // from swedish.words
+    { "hj‰rtat", Iso885915 }, // from swedish.words
+    { "hj‰rter", Iso885915 }, // from swedish.words
+    { "hj‰rtinfarkt", Iso885915 }, // from swedish.words
     { "hj¯rne", Iso885915 }, // from norwegian.words
     { "hj¯rnet", Iso885915 }, // from norwegian.words
     { "hlavnÌ", Iso88592 }, // from czech.words
+    { "hollÑndska", Cp865 }, // from swedish.words
+    { "holländska", MacRoman }, // from swedish.words
+    { "holl‰ndska", Iso885915 }, // from swedish.words
+    { "holmÇr", Cp865 }, // from swedish.words
+    { "holmér", MacRoman }, // from swedish.words
+    { "holmÈr", Iso885915 }, // from swedish.words
+    { "hopplîst", Cp865 }, // from swedish.words
+    { "hopplöst", MacRoman }, // from swedish.words
+    { "hopplˆst", Iso885915 }, // from swedish.words
     { "hospod·¯sk˝", Iso88592 }, // from czech.words
     { "hovedÜrsaken", Cp865 }, // from norwegian.words
     { "hovedårsaken", MacRoman }, // from norwegian.words
     { "hovedÂrsaken", Iso885915 }, // from norwegian.words
     { "hovo¯it", Iso88592 }, // from czech.words
+    { "hovrÑtten", Cp865 }, // from swedish.words
+    { "hovrätten", MacRoman }, // from swedish.words
+    { "hovr‰tten", Iso885915 }, // from swedish.words
     { "hr·t", Iso88592 }, // from czech.words
     { "hr·Ë", Iso88592 }, // from czech.words
+    { "humanitÑra", Cp865 }, // from swedish.words
     { "humanitÑre", Cp437 }, // from german.words
+    { "humanitära", MacRoman }, // from swedish.words
     { "humanitäre", MacRoman }, // from german.words
     { "humanitër", Cp865 }, // from norwegian.words
     { "humanitëre", Cp865 }, // from norwegian.words
     { "humanitær", MacRoman }, // from norwegian.words
     { "humanitære", MacRoman }, // from norwegian.words
+    { "humanit‰ra", Iso885915 }, // from swedish.words
     { "humanit‰re", Iso885915 }, // from german.words
     { "humanitÊr", Iso885915 }, // from norwegian.words
     { "humanitÊre", Iso885915 }, // from norwegian.words
+    { "humîr", Cp865 }, // from swedish.words
+    { "humör", MacRoman }, // from swedish.words
     { "humõr", Cp865 }, // from norwegian.words
     { "humõret", Cp865 }, // from norwegian.words
     { "humør", MacRoman }, // from norwegian.words
     { "humøret", MacRoman }, // from norwegian.words
+    { "humˆr", Iso885915 }, // from swedish.words
     { "hum¯r", Iso885915 }, // from norwegian.words
     { "hum¯ret", Iso885915 }, // from norwegian.words
     { "hvitlõk", Cp865 }, // from norwegian.words
@@ -4500,6 +7035,15 @@ static const struct {
     { "hypothécaires", MacRoman }, // from french.words
     { "hypothÈcaire", Iso885915 }, // from french.words
     { "hypothÈcaires", Iso885915 }, // from french.words
+    { "hyresgÑster", Cp865 }, // from swedish.words
+    { "hyresgÑsterna", Cp865 }, // from swedish.words
+    { "hyresgÑstfîreningen", Cp865 }, // from swedish.words
+    { "hyresgäster", MacRoman }, // from swedish.words
+    { "hyresgästerna", MacRoman }, // from swedish.words
+    { "hyresgästföreningen", MacRoman }, // from swedish.words
+    { "hyresg‰ster", Iso885915 }, // from swedish.words
+    { "hyresg‰sterna", Iso885915 }, // from swedish.words
+    { "hyresg‰stfˆreningen", Iso885915 }, // from swedish.words
     { "hÇlas", Cp437 }, // from french.words
     { "hÇritage", Cp437 }, // from french.words
     { "hÇritiers", Cp437 }, // from french.words
@@ -4508,15 +7052,69 @@ static const struct {
     { "hÇsiter", Cp437 }, // from french.words
     { "hÇsitÇ", Cp437 }, // from french.words
     { "hÇt", Cp437 }, // from dutch.words
+    { "hÑck", Cp865 }, // from swedish.words
+    { "hÑcken", Cp865 }, // from swedish.words
+    { "hÑftig", Cp865 }, // from swedish.words
+    { "hÑftiga", Cp865 }, // from swedish.words
+    { "hÑftigt", Cp865 }, // from swedish.words
+    { "hÑktade", Cp865 }, // from swedish.words
+    { "hÑlften", Cp865 }, // from swedish.words
+    { "hÑll", Cp865 }, // from swedish.words
+    { "hÑllde", Cp865 }, // from swedish.words
+    { "hÑlsa", Cp865 }, // from swedish.words
+    { "hÑlsade", Cp865 }, // from swedish.words
+    { "hÑlsan", Cp865 }, // from swedish.words
+    { "hÑlsar", Cp865 }, // from swedish.words
     { "hÑlt", Cp437 }, // from german.words
+    { "hÑmnd", Cp865 }, // from swedish.words
+    { "hÑmta", Cp865 }, // from swedish.words
+    { "hÑmtade", Cp865 }, // from swedish.words
+    { "hÑmtar", Cp865 }, // from swedish.words
+    { "hÑmtat", Cp865 }, // from swedish.words
+    { "hÑnda", Cp865 }, // from swedish.words
+    { "hÑnde", Cp865 }, // from swedish.words
+    { "hÑndelse", Cp865 }, // from swedish.words
+    { "hÑndelsen", Cp865 }, // from swedish.words
+    { "hÑndelser", Cp865 }, // from swedish.words
+    { "hÑndelserna", Cp865 }, // from swedish.words
+    { "hÑnder", Cp865 }, // from swedish.words
+    { "hÑnderna", Cp865 }, // from swedish.words
+    { "hÑnga", Cp865 }, // from swedish.words
+    { "hÑngande", Cp865 }, // from swedish.words
+    { "hÑngde", Cp865 }, // from swedish.words
     { "hÑngen", Cp437 }, // from german.words
-    { "hÑngt", Cp437 }, // from german.words
+    { "hÑnger", Cp865 }, // from swedish.words
+    { "hÑnsyn", Cp865 }, // from swedish.words
+    { "hÑnt", Cp865 }, // from swedish.words
+    { "hÑnvisa", Cp865 }, // from swedish.words
+    { "hÑnvisade", Cp865 }, // from swedish.words
+    { "hÑnvisar", Cp865 }, // from swedish.words
+    { "hÑnvisning", Cp865 }, // from swedish.words
+    { "hÑpnadsvÑckande", Cp865 }, // from swedish.words
+    { "hÑr", Cp865 }, // from swedish.words
+    { "hÑrifrÜn", Cp865 }, // from swedish.words
+    { "hÑrlig", Cp865 }, // from swedish.words
+    { "hÑrliga", Cp865 }, // from swedish.words
+    { "hÑrligt", Cp865 }, // from swedish.words
+    { "hÑrom", Cp865 }, // from swedish.words
+    { "hÑromdagen", Cp865 }, // from swedish.words
+    { "hÑromÜret", Cp865 }, // from swedish.words
+    { "hÑrryda", Cp865 }, // from swedish.words
     { "hÑrter", Cp437 }, // from german.words
+    { "hÑsselby", Cp865 }, // from swedish.words
+    { "hÑst", Cp865 }, // from swedish.words
+    { "hÑstar", Cp865 }, // from swedish.words
+    { "hÑstarna", Cp865 }, // from swedish.words
+    { "hÑsten", Cp865 }, // from swedish.words
     { "hÑtte", Cp437 }, // from german.words
     { "hÑtten", Cp437 }, // from german.words
     { "hÑufig", Cp437 }, // from german.words
     { "hÑufiger", Cp437 }, // from german.words
     { "hÑufigsten", Cp437 }, // from german.words
+    { "hÑvda", Cp865 }, // from swedish.words
+    { "hÑvdade", Cp865 }, // from swedish.words
+    { "hÑvdar", Cp865 }, // from swedish.words
+    { "hÑvdat", Cp865 }, // from swedish.words
     { "hÜ", Cp865 }, // from norwegian.words
     { "hÜgensen", Cp865 }, // from norwegian.words
     { "hÜkon", Cp865 }, // from norwegian.words
@@ -4538,15 +7136,69 @@ static const struct {
     { "hÜr", Cp865 }, // from norwegian.words
     { "hÜret", Cp865 }, // from norwegian.words
     { "hÜvard", Cp865 }, // from norwegian.words
+    { "häck", MacRoman }, // from swedish.words
+    { "häcken", MacRoman }, // from swedish.words
+    { "häftig", MacRoman }, // from swedish.words
+    { "häftiga", MacRoman }, // from swedish.words
+    { "häftigt", MacRoman }, // from swedish.words
+    { "häktade", MacRoman }, // from swedish.words
+    { "hälften", MacRoman }, // from swedish.words
+    { "häll", MacRoman }, // from swedish.words
+    { "hällde", MacRoman }, // from swedish.words
+    { "hälsa", MacRoman }, // from swedish.words
+    { "hälsade", MacRoman }, // from swedish.words
+    { "hälsan", MacRoman }, // from swedish.words
+    { "hälsar", MacRoman }, // from swedish.words
     { "hält", MacRoman }, // from german.words
+    { "hämnd", MacRoman }, // from swedish.words
+    { "hämta", MacRoman }, // from swedish.words
+    { "hämtade", MacRoman }, // from swedish.words
+    { "hämtar", MacRoman }, // from swedish.words
+    { "hämtat", MacRoman }, // from swedish.words
+    { "hända", MacRoman }, // from swedish.words
+    { "hände", MacRoman }, // from swedish.words
+    { "händelse", MacRoman }, // from swedish.words
+    { "händelsen", MacRoman }, // from swedish.words
+    { "händelser", MacRoman }, // from swedish.words
+    { "händelserna", MacRoman }, // from swedish.words
+    { "händer", MacRoman }, // from swedish.words
+    { "händerna", MacRoman }, // from swedish.words
+    { "hänga", MacRoman }, // from swedish.words
+    { "hängande", MacRoman }, // from swedish.words
+    { "hängde", MacRoman }, // from swedish.words
     { "hängen", MacRoman }, // from german.words
-    { "hängt", MacRoman }, // from german.words
+    { "hänger", MacRoman }, // from swedish.words
+    { "hänsyn", MacRoman }, // from swedish.words
+    { "hänt", MacRoman }, // from swedish.words
+    { "hänvisa", MacRoman }, // from swedish.words
+    { "hänvisade", MacRoman }, // from swedish.words
+    { "hänvisar", MacRoman }, // from swedish.words
+    { "hänvisning", MacRoman }, // from swedish.words
+    { "häpnadsväckande", MacRoman }, // from swedish.words
+    { "här", MacRoman }, // from swedish.words
+    { "härifrån", MacRoman }, // from swedish.words
+    { "härlig", MacRoman }, // from swedish.words
+    { "härliga", MacRoman }, // from swedish.words
+    { "härligt", MacRoman }, // from swedish.words
+    { "härom", MacRoman }, // from swedish.words
+    { "häromdagen", MacRoman }, // from swedish.words
+    { "häromåret", MacRoman }, // from swedish.words
+    { "härryda", MacRoman }, // from swedish.words
     { "härter", MacRoman }, // from german.words
+    { "hässelby", MacRoman }, // from swedish.words
+    { "häst", MacRoman }, // from swedish.words
+    { "hästar", MacRoman }, // from swedish.words
+    { "hästarna", MacRoman }, // from swedish.words
+    { "hästen", MacRoman }, // from swedish.words
     { "hätte", MacRoman }, // from german.words
     { "hätten", MacRoman }, // from german.words
     { "häufig", MacRoman }, // from german.words
     { "häufiger", MacRoman }, // from german.words
     { "häufigsten", MacRoman }, // from german.words
+    { "hävda", MacRoman }, // from swedish.words
+    { "hävdade", MacRoman }, // from swedish.words
+    { "hävdar", MacRoman }, // from swedish.words
+    { "hävdat", MacRoman }, // from swedish.words
     { "hå", MacRoman }, // from norwegian.words
     { "hågensen", MacRoman }, // from norwegian.words
     { "håkon", MacRoman }, // from norwegian.words
@@ -4584,25 +7236,115 @@ static const struct {
     { "hîchsten", Cp437 }, // from german.words
     { "hîchstens", Cp437 }, // from german.words
     { "hîchster", Cp437 }, // from german.words
+    { "hîg", Cp865 }, // from swedish.words
+    { "hîga", Cp865 }, // from swedish.words
+    { "hîger", Cp865 }, // from swedish.words
+    { "hîgern", Cp865 }, // from swedish.words
+    { "hîgg", Cp865 }, // from swedish.words
+    { "hîgkvarter", Cp865 }, // from swedish.words
+    { "hîglund", Cp865 }, // from swedish.words
+    { "hîgra", Cp865 }, // from swedish.words
+    { "hîgre", Cp865 }, // from swedish.words
+    { "hîgskola", Cp865 }, // from swedish.words
+    { "hîgskolan", Cp865 }, // from swedish.words
+    { "hîgskolor", Cp865 }, // from swedish.words
+    { "hîgskolorna", Cp865 }, // from swedish.words
+    { "hîgst", Cp865 }, // from swedish.words
+    { "hîgsta", Cp865 }, // from swedish.words
+    { "hîgstadiet", Cp865 }, // from swedish.words
+    { "hîgt", Cp865 }, // from swedish.words
     { "hîher", Cp437 }, // from german.words
     { "hîhere", Cp437 }, // from german.words
     { "hîheren", Cp437 }, // from german.words
     { "hîherer", Cp437 }, // from german.words
+    { "hîja", Cp865 }, // from swedish.words
+    { "hîjas", Cp865 }, // from swedish.words
+    { "hîjd", Cp865 }, // from swedish.words
+    { "hîjda", Cp865 }, // from swedish.words
+    { "hîjde", Cp865 }, // from swedish.words
+    { "hîjden", Cp865 }, // from swedish.words
+    { "hîjder", Cp865 }, // from swedish.words
+    { "hîjdes", Cp865 }, // from swedish.words
+    { "hîjer", Cp865 }, // from swedish.words
+    { "hîjning", Cp865 }, // from swedish.words
+    { "hîjningen", Cp865 }, // from swedish.words
+    { "hîjs", Cp865 }, // from swedish.words
+    { "hîjt", Cp865 }, // from swedish.words
+    { "hîjts", Cp865 }, // from swedish.words
+    { "hîll", Cp865 }, // from swedish.words
+    { "hîlls", Cp865 }, // from swedish.words
+    { "hîr", Cp865 }, // from swedish.words
+    { "hîra", Cp865 }, // from swedish.words
+    { "hîras", Cp865 }, // from swedish.words
+    { "hîrde", Cp865 }, // from swedish.words
+    { "hîrdes", Cp865 }, // from swedish.words
     { "hîren", Cp437 }, // from german.words
-    { "hîrt", Cp437 }, // from german.words
+    { "hîrn", Cp865 }, // from swedish.words
+    { "hîrna", Cp865 }, // from swedish.words
+    { "hîrnet", Cp865 }, // from swedish.words
+    { "hîrs", Cp865 }, // from swedish.words
     { "hîrte", Cp437 }, // from german.words
+    { "hîst", Cp865 }, // from swedish.words
+    { "hîstas", Cp865 }, // from swedish.words
+    { "hîsten", Cp865 }, // from swedish.words
+    { "hîstens", Cp865 }, // from swedish.words
     { "höchst", MacRoman }, // from german.words
     { "höchste", MacRoman }, // from german.words
     { "höchsten", MacRoman }, // from german.words
     { "höchstens", MacRoman }, // from german.words
     { "höchster", MacRoman }, // from german.words
+    { "hög", MacRoman }, // from swedish.words
+    { "höga", MacRoman }, // from swedish.words
+    { "höger", MacRoman }, // from swedish.words
+    { "högern", MacRoman }, // from swedish.words
+    { "högg", MacRoman }, // from swedish.words
+    { "högkvarter", MacRoman }, // from swedish.words
+    { "höglund", MacRoman }, // from swedish.words
+    { "högra", MacRoman }, // from swedish.words
+    { "högre", MacRoman }, // from swedish.words
+    { "högskola", MacRoman }, // from swedish.words
+    { "högskolan", MacRoman }, // from swedish.words
+    { "högskolor", MacRoman }, // from swedish.words
+    { "högskolorna", MacRoman }, // from swedish.words
+    { "högst", MacRoman }, // from swedish.words
+    { "högsta", MacRoman }, // from swedish.words
+    { "högstadiet", MacRoman }, // from swedish.words
+    { "högt", MacRoman }, // from swedish.words
     { "höher", MacRoman }, // from german.words
     { "höhere", MacRoman }, // from german.words
     { "höheren", MacRoman }, // from german.words
     { "höherer", MacRoman }, // from german.words
+    { "höja", MacRoman }, // from swedish.words
+    { "höjas", MacRoman }, // from swedish.words
+    { "höjd", MacRoman }, // from swedish.words
+    { "höjda", MacRoman }, // from swedish.words
+    { "höjde", MacRoman }, // from swedish.words
+    { "höjden", MacRoman }, // from swedish.words
+    { "höjder", MacRoman }, // from swedish.words
+    { "höjdes", MacRoman }, // from swedish.words
+    { "höjer", MacRoman }, // from swedish.words
+    { "höjning", MacRoman }, // from swedish.words
+    { "höjningen", MacRoman }, // from swedish.words
+    { "höjs", MacRoman }, // from swedish.words
+    { "höjt", MacRoman }, // from swedish.words
+    { "höjts", MacRoman }, // from swedish.words
+    { "höll", MacRoman }, // from swedish.words
+    { "hölls", MacRoman }, // from swedish.words
+    { "hör", MacRoman }, // from swedish.words
+    { "höra", MacRoman }, // from swedish.words
+    { "höras", MacRoman }, // from swedish.words
+    { "hörde", MacRoman }, // from swedish.words
+    { "hördes", MacRoman }, // from swedish.words
     { "hören", MacRoman }, // from german.words
-    { "hört", MacRoman }, // from german.words
+    { "hörn", MacRoman }, // from swedish.words
+    { "hörna", MacRoman }, // from swedish.words
+    { "hörnet", MacRoman }, // from swedish.words
+    { "hörs", MacRoman }, // from swedish.words
     { "hörte", MacRoman }, // from german.words
+    { "höst", MacRoman }, // from swedish.words
+    { "höstas", MacRoman }, // from swedish.words
+    { "hösten", MacRoman }, // from swedish.words
+    { "höstens", MacRoman }, // from swedish.words
     { "hõdd", Cp865 }, // from norwegian.words
     { "hõflig", Cp865 }, // from norwegian.words
     { "hõgskole", Cp865 }, // from norwegian.words
@@ -4674,15 +7416,69 @@ static const struct {
     { "høyres", MacRoman }, // from norwegian.words
     { "høyst", MacRoman }, // from norwegian.words
     { "høyt", MacRoman }, // from norwegian.words
+    { "h‰ck", Iso885915 }, // from swedish.words
+    { "h‰cken", Iso885915 }, // from swedish.words
+    { "h‰ftig", Iso885915 }, // from swedish.words
+    { "h‰ftiga", Iso885915 }, // from swedish.words
+    { "h‰ftigt", Iso885915 }, // from swedish.words
+    { "h‰ktade", Iso885915 }, // from swedish.words
+    { "h‰lften", Iso885915 }, // from swedish.words
+    { "h‰ll", Iso885915 }, // from swedish.words
+    { "h‰llde", Iso885915 }, // from swedish.words
+    { "h‰lsa", Iso885915 }, // from swedish.words
+    { "h‰lsade", Iso885915 }, // from swedish.words
+    { "h‰lsan", Iso885915 }, // from swedish.words
+    { "h‰lsar", Iso885915 }, // from swedish.words
     { "h‰lt", Iso885915 }, // from german.words
+    { "h‰mnd", Iso885915 }, // from swedish.words
+    { "h‰mta", Iso885915 }, // from swedish.words
+    { "h‰mtade", Iso885915 }, // from swedish.words
+    { "h‰mtar", Iso885915 }, // from swedish.words
+    { "h‰mtat", Iso885915 }, // from swedish.words
+    { "h‰nda", Iso885915 }, // from swedish.words
+    { "h‰nde", Iso885915 }, // from swedish.words
+    { "h‰ndelse", Iso885915 }, // from swedish.words
+    { "h‰ndelsen", Iso885915 }, // from swedish.words
+    { "h‰ndelser", Iso885915 }, // from swedish.words
+    { "h‰ndelserna", Iso885915 }, // from swedish.words
+    { "h‰nder", Iso885915 }, // from swedish.words
+    { "h‰nderna", Iso885915 }, // from swedish.words
+    { "h‰nga", Iso885915 }, // from swedish.words
+    { "h‰ngande", Iso885915 }, // from swedish.words
+    { "h‰ngde", Iso885915 }, // from swedish.words
     { "h‰ngen", Iso885915 }, // from german.words
-    { "h‰ngt", Iso885915 }, // from german.words
+    { "h‰nger", Iso885915 }, // from swedish.words
+    { "h‰nsyn", Iso885915 }, // from swedish.words
+    { "h‰nt", Iso885915 }, // from swedish.words
+    { "h‰nvisa", Iso885915 }, // from swedish.words
+    { "h‰nvisade", Iso885915 }, // from swedish.words
+    { "h‰nvisar", Iso885915 }, // from swedish.words
+    { "h‰nvisning", Iso885915 }, // from swedish.words
+    { "h‰pnadsv‰ckande", Iso885915 }, // from swedish.words
+    { "h‰r", Iso885915 }, // from swedish.words
+    { "h‰rifrÂn", Iso885915 }, // from swedish.words
+    { "h‰rlig", Iso885915 }, // from swedish.words
+    { "h‰rliga", Iso885915 }, // from swedish.words
+    { "h‰rligt", Iso885915 }, // from swedish.words
+    { "h‰rom", Iso885915 }, // from swedish.words
+    { "h‰romdagen", Iso885915 }, // from swedish.words
+    { "h‰romÂret", Iso885915 }, // from swedish.words
+    { "h‰rryda", Iso885915 }, // from swedish.words
     { "h‰rter", Iso885915 }, // from german.words
+    { "h‰sselby", Iso885915 }, // from swedish.words
+    { "h‰st", Iso885915 }, // from swedish.words
+    { "h‰star", Iso885915 }, // from swedish.words
+    { "h‰starna", Iso885915 }, // from swedish.words
+    { "h‰sten", Iso885915 }, // from swedish.words
     { "h‰tte", Iso885915 }, // from german.words
     { "h‰tten", Iso885915 }, // from german.words
     { "h‰ufig", Iso885915 }, // from german.words
     { "h‰ufiger", Iso885915 }, // from german.words
     { "h‰ufigsten", Iso885915 }, // from german.words
+    { "h‰vda", Iso885915 }, // from swedish.words
+    { "h‰vdade", Iso885915 }, // from swedish.words
+    { "h‰vdar", Iso885915 }, // from swedish.words
+    { "h‰vdat", Iso885915 }, // from swedish.words
     { "hÂ", Iso885915 }, // from norwegian.words
     { "hÂgensen", Iso885915 }, // from norwegian.words
     { "hÂkon", Iso885915 }, // from norwegian.words
@@ -4720,13 +7516,58 @@ static const struct {
     { "hˆchsten", Iso885915 }, // from german.words
     { "hˆchstens", Iso885915 }, // from german.words
     { "hˆchster", Iso885915 }, // from german.words
+    { "hˆg", Iso885915 }, // from swedish.words
+    { "hˆga", Iso885915 }, // from swedish.words
+    { "hˆger", Iso885915 }, // from swedish.words
+    { "hˆgern", Iso885915 }, // from swedish.words
+    { "hˆgg", Iso885915 }, // from swedish.words
+    { "hˆgkvarter", Iso885915 }, // from swedish.words
+    { "hˆglund", Iso885915 }, // from swedish.words
+    { "hˆgra", Iso885915 }, // from swedish.words
+    { "hˆgre", Iso885915 }, // from swedish.words
+    { "hˆgskola", Iso885915 }, // from swedish.words
+    { "hˆgskolan", Iso885915 }, // from swedish.words
+    { "hˆgskolor", Iso885915 }, // from swedish.words
+    { "hˆgskolorna", Iso885915 }, // from swedish.words
+    { "hˆgst", Iso885915 }, // from swedish.words
+    { "hˆgsta", Iso885915 }, // from swedish.words
+    { "hˆgstadiet", Iso885915 }, // from swedish.words
+    { "hˆgt", Iso885915 }, // from swedish.words
     { "hˆher", Iso885915 }, // from german.words
     { "hˆhere", Iso885915 }, // from german.words
     { "hˆheren", Iso885915 }, // from german.words
     { "hˆherer", Iso885915 }, // from german.words
+    { "hˆja", Iso885915 }, // from swedish.words
+    { "hˆjas", Iso885915 }, // from swedish.words
+    { "hˆjd", Iso885915 }, // from swedish.words
+    { "hˆjda", Iso885915 }, // from swedish.words
+    { "hˆjde", Iso885915 }, // from swedish.words
+    { "hˆjden", Iso885915 }, // from swedish.words
+    { "hˆjder", Iso885915 }, // from swedish.words
+    { "hˆjdes", Iso885915 }, // from swedish.words
+    { "hˆjer", Iso885915 }, // from swedish.words
+    { "hˆjning", Iso885915 }, // from swedish.words
+    { "hˆjningen", Iso885915 }, // from swedish.words
+    { "hˆjs", Iso885915 }, // from swedish.words
+    { "hˆjt", Iso885915 }, // from swedish.words
+    { "hˆjts", Iso885915 }, // from swedish.words
+    { "hˆll", Iso885915 }, // from swedish.words
+    { "hˆlls", Iso885915 }, // from swedish.words
+    { "hˆr", Iso885915 }, // from swedish.words
+    { "hˆra", Iso885915 }, // from swedish.words
+    { "hˆras", Iso885915 }, // from swedish.words
+    { "hˆrde", Iso885915 }, // from swedish.words
+    { "hˆrdes", Iso885915 }, // from swedish.words
     { "hˆren", Iso885915 }, // from german.words
-    { "hˆrt", Iso885915 }, // from german.words
+    { "hˆrn", Iso885915 }, // from swedish.words
+    { "hˆrna", Iso885915 }, // from swedish.words
+    { "hˆrnet", Iso885915 }, // from swedish.words
+    { "hˆrs", Iso885915 }, // from swedish.words
     { "hˆrte", Iso885915 }, // from german.words
+    { "hˆst", Iso885915 }, // from swedish.words
+    { "hˆstas", Iso885915 }, // from swedish.words
+    { "hˆsten", Iso885915 }, // from swedish.words
+    { "hˆstens", Iso885915 }, // from swedish.words
     { "h¯dd", Iso885915 }, // from norwegian.words
     { "h¯flig", Iso885915 }, // from norwegian.words
     { "h¯gskole", Iso885915 }, // from norwegian.words
@@ -4764,27 +7605,51 @@ static const struct {
     { "identitÇ", Cp437 }, // from french.words
     { "identité", MacRoman }, // from french.words
     { "identitÈ", Iso885915 }, // from french.words
+    { "idÇ", Cp865 }, // from swedish.words
     { "idÇal", Cp437 }, // from french.words
     { "idÇale", Cp437 }, // from french.words
     { "idÇalement", Cp437 }, // from french.words
     { "idÇe", Cp437 }, // from french.words
+    { "idÇer", Cp865 }, // from swedish.words
+    { "idÇerna", Cp865 }, // from swedish.words
     { "idÇes", Cp437 }, // from french.words
+    { "idÇn", Cp865 }, // from swedish.words
+    { "idé", MacRoman }, // from swedish.words
     { "idéal", MacRoman }, // from french.words
     { "idéale", MacRoman }, // from french.words
     { "idéalement", MacRoman }, // from french.words
     { "idée", MacRoman }, // from french.words
+    { "idéer", MacRoman }, // from swedish.words
+    { "idéerna", MacRoman }, // from swedish.words
     { "idées", MacRoman }, // from french.words
+    { "idén", MacRoman }, // from swedish.words
+    { "idÈ", Iso885915 }, // from swedish.words
     { "idÈal", Iso885915 }, // from french.words
     { "idÈale", Iso885915 }, // from french.words
     { "idÈalement", Iso885915 }, // from french.words
     { "idÈe", Iso885915 }, // from french.words
+    { "idÈer", Iso885915 }, // from swedish.words
+    { "idÈerna", Iso885915 }, // from swedish.words
     { "idÈes", Iso885915 }, // from french.words
+    { "idÈn", Iso885915 }, // from swedish.words
+    { "ifrÜgasÑtta", Cp865 }, // from swedish.words
+    { "ifrÜgasÑtter", Cp865 }, // from swedish.words
+    { "ifrågasätta", MacRoman }, // from swedish.words
+    { "ifrågasätter", MacRoman }, // from swedish.words
+    { "ifrÂgas‰tta", Iso885915 }, // from swedish.words
+    { "ifrÂgas‰tter", Iso885915 }, // from swedish.words
     { "ifõlge", Cp865 }, // from norwegian.words
     { "ifõrt", Cp865 }, // from norwegian.words
     { "ifølge", MacRoman }, // from norwegian.words
     { "iført", MacRoman }, // from norwegian.words
     { "if¯lge", Iso885915 }, // from norwegian.words
     { "if¯rt", Iso885915 }, // from norwegian.words
+    { "ihjÑl", Cp865 }, // from swedish.words
+    { "ihjäl", MacRoman }, // from swedish.words
+    { "ihj‰l", Iso885915 }, // from swedish.words
+    { "ikvÑll", Cp865 }, // from swedish.words
+    { "ikväll", MacRoman }, // from swedish.words
+    { "ikv‰ll", Iso885915 }, // from swedish.words
     { "illustrÇ", Cp437 }, // from french.words
     { "illustré", MacRoman }, // from french.words
     { "illustrÈ", Iso885915 }, // from french.words
@@ -4839,6 +7704,15 @@ static const struct {
     { "impÈratif", Iso885915 }, // from french.words
     { "impÈratifs", Iso885915 }, // from french.words
     { "impÈrativement", Iso885915 }, // from french.words
+    { "inbîrdes", Cp865 }, // from swedish.words
+    { "inbîrdeskrig", Cp865 }, // from swedish.words
+    { "inbîrdeskriget", Cp865 }, // from swedish.words
+    { "inbördes", MacRoman }, // from swedish.words
+    { "inbördeskrig", MacRoman }, // from swedish.words
+    { "inbördeskriget", MacRoman }, // from swedish.words
+    { "inbˆrdes", Iso885915 }, // from swedish.words
+    { "inbˆrdeskrig", Iso885915 }, // from swedish.words
+    { "inbˆrdeskriget", Iso885915 }, // from swedish.words
     { "inchangÇ", Cp437 }, // from french.words
     { "inchangé", MacRoman }, // from french.words
     { "inchangÈ", Iso885915 }, // from french.words
@@ -4916,16 +7790,37 @@ static const struct {
     { "inférieure", MacRoman }, // from french.words
     { "inférieures", MacRoman }, // from french.words
     { "inférieurs", MacRoman }, // from french.words
+    { "infîr", Cp865 }, // from swedish.words
+    { "infîra", Cp865 }, // from swedish.words
+    { "infîras", Cp865 }, // from swedish.words
+    { "infîrde", Cp865 }, // from swedish.words
+    { "infîrdes", Cp865 }, // from swedish.words
+    { "infîrs", Cp865 }, // from swedish.words
+    { "inför", MacRoman }, // from swedish.words
+    { "införa", MacRoman }, // from swedish.words
+    { "införas", MacRoman }, // from swedish.words
+    { "införde", MacRoman }, // from swedish.words
+    { "infördes", MacRoman }, // from swedish.words
+    { "införs", MacRoman }, // from swedish.words
     { "infÈrieur", Iso885915 }, // from french.words
     { "infÈrieure", Iso885915 }, // from french.words
     { "infÈrieures", Iso885915 }, // from french.words
     { "infÈrieurs", Iso885915 }, // from french.words
+    { "infˆr", Iso885915 }, // from swedish.words
+    { "infˆra", Iso885915 }, // from swedish.words
+    { "infˆras", Iso885915 }, // from swedish.words
+    { "infˆrde", Iso885915 }, // from swedish.words
+    { "infˆrdes", Iso885915 }, // from swedish.words
+    { "infˆrs", Iso885915 }, // from swedish.words
     { "ingeniõr", Cp865 }, // from norwegian.words
     { "ingeniõrer", Cp865 }, // from norwegian.words
     { "ingeniør", MacRoman }, // from norwegian.words
     { "ingeniører", MacRoman }, // from norwegian.words
     { "ingeni¯r", Iso885915 }, // from norwegian.words
     { "ingeni¯rer", Iso885915 }, // from norwegian.words
+    { "ingenjîr", Cp865 }, // from swedish.words
+    { "ingenjör", MacRoman }, // from swedish.words
+    { "ingenjˆr", Iso885915 }, // from swedish.words
     { "ingrÇdients", Cp437 }, // from french.words
     { "ingrédients", MacRoman }, // from french.words
     { "ingrÈdients", Iso885915 }, // from french.words
@@ -4938,12 +7833,36 @@ static const struct {
     { "initiÇs", Cp437 }, // from french.words
     { "initiés", MacRoman }, // from french.words
     { "initiÈs", Iso885915 }, // from french.words
+    { "inkîp", Cp865 }, // from swedish.words
+    { "inköp", MacRoman }, // from swedish.words
+    { "inkˆp", Iso885915 }, // from swedish.words
+    { "inlÑgg", Cp865 }, // from swedish.words
+    { "inlägg", MacRoman }, // from swedish.words
+    { "inl‰gg", Iso885915 }, // from swedish.words
+    { "innanfîr", Cp865 }, // from swedish.words
+    { "innanför", MacRoman }, // from swedish.words
+    { "innanfˆr", Iso885915 }, // from swedish.words
+    { "innebÑr", Cp865 }, // from swedish.words
+    { "innebÑra", Cp865 }, // from swedish.words
+    { "innebär", MacRoman }, // from swedish.words
+    { "innebära", MacRoman }, // from swedish.words
     { "innebëre", Cp865 }, // from norwegian.words
     { "innebërer", Cp865 }, // from norwegian.words
+    { "innebîrd", Cp865 }, // from swedish.words
+    { "innebîrden", Cp865 }, // from swedish.words
+    { "innebörd", MacRoman }, // from swedish.words
+    { "innebörden", MacRoman }, // from swedish.words
     { "innebære", MacRoman }, // from norwegian.words
     { "innebærer", MacRoman }, // from norwegian.words
+    { "inneb‰r", Iso885915 }, // from swedish.words
+    { "inneb‰ra", Iso885915 }, // from swedish.words
     { "innebÊre", Iso885915 }, // from norwegian.words
     { "innebÊrer", Iso885915 }, // from norwegian.words
+    { "innebˆrd", Iso885915 }, // from swedish.words
+    { "innebˆrden", Iso885915 }, // from swedish.words
+    { "innehîll", Cp865 }, // from swedish.words
+    { "innehöll", MacRoman }, // from swedish.words
+    { "innehˆll", Iso885915 }, // from swedish.words
     { "innendõrs", Cp865 }, // from norwegian.words
     { "innendørs", MacRoman }, // from norwegian.words
     { "innend¯rs", Iso885915 }, // from norwegian.words
@@ -4998,6 +7917,12 @@ static const struct {
     { "inquiétudes", MacRoman }, // from french.words
     { "inquiÈtant", Iso885915 }, // from french.words
     { "inquiÈtudes", Iso885915 }, // from french.words
+    { "inrÑtta", Cp865 }, // from swedish.words
+    { "inrÑttas", Cp865 }, // from swedish.words
+    { "inrätta", MacRoman }, // from swedish.words
+    { "inrättas", MacRoman }, // from swedish.words
+    { "inr‰tta", Iso885915 }, // from swedish.words
+    { "inr‰ttas", Iso885915 }, // from swedish.words
     { "inspirÇ", Cp437 }, // from french.words
     { "inspirÇe", Cp437 }, // from french.words
     { "inspiré", MacRoman }, // from french.words
@@ -5019,6 +7944,27 @@ static const struct {
     { "instruktõr", Cp865 }, // from norwegian.words
     { "instruktør", MacRoman }, // from norwegian.words
     { "instrukt¯r", Iso885915 }, // from norwegian.words
+    { "instÑlld", Cp865 }, // from swedish.words
+    { "instÑllda", Cp865 }, // from swedish.words
+    { "instÑllning", Cp865 }, // from swedish.words
+    { "instÑllningen", Cp865 }, // from swedish.words
+    { "instÑllt", Cp865 }, // from swedish.words
+    { "instÑmmer", Cp865 }, // from swedish.words
+    { "inställd", MacRoman }, // from swedish.words
+    { "inställda", MacRoman }, // from swedish.words
+    { "inställning", MacRoman }, // from swedish.words
+    { "inställningen", MacRoman }, // from swedish.words
+    { "inställt", MacRoman }, // from swedish.words
+    { "instämmer", MacRoman }, // from swedish.words
+    { "inst‰lld", Iso885915 }, // from swedish.words
+    { "inst‰llda", Iso885915 }, // from swedish.words
+    { "inst‰llning", Iso885915 }, // from swedish.words
+    { "inst‰llningen", Iso885915 }, // from swedish.words
+    { "inst‰llt", Iso885915 }, // from swedish.words
+    { "inst‰mmer", Iso885915 }, // from swedish.words
+    { "insÑndare", Cp865 }, // from swedish.words
+    { "insändare", MacRoman }, // from swedish.words
+    { "ins‰ndare", Iso885915 }, // from swedish.words
     { "interiõr", Cp865 }, // from norwegian.words
     { "interiør", MacRoman }, // from norwegian.words
     { "interi¯r", Iso885915 }, // from norwegian.words
@@ -5040,6 +7986,21 @@ static const struct {
     { "intitulÇ", Cp437 }, // from french.words
     { "intitulé", MacRoman }, // from french.words
     { "intitulÈ", Iso885915 }, // from french.words
+    { "intrÑde", Cp865 }, // from swedish.words
+    { "intrÑffa", Cp865 }, // from swedish.words
+    { "intrÑffade", Cp865 }, // from swedish.words
+    { "intrÑffar", Cp865 }, // from swedish.words
+    { "intrÑffat", Cp865 }, // from swedish.words
+    { "inträde", MacRoman }, // from swedish.words
+    { "inträffa", MacRoman }, // from swedish.words
+    { "inträffade", MacRoman }, // from swedish.words
+    { "inträffar", MacRoman }, // from swedish.words
+    { "inträffat", MacRoman }, // from swedish.words
+    { "intr‰de", Iso885915 }, // from swedish.words
+    { "intr‰ffa", Iso885915 }, // from swedish.words
+    { "intr‰ffade", Iso885915 }, // from swedish.words
+    { "intr‰ffar", Iso885915 }, // from swedish.words
+    { "intr‰ffat", Iso885915 }, // from swedish.words
     { "intÇgrale", Cp437 }, // from french.words
     { "intÇgralement", Cp437 }, // from french.words
     { "intÇgrante", Cp437 }, // from french.words
@@ -5064,6 +8025,10 @@ static const struct {
     { "intÇrieure", Cp437 }, // from french.words
     { "intÇrieurs", Cp437 }, // from french.words
     { "intÇrimaire", Cp437 }, // from french.words
+    { "intÑkter", Cp865 }, // from swedish.words
+    { "intÑkterna", Cp865 }, // from swedish.words
+    { "intäkter", MacRoman }, // from swedish.words
+    { "intäkterna", MacRoman }, // from swedish.words
     { "intégrale", MacRoman }, // from french.words
     { "intégralement", MacRoman }, // from french.words
     { "intégrante", MacRoman }, // from french.words
@@ -5088,6 +8053,8 @@ static const struct {
     { "intérieure", MacRoman }, // from french.words
     { "intérieurs", MacRoman }, // from french.words
     { "intérimaire", MacRoman }, // from french.words
+    { "int‰kter", Iso885915 }, // from swedish.words
+    { "int‰kterna", Iso885915 }, // from swedish.words
     { "intÈgrale", Iso885915 }, // from french.words
     { "intÈgralement", Iso885915 }, // from french.words
     { "intÈgrante", Iso885915 }, // from french.words
@@ -5121,6 +8088,12 @@ static const struct {
     { "invités", MacRoman }, // from french.words
     { "invitÈ", Iso885915 }, // from french.words
     { "invitÈs", Iso885915 }, // from french.words
+    { "invÑndigt", Cp865 }, // from swedish.words
+    { "invÑndningar", Cp865 }, // from swedish.words
+    { "invändigt", MacRoman }, // from swedish.words
+    { "invändningar", MacRoman }, // from swedish.words
+    { "inv‰ndigt", Iso885915 }, // from swedish.words
+    { "inv‰ndningar", Iso885915 }, // from swedish.words
     { "inÇdit", Cp437 }, // from french.words
     { "inÇvitable", Cp437 }, // from french.words
     { "inÇvitablement", Cp437 }, // from french.words
@@ -5130,12 +8103,24 @@ static const struct {
     { "inÈdit", Iso885915 }, // from french.words
     { "inÈvitable", Iso885915 }, // from french.words
     { "inÈvitablement", Iso885915 }, // from french.words
+    { "irlÑndska", Cp865 }, // from swedish.words
+    { "irländska", MacRoman }, // from swedish.words
+    { "irl‰ndska", Iso885915 }, // from swedish.words
     { "isolÇ", Cp437 }, // from french.words
     { "isolÇs", Cp437 }, // from french.words
     { "isolé", MacRoman }, // from french.words
     { "isolés", MacRoman }, // from french.words
     { "isolÈ", Iso885915 }, // from french.words
     { "isolÈs", Iso885915 }, // from french.words
+    { "istÑllet", Cp865 }, // from swedish.words
+    { "istället", MacRoman }, // from swedish.words
+    { "ist‰llet", Iso885915 }, // from swedish.words
+    { "isÑr", Cp865 }, // from swedish.words
+    { "isär", MacRoman }, // from swedish.words
+    { "is‰r", Iso885915 }, // from swedish.words
+    { "ivÑg", Cp865 }, // from swedish.words
+    { "iväg", MacRoman }, // from swedish.words
+    { "iv‰g", Iso885915 }, // from swedish.words
     { "jadern˝", Iso88592 }, // from czech.words
     { "jasn˝", Iso88592 }, // from czech.words
     { "jedin˝", Iso88592 }, // from czech.words
@@ -5147,6 +8132,9 @@ static const struct {
     { "jetÈ", Iso885915 }, // from french.words
     { "jin˝", Iso88592 }, // from czech.words
     { "jist˝", Iso88592 }, // from czech.words
+    { "josÇ", Cp865 }, // from swedish.words
+    { "josé", MacRoman }, // from swedish.words
+    { "josÈ", Iso885915 }, // from swedish.words
     { "journÇe", Cp437 }, // from french.words
     { "journÇes", Cp437 }, // from french.words
     { "journée", MacRoman }, // from french.words
@@ -5184,13 +8172,65 @@ static const struct {
     { "jÅngste", Cp437 }, // from german.words
     { "jÅngsten", Cp437 }, // from german.words
     { "jÅngster", Cp437 }, // from german.words
+    { "jÑgare", Cp865 }, // from swedish.words
     { "jÑhrlich", Cp437 }, // from german.words
     { "jÑhrliche", Cp437 }, // from german.words
     { "jÑhrlichen", Cp437 }, // from german.words
+    { "jÑmfîr", Cp865 }, // from swedish.words
+    { "jÑmfîra", Cp865 }, // from swedish.words
+    { "jÑmfîras", Cp865 }, // from swedish.words
+    { "jÑmfîrelse", Cp865 }, // from swedish.words
+    { "jÑmfîrt", Cp865 }, // from swedish.words
+    { "jÑmlikhet", Cp865 }, // from swedish.words
+    { "jÑmn", Cp865 }, // from swedish.words
+    { "jÑmna", Cp865 }, // from swedish.words
+    { "jÑmnt", Cp865 }, // from swedish.words
+    { "jÑmstÑlldhet", Cp865 }, // from swedish.words
+    { "jÑmt", Cp865 }, // from swedish.words
+    { "jÑmte", Cp865 }, // from swedish.words
+    { "jÑmtland", Cp865 }, // from swedish.words
+    { "jÑrfÑlla", Cp865 }, // from swedish.words
+    { "jÑrn", Cp865 }, // from swedish.words
+    { "jÑrnvÑg", Cp865 }, // from swedish.words
+    { "jÑrnvÑgen", Cp865 }, // from swedish.words
+    { "jÑttebra", Cp865 }, // from swedish.words
+    { "jÑttelik", Cp865 }, // from swedish.words
+    { "jÑttelika", Cp865 }, // from swedish.words
+    { "jÑvla", Cp865 }, // from swedish.words
+    { "jÑvligt", Cp865 }, // from swedish.words
+    { "jägare", MacRoman }, // from swedish.words
     { "jährlich", MacRoman }, // from german.words
     { "jährliche", MacRoman }, // from german.words
     { "jährlichen", MacRoman }, // from german.words
+    { "jämför", MacRoman }, // from swedish.words
+    { "jämföra", MacRoman }, // from swedish.words
+    { "jämföras", MacRoman }, // from swedish.words
+    { "jämförelse", MacRoman }, // from swedish.words
+    { "jämfört", MacRoman }, // from swedish.words
+    { "jämlikhet", MacRoman }, // from swedish.words
+    { "jämn", MacRoman }, // from swedish.words
+    { "jämna", MacRoman }, // from swedish.words
+    { "jämnt", MacRoman }, // from swedish.words
+    { "jämställdhet", MacRoman }, // from swedish.words
+    { "jämt", MacRoman }, // from swedish.words
+    { "jämte", MacRoman }, // from swedish.words
+    { "jämtland", MacRoman }, // from swedish.words
+    { "järfälla", MacRoman }, // from swedish.words
+    { "järn", MacRoman }, // from swedish.words
+    { "järnväg", MacRoman }, // from swedish.words
+    { "järnvägen", MacRoman }, // from swedish.words
+    { "jättebra", MacRoman }, // from swedish.words
+    { "jättelik", MacRoman }, // from swedish.words
+    { "jättelika", MacRoman }, // from swedish.words
+    { "jävla", MacRoman }, // from swedish.words
+    { "jävligt", MacRoman }, // from swedish.words
     { "jëren", Cp865 }, // from norwegian.words
+    { "jînkîping", Cp865 }, // from swedish.words
+    { "jînsson", Cp865 }, // from swedish.words
+    { "jîrgen", Cp865 }, // from swedish.words
+    { "jönköping", MacRoman }, // from swedish.words
+    { "jönsson", MacRoman }, // from swedish.words
+    { "jörgen", MacRoman }, // from swedish.words
     { "jõdene", Cp865 }, // from norwegian.words
     { "jõder", Cp865 }, // from norwegian.words
     { "jõdisk", Cp865 }, // from norwegian.words
@@ -5216,11 +8256,37 @@ static const struct {
     { "jørgen", MacRoman }, // from norwegian.words
     { "jørgensen", MacRoman }, // from norwegian.words
     { "jørn", MacRoman }, // from norwegian.words
+    { "j‰gare", Iso885915 }, // from swedish.words
     { "j‰hrlich", Iso885915 }, // from german.words
     { "j‰hrliche", Iso885915 }, // from german.words
     { "j‰hrlichen", Iso885915 }, // from german.words
+    { "j‰mfˆr", Iso885915 }, // from swedish.words
+    { "j‰mfˆra", Iso885915 }, // from swedish.words
+    { "j‰mfˆras", Iso885915 }, // from swedish.words
+    { "j‰mfˆrelse", Iso885915 }, // from swedish.words
+    { "j‰mfˆrt", Iso885915 }, // from swedish.words
+    { "j‰mlikhet", Iso885915 }, // from swedish.words
+    { "j‰mn", Iso885915 }, // from swedish.words
+    { "j‰mna", Iso885915 }, // from swedish.words
+    { "j‰mnt", Iso885915 }, // from swedish.words
+    { "j‰mst‰lldhet", Iso885915 }, // from swedish.words
+    { "j‰mt", Iso885915 }, // from swedish.words
+    { "j‰mte", Iso885915 }, // from swedish.words
+    { "j‰mtland", Iso885915 }, // from swedish.words
+    { "j‰rf‰lla", Iso885915 }, // from swedish.words
+    { "j‰rn", Iso885915 }, // from swedish.words
+    { "j‰rnv‰g", Iso885915 }, // from swedish.words
+    { "j‰rnv‰gen", Iso885915 }, // from swedish.words
+    { "j‰ttebra", Iso885915 }, // from swedish.words
+    { "j‰ttelik", Iso885915 }, // from swedish.words
+    { "j‰ttelika", Iso885915 }, // from swedish.words
+    { "j‰vla", Iso885915 }, // from swedish.words
+    { "j‰vligt", Iso885915 }, // from swedish.words
     { "jÊren", Iso885915 }, // from norwegian.words
     { "jÌt", Iso88592 }, // from czech.words
+    { "jˆnkˆping", Iso885915 }, // from swedish.words
+    { "jˆnsson", Iso885915 }, // from swedish.words
+    { "jˆrgen", Iso885915 }, // from swedish.words
     { "j¯dene", Iso885915 }, // from norwegian.words
     { "j¯der", Iso885915 }, // from norwegian.words
     { "j¯disk", Iso885915 }, // from norwegian.words
@@ -5238,9 +8304,27 @@ static const struct {
     { "j¸ngste", Iso885915 }, // from german.words
     { "j¸ngsten", Iso885915 }, // from german.words
     { "j¸ngster", Iso885915 }, // from german.words
+    { "kafÇ", Cp865 }, // from swedish.words
+    { "kafé", MacRoman }, // from swedish.words
+    { "kafÈ", Iso885915 }, // from swedish.words
+    { "kammarrÑtten", Cp865 }, // from swedish.words
+    { "kammarrätten", MacRoman }, // from swedish.words
+    { "kammarr‰tten", Iso885915 }, // from swedish.words
+    { "karaktÑr", Cp865 }, // from swedish.words
+    { "karaktär", MacRoman }, // from swedish.words
+    { "karakt‰r", Iso885915 }, // from swedish.words
     { "karmõy", Cp865 }, // from norwegian.words
     { "karmøy", MacRoman }, // from norwegian.words
     { "karm¯y", Iso885915 }, // from norwegian.words
+    { "karriÑr", Cp865 }, // from swedish.words
+    { "karriÑren", Cp865 }, // from swedish.words
+    { "karriär", MacRoman }, // from swedish.words
+    { "karriären", MacRoman }, // from swedish.words
+    { "karri‰r", Iso885915 }, // from swedish.words
+    { "karri‰ren", Iso885915 }, // from swedish.words
+    { "kartlÑgga", Cp865 }, // from swedish.words
+    { "kartlägga", MacRoman }, // from swedish.words
+    { "kartl‰gga", Iso885915 }, // from swedish.words
     { "kirkegÜrd", Cp865 }, // from norwegian.words
     { "kirkegÜrden", Cp865 }, // from norwegian.words
     { "kirkegård", MacRoman }, // from norwegian.words
@@ -5337,29 +8421,110 @@ static const struct {
     { "kj¯rte", Iso885915 }, // from norwegian.words
     { "kj¯tt", Iso885915 }, // from norwegian.words
     { "kj¯ttet", Iso885915 }, // from norwegian.words
+    { "klÑ", Cp865 }, // from swedish.words
+    { "klÑdd", Cp865 }, // from swedish.words
+    { "klÑdda", Cp865 }, // from swedish.words
+    { "klÑdde", Cp865 }, // from swedish.words
+    { "klÑder", Cp865 }, // from swedish.words
+    { "klÑderna", Cp865 }, // from swedish.words
+    { "klÑm", Cp865 }, // from swedish.words
+    { "klÑnning", Cp865 }, // from swedish.words
+    { "klÑr", Cp865 }, // from swedish.words
     { "klÑren", Cp437 }, // from german.words
+    { "klÑttra", Cp865 }, // from swedish.words
+    { "klÑttrade", Cp865 }, // from swedish.words
+    { "klä", MacRoman }, // from swedish.words
+    { "klädd", MacRoman }, // from swedish.words
+    { "klädda", MacRoman }, // from swedish.words
+    { "klädde", MacRoman }, // from swedish.words
+    { "kläder", MacRoman }, // from swedish.words
+    { "kläderna", MacRoman }, // from swedish.words
+    { "kläm", MacRoman }, // from swedish.words
+    { "klänning", MacRoman }, // from swedish.words
+    { "klär", MacRoman }, // from swedish.words
     { "klären", MacRoman }, // from german.words
+    { "klättra", MacRoman }, // from swedish.words
+    { "klättrade", MacRoman }, // from swedish.words
     { "klër", Cp865 }, // from norwegian.words
     { "klërne", Cp865 }, // from norwegian.words
+    { "klîver", Cp865 }, // from swedish.words
+    { "klöver", MacRoman }, // from swedish.words
     { "klõver", Cp865 }, // from norwegian.words
     { "klær", MacRoman }, // from norwegian.words
     { "klærne", MacRoman }, // from norwegian.words
     { "kløver", MacRoman }, // from norwegian.words
+    { "kl‰", Iso885915 }, // from swedish.words
+    { "kl‰dd", Iso885915 }, // from swedish.words
+    { "kl‰dda", Iso885915 }, // from swedish.words
+    { "kl‰dde", Iso885915 }, // from swedish.words
+    { "kl‰der", Iso885915 }, // from swedish.words
+    { "kl‰derna", Iso885915 }, // from swedish.words
+    { "kl‰m", Iso885915 }, // from swedish.words
+    { "kl‰nning", Iso885915 }, // from swedish.words
+    { "kl‰r", Iso885915 }, // from swedish.words
     { "kl‰ren", Iso885915 }, // from german.words
+    { "kl‰ttra", Iso885915 }, // from swedish.words
+    { "kl‰ttrade", Iso885915 }, // from swedish.words
     { "klÊr", Iso885915 }, // from norwegian.words
     { "klÊrne", Iso885915 }, // from norwegian.words
+    { "klˆver", Iso885915 }, // from swedish.words
     { "kl¯ver", Iso885915 }, // from norwegian.words
+    { "knÑ", Cp865 }, // from swedish.words
+    { "knÑna", Cp865 }, // from swedish.words
+    { "knÑppte", Cp865 }, // from swedish.words
+    { "knÑt", Cp865 }, // from swedish.words
+    { "knä", MacRoman }, // from swedish.words
+    { "knäna", MacRoman }, // from swedish.words
+    { "knäppte", MacRoman }, // from swedish.words
+    { "knät", MacRoman }, // from swedish.words
+    { "kn‰", Iso885915 }, // from swedish.words
+    { "kn‰na", Iso885915 }, // from swedish.words
+    { "kn‰ppte", Iso885915 }, // from swedish.words
+    { "kn‰t", Iso885915 }, // from swedish.words
     { "koaliËnÌ", Iso88592 }, // from czech.words
     { "kolbjõrnsen", Cp865 }, // from norwegian.words
     { "kolbjørnsen", MacRoman }, // from norwegian.words
     { "kolbj¯rnsen", Iso885915 }, // from norwegian.words
+    { "kommittÇ", Cp865 }, // from swedish.words
+    { "kommittÇn", Cp865 }, // from swedish.words
+    { "kommitté", MacRoman }, // from swedish.words
+    { "kommittén", MacRoman }, // from swedish.words
+    { "kommittÈ", Iso885915 }, // from swedish.words
+    { "kommittÈn", Iso885915 }, // from swedish.words
     { "kommunaldirektõr", Cp865 }, // from norwegian.words
     { "kommunaldirektør", MacRoman }, // from norwegian.words
     { "kommunaldirekt¯r", Iso885915 }, // from norwegian.words
     { "kommunalrÜd", Cp865 }, // from norwegian.words
     { "kommunalråd", MacRoman }, // from norwegian.words
     { "kommunalrÂd", Iso885915 }, // from norwegian.words
+    { "kommunfullmÑktige", Cp865 }, // from swedish.words
+    { "kommunfullmäktige", MacRoman }, // from swedish.words
+    { "kommunfullm‰ktige", Iso885915 }, // from swedish.words
+    { "kommunfîrbundet", Cp865 }, // from swedish.words
+    { "kommunförbundet", MacRoman }, // from swedish.words
+    { "kommunfˆrbundet", Iso885915 }, // from swedish.words
     { "konkrÈtnÌ", Iso88592 }, // from czech.words
+    { "konstnÑr", Cp865 }, // from swedish.words
+    { "konstnÑren", Cp865 }, // from swedish.words
+    { "konstnÑrer", Cp865 }, // from swedish.words
+    { "konstnÑrerna", Cp865 }, // from swedish.words
+    { "konstnÑrlig", Cp865 }, // from swedish.words
+    { "konstnÑrliga", Cp865 }, // from swedish.words
+    { "konstnÑrligt", Cp865 }, // from swedish.words
+    { "konstnär", MacRoman }, // from swedish.words
+    { "konstnären", MacRoman }, // from swedish.words
+    { "konstnärer", MacRoman }, // from swedish.words
+    { "konstnärerna", MacRoman }, // from swedish.words
+    { "konstnärlig", MacRoman }, // from swedish.words
+    { "konstnärliga", MacRoman }, // from swedish.words
+    { "konstnärligt", MacRoman }, // from swedish.words
+    { "konstn‰r", Iso885915 }, // from swedish.words
+    { "konstn‰ren", Iso885915 }, // from swedish.words
+    { "konstn‰rer", Iso885915 }, // from swedish.words
+    { "konstn‰rerna", Iso885915 }, // from swedish.words
+    { "konstn‰rlig", Iso885915 }, // from swedish.words
+    { "konstn‰rliga", Iso885915 }, // from swedish.words
+    { "konstn‰rligt", Iso885915 }, // from swedish.words
     { "kontantstõtte", Cp865 }, // from norwegian.words
     { "kontantstøtte", MacRoman }, // from norwegian.words
     { "kontantst¯tte", Iso885915 }, // from norwegian.words
@@ -5369,16 +8534,67 @@ static const struct {
     { "krÑftig", Cp437 }, // from german.words
     { "krÑftige", Cp437 }, // from german.words
     { "krÑftigen", Cp437 }, // from german.words
+    { "krÑva", Cp865 }, // from swedish.words
+    { "krÑvande", Cp865 }, // from swedish.words
+    { "krÑvas", Cp865 }, // from swedish.words
+    { "krÑvde", Cp865 }, // from swedish.words
+    { "krÑvdes", Cp865 }, // from swedish.words
+    { "krÑver", Cp865 }, // from swedish.words
+    { "krÑvs", Cp865 }, // from swedish.words
+    { "krÑvt", Cp865 }, // from swedish.words
     { "kräftig", MacRoman }, // from german.words
     { "kräftige", MacRoman }, // from german.words
     { "kräftigen", MacRoman }, // from german.words
+    { "kräva", MacRoman }, // from swedish.words
+    { "krävande", MacRoman }, // from swedish.words
+    { "krävas", MacRoman }, // from swedish.words
+    { "krävde", MacRoman }, // from swedish.words
+    { "krävdes", MacRoman }, // from swedish.words
+    { "kräver", MacRoman }, // from swedish.words
+    { "krävs", MacRoman }, // from swedish.words
+    { "krävt", MacRoman }, // from swedish.words
+    { "krîp", Cp865 }, // from swedish.words
+    { "kröp", MacRoman }, // from swedish.words
     { "kr·tk˝", Iso88592 }, // from czech.words
     { "kr‰ftig", Iso885915 }, // from german.words
     { "kr‰ftige", Iso885915 }, // from german.words
     { "kr‰ftigen", Iso885915 }, // from german.words
+    { "kr‰va", Iso885915 }, // from swedish.words
+    { "kr‰vande", Iso885915 }, // from swedish.words
+    { "kr‰vas", Iso885915 }, // from swedish.words
+    { "kr‰vde", Iso885915 }, // from swedish.words
+    { "kr‰vdes", Iso885915 }, // from swedish.words
+    { "kr‰ver", Iso885915 }, // from swedish.words
+    { "kr‰vs", Iso885915 }, // from swedish.words
+    { "kr‰vt", Iso885915 }, // from swedish.words
+    { "krˆp", Iso885915 }, // from swedish.words
+    { "kungstrÑdgÜrden", Cp865 }, // from swedish.words
+    { "kungsträdgården", MacRoman }, // from swedish.words
+    { "kungstr‰dgÂrden", Iso885915 }, // from swedish.words
+    { "kungsÑngen", Cp865 }, // from swedish.words
+    { "kungsängen", MacRoman }, // from swedish.words
+    { "kungs‰ngen", Iso885915 }, // from swedish.words
+    { "kungÑlv", Cp865 }, // from swedish.words
+    { "kungälv", MacRoman }, // from swedish.words
+    { "kung‰lv", Iso885915 }, // from swedish.words
     { "kvalitnÌ", Iso88592 }, // from czech.words
+    { "kvÑll", Cp865 }, // from swedish.words
+    { "kvÑllar", Cp865 }, // from swedish.words
+    { "kvÑllarna", Cp865 }, // from swedish.words
+    { "kvÑllen", Cp865 }, // from swedish.words
+    { "kvÑllens", Cp865 }, // from swedish.words
+    { "kväll", MacRoman }, // from swedish.words
+    { "kvällar", MacRoman }, // from swedish.words
+    { "kvällarna", MacRoman }, // from swedish.words
+    { "kvällen", MacRoman }, // from swedish.words
+    { "kvällens", MacRoman }, // from swedish.words
     { "kvërner", Cp865 }, // from norwegian.words
     { "kværner", MacRoman }, // from norwegian.words
+    { "kv‰ll", Iso885915 }, // from swedish.words
+    { "kv‰llar", Iso885915 }, // from swedish.words
+    { "kv‰llarna", Iso885915 }, // from swedish.words
+    { "kv‰llen", Iso885915 }, // from swedish.words
+    { "kv‰llens", Iso885915 }, // from swedish.words
     { "kvÊrner", Iso885915 }, // from norwegian.words
     { "kÅhl", Cp437 }, // from german.words
     { "kÅmmern", Cp437 }, // from german.words
@@ -5398,38 +8614,168 @@ static const struct {
     { "kÅrzen", Cp437 }, // from german.words
     { "kÅrzer", Cp437 }, // from german.words
     { "kÅrzlich", Cp437 }, // from german.words
+    { "kÑlla", Cp865 }, // from swedish.words
+    { "kÑllan", Cp865 }, // from swedish.words
+    { "kÑllare", Cp865 }, // from swedish.words
+    { "kÑllaren", Cp865 }, // from swedish.words
+    { "kÑllor", Cp865 }, // from swedish.words
     { "kÑme", Cp437 }, // from german.words
     { "kÑmen", Cp437 }, // from german.words
+    { "kÑmpa", Cp865 }, // from swedish.words
+    { "kÑmpade", Cp865 }, // from swedish.words
+    { "kÑmpar", Cp865 }, // from swedish.words
+    { "kÑmpat", Cp865 }, // from swedish.words
     { "kÑmpfen", Cp437 }, // from german.words
     { "kÑmpft", Cp437 }, // from german.words
     { "kÑmpfte", Cp437 }, // from german.words
+    { "kÑnd", Cp865 }, // from swedish.words
+    { "kÑnda", Cp865 }, // from swedish.words
+    { "kÑnde", Cp865 }, // from swedish.words
+    { "kÑndes", Cp865 }, // from swedish.words
+    { "kÑndisar", Cp865 }, // from swedish.words
+    { "kÑnna", Cp865 }, // from swedish.words
+    { "kÑnnas", Cp865 }, // from swedish.words
+    { "kÑnnedom", Cp865 }, // from swedish.words
+    { "kÑnner", Cp865 }, // from swedish.words
+    { "kÑnns", Cp865 }, // from swedish.words
+    { "kÑnsla", Cp865 }, // from swedish.words
+    { "kÑnslan", Cp865 }, // from swedish.words
+    { "kÑnslig", Cp865 }, // from swedish.words
+    { "kÑnsliga", Cp865 }, // from swedish.words
+    { "kÑnsligt", Cp865 }, // from swedish.words
+    { "kÑnslor", Cp865 }, // from swedish.words
+    { "kÑnslorna", Cp865 }, // from swedish.words
+    { "kÑnt", Cp865 }, // from swedish.words
+    { "kÑr", Cp865 }, // from swedish.words
+    { "kÑra", Cp865 }, // from swedish.words
+    { "kÑrlek", Cp865 }, // from swedish.words
+    { "kÑrleken", Cp865 }, // from swedish.words
+    { "kÑrlekens", Cp865 }, // from swedish.words
+    { "kÑrna", Cp865 }, // from swedish.words
+    { "kÑrnan", Cp865 }, // from swedish.words
+    { "kÑrnkraft", Cp865 }, // from swedish.words
+    { "kÑrnkraften", Cp865 }, // from swedish.words
+    { "kÑrnkraftverk", Cp865 }, // from swedish.words
+    { "kÑrnvapen", Cp865 }, // from swedish.words
     { "kÜr", Cp865 }, // from norwegian.words
     { "kÜre", Cp865 }, // from norwegian.words
     { "kÜret", Cp865 }, // from norwegian.words
     { "kÜrstõ", Cp865 }, // from norwegian.words
+    { "källa", MacRoman }, // from swedish.words
+    { "källan", MacRoman }, // from swedish.words
+    { "källare", MacRoman }, // from swedish.words
+    { "källaren", MacRoman }, // from swedish.words
+    { "källor", MacRoman }, // from swedish.words
     { "käme", MacRoman }, // from german.words
     { "kämen", MacRoman }, // from german.words
+    { "kämpa", MacRoman }, // from swedish.words
+    { "kämpade", MacRoman }, // from swedish.words
+    { "kämpar", MacRoman }, // from swedish.words
+    { "kämpat", MacRoman }, // from swedish.words
     { "kämpfen", MacRoman }, // from german.words
     { "kämpft", MacRoman }, // from german.words
     { "kämpfte", MacRoman }, // from german.words
+    { "känd", MacRoman }, // from swedish.words
+    { "kända", MacRoman }, // from swedish.words
+    { "kände", MacRoman }, // from swedish.words
+    { "kändes", MacRoman }, // from swedish.words
+    { "kändisar", MacRoman }, // from swedish.words
+    { "känna", MacRoman }, // from swedish.words
+    { "kännas", MacRoman }, // from swedish.words
+    { "kännedom", MacRoman }, // from swedish.words
+    { "känner", MacRoman }, // from swedish.words
+    { "känns", MacRoman }, // from swedish.words
+    { "känsla", MacRoman }, // from swedish.words
+    { "känslan", MacRoman }, // from swedish.words
+    { "känslig", MacRoman }, // from swedish.words
+    { "känsliga", MacRoman }, // from swedish.words
+    { "känsligt", MacRoman }, // from swedish.words
+    { "känslor", MacRoman }, // from swedish.words
+    { "känslorna", MacRoman }, // from swedish.words
+    { "känt", MacRoman }, // from swedish.words
+    { "kär", MacRoman }, // from swedish.words
+    { "kära", MacRoman }, // from swedish.words
+    { "kärlek", MacRoman }, // from swedish.words
+    { "kärleken", MacRoman }, // from swedish.words
+    { "kärlekens", MacRoman }, // from swedish.words
+    { "kärna", MacRoman }, // from swedish.words
+    { "kärnan", MacRoman }, // from swedish.words
+    { "kärnkraft", MacRoman }, // from swedish.words
+    { "kärnkraften", MacRoman }, // from swedish.words
+    { "kärnkraftverk", MacRoman }, // from swedish.words
+    { "kärnvapen", MacRoman }, // from swedish.words
     { "kår", MacRoman }, // from norwegian.words
     { "kåre", MacRoman }, // from norwegian.words
     { "kåret", MacRoman }, // from norwegian.words
     { "kårstø", MacRoman }, // from norwegian.words
+    { "kî", Cp865 }, // from swedish.words
+    { "kîer", Cp865 }, // from swedish.words
+    { "kîerna", Cp865 }, // from swedish.words
+    { "kîk", Cp865 }, // from swedish.words
+    { "kîket", Cp865 }, // from swedish.words
+    { "kîksbordet", Cp865 }, // from swedish.words
+    { "kîn", Cp865 }, // from swedish.words
+    { "kînen", Cp865 }, // from swedish.words
     { "kînne", Cp437 }, // from german.words
     { "kînnen", Cp437 }, // from german.words
     { "kînnte", Cp437 }, // from german.words
     { "kînnten", Cp437 }, // from german.words
+    { "kîp", Cp865 }, // from swedish.words
+    { "kîpa", Cp865 }, // from swedish.words
+    { "kîpare", Cp865 }, // from swedish.words
+    { "kîpenhamn", Cp865 }, // from swedish.words
+    { "kîper", Cp865 }, // from swedish.words
+    { "kîpet", Cp865 }, // from swedish.words
+    { "kîpt", Cp865 }, // from swedish.words
+    { "kîpte", Cp865 }, // from swedish.words
+    { "kîptes", Cp865 }, // from swedish.words
+    { "kîr", Cp865 }, // from swedish.words
+    { "kîra", Cp865 }, // from swedish.words
+    { "kîrde", Cp865 }, // from swedish.words
+    { "kîrdes", Cp865 }, // from swedish.words
+    { "kîren", Cp865 }, // from swedish.words
+    { "kîrkort", Cp865 }, // from swedish.words
     { "kîrperlich", Cp437 }, // from german.words
     { "kîrperliche", Cp437 }, // from german.words
     { "kîrperlichen", Cp437 }, // from german.words
+    { "kîrs", Cp865 }, // from swedish.words
+    { "kîrt", Cp865 }, // from swedish.words
+    { "kîtt", Cp865 }, // from swedish.words
+    { "kîttet", Cp865 }, // from swedish.words
+    { "kö", MacRoman }, // from swedish.words
+    { "köer", MacRoman }, // from swedish.words
+    { "köerna", MacRoman }, // from swedish.words
+    { "kök", MacRoman }, // from swedish.words
+    { "köket", MacRoman }, // from swedish.words
+    { "köksbordet", MacRoman }, // from swedish.words
+    { "kön", MacRoman }, // from swedish.words
+    { "könen", MacRoman }, // from swedish.words
     { "könne", MacRoman }, // from german.words
     { "können", MacRoman }, // from german.words
     { "könnte", MacRoman }, // from german.words
     { "könnten", MacRoman }, // from german.words
+    { "köp", MacRoman }, // from swedish.words
+    { "köpa", MacRoman }, // from swedish.words
+    { "köpare", MacRoman }, // from swedish.words
+    { "köpenhamn", MacRoman }, // from swedish.words
+    { "köper", MacRoman }, // from swedish.words
+    { "köpet", MacRoman }, // from swedish.words
+    { "köpt", MacRoman }, // from swedish.words
+    { "köpte", MacRoman }, // from swedish.words
+    { "köptes", MacRoman }, // from swedish.words
+    { "kör", MacRoman }, // from swedish.words
+    { "köra", MacRoman }, // from swedish.words
+    { "körde", MacRoman }, // from swedish.words
+    { "kördes", MacRoman }, // from swedish.words
+    { "kören", MacRoman }, // from swedish.words
+    { "körkort", MacRoman }, // from swedish.words
     { "körperlich", MacRoman }, // from german.words
     { "körperliche", MacRoman }, // from german.words
     { "körperlichen", MacRoman }, // from german.words
+    { "körs", MacRoman }, // from swedish.words
+    { "kört", MacRoman }, // from swedish.words
+    { "kött", MacRoman }, // from swedish.words
+    { "köttet", MacRoman }, // from swedish.words
     { "kõ", Cp865 }, // from norwegian.words
     { "kõbenhavn", Cp865 }, // from norwegian.words
     { "kõen", Cp865 }, // from norwegian.words
@@ -5454,22 +8800,87 @@ static const struct {
     { "kø", MacRoman }, // from norwegian.words
     { "københavn", MacRoman }, // from norwegian.words
     { "køen", MacRoman }, // from norwegian.words
+    { "k‰lla", Iso885915 }, // from swedish.words
+    { "k‰llan", Iso885915 }, // from swedish.words
+    { "k‰llare", Iso885915 }, // from swedish.words
+    { "k‰llaren", Iso885915 }, // from swedish.words
+    { "k‰llor", Iso885915 }, // from swedish.words
     { "k‰me", Iso885915 }, // from german.words
     { "k‰men", Iso885915 }, // from german.words
+    { "k‰mpa", Iso885915 }, // from swedish.words
+    { "k‰mpade", Iso885915 }, // from swedish.words
+    { "k‰mpar", Iso885915 }, // from swedish.words
+    { "k‰mpat", Iso885915 }, // from swedish.words
     { "k‰mpfen", Iso885915 }, // from german.words
     { "k‰mpft", Iso885915 }, // from german.words
     { "k‰mpfte", Iso885915 }, // from german.words
+    { "k‰nd", Iso885915 }, // from swedish.words
+    { "k‰nda", Iso885915 }, // from swedish.words
+    { "k‰nde", Iso885915 }, // from swedish.words
+    { "k‰ndes", Iso885915 }, // from swedish.words
+    { "k‰ndisar", Iso885915 }, // from swedish.words
+    { "k‰nna", Iso885915 }, // from swedish.words
+    { "k‰nnas", Iso885915 }, // from swedish.words
+    { "k‰nnedom", Iso885915 }, // from swedish.words
+    { "k‰nner", Iso885915 }, // from swedish.words
+    { "k‰nns", Iso885915 }, // from swedish.words
+    { "k‰nsla", Iso885915 }, // from swedish.words
+    { "k‰nslan", Iso885915 }, // from swedish.words
+    { "k‰nslig", Iso885915 }, // from swedish.words
+    { "k‰nsliga", Iso885915 }, // from swedish.words
+    { "k‰nsligt", Iso885915 }, // from swedish.words
+    { "k‰nslor", Iso885915 }, // from swedish.words
+    { "k‰nslorna", Iso885915 }, // from swedish.words
+    { "k‰nt", Iso885915 }, // from swedish.words
+    { "k‰r", Iso885915 }, // from swedish.words
+    { "k‰ra", Iso885915 }, // from swedish.words
+    { "k‰rlek", Iso885915 }, // from swedish.words
+    { "k‰rleken", Iso885915 }, // from swedish.words
+    { "k‰rlekens", Iso885915 }, // from swedish.words
+    { "k‰rna", Iso885915 }, // from swedish.words
+    { "k‰rnan", Iso885915 }, // from swedish.words
+    { "k‰rnkraft", Iso885915 }, // from swedish.words
+    { "k‰rnkraften", Iso885915 }, // from swedish.words
+    { "k‰rnkraftverk", Iso885915 }, // from swedish.words
+    { "k‰rnvapen", Iso885915 }, // from swedish.words
     { "kÂr", Iso885915 }, // from norwegian.words
     { "kÂre", Iso885915 }, // from norwegian.words
     { "kÂret", Iso885915 }, // from norwegian.words
     { "kÂrst¯", Iso885915 }, // from norwegian.words
+    { "kˆ", Iso885915 }, // from swedish.words
+    { "kˆer", Iso885915 }, // from swedish.words
+    { "kˆerna", Iso885915 }, // from swedish.words
+    { "kˆk", Iso885915 }, // from swedish.words
+    { "kˆket", Iso885915 }, // from swedish.words
+    { "kˆksbordet", Iso885915 }, // from swedish.words
+    { "kˆn", Iso885915 }, // from swedish.words
+    { "kˆnen", Iso885915 }, // from swedish.words
     { "kˆnne", Iso885915 }, // from german.words
     { "kˆnnen", Iso885915 }, // from german.words
     { "kˆnnte", Iso885915 }, // from german.words
     { "kˆnnten", Iso885915 }, // from german.words
+    { "kˆp", Iso885915 }, // from swedish.words
+    { "kˆpa", Iso885915 }, // from swedish.words
+    { "kˆpare", Iso885915 }, // from swedish.words
+    { "kˆpenhamn", Iso885915 }, // from swedish.words
+    { "kˆper", Iso885915 }, // from swedish.words
+    { "kˆpet", Iso885915 }, // from swedish.words
+    { "kˆpt", Iso885915 }, // from swedish.words
+    { "kˆpte", Iso885915 }, // from swedish.words
+    { "kˆptes", Iso885915 }, // from swedish.words
+    { "kˆr", Iso885915 }, // from swedish.words
+    { "kˆra", Iso885915 }, // from swedish.words
+    { "kˆrde", Iso885915 }, // from swedish.words
+    { "kˆrdes", Iso885915 }, // from swedish.words
+    { "kˆren", Iso885915 }, // from swedish.words
+    { "kˆrkort", Iso885915 }, // from swedish.words
     { "kˆrperlich", Iso885915 }, // from german.words
     { "kˆrperliche", Iso885915 }, // from german.words
     { "kˆrperlichen", Iso885915 }, // from german.words
+    { "kˆrs", Iso885915 }, // from swedish.words
+    { "kˆrt", Iso885915 }, // from swedish.words
+    { "kˆtt", Iso885915 }, // from swedish.words
+    { "kˆttet", Iso885915 }, // from swedish.words
     { "k¯", Iso885915 }, // from norwegian.words
     { "k¯benhavn", Iso885915 }, // from norwegian.words
     { "k¯en", Iso885915 }, // from norwegian.words
@@ -5509,12 +8920,18 @@ static const struct {
     { "lancÈe", Iso885915 }, // from french.words
     { "lancÈes", Iso885915 }, // from french.words
     { "lancÈs", Iso885915 }, // from french.words
+    { "landshîvding", Cp865 }, // from swedish.words
+    { "landshövding", MacRoman }, // from swedish.words
+    { "landshˆvding", Iso885915 }, // from swedish.words
     { "landsmõte", Cp865 }, // from norwegian.words
     { "landsmõtet", Cp865 }, // from norwegian.words
     { "landsmøte", MacRoman }, // from norwegian.words
     { "landsmøtet", MacRoman }, // from norwegian.words
     { "landsm¯te", Iso885915 }, // from norwegian.words
     { "landsm¯tet", Iso885915 }, // from norwegian.words
+    { "landsvÑgen", Cp865 }, // from swedish.words
+    { "landsvägen", MacRoman }, // from swedish.words
+    { "landsv‰gen", Iso885915 }, // from swedish.words
     { "landÜs", Cp865 }, // from norwegian.words
     { "landås", MacRoman }, // from norwegian.words
     { "landÂs", Iso885915 }, // from norwegian.words
@@ -5524,6 +8941,12 @@ static const struct {
     { "langjährigen", MacRoman }, // from german.words
     { "langj‰hrige", Iso885915 }, // from german.words
     { "langj‰hrigen", Iso885915 }, // from german.words
+    { "ledamîter", Cp865 }, // from swedish.words
+    { "ledamîterna", Cp865 }, // from swedish.words
+    { "ledamöter", MacRoman }, // from swedish.words
+    { "ledamöterna", MacRoman }, // from swedish.words
+    { "ledamˆter", Iso885915 }, // from swedish.words
+    { "ledamˆterna", Iso885915 }, // from swedish.words
     { "legendÑren", Cp437 }, // from german.words
     { "legendären", MacRoman }, // from german.words
     { "legend‰ren", Iso885915 }, // from german.words
@@ -5534,6 +8957,9 @@ static const struct {
     { "leverandører", MacRoman }, // from norwegian.words
     { "leverand¯r", Iso885915 }, // from norwegian.words
     { "leverand¯rer", Iso885915 }, // from norwegian.words
+    { "leverantîrer", Cp865 }, // from swedish.words
+    { "leverantörer", MacRoman }, // from swedish.words
+    { "leverantˆrer", Iso885915 }, // from swedish.words
     { "levÇ", Cp437 }, // from french.words
     { "levÇe", Cp437 }, // from french.words
     { "levé", MacRoman }, // from french.words
@@ -5576,6 +9002,12 @@ static const struct {
     { "licenciÇ", Cp437 }, // from french.words
     { "licencié", MacRoman }, // from french.words
     { "licenciÈ", Iso885915 }, // from french.words
+    { "lidingî", Cp865 }, // from swedish.words
+    { "lidingö", MacRoman }, // from swedish.words
+    { "lidingˆ", Iso885915 }, // from swedish.words
+    { "lidkîping", Cp865 }, // from swedish.words
+    { "lidköping", MacRoman }, // from swedish.words
+    { "lidkˆping", Iso885915 }, // from swedish.words
     { "lidsk˝", Iso88592 }, // from czech.words
     { "ließ", MacRoman }, // from german.words
     { "ließe", MacRoman }, // from german.words
@@ -5589,6 +9021,9 @@ static const struct {
     { "likesÜ", Cp865 }, // from norwegian.words
     { "likeså", MacRoman }, // from norwegian.words
     { "likesÂ", Iso885915 }, // from norwegian.words
+    { "likvÑl", Cp865 }, // from swedish.words
+    { "likväl", MacRoman }, // from swedish.words
+    { "likv‰l", Iso885915 }, // from swedish.words
     { "lillebõ", Cp865 }, // from norwegian.words
     { "lillebø", MacRoman }, // from norwegian.words
     { "lilleb¯", Iso885915 }, // from norwegian.words
@@ -5607,9 +9042,18 @@ static const struct {
     { "limitÈe", Iso885915 }, // from french.words
     { "limitÈes", Iso885915 }, // from french.words
     { "limitÈs", Iso885915 }, // from french.words
+    { "lindstrîm", Cp865 }, // from swedish.words
+    { "lindström", MacRoman }, // from swedish.words
+    { "lindstrˆm", Iso885915 }, // from swedish.words
     { "lindÜs", Cp865 }, // from norwegian.words
     { "lindås", MacRoman }, // from norwegian.words
     { "lindÂs", Iso885915 }, // from norwegian.words
+    { "linkîping", Cp865 }, // from swedish.words
+    { "linköping", MacRoman }, // from swedish.words
+    { "linkˆping", Iso885915 }, // from swedish.words
+    { "linnÇ", Cp865 }, // from swedish.words
+    { "linné", MacRoman }, // from swedish.words
+    { "linnÈ", Iso885915 }, // from swedish.words
     { "linÇaire", Cp437 }, // from french.words
     { "linéaire", MacRoman }, // from french.words
     { "linÈaire", Iso885915 }, // from french.words
@@ -5619,8 +9063,11 @@ static const struct {
     { "liquidités", MacRoman }, // from french.words
     { "liquiditÈ", Iso885915 }, // from french.words
     { "liquiditÈs", Iso885915 }, // from french.words
+    { "litterÑra", Cp865 }, // from swedish.words
+    { "litterära", MacRoman }, // from swedish.words
     { "litterëre", Cp865 }, // from norwegian.words
     { "litterære", MacRoman }, // from norwegian.words
+    { "litter‰ra", Iso885915 }, // from swedish.words
     { "litterÊre", Iso885915 }, // from norwegian.words
     { "littÇraire", Cp437 }, // from french.words
     { "littÇralement", Cp437 }, // from french.words
@@ -5662,6 +9109,9 @@ static const struct {
     { "loué", MacRoman }, // from french.words
     { "louÈ", Iso885915 }, // from french.words
     { "loÚsk˝", Iso88592 }, // from czech.words
+    { "lundstrîm", Cp865 }, // from swedish.words
+    { "lundström", MacRoman }, // from swedish.words
+    { "lundstrˆm", Iso885915 }, // from swedish.words
     { "lÇgal", Cp437 }, // from french.words
     { "lÇgale", Cp437 }, // from french.words
     { "lÇgalement", Cp437 }, // from french.words
@@ -5680,16 +9130,94 @@ static const struct {
     { "lÇgumes", Cp437 }, // from french.words
     { "lÑchelt", Cp437 }, // from german.words
     { "lÑcherlich", Cp437 }, // from german.words
+    { "lÑcker", Cp865 }, // from swedish.words
     { "lÑdt", Cp437 }, // from german.words
-    { "lÑgen", Cp437 }, // from german.words
+    { "lÑge", Cp865 }, // from swedish.words
+    { "lÑgenhet", Cp865 }, // from swedish.words
+    { "lÑgenheten", Cp865 }, // from swedish.words
+    { "lÑgenheter", Cp865 }, // from swedish.words
+    { "lÑgenheterna", Cp865 }, // from swedish.words
+    { "lÑger", Cp865 }, // from swedish.words
+    { "lÑget", Cp865 }, // from swedish.words
+    { "lÑgg", Cp865 }, // from swedish.words
+    { "lÑgga", Cp865 }, // from swedish.words
+    { "lÑggas", Cp865 }, // from swedish.words
+    { "lÑgger", Cp865 }, // from swedish.words
+    { "lÑggs", Cp865 }, // from swedish.words
+    { "lÑgre", Cp865 }, // from swedish.words
+    { "lÑgret", Cp865 }, // from swedish.words
+    { "lÑgst", Cp865 }, // from swedish.words
+    { "lÑgsta", Cp865 }, // from swedish.words
+    { "lÑkare", Cp865 }, // from swedish.words
+    { "lÑkaren", Cp865 }, // from swedish.words
+    { "lÑkarna", Cp865 }, // from swedish.words
+    { "lÑkemedel", Cp865 }, // from swedish.words
+    { "lÑktaren", Cp865 }, // from swedish.words
+    { "lÑmna", Cp865 }, // from swedish.words
+    { "lÑmnade", Cp865 }, // from swedish.words
+    { "lÑmnades", Cp865 }, // from swedish.words
+    { "lÑmnar", Cp865 }, // from swedish.words
+    { "lÑmnas", Cp865 }, // from swedish.words
+    { "lÑmnat", Cp865 }, // from swedish.words
+    { "lÑmnats", Cp865 }, // from swedish.words
+    { "lÑmplig", Cp865 }, // from swedish.words
+    { "lÑmpliga", Cp865 }, // from swedish.words
+    { "lÑmpligt", Cp865 }, // from swedish.words
+    { "lÑn", Cp865 }, // from swedish.words
+    { "lÑnder", Cp865 }, // from swedish.words
+    { "lÑnderna", Cp865 }, // from swedish.words
+    { "lÑndernas", Cp865 }, // from swedish.words
+    { "lÑnders", Cp865 }, // from swedish.words
     { "lÑndlichen", Cp437 }, // from german.words
+    { "lÑnet", Cp865 }, // from swedish.words
+    { "lÑnets", Cp865 }, // from swedish.words
+    { "lÑngd", Cp865 }, // from swedish.words
+    { "lÑngden", Cp865 }, // from swedish.words
+    { "lÑnge", Cp865 }, // from swedish.words
     { "lÑnger", Cp437 }, // from german.words
     { "lÑngere", Cp437 }, // from german.words
     { "lÑngerem", Cp437 }, // from german.words
     { "lÑngeren", Cp437 }, // from german.words
     { "lÑngerer", Cp437 }, // from german.words
-    { "lÑngst", Cp437 }, // from german.words
+    { "lÑngre", Cp865 }, // from swedish.words
+    { "lÑngs", Cp865 }, // from swedish.words
+    { "lÑngsta", Cp865 }, // from swedish.words
+    { "lÑngtade", Cp865 }, // from swedish.words
+    { "lÑngtan", Cp865 }, // from swedish.words
+    { "lÑngtar", Cp865 }, // from swedish.words
+    { "lÑnk", Cp865 }, // from swedish.words
+    { "lÑnken", Cp865 }, // from swedish.words
+    { "lÑns", Cp865 }, // from swedish.words
+    { "lÑnsarbetsnÑmnden", Cp865 }, // from swedish.words
+    { "lÑnsrÑtten", Cp865 }, // from swedish.words
+    { "lÑnsstyrelsen", Cp865 }, // from swedish.words
+    { "lÑnsstyrelsens", Cp865 }, // from swedish.words
+    { "lÑppar", Cp865 }, // from swedish.words
+    { "lÑpparna", Cp865 }, // from swedish.words
+    { "lÑr", Cp865 }, // from swedish.words
+    { "lÑra", Cp865 }, // from swedish.words
+    { "lÑrande", Cp865 }, // from swedish.words
+    { "lÑrare", Cp865 }, // from swedish.words
+    { "lÑraren", Cp865 }, // from swedish.words
+    { "lÑrarna", Cp865 }, // from swedish.words
+    { "lÑrde", Cp865 }, // from swedish.words
+    { "lÑrt", Cp865 }, // from swedish.words
+    { "lÑs", Cp865 }, // from swedish.words
+    { "lÑsa", Cp865 }, // from swedish.words
+    { "lÑsare", Cp865 }, // from swedish.words
+    { "lÑsaren", Cp865 }, // from swedish.words
+    { "lÑsarna", Cp865 }, // from swedish.words
+    { "lÑser", Cp865 }, // from swedish.words
+    { "lÑsning", Cp865 }, // from swedish.words
     { "lÑsst", Cp437 }, // from german.words
+    { "lÑst", Cp865 }, // from swedish.words
+    { "lÑste", Cp865 }, // from swedish.words
+    { "lÑt", Cp865 }, // from swedish.words
+    { "lÑtt", Cp865 }, // from swedish.words
+    { "lÑtta", Cp865 }, // from swedish.words
+    { "lÑttad", Cp865 }, // from swedish.words
+    { "lÑttare", Cp865 }, // from swedish.words
+    { "lÑttnad", Cp865 }, // from swedish.words
     { "lÑuft", Cp437 }, // from german.words
     { "lÑ·t", Cp437 }, // from german.words
     { "lÜ", Cp865 }, // from norwegian.words
@@ -5703,16 +9231,94 @@ static const struct {
     { "lÜter", Cp865 }, // from norwegian.words
     { "lächelt", MacRoman }, // from german.words
     { "lächerlich", MacRoman }, // from german.words
+    { "läcker", MacRoman }, // from swedish.words
     { "lädt", MacRoman }, // from german.words
-    { "lägen", MacRoman }, // from german.words
+    { "läge", MacRoman }, // from swedish.words
+    { "lägenhet", MacRoman }, // from swedish.words
+    { "lägenheten", MacRoman }, // from swedish.words
+    { "lägenheter", MacRoman }, // from swedish.words
+    { "lägenheterna", MacRoman }, // from swedish.words
+    { "läger", MacRoman }, // from swedish.words
+    { "läget", MacRoman }, // from swedish.words
+    { "lägg", MacRoman }, // from swedish.words
+    { "lägga", MacRoman }, // from swedish.words
+    { "läggas", MacRoman }, // from swedish.words
+    { "lägger", MacRoman }, // from swedish.words
+    { "läggs", MacRoman }, // from swedish.words
+    { "lägre", MacRoman }, // from swedish.words
+    { "lägret", MacRoman }, // from swedish.words
+    { "lägst", MacRoman }, // from swedish.words
+    { "lägsta", MacRoman }, // from swedish.words
+    { "läkare", MacRoman }, // from swedish.words
+    { "läkaren", MacRoman }, // from swedish.words
+    { "läkarna", MacRoman }, // from swedish.words
+    { "läkemedel", MacRoman }, // from swedish.words
+    { "läktaren", MacRoman }, // from swedish.words
+    { "lämna", MacRoman }, // from swedish.words
+    { "lämnade", MacRoman }, // from swedish.words
+    { "lämnades", MacRoman }, // from swedish.words
+    { "lämnar", MacRoman }, // from swedish.words
+    { "lämnas", MacRoman }, // from swedish.words
+    { "lämnat", MacRoman }, // from swedish.words
+    { "lämnats", MacRoman }, // from swedish.words
+    { "lämplig", MacRoman }, // from swedish.words
+    { "lämpliga", MacRoman }, // from swedish.words
+    { "lämpligt", MacRoman }, // from swedish.words
+    { "län", MacRoman }, // from swedish.words
+    { "länder", MacRoman }, // from swedish.words
+    { "länderna", MacRoman }, // from swedish.words
+    { "ländernas", MacRoman }, // from swedish.words
+    { "länders", MacRoman }, // from swedish.words
     { "ländlichen", MacRoman }, // from german.words
+    { "länet", MacRoman }, // from swedish.words
+    { "länets", MacRoman }, // from swedish.words
+    { "längd", MacRoman }, // from swedish.words
+    { "längden", MacRoman }, // from swedish.words
+    { "länge", MacRoman }, // from swedish.words
     { "länger", MacRoman }, // from german.words
     { "längere", MacRoman }, // from german.words
     { "längerem", MacRoman }, // from german.words
     { "längeren", MacRoman }, // from german.words
     { "längerer", MacRoman }, // from german.words
-    { "längst", MacRoman }, // from german.words
+    { "längre", MacRoman }, // from swedish.words
+    { "längs", MacRoman }, // from swedish.words
+    { "längsta", MacRoman }, // from swedish.words
+    { "längtade", MacRoman }, // from swedish.words
+    { "längtan", MacRoman }, // from swedish.words
+    { "längtar", MacRoman }, // from swedish.words
+    { "länk", MacRoman }, // from swedish.words
+    { "länken", MacRoman }, // from swedish.words
+    { "läns", MacRoman }, // from swedish.words
+    { "länsarbetsnämnden", MacRoman }, // from swedish.words
+    { "länsrätten", MacRoman }, // from swedish.words
+    { "länsstyrelsen", MacRoman }, // from swedish.words
+    { "länsstyrelsens", MacRoman }, // from swedish.words
+    { "läppar", MacRoman }, // from swedish.words
+    { "läpparna", MacRoman }, // from swedish.words
+    { "lär", MacRoman }, // from swedish.words
+    { "lära", MacRoman }, // from swedish.words
+    { "lärande", MacRoman }, // from swedish.words
+    { "lärare", MacRoman }, // from swedish.words
+    { "läraren", MacRoman }, // from swedish.words
+    { "lärarna", MacRoman }, // from swedish.words
+    { "lärde", MacRoman }, // from swedish.words
+    { "lärt", MacRoman }, // from swedish.words
+    { "läs", MacRoman }, // from swedish.words
+    { "läsa", MacRoman }, // from swedish.words
+    { "läsare", MacRoman }, // from swedish.words
+    { "läsaren", MacRoman }, // from swedish.words
+    { "läsarna", MacRoman }, // from swedish.words
+    { "läser", MacRoman }, // from swedish.words
+    { "läsning", MacRoman }, // from swedish.words
     { "lässt", MacRoman }, // from german.words
+    { "läst", MacRoman }, // from swedish.words
+    { "läste", MacRoman }, // from swedish.words
+    { "lät", MacRoman }, // from swedish.words
+    { "lätt", MacRoman }, // from swedish.words
+    { "lätta", MacRoman }, // from swedish.words
+    { "lättad", MacRoman }, // from swedish.words
+    { "lättare", MacRoman }, // from swedish.words
+    { "lättnad", MacRoman }, // from swedish.words
     { "läuft", MacRoman }, // from german.words
     { "läßt", MacRoman }, // from german.words
     { "lå", MacRoman }, // from norwegian.words
@@ -5753,14 +9359,80 @@ static const struct {
     { "lëring", Cp865 }, // from norwegian.words
     { "lërt", Cp865 }, // from norwegian.words
     { "lërte", Cp865 }, // from norwegian.words
+    { "lîd", Cp865 }, // from swedish.words
+    { "lîfgren", Cp865 }, // from swedish.words
+    { "lîfte", Cp865 }, // from swedish.words
+    { "lîften", Cp865 }, // from swedish.words
+    { "lîftet", Cp865 }, // from swedish.words
+    { "lîgn", Cp865 }, // from swedish.words
+    { "lîjligt", Cp865 }, // from swedish.words
+    { "lîk", Cp865 }, // from swedish.words
+    { "lîn", Cp865 }, // from swedish.words
+    { "lînar", Cp865 }, // from swedish.words
+    { "lînebildningen", Cp865 }, // from swedish.words
+    { "lînen", Cp865 }, // from swedish.words
+    { "lîner", Cp865 }, // from swedish.words
+    { "lînerna", Cp865 }, // from swedish.words
+    { "lîneîkningar", Cp865 }, // from swedish.words
+    { "lînsam", Cp865 }, // from swedish.words
+    { "lînsamhet", Cp865 }, // from swedish.words
+    { "lînsamma", Cp865 }, // from swedish.words
+    { "lînsamt", Cp865 }, // from swedish.words
+    { "lîpa", Cp865 }, // from swedish.words
+    { "lîpande", Cp865 }, // from swedish.words
+    { "lîper", Cp865 }, // from swedish.words
+    { "lîpte", Cp865 }, // from swedish.words
+    { "lîrdag", Cp865 }, // from swedish.words
+    { "lîrdagen", Cp865 }, // from swedish.words
+    { "lîrdagens", Cp865 }, // from swedish.words
+    { "lîrdags", Cp865 }, // from swedish.words
+    { "lîs", Cp865 }, // from swedish.words
+    { "lîsa", Cp865 }, // from swedish.words
+    { "lîsas", Cp865 }, // from swedish.words
     { "lîschen", Cp437 }, // from german.words
     { "lîsen", Cp437 }, // from german.words
-    { "lîst", Cp437 }, // from german.words
-    { "lîste", Cp437 }, // from german.words
+    { "lîser", Cp865 }, // from swedish.words
+    { "lîsning", Cp865 }, // from swedish.words
+    { "lîsningar", Cp865 }, // from swedish.words
+    { "lîsningen", Cp865 }, // from swedish.words
+    { "lîvgren", Cp865 }, // from swedish.words
+    { "löd", MacRoman }, // from swedish.words
+    { "löfgren", MacRoman }, // from swedish.words
+    { "löfte", MacRoman }, // from swedish.words
+    { "löften", MacRoman }, // from swedish.words
+    { "löftet", MacRoman }, // from swedish.words
+    { "lögn", MacRoman }, // from swedish.words
+    { "löjligt", MacRoman }, // from swedish.words
+    { "lök", MacRoman }, // from swedish.words
+    { "lön", MacRoman }, // from swedish.words
+    { "lönar", MacRoman }, // from swedish.words
+    { "lönebildningen", MacRoman }, // from swedish.words
+    { "lönen", MacRoman }, // from swedish.words
+    { "löner", MacRoman }, // from swedish.words
+    { "lönerna", MacRoman }, // from swedish.words
+    { "löneökningar", MacRoman }, // from swedish.words
+    { "lönsam", MacRoman }, // from swedish.words
+    { "lönsamhet", MacRoman }, // from swedish.words
+    { "lönsamma", MacRoman }, // from swedish.words
+    { "lönsamt", MacRoman }, // from swedish.words
+    { "löpa", MacRoman }, // from swedish.words
+    { "löpande", MacRoman }, // from swedish.words
+    { "löper", MacRoman }, // from swedish.words
+    { "löpte", MacRoman }, // from swedish.words
+    { "lördag", MacRoman }, // from swedish.words
+    { "lördagen", MacRoman }, // from swedish.words
+    { "lördagens", MacRoman }, // from swedish.words
+    { "lördags", MacRoman }, // from swedish.words
+    { "lös", MacRoman }, // from swedish.words
+    { "lösa", MacRoman }, // from swedish.words
+    { "lösas", MacRoman }, // from swedish.words
     { "löschen", MacRoman }, // from german.words
     { "lösen", MacRoman }, // from german.words
-    { "löst", MacRoman }, // from german.words
-    { "löste", MacRoman }, // from german.words
+    { "löser", MacRoman }, // from swedish.words
+    { "lösning", MacRoman }, // from swedish.words
+    { "lösningar", MacRoman }, // from swedish.words
+    { "lösningen", MacRoman }, // from swedish.words
+    { "lövgren", MacRoman }, // from swedish.words
     { "lõd", Cp865 }, // from norwegian.words
     { "lõft", Cp865 }, // from norwegian.words
     { "lõfte", Cp865 }, // from norwegian.words
@@ -5862,16 +9534,94 @@ static const struct {
     { "løypen", MacRoman }, // from norwegian.words
     { "l‰chelt", Iso885915 }, // from german.words
     { "l‰cherlich", Iso885915 }, // from german.words
+    { "l‰cker", Iso885915 }, // from swedish.words
     { "l‰dt", Iso885915 }, // from german.words
-    { "l‰gen", Iso885915 }, // from german.words
+    { "l‰ge", Iso885915 }, // from swedish.words
+    { "l‰genhet", Iso885915 }, // from swedish.words
+    { "l‰genheten", Iso885915 }, // from swedish.words
+    { "l‰genheter", Iso885915 }, // from swedish.words
+    { "l‰genheterna", Iso885915 }, // from swedish.words
+    { "l‰ger", Iso885915 }, // from swedish.words
+    { "l‰get", Iso885915 }, // from swedish.words
+    { "l‰gg", Iso885915 }, // from swedish.words
+    { "l‰gga", Iso885915 }, // from swedish.words
+    { "l‰ggas", Iso885915 }, // from swedish.words
+    { "l‰gger", Iso885915 }, // from swedish.words
+    { "l‰ggs", Iso885915 }, // from swedish.words
+    { "l‰gre", Iso885915 }, // from swedish.words
+    { "l‰gret", Iso885915 }, // from swedish.words
+    { "l‰gst", Iso885915 }, // from swedish.words
+    { "l‰gsta", Iso885915 }, // from swedish.words
+    { "l‰kare", Iso885915 }, // from swedish.words
+    { "l‰karen", Iso885915 }, // from swedish.words
+    { "l‰karna", Iso885915 }, // from swedish.words
+    { "l‰kemedel", Iso885915 }, // from swedish.words
+    { "l‰ktaren", Iso885915 }, // from swedish.words
+    { "l‰mna", Iso885915 }, // from swedish.words
+    { "l‰mnade", Iso885915 }, // from swedish.words
+    { "l‰mnades", Iso885915 }, // from swedish.words
+    { "l‰mnar", Iso885915 }, // from swedish.words
+    { "l‰mnas", Iso885915 }, // from swedish.words
+    { "l‰mnat", Iso885915 }, // from swedish.words
+    { "l‰mnats", Iso885915 }, // from swedish.words
+    { "l‰mplig", Iso885915 }, // from swedish.words
+    { "l‰mpliga", Iso885915 }, // from swedish.words
+    { "l‰mpligt", Iso885915 }, // from swedish.words
+    { "l‰n", Iso885915 }, // from swedish.words
+    { "l‰nder", Iso885915 }, // from swedish.words
+    { "l‰nderna", Iso885915 }, // from swedish.words
+    { "l‰ndernas", Iso885915 }, // from swedish.words
+    { "l‰nders", Iso885915 }, // from swedish.words
     { "l‰ndlichen", Iso885915 }, // from german.words
+    { "l‰net", Iso885915 }, // from swedish.words
+    { "l‰nets", Iso885915 }, // from swedish.words
+    { "l‰ngd", Iso885915 }, // from swedish.words
+    { "l‰ngden", Iso885915 }, // from swedish.words
+    { "l‰nge", Iso885915 }, // from swedish.words
     { "l‰nger", Iso885915 }, // from german.words
     { "l‰ngere", Iso885915 }, // from german.words
     { "l‰ngerem", Iso885915 }, // from german.words
     { "l‰ngeren", Iso885915 }, // from german.words
     { "l‰ngerer", Iso885915 }, // from german.words
-    { "l‰ngst", Iso885915 }, // from german.words
+    { "l‰ngre", Iso885915 }, // from swedish.words
+    { "l‰ngs", Iso885915 }, // from swedish.words
+    { "l‰ngsta", Iso885915 }, // from swedish.words
+    { "l‰ngtade", Iso885915 }, // from swedish.words
+    { "l‰ngtan", Iso885915 }, // from swedish.words
+    { "l‰ngtar", Iso885915 }, // from swedish.words
+    { "l‰nk", Iso885915 }, // from swedish.words
+    { "l‰nken", Iso885915 }, // from swedish.words
+    { "l‰ns", Iso885915 }, // from swedish.words
+    { "l‰nsarbetsn‰mnden", Iso885915 }, // from swedish.words
+    { "l‰nsr‰tten", Iso885915 }, // from swedish.words
+    { "l‰nsstyrelsen", Iso885915 }, // from swedish.words
+    { "l‰nsstyrelsens", Iso885915 }, // from swedish.words
+    { "l‰ppar", Iso885915 }, // from swedish.words
+    { "l‰pparna", Iso885915 }, // from swedish.words
+    { "l‰r", Iso885915 }, // from swedish.words
+    { "l‰ra", Iso885915 }, // from swedish.words
+    { "l‰rande", Iso885915 }, // from swedish.words
+    { "l‰rare", Iso885915 }, // from swedish.words
+    { "l‰raren", Iso885915 }, // from swedish.words
+    { "l‰rarna", Iso885915 }, // from swedish.words
+    { "l‰rde", Iso885915 }, // from swedish.words
+    { "l‰rt", Iso885915 }, // from swedish.words
+    { "l‰s", Iso885915 }, // from swedish.words
+    { "l‰sa", Iso885915 }, // from swedish.words
+    { "l‰sare", Iso885915 }, // from swedish.words
+    { "l‰saren", Iso885915 }, // from swedish.words
+    { "l‰sarna", Iso885915 }, // from swedish.words
+    { "l‰ser", Iso885915 }, // from swedish.words
+    { "l‰sning", Iso885915 }, // from swedish.words
     { "l‰sst", Iso885915 }, // from german.words
+    { "l‰st", Iso885915 }, // from swedish.words
+    { "l‰ste", Iso885915 }, // from swedish.words
+    { "l‰t", Iso885915 }, // from swedish.words
+    { "l‰tt", Iso885915 }, // from swedish.words
+    { "l‰tta", Iso885915 }, // from swedish.words
+    { "l‰ttad", Iso885915 }, // from swedish.words
+    { "l‰ttare", Iso885915 }, // from swedish.words
+    { "l‰ttnad", Iso885915 }, // from swedish.words
     { "l‰uft", Iso885915 }, // from german.words
     { "l‰ﬂt", Iso885915 }, // from german.words
     { "lÂ", Iso885915 }, // from norwegian.words
@@ -5914,10 +9664,43 @@ static const struct {
     { "lÈgumes", Iso885915 }, // from french.words
     { "lÈka¯", Iso88592 }, // from czech.words
     { "lÈto", Iso88592 }, // from czech.words
+    { "lˆd", Iso885915 }, // from swedish.words
+    { "lˆfgren", Iso885915 }, // from swedish.words
+    { "lˆfte", Iso885915 }, // from swedish.words
+    { "lˆften", Iso885915 }, // from swedish.words
+    { "lˆftet", Iso885915 }, // from swedish.words
+    { "lˆgn", Iso885915 }, // from swedish.words
+    { "lˆjligt", Iso885915 }, // from swedish.words
+    { "lˆk", Iso885915 }, // from swedish.words
+    { "lˆn", Iso885915 }, // from swedish.words
+    { "lˆnar", Iso885915 }, // from swedish.words
+    { "lˆnebildningen", Iso885915 }, // from swedish.words
+    { "lˆnen", Iso885915 }, // from swedish.words
+    { "lˆner", Iso885915 }, // from swedish.words
+    { "lˆnerna", Iso885915 }, // from swedish.words
+    { "lˆneˆkningar", Iso885915 }, // from swedish.words
+    { "lˆnsam", Iso885915 }, // from swedish.words
+    { "lˆnsamhet", Iso885915 }, // from swedish.words
+    { "lˆnsamma", Iso885915 }, // from swedish.words
+    { "lˆnsamt", Iso885915 }, // from swedish.words
+    { "lˆpa", Iso885915 }, // from swedish.words
+    { "lˆpande", Iso885915 }, // from swedish.words
+    { "lˆper", Iso885915 }, // from swedish.words
+    { "lˆpte", Iso885915 }, // from swedish.words
+    { "lˆrdag", Iso885915 }, // from swedish.words
+    { "lˆrdagen", Iso885915 }, // from swedish.words
+    { "lˆrdagens", Iso885915 }, // from swedish.words
+    { "lˆrdags", Iso885915 }, // from swedish.words
+    { "lˆs", Iso885915 }, // from swedish.words
+    { "lˆsa", Iso885915 }, // from swedish.words
+    { "lˆsas", Iso885915 }, // from swedish.words
     { "lˆschen", Iso885915 }, // from german.words
     { "lˆsen", Iso885915 }, // from german.words
-    { "lˆst", Iso885915 }, // from german.words
-    { "lˆste", Iso885915 }, // from german.words
+    { "lˆser", Iso885915 }, // from swedish.words
+    { "lˆsning", Iso885915 }, // from swedish.words
+    { "lˆsningar", Iso885915 }, // from swedish.words
+    { "lˆsningen", Iso885915 }, // from swedish.words
+    { "lˆvgren", Iso885915 }, // from swedish.words
     { "l¯d", Iso885915 }, // from norwegian.words
     { "l¯ft", Iso885915 }, // from norwegian.words
     { "l¯fte", Iso885915 }, // from norwegian.words
@@ -5973,6 +9756,9 @@ static const struct {
     { "malgrÇ", Cp437 }, // from french.words
     { "malgré", MacRoman }, // from french.words
     { "malgrÈ", Iso885915 }, // from french.words
+    { "malmî", Cp865 }, // from swedish.words
+    { "malmö", MacRoman }, // from swedish.words
+    { "malmˆ", Iso885915 }, // from swedish.words
     { "mal˝", Iso88592 }, // from czech.words
     { "manifestÇ", Cp437 }, // from french.words
     { "manifesté", MacRoman }, // from french.words
@@ -5986,6 +9772,9 @@ static const struct {
     { "marchés", MacRoman }, // from french.words
     { "marchÈ", Iso885915 }, // from french.words
     { "marchÈs", Iso885915 }, // from french.words
+    { "mardrîm", Cp865 }, // from swedish.words
+    { "mardröm", MacRoman }, // from swedish.words
+    { "mardrˆm", Iso885915 }, // from swedish.words
     { "mariÇ", Cp437 }, // from french.words
     { "mariÇe", Cp437 }, // from french.words
     { "mariÇs", Cp437 }, // from french.words
@@ -6001,6 +9790,12 @@ static const struct {
     { "markedsføring", MacRoman }, // from norwegian.words
     { "markedsf¯re", Iso885915 }, // from norwegian.words
     { "markedsf¯ring", Iso885915 }, // from norwegian.words
+    { "marknadsfîra", Cp865 }, // from swedish.words
+    { "marknadsfîring", Cp865 }, // from swedish.words
+    { "marknadsföra", MacRoman }, // from swedish.words
+    { "marknadsföring", MacRoman }, // from swedish.words
+    { "marknadsfˆra", Iso885915 }, // from swedish.words
+    { "marknadsfˆring", Iso885915 }, // from swedish.words
     { "marquÇ", Cp437 }, // from french.words
     { "marquÇe", Cp437 }, // from french.words
     { "marqué", MacRoman }, // from french.words
@@ -6025,17 +9820,41 @@ static const struct {
     { "maßgeblich", MacRoman }, // from german.words
     { "maﬂgeblich", Iso885915 }, // from german.words
     { "ma·geblich", Cp437 }, // from german.words
+    { "medfîr", Cp865 }, // from swedish.words
+    { "medfîra", Cp865 }, // from swedish.words
+    { "medfîrde", Cp865 }, // from swedish.words
+    { "medfîrt", Cp865 }, // from swedish.words
+    { "medför", MacRoman }, // from swedish.words
+    { "medföra", MacRoman }, // from swedish.words
+    { "medförde", MacRoman }, // from swedish.words
+    { "medfört", MacRoman }, // from swedish.words
     { "medfõre", Cp865 }, // from norwegian.words
     { "medfõrer", Cp865 }, // from norwegian.words
     { "medføre", MacRoman }, // from norwegian.words
     { "medfører", MacRoman }, // from norwegian.words
+    { "medfˆr", Iso885915 }, // from swedish.words
+    { "medfˆra", Iso885915 }, // from swedish.words
+    { "medfˆrde", Iso885915 }, // from swedish.words
+    { "medfˆrt", Iso885915 }, // from swedish.words
     { "medf¯re", Iso885915 }, // from norwegian.words
     { "medf¯rer", Iso885915 }, // from norwegian.words
+    { "medlemslÑnder", Cp865 }, // from swedish.words
+    { "medlemslÑnderna", Cp865 }, // from swedish.words
+    { "medlemsländer", MacRoman }, // from swedish.words
+    { "medlemsländerna", MacRoman }, // from swedish.words
+    { "medlemsl‰nder", Iso885915 }, // from swedish.words
+    { "medlemsl‰nderna", Iso885915 }, // from swedish.words
+    { "mellanîstern", Cp865 }, // from swedish.words
+    { "mellanöstern", MacRoman }, // from swedish.words
+    { "mellanˆstern", Iso885915 }, // from swedish.words
     { "menacÇ", Cp437 }, // from french.words
     { "menacé", MacRoman }, // from french.words
     { "menacÈ", Iso885915 }, // from french.words
+    { "meningslîst", Cp865 }, // from swedish.words
+    { "meningslöst", MacRoman }, // from swedish.words
     { "meningslõst", Cp865 }, // from norwegian.words
     { "meningsløst", MacRoman }, // from norwegian.words
+    { "meningslˆst", Iso885915 }, // from swedish.words
     { "meningsl¯st", Iso885915 }, // from norwegian.words
     { "meningsmÜling", Cp865 }, // from norwegian.words
     { "meningsmÜlingene", Cp865 }, // from norwegian.words
@@ -6062,24 +9881,49 @@ static const struct {
     { "midtõsten", Cp865 }, // from norwegian.words
     { "midtøsten", MacRoman }, // from norwegian.words
     { "midt¯sten", Iso885915 }, // from norwegian.words
+    { "militÑr", Cp865 }, // from swedish.words
+    { "militÑra", Cp865 }, // from swedish.words
+    { "militÑren", Cp865 }, // from swedish.words
+    { "militÑrer", Cp865 }, // from swedish.words
     { "militÑrisch", Cp437 }, // from german.words
     { "militÑrische", Cp437 }, // from german.words
     { "militÑrischen", Cp437 }, // from german.words
+    { "militÑrt", Cp865 }, // from swedish.words
+    { "militär", MacRoman }, // from swedish.words
+    { "militära", MacRoman }, // from swedish.words
+    { "militären", MacRoman }, // from swedish.words
+    { "militärer", MacRoman }, // from swedish.words
     { "militärisch", MacRoman }, // from german.words
     { "militärische", MacRoman }, // from german.words
     { "militärischen", MacRoman }, // from german.words
+    { "militärt", MacRoman }, // from swedish.words
     { "militër", Cp865 }, // from norwegian.words
     { "militëre", Cp865 }, // from norwegian.words
     { "militërt", Cp865 }, // from norwegian.words
     { "militær", MacRoman }, // from norwegian.words
     { "militære", MacRoman }, // from norwegian.words
     { "militært", MacRoman }, // from norwegian.words
+    { "milit‰r", Iso885915 }, // from swedish.words
+    { "milit‰ra", Iso885915 }, // from swedish.words
+    { "milit‰ren", Iso885915 }, // from swedish.words
+    { "milit‰rer", Iso885915 }, // from swedish.words
     { "milit‰risch", Iso885915 }, // from german.words
     { "milit‰rische", Iso885915 }, // from german.words
     { "milit‰rischen", Iso885915 }, // from german.words
+    { "milit‰rt", Iso885915 }, // from swedish.words
     { "militÊr", Iso885915 }, // from norwegian.words
     { "militÊre", Iso885915 }, // from norwegian.words
     { "militÊrt", Iso885915 }, // from norwegian.words
+    { "miljî", Cp865 }, // from swedish.words
+    { "miljîer", Cp865 }, // from swedish.words
+    { "miljîn", Cp865 }, // from swedish.words
+    { "miljîpartiet", Cp865 }, // from swedish.words
+    { "miljîpartiets", Cp865 }, // from swedish.words
+    { "miljö", MacRoman }, // from swedish.words
+    { "miljöer", MacRoman }, // from swedish.words
+    { "miljön", MacRoman }, // from swedish.words
+    { "miljöpartiet", MacRoman }, // from swedish.words
+    { "miljöpartiets", MacRoman }, // from swedish.words
     { "miljõ", Cp865 }, // from norwegian.words
     { "miljõer", Cp865 }, // from norwegian.words
     { "miljõet", Cp865 }, // from norwegian.words
@@ -6096,6 +9940,11 @@ static const struct {
     { "miljøvern", MacRoman }, // from norwegian.words
     { "miljøverndepartementet", MacRoman }, // from norwegian.words
     { "miljøvernminister", MacRoman }, // from norwegian.words
+    { "miljˆ", Iso885915 }, // from swedish.words
+    { "miljˆer", Iso885915 }, // from swedish.words
+    { "miljˆn", Iso885915 }, // from swedish.words
+    { "miljˆpartiet", Iso885915 }, // from swedish.words
+    { "miljˆpartiets", Iso885915 }, // from swedish.words
     { "milj¯", Iso885915 }, // from norwegian.words
     { "milj¯er", Iso885915 }, // from norwegian.words
     { "milj¯et", Iso885915 }, // from norwegian.words
@@ -6130,15 +9979,54 @@ static const struct {
     { "misnõye", Cp865 }, // from norwegian.words
     { "misnøye", MacRoman }, // from norwegian.words
     { "misn¯ye", Iso885915 }, // from norwegian.words
+    { "missfîrstÜnd", Cp865 }, // from swedish.words
+    { "missförstånd", MacRoman }, // from swedish.words
+    { "missfˆrstÂnd", Iso885915 }, // from swedish.words
+    { "missnîjd", Cp865 }, // from swedish.words
+    { "missnîjda", Cp865 }, // from swedish.words
+    { "missnîje", Cp865 }, // from swedish.words
+    { "missnöjd", MacRoman }, // from swedish.words
+    { "missnöjda", MacRoman }, // from swedish.words
+    { "missnöje", MacRoman }, // from swedish.words
+    { "missnˆjd", Iso885915 }, // from swedish.words
+    { "missnˆjda", Iso885915 }, // from swedish.words
+    { "missnˆje", Iso885915 }, // from swedish.words
+    { "misstÑnker", Cp865 }, // from swedish.words
+    { "misstÑnks", Cp865 }, // from swedish.words
+    { "misstÑnkt", Cp865 }, // from swedish.words
+    { "misstÑnkta", Cp865 }, // from swedish.words
+    { "misstÑnkte", Cp865 }, // from swedish.words
+    { "misstänker", MacRoman }, // from swedish.words
+    { "misstänks", MacRoman }, // from swedish.words
+    { "misstänkt", MacRoman }, // from swedish.words
+    { "misstänkta", MacRoman }, // from swedish.words
+    { "misstänkte", MacRoman }, // from swedish.words
+    { "misst‰nker", Iso885915 }, // from swedish.words
+    { "misst‰nks", Iso885915 }, // from swedish.words
+    { "misst‰nkt", Iso885915 }, // from swedish.words
+    { "misst‰nkta", Iso885915 }, // from swedish.words
+    { "misst‰nkte", Iso885915 }, // from swedish.words
     { "mittelstÑndische", Cp437 }, // from german.words
     { "mittelstÑndischen", Cp437 }, // from german.words
     { "mittelständische", MacRoman }, // from german.words
     { "mittelständischen", MacRoman }, // from german.words
     { "mittelst‰ndische", Iso885915 }, // from german.words
     { "mittelst‰ndischen", Iso885915 }, // from german.words
+    { "mittfÑltet", Cp865 }, // from swedish.words
+    { "mittfältet", MacRoman }, // from swedish.words
+    { "mittf‰ltet", Iso885915 }, // from swedish.words
     { "mißbraucht", MacRoman }, // from german.words
     { "miﬂbraucht", Iso885915 }, // from german.words
     { "mi·braucht", Cp437 }, // from german.words
+    { "mjîl", Cp865 }, // from swedish.words
+    { "mjîlk", Cp865 }, // from swedish.words
+    { "mjîlken", Cp865 }, // from swedish.words
+    { "mjöl", MacRoman }, // from swedish.words
+    { "mjölk", MacRoman }, // from swedish.words
+    { "mjölken", MacRoman }, // from swedish.words
+    { "mjˆl", Iso885915 }, // from swedish.words
+    { "mjˆlk", Iso885915 }, // from swedish.words
+    { "mjˆlken", Iso885915 }, // from swedish.words
     { "mlad˝", Iso88592 }, // from czech.words
     { "mobilitÇ", Cp437 }, // from french.words
     { "mobilité", MacRoman }, // from french.words
@@ -6171,6 +10059,9 @@ static const struct {
     { "molÇcules", Cp437 }, // from french.words
     { "molécules", MacRoman }, // from french.words
     { "molÈcules", Iso885915 }, // from french.words
+    { "monetÑra", Cp865 }, // from swedish.words
+    { "monetära", MacRoman }, // from swedish.words
+    { "monet‰ra", Iso885915 }, // from swedish.words
     { "montrÇ", Cp437 }, // from french.words
     { "montré", MacRoman }, // from french.words
     { "montrÈ", Iso885915 }, // from french.words
@@ -6189,6 +10080,18 @@ static const struct {
     { "morositÇ", Cp437 }, // from french.words
     { "morosité", MacRoman }, // from french.words
     { "morositÈ", Iso885915 }, // from french.words
+    { "motorvÑgen", Cp865 }, // from swedish.words
+    { "motorvägen", MacRoman }, // from swedish.words
+    { "motorv‰gen", Iso885915 }, // from swedish.words
+    { "motsÑtter", Cp865 }, // from swedish.words
+    { "motsÑttningar", Cp865 }, // from swedish.words
+    { "motsÑttningarna", Cp865 }, // from swedish.words
+    { "motsätter", MacRoman }, // from swedish.words
+    { "motsättningar", MacRoman }, // from swedish.words
+    { "motsättningarna", MacRoman }, // from swedish.words
+    { "mots‰tter", Iso885915 }, // from swedish.words
+    { "mots‰ttningar", Iso885915 }, // from swedish.words
+    { "mots‰ttningarna", Iso885915 }, // from swedish.words
     { "moænost", Iso88592 }, // from czech.words
     { "moæn˝", Iso88592 }, // from czech.words
     { "multimÇdia", Cp437 }, // from french.words
@@ -6277,9 +10180,55 @@ static const struct {
     { "mÑchtig", Cp437 }, // from german.words
     { "mÑchtige", Cp437 }, // from german.words
     { "mÑchtigen", Cp437 }, // from german.words
+    { "mÑklare", Cp865 }, // from swedish.words
+    { "mÑktig", Cp865 }, // from swedish.words
+    { "mÑktiga", Cp865 }, // from swedish.words
+    { "mÑn", Cp865 }, // from swedish.words
+    { "mÑngd", Cp865 }, // from swedish.words
+    { "mÑngden", Cp865 }, // from swedish.words
+    { "mÑngder", Cp865 }, // from swedish.words
+    { "mÑnnen", Cp865 }, // from swedish.words
+    { "mÑnnens", Cp865 }, // from swedish.words
+    { "mÑnniska", Cp865 }, // from swedish.words
+    { "mÑnniskan", Cp865 }, // from swedish.words
+    { "mÑnniskans", Cp865 }, // from swedish.words
+    { "mÑnniskas", Cp865 }, // from swedish.words
+    { "mÑnniskor", Cp865 }, // from swedish.words
+    { "mÑnniskorna", Cp865 }, // from swedish.words
+    { "mÑnniskors", Cp865 }, // from swedish.words
     { "mÑnnliche", Cp437 }, // from german.words
     { "mÑnnlichen", Cp437 }, // from german.words
+    { "mÑnsklig", Cp865 }, // from swedish.words
+    { "mÑnskliga", Cp865 }, // from swedish.words
+    { "mÑnskligheten", Cp865 }, // from swedish.words
+    { "mÑnskligt", Cp865 }, // from swedish.words
+    { "mÑrka", Cp865 }, // from swedish.words
+    { "mÑrke", Cp865 }, // from swedish.words
+    { "mÑrken", Cp865 }, // from swedish.words
+    { "mÑrker", Cp865 }, // from swedish.words
+    { "mÑrket", Cp865 }, // from swedish.words
+    { "mÑrklig", Cp865 }, // from swedish.words
+    { "mÑrkliga", Cp865 }, // from swedish.words
+    { "mÑrkligt", Cp865 }, // from swedish.words
+    { "mÑrks", Cp865 }, // from swedish.words
+    { "mÑrkt", Cp865 }, // from swedish.words
+    { "mÑrkte", Cp865 }, // from swedish.words
+    { "mÑrktes", Cp865 }, // from swedish.words
+    { "mÑrkvÑrdigt", Cp865 }, // from swedish.words
+    { "mÑrta", Cp865 }, // from swedish.words
+    { "mÑssa", Cp865 }, // from swedish.words
+    { "mÑssan", Cp865 }, // from swedish.words
+    { "mÑstare", Cp865 }, // from swedish.words
+    { "mÑstarna", Cp865 }, // from swedish.words
+    { "mÑster", Cp865 }, // from swedish.words
+    { "mÑsterskap", Cp865 }, // from swedish.words
+    { "mÑsterskapen", Cp865 }, // from swedish.words
+    { "mÑta", Cp865 }, // from swedish.words
+    { "mÑter", Cp865 }, // from swedish.words
+    { "mÑtningar", Cp865 }, // from swedish.words
+    { "mÑtt", Cp865 }, // from swedish.words
     { "mÜ", Cp865 }, // from norwegian.words
+    { "mÜhÑnda", Cp865 }, // from swedish.words
     { "mÜl", Cp865 }, // from norwegian.words
     { "mÜle", Cp865 }, // from norwegian.words
     { "mÜlene", Cp865 }, // from norwegian.words
@@ -6292,6 +10241,8 @@ static const struct {
     { "mÜlinger", Cp865 }, // from norwegian.words
     { "mÜlsetting", Cp865 }, // from norwegian.words
     { "mÜlsettingen", Cp865 }, // from norwegian.words
+    { "mÜlsÑttning", Cp865 }, // from swedish.words
+    { "mÜlsÑttningen", Cp865 }, // from swedish.words
     { "mÜlt", Cp865 }, // from norwegian.words
     { "mÜltid", Cp865 }, // from norwegian.words
     { "mÜned", Cp865 }, // from norwegian.words
@@ -6309,9 +10260,55 @@ static const struct {
     { "mächtig", MacRoman }, // from german.words
     { "mächtige", MacRoman }, // from german.words
     { "mächtigen", MacRoman }, // from german.words
+    { "mäklare", MacRoman }, // from swedish.words
+    { "mäktig", MacRoman }, // from swedish.words
+    { "mäktiga", MacRoman }, // from swedish.words
+    { "män", MacRoman }, // from swedish.words
+    { "mängd", MacRoman }, // from swedish.words
+    { "mängden", MacRoman }, // from swedish.words
+    { "mängder", MacRoman }, // from swedish.words
+    { "männen", MacRoman }, // from swedish.words
+    { "männens", MacRoman }, // from swedish.words
+    { "människa", MacRoman }, // from swedish.words
+    { "människan", MacRoman }, // from swedish.words
+    { "människans", MacRoman }, // from swedish.words
+    { "människas", MacRoman }, // from swedish.words
+    { "människor", MacRoman }, // from swedish.words
+    { "människorna", MacRoman }, // from swedish.words
+    { "människors", MacRoman }, // from swedish.words
     { "männliche", MacRoman }, // from german.words
     { "männlichen", MacRoman }, // from german.words
+    { "mänsklig", MacRoman }, // from swedish.words
+    { "mänskliga", MacRoman }, // from swedish.words
+    { "mänskligheten", MacRoman }, // from swedish.words
+    { "mänskligt", MacRoman }, // from swedish.words
+    { "märka", MacRoman }, // from swedish.words
+    { "märke", MacRoman }, // from swedish.words
+    { "märken", MacRoman }, // from swedish.words
+    { "märker", MacRoman }, // from swedish.words
+    { "märket", MacRoman }, // from swedish.words
+    { "märklig", MacRoman }, // from swedish.words
+    { "märkliga", MacRoman }, // from swedish.words
+    { "märkligt", MacRoman }, // from swedish.words
+    { "märks", MacRoman }, // from swedish.words
+    { "märkt", MacRoman }, // from swedish.words
+    { "märkte", MacRoman }, // from swedish.words
+    { "märktes", MacRoman }, // from swedish.words
+    { "märkvärdigt", MacRoman }, // from swedish.words
+    { "märta", MacRoman }, // from swedish.words
+    { "mässa", MacRoman }, // from swedish.words
+    { "mässan", MacRoman }, // from swedish.words
+    { "mästare", MacRoman }, // from swedish.words
+    { "mästarna", MacRoman }, // from swedish.words
+    { "mäster", MacRoman }, // from swedish.words
+    { "mästerskap", MacRoman }, // from swedish.words
+    { "mästerskapen", MacRoman }, // from swedish.words
+    { "mäta", MacRoman }, // from swedish.words
+    { "mäter", MacRoman }, // from swedish.words
+    { "mätningar", MacRoman }, // from swedish.words
+    { "mätt", MacRoman }, // from swedish.words
     { "må", MacRoman }, // from norwegian.words
+    { "måhända", MacRoman }, // from swedish.words
     { "mål", MacRoman }, // from norwegian.words
     { "måle", MacRoman }, // from norwegian.words
     { "målene", MacRoman }, // from norwegian.words
@@ -6324,6 +10321,8 @@ static const struct {
     { "målinger", MacRoman }, // from norwegian.words
     { "målsetting", MacRoman }, // from norwegian.words
     { "målsettingen", MacRoman }, // from norwegian.words
+    { "målsättning", MacRoman }, // from swedish.words
+    { "målsättningen", MacRoman }, // from swedish.words
     { "målt", MacRoman }, // from norwegian.words
     { "måltid", MacRoman }, // from norwegian.words
     { "måned", MacRoman }, // from norwegian.words
@@ -6381,8 +10380,11 @@ static const struct {
     { "métro", MacRoman }, // from french.words
     { "méér", MacRoman }, // from dutch.words
     { "mëland", Cp865 }, // from norwegian.words
+    { "mîbler", Cp865 }, // from swedish.words
     { "mîchte", Cp437 }, // from german.words
     { "mîchten", Cp437 }, // from german.words
+    { "mîda", Cp865 }, // from swedish.words
+    { "mîdrar", Cp865 }, // from swedish.words
     { "mîge", Cp437 }, // from german.words
     { "mîgen", Cp437 }, // from german.words
     { "mîglich", Cp437 }, // from german.words
@@ -6391,8 +10393,46 @@ static const struct {
     { "mîglicher", Cp437 }, // from german.words
     { "mîglicherweise", Cp437 }, // from german.words
     { "mîglichst", Cp437 }, // from german.words
+    { "mîjlig", Cp865 }, // from swedish.words
+    { "mîjliga", Cp865 }, // from swedish.words
+    { "mîjligen", Cp865 }, // from swedish.words
+    { "mîjlighet", Cp865 }, // from swedish.words
+    { "mîjligheten", Cp865 }, // from swedish.words
+    { "mîjligheter", Cp865 }, // from swedish.words
+    { "mîjligheterna", Cp865 }, // from swedish.words
+    { "mîjligt", Cp865 }, // from swedish.words
+    { "mîller", Cp865 }, // from swedish.words
+    { "mîlndal", Cp865 }, // from swedish.words
+    { "mîlndals", Cp865 }, // from swedish.words
+    { "mîlnlycke", Cp865 }, // from swedish.words
+    { "mînster", Cp865 }, // from swedish.words
+    { "mînstret", Cp865 }, // from swedish.words
+    { "mîrdade", Cp865 }, // from swedish.words
+    { "mîrdades", Cp865 }, // from swedish.words
+    { "mîrdare", Cp865 }, // from swedish.words
+    { "mîrdaren", Cp865 }, // from swedish.words
+    { "mîrk", Cp865 }, // from swedish.words
+    { "mîrka", Cp865 }, // from swedish.words
+    { "mîrker", Cp865 }, // from swedish.words
+    { "mîrkret", Cp865 }, // from swedish.words
+    { "mîrkt", Cp865 }, // from swedish.words
+    { "mîssa", Cp865 }, // from swedish.words
+    { "mîta", Cp865 }, // from swedish.words
+    { "mîtas", Cp865 }, // from swedish.words
+    { "mîte", Cp865 }, // from swedish.words
+    { "mîten", Cp865 }, // from swedish.words
+    { "mîter", Cp865 }, // from swedish.words
+    { "mîtes", Cp865 }, // from swedish.words
+    { "mîtet", Cp865 }, // from swedish.words
+    { "mîts", Cp865 }, // from swedish.words
+    { "mîtt", Cp865 }, // from swedish.words
+    { "mîtte", Cp865 }, // from swedish.words
+    { "mîttes", Cp865 }, // from swedish.words
+    { "möbler", MacRoman }, // from swedish.words
     { "möchte", MacRoman }, // from german.words
     { "möchten", MacRoman }, // from german.words
+    { "möda", MacRoman }, // from swedish.words
+    { "mödrar", MacRoman }, // from swedish.words
     { "möge", MacRoman }, // from german.words
     { "mögen", MacRoman }, // from german.words
     { "möglich", MacRoman }, // from german.words
@@ -6401,6 +10441,41 @@ static const struct {
     { "möglicher", MacRoman }, // from german.words
     { "möglicherweise", MacRoman }, // from german.words
     { "möglichst", MacRoman }, // from german.words
+    { "möjlig", MacRoman }, // from swedish.words
+    { "möjliga", MacRoman }, // from swedish.words
+    { "möjligen", MacRoman }, // from swedish.words
+    { "möjlighet", MacRoman }, // from swedish.words
+    { "möjligheten", MacRoman }, // from swedish.words
+    { "möjligheter", MacRoman }, // from swedish.words
+    { "möjligheterna", MacRoman }, // from swedish.words
+    { "möjligt", MacRoman }, // from swedish.words
+    { "möller", MacRoman }, // from swedish.words
+    { "mölndal", MacRoman }, // from swedish.words
+    { "mölndals", MacRoman }, // from swedish.words
+    { "mölnlycke", MacRoman }, // from swedish.words
+    { "mönster", MacRoman }, // from swedish.words
+    { "mönstret", MacRoman }, // from swedish.words
+    { "mördade", MacRoman }, // from swedish.words
+    { "mördades", MacRoman }, // from swedish.words
+    { "mördare", MacRoman }, // from swedish.words
+    { "mördaren", MacRoman }, // from swedish.words
+    { "mörk", MacRoman }, // from swedish.words
+    { "mörka", MacRoman }, // from swedish.words
+    { "mörker", MacRoman }, // from swedish.words
+    { "mörkret", MacRoman }, // from swedish.words
+    { "mörkt", MacRoman }, // from swedish.words
+    { "mössa", MacRoman }, // from swedish.words
+    { "möta", MacRoman }, // from swedish.words
+    { "mötas", MacRoman }, // from swedish.words
+    { "möte", MacRoman }, // from swedish.words
+    { "möten", MacRoman }, // from swedish.words
+    { "möter", MacRoman }, // from swedish.words
+    { "mötes", MacRoman }, // from swedish.words
+    { "mötet", MacRoman }, // from swedish.words
+    { "möts", MacRoman }, // from swedish.words
+    { "mött", MacRoman }, // from swedish.words
+    { "mötte", MacRoman }, // from swedish.words
+    { "möttes", MacRoman }, // from swedish.words
     { "mõbler", Cp865 }, // from norwegian.words
     { "mõdre", Cp865 }, // from norwegian.words
     { "mõhlenpris", Cp865 }, // from norwegian.words
@@ -6452,9 +10527,55 @@ static const struct {
     { "m‰chtig", Iso885915 }, // from german.words
     { "m‰chtige", Iso885915 }, // from german.words
     { "m‰chtigen", Iso885915 }, // from german.words
+    { "m‰klare", Iso885915 }, // from swedish.words
+    { "m‰ktig", Iso885915 }, // from swedish.words
+    { "m‰ktiga", Iso885915 }, // from swedish.words
+    { "m‰n", Iso885915 }, // from swedish.words
+    { "m‰ngd", Iso885915 }, // from swedish.words
+    { "m‰ngden", Iso885915 }, // from swedish.words
+    { "m‰ngder", Iso885915 }, // from swedish.words
+    { "m‰nnen", Iso885915 }, // from swedish.words
+    { "m‰nnens", Iso885915 }, // from swedish.words
+    { "m‰nniska", Iso885915 }, // from swedish.words
+    { "m‰nniskan", Iso885915 }, // from swedish.words
+    { "m‰nniskans", Iso885915 }, // from swedish.words
+    { "m‰nniskas", Iso885915 }, // from swedish.words
+    { "m‰nniskor", Iso885915 }, // from swedish.words
+    { "m‰nniskorna", Iso885915 }, // from swedish.words
+    { "m‰nniskors", Iso885915 }, // from swedish.words
     { "m‰nnliche", Iso885915 }, // from german.words
     { "m‰nnlichen", Iso885915 }, // from german.words
+    { "m‰nsklig", Iso885915 }, // from swedish.words
+    { "m‰nskliga", Iso885915 }, // from swedish.words
+    { "m‰nskligheten", Iso885915 }, // from swedish.words
+    { "m‰nskligt", Iso885915 }, // from swedish.words
+    { "m‰rka", Iso885915 }, // from swedish.words
+    { "m‰rke", Iso885915 }, // from swedish.words
+    { "m‰rken", Iso885915 }, // from swedish.words
+    { "m‰rker", Iso885915 }, // from swedish.words
+    { "m‰rket", Iso885915 }, // from swedish.words
+    { "m‰rklig", Iso885915 }, // from swedish.words
+    { "m‰rkliga", Iso885915 }, // from swedish.words
+    { "m‰rkligt", Iso885915 }, // from swedish.words
+    { "m‰rks", Iso885915 }, // from swedish.words
+    { "m‰rkt", Iso885915 }, // from swedish.words
+    { "m‰rkte", Iso885915 }, // from swedish.words
+    { "m‰rktes", Iso885915 }, // from swedish.words
+    { "m‰rkv‰rdigt", Iso885915 }, // from swedish.words
+    { "m‰rta", Iso885915 }, // from swedish.words
+    { "m‰ssa", Iso885915 }, // from swedish.words
+    { "m‰ssan", Iso885915 }, // from swedish.words
+    { "m‰stare", Iso885915 }, // from swedish.words
+    { "m‰starna", Iso885915 }, // from swedish.words
+    { "m‰ster", Iso885915 }, // from swedish.words
+    { "m‰sterskap", Iso885915 }, // from swedish.words
+    { "m‰sterskapen", Iso885915 }, // from swedish.words
+    { "m‰ta", Iso885915 }, // from swedish.words
+    { "m‰ter", Iso885915 }, // from swedish.words
+    { "m‰tningar", Iso885915 }, // from swedish.words
+    { "m‰tt", Iso885915 }, // from swedish.words
     { "mÂ", Iso885915 }, // from norwegian.words
+    { "mÂh‰nda", Iso885915 }, // from swedish.words
     { "mÂl", Iso885915 }, // from norwegian.words
     { "mÂle", Iso885915 }, // from norwegian.words
     { "mÂlene", Iso885915 }, // from norwegian.words
@@ -6467,6 +10588,8 @@ static const struct {
     { "mÂlinger", Iso885915 }, // from norwegian.words
     { "mÂlsetting", Iso885915 }, // from norwegian.words
     { "mÂlsettingen", Iso885915 }, // from norwegian.words
+    { "mÂls‰ttning", Iso885915 }, // from swedish.words
+    { "mÂls‰ttningen", Iso885915 }, // from swedish.words
     { "mÂlt", Iso885915 }, // from norwegian.words
     { "mÂltid", Iso885915 }, // from norwegian.words
     { "mÂned", Iso885915 }, // from norwegian.words
@@ -6531,8 +10654,11 @@ static const struct {
     { "mÌstnÌ", Iso88592 }, // from czech.words
     { "mÌsto", Iso88592 }, // from czech.words
     { "mÌt", Iso88592 }, // from czech.words
+    { "mˆbler", Iso885915 }, // from swedish.words
     { "mˆchte", Iso885915 }, // from german.words
     { "mˆchten", Iso885915 }, // from german.words
+    { "mˆda", Iso885915 }, // from swedish.words
+    { "mˆdrar", Iso885915 }, // from swedish.words
     { "mˆge", Iso885915 }, // from german.words
     { "mˆgen", Iso885915 }, // from german.words
     { "mˆglich", Iso885915 }, // from german.words
@@ -6541,6 +10667,41 @@ static const struct {
     { "mˆglicher", Iso885915 }, // from german.words
     { "mˆglicherweise", Iso885915 }, // from german.words
     { "mˆglichst", Iso885915 }, // from german.words
+    { "mˆjlig", Iso885915 }, // from swedish.words
+    { "mˆjliga", Iso885915 }, // from swedish.words
+    { "mˆjligen", Iso885915 }, // from swedish.words
+    { "mˆjlighet", Iso885915 }, // from swedish.words
+    { "mˆjligheten", Iso885915 }, // from swedish.words
+    { "mˆjligheter", Iso885915 }, // from swedish.words
+    { "mˆjligheterna", Iso885915 }, // from swedish.words
+    { "mˆjligt", Iso885915 }, // from swedish.words
+    { "mˆller", Iso885915 }, // from swedish.words
+    { "mˆlndal", Iso885915 }, // from swedish.words
+    { "mˆlndals", Iso885915 }, // from swedish.words
+    { "mˆlnlycke", Iso885915 }, // from swedish.words
+    { "mˆnster", Iso885915 }, // from swedish.words
+    { "mˆnstret", Iso885915 }, // from swedish.words
+    { "mˆrdade", Iso885915 }, // from swedish.words
+    { "mˆrdades", Iso885915 }, // from swedish.words
+    { "mˆrdare", Iso885915 }, // from swedish.words
+    { "mˆrdaren", Iso885915 }, // from swedish.words
+    { "mˆrk", Iso885915 }, // from swedish.words
+    { "mˆrka", Iso885915 }, // from swedish.words
+    { "mˆrker", Iso885915 }, // from swedish.words
+    { "mˆrkret", Iso885915 }, // from swedish.words
+    { "mˆrkt", Iso885915 }, // from swedish.words
+    { "mˆssa", Iso885915 }, // from swedish.words
+    { "mˆta", Iso885915 }, // from swedish.words
+    { "mˆtas", Iso885915 }, // from swedish.words
+    { "mˆte", Iso885915 }, // from swedish.words
+    { "mˆten", Iso885915 }, // from swedish.words
+    { "mˆter", Iso885915 }, // from swedish.words
+    { "mˆtes", Iso885915 }, // from swedish.words
+    { "mˆtet", Iso885915 }, // from swedish.words
+    { "mˆts", Iso885915 }, // from swedish.words
+    { "mˆtt", Iso885915 }, // from swedish.words
+    { "mˆtte", Iso885915 }, // from swedish.words
+    { "mˆttes", Iso885915 }, // from swedish.words
     { "m¯bler", Iso885915 }, // from norwegian.words
     { "m¯dre", Iso885915 }, // from norwegian.words
     { "m¯hlenpris", Iso885915 }, // from norwegian.words
@@ -6591,17 +10752,35 @@ static const struct {
     { "nat¸rliche", Iso885915 }, // from german.words
     { "nat¸rlichen", Iso885915 }, // from german.words
     { "neb˝t", Iso88592 }, // from czech.words
+    { "nedanfîr", Cp865 }, // from swedish.words
+    { "nedanför", MacRoman }, // from swedish.words
+    { "nedanfˆr", Iso885915 }, // from swedish.words
     { "nedbõr", Cp865 }, // from norwegian.words
     { "nedbør", MacRoman }, // from norwegian.words
     { "nedb¯r", Iso885915 }, // from norwegian.words
+    { "nedfîr", Cp865 }, // from swedish.words
+    { "nedför", MacRoman }, // from swedish.words
+    { "nedfˆr", Iso885915 }, // from swedish.words
+    { "nedlÑggning", Cp865 }, // from swedish.words
+    { "nedläggning", MacRoman }, // from swedish.words
+    { "nedl‰ggning", Iso885915 }, // from swedish.words
     { "nedskjëringer", Cp865 }, // from norwegian.words
     { "nedskjæringer", MacRoman }, // from norwegian.words
     { "nedskjÊringer", Iso885915 }, // from norwegian.words
-    { "nervîs", Cp437 }, // from german.words
-    { "nervös", MacRoman }, // from german.words
+    { "nedskÑrningar", Cp865 }, // from swedish.words
+    { "nedskÑrningarna", Cp865 }, // from swedish.words
+    { "nedskärningar", MacRoman }, // from swedish.words
+    { "nedskärningarna", MacRoman }, // from swedish.words
+    { "nedsk‰rningar", Iso885915 }, // from swedish.words
+    { "nedsk‰rningarna", Iso885915 }, // from swedish.words
+    { "nerfîr", Cp865 }, // from swedish.words
+    { "nerför", MacRoman }, // from swedish.words
+    { "nerfˆr", Iso885915 }, // from swedish.words
+    { "nervîst", Cp865 }, // from swedish.words
+    { "nervöst", MacRoman }, // from swedish.words
     { "nervõs", Cp865 }, // from norwegian.words
     { "nervøs", MacRoman }, // from norwegian.words
-    { "nervˆs", Iso885915 }, // from german.words
+    { "nervˆst", Iso885915 }, // from swedish.words
     { "nerv¯s", Iso885915 }, // from norwegian.words
     { "niederlÑndische", Cp437 }, // from german.words
     { "niederlÑndischen", Cp437 }, // from german.words
@@ -6627,6 +10806,9 @@ static const struct {
     { "niÇt", Cp437 }, // from dutch.words
     { "niét", MacRoman }, // from dutch.words
     { "niÈt", Iso885915 }, // from dutch.words
+    { "njît", Cp865 }, // from swedish.words
+    { "njöt", MacRoman }, // from swedish.words
+    { "njˆt", Iso885915 }, // from swedish.words
     { "noksÜ", Cp865 }, // from norwegian.words
     { "nokså", MacRoman }, // from norwegian.words
     { "noksÂ", Iso885915 }, // from norwegian.words
@@ -6636,9 +10818,27 @@ static const struct {
     { "nommÇ", Cp437 }, // from french.words
     { "nommé", MacRoman }, // from french.words
     { "nommÈ", Iso885915 }, // from french.words
+    { "nordsjîn", Cp865 }, // from swedish.words
+    { "nordsjön", MacRoman }, // from swedish.words
     { "nordsjõen", Cp865 }, // from norwegian.words
     { "nordsjøen", MacRoman }, // from norwegian.words
+    { "nordsjˆn", Iso885915 }, // from swedish.words
     { "nordsj¯en", Iso885915 }, // from norwegian.words
+    { "nordstrîm", Cp865 }, // from swedish.words
+    { "nordström", MacRoman }, // from swedish.words
+    { "nordstrˆm", Iso885915 }, // from swedish.words
+    { "nordvÑstra", Cp865 }, // from swedish.words
+    { "nordvästra", MacRoman }, // from swedish.words
+    { "nordv‰stra", Iso885915 }, // from swedish.words
+    { "norrkîping", Cp865 }, // from swedish.words
+    { "norrköping", MacRoman }, // from swedish.words
+    { "norrkˆping", Iso885915 }, // from swedish.words
+    { "norrmÑnnen", Cp865 }, // from swedish.words
+    { "norrmännen", MacRoman }, // from swedish.words
+    { "norrm‰nnen", Iso885915 }, // from swedish.words
+    { "norrtÑlje", Cp865 }, // from swedish.words
+    { "norrtälje", MacRoman }, // from swedish.words
+    { "norrt‰lje", Iso885915 }, // from swedish.words
     { "norrõna", Cp865 }, // from norwegian.words
     { "norrøna", MacRoman }, // from norwegian.words
     { "norr¯na", Iso885915 }, // from norwegian.words
@@ -6680,6 +10880,12 @@ static const struct {
     { "nyhetsbyrÜet", Cp865 }, // from norwegian.words
     { "nyhetsbyrået", MacRoman }, // from norwegian.words
     { "nyhetsbyrÂet", Iso885915 }, // from norwegian.words
+    { "nynÑshamn", Cp865 }, // from swedish.words
+    { "nynäshamn", MacRoman }, // from swedish.words
+    { "nyn‰shamn", Iso885915 }, // from swedish.words
+    { "nystrîm", Cp865 }, // from swedish.words
+    { "nyström", MacRoman }, // from swedish.words
+    { "nystrˆm", Iso885915 }, // from swedish.words
     { "nyttÜr", Cp865 }, // from norwegian.words
     { "nyttår", MacRoman }, // from norwegian.words
     { "nyttÂr", Iso885915 }, // from norwegian.words
@@ -6713,6 +10919,7 @@ static const struct {
     { "nÇgocier", Cp437 }, // from french.words
     { "nÇgociÇ", Cp437 }, // from french.words
     { "nÇs", Cp437 }, // from french.words
+    { "nÑ", Cp865 }, // from swedish.words
     { "nÑchste", Cp437 }, // from german.words
     { "nÑchsten", Cp437 }, // from german.words
     { "nÑchster", Cp437 }, // from german.words
@@ -6721,6 +10928,44 @@ static const struct {
     { "nÑher", Cp437 }, // from german.words
     { "nÑhert", Cp437 }, // from german.words
     { "nÑmlich", Cp437 }, // from german.words
+    { "nÑmligen", Cp865 }, // from swedish.words
+    { "nÑmna", Cp865 }, // from swedish.words
+    { "nÑmnas", Cp865 }, // from swedish.words
+    { "nÑmnda", Cp865 }, // from swedish.words
+    { "nÑmnde", Cp865 }, // from swedish.words
+    { "nÑmnden", Cp865 }, // from swedish.words
+    { "nÑmner", Cp865 }, // from swedish.words
+    { "nÑmns", Cp865 }, // from swedish.words
+    { "nÑmnts", Cp865 }, // from swedish.words
+    { "nÑr", Cp865 }, // from swedish.words
+    { "nÑra", Cp865 }, // from swedish.words
+    { "nÑrhet", Cp865 }, // from swedish.words
+    { "nÑrheten", Cp865 }, // from swedish.words
+    { "nÑring", Cp865 }, // from swedish.words
+    { "nÑringsliv", Cp865 }, // from swedish.words
+    { "nÑringslivet", Cp865 }, // from swedish.words
+    { "nÑringslivets", Cp865 }, // from swedish.words
+    { "nÑrma", Cp865 }, // from swedish.words
+    { "nÑrmade", Cp865 }, // from swedish.words
+    { "nÑrmar", Cp865 }, // from swedish.words
+    { "nÑrmare", Cp865 }, // from swedish.words
+    { "nÑrmast", Cp865 }, // from swedish.words
+    { "nÑrmaste", Cp865 }, // from swedish.words
+    { "nÑrvarande", Cp865 }, // from swedish.words
+    { "nÑrvaro", Cp865 }, // from swedish.words
+    { "nÑsa", Cp865 }, // from swedish.words
+    { "nÑsan", Cp865 }, // from swedish.words
+    { "nÑslund", Cp865 }, // from swedish.words
+    { "nÑst", Cp865 }, // from swedish.words
+    { "nÑsta", Cp865 }, // from swedish.words
+    { "nÑstan", Cp865 }, // from swedish.words
+    { "nÑt", Cp865 }, // from swedish.words
+    { "nÑtet", Cp865 }, // from swedish.words
+    { "nÑtt", Cp865 }, // from swedish.words
+    { "nÑtter", Cp865 }, // from swedish.words
+    { "nÑtterna", Cp865 }, // from swedish.words
+    { "nÑtverk", Cp865 }, // from swedish.words
+    { "nÑtverket", Cp865 }, // from swedish.words
     { "nÜ", Cp865 }, // from norwegian.words
     { "nÜdd", Cp865 }, // from norwegian.words
     { "nÜdde", Cp865 }, // from norwegian.words
@@ -6728,6 +10973,7 @@ static const struct {
     { "nÜlen", Cp865 }, // from norwegian.words
     { "nÜr", Cp865 }, // from norwegian.words
     { "nÜvërende", Cp865 }, // from norwegian.words
+    { "nä", MacRoman }, // from swedish.words
     { "nächste", MacRoman }, // from german.words
     { "nächsten", MacRoman }, // from german.words
     { "nächster", MacRoman }, // from german.words
@@ -6736,6 +10982,44 @@ static const struct {
     { "näher", MacRoman }, // from german.words
     { "nähert", MacRoman }, // from german.words
     { "nämlich", MacRoman }, // from german.words
+    { "nämligen", MacRoman }, // from swedish.words
+    { "nämna", MacRoman }, // from swedish.words
+    { "nämnas", MacRoman }, // from swedish.words
+    { "nämnda", MacRoman }, // from swedish.words
+    { "nämnde", MacRoman }, // from swedish.words
+    { "nämnden", MacRoman }, // from swedish.words
+    { "nämner", MacRoman }, // from swedish.words
+    { "nämns", MacRoman }, // from swedish.words
+    { "nämnts", MacRoman }, // from swedish.words
+    { "när", MacRoman }, // from swedish.words
+    { "nära", MacRoman }, // from swedish.words
+    { "närhet", MacRoman }, // from swedish.words
+    { "närheten", MacRoman }, // from swedish.words
+    { "näring", MacRoman }, // from swedish.words
+    { "näringsliv", MacRoman }, // from swedish.words
+    { "näringslivet", MacRoman }, // from swedish.words
+    { "näringslivets", MacRoman }, // from swedish.words
+    { "närma", MacRoman }, // from swedish.words
+    { "närmade", MacRoman }, // from swedish.words
+    { "närmar", MacRoman }, // from swedish.words
+    { "närmare", MacRoman }, // from swedish.words
+    { "närmast", MacRoman }, // from swedish.words
+    { "närmaste", MacRoman }, // from swedish.words
+    { "närvarande", MacRoman }, // from swedish.words
+    { "närvaro", MacRoman }, // from swedish.words
+    { "näsa", MacRoman }, // from swedish.words
+    { "näsan", MacRoman }, // from swedish.words
+    { "näslund", MacRoman }, // from swedish.words
+    { "näst", MacRoman }, // from swedish.words
+    { "nästa", MacRoman }, // from swedish.words
+    { "nästan", MacRoman }, // from swedish.words
+    { "nät", MacRoman }, // from swedish.words
+    { "nätet", MacRoman }, // from swedish.words
+    { "nätt", MacRoman }, // from swedish.words
+    { "nätter", MacRoman }, // from swedish.words
+    { "nätterna", MacRoman }, // from swedish.words
+    { "nätverk", MacRoman }, // from swedish.words
+    { "nätverket", MacRoman }, // from swedish.words
     { "nå", MacRoman }, // from norwegian.words
     { "nådd", MacRoman }, // from norwegian.words
     { "nådde", MacRoman }, // from norwegian.words
@@ -6790,11 +11074,35 @@ static const struct {
     { "nërt", Cp865 }, // from norwegian.words
     { "nërvër", Cp865 }, // from norwegian.words
     { "nëss", Cp865 }, // from norwegian.words
+    { "nîd", Cp865 }, // from swedish.words
+    { "nîdvÑndig", Cp865 }, // from swedish.words
+    { "nîdvÑndiga", Cp865 }, // from swedish.words
+    { "nîdvÑndighet", Cp865 }, // from swedish.words
+    { "nîdvÑndigt", Cp865 }, // from swedish.words
+    { "nîdvÑndigtvis", Cp865 }, // from swedish.words
+    { "nîja", Cp865 }, // from swedish.words
+    { "nîjd", Cp865 }, // from swedish.words
+    { "nîjda", Cp865 }, // from swedish.words
+    { "nîjde", Cp865 }, // from swedish.words
+    { "nîje", Cp865 }, // from swedish.words
+    { "nîjer", Cp865 }, // from swedish.words
     { "nîrdlich", Cp437 }, // from german.words
     { "nîrdlichen", Cp437 }, // from german.words
     { "nîtig", Cp437 }, // from german.words
     { "nîtige", Cp437 }, // from german.words
     { "nîtigen", Cp437 }, // from german.words
+    { "nöd", MacRoman }, // from swedish.words
+    { "nödvändig", MacRoman }, // from swedish.words
+    { "nödvändiga", MacRoman }, // from swedish.words
+    { "nödvändighet", MacRoman }, // from swedish.words
+    { "nödvändigt", MacRoman }, // from swedish.words
+    { "nödvändigtvis", MacRoman }, // from swedish.words
+    { "nöja", MacRoman }, // from swedish.words
+    { "nöjd", MacRoman }, // from swedish.words
+    { "nöjda", MacRoman }, // from swedish.words
+    { "nöjde", MacRoman }, // from swedish.words
+    { "nöje", MacRoman }, // from swedish.words
+    { "nöjer", MacRoman }, // from swedish.words
     { "nördlich", MacRoman }, // from german.words
     { "nördlichen", MacRoman }, // from german.words
     { "nötig", MacRoman }, // from german.words
@@ -6857,6 +11165,7 @@ static const struct {
     { "n·sledujÌcÌ", Iso88592 }, // from czech.words
     { "n·vrh", Iso88592 }, // from czech.words
     { "n·zor", Iso88592 }, // from czech.words
+    { "n‰", Iso885915 }, // from swedish.words
     { "n‰chste", Iso885915 }, // from german.words
     { "n‰chsten", Iso885915 }, // from german.words
     { "n‰chster", Iso885915 }, // from german.words
@@ -6865,6 +11174,44 @@ static const struct {
     { "n‰her", Iso885915 }, // from german.words
     { "n‰hert", Iso885915 }, // from german.words
     { "n‰mlich", Iso885915 }, // from german.words
+    { "n‰mligen", Iso885915 }, // from swedish.words
+    { "n‰mna", Iso885915 }, // from swedish.words
+    { "n‰mnas", Iso885915 }, // from swedish.words
+    { "n‰mnda", Iso885915 }, // from swedish.words
+    { "n‰mnde", Iso885915 }, // from swedish.words
+    { "n‰mnden", Iso885915 }, // from swedish.words
+    { "n‰mner", Iso885915 }, // from swedish.words
+    { "n‰mns", Iso885915 }, // from swedish.words
+    { "n‰mnts", Iso885915 }, // from swedish.words
+    { "n‰r", Iso885915 }, // from swedish.words
+    { "n‰ra", Iso885915 }, // from swedish.words
+    { "n‰rhet", Iso885915 }, // from swedish.words
+    { "n‰rheten", Iso885915 }, // from swedish.words
+    { "n‰ring", Iso885915 }, // from swedish.words
+    { "n‰ringsliv", Iso885915 }, // from swedish.words
+    { "n‰ringslivet", Iso885915 }, // from swedish.words
+    { "n‰ringslivets", Iso885915 }, // from swedish.words
+    { "n‰rma", Iso885915 }, // from swedish.words
+    { "n‰rmade", Iso885915 }, // from swedish.words
+    { "n‰rmar", Iso885915 }, // from swedish.words
+    { "n‰rmare", Iso885915 }, // from swedish.words
+    { "n‰rmast", Iso885915 }, // from swedish.words
+    { "n‰rmaste", Iso885915 }, // from swedish.words
+    { "n‰rvarande", Iso885915 }, // from swedish.words
+    { "n‰rvaro", Iso885915 }, // from swedish.words
+    { "n‰sa", Iso885915 }, // from swedish.words
+    { "n‰san", Iso885915 }, // from swedish.words
+    { "n‰slund", Iso885915 }, // from swedish.words
+    { "n‰st", Iso885915 }, // from swedish.words
+    { "n‰sta", Iso885915 }, // from swedish.words
+    { "n‰stan", Iso885915 }, // from swedish.words
+    { "n‰t", Iso885915 }, // from swedish.words
+    { "n‰tet", Iso885915 }, // from swedish.words
+    { "n‰tt", Iso885915 }, // from swedish.words
+    { "n‰tter", Iso885915 }, // from swedish.words
+    { "n‰tterna", Iso885915 }, // from swedish.words
+    { "n‰tverk", Iso885915 }, // from swedish.words
+    { "n‰tverket", Iso885915 }, // from swedish.words
     { "nÂ", Iso885915 }, // from norwegian.words
     { "nÂdd", Iso885915 }, // from norwegian.words
     { "nÂdde", Iso885915 }, // from norwegian.words
@@ -6921,6 +11268,18 @@ static const struct {
     { "nÈs", Iso885915 }, // from french.words
     { "nÏmeck˝", Iso88592 }, // from czech.words
     { "nÌzk˝", Iso88592 }, // from czech.words
+    { "nˆd", Iso885915 }, // from swedish.words
+    { "nˆdv‰ndig", Iso885915 }, // from swedish.words
+    { "nˆdv‰ndiga", Iso885915 }, // from swedish.words
+    { "nˆdv‰ndighet", Iso885915 }, // from swedish.words
+    { "nˆdv‰ndigt", Iso885915 }, // from swedish.words
+    { "nˆdv‰ndigtvis", Iso885915 }, // from swedish.words
+    { "nˆja", Iso885915 }, // from swedish.words
+    { "nˆjd", Iso885915 }, // from swedish.words
+    { "nˆjda", Iso885915 }, // from swedish.words
+    { "nˆjde", Iso885915 }, // from swedish.words
+    { "nˆje", Iso885915 }, // from swedish.words
+    { "nˆjer", Iso885915 }, // from swedish.words
     { "nˆrdlich", Iso885915 }, // from german.words
     { "nˆrdlichen", Iso885915 }, // from german.words
     { "nˆtig", Iso885915 }, // from german.words
@@ -6977,10 +11336,43 @@ static const struct {
     { "oddbj¯rn", Iso885915 }, // from norwegian.words
     { "odmÌtnout", Iso88592 }, // from czech.words
     { "odpovÌdat", Iso88592 }, // from czech.words
+    { "oerhîrd", Cp865 }, // from swedish.words
+    { "oerhîrda", Cp865 }, // from swedish.words
+    { "oerhîrt", Cp865 }, // from swedish.words
+    { "oerhörd", MacRoman }, // from swedish.words
+    { "oerhörda", MacRoman }, // from swedish.words
+    { "oerhört", MacRoman }, // from swedish.words
+    { "oerhˆrd", Iso885915 }, // from swedish.words
+    { "oerhˆrda", Iso885915 }, // from swedish.words
+    { "oerhˆrt", Iso885915 }, // from swedish.words
+    { "ofîrmÜga", Cp865 }, // from swedish.words
+    { "ofîrÑndrad", Cp865 }, // from swedish.words
+    { "ofîrÑndrade", Cp865 }, // from swedish.words
+    { "ofîrÑndrat", Cp865 }, // from swedish.words
+    { "oförmåga", MacRoman }, // from swedish.words
+    { "oförändrad", MacRoman }, // from swedish.words
+    { "oförändrade", MacRoman }, // from swedish.words
+    { "oförändrat", MacRoman }, // from swedish.words
+    { "ofˆrmÂga", Iso885915 }, // from swedish.words
+    { "ofˆr‰ndrad", Iso885915 }, // from swedish.words
+    { "ofˆr‰ndrade", Iso885915 }, // from swedish.words
+    { "ofˆr‰ndrat", Iso885915 }, // from swedish.words
     { "ogsÜ", Cp865 }, // from norwegian.words
     { "også", MacRoman }, // from norwegian.words
     { "ogsÂ", Iso885915 }, // from norwegian.words
+    { "okÑnd", Cp865 }, // from swedish.words
+    { "okÑnda", Cp865 }, // from swedish.words
+    { "okÑnt", Cp865 }, // from swedish.words
+    { "okänd", MacRoman }, // from swedish.words
+    { "okända", MacRoman }, // from swedish.words
+    { "okänt", MacRoman }, // from swedish.words
+    { "ok‰nd", Iso885915 }, // from swedish.words
+    { "ok‰nda", Iso885915 }, // from swedish.words
+    { "ok‰nt", Iso885915 }, // from swedish.words
     { "olympijsk˝", Iso88592 }, // from czech.words
+    { "omdîme", Cp865 }, // from swedish.words
+    { "omdöme", MacRoman }, // from swedish.words
+    { "omdˆme", Iso885915 }, // from swedish.words
     { "omrÜde", Cp865 }, // from norwegian.words
     { "omrÜdene", Cp865 }, // from norwegian.words
     { "omrÜder", Cp865 }, // from norwegian.words
@@ -6989,13 +11381,67 @@ static const struct {
     { "områdene", MacRoman }, // from norwegian.words
     { "områder", MacRoman }, // from norwegian.words
     { "området", MacRoman }, // from norwegian.words
+    { "omrîstning", Cp865 }, // from swedish.words
+    { "omrîstningen", Cp865 }, // from swedish.words
+    { "omröstning", MacRoman }, // from swedish.words
+    { "omröstningen", MacRoman }, // from swedish.words
     { "omrÂde", Iso885915 }, // from norwegian.words
     { "omrÂdene", Iso885915 }, // from norwegian.words
     { "omrÂder", Iso885915 }, // from norwegian.words
     { "omrÂdet", Iso885915 }, // from norwegian.words
+    { "omrˆstning", Iso885915 }, // from swedish.words
+    { "omrˆstningen", Iso885915 }, // from swedish.words
+    { "omstÑllning", Cp865 }, // from swedish.words
+    { "omstÑndigheter", Cp865 }, // from swedish.words
+    { "omstÑndigheterna", Cp865 }, // from swedish.words
+    { "omställning", MacRoman }, // from swedish.words
+    { "omständigheter", MacRoman }, // from swedish.words
+    { "omständigheterna", MacRoman }, // from swedish.words
+    { "omst‰llning", Iso885915 }, // from swedish.words
+    { "omst‰ndigheter", Iso885915 }, // from swedish.words
+    { "omst‰ndigheterna", Iso885915 }, // from swedish.words
+    { "omsÑtter", Cp865 }, // from swedish.words
+    { "omsÑttning", Cp865 }, // from swedish.words
+    { "omsÑttningen", Cp865 }, // from swedish.words
+    { "omsätter", MacRoman }, // from swedish.words
+    { "omsättning", MacRoman }, // from swedish.words
+    { "omsättningen", MacRoman }, // from swedish.words
+    { "oms‰tter", Iso885915 }, // from swedish.words
+    { "oms‰ttning", Iso885915 }, // from swedish.words
+    { "oms‰ttningen", Iso885915 }, // from swedish.words
+    { "omvÑrlden", Cp865 }, // from swedish.words
+    { "omvÑxlande", Cp865 }, // from swedish.words
+    { "omvärlden", MacRoman }, // from swedish.words
+    { "omväxlande", MacRoman }, // from swedish.words
+    { "omv‰rlden", Iso885915 }, // from swedish.words
+    { "omv‰xlande", Iso885915 }, // from swedish.words
+    { "omîjlig", Cp865 }, // from swedish.words
+    { "omîjliga", Cp865 }, // from swedish.words
+    { "omîjligt", Cp865 }, // from swedish.words
+    { "omöjlig", MacRoman }, // from swedish.words
+    { "omöjliga", MacRoman }, // from swedish.words
+    { "omöjligt", MacRoman }, // from swedish.words
+    { "omˆjlig", Iso885915 }, // from swedish.words
+    { "omˆjliga", Iso885915 }, // from swedish.words
+    { "omˆjligt", Iso885915 }, // from swedish.words
+    { "onsdagskvÑllen", Cp865 }, // from swedish.words
+    { "onsdagskvällen", MacRoman }, // from swedish.words
+    { "onsdagskv‰llen", Iso885915 }, // from swedish.words
     { "onÇreux", Cp437 }, // from french.words
     { "onéreux", MacRoman }, // from french.words
+    { "onîdan", Cp865 }, // from swedish.words
+    { "onîdig", Cp865 }, // from swedish.words
+    { "onîdiga", Cp865 }, // from swedish.words
+    { "onîdigt", Cp865 }, // from swedish.words
+    { "onödan", MacRoman }, // from swedish.words
+    { "onödig", MacRoman }, // from swedish.words
+    { "onödiga", MacRoman }, // from swedish.words
+    { "onödigt", MacRoman }, // from swedish.words
     { "onÈreux", Iso885915 }, // from french.words
+    { "onˆdan", Iso885915 }, // from swedish.words
+    { "onˆdig", Iso885915 }, // from swedish.words
+    { "onˆdiga", Iso885915 }, // from swedish.words
+    { "onˆdigt", Iso885915 }, // from swedish.words
     { "oppegÜende", Cp865 }, // from norwegian.words
     { "oppegående", MacRoman }, // from norwegian.words
     { "oppegÂende", Iso885915 }, // from norwegian.words
@@ -7116,10 +11562,16 @@ static const struct {
     { "opÈrations", Iso885915 }, // from french.words
     { "opÈrer", Iso885915 }, // from french.words
     { "opÈrÈ", Iso885915 }, // from french.words
+    { "ordfîrande", Cp865 }, // from swedish.words
+    { "ordfîranden", Cp865 }, // from swedish.words
+    { "ordförande", MacRoman }, // from swedish.words
+    { "ordföranden", MacRoman }, // from swedish.words
     { "ordfõrer", Cp865 }, // from norwegian.words
     { "ordfõreren", Cp865 }, // from norwegian.words
     { "ordfører", MacRoman }, // from norwegian.words
     { "ordføreren", MacRoman }, // from norwegian.words
+    { "ordfˆrande", Iso885915 }, // from swedish.words
+    { "ordfˆranden", Iso885915 }, // from swedish.words
     { "ordf¯rer", Iso885915 }, // from norwegian.words
     { "ordf¯reren", Iso885915 }, // from norwegian.words
     { "ordinër", Cp865 }, // from norwegian.words
@@ -7152,6 +11604,9 @@ static const struct {
     { "originalitÇ", Cp437 }, // from french.words
     { "originalité", MacRoman }, // from french.words
     { "originalitÈ", Iso885915 }, // from french.words
+    { "orÑttvist", Cp865 }, // from swedish.words
+    { "orättvist", MacRoman }, // from swedish.words
+    { "or‰ttvist", Iso885915 }, // from swedish.words
     { "osobnÌ", Iso88592 }, // from czech.words
     { "ostatnÌ", Iso88592 }, // from czech.words
     { "osterõy", Cp865 }, // from norwegian.words
@@ -7161,13 +11616,37 @@ static const struct {
     { "osteuropäischen", MacRoman }, // from german.words
     { "osteurop‰ischen", Iso885915 }, // from german.words
     { "osÇ", Cp437 }, // from french.words
+    { "osÑker", Cp865 }, // from swedish.words
+    { "osÑkerhet", Cp865 }, // from swedish.words
+    { "osÑkerheten", Cp865 }, // from swedish.words
+    { "osÑkert", Cp865 }, // from swedish.words
+    { "osÑkra", Cp865 }, // from swedish.words
+    { "osäker", MacRoman }, // from swedish.words
+    { "osäkerhet", MacRoman }, // from swedish.words
+    { "osäkerheten", MacRoman }, // from swedish.words
+    { "osäkert", MacRoman }, // from swedish.words
+    { "osäkra", MacRoman }, // from swedish.words
     { "osé", MacRoman }, // from french.words
+    { "os‰ker", Iso885915 }, // from swedish.words
+    { "os‰kerhet", Iso885915 }, // from swedish.words
+    { "os‰kerheten", Iso885915 }, // from swedish.words
+    { "os‰kert", Iso885915 }, // from swedish.words
+    { "os‰kra", Iso885915 }, // from swedish.words
     { "osÈ", Iso885915 }, // from french.words
     { "otev¯Ìt", Iso88592 }, // from czech.words
+    { "otÑckt", Cp865 }, // from swedish.words
+    { "otÑnkbart", Cp865 }, // from swedish.words
+    { "otäckt", MacRoman }, // from swedish.words
+    { "otänkbart", MacRoman }, // from swedish.words
     { "ot·zka", Iso88592 }, // from czech.words
+    { "ot‰ckt", Iso885915 }, // from swedish.words
+    { "ot‰nkbart", Iso885915 }, // from swedish.words
     { "oubliÇ", Cp437 }, // from french.words
     { "oublié", MacRoman }, // from french.words
     { "oubliÈ", Iso885915 }, // from french.words
+    { "ovanfîr", Cp865 }, // from swedish.words
+    { "ovanför", MacRoman }, // from swedish.words
+    { "ovanfˆr", Iso885915 }, // from swedish.words
     { "overfõre", Cp865 }, // from norwegian.words
     { "overfõres", Cp865 }, // from norwegian.words
     { "overfõring", Cp865 }, // from norwegian.words
@@ -7189,8 +11668,20 @@ static const struct {
     { "overvåking", MacRoman }, // from norwegian.words
     { "overvÂke", Iso885915 }, // from norwegian.words
     { "overvÂking", Iso885915 }, // from norwegian.words
+    { "ovÑntade", Cp865 }, // from swedish.words
+    { "ovÑntat", Cp865 }, // from swedish.words
+    { "oväntade", MacRoman }, // from swedish.words
+    { "oväntat", MacRoman }, // from swedish.words
+    { "ov‰ntade", Iso885915 }, // from swedish.words
+    { "ov‰ntat", Iso885915 }, // from swedish.words
     { "oznaËit", Iso88592 }, // from czech.words
     { "ozn·mit", Iso88592 }, // from czech.words
+    { "oÑndliga", Cp865 }, // from swedish.words
+    { "oÑndligt", Cp865 }, // from swedish.words
+    { "oändliga", MacRoman }, // from swedish.words
+    { "oändligt", MacRoman }, // from swedish.words
+    { "o‰ndliga", Iso885915 }, // from swedish.words
+    { "o‰ndligt", Iso885915 }, // from swedish.words
     { "oËek·vat", Iso88592 }, // from czech.words
     { "palÑstinensische", Cp437 }, // from german.words
     { "palÑstinensischen", Cp437 }, // from german.words
@@ -7259,6 +11750,15 @@ static const struct {
     { "pensionnÇs", Cp437 }, // from french.words
     { "pensionnés", MacRoman }, // from french.words
     { "pensionnÈs", Iso885915 }, // from french.words
+    { "pensionÑr", Cp865 }, // from swedish.words
+    { "pensionÑrer", Cp865 }, // from swedish.words
+    { "pensionÑrerna", Cp865 }, // from swedish.words
+    { "pensionär", MacRoman }, // from swedish.words
+    { "pensionärer", MacRoman }, // from swedish.words
+    { "pensionärerna", MacRoman }, // from swedish.words
+    { "pension‰r", Iso885915 }, // from swedish.words
+    { "pension‰rer", Iso885915 }, // from swedish.words
+    { "pension‰rerna", Iso885915 }, // from swedish.words
     { "pensÇ", Cp437 }, // from french.words
     { "pensÇe", Cp437 }, // from french.words
     { "pensé", MacRoman }, // from french.words
@@ -7293,6 +11793,15 @@ static const struct {
     { "pesÇ", Cp437 }, // from french.words
     { "pesé", MacRoman }, // from french.words
     { "pesÈ", Iso885915 }, // from french.words
+    { "pjÑs", Cp865 }, // from swedish.words
+    { "pjÑsen", Cp865 }, // from swedish.words
+    { "pjÑser", Cp865 }, // from swedish.words
+    { "pjäs", MacRoman }, // from swedish.words
+    { "pjäsen", MacRoman }, // from swedish.words
+    { "pjäser", MacRoman }, // from swedish.words
+    { "pj‰s", Iso885915 }, // from swedish.words
+    { "pj‰sen", Iso885915 }, // from swedish.words
+    { "pj‰ser", Iso885915 }, // from swedish.words
     { "placÇ", Cp437 }, // from french.words
     { "placÇe", Cp437 }, // from french.words
     { "placÇes", Cp437 }, // from french.words
@@ -7319,10 +11828,16 @@ static const struct {
     { "plÑdierte", Cp437 }, // from german.words
     { "plädiert", MacRoman }, // from german.words
     { "plädierte", MacRoman }, // from german.words
+    { "plîtsliga", Cp865 }, // from swedish.words
+    { "plîtsligt", Cp865 }, // from swedish.words
     { "plîtzlich", Cp437 }, // from german.words
+    { "plötsliga", MacRoman }, // from swedish.words
+    { "plötsligt", MacRoman }, // from swedish.words
     { "plötzlich", MacRoman }, // from german.words
     { "pl‰diert", Iso885915 }, // from german.words
     { "pl‰dierte", Iso885915 }, // from german.words
+    { "plˆtsliga", Iso885915 }, // from swedish.words
+    { "plˆtsligt", Iso885915 }, // from swedish.words
     { "plˆtzlich", Iso885915 }, // from german.words
     { "poda¯it", Iso88592 }, // from czech.words
     { "podmÌnka", Iso88592 }, // from czech.words
@@ -7345,18 +11860,24 @@ static const struct {
     { "popularitÇ", Cp437 }, // from french.words
     { "popularité", MacRoman }, // from french.words
     { "popularitÈ", Iso885915 }, // from french.words
-    { "populÑr", Cp437 }, // from german.words
-    { "populär", MacRoman }, // from german.words
+    { "populÑra", Cp865 }, // from swedish.words
+    { "populÑrt", Cp865 }, // from swedish.words
+    { "populära", MacRoman }, // from swedish.words
+    { "populärt", MacRoman }, // from swedish.words
     { "populër", Cp865 }, // from norwegian.words
     { "populëre", Cp865 }, // from norwegian.words
     { "populërt", Cp865 }, // from norwegian.words
     { "populær", MacRoman }, // from norwegian.words
     { "populære", MacRoman }, // from norwegian.words
     { "populært", MacRoman }, // from norwegian.words
-    { "popul‰r", Iso885915 }, // from german.words
+    { "popul‰ra", Iso885915 }, // from swedish.words
+    { "popul‰rt", Iso885915 }, // from swedish.words
     { "populÊr", Iso885915 }, // from norwegian.words
     { "populÊre", Iso885915 }, // from norwegian.words
     { "populÊrt", Iso885915 }, // from norwegian.words
+    { "portrÑtt", Cp865 }, // from swedish.words
+    { "porträtt", MacRoman }, // from swedish.words
+    { "portr‰tt", Iso885915 }, // from swedish.words
     { "portÇ", Cp437 }, // from french.words
     { "portÇe", Cp437 }, // from french.words
     { "portÇs", Cp437 }, // from french.words
@@ -7401,8 +11922,17 @@ static const struct {
     { "povaæovat", Iso88592 }, // from czech.words
     { "poÇsie", Cp437 }, // from french.words
     { "poÇtique", Cp437 }, // from french.words
+    { "poÑng", Cp865 }, // from swedish.words
+    { "poÑngen", Cp865 }, // from swedish.words
+    { "poÑngterar", Cp865 }, // from swedish.words
+    { "poäng", MacRoman }, // from swedish.words
+    { "poängen", MacRoman }, // from swedish.words
+    { "poängterar", MacRoman }, // from swedish.words
     { "poésie", MacRoman }, // from french.words
     { "poétique", MacRoman }, // from french.words
+    { "po‰ng", Iso885915 }, // from swedish.words
+    { "po‰ngen", Iso885915 }, // from swedish.words
+    { "po‰ngterar", Iso885915 }, // from swedish.words
     { "poËet", Iso88592 }, // from czech.words
     { "poËÌtat", Iso88592 }, // from czech.words
     { "poËÌtaË", Iso88592 }, // from czech.words
@@ -7421,11 +11951,29 @@ static const struct {
     { "pratiquÈe", Iso885915 }, // from french.words
     { "pratiquÈs", Iso885915 }, // from french.words
     { "praæsk˝", Iso88592 }, // from czech.words
+    { "preliminÑra", Cp865 }, // from swedish.words
+    { "preliminära", MacRoman }, // from swedish.words
+    { "prelimin‰ra", Iso885915 }, // from swedish.words
+    { "premiÑr", Cp865 }, // from swedish.words
+    { "premiÑren", Cp865 }, // from swedish.words
+    { "premiÑrminister", Cp865 }, // from swedish.words
+    { "premiÑrministern", Cp865 }, // from swedish.words
+    { "premiär", MacRoman }, // from swedish.words
+    { "premiären", MacRoman }, // from swedish.words
+    { "premiärminister", MacRoman }, // from swedish.words
+    { "premiärministern", MacRoman }, // from swedish.words
+    { "premi‰r", Iso885915 }, // from swedish.words
+    { "premi‰ren", Iso885915 }, // from swedish.words
+    { "premi‰rminister", Iso885915 }, // from swedish.words
+    { "premi‰rministern", Iso885915 }, // from swedish.words
     { "pressÇ", Cp437 }, // from french.words
     { "pressé", MacRoman }, // from french.words
     { "pressÈ", Iso885915 }, // from french.words
+    { "primÑrvÜrden", Cp865 }, // from swedish.words
+    { "primärvården", MacRoman }, // from swedish.words
     { "primërt", Cp865 }, // from norwegian.words
     { "primært", MacRoman }, // from norwegian.words
+    { "prim‰rvÂrden", Iso885915 }, // from swedish.words
     { "primÊrt", Iso885915 }, // from norwegian.words
     { "prioritÇ", Cp437 }, // from french.words
     { "prioritÇs", Cp437 }, // from french.words
@@ -7647,17 +12195,35 @@ static const struct {
     { "prÇvue", Cp437 }, // from french.words
     { "prÇvues", Cp437 }, // from french.words
     { "prÇvus", Cp437 }, // from french.words
+    { "prÑgel", Cp865 }, // from swedish.words
+    { "prÑglade", Cp865 }, // from swedish.words
+    { "prÑglades", Cp865 }, // from swedish.words
+    { "prÑglar", Cp865 }, // from swedish.words
+    { "prÑglas", Cp865 }, // from swedish.words
+    { "prÑglat", Cp865 }, // from swedish.words
     { "prÑsent", Cp437 }, // from german.words
     { "prÑsentieren", Cp437 }, // from german.words
     { "prÑsentiert", Cp437 }, // from german.words
     { "prÑsentierte", Cp437 }, // from german.words
     { "prÑsentierten", Cp437 }, // from german.words
+    { "prÑst", Cp865 }, // from swedish.words
+    { "prÑsten", Cp865 }, // from swedish.words
+    { "prÑster", Cp865 }, // from swedish.words
     { "prÑzise", Cp437 }, // from german.words
+    { "prägel", MacRoman }, // from swedish.words
+    { "präglade", MacRoman }, // from swedish.words
+    { "präglades", MacRoman }, // from swedish.words
+    { "präglar", MacRoman }, // from swedish.words
+    { "präglas", MacRoman }, // from swedish.words
+    { "präglat", MacRoman }, // from swedish.words
     { "präsent", MacRoman }, // from german.words
     { "präsentieren", MacRoman }, // from german.words
     { "präsentiert", MacRoman }, // from german.words
     { "präsentierte", MacRoman }, // from german.words
     { "präsentierten", MacRoman }, // from german.words
+    { "präst", MacRoman }, // from swedish.words
+    { "prästen", MacRoman }, // from swedish.words
+    { "präster", MacRoman }, // from swedish.words
     { "präzise", MacRoman }, // from german.words
     { "préalable", MacRoman }, // from french.words
     { "préalablement", MacRoman }, // from french.words
@@ -7750,6 +12316,18 @@ static const struct {
     { "prévue", MacRoman }, // from french.words
     { "prévues", MacRoman }, // from french.words
     { "prévus", MacRoman }, // from french.words
+    { "prîva", Cp865 }, // from swedish.words
+    { "prîvade", Cp865 }, // from swedish.words
+    { "prîvar", Cp865 }, // from swedish.words
+    { "prîvas", Cp865 }, // from swedish.words
+    { "prîvat", Cp865 }, // from swedish.words
+    { "prîvning", Cp865 }, // from swedish.words
+    { "pröva", MacRoman }, // from swedish.words
+    { "prövade", MacRoman }, // from swedish.words
+    { "prövar", MacRoman }, // from swedish.words
+    { "prövas", MacRoman }, // from swedish.words
+    { "prövat", MacRoman }, // from swedish.words
+    { "prövning", MacRoman }, // from swedish.words
     { "prõv", Cp865 }, // from norwegian.words
     { "prõvd", Cp865 }, // from norwegian.words
     { "prõvde", Cp865 }, // from norwegian.words
@@ -7766,11 +12344,20 @@ static const struct {
     { "prøver", MacRoman }, // from norwegian.words
     { "pr·vnÌ", Iso88592 }, // from czech.words
     { "pr·vo", Iso88592 }, // from czech.words
+    { "pr‰gel", Iso885915 }, // from swedish.words
+    { "pr‰glade", Iso885915 }, // from swedish.words
+    { "pr‰glades", Iso885915 }, // from swedish.words
+    { "pr‰glar", Iso885915 }, // from swedish.words
+    { "pr‰glas", Iso885915 }, // from swedish.words
+    { "pr‰glat", Iso885915 }, // from swedish.words
     { "pr‰sent", Iso885915 }, // from german.words
     { "pr‰sentieren", Iso885915 }, // from german.words
     { "pr‰sentiert", Iso885915 }, // from german.words
     { "pr‰sentierte", Iso885915 }, // from german.words
     { "pr‰sentierten", Iso885915 }, // from german.words
+    { "pr‰st", Iso885915 }, // from swedish.words
+    { "pr‰sten", Iso885915 }, // from swedish.words
+    { "pr‰ster", Iso885915 }, // from swedish.words
     { "pr‰zise", Iso885915 }, // from german.words
     { "prÈalable", Iso885915 }, // from french.words
     { "prÈalablement", Iso885915 }, // from french.words
@@ -7863,6 +12450,12 @@ static const struct {
     { "prÈvue", Iso885915 }, // from french.words
     { "prÈvues", Iso885915 }, // from french.words
     { "prÈvus", Iso885915 }, // from french.words
+    { "prˆva", Iso885915 }, // from swedish.words
+    { "prˆvade", Iso885915 }, // from swedish.words
+    { "prˆvar", Iso885915 }, // from swedish.words
+    { "prˆvas", Iso885915 }, // from swedish.words
+    { "prˆvat", Iso885915 }, // from swedish.words
+    { "prˆvning", Iso885915 }, // from swedish.words
     { "pr¯v", Iso885915 }, // from norwegian.words
     { "pr¯vd", Iso885915 }, // from norwegian.words
     { "pr¯vde", Iso885915 }, // from norwegian.words
@@ -7915,6 +12508,7 @@ static const struct {
     { "pÇtrole", Cp437 }, // from french.words
     { "pÇtrolier", Cp437 }, // from french.words
     { "pÇtroliers", Cp437 }, // from french.words
+    { "pÑr", Cp865 }, // from swedish.words
     { "pÜ", Cp865 }, // from norwegian.words
     { "pÜdriver", Cp865 }, // from norwegian.words
     { "pÜdro", Cp865 }, // from norwegian.words
@@ -7953,6 +12547,7 @@ static const struct {
     { "pÜvirket", Cp865 }, // from norwegian.words
     { "pÜvirkning", Cp865 }, // from norwegian.words
     { "pÜvist", Cp865 }, // from norwegian.words
+    { "pär", MacRoman }, // from swedish.words
     { "på", MacRoman }, // from norwegian.words
     { "pådriver", MacRoman }, // from norwegian.words
     { "pådro", MacRoman }, // from norwegian.words
@@ -8011,6 +12606,7 @@ static const struct {
     { "põlser", Cp865 }, // from norwegian.words
     { "pünktlich", MacRoman }, // from german.words
     { "pølser", MacRoman }, // from norwegian.words
+    { "p‰r", Iso885915 }, // from swedish.words
     { "pÂ", Iso885915 }, // from norwegian.words
     { "pÂdriver", Iso885915 }, // from norwegian.words
     { "pÂdro", Iso885915 }, // from norwegian.words
@@ -8153,10 +12749,13 @@ static const struct {
     { "reculÇ", Cp437 }, // from french.words
     { "reculé", MacRoman }, // from french.words
     { "reculÈ", Iso885915 }, // from french.words
+    { "redaktîr", Cp865 }, // from swedish.words
+    { "redaktör", MacRoman }, // from swedish.words
     { "redaktõr", Cp865 }, // from norwegian.words
     { "redaktõren", Cp865 }, // from norwegian.words
     { "redaktør", MacRoman }, // from norwegian.words
     { "redaktøren", MacRoman }, // from norwegian.words
+    { "redaktˆr", Iso885915 }, // from swedish.words
     { "redakt¯r", Iso885915 }, // from norwegian.words
     { "redakt¯ren", Iso885915 }, // from norwegian.words
     { "redegjõrelse", Cp865 }, // from norwegian.words
@@ -8174,10 +12773,19 @@ static const struct {
     { "regelm‰ﬂig", Iso885915 }, // from german.words
     { "regelm‰ﬂige", Iso885915 }, // from german.words
     { "regelm‰ﬂigen", Iso885915 }, // from german.words
+    { "regissîr", Cp865 }, // from swedish.words
+    { "regissîren", Cp865 }, // from swedish.words
+    { "regissîrer", Cp865 }, // from swedish.words
+    { "regissör", MacRoman }, // from swedish.words
+    { "regissören", MacRoman }, // from swedish.words
+    { "regissörer", MacRoman }, // from swedish.words
     { "regissõr", Cp865 }, // from norwegian.words
     { "regissõren", Cp865 }, // from norwegian.words
     { "regissør", MacRoman }, // from norwegian.words
     { "regissøren", MacRoman }, // from norwegian.words
+    { "regissˆr", Iso885915 }, // from swedish.words
+    { "regissˆren", Iso885915 }, // from swedish.words
+    { "regissˆrer", Iso885915 }, // from swedish.words
     { "regiss¯r", Iso885915 }, // from norwegian.words
     { "regiss¯ren", Iso885915 }, // from norwegian.words
     { "regulÑren", Cp437 }, // from german.words
@@ -8192,17 +12800,32 @@ static const struct {
     { "rejetÇ", Cp437 }, // from french.words
     { "rejeté", MacRoman }, // from french.words
     { "rejetÈ", Iso885915 }, // from french.words
+    { "rejÑl", Cp865 }, // from swedish.words
+    { "rejÑla", Cp865 }, // from swedish.words
+    { "rejÑlt", Cp865 }, // from swedish.words
+    { "rejäl", MacRoman }, // from swedish.words
+    { "rejäla", MacRoman }, // from swedish.words
+    { "rejält", MacRoman }, // from swedish.words
+    { "rej‰l", Iso885915 }, // from swedish.words
+    { "rej‰la", Iso885915 }, // from swedish.words
+    { "rej‰lt", Iso885915 }, // from swedish.words
     { "relevÇ", Cp437 }, // from french.words
     { "relevé", MacRoman }, // from french.words
     { "relevÈ", Iso885915 }, // from french.words
+    { "religiîs", Cp865 }, // from swedish.words
+    { "religiîsa", Cp865 }, // from swedish.words
     { "religiîse", Cp437 }, // from german.words
     { "religiîsen", Cp437 }, // from german.words
+    { "religiös", MacRoman }, // from swedish.words
+    { "religiösa", MacRoman }, // from swedish.words
     { "religiöse", MacRoman }, // from german.words
     { "religiösen", MacRoman }, // from german.words
     { "religiõs", Cp865 }, // from norwegian.words
     { "religiõse", Cp865 }, // from norwegian.words
     { "religiøs", MacRoman }, // from norwegian.words
     { "religiøse", MacRoman }, // from norwegian.words
+    { "religiˆs", Iso885915 }, // from swedish.words
+    { "religiˆsa", Iso885915 }, // from swedish.words
     { "religiˆse", Iso885915 }, // from german.words
     { "religiˆsen", Iso885915 }, // from german.words
     { "religi¯s", Iso885915 }, // from norwegian.words
@@ -8264,6 +12887,9 @@ static const struct {
     { "rentrées", MacRoman }, // from french.words
     { "rentrÈe", Iso885915 }, // from french.words
     { "rentrÈes", Iso885915 }, // from french.words
+    { "reporÑntan", Cp865 }, // from swedish.words
+    { "reporäntan", MacRoman }, // from swedish.words
+    { "repor‰ntan", Iso885915 }, // from swedish.words
     { "reprÇsentaient", Cp437 }, // from french.words
     { "reprÇsentait", Cp437 }, // from french.words
     { "reprÇsentant", Cp437 }, // from french.words
@@ -8312,6 +12938,9 @@ static const struct {
     { "repÇrer", Cp437 }, // from french.words
     { "repérer", MacRoman }, // from french.words
     { "repÈrer", Iso885915 }, // from french.words
+    { "resenÑrer", Cp865 }, // from swedish.words
+    { "resenärer", MacRoman }, // from swedish.words
+    { "resen‰rer", Iso885915 }, // from swedish.words
     { "respectÇ", Cp437 }, // from french.words
     { "respecté", MacRoman }, // from french.words
     { "respectÈ", Iso885915 }, // from french.words
@@ -8345,6 +12974,9 @@ static const struct {
     { "retrouvée", MacRoman }, // from french.words
     { "retrouvÈ", Iso885915 }, // from french.words
     { "retrouvÈe", Iso885915 }, // from french.words
+    { "riksfîrbund", Cp865 }, // from swedish.words
+    { "riksförbund", MacRoman }, // from swedish.words
+    { "riksfˆrbund", Iso885915 }, // from swedish.words
     { "risquÇ", Cp437 }, // from french.words
     { "risqué", MacRoman }, // from french.words
     { "risquÈ", Iso885915 }, // from french.words
@@ -8354,6 +12986,9 @@ static const struct {
     { "rosÇ", Cp437 }, // from french.words
     { "rosé", MacRoman }, // from french.words
     { "rosÈ", Iso885915 }, // from french.words
+    { "rumÑnien", Cp865 }, // from swedish.words
+    { "rumänien", MacRoman }, // from swedish.words
+    { "rum‰nien", Iso885915 }, // from swedish.words
     { "rusk˝", Iso88592 }, // from czech.words
     { "rychl˝", Iso88592 }, // from czech.words
     { "rÅcken", Cp437 }, // from german.words
@@ -8535,7 +13170,41 @@ static const struct {
     { "rÇvÇlation", Cp437 }, // from french.words
     { "rÇvÇler", Cp437 }, // from french.words
     { "rÇvÇlÇ", Cp437 }, // from french.words
+    { "rÑcka", Cp865 }, // from swedish.words
+    { "rÑcker", Cp865 }, // from swedish.words
+    { "rÑckhÜll", Cp865 }, // from swedish.words
+    { "rÑckte", Cp865 }, // from swedish.words
+    { "rÑdd", Cp865 }, // from swedish.words
+    { "rÑdda", Cp865 }, // from swedish.words
+    { "rÑddade", Cp865 }, // from swedish.words
+    { "rÑddas", Cp865 }, // from swedish.words
+    { "rÑddningstjÑnsten", Cp865 }, // from swedish.words
+    { "rÑdsla", Cp865 }, // from swedish.words
+    { "rÑdslan", Cp865 }, // from swedish.words
+    { "rÑkna", Cp865 }, // from swedish.words
+    { "rÑknade", Cp865 }, // from swedish.words
+    { "rÑknar", Cp865 }, // from swedish.words
+    { "rÑknas", Cp865 }, // from swedish.words
+    { "rÑknat", Cp865 }, // from swedish.words
+    { "rÑkning", Cp865 }, // from swedish.words
+    { "rÑkningar", Cp865 }, // from swedish.words
+    { "rÑnta", Cp865 }, // from swedish.words
+    { "rÑntan", Cp865 }, // from swedish.words
+    { "rÑntor", Cp865 }, // from swedish.words
+    { "rÑntorna", Cp865 }, // from swedish.words
     { "rÑt", Cp437 }, // from german.words
+    { "rÑtt", Cp865 }, // from swedish.words
+    { "rÑtta", Cp865 }, // from swedish.words
+    { "rÑttare", Cp865 }, // from swedish.words
+    { "rÑttegÜng", Cp865 }, // from swedish.words
+    { "rÑttegÜngen", Cp865 }, // from swedish.words
+    { "rÑtten", Cp865 }, // from swedish.words
+    { "rÑtter", Cp865 }, // from swedish.words
+    { "rÑttigheter", Cp865 }, // from swedish.words
+    { "rÑttigheterna", Cp865 }, // from swedish.words
+    { "rÑttvis", Cp865 }, // from swedish.words
+    { "rÑttvisa", Cp865 }, // from swedish.words
+    { "rÑttvist", Cp865 }, // from swedish.words
     { "rÑumen", Cp437 }, // from german.words
     { "rÑumt", Cp437 }, // from german.words
     { "rÑumte", Cp437 }, // from german.words
@@ -8556,7 +13225,41 @@ static const struct {
     { "rÜr", Cp865 }, // from norwegian.words
     { "rÜtt", Cp865 }, // from norwegian.words
     { "rÜvarer", Cp865 }, // from norwegian.words
+    { "räcka", MacRoman }, // from swedish.words
+    { "räcker", MacRoman }, // from swedish.words
+    { "räckhåll", MacRoman }, // from swedish.words
+    { "räckte", MacRoman }, // from swedish.words
+    { "rädd", MacRoman }, // from swedish.words
+    { "rädda", MacRoman }, // from swedish.words
+    { "räddade", MacRoman }, // from swedish.words
+    { "räddas", MacRoman }, // from swedish.words
+    { "räddningstjänsten", MacRoman }, // from swedish.words
+    { "rädsla", MacRoman }, // from swedish.words
+    { "rädslan", MacRoman }, // from swedish.words
+    { "räkna", MacRoman }, // from swedish.words
+    { "räknade", MacRoman }, // from swedish.words
+    { "räknar", MacRoman }, // from swedish.words
+    { "räknas", MacRoman }, // from swedish.words
+    { "räknat", MacRoman }, // from swedish.words
+    { "räkning", MacRoman }, // from swedish.words
+    { "räkningar", MacRoman }, // from swedish.words
+    { "ränta", MacRoman }, // from swedish.words
+    { "räntan", MacRoman }, // from swedish.words
+    { "räntor", MacRoman }, // from swedish.words
+    { "räntorna", MacRoman }, // from swedish.words
     { "rät", MacRoman }, // from german.words
+    { "rätt", MacRoman }, // from swedish.words
+    { "rätta", MacRoman }, // from swedish.words
+    { "rättare", MacRoman }, // from swedish.words
+    { "rättegång", MacRoman }, // from swedish.words
+    { "rättegången", MacRoman }, // from swedish.words
+    { "rätten", MacRoman }, // from swedish.words
+    { "rätter", MacRoman }, // from swedish.words
+    { "rättigheter", MacRoman }, // from swedish.words
+    { "rättigheterna", MacRoman }, // from swedish.words
+    { "rättvis", MacRoman }, // from swedish.words
+    { "rättvisa", MacRoman }, // from swedish.words
+    { "rättvist", MacRoman }, // from swedish.words
     { "räumen", MacRoman }, // from german.words
     { "räumt", MacRoman }, // from german.words
     { "räumte", MacRoman }, // from german.words
@@ -8751,10 +13454,64 @@ static const struct {
     { "révélation", MacRoman }, // from french.words
     { "révéler", MacRoman }, // from french.words
     { "révélé", MacRoman }, // from french.words
+    { "rîd", Cp865 }, // from swedish.words
+    { "rîda", Cp865 }, // from swedish.words
+    { "rîk", Cp865 }, // from swedish.words
+    { "rîka", Cp865 }, // from swedish.words
+    { "rîken", Cp865 }, // from swedish.words
+    { "rîker", Cp865 }, // from swedish.words
+    { "rîkt", Cp865 }, // from swedish.words
+    { "rîkte", Cp865 }, // from swedish.words
     { "rîmische", Cp437 }, // from german.words
     { "rîmischen", Cp437 }, // from german.words
+    { "rîr", Cp865 }, // from swedish.words
+    { "rîra", Cp865 }, // from swedish.words
+    { "rîrande", Cp865 }, // from swedish.words
+    { "rîrde", Cp865 }, // from swedish.words
+    { "rîrelse", Cp865 }, // from swedish.words
+    { "rîrelsen", Cp865 }, // from swedish.words
+    { "rîrelser", Cp865 }, // from swedish.words
+    { "rîrliga", Cp865 }, // from swedish.words
+    { "rîrlighet", Cp865 }, // from swedish.words
+    { "rîrt", Cp865 }, // from swedish.words
+    { "rîst", Cp865 }, // from swedish.words
+    { "rîsta", Cp865 }, // from swedish.words
+    { "rîstade", Cp865 }, // from swedish.words
+    { "rîstar", Cp865 }, // from swedish.words
+    { "rîsten", Cp865 }, // from swedish.words
+    { "rîster", Cp865 }, // from swedish.words
+    { "rîsterna", Cp865 }, // from swedish.words
+    { "rîtt", Cp865 }, // from swedish.words
+    { "rîtter", Cp865 }, // from swedish.words
+    { "röd", MacRoman }, // from swedish.words
+    { "röda", MacRoman }, // from swedish.words
+    { "rök", MacRoman }, // from swedish.words
+    { "röka", MacRoman }, // from swedish.words
+    { "röken", MacRoman }, // from swedish.words
+    { "röker", MacRoman }, // from swedish.words
+    { "rökt", MacRoman }, // from swedish.words
+    { "rökte", MacRoman }, // from swedish.words
     { "römische", MacRoman }, // from german.words
     { "römischen", MacRoman }, // from german.words
+    { "rör", MacRoman }, // from swedish.words
+    { "röra", MacRoman }, // from swedish.words
+    { "rörande", MacRoman }, // from swedish.words
+    { "rörde", MacRoman }, // from swedish.words
+    { "rörelse", MacRoman }, // from swedish.words
+    { "rörelsen", MacRoman }, // from swedish.words
+    { "rörelser", MacRoman }, // from swedish.words
+    { "rörliga", MacRoman }, // from swedish.words
+    { "rörlighet", MacRoman }, // from swedish.words
+    { "rört", MacRoman }, // from swedish.words
+    { "röst", MacRoman }, // from swedish.words
+    { "rösta", MacRoman }, // from swedish.words
+    { "röstade", MacRoman }, // from swedish.words
+    { "röstar", MacRoman }, // from swedish.words
+    { "rösten", MacRoman }, // from swedish.words
+    { "röster", MacRoman }, // from swedish.words
+    { "rösterna", MacRoman }, // from swedish.words
+    { "rött", MacRoman }, // from swedish.words
+    { "rötter", MacRoman }, // from swedish.words
     { "rõd", Cp865 }, // from norwegian.words
     { "rõde", Cp865 }, // from norwegian.words
     { "rõdland", Cp865 }, // from norwegian.words
@@ -8814,7 +13571,41 @@ static const struct {
     { "røyken", MacRoman }, // from norwegian.words
     { "røyker", MacRoman }, // from norwegian.words
     { "røyking", MacRoman }, // from norwegian.words
+    { "r‰cka", Iso885915 }, // from swedish.words
+    { "r‰cker", Iso885915 }, // from swedish.words
+    { "r‰ckhÂll", Iso885915 }, // from swedish.words
+    { "r‰ckte", Iso885915 }, // from swedish.words
+    { "r‰dd", Iso885915 }, // from swedish.words
+    { "r‰dda", Iso885915 }, // from swedish.words
+    { "r‰ddade", Iso885915 }, // from swedish.words
+    { "r‰ddas", Iso885915 }, // from swedish.words
+    { "r‰ddningstj‰nsten", Iso885915 }, // from swedish.words
+    { "r‰dsla", Iso885915 }, // from swedish.words
+    { "r‰dslan", Iso885915 }, // from swedish.words
+    { "r‰kna", Iso885915 }, // from swedish.words
+    { "r‰knade", Iso885915 }, // from swedish.words
+    { "r‰knar", Iso885915 }, // from swedish.words
+    { "r‰knas", Iso885915 }, // from swedish.words
+    { "r‰knat", Iso885915 }, // from swedish.words
+    { "r‰kning", Iso885915 }, // from swedish.words
+    { "r‰kningar", Iso885915 }, // from swedish.words
+    { "r‰nta", Iso885915 }, // from swedish.words
+    { "r‰ntan", Iso885915 }, // from swedish.words
+    { "r‰ntor", Iso885915 }, // from swedish.words
+    { "r‰ntorna", Iso885915 }, // from swedish.words
     { "r‰t", Iso885915 }, // from german.words
+    { "r‰tt", Iso885915 }, // from swedish.words
+    { "r‰tta", Iso885915 }, // from swedish.words
+    { "r‰ttare", Iso885915 }, // from swedish.words
+    { "r‰ttegÂng", Iso885915 }, // from swedish.words
+    { "r‰ttegÂngen", Iso885915 }, // from swedish.words
+    { "r‰tten", Iso885915 }, // from swedish.words
+    { "r‰tter", Iso885915 }, // from swedish.words
+    { "r‰ttigheter", Iso885915 }, // from swedish.words
+    { "r‰ttigheterna", Iso885915 }, // from swedish.words
+    { "r‰ttvis", Iso885915 }, // from swedish.words
+    { "r‰ttvisa", Iso885915 }, // from swedish.words
+    { "r‰ttvist", Iso885915 }, // from swedish.words
     { "r‰umen", Iso885915 }, // from german.words
     { "r‰umt", Iso885915 }, // from german.words
     { "r‰umte", Iso885915 }, // from german.words
@@ -9009,8 +13800,35 @@ static const struct {
     { "rÈvÈlation", Iso885915 }, // from french.words
     { "rÈvÈler", Iso885915 }, // from french.words
     { "rÈvÈlÈ", Iso885915 }, // from french.words
+    { "rˆd", Iso885915 }, // from swedish.words
+    { "rˆda", Iso885915 }, // from swedish.words
+    { "rˆk", Iso885915 }, // from swedish.words
+    { "rˆka", Iso885915 }, // from swedish.words
+    { "rˆken", Iso885915 }, // from swedish.words
+    { "rˆker", Iso885915 }, // from swedish.words
+    { "rˆkt", Iso885915 }, // from swedish.words
+    { "rˆkte", Iso885915 }, // from swedish.words
     { "rˆmische", Iso885915 }, // from german.words
     { "rˆmischen", Iso885915 }, // from german.words
+    { "rˆr", Iso885915 }, // from swedish.words
+    { "rˆra", Iso885915 }, // from swedish.words
+    { "rˆrande", Iso885915 }, // from swedish.words
+    { "rˆrde", Iso885915 }, // from swedish.words
+    { "rˆrelse", Iso885915 }, // from swedish.words
+    { "rˆrelsen", Iso885915 }, // from swedish.words
+    { "rˆrelser", Iso885915 }, // from swedish.words
+    { "rˆrliga", Iso885915 }, // from swedish.words
+    { "rˆrlighet", Iso885915 }, // from swedish.words
+    { "rˆrt", Iso885915 }, // from swedish.words
+    { "rˆst", Iso885915 }, // from swedish.words
+    { "rˆsta", Iso885915 }, // from swedish.words
+    { "rˆstade", Iso885915 }, // from swedish.words
+    { "rˆstar", Iso885915 }, // from swedish.words
+    { "rˆsten", Iso885915 }, // from swedish.words
+    { "rˆster", Iso885915 }, // from swedish.words
+    { "rˆsterna", Iso885915 }, // from swedish.words
+    { "rˆtt", Iso885915 }, // from swedish.words
+    { "rˆtter", Iso885915 }, // from swedish.words
     { "r¯d", Iso885915 }, // from norwegian.words
     { "r¯de", Iso885915 }, // from norwegian.words
     { "r¯dland", Iso885915 }, // from norwegian.words
@@ -9045,6 +13863,12 @@ static const struct {
     { "r¸ckl‰ufig", Iso885915 }, // from german.words
     { "r¸ckt", Iso885915 }, // from german.words
     { "r¸ckte", Iso885915 }, // from german.words
+    { "sabotîren", Cp865 }, // from swedish.words
+    { "sabotîrens", Cp865 }, // from swedish.words
+    { "sabotören", MacRoman }, // from swedish.words
+    { "sabotörens", MacRoman }, // from swedish.words
+    { "sabotˆren", Iso885915 }, // from swedish.words
+    { "sabotˆrens", Iso885915 }, // from swedish.words
     { "sacrÇ", Cp437 }, // from french.words
     { "sacré", MacRoman }, // from french.words
     { "sacrÈ", Iso885915 }, // from french.words
@@ -9054,9 +13878,30 @@ static const struct {
     { "salariés", MacRoman }, // from french.words
     { "salariÈ", Iso885915 }, // from french.words
     { "salariÈs", Iso885915 }, // from french.words
+    { "saltsjîbaden", Cp865 }, // from swedish.words
+    { "saltsjöbaden", MacRoman }, // from swedish.words
+    { "saltsjˆbaden", Iso885915 }, // from swedish.words
     { "salÇe", Cp437 }, // from french.words
     { "salée", MacRoman }, // from french.words
     { "salÈe", Iso885915 }, // from french.words
+    { "samfîrstÜnd", Cp865 }, // from swedish.words
+    { "samförstånd", MacRoman }, // from swedish.words
+    { "samfˆrstÂnd", Iso885915 }, // from swedish.words
+    { "samhÑlle", Cp865 }, // from swedish.words
+    { "samhÑllen", Cp865 }, // from swedish.words
+    { "samhÑllet", Cp865 }, // from swedish.words
+    { "samhÑllets", Cp865 }, // from swedish.words
+    { "samhälle", MacRoman }, // from swedish.words
+    { "samhällen", MacRoman }, // from swedish.words
+    { "samhället", MacRoman }, // from swedish.words
+    { "samhällets", MacRoman }, // from swedish.words
+    { "samh‰lle", Iso885915 }, // from swedish.words
+    { "samh‰llen", Iso885915 }, // from swedish.words
+    { "samh‰llet", Iso885915 }, // from swedish.words
+    { "samh‰llets", Iso885915 }, // from swedish.words
+    { "sammantrÑde", Cp865 }, // from swedish.words
+    { "sammanträde", MacRoman }, // from swedish.words
+    { "sammantr‰de", Iso885915 }, // from swedish.words
     { "sammenslÜing", Cp865 }, // from norwegian.words
     { "sammenslåing", MacRoman }, // from norwegian.words
     { "sammenslÂing", Iso885915 }, // from norwegian.words
@@ -9072,6 +13917,9 @@ static const struct {
     { "samvër", Cp865 }, // from norwegian.words
     { "samvær", MacRoman }, // from norwegian.words
     { "samvÊr", Iso885915 }, // from norwegian.words
+    { "sandstrîm", Cp865 }, // from swedish.words
+    { "sandström", MacRoman }, // from swedish.words
+    { "sandstrˆm", Iso885915 }, // from swedish.words
     { "santÇ", Cp437 }, // from french.words
     { "santé", MacRoman }, // from french.words
     { "santÈ", Iso885915 }, // from french.words
@@ -9198,12 +14046,21 @@ static const struct {
     { "sentralbyrÜ", Cp865 }, // from norwegian.words
     { "sentralbyrå", MacRoman }, // from norwegian.words
     { "sentralbyrÂ", Iso885915 }, // from norwegian.words
+    { "seriîs", Cp865 }, // from swedish.words
+    { "seriîsa", Cp865 }, // from swedish.words
+    { "seriîst", Cp865 }, // from swedish.words
+    { "seriös", MacRoman }, // from swedish.words
+    { "seriösa", MacRoman }, // from swedish.words
+    { "seriöst", MacRoman }, // from swedish.words
     { "seriõs", Cp865 }, // from norwegian.words
     { "seriõse", Cp865 }, // from norwegian.words
     { "seriõst", Cp865 }, // from norwegian.words
     { "seriøs", MacRoman }, // from norwegian.words
     { "seriøse", MacRoman }, // from norwegian.words
     { "seriøst", MacRoman }, // from norwegian.words
+    { "seriˆs", Iso885915 }, // from swedish.words
+    { "seriˆsa", Iso885915 }, // from swedish.words
+    { "seriˆst", Iso885915 }, // from swedish.words
     { "seri¯s", Iso885915 }, // from norwegian.words
     { "seri¯se", Iso885915 }, // from norwegian.words
     { "seri¯st", Iso885915 }, // from norwegian.words
@@ -9244,6 +14101,9 @@ static const struct {
     { "simultanÇment", Cp437 }, // from french.words
     { "simultanément", MacRoman }, // from french.words
     { "simultanÈment", Iso885915 }, // from french.words
+    { "sistnÑmnda", Cp865 }, // from swedish.words
+    { "sistnämnda", MacRoman }, // from swedish.words
+    { "sistn‰mnda", Iso885915 }, // from swedish.words
     { "situÇ", Cp437 }, // from french.words
     { "situÇe", Cp437 }, // from french.words
     { "situÇes", Cp437 }, // from french.words
@@ -9265,10 +14125,72 @@ static const struct {
     { "sjefredaktõr", Cp865 }, // from norwegian.words
     { "sjefredaktør", MacRoman }, // from norwegian.words
     { "sjefredakt¯r", Iso885915 }, // from norwegian.words
+    { "sjukskîterska", Cp865 }, // from swedish.words
+    { "sjukskîterskor", Cp865 }, // from swedish.words
+    { "sjuksköterska", MacRoman }, // from swedish.words
+    { "sjuksköterskor", MacRoman }, // from swedish.words
+    { "sjukskˆterska", Iso885915 }, // from swedish.words
+    { "sjukskˆterskor", Iso885915 }, // from swedish.words
+    { "sjÑl", Cp865 }, // from swedish.words
+    { "sjÑlen", Cp865 }, // from swedish.words
+    { "sjÑlv", Cp865 }, // from swedish.words
+    { "sjÑlva", Cp865 }, // from swedish.words
+    { "sjÑlvfallet", Cp865 }, // from swedish.words
+    { "sjÑlvfîrtroende", Cp865 }, // from swedish.words
+    { "sjÑlvklar", Cp865 }, // from swedish.words
+    { "sjÑlvklara", Cp865 }, // from swedish.words
+    { "sjÑlvklarhet", Cp865 }, // from swedish.words
+    { "sjÑlvklart", Cp865 }, // from swedish.words
+    { "sjÑlvkÑnsla", Cp865 }, // from swedish.words
+    { "sjÑlvmord", Cp865 }, // from swedish.words
+    { "sjÑlvstÑndig", Cp865 }, // from swedish.words
+    { "sjÑlvstÑndiga", Cp865 }, // from swedish.words
+    { "sjÑlvstÑndighet", Cp865 }, // from swedish.words
+    { "sjÑlvstÑndigt", Cp865 }, // from swedish.words
+    { "sjÑlvt", Cp865 }, // from swedish.words
+    { "sjÑtte", Cp865 }, // from swedish.words
     { "sjÜfõr", Cp865 }, // from norwegian.words
     { "sjÜfõren", Cp865 }, // from norwegian.words
+    { "själ", MacRoman }, // from swedish.words
+    { "själen", MacRoman }, // from swedish.words
+    { "själv", MacRoman }, // from swedish.words
+    { "själva", MacRoman }, // from swedish.words
+    { "självfallet", MacRoman }, // from swedish.words
+    { "självförtroende", MacRoman }, // from swedish.words
+    { "självklar", MacRoman }, // from swedish.words
+    { "självklara", MacRoman }, // from swedish.words
+    { "självklarhet", MacRoman }, // from swedish.words
+    { "självklart", MacRoman }, // from swedish.words
+    { "självkänsla", MacRoman }, // from swedish.words
+    { "självmord", MacRoman }, // from swedish.words
+    { "självständig", MacRoman }, // from swedish.words
+    { "självständiga", MacRoman }, // from swedish.words
+    { "självständighet", MacRoman }, // from swedish.words
+    { "självständigt", MacRoman }, // from swedish.words
+    { "självt", MacRoman }, // from swedish.words
+    { "sjätte", MacRoman }, // from swedish.words
     { "sjåfør", MacRoman }, // from norwegian.words
     { "sjåføren", MacRoman }, // from norwegian.words
+    { "sjî", Cp865 }, // from swedish.words
+    { "sjîar", Cp865 }, // from swedish.words
+    { "sjîberg", Cp865 }, // from swedish.words
+    { "sjîfartsverket", Cp865 }, // from swedish.words
+    { "sjîgren", Cp865 }, // from swedish.words
+    { "sjîholm", Cp865 }, // from swedish.words
+    { "sjîn", Cp865 }, // from swedish.words
+    { "sjîng", Cp865 }, // from swedish.words
+    { "sjînk", Cp865 }, // from swedish.words
+    { "sjîstrîm", Cp865 }, // from swedish.words
+    { "sjö", MacRoman }, // from swedish.words
+    { "sjöar", MacRoman }, // from swedish.words
+    { "sjöberg", MacRoman }, // from swedish.words
+    { "sjöfartsverket", MacRoman }, // from swedish.words
+    { "sjögren", MacRoman }, // from swedish.words
+    { "sjöholm", MacRoman }, // from swedish.words
+    { "sjön", MacRoman }, // from swedish.words
+    { "sjöng", MacRoman }, // from swedish.words
+    { "sjönk", MacRoman }, // from swedish.words
+    { "sjöström", MacRoman }, // from swedish.words
     { "sjõ", Cp865 }, // from norwegian.words
     { "sjõberg", Cp865 }, // from norwegian.words
     { "sjõen", Cp865 }, // from norwegian.words
@@ -9285,8 +14207,36 @@ static const struct {
     { "sjølv", MacRoman }, // from norwegian.words
     { "sjølyst", MacRoman }, // from norwegian.words
     { "sjøs", MacRoman }, // from norwegian.words
+    { "sj‰l", Iso885915 }, // from swedish.words
+    { "sj‰len", Iso885915 }, // from swedish.words
+    { "sj‰lv", Iso885915 }, // from swedish.words
+    { "sj‰lva", Iso885915 }, // from swedish.words
+    { "sj‰lvfallet", Iso885915 }, // from swedish.words
+    { "sj‰lvfˆrtroende", Iso885915 }, // from swedish.words
+    { "sj‰lvklar", Iso885915 }, // from swedish.words
+    { "sj‰lvklara", Iso885915 }, // from swedish.words
+    { "sj‰lvklarhet", Iso885915 }, // from swedish.words
+    { "sj‰lvklart", Iso885915 }, // from swedish.words
+    { "sj‰lvk‰nsla", Iso885915 }, // from swedish.words
+    { "sj‰lvmord", Iso885915 }, // from swedish.words
+    { "sj‰lvst‰ndig", Iso885915 }, // from swedish.words
+    { "sj‰lvst‰ndiga", Iso885915 }, // from swedish.words
+    { "sj‰lvst‰ndighet", Iso885915 }, // from swedish.words
+    { "sj‰lvst‰ndigt", Iso885915 }, // from swedish.words
+    { "sj‰lvt", Iso885915 }, // from swedish.words
+    { "sj‰tte", Iso885915 }, // from swedish.words
     { "sjÂf¯r", Iso885915 }, // from norwegian.words
     { "sjÂf¯ren", Iso885915 }, // from norwegian.words
+    { "sjˆ", Iso885915 }, // from swedish.words
+    { "sjˆar", Iso885915 }, // from swedish.words
+    { "sjˆberg", Iso885915 }, // from swedish.words
+    { "sjˆfartsverket", Iso885915 }, // from swedish.words
+    { "sjˆgren", Iso885915 }, // from swedish.words
+    { "sjˆholm", Iso885915 }, // from swedish.words
+    { "sjˆn", Iso885915 }, // from swedish.words
+    { "sjˆng", Iso885915 }, // from swedish.words
+    { "sjˆnk", Iso885915 }, // from swedish.words
+    { "sjˆstrˆm", Iso885915 }, // from swedish.words
     { "sj¯", Iso885915 }, // from norwegian.words
     { "sj¯berg", Iso885915 }, // from norwegian.words
     { "sj¯en", Iso885915 }, // from norwegian.words
@@ -9295,6 +14245,9 @@ static const struct {
     { "sj¯lv", Iso885915 }, // from norwegian.words
     { "sj¯lyst", Iso885915 }, // from norwegian.words
     { "sj¯s", Iso885915 }, // from norwegian.words
+    { "skilsmÑssa", Cp865 }, // from swedish.words
+    { "skilsmässa", MacRoman }, // from swedish.words
+    { "skilsm‰ssa", Iso885915 }, // from swedish.words
     { "skjër", Cp865 }, // from norwegian.words
     { "skjëre", Cp865 }, // from norwegian.words
     { "skjërer", Cp865 }, // from norwegian.words
@@ -9335,61 +14288,238 @@ static const struct {
     { "skoleåret", MacRoman }, // from norwegian.words
     { "skoleÂret", Iso885915 }, // from norwegian.words
     { "skonËit", Iso88592 }, // from czech.words
+    { "skrÑck", Cp865 }, // from swedish.words
+    { "skrÑmma", Cp865 }, // from swedish.words
+    { "skrÑmmande", Cp865 }, // from swedish.words
+    { "skrÑmmer", Cp865 }, // from swedish.words
+    { "skrÑp", Cp865 }, // from swedish.words
+    { "skräck", MacRoman }, // from swedish.words
+    { "skrämma", MacRoman }, // from swedish.words
+    { "skrämmande", MacRoman }, // from swedish.words
+    { "skrämmer", MacRoman }, // from swedish.words
+    { "skräp", MacRoman }, // from swedish.words
+    { "skr‰ck", Iso885915 }, // from swedish.words
+    { "skr‰mma", Iso885915 }, // from swedish.words
+    { "skr‰mmande", Iso885915 }, // from swedish.words
+    { "skr‰mmer", Iso885915 }, // from swedish.words
+    { "skr‰p", Iso885915 }, // from swedish.words
     { "skuteËn˝", Iso88592 }, // from czech.words
     { "skytevÜpen", Cp865 }, // from norwegian.words
     { "skytevåpen", MacRoman }, // from norwegian.words
     { "skytevÂpen", Iso885915 }, // from norwegian.words
+    { "skÑl", Cp865 }, // from swedish.words
+    { "skÑlen", Cp865 }, // from swedish.words
+    { "skÑlet", Cp865 }, // from swedish.words
+    { "skÑmdes", Cp865 }, // from swedish.words
+    { "skÑmmas", Cp865 }, // from swedish.words
+    { "skÑms", Cp865 }, // from swedish.words
+    { "skÑmt", Cp865 }, // from swedish.words
+    { "skÑr", Cp865 }, // from swedish.words
+    { "skÑra", Cp865 }, // from swedish.words
+    { "skÑrgÜrd", Cp865 }, // from swedish.words
+    { "skÑrgÜrden", Cp865 }, // from swedish.words
+    { "skÑrpa", Cp865 }, // from swedish.words
+    { "skÑrpt", Cp865 }, // from swedish.words
+    { "skÑrpta", Cp865 }, // from swedish.words
     { "skÜrdal", Cp865 }, // from norwegian.words
     { "skÜret", Cp865 }, // from norwegian.words
+    { "skäl", MacRoman }, // from swedish.words
+    { "skälen", MacRoman }, // from swedish.words
+    { "skälet", MacRoman }, // from swedish.words
+    { "skämdes", MacRoman }, // from swedish.words
+    { "skämmas", MacRoman }, // from swedish.words
+    { "skäms", MacRoman }, // from swedish.words
+    { "skämt", MacRoman }, // from swedish.words
+    { "skär", MacRoman }, // from swedish.words
+    { "skära", MacRoman }, // from swedish.words
+    { "skärgård", MacRoman }, // from swedish.words
+    { "skärgården", MacRoman }, // from swedish.words
+    { "skärpa", MacRoman }, // from swedish.words
+    { "skärpt", MacRoman }, // from swedish.words
+    { "skärpta", MacRoman }, // from swedish.words
     { "skårdal", MacRoman }, // from norwegian.words
     { "skåret", MacRoman }, // from norwegian.words
+    { "skîn", Cp865 }, // from swedish.words
+    { "skîna", Cp865 }, // from swedish.words
+    { "skînhet", Cp865 }, // from swedish.words
+    { "skînt", Cp865 }, // from swedish.words
+    { "skît", Cp865 }, // from swedish.words
+    { "skîta", Cp865 }, // from swedish.words
+    { "skîtas", Cp865 }, // from swedish.words
+    { "skîter", Cp865 }, // from swedish.words
+    { "skîts", Cp865 }, // from swedish.words
+    { "skîtt", Cp865 }, // from swedish.words
+    { "skîtte", Cp865 }, // from swedish.words
+    { "skîvde", Cp865 }, // from swedish.words
+    { "skön", MacRoman }, // from swedish.words
+    { "sköna", MacRoman }, // from swedish.words
+    { "skönhet", MacRoman }, // from swedish.words
+    { "skönt", MacRoman }, // from swedish.words
+    { "sköt", MacRoman }, // from swedish.words
+    { "sköta", MacRoman }, // from swedish.words
+    { "skötas", MacRoman }, // from swedish.words
+    { "sköter", MacRoman }, // from swedish.words
+    { "sköts", MacRoman }, // from swedish.words
+    { "skött", MacRoman }, // from swedish.words
+    { "skötte", MacRoman }, // from swedish.words
+    { "skövde", MacRoman }, // from swedish.words
     { "skõyter", Cp865 }, // from norwegian.words
     { "skøyter", MacRoman }, // from norwegian.words
+    { "sk‰l", Iso885915 }, // from swedish.words
+    { "sk‰len", Iso885915 }, // from swedish.words
+    { "sk‰let", Iso885915 }, // from swedish.words
+    { "sk‰mdes", Iso885915 }, // from swedish.words
+    { "sk‰mmas", Iso885915 }, // from swedish.words
+    { "sk‰ms", Iso885915 }, // from swedish.words
+    { "sk‰mt", Iso885915 }, // from swedish.words
+    { "sk‰r", Iso885915 }, // from swedish.words
+    { "sk‰ra", Iso885915 }, // from swedish.words
+    { "sk‰rgÂrd", Iso885915 }, // from swedish.words
+    { "sk‰rgÂrden", Iso885915 }, // from swedish.words
+    { "sk‰rpa", Iso885915 }, // from swedish.words
+    { "sk‰rpt", Iso885915 }, // from swedish.words
+    { "sk‰rpta", Iso885915 }, // from swedish.words
     { "skÂrdal", Iso885915 }, // from norwegian.words
     { "skÂret", Iso885915 }, // from norwegian.words
+    { "skˆn", Iso885915 }, // from swedish.words
+    { "skˆna", Iso885915 }, // from swedish.words
+    { "skˆnhet", Iso885915 }, // from swedish.words
+    { "skˆnt", Iso885915 }, // from swedish.words
+    { "skˆt", Iso885915 }, // from swedish.words
+    { "skˆta", Iso885915 }, // from swedish.words
+    { "skˆtas", Iso885915 }, // from swedish.words
+    { "skˆter", Iso885915 }, // from swedish.words
+    { "skˆts", Iso885915 }, // from swedish.words
+    { "skˆtt", Iso885915 }, // from swedish.words
+    { "skˆtte", Iso885915 }, // from swedish.words
+    { "skˆvde", Iso885915 }, // from swedish.words
     { "sk¯yter", Iso885915 }, // from norwegian.words
     { "slalÜm", Cp865 }, // from norwegian.words
     { "slalåm", MacRoman }, // from norwegian.words
     { "slalÂm", Iso885915 }, // from norwegian.words
     { "slovensk˝", Iso88592 }, // from czech.words
     { "sluæba", Iso88592 }, // from czech.words
+    { "slÑkt", Cp865 }, // from swedish.words
+    { "slÑkten", Cp865 }, // from swedish.words
+    { "slÑktingar", Cp865 }, // from swedish.words
+    { "slÑnga", Cp865 }, // from swedish.words
+    { "slÑngde", Cp865 }, // from swedish.words
+    { "slÑnger", Cp865 }, // from swedish.words
+    { "slÑppa", Cp865 }, // from swedish.words
+    { "slÑppas", Cp865 }, // from swedish.words
+    { "slÑpper", Cp865 }, // from swedish.words
+    { "slÑpps", Cp865 }, // from swedish.words
+    { "slÑppt", Cp865 }, // from swedish.words
+    { "slÑppte", Cp865 }, // from swedish.words
+    { "slÑpptes", Cp865 }, // from swedish.words
     { "slÜ", Cp865 }, // from norwegian.words
     { "slÜr", Cp865 }, // from norwegian.words
     { "slÜs", Cp865 }, // from norwegian.words
     { "slÜss", Cp865 }, // from norwegian.words
     { "slÜtt", Cp865 }, // from norwegian.words
+    { "släkt", MacRoman }, // from swedish.words
+    { "släkten", MacRoman }, // from swedish.words
+    { "släktingar", MacRoman }, // from swedish.words
+    { "slänga", MacRoman }, // from swedish.words
+    { "slängde", MacRoman }, // from swedish.words
+    { "slänger", MacRoman }, // from swedish.words
+    { "släppa", MacRoman }, // from swedish.words
+    { "släppas", MacRoman }, // from swedish.words
+    { "släpper", MacRoman }, // from swedish.words
+    { "släpps", MacRoman }, // from swedish.words
+    { "släppt", MacRoman }, // from swedish.words
+    { "släppte", MacRoman }, // from swedish.words
+    { "släpptes", MacRoman }, // from swedish.words
     { "slå", MacRoman }, // from norwegian.words
     { "slår", MacRoman }, // from norwegian.words
     { "slås", MacRoman }, // from norwegian.words
     { "slåss", MacRoman }, // from norwegian.words
     { "slått", MacRoman }, // from norwegian.words
+    { "slît", Cp865 }, // from swedish.words
+    { "slöt", MacRoman }, // from swedish.words
+    { "sl‰kt", Iso885915 }, // from swedish.words
+    { "sl‰kten", Iso885915 }, // from swedish.words
+    { "sl‰ktingar", Iso885915 }, // from swedish.words
+    { "sl‰nga", Iso885915 }, // from swedish.words
+    { "sl‰ngde", Iso885915 }, // from swedish.words
+    { "sl‰nger", Iso885915 }, // from swedish.words
+    { "sl‰ppa", Iso885915 }, // from swedish.words
+    { "sl‰ppas", Iso885915 }, // from swedish.words
+    { "sl‰pper", Iso885915 }, // from swedish.words
+    { "sl‰pps", Iso885915 }, // from swedish.words
+    { "sl‰ppt", Iso885915 }, // from swedish.words
+    { "sl‰ppte", Iso885915 }, // from swedish.words
+    { "sl‰pptes", Iso885915 }, // from swedish.words
     { "slÂ", Iso885915 }, // from norwegian.words
     { "slÂr", Iso885915 }, // from norwegian.words
     { "slÂs", Iso885915 }, // from norwegian.words
     { "slÂss", Iso885915 }, // from norwegian.words
     { "slÂtt", Iso885915 }, // from norwegian.words
+    { "slˆt", Iso885915 }, // from swedish.words
+    { "smÑll", Cp865 }, // from swedish.words
+    { "smÑlta", Cp865 }, // from swedish.words
+    { "smÑrta", Cp865 }, // from swedish.words
+    { "smÑrtan", Cp865 }, // from swedish.words
     { "smÜ", Cp865 }, // from norwegian.words
+    { "smÜfîretag", Cp865 }, // from swedish.words
+    { "smÜfîretagen", Cp865 }, // from swedish.words
     { "smÜtt", Cp865 }, // from norwegian.words
+    { "smäll", MacRoman }, // from swedish.words
+    { "smälta", MacRoman }, // from swedish.words
+    { "smärta", MacRoman }, // from swedish.words
+    { "smärtan", MacRoman }, // from swedish.words
     { "små", MacRoman }, // from norwegian.words
+    { "småföretag", MacRoman }, // from swedish.words
+    { "småföretagen", MacRoman }, // from swedish.words
     { "smått", MacRoman }, // from norwegian.words
+    { "smîg", Cp865 }, // from swedish.words
+    { "smîr", Cp865 }, // from swedish.words
+    { "smög", MacRoman }, // from swedish.words
+    { "smör", MacRoman }, // from swedish.words
     { "smõr", Cp865 }, // from norwegian.words
     { "smør", MacRoman }, // from norwegian.words
+    { "sm‰ll", Iso885915 }, // from swedish.words
+    { "sm‰lta", Iso885915 }, // from swedish.words
+    { "sm‰rta", Iso885915 }, // from swedish.words
+    { "sm‰rtan", Iso885915 }, // from swedish.words
     { "smÂ", Iso885915 }, // from norwegian.words
+    { "smÂfˆretag", Iso885915 }, // from swedish.words
+    { "smÂfˆretagen", Iso885915 }, // from swedish.words
     { "smÂtt", Iso885915 }, // from norwegian.words
     { "smÏt", Iso88592 }, // from czech.words
+    { "smˆg", Iso885915 }, // from swedish.words
+    { "smˆr", Iso885915 }, // from swedish.words
     { "sm¯r", Iso885915 }, // from norwegian.words
     { "snaæit", Iso88592 }, // from czech.words
+    { "snÑll", Cp865 }, // from swedish.words
+    { "snÑlla", Cp865 }, // from swedish.words
+    { "snÑllt", Cp865 }, // from swedish.words
+    { "snäll", MacRoman }, // from swedish.words
+    { "snälla", MacRoman }, // from swedish.words
+    { "snällt", MacRoman }, // from swedish.words
+    { "snî", Cp865 }, // from swedish.words
+    { "snîn", Cp865 }, // from swedish.words
+    { "snö", MacRoman }, // from swedish.words
+    { "snön", MacRoman }, // from swedish.words
     { "snõ", Cp865 }, // from norwegian.words
     { "snõen", Cp865 }, // from norwegian.words
     { "snø", MacRoman }, // from norwegian.words
     { "snøen", MacRoman }, // from norwegian.words
+    { "sn‰ll", Iso885915 }, // from swedish.words
+    { "sn‰lla", Iso885915 }, // from swedish.words
+    { "sn‰llt", Iso885915 }, // from swedish.words
     { "snÌmek", Iso88592 }, // from czech.words
     { "snÌæit", Iso88592 }, // from czech.words
+    { "snˆ", Iso885915 }, // from swedish.words
+    { "snˆn", Iso885915 }, // from swedish.words
     { "sn¯", Iso885915 }, // from norwegian.words
     { "sn¯en", Iso885915 }, // from norwegian.words
     { "sobriÇtÇ", Cp437 }, // from french.words
     { "sobriété", MacRoman }, // from french.words
     { "sobriÈtÈ", Iso885915 }, // from french.words
+    { "socialtjÑnsten", Cp865 }, // from swedish.words
+    { "socialtjänsten", MacRoman }, // from swedish.words
+    { "socialtj‰nsten", Iso885915 }, // from swedish.words
     { "sociÇtÇ", Cp437 }, // from french.words
     { "sociÇtÇs", Cp437 }, // from french.words
     { "société", MacRoman }, // from french.words
@@ -9439,10 +14569,13 @@ static const struct {
     { "soviétique", MacRoman }, // from french.words
     { "soviÈtique", Iso885915 }, // from french.words
     { "sovÏtsk˝", Iso88592 }, // from czech.words
+    { "spektakulÑra", Cp865 }, // from swedish.words
     { "spektakulÑre", Cp437 }, // from german.words
     { "spektakulÑren", Cp437 }, // from german.words
+    { "spektakulära", MacRoman }, // from swedish.words
     { "spektakuläre", MacRoman }, // from german.words
     { "spektakulären", MacRoman }, // from german.words
+    { "spektakul‰ra", Iso885915 }, // from swedish.words
     { "spektakul‰re", Iso885915 }, // from german.words
     { "spektakul‰ren", Iso885915 }, // from german.words
     { "spillefõrer", Cp865 }, // from norwegian.words
@@ -9454,12 +14587,15 @@ static const struct {
     { "spontanément", MacRoman }, // from french.words
     { "spontanÈment", Iso885915 }, // from french.words
     { "sportovnÌ", Iso88592 }, // from czech.words
+    { "sprÑnga", Cp865 }, // from swedish.words
     { "sprÜk", Cp865 }, // from norwegian.words
     { "sprÜket", Cp865 }, // from norwegian.words
     { "sprÜklig", Cp865 }, // from norwegian.words
+    { "spränga", MacRoman }, // from swedish.words
     { "språk", MacRoman }, // from norwegian.words
     { "språket", MacRoman }, // from norwegian.words
     { "språklig", MacRoman }, // from norwegian.words
+    { "spr‰nga", Iso885915 }, // from swedish.words
     { "sprÂk", Iso885915 }, // from norwegian.words
     { "sprÂket", Iso885915 }, // from norwegian.words
     { "sprÂklig", Iso885915 }, // from norwegian.words
@@ -9489,6 +14625,14 @@ static const struct {
     { "spÇculatif", Cp437 }, // from french.words
     { "spÇculation", Cp437 }, // from french.words
     { "spÇculative", Cp437 }, // from french.words
+    { "spÑnd", Cp865 }, // from swedish.words
+    { "spÑnde", Cp865 }, // from swedish.words
+    { "spÑnn", Cp865 }, // from swedish.words
+    { "spÑnnande", Cp865 }, // from swedish.words
+    { "spÑnner", Cp865 }, // from swedish.words
+    { "spÑnning", Cp865 }, // from swedish.words
+    { "spÑnningen", Cp865 }, // from swedish.words
+    { "spÑnt", Cp865 }, // from swedish.words
     { "spÑt", Cp437 }, // from german.words
     { "spÑten", Cp437 }, // from german.words
     { "spÑter", Cp437 }, // from german.words
@@ -9496,6 +14640,15 @@ static const struct {
     { "spÑteren", Cp437 }, // from german.words
     { "spÑtestens", Cp437 }, // from german.words
     { "spÜr", Cp865 }, // from norwegian.words
+    { "spÜrvÑgen", Cp865 }, // from swedish.words
+    { "spänd", MacRoman }, // from swedish.words
+    { "spände", MacRoman }, // from swedish.words
+    { "spänn", MacRoman }, // from swedish.words
+    { "spännande", MacRoman }, // from swedish.words
+    { "spänner", MacRoman }, // from swedish.words
+    { "spänning", MacRoman }, // from swedish.words
+    { "spänningen", MacRoman }, // from swedish.words
+    { "spänt", MacRoman }, // from swedish.words
     { "spät", MacRoman }, // from german.words
     { "späten", MacRoman }, // from german.words
     { "später", MacRoman }, // from german.words
@@ -9503,6 +14656,7 @@ static const struct {
     { "späteren", MacRoman }, // from german.words
     { "spätestens", MacRoman }, // from german.words
     { "spår", MacRoman }, // from norwegian.words
+    { "spårvägen", MacRoman }, // from swedish.words
     { "spécial", MacRoman }, // from french.words
     { "spéciale", MacRoman }, // from french.words
     { "spécialement", MacRoman }, // from french.words
@@ -9543,6 +14697,14 @@ static const struct {
     { "spørsmålene", MacRoman }, // from norwegian.words
     { "spørsmålet", MacRoman }, // from norwegian.words
     { "spørsmålstegn", MacRoman }, // from norwegian.words
+    { "sp‰nd", Iso885915 }, // from swedish.words
+    { "sp‰nde", Iso885915 }, // from swedish.words
+    { "sp‰nn", Iso885915 }, // from swedish.words
+    { "sp‰nnande", Iso885915 }, // from swedish.words
+    { "sp‰nner", Iso885915 }, // from swedish.words
+    { "sp‰nning", Iso885915 }, // from swedish.words
+    { "sp‰nningen", Iso885915 }, // from swedish.words
+    { "sp‰nt", Iso885915 }, // from swedish.words
     { "sp‰t", Iso885915 }, // from german.words
     { "sp‰ten", Iso885915 }, // from german.words
     { "sp‰ter", Iso885915 }, // from german.words
@@ -9550,6 +14712,7 @@ static const struct {
     { "sp‰teren", Iso885915 }, // from german.words
     { "sp‰testens", Iso885915 }, // from german.words
     { "spÂr", Iso885915 }, // from norwegian.words
+    { "spÂrv‰gen", Iso885915 }, // from swedish.words
     { "spÈcial", Iso885915 }, // from french.words
     { "spÈciale", Iso885915 }, // from french.words
     { "spÈcialement", Iso885915 }, // from french.words
@@ -9616,15 +14779,39 @@ static const struct {
     { "stieﬂen", Iso885915 }, // from german.words
     { "stie·", Cp437 }, // from german.words
     { "stie·en", Cp437 }, // from german.words
+    { "stjÑl", Cp865 }, // from swedish.words
+    { "stjÑla", Cp865 }, // from swedish.words
+    { "stjÑrna", Cp865 }, // from swedish.words
+    { "stjÑrnan", Cp865 }, // from swedish.words
+    { "stjÑrnor", Cp865 }, // from swedish.words
+    { "stjÑrnorna", Cp865 }, // from swedish.words
     { "stjÜlet", Cp865 }, // from norwegian.words
+    { "stjäl", MacRoman }, // from swedish.words
+    { "stjäla", MacRoman }, // from swedish.words
+    { "stjärna", MacRoman }, // from swedish.words
+    { "stjärnan", MacRoman }, // from swedish.words
+    { "stjärnor", MacRoman }, // from swedish.words
+    { "stjärnorna", MacRoman }, // from swedish.words
     { "stjålet", MacRoman }, // from norwegian.words
     { "stjõrdal", Cp865 }, // from norwegian.words
     { "stjørdal", MacRoman }, // from norwegian.words
+    { "stj‰l", Iso885915 }, // from swedish.words
+    { "stj‰la", Iso885915 }, // from swedish.words
+    { "stj‰rna", Iso885915 }, // from swedish.words
+    { "stj‰rnan", Iso885915 }, // from swedish.words
+    { "stj‰rnor", Iso885915 }, // from swedish.words
+    { "stj‰rnorna", Iso885915 }, // from swedish.words
     { "stjÂlet", Iso885915 }, // from norwegian.words
     { "stj¯rdal", Iso885915 }, // from norwegian.words
+    { "stockholmsbîrsen", Cp865 }, // from swedish.words
+    { "stockholmsbörsen", MacRoman }, // from swedish.words
+    { "stockholmsbˆrsen", Iso885915 }, // from swedish.words
     { "storslalÜm", Cp865 }, // from norwegian.words
     { "storslalåm", MacRoman }, // from norwegian.words
     { "storslalÂm", Iso885915 }, // from norwegian.words
+    { "storstÑderna", Cp865 }, // from swedish.words
+    { "storstäderna", MacRoman }, // from swedish.words
+    { "storst‰derna", Iso885915 }, // from swedish.words
     { "stoßen", MacRoman }, // from german.words
     { "stoﬂen", Iso885915 }, // from german.words
     { "sto·en", Cp437 }, // from german.words
@@ -9640,8 +14827,42 @@ static const struct {
     { "stratÈgies", Iso885915 }, // from french.words
     { "stratÈgique", Iso885915 }, // from french.words
     { "stratÈgiques", Iso885915 }, // from french.words
+    { "strÑcka", Cp865 }, // from swedish.words
+    { "strÑckan", Cp865 }, // from swedish.words
+    { "strÑcker", Cp865 }, // from swedish.words
+    { "strÑckte", Cp865 }, // from swedish.words
+    { "strÑng", Cp865 }, // from swedish.words
+    { "strÑnga", Cp865 }, // from swedish.words
+    { "strÑngt", Cp865 }, // from swedish.words
+    { "strÑva", Cp865 }, // from swedish.words
+    { "strÑvan", Cp865 }, // from swedish.words
+    { "strÑvar", Cp865 }, // from swedish.words
     { "strÜlende", Cp865 }, // from norwegian.words
+    { "sträcka", MacRoman }, // from swedish.words
+    { "sträckan", MacRoman }, // from swedish.words
+    { "sträcker", MacRoman }, // from swedish.words
+    { "sträckte", MacRoman }, // from swedish.words
+    { "sträng", MacRoman }, // from swedish.words
+    { "stränga", MacRoman }, // from swedish.words
+    { "strängt", MacRoman }, // from swedish.words
+    { "sträva", MacRoman }, // from swedish.words
+    { "strävan", MacRoman }, // from swedish.words
+    { "strävar", MacRoman }, // from swedish.words
     { "strålende", MacRoman }, // from norwegian.words
+    { "strîk", Cp865 }, // from swedish.words
+    { "strîm", Cp865 }, // from swedish.words
+    { "strîmberg", Cp865 }, // from swedish.words
+    { "strîmmade", Cp865 }, // from swedish.words
+    { "strîmmar", Cp865 }, // from swedish.words
+    { "strîmmen", Cp865 }, // from swedish.words
+    { "strîmstad", Cp865 }, // from swedish.words
+    { "strök", MacRoman }, // from swedish.words
+    { "ström", MacRoman }, // from swedish.words
+    { "strömberg", MacRoman }, // from swedish.words
+    { "strömmade", MacRoman }, // from swedish.words
+    { "strömmar", MacRoman }, // from swedish.words
+    { "strömmen", MacRoman }, // from swedish.words
+    { "strömstad", MacRoman }, // from swedish.words
     { "strõk", Cp865 }, // from norwegian.words
     { "strõket", Cp865 }, // from norwegian.words
     { "strõm", Cp865 }, // from norwegian.words
@@ -9658,7 +14879,24 @@ static const struct {
     { "strømmer", MacRoman }, // from norwegian.words
     { "strømmet", MacRoman }, // from norwegian.words
     { "strømsgodset", MacRoman }, // from norwegian.words
+    { "str‰cka", Iso885915 }, // from swedish.words
+    { "str‰ckan", Iso885915 }, // from swedish.words
+    { "str‰cker", Iso885915 }, // from swedish.words
+    { "str‰ckte", Iso885915 }, // from swedish.words
+    { "str‰ng", Iso885915 }, // from swedish.words
+    { "str‰nga", Iso885915 }, // from swedish.words
+    { "str‰ngt", Iso885915 }, // from swedish.words
+    { "str‰va", Iso885915 }, // from swedish.words
+    { "str‰van", Iso885915 }, // from swedish.words
+    { "str‰var", Iso885915 }, // from swedish.words
     { "strÂlende", Iso885915 }, // from norwegian.words
+    { "strˆk", Iso885915 }, // from swedish.words
+    { "strˆm", Iso885915 }, // from swedish.words
+    { "strˆmberg", Iso885915 }, // from swedish.words
+    { "strˆmmade", Iso885915 }, // from swedish.words
+    { "strˆmmar", Iso885915 }, // from swedish.words
+    { "strˆmmen", Iso885915 }, // from swedish.words
+    { "strˆmstad", Iso885915 }, // from swedish.words
     { "str¯k", Iso885915 }, // from norwegian.words
     { "str¯ket", Iso885915 }, // from norwegian.words
     { "str¯m", Iso885915 }, // from norwegian.words
@@ -9667,6 +14905,9 @@ static const struct {
     { "str¯mmer", Iso885915 }, // from norwegian.words
     { "str¯mmet", Iso885915 }, // from norwegian.words
     { "str¯msgodset", Iso885915 }, // from norwegian.words
+    { "styrelseordfîrande", Cp865 }, // from swedish.words
+    { "styrelseordförande", MacRoman }, // from swedish.words
+    { "styrelseordfˆrande", Iso885915 }, // from swedish.words
     { "styremõte", Cp865 }, // from norwegian.words
     { "styremøte", MacRoman }, // from norwegian.words
     { "styrem¯te", Iso885915 }, // from norwegian.words
@@ -9677,17 +14918,55 @@ static const struct {
     { "stÅrzte", Cp437 }, // from german.words
     { "stÅtzen", Cp437 }, // from german.words
     { "stÅtzt", Cp437 }, // from german.words
+    { "stÑda", Cp865 }, // from swedish.words
+    { "stÑder", Cp865 }, // from swedish.words
+    { "stÑderna", Cp865 }, // from swedish.words
+    { "stÑdning", Cp865 }, // from swedish.words
     { "stÑdtische", Cp437 }, // from german.words
     { "stÑdtischen", Cp437 }, // from german.words
-    { "stÑndig", Cp437 }, // from german.words
+    { "stÑll", Cp865 }, // from swedish.words
+    { "stÑlla", Cp865 }, // from swedish.words
+    { "stÑllas", Cp865 }, // from swedish.words
+    { "stÑllda", Cp865 }, // from swedish.words
+    { "stÑllde", Cp865 }, // from swedish.words
+    { "stÑlldes", Cp865 }, // from swedish.words
+    { "stÑlle", Cp865 }, // from swedish.words
+    { "stÑllen", Cp865 }, // from swedish.words
+    { "stÑller", Cp865 }, // from swedish.words
+    { "stÑllet", Cp865 }, // from swedish.words
+    { "stÑllning", Cp865 }, // from swedish.words
+    { "stÑllningen", Cp865 }, // from swedish.words
+    { "stÑllningstagande", Cp865 }, // from swedish.words
+    { "stÑlls", Cp865 }, // from swedish.words
+    { "stÑllt", Cp865 }, // from swedish.words
+    { "stÑllts", Cp865 }, // from swedish.words
+    { "stÑmde", Cp865 }, // from swedish.words
+    { "stÑmma", Cp865 }, // from swedish.words
+    { "stÑmman", Cp865 }, // from swedish.words
+    { "stÑmmer", Cp865 }, // from swedish.words
+    { "stÑmning", Cp865 }, // from swedish.words
+    { "stÑmningen", Cp865 }, // from swedish.words
+    { "stÑndiga", Cp865 }, // from swedish.words
     { "stÑndige", Cp437 }, // from german.words
     { "stÑndigen", Cp437 }, // from german.words
+    { "stÑndigt", Cp865 }, // from swedish.words
+    { "stÑnga", Cp865 }, // from swedish.words
+    { "stÑngas", Cp865 }, // from swedish.words
+    { "stÑngd", Cp865 }, // from swedish.words
+    { "stÑngda", Cp865 }, // from swedish.words
+    { "stÑngde", Cp865 }, // from swedish.words
+    { "stÑngdes", Cp865 }, // from swedish.words
+    { "stÑnger", Cp865 }, // from swedish.words
+    { "stÑngning", Cp865 }, // from swedish.words
+    { "stÑngs", Cp865 }, // from swedish.words
+    { "stÑngt", Cp865 }, // from swedish.words
+    { "stÑrka", Cp865 }, // from swedish.words
     { "stÑrken", Cp437 }, // from german.words
-    { "stÑrker", Cp437 }, // from german.words
     { "stÑrkere", Cp437 }, // from german.words
     { "stÑrkeren", Cp437 }, // from german.words
     { "stÑrkste", Cp437 }, // from german.words
     { "stÑrksten", Cp437 }, // from german.words
+    { "stÑrkt", Cp865 }, // from swedish.words
     { "stÜ", Cp865 }, // from norwegian.words
     { "stÜende", Cp865 }, // from norwegian.words
     { "stÜl", Cp865 }, // from norwegian.words
@@ -9695,17 +14974,55 @@ static const struct {
     { "stÜr", Cp865 }, // from norwegian.words
     { "stÜsted", Cp865 }, // from norwegian.words
     { "stÜtt", Cp865 }, // from norwegian.words
+    { "städa", MacRoman }, // from swedish.words
+    { "städer", MacRoman }, // from swedish.words
+    { "städerna", MacRoman }, // from swedish.words
+    { "städning", MacRoman }, // from swedish.words
     { "städtische", MacRoman }, // from german.words
     { "städtischen", MacRoman }, // from german.words
-    { "ständig", MacRoman }, // from german.words
+    { "ställ", MacRoman }, // from swedish.words
+    { "ställa", MacRoman }, // from swedish.words
+    { "ställas", MacRoman }, // from swedish.words
+    { "ställda", MacRoman }, // from swedish.words
+    { "ställde", MacRoman }, // from swedish.words
+    { "ställdes", MacRoman }, // from swedish.words
+    { "ställe", MacRoman }, // from swedish.words
+    { "ställen", MacRoman }, // from swedish.words
+    { "ställer", MacRoman }, // from swedish.words
+    { "stället", MacRoman }, // from swedish.words
+    { "ställning", MacRoman }, // from swedish.words
+    { "ställningen", MacRoman }, // from swedish.words
+    { "ställningstagande", MacRoman }, // from swedish.words
+    { "ställs", MacRoman }, // from swedish.words
+    { "ställt", MacRoman }, // from swedish.words
+    { "ställts", MacRoman }, // from swedish.words
+    { "stämde", MacRoman }, // from swedish.words
+    { "stämma", MacRoman }, // from swedish.words
+    { "stämman", MacRoman }, // from swedish.words
+    { "stämmer", MacRoman }, // from swedish.words
+    { "stämning", MacRoman }, // from swedish.words
+    { "stämningen", MacRoman }, // from swedish.words
+    { "ständiga", MacRoman }, // from swedish.words
     { "ständige", MacRoman }, // from german.words
     { "ständigen", MacRoman }, // from german.words
+    { "ständigt", MacRoman }, // from swedish.words
+    { "stänga", MacRoman }, // from swedish.words
+    { "stängas", MacRoman }, // from swedish.words
+    { "stängd", MacRoman }, // from swedish.words
+    { "stängda", MacRoman }, // from swedish.words
+    { "stängde", MacRoman }, // from swedish.words
+    { "stängdes", MacRoman }, // from swedish.words
+    { "stänger", MacRoman }, // from swedish.words
+    { "stängning", MacRoman }, // from swedish.words
+    { "stängs", MacRoman }, // from swedish.words
+    { "stängt", MacRoman }, // from swedish.words
+    { "stärka", MacRoman }, // from swedish.words
     { "stärken", MacRoman }, // from german.words
-    { "stärker", MacRoman }, // from german.words
     { "stärkere", MacRoman }, // from german.words
     { "stärkeren", MacRoman }, // from german.words
     { "stärkste", MacRoman }, // from german.words
     { "stärksten", MacRoman }, // from german.words
+    { "stärkt", MacRoman }, // from swedish.words
     { "stå", MacRoman }, // from norwegian.words
     { "stående", MacRoman }, // from norwegian.words
     { "stål", MacRoman }, // from norwegian.words
@@ -9713,11 +15030,51 @@ static const struct {
     { "står", MacRoman }, // from norwegian.words
     { "ståsted", MacRoman }, // from norwegian.words
     { "stått", MacRoman }, // from norwegian.words
+    { "stîd", Cp865 }, // from swedish.words
+    { "stîdde", Cp865 }, // from swedish.words
+    { "stîder", Cp865 }, // from swedish.words
+    { "stîdet", Cp865 }, // from swedish.words
+    { "stîdja", Cp865 }, // from swedish.words
+    { "stîdjer", Cp865 }, // from swedish.words
+    { "stîld", Cp865 }, // from swedish.words
+    { "stîr", Cp865 }, // from swedish.words
+    { "stîra", Cp865 }, // from swedish.words
+    { "stîrande", Cp865 }, // from swedish.words
     { "stîren", Cp437 }, // from german.words
+    { "stîrningar", Cp865 }, // from swedish.words
+    { "stîrre", Cp865 }, // from swedish.words
+    { "stîrst", Cp865 }, // from swedish.words
+    { "stîrsta", Cp865 }, // from swedish.words
+    { "stîrste", Cp865 }, // from swedish.words
     { "stîrt", Cp437 }, // from german.words
+    { "stîrtade", Cp865 }, // from swedish.words
+    { "stîta", Cp865 }, // from swedish.words
+    { "stîter", Cp865 }, // from swedish.words
+    { "stîtt", Cp865 }, // from swedish.words
+    { "stîtte", Cp865 }, // from swedish.words
     { "stî·t", Cp437 }, // from german.words
+    { "stöd", MacRoman }, // from swedish.words
+    { "stödde", MacRoman }, // from swedish.words
+    { "stöder", MacRoman }, // from swedish.words
+    { "stödet", MacRoman }, // from swedish.words
+    { "stödja", MacRoman }, // from swedish.words
+    { "stödjer", MacRoman }, // from swedish.words
+    { "stöld", MacRoman }, // from swedish.words
+    { "stör", MacRoman }, // from swedish.words
+    { "störa", MacRoman }, // from swedish.words
+    { "störande", MacRoman }, // from swedish.words
     { "stören", MacRoman }, // from german.words
+    { "störningar", MacRoman }, // from swedish.words
+    { "större", MacRoman }, // from swedish.words
+    { "störst", MacRoman }, // from swedish.words
+    { "största", MacRoman }, // from swedish.words
+    { "störste", MacRoman }, // from swedish.words
     { "stört", MacRoman }, // from german.words
+    { "störtade", MacRoman }, // from swedish.words
+    { "stöta", MacRoman }, // from swedish.words
+    { "stöter", MacRoman }, // from swedish.words
+    { "stött", MacRoman }, // from swedish.words
+    { "stötte", MacRoman }, // from swedish.words
     { "stößt", MacRoman }, // from german.words
     { "stõ", Cp865 }, // from norwegian.words
     { "stõrre", Cp865 }, // from norwegian.words
@@ -9757,17 +15114,55 @@ static const struct {
     { "støv", MacRoman }, // from norwegian.words
     { "støy", MacRoman }, // from norwegian.words
     { "st·tnÌ", Iso88592 }, // from czech.words
+    { "st‰da", Iso885915 }, // from swedish.words
+    { "st‰der", Iso885915 }, // from swedish.words
+    { "st‰derna", Iso885915 }, // from swedish.words
+    { "st‰dning", Iso885915 }, // from swedish.words
     { "st‰dtische", Iso885915 }, // from german.words
     { "st‰dtischen", Iso885915 }, // from german.words
-    { "st‰ndig", Iso885915 }, // from german.words
+    { "st‰ll", Iso885915 }, // from swedish.words
+    { "st‰lla", Iso885915 }, // from swedish.words
+    { "st‰llas", Iso885915 }, // from swedish.words
+    { "st‰llda", Iso885915 }, // from swedish.words
+    { "st‰llde", Iso885915 }, // from swedish.words
+    { "st‰lldes", Iso885915 }, // from swedish.words
+    { "st‰lle", Iso885915 }, // from swedish.words
+    { "st‰llen", Iso885915 }, // from swedish.words
+    { "st‰ller", Iso885915 }, // from swedish.words
+    { "st‰llet", Iso885915 }, // from swedish.words
+    { "st‰llning", Iso885915 }, // from swedish.words
+    { "st‰llningen", Iso885915 }, // from swedish.words
+    { "st‰llningstagande", Iso885915 }, // from swedish.words
+    { "st‰lls", Iso885915 }, // from swedish.words
+    { "st‰llt", Iso885915 }, // from swedish.words
+    { "st‰llts", Iso885915 }, // from swedish.words
+    { "st‰mde", Iso885915 }, // from swedish.words
+    { "st‰mma", Iso885915 }, // from swedish.words
+    { "st‰mman", Iso885915 }, // from swedish.words
+    { "st‰mmer", Iso885915 }, // from swedish.words
+    { "st‰mning", Iso885915 }, // from swedish.words
+    { "st‰mningen", Iso885915 }, // from swedish.words
+    { "st‰ndiga", Iso885915 }, // from swedish.words
     { "st‰ndige", Iso885915 }, // from german.words
     { "st‰ndigen", Iso885915 }, // from german.words
+    { "st‰ndigt", Iso885915 }, // from swedish.words
+    { "st‰nga", Iso885915 }, // from swedish.words
+    { "st‰ngas", Iso885915 }, // from swedish.words
+    { "st‰ngd", Iso885915 }, // from swedish.words
+    { "st‰ngda", Iso885915 }, // from swedish.words
+    { "st‰ngde", Iso885915 }, // from swedish.words
+    { "st‰ngdes", Iso885915 }, // from swedish.words
+    { "st‰nger", Iso885915 }, // from swedish.words
+    { "st‰ngning", Iso885915 }, // from swedish.words
+    { "st‰ngs", Iso885915 }, // from swedish.words
+    { "st‰ngt", Iso885915 }, // from swedish.words
+    { "st‰rka", Iso885915 }, // from swedish.words
     { "st‰rken", Iso885915 }, // from german.words
-    { "st‰rker", Iso885915 }, // from german.words
     { "st‰rkere", Iso885915 }, // from german.words
     { "st‰rkeren", Iso885915 }, // from german.words
     { "st‰rkste", Iso885915 }, // from german.words
     { "st‰rksten", Iso885915 }, // from german.words
+    { "st‰rkt", Iso885915 }, // from swedish.words
     { "stÂ", Iso885915 }, // from norwegian.words
     { "stÂende", Iso885915 }, // from norwegian.words
     { "stÂl", Iso885915 }, // from norwegian.words
@@ -9775,8 +15170,28 @@ static const struct {
     { "stÂr", Iso885915 }, // from norwegian.words
     { "stÂsted", Iso885915 }, // from norwegian.words
     { "stÂtt", Iso885915 }, // from norwegian.words
+    { "stˆd", Iso885915 }, // from swedish.words
+    { "stˆdde", Iso885915 }, // from swedish.words
+    { "stˆder", Iso885915 }, // from swedish.words
+    { "stˆdet", Iso885915 }, // from swedish.words
+    { "stˆdja", Iso885915 }, // from swedish.words
+    { "stˆdjer", Iso885915 }, // from swedish.words
+    { "stˆld", Iso885915 }, // from swedish.words
+    { "stˆr", Iso885915 }, // from swedish.words
+    { "stˆra", Iso885915 }, // from swedish.words
+    { "stˆrande", Iso885915 }, // from swedish.words
     { "stˆren", Iso885915 }, // from german.words
+    { "stˆrningar", Iso885915 }, // from swedish.words
+    { "stˆrre", Iso885915 }, // from swedish.words
+    { "stˆrst", Iso885915 }, // from swedish.words
+    { "stˆrsta", Iso885915 }, // from swedish.words
+    { "stˆrste", Iso885915 }, // from swedish.words
     { "stˆrt", Iso885915 }, // from german.words
+    { "stˆrtade", Iso885915 }, // from swedish.words
+    { "stˆta", Iso885915 }, // from swedish.words
+    { "stˆter", Iso885915 }, // from swedish.words
+    { "stˆtt", Iso885915 }, // from swedish.words
+    { "stˆtte", Iso885915 }, // from swedish.words
     { "stˆﬂt", Iso885915 }, // from german.words
     { "st¯", Iso885915 }, // from norwegian.words
     { "st¯ednÌ", Iso88592 }, // from czech.words
@@ -9801,9 +15216,15 @@ static const struct {
     { "st¸rzte", Iso885915 }, // from german.words
     { "st¸tzen", Iso885915 }, // from german.words
     { "st¸tzt", Iso885915 }, // from german.words
+    { "succÇ", Cp865 }, // from swedish.words
     { "succÇdÇ", Cp437 }, // from french.words
+    { "succé", MacRoman }, // from swedish.words
     { "succédé", MacRoman }, // from french.words
+    { "succÈ", Iso885915 }, // from swedish.words
     { "succÈdÈ", Iso885915 }, // from french.words
+    { "sundstrîm", Cp865 }, // from swedish.words
+    { "sundström", MacRoman }, // from swedish.words
+    { "sundstrˆm", Iso885915 }, // from swedish.words
     { "sunnmõre", Cp865 }, // from norwegian.words
     { "sunnmøre", MacRoman }, // from norwegian.words
     { "sunnm¯re", Iso885915 }, // from norwegian.words
@@ -9837,18 +15258,45 @@ static const struct {
     { "suscitÇ", Cp437 }, // from french.words
     { "suscité", MacRoman }, // from french.words
     { "suscitÈ", Iso885915 }, // from french.words
+    { "suverÑn", Cp865 }, // from swedish.words
+    { "suverän", MacRoman }, // from swedish.words
+    { "suver‰n", Iso885915 }, // from swedish.words
     { "suÇdois", Cp437 }, // from french.words
     { "suÇdoise", Cp437 }, // from french.words
     { "suédois", MacRoman }, // from french.words
     { "suédoise", MacRoman }, // from french.words
     { "suÈdois", Iso885915 }, // from french.words
     { "suÈdoise", Iso885915 }, // from french.words
+    { "sveavÑgen", Cp865 }, // from swedish.words
+    { "sveavägen", MacRoman }, // from swedish.words
+    { "sveav‰gen", Iso885915 }, // from swedish.words
+    { "svÑng", Cp865 }, // from swedish.words
+    { "svÑnga", Cp865 }, // from swedish.words
+    { "svÑngde", Cp865 }, // from swedish.words
+    { "svÑngen", Cp865 }, // from swedish.words
+    { "svÑnger", Cp865 }, // from swedish.words
+    { "svÑrd", Cp865 }, // from swedish.words
+    { "svÑvar", Cp865 }, // from swedish.words
+    { "sväng", MacRoman }, // from swedish.words
+    { "svänga", MacRoman }, // from swedish.words
+    { "svängde", MacRoman }, // from swedish.words
+    { "svängen", MacRoman }, // from swedish.words
+    { "svänger", MacRoman }, // from swedish.words
+    { "svärd", MacRoman }, // from swedish.words
+    { "svävar", MacRoman }, // from swedish.words
     { "svëre", Cp865 }, // from norwegian.words
     { "svërt", Cp865 }, // from norwegian.words
     { "svõmming", Cp865 }, // from norwegian.words
     { "svære", MacRoman }, // from norwegian.words
     { "svært", MacRoman }, // from norwegian.words
     { "svømming", MacRoman }, // from norwegian.words
+    { "sv‰ng", Iso885915 }, // from swedish.words
+    { "sv‰nga", Iso885915 }, // from swedish.words
+    { "sv‰ngde", Iso885915 }, // from swedish.words
+    { "sv‰ngen", Iso885915 }, // from swedish.words
+    { "sv‰nger", Iso885915 }, // from swedish.words
+    { "sv‰rd", Iso885915 }, // from swedish.words
+    { "sv‰var", Iso885915 }, // from swedish.words
     { "svÊre", Iso885915 }, // from norwegian.words
     { "svÊrt", Iso885915 }, // from norwegian.words
     { "svÏt", Iso88592 }, // from czech.words
@@ -9857,9 +15305,18 @@ static const struct {
     { "synnõve", Cp865 }, // from norwegian.words
     { "synnøve", MacRoman }, // from norwegian.words
     { "synn¯ve", Iso885915 }, // from norwegian.words
+    { "synsÑtt", Cp865 }, // from swedish.words
+    { "synsätt", MacRoman }, // from swedish.words
+    { "syns‰tt", Iso885915 }, // from swedish.words
     { "synthÇtique", Cp437 }, // from french.words
     { "synthétique", MacRoman }, // from french.words
     { "synthÈtique", Iso885915 }, // from french.words
+    { "sysselsÑttning", Cp865 }, // from swedish.words
+    { "sysselsÑttningen", Cp865 }, // from swedish.words
+    { "sysselsättning", MacRoman }, // from swedish.words
+    { "sysselsättningen", MacRoman }, // from swedish.words
+    { "syssels‰ttning", Iso885915 }, // from swedish.words
+    { "syssels‰ttningen", Iso885915 }, // from swedish.words
     { "systÇmatique", Cp437 }, // from french.words
     { "systÇmatiquement", Cp437 }, // from french.words
     { "systématique", MacRoman }, // from french.words
@@ -9901,7 +15358,68 @@ static const struct {
     { "sÇrieux", Cp437 }, // from french.words
     { "sÇrÇnitÇ", Cp437 }, // from french.words
     { "sÑchsischen", Cp437 }, // from german.words
+    { "sÑg", Cp865 }, // from swedish.words
+    { "sÑga", Cp865 }, // from swedish.words
+    { "sÑgas", Cp865 }, // from swedish.words
+    { "sÑger", Cp865 }, // from swedish.words
+    { "sÑgs", Cp865 }, // from swedish.words
+    { "sÑja", Cp865 }, // from swedish.words
+    { "sÑjer", Cp865 }, // from swedish.words
+    { "sÑker", Cp865 }, // from swedish.words
+    { "sÑkerhet", Cp865 }, // from swedish.words
+    { "sÑkerheten", Cp865 }, // from swedish.words
+    { "sÑkerhets", Cp865 }, // from swedish.words
+    { "sÑkerhetspolisen", Cp865 }, // from swedish.words
+    { "sÑkerhetspolitik", Cp865 }, // from swedish.words
+    { "sÑkerhetspolitiska", Cp865 }, // from swedish.words
+    { "sÑkerhetsrÜdet", Cp865 }, // from swedish.words
+    { "sÑkerligen", Cp865 }, // from swedish.words
+    { "sÑkert", Cp865 }, // from swedish.words
+    { "sÑkra", Cp865 }, // from swedish.words
+    { "sÑkrare", Cp865 }, // from swedish.words
+    { "sÑlja", Cp865 }, // from swedish.words
+    { "sÑljas", Cp865 }, // from swedish.words
+    { "sÑljer", Cp865 }, // from swedish.words
+    { "sÑljs", Cp865 }, // from swedish.words
+    { "sÑllan", Cp865 }, // from swedish.words
+    { "sÑllskap", Cp865 }, // from swedish.words
+    { "sÑllskapet", Cp865 }, // from swedish.words
+    { "sÑllsynt", Cp865 }, // from swedish.words
+    { "sÑllsynta", Cp865 }, // from swedish.words
+    { "sÑmre", Cp865 }, // from swedish.words
+    { "sÑmst", Cp865 }, // from swedish.words
+    { "sÑmsta", Cp865 }, // from swedish.words
     { "sÑmtliche", Cp437 }, // from german.words
+    { "sÑnda", Cp865 }, // from swedish.words
+    { "sÑnde", Cp865 }, // from swedish.words
+    { "sÑnder", Cp865 }, // from swedish.words
+    { "sÑndes", Cp865 }, // from swedish.words
+    { "sÑnds", Cp865 }, // from swedish.words
+    { "sÑng", Cp865 }, // from swedish.words
+    { "sÑngen", Cp865 }, // from swedish.words
+    { "sÑnka", Cp865 }, // from swedish.words
+    { "sÑnkas", Cp865 }, // from swedish.words
+    { "sÑnker", Cp865 }, // from swedish.words
+    { "sÑnkning", Cp865 }, // from swedish.words
+    { "sÑnks", Cp865 }, // from swedish.words
+    { "sÑnkt", Cp865 }, // from swedish.words
+    { "sÑnkta", Cp865 }, // from swedish.words
+    { "sÑnkte", Cp865 }, // from swedish.words
+    { "sÑpo", Cp865 }, // from swedish.words
+    { "sÑrklass", Cp865 }, // from swedish.words
+    { "sÑrskild", Cp865 }, // from swedish.words
+    { "sÑrskilda", Cp865 }, // from swedish.words
+    { "sÑrskilt", Cp865 }, // from swedish.words
+    { "sÑsong", Cp865 }, // from swedish.words
+    { "sÑsongen", Cp865 }, // from swedish.words
+    { "sÑsongens", Cp865 }, // from swedish.words
+    { "sÑsonger", Cp865 }, // from swedish.words
+    { "sÑtt", Cp865 }, // from swedish.words
+    { "sÑtta", Cp865 }, // from swedish.words
+    { "sÑttas", Cp865 }, // from swedish.words
+    { "sÑtter", Cp865 }, // from swedish.words
+    { "sÑttet", Cp865 }, // from swedish.words
+    { "sÑtts", Cp865 }, // from swedish.words
     { "sÜ", Cp865 }, // from norwegian.words
     { "sÜkalt", Cp865 }, // from norwegian.words
     { "sÜkalte", Cp865 }, // from norwegian.words
@@ -9917,8 +15435,70 @@ static const struct {
     { "sÜrt", Cp865 }, // from norwegian.words
     { "sÜvel", Cp865 }, // from norwegian.words
     { "sÜvidt", Cp865 }, // from norwegian.words
+    { "sÜvÑl", Cp865 }, // from swedish.words
     { "sächsischen", MacRoman }, // from german.words
+    { "säg", MacRoman }, // from swedish.words
+    { "säga", MacRoman }, // from swedish.words
+    { "sägas", MacRoman }, // from swedish.words
+    { "säger", MacRoman }, // from swedish.words
+    { "sägs", MacRoman }, // from swedish.words
+    { "säja", MacRoman }, // from swedish.words
+    { "säjer", MacRoman }, // from swedish.words
+    { "säker", MacRoman }, // from swedish.words
+    { "säkerhet", MacRoman }, // from swedish.words
+    { "säkerheten", MacRoman }, // from swedish.words
+    { "säkerhets", MacRoman }, // from swedish.words
+    { "säkerhetspolisen", MacRoman }, // from swedish.words
+    { "säkerhetspolitik", MacRoman }, // from swedish.words
+    { "säkerhetspolitiska", MacRoman }, // from swedish.words
+    { "säkerhetsrådet", MacRoman }, // from swedish.words
+    { "säkerligen", MacRoman }, // from swedish.words
+    { "säkert", MacRoman }, // from swedish.words
+    { "säkra", MacRoman }, // from swedish.words
+    { "säkrare", MacRoman }, // from swedish.words
+    { "sälja", MacRoman }, // from swedish.words
+    { "säljas", MacRoman }, // from swedish.words
+    { "säljer", MacRoman }, // from swedish.words
+    { "säljs", MacRoman }, // from swedish.words
+    { "sällan", MacRoman }, // from swedish.words
+    { "sällskap", MacRoman }, // from swedish.words
+    { "sällskapet", MacRoman }, // from swedish.words
+    { "sällsynt", MacRoman }, // from swedish.words
+    { "sällsynta", MacRoman }, // from swedish.words
+    { "sämre", MacRoman }, // from swedish.words
+    { "sämst", MacRoman }, // from swedish.words
+    { "sämsta", MacRoman }, // from swedish.words
     { "sämtliche", MacRoman }, // from german.words
+    { "sända", MacRoman }, // from swedish.words
+    { "sände", MacRoman }, // from swedish.words
+    { "sänder", MacRoman }, // from swedish.words
+    { "sändes", MacRoman }, // from swedish.words
+    { "sänds", MacRoman }, // from swedish.words
+    { "säng", MacRoman }, // from swedish.words
+    { "sängen", MacRoman }, // from swedish.words
+    { "sänka", MacRoman }, // from swedish.words
+    { "sänkas", MacRoman }, // from swedish.words
+    { "sänker", MacRoman }, // from swedish.words
+    { "sänkning", MacRoman }, // from swedish.words
+    { "sänks", MacRoman }, // from swedish.words
+    { "sänkt", MacRoman }, // from swedish.words
+    { "sänkta", MacRoman }, // from swedish.words
+    { "sänkte", MacRoman }, // from swedish.words
+    { "säpo", MacRoman }, // from swedish.words
+    { "särklass", MacRoman }, // from swedish.words
+    { "särskild", MacRoman }, // from swedish.words
+    { "särskilda", MacRoman }, // from swedish.words
+    { "särskilt", MacRoman }, // from swedish.words
+    { "säsong", MacRoman }, // from swedish.words
+    { "säsongen", MacRoman }, // from swedish.words
+    { "säsongens", MacRoman }, // from swedish.words
+    { "säsonger", MacRoman }, // from swedish.words
+    { "sätt", MacRoman }, // from swedish.words
+    { "sätta", MacRoman }, // from swedish.words
+    { "sättas", MacRoman }, // from swedish.words
+    { "sätter", MacRoman }, // from swedish.words
+    { "sättet", MacRoman }, // from swedish.words
+    { "sätts", MacRoman }, // from swedish.words
     { "så", MacRoman }, // from norwegian.words
     { "såkalt", MacRoman }, // from norwegian.words
     { "såkalte", MacRoman }, // from norwegian.words
@@ -9934,6 +15514,7 @@ static const struct {
     { "sårt", MacRoman }, // from norwegian.words
     { "såvel", MacRoman }, // from norwegian.words
     { "såvidt", MacRoman }, // from norwegian.words
+    { "såväl", MacRoman }, // from swedish.words
     { "séance", MacRoman }, // from french.words
     { "séances", MacRoman }, // from french.words
     { "sécurité", MacRoman }, // from french.words
@@ -9970,6 +15551,60 @@ static const struct {
     { "sërlig", Cp865 }, // from norwegian.words
     { "sëther", Cp865 }, // from norwegian.words
     { "sëtre", Cp865 }, // from norwegian.words
+    { "sîder", Cp865 }, // from swedish.words
+    { "sîderberg", Cp865 }, // from swedish.words
+    { "sîdermalm", Cp865 }, // from swedish.words
+    { "sîdersjukhuset", Cp865 }, // from swedish.words
+    { "sîderstrîm", Cp865 }, // from swedish.words
+    { "sîdertÑlje", Cp865 }, // from swedish.words
+    { "sîderut", Cp865 }, // from swedish.words
+    { "sîdra", Cp865 }, // from swedish.words
+    { "sîka", Cp865 }, // from swedish.words
+    { "sîkande", Cp865 }, // from swedish.words
+    { "sîkandet", Cp865 }, // from swedish.words
+    { "sîker", Cp865 }, // from swedish.words
+    { "sîkt", Cp865 }, // from swedish.words
+    { "sîkte", Cp865 }, // from swedish.words
+    { "sîmn", Cp865 }, // from swedish.words
+    { "sîndag", Cp865 }, // from swedish.words
+    { "sîndagen", Cp865 }, // from swedish.words
+    { "sîndagens", Cp865 }, // from swedish.words
+    { "sîndags", Cp865 }, // from swedish.words
+    { "sîndagskvÑllen", Cp865 }, // from swedish.words
+    { "sînder", Cp865 }, // from swedish.words
+    { "sîner", Cp865 }, // from swedish.words
+    { "sînerna", Cp865 }, // from swedish.words
+    { "sîren", Cp865 }, // from swedish.words
+    { "sîrenstam", Cp865 }, // from swedish.words
+    { "sît", Cp865 }, // from swedish.words
+    { "sîta", Cp865 }, // from swedish.words
+    { "söder", MacRoman }, // from swedish.words
+    { "söderberg", MacRoman }, // from swedish.words
+    { "södermalm", MacRoman }, // from swedish.words
+    { "södersjukhuset", MacRoman }, // from swedish.words
+    { "söderström", MacRoman }, // from swedish.words
+    { "södertälje", MacRoman }, // from swedish.words
+    { "söderut", MacRoman }, // from swedish.words
+    { "södra", MacRoman }, // from swedish.words
+    { "söka", MacRoman }, // from swedish.words
+    { "sökande", MacRoman }, // from swedish.words
+    { "sökandet", MacRoman }, // from swedish.words
+    { "söker", MacRoman }, // from swedish.words
+    { "sökt", MacRoman }, // from swedish.words
+    { "sökte", MacRoman }, // from swedish.words
+    { "sömn", MacRoman }, // from swedish.words
+    { "söndag", MacRoman }, // from swedish.words
+    { "söndagen", MacRoman }, // from swedish.words
+    { "söndagens", MacRoman }, // from swedish.words
+    { "söndags", MacRoman }, // from swedish.words
+    { "söndagskvällen", MacRoman }, // from swedish.words
+    { "sönder", MacRoman }, // from swedish.words
+    { "söner", MacRoman }, // from swedish.words
+    { "sönerna", MacRoman }, // from swedish.words
+    { "sören", MacRoman }, // from swedish.words
+    { "sörenstam", MacRoman }, // from swedish.words
+    { "söt", MacRoman }, // from swedish.words
+    { "söta", MacRoman }, // from swedish.words
     { "sõk", Cp865 }, // from norwegian.words
     { "sõke", Cp865 }, // from norwegian.words
     { "sõkelys", Cp865 }, // from norwegian.words
@@ -10064,7 +15699,68 @@ static const struct {
     { "søte", MacRoman }, // from norwegian.words
     { "søvn", MacRoman }, // from norwegian.words
     { "s‰chsischen", Iso885915 }, // from german.words
+    { "s‰g", Iso885915 }, // from swedish.words
+    { "s‰ga", Iso885915 }, // from swedish.words
+    { "s‰gas", Iso885915 }, // from swedish.words
+    { "s‰ger", Iso885915 }, // from swedish.words
+    { "s‰gs", Iso885915 }, // from swedish.words
+    { "s‰ja", Iso885915 }, // from swedish.words
+    { "s‰jer", Iso885915 }, // from swedish.words
+    { "s‰ker", Iso885915 }, // from swedish.words
+    { "s‰kerhet", Iso885915 }, // from swedish.words
+    { "s‰kerheten", Iso885915 }, // from swedish.words
+    { "s‰kerhets", Iso885915 }, // from swedish.words
+    { "s‰kerhetspolisen", Iso885915 }, // from swedish.words
+    { "s‰kerhetspolitik", Iso885915 }, // from swedish.words
+    { "s‰kerhetspolitiska", Iso885915 }, // from swedish.words
+    { "s‰kerhetsrÂdet", Iso885915 }, // from swedish.words
+    { "s‰kerligen", Iso885915 }, // from swedish.words
+    { "s‰kert", Iso885915 }, // from swedish.words
+    { "s‰kra", Iso885915 }, // from swedish.words
+    { "s‰krare", Iso885915 }, // from swedish.words
+    { "s‰lja", Iso885915 }, // from swedish.words
+    { "s‰ljas", Iso885915 }, // from swedish.words
+    { "s‰ljer", Iso885915 }, // from swedish.words
+    { "s‰ljs", Iso885915 }, // from swedish.words
+    { "s‰llan", Iso885915 }, // from swedish.words
+    { "s‰llskap", Iso885915 }, // from swedish.words
+    { "s‰llskapet", Iso885915 }, // from swedish.words
+    { "s‰llsynt", Iso885915 }, // from swedish.words
+    { "s‰llsynta", Iso885915 }, // from swedish.words
+    { "s‰mre", Iso885915 }, // from swedish.words
+    { "s‰mst", Iso885915 }, // from swedish.words
+    { "s‰msta", Iso885915 }, // from swedish.words
     { "s‰mtliche", Iso885915 }, // from german.words
+    { "s‰nda", Iso885915 }, // from swedish.words
+    { "s‰nde", Iso885915 }, // from swedish.words
+    { "s‰nder", Iso885915 }, // from swedish.words
+    { "s‰ndes", Iso885915 }, // from swedish.words
+    { "s‰nds", Iso885915 }, // from swedish.words
+    { "s‰ng", Iso885915 }, // from swedish.words
+    { "s‰ngen", Iso885915 }, // from swedish.words
+    { "s‰nka", Iso885915 }, // from swedish.words
+    { "s‰nkas", Iso885915 }, // from swedish.words
+    { "s‰nker", Iso885915 }, // from swedish.words
+    { "s‰nkning", Iso885915 }, // from swedish.words
+    { "s‰nks", Iso885915 }, // from swedish.words
+    { "s‰nkt", Iso885915 }, // from swedish.words
+    { "s‰nkta", Iso885915 }, // from swedish.words
+    { "s‰nkte", Iso885915 }, // from swedish.words
+    { "s‰po", Iso885915 }, // from swedish.words
+    { "s‰rklass", Iso885915 }, // from swedish.words
+    { "s‰rskild", Iso885915 }, // from swedish.words
+    { "s‰rskilda", Iso885915 }, // from swedish.words
+    { "s‰rskilt", Iso885915 }, // from swedish.words
+    { "s‰song", Iso885915 }, // from swedish.words
+    { "s‰songen", Iso885915 }, // from swedish.words
+    { "s‰songens", Iso885915 }, // from swedish.words
+    { "s‰songer", Iso885915 }, // from swedish.words
+    { "s‰tt", Iso885915 }, // from swedish.words
+    { "s‰tta", Iso885915 }, // from swedish.words
+    { "s‰ttas", Iso885915 }, // from swedish.words
+    { "s‰tter", Iso885915 }, // from swedish.words
+    { "s‰ttet", Iso885915 }, // from swedish.words
+    { "s‰tts", Iso885915 }, // from swedish.words
     { "sÂ", Iso885915 }, // from norwegian.words
     { "sÂkalt", Iso885915 }, // from norwegian.words
     { "sÂkalte", Iso885915 }, // from norwegian.words
@@ -10080,6 +15776,7 @@ static const struct {
     { "sÂrt", Iso885915 }, // from norwegian.words
     { "sÂvel", Iso885915 }, // from norwegian.words
     { "sÂvidt", Iso885915 }, // from norwegian.words
+    { "sÂv‰l", Iso885915 }, // from swedish.words
     { "sÊle", Iso885915 }, // from norwegian.words
     { "sÊrdeles", Iso885915 }, // from norwegian.words
     { "sÊrlig", Iso885915 }, // from norwegian.words
@@ -10116,6 +15813,33 @@ static const struct {
     { "sÈrieuses", Iso885915 }, // from french.words
     { "sÈrieux", Iso885915 }, // from french.words
     { "sÈrÈnitÈ", Iso885915 }, // from french.words
+    { "sˆder", Iso885915 }, // from swedish.words
+    { "sˆderberg", Iso885915 }, // from swedish.words
+    { "sˆdermalm", Iso885915 }, // from swedish.words
+    { "sˆdersjukhuset", Iso885915 }, // from swedish.words
+    { "sˆderstrˆm", Iso885915 }, // from swedish.words
+    { "sˆdert‰lje", Iso885915 }, // from swedish.words
+    { "sˆderut", Iso885915 }, // from swedish.words
+    { "sˆdra", Iso885915 }, // from swedish.words
+    { "sˆka", Iso885915 }, // from swedish.words
+    { "sˆkande", Iso885915 }, // from swedish.words
+    { "sˆkandet", Iso885915 }, // from swedish.words
+    { "sˆker", Iso885915 }, // from swedish.words
+    { "sˆkt", Iso885915 }, // from swedish.words
+    { "sˆkte", Iso885915 }, // from swedish.words
+    { "sˆmn", Iso885915 }, // from swedish.words
+    { "sˆndag", Iso885915 }, // from swedish.words
+    { "sˆndagen", Iso885915 }, // from swedish.words
+    { "sˆndagens", Iso885915 }, // from swedish.words
+    { "sˆndags", Iso885915 }, // from swedish.words
+    { "sˆndagskv‰llen", Iso885915 }, // from swedish.words
+    { "sˆnder", Iso885915 }, // from swedish.words
+    { "sˆner", Iso885915 }, // from swedish.words
+    { "sˆnerna", Iso885915 }, // from swedish.words
+    { "sˆren", Iso885915 }, // from swedish.words
+    { "sˆrenstam", Iso885915 }, // from swedish.words
+    { "sˆt", Iso885915 }, // from swedish.words
+    { "sˆta", Iso885915 }, // from swedish.words
     { "s¯k", Iso885915 }, // from norwegian.words
     { "s¯ke", Iso885915 }, // from norwegian.words
     { "s¯kelys", Iso885915 }, // from norwegian.words
@@ -10164,6 +15888,9 @@ static const struct {
     { "tagsÅber", Cp437 }, // from german.words
     { "tagsüber", MacRoman }, // from german.words
     { "tags¸ber", Iso885915 }, // from german.words
+    { "tandlÑkare", Cp865 }, // from swedish.words
+    { "tandläkare", MacRoman }, // from swedish.words
+    { "tandl‰kare", Iso885915 }, // from swedish.words
     { "tatsÑchlich", Cp437 }, // from german.words
     { "tatsÑchliche", Cp437 }, // from german.words
     { "tatsÑchlichen", Cp437 }, // from german.words
@@ -10247,6 +15974,96 @@ static const struct {
     { "tilh¯rer", Iso885915 }, // from norwegian.words
     { "tilh¯righet", Iso885915 }, // from norwegian.words
     { "tilh¯rte", Iso885915 }, // from norwegian.words
+    { "tillfredsstÑllande", Cp865 }, // from swedish.words
+    { "tillfredsstÑllelse", Cp865 }, // from swedish.words
+    { "tillfredsställande", MacRoman }, // from swedish.words
+    { "tillfredsställelse", MacRoman }, // from swedish.words
+    { "tillfredsst‰llande", Iso885915 }, // from swedish.words
+    { "tillfredsst‰llelse", Iso885915 }, // from swedish.words
+    { "tillfÑlle", Cp865 }, // from swedish.words
+    { "tillfÑllen", Cp865 }, // from swedish.words
+    { "tillfÑllet", Cp865 }, // from swedish.words
+    { "tillfÑllig", Cp865 }, // from swedish.words
+    { "tillfÑlliga", Cp865 }, // from swedish.words
+    { "tillfÑllighet", Cp865 }, // from swedish.words
+    { "tillfÑlligt", Cp865 }, // from swedish.words
+    { "tillfälle", MacRoman }, // from swedish.words
+    { "tillfällen", MacRoman }, // from swedish.words
+    { "tillfället", MacRoman }, // from swedish.words
+    { "tillfällig", MacRoman }, // from swedish.words
+    { "tillfälliga", MacRoman }, // from swedish.words
+    { "tillfällighet", MacRoman }, // from swedish.words
+    { "tillfälligt", MacRoman }, // from swedish.words
+    { "tillf‰lle", Iso885915 }, // from swedish.words
+    { "tillf‰llen", Iso885915 }, // from swedish.words
+    { "tillf‰llet", Iso885915 }, // from swedish.words
+    { "tillf‰llig", Iso885915 }, // from swedish.words
+    { "tillf‰lliga", Iso885915 }, // from swedish.words
+    { "tillf‰llighet", Iso885915 }, // from swedish.words
+    { "tillf‰lligt", Iso885915 }, // from swedish.words
+    { "tillgÑnglig", Cp865 }, // from swedish.words
+    { "tillgÑngliga", Cp865 }, // from swedish.words
+    { "tillgänglig", MacRoman }, // from swedish.words
+    { "tillgängliga", MacRoman }, // from swedish.words
+    { "tillg‰nglig", Iso885915 }, // from swedish.words
+    { "tillg‰ngliga", Iso885915 }, // from swedish.words
+    { "tillhîr", Cp865 }, // from swedish.words
+    { "tillhîra", Cp865 }, // from swedish.words
+    { "tillhîrde", Cp865 }, // from swedish.words
+    { "tillhîrt", Cp865 }, // from swedish.words
+    { "tillhör", MacRoman }, // from swedish.words
+    { "tillhöra", MacRoman }, // from swedish.words
+    { "tillhörde", MacRoman }, // from swedish.words
+    { "tillhört", MacRoman }, // from swedish.words
+    { "tillhˆr", Iso885915 }, // from swedish.words
+    { "tillhˆra", Iso885915 }, // from swedish.words
+    { "tillhˆrde", Iso885915 }, // from swedish.words
+    { "tillhˆrt", Iso885915 }, // from swedish.words
+    { "tillrÑcklig", Cp865 }, // from swedish.words
+    { "tillrÑckliga", Cp865 }, // from swedish.words
+    { "tillrÑckligt", Cp865 }, // from swedish.words
+    { "tillrÑtta", Cp865 }, // from swedish.words
+    { "tillräcklig", MacRoman }, // from swedish.words
+    { "tillräckliga", MacRoman }, // from swedish.words
+    { "tillräckligt", MacRoman }, // from swedish.words
+    { "tillrätta", MacRoman }, // from swedish.words
+    { "tillr‰cklig", Iso885915 }, // from swedish.words
+    { "tillr‰ckliga", Iso885915 }, // from swedish.words
+    { "tillr‰ckligt", Iso885915 }, // from swedish.words
+    { "tillr‰tta", Iso885915 }, // from swedish.words
+    { "tillsÑtt", Cp865 }, // from swedish.words
+    { "tillsÑtta", Cp865 }, // from swedish.words
+    { "tillsätt", MacRoman }, // from swedish.words
+    { "tillsätta", MacRoman }, // from swedish.words
+    { "tills‰tt", Iso885915 }, // from swedish.words
+    { "tills‰tta", Iso885915 }, // from swedish.words
+    { "tilltrÑdde", Cp865 }, // from swedish.words
+    { "tilltrÑde", Cp865 }, // from swedish.words
+    { "tillträdde", MacRoman }, // from swedish.words
+    { "tillträde", MacRoman }, // from swedish.words
+    { "tilltr‰dde", Iso885915 }, // from swedish.words
+    { "tilltr‰de", Iso885915 }, // from swedish.words
+    { "tillvÑxt", Cp865 }, // from swedish.words
+    { "tillvÑxten", Cp865 }, // from swedish.words
+    { "tillväxt", MacRoman }, // from swedish.words
+    { "tillväxten", MacRoman }, // from swedish.words
+    { "tillv‰xt", Iso885915 }, // from swedish.words
+    { "tillv‰xten", Iso885915 }, // from swedish.words
+    { "tillÑgg", Cp865 }, // from swedish.words
+    { "tillÑgger", Cp865 }, // from swedish.words
+    { "tillÑmpa", Cp865 }, // from swedish.words
+    { "tillÑmpas", Cp865 }, // from swedish.words
+    { "tillÑt", Cp865 }, // from swedish.words
+    { "tillägg", MacRoman }, // from swedish.words
+    { "tillägger", MacRoman }, // from swedish.words
+    { "tillämpa", MacRoman }, // from swedish.words
+    { "tillämpas", MacRoman }, // from swedish.words
+    { "tillät", MacRoman }, // from swedish.words
+    { "till‰gg", Iso885915 }, // from swedish.words
+    { "till‰gger", Iso885915 }, // from swedish.words
+    { "till‰mpa", Iso885915 }, // from swedish.words
+    { "till‰mpas", Iso885915 }, // from swedish.words
+    { "till‰t", Iso885915 }, // from swedish.words
     { "tilnërmet", Cp865 }, // from norwegian.words
     { "tilnærmet", MacRoman }, // from norwegian.words
     { "tilnÊrmet", Iso885915 }, // from norwegian.words
@@ -10262,6 +16079,12 @@ static const struct {
     { "tilværelsen", MacRoman }, // from norwegian.words
     { "tilvÊrelse", Iso885915 }, // from norwegian.words
     { "tilvÊrelsen", Iso885915 }, // from norwegian.words
+    { "tingsrÑtt", Cp865 }, // from swedish.words
+    { "tingsrÑtten", Cp865 }, // from swedish.words
+    { "tingsrätt", MacRoman }, // from swedish.words
+    { "tingsrätten", MacRoman }, // from swedish.words
+    { "tingsr‰tt", Iso885915 }, // from swedish.words
+    { "tingsr‰tten", Iso885915 }, // from swedish.words
     { "tirÇ", Cp437 }, // from french.words
     { "tirÇs", Cp437 }, // from french.words
     { "tiré", MacRoman }, // from french.words
@@ -10271,6 +16094,45 @@ static const struct {
     { "tiÜr", Cp865 }, // from norwegian.words
     { "tiår", MacRoman }, // from norwegian.words
     { "tiÂr", Iso885915 }, // from norwegian.words
+    { "tjÑna", Cp865 }, // from swedish.words
+    { "tjÑnade", Cp865 }, // from swedish.words
+    { "tjÑnar", Cp865 }, // from swedish.words
+    { "tjÑnare", Cp865 }, // from swedish.words
+    { "tjÑnat", Cp865 }, // from swedish.words
+    { "tjÑnst", Cp865 }, // from swedish.words
+    { "tjÑnsteman", Cp865 }, // from swedish.words
+    { "tjÑnstemÑn", Cp865 }, // from swedish.words
+    { "tjÑnstemÑnnen", Cp865 }, // from swedish.words
+    { "tjÑnsten", Cp865 }, // from swedish.words
+    { "tjÑnster", Cp865 }, // from swedish.words
+    { "tjÑnstesektorn", Cp865 }, // from swedish.words
+    { "tjäna", MacRoman }, // from swedish.words
+    { "tjänade", MacRoman }, // from swedish.words
+    { "tjänar", MacRoman }, // from swedish.words
+    { "tjänare", MacRoman }, // from swedish.words
+    { "tjänat", MacRoman }, // from swedish.words
+    { "tjänst", MacRoman }, // from swedish.words
+    { "tjänsteman", MacRoman }, // from swedish.words
+    { "tjänstemän", MacRoman }, // from swedish.words
+    { "tjänstemännen", MacRoman }, // from swedish.words
+    { "tjänsten", MacRoman }, // from swedish.words
+    { "tjänster", MacRoman }, // from swedish.words
+    { "tjänstesektorn", MacRoman }, // from swedish.words
+    { "tjîrn", Cp865 }, // from swedish.words
+    { "tjörn", MacRoman }, // from swedish.words
+    { "tj‰na", Iso885915 }, // from swedish.words
+    { "tj‰nade", Iso885915 }, // from swedish.words
+    { "tj‰nar", Iso885915 }, // from swedish.words
+    { "tj‰nare", Iso885915 }, // from swedish.words
+    { "tj‰nat", Iso885915 }, // from swedish.words
+    { "tj‰nst", Iso885915 }, // from swedish.words
+    { "tj‰nsteman", Iso885915 }, // from swedish.words
+    { "tj‰nstem‰n", Iso885915 }, // from swedish.words
+    { "tj‰nstem‰nnen", Iso885915 }, // from swedish.words
+    { "tj‰nsten", Iso885915 }, // from swedish.words
+    { "tj‰nster", Iso885915 }, // from swedish.words
+    { "tj‰nstesektorn", Iso885915 }, // from swedish.words
+    { "tjˆrn", Iso885915 }, // from swedish.words
     { "tolÇrance", Cp437 }, // from french.words
     { "tolérance", MacRoman }, // from french.words
     { "tolÈrance", Iso885915 }, // from french.words
@@ -10280,14 +16142,23 @@ static const struct {
     { "tombée", MacRoman }, // from french.words
     { "tombÈ", Iso885915 }, // from french.words
     { "tombÈe", Iso885915 }, // from french.words
+    { "toppmîte", Cp865 }, // from swedish.words
+    { "toppmîtet", Cp865 }, // from swedish.words
+    { "toppmöte", MacRoman }, // from swedish.words
+    { "toppmötet", MacRoman }, // from swedish.words
     { "toppmõte", Cp865 }, // from norwegian.words
     { "toppmõtet", Cp865 }, // from norwegian.words
     { "toppmøte", MacRoman }, // from norwegian.words
     { "toppmøtet", MacRoman }, // from norwegian.words
+    { "toppmˆte", Iso885915 }, // from swedish.words
+    { "toppmˆtet", Iso885915 }, // from swedish.words
     { "toppm¯te", Iso885915 }, // from norwegian.words
     { "toppm¯tet", Iso885915 }, // from norwegian.words
+    { "torbjîrn", Cp865 }, // from swedish.words
+    { "torbjörn", MacRoman }, // from swedish.words
     { "torbjõrn", Cp865 }, // from norwegian.words
     { "torbjørn", MacRoman }, // from norwegian.words
+    { "torbjˆrn", Iso885915 }, // from swedish.words
     { "torbj¯rn", Iso885915 }, // from norwegian.words
     { "totalitÇ", Cp437 }, // from french.words
     { "totalité", MacRoman }, // from french.words
@@ -10337,6 +16208,9 @@ static const struct {
     { "triplÇ", Cp437 }, // from french.words
     { "triplé", MacRoman }, // from french.words
     { "triplÈ", Iso885915 }, // from french.words
+    { "trollhÑttan", Cp865 }, // from swedish.words
+    { "trollhättan", MacRoman }, // from swedish.words
+    { "trollh‰ttan", Iso885915 }, // from swedish.words
     { "tromsõ", Cp865 }, // from norwegian.words
     { "tromsø", MacRoman }, // from norwegian.words
     { "troms¯", Iso885915 }, // from norwegian.words
@@ -10346,16 +16220,80 @@ static const struct {
     { "trouvée", MacRoman }, // from french.words
     { "trouvÈ", Iso885915 }, // from french.words
     { "trouvÈe", Iso885915 }, // from french.words
+    { "trovÑrdig", Cp865 }, // from swedish.words
+    { "trovÑrdighet", Cp865 }, // from swedish.words
+    { "trovärdig", MacRoman }, // from swedish.words
+    { "trovärdighet", MacRoman }, // from swedish.words
+    { "trov‰rdig", Iso885915 }, // from swedish.words
+    { "trov‰rdighet", Iso885915 }, // from swedish.words
     { "trÇsor", Cp437 }, // from french.words
     { "trÇsorerie", Cp437 }, // from french.words
     { "trÇsors", Cp437 }, // from french.words
+    { "trÑ", Cp865 }, // from swedish.words
+    { "trÑd", Cp865 }, // from swedish.words
+    { "trÑda", Cp865 }, // from swedish.words
+    { "trÑdde", Cp865 }, // from swedish.words
+    { "trÑden", Cp865 }, // from swedish.words
+    { "trÑder", Cp865 }, // from swedish.words
+    { "trÑdet", Cp865 }, // from swedish.words
+    { "trÑdgÜrd", Cp865 }, // from swedish.words
+    { "trÑdgÜrden", Cp865 }, // from swedish.words
+    { "trÑff", Cp865 }, // from swedish.words
+    { "trÑffa", Cp865 }, // from swedish.words
+    { "trÑffade", Cp865 }, // from swedish.words
+    { "trÑffades", Cp865 }, // from swedish.words
+    { "trÑffar", Cp865 }, // from swedish.words
+    { "trÑffas", Cp865 }, // from swedish.words
+    { "trÑffat", Cp865 }, // from swedish.words
+    { "trÑffats", Cp865 }, // from swedish.words
     { "trÑgt", Cp437 }, // from german.words
+    { "trÑna", Cp865 }, // from swedish.words
+    { "trÑnade", Cp865 }, // from swedish.words
+    { "trÑnar", Cp865 }, // from swedish.words
+    { "trÑnare", Cp865 }, // from swedish.words
+    { "trÑnaren", Cp865 }, // from swedish.words
+    { "trÑnat", Cp865 }, // from swedish.words
+    { "trÑnga", Cp865 }, // from swedish.words
+    { "trÑngde", Cp865 }, // from swedish.words
+    { "trÑnger", Cp865 }, // from swedish.words
+    { "trÑngs", Cp865 }, // from swedish.words
+    { "trÑning", Cp865 }, // from swedish.words
+    { "trÑningen", Cp865 }, // from swedish.words
     { "trÑumen", Cp437 }, // from german.words
     { "trÑumt", Cp437 }, // from german.words
     { "trÜd", Cp865 }, // from norwegian.words
     { "trÜdte", Cp865 }, // from norwegian.words
     { "trÜkket", Cp865 }, // from norwegian.words
+    { "trä", MacRoman }, // from swedish.words
+    { "träd", MacRoman }, // from swedish.words
+    { "träda", MacRoman }, // from swedish.words
+    { "trädde", MacRoman }, // from swedish.words
+    { "träden", MacRoman }, // from swedish.words
+    { "träder", MacRoman }, // from swedish.words
+    { "trädet", MacRoman }, // from swedish.words
+    { "trädgård", MacRoman }, // from swedish.words
+    { "trädgården", MacRoman }, // from swedish.words
+    { "träff", MacRoman }, // from swedish.words
+    { "träffa", MacRoman }, // from swedish.words
+    { "träffade", MacRoman }, // from swedish.words
+    { "träffades", MacRoman }, // from swedish.words
+    { "träffar", MacRoman }, // from swedish.words
+    { "träffas", MacRoman }, // from swedish.words
+    { "träffat", MacRoman }, // from swedish.words
+    { "träffats", MacRoman }, // from swedish.words
     { "trägt", MacRoman }, // from german.words
+    { "träna", MacRoman }, // from swedish.words
+    { "tränade", MacRoman }, // from swedish.words
+    { "tränar", MacRoman }, // from swedish.words
+    { "tränare", MacRoman }, // from swedish.words
+    { "tränaren", MacRoman }, // from swedish.words
+    { "tränat", MacRoman }, // from swedish.words
+    { "tränga", MacRoman }, // from swedish.words
+    { "trängde", MacRoman }, // from swedish.words
+    { "tränger", MacRoman }, // from swedish.words
+    { "trängs", MacRoman }, // from swedish.words
+    { "träning", MacRoman }, // from swedish.words
+    { "träningen", MacRoman }, // from swedish.words
     { "träumen", MacRoman }, // from german.words
     { "träumt", MacRoman }, // from german.words
     { "tråd", MacRoman }, // from norwegian.words
@@ -10366,6 +16304,26 @@ static const struct {
     { "trésors", MacRoman }, // from french.words
     { "trër", Cp865 }, // from norwegian.words
     { "trërne", Cp865 }, // from norwegian.words
+    { "trîgt", Cp865 }, // from swedish.words
+    { "trîja", Cp865 }, // from swedish.words
+    { "trîskeln", Cp865 }, // from swedish.words
+    { "trîst", Cp865 }, // from swedish.words
+    { "trîsta", Cp865 }, // from swedish.words
+    { "trîtt", Cp865 }, // from swedish.words
+    { "trîtta", Cp865 }, // from swedish.words
+    { "trîtthet", Cp865 }, // from swedish.words
+    { "trîttnade", Cp865 }, // from swedish.words
+    { "trîttnat", Cp865 }, // from swedish.words
+    { "trögt", MacRoman }, // from swedish.words
+    { "tröja", MacRoman }, // from swedish.words
+    { "tröskeln", MacRoman }, // from swedish.words
+    { "tröst", MacRoman }, // from swedish.words
+    { "trösta", MacRoman }, // from swedish.words
+    { "trött", MacRoman }, // from swedish.words
+    { "trötta", MacRoman }, // from swedish.words
+    { "trötthet", MacRoman }, // from swedish.words
+    { "tröttnade", MacRoman }, // from swedish.words
+    { "tröttnat", MacRoman }, // from swedish.words
     { "trõbbel", Cp865 }, // from norwegian.words
     { "trõndelag", Cp865 }, // from norwegian.words
     { "trõnderne", Cp865 }, // from norwegian.words
@@ -10378,7 +16336,36 @@ static const struct {
     { "trønderne", MacRoman }, // from norwegian.words
     { "trøst", MacRoman }, // from norwegian.words
     { "trøste", MacRoman }, // from norwegian.words
+    { "tr‰", Iso885915 }, // from swedish.words
+    { "tr‰d", Iso885915 }, // from swedish.words
+    { "tr‰da", Iso885915 }, // from swedish.words
+    { "tr‰dde", Iso885915 }, // from swedish.words
+    { "tr‰den", Iso885915 }, // from swedish.words
+    { "tr‰der", Iso885915 }, // from swedish.words
+    { "tr‰det", Iso885915 }, // from swedish.words
+    { "tr‰dgÂrd", Iso885915 }, // from swedish.words
+    { "tr‰dgÂrden", Iso885915 }, // from swedish.words
+    { "tr‰ff", Iso885915 }, // from swedish.words
+    { "tr‰ffa", Iso885915 }, // from swedish.words
+    { "tr‰ffade", Iso885915 }, // from swedish.words
+    { "tr‰ffades", Iso885915 }, // from swedish.words
+    { "tr‰ffar", Iso885915 }, // from swedish.words
+    { "tr‰ffas", Iso885915 }, // from swedish.words
+    { "tr‰ffat", Iso885915 }, // from swedish.words
+    { "tr‰ffats", Iso885915 }, // from swedish.words
     { "tr‰gt", Iso885915 }, // from german.words
+    { "tr‰na", Iso885915 }, // from swedish.words
+    { "tr‰nade", Iso885915 }, // from swedish.words
+    { "tr‰nar", Iso885915 }, // from swedish.words
+    { "tr‰nare", Iso885915 }, // from swedish.words
+    { "tr‰naren", Iso885915 }, // from swedish.words
+    { "tr‰nat", Iso885915 }, // from swedish.words
+    { "tr‰nga", Iso885915 }, // from swedish.words
+    { "tr‰ngde", Iso885915 }, // from swedish.words
+    { "tr‰nger", Iso885915 }, // from swedish.words
+    { "tr‰ngs", Iso885915 }, // from swedish.words
+    { "tr‰ning", Iso885915 }, // from swedish.words
+    { "tr‰ningen", Iso885915 }, // from swedish.words
     { "tr‰umen", Iso885915 }, // from german.words
     { "tr‰umt", Iso885915 }, // from german.words
     { "trÂd", Iso885915 }, // from norwegian.words
@@ -10389,15 +16376,49 @@ static const struct {
     { "trÈsor", Iso885915 }, // from french.words
     { "trÈsorerie", Iso885915 }, // from french.words
     { "trÈsors", Iso885915 }, // from french.words
+    { "trˆgt", Iso885915 }, // from swedish.words
+    { "trˆja", Iso885915 }, // from swedish.words
+    { "trˆskeln", Iso885915 }, // from swedish.words
+    { "trˆst", Iso885915 }, // from swedish.words
+    { "trˆsta", Iso885915 }, // from swedish.words
+    { "trˆtt", Iso885915 }, // from swedish.words
+    { "trˆtta", Iso885915 }, // from swedish.words
+    { "trˆtthet", Iso885915 }, // from swedish.words
+    { "trˆttnade", Iso885915 }, // from swedish.words
+    { "trˆttnat", Iso885915 }, // from swedish.words
     { "tr¯bbel", Iso885915 }, // from norwegian.words
     { "tr¯ndelag", Iso885915 }, // from norwegian.words
     { "tr¯nderne", Iso885915 }, // from norwegian.words
     { "tr¯st", Iso885915 }, // from norwegian.words
     { "tr¯ste", Iso885915 }, // from norwegian.words
+    { "turnÇ", Cp865 }, // from swedish.words
+    { "turné", MacRoman }, // from swedish.words
+    { "turnÈ", Iso885915 }, // from swedish.words
     { "tuÇ", Cp437 }, // from french.words
     { "tué", MacRoman }, // from french.words
     { "tuÈ", Iso885915 }, // from french.words
     { "tvo¯it", Iso88592 }, // from czech.words
+    { "tvÑrs", Cp865 }, // from swedish.words
+    { "tvÑrt", Cp865 }, // from swedish.words
+    { "tvÑrtom", Cp865 }, // from swedish.words
+    { "tvÑtta", Cp865 }, // from swedish.words
+    { "tvÑttade", Cp865 }, // from swedish.words
+    { "tvärs", MacRoman }, // from swedish.words
+    { "tvärt", MacRoman }, // from swedish.words
+    { "tvärtom", MacRoman }, // from swedish.words
+    { "tvätta", MacRoman }, // from swedish.words
+    { "tvättade", MacRoman }, // from swedish.words
+    { "tv‰rs", Iso885915 }, // from swedish.words
+    { "tv‰rt", Iso885915 }, // from swedish.words
+    { "tv‰rtom", Iso885915 }, // from swedish.words
+    { "tv‰tta", Iso885915 }, // from swedish.words
+    { "tv‰ttade", Iso885915 }, // from swedish.words
+    { "tyresî", Cp865 }, // from swedish.words
+    { "tyresö", MacRoman }, // from swedish.words
+    { "tyresˆ", Iso885915 }, // from swedish.words
+    { "tyvÑrr", Cp865 }, // from swedish.words
+    { "tyvärr", MacRoman }, // from swedish.words
+    { "tyv‰rr", Iso885915 }, // from swedish.words
     { "tÅrkische", Cp437 }, // from german.words
     { "tÅrkischen", Cp437 }, // from german.words
     { "tÇ", Cp437 }, // from dutch.words
@@ -10422,22 +16443,86 @@ static const struct {
     { "tÇmoignent", Cp437 }, // from french.words
     { "tÇmoin", Cp437 }, // from french.words
     { "tÇmoins", Cp437 }, // from french.words
+    { "tÑby", Cp865 }, // from swedish.words
+    { "tÑcka", Cp865 }, // from swedish.words
+    { "tÑcker", Cp865 }, // from swedish.words
+    { "tÑckt", Cp865 }, // from swedish.words
     { "tÑglich", Cp437 }, // from german.words
     { "tÑgliche", Cp437 }, // from german.words
     { "tÑglichen", Cp437 }, // from german.words
+    { "tÑlt", Cp865 }, // from swedish.words
+    { "tÑmligen", Cp865 }, // from swedish.words
+    { "tÑnda", Cp865 }, // from swedish.words
+    { "tÑnde", Cp865 }, // from swedish.words
+    { "tÑnder", Cp865 }, // from swedish.words
+    { "tÑnderna", Cp865 }, // from swedish.words
+    { "tÑnk", Cp865 }, // from swedish.words
+    { "tÑnka", Cp865 }, // from swedish.words
+    { "tÑnkande", Cp865 }, // from swedish.words
+    { "tÑnkas", Cp865 }, // from swedish.words
+    { "tÑnkbar", Cp865 }, // from swedish.words
+    { "tÑnkbara", Cp865 }, // from swedish.words
+    { "tÑnker", Cp865 }, // from swedish.words
+    { "tÑnkt", Cp865 }, // from swedish.words
+    { "tÑnkta", Cp865 }, // from swedish.words
+    { "tÑnkte", Cp865 }, // from swedish.words
+    { "tÑnt", Cp865 }, // from swedish.words
+    { "tÑt", Cp865 }, // from swedish.words
+    { "tÑta", Cp865 }, // from swedish.words
+    { "tÑtare", Cp865 }, // from swedish.words
+    { "tÑten", Cp865 }, // from swedish.words
     { "tÑtig", Cp437 }, // from german.words
     { "tÑtigen", Cp437 }, // from german.words
+    { "tÑtt", Cp865 }, // from swedish.words
+    { "tÑvla", Cp865 }, // from swedish.words
+    { "tÑvlar", Cp865 }, // from swedish.words
+    { "tÑvling", Cp865 }, // from swedish.words
+    { "tÑvlingar", Cp865 }, // from swedish.words
+    { "tÑvlingarna", Cp865 }, // from swedish.words
+    { "tÑvlingen", Cp865 }, // from swedish.words
     { "tÜle", Cp865 }, // from norwegian.words
     { "tÜler", Cp865 }, // from norwegian.words
     { "tÜlmodig", Cp865 }, // from norwegian.words
     { "tÜlmodighet", Cp865 }, // from norwegian.words
     { "tÜrene", Cp865 }, // from norwegian.words
     { "tÜrer", Cp865 }, // from norwegian.words
+    { "täby", MacRoman }, // from swedish.words
+    { "täcka", MacRoman }, // from swedish.words
+    { "täcker", MacRoman }, // from swedish.words
+    { "täckt", MacRoman }, // from swedish.words
     { "täglich", MacRoman }, // from german.words
     { "tägliche", MacRoman }, // from german.words
     { "täglichen", MacRoman }, // from german.words
+    { "tält", MacRoman }, // from swedish.words
+    { "tämligen", MacRoman }, // from swedish.words
+    { "tända", MacRoman }, // from swedish.words
+    { "tände", MacRoman }, // from swedish.words
+    { "tänder", MacRoman }, // from swedish.words
+    { "tänderna", MacRoman }, // from swedish.words
+    { "tänk", MacRoman }, // from swedish.words
+    { "tänka", MacRoman }, // from swedish.words
+    { "tänkande", MacRoman }, // from swedish.words
+    { "tänkas", MacRoman }, // from swedish.words
+    { "tänkbar", MacRoman }, // from swedish.words
+    { "tänkbara", MacRoman }, // from swedish.words
+    { "tänker", MacRoman }, // from swedish.words
+    { "tänkt", MacRoman }, // from swedish.words
+    { "tänkta", MacRoman }, // from swedish.words
+    { "tänkte", MacRoman }, // from swedish.words
+    { "tänt", MacRoman }, // from swedish.words
+    { "tät", MacRoman }, // from swedish.words
+    { "täta", MacRoman }, // from swedish.words
+    { "tätare", MacRoman }, // from swedish.words
+    { "täten", MacRoman }, // from swedish.words
     { "tätig", MacRoman }, // from german.words
     { "tätigen", MacRoman }, // from german.words
+    { "tätt", MacRoman }, // from swedish.words
+    { "tävla", MacRoman }, // from swedish.words
+    { "tävlar", MacRoman }, // from swedish.words
+    { "tävling", MacRoman }, // from swedish.words
+    { "tävlingar", MacRoman }, // from swedish.words
+    { "tävlingarna", MacRoman }, // from swedish.words
+    { "tävlingen", MacRoman }, // from swedish.words
     { "tåle", MacRoman }, // from norwegian.words
     { "tåler", MacRoman }, // from norwegian.words
     { "tålmodig", MacRoman }, // from norwegian.words
@@ -10468,9 +16553,11 @@ static const struct {
     { "témoins", MacRoman }, // from french.words
     { "tîdlich", Cp437 }, // from german.words
     { "tîdlichen", Cp437 }, // from german.words
+    { "tîrs", Cp865 }, // from swedish.words
     { "tîten", Cp437 }, // from german.words
     { "tödlich", MacRoman }, // from german.words
     { "tödlichen", MacRoman }, // from german.words
+    { "törs", MacRoman }, // from swedish.words
     { "töten", MacRoman }, // from german.words
     { "tõff", Cp865 }, // from norwegian.words
     { "tõffe", Cp865 }, // from norwegian.words
@@ -10502,11 +16589,43 @@ static const struct {
     { "tørr", MacRoman }, // from norwegian.words
     { "tørre", MacRoman }, // from norwegian.words
     { "tørt", MacRoman }, // from norwegian.words
+    { "t‰by", Iso885915 }, // from swedish.words
+    { "t‰cka", Iso885915 }, // from swedish.words
+    { "t‰cker", Iso885915 }, // from swedish.words
+    { "t‰ckt", Iso885915 }, // from swedish.words
     { "t‰glich", Iso885915 }, // from german.words
     { "t‰gliche", Iso885915 }, // from german.words
     { "t‰glichen", Iso885915 }, // from german.words
+    { "t‰lt", Iso885915 }, // from swedish.words
+    { "t‰mligen", Iso885915 }, // from swedish.words
+    { "t‰nda", Iso885915 }, // from swedish.words
+    { "t‰nde", Iso885915 }, // from swedish.words
+    { "t‰nder", Iso885915 }, // from swedish.words
+    { "t‰nderna", Iso885915 }, // from swedish.words
+    { "t‰nk", Iso885915 }, // from swedish.words
+    { "t‰nka", Iso885915 }, // from swedish.words
+    { "t‰nkande", Iso885915 }, // from swedish.words
+    { "t‰nkas", Iso885915 }, // from swedish.words
+    { "t‰nkbar", Iso885915 }, // from swedish.words
+    { "t‰nkbara", Iso885915 }, // from swedish.words
+    { "t‰nker", Iso885915 }, // from swedish.words
+    { "t‰nkt", Iso885915 }, // from swedish.words
+    { "t‰nkta", Iso885915 }, // from swedish.words
+    { "t‰nkte", Iso885915 }, // from swedish.words
+    { "t‰nt", Iso885915 }, // from swedish.words
+    { "t‰t", Iso885915 }, // from swedish.words
+    { "t‰ta", Iso885915 }, // from swedish.words
+    { "t‰tare", Iso885915 }, // from swedish.words
+    { "t‰ten", Iso885915 }, // from swedish.words
     { "t‰tig", Iso885915 }, // from german.words
     { "t‰tigen", Iso885915 }, // from german.words
+    { "t‰tt", Iso885915 }, // from swedish.words
+    { "t‰vla", Iso885915 }, // from swedish.words
+    { "t‰vlar", Iso885915 }, // from swedish.words
+    { "t‰vling", Iso885915 }, // from swedish.words
+    { "t‰vlingar", Iso885915 }, // from swedish.words
+    { "t‰vlingarna", Iso885915 }, // from swedish.words
+    { "t‰vlingen", Iso885915 }, // from swedish.words
     { "tÂle", Iso885915 }, // from norwegian.words
     { "tÂler", Iso885915 }, // from norwegian.words
     { "tÂlmodig", Iso885915 }, // from norwegian.words
@@ -10538,6 +16657,7 @@ static const struct {
     { "tÏæk˝", Iso88592 }, // from czech.words
     { "tˆdlich", Iso885915 }, // from german.words
     { "tˆdlichen", Iso885915 }, // from german.words
+    { "tˆrs", Iso885915 }, // from swedish.words
     { "tˆten", Iso885915 }, // from german.words
     { "t¯ff", Iso885915 }, // from norwegian.words
     { "t¯ffe", Iso885915 }, // from norwegian.words
@@ -10589,6 +16709,30 @@ static const struct {
     { "underdirektõr", Cp865 }, // from norwegian.words
     { "underdirektør", MacRoman }, // from norwegian.words
     { "underdirekt¯r", Iso885915 }, // from norwegian.words
+    { "underlÑge", Cp865 }, // from swedish.words
+    { "underlÑtta", Cp865 }, // from swedish.words
+    { "underlÑttar", Cp865 }, // from swedish.words
+    { "underläge", MacRoman }, // from swedish.words
+    { "underlätta", MacRoman }, // from swedish.words
+    { "underlättar", MacRoman }, // from swedish.words
+    { "underl‰ge", Iso885915 }, // from swedish.words
+    { "underl‰tta", Iso885915 }, // from swedish.words
+    { "underl‰ttar", Iso885915 }, // from swedish.words
+    { "understrîk", Cp865 }, // from swedish.words
+    { "underströk", MacRoman }, // from swedish.words
+    { "understrˆk", Iso885915 }, // from swedish.words
+    { "undersîka", Cp865 }, // from swedish.words
+    { "undersîker", Cp865 }, // from swedish.words
+    { "undersîkning", Cp865 }, // from swedish.words
+    { "undersîkningar", Cp865 }, // from swedish.words
+    { "undersîkningen", Cp865 }, // from swedish.words
+    { "undersîkt", Cp865 }, // from swedish.words
+    { "undersöka", MacRoman }, // from swedish.words
+    { "undersöker", MacRoman }, // from swedish.words
+    { "undersökning", MacRoman }, // from swedish.words
+    { "undersökningar", MacRoman }, // from swedish.words
+    { "undersökningen", MacRoman }, // from swedish.words
+    { "undersökt", MacRoman }, // from swedish.words
     { "undersõke", Cp865 }, // from norwegian.words
     { "undersõkelse", Cp865 }, // from norwegian.words
     { "undersõkelsen", Cp865 }, // from norwegian.words
@@ -10605,6 +16749,12 @@ static const struct {
     { "undersøker", MacRoman }, // from norwegian.words
     { "undersøkt", MacRoman }, // from norwegian.words
     { "undersøkte", MacRoman }, // from norwegian.words
+    { "undersˆka", Iso885915 }, // from swedish.words
+    { "undersˆker", Iso885915 }, // from swedish.words
+    { "undersˆkning", Iso885915 }, // from swedish.words
+    { "undersˆkningar", Iso885915 }, // from swedish.words
+    { "undersˆkningen", Iso885915 }, // from swedish.words
+    { "undersˆkt", Iso885915 }, // from swedish.words
     { "unders¯ke", Iso885915 }, // from norwegian.words
     { "unders¯kelse", Iso885915 }, // from norwegian.words
     { "unders¯kelsen", Iso885915 }, // from norwegian.words
@@ -10614,8 +16764,11 @@ static const struct {
     { "unders¯kt", Iso885915 }, // from norwegian.words
     { "unders¯kte", Iso885915 }, // from norwegian.words
     { "ungefÑhr", Cp437 }, // from german.words
+    { "ungefÑr", Cp865 }, // from swedish.words
     { "ungefähr", MacRoman }, // from german.words
+    { "ungefär", MacRoman }, // from swedish.words
     { "ungef‰hr", Iso885915 }, // from german.words
+    { "ungef‰r", Iso885915 }, // from swedish.words
     { "ungeklÑrt", Cp437 }, // from german.words
     { "ungeklärt", MacRoman }, // from german.words
     { "ungekl‰rt", Iso885915 }, // from german.words
@@ -10682,6 +16835,99 @@ static const struct {
     { "unõdvendig", Cp865 }, // from norwegian.words
     { "unødvendig", MacRoman }, // from norwegian.words
     { "un¯dvendig", Iso885915 }, // from norwegian.words
+    { "uppfîljning", Cp865 }, // from swedish.words
+    { "uppfîr", Cp865 }, // from swedish.words
+    { "uppföljning", MacRoman }, // from swedish.words
+    { "uppför", MacRoman }, // from swedish.words
+    { "uppfˆljning", Iso885915 }, // from swedish.words
+    { "uppfˆr", Iso885915 }, // from swedish.words
+    { "uppgîrelse", Cp865 }, // from swedish.words
+    { "uppgîrelsen", Cp865 }, // from swedish.words
+    { "uppgörelse", MacRoman }, // from swedish.words
+    { "uppgörelsen", MacRoman }, // from swedish.words
+    { "uppgˆrelse", Iso885915 }, // from swedish.words
+    { "uppgˆrelsen", Iso885915 }, // from swedish.words
+    { "upphîr", Cp865 }, // from swedish.words
+    { "upphîra", Cp865 }, // from swedish.words
+    { "upphîrde", Cp865 }, // from swedish.words
+    { "upphîrt", Cp865 }, // from swedish.words
+    { "upphör", MacRoman }, // from swedish.words
+    { "upphöra", MacRoman }, // from swedish.words
+    { "upphörde", MacRoman }, // from swedish.words
+    { "upphört", MacRoman }, // from swedish.words
+    { "upphˆr", Iso885915 }, // from swedish.words
+    { "upphˆra", Iso885915 }, // from swedish.words
+    { "upphˆrde", Iso885915 }, // from swedish.words
+    { "upphˆrt", Iso885915 }, // from swedish.words
+    { "upplîsning", Cp865 }, // from swedish.words
+    { "upplösning", MacRoman }, // from swedish.words
+    { "upplˆsning", Iso885915 }, // from swedish.words
+    { "uppmÑrksamhet", Cp865 }, // from swedish.words
+    { "uppmÑrksamheten", Cp865 }, // from swedish.words
+    { "uppmÑrksamma", Cp865 }, // from swedish.words
+    { "uppmÑrksammad", Cp865 }, // from swedish.words
+    { "uppmÑrksammade", Cp865 }, // from swedish.words
+    { "uppmärksamhet", MacRoman }, // from swedish.words
+    { "uppmärksamheten", MacRoman }, // from swedish.words
+    { "uppmärksamma", MacRoman }, // from swedish.words
+    { "uppmärksammad", MacRoman }, // from swedish.words
+    { "uppmärksammade", MacRoman }, // from swedish.words
+    { "uppm‰rksamhet", Iso885915 }, // from swedish.words
+    { "uppm‰rksamheten", Iso885915 }, // from swedish.words
+    { "uppm‰rksamma", Iso885915 }, // from swedish.words
+    { "uppm‰rksammad", Iso885915 }, // from swedish.words
+    { "uppm‰rksammade", Iso885915 }, // from swedish.words
+    { "upprÑtta", Cp865 }, // from swedish.words
+    { "upprÑtthÜlla", Cp865 }, // from swedish.words
+    { "upprätta", MacRoman }, // from swedish.words
+    { "upprätthålla", MacRoman }, // from swedish.words
+    { "upprîrd", Cp865 }, // from swedish.words
+    { "upprîrda", Cp865 }, // from swedish.words
+    { "upprörd", MacRoman }, // from swedish.words
+    { "upprörda", MacRoman }, // from swedish.words
+    { "uppr‰tta", Iso885915 }, // from swedish.words
+    { "uppr‰tthÂlla", Iso885915 }, // from swedish.words
+    { "upprˆrd", Iso885915 }, // from swedish.words
+    { "upprˆrda", Iso885915 }, // from swedish.words
+    { "uppsÑttning", Cp865 }, // from swedish.words
+    { "uppsÑttningen", Cp865 }, // from swedish.words
+    { "uppsättning", MacRoman }, // from swedish.words
+    { "uppsättningen", MacRoman }, // from swedish.words
+    { "upps‰ttning", Iso885915 }, // from swedish.words
+    { "upps‰ttningen", Iso885915 }, // from swedish.words
+    { "upptrÑda", Cp865 }, // from swedish.words
+    { "upptrÑdande", Cp865 }, // from swedish.words
+    { "upptrÑdde", Cp865 }, // from swedish.words
+    { "upptrÑder", Cp865 }, // from swedish.words
+    { "uppträda", MacRoman }, // from swedish.words
+    { "uppträdande", MacRoman }, // from swedish.words
+    { "uppträdde", MacRoman }, // from swedish.words
+    { "uppträder", MacRoman }, // from swedish.words
+    { "upptr‰da", Iso885915 }, // from swedish.words
+    { "upptr‰dande", Iso885915 }, // from swedish.words
+    { "upptr‰dde", Iso885915 }, // from swedish.words
+    { "upptr‰der", Iso885915 }, // from swedish.words
+    { "upptÑcka", Cp865 }, // from swedish.words
+    { "upptÑcker", Cp865 }, // from swedish.words
+    { "upptÑckt", Cp865 }, // from swedish.words
+    { "upptÑckte", Cp865 }, // from swedish.words
+    { "upptÑckten", Cp865 }, // from swedish.words
+    { "upptÑcktes", Cp865 }, // from swedish.words
+    { "upptäcka", MacRoman }, // from swedish.words
+    { "upptäcker", MacRoman }, // from swedish.words
+    { "upptäckt", MacRoman }, // from swedish.words
+    { "upptäckte", MacRoman }, // from swedish.words
+    { "upptäckten", MacRoman }, // from swedish.words
+    { "upptäcktes", MacRoman }, // from swedish.words
+    { "uppt‰cka", Iso885915 }, // from swedish.words
+    { "uppt‰cker", Iso885915 }, // from swedish.words
+    { "uppt‰ckt", Iso885915 }, // from swedish.words
+    { "uppt‰ckte", Iso885915 }, // from swedish.words
+    { "uppt‰ckten", Iso885915 }, // from swedish.words
+    { "uppt‰cktes", Iso885915 }, // from swedish.words
+    { "uppvÑxt", Cp865 }, // from swedish.words
+    { "uppväxt", MacRoman }, // from swedish.words
+    { "uppv‰xt", Iso885915 }, // from swedish.words
     { "ursprÅnglich", Cp437 }, // from german.words
     { "ursprÅngliche", Cp437 }, // from german.words
     { "ursprÅnglichen", Cp437 }, // from german.words
@@ -10691,13 +16937,32 @@ static const struct {
     { "urspr¸nglich", Iso885915 }, // from german.words
     { "urspr¸ngliche", Iso885915 }, // from german.words
     { "urspr¸nglichen", Iso885915 }, // from german.words
+    { "ursÑkt", Cp865 }, // from swedish.words
+    { "ursÑkta", Cp865 }, // from swedish.words
+    { "ursäkt", MacRoman }, // from swedish.words
+    { "ursäkta", MacRoman }, // from swedish.words
+    { "urs‰kt", Iso885915 }, // from swedish.words
+    { "urs‰kta", Iso885915 }, // from swedish.words
     { "urËit˝", Iso88592 }, // from czech.words
     { "usÇes", Cp437 }, // from french.words
     { "usées", MacRoman }, // from french.words
     { "usÈes", Iso885915 }, // from french.words
+    { "utanfîr", Cp865 }, // from swedish.words
+    { "utanför", MacRoman }, // from swedish.words
+    { "utanfˆr", Iso885915 }, // from swedish.words
     { "utendõrs", Cp865 }, // from norwegian.words
     { "utendørs", MacRoman }, // from norwegian.words
     { "utend¯rs", Iso885915 }, // from norwegian.words
+    { "utfîr", Cp865 }, // from swedish.words
+    { "utfîra", Cp865 }, // from swedish.words
+    { "utfîrde", Cp865 }, // from swedish.words
+    { "utfîrs", Cp865 }, // from swedish.words
+    { "utfîrt", Cp865 }, // from swedish.words
+    { "utför", MacRoman }, // from swedish.words
+    { "utföra", MacRoman }, // from swedish.words
+    { "utförde", MacRoman }, // from swedish.words
+    { "utförs", MacRoman }, // from swedish.words
+    { "utfört", MacRoman }, // from swedish.words
     { "utfõre", Cp865 }, // from norwegian.words
     { "utfõrer", Cp865 }, // from norwegian.words
     { "utfõres", Cp865 }, // from norwegian.words
@@ -10708,6 +16973,11 @@ static const struct {
     { "utføres", MacRoman }, // from norwegian.words
     { "utført", MacRoman }, // from norwegian.words
     { "utførte", MacRoman }, // from norwegian.words
+    { "utfˆr", Iso885915 }, // from swedish.words
+    { "utfˆra", Iso885915 }, // from swedish.words
+    { "utfˆrde", Iso885915 }, // from swedish.words
+    { "utfˆrs", Iso885915 }, // from swedish.words
+    { "utfˆrt", Iso885915 }, // from swedish.words
     { "utf¯re", Iso885915 }, // from norwegian.words
     { "utf¯rer", Iso885915 }, // from norwegian.words
     { "utf¯res", Iso885915 }, // from norwegian.words
@@ -10719,6 +16989,15 @@ static const struct {
     { "utgjøre", MacRoman }, // from norwegian.words
     { "utgj¯r", Iso885915 }, // from norwegian.words
     { "utgj¯re", Iso885915 }, // from norwegian.words
+    { "utgîr", Cp865 }, // from swedish.words
+    { "utgîra", Cp865 }, // from swedish.words
+    { "utgîrs", Cp865 }, // from swedish.words
+    { "utgör", MacRoman }, // from swedish.words
+    { "utgöra", MacRoman }, // from swedish.words
+    { "utgörs", MacRoman }, // from swedish.words
+    { "utgˆr", Iso885915 }, // from swedish.words
+    { "utgˆra", Iso885915 }, // from swedish.words
+    { "utgˆrs", Iso885915 }, // from swedish.words
     { "utilisÇ", Cp437 }, // from french.words
     { "utilisÇe", Cp437 }, // from french.words
     { "utilisÇes", Cp437 }, // from french.words
@@ -10731,7 +17010,13 @@ static const struct {
     { "utilisÈe", Iso885915 }, // from french.words
     { "utilisÈes", Iso885915 }, // from french.words
     { "utilisÈs", Iso885915 }, // from french.words
+    { "utlÑndsk", Cp865 }, // from swedish.words
+    { "utlÑndska", Cp865 }, // from swedish.words
+    { "utlÑnningar", Cp865 }, // from swedish.words
     { "utlÜn", Cp865 }, // from norwegian.words
+    { "utländsk", MacRoman }, // from swedish.words
+    { "utländska", MacRoman }, // from swedish.words
+    { "utlänningar", MacRoman }, // from swedish.words
     { "utlån", MacRoman }, // from norwegian.words
     { "utlõp", Cp865 }, // from norwegian.words
     { "utlõse", Cp865 }, // from norwegian.words
@@ -10741,20 +17026,68 @@ static const struct {
     { "utløse", MacRoman }, // from norwegian.words
     { "utløst", MacRoman }, // from norwegian.words
     { "utløste", MacRoman }, // from norwegian.words
+    { "utl‰ndsk", Iso885915 }, // from swedish.words
+    { "utl‰ndska", Iso885915 }, // from swedish.words
+    { "utl‰nningar", Iso885915 }, // from swedish.words
     { "utlÂn", Iso885915 }, // from norwegian.words
     { "utl¯p", Iso885915 }, // from norwegian.words
     { "utl¯se", Iso885915 }, // from norwegian.words
     { "utl¯st", Iso885915 }, // from norwegian.words
     { "utl¯ste", Iso885915 }, // from norwegian.words
+    { "utmÑrkt", Cp865 }, // from swedish.words
+    { "utmÑrkta", Cp865 }, // from swedish.words
+    { "utmärkt", MacRoman }, // from swedish.words
+    { "utmärkta", MacRoman }, // from swedish.words
+    { "utm‰rkt", Iso885915 }, // from swedish.words
+    { "utm‰rkta", Iso885915 }, // from swedish.words
     { "utpÜ", Cp865 }, // from norwegian.words
     { "utpå", MacRoman }, // from norwegian.words
     { "utpÂ", Iso885915 }, // from norwegian.words
+    { "utslÑpp", Cp865 }, // from swedish.words
+    { "utslÑppen", Cp865 }, // from swedish.words
+    { "utsläpp", MacRoman }, // from swedish.words
+    { "utsläppen", MacRoman }, // from swedish.words
+    { "utsl‰pp", Iso885915 }, // from swedish.words
+    { "utsl‰ppen", Iso885915 }, // from swedish.words
+    { "utstrÑckning", Cp865 }, // from swedish.words
+    { "utsträckning", MacRoman }, // from swedish.words
+    { "utstr‰ckning", Iso885915 }, // from swedish.words
+    { "utstÑllning", Cp865 }, // from swedish.words
+    { "utstÑllningar", Cp865 }, // from swedish.words
+    { "utstÑllningen", Cp865 }, // from swedish.words
+    { "utställning", MacRoman }, // from swedish.words
+    { "utställningar", MacRoman }, // from swedish.words
+    { "utställningen", MacRoman }, // from swedish.words
+    { "utst‰llning", Iso885915 }, // from swedish.words
+    { "utst‰llningar", Iso885915 }, // from swedish.words
+    { "utst‰llningen", Iso885915 }, // from swedish.words
+    { "utsÑtts", Cp865 }, // from swedish.words
+    { "utsätts", MacRoman }, // from swedish.words
+    { "utsîkt", Cp865 }, // from swedish.words
+    { "utsökt", MacRoman }, // from swedish.words
+    { "uts‰tts", Iso885915 }, // from swedish.words
+    { "utsˆkt", Iso885915 }, // from swedish.words
+    { "utvÑndigt", Cp865 }, // from swedish.words
+    { "utvÑrdering", Cp865 }, // from swedish.words
+    { "utvändigt", MacRoman }, // from swedish.words
+    { "utvärdering", MacRoman }, // from swedish.words
+    { "utv‰ndigt", Iso885915 }, // from swedish.words
+    { "utv‰rdering", Iso885915 }, // from swedish.words
+    { "utîka", Cp865 }, // from swedish.words
+    { "utîva", Cp865 }, // from swedish.words
+    { "utîver", Cp865 }, // from swedish.words
+    { "utöka", MacRoman }, // from swedish.words
+    { "utöva", MacRoman }, // from swedish.words
+    { "utöver", MacRoman }, // from swedish.words
     { "utõver", Cp865 }, // from norwegian.words
     { "utõvere", Cp865 }, // from norwegian.words
     { "utõverne", Cp865 }, // from norwegian.words
     { "utøver", MacRoman }, // from norwegian.words
     { "utøvere", MacRoman }, // from norwegian.words
     { "utøverne", MacRoman }, // from norwegian.words
+    { "utˆka", Iso885915 }, // from swedish.words
+    { "utˆva", Iso885915 }, // from swedish.words
+    { "utˆver", Iso885915 }, // from swedish.words
     { "ut¯ver", Iso885915 }, // from norwegian.words
     { "ut¯vere", Iso885915 }, // from norwegian.words
     { "ut¯verne", Iso885915 }, // from norwegian.words
@@ -10771,9 +17104,15 @@ static const struct {
     { "vallÇe", Cp437 }, // from french.words
     { "vallée", MacRoman }, // from french.words
     { "vallÈe", Iso885915 }, // from french.words
+    { "valrîrelsen", Cp865 }, // from swedish.words
+    { "valrörelsen", MacRoman }, // from swedish.words
+    { "valrˆrelsen", Iso885915 }, // from swedish.words
     { "varaordfõrer", Cp865 }, // from norwegian.words
     { "varaordfører", MacRoman }, // from norwegian.words
     { "varaordf¯rer", Iso885915 }, // from norwegian.words
+    { "varfîr", Cp865 }, // from swedish.words
+    { "varför", MacRoman }, // from swedish.words
+    { "varfˆr", Iso885915 }, // from swedish.words
     { "variÇtÇ", Cp437 }, // from french.words
     { "variÇtÇs", Cp437 }, // from french.words
     { "variété", MacRoman }, // from french.words
@@ -10827,6 +17166,9 @@ static const struct {
     { "verknÅpft", Cp437 }, // from german.words
     { "verknüpft", MacRoman }, // from german.words
     { "verkn¸pft", Iso885915 }, // from german.words
+    { "verkstÑllande", Cp865 }, // from swedish.words
+    { "verkställande", MacRoman }, // from swedish.words
+    { "verkst‰llande", Iso885915 }, // from swedish.words
     { "verktõy", Cp865 }, // from norwegian.words
     { "verktøy", MacRoman }, // from norwegian.words
     { "verkt¯y", Iso885915 }, // from norwegian.words
@@ -10992,6 +17334,9 @@ static const struct {
     { "visés", MacRoman }, // from french.words
     { "visÈ", Iso885915 }, // from french.words
     { "visÈs", Iso885915 }, // from french.words
+    { "vitlîk", Cp865 }, // from swedish.words
+    { "vitlök", MacRoman }, // from swedish.words
+    { "vitlˆk", Iso885915 }, // from swedish.words
     { "vlastnÌ", Iso88592 }, // from czech.words
     { "vl·da", Iso88592 }, // from czech.words
     { "vl·dnÌ", Iso88592 }, // from czech.words
@@ -11051,6 +17396,140 @@ static const struct {
     { "vÇritablement", Cp437 }, // from french.words
     { "vÇritables", Cp437 }, // from french.words
     { "vÇritÇ", Cp437 }, // from french.words
+    { "vÑcka", Cp865 }, // from swedish.words
+    { "vÑcker", Cp865 }, // from swedish.words
+    { "vÑckt", Cp865 }, // from swedish.words
+    { "vÑckte", Cp865 }, // from swedish.words
+    { "vÑcktes", Cp865 }, // from swedish.words
+    { "vÑder", Cp865 }, // from swedish.words
+    { "vÑdret", Cp865 }, // from swedish.words
+    { "vÑg", Cp865 }, // from swedish.words
+    { "vÑga", Cp865 }, // from swedish.words
+    { "vÑgar", Cp865 }, // from swedish.words
+    { "vÑgarna", Cp865 }, // from swedish.words
+    { "vÑgde", Cp865 }, // from swedish.words
+    { "vÑgen", Cp865 }, // from swedish.words
+    { "vÑger", Cp865 }, // from swedish.words
+    { "vÑgg", Cp865 }, // from swedish.words
+    { "vÑggar", Cp865 }, // from swedish.words
+    { "vÑggarna", Cp865 }, // from swedish.words
+    { "vÑggen", Cp865 }, // from swedish.words
+    { "vÑgra", Cp865 }, // from swedish.words
+    { "vÑgrade", Cp865 }, // from swedish.words
+    { "vÑgrar", Cp865 }, // from swedish.words
+    { "vÑgrat", Cp865 }, // from swedish.words
+    { "vÑgverket", Cp865 }, // from swedish.words
+    { "vÑgverkets", Cp865 }, // from swedish.words
+    { "vÑl", Cp865 }, // from swedish.words
+    { "vÑldig", Cp865 }, // from swedish.words
+    { "vÑldiga", Cp865 }, // from swedish.words
+    { "vÑldigt", Cp865 }, // from swedish.words
+    { "vÑlfÑrd", Cp865 }, // from swedish.words
+    { "vÑlfÑrden", Cp865 }, // from swedish.words
+    { "vÑlja", Cp865 }, // from swedish.words
+    { "vÑljare", Cp865 }, // from swedish.words
+    { "vÑljarna", Cp865 }, // from swedish.words
+    { "vÑljer", Cp865 }, // from swedish.words
+    { "vÑljs", Cp865 }, // from swedish.words
+    { "vÑlkommen", Cp865 }, // from swedish.words
+    { "vÑlkomna", Cp865 }, // from swedish.words
+    { "vÑlkomnar", Cp865 }, // from swedish.words
+    { "vÑlkÑnd", Cp865 }, // from swedish.words
+    { "vÑlkÑnda", Cp865 }, // from swedish.words
+    { "vÑllingby", Cp865 }, // from swedish.words
+    { "vÑlstÜnd", Cp865 }, // from swedish.words
+    { "vÑn", Cp865 }, // from swedish.words
+    { "vÑnd", Cp865 }, // from swedish.words
+    { "vÑnda", Cp865 }, // from swedish.words
+    { "vÑnde", Cp865 }, // from swedish.words
+    { "vÑnder", Cp865 }, // from swedish.words
+    { "vÑnersborg", Cp865 }, // from swedish.words
+    { "vÑninna", Cp865 }, // from swedish.words
+    { "vÑnja", Cp865 }, // from swedish.words
+    { "vÑnlig", Cp865 }, // from swedish.words
+    { "vÑnliga", Cp865 }, // from swedish.words
+    { "vÑnligt", Cp865 }, // from swedish.words
+    { "vÑnnen", Cp865 }, // from swedish.words
+    { "vÑnner", Cp865 }, // from swedish.words
+    { "vÑnnerna", Cp865 }, // from swedish.words
+    { "vÑnskap", Cp865 }, // from swedish.words
+    { "vÑnster", Cp865 }, // from swedish.words
+    { "vÑnstern", Cp865 }, // from swedish.words
+    { "vÑnsterpartiet", Cp865 }, // from swedish.words
+    { "vÑnsterpartiets", Cp865 }, // from swedish.words
+    { "vÑnstra", Cp865 }, // from swedish.words
+    { "vÑnt", Cp865 }, // from swedish.words
+    { "vÑnta", Cp865 }, // from swedish.words
+    { "vÑntade", Cp865 }, // from swedish.words
+    { "vÑntan", Cp865 }, // from swedish.words
+    { "vÑntande", Cp865 }, // from swedish.words
+    { "vÑntar", Cp865 }, // from swedish.words
+    { "vÑntas", Cp865 }, // from swedish.words
+    { "vÑntat", Cp865 }, // from swedish.words
+    { "vÑpnade", Cp865 }, // from swedish.words
+    { "vÑrd", Cp865 }, // from swedish.words
+    { "vÑrda", Cp865 }, // from swedish.words
+    { "vÑrde", Cp865 }, // from swedish.words
+    { "vÑrdefull", Cp865 }, // from swedish.words
+    { "vÑrdefulla", Cp865 }, // from swedish.words
+    { "vÑrdefullt", Cp865 }, // from swedish.words
+    { "vÑrden", Cp865 }, // from swedish.words
+    { "vÑrderas", Cp865 }, // from swedish.words
+    { "vÑrderingar", Cp865 }, // from swedish.words
+    { "vÑrdet", Cp865 }, // from swedish.words
+    { "vÑrdig", Cp865 }, // from swedish.words
+    { "vÑrdighet", Cp865 }, // from swedish.words
+    { "vÑrld", Cp865 }, // from swedish.words
+    { "vÑrldar", Cp865 }, // from swedish.words
+    { "vÑrlden", Cp865 }, // from swedish.words
+    { "vÑrldens", Cp865 }, // from swedish.words
+    { "vÑrldscupen", Cp865 }, // from swedish.words
+    { "vÑrldskriget", Cp865 }, // from swedish.words
+    { "vÑrldsmÑstare", Cp865 }, // from swedish.words
+    { "vÑrldsmÑstaren", Cp865 }, // from swedish.words
+    { "vÑrldsrekord", Cp865 }, // from swedish.words
+    { "vÑrmdî", Cp865 }, // from swedish.words
+    { "vÑrme", Cp865 }, // from swedish.words
+    { "vÑrmen", Cp865 }, // from swedish.words
+    { "vÑrmland", Cp865 }, // from swedish.words
+    { "vÑrna", Cp865 }, // from swedish.words
+    { "vÑrnpliktiga", Cp865 }, // from swedish.words
+    { "vÑrre", Cp865 }, // from swedish.words
+    { "vÑrst", Cp865 }, // from swedish.words
+    { "vÑrsta", Cp865 }, // from swedish.words
+    { "vÑrt", Cp865 }, // from swedish.words
+    { "vÑsby", Cp865 }, // from swedish.words
+    { "vÑsen", Cp865 }, // from swedish.words
+    { "vÑsentlig", Cp865 }, // from swedish.words
+    { "vÑsentliga", Cp865 }, // from swedish.words
+    { "vÑsentligt", Cp865 }, // from swedish.words
+    { "vÑska", Cp865 }, // from swedish.words
+    { "vÑskan", Cp865 }, // from swedish.words
+    { "vÑst", Cp865 }, // from swedish.words
+    { "vÑstbanken", Cp865 }, // from swedish.words
+    { "vÑster", Cp865 }, // from swedish.words
+    { "vÑsterbotten", Cp865 }, // from swedish.words
+    { "vÑsterlÑndska", Cp865 }, // from swedish.words
+    { "vÑsterÜs", Cp865 }, // from swedish.words
+    { "vÑsteuropa", Cp865 }, // from swedish.words
+    { "vÑsteuropeiska", Cp865 }, // from swedish.words
+    { "vÑstkusten", Cp865 }, // from swedish.words
+    { "vÑstliga", Cp865 }, // from swedish.words
+    { "vÑstra", Cp865 }, // from swedish.words
+    { "vÑstsvenska", Cp865 }, // from swedish.words
+    { "vÑstsverige", Cp865 }, // from swedish.words
+    { "vÑsttyska", Cp865 }, // from swedish.words
+    { "vÑsttyskland", Cp865 }, // from swedish.words
+    { "vÑstvÑrlden", Cp865 }, // from swedish.words
+    { "vÑxa", Cp865 }, // from swedish.words
+    { "vÑxande", Cp865 }, // from swedish.words
+    { "vÑxer", Cp865 }, // from swedish.words
+    { "vÑxjî", Cp865 }, // from swedish.words
+    { "vÑxlar", Cp865 }, // from swedish.words
+    { "vÑxt", Cp865 }, // from swedish.words
+    { "vÑxte", Cp865 }, // from swedish.words
+    { "vÑxter", Cp865 }, // from swedish.words
+    { "vÑxterna", Cp865 }, // from swedish.words
     { "vÜge", Cp865 }, // from norwegian.words
     { "vÜgen", Cp865 }, // from norwegian.words
     { "vÜger", Cp865 }, // from norwegian.words
@@ -11058,6 +17537,7 @@ static const struct {
     { "vÜkne", Cp865 }, // from norwegian.words
     { "vÜkner", Cp865 }, // from norwegian.words
     { "vÜknet", Cp865 }, // from norwegian.words
+    { "vÜldtÑkt", Cp865 }, // from swedish.words
     { "vÜlerenga", Cp865 }, // from norwegian.words
     { "vÜpen", Cp865 }, // from norwegian.words
     { "vÜpenhvile", Cp865 }, // from norwegian.words
@@ -11068,6 +17548,140 @@ static const struct {
     { "vÜrens", Cp865 }, // from norwegian.words
     { "vÜrt", Cp865 }, // from norwegian.words
     { "vÜt", Cp865 }, // from norwegian.words
+    { "väcka", MacRoman }, // from swedish.words
+    { "väcker", MacRoman }, // from swedish.words
+    { "väckt", MacRoman }, // from swedish.words
+    { "väckte", MacRoman }, // from swedish.words
+    { "väcktes", MacRoman }, // from swedish.words
+    { "väder", MacRoman }, // from swedish.words
+    { "vädret", MacRoman }, // from swedish.words
+    { "väg", MacRoman }, // from swedish.words
+    { "väga", MacRoman }, // from swedish.words
+    { "vägar", MacRoman }, // from swedish.words
+    { "vägarna", MacRoman }, // from swedish.words
+    { "vägde", MacRoman }, // from swedish.words
+    { "vägen", MacRoman }, // from swedish.words
+    { "väger", MacRoman }, // from swedish.words
+    { "vägg", MacRoman }, // from swedish.words
+    { "väggar", MacRoman }, // from swedish.words
+    { "väggarna", MacRoman }, // from swedish.words
+    { "väggen", MacRoman }, // from swedish.words
+    { "vägra", MacRoman }, // from swedish.words
+    { "vägrade", MacRoman }, // from swedish.words
+    { "vägrar", MacRoman }, // from swedish.words
+    { "vägrat", MacRoman }, // from swedish.words
+    { "vägverket", MacRoman }, // from swedish.words
+    { "vägverkets", MacRoman }, // from swedish.words
+    { "väl", MacRoman }, // from swedish.words
+    { "väldig", MacRoman }, // from swedish.words
+    { "väldiga", MacRoman }, // from swedish.words
+    { "väldigt", MacRoman }, // from swedish.words
+    { "välfärd", MacRoman }, // from swedish.words
+    { "välfärden", MacRoman }, // from swedish.words
+    { "välja", MacRoman }, // from swedish.words
+    { "väljare", MacRoman }, // from swedish.words
+    { "väljarna", MacRoman }, // from swedish.words
+    { "väljer", MacRoman }, // from swedish.words
+    { "väljs", MacRoman }, // from swedish.words
+    { "välkommen", MacRoman }, // from swedish.words
+    { "välkomna", MacRoman }, // from swedish.words
+    { "välkomnar", MacRoman }, // from swedish.words
+    { "välkänd", MacRoman }, // from swedish.words
+    { "välkända", MacRoman }, // from swedish.words
+    { "vällingby", MacRoman }, // from swedish.words
+    { "välstånd", MacRoman }, // from swedish.words
+    { "vän", MacRoman }, // from swedish.words
+    { "vänd", MacRoman }, // from swedish.words
+    { "vända", MacRoman }, // from swedish.words
+    { "vände", MacRoman }, // from swedish.words
+    { "vänder", MacRoman }, // from swedish.words
+    { "vänersborg", MacRoman }, // from swedish.words
+    { "väninna", MacRoman }, // from swedish.words
+    { "vänja", MacRoman }, // from swedish.words
+    { "vänlig", MacRoman }, // from swedish.words
+    { "vänliga", MacRoman }, // from swedish.words
+    { "vänligt", MacRoman }, // from swedish.words
+    { "vännen", MacRoman }, // from swedish.words
+    { "vänner", MacRoman }, // from swedish.words
+    { "vännerna", MacRoman }, // from swedish.words
+    { "vänskap", MacRoman }, // from swedish.words
+    { "vänster", MacRoman }, // from swedish.words
+    { "vänstern", MacRoman }, // from swedish.words
+    { "vänsterpartiet", MacRoman }, // from swedish.words
+    { "vänsterpartiets", MacRoman }, // from swedish.words
+    { "vänstra", MacRoman }, // from swedish.words
+    { "vänt", MacRoman }, // from swedish.words
+    { "vänta", MacRoman }, // from swedish.words
+    { "väntade", MacRoman }, // from swedish.words
+    { "väntan", MacRoman }, // from swedish.words
+    { "väntande", MacRoman }, // from swedish.words
+    { "väntar", MacRoman }, // from swedish.words
+    { "väntas", MacRoman }, // from swedish.words
+    { "väntat", MacRoman }, // from swedish.words
+    { "väpnade", MacRoman }, // from swedish.words
+    { "värd", MacRoman }, // from swedish.words
+    { "värda", MacRoman }, // from swedish.words
+    { "värde", MacRoman }, // from swedish.words
+    { "värdefull", MacRoman }, // from swedish.words
+    { "värdefulla", MacRoman }, // from swedish.words
+    { "värdefullt", MacRoman }, // from swedish.words
+    { "värden", MacRoman }, // from swedish.words
+    { "värderas", MacRoman }, // from swedish.words
+    { "värderingar", MacRoman }, // from swedish.words
+    { "värdet", MacRoman }, // from swedish.words
+    { "värdig", MacRoman }, // from swedish.words
+    { "värdighet", MacRoman }, // from swedish.words
+    { "värld", MacRoman }, // from swedish.words
+    { "världar", MacRoman }, // from swedish.words
+    { "världen", MacRoman }, // from swedish.words
+    { "världens", MacRoman }, // from swedish.words
+    { "världscupen", MacRoman }, // from swedish.words
+    { "världskriget", MacRoman }, // from swedish.words
+    { "världsmästare", MacRoman }, // from swedish.words
+    { "världsmästaren", MacRoman }, // from swedish.words
+    { "världsrekord", MacRoman }, // from swedish.words
+    { "värmdö", MacRoman }, // from swedish.words
+    { "värme", MacRoman }, // from swedish.words
+    { "värmen", MacRoman }, // from swedish.words
+    { "värmland", MacRoman }, // from swedish.words
+    { "värna", MacRoman }, // from swedish.words
+    { "värnpliktiga", MacRoman }, // from swedish.words
+    { "värre", MacRoman }, // from swedish.words
+    { "värst", MacRoman }, // from swedish.words
+    { "värsta", MacRoman }, // from swedish.words
+    { "värt", MacRoman }, // from swedish.words
+    { "väsby", MacRoman }, // from swedish.words
+    { "väsen", MacRoman }, // from swedish.words
+    { "väsentlig", MacRoman }, // from swedish.words
+    { "väsentliga", MacRoman }, // from swedish.words
+    { "väsentligt", MacRoman }, // from swedish.words
+    { "väska", MacRoman }, // from swedish.words
+    { "väskan", MacRoman }, // from swedish.words
+    { "väst", MacRoman }, // from swedish.words
+    { "västbanken", MacRoman }, // from swedish.words
+    { "väster", MacRoman }, // from swedish.words
+    { "västerbotten", MacRoman }, // from swedish.words
+    { "västerländska", MacRoman }, // from swedish.words
+    { "västerås", MacRoman }, // from swedish.words
+    { "västeuropa", MacRoman }, // from swedish.words
+    { "västeuropeiska", MacRoman }, // from swedish.words
+    { "västkusten", MacRoman }, // from swedish.words
+    { "västliga", MacRoman }, // from swedish.words
+    { "västra", MacRoman }, // from swedish.words
+    { "västsvenska", MacRoman }, // from swedish.words
+    { "västsverige", MacRoman }, // from swedish.words
+    { "västtyska", MacRoman }, // from swedish.words
+    { "västtyskland", MacRoman }, // from swedish.words
+    { "västvärlden", MacRoman }, // from swedish.words
+    { "växa", MacRoman }, // from swedish.words
+    { "växande", MacRoman }, // from swedish.words
+    { "växer", MacRoman }, // from swedish.words
+    { "växjö", MacRoman }, // from swedish.words
+    { "växlar", MacRoman }, // from swedish.words
+    { "växt", MacRoman }, // from swedish.words
+    { "växte", MacRoman }, // from swedish.words
+    { "växter", MacRoman }, // from swedish.words
+    { "växterna", MacRoman }, // from swedish.words
     { "våge", MacRoman }, // from norwegian.words
     { "vågen", MacRoman }, // from norwegian.words
     { "våger", MacRoman }, // from norwegian.words
@@ -11075,6 +17689,7 @@ static const struct {
     { "våkne", MacRoman }, // from norwegian.words
     { "våkner", MacRoman }, // from norwegian.words
     { "våknet", MacRoman }, // from norwegian.words
+    { "våldtäkt", MacRoman }, // from swedish.words
     { "vålerenga", MacRoman }, // from norwegian.words
     { "våpen", MacRoman }, // from norwegian.words
     { "våpenhvile", MacRoman }, // from norwegian.words
@@ -11114,6 +17729,140 @@ static const struct {
     { "værnes", MacRoman }, // from norwegian.words
     { "værs", MacRoman }, // from norwegian.words
     { "vært", MacRoman }, // from norwegian.words
+    { "v‰cka", Iso885915 }, // from swedish.words
+    { "v‰cker", Iso885915 }, // from swedish.words
+    { "v‰ckt", Iso885915 }, // from swedish.words
+    { "v‰ckte", Iso885915 }, // from swedish.words
+    { "v‰cktes", Iso885915 }, // from swedish.words
+    { "v‰der", Iso885915 }, // from swedish.words
+    { "v‰dret", Iso885915 }, // from swedish.words
+    { "v‰g", Iso885915 }, // from swedish.words
+    { "v‰ga", Iso885915 }, // from swedish.words
+    { "v‰gar", Iso885915 }, // from swedish.words
+    { "v‰garna", Iso885915 }, // from swedish.words
+    { "v‰gde", Iso885915 }, // from swedish.words
+    { "v‰gen", Iso885915 }, // from swedish.words
+    { "v‰ger", Iso885915 }, // from swedish.words
+    { "v‰gg", Iso885915 }, // from swedish.words
+    { "v‰ggar", Iso885915 }, // from swedish.words
+    { "v‰ggarna", Iso885915 }, // from swedish.words
+    { "v‰ggen", Iso885915 }, // from swedish.words
+    { "v‰gra", Iso885915 }, // from swedish.words
+    { "v‰grade", Iso885915 }, // from swedish.words
+    { "v‰grar", Iso885915 }, // from swedish.words
+    { "v‰grat", Iso885915 }, // from swedish.words
+    { "v‰gverket", Iso885915 }, // from swedish.words
+    { "v‰gverkets", Iso885915 }, // from swedish.words
+    { "v‰l", Iso885915 }, // from swedish.words
+    { "v‰ldig", Iso885915 }, // from swedish.words
+    { "v‰ldiga", Iso885915 }, // from swedish.words
+    { "v‰ldigt", Iso885915 }, // from swedish.words
+    { "v‰lf‰rd", Iso885915 }, // from swedish.words
+    { "v‰lf‰rden", Iso885915 }, // from swedish.words
+    { "v‰lja", Iso885915 }, // from swedish.words
+    { "v‰ljare", Iso885915 }, // from swedish.words
+    { "v‰ljarna", Iso885915 }, // from swedish.words
+    { "v‰ljer", Iso885915 }, // from swedish.words
+    { "v‰ljs", Iso885915 }, // from swedish.words
+    { "v‰lkommen", Iso885915 }, // from swedish.words
+    { "v‰lkomna", Iso885915 }, // from swedish.words
+    { "v‰lkomnar", Iso885915 }, // from swedish.words
+    { "v‰lk‰nd", Iso885915 }, // from swedish.words
+    { "v‰lk‰nda", Iso885915 }, // from swedish.words
+    { "v‰llingby", Iso885915 }, // from swedish.words
+    { "v‰lstÂnd", Iso885915 }, // from swedish.words
+    { "v‰n", Iso885915 }, // from swedish.words
+    { "v‰nd", Iso885915 }, // from swedish.words
+    { "v‰nda", Iso885915 }, // from swedish.words
+    { "v‰nde", Iso885915 }, // from swedish.words
+    { "v‰nder", Iso885915 }, // from swedish.words
+    { "v‰nersborg", Iso885915 }, // from swedish.words
+    { "v‰ninna", Iso885915 }, // from swedish.words
+    { "v‰nja", Iso885915 }, // from swedish.words
+    { "v‰nlig", Iso885915 }, // from swedish.words
+    { "v‰nliga", Iso885915 }, // from swedish.words
+    { "v‰nligt", Iso885915 }, // from swedish.words
+    { "v‰nnen", Iso885915 }, // from swedish.words
+    { "v‰nner", Iso885915 }, // from swedish.words
+    { "v‰nnerna", Iso885915 }, // from swedish.words
+    { "v‰nskap", Iso885915 }, // from swedish.words
+    { "v‰nster", Iso885915 }, // from swedish.words
+    { "v‰nstern", Iso885915 }, // from swedish.words
+    { "v‰nsterpartiet", Iso885915 }, // from swedish.words
+    { "v‰nsterpartiets", Iso885915 }, // from swedish.words
+    { "v‰nstra", Iso885915 }, // from swedish.words
+    { "v‰nt", Iso885915 }, // from swedish.words
+    { "v‰nta", Iso885915 }, // from swedish.words
+    { "v‰ntade", Iso885915 }, // from swedish.words
+    { "v‰ntan", Iso885915 }, // from swedish.words
+    { "v‰ntande", Iso885915 }, // from swedish.words
+    { "v‰ntar", Iso885915 }, // from swedish.words
+    { "v‰ntas", Iso885915 }, // from swedish.words
+    { "v‰ntat", Iso885915 }, // from swedish.words
+    { "v‰pnade", Iso885915 }, // from swedish.words
+    { "v‰rd", Iso885915 }, // from swedish.words
+    { "v‰rda", Iso885915 }, // from swedish.words
+    { "v‰rde", Iso885915 }, // from swedish.words
+    { "v‰rdefull", Iso885915 }, // from swedish.words
+    { "v‰rdefulla", Iso885915 }, // from swedish.words
+    { "v‰rdefullt", Iso885915 }, // from swedish.words
+    { "v‰rden", Iso885915 }, // from swedish.words
+    { "v‰rderas", Iso885915 }, // from swedish.words
+    { "v‰rderingar", Iso885915 }, // from swedish.words
+    { "v‰rdet", Iso885915 }, // from swedish.words
+    { "v‰rdig", Iso885915 }, // from swedish.words
+    { "v‰rdighet", Iso885915 }, // from swedish.words
+    { "v‰rld", Iso885915 }, // from swedish.words
+    { "v‰rldar", Iso885915 }, // from swedish.words
+    { "v‰rlden", Iso885915 }, // from swedish.words
+    { "v‰rldens", Iso885915 }, // from swedish.words
+    { "v‰rldscupen", Iso885915 }, // from swedish.words
+    { "v‰rldskriget", Iso885915 }, // from swedish.words
+    { "v‰rldsm‰stare", Iso885915 }, // from swedish.words
+    { "v‰rldsm‰staren", Iso885915 }, // from swedish.words
+    { "v‰rldsrekord", Iso885915 }, // from swedish.words
+    { "v‰rmdˆ", Iso885915 }, // from swedish.words
+    { "v‰rme", Iso885915 }, // from swedish.words
+    { "v‰rmen", Iso885915 }, // from swedish.words
+    { "v‰rmland", Iso885915 }, // from swedish.words
+    { "v‰rna", Iso885915 }, // from swedish.words
+    { "v‰rnpliktiga", Iso885915 }, // from swedish.words
+    { "v‰rre", Iso885915 }, // from swedish.words
+    { "v‰rst", Iso885915 }, // from swedish.words
+    { "v‰rsta", Iso885915 }, // from swedish.words
+    { "v‰rt", Iso885915 }, // from swedish.words
+    { "v‰sby", Iso885915 }, // from swedish.words
+    { "v‰sen", Iso885915 }, // from swedish.words
+    { "v‰sentlig", Iso885915 }, // from swedish.words
+    { "v‰sentliga", Iso885915 }, // from swedish.words
+    { "v‰sentligt", Iso885915 }, // from swedish.words
+    { "v‰ska", Iso885915 }, // from swedish.words
+    { "v‰skan", Iso885915 }, // from swedish.words
+    { "v‰st", Iso885915 }, // from swedish.words
+    { "v‰stbanken", Iso885915 }, // from swedish.words
+    { "v‰ster", Iso885915 }, // from swedish.words
+    { "v‰sterbotten", Iso885915 }, // from swedish.words
+    { "v‰sterl‰ndska", Iso885915 }, // from swedish.words
+    { "v‰sterÂs", Iso885915 }, // from swedish.words
+    { "v‰steuropa", Iso885915 }, // from swedish.words
+    { "v‰steuropeiska", Iso885915 }, // from swedish.words
+    { "v‰stkusten", Iso885915 }, // from swedish.words
+    { "v‰stliga", Iso885915 }, // from swedish.words
+    { "v‰stra", Iso885915 }, // from swedish.words
+    { "v‰stsvenska", Iso885915 }, // from swedish.words
+    { "v‰stsverige", Iso885915 }, // from swedish.words
+    { "v‰sttyska", Iso885915 }, // from swedish.words
+    { "v‰sttyskland", Iso885915 }, // from swedish.words
+    { "v‰stv‰rlden", Iso885915 }, // from swedish.words
+    { "v‰xa", Iso885915 }, // from swedish.words
+    { "v‰xande", Iso885915 }, // from swedish.words
+    { "v‰xer", Iso885915 }, // from swedish.words
+    { "v‰xjˆ", Iso885915 }, // from swedish.words
+    { "v‰xlar", Iso885915 }, // from swedish.words
+    { "v‰xt", Iso885915 }, // from swedish.words
+    { "v‰xte", Iso885915 }, // from swedish.words
+    { "v‰xter", Iso885915 }, // from swedish.words
+    { "v‰xterna", Iso885915 }, // from swedish.words
     { "vÂge", Iso885915 }, // from norwegian.words
     { "vÂgen", Iso885915 }, // from norwegian.words
     { "vÂger", Iso885915 }, // from norwegian.words
@@ -11121,6 +17870,7 @@ static const struct {
     { "vÂkne", Iso885915 }, // from norwegian.words
     { "vÂkner", Iso885915 }, // from norwegian.words
     { "vÂknet", Iso885915 }, // from norwegian.words
+    { "vÂldt‰kt", Iso885915 }, // from swedish.words
     { "vÂlerenga", Iso885915 }, // from norwegian.words
     { "vÂpen", Iso885915 }, // from norwegian.words
     { "vÂpenhvile", Iso885915 }, // from norwegian.words
@@ -11164,6 +17914,9 @@ static const struct {
     { "v˝stava", Iso88592 }, // from czech.words
     { "v˝voj", Iso88592 }, // from czech.words
     { "v˝znamn˝", Iso88592 }, // from czech.words
+    { "wallstrîm", Cp865 }, // from swedish.words
+    { "wallström", MacRoman }, // from swedish.words
+    { "wallstrˆm", Iso885915 }, // from swedish.words
     { "weiß", MacRoman }, // from german.words
     { "weiße", MacRoman }, // from german.words
     { "weißen", MacRoman }, // from german.words
@@ -11176,6 +17929,9 @@ static const struct {
     { "wei·e", Cp437 }, // from german.words
     { "wei·en", Cp437 }, // from german.words
     { "wei·er", Cp437 }, // from german.words
+    { "wikstrîm", Cp865 }, // from swedish.words
+    { "wikström", MacRoman }, // from swedish.words
+    { "wikstrˆm", Iso885915 }, // from swedish.words
     { "wofÅr", Cp437 }, // from german.words
     { "wofür", MacRoman }, // from german.words
     { "wof¸r", Iso885915 }, // from german.words
@@ -11233,6 +17989,9 @@ static const struct {
     { "w¸nscht", Iso885915 }, // from german.words
     { "w¸rde", Iso885915 }, // from german.words
     { "w¸rden", Iso885915 }, // from german.words
+    { "ytterdîrren", Cp865 }, // from swedish.words
+    { "ytterdörren", MacRoman }, // from swedish.words
+    { "ytterdˆrren", Iso885915 }, // from swedish.words
     { "ytterliggÜende", Cp865 }, // from norwegian.words
     { "ytterliggående", MacRoman }, // from norwegian.words
     { "ytterliggÂende", Iso885915 }, // from norwegian.words
@@ -11687,22 +18446,90 @@ static const struct {
     { "ÇvÇnement", Cp437 }, // from french.words
     { "ÇvÇnements", Cp437 }, // from french.words
     { "ÇÇn", Cp437 }, // from dutch.words
+    { "Ñ", Cp865 }, // from swedish.words
+    { "Ñga", Cp865 }, // from swedish.words
+    { "Ñgare", Cp865 }, // from swedish.words
+    { "Ñgaren", Cp865 }, // from swedish.words
+    { "Ñgarna", Cp865 }, // from swedish.words
+    { "Ñgde", Cp865 }, // from swedish.words
+    { "Ñger", Cp865 }, // from swedish.words
+    { "Ñgg", Cp865 }, // from swedish.words
+    { "Ñgna", Cp865 }, // from swedish.words
+    { "Ñgnade", Cp865 }, // from swedish.words
+    { "Ñgnar", Cp865 }, // from swedish.words
+    { "Ñgnas", Cp865 }, // from swedish.words
+    { "Ñgnat", Cp865 }, // from swedish.words
+    { "Ñgs", Cp865 }, // from swedish.words
+    { "Ñgt", Cp865 }, // from swedish.words
     { "Ñgyptischen", Cp437 }, // from german.words
+    { "Ñh", Cp865 }, // from swedish.words
     { "Ñhnlich", Cp437 }, // from german.words
     { "Ñhnliche", Cp437 }, // from german.words
     { "Ñhnlichen", Cp437 }, // from german.words
     { "Ñhnlicher", Cp437 }, // from german.words
     { "Ñhnliches", Cp437 }, // from german.words
+    { "Ñkta", Cp865 }, // from swedish.words
+    { "Ñktenskap", Cp865 }, // from swedish.words
+    { "Ñktenskapet", Cp865 }, // from swedish.words
+    { "Ñldre", Cp865 }, // from swedish.words
+    { "Ñldsta", Cp865 }, // from swedish.words
+    { "Ñldste", Cp865 }, // from swedish.words
+    { "Ñlska", Cp865 }, // from swedish.words
+    { "Ñlskad", Cp865 }, // from swedish.words
+    { "Ñlskade", Cp865 }, // from swedish.words
+    { "Ñlskar", Cp865 }, // from swedish.words
+    { "Ñlskare", Cp865 }, // from swedish.words
+    { "Ñlskling", Cp865 }, // from swedish.words
     { "Ñlter", Cp437 }, // from german.words
     { "Ñltere", Cp437 }, // from german.words
     { "Ñlteren", Cp437 }, // from german.words
     { "Ñlterer", Cp437 }, // from german.words
     { "Ñlteste", Cp437 }, // from german.words
     { "Ñltesten", Cp437 }, // from german.words
+    { "Ñlven", Cp865 }, // from swedish.words
+    { "Ñlvsborg", Cp865 }, // from swedish.words
+    { "Ñlvsborgs", Cp865 }, // from swedish.words
+    { "Ñlvsjî", Cp865 }, // from swedish.words
+    { "Ñmne", Cp865 }, // from swedish.words
+    { "Ñmnen", Cp865 }, // from swedish.words
+    { "Ñmnena", Cp865 }, // from swedish.words
+    { "Ñmnet", Cp865 }, // from swedish.words
+    { "Ñn", Cp865 }, // from swedish.words
+    { "Ñnda", Cp865 }, // from swedish.words
+    { "ÑndamÜl", Cp865 }, // from swedish.words
+    { "Ñndan", Cp865 }, // from swedish.words
+    { "Ñnden", Cp865 }, // from swedish.words
     { "Ñndern", Cp437 }, // from german.words
     { "Ñndert", Cp437 }, // from german.words
     { "Ñnderte", Cp437 }, // from german.words
+    { "Ñndra", Cp865 }, // from swedish.words
+    { "Ñndrade", Cp865 }, // from swedish.words
+    { "Ñndrades", Cp865 }, // from swedish.words
+    { "Ñndrar", Cp865 }, // from swedish.words
+    { "Ñndras", Cp865 }, // from swedish.words
+    { "Ñndrat", Cp865 }, // from swedish.words
+    { "Ñndrats", Cp865 }, // from swedish.words
+    { "Ñndring", Cp865 }, // from swedish.words
+    { "Ñndringar", Cp865 }, // from swedish.words
+    { "ÑndÜ", Cp865 }, // from swedish.words
+    { "Ñngel", Cp865 }, // from swedish.words
+    { "Ñnglar", Cp865 }, // from swedish.words
+    { "Ñnnu", Cp865 }, // from swedish.words
+    { "Ñntligen", Cp865 }, // from swedish.words
+    { "Ñpplen", Cp865 }, // from swedish.words
+    { "Ñr", Cp865 }, // from swedish.words
+    { "Ñra", Cp865 }, // from swedish.words
+    { "Ñran", Cp865 }, // from swedish.words
+    { "Ñrende", Cp865 }, // from swedish.words
+    { "Ñrenden", Cp865 }, // from swedish.words
+    { "Ñrendet", Cp865 }, // from swedish.words
     { "Ñrgert", Cp437 }, // from german.words
+    { "Ñrlig", Cp865 }, // from swedish.words
+    { "Ñrligt", Cp865 }, // from swedish.words
+    { "Ñsch", Cp865 }, // from swedish.words
+    { "Ñta", Cp865 }, // from swedish.words
+    { "Ñter", Cp865 }, // from swedish.words
+    { "Ñtit", Cp865 }, // from swedish.words
     { "Ñu·ere", Cp437 }, // from german.words
     { "Ñu·eren", Cp437 }, // from german.words
     { "Ñu·ern", Cp437 }, // from german.words
@@ -11710,6 +18537,8 @@ static const struct {
     { "Ñu·ert", Cp437 }, // from german.words
     { "Ñu·erte", Cp437 }, // from german.words
     { "Ñu·erten", Cp437 }, // from german.words
+    { "Ñven", Cp865 }, // from swedish.words
+    { "Ñventyr", Cp865 }, // from swedish.words
     { "Öffentlichkeit", MacRoman }, // from german.words
     { "Öffentlichkeitsarbeit", MacRoman }, // from german.words
     { "Öffnung", MacRoman }, // from german.words
@@ -11793,24 +18622,101 @@ static const struct {
     { "Üse", Cp865 }, // from norwegian.words
     { "Üsmund", Cp865 }, // from norwegian.words
     { "Üstedet", Cp865 }, // from norwegian.words
+    { "Üstrîm", Cp865 }, // from swedish.words
+    { "ÜterstÑlla", Cp865 }, // from swedish.words
+    { "ÜtervÑnda", Cp865 }, // from swedish.words
+    { "ÜtervÑnde", Cp865 }, // from swedish.words
+    { "ÜtervÑnder", Cp865 }, // from swedish.words
+    { "ÜtervÑnt", Cp865 }, // from swedish.words
+    { "ÜtgÑrd", Cp865 }, // from swedish.words
+    { "ÜtgÑrder", Cp865 }, // from swedish.words
+    { "ÜtgÑrderna", Cp865 }, // from swedish.words
     { "Ütte", Cp865 }, // from norwegian.words
     { "Üttende", Cp865 }, // from norwegian.words
+    { "ä", MacRoman }, // from swedish.words
+    { "äga", MacRoman }, // from swedish.words
+    { "ägare", MacRoman }, // from swedish.words
+    { "ägaren", MacRoman }, // from swedish.words
+    { "ägarna", MacRoman }, // from swedish.words
+    { "ägde", MacRoman }, // from swedish.words
+    { "äger", MacRoman }, // from swedish.words
+    { "ägg", MacRoman }, // from swedish.words
+    { "ägna", MacRoman }, // from swedish.words
+    { "ägnade", MacRoman }, // from swedish.words
+    { "ägnar", MacRoman }, // from swedish.words
+    { "ägnas", MacRoman }, // from swedish.words
+    { "ägnat", MacRoman }, // from swedish.words
+    { "ägs", MacRoman }, // from swedish.words
+    { "ägt", MacRoman }, // from swedish.words
     { "ägyptischen", MacRoman }, // from german.words
+    { "äh", MacRoman }, // from swedish.words
     { "ähnlich", MacRoman }, // from german.words
     { "ähnliche", MacRoman }, // from german.words
     { "ähnlichen", MacRoman }, // from german.words
     { "ähnlicher", MacRoman }, // from german.words
     { "ähnliches", MacRoman }, // from german.words
+    { "äkta", MacRoman }, // from swedish.words
+    { "äktenskap", MacRoman }, // from swedish.words
+    { "äktenskapet", MacRoman }, // from swedish.words
+    { "äldre", MacRoman }, // from swedish.words
+    { "äldsta", MacRoman }, // from swedish.words
+    { "äldste", MacRoman }, // from swedish.words
+    { "älska", MacRoman }, // from swedish.words
+    { "älskad", MacRoman }, // from swedish.words
+    { "älskade", MacRoman }, // from swedish.words
+    { "älskar", MacRoman }, // from swedish.words
+    { "älskare", MacRoman }, // from swedish.words
+    { "älskling", MacRoman }, // from swedish.words
     { "älter", MacRoman }, // from german.words
     { "ältere", MacRoman }, // from german.words
     { "älteren", MacRoman }, // from german.words
     { "älterer", MacRoman }, // from german.words
     { "älteste", MacRoman }, // from german.words
     { "ältesten", MacRoman }, // from german.words
+    { "älven", MacRoman }, // from swedish.words
+    { "älvsborg", MacRoman }, // from swedish.words
+    { "älvsborgs", MacRoman }, // from swedish.words
+    { "älvsjö", MacRoman }, // from swedish.words
+    { "ämne", MacRoman }, // from swedish.words
+    { "ämnen", MacRoman }, // from swedish.words
+    { "ämnena", MacRoman }, // from swedish.words
+    { "ämnet", MacRoman }, // from swedish.words
+    { "än", MacRoman }, // from swedish.words
+    { "ända", MacRoman }, // from swedish.words
+    { "ändamål", MacRoman }, // from swedish.words
+    { "ändan", MacRoman }, // from swedish.words
+    { "änden", MacRoman }, // from swedish.words
     { "ändern", MacRoman }, // from german.words
     { "ändert", MacRoman }, // from german.words
     { "änderte", MacRoman }, // from german.words
+    { "ändra", MacRoman }, // from swedish.words
+    { "ändrade", MacRoman }, // from swedish.words
+    { "ändrades", MacRoman }, // from swedish.words
+    { "ändrar", MacRoman }, // from swedish.words
+    { "ändras", MacRoman }, // from swedish.words
+    { "ändrat", MacRoman }, // from swedish.words
+    { "ändrats", MacRoman }, // from swedish.words
+    { "ändring", MacRoman }, // from swedish.words
+    { "ändringar", MacRoman }, // from swedish.words
+    { "ändå", MacRoman }, // from swedish.words
+    { "ängel", MacRoman }, // from swedish.words
+    { "änglar", MacRoman }, // from swedish.words
+    { "ännu", MacRoman }, // from swedish.words
+    { "äntligen", MacRoman }, // from swedish.words
+    { "äpplen", MacRoman }, // from swedish.words
+    { "är", MacRoman }, // from swedish.words
+    { "ära", MacRoman }, // from swedish.words
+    { "äran", MacRoman }, // from swedish.words
+    { "ärende", MacRoman }, // from swedish.words
+    { "ärenden", MacRoman }, // from swedish.words
+    { "ärendet", MacRoman }, // from swedish.words
     { "ärgert", MacRoman }, // from german.words
+    { "ärlig", MacRoman }, // from swedish.words
+    { "ärligt", MacRoman }, // from swedish.words
+    { "äsch", MacRoman }, // from swedish.words
+    { "äta", MacRoman }, // from swedish.words
+    { "äter", MacRoman }, // from swedish.words
+    { "ätit", MacRoman }, // from swedish.words
     { "äußere", MacRoman }, // from german.words
     { "äußeren", MacRoman }, // from german.words
     { "äußern", MacRoman }, // from german.words
@@ -11818,6 +18724,8 @@ static const struct {
     { "äußert", MacRoman }, // from german.words
     { "äußerte", MacRoman }, // from german.words
     { "äußerten", MacRoman }, // from german.words
+    { "även", MacRoman }, // from swedish.words
+    { "äventyr", MacRoman }, // from swedish.words
     { "å", MacRoman }, // from norwegian.words
     { "ådne", MacRoman }, // from norwegian.words
     { "åge", MacRoman }, // from norwegian.words
@@ -11865,6 +18773,15 @@ static const struct {
     { "åse", MacRoman }, // from norwegian.words
     { "åsmund", MacRoman }, // from norwegian.words
     { "åstedet", MacRoman }, // from norwegian.words
+    { "åström", MacRoman }, // from swedish.words
+    { "återställa", MacRoman }, // from swedish.words
+    { "återvända", MacRoman }, // from swedish.words
+    { "återvände", MacRoman }, // from swedish.words
+    { "återvänder", MacRoman }, // from swedish.words
+    { "återvänt", MacRoman }, // from swedish.words
+    { "åtgärd", MacRoman }, // from swedish.words
+    { "åtgärder", MacRoman }, // from swedish.words
+    { "åtgärderna", MacRoman }, // from swedish.words
     { "åtte", MacRoman }, // from norwegian.words
     { "åttende", MacRoman }, // from norwegian.words
     { "écart", MacRoman }, // from french.words
@@ -12097,6 +19014,12 @@ static const struct {
     { "ëren", Cp865 }, // from norwegian.words
     { "ërend", Cp865 }, // from norwegian.words
     { "ërlig", Cp865 }, // from norwegian.words
+    { "î", Cp865 }, // from swedish.words
+    { "îar", Cp865 }, // from swedish.words
+    { "îarna", Cp865 }, // from swedish.words
+    { "îb", Cp865 }, // from swedish.words
+    { "îberg", Cp865 }, // from swedish.words
+    { "îde", Cp865 }, // from swedish.words
     { "îffentlich", Cp437 }, // from german.words
     { "îffentliche", Cp437 }, // from german.words
     { "îffentlichen", Cp437 }, // from german.words
@@ -12105,17 +19028,136 @@ static const struct {
     { "îffnet", Cp437 }, // from german.words
     { "îffnete", Cp437 }, // from german.words
     { "îfter", Cp437 }, // from german.words
+    { "îga", Cp865 }, // from swedish.words
+    { "îgat", Cp865 }, // from swedish.words
+    { "îgon", Cp865 }, // from swedish.words
+    { "îgonblick", Cp865 }, // from swedish.words
+    { "îgonblicket", Cp865 }, // from swedish.words
+    { "îgonbrynen", Cp865 }, // from swedish.words
+    { "îgonen", Cp865 }, // from swedish.words
+    { "îhman", Cp865 }, // from swedish.words
+    { "îis", Cp865 }, // from swedish.words
+    { "îka", Cp865 }, // from swedish.words
+    { "îkad", Cp865 }, // from swedish.words
+    { "îkade", Cp865 }, // from swedish.words
+    { "îkande", Cp865 }, // from swedish.words
+    { "îkar", Cp865 }, // from swedish.words
+    { "îkat", Cp865 }, // from swedish.words
+    { "îknen", Cp865 }, // from swedish.words
+    { "îkning", Cp865 }, // from swedish.words
+    { "îkningen", Cp865 }, // from swedish.words
     { "îkologisch", Cp437 }, // from german.words
     { "îkologische", Cp437 }, // from german.words
     { "îkologischen", Cp437 }, // from german.words
     { "îkonomische", Cp437 }, // from german.words
     { "îkonomischen", Cp437 }, // from german.words
+    { "îl", Cp865 }, // from swedish.words
+    { "îland", Cp865 }, // from swedish.words
+    { "îmsom", Cp865 }, // from swedish.words
+    { "în", Cp865 }, // from swedish.words
+    { "îns", Cp865 }, // from swedish.words
+    { "înska", Cp865 }, // from swedish.words
+    { "înskade", Cp865 }, // from swedish.words
+    { "înskan", Cp865 }, // from swedish.words
+    { "înskar", Cp865 }, // from swedish.words
+    { "înskat", Cp865 }, // from swedish.words
+    { "înskemÜl", Cp865 }, // from swedish.words
+    { "îppen", Cp865 }, // from swedish.words
+    { "îppenhet", Cp865 }, // from swedish.words
+    { "îppet", Cp865 }, // from swedish.words
+    { "îppna", Cp865 }, // from swedish.words
+    { "îppnade", Cp865 }, // from swedish.words
+    { "îppnades", Cp865 }, // from swedish.words
+    { "îppnar", Cp865 }, // from swedish.words
+    { "îppnas", Cp865 }, // from swedish.words
+    { "îppnat", Cp865 }, // from swedish.words
+    { "îppning", Cp865 }, // from swedish.words
+    { "îra", Cp865 }, // from swedish.words
+    { "îrat", Cp865 }, // from swedish.words
+    { "îre", Cp865 }, // from swedish.words
+    { "îrebro", Cp865 }, // from swedish.words
+    { "îresund", Cp865 }, // from swedish.words
+    { "îrgryte", Cp865 }, // from swedish.words
+    { "îrjan", Cp865 }, // from swedish.words
+    { "îron", Cp865 }, // from swedish.words
+    { "îronen", Cp865 }, // from swedish.words
     { "îrtliche", Cp437 }, // from german.words
     { "îrtlichen", Cp437 }, // from german.words
+    { "îst", Cp865 }, // from swedish.words
+    { "îsten", Cp865 }, // from swedish.words
+    { "îster", Cp865 }, // from swedish.words
+    { "îstermalm", Cp865 }, // from swedish.words
     { "îsterreichische", Cp437 }, // from german.words
     { "îsterreichischen", Cp437 }, // from german.words
+    { "îsterrike", Cp865 }, // from swedish.words
+    { "îstersjîn", Cp865 }, // from swedish.words
+    { "îstersund", Cp865 }, // from swedish.words
+    { "îsterut", Cp865 }, // from swedish.words
+    { "îsterÜker", Cp865 }, // from swedish.words
+    { "îsteuropa", Cp865 }, // from swedish.words
     { "îstlich", Cp437 }, // from german.words
     { "îstlichen", Cp437 }, // from german.words
+    { "îstra", Cp865 }, // from swedish.words
+    { "îva", Cp865 }, // from swedish.words
+    { "îver", Cp865 }, // from swedish.words
+    { "îverallt", Cp865 }, // from swedish.words
+    { "îverdrivet", Cp865 }, // from swedish.words
+    { "îverens", Cp865 }, // from swedish.words
+    { "îverenskommelse", Cp865 }, // from swedish.words
+    { "îverenskommelsen", Cp865 }, // from swedish.words
+    { "îverge", Cp865 }, // from swedish.words
+    { "îvergick", Cp865 }, // from swedish.words
+    { "îvergiven", Cp865 }, // from swedish.words
+    { "îvergrepp", Cp865 }, // from swedish.words
+    { "îvergripande", Cp865 }, // from swedish.words
+    { "îvergÜ", Cp865 }, // from swedish.words
+    { "îvergÜng", Cp865 }, // from swedish.words
+    { "îvergÜngen", Cp865 }, // from swedish.words
+    { "îvergÜr", Cp865 }, // from swedish.words
+    { "îverhuvudtaget", Cp865 }, // from swedish.words
+    { "îverklaga", Cp865 }, // from swedish.words
+    { "îverleva", Cp865 }, // from swedish.words
+    { "îverlevande", Cp865 }, // from swedish.words
+    { "îverlevde", Cp865 }, // from swedish.words
+    { "îverlever", Cp865 }, // from swedish.words
+    { "îverlevnad", Cp865 }, // from swedish.words
+    { "îverlevt", Cp865 }, // from swedish.words
+    { "îverlÑggningar", Cp865 }, // from swedish.words
+    { "îverlÑgsen", Cp865 }, // from swedish.words
+    { "îverlÑgset", Cp865 }, // from swedish.words
+    { "îverlÑkare", Cp865 }, // from swedish.words
+    { "îverlÑmnade", Cp865 }, // from swedish.words
+    { "îverraskad", Cp865 }, // from swedish.words
+    { "îverraskade", Cp865 }, // from swedish.words
+    { "îverraskande", Cp865 }, // from swedish.words
+    { "îverraskning", Cp865 }, // from swedish.words
+    { "îverraskningar", Cp865 }, // from swedish.words
+    { "îvers", Cp865 }, // from swedish.words
+    { "îverskott", Cp865 }, // from swedish.words
+    { "îverst", Cp865 }, // from swedish.words
+    { "îversta", Cp865 }, // from swedish.words
+    { "îverste", Cp865 }, // from swedish.words
+    { "îverstiger", Cp865 }, // from swedish.words
+    { "îversyn", Cp865 }, // from swedish.words
+    { "îversÑttning", Cp865 }, // from swedish.words
+    { "îverta", Cp865 }, // from swedish.words
+    { "îvertala", Cp865 }, // from swedish.words
+    { "îvertid", Cp865 }, // from swedish.words
+    { "îvertog", Cp865 }, // from swedish.words
+    { "îvertyga", Cp865 }, // from swedish.words
+    { "îvertygad", Cp865 }, // from swedish.words
+    { "îvertygade", Cp865 }, // from swedish.words
+    { "îvertygande", Cp865 }, // from swedish.words
+    { "îvertygelse", Cp865 }, // from swedish.words
+    { "îvervÑga", Cp865 }, // from swedish.words
+    { "îvervÑgande", Cp865 }, // from swedish.words
+    { "îvervÑger", Cp865 }, // from swedish.words
+    { "îvervÑldigande", Cp865 }, // from swedish.words
+    { "îvningar", Cp865 }, // from swedish.words
+    { "îvre", Cp865 }, // from swedish.words
+    { "îvrig", Cp865 }, // from swedish.words
+    { "îvriga", Cp865 }, // from swedish.words
+    { "îvrigt", Cp865 }, // from swedish.words
     { "ôffentlichkeit", Cp437 }, // from german.words
     { "ôffentlichkeitsarbeit", Cp437 }, // from german.words
     { "ôffnung", Cp437 }, // from german.words
@@ -12126,12 +19168,17 @@ static const struct {
     { "ôsterreich", Cp437 }, // from german.words
     { "ôsterreicher", Cp437 }, // from german.words
     { "ôsterreichs", Cp437 }, // from german.words
+    { "ö", MacRoman }, // from swedish.words
+    { "öar", MacRoman }, // from swedish.words
+    { "öarna", MacRoman }, // from swedish.words
+    { "öb", MacRoman }, // from swedish.words
     { "öber", Cp437 }, // from german.words
     { "öberall", Cp437 }, // from german.words
     { "öberblick", Cp437 }, // from german.words
     { "öberdies", Cp437 }, // from german.words
     { "öbereinstimmung", Cp437 }, // from german.words
     { "öberfall", Cp437 }, // from german.words
+    { "öberg", MacRoman }, // from swedish.words
     { "öbergabe", Cp437 }, // from german.words
     { "öbergang", Cp437 }, // from german.words
     { "öberhaupt", Cp437 }, // from german.words
@@ -12152,6 +19199,7 @@ static const struct {
     { "öberwindung", Cp437 }, // from german.words
     { "öberzeugung", Cp437 }, // from german.words
     { "öbung", Cp437 }, // from german.words
+    { "öde", MacRoman }, // from swedish.words
     { "öffentlich", MacRoman }, // from german.words
     { "öffentliche", MacRoman }, // from german.words
     { "öffentlichen", MacRoman }, // from german.words
@@ -12160,17 +19208,136 @@ static const struct {
     { "öffnet", MacRoman }, // from german.words
     { "öffnete", MacRoman }, // from german.words
     { "öfter", MacRoman }, // from german.words
+    { "öga", MacRoman }, // from swedish.words
+    { "ögat", MacRoman }, // from swedish.words
+    { "ögon", MacRoman }, // from swedish.words
+    { "ögonblick", MacRoman }, // from swedish.words
+    { "ögonblicket", MacRoman }, // from swedish.words
+    { "ögonbrynen", MacRoman }, // from swedish.words
+    { "ögonen", MacRoman }, // from swedish.words
+    { "öhman", MacRoman }, // from swedish.words
+    { "öis", MacRoman }, // from swedish.words
+    { "öka", MacRoman }, // from swedish.words
+    { "ökad", MacRoman }, // from swedish.words
+    { "ökade", MacRoman }, // from swedish.words
+    { "ökande", MacRoman }, // from swedish.words
+    { "ökar", MacRoman }, // from swedish.words
+    { "ökat", MacRoman }, // from swedish.words
+    { "öknen", MacRoman }, // from swedish.words
+    { "ökning", MacRoman }, // from swedish.words
+    { "ökningen", MacRoman }, // from swedish.words
     { "ökologisch", MacRoman }, // from german.words
     { "ökologische", MacRoman }, // from german.words
     { "ökologischen", MacRoman }, // from german.words
     { "ökonomische", MacRoman }, // from german.words
     { "ökonomischen", MacRoman }, // from german.words
+    { "öl", MacRoman }, // from swedish.words
+    { "öland", MacRoman }, // from swedish.words
+    { "ömsom", MacRoman }, // from swedish.words
+    { "ön", MacRoman }, // from swedish.words
+    { "öns", MacRoman }, // from swedish.words
+    { "önska", MacRoman }, // from swedish.words
+    { "önskade", MacRoman }, // from swedish.words
+    { "önskan", MacRoman }, // from swedish.words
+    { "önskar", MacRoman }, // from swedish.words
+    { "önskat", MacRoman }, // from swedish.words
+    { "önskemål", MacRoman }, // from swedish.words
+    { "öppen", MacRoman }, // from swedish.words
+    { "öppenhet", MacRoman }, // from swedish.words
+    { "öppet", MacRoman }, // from swedish.words
+    { "öppna", MacRoman }, // from swedish.words
+    { "öppnade", MacRoman }, // from swedish.words
+    { "öppnades", MacRoman }, // from swedish.words
+    { "öppnar", MacRoman }, // from swedish.words
+    { "öppnas", MacRoman }, // from swedish.words
+    { "öppnat", MacRoman }, // from swedish.words
+    { "öppning", MacRoman }, // from swedish.words
+    { "öra", MacRoman }, // from swedish.words
+    { "örat", MacRoman }, // from swedish.words
+    { "öre", MacRoman }, // from swedish.words
+    { "örebro", MacRoman }, // from swedish.words
+    { "öresund", MacRoman }, // from swedish.words
+    { "örgryte", MacRoman }, // from swedish.words
+    { "örjan", MacRoman }, // from swedish.words
+    { "öron", MacRoman }, // from swedish.words
+    { "öronen", MacRoman }, // from swedish.words
     { "örtliche", MacRoman }, // from german.words
     { "örtlichen", MacRoman }, // from german.words
+    { "öst", MacRoman }, // from swedish.words
+    { "östen", MacRoman }, // from swedish.words
+    { "öster", MacRoman }, // from swedish.words
+    { "östermalm", MacRoman }, // from swedish.words
     { "österreichische", MacRoman }, // from german.words
     { "österreichischen", MacRoman }, // from german.words
+    { "österrike", MacRoman }, // from swedish.words
+    { "östersjön", MacRoman }, // from swedish.words
+    { "östersund", MacRoman }, // from swedish.words
+    { "österut", MacRoman }, // from swedish.words
+    { "österåker", MacRoman }, // from swedish.words
+    { "östeuropa", MacRoman }, // from swedish.words
     { "östlich", MacRoman }, // from german.words
     { "östlichen", MacRoman }, // from german.words
+    { "östra", MacRoman }, // from swedish.words
+    { "öva", MacRoman }, // from swedish.words
+    { "över", MacRoman }, // from swedish.words
+    { "överallt", MacRoman }, // from swedish.words
+    { "överdrivet", MacRoman }, // from swedish.words
+    { "överens", MacRoman }, // from swedish.words
+    { "överenskommelse", MacRoman }, // from swedish.words
+    { "överenskommelsen", MacRoman }, // from swedish.words
+    { "överge", MacRoman }, // from swedish.words
+    { "övergick", MacRoman }, // from swedish.words
+    { "övergiven", MacRoman }, // from swedish.words
+    { "övergrepp", MacRoman }, // from swedish.words
+    { "övergripande", MacRoman }, // from swedish.words
+    { "övergå", MacRoman }, // from swedish.words
+    { "övergång", MacRoman }, // from swedish.words
+    { "övergången", MacRoman }, // from swedish.words
+    { "övergår", MacRoman }, // from swedish.words
+    { "överhuvudtaget", MacRoman }, // from swedish.words
+    { "överklaga", MacRoman }, // from swedish.words
+    { "överleva", MacRoman }, // from swedish.words
+    { "överlevande", MacRoman }, // from swedish.words
+    { "överlevde", MacRoman }, // from swedish.words
+    { "överlever", MacRoman }, // from swedish.words
+    { "överlevnad", MacRoman }, // from swedish.words
+    { "överlevt", MacRoman }, // from swedish.words
+    { "överläggningar", MacRoman }, // from swedish.words
+    { "överlägsen", MacRoman }, // from swedish.words
+    { "överlägset", MacRoman }, // from swedish.words
+    { "överläkare", MacRoman }, // from swedish.words
+    { "överlämnade", MacRoman }, // from swedish.words
+    { "överraskad", MacRoman }, // from swedish.words
+    { "överraskade", MacRoman }, // from swedish.words
+    { "överraskande", MacRoman }, // from swedish.words
+    { "överraskning", MacRoman }, // from swedish.words
+    { "överraskningar", MacRoman }, // from swedish.words
+    { "övers", MacRoman }, // from swedish.words
+    { "överskott", MacRoman }, // from swedish.words
+    { "överst", MacRoman }, // from swedish.words
+    { "översta", MacRoman }, // from swedish.words
+    { "överste", MacRoman }, // from swedish.words
+    { "överstiger", MacRoman }, // from swedish.words
+    { "översyn", MacRoman }, // from swedish.words
+    { "översättning", MacRoman }, // from swedish.words
+    { "överta", MacRoman }, // from swedish.words
+    { "övertala", MacRoman }, // from swedish.words
+    { "övertid", MacRoman }, // from swedish.words
+    { "övertog", MacRoman }, // from swedish.words
+    { "övertyga", MacRoman }, // from swedish.words
+    { "övertygad", MacRoman }, // from swedish.words
+    { "övertygade", MacRoman }, // from swedish.words
+    { "övertygande", MacRoman }, // from swedish.words
+    { "övertygelse", MacRoman }, // from swedish.words
+    { "överväga", MacRoman }, // from swedish.words
+    { "övervägande", MacRoman }, // from swedish.words
+    { "överväger", MacRoman }, // from swedish.words
+    { "överväldigande", MacRoman }, // from swedish.words
+    { "övningar", MacRoman }, // from swedish.words
+    { "övre", MacRoman }, // from swedish.words
+    { "övrig", MacRoman }, // from swedish.words
+    { "övriga", MacRoman }, // from swedish.words
+    { "övrigt", MacRoman }, // from swedish.words
     { "õ", Cp865 }, // from norwegian.words
     { "õdegaard", Cp865 }, // from norwegian.words
     { "õdegÜrd", Cp865 }, // from norwegian.words
@@ -12422,22 +19589,90 @@ static const struct {
     { "‹berwindung", Iso885915 }, // from german.words
     { "‹berzeugung", Iso885915 }, // from german.words
     { "‹bung", Iso885915 }, // from german.words
+    { "‰", Iso885915 }, // from swedish.words
+    { "‰ga", Iso885915 }, // from swedish.words
+    { "‰gare", Iso885915 }, // from swedish.words
+    { "‰garen", Iso885915 }, // from swedish.words
+    { "‰garna", Iso885915 }, // from swedish.words
+    { "‰gde", Iso885915 }, // from swedish.words
+    { "‰ger", Iso885915 }, // from swedish.words
+    { "‰gg", Iso885915 }, // from swedish.words
+    { "‰gna", Iso885915 }, // from swedish.words
+    { "‰gnade", Iso885915 }, // from swedish.words
+    { "‰gnar", Iso885915 }, // from swedish.words
+    { "‰gnas", Iso885915 }, // from swedish.words
+    { "‰gnat", Iso885915 }, // from swedish.words
+    { "‰gs", Iso885915 }, // from swedish.words
+    { "‰gt", Iso885915 }, // from swedish.words
     { "‰gyptischen", Iso885915 }, // from german.words
+    { "‰h", Iso885915 }, // from swedish.words
     { "‰hnlich", Iso885915 }, // from german.words
     { "‰hnliche", Iso885915 }, // from german.words
     { "‰hnlichen", Iso885915 }, // from german.words
     { "‰hnlicher", Iso885915 }, // from german.words
     { "‰hnliches", Iso885915 }, // from german.words
+    { "‰kta", Iso885915 }, // from swedish.words
+    { "‰ktenskap", Iso885915 }, // from swedish.words
+    { "‰ktenskapet", Iso885915 }, // from swedish.words
+    { "‰ldre", Iso885915 }, // from swedish.words
+    { "‰ldsta", Iso885915 }, // from swedish.words
+    { "‰ldste", Iso885915 }, // from swedish.words
+    { "‰lska", Iso885915 }, // from swedish.words
+    { "‰lskad", Iso885915 }, // from swedish.words
+    { "‰lskade", Iso885915 }, // from swedish.words
+    { "‰lskar", Iso885915 }, // from swedish.words
+    { "‰lskare", Iso885915 }, // from swedish.words
+    { "‰lskling", Iso885915 }, // from swedish.words
     { "‰lter", Iso885915 }, // from german.words
     { "‰ltere", Iso885915 }, // from german.words
     { "‰lteren", Iso885915 }, // from german.words
     { "‰lterer", Iso885915 }, // from german.words
     { "‰lteste", Iso885915 }, // from german.words
     { "‰ltesten", Iso885915 }, // from german.words
+    { "‰lven", Iso885915 }, // from swedish.words
+    { "‰lvsborg", Iso885915 }, // from swedish.words
+    { "‰lvsborgs", Iso885915 }, // from swedish.words
+    { "‰lvsjˆ", Iso885915 }, // from swedish.words
+    { "‰mne", Iso885915 }, // from swedish.words
+    { "‰mnen", Iso885915 }, // from swedish.words
+    { "‰mnena", Iso885915 }, // from swedish.words
+    { "‰mnet", Iso885915 }, // from swedish.words
+    { "‰n", Iso885915 }, // from swedish.words
+    { "‰nda", Iso885915 }, // from swedish.words
+    { "‰ndamÂl", Iso885915 }, // from swedish.words
+    { "‰ndan", Iso885915 }, // from swedish.words
+    { "‰nden", Iso885915 }, // from swedish.words
     { "‰ndern", Iso885915 }, // from german.words
     { "‰ndert", Iso885915 }, // from german.words
     { "‰nderte", Iso885915 }, // from german.words
+    { "‰ndra", Iso885915 }, // from swedish.words
+    { "‰ndrade", Iso885915 }, // from swedish.words
+    { "‰ndrades", Iso885915 }, // from swedish.words
+    { "‰ndrar", Iso885915 }, // from swedish.words
+    { "‰ndras", Iso885915 }, // from swedish.words
+    { "‰ndrat", Iso885915 }, // from swedish.words
+    { "‰ndrats", Iso885915 }, // from swedish.words
+    { "‰ndring", Iso885915 }, // from swedish.words
+    { "‰ndringar", Iso885915 }, // from swedish.words
+    { "‰ndÂ", Iso885915 }, // from swedish.words
+    { "‰ngel", Iso885915 }, // from swedish.words
+    { "‰nglar", Iso885915 }, // from swedish.words
+    { "‰nnu", Iso885915 }, // from swedish.words
+    { "‰ntligen", Iso885915 }, // from swedish.words
+    { "‰pplen", Iso885915 }, // from swedish.words
+    { "‰r", Iso885915 }, // from swedish.words
+    { "‰ra", Iso885915 }, // from swedish.words
+    { "‰ran", Iso885915 }, // from swedish.words
+    { "‰rende", Iso885915 }, // from swedish.words
+    { "‰renden", Iso885915 }, // from swedish.words
+    { "‰rendet", Iso885915 }, // from swedish.words
     { "‰rgert", Iso885915 }, // from german.words
+    { "‰rlig", Iso885915 }, // from swedish.words
+    { "‰rligt", Iso885915 }, // from swedish.words
+    { "‰sch", Iso885915 }, // from swedish.words
+    { "‰ta", Iso885915 }, // from swedish.words
+    { "‰ter", Iso885915 }, // from swedish.words
+    { "‰tit", Iso885915 }, // from swedish.words
     { "‰uﬂere", Iso885915 }, // from german.words
     { "‰uﬂeren", Iso885915 }, // from german.words
     { "‰uﬂern", Iso885915 }, // from german.words
@@ -12445,6 +19680,8 @@ static const struct {
     { "‰uﬂert", Iso885915 }, // from german.words
     { "‰uﬂerte", Iso885915 }, // from german.words
     { "‰uﬂerten", Iso885915 }, // from german.words
+    { "‰ven", Iso885915 }, // from swedish.words
+    { "‰ventyr", Iso885915 }, // from swedish.words
     { "Â", Iso885915 }, // from norwegian.words
     { "Âdne", Iso885915 }, // from norwegian.words
     { "Âge", Iso885915 }, // from norwegian.words
@@ -12492,6 +19729,15 @@ static const struct {
     { "Âse", Iso885915 }, // from norwegian.words
     { "Âsmund", Iso885915 }, // from norwegian.words
     { "Âstedet", Iso885915 }, // from norwegian.words
+    { "Âstrˆm", Iso885915 }, // from swedish.words
+    { "Âterst‰lla", Iso885915 }, // from swedish.words
+    { "Âterv‰nda", Iso885915 }, // from swedish.words
+    { "Âterv‰nde", Iso885915 }, // from swedish.words
+    { "Âterv‰nder", Iso885915 }, // from swedish.words
+    { "Âterv‰nt", Iso885915 }, // from swedish.words
+    { "Âtg‰rd", Iso885915 }, // from swedish.words
+    { "Âtg‰rder", Iso885915 }, // from swedish.words
+    { "Âtg‰rderna", Iso885915 }, // from swedish.words
     { "Âtte", Iso885915 }, // from norwegian.words
     { "Âttende", Iso885915 }, // from norwegian.words
     { "Êre", Iso885915 }, // from norwegian.words
@@ -12720,6 +19966,12 @@ static const struct {
     { "ÈvÈnement", Iso885915 }, // from french.words
     { "ÈvÈnements", Iso885915 }, // from french.words
     { "ÈÈn", Iso885915 }, // from dutch.words
+    { "ˆ", Iso885915 }, // from swedish.words
+    { "ˆar", Iso885915 }, // from swedish.words
+    { "ˆarna", Iso885915 }, // from swedish.words
+    { "ˆb", Iso885915 }, // from swedish.words
+    { "ˆberg", Iso885915 }, // from swedish.words
+    { "ˆde", Iso885915 }, // from swedish.words
     { "ˆffentlich", Iso885915 }, // from german.words
     { "ˆffentliche", Iso885915 }, // from german.words
     { "ˆffentlichen", Iso885915 }, // from german.words
@@ -12728,17 +19980,136 @@ static const struct {
     { "ˆffnet", Iso885915 }, // from german.words
     { "ˆffnete", Iso885915 }, // from german.words
     { "ˆfter", Iso885915 }, // from german.words
+    { "ˆga", Iso885915 }, // from swedish.words
+    { "ˆgat", Iso885915 }, // from swedish.words
+    { "ˆgon", Iso885915 }, // from swedish.words
+    { "ˆgonblick", Iso885915 }, // from swedish.words
+    { "ˆgonblicket", Iso885915 }, // from swedish.words
+    { "ˆgonbrynen", Iso885915 }, // from swedish.words
+    { "ˆgonen", Iso885915 }, // from swedish.words
+    { "ˆhman", Iso885915 }, // from swedish.words
+    { "ˆis", Iso885915 }, // from swedish.words
+    { "ˆka", Iso885915 }, // from swedish.words
+    { "ˆkad", Iso885915 }, // from swedish.words
+    { "ˆkade", Iso885915 }, // from swedish.words
+    { "ˆkande", Iso885915 }, // from swedish.words
+    { "ˆkar", Iso885915 }, // from swedish.words
+    { "ˆkat", Iso885915 }, // from swedish.words
+    { "ˆknen", Iso885915 }, // from swedish.words
+    { "ˆkning", Iso885915 }, // from swedish.words
+    { "ˆkningen", Iso885915 }, // from swedish.words
     { "ˆkologisch", Iso885915 }, // from german.words
     { "ˆkologische", Iso885915 }, // from german.words
     { "ˆkologischen", Iso885915 }, // from german.words
     { "ˆkonomische", Iso885915 }, // from german.words
     { "ˆkonomischen", Iso885915 }, // from german.words
+    { "ˆl", Iso885915 }, // from swedish.words
+    { "ˆland", Iso885915 }, // from swedish.words
+    { "ˆmsom", Iso885915 }, // from swedish.words
+    { "ˆn", Iso885915 }, // from swedish.words
+    { "ˆns", Iso885915 }, // from swedish.words
+    { "ˆnska", Iso885915 }, // from swedish.words
+    { "ˆnskade", Iso885915 }, // from swedish.words
+    { "ˆnskan", Iso885915 }, // from swedish.words
+    { "ˆnskar", Iso885915 }, // from swedish.words
+    { "ˆnskat", Iso885915 }, // from swedish.words
+    { "ˆnskemÂl", Iso885915 }, // from swedish.words
+    { "ˆppen", Iso885915 }, // from swedish.words
+    { "ˆppenhet", Iso885915 }, // from swedish.words
+    { "ˆppet", Iso885915 }, // from swedish.words
+    { "ˆppna", Iso885915 }, // from swedish.words
+    { "ˆppnade", Iso885915 }, // from swedish.words
+    { "ˆppnades", Iso885915 }, // from swedish.words
+    { "ˆppnar", Iso885915 }, // from swedish.words
+    { "ˆppnas", Iso885915 }, // from swedish.words
+    { "ˆppnat", Iso885915 }, // from swedish.words
+    { "ˆppning", Iso885915 }, // from swedish.words
+    { "ˆra", Iso885915 }, // from swedish.words
+    { "ˆrat", Iso885915 }, // from swedish.words
+    { "ˆre", Iso885915 }, // from swedish.words
+    { "ˆrebro", Iso885915 }, // from swedish.words
+    { "ˆresund", Iso885915 }, // from swedish.words
+    { "ˆrgryte", Iso885915 }, // from swedish.words
+    { "ˆrjan", Iso885915 }, // from swedish.words
+    { "ˆron", Iso885915 }, // from swedish.words
+    { "ˆronen", Iso885915 }, // from swedish.words
     { "ˆrtliche", Iso885915 }, // from german.words
     { "ˆrtlichen", Iso885915 }, // from german.words
+    { "ˆst", Iso885915 }, // from swedish.words
+    { "ˆsten", Iso885915 }, // from swedish.words
+    { "ˆster", Iso885915 }, // from swedish.words
+    { "ˆstermalm", Iso885915 }, // from swedish.words
     { "ˆsterreichische", Iso885915 }, // from german.words
     { "ˆsterreichischen", Iso885915 }, // from german.words
+    { "ˆsterrike", Iso885915 }, // from swedish.words
+    { "ˆstersjˆn", Iso885915 }, // from swedish.words
+    { "ˆstersund", Iso885915 }, // from swedish.words
+    { "ˆsterut", Iso885915 }, // from swedish.words
+    { "ˆsterÂker", Iso885915 }, // from swedish.words
+    { "ˆsteuropa", Iso885915 }, // from swedish.words
     { "ˆstlich", Iso885915 }, // from german.words
     { "ˆstlichen", Iso885915 }, // from german.words
+    { "ˆstra", Iso885915 }, // from swedish.words
+    { "ˆva", Iso885915 }, // from swedish.words
+    { "ˆver", Iso885915 }, // from swedish.words
+    { "ˆverallt", Iso885915 }, // from swedish.words
+    { "ˆverdrivet", Iso885915 }, // from swedish.words
+    { "ˆverens", Iso885915 }, // from swedish.words
+    { "ˆverenskommelse", Iso885915 }, // from swedish.words
+    { "ˆverenskommelsen", Iso885915 }, // from swedish.words
+    { "ˆverge", Iso885915 }, // from swedish.words
+    { "ˆvergick", Iso885915 }, // from swedish.words
+    { "ˆvergiven", Iso885915 }, // from swedish.words
+    { "ˆvergrepp", Iso885915 }, // from swedish.words
+    { "ˆvergripande", Iso885915 }, // from swedish.words
+    { "ˆvergÂ", Iso885915 }, // from swedish.words
+    { "ˆvergÂng", Iso885915 }, // from swedish.words
+    { "ˆvergÂngen", Iso885915 }, // from swedish.words
+    { "ˆvergÂr", Iso885915 }, // from swedish.words
+    { "ˆverhuvudtaget", Iso885915 }, // from swedish.words
+    { "ˆverklaga", Iso885915 }, // from swedish.words
+    { "ˆverleva", Iso885915 }, // from swedish.words
+    { "ˆverlevande", Iso885915 }, // from swedish.words
+    { "ˆverlevde", Iso885915 }, // from swedish.words
+    { "ˆverlever", Iso885915 }, // from swedish.words
+    { "ˆverlevnad", Iso885915 }, // from swedish.words
+    { "ˆverlevt", Iso885915 }, // from swedish.words
+    { "ˆverl‰ggningar", Iso885915 }, // from swedish.words
+    { "ˆverl‰gsen", Iso885915 }, // from swedish.words
+    { "ˆverl‰gset", Iso885915 }, // from swedish.words
+    { "ˆverl‰kare", Iso885915 }, // from swedish.words
+    { "ˆverl‰mnade", Iso885915 }, // from swedish.words
+    { "ˆverraskad", Iso885915 }, // from swedish.words
+    { "ˆverraskade", Iso885915 }, // from swedish.words
+    { "ˆverraskande", Iso885915 }, // from swedish.words
+    { "ˆverraskning", Iso885915 }, // from swedish.words
+    { "ˆverraskningar", Iso885915 }, // from swedish.words
+    { "ˆvers", Iso885915 }, // from swedish.words
+    { "ˆverskott", Iso885915 }, // from swedish.words
+    { "ˆverst", Iso885915 }, // from swedish.words
+    { "ˆversta", Iso885915 }, // from swedish.words
+    { "ˆverste", Iso885915 }, // from swedish.words
+    { "ˆverstiger", Iso885915 }, // from swedish.words
+    { "ˆversyn", Iso885915 }, // from swedish.words
+    { "ˆvers‰ttning", Iso885915 }, // from swedish.words
+    { "ˆverta", Iso885915 }, // from swedish.words
+    { "ˆvertala", Iso885915 }, // from swedish.words
+    { "ˆvertid", Iso885915 }, // from swedish.words
+    { "ˆvertog", Iso885915 }, // from swedish.words
+    { "ˆvertyga", Iso885915 }, // from swedish.words
+    { "ˆvertygad", Iso885915 }, // from swedish.words
+    { "ˆvertygade", Iso885915 }, // from swedish.words
+    { "ˆvertygande", Iso885915 }, // from swedish.words
+    { "ˆvertygelse", Iso885915 }, // from swedish.words
+    { "ˆverv‰ga", Iso885915 }, // from swedish.words
+    { "ˆverv‰gande", Iso885915 }, // from swedish.words
+    { "ˆverv‰ger", Iso885915 }, // from swedish.words
+    { "ˆverv‰ldigande", Iso885915 }, // from swedish.words
+    { "ˆvningar", Iso885915 }, // from swedish.words
+    { "ˆvre", Iso885915 }, // from swedish.words
+    { "ˆvrig", Iso885915 }, // from swedish.words
+    { "ˆvriga", Iso885915 }, // from swedish.words
+    { "ˆvrigt", Iso885915 }, // from swedish.words
     { "¯", Iso885915 }, // from norwegian.words
     { "¯ada", Iso88592 }, // from czech.words
     { "¯degaard", Iso885915 }, // from norwegian.words
