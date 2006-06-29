@@ -56,6 +56,7 @@ public:
     bool opened;
     String path;
     MessageSet messages;
+    MessageSet unseen;
 };
 
 
@@ -105,6 +106,34 @@ MigratorMessage * MhMailbox::nextMessage()
             }
             closedir( dir );
         }
+        File sequences( d->path + "/.mh_sequences", File::Read );
+        StringList::Iterator l( sequences.lines() );
+        while ( l && !l->startsWith( "unseen:" ) )
+            ++l;
+        String line;
+        if ( l )
+            line = l->mid( 7 ).simplified();
+        uint e = 0;
+        bool ok = true;
+        while ( ok && e < line.length() ) {
+            uint b = e;
+            while ( line[e] >= '0' && line[e] <= '9' )
+                e++;
+            uint first = line.mid( b, e-b ).number( &ok );
+            uint second = first;
+            if ( line[e] == '-' ) {
+                e++;
+                b = e;
+                while ( line[e] >= '0' && line[e] <= '9' )
+                    e++;
+                second = line.mid( b, e-b ).number( &ok );
+            }
+            if ( line[e] == ' ' || e >= line.length() )
+                d->unseen.add( first, second );
+            else
+                ok = false;
+            e++;
+        }
     }
 
     if ( d->messages.isEmpty() )
@@ -122,5 +151,8 @@ MigratorMessage * MhMailbox::nextMessage()
             i++;
         i++;
     }
-    return new MigratorMessage( c.mid( i ), f );
+    MigratorMessage * mm = new MigratorMessage( c.mid( i ), f );
+    if ( !d->unseen.contains( i ) )
+        mm->addFlag( "\\seen" );
+    return mm;
 }
