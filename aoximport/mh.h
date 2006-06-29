@@ -28,6 +28,7 @@ public:
 
 private:
     class MhMailboxData *d;
+    void addToSet( const String &, class MessageSet * );
 };
 
 

@@ -57,6 +57,7 @@ public:
     String path;
     MessageSet messages;
     MessageSet unseen;
+    MessageSet flagged;
 };
 
 
@@ -108,31 +109,12 @@ MigratorMessage * MhMailbox::nextMessage()
         }
         File sequences( d->path + "/.mh_sequences", File::Read );
         StringList::Iterator l( sequences.lines() );
-        while ( l && !l->startsWith( "unseen:" ) )
+        while ( l ) {
+            if ( l->startsWith( "unseen:" ) )
+                addToSet( *l, &d->unseen );
+            else if ( l->startsWith( "picked:" ) )
+                addToSet( *l, &d->flagged );
             ++l;
-        String line;
-        if ( l )
-            line = l->mid( 7 ).simplified();
-        uint e = 0;
-        bool ok = true;
-        while ( ok && e < line.length() ) {
-            uint b = e;
-            while ( line[e] >= '0' && line[e] <= '9' )
-                e++;
-            uint first = line.mid( b, e-b ).number( &ok );
-            uint second = first;
-            if ( line[e] == '-' ) {
-                e++;
-                b = e;
-                while ( line[e] >= '0' && line[e] <= '9' )
-                    e++;
-                second = line.mid( b, e-b ).number( &ok );
-            }
-            if ( line[e] == ' ' || e >= line.length() )
-                d->unseen.add( first, second );
-            else
-                ok = false;
-            e++;
         }
     }
 
@@ -144,15 +126,46 @@ MigratorMessage * MhMailbox::nextMessage()
 
     String f( d->path + "/" + String::fromNumber( i ) );
     File m( f );
-    i = 0;
-    String c( m.contents() );
-    if ( c.startsWith( "From " ) ) {
-        while ( i < c.length() && c[i] != '\n' )
-            i++;
-        i++;
-    }
-    MigratorMessage * mm = new MigratorMessage( c.mid( i ), f );
+    MigratorMessage * mm = new MigratorMessage( m.contents(), f );
     if ( !d->unseen.contains( i ) )
         mm->addFlag( "\\seen" );
+    if ( d->flagged.contains( i ) )
+        mm->addFlag( "\\flagged" );
     return mm;
+}
+
+
+/*! Adds the messages specified in \a line to \a set. Aborts
+    (silently) on any error.  \a line must contain a word, a colon,
+    and a series of space-separated numbers or ranges. The word is
+    disregarded.
+*/
+
+void MhMailbox::addToSet( const String &line, class MessageSet * set )
+{
+    uint e = 0;
+    while ( e < line.length() && line[e] != ':' )
+        e++;
+    while ( line[e] == ' ' || line[e] == ':' )
+        e++;
+    bool ok = true;
+    while ( ok && e < line.length() ) {
+        uint b = e;
+        while ( line[e] >= '0' && line[e] <= '9' )
+            e++;
+        uint first = line.mid( b, e-b ).number( &ok );
+        uint second = first;
+        if ( line[e] == '-' ) {
+            e++;
+            b = e;
+            while ( line[e] >= '0' && line[e] <= '9' )
+                e++;
+            second = line.mid( b, e-b ).number( &ok );
+        }
+        if ( line[e] == ' ' || e >= line.length() )
+            set->add( first, second );
+        else
+            ok = false;
+        e++;
+    }
 }
