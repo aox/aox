@@ -5,6 +5,7 @@
 
 #include "message.h"
 #include "event.h"
+#include "stringlist.h"
 
 
 class Migrator
@@ -74,6 +75,7 @@ public:
     String description() const;
     String original() const;
     class StringList flags() const;
+    void addFlag( const String & );
 
     Message * message();
 
@@ -81,6 +83,7 @@ private:
     String s;
     String o;
     Message * m;
+    StringList f;
 };
 
 

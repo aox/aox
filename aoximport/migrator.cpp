@@ -632,11 +632,18 @@ bool Migrator::errorCopies()
 
 
 /*! Returns the list of flags that should be set on the injected
-    message.
+    message. The list may contain duplicates.
 */
 
 StringList MigratorMessage::flags() const
 {
-    StringList r;
-    return r;
+    return f;
+}
+
+
+/*! Records that \a flag should be set on the injected message. */
+
+void MigratorMessage::addFlag( const String & flag )
+{
+    f.append( flag );
 }

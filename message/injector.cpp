@@ -252,9 +252,13 @@ Injector::Injector( const Message * message,
         ++bi;
     }
 
+    Dict<void> uniq;
     StringList::Iterator fi( flags );
     while ( fi ) {
-        d->flags.append( new InjectorData::Flag( *fi ) );
+        if ( !uniq.contains( fi->lower() ) ) {
+            d->flags.append( new InjectorData::Flag( *fi ) );
+            uniq.insert( fi->lower(), (void*) 1 );
+        }
         ++fi;
     }
 }
