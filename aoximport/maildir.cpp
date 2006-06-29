@@ -112,7 +112,44 @@ MigratorMessage * MaildirMailbox::nextMessage()
     
     String f( d->path + "/" + *n );
     File m( f );
-    return new MigratorMessage( m.contents(), f );
+    MigratorMessage * mm = new MigratorMessage( m.contents(), f );
+    int i = n->find( ',' );
+    if ( i >= 0 ) {
+        while ( i < (int)n->length() ) {
+            switch ( (*n)[i] ) {
+                // Comments from the maildir documentation:
+            case 'D':
+                // "D" - this is a 'draft' message
+                mm->addFlag( "\\draft" );
+                break;
+            case 'R':
+                // "R" - this message has been replied to
+                mm->addFlag( "\\answered" );
+                break;
+                
+            case 'S':
+                // "S" - this message has been viewed (seen)
+                mm->addFlag( "\\seen" );
+                break;
+
+            case 'T':
+                // "T" - this message has been marked to be deleted
+                // (trashed), but is not yet removed (messages are
+                // removed from maildirs simply by deleting their
+                // file)
+                mm->addFlag( "\\deleted" );
+                break;
+
+            case 'F':
+                // "F" - this message has been marked by the user, for
+                // some purpose.
+                mm->addFlag( "\\flagged" );
+                break;
+            } 
+            i++;
+        }
+    }
+    return mm;
 }
 
 
