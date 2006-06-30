@@ -30,10 +30,6 @@ public:
 
     {}
 
-    // we have to split this in two, so a Message object can represent
-    // a database message and be close to 8 bytes in size.
-
-    String rfc2822;
     bool strict;
     String error;
 
@@ -86,8 +82,6 @@ Message::Message()
 Message::Message( const String & rfc2822 )
     : d( new MessageData )
 {
-    d->rfc2822 = rfc2822;
-
     uint i = 0;
 
     setHeader( parseHeader( i, rfc2822.length(), rfc2822, Header::Rfc2822 ) );
