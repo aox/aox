@@ -272,9 +272,6 @@ class AnnotationData
 public:
     AnnotationData(): entryName( 0 ), ownerId( 0 ) {}
     String value;
-    String type;
-    String language;
-    String displayName;
     AnnotationName * entryName;
     uint ownerId;
 };
@@ -316,61 +313,6 @@ void Annotation::setValue( const String & v )
 String Annotation::value() const
 {
     return d->value;
-}
-
-
-/*! Records that the type of this annotation is \a t. The initial
-    value is an empty string, corresponding to
-    text/plain;charset=utf-8.
-*/
-
-void Annotation::setType( const String & t )
-{
-    d->type = t;
-}
-
-
-/*! Returns the annotation's type, as set by setType(). */
-
-String Annotation::type() const
-{
-    return d->type;
-}
-
-
-/*! Records that the content-language of this annotation is \a l. The
-    initial value is an empty string.
-*/
-
-void Annotation::setLanguage( const String & l )
-{
-    d->language = l;
-}
-
-
-/*! Returns the annotation's language, as set by setLanguage(). */
-
-String Annotation::language() const
-{
-    return d->language;
-}
-
-
-/*! Records that the display-name of this annotation is \a n. The
-    initial value is an empty string.
-*/
-
-void Annotation::setDisplayName( const String & n )
-{
-    d->displayName = n;
-}
-
-
-/*! Returns the annotation's display-name, as set by setDisplayName(). */
-
-String Annotation::displayName() const
-{
-    return d->displayName;
 }
 
 

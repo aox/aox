@@ -68,12 +68,6 @@ public:
 
     void setValue( const String & );
     String value() const;
-    void setType( const String & );
-    String type() const;
-    void setLanguage( const String & );
-    String language() const;
-    void setDisplayName( const String & );
-    String displayName() const;
     void setEntryName( AnnotationName * );
     AnnotationName * entryName() const;
     void setOwnerId( uint );
