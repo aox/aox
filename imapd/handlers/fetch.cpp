@@ -992,9 +992,6 @@ String Fetch::annotation( Multipart * m )
             if ( !attributes.isEmpty() )
                 appendAttribute( attributes, "size", suffix,
                                  String::fromNumber( a->value().length() ) );
-            appendAttribute( attributes, "content-type", suffix, a->type() );
-            appendAttribute( attributes, "content-language", suffix, a->language() );
-            appendAttribute( attributes, "display-name", suffix, a->displayName() );
             r.append( attributes.join( " " ) );
             r.append( ")" );
         }
