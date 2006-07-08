@@ -199,16 +199,6 @@ CONDSTORE
   - schema update... how?
 
 
-Schema 20
-
-  Right now, we have a clever-but-hacky freeloading insert
-  into...select. What if we were to start by doing the same select
-  outside the transaction, e.g. "select count(*) from (same select)"
-  in order to see if pg can parse all the dates, and only run the
-  insert into...select (inside the transaction) if the count()
-  (outside the transaction) doesn't fail.
-
-
 Autoresponder
 
   We'll need one, nicely programmable, connected to our sieve.
