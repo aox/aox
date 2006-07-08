@@ -97,9 +97,7 @@ Fetcher::Fetcher( Mailbox * m )
         "where uid>=$1 and uid<=$2 and mailbox=$3 "
         "order by uid, flag";
     ::flags = new PreparedStatement( q );
-    q = "select a.uid, a.owner, "
-        "a.value, a.type, a.language, a.displayname, "
-        "an.name, an.id "
+    q = "select a.uid, a.owner, a.value, an.name, an.id "
         "from annotations a, annotation_names an "
         "where a.uid>=$1 and a.uid<=$2 and a.mailbox=$3 "
         "and a.name=an.id "
@@ -466,9 +464,6 @@ void MessageAnnotationFetcher::decode( Message * m, Row * r )
 
     a->setOwnerId( r->getInt( "owner" ) );
     a->setValue( r->getString( "value" ) );
-    a->setType( r->getString( "type" ) );
-    a->setLanguage( r->getString( "language" ) );
-    a->setDisplayName( r->getString( "displayname" ) );
 
     m->replaceAnnotation( a );
 }
