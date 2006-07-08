@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 20;
+int currentRevision = 21;
 
 
 class SchemaData
@@ -288,6 +288,8 @@ bool Schema::singleStep()
         c = stepTo19(); break;
     case 19:
         c = stepTo20(); break;
+    case 20:
+        c = stepTo21(); break;
     }
 
     return c;
@@ -1178,6 +1180,33 @@ bool Schema::stepTo20()
     }
 
     if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Remove unnecessary stuff from annotations. */
+
+bool Schema::stepTo21()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Removing fields from annotations table.", Log::Debug );
+        d->q = new Query( "alter table annotations drop type", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table annotations drop language", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table annotations drop displayname", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
