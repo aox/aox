@@ -172,12 +172,6 @@ void Store::parseAnnotationEntry()
         }
         if ( attrib == "value" )
             a->setValue( value );
-        else if ( attrib == "content-type" )
-            a->setType( value );
-        else if ( attrib == "content-language" )
-            a->setLanguage( value );
-        else if ( attrib == "display-name" )
-            a->setDisplayName( value );
         else
             error( Bad, "Unknown attribute: " + attrib );
 
@@ -633,37 +627,27 @@ void Store::replaceAnnotations()
                 o = "owner is null";
             String existing = "where mailbox=$1 and (" + w + ") and name=$2 "
                               "and " + o;
-            q = new Query( "update annotations set "
-                           "value=$3, type=$4, language=$5, displayname=$6 " +
-                           existing, 0 );
+            q = new Query( "update annotations set value=$3, " + existing, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, it->entryName()->id() );
             bind( q, 3, it->value() );
-            bind( q, 4, it->type() );
-            bind( q, 5, it->language() );
-            bind( q, 6, it->displayName() );
             if ( it->ownerId() )
                 q->bind( 7, u->id() );
             d->transaction->enqueue( q );
 
             q = new Query( "insert into annotations "
-                           "(mailbox, uid, name, value, type, "
-                           " language, displayname, owner) "
-                           "select $1,uid,$2,$3,$4,$5,$6,$7 "
-                           "from messages where "
+                           "(mailbox, uid, owner, name, value) "
+                           "select $1,uid,$2,$3,$4 from messages where "
                            "mailbox=$1 and (" + w + ") and uid not in "
                            "(select uid from annotations " + existing + ")",
                            0 );
             q->bind( 1, m->id() );
-            q->bind( 2, it->entryName()->id() );
-            bind( q, 3, it->value() );
-            bind( q, 4, it->type() );
-            bind( q, 5, it->language() );
-            bind( q, 6, it->displayName() );
             if ( it->ownerId() )
-                q->bind( 7, it->ownerId() );
+                q->bind( 2, it->ownerId() );
             else
-                q->bindNull( 7 );
+                q->bindNull( 2 );
+            q->bind( 3, it->entryName()->id() );
+            bind( q, 4, it->value() );
             d->transaction->enqueue( q );
         }
         ++it;
