@@ -165,10 +165,8 @@ void Copy::execute()
             d->transaction->enqueue( q );
 
             q = new Query( "insert into annotations "
-                           "(mailbox, uid, owner, name, value, "
-                           "type, language, displayname) "
+                           "(mailbox, uid, owner, name, value) "
                            "select $1, $2, $5, name, value, "
-                           "type, language, displayname "
                            "from annotations "
                            "where mailbox=$3 and uid=$4 and "
                            "(owner is null or owner=$5)",
@@ -177,7 +175,8 @@ void Copy::execute()
             q->bind( 2, tuid );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
-            q->bind( 4, imap()->user()->id() );
+            q->bind( 5, imap()->user()->id() );
+            d->transaction->enqueue( q );
 
             tuid++;
             i++;
