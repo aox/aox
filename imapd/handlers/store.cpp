@@ -622,32 +622,32 @@ void Store::replaceAnnotations()
             d->transaction->enqueue( q );
         }
         else {
-            String o = "owner=$7";
+            String o( "owner=$4" );
             if ( !it->ownerId() )
                 o = "owner is null";
-            String existing = "where mailbox=$1 and (" + w + ") and name=$2 "
-                              "and " + o;
-            q = new Query( "update annotations set value=$3, " + existing, 0 );
+            String existing( "where mailbox=$1 and (" + w + ") and "
+                             "name=$2 and " + o );
+            q = new Query( "update annotations set value=$3 " + existing, 0 );
             q->bind( 1, m->id() );
             q->bind( 2, it->entryName()->id() );
             bind( q, 3, it->value() );
             if ( it->ownerId() )
-                q->bind( 7, u->id() );
+                q->bind( 4, u->id() );
             d->transaction->enqueue( q );
 
             q = new Query( "insert into annotations "
-                           "(mailbox, uid, owner, name, value) "
+                           "(mailbox, uid, name, value, owner) "
                            "select $1,uid,$2,$3,$4 from messages where "
                            "mailbox=$1 and (" + w + ") and uid not in "
                            "(select uid from annotations " + existing + ")",
                            0 );
             q->bind( 1, m->id() );
+            q->bind( 2, it->entryName()->id() );
+            bind( q, 3, it->value() );
             if ( it->ownerId() )
-                q->bind( 2, it->ownerId() );
+                q->bind( 4, it->ownerId() );
             else
-                q->bindNull( 2 );
-            q->bind( 3, it->entryName()->id() );
-            bind( q, 4, it->value() );
+                q->bindNull( 4 );
             d->transaction->enqueue( q );
         }
         ++it;
