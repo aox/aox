@@ -8,6 +8,7 @@
 #include "resolver.h"
 
 #include "dict.h"
+#include "endpoint.h"
 #include "allocator.h"
 #include "configuration.h"
 
@@ -76,12 +77,20 @@ StringList Resolver::resolve( const String & name )
     }
     else if ( r->d->host.contains( ':' ) ) {
         // it's an ipv6 address
+        Endpoint * e = new Endpoint( name, 1 );
+        if ( e->valid() )
+            results->append( e->address() );
     }
-    else if ( r->d->host.contains( '.' ) && r->d->host[r->d->host.length()-1] <= '9' ) {
+    else if ( r->d->host.contains( '.' ) &&
+              r->d->host[r->d->host.length()-1] <= '9' ) {
         // it's an ipv4 address
+        Endpoint * e = new Endpoint( name, 1 );
+        if ( e->valid() )
+            results->append( e->address() );
     }
     else if ( r->d->host.startsWith( "/" ) ) {
         // it's a unix pipe
+        results->append( name );
     }
     else {
         // it's a domain name. we use res_search since getnameinfo()
@@ -90,8 +99,8 @@ StringList Resolver::resolve( const String & name )
             r->query( T_AAAA, results );
         if ( Configuration::toggle( Configuration::UseIPv4 ) )
             r->query( T_A, results );
+        r->d->names.insert( r->d->host, results );
     }
-    r->d->names.insert( r->d->host, results );
     return *results;
 }
 
@@ -185,9 +194,9 @@ void Resolver::query( uint type, StringList * results )
         d->errors.append( "Error while looking up " + d->host );
         return;
     }
-        
+
     d->reply.setLength( len );
-    
+
     uint p = 12;
 
     if ( len < 12 )
@@ -227,7 +236,8 @@ void Resolver::query( uint type, StringList * results )
                 while ( i < rdlength ) {
                     if ( !a.isEmpty() )
                         a.append( ':' );
-                    a.append( fn( ( d->reply[p+i] << 8 ) + d->reply[p+i+1], 16 ) );
+                    a.append( fn( ( d->reply[p+i] << 8 ) + d->reply[p+i+1],
+                                  16 ) );
                     i += 2;
                 }
             }

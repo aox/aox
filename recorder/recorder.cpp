@@ -7,6 +7,7 @@
 #include "scope.h"
 #include "buffer.h"
 #include "listener.h"
+#include "resolver.h"
 #include "allocator.h"
 #include "logclient.h"
 
@@ -215,7 +216,6 @@ int main( int argc, char ** argv )
 
     uint port;
     if ( ok ) {
-        
         port = String( argv[1] ).number( &ok );
         if ( !ok )
             error = "Could not parse own port number";
@@ -242,9 +242,16 @@ int main( int argc, char ** argv )
     }
 
     if ( ok ) {
-        ep = new Endpoint( argv[2], port );
-        Allocator::addEternal( ep, "target server endpoint" );
-        if ( !ep->valid() ) {
+        StringList l = Resolver::resolve( argv[2] );
+        if ( l.isEmpty() ) {
+            ok = false;
+            error = (String("Cannot resolve ") + argv[2]).cstr();
+        }
+        else {
+            ep = new Endpoint( *l.first(), port );
+            Allocator::addEternal( ep, "target server endpoint" );
+        }
+        if ( ep && !ep->valid() ) {
             ok = false;
             error = "Invalid server address";
         }
