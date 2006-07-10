@@ -84,6 +84,30 @@ aox reinject
   place?
 
 
+Bounces and DSNs
+
+  Mail is currently fairly reliable. There is one big exception:
+  Bounces aren't 100% parsable. But generally, if you work hard, you
+  can know whether a message was delivered or not, and mostly they are
+  delivered.
+
+  So we benefit from converting the most common nonstandard bounces to
+  DSNs, and then treat them as DSNs.
+
+  For nonstandard bounces (like those of qmail) we identify the
+  message by trying hard, do some hacky parsing, use the bounce
+  (excluding trailing message) as first part of the DSN multipart,
+  cook up a new DSN report based on the parsing, and save
+  text/822-headers as a third part.
+
+  Then, searches that tie bounces together with messages sent work
+  even better.
+
+  (Another trick we can/should use is to see whether the host we
+  deliver to seems to be the final destination based on earlier
+  (answered) messages.)
+
+
 Memory use for common operations
 
   Some use _vastly_ too much memory. I saw a single IMAP FETCH for a
