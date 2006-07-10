@@ -643,7 +643,9 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     // CRLF. that seems rather suboptimal.
     bp->d->numEncodedBytes = body.length();
 
-    if ( bp->d->hasText || ( ct->type() == "message" && ct->subtype() == "rfc822" ) ) {
+    if ( bp->d->hasText ||
+         ( ct->type() == "message" && ct->subtype() == "rfc822" ) )
+    {
         uint n = 0;
         uint i = 0;
         uint l = body.length();
