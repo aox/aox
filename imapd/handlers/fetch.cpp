@@ -73,6 +73,9 @@ public:
     // and the sections imply that we...
     bool needHeader;
     bool needBody;
+
+    StringList entries;
+    StringList attribs;
 };
 
 
@@ -199,6 +202,8 @@ void Fetch::parseAttribute( bool alsoMacro )
     }
     else if ( keyword == "annotation" ) {
         d->annotation = true;
+        require( " " );
+        parseAnnotation();
     }
     else if ( keyword == "rfc822.text" ) {
         d->peek = false;
@@ -380,6 +385,83 @@ void Fetch::parseBody( bool binary )
         d->needHeader = true;
     if ( needBody )
         d->needBody = true;
+}
+
+
+/*! Parses the entries and attributes from an ANNOTATION fetch-att.
+    Expects the cursor to be on the first parenthesis, and advances
+    it to past the last one.
+*/
+
+void Fetch::parseAnnotation()
+{
+    bool atEnd;
+    bool paren;
+
+    // Simplified ABNF from draft-ietf-imapext-annotate-15:
+    //
+    //  fetch-att =/ "ANNOTATION" SP "(" entries SP attribs ")"
+    //  entries   = list-mailbox /
+    //              "(" list-mailbox *(SP list-mailbox) ")"
+    //  attribs   = astring /
+    //              "(" astring *(SP astring) ")"
+
+    require( "(" );
+
+    paren = false;
+    if ( nextChar() == '(' ) {
+        step();
+        paren = true;
+    }
+
+    atEnd = false;
+    while ( !atEnd ) {
+        d->entries.append( new String( listMailbox() ) );
+
+        if ( paren ) {
+            if ( nextChar() == ')' ) {
+                step();
+                atEnd = true;
+            }
+            else {
+                space();
+            }
+        }
+        else {
+            atEnd = true;
+        }
+    }
+
+    require( " " );
+
+    paren = false;
+    if ( nextChar() == '(' ) {
+        step();
+        paren = true;
+    }
+
+    atEnd = false;
+    while ( !atEnd ) {
+        String * a = new String( astring() );
+        if ( a->contains( "*" ) || a->contains( "%" ) )
+            error( Bad, "Annotation attribute may not contain * or %" );
+        d->attribs.append( a );
+
+        if ( paren ) {
+            if ( nextChar() == ')' ) {
+                step();
+                atEnd = true;
+            }
+            else {
+                space();
+            }
+        }
+        else {
+            atEnd = true;
+        }
+    }
+
+    require( ")" );
 }
 
 
@@ -969,7 +1051,7 @@ String Fetch::annotation( Multipart * m )
         return "";
 
     uint user = imap()->user()->id();
-    String r( "ANNOTATION (" );
+    String r( "(" );
     const char * sep = 0;
     AnnotationName * an = 0;
     List<Annotation>::Iterator i( ((Message*)m)->annotations() );

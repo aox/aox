@@ -24,6 +24,7 @@ public:
 private:
     void parseAttribute( bool );
     void parseBody( bool );
+    void parseAnnotation();
     void sendFetchQueries();
     String dotLetters( uint, uint );
     String flagList( Message *, uint );
