@@ -457,28 +457,3 @@ void Listext::reference()
     if ( !d->reference )
         error( No, "Cannot find reference name " + name );
 }
-
-
-/*! Parses and returns a list-mailbox. This is the same as an atom(),
-    except that the three additional characters %, * and ] are
-    accepted.
-*/
-
-String Listext::listMailbox()
-{
-    String result;
-    char c = nextChar();
-    if ( c == '"' || c == '{' )
-        return string().lower();
-    while ( c > ' ' && c < 127 &&
-            c != '(' && c != ')' && c != '{' &&
-            c != '"' && c != '\\' )
-    {
-        result.append( c );
-        step();
-        c = nextChar();
-    }
-    if ( result.isEmpty() )
-        error( Bad, "list-mailbox expected, saw: " + following() );
-    return result.lower();
-}

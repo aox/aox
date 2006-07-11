@@ -20,8 +20,6 @@ public:
     static uint match( const String & pattern, uint p,
                        const String & name, uint n );
 
-    String listMailbox();
-
 private:
     void addReturnOption( const String & );
     void addSelectOption( const String & );

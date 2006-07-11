@@ -914,6 +914,31 @@ String Command::astring()
 }
 
 
+/*! Parses and returns a list-mailbox. This is the same as an atom(),
+    except that the three additional characters %, * and ] are
+    accepted.
+*/
+
+String Command::listMailbox()
+{
+    String result;
+    char c = nextChar();
+    if ( c == '"' || c == '{' )
+        return string().lower();
+    while ( c > ' ' && c < 127 &&
+            c != '(' && c != ')' && c != '{' &&
+            c != '"' && c != '\\' )
+    {
+        result.append( c );
+        step();
+        c = nextChar();
+    }
+    if ( result.isEmpty() )
+        error( Bad, "list-mailbox expected, saw: " + following() );
+    return result.lower();
+}
+
+
 /*! Parses an IMAP set and returns the corresponding MessageSet object.
     The set always contains UIDs; this function creates an UID set even
     if \a parseMsns is true.
