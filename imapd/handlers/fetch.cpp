@@ -483,7 +483,8 @@ void Fetch::execute()
     while ( i == 1 && !d->set.isEmpty() ) {
         uint uid = d->set.value( i );
         Message * m = s->mailbox()->message( uid );
-        if ( ( !d->needHeader || m->hasHeaders() ) &&
+        if ( ( !d->annotation || m->hasAnnotations() ) &&
+             ( !d->needHeader || m->hasHeaders() ) &&
              ( !d->needBody || m->hasBodies() ) &&
              ( !d->flags || m->hasFlags() ) &&
              ( ( !d->rfc822size && !d->internaldate ) || m->hasTrivia() ) )
