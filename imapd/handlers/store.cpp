@@ -120,7 +120,7 @@ void Store::parse()
 
 void Store::parseAnnotationEntry()
 {
-    String entry = string();
+    String entry = listMailbox();
     if ( entry.startsWith( "/flags/" ) )
         error( Bad, "Cannot set top-level flags using STORE ANNOTATION" );
     if ( entry.contains( "//" ) )
@@ -137,7 +137,7 @@ void Store::parseAnnotationEntry()
     bool more = true;
     uint id = imap()->user()->id();
     while ( more ) {
-        String attrib = string();
+        String attrib = astring();
         bool shared = false;
         if ( attrib.endsWith( ".shared" ) ) {
             shared = true;
