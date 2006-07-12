@@ -1053,22 +1053,47 @@ String Fetch::annotation( Multipart * m )
 
     uint user = imap()->user()->id();
     String r( "(" );
-    const char * sep = 0;
-    AnnotationName * an = 0;
     List<Annotation>::Iterator i( ((Message*)m)->annotations() );
+    bool first = true;
     while ( i ) {
         Annotation * a = i;
         ++i;
-        if ( a->ownerId() == 0 || a->ownerId() == user ) {
-            const char * suffix = ".shared";
-            if ( a->ownerId() )
-                suffix = ".priv";
-            if ( an != a->entryName() ) {
-                r.append( sep );
-                sep = ")(";
-                an = a->entryName();
-                r.append( imapQuoted( an->name() ) );
+
+        String entryName( a->entryName()->name() );
+        bool entryWanted = false;
+        StringList::Iterator e( d->entries );
+        while ( e ) {
+            if ( *e == entryName ) {
+                entryWanted = true;
+                break;
             }
+            ++e;
+        }
+
+        const char * suffix = ".shared";
+        if ( a->ownerId() )
+            suffix = ".priv";
+
+        bool attribWanted = false;
+        StringList::Iterator at( d->attribs );
+        while ( at ) {
+            if ( *at == "value" ||
+                 *at == String( "value" ) + suffix )
+            {
+                attribWanted = true;
+                break;
+            }
+            ++at;
+        }
+
+        if ( ( a->ownerId() == 0 || a->ownerId() == user ) &&
+             entryWanted && attribWanted )
+        {
+            if ( !first )
+                r.append( " " );
+            else
+                first = false;
+            r.append( entryName );
             r.append( " (" );
             StringList attributes;
             appendAttribute( attributes, "value", suffix, a->value() );
