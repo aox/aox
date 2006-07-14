@@ -4,6 +4,8 @@
 #include <netinet/in.h>
 #include <arpa/nameser.h>
 #include <resolv.h>
+#include <netdb.h>
+#include <errno.h>
 
 #include "resolver.h"
 
@@ -93,7 +95,7 @@ StringList Resolver::resolve( const String & name )
         results->append( name );
     }
     else {
-        // it's a domain name. we use res_search since getnameinfo()
+        // it's a domain name. we use res_search() since getnameinfo()
         // had such bad karma when we tried it.
         if ( Configuration::toggle( Configuration::UseIPv6 ) )
             r->query( T_AAAA, results );
@@ -111,6 +113,7 @@ StringList Resolver::resolve( const String & name )
 
 StringList Resolver::errors()
 {
+    resolver()->d->errors.removeDuplicates( false );
     return resolver()->d->errors;
 }
 
@@ -150,13 +153,18 @@ String Resolver::readString( uint & i )
     }
     if ( c == 0 ) {
         // all is in perfect order
+        i++;
     }
     else if ( c < 64 ) {
         i++;
         r.append( d->reply.mid( i, c ) );
-        c += i;
+        i += c;
         // and just in case that wasn't all, do a spot of tail recursion
-        r.append( readString( i ) );
+        String domain = readString( i );
+        if ( !domain.isEmpty() ) {
+            r.append( "." );
+            r.append( domain );
+        }
     }
     else if ( c >= 192 ) {
         uint qi = ( ( d->reply[i] & 0x3f ) << 8 ) + d->reply[i+1];
@@ -188,10 +196,18 @@ void Resolver::query( uint type, StringList * results )
 {
     d->bad = false;
     d->reply.reserve( 4096 );
-    int len = res_search( d->host.cstr(), C_IN, type,
-                          (u_char*)d->reply.data(), d->reply.capacity() );
+    int len = res_query( d->host.cstr(), C_IN, type,
+                         (u_char*)d->reply.data(), d->reply.capacity() );
     if ( len <= 0 ) {
-        d->errors.append( "Error while looking up " + d->host );
+        char * name = "IPv4";
+        if ( type == T_AAAA )
+            name = "IPv6";
+        if ( errno == HOST_NOT_FOUND )
+            d->errors.append( String("Found no ") + name +
+                              " address for " + d->host );
+        else
+            d->errors.append( String("DNS error while looking up ") + name +
+                              " address for " + d->host );
         return;
     }
 
