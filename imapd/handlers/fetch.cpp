@@ -1066,21 +1066,6 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
 }
 
 
-// helper for Fetch::annotation
-static void appendAttribute( StringList & l, const char * a, const char * t,
-                             const String & v )
-{
-    if ( v.isEmpty() )
-        return;
-    String tmp;
-    tmp.append( a );
-    tmp.append( t );
-    tmp.append( " " );
-    tmp.append( Command::imapQuoted( v, Command::NString ) );
-    l.append( tmp );
-}
-
-
 /*! Returns the IMAP ANNOTATION production for \a m. */
 
 String Fetch::annotation( Multipart * m )
@@ -1088,58 +1073,85 @@ String Fetch::annotation( Multipart * m )
     if ( !m->isMessage() )
         return "";
 
+    typedef Dict< String > Attributes;
+    Dict< Attributes > entries;
+
     uint user = imap()->user()->id();
-    String r( "(" );
     List<Annotation>::Iterator i( ((Message*)m)->annotations() );
-    bool first = true;
     while ( i ) {
         Annotation * a = i;
         ++i;
 
-        String entryName( a->entryName()->name() );
+        String entry( a->entryName()->name() );
         bool entryWanted = false;
         StringList::Iterator e( d->entries );
         while ( e ) {
-            if ( *e == entryName ) {
+            if ( *e == entry ) {
                 entryWanted = true;
                 break;
             }
             ++e;
         }
 
-        const char * suffix = ".shared";
-        if ( a->ownerId() )
-            suffix = ".priv";
-
-        bool attribWanted = false;
-        StringList::Iterator at( d->attribs );
-        while ( at ) {
-            if ( *at == "value" ||
-                 *at == String( "value" ) + suffix )
-            {
-                attribWanted = true;
-                break;
+        if ( ( a->ownerId() == 0 || a->ownerId() == user ) &&
+             entryWanted )
+        {
+            Attributes * atts = entries.find( entry );
+            if ( !atts ) {
+                atts = new Attributes;
+                entries.insert( entry, atts );
             }
-            ++at;
+
+            const char * suffix = ".shared";
+            if ( a->ownerId() )
+                suffix = ".priv";
+
+            String * v = new String( a->value() );
+            String * s = new String( fn( v->length() ) );
+
+            atts->insert( String( "value" ) + suffix, v );
+            atts->insert( String( "size" ) + suffix, s );
+        }
+    }
+
+    String r( "(" );
+    StringList::Iterator e( d->entries );
+    while ( e ) {
+        String entry( *e );
+
+        String tmp;
+        StringList::Iterator a( d->attribs );
+        while ( a ) {
+            String attrib( *a );
+
+            String * value = 0;
+            Attributes * atts = entries.find( entry );
+            if ( atts )
+                value = atts->find( attrib );
+
+            tmp.append( attrib );
+            tmp.append( " " );
+            if ( value )
+                tmp.append( imapQuoted( *value ) );
+            else if ( attrib.startsWith( "size." ) )
+                tmp.append( "\"0\"" );
+            else
+                tmp.append( "NIL" );
+            ++a;
+            if ( a )
+                tmp.append( " " );
         }
 
-        if ( ( a->ownerId() == 0 || a->ownerId() == user ) &&
-             entryWanted && attribWanted )
-        {
-            if ( !first )
-                r.append( " " );
-            else
-                first = false;
-            r.append( entryName );
+        r.append( entry );
+        if ( !tmp.isEmpty() ) {
             r.append( " (" );
-            StringList attributes;
-            appendAttribute( attributes, "value", suffix, a->value() );
-            if ( !attributes.isEmpty() )
-                appendAttribute( attributes, "size", suffix,
-                                 String::fromNumber( a->value().length() ) );
-            r.append( attributes.join( " " ) );
+            r.append( tmp );
             r.append( ")" );
         }
+
+        ++e;
+        if ( e )
+            r.append( " " );
     }
     r.append( ")" );
     return r;
