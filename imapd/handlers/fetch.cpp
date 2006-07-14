@@ -23,6 +23,17 @@
 #include "utf.h"
 
 
+static const char * legalAnnotationAttributes[] = {
+    "value",
+    "value.priv",
+    "value.shared",
+    "size",
+    "size.priv",
+    "size.shared",
+    0
+};
+
+
 class FetchData
     : public Garbage
 {
@@ -442,10 +453,19 @@ void Fetch::parseAnnotation()
 
     atEnd = false;
     while ( !atEnd ) {
-        String * a = new String( astring() );
-        if ( a->contains( "*" ) || a->contains( "%" ) )
-            error( Bad, "Annotation attribute may not contain * or %" );
-        d->attribs.append( a );
+        String a( astring() );
+
+        // XXX: This check (and the legalAnnotationAttributes table) is
+        // duplicated in Search::parseKey(). But where should a common
+        // attribute-checking function live?
+        uint i = 0;
+        while ( ::legalAnnotationAttributes[i] &&
+                a != ::legalAnnotationAttributes[i] )
+            i++;
+        if ( !::legalAnnotationAttributes[i] )
+            error( Bad, "Unknown annotation attribute: " + a );
+
+        d->attribs.append( new String( a ) );
 
         if ( paren ) {
             if ( nextChar() == ')' ) {
