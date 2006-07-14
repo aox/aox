@@ -245,7 +245,8 @@ int main( int argc, char ** argv )
         StringList l = Resolver::resolve( argv[2] );
         if ( l.isEmpty() ) {
             ok = false;
-            error = (String("Cannot resolve ") + argv[2]).cstr();
+            error = (String("Cannot resolve ") + argv[2] +
+                     ": " + Resolver::errors().join( ", " ) ).cstr();
         }
         else {
             ep = new Endpoint( *l.first(), port );
