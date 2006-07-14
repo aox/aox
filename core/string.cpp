@@ -1599,3 +1599,41 @@ bool String::contains( const char c ) const
         return true;
     return false;
 }
+
+
+/*! Returns a copy of this string wrapped so that each line contains
+    at most \a linelength characters. The first line is prefixed by \a
+    firstPrefix, subsequent lines by \a otherPrefix. If \a spaceAtEOL
+    is true, each line except the last end with a space.
+    
+    The prefixes are counted towards line length, but the optional
+    trailing space is not.
+
+    Assumes that the string is a single line. Only space (ASCII 32) is
+    considered as line-break opportunity. Linefeeds added use CRLF.
+*/
+
+String String::wrapped( uint linelength,
+                        const String & firstPrefix, const String & otherPrefix,
+                        bool spaceAtEOL )
+{
+    String result = firstPrefix;
+    uint i = 0;
+    uint linestart = 0;
+    uint space = 0;
+    while ( i < length() ) {
+        char c = at( i );
+	if ( c == ' ' )
+	    space = result.length();
+	result.append( c );
+	i++;
+	// add a soft linebreak?
+	if ( result.length() > linestart + linelength && space > linestart ) {
+	    linestart = space + 1;
+	    result = result.mid( 0, space + ( spaceAtEOL ? 1 : 0 ) ) +
+		     "\r\n" + otherPrefix +
+		     result.mid( space+1 );
+	}
+    }
+    return result;
+}

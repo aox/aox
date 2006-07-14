@@ -130,6 +130,10 @@ public:
 
     String crlf() const;
 
+    String wrapped( uint linelength,
+                    const String & firstPrefix, const String & otherPrefix,
+                    bool spaceAtEOL );
+
 private:
     StringData * d;
 };
