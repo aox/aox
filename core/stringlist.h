@@ -17,6 +17,8 @@ public:
     void append( const String & );
     void append( const char * );
 
+    void removeDuplicates( bool = true );
+
     String join( const String & );
     static StringList *split( char, const String & );
 };

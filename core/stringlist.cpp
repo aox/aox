@@ -2,11 +2,13 @@
 
 #include "stringlist.h"
 
+#include "dict.h"
+
 
 /*! \class StringList stringlist.h
 
     The StringList class is a List of String object, offering a few
-    convenience functions, most importantly join().
+    convenience functions such as join() and removeDuplicates().
 */
 
 
@@ -99,4 +101,32 @@ StringList *StringList::split( char c, const String &s )
     while ( last > 0 );
 
     return l;
+}
+
+
+/*! Removes duplicate entries from the list. If \a caseSensitive is
+    true (this is the default), strings are compared exactly. If \a
+    caseSensitive is false, ASCII A-Z are treated as equal to a-z.
+    
+    When two more more strings are equal, removeDuplicates() leaves
+    the first and removes the second and later copies.
+*/
+
+void StringList::removeDuplicates( bool caseSensitive )
+{
+    Dict<uint> e;
+    uint tmp = 1;
+    Iterator i( this );
+    while ( i ) {
+        String s = *i;
+        if ( !caseSensitive )
+            s = s.lower();
+        if ( e.contains( s ) ) {
+            take( i );
+        }
+        else {
+            ++i;
+            e.insert( s, &tmp );
+        }
+    }
 }
