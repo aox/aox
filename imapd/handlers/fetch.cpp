@@ -20,6 +20,7 @@
 #include "flag.h"
 #include "date.h"
 #include "user.h"
+#include "dict.h"
 #include "utf.h"
 
 
@@ -399,6 +400,14 @@ void Fetch::parseBody( bool binary )
 }
 
 
+void record( StringList & l, Dict<void> & d, const String & a )
+{
+    if ( !d.contains( a.lower() ) )
+        l.append( new String( a ) );
+    d.insert( a.lower(), (void *)1 );
+}
+
+
 /*! Parses the entries and attributes from an ANNOTATION fetch-att.
     Expects the cursor to be on the first parenthesis, and advances
     it to past the last one.
@@ -451,6 +460,8 @@ void Fetch::parseAnnotation()
         paren = true;
     }
 
+    Dict<void> attribs;
+
     atEnd = false;
     while ( !atEnd ) {
         String a( astring() );
@@ -466,11 +477,11 @@ void Fetch::parseAnnotation()
             error( Bad, "Unknown annotation attribute: " + a );
 
         if ( a.endsWith( ".priv" ) || a.endsWith( ".shared" ) ) {
-            d->attribs.append( new String( a ) );
+            record( d->attribs, attribs, a );
         }
         else {
-            d->attribs.append( new String( a + ".priv" ) );
-            d->attribs.append( new String( a + ".shared" ) );
+            record( d->attribs, attribs, a + ".priv" );
+            record( d->attribs, attribs, a + ".shared" );
         }
 
         if ( paren ) {
