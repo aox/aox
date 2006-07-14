@@ -747,25 +747,30 @@ void Message::fix8BitHeaderFields()
 }
 
 
-// returns a short string, e.g. "c", which can be used as a mime
-// boundary surrounding this bodypart without causing problems.
+/*! returns a short string, e.g. "c", which can be used as a mime
+    boundary surrounding \a parts without causing problems.
 
-static String acceptableBoundary( const String & part )
+    \a parts may be one bodypart, or several separated by CRLF. The
+    important thing is that all the lines which might conflict with
+    the boundary are lines in \a parts.
+*/
+
+String Message::acceptableBoundary( const String & parts )
 {
     uint i = 0;
     uint boundaries = 0;
     static char boundaryChars[33] = "0123456789abcdefghijklmnopqrstuv";
-    while ( i < part.length() ) {
-        if ( part[i] == '-' && part[i+1] == '-' ) {
+    while ( i < parts.length() ) {
+        if ( parts[i] == '-' && parts[i+1] == '-' ) {
             uint j = 0;
-            while ( j < 32 && boundaryChars[j] != part[i+2] )
+            while ( j < 32 && boundaryChars[j] != parts[i+2] )
                 j++;
             if ( j < 32 )
                 boundaries |= ( 1 << j );
         }
-        while ( i < part.length() && part[i] != 10 )
+        while ( i < parts.length() && parts[i] != 10 )
             i++;
-        while ( i < part.length() && ( part[i] == 13 || part[i] == 10 ) )
+        while ( i < parts.length() && ( parts[i] == 13 || parts[i] == 10 ) )
             i++;
     }
 
@@ -782,7 +787,7 @@ static String acceptableBoundary( const String & part )
     // to attack us, we'd better have some alternative plan,
     // e.g. a string containing eight random base64 characters.
     String r = Entropy::asString( 6 ).e64();
-    while ( part.contains( r ) )
+    while ( parts.contains( r ) )
         // if at first you don't succeed, try again with a bigger hammer!
         r = Entropy::asString( 36 ).e64();
     return r;

@@ -63,6 +63,8 @@ public:
 
     static String baseSubject( const String & );
 
+    static String acceptableBoundary( const String & );
+
     static Message * wrapUnparsableMessage( const String &,
                                             const String &,
                                             const String &,
