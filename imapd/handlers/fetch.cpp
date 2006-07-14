@@ -465,7 +465,13 @@ void Fetch::parseAnnotation()
         if ( !::legalAnnotationAttributes[i] )
             error( Bad, "Unknown annotation attribute: " + a );
 
-        d->attribs.append( new String( a ) );
+        if ( a.endsWith( ".priv" ) || a.endsWith( ".shared" ) ) {
+            d->attribs.append( new String( a ) );
+        }
+        else {
+            d->attribs.append( new String( a + ".priv" ) );
+            d->attribs.append( new String( a + ".shared" ) );
+        }
 
         if ( paren ) {
             if ( nextChar() == ')' ) {
