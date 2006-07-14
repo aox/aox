@@ -1609,8 +1609,8 @@ bool String::contains( const char c ) const
     The prefixes are counted towards line length, but the optional
     trailing space is not.
 
-    Assumes that the string is a single line. Only space (ASCII 32) is
-    considered as line-break opportunity. Linefeeds added use CRLF.
+    Only space (ASCII 32) is considered as line-break
+    opportunity. Linefeeds added use CRLF.
 */
 
 String String::wrapped( uint linelength,
@@ -1623,8 +1623,10 @@ String String::wrapped( uint linelength,
     uint space = 0;
     while ( i < length() ) {
         char c = at( i );
-	if ( c == ' ' )
+        if ( c == ' ' )
 	    space = result.length();
+        else if ( c == '\n' )
+            linestart = i + 1;
 	result.append( c );
 	i++;
 	// add a soft linebreak?
