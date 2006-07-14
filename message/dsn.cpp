@@ -30,14 +30,14 @@ public:
 };
 
 
-/*! \class Recipient bounce.h
+/*! \class Recipient dsn.h
 
     The Recipient class holds information about a particular
     recipient, collected during a delivery attempt and optionally used
     for sending DSNs.
 
     It sounds as if this belongs in a file of its own, not in
-    bounce.cpp. However: Which? Where? Consider that later.
+    dsn.cpp. However: Which? Where? Consider that later.
 */
 
 
@@ -398,15 +398,15 @@ String Recipient::dsnParagraph() const
 }
 
 
-/*! \class DSN bounce.h
+/*! \class DSN dsn.h
 
-    The DSN class builds a bounce (a well-formed DNS message) based
+    The DSN class builds a bounce (a well-formed DSN message) based
     on a Message and other data. It's a typical single-function class:
     Call setMessage() and more, then call result(), then discard the
     DSN.
 */
 
-/*!  Constructs an empty bounce message, for nothing, sent to noone,
+/*!  Constructs an empty DSN message, for nothing, sent to noone,
      etc.
 */
 
@@ -515,8 +515,8 @@ Date * DSN::arrivalDate() const
 }
 
 
-/*! Returns a list of the recipients for \a message(). The return
-    value may point to an empty list, but is never a null pointer.
+/*! Returns a list of the recipients for message(). The return value
+    may point to an empty list, but is never a null pointer.
 */
 
 List<Recipient> * DSN::recipients() const
@@ -685,9 +685,7 @@ String DSN::plainBody() const
 }
 
 
-/*!
-
-*/
+/*! Computes and returns the DSN bodypart. */
 
 String DSN::dsnBody() const
 {
