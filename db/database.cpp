@@ -96,7 +96,7 @@ void Database::setup()
         return;
     }
 
-    uint desired = 1;
+    uint desired = 3;
     if ( Configuration::toggle( Configuration::Security ) &&
          srv.protocol() == Endpoint::Unix )
         desired = Configuration::scalar( Configuration::DbMaxHandles );

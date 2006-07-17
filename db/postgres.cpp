@@ -273,7 +273,7 @@ void Postgres::react( Event e )
             error( "Request timeout." );
         else if ( d->transaction )
             error( "Transaction timeout." );
-        else if ( numHandles() > 1 || server().protocol() != Endpoint::Unix )
+        else if ( numHandles() > 3 && server().protocol() != Endpoint::Unix )
             shutdown();
         break;
 
