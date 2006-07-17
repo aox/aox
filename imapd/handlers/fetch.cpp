@@ -517,7 +517,10 @@ void Fetch::execute()
     }
 
     uint i = 1;
-    while ( i == 1 && !d->set.isEmpty() ) {
+    bool ok = true;
+    uint c = d->set.count();
+    uint good = 0;
+    while ( ok && i <= c ) {
         uint uid = d->set.value( i );
         Message * m = s->mailbox()->message( uid );
         if ( ( !d->annotation || m->hasAnnotations() ) &&
@@ -527,19 +530,28 @@ void Fetch::execute()
              ( ( !d->rfc822size && !d->internaldate ) || m->hasTrivia() ) )
         {
             imap()->enqueue( fetchResponse( m, uid, s->msn( uid ) ) );
-            d->set.remove( uid );
+            i++;
+            good = uid;
         }
         else {
-            i++;
+            log( "Stopped processing at UID " + fn( uid ) +
+                 " (" + fn( c + 1 - i ) + " messages to go, " +
+                 fn( i-1 ) + " processed in this round)",
+                 Log::Debug );
+            ok = false;
         }
     }
 
+    if ( good ) {
+        MessageSet tmp;
+        tmp.add( 1, good );
+        d->set.remove( tmp );
+    }
+            
     // in the case of fetch, we sometimes have thousands of responses,
     // so it's important to push the first responses to the client as
     // quickly as possible.
     imap()->write();
-
-    d->state = 2;
 
     if ( !d->set.isEmpty() )
         return;
