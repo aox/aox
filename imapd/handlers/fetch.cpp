@@ -582,11 +582,11 @@ void Fetch::sendFetchQueries()
     trivia.addGapsFrom( legal );
     annotations.addGapsFrom( legal );
 
-    mb->fetchFlags( flags, this );
-    mb->fetchHeaders( headers, this );
-    mb->fetchBodies( bodies, this );
     mb->fetchTrivia( trivia, this );
+    mb->fetchFlags( flags, this );
     mb->fetchAnnotations( annotations, this );
+    mb->fetchBodies( bodies, this );
+    mb->fetchHeaders( headers, this );
 
     // if we're not peeking, send off a query to set \seen, and don't
     // wait for any results.
