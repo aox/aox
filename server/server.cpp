@@ -28,16 +28,17 @@
 
 #include "server.h"
 
-#include "string.h"
-#include "file.h"
-#include "eventloop.h"
 #include "log.h"
+#include "file.h"
 #include "scope.h"
-#include "allocator.h"
+#include "string.h"
 #include "logclient.h"
 #include "eventloop.h"
 #include "connection.h"
 #include "configuration.h"
+#include "eventloop.h"
+#include "allocator.h"
+#include "resolver.h"
 #include "entropy.h"
 #include "query.h"
 
@@ -224,13 +225,48 @@ void Server::configuration()
 }
 
 
+static Configuration::Text addresses[] = {
+    Configuration::TlsProxyAddress,
+    Configuration::LogAddress,
+    Configuration::OcdAddress,
+    Configuration::OcAdminAddress,
+    Configuration::PopAddress,
+    Configuration::ImapAddress,
+    Configuration::ImapsAddress,
+    Configuration::SmtpAddress,
+    Configuration::LmtpAddress,
+    Configuration::HttpAddress,
+    Configuration::ManageSieveAddress,
+
+    // DbAddress MUST be last
+    Configuration::DbAddress 
+};
+
+
 /*! Resolves any domain names used in the configuration file before we
     chroot.
 */
 
 void Server::nameResolution()
 {
-    // Hi Arnt!
+    uint i = 0;
+    do {
+        const StringList & r 
+            = Resolver::resolve( Configuration::text( addresses[i] ) );
+        if ( r.isEmpty() ) {
+            log( String("Unable to resolve ") + Configuration::name( addresses[i] ) +
+                 " = " + Configuration::text( addresses[i] ),
+                 Log::Disaster );
+        }
+    } while ( addresses[i++] != Configuration::DbAddress );
+    if ( !Log::disastersYet() )
+        return;
+
+    StringList::Iterator e( Resolver::errors() );
+    while ( e ) {
+        log( *e );
+        ++e;
+    }
 }
 
 

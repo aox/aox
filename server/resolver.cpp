@@ -178,7 +178,7 @@ String Resolver::readString( uint & i )
         bad = true;
     }
     if ( bad )
-        d->errors.append( "DNS error while resolving " + d->host );
+        d->errors.append( "Parse error in response packet for " + d->host );
     else if ( ok )
         return r;
     return "";
