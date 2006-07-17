@@ -16,6 +16,8 @@ public:
     void processQueue();
     void react( Event );
 
+    bool busy() const;
+
 private:
     class PgData *d;
 

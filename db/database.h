@@ -27,6 +27,8 @@ public:
 
     virtual void processQueue() = 0;
 
+    virtual bool busy() const;
+
     static uint numHandles();
     static String type();
 

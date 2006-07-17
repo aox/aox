@@ -175,7 +175,7 @@ void Database::runQueue()
     while ( it ) {
         State st = it->state();
 
-        if ( st == Idle ) {
+        if ( st == Idle && !it->busy() ) {
             it->processQueue();
             if ( queries->isEmpty() )
                 return;
@@ -339,4 +339,16 @@ uint Database::numHandles()
 void Database::recordExecution()
 {
     lastExecuted = time( 0 );
+}
+
+
+/*! Returns true if this Database handler is currently busy for some
+    reason which is not (yet) reflected in is state(), and false else.
+    The default implementation always returns false; subclasses may
+    override that behaviour.
+*/
+
+bool Database::busy() const
+{
+    return false;
 }

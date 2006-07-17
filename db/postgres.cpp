@@ -243,6 +243,16 @@ void Postgres::react( Event e )
                        "' message received." );
             }
         }
+
+        if ( !busy() ) {
+            processQueue();
+            if ( d->queries.isEmpty() ) {
+                uint interval =
+                    Configuration::scalar( Configuration::DbHandleInterval );
+                setTimeoutAfter( interval );
+            }
+        }
+
         break;
 
     case Error:
@@ -407,7 +417,6 @@ void Postgres::process( char type )
             PgSync s;
             s.enqueue( writeBuffer() );
             d->sendingCopy = false;
-            processQueue();
         }
         break;
 
@@ -477,12 +486,6 @@ void Postgres::process( char type )
 
             setState( msg.state() );
 
-            processQueue();
-            if ( d->queries.isEmpty() ) {
-                uint interval =
-                    Configuration::scalar( Configuration::DbHandleInterval );
-                setTimeoutAfter( interval );
-            }
         }
         commit();
         break;
@@ -683,4 +686,14 @@ static bool hasMessage( Buffer *b )
                                ((*b)[3]<<8)|((*b)[4]) ) )
         return false;
     return true;
+}
+
+
+/*! Returns true if at least one Query has been sent to the Postgres
+    server and not yet completely processed by the server.
+*/
+
+bool Postgres::busy() const
+{
+    return !d->queries.isEmpty();
 }
