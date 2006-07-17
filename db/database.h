@@ -32,6 +32,8 @@ public:
     static uint numHandles();
     static String type();
 
+    uint connectionNumber() const;
+
 protected:
     static List< Query > *queries;
 

@@ -195,6 +195,8 @@ void Postgres::processQuery( Query *q )
 
     s.append( "execute for " );
     s.append( q->description() );
+    s.append( " on backend " );
+    s.append( fn( connectionNumber() ) );
     log( s, Log::Debug );
     recordExecution();
 }
@@ -452,6 +454,8 @@ void Postgres::process( char type )
                 String s;
                 s.append( "Dequeueing query " );
                 s.append( q->description() );
+                s.append( " on backend " );
+                s.append( fn( connectionNumber() ) );
                 if ( q->rows() > 0 ) {
                     s.append( " (with " );
                     s.append( fn( q->rows() ) );

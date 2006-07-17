@@ -352,3 +352,19 @@ bool Database::busy() const
 {
     return false;
 }
+
+
+/*! Returns an nonzero positive integer which is unique to this
+    database handler.
+*/
+
+uint Database::connectionNumber() const
+{
+    List<Database>::Iterator it( handles );
+    uint n = 1;
+    while ( it && it != this ) {
+        ++n;
+        ++it;
+    }
+    return n;
+}
