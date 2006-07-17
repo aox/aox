@@ -262,8 +262,13 @@ void Resolver::query( uint type, StringList * results )
             // hm.
         }
         p += rdlength;
-        if ( p <= d->reply.length() && !d->bad && !a.isEmpty() )
-            results->append( a );
+        if ( p <= d->reply.length() && !d->bad && !a.isEmpty() ) {
+            Endpoint * e = new Endpoint( a, 1 );
+            if ( e->valid() )
+                results->append( e->address() );
+            // if not, we received an illegal reply from the DNS
+            // server. let's ignore that silently for now.
+        }
         ancount--;
     }
 
