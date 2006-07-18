@@ -1008,14 +1008,7 @@ void Command::shrink( MessageSet * set )
     if ( !s || !set || set->isEmpty() )
         return;
 
-    MessageSet e( s->expunged().intersection( *set ) );
-    uint i = 1;
-    while ( i <= e.count() ) {
-        uint u = e.value( i );
-        set->remove( u );
-        i++;
-    }
-
+    set->remove( s->expunged() );
     *set = set->intersection( s->messages() );
 }
 
