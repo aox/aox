@@ -742,8 +742,18 @@ void Message::fix8BitHeaderFields()
         c = Codec::byString( header()->asText() );
     if ( !c )
         c = Codec::byName( fallback );
-    if ( c )
-        header()->fix8BitFields( c );
+    if ( !c )
+        return;
+
+    header()->fix8BitFields( c );
+    i = allBodyparts()->first();
+    while ( i ) {
+        if ( i->header() )
+            i->header()->fix8BitFields( c );
+        if ( i->message() && i->message()->header() )
+            i->message()->header()->fix8BitFields( c );
+        ++i;
+    }
 }
 
 
