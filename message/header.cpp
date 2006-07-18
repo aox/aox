@@ -581,8 +581,15 @@ void Header::simplify()
 
 void Header::repair()
 {
-    if ( valid() )
-        return;
+    if ( valid() ) {
+        // it seems to be valid, but have we been able to parse everything?
+        List<HeaderField>::Iterator it( d->fields );
+        while ( it && it->parsed() )
+            ++it;
+        // we parsed everything and it's valid. repair not necessary.
+        if ( !it )
+            return;
+    }
 
     // We remove duplicates of any field that may occur only once.
     // (Duplication has been observed for Date/Subject/M-V/C-T-E/C-T.)
@@ -763,6 +770,24 @@ void Header::repair()
                     d->fields.take( it );
                 else
                     ++it;
+            }
+        }
+    }
+
+    // If there is an unacceptable Received field somewhere, remove it
+    // and all the older Received fields.
+
+    if ( occurrences[(int)HeaderField::Received] > 0 ) {
+        bool bad = false;
+        List<HeaderField>::Iterator it( d->fields );
+        while ( it ) {
+            List<HeaderField>::Iterator h( it );
+            ++it;
+            if ( h->type() == HeaderField::Received ) {
+                if ( !h->parsed() )
+                    bad = true;
+                if ( bad )
+                    d->fields.take( h );
             }
         }
     }
