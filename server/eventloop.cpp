@@ -375,8 +375,8 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
             c->react( Connection::Read );
 
             if ( !c->canRead() ) {
-                c->react( Connection::Close );
                 c->setState( Connection::Closing );
+                c->react( Connection::Close );
             }
 
             w = true;
@@ -385,8 +385,8 @@ void EventLoop::dispatch( Connection *c, bool r, bool w, uint now )
         if ( w ) {
             c->write();
             if ( c->writeBuffer()->error() != 0 ) {
-                c->react( Connection::Close );
                 c->setState( Connection::Closing );
+                c->react( Connection::Close );
             }
         }
     }
