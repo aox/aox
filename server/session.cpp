@@ -4,6 +4,7 @@
 
 #include "transaction.h"
 #include "messageset.h"
+#include "allocator.h"
 #include "selector.h"
 #include "mailbox.h"
 #include "message.h"
@@ -13,12 +14,16 @@
 #include "log.h"
 
 
+static List<Session> * sessions = 0;
+
+
 class SessionData
     : public Garbage
 {
 public:
     SessionData()
         : readOnly( true ),
+          active( true ),
           watchers( 0 ),
           initialiser( 0 ),
           mailbox( 0 ),
@@ -28,6 +33,7 @@ public:
     {}
 
     bool readOnly;
+    bool active;
     List<EventHandler> * watchers;
     SessionInitialiser * initialiser;
     Mailbox * mailbox;
@@ -56,14 +62,63 @@ Session::Session( Mailbox *m, bool readOnly )
 {
     d->mailbox = m;
     d->readOnly = readOnly;
+    if ( ::sessions ) {
+        List<Session>::Iterator i( ::sessions );
+        while ( i && i->mailbox() != m )
+            ++i;
+        if ( i ) {
+            // we've found a session with the data we need. copy its
+            // uid set, so we don't need to bother the db.
+            d->msns.add( i->d->msns );
+            d->msns.remove( i->d->expunges );
+            d->uidnext = i->d->uidnext;
+            // if i points to a no longer active session, remove it.
+            // we now have an active session for the same mailbox.
+            if ( !i->d->active )
+                ::sessions->take( i );
+        }
+    }
+    else {
+        ::sessions = new List<Session>;
+        Allocator::addEternal( ::sessions, "list of active sessions" );
+    }
+    ::sessions->append( this );
 }
 
 
-/*! Exists only to satisfy GCC.
+/*! Exists to satisfy g++.
 */
 
 Session::~Session()
 {
+    List<Session>::Iterator it( ::sessions );
+    while ( it && it != this )
+        ++it;
+    if ( it == this )
+        ::sessions->take( it );
+}
+
+
+/*! Removes this Session from the global list of Session objects, but
+    only if there is at least one other Session pointing to the
+    Mailbox.
+*/
+
+void Session::end()
+{
+    d->active = false;
+    List<Session>::Iterator me;
+    List<Session>::Iterator it( ::sessions );
+    bool other = false;
+    while ( it ) {
+        if ( it == this )
+            me = it;
+        else if ( it->mailbox() == mailbox() )
+            other = true;
+        ++it;
+    }
+    if ( other )
+        ::sessions->take( me );
 }
 
 
@@ -283,7 +338,12 @@ void Session::expunge( const MessageSet & uids )
 {
     if ( uids.isEmpty() )
         return;
-    d->expunges.add( uids );
+    List<Session>::Iterator i( ::sessions );
+    while ( i ) {
+        if ( i->mailbox() == mailbox() )
+            i->d->expunges.add( uids );
+        ++i;
+    }
 }
 
 

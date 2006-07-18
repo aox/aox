@@ -21,6 +21,8 @@ public:
     Session( Mailbox *, bool );
     virtual ~Session();
 
+    void end();
+
     bool initialised() const;
     void refresh( class EventHandler * );
 
