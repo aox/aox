@@ -889,7 +889,8 @@ void Header::fix8BitFields( class Codec * c )
                 while ( v[i] < 128 && v[i] > 0 )
                     i++;
                 if ( i < v.length() ) {
-                    // so. we have an argument containing unencoded 8-bit material. what to do?
+                    // so. we have an argument containing unencoded
+                    // 8-bit material. what to do?
                     c->setState( Codec::Valid );
                     UString u = c->toUnicode( v );
                     if ( c->wellformed() )
