@@ -72,6 +72,8 @@ Session::Session( Mailbox *m, bool readOnly )
             d->msns.add( i->d->msns );
             d->msns.remove( i->d->expunges );
             d->uidnext = i->d->uidnext;
+            log( "Found older session; copied " + fn( d->msns.count() ) +
+                 " messages, uidnext is " + fn( d->uidnext ) );
             // if i points to a no longer active session, remove it.
             // we now have an active session for the same mailbox.
             if ( !i->d->active )
