@@ -86,6 +86,7 @@ public:
 
     void addWatcher( EventHandler * );
     void removeWatcher( EventHandler * );
+    void executeWatchers();
 
 private:
     class MailboxData *d;

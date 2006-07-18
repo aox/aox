@@ -580,14 +580,7 @@ void Mailbox::setUidnext( uint n )
     if ( n == d->uidnext )
         return;
     d->uidnext = n;
-    if ( !d->watchers )
-        return;
-    List<EventHandler>::Iterator it( d->watchers );
-    while ( it ) {
-        EventHandler * h = it;
-        ++it;
-        h->execute();
-    }
+    executeWatchers();
 }
 
 
@@ -883,6 +876,23 @@ void Mailbox::removeWatcher( EventHandler * eh )
     d->watchers->remove( eh );
     if ( d->watchers->isEmpty() )
         d->watchers = 0;
+}
+
+
+/*! Calls the EventHandler::execute() function on each installed
+    watcher.
+*/
+
+void Mailbox::executeWatchers()
+{
+    if ( !d->watchers )
+        return;
+    List<EventHandler>::Iterator it( d->watchers );
+    while ( it ) {
+        EventHandler * h = it;
+        ++it;
+        h->execute();
+    }
 }
 
 

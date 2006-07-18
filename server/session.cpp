@@ -330,7 +330,7 @@ bool Session::responsesNeeded() const
 }
 
 
-/*! Records that \a uids has been expunged, and that the client should
+/*! Records that \a uids has been expunged, and that the clients should
     be told about it at the earliest possible moment.
 */
 
@@ -344,6 +344,7 @@ void Session::expunge( const MessageSet & uids )
             i->d->expunges.add( uids );
         ++i;
     }
+    mailbox()->executeWatchers();
 }
 
 
