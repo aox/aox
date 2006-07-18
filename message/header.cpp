@@ -874,6 +874,33 @@ void Header::fix8BitFields( class Codec * c )
                 }
             }
         }
+        else if ( f->type() == HeaderField::ContentType ||
+                  f->type() == HeaderField::ContentTransferEncoding ||
+                  f->type() == HeaderField::ContentDisposition ||
+                  f->type() == HeaderField::ContentLanguage )
+        {
+            MimeField * mf = (MimeField*)((HeaderField*)f);
+            StringList::Iterator p( mf->parameters() );
+            while ( p ) {
+                StringList::Iterator a( p );
+                ++p;
+                String v = mf->parameter( *a );
+                uint i = 0;
+                while ( v[i] < 128 && v[i] > 0 )
+                    i++;
+                if ( i < v.length() ) {
+                    // so. we have an argument containing unencoded 8-bit material. what to do?
+                    c->setState( Codec::Valid );
+                    UString u = c->toUnicode( v );
+                    if ( c->wellformed() )
+                        // we could parse it. reeencode as utf-8.
+                        mf->addParameter( *a, utf8.fromUnicode( u ) );
+                    else
+                        // unparsable. just remove it?
+                        mf->removeParameter( *a );
+                }
+            }
+        }
     }
 }
 
