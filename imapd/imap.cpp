@@ -649,7 +649,9 @@ ImapSession *IMAP::session() const
 void IMAP::endSession()
 {
     setState( Authenticated );
+    Session * s = d->session;
     d->session = 0;
+    s->end();
 }
 
 

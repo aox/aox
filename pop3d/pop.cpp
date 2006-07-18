@@ -67,8 +67,8 @@ POP::POP( int s )
 /*! Sets this server's state to \a s, which may be one of Authorization,
     Transaction, or Update (as defined in POP3::State).
 
-    If the state is set to Update, DELE actions are
-    initiated. setState() returns immediately.
+    If the state is set to Update, DELE actions are initiated.
+    setState() returns immediately.
 */
 
 void POP::setState( State s )
@@ -120,6 +120,8 @@ void POP::react( Event e )
 
     if ( d->state == Update )
         Connection::setState( Closing );
+    if ( Connection::state() == Closing && session() )
+        session()->end();
     commit();
 }
 
