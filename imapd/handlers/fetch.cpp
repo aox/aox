@@ -12,6 +12,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "ustring.h"
+#include "listext.h"
 #include "codec.h"
 #include "query.h"
 #include "scope.h"
@@ -22,6 +23,7 @@
 #include "user.h"
 #include "dict.h"
 #include "utf.h"
+
 
 
 static const char * legalAnnotationAttributes[] = {
@@ -1088,6 +1090,8 @@ String Fetch::annotation( Multipart * m )
     typedef Dict< String > Attributes;
     Dict< Attributes > entries;
 
+    StringList entryNames;
+
     uint user = imap()->user()->id();
     List<Annotation>::Iterator i( ((Message*)m)->annotations() );
     while ( i ) {
@@ -1098,7 +1102,9 @@ String Fetch::annotation( Multipart * m )
         bool entryWanted = false;
         StringList::Iterator e( d->entries );
         while ( e ) {
-            if ( *e == entry ) {
+            if ( Listext::match( *e, 0, entry, 0 ) == 2 ) {
+                if ( !entries.find( entry ) )
+                    entryNames.append( new String( entry ) );
                 entryWanted = true;
                 break;
             }
@@ -1127,7 +1133,7 @@ String Fetch::annotation( Multipart * m )
     }
 
     String r( "(" );
-    StringList::Iterator e( d->entries );
+    StringList::Iterator e( entryNames );
     while ( e ) {
         String entry( *e );
 
