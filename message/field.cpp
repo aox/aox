@@ -442,9 +442,12 @@ void HeaderField::parseText( const String &s )
 }
 
 
-/*! Parses any (otherwise uncovered and presumably unstructured) field
-    in \a s, and accepts it only if it does not contain NULs or 8-bit
-    characters.
+/*! Tries to parses any (otherwise uncovered and presumably
+    unstructured) field in \a s, and accepts it only if it does not
+    contain NULs or 8-bit characters.
+
+    If the field contains NUL or 8-bit data, parsed() afterwards
+    returns false.
 */
 
 void HeaderField::parseOther( const String &s )
