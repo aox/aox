@@ -111,12 +111,12 @@ void FlagFetcher::execute()
 Flag::Flag( const String & name, uint id )
     : d( new FlagData )
 {
-    d->name = name.lower();
+    d->name = name;
     d->name.detach();
     d->id = id;
     if ( !::flagsByName )
         Flag::setup();
-    ::flagsByName->insert( d->name, this );
+    ::flagsByName->insert( d->name.lower(), this );
     ::flagsById->insert( id, this );
 }
 
