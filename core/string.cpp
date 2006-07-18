@@ -1478,7 +1478,8 @@ String String::anonymised() const
     String r;
     while ( b < length() ) {
         uint e = b;
-        while ( e < d->len && isMungableChar( d->str[e] ) )
+        while ( e < d->len && ( d->str[e] > 127 ||
+                                isMungableChar( d->str[e] ) ) )
             e++;
         // we have a word.
         bool munge = true;
@@ -1508,6 +1509,14 @@ String String::anonymised() const
             while ( keywords[i] && m != keywords[i] )
                 i++;
             if ( keywords[i] )
+                munge = false;
+        }
+
+        if ( munge ) { // any word containing non-ascii
+            uint i = b;
+            while ( i < e && d->str[i] < 128 )
+                i++;
+            if ( i < e )
                 munge = false;
         }
 
