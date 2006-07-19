@@ -373,7 +373,8 @@ void Search::execute()
             uint view = d->root->placeHolder();
             String s( "select uid from view_messages where source=$" +
                       fn( source ) + " and view=$" + fn( view ) +
-                      " and suid in (" + d->query->string() + ") order by uid" );
+                      " and suid in (" + d->query->string() + ")"
+                      " order by uid" );
             d->query->bind( source, m->source()->id() );
             d->query->bind( view, m->id() );
             d->query->setString( s );

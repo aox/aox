@@ -587,7 +587,8 @@ void database()
                     if ( silent )
                         if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                             exit( -1 );
-                    execlp( "psql", "psql", DBNAME, "-f", "-", (const char*) 0 );
+                    execlp( "psql", "psql", DBNAME, "-f", "-",
+                            (const char *) 0 );
                     exit( -1 );
                 }
                 else {
@@ -669,8 +670,10 @@ void configFile()
     String cf( Configuration::configFile() );
     String v( Configuration::compiledIn( Configuration::Version ) );
     String intro(
-        "# Archiveopteryx configuration. See archiveopteryx.conf(5) for details.\n"
-        "# Automatically generated while installing Archiveopteryx " + v + ".\n\n"
+        "# Archiveopteryx configuration. See archiveopteryx.conf(5) "
+        "for details.\n"
+        "# Automatically generated while installing Archiveopteryx "
+        + v + ".\n\n"
     );
     String cfg(
         "db-address = " + String( DBADDRESS ) + "\n"

@@ -825,8 +825,10 @@ void showCounts()
                        " where deleted='f')::int as mailboxes,"
                        "(select count(*) from messages)::int as messages,"
                        "(select count(*) from bodyparts)::int as bodyparts,"
-                       "(select sum(length(text)) from bodyparts)::int as textsize,"
-                       "(select sum(length(data)) from bodyparts)::int as datasize,"
+                       "(select sum(length(text)) from bodyparts)::int as "
+                       "textsize,"
+                       "(select sum(length(data)) from bodyparts)::int as "
+                       "datasize,"
                        "(select count(*) from addresses)::int as addresses,"
                        "(select sum(rfc822size) from messages)::int as size,"
                        "(select count(*) from users)::int as users", d );
@@ -1962,9 +1964,10 @@ void help()
             stderr,
             "  anonymise -- Anonymise a named mail message.\n\n"
             "    Synopsis: aox anonymise filename\n\n"
-            "    Reads a mail message from the named file, obscures most or all\n"
-            "    content and prints the result on stdout. The output resembles the\n"
-            "    original closely enough to be used in a bug report.\n"
+            "    Reads a mail message from the named file, obscures most or\n"
+            "    all content and prints the result on stdout. The output\n"
+            "    resembles the original closely enough to be used in a bug\n"
+            "    report.\n"
         );
     }
     else if ( a == "commands" ) {

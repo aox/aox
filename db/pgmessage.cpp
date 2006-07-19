@@ -836,7 +836,8 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
             cv->type = Column::Bytes;
             break;
         default:
-            //log( Log::Error, "PostgreSQL: Unknown field type " + fn( it->type ) );
+            //log( Log::Error,
+            //     "PostgreSQL: Unknown field type " + fn( it->type ) );
             cv->type = Column::Unknown;
             break;
         }

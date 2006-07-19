@@ -41,7 +41,8 @@ public:
 
 
 static void newCommand( List< ManageSieveCommand > *, ManageSieve *,
-                        ManageSieveCommand::Command, StringList * = 0, int = -1 );
+                        ManageSieveCommand::Command, StringList * = 0,
+                        int = -1 );
 
 
 /*! \class ManageSieve sieve.h
@@ -183,10 +184,12 @@ void ManageSieve::addCommand()
     String cmd = d->args->take( d->args->first() )->lower();
 
     if ( cmd == "logout" ) {
-        newCommand( d->commands, this, ManageSieveCommand::Logout, d->args, 0 );
+        newCommand( d->commands, this, ManageSieveCommand::Logout,
+                    d->args, 0 );
     }
     else if ( cmd == "capability" ) {
-        newCommand( d->commands, this, ManageSieveCommand::Capability, d->args, 0 );
+        newCommand( d->commands, this, ManageSieveCommand::Capability,
+                    d->args, 0 );
     }
     else if ( d->state == Unauthorised ) {
         if ( cmd == "starttls" ) {
@@ -363,7 +366,8 @@ void ManageSieve::capabilities()
     String v( Configuration::compiledIn( Configuration::Version ) );
     enqueue( "\"SIEVE\" \"Fileinto Refuse Reject\"\r\n" );
     enqueue( "\"IMPLEMENTATION\" \"Archiveopteryx " + v + "\"\r\n" );
-    enqueue( "\"SASL\" \"" + SaslMechanism::allowedMechanisms( "", hasTls() ) + "\"\r\n" );
+    enqueue( "\"SASL\" \"" + SaslMechanism::allowedMechanisms( "", hasTls() ) +
+             "\"\r\n" );
     enqueue( "\"STARTTLS\"\r\n" );
     enqueue( "OK\r\n" );
 }

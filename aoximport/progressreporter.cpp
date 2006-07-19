@@ -31,7 +31,9 @@ public:
 
 
 
-/*! Constructs an object to report on the progress of \a m every \a n seconds. */
+/*! Constructs an object to report on the progress of \a m every \a n
+    seconds.
+*/
 
 ProgressReporter::ProgressReporter( Migrator * m, uint n )
     : EventHandler(), d( new ProgressReporterData )

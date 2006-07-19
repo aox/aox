@@ -254,7 +254,8 @@ void Server::nameResolution()
         const StringList & r 
             = Resolver::resolve( Configuration::text( addresses[i] ) );
         if ( r.isEmpty() ) {
-            log( String("Unable to resolve ") + Configuration::name( addresses[i] ) +
+            log( String("Unable to resolve ") +
+                 Configuration::name( addresses[i] ) +
                  " = " + Configuration::text( addresses[i] ),
                  Log::Disaster );
         }

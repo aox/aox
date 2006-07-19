@@ -228,7 +228,8 @@ void Schema::execute()
         }
         else if ( d->state == 6 ) {
             d->result->setState( Query::Completed );
-            d->l->log( "Schema updated to revision " + fn( ::currentRevision ) );
+            d->l->log( "Schema updated to revision " +
+                       fn( ::currentRevision ) );
         }
         d->state = 7;
     }

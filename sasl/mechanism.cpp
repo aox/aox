@@ -373,7 +373,8 @@ bool SaslMechanism::allowed( Type mechanism, bool privacy )
     }
 
     if ( pt && !privacy ) {
-        String s = Configuration::text( Configuration::AllowPlaintextPasswords ).lower();
+        Configuration::Text p = Configuration::AllowPlaintextPasswords;
+        String s = Configuration::text( p ).lower();
         if ( s == "never" )
             a = false;
         // XXX add "warn" etc. here

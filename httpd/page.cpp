@@ -1567,6 +1567,8 @@ void Page::archiveSearchPage()
 
 String Page::leftContent()
 {
+    Mailbox * m = d->server->session()->user()->home();
+
     String s = "<div id=leftcontent>"
                "<div class=actions>"
                "<div class=search>"
@@ -1585,8 +1587,7 @@ String Page::leftContent()
                "</div>\n" // actionbuttons
                "<div class=folders>"
                "<p>Folder list\n" +
-               mailboxDescriptor( d->server->session()->user()->home(),
-                                  d->server->session()->user()->home()->name().length() ) +
+               mailboxDescriptor( m, m->name().length() ) +
                "</div>\n" // folders
                "</div>\n" // actions
                "</div>\n" // leftcontent

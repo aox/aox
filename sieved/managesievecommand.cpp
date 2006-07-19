@@ -48,7 +48,8 @@ public:
     for the ManageSieve server \a sieve.
 */
 
-ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve, Command cmd, StringList * args )
+ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
+                                        Command cmd, StringList * args )
     : d( new ManageSieveCommandData )
 {
     d->sieve = sieve;
