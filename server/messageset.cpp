@@ -75,6 +75,11 @@ MessageSet& MessageSet::operator=( const MessageSet & other )
     both \a n1 and \a n2.
 
     \a n1 and \a n2 must both be nonzero.
+
+    f \a n1 and \a n2 are large, this function tends towards O(n)
+    behaviour.  If the smallest of \a n1 and \a n2 is small, it tends
+    towards O(1).  For this reason, it's better to add ranges to a
+    MessageSet largest-first than smallest-first.
 */
 
 void MessageSet::add( uint n1, uint n2 )
@@ -385,8 +390,8 @@ void MessageSet::remove( const MessageSet & other )
 
 MessageSet MessageSet::intersection( const MessageSet & other ) const
 {
-    List<SetData::Range>::Iterator me( d->l );
-    List<SetData::Range>::Iterator her( other.d->l );
+    List<SetData::Range>::Iterator me( d->l.last() );
+    List<SetData::Range>::Iterator her( other.d->l.last() );
     MessageSet r;
 
     while ( me && her ) {
@@ -398,10 +403,10 @@ MessageSet MessageSet::intersection( const MessageSet & other ) const
             e = her->start + her->length - 1;
         if ( b <= e )
             r.add( b, e );
-        if ( me->start + me->length <= e+1 )
-            ++me;
-        if ( her->start + her->length <= e+1 )
-            ++her;
+        if ( me->start >= b )
+            --me;
+        if ( her->start >= b )
+            --her;
     }
     return r;
 }
