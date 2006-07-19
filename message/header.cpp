@@ -913,12 +913,20 @@ void Header::fix8BitFields( class Codec * c )
                     // 8-bit material. what to do?
                     c->setState( Codec::Valid );
                     UString u = c->toUnicode( v );
-                    if ( c->wellformed() )
-                        // we could parse it. reeencode as utf-8.
-                        mf->addParameter( *a, utf8.fromUnicode( u ) );
-                    else
+                    if ( c->wellformed() ) {
+                        // we could parse it, so let's encode it using
+                        // RFC 2047 encoding. later we probably want
+                        // to use RFC 2231 encoding, but that's
+                        // premature at the moment. don't know whether
+                        // readers support it.
+                        String hack( utf8.fromUnicode( u ) );
+                        mf->addParameter( *a,
+                                          HeaderField::encodeWord( hack ) );
+                    }
+                    else {
                         // unparsable. just remove it?
                         mf->removeParameter( *a );
+                    }
                 }
             }
         }
