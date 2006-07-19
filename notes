@@ -12,11 +12,21 @@ Next release (2006-08-07: 1.09)
 
   ?
 
+
 Next few releases
 
   - Sieve
   - Working webmail
   - More character encodings (EUC-KR)
+
+
+Bad GB2312
+
+  When we see undefined GB2312 code points, we can convert the message
+  to unicode, substitute U+FFFE for the undefind code points, and
+  record the message as having been received as unicode.
+
+  (What about other character encodings?)
 
 
 Better caching.
