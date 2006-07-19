@@ -516,13 +516,19 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                         = HeaderField::create( "Content-Type",
                                                b.mid( i, j-i ) );
                     String cs = ((MimeField*)hf)->parameter( "charset" );
-                    if ( !cs.isEmpty() && Codec::byName( cs ) != 0 ) {
-                        // XXX: If ct does specify a charset, we should
-                        // try to figure out which of the two is more
-                        // appropriate to this message, instead of just
-                        // zapping the mail one with the HTTP one.
+                    Codec * meta = 0;
+                    if ( !cs.isEmpty() )
+                        meta = Codec::byName( cs );
+                    if ( meta )
+                        meta->toUnicode( body );
+                    if ( c )
+                        c->toUnicode( body );
+                    if ( meta && 
+                         ( meta->wellformed() ||
+                           ( meta->valid() && !c ) ||
+                           ( meta->valid() && c && !c->valid() ) ) ) {
                         ct->removeParameter( "charset" );
-                        ct->addParameter( "charset", cs );
+                        ct->addParameter( "charset", meta->name().lower() );
                         i = -1;
                         specified = true;
                     }
