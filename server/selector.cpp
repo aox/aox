@@ -871,8 +871,11 @@ String Selector::whereAnnotation()
                 annotations.append( fn( a->id() ) );
             }
         }
-        if ( n > 3 && d->s8.find( '%' ) < 0 ) {
-            // if there are many, we're better off using set logic.
+        if ( n > 1 )
+            annotations = "(" + annotations + ")";
+        if ( ( n < 1 || n > 3 ) && d->s8.find( '%' ) < 0 ) {
+            // if we don't know the desired annotation or there seems
+            // to be many possibles, we're better off using set logic.
             uint pattern = placeHolder();
             annotations = "a.name in ("
                           "select id from annotation_names where name like $" +
@@ -889,9 +892,9 @@ String Selector::whereAnnotation()
             }
             root()->d->query->bind( pattern, sql );
         }
-        else if ( n > 1 ) {
-            annotations = "(" + annotations + ")";
-        }
+        // this still leaves a bad case - e.g. if the client searches
+        // for '/vendor/microsoft/%' and we don't have any suitable
+        // annotation names in RAM.
     }
 
     String user;
