@@ -792,6 +792,26 @@ void Header::repair()
         }
     }
 
+    // For some header fields which can contain errors, our best
+    // option is to remove them. At present, the list includes just
+    // Content-Location. It may grow to include other fields which can
+    // be parsed somehow, but aren't properly defined, aren't used and
+    // can be dropped without changing the meaning of the rest of the
+    // message.
+
+    if ( occurrences[(int)HeaderField::ContentLocation] ) {
+        List< HeaderField >::Iterator it( d->fields );
+        while ( it ) {
+            if ( it->type() == HeaderField::ContentLocation &&
+                 !it->valid() ) {
+                d->fields.take( it );
+            }
+            else {
+                ++it;
+            }
+        }
+    }
+
     d->verified = false;
 }
 
