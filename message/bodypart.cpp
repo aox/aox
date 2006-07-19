@@ -557,6 +557,35 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body.crlf() );
 
+        if ( !c->valid() && c->name() == "GB2312" ) {
+            // undefined code point usage in GB2312 spam is much too
+            // common. (GB2312 spam is much too common, but that's
+            // another matter.) Gb2312Codec turns all undefined code
+            // points into U+FFFE, so here, we can take the unicode
+            // form and say it's the canonical form. when a client
+            // later reads the message, it gets the text in unicode,
+            // including U+FFFE.
+            
+            // the header may contain some unencoded gb2312. we bang
+            // it by hand, ignoring errors.
+            List<HeaderField>::Iterator hf( h->fields() );
+            while ( hf ) {
+                if ( !hf->parsed() &&
+                     hf->type() == HeaderField::Subject ) {
+                    // is it right to bang only Subject?
+                    UString u = c->toUnicode( hf->value() );
+                    Utf8Codec utf8;
+                    String s( utf8.fromUnicode( u ) );
+                    hf->setData( HeaderField::encodeText( s ) );
+                }
+                ++hf;
+            }
+
+            // bp->d->text is already good(ish), so what we need to do
+            // to the body is only:
+            c = new Utf8Codec;
+        }
+
         if ( !c->wellformed() && !specified ) {
             Codec * g = 0;
             if ( ct && ct->subtype() == "html" )
