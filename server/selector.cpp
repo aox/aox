@@ -913,24 +913,14 @@ String Selector::whereAnnotation()
         root()->d->query->bind( userId, root()->d->user->id() );
     }
 
-    String field = "value";
-    if ( attribute == "content-type" )
-        field = "type";
-    else if ( attribute == "content-language" )
-        field = "language";
-    else if ( attribute == "display-name" )
-        field = "displayname";
-    else if ( attribute == "size" )
-        field = "length(value)";
-
-    String like = " is not null";
+    String like = "is not null";
     if ( !d->s16.isEmpty() ) {
         uint i = placeHolder();
         root()->d->query->bind( i, q( d->s16 ) );
-        like = " ilike " + matchAny( i );
+        like = "ilike " + matchAny( i );
     }
 
-    return "(" + user + " and " + annotations + " and " + field + like + ")";
+    return "(" + user + " and " + annotations + " and value " + like + ")";
 }
 
 
