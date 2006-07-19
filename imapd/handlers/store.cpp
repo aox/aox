@@ -470,6 +470,9 @@ void Store::removeFlags( bool opposite )
         s = m->sourceUids( s );
         m = m->source();
     }
+    else { 
+        s.addGapsFrom( imap()->session()->messages() );
+    }
 
     List<Flag>::Iterator it( d->flags );
     String flags;
@@ -509,10 +512,12 @@ Query * Store::addFlagsQuery( Flag * f, Mailbox * m, const MessageSet & s,
                            "select $1,uid,$2 from messages where "
                            "mailbox=$2 and (" + w + ") and uid not in "
                            "(select uid from flags where "
-                           "mailbox=$2 and (" + w + ") and flag=$1)",
+                           "flag=$1 and mailbox=$2 and uid>=$3 and uid<=$4)",
                            h );
     q->bind( 1, f->id() );
     q->bind( 2, m->id() );
+    q->bind( 3, s.smallest() );
+    q->bind( 4, s.largest() );
     return q;
 }
 
@@ -528,6 +533,9 @@ void Store::addFlags()
     if ( m->view() ) {
         s = m->sourceUids( s );
         m = m->source();
+    }
+    else { 
+        s.addGapsFrom( imap()->session()->messages() );
     }
 
     List<Flag>::Iterator it( d->flags );
@@ -602,6 +610,10 @@ void Store::replaceAnnotations()
         s = m->sourceUids( s );
         m = m->source();
     }
+    else {
+        s.addGapsFrom( imap()->session()->messages() );
+    }
+        
 
     List<Annotation>::Iterator it( d->annotations );
     String w = s.where();
