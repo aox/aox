@@ -22,9 +22,6 @@ static const char * legalAnnotationAttributes[] = {
     "value",
     "value.priv",
     "value.shared",
-    "size",
-    "size.priv",
-    "size.shared",
     0
 };
 
@@ -318,9 +315,9 @@ void Search::parseKey( bool alsoCharset )
         }
         else if ( keyword == "annotation" ) {
             space();
-            String a = string();
+            String a = listMailbox();
             space();
-            String b = string();
+            String b = atom();
             space();
             UString c = ustring( NString );
 
