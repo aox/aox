@@ -17,6 +17,9 @@ static const uint unicodeToGb[65536] = {
 /*! \class Gb2312Codec gb2312.h
     This class implements a translator between Unicode and GB2312 (in
     the EUC-CN encoding).
+
+    When converting to Unicode, invalid input is converted to U+FFFE
+    and an error is recorded, but the conversion presses on.
 */
 
 /*! Creates a new GB2312 Codec object. */
@@ -63,25 +66,35 @@ UString Gb2312Codec::toUnicode( const String &s )
     uint n = 0;
     while ( n < s.length() ) {
         char c = s[n];
+        char d = s[n + 1];
 
-        if ( c < 128 ) {
-            u.append( c );
-            n++;
-        }
-        else {
-            char d = s[n + 1];
-
+        if ( c > 128 && d > 128 ) {
             uint i = c-128-32-1;
             uint j = d-128-32-1;
 
-            if ( i > 93 || d < 128 || j > 93 )
+            if ( i > 93 || j > 93 ) {
                 recordError( n, s );
-            if ( gbToUnicode[i][j] == 0 )
+                u.append( 0xFFFE );
+            }
+            else if ( gbToUnicode[i][j] == 0 ) {
                 recordError( n, i * 94 + j );
-            else
+                u.append( 0xFFFE );
+            }
+            else {
                 u.append( gbToUnicode[i][j] );
+            }
 
             n += 2;
+        }
+        else if ( c > 128 ) {
+            // lone non-ascii byte
+            recordError( n, s );
+            u.append( 0xFFFE );
+            n++;
+        }
+        else {
+            u.append( c );
+            n++;
         }
 
     }
