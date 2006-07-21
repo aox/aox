@@ -234,6 +234,9 @@ public:
 
 String Recipient::plainTextParagraph() const
 {
+    if ( !valid() )
+        return "";
+
     String s;
     String a;
 
@@ -269,9 +272,10 @@ String Recipient::plainTextParagraph() const
     case Failed:
         s = "Your message could not be delivered to ";
         s.append( a );
-        s.append( ". " );
+        s.append( "." );
         if ( !status().isEmpty() &&
              !remoteMTA().isEmpty() ) {
+            s.append( " " );
             if ( lastAttempt() ) {
                 s.append( "At " );
                 s.append( lastAttempt()->isoDate() );
@@ -334,6 +338,9 @@ String Recipient::plainTextParagraph() const
 
 String Recipient::dsnParagraph() const
 {
+    if ( !valid() )
+        return "";
+
     StringList l;
     String s;
 
@@ -395,6 +402,22 @@ String Recipient::dsnParagraph() const
     // which we don't send.
 
     return l.join( "\r\n" );
+}
+
+
+/*! Returns true if this Recipient has enough data to return a
+    dsnParagraph() and a plainTextParagraph(), and false if not.
+*/
+
+bool Recipient::valid() const
+{
+    if ( action() == Unknown )
+        return false;
+
+    if ( !finalRecipient() && !originalRecipient() )
+        return false;
+
+    return true;
 }
 
 
@@ -712,4 +735,22 @@ String DSN::dsnBody() const
         ++i;
     }
     return r;
+}
+
+
+/*! Returns true if this DSN object has all information it needs to
+    construct a valid DSN, and false if not. If valid() returns false,
+    the results of dsnBody() and message() are essentially undefined.
+*/
+
+bool DSN::valid() const
+{
+    List<Recipient>::Iterator i( recipients() );
+    while ( i ) {
+        if ( !i->valid() )
+            return false;
+        ++i;
+    }
+    // anything else?
+    return true;
 }

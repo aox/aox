@@ -44,6 +44,8 @@ public:
     String plainTextParagraph() const;
     String dsnParagraph() const;
 
+    bool valid() const;
+
 private:
     class RecipientData * d;
 };
@@ -80,6 +82,8 @@ public:
 
     String plainBody() const;
     String dsnBody() const;
+
+    bool valid() const;
 
 private:
     class DSNData * d;
