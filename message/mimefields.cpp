@@ -333,7 +333,8 @@ void ContentTransferEncoding::parse( const String &s )
     String t = p.mimeToken().lower();
     p.comment();
 
-    if ( t == "7bit" || t == "8bit" || t == "binary" || t == "unknown" )
+    if ( t == "7bit" || t == "8bit" || t == "8bits" || t == "binary" ||
+         t == "unknown" )
         e = String::Binary;
     else if ( t == "quoted-printable" )
         e = String::QP;
