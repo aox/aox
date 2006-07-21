@@ -75,6 +75,9 @@ public:
 
     Message * result() const;
 
+    void setResultDate( class Date * );
+    Date * resultDate() const;
+
     bool allOk() const;
     bool allFailed() const;
 
