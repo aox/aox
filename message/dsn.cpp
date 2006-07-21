@@ -578,10 +578,13 @@ Message * DSN::result() const
     Bodypart * dsn = new Bodypart( 2, r );
     Bodypart * original = new Bodypart( 3, r );
 
-    // the from field has to contain... what? let's try this for now.
-    Address * from = new Address( Configuration::hostname(),
-                                  "postmaster",
-                                  Configuration::hostname() );
+
+    plainText->setParent( r );
+    dsn->setParent( r );
+    original->setParent( r );
+    r->children()->append( plainText );
+    r->children()->append( dsn );
+    r->children()->append( original );
 
     // set up the original message, either full or header-only
     if ( fullReport() ) {
@@ -594,6 +597,10 @@ Message * DSN::result() const
         original->setData( message()->header()->asText() );
     }
 
+    // the from field has to contain... what? let's try this for now.
+    Address * from = new Address( Configuration::hostname(),
+                                  "postmaster",
+                                  Configuration::hostname() );
     // set up the top-level header
     Header * h = r->header();
     if ( resultDate() ) {
@@ -613,7 +620,7 @@ Message * DSN::result() const
         h->add( "Subject", "Message delivery reports" );
     h->add( "Mime-Version", "1.0" );
     h->add( "Content-Type", "multipart/report; boundary=" +
-            Message::acceptableBoundary( original->asText() ) );
+            Message::acceptableBoundary( message()->rfc822() ) );
 
     // set up the plaintext and DSN parts
     // what charset should we use for plainText?
