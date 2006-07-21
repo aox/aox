@@ -82,22 +82,33 @@ void Recipient::setFinalRecipient( class Address * a )
 }
 
 
-/*! Returns a pointer to the final recipient's address, or a null
-    pointer if none is recorded.
+/*! Returns a pointer to the final recipient's address, or a the
+    originalRecipient() if none is recorded. If neither
+    setFinalRecipient() nor setOriginalRecipient() has been called,
+    finalRecipient() returns null.
 */
 
 class Address * Recipient::finalRecipient() const
 {
-    return d->finalRecipient;
+    if ( d->finalRecipient )
+        return d->finalRecipient;
+    return d->originalRecipient;
 }
 
 
-/*! Records that \a a is the action taken wrt. this recipient. The
-    initial value is Unknown. */
+/*! Records that \a a is the action taken wrt. this recipient, and the
+    resulting status \a s . The initial action() is Unknown and the
+    initial status() an empty string.
 
-void Recipient::setAction( Action a )
+    \a s must be a string containing three numbers separated by dots,
+    e.g. "1.2.3" or "1000.2000.3000". The meaning of the numbers is as
+    defined in RFC 3463.
+*/
+
+void Recipient::setAction( Action a, const String & s )
 {
     d->action = a;
+    d->status = s;
 }
 
 
@@ -106,18 +117,6 @@ void Recipient::setAction( Action a )
 Recipient::Action Recipient::action() const
 {
     return d->action;
-}
-
-
-/*! Records that \a s is the status of the final delivery attempt for
-    this recipient. \a s must be a string containing three numbers
-    separated by dots, e.g. "1.2.3" or "1000.2000.3000". The meaning
-    of the numbers is as defined in RFC 3463.
-*/
-
-void Recipient::setStatus( const String & s )
-{
-    d->status = s;
 }
 
 
@@ -240,7 +239,8 @@ String Recipient::plainTextParagraph() const
     String s;
     String a;
 
-    if ( finalRecipient() && originalRecipient() ) {
+    if ( finalRecipient() && originalRecipient() &&
+         finalRecipient()->toString() != originalRecipient()->toString() ) {
         a.append( finalRecipient()->localpart() );
         a.append( "@" );
         a.append( finalRecipient()->domain() );
@@ -332,8 +332,8 @@ String Recipient::plainTextParagraph() const
 
 
 /*! Returns a paragraph containin the DSN for this Recipient. The
-    returned string contains a series of CRLF-separated lines and a
-    trailing CRLF.
+    returned string contains a series of LF-separated lines, but no
+    trailing LF.
 */
 
 String Recipient::dsnParagraph() const
@@ -345,7 +345,7 @@ String Recipient::dsnParagraph() const
     String s;
 
     // [ original-recipient-field CRLF ]
-    if ( originalRecipient() )
+    if ( originalRecipient() && originalRecipient() != finalRecipient() )
         l.append( "Original-Recipient: rfc822;" +
                   originalRecipient()->localpart() + "@" +
                   originalRecipient()->domain() );
@@ -401,7 +401,7 @@ String Recipient::dsnParagraph() const
     // we don't set will-retry-until. it only applies to delay dsns,
     // which we don't send.
 
-    return l.join( "\r\n" );
+    return l.join( "\n" );
 }
 
 
@@ -414,7 +414,10 @@ bool Recipient::valid() const
     if ( action() == Unknown )
         return false;
 
-    if ( !finalRecipient() && !originalRecipient() )
+    if ( status().isEmpty() )
+        return false;
+
+    if ( !finalRecipient() )
         return false;
 
     return true;

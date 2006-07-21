@@ -23,10 +23,8 @@ public:
 
     enum Action { Unknown, Failed, Delayed, Delivered, Relayed, Expanded };
 
-    void setAction( Action );
+    void setAction( Action, const String & );
     Action action() const;
-
-    void setStatus( const String & );
     String status() const;
 
     void setRemoteMTA( const String & );
