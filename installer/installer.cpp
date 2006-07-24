@@ -379,12 +379,11 @@ void database()
                 return;
             }
 
-            if ( v.startsWith( "7" ) || v.startsWith( "8.0" ) ) {
+            if ( v.startsWith( "7" ) || v.startsWith( "8.0" ) )
                 fprintf( stderr, "Note: Starting May 2007, Archiveopteryx "
-                         "will require PostgreSQL 8.1.0 or higher. Please "
+                         "will require PostgreSQL 8.1.0 or\nhigher. Please "
                          "upgrade the running server (%s) at your "
                          "convenience.\n", v.cstr() );
-            }
 
             d->q = new Query( "select usename from pg_catalog.pg_user where "
                               "usename=$1", d );
