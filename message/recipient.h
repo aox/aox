@@ -6,17 +6,21 @@
 #include "string.h"
 
 
+class Address;
+class Mailbox;
+
+
 class Recipient
     : public Garbage
 {
 public:
     Recipient();
 
-    void setOriginalRecipient( class Address * );
-    class Address * originalRecipient() const;
+    void setOriginalRecipient( Address * );
+    Address * originalRecipient() const;
 
-    void setFinalRecipient( class Address * );
-    class Address * finalRecipient() const;
+    void setFinalRecipient( Address * );
+    Address * finalRecipient() const;
 
     enum Action { Unknown, Failed, Delayed, Delivered, Relayed, Expanded };
 
@@ -38,6 +42,9 @@ public:
 
     String plainTextParagraph() const;
     String dsnParagraph() const;
+
+    void setMailbox( Mailbox * );
+    Mailbox * mailbox() const;
 
     bool valid() const;
 

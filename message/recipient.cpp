@@ -16,7 +16,10 @@ public:
         : originalRecipient( 0 ),
           finalRecipient( 0 ),
           action( Recipient::Unknown ),
-          lastAttemptDate( 0 ) {}
+          lastAttemptDate( 0 ),
+          mailbox( 0 )
+    {}
+
     Address * originalRecipient;
     Address * finalRecipient;
     Recipient::Action action;
@@ -25,6 +28,7 @@ public:
     String diagnosticCode;
     Date * lastAttemptDate;
     String finalLogId;
+    Mailbox * mailbox;
 };
 
 
@@ -380,6 +384,24 @@ String Recipient::dsnParagraph() const
     // which we don't send.
 
     return l.join( "\n" );
+}
+
+
+/*! Sets this recipient's mailbox to \a m. */
+
+void Recipient::setMailbox( Mailbox * m )
+{
+    d->mailbox = m;
+}
+
+
+/*! Returns a pointer to this Recipient's mailbox, or 0 if one hasn't
+    been set with setMailbox().
+*/
+
+Mailbox * Recipient::mailbox() const
+{
+    return d->mailbox;
 }
 
 
