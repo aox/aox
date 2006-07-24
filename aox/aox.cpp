@@ -953,7 +953,7 @@ void upgradeSchema()
          d->schema->version().startsWith( "8.0" ) )
         fprintf( stderr,
                  "Note: Starting May, 2007, "
-                 "Archiveopteryx will require PostgreSQL 8.1.0 or higher.\n"
+                 "Archiveopteryx will require PostgreSQL 8.1.0 or\nhigher."
                  "Please upgrade the running server (%s) "
                  "at your convenience.\n", d->schema->version().cstr() );
 }
