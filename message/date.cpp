@@ -131,7 +131,7 @@ uint Date::unixTime()
     t.tm_min = d->minute;
     t.tm_sec = d->second;
     t.tm_isdst = 0;
-    return mktime( &t ) - d->tz * 60;
+    return mktime( &t ) - d->tz * 60 + t.tm_gmtoff;
 }
 
 
