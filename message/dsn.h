@@ -5,48 +5,9 @@
 
 #include "string.h"
 #include "list.h"
+#include "recipient.h"
 
 class Message;
-
-
-class Recipient
-    : public Garbage
-{
-public:
-    Recipient();
-
-    void setOriginalRecipient( class Address * );
-    class Address * originalRecipient() const;
-
-    void setFinalRecipient( class Address * );
-    class Address * finalRecipient() const;
-
-    enum Action { Unknown, Failed, Delayed, Delivered, Relayed, Expanded };
-
-    void setAction( Action, const String & );
-    Action action() const;
-    String status() const;
-
-    void setRemoteMTA( const String & );
-    String remoteMTA() const;
-
-    void setDiagnosticCode( const String & );
-    String diagnosticCode() const;
-
-    void setLastAttempt( class Date * );
-    Date * lastAttempt() const;
-
-    void setFinalLogId( const String & );
-    String finalLogId() const;
-
-    String plainTextParagraph() const;
-    String dsnParagraph() const;
-
-    bool valid() const;
-
-private:
-    class RecipientData * d;
-};
 
 
 class DSN
