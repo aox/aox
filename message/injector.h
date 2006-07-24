@@ -19,7 +19,7 @@ class Injector
     : public EventHandler
 {
 public:
-    Injector( const Message *, SortedList< Mailbox > *, EventHandler *,
+    Injector( Message *, SortedList< Mailbox > *, EventHandler *,
               const StringList & flags );
     virtual ~Injector();
 
@@ -38,7 +38,9 @@ public:
     void announce();
     uint uid( Mailbox * ) const;
 
-    const Message * message() const;
+    Message * message() const;
+
+    class DSN * dsn();
 
 private:
     class InjectorData *d;

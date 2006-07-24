@@ -23,6 +23,7 @@
 #include "md5.h"
 #include "utf.h"
 #include "log.h"
+#include "dsn.h"
 
 
 class IdHelper;
@@ -92,7 +93,7 @@ public:
     bool failed;
 
     EventHandler *owner;
-    const Message *message;
+    Message *message;
     Transaction *transaction;
     List<Query> * beforeTransaction;
 
@@ -227,7 +228,7 @@ void Injector::setup()
     The caller must not change \a mailboxes after this call.
 */
 
-Injector::Injector( const Message * message,
+Injector::Injector( Message * message,
                     SortedList< Mailbox > * mailboxes,
                     EventHandler * owner,
                     const StringList & flags )
@@ -1029,7 +1030,7 @@ uint Injector::uid( Mailbox * mailbox ) const
     Message.
 */
 
-const Message * Injector::message() const
+Message * Injector::message() const
 {
     return d->message;
 }
@@ -1074,4 +1075,25 @@ void Injector::linkFlags()
         }
         ++i;
     }
+}
+
+
+/*! Returns a newly-constructed DSN object for this injection. */
+
+DSN * Injector::dsn()
+{
+    DSN * dsn = new DSN;
+
+    dsn->setMessage( d->message );
+    dsn->setFullReport( true );
+
+    /*
+    List<Recipient>::Iterator it( d->recipients );
+    while ( it ) {
+        dsn->addRecipient( it );
+        ++it;
+    }
+    */
+
+    return dsn;
 }
