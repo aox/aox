@@ -50,8 +50,16 @@ public:
 /*! \class Store store.h
     Alters message flags (RFC 3501 section 6.4.6).
 
-    The Store command is the principal means of altering message flags,
-    although Annotate may be able to do the same.
+    The Store command is the principal means of altering message
+    flags, although Append may be able to do the same.
+
+    The Store object uses setGroup() to allow parallel processing of
+    several STORE commands. If the client (incorrectly) sends two
+    conflicting commands, e.g. "store 1:* +flags.silent \deleted" and
+    by "store 1 -flags.silent \deleted", the commands may be executed
+    in any order, and the \deleted flag on message 1 may have any
+    value afterwards. Generally, the second command's finished last,
+    because of how the database does locking.
 */
 
 /*! Constructs a Store handler. If \a u is set, the first argument is
