@@ -33,9 +33,6 @@ public:
     The Recipient class holds information about a particular
     recipient, collected during a delivery attempt and optionally used
     for sending DSNs.
-
-    It sounds as if this belongs in a file of its own, not in
-    dsn.cpp. However: Which? Where? Consider that later.
 */
 
 
@@ -118,7 +115,7 @@ Recipient::Action Recipient::action() const
 }
 
 
-/*! Returns the status recorded by setStatus(). */
+/*! Returns the status recorded by setAction(). */
 
 String Recipient::status() const
 {
