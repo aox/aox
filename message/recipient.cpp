@@ -51,6 +51,19 @@ Recipient::Recipient()
 }
 
 
+/*! Constructs a Recipient object whose mailbox() is set to \a m. This
+    function is provided for the convenience of code that creates an
+    Injector.
+*/
+
+Recipient::Recipient( Mailbox * m )
+    : d( new RecipientData )
+{
+    // Fortunately, one-line functions are guaranteed bug-free.
+    d->mailbox = m;
+}
+
+
 /*! Records that the message was originally sent to \a a. */
 
 void Recipient::setOriginalRecipient( class Address * a )
