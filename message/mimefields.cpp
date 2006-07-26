@@ -166,9 +166,6 @@ void MimeField::parseParameters( Parser822 *p )
         addParameter( n, v );
         p->comment();
     }
-
-    if ( !p->atEnd() )
-        setError( "Junk at the end of parameter list" );
 }
 
 
@@ -342,9 +339,6 @@ void ContentTransferEncoding::parse( const String &s )
         e = String::Base64;
     else
         setError( "Invalid c-t-e value: '" + t + "'" );
-
-    if ( valid() && !p.atEnd() )
-        setError( "Junk at the end of c-t-e: '" + s.simplified() + "'" );
 
     setData( t );
 }
