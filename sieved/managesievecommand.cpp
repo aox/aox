@@ -59,19 +59,6 @@ ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
 }
 
 
-/*! Marks this command as having finished execute()-ing. Any responses
-    are written to the client, and the ManageSieve server is instructed to move
-    on to processing the next command.
-*/
-
-void ManageSieveCommand::finish()
-{
-    d->done = true;
-    d->sieve->write();
-    d->sieve->runCommands();
-}
-
-
 /*! Returns true if this ManageSieveCommand has finished executing, and false if
     execute() hasn't been called, or if it has work left to do. Once the
     work is done, execute() calls finish() to signal completion.
@@ -95,6 +82,7 @@ void ManageSieveCommand::read()
 
 void ManageSieveCommand::execute()
 {
+    bool ok = true;
     switch ( d->cmd ) {
     case Logout:
         log( "Received LOGOUT command", Log::Debug );
@@ -107,51 +95,59 @@ void ManageSieveCommand::execute()
         break;
 
     case StartTls:
-        if ( !startTls() )
-            return;
+        ok = startTls();
         break;
 
     case Authenticate:
-        if ( !authenticate() )
-            return;
+        ok = authenticate();
         break;
 
     case HaveSpace:
-        if ( !haveSpace() )
-            return;
+        ok = haveSpace();
         break;
 
     case PutScript:
-        if ( !putScript() )
-            return;
+        ok = putScript();
         break;
 
     case ListScripts:
-        if ( !listScripts() )
-            return;
+        ok = listScripts();
         break;
 
     case SetActive:
-        if ( !setActive() )
-            return;
+        ok = setActive();
         break;
 
     case GetScript:
-        if ( !getScript() )
-            return;
+        ok = getScript();
         break;
 
     case DeleteScript:
-        if ( !deleteScript() )
-            return;
+        ok = deleteScript();
         break;
 
     case Unknown:
         d->sieve->no( "Unknown command" );
         break;
     }
-        
-    finish();
+
+    if ( !d->no.isEmpty() )
+        ok = true;
+
+    if ( !ok )
+        return;
+
+    d->done = true;
+    if ( d->no.isEmpty() ) {
+        d->sieve->enqueue( "OK\r\n" );
+    }
+    else {
+        d->sieve->enqueue( "NO " );
+        d->sieve->enqueue( encoded( d->no ) );
+        d->sieve->enqueue( "\r\n" );
+    };
+    d->sieve->write();
+    d->sieve->runCommands();
 }
 
 
@@ -159,6 +155,11 @@ void ManageSieveCommand::execute()
 
 bool ManageSieveCommand::startTls()
 {
+    if ( d->sieve->hasTls() ) {
+        no( "STARTTLS once = good. STARTTLS twice = bad." );
+        return true;
+    }
+
     if ( !d->tlsServer ) {
         d->tlsServer = new TlsServer( this, d->sieve->peer(), "ManageSieve" );
         d->sieve->setReserved( true );
@@ -167,15 +168,15 @@ bool ManageSieveCommand::startTls()
     if ( !d->tlsServer->done() )
         return false;
 
-    d->sieve->ok( "Done" );
     d->sieve->setReserved( false );
     d->sieve->write();
     d->sieve->startTls( d->tlsServer );
 
-    // XXX: We're supposed to resend the capability list after the TLS
-    // negotiation is complete. How on earth can we do that?
+    // here's how.
+    d->sieve->capabilities();
 
     return true;
+
 }
 
 

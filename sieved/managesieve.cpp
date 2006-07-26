@@ -55,6 +55,7 @@ ManageSieve::ManageSieve( int s )
       d( new ManageSieveData )
 {
     capabilities();
+    enqueue( "OK\r\n" );
     setTimeoutAfter( 1800 );
     EventLoop::global()->addConnection( this );
 }
@@ -325,5 +326,4 @@ void ManageSieve::capabilities()
     enqueue( "\"SASL\" \"" + SaslMechanism::allowedMechanisms( "", hasTls() ) +
              "\"\r\n" );
     enqueue( "\"STARTTLS\"\r\n" );
-    enqueue( "OK\r\n" );
 }
