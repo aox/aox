@@ -500,8 +500,8 @@ void MailboxMigrator::execute()
         log( "Starting migration of message " + d->message->description() );
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
         m->append( d->destination );
-        d->injector = new Injector( d->message->message(), m, this,
-                                    d->message->flags() );
+        d->injector = new Injector( d->message->message(), m, this );
+        d->injector->setFlags( d->message->flags() );
         d->injector->setLog( x.log() );
         d->injector->execute();
     }

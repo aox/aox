@@ -230,8 +230,7 @@ void Injector::setup()
 
 Injector::Injector( Message * message,
                     SortedList< Mailbox > * mailboxes,
-                    EventHandler * owner,
-                    const StringList & flags )
+                    EventHandler * owner )
     : d( new InjectorData )
 {
     if ( !lockUidnext )
@@ -252,7 +251,23 @@ Injector::Injector( Message * message,
         d->bodyparts->append( new ObjectId( 0, bi ) );
         ++bi;
     }
+}
 
+
+/*! Cleans up after injection. (We're already pretty clean.) */
+
+Injector::~Injector()
+{
+}
+
+
+/*! Instructs the Injector to set the specified IMAP \a flags on the
+    newly injected message. If this function is not called, no flags
+    will be set.
+*/
+
+void Injector::setFlags( const StringList & flags )
+{
     Dict<void> uniq;
     StringList::Iterator fi( flags );
     while ( fi ) {
@@ -262,13 +277,6 @@ Injector::Injector( Message * message,
         }
         ++fi;
     }
-}
-
-
-/*! Cleans up after injection. (We're already pretty clean.) */
-
-Injector::~Injector()
-{
 }
 
 

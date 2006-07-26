@@ -195,8 +195,7 @@ void SmtpDbClient::execute()
                                               "not be stored",
                                               d->id );
 
-        StringList noFlags;
-        injector = new Injector( m, d->mailboxes, this, noFlags );
+        injector = new Injector( m, d->mailboxes, this );
         d->injectorError = d->injector->error();
         d->injector = injector;
         injector->execute();
@@ -783,8 +782,7 @@ void SMTP::inject()
 
     d->helper = new SmtpDbClient( this, d );
     m->setInternalDate( now.unixTime() );
-    StringList noFlags;
-    d->injector = new Injector( m, d->mailboxes, d->helper, noFlags );
+    d->injector = new Injector( m, d->mailboxes, d->helper );
     d->helper->injector = d->injector;
     d->injector->execute();
 }

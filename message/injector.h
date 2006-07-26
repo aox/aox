@@ -19,8 +19,7 @@ class Injector
     : public EventHandler
 {
 public:
-    Injector( Message *, SortedList< Mailbox > *, EventHandler *,
-              const StringList & flags );
+    Injector( Message *, SortedList< Mailbox > *, EventHandler * );
     virtual ~Injector();
 
     enum State {
@@ -29,6 +28,8 @@ public:
         
         AwaitingCompletion, Done
     };
+
+    void setFlags( const StringList & );
 
     bool done() const;
     bool failed() const;

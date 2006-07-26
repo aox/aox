@@ -153,7 +153,8 @@ void Append::execute()
     if ( !d->injector ) {
         SortedList<Mailbox> * m = new SortedList<Mailbox>;
         m->append( d->mailbox );
-        d->injector = new Injector( d->message, m, this, d->flags );
+        d->injector = new Injector( d->message, m, this );
+        d->injector->setFlags( d->flags );
         d->injector->execute();
     }
 
