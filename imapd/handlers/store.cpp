@@ -55,11 +55,11 @@ public:
 
     The Store object uses setGroup() to allow parallel processing of
     several STORE commands. If the client (incorrectly) sends two
-    conflicting commands, e.g. "store 1:* +flags.silent \deleted" and
-    by "store 1 -flags.silent \deleted", the commands may be executed
-    in any order, and the \deleted flag on message 1 may have any
-    value afterwards. Generally, the second command's finished last,
-    because of how the database does locking.
+    conflicting commands, e.g. "store 1:* +flags.silent x" and by
+    "store 1 -flags.silent x", the commands may be executed in any
+    order, and the x flag on message 1 may have any value afterwards.
+    Generally, the second command's finished last, because of how the
+    database does locking.
 */
 
 /*! Constructs a Store handler. If \a u is set, the first argument is
