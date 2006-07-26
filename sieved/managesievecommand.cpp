@@ -16,14 +16,15 @@ class ManageSieveCommandData
 {
 public:
     ManageSieveCommandData()
-        : sieve( 0 ), args( 0 ), done( false ),
+        : sieve( 0 ), pos( 0 ), done( false ),
           tlsServer( 0 ), m( 0 ), r( 0 ),
           user( 0 ), t( 0 ), query( 0 )
     {}
 
     ManageSieve * sieve;
     ManageSieveCommand::Command cmd;
-    StringList * args;
+    String arg;
+    uint pos;
 
     bool done;
 
@@ -34,7 +35,7 @@ public:
 
     Transaction * t;
     Query * query;
-    String s;
+    String no;
 };
 
 
@@ -49,12 +50,12 @@ public:
 */
 
 ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
-                                        Command cmd, StringList * args )
+                                        Command cmd, const String & args )
     : d( new ManageSieveCommandData )
 {
     d->sieve = sieve;
     d->cmd = cmd;
-    d->args = args;
+    d->arg = args;
 }
 
 
@@ -144,8 +145,12 @@ void ManageSieveCommand::execute()
         if ( !deleteScript() )
             return;
         break;
-    }
 
+    case Unknown:
+        d->sieve->no( "Unknown command" );
+        break;
+    }
+        
     finish();
 }
 
@@ -179,15 +184,15 @@ bool ManageSieveCommand::startTls()
 bool ManageSieveCommand::authenticate()
 {
     if ( !d->m ) {
-        String t = nextArg().lower();
+        String t = string().lower();
         d->m = SaslMechanism::create( t, this, d->sieve->hasTls() );
         if ( !d->m ) {
-            d->sieve->no( "SASL mechanism " + t + " not supported" );
+            no( "SASL mechanism " + t + " not supported" );
             return true;
         }
         d->sieve->setReader( this );
 
-        String r = nextArg();
+        String r = string();
         if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
             if ( !r.isEmpty() ) {
                 d->m->readResponse( r.de64() );
@@ -240,13 +245,12 @@ bool ManageSieveCommand::authenticate()
     if ( d->m->state() == SaslMechanism::Succeeded ) {
         d->sieve->setReader( 0 );
         d->sieve->setUser( d->m->user() );
-        d->sieve->ok( "" );
     }
     else if ( d->m->state() == SaslMechanism::Terminated ) {
-        d->sieve->no( "Authentication terminated" );
+        no( "Authentication terminated" );
     }
     else {
-        d->sieve->no( "Authentication failed" );
+        no( "Authentication failed" );
     }
 
     return true;
@@ -258,7 +262,6 @@ bool ManageSieveCommand::authenticate()
 bool ManageSieveCommand::haveSpace()
 {
     // Why support quotas when we can lie through our teeth?
-    d->sieve->ok( "" );
     return true;
 }
 
@@ -268,25 +271,22 @@ bool ManageSieveCommand::haveSpace()
 bool ManageSieveCommand::putScript()
 {
     if ( !d->query ) {
-        d->s = nextArg();
-        // XXX: Oops, we don't support literals yet.
         d->query =
             new Query( "insert into scripts (owner,name,text) "
-                       "values ($1,$2)", this );
+                       "values ($1,$2,$3)", this );
         d->query->bind( 1, d->sieve->user()->id() );
-        d->query->bind( 2, d->s );
+        d->query->bind( 2, string() );
+        d->query->bind( 3, string() );
         // XXX: Nor do we bother to check the script for validity.
-        d->query->bind( 3, "foobar" );
-        d->query->execute();
+        if ( d->no.isEmpty() )
+            d->query->execute();
     }
 
     if ( !d->query->done() )
         return false;
 
     if ( d->query->failed() )
-        d->sieve->no( "Couldn't store script " + d->s );
-    else
-        d->sieve->ok( "" );
+        no( "Couldn't store script: " + d->query->error() );
 
     return true;
 }
@@ -305,7 +305,7 @@ bool ManageSieveCommand::listScripts()
 
     while ( d->query->hasResults() ) {
         Row * r = d->query->nextRow();
-        String line( "\"" + r->getString( "name" ) + "\"" );
+        String line = r->getString( "name" ).quoted();
         if ( r->getBoolean( "active" ) )
             line.append( " ACTIVE" );
         d->sieve->send( line );
@@ -315,9 +315,7 @@ bool ManageSieveCommand::listScripts()
         return false;
 
     if ( d->query->failed() )
-        d->sieve->no( "Couldn't fetch script list" );
-    else
-        d->sieve->ok( "" );
+        no( "Couldn't fetch script list: " + d->query->error() );
 
     return true;
 }
@@ -328,28 +326,29 @@ bool ManageSieveCommand::listScripts()
 bool ManageSieveCommand::setActive()
 {
     if ( !d->t ) {
-        d->s = nextArg();
+        String name = string();
         d->t = new Transaction( this );
         d->query =
-            new Query( "update scripts set active='f' where user=$1", this );
+            new Query( "update scripts set active='f' where user=$1 and "
+                       "active='t' and not name=$2", this );
         d->query->bind( 1, d->sieve->user()->id() );
+        d->query->bind( 2, name );
         d->t->enqueue( d->query );
         d->query =
             new Query( "update scripts set active='t' where user=$1 and "
-                       "name=$2", this );
+                       "name=$2 and active='f'", this );
         d->query->bind( 1, d->sieve->user()->id() );
-        d->query->bind( 2, d->s );
+        d->query->bind( 2, name );
         d->t->enqueue( d->query );
-        d->t->commit();
+        if ( d->no.isEmpty() )
+            d->t->commit();
     }
 
     if ( !d->t->done() )
         return false;
 
     if ( d->t->failed() )
-        d->sieve->no( "Couldn't activate script " + d->s );
-    else
-        d->sieve->ok( "" );
+        no( "Couldn't activate script: " + d->t->error() );
 
     return true;
 }
@@ -360,13 +359,13 @@ bool ManageSieveCommand::setActive()
 bool ManageSieveCommand::getScript()
 {
     if ( !d->query ) {
-        d->s = nextArg();
         d->query =
-            new Query( "select * from scripts where user=$1 and name=$2",
+            new Query( "select script from scripts where user=$1 and name=$2",
                        this );
         d->query->bind( 1, d->sieve->user()->id() );
-        d->query->bind( 2, d->s );
-        d->query->execute();
+        d->query->bind( 2, string() );
+        if ( d->no.isEmpty() )
+            d->query->execute();
     }
 
     if ( !d->query->done() )
@@ -374,14 +373,12 @@ bool ManageSieveCommand::getScript()
 
     Row * r = d->query->nextRow();
 
-    if ( !r || d->query->failed() ) {
-        d->sieve->no( "Couldn't get script " + d->s );
-    }
-    else {
-        String text( r->getString( "script" ) );
-        // XXX: Oops, we don't have literal support yet.
-        d->sieve->ok( "" );
-    }
+    if ( !r )
+        no( "No such script" );
+    else if ( d->query->failed() )
+        no( "Couldn't get script: " + d->query->error() );
+    else
+        d->sieve->enqueue( encoded( r->getString( "script" ) ) + "\r\n" );
 
     return true;
 }
@@ -392,68 +389,150 @@ bool ManageSieveCommand::getScript()
 bool ManageSieveCommand::deleteScript()
 {
     if ( !d->t ) {
-        d->s = nextArg();
+        String name = string();
         d->t = new Transaction( this );
+        // select first, so the no() calls below work
         d->query =
-            new Query( "select from scripts where user=$1 and name=$2",
+            new Query( "select active from scripts "
+                       "where user=$1 and name=$2",
                        this );
         d->query->bind( 1, d->sieve->user()->id() );
-        d->query->bind( 2, d->s );
+        d->query->bind( 2, name );
         d->t->enqueue( d->query );
-        d->t->execute();
+        // then delete
+        Query * q = new Query( "delete from scripts where user=$1 and "
+                               "name=$2 and active='f'", this );
+        q->bind( 1, d->sieve->user()->id() );
+        q->bind( 2, name );
+        d->t->enqueue( q );
+        if ( d->no.isEmpty() )
+            d->t->commit();
     }
 
     if ( d->query && d->query->done() ) {
         Row * r = d->query->nextRow();
-        if ( !r || d->query->failed() ) {
-            d->sieve->no( "Can't delete script " + d->s );
-        }
-        else {
-            if ( r->getBoolean( "active" ) ) {
-                d->sieve->no( "Can't delete active script " + d->s );
-            }
-            else {
-                d->query =
-                    new Query( "delete from scripts where user=$1 and "
-                               "name=$2 active='f'", this );
-                d->query->bind( 1, d->sieve->user()->id() );
-                d->query->bind( 2, d->s );
-                d->t->enqueue( d->query );
-                d->query = 0;
-            }
-        }
-
-        d->t->commit();
+        if ( !r )
+            no( "No such script" );
+        else if ( r->getBoolean( "active" ) )
+            no( "Can't delete active script" );
     }
 
     if ( !d->t->done() )
         return false;
 
     if ( d->t->failed() )
-        d->sieve->no( "Couldn't delete script " + d->s );
-    else
-        d->sieve->ok( "Deleted" );
+        d->sieve->no( "Couldn't delete script: " + d->t->error() );
 
     return true;
 }
 
 
-/*! This function returns the next argument supplied by the client for
-    this command, or an empty string if there are no more arguments.
-    (Should we assume that nextArg will never be called more times
-    than there are arguments? The ManageSieve parser does enforce this.)
+/*! Returns the next argument from the client, which must be a string,
+    or sends a NO.
 */
 
-String ManageSieveCommand::nextArg()
+String ManageSieveCommand::string()
 {
-    if ( !d->args )
-        return "";
-    if ( d->args->isEmpty() )
-        return "";
-    String s = *d->args->take( d->args->first() );
-    if ( s.startsWith( "{" ) )
-        return *d->args->take( d->args->first() );
-    else if ( s.isQuoted() )
-        return s.unquoted();
-    return "";
+    String r;
+    if ( d->arg[d->pos] == '"' ) {
+        uint i = d->pos + 1;
+        while ( i < d->arg.length() && d->arg[i] != '"' ) {
+            if ( d->arg[i] == '\\' )
+                i++;
+            r.append( d->arg[i] );
+            i++;
+        }
+        if ( d->arg[i] == '"' )
+            i++;
+        while ( d->arg[i] == ' ' )
+            i++;
+        d->pos = i;
+    }
+    else if ( d->arg[d->pos] == '{' ) {
+        uint pos = d->pos;
+        d->pos++;
+        uint len = number();
+        if ( d->arg.mid( d->pos, 4 ) != "+}\r\n" )
+            no( "Could not parse literal at " + fn( pos ) + ": " +
+                d->arg.mid( pos, d->pos + 4 - pos ) );
+        d->pos += 4;
+        r = d->arg.mid( d->pos, len );
+        d->pos += len;
+    }
+    else {
+        no( "Could not parse string at " + fn( d->pos ) + ": " +
+            d->arg.mid( d->pos, 10 ) );
+    }
+
+    return r;
+}
+
+
+/*! Returns the next number from the client, or sends a NO if there
+    isn't a number (in the 32-bit range).
+*/
+
+uint ManageSieveCommand::number()
+{
+    uint i = d->pos;
+    while ( d->arg[i] >= '0' && d->arg[i] <= '9' )
+        i++;
+    if ( i == d->pos )
+        no( "Could not find a number at at " + fn( d->pos ) + ": " +
+            d->arg.mid( d->pos, 10 ) );
+    bool ok = true;
+    uint n = d->arg.mid( d->pos, i-d->pos ).number( &ok );
+    if ( !ok )
+        no( "Could not parse the number at " + fn( d->pos ) + ": " +
+            d->arg.mid( d->pos, i-d->pos ) );
+    d->pos = i;
+    return n;
+}
+
+
+/*! Records that this command is to be rejected, optionally with \a
+    message.
+*/
+
+void ManageSieveCommand::no( const String & message )
+{
+    if ( d->no.isEmpty() )
+        d->no = message;
+}
+
+
+/*! Returns the argument to no(), or an empty string if no() hasn't
+    been called.
+*/
+
+String ManageSieveCommand::errorMessage()
+{
+    return d->no;
+}
+
+
+/*! Returns \a input encoded either as a managesieve quoted or literal
+    string. Quoted is preferred, if possible.
+*/
+
+String ManageSieveCommand::encoded( const String & input )
+{
+    bool q = true;
+    if ( input.length() > 1024 )
+        q = false;
+    uint i = 0;
+    while ( q && i < input.length() ) {
+        if ( input[i] == 0 || input[i] == 13 || input[i] == 10 )
+            q = false;
+        i++;
+    }
+
+    if ( q )
+        return input.quoted();
+
+    String r( "{" );
+    r.append( String::fromNumber( input.length() ) );
+    r.append( "+}\r\n" );
+    r.append( input );
+    return r;
 }

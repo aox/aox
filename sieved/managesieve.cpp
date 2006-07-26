@@ -22,8 +22,8 @@ public:
         : state( ManageSieve::Unauthorised ), user( 0 ),
           commands( new List< ManageSieveCommand > ), reader( 0 ),
           reserved( false ), readingLiteral( false ),
-          literalSize( 0 ), args( 0 )
-    {}
+          literalSize( 0 )
+        {}
 
     ManageSieve::State state;
 
@@ -33,16 +33,12 @@ public:
     ManageSieveCommand * reader;
     bool reserved;
 
+    String arg;
+
     bool readingLiteral;
     uint literalSize;
-
-    StringList * args;
 };
 
-
-static void newCommand( List< ManageSieveCommand > *, ManageSieve *,
-                        ManageSieveCommand::Command, StringList * = 0,
-                        int = -1 );
 
 
 /*! \class ManageSieve sieve.h
@@ -124,7 +120,7 @@ void ManageSieve::parse()
             if ( b->size() < d->literalSize )
                 return;
 
-            d->args->append( b->string( d->literalSize ) );
+            d->arg.append( b->string( d->literalSize ) );
             b->remove( d->literalSize );
             d->readingLiteral = false;
         }
@@ -132,7 +128,7 @@ void ManageSieve::parse()
             if ( d->reserved )
                 break;
 
-            String *s = b->removeLine( 2048 );
+            String * s = b->removeLine( 3072 );
 
             if ( !s ) {
                 log( "Connection closed due to overlong line (" +
@@ -142,26 +138,28 @@ void ManageSieve::parse()
                 return;
             }
 
-            StringList * l = StringList::split( ' ', *s );
+            d->arg.append( *s );
 
-            if ( !d->args )
-                d->args = new StringList;
-
-            StringList::Iterator it( l );
-            while ( it ) {
-                d->args->append( it );
-                ++it;
-            }
-
-            String lit = *d->args->last();
-
-            if ( lit[0] == '{' && lit.endsWith( "+}" ) ) {
-                bool ok;
-                d->literalSize = lit.mid( 1, lit.length()-3 ).number( &ok );
-                if ( ok )
+            if ( s->endsWith( "+}" ) ) {
+                uint e = s->length() - 2;
+                uint b = e - 1;
+                while ( b > 0 && (*s)[b] >= '0' && (*s)[b] <= '9' )
+                    b--;
+                if ( (*s)[b] == '{' && b + 1 < e ) {
+                    b++;
                     d->readingLiteral = true;
-                else
-                    no( "Bad literal" );
+                    bool ok = true;
+                    d->literalSize = s->mid( b, e-b ).number( &ok );
+                    if ( !ok ) {
+                        // what? we can't possibly read it. have to
+                        // close the connection?
+                        log( "Connection closed due to large literal (" +
+                             s->mid( b, e-b ) + " bytes)", Log::Error );
+                        send( "BYE Literal too large. Closing connection." );
+                        Connection::setState( Closing );
+                    }
+                    d->arg.append( "\r\n" );
+                }
             }
 
             if ( !d->readingLiteral )
@@ -179,71 +177,44 @@ void ManageSieve::parse()
 
 void ManageSieve::addCommand()
 {
-    bool unknown = false;
+    int i = d->arg.find( ' ' );
+    if ( i < 0 )
+        i = d->arg.length();
 
-    String cmd = d->args->take( d->args->first() )->lower();
+    String cmd = d->arg.mid( 0, i ).lower();
+    d->arg = d->arg.mid( i+1 );
+
+    ManageSieveCommand::Command c = ManageSieveCommand::Unknown;
 
     if ( cmd == "logout" ) {
-        newCommand( d->commands, this, ManageSieveCommand::Logout,
-                    d->args, 0 );
+        c = ManageSieveCommand::Logout;
     }
     else if ( cmd == "capability" ) {
-        newCommand( d->commands, this, ManageSieveCommand::Capability,
-                    d->args, 0 );
+        c = ManageSieveCommand::Capability;
     }
     else if ( d->state == Unauthorised ) {
-        if ( cmd == "starttls" ) {
-            if ( hasTls() )
-                no( "Nested STARTTLS" );
-            else
-                newCommand( d->commands, this,
-                            ManageSieveCommand::StartTls );
-        }
-        else if ( cmd == "authenticate" ) {
-            newCommand( d->commands, this,
-                        ManageSieveCommand::Authenticate, d->args );
-        }
-        else {
-            unknown = true;
-        }
+        if ( cmd == "starttls" )
+            c = ManageSieveCommand::StartTls;
+        else if ( cmd == "authenticate" )
+            c = ManageSieveCommand::Authenticate;
     }
     else if ( d->state == Authorised ) {
-        if ( cmd == "havespace" ) {
-            newCommand( d->commands, this,
-                        ManageSieveCommand::HaveSpace, d->args, 2 );
-        }
-        else if ( cmd == "putscript" ) {
-            newCommand( d->commands, this,
-                        ManageSieveCommand::PutScript, d->args, 2 );
-        }
-        else if ( cmd == "setactive" ) {
-            newCommand( d->commands, this,
-                        ManageSieveCommand::SetActive, d->args, 2 );
-        }
-        else if ( cmd == "listscripts" ) {
-            newCommand( d->commands, this,
-                        ManageSieveCommand::ListScripts, 0 );
-        }
-        else if ( cmd == "getscript" ) {
-            newCommand( d->commands, this,
-                        ManageSieveCommand::GetScript, d->args, 1 );
-        }
-        else if ( cmd == "deletescript" ) {
-            newCommand( d->commands, this,
-                        ManageSieveCommand::DeleteScript, d->args, 1 );
-        }
-        else {
-            unknown = true;
-        }
-    }
-    else {
-        unknown = true;
+        if ( cmd == "havespace" )
+            c = ManageSieveCommand::HaveSpace;
+        else if ( cmd == "putscript" )
+            c = ManageSieveCommand::PutScript;
+        else if ( cmd == "setactive" )
+            c = ManageSieveCommand::SetActive;
+        else if ( cmd == "listscripts" )
+            c = ManageSieveCommand::ListScripts;
+        else if ( cmd == "getscript" )
+            c = ManageSieveCommand::GetScript;
+        else if ( cmd == "deletescript" )
+            c = ManageSieveCommand::DeleteScript;
     }
 
-    if ( unknown )
-        no( "Unknown command" );
-
-    d->args = 0;
+    d->commands->append( new ManageSieveCommand( this, c, d->arg ) );
+    d->arg.truncate();
 }
 
 
@@ -292,27 +263,12 @@ void ManageSieve::send( const String &s )
 void ManageSieve::runCommands()
 {
     List< ManageSieveCommand >::Iterator it( d->commands );
-    if ( !it )
-        return;
-    if ( it->done() )
-        d->commands->take( it );
-    if ( it )
-        it->execute();
-}
-
-
-static void newCommand( List< ManageSieveCommand > * l, ManageSieve * sieve,
-                        ManageSieveCommand::Command cmd,
-                        StringList * args, int argc )
-{
-    int ac = 0;
-    if ( args )
-        ac = (int)args->count();
-    if ( argc >= 0 && ac != argc )
-        sieve->no( "Wrong number of arguments (expected " +
-                   fn( argc ) + ", received " + fn( args->count() ) + ")" );
-    else
-        l->append( new ManageSieveCommand( sieve, cmd, args ) );
+    while ( it && it->done() ) {
+        while ( it->done() )
+            d->commands->take( it );
+        if ( it )
+            it->execute();
+    }
 }
 
 

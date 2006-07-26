@@ -13,20 +13,21 @@ class ManageSieveCommand
 public:
     enum Command {
         Authenticate, StartTls, Logout, Capability, HaveSpace,
-        PutScript, ListScripts, SetActive, GetScript, DeleteScript
+        PutScript, ListScripts, SetActive, GetScript, DeleteScript,
+        Unknown
     };
 
-    ManageSieveCommand( class ManageSieve *, Command, class StringList * );
+    ManageSieveCommand( class ManageSieve *, Command, const String & );
 
     void read();
     void execute();
     void finish();
     bool done();
+    String errorMessage();
 
 private:
     class ManageSieveCommandData * d;
 
-    String nextArg();
     bool startTls();
     bool authenticate();
     bool haveSpace();
@@ -35,6 +36,13 @@ private:
     bool setActive();
     bool getScript();
     bool deleteScript();
+
+    String string();
+    uint  number();
+
+    void no( const String & );
+
+    static String encoded( const String & );
 };
 
 
