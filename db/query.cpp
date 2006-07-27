@@ -181,6 +181,9 @@ bool Query::canFail() const
 /*! If this function is called before execute(), Postgres will not log
     an error if the Query fails. The query continues to be processed
     as it would be otherwise.
+
+    This is not communicated to the server, so if this query is part
+    of a Transaction, its failure aborts the Transaction.
 */
 
 void Query::allowFailure()
