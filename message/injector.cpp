@@ -16,6 +16,7 @@
 #include "addressfield.h"
 #include "addresscache.h"
 #include "transaction.h"
+#include "recipient.h"
 #include "allocator.h"
 #include "occlient.h"
 #include "scope.h"
@@ -82,6 +83,7 @@ public:
         : state( Injector::Inactive ), failed( false ),
           owner( 0 ), message( 0 ), transaction( 0 ),
           beforeTransaction( 0 ),
+          recipients( 0 ),
           mailboxes( 0 ), bodyparts( 0 ),
           uidHelper( 0 ), bidHelper( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
@@ -96,6 +98,8 @@ public:
     Message *message;
     Transaction *transaction;
     List<Query> * beforeTransaction;
+
+    SortedList< Recipient > * recipients;
 
     // The *idHelpers fill in the IDs corresponding to each Object in
     // these lists.
@@ -220,28 +224,44 @@ void Injector::setup()
 }
 
 
-/*! Creates a new Injector object to deliver the \a message with \a
-    flags into each of the \a mailboxes on behalf of the \a owner,
-    which is notified when the delivery attempt is completed. Message
-    delivery commences when the execute() function is called.
+/*! Creates a new Injector to deliver the \a message on behalf of
+    the \a owner, which is notified when the injection is completed.
+    Message delivery commences when the execute() function is called.
 
-    The caller must not change \a mailboxes after this call.
+    The caller must call setRecipient() or setRecipients() to tell the
+    Injector where to deliver the message.
 */
 
-Injector::Injector( Message * message,
-                    SortedList< Mailbox > * mailboxes,
-                    EventHandler * owner )
+Injector::Injector( Message * message, EventHandler * owner )
     : d( new InjectorData )
 {
     if ( !lockUidnext )
         setup();
     d->owner = owner;
     d->message = message;
+}
+
+
+/*! Cleans up after injection. (We're already pretty clean.) */
+
+Injector::~Injector()
+{
+}
+
+
+/*! Instructs this Injector to deliver the message to the list of
+    Recipients specified in \a r, all of which are assumed to have
+    a Recipient::mailbox() defined.
+*/
+
+void Injector::setRecipients( SortedList<Recipient> * r )
+{
+    d->recipients = r;
 
     d->mailboxes = new List< ObjectId >;
-    SortedList< Mailbox >::Iterator mi( mailboxes );
+    SortedList<Recipient>::Iterator mi( d->recipients );
     while ( mi ) {
-        d->mailboxes->append( new ObjectId( mi, 0 ) );
+        d->mailboxes->append( new ObjectId( mi->mailbox(), 0 ) );
         ++mi;
     }
 
@@ -254,10 +274,15 @@ Injector::Injector( Message * message,
 }
 
 
-/*! Cleans up after injection. (We're already pretty clean.) */
+/*! This function is provided for the convenience of the callers who
+    only ever need to specify a single message Recipient \a r.
+*/
 
-Injector::~Injector()
+void Injector::setRecipient( Recipient * r )
 {
+    SortedList< Recipient > * l = new SortedList< Recipient >;
+    l->append( r );
+    setRecipients( l );
 }
 
 
@@ -277,6 +302,16 @@ void Injector::setFlags( const StringList & flags )
         }
         ++fi;
     }
+}
+
+
+/*! Returns a pointer to the SortedList of Recipients that this Injector
+    has been given via setRecipients() (or 0 if none were specified).
+*/
+
+SortedList<Recipient> * Injector::recipients() const
+{
+    return d->recipients;
 }
 
 

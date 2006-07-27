@@ -8,6 +8,7 @@
 #include "mailbox.h"
 #include "allocator.h"
 #include "transaction.h"
+#include "recipient.h"
 #include "eventloop.h"
 #include "injector.h"
 #include "dirtree.h"
@@ -498,9 +499,8 @@ void MailboxMigrator::execute()
     if ( d->message ) {
         Scope x( new Log( Log::General ) );
         log( "Starting migration of message " + d->message->description() );
-        SortedList<Mailbox> * m = new SortedList<Mailbox>;
-        m->append( d->destination );
-        d->injector = new Injector( d->message->message(), m, this );
+        d->injector = new Injector( d->message->message(), this );
+        d->injector->setRecipient( new Recipient( d->destination ) );
         d->injector->setFlags( d->message->flags() );
         d->injector->setLog( x.log() );
         d->injector->execute();

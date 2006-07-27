@@ -12,6 +12,7 @@ class Header;
 class Message;
 class Mailbox;
 class Bodypart;
+class Recipient;
 class StringList;
 
 
@@ -19,7 +20,7 @@ class Injector
     : public EventHandler
 {
 public:
-    Injector( Message *, SortedList< Mailbox > *, EventHandler * );
+    Injector( Message *, EventHandler * );
     virtual ~Injector();
 
     enum State {
@@ -29,7 +30,11 @@ public:
         AwaitingCompletion, Done
     };
 
+    void setRecipient( Recipient * );
+    void setRecipients( SortedList<Recipient> * );
     void setFlags( const StringList & );
+
+    SortedList<Recipient> * recipients() const;
 
     bool done() const;
     bool failed() const;

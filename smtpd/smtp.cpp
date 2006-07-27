@@ -21,6 +21,7 @@
 #include "user.h"
 #include "tls.h"
 #include "log.h"
+#include "recipient.h"
 
 // time()
 #include <time.h>
@@ -136,7 +137,7 @@ class SMTPData
 public:
     SMTPData():
         code( 0 ), state( SMTP::Initial ),
-        from( 0 ), mailboxes( 0 ), protocol( "smtp" ),
+        from( 0 ), protocol( "smtp" ),
         injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false )
     {}
@@ -147,7 +148,6 @@ public:
     SMTP::State state;
     Address * from;
     List<Alias> to;
-    SortedList<Mailbox> * mailboxes;
     String body;
     String arg;
     String helo;
@@ -195,7 +195,8 @@ void SmtpDbClient::execute()
                                               "not be stored",
                                               d->id );
 
-        injector = new Injector( m, d->mailboxes, this );
+        injector = new Injector( m, this );
+        injector->setRecipients( d->injector->recipients() );
         d->injectorError = d->injector->error();
         d->injector = injector;
         injector->execute();
@@ -771,18 +772,20 @@ void SMTP::inject()
     if ( d->from )
         rp = "Return-Path: " + d->from->toString() + "\r\n";
     d->body = rp + received + d->body;
-    Message * m = new Message( d->body );
 
-    d->mailboxes = new SortedList<Mailbox>;
+    Message * m = new Message( d->body );
+    m->setInternalDate( now.unixTime() );
+
+    SortedList<Recipient> * recipients = new SortedList<Recipient>;
     List< Alias >::Iterator it( d->to );
     while ( it ) {
-        d->mailboxes->insert( it->mailbox );
+        recipients->insert( new Recipient( it->mailbox ) );
         ++it;
     }
 
     d->helper = new SmtpDbClient( this, d );
-    m->setInternalDate( now.unixTime() );
-    d->injector = new Injector( m, d->mailboxes, d->helper );
+    d->injector = new Injector( m, d->helper );
+    d->injector->setRecipients( recipients );
     d->helper->injector = d->injector;
     d->injector->execute();
 }

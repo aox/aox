@@ -9,8 +9,9 @@
 #include "string.h"
 #include "message.h"
 #include "mailbox.h"
-#include "injector.h"
 #include "imapsession.h"
+#include "recipient.h"
+#include "injector.h"
 
 
 class AppendData
@@ -151,9 +152,8 @@ void Append::execute()
     }
 
     if ( !d->injector ) {
-        SortedList<Mailbox> * m = new SortedList<Mailbox>;
-        m->append( d->mailbox );
-        d->injector = new Injector( d->message, m, this );
+        d->injector = new Injector( d->message, this );
+        d->injector->setRecipient( new Recipient( d->mailbox ) );
         d->injector->setFlags( d->flags );
         d->injector->execute();
     }
