@@ -16,6 +16,7 @@ class Recipient
 public:
     Recipient();
     Recipient( Mailbox * );
+    Recipient( Address *, Mailbox * );
 
     void setOriginalRecipient( Address * );
     Address * originalRecipient() const;

@@ -65,6 +65,19 @@ Recipient::Recipient( Mailbox * m )
 }
 
 
+/*! Constructs a Recipient object whose finalRecipient() is set to \a a
+    and whose mailbox() is set to \a m. This function is provided only
+    as a convenience.
+*/
+
+Recipient::Recipient( Address * a, Mailbox * m )
+    : d( new RecipientData )
+{
+    d->finalRecipient = a;
+    d->mailbox = m;
+}
+
+
 /*! Records that the message was originally sent to \a a. */
 
 void Recipient::setOriginalRecipient( class Address * a )
