@@ -86,7 +86,6 @@ void ManageSieveCommand::execute()
     switch ( d->cmd ) {
     case Logout:
         log( "Received LOGOUT command", Log::Debug );
-        d->sieve->ok( "" );
         d->sieve->Connection::setState( Connection::Closing );
         break;
 
@@ -127,7 +126,7 @@ void ManageSieveCommand::execute()
         break;
 
     case Unknown:
-        d->sieve->no( "Unknown command" );
+        no( "Unknown command" );
         break;
     }
 
