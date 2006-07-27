@@ -4,6 +4,7 @@
 
 #include "date.h"
 #include "address.h"
+#include "mailbox.h"
 #include "stringlist.h"
 #include "configuration.h"
 
@@ -434,4 +435,18 @@ bool Recipient::valid() const
         return false;
 
     return true;
+}
+
+
+/*! This function is defined so that SMTP and the Injector may create a
+    SortedList of Recipients. It compares this Recipient to \a b based
+    on the mailbox() id. If either Recipient has no mailbox() defined,
+    the results are meaningless.
+*/
+
+bool Recipient::operator <=( const Recipient &b )
+{
+    if ( mailbox() && b.mailbox() )
+        return mailbox()->id() <= b.mailbox()->id();
+    return false;
 }
