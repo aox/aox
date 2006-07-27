@@ -23,7 +23,6 @@ public:
     void execute();
     void finish();
     bool done();
-    String errorMessage();
 
 private:
     class ManageSieveCommandData * d;
@@ -38,7 +37,9 @@ private:
     bool deleteScript();
 
     String string();
-    uint  number();
+    uint number();
+    void whitespace();
+    void end();
 
     void no( const String & );
 

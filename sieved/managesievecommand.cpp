@@ -90,7 +90,9 @@ void ManageSieveCommand::execute()
         break;
 
     case Capability:
-        d->sieve->capabilities();
+        end();
+        if ( d->no.isEmpty() )
+            d->sieve->capabilities();
         break;
 
     case StartTls:
@@ -133,7 +135,7 @@ void ManageSieveCommand::execute()
     if ( d->query && d->query->failed() && d->no.isEmpty() )
         no( "Database failed: " + d->query->error() );
     else if ( d->t && d->t->failed() && d->no.isEmpty() )
-        no( "Database failed: " + d->t->error() );
+        no( "Database failed: " + d->t->error() ); // XXX need to rollback?
 
     if ( !d->no.isEmpty() )
         ok = true;
@@ -165,6 +167,9 @@ bool ManageSieveCommand::startTls()
     }
 
     if ( !d->tlsServer ) {
+        end();
+        if ( !d->no.isEmpty() )
+            return true;
         d->tlsServer = new TlsServer( this, d->sieve->peer(), "ManageSieve" );
         d->sieve->setReserved( true );
     }
@@ -197,6 +202,8 @@ bool ManageSieveCommand::authenticate()
         }
         d->sieve->setReader( this );
 
+        whitespace();
+
         String r = string();
         if ( d->m->state() == SaslMechanism::AwaitingInitialResponse ) {
             if ( !r.isEmpty() ) {
@@ -208,6 +215,10 @@ bool ManageSieveCommand::authenticate()
                 d->m->setState( SaslMechanism::IssuingChallenge );
             }
         }
+
+        end();
+        if ( !d->no.isEmpty() )
+            return true;
     }
 
     // This code is essentially a mangled copy of imapd/handlers/authenticate.
@@ -250,6 +261,7 @@ bool ManageSieveCommand::authenticate()
     if ( d->m->state() == SaslMechanism::Succeeded ) {
         d->sieve->setReader( 0 );
         d->sieve->setUser( d->m->user() );
+        d->sieve->setState( ManageSieve::Authorised );
     }
     else if ( d->m->state() == SaslMechanism::Terminated ) {
         no( "Authentication terminated" );
@@ -262,11 +274,15 @@ bool ManageSieveCommand::authenticate()
 }
 
 
-/*! Handles the HAVESPACE command. */
+/*! Handles the HAVESPACE command. Accepts any name and size, then
+    reports OK: We don't do hard quotas. */
 
 bool ManageSieveCommand::haveSpace()
 {
-    // Why support quotas when we can lie through our teeth?
+    (void)string();
+    whitespace();
+    (void)number();
+    end();
     return true;
 }
 
@@ -281,7 +297,9 @@ bool ManageSieveCommand::putScript()
                        "values ($1,$2,$3)", this );
         d->query->bind( 1, d->sieve->user()->id() );
         d->query->bind( 2, string() );
+        whitespace();
         d->query->bind( 3, string() );
+        end();
         // XXX: Nor do we bother to check the script for validity.
         if ( d->no.isEmpty() )
             d->query->execute();
@@ -299,15 +317,17 @@ bool ManageSieveCommand::putScript()
 bool ManageSieveCommand::listScripts()
 {
     if ( !d->query ) {
+        end();
         d->query =
             new Query( "select * from scripts where user=$1", this );
         d->query->bind( 1, d->sieve->user()->id() );
-        d->query->execute();
+        if ( d->no.isEmpty() )
+            d->query->execute();
     }
 
     while ( d->query->hasResults() ) {
         Row * r = d->query->nextRow();
-        String line = r->getString( "name" ).quoted();
+        String line = encoded( r->getString( "name" ) );
         if ( r->getBoolean( "active" ) )
             line.append( " ACTIVE" );
         d->sieve->send( line );
@@ -326,6 +346,7 @@ bool ManageSieveCommand::setActive()
 {
     if ( !d->t ) {
         String name = string();
+        end();
         d->t = new Transaction( this );
         d->query =
             new Query( "update scripts set active='f' where user=$1 and "
@@ -358,6 +379,7 @@ bool ManageSieveCommand::setActive()
 bool ManageSieveCommand::getScript()
 {
     if ( !d->query ) {
+        end();
         d->query =
             new Query( "select script from scripts where user=$1 and name=$2",
                        this );
@@ -387,6 +409,7 @@ bool ManageSieveCommand::deleteScript()
 {
     if ( !d->t ) {
         String name = string();
+        end();
         d->t = new Transaction( this );
         // select first, so the no() calls below work
         d->query =
@@ -441,8 +464,6 @@ String ManageSieveCommand::string()
         }
         if ( d->arg[i] == '"' )
             i++;
-        while ( d->arg[i] == ' ' )
-            i++;
         d->pos = i;
     }
     else if ( d->arg[d->pos] == '{' ) {
@@ -450,14 +471,14 @@ String ManageSieveCommand::string()
         d->pos++;
         uint len = number();
         if ( d->arg.mid( d->pos, 4 ) != "+}\r\n" )
-            no( "Could not parse literal at " + fn( pos ) + ": " +
+            no( "Could not parse literal at position " + fn( pos ) + ": " +
                 d->arg.mid( pos, d->pos + 4 - pos ) );
         d->pos += 4;
         r = d->arg.mid( d->pos, len );
         d->pos += len;
     }
     else {
-        no( "Could not parse string at " + fn( d->pos ) + ": " +
+        no( "Could not parse string at position " + fn( d->pos ) + ": " +
             d->arg.mid( d->pos, 10 ) );
     }
 
@@ -475,15 +496,40 @@ uint ManageSieveCommand::number()
     while ( d->arg[i] >= '0' && d->arg[i] <= '9' )
         i++;
     if ( i == d->pos )
-        no( "Could not find a number at at " + fn( d->pos ) + ": " +
+        no( "Could not find a number at at position " + fn( d->pos ) + ": " +
             d->arg.mid( d->pos, 10 ) );
     bool ok = true;
     uint n = d->arg.mid( d->pos, i-d->pos ).number( &ok );
     if ( !ok )
-        no( "Could not parse the number at " + fn( d->pos ) + ": " +
+        no( "Could not parse the number at position " + fn( d->pos ) + ": " +
             d->arg.mid( d->pos, i-d->pos ) );
     d->pos = i;
     return n;
+}
+
+
+/*! Skips whitespace in the argument list. Should perhaps report an
+    error if there isn't any? Let's keep it as it is, though.
+*/
+
+void ManageSieveCommand::whitespace()
+{
+    while ( d->arg[d->pos] == ' ' )
+        d->pos++;
+}
+
+
+/*! Verifies that parsing has reached the end of the argument list,
+    and logs an error else.
+*/
+
+void ManageSieveCommand::end()
+{
+    whitespace();
+    if ( d->pos >= d->arg.length() )
+        return;
+    no( "Garbage at end of argument list (pos " + fn( d->pos ) + "): " +
+        d->arg.mid( d->pos, 20 ) );
 }
 
 
@@ -495,16 +541,6 @@ void ManageSieveCommand::no( const String & message )
 {
     if ( d->no.isEmpty() )
         d->no = message;
-}
-
-
-/*! Returns the argument to no(), or an empty string if no() hasn't
-    been called.
-*/
-
-String ManageSieveCommand::errorMessage()
-{
-    return d->no;
 }
 
 
