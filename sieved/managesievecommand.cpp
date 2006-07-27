@@ -292,21 +292,42 @@ bool ManageSieveCommand::haveSpace()
 bool ManageSieveCommand::putScript()
 {
     if ( !d->query ) {
-        d->query =
-            new Query( "insert into scripts (owner,name,text) "
-                       "values ($1,$2,$3)", this );
-        d->query->bind( 1, d->sieve->user()->id() );
-        d->query->bind( 2, string() );
+        String name = string();
         whitespace();
-        d->query->bind( 3, string() );
+        String script = string();
+        if ( script.isEmpty() )
+            no( "Script cannot be empty" );
         end();
-        // XXX: Nor do we bother to check the script for validity.
+
+        // here we need to check the script for validity
+
+        // push the script into the database. we need to either update
+        // a table row or insert a new one. ManageSieveCommand doesn't
+        // really have the infrastructure to do that. let's hack!
+        d->query = new Query( "insert into scripts (owner,name,script,active) "
+                              "values($1,$2,$3,false)", this );
+        d->query->bind( 1, d->sieve->user()->id() );
+        d->query->bind( 2, name );
+        d->query->bind( 3, script );
+        d->query->allowFailure();
         if ( d->no.isEmpty() )
             d->query->execute();
     }
 
     if ( !d->query->done() )
         return false;
+
+    if ( d->query->failed() &&
+         d->query->string().startsWith( "insert" ) ) {
+        // a magnificent hack: If insert into didn't work, we set the
+        // state back, change the query string to one that should
+        // work, and execute the query again! yaaaaay!
+        d->query->setState( Query::Inactive );
+        d->query->setString( "update scripts set script=$3 where "
+                             "owner=$1 and name=$2" );
+        d->query->execute();
+        return false;
+    }
 
     return true;
 }
