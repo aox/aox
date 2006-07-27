@@ -35,7 +35,6 @@ public:
     List< Row > rows;
     uint totalRows;
 
-    String description;
     String error;
 
     bool canFail;
@@ -370,51 +369,48 @@ void Query::notify()
 
 
 /*! Returns a description of this query and its parameters, if any, that
-    is suitable for logging and debugging. (The description is generated
-    and stored the first time this function is called, and later calls
-    just return the old value.)
+    is suitable for logging and debugging.
 */
 
 String Query::description()
 {
-    if ( d->description.isEmpty() ) {
-        StringList p;
+    String s;
+    StringList p;
 
-        int i = 0;
-        List< Query::Value >::Iterator v( *values() );
-        while ( v ) {
-            i++;
+    int i = 0;
+    List< Query::Value >::Iterator v( *values() );
+    while ( v ) {
+        i++;
 
-            String r( fn( i ) );
-            r.append( "=" );
-            int n = v->length();
-            if ( n == -1 )
-                r = "NULL";
-            else if ( n <= 32 && v->format() != Query::Binary ) {
-                r.append( "'" );
-                r.append( v->data() );
-                r.append( "'" );
-            }
-            else {
-                r.append( "...{" );
-                r.append( fn( n ) );
-                r.append( "}" );
-            }
-            p.append( r );
-            ++v;
+        String r( fn( i ) );
+        r.append( "=" );
+        int n = v->length();
+        if ( n == -1 )
+            r = "NULL";
+        else if ( n <= 32 && v->format() != Query::Binary ) {
+            r.append( "'" );
+            r.append( v->data() );
+            r.append( "'" );
         }
-
-        d->description.append( "\"" );
-        d->description.append( string() );
-        d->description.append( "\"" );
-        if ( i > 0 ) {
-            d->description.append( " (" );
-            d->description.append( p.join(",") );
-            d->description.append( ")" );
+        else {
+            r.append( "...{" );
+            r.append( fn( n ) );
+            r.append( "}" );
         }
+        p.append( r );
+        ++v;
     }
 
-    return d->description;
+    s.append( "\"" );
+    s.append( string() );
+    s.append( "\"" );
+    if ( i > 0 ) {
+        s.append( " (" );
+        s.append( p.join(",") );
+        s.append( ")" );
+    }
+
+    return s;
 }
 
 
