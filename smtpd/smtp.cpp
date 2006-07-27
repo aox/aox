@@ -119,18 +119,6 @@ public:
 };
 
 
-class Alias
-    : public Garbage
-{
-public:
-    Alias( Address * a, Mailbox * m )
-        : address( a ), mailbox( m )
-    {}
-    Address * address;
-    Mailbox * mailbox;
-};
-
-
 class SMTPData
     : public Garbage
 {
@@ -147,7 +135,7 @@ public:
     String firstError;
     SMTP::State state;
     Address * from;
-    List<Alias> to;
+    List<Recipient> to;
     String body;
     String arg;
     String helo;
@@ -483,7 +471,7 @@ void SMTP::rcptAnswer( Address * a, Mailbox * m )
     String to( a->localpart() + "@" + a->domain() );
 
     if ( m && !m->deleted() ) {
-        d->to.append( new Alias( a, m ) );
+        d->to.append( new Recipient( a, m ) );
         respond( 250, "Will send to " + to );
         log( "Delivering message to " + to );
         d->state = Data;
@@ -777,9 +765,9 @@ void SMTP::inject()
     m->setInternalDate( now.unixTime() );
 
     SortedList<Recipient> * recipients = new SortedList<Recipient>;
-    List< Alias >::Iterator it( d->to );
+    List<Recipient>::Iterator it( d->to );
     while ( it ) {
-        recipients->insert( new Recipient( it->mailbox ) );
+        recipients->insert( it );
         ++it;
     }
 
@@ -832,10 +820,10 @@ bool SMTP::writeCopy()
         f.write( "<>" );
     f.write( "\n" );
 
-    List<Alias>::Iterator it( d->to );
+    List<Recipient>::Iterator it( d->to );
     while ( it ) {
         f.write( "To: " );
-        f.write( it->address->toString() );
+        f.write( it->finalRecipient()->toString() );
         f.write( "\n" );
         ++it;
     }
@@ -942,17 +930,17 @@ void LMTP::reportInjection()
            ( !d->injector || d->injector->failed() ) ) )
         writeCopy();
 
-    List<Alias>::Iterator it( d->to );
+    List<Recipient>::Iterator it( d->to );
     while ( it ) {
-        String prefix( it->address->localpart() + "@" +
-                       it->address->domain() + ": " );
+        Address * a = it->finalRecipient();
+        String prefix( a->localpart() + "@" + a->domain() + ": " );
 
         if ( d->helper->injector->failed() )
             respond( 451, prefix + d->injector->error() );
         else if ( d->helper->harder )
             respond( 250, prefix + "Worked around: " + d->injectorError );
         else
-            respond( 250, prefix + "injected into " + it->mailbox->name() );
+            respond( 250, prefix + "injected into " + it->mailbox()->name() );
 
         ++it;
     }
