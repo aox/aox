@@ -131,6 +131,11 @@ void ManageSieveCommand::execute()
         break;
     }
 
+    if ( d->query && d->query->failed() && d->no.isEmpty() )
+        no( "Database failed: " + d->query->error() );
+    else if ( d->t && d->t->failed() && d->no.isEmpty() )
+        no( "Database failed: " + d->t->error() );
+
     if ( !d->no.isEmpty() )
         ok = true;
 
@@ -286,9 +291,6 @@ bool ManageSieveCommand::putScript()
     if ( !d->query->done() )
         return false;
 
-    if ( d->query->failed() )
-        no( "Couldn't store script: " + d->query->error() );
-
     return true;
 }
 
@@ -314,9 +316,6 @@ bool ManageSieveCommand::listScripts()
 
     if ( !d->query->done() )
         return false;
-
-    if ( d->query->failed() )
-        no( "Couldn't fetch script list: " + d->query->error() );
 
     return true;
 }
@@ -376,9 +375,7 @@ bool ManageSieveCommand::getScript()
 
     if ( !r )
         no( "No such script" );
-    else if ( d->query->failed() )
-        no( "Couldn't get script: " + d->query->error() );
-    else
+    else if ( !d->query->failed() )
         d->sieve->enqueue( encoded( r->getString( "script" ) ) + "\r\n" );
 
     return true;
