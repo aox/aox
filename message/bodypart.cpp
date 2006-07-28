@@ -592,7 +592,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             c = new Utf8Codec;
         }
 
-        if ( !c->wellformed() && !specified ) {
+        if ( ( !c->wellformed() && !specified ) ||
+             ( !c->valid() && specified ) ) {
             Codec * g = 0;
             if ( ct && ct->subtype() == "html" )
                 g = guessHtmlCodec( body );
@@ -603,8 +604,9 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 guessed = g->toUnicode( body );
             if ( !g ) {
                 // if we couldn't guess anything, keep what we had if
-                // it's valid, else use unknown-8bit.
-                if ( !c->valid() ) {
+                // it's valid or explicitly specified, else use
+                // unknown-8bit.
+                if ( !specified && !c->valid() ) {
                     c = new Unknown8BitCodec;
                     bp->d->text = c->toUnicode( body );
                 }
