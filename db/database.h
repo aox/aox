@@ -20,7 +20,7 @@ public:
         Connecting, Idle, InTransaction, FailedTransaction, Broken
     };
 
-    static void setup();
+    static void setup( int = 3 );
     static void submit( Query * );
     static void submit( List< Query > * );
     static void disconnect();

@@ -345,7 +345,7 @@ void database()
         Configuration::add( "db-address = '" + String( DBADDRESS ) + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
-        Database::setup();
+        Database::setup( 1 );
         d = new Dispatcher;
         dbpass = new String;
         Allocator::addEternal( dbpass, "DBPASS" );
@@ -523,7 +523,7 @@ void database()
         Configuration::setup( "" );
         Configuration::add( "db-user = '" DBUSER "'" );
         Configuration::add( "db-name = '" DBNAME "'" );
-        Database::setup();
+        Database::setup( 1 );
         d->state = 7;
         d->q = new Query( "select relname from pg_catalog.pg_class where "
                           "relname='mailstore'", d );

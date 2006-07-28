@@ -53,12 +53,12 @@ Database::Database()
     to the best of its limited ability (since connection negotiation
     must be left to subclasses). It logs a disaster if it fails.
 
-    It creates a single database handle at startup for now.
+    It creates \a desired database handles (3 by default) at startup.
 
     This function expects to be called from ::main().
 */
 
-void Database::setup()
+void Database::setup( int desired )
 {
     if ( !queries ) {
         queries = new List< Query >;
@@ -96,7 +96,6 @@ void Database::setup()
         return;
     }
 
-    uint desired = 3;
     if ( Configuration::toggle( Configuration::Security ) &&
          srv.protocol() == Endpoint::Unix )
         desired = Configuration::scalar( Configuration::DbMaxHandles );
