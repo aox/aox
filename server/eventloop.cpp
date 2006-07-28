@@ -451,8 +451,9 @@ void EventLoop::flushAll()
 {
     SortedList< Connection >::Iterator it( d->connections );
     while ( it ) {
-        it->write();
+        Connection * c = it;
         ++it;
+        c->write();
     }
 }
 
