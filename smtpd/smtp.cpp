@@ -237,7 +237,6 @@ void SMTP::react( Event e )
     case Connect:
     case Error:
     case Close:
-        close();
         break;
 
     case Shutdown:

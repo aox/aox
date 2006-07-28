@@ -148,11 +148,12 @@ void IMAP::react( Event e )
         break;
 
     case Connect:
+        break;
+
     case Error:
     case Close:
         if ( state() != Logout )
             log( "Unexpected close by client" );
-        Connection::setState( Closing );
         break;
 
     case Shutdown:
