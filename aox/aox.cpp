@@ -210,7 +210,7 @@ int main( int ac, char *av[] )
     else if ( verb == "create" || verb == "delete" ) {
         String noun = next().lower();
 
-        Database::setup();
+        Database::setup( 1 );
 
         if ( verb == "create" && noun == "user" )
             createUser();
@@ -567,7 +567,7 @@ void start()
         if ( chdir( sbin.cstr() ) < 0 )
             error( "Couldn't chdir to SBINDIR (" + sbin + ")" );
 
-        Database::setup();
+        Database::setup( 1 );
 
         d = new Dispatcher( Dispatcher::Start );
         d->query = new Query( "select 42 as test", d );
@@ -816,7 +816,7 @@ void showCounts()
     if ( !d ) {
         end();
 
-        Database::setup();
+        Database::setup( 1 );
 
         d = new Dispatcher( Dispatcher::ShowCounts );
         d->query =
@@ -896,7 +896,7 @@ void showSchema()
     if ( !d ) {
         end();
 
-        Database::setup();
+        Database::setup( 1 );
 
         d = new Dispatcher( Dispatcher::ShowSchema );
         d->query = new Query( "select revision from mailstore", d );
@@ -934,7 +934,7 @@ void upgradeSchema()
         parseOptions();
         end();
 
-        Database::setup();
+        Database::setup( 1 );
 
         bool commit = true;
         if ( opt( 'n' ) > 0 )
@@ -1032,7 +1032,7 @@ void listMailboxes()
     String pattern = next();
     end();
 
-    Database::setup();
+    Database::setup( 1 );
 
     d = new Dispatcher( Dispatcher::ListMailboxes );
 
@@ -1103,7 +1103,7 @@ void listUsers()
     String pattern = next();
     end();
 
-    Database::setup();
+    Database::setup( 1 );
 
     d = new Dispatcher( Dispatcher::ListUsers );
 
@@ -1134,7 +1134,7 @@ void listAliases()
     String pattern = next();
     end();
 
-    Database::setup();
+    Database::setup( 1 );
 
     d = new Dispatcher( Dispatcher::ListAliases );
 
@@ -1292,7 +1292,7 @@ void changePassword()
     String passwd = next();
     end();
 
-    Database::setup();
+    Database::setup( 1 );
 
     if ( login.isEmpty() || passwd.isEmpty() )
         error( "No username and password supplied." );
@@ -1320,7 +1320,7 @@ void changeUsername()
         String newname = next();
         end();
 
-        Database::setup();
+        Database::setup( 1 );
         AddressCache::setup();
 
         if ( name.isEmpty() || newname.isEmpty() )
@@ -1427,7 +1427,7 @@ void changeAddress()
         if ( p.addresses()->count() != 1 )
             error( "At most one address may be present" );
 
-        Database::setup();
+        Database::setup( 1 );
         AddressCache::setup();
 
         d = new Dispatcher( Dispatcher::ChangeAddress );
@@ -1672,7 +1672,7 @@ void vacuum()
         parseOptions();
         end();
 
-        Database::setup();
+        Database::setup( 1 );
         d = new Dispatcher( Dispatcher::Vacuum );
         d->query = new Query( "vacuum analyze", d );
         d->query->execute();
