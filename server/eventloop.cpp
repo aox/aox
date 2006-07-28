@@ -171,6 +171,7 @@ void EventLoop::start()
         SortedList< Connection >::Iterator it( d->connections );
         while ( it ) {
             c = it;
+            ++it;
 
             if ( c->active() &&
                  !( inStartup() && c->type() == Connection::Listener ) )
@@ -184,7 +185,6 @@ void EventLoop::start()
                     timeout = c->timeout();
             }
 
-            ++it;
         }
 
         // Figure out whether any timers need attention soon
@@ -284,12 +284,12 @@ void EventLoop::start()
         it = d->connections.first();
         while ( it ) {
             c = it;
+            ++it;
             int fd = c->fd();
             if ( fd >= 0 )
                 dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
             else
                 removeConnection( c );
-            ++it;
         }
     }
 
@@ -299,16 +299,17 @@ void EventLoop::start()
     log( "Shutting down event loop", Log::Debug );
     SortedList< Connection >::Iterator it( d->connections );
     while ( it ) {
+        Connection * c = it;
+        ++it;
         try {
-            Scope x( it->log() );
-            if ( it->state() == Connection::Connected )
-                it->react( Connection::Shutdown );
-            if ( it->state() == Connection::Connected )
-                it->write();
+            Scope x( c->log() );
+            if ( c->state() == Connection::Connected )
+                c->react( Connection::Shutdown );
+            if ( c->state() == Connection::Connected )
+                c->write();
         } catch ( Exception e ) {
             // we don't really care at this point, do we?
         }
-        ++it;
     }
 
     log( "Event loop stopped", Log::Debug );
@@ -434,12 +435,12 @@ void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 {
     SortedList< Connection >::Iterator it( d->connections );
     while ( it ) {
-        Connection *c = it;
+        Connection * c = it;
+        ++it;
         if ( c != c1 && c != c2 ) {
             removeConnection( c );
             c->close();
         }
-        ++it;
     }
 }
 
