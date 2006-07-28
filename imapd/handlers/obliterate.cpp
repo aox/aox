@@ -37,10 +37,15 @@ void XObliterate::parse()
 
 void XObliterate::execute()
 {
-    if ( n != "whip" ) {
+    String pw = Configuration::text( Configuration::ObliterationPassword );
+    if ( pw.isEmpty() ) {
+        error( Bad, "Obliteration is not available on this server." );
+        return;
+    }
+    else if ( n != pw ) {
         error( No,
-               "Wenn Du zur Fliegenden Archiv gehst, "
-               "vergiss nicht die Peitsche" );
+               "Argument did not match obliteration-password "
+               "(in archiveopteryx.conf)" );
         return;
     }
 
