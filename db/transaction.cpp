@@ -5,6 +5,7 @@
 #include "database.h"
 #include "query.h"
 #include "event.h"
+#include "scope.h"
 #include "list.h"
 
 
@@ -225,5 +226,8 @@ List< Query > *Transaction::queries() const
 
 void Transaction::notify()
 {
+    if ( !d->owner )
+        return;
+    Scope s( d->owner->log() );
     d->owner->execute();
 }

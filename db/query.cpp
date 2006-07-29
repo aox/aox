@@ -363,8 +363,10 @@ EventHandler *Query::owner() const
 void Query::notify()
 {
     // Transactions may create COMMIT/ROLLBACK queries without handlers.
-    if ( d->owner )
-        d->owner->execute();
+    if ( !d->owner )
+        return;
+    Scope s( d->owner->log() );
+    d->owner->execute();
 }
 
 
