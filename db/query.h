@@ -101,6 +101,8 @@ public:
     void addRow( Row * );
     Row *nextRow();
 
+    class Log * log() const;
+
 private:
     class QueryData *d;
 };

@@ -2,13 +2,13 @@
 
 #include "query.h"
 
+#include "log.h"
+#include "event.h"
 #include "scope.h"
 #include "string.h"
 #include "database.h"
-#include "event.h"
 #include "stringlist.h"
 #include "transaction.h"
-#include "log.h"
 
 
 class QueryData
@@ -748,4 +748,30 @@ String Column::typeName( Type type )
         break;
     }
     return n;
+}
+
+
+/*! Returns a pointer to the Log object that's most appropriate to use
+    when logging information pertaining to this Query. This is usually
+    the Log object belonging to the owner().
+*/
+
+class Log * Query::log() const
+{
+    Log * l = 0;
+    if ( d->owner )
+        l = d->owner->log();
+
+    // for some too-common cases, not even that helps. we have to look
+    // for a query in the transaction.
+    if ( !l && d->transaction ) {
+        List<Query>::Iterator i( d->transaction->queries() );
+        while ( i && !l ) {
+            if ( i->owner() )
+                l = i->owner()->log();
+            ++i;
+        }
+    }
+
+    return l;
 }

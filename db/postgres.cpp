@@ -11,9 +11,10 @@
 #include "transaction.h"
 #include "stringlist.h"
 #include "pgmessage.h"
+#include "eventloop.h"
 #include "query.h"
 #include "event.h"
-#include "eventloop.h"
+#include "scope.h"
 #include "md5.h"
 #include "log.h"
 
@@ -166,8 +167,9 @@ void Postgres::processQueue()
     query \a q.
 */
 
-void Postgres::processQuery( Query *q )
+void Postgres::processQuery( Query * q )
 {
+    Scope x( q->log() );
     String s( "Sent " );
     if ( q->name() == "" ||
          !d->prepared.contains( q->name() ) )
@@ -197,7 +199,7 @@ void Postgres::processQuery( Query *q )
     s.append( q->description() );
     s.append( " on backend " );
     s.append( fn( connectionNumber() ) );
-    log( s, Log::Debug );
+    ::log( s, Log::Debug );
     recordExecution();
 }
 
@@ -374,7 +376,10 @@ void Postgres::backendStartup( char type )
 
 void Postgres::process( char type )
 {
-    Query *q = d->queries.firstElement();
+    Query * q = d->queries.firstElement();
+    Scope x;
+    if ( q && q->log() )
+        x.setLog( q->log() );
 
     extendTimeout( 5 );
 
@@ -461,7 +466,7 @@ void Postgres::process( char type )
                     s.append( fn( q->rows() ) );
                     s.append( " rows)" );
                 }
-                log( s, Log::Debug );
+                ::log( s, Log::Debug );
                 if ( !q->done() )
                     q->setState( Query::Completed );
                 q->notify();
@@ -588,7 +593,7 @@ void Postgres::unknown( char type )
                 if ( !q ||
                      !( q->canFail() ||
                         ( q->transaction() && q->transaction()->failed() ) ) )
-                    log( s, Log::Error );
+                    ::log( s, Log::Error );
 
                 // Has the current query failed?
                 if ( q && msg.severity() == PgMessage::Error ) {
@@ -601,7 +606,7 @@ void Postgres::unknown( char type )
                 break;
 
             default:
-                log( msg.message(), Log::Debug );
+                ::log( msg.message(), Log::Debug );
                 break;
             }
         }
@@ -638,7 +643,7 @@ void Postgres::unknown( char type )
 
 void Postgres::error( const String &s )
 {
-    log( s, Log::Error );
+    ::log( s, Log::Error );
 
     d->error = true;
     d->active = false;

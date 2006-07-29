@@ -143,8 +143,10 @@ void IMAP::react( Event e )
             enqueue( "* BYE autologout\r\n" );
         }
         Connection::setState( Closing );
-        if ( d->reader )
+        if ( d->reader ) {
+            Scope s( d->reader->log() );
             d->reader->read();
+        }
         break;
 
     case Connect:
@@ -242,6 +244,7 @@ void IMAP::parse()
         }
         else if ( d->reader ) {
             // If a Command has reserve()d input, we just feed it.
+            Scope s( d->reader->log() );
             d->reader->read();
             if ( d->reader )
                 return;
@@ -511,6 +514,7 @@ void IMAP::runCommands()
                     ++r;
                 Command * c = i;
                 ++i;
+                Scope s( c->log() );
                 if ( c->validIn( d->state ) ) {
                     done = false;
                     c->parse();
@@ -561,6 +565,8 @@ void IMAP::run( Command * c )
 {
     if ( c->state() != Command::Executing )
         return;
+
+    Scope s( c->log() );
 
     if ( c->ok() )
         c->execute();
