@@ -114,7 +114,7 @@ void XObliterate::execute()
                        "deleted='t',owner=null,"
                        "uidvalidity=1,uidnext=1,first_recent=1 "
                        "where (owner=$1 or name like $3||'/%') "
-                       "and id<>$2", this );
+                       "and id<>$2", 0 );
         q->bind( 1, user->id() );
         q->bind( 2, inbox->id() );
         q->bind( 3, user->home()->name() );
@@ -122,7 +122,7 @@ void XObliterate::execute()
 
         q = new Query( "update mailboxes "
                        "set uidnext=1,first_recent=1,uidvalidity=1 "
-                       "where id=$1", this );
+                       "where id=$1", 0 );
         q->bind( 1, inbox->id() );
         t->enqueue( q );
 
@@ -142,8 +142,10 @@ void XObliterate::execute()
                 t->enqueue( m->refresh() );
             }
         }
-        if ( a->done() )
+        if ( a->done() ) {
             t->commit();
+            a = 0;
+        }
     }
 
     if ( t->done() )
