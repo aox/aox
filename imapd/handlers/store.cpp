@@ -116,6 +116,35 @@ void Store::parse()
     }
 
     end();
+
+    if ( !ok() )
+        return;
+    String l( "Store " );
+    l.append( fn( d->s.count() ) );
+    switch( d->op ) {
+    case StoreData::AddFlags:
+        l.append( ": add flags " );
+        l.append( d->flagNames.join( " " ) );
+        break;
+    case StoreData::ReplaceFlags:
+        l.append( ": replace flags " );
+        l.append( d->flagNames.join( " " ) );
+        break;
+    case StoreData::RemoveFlags:
+        l.append( ": remove flags " );
+        l.append( d->flagNames.join( " " ) );
+        break;
+    case StoreData::ReplaceAnnotations:
+        l.append( ": replace annotations" );
+        List<Annotation>::Iterator it( d->annotations );
+        while ( it ) {
+            l.append( " " );
+            l.append( it->entryName()->name() );
+            ++it;
+        }
+        break;
+    }
+    log( l );
 }
 
 

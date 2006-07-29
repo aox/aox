@@ -131,6 +131,9 @@ void Listext::parse()
 
     if ( d->returnPostAddress )
         d->postAddresses = new Map<Address>;
+
+    if ( ok() )
+        log( "List " + d->reference->name() + " " + d->patterns.join( " " ) );
 }
 
 

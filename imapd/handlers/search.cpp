@@ -94,6 +94,7 @@ void Search::parse()
     end();
 
     d->root->simplify();
+    log( "Search for " + d->root->debugString() );
 }
 
 

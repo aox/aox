@@ -43,6 +43,8 @@ void Subscribe::parse()
     space();
     name = astring();
     end();
+    if ( ok() )
+        log( "Subscribe " + name );
 }
 
 

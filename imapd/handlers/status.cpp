@@ -46,9 +46,12 @@ void Status::parse()
     space();
     require( "(" );
 
+    String l( "Status " + d->name + ":" );
     bool atEnd = false;
     while ( !atEnd ) {
         String item = letters( 1, 11 ).lower();
+        l.append( " " );
+        l.append( item );
 
         if ( item == "messages" )
             d->messages = true;
@@ -71,6 +74,8 @@ void Status::parse()
 
     require( ")" );
     end();
+    if ( ok() )
+        log( l );
 }
 
 

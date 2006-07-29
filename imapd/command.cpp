@@ -273,7 +273,7 @@ Command * Command::create( IMAP * imap,
         c->d->canExpunge = true;
 
     c->setLog( new Log( Log::IMAP ) );
-    c->log( "IMAP Command: " + n + " Tag: " + tag, Log::Debug );
+    c->log( "IMAP Command: " + tag + " " + n );
 
     return c;
 }
@@ -548,14 +548,20 @@ void Command::emitResponses()
 
     List< String >::Iterator it( d->responses );
     while ( it ) {
-        if ( !it->startsWith( "* " ) &&
+        String * r = it;
+        ++it;
+        if ( !it &&
              d->canExpunge &&
              imap()->state() == IMAP::Selected &&
              imap()->activeCommands() == 0 &&
              imap()->session()->responsesNeeded() )
             imap()->session()->emitResponses();
-        imap()->enqueue( *it );
-        ++it;
+        imap()->enqueue( *r );
+        if ( !it ) {
+            int i = r->find( ' ' );
+            if ( i >= 0 )
+                log( "Result: " + r->mid( i+1 ) );
+        }
     }
 
     imap()->write();

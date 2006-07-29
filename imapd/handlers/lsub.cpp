@@ -46,6 +46,8 @@ void Lsub::parse()
     space();
     d->pat = listMailbox();
     end();
+    if ( ok() )
+        log( "Lsub " + d->ref->name() + " " + d->pat );
 }
 
 

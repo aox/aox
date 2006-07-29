@@ -137,6 +137,13 @@ COPY is slow
   Inject 11k messages, copy with thunderbird, watch why it fails.
 
 
+imapd/handlers/acl.cpp
+
+  Different tasks, some shared code, same file. Separate this out into
+  different classes inheriting something. Then add the right sort of
+  logging statement to the end of parse().
+
+
 Opera often can't expunge
 
   Trace it once or twice, guess what's wrong.

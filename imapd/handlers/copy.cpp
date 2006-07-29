@@ -58,6 +58,9 @@ void Copy::parse()
     space();
     d->target = astring();
     end();
+    if ( ok() )
+        log( "Will copy " + fn( d->set.count() ) +
+             " messages to " + d->target );
 }
 
 
@@ -212,6 +215,7 @@ void Copy::execute()
                         "uidnext=" + fn( next ) );
     }
 
+         
     MessageSet target;
     target.add( d->firstUid, next - 1 );
     respond( "OK [COPYUID " +

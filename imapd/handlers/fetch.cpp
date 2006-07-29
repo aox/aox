@@ -156,6 +156,21 @@ void Fetch::parse()
     if ( d->body || d->bodystructure )
         d->needBody = true;
     end();
+    if ( !ok() )
+        return;
+    StringList l;
+    l.append( new String( "Fetch " + fn( d->set.count() ) + " messages: " ) );
+    if ( d->needHeader )
+        l.append( "header" );
+    if ( d->needBody )
+        l.append( "body" );
+    if ( d->flags )
+        l.append( "flags" );
+    if ( d->rfc822size || d->internaldate )
+        l.append( "trivia" );
+    if ( d->annotation )
+        l.append( "annotations" );
+    log( l.join( " " ) );
 }
 
 
@@ -549,7 +564,7 @@ void Fetch::execute()
         tmp.add( 1, good );
         d->set.remove( tmp );
     }
-            
+
     // in the case of fetch, we sometimes have thousands of responses,
     // so it's important to push the first responses to the client as
     // quickly as possible.

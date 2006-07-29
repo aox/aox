@@ -116,6 +116,7 @@ bool Expunge::expunge( bool chat )
     }
 
     if ( d->stage == 2 ) {
+        log( "Expunge " + fn( d->uids.count() ) + " messages" );
         Query *q =
             new Query( "delete from messages where "
                        "mailbox=$1 and (" + d->uids.where() + ")",

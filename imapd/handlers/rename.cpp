@@ -83,6 +83,8 @@ void Rename::parse()
     space();
     d->toName = astring();
     end();
+    if ( ok() )
+        log( "Rename from " + d->fromName + " to " + d->toName );
 }
 
 
@@ -148,7 +150,7 @@ void Rename::execute()
             d->t->enqueue( q );
         }
     }
-        
+
     if ( d->renames.isEmpty() ) {
         // 1. the first mailbox
         RenameData::MailboxPair * p = new RenameData::MailboxPair;
@@ -157,7 +159,7 @@ void Rename::execute()
             error( No, "No such mailbox: " + d->fromName );
             return;
         }
-        
+
         p->toName = imap()->mailboxName( d->toName );
         p->toParent = Mailbox::closestParent( p->toName );
         d->process( p, 0 );

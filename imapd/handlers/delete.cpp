@@ -41,6 +41,7 @@ void Delete::parse()
     space();
     d->n = astring();
     end();
+    log( "Delete mailbox: " + d->n );
 }
 
 
