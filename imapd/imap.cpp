@@ -260,9 +260,6 @@ void IMAP::parse()
 void IMAP::addCommand()
 {
     String * s = d->args->first();
-    log( "Received " + fn( (d->args->count() + 1)/2 ) +
-         "-line command: " + *s, Log::Debug );
-
     String tag, command;
 
     // Be kind to the old man Arnt, who cannot unlearn his SMTP habits
@@ -318,6 +315,8 @@ void IMAP::addCommand()
         return;
     }
 
+    Scope x( cmd->log() );
+    ::log( "First line: " + *s, Log::Debug );
     cmd->step( i );
     d->commands.append( cmd );
 }
