@@ -17,6 +17,24 @@ aoximport - import messages into Archiveopteryx.
 .B aoximport
 is used to import messages into Archiveopteryx en masse from other
 mailboxes (mbox, MH, maildir and Cyrus mailboxes are currently supported).
+.SH OPTIONS
+.IP -v
+enables more verbose output. Can be repeated.
+.IP -q
+sets the verbosity to zero.
+.IP -e
+makes
+.B aoximport
+write problem messages to the errors subdirectory. If a message has parse problems,
+.B aoximport
+writes a copy of the message to errors/anonymised if anonymisation
+preserves the error, and to errors/plaintext else. The message is also
+written to the target mailbox, as an attachment to a special error
+message.
+.IP
+The messages in the errors directory may be sent to info@oryx.com, and
+we'll try to find out what the problem is. Please delete
+personal/confidential messages ffrom errors/plaintext first.
 .SH SYNTAX
 In the synopsis above,
 .I mailbox
