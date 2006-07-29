@@ -102,11 +102,13 @@ void OCClient::parse()
         String msg = s->mid( i+1, j-i-1 ).lower().stripCRLF();
         String arg = s->mid( j+1 ).stripCRLF();
 
-        log( "OCClient received " + tag + "/" + msg + " <<" + arg + ">>",
-             Log::Debug );
+        Scope x( new Log( Log::Server ) );
+
+        ::log( "OCClient received " + tag + "/" + msg + " <<" + arg + ">>",
+               Log::Debug );
 
         if ( msg == "shutdown" ) {
-            log( "Shutting down due to ocd request" );
+            ::log( "Shutting down due to ocd request" );
             EventLoop::shutdown();
         }
         else if ( msg == "mailbox" ) {
@@ -144,25 +146,25 @@ void OCClient::updateMailbox( const String & arg )
     i++;
     String mailboxName = arg.mid( 0, i );
     if ( !mailboxName.isQuoted() ) {
-        log( "Mailbox name not quoted: " + mailboxName, Log::Error );
+        ::log( "Mailbox name not quoted: " + mailboxName, Log::Error );
         return;
     }
     Mailbox * m = Mailbox::obtain( mailboxName.unquoted(), true );
     if ( !m ) {
-        log( "Mailbox name syntactically invalid: " + mailboxName.unquoted(),
-             Log::Error );
+        ::log( "Mailbox name syntactically invalid: " + mailboxName.unquoted(),
+               Log::Error );
         return;
     }
 
     String rest = arg.mid( i+1 );
     if ( rest == "new" ) {
-        log( "OCClient announced mailbox " + m->name(), Log::Debug );
+        ::log( "OCClient announced mailbox " + m->name(), Log::Debug );
         m->setDeleted( false );
         m->refresh()->execute();
     }
     else if ( rest == "deleted" ) {
         if ( !m->deleted() )
-            log( "OCClient deleted mailbox " + m->name(), Log::Debug );
+            ::log( "OCClient deleted mailbox " + m->name(), Log::Debug );
         m->setDeleted( true );
         m->refresh()->execute();
     }
@@ -171,18 +173,18 @@ void OCClient::updateMailbox( const String & arg )
         bool ok;
         uint n = rest.mid( 8 ).number( &ok );
         if ( !ok ) {
-            log( "Unable to parse UIDNEXT value: " + rest.mid( 8 ),
-                 Log::Error );
+            ::log( "Unable to parse UIDNEXT value: " + rest.mid( 8 ),
+                   Log::Error );
         }
         else {
             if ( m->uidnext() < n ) {
-                log( "OCClient set mailbox " + m->name() +
-                     " to uidnext " + fn( n ), Log::Debug );
+                ::log( "OCClient set mailbox " + m->name() +
+                       " to uidnext " + fn( n ), Log::Debug );
                 m->setUidnext( n );
             }
         }
     }
     else {
-        log( "Unable to parse mailbox changes: " + rest, Log::Error );
+        ::log( "Unable to parse mailbox changes: " + rest, Log::Error );
     }
 }

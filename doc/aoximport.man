@@ -4,6 +4,7 @@
 aoximport - import messages into Archiveopteryx.
 .SH SYNOPSIS
 .B $BINDIR/aoximport
+[-vqe]
 .I mailbox
 .I type
 .I source-file
@@ -15,7 +16,7 @@ aoximport - import messages into Archiveopteryx.
 .PP
 .B aoximport
 is used to import messages into Archiveopteryx en masse from other
-mailboxes (mbox, MH, and Cyrus mailboxes are currently supported).
+mailboxes (mbox, MH, maildir and Cyrus mailboxes are currently supported).
 .SH SYNTAX
 In the synopsis above,
 .I mailbox
@@ -24,6 +25,7 @@ exist) into which messages are imported.
 .I type
 may be
 .IR mbox ,
+.IR maildir ,
 .IR mh ,
 or
 .IR cyrus .
