@@ -126,6 +126,39 @@ Memory use for common operations
   again... just a bunch of checks. Ignore output.
 
 
+Splitting large fetches
+
+  Fetch might split large fetches into sets of at most x messages,
+  e.g. 256 or 512, to limit the peak amount of memory used to cache
+  messages.
+
+  Fetch 512. Send responses. Drop the memory. Repeat.
+
+  When we start a fetcher, Mailbox would have to return all the
+  Messages. Each Fetcher would have to keep the Messages it's going to
+  write, the Mailbox would keep no pointers, and the Fetch would have
+  pointers to the objects it will need.
+
+  So: Fetch asks Mailbox for the headers of messages 1-300. Mailbox
+  looks around and asks its existing Fetchers whether any of those
+  have pointers to those Messages. It completes the set by creating
+  new Message objects, and tells the HeaderFetcher to fetch the
+  messages for that set.
+
+  When the HeaderFetcher has done so, it notifies the EventHandler,
+  ie. the Fetch, and the Fetch sends responses and may or may not ask
+  for more messages.
+
+  Both Fetch and Fetcher must be careful to drop Message pointers once
+  it has used the objects.
+
+  The GC logic will pick up on the memory use and collect the Message
+  objects speedily. No more 173MB fetches.
+
+  (Opera remains a problem. It sends 'FETCH 1:* FLAG' every minute or
+  so.)
+
+
 Mutt mailbox selection speed
 
   Is better than it was, but we still don't seem to push the responses
