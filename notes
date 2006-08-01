@@ -392,28 +392,6 @@ Caching Messages in Mailbox
   graph.
 
 
-Database::processQuery() hurts performance
-
-  At present, processQuery() sends several queries to one database
-  handle. That's much less than ideal. For example, if an IMAP clients
-  sends 'fetch 1:10000 flags body.peek[header.fields (from to cc subject)]'
-  then we generate two queries, each for 10000 messages, and send both
-  to the same database handle. Only when the second query's answer
-  start coming back do we start sending results to the client.
-
-  It would be better to spread queries across all available
-  handles. Of course that would give sharper load peaks on the DB
-  server.
-
-  Right now, it seems most appropriate to move processQuery() into
-  Database (not virtual) and call the virtual function processQuery(
-  Query * ) to let Postgres send a query.
-
-  (When mutt opens a large mailbox now, its progress counter stays at
-  1 for the longest time, then sprints to max faster than the eye can
-  see.)
-
-
 SASL NTLM authentication
 
   It may be odd and undocumented, and it may not be as strong as
@@ -551,6 +529,9 @@ migrator should work without indices
 
 
 Add Maildir support to the migrator.
+
+  Currently works, with two exceptions: Submaildirs don't work, and
+  courier's extended flags don't work.
 
 
 Get more word lists for Codec::byString( const String & )
@@ -791,13 +772,6 @@ Logging to syslog
   it can't reopen the logfile.
 
 
-aox migrate -n
-
-  'aox migrate -n' could write an 1-2-line description of the first
-  schema upgrade to be done, do it, report whether it failed, then
-  roll the transaction back instead of committing it.
-
-
 aox restart and aox start don't check all they could
 
   Improvements:
@@ -976,7 +950,10 @@ Get rid of FORTRAN typing
 
 VIEW CREATE seems unpredictable
 
-  Occasionally, the \view flag doesn't appear quickly on the created mailbox.
+  Occasionally, the \view flag doesn't appear quickly on the created
+  mailbox. This may be due to OCClient - I recent saw a mailbox update
+  its UIDs very lage (long after append had reported the new UID to
+  the IMAP cleint).
 
 
 Plugins
