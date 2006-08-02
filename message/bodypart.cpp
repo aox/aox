@@ -662,9 +662,21 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     else {
         bp->d->data = body;
         if ( ct->type() != "multipart" && ct->type() != "message" ) {
-            if ( cte ) {
-                if ( cte->encoding() != String::Base64 )
-                    cte->setEncoding( String::Base64 );
+            e = String::Base64;
+            // there may be exceptions. cases where some format really
+            // needs another content-transfer-encoding:
+            if ( ct->type() == "application" &&
+                 ct->subtype() == "pgp-encrypted" ) {
+                // seems some PGP things need "Version: 1" unencoded
+                e = String::Binary;
+            }
+            // change c-t-e to match the encoding decided above
+            if ( e == String::Binary ) {
+                h->removeField( HeaderField::ContentTransferEncoding );
+                cte = 0;
+            }
+            else if ( cte ) {
+                cte->setEncoding( e );
             }
             else {
                 h->add( "Content-Transfer-Encoding", "base64" );
