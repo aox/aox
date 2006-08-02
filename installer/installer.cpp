@@ -365,20 +365,13 @@ void database()
             return;
         }
         else {
-            String s( r->getString( "version" ) );
-
-            int start = 0;
-            if ( s.startsWith( "PostgreSQL " ) )
-                start = 11;
-            else if ( s.startsWith( "EnterpriseDB " ) )
-                start = 13;
-
-            int n = s.find( ' ', start );
-            String v( s.mid( start, n-start ) );
-
-            if ( start == 0 || n < 0 ||
-                 ( v.startsWith( "7" ) && !v.startsWith( "7.4" ) ) ||
-                 v == "7.4.0" || v == "7.4.1" || !v.startsWith( "8" ) )
+            String v = r->getString( "version" ).simplified().section( " ", 2 );
+            if ( v.isEmpty() )
+                v = r->getString( "version" );
+            uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
+                           100 * v.section( ".", 2 ).number( &ok ) +
+                           v.section( ".", 3 ).number( &ok );
+            if ( version < 70402 )
             {
                 fprintf( stderr, "Archiveopteryx requires PostgreSQL 7.4.2 "
                          "or higher (found only '%s').\n", v.cstr() );
@@ -386,7 +379,7 @@ void database()
                 return;
             }
 
-            if ( v.startsWith( "7" ) || v.startsWith( "8.0" ) )
+            if ( version < 80100 )
                 fprintf( stderr, "Note: Starting May 2007, Archiveopteryx "
                          "will require PostgreSQL 8.1.0 or\nhigher. Please "
                          "upgrade the running server (%s) at your "

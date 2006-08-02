@@ -318,6 +318,32 @@ int String::find( const String & s, int i ) const
 }
 
 
+/*! Returns section \a n of this string, where a section is defined as
+    a run of sequences separated by \a s. If \a s is the empty string
+    or \a n is 0, section() returns this entire string. If this string
+    contains fewer instances of \a s than \a n (ie. section \a n is
+    after the end of the string), section returns an empty string.
+*/
+
+String String::section( const String & s, uint n )
+{
+    if ( s.isEmpty() || n == 0 )
+        return *this;
+
+    int b = 0;
+    while ( n && b <= (int)length() ) {
+        int e = find( s, b );
+        if ( e < 0 )
+            e = length();
+        if ( n == 1 )
+            return mid( b, e - b );
+        n--;
+        b = e + s.length();
+    }
+    return "";
+}
+
+
 /*! Appends \a other to this string. */
 
 void String::append( const String & other )

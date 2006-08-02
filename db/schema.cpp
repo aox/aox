@@ -127,16 +127,8 @@ void Schema::execute()
 
         Row *r = d->lock->nextRow();
         if ( r ) {
-            String s( r->getString( "version" ) );
-
-            int start = 0;
-            if ( s.startsWith( "PostgreSQL " ) )
-                start = 11;
-            else if ( s.startsWith( "EnterpriseDB " ) )
-                start = 13;
-
-            int n = s.find( ' ', start );
-            d->version = s.mid( start, n-start );
+            d->version 
+                = r->getString( "version" ).simplified().section( " ", 2 );
             d->revision = r->getInt( "revision" );
         }
 

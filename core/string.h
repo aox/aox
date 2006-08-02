@@ -83,6 +83,7 @@ public:
     int find( const String &, int=0 ) const;
     bool contains( const String & ) const;
     bool contains( const char ) const;
+    String section( const String &, uint );
 
     void append( char );
     void appendNumber( int, int = 10 );
