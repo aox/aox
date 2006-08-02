@@ -366,10 +366,17 @@ void database()
         }
         else {
             String s( r->getString( "version" ) );
-            int n = s.find( ' ', 11 );
-            String v( s.mid( 11, n-11 ) );
 
-            if ( !s.startsWith( "PostgreSQL" ) || n < 0 ||
+            int start = 0;
+            if ( s.startsWith( "PostgreSQL " ) )
+                start = 11;
+            else if ( s.startsWith( "EnterpriseDB " ) )
+                start = 13;
+
+            int n = s.find( ' ', start );
+            String v( s.mid( start, n-start ) );
+
+            if ( start == 0 || n < 0 ||
                  ( v.startsWith( "7" ) && !v.startsWith( "7.4" ) ) ||
                  v == "7.4.0" || v == "7.4.1" || !v.startsWith( "8" ) )
             {
