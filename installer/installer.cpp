@@ -368,22 +368,23 @@ void database()
             String v = r->getString( "version" ).simplified().section( " ", 2 );
             if ( v.isEmpty() )
                 v = r->getString( "version" );
+            bool ok = true;
             uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
                            100 * v.section( ".", 2 ).number( &ok ) +
                            v.section( ".", 3 ).number( &ok );
-            if ( version < 70402 )
+            if ( !ok || version < 70402 )
             {
                 fprintf( stderr, "Archiveopteryx requires PostgreSQL 7.4.2 "
                          "or higher (found only '%s').\n", v.cstr() );
                 EventLoop::shutdown();
                 return;
             }
-
-            if ( version < 80100 )
+            else if ( version < 80100 ) {
                 fprintf( stderr, "Note: Starting May 2007, Archiveopteryx "
                          "will require PostgreSQL 8.1.0 or\nhigher. Please "
                          "upgrade the running server (%s) at your "
                          "convenience.\n", v.cstr() );
+            }
 
             d->q = new Query( "select usename from pg_catalog.pg_user where "
                               "usename=$1", d );
