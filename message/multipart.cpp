@@ -119,6 +119,11 @@ void Multipart::appendAnyPart( String &r, const Bodypart * bp,
                                ContentType * ct ) const
 {
     ContentType * childct = bp->header()->contentType();
+    String::Encoding e = String::Binary;
+    ContentTransferEncoding * cte
+        = bp->header()->contentTransferEncoding();
+    if ( cte )
+        e = cte->encoding();
 
     if ( ( childct && childct->type() == "message" ) ||
          ( ct && ct->type() == "multipart" && ct->subtype() == "digest" &&
@@ -136,7 +141,7 @@ void Multipart::appendAnyPart( String &r, const Bodypart * bp,
         bp->appendMultipart( r );
     }
     else {
-        r.append( bp->data().e64( 72 ) );
+        r.append( bp->data().encode( e, 72 ) );
     }
 }
 
