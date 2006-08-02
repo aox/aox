@@ -666,8 +666,16 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             // there may be exceptions. cases where some format really
             // needs another content-transfer-encoding:
             if ( ct->type() == "application" &&
-                 ct->subtype() == "pgp-encrypted" ) {
+                 ct->subtype() == "pgp-encrypted" &&
+                 !body.needsQP() ) {
                 // seems some PGP things need "Version: 1" unencoded
+                e = String::Binary;
+            }
+            else if ( ct->type() == "application" &&
+                      ct->subtype() == "octet-stream" &&
+                      !body.needsQP() &&
+                      body.contains( "BEGIN PGP MESSAGE" ) ) {
+                // mutt cannot handle PGP in base64 (what a crock)
                 e = String::Binary;
             }
             // change c-t-e to match the encoding decided above
@@ -687,9 +695,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
 
     bp->d->numBytes = body.length();
     if ( cte )
-        body = body.encode( cte->encoding() );
-    // XXX: if cte->encoding() is base64, this encodes without
-    // CRLF. that seems rather suboptimal.
+        body = body.encode( cte->encoding(), 72 );
     bp->d->numEncodedBytes = body.length();
 
     if ( bp->d->hasText ||
