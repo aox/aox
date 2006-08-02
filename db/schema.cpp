@@ -127,13 +127,17 @@ void Schema::execute()
 
         Row *r = d->lock->nextRow();
         if ( r ) {
-            d->revision = r->getInt( "revision" );
-            // We'll blithely assume that "select version()" returns a
-            // string that begins with "PostgreSQL x.y.z " and extract
-            // the "x.y.z" part for version().
             String s( r->getString( "version" ) );
-            int n = s.find( ' ', 11 );
-            d->version = s.mid( 11, n-11 );
+
+            int start = 0;
+            if ( s.startsWith( "PostgreSQL " ) )
+                start = 11;
+            else if ( s.startsWith( "EnterpriseDB " ) )
+                start = 13;
+
+            int n = s.find( ' ', start );
+            d->version = s.mid( start, n-start );
+            d->revision = r->getInt( "revision" );
         }
 
         if ( !r || d->lock->failed() ) {
@@ -781,24 +785,10 @@ bool Schema::stepTo10()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Altering mailboxes_owner_fkey.", Log::Debug );
-        d->q = new Query( "select version()", this );
-        d->t->enqueue( d->q );
-        d->t->execute();
-        d->substate = 1;
-    }
-
-    if ( d->substate == 1 ) {
-        if ( !d->q->done() )
-            return false;
 
         String constraint = "mailboxes_owner_fkey";
-
-        Row * r = d->q->nextRow();
-        if ( r ) {
-            String version = r->getString( "version" );
-            if ( version.startsWith( "PostgreSQL 7" ) )
-                constraint = "$1";
-        }
+        if ( d->version.startsWith( "7" ) )
+            constraint = "$1";
 
         d->q = new Query( "alter table mailboxes drop constraint "
                           "\"" + constraint + "\"", this );
@@ -809,10 +799,10 @@ bool Schema::stepTo10()
                           "on delete cascade", this );
         d->t->enqueue( d->q );
         d->t->execute();
-        d->substate = 2;
+        d->substate = 1;
     }
 
-    if ( d->substate == 2 ) {
+    if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
@@ -958,26 +948,12 @@ bool Schema::stepTo15()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Altering subscriptions_owner_fkey.", Log::Debug );
-        d->q = new Query( "select version()", this );
-        d->t->enqueue( d->q );
-        d->t->execute();
-        d->substate = 1;
-    }
-
-    if ( d->substate == 1 ) {
-        if ( !d->q->done() )
-            return false;
 
         String ca( "subscriptions_owner_fkey" );
         String cb( "annotations_owner_fkey" );
-
-        Row * r = d->q->nextRow();
-        if ( r ) {
-            String version = r->getString( "version" );
-            if ( version.startsWith( "PostgreSQL 7" ) ) {
-                ca = "$1";
-                cb = "$1";
-            }
+        if ( d->version.startsWith( "7" ) ) {
+            ca = "$1";
+            cb = "$1";
         }
 
         d->q = new Query( "alter table subscriptions drop constraint "
@@ -997,10 +973,10 @@ bool Schema::stepTo15()
                           "on delete cascade", this );
         d->t->enqueue( d->q );
         d->t->execute();
-        d->substate = 2;
+        d->substate = 1;
     }
 
-    if ( d->substate == 2 ) {
+    if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
