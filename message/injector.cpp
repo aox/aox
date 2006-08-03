@@ -16,6 +16,7 @@
 #include "addressfield.h"
 #include "addresscache.h"
 #include "transaction.h"
+#include "annotation.h"
 #include "recipient.h"
 #include "allocator.h"
 #include "occlient.h"
@@ -127,6 +128,7 @@ public:
     };
 
     List<Flag> flags;
+    List<Annotation> annotations;
 };
 
 
@@ -312,7 +314,23 @@ void Injector::setFlags( const StringList & flags )
 
 void Injector::setAnnotations( const List<Annotation> * annotations )
 {
-    annotations = 0;
+    List<Annotation>::Iterator it( annotations );
+    while ( it ) {
+        Annotation * a = it;
+
+        List<Annotation>::Iterator at( d->annotations );
+        while ( at && 
+                ( at->ownerId() != a->ownerId() ||
+                  at->entryName()->name() != a->entryName()->name() ) )
+            ++at;
+
+        if ( at )
+            at->setValue( a->value() );
+        else
+            d->annotations.append( a );
+
+        ++it;
+    }
 }
 
 
