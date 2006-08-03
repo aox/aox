@@ -286,10 +286,14 @@ void EventLoop::start()
             c = it;
             ++it;
             int fd = c->fd();
-            if ( fd >= 0 )
+            if ( fd >= 0 ) {
                 dispatch( c, FD_ISSET( fd, &r ), FD_ISSET( fd, &w ), now );
-            else
+                FD_CLR( fd, &r );
+                FD_CLR( fd, &w );
+            }
+            else {
                 removeConnection( c );
+            }
         }
     }
 
