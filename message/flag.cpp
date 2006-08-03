@@ -46,7 +46,7 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
     // harmless, though, since the reader checks whether such a flag
     // exists.
     d->q = new Query( "select id,name from flag_names "
-                      "where id>=$1 order by id",
+                      "where id>=$1",
                       this );
     d->q->bind( 1, ::largestFlagId );
     d->q->execute();
