@@ -1229,13 +1229,11 @@ DSN * Injector::dsn()
     dsn->setMessage( d->message );
     dsn->setFullReport( true );
 
-    /*
     List<Recipient>::Iterator it( d->recipients );
     while ( it ) {
         dsn->addRecipient( it );
         ++it;
     }
-    */
 
     return dsn;
 }
