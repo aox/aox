@@ -305,6 +305,17 @@ void Injector::setFlags( const StringList & flags )
 }
 
 
+/*! Instructs the Injector to create the specified IMAP \a annotations
+    on the newly injected message. If this function is not called, no
+    annotations will be created.
+*/
+
+void Injector::setAnnotations( const List<Annotation> * annotations )
+{
+    annotations = 0;
+}
+
+
 /*! Returns a pointer to the SortedList of Recipients that this Injector
     has been given via setRecipients() (or 0 if none were specified).
 */

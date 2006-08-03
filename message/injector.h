@@ -14,6 +14,7 @@ class Mailbox;
 class Bodypart;
 class Recipient;
 class StringList;
+class Annotation;
 
 
 class Injector
@@ -33,6 +34,7 @@ public:
     void setRecipient( Recipient * );
     void setRecipients( SortedList<Recipient> * );
     void setFlags( const StringList & );
+    void setAnnotations ( const List<Annotation> * );
 
     SortedList<Recipient> * recipients() const;
 
