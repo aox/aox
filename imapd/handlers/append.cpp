@@ -2,16 +2,18 @@
 
 #include "append.h"
 
+#include "user.h"
 #include "date.h"
-#include "imap.h"
-#include "list.h"
 #include "query.h"
-#include "string.h"
-#include "message.h"
 #include "mailbox.h"
+#include "annotation.h"
 #include "imapsession.h"
 #include "recipient.h"
 #include "injector.h"
+#include "message.h"
+#include "string.h"
+#include "imap.h"
+#include "list.h"
 
 
 class AppendData
@@ -20,7 +22,7 @@ class AppendData
 public:
     AppendData()
         : mailbox( 0 ), message( 0 ), injector( 0 ),
-          permissions( 0 )
+          permissions( 0 ), annotations( 0 )
     {}
 
     Date date;
@@ -30,6 +32,7 @@ public:
     Injector * injector;
     StringList flags;
     Permissions * permissions;
+    List<Annotation> * annotations;
 };
 
 
@@ -103,6 +106,75 @@ void Append::parse()
             error( Bad, "Date supplied is not valid" );
     }
 
+    if ( present( "ANNOTATION " ) ) {
+        d->annotations = new List<Annotation>;
+        require( "(" );
+
+        bool entriesDone = false;
+
+        do {
+            String entry( astring() );
+            if ( entry.startsWith( "/flags/" ) || entry.contains( "//" ) ||
+                 entry.contains( "*" ) || entry.contains( "%" ) ||
+                 entry.endsWith( "/" ) )
+            {
+                error( Bad, "Invalid annotation entry name: " + entry );
+                return;
+            }
+
+            AnnotationName * n = AnnotationName::find( entry );
+            if ( !n )
+                n = new AnnotationName( entry );
+
+            space();
+            require( "(" );
+            bool attribsDone = false;
+            do {
+                int oid;
+
+                String attrib( astring() );
+                if ( attrib.lower() == "value.priv" ) {
+                    oid = imap()->user()->id();
+                }
+                else if ( attrib.lower() == "value.shared" ) {
+                    oid = 0;
+                }
+                else {
+                    error( Bad, "Invalid annotation attribute: " + attrib );
+                    return;
+                }
+
+                space();
+
+                if ( present( "nil" ) ) {
+                    // We don't need to store this at all.
+                }
+                else {
+                    Annotation * a = new Annotation;
+                    a->setEntryName( n );
+                    a->setOwnerId( oid );
+                    a->setValue( string() );
+                    d->annotations->append( a );
+                }
+
+                if ( nextChar() == ' ' )
+                    space();
+                else
+                    attribsDone = true;
+            }
+            while ( !attribsDone );
+            require( ")" );
+            if ( nextChar() == ' ' )
+                space();
+            else
+                entriesDone = true;
+        }
+        while ( !entriesDone );
+
+        require( ")" );
+        space();
+    }
+
     d->message = new Message( literal() );
     d->message->setInternalDate( d->date.unixTime() );
     if ( !d->message->valid() )
@@ -155,6 +227,7 @@ void Append::execute()
         d->injector = new Injector( d->message, this );
         d->injector->setRecipient( new Recipient( d->mailbox ) );
         d->injector->setFlags( d->flags );
+        d->injector->setAnnotations( d->annotations );
         d->injector->execute();
     }
 
