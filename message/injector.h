@@ -26,7 +26,7 @@ public:
 
     enum State {
         Inactive, InsertingBodyparts, SelectingUids, InsertingMessages,
-        LinkingFields, LinkingFlags, LinkingAddresses,
+        LinkingFields, LinkingFlags, LinkingAnnotations, LinkingAddresses,
         
         AwaitingCompletion, Done
     };
@@ -70,7 +70,9 @@ private:
     void linkAddresses();
     void linkDates();
     void createFlags();
+    void createAnnotationNames();
     void linkFlags();
+    void linkAnnotations();
     void logMessageDetails();
 };
 

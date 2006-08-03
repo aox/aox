@@ -36,6 +36,7 @@ static PreparedStatement *incrUidnext;
 static PreparedStatement *idBodypart;
 static PreparedStatement *intoBodyparts;
 static PreparedStatement *insertFlag;
+static PreparedStatement *insertAnnotation;
 
 
 // These structs represent one part of each entry in the header_fields
@@ -223,6 +224,13 @@ void Injector::setup()
             "values ($1,$2,$3)"
         );
     Allocator::addEternal( insertFlag, "insertFlag" );
+
+    insertAnnotation =
+        new PreparedStatement(
+            "insert into annotations (mailbox,uid,name,value,owner) "
+            "values ($1,$2,$3,$4,$5)"
+        );
+    Allocator::addEternal( insertAnnotation, "insertAnnotation" );
 }
 
 
@@ -416,6 +424,7 @@ void Injector::execute()
         // concomitant selects go inside.
         insertBodyparts();
         createFlags();
+        createAnnotationNames();
 
         d->state = InsertingBodyparts;
     }
@@ -488,6 +497,23 @@ void Injector::execute()
             ++i;
         }
         linkFlags();
+        d->state = LinkingAnnotations;
+    }
+
+    if ( d->state == LinkingAnnotations ) {
+        List<Annotation>::Iterator i( d->annotations );
+        while ( i ) {
+            if ( i->entryName()->id() == 0 ) {
+                AnnotationName * n;
+                n = AnnotationName::find( i->entryName()->name() );
+                if ( n->id() != 0 )
+                    i->setEntryName( n );
+            }
+            if ( i->entryName()->id() == 0 )
+                return;
+            ++i;
+        }
+        linkAnnotations();
         d->state = LinkingAddresses;
     }
 
@@ -1128,6 +1154,25 @@ void Injector::createFlags()
 }
 
 
+/*! Creates the AnnotationName objects needed to create the annotation
+    entries specified with setAnnotations().
+*/
+
+void Injector::createAnnotationNames()
+{
+    StringList unknown;
+    List<Annotation>::Iterator it( d->annotations );
+    while ( it ) {
+        if ( !it->entryName()->id() )
+            unknown.append( it->entryName()->name() );
+        ++it;
+    }
+
+    if ( !unknown.isEmpty() )
+        (void)new AnnotationNameCreator( this, unknown );
+}
+
+
 /*! Inserts the flag table entries linking flag_names to the
     mailboxes/uids we occupy.
 */
@@ -1146,6 +1191,31 @@ void Injector::linkFlags()
             ++m;
         }
         ++i;
+    }
+}
+
+
+/*! Inserts the appropriate entries into the annotations table. */
+
+void Injector::linkAnnotations()
+{
+    List<Annotation>::Iterator it( d->annotations );
+    while ( it ) {
+        List<ObjectId>::Iterator m( d->mailboxes );
+        while ( m ) {
+            Query * q = new Query( *insertAnnotation, this );
+            q->bind( 1, m->mailbox->id() );
+            q->bind( 2, m->id );
+            q->bind( 3, it->entryName()->id() );
+            q->bind( 4, it->value() );
+            if ( it->ownerId() == 0 )
+                q->bindNull( 5 );
+            else
+                q->bind( 5, it->ownerId() );
+            d->transaction->enqueue( q );
+            ++m;
+        }
+        ++it;
     }
 }
 
