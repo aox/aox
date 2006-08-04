@@ -176,7 +176,7 @@ void * DictBase::take( const String & s )
     This code uses the algorithm djb described on comp.lang.c in 1990,
     message-id <6429:Dec500:37:2890@kramden.acf.nyu.edu>.
 
-    http://www.cs.yorku.ca/~oz/hash.html contains a good overview of
+    http://www.cse.yorku.ca/~oz/hash.html contains a good overview of
     simple hash functions.
 */
 
