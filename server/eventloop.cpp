@@ -42,7 +42,7 @@ public:
     Log *log;
     bool startup;
     bool stop;
-    SortedList< Connection > connections;
+    List< Connection > connections;
     List< Timer > timers;
 };
 
@@ -108,7 +108,7 @@ void EventLoop::addConnection( Connection * c )
         // if we're going to be silent, let's be honest about it
         return;
 
-    d->connections.insert( c );
+    d->connections.prepend( c );
     if ( c->type() != Connection::LogClient )
         log( "Added " + c->description(), Log::Debug );
 }
@@ -159,8 +159,6 @@ void EventLoop::start()
 
         uint timeout = INT_MAX;
         int maxfd = -1;
-        if ( d->connections.count() > 0 )
-            maxfd = d->connections.last()->fd();
 
         fd_set r, w;
         FD_ZERO( &r );
@@ -168,7 +166,7 @@ void EventLoop::start()
 
         // Figure out what events each connection wants.
 
-        SortedList< Connection >::Iterator it( d->connections );
+        List< Connection >::Iterator it( d->connections );
         while ( it ) {
             c = it;
             ++it;
@@ -177,6 +175,8 @@ void EventLoop::start()
                  !( inStartup() && c->type() == Connection::Listener ) )
             {
                 int fd = c->fd();
+                if ( fd > maxfd )
+                    maxfd = fd;
                 if ( c->canRead() && c->state() != Connection::Closing )
                     FD_SET( fd, &r );
                 if ( c->canWrite() || c->state() == Connection::Connecting )
@@ -219,7 +219,7 @@ void EventLoop::start()
                 // one of the FDs was closed. we react by forgetting
                 // that connection, letting the rest of the server go
                 // on.
-                SortedList< Connection >::Iterator it( d->connections );
+                List< Connection >::Iterator it( d->connections );
                 while ( it ) {
                     Connection * c = it;
                     ++it;
@@ -231,7 +231,7 @@ void EventLoop::start()
                         if ( c->state() == Connection::Closing ) {
                             // if a socket is closed by the peer while
                             // we're trying to close it, we smile and
-                            // and go on our way.
+                            // go on our way.
                         }
                         else {
                             c->log( "Socket " + fn( c->fd() ) +
@@ -301,7 +301,7 @@ void EventLoop::start()
     // shutdown should first get rid of listeners, then a (long)
     // while later call this.
     log( "Shutting down event loop", Log::Debug );
-    SortedList< Connection >::Iterator it( d->connections );
+    List< Connection >::Iterator it( d->connections );
     while ( it ) {
         Connection * c = it;
         ++it;
@@ -437,7 +437,7 @@ void EventLoop::stop()
 
 void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 {
-    SortedList< Connection >::Iterator it( d->connections );
+    List< Connection >::Iterator it( d->connections );
     while ( it ) {
         Connection * c = it;
         ++it;
@@ -453,7 +453,7 @@ void EventLoop::closeAllExcept( Connection * c1, Connection * c2 )
 
 void EventLoop::flushAll()
 {
-    SortedList< Connection >::Iterator it( d->connections );
+    List< Connection >::Iterator it( d->connections );
     while ( it ) {
         Connection * c = it;
         ++it;

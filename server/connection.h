@@ -84,10 +84,6 @@ public:
 
     static int socket( Endpoint::Protocol );
 
-    bool operator <=( const Connection &b ) {
-        return fd() <= b.fd();
-    }
-
     Log * log() const;
     void log( const String &, Log::Severity = Log::Info );
     void commit( Log::Severity = Log::Info );
