@@ -2,6 +2,7 @@
 
 #include "scope.h"
 
+#include "allocator.h"
 #include "global.h"
 #include "log.h"
 
@@ -13,18 +14,18 @@ Scope * currentScope = 0;
     A mechanism to save and restore context between scopes.
 
     A scope allows parts of the code to change global state (such as the
-    current arena) during execution, and restore it afterwards. Objects
+    current log) during execution, and restore it afterwards. Objects
     of this class should be declared as automatic variables so that the
     destructor is called when execution leaves the lexical scope.
 
-    Note that the root scope must be declared with an explicit arena, or
-    the global allocator will fail shortly thereafter.
+    Note that the root scope must be declared with an explicit log, or
+    the first logging statement will fail.
 */
 
 
 /*! Creates and enters a new scope that shares all the attributes of
     its enclosing scope. If there is no current scope, the new scope
-    has neither arena nor log.
+    has no log.
 
     The new scope is made current.
 */
@@ -34,7 +35,7 @@ Scope::Scope()
 {
     currentScope = this;
     if ( parent )
-        currentLog = parent->log();
+        setLog( parent->log() );
 }
 
 
@@ -46,7 +47,7 @@ Scope::Scope( Log *l )
     : parent( currentScope ), currentLog( 0 )
 {
     currentScope = this;
-    currentLog = l;
+    setLog( l );
 }
 
 
@@ -59,6 +60,7 @@ Scope::Scope( Log *l )
 
 Scope::~Scope()
 {
+    setLog( 0 );
     if ( currentScope == this )
         currentScope = parent;
     else
@@ -93,7 +95,12 @@ Log *Scope::log() const
 
 void Scope::setLog( Log *l )
 {
+    if ( currentLog )
+        Allocator::removeEternal( currentLog );
     currentLog = l;
+    if ( currentLog )
+        Allocator::addEternal( currentLog,
+                               "a log object referred to by Scope" );
 }
 
 
