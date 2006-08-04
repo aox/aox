@@ -184,7 +184,7 @@ void SmtpDbClient::execute()
                                               d->id );
 
         injector = new Injector( m, this );
-        injector->setRecipients( d->injector->recipients() );
+        injector->setMailboxes( d->injector->mailboxes() );
         d->injectorError = d->injector->error();
         d->injector = injector;
         injector->execute();
@@ -763,16 +763,16 @@ void SMTP::inject()
     Message * m = new Message( d->body );
     m->setInternalDate( now.unixTime() );
 
-    SortedList<Recipient> * recipients = new SortedList<Recipient>;
+    SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
     List<Recipient>::Iterator it( d->to );
     while ( it ) {
-        recipients->insert( it );
+        mailboxes->insert( it->mailbox() );
         ++it;
     }
 
     d->helper = new SmtpDbClient( this, d );
     d->injector = new Injector( m, d->helper );
-    d->injector->setRecipients( recipients );
+    d->injector->setMailboxes( mailboxes );
     d->helper->injector = d->injector;
     d->injector->execute();
 }

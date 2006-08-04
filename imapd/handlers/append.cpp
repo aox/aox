@@ -225,7 +225,7 @@ void Append::execute()
 
     if ( !d->injector ) {
         d->injector = new Injector( d->message, this );
-        d->injector->setRecipient( new Recipient( d->mailbox ) );
+        d->injector->setMailbox( d->mailbox );
         d->injector->setFlags( d->flags );
         d->injector->setAnnotations( d->annotations );
         d->injector->execute();

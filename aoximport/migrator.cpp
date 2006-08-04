@@ -500,7 +500,7 @@ void MailboxMigrator::execute()
         Scope x( new Log( Log::General ) );
         log( "Starting migration of message " + d->message->description() );
         d->injector = new Injector( d->message->message(), this );
-        d->injector->setRecipient( new Recipient( d->destination ) );
+        d->injector->setMailbox( d->destination );
         d->injector->setFlags( d->message->flags() );
         d->injector->setLog( x.log() );
         d->injector->execute();

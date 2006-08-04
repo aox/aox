@@ -12,7 +12,6 @@ class Header;
 class Message;
 class Mailbox;
 class Bodypart;
-class Recipient;
 class StringList;
 class Annotation;
 
@@ -31,12 +30,10 @@ public:
         AwaitingCompletion, Done
     };
 
-    void setRecipient( Recipient * );
-    void setRecipients( SortedList<Recipient> * );
+    void setMailbox( Mailbox * );
+    void setMailboxes( SortedList<Mailbox> * );
     void setFlags( const StringList & );
     void setAnnotations ( const List<Annotation> * );
-
-    SortedList<Recipient> * recipients() const;
 
     bool done() const;
     bool failed() const;
@@ -48,7 +45,7 @@ public:
 
     Message * message() const;
 
-    class DSN * dsn();
+    SortedList<Mailbox> * mailboxes() const;
 
 private:
     class InjectorData *d;

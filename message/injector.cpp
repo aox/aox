@@ -17,7 +17,6 @@
 #include "addresscache.h"
 #include "transaction.h"
 #include "annotation.h"
-#include "recipient.h"
 #include "allocator.h"
 #include "occlient.h"
 #include "scope.h"
@@ -85,7 +84,6 @@ public:
         : state( Injector::Inactive ), failed( false ),
           owner( 0 ), message( 0 ), transaction( 0 ),
           beforeTransaction( 0 ),
-          recipients( 0 ),
           mailboxes( 0 ), bodyparts( 0 ),
           uidHelper( 0 ), bidHelper( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
@@ -100,8 +98,6 @@ public:
     Message *message;
     Transaction *transaction;
     List<Query> * beforeTransaction;
-
-    SortedList< Recipient > * recipients;
 
     // The *idHelpers fill in the IDs corresponding to each Object in
     // these lists.
@@ -238,7 +234,7 @@ void Injector::setup()
     the \a owner, which is notified when the injection is completed.
     Message delivery commences when the execute() function is called.
 
-    The caller must call setRecipient() or setRecipients() to tell the
+    The caller must call setMailbox() or setMailboxes() to tell the
     Injector where to deliver the message.
 */
 
@@ -249,6 +245,13 @@ Injector::Injector( Message * message, EventHandler * owner )
         setup();
     d->owner = owner;
     d->message = message;
+
+    d->bodyparts = new List< ObjectId >;
+    List< Bodypart >::Iterator bi( d->message->allBodyparts() );
+    while ( bi ) {
+        d->bodyparts->append( new ObjectId( 0, bi ) );
+        ++bi;
+    }
 }
 
 
@@ -260,39 +263,29 @@ Injector::~Injector()
 
 
 /*! Instructs this Injector to deliver the message to the list of
-    Recipients specified in \a r, all of which are assumed to have
-    a Recipient::mailbox() defined.
+    Mailboxes specified in \a m.
 */
 
-void Injector::setRecipients( SortedList<Recipient> * r )
+void Injector::setMailboxes( SortedList<Mailbox> * m )
 {
-    d->recipients = r;
-
     d->mailboxes = new List< ObjectId >;
-    SortedList<Recipient>::Iterator mi( d->recipients );
+    SortedList<Mailbox>::Iterator mi( m );
     while ( mi ) {
-        d->mailboxes->append( new ObjectId( mi->mailbox(), 0 ) );
+        d->mailboxes->append( new ObjectId( mi, 0 ) );
         ++mi;
-    }
-
-    d->bodyparts = new List< ObjectId >;
-    List< Bodypart >::Iterator bi( d->message->allBodyparts() );
-    while ( bi ) {
-        d->bodyparts->append( new ObjectId( 0, bi ) );
-        ++bi;
     }
 }
 
 
 /*! This function is provided for the convenience of the callers who
-    only ever need to specify a single message Recipient \a r.
+    only ever need to specify a single target Mailbox \a m.
 */
 
-void Injector::setRecipient( Recipient * r )
+void Injector::setMailbox( Mailbox * m )
 {
-    SortedList< Recipient > * l = new SortedList< Recipient >;
-    l->append( r );
-    setRecipients( l );
+    SortedList<Mailbox> * l = new SortedList<Mailbox>;
+    l->insert( m );
+    setMailboxes( l );
 }
 
 
@@ -339,16 +332,6 @@ void Injector::setAnnotations( const List<Annotation> * annotations )
 
         ++it;
     }
-}
-
-
-/*! Returns a pointer to the SortedList of Recipients that this Injector
-    has been given via setRecipients() (or 0 if none were specified).
-*/
-
-SortedList<Recipient> * Injector::recipients() const
-{
-    return d->recipients;
 }
 
 
@@ -1220,20 +1203,18 @@ void Injector::linkAnnotations()
 }
 
 
-/*! Returns a newly-constructed DSN object for this injection. */
+/*! Returns a pointer to a SortedList of the mailboxes that this
+    Injector was instructed to deliver to with setMailboxes().
+*/
 
-DSN * Injector::dsn()
+SortedList<Mailbox> * Injector::mailboxes() const
 {
-    DSN * dsn = new DSN;
-
-    dsn->setMessage( d->message );
-    dsn->setFullReport( true );
-
-    List<Recipient>::Iterator it( d->recipients );
+    SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
+    List<ObjectId>::Iterator it( d->mailboxes );
     while ( it ) {
-        dsn->addRecipient( it );
+        mailboxes->append( it->mailbox );
         ++it;
     }
 
-    return dsn;
+    return mailboxes;
 }
