@@ -183,6 +183,8 @@ bool Connection::active() const
 
 int Connection::fd() const
 {
+    if ( !valid() )
+        return -1;
     return d->fd;
 }
 
@@ -363,6 +365,9 @@ void Connection::extendTimeout( uint n )
 
 void Connection::setBlocking( bool block )
 {
+    if ( !valid() )
+        return;
+
     int flags = fcntl( d->fd, F_GETFL, 0 );
     if ( flags < 0 )
         die( FD );
@@ -408,7 +413,7 @@ Endpoint Connection::self() const
 {
     socklen_t n = sizeof( sa );
 
-    if ( !d->self.valid() ) {
+    if ( valid() && !d->self.valid() ) {
         if ( ::getsockname( d->fd, (sockaddr *)&sa, &n ) >= 0 )
             d->self = Endpoint( (sockaddr *)&sa );
     }
@@ -426,7 +431,7 @@ Endpoint Connection::peer() const
 {
     socklen_t n = sizeof( sa );
 
-    if ( !d->peer.valid() ) {
+    if ( valid() && !d->peer.valid() ) {
         if ( ::getpeername( d->fd, (sockaddr *)&sa, &n ) >= 0 )
             d->peer = Endpoint( (sockaddr *)&sa );
     }
@@ -550,7 +555,7 @@ public:
 
 void Connection::startTls( TlsServer * s )
 {
-    if ( d->tls )
+    if ( d->tls || !valid() )
         return;
 
     write();
