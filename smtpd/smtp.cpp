@@ -55,23 +55,17 @@ SmtpDbClient::SmtpDbClient( SMTP * s, SMTPData * smtpd )
 class SmtpTlsStarter: public EventHandler
 {
 public:
-    SmtpTlsStarter( SMTP * s );
-    void execute();
+    SmtpTlsStarter( SMTP * s )
+        : EventHandler(), owner( s )
+    {}
+
+    void execute()
+    {
+        owner->starttls();
+    }
 
     SMTP * owner;
 };
-
-
-SmtpTlsStarter::SmtpTlsStarter( SMTP * s )
-    : EventHandler(), owner( s )
-{
-}
-
-
-void SmtpTlsStarter::execute()
-{
-    owner->starttls();
-}
 
 
 class AliasLookup
@@ -176,7 +170,7 @@ void SmtpDbClient::execute()
              injector->error() );
         harder = true;
 
-        Message * m 
+        Message * m
             = Message::wrapUnparsableMessage( d->body,
                                               injector->error(),
                                               "Message arrived but could "
