@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH aox 8 2006-07-10 www.oryx.com "Archiveopteryx Documentation"
+.TH aox 8 2006-09-09 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
 aox - management tool for Archiveopteryx.
 .SH SYNOPSIS
