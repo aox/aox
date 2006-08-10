@@ -320,7 +320,7 @@ void Injector::setAnnotations( const List<Annotation> * annotations )
         Annotation * a = it;
 
         List<Annotation>::Iterator at( d->annotations );
-        while ( at && 
+        while ( at &&
                 ( at->ownerId() != a->ownerId() ||
                   at->entryName()->name() != a->entryName()->name() ) )
             ++at;
