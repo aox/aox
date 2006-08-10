@@ -198,13 +198,15 @@ void Mailbox::setup( EventHandler * owner )
 }
 
 
-/*! This function reloads this mailbox from the database.
+/*! This function reloads this mailbox from the database. If \a owner is
+    specified, it is used to set the new MailboxReader's owner.
     (This is still a hack.)
 */
 
-Query * Mailbox::refresh()
+Query * Mailbox::refresh( EventHandler * owner )
 {
     MailboxReader * mr = new MailboxReader( name() );
+    mr->owner = owner;
     return mr->query;
 }
 
