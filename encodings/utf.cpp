@@ -276,7 +276,8 @@ String Utf16LeCodec::fromUnicode( const UString & u )
 
 
 /*! toUnicode() is probably a little lax. No. It IS a little lax. We
-    may tighten this later.
+    may tighten this later. At least, we can check that \a s has an
+    even length.
 */
 
 UString Utf16LeCodec::toUnicode( const String & s )
@@ -328,7 +329,8 @@ String Utf16BeCodec::fromUnicode( const UString & u )
 
 
 /*! toUnicode() is probably a little lax. No. It IS a little lax. We
-    may tighten this later.
+    may tighten this later. At least, we can check that \a s has an
+    even length.
 */
 
 UString Utf16BeCodec::toUnicode( const String & s )

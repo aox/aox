@@ -301,10 +301,20 @@ Codec * Codec::byString( const UString & u )
 
 
 /*! Returns a codec likely to describe the encoding for \a s. This
-    uses words lists: If \a s is a Russian string, it probably
-    contains lots of common Russian words, and we have can identify
-    the character encoding by scanning for KOI8-R and ISO-8859-5 forms
-    of some common words.
+    uses words lists and many other strategies.
+    
+    Its assumptions:
+    
+    If \a s contains a Unicode Byte Order Mark, it probably is a
+    UTF-16BE or UTF-16LE string.
+
+    If \a s is a Russian string, it probably contains lots of common
+    Russian words, and we have can identify the character encoding by
+    scanning for KOI8-R and ISO-8859-5 forms of some common
+    words. Ditto for other languages.
+
+    If \a s uses typical Windows punctation and is mostly ASCII, it's
+    in a typical Windows encoding.
 
     This function is a little slower than it could be, since it
     creates a largish number of short String objects.
@@ -312,6 +322,11 @@ Codec * Codec::byString( const UString & u )
 
 Codec * Codec::byString( const String & s )
 {
+    if ( s[0] == 0xFF && s[1] == 0xFE && (s.length() % 2) == 0 )
+        return new Utf16LeCodec;
+    else if ( s[0] == 0xFE && s[1] == 0xFF && (s.length() % 2) == 0 )
+        return new Utf16BeCodec;
+    
     uint b = 0;
     uint e = 0;
     uint occurences[NumEncodings];
