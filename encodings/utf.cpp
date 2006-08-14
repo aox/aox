@@ -163,4 +163,190 @@ UString Utf8Codec::toUnicode( const String & s )
 }
 
 
+
+
+/*! \class Utf16Codec utf.h
+    The Utf16Codec implements UTF-16 as specified in RFC 2781.
+
+    For decoding, Utf16Codec autodetects UTF-16BE or -LE based on the
+    BOM, and for encoding it uses UTF-16BE with a BOM until/unless
+    decoding autodetects UTF-16LE or UTF-16BE without a BOM. In
+    practice it always uses UTF-16BE with a BOM.
+*/
+
+
+/*! Constructs a simple UTF-16 encoder/decoder. For decoding, the
+    backend is autoselected.
+*/
+
+Utf16Codec::Utf16Codec()
+    : Codec( "UTF-16" ), be( true ), bom( true )
+{
+    // nothing
+}
+
+
+String Utf16Codec::fromUnicode( const UString & u )
+{
+    String r;
+
+    if ( !bom ) {
+        // if we don't output a BOM, reader should assume BE, so we
+        // must be BE to conform
+        be = true;
+    }
+    else if ( be ) {
+        r.append( 0xfe );
+        r.append( 0xff );
+    }
+    else {
+        r.append( 0xfe );
+        r.append( 0xff );
+    }
+
+    if ( be )
+        r.append( (new Utf16BeCodec)->fromUnicode( u ) );
+    else
+        r.append( (new Utf16LeCodec)->fromUnicode( u ) );
+
+    return r;
+}
+
+
+UString Utf16Codec::toUnicode( const String & s )
+{
+    if ( s[0] == 0xFF && s[1] == 0xFE ) {
+        be = false;
+        bom = true;
+    }
+    else if ( s[0] == 0xFE && s[1] == 0xFF ) {
+        be = true;
+        bom = true;
+    }
+    else {
+        be = true;
+        bom = false;
+    }
+
+    Codec * c = 0;
+    if ( be )
+        c = new Utf16BeCodec;
+    else
+        c = new Utf16LeCodec;
+    UString r = c->toUnicode( s );
+
+    setState( c->state() );
+    if ( c->state() == Invalid )
+        recordError( c->error() );
+    return r;
+}
+
+
+/*! \class Utf16LeCodec utf.h
+    The Utf16LeCodec implements UTF-16LE as specified in RFC 2781.
+
+    Utf16LeCodec removes a BOM while decoding and does not add one
+    while encoding.
+*/
+
+
+/*! Constructs a simple UTF-16LE encoder/decoder.
+*/
+
+
+Utf16LeCodec::Utf16LeCodec()
+    : Codec( "UTF-16LE" )
+{
+    // nothing
+}
+
+
+String Utf16LeCodec::fromUnicode( const UString & u )
+{
+    String r;
+    r.reserve( u.length() * 2 );
+    uint i = 0;
+    while ( i < u.length() ) {
+        r.append( u[i] % 0x100 );
+        r.append( u[i] / 0x100 );
+        i++;
+    }
+    return r;
+}
+
+
+/*! toUnicode() is probably a little lax. No. It IS a little lax. We
+    may tighten this later.
+*/
+
+UString Utf16LeCodec::toUnicode( const String & s )
+{
+    UString u;
+    u.reserve( s.length() / 2 );
+    uint i = 0;
+    while ( i < s.length() ) {
+        uint c = s[i] + 0x100 * s[i+1];
+        if ( !u.isEmpty() || c != 0xFEFF )
+            u.append( c );
+        i += 2;
+    }
+    return u;
+}
+
+
+/*! \class Utf16BeCodec utf.h
+    The Utf16BeCodec implements UTF-16BE as specified in RFC 2781.
+
+    Utf16BeCodec removes a BOM while decoding and does not add one
+    while encoding.
+*/
+
+
+/*! Constructs a simple UTF-16BE encoder/decoder.
+*/
+
+
+Utf16BeCodec::Utf16BeCodec()
+    : Codec( "UTF-16BE" )
+{
+    // nothing
+}
+
+
+String Utf16BeCodec::fromUnicode( const UString & u )
+{
+    String r;
+    r.reserve( u.length() * 2 );
+    uint i = 0;
+    while ( i < u.length() ) {
+        r.append( u[i] / 0x100 );
+        r.append( u[i] % 0x100 );
+        i++;
+    }
+    return r;
+}
+
+
+/*! toUnicode() is probably a little lax. No. It IS a little lax. We
+    may tighten this later.
+*/
+
+UString Utf16BeCodec::toUnicode( const String & s )
+{
+    UString u;
+    u.reserve( s.length() / 2 );
+    uint i = 0;
+    while ( i < s.length() ) {
+        uint c = s[i] * 0x100 + s[i+1];
+        if ( !u.isEmpty() || c != 0xFEFF )
+            u.append( c );
+        i += 2;
+    }
+    return u;
+}
+
+
 //codec UTF-8 Utf8Codec
+//codec UTF-16 Utf16Codec
+//codec UTF-16BE Utf16BeCodec
+//codec UTF-16LE Utf16LeCodec
