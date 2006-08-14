@@ -101,7 +101,9 @@ void Multipart::appendMultipart( String &r ) const
         r.append( crlf );
         appendAnyPart( r, bp, ct );
 
-        r.append( String(crlf) + "--" + delim );
+        r.append( crlf );
+        r.append( "--" );
+        r.append( delim );
         if ( !it )
             r.append( "--" );
         r.append( crlf );
