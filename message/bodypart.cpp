@@ -561,7 +561,10 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             c = new AsciiCodec;
 
         bp->d->hasText = true;
-        bp->d->text = c->toUnicode( body.crlf() );
+        if ( e == String::QP && c->name().startsWith( "UTF-16" ) )
+            bp->d->text = c->toUnicode( body.stripCRLF() );
+        else
+            bp->d->text = c->toUnicode( body.crlf() );
 
         if ( !c->valid() && c->name() == "GB2312" ) {
             // undefined code point usage in GB2312 spam is much too
