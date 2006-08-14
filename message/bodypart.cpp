@@ -561,10 +561,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             c = new AsciiCodec;
 
         bp->d->hasText = true;
-        if ( e == String::QP && c->name().startsWith( "UTF-16" ) )
-            bp->d->text = c->toUnicode( body.stripCRLF() );
-        else
-            bp->d->text = c->toUnicode( body.crlf() );
+        bp->d->text = c->toUnicode( body.crlf() );
 
         if ( !c->valid() && c->name() == "GB2312" ) {
             // undefined code point usage in GB2312 spam is much too
@@ -604,14 +601,14 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 g = guessTextCodec( body );
             UString guessed;
             if ( g )
-                guessed = g->toUnicode( body );
+                guessed = g->toUnicode( body.crlf() );
             if ( !g ) {
                 // if we couldn't guess anything, keep what we had if
                 // it's valid or explicitly specified, else use
                 // unknown-8bit.
                 if ( !specified && !c->valid() ) {
                     c = new Unknown8BitCodec;
-                    bp->d->text = c->toUnicode( body );
+                    bp->d->text = c->toUnicode( body.crlf() );
                 }
             }
             else {
@@ -623,6 +620,11 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                 }
             }
         }
+
+        // if we ended up using a 16-bit codec and were using q-p, we
+        // need to reevaluate without any trailing CRLF
+        if ( e == String::QP && c->name().startsWith( "UTF-16" ) )
+            bp->d->text = c->toUnicode( body.stripCRLF() );
 
         if ( !c->valid() && bp->d->error.isEmpty() ) {
             bp->d->error = "Could not convert body to Unicode";
