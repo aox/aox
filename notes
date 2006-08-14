@@ -972,3 +972,15 @@ Plugins
      UsePolicyServer localhost 10023 ;
 
 
+INTHREAD
+
+  A new search-key which takes another search-key. If the subsidiary
+  search-key returns true for a message, INTHREAD returns true for all
+  messages in that thread.
+
+  Problems: Which threading algorithm? More than one? How to advertise
+  which one(s) are possible?
+
+  Possibilities: Combined with THREAD, it allows neat things.
+
+
