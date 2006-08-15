@@ -36,6 +36,7 @@ public:
           args( 0 ), reader( 0 ),
           runningCommands( false ), readingLiteral( false ),
           literalSize( 0 ), session( 0 ), mailbox( 0 ), login( 0 ),
+          bytesArrived( 0 ),
           idle( false )
     {
         uint i = 0;
@@ -57,6 +58,8 @@ public:
     ImapSession *session;
     Mailbox *mailbox;
     User * login;
+    
+    uint bytesArrived;
 
     bool idle;
     bool clientCapabilities[IMAP::NumClientCapabilities];
@@ -132,9 +135,19 @@ IMAP::IMAP( int s )
 
 void IMAP::react( Event e )
 {
+    d->bytesArrived += readBuffer()->size();
     switch ( e ) {
     case Read:
         parse();
+        if ( d->bytesArrived > 32768 && state() == NotAuthenticated ) {
+            log( ">32k received before login" );
+            enqueue( "* BYE overlong login sequence\r\n" );
+            Connection::setState( Closing );
+            if ( d->reader ) {
+                Scope s( d->reader->log() );
+                d->reader->read();
+            }
+        }
         break;
 
     case Timeout:
@@ -165,8 +178,11 @@ void IMAP::react( Event e )
 
     runCommands();
     expireCommands();
+    
+    d->bytesArrived -= readBuffer()->size();
 
-    if ( e == Read || timeout() == 0 ) {
+    if ( timeout() == 0 ||
+         ( e == Read && state() != NotAuthenticated ) ) {
         switch ( state() ) {
         case NotAuthenticated:
             setTimeoutAfter( 120 );
@@ -196,9 +212,6 @@ void IMAP::parse()
     Buffer * r = readBuffer();
 
     while ( true ) {
-        // We allocate and donate a new arena to each command we create,
-        // and use it to allocate anything command-related in this loop.
-
         if ( !d->args )
             d->args = new StringList;
 
