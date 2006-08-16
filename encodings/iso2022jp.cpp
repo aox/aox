@@ -18,6 +18,8 @@ static const uint toE[65536] = {
 
     This class implements a translator between Unicode and the JIS X
     0208:1990 character set using the ISO-2022-JP encoding.
+
+    This class has some relation to RFC 1468. Crab, could you elaborate?
 */
 
 /*! Creates a new Iso2022JpCodec object. */
