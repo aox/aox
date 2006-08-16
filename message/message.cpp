@@ -122,6 +122,19 @@ Message::Message( const String & rfc2822 )
                                ": Unable to parse header field " + it->name();
                 ++it;
             }
+            if ( b->message() && b->message()->header() ) {
+                if ( !b->message()->header()->error().isEmpty() )
+                    d->error = "In header of bodypart " + partNumber( b ) +
+                               ".1: " + b->message()->header()->error();
+                it = b->message()->header()->fields()->first();
+                while ( it && d->error.isEmpty() ) {
+                    if ( !it->parsed() )
+                        d->error = "In bodypart " + partNumber( b ) +
+                                   ".1: Unable to parse header field " +
+                                   it->name();
+                    ++it;
+                }
+            }
         }
         if ( d->error.isEmpty() && !b->error().isEmpty() )
             d->error = "In bodypart " + partNumber( b ) + ": " + b->error();
