@@ -631,65 +631,46 @@ void Header::repair()
         i++;
     }
 
-    // We retain only the first valid Date field.
+    // We retain only the first valid Date field, Return-Path,
+    // Message-Id and References fields. If there is one or more valid
+    // such field, we delete all invalid fields and subsequent valid
+    // fields, otherwise we leave the fields as they are.
 
-    if ( occurrences[(int)HeaderField::Date] > 1 ) {
-        uint n = 0;
-        List< HeaderField >::Iterator it( d->fields );
-        while ( it ) {
-            if ( it->type() == HeaderField::Date ) {
-                if ( n > 0 || !it->valid() ) {
-                    d->fields.take( it );
-                }
-                else {
-                    n++;
-                    ++it;
-                }
-            }
-            else {
+    // Several senders appear to send duplicate dates. qmail is
+    // mentioned in the references chains of most examples we have.
+
+    // We don't know who adds duplicate message-id and return-path
+    // fields.
+
+    // The only case we've seen of duplicate references involved
+    // Thunderbird 1.5.0.4 and Scalix. Uncertain whose
+    // bug. Thunderbird 1.5.0.5 looks correct.
+
+    i = 0;
+    while ( i < HeaderField::Other ) {
+        if ( occurrences[i] > 1 &&
+             ( i == HeaderField::Date ||
+               i == HeaderField::ReturnPath ||
+               i == HeaderField::MessageId ||
+               i == HeaderField::References ) ) {
+            List< HeaderField >::Iterator it( d->fields );
+            HeaderField * firstValid = 0;
+            while ( it && !firstValid ) {
+                if ( it->type() == i && it->valid() )
+                    firstValid = it;
                 ++it;
             }
-        }
-    }
-
-    // We retain only the first valid Return-Path field.
-
-    if ( occurrences[(int)HeaderField::ReturnPath] > 1 ) {
-        uint n = 0;
-        List< HeaderField >::Iterator it( d->fields );
-        while ( it ) {
-            if ( it->type() == HeaderField::ReturnPath ) {
-                if ( n > 0 || !it->valid() ) {
-                    d->fields.take( it );
-                }
-                else {
-                    n++;
-                    ++it;
+            if ( firstValid ) {
+                List< HeaderField >::Iterator it( d->fields );
+                while ( it ) {
+                    if ( it->type() == i && it != firstValid )
+                        d->fields.take( it );
+                    else
+                        ++it;
                 }
             }
-            else {
-                ++it;
-            }
         }
-    }
-
-    // We discard all but the first Message-Id.
-
-    if ( occurrences[(int)HeaderField::MessageId] > 1 ) {
-        uint n = 0;
-        List< HeaderField >::Iterator it( d->fields );
-        while ( it ) {
-            if ( it->type() == HeaderField::MessageId ) {
-                if ( n > 0 )
-                    d->fields.take( it );
-                else
-                    ++it;
-                n++;
-            }
-            else {
-                ++it;
-            }
-        }
+        ++i;
     }
 
     // If there is no Date field, we look for a sensible date.
