@@ -1186,6 +1186,71 @@ bool Schema::stepTo21()
 }
 
 
+/*! For any two flag names that differ only in case, moves all flags
+    from one to the other and removes the unused one.  Then adds an
+    index to ensure uniqueness in the future.
+*/
+
+bool Schema::stepTo22()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Finding flag names that differ only in case.", Log::Debug );
+        d->q = new Query( "select a.id as to, b.id as from, a.name as name "
+                          "from flag_names a, flag_names b "
+                          "where a.id < b.id and lower(a.name)=lower(b.name)",
+                          this );
+        d->q->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+
+        if ( d->q->failed() ) {
+            d->l->log( "Internal error.",
+                       Log::Debug );
+            d->substate = 0;
+            return true;
+        }
+
+        d->l->log( "Changing case for " + fn( d->q->rows() ) + " flags.",
+                   Log::Debug );
+
+        Row * r;
+        while ( (r=d->q->nextRow()) != 0 ) {
+            d->l->log( "Unbreaking " + r->getString( "name" ) + ".",
+                       Log::Debug );
+
+            Query * q;
+            q = new Query( "update flags set flag=$1 where flag=$2", 0 );
+            q->bind( 1, r->getInt( "to" ) );
+            q->bind( 2, r->getInt( "from" ) );
+            d->t->enqueue( q );
+
+            q = new Query( "delete from flag_names where id=$1", 0 );
+            q->bind( 1, r->getInt( "from" ) );
+            d->t->enqueue( q );
+        }
+        d->q = new Query( "create unique index asdf_asdf "
+                          "on flag_names (lower(name));",
+                          this );
+
+        d->substate = 2;
+
+    }
+
+    if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
 /*! Given an error message \a s and, optionally, the query \a q that
     caused the error, this private helper function logs a suitable set
     of Disaster messages (including the Query::description()) and sets
