@@ -127,6 +127,10 @@ String Transaction::error() const
     failed. The return value is meaningful only if the transaction
     has failed, and 0 otherwise.
 
+    The return value may also be 0 if the Transaction has been forcibly
+    rolled back by the Postgres class because of a timeout (such as the
+    caller forgetting to ever commit() the Transaction).
+
     This function is useful in composing error messages.
 */
 

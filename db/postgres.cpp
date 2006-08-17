@@ -269,14 +269,19 @@ void Postgres::react( Event e )
         break;
 
     case Timeout:
-        if ( !d->active || d->startup )
+        if ( !d->active || d->startup ) {
             error( "Timeout negotiating connection to PostgreSQL." );
-        else if ( d->queries.count() > 0 )
+        }
+        else if ( d->queries.count() > 0 ) {
             error( "Request timeout." );
-        else if ( d->transaction )
-            error( "Transaction timeout." );
-        else if ( numHandles() > 3 && server().protocol() != Endpoint::Unix )
+        }
+        else if ( d->transaction ) {
+            d->transaction->setError( 0, "Transaction timeout" );
+            d->transaction->rollback();
+        }
+        else if ( numHandles() > 3 && server().protocol() != Endpoint::Unix ) {
             shutdown();
+        }
         break;
 
     case Shutdown:
