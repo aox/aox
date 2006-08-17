@@ -984,7 +984,6 @@ INTHREAD
 
 Todo list: AMS
 
-  1. Make lost-transaction recovery work.
   2. Fix imap/flagcase.
   3. Update the schema for condstore.
   4. Try out privilege separation.
@@ -999,6 +998,7 @@ Todo list: AMS
   13. Fix jam always *always* *ALWAYS* running Builddoc.
   14. canonical problems.
   15. Poke hdp and jd@commandprompt.
+  1. Revive dbtest
 
 
 
