@@ -20,6 +20,7 @@ public:
     static void startHeadline( Function * );
     static void endParagraph();
     static void addText( const String & );
+    static void addLink( const String &, const String & );
     static void addArgument( const String & );
     static void addFunction( const String &, Function * );
     static void addClass( const String &, Class * );

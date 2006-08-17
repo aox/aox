@@ -26,6 +26,7 @@ public:
     void startHeadline( Function * );
     void endParagraph();
     void addText( const String & );
+    void addLink( const String &, const String & );
     void addArgument( const String & );
     void addFunction( const String &, Function * );
     void addClass( const String &, Class * );

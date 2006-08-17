@@ -117,6 +117,19 @@ void WebPage::addText( const String & text )
 }
 
 
+/*! Adds a link to \a url with the given \a title. */
+
+void WebPage::addLink( const String & url, const String & title )
+{
+    String s( "<a href=\"" );
+    s.append( url );
+    s.append( "\">" );
+    s.append( title );
+    s.append( "</a>" );
+    output( s );
+}
+
+
 /*! As Output::addArgument(). \a text is output in italics. */
 
 void WebPage::addArgument( const String & text )

@@ -189,7 +189,30 @@ void DocBlock::word( uint & i, uint l, uint n )
         j++;
     String w = t.mid( i, j-i );
     i = j;
-    if ( w[0] != '\\' ) {
+    if ( w.lower() == "rfc" ) {
+        if ( t[j] == ' ' )
+            j++;
+        uint start = j;
+
+        while ( t[j] <= '9' && t[j] >= '0' )
+            j++;
+
+        bool ok;
+        uint n = t.mid( start, j-start ).number( &ok );
+        if ( ok ) {
+            String rfc( "http://www.rfc-editor.org/rfc/rfc" );
+            rfc.append( String::fromNumber( n ) );
+            rfc.append( ".txt" );
+
+            Output::addLink( rfc, "RFC " + String::fromNumber( n ) );
+
+            i = j;
+        }
+        else {
+            plainWord( w, l );
+        }
+    }
+    else if ( w[0] != '\\' ) {
         plainWord( w, l );
     }
     else if ( w == "\\a" ) {

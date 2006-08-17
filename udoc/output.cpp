@@ -98,6 +98,23 @@ void Output::addText( const String & text )
 }
 
 
+/*! Adds \a url and \a title as a link to all capable output devices. */
+
+void Output::addLink( const String & url, const String & title )
+{
+    if ( needSpace ) {
+        needSpace = false;
+        addText( " " );
+    }
+    if ( WebPage::current() )
+        WebPage::current()->addLink( url, title );
+    if ( ManPage::current() )
+        ManPage::current()->addText( title );
+    if ( Postscript::current() )
+        Postscript::current()->addText( title );
+}
+
+
 /*! Adds \a text as an argument name to all output devices. */
 
 void Output::addArgument( const String & text )
