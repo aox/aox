@@ -1235,6 +1235,7 @@ bool Schema::stepTo22()
         d->q = new Query( "create unique index asdf_asdf "
                           "on flag_names (lower(name));",
                           this );
+        d->t->enqueue( d->q );
 
         d->substate = 2;
 
