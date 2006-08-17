@@ -984,11 +984,12 @@ INTHREAD
 
 Todo list: AMS
 
+  - aox hangs if the database doesn't exist, now that DB::desired > 1.
+  - Better injector error for a broken bodypart.
   - Fix imap/flagcase.
   - Update the schema for condstore.
   - Try out privilege separation.
   - Fix imap/view and the recent problems.
-  - aox hangs if the database doesn't exist, now that DB::desired > 1.
   - Retry the connection if postgres says "FATAL: starting up".
   - Figure out the Injector upper bound on Injector speed.
   - Log single-row query values?
