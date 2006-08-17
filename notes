@@ -982,3 +982,23 @@ INTHREAD
   Possibilities: Combined with THREAD, it allows neat things.
 
 
+Todo list: AMS
+
+  1. Make lost-transaction recovery work.
+  2. Fix imap/flagcase.
+  3. Update the schema for condstore.
+  4. Try out privilege separation.
+  5. Fix imap/view and the recent problems.
+  6. aox hangs if the database doesn't exist, now that DB::desired > 1.
+  7. Retry the connection if postgres says "FATAL: starting up".
+  8. Figure out the Injector upper bound on Injector speed.
+  9. Log single-row query values?
+  10. Update to Postgres 8.1.x on kalyani (+rusage.diff)
+  11. Use writev in Buffer::write.
+  12. Go through ANNOTATE and make sure we have and test everything.
+  13. Fix jam always *always* *ALWAYS* running Builddoc.
+  14. canonical problems.
+  15. Poke hdp and jd@commandprompt.
+
+
+
