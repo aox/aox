@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (21);
+insert into mailstore (revision) values (22);
 
 
 -- One entry for each unique address we've encountered.
@@ -223,12 +223,13 @@ create table thread_members (
 );
 
 
--- One entry per user-defined flag name to be used in extra_flags.
+-- One entry per user-defined flag name to be used in flags.
 
 create table flag_names (
     id          serial primary key,
-    name        text unique
+    name        text
 );
+create unique index fn_uname on flag_names(lower(name));
 
 
 -- One entry per user-defined IMAP message flag per message.
