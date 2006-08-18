@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 21;
+int currentRevision = 22;
 
 
 class SchemaData
@@ -287,6 +287,8 @@ bool Schema::singleStep()
         c = stepTo20(); break;
     case 20:
         c = stepTo21(); break;
+    case 21:
+        c = stepTo22(); break;
     }
 
     return c;
@@ -1197,9 +1199,10 @@ bool Schema::stepTo22()
         d->l->log( "Finding flag names that differ only in case.", Log::Debug );
         d->q = new Query( "select a.id as to, b.id as from, a.name as name "
                           "from flag_names a, flag_names b "
-                          "where a.id < b.id and lower(a.name)=lower(b.name)",
-                          this );
-        d->q->execute();
+                          "where a.id < b.id and lower(a.name)=lower(b.name) "
+                          "order by a.id, b.id", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
         d->substate = 1;
     }
 
@@ -1208,8 +1211,7 @@ bool Schema::stepTo22()
             return false;
 
         if ( d->q->failed() ) {
-            d->l->log( "Internal error.",
-                       Log::Debug );
+            d->l->log( "Internal error.", Log::Debug );
             d->substate = 0;
             return true;
         }
@@ -1232,13 +1234,14 @@ bool Schema::stepTo22()
             q->bind( 1, r->getInt( "from" ) );
             d->t->enqueue( q );
         }
-        d->q = new Query( "create unique index asdf_asdf "
-                          "on flag_names (lower(name));",
-                          this );
+        d->q = new Query( "alter table flag_names drop constraint "
+                          "flag_names_name_key", this );
         d->t->enqueue( d->q );
-
+        d->q = new Query( "create unique index fn_uname on "
+                          "flag_names (lower(name))", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
         d->substate = 2;
-
     }
 
     if ( d->substate == 2 ) {
