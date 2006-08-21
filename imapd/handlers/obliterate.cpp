@@ -2,6 +2,7 @@
 
 #include "obliterate.h"
 
+#include "flag.h"
 #include "imap.h"
 #include "user.h"
 #include "query.h"
@@ -91,6 +92,12 @@ void XObliterate::execute()
         q->bind( 1, user->id() );
         t->enqueue( q );
 
+        // why does this require eight backslases? it reminds me of emacs-lisp.
+        q = new Query( "delete from flag_names where not("
+                       "name like '\\\\\\\\%' or "
+                       "id in (select distinct flag from flags))", this );
+        t->enqueue( q );
+
         q = new Query( "delete from views where source in "
                        "(select id from mailboxes where owner=$1)",
                        this );
@@ -102,7 +109,7 @@ void XObliterate::execute()
                        this );
         q->bind( 1, user->id() );
         t->enqueue( q );
-
+        
         a = new Query( "select id from mailboxes where owner=$1 "
                        "and id<>$2", this );
         a->bind( 1, user->id() );
@@ -148,6 +155,13 @@ void XObliterate::execute()
         }
     }
 
-    if ( t->done() )
-        finish();
+    if ( !t->done() )
+        return;
+
+    // at this point, we can clobber cached state. this is very bad
+    // and hackish. calling Flag::setup() more than once is a memory
+    // leak, and other ::setup() functions may be just as bad.
+    Flag::setup();
+    
+    finish();
 }

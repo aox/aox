@@ -325,7 +325,12 @@ void MessageFlagFetcher::decode( Message * m, Row * r )
 {
     Flag * f = Flag::find( r->getInt( "flag" ) );
     if ( f ) {
-        m->flags()->append( f );
+        List<Flag> * flags = m->flags();
+        List<Flag>::Iterator i( flags );
+        while ( i && i != f )
+            ++i;
+        if ( !i )
+            flags->append( f );
     }
     else {
         // XXX: consider this. best course of action may be to

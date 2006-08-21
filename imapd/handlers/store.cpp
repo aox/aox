@@ -113,6 +113,7 @@ void Store::parse()
             while ( present( " " ) )
                 d->flagNames.append( flag() );
         }
+        d->flagNames.removeDuplicates( false );
     }
 
     end();
