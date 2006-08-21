@@ -979,7 +979,6 @@ INTHREAD
 
 Todo list: AMS
 
-  - Fix jam always *always* *ALWAYS* running oryxdoc.
   - Try to reproduce Harri's pine problems.
     (Ok, I can do that. It's related to the next problem.)
   - Better injector error for a broken bodypart.
