@@ -26,12 +26,6 @@ if ( $(BUILDDOC) ) {
 Doc oryxdoc : core database encodings imap logd mailbox message ocd sasl
     server smtp tls user http pop ;
 
-if ( $(BUILDDOC) ) {
-    Depends install : oryxdoc ;
-    Depends all : oryxdoc ;
-    Depends oryxdoc : exe ;
-}
-
 MkDir $(BINDIR) ;
 MkDir $(MANDIR) ;
 MkDir $(LIBDIR) ;

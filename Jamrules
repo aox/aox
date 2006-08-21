@@ -89,6 +89,7 @@ rule Executable
     local target a ;
     Depends exe : $(<) ;
     Depends $(<) : $(set-$(>)) ;
+    Depends run-udoc-$(>) : $(<) ;
     MakeLocate $(<) : [ FDirName $(TOP) bin ] ;
     Clean clean : $(<) ;
     Link $(<) : $(set-$(>)) ;
@@ -139,11 +140,8 @@ rule Doc {
     
     UDOCBIN = udoc ;
 
-    Depends $(<) : $(output) $(UDOCBIN) ;
+    Depends $(<) : $(output) $(UDOCBIN) run-udoc-$(>) ;
     NOTFILE $(<) ;
-    if ! $(output) {
-        ALWAYS $(<) ;
-    }
 
     Doc2 $(<) : $(set-$(>):S=.cpp) ;
 
