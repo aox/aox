@@ -18,13 +18,14 @@ Next few releases
   - More character encodings (EUC-KR)
 
 
-Bad GB2312
+Undefined codepoints
 
-  When we see undefined GB2312 code points, we can convert the message
-  to unicode, substitute U+FFFE for the undefind code points, and
-  record the message as having been received as unicode.
+  When a codec encounters an undefined codepoint, it should substitute
+  U+FFFE (or FFFD/FFFF?) and continue parsing after setting a flag that
+  later allows parseBodypart() to upgrade (or is that "downgrade"?) the
+  entire message to UTF-8 for subsequent retrieval.
 
-  (What about other character encodings?)
+  This is done as a special case for GB2312 right now.
 
 
 Better caching.
@@ -522,7 +523,7 @@ Read the GiST papers and look at tsearch2 again.
 
 migrator should work without indices
 
-  If the database is otherwise idle, the migrator could disable indicex
+  If the database is otherwise idle, the migrator could disable indices
   and perhaps transactions, and go much faster.
 
 
@@ -552,7 +553,7 @@ Something confuses Address::uname() and Address::name()
   I think the underlying reason is that we're not using UString, so
   the compiler's type checking does nothing for us.
 
-  This is easy to demoonstrate with 22 right now, but it won't be
+  This is easy to demonstrate with 22 right now, but it won't be
   shortly - I'll make a separate change which accidentally obliterates
   the difference.
 
@@ -706,7 +707,7 @@ Update doc/recorder.man
 Document IPC structure
 
   Some man page, or some web page, or both, should say who's
-  connnecting to who and why.
+  connecting to who and why.
 
 
 Add a web page about the charset encoding.
@@ -799,7 +800,7 @@ Privilege separation
   Somehow I feel more and more uncertain each time I type
   'delete from messages where mailbox>6;' or similar commands.
 
-  Pergaps privilege separation could be used to grant me rm -rf access
+  Perhaps privilege separation could be used to grant me rm -rf access
   to the regular database, but build a higher wall on kalyani. Sounds
   good.
 
@@ -871,7 +872,7 @@ Faster mapping from unicode to 8-bit encodings
   fall back to 8859-1.
 
   The tables could be built automatically, compiled in, and would be
-  tested by our existing apparatur.
+  tested by our existing apparatus.
 
 
 Multipart/signed automatic processing
@@ -945,7 +946,7 @@ VIEW CREATE seems unpredictable
   Occasionally, the \view flag doesn't appear quickly on the created
   mailbox. This may be due to OCClient - I recent saw a mailbox update
   its UIDs very lage (long after append had reported the new UID to
-  the IMAP cleint).
+  the IMAP client).
 
 
 Plugins
