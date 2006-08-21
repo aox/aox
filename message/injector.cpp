@@ -130,17 +130,18 @@ public:
 
 
 class IdHelper : public EventHandler {
-private:
+public:
     List< ObjectId >::Iterator *li;
     List< ObjectId > *list;
     List< Query > *queries;
+    List< Query > *inserts;
     EventHandler *owner;
-
-public:
     bool failed;
+    String error;
 
     IdHelper( List< ObjectId > *l, List< Query > *q, EventHandler *ev )
-        : li( 0 ), list( l ), queries( q ), owner( ev ), failed( false )
+        : li( 0 ), list( l ), queries( q ), inserts( 0 ), owner( ev ),
+          failed( false )
     {}
 
     void execute() {
@@ -151,6 +152,10 @@ public:
         {
             queries->shift();
 
+            Query * insert = 0;
+            if ( inserts )
+                insert = inserts->shift();
+
             if ( q->hasResults() ) {
                 if ( !li )
                     li = new List< ObjectId >::Iterator( list );
@@ -160,6 +165,8 @@ public:
             }
             else {
                 failed = true;
+                if ( insert )
+                    error = insert->error();
             }
         }
 
@@ -365,6 +372,8 @@ String Injector::error() const
         return "";
     if ( !d->message->valid() )
         return d->message->error();
+    if ( d->bidHelper->failed )
+        return d->bidHelper->error;
     if ( !d->transaction )
         return "";
     return d->transaction->error();
@@ -440,6 +449,14 @@ void Injector::execute()
 
         d->transaction->execute();
         d->state = InsertingMessages;
+    }
+
+    if ( d->state == InsertingMessages && !d->transaction->failed() ) {
+        if ( d->bidHelper->failed ) {
+            d->failed = true;
+            d->transaction->rollback();
+            d->state = AwaitingCompletion;
+        }
     }
 
     if ( d->state == InsertingMessages && !d->transaction->failed() ) {
@@ -751,6 +768,8 @@ void Injector::insertBodyparts()
 
         ++bi;
     }
+
+    d->bidHelper->inserts = d->beforeTransaction;
 }
 
 
