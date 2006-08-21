@@ -24,7 +24,13 @@ if ( $(BUILDDOC) ) {
 }
 
 Doc oryxdoc : core database encodings imap logd mailbox message ocd sasl
-    server smtp tls user http pop ;
+    server smtp tls user http pop sieve ;
+
+if ( $(BUILDDOC) ) {
+    Depends install : doc ;
+    Depends all : doc ;
+    Depends doc : exe ;
+}
 
 MkDir $(BINDIR) ;
 MkDir $(MANDIR) ;

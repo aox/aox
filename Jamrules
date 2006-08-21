@@ -134,14 +134,10 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
 
 
 rule Doc {
-    local output = [ Glob doc/html : *.html ] [ Glob doc/man/man3  : *.3* ] ;
-    NOCARE $(output) ;
-    Depends $(output) : $(set-$(>):S=.cpp) ;
-    
     UDOCBIN = udoc ;
 
-    Depends $(<) : $(output) $(UDOCBIN) run-udoc-$(>) ;
-    NOTFILE $(<) ;
+    Depends $(<) : $(UDOCBIN) run-udoc-$(>) ;
+    NOTFILE $(<) run-udoc-$(>) ;
 
     Doc2 $(<) : $(set-$(>):S=.cpp) ;
 
