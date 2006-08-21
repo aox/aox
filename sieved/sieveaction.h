@@ -27,7 +27,6 @@ public:
     void setAddress( Address * );
     Address * address() const;
 
-    void execute( EventHandler * owner );
     bool done() const;
     bool failed() const;
 

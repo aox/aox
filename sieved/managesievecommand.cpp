@@ -39,14 +39,14 @@ public:
 };
 
 
-/*! \class ManageSieveCommand sievecommand.h
+/*! \class ManageSieveCommand managesievecommand.h
     This class represents a single ManageSieve command. It is analogous to a
     POP Command. Almost identical, in fact.
 */
 
 
-/*! Creates a new ManageSieveCommand object representing the command \a cmd,
-    for the ManageSieve server \a sieve.
+/*! Creates a new ManageSieveCommand object representing the command
+    \a cmd with arguments \a args for the ManageSieve server \a sieve.
 */
 
 ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
@@ -60,8 +60,7 @@ ManageSieveCommand::ManageSieveCommand( ManageSieve * sieve,
 
 
 /*! Returns true if this ManageSieveCommand has finished executing, and false if
-    execute() hasn't been called, or if it has work left to do. Once the
-    work is done, execute() calls finish() to signal completion.
+    execute() hasn't been called, or if it has work left to do.
 */
 
 bool ManageSieveCommand::done()
@@ -590,3 +589,5 @@ String ManageSieveCommand::encoded( const String & input )
     r.append( input );
     return r;
 }
+
+

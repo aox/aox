@@ -92,3 +92,25 @@ Address * SieveAction::address() const
 {
     return d->address;
 }
+
+
+/*! Returns true if this action has finished its task, and false
+    otherwise.
+*/
+
+bool SieveAction::done() const
+{
+    if ( failed() )
+        return true;
+    return false;
+}
+
+
+/*! Returns true if this action has failed to accomplish its task, and
+    false if it has succeeded or the possibility of success remains.
+*/
+
+bool SieveAction::failed() const
+{
+    return false;
+}

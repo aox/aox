@@ -3,7 +3,7 @@
 #ifndef SIEVESCRIPT_H
 #define SIEVESCRIPT_H
 
-#include "global.h"
+#include "string.h"
 
 
 class SieveScript

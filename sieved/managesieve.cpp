@@ -41,7 +41,7 @@ public:
 
 
 
-/*! \class ManageSieve sieve.h
+/*! \class ManageSieve managesieve.h
     This class implements a ManageSieve server.
 
     The ManageSieve protocol is defined in draft-martin-managesieve-06.txt.

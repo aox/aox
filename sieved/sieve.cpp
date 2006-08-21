@@ -209,3 +209,42 @@ void Sieve::addAction( SieveAction * action )
     if ( d->currentRecipient )
         d->currentRecipient->actions.append( action );
 }
+
+
+/*! Returns a list of the Mailbox objects to which the message should
+    be delivered. This won't quite do when we implement the imapflags
+    extension - then, the different mailboxes mailboxes may need
+    different flags.
+
+    The return value is never 0.
+*/
+
+List<Mailbox> * Sieve::mailboxes() const
+{
+    List<Mailbox> * r = new List<Mailbox>;
+    return r;
+}
+
+
+/*! Returns a list of the Address objects to which this message should
+    be forwarded. According to RFC 3028 the envelope sender should not
+    be changed.
+
+    The return value is never 0.
+*/
+
+List<Address> * Sieve::forwarded() const
+{
+    List<Address> * r = new List<Address>;
+    return r;
+}
+
+
+/*! Returns true if this message has been rejected by (all of its)
+    recipient(s), and false if it's been accepted by at least one.
+*/
+
+bool Sieve::rejected() const
+{
+    return false;
+}

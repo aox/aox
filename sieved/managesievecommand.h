@@ -21,7 +21,6 @@ public:
 
     void read();
     void execute();
-    void finish();
     bool done();
 
 private:
