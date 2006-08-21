@@ -42,7 +42,7 @@ static void newCommand( List< PopCommand > *, POP *,
                         PopCommand::Command, StringList * = 0 );
 
 
-/*! \class POP3 pop.h
+/*! \class POP pop.h
     This class implements a POP3 server.
 
     The Post Office Protocol is defined by RFC 1939, and updated by RFCs

@@ -55,7 +55,7 @@ public:
 
 
 /*! Creates a new PopCommand object representing the command \a cmd, for
-    the POP server \a pop.
+    the POP server \a pop, with the arguments in \a args.
 */
 
 PopCommand::PopCommand( POP * pop, Command cmd, StringList * args )
@@ -385,10 +385,7 @@ bool PopCommand::session()
 }
 
 
-/*! Handles the guts of the STAT/LIST data acquisition. If \a n is 0,
-    then all messages in the Session are considered. Otherwise, only
-    the size of message with the specified MSN is fetched.
-*/
+/*! Handles the guts of the STAT/LIST data acquisition. */
 
 bool PopCommand::fetch822Size()
 {
