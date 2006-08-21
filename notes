@@ -979,21 +979,24 @@ INTHREAD
 
 Todo list: AMS
 
+  - Fix jam always *always* *ALWAYS* running oryxdoc.
   - Try to reproduce Harri's pine problems.
-  - aox hangs if the database doesn't exist, now that DB::desired > 1.
+    (Ok, I can do that. It's related to the next problem.)
   - Better injector error for a broken bodypart.
-  - Fix imap/flagcase.
+  - Update to Postgres 8.1.x on kalyani (+rusage.diff)
+    (8.1.4 built and tested on penne, but kalyani will require a
+    pg_dump... first, I'll have to figure out how to upgrade via
+    portinstall, or ports, or whatever it was I used earlier.)
+  - Make buildinfo contain a revision number even for ordinary builds.
+  - aox hangs if the database doesn't exist, now that DB::desired > 1.
+  - Retry the connection if postgres says "FATAL: starting up".
   - Update the schema for condstore.
   - Try out privilege separation.
   - Fix imap/view and the recent problems.
-  - Retry the connection if postgres says "FATAL: starting up".
   - Figure out the Injector upper bound on Injector speed.
   - Log single-row query values?
-  - Update to Postgres 8.1.x on kalyani (+rusage.diff)
   - Use writev in Buffer::write.
   - Go through ANNOTATE and make sure we have and test everything.
-  - Fix jam always *always* *ALWAYS* running oryxdoc.
-  - Make buildinfo contain a number even for ordinary builds.
   - canonical problems.
   - Poke hdp and jd@commandprompt.
   - Revive dbtest
