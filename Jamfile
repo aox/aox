@@ -24,7 +24,7 @@ if ( $(BUILDDOC) ) {
 }
 
 Doc oryxdoc : core database encodings imap logd mailbox message ocd sasl
-    server smtp tls user http pop sieve ;
+    server smtp tls user http pop sieve html ;
 
 if ( $(BUILDDOC) ) {
     Depends install : doc ;
@@ -77,3 +77,12 @@ EOM
 Message install ;
 
 
+if $(BUILDDOC) {
+    local s u ;
+    for s in $(sets) {
+        if ! $(s) in $(documented-sets) && ! $(s) in $(u) {
+            u += $(s) ;
+        }
+    }
+    echo Built but not documented: $(u) ;
+}

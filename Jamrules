@@ -75,6 +75,7 @@ rule Build
     LOCATE_TARGET = [ FDirName $(TOP) $(BUILD) $(SUBDIR_TOKENS) ] ;
     Objects $(>) ;
     set-$(<) += [ FGristFiles $(>:S=$(SUFOBJ)) ] ;
+    sets += $(<) ;
 }
 
 
@@ -139,6 +140,8 @@ rule Doc {
     NOTFILE $(<) ;
 
     Doc2 $(<) : $(set-$(>):S=.cpp) ;
+
+    documented-sets += $(>) ;
 
     Depends doc : $(<) ;
 
