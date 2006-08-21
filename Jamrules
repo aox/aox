@@ -89,7 +89,6 @@ rule Executable
     local target a ;
     Depends exe : $(<) ;
     Depends $(<) : $(set-$(>)) ;
-    Depends run-udoc-$(>) : $(<) ;
     MakeLocate $(<) : [ FDirName $(TOP) bin ] ;
     Clean clean : $(<) ;
     Link $(<) : $(set-$(>)) ;
@@ -136,8 +135,8 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
 rule Doc {
     UDOCBIN = udoc ;
 
-    Depends $(<) : $(UDOCBIN) run-udoc-$(>) ;
-    NOTFILE $(<) run-udoc-$(>) ;
+    Depends $(<) : $(UDOCBIN) $(set-$(>)) ;
+    NOTFILE $(<) ;
 
     Doc2 $(<) : $(set-$(>):S=.cpp) ;
 
