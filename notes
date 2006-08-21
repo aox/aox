@@ -988,6 +988,7 @@ Todo list: AMS
     portinstall, or ports, or whatever it was I used earlier.)
   - Make buildinfo contain a revision number even for ordinary builds.
   - aox hangs if the database doesn't exist, now that DB::desired > 1.
+  - aox upgrade schema should say something comforting.
   - Retry the connection if postgres says "FATAL: starting up".
   - Update the schema for condstore.
   - Try out privilege separation.
