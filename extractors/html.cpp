@@ -16,7 +16,7 @@
 */
 
 
-/*! Returns indexable text extracted from \a s. */
+/*! Returns indexable text extracted from \a h. */
 
 UString HTML::asText( const UString &h )
 {
