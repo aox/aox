@@ -979,16 +979,11 @@ INTHREAD
 
 Todo list: AMS
 
-  - Try to reproduce Harri's pine problems.
-    (Ok, I can do that. It's related to the next problem.)
-  - Better injector error for a broken bodypart.
+  - Go through ANNOTATE and make sure we have and test everything.
   - Update to Postgres 8.1.x on kalyani (+rusage.diff)
-    (8.1.4 built and tested on penne, but kalyani will require a
-    pg_dump... first, I'll have to figure out how to upgrade via
-    portinstall, or ports, or whatever it was I used earlier.)
+  - aox upgrade schema should say something comforting.
   - Make buildinfo contain a revision number even for ordinary builds.
   - aox hangs if the database doesn't exist, now that DB::desired > 1.
-  - aox upgrade schema should say something comforting.
   - Retry the connection if postgres says "FATAL: starting up".
   - Update the schema for condstore.
   - Try out privilege separation.
@@ -996,12 +991,10 @@ Todo list: AMS
   - Figure out the Injector upper bound on Injector speed.
   - Log single-row query values?
   - Use writev in Buffer::write.
-  - Go through ANNOTATE and make sure we have and test everything.
   - canonical problems.
   - Poke hdp and jd@commandprompt.
   - Revive dbtest
   - Investigate Scalix/Zimbra/TeamXchange.
-  - Read draft-ietf-lemonade-reconnect before WGLC.
 
 
 
