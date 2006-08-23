@@ -10,13 +10,15 @@ Program aox :
 rule BuildInfo {
     Depends $(<) : $(>) ;
     Clean clean : $(<) ;
-    SEARCH on $(>) = .. ;
+    SEARCH on $(>) = $(TOP) ;
     MakeLocate $(<) : $(LOCATE_SOURCE) ;
 }
 
 actions BuildInfo {
-    sed -e 's/##.*//' -e 's/[\\"]/\\&/g' < $(>) | \
-    grep . | sed -e 's/\(.*\)/"\1",/' > $(<)
+    cat $(>) | \
+    sed -e 's/#.*//' -e 's/[\\"]/\\&/g'| \
+    grep . | \
+    sed -e 's/\(.*\)/"\1",/' > $(<)
 }
 
-BuildInfo buildinfo.inc : buildinfo ;
+BuildInfo buildinfo.inc : buildinfo [ Glob $(TOP) : buildinfo.* ] ;

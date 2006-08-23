@@ -1,2 +1,3 @@
-Build source: //oryx/src/main
-Change number: HEAD
+# Filed called buildinfo.* contain information about the build. 'aox
+# show build' reports them. we recommend lines of the form 'X: Y'.
+# Lines starting with '#' are comments.
