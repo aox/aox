@@ -1,21 +1,34 @@
-Next release (2006-09-09: 1.10)
+1.10: 2006-09-09
 
   Done:
 
+  Added UTF-16, UTF-16LE and UTF-16BE codecs.
+
+  IMAP Login has to complete in two minutes and 32k, whichever is more
+  restrictive.
+
+  Lots of bugs (syntax, message injection for bad messages)
+
+  
+
   Must-Do:
 
-  (This is a joke. We never do any of it.)
+  0 bytes in every codec.
 
   Misc:
 
   ?
 
 
-Next few releases
+1.11: 2006-10-01
 
-  - Sieve
-  - Working webmail
-  - More character encodings (EUC-KR)
+  Implement Lemonade profile and condstore in time for the interop.
+
+
+1.12: 2006-10-29
+
+  What here? LDAP AB? Webmail?
+
 
 
 Undefined codepoints
