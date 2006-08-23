@@ -121,6 +121,7 @@ void WebPage::addText( const String & text )
 
 void WebPage::addLink( const String & url, const String & title )
 {
+    addText( "" );
     String s( "<a href=\"" );
     s.append( url );
     s.append( "\">" );

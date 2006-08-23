@@ -189,8 +189,8 @@ void DocBlock::word( uint & i, uint l, uint n )
         j++;
     String w = t.mid( i, j-i );
     i = j;
-    if ( w.lower() == "rfc" ) {
-        if ( t[j] == ' ' )
+    if ( w == "RFC" ) {
+        while ( t[j] == ' ' || t[j] == '\n' )
             j++;
         uint start = j;
 
@@ -211,6 +211,9 @@ void DocBlock::word( uint & i, uint l, uint n )
         else {
             plainWord( w, l );
         }
+    }
+    else if ( w.lower().startsWith( "http://" ) ) {
+        Output::addLink( w, w );
     }
     else if ( w[0] != '\\' ) {
         plainWord( w, l );
