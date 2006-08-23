@@ -24,13 +24,39 @@ public:
 
         uint errorLine() const;
         
-        Production * parent();
+        Production * parent() { return mommy; }
 
         const String name() { return n; }
-        const String & source() const;
-        uint & pos() const;
+        const String & source() const { return d->source; }
+        uint & pos() const { return d->pos; }
+        char nextChar() const { return source()[pos()]; }
+        void skip( uint l ) { pos() += l; }
+        void skip( const String & l ) { pos() += l.length(); }
 
         virtual void parse() = 0;
+
+        bool lookingAt( const char * l ) const {
+            const ::String & s = source();
+            uint i = 0;
+            while ( l[i] ) {
+                char cl = l[i];
+                char cs = s[i];
+                if ( cs == cl ) {
+                    // ok - exact match
+                } else if ( cl == cs + 32 && cs >= 'A' && cs <= 'Z' ) {
+                    // ok - have upper-case, looking for lower
+                } else if ( cl == cs - 32 && cs >= 'a' && cs <= 'z' ) {
+                    // ok - have lower-case, looking for upper
+                }
+                else {
+                    return false; // not a match
+                }
+                i++;
+            }
+            return true;
+        }
+
+        void error( const char * ) {}
 
     public:
         uint start;
@@ -45,7 +71,7 @@ public:
     {
     public:
         ProductionList( Production * p ) 
-            : Production( p, (new T)->name() + "-list" ),
+            : Production( p, (new T(p))->name() + "-list" ),
               c( new List<T> ) {
             while ( true ) {
                 uint before = d->pos;
@@ -63,6 +89,233 @@ public:
         List<T> * c;
     };
 
+    // bracket-comment = "/*" *not-star 1*STAR
+    //                    *(not-star-slash *not-star 1*STAR) "/"
+    class BracketComment
+        : public Production
+    {
+    public:
+        BracketComment( Production * );
+        void parse();
+    private:
+    };
+
+    // comment = bracket-comment / hash-comment
+    class Comment
+        : public Production
+    {
+    public:
+        Comment( Production * );
+        void parse();
+    private:
+    };
+
+    // hash-comment = "#" *octet-not-crlf CRLF
+    class HashComment
+        : public Production
+    {
+    public:
+        HashComment( Production * );
+        void parse();
+    private:
+    };
+
+    // identifier = (ALPHA / "_") *(ALPHA / DIGIT / "_")
+    class Identifier
+        : public Production
+    {
+    public:
+        Identifier( Production * );
+        void parse();
+    private:
+    };
+
+    // multi-line = "text:" *(SP / HTAB) (hash-comment / CRLF)
+    //              *(multiline-literal / multiline-dotstuff)
+    //              "." CRLF
+    class MultiLine
+        : public Production
+    {
+    public:
+        MultiLine( Production * );
+        void parse();
+    private:
+    };
+
+    // multiline-literal = [octet-not-period *octet-not-crlf] CRLF
+    class MultilineLiteral
+        : public Production
+    {
+    public:
+        MultilineLiteral( Production * );
+        void parse();
+    private:
+    };
+
+    // multiline-dotstuff = "." 1*octet-not-crlf CRLF
+    //                      ; A line containing only "." ends the
+    //                      ; multi-line.  Remove a leading '.' if
+    //                      ; followed by another '.'.
+    class MultilineDotstuff
+        : public Production
+    {
+    public:
+        MultilineDotstuff( Production * );
+        void parse();
+    private:
+    };
+
+    // not-star = CRLF / %x01-09 / %x0B-0C / %x0E-29 / %x2B-FF /
+    class NotStar
+        : public Production
+    {
+    public:
+        NotStar( Production * );
+        void parse();
+    private:
+    };
+
+    // not-star-slash = CRLF / %x01-09 / %x0B-0C / %x0E-29 / %x2B-2E /
+    //                  %x30-FF
+    class NotStarSlash
+        : public Production
+    {
+    public:
+        NotStarSlash( Production * );
+        void parse();
+    private:
+    };
+
+    // number = 1*DIGIT [ QUANTIFIER ]
+    class Number
+        : public Production
+    {
+    public:
+        Number( Production * );
+        void parse();
+    private:
+    };
+
+    // octet-not-crlf = %x01-09 / %x0B-0C / %x0E-FF
+    class OctetNotCrlf
+        : public Production
+    {
+    public:
+        OctetNotCrlf( Production * );
+        void parse();
+    private:
+    };
+
+    // octet-not-period = %x01-09 / %x0B-0C / %x0E-2D / %x2F-FF
+    class OctetNotPeriod
+        : public Production
+    {
+    public:
+        OctetNotPeriod( Production * );
+        void parse();
+    private:
+    };
+
+    // octet-not-qspecial = %x01-09 / %x0B-0C / %x0E-21 / %x23-5B / %x5D-FF
+    class OctetNotQspecial
+        : public Production
+    {
+    public:
+        OctetNotQspecial( Production * );
+        void parse();
+    private:
+    };
+
+    // QUANTIFIER = "K" / "M" / "G"
+    class Quantifier
+        : public Production
+    {
+    public:
+        Quantifier( Production * );
+        void parse();
+    private:
+    };
+
+    // quoted-other = "\" octet-not-qspecial
+    class QuotedOther
+        : public Production
+    {
+    public:
+        QuotedOther( Production * );
+        void parse();
+    private:
+    };
+
+    // quoted-safe = CRLF / octet-not-qspecial
+    class QuotedSafe
+        : public Production
+    {
+    public:
+        QuotedSafe( Production * );
+        void parse();
+    private:
+    };
+
+    // quoted-special     = "\" ( DQUOTE / "\" )
+    class QuotedSpecial
+        : public Production
+    {
+    public:
+        QuotedSpecial( Production * );
+        void parse();
+    private:
+    };
+
+    // quoted-string = DQUOTE quoted-text DQUOTE
+    class QuotedString
+        : public Production
+    {
+    public:
+        QuotedString( Production * );
+        void parse();
+    private:
+    };
+
+    // quoted-text = *(quoted-safe / quoted-special / quoted-other)
+    class QuotedText
+        : public Production
+    {
+    public:
+        QuotedText( Production * );
+        void parse();
+    private:
+    };
+
+    // STAR = "*"
+    class Star
+        : public Production
+    {
+    public:
+        Star( Production * );
+        void parse();
+    private:
+    };
+
+    // tag = ":" identifier
+    class Tag
+        : public Production
+    {
+    public:
+        Tag( Production * );
+        void parse();
+    private:
+    };
+
+    // white-space = 1*(SP / CRLF / HTAB) / comment
+    class WhiteSpace
+        : public Production
+    {
+    public:
+        WhiteSpace( Production * );
+        void parse();
+    private:
+    };
+
     // ADDRESS-PART = ":localpart" / ":domain" / ":all"
     class AddressPart
         : public Production
@@ -71,7 +324,10 @@ public:
         AddressPart( Production * );
         void parse();
     private:
+        const char * type;
     };
+    
+    class StringList;
 
     // argument = string-list / number / tag
     class Argument
@@ -81,6 +337,9 @@ public:
         Argument( Production * );
         void parse();
     private:
+        class SieveScriptData::Tag * tag;
+        class SieveScriptData::Number * number;
+        class SieveScriptData::StringList * stringList;
     };
 
     // arguments = *argument [test / test-list]
@@ -91,6 +350,7 @@ public:
         Arguments( Production * );
         void parse();
     private:
+        ProductionList<Argument> * arguments;
     };
 
     // block = "{" commands "}"
@@ -163,18 +423,6 @@ public:
     private:
     };
 
-    // test-list = "(" test *("," test) ")"
-    class X
-        : public Production
-    {
-    public:
-        X( Production * );
-        void parse();
-    private:
-    };
-
-
-
 /*
     class X
         : public Production
@@ -214,18 +462,23 @@ uint SieveScriptData::Production::errorLine() const
     }
     return l;
 }
-        
-
-SieveScriptData::Production * SieveScriptData::Production::parent()
-{
-    return mommy;
-}
 
 
 // ADDRESS-PART = ":localpart" / ":domain" / ":all"
 SieveScriptData::AddressPart::AddressPart( Production * p )
     : SieveScriptData::Production( p, "addresspart" )
 {
+    if ( lookingAt( ":localpart" ) )
+        type = ":localpart";
+    else if ( lookingAt( ":domain" ) )
+        type = ":domain";
+    else if ( lookingAt( ":all" ) )
+        type = ":all";
+
+    if ( type )
+        skip( type );
+    else
+        error( "No valid address-part seen" );
 }
 
 void SieveScriptData::AddressPart::parse()
@@ -236,6 +489,32 @@ void SieveScriptData::AddressPart::parse()
 SieveScriptData::Argument::Argument( Production * p )
     : SieveScriptData::Production( p, "argument" )
 {
+    switch ( nextChar() ) {
+    case ':':
+        tag = new Tag( this );
+        break;
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+        number = new Number( this );
+        break;
+    case '(':
+    case '"':
+    case 't':
+    case 'T':
+        stringList = new StringList( this );
+        break;
+    default:
+        error( "No valid argument seen" );
+        break;
+    }
 }
 
 void SieveScriptData::Argument::parse()
@@ -246,6 +525,8 @@ void SieveScriptData::Argument::parse()
 SieveScriptData::Arguments::Arguments( Production * p )
     : SieveScriptData::Production( p, ":arguments" )
 {
+    arguments = new ProductionList<Argument>( this );
+    
 }
 
 void SieveScriptData::Arguments::parse()
@@ -321,6 +602,237 @@ SieveScriptData::Test::Test( Production * p )
 void SieveScriptData::Test::parse()
 {
 }
+
+
+
+// bracket-comment = "/*" *not-star 1*STAR
+//                    *(not-star-slash *not-star 1*STAR) "/"
+SieveScriptData::BracketComment::BracketComment( Production * p )
+    : SieveScriptData::Production( p, "bracketcomment" )
+{
+}
+
+void SieveScriptData::BracketComment::parse()
+{
+}
+
+// comment = bracket-comment / hash-comment
+SieveScriptData::Comment::Comment( Production * p )
+    : SieveScriptData::Production( p, "comment" )
+{
+}
+
+void SieveScriptData::Comment::parse()
+{
+}
+
+// hash-comment = "#" *octet-not-crlf CRLF
+SieveScriptData::HashComment::HashComment( Production * p )
+    : SieveScriptData::Production( p, "hashcomment" )
+{
+}
+
+void SieveScriptData::HashComment::parse()
+{
+}
+
+// identifier = (ALPHA / "_") *(ALPHA / DIGIT / "_")
+SieveScriptData::Identifier::Identifier( Production * p )
+    : SieveScriptData::Production( p, "identifier" )
+{
+}
+
+void SieveScriptData::Identifier::parse()
+{
+}
+
+    // multi-line = "text:" *(SP / HTAB) (hash-comment / CRLF)
+    //              *(multiline-literal / multiline-dotstuff)
+    //              "." CRLF
+SieveScriptData::MultiLine::MultiLine( Production * p )
+    : SieveScriptData::Production( p, "multiline" )
+{
+}
+
+void SieveScriptData::MultiLine::parse()
+{
+}
+
+// multiline-literal = [octet-not-period *octet-not-crlf] CRLF
+SieveScriptData::MultilineLiteral::MultilineLiteral( Production * p )
+    : SieveScriptData::Production( p, "multilineliteral" )
+{
+}
+
+void SieveScriptData::MultilineLiteral::parse()
+{
+}
+
+    // multiline-dotstuff = "." 1*octet-not-crlf CRLF
+    //                      ; A line containing only "." ends the
+    //                      ; multi-line.  Remove a leading '.' if
+    //                      ; followed by another '.'.
+SieveScriptData::MultilineDotstuff::MultilineDotstuff( Production * p )
+    : SieveScriptData::Production( p, "multilinedotstuff" )
+{
+}
+
+void SieveScriptData::MultilineDotstuff::parse()
+{
+}
+
+// not-star = CRLF / %x01-09 / %x0B-0C / %x0E-29 / %x2B-FF /
+SieveScriptData::NotStar::NotStar( Production * p )
+    : SieveScriptData::Production( p, "notstar" )
+{
+}
+
+void SieveScriptData::NotStar::parse()
+{
+}
+
+// not-star-slash = CRLF / %x01-09 / %x0B-0C / %x0E-29 / %x2B-2E /
+//                  %x30-FF
+SieveScriptData::NotStarSlash::NotStarSlash( Production * p )
+    : SieveScriptData::Production( p, "notstarslash" )
+{
+}
+
+void SieveScriptData::NotStarSlash::parse()
+{
+}
+
+// number = 1*DIGIT [ QUANTIFIER ]
+SieveScriptData::Number::Number( Production * p )
+    : SieveScriptData::Production( p, "number" )
+{
+}
+
+void SieveScriptData::Number::parse()
+{
+}
+
+// octet-not-crlf = %x01-09 / %x0B-0C / %x0E-FF
+SieveScriptData::OctetNotCrlf::OctetNotCrlf( Production * p )
+    : SieveScriptData::Production( p, "octetnotcrlf" )
+{
+}
+
+void SieveScriptData::OctetNotCrlf::parse()
+{
+}
+
+// octet-not-period = %x01-09 / %x0B-0C / %x0E-2D / %x2F-FF
+SieveScriptData::OctetNotPeriod::OctetNotPeriod( Production * p )
+    : SieveScriptData::Production( p, "octetnotperiod" )
+{
+}
+
+void SieveScriptData::OctetNotPeriod::parse()
+{
+}
+
+// octet-not-qspecial = %x01-09 / %x0B-0C / %x0E-21 / %x23-5B / %x5D-FF
+SieveScriptData::OctetNotQspecial::OctetNotQspecial( Production * p )
+    : SieveScriptData::Production( p, "octetnotqspecial" )
+{
+}
+
+void SieveScriptData::OctetNotQspecial::parse()
+{
+}
+
+// QUANTIFIER = "K" / "M" / "G"
+SieveScriptData::Quantifier::Quantifier( Production * p )
+    : SieveScriptData::Production( p, "quantifier" )
+{
+}
+
+void SieveScriptData::Quantifier::parse()
+{
+}
+
+// quoted-other = "\" octet-not-qspecial
+SieveScriptData::QuotedOther::QuotedOther( Production * p )
+    : SieveScriptData::Production( p, "quotedother" )
+{
+}
+
+void SieveScriptData::QuotedOther::parse()
+{
+}
+
+// quoted-safe = CRLF / octet-not-qspecial
+SieveScriptData::QuotedSafe::QuotedSafe( Production * p )
+    : SieveScriptData::Production( p, "quotedsafe" )
+{
+}
+
+void SieveScriptData::QuotedSafe::parse()
+{
+}
+
+// quoted-special     = "\" ( DQUOTE / "\" )
+SieveScriptData::QuotedSpecial::QuotedSpecial( Production * p )
+    : SieveScriptData::Production( p, "quotedspecial" )
+{
+}
+
+void SieveScriptData::QuotedSpecial::parse()
+{
+}
+
+// quoted-string = DQUOTE quoted-text DQUOTE
+SieveScriptData::QuotedString::QuotedString( Production * p )
+    : SieveScriptData::Production( p, "quotedstring" )
+{
+}
+
+void SieveScriptData::QuotedString::parse()
+{
+}
+
+// quoted-text = *(quoted-safe / quoted-special / quoted-other)
+SieveScriptData::QuotedText::QuotedText( Production * p )
+    : SieveScriptData::Production( p, "quotedtext" )
+{
+}
+
+void SieveScriptData::QuotedText::parse()
+{
+}
+
+// STAR = "*"
+SieveScriptData::Star::Star( Production * p )
+    : SieveScriptData::Production( p, "star" )
+{
+}
+
+void SieveScriptData::Star::parse()
+{
+}
+
+// tag = ":" identifier
+SieveScriptData::Tag::Tag( Production * p )
+    : SieveScriptData::Production( p, "tag" )
+{
+}
+
+void SieveScriptData::Tag::parse()
+{
+}
+
+// white-space = 1*(SP / CRLF / HTAB) / comment
+SieveScriptData::WhiteSpace::WhiteSpace( Production * p )
+    : SieveScriptData::Production( p, "whitespace" )
+{
+}
+
+void SieveScriptData::WhiteSpace::parse()
+{
+}
+
+
 
 
 /*! \class SieveScript sievescript.h
