@@ -540,13 +540,15 @@ void Fetch::execute()
     while ( ok && i <= c ) {
         uint uid = d->set.value( i );
         Message * m = s->mailbox()->message( uid );
+        uint msn = s->msn( uid );
         if ( ( !d->annotation || m->hasAnnotations() ) &&
              ( !d->needHeader || m->hasHeaders() ) &&
              ( !d->needBody || m->hasBodies() ) &&
              ( !d->flags || m->hasFlags() ) &&
-             ( ( !d->rfc822size && !d->internaldate ) || m->hasTrivia() ) )
+             ( ( !d->rfc822size && !d->internaldate ) || m->hasTrivia() ) &&
+             uid > 0 && msn > 0 )
         {
-            imap()->enqueue( fetchResponse( m, uid, s->msn( uid ) ) );
+            imap()->enqueue( fetchResponse( m, uid, msn ) );
             i++;
             good = uid;
         }

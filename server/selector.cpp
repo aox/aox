@@ -421,8 +421,9 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->placeholder = 0;
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, mailbox->id() );
-    String q = "select distinct m.uid from messages m";
-
+    String q = "select distinct m.uid from messages m"
+               " left join deleted_messages dm on"
+               " (m.uid=dm.uid and m.mailbox=dm.mailbox)";
     String w = where();
 
     // make sure that any indirect joins below don't produce bad
@@ -462,7 +463,9 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     if ( d->needBodyparts )
         q.append( " join bodyparts bp on (bp.id=pn.bodypart)" );
 
-    q.append( " where m.mailbox=$" + fn( d->mboxId ) );
+    q.append( " where m.mailbox=$" );
+    q.append( fn( d->mboxId ) );
+    q.append( " and dm.uid is null" );
     if ( !w.isEmpty() )
         q.append( " and " + w );
     q.append( " order by m.uid" );
