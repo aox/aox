@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (22);
+insert into mailstore (revision) values (23);
 
 
 -- One entry for each unique address we've encountered.
@@ -313,4 +313,18 @@ create table scripts (
     name        text,
     active      boolean not null default 'f',
     script      text
+);
+
+
+-- One entry per deleted (EXPUNGEd) message.
+
+create table deleted_messages (
+    mailbox     integer not null,
+    uid         integer not null,
+    deleted_by  integer not null references users(id),
+    deleted_at  timestamp not null default current_timestamp,
+    reason      text,
+    foreign key (mailbox, uid)
+                references messages(mailbox, uid)
+                on delete cascade
 );
