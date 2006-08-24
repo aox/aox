@@ -23,7 +23,7 @@ public:
         virtual ~Production() {}
 
         uint errorLine() const;
-        
+
         Production * parent() { return mommy; }
 
         const String name() { return n; }
@@ -64,13 +64,13 @@ public:
         SieveScriptData * d;
         ::String n;
     };
-    
+
     template<class T>
     class ProductionList
         : public Production
     {
     public:
-        ProductionList( Production * p ) 
+        ProductionList( Production * p )
             : Production( p, (new T(p))->name() + "-list" ),
               c( new List<T> ) {
             while ( true ) {
@@ -326,8 +326,9 @@ public:
     private:
         const char * type;
     };
-    
+
     class StringList;
+    class TestList;
 
     // argument = string-list / number / tag
     class Argument
@@ -351,6 +352,7 @@ public:
         void parse();
     private:
         ProductionList<Argument> * arguments;
+        class SieveScriptData::TestList * testList;
     };
 
     // block = "{" commands "}"
@@ -419,6 +421,16 @@ public:
     {
     public:
         Test( Production * );
+        void parse();
+    private:
+    };
+
+    // test-list - see below
+    class TestList
+        : public Production
+    {
+    public:
+        TestList( Production * );
         void parse();
     private:
     };
@@ -526,7 +538,8 @@ SieveScriptData::Arguments::Arguments( Production * p )
     : SieveScriptData::Production( p, ":arguments" )
 {
     arguments = new ProductionList<Argument>( this );
-    
+    // see TestList below
+    testList = new TestList( this );
 }
 
 void SieveScriptData::Arguments::parse()
@@ -603,6 +616,18 @@ void SieveScriptData::Test::parse()
 {
 }
 
+
+// test-list = "(" test *("," test) ")"
+// we extend this as follows:
+//           = test / ( "(" test *("," test) ")" )
+SieveScriptData::TestList::TestList( Production * p )
+    : SieveScriptData::Production( p, "test" )
+{
+}
+
+void SieveScriptData::TestList::parse()
+{
+}
 
 
 // bracket-comment = "/*" *not-star 1*STAR
