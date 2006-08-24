@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 22;
+int currentRevision = 23;
 
 
 class SchemaData
@@ -289,6 +289,8 @@ bool Schema::singleStep()
         c = stepTo21(); break;
     case 21:
         c = stepTo22(); break;
+    case 22:
+        c = stepTo23(); break;
     }
 
     return c;
@@ -1245,6 +1247,36 @@ bool Schema::stepTo22()
     }
 
     if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add the deleted_messages table. */
+
+bool Schema::stepTo23()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Creating deleted_messages table.", Log::Debug );
+        d->q = new Query( "create table deleted_messages (mailbox "
+                          "integer not null, uid integer not null, "
+                          "deleted_by integer not null references "
+                          "users(id), deleted_at timestamp not null "
+                          "default current_timestamp, reason text, "
+                          "foreign key (mailbox,uid) references "
+                          "messages(mailbox,uid) on delete cascade )",
+                          this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
