@@ -109,17 +109,17 @@ void Status::execute()
         // UNSEEN is a bit of a special case. we have to issue our own
         // select and make the database reveal the number.
         d->unseenCount
-            = new Query( "select "
-                         "(select count(*) from messages "
-                         "where mailbox=$1)::integer"
-                         "-"
-                         "(select count(*) from flags "
-                         "where mailbox=$1 and flag=$2)::integer"
-                         " as count", this );
+            = new Query( "select count(*) "
+                         "from messages m "
+                         "left join deleted_messages dm on"
+                         "(m.uid=dm.uid and m.mailbox=dm.mailbox) "
+                         "left join flags f on "
+                         "(m.uid=f.uid and m.mailbox=f.mailbox and f.flag=$2) "
+                         "where m.mailbox=$1 and dm.uid is null", this );
         d->unseenCount->bind( 1, d->mailbox->id() );
         Flag * f = Flag::find( "\\seen" );
         if ( f ) {
-            d->unseenCount->bind( 1, f->id() );
+            d->unseenCount->bind( 2, f->id() );
             d->unseenCount->execute();
         }
         else {

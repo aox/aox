@@ -117,11 +117,15 @@ bool Expunge::expunge( bool chat )
 
     if ( d->stage == 2 ) {
         log( "Expunge " + fn( d->uids.count() ) + " messages" );
-        Query *q =
-            new Query( "delete from messages where "
-                       "mailbox=$1 and (" + d->uids.where() + ")",
-                       this );
+        Query * q = new Query( "insert into deleted_messages "
+                               "(mailbox, uid, user, reason) "
+                               "select mailbox, uid, $2, $3 "
+                               "from messages where mailbox=$1 and "
+                               "(" + d->uids.where() + ")",
+                               this );
         q->bind( 1, imap()->session()->mailbox()->id() );
+        q->bind( 2, imap()->user()->id() );
+        q->bind( 3, "IMAP expunge " + Scope::current()->log()->id() );
         d->t->enqueue( q );
         d->t->commit();
         d->stage = 4;

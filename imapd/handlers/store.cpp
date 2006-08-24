@@ -79,6 +79,7 @@ void Store::parse()
     space();
     d->s = set( !d->uid );
     d->expunged = imap()->session()->expunged().intersection( d->s );
+    shrink( &d->s );
     space();
 
     if ( present( "ANNOTATION (" ) ) {
