@@ -4,7 +4,9 @@
 
 #include "flag.h"
 #include "imap.h"
+#include "user.h"
 #include "query.h"
+#include "scope.h"
 #include "mailbox.h"
 #include "transaction.h"
 #include "imapsession.h"

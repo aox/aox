@@ -57,9 +57,9 @@ Log::Log( Facility f )
     if ( cs )
         l = cs->log();
     if ( l )
-        id = l->id + "/" + fn( l->children++ );
+        ide = l->id() + "/" + fn( l->children++ );
     else
-        id = "1";
+        ide = "1";
     children = 1;
 }
 
@@ -90,7 +90,7 @@ void Log::log( const String &m, Severity s )
     if ( !l )
         return;
 
-    l->send( id, fc, s, m );
+    l->send( ide, fc, s, m );
 }
 
 
@@ -104,7 +104,7 @@ void Log::commit( Severity s )
     if ( !l )
         return;
 
-    l->commit( id, s );
+    l->commit( ide, s );
 }
 
 
@@ -185,4 +185,14 @@ const char *Log::facility( Facility f )
 bool Log::disastersYet()
 {
     return disasters;
+}
+
+
+/*! Returns the identity of this log; this is a string which can be
+    used to locate log data in the logfile.
+*/
+
+String Log::id()
+{
+    return ide;
 }

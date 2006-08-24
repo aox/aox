@@ -24,13 +24,14 @@ public:
     void log( const String &, Severity = Info );
     void commit( Severity = Info );
     ~Log();
+    String id();
 
     static const char * severity( Severity );
     static const char * facility( Facility );
     static bool disastersYet();
 
 private:
-    String id;
+    String ide;
     Facility fc;
     uint children;
 };
