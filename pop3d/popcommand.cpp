@@ -197,6 +197,7 @@ void PopCommand::execute()
 bool PopCommand::startTls()
 {
     if ( !d->tlsServer ) {
+        log( "STLS Command" );
         d->tlsServer = new TlsServer( this, d->pop->peer(), "POP" );
         d->pop->setReserved( true );
     }
@@ -218,6 +219,7 @@ bool PopCommand::startTls()
 bool PopCommand::auth()
 {
     if ( !d->m ) {
+        log( "AUTH Command" );
         String t = nextArg().lower();
         d->m = SaslMechanism::create( t, this, d->pop->hasTls() );
         if ( !d->m ) {
@@ -299,6 +301,7 @@ bool PopCommand::auth()
 bool PopCommand::user()
 {
     if ( !d->user ) {
+        log( "USER Command" );
         d->user = new ::User;
         d->pop->setUser( d->user );
         d->user->setLogin( nextArg() );
@@ -325,6 +328,7 @@ bool PopCommand::user()
 bool PopCommand::pass()
 {
     if ( !d->m ) {
+        log( "PASS Command" );
         d->m = new Plain( this );
         d->m->setLogin( d->pop->user()->login() );
         d->m->setSecret( nextArg() );
@@ -350,6 +354,7 @@ bool PopCommand::session()
 {
     if ( !d->mailbox ) {
         d->mailbox = d->pop->user()->inbox();
+        log( "Attempting to start a session on " + d->mailbox->name() );
         d->permissions =
             new Permissions( d->mailbox, d->pop->user(), this );
     }
@@ -419,6 +424,7 @@ bool PopCommand::stat()
     ::Session * s = d->pop->session();
 
     if ( !d->started ) {
+        log( "STAT command" );
         d->started = true;
         uint n = s->count();
         while ( n >= 1 ) {
@@ -470,6 +476,7 @@ bool PopCommand::list()
             }
             d->set.add( s->uid( msn ) );
         }
+        log( "LIST command (" + d->set.set() + ")" );
     }
 
     if ( !fetch822Size() )
@@ -514,6 +521,10 @@ bool PopCommand::retr( bool lines )
     if ( !d->started ) {
         bool ok;
         uint msn = nextArg().number( &ok );
+        if ( ok )
+            log( "RETR command (" + fn( s->uid( msn ) ) + ")" );
+        else
+            log( "RETR command" );
         if ( !ok || msn < 1 || msn > s->count() ||
              ( d->message = s->mailbox()->message( s->uid( msn ) ) ) == 0 )
         {
@@ -589,8 +600,13 @@ bool PopCommand::dele()
     bool ok;
     uint msn = nextArg().number( &ok );
     uint uid = 0;
-    if ( ok )
+    if ( ok ) {
         uid = d->pop->session()->uid( msn );
+        log( "DELE command (" + fn( uid ) + ")" );
+    }
+    else {
+        log( "DELE command" );
+    }
     if ( d->session->readOnly() ) {
         d->pop->err( "Invalid message number" );
     }
@@ -619,10 +635,12 @@ bool PopCommand::uidl()
             return true;
         }
         uint uid = s->uid( msn );
+        log( "UIDL command (" + fn( uid ) + ")" );
         d->pop->ok( fn( msn ) + " " + fn( s->mailbox()->uidvalidity() ) +
                     fn( uid ) );
     }
     else {
+        log( "UIDL command" );
         uint msn = 1;
 
         d->pop->ok( "Done" );

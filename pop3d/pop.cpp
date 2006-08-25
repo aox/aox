@@ -74,9 +74,21 @@ POP::POP( int s )
 
 void POP::setState( State s )
 {
-    if ( s == Update && d->state != Update &&
-         user() && !d->toBeDeleted.isEmpty() )
-    {
+    if ( s == d->state )
+        return;
+    switch ( s ) {
+    case Authorization:
+        log( "Switching to Authorization state" );
+        break;
+    case Transaction:
+        log( "Switching to Transaction state" );
+        break;
+    case Update:
+        log( "Switching to Update state" );
+        break;
+    }
+    if ( s == Update && user() && !d->toBeDeleted.isEmpty() ) {
+        log( "Deleting " + fn( d->toBeDeleted.count() ) + " messages" );
         Query * q = new Query( "insert into deleted_messages "
                                "(mailbox, uid, deleted_by, reason) "
                                "select mailbox, uid, $2, $3 "
@@ -289,6 +301,7 @@ static void newCommand( List< PopCommand > * l, POP * pop,
 
 void POP::setUser( User * u )
 {
+    log( "User " + u->login() );
     d->user = u;
 }
 
@@ -330,6 +343,7 @@ void POP::setReader( PopCommand * cmd )
 
 void POP::setSession( Session * s )
 {
+    log( "Using mailbox " + s->mailbox()->name() );
     d->session = s;
 }
 
