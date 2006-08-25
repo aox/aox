@@ -145,7 +145,8 @@ static struct {
     { "http-port", Configuration::HttpPort, 8808 },
     { "db-max-handles", Configuration::DbMaxHandles, 4 },
     { "db-handle-interval", Configuration::DbHandleInterval, 120 },
-    { "managesieve-port", Configuration::ManageSievePort, 2000 }
+    { "managesieve-port", Configuration::ManageSievePort, 2000 },
+    { "undeletet-time", Configuration::UndeleteTime, 7 }
 };
 
 

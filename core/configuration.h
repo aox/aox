@@ -50,6 +50,7 @@ public:
         DbMaxHandles,
         DbHandleInterval,
         ManageSievePort,
+        UndeleteTime,
         // additional scalars go ABOVE THIS LINE
         NumScalars
     };

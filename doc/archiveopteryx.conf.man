@@ -61,6 +61,10 @@ by default.
 decides whether the various servers accept IPv6 connections.
 .I true
 by default.
+.IP undelete-time
+is the number of days a message can be undeleted after being deleted,
+.I 7
+by default.
 .SS "Database Access"
 .IP db
 The type of database. The default,
