@@ -432,8 +432,9 @@ Query * Selector::query( User * user, Mailbox * mailbox,
             uint f = d->needFlags.value( i );
             String n = "f" + fn( f );
             i++;
-            q.append( " left join flags " + n + " using (uid,mailbox) and " +
-                      n + ".flag=" + fn( f ) + ")" );
+            q.append( " left join flags " + n +
+                      " on (m.mailbox=" + n + ".mailbox and m.uid=" + n +
+                      ".uid and " + n + ".flag=" + fn( f ) + ")" );
         }
     }
 
