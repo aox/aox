@@ -591,7 +591,7 @@ bool PopCommand::dele()
     uint uid = 0;
     if ( ok )
         uid = d->pop->session()->uid( msn );
-    if ( !d->session->readOnly() ) {
+    if ( d->session->readOnly() ) {
         d->pop->err( "Invalid message number" );
     }
     else if ( uid ) {
