@@ -394,16 +394,6 @@ void Selector::simplify()
 }
 
 
-static String join( const char * table )
-{
-    String r( table );
-    r.append( ".uid=m.uid and m.mailbox=" );
-    r.append( table );
-    r.append( ".mailbox" );
-    return r;
-}
-
-
 /*! Returns a query representing this Selector or 0 if anything goes
     wrong, in which case error() contains a description of the problem.
     The Selector is expressed as SQL in the context of the specified
@@ -422,8 +412,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, mailbox->id() );
     String q = "select distinct m.uid from messages m"
-               " left join deleted_messages dm on"
-               " (m.uid=dm.uid and m.mailbox=dm.mailbox)";
+               " left join deleted_messages dm using (uid,mailbox)";
     String w = where();
 
     // make sure that any indirect joins below don't produce bad
@@ -443,23 +432,23 @@ Query * Selector::query( User * user, Mailbox * mailbox,
             uint f = d->needFlags.value( i );
             String n = "f" + fn( f );
             i++;
-            q.append( " left join flags " + n + " on (" + join( n.cstr() ) +
-                      " and " + n + ".flag=" + fn( f ) + ")" );
+            q.append( " left join flags " + n + " using (uid,mailbox) and " +
+                      n + ".flag=" + fn( f ) + ")" );
         }
     }
 
     if ( d->needDateFields )
-        q.append( " join date_fields df on (" + join( "df" ) + ")" );
+        q.append( " join date_fields df using (uid,mailbox)" );
     if ( d->needHeaderFields )
-        q.append( " join header_fields hf on (" + join( "hf" ) + ")" );
+        q.append( " join header_fields hf using (uid,mailbox)" );
     if ( d->needAddressFields )
-        q.append( " join address_fields af on (" + join( "af" ) + ")" );
+        q.append( " join address_fields af using (uid,mailbox)" );
     if ( d->needAddresses )
         q.append( " join addresses a on (af.address=a.id)" );
     if ( d->needAnnotations )
-        q.append( " join annotations a on (" + join( "a" ) + ")" );
+        q.append( " join annotations a using (uid,mailbox)" );
     if ( d->needPartNumbers )
-        q.append( " join part_numbers pn on (" + join( "pn" ) + ")" );
+        q.append( " join part_numbers pn using (uid,mailbox)" );
     if ( d->needBodyparts )
         q.append( " join bodyparts bp on (bp.id=pn.bodypart)" );
 
