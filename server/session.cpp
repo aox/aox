@@ -519,11 +519,10 @@ void SessionInitialiser::execute()
             }
 
             d->messages =
-                new Query( "select uid from messages m "
-                           "left join deleted_messages dm on "
-                           "(m.uid=dm.uid and m.mailbox=dm.mailbox) "
-                           "where m.mailbox=$1 and m.uid>=$2 "
-                           "and dm.uid is null", this );
+                new Query( "select uid from messages m left join "
+                           "deleted_messages dm using (mailbox,uid) "
+                           "where m.mailbox=$1 and m.uid>=$2 and "
+                           "dm.uid is null", this );
         }
         else {
             Query * q;
