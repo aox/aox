@@ -608,13 +608,17 @@ String Selector::whereHeaderField()
     if ( f <= HeaderField::LastAddressField )
         return whereAddressField( d->s8 );
 
-    uint fnum = placeHolder();
-    root()->d->query->bind( fnum, d->s8 );
-    uint like = placeHolder();
-    root()->d->query->bind( like, q( d->s16 ) );
-
     root()->d->needHeaderFields = true;
 
+    uint fnum = placeHolder();
+    root()->d->query->bind( fnum, d->s8 );
+    if ( d->s16.isEmpty() )
+        return
+            "hf.field=(select id from field_names where name=$" +
+            fn( fnum ) + ")";
+            
+    uint like = placeHolder();
+    root()->d->query->bind( like, q( d->s16 ) );
     return
         "(hf.value ilike " + matchAny( like ) + " and "
         "hf.field=(select id from field_names where name=$" + fn( fnum ) + "))";
