@@ -796,7 +796,8 @@ void showConfiguration()
 
         String n( Configuration::name( j ) );
         String v( Configuration::text( j ) );
-        if ( j != Configuration::DbPassword ) {
+        if ( j != Configuration::DbPassword &&
+             j != Configuration::DbOwnerPassword ) {
             if ( v.isEmpty() )
                 v = "\"\"";
             addVariable( &output, n, v, pat, Configuration::present( j ) );
@@ -1673,7 +1674,20 @@ void vacuum()
         end();
 
         Database::setup( 1 );
+        // it doesn't really matter, but the 1 above ensures that the
+        // two queries below are sent sequentially
         d = new Dispatcher( Dispatcher::Vacuum );
+        String to = fn( Configuration::scalar( Configuration::UndeleteTime ) );
+        // this needs to become lots more advanced in the coming
+        // versions... sanity-checking on the number of messages is
+        // one thing, retention policies is another.
+        d->query
+            = new Query( "delete from messages "
+                         "where (mailbox,uid) in "
+                         "(select mailbox,uid from deleted_messages "
+                         "where current_timestamp-deleted_at>'" +
+                         to + " days'::interval)", 0 );
+        d->query->execute();
         d->query = new Query( "vacuum analyze", d );
         d->query->execute();
     }
@@ -1681,20 +1695,19 @@ void vacuum()
     if ( !d->t && !d->query->done() )
         return;
 
-    if ( !d->t ) {
-        if ( opt( 'b' ) != 0 ) {
-            d->t = new Transaction( d );
-            d->query =
-                new Query( "lock mailboxes in exclusive mode", d );
-            d->t->enqueue( d->query );
-            d->query =
-                new Query( "delete from bodyparts where id in (select id "
-                           "from bodyparts b left join part_numbers p on "
-                           "(b.id=p.bodypart) where bodypart is null)", d );
-            d->t->enqueue( d->query );
-            d->t->commit();
-        }
-    }
+    if ( !opt( 'b' ) )
+        return;
+
+    d->t = new Transaction( d );
+    d->query =
+        new Query( "lock mailboxes in exclusive mode", d );
+    d->t->enqueue( d->query );
+    d->query =
+        new Query( "delete from bodyparts where id in (select id "
+                   "from bodyparts b left join part_numbers p on "
+                   "(b.id=p.bodypart) where bodypart is null)", d );
+    d->t->enqueue( d->query );
+    d->t->commit();
 }
 
 
@@ -1950,9 +1963,9 @@ void help()
             stderr,
             "  vacuum -- Perform routine maintenance.\n\n"
             "    Synopsis: aox vacuum [-b]\n\n"
-            "    VACUUMs the database and (optionally) cleans up bodyparts\n"
-            "    that are no longer in use by any message (as a result of\n"
-            "    messages being deleted).\n\n"
+            "    VACUUMs the database. Deletes any postgres rows that are\n"
+            "    no longer in use, and any messages that have been deleted\n"
+            "    and for which the undelete timeout has expired.\n\n"
             "    The -b flag causes orphaned bodyparts to be cleaned up,\n"
             "    which requires an exclusive lock on the mailboxes table\n"
             "    (i.e., messages cannot be injected until it is done).\n\n"
