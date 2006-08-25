@@ -647,7 +647,7 @@ bool PopCommand::uidl()
         while ( msn <= s->count() ) {
             uint uid = s->uid( msn );
             d->pop->enqueue( fn( msn ) + " " +
-                             fn( s->mailbox()->uidvalidity() ) +
+                             fn( s->mailbox()->uidvalidity() ) + "/" +
                              fn( uid ) + "\r\n" );
             msn++;
         }
