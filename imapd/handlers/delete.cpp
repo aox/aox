@@ -15,10 +15,11 @@ class DeleteData
     : public Garbage
 {
 public:
-    DeleteData(): m( 0 ), t( 0 ), p( 0 ) {}
+    DeleteData(): m( 0 ), q( 0 ), t( 0 ), p( 0 ) {}
 
     String n;
     Mailbox * m;
+    Query * q;
     Transaction * t;
     Permissions * p;
 };
@@ -58,9 +59,14 @@ void Delete::execute()
         if ( !ok() )
             return;
         d->p = new Permissions( d->m, imap()->user(), this );
+        d->q = new Query( "select count(*) as undeletable "
+                          "from deleted_messages "
+                          "where mailbox=$1", this );
+        d->q->bind( 1, d->m->id() );
+        d->q->execute();
     }
 
-    if ( !d->p->ready() )
+    if ( !d->p->ready() || !d->q->done() )
         return;
 
     if ( !d->p->allowed( Permissions::DeleteMailbox ) ||
@@ -73,12 +79,22 @@ void Delete::execute()
         return;
     }
 
-    // the database will check that m isn't someone's inbox
+    Row * r = d->q->nextRow();
+    uint undeletable = 0;
+    if ( r )
+        undeletable = r->getInt( "undeletable" );
+    else
+        error( No, "Could not determine whether undeletable messages exist" );
+    if ( undeletable )
+        error( No, "Cannot delete mailbox: " + fn( undeletable ) +
+               " undeletable messages exist" );
+    if ( !ok() )
+        return;
 
     if ( !d->t ) {
         d->t = new Transaction( this );
         if ( d->m->remove( d->t ) == 0 ) {
-            error( No, "Can't delete mailbox " + d->m->name() );
+            error( No, "Cannot delete mailbox " + d->m->name() );
             return;
         }
         d->t->commit();
