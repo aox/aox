@@ -28,6 +28,7 @@ ObjectDefines configuration.cpp :
      ORYXUSER='\"$(ORYXUSER)\"'
      ORYXGROUP='\"$(ORYXGROUP)\"'
      DBUSER='\"$(DBUSER)\"'
+     DBOWNER='\"$(DBOWNER)\"'
      DBNAME='\"$(DBNAME)\"'
      VERSION='\"$(VERSION)\"' ;
 

@@ -124,6 +124,7 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
     -e 's!$LOGFILEMODE!'$(LOGFILEMODE)'!' \
     -e 's!$LOGFILE!'$(LOGFILE)'!' \
     -e 's!$DBNAME!'$(DBNAME)'!' \
+    -e 's!$DBOWNER!'$(DBOWNER)'!' \
     -e 's!$DBUSER!'$(DBUSER)'!' \
     -e 's!$DBADDRESS!'$(DBADDRESS)'!' \
     -e 's!$ORYXUSER!'$(ORYXUSER)'!' \

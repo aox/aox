@@ -75,16 +75,28 @@ The port number of the database server. The default is
 .IP db-name
 The name of the database to use. The default is
 .IR $DBNAME .
+.IP db-owner
+The name of the Postgres user that owns the database and is used to
+perform privileged operations (such as deleting mail). The default is
+.IR $DBOWNER .
+.IP db-owner-password
+The database password used for the
+.IR db-owner .
+The default is an empty string.
+.IP
+Unless a password is specified, Archiveopteryx sets up a randomly-chosen
+password and writes it to the configuration file during installation.
 .IP db-user
-The user name Archiveopteryx should use to connect to the database. The
-default is
+The name of the unprivileged Postgres user that the servers ordinarily
+use. The default is
 .IR $DBUSER .
 .IP db-password
-The password Archiveopteryx should use to connect to the database. The
-default is an empty string.
+The database password used for the
+.IR db-user .
+The default is an empty string.
 .IP
-During installation, Archiveopteryx sets up a randomly-chosen password by
-default.
+Unless a password is specified, Archiveopteryx sets up a randomly-chosen
+password and writes it to the configuration file during installation.
 .IP db-max-handles
 The maximum number of database handles that Archiveopteryx may open. The
 default is

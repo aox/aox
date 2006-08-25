@@ -10,8 +10,10 @@ ObjectDefines installer.cpp :
      LOGFILE='\"$(LOGFILE)\"'
      LOGFILEMODE='\"$(LOGFILEMODE)\"'
      PSQL='\"$(PSQL)\"'
-     DBUSER='\"$(DBUSER)\"'
      DBNAME='\"$(DBNAME)\"'
+     DBOWNER='\"$(DBOWNER)\"'
+     DBOWNERPASS='\"$(DBOWNERPASS)\"'
+     DBUSER='\"$(DBUSER)\"'
      DBPASS='\"$(DBPASS)\"' ;
 
 NoCare <>Jamsettings ;

@@ -59,8 +59,10 @@ public:
 
     enum Text {
         Db,
-        DbUser,
         DbName,
+        DbOwner,
+        DbOwnerPassword,
+        DbUser,
         DbPassword,
         DbAddress,
         Hostname,

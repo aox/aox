@@ -104,23 +104,25 @@ PSQL ?= psql ;
 #
 DBADDRESS ?= /tmp/.s.PGSQL.5432 ;
 
-# A Postgres user and database for Archiveopteryx to use. If
-# necessary, these are created by LIBDIR/installer. To use an existing
-# user/database, change these values and set DBPASS below.
+# By default, LIBDIR/installer will create a Postgres user and database,
+# and an unprivileged database user for the servers to use. If you want
+# to use an existing user or database, set the variables below.
 #
-# Notes: DBUSER must own the DBNAME database.  Because PostgreSQL
-# likes using IDENT, it's convenient if DBUSER is the same as
-# ORYXUSER.
+# Notes:
 #
-# A password is generated during installation for a new DBUSER, so you
-# don't need to set DBPASS unless you want to use an existing DBUSER.
+# - DBOWNER must own the DBNAME database.
+# - Because PostgreSQL likes using ident authentication, it's convenient
+#   if DBUSER is the same as ORYXUSER.
+# - The installer will generate a password for both users, so you don't
+#   have to set one here unless you want to use an existing user.
 #
-# These settings correspond to the db-name, db-user, and db-password
-# variables in archiveopteryx.conf.
+# These settings correspond to the db-name, db-owner, db-owner-password,
+# db-user, and db-password variables in archiveopteryx.conf.
 #
 DBNAME ?= archiveopteryx ;
-DBUSER ?= oryx ;
+DBOWNER ?= aoxsuper ;
+DBOWNERPASS ?= "" ;
+DBUSER ?= aox ;
 DBPASS ?= "" ;
-
 
 # this file is included from Jamrules.

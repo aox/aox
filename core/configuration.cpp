@@ -155,8 +155,10 @@ static struct {
     const char * value;
 } textDefaults[Configuration::NumTexts] = {
     { "db", Configuration::Db, "postgres" },
-    { "db-user", Configuration::DbUser, DBUSER },
     { "db-name", Configuration::DbName, DBNAME },
+    { "db-owner", Configuration::DbOwner, DBOWNER },
+    { "db-owner-password", Configuration::DbOwnerPassword, "" },
+    { "db-user", Configuration::DbUser, DBUSER },
     { "db-password", Configuration::DbPassword, "" },
     { "db-address", Configuration::DbAddress, DBADDRESS },
     { "hostname", Configuration::Hostname, "" },
