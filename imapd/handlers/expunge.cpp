@@ -120,7 +120,7 @@ bool Expunge::expunge( bool chat )
     if ( d->stage == 2 ) {
         log( "Expunge " + fn( d->uids.count() ) + " messages" );
         Query * q = new Query( "insert into deleted_messages "
-                               "(mailbox, uid, user, reason) "
+                               "(mailbox, uid, deleted_by, reason) "
                                "select mailbox, uid, $2, $3 "
                                "from messages where mailbox=$1 and "
                                "(" + d->uids.where() + ")",

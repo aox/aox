@@ -75,13 +75,13 @@ POP::POP( int s )
 void POP::setState( State s )
 {
     if ( s == Update && d->state != Update &&
-         user() && !d->toBeDeleted.isEmpty() ) {
+         user() && !d->toBeDeleted.isEmpty() )
+    {
         Query * q = new Query( "insert into deleted_messages "
-                               "(mailbox, uid, user, reason) "
+                               "(mailbox, uid, deleted_by, reason) "
                                "select mailbox, uid, $2, $3 "
                                "from messages where mailbox=$1 and "
-                               "(" + d->toBeDeleted.where() + ")",
-                               0 );
+                               "(" + d->toBeDeleted.where() + ")", 0 );
         q->bind( 1, d->session->mailbox()->id() );
         q->bind( 2, d->user->id() );
         q->bind( 3, "POP delete " + Scope::current()->log()->id() );
