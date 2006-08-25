@@ -146,7 +146,7 @@ static struct {
     { "db-max-handles", Configuration::DbMaxHandles, 4 },
     { "db-handle-interval", Configuration::DbHandleInterval, 120 },
     { "managesieve-port", Configuration::ManageSievePort, 2000 },
-    { "undeletet-time", Configuration::UndeleteTime, 7 }
+    { "undelete-time", Configuration::UndeleteTime, 7 }
 };
 
 
