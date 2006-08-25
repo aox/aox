@@ -666,10 +666,6 @@ Query * Mailbox::remove( Transaction * t )
     q->bind( 1, id() );
     t->enqueue( q );
 
-    q = new Query( "delete from messages where mailbox=$1", 0 );
-    q->bind( 1, id() );
-    t->enqueue( q );
-
     MailboxReader * mr = new MailboxReader( name() );
     t->enqueue( mr->query );
 
