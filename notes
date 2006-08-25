@@ -183,6 +183,18 @@ POP doesn't log anything at all
   Be good to go through and add logging similar to imap.
 
 
+Deleting mailbox has unclear semantics now
+
+  At present, we don't allow a mailbox to be deleted until all
+  undeletable messages from that mailbox have been sent to the great
+  mailbox in the sky.
+
+  We might want to change that, but what then? What if someone wants
+  to rename a new mailbox to the name that used to be taken by this
+  mailbox? Or creates ditto? What should happen to views onto this
+  mailbox?
+
+
 COPY is slow
 
   Inject 11k messages, copy with thunderbird, watch why it fails.
@@ -263,7 +275,7 @@ ANNOTATE support
   - SORT
 
 
-ANNOTATEMORE
+METADATA
 
   Ditto. Separate point so that we can do one without the other.
 
