@@ -5,6 +5,7 @@
 
 #include "list.h"
 #include "connection.h"
+#include "configuration.h"
 
 
 class Query;
@@ -20,7 +21,7 @@ public:
         Connecting, Idle, InTransaction, FailedTransaction, Broken
     };
 
-    static void setup( int = 3 );
+    static void setup( int = 3, Configuration::Text = Configuration::DbUser );
     static void submit( Query * );
     static void submit( List< Query > * );
     static void disconnect();

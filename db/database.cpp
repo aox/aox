@@ -20,6 +20,7 @@ List< Query > *Database::queries;
 static List< Database > *handles;
 static time_t lastExecuted;
 static time_t lastCreated;
+static Configuration::Text loginAs;
 
 
 static void newHandle()
@@ -53,12 +54,13 @@ Database::Database()
     to the best of its limited ability (since connection negotiation
     must be left to subclasses). It logs a disaster if it fails.
 
-    It creates \a desired database handles (3 by default) at startup.
+    It creates \a desired database handles (3 by default) at startup
+    and will log in as \a login (Configuration::DbUser by default).
 
     This function expects to be called from ::main().
 */
 
-void Database::setup( int desired )
+void Database::setup( int desired, Configuration::Text login )
 {
     if ( !queries ) {
         queries = new List< Query >;
@@ -69,6 +71,10 @@ void Database::setup( int desired )
         handles = new List< Database >;
         Allocator::addEternal( handles, "list of database handles" );
     }
+
+    ::loginAs = Configuration::DbUser;
+    if ( login == Configuration::DbOwner )
+        ::loginAs = login;
 
     String db = Configuration::text( Configuration::Db ).lower();
 
@@ -295,15 +301,16 @@ String Database::name()
 }
 
 
-/*! Returns the configured database username (db-user). */
+/*! Returns the configured database username (db-user or db-owner). */
 
 String Database::user()
 {
-    return Configuration::text( Configuration::DbUser );
+    return Configuration::text( ::loginAs );
 }
 
 
-/*! Returns the configured database password (db-passwd). */
+/*! Returns the configured database password (db-password or
+    db-owner-password). */
 
 String Database::password()
 {
