@@ -20,7 +20,7 @@ public:
 
     String version() const;
 
-    static void check( EventHandler * );
+    static void checkRevision( EventHandler * );
     static int currentRevision();
 
 private:

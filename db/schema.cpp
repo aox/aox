@@ -41,8 +41,8 @@ public:
 /*! \class Schema schema.h
     This class represents the Oryx database schema.
 
-    The static check() function verifies during server startup that the
-    running server is compatible with the existing schema.
+    The static checkRevision() function verifies during server startup
+    that the running server is compatible with the existing schema.
 */
 
 
@@ -90,7 +90,7 @@ Query * Schema::result() const
     first database transaction.
 */
 
-void Schema::check( EventHandler * owner )
+void Schema::checkRevision( EventHandler * owner )
 {
     Schema * s = new Schema( owner );
     owner->waitFor( s->result() );

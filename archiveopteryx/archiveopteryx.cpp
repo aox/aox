@@ -96,7 +96,7 @@ int main( int argc, char *argv[] )
 
     s.setup( Server::Finish );
 
-    Schema::check( &s );
+    Schema::checkRevision( &s );
     Mailbox::setup( &s );
 
     TlsServer::setup();
