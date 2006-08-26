@@ -646,8 +646,9 @@ void database()
                         "SET SESSION AUTHORIZATION " DBOWNER ";\n"
                         "SET client_min_messages TO 'ERROR';\n"
                         "\\i " LIBDIR "/schema.pg\n"
-                        "\\i " LIBDIR "/field-names\n"
-                        "\\i " LIBDIR "/flag-names\n" );
+                        "\\i " LIBDIR "/privileges\n"
+                        "\\i " LIBDIR "/flag-names\n"
+                        "\\i " LIBDIR "/field-names\n" );
             if ( report ) {
                 d->state = Done;
                 printf( " - Load the database schema.\n   "
