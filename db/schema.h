@@ -18,7 +18,7 @@ public:
     Query * result() const;
     void execute();
 
-    String version() const;
+    String serverVersion() const;
 
     static void checkRevision( EventHandler * );
     static int currentRevision();

@@ -102,7 +102,7 @@ void Schema::checkRevision( EventHandler * owner )
     ("8.1.3") of the running Postgres server.
 */
 
-String Schema::version() const
+String Schema::serverVersion() const
 {
     return d->version;
 }
