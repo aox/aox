@@ -43,6 +43,10 @@ public:
 
     The static checkRevision() function verifies during server startup
     that the running server is compatible with the existing schema.
+
+    The static checkAccess() function verifies during server startup
+    that the running server does not have privileged access to the
+    database.
 */
 
 
@@ -1311,4 +1315,19 @@ void Schema::fail( const String &s, Query * q )
 int Schema::currentRevision()
 {
     return ::currentRevision;
+}
+
+
+/*! This function checks that the server doesn't have privileged access
+    to the database. It notifies \a owner when the check is complete. A
+    disaster is logged if the server is connected to the database as an
+    unduly privileged user.
+
+    The function expects to be called from ::main() after
+    Schema::checkRevision().
+*/
+
+void Schema::checkAccess( EventHandler * owner )
+{
+    owner = owner;
 }

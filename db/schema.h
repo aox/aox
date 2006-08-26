@@ -21,6 +21,7 @@ public:
     String serverVersion() const;
 
     static void checkRevision( EventHandler * );
+    static void checkAccess( EventHandler * );
     static int currentRevision();
 
 private:
