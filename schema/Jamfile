@@ -1,11 +1,15 @@
 SubDir TOP schema ;
 
 rule SchemaFile {
-    local s ;
-    s = $(<) ;
-    SEARCH on $(s) = $(SEARCH_SOURCE) ;
+    local e ;
+    e = $(<:G=engraved) ;
+    MakeLocate $(e) : [ FDirName $(TOP) $(BUILD) ] ;
+    Clean clean : $(e) ;
+    Depends $(e) : $(<) ;
+    SEARCH on $(<) = $(SEARCH_SOURCE) ;
+    EngraveConfig $(e) : $(<) ;
 
-    InstallFile $(INSTALLROOT)$(LIBDIR) : $(<) ;
+    InstallFile $(INSTALLROOT)$(LIBDIR) : $(e) ;
 }
 
 SchemaFile schema.pg ;

@@ -2,17 +2,16 @@ SubDir TOP doc readme ;
 
 
 rule ReadmeFile {
-    local t ;
-    t = [ FDirName $(TOP) $(BUILD) $(<) ] ;
-    Depends readme : $(t) ;
-    Clean clean : $(t) ;
-    LOCATE_TARGET = [ FDirName $(TOP) $(BUILD) ] ;
-    Depends $(t) : $(<) $(LOCATE_TARGET) ;
-    MkDir $(LOCATE_TARGET) ;
+    local e ;
+    e = $(<:G=engraved) ;
+    MakeLocate $(e) : [ FDirName $(TOP) $(BUILD) ] ;
+    Depends readme : $(e) ;
+    Clean clean : $(e) ;
+    Depends $(e) : $(<) ;
     SEARCH on $(<) = $(SEARCH_SOURCE) ;
-    EngraveConfig $(t) : $(<) ;
-    SEARCH on $(<) = $(t) ;
-    InstallFile $(INSTALLROOT)$(READMEDIR) : $(<) ;
+    EngraveConfig $(e) : $(<) ;
+
+    InstallFile $(INSTALLROOT)$(READMEDIR) : $(e) ;
 }
 
 
