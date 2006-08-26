@@ -1030,6 +1030,7 @@ Todo list: AMS
   - Investigate Scalix/Zimbra/TeamXchange.
   - Make sure LIKE parameters in selector.cpp (whereAddressField in
     particular) are [\%_]-escaped as in q().
+  - Why does Flag::find( "\\seen" ) return 0 if used in Session?
 
 
 
