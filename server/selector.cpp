@@ -276,6 +276,7 @@ void Selector::simplify()
             d->a = None;
             break;
         case Header:
+            break;
         case Body:
             if ( d->s16.isEmpty() )
                 d->a = All;
