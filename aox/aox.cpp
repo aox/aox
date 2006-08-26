@@ -210,7 +210,7 @@ int main( int ac, char *av[] )
     else if ( verb == "create" || verb == "delete" ) {
         String noun = next().lower();
 
-        Database::setup( 1 );
+        Database::setup( 1, Configuration::DbOwner );
 
         if ( verb == "create" && noun == "user" )
             createUser();
@@ -935,7 +935,7 @@ void upgradeSchema()
         parseOptions();
         end();
 
-        Database::setup( 1 );
+        Database::setup( 1, Configuration::DbOwner );
 
         bool commit = true;
         if ( opt( 'n' ) > 0 )
@@ -1293,7 +1293,7 @@ void changePassword()
     String passwd = next();
     end();
 
-    Database::setup( 1 );
+    Database::setup( 1, Configuration::DbOwner );
 
     if ( login.isEmpty() || passwd.isEmpty() )
         error( "No username and password supplied." );
@@ -1321,7 +1321,7 @@ void changeUsername()
         String newname = next();
         end();
 
-        Database::setup( 1 );
+        Database::setup( 1, Configuration::DbOwner );
         AddressCache::setup();
 
         if ( name.isEmpty() || newname.isEmpty() )
@@ -1428,7 +1428,7 @@ void changeAddress()
         if ( p.addresses()->count() != 1 )
             error( "At most one address may be present" );
 
-        Database::setup( 1 );
+        Database::setup( 1, Configuration::DbOwner );
         AddressCache::setup();
 
         d = new Dispatcher( Dispatcher::ChangeAddress );
@@ -1673,7 +1673,7 @@ void vacuum()
         parseOptions();
         end();
 
-        Database::setup( 1 );
+        Database::setup( 1, Configuration::DbOwner );
         // it doesn't really matter, but the 1 above ensures that the
         // two queries below are sent sequentially
         d = new Dispatcher( Dispatcher::Vacuum );
