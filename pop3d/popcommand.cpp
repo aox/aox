@@ -597,17 +597,19 @@ bool PopCommand::retr( bool lines )
 
 bool PopCommand::dele()
 {
+    ::Session * s = d->pop->session();
+
     bool ok;
     uint msn = nextArg().number( &ok );
     uint uid = 0;
     if ( ok ) {
-        uid = d->pop->session()->uid( msn );
+        uid = s->uid( msn );
         log( "DELE command (" + fn( uid ) + ")" );
     }
     else {
         log( "DELE command" );
     }
-    if ( d->session->readOnly() ) {
+    if ( s->readOnly() ) {
         d->pop->err( "Invalid message number" );
     }
     else if ( uid ) {
