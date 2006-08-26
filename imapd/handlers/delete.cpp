@@ -59,7 +59,7 @@ void Delete::execute()
         if ( !ok() )
             return;
         d->p = new Permissions( d->m, imap()->user(), this );
-        d->q = new Query( "select count(*) as undeletable "
+        d->q = new Query( "select count(*)::int as undeletable "
                           "from deleted_messages "
                           "where mailbox=$1", this );
         d->q->bind( 1, d->m->id() );
@@ -79,19 +79,22 @@ void Delete::execute()
         return;
     }
 
-    Row * r = d->q->nextRow();
-    uint undeletable = 0;
-    if ( r )
-        undeletable = r->getInt( "undeletable" );
-    else
-        error( No, "Could not determine whether undeletable messages exist" );
-    if ( undeletable )
-        error( No, "Cannot delete mailbox: " + fn( undeletable ) +
-               " undeletable messages exist" );
-    if ( !ok() )
-        return;
-
     if ( !d->t ) {
+        uint undeletable = 0;
+
+        Row * r = d->q->nextRow();
+        if ( d->q->failed() || !r )
+            error( No, "Could not determine if undeletable messages exist" );
+        else
+            undeletable = r->getInt( "undeletable" );
+
+        if ( undeletable )
+            error( No, "Cannot delete mailbox: " + fn( undeletable ) +
+                   " undeletable messages exist" );
+
+        if ( !ok() )
+            return;
+
         d->t = new Transaction( this );
         if ( d->m->remove( d->t ) == 0 ) {
             error( No, "Cannot delete mailbox " + d->m->name() );
