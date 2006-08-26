@@ -109,7 +109,7 @@ void Status::execute()
         // UNSEEN is a bit of a special case. we have to issue our own
         // select and make the database reveal the number.
         d->unseenCount
-            = new Query( "select count(*) as unseen "
+            = new Query( "select count(*)::int as unseen "
                          "from messages m "
                          "left join deleted_messages dm using (mailbox,uid) "
                          "left join flags f on "
