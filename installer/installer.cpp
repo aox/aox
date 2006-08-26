@@ -119,8 +119,9 @@ int main( int ac, char *av[] )
                " - Not creating user " + ORYXUSER + " in group " +
                ORYXGROUP + ".\n"
                " - Not creating PostgreSQL user " DBUSER ".\n"
+               " - Not creating PostgreSQL user " DBOWNER ".\n"
                " - Not creating PostgreSQL database " DBNAME ".\n"
-               " - Not creating the Oryx schema.\n"
+               " - Not loading the database schema.\n"
                " - Not creating stub configuration file." );
 
     oryxGroup();
@@ -145,12 +146,16 @@ void help()
         "    installer [-n] [-q] [-g group] [-u user] [-p postgres] "
         "[-a address]\n\n"
         "  This program does the following:\n\n"
-        "    1. Create a Unix group named %s.\n"
-        "    2. Create a Unix user named %s.\n"
-        "    3. Create a Postgres user named " DBUSER ".\n"
-        "    4. Create a Postgres database named " DBNAME ".\n"
-        "    5. Load the Oryx database schema.\n"
-        "    6. Generate an initial configuration file.\n\n"
+        "    1. Creates a Unix group named %s.\n"
+        "    2. Creates a Unix user named %s.\n"
+        "    3. Creates a Postgres user named " DBUSER ".\n"
+        "    4. Creates a Postgres user named " DBOWNER ".\n"
+        "    5. Creates a Postgres database named " DBNAME " owned by "
+        DBOWNER ".\n"
+        "    6. Loads the database schema and grants limited privileges "
+        "to user " DBUSER ".\n"
+        "    7. Generates an initial configuration file.\n"
+        "    8. Adjusts ownership and permissions if necessary.\n\n"
         "  Options:\n\n"
         "  The -q flag suppresses all normal output.\n\n"
         "  The -n flag causes the program to report what it would do,\n"
@@ -163,7 +168,8 @@ void help()
         "  the PostgreSQL superuser. The default is to try $PGSQL (if\n"
         "  set), postgres and pgsql in turn.\n\n"
         "  The \"-a address\" flag allows you to specify a different\n"
-        "  address for the Postgres server. The default is '%s'.\n",
+        "  address for the Postgres server. The default is '%s'.\n\n"
+        "  The defaults are set at build time in the Jamsettings file.\n\n",
         ORYXGROUP, ORYXUSER,
         ORYXGROUP, ORYXUSER,
         DBADDRESS
@@ -537,7 +543,7 @@ void database()
         if ( d->q->failed() ) {
             if ( report ) {
                 d->state = 10;
-                printf( " - May need to load the Oryx database schema.\n   "
+                printf( " - May need to load the database schema.\n   "
                         "(Couldn't query database '" DBNAME "' to make sure "
                         "it's needed: %s.)\n", d->q->error().cstr() );
             }
@@ -563,7 +569,7 @@ void database()
                         "\\i " LIBDIR "/flag-names\n" );
             if ( report ) {
                 d->state = 10;
-                printf( " - Load the Oryx database schema.\n   "
+                printf( " - Load the database schema.\n   "
                         "As user %s, run:\n\n"
                         "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
                         PGUSER, cmd.cstr() );
@@ -595,7 +601,7 @@ void database()
                     int status = 0;
                     if ( pid > 0 ) {
                         if ( !silent )
-                            printf( "Loading Oryx database schema:\n" );
+                            printf( "Loading database schema:\n" );
                         write( fd[1], cmd.cstr(), cmd.length() );
                         close( fd[1] );
                         waitpid( pid, &status, 0 );
@@ -603,8 +609,7 @@ void database()
                     if ( pid < 0 || ( WIFEXITED( status ) &&
                                       WEXITSTATUS( status ) != 0 ) )
                     {
-                        fprintf( stderr,
-                                 "Couldn't install the Oryx schema.\n" );
+                        fprintf( stderr, "Couldn't install the schema.\n" );
                         if ( WEXITSTATUS( status ) == 255 )
                             fprintf( stderr, "(No psql in PATH=%s)\n",
                                      getenv( "PATH" ) );
@@ -633,7 +638,7 @@ void database()
         if ( !r || d->q->failed() ) {
             if ( report ) {
                 d->state = 10;
-                printf( " - May need to upgrade the Oryx database schema.\n   "
+                printf( " - May need to upgrade the database schema.\n   "
                         "(Couldn't query mailstore table to make sure it's "
                         "needed.)\n" );
             }
@@ -647,8 +652,8 @@ void database()
         }
         else if ( r->getInt( "revision" ) != Schema::currentRevision() ) {
             d->state = 10;
-            printf( " - You need to upgrade the Oryx database schema.\n   "
-                    "Please run 'ms upgrade schema' by hand.\n" );
+            printf( " - You need to upgrade the database schema.\n   "
+                    "Please run 'aox upgrade schema' by hand.\n" );
         }
         else {
             d->state = 10;
