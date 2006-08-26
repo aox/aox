@@ -590,8 +590,17 @@ static String q( const UString & orig )
 {
     Utf8Codec c;
     String r( c.fromUnicode( orig ) );
-    // escape % somehow?
-    return r;
+
+    String s;
+    uint i = 0;
+    while ( i < r.length() ) {
+        if ( r[i] == '\\' || r[i] == '_' || r[i] == '%' )
+            s.append( '\\' );
+        s.append( r[i] );
+        i++;
+    }
+
+    return s;
 }
 
 
