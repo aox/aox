@@ -1,6 +1,5 @@
 SubDir TOP schema ;
 
-
 rule SchemaFile {
     local s ;
     s = $(<) ;
@@ -9,6 +8,7 @@ rule SchemaFile {
     InstallFile $(INSTALLROOT)$(LIBDIR) : $(<) ;
 }
 
-SchemaFile field-names ;
-SchemaFile flag-names ;
 SchemaFile schema.pg ;
+SchemaFile privileges ;
+SchemaFile flag-names ;
+SchemaFile field-names ;
