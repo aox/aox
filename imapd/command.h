@@ -32,6 +32,8 @@ public:
 
     bool validIn( IMAP::State ) const;
 
+    String nametag() const;
+
     uint group() const;
     void setGroup( uint );
 

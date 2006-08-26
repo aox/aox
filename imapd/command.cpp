@@ -58,6 +58,7 @@ public:
     }
 
     String tag;
+    String name;
 
     uint at;
     List< String > * args;
@@ -254,6 +255,7 @@ Command * Command::create( IMAP * imap,
         return 0;
 
     c->d->tag = tag;
+    c->d->name = name;
     c->d->args = args;
     c->d->imap = imap;
 
@@ -273,7 +275,7 @@ Command * Command::create( IMAP * imap,
         c->d->canExpunge = true;
 
     c->setLog( new Log( Log::IMAP ) );
-    c->log( "IMAP Command: " + tag + " " + n );
+    c->log( "IMAP Command: " + c->nametag() );
 
     return c;
 }
@@ -371,11 +373,11 @@ void Command::setState( State s )
         // this is the initial state, it should never be called.
         break;
     case Blocked:
-        log( "IMAP command execution deferred", Log::Debug );
+        log( "Deferring execution of IMAP command " + nametag(), Log::Debug );
         break;
     case Executing:
         (void)::gettimeofday( &d->started, 0 );
-        log( "Executing IMAP command", Log::Debug );
+        log( "Executing IMAP command " + nametag(), Log::Debug );
         break;
     case Finished:
         struct timeval end;
@@ -386,7 +388,7 @@ void Command::setState( State s )
         if ( elapsed > 1500 ) // XXX needs tweaking
             level = Log::Error;
         String m;
-        m.append( "Executed IMAP command in " );
+        m.append( "Executed IMAP command " + nametag() + " in " );
         m.append( fn( ( elapsed + 499 ) / 1000 ) );
         m.append( "ms" );
         log( m, level );
@@ -403,6 +405,19 @@ void Command::setState( State s )
 bool Command::validIn( IMAP::State s ) const
 {
     return d->permittedStates & ( 1 << s );
+}
+
+
+/*! Returns the tagged name for this command. Useful for logging. */
+
+String Command::nametag() const
+{
+    String s( "'" );
+    s.append( d->tag );
+    s.append( " " );
+    s.append( d->name );
+    s.append( "'" );
+    return s;
 }
 
 
