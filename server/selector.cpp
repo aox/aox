@@ -616,7 +616,7 @@ String Selector::whereHeaderField()
         return
             "hf.field=(select id from field_names where name=$" +
             fn( fnum ) + ")";
-            
+
     uint like = placeHolder();
     root()->d->query->bind( like, q( d->s16 ) );
     return
