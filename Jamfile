@@ -92,10 +92,17 @@ Message install ;
 
 if $(BUILDDOC) {
     local s u ;
+    local exceptions = canonical msgdump munger renderer logdmain tests
+    addressparser whip cram subscribe deliver ocdmain aox recorder
+    cryptlib installer archiveopteryx aoximport ;
     for s in $(sets) {
-        if ! $(s) in $(documented-sets) && ! $(s) in $(u) {
+        if ! $(s) in $(documented-sets) && ! $(s) in $(u) &&
+           ! $(s) in $(exceptions)
+        {
             u += $(s) ;
         }
     }
-    echo Built but not documented: $(u) ;
+    if $(u) {
+        echo Built but not documented: $(u) ;
+    }
 }
