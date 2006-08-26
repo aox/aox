@@ -20,12 +20,14 @@ Creates a Unix user named $ORYXUSER.
 .IP 3. 3
 Creates a Postgres user named $DBUSER.
 .IP 4. 3
-Creates a Postgres database named $DBNAME owned by $DBUSER.
+Creates a Postgres user named $DBOWNER.
 .IP 5. 3
-Loads the Oryx database schema.
+Creates a Postgres database named $DBNAME owned by $DBOWNER.
 .IP 6. 3
-Generates an initial configuration file.
+Loads the database schema and grants limited privileges to user $DBUSER.
 .IP 7. 3
+Generates an initial configuration file.
+.IP 8. 3
 Adjusts ownership and permissions if necessary.
 .PP
 .B installer
@@ -54,11 +56,7 @@ The defaults come from
 .IR Jamsettings .
 .SH DIAGNOSTICS
 The return code is zero if all goes well, and a non-zero in case of
-errors.
-.PP
-Diagnostics are logged using Archiveopteryx's
-.BR logd (8),
-just like the servers do. Disasters are also logged via stderr.
+errors. Disasters are logged via stderr.
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
