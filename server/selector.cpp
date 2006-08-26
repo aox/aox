@@ -395,6 +395,16 @@ void Selector::simplify()
 }
 
 
+static String join( const char * table )
+{
+    String r( table );
+    r.append( ".uid=m.uid and m.mailbox=" );
+    r.append( table );
+    r.append( ".mailbox" );
+    return r;
+}
+
+
 /*! Returns a query representing this Selector or 0 if anything goes
     wrong, in which case error() contains a description of the problem.
     The Selector is expressed as SQL in the context of the specified
@@ -413,7 +423,8 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, mailbox->id() );
     String q = "select distinct m.uid from messages m"
-               " left join deleted_messages dm using (uid,mailbox)";
+               " left join deleted_messages dm on"
+               " (m.uid=dm.uid and m.mailbox=dm.mailbox)";
     String w = where();
 
     // make sure that any indirect joins below don't produce bad
@@ -440,17 +451,17 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     }
 
     if ( d->needDateFields )
-        q.append( " join date_fields df using (uid,mailbox)" );
+        q.append( " join date_fields df on (" + join( "df" ) + ")" );
     if ( d->needHeaderFields )
-        q.append( " join header_fields hf using (uid,mailbox)" );
+        q.append( " join header_fields hf on (" + join( "hf" ) + ")" );
     if ( d->needAddressFields )
-        q.append( " join address_fields af using (uid,mailbox)" );
+        q.append( " join address_fields af on (" + join( "af" ) + ")" );
     if ( d->needAddresses )
         q.append( " join addresses a on (af.address=a.id)" );
     if ( d->needAnnotations )
-        q.append( " join annotations a using (uid,mailbox)" );
+        q.append( " join annotations a on (" + join( "a" ) + ")" );
     if ( d->needPartNumbers )
-        q.append( " join part_numbers pn using (uid,mailbox)" );
+        q.append( " join part_numbers pn on (" + join( "pn" ) + ")" );
     if ( d->needBodyparts )
         q.append( " join bodyparts bp on (bp.id=pn.bodypart)" );
 
