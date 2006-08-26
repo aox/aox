@@ -30,6 +30,7 @@ class Dispatcher * d;
 bool report = false;
 bool silent = false;
 String * dbpass;
+String * dbownerpass;
 
 
 const char * PGUSER;
@@ -328,14 +329,22 @@ void oryxUser()
 }
 
 
+enum DbState {
+    Unused, CheckingVersion, CheckUser, CheckingUser, CreatingUser,
+    CheckSuperuser, CheckingSuperuser, CreatingSuperuser, CheckDatabase,
+    CheckingDatabase, CreatingDatabase, CheckSchema, CheckingSchema,
+    CreateSchema, CheckingRevision, Done
+};
+
+
 class Dispatcher
     : public EventHandler
 {
 public:
     Query * q;
-    int state;
+    DbState state;
 
-    Dispatcher() : state( 0 ) {}
+    Dispatcher() : state( Unused ) {}
     void execute()
     {
         database();
@@ -347,7 +356,6 @@ void database()
 {
     if ( !d ) {
         Configuration::setup( "" );
-        Configuration::add( "db-max-handles = 1" );
         Configuration::add( "db-address = '" + String( DBADDRESS ) + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
@@ -355,52 +363,57 @@ void database()
         d = new Dispatcher;
         dbpass = new String;
         Allocator::addEternal( dbpass, "DBPASS" );
+        dbownerpass = new String;
+        Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
 
+        d->state = CheckingVersion;
         d->q = new Query( "select version() as version", d );
         d->q->execute();
     }
 
-    if ( !d->q->done() )
-        return;
+    if ( d->state == CheckingVersion ) {
+        if ( !d->q->done() )
+            return;
 
-    if ( d->state == 0 ) {
         Row * r = d->q->nextRow();
         if ( d->q->failed() || !r ) {
             fprintf( stderr, "Couldn't check PostgreSQL server version.\n" );
             EventLoop::shutdown();
             return;
         }
-        else {
-            String v = r->getString( "version" ).simplified().section( " ", 2 );
-            if ( v.isEmpty() )
-                v = r->getString( "version" );
-            bool ok = true;
-            uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
-                           100 * v.section( ".", 2 ).number( &ok ) +
-                           v.section( ".", 3 ).number( &ok );
-            if ( !ok || version < 70402 )
-            {
-                fprintf( stderr, "Archiveopteryx requires PostgreSQL 7.4.2 "
-                         "or higher (found only '%s').\n", v.cstr() );
-                EventLoop::shutdown();
-                return;
-            }
-            else if ( version < 80100 ) {
-                fprintf( stderr, "Note: Starting May 2007, Archiveopteryx "
-                         "will require PostgreSQL 8.1.0 or\nhigher. Please "
-                         "upgrade the running server (%s) at your "
-                         "convenience.\n", v.cstr() );
-            }
 
-            d->q = new Query( "select usename from pg_catalog.pg_user where "
-                              "usename=$1", d );
-            d->q->bind( 1, DBUSER );
-            d->q->execute();
-            d->state = 1;
+        String v = r->getString( "version" ).simplified().section( " ", 2 );
+        if ( v.isEmpty() )
+            v = r->getString( "version" );
+        bool ok = true;
+        uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
+                       100 * v.section( ".", 2 ).number( &ok ) +
+                       v.section( ".", 3 ).number( &ok );
+        if ( !ok || version < 70402 ) {
+            fprintf( stderr, "Archiveopteryx requires PostgreSQL 7.4.2 "
+                     "or higher (found only '%s').\n", v.cstr() );
+            EventLoop::shutdown();
+            return;
         }
+        else if ( version < 80100 ) {
+            fprintf( stderr, "Note: Starting May 2007, Archiveopteryx "
+                     "will require PostgreSQL 8.1.0 or\nhigher. Please "
+                     "upgrade the running server (%s) at your "
+                     "convenience.\n", v.cstr() );
+        }
+
+        d->state = CheckUser;
     }
 
-    if ( d->state == 1 ) {
+    if ( d->state == CheckUser ) {
+        d->state = CheckingUser;
+        d->q = new Query( "select usename from pg_catalog.pg_user where "
+                          "usename=$1", d );
+        d->q->bind( 1, DBUSER );
+        d->q->execute();
+    }
+
+    if ( d->state == CheckingUser ) {
         if ( !d->q->done() )
             return;
 
@@ -420,14 +433,14 @@ void database()
             create.append( "'" );
 
             if ( report ) {
-                d->state = 3;
+                d->state = CheckSuperuser;
                 printf( " - Create a PostgreSQL user named '" DBUSER "'.\n"
                         "   As user %s, run:\n\n"
                         "psql -d template1 -qc \"%s\"\n\n",
                         PGUSER, create.cstr() );
             }
             else {
-                d->state = 2;
+                d->state = CreatingUser;
                 if ( !silent )
                     printf( "Creating the '" DBUSER "' PostgreSQL user.\n" );
                 d->q = new Query( create, d );
@@ -435,11 +448,11 @@ void database()
             }
         }
         else {
-            d->state = 3;
+            d->state = CheckSuperuser;
         }
     }
 
-    if ( d->state == 2 ) {
+    if ( d->state == CreatingUser ) {
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
@@ -449,38 +462,100 @@ void database()
             EventLoop::shutdown();
             return;
         }
-        d->state = 3;
+        d->state = CheckSuperuser;
     }
 
-    if ( d->state == 3 ) {
-        d->state = 4;
-        d->q =
-            new Query( "select datname::text,usename::text,"
-                       "pg_encoding_to_char(encoding)::text as encoding "
-                       "from pg_database d join pg_user u "
-                       "on (d.datdba=u.usesysid) where datname=$1", d );
+    if ( d->state == CheckSuperuser ) {
+        d->state = CheckingSuperuser;
+        d->q = new Query( "select usename from pg_catalog.pg_user where "
+                          "usename=$1", d );
+        d->q->bind( 1, DBOWNER );
+        d->q->execute();
+    }
+
+    if ( d->state == CheckingSuperuser ) {
+        if ( !d->q->done() )
+            return;
+
+        Row * r = d->q->nextRow();
+        if ( !r ) {
+            Entropy::setup();
+            String create( "create user " DBOWNER " with encrypted password '" );
+            String passwd( DBOWNERPASS );
+            if ( passwd.isEmpty() ) {
+                if ( report )
+                    passwd = "(password here)";
+                else
+                    passwd = MD5::hash( Entropy::asString( 16 ) ).hex();
+            }
+            dbownerpass->append( passwd );
+            create.append( passwd );
+            create.append( "'" );
+
+            if ( report ) {
+                d->state = CheckDatabase;
+                printf( " - Create a PostgreSQL user named '" DBOWNER "'.\n"
+                        "   As user %s, run:\n\n"
+                        "psql -d template1 -qc \"%s\"\n\n",
+                        PGUSER, create.cstr() );
+            }
+            else {
+                d->state = CreatingSuperuser;
+                if ( !silent )
+                    printf( "Creating the '" DBOWNER "' PostgreSQL user.\n" );
+                d->q = new Query( create, d );
+                d->q->execute();
+            }
+        }
+        else {
+            d->state = CheckDatabase;
+        }
+    }
+
+    if ( d->state == CreatingSuperuser ) {
+        if ( !d->q->done() )
+            return;
+        if ( d->q->failed() ) {
+            fprintf( stderr, "Couldn't create PostgreSQL user '" DBOWNER
+                     "' (%s).\nPlease create it by hand and re-run the "
+                     "installer.\n", d->q->error().cstr() );
+            EventLoop::shutdown();
+            return;
+        }
+        d->state = CheckDatabase;
+    }
+
+    if ( d->state == CheckDatabase ) {
+        d->state = CheckingDatabase;
+        d->q = new Query( "select datname::text,usename::text,"
+                          "pg_encoding_to_char(encoding)::text as encoding "
+                          "from pg_database d join pg_user u "
+                          "on (d.datdba=u.usesysid) where datname=$1", d );
         d->q->bind( 1, DBNAME );
         d->q->execute();
     }
 
-    if ( d->state == 4 ) {
+    if ( d->state == CheckingDatabase ) {
         if ( !d->q->done() )
             return;
+
         Row * r = d->q->nextRow();
         if ( !r ) {
-            String create( "create database " DBNAME " with owner " DBUSER " "
+            String create( "create database " DBNAME " with owner " DBOWNER " "
                            "encoding 'UNICODE'" );
             if ( report ) {
-                d->state = 8;
                 printf( " - Create a database named '" DBNAME "'.\n"
                         "   As user %s, run:\n\n"
                         "psql -d template1 -qc \"%s\"\n\n",
                         PGUSER, create.cstr() );
-                // We let state 8 think the mailstore query returned 0
-                // rows, so that it prints an appropriate message.
+
+                // We fool CreateSchema into thinking that the mailstore
+                // query returned 0 rows, so that it displays a suitable
+                // message.
+                d->state = CreateSchema;
             }
             else {
-                d->state = 5;
+                d->state = CreatingDatabase;
                 if ( !silent )
                     printf( "Creating the '" DBNAME "' database.\n" );
                 d->q = new Query( create, d );
@@ -490,21 +565,23 @@ void database()
         else {
             const char * s = 0;
             String encoding( r->getString( "encoding" ) );
-            if ( r->getString( "usename" ) != DBUSER )
-                s = "is not owned by user " DBUSER;
+            if ( r->getString( "usename" ) != DBOWNER )
+                s = "is not owned by user " DBOWNER;
             else if ( encoding != "UNICODE" && encoding != "UTF8" )
                 s = "does not have encoding UNICODE";
             if ( s ) {
                 fprintf( stderr, " - Database '" DBNAME "' exists, but it %s."
                          "\n   (That will need to be fixed by hand.)\n", s );
-                if ( !report )
-                    exit( -1 );
+                if ( !report ) {
+                    EventLoop::shutdown();
+                    return;
+                }
             }
-            d->state = 6;
+            d->state = CheckSchema;
         }
     }
 
-    if ( d->state == 5 ) {
+    if ( d->state == CreatingDatabase ) {
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
@@ -514,35 +591,39 @@ void database()
             EventLoop::shutdown();
             return;
         }
-        d->state = 6;
+        d->state = CheckSchema;
     }
 
-    if ( d->state == 6 ) {
+    if ( d->state == CheckSchema ) {
         // How utterly, utterly disgusting.
         Database::disconnect();
 
+        /* XXX: This isn't going to work any more. Is there anything we
+           can do about that?
         if ( String( ORYXUSER ) == DBUSER ) {
             struct passwd * u = getpwnam( ORYXUSER );
             if ( u )
                 seteuid( u->pw_uid );
         }
+        */
 
         Configuration::setup( "" );
-        Configuration::add( "db-user = '" DBUSER "'" );
+        Configuration::add( "db-user = '" DBOWNER "'" );
         Configuration::add( "db-name = '" DBNAME "'" );
         Database::setup( 1 );
-        d->state = 7;
+
+        d->state = CheckingSchema;
         d->q = new Query( "select relname from pg_catalog.pg_class where "
                           "relname='mailstore'", d );
         d->q->execute();
     }
 
-    if ( d->state == 7 ) {
+    if ( d->state == CheckingSchema ) {
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
             if ( report ) {
-                d->state = 10;
+                d->state = Done;
                 printf( " - May need to load the database schema.\n   "
                         "(Couldn't query database '" DBNAME "' to make sure "
                         "it's needed: %s.)\n", d->q->error().cstr() );
@@ -555,27 +636,27 @@ void database()
                 return;
             }
         }
-        d->state = 8;
+        d->state = CreateSchema;
     }
 
-    if ( d->state == 8 ) {
+    if ( d->state == CreateSchema ) {
         Row * r = d->q->nextRow();
         if ( !r ) {
             String cmd( "\\set ON_ERROR_STOP\n"
-                        "SET SESSION AUTHORIZATION " DBUSER ";\n"
+                        "SET SESSION AUTHORIZATION " DBOWNER ";\n"
                         "SET client_min_messages TO 'ERROR';\n"
                         "\\i " LIBDIR "/schema.pg\n"
                         "\\i " LIBDIR "/field-names\n"
                         "\\i " LIBDIR "/flag-names\n" );
             if ( report ) {
-                d->state = 10;
+                d->state = Done;
                 printf( " - Load the database schema.\n   "
                         "As user %s, run:\n\n"
                         "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
                         PGUSER, cmd.cstr() );
             }
             else {
-                d->state = 10;
+                d->state = Done;
 
                 int n;
                 int fd[2];
@@ -624,20 +705,20 @@ void database()
             }
         }
         else {
-            d->state = 9;
+            d->state = CheckingRevision;
             d->q = new Query( "select revision from mailstore", d );
             d->q->execute();
         }
     }
 
-    if ( d->state == 9 ) {
+    if ( d->state == CheckingRevision ) {
         if ( !d->q->done() )
             return;
 
+        d->state = Done;
         Row * r = d->q->nextRow();
         if ( !r || d->q->failed() ) {
             if ( report ) {
-                d->state = 10;
                 printf( " - May need to upgrade the database schema.\n   "
                         "(Couldn't query mailstore table to make sure it's "
                         "needed.)\n" );
@@ -651,16 +732,12 @@ void database()
             }
         }
         else if ( r->getInt( "revision" ) != Schema::currentRevision() ) {
-            d->state = 10;
             printf( " - You need to upgrade the database schema.\n   "
                     "Please run 'aox upgrade schema' by hand.\n" );
         }
-        else {
-            d->state = 10;
-        }
     }
 
-    if ( d->state == 10 ) {
+    if ( d->state == Done ) {
         configFile();
     }
 }
