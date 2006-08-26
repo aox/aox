@@ -86,15 +86,15 @@ bool Expunge::expunge( bool chat )
         }
         Flag * f = Flag::find( "\\deleted" );
         d->t = new Transaction( this );
+
+        String query( "select uid from flags left join deleted_messages dm "
+                      "using (mailbox,uid) where mailbox=$1 and flag=$2 and "
+                      "dm.uid is null" );
+
         if ( d->uid )
-            d->q = new Query( "select uid from flags "
-                              "where mailbox=$1 and flag=$2"
-                              " and (" + d->uids.where() + ")",
-                              this );
-        else
-            d->q = new Query( "select uid from flags "
-                              "where mailbox=$1 and flag=$2",
-                              this );
+            query.append( " and (" + d->uids.where() + ")" );
+
+        d->q = new Query( query, this );
         d->q->bind( 1, imap()->session()->mailbox()->id() );
         d->q->bind( 2, f->id() );
         d->t->enqueue( d->q );
