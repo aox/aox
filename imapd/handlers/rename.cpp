@@ -4,6 +4,7 @@
 
 #include "user.h"
 #include "query.h"
+#include "entropy.h"
 #include "mailbox.h"
 #include "occlient.h"
 #include "permissions.h"
@@ -104,11 +105,12 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
 
     p->toUidvalidity = p->from->uidvalidity();
 
-    // get rid of anything that may be in the way
+    // if an old mailbox is in the way, move it aside
     Query * q = 0;
     if ( to ) {
-        q = new Query( "delete from mailboxes where id=$1", 0 );
-        q->bind( 4, to->id() );
+        q = new Query( "update mailboxes set name=$1 where id=$2", 0 );
+        q->bind( 1, Entropy::asString( 16 ).hex() );
+        q->bind( 2, to->id() );
         t->enqueue( q );
         // and bump uidvalidity to inform any caches
         if ( to->uidvalidity() > p->toUidvalidity || to->uidnext() > 1 )
@@ -126,9 +128,19 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     // insert a deleted placeholder to ensure that uidnext/uidvalidity
     // will be okay if a new mailbox is created with the same name as
     // this one used to have
-    q = new Query( "insert into mailboxes "
-                   "(name,uidnext,uidvalidity,deleted) "
-                   "values ($1,$2,$3,'t')", 0 );
+    if ( to ) {
+        // if we have the old mailbox, use it
+        q = new Query( "update mailboxes "
+                       "set name=$1,uidnext=$2,uidvalidity=$3,deleted='t' "
+                       "where id=$4", 0 );
+        q->bind( 4, to->id() );
+    }
+    else {
+        // else, create a new one
+        q = new Query( "insert into mailboxes "
+                       "(name,uidnext,uidvalidity,deleted) "
+                       "values ($1,$2,$3,'t')", 0 );
+    }
     q->bind( 1, p->from->name() );
     q->bind( 2, p->from->uidnext() );
     q->bind( 3, p->from->uidvalidity() );
