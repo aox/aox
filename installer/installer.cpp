@@ -57,6 +57,7 @@ void database();
 void configFile();
 void superConfig();
 void permissions();
+int psql( const String & );
 
 
 /*! \nodoc */
@@ -699,61 +700,19 @@ void database()
                         "\\i " LIBDIR "/privileges\n"
                         "\\i " LIBDIR "/flag-names\n"
                         "\\i " LIBDIR "/field-names\n" );
+            d->state = Done;
             if ( report ) {
                 todo++;
-                d->state = Done;
                 printf( " - Load the database schema.\n   "
                         "As user %s, run:\n\n"
                         "psql %s -f - <<PSQL;\n%sPSQL\n\n",
                         PGUSER, dbname->cstr(), cmd.cstr() );
             }
             else {
-                d->state = Done;
-
-                int n;
-                int fd[2];
-                pid_t pid = -1;
-
-                n = pipe( fd );
-                if ( n == 0 )
-                    pid = fork();
-                if ( n == 0 && pid == 0 ) {
-                    if ( setreuid( postgres, postgres ) < 0 ||
-                         dup2( fd[0], 0 ) < 0 ||
-                         close( fd[1] ) < 0 ||
-                         close( fd[0] ) < 0 )
-                        exit( -1 );
-                    if ( silent )
-                        if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
-                            exit( -1 );
-                    execlp( "psql", "psql", dbname->cstr(), "-f", "-",
-                            (const char *) 0 );
-                    exit( -1 );
-                }
-                else {
-                    int status = 0;
-                    if ( pid > 0 ) {
-                        if ( !silent )
-                            printf( "Loading database schema:\n" );
-                        write( fd[1], cmd.cstr(), cmd.length() );
-                        close( fd[1] );
-                        waitpid( pid, &status, 0 );
-                    }
-                    if ( pid < 0 || ( WIFEXITED( status ) &&
-                                      WEXITSTATUS( status ) != 0 ) )
-                    {
-                        fprintf( stderr, "Couldn't install the schema.\n" );
-                        if ( WEXITSTATUS( status ) == 255 )
-                            fprintf( stderr, "(No psql in PATH=%s)\n",
-                                     getenv( "PATH" ) );
-                        fprintf( stderr, "Please re-run the installer after "
-                                 "doing the following as user %s:\n\n"
-                                 "psql %s -f - <<PSQL;\n%sPSQL\n\n",
-                                 PGUSER, dbname->cstr(), cmd.cstr() );
-                        EventLoop::shutdown();
-                        return;
-                    }
-                }
+                if ( !silent )
+                    printf( "Loading database schema:\n" );
+                if ( psql( cmd ) < 0 )
+                    return;
             }
         }
         else {
@@ -830,11 +789,47 @@ void database()
     }
 
     if ( d->state == CheckPrivileges ) {
-        d->state = AlteringPrivileges;
+        d->state = CheckingPrivileges;
+        d->q = new Query( "select * from information_schema.table_privileges "
+                          "where privilege_type='DELETE' and "
+                          "table_name='messages' and grantee=$1", d );
+        d->q->bind( 1, *dbuser );
+        d->q->execute();
     }
 
-    if ( d->state == AlteringPrivileges ) {
+    if ( d->state == CheckingPrivileges ) {
+        if ( !d->q->done() )
+            return;
+
         d->state = Done;
+        Row * r = d->q->nextRow();
+        if ( d->q->failed() ) {
+            fprintf( stderr, "Couldn't check privileges for user '%s' in "
+                     "database '%s' (%s).\n", dbuser->cstr(), dbname->cstr(),
+                     d->q->error().cstr() );
+            EventLoop::shutdown();
+            return;
+        }
+        else if ( r ) {
+            String cmd( "\\set ON_ERROR_STOP\n"
+                        "SET client_min_messages TO 'ERROR';\n"
+                        "\\i " LIBDIR "/revoke-privileges\n" );
+            if ( report ) {
+                todo++;
+                printf( " - Revoke privileges on database '%s' from user '%s'."
+                        "\n   As user %s, run:\n\n"
+                        "psql %s -f - <<PSQL;\n%sPSQL\n\n",
+                        dbname->cstr(), dbuser->cstr(), PGUSER, dbname->cstr(),
+                        cmd.cstr() );
+            }
+            else {
+                if ( !silent )
+                    printf( "Revoking privileges on database '%s' from user "
+                            "'%s'.\n", dbname->cstr(), dbuser->cstr() );
+                if ( psql( cmd ) < 0 )
+                    return;
+            }
+        }
     }
 
     if ( d->state == Done ) {
@@ -1132,4 +1127,52 @@ void permissions()
         printf( "Done.\n" );
 
     EventLoop::shutdown();
+}
+
+
+int psql( const String &cmd )
+{
+    int n;
+    int fd[2];
+    pid_t pid = -1;
+
+    n = pipe( fd );
+    if ( n == 0 )
+        pid = fork();
+    if ( n == 0 && pid == 0 ) {
+        if ( setreuid( postgres, postgres ) < 0 ||
+             dup2( fd[0], 0 ) < 0 ||
+             close( fd[1] ) < 0 ||
+             close( fd[0] ) < 0 )
+            exit( -1 );
+        if ( silent )
+            if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
+                exit( -1 );
+        execlp( "psql", "psql", dbname->cstr(), "-f", "-",
+                (const char *) 0 );
+        exit( -1 );
+    }
+    else {
+        int status = 0;
+        if ( pid > 0 ) {
+            write( fd[1], cmd.cstr(), cmd.length() );
+            close( fd[1] );
+            waitpid( pid, &status, 0 );
+        }
+        if ( pid < 0 || ( WIFEXITED( status ) &&
+                          WEXITSTATUS( status ) != 0 ) )
+        {
+            fprintf( stderr, "Couldn't execute psql.\n" );
+            if ( WEXITSTATUS( status ) == 255 )
+                fprintf( stderr, "(No psql in PATH=%s)\n", getenv( "PATH" ) );
+            fprintf( stderr, "Please re-run the installer after "
+                     "doing the following as user %s:\n\n"
+                     "psql %s -f - <<PSQL;\n%sPSQL\n\n",
+                     PGUSER, dbname->cstr(), cmd.cstr() );
+            EventLoop::shutdown();
+            return -1;
+        }
+    }
+
+    return 0;
 }
