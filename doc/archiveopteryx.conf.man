@@ -169,7 +169,8 @@ is
 by default, and should be enabled whenever Archiveopteryx is
 used in production. It causes the servers to lock themselves into a
 .I chroot
-jail and drop root privileges once startup is complete.
+jail and run with very limited unix and database privileges. Most
+notably, they cannot open files or delete messages.
 .IP
 Turning security off has exactly one advantage: it simplifies
 debugging.

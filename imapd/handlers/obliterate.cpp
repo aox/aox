@@ -39,7 +39,7 @@ void XObliterate::parse()
 void XObliterate::execute()
 {
     String pw = Configuration::text( Configuration::ObliterationPassword );
-    if ( pw.isEmpty() ) {
+    if ( pw.isEmpty() || Configuration::toggle( Configuration::Security ) ) {
         error( Bad, "Obliteration is not available on this server." );
         return;
     }
