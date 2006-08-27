@@ -107,7 +107,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
 
     // if an old mailbox is in the way, move it aside
     Query * q = 0;
-    if ( to ) {
+    if ( to && !to->synthetic() ) {
         q = new Query( "update mailboxes set name=$1 where id=$2", 0 );
         q->bind( 1, Entropy::asString( 16 ).hex() );
         q->bind( 2, to->id() );
