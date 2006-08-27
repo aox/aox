@@ -651,15 +651,21 @@ void database()
         // How utterly, utterly disgusting.
         Database::disconnect();
 
-        /* XXX: This isn't going to work any more (because DBOWNER isn't
-           going to be equal to ORYXUSER). Is there anything we can do
-           about that?
-        if ( String( ORYXUSER ) == DBUSER ) {
+        if ( *dbowner == ORYXUSER ) {
             struct passwd * u = getpwnam( ORYXUSER );
             if ( u )
                 seteuid( u->pw_uid );
+        } else if ( exists( "/etc/debian_version" ) &&
+                    exists( "/etc/postgresql/pg_hba.conf" ) ) {
+            printf( " - Note: On Debian, PostgreSQL supports only IDENT "
+                    "authentication by default.\n"
+                    "         This program runs as root, so it may not have "
+                    "permission to\n"
+                    "         access the %s database as user %s.\n"
+                    "         To fix this, enable password authentication in "
+                    "/etc/postgresql/pg_hva.conf\n",
+                    dbname->cstr(), dbowner->cstr() );
         }
-        */
 
         Configuration::setup( "" );
         Configuration::add( "db-user = '" + *dbowner + "'" );
