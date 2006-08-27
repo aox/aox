@@ -13,7 +13,7 @@ class Configuration
 private:
     Configuration();
 public:
-    static void setup( const String & );
+    static void setup( const String &, bool = false );
     static void report();
 
     enum CompileTimeSetting {
@@ -132,7 +132,7 @@ public:
 private:
     static String osHostname();
 
-    static void read( const String & );
+    static void read( const String &, bool );
 
     static void log( const String &, Log::Severity );
 

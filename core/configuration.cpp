@@ -93,14 +93,18 @@ Configuration::Configuration()
 /*! Reads \a file, adding to the previous configuration data held by
     the object. In case of error, \a file is not read and an error is
     logged. Unknown configuration variables are logged and ignored.
+
+    If \a allowFailure is true, and the specified \a file cannot be
+    read, it is not treated as an error.
 */
 
-void Configuration::read( const String & file )
+void Configuration::read( const String & file, bool allowFailure )
 {
     File f( file );
     if ( !f.valid() ) {
-        log( "Error reading configuration file " + file,
-             Log::Disaster );
+        if ( !allowFailure )
+            log( "Error reading configuration file " + file,
+                 Log::Disaster );
         return;
     }
 
@@ -581,9 +585,12 @@ void Configuration::report()
     If \a global is an empty string, the function returns without trying
     to parse a configuration file. This experimental measure is meant to
     help lib/installer.
+
+    If \a allowFailure is true, a non-existent configuration file is
+    tolerated silently. Another installer-helping measure.
 */
 
-void Configuration::setup( const String & global )
+void Configuration::setup( const String & global, bool allowFailure )
 {
     d = new ConfigurationData;
     Allocator::addEternal( d, "configuration data" );
@@ -591,9 +598,10 @@ void Configuration::setup( const String & global )
     if ( global.isEmpty() )
         return;
     else if ( global[0] == '/' )
-        read( global );
+        read( global, allowFailure );
     else
-        read( String( compiledIn( ConfigDir ) ) + "/" + global );
+        read( String( compiledIn( ConfigDir ) ) + "/" + global,
+              allowFailure );
 
     String hn = text( Hostname );
     if ( hn.find( '.' ) < 0 )
