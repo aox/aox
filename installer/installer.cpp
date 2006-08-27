@@ -75,7 +75,7 @@ int main( int ac, char *av[] )
 
     dbname = new String( DBNAME );
     Allocator::addEternal( dbname, "DBNAME" );
-    dbaddress = new String( DBNAME );
+    dbaddress = new String( DBADDRESS );
     Allocator::addEternal( dbaddress, "DBADDRESS" );
     dbuser = new String( DBUSER );
     Allocator::addEternal( dbuser, "DBUSER" );
