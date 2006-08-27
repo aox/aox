@@ -605,7 +605,9 @@ static String q( const UString & orig )
     String s;
     uint i = 0;
     while ( i < r.length() ) {
-        if ( r[i] == '\\' || r[i] == '_' || r[i] == '%' )
+        if ( r[i] == '\\' ||
+             r[i] == '_' || r[i] == '%' ||
+             r[i] == '['  || r[i] == ']' )
             s.append( '\\' );
         s.append( r[i] );
         i++;
