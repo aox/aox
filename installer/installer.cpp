@@ -131,18 +131,7 @@ int main( int ac, char *av[] )
     if ( report )
         printf( "Reporting what the installer needs to do.\n" );
 
-    String cf( Configuration::configFile() );
-    if ( !report && exists( cf ) )
-        error( cf + " already exists -- exiting without changes.\n"
-               " - Not creating user " + ORYXUSER + " in group " +
-               ORYXGROUP + ".\n"
-               " - Not creating PostgreSQL user " + *dbuser + ".\n"
-               " - Not creating PostgreSQL user " + *dbowner + ".\n"
-               " - Not creating PostgreSQL database " + *dbname + ".\n"
-               " - Not loading the database schema.\n"
-               " - Not creating stub configuration file." );
-
-    Configuration::setup( "" );
+    Configuration::setup( "archiveopteryx.conf" );
     configure();
 
     oryxGroup();
@@ -213,30 +202,6 @@ bool exists( String f )
 }
 
 
-void configure()
-{
-    Entropy::setup();
-
-    if ( dbpass->isEmpty() ) {
-        String p;
-        if ( report )
-            p = "(database user password here)";
-        else
-            p = MD5::hash( Entropy::asString( 16 ) ).hex();
-        dbpass->append( p );
-    }
-
-    if ( dbownerpass->isEmpty() ) {
-        String p;
-        if ( report )
-            p = "(database owner password here)";
-        else
-            p = MD5::hash( Entropy::asString( 16 ) ).hex();
-        dbownerpass->append( p );
-    }
-}
-
-
 void findPgUser()
 {
     struct passwd * p = 0;
@@ -267,6 +232,45 @@ void findPgUser()
     path.append( ":" + String( p->pw_dir ) + "/bin" );
     path.append( ":/usr/local/pgsql/bin" );
     setenv( "PATH", path.cstr(), 1 );
+}
+
+
+void configure()
+{
+    Entropy::setup();
+
+    if ( Configuration::present( Configuration::DbName ) )
+        *dbname = Configuration::text( Configuration::DbName );
+
+    if ( Configuration::present( Configuration::DbUser ) )
+        *dbuser = Configuration::text( Configuration::DbUser );
+
+    if ( Configuration::present( Configuration::DbPassword ) ) {
+        *dbpass = Configuration::text( Configuration::DbPassword );
+    }
+    else if ( dbpass->isEmpty() ) {
+        String p;
+        if ( report )
+            p = "(database user password here)";
+        else
+            p = MD5::hash( Entropy::asString( 16 ) ).hex();
+        dbpass->append( p );
+    }
+
+    if ( Configuration::present( Configuration::DbOwner ) )
+        *dbowner = Configuration::text( Configuration::DbOwner );
+
+    if ( Configuration::present( Configuration::DbOwnerPassword ) ) {
+        *dbownerpass = Configuration::text( Configuration::DbOwnerPassword );
+    }
+    else if ( dbownerpass->isEmpty() ) {
+        String p;
+        if ( report )
+            p = "(database owner password here)";
+        else
+            p = MD5::hash( Entropy::asString( 16 ) ).hex();
+        dbownerpass->append( p );
+    }
 }
 
 
