@@ -1033,6 +1033,9 @@ Todo list: AMS
   - Why does Flag::find( "\\seen" ) return 0 if used in Session?
   - Make Schema::check independent of upgrade so that we can revoke
     update on mailstore from aox.
+  - Figure out what RENAME now does, and fix this:
+    'null value in column "mailbox" violates not-null constraint'
+
 
 
 
