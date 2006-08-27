@@ -656,15 +656,14 @@ void database()
         // How utterly, utterly disgusting.
         Database::disconnect();
 
-        if ( *dbowner == ORYXUSER ) {
-            struct passwd * u = getpwnam( ORYXUSER );
-            if ( u )
-                seteuid( u->pw_uid );
-        }
+        struct passwd * u = getpwnam( dbowner->cstr() );
+        if ( u )
+            seteuid( u->pw_uid );
 
         Configuration::setup( "" );
         Configuration::add( "db-user = '" + *dbowner + "'" );
         Configuration::add( "db-name = '" + *dbname + "'" );
+        Configuration::add( "db-address = '" + *dbaddress + "'" );
         Database::setup( 1 );
 
         d->state = CheckingSchema;
