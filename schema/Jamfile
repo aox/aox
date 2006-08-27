@@ -13,6 +13,6 @@ rule SchemaFile {
 }
 
 SchemaFile schema.pg ;
-SchemaFile privileges ;
 SchemaFile flag-names ;
 SchemaFile field-names ;
+SchemaFile grant-privileges ;

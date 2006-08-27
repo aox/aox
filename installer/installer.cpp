@@ -697,9 +697,9 @@ void database()
                         "SET SESSION AUTHORIZATION " + *dbowner + ";\n"
                         "SET client_min_messages TO 'ERROR';\n"
                         "\\i " LIBDIR "/schema.pg\n"
-                        "\\i " LIBDIR "/privileges\n"
                         "\\i " LIBDIR "/flag-names\n"
-                        "\\i " LIBDIR "/field-names\n" );
+                        "\\i " LIBDIR "/field-names\n"
+                        "\\i " LIBDIR "/grant-privileges\n" );
             d->state = Done;
             if ( report ) {
                 todo++;
