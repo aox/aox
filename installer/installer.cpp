@@ -813,7 +813,8 @@ void database()
         else if ( r ) {
             String cmd( "\\set ON_ERROR_STOP\n"
                         "SET client_min_messages TO 'ERROR';\n"
-                        "\\i " LIBDIR "/revoke-privileges\n" );
+                        "\\i " LIBDIR "/revoke-privileges\n"
+                        "\\i " LIBDIR "/grant-privileges\n" );
             if ( report ) {
                 todo++;
                 printf( " - Revoke privileges on database '%s' from user '%s'."
