@@ -390,7 +390,8 @@ enum DbState {
     Unused, CheckingVersion, CheckUser, CheckingUser, CreatingUser,
     CheckSuperuser, CheckingSuperuser, CreatingSuperuser, CheckDatabase,
     CheckingDatabase, CreatingDatabase, CheckSchema, CheckingSchema,
-    CreateSchema, CheckingRevision, Done
+    CreateSchema, CheckingRevision, UpgradingSchema, CheckPrivileges,
+    CheckingPrivileges, AlteringPrivileges, Done
 };
 
 
@@ -783,10 +784,57 @@ void database()
                 return;
             }
         }
-        else if ( r->getInt( "revision" ) != Schema::currentRevision() ) {
-            printf( " - You need to upgrade the database schema.\n   "
-                    "Please run 'aox upgrade schema' by hand.\n" );
+        else {
+            int revision = r->getInt( "revision" );
+
+            if ( revision > Schema::currentRevision() ) {
+                String v( Configuration::compiledIn( Configuration::Version ) );
+                fprintf( stderr, "The schema in database '%s' (revision #%d) "
+                         "is newer than this version of Archiveopteryx (%s) "
+                         "recognises (up to #%d).\n", dbname->cstr(), revision,
+                         v.cstr(), Schema::currentRevision() );
+                EventLoop::shutdown();
+                return;
+            }
+            else if ( revision < Schema::currentRevision() ) {
+                if ( report ) {
+                    todo++;
+                    printf( " - Upgrade the database schema (\"aox upgrade "
+                            "schema -n\" to see what would happen).\n" );
+                    d->state = CheckPrivileges;
+                }
+                else {
+                    d->state = UpgradingSchema;
+                    Schema * s = new Schema( d, true, true );
+                    d->q = s->result();
+                    s->execute();
+                }
+            }
+            else {
+                d->state = CheckPrivileges;
+            }
         }
+    }
+
+    if ( d->state == UpgradingSchema ) {
+        if ( !d->q->done() )
+            return;
+        if ( d->q->failed() ) {
+            fprintf( stderr, "Couldn't upgrade schema in database '%s' (%s).\n"
+                     "Please run \"aox upgrade schema -n\" by hand.\n",
+                     dbname->cstr(), d->q->error().cstr() );
+            EventLoop::shutdown();
+            return;
+        }
+        d->state = CheckPrivileges;
+    }
+
+    if ( d->state == CheckPrivileges ) {
+        d->state = AlteringPrivileges;
+    }
+
+    if ( d->state == AlteringPrivileges ) {
+        d->state = Done;
     }
 
     if ( d->state == Done ) {
