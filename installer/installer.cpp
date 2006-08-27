@@ -36,6 +36,9 @@ String * dbpass;
 String * dbowner;
 String * dbownerpass;
 
+int todo = 0;
+bool generatedPass = false;
+bool generatedOwnerPass = false;
 
 const char * PGUSER;
 const char * ORYXUSER;
@@ -249,11 +252,11 @@ void configure()
         *dbpass = Configuration::text( Configuration::DbPassword );
     }
     else if ( dbpass->isEmpty() ) {
-        String p;
-        if ( report )
-            p = "(database user password here)";
-        else
+        String p( "(database user password here)" );
+        if ( !report ) {
             p = MD5::hash( Entropy::asString( 16 ) ).hex();
+            generatedPass = true;
+        }
         dbpass->append( p );
     }
 
@@ -264,11 +267,11 @@ void configure()
         *dbownerpass = Configuration::text( Configuration::DbOwnerPassword );
     }
     else if ( dbownerpass->isEmpty() ) {
-        String p;
-        if ( report )
-            p = "(database owner password here)";
-        else
+        String p( "(database owner password here)" );
+        if ( !report ) {
             p = MD5::hash( Entropy::asString( 16 ) ).hex();
+            generatedOwnerPass = true;
+        }
         dbownerpass->append( p );
     }
 }
@@ -281,6 +284,7 @@ void oryxGroup()
         return;
 
     if ( report ) {
+        todo++;
         printf( " - Create a group named '%s' (e.g. \"groupadd %s\").\n",
                 ORYXGROUP, ORYXGROUP );
         return;
@@ -329,6 +333,7 @@ void oryxUser()
         return;
 
     if ( report ) {
+        todo++;
         printf( " - Create a user named '%s' in the '%s' group "
                 "(e.g. \"useradd -g %s %s\").\n",
                 ORYXUSER, ORYXGROUP, ORYXGROUP, ORYXUSER );
@@ -469,6 +474,7 @@ void database()
                            "password '" + *dbpass + "'" );
 
             if ( report ) {
+                todo++;
                 d->state = CheckSuperuser;
                 printf( " - Create a PostgreSQL user named '%s'.\n"
                         "   As user %s, run:\n\n"
@@ -485,6 +491,8 @@ void database()
             }
         }
         else {
+            if ( generatedPass )
+                *dbpass = "(database user password here)";
             d->state = CheckSuperuser;
         }
     }
@@ -536,6 +544,8 @@ void database()
             }
         }
         else {
+            if ( generatedOwnerPass )
+                *dbownerpass = "(database owner password here)";
             d->state = CheckDatabase;
         }
     }
@@ -572,6 +582,7 @@ void database()
             String create( "create database " + *dbname + " with owner " +
                            *dbowner + " encoding 'UNICODE'" );
             if ( report ) {
+                todo++;
                 printf( " - Create a database named '%s'.\n"
                         "   As user %s, run:\n\n"
                         "psql -d template1 -qc \"%s\"\n\n",
@@ -599,6 +610,7 @@ void database()
             else if ( encoding != "UNICODE" && encoding != "UTF8" )
                 s = "does not have encoding UNICODE";
             if ( !s.isEmpty() ) {
+                todo++;
                 fprintf( stderr, " - Database '%s' exists, but it %s.\n"
                          "   (That will need to be fixed by hand.)\n",
                          dbname->cstr(), s.cstr() );
@@ -654,6 +666,7 @@ void database()
             return;
         if ( d->q->failed() ) {
             if ( report ) {
+                todo++;
                 d->state = Done;
                 printf( " - May need to load the database schema.\n   "
                         "(Couldn't query database '%s' to make sure it's "
@@ -682,6 +695,7 @@ void database()
                         "\\i " LIBDIR "/flag-names\n"
                         "\\i " LIBDIR "/field-names\n" );
             if ( report ) {
+                todo++;
                 d->state = Done;
                 printf( " - Load the database schema.\n   "
                         "As user %s, run:\n\n"
@@ -752,6 +766,7 @@ void database()
         Row * r = d->q->nextRow();
         if ( !r || d->q->failed() ) {
             if ( report ) {
+                todo++;
                 printf( " - May need to upgrade the database schema.\n   "
                         "(Couldn't query mailstore table to make sure it's "
                         "needed.)\n" );
@@ -825,8 +840,14 @@ void configFile()
         "# use-tls = false\n"
     );
 
-    if ( !exists( cf ) ) {
+    if ( exists( cf ) && generatedPass ) {
+        fprintf( stderr, "Not overwriting existing %s!\n\n"
+                 "%s should contain:\n\n%s\n", cf.cstr(), cf.cstr(),
+                 cfg.cstr() );
+    }
+    else if ( !exists( cf ) ) {
         if ( report ) {
+            todo++;
             printf( " - Generate a default configuration file.\n"
                     "   %s should contain:\n\n%s\n", cf.cstr(), cfg.cstr() );
         }
@@ -878,8 +899,14 @@ void superConfig()
         "db-owner-password = " + p + "\n"
     );
 
-    if ( !exists( cf ) ) {
+    if ( exists( cf ) && generatedOwnerPass ) {
+        fprintf( stderr, "Not overwriting existing %s!\n\n"
+                 "%s should contain:\n\n%s\n", cf.cstr(), cf.cstr(),
+                 cfg.cstr() );
+    }
+    else if ( !exists( cf ) ) {
         if ( report ) {
+            todo++;
             printf( " - Generate the privileged configuration file.\n"
                     "   %s should contain:\n\n%s\n", cf.cstr(), cfg.cstr() );
         }
@@ -889,7 +916,7 @@ void superConfig()
             if ( !f.valid() ) {
                 fprintf( stderr, "Could not open %s for writing.\n\n",
                          cf.cstr() );
-                fprintf( stderr, "%s should contain:\n\n%s\n\n",
+                fprintf( stderr, "%s should contain:\n\n%s\n",
                          cf.cstr(), cfg.cstr() );
                 exit( -1 );
             }
@@ -930,6 +957,7 @@ void permissions()
          st.st_mode & S_IRWXU != ( S_IRUSR|S_IWUSR ) )
     {
         if ( report ) {
+            todo++;
             printf( " - Set permissions and ownership on %s.\n"
                     "   chmod 0600 %s\n"
                     "   chown %s:%s %s\n",
@@ -959,6 +987,7 @@ void permissions()
          (gid_t)st.st_gid != (gid_t)0 || st.st_mode & S_IRWXU != S_IRUSR )
     {
         if ( report ) {
+            todo++;
             printf( " - Set permissions and ownership on %s.\n"
                     "   chmod 0400 %s\n"
                     "   chown root:root %s\n",
@@ -990,6 +1019,7 @@ void permissions()
              st.st_mode & S_IRWXU != S_IRWXU ) ) )
     {
         if ( report ) {
+            todo++;
             printf( " - Set permissions and ownership on %s.\n"
                     "   chmod 0700 %s\n"
                     "   chown %s:%s %s\n",
@@ -1023,6 +1053,7 @@ void permissions()
            ( st.st_mode & S_IRWXO ) != 0 ) )
     {
         if ( report ) {
+            todo++;
             printf( " - Set permissions and ownership on %s.\n"
                     "   chmod 0700 %s\n"
                     "   chown root:root %s\n",
@@ -1043,7 +1074,9 @@ void permissions()
         }
     }
 
-    if ( !report && !silent )
+    if ( report && todo == 0 )
+        printf( "(Nothing.)\n" );
+    else if ( !silent )
         printf( "Done.\n" );
 
     EventLoop::shutdown();
