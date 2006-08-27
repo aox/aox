@@ -31,6 +31,7 @@ bool report = false;
 bool silent = false;
 
 String * dbname;
+String * dbaddress;
 String * dbuser;
 String * dbpass;
 String * dbowner;
@@ -48,7 +49,7 @@ const char * DBADDRESS;
 
 void help();
 void error( String );
-bool exists( String );
+bool exists( const String & );
 void configure();
 void findPgUser();
 void oryxGroup();
@@ -74,6 +75,8 @@ int main( int ac, char *av[] )
 
     dbname = new String( DBNAME );
     Allocator::addEternal( dbname, "DBNAME" );
+    dbaddress = new String( DBNAME );
+    Allocator::addEternal( dbaddress, "DBADDRESS" );
     dbuser = new String( DBUSER );
     Allocator::addEternal( dbuser, "DBUSER" );
     dbpass = new String( DBPASS );
@@ -106,7 +109,7 @@ int main( int ac, char *av[] )
             else if ( s == "-p" )
                 PGUSER = *av++;
             else if ( s == "-a" )
-                DBADDRESS = *av++;
+                *dbaddress = *av++;
             ac--;
         }
         else {
@@ -119,10 +122,9 @@ int main( int ac, char *av[] )
 
     findPgUser();
 
-    String dba( DBADDRESS );
-    if ( dba[0] == '/' && !exists( dba ) ) {
+    if ( dbaddress->startsWith( "/" ) && !exists( *dbaddress ) ) {
         fprintf( stderr, "Warning: DBADDRESS is set to '%s', "
-                 "which does not exist.\n", DBADDRESS );
+                 "which does not exist.\n", dbaddress->cstr() );
         if ( exists( "/etc/debian_version" ) &&
              exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
         {
@@ -203,7 +205,7 @@ void error( String m )
 }
 
 
-bool exists( String f )
+bool exists( const String & f )
 {
     struct stat st;
     return stat( f.cstr(), &st ) == 0;
@@ -249,6 +251,9 @@ void configure()
 
     if ( Configuration::present( Configuration::DbName ) )
         *dbname = Configuration::text( Configuration::DbName );
+
+    if ( Configuration::present( Configuration::DbAddress ) )
+        *dbaddress = Configuration::text( Configuration::DbAddress );
 
     if ( Configuration::present( Configuration::DbUser ) )
         *dbuser = Configuration::text( Configuration::DbUser );
@@ -416,7 +421,7 @@ void database()
     if ( !d ) {
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-address = '" + String( DBADDRESS ) + "'" );
+        Configuration::add( "db-address = '" + *dbaddress + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
 
@@ -854,7 +859,7 @@ void configFile()
         + v + ".\n\n"
     );
     String cfg(
-        "db-address = " + String( DBADDRESS ) + "\n"
+        "db-address = " + *dbaddress + "\n"
         "db-name = " + *dbname + "\n"
         "db-user = " + *dbuser + "\n"
         "db-password = " + p + "\n\n"
