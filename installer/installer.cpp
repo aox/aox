@@ -47,6 +47,7 @@ void oryxGroup();
 void oryxUser();
 void database();
 void configFile();
+void superConfig();
 void permissions();
 
 
@@ -599,8 +600,9 @@ void database()
         // How utterly, utterly disgusting.
         Database::disconnect();
 
-        /* XXX: This isn't going to work any more. Is there anything we
-           can do about that?
+        /* XXX: This isn't going to work any more (because DBOWNER isn't
+           going to be equal to ORYXUSER). Is there anything we can do
+           about that?
         if ( String( ORYXUSER ) == DBUSER ) {
             struct passwd * u = getpwnam( ORYXUSER );
             if ( u )
@@ -749,7 +751,7 @@ void configFile()
 {
     String p( *dbpass );
     if ( p.isEmpty() )
-        p = "'(database password here)'";
+        p = "'(database user password here)'";
 
     String cf( Configuration::configFile() );
     String v( Configuration::compiledIn( Configuration::Version ) );
@@ -763,8 +765,6 @@ void configFile()
         "db-address = " + String( DBADDRESS ) + "\n"
         "db-name = " DBNAME "\n"
         "db-user = " DBUSER "\n"
-        "# Security note: Anyone who can read this password can do\n"
-        "# anything to the database, including delete all mail.\n"
         "db-password = " + p + "\n\n"
         "logfile = " LOGFILE "\n"
         "logfile-mode = " LOGFILEMODE "\n"
@@ -807,6 +807,9 @@ void configFile()
             if ( !f.valid() ) {
                 fprintf( stderr, "Could not open %s for writing.\n",
                          cf.cstr() );
+                fprintf( stderr, "%s should contain:\n\n%s\n\n",
+                         cf.cstr(), cfg.cstr() );
+                exit( -1 );
             }
             else {
                 if ( !silent )
@@ -814,6 +817,58 @@ void configFile()
                 f.write( intro );
                 f.write( cfg );
                 f.write( other );
+            }
+        }
+    }
+
+    superConfig();
+}
+
+
+void superConfig()
+{
+    String p( *dbownerpass );
+    if ( p.isEmpty() )
+        p = "'(database owner password here)'";
+
+    String cf( Configuration::compiledIn( Configuration::ConfigDir ) );
+    cf.append( "/aoxsuper.conf" );
+
+    String v( Configuration::compiledIn( Configuration::Version ) );
+    // XXX: Change the manpage reference below if appropriate.
+    String intro(
+        "# Archiveopteryx configuration. See archiveopteryx.conf(5) "
+        "for details.\n"
+        "# Automatically generated while installing Archiveopteryx "
+        + v + ".\n\n"
+    );
+    String cfg(
+        "# Security note: Anyone who can read this password can do\n"
+        "# anything to the database, including delete all mail.\n"
+        "db-owner = " DBOWNER "\n"
+        "db-owner-password = " + p + "\n"
+    );
+
+    if ( !exists( cf ) ) {
+        if ( report ) {
+            printf( " - Generate the privileged configuration file.\n"
+                    "   %s should contain:\n\n%s\n", cf.cstr(), cfg.cstr() );
+        }
+        else {
+            setreuid( 0, 0 );
+            File f( cf, File::Write, 0400 );
+            if ( !f.valid() ) {
+                fprintf( stderr, "Could not open %s for writing.\n\n",
+                         cf.cstr() );
+                fprintf( stderr, "%s should contain:\n\n%s\n\n",
+                         cf.cstr(), cfg.cstr() );
+                exit( -1 );
+            }
+            else {
+                if ( !silent )
+                    printf( "Generating default %s\n", cf.cstr() );
+                f.write( intro );
+                f.write( cfg );
             }
         }
     }
@@ -838,8 +893,8 @@ void permissions()
 
     String cf( Configuration::configFile() );
 
-    // If the configuration file doesn't exist, or has the wrong
-    // ownership or permissions:
+    // If archiveopteryx.conf doesn't exist, or has the wrong ownership
+    // or permissions:
     if ( stat( cf.cstr(), &st ) != 0 || !p || !g ||
          st.st_uid != p->pw_uid ||
          (gid_t)st.st_gid != (gid_t)g->gr_gid ||
@@ -861,8 +916,37 @@ void permissions()
                          cf.cstr() );
 
             if ( chown( cf.cstr(), p->pw_uid, g->gr_gid ) < 0 )
-                fprintf( stderr, "Could not \"chown oryx:oryx %s\".\n",
-                         cf.cstr() );
+                fprintf( stderr, "Could not \"chown %s:%s %s\".\n",
+                         ORYXUSER, ORYXGROUP, cf.cstr() );
+        }
+    }
+
+    String scf( Configuration::compiledIn( Configuration::ConfigDir ) );
+    scf.append( "/aoxsuper.conf" );
+
+    // If aoxsuper.conf doesn't exist, or has the wrong ownership or
+    // permissions:
+    if ( stat( scf.cstr(), &st ) != 0 || st.st_uid != 0 ||
+         (gid_t)st.st_gid != (gid_t)0 || st.st_mode & S_IRWXU != S_IRUSR )
+    {
+        if ( report ) {
+            printf( " - Set permissions and ownership on %s.\n"
+                    "   chmod 0400 %s\n"
+                    "   chown root:root %s\n",
+                    scf.cstr(), scf.cstr(), scf.cstr() );
+        }
+        else {
+            if ( !silent )
+                printf( "Setting ownership and permissions on %s\n",
+                        scf.cstr() );
+
+            if ( chmod( scf.cstr(), 0400 ) < 0 )
+                fprintf( stderr, "Could not \"chmod 0400 %s\".\n",
+                         scf.cstr() );
+
+            if ( chown( scf.cstr(), 0, 0 ) < 0 )
+                fprintf( stderr, "Could not \"chown root:root %s\".\n",
+                         scf.cstr() );
         }
     }
 
@@ -893,8 +977,8 @@ void permissions()
                          mcd.cstr() );
 
             if ( chown( mcd.cstr(), p->pw_uid, g->gr_gid ) < 0 )
-                fprintf( stderr, "Could not \"chown oryx:oryx %s\".\n",
-                         mcd.cstr() );
+                fprintf( stderr, "Could not \"chown %s:%s %s\".\n",
+                         ORYXUSER, ORYXGROUP, mcd.cstr() );
         }
     }
 
