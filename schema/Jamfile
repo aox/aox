@@ -16,3 +16,4 @@ SchemaFile schema.pg ;
 SchemaFile flag-names ;
 SchemaFile field-names ;
 SchemaFile grant-privileges ;
+SchemaFile revoke-privileges ;

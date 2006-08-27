@@ -1,0 +1,37 @@
+alter table mailstore owner to $DBOWNER;
+alter table addresses owner to $DBOWNER;
+alter table namespaces owner to $DBOWNER;
+alter table users owner to $DBOWNER;
+alter table groups owner to $DBOWNER;
+alter table group_members owner to $DBOWNER;
+alter table mailboxes owner to $DBOWNER;
+alter table aliases owner to $DBOWNER;
+alter table permissions owner to $DBOWNER;
+alter table messages owner to $DBOWNER;
+alter table bodyparts owner to $DBOWNER;
+alter table part_numbers owner to $DBOWNER;
+alter table field_names owner to $DBOWNER;
+alter table header_fields owner to $DBOWNER;
+alter table address_fields owner to $DBOWNER;
+alter table date_fields owner to $DBOWNER;
+alter table threads owner to $DBOWNER;
+alter table thread_members owner to $DBOWNER;
+alter table flag_names owner to $DBOWNER;
+alter table flags owner to $DBOWNER;
+alter table subscriptions owner to $DBOWNER;
+alter table annotation_names owner to $DBOWNER;
+alter table annotations owner to $DBOWNER;
+alter table views owner to $DBOWNER;
+alter table view_messages owner to $DBOWNER;
+alter table scripts owner to $DBOWNER;
+alter table deleted_messages owner to $DBOWNER;
+
+-- Unfortunately, we can't change the owner of a sequence in any
+-- portable way. (I think 8.2 may allow this.)
+
+revoke all privileges on mailstore, addresses, namespaces, users,
+groups, group_members, mailboxes, aliases, permissions, messages,
+bodyparts, part_numbers, field_names, header_fields, address_fields,
+date_fields, threads, thread_members, flag_names, flags, subscriptions,
+annotation_names, annotations, views, view_messages, scripts,
+deleted_messages from $DBUSER;
