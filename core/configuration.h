@@ -129,10 +129,10 @@ public:
 
     static void add( const String & );
 
+    static void read( const String &, bool );
+
 private:
     static String osHostname();
-
-    static void read( const String &, bool );
 
     static void log( const String &, Log::Severity );
 

@@ -135,6 +135,10 @@ int main( int ac, char *av[] )
         printf( "Reporting what the installer needs to do.\n" );
 
     Configuration::setup( "archiveopteryx.conf" );
+    String super( Configuration::compiledIn( Configuration::ConfigDir ) );
+    super.append( "/aoxsuper.conf" );
+    Configuration::read( super, true );
+
     configure();
 
     oryxGroup();
