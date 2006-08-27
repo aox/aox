@@ -97,7 +97,8 @@ int main( int argc, char *argv[] )
     s.setup( Server::Finish );
 
     Schema::checkRevision( &s );
-    Schema::checkAccess( &s );
+    if ( Configuration::toggle( Configuration::Security ) )
+        Schema::checkAccess( &s );
     Mailbox::setup( &s );
 
     TlsServer::setup();
