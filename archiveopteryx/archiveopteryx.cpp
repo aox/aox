@@ -92,7 +92,16 @@ int main( int argc, char *argv[] )
         false
         );
 
-    Database::setup();
+    if ( Configuration::toggle( Configuration::Security ) ) {
+        Database::setup();
+    }
+    else {
+        // this is a terrible hack. must integrate aoxsuper.conf better.
+        Configuration::read( String( "" ) +
+                             Configuration::compiledIn( Configuration::ConfigDir) +
+                             "/aoxsuper.conf", true );
+        Database::setup( 3, Configuration::DbOwner );
+    }
 
     s.setup( Server::Finish );
 
