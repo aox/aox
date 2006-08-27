@@ -128,7 +128,7 @@ void RenameData::process( MailboxPair * p, MailboxPair * parent )
     // insert a deleted placeholder to ensure that uidnext/uidvalidity
     // will be okay if a new mailbox is created with the same name as
     // this one used to have
-    if ( to ) {
+    if ( to && !to->synthetic() ) {
         // if we have the old mailbox, use it
         q = new Query( "update mailboxes "
                        "set name=$1,uidnext=$2,uidvalidity=$3,deleted='t' "
