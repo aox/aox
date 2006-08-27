@@ -88,8 +88,7 @@ Postgres::Postgres()
     log( "Connecting to PostgreSQL server at " + server().string(),
          Log::Debug );
 
-    String user( Configuration::text( Configuration::JailUser ) );
-    struct passwd * p = getpwnam( user.cstr() );
+    struct passwd * p = getpwnam( Database::user().cstr() );
     if ( p && getuid() != p->pw_uid ) {
         // Try to cooperate with ident authentication.
         setreuid( 0, p->pw_uid );
