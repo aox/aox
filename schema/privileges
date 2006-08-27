@@ -14,8 +14,8 @@ deleted_messages to $DBUSER;
 grant delete on permissions, flags, subscriptions, annotations, views,
 view_messages, scripts to $DBUSER;
 
-grant update on permissions, mailboxes, aliases, annotations, views,
-scripts to $DBUSER;
+grant update on mailstore, permissions, mailboxes, aliases, annotations,
+views, scripts to $DBUSER;
 
 grant select, update on bodypart_ids, addresses_id_seq, aliases_id_seq,
 annotation_names_id_seq, bodypart_ids, field_names_id_seq, flag_names_id_seq,
