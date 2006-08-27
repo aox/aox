@@ -4,6 +4,7 @@
 #include "string.h"
 #include "allocator.h"
 #include "stringlist.h"
+#include "stderrlogger.h"
 #include "configuration.h"
 #include "eventloop.h"
 #include "database.h"
@@ -67,6 +68,10 @@ int psql( const String & );
 int main( int ac, char *av[] )
 {
     Scope global;
+    Log * l = new Log( Log::General );
+    Allocator::addEternal( l, "log object" );
+    global.setLog( l );
+    Allocator::addEternal( new StderrLogger( "installer" ), "log object" );
 
     PGUSER = Configuration::compiledIn( Configuration::PgUser );
     ORYXUSER = Configuration::compiledIn( Configuration::OryxUser );
@@ -651,23 +656,10 @@ void database()
         // How utterly, utterly disgusting.
         Database::disconnect();
 
-        static bool warnedAboutIdent;
-
         if ( *dbowner == ORYXUSER ) {
             struct passwd * u = getpwnam( ORYXUSER );
             if ( u )
                 seteuid( u->pw_uid );
-        } else if ( exists( "/etc/debian_version" ) &&
-                    exists( "/etc/postgresql/pg_hba.conf" ) &&
-                    !warnedAboutIdent ) {
-            printf( " - Note: On Debian, PostgreSQL supports only IDENT "
-                    "authentication by default.\n"
-                    "   This program runs as root, so it may not have "
-                    "permission to access the\n   %s database as user %s.\n"
-                    "   To fix this, enable password authentication in "
-                    "/etc/postgresql/pg_hba.conf.\n",
-                    dbname->cstr(), dbowner->cstr() );
-            warnedAboutIdent = true;
         }
 
         Configuration::setup( "" );

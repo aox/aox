@@ -4,6 +4,7 @@
 #include "event.h"
 #include "string.h"
 #include "allocator.h"
+#include "stderrlogger.h"
 #include "configuration.h"
 #include "smtpclient.h"
 #include "logclient.h"
@@ -16,50 +17,6 @@
 
 // time, ctime
 #include <time.h>
-
-
-class StderrLog
-    : public Logger
-{
-public:
-    StderrLog();
-    void send( const String &,
-               Log::Facility, Log::Severity,
-               const String & );
-    void commit( const String &, Log::Severity ) {}
-    virtual String name() const;
-};
-
-
-StderrLog::StderrLog()
-    : Logger()
-{
-    // nothing?
-}
-
-
-void StderrLog::send( const String &,
-                      Log::Facility, Log::Severity s,
-                      const String & m )
-{
-    // Log already does this
-    if ( s == Log::Error )
-        fprintf( stderr, "%s: %s\n", name().cstr(), m.cstr() );
-
-    // Debug we ignore, Info we ignore for now.
-
-    // and in case of a disaster, we quit. the hard way.
-    if ( s == Log::Disaster ) {
-        fprintf( stderr, "%s: Fatal error. Exiting.\n", name().cstr() );
-        exit( 1 );
-    }
-}
-
-
-String StderrLog::name() const
-{
-    return "deliver";
-}
 
 
 class Deliverator
@@ -188,7 +145,7 @@ int main( int argc, char *argv[] )
     Log * l = new Log( Log::General );
     Allocator::addEternal( l, "delivery log" );
     global.setLog( l );
-    Allocator::addEternal( new StderrLog, "log object" );
+    Allocator::addEternal( new StderrLogger( "deliver" ), "log object" );
 
     Configuration::report();
     Deliverator *d = new Deliverator( sender, contents, recipient );
