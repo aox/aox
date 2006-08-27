@@ -29,7 +29,11 @@ uid_t postgres;
 class Dispatcher * d;
 bool report = false;
 bool silent = false;
+
+String * dbname;
+String * dbuser;
 String * dbpass;
+String * dbowner;
 String * dbownerpass;
 
 
@@ -42,6 +46,7 @@ const char * DBADDRESS;
 void help();
 void error( String );
 bool exists( String );
+void configure();
 void findPgUser();
 void oryxGroup();
 void oryxUser();
@@ -62,6 +67,17 @@ int main( int ac, char *av[] )
     ORYXUSER = Configuration::compiledIn( Configuration::OryxUser );
     ORYXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
     DBADDRESS = Configuration::compiledIn( Configuration::DefaultDbAddress );
+
+    dbname = new String( DBNAME );
+    Allocator::addEternal( dbname, "DBNAME" );
+    dbuser = new String( DBUSER );
+    Allocator::addEternal( dbuser, "DBUSER" );
+    dbpass = new String( DBPASS );
+    Allocator::addEternal( dbpass, "DBPASS" );
+    dbowner = new String( DBOWNER );
+    Allocator::addEternal( dbowner, "DBOWNER" );
+    dbownerpass = new String( DBOWNERPASS );
+    Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
 
     av++;
     while ( ac-- > 1 ) {
@@ -120,11 +136,14 @@ int main( int ac, char *av[] )
         error( cf + " already exists -- exiting without changes.\n"
                " - Not creating user " + ORYXUSER + " in group " +
                ORYXGROUP + ".\n"
-               " - Not creating PostgreSQL user " DBUSER ".\n"
-               " - Not creating PostgreSQL user " DBOWNER ".\n"
-               " - Not creating PostgreSQL database " DBNAME ".\n"
+               " - Not creating PostgreSQL user " + *dbuser + ".\n"
+               " - Not creating PostgreSQL user " + *dbowner + ".\n"
+               " - Not creating PostgreSQL database " + *dbname + ".\n"
                " - Not loading the database schema.\n"
                " - Not creating stub configuration file." );
+
+    Configuration::setup( "" );
+    configure();
 
     oryxGroup();
     oryxUser();
@@ -150,12 +169,11 @@ void help()
         "  This program does the following:\n\n"
         "    1. Creates a Unix group named %s.\n"
         "    2. Creates a Unix user named %s.\n"
-        "    3. Creates a Postgres user named " DBUSER ".\n"
-        "    4. Creates a Postgres user named " DBOWNER ".\n"
-        "    5. Creates a Postgres database named " DBNAME " owned by "
-        DBOWNER ".\n"
+        "    3. Creates a Postgres user named %s.\n"
+        "    4. Creates a Postgres user named %s.\n"
+        "    5. Creates a Postgres database named %s owned by %s.\n"
         "    6. Loads the database schema and grants limited privileges "
-        "to user " DBUSER ".\n"
+        "to user %s.\n"
         "    7. Generates an initial configuration file.\n"
         "    8. Adjusts ownership and permissions if necessary.\n\n"
         "  Options:\n\n"
@@ -172,7 +190,8 @@ void help()
         "  The \"-a address\" flag allows you to specify a different\n"
         "  address for the Postgres server. The default is '%s'.\n\n"
         "  The defaults are set at build time in the Jamsettings file.\n\n",
-        ORYXGROUP, ORYXUSER,
+        ORYXGROUP, ORYXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
+        dbowner->cstr(), dbuser->cstr(),
         ORYXGROUP, ORYXUSER,
         DBADDRESS
     );
@@ -191,6 +210,30 @@ bool exists( String f )
 {
     struct stat st;
     return stat( f.cstr(), &st ) == 0;
+}
+
+
+void configure()
+{
+    Entropy::setup();
+
+    if ( dbpass->isEmpty() ) {
+        String p;
+        if ( report )
+            p = "(database user password here)";
+        else
+            p = MD5::hash( Entropy::asString( 16 ) ).hex();
+        dbpass->append( p );
+    }
+
+    if ( dbownerpass->isEmpty() ) {
+        String p;
+        if ( report )
+            p = "(database owner password here)";
+        else
+            p = MD5::hash( Entropy::asString( 16 ) ).hex();
+        dbownerpass->append( p );
+    }
 }
 
 
@@ -361,13 +404,10 @@ void database()
         Configuration::add( "db-address = '" + String( DBADDRESS ) + "'" );
         Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = 'template1'" );
-        Database::setup( 1 );
-        d = new Dispatcher;
-        dbpass = new String;
-        Allocator::addEternal( dbpass, "DBPASS" );
-        dbownerpass = new String;
-        Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
 
+        Database::setup( 1 );
+
+        d = new Dispatcher;
         d->state = CheckingVersion;
         d->q = new Query( "select version() as version", d );
         d->q->execute();
@@ -411,7 +451,7 @@ void database()
         d->state = CheckingUser;
         d->q = new Query( "select usename from pg_catalog.pg_user where "
                           "usename=$1", d );
-        d->q->bind( 1, DBUSER );
+        d->q->bind( 1, *dbuser );
         d->q->execute();
     }
 
@@ -421,30 +461,21 @@ void database()
 
         Row * r = d->q->nextRow();
         if ( !r ) {
-            Entropy::setup();
-            String create( "create user " DBUSER " with encrypted password '" );
-            String passwd( DBPASS );
-            if ( passwd.isEmpty() ) {
-                if ( report )
-                    passwd = "(password here)";
-                else
-                    passwd = MD5::hash( Entropy::asString( 16 ) ).hex();
-            }
-            dbpass->append( passwd );
-            create.append( passwd );
-            create.append( "'" );
+            String create( "create user " + *dbuser + " with encrypted "
+                           "password '" + *dbpass + "'" );
 
             if ( report ) {
                 d->state = CheckSuperuser;
-                printf( " - Create a PostgreSQL user named '" DBUSER "'.\n"
+                printf( " - Create a PostgreSQL user named '%s'.\n"
                         "   As user %s, run:\n\n"
                         "psql -d template1 -qc \"%s\"\n\n",
-                        PGUSER, create.cstr() );
+                        dbuser->cstr(), PGUSER, create.cstr() );
             }
             else {
                 d->state = CreatingUser;
                 if ( !silent )
-                    printf( "Creating the '" DBUSER "' PostgreSQL user.\n" );
+                    printf( "Creating the '%s' PostgreSQL user.\n",
+                            dbuser->cstr() );
                 d->q = new Query( create, d );
                 d->q->execute();
             }
@@ -458,9 +489,9 @@ void database()
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't create PostgreSQL user '" DBUSER
-                     "' (%s).\nPlease create it by hand and re-run the "
-                     "installer.\n", d->q->error().cstr() );
+            fprintf( stderr, "Couldn't create PostgreSQL user '%s' (%s).\n"
+                     "Please create it by hand and re-run the installer.\n",
+                     dbuser->cstr(), d->q->error().cstr() );
             EventLoop::shutdown();
             return;
         }
@@ -471,7 +502,7 @@ void database()
         d->state = CheckingSuperuser;
         d->q = new Query( "select usename from pg_catalog.pg_user where "
                           "usename=$1", d );
-        d->q->bind( 1, DBOWNER );
+        d->q->bind( 1, *dbowner );
         d->q->execute();
     }
 
@@ -481,30 +512,21 @@ void database()
 
         Row * r = d->q->nextRow();
         if ( !r ) {
-            Entropy::setup();
-            String create( "create user " DBOWNER " with encrypted password '" );
-            String passwd( DBOWNERPASS );
-            if ( passwd.isEmpty() ) {
-                if ( report )
-                    passwd = "(password here)";
-                else
-                    passwd = MD5::hash( Entropy::asString( 16 ) ).hex();
-            }
-            dbownerpass->append( passwd );
-            create.append( passwd );
-            create.append( "'" );
+            String create( "create user " + *dbowner + " with encrypted "
+                           "password '" + *dbownerpass + "'" );
 
             if ( report ) {
                 d->state = CheckDatabase;
-                printf( " - Create a PostgreSQL user named '" DBOWNER "'.\n"
+                printf( " - Create a PostgreSQL user named '%s'.\n"
                         "   As user %s, run:\n\n"
                         "psql -d template1 -qc \"%s\"\n\n",
-                        PGUSER, create.cstr() );
+                        dbowner->cstr(), PGUSER, create.cstr() );
             }
             else {
                 d->state = CreatingSuperuser;
                 if ( !silent )
-                    printf( "Creating the '" DBOWNER "' PostgreSQL user.\n" );
+                    printf( "Creating the '%s' PostgreSQL user.\n",
+                            dbowner->cstr() );
                 d->q = new Query( create, d );
                 d->q->execute();
             }
@@ -518,9 +540,9 @@ void database()
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't create PostgreSQL user '" DBOWNER
-                     "' (%s).\nPlease create it by hand and re-run the "
-                     "installer.\n", d->q->error().cstr() );
+            fprintf( stderr, "Couldn't create PostgreSQL user '%s' (%s).\n"
+                     "Please create it by hand and re-run the installer.\n",
+                     dbowner->cstr(), d->q->error().cstr() );
             EventLoop::shutdown();
             return;
         }
@@ -533,7 +555,7 @@ void database()
                           "pg_encoding_to_char(encoding)::text as encoding "
                           "from pg_database d join pg_user u "
                           "on (d.datdba=u.usesysid) where datname=$1", d );
-        d->q->bind( 1, DBNAME );
+        d->q->bind( 1, *dbname );
         d->q->execute();
     }
 
@@ -543,13 +565,13 @@ void database()
 
         Row * r = d->q->nextRow();
         if ( !r ) {
-            String create( "create database " DBNAME " with owner " DBOWNER " "
-                           "encoding 'UNICODE'" );
+            String create( "create database " + *dbname + " with owner " +
+                           *dbowner + " encoding 'UNICODE'" );
             if ( report ) {
-                printf( " - Create a database named '" DBNAME "'.\n"
+                printf( " - Create a database named '%s'.\n"
                         "   As user %s, run:\n\n"
                         "psql -d template1 -qc \"%s\"\n\n",
-                        PGUSER, create.cstr() );
+                        dbname->cstr(), PGUSER, create.cstr() );
 
                 // We fool CreateSchema into thinking that the mailstore
                 // query returned 0 rows, so that it displays a suitable
@@ -559,21 +581,23 @@ void database()
             else {
                 d->state = CreatingDatabase;
                 if ( !silent )
-                    printf( "Creating the '" DBNAME "' database.\n" );
+                    printf( "Creating the '%s' database.\n",
+                            dbname->cstr() );
                 d->q = new Query( create, d );
                 d->q->execute();
             }
         }
         else {
-            const char * s = 0;
+            String s;
             String encoding( r->getString( "encoding" ) );
-            if ( r->getString( "usename" ) != DBOWNER )
-                s = "is not owned by user " DBOWNER;
+            if ( r->getString( "usename" ) != *dbowner )
+                s = "is not owned by user " + *dbowner;
             else if ( encoding != "UNICODE" && encoding != "UTF8" )
                 s = "does not have encoding UNICODE";
-            if ( s ) {
-                fprintf( stderr, " - Database '" DBNAME "' exists, but it %s."
-                         "\n   (That will need to be fixed by hand.)\n", s );
+            if ( !s.isEmpty() ) {
+                fprintf( stderr, " - Database '%s' exists, but it %s.\n"
+                         "   (That will need to be fixed by hand.)\n",
+                         dbname->cstr(), s.cstr() );
                 if ( !report ) {
                     EventLoop::shutdown();
                     return;
@@ -587,9 +611,9 @@ void database()
         if ( !d->q->done() )
             return;
         if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't create database '" DBNAME "' (%s).\n"
+            fprintf( stderr, "Couldn't create database '%s' (%s).\n"
                      "Please create it by hand and re-run the installer.\n",
-                     d->q->error().cstr() );
+                     dbname->cstr(), d->q->error().cstr() );
             EventLoop::shutdown();
             return;
         }
@@ -611,8 +635,8 @@ void database()
         */
 
         Configuration::setup( "" );
-        Configuration::add( "db-user = '" DBOWNER "'" );
-        Configuration::add( "db-name = '" DBNAME "'" );
+        Configuration::add( "db-user = '" + *dbowner + "'" );
+        Configuration::add( "db-name = '" + *dbname + "'" );
         Database::setup( 1 );
 
         d->state = CheckingSchema;
@@ -628,13 +652,14 @@ void database()
             if ( report ) {
                 d->state = Done;
                 printf( " - May need to load the database schema.\n   "
-                        "(Couldn't query database '" DBNAME "' to make sure "
-                        "it's needed: %s.)\n", d->q->error().cstr() );
+                        "(Couldn't query database '%s' to make sure it's "
+                        "needed: %s.)\n", dbname->cstr(),
+                        d->q->error().cstr() );
             }
             else {
-                fprintf( stderr, "Couldn't query database '" DBNAME "' to "
+                fprintf( stderr, "Couldn't query database '%s' to "
                          "see if the schema needs to be loaded (%s).\n",
-                         d->q->error().cstr() );
+                         dbname->cstr(), d->q->error().cstr() );
                 EventLoop::shutdown();
                 return;
             }
@@ -646,7 +671,7 @@ void database()
         Row * r = d->q->nextRow();
         if ( !r ) {
             String cmd( "\\set ON_ERROR_STOP\n"
-                        "SET SESSION AUTHORIZATION " DBOWNER ";\n"
+                        "SET SESSION AUTHORIZATION " + *dbowner + ";\n"
                         "SET client_min_messages TO 'ERROR';\n"
                         "\\i " LIBDIR "/schema.pg\n"
                         "\\i " LIBDIR "/privileges\n"
@@ -656,8 +681,8 @@ void database()
                 d->state = Done;
                 printf( " - Load the database schema.\n   "
                         "As user %s, run:\n\n"
-                        "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
-                        PGUSER, cmd.cstr() );
+                        "psql %s -f - <<PSQL;\n%sPSQL\n\n",
+                        PGUSER, dbname->cstr(), cmd.cstr() );
             }
             else {
                 d->state = Done;
@@ -678,7 +703,7 @@ void database()
                     if ( silent )
                         if ( close( 1 ) < 0 || open( "/dev/null", 0 ) != 1 )
                             exit( -1 );
-                    execlp( "psql", "psql", DBNAME, "-f", "-",
+                    execlp( "psql", "psql", dbname->cstr(), "-f", "-",
                             (const char *) 0 );
                     exit( -1 );
                 }
@@ -700,8 +725,8 @@ void database()
                                      getenv( "PATH" ) );
                         fprintf( stderr, "Please re-run the installer after "
                                  "doing the following as user %s:\n\n"
-                                 "psql " DBNAME " -f - <<PSQL;\n%sPSQL\n\n",
-                                 PGUSER, cmd.cstr() );
+                                 "psql %s -f - <<PSQL;\n%sPSQL\n\n",
+                                 PGUSER, dbname->cstr(), cmd.cstr() );
                         EventLoop::shutdown();
                         return;
                     }
@@ -728,9 +753,9 @@ void database()
                         "needed.)\n" );
             }
             else {
-                fprintf( stderr, "Couldn't query database '" DBNAME "' to "
+                fprintf( stderr, "Couldn't query database '%s' to "
                          "see if the schema needs to be upgraded (%s).\n",
-                         d->q->error().cstr() );
+                         dbname->cstr(), d->q->error().cstr() );
                 EventLoop::shutdown();
                 return;
             }
@@ -750,8 +775,8 @@ void database()
 void configFile()
 {
     String p( *dbpass );
-    if ( p.isEmpty() )
-        p = "'(database user password here)'";
+    if ( p.contains( " " ) )
+        p = "'" + p + "'";
 
     String cf( Configuration::configFile() );
     String v( Configuration::compiledIn( Configuration::Version ) );
@@ -763,8 +788,8 @@ void configFile()
     );
     String cfg(
         "db-address = " + String( DBADDRESS ) + "\n"
-        "db-name = " DBNAME "\n"
-        "db-user = " DBUSER "\n"
+        "db-name = " + *dbname + "\n"
+        "db-user = " + *dbuser + "\n"
         "db-password = " + p + "\n\n"
         "logfile = " LOGFILE "\n"
         "logfile-mode = " LOGFILEMODE "\n"
@@ -828,8 +853,8 @@ void configFile()
 void superConfig()
 {
     String p( *dbownerpass );
-    if ( p.isEmpty() )
-        p = "'(database owner password here)'";
+    if ( p.contains( " " ) )
+        p = "'" + p + "'";
 
     String cf( Configuration::compiledIn( Configuration::ConfigDir ) );
     cf.append( "/aoxsuper.conf" );
@@ -845,7 +870,7 @@ void superConfig()
     String cfg(
         "# Security note: Anyone who can read this password can do\n"
         "# anything to the database, including delete all mail.\n"
-        "db-owner = " DBOWNER "\n"
+        "db-owner = " + *dbowner + "\n"
         "db-owner-password = " + p + "\n"
     );
 
