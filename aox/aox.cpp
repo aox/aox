@@ -105,6 +105,9 @@ int main( int ac, char *av[] )
     EventLoop::setup();
 
     Configuration::setup( "archiveopteryx.conf" );
+    Configuration::read( String( "" ) +
+                         Configuration::compiledIn( Configuration::ConfigDir) +
+                         "/aoxsuper.conf", true );
     Log * l = new Log( Log::General );
     Allocator::addEternal( l, "log object" );
     global.setLog( l );
