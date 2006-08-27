@@ -314,6 +314,8 @@ String Database::user()
 
 String Database::password()
 {
+    if ( ::loginAs == Configuration::DbOwner )
+        return Configuration::text( Configuration::DbOwnerPassword );
     return Configuration::text( Configuration::DbPassword );
 }
 
