@@ -563,14 +563,15 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body.crlf() );
 
-        if ( !c->valid() && c->name() == "GB2312" ) {
+        if ( !c->valid() && 
+             ( c->name() == "GB2312" || c->name() == "ISO-2022-JP" ) ) {
             // undefined code point usage in GB2312 spam is much too
             // common. (GB2312 spam is much too common, but that's
             // another matter.) Gb2312Codec turns all undefined code
-            // points into U+FFFE, so here, we can take the unicode
+            // points into U+FFFD, so here, we can take the unicode
             // form and say it's the canonical form. when a client
             // later reads the message, it gets the text in unicode,
-            // including U+FFFE.
+            // including U+FFFD.
             
             // the header may contain some unencoded gb2312. we bang
             // it by hand, ignoring errors.
