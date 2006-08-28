@@ -524,7 +524,7 @@ void Fetch::execute()
     ImapSession * s = imap()->session();
 
     if ( d->state == 0 ) {
-        if ( !d->uid )
+        if ( group() == 2 ) // then RFC 2180 section 4.1.2 applies
             d->expunged = imap()->session()->expunged().intersection( d->set );
         shrink( &d->set );
         if ( !d->peek && s->readOnly() )
