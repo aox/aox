@@ -11,6 +11,8 @@
 
   Privilege separation.
 
+  RFC 2180 compliance.
+
   Must-Do:
 
   0 bytes in every codec.

@@ -74,11 +74,11 @@ UString Gb2312Codec::toUnicode( const String &s )
 
             if ( i > 93 || j > 93 ) {
                 recordError( n, s );
-                u.append( 0xFFFE );
+                u.append( 0xFFFD );
             }
             else if ( gbToUnicode[i][j] == 0 ) {
                 recordError( n, i * 94 + j );
-                u.append( 0xFFFE );
+                u.append( 0xFFFD );
             }
             else {
                 u.append( gbToUnicode[i][j] );
@@ -89,7 +89,7 @@ UString Gb2312Codec::toUnicode( const String &s )
         else if ( c > 128 ) {
             // lone non-ascii byte
             recordError( n, s );
-            u.append( 0xFFFE );
+            u.append( 0xFFFD );
             n++;
         }
         else {
