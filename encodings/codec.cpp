@@ -306,9 +306,9 @@ Codec * Codec::byString( const UString & u )
 
 /*! Returns a codec likely to describe the encoding for \a s. This
     uses words lists and many other strategies.
-    
+
     Its assumptions:
-    
+
     If \a s contains a Unicode Byte Order Mark, it probably is a
     UTF-16BE or UTF-16LE string.
 
@@ -330,7 +330,7 @@ Codec * Codec::byString( const String & s )
         return new Utf16LeCodec;
     else if ( s[0] == 0xFE && s[1] == 0xFF && (s.length() % 2) == 0 )
         return new Utf16BeCodec;
-    
+
     uint b = 0;
     uint e = 0;
     uint occurences[NumEncodings];

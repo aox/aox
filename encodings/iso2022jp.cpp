@@ -90,15 +90,11 @@ UString Iso2022JpCodec::toUnicode( const String &s )
 
     enum { ASCII, JIS } mode = ASCII;
 
-    int ku = 0;
-    int ten = 0;
-
     uint n = 0;
     while ( n < s.length() ) {
         char c = s[n];
 
         if ( c == 0x1b ) {
-            ku = ten = 0;
             if ( ( s[n+1] == 0x28 && s[n+2] == 0x42 ) ||
                  ( s[n+1] == 0x28 && s[n+2] == 0x4a ) )
             {
@@ -129,25 +125,27 @@ UString Iso2022JpCodec::toUnicode( const String &s )
             u.append( c );
         }
         else if ( mode == JIS ) {
-            if ( ku == 0 ) {
-                ku = (int)c;
+            int ku = c;
+            int ten = s[n+1];
+            uint cp = 0xFFFD;
+
+            if ( ten == 0x1B ) {
+                // Single byte
+                recordError( n, s );
             }
             else {
-                ten = (int)c;
-
-                if ( ku < 33 || ku > 126 ||
-                     ten < 33 || ten > 126 )
-                    recordError( n, s );
-
+                // Double byte, of whatever legality
                 ku -= 33;
                 ten -= 33;
-
-                if ( toU[ku][ten] == 0xFFFD )
+                if ( ku > 93 || ten > 93 )
+                    recordError( n, s );
+                else if ( toU[ku][ten] == 0xFFFD )
                     recordError( n, ku * 94 + ten );
                 else
-                    u.append( toU[ku][ten] );
-                ku = ten = 0;
+                    cp = toU[ku][ten];
+                n++;
             }
+            u.append( cp );
         }
 
         n++;
