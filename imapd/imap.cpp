@@ -160,6 +160,7 @@ void IMAP::react( Event e )
             Scope s( d->reader->log() );
             d->reader->read();
         }
+        endSession();
         break;
 
     case Connect:
@@ -169,10 +170,12 @@ void IMAP::react( Event e )
     case Close:
         if ( state() != Logout )
             log( "Unexpected close by client" );
+        endSession();
         break;
 
     case Shutdown:
         enqueue( "* BYE server shutdown\r\n" );
+        endSession();
         break;
     }
 
@@ -635,14 +638,16 @@ String IMAP::mailboxName( const String &m ) const
 }
 
 
-/*! Switches to Selected state and operates on the mailbox session \a s.
-
-    This function may be called only when the server is in Authenticated
-    state (and thus does not have a session() already defined).
+/*! Switches to Selected state and operates on the mailbox session \a
+    s. If the object already had a session, ends the previous session.
 */
 
 void IMAP::beginSession( ImapSession * s )
 {
+    if ( d->session == s )
+        return;
+    if ( d->session )
+        d->session->end();
     d->session = s;
     setState( Selected );
     log( "Starting session on mailbox " + s->mailbox()->name() );
@@ -661,14 +666,16 @@ ImapSession *IMAP::session() const
 
 
 /*! This function deletes any existing ImapSession associated with this
-    server, whose state changes to Authenticated. It must not be called
+    server, whose state changes to Authenticated. It does nothing
     unless the server has a session().
 */
 
 void IMAP::endSession()
 {
-    setState( Authenticated );
     Session * s = d->session;
+    if ( !s )
+        return;
+    setState( Authenticated );
     d->session = 0;
     s->end();
 }
