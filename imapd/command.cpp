@@ -1045,7 +1045,8 @@ uint Command::msn()
         return 1;
     }
 
-    d->canExpunge = false;
+    if ( d->name != "copy" ) // see RFC 2180 section 4.4.1/2
+        d->canExpunge = false;
 
     uint star = session->count();
     uint r = star;
