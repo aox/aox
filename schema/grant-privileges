@@ -17,8 +17,9 @@ view_messages, scripts to $DBUSER;
 grant update on mailstore, permissions, mailboxes, aliases, annotations,
 views, scripts to $DBUSER;
 
-grant select, update on bodypart_ids, addresses_id_seq, aliases_id_seq,
-annotation_names_id_seq, bodypart_ids, field_names_id_seq, flag_names_id_seq,
-groups_id_seq, header_fields_id_seq, mailboxes_id_seq, namespaces_id_seq,
-scripts_id_seq, subscriptions_id_seq, threads_id_seq, users_id_seq,
+grant select, update on addresses_id_seq, aliases_id_seq,
+annotation_names_id_seq, bodypart_ids, field_names_id_seq,
+flag_names_id_seq, groups_id_seq, header_fields_id_seq,
+mailboxes_id_seq, namespaces_id_seq, scripts_id_seq,
+subscriptions_id_seq, threads_id_seq, users_id_seq,
 views_id_seq to $DBUSER;
