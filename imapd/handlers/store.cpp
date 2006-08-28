@@ -344,6 +344,8 @@ void Store::execute()
         else if ( !dumpFetchResponses() )
             return;
     }
+    if ( !d->silent && !d->expunged.isEmpty() )
+        error( No, "Cannot store on expunged messages" );
     finish();
 }
 
