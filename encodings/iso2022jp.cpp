@@ -127,7 +127,6 @@ UString Iso2022JpCodec::toUnicode( const String &s )
         else if ( mode == JIS ) {
             int ku = c;
             int ten = s[n+1];
-            uint cp = 0xFFFD;
 
             if ( ten == 0x1B ) {
                 // Single byte
@@ -135,6 +134,7 @@ UString Iso2022JpCodec::toUnicode( const String &s )
             }
             else {
                 // Double byte, of whatever legality
+                uint cp = 0xFFFD;
                 ku -= 33;
                 ten -= 33;
                 if ( ku > 93 || ten > 93 )
@@ -143,9 +143,9 @@ UString Iso2022JpCodec::toUnicode( const String &s )
                     recordError( n, ku * 94 + ten );
                 else
                     cp = toU[ku][ten];
+                u.append( cp );
                 n++;
             }
-            u.append( cp );
         }
 
         n++;
