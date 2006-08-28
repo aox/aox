@@ -69,6 +69,8 @@ public:
     void addSessionInitialiser( class SessionInitialiser * );
     void removeSessionInitialiser();
 
+    static uint activeSessions( Mailbox * );
+
 private:
     class SessionData *d;
 };

@@ -6,6 +6,7 @@
 #include "user.h"
 #include "query.h"
 #include "mailbox.h"
+#include "session.h"
 #include "occlient.h"
 #include "permissions.h"
 #include "transaction.h"
@@ -29,6 +30,10 @@ public:
     Deletes an existing mailbox (RFC 3501 section 6.3.4)
 
     (Really deletes? What happens to the mail there?)
+
+    RFC 2180 section 3 is tricky. For the moment we disallow DELETE of
+    an active mailbox. That's not practical to do on a cluster, so
+    we'll need to think of a better policy.
 */
 
 Delete::Delete()
@@ -52,6 +57,8 @@ void Delete::execute()
         d->m = Mailbox::obtain( imap()->mailboxName( d->n ), false );
         if ( !d->m || d->m->deleted() )
             error( No, "No such mailbox: " + d->n );
+        else if ( Session::activeSessions( d->m ) )
+            error( No, "Mailbox is in use" );
         else if ( d->m->synthetic() )
             error( No, d->m->name() + " does not really exist anyway" );
         else if ( d->m == imap()->user()->inbox() )

@@ -725,3 +725,20 @@ void Session::addSessionInitialiser( class SessionInitialiser * s )
 {
     d->initialiser = s;
 }
+
+
+/*! Returns the number of Session objects referencing \a mailbox. This
+    is necessary for RFC 2180 compliance.
+*/
+
+uint Session::activeSessions( Mailbox * mailbox )
+{
+    uint n;
+    List<Session>::Iterator i( ::sessions );
+    while ( i ) {
+        if ( i->mailbox() == mailbox )
+            n++;
+        ++i;
+    }
+    return n;
+}
