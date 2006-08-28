@@ -9,7 +9,7 @@
 
   Lots of bugs (syntax, message injection for bad messages)
 
-  
+  Privilege separation.
 
   Must-Do:
 
