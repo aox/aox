@@ -653,15 +653,10 @@ void database()
     }
 
     if ( d->state == CheckSchema ) {
-        // How utterly, utterly disgusting.
         Database::disconnect();
 
-        struct passwd * u = getpwnam( dbowner->cstr() );
-        if ( u )
-            seteuid( u->pw_uid );
-
         Configuration::setup( "" );
-        Configuration::add( "db-user = '" + *dbowner + "'" );
+        Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = '" + *dbname + "'" );
         Configuration::add( "db-address = '" + *dbaddress + "'" );
         Database::setup( 1 );
