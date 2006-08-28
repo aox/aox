@@ -271,7 +271,7 @@ Command * Command::create( IMAP * imap,
     // we can send expunges provided we're in selected state, and the
     // command neither uses MSNs nor is called "search". the bit about
     // search makes little sense, but it's specified in the RFC, so...
-    if ( selected && n != "search" )
+    if ( selected && ( n != "search" || uid ) )
         c->d->canExpunge = true;
 
     c->setLog( new Log( Log::IMAP ) );
