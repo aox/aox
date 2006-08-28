@@ -23,6 +23,7 @@ public:
 
 private:
     void parseAttribute( bool );
+    void parseFetchModifier();
     void parseBody( bool );
     void parseAnnotation();
     void sendFetchQueries();

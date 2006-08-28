@@ -42,11 +42,13 @@ class FetchData
 {
 public:
     FetchData()
-        : state( 0 ), peek( true ), uid( false ),
+        : state( 0 ), peek( true ), 
+          changedSince( 0 ),
+          uid( false ),
           flags( false ), envelope( false ),
           body( false ), bodystructure( false ),
           internaldate( false ), rfc822size( false ),
-          annotation( false ),
+          annotation( false ), modseq( false ),
           needHeader( false ), needBody( false )
     {}
 
@@ -72,6 +74,7 @@ public:
     bool peek;
     MessageSet set;
     MessageSet expunged;
+    uint changedSince;
 
     // we want to ask for...
     bool uid;
@@ -82,6 +85,7 @@ public:
     bool internaldate;
     bool rfc822size;
     bool annotation;
+    bool modseq;
     List<Section> sections;
 
     // and the sections imply that we...
@@ -97,7 +101,9 @@ public:
     Returns message data (RFC 3501, section 6.4.5).
 
     Our parser used to be slightly more permissive than the RFC. This is
-    a bug, and many of the problems have been corrected.
+    a bug, and many of the problems have been corrected (but not tested).
+
+    There's quite a bit of support for RFC 4551, CONDSTORE.
 */
 
 
@@ -122,6 +128,7 @@ Fetch::Fetch( bool u )
 //                   "RFC822" [".HEADER" / ".SIZE" / ".TEXT"] /
 //                   "BODY" ["STRUCTURE"] / "UID" /
 //                   "BODY" [".PEEK"] section ["<" number "." nz-number ">"]
+//                 / "MODSEQ" ; 4551
 // section         = "[" [section-spec] "]"
 // section-spec    = section-msgtext / (section-part ["." section-text])
 // section-msgtext = "HEADER" / "HEADER.FIELDS" [".NOT"] SP header-list /
@@ -151,11 +158,18 @@ void Fetch::parse()
         // single fetch-att, or the macros
         parseAttribute( true );
     }
+    if ( present( " (" ) ) {
+        // RFC 4466 fetch-modifiers
+        parseFetchModifier();
+        while ( present( " " ) )
+            parseFetchModifier();
+        require( ")" );
+    }
+    end();
     if ( d->envelope || d->body || d->bodystructure )
         d->needHeader = true;
     if ( d->body || d->bodystructure )
         d->needBody = true;
-    end();
     if ( !ok() )
         return;
     StringList l;
@@ -166,7 +180,7 @@ void Fetch::parse()
         l.append( "body" );
     if ( d->flags )
         l.append( "flags" );
-    if ( d->rfc822size || d->internaldate )
+    if ( d->rfc822size || d->internaldate || d->modseq )
         l.append( "trivia" );
     if ( d->annotation )
         l.append( "annotations" );
@@ -280,6 +294,10 @@ void Fetch::parseAttribute( bool alsoMacro )
         s->id = "size";
         if ( s->partial )
             error( Bad, "Fetching partial BINARY.SIZE is not meaningful" );
+    }
+    else if ( keyword == "modseq" ) {
+        step();
+        d->modseq = true;
     }
     else {
         error( Bad, "expected fetch attribute, saw word " + keyword );
@@ -599,7 +617,8 @@ void Fetch::sendFetchQueries()
             bodies.add( uid );
         if ( d->flags && !m->hasFlags() )
             flags.add( uid );
-        if ( ( d->rfc822size || d->internaldate ) && !m->hasTrivia() )
+        if ( ( d->rfc822size || d->internaldate || d->modseq ) &&
+             !m->hasTrivia() )
             trivia.add( uid );
         if ( d->annotation && !m->hasAnnotations() )
             annotations.add( uid );
@@ -805,6 +824,8 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
         l.append( "BODYSTRUCTURE " + bodyStructure( m, true ) );
     if ( d->annotation )
         l.append( "ANNOTATION " + annotation( m ) );
+    if ( d->modseq )
+        l.append( "MODSEQ " + fn( m->modSeq() ) );
 
     List< FetchData::Section >::Iterator it( d->sections );
     while ( it ) {
@@ -1190,4 +1211,22 @@ String Fetch::annotation( Multipart * m )
     }
     r.append( ")" );
     return r;
+}
+
+
+/*! Parses a single RFC 4466 fetch-modifier. At the moment only RFC
+    4551 is supported.
+*/
+
+void Fetch::parseFetchModifier()
+{
+    String name = atom().lower();
+    if ( name == "changedsince" ) {
+        space();
+        d->changedSince = number();
+        d->modseq = true;
+    }
+    else {
+        error( Bad, "Unknown fetch modifier: " + name );
+    }
 }

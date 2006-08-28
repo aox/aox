@@ -24,7 +24,7 @@ class MessageData
 public:
     MessageData()
         : strict( false ), uid( 0 ), mailbox( 0 ), annotations( 0 ),
-          rfc822Size( 0 ), internalDate( 0 ),
+          rfc822Size( 0 ), internalDate( 0 ), modseq( 1 ),
           hasFlags( false ), hasHeaders( false ),
           hasBodies( false ), hasAnnotations( false )
 
@@ -40,6 +40,7 @@ public:
 
     uint rfc822Size;
     uint internalDate;
+    uint modseq;
 
     List<Flag> flags;
     bool hasFlags;
@@ -983,4 +984,21 @@ Message * Message::wrapUnparsableMessage( const String & message,
     wrapper.append( message );
     wrapper.append( "\r\n--" + boundary + "--\r\n" );
     return new Message( wrapper );
+}
+
+
+/*! Records that this message's modseq (see RFC 4451) is \a n. The
+    initial value is 1. */
+
+void Message::setModSeq( uint n )
+{
+    d->modseq = n;
+}
+
+
+/*! Returns the RFC 4461 modseq set by setModSeq(). */
+
+uint Message::modSeq() const
+{
+    return d->modseq;
 }

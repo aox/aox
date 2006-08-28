@@ -174,17 +174,6 @@ Splitting large fetches
   so.)
 
 
-Mutt mailbox selection speed
-
-  Is better than it was, but we still don't seem to push the responses
-  out as quickly as we could. must look at why.
-
-
-POP doesn't log anything at all
-
-  Be good to go through and add logging similar to imap.
-
-
 Deleting mailbox has unclear semantics now
 
   At present, we don't allow a mailbox to be deleted until all
@@ -227,9 +216,6 @@ Don't duplicate the contents of address_fields in header_fields.
 
   The Injector should avoid inserting address fields into header_fields,
   and the HeaderFetcher should assemble addresses from address_fields.
-
-
-We need to support date field searches.
 
 
 AddressCache and FieldNameCache are utter crocks, and must die.
@@ -289,8 +275,8 @@ CONDSTORE
   - client capabilities, so we can send untagged responses (done)
   - OK untagged responses to SELECT/EXAMINE (3.1)
   - STORE UNCHANGEDSINCE/MODIFIED
-  - FETCH CHANGEDSINCE
-  - FETCH MODSEQ
+  - FETCH CHANGEDSINCE (done)
+  - FETCH MODSEQ (done)
   - SEARCH MODSEQ
   - SEARCH response
   - STATUS HIGHESTMODSEQ

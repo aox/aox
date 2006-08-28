@@ -45,6 +45,8 @@ public:
     uint rfc822Size() const;
     void setInternalDate( uint );
     uint internalDate() const;
+    void setModSeq( uint );
+    uint modSeq() const;
 
     List<Flag> * flags() const;
     List<Annotation> * annotations() const;
