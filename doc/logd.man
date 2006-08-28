@@ -78,10 +78,10 @@ uses the following configuration variables:
 .IR info ),
 .I jail-user
 (default
-.IR $ORYXUSER ),
+.IR $AOXUSER ),
 .I jail-group
 (default
-.IR $ORYXGROUP ).
+.IR $AOXGROUP ).
 .SH DIAGNOSTICS
 In case of error,
 .B smtpd

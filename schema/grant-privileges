@@ -3,23 +3,23 @@ group_members, mailboxes, aliases, permissions, messages, bodyparts,
 part_numbers, field_names, header_fields, address_fields, date_fields,
 threads, thread_members, flag_names, flags, subscriptions,
 annotation_names, annotations, views, view_messages, scripts,
-deleted_messages to $DBUSER;
+deleted_messages to $AOXUSER;
 
 grant insert on addresses, mailboxes, permissions, messages, bodyparts,
 part_numbers, field_names, header_fields, address_fields, date_fields,
 threads, thread_members, flag_names, flags, subscriptions,
 annotation_names, annotations, views, view_messages, scripts,
-deleted_messages to $DBUSER;
+deleted_messages to $AOXUSER;
 
 grant delete on permissions, flags, subscriptions, annotations, views,
-view_messages, scripts to $DBUSER;
+view_messages, scripts to $AOXUSER;
 
 grant update on mailstore, permissions, mailboxes, aliases, annotations,
-views, scripts to $DBUSER;
+views, scripts to $AOXUSER;
 
 grant select, update on addresses_id_seq, aliases_id_seq,
 annotation_names_id_seq, bodypart_ids, field_names_id_seq,
 flag_names_id_seq, groups_id_seq, header_fields_id_seq,
 mailboxes_id_seq, namespaces_id_seq, scripts_id_seq,
 subscriptions_id_seq, threads_id_seq, users_id_seq,
-views_id_seq to $DBUSER;
+views_id_seq to $AOXUSER;

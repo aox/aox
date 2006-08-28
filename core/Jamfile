@@ -25,9 +25,8 @@ ObjectDefines configuration.cpp :
      LOGFILEMODE='\"$(LOGFILEMODE)\"'
      DBADDRESS='\"$(DBADDRESS)\"'
      PGUSER='\"$(PGUSER)\"'
-     ORYXUSER='\"$(ORYXUSER)\"'
-     ORYXGROUP='\"$(ORYXGROUP)\"'
-     DBUSER='\"$(DBUSER)\"'
+     AOXUSER='\"$(AOXUSER)\"'
+     AOXGROUP='\"$(AOXGROUP)\"'
      DBOWNER='\"$(DBOWNER)\"'
      DBNAME='\"$(DBNAME)\"'
      VERSION='\"$(VERSION)\"' ;

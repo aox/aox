@@ -43,8 +43,8 @@ bool generatedPass = false;
 bool generatedOwnerPass = false;
 
 const char * PGUSER;
-const char * ORYXUSER;
-const char * ORYXGROUP;
+const char * AOXUSER;
+const char * AOXGROUP;
 const char * DBADDRESS;
 
 
@@ -74,16 +74,16 @@ int main( int ac, char *av[] )
     Allocator::addEternal( new StderrLogger( "installer" ), "log object" );
 
     PGUSER = Configuration::compiledIn( Configuration::PgUser );
-    ORYXUSER = Configuration::compiledIn( Configuration::OryxUser );
-    ORYXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
+    AOXUSER = Configuration::compiledIn( Configuration::OryxUser );
+    AOXGROUP = Configuration::compiledIn( Configuration::OryxGroup );
     DBADDRESS = Configuration::compiledIn( Configuration::DefaultDbAddress );
 
     dbname = new String( DBNAME );
     Allocator::addEternal( dbname, "DBNAME" );
     dbaddress = new String( DBADDRESS );
     Allocator::addEternal( dbaddress, "DBADDRESS" );
-    dbuser = new String( DBUSER );
-    Allocator::addEternal( dbuser, "DBUSER" );
+    dbuser = new String( AOXUSER );
+    Allocator::addEternal( dbuser, "AOXUSER" );
     dbpass = new String( DBPASS );
     Allocator::addEternal( dbpass, "DBPASS" );
     dbowner = new String( DBOWNER );
@@ -108,9 +108,9 @@ int main( int ac, char *av[] )
             if ( ac == 1 )
                 error( s + " specified with no argument." );
             if ( s == "-g" )
-                ORYXGROUP = *av++;
+                AOXGROUP = *av++;
             else if ( s == "-u" )
-                ORYXUSER = *av++;
+                AOXUSER = *av++;
             else if ( s == "-p" )
                 PGUSER = *av++;
             else if ( s == "-a" )
@@ -194,10 +194,9 @@ void help()
         "  The \"-a address\" flag allows you to specify a different\n"
         "  address for the Postgres server. The default is '%s'.\n\n"
         "  The defaults are set at build time in the Jamsettings file.\n\n",
-        ORYXGROUP, ORYXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
+        AOXGROUP, AOXUSER, dbuser->cstr(), dbowner->cstr(), dbname->cstr(),
         dbowner->cstr(), dbuser->cstr(),
-        ORYXGROUP, ORYXUSER,
-        DBADDRESS
+        AOXGROUP, AOXUSER, DBADDRESS
     );
     exit( 0 );
 }
@@ -294,36 +293,36 @@ void configure()
 
 void oryxGroup()
 {
-    struct group * g = getgrnam( ORYXGROUP );
+    struct group * g = getgrnam( AOXGROUP );
     if ( g )
         return;
 
     if ( report ) {
         todo++;
         printf( " - Create a group named '%s' (e.g. \"groupadd %s\").\n",
-                ORYXGROUP, ORYXGROUP );
+                AOXGROUP, AOXGROUP );
         return;
     }
 
     String cmd;
     if ( exists( "/usr/sbin/groupadd" ) ) {
         cmd.append( "/usr/sbin/groupadd " );
-        cmd.append( ORYXGROUP );
+        cmd.append( AOXGROUP );
     }
     else if ( exists( "/usr/sbin/pw" ) ) {
         cmd.append( "/usr/sbin/pw groupadd " );
-        cmd.append( ORYXGROUP );
+        cmd.append( AOXGROUP );
     }
 
     int status = 0;
     if ( !cmd.isEmpty() ) {
         if ( !silent )
-            printf( "Creating the '%s' group.\n", ORYXGROUP );
+            printf( "Creating the '%s' group.\n", AOXGROUP );
         status = system( cmd.cstr() );
     }
 
     if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 ||
-         getgrnam( ORYXGROUP ) == 0 )
+         getgrnam( AOXGROUP ) == 0 )
     {
         String s;
         if ( cmd.isEmpty() )
@@ -331,7 +330,7 @@ void oryxGroup()
         else
             s.append( "Couldn't create group " );
         s.append( "'" );
-        s.append( ORYXGROUP );
+        s.append( AOXGROUP );
         s.append( "'. " );
         s.append( "Please create it by hand and re-run the installer.\n" );
         if ( !cmd.isEmpty() )
@@ -343,7 +342,7 @@ void oryxGroup()
 
 void oryxUser()
 {
-    struct passwd * p = getpwnam( ORYXUSER );
+    struct passwd * p = getpwnam( AOXUSER );
     if ( p )
         return;
 
@@ -351,33 +350,33 @@ void oryxUser()
         todo++;
         printf( " - Create a user named '%s' in the '%s' group "
                 "(e.g. \"useradd -g %s %s\").\n",
-                ORYXUSER, ORYXGROUP, ORYXGROUP, ORYXUSER );
+                AOXUSER, AOXGROUP, AOXGROUP, AOXUSER );
         return;
     }
 
     String cmd;
     if ( exists( "/usr/sbin/useradd" ) ) {
         cmd.append( "/usr/sbin/useradd -g " );
-        cmd.append( ORYXGROUP );
+        cmd.append( AOXGROUP );
         cmd.append( " " );
-        cmd.append( ORYXUSER );
+        cmd.append( AOXUSER );
     }
     else if ( exists( "/usr/sbin/pw" ) ) {
         cmd.append( "/usr/sbin/pw useradd " );
-        cmd.append( ORYXUSER );
+        cmd.append( AOXUSER );
         cmd.append( " -g " );
-        cmd.append( ORYXGROUP );
+        cmd.append( AOXGROUP );
     }
 
     int status = 0;
     if ( !cmd.isEmpty() ) {
         if ( !silent )
-            printf( "Creating the '%s' user.\n", ORYXUSER );
+            printf( "Creating the '%s' user.\n", AOXUSER );
         status = system( cmd.cstr() );
     }
 
     if ( cmd.isEmpty() || WEXITSTATUS( status ) != 0 ||
-         getpwnam( ORYXUSER ) == 0 )
+         getpwnam( AOXUSER ) == 0 )
     {
         String s;
         if ( cmd.isEmpty() )
@@ -385,7 +384,7 @@ void oryxUser()
         else
             s.append( "Couldn't create user " );
         s.append( "'" );
-        s.append( ORYXUSER );
+        s.append( AOXUSER );
         s.append( "'. " );
         s.append( "Please create it by hand and re-run the installer.\n" );
         s.append( "The new user does not need a valid login shell or "
@@ -985,12 +984,12 @@ void permissions()
 {
     struct stat st;
 
-    struct passwd * p = getpwnam( ORYXUSER );
-    struct group * g = getgrnam( ORYXGROUP );
+    struct passwd * p = getpwnam( AOXUSER );
+    struct group * g = getgrnam( AOXGROUP );
 
     // This should never happen, but I'm feeling paranoid.
     if ( !report && !( p && g ) ) {
-        fprintf( stderr, "getpwnam(ORYXUSER)/getgrnam(ORYXGROUP) failed "
+        fprintf( stderr, "getpwnam(AOXUSER)/getgrnam(AOXGROUP) failed "
                  "in non-reporting mode.\n" );
         exit( -1 );
     }
@@ -1009,7 +1008,7 @@ void permissions()
             printf( " - Set permissions and ownership on %s.\n"
                     "   chmod 0600 %s\n"
                     "   chown %s:%s %s\n",
-                    cf.cstr(), cf.cstr(), ORYXUSER, ORYXGROUP, cf.cstr() );
+                    cf.cstr(), cf.cstr(), AOXUSER, AOXGROUP, cf.cstr() );
         }
         else {
             if ( !silent )
@@ -1022,7 +1021,7 @@ void permissions()
 
             if ( chown( cf.cstr(), p->pw_uid, g->gr_gid ) < 0 )
                 fprintf( stderr, "Could not \"chown %s:%s %s\".\n",
-                         ORYXUSER, ORYXGROUP, cf.cstr() );
+                         AOXUSER, AOXGROUP, cf.cstr() );
         }
     }
 
@@ -1071,7 +1070,7 @@ void permissions()
             printf( " - Set permissions and ownership on %s.\n"
                     "   chmod 0700 %s\n"
                     "   chown %s:%s %s\n",
-                    mcd.cstr(), mcd.cstr(), ORYXUSER, ORYXGROUP,
+                    mcd.cstr(), mcd.cstr(), AOXUSER, AOXGROUP,
                     mcd.cstr() );
         }
         else {
@@ -1085,7 +1084,7 @@ void permissions()
 
             if ( chown( mcd.cstr(), p->pw_uid, g->gr_gid ) < 0 )
                 fprintf( stderr, "Could not \"chown %s:%s %s\".\n",
-                         ORYXUSER, ORYXGROUP, mcd.cstr() );
+                         AOXUSER, AOXGROUP, mcd.cstr() );
         }
     }
 

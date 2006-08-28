@@ -124,9 +124,9 @@ and
 .BR ocd (8),
 run chrooted to other directories. All of the servers close all open
 files at startup and drop root privileges. By default they run as user
-.IR $ORYXUSER ,
+.IR $AOXUSER ,
 group
-.IR $ORYXGROUP ,
+.IR $AOXGROUP ,
 although these names can be changed using
 .BR archiveopteryx.conf (5).
 .PP

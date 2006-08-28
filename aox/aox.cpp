@@ -694,9 +694,9 @@ void showBuildconf()
             Configuration::compiledIn( Configuration::LibDir ) );
     printf( "INITDIR = %s\n",
             Configuration::compiledIn( Configuration::InitDir ) );
-    printf( "ORYXUSER = %s\n",
+    printf( "AOXUSER = %s\n",
             Configuration::compiledIn( Configuration::OryxUser ) );
-    printf( "ORYXGROUP = %s\n",
+    printf( "AOXGROUP = %s\n",
             Configuration::compiledIn( Configuration::OryxGroup ) );
     printf( "VERSION = %s\n",
             Configuration::compiledIn( Configuration::Version ) );

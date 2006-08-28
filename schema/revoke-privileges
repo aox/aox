@@ -36,4 +36,4 @@ groups, group_members, mailboxes, aliases, permissions, messages,
 bodyparts, part_numbers, field_names, header_fields, address_fields,
 date_fields, threads, thread_members, flag_names, flags, subscriptions,
 annotation_names, annotations, views, view_messages, scripts,
-deleted_messages from $DBUSER;
+deleted_messages from $AOXUSER;

@@ -14,17 +14,17 @@ installer - Archiveopteryx installer.
 .PP
 This program does the following:
 .IP 1. 3
-Creates a Unix group named $ORYXGROUP.
+Creates a Unix group named $AOXGROUP.
 .IP 2. 3
-Creates a Unix user named $ORYXUSER.
+Creates a Unix user named $AOXUSER.
 .IP 3. 3
-Creates a Postgres user named $DBUSER.
+Creates a Postgres user named $AOXUSER.
 .IP 4. 3
 Creates a Postgres user named $DBOWNER.
 .IP 5. 3
 Creates a Postgres database named $DBNAME owned by $DBOWNER.
 .IP 6. 3
-Loads the database schema and grants limited privileges to user $DBUSER.
+Loads the database schema and grants limited privileges to user $AOXUSER.
 .IP 7. 3
 Generates an initial configuration file.
 .IP 8. 3
@@ -41,10 +41,10 @@ Suppresses all normal output.
 Causes the program to report what it would do, but not actually do
 anything.
 .IP "-g group" 4
-Allows you to specify a Unix group other than the default of $ORYXGROUP.
+Allows you to specify a Unix group other than the default of $AOXGROUP.
 .IP "-u user" 4
 Allows you to specify a Unix username other than the default of
-$ORYXUSER.
+$AOXUSER.
 .IP "-p postgres" 4
 Allows you to specify the name of the PostgreSQL superuser. The default
 is to try $PGUSER (if set), postgres and pgsql in turn.

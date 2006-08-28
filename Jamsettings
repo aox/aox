@@ -67,8 +67,8 @@ LOGFILEMODE ?= 400 ;
 
 # The user and group needed.
 
-ORYXUSER ?= oryx ;
-ORYXGROUP ?= oryx ;
+AOXUSER ?= aox ;
+AOXGROUP ?= aox ;
 
 # How to compile
 
@@ -111,8 +111,8 @@ DBADDRESS ?= /tmp/.s.PGSQL.5432 ;
 # Notes:
 #
 # - DBOWNER must own the DBNAME database.
-# - Because PostgreSQL likes using ident authentication, it's convenient
-#   if DBUSER is the same as ORYXUSER.
+# - Because Postgres likes to use ident authentication, we use AOXUSER
+#   as both Unix user and unprivileged database user.
 # - The installer will generate a password for both users, so you don't
 #   have to set one here unless you want to use an existing user.
 #
@@ -122,7 +122,6 @@ DBADDRESS ?= /tmp/.s.PGSQL.5432 ;
 DBNAME ?= archiveopteryx ;
 DBOWNER ?= aoxsuper ;
 DBOWNERPASS ?= "" ;
-DBUSER ?= aox ;
 DBPASS ?= "" ;
 
 # this file is included from Jamrules.

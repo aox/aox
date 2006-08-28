@@ -48,7 +48,7 @@ Depends install :
 MODE on $(JAILDIR) = 700 ;
 Chmod $(JAILDIR) ;
 
-# if we make MESSAGEDIR, we should chmod it similarly. ORYXUSER needs to
+# if we make MESSAGEDIR, we should chmod it similarly. AOXUSER needs to
 # be able to write to it, but we can't chown here, because the user may
 # not exist yet.
 MODE on $(MESSAGEDIR) = 700 ;

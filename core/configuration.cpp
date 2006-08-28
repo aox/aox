@@ -163,12 +163,12 @@ static struct {
     { "db-name", Configuration::DbName, DBNAME },
     { "db-owner", Configuration::DbOwner, DBOWNER },
     { "db-owner-password", Configuration::DbOwnerPassword, "" },
-    { "db-user", Configuration::DbUser, DBUSER },
+    { "db-user", Configuration::DbUser, AOXUSER },
     { "db-password", Configuration::DbPassword, "" },
     { "db-address", Configuration::DbAddress, DBADDRESS },
     { "hostname", Configuration::Hostname, "" },
-    { "jail-user", Configuration::JailUser, ORYXUSER },
-    { "jail-group", Configuration::JailGroup, ORYXGROUP },
+    { "jail-user", Configuration::JailUser, AOXUSER },
+    { "jail-group", Configuration::JailGroup, AOXGROUP },
     { "jail-directory", Configuration::JailDir, JAILDIR },
     { "allow-plaintext-passwords", Configuration::AllowPlaintextPasswords,
         "always" },
@@ -416,10 +416,10 @@ const char * Configuration::compiledIn( CompileTimeSetting setting )
         return INITDIR;
         break;
     case OryxUser:
-        return ORYXUSER;
+        return AOXUSER;
         break;
     case OryxGroup:
-        return ORYXGROUP;
+        return AOXGROUP;
         break;
     case PgUser:
         return PGUSER;

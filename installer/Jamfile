@@ -13,7 +13,6 @@ ObjectDefines installer.cpp :
      DBNAME='\"$(DBNAME)\"'
      DBOWNER='\"$(DBOWNER)\"'
      DBOWNERPASS='\"$(DBOWNERPASS)\"'
-     DBUSER='\"$(DBUSER)\"'
      DBPASS='\"$(DBPASS)\"' ;
 
 NoCare <>Jamsettings ;

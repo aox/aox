@@ -93,7 +93,7 @@ password and writes it to the configuration file during installation.
 .IP db-user
 The name of the unprivileged Postgres user that the servers ordinarily
 use. The default is
-.IR $DBUSER .
+.IR $AOXUSER .
 .IP db-password
 The database password used for the
 .IR db-user .
@@ -184,12 +184,12 @@ unreadable to
 .IR jail-user .
 .IP jail-user
 is the user name under which the servers run, and is
-.I $ORYXUSER
+.I $AOXUSER
 by default. On startup, the servers change UID to this user. This user
 should not have read or write access to the jail directory.
 .IP jail-group
 is the group name under which the servers run, and is
-.I $ORYXGROUP
+.I $AOXGROUP
 by default. On startup, the servers change GID to this user.
 .IP entropy-source
 is the fully-qualified name of a file that acts as a source for random
