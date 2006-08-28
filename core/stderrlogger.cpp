@@ -42,6 +42,8 @@ void StderrLogger::send( const String &,
 }
 
 
+/*! Returns the name of this object, as supplied to the constructor. */
+
 String StderrLogger::name() const
 {
     return n;
