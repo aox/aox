@@ -386,6 +386,12 @@ void Server::logStartup()
 
 void Server::secure()
 {
+    if ( Configuration::present( Configuration::DbOwnerPassword ) ) {
+        log( "db-owner-password specied in archiveopteryx.conf "
+             "(should be in aoxsuper.conf)",
+             Log::Disaster );
+        exit( 1 );
+    }
     bool security = Configuration::toggle( Configuration::Security );
     if ( !security ) {
         if ( getuid() == 0 || geteuid() == 0 )
