@@ -91,9 +91,10 @@ Postgres::Postgres()
     struct passwd * p = getpwnam( Database::user().cstr() );
     if ( p && getuid() != p->pw_uid ) {
         // Try to cooperate with ident authentication.
+        uid_t e = geteuid();
         setreuid( 0, p->pw_uid );
         connect( server() );
-        setreuid( 0, 0 );
+        setreuid( 0, e );
     }
     else {
         connect( server() );
