@@ -234,17 +234,6 @@ Consider RFC2231:
   shouldn't.
 
 
-Clean up SubDir/SubInclude
-
-  Rename them as Modules. Module X, Use X. Tie library use and headers
-  to modules, so users get just the -I and -l arguments needed from
-  the modules used (even if the entire tree is being compiled).
-
-  This turns out to be a little harder than I thought. Basically we'd
-  want include directories to follow the Build rule, not the SubDir
-  rule.
-
-
 ANNOTATE support
 
   Annotations are good. We want them. They're easy for us. By now the
@@ -279,7 +268,7 @@ CONDSTORE
   - FETCH MODSEQ (done)
   - SEARCH MODSEQ
   - SEARCH response
-  - STATUS HIGHESTMODSEQ
+  - STATUS HIGHESTMODSEQ (done)
   - SELECT/EXAMIME CONDSTORE (done)
   - updating the modseq in store
   - updating the modseq for non-peek fetches, if unseen
@@ -290,7 +279,7 @@ CONDSTORE
       uid         integer not null,
       modseq      bigint not null,
       foreign key (mailbox, uid)
-      references messages(mailbox, uid)
+                  references messages(mailbox, uid)
   )
 
   Perhaps deleting the message should cascade. If not, then we want to

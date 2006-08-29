@@ -17,14 +17,17 @@ public:
     StatusData() :
         messages( false ), uidnext( false ), uidvalidity( false ),
         recent( false ), unseen( false ),
-        mailbox( 0 ), session( 0 ), permissions( 0 ), unseenCount( 0 )
+        modseq( false ),
+        mailbox( 0 ), session( 0 ), permissions( 0 ), unseenCount( 0 ),
+        highestModseq( 0 )
         {}
     String name;
-    bool messages, uidnext, uidvalidity, recent, unseen;
+    bool messages, uidnext, uidvalidity, recent, unseen, modseq;
     Mailbox * mailbox;
     Session * session;
     Permissions * permissions;
     Query * unseenCount;
+    Query * highestModseq;
 };
 
 
@@ -63,6 +66,8 @@ void Status::parse()
             d->uidvalidity = true;
         else if ( item == "unseen" )
             d->unseen = true;
+        else if ( item == "highestmodseq" )
+            d->modseq = true;
         else
             error( Bad, "Unknown STATUS item: " + item );
 
@@ -127,7 +132,15 @@ void Status::execute()
             d->unseen = false;
             d->unseenCount = false;
         }
+    }
 
+    if ( d->modseq && !d->highestModseq ) {
+        // HIGHESTMODSEQ too needs a DB query
+        d->highestModseq
+            = new Query( "select max(modseq)::int as hm from modsequences "
+                         "where mailbox=$1", this );
+        d->highestModseq->bind( 1, d->mailbox->id() );
+        d->highestModseq->execute();
     }
 
     // second part: wait until we have the information
@@ -136,6 +149,8 @@ void Status::execute()
     if ( d->session && !d->session->initialised() )
         return;
     if ( d->unseenCount && !d->unseenCount->done() )
+        return;
+    if ( d->highestModseq && !d->highestModseq->done() )
         return;
 
     // third part: do we have permission to return this? now?
@@ -161,6 +176,11 @@ void Status::execute()
         Row * r = d->unseenCount->nextRow();
         if ( r )
             status.append( "UNSEEN " + fn( r->getInt( "unseen" ) ) );
+    }
+    if ( d->modseq ) {
+        Row * r = d->highestModseq->nextRow();
+        if ( r )
+            status.append( "HIGHESTMODSEQ " + fn( r->getInt( "hm" ) ) );
     }
 
     respond( "STATUS " + d->name + " (" + status.join( " " ) + ")" );
