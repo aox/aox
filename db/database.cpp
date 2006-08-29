@@ -16,6 +16,7 @@
 #include <time.h>
 
 
+static uint backendNumber;
 List< Query > *Database::queries;
 static List< Database > *handles;
 static time_t lastExecuted;
@@ -44,6 +45,7 @@ static void newHandle()
 Database::Database()
     : Connection()
 {
+    number = ++::backendNumber;
     setType( Connection::DatabaseClient );
     setState( Database::Connecting );
     lastCreated = time( 0 );
@@ -368,11 +370,5 @@ bool Database::busy() const
 
 uint Database::connectionNumber() const
 {
-    List<Database>::Iterator it( handles );
-    uint n = 1;
-    while ( it && it != this ) {
-        ++n;
-        ++it;
-    }
-    return n;
+    return number;
 }

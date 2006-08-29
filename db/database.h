@@ -55,6 +55,7 @@ protected:
 
 private:
     State st;
+    uint number;
 };
 
 
