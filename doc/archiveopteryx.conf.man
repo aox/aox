@@ -10,13 +10,15 @@ archiveopteryx.conf - configuration file for Archiveopteryx.
 .PP
 The
 .I archiveopteryx.conf
-file contains all global configuration settings for Archiveopteryx. It
+file contains most global configuration settings for Archiveopteryx. It
 is read by each server at startup. Syntax errors, unknown variables,
 and other errors are logged via
 .BR logd (8).
 .PP
 .I archiveopteryx.conf
-is usually created at installation time, by running
+and its sibling
+.BR aoxsuper.conf (5)
+are usually created at installation time, by running
 .BR $LIBDIR/installer .
 .PP
 There is only one required variable, namely 
@@ -24,8 +26,8 @@ There is only one required variable, namely
 .SH "SECURITY NOTE"
 Anyone who can read
 .I archiveopteryx.conf
-can see the database password, and use this password to damage or
-destroy the mail database.
+can see the database user password, and use this password to read all
+mail and in many cases even delete mail.
 .PP
 By default,
 .I archiveopteryx.conf
@@ -79,17 +81,6 @@ The port number of the database server. The default is
 .IP db-name
 The name of the database to use. The default is
 .IR $DBNAME .
-.IP db-owner
-The name of the Postgres user that owns the database and is used to
-perform privileged operations (such as deleting mail). The default is
-.IR $DBOWNER .
-.IP db-owner-password
-The database password used for the
-.IR db-owner .
-The default is an empty string.
-.IP
-Unless a password is specified, Archiveopteryx sets up a randomly-chosen
-password and writes it to the configuration file during installation.
 .IP db-user
 The name of the unprivileged Postgres user that the servers ordinarily
 use. The default is

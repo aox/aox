@@ -22,7 +22,7 @@ rule Man {
     }
 }
 
-Man 5 : archiveopteryx.conf.man ;
+Man 5 : archiveopteryx.conf.man aoxsuper.conf.man ;
 
 Man 7 : oryx.man ;
 

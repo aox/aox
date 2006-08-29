@@ -1,0 +1,72 @@
+.\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
+.TH aoxsuper.conf 5 2006-09-09 www.oryx.com "Archiveopteryx Documentation"
+.SH NAME
+aoxsuper.conf - configuration file for Archiveopteryx.
+.SH SYNOPSIS
+.B $CONFIGDIR/aoxsuper.conf
+.br
+.SH DESCRIPTION
+.nh
+.PP
+The
+.I aoxsuper.conf
+file contains a few configuration settings for Archiveopteryx. It is read by
+.BR aox (8)
+at startup. Syntax errors, unknown variables,
+and other errors are logged on stderr.
+.PP
+.I aoxsuper.conf
+is usually created at installation time, by running
+.BR $LIBDIR/installer .
+.PP
+There is only one required variable, namely 
+.IR db-owner-password .
+.SH "SECURITY NOTE"
+Anyone who can read
+.I aoxsuper.conf
+can see the database owner password, and use this password to read all
+mail, or even to damage or destroy the mail database.
+.PP
+By default,
+.I aoxsuper.conf
+is readable only by root.
+.SH SETTINGS
+.PP
+The format is as for
+.BR archiveopteryx.conf (5):
+.IP
+name = value # comment
+.PP
+All variables in
+.BR archiveopteryx.conf (5)
+may be overridden in
+.IR aoxsuper.conf ,
+if it is necessary that
+.BR aox (8)
+sees a different value than the servers see.
+.SS "Database Access"
+.IP db-owner
+The name of the Postgres user that owns the database and is used to
+perform privileged operations (such as deleting mail). The default is
+.IR $DBOWNER .
+.IP db-owner-password
+The database password used for the
+.IR db-owner .
+The default is an empty string.
+.IP
+Unless a password is specified, Archiveopteryx sets up a randomly-chosen
+password and writes it to the configuration file during installation.
+.SH AUTHOR
+The Archiveopteryx developers, info@oryx.com.
+.SH VERSION
+This man page covers Archiveopteryx version 1.10, released 2006-09-09,
+http://www.archiveopteryx.org/1.10.html.
+.SH SEE ALSO
+.BR archiveopteryx.conf (5),
+.BR archiveopteryx (8),
+.BR deliver (8),
+.BR logd (8),
+.BR ocd (8),
+.BR tlsproxy (8),
+.BR oryx (7),
+http://www.archiveopteryx.org
