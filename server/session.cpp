@@ -734,7 +734,7 @@ void Session::addSessionInitialiser( class SessionInitialiser * s )
 
 uint Session::activeSessions( Mailbox * mailbox )
 {
-    uint n;
+    uint n = 0;
     List<Session>::Iterator i( ::sessions );
     while ( i ) {
         if ( i->mailbox() == mailbox )
