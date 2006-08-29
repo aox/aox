@@ -480,8 +480,8 @@ void Postgres::process( char type )
                 ::log( s, Log::Debug );
                 if ( !q->done() )
                     q->setState( Query::Completed );
-                q->notify();
                 d->queries.shift();
+                q->notify();
             }
         }
         break;
