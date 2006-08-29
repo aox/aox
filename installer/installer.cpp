@@ -629,10 +629,8 @@ void database()
                 fprintf( stderr, " - Database '%s' exists, but it %s.\n"
                          "   (That will need to be fixed by hand.)\n",
                          dbname->cstr(), s.cstr() );
-                if ( !report ) {
-                    EventLoop::shutdown();
-                    return;
-                }
+                if ( !report )
+                    exit( -1 );
             }
             d->state = CheckSchema;
         }
