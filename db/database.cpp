@@ -182,7 +182,7 @@ void Database::runQueue()
     while ( it ) {
         State st = it->state();
 
-        if ( st == Idle && !it->busy() ) {
+        if ( st == Idle && it->usable() ) {
             it->processQueue();
             if ( queries->isEmpty() )
                 return;
@@ -352,15 +352,16 @@ void Database::recordExecution()
 }
 
 
-/*! Returns true if this Database handler is currently busy for some
-    reason which is not (yet) reflected in is state(), and false else.
-    The default implementation always returns false; subclasses may
+/*! Returns true if this Database handle is currently able to process
+    queries, and false if it's busy processing queries, is shutting
+    down, or for any other reason unwilling to process new queries.
+    The default implementation always returns true; subclasses may
     override that behaviour.
 */
 
-bool Database::busy() const
+bool Database::usable() const
 {
-    return false;
+    return true;
 }
 
 

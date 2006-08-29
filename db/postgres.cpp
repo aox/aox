@@ -256,7 +256,7 @@ void Postgres::react( Event e )
             }
         }
 
-        if ( !d->startup && !busy() ) {
+        if ( usable() ) {
             processQueue();
             if ( d->queries.isEmpty() ) {
                 uint interval =
@@ -713,11 +713,14 @@ static bool hasMessage( Buffer *b )
 }
 
 
-/*! Returns true if at least one Query has been sent to the Postgres
-    server and not yet completely processed by the server.
+/*! Returns true if this handle is willing to process new queries: i.e.
+    if it has an active and error-free connection to the server, and no
+    outstanding queries; and false otherwise.
 */
 
-bool Postgres::busy() const
+bool Postgres::usable() const
 {
-    return !d->queries.isEmpty();
+    return ( d->active && !d->startup &&
+             !( state() == Connecting || state() == Broken ) &&
+             d->queries.isEmpty() );
 }

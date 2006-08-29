@@ -16,7 +16,7 @@ public:
     void processQueue();
     void react( Event );
 
-    bool busy() const;
+    bool usable() const;
 
 private:
     class PgData *d;
