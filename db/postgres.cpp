@@ -689,8 +689,10 @@ void Postgres::shutdown()
     }
     List< Query >::Iterator q( d->queries );
     while ( q ) {
-        q->setError( "Database connection shutdown" );
-        q->notify();
+        if ( !q->done() ) {
+            q->setError( "Database connection shutdown" );
+            q->notify();
+        }
         ++q;
     }
 
