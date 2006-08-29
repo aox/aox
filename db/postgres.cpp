@@ -85,9 +85,6 @@ Postgres::Postgres()
     : Database(), d( new PgData )
 {
     log()->setFacility( Log::Database );
-    log( "Connecting to PostgreSQL server at " + server().string() + " "
-         "(backend " + fn( connectionNumber() ) + ", fd " + fn( fd() ) +
-         ")", Log::Debug );
 
     struct passwd * p = getpwnam( Database::user().cstr() );
     if ( !p )
@@ -106,6 +103,10 @@ Postgres::Postgres()
     else {
         connect( server() );
     }
+
+    log( "Connecting to PostgreSQL server at " + server().string() + " "
+         "(backend " + fn( connectionNumber() ) + ", fd " + fn( fd() ) +
+         ")", Log::Debug );
 
     setTimeoutAfter( 10 );
     EventLoop::global()->addConnection( this );
