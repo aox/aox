@@ -292,6 +292,7 @@ CONDSTORE
   The search is tricky, since the select now needs to return something
   more than just UIDs. How do we make that work together with views?
 
+
 Autoresponder
 
   We'll need one, nicely programmable, connected to our sieve.
@@ -556,12 +557,6 @@ Add Maildir support to the migrator.
 
   Currently works, with two exceptions: Submaildirs don't work, and
   courier's extended flags don't work.
-
-
-Get more word lists for Codec::byString( const String & )
-
-  Word lists need to contain at least one non-ASCII character, and to
-  be fairly common words.
 
 
 We should test multipart/signed and multipart/encrypted support.
