@@ -85,8 +85,8 @@ Postgres::Postgres()
     : Database(), d( new PgData )
 {
     log()->setFacility( Log::Database );
-    log( "Connecting to PostgreSQL server at " + server().string(),
-         Log::Debug );
+    log( "Connecting to PostgreSQL server at " + server().string() + " "
+         "(backend " + fn( connectionNumber() ) + ")", Log::Debug );
 
     struct passwd * p = getpwnam( Database::user().cstr() );
     if ( !p )
