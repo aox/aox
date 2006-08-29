@@ -128,7 +128,7 @@ int main( int ac, char *av[] )
     findPgUser();
 
     if ( dbaddress->startsWith( "/" ) && !exists( *dbaddress ) ) {
-        fprintf( stderr, "Warning: DBADDRESS is set to '%s', "
+        fprintf( stderr, "Error: DBADDRESS is set to '%s', "
                  "which does not exist.\n", dbaddress->cstr() );
         if ( exists( "/etc/debian_version" ) &&
              exists( "/var/run/postgresql/.s.PGSQL.5432" ) )
