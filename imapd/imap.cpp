@@ -160,7 +160,8 @@ void IMAP::react( Event e )
             Scope s( d->reader->log() );
             d->reader->read();
         }
-        endSession();
+        if ( d->session )
+            d->session->end();
         break;
 
     case Connect:
@@ -170,12 +171,14 @@ void IMAP::react( Event e )
     case Close:
         if ( state() != Logout )
             log( "Unexpected close by client" );
-        endSession();
+        if ( d->session )
+            d->session->end();
         break;
 
     case Shutdown:
         enqueue( "* BYE server shutdown\r\n" );
-        endSession();
+        if ( d->session )
+            d->session->end();
         break;
     }
 
