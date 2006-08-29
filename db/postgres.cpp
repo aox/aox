@@ -254,7 +254,7 @@ void Postgres::react( Event e )
             }
         }
 
-        if ( !busy() ) {
+        if ( !d->startup && !busy() ) {
             processQueue();
             if ( d->queries.isEmpty() ) {
                 uint interval =
