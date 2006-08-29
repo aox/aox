@@ -283,7 +283,18 @@ CONDSTORE
   - SELECT/EXAMIME CONDSTORE (done)
   - updating the modseq in store
   - updating the modseq for non-peek fetches, if unseen
-  - schema update... how?
+  - schema update as follow:
+
+  create table modsequences (
+      mailbox     integer not null,
+      uid         integer not null,
+      modseq      bigint not null,
+      foreign key (mailbox, uid)
+      references messages(mailbox, uid)
+  )
+
+  Perhaps deleting the message should cascade. If not, then we want to
+  update the modseq when we delete a message.
 
 
 Autoresponder
