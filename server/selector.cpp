@@ -31,7 +31,8 @@ public:
           needAddressFields( false ),
           needAnnotations( false ),
           needPartNumbers( false ),
-          needBodyparts( false )
+          needBodyparts( false ),
+          needModsequences( false )
     {}
 
     Selector::Field f;
@@ -65,6 +66,7 @@ public:
     bool needAnnotations;
     bool needPartNumbers;
     bool needBodyparts;
+    bool needModsequences;
 };
 
 
@@ -268,6 +270,12 @@ void Selector::simplify()
         // > 0 matches everything
         d->a = All;
     }
+    else if ( d->a == Contains && d->f == Uid ) {
+        if ( d->s.isEmpty() )
+            d->a = None; // contains d->a set of nonexistent messages
+        else if ( d->s.where() == "uid>=1" )
+            d->a = All; // contains any messages at all
+    }
     else if ( d->a == Contains ) {
         // x contains y may match everything
         switch ( d->f ) {
@@ -296,18 +304,16 @@ void Selector::simplify()
         case Annotation:
             // can't simplify this
             break;
+        case Modseq:
+            // contains modseq shouldn't happen, and certainly cannot
+            // be simplified
+            break;
         case NoField:
             // contains is orthogonal to nofield, so this we cannot
             // simplify
             break;
         }
         // contains empty string too
-    }
-    else if ( d->a == Contains && d->f == Uid ) {
-        if ( d->s.isEmpty() )
-            d->a = None; // contains d->a set of nonexistent messages
-        else if ( d->s.where() == "uid>=1" )
-            d->a = All; // contains any messages at all
     }
     else if ( d->a == And ) {
         // zero-element and becomes all, "none and x" becomes none
@@ -450,6 +456,8 @@ Query * Selector::query( User * user, Mailbox * mailbox,
         }
     }
 
+    if ( d->needModsequences )
+        q.append( " join modsequences ms on (" + join( "ms" ) + ")" );
     if ( d->needDateFields )
         q.append( " join date_fields df on (" + join( "df" ) + ")" );
     if ( d->needHeaderFields )
@@ -513,6 +521,8 @@ String Selector::where()
     case Annotation:
         return whereAnnotation();
         break;
+    case Modseq:
+        return whereModseq();
     case NoField:
         return whereNoField();
         break;
@@ -945,6 +955,16 @@ String Selector::whereAnnotation()
 }
 
 
+/*! This implements the modseq search-key. */
+
+String Selector::whereModseq()
+{
+    uint i = placeHolder();
+    root()->d->query->bind( i, d->n );
+    return "ms.modseq>=$" + fn( i );
+}
+
+
 /*! This implements any search that's not bound to a specific field,
     generally booleans and "all".
 
@@ -1103,10 +1123,16 @@ String Selector::debugString() const
         break;
     case Annotation:
         w = "annotation " + d->s8b + " of ";
+        break;
+    case Modseq:
+        w = "modseq";
+        break;
     };
 
     r = w + " " + o + " ";
-    if ( d->s16.isEmpty() )
+    if ( d->n )
+        r.append( fn( d->n ) );
+    else if ( d->s16.isEmpty() )
         r.append( d->s8 );
     else
         r.append( d->s16.ascii() );
@@ -1321,7 +1347,10 @@ String Selector::string()
         }
         break;
     case Larger:
-        r.append( "messagelarger" );
+        if ( d->f == Modseq )
+            r.append( "modseqlarger" );
+        else
+            r.append( "messagelarger" );
         r.append( " " );
         r.append( fn( d->n ) );
         break;
@@ -1558,10 +1587,31 @@ Selector * Selector::fromString( const String &s )
         }
     }
     else if ( op == "messagelarger" || op == "messagesmaller" ) {
+        r->d->f = Rfc822Size;
         if ( op.endsWith( "larger" ) )
             r->d->a = Larger;
         else
             r->d->a = Smaller;
+
+        if ( s[i++] != ' ' )
+            return 0;
+
+        uint j = i;
+        if ( s[i] <= '9' && s[i] >= '1' )
+            i++;
+        else
+            return 0;
+        while ( s[i] <= '9' && s[i] >= '0' )
+            i++;
+
+        bool ok;
+        r->d->n = s.mid( j, i-j ).number( &ok );
+        if ( !ok )
+            return 0;
+    }
+    else if ( op == "modseqlarger" ) {
+        r->d->f = Modseq;
+        r->d->a = Larger;
 
         if ( s[i++] != ' ' )
             return 0;

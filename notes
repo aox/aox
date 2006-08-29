@@ -266,7 +266,8 @@ CONDSTORE
   - STORE UNCHANGEDSINCE/MODIFIED
   - FETCH CHANGEDSINCE (done)
   - FETCH MODSEQ (done)
-  - SEARCH MODSEQ
+  - SEARCH MODSEQ (partly done)
+  - Selector changes (done)
   - SEARCH response
   - STATUS HIGHESTMODSEQ (done)
   - SELECT/EXAMIME CONDSTORE (done)
@@ -285,6 +286,11 @@ CONDSTORE
   Perhaps deleting the message should cascade. If not, then we want to
   update the modseq when we delete a message.
 
+  And last but not least:
+  - testing all of the above (NOT done)
+
+  The search is tricky, since the select now needs to return something
+  more than just UIDs. How do we make that work together with views?
 
 Autoresponder
 

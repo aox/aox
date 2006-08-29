@@ -51,9 +51,9 @@ public:
 /*! \class Search search.h
     Finds messages matching some criteria (RFC 3501 section 6.4.4)
 
-    The entirety of the basic syntax is handled. CONDSTORE, SEARCHM
-    and other extensions are currently not handled. SEARCHM probably
-    will need to be implemented as a subclass of Search.
+    The entirety of the basic syntax is handled, as well as parts of
+    CONDSTORE (RFC 4551). SEARCHM probably will need to be implemented
+    as a subclass of Search. How about ESEARCH?
 
     Searches are first run against the RAM cache, rudimentarily. If
     the comparison is difficult, expensive or unsuccessful, it gives
@@ -331,6 +331,19 @@ void Search::parseKey( bool alsoCharset )
 
             add( new Selector( Selector::Annotation, Selector::Contains,
                                a, b, c ) );
+        }
+        else if ( keyword == "modseq" ) {
+            space();
+            if ( nextChar() == '"' ) {
+                // we don't store per-flag or per-annotation modseqs,
+                // so RFC 4551 3.4 says we MUST ignore these
+                (void)quoted(); // flag or annotation name
+                space();
+                (void)letters( 3, 6 ); // priv/shared/all
+                space();
+            }
+            add( new Selector( Selector::Modseq, Selector::Larger,
+                               number() ) );
         }
         else if ( alsoCharset && keyword == "charset" ) {
             space();

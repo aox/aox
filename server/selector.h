@@ -25,7 +25,7 @@ public:
 
     enum Field {
         InternalDate, Sent, Header, Body, Rfc822Size, Flags, Uid,
-        Annotation, NoField
+        Annotation, Modseq, NoField
     };
 
     Selector();
@@ -82,6 +82,7 @@ private:
     String whereFlags();
     String whereUid();
     String whereAnnotation();
+    String whereModseq();
     String whereNoField();
     String mboxId();
 };
