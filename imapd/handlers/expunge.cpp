@@ -8,7 +8,6 @@
 #include "query.h"
 #include "scope.h"
 #include "mailbox.h"
-#include "transaction.h"
 #include "imapsession.h"
 #include "permissions.h"
 #include "messageset.h"
@@ -19,13 +18,13 @@ class ExpungeData
 {
 public:
     ExpungeData()
-        : stage( 0 ), q( 0 ), t( 0 )
+        : uid( false ), s( 0 ), q( 0 ), e( 0 )
     {}
 
     bool uid;
-    int stage;
-    Query *q;
-    Transaction *t;
+    Session * s;
+    Query * q;
+    Query * e;
     MessageSet uids;
 };
 
@@ -78,71 +77,73 @@ void Expunge::parse()
 
 bool Expunge::expunge( bool chat )
 {
-    if ( d->stage == 0 ) {
-        Permissions * p = imap()->session()->permissions();
+    if ( !d->q ) {
+        d->s = imap()->session();
+        if ( !d->s || !d->s->mailbox() ) {
+            error( No, "No mailbox to expunge" );
+            return true;
+        }
+        Permissions * p = d->s->permissions();
         if ( !p->allowed( Permissions::Expunge ) ) {
             error( No, "Do not have privileges to expunge" );
             return true;
         }
+
         Flag * f = Flag::find( "\\deleted" );
-        d->t = new Transaction( this );
+        if ( !f ) {
+            error( No, "Internal error - no \\Deleted flag" );
+            return true;
+        }
 
         String query( "select uid from flags left join deleted_messages dm "
                       "using (mailbox,uid) where mailbox=$1 and flag=$2 and "
                       "dm.uid is null" );
-
         if ( d->uid )
             query.append( " and (" + d->uids.where() + ")" );
 
         d->q = new Query( query, this );
-        d->q->bind( 1, imap()->session()->mailbox()->id() );
+        d->q->bind( 1, d->s->mailbox()->id() );
         d->q->bind( 2, f->id() );
-        d->t->enqueue( d->q );
-        d->t->execute();
-        d->stage = 1;
+        d->q->execute();
         d->uids.clear();
     }
 
-    if ( d->stage == 1 && d->q->done() ) {
-        Row *r;
-        while ( ( r = d->q->nextRow() ) != 0 ) {
-            uint n = r->getInt( "uid" );
-            d->uids.add( n );
-        }
-
-        d->stage = 2;
-        if ( d->uids.isEmpty() ) {
-            d->stage = 4;
-            d->t->commit();
-        }
+    Row * r;
+    while ( ( r = d->q->nextRow() ) != 0 ) {
+        uint n = r->getInt( "uid" );
+        d->uids.add( n );
     }
-
-    if ( d->stage == 2 ) {
-        log( "Expunge " + fn( d->uids.count() ) + " messages" );
-        Query * q = new Query( "insert into deleted_messages "
-                               "(mailbox, uid, deleted_by, reason) "
-                               "select mailbox, uid, $2, $3 "
-                               "from messages where mailbox=$1 and "
-                               "(" + d->uids.where() + ")",
-                               this );
-        q->bind( 1, imap()->session()->mailbox()->id() );
-        q->bind( 2, imap()->user()->id() );
-        q->bind( 3, "IMAP expunge " + Scope::current()->log()->id() );
-        d->t->enqueue( q );
-        d->t->commit();
-        d->stage = 4;
-    }
-
-    if ( d->t->done() ) {
-        if ( d->t->failed() )
-            error( No, "Database error. Messages not expunged." );
-        else if ( chat )
-            imap()->session()->expunge( d->uids );
-        imap()->session()->emitResponses();
+    if ( !d->q->done() )
+        return false;
+    if ( d->uids.isEmpty() )
         return true;
+       
+    if ( !d->e ) {
+        log( "Expunge " + fn( d->uids.count() ) + " messages" );
+        d->e = new Query( "insert into deleted_messages "
+                          "(mailbox, uid, deleted_by, reason) "
+                          "select mailbox, uid, $2, $3 "
+                          "from messages where mailbox=$1 and "
+                          "(" + d->uids.where() + ")",
+                          this );
+        d->e->bind( 1, d->s->mailbox()->id() );
+        d->e->bind( 2, imap()->user()->id() );
+        d->e->bind( 3, "IMAP expunge " + Scope::current()->log()->id() );
+        d->e->execute();
     }
 
-    return false;
+    if ( !d->e->done() )
+        return false;
+
+    if ( d->e->failed() )
+        error( No, "Database error. Messages not expunged." );
+
+    if ( chat && imap()->session() ) {
+        imap()->session()->expunge( d->uids );
+        imap()->session()->emitResponses();
+    }
+
+    return true;
 }
 
 
