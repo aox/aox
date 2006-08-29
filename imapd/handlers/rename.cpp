@@ -6,6 +6,7 @@
 #include "query.h"
 #include "entropy.h"
 #include "mailbox.h"
+#include "session.h"
 #include "occlient.h"
 #include "permissions.h"
 #include "transaction.h"
@@ -233,9 +234,12 @@ void Rename::execute()
                 break;
             }
             if ( it->toPermissions &&
-                 !it->toPermissions->allowed( Permissions::CreateMailboxes ) )
-            {
+                 !it->toPermissions->allowed( Permissions::CreateMailboxes ) ) {
                 error( No, "Not permitted to create " + it->toName );
+                break;
+            }
+            if ( Session::activeSessions( it->from ) ) {
+                error( No, "Mailbox is in use: " + it->from->name() );
                 break;
             }
             ++it;
