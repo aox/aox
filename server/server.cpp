@@ -387,7 +387,7 @@ void Server::logStartup()
 void Server::secure()
 {
     if ( Configuration::present( Configuration::DbOwnerPassword ) ) {
-        log( "db-owner-password specied in archiveopteryx.conf "
+        log( "db-owner-password specified in archiveopteryx.conf "
              "(should be in aoxsuper.conf)",
              Log::Disaster );
         exit( 1 );
