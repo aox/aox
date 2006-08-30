@@ -35,6 +35,7 @@ public:
     PgData()
         : active( false ), startup( false ), authenticated( false ),
           unknownMessage( false ), identBreakageSeen( false ),
+          setSessionAuthorisation( false ),
           sendingCopy( false ), error( false ), keydata( 0 ),
           description( 0 ), transaction( 0 )
     {}
@@ -44,6 +45,7 @@ public:
     bool authenticated;
     bool unknownMessage;
     bool identBreakageSeen;
+    bool setSessionAuthorisation;
     bool sendingCopy;
     bool error;
 
@@ -320,6 +322,12 @@ void Postgres::authentication( char type )
                 {
                     String pass = password();
 
+                    if ( d->setSessionAuthorisation ) {
+                        error( "Cannot supply credentials during proxy "
+                               "authentication" );
+                        return;
+                    }
+
                     if ( r.type() == PgAuthRequest::Crypt )
                         pass = ::crypt( pass.cstr(), r.salt().cstr() );
                     else if ( r.type() == PgAuthRequest::MD5 )
@@ -364,6 +372,14 @@ void Postgres::backendStartup( char type )
         // This successfully concludes connection startup. We'll leave
         // this message unparsed, so that process() can handle it like
         // any other PgReady.
+
+        if ( d->setSessionAuthorisation ) {
+            Query * q =
+                new Query( "SET SESSION AUTHORIZATION " +
+                           Database::user(), 0 );
+            d->queries.append( q );
+            processQuery( q );
+        }
 
         commit();
         break;
@@ -534,6 +550,7 @@ void Postgres::unknown( char type )
 
     case 'N':
     case 'E':
+        d->unknownMessage = false;
         errorMessage();
         break;
 
@@ -566,42 +583,62 @@ void Postgres::unknown( char type )
 void Postgres::errorMessage()
 {
     String s;
-
-    d->unknownMessage = false;
     PgMessage msg( readBuffer() );
     Query *q = d->queries.firstElement();
+    String m( msg.message() );
 
     switch ( msg.severity() ) {
     case PgMessage::Panic:
     case PgMessage::Fatal:
         // special-case IDENT query failures since they can be
         // so off-putting to novices.
-        if ( msg.message().lower().startsWith( "ident authentication "
-                                               "failed for user \"") ) {
-            String s = msg.message();
-            int b = s.find( '"' );
-            int e = s.find( '"', b+1 );
-            s = s.mid( b+1, e-b-1 ); // rest-of-string if e==-1 ;)
-            if ( s == Configuration::text(Configuration::JailUser) &&
-                 self().protocol() != Endpoint::Unix &&
-                 Configuration::toggle( Configuration::Security ) &&
-                 !d->identBreakageSeen ) {
-                // If we connected via ipv4 or ipv6, and we
-                // did it so early that postgres had a chance
-                // to reject us, we can try again. We do that
-                // only once, and only if we believe it may
-                // succeed.
+        if ( m.lower().startsWith( "ident authentication failed "
+                                   "for user \"" ) )
+        {
+            struct passwd * p = 0;
+
+            int b = m.find( '"' );
+            int e = m.find( '"', b+1 );
+            String user( m.mid( b+1, e-b-1 ) );
+
+            p = getpwnam( Configuration::compiledIn( Configuration::PgUser ) );
+            if ( !p )
+                p = getpwnam( "postgres" );
+            if ( !p )
+                p = getpwnam( "pgsql" );
+
+            if ( !d->identBreakageSeen &&
+                 Database::loginAs() == Configuration::DbOwner &&
+                 getpwnam( d->user.cstr() ) == 0 && p != 0 )
+            {
                 d->identBreakageSeen = true;
-                log( "PostgreSQL demanded IDENT, "
-                     "which did not match during startup. Retrying.",
-                     Log::Info );
+                d->setSessionAuthorisation = true;
+                log( "Attempting to authenticate as superuser to use "
+                     "SET SESSION AUTHORIZATION", Log::Info );
+                d->user = String( p->pw_name );
+                uid_t e = geteuid();
+                setreuid( 0, p->pw_uid );
+                Endpoint pg( peer() );
+                close();
+                connect( pg );
+                setreuid( 0, e );
+            }
+            else if ( s == Configuration::text(Configuration::JailUser) &&
+                      Configuration::toggle( Configuration::Security ) &&
+                      self().protocol() != Endpoint::Unix )
+            {
+                // If we connected via IPv4 or IPv6, early enough that
+                // postgres had a chance to reject us, we'll try again.
+                d->identBreakageSeen = true;
+                log( "PostgreSQL demanded IDENT, which did not match "
+                     "during startup. Retrying.", Log::Info );
                 Endpoint pg( peer() );
                 close();
                 connect( pg );
             }
             else {
                 log( "PostgreSQL refuses authentication because this "
-                     "process is not running as user " + s + ". See "
+                     "process is not running as user " + user + ". See "
                      "http://aox.org/faq/mailstore.html#ident",
                      Log::Disaster );
             }
@@ -611,7 +648,7 @@ void Postgres::errorMessage()
                 s.append( "PANIC: " );
             else
                 s.append( "FATAL: " );
-            s.append( msg.message() );
+            s.append( m );
             error( s );
         }
         break;
@@ -626,7 +663,7 @@ void Postgres::errorMessage()
         if ( q )
             s.append( "Query " + q->description() + ": " );
 
-        s.append( msg.message() );
+        s.append( m );
         if ( msg.detail() != "" )
             s.append( " (" + msg.detail() + ")" );
 
@@ -640,13 +677,13 @@ void Postgres::errorMessage()
             if ( q->inputLines() )
                 d->sendingCopy = false;
             d->queries.shift();
-            q->setError( msg.message() );
+            q->setError( m );
             q->notify();
         }
         break;
 
     default:
-        ::log( msg.message(), Log::Debug );
+        ::log( m, Log::Debug );
         break;
     }
 }
