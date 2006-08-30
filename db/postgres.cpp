@@ -54,6 +54,8 @@ public:
 
     List< Query > queries;
     Transaction *transaction;
+
+    String user;
 };
 
 
@@ -86,7 +88,8 @@ Postgres::Postgres()
 {
     log()->setFacility( Log::Database );
 
-    struct passwd * p = getpwnam( Database::user().cstr() );
+    d->user = Database::user();
+    struct passwd * p = getpwnam( d->user.cstr() );
     if ( p && getuid() != p->pw_uid ) {
         // Try to cooperate with ident authentication.
         uid_t e = geteuid();
@@ -212,7 +215,7 @@ void Postgres::react( Event e )
     case Connect:
         {
             PgStartup msg;
-            msg.setOption( "user", user() );
+            msg.setOption( "user", d->user );
             msg.setOption( "database", name() );
             msg.enqueue( writeBuffer() );
 
@@ -322,7 +325,7 @@ void Postgres::authentication( char type )
                     else if ( r.type() == PgAuthRequest::MD5 )
                         pass = "md5" + MD5::hash(
                                            MD5::hash(
-                                               pass + user()
+                                               pass + d->user
                                            ).hex() + r.salt()
                                        ).hex();
 
