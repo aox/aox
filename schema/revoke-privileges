@@ -1,5 +1,3 @@
-alter database $DBNAME owner to $DBOWNER;
-
 alter table mailstore owner to $DBOWNER;
 alter table addresses owner to $DBOWNER;
 alter table namespaces owner to $DBOWNER;
