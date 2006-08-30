@@ -595,13 +595,15 @@ void Postgres::errorMessage()
         if ( m.lower().startsWith( "ident authentication failed "
                                    "for user \"" ) )
         {
-            struct passwd * p = 0;
-
             int b = m.find( '"' );
             int e = m.find( '"', b+1 );
             String user( m.mid( b+1, e-b-1 ) );
 
-            p = getpwnam( Configuration::compiledIn( Configuration::PgUser ) );
+            struct passwd * p = 0;
+            const char * pg = Configuration::compiledIn( Configuration::PgUser );
+
+            if ( pg )
+                p = getpwnam( pg );
             if ( !p )
                 p = getpwnam( "postgres" );
             if ( !p )
