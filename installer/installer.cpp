@@ -100,6 +100,7 @@ int main( int ac, char *av[] )
         }
         else if ( s == "-q" ) {
             silent = true;
+            verbosity = 0;
         }
         else if ( s == "-n" ) {
             report = true;
@@ -120,9 +121,6 @@ int main( int ac, char *av[] )
         else if ( s == "-v" ) {
             verbosity++;
         }
-        else if ( s == "-q" ) {
-            verbosity = 0;
-        }        
         else {
             error( "Unrecognised argument: '" + s + "'" );
         }
