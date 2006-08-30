@@ -488,6 +488,7 @@ void database()
 
     if ( d->state == CheckDatabase ) {
         d->state = CheckingDatabase;
+        d->user = *dbowner;
         d->q = new Query( "select datname::text,usename::text,"
                           "pg_encoding_to_char(encoding)::text as encoding "
                           "from pg_database d join pg_user u "
