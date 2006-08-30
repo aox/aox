@@ -8,47 +8,51 @@ installer - Archiveopteryx installer.
 .I -n
 ] [
 .I -q
+] [
+.I -v 
 ] ...
 .SH DESCRIPTION
 .nh
 .PP
 This program does the following:
-.IP 1. 3
-Creates a Unix group named $AOXGROUP.
-.IP 2. 3
-Creates a Unix user named $AOXUSER.
-.IP 3. 3
-Creates a Postgres user named $AOXUSER.
-.IP 4. 3
-Creates a Postgres user named $DBOWNER.
-.IP 5. 3
-Creates a Postgres database named $DBNAME owned by $DBOWNER.
-.IP 6. 3
-Loads the database schema and grants limited privileges to user $AOXUSER.
-.IP 7. 3
-Generates an initial configuration file.
-.IP 8. 3
-Adjusts ownership and permissions if necessary.
+.PP
+1. Creates a Unix group named $AOXGROUP.
+.PP
+2. Creates a Unix user named $AOXUSER.
+.PP
+3. Creates a Postgres user named $AOXUSER.
+.PP
+4. Creates a Postgres user named $DBOWNER.
+.PP
+5. Creates a Postgres database named $DBNAME owned by $DBOWNER.
+.PP
+6. Loads the database schema and grants limited privileges to user $AOXUSER.
+.PP
+7. Generates an initial configuration file.
+.PP
+8. Adjusts ownership and permissions if necessary.
 .PP
 .B installer
 should be run after
 .I "jam install" 
 when installing from source.
 .SH OPTIONS
-.IP -q 4
+.IP -q
 Suppresses all normal output.
-.IP -n 4
+.IP -v
+Makes the output more verbose (may be repeated).
+.IP -n
 Causes the program to report what it would do, but not actually do
 anything.
-.IP "-g group" 4
+.IP "-g group"
 Allows you to specify a Unix group other than the default of $AOXGROUP.
-.IP "-u user" 4
+.IP "-u user"
 Allows you to specify a Unix username other than the default of
 $AOXUSER.
-.IP "-p postgres" 4
+.IP "-p postgres"
 Allows you to specify the name of the PostgreSQL superuser. The default
 is to try $PGUSER (if set), postgres and pgsql in turn.
-.IP "-a address" 4
+.IP "-a address"
 Allows you to specify a different address for the Postgres server. The
 default is $DBADDRESS.
 .PP
