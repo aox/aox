@@ -526,8 +526,6 @@ void Postgres::process( char type )
 
 void Postgres::unknown( char type )
 {
-    String s;
-
     switch ( type ) {
     case 'S':
         {
@@ -539,90 +537,7 @@ void Postgres::unknown( char type )
 
     case 'N':
     case 'E':
-        {
-            d->unknownMessage = false;
-            PgMessage msg( readBuffer() );
-            Query *q = d->queries.firstElement();
-
-            switch ( msg.severity() ) {
-            case PgMessage::Panic:
-            case PgMessage::Fatal:
-                // special-case IDENT query failures since they can be
-                // so off-putting to novices.
-                if ( msg.message().lower().startsWith( "ident authentication "
-                                                       "failed for user \"") ) {
-                    String s = msg.message();
-                    int b = s.find( '"' );
-                    int e = s.find( '"', b+1 );
-                    s = s.mid( b+1, e-b-1 ); // rest-of-string if e==-1 ;)
-                    if ( s == Configuration::text(Configuration::JailUser) &&
-                         self().protocol() != Endpoint::Unix &&
-                         Configuration::toggle( Configuration::Security ) &&
-                         !d->identBreakageSeen ) {
-                        // If we connected via ipv4 or ipv6, and we
-                        // did it so early that postgres had a chance
-                        // to reject us, we can try again. We do that
-                        // only once, and only if we believe it may
-                        // succeed.
-                        d->identBreakageSeen = true;
-                        log( "PostgreSQL demanded IDENT, "
-                             "which did not match during startup. Retrying.",
-                             Log::Info );
-                        Endpoint pg( peer() );
-                        close();
-                        connect( pg );
-                    }
-                    else {
-                        log( "PostgreSQL refuses authentication because this "
-                             "process is not running as user " + s + ". See "
-                             "http://aox.org/faq/mailstore.html#ident",
-                             Log::Disaster );
-                    }
-                }
-                else {
-                    if ( msg.severity() == PgMessage::Panic )
-                        s.append( "PANIC: " );
-                    else
-                        s.append( "FATAL: " );
-                    s.append( msg.message() );
-                    error( s );
-                }
-                break;
-
-            case PgMessage::Error:
-            case PgMessage::Warning:
-                if ( msg.severity() == PgMessage::Warning )
-                    s.append( "WARNING: " );
-                else
-                    s.append( "ERROR: " );
-
-                if ( q )
-                    s.append( "Query " + q->description() + ": " );
-
-                s.append( msg.message() );
-                if ( msg.detail() != "" )
-                    s.append( " (" + msg.detail() + ")" );
-
-                if ( !q ||
-                     !( q->canFail() ||
-                        ( q->transaction() && q->transaction()->failed() ) ) )
-                    ::log( s, Log::Error );
-
-                // Has the current query failed?
-                if ( q && msg.severity() == PgMessage::Error ) {
-                    if ( q->inputLines() )
-                        d->sendingCopy = false;
-                    d->queries.shift();
-                    q->setError( msg.message() );
-                    q->notify();
-                }
-                break;
-
-            default:
-                ::log( msg.message(), Log::Debug );
-                break;
-            }
-        }
+        errorMessage();
         break;
 
     default:
@@ -644,6 +559,97 @@ void Postgres::unknown( char type )
             err.append( "." );
             error( err );
         }
+        break;
+    }
+}
+
+
+/*! This function handles errors and other messages from the server. */
+
+void Postgres::errorMessage()
+{
+    String s;
+
+    d->unknownMessage = false;
+    PgMessage msg( readBuffer() );
+    Query *q = d->queries.firstElement();
+
+    switch ( msg.severity() ) {
+    case PgMessage::Panic:
+    case PgMessage::Fatal:
+        // special-case IDENT query failures since they can be
+        // so off-putting to novices.
+        if ( msg.message().lower().startsWith( "ident authentication "
+                                               "failed for user \"") ) {
+            String s = msg.message();
+            int b = s.find( '"' );
+            int e = s.find( '"', b+1 );
+            s = s.mid( b+1, e-b-1 ); // rest-of-string if e==-1 ;)
+            if ( s == Configuration::text(Configuration::JailUser) &&
+                 self().protocol() != Endpoint::Unix &&
+                 Configuration::toggle( Configuration::Security ) &&
+                 !d->identBreakageSeen ) {
+                // If we connected via ipv4 or ipv6, and we
+                // did it so early that postgres had a chance
+                // to reject us, we can try again. We do that
+                // only once, and only if we believe it may
+                // succeed.
+                d->identBreakageSeen = true;
+                log( "PostgreSQL demanded IDENT, "
+                     "which did not match during startup. Retrying.",
+                     Log::Info );
+                Endpoint pg( peer() );
+                close();
+                connect( pg );
+            }
+            else {
+                log( "PostgreSQL refuses authentication because this "
+                     "process is not running as user " + s + ". See "
+                     "http://aox.org/faq/mailstore.html#ident",
+                     Log::Disaster );
+            }
+        }
+        else {
+            if ( msg.severity() == PgMessage::Panic )
+                s.append( "PANIC: " );
+            else
+                s.append( "FATAL: " );
+            s.append( msg.message() );
+            error( s );
+        }
+        break;
+
+    case PgMessage::Error:
+    case PgMessage::Warning:
+        if ( msg.severity() == PgMessage::Warning )
+            s.append( "WARNING: " );
+        else
+            s.append( "ERROR: " );
+
+        if ( q )
+            s.append( "Query " + q->description() + ": " );
+
+        s.append( msg.message() );
+        if ( msg.detail() != "" )
+            s.append( " (" + msg.detail() + ")" );
+
+        if ( !q ||
+             !( q->canFail() ||
+                ( q->transaction() && q->transaction()->failed() ) ) )
+            ::log( s, Log::Error );
+
+        // Has the current query failed?
+        if ( q && msg.severity() == PgMessage::Error ) {
+            if ( q->inputLines() )
+                d->sendingCopy = false;
+            d->queries.shift();
+            q->setError( msg.message() );
+            q->notify();
+        }
+        break;
+
+    default:
+        ::log( msg.message(), Log::Debug );
         break;
     }
 }

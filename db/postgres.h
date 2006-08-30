@@ -26,6 +26,7 @@ private:
     void backendStartup( char );
     void process( char );
     void unknown( char );
+    void errorMessage();
     void error( const String & );
     void shutdown();
 };
