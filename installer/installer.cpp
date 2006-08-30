@@ -397,11 +397,13 @@ void oryxUser()
 
 
 enum DbState {
-    Unused, CheckingVersion, CheckUser, CheckingUser, CreatingUser,
-    CheckSuperuser, CheckingSuperuser, CreatingSuperuser, CheckDatabase,
-    CheckingDatabase, CreatingDatabase, CheckSchema, CheckingSchema,
-    CreateSchema, CheckingRevision, UpgradingSchema, CheckPrivileges,
-    CheckingPrivileges, AlteringPrivileges, Done
+    Unused,
+    CheckingVersion, CheckDatabase, CheckingDatabase, CheckUser,
+    CheckingUser, CreatingUser, CheckSuperuser, CheckingSuperuser,
+    CreatingSuperuser, CreateDatabase, CreatingDatabase, CheckSchema,
+    CheckingSchema, CreateSchema, CheckingRevision, UpgradingSchema,
+    CheckPrivileges, CheckingPrivileges, AlteringPrivileges,
+    Done
 };
 
 
@@ -411,8 +413,12 @@ class Dispatcher
 public:
     Query * q;
     DbState state;
+    bool createDatabase;
 
-    Dispatcher() : state( Unused ) {}
+    Dispatcher()
+        : state( Unused ), createDatabase( false )
+    {}
+
     void execute()
     {
         database();
@@ -468,6 +474,44 @@ void database()
                      "convenience.\n", v.cstr() );
         }
 
+        d->state = CheckDatabase;
+    }
+
+    if ( d->state == CheckDatabase ) {
+        d->state = CheckingDatabase;
+        d->q = new Query( "select datname::text,usename::text,"
+                          "pg_encoding_to_char(encoding)::text as encoding "
+                          "from pg_database d join pg_user u "
+                          "on (d.datdba=u.usesysid) where datname=$1", d );
+        d->q->bind( 1, *dbname );
+        d->q->execute();
+    }
+
+    if ( d->state == CheckingDatabase ) {
+        if ( !d->q->done() )
+            return;
+
+        Row * r = d->q->nextRow();
+        if ( r ) {
+            String s;
+            String owner( r->getString( "usename" ) );
+            String encoding( r->getString( "encoding" ) );
+
+            if ( owner != *dbowner && owner != *dbuser )
+                s = "is not owned by " + *dbowner + " or " + *dbuser;
+            else if ( encoding != "UNICODE" && encoding != "UTF8" )
+                s = "does not have encoding UNICODE/UTF8";
+
+            if ( !s.isEmpty() ) {
+                fprintf( stderr, " - Database '%s' exists, but it %s.\n"
+                         "   (That will need to be fixed by hand.)\n",
+                         dbname->cstr(), s.cstr() );
+                exit( -1 );
+            }
+        }
+        else {
+            d->createDatabase = true;
+        }
         d->state = CheckUser;
     }
 
@@ -561,7 +605,7 @@ void database()
         else {
             if ( generatedOwnerPass )
                 *dbownerpass = "(database owner password here)";
-            d->state = CheckDatabase;
+            d->state = CreateDatabase;
         }
     }
 
@@ -575,25 +619,11 @@ void database()
             EventLoop::shutdown();
             return;
         }
-        d->state = CheckDatabase;
+        d->state = CreateDatabase;
     }
 
-    if ( d->state == CheckDatabase ) {
-        d->state = CheckingDatabase;
-        d->q = new Query( "select datname::text,usename::text,"
-                          "pg_encoding_to_char(encoding)::text as encoding "
-                          "from pg_database d join pg_user u "
-                          "on (d.datdba=u.usesysid) where datname=$1", d );
-        d->q->bind( 1, *dbname );
-        d->q->execute();
-    }
-
-    if ( d->state == CheckingDatabase ) {
-        if ( !d->q->done() )
-            return;
-
-        Row * r = d->q->nextRow();
-        if ( !r ) {
+    if ( d->state == CreateDatabase ) {
+        if ( d->createDatabase ) {
             String create( "create database " + *dbname + " with owner " +
                            *dbowner + " encoding 'UNICODE'" );
             if ( report ) {
@@ -616,22 +646,9 @@ void database()
                 d->q = new Query( create, d );
                 d->q->execute();
             }
+
         }
         else {
-            String s;
-            String encoding( r->getString( "encoding" ) );
-            if ( r->getString( "usename" ) != *dbowner )
-                s = "is not owned by user " + *dbowner;
-            else if ( encoding != "UNICODE" && encoding != "UTF8" )
-                s = "does not have encoding UNICODE";
-            if ( !s.isEmpty() ) {
-                todo++;
-                fprintf( stderr, " - Database '%s' exists, but it %s.\n"
-                         "   (That will need to be fixed by hand.)\n",
-                         dbname->cstr(), s.cstr() );
-                if ( !report )
-                    exit( -1 );
-            }
             d->state = CheckSchema;
         }
     }
