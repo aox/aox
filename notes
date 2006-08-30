@@ -1,4 +1,4 @@
-1.10: 2006-09-09
+1.10: 2006-09-01
 
   Done:
 
@@ -23,12 +23,16 @@
   ?
 
 
-1.11: 2006-10-01
+1.11: 2006-09-24
 
-  Implement Lemonade profile and condstore in time for the interop.
+  CONDSTORE goes here.
+
+  Update the installer manpage to match the code.
 
 
-1.12: 2006-10-29
+1.12: 2006-10-23
+
+  Implement rest of Lemonade profile in time for the interop.
 
   What here? LDAP AB? Webmail?
 
