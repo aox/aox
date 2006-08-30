@@ -599,6 +599,8 @@ void Postgres::errorMessage()
             int e = m.find( '"', b+1 );
             String user( m.mid( b+1, e-b-1 ) );
 
+            struct passwd * u = getpwnam( d->user.cstr() );
+
             struct passwd * p = 0;
             const char * pg = Configuration::compiledIn( Configuration::PgUser );
 
@@ -610,8 +612,8 @@ void Postgres::errorMessage()
                 p = getpwnam( "pgsql" );
 
             if ( !d->identBreakageSeen &&
-                 Database::loginAs() == Configuration::DbOwner &&
-                 getpwnam( d->user.cstr() ) == 0 && p != 0 )
+                 Database::loginAs() == Configuration::DbOwner && u == 0 &&
+                 p != 0 )
             {
                 d->identBreakageSeen = true;
                 d->setSessionAuthorisation = true;
