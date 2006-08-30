@@ -145,7 +145,8 @@ int main( int argc, char *argv[] )
     Log * l = new Log( Log::General );
     Allocator::addEternal( l, "delivery log" );
     global.setLog( l );
-    Allocator::addEternal( new StderrLogger( "deliver" ), "log object" );
+    Allocator::addEternal( new StderrLogger( "deliver", verbose ),
+                           "log object" );
 
     Configuration::report();
     Deliverator *d = new Deliverator( sender, contents, recipient );

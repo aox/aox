@@ -98,9 +98,19 @@ int main( int ac, char *av[] )
     aox = *av++;
     ac--;
 
+    uint verbosity = 0;
     int i = 0;
-    while ( i < ac )
-        args->append( new String( av[i++] ) );
+    while ( i < ac ) {
+        if ( av[i] == "-v" )
+            verbosity++;
+        else if ( av[i] == "-q" )
+            verbosity = 0;
+        else
+            args->append( new String( av[i] ) );
+        i++;
+    }
+    if ( verbosity )
+        options[(int)'v'] = true;
 
     EventLoop::setup();
 
@@ -111,7 +121,8 @@ int main( int ac, char *av[] )
     Log * l = new Log( Log::General );
     Allocator::addEternal( l, "log object" );
     global.setLog( l );
-    Allocator::addEternal( new StderrLogger( "aox" ), "log object" );
+    Allocator::addEternal( new StderrLogger( "aox", verbosity ),
+                           "log object" );
 
     Configuration::report();
 

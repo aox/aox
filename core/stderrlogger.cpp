@@ -15,11 +15,13 @@
 
 
 /*! Creates a logger named \a name. The object will preface its output
-    lines with \a name.
+    lines with \a name. If \a verbosity is 0, info messages are
+    suppressed. If \a verbosity is 0 or 1, debug messages are
+    suppressed.
 */
 
-StderrLogger::StderrLogger( const String & name )
-    : Logger(), n( name )
+StderrLogger::StderrLogger( const String & name, uint verbosity )
+    : Logger(), n( name ), v( verbosity )
 {
 }
 
@@ -28,11 +30,11 @@ void StderrLogger::send( const String &,
                       Log::Facility, Log::Severity s,
                       const String & m )
 {
-    // Log already does this
-    if ( s == Log::Error )
+    // we don't need to handle Disaster, Log already has done that
+    if ( s == Log::Error ||
+         ( s == Log::Info && v >= 1 ) ||
+         ( s == Log::Debug && v >= 2 ) ) 
         fprintf( stderr, "%s: %s\n", name().cstr(), m.cstr() );
-
-    // Debug we ignore, Info we ignore for now.
 
     // and in case of a disaster, we quit. the hard way.
     if ( s == Log::Disaster ) {

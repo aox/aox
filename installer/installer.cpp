@@ -71,7 +71,6 @@ int main( int ac, char *av[] )
     Log * l = new Log( Log::General );
     Allocator::addEternal( l, "log object" );
     global.setLog( l );
-    Allocator::addEternal( new StderrLogger( "installer" ), "log object" );
 
     PGUSER = Configuration::compiledIn( Configuration::PgUser );
     AOXUSER = Configuration::compiledIn( Configuration::OryxUser );
@@ -91,6 +90,7 @@ int main( int ac, char *av[] )
     dbownerpass = new String( DBOWNERPASS );
     Allocator::addEternal( dbownerpass, "DBOWNERPASS" );
 
+    uint verbosity = 0;
     av++;
     while ( ac-- > 1 ) {
         String s( *av++ );
@@ -117,10 +117,19 @@ int main( int ac, char *av[] )
                 *dbaddress = *av++;
             ac--;
         }
+        else if ( s == "-v" ) {
+            verbosity++;
+        }
+        else if ( s == "-q" ) {
+            verbosity = 0;
+        }        
         else {
             error( "Unrecognised argument: '" + s + "'" );
         }
     }
+
+    Allocator::addEternal( new StderrLogger( "installer", verbosity ),
+                           "log object" );
 
     if ( getuid() != 0 )
         error( "Please run the installer as root." );
