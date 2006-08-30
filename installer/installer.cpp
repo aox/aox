@@ -587,7 +587,7 @@ void database()
                            "password '" + *dbownerpass + "'" );
 
             if ( report ) {
-                d->state = CheckDatabase;
+                d->state = CreateDatabase;
                 printf( " - Create a PostgreSQL user named '%s'.\n"
                         "   As user %s, run:\n\n"
                         "psql -d template1 -qc \"%s\"\n\n",
