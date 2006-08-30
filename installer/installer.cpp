@@ -725,7 +725,7 @@ void database()
             }
             else {
                 if ( !silent )
-                    printf( "Loading database schema:\n" );
+                    printf( "Loading the database schema:\n" );
                 if ( psql( cmd ) < 0 )
                     return;
             }
