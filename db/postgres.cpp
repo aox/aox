@@ -87,12 +87,6 @@ Postgres::Postgres()
     log()->setFacility( Log::Database );
 
     struct passwd * p = getpwnam( Database::user().cstr() );
-    if ( !p )
-        p = getpwnam( Configuration::compiledIn( Configuration::PgUser ) );
-    if ( !p )
-        p = getpwnam( "postgres" );
-    if ( !p )
-        p = getpwnam( "pgsql" );
     if ( p && getuid() != p->pw_uid ) {
         // Try to cooperate with ident authentication.
         uid_t e = geteuid();
