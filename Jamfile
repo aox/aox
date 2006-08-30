@@ -56,27 +56,16 @@ Chmod $(MESSAGEDIR) ;
 
 
 actions Message {
-if [ -f $(CONFIGDIR)/archiveopteryx.conf ]; then
 fmt <<EOM | sed 's/^/  /'
-
-If you are upgrading from an older version, you may need to run
-$(BINDIR)/aox upgrade schema
-
-$(BINDIR)/aox upgrade schema -n shows what it would do, without making
-any changes.
-EOM
-else
-fmt <<EOM | sed 's/^/  /'
-
 To set up the database and generate a configuration file, run
 $(LIBDIR)/installer as root. The new configuration file will be in
 $(CONFIGDIR)/archiveopteryx.conf.
 
 $(LIBDIR)/installer -n shows what it would do, without making any
-changes.
-EOM
-fi
-fmt <<EOM | sed 's/^/  /'
+changes. (If you are just upgrading from an older version, 
+$(BINDIR)/aox upgrade schema may be enough.
+$(BINDIR)/aox upgrade schema -n shows what it would do, without making
+any changes.)
 
 The logfile is $(LOGFILE) by default and man pages are in $(MANDIR).
 

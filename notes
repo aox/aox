@@ -15,9 +15,6 @@
 
   Must-Do:
 
-  0 bytes in every codec.
-  use the right install message in makefile as well as jamfile
-
   Misc:
 
   ?
@@ -29,6 +26,7 @@
 
   Update the installer manpage to match the code.
 
+  0 bytes in every codec.
 
 1.12: 2006-10-23
 
