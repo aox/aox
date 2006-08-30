@@ -671,7 +671,7 @@ void database()
 
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
+        Configuration::add( "db-user = '" + *dbowner + "'" );
         Configuration::add( "db-name = '" + *dbname + "'" );
         Configuration::add( "db-address = '" + *dbaddress + "'" );
         Database::setup( 1 );
