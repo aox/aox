@@ -419,11 +419,13 @@ class Dispatcher
 {
 public:
     Query * q;
+    Query * ssa;
     DbState state;
     bool createDatabase;
+    String owner;
 
     Dispatcher()
-        : state( Unused ), createDatabase( false )
+        : q( 0 ), ssa( 0 ), state( Unused ), createDatabase( false )
     {}
 
     void execute()
@@ -501,10 +503,10 @@ void database()
         Row * r = d->q->nextRow();
         if ( r ) {
             String s;
-            String owner( r->getString( "usename" ) );
+            d->owner = r->getString( "usename" );
             String encoding( r->getString( "encoding" ) );
 
-            if ( owner != *dbowner && owner != *dbuser )
+            if ( d->owner != *dbowner && d->owner != *dbuser )
                 s = "is not owned by " + *dbowner + " or " + *dbuser;
             else if ( encoding != "UNICODE" && encoding != "UTF8" )
                 s = "does not have encoding UNICODE/UTF8";
@@ -678,10 +680,13 @@ void database()
 
         Configuration::setup( "" );
         Configuration::add( "db-max-handles = 1" );
-        Configuration::add( "db-user = '" + *dbowner + "'" );
+        Configuration::add( "db-user = '" + String( PGUSER ) + "'" );
         Configuration::add( "db-name = '" + *dbname + "'" );
         Configuration::add( "db-address = '" + *dbaddress + "'" );
         Database::setup( 1 );
+
+        d->ssa = new Query( "set session authorization " + d->owner, d );
+        d->ssa->execute();
 
         d->state = CheckingSchema;
         d->q = new Query( "select relname from pg_catalog.pg_class where "
@@ -690,8 +695,27 @@ void database()
     }
 
     if ( d->state == CheckingSchema ) {
-        if ( !d->q->done() )
+        if ( !d->ssa->done() || !d->q->done() )
             return;
+
+        if ( d->ssa->failed() ) {
+            if ( report ) {
+                todo++;
+                d->state = Done;
+                printf( " - May need to load the database schema.\n   "
+                        "(Couldn't authenticate as user '%s' to make sure "
+                        "it's needed: %s.)\n", dbname->cstr(),
+                        d->ssa->error().cstr() );
+            }
+            else {
+                fprintf( stderr, "Couldn't query database '%s' to "
+                         "see if the schema needs to be loaded (%s).\n",
+                         dbname->cstr(), d->q->error().cstr() );
+                EventLoop::shutdown();
+                return;
+            }
+        }
+
         if ( d->q->failed() ) {
             if ( report ) {
                 todo++;
