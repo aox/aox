@@ -50,6 +50,7 @@ protected:
     static String name();
     static String user();
     static String password();
+    static Configuration::Text loginAs();
 
     static void recordExecution();
 

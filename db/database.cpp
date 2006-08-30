@@ -376,3 +376,13 @@ uint Database::connectionNumber() const
 {
     return number;
 }
+
+
+/*! This function returns DbOwner or DbUser, as specified in the call to
+    Database::setup().
+*/
+
+Configuration::Text Database::loginAs()
+{
+    return ::loginAs;
+}
