@@ -104,11 +104,14 @@ void Database::setup( int desired, Configuration::Text login )
         return;
     }
 
-    if ( Configuration::toggle( Configuration::Security ) &&
-         srv.protocol() == Endpoint::Unix )
-        desired = Configuration::scalar( Configuration::DbMaxHandles );
-    if ( desired > 4 )
-        desired = 4;
+    if ( desired == 0 ) {
+        desired = 3;
+        if ( Configuration::toggle( Configuration::Security ) &&
+             srv.protocol() == Endpoint::Unix )
+            desired = Configuration::scalar( Configuration::DbMaxHandles );
+        if ( desired > 4 )
+            desired = 4;
+    }
 
     while ( desired ) {
         newHandle();
