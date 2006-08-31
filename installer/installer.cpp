@@ -746,7 +746,8 @@ void database()
                         "SET client_min_messages TO 'ERROR';\n"
                         "\\i " LIBDIR "/schema.pg\n"
                         "\\i " LIBDIR "/flag-names\n"
-                        "\\i " LIBDIR "/field-names\n" );
+                        "\\i " LIBDIR "/field-names\n"
+                        "\\i " LIBDIR "/grant-privileges\n" );
             d->state = Done;
             if ( report ) {
                 todo++;
