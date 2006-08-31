@@ -903,53 +903,132 @@ void database()
 
     if ( d->state == SelectObjects ) {
         d->state = AlterPrivileges;
+        d->q = new Query( "select c.relkind::text as type, c.relname::text "
+                          "as name from pg_catalog.pg_class c join "
+                          "pg_catalog.pg_roles r on (r.oid=c.relowner) "
+                          "left join pg_catalog.pg_namespace n "
+                          "on (n.oid=c.relnamespace) where c.relkind in "
+                          "('r','S') and n.nspname not in "
+                          "('pg_catalog','pg_toast') and "
+                          "pg_catalog.pg_table_is_visible(c.oid)", d );
+        d->q->execute();
     }
 
     if ( d->state == AlterPrivileges ) {
+        if ( !d->q->done() )
+            return;
+
+        if ( d->q->failed() ) {
+            fprintf( stderr,
+                     "Couldn't get a list of tables and sequences in database "
+                     "'%s' while trying to alter their privileges (%s).\n",
+                     dbname->cstr(), d->q->error().cstr() );
+            exit( -1 );
+        }
+
+        StringList tables;
+        StringList sequences;
+
+        Row * r;
+        while ( ( r = d->q->nextRow() ) != 0 ) {
+            String type( r->getString( "type" ) );
+            if ( type == "r" )
+                tables.append( r->getString( "name" ) );
+            else if ( type == "S" )
+                sequences.append( r->getString( "name" ) );
+        }
+
+        String ap( Configuration::compiledIn( Configuration::LibDir ) );
+        ap.append( "/fixup-privileges" );
+        File f( ap, File::Write, 0600 );
+        if ( !f.valid() ) {
+            fprintf( stderr, "Couldn't open '%s' for writing.\n", ap.cstr() );
+            exit( -1 );
+        }
+
+        StringList::Iterator it( tables );
+        while ( it ) {
+            String s( "alter table " );
+            s.append( *it );
+            s.append( " owner to " );
+            s.append( *dbowner );
+            s.append( ";\n" );
+            f.write( s );
+        }
+
+        String trevoke( "revoke all privileges on " );
+        trevoke.append( tables.join( "," ) );
+        trevoke.append( "," );
+        trevoke.append( sequences.join( "," ) );
+        trevoke.append( " from " );
+        trevoke.append( *dbuser );
+        trevoke.append( ";\n" );
+        f.write( trevoke );
+
+        String tsgrant( "grant select on mailstore, addresses, namespaces, "
+                        "users, groups, group_members, mailboxes, aliases, "
+                        "permissions, messages, bodyparts, part_numbers, "
+                        "field_names, header_fields, address_fields, "
+                        "date_fields, flag_names, flags, subscriptions, "
+                        "annotation_names, annotations, views, view_messages, "
+                        "scripts, deleted_messages to " );
+        tsgrant.append( *dbuser );
+        tsgrant.append( ";\n" );
+        f.write( tsgrant );
+
+        String tigrant( "grant insert on addresses, mailboxes, permissions, "
+                        "messages, bodyparts, part_numbers, field_names, "
+                        "header_fields, address_fields, date_fields, flags, "
+                        "flag_names, subscriptions, views, annotation_names, "
+                        "annotations, view_messages, scripts, deleted_messages "
+                        "to " );
+        tigrant.append( *dbuser );
+        tigrant.append( ";\n" );
+        f.write( tigrant );
+
+        String tdgrant( "grant delete on permissions, flags, subscriptions, "
+                        "annotations, views, view_messages, scripts to " );
+        tdgrant.append( *dbuser );
+        tdgrant.append( ";\n" );
+        f.write( tdgrant );
+
+        String tugrant( "grant update on mailstore, permissions, mailboxes, "
+                        "aliases, annotations, views, scripts to " );
+        tugrant.append( *dbuser );
+        tugrant.append( ";\n" );
+        f.write( tugrant );
+
+        String sgrant( "grant select,update on " );
+        sgrant.append( sequences.join( "," ) );
+        sgrant.append( " to " );
+        sgrant.append( *dbuser );
+        sgrant.append( ";\n" );
+        f.write( sgrant );
+
         d->state = AlteringPrivileges;
     }
 
     if ( d->state == AlteringPrivileges ) {
         d->state = Done;
-    }
 
-    /*
-    if ( d->state == CheckingPrivileges ) {
-        if ( !d->q->done() )
-            return;
+        String cmd( "SET client_min_messages TO 'ERROR';\n"
+                    "\\i " LIBDIR "/fixup-privileges\n" );
 
-        d->state = Done;
-        Row * r = d->q->nextRow();
-        if ( d->q->failed() ) {
-            fprintf( stderr, "Couldn't check privileges for user '%s' in "
-                     "database '%s' (%s).\n", dbuser->cstr(), dbname->cstr(),
-                     d->q->error().cstr() );
-            EventLoop::shutdown();
-            return;
+        if ( report ) {
+            todo++;
+            printf( " - Alter privileges on database '%s'.\n"
+                    "   As user %s, run:\n\n"
+                    "psql %s -f - <<PSQL;\n%sPSQL\n\n",
+                    dbname->cstr(), PGUSER, dbname->cstr(), cmd.cstr() );
         }
-        else if ( r ) {
-            String cmd( "\\set ON_ERROR_STOP\n"
-                        "SET client_min_messages TO 'ERROR';\n"
-                        "\\i " LIBDIR "/revoke-privileges\n"
-                        "\\i " LIBDIR "/grant-privileges\n" );
-            if ( report ) {
-                todo++;
-                printf( " - Revoke privileges on database '%s' from user '%s'."
-                        "\n   As user %s, run:\n\n"
-                        "psql %s -f - <<PSQL;\n%sPSQL\n\n",
-                        dbname->cstr(), dbuser->cstr(), PGUSER, dbname->cstr(),
-                        cmd.cstr() );
-            }
-            else {
-                if ( !silent )
-                    printf( "Revoking privileges on database '%s' from user "
-                            "'%s'.\n", dbname->cstr(), dbuser->cstr() );
-                if ( psql( cmd ) < 0 )
-                    return;
-            }
+        else {
+            if ( !silent )
+                printf( "Altering privileges on database '%s'.\n",
+                        dbname->cstr() );
+            if ( psql( cmd ) < 0 )
+                return;
         }
     }
-    */
 
     if ( d->state == Done ) {
         configFile();
