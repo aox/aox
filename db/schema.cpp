@@ -131,7 +131,7 @@ void Schema::execute()
 
         Row *r = d->lock->nextRow();
         if ( r ) {
-            d->version 
+            d->version
                 = r->getString( "version" ).simplified().section( " ", 2 );
             d->revision = r->getInt( "revision" );
         }
@@ -1289,6 +1289,39 @@ bool Schema::stepTo23()
 
     return true;
 }
+
+
+/*! Adds the modsequences table. */
+
+bool Schema::stepTo24()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Creating modsequences table.", Log::Debug );
+        d->q = new Query( "create sequence nextmodsequence;"
+                          "create table modsequences ("
+                          "    mailbox     integer not null,"
+                          "    uid         integer not null,"
+                          "    modseq      bigint not null,"
+                          "    foreign key (mailbox, uid)"
+                          "                references messages(mailbox, uid)"
+                          ");",
+                          this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+    
+}
+
 
 
 /*! Given an error message \a s and, optionally, the query \a q that

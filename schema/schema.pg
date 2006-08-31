@@ -328,3 +328,15 @@ create table deleted_messages (
                 references messages(mailbox, uid)
                 on delete cascade
 );
+
+
+-- One entry per message, changeable by aox
+
+create sequence nextmodsequence;
+create table modsequences (
+    mailbox     integer not null,
+    uid         integer not null,
+    modseq      bigint not null,
+    foreign key (mailbox, uid)
+                references messages(mailbox, uid)
+);
