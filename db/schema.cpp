@@ -1346,7 +1346,7 @@ void Schema::checkAccess( EventHandler * owner )
         void execute()
         {
             if ( !q ) {
-                q = new Query( "select exists (select * from "
+                q = new Query( "select not exists (select * from "
                                "information_schema.table_privileges where "
                                "privilege_type='DELETE' and table_name="
                                "'messages' and grantee=$1) and not exists "
