@@ -1349,11 +1349,13 @@ void Schema::checkAccess( EventHandler * owner )
                 q = new Query( "select exists (select * from "
                                "information_schema.table_privileges where "
                                "privilege_type='DELETE' and table_name="
-                               "'messages' and grantee=$1) and (select "
-                               "u.usename=$1 from pg_catalog.pg_class c "
+                               "'messages' and grantee=$1) and not exists "
+                               "(select u.usename from pg_catalog.pg_class c "
                                "left join pg_catalog.pg_user u on "
                                "(u.usesysid=c.relowner) where c.relname="
-                               "'messages') as allowed", this );
+                               "'messages' and u.usename=$1) as allowed",
+                               this );
+                q->bind( 1, Configuration::text( Configuration::DbUser ) );
                 q->execute();
             }
 
@@ -1364,11 +1366,15 @@ void Schema::checkAccess( EventHandler * owner )
             if ( q->failed() || !r ||
                  r->getBoolean( "allowed" ) == false )
             {
-                String s;
+                String s( "Refusing to start because we have too many "
+                          "privileges on the messages table in secure "
+                          "mode." );
                 result->setError( s );
                 l->log( s, Log::Disaster );
-                l->log( "Query: " + q->description(), Log::Disaster );
-                l->log( "Error: " + q->error(), Log::Disaster );
+                if ( q->failed() ) {
+                    l->log( "Query: " + q->description(), Log::Disaster );
+                    l->log( "Error: " + q->error(), Log::Disaster );
+                }
             }
             else {
                 result->setState( Query::Completed );
