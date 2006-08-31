@@ -311,6 +311,25 @@ Autoresponder
   The Google Team
 
 
+Search blocks too hard
+
+  From the log:
+
+    16:08:50.900 IMAP Command: 'gg uid search'
+    16:08:50.900 First line: gg uid search uid 33788:*
+    16:08:50.907 Search for uid>=33786 and uid<33789
+    16:08:50.907 Executing IMAP command 'gg uid search'
+    16:08:55.121 Search considered 4638 of 4638 messages using cache
+    16:08:55.123 Executed IMAP command 'gg uid search' in 4216ms
+    16:08:55.123 Result: OK done
+
+  The server was busy for a long time with that search. It's time to
+  optimise Selector::consider a little bit so it doesn't spend so much
+  time looking at messages that'll fail. Three steps: 1) propagate
+  possible uid ranges towards root. 2) if the range at root is too
+  big, skip the cache pass. 3) only consider messages in the range.
+
+
 Message arrival tag
 
   Once annotate is done, we want a tag, ie. a magic annotation which
