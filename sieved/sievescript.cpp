@@ -351,7 +351,7 @@ public:
         Arguments( Production * );
         void parse();
     private:
-        ProductionList<Argument> * arguments;
+        SieveScriptData::ProductionList<Argument> * arguments;
         class SieveScriptData::TestList * testList;
     };
 
@@ -537,7 +537,7 @@ void SieveScriptData::Argument::parse()
 SieveScriptData::Arguments::Arguments( Production * p )
     : SieveScriptData::Production( p, ":arguments" )
 {
-    arguments = new ProductionList<Argument>( this );
+    arguments = new SieveScriptData::ProductionList<Argument>( this );
     // see TestList below
     testList = new TestList( this );
 }
