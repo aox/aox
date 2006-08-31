@@ -904,11 +904,9 @@ void database()
     if ( d->state == SelectObjects ) {
         d->state = AlterPrivileges;
         d->q = new Query( "select c.relkind::text as type, c.relname::text "
-                          "as name from pg_catalog.pg_class c join "
-                          "pg_catalog.pg_roles r on (r.oid=c.relowner) "
-                          "left join pg_catalog.pg_namespace n "
-                          "on (n.oid=c.relnamespace) where c.relkind in "
-                          "('r','S') and n.nspname not in "
+                          "as name from pg_catalog.pg_class c left join "
+                          "pg_catalog.pg_namespace n on (n.oid=c.relnamespace) "
+                          "where c.relkind in ('r','S') and n.nspname not in "
                           "('pg_catalog','pg_toast') and "
                           "pg_catalog.pg_table_is_visible(c.oid)", d );
         d->q->execute();
