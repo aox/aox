@@ -1666,19 +1666,21 @@ void vacuum()
     if ( !d->t && !d->query->done() )
         return;
 
-    if ( !opt( 'b' ) )
-        return;
+    if ( !d->t ) {
+        if ( !opt( 'b' ) )
+            return;
 
-    d->t = new Transaction( d );
-    d->query =
-        new Query( "lock mailboxes in exclusive mode", d );
-    d->t->enqueue( d->query );
-    d->query =
-        new Query( "delete from bodyparts where id in (select id "
-                   "from bodyparts b left join part_numbers p on "
-                   "(b.id=p.bodypart) where bodypart is null)", d );
-    d->t->enqueue( d->query );
-    d->t->commit();
+        d->t = new Transaction( d );
+        d->query =
+            new Query( "lock mailboxes in exclusive mode", d );
+        d->t->enqueue( d->query );
+        d->query =
+            new Query( "delete from bodyparts where id in (select id "
+                       "from bodyparts b left join part_numbers p on "
+                       "(b.id=p.bodypart) where bodypart is null)", d );
+        d->t->enqueue( d->query );
+        d->t->commit();
+    }
 }
 
 
