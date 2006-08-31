@@ -645,8 +645,8 @@ void Server::execute()
     if ( failures || Scope::current()->log()->disastersYet() )
         EventLoop::shutdown();
 
-    if ( d->queries->isEmpty() )
+    if ( d->queries->isEmpty() ) {
         EventLoop::global()->setStartup( false );
-
-    dup2( 0, 2 );
+        dup2( 0, 2 );
+    }
 }
