@@ -409,7 +409,8 @@ enum DbState {
     CheckingUser, CreatingUser, CheckSuperuser, CheckingSuperuser,
     CreatingSuperuser, CreateDatabase, CreatingDatabase, CheckSchema,
     CheckingSchema, CreateSchema, CheckingRevision, UpgradingSchema,
-    CheckPrivileges, CheckingPrivileges, AlteringPrivileges,
+    CheckOwnership, AlterOwnership, AlteringOwnership, SelectObjects,
+    AlterPrivileges, AlteringPrivileges,
     Done
 };
 
@@ -807,7 +808,7 @@ void database()
                     todo++;
                     printf( " - Upgrade the database schema (\"aox upgrade "
                             "schema -n\" to see what would happen).\n" );
-                    d->state = CheckPrivileges;
+                    d->state = CheckOwnership;
                 }
                 else {
                     d->state = UpgradingSchema;
@@ -817,7 +818,7 @@ void database()
                 }
             }
             else {
-                d->state = CheckPrivileges;
+                d->state = CheckOwnership;
             }
         }
     }
@@ -832,18 +833,87 @@ void database()
             EventLoop::shutdown();
             return;
         }
-        d->state = CheckPrivileges;
+        d->state = CheckOwnership;
     }
 
-    if ( d->state == CheckPrivileges ) {
-        d->state = CheckingPrivileges;
-        d->q = new Query( "select * from information_schema.table_privileges "
-                          "where privilege_type='DELETE' and "
-                          "table_name='messages' and grantee=$1", d );
-        d->q->bind( 1, *dbuser );
-        d->q->execute();
+    if ( d->state == CheckOwnership ) {
+        if ( d->owner != *dbowner ) {
+            d->state = AlterOwnership;
+            d->ssa = new Query( "set session authorization default", d );
+            d->ssa->execute();
+        }
+        else {
+            // We'll just assume that, if the database is owned by the
+            // right user already, the privileges are fine too.
+            d->state = Done;
+        }
     }
 
+    if ( d->state == AlterOwnership ) {
+        if ( !d->ssa->done() )
+            return;
+
+        if ( d->ssa->failed() ) {
+            if ( !report ) {
+                report = true;
+                fprintf( stderr,
+                         "Couldn't reset session authorisation to alter "
+                         "ownership and privileges on database '%s' (%s)."
+                         "\nSwitching to reporting mode.\n", dbname->cstr(),
+                         d->ssa->error().cstr() );
+            }
+        }
+
+        String alter( "alter database " + *dbname + " owner to " + *dbowner );
+
+        if ( report ) {
+            todo++;
+            printf( " - Alter owner of database '%s' from '%s' to '%s'.\n"
+                    "   As user %s, run:\n\n"
+                    "psql -d template1 -qc \"%s\"\n\n",
+                    dbname->cstr(), d->owner.cstr(), dbowner->cstr(),
+                    PGUSER, alter.cstr() );
+            d->state = SelectObjects;
+        }
+        else {
+            d->state = AlteringOwnership;
+            if ( !silent )
+                printf( "Altering ownership of database '%s' to '%s'.\n",
+                        dbname->cstr(), dbowner->cstr() );
+            d->q = new Query( alter, d );
+            d->q->execute();
+        }
+    }
+
+    if ( d->state == AlteringOwnership ) {
+        if ( !d->q->done() )
+            return;
+
+        if ( d->q->failed() ) {
+            fprintf( stderr, "Couldn't alter owner of database '%s' to '%s' "
+                     "(%s).\n"
+                     "Please set the owner by hand and re-run the installer.\n",
+                     dbname->cstr(), dbowner->cstr(), d->q->error().cstr() );
+            EventLoop::shutdown();
+            return;
+        }
+
+        d->state = SelectObjects;
+    }
+
+    if ( d->state == SelectObjects ) {
+        d->state = AlterPrivileges;
+    }
+
+    if ( d->state == AlterPrivileges ) {
+        d->state = AlteringPrivileges;
+    }
+
+    if ( d->state == AlteringPrivileges ) {
+        d->state = Done;
+    }
+
+    /*
     if ( d->state == CheckingPrivileges ) {
         if ( !d->q->done() )
             return;
@@ -879,6 +949,7 @@ void database()
             }
         }
     }
+    */
 
     if ( d->state == Done ) {
         configFile();
