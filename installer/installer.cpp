@@ -939,8 +939,9 @@ void database()
         }
 
         String ap( Configuration::compiledIn( Configuration::LibDir ) );
+        setreuid( 0, 0 );
         ap.append( "/fixup-privileges" );
-        File f( ap, File::Write, 0600 );
+        File f( ap, File::Write, 0644 );
         if ( !f.valid() ) {
             fprintf( stderr, "Couldn't open '%s' for writing.\n", ap.cstr() );
             exit( -1 );
@@ -954,6 +955,7 @@ void database()
             s.append( *dbowner );
             s.append( ";\n" );
             f.write( s );
+            ++it;
         }
 
         String trevoke( "revoke all privileges on " );
