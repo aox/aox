@@ -1,5 +1,5 @@
 .\" Copyright Oryx Mail Systems GmbH. Enquiries to info@oryx.com, please.
-.TH archiveopteryx 7 2006-09-09 www.oryx.com "Archiveopteryx Documentation"
+.TH archiveopteryx 7 2006-08-31 www.oryx.com "Archiveopteryx Documentation"
 .SH NAME
 Overview of Archiveopteryx.
 .SH SYNOPSIS
@@ -228,7 +228,7 @@ contains a private key and self-signed certificate used by
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 1.10, released 2006-09-09,
+This man page covers Archiveopteryx version 1.10, released 2006-08-31,
 http://www.archiveopteryx.org/1.10.html.
 .SH SEE ALSO
 .BR archiveopteryx (8),
