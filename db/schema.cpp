@@ -1329,5 +1329,56 @@ int Schema::currentRevision()
 
 void Schema::checkAccess( EventHandler * owner )
 {
-    owner = owner;
+    class AccessChecker
+        : public EventHandler
+    {
+    public:
+        Log * l;
+        Query * q;
+        Query * result;
+
+        AccessChecker( EventHandler * owner )
+            : l( new Log( Log::Database ) ), q( 0 ), result( 0 )
+        {
+            result = new Query( owner );
+        }
+
+        void execute()
+        {
+            if ( !q ) {
+                q = new Query( "select exists (select * from "
+                               "information_schema.table_privileges where "
+                               "privilege_type='DELETE' and table_name="
+                               "'messages' and grantee=$1) and (select "
+                               "u.usename=$1 from pg_catalog.pg_class c "
+                               "left join pg_catalog.pg_user u on "
+                               "(u.usesysid=c.relowner) where c.relname="
+                               "'messages') as allowed", this );
+                q->execute();
+            }
+
+            if ( !q->done() )
+                return;
+
+            Row * r = q->nextRow();
+            if ( q->failed() || !r ||
+                 r->getBoolean( "allowed" ) == false )
+            {
+                String s;
+                result->setError( s );
+                l->log( s, Log::Disaster );
+                l->log( "Query: " + q->description(), Log::Disaster );
+                l->log( "Error: " + q->error(), Log::Disaster );
+            }
+            else {
+                result->setState( Query::Completed );
+            }
+
+            result->notify();
+        }
+    };
+
+    AccessChecker * a = new AccessChecker( owner );
+    owner->waitFor( a->result );
+    a->execute();
 }
