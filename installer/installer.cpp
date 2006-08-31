@@ -1007,6 +1007,11 @@ void database()
         sgrant.append( ";\n" );
         f.write( sgrant );
 
+        String bigrant( "grant all privileges on bodypart_ids to " );
+        bigrant.append( *dbowner );
+        bigrant.append( ";\n" );
+        f.write( bigrant );
+
         d->state = AlteringPrivileges;
     }
 
