@@ -253,20 +253,7 @@ CONDSTORE
   - SELECT/EXAMIME CONDSTORE (done)
   - updating the modseq in store
   - updating the modseq for non-peek fetches, if unseen
-  - schema update as follow:
-
-  create table modsequences (
-      mailbox     integer not null,
-      uid         integer not null,
-      modseq      bigint not null,
-      foreign key (mailbox, uid)
-                  references messages(mailbox, uid)
-  )
-
-  Perhaps deleting the message should cascade. If not, then we want to
-  update the modseq when we delete a message.
-
-  And last but not least:
+  - schema update (done)
   - testing all of the above (NOT done)
 
   The search is tricky, since the select now needs to return something
@@ -927,6 +914,9 @@ LDAP server/address book
      (I suppose one might even say "breathtakingly complex join")
 
   Admins can enable/disable each of those depending on site policy.
+
+  http://www.onlamp.com/lpt/a/3310 may be helpful wrt i14y testing.
+  thunderbird should do what it says.
 
 
 Groups and ACL
