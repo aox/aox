@@ -26,13 +26,10 @@ public:
     static Log::Facility facility( const String & );
 
     // only for SelfLogger
-    void commit( String, Log::Severity );
     void output( String, Log::Facility, Log::Severity, const String & );
 
 private:
     void parse();
-    void commitAll();
-    void log( String, Log::Facility, Log::Severity, const String & );
 
 private:
     class LogServerData *d;

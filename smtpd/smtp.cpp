@@ -859,7 +859,6 @@ void SMTP::reportInjection()
     }
 
     sendResponses();
-    commit();
     d->from = 0;
     d->to.clear();
     d->body = "";

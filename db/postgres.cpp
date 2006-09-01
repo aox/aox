@@ -381,7 +381,6 @@ void Postgres::backendStartup( char type )
             processQuery( q );
         }
 
-        commit();
         break;
 
     case 'K':
@@ -522,7 +521,6 @@ void Postgres::process( char type )
             setState( msg.state() );
 
         }
-        commit();
         break;
 
     default:

@@ -23,19 +23,10 @@ static Log::Severity logLevel;
 
 /*! \class LogServer logserver.h
     The LogServer listens for log items on a TCP socket and commits
-    them to file intelligently.
+    them to file.
 
     Each logged item belongs to a transaction (a base-36 number), has a
-    level of seriousness (debug, info, error or disaster) and a text. If
-    the transaction ID is 0, the item is logged immediately, else it's
-    held in memory until the transaction is committed.
-
-    When a log transaction is committed, the client can decide what to
-    commit. For example, debugging can be discarded and the rest logged.
-
-    If the client crashes or unexpectedly closes the TCP connection,
-    everything belonging to pending transactions is immediately written
-    to disk.
+    level of seriousness (debug, info, error or disaster) and a text.
 */
 
 class LogServerData
@@ -45,23 +36,6 @@ public:
     LogServerData(): id( ::id++ ), name( "(Anonymous)" ) {}
 
     uint id;
-
-    class Line
-        : public Garbage
-    {
-    public:
-        Line( Log::Facility f, Log::Severity s, const String &l )
-            : facility( f ), severity( s ), line( l )
-        {}
-
-        Log::Facility facility;
-        Log::Severity severity;
-        String line;
-    };
-
-    typedef List<Line> Queue;
-
-    Dict<Queue> pending;
 
     String name;
 };
@@ -95,13 +69,11 @@ void LogServer::react( Event e )
     case Timeout:
         // Timeout never should happen
     case Shutdown:
-        log( 0, Log::General, Log::Debug, "log server shutdown" );
-        commitAll();
+        output( 0, Log::General, Log::Debug, "log server shutdown" );
         break;
     case Connect:
     case Error:
     case Close:
-        commitAll();
         break;
     };
 }
@@ -132,12 +104,6 @@ void LogServer::processLine( const String &line )
     }
     else if ( line.startsWith( "shutdown" ) ) {
         close();
-        StringList keys( d->pending.keys() );
-        StringList::Iterator i( keys );
-        while ( i ) {
-            commit( *i, Log::Info );
-            ++i;
-        }
         return;
     }
 
@@ -154,13 +120,6 @@ void LogServer::processLine( const String &line )
     String priority( line.mid( cmd+1, msg-cmd-1 ) );
     String parameters( line.mid( msg+1 ) );
 
-    bool c = false;
-    if ( priority == "commit" ) {
-        priority = parameters;
-        parameters = "";
-        c = true;
-    }
-
     int n = priority.find( '/' );
     if ( n < 0 )
         return;
@@ -168,77 +127,8 @@ void LogServer::processLine( const String &line )
     Log::Facility f = facility( priority.mid( 0, n ) );
     Log::Severity s = severity( priority.mid( n+1 ) );
 
-    if ( c ) {
-        commit( transaction, s );
-    }
-    else if ( s >= logLevel ) {
-        if ( s >= Log::Error )
-            s = Log::Debug;
-        commit( transaction, s );
+    if ( s >= logLevel )
         output( transaction, f, s, parameters );
-    }
-    else {
-        log( transaction, f, s, parameters );
-    }
-}
-
-
-/*! Saves \a line with tag \a t, facility \a f, and severity \a s in the
-    list of pending output lines.
-*/
-
-void LogServer::log( String t, Log::Facility f, Log::Severity s,
-                     const String &line )
-{
-    LogServerData::Queue * q = d->pending.find( t );
-    if ( !q ) {
-        q = new LogServerData::Queue;
-        d->pending.insert( t, q );
-    }
-    q->append( new LogServerData::Line( f, s, line ) );
-}
-
-
-/*! Commits all log lines of \a severity or higher from transaction \a
-    tag to the log file, and discards lines of lower severity.
-*/
-
-void LogServer::commit( String tag, Log::Severity severity )
-{
-    LogServerData::Queue * q = d->pending.find( tag );
-    if ( !q || q->isEmpty() )
-        return;
-
-    List< LogServerData::Line >::Iterator i( q );
-    while ( i ) {
-        if ( i->severity >= severity )
-            output( tag, i->facility, i->severity, i->line );
-        ++i;
-    }
-    q->clear();
-}
-
-
-
-/*! Commits all messages made to all transactions. */
-
-void LogServer::commitAll()
-{
-    StringList keys( d->pending.keys() );
-    StringList::Iterator i( keys );
-    while ( i && d->pending.find( *i )->isEmpty() )
-        ++i;
-    if ( !i )
-        return;
-
-    output( 0, Log::General, Log::Error,
-            d->name + " unexpectedly closed the log connection. "
-            "All messages in unfinished transactions follow." );
-    i = keys.first();
-    while ( i ) {
-        commit( *i, Log::Debug );
-        ++i;
-    }
 }
 
 
@@ -422,15 +312,12 @@ void LogServer::reopen( int )
         ::log( "SIGHUP handler was unable to open new log file" +
                l->name(),
                Log::Disaster );
-        ::commit();
         EventLoop::shutdown(); // XXX: perhaps better to switch to syslog
     }
     ::log( "SIGHUP caught. Closing and reopening log file " + logFile->name(),
            Log::Info );
-    ::commit();
     delete logFile;
     logFile = l;
     ::log( "SIGHUP caught. Reopened log file " + logFile->name(),
            Log::Info );
-    ::commit();
 }

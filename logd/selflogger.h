@@ -14,11 +14,10 @@ class SelfLogger: public Logger
 {
 public:
     SelfLogger();
+
     void send( const String &,
                Log::Facility, Log::Severity,
                const String & );
-
-    void commit( const String &, Log::Severity );
 
 private:
     LogServer * ls;

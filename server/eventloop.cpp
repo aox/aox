@@ -116,9 +116,6 @@ void EventLoop::addConnection( Connection * c )
 
 /*! Removes \a c from this EventLoop's list of active
     Connections.
-
-    Since this is the last time the Connection is reachable,
-    removeConnection() calls Connection::commit() as well.
 */
 
 void EventLoop::removeConnection( Connection *c )
@@ -128,7 +125,6 @@ void EventLoop::removeConnection( Connection *c )
     if ( d->connections.remove( c ) == 0 )
         return;
 
-    c->commit();
     if ( c->type() != Connection::LogClient )
         log( "Removed " + c->description(), Log::Debug );
 }
@@ -154,7 +150,6 @@ void EventLoop::start()
     log( "Starting event loop", Log::Debug );
 
     while ( !d->stop ) {
-        commit();
         Connection * c;
 
         uint timeout = INT_MAX;
@@ -240,7 +235,6 @@ void EventLoop::start()
                                     c->description(), Log::Error );
                             c->log( "Please notify info@oryx.com about what "
                                     "happened with this connection" );
-                            c->commit();
                         }
                         removeConnection( c );
                     }
@@ -317,7 +311,6 @@ void EventLoop::start()
     }
 
     log( "Event loop stopped", Log::Debug );
-    commit();
 }
 
 

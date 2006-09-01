@@ -206,7 +206,6 @@ void SmtpClient::sendCommand()
     default:
         setState( Closing );
         d->owner->execute();
-        commit();
         return;
         break;
     }

@@ -86,7 +86,6 @@ public:
 
     Log * log() const;
     void log( const String &, Log::Severity = Log::Info );
-    void commit( Log::Severity = Log::Info );
 
 private:
     class ConnectionData *d;

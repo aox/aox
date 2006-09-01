@@ -141,7 +141,6 @@ void POP::react( Event e )
         Connection::setState( Closing );
     if ( Connection::state() == Closing && session() )
         session()->end();
-    commit();
 }
 
 

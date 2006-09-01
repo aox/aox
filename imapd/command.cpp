@@ -532,7 +532,6 @@ void Command::finish()
 {
     setState( Finished );
     emitResponses();
-    commit();
     imap()->unblockCommands();
 }
 

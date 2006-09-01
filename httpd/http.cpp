@@ -195,9 +195,6 @@ void HTTP::process()
         if ( d->connectionClose )
             setState( Closing );
 
-        d->page->commit();
-        commit();
-
         clear();
     }
 }

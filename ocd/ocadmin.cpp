@@ -45,7 +45,6 @@ void OCAdmin::react( Event e )
     default:
         break;
     }
-    commit();
 }
 
 

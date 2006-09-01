@@ -570,7 +570,6 @@ void Configuration::report()
         ::log( it->e, it->s );
         ++it;
     }
-    l.commit();
 
     d->errors = 0;
 }

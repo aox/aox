@@ -29,9 +29,3 @@ void SelfLogger::send( const String & id,
 {
     ls->output( id, f, s, m );
 }
-
-
-void SelfLogger::commit( const String & id, Log::Severity s )
-{
-    ls->commit( id, s );
-}

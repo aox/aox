@@ -85,7 +85,6 @@ void OCClient::react( Event e )
         EventLoop::shutdown();
         break;
     }
-    commit();
 }
 
 

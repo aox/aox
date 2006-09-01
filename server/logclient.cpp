@@ -132,18 +132,6 @@ void LogClient::send( const String &id,
 }
 
 
-void LogClient::commit( const String & id, Log::Severity s )
-{
-    String t( id );
-    t.append( " commit commit/" );
-    t.append( Log::severity( s ) );
-    t.append( "\r\n" );
-    d->enqueue( t );
-    if ( d->state() == Connection::Connected )
-        d->write();
-}
-
-
 /*! Connects to the configured log server and creates a singleton
     Logger named \a n talking to that server.
 

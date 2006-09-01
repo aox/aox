@@ -579,7 +579,6 @@ void Server::run()
         log( "Aborting server " + d->name + " due to earlier problems." );
         exit( 1 );
     }
-    commit();
 
     dup2( 0, 1 );
     if ( !d->queries->isEmpty() )

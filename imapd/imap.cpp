@@ -202,9 +202,6 @@ void IMAP::react( Event e )
         }
 
     }
-
-    if ( state() == Logout || d->commands.isEmpty() )
-        commit();
 }
 
 

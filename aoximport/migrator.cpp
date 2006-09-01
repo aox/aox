@@ -419,7 +419,6 @@ MailboxMigrator::MailboxMigrator( MigratorMailbox * source,
     d->migrator = migrator;
 
     log( "Starting migration of mailbox " + d->source->partialName() );
-    commit();
 }
 
 
@@ -439,7 +438,6 @@ bool MailboxMigrator::valid() const
             log( "Source apparently is a valid mailbox" );
         else
             log( "Source is not a valid mailbox" );
-        commit();
     }
 
     return d->valid;
@@ -470,7 +468,6 @@ void MailboxMigrator::execute()
                        ": " +
                        d->mailboxCreator->error();
             log( d->error, Log::Error );
-            commit();
             d->migrator->execute();
             return;
         }
@@ -489,7 +486,6 @@ void MailboxMigrator::execute()
 
     if ( d->injector ) {
         // we've already injected one message. must get another.
-        commit();
         d->message = d->source->nextMessage();
     }
     else {
@@ -508,9 +504,6 @@ void MailboxMigrator::execute()
     else {
         d->migrator->execute();
     }
-
-    if ( done() )
-        commit();
 }
 
 

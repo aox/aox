@@ -273,8 +273,6 @@ void TlsProxy::react( Event e )
 
     setTimeoutAfter( 1800 );
 
-    commit();
-
     if ( d->state == TlsProxyData::Initial )
         return;
 
@@ -466,7 +464,6 @@ void TlsProxy::decrypt()
         status = cryptPopData( cs, buffer, 4096, &len );
         if ( status == CRYPT_ERROR_READ ) {
             log( "Client closed the connection" );
-            commit();
             userside->close();
             serverside->close();
             exit( 0 );

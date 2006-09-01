@@ -11,11 +11,13 @@ class StderrLogger
 {
 public:
     StderrLogger( const String & name, uint verbosity );
+
     void send( const String &,
                Log::Facility, Log::Severity,
                const String & );
-    void commit( const String &, Log::Severity ) {}
+
     virtual String name() const;
+
 private:
     String n;
     uint v;

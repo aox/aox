@@ -24,27 +24,11 @@ void log( const String &m, Log::Severity s )
 }
 
 
-void commit( Log::Severity s )
-{
-    Scope * cs = Scope::current();
-    Log *l = 0;
-    if ( cs )
-        l = cs->log();
-    if ( l )
-        l->commit( s );
-}
-
-
 /*! \class Log log.h
     The Log class sends log messages to the Log server.
 
     A Log object accepts messages via log() and sends them to the log
-    server. The log server can be instructed to commit() all messages of
-    or above a certain priority, logged since the last such instruction,
-    and discard the others.
-
-    If a Log is destroyed (or the program dies), all pending messages
-    are committed to disk by the log server.
+    server.
 */
 
 /*! Constructs an empty Log object with facility \a f. */
@@ -91,28 +75,6 @@ void Log::log( const String &m, Severity s )
         return;
 
     l->send( ide, fc, s, m );
-}
-
-
-/*! Requests the log server to commit all log statements with severity
-    \a s or more to disk.
-*/
-
-void Log::commit( Severity s )
-{
-    Logger *l = Logger::global();
-    if ( !l )
-        return;
-
-    l->commit( ide, s );
-}
-
-
-/*! Destroys a Log. Uncommitted messages are written to the log file. */
-
-Log::~Log()
-{
-    commit( Debug );
 }
 
 

@@ -22,8 +22,6 @@ public:
     Log( Facility );
     void setFacility( Facility );
     void log( const String &, Severity = Info );
-    void commit( Severity = Info );
-    ~Log();
     String id();
 
     static const char * severity( Severity );
@@ -38,7 +36,6 @@ private:
 
 
 void log( const String &, Log::Severity = Log::Info );
-void commit( Log::Severity = Log::Info );
 
 
 #endif

@@ -749,14 +749,3 @@ void Connection::log( const String &m, Log::Severity s )
 {
     d->l->log( m, s );
 }
-
-
-/*! Commits all pending log messages of severity \a s or greater.
-*/
-
-void Connection::commit( Log::Severity s )
-{
-    d->l->commit( s );
-}
-
-

@@ -56,7 +56,6 @@ void ByteForwarder::react( Event e )
     case Shutdown:
         break;
     }
-    commit();
 }
 
 

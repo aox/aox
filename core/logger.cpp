@@ -42,20 +42,6 @@ Logger::Logger()
 */
 
 
-/*! \fn void Logger::commit( const String &id, Log::Severity s )
-
-    This virtual function instructs the logger to commit all messages
-    for \a id with severity \a s or higher. Messages with lower
-    severity may be logged or discarded at the logger's discretion.
-
-    The default implementation is a no-op.
-*/
-
-void Logger::commit( const String &, Log::Severity )
-{
-}
-
-
 /*! This virtual destructor exists only to ensure that global() doesn't
     return a bad pointer.
 */

@@ -102,8 +102,6 @@ void ManageSieve::react( Event e )
         send( "BYE Server shutdown" );
         break;
     }
-
-    commit();
 }
 
 
