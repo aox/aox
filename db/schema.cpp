@@ -1297,15 +1297,22 @@ bool Schema::stepTo24()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Creating modsequences table.", Log::Debug );
-        d->q = new Query( "create sequence nextmodsequence;"
-                          "create table modsequences ("
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "create sequence nextmodsequence", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "grant select,update on nextmodsequence to " +
+                          dbuser, this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create table modsequences ("
                           "    mailbox     integer not null,"
                           "    uid         integer not null,"
                           "    modseq      bigint not null,"
                           "    foreign key (mailbox, uid)"
                           "                references messages(mailbox, uid)"
-                          ");",
-                          this );
+                          ")", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "grant insert,update on modsequences to " +
+                          dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
