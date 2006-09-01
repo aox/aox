@@ -1,25 +1,3 @@
-1.10: 2006-09-01
-
-  Done:
-
-  Added UTF-16, UTF-16LE and UTF-16BE codecs.
-
-  IMAP Login has to complete in two minutes and 32k, whichever is more
-  restrictive.
-
-  Lots of bugs (syntax, message injection for bad messages)
-
-  Privilege separation.
-
-  RFC 2180 compliance.
-
-  Must-Do:
-
-  Misc:
-
-  ?
-
-
 1.11: 2006-09-24
 
   CONDSTORE goes here.
@@ -28,12 +6,12 @@
 
   0 bytes in every codec.
 
+
 1.12: 2006-10-23
 
   Implement rest of Lemonade profile in time for the interop.
 
   What here? LDAP AB? Webmail?
-
 
 
 Undefined codepoints
@@ -43,7 +21,7 @@ Undefined codepoints
   later allows parseBodypart() to upgrade (or is that "downgrade"?) the
   entire message to UTF-8 for subsequent retrieval.
 
-  This is done as a special case for GB2312 right now.
+  This is done as a special case for GB2312/ISO-2022-JP right now.
 
 
 Better caching.
@@ -828,22 +806,6 @@ aox restart and aox start don't check all they could
 
   4. Both of them should expect all the binds to succeed. if not,
      mailstore.conf contains a bad address.
-
-
-Privilege separation
-
-  We talked about privilege separation. One pgsql user to update the
-  schema, another to read mail.
-
-  How about deleting things? Is that something we might want to
-  restrict?
-
-  Somehow I feel more and more uncertain each time I type
-  'delete from messages where mailbox>6;' or similar commands.
-
-  Perhaps privilege separation could be used to grant me rm -rf access
-  to the regular database, but build a higher wall on kalyani. Sounds
-  good.
 
 
 Make User::create/remove work like Mailbox::create/remove. (AMS)
