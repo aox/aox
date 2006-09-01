@@ -590,10 +590,17 @@ void Postgres::errorMessage()
     switch ( msg.severity() ) {
     case PgMessage::Panic:
     case PgMessage::Fatal:
-        // special-case IDENT query failures since they can be
-        // so off-putting to novices.
-        if ( m.lower().startsWith( "ident authentication failed "
-                                   "for user \"" ) )
+        if ( m.lower().startsWith( "the database system is "
+                                   "starting up" ) )
+        {
+            log( "Retrying connection after delay because PostgreSQL "
+                 "is still starting up.", Log::Info );
+            close();
+            sleep( 1 );
+            connect( server() );
+        }
+        else if ( m.lower().startsWith( "ident authentication failed "
+                                        "for user \"" ) )
         {
             int b = m.find( '"' );
             int e = m.find( '"', b+1 );
