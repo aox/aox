@@ -1020,16 +1020,16 @@ INTHREAD
 
 Todo list: AMS
 
+  - Figure out why penne/test fails, and setup whip tests with the
+    new-style database.
   - Fix the failing tests inspired by Harri's message.
   - Figure out why tlsproxy segfaults on Thomas's box.
   - Go through ANNOTATE and make sure we have and test everything.
   - Update to Postgres 8.1.x on kalyani (+rusage.diff)
   - aox upgrade schema should say something comforting.
   - aox hangs if the database doesn't exist, now that DB::desired > 1.
-  - jam shouldn't ask you to run the installer if aox.conf exists.
   - Retry the connection if postgres says "FATAL: starting up".
   - Update the schema for condstore.
-  - Try out privilege separation.
   - Fix imap/view and the recent problems.
   - Figure out the Injector upper bound on Injector speed.
   - Log single-row query values?
