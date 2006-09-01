@@ -1644,3 +1644,34 @@ Selector * Selector::fromString( const String &s )
 
     return r;
 }
+
+
+/*! Returns the field specific using the constructor.
+
+*/
+
+Selector::Field Selector::field() const
+{
+    return d->f;
+}
+
+
+/*! Returns the action specified using the constructor.
+
+*/
+
+Selector::Action Selector::action() const
+{
+    return d->a;
+}
+
+
+/*! Returns a reference to the set passed to the constructor. If the
+    constructor didn't accept a set, messageSet() returns a reference
+    to an empty set.
+*/
+
+const MessageSet & Selector::messageSet() const
+{
+    return d->s;
+}

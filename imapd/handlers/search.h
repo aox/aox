@@ -20,13 +20,14 @@ public:
 
     void parse();
     void execute();
-    virtual void process();
 
 protected:
     void setCharset( const String & );
     void parseKey( bool alsoCharset = false );
 
     Selector * selector() const;
+
+    void sendSearchResponse();
 
 private:
     void push( Selector::Action );

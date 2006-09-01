@@ -39,6 +39,10 @@ public:
     Selector( const MessageSet & );
     Selector( Action );
 
+    Field field() const;
+    Action action() const;
+    const MessageSet & messageSet() const;
+
     uint placeHolder();
 
     const Selector * root() const;

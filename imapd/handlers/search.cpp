@@ -45,6 +45,7 @@ public:
     List< Selector > selectors;
 
     Query * query;
+    MessageSet matches;
 };
 
 
@@ -360,25 +361,28 @@ void Search::parseKey( bool alsoCharset )
 
 void Search::execute()
 {
+    ImapSession * s = imap()->session();
+
     if ( !d->query ) {
-        if ( d->root->needSession() && !imap()->session()->initialised() ) {
-            imap()->session()->refresh( this );
+        if ( d->root->needSession() && !s->initialised() ) {
+            s->refresh( this );
             return;
         }
         considerCache();
         if ( d->done ) {
+            sendSearchResponse();
             finish();
             return;
         }
 
-        Mailbox * m = imap()->session()->mailbox();
+        Mailbox * m = s->mailbox();
         if ( m->view() )
             m = m->source();
 
         d->query =
-            d->root->query( imap()->user(), m, imap()->session(), this );
+            d->root->query( imap()->user(), m, s, this );
 
-        m = imap()->session()->mailbox();
+        m = s->mailbox();
         if ( m->view() ) {
             uint source = d->root->placeHolder();
             uint view = d->root->placeHolder();
@@ -402,31 +406,13 @@ void Search::execute()
         return;
     }
 
-    process();
-    finish();
-}
-
-
-/*! This virtual function is called by execute() once the results are
-    ready to be returned to the client.
-*/
-
-void Search::process()
-{
-    ImapSession * s = imap()->session();
     Row * r;
     String result( "SEARCH" );
-    while ( (r=d->query->nextRow()) != 0 ) {
-        uint n = r->getInt( "uid" );
-        if ( !d->uid )
-            n = s->msn( n );
-        if ( n ) {
-            result.append( " " );
-            result.append( fn( n ) );
-        }
-    }
+    while ( (r=d->query->nextRow()) != 0 )
+        d->matches.add( r->getInt( "uid" ) );
 
-    respond( result );
+    sendSearchResponse();
+    finish();
 }
 
 
@@ -437,37 +423,43 @@ void Search::process()
 void Search::considerCache()
 {
     ImapSession * s = imap()->session();
-    uint msn = s->count();
     bool needDb = false;
-    uint c = 0;
-    String matches = "SEARCH";
-    while ( c < msn && !needDb ) {
-        c++;
-        uint uid = s->uid( c );
-        switch ( d->root->match( s, uid ) ) {
-        case Selector::Yes:
-            matches.append( " " );
-            if ( !d->uid )
-                matches.append( fn( c ) );
-            else
-                matches.append( fn( uid ) );
-            break;
-        case Selector::No:
-            break;
-        case Selector::Punt:
-            log( "Search must go to database: message " + fn( uid ) +
-                 " could not be tested in RAM",
-                 Log::Debug );
+    if ( d->root->field() == Selector::Uid &&
+         d->root->action() == Selector::Contains ) {
+        d->matches = s->messages().intersection( d->root->messageSet() );
+        log( "UID-only search matched " +
+             fn( d->matches.count() ) + " messages",
+             Log::Debug );
+    }
+    else {
+        uint max = s->count();
+         // don't consider more than 300 messages - pg does it better
+        if ( max > 300 )
             needDb = true;
-            break;
+        uint c = 0;
+        while ( c < max && !needDb ) {
+            c++;
+            uint uid = s->uid( c );
+            switch ( d->root->match( s, uid ) ) {
+            case Selector::Yes:
+                d->matches.add( uid );
+                break;
+            case Selector::No:
+                break;
+            case Selector::Punt:
+                log( "Search must go to database: message " + fn( uid ) +
+                     " could not be tested in RAM",
+                     Log::Debug );
+                needDb = true;
+                d->matches.clear();
+                break;
+            }
+            log( "Search considered " + fn( c ) + " of " + fn( max ) +
+                 " messages using cache", Log::Debug );
         }
     }
-    log( "Search considered " + fn( c ) + " of " + fn( c ) +
-         " messages using cache", Log::Debug );
-    if ( !needDb ) {
-        respond( matches );
+    if ( !needDb )
         d->done = true;
-    }
 }
 
 
@@ -626,4 +618,28 @@ MessageSet Search::set( bool parseMsns )
     
     s.addGapsFrom( imap()->session()->messages() );
     return s;
+}
+
+
+/*! Sends the SEARCH response, or ESEARCH, or whatever is called
+    for.
+*/
+
+void Search::sendSearchResponse()
+{
+    ImapSession * s = imap()->session();
+    String result( "SEARCH" );
+    uint i = 1;
+    uint max = d->matches.count();
+    while ( i <= max ) {
+        uint uid = d->matches.value( i );
+        i++;
+        if ( !d->uid )
+            uid = s->msn( uid ); // ick
+        if ( uid ) {
+            result.append( " " );
+            result.append( fn( uid ) );
+        }
+    }
+    respond( result );
 }

@@ -56,16 +56,14 @@ MessageSet::MessageSet( const MessageSet & other )
 
 MessageSet& MessageSet::operator=( const MessageSet & other )
 {
-    if ( d != other.d ) {
-        delete d;
-        d = new SetData;
-
-        List< SetData::Range >::Iterator it( other.d->l );
-        while ( it ) {
-            SetData::Range *r = it;
-            d->l.append( new SetData::Range( r->start, r->length ) );
-            ++it;
-        }
+    if ( d == other.d )
+        return *this;
+        
+    d = new SetData;
+    List< SetData::Range >::Iterator it( other.d->l );
+    while ( it ) {
+        d->l.append( new SetData::Range( it->start, it->length ) );
+        ++it;
     }
     return *this;
 }
