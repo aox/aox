@@ -1004,10 +1004,6 @@ Todo list: AMS
   - Why does Flag::find( "\\seen" ) return 0 if used in Session?
   - Make Schema::check independent of upgrade so that we can revoke
     update on mailstore from aox.
-  - stepTo24 should determine if thread/thread_members exists, and
-    create them if not, so that schema.pg and the upgraded schema
-    are in agreement.
-
 
 
 

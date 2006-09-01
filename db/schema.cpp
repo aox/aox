@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 23;
+int currentRevision = 24;
 
 
 class SchemaData
@@ -295,6 +295,10 @@ bool Schema::singleStep()
         c = stepTo22(); break;
     case 22:
         c = stepTo23(); break;
+    case 23:
+        c = stepTo24(); break;
+    case 24:
+        c = stepTo25(); break;
     }
 
     return c;
@@ -1291,9 +1295,57 @@ bool Schema::stepTo23()
 }
 
 
-/*! Adds the modsequences table. */
+/*! Create threads/thread_members if they don't exist already. */
 
 bool Schema::stepTo24()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Creating threads/thread_messages if necessary.",
+                   Log::Debug );
+        d->q = new Query( "select * from information_schema.tables where "
+                          "table_name='threads'", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        if ( !d->q->hasResults() ) {
+            d->q = new Query( "create table threads (id serial primary "
+                              "key,mailbox integer not null references "
+                              "mailboxes(id),subject text unique)",
+                              this );
+            d->t->enqueue( d->q );
+            d->q = new Query( "create table thread_members (thread integer "
+                              "not null references threads(id),mailbox integer "
+                              "not null,uid integer not null,foreign key "
+                              "(mailbox,uid) references messages(mailbox,uid) "
+                              "on delete cascade)", this );
+            d->t->enqueue( d->q );
+            d->t->execute();
+            d->substate = 2;
+        }
+        else {
+            d->substate = 0;
+        }
+    }
+
+    if ( d->substate == 2 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Adds the modsequences table. */
+
+bool Schema::stepTo25()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Creating modsequences table.", Log::Debug );
