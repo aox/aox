@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 24;
+int currentRevision = 25;
 
 
 class SchemaData
