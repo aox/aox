@@ -983,6 +983,21 @@ INTHREAD
   Possibilities: Combined with THREAD, it allows neat things.
 
 
+URLAUTH (RFC 4467)
+
+  - URLAUTH capability.
+  - Per-user and per-mailbox randomly-generated access keys stored
+    in a new table. (128 bits of entropy (?))
+  - Authorization token: 128+ bits (should identify token-selection
+    mechanism).
+  - We need SHA-1 code (cryptlib has some).
+  - How do we handle expiry dates? Another table?
+  - We need an IMAP URL parser.
+  - RESETKEY
+  - GENURLAUTH
+  - URLFETCH
+
+
 Todo list: AMS
 
   - Figure out why penne/test fails, and setup whip tests with the
@@ -1007,6 +1022,8 @@ Todo list: AMS
   - Why does Flag::find( "\\seen" ) return 0 if used in Session?
   - Make Schema::check independent of upgrade so that we can revoke
     update on mailstore from aox.
+  - Restart Postgres while we're running, and see what happens. We
+    should be able to cope with that gracefully, but we don't.
 
 
 
