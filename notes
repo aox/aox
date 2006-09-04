@@ -1006,6 +1006,16 @@ URLAUTH (RFC 4467)
   - URLFETCH
 
 
+"make install" doesn't create /var/run/oryx
+
+    Perhaps the installer should.
+
+
+tlsproxy doesn't complain about PEM keys
+
+    There should be clear diagnostics for that case.
+
+
 Todo list: AMS
 
   - Figure out why penne/test fails, and setup whip tests with the
