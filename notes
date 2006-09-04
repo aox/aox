@@ -25,28 +25,53 @@
 
 1.15: 2008-01-29
 
-  What crab said about the next five releases:
+  <arnt> spend a little time with notes. spread that across the next
+  five releases.
 
-  [15:45:07] <ams> i don't have an order yet, mind.
-  [15:46:07] <ams> but: a web interface for basic administration. proper
-                   full-text indexing that works out of the box. word/pdf
-                   extractors. (annotate and) condstore.
-  [15:46:35] <ams> the LDAP thing (which i wasn't thinking about earlier),
-                   but then i put it in
-  [15:47:09] <ams> the item you've written about bypassing the db when we
-                   inject messages into a mailbox that has an active session
-                    on it, and whatever caching needs that has.
-  [15:47:22] <ams> (sieve, of course)
-  [15:47:54] <ams> make aoximport faster.
-  [15:48:08] <arnt> do me a favour?
-  [15:48:10] <ams> what?
-  [15:48:24] <arnt> spend a little time with notes. spread that across the
-                    next five releases.
-  [15:48:51] <ams> will you work tomorrow?
-  [15:49:12] <ams> or monday?
-  [15:49:21] <arnt> I'll work monday to wednesday, then go to bremen, and
-                   work again from the 12th.
-  [15:49:41] <ams> then i'll do it now and we can discuss it on monday?
+  - SIEVE
+  
+    - What modules do we need?
+    - Sensible integration with some anti-spam filter
+  
+  - Full-text search
+  
+  - aox backup/restore (or similarly helpful procedure)
+  
+  - LDAP authentication support
+  
+  - Memory use improvements
+  
+  - Message retention policy
+  
+    - Soft-quota/archival stuff too?
+    - Message arrival tag (for archiving)
+  
+  - IMAP extensions
+  
+    - SORT, THREAD, CATENATE, URLAUTH, CONDSTORE, ANNOTATE, METADATA
+  
+  - SMTP submit + BURL
+  
+  - httpd
+  
+    - TLS support
+    - Administration
+      - users/mailboxes/permissions/views
+    - Read-only archive pages
+  
+  - aoximport could be much faster (disable indices, commit several
+    thousand messages at a time in one big transaction), but it's a
+    fair bit of work (unless aoximport has a private Injector)
+  
+  - Autoresponder
+  
+  - Miscellaneous:
+  
+    - aox reinject
+    - Indexing for PDF/DOC bodyparts
+    - Database replication support (local mirror)
+    - Clean up orphaned bodyparts without locking the table
+    - Split the injector transaction into fast and slow parts(?)
 
 
 Undefined codepoints
