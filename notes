@@ -499,12 +499,6 @@ Split the folder view into pages.
   The injector needs to do threading to make the paging possible.
 
 
-The tsearch2 trigger doesn't work
-
-  "Can't find configuration by locale" errors, and they make the
-  Injector very unhappy.
-
-
 A failing parse message should invalidate the prepared statement cache.
 
 
@@ -640,14 +634,6 @@ The IMAP SORT extension seems really easy
   implement, to put it mildly.
 
   Interacts with ANNOTATE.
-
-
-The flag_names has the wrong constraint
-
-  Flag names are case insensitive, but the database constraint assumes
-  that they are case sensitive.
-
-  Maybe we should rather use unique(lower(name)).
 
 
 String allocation is about half as fast as it could be
