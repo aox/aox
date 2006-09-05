@@ -28,36 +28,49 @@
   <arnt> spend a little time with notes. spread that across the next
   five releases.
 
-  - SIEVE
-  
-    - What modules do we need?
-    - Sensible integration with some anti-spam filter
-  
-  - Full-text search
-  
-  - aox backup/restore (or similarly helpful procedure)
-  
-  - LDAP authentication support
-  
+  1.11
+
+    - SIEVE
+    - URLAUTH
+    - CONDSTORE
+    - Full-text search
+
+  1.12
+
+    - SORT (/THREAD?)
+    - CATENATE
+    - SMTP submit
+    - httpd
+      - Read-only archive pages
+
+  1.13
+
+    - aox reinject
+    - aox backup/restore (or similarly helpful procedure)
+    - httpd
+      - Basic administration
+    - LDAP authentication support
+
+  1.14
+
+    - Message retention policy
+    - httpd
+      - TLS support
+      - More administration stuff
+    - Indexing for DOC bodyparts
+
+  1.15
+
+    ...
+
   - Memory use improvements
-  
+
   - Message retention policy
   
     - Soft-quota/archival stuff too?
     - Message arrival tag (for archiving)
   
-  - IMAP extensions
-  
-    - SORT, THREAD, CATENATE, URLAUTH, CONDSTORE, ANNOTATE, METADATA
-  
-  - SMTP submit + BURL
-  
   - httpd
-  
-    - TLS support
-    - Administration
-      - users/mailboxes/permissions/views
-    - Read-only archive pages
   
   - aoximport could be much faster (disable indices, commit several
     thousand messages at a time in one big transaction), but it's a
@@ -67,8 +80,6 @@
   
   - Miscellaneous:
   
-    - aox reinject
-    - Indexing for PDF/DOC bodyparts
     - Database replication support (local mirror)
     - Clean up orphaned bodyparts without locking the table
     - Split the injector transaction into fast and slow parts(?)
