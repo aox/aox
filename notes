@@ -1050,7 +1050,6 @@ Todo list: AMS
   - Go through ANNOTATE and make sure we have and test everything.
   - Update to Postgres 8.1.x on kalyani (+rusage.diff)
   - aox upgrade schema should say something comforting.
-  - aox hangs if the database doesn't exist, now that DB::desired > 1.
   - Update the schema for condstore.
   - Fix imap/view and the recent problems.
   - Figure out the Injector upper bound on Injector speed.
