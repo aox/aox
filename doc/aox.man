@@ -123,6 +123,14 @@ is specified, in which case unqualified names are assumed to be under
 the user's home directory.
 .IP "aox delete mailbox <name>"
 Deletes the specified mailbox.
+.IP "aox create alias <address> <mailbox>"
+Creates an alias that instructs the server to accept mail to the given
+.I address
+and deliver it to the specified
+.IR mailbox .
+.IP "aox delete alias <address>"
+Deletes an alias, if one exists, for the given
+.IR address .
 .IP "aox vacuum [-b]"
 VACUUMs the database and (optionally) cleans up bodyparts that are no
 longer in use by any message (as a result of messages being deleted).
