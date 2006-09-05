@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 25;
+int currentRevision = 26;
 
 
 class SchemaData
@@ -299,6 +299,8 @@ bool Schema::singleStep()
         c = stepTo24(); break;
     case 24:
         c = stepTo25(); break;
+    case 25:
+        c = stepTo26(); break;
     }
 
     return c;
@@ -1381,6 +1383,31 @@ bool Schema::stepTo25()
     
 }
 
+
+/*! Alters deleted_messages.deleted_at to be a timestamp with time zone. */
+
+bool Schema::stepTo26()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Altering deleted_messages.deleted_at to timestamptz.",
+                   Log::Debug );
+        d->q = new Query( "alter table deleted_messages alter column "
+                          "deleted_at type timestamp with time zone ",
+                          this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
 
 
 /*! Given an error message \a s and, optionally, the query \a q that
