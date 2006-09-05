@@ -488,6 +488,7 @@ static void handleError( int cryptError, const String & function )
     if ( cryptStatusOK( cryptError ) )
         return;
 
+    int status;
     int locus = 0;
     int type = 0;
     cryptGetAttribute( cs, CRYPT_ATTRIBUTE_ERRORLOCUS, &locus );
@@ -501,19 +502,22 @@ static void handleError( int cryptError, const String & function )
     ::log( s, Log::Error );
 
     int errorStringLength;
-    String errorString;
-    errorString.reserve( 1024 );
-
-    cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
-                             (char*)errorString.data(),
-                             &errorStringLength );
-    if ( errorStringLength > 1000 )
-        exit( 0 ); // I'm too polite for the sort of comment needed here
-    errorString.truncate( errorStringLength );
-
-    errorString = errorString.simplified();
-    if ( !errorString.isEmpty() > 0 )
-        ::log( "cryptlib's own message: " + errorString );
+    status = cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
+                                      0, &errorStringLength );
+    if ( cryptStatusOK( status ) && errorStringLength < 1024 ) {
+        String errorString;
+        errorString.reserve( errorStringLength );
+        status =
+            cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
+                                     (char *)errorString.data(),
+                                     &errorStringLength );
+        if ( cryptStatusOK( status ) ) {
+            errorString = errorString.simplified();
+            if ( !errorString.isEmpty() )
+                ::log( "Cryptlib error message: " + errorString,
+                       Log::Error );
+        }
+    }
 
     if ( userside ) {
         userside->close();
