@@ -1043,8 +1043,6 @@ tlsproxy doesn't complain about PEM keys
 
 Todo list: AMS
 
-  - Figure out why penne/test fails, and setup whip tests with the
-    new-style database.
   - Fix the failing tests inspired by Harri's message.
   - Figure out why tlsproxy segfaults on Thomas's box.
   - Go through ANNOTATE and make sure we have and test everything.
