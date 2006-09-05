@@ -1046,10 +1046,16 @@ URLAUTH (RFC 4467)
 
     Perhaps the installer should.
 
+tlsproxy needs better diagnostics
 
-tlsproxy doesn't complain about PEM keys
-
-    There should be clear diagnostics for that case.
+  - Primer tried to use it with an OpenSSL key, and it exited silently.
+    Now it's not silent, but it's not helpful either.
+  - We should document /somewhere/ how to use pemtrans to produce keys
+    for aox ("Archiveopteryx private key" and "secret" are completely
+    mysterious right now; and perhaps they should be configurable? I
+    can't imagine anyone wanting to configure them, though).
+  - pemtrans's usage message should be more helpful (though the manpage
+    does explain).
 
 
 Todo list: AMS
@@ -1059,7 +1065,6 @@ Todo list: AMS
   - Go through ANNOTATE and make sure we have and test everything.
   - Update to Postgres 8.1.x on kalyani (+rusage.diff)
   - aox upgrade schema should say something comforting.
-  - Update the schema for condstore.
   - Fix imap/view and the recent problems.
   - Figure out the Injector upper bound on Injector speed.
   - Log single-row query values?
@@ -1076,7 +1081,6 @@ Todo list: AMS
   - Restart Postgres while we're running, and see what happens. We
     should be able to cope with that gracefully, but we don't.
   - Upgrade to cryptlib 3.3. when it comes out.
-  - See why pemtrans didn't work for Primer.
 
 
 
