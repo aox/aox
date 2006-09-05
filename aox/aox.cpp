@@ -101,9 +101,9 @@ int main( int ac, char *av[] )
     uint verbosity = 0;
     int i = 0;
     while ( i < ac ) {
-        if ( av[i] == "-v" )
+        if ( String( av[i] ) == "-v" )
             verbosity++;
-        else if ( av[i] == "-q" )
+        else if ( String( av[i] ) == "-q" )
             verbosity = 0;
         else
             args->append( new String( av[i] ) );
