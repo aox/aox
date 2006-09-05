@@ -499,7 +499,7 @@ static void handleError( int cryptError, const String & function )
         s.append( ", locus: " + cryptlibLocus( locus ) );
     if ( type )
         s.append( ", type: " + cryptlibType( type ) );
-    ::log( s, Log::Error );
+    ::log( s, Log::Disaster );
 
     int errorStringLength;
     status = cryptGetAttributeString( cs, CRYPT_ATTRIBUTE_INT_ERRORMESSAGE,
