@@ -6,6 +6,10 @@
 
   0 bytes in every codec.
 
+  From Radim Kolar:
+    i think it was aoximport man page missing from install script.
+    aox add alias is not documented in manpage
+
 
 1.12: 2006-10-23
 
