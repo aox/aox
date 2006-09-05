@@ -1064,6 +1064,8 @@ Todo list: AMS
     update on mailstore from aox.
   - Restart Postgres while we're running, and see what happens. We
     should be able to cope with that gracefully, but we don't.
+  - Upgrade to cryptlib 3.3. when it comes out.
+  - See why pemtrans didn't work for Primer.
 
 
 
