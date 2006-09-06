@@ -124,16 +124,6 @@ public:
     private:
     };
 
-    // comment = bracket-comment / hash-comment
-    class Comment
-        : public Production
-    {
-    public:
-        Comment( Production * );
-        void parse();
-    private:
-    };
-
     // hash-comment = "#" *octet-not-crlf CRLF
     class HashComment
         : public Production
@@ -166,106 +156,6 @@ public:
         uint number;
     };
 
-    // octet-not-crlf = %x01-09 / %x0B-0C / %x0E-FF
-    class OctetNotCrlf
-        : public Production
-    {
-    public:
-        OctetNotCrlf( Production * );
-        void parse();
-    private:
-    };
-
-    // octet-not-period = %x01-09 / %x0B-0C / %x0E-2D / %x2F-FF
-    class OctetNotPeriod
-        : public Production
-    {
-    public:
-        OctetNotPeriod( Production * );
-        void parse();
-    private:
-    };
-
-    // octet-not-qspecial = %x01-09 / %x0B-0C / %x0E-21 / %x23-5B / %x5D-FF
-    class OctetNotQspecial
-        : public Production
-    {
-    public:
-        OctetNotQspecial( Production * );
-        void parse();
-    private:
-    };
-
-    // QUANTIFIER = "K" / "M" / "G"
-    class Quantifier
-        : public Production
-    {
-    public:
-        Quantifier( Production * );
-        void parse();
-    private:
-    };
-
-    // quoted-other = "\" octet-not-qspecial
-    class QuotedOther
-        : public Production
-    {
-    public:
-        QuotedOther( Production * );
-        void parse();
-    private:
-    };
-
-    // quoted-safe = CRLF / octet-not-qspecial
-    class QuotedSafe
-        : public Production
-    {
-    public:
-        QuotedSafe( Production * );
-        void parse();
-    private:
-    };
-
-    // quoted-special     = "\" ( DQUOTE / "\" )
-    class QuotedSpecial
-        : public Production
-    {
-    public:
-        QuotedSpecial( Production * );
-        void parse();
-    private:
-    };
-
-    // quoted-string = DQUOTE quoted-text DQUOTE
-    class QuotedString
-        : public Production
-    {
-    public:
-        QuotedString( Production * );
-        void parse();
-    private:
-    };
-
-    // quoted-text = *(quoted-safe / quoted-special / quoted-other)
-    class QuotedText
-        : public Production
-    {
-    public:
-        QuotedText( Production * );
-        void parse();
-    private:
-    };
-
-    // STAR = "*"
-    class Star
-        : public Production
-    {
-    public:
-        Star( Production * );
-        void parse();
-    private:
-    };
-
     // tag = ":" identifier
     class Tag
         : public Production
@@ -274,6 +164,7 @@ public:
         Tag( Production * );
         void parse();
     private:
+        Identifier * id;
     };
 
     // white-space = 1*(SP / CRLF / HTAB) / comment
@@ -760,21 +651,6 @@ void SieveScriptData::HashComment::parse()
 }
 
 
-// comment = bracket-comment / hash-comment
-SieveScriptData::Comment::Comment( Production * p )
-    : SieveScriptData::Production( p, "comment" )
-{
-    if ( lookingAt( "#" ) )
-        (void)new HashComment( this );
-    else
-        (void)new BracketComment( this );
-}
-
-void SieveScriptData::Comment::parse()
-{
-}
-
-
 // identifier = (ALPHA / "_") *(ALPHA / DIGIT / "_")
 SieveScriptData::Identifier::Identifier( Production * p )
     : SieveScriptData::Production( p, "identifier" )
@@ -841,111 +717,47 @@ void SieveScriptData::Number::parse()
 {
 }
 
-// octet-not-crlf = %x01-09 / %x0B-0C / %x0E-FF
-SieveScriptData::OctetNotCrlf::OctetNotCrlf( Production * p )
-    : SieveScriptData::Production( p, "octetnotcrlf" )
-{
-}
-
-void SieveScriptData::OctetNotCrlf::parse()
-{
-}
-
-// octet-not-period = %x01-09 / %x0B-0C / %x0E-2D / %x2F-FF
-SieveScriptData::OctetNotPeriod::OctetNotPeriod( Production * p )
-    : SieveScriptData::Production( p, "octetnotperiod" )
-{
-}
-
-void SieveScriptData::OctetNotPeriod::parse()
-{
-}
-
-// octet-not-qspecial = %x01-09 / %x0B-0C / %x0E-21 / %x23-5B / %x5D-FF
-SieveScriptData::OctetNotQspecial::OctetNotQspecial( Production * p )
-    : SieveScriptData::Production( p, "octetnotqspecial" )
-{
-}
-
-void SieveScriptData::OctetNotQspecial::parse()
-{
-}
-
-// quoted-other = "\" octet-not-qspecial
-SieveScriptData::QuotedOther::QuotedOther( Production * p )
-    : SieveScriptData::Production( p, "quotedother" )
-{
-}
-
-void SieveScriptData::QuotedOther::parse()
-{
-}
-
-// quoted-safe = CRLF / octet-not-qspecial
-SieveScriptData::QuotedSafe::QuotedSafe( Production * p )
-    : SieveScriptData::Production( p, "quotedsafe" )
-{
-}
-
-void SieveScriptData::QuotedSafe::parse()
-{
-}
-
-// quoted-special     = "\" ( DQUOTE / "\" )
-SieveScriptData::QuotedSpecial::QuotedSpecial( Production * p )
-    : SieveScriptData::Production( p, "quotedspecial" )
-{
-}
-
-void SieveScriptData::QuotedSpecial::parse()
-{
-}
-
-// quoted-string = DQUOTE quoted-text DQUOTE
-SieveScriptData::QuotedString::QuotedString( Production * p )
-    : SieveScriptData::Production( p, "quotedstring" )
-{
-}
-
-void SieveScriptData::QuotedString::parse()
-{
-}
-
-// quoted-text = *(quoted-safe / quoted-special / quoted-other)
-SieveScriptData::QuotedText::QuotedText( Production * p )
-    : SieveScriptData::Production( p, "quotedtext" )
-{
-}
-
-void SieveScriptData::QuotedText::parse()
-{
-}
-
-// STAR = "*"
-SieveScriptData::Star::Star( Production * p )
-    : SieveScriptData::Production( p, "star" )
-{
-}
-
-void SieveScriptData::Star::parse()
-{
-}
 
 // tag = ":" identifier
 SieveScriptData::Tag::Tag( Production * p )
     : SieveScriptData::Production( p, "tag" )
 {
+    if ( nextChar() != ':' )
+        error( "Tag must start with ':'" );
+    skip( 1 );
+    id = new Identifier( this );
 }
 
 void SieveScriptData::Tag::parse()
 {
 }
 
+
 // white-space = 1*(SP / CRLF / HTAB) / comment
+// comment = bracket-comment / hash-comment
 SieveScriptData::WhiteSpace::WhiteSpace( Production * p )
     : SieveScriptData::Production( p, "whitespace" )
 {
-    
+    char c = nextChar();
+    switch ( c ) {
+    case '#':
+        (void)new HashComment( this );
+        break;
+    case '/':
+        (void)new BracketComment( this );
+        break;
+    case ' ':
+    case 13:
+    case 9:
+        while ( c == 9 || c == 13 || c == ' ' ) {
+            skip( 1 );
+            if ( c == 13 && nextChar() != 10 )
+                error( "CR without LF" );
+            c = nextChar();
+        }
+    default:
+        error( "Whitespace expected" );
+    }
 }
 
 void SieveScriptData::WhiteSpace::parse()
