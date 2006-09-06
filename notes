@@ -1046,10 +1046,6 @@ URLAUTH (RFC 4467)
   - URLFETCH
 
 
-"make install" doesn't create /var/run/oryx
-
-    Perhaps the installer should.
-
 tlsproxy needs better diagnostics
 
   - Primer tried to use it with an OpenSSL key, and it exited silently.
