@@ -392,17 +392,6 @@ public:
         ProductionList<Command> * block;
     };
 
-    // block = "{" commands "}"
-    class Block
-        : public Production
-    {
-    public:
-        Block( Production * );
-        void parse();
-    private:
-        ProductionList<Command> * commands;
-    };
-
     // string = quoted-string / multi-line
     class String
         : public Production
@@ -411,6 +400,7 @@ public:
         String( Production * );
         void parse();
     private:
+        ::String string;
     };
 
     // COMPARATOR = ":comparator" string
@@ -589,20 +579,6 @@ void SieveScriptData::Arguments::parse()
 }
 
 
-// block = "{" commands "}"
-SieveScriptData::Block::Block( Production * p )
-    : SieveScriptData::Production( p, "block" ), commands( 0 )
-{
-    require( "{" );
-    commands = new ProductionList<Command>( this );
-    require( "}" );
-}
-
-void SieveScriptData::Block::parse()
-{
-}
-
-
 // command = identifier arguments ( ";" / block )
 SieveScriptData::Command::Command( Production * p )
     : SieveScriptData::Production( p, "Command" ),
@@ -612,8 +588,11 @@ SieveScriptData::Command::Command( Production * p )
     args = new Arguments( this );
     if ( present( ";" ) )
         return;
+
     // implement block directly here instead of using a separate type,
     // since g++ 4.x has issues with forward declarations
+
+    // block = "{" commands "}"
     require( "{" );
     block = new ProductionList<Command>( this );
     require( "}" );
@@ -640,7 +619,7 @@ void SieveScriptData::Comparator::parse()
 
 // MATCH-TYPE = ":is" / ":contains" / ":matches"
 SieveScriptData::MatchType::MatchType( Production * p )
-    : SieveScriptData::Production( p, ":matchtype" )
+    : SieveScriptData::Production( p, "matchtype" )
 {
     if ( !present( ":" ) )
         error( "No valid match-type seen" );
@@ -657,8 +636,59 @@ void SieveScriptData::MatchType::parse()
 
 // string = quoted-string / multi-line
 SieveScriptData::String::String( Production * p )
-    : SieveScriptData::Production( p, "ring" )
+    : SieveScriptData::Production( p, "string" )
 {
+    if ( present( "\"" ) ) {
+        // quoted-string = DQUOTE quoted-text DQUOTE
+        // quoted-text = *(quoted-safe / quoted-special / quoted-other)
+        // quoted-safe = CRLF / octet-not-qspecial
+        // quoted-special     = "\" ( DQUOTE / "\" )
+        // quoted-other = "\" octet-not-qspecial
+        // octet-not-qspecial = %x01-09 / %x0B-0C / %x0E-21 / %x23-5B / %x5D-FF
+        switch ( nextChar() ) {
+        case '"':
+            skip( 1 );
+            return;
+            break;
+        case 13:
+            skip( 1 );
+            if ( nextChar() != 10 )
+                error( "CR without following LF" );
+            skip( 1 );
+            string.append( "\r\n" );
+            break;
+        case 10:
+            error( "LF without preceding CR" );
+            break;
+        case '\\':
+            skip( 1 );
+            if ( nextChar() == 0 || nextChar() == 10 || nextChar() == 13 )
+                error( "Can't quote NUL, CR or LF" );
+            string.append( nextChar() );
+            skip( 1 );
+            break;
+        case 0: // just plain illegal
+            error( "0 byte seen" );
+            break;
+        default: // other-not-qspecial
+            string.append( nextChar() );
+            skip( 1 );
+            break;
+        }
+    }
+    // it has to be a multiline. this function is no fun at all.
+
+    // multi-line = "text:" *(SP / HTAB) (hash-comment / CRLF)
+    //              *(multiline-literal / multiline-dotstuff)
+    //              "." CRLF
+
+    // multiline-literal = [octet-not-period *octet-not-crlf] CRLF
+
+    // multiline-dotstuff = "." 1*octet-not-crlf CRLF
+    //                      ; A line containing only "." ends the
+    //                      ; multi-line.  Remove a leading '.' if
+    //                      ; followed by another '.'.
+
 }
 
 void SieveScriptData::String::parse()
