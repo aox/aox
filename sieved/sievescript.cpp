@@ -26,21 +26,21 @@ public:
 
         Production * parent() { return mommy; }
 
-        const String name() { return n; }
-        const String & source() const { return d->source; }
+        const ::String name() { return n; }
+        const ::String & source() const { return d->source; }
         uint & pos() const { return d->pos; }
         char nextChar() const { return source()[pos()]; }
         void skip( uint l ) { pos() += l; }
-        void skip( const String & l ) { pos() += l.length(); }
+        void skip( const ::String & l ) { pos() += l.length(); }
 
         virtual void parse() = 0;
 
-        bool lookingAt( const char * l ) const {
+        bool lookingAt( const ::String & l ) const {
             const ::String & s = source();
             uint i = 0;
-            while ( l[i] ) {
+            while ( i < l.length() ) {
                 char cl = l[i];
-                char cs = s[i];
+                char cs = s[pos()+i];
                 if ( cs == cl ) {
                     // ok - exact match
                 } else if ( cl == cs + 32 && cs >= 'A' && cs <= 'Z' ) {
@@ -56,13 +56,37 @@ public:
             return true;
         }
 
-        void error( const char * ) {}
+        bool present( const ::String & l ) {
+            if ( lookingAt( l ) ) {
+                skip( l );
+                return true;
+            }
+            return false;
+        }
 
+        void error( const ::String & );
+
+        void require( const ::String & l ) {
+            if ( !present( l ) )
+                error( l + " expected" );
+        }
+
+        String letters() {
+            uint s = pos();
+            char c = source()[pos()];
+            while ( ( c >= 'a' && c <= 'z' ) ||
+                    ( c >= 'A' && c <= 'Z' ) )
+                c = source()[++pos()]; // ick! ick! ikk!
+            return source().mid( s, pos() - s ).lower();
+        }
+        
     public:
         uint start;
         Production * mommy;
         SieveScriptData * d;
         ::String n;
+        ::String e;
+        uint bang;
     };
 
     template<class T>
@@ -355,6 +379,19 @@ public:
         class SieveScriptData::TestList * testList;
     };
 
+    // command = identifier arguments ( ";" / block )
+    class Command
+        : public Production
+    {
+    public:
+        Command( Production * );
+        void parse();
+    private:
+        Identifier * id;
+        Arguments * args;
+        ProductionList<Command> * block;
+    };
+
     // block = "{" commands "}"
     class Block
         : public Production
@@ -363,14 +400,15 @@ public:
         Block( Production * );
         void parse();
     private:
+        ProductionList<Command> * commands;
     };
 
-    // command = identifier arguments ( ";" / block )
-    class Command
+    // string = quoted-string / multi-line
+    class String
         : public Production
     {
     public:
-        Command( Production * );
+        String( Production * );
         void parse();
     private:
     };
@@ -383,6 +421,7 @@ public:
         Comparator( Production * );
         void parse();
     private:
+        String * comparator;
     };
 
     // MATCH-TYPE = ":is" / ":contains" / ":matches"
@@ -393,16 +432,7 @@ public:
         MatchType( Production * );
         void parse();
     private:
-    };
-
-    // string = quoted-string / multi-line
-    class String
-        : public Production
-    {
-    public:
-        String( Production * );
-        void parse();
-    private:
+        ::String matchType;
     };
 
     // string-list  = "[" string *("," string) "]" / string
@@ -450,7 +480,8 @@ public:
 
 SieveScriptData::Production::Production( SieveScriptData * mothership,
                                          ::String name )
-    : Garbage(), start( 0 ), mommy( 0 ), d( mothership ), n( name )
+    : Garbage(), start( 0 ), mommy( 0 ), d( mothership ), n( name ),
+      bang( 0 )
 {
 }
 
@@ -458,7 +489,8 @@ SieveScriptData::Production::Production( SieveScriptData * mothership,
 SieveScriptData::Production::Production( Production * mother,
                                          ::String name )
     : Garbage(),
-      start( mother->start ), mommy( mother ), d( mother->d ), n( name )
+      start( mother->start ), mommy( mother ), d( mother->d ), n( name ),
+      bang( 0 )
 {
 }
 
@@ -473,6 +505,15 @@ uint SieveScriptData::Production::errorLine() const
         i++;
     }
     return l;
+}
+
+void SieveScriptData::Production::error( const ::String & message )
+{
+    if ( !e.isEmpty() )
+        return;
+
+    bang = pos();
+    e = message;
 }
 
 
@@ -533,6 +574,7 @@ void SieveScriptData::Argument::parse()
 {
 }
 
+
 // arguments = *argument [test / test-list]
 SieveScriptData::Arguments::Arguments( Production * p )
     : SieveScriptData::Production( p, ":arguments" )
@@ -546,40 +588,67 @@ void SieveScriptData::Arguments::parse()
 {
 }
 
+
 // block = "{" commands "}"
 SieveScriptData::Block::Block( Production * p )
-    : SieveScriptData::Production( p, "ck" )
+    : SieveScriptData::Production( p, "block" ), commands( 0 )
 {
+    require( "{" );
+    commands = new ProductionList<Command>( this );
+    require( "}" );
 }
 
 void SieveScriptData::Block::parse()
 {
 }
 
+
 // command = identifier arguments ( ";" / block )
 SieveScriptData::Command::Command( Production * p )
-    : SieveScriptData::Production( p, "ommand" )
+    : SieveScriptData::Production( p, "Command" ),
+      id( 0 ), args( 0 ), block( 0 )
 {
+    id = new Identifier( this );
+    args = new Arguments( this );
+    if ( present( ";" ) )
+        return;
+    // implement block directly here instead of using a separate type,
+    // since g++ 4.x has issues with forward declarations
+    require( "{" );
+    block = new ProductionList<Command>( this );
+    require( "}" );
 }
 
 void SieveScriptData::Command::parse()
 {
 }
 
+
 // COMPARATOR = ":comparator" string
 SieveScriptData::Comparator::Comparator( Production * p )
-    : SieveScriptData::Production( p, "::comparator" )
+    : SieveScriptData::Production( p, "comparator" ),
+      comparator( 0 )
 {
+    require( ":comparator" );
+    comparator = new String( this );
 }
 
 void SieveScriptData::Comparator::parse()
 {
 }
 
+
 // MATCH-TYPE = ":is" / ":contains" / ":matches"
 SieveScriptData::MatchType::MatchType( Production * p )
     : SieveScriptData::Production( p, ":matchtype" )
 {
+    if ( !present( ":" ) )
+        error( "No valid match-type seen" );
+    ::String n = letters();
+    if ( n == "is" || n == "contains" || n == "matches" )
+        matchType = n;
+    else
+        error( n + ": Invalid match-type" );
 }
 
 void SieveScriptData::MatchType::parse()
@@ -851,6 +920,7 @@ void SieveScriptData::Tag::parse()
 SieveScriptData::WhiteSpace::WhiteSpace( Production * p )
     : SieveScriptData::Production( p, "whitespace" )
 {
+    
 }
 
 void SieveScriptData::WhiteSpace::parse()
