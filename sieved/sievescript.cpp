@@ -152,62 +152,7 @@ public:
         Identifier( Production * );
         void parse();
     private:
-    };
-
-    // multi-line = "text:" *(SP / HTAB) (hash-comment / CRLF)
-    //              *(multiline-literal / multiline-dotstuff)
-    //              "." CRLF
-    class MultiLine
-        : public Production
-    {
-    public:
-        MultiLine( Production * );
-        void parse();
-    private:
-    };
-
-    // multiline-literal = [octet-not-period *octet-not-crlf] CRLF
-    class MultilineLiteral
-        : public Production
-    {
-    public:
-        MultilineLiteral( Production * );
-        void parse();
-    private:
-    };
-
-    // multiline-dotstuff = "." 1*octet-not-crlf CRLF
-    //                      ; A line containing only "." ends the
-    //                      ; multi-line.  Remove a leading '.' if
-    //                      ; followed by another '.'.
-    class MultilineDotstuff
-        : public Production
-    {
-    public:
-        MultilineDotstuff( Production * );
-        void parse();
-    private:
-    };
-
-    // not-star = CRLF / %x01-09 / %x0B-0C / %x0E-29 / %x2B-FF /
-    class NotStar
-        : public Production
-    {
-    public:
-        NotStar( Production * );
-        void parse();
-    private:
-    };
-
-    // not-star-slash = CRLF / %x01-09 / %x0B-0C / %x0E-29 / %x2B-2E /
-    //                  %x30-FF
-    class NotStarSlash
-        : public Production
-    {
-    public:
-        NotStarSlash( Production * );
-        void parse();
-    private:
+        ::String identifier;
     };
 
     // number = 1*DIGIT [ QUANTIFIER ]
@@ -218,6 +163,7 @@ public:
         Number( Production * );
         void parse();
     private:
+        uint number;
     };
 
     // octet-not-crlf = %x01-09 / %x0B-0C / %x0E-FF
@@ -443,6 +389,8 @@ public:
         Test( Production * );
         void parse();
     private:
+        Identifier * id;
+        Arguments * args;
     };
 
     // test-list - see below
@@ -453,6 +401,7 @@ public:
         TestList( Production * );
         void parse();
     private:
+        ::List<Test> * tests;
     };
 
 /*
@@ -689,6 +638,43 @@ SieveScriptData::String::String( Production * p )
     //                      ; multi-line.  Remove a leading '.' if
     //                      ; followed by another '.'.
 
+    require( "text:" );
+    while( nextChar() == ' ' || nextChar() == '\t' )
+        skip( 1 );
+    if ( nextChar() == '#' )
+        (void)new HashComment( this );
+    else
+        require( "\r\n" );
+    bool crlf = true;
+    while ( e.isEmpty() ) {
+        if ( pos() >= source().length() )
+            error( "String ran off end of script" );
+        char c = nextChar();
+        if ( crlf && c == '.' ) {
+            if ( lookingAt( ".\r\n" ) )
+                return;
+            if ( lookingAt( ".." ) ) {
+                skip( 1 );
+                c = nextChar();
+            }
+        }
+        string.append( c );
+        skip( 1 );
+        if ( c == 10 ) {
+            error( "LF without CR" );
+        }
+        else if ( c == 13 ) {
+            c = nextChar();
+            if ( c != 10 )
+                error( "CR without LF" );
+            string.append( c );
+            skip( 1 );
+            crlf = true;
+        }
+        else {
+            crlf = false;
+        }
+    }
 }
 
 void SieveScriptData::String::parse()
@@ -707,8 +693,11 @@ void SieveScriptData::StringList::parse()
 
 // test = identifier arguments
 SieveScriptData::Test::Test( Production * p )
-    : SieveScriptData::Production( p, "test" )
+    : SieveScriptData::Production( p, "test" ),
+      id( 0 ), args( 0 )
 {
+    id = new Identifier( this );
+    args = new Arguments( this );
 }
 
 void SieveScriptData::Test::parse()
@@ -717,11 +706,20 @@ void SieveScriptData::Test::parse()
 
 
 // test-list = "(" test *("," test) ")"
-// we extend this as follows:
+// we extend this as follows to make life simpler for users of test-list:
 //           = test / ( "(" test *("," test) ")" )
 SieveScriptData::TestList::TestList( Production * p )
-    : SieveScriptData::Production( p, "test" )
+    : SieveScriptData::Production( p, "test" ), tests( new ::List<Test> )
 {
+    if ( present( "(" ) ) {
+        tests->append( new Test( this ) );
+        while( present( "," ) )
+            tests->append( new Test( this ) );
+        require( ")" );
+    }
+    else {
+        tests->append( new Test( this ) );
+    }
 }
 
 void SieveScriptData::TestList::parse()
@@ -734,102 +732,109 @@ void SieveScriptData::TestList::parse()
 SieveScriptData::BracketComment::BracketComment( Production * p )
     : SieveScriptData::Production( p, "bracketcomment" )
 {
+    require( "/" "*" );
+    int e = source().find( "*" "/" );
+    if ( e < 0 )
+        error( "Comment not terminated" );
+    pos() = e + 2;
 }
 
 void SieveScriptData::BracketComment::parse()
 {
 }
 
-// comment = bracket-comment / hash-comment
-SieveScriptData::Comment::Comment( Production * p )
-    : SieveScriptData::Production( p, "comment" )
-{
-}
-
-void SieveScriptData::Comment::parse()
-{
-}
 
 // hash-comment = "#" *octet-not-crlf CRLF
 SieveScriptData::HashComment::HashComment( Production * p )
     : SieveScriptData::Production( p, "hashcomment" )
 {
+    require( "#" );
+    int e = source().find( "\r\n" );
+    if ( e < 0 )
+        error( "Comment not terminated" );
+    pos() = e + 2;
 }
 
 void SieveScriptData::HashComment::parse()
 {
 }
 
+
+// comment = bracket-comment / hash-comment
+SieveScriptData::Comment::Comment( Production * p )
+    : SieveScriptData::Production( p, "comment" )
+{
+    if ( lookingAt( "#" ) )
+        (void)new HashComment( this );
+    else
+        (void)new BracketComment( this );
+}
+
+void SieveScriptData::Comment::parse()
+{
+}
+
+
 // identifier = (ALPHA / "_") *(ALPHA / DIGIT / "_")
 SieveScriptData::Identifier::Identifier( Production * p )
     : SieveScriptData::Production( p, "identifier" )
 {
+    const ::String & s = source();
+    uint & i = pos();
+    uint b = i;
+
+    char c = s[i];
+    if ( ! ( ( c >= 'a' && c <= 'z' ) ||
+             ( c >= 'A' && c <= 'Z' ) ||
+             ( c == '_' ) ) )
+        error( "Identifier did not start with a-z or _" );
+
+    while ( ( c >= 'a' && c <= 'z' ) ||
+            ( c >= 'A' && c <= 'Z' ) ||
+            ( c >= '0' && c <= '9' ) ||
+            ( c == '_' ) )
+        c = s[++i];
+
+    identifier = s.mid( b, i-b );
 }
 
 void SieveScriptData::Identifier::parse()
 {
 }
 
-    // multi-line = "text:" *(SP / HTAB) (hash-comment / CRLF)
-    //              *(multiline-literal / multiline-dotstuff)
-    //              "." CRLF
-SieveScriptData::MultiLine::MultiLine( Production * p )
-    : SieveScriptData::Production( p, "multiline" )
-{
-}
-
-void SieveScriptData::MultiLine::parse()
-{
-}
-
-// multiline-literal = [octet-not-period *octet-not-crlf] CRLF
-SieveScriptData::MultilineLiteral::MultilineLiteral( Production * p )
-    : SieveScriptData::Production( p, "multilineliteral" )
-{
-}
-
-void SieveScriptData::MultilineLiteral::parse()
-{
-}
-
-    // multiline-dotstuff = "." 1*octet-not-crlf CRLF
-    //                      ; A line containing only "." ends the
-    //                      ; multi-line.  Remove a leading '.' if
-    //                      ; followed by another '.'.
-SieveScriptData::MultilineDotstuff::MultilineDotstuff( Production * p )
-    : SieveScriptData::Production( p, "multilinedotstuff" )
-{
-}
-
-void SieveScriptData::MultilineDotstuff::parse()
-{
-}
-
-// not-star = CRLF / %x01-09 / %x0B-0C / %x0E-29 / %x2B-FF /
-SieveScriptData::NotStar::NotStar( Production * p )
-    : SieveScriptData::Production( p, "notstar" )
-{
-}
-
-void SieveScriptData::NotStar::parse()
-{
-}
-
-// not-star-slash = CRLF / %x01-09 / %x0B-0C / %x0E-29 / %x2B-2E /
-//                  %x30-FF
-SieveScriptData::NotStarSlash::NotStarSlash( Production * p )
-    : SieveScriptData::Production( p, "notstarslash" )
-{
-}
-
-void SieveScriptData::NotStarSlash::parse()
-{
-}
 
 // number = 1*DIGIT [ QUANTIFIER ]
 SieveScriptData::Number::Number( Production * p )
     : SieveScriptData::Production( p, "number" )
 {
+    const ::String & s = source();
+    uint & i = pos();
+    uint b = i;
+
+    char c = s[i];
+    while ( c >= '0' && c <= '9' )
+        c = s[++i];
+
+    if ( i == b )
+        error( "Expected number" );
+
+    bool ok = true;
+    uint number = s.mid( b, i-b ).number( &ok );
+    if ( !ok )
+        error( "Bad number: " + s.mid( b, i-b ) );
+
+    // QUANTIFIER = "K" / "M" / "G"
+    uint scale = 1;
+    if ( c == 'k' || c == 'K' )
+        scale = 1024;
+    else if ( c == 'm' || c == 'M' )
+        scale = 1024 * 1024;
+    else if ( c == 'g' || c == 'G' )
+        scale = 1024 * 1024 * 1024;
+    if ( number > UINT_MAX / scale )
+        error( "Number " + fn( number ) + " is too large for scale " +
+               fn( scale ) );
+    number = number * scale;
 }
 
 void SieveScriptData::Number::parse()
@@ -863,16 +868,6 @@ SieveScriptData::OctetNotQspecial::OctetNotQspecial( Production * p )
 }
 
 void SieveScriptData::OctetNotQspecial::parse()
-{
-}
-
-// QUANTIFIER = "K" / "M" / "G"
-SieveScriptData::Quantifier::Quantifier( Production * p )
-    : SieveScriptData::Production( p, "quantifier" )
-{
-}
-
-void SieveScriptData::Quantifier::parse()
 {
 }
 
