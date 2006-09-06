@@ -4,11 +4,13 @@
 
   Update the installer manpage to match the code.
 
-  0 bytes in every codec.
+  Handle 0 bytes in every codec.
 
-  From Radim Kolar:
-    i think it was aoximport man page missing from install script.
-    aox add alias is not documented in manpage
+  SIEVE
+
+  URLAUTH
+
+  Full-text search
 
 
 1.12: 2006-10-23
@@ -20,73 +22,60 @@
   Sitewide mail retention policy, even if we don't have anything more
   specific yet.
 
+  SORT (/THREAD?)
+
+  CATENATE
+
+  SMTP submit
+
+  httpd
+  Read-only archive pages
+
 
 1.13: 2006-11-20
+
+  aox reinject
+
+  aox backup/restore (or similarly helpful procedure)
+
+  Basic administration using the httpd
+
+  LDAP authentication support
 
 
 1.14: 2006-12-18
 
+  Message retention policy
+
+  httpd:
+  - TLS support
+  - More administration stuff
+
+  Indexing for DOC bodyparts
+
 
 1.15: 2008-01-29
 
-  <arnt> spend a little time with notes. spread that across the next
-  five releases.
+  Memory use improvements
 
-  1.11
-
-    - SIEVE
-    - URLAUTH
-    - CONDSTORE
-    - Full-text search
-
-  1.12
-
-    - SORT (/THREAD?)
-    - CATENATE
-    - SMTP submit
-    - httpd
-      - Read-only archive pages
-
-  1.13
-
-    - aox reinject
-    - aox backup/restore (or similarly helpful procedure)
-    - httpd
-      - Basic administration
-    - LDAP authentication support
-
-  1.14
-
-    - Message retention policy
-    - httpd
-      - TLS support
-      - More administration stuff
-    - Indexing for DOC bodyparts
-
-  1.15
-
-    ...
-
-  - Memory use improvements
-
-  - Message retention policy
+  Message retention policy
   
-    - Soft-quota/archival stuff too?
-    - Message arrival tag (for archiving)
+  - Soft-quota/archival stuff too?
+  - Message arrival tag (for archiving)
   
-  - httpd
+  httpd
   
-  - aoximport could be much faster (disable indices, commit several
-    thousand messages at a time in one big transaction), but it's a
-    fair bit of work (unless aoximport has a private Injector)
+  aoximport could be much faster (disable indices, commit several
+  thousand messages at a time in one big transaction), but it's a
+  fair bit of work (unless aoximport has a private Injector)
   
-  - Autoresponder
+  Autoresponder
   
-  - Miscellaneous:
+  Miscellaneous:
   
-    - Database replication support (local mirror)
-    - Clean up orphaned bodyparts without locking the table
-    - Split the injector transaction into fast and slow parts(?)
+  - Database replication support (local mirror)
+  - Clean up orphaned bodyparts without locking the table
+  - Split the injector transaction into fast and slow parts(?)
 
 
 Undefined codepoints
@@ -401,6 +390,7 @@ C/R
   - mail from freemail providers
   - vacation responses from unknowns
   - messages likely, but not certain to be out-of-office-autoreply
+  - dkim/mass-signed messages (if veridified)
 
   The questions are: How can we ensure that we almost never challenge
   real mail, while simultaneously challenging most/all messages that
@@ -529,9 +519,10 @@ DELETE of mailboxes in inappropriately qualified (security problem)
 
   2. Require Expunge if there are any messages at all.
 
-  The race condition means it's possible to append to a mailbox
-  while it's being deleted, and the message will reappear if the
-  mailbox is later recreated.
+  The race condition means it's possible to append to a mailbox while
+  it's being deleted, and the message will reappear if the mailbox is
+  later recreated. We could solve the latter by emptying the mailbox
+  at recreate time.
 
 
 Split the folder view into pages.
