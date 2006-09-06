@@ -193,6 +193,10 @@ Header * Message::parseHeader( uint & i, uint end,
     while ( !done ) {
         if ( i >= end )
             done = true;
+        if ( rfc2822[i] == 0xEF && 
+             rfc2822[i+1] == 0xBB && 
+             rfc2822[i+2] == 0xBF )
+            i += 3;
         uint j = i;
         while ( rfc2822[j] >=  33 &&
                 rfc2822[j] <= 127 &&
