@@ -627,9 +627,8 @@ void Postgres::errorMessage()
                 d->user = String( p->pw_name );
                 uid_t e = geteuid();
                 setreuid( 0, p->pw_uid );
-                Endpoint pg( peer() );
                 close();
-                connect( pg );
+                connect( Database::server() );
                 setreuid( 0, e );
             }
             else if ( s == Configuration::text(Configuration::JailUser) &&
