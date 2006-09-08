@@ -1047,6 +1047,8 @@ tlsproxy needs better diagnostics
     can't imagine anyone wanting to configure them, though).
   - pemtrans's usage message should be more helpful (though the manpage
     does explain).
+  - We should regenerate the automatic-key.p15 if we find that the
+    existing key's CN doesn't match our current hostname.
 
 
 Todo list: AMS
