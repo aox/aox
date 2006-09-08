@@ -55,6 +55,9 @@ To import messages from the mbox files in ~/Mail/imap/* to a mailbox
 named /users/nirmala/imap:
 .IP
 aoximport /users/nirmala/imap mbox ~/Mail/imap/*
+.PP
+After a large import, it's a good idea to run
+.IR "aox vacuum" .
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
