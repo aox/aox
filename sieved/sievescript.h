@@ -12,6 +12,12 @@ class SieveScript
 public:
     SieveScript();
 
+    void parse( const String & );
+    String parseErrors() const;
+
+private:
+    String location( uint ) const;
+
 private:
     class SieveScriptData * d;
 };

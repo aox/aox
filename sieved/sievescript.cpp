@@ -9,7 +9,7 @@ class SieveScriptData
     : public Garbage
 {
 public:
-    SieveScriptData(): Garbage(), pos( 0 ) {}
+    SieveScriptData(): Garbage(), pos( 0 ), script( 0 ) {}
 
     ::String source;
     uint pos;
@@ -21,8 +21,6 @@ public:
         Production( SieveScriptData * mothership, ::String name );
         Production( Production * inside, ::String name );
         virtual ~Production() {}
-
-        uint errorLine() const;
 
         Production * parent() { return mommy; }
 
@@ -79,7 +77,7 @@ public:
                 c = source()[++pos()]; // ick! ick! ikk!
             return source().mid( s, pos() - s ).lower();
         }
-        
+
     public:
         uint start;
         Production * mommy;
@@ -295,6 +293,18 @@ public:
         ::List<Test> * tests;
     };
 
+    class Start
+        : public Production
+    {
+    public:
+        Start( SieveScriptData * d );
+        void parse();
+    private:
+        ProductionList<Command> * commands;
+    };
+
+    Start * script;
+
 /*
     class X
         : public Production
@@ -324,18 +334,6 @@ SieveScriptData::Production::Production( Production * mother,
 {
 }
 
-
-uint SieveScriptData::Production::errorLine() const
-{
-    uint i = 0;
-    uint l = 1;
-    while ( i < start ) {
-        if ( d->source[i] == '\n' )
-            l++;
-        i++;
-    }
-    return l;
-}
 
 void SieveScriptData::Production::error( const ::String & message )
 {
@@ -782,4 +780,81 @@ SieveScript::SieveScript()
     : Garbage()
 {
 
+}
+
+
+SieveScriptData::Start::Start( SieveScriptData * d )
+    : Production( d, "Start" ), commands( 0 )
+{
+    commands = new ProductionList<Command>( this );
+}
+
+
+void SieveScriptData::Start::parse()
+{
+}
+
+
+/*! Parses \a script and stores the script as this object. Any
+    previous script content is deleted. If \a script is has parse
+    errors, they may be accessed as parseErrors().
+*/
+
+void SieveScript::parse( const String & script )
+{
+    d->source = script;
+    d->pos = 0;
+    d->script = new SieveScriptData::Start( d );
+}
+
+
+/*! Returns a (multi-line) string describing all the parse errors seen
+    by the last call to parse(). If there are no errors, the returned
+    string is empty. If there are any, it is a multiline string with
+    CRLF after each line (including the last).
+*/
+
+String SieveScript::parseErrors() const
+{
+    String errors;
+    List<SieveScriptData::Production> unhandled;
+    unhandled.append( d->script );
+    SieveScriptData::Production * p = unhandled.shift();
+    while ( p ) {
+        if ( !p->e.isEmpty() ) {
+            errors.append( location( p->bang ) );
+            errors.append( p->e );
+            errors.append( "\r\n" );
+            while ( p ) {
+                errors.append( location( p->start ) );
+                errors.append( ": (Error happened while parsing " );
+                errors.append( p->n );
+                errors.append( ")\r\n" );
+                p = p->mommy;
+            }
+        }
+        p = unhandled.shift();
+    }
+    return errors;
+}
+
+
+/*! Returns a string describing the location of \a position in the
+    current script.
+*/
+
+String SieveScript::location( uint position ) const
+{
+    uint i = 0;
+    uint l = 1;
+    while ( i < position ) {
+        if ( d->source[i] == '\n' )
+            l++;
+        i++;
+    }
+    String r = fn( l );
+    r.append( ":" );
+    r.append( fn( position - i + 1 ) );
+    r.append( ":" );
+    return r;
 }
