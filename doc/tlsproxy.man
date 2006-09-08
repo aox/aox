@@ -47,7 +47,10 @@ Other variables may be consulted to determine how to connect to the log
 server, how to secure the server, and so on.
 .PP
 The default configuration enables the use of TLS with an
-automatically-generated, self-signed certificate.
+automatically-generated, self-signed certificate. This certificate is
+generated once at startup, stored in
+.I $LIBDIR/automatic-key.p15
+by default, and is reused on subsequent occasions.
 .SH DEPENDENCIES
 On startup,
 .B tlsproxy
