@@ -1074,6 +1074,8 @@ Todo list: AMS
   - Restart Postgres while we're running, and see what happens. We
     should be able to cope with that gracefully, but we don't.
   - Upgrade to cryptlib 3.3. when it comes out.
+  - We seem to be mangling Tom Simnett's PGP-signed email. Get him to
+    send something to ams@toroid.org and make a canonical test case.
 
 
 
