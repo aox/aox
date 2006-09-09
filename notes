@@ -59,20 +59,20 @@
   Memory use improvements
 
   Message retention policy
-  
+
   - Soft-quota/archival stuff too?
   - Message arrival tag (for archiving)
-  
+
   httpd
-  
+
   aoximport could be much faster (disable indices, commit several
   thousand messages at a time in one big transaction), but it's a
   fair bit of work (unless aoximport has a private Injector)
-  
+
   Autoresponder
-  
+
   Miscellaneous:
-  
+
   - Database replication support (local mirror)
   - Clean up orphaned bodyparts without locking the table
   - Split the injector transaction into fast and slow parts(?)
@@ -93,6 +93,12 @@ Better caching.
   FieldNameCache etc. can use less memory by reading all field and
   flag names into RAM at startup. That way, the memory used won't be
   scattered across many blocks.
+
+
+cram-md5 testing
+
+  http://www.net-track.ch/opensource/cmd5/ offers a pleasant way to
+  see the intermediate value. What could we do with that?
 
 
 Port 587
