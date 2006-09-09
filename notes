@@ -1043,6 +1043,11 @@ URLAUTH (RFC 4467)
   - URLFETCH
 
 
+RFC 4616
+
+  Does this need any changes to our code? No?
+
+
 tlsproxy needs better diagnostics
 
   - Primer tried to use it with an OpenSSL key, and it exited silently.
