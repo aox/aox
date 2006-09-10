@@ -95,12 +95,6 @@ Better caching.
   scattered across many blocks.
 
 
-cram-md5 testing
-
-  http://www.net-track.ch/opensource/cmd5/ offers a pleasant way to
-  see the intermediate value. What could we do with that?
-
-
 Port 587
 
   Submit is not very different from SMTP and LMTP, for which we have
@@ -1045,7 +1039,11 @@ URLAUTH (RFC 4467)
 
 RFC 4616
 
-  Does this need any changes to our code? No?
+  Does this need any changes to our code? No? -- Arnt
+
+  I have reviewed RFC 4616, and the only relevant change is the SASLprep
+  stuff (RFCs 3454/4013). That needs discussion, but it's a far-reaching
+  change beyond just PLAIN. -- AMS
 
 
 tlsproxy needs better diagnostics
