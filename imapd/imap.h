@@ -39,8 +39,6 @@ public:
     ImapSession *session() const;
     void endSession();
 
-    String mailboxName( const String & ) const;
-
     static void setup();
 
     uint activeCommands() const;

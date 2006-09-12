@@ -196,7 +196,7 @@ uint Append::number( uint n )
 void Append::execute()
 {
     if ( !d->permissions ) {
-        d->mailbox = Mailbox::find( imap()->mailboxName( d->mbx ) );
+        d->mailbox = mailbox( d->mbx );
         if ( !d->mailbox ) {
             error( No, "No such mailbox: '" + d->mbx + "'" );
             finish();

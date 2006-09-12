@@ -2,12 +2,13 @@
 
 #include "command.h"
 
+#include "log.h"
+#include "imap.h"
+#include "user.h"
 #include "buffer.h"
 #include "mailbox.h"
 #include "imapsession.h"
-#include "imap.h"
 #include "messageset.h"
-#include "log.h"
 
 // Keep these alphabetical.
 #include "handlers/acl.h"
@@ -1164,4 +1165,28 @@ String Command::imapQuoted( const String & s, const QuoteMode mode )
 
     // well well well. literal it is.
     return "{" + fn( s.length() ) + "}\r\n" + s;
+}
+
+
+/*! Returns the Mailbox corresponding to \a name. This is a
+    convenience function that really wraps User::mailboxName().
+*/
+
+class Mailbox * Command::mailbox( const String & name ) const
+{
+    return Mailbox::find( mailboxName( name ) );
+}
+
+
+/*! Returns the canonical name of the mailbox to which \a name
+    refers. This is a convenience function that really wraps
+    User::mailboxName().
+*/
+
+String Command::mailboxName( const String & name ) const
+{
+    User * u = imap()->user();
+    if ( !u )
+        return "";
+    return u->mailboxName( name );
 }

@@ -85,7 +85,7 @@ void Select::execute()
             imap()->setClientSupports( IMAP::Condstore );
         if ( d->annotate )
             imap()->setClientSupports( IMAP::Annotate );
-        d->mailbox = Mailbox::find( imap()->mailboxName( d->name ) );
+        d->mailbox = mailbox( d->name );
         // if the mailbox doesn't exist, see whether it's a full name
         // without the leading slash. kio does that, so let's be
         // gentle and interoperable until that bug can be fixed.

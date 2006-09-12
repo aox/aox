@@ -43,7 +43,7 @@ void Create::parse()
     end();
     if ( name.lower() == "inbox" )
         error( No, "INBOX always exists" );
-    d->name = imap()->mailboxName( name );
+    d->name = mailboxName( name );
     log( "Create " + name + " (" + d->name + ")" );
 }
 

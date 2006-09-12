@@ -87,7 +87,7 @@ void Acl::parse()
 void Acl::execute()
 {
     if ( d->state == 0 ) {
-        d->mailbox = Mailbox::find( imap()->mailboxName( d->mbox ) );
+        d->mailbox = mailbox( d->mbox );
         if ( !d->mailbox || d->mailbox->synthetic() ||
              d->mailbox->deleted() )
         {

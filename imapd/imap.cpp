@@ -58,7 +58,7 @@ public:
     ImapSession *session;
     Mailbox *mailbox;
     User * login;
-    
+
     uint bytesArrived;
 
     bool idle;
@@ -184,7 +184,7 @@ void IMAP::react( Event e )
 
     runCommands();
     expireCommands();
-    
+
     d->bytesArrived -= readBuffer()->size();
 
     if ( timeout() == 0 ||
@@ -618,23 +618,6 @@ static bool endsWithLiteral( const String *s, uint *n, bool *plus )
     *n = s->mid( i+1, j-i ).number( &ok );
 
     return ok;
-}
-
-
-/*! This function returns the fully-qualified name of the mailbox \a m,
-    using the current user() to qualify it if necessary.
-*/
-
-String IMAP::mailboxName( const String &m ) const
-{
-    String name;
-
-    if ( m[0] == '/' || !d->login )
-        return m;
-
-    if ( m.lower() == "inbox" )
-        return user()->inbox()->name();
-    return user()->home()->name() + "/" + m;
 }
 
 

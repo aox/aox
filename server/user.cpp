@@ -183,6 +183,32 @@ Mailbox * User::home() const
 }
 
 
+/*! Returns the mailbox to which \a name refers, or a null pointer if
+    there is no such mailbox.
+*/
+
+Mailbox * User::mailbox( const String & name ) const
+{
+    return Mailbox::find( mailboxName( name ) );
+}
+
+
+/*! Returns the canonical name of the mailbox to which \a name
+    refers. This need not be the name of an existing mailbox, or even
+    well-formed.
+*/
+
+String User::mailboxName( const String & name ) const
+{
+    if ( name[0] == '/' )
+        return name;
+
+    if ( name.lower() == "inbox" )
+        return inbox()->name();
+    return d->home->name() + "/" + name;
+}
+
+
 /*! Returns true if this user is known to exist in the database, and
     false if it's unknown or doesn't exist.
 */

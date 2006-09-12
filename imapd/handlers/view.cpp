@@ -56,13 +56,13 @@ void View::parse()
 void View::execute()
 {
     if ( !d->p ) {
-        d->ms = Mailbox::find( imap()->mailboxName( d->source ) );
+        d->ms = mailbox( d->source );
         if ( !d->ms || d->ms->synthetic() || d->ms->deleted() ) {
             error( No, "Can't create view on " + d->source );
             return;
         }
 
-        d->parent = Mailbox::closestParent( imap()->mailboxName( d->view ) );
+        d->parent = Mailbox::closestParent( mailboxName( d->view ) );
         if ( !d->parent ) {
             error( No, "Syntax error in view name: " + d->view );
             return;
@@ -80,7 +80,7 @@ void View::execute()
     }
 
     if ( !d->t ) {
-        d->mv = Mailbox::obtain( imap()->mailboxName( d->view ), true );
+        d->mv = Mailbox::obtain( mailboxName( d->view ), true );
         if ( !d->mv ) {
             error( No, d->view + " is not a valid mailbox name" );
             return;
@@ -92,7 +92,7 @@ void View::execute()
                           "(view, selector, source, suidnext) values "
                           "((select id from mailboxes where name=$1),"
                           "$2, $3, 0)", this );
-        d->q->bind( 1, imap()->mailboxName( d->view ) );
+        d->q->bind( 1, mailboxName( d->view ) );
         d->q->bind( 2, selector()->string() );
         d->q->bind( 3, d->ms->id() );
         d->t->enqueue( d->q );

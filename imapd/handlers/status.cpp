@@ -88,7 +88,7 @@ void Status::execute()
 {
     // first part: set up what we need.
     if ( !d->mailbox ) {
-        d->mailbox = Mailbox::find( imap()->mailboxName( d->name ) );
+        d->mailbox = mailbox( d->name );
         if ( !d->mailbox ) {
             error( No, "Can't open " + d->name );
             finish();

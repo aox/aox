@@ -37,6 +37,8 @@ public:
     Address * address();
 
     Mailbox * home() const;
+    Mailbox * mailbox( const String & ) const;
+    String mailboxName( const String & ) const;
 
     bool exists();
 

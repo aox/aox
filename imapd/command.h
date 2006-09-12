@@ -80,6 +80,9 @@ public:
 
     void shrink( MessageSet * );
 
+    class Mailbox * mailbox( const String & ) const;
+    String mailboxName( const String & ) const;
+
 private:
     class CommandData *d;
 

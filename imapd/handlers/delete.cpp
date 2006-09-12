@@ -54,7 +54,7 @@ void Delete::parse()
 void Delete::execute()
 {
     if ( !d->m ) {
-        d->m = Mailbox::obtain( imap()->mailboxName( d->n ), false );
+        d->m = Mailbox::obtain( mailboxName( d->n ), false );
         if ( !d->m || d->m->deleted() )
             error( No, "No such mailbox: " + d->n );
         else if ( Session::activeSessions( d->m ) )

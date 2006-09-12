@@ -74,7 +74,7 @@ void Copy::execute()
     }
 
     if ( !d->mailbox ) {
-        d->mailbox = Mailbox::find( imap()->mailboxName( d->target ) );
+        d->mailbox = mailbox( d->target );
         if ( !d->mailbox ) {
             error( No, "Cannot find any mailbox named " + d->target );
             return;
@@ -228,7 +228,7 @@ void Copy::execute()
                         "uidnext=" + fn( next ) );
     }
 
-         
+
     MessageSet target;
     target.add( d->firstUid, next - 1 );
     respond( "OK [COPYUID " +

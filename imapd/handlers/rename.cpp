@@ -167,13 +167,13 @@ void Rename::execute()
     if ( d->renames.isEmpty() ) {
         // 1. the first mailbox
         RenameData::MailboxPair * p = new RenameData::MailboxPair;
-        p->from = Mailbox::find( imap()->mailboxName( d->fromName ) );
+        p->from = Mailbox::find( mailboxName( d->fromName ) );
         if ( p->from == 0 ) {
             error( No, "No such mailbox: " + d->fromName );
             return;
         }
 
-        p->toName = imap()->mailboxName( d->toName );
+        p->toName = mailboxName( d->toName );
         p->toParent = Mailbox::closestParent( p->toName );
         d->process( p, 0 );
 
@@ -191,7 +191,7 @@ void Rename::execute()
                 p->toName =
                     it->toName + c->name().mid( it->from->name().length() );
                 p->toParent =
-                    Mailbox::closestParent( imap()->mailboxName( p->toName ) );
+                    Mailbox::closestParent( mailboxName( p->toName ) );
                 if ( !( c->synthetic() || c->deleted() ) )
                     d->process( p, it );
                 if ( !ok() )
@@ -206,12 +206,12 @@ void Rename::execute()
                 new Query( "update aliases set "
                            "mailbox=(select id from mailboxes where name=$1) "
                            "where mailbox=$2", 0 );
-            q->bind( 1, imap()->mailboxName( d->fromName ) );
+            q->bind( 1, mailboxName( d->fromName ) );
             q->bind( 2, p->from->id() );
             d->t->enqueue( q );
             q = new Query( "update mailboxes set deleted='f',owner=$2 "
                            "where name=$1", 0 );
-            q->bind( 1, imap()->mailboxName( d->fromName ) );
+            q->bind( 1, mailboxName( d->fromName ) );
             q->bind( 2, imap()->user()->id() );
             d->t->enqueue( q );
         }

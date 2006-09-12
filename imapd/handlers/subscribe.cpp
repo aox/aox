@@ -55,7 +55,7 @@ void Subscribe::execute()
     // table, remove it, or do nothing.
 
     if ( !q ) {
-        m = Mailbox::find( imap()->mailboxName( name ) );
+        m = mailbox( name );
         if ( !m ) {
             error( No, "Can't subscribe to non-existent mailbox " + name );
             finish();
