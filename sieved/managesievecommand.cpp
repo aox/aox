@@ -8,6 +8,7 @@
 #include "buffer.h"
 #include "mechanism.h"
 #include "stringlist.h"
+#include "sievescript.h"
 #include "transaction.h"
 
 
@@ -293,12 +294,18 @@ bool ManageSieveCommand::putScript()
     if ( !d->query ) {
         String name = string();
         whitespace();
-        String script = string();
-        if ( script.isEmpty() )
-            no( "Script cannot be empty" );
+        SieveScript script;
+        script.parse( string() );
         end();
-
-        // here we need to check the script for validity
+        if ( script.isEmpty() ) {
+            no( "Script cannot be empty" );
+            return true;
+        }
+        String e = script.parseErrors();
+        if ( !e.isEmpty() ) {
+            no( e );
+            return true;
+        }
 
         // push the script into the database. we need to either update
         // a table row or insert a new one. ManageSieveCommand doesn't
@@ -307,7 +314,7 @@ bool ManageSieveCommand::putScript()
                               "values($1,$2,$3,false)", this );
         d->query->bind( 1, d->sieve->user()->id() );
         d->query->bind( 2, name );
-        d->query->bind( 3, script );
+        d->query->bind( 3, script.source() );
         d->query->allowFailure();
         if ( d->no.isEmpty() )
             d->query->execute();

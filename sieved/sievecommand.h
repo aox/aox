@@ -1,4 +1,4 @@
-// Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
+ // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
 #ifndef SIEVECOMMAND_H
 #define SIEVECOMMAND_H

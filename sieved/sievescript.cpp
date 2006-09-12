@@ -2,7 +2,9 @@
 
 #include "sievescript.h"
 
-#include "list.h"
+#include "sievecommand.h"
+#include "stringlist.h"
+
 
 
 class SieveScriptData
@@ -105,7 +107,11 @@ public:
         }
         List<T> * children() const { return c; }
         void parse() {
-            // if we have min/max requirements, this is where we check
+            typename List<T>::Iterator i( c );
+            while ( i ) {
+                i->parse();
+                ++i;
+            }
         }
     private:
         List<T> * c;
@@ -139,6 +145,8 @@ public:
     public:
         Identifier( Production * );
         void parse();
+
+        ::String string() { return identifier; }
     private:
         ::String identifier;
     };
@@ -150,8 +158,10 @@ public:
     public:
         Number( Production * );
         void parse();
+
+        uint number() { return n; }
     private:
-        uint number;
+        uint n;
     };
 
     // tag = ":" identifier
@@ -161,6 +171,8 @@ public:
     public:
         Tag( Production * );
         void parse();
+
+        ::String tag() { return ":" + id->string(); }
     private:
         Identifier * id;
     };
@@ -196,10 +208,16 @@ public:
     public:
         Argument( Production * );
         void parse();
+
+        ::String string();
+        uint number();
+        ::String tag();
+        ::StringList * stringList();
+
     private:
-        class SieveScriptData::Tag * tag;
-        class SieveScriptData::Number * number;
-        class SieveScriptData::StringList * stringList;
+        class SieveScriptData::Tag * t;
+        class SieveScriptData::Number * n;
+        class SieveScriptData::StringList * sl;
     };
 
     // arguments = *argument [test / test-list]
@@ -209,6 +227,7 @@ public:
     public:
         Arguments( Production * );
         void parse();
+        Argument * singleArgument();
     private:
         SieveScriptData::ProductionList<Argument> * arguments;
         class SieveScriptData::TestList * testList;
@@ -234,8 +253,10 @@ public:
     public:
         String( Production * );
         void parse();
+
+        ::String string() const { return s; }
     private:
-        ::String string;
+        ::String s;
     };
 
     // COMPARATOR = ":comparator" string
@@ -267,7 +288,11 @@ public:
     public:
         StringList( Production * );
         void parse();
+
+        ::StringList * strings() { return l; }
+
     private:
+        ::StringList * l;
     };
 
     // test = identifier arguments
@@ -340,7 +365,10 @@ void SieveScriptData::Production::error( const ::String & message )
     if ( !e.isEmpty() )
         return;
 
-    bang = pos();
+    if ( pos() < source().length() )
+        bang = pos();
+    else
+        bang = start;
     e = message;
 }
 
@@ -368,11 +396,11 @@ void SieveScriptData::AddressPart::parse()
 
 // argument = string-list / number / tag
 SieveScriptData::Argument::Argument( Production * p )
-    : SieveScriptData::Production( p, "argument" )
+    : SieveScriptData::Production( p, "argument" ), t( 0 ), n( 0 ), sl( 0 )
 {
     switch ( nextChar() ) {
     case ':':
-        tag = new Tag( this );
+        t = new Tag( this );
         break;
     case '0':
     case '1':
@@ -384,13 +412,13 @@ SieveScriptData::Argument::Argument( Production * p )
     case '7':
     case '8':
     case '9':
-        number = new Number( this );
+        n = new Number( this );
         break;
-    case '(':
+    case '[':
     case '"':
     case 't':
     case 'T':
-        stringList = new StringList( this );
+        sl = new StringList( this );
         break;
     default:
         error( "No valid argument seen" );
@@ -398,8 +426,69 @@ SieveScriptData::Argument::Argument( Production * p )
     }
 }
 
+
 void SieveScriptData::Argument::parse()
 {
+}
+
+
+::String SieveScriptData::Argument::string()
+{
+    ::StringList * l = stringList();
+
+    if ( l && l->count() == 1 )
+        return *l->first();
+
+    if ( !l )
+        error( "Needed single-item string list" );
+    else if ( l->count() != 1 )
+        error( "Expected one string, found list of " +
+               fn( l->count() ) + " strings" );
+    return "";
+}
+
+
+uint SieveScriptData::Argument::number()
+{
+    if ( n )
+        return n->number();
+    else if ( sl )
+        error( "Argument is a string (or string list), "
+               "but a number is expected" );
+    else if ( t )
+        error( "Argument is a tag, but a number is expected" );
+    else
+        error( "Argument is not a number, and must be" );
+    return 0;
+}
+
+
+::String SieveScriptData::Argument::tag()
+{
+    if ( t )
+        return t->tag();
+    else if ( sl )
+        error( "Argument is a string (or string list), "
+               "but a tag is expected" );
+    else if ( n )
+        error( "Argument is a number, but a tag is expected" );
+    else
+        error( "Argument is not a tag, and must be" );
+    return "";
+}
+
+
+StringList * SieveScriptData::Argument::stringList()
+{
+    if ( sl )
+        return sl->strings();
+    else if ( t )
+        error( "Argument is a tag, but a string (list) is expected" );
+    else if ( n )
+        error( "Argument is a number, but a string (list) is expected" );
+    else
+        error( "Argument is not a string, and must be" );
+    return 0;
 }
 
 
@@ -412,8 +501,19 @@ SieveScriptData::Arguments::Arguments( Production * p )
     testList = new TestList( this );
 }
 
+
 void SieveScriptData::Arguments::parse()
 {
+}
+
+
+SieveScriptData::Argument * SieveScriptData::Arguments::singleArgument()
+{
+    uint c = arguments->children()->count();
+    if ( c == 1 )
+        return arguments->children()->first();
+    error( "Command needs one argument, but " + fn ( c ) + " present" );
+    return 0;
 }
 
 
@@ -436,8 +536,44 @@ SieveScriptData::Command::Command( Production * p )
     require( "}" );
 }
 
+
 void SieveScriptData::Command::parse()
 {
+    SieveCommand * command = 0;
+    //bool test = false;
+    //bool block = false;
+    ::String n = id->string();
+    if ( n == "keep" ) {
+        command = new SieveCommand( SieveCommand::Keep );
+    }
+    else if ( n == "reject" ) {
+        command = new SieveCommand( SieveCommand::Reject );
+    }
+    else if ( n == "fileinto" ) {
+        command = new SieveCommand( SieveCommand::FileInto );
+        Argument * a = args->singleArgument();
+        if ( a ) {
+            //Mailbox * m = d->user->mailbox( a->string() );
+        }
+    }
+    else if ( n == "redirect" ) {
+        command = new SieveCommand( SieveCommand::Keep );
+    }
+    else if ( n == "discard" ) {
+        command = new SieveCommand( SieveCommand::Keep );
+    }
+    else if ( n == "if" ) {
+        command = new SieveCommand( SieveCommand::Keep );
+    }
+    else if ( n == "require" ) {
+        command = new SieveCommand( SieveCommand::Keep );
+    }
+    else if ( n == "stop" ) {
+        command = new SieveCommand( SieveCommand::Keep );
+    }
+    else {
+        error( "Unknown command: " + n );
+    }
 }
 
 
@@ -493,7 +629,7 @@ SieveScriptData::String::String( Production * p )
             if ( nextChar() != 10 )
                 error( "CR without following LF" );
             skip( 1 );
-            string.append( "\r\n" );
+            s.append( "\r\n" );
             break;
         case 10:
             error( "LF without preceding CR" );
@@ -502,14 +638,14 @@ SieveScriptData::String::String( Production * p )
             skip( 1 );
             if ( nextChar() == 0 || nextChar() == 10 || nextChar() == 13 )
                 error( "Can't quote NUL, CR or LF" );
-            string.append( nextChar() );
+            s.append( nextChar() );
             skip( 1 );
             break;
         case 0: // just plain illegal
             error( "0 byte seen" );
             break;
         default: // other-not-qspecial
-            string.append( nextChar() );
+            s.append( nextChar() );
             skip( 1 );
             break;
         }
@@ -547,7 +683,7 @@ SieveScriptData::String::String( Production * p )
                 c = nextChar();
             }
         }
-        string.append( c );
+        s.append( c );
         skip( 1 );
         if ( c == 10 ) {
             error( "LF without CR" );
@@ -556,7 +692,7 @@ SieveScriptData::String::String( Production * p )
             c = nextChar();
             if ( c != 10 )
                 error( "CR without LF" );
-            string.append( c );
+            s.append( c );
             skip( 1 );
             crlf = true;
         }
@@ -572,8 +708,26 @@ void SieveScriptData::String::parse()
 
 // string-list  = "[" string *("," string) "]" / string
 SieveScriptData::StringList::StringList( Production * p )
-    : SieveScriptData::Production( p, "::stringlist" )
+    : SieveScriptData::Production( p, "::stringlist" ), l( new ::StringList )
 {
+    switch ( nextChar() ) {
+    case '[':
+        if ( present( "[" ) ) {
+            l->append( (new String( this ))->string() );
+            while ( present( "," ) )
+                l->append( (new String( this ))->string() );
+            require( "]" );
+        }
+        break;
+    case '"':
+    case 't':
+    case 'T':
+        l->append( (new String( this ))->string() );
+        break;
+    default:
+        error( "string-list expected" );
+        break;
+    }
 }
 
 void SieveScriptData::StringList::parse()
@@ -693,7 +847,7 @@ SieveScriptData::Number::Number( Production * p )
         error( "Expected number" );
 
     bool ok = true;
-    uint number = s.mid( b, i-b ).number( &ok );
+    n = s.mid( b, i-b ).number( &ok );
     if ( !ok )
         error( "Bad number: " + s.mid( b, i-b ) );
 
@@ -705,10 +859,10 @@ SieveScriptData::Number::Number( Production * p )
         scale = 1024 * 1024;
     else if ( c == 'g' || c == 'G' )
         scale = 1024 * 1024 * 1024;
-    if ( number > UINT_MAX / scale )
-        error( "Number " + fn( number ) + " is too large for scale " +
+    if ( n > UINT_MAX / scale )
+        error( "Number " + fn( n ) + " is too large when scaled by " +
                fn( scale ) );
-    number = number * scale;
+    n = n * scale;
 }
 
 void SieveScriptData::Number::parse()
@@ -792,6 +946,7 @@ SieveScriptData::Start::Start( SieveScriptData * d )
 
 void SieveScriptData::Start::parse()
 {
+    commands->parse();
 }
 
 
@@ -805,6 +960,7 @@ void SieveScript::parse( const String & script )
     d->source = script;
     d->pos = 0;
     d->script = new SieveScriptData::Start( d );
+    d->script->parse();
 }
 
 
@@ -857,4 +1013,22 @@ String SieveScript::location( uint position ) const
     r.append( fn( position - i + 1 ) );
     r.append( ":" );
     return r;
+}
+
+
+/*! Returns true if
+
+*/
+
+bool SieveScript::isEmpty() const
+{
+    return false;
+}
+
+
+/*! Returns a copy of the source code of this script. */
+
+String SieveScript::source() const
+{
+    return d->source;
 }

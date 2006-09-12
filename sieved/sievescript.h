@@ -14,6 +14,9 @@ public:
 
     void parse( const String & );
     String parseErrors() const;
+    String source() const;
+
+    bool isEmpty() const;
 
 private:
     String location( uint ) const;
