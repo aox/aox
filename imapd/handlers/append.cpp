@@ -217,7 +217,8 @@ void Append::execute()
         if ( !d->permissions->ready() )
             return;
         if ( !d->permissions->allowed( Permissions::Insert ) ||
-            !d->permissions->allowed( Permissions::Write ) ) {
+             !d->permissions->allowed( Permissions::Write ) )
+        {
             error( No, d->mbx + " is not accessible" );
             finish();
             return;
