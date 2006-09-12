@@ -4,6 +4,7 @@
 
 #include "imapsession.h"
 #include "transaction.h"
+#include "permissions.h"
 #include "messageset.h"
 #include "occlient.h"
 #include "mailbox.h"
@@ -17,7 +18,7 @@ class CopyData
 public:
     CopyData() :
         uid( false ), firstUid( 0 ), mailbox( 0 ), transaction( 0 ),
-        findUid( 0 )
+        permissions( 0 ), findUid( 0 )
     {}
     bool uid;
     MessageSet set;
@@ -25,6 +26,7 @@ public:
     uint firstUid;
     Mailbox * mailbox;
     Transaction * transaction;
+    Permissions * permissions;
     Query * findUid;
 };
 
@@ -77,6 +79,17 @@ void Copy::execute()
             error( No, "Cannot find any mailbox named " + d->target );
             return;
         }
+        d->permissions = new Permissions( d->mailbox, imap()->user(),
+                                          this );
+    }
+
+    if ( !d->permissions->ready() )
+        return;
+    if ( !d->permissions->allowed( Permissions::Insert ) ||
+         !d->permissions->allowed( Permissions::Write ) ) {
+        error( No, "Cannot insert messages (and flags) in " +
+               d->mailbox->name() );
+        return;
     }
 
     if ( !d->findUid ) {
