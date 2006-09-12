@@ -1210,10 +1210,10 @@ void Command::requireRight( Mailbox * m, Permissions::Right r )
 }
 
 
-/*! Returns true if this command is permitted, according to the calls
-    to requireRight(), and false if at least one right fails or if
-    some permission cannot yet be ascertained.
-
+/*! Returns true if this command is permitted to proceed, and false if
+    it either must abort due to lack of rights or wait until
+    Permissions has fetched more information.
+  
     If permitted() denies permission, it also sets a suitable error
     message.
 */
