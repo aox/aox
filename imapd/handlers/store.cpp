@@ -235,10 +235,7 @@ void Store::execute()
     }
 
     if ( !d->checkedPermission ) {
-        Permissions * p = imap()->session()->permissions();
-        if ( !p->ready() )
-            return;
-        d->checkedPermission = true;
+        Mailbox * m = imap()->session()->mailbox();
         if ( d->op == StoreData::ReplaceAnnotations ) {
             bool hasPriv = false;
             bool hasShared = false;
@@ -250,13 +247,10 @@ void Store::execute()
                     hasPriv = true;
                 ++it;
             }
-            if ( hasPriv && !p->allowed( Permissions::Read ) )
-                error( No, "Insufficient privileges to "
-                       "write private annotations" );
-            if ( hasShared &&
-                 !p->allowed( Permissions::WriteSharedAnnotation ) )
-                error( No, "Insufficient privileges to "
-                       "write shared annotations" );
+            if ( hasPriv )
+                requireRight( m, Permissions::Read );
+            if ( hasShared )
+                requireRight( m, Permissions::WriteSharedAnnotation );
         }
         else {
             bool deleted = false;
@@ -272,16 +266,18 @@ void Store::execute()
                     other = true;
                 ++it;
             }
-            if ( seen && !p->allowed( Permissions::KeepSeen ) )
-                error( No, "Insufficient privileges to set \\Seen" );
-            else if ( deleted && !p->allowed( Permissions::DeleteMessages ) )
-                error( No, "Insufficient privileges to set \\Deleted" );
-            else if ( other && !p->allowed( Permissions::Write ) )
-                error( No, "Insufficient privileges to set flags" );
-            if ( !ok() )
-                return;
+            if ( seen )
+                requireRight( m, Permissions::KeepSeen );
+            if ( deleted )
+                requireRight( m, Permissions::DeleteMessages );
+            if ( other )
+                requireRight( m, Permissions::Write );
         }
+        d->checkedPermission = true;
     }
+
+    if ( !ok() )
+        return;
 
     if ( d->op == StoreData::ReplaceAnnotations ) {
         if ( !processAnnotationNames() )

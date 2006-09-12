@@ -83,11 +83,9 @@ bool Expunge::expunge( bool chat )
             error( No, "No mailbox to expunge" );
             return true;
         }
-        Permissions * p = d->s->permissions();
-        if ( !p->allowed( Permissions::Expunge ) ) {
-            error( No, "Do not have privileges to expunge" );
-            return true;
-        }
+        requireRight( d->s->mailbox(), Permissions::Expunge );
+        if ( !permitted() )
+            return !ok();
 
         Flag * f = Flag::find( "\\deleted" );
         if ( !f ) {

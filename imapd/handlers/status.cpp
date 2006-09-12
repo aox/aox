@@ -18,14 +18,13 @@ public:
         messages( false ), uidnext( false ), uidvalidity( false ),
         recent( false ), unseen( false ),
         modseq( false ),
-        mailbox( 0 ), session( 0 ), permissions( 0 ), unseenCount( 0 ),
+        mailbox( 0 ), session( 0 ), unseenCount( 0 ),
         highestModseq( 0 )
         {}
     String name;
     bool messages, uidnext, uidvalidity, recent, unseen, modseq;
     Mailbox * mailbox;
     Session * session;
-    Permissions * permissions;
     Query * unseenCount;
     Query * highestModseq;
 };
@@ -52,7 +51,7 @@ void Status::parse()
     String l( "Status " + d->name + ":" );
     bool atEnd = false;
     while ( !atEnd ) {
-        String item = letters( 1, 11 ).lower();
+        String item = letters( 1, 13 ).lower();
         l.append( " " );
         l.append( item );
 
@@ -96,11 +95,12 @@ void Status::execute()
         }
     }
 
-    if ( !d->permissions )
-        d->permissions = new Permissions( d->mailbox, imap()->user(), this );
+    requireRight( d->mailbox, Permissions::Read );
 
-    if ( !d->session && ( d->messages || d->recent ||
-                          ( d->mailbox->view() && d->uidnext ) ) )
+    if ( !d->session && 
+         ( d->messages || 
+           d->recent || 
+           ( d->mailbox->view() && d->uidnext ) ) )
     {
         if ( imap()->session() &&
              imap()->session()->mailbox() == d->mailbox )
@@ -144,7 +144,7 @@ void Status::execute()
     }
 
     // second part: wait until we have the information
-    if ( d->permissions && !d->permissions->ready() )
+    if ( !permitted() )
         return;
     if ( d->session && !d->session->initialised() )
         return;
@@ -153,14 +153,7 @@ void Status::execute()
     if ( d->highestModseq && !d->highestModseq->done() )
         return;
 
-    // third part: do we have permission to return this? now?
-    if ( d->permissions &&
-         !d->permissions->allowed( Permissions::Read ) ) {
-        error( No, "No read access for " + d->mailbox->name() );
-        return;
-    }
-
-    // fourth part: return the payload.
+    // third part: return the payload.
     StringList status;
 
     if ( d->messages )

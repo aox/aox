@@ -8,7 +8,6 @@
 #include "mailbox.h"
 #include "session.h"
 #include "occlient.h"
-#include "permissions.h"
 #include "transaction.h"
 
 
@@ -16,13 +15,12 @@ class DeleteData
     : public Garbage
 {
 public:
-    DeleteData(): m( 0 ), q( 0 ), t( 0 ), p( 0 ) {}
+    DeleteData(): m( 0 ), q( 0 ), t( 0 ) {}
 
     String n;
     Mailbox * m;
     Query * q;
     Transaction * t;
-    Permissions * p;
 };
 
 
@@ -65,7 +63,9 @@ void Delete::execute()
             error( No, "Cannot delete INBOX" );
         if ( !ok() )
             return;
-        d->p = new Permissions( d->m, imap()->user(), this );
+        requireRight( d->m, Permissions::DeleteMailbox );
+        requireRight( d->m, Permissions::DeleteMessages );
+        requireRight( d->m, Permissions::Expunge );
         d->q = new Query( "select count(*)::int as undeletable "
                           "from deleted_messages "
                           "where mailbox=$1", this );
@@ -73,18 +73,11 @@ void Delete::execute()
         d->q->execute();
     }
 
-    if ( !d->p->ready() || !d->q->done() )
+    if ( !permitted() || !d->q->done() )
         return;
 
-    if ( !d->p->allowed( Permissions::DeleteMailbox ) ||
-         !d->p->allowed( Permissions::DeleteMessages ) ||
-         !d->p->allowed( Permissions::Expunge ) )
-    {
-        // XXX should make this more fine-grained. and there's a
-        // race with APPEND/COPY too. (See notes.)
-        error( No, "Not allowed to delete mailbox " + d->m->name() );
-        return;
-    }
+    // XXX should make the permission checking more fine-grained. and
+    // there's a race with APPEND/COPY too. (See notes.)
 
     if ( !d->t ) {
         uint undeletable = 0;

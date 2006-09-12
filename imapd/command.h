@@ -5,6 +5,7 @@
 
 #include "global.h"
 #include "stringlist.h"
+#include "permissions.h"
 #include "event.h"
 #include "imap.h"
 
@@ -82,6 +83,10 @@ public:
 
     class Mailbox * mailbox( const String & ) const;
     String mailboxName( const String & ) const;
+
+    void requireRight( Mailbox *, Permissions::Right );
+    bool permitted();
+    bool permissionChecked() const;
 
 private:
     class CommandData *d;

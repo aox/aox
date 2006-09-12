@@ -109,13 +109,11 @@ void Acl::execute()
             d->user->refresh( this );
         }
 
-        d->permissions = new Permissions( d->mailbox, imap()->user(), this );
+        requireRight( d->mailbox, Permissions::Admin );
         d->state = 1;
     }
 
     if ( d->state == 1 ) {
-        if ( !d->permissions->ready() )
-            return;
         if ( d->user && d->user->state() == User::Unverified )
             return;
 
@@ -129,10 +127,8 @@ void Acl::execute()
     }
 
     if ( d->state == 2 ) {
-        if ( !d->permissions->allowed( Permissions::Admin ) ) {
-            error( No, d->mbox + " is not accessible" );
+        if ( !permitted() )
             return;
-        }
 
         if ( d->type == ListRights ) {
             String s( "LISTRIGHTS " + d->mbox + " " );

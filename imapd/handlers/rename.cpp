@@ -33,14 +33,11 @@ public:
     public:
         MailboxPair()
             : from( 0 ), toParent( 0 ),
-              fromPermissions( 0 ), toPermissions( 0 ),
               toUidvalidity( 0 ) {}
     public:
         Mailbox * from;
         String toName;
         Mailbox * toParent;
-        Permissions * fromPermissions;
-        Permissions * toPermissions;
         uint toUidvalidity;
     };
 
@@ -92,9 +89,9 @@ void Rename::parse()
 
 void RenameData::process( MailboxPair * p, MailboxPair * parent )
 {
-    p->fromPermissions = new Permissions( p->from, c->imap()->user(), c );
+    c->requireRight( p->from, Permissions::DeleteMailbox );
     if ( !parent || parent->toParent != p->toParent )
-        p->toPermissions = new Permissions( p->toParent, c->imap()->user(), c );
+        c->requireRight( p->toParent, Permissions::CreateMailboxes );
     renames.append( p );
 
     Mailbox * to = Mailbox::obtain( p->toName, false );
@@ -220,24 +217,18 @@ void Rename::execute()
     if ( !ok() )
         return;
 
-    // the transaction is now set up. let's see if we have permission
-    // to carry it out.
+    if ( !permitted() ) {
+        if ( !ok() )
+            d->t->rollback();
+        return;
+    }
+
+    if ( !permissionChecked() )
+        return;
 
     if ( !d->ready ) {
         List< RenameData::MailboxPair >::Iterator it( d->renames );
         while ( it ) {
-            if ( !it->fromPermissions->ready() ||
-                 ( it->toPermissions && !it->toPermissions->ready() ) )
-                return;
-            if ( !it->fromPermissions->allowed( Permissions::DeleteMailbox ) ) {
-                error( No, "Not permitted to remove " + it->from->name() );
-                break;
-            }
-            if ( it->toPermissions &&
-                 !it->toPermissions->allowed( Permissions::CreateMailboxes ) ) {
-                error( No, "Not permitted to create " + it->toName );
-                break;
-            }
             if ( Session::activeSessions( it->from ) ) {
                 error( No, "Mailbox is in use: " + it->from->name() );
                 break;

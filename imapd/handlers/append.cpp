@@ -22,7 +22,7 @@ class AppendData
 public:
     AppendData()
         : mailbox( 0 ), message( 0 ), injector( 0 ),
-          permissions( 0 ), annotations( 0 )
+          annotations( 0 )
     {}
 
     Date date;
@@ -31,7 +31,6 @@ public:
     Message * message;
     Injector * injector;
     StringList flags;
-    Permissions * permissions;
     List<Annotation> * annotations;
 };
 
@@ -195,35 +194,19 @@ uint Append::number( uint n )
 
 void Append::execute()
 {
-    if ( !d->permissions ) {
+    if ( !d->mailbox ) {
         d->mailbox = mailbox( d->mbx );
         if ( !d->mailbox ) {
             error( No, "No such mailbox: '" + d->mbx + "'" );
             finish();
             return;
         }
-
-        ImapSession *is = imap()->session();
-        if ( is ) {
-            d->permissions = is->permissions();
-        }
-        else {
-            d->permissions = new Permissions( d->mailbox, imap()->user(),
-                                              this );
-        }
+        requireRight( d->mailbox, Permissions::Insert );
+        requireRight( d->mailbox, Permissions::Write );
     }
 
-    if ( d->permissions && !d->injector ) {
-        if ( !d->permissions->ready() )
-            return;
-        if ( !d->permissions->allowed( Permissions::Insert ) ||
-             !d->permissions->allowed( Permissions::Write ) )
-        {
-            error( No, d->mbx + " is not accessible" );
-            finish();
-            return;
-        }
-    }
+    if ( !permitted() )
+        return;
 
     if ( !d->injector ) {
         d->injector = new Injector( d->message, this );

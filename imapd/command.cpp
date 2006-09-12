@@ -53,7 +53,7 @@ public:
         canExpunge( false ), error( false ),
         state( Command::Unparsed ), group( 0 ),
         permittedStates( 0 ),
-        imap( 0 )
+        imap( 0 ), checker( 0 )
     {
         (void)::gettimeofday( &started, 0 );
     }
@@ -80,6 +80,7 @@ public:
     struct timeval started;
 
     IMAP * imap;
+    PermissionsChecker * checker;
 };
 
 
@@ -1189,4 +1190,54 @@ String Command::mailboxName( const String & name ) const
     if ( !u )
         return "";
     return u->mailboxName( name );
+}
+
+
+/*! Notes that this command requires \a r on \a m. execute() is not
+    called again until a Permissions object says OK.
+*/
+
+void Command::requireRight( Mailbox * m, Permissions::Right r )
+{
+    if ( !d->checker )
+        d->checker = new PermissionsChecker;
+
+    if ( imap()->state() == IMAP::Selected &&
+         m == imap()->session()->mailbox() )
+        d->checker->require( imap()->session()->permissions(), r );
+    else if ( imap()->user() )
+        d->checker->require( new Permissions( m, imap()->user(), this ), r );
+}
+
+
+/*! Returns true if this command is permitted, according to the calls
+    to requireRight(), and false if at least one right fails or if
+    some permission cannot yet be ascertained.
+
+    If permitted() denies permission, it also sets a suitable error
+    message.
+*/
+
+bool Command::permitted()
+{
+    if ( !d->checker )
+        return false;
+    if ( !d->checker->ready() )
+        return false;
+    if ( d->checker->allowed() )
+        return true;
+    error( No, d->checker->error().simplified() );
+    return false;
+}
+
+
+/*! Returns true if all permission checking could be carried out, and
+    false if at least one Permissions object is still working.
+*/
+
+bool Command::permissionChecked() const
+{
+    if ( d->checker && !d->checker->ready() )
+        return false;
+    return true;
 }

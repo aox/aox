@@ -60,4 +60,22 @@ private:
 };
 
 
+class PermissionsChecker
+    : public Garbage
+{
+public:
+    PermissionsChecker();
+
+    void require( Permissions *, Permissions::Right );
+
+    bool allowed() const;
+    bool ready() const;
+
+    String error() const;
+
+private:
+    class PermissionsCheckerData * d;
+};
+
+
 #endif

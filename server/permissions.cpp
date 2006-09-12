@@ -351,3 +351,115 @@ User * Permissions::user() const
 {
     return d->user;
 }
+
+
+/*! \class PermissionsChecker permissions.h
+
+    The PermissionsChecker class is a convenience mangler. It collects
+    a set of Permissions and Permissions::Right objects, and checks
+    that all are allowed. If not, it generates a suitable error message.
+*/
+
+
+class PermissionsCheckerData
+    : public Garbage
+{
+public:
+    PermissionsCheckerData(): Garbage() {}
+    struct Pair {
+        Pair(): p( 0 ), r( Permissions::Lookup ) {}
+        Permissions * p;
+        Permissions::Right r;
+    };
+    List<Pair> l;
+};
+
+
+/*!  Constructs an empty PermissionsChecker. Pretty much a noop. */
+
+PermissionsChecker::PermissionsChecker()
+    : Garbage(), d( new PermissionsCheckerData )
+{
+}
+
+
+/*! Notes that this object's user requires \a r on \a p. */
+
+void PermissionsChecker::require( Permissions * p, Permissions::Right r )
+{
+    PermissionsCheckerData::Pair * pair = new PermissionsCheckerData::Pair;
+    pair->p = p;
+    pair->r = r;
+    d->l.append( pair );
+}
+
+
+/*! Returns true if all all Permissions objects specified using
+    require() allow the relevant right, and false in all other cases.
+*/
+
+bool PermissionsChecker::allowed() const
+{
+    List<PermissionsCheckerData::Pair>::Iterator i( d->l );
+    while ( i ) {
+        if ( !i->p->ready() || !i->p->allowed( i->r ) )
+            return false;
+        ++i;
+    }
+    return true;
+}
+
+
+/*! Returns true if this checker can return a valid result, and false
+    if at least one Permissions object still doesn't have the data it
+    needs.
+*/
+
+bool PermissionsChecker::ready() const
+{
+    List<PermissionsCheckerData::Pair>::Iterator i( d->l );
+    while ( i ) {
+        if ( !i->p->ready() )
+            return false;
+        ++i;
+    }
+    return true;
+}
+
+
+static const char * rightNames[Permissions::NumRights] = {
+    "Lookup", // l
+    "Read", // r
+    "Keep Seen", // s
+    "Write", // w
+    "Insert", // i
+    "Post", // p
+    "Create Mailboxes", // k
+    "Delete Mailbox", // x
+    "Delete Messages", // t
+    "Expunge", // e
+    "Admin", // a
+    "Write Shared Annotation", // n
+};
+
+
+/*! Returns an error string describing the missing permissions. If
+    allowed() returns true, this is an empty string. If allowed() is
+    false, it is a long, perhaps multi-line string.
+    
+    If ready() returns false, this function returns an almost random
+    string.
+*/
+
+String PermissionsChecker::error() const
+{
+    StringList l;
+    List<PermissionsCheckerData::Pair>::Iterator i( d->l );
+    while ( i ) {
+        if ( !i->p->allowed( i->r ) )
+            l.append( "Not permitted. Mailbox: " + i->p->mailbox()->name() +
+                      " Missing right: " + rightNames[i->r] );
+        ++i;
+    }
+    return l.join( "\r\n" );
+}

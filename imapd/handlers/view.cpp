@@ -5,7 +5,6 @@
 #include "mailbox.h"
 #include "occlient.h"
 #include "transaction.h"
-#include "permissions.h"
 
 
 class ViewData
@@ -14,7 +13,7 @@ class ViewData
 public:
     ViewData()
         : parent( 0 ), ms( 0 ), mv( 0 ),
-          p( 0 ), t( 0 ), q( 0 )
+          t( 0 ), q( 0 )
     {}
 
     String source;
@@ -24,7 +23,6 @@ public:
     Mailbox * ms;
     Mailbox * mv;
 
-    Permissions * p;
     Transaction * t;
     Query * q;
 };
@@ -55,7 +53,7 @@ void View::parse()
 
 void View::execute()
 {
-    if ( !d->p ) {
+    if ( !d->ms ) {
         d->ms = mailbox( d->source );
         if ( !d->ms || d->ms->synthetic() || d->ms->deleted() ) {
             error( No, "Can't create view on " + d->source );
@@ -68,16 +66,11 @@ void View::execute()
             return;
         }
 
-        d->p = new Permissions( d->parent, imap()->user(), this );
+        requireRight( d->parent, Permissions::CreateMailboxes );
     }
 
-    if ( !d->p->ready() )
+    if ( !permitted() )
         return;
-
-    if ( !d->p->allowed( Permissions::CreateMailboxes ) ) {
-        error( No, "Cannot create mailboxes under " + d->parent->name() );
-        return;
-    }
 
     if ( !d->t ) {
         d->mv = Mailbox::obtain( mailboxName( d->view ), true );
