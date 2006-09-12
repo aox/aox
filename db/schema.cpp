@@ -1391,9 +1391,22 @@ bool Schema::stepTo26()
     if ( d->substate == 0 ) {
         d->l->log( "Altering deleted_messages.deleted_at to timestamptz.",
                    Log::Debug );
-        d->q = new Query( "alter table deleted_messages alter column "
-                          "deleted_at type timestamp with time zone ",
+        d->q = new Query( "alter table deleted_messages add dtz timestamp "
+                          "with time zone", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "update deleted_messages set dtz=deleted_at", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table deleted_messages alter dtz set "
+                          "default current_timestamp", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table deleted_messages alter dtz set "
+                          "not null", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table deleted_messages drop deleted_at",
                           this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table deleted_messages rename dtz to "
+                          "deleted_at", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
