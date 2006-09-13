@@ -61,14 +61,21 @@ void ImapUrl::parse( const String & s )
 
     // iuserauth = enc_user [iauth] / [enc_user] iauth
 
-    d->user = xchars();
-    if ( stepOver( ";AUTH=" ) )
-        d->auth = xchars();
-    else if ( d->user.isEmpty() )
+    int slash = d->s.find( '/', d->i );
+    if ( slash < 0 )
         return;
 
-    if ( !stepOver( "@" ) )
-        return;
+    String iserver( d->s.mid( d->i, slash-d->i ) );
+    if ( iserver.contains( "@" ) ) {
+        d->user = xchars();
+        if ( stepOver( ";AUTH=" ) )
+            d->auth = xchars();
+        else if ( d->user.isEmpty() )
+            return;
+
+        if ( !stepOver( "@" ) )
+            return;
+    }
 
     if ( !hostport() )
         return;
@@ -181,9 +188,9 @@ bool ImapUrl::number( uint * n )
         j++;
 
     bool ok;
-    *n = d->s.mid( d->i, j-d->i+1 ).number( &ok );
+    *n = d->s.mid( d->i, j-d->i ).number( &ok );
     if ( ok && *n != 0 ) {
-        d->i = j+1;
+        d->i = j;
         return true;
     }
 
@@ -208,6 +215,9 @@ String ImapUrl::xchars( bool b )
              ( b && ( c == ':' || c == '@' || c == '/' ) ) ||
              escape( &c ) )
         {
+            // We won't eat the beginning of "/;UID".
+            if ( b && c == '/' && d->s[d->i+1] == ';' )
+                break;
             s.append( c );
         }
         else {
@@ -233,14 +243,14 @@ bool ImapUrl::hostport()
     // make the loop below twice as simple.
 
     char c = d->s[d->i];
-    while ( ( c|0x20 >= 'a' && c|0x20 <= 'z' ) ||
+    while ( ( (c|0x20) >= 'a' && (c|0x20) <= 'z' ) ||
             ( c >= '0' && c <= '9' ) )
     {
         d->host.append( c );
         d->i++;
 
         c = d->s[d->i];
-        while ( ( c|0x20 >= 'a' && c|0x20 <= 'z' ) ||
+        while ( ( (c|0x20) >= 'a' && (c|0x20) <= 'z' ) ||
                 ( c >= '0' && c <= '9' ) ||
                 ( c == '-' ) )
         {
@@ -253,6 +263,7 @@ bool ImapUrl::hostport()
         if ( c == '.' ) {
             d->host.append( c );
             d->i++;
+            c = d->s[d->i];
         }
     }
 
