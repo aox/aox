@@ -105,7 +105,7 @@ Postgres::Postgres()
 
     log( "Connecting to PostgreSQL server at " + server().string() + " "
          "(backend " + fn( connectionNumber() ) + ", fd " + fn( fd() ) +
-         ")", Log::Debug );
+         ", user " + d->user + ")", Log::Debug );
 
     setTimeoutAfter( 10 );
     EventLoop::global()->addConnection( this );
