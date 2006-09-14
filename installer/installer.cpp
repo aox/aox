@@ -1044,6 +1044,8 @@ void database()
 
 void configFile()
 {
+    setreuid( 0, 0 );
+
     String p( *dbpass );
     if ( p.contains( " " ) )
         p = "'" + p + "'";
@@ -1103,7 +1105,6 @@ void configFile()
                     "   %s should contain:\n\n%s\n", cf.cstr(), cfg.cstr() );
         }
         else {
-            setreuid( 0, 0 );
             File f( cf, File::Write, 0600 );
             if ( !f.valid() ) {
                 fprintf( stderr, "Could not open %s for writing.\n",
@@ -1162,7 +1163,6 @@ void superConfig()
                     "   %s should contain:\n\n%s\n", cf.cstr(), cfg.cstr() );
         }
         else {
-            setreuid( 0, 0 );
             File f( cf, File::Write, 0400 );
             if ( !f.valid() ) {
                 fprintf( stderr, "Could not open %s for writing.\n\n",
