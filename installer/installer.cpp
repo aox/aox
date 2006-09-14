@@ -134,6 +134,16 @@ int main( int ac, char *av[] )
 
     findPgUser();
 
+    if ( report )
+        printf( "Reporting what the installer needs to do.\n" );
+
+    Configuration::setup( "archiveopteryx.conf" );
+    String super( Configuration::compiledIn( Configuration::ConfigDir ) );
+    super.append( "/aoxsuper.conf" );
+    Configuration::read( super, true );
+
+    configure();
+
     if ( dbaddress->startsWith( "/" ) && !exists( *dbaddress ) ) {
         fprintf( stderr, "Error: DBADDRESS is set to '%s', "
                  "which does not exist.\n", dbaddress->cstr() );
@@ -145,16 +155,6 @@ int main( int ac, char *av[] )
         }
         exit( -1 );
     }
-
-    if ( report )
-        printf( "Reporting what the installer needs to do.\n" );
-
-    Configuration::setup( "archiveopteryx.conf" );
-    String super( Configuration::compiledIn( Configuration::ConfigDir ) );
-    super.append( "/aoxsuper.conf" );
-    Configuration::read( super, true );
-
-    configure();
 
     oryxGroup();
     oryxUser();
