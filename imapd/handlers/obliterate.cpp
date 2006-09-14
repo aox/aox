@@ -158,6 +158,9 @@ void XObliterate::execute()
     if ( !t->done() )
         return;
 
+    if ( t->failed() )
+        error( No, "Database failed: " + t->error() );
+
     // at this point, we can clobber cached state. this is very bad
     // and hackish. calling Flag::setup() more than once is a memory
     // leak, and other ::setup() functions may be just as bad.
