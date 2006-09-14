@@ -15,6 +15,7 @@
 #include "file.h"
 #include "md5.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -1219,12 +1220,12 @@ void permissions()
                         cf.cstr() );
 
             if ( chmod( cf.cstr(), 0600 ) < 0 )
-                fprintf( stderr, "Could not \"chmod 0600 %s\".\n",
-                         cf.cstr() );
+                fprintf( stderr, "Could not \"chmod 0600 %s\" (-%d).\n",
+                         cf.cstr(), errno );
 
             if ( chown( cf.cstr(), p->pw_uid, g->gr_gid ) < 0 )
-                fprintf( stderr, "Could not \"chown %s:%s %s\".\n",
-                         AOXUSER, AOXGROUP, cf.cstr() );
+                fprintf( stderr, "Could not \"chown %s:%s %s\" (-%d).\n",
+                         AOXUSER, AOXGROUP, cf.cstr(), errno );
         }
     }
 
@@ -1249,12 +1250,12 @@ void permissions()
                         scf.cstr() );
 
             if ( chmod( scf.cstr(), 0400 ) < 0 )
-                fprintf( stderr, "Could not \"chmod 0400 %s\".\n",
-                         scf.cstr() );
+                fprintf( stderr, "Could not \"chmod 0400 %s\" (-%d).\n",
+                         scf.cstr(), errno );
 
             if ( chown( scf.cstr(), 0, 0 ) < 0 )
-                fprintf( stderr, "Could not \"chown root:root %s\".\n",
-                         scf.cstr() );
+                fprintf( stderr, "Could not \"chown root:root %s\" (-%d).\n",
+                         scf.cstr(), errno );
         }
     }
 
@@ -1282,12 +1283,12 @@ void permissions()
                         mcd.cstr() );
 
             if ( chmod( mcd.cstr(), 0700 ) < 0 )
-                fprintf( stderr, "Could not \"chmod 0600 %s\".\n",
-                         mcd.cstr() );
+                fprintf( stderr, "Could not \"chmod 0600 %s\" (-%d).\n",
+                         mcd.cstr(), errno );
 
             if ( chown( mcd.cstr(), p->pw_uid, g->gr_gid ) < 0 )
-                fprintf( stderr, "Could not \"chown %s:%s %s\".\n",
-                         AOXUSER, AOXGROUP, mcd.cstr() );
+                fprintf( stderr, "Could not \"chown %s:%s %s\" (-%d).\n",
+                         AOXUSER, AOXGROUP, mcd.cstr(), errno );
         }
     }
 
@@ -1315,12 +1316,12 @@ void permissions()
                         jd.cstr() );
 
             if ( chmod( jd.cstr(), 0700 ) < 0 )
-                fprintf( stderr, "Could not \"chmod 0600 %s\".\n",
-                         jd.cstr() );
+                fprintf( stderr, "Could not \"chmod 0600 %s\" (-%d).\n",
+                         jd.cstr(), errno );
 
             if ( chown( jd.cstr(), 0, 0 ) < 0 )
-                fprintf( stderr, "Could not \"chown root:root %s\".\n",
-                         jd.cstr() );
+                fprintf( stderr, "Could not \"chown root:root %s\" (%d).\n",
+                         jd.cstr(), errno );
         }
     }
 
