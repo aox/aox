@@ -366,7 +366,9 @@ class PermissionsCheckerData
 {
 public:
     PermissionsCheckerData(): Garbage() {}
-    struct Pair {
+    struct Pair
+        : public Garbage
+    {
         Pair(): p( 0 ), r( Permissions::Lookup ) {}
         Permissions * p;
         Permissions::Right r;
