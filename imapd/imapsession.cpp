@@ -11,6 +11,7 @@ class ImapSessionData
 public:
     ImapSessionData(): i( 0 ) {}
     class IMAP * i;
+    MessageSet expungedFetched;
 };
 
 
@@ -47,6 +48,7 @@ IMAP * ImapSession::imap() const
 void ImapSession::emitExpunge( uint msn )
 {
     d->i->enqueue( "* " + fn( msn ) + " EXPUNGE\r\n" );
+    d->expungedFetched.clear();
 }
 
 
@@ -58,4 +60,22 @@ void ImapSession::emitExists( uint number )
         d->i->enqueue( "* OK [UIDNEXT " + fn( n ) + "] next uid\r\n" );
         setAnnounced( n );
     }
+}
+
+
+/*! Records that \a set was fetched while also expunged. If any
+    messages in \a set have already been recorded,
+    recordExpungedFetch() summarily closes the IMAP connection.
+*/
+
+void ImapSession::recordExpungedFetch( const MessageSet & set )
+{
+    MessageSet already = set.intersection( d->expungedFetched );
+    d->expungedFetched.add( set );
+    if ( already.isEmpty() )
+        return;
+
+    d->i->enqueue( "* BYE These messages have been expunged: " +
+                   set.set() + "\r\n" );
+    d->i->setState( IMAP::Logout );
 }

@@ -21,6 +21,8 @@ public:
     void emitExpunge( uint );
     void emitExists( uint );
 
+    void recordExpungedFetch( const MessageSet & );
+
 private:
     class ImapSessionData * d;
 };
