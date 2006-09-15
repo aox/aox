@@ -594,8 +594,8 @@ void Fetch::execute()
         return;
 
     if ( !d->expunged.isEmpty() ) {
-        error( No, "UID(s) " + d->expunged.set() + " has/have been expunged" );
         imap()->session()->recordExpungedFetch( d->expunged );
+        error( No, "UID(s) " + d->expunged.set() + " has/have been expunged" );
     }
     finish();
 }
