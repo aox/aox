@@ -1062,6 +1062,10 @@ tlsproxy needs better diagnostics
 
 Todo list: AMS
 
+  - Upgrade to cryptlib 3.3. when it comes out.
+    It's released now. I built it, found and fixed some problems, then
+    found that testlib hangs forever. Discussing it with Peter now. He
+    is likely to want to ssh to penne to debug.
   - Fix the failing tests inspired by Harri's message.
   - Figure out why tlsproxy segfaults on Thomas's box.
   - Go through ANNOTATE and make sure we have and test everything.
@@ -1082,7 +1086,6 @@ Todo list: AMS
     update on mailstore from aox.
   - Restart Postgres while we're running, and see what happens. We
     should be able to cope with that gracefully, but we don't.
-  - Upgrade to cryptlib 3.3. when it comes out.
   - We seem to be mangling Tom Simnett's PGP-signed email. Get him to
     send something to ams@toroid.org and make a canonical test case.
 
