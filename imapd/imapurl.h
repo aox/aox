@@ -19,6 +19,10 @@ public:
 
     bool valid() const;
 
+    String mailbox() const;
+    uint uid() const;
+    String section() const;
+
 private:
     class ImapUrlData * d;
 

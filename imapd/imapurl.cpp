@@ -310,3 +310,36 @@ bool ImapUrl::hostport()
 
     return true;
 }
+
+
+/*! Returns the name of the mailbox from this URL. The mailbox is either
+    specified explicitly in the URL, or, if an IMAP session exists, and
+    no mailbox has been specified, from the currently selected mailbox.
+*/
+
+String ImapUrl::mailbox() const
+{
+    if ( d->mailbox.isEmpty() &&
+         d->imap && d->imap->session() )
+        return d->imap->session()->mailbox()->name();
+    return d->mailbox;
+}
+
+
+/*! Returns the message UID specified in this URL. */
+
+uint ImapUrl::uid() const
+{
+    return d->uid;
+}
+
+
+/*! Returns the message section part specified in this URL, or an empty
+    string if no section was specified (in which case the URL refers to
+    an entire message).
+*/
+
+String ImapUrl::section() const
+{
+    return d->section;
+}
