@@ -29,6 +29,7 @@
     RFC 2195: AUTH=CRAM-MD5
     RFC 2831: AUTH=DIGEST-MD5
     RFC 3516: BINARY
+    RFC 4469: CATENATE
 
     We also announce a number of draft capabilities, if the
     configuration variable announce-draft-support is set to true. By
@@ -60,6 +61,7 @@ String Capability::capabilities( IMAP * i )
     c.append( "ACL" );
     c.append( "ANNOTATE" );
     c.append( "BINARY" );
+    c.append( "CATENATE" );
     c.append( "ID" );
     c.append( "IDLE" );
     if ( drafts )
