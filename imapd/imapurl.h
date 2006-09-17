@@ -7,11 +7,15 @@
 #include "string.h"
 
 
+class IMAP;
+
+
 class ImapUrl
     : public Garbage
 {
 public:
     ImapUrl( const String & );
+    ImapUrl( const IMAP *, const String & );
 
     bool valid() const;
 

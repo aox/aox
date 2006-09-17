@@ -2,17 +2,23 @@
 
 #include "imapurl.h"
 
+#include "imap.h"
+#include "mailbox.h"
+#include "imapsession.h"
+
 
 class ImapUrlData
     : public Garbage
 {
 public:
     ImapUrlData()
-        : valid( false ), i( 0 ), port( 143 ), uidvalidity( 0 ), uid( 0 )
+        : valid( false ), imap( 0 ), i( 0 ), port( 143 ),
+          uidvalidity( 0 ), uid( 0 )
     {}
 
     bool valid;
 
+    const IMAP * imap;
     uint i;
     String s;
 
@@ -33,14 +39,34 @@ public:
     This class provides access to the components of an IMAP URL. It is
     meant for use by URLAUTH and CATENATE. Since those august extensions
     only permit URLs that refer to a message or part therein, this code
-    does not recognise any of the less-specific forms at present.
+    does not recognise any of the less-specific forms at present. Both
+    absolute and relative URLs are supported.
 */
 
-/*! Creates a new ImapUrl object to represent the URL \a s. */
+/*! Creates a new ImapUrl object to represent the IMAP URL \a s. The URL
+    must be absolute (i.e., begin with "imap://").
+*/
 
 ImapUrl::ImapUrl( const String & s )
     : d( new ImapUrlData )
 {
+    parse( s );
+}
+
+
+/*! Creates a new ImapUrl object to represent the IMAP URL \a s. The URL
+    must be relative, and is interpreted in the context of the specified
+    \a imap object. If a session has not been established, the URL must
+    specify a mailbox; but otherwise, the currently-selected mailbox is
+    used as a part of the base.
+
+    This behaviour is intended to serve the needs of CATENATE.
+*/
+
+ImapUrl::ImapUrl( const IMAP * imap, const String & s )
+    : d( new ImapUrlData )
+{
+    d->imap = imap;
     parse( s );
 }
 
@@ -56,42 +82,48 @@ void ImapUrl::parse( const String & s )
 
     // imapurl = "imap://" [ iuserauth "@" ] hostport "/" icommand
 
-    if ( !stepOver( "imap://" ) )
-        return;
-
-    // iuserauth = enc_user [iauth] / [enc_user] iauth
-
-    int slash = d->s.find( '/', d->i );
-    if ( slash < 0 )
-        return;
-
-    String iserver( d->s.mid( d->i, slash-d->i ) );
-    if ( iserver.contains( "@" ) ) {
-        d->user = xchars();
-        if ( stepOver( ";AUTH=" ) )
-            d->auth = xchars();
-        else if ( d->user.isEmpty() )
+    if ( !d->imap ) {
+        if ( !stepOver( "imap://" ) )
             return;
 
-        if ( !stepOver( "@" ) )
+        // iuserauth = enc_user [iauth] / [enc_user] iauth
+
+        int slash = d->s.find( '/', d->i );
+        if ( slash < 0 )
+            return;
+
+        String iserver( d->s.mid( d->i, slash-d->i ) );
+        if ( iserver.contains( "@" ) ) {
+            d->user = xchars();
+            if ( stepOver( ";AUTH=" ) )
+                d->auth = xchars();
+            else if ( d->user.isEmpty() )
+                return;
+
+            if ( !stepOver( "@" ) )
+                return;
+        }
+
+        if ( !hostport() )
+            return;
+
+        if ( !stepOver( "/" ) )
             return;
     }
 
-    if ( !hostport() )
-        return;
-
-    if ( !stepOver( "/" ) )
-        return;
-
     // icommand = enc_mailbox [uidvalidity] iuid [isection]
 
-    d->mailbox = xchars( true );
-    if ( d->mailbox.isEmpty() )
-        return;
-
-    if ( stepOver( ";uidvalidity=" ) )
-        if ( !number( &d->uidvalidity ) )
+    if ( !d->imap->session() ||
+         !d->s.mid( 0, 6 ).lower().startsWith( "/;uid=" ) )
+    {
+        d->mailbox = xchars( true );
+        if ( d->mailbox.isEmpty() )
             return;
+
+        if ( stepOver( ";uidvalidity=" ) )
+            if ( !number( &d->uidvalidity ) )
+                return;
+    }
 
     if ( !stepOver( "/;uid=" ) || !number( &d->uid ) )
         return;
