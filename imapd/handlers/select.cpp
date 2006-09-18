@@ -140,10 +140,9 @@ void Select::execute()
     }
 
     if ( !d->highestModseq && imap()->clientSupports( IMAP::Condstore ) ) {
-        d->highestModseq = new Query( "select modseq "
+        d->highestModseq = new Query( "select max(modseq) as hms "
                                       "from modsequences "
-                                      "where mailbox=$1 "
-                                      "order descending by modseq limit 1",
+                                      "where mailbox=$1",
                                       this );
         d->highestModseq->bind( 1, d->mailbox->id() );
         d->highestModseq->execute();
@@ -185,8 +184,9 @@ void Select::execute()
     d->session->setAnnounced( n );
     if ( d->highestModseq ) {
         Row * r = d->highestModseq->nextRow();
-        if ( r )
-            respond( "OK [HIGHESTMODSEQ " + fn( r->getInt( "hms" ) ) +
+        uint hms = r->getInt( "hms" );
+        if ( hms )
+            respond( "OK [HIGHESTMODSEQ " + fn( hms ) +
                      "] highest current modseq" );
         else
             respond( "OK [HIGHESTMODSEQ 1] no current modseq" );

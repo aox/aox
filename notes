@@ -306,7 +306,7 @@ CONDSTORE
   RFC 4551. Needed. What we need to do:
 
   - client capabilities, so we can send untagged responses (done)
-  - OK untagged responses to SELECT/EXAMINE (3.1)
+  - OK untagged responses to SELECT/EXAMINE (3.1) (done)
   - STORE UNCHANGEDSINCE/MODIFIED
   - FETCH CHANGEDSINCE (done)
   - FETCH MODSEQ (done)
