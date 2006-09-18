@@ -9,6 +9,7 @@ Source:         http://www.aox.org/download/%{name}-%{version}.tar.bz2
 Vendor:         Oryx Mail Systems GmbH
 Packager:       info@oryx.com
 Patch:          aox-installroot.diff
+Requires:       postgresql >= 7.4.2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
