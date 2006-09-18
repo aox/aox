@@ -16,7 +16,7 @@ rule Man {
         Depends exe : $(t) ;
         SEARCH on $(s) = $(SEARCH_SOURCE) ;
 
-        InstallFile $(MANDIR)/man$(<) : $(t) ;
+        InstallFile $(INSTALLROOT)$(MANDIR)/man$(<) : $(t) ;
 
         Clean clean : $(t) ;
     }
