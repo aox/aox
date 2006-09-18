@@ -858,6 +858,21 @@ void Injector::insertMessages()
     }
 
     d->transaction->enqueue( qm );
+
+    // XXX this may be much too slow. Crab, could you look at whether
+    // COPY would work faster?
+    const char * s = "insert into modsequences (mailbox,uid,modseq) "
+                     "values ($1,$2,nextval('nextmodsequence'))";
+    mi = d->mailboxes->first();
+    while ( mi ) {
+        Query * q = new Query( s, 0 );
+        q->bind( 1, mi->mailbox->id() );
+        q->bind( 2, mi->id );
+        d->transaction->enqueue( q );
+        ++mi;
+        s = "insert into modsequences (mailbox,uid,modseq) "
+            "values ($1,$2,currval('nextmodsequence'))";
+    }
 }
 
 
