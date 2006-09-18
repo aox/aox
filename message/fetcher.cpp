@@ -83,9 +83,10 @@ Fetcher::Fetcher( Mailbox * m )
         "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
         "order by h.uid, h.part, h.position";
     ::header = new PreparedStatement( q );
-    q = "select uid, idate, rfc822size from messages "
-        "where uid>=$1 and uid<=$2 and mailbox=$3 "
-        "order by uid";
+    q = "select m.uid, m.idate, m.rfc822size, ms.modseq::int from messages m "
+        "left join modsequences ms using (mailbox,uid) "
+        "where m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
+        "order by m.uid";
     ::trivia = new PreparedStatement( q );
     q = "select p.uid, p.part, b.text, b.data, "
         "b.bytes as rawbytes, p.bytes, p.lines "
@@ -435,6 +436,7 @@ void MessageTriviaFetcher::decode( Message * m , Row * r )
 {
     m->setInternalDate( r->getInt( "idate" ) );
     m->setRfc822Size( r->getInt( "rfc822size" ) );
+    m->setModSeq( r->getInt( "modseq" ) );
 }
 
 
