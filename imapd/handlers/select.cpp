@@ -19,7 +19,7 @@ class SelectData
 public:
     SelectData()
         : readOnly( false ), annotate( false ), condstore( false ),
-          usedFlags( 0 ),
+          usedFlags( 0 ), highestModseq( 0 ),
           mailbox( 0 ), session( 0 ), permissions( 0 )
     {}
 
@@ -28,6 +28,7 @@ public:
     bool annotate;
     bool condstore;
     Query * usedFlags;
+    Query * highestModseq;
     Mailbox * mailbox;
     ImapSession * session;
     Permissions * permissions;
@@ -138,7 +139,20 @@ void Select::execute()
         d->usedFlags->execute();
     }
 
+    if ( !d->highestModseq && imap()->clientSupports( IMAP::Condstore ) ) {
+        d->highestModseq = new Query( "select modseq "
+                                      "from modsequences "
+                                      "where mailbox=$1 "
+                                      "order descending by modseq limit 1",
+                                      this );
+        d->highestModseq->bind( 1, d->mailbox->id() );
+        d->highestModseq->execute();
+    }
+
     if ( !d->usedFlags->done() )
+        return;
+
+    if ( d->highestModseq && !d->highestModseq->done() )
         return;
 
     if ( !d->session->initialised() )
@@ -169,6 +183,14 @@ void Select::execute()
     uint n = d->session->uidnext();
     respond( "OK [UIDNEXT " + fn( n ) + "] next uid" );
     d->session->setAnnounced( n );
+    if ( d->highestModseq ) {
+        Row * r = d->highestModseq->nextRow();
+        if ( r )
+            respond( "OK [HIGHESTMODSEQ " + fn( r->getInt( "hms" ) ) +
+                     "] highest current modseq" );
+        else
+            respond( "OK [HIGHESTMODSEQ 1] no current modseq" );
+    }
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
              " uid validity" );
