@@ -43,7 +43,7 @@ class FetchData
 public:
     FetchData()
         : state( 0 ), peek( true ), 
-          changedSince( 0 ),
+          changedSince( 0 ), notThose( 0 ),
           uid( false ),
           flags( false ), envelope( false ),
           body( false ), bodystructure( false ),
@@ -75,6 +75,7 @@ public:
     MessageSet set;
     MessageSet expunged;
     uint changedSince;
+    Query * notThose;
 
     // we want to ask for...
     bool uid;
@@ -296,7 +297,6 @@ void Fetch::parseAttribute( bool alsoMacro )
             error( Bad, "Fetching partial BINARY.SIZE is not meaningful" );
     }
     else if ( keyword == "modseq" ) {
-        step();
         d->modseq = true;
     }
     else {
@@ -542,12 +542,32 @@ void Fetch::execute()
     ImapSession * s = imap()->session();
 
     if ( d->state == 0 ) {
+        if ( d->changedSince ) {
+            if ( !d->notThose ) {
+                d->notThose = new Query( "select uid from modsequences "
+                                         "where mailbox=$1 and modseq<=$2 "
+                                         "and " + d->set.where(),
+                                         this );
+                d->notThose->bind( 1, s->mailbox()->id() );
+                d->notThose->bind( 2, d->changedSince );
+                d->notThose->execute();
+            }
+            Row * r;
+            while ( (r=d->notThose->nextRow()) != 0 )
+                d->set.remove( r->getInt( "uid" ) );
+            if ( !d->notThose->done() )
+                return;
+        }
+        d->state = 1;
+    }
+
+    if ( d->state == 1 ) {
         if ( group() == 2 ) // then RFC 2180 section 4.1.2 applies
             d->expunged = imap()->session()->expunged().intersection( d->set );
         shrink( &d->set );
         if ( !d->peek && s->readOnly() )
             d->peek = true;
-        d->state = 1;
+        d->state = 2;
         sendFetchQueries();
     }
 
@@ -563,7 +583,8 @@ void Fetch::execute()
              ( !d->needHeader || m->hasHeaders() ) &&
              ( !d->needBody || m->hasBodies() ) &&
              ( !d->flags || m->hasFlags() ) &&
-             ( ( !d->rfc822size && !d->internaldate ) || m->hasTrivia() ) &&
+             ( ( !d->rfc822size && !d->internaldate && !d->modseq )
+               || m->hasTrivia() ) &&
              uid > 0 && msn > 0 )
         {
             imap()->enqueue( fetchResponse( m, uid, msn ) );
@@ -827,7 +848,7 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
     if ( d->annotation )
         l.append( "ANNOTATION " + annotation( m ) );
     if ( d->modseq )
-        l.append( "MODSEQ " + fn( m->modSeq() ) );
+        l.append( "MODSEQ (" + fn( m->modSeq() ) + ")" );
 
     List< FetchData::Section >::Iterator it( d->sections );
     while ( it ) {
