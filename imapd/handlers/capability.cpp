@@ -72,7 +72,7 @@ String Capability::capabilities( IMAP * i )
     c.append( "NAMESPACE" );
     if ( drafts )
         c.append( "POSTADDRESS" );
-    c.append( "RIGHTS=n" );
+    c.append( "RIGHTS=ekntx" );
     if ( drafts )
         c.append( "SASL-IR" );
     if ( TlsServer::available() && !i->hasTls() )
