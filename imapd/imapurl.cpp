@@ -113,7 +113,7 @@ void ImapUrl::parse( const String & s )
 
     // icommand = enc_mailbox [uidvalidity] iuid [isection]
 
-    if ( !d->imap->session() ||
+    if ( !( d->imap && d->imap->session() ) ||
          !d->s.mid( 0, 6 ).lower().startsWith( "/;uid=" ) )
     {
         d->mailbox = xchars( true );
