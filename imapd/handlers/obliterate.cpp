@@ -71,6 +71,12 @@ void XObliterate::execute()
         q->bind( 1, user->inbox()->id() );
         t->enqueue( q );
 
+        q = new Query( "delete from modsequences where mailbox in "
+                       "(select id from mailboxes where owner=$1)",
+                       this );
+        q->bind( 1, user->id() );
+        t->enqueue( q );
+
         q = new Query( "delete from messages where mailbox in "
                        "(select id from mailboxes where owner=$1)",
                        this );
@@ -137,6 +143,9 @@ void XObliterate::execute()
         inbox->clear();
 
         t->enqueue( inbox->refresh() );
+
+        q = new Query( "select setval('nextmodsequence',1,false)", 0 );
+        t->enqueue( q );
     }
 
     if ( a ) {
