@@ -387,7 +387,7 @@ void Command::setState( State s )
         long elapsed = ( end.tv_sec * 1000000 + end.tv_usec ) -
                        ( d->started.tv_sec * 1000000 + d->started.tv_usec );
         Log::Severity level = Log::Debug;
-        if ( elapsed > 1500 ) // XXX needs tweaking
+        if ( elapsed > 1500*1000 ) // XXX needs tweaking
             level = Log::Error;
         String m;
         m.append( "Executed IMAP command " + nametag() + " in " );
