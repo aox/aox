@@ -436,7 +436,8 @@ void MessageTriviaFetcher::decode( Message * m , Row * r )
 {
     m->setInternalDate( r->getInt( "idate" ) );
     m->setRfc822Size( r->getInt( "rfc822size" ) );
-    m->setModSeq( r->getInt( "modseq" ) );
+    if ( !r->isNull( "modseq" ) )
+        m->setModSeq( r->getInt( "modseq" ) );
 }
 
 
