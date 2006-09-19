@@ -12,6 +12,7 @@
 #include "mailbox.h"
 #include "message.h"
 #include "ustring.h"
+#include "section.h"
 #include "listext.h"
 #include "codec.h"
 #include "query.h"
@@ -51,24 +52,6 @@ public:
           annotation( false ), modseq( false ),
           needHeader( false ), needBody( false )
     {}
-
-    class Section
-        : public Garbage
-    {
-    public:
-        Section()
-            : binary( false ),
-              partial( false ), offset( 0 ), length( UINT_MAX )
-        {}
-
-        String id;
-        String part;
-        StringList fields;
-        bool binary;
-        bool partial;
-        uint offset;
-        uint length;
-    };
 
     int state;
     bool peek;
@@ -231,13 +214,13 @@ void Fetch::parseAttribute( bool alsoMacro )
         d->peek = false;
         d->needHeader = true;
         d->needBody = true;
-        FetchData::Section * s = new FetchData::Section;
+        Section * s = new Section;
         s->id = keyword;
         d->sections.append( s );
     }
     else if ( keyword == "rfc822.header" ) {
         d->needHeader = true;
-        FetchData::Section * s = new FetchData::Section;
+        Section * s = new Section;
         s->id = keyword;
         d->sections.append( s );
     }
@@ -252,7 +235,7 @@ void Fetch::parseAttribute( bool alsoMacro )
     else if ( keyword == "rfc822.text" ) {
         d->peek = false;
         d->needBody = true;
-        FetchData::Section * s = new FetchData::Section;
+        Section * s = new Section;
         s->id = keyword;
         d->sections.append( s );
     }
@@ -291,7 +274,7 @@ void Fetch::parseAttribute( bool alsoMacro )
         d->peek = false;
         step();
         parseBody( true );
-        FetchData::Section * s = d->sections.last();
+        Section * s = d->sections.last();
         s->id = "size";
         if ( s->partial )
             error( Bad, "Fetching partial BINARY.SIZE is not meaningful" );
@@ -343,7 +326,7 @@ String Fetch::dotLetters( uint min, uint max )
 
 void Fetch::parseBody( bool binary )
 {
-    FetchData::Section * s = new FetchData::Section;
+    Section * s = new Section;
     s->binary = binary;
 
     //section-spec    = section-msgtext / (section-part ["." section-text])
@@ -679,7 +662,7 @@ void Fetch::sendFetchQueries()
    fetchResponses() below.
 */
 
-static String sectionResponse( FetchData::Section * s,
+static String sectionResponse( Section * s,
                                Message * m )
 {
     String item, data;
@@ -850,7 +833,7 @@ String Fetch::fetchResponse( Message * m, uint uid, uint msn )
     if ( d->modseq )
         l.append( "MODSEQ (" + fn( m->modSeq() ) + ")" );
 
-    List< FetchData::Section >::Iterator it( d->sections );
+    List< Section >::Iterator it( d->sections );
     while ( it ) {
         l.append( sectionResponse( it, m ) );
         ++it;
