@@ -12,7 +12,8 @@ class Section
 public:
     Section()
         : binary( false ),
-          partial( false ), offset( 0 ), length( UINT_MAX )
+          partial( false ), offset( 0 ), length( UINT_MAX ),
+          needsHeader( false ), needsBody( true )
     {}
 
     String id;
@@ -23,6 +24,9 @@ public:
     bool partial;
     uint offset;
     uint length;
+
+    bool needsHeader;
+    bool needsBody;
 };
 
 
