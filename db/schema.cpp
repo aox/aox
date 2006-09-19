@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 26;
+int currentRevision = 27;
 
 
 class SchemaData
@@ -1407,6 +1407,41 @@ bool Schema::stepTo26()
         d->t->enqueue( d->q );
         d->q = new Query( "alter table deleted_messages rename dtz to "
                           "deleted_at", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add "on delete cascade" to the mailboxes.owner reference. */
+
+bool Schema::stepTo27()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Altering modsequences_mailbox_fkey.", Log::Debug );
+
+        String constraint = "modsequences_mailbox_fkey";
+        if ( d->version.startsWith( "7" ) )
+            constraint = "$1";
+
+        d->q = new Query( "alter table modsequences drop constraint "
+                          "\"" + constraint + "\"", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table modsequences add constraint "
+                          "modsequences_mailbox_fkey foreign key "
+                          "(mailbox,uid) references "
+                          "messages(mailbox,uid) "
+                          "on delete cascade", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;

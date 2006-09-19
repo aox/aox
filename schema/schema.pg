@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (26);
+insert into mailstore (revision) values (27);
 
 
 -- One entry for each unique address we've encountered.
@@ -340,4 +340,5 @@ create table modsequences (
     modseq      bigint not null,
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
+                on delete cascade
 );
