@@ -469,7 +469,10 @@ void MessageAnnotationFetcher::decode( Message * m, Row * r )
     Annotation * a = new Annotation;
     a->setEntryName( an );
 
-    a->setOwnerId( r->getInt( "owner" ) );
+    uint owner = 0;
+    if ( !r->isNull( "owner" ) )
+        owner = r->getInt( "owner" );
+    a->setOwnerId( owner );
     a->setValue( r->getString( "value" ) );
 
     m->replaceAnnotation( a );
