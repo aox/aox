@@ -384,8 +384,9 @@ void Command::setState( State s )
     case Finished:
         struct timeval end;
         (void)::gettimeofday( &end, 0 );
-        long elapsed = ( end.tv_sec * 1000000 + end.tv_usec ) -
-                       ( d->started.tv_sec * 1000000 + d->started.tv_usec );
+        long elapsed =
+            ( end.tv_sec - d->started.tv_sec ) * 1000000 +
+            ( end.tv_usec - d->started.tv_usec );
         Log::Severity level = Log::Debug;
         if ( elapsed > 1500*1000 ) // XXX needs tweaking
             level = Log::Error;
