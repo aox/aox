@@ -657,13 +657,12 @@ void Fetch::sendFetchQueries()
 }
 
 
-/* This function returns the response data for an element in
-   d->sections, to be included in the FETCH response by
-   fetchResponses() below.
+/*! This function returns the text of that portion of the Message \a m
+    that is described by the Section \a s. It is publicly available so
+    that Append may use it for CATENATE.
 */
 
-static String sectionResponse( Section * s,
-                               Message * m )
+String Fetch::sectionData( Section * s, Message * m )
 {
     String item, data;
 
@@ -801,7 +800,20 @@ static String sectionResponse( Section * s,
         data = data.mid( s->offset, s->length );
     }
 
-    return item + " " + Command::imapQuoted( data, Command::NString );
+    s->item = item;
+    return data;
+}
+
+
+/* This function returns the response data for an element in
+   d->sections, to be included in the FETCH response by
+   fetchResponses() below.
+*/
+
+static String sectionResponse( Section * s, Message * m )
+{
+    String data( Fetch::sectionData( s, m ) );
+    return s->item + " " + Command::imapQuoted( data, Command::NString );
 }
 
 

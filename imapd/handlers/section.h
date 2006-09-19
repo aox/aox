@@ -16,6 +16,7 @@ public:
     {}
 
     String id;
+    String item;
     String part;
     StringList fields;
     bool binary;

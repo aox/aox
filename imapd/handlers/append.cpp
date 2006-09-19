@@ -6,14 +6,15 @@
 #include "date.h"
 #include "query.h"
 #include "mailbox.h"
-#include "bodypart.h"
+#include "injector.h"
 #include "annotation.h"
 #include "imapsession.h"
 #include "recipient.h"
-#include "injector.h"
 #include "imapurl.h"
+#include "section.h"
 #include "message.h"
 #include "string.h"
+#include "fetch.h"
 #include "imap.h"
 #include "list.h"
 
@@ -32,6 +33,7 @@ struct Textpart
     ImapUrl * url;
     Mailbox * mailbox;
     Message * message;
+    Section * section;
 };
 
 
@@ -319,21 +321,8 @@ void Append::execute()
                 d->text.append( tp->s );
             }
             else {
-                // XXX: This is all totally wrong.
-                Bodypart * bp = 0;
-                String section = tp->url->section();
-                if ( !section.isEmpty() ) {
-                    bp = tp->message->bodypart( section );
-                    if ( !bp ) {
-                        error( No, "[BADURL " + tp->s + "] invalid section" );
-                        return;
-                    }
-                }
-
-                if ( bp )
-                    d->text.append( bp->data() );
-                else
-                    d->text.append( "foo bar" );
+                d->text.append( Fetch::sectionData( tp->section,
+                                                    tp->message ) );
             }
             d->textparts->take( it );
         }

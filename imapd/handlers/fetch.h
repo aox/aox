@@ -7,6 +7,7 @@
 
 
 class Header;
+class Section;
 class Message;
 class Bodypart;
 class Multipart;
@@ -20,6 +21,8 @@ public:
 
     void parse();
     void execute();
+
+    static String sectionData( Section *, Message * );
 
 private:
     void parseAttribute( bool );
