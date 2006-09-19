@@ -544,17 +544,24 @@ String Selector::whereInternalDate()
     d1.setDate( year, month, day, 0, 0, 0, 0 );
     Date d2;
     d2.setDate( year, month, day, 23, 59, 59, 0 );
-    uint n1 = placeHolder();
-    root()->d->query->bind( n1, d1.unixTime() );
-    uint n2 = placeHolder();
-    root()->d->query->bind( n2, d2.unixTime() );
 
-    if ( d->a == OnDate )
+    if ( d->a == OnDate ) {
+        uint n1 = placeHolder();
+        root()->d->query->bind( n1, d1.unixTime() );
+        uint n2 = placeHolder();
+        root()->d->query->bind( n2, d2.unixTime() );
         return "(m.idate>=$" + fn( n1 ) + " and m.idate<=$" + fn( n2 ) + ")";
-    else if ( d->a == SinceDate )
+    }
+    else if ( d->a == SinceDate ) {
+        uint n1 = placeHolder();
+        root()->d->query->bind( n1, d1.unixTime() );
         return "m.idate>=$" + fn( n1 );
-    else if ( d->a == BeforeDate )
+    }
+    else if ( d->a == BeforeDate ) {
+        uint n2 = placeHolder();
+        root()->d->query->bind( n2, d2.unixTime() );
         return "m.idate<=$" + fn( n2 );
+    }
 
     setError( "Cannot search for: " + debugString() );
     return "";

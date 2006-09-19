@@ -209,6 +209,7 @@ void Search::parseKey( bool alsoCharset )
                                date() ) );
         }
         else if ( keyword == "before" ) {
+            space();
             add( new Selector( Selector::InternalDate, Selector::BeforeDate,
                                date() ) );
         }
