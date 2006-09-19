@@ -112,6 +112,17 @@ Fetcher::Fetcher( Mailbox * m )
 }
 
 
+/*! Returns true if this Fetcher has finished the work assigned to it
+    (and will perform no further message updates), and false if it is
+    still working.
+*/
+
+bool Fetcher::done() const
+{
+    return !d->query;
+}
+
+
 /*! This reimplementation of execute() calls decode() to decode data
     about each message, then notifies its owners that something was
     fetched.

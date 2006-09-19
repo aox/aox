@@ -30,6 +30,8 @@ public:
     virtual void setDone( Message * ) = 0;
     void setDone( uint );
 
+    bool done() const;
+
 private:
     class FetcherData * d;
 };
