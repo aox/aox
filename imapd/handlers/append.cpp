@@ -6,14 +6,33 @@
 #include "date.h"
 #include "query.h"
 #include "mailbox.h"
+#include "bodypart.h"
 #include "annotation.h"
 #include "imapsession.h"
 #include "recipient.h"
 #include "injector.h"
+#include "imapurl.h"
 #include "message.h"
 #include "string.h"
 #include "imap.h"
 #include "list.h"
+
+
+struct Textpart
+    : public Garbage
+{
+    Textpart()
+        : type( Text ), url( 0 ), mailbox( 0 ), message( 0 )
+    {}
+
+    enum Type { Text, Url };
+
+    Type type;
+    String s;
+    ImapUrl * url;
+    Mailbox * mailbox;
+    Message * message;
+};
 
 
 class AppendData
@@ -22,7 +41,8 @@ class AppendData
 public:
     AppendData()
         : mailbox( 0 ), message( 0 ), injector( 0 ),
-          annotations( 0 )
+          annotations( 0 ), textparts( 0 ),
+          createdFetchers( false )
     {}
 
     Date date;
@@ -32,6 +52,9 @@ public:
     Injector * injector;
     StringList flags;
     List<Annotation> * annotations;
+    List<Textpart> * textparts;
+    String text;
+    bool createdFetchers;
 };
 
 
@@ -174,10 +197,41 @@ void Append::parse()
         space();
     }
 
-    d->message = new Message( literal() );
-    d->message->setInternalDate( d->date.unixTime() );
-    if ( !d->message->valid() )
-        error( Bad, d->message->error() );
+    if ( present( "CATENATE " ) ) {
+        d->textparts = new List<Textpart>;
+        require( "(" );
+
+        bool done = false;
+
+        do {
+            Textpart * tp = new Textpart;
+            if ( present( "URL " ) ) {
+                tp->type = Textpart::Url;
+                tp->s = astring();
+            }
+            else if ( present( "TEXT " ) ) {
+                tp->type = Textpart::Text;
+                tp->s = literal();
+            }
+            else {
+                error( Bad, "Expected cat-part, got: " + following() );
+            }
+            d->textparts->append( tp );
+
+            if ( nextChar() == ' ' )
+                space();
+            else
+                done = true;
+        }
+        while ( !done );
+
+        require( ")" );
+    }
+    else {
+        d->text = literal();
+    }
+
+    end();
 }
 
 
@@ -198,15 +252,102 @@ void Append::execute()
         d->mailbox = mailbox( d->mbx );
         if ( !d->mailbox ) {
             error( No, "No such mailbox: '" + d->mbx + "'" );
-            finish();
             return;
         }
         requireRight( d->mailbox, Permissions::Insert );
         requireRight( d->mailbox, Permissions::Write );
+
+        List<Textpart>::Iterator it( d->textparts );
+        while ( it ) {
+            Textpart * tp = it;
+            if ( tp->type == Textpart::Url ) {
+                ImapUrl * u = new ImapUrl( imap(), tp->s );
+                if ( !u->valid() ) {
+                    error( No, "[BADURL " + tp->s + "] invalid URL" );
+                    return;
+                }
+
+                Mailbox * m = mailbox( u->mailbox() );
+                if ( !m ) {
+                    error( No, "[BADURL " + tp->s + "] invalid mailbox" );
+                    return;
+                }
+
+                requireRight( m, Permissions::Read );
+                tp->mailbox = m;
+                tp->url = u;
+            }
+            ++it;
+        }
     }
 
     if ( !permitted() )
         return;
+
+    if ( !d->message && !d->createdFetchers ) {
+        List<Textpart>::Iterator it( d->textparts );
+        while ( it ) {
+            Textpart * tp = it;
+            if ( tp->type == Textpart::Url ) {
+                uint uid = tp->url->uid();
+                // XXX: How can we tell if a UID is valid or not?
+                Message * m = tp->mailbox->message( uid );
+                if ( !m ) {
+                    error( No, "[BADURL " + tp->s + "] invalid UID" );
+                    return;
+                }
+
+                MessageSet s;
+                s.add( uid, uid );
+                tp->mailbox->fetchHeaders( s, this );
+                tp->mailbox->fetchBodies( s, this );
+                tp->message = m;
+            }
+            ++it;
+        }
+        d->createdFetchers = true;
+    }
+
+    if ( !d->message ) {
+        List<Textpart>::Iterator it( d->textparts );
+        while ( it &&
+                ( it->type == Textpart::Text ||
+                  ( it->message->hasHeaders() && it->message->hasBodies() ) ) )
+        {
+            Textpart * tp = it;
+            if ( tp->type == Textpart::Text ) {
+                d->text.append( tp->s );
+            }
+            else {
+                // XXX: This is all totally wrong.
+                Bodypart * bp = 0;
+                String section = tp->url->section();
+                if ( !section.isEmpty() ) {
+                    bp = tp->message->bodypart( section );
+                    if ( !bp ) {
+                        error( No, "[BADURL " + tp->s + "] invalid section" );
+                        return;
+                    }
+                }
+
+                if ( bp )
+                    d->text.append( bp->data() );
+                else
+                    d->text.append( "foo bar" );
+            }
+            d->textparts->take( it );
+        }
+
+        if ( it )
+            return;
+
+        d->message = new Message( d->text );
+        d->message->setInternalDate( d->date.unixTime() );
+        if ( !d->message->valid() ) {
+            error( Bad, d->message->error() );
+            return;
+        }
+    }
 
     if ( !d->injector ) {
         d->injector = new Injector( d->message, this );
