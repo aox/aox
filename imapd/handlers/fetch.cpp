@@ -792,7 +792,8 @@ String Fetch::sectionData( Section * s, Message * m )
             if ( bp )
                 data = bp->data();
         }
-        return "BINARY.SIZE[" + s->part + "] " + fn( data.length() );
+        item = "BINARY.SIZE[" + s->part + "]";
+        data = fn( data.length() );
     }
 
     if ( s->partial ) {
