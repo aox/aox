@@ -78,11 +78,6 @@ public:
 
     StringList entries;
     StringList attribs;
-
-    class SectionParser
-        : public Command
-    {
-    };
 };
 
 
