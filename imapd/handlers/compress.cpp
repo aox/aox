@@ -34,7 +34,8 @@ DeflateFilter::DeflateFilter()
     s.zalloc = 0;
     s.zfree = 0;
     s.opaque = 0;
-    ::deflateInit( &s, 9 );
+    ::deflateInit2( &s, 9, Z_DEFLATED,
+                    -15, 9, Z_DEFAULT_STRATEGY );
 }
 
 
@@ -86,7 +87,7 @@ InflateFilter::InflateFilter()
     s.zalloc = 0;
     s.zfree = 0;
     s.opaque = 0;
-    ::inflateInit( &s );
+    ::inflateInit2( &s, -15 );
 }
 
 
