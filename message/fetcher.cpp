@@ -400,10 +400,15 @@ void MessageBodyFetcher::decode( Message * m, Row * r )
         // so as to avoid fetching text unnecessarily, but bytea can't
         // be coalesced with text.
 
-        if ( !r->isNull( "data" ) )
+        if ( !r->isNull( "data" ) ) {
             bp->setData( r->getString( "data" ) );
-        else if ( !r->isNull( "text" ) )
-            bp->setData( r->getString( "text" ) );
+        }
+        else if ( !r->isNull( "text" ) ) {
+            PgUtf8Codec p;
+            Utf8Codec u;
+            String s = r->getString( "text" );
+            bp->setData( u.fromUnicode( p.toUnicode( s ) ) );
+        }
 
         if ( !r->isNull( "rawbytes" ) )
             bp->setNumBytes( r->getInt( "rawbytes" ) );

@@ -788,7 +788,7 @@ void Injector::insertBodypart( Bodypart *b,
                                bool storeData, bool storeText,
                                List< Query > * selects )
 {
-    Utf8Codec u;
+    PgUtf8Codec u;
     Query *i, *s;
 
     String data;
@@ -807,7 +807,7 @@ void Injector::insertBodypart( Bodypart *b,
     if ( storeText ) {
         String text( data );
 
-        // This should also move into Bodypart::.
+        // This cannot move into Bodypart::, since it's postgres-specific.
         if ( storeData )
             text = u.fromUnicode( HTML::asText( b->text() ) );
 
