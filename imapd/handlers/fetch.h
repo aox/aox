@@ -22,6 +22,7 @@ public:
     void parse();
     void execute();
 
+    static Section * parseSection( const String & );
     static String sectionData( Section *, Message * );
 
 private:

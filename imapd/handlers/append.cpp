@@ -5,6 +5,7 @@
 #include "user.h"
 #include "date.h"
 #include "query.h"
+#include "fetcher.h"
 #include "mailbox.h"
 #include "injector.h"
 #include "annotation.h"
@@ -23,7 +24,8 @@ struct Textpart
     : public Garbage
 {
     Textpart()
-        : type( Text ), url( 0 ), mailbox( 0 ), message( 0 )
+        : type( Text ), url( 0 ), mailbox( 0 ), message( 0 ),
+          section( 0 ), hf( 0 ), bf( 0 )
     {}
 
     enum Type { Text, Url };
@@ -34,6 +36,9 @@ struct Textpart
     Mailbox * mailbox;
     Message * message;
     Section * section;
+
+    MessageHeaderFetcher * hf;
+    MessageBodyFetcher * bf;
 };
 
 
@@ -286,24 +291,29 @@ void Append::execute()
     if ( !permitted() )
         return;
 
-    if ( !d->message && !d->createdFetchers ) {
+    if ( !d->createdFetchers ) {
         List<Textpart>::Iterator it( d->textparts );
         while ( it ) {
             Textpart * tp = it;
             if ( tp->type == Textpart::Url ) {
+                String section( tp->url->section() );
+                if ( !section.isEmpty() )
+                    tp->section = Fetch::parseSection( section );
+
+                // XXX: Need to do UID translation for views here.
+                MessageSet s;
                 uint uid = tp->url->uid();
-                // XXX: How can we tell if a UID is valid or not?
-                Message * m = tp->mailbox->message( uid );
-                if ( !m ) {
-                    error( No, "[BADURL " + tp->s + "] invalid UID" );
-                    return;
+                s.add( uid, uid );
+
+                if ( !tp->section || tp->section->needsHeader ) {
+                    tp->hf = new MessageHeaderFetcher( tp->mailbox );
+                    tp->hf->insert( s, this );
                 }
 
-                MessageSet s;
-                s.add( uid, uid );
-                tp->mailbox->fetchHeaders( s, this );
-                tp->mailbox->fetchBodies( s, this );
-                tp->message = m;
+                if ( !tp->section || tp->section->needsBody ) {
+                    tp->bf = new MessageBodyFetcher( tp->mailbox );
+                    tp->bf->insert( s, this );
+                }
             }
             ++it;
         }
@@ -312,17 +322,30 @@ void Append::execute()
 
     if ( !d->message ) {
         List<Textpart>::Iterator it( d->textparts );
-        while ( it &&
-                ( it->type == Textpart::Text ||
-                  ( it->message->hasHeaders() && it->message->hasBodies() ) ) )
-        {
+        while ( it ) {
             Textpart * tp = it;
             if ( tp->type == Textpart::Text ) {
                 d->text.append( tp->s );
             }
             else {
-                d->text.append( Fetch::sectionData( tp->section,
-                                                    tp->message ) );
+                if ( ( tp->hf && !tp->hf->done() ) ||
+                     ( tp->bf && !tp->bf->done() ) )
+                    break;
+
+                Message * m =
+                    tp->mailbox->message( tp->url->uid(), false );
+
+                if ( !m ) {
+                    error( No, "[BADURL " + tp->s + "] invalid UID" );
+                    return;
+                }
+                else if ( tp->section ) {
+                    d->text.append( Fetch::sectionData( tp->section,
+                                                        tp->message ) );
+                }
+                else {
+                    d->text.append( m->rfc822() );
+                }
             }
             d->textparts->take( it );
         }

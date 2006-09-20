@@ -78,6 +78,11 @@ public:
 
     StringList entries;
     StringList attribs;
+
+    class SectionParser
+        : public Command
+    {
+    };
 };
 
 
@@ -312,6 +317,16 @@ String Fetch::dotLetters( uint min, uint max )
         error( Bad, "Expected at least " + fn( min-i ) +
                " more letters/digits/dots, saw " + following() );
     return r;
+}
+
+
+/*! Does nothing, and returns 0.
+*/
+
+Section * Fetch::parseSection( const String & )
+{
+    Section * s = 0;
+    return s;
 }
 
 
