@@ -306,6 +306,7 @@ bool Schema::singleStep()
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ), Log::Disaster );
+        c = true;
         break;
     }
 
