@@ -829,7 +829,9 @@ String Fetch::sectionData( Section * s, Message * m )
 static String sectionResponse( Section * s, Message * m )
 {
     String data( Fetch::sectionData( s, m ) );
-    return s->item + " " + Command::imapQuoted( data, Command::NString );
+    if ( !s->item.startsWith( "BINARY.SIZE" ) )
+        data = Command::imapQuoted( data, Command::NString );
+    return s->item + " " + data;
 }
 
 
