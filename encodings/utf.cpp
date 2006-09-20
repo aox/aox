@@ -19,7 +19,7 @@
 /*! Constructs a simple UTF8 decoder/encoder. */
 
 Utf8Codec::Utf8Codec()
-    : Codec( "UTF-8" )
+    : Codec( "UTF-8" ), pgutf( false )
 {
 }
 
@@ -42,7 +42,13 @@ String Utf8Codec::fromUnicode( const UString & u )
     uint i = 0;
     while ( i < u.length() ) {
         int c = u[i];
-        if ( c < 0x80 ) {
+        if ( pgutf && !c ) {
+            // append U+ED00 since postgres cannot store 0 bytes
+            r.append( 0xEE );
+            r.append( 0xB4 );
+            r.append( 0x80 );
+        }
+        else if ( c < 0x80 ) {
             r.append( (char)c );
         }
         else if ( c < 0x800 ) {
@@ -130,6 +136,8 @@ UString Utf8Codec::toUnicode( const String & s )
             c = ((s[i] & 0x0f) << 12) | pick( s, i, 2 );
             if ( c < 0x800 )
                 setState( BadlyFormed );
+            if ( c == 0xED00 && pgutf )
+                c = 0;
             i += 3;
         }
         else if ( (s[i] & 0xf8) == 0xf0 && ahead( s, i, 3 ) ) {
@@ -160,6 +168,35 @@ UString Utf8Codec::toUnicode( const String & s )
         u.append( c );
     }
     return u;
+}
+
+
+/*! \class PgUtf8Codec utf.h
+  
+    The PgUtf8Codec is a simple modification of Utf8Codec to be able
+    to use PostgreSQL 8.1 well.
+
+    PostgreSQL 8.1 refuses to store the unicode codepoint 0. The
+    software reports that it is an invalid byte sequence and refers to
+    htt://www.postgresql.org/docs/techdocs.50, but the real reason is
+    that postgresql never was intended to store nulls in text, and
+    versions up to 8.0 allowed it only by accident.
+
+    Since quite a few messages contain null bytes, we remap 0 to
+    U+ED00 (a private-use codepoint, also used by Unknown8BitCodec)
+    and back.
+
+    This class is not listed as a supported codec, since it's meant
+    only for postgres use, not for any other purpose.
+*/
+
+
+/*!  Constructs an empty PgUtf8Codec. */
+
+PgUtf8Codec::PgUtf8Codec()
+    : Utf8Codec()
+{
+    pgutf = true;
 }
 
 

@@ -13,6 +13,16 @@ public:
 
     String fromUnicode( const UString & );
     UString toUnicode( const String & );
+
+protected:
+    bool pgutf;
+};
+
+
+class PgUtf8Codec: public Utf8Codec
+{
+public:
+    PgUtf8Codec();
 };
 
 
