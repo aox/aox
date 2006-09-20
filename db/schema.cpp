@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 26;
+int currentRevision = 27;
 
 
 class SchemaData
@@ -301,6 +301,12 @@ bool Schema::singleStep()
         c = stepTo25(); break;
     case 25:
         c = stepTo26(); break;
+    case 26:
+        c = stepTo27(); break;
+    default:
+        d->l->log( "Internal error. Reached impossible revision " +
+                   fn( d->revision ), Log::Disaster );
+        break;
     }
 
     return c;
