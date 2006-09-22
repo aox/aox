@@ -33,6 +33,7 @@ void Id::parse()
                 log( "Client ID: " + name.simplified() + ": " +
                      value.simplified() );
         }
+        require( ")" );
     }
     else {
         nil();
