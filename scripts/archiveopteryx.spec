@@ -1,6 +1,6 @@
 Name:           archiveopteryx
 Summary:        Mail archive server based on PostgreSQL
-Version:        1.10
+Version:        1.11
 Release:        1
 Group:          Productivity/Networking/Email/Servers
 License:        OSL 2.1
@@ -8,7 +8,6 @@ URL:            http://www.archiveopteryx.org/
 Source:         http://www.aox.org/download/%{name}-%{version}.tar.bz2
 Vendor:         Oryx Mail Systems GmbH
 Packager:       info@oryx.com
-Patch:          aox-installroot.diff
 Requires:       postgresql >= 7.4.2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
@@ -23,7 +22,6 @@ Author:
 
 %prep
 %setup
-%patch
 
 %build
 jam
@@ -50,6 +48,7 @@ jam -sINSTALLROOT=$RPM_BUILD_ROOT install
 /usr/local/archiveopteryx/man/man5/archiveopteryx.conf.5
 /usr/local/archiveopteryx/man/man7/oryx.7
 /usr/local/archiveopteryx/man/man8/aox.8
+/usr/local/archiveopteryx/man/man8/aoximport.8
 /usr/local/archiveopteryx/man/man8/archiveopteryx.8
 /usr/local/archiveopteryx/man/man8/deliver.8
 /usr/local/archiveopteryx/man/man8/installer.8
