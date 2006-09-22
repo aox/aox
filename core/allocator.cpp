@@ -127,9 +127,8 @@ Allocator * Allocator::allocator( uint size )
         allocators[i] = a;
         if ( verbose )
             log( "Allocating " + String::humanNumber( a->capacity * a->step ) +
-                 " for " + fn( a->capacity ) + " " +
-                 fn( a->step - bytes ) + "-byte objects\n",
-                 Log::Debug );
+                 " for " + fn( a->capacity ) + " " + fn( a->step - bytes ) +
+                 "-byte objects", Log::Debug );
     }
     return allocators[i];
 }
