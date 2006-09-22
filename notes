@@ -1088,6 +1088,10 @@ Todo list: AMS
     should be able to cope with that gracefully, but we don't.
   - We seem to be mangling Tom Simnett's PGP-signed email. Get him to
     send something to ams@toroid.org and make a canonical test case.
+  - Expunge::expunge() seems to use permitted() in a strange way that
+    needs to be looked at. I'm leaving it alone for 1.11 because the
+    failure mode doesn't seem too bad, and because it's not the common
+    case anyway.
 
 
 
