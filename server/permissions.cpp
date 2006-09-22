@@ -155,6 +155,13 @@ void Permissions::execute()
             return;
         }
 
+        // We have to let the anonymous user read its inbox.
+        if ( d->user->login() == "anonymous" &&
+             d->user->inbox() == d->mailbox )
+        {
+            d->allowed[Read] = true;
+        }
+
         // For everyone else, we have to check.
         d->q = new Query( "select * from permissions "
                           "where mailbox=$1 and "
