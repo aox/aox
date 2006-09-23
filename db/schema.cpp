@@ -1372,7 +1372,7 @@ bool Schema::stepTo25()
                           "                references messages(mailbox, uid)"
                           ")", this );
         d->t->enqueue( d->q );
-        d->q = new Query( "grant insert,update on modsequences to " +
+        d->q = new Query( "grant select,insert,update on modsequences to " +
                           dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
