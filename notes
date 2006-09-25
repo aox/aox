@@ -1,19 +1,8 @@
-1.11: 2006-09-24
-
-  CONDSTORE goes here.
-
-  Update the installer manpage to match the code.
-
-  Handle 0 bytes in every codec.
-
-  SIEVE
-
-  URLAUTH
-
-  Full-text search
-
-
 1.12: 2006-10-23
+
+  The rest of CODESTORE and URLAUTH.
+
+  Sieve.
 
   Implement rest of Lemonade profile in time for the interop.
 
@@ -82,6 +71,11 @@ Arnt in Delhi
   - Database replication support (local mirror)
   - Clean up orphaned bodyparts without locking the table
   - Split the injector transaction into fast and slow parts(?)
+
+
+Things we didn't do in 1.10-1.15:
+
+  Full-text search
 
 
 Undefined codepoints
