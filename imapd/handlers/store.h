@@ -33,6 +33,7 @@ private:
     void replaceFlags();
     void recordFlags();
     void pretendToFetch();
+    void sendModseqResponses();
     void sendFetches();
     bool dumpFetchResponses();
     void replaceAnnotations();

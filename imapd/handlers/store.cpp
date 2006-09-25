@@ -24,10 +24,14 @@ public:
     StoreData()
         : op( ReplaceFlags ), silent( false ), uid( false ),
           checkedPermission( false ), fetching( false ),
+          unchangedSince( 0 ), seenUnchangedSince( false ),
+          sendModseq( false ), modseq( 0 ),
+          modSeqQuery( 0 ), obtainModSeq( 0 ),
           transaction( 0 ), flagCreator( 0 ), annotationNameCreator( 0 )
     {}
     MessageSet s;
     MessageSet expunged;
+    MessageSet modified;
     StringList flagNames;
 
     enum Op { AddFlags, ReplaceFlags, RemoveFlags, ReplaceAnnotations } op;
@@ -37,6 +41,12 @@ public:
     bool checkedPermission;
 
     bool fetching;
+    uint unchangedSince;
+    bool seenUnchangedSince;
+    bool sendModseq;
+    uint modseq;
+    Query * modSeqQuery;
+    Query * obtainModSeq;
 
     Transaction * transaction;
     List<Flag> flags;
@@ -81,6 +91,33 @@ void Store::parse()
     d->expunged = imap()->session()->expunged().intersection( d->s );
     shrink( &d->s );
     space();
+
+    if ( present( "(" ) ) {
+        String modifier = letters( 1, 14 ) .lower();
+        while ( ok() && !modifier.isEmpty() ) {
+            if ( modifier == "unchangedsince" ) {
+                space();
+                d->unchangedSince = number();
+                if ( d->seenUnchangedSince )
+                    error( Bad, "unchangedsince specified twice" );
+                d->seenUnchangedSince = true;
+                d->sendModseq = true;
+                imap()->setClientSupports( IMAP::Condstore );
+            }
+            else {
+                error( Bad, "Unknown search modifier: " + modifier );
+            }
+            if ( nextChar() == ' ' ) {
+                space();
+                modifier = letters( 1, 14 ) .lower();
+            }
+            else {
+                modifier = "";
+            }
+        }
+        require( ")" );
+        space();
+    }
 
     if ( present( "ANNOTATION (" ) ) {
         bool more = true;
@@ -279,6 +316,37 @@ void Store::execute()
     if ( !ok() )
         return;
 
+    if ( d->seenUnchangedSince ) {
+        if ( !d->modSeqQuery ) {
+            d->modSeqQuery = new Query( "select uid from modsequences "
+                                        "where mailbox=$1 and modseq>$2 "
+                                        "and " + d->s.where(),
+                                        this );
+            d->modSeqQuery->bind( 1, imap()->session()->mailbox()->id() );
+            d->modSeqQuery->bind( 2, d->unchangedSince );
+            d->modSeqQuery->execute();
+        }
+        Row * r;
+        while ( (r=d->modSeqQuery->nextRow()) != 0 )
+            d->modified.add( r->getInt( "uid" ) );
+        if ( !d->modSeqQuery->done() )
+            return;
+        d->s.remove( d->modified );
+
+        MessageSet s;
+        if ( d->uid ) {
+            s.add( d->modified );
+        }
+        else {
+            uint i = 1;
+            while ( i <= d->modified.count() ) {
+                s.add( imap()->session()->msn( d->modified.value( i ) ) );
+                i++;
+            }
+        }
+        setRespTextCode( "MODIFIED " + s.set() );
+    }
+
     if ( d->op == StoreData::ReplaceAnnotations ) {
         if ( !processAnnotationNames() )
             return;
@@ -290,6 +358,17 @@ void Store::execute()
 
     if ( !d->transaction ) {
         d->transaction = new Transaction( this );
+        d->obtainModSeq = new Query( "select nextval('nextmodsequence')::int "
+                                     "as whatever",
+                                     this );
+        d->transaction->enqueue( d->obtainModSeq );
+        // and lock the rows we'll change
+        Query * q = new Query( "select uid from modsequences "
+                               "where mailbox=$1 and " + d->s.where() +
+                               " for update", 0 );
+        q->bind( 1, imap()->session()->mailbox()->id() );
+        d->transaction->enqueue( q );
+        d->transaction->execute();
         switch( d->op ) {
         case StoreData::ReplaceFlags:
             replaceFlags();
@@ -304,9 +383,25 @@ void Store::execute()
             replaceAnnotations();
             break;
         }
-        d->transaction->commit();
     }
 
+    if ( !d->obtainModSeq->done() )
+        return;
+
+    if ( !d->modseq ) {
+        Row * r = d->obtainModSeq->nextRow();
+        if ( !r ) {
+            error( No, "Could not obtain modseq" );
+            return;
+        }
+        d->modseq = r->getInt( "whatever" ); // what should it be?
+        Query * q = new Query( "update modsequences set modseq=$1 "
+                               "where mailbox=$2 and " + d->s.where(), 0 );
+        q->bind( 1, d->modseq );
+        q->bind( 2, imap()->session()->mailbox()->id() );
+        d->transaction->commit();
+    }
+        
     if ( !d->fetching ) {
         if ( !d->transaction->done() )
             return;
@@ -318,7 +413,11 @@ void Store::execute()
         else if ( d->op != StoreData::ReplaceAnnotations ) {
             recordFlags();
         }
-        if ( !d->silent ) {
+        if ( d->silent ) {
+            if ( d->sendModseq )
+                sendModseqResponses();
+        }
+        else {
             switch( d->op ) {
             case StoreData::AddFlags:
             case StoreData::RemoveFlags:
@@ -342,6 +441,7 @@ void Store::execute()
     }
     if ( !d->silent && !d->expunged.isEmpty() )
         error( No, "Cannot store on expunged messages" );
+
     finish();
 }
 
@@ -410,16 +510,39 @@ void Store::pretendToFetch()
         with = " FLAGS (\\recent))";
     else
         with = " FLAGS (\\recent " + d->flagNames.join( " " ) + "))";
+    String modseq;
+    if ( d->sendModseq )
+        modseq = " MODSEQ (" + fn( d->modseq ) + ")";
     while ( i <= max ) {
         uint uid = d->s.value( i );
         uint msn = s->msn( uid );
         i++;
         if ( s->isRecent( uid ) )
-            respond( fn( msn ) + " FETCH (UID " +
+            respond( fn( msn ) + " FETCH (UID " + modseq +
                      fn( uid ) + with );
         else
-            respond( fn( msn ) + " FETCH (UID " +
+            respond( fn( msn ) + " FETCH (UID " + modseq +
                      fn( uid ) + without );
+    }
+}
+
+
+/*! Tells the client about the modseq assigned. Since we assign only
+    one modseq for the entire transaction this is a little
+    repetitive. Shall we say: Amenable to compression.
+*/
+
+void Store::sendModseqResponses()
+{
+    uint max = d->s.count();
+    uint i = 1;
+    ImapSession * s = imap()->session();
+    String rest( " MODSEQ (" + fn( d->modseq ) + "))" );
+    while ( i <= max ) {
+        uint uid = d->s.value( i );
+        uint msn = s->msn( uid );
+        i++;
+        respond( fn( msn ) + " FETCH (UID " + fn( uid ) + rest );
     }
 }
 
@@ -455,6 +578,9 @@ bool Store::dumpFetchResponses()
     bool all = true;
     ImapSession * s = imap()->session();
     Mailbox * mb = s->mailbox();
+    String modseq;
+    if ( d->sendModseq )
+        modseq = " MODSEQ (" + fn( d->modseq ) + ")";
     while ( all && !d->s.isEmpty() ) {
         uint uid = d->s.value( 1 );
         Message * m = mb->message( uid, false );
@@ -477,7 +603,7 @@ bool Store::dumpFetchResponses()
 
             uint msn = s->msn( uid );
             respond( fn( msn ) + " FETCH (UID " +
-                     fn( uid ) + " FLAGS (" + r + "))" );
+                     fn( uid ) + modseq + " FLAGS (" + r + "))" );
             d->s.remove( uid );
         }
         else {
