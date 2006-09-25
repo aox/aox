@@ -234,6 +234,25 @@ COPY is slow
 
   Inject 11k messages, copy with thunderbird, watch why it fails.
 
+  Or better: Just fix the code. There are far too many inserts and
+  updates. Two possible approaches.
+
+  1. Identify UID ranges and use seven inserts per UID range.
+
+     This should grow much slower than the size of the copy, since a
+     large copy should generally contain just a few UID ranges. But
+     the worst case is just as bad as before.
+
+  2. Use exactly seven inserts and do the UID range work using
+     CASE/WHEN/+.
+
+     If it's exactly a single range, the target uid is the source uid
+     plus some x we can find. If there are several, CASE/WHEN can be
+     used to select the right x.
+
+  Not sure which is best. Of course the latter has the "advantage" of
+  generating huge SQL statements.
+
 
 imapd/handlers/acl.cpp
 

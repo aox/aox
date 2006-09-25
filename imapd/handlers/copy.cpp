@@ -16,16 +16,19 @@ class CopyData
 {
 public:
     CopyData() :
-        uid( false ), firstUid( 0 ), mailbox( 0 ), transaction( 0 ),
-        findUid( 0 )
+        uid( false ), firstUid( 0 ), modseq( 0 ),
+        mailbox( 0 ), transaction( 0 ),
+        findUid( 0 ), findModseq( 0 )
     {}
     bool uid;
     MessageSet set;
     String target;
     uint firstUid;
+    uint modseq;
     Mailbox * mailbox;
     Transaction * transaction;
     Query * findUid;
+    Query * findModseq;
 };
 
 
@@ -91,17 +94,32 @@ void Copy::execute()
                                 this );
         d->findUid->bind( 1, d->mailbox->id() );
         d->transaction->enqueue( d->findUid );
+        d->findModseq 
+            = new Query( "select nextval('nextmodsequence')::int as ms",
+                         this );
+        d->transaction->enqueue( d->findModseq );
         d->transaction->execute();
     }
-    if ( !d->findUid->done() )
+    if ( !d->findUid->done() || !d->findModseq->done() )
         return;
+
     if ( !d->firstUid ) {
         Row * r = d->findUid->nextRow();
-        if ( !r ) {
+        if ( r )
+            d->firstUid = r->getInt( "uidnext" );
+        else
             error( No, "Could not allocate UID in target mailbox" );
+
+        r = d->findModseq->nextRow();
+        if ( r )
+            d->modseq = r->getInt( "ms" );
+        else
+            error( No, "Could not obtain modseq" );
+
+        if ( !ok() ) {
+            d->transaction->rollback();
             return;
         }
-        d->firstUid = r->getInt( "uidnext" );
 
         Mailbox * current = imap()->session()->mailbox();
         Query * q;
@@ -184,6 +202,14 @@ void Copy::execute()
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, imap()->user()->id() );
+            d->transaction->enqueue( q );
+
+            q = new Query( "insert into modsequences (mailbox, uid, modseq) "
+                           "values ($1, $2, $3)",
+                           0 );
+            q->bind( 1, tmailbox );
+            q->bind( 2, tuid );
+            q->bind( 3, d->modseq );
             d->transaction->enqueue( q );
 
             tuid++;
