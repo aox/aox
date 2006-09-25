@@ -140,7 +140,7 @@ void Select::execute()
     }
 
     if ( !d->highestModseq && imap()->clientSupports( IMAP::Condstore ) ) {
-        d->highestModseq = new Query( "select coalesce(max(modseq),0)::int "
+        d->highestModseq = new Query( "select coalesce(max(modseq),1)::int "
                                       "as hms from modsequences "
                                       "where mailbox=$1",
                                       this );

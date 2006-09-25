@@ -137,7 +137,8 @@ void Status::execute()
     if ( d->modseq && !d->highestModseq ) {
         // HIGHESTMODSEQ too needs a DB query
         d->highestModseq
-            = new Query( "select max(modseq)::int as hm from modsequences "
+            = new Query( "select coalesce(max(modseq),1)::int as hm "
+                         "from modsequences "
                          "where mailbox=$1", this );
         d->highestModseq->bind( 1, d->mailbox->id() );
         d->highestModseq->execute();
