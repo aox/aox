@@ -381,12 +381,10 @@ void Append::execute()
         return;
 
     d->injector->announce();
-    respond( "OK [APPENDUID " +
-             fn( d->mailbox->uidvalidity() ) +
-             " " +
-             fn( d->injector->uid( d->mailbox ) ) +
-             "] done",
-             Tagged );
+    setRespTextCode( "APPENDUID " +
+                     fn( d->mailbox->uidvalidity() ) +
+                     " " +
+                     fn( d->injector->uid( d->mailbox ) ) );
 
     finish();
 }

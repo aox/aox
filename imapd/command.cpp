@@ -65,6 +65,7 @@ public:
     List< String > * args;
 
     List< String > responses;
+    String respTextCode;
     bool responded;
     bool tagged;
     bool canExpunge;
@@ -555,12 +556,18 @@ void Command::emitResponses()
     d->responded = true;
 
     if ( !d->tagged ) {
-        if ( !d->error )
-            respond( "OK done", Tagged );
-        else if ( d->errorCode == Bad )
-            respond( "BAD " + d->errorText, Tagged );
-        else
-            respond( "NO " + d->errorText, Tagged );
+        if ( !d->error ) {
+            if ( d->respTextCode.isEmpty() )
+                respond( "OK done", Tagged );
+            else
+                respond( "OK [" + d->respTextCode + "] done", Tagged );
+        }
+        else {
+            if ( d->errorCode == Bad )
+                respond( "BAD " + d->errorText, Tagged );
+            else
+                respond( "NO " + d->errorText, Tagged );
+        }
     }
 
     List< String >::Iterator it( d->responses );
@@ -1241,4 +1248,15 @@ bool Command::permissionChecked() const
     if ( d->checker && !d->checker->ready() )
         return false;
     return true;
+}
+
+
+/*! Remembers that when the time comes to send a tagged OK, \a s
+    should be sent as resp-text-code. \a s should not contain [],
+    emitResponses() adds those itself.
+*/
+
+void Command::setRespTextCode( const String & s )
+{
+    d->respTextCode = s;
 }

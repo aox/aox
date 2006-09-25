@@ -42,6 +42,7 @@ public:
 
     enum Response { Tagged, Untagged };
     void respond( const String &, Response = Untagged );
+    void setRespTextCode( const String & );
 
     enum Error { No, Bad };
     void error( Error, const String & );

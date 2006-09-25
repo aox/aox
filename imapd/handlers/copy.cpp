@@ -249,13 +249,11 @@ void Copy::execute()
 
     MessageSet target;
     target.add( d->firstUid, next - 1 );
-    respond( "OK [COPYUID " +
-             fn( d->mailbox->uidvalidity() ) +
-             " " +
-             d->set.set() +
-             " " +
-             target.set() +
-             "] done",
-             Tagged );
+    setRespTextCode( "COPYUID " +
+                     fn( d->mailbox->uidvalidity() ) +
+                     " " +
+                     d->set.set() +
+                     " " +
+                     target.set() );
     finish();
 }

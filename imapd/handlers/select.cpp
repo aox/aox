@@ -198,9 +198,9 @@ void Select::execute()
              " uid validity" );
     respond( "OK [PERMANENTFLAGS (" + flags +" \\*)] permanent flags" );
     if ( d->session->readOnly() )
-        respond( "OK [READ-ONLY] done", Tagged );
+        setRespTextCode( "READ-ONLY" );
     else
-        respond( "OK [READ-WRITE] done", Tagged );
+        setRespTextCode( "READ-WRITE" );
 
     imap()->beginSession( d->session );
     finish();
