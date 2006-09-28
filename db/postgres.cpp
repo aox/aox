@@ -491,7 +491,7 @@ void Postgres::process( char type )
                     s.append( fn( q->rows() ) );
                     s.append( " rows)" );
                 }
-                ::log( s, Log::Debug );
+                ::log( s, Log::Info );
                 if ( !q->done() )
                     q->setState( Query::Completed );
                 d->queries.shift();
