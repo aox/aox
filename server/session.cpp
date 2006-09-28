@@ -484,8 +484,10 @@ SessionInitialiser::SessionInitialiser( Session * session,
 
     d->session->addSessionInitialiser( this );
     d->session->setUidnext( newUidnext );
-    d->session->insert( d->oldUidnext, newUidnext-1 );
-    d->expunged.add( d->oldUidnext, newUidnext-1 );
+    if ( d->oldUidnext ) {
+        d->session->insert( d->oldUidnext, newUidnext-1 );
+        d->expunged.add( d->oldUidnext, newUidnext-1 );
+    }
     execute();
 }
 
