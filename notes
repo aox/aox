@@ -326,7 +326,7 @@ CONDSTORE
 
   - client capabilities, so we can send untagged responses (done)
   - OK untagged responses to SELECT/EXAMINE (3.1) (done)
-  - STORE UNCHANGEDSINCE/MODIFIED
+  - STORE UNCHANGEDSINCE/MODIFIED (done)
   - FETCH CHANGEDSINCE (done)
   - FETCH MODSEQ (done)
   - SEARCH MODSEQ (partly done)
