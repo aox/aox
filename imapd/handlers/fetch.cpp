@@ -3,6 +3,7 @@
 #include "fetch.h"
 
 #include "imapsession.h"
+#include "transaction.h"
 #include "annotation.h"
 #include "messageset.h"
 #include "stringlist.h"
@@ -78,6 +79,23 @@ public:
 
     StringList entries;
     StringList attribs;
+
+    class SeenFlagSetter
+        : public EventHandler
+    {
+    public:
+        SeenFlagSetter( Mailbox *, const MessageSet & m,
+                        EventHandler * owner );
+        void execute();
+
+        MessageSet messages;
+        Transaction * t;
+        Flag * seen;
+        Query * f;
+        Query * ms;
+        Mailbox * mailbox;
+        EventHandler * o;
+    };
 };
 
 
@@ -534,6 +552,9 @@ void Fetch::execute()
 {
     ImapSession * s = imap()->session();
 
+    if ( !d->peek && s->readOnly() )
+        d->peek = true;
+
     if ( d->state == 0 ) {
         if ( d->changedSince ) {
             if ( !d->notThose ) {
@@ -555,12 +576,26 @@ void Fetch::execute()
     }
 
     if ( d->state == 1 ) {
-        if ( group() == 2 ) // then RFC 2180 section 4.1.2 applies
-            d->expunged = imap()->session()->expunged().intersection( d->set );
-        shrink( &d->set );
-        if ( !d->peek && s->readOnly() )
-            d->peek = true;
         d->state = 2;
+        if ( d->peek ) {
+            // go directly to stage 2
+        }
+        else if ( d->modseq || d->flags ) {
+            // to 2 after updating modseq/\seen
+            (void)new FetchData::SeenFlagSetter( s->mailbox(), d->set, this );
+            return;
+        }
+        else {
+            // set \seen in parallel with doing the fetch
+            (void)new FetchData::SeenFlagSetter( s->mailbox(), d->set, 0 );
+        }
+    }
+
+    if ( d->state == 2 ) {
+        if ( group() == 2 ) // then RFC 2180 section 4.1.2 applies
+            d->expunged = s->expunged().intersection( d->set );
+        shrink( &d->set );
+        d->state = 3;
         sendFetchQueries();
     }
 
@@ -608,7 +643,7 @@ void Fetch::execute()
         return;
 
     if ( !d->expunged.isEmpty() ) {
-        imap()->session()->recordExpungedFetch( d->expunged );
+        s->recordExpungedFetch( d->expunged );
         error( No, "UID(s) " + d->expunged.set() + " has/have been expunged" );
     }
     finish();
@@ -653,17 +688,6 @@ void Fetch::sendFetchQueries()
     mb->fetchAnnotations( annotations, this );
     mb->fetchBodies( bodies, this );
     mb->fetchHeaders( headers, this );
-
-    // if we're not peeking, send off a query to set \seen, and don't
-    // wait for any results.
-    if ( d->peek )
-        return;
-    Flag * seen = Flag::find( "\\seen" );
-    if ( !seen )
-        return;
-    Query * q = Store::addFlagsQuery( seen, imap()->session()->mailbox(),
-                                      d->set, 0 );
-    q->execute();
 }
 
 
@@ -1259,5 +1283,87 @@ void Fetch::parseFetchModifier()
     }
     else {
         error( Bad, "Unknown fetch modifier: " + name );
+    }
+}
+
+
+FetchData::SeenFlagSetter::SeenFlagSetter( Mailbox * m, const MessageSet & ms,
+                                           EventHandler * owner )
+    : EventHandler(),
+      t( 0 ), seen( 0 ), f( 0 ), ms( 0 ), mailbox( m ), o( owner )
+{
+    messages.add( ms );
+    execute();
+}
+
+
+void FetchData::SeenFlagSetter::execute()
+{
+    if ( !f ) {
+        f = new Query( "select uid from flags where mailbox=$1 and flag=$2",
+                          this );
+        f->bind( 1, mailbox->id() );
+        seen = Flag::find( "\\seen" );
+        if ( !seen )
+            return;
+        f->bind( 2, seen->id() );
+        f->execute();
+    }
+
+    Row * r = f->nextRow();
+    while ( r ) {
+        messages.remove( r->getInt( "uid" ) );
+        r = f->nextRow();
+    }
+
+    if ( !f->done() )
+        return;
+
+    if ( messages.isEmpty() ) {
+        if ( o )
+            o->execute();
+        return;
+    }
+
+    if ( !t ) {
+        t = new Transaction( this );
+        ms = new Query( "select nextval('nextmodsequence')::int as ms", this );
+        t->enqueue( ms );
+        t->execute();
+    }
+
+    if ( !ms->done() )
+        return;
+
+    if ( t->done() ) {
+        if ( o )
+            o->execute();
+        return;
+    }
+
+    r = ms->nextRow();
+    if ( !r )
+        return; // guards against running the code below twice
+
+    Query * q = new Query( "update modsequences "
+                           "set modseq=$1 "
+                           "where mailbox=$2 and " + messages.where(),
+                           0 );
+    q->bind( 1, r->getInt( "ms" ) );
+    q->bind( 2, mailbox->id() );
+    t->enqueue( q );
+
+    q = Store::addFlagsQuery( seen, mailbox, messages, 0 );
+    t->enqueue( q );
+    t->commit();
+
+    uint i = messages.count();
+    while ( i ) {
+        Message * m = mailbox->message( messages.value( i ), false );
+        if ( m ) {
+            m->setModSeq( r->getInt( "ms" ) );
+            m->setFlagsFetched( false );
+        }
+        i--;
     }
 }
