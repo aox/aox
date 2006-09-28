@@ -184,14 +184,10 @@ void Select::execute()
     d->session->setAnnounced( n );
     if ( d->highestModseq ) {
         Row * r = d->highestModseq->nextRow();
-        uint hms = 0;
+        uint hms = 1;
         if ( r )
             hms = r->getInt( "hms" );
-        if ( hms )
-            respond( "OK [HIGHESTMODSEQ " + fn( hms ) +
-                     "] highest current modseq" );
-        else
-            respond( "OK [HIGHESTMODSEQ 1] no current modseq" );
+        respond( "OK [HIGHESTMODSEQ " + fn( hms ) + "] highest modseq" );
     }
 
     respond( "OK [UIDVALIDITY " + fn( d->session->uidvalidity() ) + "]"
