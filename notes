@@ -258,6 +258,18 @@ COPY is slow
   speedup of 1400-2900%.
 
 
+MULTIAPPEND
+
+  Stupid thing. Clients and servers using pipelining can do the same
+  thing.
+
+  But there it is, and change 52791 shows that if the injector learns
+  to inject many addresses at at time, multiappend can be used to
+  inject lots of messages quickly.
+
+  aoximport can do it even better, of course.
+
+
 imapd/handlers/acl.cpp
 
   Different tasks, some shared code, same file. Separate this out into
