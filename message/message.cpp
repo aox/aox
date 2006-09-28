@@ -490,8 +490,8 @@ uint Message::rfc822Size() const
 }
 
 
-/*! Returns a pointer to list of extension flags for this message,
-    representing all flags that are currently set.
+/*! Returns a pointer to list of flags for this message, representing
+    all flags that are currently set.
 */
 
 List<Flag> * Message::flags() const
@@ -580,7 +580,7 @@ void Message::setAnnotationsFetched()
 
 
 /*! Returns true if this message knows where its towel is, and false
-    if it's hopeless clueless.
+    if it's hopeless and clueless.
 */
 
 bool Message::hasTrivia() const
@@ -1000,7 +1000,7 @@ void Message::setModSeq( uint n )
 }
 
 
-/*! Returns the RFC 4461 modseq set by setModSeq(). */
+/*! Returns the RFC 4451 modseq set by setModSeq(). */
 
 uint Message::modSeq() const
 {
