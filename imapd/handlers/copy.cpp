@@ -130,91 +130,103 @@ void Copy::execute()
         uint i = 1;
         while ( i <= d->set.count() ) {
             uint cuid = d->set.value( i );
+            uint j = i + 1;
+            while ( j-i == d->set.value( j ) - cuid )
+                j++;
 
             q = new Query( "insert into messages "
                            "(mailbox, uid, idate, rfc822size) "
-                           "select $1, $2, idate, rfc822size from messages "
-                           "where mailbox=$3 and uid=$4",
+                           "select $1, uid+$2, idate, rfc822size from messages "
+                           "where mailbox=$3 and uid>=$4 and uid<$5",
                            0 );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid );
+            q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
+            q->bind( 5, cuid + j - i );
             d->transaction->enqueue( q );
 
             q = new Query( "insert into part_numbers "
                            "(mailbox, uid, part, bodypart, bytes, lines) "
-                           "select $1, $2, part, bodypart, bytes, lines "
+                           "select $1, uid+$2, part, bodypart, bytes, lines "
                            "from part_numbers "
-                           "where mailbox=$3 and uid=$4",
+                           "where mailbox=$3 and uid>=$4 and uid<$5",
                            0 );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid );
+            q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
+            q->bind( 5, cuid + j - i );
             d->transaction->enqueue( q );
 
             q = new Query( "insert into header_fields "
                            "(mailbox, uid, part, position, field, value) "
-                           "select $1, $2, part, position, field, value "
+                           "select $1, uid+$2, part, position, field, value "
                            "from header_fields "
-                           "where mailbox=$3 and uid=$4",
+                           "where mailbox=$3 and uid>=$4 and uid<$5",
                            0 );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid );
+            q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
+            q->bind( 5, cuid + j - i );
             d->transaction->enqueue( q );
 
             q = new Query( "insert into address_fields "
                            "(mailbox, uid, part, position, field, address) "
-                           "select $1, $2, part, position, field, address "
+                           "select $1, uid+$2, part, position, field, address "
                            "from address_fields "
-                           "where mailbox=$3 and uid=$4",
+                           "where mailbox=$3 and uid>=$4 and uid<$5",
                            0 );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid );
+            q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
+            q->bind( 5, cuid + j - i );
             d->transaction->enqueue( q );
 
             q = new Query( "insert into flags "
                            "(mailbox, uid, flag) "
-                           "select $1, $2, flag "
+                           "select $1, uid+$2, flag "
                            "from flags "
-                           "where mailbox=$3 and uid=$4",
+                           "where mailbox=$3 and uid>=$4 and uid<$5",
                            0 );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid );
+            q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
+            q->bind( 5, cuid + j - i );
             d->transaction->enqueue( q );
 
             q = new Query( "insert into annotations "
                            "(mailbox, uid, owner, name, value) "
-                           "select $1, $2, $5, name, value "
+                           "select $1, uid+$2, $5, name, value "
                            "from annotations "
-                           "where mailbox=$3 and uid=$4 and "
-                           "(owner is null or owner=$5)",
+                           "where mailbox=$3 and uid>=$4 and uid<$5 and "
+                           "(owner is null or owner=$6)",
                            0 );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid );
+            q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
-            q->bind( 5, imap()->user()->id() );
+            q->bind( 5, cuid + j - i );
+            q->bind( 6, imap()->user()->id() );
             d->transaction->enqueue( q );
 
-            q = new Query( "insert into modsequences (mailbox, uid, modseq) "
-                           "values ($1, $2, $3)",
-                           0 );
-            q->bind( 1, tmailbox );
-            q->bind( 2, tuid );
-            q->bind( 3, d->modseq );
-            d->transaction->enqueue( q );
-
-            tuid++;
-            i++;
+            tuid = tuid + j - i;
+            i = j;
         }
+
+        // could this be done faster?
+        q = new Query( "insert into modsequences (mailbox, uid, modseq) "
+                       "select $1, uid, $2 from messages "
+                       "where mailbox=$1 and uid>=$3 and uid<$4",
+                       0 );
+        q->bind( 1, tmailbox );
+        q->bind( 2, d->modseq );
+        q->bind( 3, d->firstUid );
+        q->bind( 4, tuid );
+        d->transaction->enqueue( q );
 
         q = new Query( "update mailboxes set uidnext=$1 where id=$2",
                        this );

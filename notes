@@ -253,6 +253,10 @@ COPY is slow
   Not sure which is best. Of course the latter has the "advantage" of
   generating huge SQL statements.
 
+  I implemented approach 1 for now, and it gave me a very large speed
+  improvement - 200-400 copies/second where it used to be 12-25, so a
+  speedup of 800-3200%.
+
 
 imapd/handlers/acl.cpp
 
