@@ -25,7 +25,7 @@ public:
         : op( ReplaceFlags ), silent( false ), uid( false ),
           checkedPermission( false ), fetching( false ),
           unchangedSince( 0 ), seenUnchangedSince( false ),
-          sendModseq( false ), modseq( 0 ),
+          modseq( 0 ),
           modSeqQuery( 0 ), obtainModSeq( 0 ),
           transaction( 0 ), flagCreator( 0 ), annotationNameCreator( 0 )
     {}
@@ -43,7 +43,6 @@ public:
     bool fetching;
     uint unchangedSince;
     bool seenUnchangedSince;
-    bool sendModseq;
     uint modseq;
     Query * modSeqQuery;
     Query * obtainModSeq;
@@ -101,7 +100,6 @@ void Store::parse()
                 if ( d->seenUnchangedSince )
                     error( Bad, "unchangedsince specified twice" );
                 d->seenUnchangedSince = true;
-                d->sendModseq = true;
                 imap()->setClientSupports( IMAP::Condstore );
             }
             else {
@@ -400,6 +398,17 @@ void Store::execute()
         q->bind( 1, d->modseq );
         q->bind( 2, imap()->session()->mailbox()->id() );
         d->transaction->commit();
+
+        // because we cache messages, we have to tell the cached copy
+        // it's no longer accurate.
+        Mailbox * mb = imap()->session()->mailbox();
+        uint i = d->s.count();
+        while ( i ) {
+            Message * m = mb->message( d->s.value( i ), false );
+            if ( m )
+                m->setModSeq( d->modseq );
+            i--;
+        }
     }
         
     if ( !d->fetching ) {
@@ -414,7 +423,7 @@ void Store::execute()
             recordFlags();
         }
         if ( d->silent ) {
-            if ( d->sendModseq )
+            if ( imap()->clientSupports( IMAP::Condstore ) )
                 sendModseqResponses();
         }
         else {
@@ -511,7 +520,7 @@ void Store::pretendToFetch()
     else
         with = " FLAGS (\\recent " + d->flagNames.join( " " ) + "))";
     String modseq;
-    if ( d->sendModseq )
+    if ( imap()->clientSupports( IMAP::Condstore ) )
         modseq = " MODSEQ (" + fn( d->modseq ) + ")";
     while ( i <= max ) {
         uint uid = d->s.value( i );
@@ -579,7 +588,7 @@ bool Store::dumpFetchResponses()
     ImapSession * s = imap()->session();
     Mailbox * mb = s->mailbox();
     String modseq;
-    if ( d->sendModseq )
+    if ( imap()->clientSupports( IMAP::Condstore ) )
         modseq = " MODSEQ (" + fn( d->modseq ) + ")";
     while ( all && !d->s.isEmpty() ) {
         uint uid = d->s.value( 1 );
