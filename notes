@@ -1,6 +1,6 @@
 1.12: 2006-10-23
 
-  The rest of CODESTORE and URLAUTH.
+  The rest of CONDSTORE and URLAUTH.
 
   Sieve.
 
@@ -345,13 +345,13 @@ CONDSTORE
   - STORE UNCHANGEDSINCE/MODIFIED (done)
   - FETCH CHANGEDSINCE (done)
   - FETCH MODSEQ (done)
-  - SEARCH MODSEQ (partly done)
-  - Selector changes (done)
-  - SEARCH response
+  - SEARCH MODSEQ (partly done, VERY MUCH UNTESTED)
+  - Selector changes (done, testing required)
+  - SEARCH response (done, VERY MUCH UNTESTED)
   - STATUS HIGHESTMODSEQ (done)
   - SELECT/EXAMIME CONDSTORE (done)
-  - updating the modseq in store
-  - updating the modseq for non-peek fetches, if unseen
+  - updating the modseq in store (done)
+  - updating the modseq for non-peek fetches, if unseen (done)
   - schema update (done)
   - testing all of the above (NOT done)
 

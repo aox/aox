@@ -32,7 +32,7 @@ class SearchData
 public:
     SearchData()
         : uid( false ), done( false ), codec( 0 ), root( 0 ),
-          query( 0 )
+          query( 0 ), highestmodseq( 1 )
     {}
 
     bool uid;
@@ -46,6 +46,7 @@ public:
 
     Query * query;
     MessageSet matches;
+    uint highestmodseq;
 };
 
 
@@ -346,6 +347,7 @@ void Search::parseKey( bool alsoCharset )
             }
             add( new Selector( Selector::Modseq, Selector::Larger,
                                number() ) );
+            d->root->setModseqReturned();
         }
         else if ( alsoCharset && keyword == "charset" ) {
             space();
@@ -409,8 +411,14 @@ void Search::execute()
 
     Row * r;
     String result( "SEARCH" );
-    while ( (r=d->query->nextRow()) != 0 )
+    while ( (r=d->query->nextRow()) != 0 ) {
         d->matches.add( r->getInt( "uid" ) );
+        if ( d->root->modseqReturned() ) {
+            uint ms = r->getInt( "modseq" );
+            if ( ms > d->highestmodseq )
+                d->highestmodseq = ms;
+        }
+    }
 
     sendSearchResponse();
     finish();
@@ -423,6 +431,8 @@ void Search::execute()
 
 void Search::considerCache()
 {
+    if ( d->root->modseqReturned() )
+        return;
     ImapSession * s = imap()->session();
     bool needDb = false;
     if ( d->root->field() == Selector::Uid &&
@@ -641,6 +651,10 @@ void Search::sendSearchResponse()
             result.append( " " );
             result.append( fn( uid ) );
         }
+    }
+    if ( d->root->modseqReturned() ) {
+        result.append( " " );
+        result.append( fn( d->highestmodseq ) );
     }
     respond( result );
 }

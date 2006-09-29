@@ -71,6 +71,9 @@ public:
 
     static Selector * fromString( const String & );
 
+    void setModseqReturned();
+    bool modseqReturned() const;
+
 private:
     class SelectorData * d;
 

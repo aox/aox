@@ -428,9 +428,12 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->placeholder = 0;
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, mailbox->id() );
-    String q = "select distinct m.uid from messages m"
-               " left join deleted_messages dm on"
-               " (m.uid=dm.uid and m.mailbox=dm.mailbox)";
+    String q = "select (distinct m.uid)";
+    if ( d->needModsequences )
+        q.append( ", ms.modseq" );
+    q.append( " from messages m"
+              " left join deleted_messages dm on"
+              " (m.uid=dm.uid and m.mailbox=dm.mailbox)" );
     String w = where();
 
     // make sure that any indirect joins below don't produce bad
@@ -966,6 +969,7 @@ String Selector::whereAnnotation()
 
 String Selector::whereModseq()
 {
+    root()->d->needModsequences = true;
     uint i = placeHolder();
     root()->d->query->bind( i, d->n );
     return "ms.modseq>=$" + fn( i );
@@ -1157,7 +1161,10 @@ String Selector::debugString() const
 
 Selector::MatchResult Selector::match( Session * s, uint uid )
 {
-    if ( d->a == And || d->a == Or ) {
+    if ( d->needModsequences ) {
+        return No;
+    }
+    else if ( d->a == And || d->a == Or ) {
         List< Selector >::Iterator i( d->children );
         while ( i ) {
             MatchResult sub = i->match( s, uid );
@@ -1681,4 +1688,29 @@ Selector::Action Selector::action() const
 const MessageSet & Selector::messageSet() const
 {
     return d->s;
+}
+
+
+/*! Tells the Selector to return modseqs no matter whether they seem
+    to be needed or not.
+
+    Until this function is called, Selector chooses whether to return
+    modseqs based its content.
+*/
+
+void Selector::setModseqReturned()
+{
+    d->needModsequences = true;
+}
+
+
+/*! Returns true if this Selector's query() will return the modseq
+    column, and false if the Selector hasn't decided to do so yet. If
+    you call this function immediately after query(), the value is
+    definitely right for the Query.
+*/
+
+bool Selector::modseqReturned() const
+{
+    return d->needModsequences;
 }
