@@ -1095,6 +1095,9 @@ tlsproxy needs better diagnostics
     existing key's CN doesn't match our current hostname.
 
 
+Discuss how to change the *Fetcher interface to accommodate non-caching.
+
+
 Todo list: AMS
 
   - Upgrade to cryptlib 3.3. when it comes out.
