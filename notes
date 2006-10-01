@@ -1100,10 +1100,10 @@ Discuss how to change the *Fetcher interface to accommodate non-caching.
 
 Todo list: AMS
 
-  - Upgrade to cryptlib 3.3. when it comes out.
-    It's released now. I built it, found and fixed some problems, then
-    found that testlib hangs forever. Discussing it with Peter now. He
-    is likely to want to ssh to penne to debug.
+  - Upgrade to cryptlib 3.3.
+    The problems mentioned earlier were found to affect only testlib's
+    threading, and were thus not relevant to us. I sent a bug report to
+    Peter, and am now updating our in-source tree.
   - Fix the failing tests inspired by Harri's message.
   - Figure out why tlsproxy segfaults on Thomas's box.
   - Go through ANNOTATE and make sure we have and test everything.
