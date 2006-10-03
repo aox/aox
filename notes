@@ -6,8 +6,6 @@
 
   Implement rest of Lemonade profile in time for the interop.
 
-  What here? LDAP AB? Webmail?
-
   Sitewide mail retention policy, even if we don't have anything more
   specific yet.
 
@@ -19,6 +17,13 @@
 
   httpd
   Read-only archive pages
+
+
+Lemonade Interop
+
+  Arnt's flights:
+  BA949: MUC 23.10.2006 11.55 - LHR 23.10.2006 13.00
+  BA958: LHR 25.10.2006 20.05 - MUC 25.10.2006 22.50
 
 
 1.13: 2006-11-20
@@ -34,8 +39,8 @@
 
 Arnt in Delhi
 
-  LH762 2006-12-02 07:30
-  LH763 2006-12-08 09:55
+  Arrive: LH762 2006-12-02 07:30
+  Depart: LH763 2006-12-08 09:55
 
 
 1.14: 2006-12-18
@@ -76,6 +81,9 @@ Arnt in Delhi
 Things we didn't do in 1.10-1.15:
 
   Full-text search
+
+  LDAP AB? Webmail?
+
 
 
 Undefined codepoints
