@@ -19,7 +19,6 @@ Build imap :
     lsub.cpp
     namespace.cpp
     noop.cpp
-    obliterate.cpp
     rename.cpp
     search.cpp
     select.cpp

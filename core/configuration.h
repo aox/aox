@@ -92,7 +92,6 @@ public:
         MessageCopyDir,
         EntropySource,
         ManageSieveAddress,
-        ObliterationPassword,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };

@@ -29,7 +29,6 @@
 #include "handlers/lsub.h"
 #include "handlers/namespace.h"
 #include "handlers/noop.h"
-#include "handlers/obliterate.h"
 #include "handlers/rename.h"
 #include "handlers/search.h"
 #include "handlers/select.h"
@@ -203,8 +202,6 @@ Command * Command::create( IMAP * imap,
             c = new Acl( Acl::MyRights );
         else if ( n == "view" )
             c = new View;
-        else if ( n == "x-obliterate" )
-            c = new XObliterate;
 
         if ( c ) {
             authenticated = true;
