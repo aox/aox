@@ -1,6 +1,7 @@
 SubDir TOP ;
 
 SubInclude TOP core ;
+SubInclude TOP abnf ;
 SubInclude TOP deliver ;
 SubInclude TOP doc ;
 SubInclude TOP encodings ;
@@ -24,7 +25,7 @@ if ( $(BUILDDOC) ) {
 }
 
 Doc oryxdoc : core database encodings imap logd mailbox message ocd sasl
-    server smtp tls user http pop sieve extractors ;
+    server smtp tls user http pop sieve extractors abnf ;
 
 if ( $(BUILDDOC) ) {
     Depends install : doc ;
