@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <sys/stat.h> // mkdir
 #include <sys/types.h> // mkdir
+#include <unistd.h> // getpid
 
 
 class MigratorData
@@ -274,8 +275,8 @@ String MigratorMailbox::partialName()
 }
 
 
-static uint anonuniq = 0;
-static uint plainuniq = 0;
+static uint uniq = 0;
+static String errdir;
 
 
 /*! \class MigratorMessage migrator.h
@@ -309,17 +310,25 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
         String dir;
         String name;
         String c;
+        if ( errdir.isEmpty() ) {
+            errdir = "errors/" + fn( getpid() );
+            ::mkdir( errdir.cstr(), 0777 );
+            if ( Migrator::verbosity() > 0 )
+                fprintf( stdout, " - storing error files in %s\n",
+                         m->error().cstr() );
+        }
         if ( am->error().anonymised() == m->error().anonymised() ) {
-            dir = "errors/anonymised";
-            name = fn( ++anonuniq );
+            dir = errdir + "/anonymised";
+            name = fn( ++uniq );
             c = a;
         }
         else {
-            dir = "errors/plaintext";
-            name = fn( ++plainuniq );
+            if ( Migrator::verbosity() > 1 )
+                fprintf( stdout, " - Must store as plaintext\n" );
+            dir = errdir + "/plaintext";
+            name = fn( ++uniq );
             c = o;
         }
-        ::mkdir( "errors", 0777 );
         ::mkdir( dir.cstr(), 0777 );
         File f( dir + "/" + name, File::Write );
         f.write( c );
