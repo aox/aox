@@ -312,6 +312,7 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
         String c;
         if ( errdir.isEmpty() ) {
             errdir = "errors/" + fn( getpid() );
+            ::mkdir( "errors", 0777 );
             ::mkdir( errdir.cstr(), 0777 );
             if ( Migrator::verbosity() > 0 )
                 fprintf( stdout, " - storing error files in %s\n",
