@@ -428,7 +428,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->placeholder = 0;
     d->mboxId = placeHolder();
     d->query->bind( d->mboxId, mailbox->id() );
-    String q = "select (distinct m.uid)";
+    String q = "select distinct m.uid";
     if ( d->needModsequences )
         q.append( ", ms.modseq" );
     q.append( " from messages m"
