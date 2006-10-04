@@ -6,11 +6,10 @@
 /*! \class AbnfParser abnfparser.h
     Provides simple functions to parse ABNF productions.
 
-    This class maintains a cursor for an input String (or a StringList
-    for multi-line input) and provides functions to examine or extract
-    tokens, advancing the cursor as required. These generic functions
-    may be used by subclasses (e.g. ImapParser) to parse more complex
-    productions.
+    This class maintains a cursor for an input String and provides
+    functions to examine or extract tokens, advancing the cursor as
+    required. These generic functions may be used by subclasses (e.g.
+    ImapParser) to parse more complex productions.
 
     The functions usually return a token extracted from the input string
     at the cursor, and advance the cursor to point to the next token. If
@@ -32,19 +31,6 @@
 AbnfParser::AbnfParser( const String & s )
     : str( s ), at( 0 )
 {
-}
-
-
-/*! Constructs an AbnfParser for the StringList \a l. */
-
-AbnfParser::AbnfParser( const StringList & l )
-    : at( 0 )
-{
-    StringList::Iterator it( l );
-    while ( it ) {
-        str.append( *it );
-        ++it;
-    }
 }
 
 

@@ -5,7 +5,6 @@
 
 #include "global.h"
 #include "string.h"
-#include "stringlist.h"
 
 
 class AbnfParser
@@ -13,7 +12,6 @@ class AbnfParser
 {
 public:
     AbnfParser( const String & );
-    AbnfParser( const StringList & );
 
     bool ok() const;
     String error() const;
