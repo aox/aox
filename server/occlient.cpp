@@ -10,6 +10,7 @@
 #include "mailbox.h"
 #include "buffer.h"
 #include "query.h"
+#include "flag.h"
 #include "log.h"
 
 
@@ -113,6 +114,9 @@ void OCClient::parse()
         else if ( msg == "mailbox" ) {
             updateMailbox( arg );
         }
+        else if ( msg == "caches" ) {
+            Flag::setup();
+        }
         s = readBuffer()->removeLine();
     }
 }
@@ -122,6 +126,10 @@ void OCClient::parse()
 
 void OCClient::send( const String &s )
 {
+    if ( !client )
+        setup();
+    if ( !client )
+        return;
     client->enqueue( "* " + s + "\n" );
     client->write();
 }
