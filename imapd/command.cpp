@@ -275,7 +275,7 @@ Command * Command::create( IMAP * imap,
         c->d->canExpunge = true;
 
     c->setLog( new Log( Log::IMAP ) );
-    c->log( "IMAP Command: " + c->nametag() );
+    c->log( "IMAP Command: " + tag + " " + name );
 
     return c;
 }
@@ -373,11 +373,11 @@ void Command::setState( State s )
         // this is the initial state, it should never be called.
         break;
     case Blocked:
-        log( "Deferring execution of IMAP command " + nametag(), Log::Debug );
+        log( "Deferring execution", Log::Debug );
         break;
     case Executing:
         (void)::gettimeofday( &d->started, 0 );
-        log( "Executing IMAP command " + nametag(), Log::Debug );
+        log( "Executing", Log::Debug );
         break;
     case Finished:
         struct timeval end;
@@ -386,10 +386,10 @@ void Command::setState( State s )
             ( end.tv_sec - d->started.tv_sec ) * 1000000 +
             ( end.tv_usec - d->started.tv_usec );
         Log::Severity level = Log::Debug;
-        if ( elapsed > 1500*1000 ) // XXX needs tweaking
-            level = Log::Error;
+        if ( elapsed > 3000 )
+            level = Log::Info;
         String m;
-        m.append( "Executed IMAP command " + nametag() + " in " );
+        m.append( "Execution time " );
         m.append( fn( ( elapsed + 499 ) / 1000 ) );
         m.append( "ms" );
         log( m, level );
@@ -409,16 +409,11 @@ bool Command::validIn( IMAP::State s ) const
 }
 
 
-/*! Returns the tagged name for this command. Useful for logging. */
+/*! Returns the tag of this command. Useful for logging. */
 
-String Command::nametag() const
+String Command::tag() const
 {
-    String s( "'" );
-    s.append( d->tag );
-    s.append( " " );
-    s.append( d->name );
-    s.append( "'" );
-    return s;
+    return d->tag;
 }
 
 

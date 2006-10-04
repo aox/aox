@@ -18,7 +18,8 @@ public:
     CopyData() :
         uid( false ), firstUid( 0 ), modseq( 0 ),
         mailbox( 0 ), transaction( 0 ),
-        findUid( 0 ), findModseq( 0 )
+        findUid( 0 ), findModseq( 0 ),
+        totalQueries( 0 ), completedQueries( 0 )
     {}
     bool uid;
     MessageSet set;
@@ -29,6 +30,8 @@ public:
     Transaction * transaction;
     Query * findUid;
     Query * findModseq;
+    uint totalQueries;
+    uint completedQueries;
 };
 
 
@@ -131,14 +134,14 @@ void Copy::execute()
         while ( i <= d->set.count() ) {
             uint cuid = d->set.value( i );
             uint j = i + 1;
-            while ( j-i == d->set.value( j ) - cuid )
+            while ( j-i == d->set.value( j ) - cuid && j < i+1024 )
                 j++;
 
             q = new Query( "insert into messages "
                            "(mailbox, uid, idate, rfc822size) "
                            "select $1, uid+$2, idate, rfc822size from messages "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
-                           0 );
+                           this );
             q->bind( 1, tmailbox );
             q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
@@ -151,7 +154,7 @@ void Copy::execute()
                            "select $1, uid+$2, part, bodypart, bytes, lines "
                            "from part_numbers "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
-                           0 );
+                           this );
             q->bind( 1, tmailbox );
             q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
@@ -164,7 +167,7 @@ void Copy::execute()
                            "select $1, uid+$2, part, position, field, value "
                            "from header_fields "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
-                           0 );
+                           this );
             q->bind( 1, tmailbox );
             q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
@@ -177,7 +180,7 @@ void Copy::execute()
                            "select $1, uid+$2, part, position, field, address "
                            "from address_fields "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
-                           0 );
+                           this );
             q->bind( 1, tmailbox );
             q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
@@ -190,7 +193,7 @@ void Copy::execute()
                            "select $1, uid+$2, flag "
                            "from flags "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
-                           0 );
+                           this );
             q->bind( 1, tmailbox );
             q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
@@ -204,7 +207,7 @@ void Copy::execute()
                            "from annotations "
                            "where mailbox=$3 and uid>=$4 and uid<$5 and "
                            "(owner is null or owner=$6)",
-                           0 );
+                           this );
             q->bind( 1, tmailbox );
             q->bind( 2, tuid-cuid );
             q->bind( 3, cmailbox );
@@ -221,7 +224,7 @@ void Copy::execute()
         q = new Query( "insert into modsequences (mailbox, uid, modseq) "
                        "select $1, uid, $2 from messages "
                        "where mailbox=$1 and uid>=$3 and uid<$4",
-                       0 );
+                       this );
         q->bind( 1, tmailbox );
         q->bind( 2, d->modseq );
         q->bind( 3, d->firstUid );
@@ -234,17 +237,36 @@ void Copy::execute()
         q->bind( 2, tmailbox );
         d->transaction->enqueue( q );
 
+        d->totalQueries = d->transaction->queries()->count();
+        d->completedQueries = 0;
         d->transaction->commit();
     }
+
+    if ( d->totalQueries > 10 ) {
+        uint completed = 0;
+        List<Query>::Iterator i( d->transaction->queries() );
+        while ( i ) {
+            if ( i->state() == Query::Completed )
+                completed++;
+            ++i;
+        }
+        while ( d->completedQueries < completed ) {
+            imap()->enqueue( "* OK [PROGRESS " + 
+                             tag() + " " +
+                             fn( d->completedQueries ) + " " + fn( d->totalQueries ) +
+                             "] working\r\n" );
+            d->completedQueries++;
+        }
+    }
+
+    if ( !d->transaction->done() )
+        return;
 
     if ( imap()->session() && d->mailbox == imap()->session()->mailbox() ) {
         imap()->session()->refresh( this );
         if ( !imap()->session()->initialised() )
             return;
     }
-
-    if ( !d->transaction->done() )
-        return;
 
     if ( d->transaction->failed() ) {
         error( No, "Database failure: " + d->transaction->error() );
