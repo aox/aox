@@ -35,7 +35,7 @@ public:
     void rollback();
     void commit();
 
-    List< Query > *queries() const;
+    List< Query > *enqueuedQueries() const;
     void notify();
 
 private:

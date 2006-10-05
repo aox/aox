@@ -215,14 +215,17 @@ void Transaction::execute()
 
 
 /*! Returns a pointer to the List of queries that have been enqueue()d
-    within this Transaction and not yet been processed by the database.
-    The pointer will not be 0 after the first query has been enqueued.
-    The state of each Query will be Submitted if execute() has been
-    called after it was enqueued. Queries are removed from the list
-    after they have been processed.
+    within this Transaction, but not yet processed by the database. The
+    pointer will not be 0 after the first query has been enqueued. The
+    state of each Query will be Submitted if execute() has been called
+    after it was enqueued. Queries are removed from the list once they
+    have been processed.
+
+    This function is meant for use by the Database, in order to retrieve
+    the Queries that need processing.
 */
 
-List< Query > *Transaction::queries() const
+List< Query > *Transaction::enqueuedQueries() const
 {
     return d->queries;
 }

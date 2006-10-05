@@ -129,7 +129,7 @@ void Postgres::processQueue()
 
     List< Query > *l = Database::queries;
     if ( d->transaction )
-        l = d->transaction->queries();
+        l = d->transaction->enqueuedQueries();
 
     while ( ( q = l->firstElement() ) != 0 ) {
         if ( q->state() != Query::Submitted )
@@ -142,7 +142,7 @@ void Postgres::processQueue()
             d->transaction = q->transaction();
             d->transaction->setState( Transaction::Executing );
             d->transaction->setDatabase( this );
-            l = d->transaction->queries();
+            l = d->transaction->enqueuedQueries();
         }
 
         if ( !d->error ) {
