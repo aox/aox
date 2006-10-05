@@ -137,13 +137,20 @@ void Copy::execute()
             while ( j-i == d->set.value( j ) - cuid && j < i+1024 )
                 j++;
 
+            String diff = "uid+$2";
+            uint delta = tuid-cuid;
+            if ( tuid < cuid ) {
+                diff = "uid-$2";
+                delta = cuid-tuid;
+            }
+
             q = new Query( "insert into messages "
                            "(mailbox, uid, idate, rfc822size) "
-                           "select $1, uid+$2, idate, rfc822size from messages "
+                           "select $1, " + diff + ", idate, rfc822size from messages "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
                            this );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid-cuid );
+            q->bind( 2, delta );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
@@ -151,12 +158,12 @@ void Copy::execute()
 
             q = new Query( "insert into part_numbers "
                            "(mailbox, uid, part, bodypart, bytes, lines) "
-                           "select $1, uid+$2, part, bodypart, bytes, lines "
+                           "select $1, " + diff + ", part, bodypart, bytes, lines "
                            "from part_numbers "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
                            this );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid-cuid );
+            q->bind( 2, delta );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
@@ -164,12 +171,12 @@ void Copy::execute()
 
             q = new Query( "insert into header_fields "
                            "(mailbox, uid, part, position, field, value) "
-                           "select $1, uid+$2, part, position, field, value "
+                           "select $1, " + diff + ", part, position, field, value "
                            "from header_fields "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
                            this );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid-cuid );
+            q->bind( 2, delta );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
@@ -177,12 +184,12 @@ void Copy::execute()
 
             q = new Query( "insert into address_fields "
                            "(mailbox, uid, part, position, field, address) "
-                           "select $1, uid+$2, part, position, field, address "
+                           "select $1, " + diff + ", part, position, field, address "
                            "from address_fields "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
                            this );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid-cuid );
+            q->bind( 2, delta );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
@@ -190,12 +197,12 @@ void Copy::execute()
 
             q = new Query( "insert into flags "
                            "(mailbox, uid, flag) "
-                           "select $1, uid+$2, flag "
+                           "select $1, " + diff + ", flag "
                            "from flags "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
                            this );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid-cuid );
+            q->bind( 2, delta );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
@@ -203,13 +210,13 @@ void Copy::execute()
 
             q = new Query( "insert into annotations "
                            "(mailbox, uid, owner, name, value) "
-                           "select $1, uid+$2, $5, name, value "
+                           "select $1, " + diff + ", $5, name, value "
                            "from annotations "
                            "where mailbox=$3 and uid>=$4 and uid<$5 and "
                            "(owner is null or owner=$6)",
                            this );
             q->bind( 1, tmailbox );
-            q->bind( 2, tuid-cuid );
+            q->bind( 2, delta );
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
