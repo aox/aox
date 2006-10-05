@@ -1,6 +1,6 @@
 1.12: 2006-10-23
 
-  The rest of CONDSTORE and URLAUTH.
+  The rest of URLAUTH.
 
   Sieve.
 
@@ -342,29 +342,6 @@ ANNOTATE support
 METADATA
 
   Ditto. Separate point so that we can do one without the other.
-
-
-CONDSTORE
-
-  RFC 4551. Needed. What we need to do:
-
-  - client capabilities, so we can send untagged responses (done)
-  - OK untagged responses to SELECT/EXAMINE (3.1) (done)
-  - STORE UNCHANGEDSINCE/MODIFIED (done)
-  - FETCH CHANGEDSINCE (done)
-  - FETCH MODSEQ (done)
-  - SEARCH MODSEQ (partly done, VERY MUCH UNTESTED)
-  - Selector changes (done, testing required)
-  - SEARCH response (done, VERY MUCH UNTESTED)
-  - STATUS HIGHESTMODSEQ (done)
-  - SELECT/EXAMIME CONDSTORE (done)
-  - updating the modseq in store (done)
-  - updating the modseq for non-peek fetches, if unseen (done)
-  - schema update (done)
-  - testing all of the above (NOT done)
-
-  The search is tricky, since the select now needs to return something
-  more than just UIDs. How do we make that work together with views?
 
 
 Autoresponder

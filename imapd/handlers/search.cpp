@@ -379,8 +379,9 @@ void Search::execute()
         }
 
         Mailbox * m = s->mailbox();
-        if ( m->view() )
+        if ( m->view() ) {
             m = m->source();
+        }
 
         d->query =
             d->root->query( imap()->user(), m, s, this );
@@ -389,9 +390,13 @@ void Search::execute()
         if ( m->view() ) {
             uint source = d->root->placeHolder();
             uint view = d->root->placeHolder();
-            String s( "select uid from view_messages where source=$" +
-                      fn( source ) + " and view=$" + fn( view ) +
-                      " and suid in (" + d->query->string() + ")"
+            String s( "select vm.uid" );
+            if ( d->root->modseqReturned() )
+                s.append( ", s.modseq" );
+            s.append( " from view_messages vm "
+                      "join (" + d->query->string() + ") s "
+                      "on vm.suid=s.uid where source=$" + fn( source ) +
+                      " and view=$" + fn( view ) +
                       " order by uid" );
             d->query->bind( source, m->source()->id() );
             d->query->bind( view, m->id() );
