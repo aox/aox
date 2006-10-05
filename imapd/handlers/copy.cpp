@@ -19,7 +19,7 @@ public:
         uid( false ), firstUid( 0 ), modseq( 0 ),
         mailbox( 0 ), transaction( 0 ),
         findUid( 0 ), findModseq( 0 ),
-        totalQueries( 0 ), completedQueries( 0 )
+        completedQueries( 0 )
     {}
     bool uid;
     MessageSet set;
@@ -28,9 +28,9 @@ public:
     uint modseq;
     Mailbox * mailbox;
     Transaction * transaction;
+    List<Query> queries;
     Query * findUid;
     Query * findModseq;
-    uint totalQueries;
     uint completedQueries;
 };
 
@@ -154,7 +154,7 @@ void Copy::execute()
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
-            d->transaction->enqueue( q );
+            enqueue( q );
 
             q = new Query( "insert into part_numbers "
                            "(mailbox, uid, part, bodypart, bytes, lines) "
@@ -167,7 +167,7 @@ void Copy::execute()
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
-            d->transaction->enqueue( q );
+            enqueue( q );
 
             q = new Query( "insert into header_fields "
                            "(mailbox, uid, part, position, field, value) "
@@ -180,7 +180,7 @@ void Copy::execute()
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
-            d->transaction->enqueue( q );
+            enqueue( q );
 
             q = new Query( "insert into address_fields "
                            "(mailbox, uid, part, position, field, address) "
@@ -193,7 +193,7 @@ void Copy::execute()
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
-            d->transaction->enqueue( q );
+            enqueue( q );
 
             q = new Query( "insert into flags "
                            "(mailbox, uid, flag) "
@@ -206,7 +206,7 @@ void Copy::execute()
             q->bind( 3, cmailbox );
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
-            d->transaction->enqueue( q );
+            enqueue( q );
 
             q = new Query( "insert into annotations "
                            "(mailbox, uid, owner, name, value) "
@@ -221,7 +221,7 @@ void Copy::execute()
             q->bind( 4, cuid );
             q->bind( 5, cuid + j - i );
             q->bind( 6, imap()->user()->id() );
-            d->transaction->enqueue( q );
+            enqueue( q );
 
             tuid = tuid + j - i;
             i = j;
@@ -236,7 +236,7 @@ void Copy::execute()
         q->bind( 2, d->modseq );
         q->bind( 3, d->firstUid );
         q->bind( 4, tuid );
-        d->transaction->enqueue( q );
+        enqueue( q );
 
         q = new Query( "update mailboxes set uidnext=$1 where id=$2",
                        this );
@@ -244,14 +244,12 @@ void Copy::execute()
         q->bind( 2, tmailbox );
         d->transaction->enqueue( q );
 
-        d->totalQueries = d->transaction->queries()->count();
-        d->completedQueries = 0;
         d->transaction->commit();
     }
 
-    if ( d->totalQueries > 10 ) {
+    if ( d->set.count() > 256 ) {
         uint completed = 0;
-        List<Query>::Iterator i( d->transaction->queries() );
+        List<Query>::Iterator i( d->queries );
         while ( i ) {
             if ( i->state() == Query::Completed )
                 completed++;
@@ -260,7 +258,8 @@ void Copy::execute()
         while ( d->completedQueries < completed ) {
             imap()->enqueue( "* OK [PROGRESS " + 
                              tag() + " " +
-                             fn( d->completedQueries ) + " " + fn( d->totalQueries ) +
+                             fn( d->completedQueries ) + " " +
+                             fn( d->queries.count() ) +
                              "] working\r\n" );
             d->completedQueries++;
         }
@@ -297,4 +296,15 @@ void Copy::execute()
                      " " +
                      target.set() );
     finish();
+}
+
+
+/*! Wrapper for Transaction::enqueue() which also stores \a q in a
+    list for later access.
+*/
+
+void Copy::enqueue( class Query * q )
+{
+    d->transaction->enqueue( q );
+    d->queries.append( q );
 }
