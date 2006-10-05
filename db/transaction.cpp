@@ -231,12 +231,21 @@ List< Query > *Transaction::enqueuedQueries() const
 }
 
 
+/*! Returns a pointer to the owner of this query, as specified to the
+    constructor. Transactions MUST have owners, so this function may
+    not return 0.
+*/
+
+EventHandler * Transaction::owner() const
+{
+    return d->owner;
+}
+
+
 /*! Notifies the owner of this Transaction about a significant event. */
 
 void Transaction::notify()
 {
-    if ( !d->owner )
-        return;
     Scope s( d->owner->log() );
     d->owner->execute();
 }

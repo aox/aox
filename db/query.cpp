@@ -763,17 +763,8 @@ class Log * Query::log() const
     Log * l = 0;
     if ( d->owner )
         l = d->owner->log();
-
-    // for some too-common cases, not even that helps. we have to look
-    // for a query in the transaction.
-    if ( !l && d->transaction ) {
-        List<Query>::Iterator i( d->transaction->enqueuedQueries() );
-        while ( i && !l ) {
-            if ( i->owner() )
-                l = i->owner()->log();
-            ++i;
-        }
-    }
+    else if ( d->transaction )
+        l = d->transaction->owner()->log();
 
     return l;
 }

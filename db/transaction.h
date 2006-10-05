@@ -36,6 +36,7 @@ public:
     void commit();
 
     List< Query > *enqueuedQueries() const;
+    EventHandler * owner() const;
     void notify();
 
 private:
