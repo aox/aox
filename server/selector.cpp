@@ -35,6 +35,19 @@ public:
           needModsequences( false )
     {}
 
+    void copy( SelectorData * o ) {
+        f = o->f;
+        a = o->a;
+        s8 = o->s8;
+        s8b = o->s8b;
+        s16 = o->s16;
+        s = o->s;
+        n = o->n;
+        if ( o->needModsequences )
+            needModsequences = true;
+        children = o->children;
+    }
+
     Selector::Field f;
     Selector::Action a;
 
@@ -67,6 +80,7 @@ public:
     bool needPartNumbers;
     bool needBodyparts;
     bool needModsequences;
+
 };
 
 
@@ -254,21 +268,14 @@ void Selector::simplify()
 {
     // not (not x) -> x
     if ( d->a == Not && d->children->first()->d->a == Not ) {
-        Selector * again = d->children->first()->d->children->first();
-
-        d->f = again->d->f;
-        d->a = again->d->a;
-        d->s8 = again->d->s8;
-        d->s8b = again->d->s8b;
-        d->s16 = again->d->s16;
-        d->s = again->d->s;
-        d->n = again->d->n;
-        d->children = again->d->children;
+        Selector * child = d->children->first()->d->children->first();
+        d->copy( child->d );
     }
 
-    if ( d->a == Larger && d->n == 0 ) {
-        // > 0 matches everything
-        d->a = All;
+    if ( d->a == Larger ) {
+        if ( d->n == 0 || // > 0 matches everything
+             d->n == 1 && d->f == Modseq ) // all messages have modseq >= 1
+            d->a = All;
     }
     else if ( d->a == Contains && d->f == Uid ) {
         if ( d->s.isEmpty() )
@@ -383,14 +390,7 @@ void Selector::simplify()
     // a single-element and/or can be removed and its argument substituted
     if ( d->children->count() == 1 ) {
         List< Selector >::Iterator p( d->children );
-
-        d->f = p->d->f;
-        d->a = p->d->a;
-        d->s8 = p->d->s8;
-        d->s8b = p->d->s8b;
-        d->s16 = p->d->s16;
-        d->s = p->d->s;
-        d->children = p->d->children;
+        d->copy( d->children->first()->d );
         return;
     }
 
@@ -430,7 +430,7 @@ Query * Selector::query( User * user, Mailbox * mailbox,
     d->query->bind( d->mboxId, mailbox->id() );
     String q = "select distinct m.uid";
     if ( d->needModsequences )
-        q.append( ", ms.modseq" );
+        q.append( ", ms.modseq::int" );
     q.append( " from messages m"
               " left join deleted_messages dm on"
               " (m.uid=dm.uid and m.mailbox=dm.mailbox)" );
