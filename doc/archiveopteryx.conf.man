@@ -323,6 +323,22 @@ describes the problem.
 .IP
 The file's name is a unique string of numbers and hyphens. It ends with
 "-err" if there was an error injecting the message into the database.
+.SS "SMTP Submission"
+.IP use-smtp-submit
+controls whether
+.BR archiveopteryx (8)
+should accept mail via SMTP-Submit (RFC 4409). The default is
+.IR enabled .
+.IP smtp-submit-address
+specifies the address where
+.BR archiveopteryx (8)
+should listen for Submit connections. The default is
+.IR 127.0.0.1 .
+.IP smtp-submit-port
+specifies which port
+.BR archiveopteryx (8)
+should listen to. The default is
+.IR 587 .
 .SS IMAP
 .IP use-imap
 must be enabled for
