@@ -653,8 +653,9 @@ void Search::sendSearchResponse()
         }
     }
     if ( d->root->modseqReturned() ) {
-        result.append( " " );
+        result.append( " (modseq " );
         result.append( fn( d->highestmodseq ) );
+        result.append( ")" );
     }
     respond( result );
 }
