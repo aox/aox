@@ -763,8 +763,7 @@ class Log * Query::log() const
     Log * l = 0;
     if ( d->owner )
         l = d->owner->log();
-    else if ( d->transaction )
+    if ( !l && d->transaction() )
         l = d->transaction->owner()->log();
-
     return l;
 }
