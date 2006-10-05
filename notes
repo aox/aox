@@ -1115,7 +1115,8 @@ Todo list: AMS
     needs to be looked at. I'm leaving it alone for 1.11 because the
     failure mode doesn't seem too bad, and because it's not the common
     case anyway.
-  - Figure out some way to suppress the VACUUM warnings.
+  - Use Ethereal to snoop on Thunderbird talking to OpenLDAP to query
+    an address book.
 
 
 
