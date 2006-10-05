@@ -663,6 +663,12 @@ void Postgres::errorMessage()
 
     case PgMessage::Error:
     case PgMessage::Warning:
+        if ( msg.severity() == PgMessage::Warning &&
+             q && q->string() == "vacuum analyze" &&
+             m.startsWith( "skipping \"pg_" ) )
+            break; // pg gives us three harmless warnings for this
+                   // query. don't forward those.
+
         if ( msg.severity() == PgMessage::Warning )
             s.append( "WARNING: " );
         else
