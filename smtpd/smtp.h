@@ -12,7 +12,9 @@ class Mailbox;
 class Address;
 
 
-class SMTP : public Connection {
+class SMTP 
+    : public Connection 
+{
 public:
     SMTP( int s );
 
@@ -32,6 +34,9 @@ public:
     void help();
     void quit();
     void starttls();
+    void auth();
+
+    void saslNeg();
 
     Address * address();
     void respond( int, const String & );
@@ -44,6 +49,7 @@ public:
 
     enum State {
         Initial,
+        SaslNeg,
         MailFrom,
         RcptTo,
         Data,
@@ -61,7 +67,9 @@ private:
     friend class LMTP;
 };
 
-class LMTP : public SMTP {
+class LMTP 
+    : public SMTP 
+{
 public:
     LMTP( int s );
 
@@ -70,5 +78,6 @@ public:
     void lhlo();
     void reportInjection();
 };
+
 
 #endif

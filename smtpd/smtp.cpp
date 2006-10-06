@@ -4,7 +4,9 @@
 
 #include "configuration.h"
 #include "stringlist.h"
+#include "recipient.h"
 #include "eventloop.h"
+#include "mechanism.h"
 #include "injector.h"
 #include "entropy.h"
 #include "message.h"
@@ -21,7 +23,6 @@
 #include "user.h"
 #include "tls.h"
 #include "log.h"
-#include "recipient.h"
 
 // time()
 #include <time.h>
@@ -121,7 +122,8 @@ public:
         code( 0 ), state( SMTP::Initial ),
         from( 0 ), protocol( "smtp" ),
         injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
-        negotiatingTls( false )
+        negotiatingTls( false ),
+        sasl( 0 ), user( 0 )
     {}
 
     int code;
@@ -142,6 +144,8 @@ public:
     bool negotiatingTls;
     StringList commands;
     String id;
+    SaslMechanism * sasl;
+    User * user;
 };
 
 
@@ -198,9 +202,9 @@ void SmtpDbClient::execute()
     There is also a closely related LMTP class, a subclass of this.
 
     This class implements SMTP as specified by RFC 2821, with the
-    extensions specified by RFC 1651 (EHLO), RFC 1652 (8BITMIME), and
-    RFC 2487 (STARTTLS). In some ways, this parser is a little too
-    lax.
+    extensions specified by RFC 1651 (EHLO), RFC 1652 (8BITMIME), RFC
+    2487 (STARTTLS) and RFC 2554 (AUTH). In some ways, this parser is
+    a little too lax.
 */
 
 /*!  Constructs an (E)SMTP server for socket \a s. */
@@ -255,6 +259,10 @@ void SMTP::parse()
 {
     Buffer * r = readBuffer();
     while ( Connection::state() == Connected ) {
+        if ( d->state == SaslNeg && d->sasl ) {
+            saslNeg();
+            return;
+        }
         uint i = 0;
         while ( i < r->size() && (*r)[i] != 10 )
             i++;
@@ -313,6 +321,8 @@ void SMTP::parse()
                 starttls();
             else if ( cmd == "quit" )
                 quit();
+            else if ( cmd == "auth" )
+                auth();
             else
                 respond( 500, "Unknown command (" + cmd.upper() + ")" );
 
@@ -378,8 +388,8 @@ void SMTP::ehlo()
     }
     setHeloString();
     respond( 250, Configuration::hostname() );
-    //for the moment not
-    //respond( 250, "STARTTLS" );
+    respond( 250, "AUTH " + SaslMechanism::allowedMechanisms( "", hasTls() ) );
+    respond( 250, "STARTTLS" );
     respond( 250, "DSN" );
     d->state = MailFrom;
     d->protocol = "esmtp";
@@ -945,4 +955,114 @@ void LMTP::reportInjection()
     d->from = 0;
     d->to.clear();
     d->body = "";
+}
+
+
+class SmtpSaslHelper
+    : public EventHandler
+{
+public:
+    SmtpSaslHelper( SMTP * alterEgo )
+        : EventHandler(), me( alterEgo ) {}
+
+    void execute() { me->saslNeg(); }
+
+    SMTP * me;
+};
+
+
+/*! Starts SASL authentication and if successful, toggles the relevant
+    mode to allow the client to send mail to anywhere.
+*/
+
+void SMTP::auth()
+{
+    if ( d->state != MailFrom ) {
+        sendGenericError();
+        return;
+    }
+    String mech = d->arg.simplified().section( " ", 1 );
+    String ir = d->arg.simplified().section( " ", 2 );
+    d->sasl = SaslMechanism::create( mech.lower(), 
+                                     new SmtpSaslHelper( this ),
+                                     hasTls() );
+    if ( !d->sasl ) {
+        respond( 504, "SASL mechanism " + mech + " not supported" );
+        return;
+    }
+    if ( d->sasl->state() == SaslMechanism::AwaitingInitialResponse ) {
+        if ( !ir.isEmpty() ) {
+            d->sasl->readResponse( ir.de64() );
+            if ( !d->sasl->done() )
+                d->sasl->execute();
+        }
+        else {
+            d->sasl->setState( SaslMechanism::IssuingChallenge );
+        }
+    }
+    d->state = SaslNeg;
+    saslNeg();
+}
+
+
+/*! Carries out all SASL negotiation. Very, very much like
+    Authenticate::execute().
+*/
+
+void SMTP::saslNeg()
+{
+    // The fourth copy of imap/handlers/authenticate - this is
+    // starting to resemble GNU Code Reuse.
+    while ( !d->sasl->done() &&
+            ( d->sasl->state() == SaslMechanism::IssuingChallenge ||
+              d->sasl->state() == SaslMechanism::AwaitingResponse ) ) {
+        if ( d->sasl->state() == SaslMechanism::IssuingChallenge ) {
+            String c = d->sasl->challenge().e64();
+
+            if ( !d->sasl->done() ) {
+                enqueue( "334 "+ c +"\r\n" );
+                d->sasl->setState( SaslMechanism::AwaitingResponse );
+                return;
+            }
+        }
+        if ( d->sasl->state() == SaslMechanism::AwaitingResponse ) {
+            String * r = readBuffer()->removeLine();
+            if ( !r ) {
+                return;
+            }
+            else if ( *r == "*" ) {
+                d->sasl->setState( SaslMechanism::Terminated );
+            }
+            else {
+                d->sasl->readResponse( r->de64() );
+                r = 0;
+                if ( !d->sasl->done() )
+                    d->sasl->execute();
+            }
+        }
+    }
+
+    if ( d->sasl->state() == SaslMechanism::Authenticating )
+        return;
+
+    if ( !d->sasl->done() )
+        return;
+
+    if ( d->sasl->state() == SaslMechanism::Succeeded ) {
+        if ( d->sasl->user()->login() == "anonymous" ) {
+            respond( 235, "Nothing" );
+        }
+        else {
+            respond( 235, "You may now submit mail" );
+            d->user = d->sasl->user();
+        }
+    }
+    else if ( d->sasl->state() == SaslMechanism::Terminated ) {
+        respond( 501, "Authentication aborted" );
+    }
+    else {
+        respond( 535, "Authentication failed" );
+    }
+    d->state = MailFrom;
+    d->sasl = 0;
 }
