@@ -991,6 +991,12 @@ LDAP server/address book
   thunderbird should do what it says.
 
 
+Anonymous
+
+  If anonymous authentication is enabled but the anonymous user does
+  not exist at startup, that's worth at least a warning.
+
+
 Groups and ACL
 
   We don't need groups as of now, but they do have their handy-dandy

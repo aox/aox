@@ -1050,7 +1050,7 @@ void SMTP::saslNeg()
 
     if ( d->sasl->state() == SaslMechanism::Succeeded ) {
         if ( d->sasl->user()->login() == "anonymous" ) {
-            respond( 235, "Nothing" );
+            respond( 235, "You may not submit mail" );
         }
         else {
             respond( 235, "You may now submit mail" );
@@ -1065,4 +1065,5 @@ void SMTP::saslNeg()
     }
     d->state = MailFrom;
     d->sasl = 0;
+    sendResponses();
 }
