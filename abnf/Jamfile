@@ -1,3 +1,5 @@
 SubDir TOP abnf ;
 
+HDRS += [ FDirName $(TOP) abnf ] ;
+
 Build abnf : abnfparser.cpp ;
