@@ -1,7 +1,8 @@
 SubDir TOP smtpd ;
+SubInclude TOP abnf ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 
 HDRS += [ FDirName $(TOP) smtpd ] ;
 
-Build smtp : smtp.cpp ;
+Build smtp : smtp.cpp smtpparser.cpp ;
