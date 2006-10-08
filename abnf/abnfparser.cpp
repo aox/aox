@@ -34,6 +34,13 @@ AbnfParser::AbnfParser( const String & s )
 }
 
 
+/*! Virtual destructor for the benefit of subclasses. */
+
+AbnfParser::~AbnfParser()
+{
+}
+
+
 /*! Returns false once this object has encountered an error during
     parsing (in which case error() will return a suitable message),
     or true if it's still usable.

@@ -12,6 +12,7 @@ class AbnfParser
 {
 public:
     AbnfParser( const String & );
+    virtual ~AbnfParser();
 
     bool ok() const;
     String error() const;
