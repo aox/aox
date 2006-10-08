@@ -991,10 +991,42 @@ LDAP server/address book
   thunderbird should do what it says.
 
 
-Anonymous
+SMTP Submit schema change
 
-  If anonymous authentication is enabled but the anonymous user does
-  not exist at startup, that's worth at least a warning.
+  How about this?
+
+  1. We make a special mailbox containing spooled messages and store
+     messages in the ordinary way. Its name may be //spool or
+     something.
+
+  2. This mailbox is not accessible to anyone.
+
+  3. We add another table to control per-recipient delivery:
+
+     create table deliveries (
+         id        serial primary key,
+         recipient integer not null references addresses(id),
+         mailbox   integer not null,
+         uid       integer not null,
+         start     timestamp with time zone,
+         end       timestamp with time zone,
+         foreign key (mailbox, uid)
+                     references messages(mailbox, uid)
+                     on delete cascade
+     )
+
+     The start and end fields specify when we may start delivering
+     (normally the time of injection) and when we must give up (normally
+     x+constant).
+
+  4. We do a select of spool now and then and try to offload all the
+     relevant messages on the smarthost.
+
+  5. Maybe later, we'd want to record the deliveries somehow for
+     posterity. Not now.
+
+  6. We could add a per-user outbox, so people would be able to see
+     their mail queue. Not now.
 
 
 Groups and ACL
