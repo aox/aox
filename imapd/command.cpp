@@ -9,6 +9,7 @@
 #include "mailbox.h"
 #include "imapsession.h"
 #include "messageset.h"
+#include "imapparser.h"
 
 // Keep these alphabetical.
 #include "handlers/acl.h"
@@ -46,22 +47,20 @@ class CommandData
     : public Garbage
 {
 public:
-    CommandData():
-        at( 0 ), args( 0 ),
-        responded( false ), tagged( false ),
-        canExpunge( false ), error( false ),
-        state( Command::Unparsed ), group( 0 ),
-        permittedStates( 0 ),
-        imap( 0 ), checker( 0 )
+    CommandData()
+        : args( 0 ),
+          responded( false ), tagged( false ),
+          canExpunge( false ), error( false ),
+          state( Command::Unparsed ), group( 0 ),
+          permittedStates( 0 ),
+          imap( 0 ), checker( 0 )
     {
         (void)::gettimeofday( &started, 0 );
     }
 
     String tag;
     String name;
-
-    uint at;
-    List< String > * args;
+    ImapParser * args;
 
     List< String > responses;
     String respTextCode;
@@ -128,18 +127,20 @@ Command::~Command()
 
 
 /*! This static function creates an instance of the right subclass of
-    Command, depending on \a name and the state of \a imap. \a args is a
-    list of strings comprising the arguments to the command and \a tag
-    is its tag. Command assumes ownership of \a args. \a args must not
-    be null.
+    Command, depending on \a name and the state of \a imap.
+
+    \a args is a pointer to the ImapParser object for the command; it is
+    expected to point to the first character after the command's \a tag
+    and \a name, so that it may be used to parse any arguments. Command
+    assumes ownership of \a args, which must be non-zero.
 
     If \a name is not a valid command, create() return a null pointer.
 */
 
 Command * Command::create( IMAP * imap,
-                           const String & name,
                            const String & tag,
-                           StringList * args )
+                           const String & name,
+                           ImapParser * args )
 {
     Command * c = 0;
     String n = name.lower();
@@ -591,11 +592,7 @@ void Command::emitResponses()
 
 char Command::nextChar()
 {
-    String * l = d->args->first();
-    if ( !l )
-        return 0; // should we error()? no.
-
-    return (*l)[d->at];
+    return d->args->nextChar();
 }
 
 
@@ -603,7 +600,7 @@ char Command::nextChar()
 
 void Command::step( uint n )
 {
-    d->at = d->at + n;
+    d->args->step( n );
 }
 
 
@@ -616,15 +613,7 @@ void Command::step( uint n )
 
 bool Command::present( const String & s )
 {
-    if ( s.isEmpty() )
-        return true;
-
-    String l = d->args->first()->mid( d->at, s.length() ).lower();
-    if ( l != s.lower() )
-        return false;
-
-    step( s.length() );
-    return true;
+    return d->args->present( s );
 }
 
 
@@ -635,53 +624,35 @@ bool Command::present( const String & s )
 
 void Command::require( const String & s )
 {
-    if ( !present( s ) )
-        error( Bad, "Expected: '" + s + "', got: " + following() );
+    d->args->require( s );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
 }
 
 
 /*! Parses from \a min to \a max digits and returns them in string
-    form. If less than \a min digits are available, error() is called.
+    form. If fewer than \a min digits are available, error() is called.
 */
 
 String Command::digits( uint min, uint max )
 {
-    String r;
-    uint i = 0;
-    char c = nextChar();
-    while ( i < max && c >= '0' && c <= '9' ) {
-        step();
-        r.append( c );
-        c = nextChar();
-        i++;
-    }
-    if ( i < min )
-        error( Bad, "Expected at least " + fn( min-i ) +
-               " more digits, saw " + following() );
+    String r( d->args->digits( min, max ) );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
     return r;
 }
 
 
 /*! Parses from \a min to \a max letters and returns them in string
-    form. If less than \a min letters are available, error() is
+    form. If fewer than \a min letters are available, error() is
     called.
 */
 
 String Command::letters( uint min, uint max )
 {
-    String r;
-    uint i = 0;
-    char c = nextChar();
-    while ( i < max &&
-            ( ( c >= 'A' && c <= 'Z' ) || ( c >= 'a' && c <= 'z' ) ) ) {
-        step();
-        r.append( c );
-        c = nextChar();
-        i++;
-    }
-    if ( i < min )
-        error( Bad, "Expected at least " + fn( min-i ) +
-               " more letters, saw " + following() );
+    String r( d->args->letters( min, max ) );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
     return r;
 }
 
@@ -691,9 +662,9 @@ String Command::letters( uint min, uint max )
 
 void Command::nil()
 {
-    String n = atom();
-    if ( n.lower() != "nil" )
-        error( Bad, "expected NIL, saw " + n );
+    d->args->nil();
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
 }
 
 
@@ -707,12 +678,12 @@ void Command::nil()
 
 void Command::space()
 {
-    require( " " );
-    if ( nextChar() != ' ' )
+    d->args->require( " " );
+    if ( d->args->nextChar() != ' ' )
         return;
 
-    while ( nextChar() == ' ' )
-        step();
+    while ( d->args->nextChar() == ' ' )
+        d->args->step();
     respond( "BAD Illegal space seen before this text: " + following(),
              Untagged );
 }
@@ -722,27 +693,10 @@ void Command::space()
 
 uint Command::number()
 {
-    String s;
-    char c = nextChar();
-
-    bool zero = false;
-    if ( c == '0' )
-        zero = true;
-
-    while ( c >= '0' && c <= '9' ) {
-        s.append( c );
-        step();
-        c = nextChar();
-    }
-
-    bool ok = true;
-    uint u = s.number( &ok );
-    if ( !ok )
-        error( Bad, "number expected, saw: " + s + following() );
-    else if ( u > 0 && zero )
-        error( Bad, "Zero used as leading digit" );
-
-    return u;
+    uint n = d->args->number();
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return n;
 }
 
 
@@ -750,10 +704,10 @@ uint Command::number()
 
 uint Command::nzNumber()
 {
-    uint u = number();
-    if ( u == 0 )
-        error( Bad, "nonzero number expected, saw 0, then " + following() );
-    return u;
+    uint n = d->args->nzNumber();
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return n;
 }
 
 
@@ -763,21 +717,10 @@ uint Command::nzNumber()
 
 String Command::atom()
 {
-    String result;
-    char c = nextChar();
-    while ( c > ' ' && c < 127 &&
-            c != '(' && c != ')' && c != '{' &&
-            c != ']' &&
-            c != '"' && c != '\\' &&
-            c != '%' && c != '*' )
-    {
-        result.append( c );
-        step();
-        c = nextChar();
-    }
-    if ( result.isEmpty() )
-        error( Bad, "atom expected, saw: " + following() );
-    return result;
+    String r( d->args->atom() );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return r;
 }
 
 
@@ -788,20 +731,10 @@ String Command::atom()
 
 String Command::listChars()
 {
-    String result;
-
-    char c;
-    while ( ( c = nextChar() ) > ' ' && c < 127 &&
-            c != '(' && c != ')' && c != '{' &&
-            c != '"' && c != '\\' )
-    {
-        result.append( c );
-        step();
-    }
-
-    if ( result.isEmpty() )
-        error( Bad, "Expected 1*list-char, saw: " + following() );
-    return result;
+    String r( d->args->atom() );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return r;
 }
 
 
@@ -815,31 +748,10 @@ String Command::listChars()
 
 String Command::quoted()
 {
-    char c = nextChar();
-    String result;
-    if ( c != '"' ) {
-        error( Bad, "quoted string expected, saw: " + following() );
-        return result;
-    }
-    step();
-    c = nextChar();
-    while ( c != '"' && c < 128 && c > 0 && c != 10 && c != 13 ) {
-        if ( c == '\\' ) {
-            step();
-            c = nextChar();
-            if ( c == 0 || c >= 128 || c == 10 || c == 13 )
-                error( Bad,
-                       "quoted string contained bad char: " + following() );
-        }
-        result.append( c );
-        step();
-        c = nextChar();
-    }
-    if ( c != '"' )
-        error( Bad, "quoted string incorrectly terminated: " + following() );
-    else
-        step();
-    return result;
+    String r( d->args->quoted() );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return r;
 }
 
 
@@ -849,34 +761,10 @@ String Command::quoted()
 
 String Command::literal()
 {
-    char c = nextChar();
-    if ( c != '{' ) {
-        error( Bad, "literal expected, saw: " + following() );
-        return String();
-    }
-    step();
-    (void)number(); // read and ignore
-    if ( nextChar() == '+' )
-        step();
-    if ( nextChar() != '}' ) {
-        error( Bad, "literal ('}') expected, saw: " + following() );
-        return String();
-    }
-    if ( d->at < d->args->first()->length() - 1 ) {
-        error( Bad, "CRLF expected as part of literal" );
-        return String();
-    }
-    // ok, we've seen the CRLF, so next is the literal. ta-da! as it
-    // happens, we know the size of the literal is right, because the
-    // IMAP server made it be so.
-    d->at = 0;
-    d->args->shift();
-    String * result = d->args->shift();
-    if ( result )
-        return *result;
-    // just to avoid a segfault in case of bugs
-    error( No, "Internal error" );
-    return String();
+    String r( d->args->literal() );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return r;
 }
 
 
@@ -886,14 +774,10 @@ String Command::literal()
 
 String Command::string()
 {
-    char c = nextChar();
-    if ( c == '"' )
-        return quoted();
-    else if ( c == '{' )
-        return literal();
-
-    error( Bad, "string expected, saw: " + following() );
-    return 0;
+    String r( d->args->string() );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return r;
 }
 
 
@@ -903,12 +787,10 @@ String Command::string()
 
 String Command::nstring()
 {
-    char c = nextChar();
-    if ( c == '"' || c == '{' )
-        return string();
-
-    nil();
-    return 0;
+    String r( d->args->nstring() );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return r;
 }
 
 
@@ -918,46 +800,27 @@ String Command::nstring()
 
 String Command::astring()
 {
-    char c = nextChar();
-    if ( c == '"' || c == '{' )
-        return string();
-    String result;
-    while ( c > ' ' && c < 128 &&
-            c != '(' && c != ')' && c != '{' &&
-            c != '"' && c != '\\' &&
-            c != '%' && c != '*' ) {
-        result.append( c );
-        step();
-        c = nextChar();
-    }
-    if ( result.isEmpty() )
-        error( Bad, "astring expected, saw: " + following() );
-    return result;
+    String r( d->args->astring() );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return r;
 }
 
 
 /*! Parses and returns a list-mailbox. This is the same as an atom(),
     except that the three additional characters %, * and ] are
     accepted.
+
+    The return value is lowercased, because our mailbox names are case
+    insensitive.
 */
 
 String Command::listMailbox()
 {
-    String result;
-    char c = nextChar();
-    if ( c == '"' || c == '{' )
-        return string().lower();
-    while ( c > ' ' && c < 127 &&
-            c != '(' && c != ')' && c != '{' &&
-            c != '"' && c != '\\' )
-    {
-        result.append( c );
-        step();
-        c = nextChar();
-    }
-    if ( result.isEmpty() )
-        error( Bad, "list-mailbox expected, saw: " + following() );
-    return result.lower();
+    String r( d->args->listMailbox() );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return r.lower();
 }
 
 
@@ -1076,17 +939,10 @@ uint Command::msn()
 
 String Command::flag()
 {
-    if ( !present( "\\" ) )
-        return atom();
-
-    String r = "\\" + atom();
-    String l = r.lower();
-    if ( l == "\\answered" || l == "\\flagged" || l == "\\deleted" ||
-         l == "\\seen" || l == "\\draft" )
-        return r;
-
-    error( Bad, r + " is not a legal flag" );
-    return "";
+    String r( d->args->flag() );
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
+    return r;
 }
 
 
@@ -1097,27 +953,9 @@ String Command::flag()
 
 void Command::end()
 {
-    // if we have more literals to parse, we can't be done.
-    if ( d->args->count() > 1 ) {
-        error( Bad, "Unparsed literals" );
-        return;
-    }
-
-    // if this is indeed the last line, we need to be a little more
-    // careful.
-    String * l = d->args->first();
-    if ( !l ) // empty list: ok
-        return;
-    if ( l->isEmpty() ) // reached end of string: ok
-        return;
-
-    // are we at the end of that line?
-    if ( l->mid( d->at ).isEmpty() )
-        return;
-
-    // there is more text here, no question about it. so let's make up
-    // a decent error message to help us debug the parser.
-    error( Bad, String( "More text follows end of command: " ) + following() );
+    d->args->end();
+    if ( !d->args->ok() )
+        error( Bad, d->args->error() );
 }
 
 
@@ -1127,11 +965,7 @@ void Command::end()
 
 const String Command::following() const
 {
-    String * l = d->args->first();
-    if ( !l )
-        return String();
-
-    return l->mid( d->at, 15 ).simplified();
+    return d->args->following();
 }
 
 

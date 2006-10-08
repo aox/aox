@@ -11,5 +11,5 @@ Build archiveopteryx : archiveopteryx.cpp ;
 
 Server archiveopteryx :
     archiveopteryx imap pop http sieve smtp database message server
-    sasl mailbox core encodings user extractors ;
+    sasl mailbox core encodings user extractors abnf ;
 

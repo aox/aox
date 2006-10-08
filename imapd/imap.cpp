@@ -2,19 +2,20 @@
 
 #include "imap.h"
 
+#include "log.h"
+#include "list.h"
 #include "scope.h"
 #include "string.h"
 #include "buffer.h"
-#include "list.h"
 #include "mailbox.h"
-#include "command.h"
-#include "handlers/capability.h"
 #include "eventloop.h"
-#include "log.h"
-#include "configuration.h"
 #include "imapsession.h"
+#include "configuration.h"
+#include "imapparser.h"
+#include "command.h"
 #include "user.h"
 #include "tls.h"
+#include "handlers/capability.h"
 
 
 static bool endsWithLiteral( const String *, uint *, bool * );
@@ -32,8 +33,7 @@ class IMAPData
 {
 public:
     IMAPData()
-        : state( IMAP::NotAuthenticated ),
-          args( 0 ), reader( 0 ),
+        : state( IMAP::NotAuthenticated ), reader( 0 ),
           runningCommands( false ), readingLiteral( false ),
           literalSize( 0 ), session( 0 ), mailbox( 0 ), login( 0 ),
           bytesArrived( 0 ),
@@ -46,8 +46,9 @@ public:
 
     IMAP::State state;
 
-    StringList * args;
     Command * reader;
+
+    String str;
 
     bool runningCommands;
     bool readingLiteral;
@@ -215,26 +216,22 @@ void IMAP::parse()
     Buffer * r = readBuffer();
 
     while ( true ) {
-        if ( !d->args )
-            d->args = new StringList;
-
         // We read a line of client input, possibly including literals,
         // and create a Command to deal with it.
-
         if ( !d->readingLiteral && !d->reader ) {
             bool plus = false;
             String * s;
             uint n;
 
             // Do we have a complete line yet?
-
             s = r->removeLine();
             if ( !s )
                 return;
 
-            d->args->append( s );
+            d->str.append( *s );
 
             if ( endsWithLiteral( s, &n, &plus ) ) {
+                d->str.append( "\r\n" );
                 d->readingLiteral = true;
                 d->literalSize = n;
 
@@ -243,10 +240,9 @@ void IMAP::parse()
             }
 
             // Have we finished reading the entire command?
-
             if ( !d->readingLiteral ) {
                 addCommand();
-                d->args = 0;
+                d->str.truncate();
             }
         }
         else if ( d->readingLiteral ) {
@@ -254,7 +250,7 @@ void IMAP::parse()
             if ( r->size() < d->literalSize )
                 return;
 
-            d->args->append( r->string( d->literalSize ) );
+            d->str.append( r->string( d->literalSize ) );
             r->remove( d->literalSize );
             d->readingLiteral = false;
         }
@@ -275,65 +271,39 @@ void IMAP::parse()
 
 void IMAP::addCommand()
 {
-    String * s = d->args->first();
-    String tag, command;
-
     // Be kind to the old man Arnt, who cannot unlearn his SMTP habits
+    if ( d->str == "quit" )
+        d->str = "arnt logout";
 
-    if ( * s == "quit" )
-        *s = "arnt logout";
+    ImapParser * p = new ImapParser( d->str );
 
-    // Parse the tag: A nonzero sequence of any ASTRING-CHAR except '+'.
-
-    char c = 0;
-    uint i = 0;
-
-    while ( i < s->length() && ( c = (*s)[i] ) > ' ' && c < 127 &&
-            c != '(' && c != ')' && c != '{' && c != '%' && c != '*' &&
-            c != '"' && c != '\\' && c != '+' )
-        i++;
-
-    if ( i < 1 || c != ' ' ) {
-        enqueue( "* BAD tag in line: " + *s + "\r\n" );
-        log( "Bad tag. Line: '" + *s + "'", Log::Info );
+    String tag = p->tag();
+    if ( !p->ok() ) {
+        enqueue( "* BAD " + p->error() + "\r\n" );
+        log( p->error(), Log::Info );
         return;
     }
 
-    tag = s->mid( 0, i );
+    p->require( " " );
 
-    // Parse the command name (a single atom possibly prefixed by "uid ").
-
-    uint j = ++i;
-
-    if ( s->mid( j, 4 ).lower() == "uid " )
-        i = j + 4;
-
-    while ( i < s->length() && ( c = (*s)[i] ) > ' ' && c < 127 &&
-            c != '(' && c != ')' && c != '{' && c != '%' && c != '*' &&
-            c != '"' && c != '\\' && c != ']' )
-        i++;
-
-    if ( i == j ) {
-        enqueue( "* BAD no command\r\n" );
-        log( "Bad command. Line: '" + *s + "'", Log::Error );
+    String name = p->command();
+    if ( !p->ok() ) {
+        enqueue( "* BAD " + p->error() + "\r\n" );
+        log( p->error(), Log::Error );
         return;
     }
 
-    command = s->mid( j, i-j );
-
-    // Try to create a command handler.
-
-    Command * cmd = Command::create( this, command, tag, d->args );
+    Command * cmd = Command::create( this, tag, name, p );
 
     if ( !cmd ) {
-        log( "Unknown command. Line: '" + *s + "'", Log::Error );
-        enqueue( tag + " BAD No such command: " + command + "\r\n" );
+        enqueue( tag + " BAD No such command: " + name + "\r\n" );
+        log( "Unknown command. Line: '" + p->firstLine() + "'",
+             Log::Error );
         return;
     }
 
     Scope x( cmd->log() );
-    ::log( "First line: " + *s, Log::Debug );
-    cmd->step( i );
+    ::log( "First line: " + p->firstLine(), Log::Debug );
     d->commands.append( cmd );
 }
 

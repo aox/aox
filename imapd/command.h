@@ -10,6 +10,7 @@
 #include "imap.h"
 
 class Log;
+class ImapParser;
 class MessageSet;
 
 
@@ -21,7 +22,7 @@ public:
     virtual ~Command();
 
     static Command * create( IMAP *, const String &, const String &,
-                             StringList * );
+                             ImapParser * );
 
     virtual void parse();
     virtual void read();
@@ -56,6 +57,7 @@ public:
     void require( const String & );
     String digits( uint, uint );
     String letters( uint, uint );
+
     void nil();
     void space();
     uint number();
@@ -71,6 +73,7 @@ public:
     MessageSet set( bool );
     uint msn();
     String flag();
+
     void end();
     const String following() const;
 
