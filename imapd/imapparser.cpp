@@ -71,10 +71,8 @@ String ImapParser::command()
 {
     String r;
 
-    if ( present( "uid " ) ) {
+    if ( present( "uid " ) )
         r.append( "uid " );
-        step( 4 );
-    }
 
     char c = nextChar();
     while ( c > ' ' && c < 127 && c != '(' && c != ')' && c != '{' &&
