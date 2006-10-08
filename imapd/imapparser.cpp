@@ -227,6 +227,7 @@ String ImapParser::literal()
         setError( "Expected literal, but saw: " + following() );
         return "";
     }
+
     step();
     uint len = number();
     if ( !ok() )
@@ -238,6 +239,7 @@ String ImapParser::literal()
         return "";
     }
 
+    step();
     require( "\r\n" );
     if ( !ok() )
         return "";
