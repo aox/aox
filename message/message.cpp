@@ -742,6 +742,8 @@ void Message::fix8BitHeaderFields()
             ct = i->header()->contentType();
         if ( ct && ct->type() == "text" ) {
             String cs = ct->parameter( "charset" ).lower();
+            if ( cs == "windows-1252" )
+                cs = "iso-8859-1";
             if ( cs.isEmpty() )
                 ; // no conclusion from this part
             else if ( charset.isEmpty() )
