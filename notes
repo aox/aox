@@ -1,19 +1,19 @@
 1.12: 2006-10-23
 
-  The rest of URLAUTH.
-
   Sieve.
 
-  Implement rest of Lemonade profile in time for the interop.
+  Implement rest of Lemonade profile in time for the interop. This
+  seems to be all:
+    URLAUTH (on its way)
+    CATENATE (on its way)
+    BDAT
+    BURL
+    SMTP submit (>50% done)
 
   Sitewide mail retention policy, even if we don't have anything more
   specific yet.
 
   SORT (/THREAD?)
-
-  CATENATE
-
-  SMTP submit
 
   httpd
   Read-only archive pages
@@ -85,6 +85,21 @@ Things we didn't do in 1.10-1.15:
   LDAP AB? Webmail?
 
 
+The value of features
+
+  Archiveopteryx provides online archiving. We want the features we
+  add to improve one or more of these:
+  - adding mail to the archive
+  - accessing the archive
+  - managing the archive
+
+  For nontechnical reasons I add a fourth goal:
+  - making current users happy
+
+  Each new feature should help in some way; the new features that help
+  the most are the ones we need most (in the long term - in the short
+  term we also need to help existing users).
+
 
 Undefined codepoints
 
@@ -105,14 +120,25 @@ Better caching.
 
 Port 587
 
-  Submit is not very different from SMTP and LMTP, for which we have
-  servers. The backend is different. We don't have the backend. But as
-  soon as we have a sieve, we have the backend, because it's the same
-  code that redirect needs.
+  Half done. Less. Outstanding work: Insert into the deliveries table,
+  add a smarthost variable, send mail from the deliveries/messages/*
+  tables to the smarthost. Test all of that.
 
-  Once we have 587, I want to implement RFC 2852, RFC 388[5-8] and
-  draft-vaudreuil-futuredelivery. I so much want 2852 and
-  futuredelivery for myself.
+
+RFC 2852
+
+  Easy to do once we have port 587; we need to set the end column
+  right, that's about it.
+
+
+FUTUREDELIVERY
+
+  The draft has passed IESG evaluation. The last AD promised to clear
+  his DISCUSS soon, and the Greg Vaudreuil expects no substantive
+  changes from the draft to the RFC.
+
+  Our code pretty much supports this, we just need to set the start
+  column.
 
 
 Message tracking
