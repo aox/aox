@@ -227,13 +227,18 @@ void SaslMechanism::execute()
 
 void SaslMechanism::verify()
 {
-    if ( Configuration::toggle( Configuration::AuthAnonymous ) &&
-         d->user->login() == "anonymous" )
+    if ( d->user->login() == "anonymous" ) {
+        if ( Configuration::toggle( Configuration::AuthAnonymous ) )
+            setState( Succeeded );
+        else
+            setState( Failed );
+    }
+    else if ( storedSecret().isEmpty() || storedSecret() == secret() ) {
         setState( Succeeded );
-    else if ( storedSecret().isEmpty() || storedSecret() == secret() )
-        setState( Succeeded );
-    else
+    }
+    else {
         setState( Failed );
+    }
 }
 
 
