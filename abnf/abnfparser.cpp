@@ -213,10 +213,8 @@ uint AbnfParser::number()
 
 void AbnfParser::end()
 {
-    if ( at == str.length() )
-        return;
-
-    setError( String( "More text follows end of input: " ) + following() );
+    if ( at < str.length() )
+        setError( String( "More text follows end of input: " ) + following() );
 }
 
 
