@@ -225,34 +225,37 @@ static uint month( const String & name )
             n = 1;
         else if ( (name[2]|0x20) == 'n' )
             n = 6;
-        else
+        else if ( (name[2]|0x20) == 'l' )
             n = 7;
         break;
     case 'f': // "feb"
     case 'F':
-        n = 2;
+        if ( name[1] == 'e' )
+            n = 2;
         break;
     case 'm': // "mar" "may"
     case 'M':
         if ( (name[2]|0x20) == 'r' )
             n = 3;
-        else
+        else if ( (name[2]|0x20) == 'y' )
             n = 5;
         break;
     case 'a': // "apr" "aug"
     case 'A':
         if ( (name[1]|0x20) == 'p' )
             n = 4;
-        else
+        else if ( (name[1]|0x20) == 'u' )
             n = 8;
         break;
     case 's': // "sep"
     case 'S':
-        n = 9;
+        if ( name[1] == 'e' )
+            n = 9;
         break;
     case 'o': // "oct"
     case 'O':
-        n = 10;
+        if ( name[2] == 't' )
+            n = 10;
         break;
     case 'n': // "nov"
     case 'N':
@@ -260,46 +263,29 @@ static uint month( const String & name )
         break;
     case 'd': // "dec"
     case 'D':
-        n = 12;
+        if ( name[1] == 'e' )
+            n = 12;
         break;
     }
     return n;
 }
 
 
-// return 1-7 for monday-sunday or 0 for error
-static uint weekday( const String & name )
+// return true if this may possibly be a weekday.
+static bool weekday( const String & name )
 {
+    if ( month( name ) )
+        return false;
+
     uint n = 0;
-    switch ( name[0] ) {
-    case 'm': // "mon"
-    case 'M':
-        n = 1;
-        break;
-    case 't': // "tue" "thu"
-    case 'T':
-        if ( (name[1]|0x20) == 'u' )
-            n = 2;
-        else
-            n = 4;
-        break;
-    case 'w': // "wed"
-    case 'W':
-        n = 3;
-        break;
-    case 'f': // "fri"
-    case 'F':
-        n = 5;
-        break;
-    case 's': // "sat" "sun"
-    case 'S':
-        if ( (name[1]|0x20) == 'a' )
-            n = 6;
-        else
-            n = 7;
-        break;
-    }
-    return n;
+    while ( ( name[n] >= 'A' && name[n] <= 'Z' ) ||
+            ( name[n] >= 'a' && name[n] <= 'z' ) ||
+            ( name[n] >= 128 ) )
+        n++;
+    if ( n < name.length() )
+        return false;
+
+    return true;
 }
 
 
@@ -439,10 +425,18 @@ void Date::setRfc822( const String & s )
     // timezone: +0530. we're stricter than the rfc: we demand that
     // the minute part be 0 <= x <= 59 and the hour 0 <= x <= 29.
 
+
     String tzn = p.comment();
     d->tz = 0;
     bool tzok = false;
     a = p.string();
+    if ( a.lower().startsWith( "gmt+" ) && p.next() == ':' ) {
+        // lycos webmail has its own ideas about date fields. their
+        // implementation is apparently not based on either RFC 822 or
+        // 2822, but on an RFC written at the University of Mars.
+        p.character();
+        a = a.mid( 3 ) + p.string();
+    }
     if ( a.length() == 5 &&
          ( a[0] == '+' || a[0] == '-' ) &&
          ( a[1] >= '0' && a[1] <= '2' ) &&
