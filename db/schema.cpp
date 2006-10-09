@@ -1473,6 +1473,7 @@ bool Schema::stepTo28()
 {
     if ( d->substate == 0 ) {
         d->l->log( "Creating deliveries table.", Log::Debug );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create table deliveries (id serial primary key,"
                           "recipient integer not null references addresses(id),"
                           "mailbox integer not null, uid integer not null,"
