@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 27;
+int currentRevision = 28;
 
 
 class SchemaData
@@ -303,6 +303,8 @@ bool Schema::singleStep()
         c = stepTo26(); break;
     case 26:
         c = stepTo27(); break;
+    case 27:
+        c = stepTo28(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ), Log::Disaster );
@@ -1449,6 +1451,38 @@ bool Schema::stepTo27()
                           "(mailbox,uid) references "
                           "messages(mailbox,uid) "
                           "on delete cascade", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create the deliveries table. */
+
+bool Schema::stepTo28()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Creating deliveries table.", Log::Debug );
+        d->q = new Query( "create table deliveries (id serial primary key,"
+                          "recipient integer not null references addresses(id),"
+                          "mailbox integer not null, uid integer not null,"
+                          "injected_at timestamp with time zone,"
+                          "expires_at timestamp with time zone,"
+                          "foreign key (mailbox, uid) references "
+                          "messages(mailbox, uid) on delete cascade)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "grant select,insert,update,delete "
+                          "on deliveries to " + dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
