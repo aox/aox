@@ -227,7 +227,7 @@ void SaslMechanism::execute()
 
 void SaslMechanism::verify()
 {
-    if ( d->user->login() == "anonymous" ) {
+    if ( d->user && d->user->login() == "anonymous" ) {
         if ( Configuration::toggle( Configuration::AuthAnonymous ) )
             setState( Succeeded );
         else
