@@ -3,6 +3,7 @@
 #include "smtp.h"
 
 #include "configuration.h"
+#include "transaction.h"
 #include "stringlist.h"
 #include "recipient.h"
 #include "eventloop.h"
@@ -121,7 +122,9 @@ public:
     SMTPData():
         code( 0 ), state( SMTP::Initial ),
         from( 0 ), protocol( "smtp" ),
-        injector( 0 ), helper( 0 ), tlsServer( 0 ), tlsHelper( 0 ),
+        injector( 0 ), helper( 0 ),
+        submissionMailbox( 0 ),
+        tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false ),
         sasl( 0 ), user( 0 )
     {}
@@ -131,7 +134,8 @@ public:
     String firstError;
     SMTP::State state;
     Address * from;
-    List<Recipient> to;
+    List<Recipient> localRecipients;
+    List<Address> remoteRecipients;
     String body;
     String arg;
     String helo;
@@ -139,6 +143,7 @@ public:
     Injector * injector;
     String injectorError;
     SmtpDbClient * helper;
+    Mailbox * submissionMailbox;
     TlsServer * tlsServer;
     SmtpTlsStarter * tlsHelper;
     bool negotiatingTls;
@@ -146,6 +151,34 @@ public:
     String id;
     SaslMechanism * sasl;
     User * user;
+};
+
+
+class SubmissionMailboxCreator
+    : public EventHandler
+{
+public:
+    SubmissionMailboxCreator( SMTPData * sd )
+        : EventHandler(), d( sd )
+    {
+        Mailbox * m = Mailbox::obtain( "/archiveopteryx/spool", true );
+        Transaction * t = new Transaction( this );
+        Query * q = m->create( t, 0 );
+        if ( q ) {
+            t->commit();
+        }
+        else {
+            t->rollback();
+            d->submissionMailbox = m;
+        }
+    }
+
+    void execute() {
+        log( "Created spool mailbox for outgoing mail: /archiveopteryx/spool" );
+        d->submissionMailbox = Mailbox::find( "/archiveopteryx/spool" );
+    }
+
+    SMTPData * d;
 };
 
 
@@ -169,7 +202,7 @@ void SmtpDbClient::execute()
             log( "From: " + from );
     }
 
-    if ( injector->failed() && !harder ) {
+    if ( injector->failed() && !harder && !d->user ) {
         log( "Wrapping message " + d->id + " due to syntax problem: " +
              injector->error() );
         harder = true;
@@ -216,6 +249,8 @@ SMTP::SMTP( int s )
     sendResponses();
     setTimeoutAfter( 1800 );
     EventLoop::global()->addConnection( this );
+    if ( Configuration::toggle( Configuration::UseSmtpSubmit ) )
+        (void)new SubmissionMailboxCreator( d );
 }
 
 
@@ -437,7 +472,8 @@ void SMTP::mail()
         d->state = RcptTo;
     }
 
-    d->to.clear();
+    d->localRecipients.clear();
+    d->remoteRecipients.clear();
     sendResponses();
 }
 
@@ -474,9 +510,15 @@ void SMTP::rcptAnswer( Address * a, Mailbox * m )
     String to( a->localpart() + "@" + a->domain() );
 
     if ( m && !m->deleted() ) {
-        d->to.append( new Recipient( a, m ) );
+        d->localRecipients.append( new Recipient( a, m ) );
         respond( 250, "Will send to " + to );
         log( "Delivering message to " + to );
+        d->state = Data;
+    }
+    else if ( d->user ) {
+        d->remoteRecipients.append( a );
+        respond( 250, "Submission accepted for " + to );
+        log( "Submitting message to " + to );
         d->state = Data;
     }
     else {
@@ -506,9 +548,23 @@ void SMTP::data()
     d->id.append( fn( ++sequence ) );
 
     // if a client sends lots of bad addresses, this results in 'go
-    // ahead (sending to 0 recipients'.
-    respond( 354,
-             "Go ahead (" + fn( d->to.count() ) + " recipients)" );
+    // ahead (sending to 0 recipients)'.
+    String r = "Go ahead";
+    if ( !d->localRecipients.isEmpty() ) {
+        r.append( "( " );
+        r.append( fn( d->localRecipients.count() ) );
+        r.append( " local recipients" );
+        if ( !d->remoteRecipients.isEmpty() )
+            r.append( ", " );
+    }
+    if ( !d->remoteRecipients.isEmpty() ) {
+        if ( d->localRecipients.isEmpty() )
+            r.append( "( " );
+        r.append( fn( d->remoteRecipients.count() ) );
+        r.append( " remote recipients" );
+    }
+    r.append( ")" );
+    respond( 354, r );
     d->state = Body;
 }
 
@@ -768,10 +824,13 @@ void SMTP::inject()
     m->setInternalDate( now.unixTime() );
 
     SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
-    List<Recipient>::Iterator it( d->to );
+    List<Recipient>::Iterator it( d->localRecipients );
     while ( it ) {
         mailboxes->insert( it->mailbox() );
         ++it;
+    }
+    if ( !d->remoteRecipients.isEmpty() ) {
+        mailboxes->insert( d->submissionMailbox );
     }
 
     d->helper = new SmtpDbClient( this, d );
@@ -823,7 +882,7 @@ bool SMTP::writeCopy()
         f.write( "<>" );
     f.write( "\n" );
 
-    List<Recipient>::Iterator it( d->to );
+    List<Recipient>::Iterator it( d->localRecipients );
     while ( it ) {
         f.write( "To: " );
         f.write( it->finalRecipient()->toString() );
@@ -870,7 +929,7 @@ void SMTP::reportInjection()
 
     sendResponses();
     d->from = 0;
-    d->to.clear();
+    d->localRecipients.clear();
     d->body = "";
 }
 
@@ -932,7 +991,7 @@ void LMTP::reportInjection()
            ( !d->injector || d->injector->failed() ) ) )
         writeCopy();
 
-    List<Recipient>::Iterator it( d->to );
+    List<Recipient>::Iterator it( d->localRecipients );
     while ( it ) {
         Address * a = it->finalRecipient();
         String prefix( a->localpart() + "@" + a->domain() + ": " );
@@ -953,7 +1012,8 @@ void LMTP::reportInjection()
     sendResponses();
 
     d->from = 0;
-    d->to.clear();
+    d->localRecipients.clear();
+    d->remoteRecipients.clear();
     d->body = "";
 }
 
@@ -983,7 +1043,7 @@ void SMTP::auth()
     }
     String mech = d->arg.simplified().section( " ", 1 );
     String ir = d->arg.simplified().section( " ", 2 );
-    d->sasl = SaslMechanism::create( mech.lower(), 
+    d->sasl = SaslMechanism::create( mech.lower(),
                                      new SmtpSaslHelper( this ),
                                      hasTls() );
     if ( !d->sasl ) {
