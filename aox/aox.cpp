@@ -85,6 +85,7 @@ void vacuum();
 void anonymise( const String & );
 void help();
 void checkFilePermissions();
+void checkConfigConsistency();
 
 
 /*! \nodoc */
@@ -215,6 +216,9 @@ int main( int ac, char *av[] )
     else if ( verb == "anonymise" ) {
         anonymise( next() );
     }
+    else if ( verb == "check" ) {
+        checkConfigConsistency();
+    }
     else {
         if ( verb != "help" )
             args->prepend( new String( verb ) );
@@ -300,7 +304,7 @@ public:
         Start, ShowCounts, ShowSchema, UpgradeSchema, ListMailboxes,
         ListUsers, ListAliases, CreateUser, DeleteUser, ChangePassword,
         ChangeUsername, ChangeAddress, CreateMailbox, DeleteMailbox,
-        CreateAlias, DeleteAlias, Vacuum
+        CreateAlias, DeleteAlias, Vacuum, CheckConfigConsistency
     };
 
     List< Query > * chores;
@@ -421,6 +425,10 @@ public:
 
         case Vacuum:
             vacuum();
+            break;
+
+        case CheckConfigConsistency:
+            checkConfigConsistency();
             break;
         }
 
@@ -1958,6 +1966,15 @@ void help()
             "    report.\n"
         );
     }
+    else if ( a == "check" ) {
+        fprintf(
+            stderr,
+            "  check - Check that the configuration is sane.\n\n"
+            "    Synopsis: aox check\n\n"
+            "    Reads the configuration, looks for self-contradictions and reports\n"
+            "    any problems it finds.\n"
+        );
+    }
     else if ( a == "commands" ) {
         fprintf(
             stderr,
@@ -1965,6 +1982,7 @@ void help()
             "    start              -- Server management.\n"
             "    stop\n"
             "    restart\n\n"
+            "    check              -- Check that the configuration is sane.\n"
             "    show status        -- Are the servers running?\n"
             "    show counts        -- Shows number of users, messages etc.\n"
             "    show configuration -- Displays runtime configuration.\n"
@@ -2234,5 +2252,47 @@ void checkFilePermissions()
                  "Checking as user %s (uid %d), group %s (gid %d)\n",
                  user.cstr(), Path::uid, group.cstr(), Path::gid );
         exit( 1 );
+    }
+}
+
+void checkConfigConsistency()
+{
+    // for the moment, this does only one thing. how should we
+    // organise this function if we want to check several things?
+
+    // and wouldn't it be neat to run this before start/stop/restart?
+    if ( !d ) {
+        Database::setup( 1 );
+
+        d = new Dispatcher( Dispatcher::CheckConfigConsistency );
+        d->query = new Query( "select login from users where lower(login)='anonymous'",
+                              d );
+        d->query->execute();
+    }
+    
+    if ( d && !d->query->done() )
+        return;
+
+    Row * r = d->query->nextRow();
+    if ( d->query->failed() ) {
+        error( "Could not check configuration consistency." );
+        return;
+    }
+
+    if ( r ) {
+        if ( !Configuration::toggle( Configuration::AuthAnonymous ) )
+            fprintf( stderr, "Note: auth-anonymous is disabled, "
+                     "but there is an anonymous user.\n"
+                     "The anonymous user will not be used. "
+                     "You may wish to delete it using\n"
+                     "  aox delete user anonymous.\n" );
+    }
+    else {
+        if ( Configuration::toggle( Configuration::AuthAnonymous ) )
+            fprintf( stderr, "Note: auth-anonymous is enabled, "
+                     "but there is no anonymous user,\n"
+                     "so anonymous authentication will not work. "
+                     "You may wish to run\n"
+                     "  aox add user anonymous '' email@address.here.\n" );
     }
 }
