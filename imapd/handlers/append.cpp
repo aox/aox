@@ -10,6 +10,7 @@
 #include "injector.h"
 #include "annotation.h"
 #include "imapsession.h"
+#include "imapparser.h"
 #include "recipient.h"
 #include "imapurl.h"
 #include "section.h"
@@ -297,8 +298,15 @@ void Append::execute()
             Textpart * tp = it;
             if ( tp->type == Textpart::Url ) {
                 String section( tp->url->section() );
-                if ( !section.isEmpty() )
-                    tp->section = Fetch::parseSection( section );
+                if ( !section.isEmpty() ) {
+                    ImapParser * ip = new ImapParser( section );
+                    tp->section = Fetch::parseSection( ip );
+                    ip->end();
+                    if ( !ip->ok() ) {
+                        error( No, "[BADURL " + tp->s + "] invalid mailbox" );
+                        return;
+                    }
+                }
 
                 // XXX: Need to do UID translation for views here.
                 MessageSet s;
