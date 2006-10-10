@@ -55,9 +55,10 @@ void Subscribe::execute()
     // table, remove it, or do nothing.
 
     if ( !q ) {
-        m = mailbox( name );
-        if ( !m ) {
-            error( No, "Can't subscribe to non-existent mailbox " + name );
+        m = Mailbox::find( mailboxName( name ), true );
+        if ( !m || ( m->deleted() && mode == Add ) ) {
+            if ( mode == Add )
+                error( No, "Can't subscribe to non-existent mailbox " + name );
             finish();
             return;
         }
@@ -67,14 +68,13 @@ void Subscribe::execute()
         q->bind( 1, imap()->user()->id() );
         q->bind( 2, m->id() );
         q->execute();
-        return;
     }
 
     if ( !q->done() )
         return;
 
     if ( q->failed() ) {
-        error( No, "" );
+        error( No, "Database error: " + q->error() );
         finish();
         return;
     }
