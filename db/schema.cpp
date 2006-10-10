@@ -1485,6 +1485,9 @@ bool Schema::stepTo28()
         d->q = new Query( "grant select,insert,update,delete "
                           "on deliveries to " + dbuser, this );
         d->t->enqueue( d->q );
+        d->q = new Query( "grant select,update on deliveries_id_seq "
+                          "to " + dbuser, this );
+        d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
     }
