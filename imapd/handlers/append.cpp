@@ -303,7 +303,7 @@ void Append::execute()
                     tp->section = Fetch::parseSection( ip );
                     ip->end();
                     if ( !ip->ok() ) {
-                        error( No, "[BADURL " + tp->s + "] invalid mailbox" );
+                        error( No, "[BADURL " + tp->s + "] invalid section" );
                         return;
                     }
                 }
