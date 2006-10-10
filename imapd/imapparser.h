@@ -28,6 +28,7 @@ public:
     String astring();
     String listMailbox();
     String flag();
+    String dotLetters( uint, uint );
 };
 
 

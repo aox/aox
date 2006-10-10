@@ -362,3 +362,32 @@ String ImapParser::flag()
     setError( "Expected flag name, but saw: " + r );
     return "";
 }
+
+
+/*! Returns a string of between \a min and \a max letters ([A-Za-z]),
+    digits ([0-9]) and dots at the cursor, advancing the cursor past
+    them. It is an error if fewer than \a min letters/digits/dots are
+    found at the cursor. Consecutive dots are accepted.
+*/
+
+String ImapParser::dotLetters( uint min, uint max )
+{
+    String r;
+    uint i = 0;
+    char c = nextChar();
+    while ( i < max &&
+            ( ( c >= 'A' && c <= 'Z' ) || ( c >= 'a' && c <= 'z' ) ||
+              ( c >= '0' && c <= '9' ) || ( c == '.' ) ) )
+    {
+        step();
+        r.append( c );
+        c = nextChar();
+        i++;
+    }
+
+    if ( i < min )
+        setError( "Expected at least " + fn( min-i ) + " more "
+                  "letters/digits/dots, but saw: " + following() );
+
+    return r;
+}
