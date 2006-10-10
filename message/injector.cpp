@@ -87,7 +87,8 @@ public:
           mailboxes( 0 ), bodyparts( 0 ),
           uidHelper( 0 ), bidHelper( 0 ),
           addressLinks( 0 ), fieldLinks( 0 ), dateLinks( 0 ),
-          otherFields( 0 ), fieldLookup( 0 ), addressLookup( 0 )
+          otherFields( 0 ), fieldLookup( 0 ), addressLookup( 0 ),
+          remoteRecipients( 0 )
     {}
 
     Injector::State state;
@@ -114,6 +115,8 @@ public:
 
     CacheLookup * fieldLookup;
     CacheLookup * addressLookup;
+
+    List<Address> * remoteRecipients;
 
     class Flag
         : public Garbage
@@ -293,6 +296,17 @@ void Injector::setMailbox( Mailbox * m )
     SortedList<Mailbox> * l = new SortedList<Mailbox>;
     l->insert( m );
     setMailboxes( l );
+}
+
+
+/*! Instructs the Instructs to spool the message for later delivery
+    via SMTP to \a addresses.
+*/
+
+void Injector::setDeliveryAddresses( List<Address> * addresses )
+{
+    if ( addresses && !addresses->isEmpty() )
+        d->remoteRecipients = addresses;
 }
 
 
@@ -476,13 +490,15 @@ void Injector::execute()
     }
 
     if ( d->state == LinkingFields && !d->transaction->failed() ) {
-        // Fill in address_fields once the address lookup is complete.
-        // (We could have done this without waiting for the bodyparts
-        // to be inserted, but it didn't seem worthwhile.)
+        // Fill in address_fields and deliveries once the address
+        // lookup is complete.  (We could have done this without
+        // waiting for the bodyparts to be inserted, but it didn't
+        // seem worthwhile.)
 
         if ( !d->addressLookup->done() )
             return;
 
+        insertDeliveries();
         linkAddresses();
         d->state = LinkingFlags;
     }
@@ -640,6 +656,33 @@ void Injector::buildAddressLinks()
 
         ++it;
         i++;
+    }
+
+    // if we're also going to insert deliveries rows, and one or more
+    // of the addresses aren't in the to/cc fields, make sure we
+    // create addresses rows and learn their ids.
+    if ( d->remoteRecipients ) {
+        List< Address >::Iterator ai( d->remoteRecipients );
+        while ( ai ) {
+            Address *a = ai;
+            ++ai;
+            String k = a->toString();
+
+            if ( unique.contains( k ) ) {
+                Address * same = unique.find( k );
+                if ( a != same ) {
+                    d->remoteRecipients->remove( a );
+                    d->remoteRecipients->prepend( same );
+                }
+            }
+            else {
+                // actually, this'll happen quite often, since the
+                // header field says "To: a <a@b.c>" and we have a@b.c
+                // here. fix? now now.
+                unique.insert( k, a );
+                addresses->append( a );
+            }
+        }
     }
 
     d->addressLookup =
@@ -872,6 +915,40 @@ void Injector::insertMessages()
         ++mi;
         s = "insert into modsequences (mailbox,uid,modseq) "
             "values ($1,$2,currval('nextmodsequence'))";
+    }
+}
+
+
+/*! This private function inserts one row per remote recipient into
+    the deliveries table.
+*/
+
+void Injector::insertDeliveries()
+{
+    if ( !d->remoteRecipients )
+        return;
+    Mailbox * spool = 0;
+    uint uid = 0;
+    List< ObjectId >::Iterator mi( d->mailboxes );
+    while ( mi && !spool ) {
+        uid = mi->id;
+        Mailbox * m = mi->mailbox;
+        if ( m->name() == "/archiveopteryx/spool" )
+            spool = m;
+    }
+    if ( !spool )
+        return; // XXX an error, but how to best handle?
+    List<Address>::Iterator i( d->remoteRecipients );
+    while ( i ) {
+        Query * q = new Query( "insert into deliveries "
+                               "(recipient, mailbox, uid, injected_at, expires_at) "
+                               "values ($1, $2, $3, now(), now()+'2 days'::interval)",
+                               0 );
+        q->bind( 1, i->id() );
+        q->bind( 2, spool->id() );
+        q->bind( 3, uid );
+        d->transaction->enqueue( q );
+        ++i;
     }
 }
 

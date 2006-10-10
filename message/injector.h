@@ -9,8 +9,9 @@
 
 class Query;
 class Header;
-class Message;
+class Address;
 class Mailbox;
+class Message;
 class Bodypart;
 class StringList;
 class Annotation;
@@ -33,7 +34,8 @@ public:
     void setMailbox( Mailbox * );
     void setMailboxes( SortedList<Mailbox> * );
     void setFlags( const StringList & );
-    void setAnnotations ( const List<Annotation> * );
+    void setAnnotations( const List<Annotation> * );
+    void setDeliveryAddresses( List<Address> * );
 
     bool done() const;
     bool failed() const;
@@ -62,6 +64,7 @@ private:
     void insertBodyparts();
     void insertBodypart( Bodypart *, bool, bool, List< Query > * );
     void insertMessages();
+    void insertDeliveries();
     void linkBodyparts();
     void linkHeaderFields();
     void linkAddresses();

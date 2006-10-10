@@ -829,12 +829,13 @@ void SMTP::inject()
         mailboxes->insert( it->mailbox() );
         ++it;
     }
-    if ( !d->remoteRecipients.isEmpty() ) {
-        mailboxes->insert( d->submissionMailbox );
-    }
 
     d->helper = new SmtpDbClient( this, d );
     d->injector = new Injector( m, d->helper );
+    if ( !d->remoteRecipients.isEmpty() ) {
+        mailboxes->insert( d->submissionMailbox );
+        d->injector->setDeliveryAddresses( d->remoteRecipients );
+    }
     d->injector->setMailboxes( mailboxes );
     d->helper->injector = d->injector;
     d->injector->execute();
