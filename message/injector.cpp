@@ -935,6 +935,7 @@ void Injector::insertDeliveries()
         Mailbox * m = mi->mailbox;
         if ( m->name() == "/archiveopteryx/spool" )
             spool = m;
+        ++mi;
     }
     if ( !spool )
         return; // XXX an error, but how to best handle?
