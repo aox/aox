@@ -28,6 +28,8 @@ public:
     virtual void read();
     bool ok() const;
 
+    ImapParser * parser() const;
+
     enum State { Unparsed, Blocked, Executing, Finished };
     State state() const;
     void setState( State );

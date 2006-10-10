@@ -339,6 +339,16 @@ bool Command::ok() const
 }
 
 
+/*! Returns a pointer to the ImapParser object that was passed to this
+    Command's constructor. May not be 0.
+*/
+
+ImapParser * Command::parser() const
+{
+    return d->args;
+}
+
+
 /*! Returns the state of this command, which may be Blocked, Executing
     or Finished. See setState().
 */
