@@ -307,6 +307,12 @@ MULTIAPPEND
   aoximport can do it even better, of course.
 
 
+aoximport improvement
+
+  The mbox handler should not use File, but instead read the file
+  directly. Saves mucho RAM if the file is big.
+
+
 imapd/handlers/acl.cpp
 
   Different tasks, some shared code, same file. Separate this out into
