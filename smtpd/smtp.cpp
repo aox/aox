@@ -551,7 +551,7 @@ void SMTP::data()
     // ahead (sending to 0 recipients)'.
     String r = "Go ahead";
     if ( !d->localRecipients.isEmpty() ) {
-        r.append( "( " );
+        r.append( " (" );
         r.append( fn( d->localRecipients.count() ) );
         r.append( " local recipients" );
         if ( !d->remoteRecipients.isEmpty() )
@@ -559,7 +559,7 @@ void SMTP::data()
     }
     if ( !d->remoteRecipients.isEmpty() ) {
         if ( d->localRecipients.isEmpty() )
-            r.append( "( " );
+            r.append( " (" );
         r.append( fn( d->remoteRecipients.count() ) );
         r.append( " remote recipients" );
     }
@@ -834,7 +834,7 @@ void SMTP::inject()
     d->injector = new Injector( m, d->helper );
     if ( !d->remoteRecipients.isEmpty() ) {
         mailboxes->insert( d->submissionMailbox );
-        d->injector->setDeliveryAddresses( d->remoteRecipients );
+        d->injector->setDeliveryAddresses( &d->remoteRecipients );
     }
     d->injector->setMailboxes( mailboxes );
     d->helper->injector = d->injector;
