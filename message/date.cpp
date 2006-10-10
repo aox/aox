@@ -230,7 +230,7 @@ static uint month( const String & name )
         break;
     case 'f': // "feb"
     case 'F':
-        if ( name[1] == 'e' )
+        if ( (name[1]|0x20) == 'e' )
             n = 2;
         break;
     case 'm': // "mar" "may"
@@ -249,12 +249,12 @@ static uint month( const String & name )
         break;
     case 's': // "sep"
     case 'S':
-        if ( name[1] == 'e' )
+        if ( (name[1]|0x20) == 'e' )
             n = 9;
         break;
     case 'o': // "oct"
     case 'O':
-        if ( name[2] == 't' )
+        if ( (name[2]|0x20) == 't' )
             n = 10;
         break;
     case 'n': // "nov"
@@ -263,7 +263,7 @@ static uint month( const String & name )
         break;
     case 'd': // "dec"
     case 'D':
-        if ( name[1] == 'e' )
+        if ( (name[1]|0x20) == 'e' )
             n = 12;
         break;
     }
