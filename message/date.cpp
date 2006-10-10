@@ -259,7 +259,8 @@ static uint month( const String & name )
         break;
     case 'n': // "nov"
     case 'N':
-        n = 11;
+        if ( (name[1]|0x20) == 'o' )
+            n = 11;
         break;
     case 'd': // "dec"
     case 'D':
