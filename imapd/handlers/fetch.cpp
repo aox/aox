@@ -8,6 +8,7 @@
 #include "messageset.h"
 #include "stringlist.h"
 #include "mimefields.h"
+#include "imapparser.h"
 #include "bodypart.h"
 #include "address.h"
 #include "mailbox.h"
@@ -313,32 +314,95 @@ void Fetch::parseAttribute( bool alsoMacro )
 
 String Fetch::dotLetters( uint min, uint max )
 {
-    String r;
-    uint i = 0;
-    char c = nextChar();
-    while ( i < max &&
-            ( ( c >= 'A' && c <= 'Z' ) ||
-              ( c >= 'a' && c <= 'z' ) ||
-              ( c >= '0' && c <= '9' ) ||
-              ( c == '.' ) ) ) {
-        step();
-        r.append( c );
-        c = nextChar();
-        i++;
-    }
-    if ( i < min )
-        error( Bad, "Expected at least " + fn( min-i ) +
-               " more letters/digits/dots, saw " + following() );
+    String r( parser()->dotLetters( min, max ) );
+    if ( !parser()->ok() )
+        error( Bad, parser()->error() );
     return r;
 }
 
 
-/*! Does nothing, and returns 0.
+/*! Uses the ImapParser \a ip to parse a section-text production, and
+    returns a pointer to a suitably constructed Section object. Upon
+    return, the ImapParser's cursor is advanced to point past the end
+    of the section-text. \a ip must not be 0; and the return value of
+    this function is also guaranteed to be non-zero.
+
+    If \a binary is false (the default), then the BINARY extensions of
+    RFC 3516 are summarily ignored.
+
+    If there were any parsing errors, Section::error will be non-empty.
 */
 
-Section * Fetch::parseSection( const String & )
+Section * Fetch::parseSection( ImapParser * ip, bool binary )
 {
-    Section * s = 0;
+    Section * s = new Section;
+    s->binary = binary;
+
+    // section-spec    = section-msgtext / (section-part ["." section-text])
+    // section-msgtext = "HEADER" /
+    //                   "HEADER.FIELDS" [".NOT"] SP header-list /
+    //                   "TEXT"
+    // section-part    = nz-number *("." nz-number)
+    // section-text    = section-msgtext / "MIME"
+
+    // Parse a section-part.
+    bool dot = false;
+    if ( ip->nextChar() >= '0' && ip->nextChar() <= '9' ) {
+        String part;
+        part.append( fn( ip->nzNumber() ) );
+        while ( ip->nextChar() == '.' ) {
+            ip->step();
+            if ( ip->nextChar() >= '0' && ip->nextChar() <= '9' ) {
+                part.append( "." );
+                part.append( fn( ip->nzNumber() ) );
+            }
+            else {
+                dot = true;
+                break;
+            }
+        }
+        s->part = part;
+        if ( !dot )
+            return s;
+    }
+
+    // Parse any section-text.
+    String item = ip->dotLetters( 0, 17 ).lower();
+    if ( binary && !item.isEmpty() ) {
+        s->error = "BINARY with section-text is not legal, saw " + item;
+    }
+    else if ( item == "text" ) {
+        if ( s->part.isEmpty() )
+            s->needsHeader = false;
+    }
+    else if ( item == "header" ) {
+        if ( s->part.isEmpty() )
+            s->needsBody = false;
+    }
+    else if ( item == "header.fields" ||
+              item == "header.fields.not" )
+    {
+        if ( s->part.isEmpty() )
+            s->needsBody = false;
+        ip->require( " (" );
+        s->fields.append( new String( ip->astring().headerCased() ) );
+        while ( ip->nextChar() == ' ' ) {
+            ip->require( " " );
+            s->fields.append( new String( ip->astring().headerCased() ) );
+        }
+        ip->require( ")" );
+    }
+    else if ( item == "mime" ) {
+        if ( s->part.isEmpty() )
+            s->error = "MIME requires a section-part.";
+    }
+    else if ( !item.isEmpty() || dot ) {
+        s->error =
+            "Expected text, header, header.fields etc, not " + item +
+            ip->following();
+    }
+
+    s->id = item;
     return s;
 }
 
@@ -348,84 +412,18 @@ Section * Fetch::parseSection( const String & )
     after the trailing ']'.
 
     If \a binary is true, the parsed section will be sent using the
-    BINARY extension (RFC 3515). If not, it'll be sent using a normal
+    BINARY extension (RFC 3516). If not, it'll be sent using a normal
     BODY.
 */
 
 void Fetch::parseBody( bool binary )
 {
-    Section * s = new Section;
-    s->binary = binary;
-
-    //section-spec    = section-msgtext / (section-part ["." section-text])
-    //section-msgtext = "HEADER" /
-    //                  "HEADER.FIELDS" [".NOT"] SP header-list /
-    //                  "TEXT"
-    //section-part    = nz-number *("." nz-number)
-    //section-text    = section-msgtext / "MIME"
-
-    // Parse a section-part.
-    bool dot = false;
-    if ( nextChar() >= '0' && nextChar() <= '9' ) {
-        String part;
-        part.append( fn( nzNumber() ) );
-        while ( nextChar() == '.' ) {
-            step();
-            if ( nextChar() >= '0' && nextChar() <= '9' ) {
-                part.append( "." );
-                part.append( fn( nzNumber() ) );
-                if ( nextChar() != '.' &&
-                     nextChar() != ']' )
-                    error( Bad, "" );
-            }
-            else {
-                dot = true;
-                break;
-            }
-        }
-        s->part = part;
+    Section * s = parseSection( parser(), binary );
+    if ( !s->error.isEmpty() ) {
+        error( Bad, s->error );
+        return;
     }
 
-    bool needHeader = true; // need that for the charset and boundary
-    bool needBody = true;
-
-    // Parse any section-text.
-    String item = dotLetters( 0, 17 ).lower();
-    if ( binary && !item.isEmpty() ) {
-        error( Bad, "BINARY with section-text is not legal, saw " + item );
-    }
-    else if ( item == "text" ) {
-        if ( s->part.isEmpty() )
-            needHeader = false;
-    }
-    else if ( item == "header" ) {
-        if ( s->part.isEmpty() )
-            needBody = false;
-    }
-    else if ( item == "header.fields" ||
-              item == "header.fields.not" )
-    {
-        if ( s->part.isEmpty() )
-            needBody = false;
-        space();
-        require( "(" );
-        s->fields.append( new String( astring().headerCased() ) );
-        while ( nextChar() == ' ' ) {
-            space();
-            s->fields.append( new String( astring().headerCased() ) );
-        }
-        require( ")" );
-    }
-    else if ( item == "mime" ) {
-        if ( s->part.isEmpty() )
-            error( Bad, "MIME requires a section-part." );
-    }
-    else if ( !item.isEmpty() || dot ) {
-        error( Bad, "expected text, header, header.fields etc, "
-               "not " + item + following() );
-    }
-
-    s->id = item;
     require( "]" );
 
     // Parse any range specification.
@@ -439,9 +437,9 @@ void Fetch::parseBody( bool binary )
     }
 
     d->sections.append( s );
-    if ( needHeader )
+    if ( s->needsHeader )
         d->needHeader = true;
-    if ( needBody )
+    if ( s->needsBody )
         d->needBody = true;
 }
 

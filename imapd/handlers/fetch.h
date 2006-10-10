@@ -11,6 +11,7 @@ class Section;
 class Message;
 class Bodypart;
 class Multipart;
+class ImapParser;
 
 
 class Fetch
@@ -22,7 +23,7 @@ public:
     void parse();
     void execute();
 
-    static Section * parseSection( const String & );
+    static Section * parseSection( ImapParser *, bool = false );
     static String sectionData( Section *, Message * );
 
 private:
