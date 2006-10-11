@@ -6,7 +6,7 @@
 
 # Try to keep various init.d managers happy:
 #
-# chkconfig: - 99 01
+# chkconfig: 35 99 01
 # description: Start Archiveopteryx <http://www.archiveopteryx.org>
 #
 ### BEGIN INIT INFO
