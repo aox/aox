@@ -129,6 +129,7 @@ sed -e 's!$BINDIR!'$(BINDIR)'!' \
     -e 's!$AOXUSER!'$(AOXUSER)'!' \
     -e 's!$AOXGROUP!'$(AOXGROUP)'!' \
     -e 's!$VERSION!'$(VERSION)'!' \
+    -e 's!$PREFIX!'$(PREFIX)'!' \
     < $(>) > $(<)
 }
 
