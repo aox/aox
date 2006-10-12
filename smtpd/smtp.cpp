@@ -239,8 +239,8 @@ void SmtpDbClient::execute()
 
     This class implements SMTP as specified by RFC 2821, with the
     extensions specified by RFC 1651 (EHLO), RFC 1652 (8BITMIME), RFC
-    2487 (STARTTLS) and RFC 2554 (AUTH). In some ways, this parser is
-    a little too lax.
+    2487 (STARTTLS), RFC 2554 (AUTH) and RFC 3030 (BINARYMIME and
+    CHUNKING). In some ways, this parser is MUCH too lax.
 */
 
 /*!  Constructs an (E)SMTP server for socket \a s. */
@@ -443,6 +443,8 @@ void SMTP::ehlo()
     setHeloString();
     respond( 250, Configuration::hostname() );
     respond( 250, "AUTH " + SaslMechanism::allowedMechanisms( "", hasTls() ) );
+    respond( 250, "BINARYMIME" );
+    respond( 250, "8BITMIME" );
     respond( 250, "CHUNKING" );
     if ( !hasTls() )
         respond( 250, "STARTTLS" );
