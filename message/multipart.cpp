@@ -250,6 +250,9 @@ static void headerSummary( Header * h, int n )
         case String::Base64:
             s = "base64";
             break;
+        case String::Uuencode:
+            s = "x-uuencode";
+            break;
         case String::Binary:
             s = "7bit";
             break;

@@ -342,6 +342,8 @@ void ContentTransferEncoding::parse( const String &s )
         e = String::QP;
     else if ( t == "base64" )
         e = String::Base64;
+    else if ( t == "x-uuencode" || t == "uuencode" )
+        e = String::Uuencode;
     else
         setError( "Invalid c-t-e value: '" + t + "'" );
 
@@ -368,6 +370,9 @@ void ContentTransferEncoding::setEncoding( String::Encoding en )
         break;
     case String::Base64:
         s = "base64";
+        break;
+    case String::Uuencode:
+        s = "x-uuencode";
         break;
     }
     setData( s );

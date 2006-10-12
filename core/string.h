@@ -97,13 +97,14 @@ public:
     void truncate( uint = 0 );
     void setLength( uint );
 
-    enum Encoding { Binary, Base64, QP };
+    enum Encoding { Binary, Base64, QP, Uuencode };
     String encode( Encoding, uint = 0 ) const;
     String decode( Encoding ) const;
 
     String eURI() const;
     String deURI() const;
     String de64() const;
+    String deUue() const;
     String e64( uint = 0 ) const;
     String deQP( bool = false ) const;
     String eQP( bool = false ) const;

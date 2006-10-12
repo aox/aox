@@ -918,6 +918,9 @@ String String::fromNumber( uint n, uint base )
 /*! Returns an \a e encoded version of this String. If \a e is Base64,
     then \a n specifies the maximum line length.
     The default is 0, i.e. no limit.
+
+    This function does not support Uuencode. If \a e is Uuencode, it
+    returns the input string.
 */
 
 String String::encode( Encoding e, uint n ) const
@@ -938,6 +941,8 @@ String String::decode( Encoding e ) const
         return de64();
     else if ( e == QP )
         return deQP();
+    else if ( e == Uuencode )
+        return deUue();
     return *this;
 }
 
@@ -982,6 +987,83 @@ String String::deURI() const
 
     return s;
 }
+
+
+/*! An implementation of uudecode, sufficient to handle some
+    occurences of "content-transfer-encoding: x-uuencode"
+    seen. Possibly not correct according to POSIX 1003.2b, who knows.
+*/
+
+String String::deUue() const
+{
+    if ( isEmpty() )
+        return *this;
+    uint i = 0;
+    if ( !startsWith( "begin" ) ) {
+        int begin = find( "\nbegin" );
+        if ( begin < 0 )
+            begin = find( "\rbegin" );
+        if ( begin < 0 )
+            return *this;
+        i = (uint)begin+1;
+    }
+    String r;
+    while ( i < d->len ) {
+        // step 0. skip over nonspace until CR/LF
+        while ( i < d->len && d->str[i] != 13 && d->str[i] != 10 )
+            i++;
+        // step 1. skip over whitespace to the next length marker.
+        while ( i < d->len && 
+                ( d->str[i] == 9 || d->str[i] == 10 ||
+                  d->str[i] == 13 || d->str[i] == 32 ) )
+            i++;
+        // step 2. the length byte, or the end line.
+        uint linelength = 0;
+        if ( i < d->len ) {
+            char c = d->str[i];
+            if ( c == 'e' && i < d->len - 2 &&
+                 d->str[i+1] == 'n' && d->str[i+2] == 'd' &&
+                 ( i + 3 == d->len ||
+                   d->str[i+3] == 13 || d->str[i+3] == 10 ||
+                   d->str[i+3] == 9 || d->str[i+3] == 32 ) )
+                return r;
+            else if ( c < 32 )
+                return *this;
+            else
+                linelength = (c - 32) & 63;
+            i++;
+        }
+        // step 3. the line data. we assume it's in groups of 4 tokens.
+        while ( linelength && i < d->len ) {
+            char c0 = 0, c1 = 0, c2 = 0, c3 = 0;
+            if ( i < d->len )
+                c0 = 63 & ( d->str[i] - 32 );
+            if ( i+1 < d->len )
+                c1 = 63 & ( d->str[i+1] - 32 );
+            if ( i+2 < d->len )
+                c2 = 63 & ( d->str[i+2] - 32 );
+            if ( i+3 < d->len )
+                c3 = 63 & ( d->str[i+3] - 32 );
+            i += 4;
+            if ( linelength > 0 ) {
+                r.append( ( (c0 << 2) | (c1 >> 4) ) & 255 );
+                linelength--;
+            }
+            if ( linelength > 0 ) {
+                r.append( ( (c1 << 4) | (c2 >> 2) ) & 255 );
+                linelength--;
+            }
+            if ( linelength > 0 ) {
+                r.append( ( (c2 << 6) | (c3     ) ) & 255 );
+                linelength--;
+            }
+        }
+    }
+    // we ran off the end without seeing an end line. what to do? 
+    // return what we've seen so far?
+    return r;
+}
+
 
 
 static char from64[128] =

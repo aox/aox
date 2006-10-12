@@ -1122,6 +1122,9 @@ String Fetch::singlePartStructure( Multipart * mp, bool extended )
         case String::Binary:
             l.append( "\"8BIT\"" ); // hm. is this entirely sound?
             break;
+        case String::Uuencode:
+            l.append( "\"x-uuencode\"" ); // should never happen
+            break;
         case String::Base64:
             l.append( "\"BASE64\"" );
             break;
