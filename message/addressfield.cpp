@@ -219,23 +219,20 @@ void AddressField::parseReferences( const String &s )
 }
 
 
-/*! Parses the RFC 2822 msg-id production from \a s. Unlike most other
-    functions in AddressField, this function ignores all errors found.
-
-    There are so many bad message-ids that we cannot reject mail. We
-    do better to behave as if such mail has no message-id field at
-    all.
+/*! Parses the RFC 2822 msg-id production from \a s and/or records the
+    first serious error found.
 */
 
 void AddressField::parseMessageId( const String &s )
 {
     AddressParser *ap = AddressParser::references( s );
 
-    if ( ap->error().isEmpty() &&
-         ap->addresses()->count() == 1 )
+    if ( !ap->error().isEmpty() )
+        setError( ap->error() );
+    else if ( ap->addresses()->count() == 1 )
         a = ap->addresses();
-
-    // if the message-id field is bad, we silently forget the field.
+    else
+        setError( "Need exactly one" );
 }
 
 

@@ -592,7 +592,7 @@ void Header::repair()
     }
 
     // We remove duplicates of any field that may occur only once.
-    // (Duplication has been observed for Date/Subject/M-V/C-T-E/C-T.)
+    // (Duplication has been observed for Date/Subject/M-V/C-T-E/C-T/M-I.)
 
     int occurrences[ (int)HeaderField::Other ];
     int i = 0;
@@ -673,9 +673,10 @@ void Header::repair()
         ++i;
     }
 
-    // If there is no Date field, we look for a sensible date.
+    // If there is no Date field and this is an RFC822 header, we look
+    // for a sensible date.
     
-    if ( occurrences[(int)HeaderField::Date] == 0 ) {
+    if ( occurrences[(int)HeaderField::Date] == 0 && mode() == Rfc2822 ) {
         List< HeaderField >::Iterator it( d->fields );
         Date date;
         while ( it ) {
@@ -711,7 +712,7 @@ void Header::repair()
 
     // If there is no From field, try to use either Return-Path or Sender
 
-    if ( occurrences[(int)HeaderField::From] == 0 ) {
+    if ( occurrences[(int)HeaderField::From] == 0 && mode() == Rfc2822 ) {
         List<Address> * a = addresses( HeaderField::ReturnPath );
         if ( !a || a->isEmpty() || a->first()->type() != Address::Normal )
             a = addresses( HeaderField::Sender );
@@ -774,16 +775,18 @@ void Header::repair()
     }
 
     // For some header fields which can contain errors, our best
-    // option is to remove them. At present, the list includes just
-    // Content-Location. It may grow to include other fields which can
-    // be parsed somehow, but aren't properly defined, aren't used and
-    // can be dropped without changing the meaning of the rest of the
-    // message.
+    // option is to remove them. A field belongs here if it can be
+    // parsed somehow and can be dropped without changing the meaning
+    // of the rest of the message.
 
-    if ( occurrences[(int)HeaderField::ContentLocation] ) {
+    if ( occurrences[(int)HeaderField::ContentLocation] ||
+         occurrences[(int)HeaderField::ContentId] ||
+         occurrences[(int)HeaderField::MessageId] ) {
         List< HeaderField >::Iterator it( d->fields );
         while ( it ) {
-            if ( it->type() == HeaderField::ContentLocation &&
+            if ( ( it->type() == HeaderField::ContentLocation ||
+                   it->type() == HeaderField::ContentId ||
+                   it->type() == HeaderField::MessageId ) &&
                  !it->valid() ) {
                 d->fields.take( it );
             }
