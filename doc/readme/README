@@ -46,7 +46,10 @@ Here's a brief overview:
    See installer(8) for details, or run "lib/installer -n" to see what
    commands the installer would run, without running them.
 
-   See archiveopteryx.conf(5) for details about the configuration file.
+   The generated configuration file should work fine, but you may need
+   to edit it, for example, to enable POP3, or make the servers listen
+   on some interface other than localhost. See archiveopteryx.conf(5)
+   for more details.
 
 4. Start the servers: "bin/aox start".
 
