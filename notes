@@ -4,7 +4,7 @@
   seems to be all:
     URLAUTH (on its way)
     CATENATE (on its way)
-    BDAT
+    BDAT (done)
     BURL
     SMTP submit (receipt done, handoff to smarthost not done)
 

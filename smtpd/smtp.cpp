@@ -126,7 +126,8 @@ public:
         submissionMailbox( 0 ),
         tlsServer( 0 ), tlsHelper( 0 ),
         negotiatingTls( false ),
-        sasl( 0 ), user( 0 )
+        sasl( 0 ), user( 0 ),
+        chunkSize( 0 ), lastChunk( false )
     {}
 
     int code;
@@ -151,6 +152,8 @@ public:
     String id;
     SaslMechanism * sasl;
     User * user;
+    uint chunkSize;
+    bool lastChunk;
 };
 
 
@@ -298,6 +301,20 @@ void SMTP::parse()
             saslNeg();
             return;
         }
+        if ( d->chunkSize ) {
+            if ( r->size() < d->chunkSize )
+                return;
+            d->body.append( r->string( d->chunkSize ) );
+            r->remove( d->chunkSize );
+            d->chunkSize = 0;
+            if ( d->lastChunk ) {
+                d->lastChunk = false;
+                inject();
+            }
+            else {
+                respond( 250, "Section received" );
+            }
+        }
         uint i = 0;
         while ( i < r->size() && (*r)[i] != 10 )
             i++;
@@ -348,6 +365,8 @@ void SMTP::parse()
                 rcpt();
             else if ( cmd == "data" )
                 data();
+            else if ( cmd == "bdat" )
+                bdat();
             else if ( cmd == "noop" )
                 noop();
             else if ( cmd == "help" )
@@ -424,7 +443,9 @@ void SMTP::ehlo()
     setHeloString();
     respond( 250, Configuration::hostname() );
     respond( 250, "AUTH " + SaslMechanism::allowedMechanisms( "", hasTls() ) );
-    respond( 250, "STARTTLS" );
+    respond( 250, "CHUNKING" );
+    if ( !hasTls() )
+        respond( 250, "STARTTLS" );
     respond( 250, "DSN" );
     d->state = MailFrom;
     d->protocol = "esmtp";
@@ -447,6 +468,7 @@ void SMTP::rset()
     d->commands.append( "rset" );
     d->firstError.truncate();
     d->state = MailFrom;
+    d->chunkSize = 0;
     respond( 250, "State reset" );
 }
 
@@ -582,6 +604,41 @@ void SMTP::body( String & line )
     else
         d->body.append( line );
 }
+
+
+/*! The BDAT command is an alternative to DATA, defined by RFC
+    3030. It doesn't seem to have much point on its own, but together
+    with BURL (RFC 4468) and URLAUTH (RFC 4467) it allows
+    forward-without-download.
+*/
+
+void SMTP::bdat()
+{
+    if ( d->state != Data && d->state != Bdat ) {
+        sendGenericError();
+        return;
+    }
+    d->state = Bdat;
+    bool ok = true;
+    d->chunkSize = d->arg.simplified().section( " ", 1 ).number( &ok );
+    if ( !ok ) {
+        respond( 501, "Expected a number" );
+        d->state = MailFrom;
+        return;
+    }
+    d->lastChunk = ( d->arg.simplified().section( " ", 2 ).lower() == "last" );
+    if ( d->chunkSize ) {
+        // nothing sent now, the response comes after chunkSize bytes
+    }
+    else if ( d->lastChunk ) {
+        d->lastChunk = false;
+        inject(); // sends a response
+    }
+    else {
+        respond( 250, "Fine, I received 0 bytes. Now what will we do?" );
+    }
+}
+
 
 
 /*! In order to implement NOOP, one properly should check that there

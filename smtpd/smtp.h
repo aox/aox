@@ -29,6 +29,7 @@ public:
     void mail();
     void rcpt();
     void data();
+    void bdat();
     void body( String & );
     virtual void noop();
     void help();
@@ -53,6 +54,7 @@ public:
         MailFrom,
         RcptTo,
         Data,
+        Bdat,
         Body,
         Injecting
     };
