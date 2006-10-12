@@ -254,7 +254,7 @@ uint Listext::match( const String & pattern, uint p,
             else
                 while ( i < name.length() && name[i] != '/' )
                     i++;
-            while ( i >= n ) {
+            while ( i >= n && i <= name.length() ) {
                 uint s = match( pattern, p, name, i );
                 if ( s == 2 )
                     return 2;
@@ -271,7 +271,7 @@ uint Listext::match( const String & pattern, uint p,
             // nothing. proceed.
             p++;
         }
-        else if ( pattern[p] == '/' && n == name.length() ) {
+        else if ( pattern[p] == '/' && n >= name.length() ) {
             // we ran out of name and the pattern wants a child.
             return 1;
         }
