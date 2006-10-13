@@ -459,12 +459,14 @@ static bool sameAddresses( AddressField *a, AddressField *b )
     List<Address>::Iterator it( m );
     while ( it ) {
         String lp = it->localpart();
-        String dom = it->localpart().lower();
+        String dom = it->domain().lower();
         List<Address>::Iterator i( l );
-        while ( i &&
-                i->localpart() != lp &&
-                i->domain().lower() != dom )
+        while ( i ) {
+            if ( i->localpart() == lp &&
+                 i->domain().lower() == dom )
+                break;
             ++i;
+        }
         if ( !i )
             return false;
         ++it;
