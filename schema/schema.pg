@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (28);
+insert into mailstore (revision) values (29);
 
 
 -- One entry for each unique address we've encountered.
@@ -286,7 +286,7 @@ create table views (
     view        integer not null references mailboxes(id)
                 on delete cascade unique,
     -- We need to keep track of how far we've searched already.
-    suidnext    integer not null,
+    nextmodseq  bigint not null,
     selector    text
 );
 
