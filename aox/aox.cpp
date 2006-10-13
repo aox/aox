@@ -899,7 +899,7 @@ void showSchema()
         else {
             s = versions[rev];
             if ( rev == nv-1 )
-                s.append( ", and perhaps later versions" );
+                s.append( " - latest known version" );
         }
 
         if ( !s.isEmpty() )
