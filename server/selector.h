@@ -74,6 +74,8 @@ public:
     void setModseqReturned();
     bool modseqReturned() const;
 
+    bool dynamic() const;
+
 private:
     class SelectorData * d;
 

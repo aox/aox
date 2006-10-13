@@ -1749,3 +1749,25 @@ bool Selector::modseqReturned() const
 {
     return d->needModsequences;
 }
+
+
+/*! Returns true if this Selector includes at least one dynamic
+    message attribute (something which can change after message
+    arrival). If dynamic(), then repeating the Selector's query() can
+    yield different results. (That is of course the very subject of
+    RFC 4551.)
+*/
+
+bool Selector::dynamic() const
+{
+    if ( d->f == Flags || d->f == Annotation || d->f == Modseq )
+        return true;
+    List< Selector >::Iterator i( d->children );
+    while ( i ) {
+        Selector * c = i;
+        ++i;
+        if ( c->dynamic() )
+            return true;
+    }
+    return false;
+}

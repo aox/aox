@@ -570,6 +570,27 @@ void SessionInitialiser::execute()
             q->bind( source, m->source()->id() );
             d->t->enqueue( q );
 
+            // if the search expression is dynamic, we may also need to
+            // delete some rows.
+            sel = new Selector;
+            Selector * tmp = new Selector( Selector::Not );
+            sel->add( tmp );
+            tmp->add( new Selector( Selector::Modseq, Selector::Larger,
+                                    m->nextModSeq() ) );
+            tmp = Selector::fromString( m->selector() );
+            sel->add( tmp );
+            if ( tmp->dynamic() ) {
+                sel->simplify();
+                q = sel->query( 0, m->source(), 0, 0 );
+                uint view = sel->placeHolder();
+                String s( "delete from view_messages where "
+                          "view=$" + fn( view ) + " and "
+                          "suid in (" + q->string() + ")" );
+                q->setString( s );
+                q->bind( view, m->id() );
+                d->t->enqueue( q );
+            }
+
             q = new Query( "update mailboxes set uidnext=nextval('vs') "
                            "where id=$1", 0 );
             q->bind( 1, m->id() );
