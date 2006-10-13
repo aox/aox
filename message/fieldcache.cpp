@@ -144,10 +144,14 @@ CacheLookup *FieldNameCache::lookup( Transaction *t, List< String > *l,
 
 
 /*! This static function returns the numeric id corresponding to the
-    specified \a field name.
+    specified \a field name. If \a field is not cached, translate()
+    returns 0.
 */
 
-HeaderField::Type FieldNameCache::translate( const String &field )
+uint FieldNameCache::translate( const String &field )
 {
-    return *(HeaderField::Type *)nameCache->find( field );
+    HeaderField::Type * t = (HeaderField::Type *)nameCache->find( field );
+    if ( !t )
+        return 0;
+    return *t;
 }

@@ -20,7 +20,7 @@ public:
     static void setup();
     static CacheLookup *lookup( Transaction *, List< String > *,
                                 EventHandler * );
-    static HeaderField::Type translate( const String & );
+    static uint translate( const String & );
 };
 
 

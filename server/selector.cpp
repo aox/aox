@@ -9,6 +9,7 @@
 #include "mailbox.h"
 #include "stringlist.h"
 #include "annotation.h"
+#include "fieldcache.h"
 #include "field.h"
 #include "user.h"
 
@@ -659,10 +660,18 @@ String Selector::whereHeaderField()
             fn( fnum ) + ")";
 
     uint like = placeHolder();
-    root()->d->query->bind( like, q( d->s16 ) );
-    return
-        "(hf.value ilike " + matchAny( like ) + " and "
-        "hf.field=(select id from field_names where name=$" + fn( fnum ) + "))";
+    uint t = FieldNameCache::translate( d->s8 );
+    if ( !t ) {
+        root()->d->query->bind( like, q( d->s16 ) );
+        return
+            "(hf.value ilike " + matchAny( like ) + " and "
+            "hf.field=(select id from field_names where name=$" + fn( fnum ) + "))";
+    }
+
+    root()->d->query->bind( like, t );
+        return
+            "(hf.value ilike " + matchAny( like ) + " and "
+            "hf.field=$" + fn( fnum ) + ")";
 }
 
 
@@ -680,7 +689,7 @@ String Selector::whereAddressField( const String & field )
 
 
 /*! This implements searching for \a name on the address \a fields, or
-    on all address fields if \a fields is the empty list.
+  on all address fields if \a fields is the empty list.
 */
 
 String Selector::whereAddressFields( const StringList & fields,
@@ -689,27 +698,53 @@ String Selector::whereAddressFields( const StringList & fields,
     root()->d->needAddresses = true;
     root()->d->needAddressFields = true;
     Query * query = root()->d->query;
-
     String r( "(" );
-    String s;
-    if ( fields.isEmpty() ) {
-        // any address field.
+    String s( " and " );
+
+    StringList known, unknown;
+    StringList::Iterator it( fields );
+    while ( it ) {
+        uint fnum = placeHolder();
+        uint t = FieldNameCache::translate( *it );
+        if ( !t ) {
+            t = HeaderField::fieldType( *it );
+            if ( t == HeaderField::Other )
+                t = 0;
+        }
+        if ( t ) {
+            known.append( "af.field=$" + fn( fnum ) );
+            //known = "(af.field=$";
+            query->bind( fnum, t );
+        }
+        else {
+            unknown.append( "fn.name=$" + fn( fnum ) );
+            //= "af.field in (select id from field_names fn where (fn.name=$";
+            query->bind( fnum, *it );
+        }
+        ++it;
+    }
+    if ( !unknown.isEmpty() ) {
+        String tmp = "af.field in (select id from field_names fn where ";
+        if ( unknown.count() == 1 ) {
+            tmp.append( unknown.join( "" ) );
+        }
+        else {
+            tmp.append( "(" );
+            tmp.append( unknown.join( " or " ) );
+            tmp.append( ")" );
+        }
+        known.append( tmp );
+    }
+    if ( known.isEmpty() ) {
+        s = ""; // no condition, so no trailing separator
+    }
+    else if ( known.count() == 1 ) {
+        r.append( known.join( "" ) );
     }
     else {
-        r.append( "af.field in (select id from field_names fn where (" );
-        bool first = true;
-        StringList::Iterator it( fields );
-        while ( it ) {
-            uint fnum = placeHolder();
-            query->bind( fnum, *it );
-            if ( !first )
-                r.append( " or " );
-            r.append( "fn.name=$" + fn( fnum ) );
-            first = false;
-            ++it;
-        }
-        r.append( "))" );
-        s = " and ";
+        r.append( "(" );
+        r.append( known.join( " or " ) );
+        r.append( ")" );
     }
 
     String raw( q( name ) );

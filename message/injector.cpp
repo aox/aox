@@ -1050,9 +1050,9 @@ void Injector::linkHeaderFields()
         while ( it ) {
             FieldLink *link = it;
 
-            HeaderField::Type t = link->hf->type();
-            if ( t >= HeaderField::Other )
-                t = FieldNameCache::translate( link->hf->name() );
+            uint t = FieldNameCache::translate( link->hf->name() );
+            if ( !t )
+                t = link->hf->type(); // XXX and what if this too fails?
 
             q->bind( 1, m->id(), Query::Binary );
             q->bind( 2, uid, Query::Binary );
