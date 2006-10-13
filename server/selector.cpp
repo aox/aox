@@ -763,8 +763,8 @@ String Selector::whereAddressFields( const StringList & fields,
         if ( at > 0 ) {
             uint lp = placeHolder();
             if ( raw.startsWith( "<" ) ) {
-                query->bind( lp, raw.mid( 1, at-1 ) );
-                lc = "a.localpart ilike $" + fn( lp );
+                query->bind( lp, raw.mid( 1, at-1 ).lower() );
+                lc = "lower(a.localpart)=$" + fn( lp );
             }
             else {
                 query->bind( lp, raw.mid( 0, at ) );
@@ -774,8 +774,8 @@ String Selector::whereAddressFields( const StringList & fields,
         if ( at < (int)raw.length() - 1 ) {
             uint dom = placeHolder();
             if ( raw.endsWith( ">" ) ) {
-                query->bind( dom, raw.mid( at+1, raw.length()-at-2 ) );
-                dc = "a.domain ilike $" + fn( dom );
+                query->bind( dom, raw.mid( at+1, raw.length()-at-2 ).lower() );
+                dc = "lower(a.domain)= $" + fn( dom );
             }
             else {
                 query->bind( dom, raw.mid( at+1 ) );
