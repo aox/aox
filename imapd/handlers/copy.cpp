@@ -125,6 +125,12 @@ void Copy::execute()
         }
 
         Mailbox * current = imap()->session()->mailbox();
+        MessageSet set = d->set;
+        if ( current->view() ) {
+            set = current->sourceUids( set );
+            current = current->source();
+        }
+
         Query * q;
 
         uint cmailbox = current->id();
@@ -132,9 +138,9 @@ void Copy::execute()
         uint tuid = d->firstUid;
         uint i = 1;
         while ( i <= d->set.count() ) {
-            uint cuid = d->set.value( i );
+            uint cuid = set.value( i );
             uint j = i + 1;
-            while ( j-i == d->set.value( j ) - cuid && j < i+1024 )
+            while ( j-i == set.value( j ) - cuid && j < i+1024 )
                 j++;
 
             String diff = "uid+$2";
