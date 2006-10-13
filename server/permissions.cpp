@@ -142,7 +142,7 @@ bool Permissions::allowed( Right r )
 void Permissions::execute()
 {
     if ( !d->q ) {
-        // The owner always has all rights.
+        // The owner of a mailbox always has all rights.
         if ( d->user->login() != "anonymous" &&
              ( d->user->id() == d->mailbox->owner() ||
                d->user->home() == d->mailbox ||
@@ -151,6 +151,10 @@ void Permissions::execute()
             uint i = 0;
             while ( i < Permissions::NumRights )
                 d->allowed[i++] = true;
+            // not even the owner can meaningfully append messages to a view
+            if ( d->mailbox->view() )
+                d->allowed[Insert] = false;
+            // DeleteMessages and Expunge are dubious too... allow them for the moment
             d->ready = true;
             return;
         }
