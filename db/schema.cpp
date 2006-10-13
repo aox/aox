@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 28;
+int currentRevision = 29;
 
 
 class SchemaData
@@ -305,6 +305,8 @@ bool Schema::singleStep()
         c = stepTo27(); break;
     case 27:
         c = stepTo28(); break;
+    case 28:
+        c = stepTo29(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ), Log::Disaster );
@@ -1487,6 +1489,37 @@ bool Schema::stepTo28()
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,update on deliveries_id_seq "
                           "to " + dbuser, this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create the deliveries table. */
+
+bool Schema::stepTo29()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Replacing views.suidnext with nextmodseq.", Log::Debug );
+        d->q = new Query( "alter table views add nextmodseq bigint", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "update views set "
+                          "nextmodseq=nextval('nextmodsequence')", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table views alter nextmodseq "
+                          "set not null", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table views drop suidnext", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
