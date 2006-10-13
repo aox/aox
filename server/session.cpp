@@ -291,7 +291,7 @@ bool Session::responsesNeeded() const
     if ( d->mailbox->uidnext() > d->uidnext )
         return true;
     if ( d->mailbox->type() == Mailbox::View &&
-         d->mailbox->source()->uidnext() > d->mailbox->sourceUidnext() )
+         d->mailbox->source()->nextModSeq() > d->mailbox->nextModSeq() )
         return true;
     if ( !d->expunges.isEmpty() )
         return true;
@@ -344,7 +344,7 @@ void Session::emitResponses()
             (void)new SessionInitialiser( this, 0 );
     }
     else if ( d->mailbox->type() == Mailbox::View &&
-              d->mailbox->source()->uidnext() > d->mailbox->sourceUidnext() ) {
+              d->mailbox->source()->nextModSeq() > d->mailbox->nextModSeq() ) {
         if ( !d->initialiser )
             (void)new SessionInitialiser( this, 0 );
     }
@@ -415,7 +415,7 @@ void Session::refresh( EventHandler * handler )
     else if ( d->uidnext < d->mailbox->uidnext() )
         (void)new SessionInitialiser( this, handler );
     else if ( d->mailbox->type() == Mailbox::View &&
-              d->mailbox->source()->uidnext() > d->mailbox->sourceUidnext() )
+              d->mailbox->source()->nextModSeq() > d->mailbox->nextModSeq() )
         (void)new SessionInitialiser( this, handler );
 }
 
@@ -428,7 +428,7 @@ class SessionInitialiserData
 public:
     SessionInitialiserData()
         : session( 0 ),
-          t( 0 ), recent( 0 ), messages( 0 ), seen( 0 ),
+          t( 0 ), recent( 0 ), messages( 0 ), seen( 0 ), nms( 0 ),
           oldUidnext( 0 ), newUidnext( 0 ),
           done( false )
         {}
@@ -440,6 +440,7 @@ public:
     Query * recent;
     Query * messages;
     Query * seen;
+    Query * nms;
 
     uint oldUidnext;
     uint newUidnext;
@@ -502,6 +503,9 @@ void SessionInitialiser::execute()
 
         d->t = new Transaction( this );
 
+        d->nms = new Query( "select last_value::int from nextmodsequence", this );
+        d->t->enqueue( d->nms );
+
         if ( m->ordinary() ) {
             if ( d->session->readOnly() )
                 d->recent = new Query( "select first_recent from mailboxes "
@@ -514,7 +518,7 @@ void SessionInitialiser::execute()
 
             if ( !d->session->readOnly() ) {
                 Query * q = new Query( "update mailboxes set first_recent=$2 "
-                                       "where id=$1", this );
+                                       "where id=$1", 0 );
                 q->bind( 1, d->session->mailbox()->id() );
                 q->bind( 2, d->session->mailbox()->uidnext() );
                 d->t->enqueue( q );
@@ -530,19 +534,24 @@ void SessionInitialiser::execute()
             Query * q;
 
             q = new Query( "select uidnext from mailboxes where id=$1 "
-                           "for update", this );
+                           "for update", 0 );
             q->bind( 1, m->id() );
             d->t->enqueue( q );
 
             q = new Query( "create temporary sequence vs start with " +
-                           fn( m->uidnext() ), this );
+                           fn( m->uidnext() ), 0 );
             d->t->enqueue( q );
 
-            MessageSet ms;
-            ms.add( m->sourceUidnext(), UINT_MAX );
+            q = new Query( "update views set nextmodseq="
+                           "(select last_value from nextmodsequence) "
+                           "where view=$2", 0 );
+            q->bind( 1, m->source()->id() );
+            q->bind( 2, m->id() );
+            d->t->enqueue( q );
 
             Selector * sel = new Selector;
-            sel->add( new Selector( ms ) );
+            sel->add( new Selector( Selector::Modseq, Selector::Larger,
+                                    m->nextModSeq() ) );
             sel->add( Selector::fromString( m->selector() ) );
             sel->simplify();
 
@@ -562,15 +571,8 @@ void SessionInitialiser::execute()
             d->t->enqueue( q );
 
             q = new Query( "update mailboxes set uidnext=nextval('vs') "
-                           "where id=$1", this );
+                           "where id=$1", 0 );
             q->bind( 1, m->id() );
-            d->t->enqueue( q );
-
-            q = new Query( "update views set suidnext="
-                           "(select uidnext from mailboxes where id=$1) "
-                           "where view=$2", this );
-            q->bind( 1, m->source()->id() );
-            q->bind( 2, m->id() );
             d->t->enqueue( q );
 
             d->t->enqueue( m->refresh() );
@@ -579,7 +581,7 @@ void SessionInitialiser::execute()
                 new Query( "select uid,suid from view_messages where "
                            "view=$1 and uid>=$2", this );
 
-            q = new Query( "drop sequence vs", this );
+            q = new Query( "drop sequence vs", 0 );
             d->t->enqueue( q );
         }
 
@@ -606,6 +608,13 @@ void SessionInitialiser::execute()
     }
 
     Row * r = 0;
+
+    while ( (r=d->nms->nextRow()) != 0 ) {
+        uint uid = r->getInt( "last_value" );
+        m->setNextModSeq( uid );
+        if ( m->view() )
+            m->source()->setNextModSeq( uid );
+    }
 
     while ( (r=d->messages->nextRow()) != 0 ) {
         uint uid = r->getInt( "uid" );

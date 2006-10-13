@@ -31,7 +31,8 @@ public:
           triviaFetcher( 0 ), bodyFetcher( 0 ),
           annotationFetcher( 0 ),
           watchers( 0 ),
-          source( 0 ), sUidnext( 0 ), sourceUids( 0 ),
+          nextModSeq( 1 ),
+          source( 0 ), sourceUids( 0 ),
           clear( 0 )
     {}
 
@@ -54,8 +55,9 @@ public:
     Fetcher * annotationFetcher;
     List<EventHandler> * watchers;
 
+    uint nextModSeq;
+
     uint source;
-    uint sUidnext;
     String selector;
 
     Map< uint > * sourceUids;
@@ -114,7 +116,7 @@ public:
         : owner( ev ), query( 0 )
     {
         query =
-            new Query( "select m.*,source,view,suidnext,selector from "
+            new Query( "select m.*,source,view,nextmodseq::int,selector from "
                        "mailboxes m left join views v on (m.id=v.view)",
                        this );
     }
@@ -124,7 +126,7 @@ public:
         : owner( 0 ), query( 0 )
     {
         query =
-            new Query( "select m.*,source,view,suidnext,selector from "
+            new Query( "select m.*,source,view,nextmodseq::int,selector from "
                        "mailboxes m left join views v on (m.id=v.view) "
                        "where name=$1", this );
         query->bind( 1, n );
@@ -157,7 +159,7 @@ public:
                 if ( !m->d->sourceUids )
                     m->d->sourceUids = new Map< uint >;
                 m->d->source = r->getInt( "source" );
-                m->d->sUidnext = r->getInt( "suidnext" );
+                m->d->nextModSeq = r->getInt( "nextmodseq" );
                 m->d->selector = r->getString( "selector" );
             }
 
@@ -400,17 +402,6 @@ bool Mailbox::hasChildren() const
 Mailbox * Mailbox::source() const
 {
     return Mailbox::find( d->source );
-}
-
-
-/*! Returns the UIDNEXT of the source() Mailbox at the time we last
-    refreshed the view, or 0 if this is not a view() or the view has
-    never been updated.
-*/
-
-uint Mailbox::sourceUidnext() const
-{
-    return d->sUidnext;
 }
 
 
@@ -932,4 +923,28 @@ MessageSet Mailbox::sourceUids( const MessageSet &u ) const
     }
 
     return s;
+}
+
+
+/*! Records that the first unconsidered modseq for this mailbox is \a
+    n. If this mailbox is a view, this is a fine and sensible thing to
+    know: SessionInitialiser can call nextModSeq() and use the
+    recorded value to consider only new/changed messages.
+
+    For any mailboxes other than views, this function is almost meaningless.
+
+    MailboxReader updates the nextModSeq() value in case of views.
+*/
+
+void Mailbox::setNextModSeq( uint n )
+{
+    d->nextModSeq = n;
+}
+
+
+/*! Returns the value last specified by nextModSeq(), or 1 initially. */
+
+uint Mailbox::nextModSeq() const
+{
+    return d->nextModSeq;
 }

@@ -1354,6 +1354,8 @@ void FetchData::SeenFlagSetter::execute()
     q->bind( 2, mailbox->id() );
     t->enqueue( q );
 
+    mailbox->setNextModSeq( r->getInt( "ms" ) + 1 );
+
     q = Store::addFlagsQuery( seen, mailbox, messages, 0 );
     t->enqueue( q );
     t->commit();

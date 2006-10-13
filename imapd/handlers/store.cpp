@@ -399,9 +399,15 @@ void Store::execute()
         q->bind( 2, imap()->session()->mailbox()->id() );
         d->transaction->commit();
 
+        // record the change so that views onto this mailbox update themselves
+        Mailbox * mb = imap()->session()->mailbox();
+        if ( mb->view() )
+            mb->source()->setNextModSeq( d->modseq + 1 );
+        else
+            mb->setNextModSeq( d->modseq + 1 );
+
         // because we cache messages, we have to tell the cached copy
         // it's no longer accurate.
-        Mailbox * mb = imap()->session()->mailbox();
         uint i = d->s.count();
         while ( i ) {
             Message * m = mb->message( d->s.value( i ), false );

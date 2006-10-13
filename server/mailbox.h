@@ -27,6 +27,7 @@ public:
     void setId( uint ) const;
     uint uidnext() const;
     uint uidvalidity() const;
+    uint nextModSeq() const;
 
     void setType( Type );
     Type type() const;
@@ -42,6 +43,7 @@ public:
     void setOwner( uint );
     void setUidnext( uint );
     void setUidvalidity( uint );
+    void setNextModSeq( uint );
     void setDeleted( bool );
 
     Mailbox * parent() const;
@@ -49,7 +51,6 @@ public:
     bool hasChildren() const;
 
     Mailbox * source() const;
-    uint sourceUidnext() const;
     String selector() const;
 
     void setSourceUid( uint, uint );

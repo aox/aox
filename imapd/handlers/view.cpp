@@ -82,9 +82,9 @@ void View::execute()
         d->t = new Transaction( this );
         d->q = d->mv->create( d->t, imap()->user() );
         d->q = new Query( "insert into views "
-                          "(view, selector, source, suidnext) values "
+                          "(view, selector, source, nextmodseq) values "
                           "((select id from mailboxes where name=$1),"
-                          "$2, $3, 0)", this );
+                          "$2, $3, 1::bigint)", this );
         d->q->bind( 1, mailboxName( d->view ) );
         d->q->bind( 2, selector()->string() );
         d->q->bind( 3, d->ms->id() );
