@@ -572,14 +572,14 @@ void SessionInitialiser::execute()
 
             // if the search expression is dynamic, we may also need to
             // delete some rows.
-            sel = new Selector;
-            Selector * tmp = new Selector( Selector::Not );
-            sel->add( tmp );
-            tmp->add( new Selector( Selector::Modseq, Selector::Larger,
-                                    m->nextModSeq() ) );
-            tmp = Selector::fromString( m->selector() );
-            sel->add( tmp );
+            Selector * tmp = Selector::fromString( m->selector() );
             if ( tmp->dynamic() ) {
+                sel = new Selector;
+                sel->add( tmp );
+                tmp = new Selector( Selector::Not );
+                sel->add( tmp );
+                tmp->add( new Selector( Selector::Modseq, Selector::Larger,
+                                        m->nextModSeq() ) );
                 sel->simplify();
                 q = sel->query( 0, m->source(), 0, 0 );
                 uint view = sel->placeHolder();
