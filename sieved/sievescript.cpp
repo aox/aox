@@ -243,7 +243,7 @@ public:
     private:
         Identifier * id;
         Arguments * args;
-        ProductionList<Command> * block;
+        SieveScriptData::ProductionList<Command> * block;
     };
 
     // string = quoted-string / multi-line
@@ -325,7 +325,7 @@ public:
         Start( SieveScriptData * d );
         void parse();
     private:
-        ProductionList<Command> * commands;
+        SieveScriptData::ProductionList<Command> * commands;
     };
 
     Start * script;
@@ -532,7 +532,7 @@ SieveScriptData::Command::Command( Production * p )
 
     // block = "{" commands "}"
     require( "{" );
-    block = new ProductionList<Command>( this );
+    block = new SieveScriptData::ProductionList<Command>( this );
     require( "}" );
 }
 
@@ -940,7 +940,7 @@ SieveScript::SieveScript()
 SieveScriptData::Start::Start( SieveScriptData * d )
     : Production( d, "Start" ), commands( 0 )
 {
-    commands = new ProductionList<Command>( this );
+    commands = new SieveScriptData::ProductionList<Command>( this );
 }
 
 
