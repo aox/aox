@@ -390,7 +390,6 @@ void Selector::simplify()
 
     // a single-element and/or can be removed and its argument substituted
     if ( d->children->count() == 1 ) {
-        List< Selector >::Iterator p( d->children );
         d->copy( d->children->first()->d );
         return;
     }
