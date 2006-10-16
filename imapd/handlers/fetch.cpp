@@ -936,12 +936,22 @@ static String hf( Header * f, HeaderField::Type t )
     List<Address>::Iterator it( a );
     while ( it ) {
         r.append( "(" );
-        r.append( Command::imapQuoted( HeaderField::encodePhrase( it->uname() ),
-                                       Command::NString ) );
-        r.append( " NIL " );
-        r.append( Command::imapQuoted( it->localpart(), Command::NString ) );
-        r.append( " " );
-        r.append( Command::imapQuoted( it->domain(), Command::NString ) );
+        if ( it->type() == Address::EmptyGroup ) {
+            r.append( "NIL NIL " );
+            r.append( Command::imapQuoted( it->name(), Command::NString ) );
+            r.append( " NIL)(NIL NIL NIL NIL" );
+        } else if ( it->type() == Address::Local ||
+                    it->type() == Address::Normal ) {
+            r.append( Command::imapQuoted( HeaderField::encodePhrase( it->uname() ),
+                                           Command::NString ) );
+            r.append( " NIL " );
+            r.append( Command::imapQuoted( it->localpart(), Command::NString ) );
+            r.append( " " );
+            if ( it->domain().isEmpty() )
+                r.append( "\" \"" ); // see RFC 3501 page 77, second-to-last paragraph
+            else
+                r.append( Command::imapQuoted( it->domain(), Command::NString ) );
+        }
         r.append( ")" );
         ++it;
     }
