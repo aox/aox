@@ -93,9 +93,8 @@ void Status::execute()
             finish();
             return;
         }
+        requireRight( d->mailbox, Permissions::Read );
     }
-
-    requireRight( d->mailbox, Permissions::Read );
 
     if ( !d->session && 
          ( d->messages || 
