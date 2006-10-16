@@ -260,6 +260,7 @@ Codec * Codec::byName( const String & s )
 
     // at this point, name has lost some of its chaos, so these four
     // easy tests should find all the variations of unknown-8bit.
+    name = name.lower();
     if ( name == "unknown" ||
          name.startsWith( "unknown-" ) ||
          name.endsWith( "-unknown" ) ||
