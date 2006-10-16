@@ -311,7 +311,7 @@ void Store::execute()
         d->checkedPermission = true;
     }
 
-    if ( !ok() )
+    if ( !ok() || !permitted() )
         return;
 
     if ( d->seenUnchangedSince ) {
