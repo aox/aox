@@ -276,7 +276,7 @@ String MigratorMailbox::partialName()
 
 
 static uint uniq = 0;
-static String errdir;
+static String * errdir = 0;
 
 
 /*! \class MigratorMessage migrator.h
@@ -310,23 +310,26 @@ MigratorMessage::MigratorMessage( const String & rfc822, const String & desc )
         String dir;
         String name;
         String c;
-        if ( errdir.isEmpty() ) {
-            errdir = "errors/" + fn( getpid() );
+        if ( !errdir ) {
+            errdir = new String;
+            errdir->append( "errors/" );
+            errdir->append( fn( getpid() ) );
             ::mkdir( "errors", 0777 );
-            ::mkdir( errdir.cstr(), 0777 );
+            ::mkdir( errdir->cstr(), 0777 );
             if ( Migrator::verbosity() > 0 )
                 fprintf( stdout, " - storing error files in %s\n",
-                         m->error().cstr() );
+                         errdir->cstr() );
         }
-        if ( am->error().anonymised() == m->error().anonymised() ) {
-            dir = errdir + "/anonymised";
+        if ( Migrator::verbosity() < 3 &&
+             am->error().anonymised() == m->error().anonymised() ) {
+            dir = *errdir + "/anonymised";
             name = fn( ++uniq );
             c = a;
         }
         else {
             if ( Migrator::verbosity() > 1 )
                 fprintf( stdout, " - Must store as plaintext\n" );
-            dir = errdir + "/plaintext";
+            dir = *errdir + "/plaintext";
             name = fn( ++uniq );
             c = o;
         }
