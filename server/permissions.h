@@ -68,6 +68,8 @@ public:
 
     void require( Permissions *, Permissions::Right );
 
+    Permissions * permissions( class Mailbox *, class User * ) const;
+
     bool allowed() const;
     bool ready() const;
 

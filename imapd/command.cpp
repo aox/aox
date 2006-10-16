@@ -1046,11 +1046,15 @@ void Command::requireRight( Mailbox * m, Permissions::Right r )
     if ( !d->checker )
         d->checker = new PermissionsChecker;
 
-    if ( imap()->state() == IMAP::Selected &&
-         m == imap()->session()->mailbox() )
-        d->checker->require( imap()->session()->permissions(), r );
-    else if ( imap()->user() )
-        d->checker->require( new Permissions( m, imap()->user(), this ), r );
+    Permissions * p = 0;
+    if ( imap()->state() == IMAP::Selected && m == imap()->session()->mailbox() )
+        p = imap()->session()->permissions();
+    else
+        p = d->checker->permissions( m, imap()->user() );
+    if ( !p )
+        p = new Permissions( m, imap()->user(), this );
+
+    d->checker->require( p, r );
 }
 
 

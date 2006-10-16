@@ -483,3 +483,19 @@ String PermissionsChecker::error() const
     }
     return l.join( "\r\n" );
 }
+
+
+/*! Returns a Permissions object for \a m, \a u if this
+    PermissionsChecker happens to have one, and returns a null pointer
+    if it doesn't.
+*/
+
+Permissions * PermissionsChecker::permissions( class Mailbox * m, class User * u ) const
+{
+    List<PermissionsCheckerData::Pair>::Iterator i( d->l );
+    while ( i && ( i->p->mailbox() != m || i->p->user() != u ) )
+        ++i;
+    if ( i )
+        return i->p;
+    return 0;
+}
