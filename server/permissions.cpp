@@ -400,6 +400,13 @@ PermissionsChecker::PermissionsChecker()
 
 void PermissionsChecker::require( Permissions * p, Permissions::Right r )
 {
+    List<PermissionsCheckerData::Pair>::Iterator i( d->l );
+    while ( i ) {
+        if ( i->p == p && i->r == r )
+            return;
+        ++i;
+    }
+    
     PermissionsCheckerData::Pair * pair = new PermissionsCheckerData::Pair;
     pair->p = p;
     pair->r = r;
