@@ -661,7 +661,7 @@ void SMTP::noop()
 
 void SMTP::help()
 {
-    respond( 250, "See http://www.oryx.com" );
+    respond( 250, "See http://aox.org" );
 }
 
 
@@ -878,9 +878,8 @@ void SMTP::inject()
     String rp;
     if ( d->from )
         rp = "Return-Path: " + d->from->toString() + "\r\n";
-    d->body = rp + received + d->body;
 
-    Message * m = new Message( d->body );
+    Message * m = new Message( rp + received + d->body );
     m->setInternalDate( now.unixTime() );
     // if we're delivering remotely, we'd better do some of the
     // chores from RFC 4409.
@@ -893,7 +892,8 @@ void SMTP::inject()
             MD5 x;
             x.add( d->body );
             h->add( "Message-Id",
-                    x.hash().e64().mid( 0, 21 ) + ".md5@" + Configuration::hostname() );
+                    "<" + x.hash().e64().mid( 0, 21 ) + ".md5@" + 
+                    Configuration::hostname() + ">" );
         }
         // specify a sender if a) we know who the sender is, b) from
         // doesn't name the sender and c) the sender did no specify
@@ -907,6 +907,7 @@ void SMTP::inject()
                 h->add( "Sender", s->toString() );
         }
     }
+    d->body = rp + received + d->body;
 
     SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
     List<Recipient>::Iterator it( d->localRecipients );
@@ -1002,7 +1003,7 @@ void SMTP::reportInjection()
     d->state = MailFrom;
 
     if ( d->injector->failed() ) {
-        respond( 451, d->injector->error() );
+        respond( 451, "Injection error: " + d->injector->error() );
     }
     else if ( d->helper->harder ) {
         d->helper->injector->announce();
