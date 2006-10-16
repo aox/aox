@@ -24,6 +24,7 @@
 #include "user.h"
 #include "tls.h"
 #include "log.h"
+#include "md5.h"
 
 // time()
 #include <time.h>
@@ -881,6 +882,31 @@ void SMTP::inject()
 
     Message * m = new Message( d->body );
     m->setInternalDate( now.unixTime() );
+    // if we're delivering remotely, we'd better do some of the
+    // chores from RFC 4409.
+    if ( d->protocol != "lmtp" ) {
+        Header * h = m->header();
+        // remove bcc if present
+        h->removeField( HeaderField::Bcc );
+        // add a message-id if there isn't any
+        if ( !h->field( HeaderField::MessageId ) ) {
+            MD5 x;
+            x.add( d->body );
+            h->add( "Message-Id",
+                    x.hash().e64().mid( 0, 21 ) + ".md5@" + Configuration::hostname() );
+        }
+        // specify a sender if a) we know who the sender is, b) from
+        // doesn't name the sender and c) the sender did no specify
+        // anything.
+        if ( d->user && !h->field( HeaderField::Sender ) ) {
+            List<Address> * from = h->addresses( HeaderField::From );
+            Address * s = d->user->address();
+            if ( !from || from->count() != 1 ||
+                 from->first()->localpart().lower() != s->localpart().lower() ||
+                 from->first()->domain().lower() != s->domain().lower() )
+                h->add( "Sender", s->toString() );
+        }
+    }
 
     SortedList<Mailbox> * mailboxes = new SortedList<Mailbox>;
     List<Recipient>::Iterator it( d->localRecipients );
