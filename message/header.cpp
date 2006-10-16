@@ -6,6 +6,7 @@
 #include "datefield.h"
 #include "mimefields.h"
 #include "addressfield.h"
+#include "multipart.h"
 #include "address.h"
 #include "ustring.h"
 #include "codec.h"
@@ -574,10 +575,11 @@ void Header::simplify()
 
 
 /*! Repairs a few harmless and common problems, such as inserting two
-    Date fields with the same value.
+    Date fields with the same value. Assumes that \a p is its
+    companion body, and may look at it to decide what/how to repair.
 */
 
-void Header::repair()
+void Header::repair( Multipart * p )
 {
     if ( valid() ) {
         // it seems to be valid, but have we been able to parse everything?
@@ -693,11 +695,14 @@ void Header::repair()
             ++it;
         }
 
-        if ( !date.valid() ) {
-            // If there weren't any good-looking Received fields, we
-            // might look for a Date field in an emcompassing message,
-            // but we can't because at this point, we can't access
-            // Multipart::parent().
+        if ( !date.valid() && p ) {
+            Multipart * parent = p->parent();
+            while ( parent && parent->header() &&
+                    !( parent->header()->date() &&
+                       parent->header()->date()->valid() ) )
+                parent = parent->parent();
+            if ( parent )
+                date = *parent->header()->date();
         }
 
         if ( !date.valid() ) {
@@ -708,13 +713,31 @@ void Header::repair()
         add( "Date", date.rfc822() );
     }
 
-    // If there is no From field, try to use either Return-Path or Sender
+    // If there is no From field, try to use either Return-Path or
+    // Sender from this Header, or From, Return-Path or Sender from
+    // the Header of the closest encompassing Multipart that has such
+    // a field.
 
     if ( occurrences[(int)HeaderField::From] == 0 && mode() == Rfc2822 ) {
-        List<Address> * a = addresses( HeaderField::ReturnPath );
-        if ( !a || a->isEmpty() || a->first()->type() != Address::Normal )
-            a = addresses( HeaderField::Sender );
-        if ( a && a->first() && a->first()->type() == Address::Normal )
+        Multipart * parent = p;
+        Header * h = this;
+        List<Address> * a = 0;
+        while ( ( h || parent ) && !a ) {
+            a = h->addresses( HeaderField::From );
+            if ( !a || a->isEmpty() || a->first()->type() != Address::Normal )
+                a = h->addresses( HeaderField::ReturnPath );
+            if ( !a || a->isEmpty() || a->first()->type() != Address::Normal )
+                a = h->addresses( HeaderField::Sender );
+            if ( !a || a->isEmpty() || a->first()->type() != Address::Normal )
+                a = 0;
+            if ( parent )
+                parent = parent->parent();
+            if ( parent )
+                h = parent->header();
+            else
+                h = 0;
+        }
+        if ( a )
             add( "From", a->first()->toString() );
     }
     

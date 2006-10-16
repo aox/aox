@@ -20,7 +20,7 @@ class Message
 {
 public:
     Message();
-    Message( const String & );
+    Message( const String &, Multipart * parent = 0 );
 
     bool valid() const;
     String error() const;

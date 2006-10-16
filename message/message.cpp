@@ -78,15 +78,17 @@ Message::Message()
 }
 
 
-/*! Constructs a message by parsing the supplied \a rfc2822 text. */
+/*! Constructs a message by parsing the supplied \a rfc2822 text,
+    which will be set to have parent() \a p. */
 
-Message::Message( const String & rfc2822 )
+Message::Message( const String & rfc2822, Multipart * p )
     : d( new MessageData )
 {
     uint i = 0;
 
+    setParent( p );
     setHeader( parseHeader( i, rfc2822.length(), rfc2822, Header::Rfc2822 ) );
-    header()->repair();
+    header()->repair( this );
     if ( !header()->valid() ) {
         d->error = header()->error();
         return;
@@ -97,11 +99,11 @@ Message::Message( const String & rfc2822 )
         Bodypart::parseMultipart( i, rfc2822.length(), rfc2822,
                                   ct->parameter( "boundary" ),
                                   ct->subtype() == "digest",
-                                  children(), 0 );
+                                  children(), this );
     }
     else {
         Bodypart * bp = Bodypart::parseBodypart( i, rfc2822.length(), rfc2822,
-                                                 header() );
+                                                 header(), this );
         children()->append( bp );
     }
 
@@ -378,10 +380,10 @@ class Bodypart * Message::bodypart( const String & s, bool create )
 
 String Message::partNumber( Bodypart * bp ) const
 {
-    Multipart *m = bp;
+    Multipart * m = bp;
 
     String r;
-    while( m ) {
+    while ( m && m->isBodypart() ) {
         if ( !r.isEmpty() )
             r = "." + r;
         Multipart * parent = m->parent();

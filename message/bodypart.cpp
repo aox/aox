@@ -299,7 +299,7 @@ void Bodypart::parseMultipart( uint i, uint end,
                                const String & divider,
                                bool digest,
                                List<Bodypart> * children,
-                               Bodypart *parent )
+                               Multipart * parent )
 {
     uint start = 0;
     bool last = false;
@@ -338,7 +338,6 @@ void Bodypart::parseMultipart( uint i, uint end,
                                                        Header::Mime );
                     if ( digest )
                         h->setDefaultType( Header::MessageRfc822 );
-                    h->repair();
 
                     // Strip the [CR]LF that belongs to the boundary.
                     if ( rfc2822[i-1] == 10 ) {
@@ -347,11 +346,12 @@ void Bodypart::parseMultipart( uint i, uint end,
                             i--;
                     }
 
-                    Bodypart * bp = parseBodypart( start, i, rfc2822, h );
+                    Bodypart * bp = parseBodypart( start, i, rfc2822, h, parent );
                     bp->d->number = pn;
                     children->append( bp );
-                    bp->setParent( parent );
                     pn++;
+
+                    h->repair( bp );
                 }
                 last = l;
                 start = j;
@@ -452,7 +452,7 @@ static Codec * guessHtmlCodec( const String & body )
 
 Bodypart * Bodypart::parseBodypart( uint start, uint end,
                                     const String & rfc2822,
-                                    Header * h )
+                                    Header * h, Multipart * parent )
 {
     if ( rfc2822[start] == 13 )
         start++;
@@ -460,6 +460,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         start++;
 
     Bodypart * bp = new Bodypart;
+    bp->setParent( parent );
     bp->setHeader( h );
 
     String::Encoding e = String::Binary;
@@ -731,7 +732,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         // There are sometimes blank lines before the message.
         while ( rfc2822[start] == 13 || rfc2822[start] == 10 )
             start++;
-        Message * m = new Message( rfc2822.mid( start, end-start ) );
+        Message * m = new Message( rfc2822.mid( start, end-start ), bp );
         List<Bodypart>::Iterator it( m->children() );
         while ( it ) {
             bp->children()->append( it );
@@ -739,7 +740,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             ++it;
         }
         bp->setMessage( m );
-        m->setParent( bp );
     }
 
     h->simplify();

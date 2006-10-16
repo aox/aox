@@ -55,9 +55,9 @@ private:
     Bodypart();
     static void parseMultipart( uint, uint, const String &,
                                 const String &, bool,
-                                List< Bodypart > *, Bodypart * );
+                                List< Bodypart > *, Multipart * );
     static Bodypart *parseBodypart( uint, uint, const String &,
-                                    Header * );
+                                    Header *, Multipart * );
 };
 
 
