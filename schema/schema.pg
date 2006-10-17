@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (29);
+insert into mailstore (revision) values (30);
 
 
 -- One entry for each unique address we've encountered.
@@ -356,4 +356,17 @@ create table deliveries (
     foreign key (mailbox, uid)
                 references messages(mailbox, uid)
                 on delete cascade
+);
+
+
+-- Each entry contains a single user's access key to a given mailbox.
+-- (See URLAUTH, RFC 4467.)
+
+create table access_keys (
+    userid      integer not null references users(id)
+                on delete cascade,
+    mailbox     integer not null references mailboxes(id)
+                on delete cascade,
+    key         text not null,
+    primary key (userid, mailbox)
 );
