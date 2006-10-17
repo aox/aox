@@ -273,15 +273,20 @@ Log::Severity LogServer::severity( const String &l )
 {
     Log::Severity s = Log::Info;
 
-    switch ( l[1] ) {
-    case 'e':
-    case 'E':
+    switch ( l[2] ) {
+    case 'b':
+    case 'B':
         s = Log::Debug;
         break;
 
-    case 'n':
-    case 'N':
+    case 'f':
+    case 'F':
         s = Log::Info;
+        break;
+
+    case 'g':
+    case 'G':
+        s = Log::Significant;
         break;
 
     case 'r':
@@ -289,8 +294,8 @@ Log::Severity LogServer::severity( const String &l )
         s = Log::Error;
         break;
 
-    case 'i':
-    case 'I':
+    case 's':
+    case 'S':
         s = Log::Disaster;
         break;
     }
