@@ -777,12 +777,6 @@ void Header::repair( Multipart * p )
         }
     }
 
-    // if there are several content-transfer-encodings, see if they
-    // give the same result when decoding the body
-    if ( occurrences[(int)HeaderField::ContentTransferEncoding] > 1 ) {
-        
-    }
-
     // If there is an unacceptable Received field somewhere, remove it
     // and all the older Received fields.
 
