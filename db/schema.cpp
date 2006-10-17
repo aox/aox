@@ -1551,7 +1551,7 @@ bool Schema::stepTo30()
                           "delete cascade, key text not null, "
                           "primary key (userid, mailbox))", this );
         d->t->enqueue( d->q );
-        d->q = new Query( "grant select,insert,update on access_keys "
+        d->q = new Query( "grant select,insert,delete on access_keys "
                           "to " + dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
