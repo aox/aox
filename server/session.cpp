@@ -615,16 +615,20 @@ void SessionInitialiser::execute()
         if ( !d->session->firstUnseen() ) {
             // XXX: a slightly unpleasant query. three seqscans, two
             // of them on large tables.
-            d->seen =
-                new Query( "select m.uid from messages m left join "
-                           "deleted_messages dm using (mailbox,uid) "
-                           "left join flags f on (f.mailbox=m.mailbox "
-                           "and f.uid=m.uid and f.flag=(select id from "
-                           "flag_names where lower(name)='\\\\seen')) "
-                           "where m.mailbox=$1 and dm.uid is null and "
-                           "f.flag is null order by uid limit 1", this );
-            d->seen->bind( 1, d->session->mailbox()->id() );
-            d->seen->execute();
+            Flag * seen = Flag::find( "\\seen" );
+            if ( seen ) {
+                d->seen =
+                    new Query( "select m.uid from messages m "
+                               "left join flags f on "
+                               "(f.mailbox=m.mailbox and f.uid=m.uid and f.flag=$2) "
+                               "left join deleted_messages dm on "
+                               "(m.mailbox=dm.mailbox and m.uid=dm.uid) "
+                               "where m.mailbox=$1 and dm.uid is null and "
+                               "f.flag is null order by uid limit 1", this );
+                d->seen->bind( 1, d->session->mailbox()->id() );
+                d->seen->bind( 1, seen->id() );
+                d->seen->execute();
+            }
         }
     }
 
