@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (30);
+insert into mailstore (revision) values (31);
 
 
 -- One entry for each unique address we've encountered.
@@ -16,6 +16,7 @@ create table addresses (
     domain      text,
     unique (name, localpart, domain)
 );
+create index ald on addresses(lower(localpart), lower(domain));
 
 
 -- One entry per "other users" namespace. Personal namespaces are
@@ -262,6 +263,7 @@ create table annotation_names (
     name        text unique
 );
 
+
 -- One entry per annotation
 
 create table annotations (
@@ -276,6 +278,7 @@ create table annotations (
                 on delete cascade
 );
 
+
 -- One entry per view: the view is a mailbox that contains the result
 -- of applying the selector to the source mailbox.
 
@@ -289,6 +292,7 @@ create table views (
     nextmodseq  bigint not null,
     selector    text
 );
+
 
 -- One entry per message that belongs to a view: the (view,uid) maps to
 -- the real message (source,suid).
@@ -329,6 +333,7 @@ create table deleted_messages (
                 references messages(mailbox, uid)
                 on delete cascade
 );
+create index dm_mu on deleted_messages(mailbox,uid);
 
 
 -- One entry per message, changeable by aox
