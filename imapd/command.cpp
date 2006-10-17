@@ -31,6 +31,7 @@
 #include "handlers/namespace.h"
 #include "handlers/noop.h"
 #include "handlers/rename.h"
+#include "handlers/resetkey.h"
 #include "handlers/search.h"
 #include "handlers/select.h"
 #include "handlers/starttls.h"
@@ -203,6 +204,8 @@ Command * Command::create( IMAP * imap,
             c = new Acl( Acl::MyRights );
         else if ( n == "view" )
             c = new View;
+        else if ( n == "resetkey" )
+            c = new ResetKey;
 
         if ( c ) {
             authenticated = true;
