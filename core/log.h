@@ -17,7 +17,7 @@ public:
         General,
         Configuration, Database, Authentication, IMAP, SMTP, Server
     };
-    enum Severity { Debug, Info, Error, Disaster };
+    enum Severity { Debug, Info, Significant, Error, Disaster };
 
     Log( Facility );
     void setFacility( Facility );

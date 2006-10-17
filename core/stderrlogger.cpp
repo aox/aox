@@ -32,6 +32,7 @@ void StderrLogger::send( const String &,
 {
     // we don't need to handle Disaster, Log already has done that
     if ( s == Log::Error ||
+         s == Log::Significant ||
          ( s == Log::Info && v >= 1 ) ||
          ( s == Log::Debug && v >= 2 ) ) 
         fprintf( stderr, "%s: %s\n", name().cstr(), m.cstr() );

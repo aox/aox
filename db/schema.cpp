@@ -144,6 +144,11 @@ void Schema::execute()
             d->state = 5;
         }
         else if ( d->revision == ::currentRevision ) {
+            if ( d->upgrade )
+                d->l->log( "Schema is already at revision " +
+                           fn( ::currentRevision ) +
+                           ", no upgrade necessary",
+                           Log::Significant );
             d->result->setState( Query::Completed );
             d->t->commit();
             d->state = 5;
@@ -151,7 +156,8 @@ void Schema::execute()
         else if ( d->upgrade && d->revision < ::currentRevision ) {
             d->l->log( "Updating schema from revision " +
                        fn( d->revision ) + " to revision " +
-                       fn( ::currentRevision ) );
+                       fn( ::currentRevision ),
+                       Log::Significant );
             d->state = 2;
         }
         else {
@@ -229,7 +235,8 @@ void Schema::execute()
         else if ( d->state == 6 ) {
             d->result->setState( Query::Completed );
             d->l->log( "Schema updated to revision " +
-                       fn( ::currentRevision ) );
+                       fn( ::currentRevision ),
+                       Log::Significant );
         }
         d->state = 7;
     }
@@ -238,6 +245,14 @@ void Schema::execute()
         d->state = 42;
         d->result->notify();
     }
+}
+
+
+/*! This private helper logs a \a description of the step currently being made. */
+
+void Schema::describe( const String & description )
+{
+    d->l->log( description, Log::Significant );
 }
 
 
@@ -327,7 +342,7 @@ bool Schema::singleStep()
 bool Schema::stepTo2()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Changing users.login/secret to text", Log::Debug );
+        describe( "Changing users.login/secret to text" );
         d->q = new Query( "alter table users add login2 text", this );
         d->t->enqueue( d->q );
         d->q = new Query( "update users set login2=login", this );
@@ -369,7 +384,7 @@ bool Schema::stepTo2()
 bool Schema::stepTo3()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Merging bodyparts and binary_parts", Log::Debug );
+        describe( "Merging bodyparts and binary_parts" );
         d->q = new Query( "alter table bodyparts add hash text", this );
         d->t->enqueue( d->q );
         d->q = new Query( "alter table bodyparts add data bytea", this );
@@ -499,7 +514,7 @@ bool Schema::stepTo3()
 bool Schema::stepTo4()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating flags from messages/extra_flags.", Log::Debug );
+        describe( "Creating flags from messages/extra_flags." );
         d->q = new Query( "alter table extra_flags rename to flags", this );
         d->t->enqueue( d->q );
         d->q = new Query( "insert into flag_names (name) values ($1)", this );
@@ -577,7 +592,7 @@ bool Schema::stepTo4()
 bool Schema::stepTo5()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Adding hf_mup, af_mu, fl_mu indices.", Log::Debug );
+        describe( "Adding hf_mup, af_mu, fl_mu indices." );
         d->q = new Query( "create index hf_mup on "
                           "header_fields (mailbox,uid,part)", this );
         d->t->enqueue( d->q );
@@ -607,7 +622,7 @@ bool Schema::stepTo5()
 bool Schema::stepTo6()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Moving bytes/lines to part_numbers.", Log::Debug );
+        describe( "Moving bytes/lines to part_numbers." );
         d->q = new Query( "alter table part_numbers add bytes integer",
                           this );
         d->t->enqueue( d->q );
@@ -643,7 +658,7 @@ bool Schema::stepTo6()
 bool Schema::stepTo7()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Adding header_fields.position.", Log::Debug );
+        describe( "Adding header_fields.position." );
         d->q = new Query( "alter table header_fields add "
                           "position integer", this );
         d->t->enqueue( d->q );
@@ -717,8 +732,7 @@ bool Schema::stepTo7()
 bool Schema::stepTo8()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Making address_fields refer to header_fields.",
-                Log::Debug );
+        d->l->log( "Making address_fields refer to header_fields." );
         d->q = new Query( "delete from address_fields", this );
         d->t->enqueue( d->q );
         d->q = new Query( "alter table address_fields drop field", this );
@@ -766,7 +780,7 @@ bool Schema::stepTo8()
 bool Schema::stepTo9()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Removing recent_messages.", Log::Debug );
+        describe( "Removing recent_messages." );
         d->q = new Query( "alter table mailboxes add "
                           "first_recent integer ", this );
         d->t->enqueue( d->q );
@@ -803,7 +817,7 @@ bool Schema::stepTo9()
 bool Schema::stepTo10()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Altering mailboxes_owner_fkey.", Log::Debug );
+        describe( "Altering mailboxes_owner_fkey." );
 
         String constraint = "mailboxes_owner_fkey";
         if ( d->version.startsWith( "7" ) )
@@ -837,7 +851,7 @@ bool Schema::stepTo10()
 bool Schema::stepTo11()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Deleting revisions.", Log::Debug );
+        describe( "Deleting revisions." );
         d->q = new Query( "drop sequence revisions", this );
         d->t->enqueue( d->q );
         d->t->execute();
@@ -860,7 +874,7 @@ bool Schema::stepTo11()
 bool Schema::stepTo12()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Reverting mailboxes_owner_fkey change.", Log::Debug );
+        describe( "Reverting mailboxes_owner_fkey change." );
         d->q = new Query( "alter table mailboxes drop constraint "
                           "\"mailboxes_owner_fkey\"", this );
         d->t->enqueue( d->q );
@@ -888,7 +902,7 @@ bool Schema::stepTo12()
 bool Schema::stepTo13()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating annotations/annotation_names.", Log::Debug );
+        describe( "Creating annotations/annotation_names." );
         d->q = new Query( "create table annotation_names"
                           "(id serial primary key, name text unique)",
                           this );
@@ -924,7 +938,7 @@ bool Schema::stepTo13()
 bool Schema::stepTo14()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating views/view_messages.", Log::Debug );
+        describe( "Creating views/view_messages." );
         d->q = new Query( "create table views ("
                           "id serial primary key,"
                           "source integer not null references mailboxes(id) "
@@ -966,7 +980,7 @@ bool Schema::stepTo14()
 bool Schema::stepTo15()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Altering subscriptions_owner_fkey.", Log::Debug );
+        describe( "Altering subscriptions_owner_fkey." );
 
         String ca( "subscriptions_owner_fkey" );
         String cb( "annotations_owner_fkey" );
@@ -1011,7 +1025,7 @@ bool Schema::stepTo15()
 bool Schema::stepTo16()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating aliases table.", Log::Debug );
+        describe( "Creating aliases table." );
         d->q = new Query( "create table aliases (address text,mailbox "
                           "integer not null references mailboxes(id))",
                           this );
@@ -1038,7 +1052,7 @@ bool Schema::stepTo16()
 bool Schema::stepTo17()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Recreating unified aliases table.", Log::Debug );
+        describe( "Recreating unified aliases table." );
         d->q = new Query( "drop table aliases", this );
         d->t->enqueue( d->q );
         d->q = new Query( "create table aliases (id serial primary key, "
@@ -1082,7 +1096,7 @@ bool Schema::stepTo17()
 bool Schema::stepTo18()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating scripts table.", Log::Debug );
+        describe( "Creating scripts table." );
         d->q = new Query( "create table scripts (id serial primary key,"
                           "owner integer not null references users(id),"
                           "name text, active boolean not null default 'f',"
@@ -1108,7 +1122,7 @@ bool Schema::stepTo18()
 bool Schema::stepTo19()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating date_fields table.", Log::Debug );
+        describe( "Creating date_fields table." );
         d->q = new Query( "create table date_fields (mailbox "
                           "integer not null, uid integer not null, "
                           "value timestamp with time zone, "
@@ -1136,7 +1150,7 @@ bool Schema::stepTo19()
 bool Schema::stepTo20()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Populating the date_fields table.", Log::Debug );
+        describe( "Populating the date_fields table." );
         d->q =
             new Query( "select count(substring(value from '^[^(]*')::timestamp "
                        "with time zone) from header_fields where field=(select "
@@ -1191,7 +1205,7 @@ bool Schema::stepTo20()
 bool Schema::stepTo21()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Removing fields from annotations table.", Log::Debug );
+        describe( "Removing fields from annotations table." );
         d->q = new Query( "alter table annotations drop type", this );
         d->t->enqueue( d->q );
         d->q = new Query( "alter table annotations drop language", this );
@@ -1221,7 +1235,7 @@ bool Schema::stepTo21()
 bool Schema::stepTo22()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Finding flag names that differ only in case.", Log::Debug );
+        describe( "Finding flag names that differ only in case." );
         d->q = new Query( "select a.id as to, b.id as from, a.name as name "
                           "from flag_names a, flag_names b "
                           "where a.id < b.id and lower(a.name)=lower(b.name) "
@@ -1285,7 +1299,7 @@ bool Schema::stepTo22()
 bool Schema::stepTo23()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating deleted_messages table.", Log::Debug );
+        describe( "Creating deleted_messages table." );
         d->q = new Query( "create table deleted_messages (mailbox "
                           "integer not null, uid integer not null, "
                           "deleted_by integer not null references "
@@ -1315,8 +1329,7 @@ bool Schema::stepTo23()
 bool Schema::stepTo24()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating threads/thread_messages if necessary.",
-                   Log::Debug );
+        describe( "Creating threads/thread_message" );
         d->q = new Query( "select * from information_schema.tables where "
                           "table_name='threads'", this );
         d->t->enqueue( d->q );
@@ -1363,7 +1376,7 @@ bool Schema::stepTo24()
 bool Schema::stepTo25()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating modsequences table.", Log::Debug );
+        describe( "Creating modsequences table." );
         String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create sequence nextmodsequence", this );
         d->t->enqueue( d->q );
@@ -1402,8 +1415,7 @@ bool Schema::stepTo25()
 bool Schema::stepTo26()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Altering deleted_messages.deleted_at to timestamptz.",
-                   Log::Debug );
+        describe( "Altering deleted_messages.deleted_at to timestamptz." );
         d->q = new Query( "alter table deleted_messages add dtz timestamp "
                           "with time zone", this );
         d->t->enqueue( d->q );
@@ -1441,7 +1453,7 @@ bool Schema::stepTo26()
 bool Schema::stepTo27()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Altering modsequences_mailbox_fkey.", Log::Debug );
+        describe( "Altering modsequences_mailbox_fkey." );
 
         String constraint = "modsequences_mailbox_fkey";
         if ( d->version.startsWith( "7" ) )
@@ -1476,7 +1488,7 @@ bool Schema::stepTo27()
 bool Schema::stepTo28()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating deliveries table.", Log::Debug );
+        describe( "Creating deliveries table." );
         String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create table deliveries (id serial primary key,"
                           "recipient integer not null references addresses(id),"
@@ -1512,7 +1524,7 @@ bool Schema::stepTo28()
 bool Schema::stepTo29()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Replacing views.suidnext with nextmodseq.", Log::Debug );
+        describe( "Replacing views.suidnext with nextmodseq." );
         d->q = new Query( "alter table views add nextmodseq bigint", this );
         d->t->enqueue( d->q );
         d->q = new Query( "update views set "
@@ -1543,7 +1555,7 @@ bool Schema::stepTo29()
 bool Schema::stepTo30()
 {
     if ( d->substate == 0 ) {
-        d->l->log( "Creating access_keys table.", Log::Debug );
+        describe( "Creating access_keys table." );
         String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create table access_keys (userid integer not null "
                           "references users(id) on delete cascade, mailbox "

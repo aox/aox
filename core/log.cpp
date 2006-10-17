@@ -91,6 +91,9 @@ const char *Log::severity( Severity s )
     case Log::Info:
         i = "info";
         break;
+    case Log::Significant:
+        i = "significant";
+        break;
     case Log::Error:
         i = "error";
         break;
