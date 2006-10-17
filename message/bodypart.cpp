@@ -448,6 +448,10 @@ static Codec * guessHtmlCodec( const String & body )
     including \a end) as a single bodypart with MIME/RFC 822 header \a h.
 
     This removes the "charset" argument from the Content-Type field in \a h.
+
+    The \a parent argument is provided so that nested message/rfc822
+    bodyparts without a Date field may be fixed with reference to the
+    Date field in the enclosing bodypart.
 */
 
 Bodypart * Bodypart::parseBodypart( uint start, uint end,
