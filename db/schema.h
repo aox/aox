@@ -56,6 +56,7 @@ private:
     bool stepTo27();
     bool stepTo28();
     bool stepTo29();
+    bool stepTo30();
 };
 
 

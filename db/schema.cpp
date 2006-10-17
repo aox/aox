@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 29;
+int currentRevision = 30;
 
 
 class SchemaData
@@ -307,6 +307,8 @@ bool Schema::singleStep()
         c = stepTo28(); break;
     case 28:
         c = stepTo29(); break;
+    case 29:
+        c = stepTo30(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ), Log::Disaster );
@@ -1505,7 +1507,7 @@ bool Schema::stepTo28()
 }
 
 
-/*! Create the deliveries table. */
+/*! Replace views.suidnext with nextmodseq. */
 
 bool Schema::stepTo29()
 {
@@ -1520,6 +1522,37 @@ bool Schema::stepTo29()
                           "set not null", this );
         d->t->enqueue( d->q );
         d->q = new Query( "alter table views drop suidnext", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create the access_keys table. */
+
+bool Schema::stepTo30()
+{
+    if ( d->substate == 0 ) {
+        d->l->log( "Creating access_keys table.", Log::Debug );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "create table access_keys (userid integer not null "
+                          "references users(id) on delete cascade, mailbox "
+                          "integer not null references mailboxes(id) on "
+                          "delete cascade, key text not null, "
+                          "primary key (userid, mailbox))", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "grant select,insert,update on access_keys "
+                          "to " + dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
