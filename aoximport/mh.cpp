@@ -96,7 +96,7 @@ MigratorMessage * MhMailbox::nextMessage()
         if ( dir ) {
             struct dirent * de = readdir( dir );
             while ( de ) {
-                if ( de->d_name[0] >= '1' && de->d_name[0] <= '9' ) {
+                if ( de->d_name[0] >= '0' && de->d_name[0] <= '9' ) {
                     String n( de->d_name );
                     bool ok = false;
                     uint number = n.number( &ok );
