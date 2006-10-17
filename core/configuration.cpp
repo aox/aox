@@ -183,7 +183,7 @@ static struct {
     { "imaps-address", Configuration::ImapsAddress, "" },
     { "smtp-address", Configuration::SmtpAddress, "" },
     { "lmtp-address", Configuration::LmtpAddress, "127.0.0.1" },
-    { "smtp-submit-address", Configuration::SmtpSubmitAddress, "" },
+    { "smtp-submit-address", Configuration::SmtpSubmitAddress, "127.0.0.1" },
     { "http-address", Configuration::HttpAddress, "127.0.0.1" },
     { "tls-certificate", Configuration::TlsCertFile, "" },
     { "log-level", Configuration::LogLevel, "info" },
