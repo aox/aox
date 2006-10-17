@@ -31,6 +31,7 @@
     RFC 3516: BINARY
     RFC 4469: CATENATE
     RFC 4551: CONDSTORE
+    RFC 4467: URLAUTH
 
     We also announce a number of draft capabilities, if the
     configuration variable announce-draft-support is set to true. By
@@ -81,6 +82,7 @@ String Capability::capabilities( IMAP * i )
         c.append( "STARTTLS" );
     c.append( "UIDPLUS" );
     c.append( "UNSELECT" );
+    c.append( "URLAUTH" );
     if ( drafts )
         c.append( "VIEW" );
 
