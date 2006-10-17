@@ -467,14 +467,29 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     bp->setParent( parent );
     bp->setHeader( h );
 
+    String body;
+    if ( end > start )
+        body = rfc2822.mid( start, end-start );
+    if ( !body.contains( '=' ) ) {
+        // sometimes people send c-t-e: q-p _and_ c-t-e: 7bit or 8bit.
+        // if they are equivalent we can accept it.
+        uint i = 0;
+        bool any = false;
+        HeaderField * f = 0;
+        while ( (f=h->field( HeaderField::ContentTransferEncoding, i )) != 0 ) {
+            if ( ((ContentTransferEncoding*)f)->encoding() == String::QP )
+                any = true;
+            i++;
+        }
+        if ( any && i > 1 )
+            h->removeField( HeaderField::ContentTransferEncoding );
+    }
+
     String::Encoding e = String::Binary;
     ContentTransferEncoding * cte = h->contentTransferEncoding();
     if ( cte )
         e = cte->encoding();
-
-    String body;
-    if ( end > start )
-        body = rfc2822.mid( start, end-start ).crlf().decode( e );
+    body = body.crlf().decode( e );
 
     ContentType * ct = h->contentType();
     if ( !ct ) {
