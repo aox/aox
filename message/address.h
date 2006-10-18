@@ -39,6 +39,8 @@ public:
 
     bool localpartIsSensible() const;
 
+    void clone( const Address & );
+
 private:
     class AddressData * d;
 
