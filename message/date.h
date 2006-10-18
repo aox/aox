@@ -23,14 +23,15 @@ public:
     String isoDate() const;
     String isoTime() const;
     int offset() const;
-    void setDate( uint, const String &, uint,
-                  uint, uint, uint,
-                  int );
+
+    void setDate( uint, uint, uint, uint, uint, uint, int );
+    void setDate( uint, const String &, uint, uint, uint,
+                  uint, int );
 
     bool valid() const;
 
 private:
-    class /* oooh! what a lovely name! */ DateData * d;
+    class DateData * d;
 };
 
 

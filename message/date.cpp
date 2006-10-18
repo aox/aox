@@ -656,14 +656,14 @@ String Date::imap() const
     becomes invalid.
 */
 
-void Date::setDate( uint year, const String & month, uint day,
+void Date::setDate( uint year, uint month, uint day,
                     uint hour, uint minute, uint second,
                     int zone )
 {
     d->reset();
 
     d->year = year;
-    d->month = ::month( month );
+    d->month = month;
     d->day = day;
     d->hour = hour;
     d->minute = minute;
@@ -674,6 +674,21 @@ void Date::setDate( uint year, const String & month, uint day,
          d->second <= 60 && d->minute <= 59 && d->hour <= 23 &&
          d->day <= 31 && d->hour >= 0 )
         d->valid = true;
+}
+
+
+/*! \overload
+    A version of setDate() that takes a \a month name instead of a
+    number, for use with IMAP (as opposed to ISO) date-time. The
+    \a year, \a day, \a hour, \a minute, \a second, and \a zone
+    arguments are handled identically.
+*/
+
+void Date::setDate( uint year, const String & month, uint day,
+                    uint hour, uint minute, uint second,
+                    int zone )
+{
+    setDate( year, ::month( month ), day, hour, minute, second, zone );
 }
 
 
