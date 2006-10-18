@@ -526,6 +526,16 @@ void Date::setRfc822( const String & s )
     }
 
     d->valid = true;
+
+    if ( d->tz < 14*60 && d->tz >-14*60 )
+        return; // fine.
+
+    // some spammers use time zones like +1900, and about 5,000 people
+    // in the eastern part of Kiribati use timezone +1400. since
+    // postgres cannot store that, we convert the date to GMT, or
+    // rather to -0000.
+    setUnixTime( unixTime() );
+    d->minus0 = true;
 }
 
 
