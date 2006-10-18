@@ -28,6 +28,9 @@ public:
     uint uid() const;
     String section() const;
     class Date * expires() const;
+    String access() const;
+    String mechanism() const;
+    String urlauth() const;
 
 private:
     void parse( const String & );

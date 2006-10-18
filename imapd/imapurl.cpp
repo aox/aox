@@ -24,6 +24,7 @@ public:
     bool hostport( String &, uint * );
     bool hasUid();
     Date * isoTimestamp();
+    String urlauth();
 };
 
 
@@ -59,6 +60,9 @@ public:
     uint uid;
     String section;
     Date * expires;
+    String access;
+    String mechanism;
+    String urlauth;
 };
 
 
@@ -158,10 +162,29 @@ void ImapUrl::parse( const String & s )
             return;
     }
 
+    // RFC 4467 additions:
+    // [ ";EXPIRE=" date-time ] ";URLAUTH=" access ":" mechanism ":" urlauth
+
     if ( p->nextChar() == ';' ) {
-        if ( p->present( ";EXPIRE=" ) )
+        if ( p->present( ";expire=" ) )
             d->expires = p->isoTimestamp();
-        // ...
+        p->require( ";urlauth=" );
+        if ( p->present( "submit+" ) )
+            d->access = "submit+" + p->xchars();
+        else if ( p->present( "user+" ) )
+            d->access = "user+" + p->xchars();
+        else if ( p->present( "authuser" ) )
+            d->access = "authuser";
+        else if ( p->present( "anonymous" ) )
+            d->access = "anonymous";
+        else
+            return;
+        if ( p->present( ":" ) ) {
+            p->require( "internal" );
+            p->require( ":" );
+            d->urlauth = p->urlauth();
+            d->mechanism = "internal";
+        }
     }
 
     p->end();
@@ -269,6 +292,36 @@ String ImapUrl::section() const
 Date * ImapUrl::expires() const
 {
     return d->expires;
+}
+
+
+/*! Returns the "access" part of the URLAUTH specified for this URL, or
+    an empty string if none was specified.
+*/
+
+String ImapUrl::access() const
+{
+    return d->access;
+}
+
+
+/*! Returns the name of the authorization mechanism specified for this
+    URL, or an empty string if no URLAUTH was specified.
+*/
+
+String ImapUrl::mechanism() const
+{
+    return d->mechanism;
+}
+
+
+/*! Returns the URLAUTH token specified for this URL, or an empty string
+    if no URLAUTH was specified.
+*/
+
+String ImapUrl::urlauth() const
+{
+    return d->urlauth;
 }
 
 
@@ -462,4 +515,31 @@ Date * ImapUrlParser::isoTimestamp()
     }
 
     return d;
+}
+
+
+/*! Extracts and returns a sequence of at least 32 hexadecimal digits,
+    advancing the cursor past its end. It is an error if fewer than 32
+    digits are available at the cursor.
+*/
+
+String ImapUrlParser::urlauth()
+{
+    String s;
+
+    char c = nextChar();
+    while ( ( c >= '0' && c <= '9' ) ||
+            ( c >= 'a' && c <= 'f' ) ||
+            ( c >= 'A' && c <= 'F' ) )
+    {
+        step();
+        s.append( c );
+        c = nextChar();
+    }
+
+    if ( s.length() < 32 )
+        setError( "Expected at least 32 hex digits, but saw only " +
+                  fn( s.length() ) );
+
+    return s;
 }
