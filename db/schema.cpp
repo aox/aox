@@ -1596,6 +1596,9 @@ bool Schema::stepTo31()
         d->q = new Query( "create index dm_mu on deleted_messages(mailbox, "
                           "uid)", this );
         d->t->enqueue( d->q );
+        d->q = new Query( "create index pn_b on part_numbers(bodypart)",
+                          this );
+        d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
     }

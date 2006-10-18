@@ -146,6 +146,7 @@ create table part_numbers (
                 on delete cascade,
     primary key (mailbox, uid, part)
 );
+create index pn_b on part_numbers(bodypart);
 
 
 -- One entry for each field name we've seen (From, To, Subject, etc.).
