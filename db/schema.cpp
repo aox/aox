@@ -154,7 +154,7 @@ void Schema::execute()
             d->state = 5;
         }
         else if ( d->upgrade && d->revision < ::currentRevision ) {
-            d->l->log( "Updating schema from revision " +
+            d->l->log( "Upgrading schema from revision " +
                        fn( d->revision ) + " to revision " +
                        fn( ::currentRevision ) + ".",
                        Log::Significant );
@@ -234,7 +234,7 @@ void Schema::execute()
         }
         else if ( d->state == 6 ) {
             d->result->setState( Query::Completed );
-            d->l->log( "Schema updated to revision " +
+            d->l->log( "Schema upgraded to revision " +
                        fn( ::currentRevision ) + ".",
                        Log::Significant );
         }
