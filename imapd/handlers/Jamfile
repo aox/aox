@@ -11,6 +11,7 @@ Build imap :
     delete.cpp
     expunge.cpp
     fetch.cpp
+    genurlauth.cpp
     id.cpp
     idle.cpp
     listext.cpp

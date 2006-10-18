@@ -22,6 +22,7 @@
 #include "handlers/delete.h"
 #include "handlers/expunge.h"
 #include "handlers/fetch.h"
+#include "handlers/genurlauth.h"
 #include "handlers/id.h"
 #include "handlers/idle.h"
 #include "handlers/listext.h"
@@ -206,6 +207,8 @@ Command * Command::create( IMAP * imap,
             c = new View;
         else if ( n == "resetkey" )
             c = new ResetKey;
+        else if ( n == "genurlauth" )
+            c = new GenUrlauth;
 
         if ( c ) {
             authenticated = true;
