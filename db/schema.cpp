@@ -227,7 +227,7 @@ void Schema::execute()
             String s;
             if ( d->upgrade )
                 s = "The schema could not be upgraded to revision " +
-                    fn( ::currentRevision );
+                    fn( ::currentRevision ) + ".";
             else
                 s = "The schema could not be validated.";
             fail( s, d->t->failedQuery() );
