@@ -247,7 +247,10 @@ void * Allocator::allocate( uint size, uint pointers )
                             log( "Internal error in allocate" );
                         die( Memory );
                     }
-                    b->x.number = pointers;
+                    if ( pointers >= 32768 )
+                        b->x.number = 32767;
+                    else
+                        b->x.number = pointers;
                     b->x.magic = ::magic;
                     marked[base/bits] &= ~( 1UL << j );
                     used[base/bits] |= ( 1UL << j );
@@ -374,6 +377,10 @@ void Allocator::mark()
         AllocationBlock * b = stack[--tos];
         // mark its children
         uint n = b->x.number;
+        if ( n == 32767 ) {
+            Allocator * a = owner( b );
+            n = a->step - bytes;
+        }
         while ( n ) {
             n--;
             if ( b->payload[n] )
