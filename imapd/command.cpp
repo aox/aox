@@ -40,6 +40,7 @@
 #include "handlers/store.h"
 #include "handlers/subscribe.h"
 #include "handlers/unselect.h"
+#include "handlers/urlfetch.h"
 #include "handlers/view.h"
 
 #include <sys/time.h> // gettimeofday, struct timeval
@@ -209,6 +210,8 @@ Command * Command::create( IMAP * imap,
             c = new ResetKey;
         else if ( n == "genurlauth" )
             c = new GenUrlauth;
+        else if ( n == "urlfetch" )
+            c = new UrlFetch;
 
         if ( c ) {
             authenticated = true;

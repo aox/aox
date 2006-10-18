@@ -29,6 +29,7 @@ Build imap :
     store.cpp
     subscribe.cpp
     unselect.cpp
+    urlfetch.cpp
     view.cpp
     ;
 
