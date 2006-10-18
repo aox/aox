@@ -652,25 +652,23 @@ String Selector::whereHeaderField()
     root()->d->needHeaderFields = true;
 
     uint fnum = placeHolder();
-    root()->d->query->bind( fnum, d->s8 );
-    if ( d->s16.isEmpty() )
-        return
-            "hf.field=(select id from field_names where name=$" +
-            fn( fnum ) + ")";
-
-    uint like = placeHolder();
     uint t = FieldNameCache::translate( d->s8 );
-    if ( !t ) {
-        root()->d->query->bind( like, q( d->s16 ) );
-        return
-            "(hf.value ilike " + matchAny( like ) + " and "
-            "hf.field=(select id from field_names where name=$" + fn( fnum ) + "))";
+    String r;
+    if ( t ) {
+        r = "hf.field=$" + fn( fnum );
+        root()->d->query->bind( fnum, t );
+    }
+    else {
+        r = "hf.field=(select id from field_names where name=$" + fn( fnum ) + ")";
+        root()->d->query->bind( fnum, d->s8 );
     }
 
-    root()->d->query->bind( like, t );
-        return
-            "(hf.value ilike " + matchAny( like ) + " and "
-            "hf.field=$" + fn( fnum ) + ")";
+    if ( d->s16.isEmpty() )
+        return r;
+    
+    uint like = placeHolder();
+    root()->d->query->bind( like, q( d->s16 ) );
+    return "(" + r + " and hf.value ilike " + matchAny( like ) + ")";
 }
 
 
