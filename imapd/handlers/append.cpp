@@ -103,11 +103,37 @@ void Append::parse()
     }
 
     if ( present( "\"" ) ) {
-        d->date = parser()->dateTime();
-        if ( !parser()->ok() )
-            error( Bad, parser()->error() );
+        uint day;
+        if ( nextChar() == ' ' ) {
+            space();
+            day = number( 1 );
+        }
+        else {
+            day = number( 2 );
+        }
+        require( "-" );
+        String month = letters( 3, 3 );
+        require( "-" );
+        uint year = number( 4 );
+        space();
+        uint hour = number( 2 );
+        require( ":" );
+        uint minute = number( 2 );
+        require( ":" );
+        uint second = number( 2 );
+        space();
+        int zone = 1;
+        if ( nextChar() == '-' )
+            zone = -1;
+        else if ( nextChar() != '+' )
+            error( Bad, "Time zone must start with + or -" );
+        step();
+        zone = zone * ( ( 60 * number( 2 ) ) + number( 2 ) );
         require( "\"" );
         space();
+        d->date.setDate( year, month, day, hour, minute, second, zone );
+        if ( !d->date.valid() )
+            error( Bad, "Date supplied is not valid" );
     }
 
     if ( present( "ANNOTATION " ) ) {
@@ -214,6 +240,17 @@ void Append::parse()
     }
 
     end();
+}
+
+
+/*! This new version of number() demands \a n digits and returns the
+    number.
+*/
+
+uint Append::number( uint n )
+{
+    String tmp = digits( n, n );
+    return tmp.number( 0 );
 }
 
 
