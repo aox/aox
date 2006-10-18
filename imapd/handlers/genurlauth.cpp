@@ -14,7 +14,9 @@
 #include "user.h"
 
 
-struct UrlKey {
+struct UrlKey
+    : public Garbage
+{
     UrlKey( ImapUrl * u )
         : q( 0 ), url( u ), mailbox( 0 )
     {}
