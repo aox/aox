@@ -379,7 +379,7 @@ void Allocator::mark()
         uint n = b->x.number;
         if ( n == 32767 ) {
             Allocator * a = owner( b );
-            n = a->step - bytes;
+            n = ( a->step - bytes ) / sizeof( void* );
         }
         while ( n ) {
             n--;
