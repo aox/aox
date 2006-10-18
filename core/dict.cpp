@@ -74,12 +74,14 @@ public:
 */
 
 
-/*! Constructs an empty dictionary. */
+/*! Constructs an empty dictionary with \a size buckets. The
+    dictionary will be really fast up to around two thirds or three
+    fourths of \a size items, then it grows slower. */
 
-DictBase::DictBase()
+DictBase::DictBase( uint size )
     : d( new DictBaseData )
 {
-    resize( 257 );
+    resize( size );
 }
 
 

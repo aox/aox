@@ -9,7 +9,7 @@ class DictBase
     : public Garbage
 {
 protected:
-    DictBase();
+    DictBase( uint size );
 
     bool contains( const String & ) const;
     void * find( const String & ) const;
@@ -31,7 +31,7 @@ private:
 template<class T>
 class Dict: public DictBase {
 public:
-    Dict() {} // more?
+    Dict( uint size = 257 ): DictBase( size ) {} // more?
 
     T * find( const String & s ) const { return (T*)DictBase::find( s ); }
     void insert( const String & s, T* r ) { DictBase::insert( s, r ); }

@@ -1022,8 +1022,7 @@ void Address::uniquify( List<Address> * l )
     if ( !l || l->isEmpty() )
         return;
 
-    Dict<Address> unique;
-    unique.resize( 65537 );
+    Dict<Address> unique( 65537 );
 
     List<Address>::Iterator it( l );
     while ( it ) {
