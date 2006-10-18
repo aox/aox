@@ -620,6 +620,7 @@ void Injector::buildAddressLinks()
     d->addressLinks = new List< AddressLink >;
     List< Address > * addresses = new List< Address >;
     Dict< Address > unique;
+    unique.resize( 65537 );
 
     int i = 1;
     List< HeaderField >::Iterator it( d->message->header()->fields() );

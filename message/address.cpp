@@ -1023,6 +1023,7 @@ void Address::uniquify( List<Address> * l )
         return;
 
     Dict<Address> unique;
+    unique.resize( 65537 );
 
     List<Address>::Iterator it( l );
     while ( it ) {
