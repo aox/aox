@@ -1124,10 +1124,8 @@ Todo list: AMS
     The problems mentioned earlier were found to affect only testlib's
     threading, and were thus not relevant to us. I sent a bug report to
     Peter, and am now updating our in-source tree.
-  - Fix the failing tests inspired by Harri's message.
   - Figure out why tlsproxy segfaults on Thomas's box.
   - Go through ANNOTATE and make sure we have and test everything.
-  - aox upgrade schema should say something comforting.
   - Fix imap/view and the recent problems.
   - Figure out the Injector upper bound on Injector speed.
   - Log single-row query values?
@@ -1138,17 +1136,12 @@ Todo list: AMS
   - Investigate Scalix/Zimbra/TeamXchange.
   - Make sure LIKE parameters in selector.cpp (whereAddressField in
     particular) are [\%_]-escaped as in q().
-  - Why does Flag::find( "\\seen" ) return 0 if used in Session?
   - Make Schema::check independent of upgrade so that we can revoke
     update on mailstore from aox.
   - Restart Postgres while we're running, and see what happens. We
     should be able to cope with that gracefully, but we don't.
   - We seem to be mangling Tom Simnett's PGP-signed email. Get him to
     send something to ams@toroid.org and make a canonical test case.
-  - Expunge::expunge() seems to use permitted() in a strange way that
-    needs to be looked at. I'm leaving it alone for 1.11 because the
-    failure mode doesn't seem too bad, and because it's not the common
-    case anyway.
   - Use Ethereal to snoop on Thunderbird talking to OpenLDAP to query
     an address book.
   - aox start should say "already running" if that's true.
