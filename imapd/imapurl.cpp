@@ -5,6 +5,34 @@
 #include "imap.h"
 #include "mailbox.h"
 #include "imapsession.h"
+#include "imapparser.h"
+
+
+class ImapUrlParser
+    : public ImapParser
+{
+public:
+    ImapUrlParser( const String &s )
+        : ImapParser( s )
+    {}
+
+    bool hasIuserauth();
+    bool unreserved( char );
+    bool escape( char * );
+    String xchars( bool = false );
+    bool hostport( String &, uint * );
+    bool hasUid();
+};
+
+
+/*! \class ImapUrlParser imapurl.cpp
+    Provides functions used to parse RFC 2192 productions.
+
+    This class inherits from ImapParser, is used internally by ImapUrl
+    to parse various components of an IMAP URL as defined in RFC 2192,
+    which relies on the IMAP grammar in RFC 2060 (hence the derivation
+    from ImapParser).
+*/
 
 
 class ImapUrlData
@@ -12,15 +40,13 @@ class ImapUrlData
 {
 public:
     ImapUrlData()
-        : valid( false ), imap( 0 ), i( 0 ), port( 143 ),
+        : valid( false ), imap( 0 ), port( 143 ),
           uidvalidity( 0 ), uid( 0 )
     {}
 
     bool valid;
 
     const IMAP * imap;
-    uint i;
-    String s;
 
     String user;
     String auth;
@@ -78,61 +104,60 @@ ImapUrl::ImapUrl( const IMAP * imap, const String & s )
 
 void ImapUrl::parse( const String & s )
 {
-    d->s = s;
+    ImapUrlParser * p = new ImapUrlParser( s );
 
-    // imapurl = "imap://" [ iuserauth "@" ] hostport "/" icommand
+    // imapurl = "imap://" iserver "/" icommand
 
     if ( !d->imap ) {
-        if ( !stepOver( "imap://" ) )
+        if ( !p->present( "imap://" ) )
             return;
 
+        // iserver = [ iuserauth "@" ] hostport
         // iuserauth = enc_user [iauth] / [enc_user] iauth
 
-        int slash = d->s.find( '/', d->i );
-        if ( slash < 0 )
-            return;
-
-        String iserver( d->s.mid( d->i, slash-d->i ) );
-        if ( iserver.contains( "@" ) ) {
-            d->user = xchars();
-            if ( stepOver( ";AUTH=" ) )
-                d->auth = xchars();
+        if ( p->hasIuserauth() ) {
+            d->user = p->xchars();
+            if ( p->present( ";AUTH=" ) )
+                d->auth = p->xchars();
             else if ( d->user.isEmpty() )
                 return;
-
-            if ( !stepOver( "@" ) )
+            if ( !p->present( "@" ) )
                 return;
         }
 
-        if ( !hostport() )
+        if ( !p->hostport( d->host, &d->port ) )
             return;
 
-        if ( !stepOver( "/" ) )
+        if ( !p->present( "/" ) )
             return;
     }
 
     // icommand = enc_mailbox [uidvalidity] iuid [isection]
 
-    if ( !( d->imap && d->imap->session() ) ||
-         !d->s.mid( 0, 6 ).lower().startsWith( "/;uid=" ) )
-    {
-        d->mailbox = xchars( true );
+    if ( !( d->imap && d->imap->session() ) || !p->hasUid() ) {
+        d->mailbox = p->xchars( true );
         if ( d->mailbox.isEmpty() )
             return;
 
-        if ( stepOver( ";uidvalidity=" ) )
-            if ( !number( &d->uidvalidity ) )
+        if ( p->present( ";uidvalidity=" ) ) {
+            d->uidvalidity = p->nzNumber();
+            if ( !p->ok() )
                 return;
+        }
     }
 
-    if ( !stepOver( "/;uid=" ) || !number( &d->uid ) )
-        return;
+    p->require( "/;uid=" );
+    d->uid = p->number();
 
-    if ( stepOver( "/;section=" ) ) {
-        d->section = xchars( true );
+    if ( p->present( "/;section=" ) ) {
+        d->section = p->xchars( true );
         if ( d->section.isEmpty() )
             return;
     }
+
+    p->end();
+    if ( !p->ok() )
+        return;
 
     d->valid = true;
 }
@@ -145,170 +170,6 @@ void ImapUrl::parse( const String & s )
 bool ImapUrl::valid() const
 {
     return d->valid;
-}
-
-
-/*! If \a s occurs (irrespective of case) at the current position in the
-    URL we're parsing, this function updates the current position to the
-    first character after its occurrence and returns true. Otherwise, it
-    returns false without affecting the current position.
-*/
-
-bool ImapUrl::stepOver( const String & s )
-{
-    if ( d->s.mid( d->i, s.length() ).lower() == s.lower() ) {
-        d->i += s.length();
-        return true;
-    }
-
-    return false;
-}
-
-
-/*! Returns true only if \a c is acceptable to the unreserved production
-    in RFC 1738, and false otherwise.
-*/
-
-bool ImapUrl::unreserved( char c )
-{
-    return ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) ||
-             ( c >= '0' && c <= '9' ) ||
-             ( c == '$' || c == '-' || c == '_' || c == '.' || c == '+' ) ||
-             ( c == '!' || c == '*' || c == ',' || c == '(' || c == ')' ||
-               c == '\'' ) );
-}
-
-
-/*! If a %xx escape occurs at the current position in this URL, this
-    function sets the character pointed to by \a c to the value of the
-    escaped character, steps past the escape sequence, and returns true.
-    Otherwise it returns false without affecting either the position or
-    whatever \a c points to.
-*/
-
-bool ImapUrl::escape( char * c )
-{
-    if ( d->s[d->i] == '%' ) {
-        bool ok;
-        uint p = d->s.mid( d->i+1, 2 ).number( &ok, 16 );
-        if ( ok ) {
-            d->i += 2;
-            *c = (char)p;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
-/*! If a valid IMAP nz-number occurs at the current position in the URL,
-    this function sets the uint pointed to by \a n to its value, changes
-    the current position to point past the number, and returns true. If
-    no valid number occurs, the function returns false without altering
-    the current position (though it may alter what \a n points to).
-*/
-
-bool ImapUrl::number( uint * n )
-{
-    uint j = d->i;
-
-    if ( d->s[j] == '0' )
-        return false;
-    while ( j < d->s.length() &&
-            ( d->s[j] >= '0' && d->s[j] <= '9' ) )
-        j++;
-
-    bool ok;
-    *n = d->s.mid( d->i, j-d->i ).number( &ok );
-    if ( ok && *n != 0 ) {
-        d->i = j;
-        return true;
-    }
-
-    return false;
-}
-
-
-/*! Steps over and returns a (possibly empty) sequence of characters at
-    the current position in this URL. If \a b is false, which it is by
-    default, characters matching achar are accepted; if \a b is true,
-    characters matching bchar are accepted instead.
-*/
-
-String ImapUrl::xchars( bool b )
-{
-    String s;
-
-    while ( d->i < d->s.length() ) {
-        char c = d->s[d->i];
-
-        if ( unreserved( c ) || ( c == '&' || c == '=' || c == '~' ) ||
-             ( b && ( c == ':' || c == '@' || c == '/' ) ) ||
-             escape( &c ) )
-        {
-            // We won't eat the beginning of "/;UID".
-            if ( b && c == '/' && d->s[d->i+1] == ';' )
-                break;
-            s.append( c );
-        }
-        else {
-            break;
-        }
-
-        d->i++;
-    }
-
-    return s;
-}
-
-
-/*! Parses and steps over an RFC 1738 hostport production at the current
-    position in the URL we're parsing. Returns true if it encountered a
-    valid hostport, and false otherwise.
-*/
-
-bool ImapUrl::hostport()
-{
-    // We're very laid-back about parsing the "host" production. About
-    // the only thing we'll reject is -foo.com, and not doing so would
-    // make the loop below twice as simple.
-
-    char c = d->s[d->i];
-    while ( ( (c|0x20) >= 'a' && (c|0x20) <= 'z' ) ||
-            ( c >= '0' && c <= '9' ) )
-    {
-        d->host.append( c );
-        d->i++;
-
-        c = d->s[d->i];
-        while ( ( (c|0x20) >= 'a' && (c|0x20) <= 'z' ) ||
-                ( c >= '0' && c <= '9' ) ||
-                ( c == '-' ) )
-        {
-            d->host.append( c );
-            d->i++;
-
-            c = d->s[d->i];
-        }
-
-        if ( c == '.' ) {
-            d->host.append( c );
-            d->i++;
-            c = d->s[d->i];
-        }
-    }
-
-    if ( d->host.isEmpty() )
-        return false;
-
-    if ( d->s[d->i] == ':' ) {
-        d->i++;
-        if ( !number( &d->port ) )
-            return false;
-    }
-
-    return true;
 }
 
 
@@ -342,4 +203,154 @@ uint ImapUrl::uid() const
 String ImapUrl::section() const
 {
     return d->section;
+}
+
+
+/*! This function returns true if an (optional) iuserauth component is
+    present in the iserver specification. It expects the cursor to be
+    just after the "//" following the scheme on entry, and leaves its
+    position unchanged.
+*/
+
+bool ImapUrlParser::hasIuserauth()
+{
+    int slash = str.find( '/', at );
+    if ( slash < 0 )
+        return false;
+    return str.mid( at, slash-at ).contains( "@" );
+}
+
+
+/*! Returns true only if \a c is acceptable to the unreserved production
+    in RFC 1738, and false otherwise.
+*/
+
+bool ImapUrlParser::unreserved( char c )
+{
+    return ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) ||
+             ( c >= '0' && c <= '9' ) ||
+             ( c == '$' || c == '-' || c == '_' || c == '.' || c == '+' ) ||
+             ( c == '!' || c == '*' || c == ',' || c == '(' || c == ')' ||
+               c == '\'' ) );
+}
+
+
+/*! If a %xx escape occurs at the current position in this URL, this
+    function sets the character pointed to by \a c to the value of the
+    escaped character, steps past the escape sequence, and returns true.
+    Otherwise it returns false without affecting either the position or
+    whatever \a c points to.
+*/
+
+bool ImapUrlParser::escape( char * c )
+{
+    if ( nextChar() == '%' ) {
+        bool ok;
+        uint p = str.mid( at+1, 2 ).number( &ok, 16 );
+        if ( ok ) {
+            step( 3 );
+            *c = (char)p;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/*! Steps over and returns a (possibly empty) sequence of characters at
+    the current position in this URL. If \a b is false, which it is by
+    default, characters matching achar are accepted; if \a b is true,
+    characters matching bchar are accepted instead.
+*/
+
+String ImapUrlParser::xchars( bool b )
+{
+    String s;
+
+    char c = nextChar();
+    while ( c != '\0' ) {
+        if ( unreserved( c ) || ( c == '&' || c == '=' || c == '~' ) ||
+             ( b && ( c == ':' || c == '@' || c == '/' ) ) )
+        {
+            // Nasty hack: we won't eat the beginning of "/;UID".
+            if ( b && c == '/' && str[at+1] == ';' )
+                break;
+
+            s.append( c );
+            step();
+        }
+        else if ( c == '%' && escape( &c ) ) {
+            s.append( c );
+        }
+        else {
+            break;
+        }
+
+        c = nextChar();
+    }
+
+    return s;
+}
+
+
+/*! Parses and steps over an RFC 1738 hostport production at the current
+    position in the URL we're parsing. Returns true if it encountered a
+    valid hostport, and false otherwise. Stores the extracted values in
+    \a host and \a port.
+*/
+
+bool ImapUrlParser::hostport( String & host, uint * port )
+{
+    // We're very laid-back about parsing the "host" production. About
+    // the only thing we'll reject is -foo.com, and not doing so would
+    // make the loop below twice as simple.
+
+    char c = nextChar();
+    while ( ( (c|0x20) >= 'a' && (c|0x20) <= 'z' ) ||
+            ( c >= '0' && c <= '9' ) )
+    {
+        host.append( c );
+        step();
+
+        c = nextChar();
+        while ( ( (c|0x20) >= 'a' && (c|0x20) <= 'z' ) ||
+                ( c >= '0' && c <= '9' ) ||
+                ( c == '-' ) )
+        {
+            host.append( c );
+            step();
+            c = nextChar();
+        }
+
+        if ( c == '.' ) {
+            host.append( c );
+            step();
+            c = nextChar();
+        }
+    }
+
+    if ( host.isEmpty() )
+        return false;
+
+    *port = 143;
+    if ( nextChar() == ':' ) {
+        step();
+        *port = nzNumber();
+        if ( !ok() )
+            return false;
+    }
+
+    return true;
+}
+
+
+/*! Returns true only if the cursor points to "/;uid=", and false
+    otherwise. It does not affect the position of the cursor in
+    either case.
+*/
+
+bool ImapUrlParser::hasUid()
+{
+    return ( str.mid( at, at+6 ).lower() == "/;uid=" );
 }
