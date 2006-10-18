@@ -182,6 +182,8 @@ Allocator::Allocator( uint s )
     uint bl = sizeof( ulong ) * (capacity + bits - 1)/bits;
     used = (ulong*)::malloc( bl );
     marked = (ulong*)::malloc( bl );
+    if ( !buffer || !used || !marked )
+        die( Memory );
 
     memset( buffer, 0, l );
     memset( used, 0, bl );
@@ -359,6 +361,8 @@ void Allocator::mark( void * p )
     // yes. put it on the stack so the children, too, can be marked.
     if ( !stack ) {
         stack = (AllocationBlock**)malloc( 524288 * sizeof(AllocationBlock *) );
+        if ( !stack )
+            die( Memory );
         tos = 0;
     }
     stack[tos++] = b;
