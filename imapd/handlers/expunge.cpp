@@ -77,13 +77,16 @@ void Expunge::parse()
 
 bool Expunge::expunge( bool chat )
 {
-    if ( !d->q ) {
+    if ( !d->s ) {
         d->s = imap()->session();
         if ( !d->s || !d->s->mailbox() ) {
             error( No, "No mailbox to expunge" );
             return true;
         }
         requireRight( d->s->mailbox(), Permissions::Expunge );
+    }
+
+    if ( !d->q ) {
         if ( !permitted() )
             return !ok();
 
