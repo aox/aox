@@ -63,6 +63,8 @@ public:
     String access;
     String mechanism;
     String urlauth;
+
+    String orig;
 };
 
 
@@ -111,6 +113,7 @@ ImapUrl::ImapUrl( const IMAP * imap, const String & s )
 
 void ImapUrl::parse( const String & s )
 {
+    d->orig = s;
     ImapUrlParser * p = new ImapUrlParser( s );
 
     // imapurl = "imap://" iserver "/" icommand
@@ -322,6 +325,17 @@ String ImapUrl::mechanism() const
 String ImapUrl::urlauth() const
 {
     return d->urlauth;
+}
+
+
+/*! Returns the unmodified original input passed to the ImapUrl
+    constructor, without regard to whether the URL is valid() or
+    not.
+*/
+
+String ImapUrl::orig() const
+{
+    return d->orig;
 }
 
 

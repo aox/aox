@@ -32,6 +32,8 @@ public:
     String mechanism() const;
     String urlauth() const;
 
+    String orig() const;
+
 private:
     void parse( const String & );
 
