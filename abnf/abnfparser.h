@@ -23,7 +23,7 @@ public:
     void require( const String & );
     String digits( uint, uint );
     String letters( uint, uint );
-    uint number( uint = 0 );
+    uint number();
     void end();
     const String following() const;
 

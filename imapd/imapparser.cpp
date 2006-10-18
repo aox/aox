@@ -405,21 +405,21 @@ Date ImapParser::dateTime()
     uint day;
     if ( nextChar() == ' ' ) {
         step();
-        day = number( 1 );
+        day = digits( 1, 1 ).number( 0 );
     }
     else {
-        day = number( 2 );
+        day = digits( 2, 2 ).number( 0 );
     }
     require( "-" );
     String month = letters( 3, 3 );
     require( "-" );
-    uint year = number( 4 );
+    uint year = digits( 4, 4 ).number( 0 );
     require( " " );
-    uint hour = number( 2 );
+    uint hour = digits( 2, 2 ).number( 0 );
     require( ":" );
-    uint minute = number( 2 );
+    uint minute = digits( 2, 2 ).number( 0 );
     require( ":" );
-    uint second = number( 2 );
+    uint second = digits( 2, 2 ).number( 0 );
     require( " " );
     int zone = 1;
     if ( nextChar() == '-' )
@@ -427,7 +427,8 @@ Date ImapParser::dateTime()
     else if ( nextChar() != '+' )
         setError( "Time zone must start with + or -" );
     step();
-    zone = zone * ( ( 60 * number( 2 ) ) + number( 2 ) );
+    zone = zone * ( ( 60 * digits( 2, 2 ).number( 0 ) ) +
+                    digits( 2, 2 ).number( 0 ) );
 
     d.setDate( year, month, day, hour, minute, second, zone );
     if ( !d.valid() )
