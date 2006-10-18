@@ -34,21 +34,7 @@ void GenUrlauth::parse()
     do {
         space();
 
-        // XXX: We're assuming that the URL is just the next "word". How
-        // can we do better? Give the ImapUrl a copy of our parser? What
-        // about the p->end() assertion in ImapUrl::parse()?
-        String s;
-        char c = nextChar();
-        while ( c != '\0' && c != ' ' ) {
-            step();
-            s.append( c );
-            c = nextChar();
-        }
-        if ( s.isEmpty() ) {
-            error( Bad, "Expected URL, but saw: " + following() );
-            return;
-        }
-
+        String s( astring() );
         space();
         if ( !present( "INTERNAL" ) ) {
             error( Bad, "Expected INTERNAL, but saw: " + following() );

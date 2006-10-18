@@ -34,14 +34,7 @@ void UrlFetch::parse()
     do {
         space();
 
-        String s;
-        char c = nextChar();
-        while ( c != '\0' && c != ' ' ) {
-            step();
-            s.append( c );
-            c = nextChar();
-        }
-
+        String s( astring() );
         ImapUrl * url = new ImapUrl( s );
         if ( !url->valid() ) {
             error( Bad, "Invalid URL: " + s );
