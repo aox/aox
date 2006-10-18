@@ -1593,6 +1593,8 @@ bool Schema::stepTo31()
         d->q = new Query( "create index ald on addresses(lower(localpart), "
                           "lower(domain))", this );
         d->t->enqueue( d->q );
+        d->q = new Query( "analyse addresses", this );
+        d->t->enqueue( d->q );
         d->q = new Query( "create index dm_mu on deleted_messages(mailbox, "
                           "uid)", this );
         d->t->enqueue( d->q );
