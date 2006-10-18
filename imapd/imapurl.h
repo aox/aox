@@ -19,7 +19,12 @@ public:
 
     bool valid() const;
 
+    String user() const;
+    String auth() const;
+    String host() const;
+    uint port() const;
     String mailbox() const;
+    uint uidvalidity() const;
     uint uid() const;
     String section() const;
 

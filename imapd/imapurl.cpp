@@ -173,6 +173,45 @@ bool ImapUrl::valid() const
 }
 
 
+/*! Returns the name of the user from this URL, or an empty string if
+    none was specified. (This function makes no allowance for relative
+    URLs, because it's not needed yet.)
+*/
+
+String ImapUrl::user() const
+{
+    return d->user;
+}
+
+
+/*! Returns the "AUTH" specification from this URL, or an empty string
+    if none was specified.
+*/
+
+String ImapUrl::auth() const
+{
+    return d->auth;
+}
+
+
+/*! Returns the hostname from this URL. (This function makes no
+    allowance for relative URLs, because it's not needed yet.)
+*/
+
+String ImapUrl::host() const
+{
+    return d->host;
+}
+
+
+/*! Returns the port number specified in this URL. */
+
+uint ImapUrl::port() const
+{
+    return d->port;
+}
+
+
 /*! Returns the name of the mailbox from this URL. The mailbox is either
     specified explicitly in the URL, or, if an IMAP session exists, and
     no mailbox has been specified, from the currently selected mailbox.
@@ -184,6 +223,14 @@ String ImapUrl::mailbox() const
          d->imap && d->imap->session() )
         return d->imap->session()->mailbox()->name();
     return d->mailbox;
+}
+
+
+/*! Returns the mailbox UIDVALIDITY specified in this URL. */
+
+uint ImapUrl::uidvalidity() const
+{
+    return d->uidvalidity;
 }
 
 
