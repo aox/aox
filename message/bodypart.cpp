@@ -544,7 +544,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                         meta->toUnicode( body );
                     if ( c )
                         c->toUnicode( body );
-                    if ( meta && 
+                    if ( meta &&
                          ( meta->wellformed() ||
                            ( meta->valid() && !c ) ||
                            ( meta->valid() && c && !c->valid() ) ) ) {
@@ -584,7 +584,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bp->d->hasText = true;
         bp->d->text = c->toUnicode( body.crlf() );
 
-        if ( !c->valid() && 
+        if ( !c->valid() &&
              ( c->name() == "GB2312" || c->name() == "ISO-2022-JP" ) ) {
             // undefined code point usage in GB2312 spam is much too
             // common. (GB2312 spam is much too common, but that's
@@ -593,7 +593,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             // form and say it's the canonical form. when a client
             // later reads the message, it gets the text in unicode,
             // including U+FFFD.
-            
+
             // the header may contain some unencoded gb2312. we bang
             // it by hand, ignoring errors.
             List<HeaderField>::Iterator hf( h->fields() );
@@ -720,27 +720,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         }
     }
 
-    bp->d->numBytes = body.length();
-    if ( cte )
-        body = body.encode( cte->encoding(), 72 );
-    bp->d->numEncodedBytes = body.length();
-
-    if ( bp->d->hasText ||
-         ( ct->type() == "message" && ct->subtype() == "rfc822" ) )
-    {
-        uint n = 0;
-        uint i = 0;
-        uint l = body.length();
-        while ( i < l ) {
-            if ( body[i] == '\n' )
-                n++;
-            i++;
-        }
-        if ( l && body[l-1] != '\n' )
-            n++;
-        bp->setNumEncodedLines( n );
-    }
-
     if ( ct->type() == "multipart" ) {
         parseMultipart( start, end, rfc2822,
                         ct->parameter( "boundary" ),
@@ -759,6 +738,26 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             ++it;
         }
         bp->setMessage( m );
+        body = m->rfc822();
+    }
+
+    bp->d->numBytes = body.length();
+    if ( cte )
+        body = body.encode( cte->encoding(), 72 );
+    bp->d->numEncodedBytes = body.length();
+    if ( bp->d->hasText ||
+         ( ct->type() == "message" && ct->subtype() == "rfc822" ) ) {
+        uint n = 0;
+        uint i = 0;
+        uint l = body.length();
+        while ( i < l ) {
+            if ( body[i] == '\n' )
+                n++;
+            i++;
+        }
+        if ( l && body[l-1] != '\n' )
+            n++;
+        bp->setNumEncodedLines( n );
     }
 
     h->simplify();
