@@ -179,9 +179,14 @@ String AbnfParser::letters( uint min, uint max )
     advances the cursor past it. It is an error() if there isn't an
     integer at the cursor, or if a non-zero number is specified with
     a leading 0 digit.
+
+    If \a num is 0 (the default), then all available digits at the
+    cursor are used. If it is non-zero, then exactly \a num digits
+    are required at the cursor, and it is an error if they are not
+    present.
 */
 
-uint AbnfParser::number()
+uint AbnfParser::number( uint num )
 {
     String s;
     char c = nextChar();
@@ -190,10 +195,15 @@ uint AbnfParser::number()
     if ( c == '0' )
         zero = true;
 
-    while ( c >= '0' && c <= '9' ) {
-        s.append( c );
-        step();
-        c = nextChar();
+    if ( num != 0 ) {
+        s = digits( num, num );
+    }
+    else {
+        while ( c >= '0' && c <= '9' ) {
+            s.append( c );
+            step();
+            c = nextChar();
+        }
     }
 
     bool ok = true;
