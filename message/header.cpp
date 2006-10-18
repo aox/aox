@@ -502,26 +502,18 @@ void Header::simplify()
         }
     }
 
-    ContentType *ct = contentType();
+    ContentType * ct = contentType();
     if ( ct ) {
-        if ( ct->parameters()->isEmpty() && cte == 0 && cdi == 0 && cde == 0 ) {
-            bool remove = false;
-            switch( d->defaultType ) {
-            case TextPlain:
-                if ( ct->type() == "text" && ct->subtype() == "plain" )
-                    remove = true;
-                break;
-            case MessageRfc822:
-                if ( ct->type() == "message" && ct->subtype() == "rfc822" ) {
-                    remove = true;
-                }
-                break;
-            }
-            if ( remove ) {
-                removeField( HeaderField::ContentType );
-                ct = 0;
-            }
+        if ( ct->parameters()->isEmpty() && cte == 0 && cdi == 0 && cde == 0 &&
+             d->defaultType == TextPlain &&
+             ct->type() == "text" && ct->subtype() == "plain" ) {
+            removeField( HeaderField::ContentType );
+            ct = 0;
         }
+    }
+    else if ( d->defaultType == MessageRfc822 ) {
+        add( "Content-Type", "message/rfc822" );
+        ct = contentType();
     }
 
     if ( mode() == Mime ) {
@@ -533,16 +525,6 @@ void Header::simplify()
         removeField( HeaderField::MimeVersion );
     }
     else {
-        if ( ct == 0 ) {
-            switch( d->defaultType ) {
-            case TextPlain:
-                add( "Content-Type", "text/plain" );
-                break;
-            case MessageRfc822:
-                add( "Content-Type", "message/rfc822" );
-                break;
-            }
-        }
         if ( mode() == Rfc2822 && !field( HeaderField::MimeVersion ) )
             add( "Mime-Version", "1.0" );
     }
