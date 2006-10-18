@@ -44,7 +44,8 @@ class ImapUrlData
 public:
     ImapUrlData()
         : valid( false ), imap( 0 ), port( 143 ),
-          uidvalidity( 0 ), uid( 0 ), expires( 0 )
+          uidvalidity( 0 ), uid( 0 ), expires( 0 ),
+          isRump( false )
     {}
 
     bool valid;
@@ -63,6 +64,8 @@ public:
     String access;
     String mechanism;
     String urlauth;
+
+    bool isRump;
 
     String orig;
 };
@@ -187,6 +190,9 @@ void ImapUrl::parse( const String & s )
             p->require( ":" );
             d->urlauth = p->urlauth();
             d->mechanism = "internal";
+        }
+        else {
+            d->isRump = true;
         }
     }
 
@@ -325,6 +331,17 @@ String ImapUrl::mechanism() const
 String ImapUrl::urlauth() const
 {
     return d->urlauth;
+}
+
+
+/*! Returns true if this URL is an "authimapurlrump", i.e. it specifies
+    ";URLAUTH=access", but does not include a mechanism name or URLAUTH
+    token. Returns false otherwise, including for URLs that are invalid.
+*/
+
+bool ImapUrl::isRump() const
+{
+    return d->isRump;
 }
 
 

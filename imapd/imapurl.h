@@ -32,6 +32,8 @@ public:
     String mechanism() const;
     String urlauth() const;
 
+    bool isRump() const;
+
     String orig() const;
 
 private:
