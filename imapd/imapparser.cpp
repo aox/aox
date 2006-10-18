@@ -391,3 +391,47 @@ String ImapParser::dotLetters( uint min, uint max )
 
     return r;
 }
+
+
+/*! Returns a Date constructed from the "date-time" production that is
+    required at the cursor, advancing the cursor past its end. It is an
+    error if no valid date-time is found.
+*/
+
+Date ImapParser::dateTime()
+{
+    Date d;
+
+    uint day;
+    if ( nextChar() == ' ' ) {
+        step();
+        day = number( 1 );
+    }
+    else {
+        day = number( 2 );
+    }
+    require( "-" );
+    String month = letters( 3, 3 );
+    require( "-" );
+    uint year = number( 4 );
+    require( " " );
+    uint hour = number( 2 );
+    require( ":" );
+    uint minute = number( 2 );
+    require( ":" );
+    uint second = number( 2 );
+    require( " " );
+    int zone = 1;
+    if ( nextChar() == '-' )
+        zone = -1;
+    else if ( nextChar() != '+' )
+        setError( "Time zone must start with + or -" );
+    step();
+    zone = zone * ( ( 60 * number( 2 ) ) + number( 2 ) );
+
+    d.setDate( year, month, day, hour, minute, second, zone );
+    if ( !d.valid() )
+        setError( "Invalid date-time specified" );
+
+    return d;
+}

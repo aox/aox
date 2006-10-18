@@ -16,8 +16,6 @@ public:
     void execute();
 
 private:
-    uint number( uint );
-
     class AppendData * d;
 };
 

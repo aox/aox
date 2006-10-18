@@ -5,6 +5,7 @@
 
 #include "abnfparser.h"
 #include "messageset.h"
+#include "date.h"
 
 
 class ImapParser
@@ -29,6 +30,7 @@ public:
     String listMailbox();
     String flag();
     String dotLetters( uint, uint );
+    Date dateTime();
 };
 
 
