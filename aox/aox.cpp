@@ -804,6 +804,7 @@ void showCounts()
                        "(select count(*) from mailboxes"
                        " where deleted='f')::int as mailboxes,"
                        "(select count(*) from messages)::int as messages,"
+                       "(select count(*) from deleted_messages)::int as dmessages,"
                        "(select count(*) from bodyparts)::int as bodyparts,"
                        "(select sum(length(text)) from bodyparts)::int as "
                        "textsize,"
@@ -826,6 +827,9 @@ void showCounts()
         uint messages = 0;
         if ( !r->isNull( "messages" ) )
             messages = r->getInt( "messages" );
+        uint dmessages = 0;
+        if ( !r->isNull( "dmessages" ) )
+            dmessages = r->getInt( "messages" );
         uint bodyparts = 0;
         if ( !r->isNull( "bodyparts" ) )
             bodyparts = r->getInt( "bodyparts" );
@@ -847,12 +851,12 @@ void showCounts()
 
         printf( "Users: %d\n"
                 "Mailboxes: %d\n"
-                "Messages: %d (%s total size)\n"
+                "Messages: %d (+%d recently deleted) (%s total size)\n"
                 "Bodyparts: %d (%s text, %s data)\n"
                 "Addresses: %d\n",
                 users,
                 mailboxes,
-                messages, String::humanNumber( size ).cstr(),
+                messages-dmessages, dmessages, String::humanNumber( size ).cstr(),
                 bodyparts,
                 String::humanNumber( textSize ).cstr(),
                 String::humanNumber( dataSize ).cstr(),
