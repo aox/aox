@@ -6,6 +6,7 @@
 #include "mailbox.h"
 #include "imapsession.h"
 #include "imapparser.h"
+#include "date.h"
 
 
 class ImapUrlParser
@@ -22,6 +23,7 @@ public:
     String xchars( bool = false );
     bool hostport( String &, uint * );
     bool hasUid();
+    Date * isoTimestamp();
 };
 
 
@@ -41,7 +43,7 @@ class ImapUrlData
 public:
     ImapUrlData()
         : valid( false ), imap( 0 ), port( 143 ),
-          uidvalidity( 0 ), uid( 0 )
+          uidvalidity( 0 ), uid( 0 ), expires( 0 )
     {}
 
     bool valid;
@@ -56,6 +58,7 @@ public:
     uint uidvalidity;
     uint uid;
     String section;
+    Date * expires;
 };
 
 
@@ -155,6 +158,12 @@ void ImapUrl::parse( const String & s )
             return;
     }
 
+    if ( p->nextChar() == ';' ) {
+        if ( p->present( ";EXPIRE=" ) )
+            d->expires = p->isoTimestamp();
+        // ...
+    }
+
     p->end();
     if ( !p->ok() )
         return;
@@ -250,6 +259,16 @@ uint ImapUrl::uid() const
 String ImapUrl::section() const
 {
     return d->section;
+}
+
+
+/*! Returns a pointer to a Date representing the specified expiry date
+    for this URL, or 0 if no EXPIRE=date-time was specified.
+*/
+
+Date * ImapUrl::expires() const
+{
+    return d->expires;
 }
 
 
@@ -400,4 +419,47 @@ bool ImapUrlParser::hostport( String & host, uint * port )
 bool ImapUrlParser::hasUid()
 {
     return ( str.mid( at, at+6 ).lower() == "/;uid=" );
+}
+
+
+/*! Extracts an RFC 3339 format date-time string, advances the cursor
+    past its end, and returns a pointer to a Date representing it. It
+    is an error if no valid date-time is found, and 0 is returned.
+*/
+
+Date * ImapUrlParser::isoTimestamp()
+{
+    bool ok;
+    uint year = digits( 4, 4 ).number( &ok );
+    require( "-" );
+    uint month = digits( 2, 2 ).number( &ok );
+    require( "-" );
+    uint day = digits( 2, 2 ).number( &ok );
+    require( "t" );
+    uint hours = digits( 2, 2 ).number( &ok );
+    require( ":" );
+    uint minutes = digits( 2, 2 ).number( &ok );
+    require( ":" );
+    uint seconds = digits( 2, 2 ).number( &ok );
+    if ( present( "." ) )
+        number();
+
+    int zone = 1;
+    if ( present( "z" ) )
+        zone = 0;
+    else if ( present( "-" ) )
+        zone = -1;
+    else
+        setError( "Time zone must be z, or start with - or +" );
+    zone = zone * ( ( 60 * digits( 2, 2 ).number( &ok ) ) +
+                    digits( 2, 2 ).number( &ok ) );
+
+    Date * d = new Date;
+    d->setDate( year, month, day, hours, minutes, seconds, zone );
+    if ( !ok || !d->valid() ) {
+        setError( "Invalid date specified" );
+        return 0;
+    }
+
+    return d;
 }

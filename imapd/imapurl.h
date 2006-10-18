@@ -27,6 +27,7 @@ public:
     uint uidvalidity() const;
     uint uid() const;
     String section() const;
+    class Date * expires() const;
 
 private:
     void parse( const String & );
