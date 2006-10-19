@@ -19,7 +19,7 @@ public:
 
     bool valid() const;
 
-    String user() const;
+    class User * user() const;
     String auth() const;
     String host() const;
     uint port() const;

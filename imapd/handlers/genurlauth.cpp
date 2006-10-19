@@ -91,7 +91,7 @@ void GenUrlauth::execute()
             // userids; in fact, we don't even bother to verify that any
             // userid specified in "access" is valid.
 
-            if ( u->user() != imap()->user()->login() ||
+            if ( u->user()->login() != imap()->user()->login() ||
                  !( u->host().lower() == Configuration::hostname().lower() &&
                     u->port() == port ) ||
                  !m || !u->isRump() )

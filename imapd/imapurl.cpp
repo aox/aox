@@ -7,6 +7,7 @@
 #include "imapsession.h"
 #include "imapparser.h"
 #include "date.h"
+#include "user.h"
 
 
 class ImapUrlParser
@@ -43,7 +44,7 @@ class ImapUrlData
 {
 public:
     ImapUrlData()
-        : valid( false ), imap( 0 ), port( 143 ),
+        : valid( false ), imap( 0 ), user( 0 ), port( 143 ),
           uidvalidity( 0 ), uid( 0 ), expires( 0 ),
           isRump( false )
     {}
@@ -52,7 +53,7 @@ public:
 
     const IMAP * imap;
 
-    String user;
+    User * user;
     String auth;
     String host;
     uint port;
@@ -129,10 +130,11 @@ void ImapUrl::parse( const String & s )
         // iuserauth = enc_user [iauth] / [enc_user] iauth
 
         if ( p->hasIuserauth() ) {
-            d->user = p->xchars();
+            d->user = new User;
+            d->user->setLogin( p->xchars() );
             if ( p->present( ";AUTH=" ) )
                 d->auth = p->xchars();
-            else if ( d->user.isEmpty() )
+            else if ( d->user->login().isEmpty() )
                 return;
             if ( !p->present( "@" ) )
                 return;
@@ -214,13 +216,16 @@ bool ImapUrl::valid() const
 }
 
 
-/*! Returns the name of the user from this URL, or an empty string if
-    none was specified. (This function makes no allowance for relative
-    URLs, because it's not needed yet.)
+/*! Returns a pointer to the User object representing the user specified
+    in the "iuserauth" portion of this URL, or 0 if none was specified.
+    For relative URLs, which are interpreted with reference to a given
+    IMAP object, this function returns the current IMAP user.
 */
 
-String ImapUrl::user() const
+User * ImapUrl::user() const
 {
+    if ( d->imap )
+        return d->imap->user();
     return d->user;
 }
 
