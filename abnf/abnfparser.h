@@ -17,7 +17,8 @@ public:
     bool ok() const;
     String error() const;
 
-    char nextChar();
+    uint pos() const;
+    char nextChar() const;
     void step( uint = 1 );
     bool present( const String & );
     void require( const String & );

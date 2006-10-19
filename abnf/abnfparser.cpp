@@ -74,12 +74,22 @@ void AbnfParser::setError( const String & s )
 }
 
 
+/*! Returns the current (0-indexed) position of the cursor in the input
+    string without changing anything.
+*/
+
+uint AbnfParser::pos() const
+{
+    return at;
+}
+
+
 /*! Returns the next character at the cursor without changing the cursor
     position. Returns 0 if there isn't a character available (e.g. when
     the cursor is past the end of the input string).
 */
 
-char AbnfParser::nextChar()
+char AbnfParser::nextChar() const
 {
     return str[at];
 }
