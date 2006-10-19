@@ -2,6 +2,8 @@
 
 #include "smtp.h"
 
+#include "imapurl.h"
+#include "imapurlfetcher.h"
 #include "configuration.h"
 #include "transaction.h"
 #include "stringlist.h"

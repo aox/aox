@@ -1,5 +1,6 @@
 SubDir TOP smtpd ;
 SubInclude TOP abnf ;
+SubInclude TOP imapd ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 
