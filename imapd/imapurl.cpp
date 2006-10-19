@@ -239,7 +239,7 @@ String ImapUrl::orig() const
 
 String ImapUrl::rump() const
 {
-    return d->orig.mid( 0, d->rumpEnd+1 );
+    return d->orig.mid( 0, d->rumpEnd );
 }
 
 
