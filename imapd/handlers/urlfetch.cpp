@@ -39,9 +39,16 @@ void UrlFetch::parse()
     do {
         space();
 
+        // We want an authimapurlfull, which is an absolute URL that has
+        // a URLAUTH component. We'll validate the access component when
+        // we execute().
         String s( astring() );
         ImapUrl * url = new ImapUrl( s );
         if ( !url->valid() ) {
+            // XXX: We're required to send a NIL URLFETCH response for
+            // any valid URL that doesn't refer to a single message or
+            // message section. But we can't do that, because we don't
+            // even begin to know how to parse any such URL.
             error( Bad, "Invalid URL: " + s );
             return;
         }
@@ -55,6 +62,29 @@ void UrlFetch::parse()
 void UrlFetch::execute()
 {
     if ( !d->urlFetcher ) {
+        List<ImapUrl>::Iterator it( d->urls );
+        while ( it ) {
+            ImapUrl * u = it;
+
+            // We verify that the currently logged in user meets the
+            // access criteria specified in the URLAUTH component. We
+            // leave the URLAUTH verification to ImapUrlFetcher.
+            //
+            // XXX: "smtpserver" is a blatant concession to the lemonade
+            // interop event. We'll need to do something better later.
+            String access( u->access() );
+            if ( ( access.startsWith( "user+" ) &&
+                   access != "user+" + imap()->user()->login() ) ||
+                 ( access.startsWith( "submit+" ) &&
+                   imap()->user()->login() != "smtpserver" ) )
+            {
+                error( Bad, "Invalid URL: " + u->orig() );
+                return;
+            }
+
+            ++it;
+        }
+
         d->urlFetcher = new ImapUrlFetcher( d->urls, this );
         d->urlFetcher->execute();
     }
