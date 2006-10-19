@@ -32,6 +32,19 @@ struct UrlLink
 };
 
 
+struct MailboxSet
+    : public Garbage
+{
+    MailboxSet( Mailbox * m )
+        : mailbox( m )
+    {}
+
+    Mailbox * mailbox;
+    MessageSet h;
+    MessageSet b;
+};
+
+
 class IufData
     : public Garbage
 {
@@ -186,6 +199,8 @@ void ImapUrlFetcher::execute()
     if ( d->state == 3 ) {
         d->fetchers = new List<Fetcher>;
 
+        List<MailboxSet> sets;
+
         List<UrlLink>::Iterator it( d->urls );
         while ( it ) {
             ImapUrl * url = it->url;
@@ -235,25 +250,71 @@ void ImapUrlFetcher::execute()
                 }
             }
 
-            MessageSet s;
             uint uid = url->uid();
-            s.add( uid, uid );
+            Message * m = it->mailbox->message( uid, false );
 
-            if ( !it->section || it->section->needsHeader ) {
-                MessageHeaderFetcher * hf =
-                    new MessageHeaderFetcher( it->mailbox );
-                hf->insert( s, this );
-                d->fetchers->append( hf );
+            if ( ( !it->section || it->section->needsHeader ) &&
+                 !( m && m->hasHeaders() ) )
+            {
+                MailboxSet * s = 0;
+                List<MailboxSet>::Iterator ms( sets );
+                while ( ms ) {
+                    if ( ms->mailbox->id() == it->mailbox->id() ) {
+                        s = ms;
+                        break;
+                    }
+                    ++ms;
+                }
+
+                if ( !s ) {
+                    s = new MailboxSet( it->mailbox );
+                    sets.append( s );
+                }
+
+                s->h.add( uid, uid );
             }
 
-            if ( !it->section || it->section->needsBody ) {
-                MessageBodyFetcher * bf =
-                    new MessageBodyFetcher( it->mailbox );
-                bf->insert( s, this );
-                d->fetchers->append( bf );
+            if ( ( !it->section || it->section->needsBody ) &&
+                 !( m && m->hasBodies() ) )
+            {
+                MailboxSet * s = 0;
+                List<MailboxSet>::Iterator ms( sets );
+                while ( ms ) {
+                    if ( ms->mailbox->id() == it->mailbox->id() ) {
+                        s = ms;
+                        break;
+                    }
+                    ++ms;
+                }
+
+                if ( !s ) {
+                    s = new MailboxSet( it->mailbox );
+                    sets.append( s );
+                }
+
+                s->b.add( uid, uid );
             }
 
             ++it;
+        }
+
+        List<MailboxSet>::Iterator ms( sets );
+        while ( ms ) {
+            if ( !ms->h.isEmpty() ) {
+                MessageHeaderFetcher * hf =
+                    new MessageHeaderFetcher( ms->mailbox );
+                hf->insert( ms->h, this );
+                d->fetchers->append( hf );
+            }
+
+            if ( !ms->b.isEmpty() ) {
+                MessageBodyFetcher * bf =
+                    new MessageBodyFetcher( ms->mailbox );
+                bf->insert( ms->b, this );
+                d->fetchers->append( bf );
+            }
+
+            ++ms;
         }
 
         d->state = 4;
