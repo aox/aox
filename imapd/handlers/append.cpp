@@ -10,6 +10,7 @@
 #include "injector.h"
 #include "annotation.h"
 #include "imapsession.h"
+#include "imapurlfetcher.h"
 #include "imapparser.h"
 #include "recipient.h"
 #include "imapurl.h"
@@ -25,8 +26,7 @@ struct Textpart
     : public Garbage
 {
     Textpart()
-        : type( Text ), url( 0 ), mailbox( 0 ), message( 0 ),
-          section( 0 ), hf( 0 ), bf( 0 )
+        : type( Text ), url( 0 )
     {}
 
     enum Type { Text, Url };
@@ -34,12 +34,6 @@ struct Textpart
     Type type;
     String s;
     ImapUrl * url;
-    Mailbox * mailbox;
-    Message * message;
-    Section * section;
-
-    MessageHeaderFetcher * hf;
-    MessageBodyFetcher * bf;
 };
 
 
@@ -50,7 +44,7 @@ public:
     AppendData()
         : mailbox( 0 ), message( 0 ), injector( 0 ),
           annotations( 0 ), textparts( 0 ),
-          createdFetchers( false )
+          urlFetcher( 0 )
     {}
 
     Date date;
@@ -62,7 +56,7 @@ public:
     List<Annotation> * annotations;
     List<Textpart> * textparts;
     String text;
-    bool createdFetchers;
+    ImapUrlFetcher * urlFetcher;
 };
 
 
@@ -264,101 +258,46 @@ void Append::execute()
         }
         requireRight( d->mailbox, Permissions::Insert );
         requireRight( d->mailbox, Permissions::Write );
-
-        List<Textpart>::Iterator it( d->textparts );
-        while ( it ) {
-            Textpart * tp = it;
-            if ( tp->type == Textpart::Url ) {
-                ImapUrl * u = new ImapUrl( imap(), tp->s );
-                if ( !u->valid() ) {
-                    error( No, "[BADURL " + tp->s + "] invalid URL" );
-                    return;
-                }
-
-                Mailbox * m = mailbox( u->mailbox() );
-                if ( !m ) {
-                    error( No, "[BADURL " + tp->s + "] invalid mailbox" );
-                    return;
-                }
-
-                requireRight( m, Permissions::Read );
-                tp->mailbox = m;
-                tp->url = u;
-            }
-            ++it;
-        }
     }
 
     if ( !permitted() )
         return;
 
-    if ( !d->createdFetchers ) {
+    if ( !d->urlFetcher ) {
+        List<ImapUrl> * urls = new List<ImapUrl>;
         List<Textpart>::Iterator it( d->textparts );
         while ( it ) {
             Textpart * tp = it;
             if ( tp->type == Textpart::Url ) {
-                String section( tp->url->section() );
-                if ( !section.isEmpty() ) {
-                    ImapParser * ip = new ImapParser( section );
-                    tp->section = Fetch::parseSection( ip );
-                    ip->end();
-                    if ( !ip->ok() ) {
-                        error( No, "[BADURL " + tp->s + "] invalid section" );
-                        return;
-                    }
-                }
-
-                // XXX: Need to do UID translation for views here.
-                MessageSet s;
-                uint uid = tp->url->uid();
-                s.add( uid, uid );
-
-                if ( !tp->section || tp->section->needsHeader ) {
-                    tp->hf = new MessageHeaderFetcher( tp->mailbox );
-                    tp->hf->insert( s, this );
-                }
-
-                if ( !tp->section || tp->section->needsBody ) {
-                    tp->bf = new MessageBodyFetcher( tp->mailbox );
-                    tp->bf->insert( s, this );
-                }
+                tp->url = new ImapUrl( imap(), tp->s );
+                urls->append( tp->url );
             }
             ++it;
         }
-        d->createdFetchers = true;
+
+        d->urlFetcher = new ImapUrlFetcher( urls, this );
+        d->urlFetcher->execute();
+    }
+
+    if ( !d->urlFetcher->done() )
+        return;
+
+    if ( d->urlFetcher->failed() ) {
+        setRespTextCode( "BADURL " + d->urlFetcher->badUrl() );
+        error( No, d->urlFetcher->error() );
+        return;
     }
 
     if ( !d->message ) {
         List<Textpart>::Iterator it( d->textparts );
         while ( it ) {
             Textpart * tp = it;
-            if ( tp->type == Textpart::Text ) {
+            if ( tp->type == Textpart::Text )
                 d->text.append( tp->s );
-            }
-            else {
-                if ( ( tp->hf && !tp->hf->done() ) ||
-                     ( tp->bf && !tp->bf->done() ) )
-                    break;
-
-                Message * m =
-                    tp->mailbox->message( tp->url->uid(), false );
-
-                if ( !m ) {
-                    error( No, "[BADURL " + tp->s + "] invalid UID" );
-                    return;
-                }
-                else if ( tp->section ) {
-                    d->text.append( Fetch::sectionData( tp->section, m ) );
-                }
-                else {
-                    d->text.append( m->rfc822() );
-                }
-            }
+            else
+                d->text.append( tp->url->text() );
             d->textparts->take( it );
         }
-
-        if ( it )
-            return;
 
         d->message = new Message( d->text );
         d->message->setInternalDate( d->date.unixTime() );
