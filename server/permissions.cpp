@@ -146,7 +146,8 @@ void Permissions::execute()
         if ( d->user->login() != "anonymous" &&
              ( d->user->id() == d->mailbox->owner() ||
                d->user->home() == d->mailbox ||
-               d->mailbox->name().startsWith( d->user->home()->name() + "/" ) ) )
+               d->mailbox->name().startsWith( d->user->home()->name() +
+                                              "/" ) ) )
         {
             uint i = 0;
             while ( i < Permissions::NumRights )
@@ -154,7 +155,8 @@ void Permissions::execute()
             // not even the owner can meaningfully append messages to a view
             if ( d->mailbox->view() )
                 d->allowed[Insert] = false;
-            // DeleteMessages and Expunge are dubious too... allow them for the moment
+            // DeleteMessages and Expunge are dubious too... allow them
+            // for the moment
             d->ready = true;
             return;
         }
