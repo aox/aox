@@ -85,7 +85,7 @@ void GenUrlauth::execute()
         List<UrlKey>::Iterator it( d->urlKeys );
         while ( it ) {
             ImapUrl * u = it->url;
-            Mailbox * m = mailbox( u->mailbox() );
+            Mailbox * m = mailbox( u->mailboxName() );
 
             // XXX: We don't return an invalid URLAUTH token for invalid
             // userids; in fact, we don't even bother to verify that any

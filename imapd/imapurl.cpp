@@ -277,7 +277,7 @@ uint ImapUrl::port() const
     no mailbox has been specified, from the currently selected mailbox.
 */
 
-String ImapUrl::mailbox() const
+String ImapUrl::mailboxName() const
 {
     if ( d->mailbox.isEmpty() &&
          d->imap && d->imap->session() )

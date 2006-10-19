@@ -25,7 +25,7 @@ public:
     String auth() const;
     String host() const;
     uint port() const;
-    String mailbox() const;
+    String mailboxName() const;
     uint uidvalidity() const;
     uint uid() const;
     String section() const;
