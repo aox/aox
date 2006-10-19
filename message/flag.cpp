@@ -52,7 +52,7 @@ FlagFetcher::FlagFetcher( EventHandler * owner )
     d->q->execute();
     if ( ::flagsByName )
         return;
-    ::flagsByName = new Dict<Flag>;
+    ::flagsByName = new Dict<Flag>( 400 );
     Allocator::addEternal( ::flagsByName, "list of existing flags" );
     ::flagsById = new Map<Flag>;
     Allocator::addEternal( ::flagsById, "list of existing flags" );

@@ -1022,7 +1022,7 @@ void Address::uniquify( List<Address> * l )
     if ( !l || l->isEmpty() )
         return;
 
-    Dict<Address> unique( 5051 );
+    Dict<Address> unique( l->count() );
 
     List<Address>::Iterator it( l );
     while ( it ) {

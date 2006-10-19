@@ -64,6 +64,27 @@ public:
 */
 
 
+static uint prime( uint x )
+{
+    if ( x < 10 )
+        return 13;
+    else if ( x < 40 )
+        return 61;
+    else if ( x < 200 )
+        return 251;
+    else if ( x < 700 )
+        return 1031;
+    else if ( x < 4000 )
+        return 5501;
+    else if ( x < 8000 )
+        return 9887;
+    else if ( x < 15000 )
+        return 19997;
+    return 32749;
+}
+
+
+
 /*! \class DictBase dict.h
   The DictBase class is the foundation for Dict.
 
@@ -74,14 +95,14 @@ public:
 */
 
 
-/*! Constructs an empty dictionary with \a size buckets. The
-    dictionary will be really fast up to around two thirds or three
-    fourths of \a size items, then it grows slower. */
+/*! Constructs an empty dictionary optimsed for up to \a size
+    items. The dictionary will be really fast up to around \a size
+    items, then it grows slower. */
 
 DictBase::DictBase( uint size )
     : d( new DictBaseData )
 {
-    resize( size );
+    resize( prime( size ) );
 }
 
 
@@ -117,7 +138,6 @@ void * DictBase::find( const String & s ) const
         return n->data;
     return 0;
 }
-
 
 /*! Inserts \a r to the dictionary based on key \a s, replacing any
     previous object with key \a s.

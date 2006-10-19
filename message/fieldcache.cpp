@@ -37,7 +37,7 @@ static PreparedStatement *fieldInsert;
 void FieldNameCache::setup()
 {
     idCache = new Map< String >;
-    nameCache = new Dict< uint >;
+    nameCache = new Dict< uint >( 400 );
 
     fieldLookup =
         new PreparedStatement( "select id from field_names where name=$1" );

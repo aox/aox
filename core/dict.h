@@ -31,7 +31,7 @@ private:
 template<class T>
 class Dict: public DictBase {
 public:
-    Dict( uint size = 257 ): DictBase( size ) {} // more?
+    Dict( uint size = 20 ): DictBase( size ) {} // more?
 
     T * find( const String & s ) const { return (T*)DictBase::find( s ); }
     void insert( const String & s, T* r ) { DictBase::insert( s, r ); }

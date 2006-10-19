@@ -51,7 +51,7 @@ void AddressCache::setup()
 
     idCache = new Map< Address >;
     Allocator::addEternal( idCache, "address cache (id)" );
-    nameCache = new Dict< Address >;
+    nameCache = new Dict< Address >( 16384 );
     Allocator::addEternal( nameCache, "address cache (name)" );
 
     // The first query is used to resolve cache misses. If the address
