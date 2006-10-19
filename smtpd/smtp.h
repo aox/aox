@@ -30,6 +30,7 @@ public:
     void rcpt();
     void data();
     void bdat();
+    void burl();
     void body( String & );
     virtual void noop();
     void help();
@@ -67,6 +68,7 @@ public:
 private:
     class SMTPData * d;
     friend class LMTP;
+    friend class BurlHelper;
 };
 
 class LMTP 

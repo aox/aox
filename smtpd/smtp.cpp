@@ -2,7 +2,6 @@
 
 #include "smtp.h"
 
-#include "imapurl.h"
 #include "imapurlfetcher.h"
 #include "configuration.h"
 #include "transaction.h"
@@ -12,6 +11,7 @@
 #include "mechanism.h"
 #include "injector.h"
 #include "entropy.h"
+#include "imapurl.h"
 #include "message.h"
 #include "address.h"
 #include "mailbox.h"
@@ -242,8 +242,9 @@ void SmtpDbClient::execute()
 
     This class implements SMTP as specified by RFC 2821, with the
     extensions specified by RFC 1651 (EHLO), RFC 1652 (8BITMIME), RFC
-    2487 (STARTTLS), RFC 2554 (AUTH) and RFC 3030 (BINARYMIME and
-    CHUNKING). In some ways, this parser is MUCH too lax.
+    2487 (STARTTLS), RFC 2554 (AUTH), RFC 3030 (BINARYMIME and
+    CHUNKING) and RFC 4468 (BURL). In some ways, this parser is MUCH
+    too lax.
 */
 
 /*!  Constructs an (E)SMTP server for socket \a s. */
@@ -370,6 +371,8 @@ void SMTP::parse()
                 data();
             else if ( cmd == "bdat" )
                 bdat();
+            else if ( cmd == "burl" )
+                burl();
             else if ( cmd == "noop" )
                 noop();
             else if ( cmd == "help" )
@@ -446,6 +449,7 @@ void SMTP::ehlo()
     setHeloString();
     respond( 250, Configuration::hostname() );
     respond( 250, "AUTH " + SaslMechanism::allowedMechanisms( "", hasTls() ) );
+    respond( 250, "BURL IMAP IMAP://" + Configuration::hostname() );
     respond( 250, "BINARYMIME" );
     respond( 250, "8BITMIME" );
     respond( 250, "CHUNKING" );
@@ -644,6 +648,80 @@ void SMTP::bdat()
     }
 }
 
+
+class BurlHelper
+    : public EventHandler
+{
+public:
+    BurlHelper( SMTP * owner, ImapUrl * url )
+        : o( owner ), u( url ), f( 0 )
+    {
+        List<ImapUrl> * l = new List<ImapUrl>;
+        l->append( u );
+        f = new ImapUrlFetcher( l, this );
+        execute();
+    }
+
+    void execute() {
+        if ( !f->done() )
+            return;
+        if ( !o )
+            return;
+        SMTP * s = o;
+        o = 0;
+        if ( f->failed() ) {
+            s->respond( 554, "URL resolution problem: " + f->error() );
+            s->sendResponses();
+        }
+        else if ( s->d->lastChunk ) {
+            s->d->body.append( u->text() );
+            s->inject();
+        }
+        else {
+            s->d->body.append( u->text() );
+            s->respond( 250, "Fine!" );
+        }
+    }
+
+private:
+    SMTP * o;
+    ImapUrl * u;
+    ImapUrlFetcher * f;
+};
+
+
+/*! The BURL command resolves an URL and appends the result to the
+    message body. It's typically used together with BDAT.
+*/
+
+void SMTP::burl()
+{
+    if ( d->state != Data && d->state != Bdat ) {
+        sendGenericError();
+        return;
+    }
+
+    ImapUrl * url = new ImapUrl( d->arg.simplified().section( " ", 1 ) );
+    if ( !url->valid() ) {
+        respond( 501, "Can't parse that URL" );
+        d->state = MailFrom;
+        return;
+    }
+
+    String a = url->access().lower();
+    if ( !( a == "anonymous" ||
+            ( d->user && ( a == "authuser" ||
+                           a == "user+" + d->user->login().lower() ||
+                           a == "submit+" + d->user->login().lower() ) ) ) ) {
+        respond( 554, "Do not have permission to read that URL" );
+        d->state = MailFrom;
+        return;
+    }
+
+    d->lastChunk = ( d->arg.simplified().section( " ", 2 ).lower() == "last" );
+
+    (void)new BurlHelper( this, url );
+}
 
 
 /*! In order to implement NOOP, one properly should check that there
