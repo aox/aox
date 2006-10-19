@@ -4,6 +4,8 @@
 #define SECTION_H
 
 #include "global.h"
+#include "string.h"
+#include "stringlist.h"
 
 
 class Section
