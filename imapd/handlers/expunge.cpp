@@ -87,9 +87,6 @@ bool Expunge::expunge( bool chat )
     }
 
     if ( !d->q ) {
-        if ( !permitted() )
-            return !ok();
-
         Flag * f = Flag::find( "\\deleted" );
         if ( !f ) {
             error( No, "Internal error - no \\Deleted flag" );
@@ -109,6 +106,9 @@ bool Expunge::expunge( bool chat )
         d->uids.clear();
     }
 
+    if ( !ok() || !permitted() )
+        return false;
+
     Row * r;
     while ( ( r = d->q->nextRow() ) != 0 ) {
         uint n = r->getInt( "uid" );
@@ -118,7 +118,7 @@ bool Expunge::expunge( bool chat )
         return false;
     if ( d->uids.isEmpty() )
         return true;
-       
+
     if ( !d->e ) {
         log( "Expunge " + fn( d->uids.count() ) + " messages" );
         d->e = new Query( "insert into deleted_messages "
