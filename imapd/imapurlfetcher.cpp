@@ -23,12 +23,14 @@ public:
 /*! \class ImapUrlFetcher imapurlfetcher.h
     Returns the texts referenced by a List of IMAP URLs.
 
-    ...
+    This class takes a list of ImapUrls and retrieves the corresponding
+    text from the database, subject to validation and access control. It
+    is the basis for our CATENATE/URLFETCH/BURL support.
 */
 
 /*! Creates an ImapUrlFetcher object to retrieve the ImapUrls in the
     list \a l for the EventHandler \a ev, which will be notified upon
-    completion.
+    completion. The URL objects in \a l are assumed to be valid.
 */
 
 ImapUrlFetcher::ImapUrlFetcher( List<ImapUrl> * l, EventHandler * ev )
@@ -90,4 +92,19 @@ String ImapUrlFetcher::badUrl() const
 String ImapUrlFetcher::error() const
 {
     return d->error;
+}
+
+
+/*! Records the given error \a msg for the \a url. After the first call,
+    done() and failed() will return true, error() will return \a msg,
+    and badUrl() will return \a url. Subsequent calls are ignored.
+*/
+
+void ImapUrlFetcher::setError( const String & msg, const String & url )
+{
+    if ( d->error.isEmpty() ) {
+        d->done = true;
+        d->error = msg;
+        d->badUrl = url;
+    }
 }

@@ -22,6 +22,8 @@ public:
 
 private:
     class IufData *d;
+
+    void setError( const String &, const String & );
 };
 
 
