@@ -573,7 +573,7 @@ Date * ImapUrlParser::isoTimestamp()
         zone = 0;
     else if ( present( "-" ) )
         zone = -1;
-    else
+    else if ( !present( "+" ) )
         setError( "Time zone must be z, or start with - or +" );
     zone = zone * ( ( 60 * digits( 2, 2 ).number( &ok ) ) +
                     digits( 2, 2 ).number( &ok ) );
