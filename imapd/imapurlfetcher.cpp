@@ -115,7 +115,8 @@ void ImapUrlFetcher::execute()
     }
 
     if ( d->state == 1 ) {
-        d->checker = new PermissionsChecker;
+        if ( !d->checker )
+            d->checker = new PermissionsChecker;
 
         List<UrlLink>::Iterator it( d->urls );
         while ( it ) {
