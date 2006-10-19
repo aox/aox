@@ -4,7 +4,9 @@
 
 #include "user.h"
 #include "date.h"
+#include "event.h"
 #include "message.h"
+#include "fetcher.h"
 #include "imapparser.h"
 #include "handlers/fetch.h"
 #include "handlers/section.h"
@@ -19,13 +21,11 @@ struct UrlLink
     : public Garbage
 {
     UrlLink( ImapUrl * u )
-        : url( u ), mailbox( 0 ), message( 0 ), section( 0 ),
-          permissions( 0 ), q( 0 )
+        : url( u ), mailbox( 0 ), section( 0 ), permissions( 0 ), q( 0 )
     {}
 
     ImapUrl * url;
     Mailbox * mailbox;
-    Message * message;
     Section * section;
     Permissions * permissions;
     Query * q;
@@ -38,7 +38,7 @@ class IufData
 public:
     IufData()
         : state( 0 ), done( false ), urls( 0 ), owner( 0 ),
-          checker( 0 )
+          checker( 0 ), fetchers( 0 )
     {}
 
     int state;
@@ -48,6 +48,7 @@ public:
     List<UrlLink> * urls;
     EventHandler * owner;
     PermissionsChecker * checker;
+    List<Fetcher> * fetchers;
 };
 
 
@@ -166,11 +167,13 @@ void ImapUrlFetcher::execute()
 
         List<UrlLink>::Iterator it( d->urls );
         while ( it ) {
-            it->q = new Query( "select key from access_keys where "
-                               "userid=$1 and mailbox=$2", this );
-            it->q->bind( 1, it->url->user()->id() );
-            it->q->bind( 2, it->mailbox->id() );
-            it->q->execute();
+            if ( !it->url->urlauth().isEmpty() ) {
+                it->q = new Query( "select key from access_keys where "
+                                   "userid=$1 and mailbox=$2", this );
+                it->q->bind( 1, it->url->user()->id() );
+                it->q->bind( 2, it->mailbox->id() );
+                it->q->execute();
+            }
             ++it;
         }
 
@@ -178,35 +181,39 @@ void ImapUrlFetcher::execute()
     }
 
     if ( d->state == 3 ) {
+        d->fetchers = new List<Fetcher>;
+
         List<UrlLink>::Iterator it( d->urls );
         while ( it ) {
             ImapUrl * url = it->url;
 
-            if ( !it->q->done() )
-                return;
+            if ( it->q ) {
+                if ( !it->q->done() )
+                    return;
 
-            Row * r = it->q->nextRow();
-            if ( it->q->failed() || !r ) {
-                setError( "invalid URL", url->orig() );
-                return;
-            }
-
-            String rump( url->rump() );
-            String urlauth( url->urlauth() );
-            String key( r->getString( "key" ).de64() );
-
-            if ( urlauth != "0" + MD5::HMAC( key, rump ).hex() ) {
-                setError( "invalid URL", url->orig() );
-                return;
-            }
-
-            Date * exp = url->expires();
-            if ( exp ) {
-                Date d;
-                d.setCurrentTime();
-                if ( d.unixTime() > exp->unixTime() ) {
+                Row * r = it->q->nextRow();
+                if ( it->q->failed() || !r ) {
                     setError( "invalid URL", url->orig() );
                     return;
+                }
+
+                String rump( url->rump() );
+                String urlauth( url->urlauth() );
+                String key( r->getString( "key" ).de64() );
+
+                if ( urlauth != "0" + MD5::HMAC( key, rump ).hex() ) {
+                    setError( "invalid URL", url->orig() );
+                    return;
+                }
+
+                Date * exp = url->expires();
+                if ( exp ) {
+                    Date d;
+                    d.setCurrentTime();
+                    if ( d.unixTime() > exp->unixTime() ) {
+                        setError( "invalid URL", url->orig() );
+                        return;
+                    }
                 }
             }
 
@@ -221,7 +228,23 @@ void ImapUrlFetcher::execute()
                 }
             }
 
-            // ...
+            MessageSet s;
+            uint uid = url->uid();
+            s.add( uid, uid );
+
+            if ( !it->section || it->section->needsHeader ) {
+                MessageHeaderFetcher * hf =
+                    new MessageHeaderFetcher( it->mailbox );
+                hf->insert( s, this );
+                d->fetchers->append( hf );
+            }
+
+            if ( !it->section || it->section->needsBody ) {
+                MessageBodyFetcher * bf =
+                    new MessageBodyFetcher( it->mailbox );
+                bf->insert( s, this );
+                d->fetchers->append( bf );
+            }
 
             ++it;
         }
@@ -230,7 +253,40 @@ void ImapUrlFetcher::execute()
     }
 
     if ( d->state == 4 ) {
-        // ...
+        List<Fetcher>::Iterator f( d->fetchers );
+        while ( f ) {
+            if ( !f->done() )
+                return;
+            ++f;
+        }
+
+        List<UrlLink>::Iterator it( d->urls );
+        while ( it ) {
+            ImapUrl * url = it->url;
+            Message * m =
+                it->mailbox->message( url->uid(), false );
+
+            if ( !m ) {
+                setError( "invalid URL", url->orig() );
+                return;
+            }
+            else if ( it->section ) {
+                url->setText( Fetch::sectionData( it->section, m ) );
+            }
+            else {
+                url->setText( m->rfc822() );
+            }
+
+            ++it;
+        }
+
+        d->state = 5;
+    }
+
+    if ( d->state == 5 ) {
+        d->state = 6;
+        d->done = true;
+        d->owner->execute();
     }
 }
 
