@@ -161,29 +161,32 @@ void ImapUrl::parse( const String & s )
 
     // RFC 4467 additions:
     // [ ";EXPIRE=" date-time ] ";URLAUTH=" access ":" mechanism ":" urlauth
+    // (These clauses apply only to absolute URLs.)
 
-    if ( p->nextChar() == ';' ) {
-        if ( p->present( ";expire=" ) )
-            d->expires = p->isoTimestamp();
-        p->require( ";urlauth=" );
-        if ( p->present( "submit+" ) )
-            d->access = "submit+" + p->xchars();
-        else if ( p->present( "user+" ) )
-            d->access = "user+" + p->xchars();
-        else if ( p->present( "authuser" ) )
-            d->access = "authuser";
-        else if ( p->present( "anonymous" ) )
-            d->access = "anonymous";
-        else
-            return;
-        if ( p->present( ":" ) ) {
-            p->require( "internal" );
-            p->require( ":" );
-            d->urlauth = p->urlauth();
-            d->mechanism = "internal";
-        }
-        else {
-            d->isRump = true;
+    if ( !d->imap ) {
+        if ( p->nextChar() == ';' ) {
+            if ( p->present( ";expire=" ) )
+                d->expires = p->isoTimestamp();
+            p->require( ";urlauth=" );
+            if ( p->present( "submit+" ) )
+                d->access = "submit+" + p->xchars();
+            else if ( p->present( "user+" ) )
+                d->access = "user+" + p->xchars();
+            else if ( p->present( "authuser" ) )
+                d->access = "authuser";
+            else if ( p->present( "anonymous" ) )
+                d->access = "anonymous";
+            else
+                return;
+            if ( p->present( ":" ) ) {
+                p->require( "internal" );
+                p->require( ":" );
+                d->urlauth = p->urlauth();
+                d->mechanism = "internal";
+            }
+            else {
+                d->isRump = true;
+            }
         }
     }
 
