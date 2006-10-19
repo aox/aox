@@ -26,6 +26,19 @@ public:
     This class takes a list of ImapUrls and retrieves the corresponding
     text from the database, subject to validation and access control. It
     is the basis for our CATENATE/URLFETCH/BURL support.
+
+    For each submitted URL, this class does the following:
+
+    1. Verify that the ImapUrl::user() is valid.
+    2. Verify that the ImapUrl::mailboxName() refers to an existing
+       mailbox in the relevant user's namespace.
+    3. Verify that the user has read access to that mailbox.
+    4. Fetch the access key for that (user,mailbox).
+    5. Verify that the URLAUTH token matches the URL. (We assume that
+       the caller has checked ImapUrl::access() already.)
+    6. Verify that the URL has not EXPIREd.
+    7. Fetch and set the text corresponding to the URL.
+    8. Notify the caller of completion.
 */
 
 /*! Creates an ImapUrlFetcher object to retrieve the ImapUrls in the
