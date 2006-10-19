@@ -329,7 +329,7 @@ Date * ImapUrl::expires() const
 
 String ImapUrl::access() const
 {
-    return d->access;
+    return d->access.lower();
 }
 
 
