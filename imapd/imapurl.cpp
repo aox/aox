@@ -29,27 +29,17 @@ public:
 };
 
 
-/*! \class ImapUrlParser imapurl.cpp
-    Provides functions used to parse RFC 2192 productions.
-
-    This class inherits from ImapParser, is used internally by ImapUrl
-    to parse various components of an IMAP URL as defined in RFC 2192,
-    which relies on the IMAP grammar in RFC 2060 (hence the derivation
-    from ImapParser).
-*/
-
-
 class ImapUrlData
     : public Garbage
 {
 public:
     ImapUrlData()
-        : valid( false ), imap( 0 ), user( 0 ), port( 143 ),
-          uidvalidity( 0 ), uid( 0 ), expires( 0 ),
-          isRump( false )
+        : valid( false ), isRump( false ), imap( 0 ), user( 0 ),
+          port( 143 ), uidvalidity( 0 ), uid( 0 ), expires( 0 )
     {}
 
     bool valid;
+    bool isRump;
 
     const IMAP * imap;
 
@@ -66,9 +56,8 @@ public:
     String mechanism;
     String urlauth;
 
-    bool isRump;
-
     String orig;
+    String text;
 };
 
 
@@ -216,6 +205,28 @@ bool ImapUrl::valid() const
 }
 
 
+/*! Returns true if this URL is an "authimapurlrump", i.e. it specifies
+    ";URLAUTH=access", but does not include a mechanism name or URLAUTH
+    token. Returns false otherwise, including for URLs that are invalid.
+*/
+
+bool ImapUrl::isRump() const
+{
+    return d->isRump;
+}
+
+
+/*! Returns the unmodified original input passed to the ImapUrl
+    constructor, without regard to whether the URL is valid() or
+    not.
+*/
+
+String ImapUrl::orig() const
+{
+    return d->orig;
+}
+
+
 /*! Returns a pointer to the User object representing the user specified
     in the "iuserauth" portion of this URL, or 0 if none was specified.
     For relative URLs, which are interpreted with reference to a given
@@ -339,26 +350,34 @@ String ImapUrl::urlauth() const
 }
 
 
-/*! Returns true if this URL is an "authimapurlrump", i.e. it specifies
-    ";URLAUTH=access", but does not include a mechanism name or URLAUTH
-    token. Returns false otherwise, including for URLs that are invalid.
+/*! This function, meant for use by the ImapUrlFetcher, sets the text()
+    for this URL to \a s.
 */
 
-bool ImapUrl::isRump() const
+void ImapUrl::setText( const String &s )
 {
-    return d->isRump;
+    d->text = s;
 }
 
 
-/*! Returns the unmodified original input passed to the ImapUrl
-    constructor, without regard to whether the URL is valid() or
-    not.
+/*! Returns the text that this URL refers to, as retrieved and set by an
+    ImapUrlFetcher, or an empty string if setText() has not been called.
 */
 
-String ImapUrl::orig() const
+String ImapUrl::text() const
 {
-    return d->orig;
+    return d->text;
 }
+
+
+/*! \class ImapUrlParser imapurl.cpp
+    Provides functions used to parse RFC 2192 productions.
+
+    This class inherits from ImapParser, is used internally by ImapUrl
+    to parse various components of an IMAP URL as defined in RFC 2192,
+    which relies on the IMAP grammar in RFC 2060 (hence the derivation
+    from ImapParser).
+*/
 
 
 /*! This function returns true if an (optional) iuserauth component is

@@ -18,7 +18,9 @@ public:
     ImapUrl( const IMAP *, const String & );
 
     bool valid() const;
+    bool isRump() const;
 
+    String orig() const;
     class User * user() const;
     String auth() const;
     String host() const;
@@ -32,9 +34,8 @@ public:
     String mechanism() const;
     String urlauth() const;
 
-    bool isRump() const;
-
-    String orig() const;
+    void setText( const String & );
+    String text() const;
 
 private:
     void parse( const String & );
