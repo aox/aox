@@ -348,8 +348,7 @@ void Append::execute()
                     return;
                 }
                 else if ( tp->section ) {
-                    d->text.append( Fetch::sectionData( tp->section,
-                                                        tp->message ) );
+                    d->text.append( Fetch::sectionData( tp->section, m ) );
                 }
                 else {
                     d->text.append( m->rfc822() );
