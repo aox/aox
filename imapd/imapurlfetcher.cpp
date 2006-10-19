@@ -116,8 +116,7 @@ void ImapUrlFetcher::execute()
     }
 
     if ( d->state == 1 ) {
-        if ( !d->checker )
-            d->checker = new PermissionsChecker;
+        d->checker = new PermissionsChecker;
 
         List<UrlLink>::Iterator it( d->urls );
         while ( it ) {
@@ -128,12 +127,14 @@ void ImapUrlFetcher::execute()
             }
             else if ( user->state() == User::Nonexistent ) {
                 setError( "invalid URL", url->orig() );
+                d->owner->execute();
                 return;
             }
             else {
                 Mailbox * m = user->mailbox( url->mailboxName() );
                 if ( !m ) {
                     setError( "invalid URL", url->orig() );
+                    d->owner->execute();
                     return;
                 }
                 Permissions * p = d->checker->permissions( m, user );
@@ -158,10 +159,12 @@ void ImapUrlFetcher::execute()
             while ( it ) {
                 if ( !it->permissions->allowed( Permissions::Read ) ) {
                     setError( "invalid URL", it->url->orig() );
+                    d->owner->execute();
                     return;
                 }
                 ++it;
             }
+            d->owner->execute();
             return;
         }
 
@@ -194,6 +197,7 @@ void ImapUrlFetcher::execute()
                 Row * r = it->q->nextRow();
                 if ( it->q->failed() || !r ) {
                     setError( "invalid URL", url->orig() );
+                    d->owner->execute();
                     return;
                 }
 
@@ -203,15 +207,17 @@ void ImapUrlFetcher::execute()
 
                 if ( urlauth != "0" + MD5::HMAC( key, rump ).hex() ) {
                     setError( "invalid URL", url->orig() );
+                    d->owner->execute();
                     return;
                 }
 
                 Date * exp = url->expires();
                 if ( exp ) {
-                    Date d;
-                    d.setCurrentTime();
-                    if ( d.unixTime() > exp->unixTime() ) {
+                    Date now;
+                    now.setCurrentTime();
+                    if ( now.unixTime() > exp->unixTime() ) {
                         setError( "invalid URL", url->orig() );
+                        d->owner->execute();
                         return;
                     }
                 }
@@ -224,6 +230,7 @@ void ImapUrlFetcher::execute()
                 ip->end();
                 if ( !ip->ok() ) {
                     setError( "invalid URL", url->orig() );
+                    d->owner->execute();
                     return;
                 }
             }
@@ -268,6 +275,7 @@ void ImapUrlFetcher::execute()
 
             if ( !m ) {
                 setError( "invalid URL", url->orig() );
+                d->owner->execute();
                 return;
             }
             else if ( it->section ) {
