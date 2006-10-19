@@ -25,6 +25,9 @@ Lemonade Interop
   Basic administration using the httpd
   Read-only archive pages
 
+  Eliminate the header_fields that also exist as address_fields or
+  date_fields rows, add two new fetchers and clean up the db.
+
 
 Arnt in Delhi
 
