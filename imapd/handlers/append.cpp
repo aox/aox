@@ -269,7 +269,14 @@ void Append::execute()
         while ( it ) {
             Textpart * tp = it;
             if ( tp->type == Textpart::Url ) {
+                // We require that this be a URL relative to the current
+                // IMAP session; that's all CATENATE allows for.
                 tp->url = new ImapUrl( imap(), tp->s );
+                if ( !tp->url->valid() ) {
+                    setRespTextCode( "BADURL " + tp->s );
+                    error( No, "invalid URL" );
+                    return;
+                }
                 urls->append( tp->url );
             }
             ++it;
