@@ -621,9 +621,9 @@ void SessionInitialiser::execute()
                 d->seen =
                     new Query( "select m.uid from messages m "
                                "left join flags f on "
-                               "(f.mailbox=m.mailbox and f.uid=m.uid and f.flag=$2) "
-                               "left join deleted_messages dm on "
-                               "(m.mailbox=dm.mailbox and m.uid=dm.uid) "
+                               "(f.mailbox=m.mailbox and f.uid=m.uid and"
+                               " f.flag=$2) left join deleted_messages dm "
+                               "on (m.mailbox=dm.mailbox and m.uid=dm.uid) "
                                "where m.mailbox=$1 and dm.uid is null and "
                                "f.flag is null order by uid limit 1", this );
                 d->seen->bind( 1, d->session->mailbox()->id() );
