@@ -2269,8 +2269,9 @@ void checkConfigConsistency()
         Database::setup( 1 );
 
         d = new Dispatcher( Dispatcher::CheckConfigConsistency );
-        d->query = new Query( "select login from users where lower(login)='anonymous'",
-                              d );
+        d->query =
+            new Query( "select login from users where "
+                       "lower(login)='anonymous'", d );
         d->query->execute();
     }
     
