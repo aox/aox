@@ -503,7 +503,8 @@ void SessionInitialiser::execute()
 
         d->t = new Transaction( this );
 
-        d->nms = new Query( "select last_value::int from nextmodsequence", this );
+        d->nms =
+            new Query( "select last_value::int from nextmodsequence", this );
         d->t->enqueue( d->nms );
 
         if ( m->ordinary() ) {
