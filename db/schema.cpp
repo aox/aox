@@ -252,8 +252,8 @@ void Schema::execute()
 
 void Schema::describeStep( const String & description )
 {
-    d->l->log( fn( d->revision ) + "-" + fn( d->revision + 1 ) + ": " + description,
-               Log::Significant );
+    d->l->log( fn( d->revision ) + "-" + fn( d->revision + 1 ) + ": " +
+               description, Log::Significant );
 }
 
 
