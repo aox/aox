@@ -2,21 +2,52 @@
 
 #include "imapurlfetcher.h"
 
+#include "user.h"
+#include "date.h"
+#include "message.h"
+#include "imapparser.h"
+#include "handlers/fetch.h"
+#include "handlers/section.h"
+#include "permissions.h"
+#include "stringlist.h"
+#include "mailbox.h"
+#include "query.h"
+#include "md5.h"
+
+
+struct UrlLink
+    : public Garbage
+{
+    UrlLink( ImapUrl * u )
+        : url( u ), mailbox( 0 ), message( 0 ), section( 0 ),
+          permissions( 0 ), q( 0 )
+    {}
+
+    ImapUrl * url;
+    Mailbox * mailbox;
+    Message * message;
+    Section * section;
+    Permissions * permissions;
+    Query * q;
+};
+
 
 class IufData
     : public Garbage
 {
 public:
     IufData()
-        : state( 0 ), done( false ), urls( 0 ), owner( 0 )
+        : state( 0 ), done( false ), urls( 0 ), owner( 0 ),
+          checker( 0 )
     {}
 
     int state;
     bool done;
     String error;
     String badUrl;
-    List<ImapUrl> * urls;
+    List<UrlLink> * urls;
     EventHandler * owner;
+    PermissionsChecker * checker;
 };
 
 
@@ -49,8 +80,13 @@ public:
 ImapUrlFetcher::ImapUrlFetcher( List<ImapUrl> * l, EventHandler * ev )
     : d( new IufData )
 {
-    d->urls = l;
     d->owner = ev;
+    d->urls = new List<UrlLink>;
+    List<ImapUrl>::Iterator it( l );
+    while ( it ) {
+        d->urls->append( new UrlLink( it ) );
+        ++it;
+    }
 }
 
 
@@ -61,6 +97,139 @@ void ImapUrlFetcher::execute()
             d->done = true;
             return;
         }
+
+        List<UrlLink>::Iterator it( d->urls );
+        while ( it ) {
+            ImapUrl * url = it->url;
+            if ( url->user() == 0 ) {
+                setError( "invalid URL", url->orig() );
+                return;
+            }
+            else if ( url->user()->state() == User::Unverified ) {
+                url->user()->refresh( this );
+            }
+            ++it;
+        }
+
+        d->state = 1;
+    }
+
+    if ( d->state == 1 ) {
+        d->checker = new PermissionsChecker;
+
+        List<UrlLink>::Iterator it( d->urls );
+        while ( it ) {
+            ImapUrl * url = it->url;
+            User * user = url->user();
+            if ( user->state() == User::Unverified ) {
+                return;
+            }
+            else if ( user->state() == User::Nonexistent ) {
+                setError( "invalid URL", url->orig() );
+                return;
+            }
+            else {
+                Mailbox * m = user->mailbox( url->mailboxName() );
+                if ( !m ) {
+                    setError( "invalid URL", url->orig() );
+                    return;
+                }
+                Permissions * p = d->checker->permissions( m, user );
+                if ( !p )
+                    p = new Permissions( m, user, this );
+                d->checker->require( p, Permissions::Read );
+                it->permissions = p;
+                it->mailbox = m;
+            }
+            ++it;
+        }
+
+        d->state = 2;
+    }
+
+    if ( d->state == 2 ) {
+        if ( !d->checker->ready() )
+            return;
+
+        if ( !d->checker->allowed() ) {
+            List<UrlLink>::Iterator it( d->urls );
+            while ( it ) {
+                if ( !it->permissions->allowed( Permissions::Read ) ) {
+                    setError( "invalid URL", it->url->orig() );
+                    return;
+                }
+                ++it;
+            }
+            return;
+        }
+
+        List<UrlLink>::Iterator it( d->urls );
+        while ( it ) {
+            it->q = new Query( "select key from access_keys where "
+                               "userid=$1 and mailbox=$2", this );
+            it->q->bind( 1, it->url->user()->id() );
+            it->q->bind( 2, it->mailbox->id() );
+            it->q->execute();
+            ++it;
+        }
+
+        d->state = 3;
+    }
+
+    if ( d->state == 3 ) {
+        List<UrlLink>::Iterator it( d->urls );
+        while ( it ) {
+            ImapUrl * url = it->url;
+
+            if ( !it->q->done() )
+                return;
+
+            Row * r = it->q->nextRow();
+            if ( it->q->failed() || !r ) {
+                setError( "invalid URL", url->orig() );
+                return;
+            }
+
+            String rump( url->rump() );
+            String urlauth( url->urlauth() );
+            String key( r->getString( "key" ).de64() );
+
+            if ( urlauth != "0" + MD5::HMAC( key, rump ).hex() ) {
+                setError( "invalid URL", url->orig() );
+                return;
+            }
+
+            Date * exp = url->expires();
+            if ( exp ) {
+                Date d;
+                d.setCurrentTime();
+                if ( d.unixTime() > exp->unixTime() ) {
+                    setError( "invalid URL", url->orig() );
+                    return;
+                }
+            }
+
+            String section( url->section() );
+            if ( !section.isEmpty() ) {
+                ImapParser * ip = new ImapParser( section );
+                it->section = Fetch::parseSection( ip );
+                ip->end();
+                if ( !ip->ok() ) {
+                    setError( "invalid URL", url->orig() );
+                    return;
+                }
+            }
+
+            // ...
+
+            ++it;
+        }
+
+        d->state = 4;
+    }
+
+    if ( d->state == 4 ) {
+        // ...
     }
 }
 
