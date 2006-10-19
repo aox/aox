@@ -829,7 +829,7 @@ void showCounts()
             messages = r->getInt( "messages" );
         uint dmessages = 0;
         if ( !r->isNull( "dmessages" ) )
-            dmessages = r->getInt( "messages" );
+            dmessages = r->getInt( "dmessages" );
         uint bodyparts = 0;
         if ( !r->isNull( "bodyparts" ) )
             bodyparts = r->getInt( "bodyparts" );
