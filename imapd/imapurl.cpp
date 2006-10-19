@@ -34,12 +34,14 @@ class ImapUrlData
 {
 public:
     ImapUrlData()
-        : valid( false ), isRump( false ), imap( 0 ), user( 0 ),
-          port( 143 ), uidvalidity( 0 ), uid( 0 ), expires( 0 )
+        : valid( false ), isRump( false ), rumpEnd( 0 ), imap( 0 ),
+          user( 0 ), port( 143 ), uidvalidity( 0 ), uid( 0 ),
+          expires( 0 )
     {}
 
     bool valid;
     bool isRump;
+    uint rumpEnd;
 
     const IMAP * imap;
 
@@ -178,6 +180,7 @@ void ImapUrl::parse( const String & s )
                 d->access = "anonymous";
             else
                 return;
+            d->rumpEnd = p->pos();
             if ( p->present( ":" ) ) {
                 p->require( "internal" );
                 p->require( ":" );
@@ -227,6 +230,16 @@ bool ImapUrl::isRump() const
 String ImapUrl::orig() const
 {
     return d->orig;
+}
+
+
+/*! Returns only the rump of this URL (see RFC 4467), or an empty string
+    if the rump is not meaningfully defined.
+*/
+
+String ImapUrl::rump() const
+{
+    return d->orig.mid( 0, d->rumpEnd+1 );
 }
 
 

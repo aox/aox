@@ -21,6 +21,8 @@ public:
     bool isRump() const;
 
     String orig() const;
+    String rump() const;
+
     class User * user() const;
     String auth() const;
     String host() const;
