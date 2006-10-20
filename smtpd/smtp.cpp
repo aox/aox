@@ -659,6 +659,7 @@ public:
         List<ImapUrl> * l = new List<ImapUrl>;
         l->append( u );
         f = new ImapUrlFetcher( l, this );
+        f->execute();
         execute();
     }
 
