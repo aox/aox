@@ -146,26 +146,20 @@ void Buffer::read( int fd )
 
 void Buffer::write( int fd )
 {
-    int written = 0;
+    int written = 1;
 
-    do {
-        Vector *v = vecs.firstElement();
+    while ( written ) {
+        Vector * v = vecs.firstElement();
 
-        if ( !v ) {
-            if ( filter && next )
-                filter->flush( next );
-            if ( next )
-                next->write( fd );
-            return;
-        }
-
-        int max = v->len;
+        int max = 0;
+        if ( v )
+            max = v->len;
         if ( vecs.count() == 1 )
             max = firstfree;
         int n = max - firstused;
 
         written = 0;
-        if ( !n )
+        if ( !n || !v )
             ;
         else if ( filter )
             written = filter->write( (char*)v->base+firstused, n, next );
@@ -176,10 +170,14 @@ void Buffer::write( int fd )
         }
         else if ( written < 0 && errno != EAGAIN ) {
             err = errno;
-            break;
+            written = 0;
         }
     }
-    while ( written > 0 );
+
+    if ( filter )
+        filter->flush( next );
+    if ( next )
+        next->write( fd );
 }
 
 
