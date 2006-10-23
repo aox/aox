@@ -153,11 +153,13 @@ void Permissions::execute()
             uint i = 0;
             while ( i < Permissions::NumRights )
                 d->allowed[i++] = true;
-            // not even the owner can meaningfully append messages to a view
-            if ( d->mailbox->view() )
+            // not even the owner can meaningfully change the result
+            // set of a view
+            if ( d->mailbox->view() ) {
                 d->allowed[Insert] = false;
-            // DeleteMessages and Expunge are dubious too... allow them
-            // for the moment
+                d->allowed[DeleteMessages] = false;
+                d->allowed[Expunge] = false;
+            }
             d->ready = true;
             return;
         }
@@ -409,7 +411,7 @@ void PermissionsChecker::require( Permissions * p, Permissions::Right r )
             return;
         ++i;
     }
-    
+
     PermissionsCheckerData::Pair * pair = new PermissionsCheckerData::Pair;
     pair->p = p;
     pair->r = r;
@@ -469,7 +471,7 @@ static const char * rightNames[Permissions::NumRights] = {
 /*! Returns an error string describing the missing permissions. If
     allowed() returns true, this is an empty string. If allowed() is
     false, it is a long, perhaps multi-line string.
-    
+
     If ready() returns false, this function returns an almost random
     string.
 */
