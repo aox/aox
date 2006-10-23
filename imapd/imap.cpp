@@ -196,7 +196,10 @@ void IMAP::react( Event e )
             break;
         case Authenticated:
         case Selected:
-            setTimeoutAfter( 1800 );
+            if ( d->reader )
+                setTimeoutAfter( 10800 ); // in practice idle mode
+            else
+                setTimeoutAfter( 1800 ); // inactive client
             break;
         case Logout:
             break;
