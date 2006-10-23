@@ -22,6 +22,7 @@ public:
         uint i = 0;
         while ( i < Permissions::NumRights )
             allowed[i++] = false;
+        allowed[Permissions::Lookup] = true;
     }
 
     bool ready;
