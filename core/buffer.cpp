@@ -185,6 +185,8 @@ void Buffer::write( int fd )
 
 bool Buffer::eof() const
 {
+    if ( next )
+        return next->eof();
     return seenEOF;
 }
 
@@ -195,6 +197,8 @@ bool Buffer::eof() const
 
 uint Buffer::error() const
 {
+    if ( next )
+        return next->error();
     return err;
 }
 
