@@ -17,6 +17,7 @@
 #include "handlers/authenticate.h"
 #include "handlers/capability.h"
 #include "handlers/close.h"
+#include "handlers/compress.h"
 #include "handlers/copy.h"
 #include "handlers/create.h"
 #include "handlers/delete.h"
@@ -165,6 +166,8 @@ Command * Command::create( IMAP * imap,
         c = new Authenticate;
     else if ( n == "starttls" )
         c = new StartTLS;
+    else if ( n == "compress" )
+        c = new Compress;
 
     if ( c )
         notAuthenticated = true;

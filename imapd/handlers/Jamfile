@@ -6,6 +6,7 @@ Build imap :
     append.cpp
     capability.cpp
     close.cpp
+    compress.cpp
     copy.cpp
     create.cpp
     delete.cpp

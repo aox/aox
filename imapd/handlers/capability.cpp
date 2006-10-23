@@ -66,11 +66,13 @@ String Capability::capabilities( IMAP * i )
     c.append( "BINARY" );
     c.append( "CATENATE" );
     c.append( "CHILDREN" );
+    if ( drafts )
+        c.append( "COMPRESS=DEFLATE" );
     c.append( "CONDSTORE" );
     c.append( "ID" );
     c.append( "IDLE" );
     if ( drafts )
-        c.append( "X-DRAFT-W12-LISTEXT" );
+        c.append( "X-DRAFT-W13-LISTEXT" );
     c.append( "LITERAL+" );
     if ( !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )
         c.append( "LOGINDISABLED" );
