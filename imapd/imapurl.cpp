@@ -155,11 +155,8 @@ void ImapUrl::parse( const String & s )
     p->require( "/;uid=" );
     d->uid = p->number();
 
-    if ( p->present( "/;section=" ) ) {
+    if ( p->present( "/;section=" ) )
         d->section = p->xchars( true );
-        if ( d->section.isEmpty() )
-            return;
-    }
 
     // RFC 4467 additions:
     // [ ";EXPIRE=" date-time ] ";URLAUTH=" access ":" mechanism ":" urlauth
