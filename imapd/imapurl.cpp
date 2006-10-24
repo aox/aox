@@ -572,8 +572,11 @@ Date * ImapUrlParser::isoTimestamp()
         zone = -1;
     else if ( !present( "+" ) )
         setError( "Time zone must be z, or start with - or +" );
-    zone = zone * ( ( 60 * digits( 2, 2 ).number( &ok ) ) +
-                    digits( 2, 2 ).number( &ok ) );
+
+    int za = digits( 2, 2 ).number( &ok );
+    require( ":" );
+    int zb = digits( 2, 2 ).number( &ok );
+    zone = zone * ( 60*za + zb );
 
     Date * d = new Date;
     d->setDate( year, month, day, hours, minutes, seconds, zone );
