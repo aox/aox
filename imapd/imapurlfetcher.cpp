@@ -76,7 +76,8 @@ public:
 
     1. Verify that the ImapUrl::user() is valid.
     2. Verify that the ImapUrl::mailboxName() refers to an existing
-       mailbox in the relevant user's namespace.
+       mailbox in the relevant user's namespace; and, if the URL has
+       a UIDVALIDITY, check that it's the same as that of the mailbox.
     3. Verify that the user has read access to that mailbox.
     4. Fetch the access key for that (user,mailbox).
     5. Verify that the URLAUTH token matches the URL. (We assume that
@@ -145,11 +146,15 @@ void ImapUrlFetcher::execute()
             }
             else {
                 Mailbox * m = user->mailbox( url->mailboxName() );
-                if ( !m ) {
+                if ( !m ||
+                     ( url->uidvalidity() != 0 &&
+                       m->uidvalidity() != url->uidvalidity() ) )
+                {
                     setError( "invalid URL", url->orig() );
                     d->owner->execute();
                     return;
                 }
+
                 Permissions * p = d->checker->permissions( m, user );
                 if ( !p )
                     p = new Permissions( m, user, this );
