@@ -1148,6 +1148,9 @@ Todo list: AMS
   - Use Ethereal to snoop on Thunderbird talking to OpenLDAP to query
     an address book.
   - aox start should say "already running" if that's true.
+  - DIGEST-MD5 reauth doesn't work for Dave.
+  - Alexey suggest that we resend CAPABILITY after LOGIN.
+  - Date::valid doesn't reject February 29th 2007.
 
 
 
