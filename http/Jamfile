@@ -1,0 +1,8 @@
+SubDir TOP httpd ;
+SubInclude TOP server ;
+SubInclude TOP message ;
+SubInclude TOP encodings ;
+
+HDRS += [ FDirName $(TOP) httpd ] ;
+
+Build http : http.cpp page.cpp link.cpp httpsession.cpp mailboxview.cpp ;
