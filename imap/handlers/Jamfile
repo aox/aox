@@ -1,4 +1,4 @@
-SubDir TOP imapd handlers ;
+SubDir TOP imap handlers ;
 
 Build imap :
     acl.cpp

@@ -1,12 +1,12 @@
-SubDir TOP imapd ;
+SubDir TOP imap ;
 
 SubInclude TOP db ;
 SubInclude TOP sasl ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 
-HDRS += [ FDirName $(TOP) imapd ] ;
-SubInclude TOP imapd handlers ;
+HDRS += [ FDirName $(TOP) imap ] ;
+SubInclude TOP imap handlers ;
 
 Build imap :
     imap.cpp imapparser.cpp imapsession.cpp command.cpp imapurl.cpp

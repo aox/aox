@@ -1,10 +1,10 @@
 SubDir TOP archiveopteryx ;
 
-SubInclude TOP imapd ;
-SubInclude TOP pop3d ;
-SubInclude TOP sieved ;
-SubInclude TOP httpd ;
-SubInclude TOP smtpd ;
+SubInclude TOP imap ;
+SubInclude TOP pop ;
+SubInclude TOP sieve ;
+SubInclude TOP http ;
+SubInclude TOP smtp ;
 
 
 Build archiveopteryx : archiveopteryx.cpp ;
