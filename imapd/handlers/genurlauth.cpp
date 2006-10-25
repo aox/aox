@@ -141,12 +141,13 @@ void GenUrlauth::execute()
                 it->key = r->getString( "key" );
             }
             else if ( q->rows() == 0 ) {
+                it->key = Entropy::asString( 16 ).e64();
                 q = new Query( "insert into access_keys "
                                "(userid,mailbox,key) values ($1,$2,$3)",
                                this );
                 q->bind( 1, imap()->user()->id() );
                 q->bind( 2, it->mailbox->id() );
-                q->bind( 3, Entropy::asString( 16 ).e64() );
+                q->bind( 3, it->key );
                 d->t->enqueue( q );
             }
 
