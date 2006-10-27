@@ -28,11 +28,11 @@
     RFC 2595: AUTH=PLAIN
     RFC 2195: AUTH=CRAM-MD5
     RFC 2831: AUTH=DIGEST-MD5
+    RFC 3348: CHILDREN
     RFC 3516: BINARY
     RFC 4469: CATENATE
     RFC 4551: CONDSTORE
     RFC 4467: URLAUTH
-    RFC 3348: CHILDREN
 
     We also announce a number of draft capabilities, if the
     configuration variable announce-draft-support is set to true. By
@@ -66,8 +66,7 @@ String Capability::capabilities( IMAP * i )
     c.append( "BINARY" );
     c.append( "CATENATE" );
     c.append( "CHILDREN" );
-    if ( drafts )
-        c.append( "COMPRESS=DEFLATE" );
+    c.append( "COMPRESS=DEFLATE" );
     c.append( "CONDSTORE" );
     c.append( "ID" );
     c.append( "IDLE" );
