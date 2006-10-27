@@ -3,7 +3,7 @@
 # No copyright is claimed for this file.
 #
 # See http://www.archiveopteryx.org/ for more about Archiveopteryx.
-
+#
 # Try to keep various init.d managers happy:
 #
 # chkconfig: 35 99 01
