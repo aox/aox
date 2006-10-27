@@ -527,9 +527,10 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
 
             int i = 0;
             while ( i >= 0 ) {
-                i = b.find( "<meta http-equiv=\"content-type\" content=\"", i );
+                String tag( "<meta http-equiv=\"content-type\" content=\"" );
+                i = b.find( tag, i );
                 if ( i >= 0 ) {
-                    i = i + 41; // length of the meta above
+                    i = i + tag.length();
                     int j = i;
                     while ( j < (int)b.length() && b[j] != '"' )
                         j++;
@@ -545,6 +546,7 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
                     if ( c )
                         c->toUnicode( body );
                     if ( meta &&
+                         meta->toUnicode( b ).ascii().contains( tag ) &&
                          ( meta->wellformed() ||
                            ( meta->valid() && !c ) ||
                            ( meta->valid() && c && !c->valid() ) ) ) {
