@@ -11,7 +11,7 @@
 #include "md5.h"
 
 
-int currentRevision = 31;
+int currentRevision = 32;
 
 
 class SchemaData
@@ -327,6 +327,8 @@ bool Schema::singleStep()
         c = stepTo30(); break;
     case 30:
         c = stepTo31(); break;
+    case 31:
+        c = stepTo32(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -1340,13 +1342,10 @@ bool Schema::stepTo25()
         d->q = new Query( "grant select,update on nextmodsequence to " +
                           dbuser, this );
         d->t->enqueue( d->q );
-        d->q = new Query( "create table modsequences ("
-                          "    mailbox     integer not null,"
-                          "    uid         integer not null,"
-                          "    modseq      bigint not null,"
-                          "    foreign key (mailbox, uid)"
-                          "                references messages(mailbox, uid)"
-                          ")", this );
+        d->q = new Query( "create table modsequences (mailbox integer "
+                          "not null, uid integer not null, modseq bigint "
+                          "not null, foreign key (mailbox, uid) references "
+                          "messages(mailbox, uid))", this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant select,insert,update on modsequences to " +
                           dbuser, this );
@@ -1554,6 +1553,36 @@ bool Schema::stepTo31()
         d->t->enqueue( d->q );
         d->q = new Query( "create index pn_b on part_numbers(bodypart)",
                           this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create the unparsed_messages table. */
+
+
+bool Schema::stepTo32()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Creating unparsed_messages table." );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "create table unparsed_messages (bodypart "
+                          "integer not null references bodyparts(id) "
+                          "on delete cascade)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "grant insert on unparsed_messages to " +
+                          dbuser, this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
