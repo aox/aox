@@ -9,7 +9,8 @@ grant insert on addresses, mailboxes, permissions, messages, bodyparts,
 part_numbers, field_names, header_fields, address_fields, date_fields,
 threads, thread_members, flag_names, flags, subscriptions,
 annotation_names, annotations, views, view_messages, scripts,
-deleted_messages, modsequences, deliveries, access_keys to $AOXUSER;
+deleted_messages, modsequences, deliveries, access_keys,
+unparsed_messages to $AOXUSER;
 
 grant delete on permissions, flags, subscriptions, annotations, views,
 view_messages, scripts, deliveries, access_keys to $AOXUSER;

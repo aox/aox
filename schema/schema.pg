@@ -4,7 +4,7 @@
 create table mailstore (
     revision    integer not null
 );
-insert into mailstore (revision) values (31);
+insert into mailstore (revision) values (32);
 
 
 -- One entry for each unique address we've encountered.
@@ -375,4 +375,13 @@ create table access_keys (
                 on delete cascade,
     key         text not null,
     primary key (userid, mailbox)
+);
+
+
+-- One entry for each bodypart that represents an unparseable message
+-- that was wrapped as an application/octet-stream.
+
+create table unparsed_messages (
+    bodypart    integer not null references bodyparts(id)
+                on delete cascade
 );
