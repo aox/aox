@@ -10,6 +10,8 @@ rule ShellScript {
     Depends install : $(t) ;
     SEARCH on $(s) = $(SEARCH_SOURCE) ;
     EngraveConfig $(t) : $(s) ;
+    MODE on $(t) = 755 ;
+    Chmod $(t) ;
 }
 
 
