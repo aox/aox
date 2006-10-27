@@ -1152,53 +1152,7 @@ bool Schema::stepTo19()
 
 bool Schema::stepTo20()
 {
-    if ( d->substate == 0 ) {
-        describeStep( "Populating the date_fields table." );
-        d->q =
-            new Query( "select count(substring(value from '^[^(]*')::timestamp "
-                       "with time zone) from header_fields where field=(select "
-                       "id from field_names where name='Date') and "
-                       "substring(substring(value from "
-                       "'[+-][0-9][0-9][0-9][0-9]') from 2)::integer < 1400",
-                       this );
-        d->q->allowFailure();
-        d->q->execute();
-        d->substate = 1;
-    }
-
-    if ( d->substate == 1 ) {
-        if ( !d->q->done() )
-            return false;
-
-        if ( d->q->failed() ) {
-            d->l->log( "Not attempted due to unparseable dates.",
-                       Log::Debug );
-            d->substate = 0;
-            return true;
-        }
-
-        d->q = new Query( "delete from date_fields", this );
-        d->t->enqueue( d->q );
-        d->q = new Query( "insert into date_fields select "
-                          "mailbox, uid, substring(value from "
-                          "'^[^(]*')::timestamp with time zone from "
-                          "header_fields where field=(select id from "
-                          "field_names where name='Date') and "
-                          "substring(substring(value from "
-                          "'[+-][0-9][0-9][0-9][0-9]') from 2)::integer < "
-                          "1400", this );
-        d->t->enqueue( d->q );
-        d->t->execute();
-        d->substate = 2;
-    }
-
-    if ( d->substate == 2 ) {
-        if ( !d->q->done() )
-            return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
-    }
-
+    describeStep( "(Not) Populating the date_fields table." );
     return true;
 }
 
