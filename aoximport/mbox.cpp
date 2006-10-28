@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <stdio.h>
 
 
 /*! \class MboxDirectory mbox.h
@@ -44,12 +45,10 @@ class MboxMailboxData
     : public Garbage
 {
 public:
-    MboxMailboxData(): read( false ), offset( 0 ), msn( 1 ) {}
+    MboxMailboxData(): file( 0 ), msn( 1 ) {}
 
     String path;
-    bool read;
-    uint offset;
-    String contents;
+    FILE * file;
     uint msn;
 };
 
@@ -86,35 +85,33 @@ MboxMailbox::MboxMailbox( const String & path, uint n )
 
 MigratorMessage * MboxMailbox::nextMessage()
 {
-    if ( !d->read ) {
-        File r( d->path );
-        d->offset = 0;
-        d->contents = r.contents();
-        d->read = true;
+    char s[128];
+
+    if ( !d->file ) {
+        d->file = fopen( d->path.cstr(), "r" );
+        // If we can't read a "From " line at the very beginning, we
+        // assume this isn't an mbox, and give up.
+        if ( !d->file || fgets( s, 128, d->file ) == 0 ||
+             !( s[0] == 'F' && s[1] == 'r' && s[2] == 'o' && s[3] == 'm' &&
+                s[4] == ' ' ) )
+            return 0;
     }
 
-    if ( d->contents.mid( d->offset, 5 ) != "From " )
+    String contents;
+    while ( fgets( s, 128, d->file ) != 0 ) {
+        if ( s[0] == 'F' && s[1] == 'r' && s[2] == 'o' && s[3] == 'm' &&
+             s[4] == ' ' )
+            break;
+        // XXX: Should we do ">From " unescaping here? It would be easy.
+        contents.append( s );
+    }
+
+    if ( contents.isEmpty() )
         return 0;
 
-    uint i = d->offset + 1;
-    while ( i < d->contents.length() &&
-            !( d->contents[i-1] == '\n' &&
-               d->contents[i] == 'F' &&
-               d->contents.mid( i, 5 ) == "From " ) )
-        i++;
-
-    uint j = d->offset;
-    while ( j < d->contents.length() &&
-            d->contents[j] != '\n' )
-        j++;
-    if ( d->contents[j] == '\n' )
-        j++;
-
     MigratorMessage * m
-        = new MigratorMessage( d->contents.mid( j, i - j ),
-                               d->path + ":" + fn( d->msn ) +
-                               " (offset " + fn( d->offset ) + ")" );
-    d->offset = i;
+        = new MigratorMessage( contents, d->path + ":" + fn( d->msn ) );
+
     d->msn++;
     List<HeaderField>::Iterator it( m->message()->header()->fields() );
     while( it && it->name() != "Status" )
