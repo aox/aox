@@ -27,8 +27,16 @@
 UStringData::UStringData( int words )
     : str( 0 ), len( 0 ), max( words )
 {
-    str = (uint*)Allocator::alloc( words*sizeof(uint), 0 );
+    if ( str )
+        str = (uint*)Allocator::alloc( words*sizeof(uint), 0 );
 }
+
+
+void * UStringData::operator new( size_t ownSize, uint extra )
+{
+    return Allocator::alloc( ownSize + extra*sizeof(uint), 1 );
+}
+
 
 
 /*! \class UString ustring.h
@@ -76,10 +84,8 @@ UString::UString( const UString & other )
 
 UString::~UString()
 {
-    if ( modifiable() ) {
-        Allocator::dealloc( d->str );
+    if ( d && d->max )
         Allocator::dealloc( d );
-    }
     d = 0;
 }
 
@@ -90,11 +96,10 @@ UString::~UString()
 
 void UString::operator delete( void * p )
 {
-    if ( ((UString *)p)->modifiable() ) {
-        Allocator::dealloc( ((UString *)p)->d->str );
-        Allocator::dealloc( ((UString *)p)->d );
-    }
-    ((UString *)p)->d = 0;
+    UStringData * & d = ((UString *)p)->d;
+    if ( d && d->max )
+        Allocator::dealloc( d );
+    d = 0;
 }
 
 
@@ -177,30 +182,27 @@ void UString::reserve( uint num )
 
 void UString::reserve2( uint num )
 {
-    num = Allocator::rounded( num );
+    const uint std = sizeof( UStringData );
+    const uint si = sizeof( uint );
+    num = ( Allocator::rounded( num * si + std ) - std ) / si;
 
-    if ( !d ) {
-        // empty string: give it a d and be done
-        d = new UStringData( num );
-    }
-    else if ( d->max ) {
-        // we owned the old string: modify d
-        uint * s = (uint*)Allocator::alloc( num*sizeof(uint), 0 );
-        if ( d->len )
-            memmove( s, d->str, d->len*sizeof(uint) );
-        d->str = s;
-        d->max = num;
-    }
-    else {
-        // the old was shared: detach and use
-        UStringData * nd = new UStringData( num );
+    UStringData * freeable = 0;
+    if ( d && d->max )
+        freeable = d;
+
+    UStringData * nd = new( num ) UStringData( 0 );
+    nd->max = num;
+    nd->str = (uint*)(std + (char*)nd);
+    if ( d )
         nd->len = d->len;
-        if ( nd->len > num )
-            nd->len = num;
-        if ( d->len )
-            memmove( nd->str, d->str, nd->len*sizeof(uint) );
-        d = nd;
-    }
+    if ( nd->len > num )
+        nd->len = num;
+    if ( d && d->len )
+        memmove( nd->str, d->str, nd->len*si );
+    d = nd;
+
+    if ( freeable )
+        Allocator::dealloc( freeable );
 }
 
 

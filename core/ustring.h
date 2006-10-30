@@ -18,6 +18,8 @@ private:
     friend class UString;
     friend bool operator==( const class UString &, const class UString & );
     friend bool operator==( const UString &, const char * );
+    void * operator new( size_t, uint );
+    void * operator new( size_t s ) { return Garbage::operator new( s); }
 
     uint * str;
     uint len;

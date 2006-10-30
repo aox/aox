@@ -16,6 +16,9 @@ private:
     friend class String;
     friend bool operator==( const class String &, const class String & );
     friend bool operator==( const class String &, const char * );
+    void * operator new( size_t, uint );
+    void * operator new( size_t s ) { return Garbage::operator new( s); }
+
     char * str;
     uint len;
     uint max;

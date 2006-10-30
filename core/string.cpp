@@ -28,10 +28,15 @@
 StringData::StringData( int bytes )
     : str( 0 ), len( 0 ), max( bytes )
 {
-    str = (char*)Allocator::alloc( max, 0 );
+    if ( str )
+        str = (char*)Allocator::alloc( max, 0 );
 }
 
 
+void * StringData::operator new( size_t ownSize, uint extra )
+{
+    return Allocator::alloc( ownSize + extra, 1 );
+}
 
 
 /*! \class String string.h
@@ -104,10 +109,8 @@ String::String( const String &s )
 
 String::~String()
 {
-    if ( modifiable() ) {
-        Allocator::dealloc( d->str );
+    if ( d && d->max )
         Allocator::dealloc( d );
-    }
     d = 0;
 }
 
@@ -118,11 +121,10 @@ String::~String()
 
 void String::operator delete( void *p )
 {
-    if ( ((String *)p)->modifiable() ) {
-        Allocator::dealloc( ((String *)p)->d->str );
-        Allocator::dealloc( ((String *)p)->d );
-    }
-    ((String *)p)->d = 0;
+    StringData * & d = ((String *)p)->d;
+    if ( d && d->max )
+        Allocator::dealloc( d );
+    d = 0;
 }
 
 
@@ -449,30 +451,25 @@ void String::reserve( uint num )
 
 void String::reserve2( uint num )
 {
-    num = Allocator::rounded( num );
+    num = Allocator::rounded( num + sizeof( StringData ) ) - sizeof( StringData );
 
-    if ( !d ) {
-        // empty string: give it a d and be done
-        d = new StringData( num );
-    }
-    else if ( d->max ) {
-        // we owned the old string: modify d
-        char * s = (char*)Allocator::alloc( num, 0 );
-        if ( d->len )
-            memmove( s, d->str, d->len );
-        d->str = s;
-        d->max = num;
-    }
-    else {
-        // the old was shared: detach and use
-        StringData * nd = new StringData( num );
+    StringData * freeable = 0;
+    if ( d && d->max )
+        freeable = d;
+
+    StringData * nd = new( num ) StringData( 0 );
+    nd->max = num;
+    nd->str = sizeof( StringData ) + (char*)nd;
+    if ( d )
         nd->len = d->len;
-        if ( nd->len > num )
-            nd->len = num;
-        if ( d->len )
-            memmove( nd->str, d->str, nd->len );
-        d = nd;
-    }
+    if ( nd->len > num )
+        nd->len = num;
+    if ( d && d->len )
+        memmove( nd->str, d->str, nd->len );
+    d = nd;
+
+    if ( freeable )
+        Allocator::dealloc( freeable );
 }
 
 
