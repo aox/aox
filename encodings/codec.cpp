@@ -466,6 +466,9 @@ Codec * Codec::byString( const String & s )
   to and from Uncode for such character sets. Each character set must
   subclass this, but no reimplementation is necessary.
 
+  Codecs which map 0x80-0x9F to U+0080-0x009F consider any strings
+  which contain 0x80-0x9F badly formed.
+
   At the moment, the fromUnicode function is rather slow. This may
   need fixing later.
 */
@@ -511,10 +514,18 @@ UString TableCodec::toUnicode( const String & s )
     uint i = 0;
     while ( i < s.length() ) {
         uint c = s[i];
-        if ( t[c] )
-            u.append( t[c] );
-        else
+        if ( !t[c] ) {
             recordError( i, c );
+            u.append( 0xFFFD );
+        }
+        else if ( t[c] == c && c >= 0x80 && c < 0xA0 ) {
+            u.append( t[c] );
+            if ( wellformed() )
+                setState( BadlyFormed );
+        }
+        else {
+            u.append( t[c] );
+        }
         i++;
     }
     return u;
@@ -590,13 +601,17 @@ UString AsciiCodec::toUnicode( const String & s )
     u.reserve( s.length() );
     uint i = 0;
     while ( i < s.length() ) {
-        u.append( s[i] );
-        if ( s[i] == 0 || s[i] > 127 )
+        if ( s[i] == 0 || s[i] > 127 ) {
             recordError( i, s[i] );
-        else if ( s[i] < 32 &&
-                  s[i] != 10 && s[i] != 13 && s[i] != 9 &&
-                  state() == Valid )
-            setState( BadlyFormed );
+            u.append( 0xFFFD );
+        }
+        else {
+            u.append( s[i] );
+            if ( s[i] < 32 &&
+                 s[i] != 10 && s[i] != 13 && s[i] != 9 &&
+                 state() == Valid )
+                setState( BadlyFormed );
+        }
         i++;
     }
     return u;
