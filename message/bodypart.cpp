@@ -422,25 +422,69 @@ static Codec * guessTextCodec( const String & body )
 static Codec * guessHtmlCodec( const String & body )
 {
     // Let's see if the general function has something for us.
-    Codec * c = guessTextCodec( body );
-    if ( c )
-        return c;
+    Codec * guess = guessTextCodec( body );
 
     // HTML prescribes that 8859-1 is the default. Let's see if 8859-1
     // works.
-    c = new Iso88591Codec;
-    (void)c->toUnicode( body );
-    if ( c->valid() )
-        return c;
-    // Some people believe that Windows codepage 1252 is HTML. Let's
-    // see if that works.
-    c = new Cp1252Codec;
-    (void)c->toUnicode( body );
-    if ( c->valid() )
-        return c;
+    if ( !guess ) {
+        guess = new Iso88591Codec;
+        (void)guess->toUnicode( body );
+        if ( !guess->valid() )
+            guess = 0;
+    }
 
-    // Nothing doing.
-    return 0;
+    if ( !guess ||
+         ( !guess->wellformed() &&
+           ( guess->name() == "ISO-8859-1" || guess->name() == "ISO-8859-15" ) ) ) {
+        // Some people believe that Windows codepage 1252 is
+        // ISO-8859-1. Let's see if that works.
+        Codec * windoze = new Cp1252Codec;
+        (void)windoze->toUnicode( body );
+        if ( windoze->wellformed() )
+            guess = windoze;
+    }
+
+
+    // Some user-agents add a <meta http-equiv="content-type"> instead
+    // of the Content-Type field. Maybe that exists? And if it exists,
+    // is it more likely to be correct than our guess above?
+
+    String b = body.lower().simplified();
+    int i = 0;
+    while ( i >= 0 ) {
+        String tag( "<meta http-equiv=\"content-type\" content=\"" );
+        i = b.find( tag, i );
+        if ( i >= 0 ) {
+            i = i + tag.length();
+            int j = i;
+            while ( j < (int)b.length() && b[j] != '"' )
+                j++;
+            HeaderField * hf
+                = HeaderField::create( "Content-Type",
+                                       b.mid( i, j-i ) );
+            String cs = ((MimeField*)hf)->parameter( "charset" );
+            Codec * meta = 0;
+            if ( !cs.isEmpty() )
+                meta = Codec::byName( cs );
+            UString m;
+            if ( meta )
+                m = meta->toUnicode( body );
+            UString g;
+            if ( guess )
+                g = guess->toUnicode( body );
+            if ( meta &&
+                 ( ( !m.isEmpty() && m == g ) ||
+                   ( meta->wellformed() && ( !guess || !guess->wellformed() ) ) ||
+                   ( meta->valid() && !guess ) ||
+                   ( meta->valid() && guess && guess->name() == "ISO-8859-1" ) ||
+                   ( meta->valid() && guess && !guess->valid() ) ) &&
+                 meta->toUnicode( b ).ascii().contains( tag ) ) {
+                guess = meta;
+            }
+        }
+    }
+    
+    return guess;
 }
 
 
@@ -508,57 +552,6 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
         bool unknown = false;
         Codec * c = 0;
 
-        if ( ct->type() == "text" && ct->subtype() == "html" ) {
-            // Some user-agents add a <meta http-equiv="content-type">
-            // instead of the Content-Type field. We scan for that, to
-            // work around certain observed breakage.
-            //
-            // This isn't correct because:
-            // 1. This isn't HTTP, so http-equiv is irrelevant.
-            // 2. We're just scanning for the particular pattern which
-            // happens to be used by the brokenware, not parsing HTML.
-            //
-            // XXX: I wonder if this code shouldn't be invoked only if
-            // no charset is specified in the MIME header, or if there
-            // is an error using the specified charset (i.e., a dozen
-            // lines lower).
-
-            String b = body.lower().simplified();
-
-            int i = 0;
-            while ( i >= 0 ) {
-                String tag( "<meta http-equiv=\"content-type\" content=\"" );
-                i = b.find( tag, i );
-                if ( i >= 0 ) {
-                    i = i + tag.length();
-                    int j = i;
-                    while ( j < (int)b.length() && b[j] != '"' )
-                        j++;
-                    HeaderField * hf
-                        = HeaderField::create( "Content-Type",
-                                               b.mid( i, j-i ) );
-                    String cs = ((MimeField*)hf)->parameter( "charset" );
-                    Codec * meta = 0;
-                    if ( !cs.isEmpty() )
-                        meta = Codec::byName( cs );
-                    if ( meta )
-                        meta->toUnicode( body );
-                    if ( c )
-                        c->toUnicode( body );
-                    if ( meta &&
-                         meta->toUnicode( b ).ascii().contains( tag ) &&
-                         ( meta->wellformed() ||
-                           ( meta->valid() && !c ) ||
-                           ( meta->valid() && c && !c->valid() ) ) ) {
-                        ct->removeParameter( "charset" );
-                        ct->addParameter( "charset", meta->name().lower() );
-                        i = -1;
-                        specified = true;
-                    }
-                }
-            }
-        }
-
         if ( ct ) {
             String csn = ct->parameter( "charset" );
             if ( csn.lower() == "default" )
@@ -616,10 +609,10 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
             c = new Utf8Codec;
         }
 
-        if ( ( !c->wellformed() && !specified ) ||
-             ( !c->valid() && specified ) ) {
+        if ( ( !specified && ( !c->wellformed() || ct->subtype() == "html" ) ) ||
+             ( specified &&  ( !c->valid() ) ) ) {
             Codec * g = 0;
-            if ( ct && ct->subtype() == "html" )
+            if ( ct->subtype() == "html" )
                 g = guessHtmlCodec( body );
             else
                 g = guessTextCodec( body );

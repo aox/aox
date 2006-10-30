@@ -1028,6 +1028,10 @@ LDAP server/address book
   http://www.onlamp.com/lpt/a/3310 may be helpful wrt i14y testing.
   thunderbird should do what it says.
 
+  http://www.dice.inf.ed.ac.uk/groups/infrastructure/directory/support/usingldap.html
+  talks about some clients. I suggest that working with those clients
+  is all we aim for.
+
 
 Groups and ACL
 
@@ -1066,6 +1070,12 @@ Plugins
   this?
 
      UsePolicyServer localhost 10023 ;
+
+
+BURL
+
+  If the message is multipart and the boundary occurs in a part, that
+  part needs encoding. Or else switch to a different body.
 
 
 INTHREAD
