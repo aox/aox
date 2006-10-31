@@ -9,7 +9,6 @@ class EventHandler;
 class Transaction;
 class MessageSet;
 class Message;
-class Fetcher;
 class String;
 class Query;
 
@@ -57,9 +56,6 @@ public:
     uint sourceUid( uint ) const;
     MessageSet sourceUids( const MessageSet & ) const;
 
-    Message * message( uint, bool = true ) const;
-    void clear();
-
     static void setup( class EventHandler * = 0 );
     static Mailbox * find( const String &, bool = false );
     static Mailbox * obtain( const String &, bool create = true );
@@ -77,13 +73,6 @@ public:
     Query * create( class Transaction *, class User * );
     Query * remove( class Transaction * );
     Query * refresh( EventHandler * = 0 );
-
-    void fetchHeaders( const MessageSet &, EventHandler * );
-    void fetchTrivia( const MessageSet &, EventHandler * );
-    void fetchBodies( const MessageSet &, EventHandler * );
-    void fetchFlags( const MessageSet &, EventHandler * );
-    void fetchAnnotations( const MessageSet &, EventHandler * );
-    void forget( Fetcher * );
 
     void addWatcher( EventHandler * );
     void removeWatcher( EventHandler * );

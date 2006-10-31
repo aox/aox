@@ -19,11 +19,9 @@ class Fetcher
     : public EventHandler
 {
 public:
-    Fetcher( Mailbox * );
+    Fetcher( Mailbox *, List<Message> *, EventHandler * );
 
     void execute();
-
-    void insert( const MessageSet &, EventHandler * );
 
     virtual PreparedStatement * query() const = 0;
     virtual void decode( Message *, Row * ) = 0;
@@ -42,7 +40,8 @@ class MessageHeaderFetcher
     : public Fetcher
 {
 public:
-    MessageHeaderFetcher( Mailbox * m ): Fetcher( m ) {}
+    MessageHeaderFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
+        : Fetcher( m, s, e ) {}
 
     PreparedStatement * query() const;
     void decode( Message *, Row * );
@@ -54,7 +53,8 @@ class MessageFlagFetcher
     : public Fetcher
 {
 public:
-    MessageFlagFetcher( Mailbox * m ): Fetcher( m ) {}
+    MessageFlagFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
+        : Fetcher( m, s, e ) {}
 
     PreparedStatement * query() const;
     void decode( Message *, Row * );
@@ -66,7 +66,8 @@ class MessageBodyFetcher
     : public Fetcher
 {
 public:
-    MessageBodyFetcher( Mailbox * m ): Fetcher( m ) {}
+    MessageBodyFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
+        : Fetcher( m, s, e ) {}
 
     PreparedStatement * query() const;
     void decode( Message *, Row * );
@@ -78,7 +79,8 @@ class MessageTriviaFetcher
     : public Fetcher
 {
 public:
-    MessageTriviaFetcher( Mailbox * m ): Fetcher( m ) {}
+    MessageTriviaFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
+        : Fetcher( m, s, e ) {}
 
     PreparedStatement * query() const;
     void decode( Message *, Row * );
@@ -90,7 +92,8 @@ class MessageAnnotationFetcher
     : public Fetcher
 {
 public:
-    MessageAnnotationFetcher( Mailbox * m ): Fetcher( m ), f( 0 ) {}
+    MessageAnnotationFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
+        : Fetcher( m, s, e ) {}
 
     PreparedStatement * query() const;
     void decode( Message *, Row * );

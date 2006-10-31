@@ -21,11 +21,12 @@ struct UrlLink
     : public Garbage
 {
     UrlLink( ImapUrl * u )
-        : url( u ), mailbox( 0 ), section( 0 ), permissions( 0 ), q( 0 )
+        : url( u ), mailbox( 0 ), message( 0 ), section( 0 ), permissions( 0 ), q( 0 )
     {}
 
     ImapUrl * url;
     Mailbox * mailbox;
+    Message * message;
     Section * section;
     Permissions * permissions;
     Query * q;
@@ -256,11 +257,10 @@ void ImapUrlFetcher::execute()
             }
 
             uint uid = url->uid();
-            Message * m = it->mailbox->message( uid, false );
 
-            if ( ( !it->section || it->section->needsHeader ) &&
-                 !( m && m->hasHeaders() ) )
-            {
+            if ( !it->section ||
+                 it->section->needsHeader ||
+                 it->section->needsBody ) {
                 MailboxSet * s = 0;
                 List<MailboxSet>::Iterator ms( sets );
                 while ( ms ) {
@@ -276,28 +276,10 @@ void ImapUrlFetcher::execute()
                     sets.append( s );
                 }
 
-                s->h.add( uid, uid );
-            }
-
-            if ( ( !it->section || it->section->needsBody ) &&
-                 !( m && m->hasBodies() ) )
-            {
-                MailboxSet * s = 0;
-                List<MailboxSet>::Iterator ms( sets );
-                while ( ms ) {
-                    if ( ms->mailbox->id() == it->mailbox->id() ) {
-                        s = ms;
-                        break;
-                    }
-                    ++ms;
-                }
-
-                if ( !s ) {
-                    s = new MailboxSet( it->mailbox );
-                    sets.append( s );
-                }
-
-                s->b.add( uid, uid );
+                if ( !it->section || it->section->needsHeader )
+                    s->h.add( uid, uid );
+                if ( !it->section || it->section->needsBody )
+                    s->b.add( uid, uid );
             }
 
             ++it;
@@ -305,17 +287,37 @@ void ImapUrlFetcher::execute()
 
         List<MailboxSet>::Iterator ms( sets );
         while ( ms ) {
-            if ( !ms->h.isEmpty() ) {
+            MessageSet either;
+            either.add( ms->h );
+            either.add( ms->b );
+            uint i = either.count();
+            List<Message> * hm = new List<Message>;
+            List<Message> * bm = new List<Message>;
+            while ( i ) {
+                Message * m = new Message;
+                uint uid = either.value( i );
+                m->setUid( uid );
+                if ( ms->h.contains( uid ) )
+                    hm->prepend( m );
+                if ( ms->b.contains( uid ) )
+                    bm->prepend( m );
+                List<UrlLink>::Iterator it( d->urls );
+                while ( it ) {
+                    if ( it->mailbox == ms->mailbox && it->url->uid() == uid )
+                        it->message = m;
+                    ++it;
+                }
+                i--;
+            }
+            if ( !hm->isEmpty() ) {
                 MessageHeaderFetcher * hf =
-                    new MessageHeaderFetcher( ms->mailbox );
-                hf->insert( ms->h, this );
+                    new MessageHeaderFetcher( ms->mailbox, hm, this );
                 d->fetchers->append( hf );
             }
 
-            if ( !ms->b.isEmpty() ) {
+            if ( !bm->isEmpty() ) {
                 MessageBodyFetcher * bf =
-                    new MessageBodyFetcher( ms->mailbox );
-                bf->insert( ms->b, this );
+                    new MessageBodyFetcher( ms->mailbox, bm, this );
                 d->fetchers->append( bf );
             }
 
@@ -335,20 +337,17 @@ void ImapUrlFetcher::execute()
 
         List<UrlLink>::Iterator it( d->urls );
         while ( it ) {
-            ImapUrl * url = it->url;
-            Message * m =
-                it->mailbox->message( url->uid(), false );
-
-            if ( !m ) {
-                setError( "invalid URL", url->orig() );
+            if ( !it->message ) {
+                setError( "invalid URL", it->url->orig() );
                 d->owner->execute();
                 return;
             }
             else if ( it->section ) {
-                url->setText( Fetch::sectionData( it->section, m ) );
+                it->url->setText( Fetch::sectionData( it->section,
+                                                      it->message ) );
             }
             else {
-                url->setText( m->rfc822() );
+                it->url->setText( it->message->rfc822() );
             }
 
             ++it;

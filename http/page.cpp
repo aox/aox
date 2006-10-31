@@ -669,7 +669,7 @@ void Page::messagePage()
     }
 
     if ( !s.isEmpty() ) {
-        d->mailboxView->mailbox()->fetchBodies( s, this );
+//        d->mailboxView->mailbox()->fetchBodies( s, this );
         return;
     }
 
@@ -1192,12 +1192,13 @@ void Page::webmailPartPage()
 {
     Message * m = 0;
     if ( d->link->mailbox() )
-        m = d->link->mailbox()->message( d->link->uid(), false );
+//        m = d->link->mailbox()->message( d->link->uid(), false )
+        ;
     if ( !m || !m->hasBodies() || !m->hasHeaders() ) {
         MessageSet s;
         s.add( d->link->uid() );
-        d->mailboxView->mailbox()->fetchHeaders( s, this );
-        d->mailboxView->mailbox()->fetchBodies( s, this );
+//        d->mailboxView->mailbox()->fetchHeaders( s, this );
+//        d->mailboxView->mailbox()->fetchBodies( s, this );
         return;
     }
 
@@ -1505,7 +1506,8 @@ void Page::webmailSearchPage()
 
         MailboxView::Thread * t = d->mailboxView->thread( uid );
         Link result( d->link, d->link->mailbox(), t->uid( 0 ) );
-        Message * m = d->mailboxView->mailbox()->message( uid );
+        Message * m = 0;
+        //d->mailboxView->mailbox()->message( uid );
         HeaderField * hf = m->header()->field( HeaderField::Subject );
         String subject;
         if ( hf )

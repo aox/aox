@@ -17,19 +17,14 @@ class FetcherData
 {
 public:
     FetcherData()
-        : mailbox( 0 ), query( 0 ),
+        : owner( 0 ),
+          mailbox( 0 ), query( 0 ),
           smallest( 0 ), largest( 0 ),
           uid( 0 ), notified( 0 ), message( 0 )
     {}
-    struct Handler
-        : public Garbage
-    {
-        Handler(): o( 0 ) {}
-        MessageSet s;
-        EventHandler * o;
-    };
 
-    List<Handler> handlers;
+    List<Message> messages;
+    EventHandler * owner;
     Mailbox * mailbox;
     Query * query;
     uint smallest;
@@ -48,31 +43,8 @@ static PreparedStatement * body;
 static PreparedStatement * anno;
 
 
-/*! \class Fetcher fetcher.h
-
-    The Fetcher class retrieves Message data for some/all messages in
-    a Mailbox. It's an abstract base class that manages the Message
-    and Mailbox aspects of the job; subclasses provide the Query or
-    PreparedStatement necessary to fetch specific data.
-
-    A Fetcher lives for a while, fetching data about a range of
-    messages. Whenever it finishes its current retrieval, it finds the
-    largest range of messages currently needing retrieval, and issues
-    an SQL select for them. Typically the select ends with "uid>=x and
-    uid<=y". When the Fetcher isn't useful any more, its Mailbox drops
-    it on the floor.
-
-    In consequence, we have at most one outstanding Query per Mailbox
-    and type of query, and when it finishes a new is issued.
-*/
-
-
-/*! Constructs an empty Fetcher which will fetch messages in mailbox \a m. */
-
-Fetcher::Fetcher( Mailbox * m )
-    : EventHandler(), d( new FetcherData )
+static void setupPreparedStatements()
 {
-    d->mailbox = m;
     if ( ::header )
         return;
 
@@ -112,6 +84,43 @@ Fetcher::Fetcher( Mailbox * m )
 }
 
 
+/*! \class Fetcher fetcher.h
+
+    The Fetcher class retrieves Message data for some/all messages in
+    a Mailbox. It's an abstract base class that manages the Message
+    and Mailbox aspects of the job; subclasses provide the Query or
+    PreparedStatement necessary to fetch specific data.
+
+    A Fetcher lives for a while, fetching data about a range of
+    messages. Whenever it finishes its current retrieval, it finds the
+    largest range of messages currently needing retrieval, and issues
+    an SQL select for them. Typically the select ends with "uid>=x and
+    uid<=y". When the Fetcher isn't useful any more, its Mailbox drops
+    it on the floor.
+
+    In consequence, we have at most one outstanding Query per Mailbox
+    and type of query, and when it finishes a new is issued.
+*/
+
+
+/*! Constructs an empty Fetcher which will fetch \a messages in
+    mailbox \a m and notify \a e when it's done. */
+
+Fetcher::Fetcher( Mailbox * m, List<Message> * messages, EventHandler * e )
+    : EventHandler(), d( new FetcherData )
+{
+    setupPreparedStatements();
+    d->mailbox = m;
+    d->owner = e;
+    List<Message>::Iterator i( messages );
+    while ( i ) {
+        d->messages.append( i );
+        ++i;
+    }
+    execute();
+}
+
+
 /*! Returns true if this Fetcher has finished the work assigned to it
     (and will perform no further message updates), and false if it is
     still working.
@@ -134,9 +143,17 @@ void Fetcher::execute()
         Row * r;
         while ( (r=d->query->nextRow()) != 0 ) {
             d->uid = r->getInt( "uid" );
-            d->message = d->mailbox->message( d->uid );
-            d->results.add( d->uid );
-            decode( d->message, r );
+            if ( !d->message || d->message->uid() != d->uid ) {
+                List<Message>::Iterator i( d->messages );
+                while ( i && i->uid() < d->uid )
+                    i++;
+                if ( i->uid() == d->uid )
+                    d->message = i;
+                else
+                    d->message = 0;
+            }
+            if ( d->message )
+                decode( d->message, r );
             setDone( d->uid );
         }
         if ( d->query->done() ) {
@@ -149,87 +166,36 @@ void Fetcher::execute()
     if ( d->query && d->results.count() < 64 )
         return;
 
-    if ( !d->results.isEmpty() ) {
-        // if we've fetched something, notify the event handlers that
-        // wait for that.
-        List<FetcherData::Handler>::Iterator it( d->handlers );
-        while ( it ) {
-            List<FetcherData::Handler>::Iterator h( it );
-            ++it;
-            uint c = h->s.count();
-            h->s.remove( d->results );
-            if ( h->s.count() < c )
-                h->o->execute();
-            if ( h->s.isEmpty() )
-                d->handlers.take( h );
-        }
-        d->results.clear();
-    }
+    d->results.clear();
+    d->owner->execute();
 
     if ( d->query )
         return;
 
-    if ( d->smallest > 0 && d->largest >= d->smallest ) {
-        // if the query is done and some event handlers are still
-        // waiting for some data, forget that they asked for that
-        // data, and notify them so they understand that it isn't
-        // coming.
-        List<FetcherData::Handler>::Iterator it( d->handlers );
-        MessageSet s;
-        s.add( d->smallest, d->largest );
-        d->smallest = 0;
-        while ( it ) {
-            List<FetcherData::Handler>::Iterator h( it );
-            ++it;
-            if ( !h->s.intersection( s ).isEmpty() ) {
-                h->s.remove( s );
-                h->o->execute();
-            }
-        }
-    }
-
-    MessageSet merged;
-    List<FetcherData::Handler>::Iterator it( d->handlers );
-    while ( it ) {
-        merged.add( it->s );
-        ++it;
-    }
-    if ( merged.isEmpty() ) {
-        d->mailbox->forget( this );
-        return;
+    MessageSet still;
+    List<Message>::Iterator i( d->messages );
+    while ( i ) {
+        still.add( i->uid() );
+        ++i;
     }
     // now, what to do. if we've been asked to fetch a simple range,
     // do it.
-    d->smallest = merged.smallest();
-    if ( merged.isRange() ) {
-        d->largest = merged.largest();
+    d->smallest = still.smallest();
+    if ( still.isRange() ) {
+        d->largest = still.largest();
     }
     else {
-        // if not, fetch the first range, and a few more messages.
+        // if not, make a range that encompasses up to four additional
+        // messages (or at least UIDs)
         uint i = 1;
-        while ( i <= merged.count() && merged.value( i ) - d->smallest < i + 4 )
-            d->largest = merged.value( i++ );
+        while ( i <= still.count() && still.value( i ) - d->smallest < i + 4 )
+            d->largest = still.value( i++ );
     }
     d->query = new Query( *query(), this );
     d->query->bind( 1, d->smallest );
     d->query->bind( 2, d->largest );
     d->query->bind( 3, d->mailbox->id() );
     d->query->execute();
-}
-
-
-/*! Tells this Fetcher to start fetching \a messages, and to notify \a
-    handler when some/all of them have been fetched.
-*/
-
-void Fetcher::insert( const MessageSet & messages, EventHandler * handler )
-{
-    FetcherData::Handler * h = new FetcherData::Handler;
-    h->o = handler;
-    h->s = messages;
-    d->handlers.append( h );
-    if ( !d->query )
-        execute();
 }
 
 
@@ -262,14 +228,10 @@ void Fetcher::insert( const MessageSet & messages, EventHandler * handler )
 
 void Fetcher::setDone( uint uid )
 {
-    if ( d->notified == 0 )
-        d->notified = d->smallest;
-
-    while ( d->notified < uid ) {
-        Message *m = d->mailbox->message( d->notified );
-        if ( m )
-            setDone( m );
-        d->notified++;
+    List<Message>::Iterator i( d->messages );
+    while ( i && i->uid() < uid ) {
+        setDone( (Message*)i );
+        d->messages.take( i );
     }
 }
 

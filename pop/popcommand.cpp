@@ -3,9 +3,11 @@
 #include "popcommand.h"
 
 #include "tls.h"
+#include "list.h"
 #include "user.h"
 #include "plain.h"
 #include "buffer.h"
+#include "fetcher.h"
 #include "message.h"
 #include "session.h"
 #include "mailbox.h"
@@ -394,22 +396,23 @@ bool PopCommand::session()
 
 bool PopCommand::fetch822Size()
 {
+    ::List<Message> * l = new ::List<Message>;
     ::Session * s = d->pop->session();
 
     uint n = d->set.count();
     while ( n >= 1 ) {
         uint uid = d->set.value( n );
-        Message * m = s->mailbox()->message( uid );
+        Message * m = d->pop->message( uid );
         if ( m && !m->hasTrivia() )
-            break;
+            l->prepend( m );
         n--;
     }
 
-    if ( n == 0 )
+    if ( l->isEmpty() )
         return true;
 
     if ( !d->sentFetch ) {
-        s->mailbox()->fetchTrivia( d->set, this );
+        (void)new MessageTriviaFetcher( s->mailbox(), l, this );
         d->sentFetch = true;
     }
 
@@ -439,7 +442,7 @@ bool PopCommand::stat()
     uint size = 0;
     uint n = s->count();
     while ( n >= 1 ) {
-        Message * m = s->mailbox()->message( s->uid( n ) );
+        Message * m = d->pop->message( s->uid( n ) );
         if ( m )
             size += m->rfc822Size();
         n--;
@@ -484,7 +487,7 @@ bool PopCommand::list()
 
     if ( d->args->count() == 1 ) {
         uint uid = d->set.smallest();
-        Message * m = s->mailbox()->message( uid );
+        Message * m = d->pop->message( uid );
 
         if ( m )
             d->pop->ok( fn( s->msn( uid ) ) + " " +
@@ -498,7 +501,7 @@ bool PopCommand::list()
         d->pop->ok( "Done" );
         while ( i <= d->set.count() ) {
             uint uid = d->set.value( i );
-            Message * m = s->mailbox()->message( uid );
+            Message * m = d->pop->message( uid );
             if ( m )
                 d->pop->enqueue( fn( s->msn( uid ) ) + " " +
                                  fn( m->rfc822Size() ) + "\r\n" );
@@ -525,9 +528,7 @@ bool PopCommand::retr( bool lines )
             log( "RETR command (" + fn( s->uid( msn ) ) + ")" );
         else
             log( "RETR command" );
-        if ( !ok || msn < 1 || msn > s->count() ||
-             ( d->message = s->mailbox()->message( s->uid( msn ) ) ) == 0 )
-        {
+        if ( !ok || msn < 1 || msn > s->count() ) {
             d->pop->err( "Bad message number" );
             return true;
         }
@@ -540,11 +541,13 @@ bool PopCommand::retr( bool lines )
             }
         }
 
-        d->set.add( s->uid( msn ) );
+        d->message = d->pop->message( s->uid( msn ) );
+        ::List<Message> * l = new ::List<Message>;
+        l->append( d->message );
         if ( !d->message->hasBodies() )
-            s->mailbox()->fetchBodies( d->set, this );
+            (void)new MessageBodyFetcher( s->mailbox(), l, this );
         if ( !d->message->hasHeaders() )
-            s->mailbox()->fetchHeaders( d->set, this );
+            (void)new MessageHeaderFetcher( s->mailbox(), l, this );
         d->started = true;
     }
 

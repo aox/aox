@@ -9,6 +9,7 @@
 #include "messageset.h"
 #include "mailbox.h"
 #include "message.h"
+#include "fetcher.h"
 #include "string.h"
 #include "query.h"
 #include "flag.h"
@@ -51,6 +52,8 @@ public:
     List<Flag> flags;
     FlagCreator * flagCreator;
     AnnotationNameCreator * annotationNameCreator;
+
+    List<Message> affectedMessages;
 
     List<Annotation> annotations;
 };
@@ -405,16 +408,6 @@ void Store::execute()
             mb->source()->setNextModSeq( d->modseq + 1 );
         else
             mb->setNextModSeq( d->modseq + 1 );
-
-        // because we cache messages, we have to tell the cached copy
-        // it's no longer accurate.
-        uint i = d->s.count();
-        while ( i ) {
-            Message * m = mb->message( d->s.value( i ), false );
-            if ( m )
-                m->setModSeq( d->modseq );
-            i--;
-        }
     }
         
     if ( !d->fetching ) {
@@ -424,9 +417,6 @@ void Store::execute()
             error( No, "Database error. Rolling transaction back" );
             finish();
             return;
-        }
-        else if ( d->op != StoreData::ReplaceAnnotations ) {
-            recordFlags();
         }
         if ( d->silent ) {
             if ( imap()->clientSupports( IMAP::Condstore ) )
@@ -568,18 +558,17 @@ void Store::sendModseqResponses()
 
 void Store::sendFetches()
 {
-    MessageSet s;
-    Mailbox * mb = imap()->session()->mailbox();
     uint i = d->s.count();
     while ( i ) {
         uint uid = d->s.value( i );
         i--;
-        Message * m = mb->message( uid, false );
-        if ( !m || !m->hasFlags() )
-            s.add( uid );
+        Message * m = new Message;
+        m->setUid( uid );
+        d->affectedMessages.prepend( m );
     }
-    if ( !s.isEmpty() )
-        mb->fetchFlags( s, this );
+    if ( !d->affectedMessages.isEmpty() )
+        (void)new MessageFlagFetcher( imap()->session()->mailbox(),
+                                      &d->affectedMessages, this );
 }
 
 
@@ -590,42 +579,37 @@ void Store::sendFetches()
 
 bool Store::dumpFetchResponses()
 {
-    bool all = true;
-    ImapSession * s = imap()->session();
-    Mailbox * mb = s->mailbox();
     String modseq;
     if ( imap()->clientSupports( IMAP::Condstore ) )
         modseq = " MODSEQ (" + fn( d->modseq ) + ")";
-    while ( all && !d->s.isEmpty() ) {
-        uint uid = d->s.value( 1 );
-        Message * m = mb->message( uid, false );
-        if ( m && m->hasFlags() ) {
-            String r;
+    ImapSession * s = imap()->session();
+    while ( !d->affectedMessages.isEmpty() ) {
+        Message * m = d->affectedMessages.first();
+        if ( !m->hasFlags() )
+            return false;
+        d->affectedMessages.shift();
 
-            if ( s->isRecent( uid ) )
-                r = "\\recent";
+        String r;
 
-            List<Flag> * f = m->flags();
-            if ( f && !f->isEmpty() ) {
-                List<Flag>::Iterator it( f );
-                while ( it ) {
-                    if ( !r.isEmpty() )
-                        r.append( " " );
-                    r.append( it->name() );
-                    ++it;
-                }
+        if ( s->isRecent( m->uid() ) )
+            r = "\\recent";
+
+        List<Flag> * f = m->flags();
+        if ( f && !f->isEmpty() ) {
+            List<Flag>::Iterator it( f );
+            while ( it ) {
+                if ( !r.isEmpty() )
+                    r.append( " " );
+                r.append( it->name() );
+                ++it;
             }
+        }
 
-            uint msn = s->msn( uid );
-            respond( fn( msn ) + " FETCH (UID " +
-                     fn( uid ) + modseq + " FLAGS (" + r + "))" );
-            d->s.remove( uid );
-        }
-        else {
-            all = false;
-        }
+        uint msn = s->msn( m->uid() );
+        respond( fn( msn ) + " FETCH (UID " +
+                 fn( m->uid() ) + modseq + " FLAGS (" + r + "))" );
     }
-    return all;
+    return true;
 }
 
 
@@ -732,38 +716,6 @@ void Store::replaceFlags()
 {
     removeFlags( true );
     addFlags();
-}
-
-
-/*! Records the flag changes in the affected messags. In some cases,
-    this just dumps the cached flags, in others it updates the cache.
-*/
-
-void Store::recordFlags()
-{
-    Mailbox * mb = imap()->session()->mailbox();
-    uint i = d->s.count();
-    while ( i ) {
-        uint uid = d->s.value( i );
-        i--;
-        Message * m = mb->message( uid, false );
-        if ( m && m->hasFlags() ) {
-            if ( d->op == StoreData::ReplaceFlags ) {
-                // we have a correct value, so remember it
-                m->setFlagsFetched( true );
-                List<Flag> * current = m->flags();
-                current->clear();
-                List<Flag>::Iterator it( d->flags );
-                while ( it ) {
-                    current->append( it );
-                    ++it;
-                }
-            }
-            else {
-                m->setFlagsFetched( false );
-            }
-        }
-    }
 }
 
 

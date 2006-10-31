@@ -26,6 +26,8 @@ public:
     void setSession( Session * );
     Session * session() const;
 
+    class Message * message( uint );
+
     void parse();
     void react( Event );
 

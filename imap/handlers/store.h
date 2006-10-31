@@ -31,7 +31,6 @@ private:
     void removeFlags( bool opposite = false );
     void addFlags();
     void replaceFlags();
-    void recordFlags();
     void pretendToFetch();
     void sendModseqResponses();
     void sendFetches();

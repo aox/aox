@@ -16,6 +16,7 @@
 #include "ustring.h"
 #include "section.h"
 #include "listext.h"
+#include "fetcher.h"
 #include "codec.h"
 #include "query.h"
 #include "scope.h"
@@ -59,6 +60,7 @@ public:
     bool peek;
     MessageSet set;
     MessageSet expunged;
+    List<Message> requested;
     uint changedSince;
     Query * notThose;
 
@@ -597,13 +599,11 @@ void Fetch::execute()
         sendFetchQueries();
     }
 
-    uint i = 1;
     bool ok = true;
-    uint c = d->set.count();
     uint good = 0;
-    while ( ok && i <= c ) {
-        uint uid = d->set.value( i );
-        Message * m = s->mailbox()->message( uid );
+    while ( ok && !d->requested.isEmpty() ) {
+        Message * m = d->requested.first();
+        uint uid = m->uid();
         uint msn = s->msn( uid );
         if ( ( !d->annotation || m->hasAnnotations() ) &&
              ( !d->needHeader || m->hasHeaders() ) &&
@@ -614,22 +614,15 @@ void Fetch::execute()
              uid > 0 && msn > 0 )
         {
             imap()->enqueue( fetchResponse( m, uid, msn ) );
-            i++;
+            d->requested.shift();
             good = uid;
         }
         else {
             log( "Stopped processing at UID " + fn( uid ) +
-                 " (" + fn( c + 1 - i ) + " messages to go, " +
-                 fn( i-1 ) + " processed in this round)",
+                 " (" + fn( d->requested.count() ) + " messages to go)",
                  Log::Debug );
             ok = false;
         }
-    }
-
-    if ( good ) {
-        MessageSet tmp;
-        tmp.add( 1, good );
-        d->set.remove( tmp );
     }
 
     // in the case of fetch, we sometimes have thousands of responses,
@@ -637,7 +630,7 @@ void Fetch::execute()
     // quickly as possible.
     imap()->write();
 
-    if ( !d->set.isEmpty() )
+    if ( !d->requested.isEmpty() )
         return;
 
     if ( !d->expunged.isEmpty() ) {
@@ -659,33 +652,22 @@ void Fetch::sendFetchQueries()
     uint i = 1;
     while ( i <= d->set.count() ) {
         uint uid = d->set.value( i );
-        Message * m = mb->message( uid );
-        if ( d->needHeader && !m->hasHeaders() )
-            headers.add( uid );
-        if ( d->needBody && !m->hasBodies() )
-            bodies.add( uid );
-        if ( d->flags && !m->hasFlags() )
-            flags.add( uid );
-        if ( ( d->rfc822size || d->internaldate || d->modseq ) &&
-             !m->hasTrivia() )
-            trivia.add( uid );
-        if ( d->annotation && !m->hasAnnotations() )
-            annotations.add( uid );
+        Message * m = new Message;
+        m->setUid( uid );
+        d->requested.append( m );
         i++;
     }
 
-    const MessageSet & legal = imap()->session()->messages();
-    headers.addGapsFrom( legal );
-    bodies.addGapsFrom( legal );
-    flags.addGapsFrom( legal );
-    trivia.addGapsFrom( legal );
-    annotations.addGapsFrom( legal );
-
-    mb->fetchTrivia( trivia, this );
-    mb->fetchFlags( flags, this );
-    mb->fetchAnnotations( annotations, this );
-    mb->fetchBodies( bodies, this );
-    mb->fetchHeaders( headers, this );
+    if ( d->needHeader )
+        (void)new MessageHeaderFetcher( mb, &d->requested, this );
+    if ( d->needBody )
+        (void)new MessageBodyFetcher( mb, &d->requested, this );
+    if ( d->flags )
+        (void)new MessageFlagFetcher( mb, &d->requested, this );
+    if ( d->rfc822size || d->internaldate || d->modseq )
+        (void)new MessageTriviaFetcher( mb, &d->requested, this );
+    if ( d->annotation )
+        (void)new MessageAnnotationFetcher( mb, &d->requested, this );
 }
 
 
@@ -1369,14 +1351,4 @@ void FetchData::SeenFlagSetter::execute()
     q = Store::addFlagsQuery( seen, mailbox, messages, 0 );
     t->enqueue( q );
     t->commit();
-
-    uint i = messages.count();
-    while ( i ) {
-        Message * m = mailbox->message( messages.value( i ), false );
-        if ( m ) {
-            m->setModSeq( r->getInt( "ms" ) );
-            m->setFlagsFetched( false );
-        }
-        i--;
-    }
 }

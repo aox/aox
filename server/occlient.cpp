@@ -168,14 +168,12 @@ void OCClient::updateMailbox( const String & arg )
         ::log( "OCClient announced mailbox " + m->name(), Log::Debug );
         m->setDeleted( false );
         m->refresh()->execute();
-        m->clear();
     }
     else if ( rest == "deleted" ) {
         if ( !m->deleted() )
             ::log( "OCClient deleted mailbox " + m->name(), Log::Debug );
         m->setDeleted( true );
         m->refresh()->execute();
-        m->clear();
     }
 
     else if ( rest.startsWith( "uidnext=" ) ) {

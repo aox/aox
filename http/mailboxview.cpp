@@ -80,7 +80,7 @@ void MailboxView::refresh( EventHandler * owner )
 
     MessageSet s;
     s.add( uidnext(), mailbox()->uidnext() - 1 );
-    mailbox()->fetchHeaders( s, new MailboxViewBouncer( owner, this ) );
+//    mailbox()->fetchHeaders( s, new MailboxViewBouncer( owner, this ) );
 
     Session::refresh( h );
 }
@@ -104,7 +104,8 @@ bool MailboxView::ready()
             d->unready = uidnext();
     }
     while ( d->unready < uidnext() ) {
-        Message * m = mailbox()->message( d->unready, false );
+        Message * m = 0;
+        // m = mailbox()->message( d->unready, false );
         if ( !m || !m->hasHeaders() )
             return false;
         threadMessage( d->unready, m );

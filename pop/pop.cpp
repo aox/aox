@@ -3,12 +3,14 @@
 #include "pop.h"
 
 #include "log.h"
+#include "map.h"
 #include "user.h"
 #include "query.h"
 #include "scope.h"
 #include "string.h"
 #include "buffer.h"
 #include "mailbox.h"
+#include "message.h"
 #include "session.h"
 #include "eventloop.h"
 #include "popcommand.h"
@@ -36,6 +38,7 @@ public:
     bool reserved;
     Session * session;
     MessageSet toBeDeleted;
+    Map<Message> messages;
 };
 
 
@@ -378,4 +381,20 @@ void POP::markForDeletion( uint uid )
 void POP::badUser()
 {
     d->sawUser = false;
+}
+
+
+/*! Returns a pointer to the Message object with UID \a uid, creating
+    one if there isn't any.
+*/
+
+class Message * POP::message( uint uid )
+{
+    Message * m = d->messages.find( uid );
+    if ( m )
+        return m;
+    m = new Message;
+    m->setUid( uid );
+    d->messages.insert( uid, m );
+    return m;
 }

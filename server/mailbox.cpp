@@ -9,7 +9,6 @@
 #include "query.h"
 #include "scope.h"
 #include "event.h"
-#include "timer.h"
 #include "string.h"
 #include "message.h"
 #include "fetcher.h"
@@ -26,14 +25,10 @@ public:
     MailboxData()
         : type( Mailbox::Synthetic ), id( 0 ),
           uidnext( 0 ), uidvalidity( 0 ), owner( 0 ),
-          parent( 0 ), children( 0 ), messages( 0 ),
-          flagFetcher( 0 ), headerFetcher( 0 ),
-          triviaFetcher( 0 ), bodyFetcher( 0 ),
-          annotationFetcher( 0 ),
+          parent( 0 ), children( 0 ),
           watchers( 0 ),
           nextModSeq( 1 ),
-          source( 0 ), sourceUids( 0 ),
-          clear( 0 )
+          source( 0 ), sourceUids( 0 )
     {}
 
     String name;
@@ -47,12 +42,6 @@ public:
 
     Mailbox * parent;
     List< Mailbox > * children;
-    Map<Message> * messages;
-    Fetcher * flagFetcher;
-    Fetcher * headerFetcher;
-    Fetcher * triviaFetcher;
-    Fetcher * bodyFetcher;
-    Fetcher * annotationFetcher;
     List<EventHandler> * watchers;
 
     uint nextModSeq;
@@ -61,22 +50,6 @@ public:
     String selector;
 
     Map< uint > * sourceUids;
-
-    class Timer
-        : public EventHandler
-    {
-    public:
-        Timer( Mailbox * mailbox )
-            : t( new ::Timer( this, 10 ) ), m( mailbox ) {}
-        ~Timer() { delete t; }
-        void execute() { m->clear(); }
-
-    private:
-        ::Timer * t;
-        Mailbox * m;
-    };
-
-    Timer * clear;
 };
 
 
@@ -661,179 +634,6 @@ Query * Mailbox::remove( Transaction * t )
     t->enqueue( mr->query );
 
     return q;
-}
-
-
-/*! Returns a pointer to the message with \a uid in this Mailbox. If
-    there is no such message and \a create is true, message() creates
-    one dynamically. \a create is true by default. If this Mailbox
-    cannot contain messages, message() returns a null pointer.
-*/
-
-Message * Mailbox::message( uint uid, bool create ) const
-{
-    if ( synthetic() || deleted() )
-        return 0;
-    if ( view() )
-        return source()->message( sourceUid( uid ), create );
-    if ( !d->messages )
-        d->messages = new Map<Message>;
-    Message * m = d->messages->find( uid );
-    if ( create && !m ) {
-        m = new Message;
-        m->setUid( uid );
-        m->setMailbox( this );
-        d->messages->insert( uid, m );
-    }
-    return m;
-}
-
-
-/*! Forgets all about the Message objects in this Mailbox, provided no
-    Fetcher is currently active.
-*/
-
-void Mailbox::clear()
-{
-    d->clear = 0;
-
-    if ( d->headerFetcher ||
-         d->flagFetcher ||
-         d->bodyFetcher ||
-         d->triviaFetcher ||
-         d->annotationFetcher )
-        return;
-
-    d->messages = 0;
-}
-
-
-/*! Starts retrieving the header fields of \a messages, and will
-    notify \a handler whenever at least one message becomes available.
-*/
-
-void Mailbox::fetchHeaders( const MessageSet & messages,
-                            EventHandler * handler )
-{
-    if ( view() ) {
-        source()->fetchHeaders( sourceUids( messages ), handler );
-        return;
-    }
-    delete d->clear;
-    d->clear = 0;
-    if ( !d->headerFetcher )
-        d->headerFetcher = new MessageHeaderFetcher( this );
-    d->headerFetcher->insert( messages, handler );
-}
-
-
-/*! Starts retrieving the internaldate and rfc822size from \a
-    messages, and will notify \a handler whenever at least one message
-    becomes available.
-*/
-
-void Mailbox::fetchTrivia( const MessageSet & messages,
-                           EventHandler * handler )
-{
-    if ( view() ) {
-        source()->fetchTrivia( sourceUids( messages ), handler );
-        return;
-    }
-    delete d->clear;
-    d->clear = 0;
-    if ( !d->triviaFetcher )
-        d->triviaFetcher = new MessageTriviaFetcher( this );
-    d->triviaFetcher->insert( messages, handler );
-}
-
-
-/*! Starts retrieving the body parts fields of \a messages, and will
-    notify \a handler whenever at least one message becomes available.
-*/
-
-void Mailbox::fetchBodies( const MessageSet & messages,
-                           EventHandler * handler )
-{
-    if ( view() ) {
-        source()->fetchBodies( sourceUids( messages ), handler );
-        return;
-    }
-    delete d->clear;
-    d->clear = 0;
-    if ( !d->bodyFetcher )
-        d->bodyFetcher = new MessageBodyFetcher( this );
-    d->bodyFetcher->insert( messages, handler );
-
-}
-
-
-/*! Starts retrieving the flags of \a messages, and will notify \a handler
-    whenever at least one message becomes available.
-*/
-
-void Mailbox::fetchFlags( const MessageSet & messages,
-                          EventHandler * handler )
-{
-    if ( view() ) {
-        source()->fetchFlags( sourceUids( messages ), handler );
-        return;
-    }
-    delete d->clear;
-    d->clear = 0;
-    if ( !d->flagFetcher )
-        d->flagFetcher = new MessageFlagFetcher( this );
-    d->flagFetcher->insert( messages, handler );
-}
-
-
-/*! Starts retrieving the annotations of \a messages, and will notify
-    \a handler whenever at least one message becomes available.
-*/
-
-void Mailbox::fetchAnnotations( const MessageSet & messages,
-                                EventHandler * handler )
-{
-    if ( view() ) {
-        source()->fetchAnnotations( sourceUids( messages ), handler );
-        return;
-    }
-    delete d->clear;
-    d->clear = 0;
-    if ( !d->annotationFetcher )
-        d->annotationFetcher = new MessageAnnotationFetcher( this );
-    d->annotationFetcher->insert( messages, handler );
-}
-
-
-/*! Makes the Mailbox forget that \a f exists. The next time the
-    Mailbox needs a suitable Fetcher, it will create one.
-
-    Ten seconds after the last Fetcher has been forgotten, the Mailbox
-    also forgets all of its messages - unless a new Fetcher is created.
-*/
-
-void Mailbox::forget( Fetcher * f )
-{
-    if ( d->headerFetcher == f )
-        d->headerFetcher = 0;
-    else if ( d->flagFetcher == f )
-        d->flagFetcher = 0;
-    else if ( d->bodyFetcher == f )
-        d->bodyFetcher = 0;
-    else if ( d->triviaFetcher == f )
-        d->triviaFetcher = 0;
-    else if ( d->annotationFetcher == f )
-        d->annotationFetcher = 0;
-
-    if ( d->headerFetcher ||
-         d->flagFetcher ||
-         d->bodyFetcher ||
-         d->triviaFetcher ||
-         d->annotationFetcher )
-        return;
-
-    delete d->clear;
-    d->clear = new MailboxData::Timer( this );
 }
 
 
