@@ -2,31 +2,11 @@
 
 #include "imapurl.h"
 
-#include "imap.h"
-#include "mailbox.h"
 #include "imapsession.h"
-#include "imapparser.h"
+#include "mailbox.h"
+#include "imap.h"
 #include "date.h"
 #include "user.h"
-
-
-class ImapUrlParser
-    : public ImapParser
-{
-public:
-    ImapUrlParser( const String &s )
-        : ImapParser( s )
-    {}
-
-    bool hasIuserauth();
-    bool unreserved( char );
-    bool escape( char * );
-    String xchars( bool = false );
-    bool hostport( String &, uint * );
-    bool hasUid();
-    Date * isoTimestamp();
-    String urlauth();
-};
 
 
 class ImapUrlData
@@ -383,7 +363,7 @@ String ImapUrl::text() const
 }
 
 
-/*! \class ImapUrlParser imapurl.cpp
+/*! \class ImapUrlParser imapurl.h
     Provides functions used to parse RFC 2192 productions.
 
     This class inherits from ImapParser, is used internally by ImapUrl

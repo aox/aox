@@ -5,6 +5,7 @@
 
 #include "global.h"
 #include "string.h"
+#include "imapparser.h"
 
 
 class IMAP;
@@ -44,6 +45,25 @@ private:
 
 private:
     class ImapUrlData * d;
+};
+
+
+class ImapUrlParser
+    : public ImapParser
+{
+public:
+    ImapUrlParser( const String &s )
+        : ImapParser( s )
+    {}
+
+    bool hasIuserauth();
+    bool unreserved( char );
+    bool escape( char * );
+    String xchars( bool = false );
+    bool hostport( String &, uint * );
+    bool hasUid();
+    Date * isoTimestamp();
+    String urlauth();
 };
 
 
