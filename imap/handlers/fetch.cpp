@@ -552,6 +552,11 @@ void Fetch::execute()
 {
     ImapSession * s = imap()->session();
 
+    // XXX: A dubious fix for a segfault on logout, caused by a late
+    // notification from some Message*Fetcher.
+    if ( !s )
+        return;
+
     if ( !d->peek && s->readOnly() )
         d->peek = true;
 
