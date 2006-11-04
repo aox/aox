@@ -658,16 +658,31 @@ void Fetch::sendFetchQueries()
         i++;
     }
 
-    if ( d->needHeader )
-        (void)new MessageHeaderFetcher( mb, &d->requested, this );
-    if ( d->needBody )
-        (void)new MessageBodyFetcher( mb, &d->requested, this );
-    if ( d->flags )
-        (void)new MessageFlagFetcher( mb, &d->requested, this );
-    if ( d->rfc822size || d->internaldate || d->modseq )
-        (void)new MessageTriviaFetcher( mb, &d->requested, this );
-    if ( d->annotation )
-        (void)new MessageAnnotationFetcher( mb, &d->requested, this );
+    if ( d->needHeader ) {
+        MessageHeaderFetcher * mhf =
+            new MessageHeaderFetcher( mb, &d->requested, this );
+        mhf->execute();
+    }
+    if ( d->needBody ) {
+        MessageBodyFetcher * mbf =
+            new MessageBodyFetcher( mb, &d->requested, this );
+        mbf->execute();
+    }
+    if ( d->flags ) {
+        MessageFlagFetcher * mff =
+            new MessageFlagFetcher( mb, &d->requested, this );
+        mff->execute();
+    }
+    if ( d->rfc822size || d->internaldate || d->modseq ) {
+        MessageTriviaFetcher * mtf =
+            new MessageTriviaFetcher( mb, &d->requested, this );
+        mtf->execute();
+    }
+    if ( d->annotation ) {
+        MessageAnnotationFetcher * maf =
+            new MessageAnnotationFetcher( mb, &d->requested, this );
+        maf->execute();
+    }
 }
 
 

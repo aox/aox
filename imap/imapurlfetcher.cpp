@@ -313,12 +313,14 @@ void ImapUrlFetcher::execute()
                 MessageHeaderFetcher * hf =
                     new MessageHeaderFetcher( ms->mailbox, hm, this );
                 d->fetchers->append( hf );
+                hf->execute();
             }
 
             if ( !bm->isEmpty() ) {
                 MessageBodyFetcher * bf =
                     new MessageBodyFetcher( ms->mailbox, bm, this );
                 d->fetchers->append( bf );
+                bf->execute();
             }
 
             ++ms;

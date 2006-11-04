@@ -117,7 +117,6 @@ Fetcher::Fetcher( Mailbox * m, List<Message> * messages, EventHandler * e )
         d->messages.append( i );
         ++i;
     }
-    execute();
 }
 
 
