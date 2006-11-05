@@ -146,7 +146,7 @@ void Fetcher::execute()
                 List<Message>::Iterator i( d->messages );
                 while ( i && i->uid() < d->uid )
                     i++;
-                if ( i->uid() == d->uid )
+                if ( i && i->uid() == d->uid )
                     d->message = i;
                 else
                     d->message = 0;
