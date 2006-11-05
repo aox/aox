@@ -1132,7 +1132,7 @@ void Injector::linkDates()
 
             q->bind( 1, m->id() );
             q->bind( 2, uid );
-            q->bind( 3, df->date()->imap() );
+            q->bind( 3, df->date()->isoDateTime() );
 
             d->transaction->enqueue( q );
 

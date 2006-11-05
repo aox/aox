@@ -753,3 +753,31 @@ int Date::offset() const
         return 0;
     return d->tz;
 }
+
+
+/*! Returns the ISO-format date (date, time, offset all mangled
+    together).
+*/
+
+String Date::isoDateTime() const
+{
+    String r;
+    if ( !d->valid )
+        return r;
+
+    r = isoDate();
+    r.append( " " );
+    r.append( isoTime() );
+    int tz = d->tz;
+    if ( d->tz < 0 ) {
+        r.append( " -" );
+        tz = -tz;
+    }
+    else {
+        r.append( " +" );
+    }
+    r.append( fn( tz / 60 ) );
+    r.append( ":" );
+    r.append( zeroPrefixed( tz%60, 2 ) );
+    return r;
+}

@@ -23,6 +23,7 @@ public:
     String isoDate() const;
     String isoTime() const;
     int offset() const;
+    String isoDateTime() const;
 
     void setDate( uint, uint, uint, uint, uint, uint, int );
     void setDate( uint, const String &, uint, uint, uint,
