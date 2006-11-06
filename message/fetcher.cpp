@@ -171,6 +171,9 @@ void Fetcher::execute()
     if ( d->query )
         return;
 
+    if ( d->messages.isEmpty() )
+        return;
+
     MessageSet still;
     List<Message>::Iterator i( d->messages );
     while ( i ) {
