@@ -401,13 +401,6 @@ void Store::execute()
         q->bind( 1, d->modseq );
         q->bind( 2, imap()->session()->mailbox()->id() );
         d->transaction->commit();
-
-        // record the change so that views onto this mailbox update themselves
-        Mailbox * mb = imap()->session()->mailbox();
-        if ( mb->view() )
-            mb->source()->setNextModSeq( d->modseq + 1 );
-        else
-            mb->setNextModSeq( d->modseq + 1 );
     }
         
     if ( !d->fetching ) {
@@ -418,6 +411,14 @@ void Store::execute()
             finish();
             return;
         }
+
+        // record the change so that views onto this mailbox update themselves
+        Mailbox * mb = imap()->session()->mailbox();
+        if ( mb->view() )
+            mb->source()->setNextModSeq( d->modseq + 1 );
+        else
+            mb->setNextModSeq( d->modseq + 1 );
+
         if ( d->silent ) {
             if ( imap()->clientSupports( IMAP::Condstore ) )
                 sendModseqResponses();
@@ -426,8 +427,8 @@ void Store::execute()
             switch( d->op ) {
             case StoreData::AddFlags:
             case StoreData::RemoveFlags:
-                sendFetches();
                 d->fetching = true;
+                sendFetches();
                 break;
             case StoreData::ReplaceFlags:
                 d->fetching = true;
@@ -566,9 +567,12 @@ void Store::sendFetches()
         m->setUid( uid );
         d->affectedMessages.prepend( m );
     }
-    if ( !d->affectedMessages.isEmpty() )
-        (void)new MessageFlagFetcher( imap()->session()->mailbox(),
-                                      &d->affectedMessages, this );
+    if ( d->affectedMessages.isEmpty() )
+        return;
+
+    Fetcher * f = new MessageFlagFetcher( imap()->session()->mailbox(),
+                                          &d->affectedMessages, this );
+    f->execute();
 }
 
 
