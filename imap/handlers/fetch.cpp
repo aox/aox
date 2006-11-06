@@ -1316,13 +1316,16 @@ FetchData::SeenFlagSetter::SeenFlagSetter( Mailbox * m, const MessageSet & ms,
 void FetchData::SeenFlagSetter::execute()
 {
     if ( !f ) {
-        f = new Query( "select uid from flags where mailbox=$1 and flag=$2",
-                          this );
+        f = new Query( "select uid from flags "
+                       "where mailbox=$1 and flag=$2 and uid>=$3 and uid<=$4",
+                       this );
         f->bind( 1, mailbox->id() );
         seen = Flag::find( "\\seen" );
         if ( !seen )
             return;
         f->bind( 2, seen->id() );
+        f->bind( 3, messages.smallest() );
+        f->bind( 4, messages.largest() );
         f->execute();
     }
 
