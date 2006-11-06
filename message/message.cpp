@@ -309,9 +309,8 @@ static void appendChildren(List<Bodypart> *l, Bodypart *bp )
 }
 
 
-/*! Returns a list of all Bodypart objects within this Message. The List
-    is allocated on the current Arena; the pointers point to within this
-    Message and should not be changed.
+/*! Returns a list of all Bodypart objects within this Message. The
+    returned pointer is never null, but may point to an empty list.
 
     The Injector relies on children()->first() being first in the list.
 */
