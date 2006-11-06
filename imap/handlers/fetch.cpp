@@ -175,6 +175,8 @@ void Fetch::parse()
         d->needHeader = true;
     if ( d->body || d->bodystructure )
         d->needBody = true;
+    if ( d->needBody )
+        d->needHeader = true;
     if ( !ok() )
         return;
     StringList l;
