@@ -99,15 +99,15 @@ String Header::error() const
 
 /*! Appends the HeaderField \a hf to this Header.
 
-    If \a hf is a To/Cc/Reply-To/Bcc field, and the same address field
-    already is present in this header, the addresses in \a hf are
-    merged into the existing field and \a hf is discarded. This is
+    If \a hf is a From/To/Cc/Reply-To/Bcc field, and the same address
+    field already is present in this header, the addresses in \a hf
+    are merged into the existing field and \a hf is discarded. This is
     nominally incorrect, and we do it to accept mail from a variety of
     buggy mail senders. More address fields may be added to the list
     if necessary.
 */
 
-void Header::add( HeaderField *hf )
+void Header::add( HeaderField * hf )
 {
     HeaderField::Type t = hf->type();
 
@@ -129,7 +129,10 @@ void Header::add( HeaderField *hf )
             return;
         }
     }
-    d->fields.append( hf );
+    List<HeaderField>::Iterator i( d->fields );
+    while ( i && i->position() <= hf->position() )
+        i++;
+    d->fields.insert( i, hf );
     d->verified = false;
 }
 

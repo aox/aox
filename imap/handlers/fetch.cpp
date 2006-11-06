@@ -613,7 +613,7 @@ void Fetch::execute()
         uint uid = m->uid();
         uint msn = s->msn( uid );
         if ( ( !d->annotation || m->hasAnnotations() ) &&
-             ( !d->needHeader || m->hasHeaders() ) &&
+             ( !d->needHeader || ( m->hasHeaders() && m->hasAddresses() ) ) &&
              ( !d->needBody || m->hasBodies() ) &&
              ( !d->flags || m->hasFlags() ) &&
              ( ( !d->rfc822size && !d->internaldate && !d->modseq )
@@ -653,7 +653,6 @@ void Fetch::execute()
 
 void Fetch::sendFetchQueries()
 {
-    MessageSet headers, bodies, flags, trivia, annotations;
     Mailbox * mb = imap()->session()->mailbox();
 
     uint i = 1;
@@ -666,9 +665,11 @@ void Fetch::sendFetchQueries()
     }
 
     if ( d->needHeader ) {
-        MessageHeaderFetcher * mhf =
-            new MessageHeaderFetcher( mb, &d->requested, this );
-        mhf->execute();
+        Fetcher * f =
+            new MessageAddressFetcher( mb, &d->requested, this );
+        f->execute();
+        f = new MessageHeaderFetcher( mb, &d->requested, this );
+        f->execute();
     }
     if ( d->needBody ) {
         MessageBodyFetcher * mbf =

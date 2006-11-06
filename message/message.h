@@ -53,6 +53,7 @@ public:
 
     bool hasFlags() const;
     bool hasHeaders() const;
+    bool hasAddresses() const;
     bool hasTrivia() const;
     bool hasBodies() const;
     bool hasAnnotations() const;
@@ -60,6 +61,7 @@ public:
     void setHeadersFetched();
     void setBodiesFetched();
     void setAnnotationsFetched();
+    void setAddressesFetched();
 
     void replaceAnnotation( class Annotation * );
 

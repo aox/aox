@@ -1,5 +1,6 @@
 #include "fetcher.h"
 
+#include "addressfield.h"
 #include "messageset.h"
 #include "annotation.h"
 #include "allocator.h"
@@ -37,6 +38,7 @@ public:
 
 
 static PreparedStatement * header;
+static PreparedStatement * address;
 static PreparedStatement * trivia;
 static PreparedStatement * flags;
 static PreparedStatement * body;
@@ -49,12 +51,18 @@ static void setupPreparedStatements()
         return;
 
     const char * q =
-        "select h.uid, h.part, f.name, h.value from "
+        "select h.uid, h.part, h.field, h.position, f.name, h.value from "
         "header_fields h, field_names f where "
         "h.field = f.id and "
         "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
         "order by h.uid, h.part, h.position";
     ::header = new PreparedStatement( q );
+    q = "select a.id, a.name, a.localpart, a.domain, "
+        "af.uid, af.part, af.position, af.field "
+        "from address_fields af join addresses a on af.address=a.id "
+        "where af.uid>=$1 and af.uid<=$2 and af.mailbox=$3 "
+        "order by af.uid, af.part";
+    ::address = new PreparedStatement( q );
     q = "select m.uid, m.idate, m.rfc822size, ms.modseq::int from messages m "
         "left join modsequences ms using (mailbox,uid) "
         "where m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
@@ -77,6 +85,7 @@ static void setupPreparedStatements()
         "order by a.uid, an.id, a.owner";
     ::anno = new PreparedStatement( q );
     Allocator::addEternal( header, "statement to fetch headers" );
+    Allocator::addEternal( address, "statement to fetch address fields" );
     Allocator::addEternal( trivia, "statement to fetch approximately nothing" );
     Allocator::addEternal( body, "statement to fetch bodies" );
     Allocator::addEternal( flags, "statement to fetch flags" );
@@ -255,11 +264,15 @@ PreparedStatement * MessageHeaderFetcher::query() const
 
 void MessageHeaderFetcher::decode( Message * m, Row * r )
 {
+    uint field = r->getInt( "field" );
+    if ( field <= HeaderField::LastAddressField )
+        return;
+
     String part = r->getString( "part" );
     String name = r->getString( "name" );
     String value = r->getString( "value" );
 
-    Header *h = m->header();
+    Header * h = m->header();
     if ( part.endsWith( ".rfc822" ) ) {
         Bodypart * bp =
             m->bodypart( part.mid( 0, part.length()-7 ), true );
@@ -272,13 +285,85 @@ void MessageHeaderFetcher::decode( Message * m, Row * r )
     else if ( !part.isEmpty() ) {
         h = m->bodypart( part, true )->header();
     }
-    h->add( HeaderField::assemble( name, value ) );
+    HeaderField * f = HeaderField::assemble( name, value );
+    f->setPosition( r->getInt( "position" ) );
+    h->add( f );
 }
 
 
 void MessageHeaderFetcher::setDone( Message * m )
 {
     m->setHeadersFetched();
+}
+
+
+
+/*! \class MessageAddressFetcher fetcher.h
+
+    The MessageAddressFetcher class is an implementation class
+    responsible for fetching the address fields of messages. It has no
+    API of its own; Fetcher is the entire API.
+*/
+
+
+PreparedStatement * MessageAddressFetcher::query() const
+{
+    return ::address;
+}
+
+
+void MessageAddressFetcher::decode( Message * m, Row * r )
+{
+    String part = r->getString( "part" );
+    //uint id = r->getInt( "id" );
+    uint position = r->getInt( "position" );
+
+    // XXX: use something for mapping
+    HeaderField::Type field = (HeaderField::Type)r->getInt( "field" );
+
+    Header * h = m->header();
+    if ( part.endsWith( ".rfc822" ) ) {
+        Bodypart * bp =
+            m->bodypart( part.mid( 0, part.length()-7 ), true );
+        if ( !bp->message() ) {
+            bp->setMessage( new Message );
+            bp->message()->setParent( bp );
+        }
+        h = bp->message()->header();
+    }
+    else if ( !part.isEmpty() ) {
+        h = m->bodypart( part, true )->header();
+    }
+    AddressField * f = 0;
+    uint n = 0;
+    f = (AddressField*)h->field( field, 0 );
+    while ( f && f->position() < position ) {
+        n++;
+        f = (AddressField*)h->field( field, n );
+    }
+    if ( !f || f->position() > position ) {
+        f = new AddressField( field );
+        f->setPosition( position );
+        h->add( f );
+        l.append( f );
+    }
+    f->addresses()->append( new Address( r->getString( "name" ),
+                                         r->getString( "localpart" ),
+                                         r->getString( "domain" ) ) );
+    
+}
+
+
+void MessageAddressFetcher::setDone( Message * m )
+{
+    List<AddressField>::Iterator i( l );
+    while ( i ) {
+        i->update();
+        ++i;
+    }
+    l.clear();
+
+    m->setAddressesFetched();
 }
 
 

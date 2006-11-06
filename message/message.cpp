@@ -25,7 +25,7 @@ public:
     MessageData()
         : strict( false ), uid( 0 ), mailbox( 0 ), annotations( 0 ),
           rfc822Size( 0 ), internalDate( 0 ), modseq( 1 ),
-          hasFlags( false ), hasHeaders( false ),
+          hasFlags( false ), hasHeaders( false ), hasAddresses( false ),
           hasBodies( false ), hasAnnotations( false )
 
     {}
@@ -43,10 +43,11 @@ public:
     uint modseq;
 
     List<Flag> flags;
-    bool hasFlags;
-    bool hasHeaders;
-    bool hasBodies;
-    bool hasAnnotations;
+    bool hasFlags: 1;
+    bool hasHeaders: 1;
+    bool hasAddresses: 1;
+    bool hasBodies: 1;
+    bool hasAnnotations: 1;
 };
 
 
@@ -1009,4 +1010,24 @@ void Message::setModSeq( uint n )
 uint Message::modSeq() const
 {
     return d->modseq;
+}
+
+
+/*! Returns true if this message has read its headers fields from the
+    database, and false it it has not.
+*/
+
+bool Message::hasAddresses() const
+{
+    return d->hasAddresses;
+}
+
+
+/*! Notifies this message that it knows what addresses its address
+    fields contain.
+*/
+
+void Message::setAddressesFetched()
+{
+    d->hasAddresses = true;
 }

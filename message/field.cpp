@@ -59,7 +59,7 @@ class HeaderFieldData
 {
 public:
     HeaderFieldData()
-        : type( HeaderField::Other ), hasData( false ), hasValue( false )
+        : type( HeaderField::Other ), position( 0 ), hasData( false ), hasValue( false )
     {}
 
     HeaderField::Type type;
@@ -69,6 +69,7 @@ public:
     String value;
     String error;
 
+    uint position;
     bool hasData;
     bool hasValue;
 };
@@ -98,7 +99,7 @@ HeaderField *HeaderField::fieldNamed( const String &name )
         i++;
 
     HeaderField::Type t = fieldNames[i].type;
-    HeaderField *hf;
+    HeaderField * hf;
 
     switch ( t ) {
     case InReplyTo:
@@ -227,6 +228,8 @@ HeaderField::Type HeaderField::type() const
 
 String HeaderField::name() const
 {
+    if ( d->type != Other )
+        return fieldName( d->type );
     return d->name;
 }
 
@@ -804,4 +807,26 @@ String HeaderField::encodePhrase( const String &s )
     }
 
     return t;
+}
+
+
+/*! Records the position of this header field, \a p. This function
+    doesn't move the header field in the lost used by Header, it
+    merely records the position so that Header can access it when
+    needed.
+*/
+
+void HeaderField::setPosition( uint p )
+{
+    d->position = p;
+}
+
+
+/*! Returns the header field's position, as recorded by
+    setPosition(). The initial value is 0.
+*/
+
+uint HeaderField::position() const
+{
+    return d->position;
 }

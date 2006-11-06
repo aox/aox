@@ -57,6 +57,9 @@ public:
     virtual String data();
     void setData( const String & );
 
+    void setPosition( uint );
+    uint position() const;
+
     bool valid() const;
     bool parsed() const;
     String error() const;
