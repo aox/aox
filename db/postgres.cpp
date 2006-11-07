@@ -185,10 +185,10 @@ void Postgres::processQuery( Query * q )
         PgParse a( q->string(), q->name() );
         a.enqueue( writeBuffer() );
 
-        if ( q->name() != "" ) {
+        if ( q->name() != "" )
             d->prepared.insert( q->name(), 0 );
-            d->preparePending.append( q->name() );
-        }
+        d->preparePending.append( q->name() );
+
         s.append( "parse/" );
     }
 
@@ -699,15 +699,10 @@ void Postgres::errorMessage()
             // while processing this query, but don't already know that
             // it succeeded, we'll assume that statement name does not
             // exist for future use.
-            if ( q->name() != "" ) {
-                StringList::Iterator it( d->preparePending );
-                while ( it ) {
-                    if ( *it == q->name() ) {
-                        d->prepared.take( q->name() );
-                        break;
-                    }
-                    ++it;
-                }
+            StringList::Iterator it( d->preparePending );
+            if ( it && *it == q->name() ) {
+                d->prepared.take( q->name() );
+                d->preparePending.shift();
             }
             if ( q->inputLines() )
                 d->sendingCopy = false;
