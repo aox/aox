@@ -15,7 +15,7 @@ class TransactionData
 public:
     TransactionData()
         : state( Transaction::Inactive ), owner( 0 ), db( 0 ),
-          queries( 0 ), failedQuery( 0 )
+          queries( 0 ), failedQuery( 0 ), end( 0 )
     {}
 
     Transaction::State state;
@@ -26,6 +26,8 @@ public:
 
     Query * failedQuery;
     String error;
+
+    Query * end;
 };
 
 
@@ -94,6 +96,26 @@ bool Transaction::failed() const
 bool Transaction::done() const
 {
     return d->state == Completed || d->state == Failed;
+}
+
+
+/*! Returns true only if this Transaction has finished, the last query
+    (COMMIT/ROLLBACK) processed, and its database handle free for use
+    by other queries. This differs from done() in that it will return
+    false until the database handle is free, even if the Transaction
+    has been terminated by an error.
+
+    In short, if you wait for inactive() instead of done() before
+    issuing another query, the new query can be handled by the same
+    handle that the transaction used (but there's no guarantee that
+    it will be, of course).
+
+    XXX: Some callers of done() may really want this instead.
+*/
+
+bool Transaction::inactive() const
+{
+    return d->end && d->end->done();
 }
 
 
@@ -172,10 +194,10 @@ void Transaction::enqueue( Query *q )
 
 void Transaction::rollback()
 {
-    Query *q = new Query( "ROLLBACK", d->owner );
-    q->setTransaction( this );
+    d->end = new Query( "ROLLBACK", d->owner );
+    d->end->setTransaction( this );
     if ( d->queries )
-        d->queries->append( q );
+        d->queries->append( d->end );
     execute();
 }
 
@@ -189,10 +211,10 @@ void Transaction::rollback()
 
 void Transaction::commit()
 {
-    Query *q = new Query( "COMMIT", d->owner );
-    q->setTransaction( this );
+    d->end = new Query( "COMMIT", d->owner );
+    d->end->setTransaction( this );
     if ( d->queries )
-        d->queries->append( q );
+        d->queries->append( d->end );
     execute();
 }
 
