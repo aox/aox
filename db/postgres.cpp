@@ -690,6 +690,9 @@ void Postgres::errorMessage()
                 ( q->transaction() && q->transaction()->failed() ) ) )
             ::log( s, Log::Error );
 
+        if ( q && q->canFail() )
+            ::log( s, Log::Debug );
+
         // Has the current query failed?
         if ( q && msg.severity() == PgMessage::Error ) {
             // If we sent a Parse message for a named prepared statement
