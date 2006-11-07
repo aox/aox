@@ -53,7 +53,7 @@ public:
     Dict< String > params;
     PgRowDescription *description;
     Dict< int > prepared;
-    StringList preparePending;
+    StringList preparesPending;
 
     List< Query > queries;
     Transaction *transaction;
@@ -185,9 +185,10 @@ void Postgres::processQuery( Query * q )
         PgParse a( q->string(), q->name() );
         a.enqueue( writeBuffer() );
 
-        if ( q->name() != "" )
+        if ( q->name() != "" ) {
             d->prepared.insert( q->name(), 0 );
-        d->preparePending.append( q->name() );
+            d->preparesPending.append( q->name() );
+        }
 
         s.append( "parse/" );
     }
@@ -415,7 +416,8 @@ void Postgres::process( char type )
     case '1':
         {
             PgParseComplete msg( readBuffer() );
-            d->preparePending.shift();
+            if ( q->name() != "" )
+                d->preparesPending.shift();
         }
         break;
 
@@ -699,10 +701,10 @@ void Postgres::errorMessage()
             // while processing this query, but don't already know that
             // it succeeded, we'll assume that statement name does not
             // exist for future use.
-            StringList::Iterator it( d->preparePending );
-            if ( it && *it == q->name() ) {
+            String * pp = d->preparesPending.first();
+            if ( q->name() != "" && pp && *pp == q->name() ) {
                 d->prepared.take( q->name() );
-                d->preparePending.shift();
+                d->preparesPending.shift();
             }
             if ( q->inputLines() )
                 d->sendingCopy = false;
