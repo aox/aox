@@ -194,6 +194,7 @@ Header * Message::parseHeader( uint & i, uint end,
     }
     Header * h = new Header( m );
     bool done = false;
+    uint pos = 1;
     while ( !done ) {
         if ( i >= end )
             done = true;
@@ -223,8 +224,11 @@ Header * Message::parseHeader( uint & i, uint end,
                 j--;
             String value = rfc2822.mid( i, j-i );
             if ( !value.simplified().isEmpty() ||
-                 name.lower().startsWith( "x-" ) )
-                h->add( name, value );
+                 name.lower().startsWith( "x-" ) ) {
+                HeaderField * f = HeaderField::create( name, value );
+                f->setPosition( pos++ );
+                h->add( f );
+            }
             i = j;
             if ( rfc2822[i] == '\r' && rfc2822[i+1] == '\n' )
                 i++;

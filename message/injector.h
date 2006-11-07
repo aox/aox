@@ -5,6 +5,7 @@
 
 #include "event.h"
 #include "list.h"
+#include "dict.h"
 
 
 class Query;
@@ -56,7 +57,7 @@ private:
 
     void finish();
     void selectUids();
-    void buildAddressLinks();
+    void resolveAddressLinks();
     void buildLinksForHeader( Header *, const String & );
     void buildFieldLinks();
     void insertPartNumber( Query *, int, int, const String &,

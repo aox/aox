@@ -59,7 +59,7 @@ class HeaderFieldData
 {
 public:
     HeaderFieldData()
-        : type( HeaderField::Other ), position( 0 ), hasData( false ), hasValue( false )
+        : type( HeaderField::Other ), position( (uint)-1 ), hasData( false ), hasValue( false )
     {}
 
     HeaderField::Type type;
@@ -822,8 +822,10 @@ void HeaderField::setPosition( uint p )
 }
 
 
-/*! Returns the header field's position, as recorded by
-    setPosition(). The initial value is 0.
+/*! Returns the header field's position, as recorded by setPosition().
+    The initial value is UINT_MAX, which is magic. When Header sees
+    UINT_MAX, it changes the position() to one higher than the highest
+    existing position.
 */
 
 uint HeaderField::position() const

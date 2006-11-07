@@ -310,17 +310,20 @@ void ImapUrlFetcher::execute()
                 i--;
             }
             if ( !hm->isEmpty() ) {
-                MessageHeaderFetcher * hf =
+                Fetcher * f =
                     new MessageHeaderFetcher( ms->mailbox, hm, this );
-                d->fetchers->append( hf );
-                hf->execute();
+                d->fetchers->append( f );
+                f->execute();
+                f = new MessageAddressFetcher( ms->mailbox, hm, this );
+                d->fetchers->append( f );
+                f->execute();
             }
 
             if ( !bm->isEmpty() ) {
-                MessageBodyFetcher * bf =
+                Fetcher * f =
                     new MessageBodyFetcher( ms->mailbox, bm, this );
-                d->fetchers->append( bf );
-                bf->execute();
+                d->fetchers->append( f );
+                f->execute();
             }
 
             ++ms;

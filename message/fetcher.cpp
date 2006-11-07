@@ -55,7 +55,7 @@ static void setupPreparedStatements()
         "header_fields h, field_names f where "
         "h.field = f.id and "
         "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
-        "order by h.uid, h.part, h.position";
+        "order by h.uid, h.part";
     ::header = new PreparedStatement( q );
     q = "select a.id, a.name, a.localpart, a.domain, "
         "af.uid, af.part, af.position, af.field "
@@ -347,9 +347,10 @@ void MessageAddressFetcher::decode( Message * m, Row * r )
         h->add( f );
         l.append( f );
     }
-    f->addresses()->append( new Address( r->getString( "name" ),
-                                         r->getString( "localpart" ),
-                                         r->getString( "domain" ) ) );
+    Address * a = new Address( r->getString( "name" ),
+                               r->getString( "localpart" ),
+                               r->getString( "domain" ) );
+    f->addresses()->append( a );
     
 }
 

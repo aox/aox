@@ -557,9 +557,16 @@ bool PopCommand::retr( bool lines )
                 new MessageHeaderFetcher( s->mailbox(), l, this );
             mhf->execute();
         }
+        if ( !d->message->hasAddresses() ) {
+            MessageAddressFetcher * mhf =
+                new MessageAddressFetcher( s->mailbox(), l, this );
+            mhf->execute();
+        }
     }
 
-    if ( !( d->message->hasBodies() && d->message->hasHeaders() ) )
+    if ( !( d->message->hasBodies() &&
+            d->message->hasHeaders() &&
+            d->message->hasAddresses() ) )
         return false;
 
     d->pop->ok( "Done" );

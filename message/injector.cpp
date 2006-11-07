@@ -36,6 +36,7 @@ static PreparedStatement *idBodypart;
 static PreparedStatement *intoBodyparts;
 static PreparedStatement *insertFlag;
 static PreparedStatement *insertAnnotation;
+static PreparedStatement *insertAddressField;
 
 
 // These structs represent one part of each entry in the header_fields
@@ -237,6 +238,14 @@ void Injector::setup()
             "values ($1,$2,$3,$4,$5)"
         );
     Allocator::addEternal( insertAnnotation, "insertAnnotation" );
+
+    insertAddressField =
+        new PreparedStatement(
+            "copy address_fields "
+            "(mailbox,uid,part,position,field,address) "
+            "from stdin with binary"
+        );
+    Allocator::addEternal( insertAddressField, "insertAddressField" );
 }
 
 
@@ -445,8 +454,8 @@ void Injector::execute()
             return;
 
         selectUids();
-        buildAddressLinks();
         buildFieldLinks();
+        resolveAddressLinks();
         d->transaction->execute();
 
         d->state = SelectingUids;
@@ -612,50 +621,31 @@ void Injector::selectUids()
 /*! This private function builds a list of AddressLinks containing every
     address used in the message, and initiates an AddressCache::lookup()
     after excluding any duplicate addresses. It causes execute() to be
-    called when every address in d->addressLinks has been resolved.
+    called when every address in d->addressLinks has been resolved (if
+    any need resolving).
 */
 
-void Injector::buildAddressLinks()
+void Injector::resolveAddressLinks()
 {
-    d->addressLinks = new List< AddressLink >;
     List< Address > * addresses = new List< Address >;
     Dict< Address > unique( 333 );
+    Dict< Address > naked( 333 );
 
-    int i = 1;
-    List< HeaderField >::Iterator it( d->message->header()->fields() );
-    while ( it ) {
-        HeaderField *hf = it;
+    List<AddressLink>::Iterator i( d->addressLinks );
+    while ( i ) {
+        String k = i->address->toString();
 
-        if ( hf->type() <= HeaderField::LastAddressField ) {
-            List< Address > *al = ((AddressField *)hf)->addresses();
-            if ( al && !al->isEmpty() ) {
-                List< Address >::Iterator ai( al );
-                while ( ai ) {
-                    Address *a = ai;
-                    String k = a->toString();
-
-                    if ( unique.contains( k ) ) {
-                        a = unique.find( k );
-                    }
-                    else {
-                        unique.insert( k, a );
-                        addresses->append( a );
-                    }
-
-                    AddressLink *link = new AddressLink;
-                    link->part = "";
-                    link->position = i;
-                    link->type = hf->type();
-                    link->address = a;
-                    d->addressLinks->append( link );
-
-                    ++ai;
-                }
-            }
+        if ( unique.contains( k ) ) {
+            i->address = unique.find( k );
         }
-
-        ++it;
-        i++;
+        else {
+            unique.insert( k, i->address );
+            addresses->append( i->address );
+            k = i->address->localpart() + "@" + i->address->domain();
+            naked.insert( k, i->address );
+        }
+        
+        ++i;
     }
 
     // if we're also going to insert deliveries rows, and one or more
@@ -664,11 +654,11 @@ void Injector::buildAddressLinks()
     if ( d->remoteRecipients ) {
         List< Address >::Iterator ai( d->remoteRecipients );
         while ( ai ) {
-            Address *a = ai;
+            Address * a = ai;
             ++ai;
-            String k = a->toString();
+            String k = i->address->localpart() + "@" + i->address->domain();
 
-            if ( unique.contains( k ) ) {
+            if ( naked.contains( k ) ) {
                 Address * same = unique.find( k );
                 if ( a != same ) {
                     d->remoteRecipients->remove( a );
@@ -676,10 +666,7 @@ void Injector::buildAddressLinks()
                 }
             }
             else {
-                // actually, this'll happen quite often, since the
-                // header field says "To: a <a@b.c>" and we have a@b.c
-                // here. fix? now now.
-                unique.insert( k, a );
+                naked.insert( k, a );
                 addresses->append( a );
             }
         }
@@ -688,6 +675,7 @@ void Injector::buildAddressLinks()
     d->addressLookup =
         AddressCache::lookup( d->transaction, addresses, this );
 }
+
 
 
 /*! This private function builds a list of FieldLinks containing every
@@ -700,6 +688,7 @@ void Injector::buildAddressLinks()
 void Injector::buildFieldLinks()
 {
     d->fieldLinks = new List< FieldLink >;
+    d->addressLinks = new List< AddressLink >;
     d->dateLinks = new List< FieldLink >;
     d->otherFields = new List< String >;
 
@@ -742,7 +731,6 @@ void Injector::buildFieldLinks()
 
 void Injector::buildLinksForHeader( Header *hdr, const String &part )
 {
-    int i = 1;
     List< HeaderField >::Iterator it( hdr->fields() );
     while ( it ) {
         HeaderField *hf = it;
@@ -750,7 +738,7 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
         FieldLink *link = new FieldLink;
         link->hf = hf;
         link->part = part;
-        link->position = i++;
+        link->position = hf->position();
 
         if ( hf->type() >= HeaderField::Other )
             d->otherFields->append( new String ( hf->name() ) );
@@ -759,6 +747,21 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
 
         if ( part.isEmpty() && hf->type() == HeaderField::Date )
             d->dateLinks->append( link );
+
+        if ( hf->type() <= HeaderField::LastAddressField ) {
+            List< Address > * al = ((AddressField *)hf)->addresses();
+            List< Address >::Iterator ai( al );
+            while ( ai ) {
+                AddressLink * link = new AddressLink;
+                link->part = part;
+                link->position = hf->position();
+                link->type = hf->type();
+                link->address = ai;
+                d->addressLinks->append( link );
+
+                ++ai;
+            }
+        }
 
         ++it;
     }
@@ -1078,10 +1081,7 @@ void Injector::linkHeaderFields()
 
 void Injector::linkAddresses()
 {
-    Query *q =
-        new Query( "copy address_fields "
-                   "(mailbox,uid,part,position,field,address) "
-                   "from stdin with binary", 0 );
+    Query * q = new Query( *::insertAddressField, 0 );
 
     List< ObjectId >::Iterator mi( d->mailboxes );
     while ( mi ) {

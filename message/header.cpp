@@ -14,6 +14,7 @@
 #include "utf.h"
 
 
+
 static const char *crlf = "\015\012";
 
 
@@ -130,8 +131,14 @@ void Header::add( HeaderField * hf )
         }
     }
     List<HeaderField>::Iterator i( d->fields );
-    while ( i && i->position() <= hf->position() )
+    uint maxpos = 0;
+    while ( i && i->position() <= hf->position() ) {
+        if ( i->position() > maxpos )
+            maxpos = i->position();
         i++;
+    }
+    if ( !i && hf->position() == (uint)-1 )
+        hf->setPosition( maxpos + 1 );
     d->fields.insert( i, hf );
     d->verified = false;
 }
