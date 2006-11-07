@@ -1586,6 +1586,7 @@ bool Schema::stepTo32()
         d->t->enqueue( d->q );
         d->q = new Query(
             // this breaks the 80-column limit. that's not its worst problem.
+            "insert into unparsed_messages(bodypart) "
             "select distinct pn2.bodypart"
             " from messages m"
             " left join deleted_messages dm on (m.uid=dm.uid and m.mailbox=dm.mailbox)"
