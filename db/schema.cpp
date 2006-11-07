@@ -1589,7 +1589,6 @@ bool Schema::stepTo32()
             "insert into unparsed_messages(bodypart) "
             "select distinct pn2.bodypart"
             " from messages m"
-            " left join deleted_messages dm on (m.uid=dm.uid and m.mailbox=dm.mailbox)"
             " join header_fields hf on (hf.uid=m.uid and m.mailbox=hf.mailbox)"
             " join address_fields af on (af.uid=m.uid and m.mailbox=af.mailbox)"
             " join addresses a on (af.address=a.id)"
@@ -1603,9 +1602,10 @@ bool Schema::stepTo32()
             " and subject.name='Subject'"
             " and \"from\".name='From'"
             " and dm.uid is null"
-            " and (bp.text ilike 'The appended message was received, but could not be stored' or"
-            "      (hf.field=subject.id and hf.value ilike 'message arrived but could not be stored') or"
-            "      (af.field=\"from\".id and a.name='Mail Storage Database'))"
+            " and (bp.text ilike 'The appended message was received, but could not be stored'"
+            "      or (hf.field=subject.id"
+            "          and hf.value ilike 'message arrived but could not be stored')"
+            "      or (af.field=\"from\".id and a.name='Mail Storage Database'))"
             " order by pn2.bodypart", this );
         d->t->enqueue( d->q );
         d->t->execute();
