@@ -24,7 +24,6 @@ public:
     State state() const;
     bool failed() const;
     bool done() const;
-    bool inactive() const;
 
     void setError( Query *, const String & );
     String error() const;
