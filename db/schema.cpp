@@ -1584,6 +1584,29 @@ bool Schema::stepTo32()
         d->q = new Query( "grant insert on unparsed_messages to " +
                           dbuser, this );
         d->t->enqueue( d->q );
+        d->q = new Query(
+            // this breaks the 80-column limit. that's not its worst problem.
+            "select distinct pn2.bodypart"
+            " from messages m"
+            " left join deleted_messages dm on (m.uid=dm.uid and m.mailbox=dm.mailbox)"
+            " join header_fields hf on (hf.uid=m.uid and m.mailbox=hf.mailbox)"
+            " join address_fields af on (af.uid=m.uid and m.mailbox=af.mailbox)"
+            " join addresses a on (af.address=a.id)"
+            " join part_numbers pn1 on (pn1.uid=m.uid and m.mailbox=pn1.mailbox)"
+            " join part_numbers pn2 on (pn2.uid=m.uid and m.mailbox=pn2.mailbox)"
+            " join field_names subject on (hf.field=subject.id)"
+            " join field_names \"from\" on (af.field=\"from\".id)"
+            " join bodyparts bp on (bp.id=pn1.bodypart)"
+            " where pn1.part=1"
+            " and pn2.part=2"
+            " and subject.name='Subject'"
+            " and \"from\".name='From'"
+            " and dm.uid is null"
+            " and (bp.text ilike 'The appended message was received, but could not be stored' or"
+            "      (hf.field=subject.id and hf.value ilike 'message arrived but could not be stored') or"
+            "      (af.field=\"from\".id and a.name='Mail Storage Database'))"
+            " order by pn2.bodypart", this );
+        d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
     }
