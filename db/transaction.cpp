@@ -2,7 +2,6 @@
 
 #include "transaction.h"
 
-#include "allocator.h"
 #include "database.h"
 #include "query.h"
 #include "event.h"
@@ -141,22 +140,6 @@ Query * Transaction::failedQuery() const
 }
 
 
-static PreparedStatement * begin = 0;
-static PreparedStatement * commit = 0;
-static PreparedStatement * rollback = 0;
-static void prepare()
-{
-    if ( begin )
-        return;
-    begin = new PreparedStatement( "begin" );
-    commit = new PreparedStatement( "commit" );
-    rollback = new PreparedStatement( "rollback" );
-    Allocator::addEternal( begin, "SQL begin" );
-    Allocator::addEternal( commit, "SQL commit" );
-    Allocator::addEternal( rollback, "SQL rollback" );
-}
-
-
 /*! Enqueues the query \a q within this Transaction, to be sent to the
     server only after execute() is called. The BEGIN is automatically
     enqueued before the first query in a Transaction.
@@ -166,8 +149,7 @@ void Transaction::enqueue( Query *q )
 {
     if ( !d->queries ) {
         d->queries = new List< Query >;
-        ::prepare();
-        Query * begin = new Query( *::begin, 0 );
+        Query *begin = new Query( "BEGIN", 0 );
         begin->setTransaction( this );
 
         // If setDatabase() has already been called, we were probably
@@ -190,8 +172,7 @@ void Transaction::enqueue( Query *q )
 
 void Transaction::rollback()
 {
-    ::prepare();
-    Query * q = new Query( *::rollback, d->owner );
+    Query *q = new Query( "ROLLBACK", d->owner );
     q->setTransaction( this );
     if ( d->queries )
         d->queries->append( q );
@@ -208,8 +189,7 @@ void Transaction::rollback()
 
 void Transaction::commit()
 {
-    ::prepare();
-    Query * q = new Query( *::commit, d->owner );
+    Query *q = new Query( "COMMIT", d->owner );
     q->setTransaction( this );
     if ( d->queries )
         d->queries->append( q );
