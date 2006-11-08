@@ -59,7 +59,7 @@ public:
 
 
 /*! \class Schema schema.h
-  
+
     This class manipulates the Oryx database schema. It knows all the
     schema revisions and can upgrade a database to the latest schema
     version automatically.
@@ -1395,7 +1395,7 @@ bool Schema::stepTo25()
     }
 
     return true;
-    
+
 }
 
 
@@ -1661,7 +1661,7 @@ bool Schema::stepTo32()
     adds a new column with data we need to keep, parses header_fields
     to generate the new rows, and kills the now unnecessary
     header_fields rows.
-    
+
     Well, actually it doesn't do the last step yet. The
     MessageHeaderFetcher is careful to disregard these rows, so the do
     no harm.
@@ -1733,6 +1733,9 @@ bool Schema::stepTo33()
             d->t->execute();
             d->substate++;
             d->addressFields = new List<SchemaData::AddressField>;
+            // should we call AddressCache::setup() here to limit the
+            // size of the cache somewhat? sounds like a good idea. or
+            // maybe a new AddressCache::clear().
         }
 
         // in states 3 and 6, we take the header fields we get, and
@@ -1797,7 +1800,7 @@ bool Schema::stepTo33()
                 List<Address>::Iterator i( p.addresses() );
                 while ( i ) {
                     af->address = i;
-                    SchemaData::AddressField * n 
+                    SchemaData::AddressField * n
                         = new SchemaData::AddressField;
                     n->mailbox = af->mailbox;
                     n->uid = af->uid;
@@ -1868,7 +1871,7 @@ bool Schema::stepTo33()
             d->substate++;
         }
     }
-        
+
     if ( d->substate == 7 ) {
         // rejoice. that was hard work and we're almost done!
         d->q = new Query( "delete from address_fields "
