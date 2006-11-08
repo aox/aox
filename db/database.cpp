@@ -6,6 +6,7 @@
 #include "string.h"
 #include "allocator.h"
 #include "configuration.h"
+#include "event.h"
 #include "query.h"
 #include "file.h"
 #include "log.h"
@@ -385,4 +386,159 @@ uint Database::connectionNumber() const
 Configuration::Text Database::loginAs()
 {
     return ::loginAs;
+}
+
+
+/*! Checks that the schema revision is appropriate for this server and
+    logs a disaster if not. While it's working, the function also
+    checks the postgres server version. Instructs \a owner to
+    EventHandler::waitFor() the necessary database work.
+*/
+
+void Database::checkSchemaRevision( EventHandler * owner )
+{
+    class SchemaRevisionCheck
+        : public EventHandler
+    {
+    public:
+        SchemaRevisionCheck( EventHandler * o ): q( 0 ), owner( o ) {}
+        Query * q;
+        EventHandler * owner;
+        void execute() {
+            if ( !q ) {
+                q = new Query( "select version() as version, revision from "
+                               "mailstore for update", this );
+                q->execute();
+            }
+            if ( !owner )
+                return;
+            if ( !q->done() )
+                return;
+            Row * r = q->nextRow();
+            if ( q->failed() || !r ) {
+                log( "Unable to find server/database version", Log::Disaster );
+                owner->execute();
+                return;
+            }
+            String v = r->getString( "version" ).simplified().section( " ", 2 );
+            uint revision = r->getInt( "revision" );
+
+            bool ok = true;
+            uint version = 10000 * v.section( ".", 1 ).number( &ok ) +
+                           100 * v.section( ".", 2 ).number( &ok ) +
+                           v.section( ".", 3 ).number( &ok );
+            if ( !ok || version < 70402 ) {
+                ::log( "Archiveopteryx requires PostgreSQL 7.4.2 "
+                       "or higher (found only '" + v + "'", Log::Disaster );
+            }
+            if ( revision != Database::currentRevision() ) {
+                // copied code from schema.cpp. urk.
+                String s( "The existing schema (revision " );
+                s.append( fn( revision ) );
+                s.append( ") is " );
+                if ( revision < Database::currentRevision() )
+                    s.append( "older" );
+                else
+                    s.append( "newer" );
+                s.append( " than this server (version " );
+                s.append( Configuration::compiledIn( Configuration::Version ) );
+                s.append( ") expected (revision " );
+                s.append( fn( Database::currentRevision() ) );
+                s.append( "). Please " );
+                if ( revision < Database::currentRevision() )
+                    s.append( "run 'aox upgrade schema'" );
+                else
+                    s.append( "upgrade" );
+                s.append( " or contact support." );
+                log( s, Log::Disaster );
+            }
+            owner->execute();
+        }
+    };
+        
+    SchemaRevisionCheck * s = new SchemaRevisionCheck( owner );
+    s->execute();
+    owner->waitFor( s->q );
+}
+
+
+/*! This function checks that the server doesn't have privileged access
+    to the database. It notifies \a owner when the check is complete. A
+    disaster is logged if the server is connected to the database as an
+    unduly privileged user.
+
+    The function expects to be called from ::main() after
+    Database::checkSchemaRevision().
+*/
+
+void Database::checkAccess( EventHandler * owner )
+{
+    class AccessChecker
+        : public EventHandler
+    {
+    public:
+        Log * l;
+        Query * q;
+        Query * result;
+
+        AccessChecker( EventHandler * owner )
+            : l( new Log( Log::Database ) ), q( 0 ), result( 0 )
+        {
+            result = new Query( owner );
+        }
+
+        void execute()
+        {
+            if ( !q ) {
+                q = new Query( "select not exists (select * from "
+                               "information_schema.table_privileges where "
+                               "privilege_type='DELETE' and table_name="
+                               "'messages' and grantee=$1) and not exists "
+                               "(select u.usename from pg_catalog.pg_class c "
+                               "left join pg_catalog.pg_user u on "
+                               "(u.usesysid=c.relowner) where c.relname="
+                               "'messages' and u.usename=$1) as allowed",
+                               this );
+                q->bind( 1, Configuration::text( Configuration::DbUser ) );
+                q->execute();
+            }
+
+            if ( !q->done() )
+                return;
+
+            Row * r = q->nextRow();
+            if ( q->failed() || !r ||
+                 r->getBoolean( "allowed" ) == false )
+            {
+                String s( "Refusing to start because we have too many "
+                          "privileges on the messages table in secure "
+                          "mode." );
+                result->setError( s );
+                l->log( s, Log::Disaster );
+                if ( q->failed() ) {
+                    l->log( "Query: " + q->description(), Log::Disaster );
+                    l->log( "Error: " + q->error(), Log::Disaster );
+                }
+            }
+            else {
+                result->setState( Query::Completed );
+            }
+
+            result->notify();
+        }
+    };
+
+    AccessChecker * a = new AccessChecker( owner );
+    a->execute();
+    owner->waitFor( a->result );
+}
+
+
+/*! This static function returns the schema revision current at the time
+     this server was compiled.
+*/
+
+uint Database::currentRevision()
+{
+    return 31;
 }

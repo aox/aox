@@ -5,7 +5,7 @@ SubInclude TOP server ;
 
 Build aox : aox.cpp ;
 Program aox :
-    aox database server mailbox message user core encodings extractors ;
+    aox database schema server mailbox message user core encodings extractors ;
 
 rule BuildInfo {
     Depends $(<) : $(>) ;

@@ -11,9 +11,6 @@
 #include "md5.h"
 
 
-int currentRevision = 31;
-
-
 class SchemaData
     : public Garbage
 {
@@ -28,7 +25,7 @@ public:
     Log *l;
     int state;
     int substate;
-    int revision;
+    uint revision;
     Query *lock, *seq, *update, *q;
     Transaction *t;
     Query *result;
@@ -39,14 +36,10 @@ public:
 
 
 /*! \class Schema schema.h
-    This class represents the Oryx database schema.
-
-    The static checkRevision() function verifies during server startup
-    that the running server is compatible with the existing schema.
-
-    The static checkAccess() function verifies during server startup
-    that the running server does not have privileged access to the
-    database.
+  
+    This class manipulates the Oryx database schema. It knows all the
+    schema revisions and can upgrade a database to the latest schema
+    version automatically.
 */
 
 
@@ -139,53 +132,53 @@ void Schema::execute()
         if ( !r || d->lock->failed() ) {
             fail( "Bad database: Couldn't query the mailstore table.",
                   d->lock );
-            d->revision = ::currentRevision;
+            d->revision = Database::currentRevision();
             d->t->commit();
             d->state = 5;
         }
-        else if ( d->revision == ::currentRevision ) {
+        else if ( d->revision == Database::currentRevision() ) {
             if ( d->upgrade )
                 d->l->log( "Schema is already at revision " +
-                           fn( ::currentRevision ) +
+                           fn( Database::currentRevision() ) +
                            ", no upgrade necessary.",
                            Log::Significant );
             d->result->setState( Query::Completed );
             d->t->commit();
             d->state = 5;
         }
-        else if ( d->upgrade && d->revision < ::currentRevision ) {
+        else if ( d->upgrade && d->revision < Database::currentRevision() ) {
             d->l->log( "Upgrading schema from revision " +
                        fn( d->revision ) + " to revision " +
-                       fn( ::currentRevision ) + ".",
+                       fn( Database::currentRevision() ) + ".",
                        Log::Significant );
             d->state = 2;
         }
         else {
-            String s( "The existing schema (revision #" );
+            String s( "The existing schema (revision " );
             s.append( fn( d->revision ) );
             s.append( ") is " );
-            if ( d->revision < ::currentRevision )
+            if ( d->revision < Database::currentRevision() )
                 s.append( "older" );
             else
                 s.append( "newer" );
             s.append( " than this server (version " );
             s.append( Configuration::compiledIn( Configuration::Version ) );
-            s.append( ") expected (revision #" );
-            s.append( fn( ::currentRevision ) );
+            s.append( ") expected (revision " );
+            s.append( fn( Database::currentRevision() ) );
             s.append( "). Please " );
-            if ( d->revision < ::currentRevision )
+            if ( d->revision < Database::currentRevision() )
                 s.append( "run 'aox upgrade schema'" );
             else
                 s.append( "upgrade" );
             s.append( " or contact support." );
             fail( s );
-            d->revision = ::currentRevision;
+            d->revision = Database::currentRevision();
             d->t->commit();
             d->state = 5;
         }
     }
 
-    while ( d->revision < ::currentRevision ) {
+    while ( d->revision < Database::currentRevision() ) {
         if ( d->state == 2 ) {
             if ( !singleStep() )
                 return;
@@ -208,7 +201,7 @@ void Schema::execute()
             d->state = 2;
             d->revision++;
 
-            if ( d->revision == ::currentRevision ) {
+            if ( d->revision == Database::currentRevision() ) {
                 if ( d->commit )
                     d->t->commit();
                 else
@@ -227,7 +220,7 @@ void Schema::execute()
             String s;
             if ( d->upgrade )
                 s = "The schema could not be upgraded to revision " +
-                    fn( ::currentRevision ) + ".";
+                    fn( Database::currentRevision() ) + ".";
             else
                 s = "The schema could not be validated.";
             fail( s, d->t->failedQuery() );
@@ -235,7 +228,7 @@ void Schema::execute()
         else if ( d->state == 6 ) {
             d->result->setState( Query::Completed );
             d->l->log( "Schema upgraded to revision " +
-                       fn( ::currentRevision ) + ".",
+                       fn( Database::currentRevision() ) + ".",
                        Log::Significant );
         }
         d->state = 7;
@@ -1637,86 +1630,4 @@ void Schema::fail( const String &s, Query * q )
         d->l->log( "Query: " + q->description(), Log::Disaster );
         d->l->log( "Error: " + q->error(), Log::Disaster );
     }
-}
-
-
-/*! This static function returns the schema revision current at the time
-    this server was compiled.
-*/
-
-int Schema::currentRevision()
-{
-    return ::currentRevision;
-}
-
-
-/*! This function checks that the server doesn't have privileged access
-    to the database. It notifies \a owner when the check is complete. A
-    disaster is logged if the server is connected to the database as an
-    unduly privileged user.
-
-    The function expects to be called from ::main() after
-    Schema::checkRevision().
-*/
-
-void Schema::checkAccess( EventHandler * owner )
-{
-    class AccessChecker
-        : public EventHandler
-    {
-    public:
-        Log * l;
-        Query * q;
-        Query * result;
-
-        AccessChecker( EventHandler * owner )
-            : l( new Log( Log::Database ) ), q( 0 ), result( 0 )
-        {
-            result = new Query( owner );
-        }
-
-        void execute()
-        {
-            if ( !q ) {
-                q = new Query( "select not exists (select * from "
-                               "information_schema.table_privileges where "
-                               "privilege_type='DELETE' and table_name="
-                               "'messages' and grantee=$1) and not exists "
-                               "(select u.usename from pg_catalog.pg_class c "
-                               "left join pg_catalog.pg_user u on "
-                               "(u.usesysid=c.relowner) where c.relname="
-                               "'messages' and u.usename=$1) as allowed",
-                               this );
-                q->bind( 1, Configuration::text( Configuration::DbUser ) );
-                q->execute();
-            }
-
-            if ( !q->done() )
-                return;
-
-            Row * r = q->nextRow();
-            if ( q->failed() || !r ||
-                 r->getBoolean( "allowed" ) == false )
-            {
-                String s( "Refusing to start because we have too many "
-                          "privileges on the messages table in secure "
-                          "mode." );
-                result->setError( s );
-                l->log( s, Log::Disaster );
-                if ( q->failed() ) {
-                    l->log( "Query: " + q->description(), Log::Disaster );
-                    l->log( "Error: " + q->error(), Log::Disaster );
-                }
-            }
-            else {
-                result->setState( Query::Completed );
-            }
-
-            result->notify();
-        }
-    };
-
-    AccessChecker * a = new AccessChecker( owner );
-    owner->waitFor( a->result );
-    a->execute();
 }

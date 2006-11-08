@@ -4,6 +4,8 @@ SubDir TOP db ;
 SubInclude TOP server ;
 
 Build database : database.cpp postgres.cpp pgmessage.cpp cache.cpp
-    query.cpp transaction.cpp schema.cpp ;
+    query.cpp transaction.cpp ;
+
+Build schema : schema.cpp ;
 
 UseLibrary postgres.cpp : crypt ;

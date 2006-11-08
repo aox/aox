@@ -793,18 +793,18 @@ void database()
             }
         }
         else {
-            int revision = r->getInt( "revision" );
+            uint revision = r->getInt( "revision" );
 
-            if ( revision > Schema::currentRevision() ) {
+            if ( revision > Database::currentRevision() ) {
                 String v( Configuration::compiledIn( Configuration::Version ) );
                 fprintf( stderr, "The schema in database '%s' (revision #%d) "
                          "is newer than this version of Archiveopteryx (%s) "
                          "recognises (up to #%d).\n", dbname->cstr(), revision,
-                         v.cstr(), Schema::currentRevision() );
+                         v.cstr(), Database::currentRevision() );
                 EventLoop::shutdown();
                 return;
             }
-            else if ( revision < Schema::currentRevision() ) {
+            else if ( revision < Database::currentRevision() ) {
                 if ( report ) {
                     todo++;
                     printf( " - Upgrade the database schema (\"aox upgrade "

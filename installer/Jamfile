@@ -19,7 +19,7 @@ NoCare <>Jamsettings ;
 Depends [ FGristFiles installer.o ] : <>Jamsettings ;
 
 Executable installer :
-    installer database server mailbox message user core encodings 
+    installer database schema server mailbox message user core encodings 
     extractors ;
 InstallBin $(INSTALLROOT)$(LIBDIR) : installer ;
 

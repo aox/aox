@@ -629,15 +629,13 @@ void Server::execute()
     List< Query >::Iterator it( d->queries );
 
     while ( it ) {
-        Query *q = it;
+        List<Query>::Iterator q = it;
+        ++it;
 
         if ( q->done() ) {
             if ( q->failed() )
                 failures = true;
-            d->queries->take( it );
-        }
-        else {
-            ++it;
+            d->queries->take( q );
         }
     }
 
