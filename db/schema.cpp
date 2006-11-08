@@ -4,9 +4,11 @@
 
 #include "log.h"
 #include "query.h"
+#include "addresscache.h"
 #include "transaction.h"
 #include "stringlist.h"
 #include "allocator.h"
+#include "address.h"
 #include "dict.h"
 #include "md5.h"
 
@@ -19,7 +21,8 @@ public:
         : l( new Log( Log::Database ) ),
           state( 0 ), substate( 0 ), revision( 0 ),
           lock( 0 ), seq( 0 ), update( 0 ), q( 0 ), t( 0 ),
-          result( 0 ), upgrade( false ), commit( true )
+          result( 0 ), upgrade( false ), commit( true ),
+          addressFields( 0 )
     {}
 
     Log *l;
@@ -32,6 +35,26 @@ public:
     bool upgrade;
     bool commit;
     String version;
+
+    // step-specific variables below
+
+    // for stepTo33
+    class AddressField
+        : public Garbage
+    {
+    public:
+        AddressField()
+            : mailbox( 0 ), uid( 0 ), part( 0 ),
+              position( 0 ), address( 0 ), number( 0 ) {}
+        uint mailbox;
+        uint uid;
+        String part;
+        uint position;
+        uint field;
+        Address * address;
+        uint number;
+    };
+    List<AddressField> * addressFields;
 };
 
 
@@ -1659,6 +1682,15 @@ bool Schema::stepTo33()
         d->q = new Query( "alter table address_fields alter number "
                           "set not null", this );
         d->t->enqueue( d->q );
+        d->q = new Query( "create table address_fields_tmp ("
+                          "    mailbox     integer not null,"
+                          "    uid         integer not null,"
+                          "    part        text not null,"
+                          "    position    integer not null,"
+                          "    field       integer not null,"
+                          "    address     integer not null,"
+                          "    number      integer not null", this );
+        d->t->enqueue( d->q );
 
         d->substate = 1;
     }
@@ -1689,7 +1721,7 @@ bool Schema::stepTo33()
                     "select hf.mailbox, hf.uid, hf.position, hf.part, "
                     "hf.field, hf.value "
                     "from header_fields hf "
-                    "where hf.field<=$1 and hf.part#''", this );
+                    "where hf.field<=$1 and hf.part!=''", this );
             }
             d->t->enqueue( d->q );
             d->substate++;
@@ -1700,44 +1732,134 @@ bool Schema::stepTo33()
             d->t->enqueue( d->q );
             d->t->execute();
             d->substate++;
+            d->addressFields = new List<SchemaData::AddressField>;
         }
 
         // in states 3 and 6, we take the header fields we get, and
-        // process them
+        // process them. this is longwinded.
         Row * r = d->q->nextRow();
         while ( r ) {
-            //uint mailbox = r->getInt( "mailbox" );
-            //uint uid = r->getInt( "uid" );
-            //uint position = r->getInt( "position" );
-            //uint part = r->getInt( "part" );
-            //uint field = r->getInt( "field" );
-            //String value = r->getString( "value" );
+            SchemaData::AddressField * af = new SchemaData::AddressField;
+            af->mailbox = r->getInt( "mailbox" );
+            af->uid = r->getInt( "uid" );
+            af->part = r->getString( "part" );
+            af->position = r->getInt( "position" );
+            af->field = r->getInt( "field" );
+
+            AddressParser p( r->getString( "value" ) );
+            if ( !p.error().isEmpty() ) {
+                // there's some awful error. we inserted it into the
+                // database, but cannot process this field. what
+                // should we do? for now, we try to extract the
+                // addresses we can. after all, when the message is in
+                // the database we cannot very well reject it any
+                // more. is this the best way?  perhaps we should log
+                // something?
+            }
             if ( d->substate == 3 ) {
                 // we have an address. what we need to do is find out:
-                // where is this address in the list? then we tell
-                // update the database row.
+                // where is this address in the list? then we add a
+                // row to the db representing this address
 
-                // here, it seems to be best to issue one
-                // UPDATE...WHERE per address field. or perhaps we can
-                // bunch them up and issue a few just before the
-                // d->q->done? update x set number=1 where...or...or, then 
-                // update x set number=2 where...or...or, then ...
+                String name = r->getString( "name" );
+                String localpart = r->getString( "localpart" );
+                String domain = r->getString( "domain" );
+
+                uint number = 0;
+                List<Address>::Iterator i( p.addresses() );
+                bool found = false;
+                while ( i && !found ) {
+                    if ( localpart == i->localpart() &&
+                         domain == i->domain() &&
+                         name == i->name() ) {
+                        af->address = i;
+                        i->setId( r->getInt( "address" ) );
+                        af->number = number;
+                        d->addressFields->append( af );
+                        found = true;
+                    }
+                    ++number;
+                    ++i;
+                }
+                if ( !found ) {
+                    // we didn't find the address anywhere. what
+                    // should we do? if we ignore the discrepancy, we
+                    // trust header_fields. if we want to reust the
+                    // old address_fields row, we should insert submit
+                    // a new line here. for now, let's do nothing.
+                }
             }
             else {
-                // we must parse the field and submit the necessary
-                // updates
-
-                // here, it seems to be best to submitLine on a
-                // d->update that insers all the necessary rows
+                // for the subsidiary address fields, we must look up
+                // the addresses in the addresses table
+                AddressCache::lookup( d->t, p.addresses(), this );
+                af->number = 0;
+                List<Address>::Iterator i( p.addresses() );
+                while ( i ) {
+                    af->address = i;
+                    SchemaData::AddressField * n 
+                        = new SchemaData::AddressField;
+                    n->mailbox = af->mailbox;
+                    n->uid = af->uid;
+                    n->part = af->part;
+                    n->position = af->position;
+                    n->field = af->field;
+                    n->number = af->number+1;
+                    d->addressFields->append( af );
+                    af = n;
+                    ++i;
+                }
             }
+
             r = d->q->nextRow();
         }
 
         if ( !d->q->done() )
             return false;
 
+        // we're still in state 3/6. let's now see whether we have
+        // unresolved address IDs.
+        bool unresolved = false;
+        List<SchemaData::AddressField>::Iterator i( d->addressFields );
+        while ( i && !unresolved ) {
+            if ( !i->address->id() )
+                unresolved = true;
+            ++i;
+        }
+        if ( unresolved )
+            return false;
+
+        // we're now ready to submit the new address fields. the copy
+        // below generally has 8000 or more rows each time we run
+        // through this (except the last of course).
+        if ( d->substate == 3 )
+            d->update = new Query(
+                "copy address_fields_tmp "
+                "(mailbox,uid,part,position,field,address,number) "
+                "from stdin with binary", 0 );
+        else
+            d->update = new Query(
+                "copy address_fields "
+                "(mailbox,uid,part,position,field,address,number) "
+                "from stdin with binary", 0 );
+        i = d->addressFields->first();
+        while ( i ) {
+            d->update->bind( 1, i->mailbox, Query::Binary );
+            d->update->bind( 2, i->uid, Query::Binary );
+            d->update->bind( 3, i->part, Query::Binary );
+            d->update->bind( 4, i->position, Query::Binary );
+            d->update->bind( 5, i->field, Query::Binary );
+            d->update->bind( 6, i->address->id(),
+                             Query::Binary );
+            d->update->bind( 7, i->number, Query::Binary );
+            d->update->submitLine();
+            ++i;
+        }
+
+        d->t->enqueue( d->update );
+
         // when we're done in 3 and 6, should we step back and get
-        // some more rows?
+        // some more rows, or are we done?
         if ( d->q->rows() ) {
             d->substate--;
         }
@@ -1747,8 +1869,27 @@ bool Schema::stepTo33()
         }
     }
         
-
     if ( d->substate == 7 ) {
+        // rejoice. that was hard work and we're almost done!
+        d->q = new Query( "delete from address_fields "
+                          "where number=0 and "
+                          "(mailbox,uid,part,position,field,address) in "
+                          "(select mailbox,uid,part,position,field,address "
+                          " from address_fields_tmp)", 0 );
+        d->t->enqueue( d->q );
+        d->q = new Query( "insert into address_fields "
+                          "(mailbox,uid,part,position,field,address,number) "
+                          "select mailbox,uid,part,position,field,address,number "
+                          " from address_fields_tmp", 0 );
+        d->t->enqueue( d->q );
+        d->q = new Query( "drop table address_fields_tmp", this );
+        d->t->enqueue( d->q );
+
+        d->t->execute();
+        d->substate = 8;
+    }
+
+    if ( d->substate == 8 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
