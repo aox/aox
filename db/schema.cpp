@@ -250,6 +250,23 @@ void Schema::describeStep( const String & description )
 }
 
 
+/*! Given an error message \a s and, optionally, the query \a q that
+    caused the error, this private helper function logs a suitable set
+    of Disaster messages (including the Query::description()) and sets
+    the error message for d->result to \a s.
+*/
+
+void Schema::fail( const String &s, Query * q )
+{
+    d->result->setError( s );
+    d->l->log( s, Log::Disaster );
+    if ( q ) {
+        d->l->log( "Query: " + q->description(), Log::Disaster );
+        d->l->log( "Error: " + q->error(), Log::Disaster );
+    }
+}
+
+
 /*! Uses a helper function to upgrade the schema from d->revision to
     d->revision+1. Returns false if the helper has not yet completed
     its work.
@@ -1568,7 +1585,7 @@ bool Schema::stepTo31()
 bool Schema::stepTo32()
 {
     if ( d->substate == 0 ) {
-        describeStep( "Creating unparsed_messages table." );
+        describeStep( "Creating unparsed_messages table (slow)." );
         String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create table unparsed_messages (bodypart "
                           "integer not null references bodyparts(id) "
@@ -1616,18 +1633,127 @@ bool Schema::stepTo32()
 }
 
 
-/*! Given an error message \a s and, optionally, the query \a q that
-    caused the error, this private helper function logs a suitable set
-    of Disaster messages (including the Query::description()) and sets
-    the error message for d->result to \a s.
+/*! The address_fields table lacks many of the rows it should have had
+    in revisions prior to 33. This upgrade removes all existing rows,
+    adds a new column with data we need to keep, parses header_fields
+    to generate the new rows, and kills the now unnecessary
+    header_fields rows.
+    
+    Well, actually it doesn't do the last step yet. The
+    MessageHeaderFetcher is careful to disregard these rows, so the do
+    no harm.
 */
 
-void Schema::fail( const String &s, Query * q )
+bool Schema::stepTo33()
 {
-    d->result->setError( s );
-    d->l->log( s, Log::Disaster );
-    if ( q ) {
-        d->l->log( "Query: " + q->description(), Log::Disaster );
-        d->l->log( "Error: " + q->error(), Log::Disaster );
+    if ( d->substate == 0 ) {
+        describeStep( "Adding missing address_fields rows (slow)." );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+
+        d->q = new Query( "alter table address_fields add number integer",
+                          this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "update address_fields set number=0",
+                          this ); // better? how?
+        d->t->enqueue( d->q );
+        d->q = new Query( "alter table address_fields alter number "
+                          "set not null", this );
+        d->t->enqueue( d->q );
+
+        d->substate = 1;
     }
+
+    while ( d->substate >= 1 && d->substate <= 6 ) {
+        if ( d->substate == 1 || d->substate == 4 ) {
+            if ( d->substate == 1 ) {
+                // in 1/2/3, we ask for all top-level address fields
+                // with multiple recipients
+                d->q = new Query(
+                    "declare f cursor for "
+                    "select hf.mailbox, hf.uid, hf.position, hf.part, "
+                    "hf.field, hf.value, "
+                    "af.address, "
+                    "a.name, a.localpart, a.domain "
+                    "from header_fields hf "
+                    "join address_fields af using"
+                    " ( mailbox, uid, position, part, field ) "
+                    "join addresses a on (af.address=a.id) "
+                    "where hf.field<=$1 and hf.part=''"
+                    " and hf.value like '%,%'", this );
+            }
+            else {
+                // in 4/5/6, we ask for all address fields in
+                // subsidiary message/rfc822 fields
+                d->q = new Query(
+                    "declare f cursor for "
+                    "select hf.mailbox, hf.uid, hf.position, hf.part, "
+                    "hf.field, hf.value "
+                    "from header_fields hf "
+                    "where hf.field<=$1 and hf.part#''", this );
+            }
+            d->t->enqueue( d->q );
+            d->substate++;
+        }
+
+        if ( d->substate == 2 || d->substate == 5 ) {
+            d->q = new Query( "fetch 4096 from f", this );
+            d->t->enqueue( d->q );
+            d->t->execute();
+            d->substate++;
+        }
+
+        // in states 3 and 6, we take the header fields we get, and
+        // process them
+        Row * r = d->q->nextRow();
+        while ( r ) {
+            //uint mailbox = r->getInt( "mailbox" );
+            //uint uid = r->getInt( "uid" );
+            //uint position = r->getInt( "position" );
+            //uint part = r->getInt( "part" );
+            //uint field = r->getInt( "field" );
+            //String value = r->getString( "value" );
+            if ( d->substate == 3 ) {
+                // we have an address. what we need to do is find out:
+                // where is this address in the list? then we tell
+                // update the database row.
+
+                // here, it seems to be best to issue one
+                // UPDATE...WHERE per address field. or perhaps we can
+                // bunch them up and issue a few just before the
+                // d->q->done? update x set number=1 where...or...or, then 
+                // update x set number=2 where...or...or, then ...
+            }
+            else {
+                // we must parse the field and submit the necessary
+                // updates
+
+                // here, it seems to be best to submitLine on a
+                // d->update that insers all the necessary rows
+            }
+            r = d->q->nextRow();
+        }
+
+        if ( !d->q->done() )
+            return false;
+
+        // when we're done in 3 and 6, should we step back and get
+        // some more rows?
+        if ( d->q->rows() ) {
+            d->substate--;
+        }
+        else {
+            d->t->enqueue( new Query( "close f", this ) );
+            d->substate++;
+        }
+    }
+        
+
+    if ( d->substate == 7 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
 }
