@@ -1716,7 +1716,7 @@ bool Schema::stepTo32()
             "from header_fields hf "
             "left join address_fields af using"
             " ( mailbox, uid, position, part, field ) "
-            "join addresses a on (af.address=a.id) "
+            "left join addresses a on (af.address=a.id) "
             "where hf.field<=$1 "
             "and (hf.part!='' or hf.value ilike '%,%') "
             "order by hf.value, hf.part", 0 );
