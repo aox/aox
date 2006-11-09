@@ -1790,9 +1790,7 @@ bool Schema::stepTo32()
             else if ( p->addresses()->count() == 1 ) {
                 // we have a single address and its ID. add a row.
                 af->number = 0;
-                af->address = new Address( r->getString( "name" ),
-                                           r->getString( "localpart" ),
-                                           r->getString( "domain" ) );
+                af->address = p->addresses()->firstElement();
                 af->address->setId( r->getInt( "address" ) );
                 d->addressFields->append( af );
             }
