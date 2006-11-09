@@ -56,9 +56,13 @@ may be abbreviated as
 .IP "aox show build"
 Displays the build settings used for this installation (as configured
 in Jamsettings).
-.IP "aox show counts"
+.IP "aox show counts [-f]"
 Displays the number of rows in the most important tables, as well as the
 total size of the mail stored.
+.IP
+The -f flag causes it to collect slow-but-accurate statistics. Without
+it, by default, you get quick estimates (more accurate after VACUUM
+ANALYSE).
 .IP "aox show schema"
 Displays the revision of the existing database schema.
 .IP "aox upgrade schema"

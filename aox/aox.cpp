@@ -316,12 +316,13 @@ public:
     Mailbox * m;
     String s;
     Schema * schema;
+    int state;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
           command( cmd ), query( 0 ),
           user( 0 ), t( 0 ), address( 0 ), m( 0 ),
-          schema( 0 )
+          schema( 0 ), state( 0 )
     {
     }
 
@@ -794,77 +795,120 @@ void showConfiguration()
 void showCounts()
 {
     if ( !d ) {
+        parseOptions();
         end();
 
         Database::setup( 1 );
 
         d = new Dispatcher( Dispatcher::ShowCounts );
+        d->state = 1;
         d->query =
             new Query( "select "
-                       "(select count(*) from mailboxes"
-                       " where deleted='f')::int as mailboxes,"
-                       "(select count(*) from messages)::int as messages,"
-                       "(select count(*) from deleted_messages)::int as dmessages,"
-                       "(select count(*) from bodyparts)::int as bodyparts,"
-                       "(select sum(length(text)) from bodyparts)::int as "
-                       "textsize,"
-                       "(select sum(length(data)) from bodyparts)::int as "
-                       "datasize,"
-                       "(select count(*) from addresses)::int as addresses,"
-                       "(select sum(rfc822size) from messages)::int as size,"
-                       "(select count(*) from users)::int as users", d );
+                       "(select count(*) from users)::int as users,"
+                       "(select count(*) from mailboxes where"
+                       " deleted='f')::int as mailboxes,"
+                       "(select reltuples from pg_class where"
+                       " relname='messages')::int as messages,"
+                       "(select reltuples from pg_class where"
+                       " relname='deleted_messages')::int as dm,"
+                       "(select reltuples from pg_class where"
+                       " relname='bodyparts')::int as bodyparts,"
+                       "(select reltuples from pg_class where"
+                       " relname='addresses')::int as addresses", d );
         d->query->execute();
     }
 
-    if ( d && !d->query->done() )
-        return;
+    if ( d->state == 1 ) {
+        if ( !d->query->done() )
+            return;
 
-    Row * r = d->query->nextRow();
-    if ( r ) {
-        uint mailboxes = 0;
-        if ( !r->isNull( "mailboxes" ) )
-            mailboxes = r->getInt( "mailboxes" );
-        uint messages = 0;
-        if ( !r->isNull( "messages" ) )
-            messages = r->getInt( "messages" );
-        uint dmessages = 0;
-        if ( !r->isNull( "dmessages" ) )
-            dmessages = r->getInt( "dmessages" );
-        uint bodyparts = 0;
-        if ( !r->isNull( "bodyparts" ) )
-            bodyparts = r->getInt( "bodyparts" );
-        uint addresses = 0;
-        if ( !r->isNull( "addresses" ) )
-            addresses = r->getInt( "addresses" );
-        uint textSize = 0;
-        if ( !r->isNull( "textsize" ) )
-            textSize = r->getInt( "textsize" );
-        uint dataSize = 0;
-        if ( !r->isNull( "datasize" ) )
-            dataSize = r->getInt( "datasize" );
-        uint size = 0;
-        if ( !r->isNull( "size" ) )
-            size = r->getInt( "size" );
-        uint users = 0;
-        if ( !r->isNull( "users" ) )
-            users = r->getInt( "users" );
+        Row * r = d->query->nextRow();
+        if ( d->query->failed() || !r )
+            error( "Couldn't fetch estimates." );
 
-        printf( "Users: %d\n"
-                "Mailboxes: %d\n"
-                "Messages: %d (+%d recently deleted) (%s total size)\n"
-                "Bodyparts: %d (%s text, %s data)\n"
-                "Addresses: %d\n",
-                users,
-                mailboxes,
-                messages-dmessages, dmessages, String::humanNumber( size ).cstr(),
-                bodyparts,
-                String::humanNumber( textSize ).cstr(),
-                String::humanNumber( dataSize ).cstr(),
-                addresses );
+        printf( "Users: %d\n", r->getInt( "users" ) );
+        printf( "Mailboxes: %d\n", r->getInt( "mailboxes" ) );
+
+        if ( opt( 'f' ) == 0 ) {
+            printf( "Messages: %d", r->getInt( "messages" ) );
+            if ( r->getInt( "dm" ) != 0 )
+                printf( " (%d marked for deletion)", r->getInt( "dm" ) );
+            printf( " (estimated)\n" );
+            printf( "Bodyparts: %d (estimated)\n",
+                    r->getInt( "bodyparts" ) );
+            printf( "Addresses: %d (estimated)\n",
+                    r->getInt( "addresses" ) );
+            d->state = 666;
+            return;
+        }
+
+        d->query =
+            new Query( "select count(*)::int as messages, "
+                       "sum(rfc822size)::bigint as totalsize, "
+                       "(select count(*) from deleted_messages)::int "
+                       "as dm from messages", d );
+        d->query->execute();
+        d->state = 2;
+    }
+
+    if ( d->state == 2 ) {
+        if ( !d->query->done() )
+            return;
+
+        Row * r = d->query->nextRow();
+        if ( d->query->failed() || !r )
+            error( "Couldn't fetch messages/deleted_messages counts." );
+
+        int m = r->getInt( "messages" );
+        int dm = r->getInt( "dm" );
+
+        printf( "Messages: %d", m-dm );
+        if ( dm != 0 )
+            printf( " (%d marked for deletion)", dm );
+        printf( " (total size: %s)\n",
+                String::humanNumber( r->getBigint( "totalsize" ) ).cstr() );
+
+        d->query =
+            new Query( "select count(*)::int as bodyparts,"
+                       "sum(length(text))::bigint as textsize,"
+                       "sum(length(data))::bigint as datasize "
+                       "from bodyparts", d );
+        d->query->execute();
+        d->state = 3;
+    }
+
+    if ( d->state == 3 ) {
+        if ( !d->query->done() )
+            return;
+
+        Row * r = d->query->nextRow();
+        if ( d->query->failed() || !r )
+            error( "Couldn't fetch bodyparts counts." );
+
+        printf( "Bodyparts: %d (text size: %s, data size: %s)\n",
+                r->getInt( "bodyparts" ),
+                String::humanNumber( r->getBigint( "textsize" ) ).cstr(),
+                String::humanNumber( r->getBigint( "datasize" ) ).cstr() );
+
+        d->query =
+            new Query( "select count(*)::int as addresses "
+                       "from addresses", d );
+        d->query->execute();
+        d->state = 4;
+    }
+
+    if ( d->state == 4 ) {
+        if ( !d->query->done() )
+            return;
+
+        Row * r = d->query->nextRow();
+        if ( d->query->failed() || !r )
+            error( "Couldn't fetch addresses counts." );
+
+        printf( "Addresses: %d\n", r->getInt( "addresses" ) );
+        d->state = 666;
     }
 }
-
-
 
 
 void showSchema()
@@ -1789,9 +1833,12 @@ void help()
         fprintf(
             stderr,
             "  show counts -- Show number of users, messages etc..\n\n"
-            "    Synopsis: aox show counts\n\n"
+            "    Synopsis: aox show counts [-f]\n\n"
             "    Displays the number of rows in the most important tables,\n"
             "    as well as the total size of the mail stored.\n"
+            "\n"
+            "    The -f flag makes aox collect slow-but-accurate counts.\n"
+            "    Without it, by default, you get quick estimates.\n"
         );
     }
     else if ( a == "show" && b == "schema" ) {
