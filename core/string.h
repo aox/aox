@@ -80,7 +80,7 @@ public:
     bool endsWith( const char * ) const;
     uint number( bool *, uint = 10 ) const;
     static String fromNumber( uint, uint = 10 );
-    static String humanNumber( uint );
+    static String humanNumber( int64 );
 
     int find( char, int=0 ) const;
     int find( const String &, int=0 ) const;

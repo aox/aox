@@ -1480,7 +1480,7 @@ void String::print() const
     The number is rounded more or less correctly.
 */
 
-String String::humanNumber( uint n )
+String String::humanNumber( int64 n )
 {
     if ( n < 1024 )
         return fromNumber( n );
