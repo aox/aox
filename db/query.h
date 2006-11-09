@@ -112,7 +112,7 @@ class Column
     : public Garbage
 {
 public:
-    enum Type { Unknown, Boolean, Integer, Bytes };
+    enum Type { Unknown, Boolean, Integer, Bigint, Bytes };
 
     String name;
     Type type;
@@ -134,6 +134,9 @@ public:
 
     int getInt( uint ) const;
     int getInt( const char * ) const;
+
+    int64 getBigint( uint ) const;
+    int64 getBigint( const char * ) const;
 
     bool getBoolean( uint ) const;
     bool getBoolean( const char * ) const;

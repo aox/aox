@@ -21,6 +21,7 @@ typedef short int int16;
 typedef unsigned int uint;
 typedef unsigned int uint32;
 typedef unsigned short ushort;
+typedef long long int int64;
 
 enum Exception {
     Range,

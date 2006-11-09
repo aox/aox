@@ -612,6 +612,54 @@ int Row::getInt( const char *f ) const
 }
 
 
+/*! Returns the 64-bit integer (i.e. Postgres bigint) value of the
+    column at index \a i if it exists and is NOT NULL; 0 otherwise.
+*/
+
+int64 Row::getBigint( uint i ) const
+{
+    if ( badFetch( i, Column::Bigint ) )
+        return 0;
+
+    int64 n = 0;
+    Column *c = &columns[i];
+
+    switch ( c->length ) {
+    case 8:
+        n = c->value[0] << 24 | c->value[1] << 16 |
+            c->value[2] <<  8 | c->value[3];
+        n = ( n << 32 ) |
+            c->value[4] << 24 | c->value[5] << 16 |
+            c->value[6] << 8  | c->value[7];
+        break;
+
+    default:
+        /*
+        log( Log::Disaster,
+             "Integer field " + c->name + " has invalid length " +
+             fn( c->length ) );
+        */
+        break;
+    }
+
+    return n;
+}
+
+
+/*! \overload
+    As above, but returns the 64-bit integer value of the column named
+    \a f.
+*/
+
+int64 Row::getBigint( const char * f ) const
+{
+    int i = findColumn( f );
+    if ( i < 0 )
+        return 0;
+    return getBigint( i );
+}
+
+
 /*! Returns the string value of the column at index \a i if it exists
     and is NOT NULL, and an empty string otherwise.
 */
@@ -741,6 +789,9 @@ String Column::typeName( Type type )
         break;
     case Boolean:
         n = "boolean";
+        break;
+    case Bigint:
+        n = "bigint";
         break;
     case Integer:
         n = "integer";

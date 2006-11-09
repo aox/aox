@@ -825,6 +825,9 @@ PgDataRow::PgDataRow( Buffer *b, const PgRowDescription *d )
         case 16:    // BOOL
             cv->type = Column::Boolean;
             break;
+        case 20:    // INT8
+            cv->type = Column::Bigint;
+            break;
         case 21:    // INT2
         case 23:    // INT4
             cv->type = Column::Integer;
