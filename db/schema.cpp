@@ -3,6 +3,7 @@
 #include "schema.h"
 
 #include "log.h"
+#include "field.h"
 #include "query.h"
 #include "addresscache.h"
 #include "transaction.h"
@@ -1693,17 +1694,33 @@ bool Schema::stepTo32()
                           dbuser, 0 );
         d->t->enqueue( d->q );
 
+        // first: all the rows that can be moved into the new table
+        // without going through this process
+        d->q = new Query(
+            "insert into new_address_fields "
+            "(mailbox,uid,position,part,field,address,number) "
+            "select"
+            " hf.mailbox,hf.uid,hf.position,hf.part,hf.field,af.address,0 "
+            "from header_fields hf "
+            "join address_fields af using"
+            " ( mailbox, uid, position, part, field ) "
+            "where not hf.value ilike '%,%'", 0 );
+        d->t->enqueue( d->q );
+
+        // then: all the ones where we need to think hard in order to
+        // determine the address numbering
         d->q = new Query(
             "declare f cursor for "
             "select hf.mailbox,hf.uid,hf.position,hf.part,hf.field,hf.value, "
-            "af.address, "
-            "a.name, a.localpart, a.domain "
+            "af.address,a.name,a.localpart,a.domain "
             "from header_fields hf "
             "left join address_fields af using"
             " ( mailbox, uid, position, part, field ) "
             "join addresses a on (af.address=a.id) "
             "where hf.field<=$1 "
+            "and (hf.part!='' or hf.value ilike '%,%') "
             "order by hf.value, hf.part", 0 );
+        d->q->bind( 1, HeaderField::LastAddressField );
         d->t->enqueue( d->q );
         d->substate = 1;
     }
