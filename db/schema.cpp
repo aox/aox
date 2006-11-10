@@ -1710,6 +1710,7 @@ bool Schema::stepTo32()
         d->q = new Query(
             "create index hf_fpv on header_fields(field) "
             "where field<=$1 and (part<>'' or value ilike '%,%')", 0 );
+        d->q->bind( 1, HeaderField::LastAddressField );
         d->t->enqueue( d->q );
 
         d->q = new Query( "set enable_seqscan to false", 0 );
