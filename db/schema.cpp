@@ -39,7 +39,7 @@ public:
 
     // step-specific variables below
 
-    // for stepTo33
+    // for stepTo32
     class AddressField
         : public Garbage
     {
@@ -1605,6 +1605,9 @@ bool Schema::stepTo31()
 }
 
 
+// stepTo32 is below
+
+
 /*! Create and populate the unparsed_messages table. */
 
 bool Schema::stepTo33()
@@ -1744,9 +1747,7 @@ bool Schema::stepTo32()
             d->t->execute();
             d->substate = 2;
             d->addressFields = new List<SchemaData::AddressField>;
-            // should we call AddressCache::setup() here to limit the
-            // size of the cache somewhat? sounds like a good idea. or
-            // maybe a new AddressCache::clear().
+            AddressCache::setup(); // or maybe a new AddressCache::clear().
         }
 
         AddressParser * p = 0;
@@ -1912,6 +1913,9 @@ bool Schema::stepTo32()
 
     return true;
 }
+
+
+// stepTo33 is above
 
 
 /*! Changes the foreign keys in address_fields so it references
