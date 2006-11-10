@@ -1707,6 +1707,17 @@ bool Schema::stepTo32()
             "where not hf.value ilike '%,%'", 0 );
         d->t->enqueue( d->q );
 
+        d->q = new Query(
+            "create index hf_fpv on header_fields(field) "
+            "where field<=$1 and (part<>'' or value ilike '%,%')", 0 );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "set enable_seqscan to false", 0 );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "set enable_mergejoin to false", 0 );
+        d->t->enqueue( d->q );
+
         // then: all the ones where we need to think hard in order to
         // determine the address numbering
         d->q = new Query(
@@ -1876,6 +1887,15 @@ bool Schema::stepTo32()
         d->t->enqueue( d->q );
         d->q = new Query( "create index af_mu on "
                           "address_fields (mailbox, uid)", this );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "set enable_mergejoin to default", 0 );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "set enable_seqscan to default", 0 );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "drop index hf_fpv", 0 );
         d->t->enqueue( d->q );
 
         d->t->execute();
