@@ -324,6 +324,7 @@ public:
           user( 0 ), t( 0 ), address( 0 ), m( 0 ),
           schema( 0 ), state( 0 )
     {
+        Allocator::addEternal( this, "an aox dispatcher" );
     }
 
     void waitFor( Query * q )
