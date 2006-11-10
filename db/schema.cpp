@@ -1906,6 +1906,7 @@ bool Schema::stepTo32()
             report.append( "." );
             describeStep( report );
             d->addressFields = 0;
+            exampleName = "";
         }
 
         // should we step back and get some more rows, or are we done?
