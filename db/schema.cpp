@@ -1734,29 +1734,28 @@ bool Schema::stepTo32()
             "left join addresses a on (af.address=a.id) "
             "where hf.field<=$1 "
             "and (hf.part!='' or hf.value ilike '%,%') "
-            "order by hf.value, hf.part", 0 );
+            "order by hf.value", 0 );
         d->q->bind( 1, HeaderField::LastAddressField );
         d->t->enqueue( d->q );
         d->substate = 1;
     }
 
-    while ( d->substate < 3 ) {
+    while ( d->substate < 4 ) {
         if ( d->substate == 1 ) {
             d->q = new Query( "fetch 4096 from f", this );
             d->t->enqueue( d->q );
             d->t->execute();
             d->substate = 2;
             d->addressFields = new List<SchemaData::AddressField>;
-            AddressCache::setup(); // or maybe a new AddressCache::clear().
         }
 
         AddressParser * p = 0;
         String v;
-        bool didCacheLookup = false;
+        Dict<Address> unique( 10000 );
     
         // in state 2, we take the header fields we get, and process
         // them. this is longwinded.
-        Row * r = d->q->nextRow();
+        Row * r = d->q->nextRow(); // only hits in state 2, not state 3
         while ( r ) {
             SchemaData::AddressField * af = new SchemaData::AddressField;
             af->mailbox = r->getInt( "mailbox" );
@@ -1769,20 +1768,25 @@ bool Schema::stepTo32()
             if ( value != v ) {
                 p = new AddressParser( value );
                 v = value;
-                didCacheLookup = false;
                 // at this point, we could/should check for parse
                 // errors. but since this data has already been
                 // accepted for the db, let's not.
+                List<Address>::Iterator i( p->addresses() );
+                while ( i ) {
+                    String k = i->toString();
+                    Address * a = unique.find( k );
+                    if ( a )
+                        *i = *a;
+                    else
+                        unique.insert( k, a );
+                    ++i;
+                }
             }
 
             if ( r->isNull( "address" ) ) {
                 // we have a header_fields row, but no corresponding
                 // address_fields rows. let's ask the cache and create
                 // as many rows as we'll need.
-                if ( !didCacheLookup ) {
-                    AddressCache::lookup( d->t, p->addresses(), this );
-                    didCacheLookup = true;
-                }
                 af->number = 0;
                 List<Address>::Iterator i( p->addresses() );
                 while ( i ) {
@@ -1833,11 +1837,26 @@ bool Schema::stepTo32()
             r = d->q->nextRow();
         }
 
-        if ( !d->q->done() )
+        if ( !d->q->done() ) // ready to move to state 3?
             return false;
 
-        // we're still in state 2. let's now see whether we have
-        // unresolved address IDs.
+        if ( d->substate == 2 ) {
+            // now look up all the addresses for which we haven't seen an ID
+            List<Address> * l = new List<Address>;
+            StringList::Iterator i( unique.keys() );
+            while ( i ) {
+                Address * a = unique.find( *i ); // need dict iterator...
+                if ( !a->id() )
+                    l->append( a );
+                ++i;
+            }
+            AddressCache::lookup( d->t, l, this );
+            d->substate = 3;
+        }
+
+        // from this point on we're in state 3
+        
+        // let's now see whether we have unresolved address IDs.
         bool unresolved = false;
         List<SchemaData::AddressField>::Iterator i( d->addressFields );
         while ( i && !unresolved ) {
@@ -1876,11 +1895,11 @@ bool Schema::stepTo32()
         }
         else {
             d->t->enqueue( new Query( "close f", this ) );
-            d->substate = 3;
+            d->substate = 4;
         }
     }
 
-    if ( d->substate == 3 ) {
+    if ( d->substate == 4 ) {
         // rejoice. that was hard work and we're almost done!
         d->q = new Query( "drop table address_fields", 0 );
         d->t->enqueue( d->q );
@@ -1901,10 +1920,10 @@ bool Schema::stepTo32()
         d->t->enqueue( d->q );
 
         d->t->execute();
-        d->substate = 4;
+        d->substate = 5;
     }
 
-    if ( d->substate == 4 ) {
+    if ( d->substate == 5 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
