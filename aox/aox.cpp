@@ -1733,9 +1733,9 @@ void vacuum()
             new Query( "lock mailboxes in exclusive mode", d );
         d->t->enqueue( d->query );
         d->query =
-            new Query( "delete from bodyparts where not exists "
-                       "(select 1 from part_numbers where"
-                       " part_numbers.bodypart=bodyparts.id)", d );
+            new Query( "delete from bodyparts where id in (select id "
+                       "from bodyparts b left join part_numbers p on "
+                       "(b.id=p.bodypart) where bodypart is null)", d );
         d->t->enqueue( d->query );
         d->t->commit();
     }
