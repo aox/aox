@@ -130,6 +130,8 @@ int main( int ac, char *av[] )
     if ( Scope::current()->log()->disastersYet() )
         exit( -1 );
 
+    Allocator::setReporting( true );
+
     String verb = next().lower();
 
     if ( verb == "add" || verb == "new" )

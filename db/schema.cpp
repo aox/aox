@@ -1771,7 +1771,7 @@ bool Schema::stepTo32()
             af->field = r->getInt( "field" );
 
             String value = r->getString( "value" );
-            if ( value != v ) {
+            if ( value != v || !p ) {
                 p = new AddressParser( value );
                 v = value;
                 // at this point, we could/should check for parse
