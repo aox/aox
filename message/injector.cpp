@@ -53,10 +53,15 @@ struct FieldLink
 struct AddressLink
     : public Garbage
 {
+    AddressLink()
+        : address( 0 ), type( HeaderField::From ),
+          position( 0 ), number( 0 ) {}
+
     Address * address;
     HeaderField::Type type;
     String part;
     int position;
+    int number;
 };
 
 
@@ -242,7 +247,7 @@ void Injector::setup()
     insertAddressField =
         new PreparedStatement(
             "copy address_fields "
-            "(mailbox,uid,part,position,field,address) "
+            "(mailbox,uid,part,position,field,address,number) "
             "from stdin with binary"
         );
     Allocator::addEternal( insertAddressField, "insertAddressField" );
@@ -751,14 +756,17 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
         if ( hf->type() <= HeaderField::LastAddressField ) {
             List< Address > * al = ((AddressField *)hf)->addresses();
             List< Address >::Iterator ai( al );
+            uint n = 0;
             while ( ai ) {
                 AddressLink * link = new AddressLink;
                 link->part = part;
                 link->position = hf->position();
                 link->type = hf->type();
                 link->address = ai;
+                link->number = n;
                 d->addressLinks->append( link );
 
+                ++n;
                 ++ai;
             }
         }
@@ -1098,6 +1106,7 @@ void Injector::linkAddresses()
             q->bind( 4, link->position, Query::Binary );
             q->bind( 5, link->type, Query::Binary );
             q->bind( 6, link->address->id(), Query::Binary );
+            q->bind( 7, link->number, Query::Binary );
             q->submitLine();
 
             ++it;
