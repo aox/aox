@@ -1677,6 +1677,8 @@ bool Schema::stepTo32()
     if ( d->substate == 0 ) {
         describeStep( "Adding missing address_fields rows (slow)." );
 
+        AddressCache::setup();
+
         d->q = new Query(
             "create table new_address_fields ("
             "    mailbox     integer not null,"
@@ -1740,7 +1742,7 @@ bool Schema::stepTo32()
         d->substate = 1;
     }
 
-    while ( d->substate < 4 ) {
+    while ( d->substate < 3 ) {
         if ( d->substate == 1 ) {
             d->q = new Query( "fetch 4096 from f", this );
             d->t->enqueue( d->q );
@@ -1749,13 +1751,16 @@ bool Schema::stepTo32()
             d->addressFields = new List<SchemaData::AddressField>;
         }
 
+        if ( !d->q->done() )
+            return false;
+
         AddressParser * p = 0;
         String v;
         Dict<Address> unique( 10000 );
-    
+
         // in state 2, we take the header fields we get, and process
         // them. this is longwinded.
-        Row * r = d->q->nextRow(); // only hits in state 2, not state 3
+        Row * r = d->q->nextRow();
         while ( r ) {
             SchemaData::AddressField * af = new SchemaData::AddressField;
             af->mailbox = r->getInt( "mailbox" );
@@ -1837,57 +1842,52 @@ bool Schema::stepTo32()
             r = d->q->nextRow();
         }
 
-        if ( !d->q->done() ) // ready to move to state 3?
-            return false;
+        // now look up all the addresses for which we haven't seen an ID
+        List<Address> * l = new List<Address>;
+        StringList::Iterator i( unique.keys() );
+        while ( i ) {
+            Address * a = unique.find( *i ); // need dict iterator...
+            if ( !a->id() )
+                l->append( a );
+            ++i;
+        }
+        if ( !l->isEmpty() )
+            AddressCache::lookup( d->t, l, this );
 
-        if ( d->substate == 2 ) {
-            // now look up all the addresses for which we haven't seen an ID
-            List<Address> * l = new List<Address>;
-            StringList::Iterator i( unique.keys() );
-            while ( i ) {
-                Address * a = unique.find( *i ); // need dict iterator...
-                if ( !a->id() )
-                    l->append( a );
+        // let's now see whether we have unresolved address IDs.
+        if ( !d->addressFields->isEmpty() ) {
+            bool unresolved = false;
+            List<SchemaData::AddressField>::Iterator i( d->addressFields );
+            while ( i && !unresolved ) {
+                if ( !i->address->id() )
+                    unresolved = true;
                 ++i;
             }
-            AddressCache::lookup( d->t, l, this );
-            d->substate = 3;
-        }
+            if ( unresolved )
+                return false;
 
-        // from this point on we're in state 3
-        
-        // let's now see whether we have unresolved address IDs.
-        bool unresolved = false;
-        List<SchemaData::AddressField>::Iterator i( d->addressFields );
-        while ( i && !unresolved ) {
-            if ( !i->address->id() )
-                unresolved = true;
-            ++i;
+            // we're now ready to submit the new address fields. the copy
+            // below generally has 8000 or more rows each time we run
+            // through this (except the last of course).
+            Query * q
+                = new Query( "copy new_address_fields "
+                             "(mailbox,uid,part,position,field,address,number) "
+                             "from stdin with binary", 0 );
+            i = d->addressFields->first();
+            while ( i ) {
+                q->bind( 1, i->mailbox, Query::Binary );
+                q->bind( 2, i->uid, Query::Binary );
+                q->bind( 3, i->part, Query::Binary );
+                q->bind( 4, i->position, Query::Binary );
+                q->bind( 5, i->field, Query::Binary );
+                q->bind( 6, i->address->id(), Query::Binary );
+                q->bind( 7, i->number, Query::Binary );
+                q->submitLine();
+                ++i;
+            }
+            d->t->enqueue( q );
+            d->addressFields = 0;
         }
-        if ( unresolved )
-            return false;
-
-        // we're now ready to submit the new address fields. the copy
-        // below generally has 8000 or more rows each time we run
-        // through this (except the last of course).
-        Query * q
-            = new Query( "copy new_address_fields "
-                         "(mailbox,uid,part,position,field,address,number) "
-                         "from stdin with binary", 0 );
-        i = d->addressFields->first();
-        while ( i ) {
-            q->bind( 1, i->mailbox, Query::Binary );
-            q->bind( 2, i->uid, Query::Binary );
-            q->bind( 3, i->part, Query::Binary );
-            q->bind( 4, i->position, Query::Binary );
-            q->bind( 5, i->field, Query::Binary );
-            q->bind( 6, i->address->id(), Query::Binary );
-            q->bind( 7, i->number, Query::Binary );
-            q->submitLine();
-            ++i;
-        }
-
-        d->t->enqueue( q );
 
         // should we step back and get some more rows, or are we done?
         if ( d->q->rows() ) {
@@ -1895,11 +1895,11 @@ bool Schema::stepTo32()
         }
         else {
             d->t->enqueue( new Query( "close f", this ) );
-            d->substate = 4;
+            d->substate = 3;
         }
     }
 
-    if ( d->substate == 4 ) {
+    if ( d->substate == 3 ) {
         // rejoice. that was hard work and we're almost done!
         d->q = new Query( "drop table address_fields", 0 );
         d->t->enqueue( d->q );
@@ -1920,10 +1920,10 @@ bool Schema::stepTo32()
         d->t->enqueue( d->q );
 
         d->t->execute();
-        d->substate = 5;
+        d->substate = 4;
     }
 
-    if ( d->substate == 5 ) {
+    if ( d->substate == 4 ) {
         if ( !d->q->done() )
             return false;
         d->l->log( "Done.", Log::Debug );
