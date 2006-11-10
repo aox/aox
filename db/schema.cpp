@@ -1742,6 +1742,8 @@ bool Schema::stepTo32()
         d->substate = 1;
     }
 
+    String exampleName;
+
     while ( d->substate < 3 ) {
         if ( d->substate == 1 ) {
             d->q = new Query( "fetch 4096 from f", this );
@@ -1774,6 +1776,8 @@ bool Schema::stepTo32()
             if ( value != v || !p ) {
                 p = new AddressParser( value );
                 v = value;
+                if ( exampleName.isEmpty() && !p->addresses()->isEmpty() )
+                    exampleName = p->addresses()->firstElement()->name();
                 // at this point, we could/should check for parse
                 // errors. but since this data has already been
                 // accepted for the db, let's not.
@@ -1891,6 +1895,15 @@ bool Schema::stepTo32()
                 ++i;
             }
             d->t->enqueue( q );
+            String report = " - Writing ";
+            report.append( fn( d->addressFields->count() ) );
+            report.append( " address fields" );
+            if ( !exampleName.isEmpty() ) {
+                report.append( " (e.g. for " );
+                report.append( exampleName );
+                report.append( ")." );
+            }
+            describeStep( report );
             d->addressFields = 0;
         }
 
