@@ -1757,6 +1757,7 @@ bool Schema::stepTo32()
         AddressParser * p = 0;
         String v;
         Dict<Address> unique( 10000 );
+        List<Address> workaround;
 
         // in state 2, we take the header fields we get, and process
         // them. this is longwinded.
@@ -1780,10 +1781,13 @@ bool Schema::stepTo32()
                 while ( i ) {
                     String k = i->toString();
                     Address * a = unique.find( k );
-                    if ( a )
+                    if ( a ) {
                         *i = *a;
-                    else
+                    }
+                    else {
                         unique.insert( k, a );
+                        workaround.append( a );
+                    }
                     ++i;
                 }
             }
@@ -1843,16 +1847,17 @@ bool Schema::stepTo32()
         }
 
         // now look up all the addresses for which we haven't seen an ID
-        List<Address> * l = new List<Address>;
-        StringList::Iterator i( unique.keys() );
-        while ( i ) {
-            Address * a = unique.find( *i ); // need dict iterator...
-            if ( !a->id() )
-                l->append( a );
-            ++i;
+        if ( !workaround.isEmpty() ) {
+            List<Address> * l = new List<Address>;
+            List<Address>::Iterator i( workaround );
+            while ( i ) {
+                if ( !i->id() )
+                    l->append( i );
+                ++i;
+            }
+            if ( !l->isEmpty() )
+                AddressCache::lookup( d->t, l, this );
         }
-        if ( !l->isEmpty() )
-            AddressCache::lookup( d->t, l, this );
 
         // let's now see whether we have unresolved address IDs.
         if ( !d->addressFields->isEmpty() ) {
