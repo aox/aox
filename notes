@@ -1106,7 +1106,13 @@ tlsproxy needs better diagnostics
     existing key's CN doesn't match our current hostname.
 
 
-Discuss how to change the *Fetcher interface to accommodate non-caching.
+Arnt's IETF action items:
+
+  - review metadata
+  - push i;basic out
+  - split and publish imap-i18n
+  - implement esearch
+  - notify-01
 
 
 Todo list: AMS
