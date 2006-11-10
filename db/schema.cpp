@@ -1785,8 +1785,8 @@ bool Schema::stepTo32()
                         *i = *a;
                     }
                     else {
-                        unique.insert( k, a );
-                        workaround.append( a );
+                        unique.insert( k, i );
+                        workaround.append( i );
                     }
                     ++i;
                 }
