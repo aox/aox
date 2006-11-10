@@ -1901,8 +1901,9 @@ bool Schema::stepTo32()
             if ( !exampleName.isEmpty() ) {
                 report.append( " (e.g. for " );
                 report.append( exampleName );
-                report.append( ")." );
+                report.append( ")" );
             }
+            report.append( "." );
             describeStep( report );
             d->addressFields = 0;
         }
