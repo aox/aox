@@ -1912,7 +1912,7 @@ bool Schema::stepTo32()
                           "rename to address_fields", 0 );
         d->t->enqueue( d->q );
         d->q = new Query( "create index af_mu on "
-                          "address_fields (mailbox, uid)", this );
+                          "address_fields (mailbox, uid)", 0 );
         d->t->enqueue( d->q );
 
         d->q = new Query( "set enable_mergejoin to default", 0 );
@@ -1921,7 +1921,7 @@ bool Schema::stepTo32()
         d->q = new Query( "set enable_seqscan to default", 0 );
         d->t->enqueue( d->q );
 
-        d->q = new Query( "drop index hf_fpv", 0 );
+        d->q = new Query( "drop index hf_fpv", this );
         d->t->enqueue( d->q );
 
         d->t->execute();
