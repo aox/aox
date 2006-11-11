@@ -545,9 +545,8 @@ void SessionInitialiser::execute()
 
             q = new Query( "update views set nextmodseq="
                            "(select last_value from nextmodsequence) "
-                           "where view=$2", 0 );
-            q->bind( 1, m->source()->id() );
-            q->bind( 2, m->id() );
+                           "where view=$1", 0 );
+            q->bind( 1, m->id() );
             d->t->enqueue( q );
 
             Selector * sel = new Selector;
