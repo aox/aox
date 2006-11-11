@@ -365,6 +365,8 @@ bool Schema::singleStep()
         c = stepTo32(); break;
     case 32:
         c = stepTo33(); break;
+    case 33:
+        c = stepTo34(); break;
     default:
         d->l->log( "Internal error. Reached impossible revision " +
                    fn( d->revision ) + ".", Log::Disaster );
@@ -1605,62 +1607,6 @@ bool Schema::stepTo31()
 }
 
 
-// stepTo32 is below
-
-
-/*! Create and populate the unparsed_messages table. */
-
-bool Schema::stepTo33()
-{
-    if ( d->substate == 0 ) {
-        describeStep( "Creating unparsed_messages table (slow)." );
-        String dbuser( Configuration::text( Configuration::DbUser ) );
-        d->q = new Query( "create table unparsed_messages (bodypart "
-                          "integer not null references bodyparts(id) "
-                          "on delete cascade)", this );
-        d->t->enqueue( d->q );
-        d->q = new Query( "grant insert on unparsed_messages to " +
-                          dbuser, this );
-        d->t->enqueue( d->q );
-        d->q = new Query(
-            // this breaks the 80-column limit. that's not its worst problem.
-            "insert into unparsed_messages(bodypart) "
-            "select distinct pn2.bodypart"
-            " from messages m"
-            " join header_fields hf on (hf.uid=m.uid and m.mailbox=hf.mailbox)"
-            " join address_fields af on (af.uid=m.uid and m.mailbox=af.mailbox)"
-            " join addresses a on (af.address=a.id)"
-            " join part_numbers pn1 on (pn1.uid=m.uid and m.mailbox=pn1.mailbox)"
-            " join part_numbers pn2 on (pn2.uid=m.uid and m.mailbox=pn2.mailbox)"
-            " join field_names subject on (hf.field=subject.id)"
-            " join field_names \"from\" on (af.field=\"from\".id)"
-            " join bodyparts bp on (bp.id=pn1.bodypart)"
-            " where pn1.part=1"
-            " and pn2.part=2"
-            " and subject.name='Subject'"
-            " and \"from\".name='From'"
-            " and dm.uid is null"
-            " and bp.text ilike 'The appended message was received, but could not be stored'"
-            " and ((hf.field=subject.id"
-            "       and hf.value ilike 'message arrived but could not be stored')"
-            "      or (af.field=\"from\".id and a.name='Mail Storage Database'))"
-            " order by pn2.bodypart", this );
-        d->t->enqueue( d->q );
-        d->t->execute();
-        d->substate = 1;
-    }
-
-    if ( d->substate == 1 ) {
-        if ( !d->q->done() )
-            return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
-    }
-
-    return true;
-}
-
-
 /*! The address_fields table lacks many of the rows it should have had
     in revisions prior to 33. This upgrade removes all existing rows,
     adds a new column with data we need to keep, parses header_fields
@@ -1954,9 +1900,6 @@ bool Schema::stepTo32()
 }
 
 
-// stepTo33 is above
-
-
 /*! Changes the foreign keys in address_fields so it references
     part_numbers directly instead of via header_fields, and deletes
     the header_fields that also exist as address_fields.
@@ -1965,7 +1908,7 @@ bool Schema::stepTo32()
     in peace.
 */
 
-bool Schema::stepTo34()
+bool Schema::stepTo33()
 {
     if ( d->substate == 0 ) {
         describeStep( "Removing header_fields rows "
@@ -1978,6 +1921,59 @@ bool Schema::stepTo34()
                           "(mailbox,uid,part,position,field) in "
                           "(select mailbox,uid,part,position,field"
                           " from address_fields)", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create and populate the unparsed_messages table. */
+
+bool Schema::stepTo34()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Creating unparsed_messages table (slow)." );
+        String dbuser( Configuration::text( Configuration::DbUser ) );
+        d->q = new Query( "create table unparsed_messages (bodypart "
+                          "integer not null references bodyparts(id) "
+                          "on delete cascade)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "grant insert on unparsed_messages to " +
+                          dbuser, this );
+        d->t->enqueue( d->q );
+        d->q = new Query(
+            // this breaks the 80-column limit. that's not its worst problem.
+            "insert into unparsed_messages(bodypart) "
+            "select distinct pn2.bodypart"
+            " from messages m"
+            " join header_fields hf on (hf.uid=m.uid and m.mailbox=hf.mailbox)"
+            " join address_fields af on (af.uid=m.uid and m.mailbox=af.mailbox)"
+            " join addresses a on (af.address=a.id)"
+            " join part_numbers pn1 on (pn1.uid=m.uid and m.mailbox=pn1.mailbox)"
+            " join part_numbers pn2 on (pn2.uid=m.uid and m.mailbox=pn2.mailbox)"
+            " join field_names subject on (hf.field=subject.id)"
+            " join field_names \"from\" on (af.field=\"from\".id)"
+            " join bodyparts bp on (bp.id=pn1.bodypart)"
+            " where pn1.part=1"
+            " and pn2.part=2"
+            " and subject.name='Subject'"
+            " and \"from\".name='From'"
+            " and dm.uid is null"
+            " and bp.text ilike 'The appended message was received, but could not be stored'"
+            " and ((hf.field=subject.id"
+            "       and hf.value ilike 'message arrived but could not be stored')"
+            "      or (af.field=\"from\".id and a.name='Mail Storage Database'))"
+            " order by pn2.bodypart", this );
         d->t->enqueue( d->q );
         d->t->execute();
         d->substate = 1;
