@@ -498,12 +498,13 @@ SieveScriptData::Arguments::Arguments( Production * p )
 {
     arguments = new SieveScriptData::ProductionList<Argument>( this );
     // see TestList below
-    testList = new TestList( this );
+    testList = 0;
 }
 
 
 void SieveScriptData::Arguments::parse()
 {
+    // call new TestList( this ); if we do have a testlist
 }
 
 
