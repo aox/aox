@@ -1718,8 +1718,6 @@ void vacuum()
                          "where current_timestamp-deleted_at>'" +
                          to + " days'::interval)", 0 );
         d->query->execute();
-        d->query = new Query( "vacuum analyze", d );
-        d->query->execute();
     }
 
     if ( !d->t && !d->query->done() )
