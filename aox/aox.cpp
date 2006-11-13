@@ -1724,9 +1724,6 @@ void vacuum()
         return;
 
     if ( !d->t ) {
-        if ( !opt( 'b' ) )
-            return;
-
         d->t = new Transaction( d );
         d->query =
             new Query( "lock mailboxes in exclusive mode", d );
@@ -1995,14 +1992,16 @@ void help()
         fprintf(
             stderr,
             "  vacuum -- Perform routine maintenance.\n\n"
-            "    Synopsis: aox vacuum [-b]\n\n"
-            "    VACUUMs the database. Deletes any postgres rows that are\n"
-            "    no longer in use, and any messages that have been deleted\n"
-            "    and for which the undelete timeout has expired.\n\n"
-            "    The -b flag causes orphaned bodyparts to be cleaned up,\n"
-            "    which requires an exclusive lock on the mailboxes table\n"
-            "    (i.e., messages cannot be injected until it is done).\n\n"
-            "    This command should be run via crontab.\n"
+            "    Synopsis: aox vacuum\n\n"
+            "    Permanently deletes messages that were marked for deletion\n"
+            "    more than a certain number of days ago (cf. undelete-time)\n"
+            "    and removes any bodyparts that are no longer used.\n\n"
+            "    This process holds an exclusive lock on the mailboxes table\n"
+            "    (i.e. new messages cannot be injected until it's done) while\n"
+            "    removing orphaned bodyparts.\n\n"
+            "    This is not a replacement for running VACUUM ANALYSE on the\n"
+            "    database (either with vaccumdb or via autovacuum).\n\n"
+            "    This command should be run (we suggest daily) via crontab.\n"
         );
     }
     else if ( a == "anonymise" ) {
