@@ -1681,18 +1681,15 @@ bool Schema::stepTo32()
             " ( mailbox, uid, position, part, field ) "
             "left join addresses a on (af.address=a.id) "
             "where hf.field<=$1 "
-            "and (hf.part!='' or hf.value ilike '%,%') "
-            "order by hf.value", 0 );
+            "and (hf.part!='' or hf.value ilike '%,%')", 0 );
         d->q->bind( 1, HeaderField::LastAddressField );
         d->t->enqueue( d->q );
         d->substate = 1;
     }
 
-    String exampleName;
-
     while ( d->substate < 3 ) {
         if ( d->substate == 1 ) {
-            d->q = new Query( "fetch 4096 from f", this );
+            d->q = new Query( "fetch 16384 from f", this );
             d->t->enqueue( d->q );
             d->t->execute();
             d->substate = 2;
@@ -1703,6 +1700,7 @@ bool Schema::stepTo32()
             return false;
 
         AddressParser * p = 0;
+        Dict<AddressParser> pd( 1000 );
         String v;
         Dict<Address> unique( 10000 );
         List<Address> workaround;
@@ -1720,26 +1718,28 @@ bool Schema::stepTo32()
 
             String value = r->getString( "value" );
             if ( value != v || !p ) {
-                p = new AddressParser( value );
-                v = value;
-                if ( exampleName.isEmpty() && !p->addresses()->isEmpty() )
-                    exampleName = p->addresses()->firstElement()->name();
-                // at this point, we could/should check for parse
-                // errors. but since this data has already been
-                // accepted for the db, let's not.
-                List<Address>::Iterator i( p->addresses() );
-                while ( i ) {
-                    String k = i->toString();
-                    Address * a = unique.find( k );
-                    if ( a ) {
-                        *i = *a;
+                p= pd.find( value );
+                if ( !p ) {
+                    p = new AddressParser( value );
+                    // at this point, we could/should check for parse
+                    // errors. but since this data has already been
+                    // accepted for the db, let's not.
+                    pd.insert( value, p );
+                    List<Address>::Iterator i( p->addresses() );
+                    while ( i ) {
+                        String k = i->toString();
+                        Address * a = unique.find( k );
+                        if ( a ) {
+                            *i = *a;
+                        }
+                        else {
+                            unique.insert( k, i );
+                            workaround.append( i );
+                        }
+                        ++i;
                     }
-                    else {
-                        unique.insert( k, i );
-                        workaround.append( i );
-                    }
-                    ++i;
                 }
+                v = value;
             }
 
             if ( r->isNull( "address" ) ) {
@@ -1843,16 +1843,9 @@ bool Schema::stepTo32()
             d->t->enqueue( q );
             String report = " - Writing ";
             report.append( fn( d->addressFields->count() ) );
-            report.append( " address fields" );
-            if ( !exampleName.isEmpty() ) {
-                report.append( " (e.g. for " );
-                report.append( exampleName );
-                report.append( ")" );
-            }
-            report.append( "." );
+            report.append( " address fields." );
             describeStep( report );
             d->addressFields = 0;
-            exampleName = "";
         }
 
         // should we step back and get some more rows, or are we done?
