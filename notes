@@ -1111,11 +1111,9 @@ tlsproxy needs better diagnostics
 
 Arnt's IETF action items:
 
-  - review metadata
-  - push i;basic out
-  - split and publish imap-i18n
+  - publish imap-i18n
   - implement esearch
-  - notify-01
+  - notify-02
 
 
 Todo list: AMS
