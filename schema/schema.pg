@@ -96,7 +96,7 @@ alter table users add alias integer references aliases(id);
 alter table users alter alias set not null;
 
 
--- One row per <identifier, right> entry for a mailbox.
+-- One row per <identifier, rights> entry for a mailbox.
 
 create table permissions (
     mailbox     integer not null references mailboxes(id),
@@ -203,6 +203,7 @@ create table date_fields (
                 references messages(mailbox, uid)
                 on delete cascade
 );
+create index df_mu on date_fields(mailbox,uid);
 
 
 -- One entry per unique thread.
@@ -309,6 +310,7 @@ create table view_messages (
                 references messages(mailbox, uid)
                 on delete cascade
 );
+create index vm_mu on view_messages (source,suid);
 
 
 -- One entry per SIEVE script owned by a user.
@@ -335,7 +337,7 @@ create table deleted_messages (
                 references messages(mailbox, uid)
                 on delete cascade
 );
-create index dm_mu on deleted_messages(mailbox,uid);
+create index dm_mud on deleted_messages(mailbox,uid,deleted_at);
 
 
 -- One entry per message, changeable by aox
@@ -349,6 +351,7 @@ create table modsequences (
                 references messages(mailbox, uid)
                 on delete cascade
 );
+create index ms_mu on modsequences(mailbox,uid);
 
 
 -- One entry for each pending SMTP-submitted delivery.
@@ -384,5 +387,6 @@ create table access_keys (
 
 create table unparsed_messages (
     bodypart    integer not null references bodyparts(id)
-                on delete cascade
+                on delete cascade,
+    primary key(bodypart)
 );
