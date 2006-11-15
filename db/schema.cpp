@@ -1607,6 +1607,41 @@ bool Schema::stepTo31()
 }
 
 
+/*! Add some indexes to speed up message deletion. */
+
+bool Schema::stepTo32()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding indexes to speed up message deletion." );
+        d->q = new Query( "create index df_mu on date_fields(mailbox,uid)",
+                          this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create index vm_mu on view_messages (source,suid)",
+                          this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create index ms_mu on modsequences(mailbox,uid)",
+                          this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "create index dm_mud on deleted_messages"
+                          "(mailbox,uid,deleted_at)", this );
+        d->t->enqueue( d->q );
+        d->q = new Query( "drop index dm_mu", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
 /*! The address_fields table lacks many of the rows it should have had
     in revisions prior to 33. This upgrade removes all existing rows,
     adds a new column with data we need to keep, parses header_fields
@@ -1618,7 +1653,7 @@ bool Schema::stepTo31()
     no harm.
 */
 
-bool Schema::stepTo32()
+bool Schema::stepTo33()
 {
     if ( d->substate == 0 ) {
         describeStep( "Adding missing address_fields rows (slow)." );
@@ -1901,7 +1936,7 @@ bool Schema::stepTo32()
     in peace.
 */
 
-bool Schema::stepTo33()
+bool Schema::stepTo34()
 {
     if ( d->substate == 0 ) {
         describeStep( "Removing header_fields rows "
@@ -1932,14 +1967,15 @@ bool Schema::stepTo33()
 
 /*! Create and populate the unparsed_messages table. */
 
-bool Schema::stepTo34()
+bool Schema::stepTo35()
 {
     if ( d->substate == 0 ) {
         describeStep( "Creating unparsed_messages table (slow)." );
         String dbuser( Configuration::text( Configuration::DbUser ) );
         d->q = new Query( "create table unparsed_messages (bodypart "
                           "integer not null references bodyparts(id) "
-                          "on delete cascade)", this );
+                          "on delete cascade, primary key(bodypart))",
+                          this );
         d->t->enqueue( d->q );
         d->q = new Query( "grant insert on unparsed_messages to " +
                           dbuser, this );
