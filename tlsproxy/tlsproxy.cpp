@@ -482,7 +482,11 @@ void TlsProxy::decrypt()
 
 static void handleError( int cryptError, const String & function )
 {
-    if ( cryptError == CRYPT_OK )
+    if ( cryptError == CRYPT_ERROR_COMPLETE )
+        ::log( function + " reported CRYPT_ERROR_COMPLETE; ignoring.",
+               Log::Info );
+
+    if ( cryptError == CRYPT_OK || CRYPT_ERROR_COMPLETE )
         return;
 
     if ( cryptStatusOK( cryptError ) )
