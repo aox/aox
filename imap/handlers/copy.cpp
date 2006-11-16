@@ -189,9 +189,10 @@ void Copy::execute()
             enqueue( q );
 
             q = new Query( "insert into address_fields "
-                           "(mailbox, uid, part, position, field, address) "
-                           "select $1, " + diff + ", part, position, field, address "
-                           "from address_fields "
+                           "(mailbox, uid, part, position, field,"
+                           " address, number) "
+                           "select $1, " + diff + ", part, position, "
+                           "field, address, number from address_fields "
                            "where mailbox=$3 and uid>=$4 and uid<$5",
                            this );
             q->bind( 1, tmailbox );
