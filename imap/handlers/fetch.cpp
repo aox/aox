@@ -46,7 +46,7 @@ class FetchData
 {
 public:
     FetchData()
-        : state( 0 ), peek( true ), 
+        : state( 0 ), peek( true ),
           changedSince( 0 ), notThose( 0 ),
           uid( false ),
           flags( false ), envelope( false ),
@@ -182,7 +182,7 @@ void Fetch::parse()
     StringList l;
     l.append( new String( "Fetch " + fn( d->set.count() ) + " messages: " ) );
     if ( d->needHeader )
-        l.append( "header" );
+        l.append( "header/address" );
     if ( d->needBody )
         l.append( "body" );
     if ( d->flags )
@@ -603,42 +603,54 @@ void Fetch::execute()
             d->expunged = s->expunged().intersection( d->set );
         shrink( &d->set );
         d->state = 3;
-        sendFetchQueries();
     }
 
-    bool ok = true;
-    uint good = 0;
-    while ( ok && !d->requested.isEmpty() ) {
-        Message * m = d->requested.first();
-        uint uid = m->uid();
-        uint msn = s->msn( uid );
-        if ( ( !d->annotation || m->hasAnnotations() ) &&
-             ( !d->needHeader || ( m->hasHeaders() && m->hasAddresses() ) ) &&
-             ( !d->needBody || m->hasBodies() ) &&
-             ( !d->flags || m->hasFlags() ) &&
-             ( ( !d->rfc822size && !d->internaldate && !d->modseq )
-               || m->hasTrivia() ) &&
-             uid > 0 && msn > 0 )
-        {
-            imap()->enqueue( fetchResponse( m, uid, msn ) );
-            d->requested.shift();
-            good = uid;
+    while ( d->state == 3 || d->state == 4 ) {
+        if ( d->state == 3 ) {
+            d->state = 4;
+            sendFetchQueries();
         }
-        else {
-            log( "Stopped processing at UID " + fn( uid ) +
-                 " (" + fn( d->requested.count() ) + " messages to go)",
-                 Log::Debug );
-            ok = false;
+
+        bool ok = true;
+        uint good = 0;
+        while ( ok && !d->requested.isEmpty() ) {
+            Message * m = d->requested.first();
+            uint uid = m->uid();
+            uint msn = s->msn( uid );
+            if ( ( !d->annotation || m->hasAnnotations() ) &&
+                 ( !d->needHeader || ( m->hasHeaders() && m->hasAddresses() ) ) &&
+                 ( !d->needBody || m->hasBodies() ) &&
+                 ( !d->flags || m->hasFlags() ) &&
+                 ( ( !d->rfc822size && !d->internaldate && !d->modseq )
+                   || m->hasTrivia() ) &&
+                 uid > 0 && msn > 0 )
+            {
+                imap()->enqueue( fetchResponse( m, uid, msn ) );
+                d->requested.shift();
+                good = uid;
+            }
+            else {
+                log( "Stopped processing at UID " + fn( uid ) +
+                     " (" + fn( d->requested.count() ) + " messages to go)",
+                     Log::Debug );
+                ok = false;
+            }
         }
+
+        // in the case of fetch, we sometimes have thousands of responses,
+        // so it's important to push the first responses to the client as
+        // quickly as possible.
+        imap()->write();
+
+        if ( !d->requested.isEmpty() )
+            return;
+        else if ( imap()->Connection::state() != Connection::Connected )
+            d->state = 5; // hack to cope with client close
+        else if ( d->set.isEmpty() )
+            d->state = 5;
+        else
+            d->state = 3;
     }
-
-    // in the case of fetch, we sometimes have thousands of responses,
-    // so it's important to push the first responses to the client as
-    // quickly as possible.
-    imap()->write();
-
-    if ( !d->requested.isEmpty() )
-        return;
 
     if ( !d->expunged.isEmpty() ) {
         s->recordExpungedFetch( d->expunged );
@@ -655,13 +667,14 @@ void Fetch::sendFetchQueries()
 {
     Mailbox * mb = imap()->session()->mailbox();
 
-    uint i = 1;
-    while ( i <= d->set.count() ) {
-        uint uid = d->set.value( i );
+    uint n = 0;
+    while ( n < 1024 && !d->set.isEmpty() ) {
+        uint uid = d->set.value( 1 );
+        d->set.remove( uid );
         Message * m = new Message;
         m->setUid( uid );
         d->requested.append( m );
-        i++;
+        n++;
     }
 
     if ( d->needHeader ) {
