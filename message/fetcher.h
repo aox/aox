@@ -26,11 +26,12 @@ public:
     virtual PreparedStatement * query() const = 0;
     virtual void decode( Message *, Row * ) = 0;
     virtual void setDone( Message * ) = 0;
-    void setDone( uint );
+    virtual void setDone( uint );
 
     bool done() const;
 
 private:
+    friend class MessageAddressFetcher; // XXX remove when MOAF dies
     class FetcherData * d;
 };
 
@@ -56,12 +57,27 @@ public:
     MessageAddressFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
         : Fetcher( m, s, e ) {}
 
+    void execute();
+
     PreparedStatement * query() const;
     void decode( Message *, Row * );
     void setDone( Message * );
 
 private:
     List<class AddressField> l;
+    List<Message> fallbackNeeded;
+};
+
+
+class MessageOldAddressFetcher
+    : public MessageHeaderFetcher
+{
+public:
+    MessageOldAddressFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
+        : MessageHeaderFetcher( m, s, e ) {}
+
+    PreparedStatement * query() const;
+    void setDone( Message * );
 };
 
 

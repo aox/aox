@@ -39,6 +39,7 @@ public:
 
 static PreparedStatement * header;
 static PreparedStatement * address;
+static PreparedStatement * oldAddress;
 static PreparedStatement * trivia;
 static PreparedStatement * flags;
 static PreparedStatement * body;
@@ -51,18 +52,24 @@ static void setupPreparedStatements()
         return;
 
     const char * q =
-        "select h.uid, h.part, h.field, h.position, f.name, h.value from "
+        "select h.uid, h.part, h.position, f.name, h.value from "
         "header_fields h, field_names f where "
-        "h.field = f.id and "
+        "h.field = f.id and h.field > 12 and "
         "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
         "order by h.uid, h.part";
     ::header = new PreparedStatement( q );
-    q = "select a.id, a.name, a.localpart, a.domain, "
-        "af.uid, af.part, af.position, af.field "
+    q = "select a.name, a.localpart, a.domain, "
+        "af.uid, af.part, af.position, af.field, af.number "
         "from address_fields af join addresses a on af.address=a.id "
         "where af.uid>=$1 and af.uid<=$2 and af.mailbox=$3 "
-        "order by af.uid, af.part";
+        "order by af.uid, af.part, af.field, af.number";
     ::address = new PreparedStatement( q );
+    q = "select h.uid, h.part, h.position, f.name, h.value from "
+        "header_fields h, field_names f where "
+        "h.field = f.id and h.field<=12 and "
+        "h.uid>=$1 and h.uid<=$2 and h.mailbox=$3 "
+        "order by h.uid, h.part";
+    ::oldAddress = new PreparedStatement( q );
     q = "select m.uid, m.idate, m.rfc822size, ms.modseq::int from messages m "
         "left join modsequences ms using (mailbox,uid) "
         "where m.uid>=$1 and m.uid<=$2 and m.mailbox=$3 "
@@ -86,6 +93,7 @@ static void setupPreparedStatements()
     ::anno = new PreparedStatement( q );
     Allocator::addEternal( header, "statement to fetch headers" );
     Allocator::addEternal( address, "statement to fetch address fields" );
+    Allocator::addEternal( oldAddress, "statement to fetch pre-1.13 address fields" );
     Allocator::addEternal( trivia, "statement to fetch approximately nothing" );
     Allocator::addEternal( body, "statement to fetch bodies" );
     Allocator::addEternal( flags, "statement to fetch flags" );
@@ -264,10 +272,6 @@ PreparedStatement * MessageHeaderFetcher::query() const
 
 void MessageHeaderFetcher::decode( Message * m, Row * r )
 {
-    uint field = r->getInt( "field" );
-    if ( field <= HeaderField::LastAddressField )
-        return;
-
     String part = r->getString( "part" );
     String name = r->getString( "name" );
     String value = r->getString( "value" );
@@ -314,8 +318,13 @@ PreparedStatement * MessageAddressFetcher::query() const
 
 void MessageAddressFetcher::decode( Message * m, Row * r )
 {
+    if ( r->isNull( "number" ) ) {
+        if ( fallbackNeeded.last() != m )
+            fallbackNeeded.append( m );
+        l.clear();
+        return;
+    }
     String part = r->getString( "part" );
-    //uint id = r->getInt( "id" );
     uint position = r->getInt( "position" );
 
     // XXX: use something for mapping
@@ -351,12 +360,14 @@ void MessageAddressFetcher::decode( Message * m, Row * r )
                                r->getString( "localpart" ),
                                r->getString( "domain" ) );
     f->addresses()->append( a );
-    
 }
 
 
 void MessageAddressFetcher::setDone( Message * m )
 {
+    if ( fallbackNeeded.last() == m )
+        return;
+
     List<AddressField>::Iterator i( l );
     while ( i ) {
         i->update();
@@ -365,6 +376,19 @@ void MessageAddressFetcher::setDone( Message * m )
     l.clear();
 
     m->setAddressesFetched();
+}
+
+
+/*! This reimplementation uses Fetcher::execute() and uses done() to
+    check whether it needs to fall back to a MessageOldAddressFetcher
+    when it's done its own work.
+*/
+
+void MessageAddressFetcher::execute()
+{
+    Fetcher::execute();
+    if ( done() && !fallbackNeeded.isEmpty() )
+        (void)new MessageOldAddressFetcher( d->mailbox, &fallbackNeeded, d->owner );
 }
 
 
@@ -549,4 +573,34 @@ void MessageAnnotationFetcher::decode( Message * m, Row * r )
 void MessageAnnotationFetcher::setDone( Message * m )
 {
     m->setAnnotationsFetched();
+}
+
+
+/*! \class MessageOldAddressFetcher fetcher.h
+
+    Until shortly before 1.13, the Injector did not inject as many
+    address_fields rows as it should have. Because rectifying that in
+    the database turned out to be an impossibly large task, we do it
+    at read time. ("Impossibly large" means "a query took >24h to
+    deliver its first row and it was no fun at all").
+
+    If a message's address fields turn out to be incomplete when we
+    read them (we know this because two addresses both claim to be
+    first in the same list), MessageAddressFetcher switches to an
+    alternate header reader: This class.
+*/
+
+/*! The same as MessageHeaderFetcher::query(), except that it fetches
+    the other header fields.
+*/
+
+PreparedStatement * MessageOldAddressFetcher::query() const
+{
+    return ::oldAddress;
+}
+
+
+void MessageOldAddressFetcher::setDone( Message * m )
+{
+    m->setAddressesFetched();
 }
