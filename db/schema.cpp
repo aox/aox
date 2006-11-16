@@ -22,8 +22,7 @@ public:
         : l( new Log( Log::Database ) ),
           state( 0 ), substate( 0 ), revision( 0 ),
           lock( 0 ), seq( 0 ), update( 0 ), q( 0 ), t( 0 ),
-          result( 0 ), upgrade( false ), commit( true ),
-          addressFields( 0 )
+          result( 0 ), upgrade( false ), commit( true )
     {}
 
     Log *l;
@@ -36,26 +35,6 @@ public:
     bool upgrade;
     bool commit;
     String version;
-
-    // step-specific variables below
-
-    // for stepTo32
-    class AddressField
-        : public Garbage
-    {
-    public:
-        AddressField()
-            : mailbox( 0 ), uid( 0 ), part( 0 ),
-              position( 0 ), address( 0 ), number( 0 ) {}
-        uint mailbox;
-        uint uid;
-        String part;
-        uint position;
-        uint field;
-        Address * address;
-        uint number;
-    };
-    List<AddressField> * addressFields;
 };
 
 
