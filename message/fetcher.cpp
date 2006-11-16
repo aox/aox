@@ -387,8 +387,14 @@ void MessageAddressFetcher::setDone( Message * m )
 void MessageAddressFetcher::execute()
 {
     Fetcher::execute();
-    if ( done() && !fallbackNeeded.isEmpty() )
-        (void)new MessageOldAddressFetcher( d->mailbox, &fallbackNeeded, d->owner );
+    if ( !done() )
+         return;
+    if ( fallbackNeeded.isEmpty() )
+        return;
+    Fetcher * f = new MessageOldAddressFetcher( d->mailbox,
+                                                &fallbackNeeded, d->owner );
+    f->execute();
+    fallbackNeeded.clear();
 }
 
 
