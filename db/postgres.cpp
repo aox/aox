@@ -284,9 +284,12 @@ void Postgres::react( Event e )
             error( "Timeout negotiating connection to PostgreSQL." );
         }
         else if ( d->queries.count() > 0 ) {
-            error( "Request timeout." );
+            error( "Request timeout on backend " +
+                   fn( connectionNumber() ) );
         }
         else if ( d->transaction ) {
+            ::log( "Transaction timeout on backend " +
+                   fn( connectionNumber() ), Log::Error );
             d->transaction->setError( 0, "Transaction timeout" );
             d->transaction->rollback();
         }
