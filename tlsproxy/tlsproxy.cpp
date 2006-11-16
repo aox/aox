@@ -462,7 +462,7 @@ void TlsProxy::decrypt()
     do {
         len = 0;
         status = cryptPopData( cs, buffer, 4096, &len );
-        if ( status == CRYPT_ERROR_READ ) {
+        if ( status == CRYPT_ERROR_READ || CRYPT_ERROR_COMPLETE ) {
             log( "Client closed the connection" );
             userside->close();
             serverside->close();
@@ -482,11 +482,7 @@ void TlsProxy::decrypt()
 
 static void handleError( int cryptError, const String & function )
 {
-    if ( cryptError == CRYPT_ERROR_COMPLETE )
-        ::log( function + " reported CRYPT_ERROR_COMPLETE; ignoring.",
-               Log::Info );
-
-    if ( cryptError == CRYPT_OK || CRYPT_ERROR_COMPLETE )
+    if ( cryptError == CRYPT_OK )
         return;
 
     if ( cryptStatusOK( cryptError ) )
