@@ -57,11 +57,11 @@ public:
     MessageAddressFetcher( Mailbox * m, List<Message> * s, EventHandler * e )
         : Fetcher( m, s, e ) {}
 
-    void execute();
-
     PreparedStatement * query() const;
     void decode( Message *, Row * );
     void setDone( Message * );
+
+    void execute();
 
 private:
     List<class AddressField> l;
