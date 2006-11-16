@@ -1607,9 +1607,102 @@ bool Schema::stepTo31()
 }
 
 
-/*! Add some indexes to speed up message deletion. */
+/*! The address_fields table lacks many of the rows it should have had
+    in revisions prior to 33. This upgrade removes all existing rows,
+    adds a new column with data we need to keep, parses header_fields
+    to generate the new rows, and kills the now unnecessary
+    header_fields rows.
+
+    Well, actually it doesn't do the last step yet. The
+    MessageHeaderFetcher is careful to disregard these rows, so the do
+    no harm.
+*/
 
 bool Schema::stepTo32()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Numbering address_fields rows (slow)." );
+
+        d->q = new Query( "alter table address_fields add number integer", 0 );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "set enable_mergejoin to false", 0 );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "set enable_hashjoin to false", 0 );
+        d->t->enqueue( d->q );
+
+        d->q =
+            new Query( "update address_fields set number=0 where "
+                       "(mailbox,uid,part,position,field) in "
+                       "(select mailbox,uid,part,position,field from"
+                       " address_fields group by"
+                       " mailbox,uid,part,position,field"
+                       " having count(*)=1)", 0 );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "set enable_mergejoin to true", 0 );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "set enable_hashjoin to true", 0 );
+        d->t->enqueue( d->q );
+
+        String last( fn( HeaderField::LastAddressField ) );
+        d->q = new Query( "create index hf_fp on header_fields(field) where "
+                          "field<=" + last + " and part<>''", 0 );
+        d->t->enqueue( d->q );
+
+        d->q =
+            new Query( "update address_fields set number=null where "
+                       "(mailbox,uid) in (select distinct mailbox,uid"
+                       " from header_fields where field<=" + last +
+                       " and part<>'')", 0 );
+        d->t->enqueue( d->q );
+
+        String constraint = "address_fields_mailbox_fkey";
+        if ( d->version.startsWith( "7" ) )
+            constraint = "$2";
+
+        d->q =
+            new Query( "alter table address_fields drop constraint "
+                       "\"" + constraint + "\"", 0 );
+        d->t->enqueue( d->q );
+
+        d->q =
+            new Query( "alter table address_fields add constraint "
+                       "address_fields_mailbox_fkey foreign key "
+                       "(mailbox,uid,part) references part_numbers "
+                       "(mailbox,uid,part) on delete cascade", 0 );
+        d->t->enqueue( d->q );
+
+        d->q =
+            new Query( "delete from header_fields where field<=" + last +
+                       " and (mailbox,uid) in "
+                       "(select mailbox,uid from address_fields group by"
+                       " mailbox,uid having count(*)=count(number))", 0 );
+        d->t->enqueue( d->q );
+
+        d->q = new Query( "drop index hf_fp", this );
+        d->t->enqueue( d->q );
+
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Add some indexes to speed up message deletion. */
+
+bool Schema::stepTo33()
 {
     if ( d->substate == 0 ) {
         describeStep( "Adding indexes to speed up message deletion." );
@@ -1642,332 +1735,9 @@ bool Schema::stepTo32()
 }
 
 
-/*! The address_fields table lacks many of the rows it should have had
-    in revisions prior to 33. This upgrade removes all existing rows,
-    adds a new column with data we need to keep, parses header_fields
-    to generate the new rows, and kills the now unnecessary
-    header_fields rows.
-
-    Well, actually it doesn't do the last step yet. The
-    MessageHeaderFetcher is careful to disregard these rows, so the do
-    no harm.
-*/
-
-bool Schema::stepTo33()
-{
-    if ( d->substate == 0 ) {
-        describeStep( "Adding missing address_fields rows (slow)." );
-
-        AddressCache::setup();
-
-        d->q = new Query(
-            "create table new_address_fields ("
-            "    mailbox     integer not null,"
-            "    uid         integer not null,"
-            "    part        text not null,"
-            "    position    integer not null,"
-            "    field       integer not null,"
-            "    number      integer not null,"
-            "    address     integer not null references addresses(id),"
-            "    foreign key (mailbox, uid, part, position, field)"
-            "                references header_fields(mailbox, uid, part,"
-            "                position, field) on delete cascade"
-            ")", 0 );
-        d->t->enqueue( d->q );
-
-        String dbuser( Configuration::text( Configuration::DbUser ) );
-        d->q = new Query( "grant select,insert on new_address_fields to " +
-                          dbuser, 0 );
-        d->t->enqueue( d->q );
-
-        // first: all the rows that can be moved into the new table
-        // without going through this process
-        d->q = new Query(
-            "insert into new_address_fields "
-            "(mailbox,uid,position,part,field,address,number) "
-            "select"
-            " hf.mailbox,hf.uid,hf.position,hf.part,hf.field,af.address,0 "
-            "from header_fields hf "
-            "join address_fields af using"
-            " ( mailbox, uid, position, part, field ) "
-            "where not hf.value ilike '%,%'", 0 );
-        d->t->enqueue( d->q );
-
-        d->q = new Query(
-            "create index hf_fpv on header_fields(field) "
-            "where field<=" + fn( HeaderField::LastAddressField ) + " and "
-            "(part<>'' or value ilike '%,%')", 0 );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "set enable_seqscan to false", 0 );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "set enable_mergejoin to false", 0 );
-        d->t->enqueue( d->q );
-
-        // then: all the ones where we need to think hard in order to
-        // determine the address numbering
-        d->q = new Query(
-            "declare f cursor for "
-            "select hf.mailbox,hf.uid,hf.position,hf.part,hf.field,hf.value, "
-            "af.address,a.name,a.localpart,a.domain "
-            "from header_fields hf "
-            "left join address_fields af using"
-            " ( mailbox, uid, position, part, field ) "
-            "left join addresses a on (af.address=a.id) "
-            "where hf.field<=$1 "
-            "and (hf.part!='' or hf.value ilike '%,%')", 0 );
-        d->q->bind( 1, HeaderField::LastAddressField );
-        d->t->enqueue( d->q );
-        d->substate = 1;
-    }
-
-    while ( d->substate < 3 ) {
-        if ( d->substate == 1 ) {
-            d->q = new Query( "fetch 16384 from f", this );
-            d->t->enqueue( d->q );
-            d->t->execute();
-            d->substate = 2;
-            d->addressFields = new List<SchemaData::AddressField>;
-        }
-
-        if ( !d->q->done() )
-            return false;
-
-        AddressParser * p = 0;
-        Dict<AddressParser> pd( 1000 );
-        String v;
-        Dict<Address> unique( 10000 );
-        List<Address> workaround;
-
-        // in state 2, we take the header fields we get, and process
-        // them. this is longwinded.
-        Row * r = d->q->nextRow();
-        while ( r ) {
-            SchemaData::AddressField * af = new SchemaData::AddressField;
-            af->mailbox = r->getInt( "mailbox" );
-            af->uid = r->getInt( "uid" );
-            af->part = r->getString( "part" );
-            af->position = r->getInt( "position" );
-            af->field = r->getInt( "field" );
-
-            String value = r->getString( "value" );
-            if ( value != v || !p ) {
-                p= pd.find( value );
-                if ( !p ) {
-                    p = new AddressParser( value );
-                    // at this point, we could/should check for parse
-                    // errors. but since this data has already been
-                    // accepted for the db, let's not.
-                    pd.insert( value, p );
-                    List<Address>::Iterator i( p->addresses() );
-                    while ( i ) {
-                        String k = i->toString();
-                        Address * a = unique.find( k );
-                        if ( a ) {
-                            *i = *a;
-                        }
-                        else {
-                            unique.insert( k, i );
-                            workaround.append( i );
-                        }
-                        ++i;
-                    }
-                }
-                v = value;
-            }
-
-            if ( r->isNull( "address" ) ) {
-                // we have a header_fields row, but no corresponding
-                // address_fields rows. let's ask the cache and create
-                // as many rows as we'll need.
-                af->number = 0;
-                List<Address>::Iterator i( p->addresses() );
-                while ( i ) {
-                    af->address = i;
-                    SchemaData::AddressField * n
-                        = new SchemaData::AddressField;
-                    n->mailbox = af->mailbox;
-                    n->uid = af->uid;
-                    n->part = af->part;
-                    n->position = af->position;
-                    n->field = af->field;
-                    n->number = af->number+1;
-                    d->addressFields->append( af );
-                    af = n;
-                    ++i;
-                }
-            }
-            else if ( p->addresses()->count() == 1 ) {
-                // we have a single address and its ID. add a row.
-                af->number = 0;
-                af->address = p->addresses()->firstElement();
-                af->address->setId( r->getInt( "address" ) );
-                d->addressFields->append( af );
-            }
-            else {
-                // we have a list of addresses and an ID. let's look
-                // for the one we have and add it as a row.
-                String name = r->getString( "name" );
-                String localpart = r->getString( "localpart" );
-                String domain = r->getString( "domain" );
-                List<Address>::Iterator i( p->addresses() );
-                uint number = 0;
-                bool found = false;
-                while ( i && !found ) {
-                    if ( localpart == i->localpart() &&
-                         domain == i->domain() &&
-                         name == i->name() ) {
-                        af->address = i;
-                        i->setId( r->getInt( "address" ) );
-                        af->number = number;
-                        d->addressFields->append( af );
-                        found = true;
-                    }
-                    ++number;
-                    ++i;
-                }
-            }
-            r = d->q->nextRow();
-        }
-
-        // now look up all the addresses for which we haven't seen an ID
-        if ( !workaround.isEmpty() ) {
-            List<Address> * l = new List<Address>;
-            List<Address>::Iterator i( workaround );
-            while ( i ) {
-                if ( !i->id() )
-                    l->append( i );
-                ++i;
-            }
-            if ( !l->isEmpty() )
-                AddressCache::lookup( d->t, l, this );
-        }
-
-        // let's now see whether we have unresolved address IDs.
-        if ( !d->addressFields->isEmpty() ) {
-            bool unresolved = false;
-            List<SchemaData::AddressField>::Iterator i( d->addressFields );
-            while ( i && !unresolved ) {
-                if ( !i->address->id() )
-                    unresolved = true;
-                ++i;
-            }
-            if ( unresolved )
-                return false;
-
-            // we're now ready to submit the new address fields. the copy
-            // below generally has 8000 or more rows each time we run
-            // through this (except the last of course).
-            Query * q
-                = new Query( "copy new_address_fields "
-                             "(mailbox,uid,part,position,field,address,number) "
-                             "from stdin with binary", 0 );
-            i = d->addressFields->first();
-            while ( i ) {
-                q->bind( 1, i->mailbox, Query::Binary );
-                q->bind( 2, i->uid, Query::Binary );
-                q->bind( 3, i->part, Query::Binary );
-                q->bind( 4, i->position, Query::Binary );
-                q->bind( 5, i->field, Query::Binary );
-                q->bind( 6, i->address->id(), Query::Binary );
-                q->bind( 7, i->number, Query::Binary );
-                q->submitLine();
-                ++i;
-            }
-            d->t->enqueue( q );
-            String report = " - Writing ";
-            report.append( fn( d->addressFields->count() ) );
-            report.append( " address fields." );
-            describeStep( report );
-            d->addressFields = 0;
-        }
-
-        // should we step back and get some more rows, or are we done?
-        if ( d->q->rows() ) {
-            d->substate = 1;
-        }
-        else {
-            d->t->enqueue( new Query( "close f", this ) );
-            d->substate = 3;
-        }
-    }
-
-    if ( d->substate == 3 ) {
-        // rejoice. that was hard work and we're almost done!
-        d->q = new Query( "drop table address_fields", 0 );
-        d->t->enqueue( d->q );
-        d->q = new Query( "alter table new_address_fields "
-                          "rename to address_fields", 0 );
-        d->t->enqueue( d->q );
-        d->q = new Query( "create index af_mu on "
-                          "address_fields (mailbox, uid)", 0 );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "set enable_mergejoin to default", 0 );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "set enable_seqscan to default", 0 );
-        d->t->enqueue( d->q );
-
-        d->q = new Query( "drop index hf_fpv", this );
-        d->t->enqueue( d->q );
-
-        d->t->execute();
-        d->substate = 4;
-    }
-
-    if ( d->substate == 4 ) {
-        if ( !d->q->done() )
-            return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
-    }
-
-    return true;
-}
-
-
-/*! Changes the foreign keys in address_fields so it references
-    part_numbers directly instead of via header_fields, and deletes
-    the header_fields that also exist as address_fields.
-
-    This is not part of stepTo32() so that stepTo32() can be debugged
-    in peace.
-*/
-
-bool Schema::stepTo34()
-{
-    if ( d->substate == 0 ) {
-        describeStep( "Removing header_fields rows "
-                      "that duplicate address_fields rows (slow)." );
-        d->q = new Query( "alter table address_fields drop constraint XXX", 0 );
-        d->t->enqueue( d->q );
-        d->q = new Query( "alter table address_fields add constraint XXX", 0 );
-        d->t->enqueue( d->q );
-        d->q = new Query( "delete from header_fields where "
-                          "(mailbox,uid,part,position,field) in "
-                          "(select mailbox,uid,part,position,field"
-                          " from address_fields)", this );
-        d->t->enqueue( d->q );
-        d->t->execute();
-        d->substate = 1;
-    }
-
-    if ( d->substate == 1 ) {
-        if ( !d->q->done() )
-            return false;
-        d->l->log( "Done.", Log::Debug );
-        d->substate = 0;
-    }
-
-    return true;
-}
-
-
 /*! Create and populate the unparsed_messages table. */
 
-bool Schema::stepTo35()
+bool Schema::stepTo34()
 {
     if ( d->substate == 0 ) {
         describeStep( "Creating unparsed_messages table (slow)." );
