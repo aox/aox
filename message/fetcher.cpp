@@ -590,8 +590,8 @@ void MessageAnnotationFetcher::setDone( Message * m )
     alternate header reader: This class.
 */
 
-/*! The same as MessageHeaderFetcher::query(), except that it fetches
-    the other header fields.
+/*! The same as the query() in MessageHeaderFetcher, except that it
+    fetches the other header fields.
 */
 
 PreparedStatement * MessageOldAddressFetcher::query() const
