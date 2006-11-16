@@ -184,7 +184,7 @@ create table address_fields (
     part        text not null,
     position    integer not null,
     field       integer not null,
-    number      integer not null,
+    number      integer,
     address     integer not null references addresses(id),
     foreign key (mailbox, uid, part, position, field)
                 references header_fields(mailbox, uid, part,
