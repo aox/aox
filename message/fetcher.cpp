@@ -387,10 +387,10 @@ void MessageAddressFetcher::setDone( Message * m )
 void MessageAddressFetcher::execute()
 {
     Fetcher::execute();
-    if ( !done() )
-         return;
     if ( fallbackNeeded.isEmpty() )
         return;
+    if ( !done() && d->smallest <= fallbackNeeded.last()->uid() )
+         return;
     Fetcher * f = new MessageOldAddressFetcher( d->mailbox,
                                                 &fallbackNeeded, d->owner );
     f->execute();
