@@ -182,8 +182,12 @@ void Fetcher::execute()
     if ( d->query && d->results.count() < 64 )
         return;
 
+    bool notify = false;
+    if ( !d->results.isEmpty() || d->smallest > 0 )
+        notify = true;
     d->results.clear();
-    d->owner->execute();
+    if ( notify )
+        d->owner->execute();
 
     if ( d->query )
         return;
