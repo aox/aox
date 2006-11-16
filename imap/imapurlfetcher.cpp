@@ -285,6 +285,8 @@ void ImapUrlFetcher::execute()
             ++it;
         }
 
+        d->state = 4;
+
         List<MailboxSet>::Iterator ms( sets );
         while ( ms ) {
             MessageSet either;
@@ -328,8 +330,6 @@ void ImapUrlFetcher::execute()
 
             ++ms;
         }
-
-        d->state = 4;
     }
 
     if ( d->state == 4 ) {
