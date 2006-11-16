@@ -1716,7 +1716,7 @@ void vacuum()
             = new Query( "delete from messages "
                          "where (mailbox,uid) in "
                          "(select mailbox,uid from deleted_messages "
-                         "where current_timestamp-deleted_at>'" +
+                         "where deleted_at<current_timestamp-'" +
                          to + " days'::interval)", 0 );
         d->query->execute();
     }
