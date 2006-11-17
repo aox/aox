@@ -234,7 +234,6 @@ int main( int ac, char *av[] )
     }
 
     if ( d ) {
-        Allocator::addEternal( d, "Event dispatcher" );
         EventLoop::global()->start();
     }
     return status;
@@ -304,6 +303,18 @@ void end()
 }
 
 
+struct Id
+    : public Garbage
+{
+    Id( uint n, String s )
+        : id( n ), name( s )
+    {}
+
+    uint id;
+    String name;
+};
+
+
 class Dispatcher
     : public EventHandler
 {
@@ -326,12 +337,13 @@ public:
     String s;
     Schema * schema;
     int state;
+    List< Id > * ids;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
           command( cmd ), query( 0 ),
           user( 0 ), t( 0 ), address( 0 ), m( 0 ),
-          schema( 0 ), state( 0 )
+          schema( 0 ), state( 0 ), ids( 0 )
     {
         Allocator::addEternal( this, "an aox dispatcher" );
     }
@@ -1005,6 +1017,130 @@ void upgradeSchema()
 
 void updateDatabase()
 {
+    static PreparedStatement * fetchValues;
+
+    if ( !d ) {
+        end();
+
+        fetchValues =
+            new PreparedStatement(
+                "select uid,part,position,field,value from header_fields "
+                "where mailbox=$1 and ((part<>'' and field<=12) or "
+                "(mailbox,uid,part,position,field) in "
+                "(select mailbox,uid,part,position,field from address_fields"
+                " where mailbox=$1 group by mailbox,uid,part,position,field"
+                " having count(number)=0))"
+            );
+        Allocator::addEternal( fetchValues, "fetch af values from hf" );
+
+        Database::setup( 1, Configuration::DbOwner );
+        d = new Dispatcher( Dispatcher::UpdateDatabase );
+        d->state = 0;
+    }
+
+    while ( d->state != 666 ) {
+        if ( d->state == 0 ) {
+            printf( "- Checking for unconverted address fields in "
+                    "header_fields.\n" );
+            d->state = 1;
+            d->query =
+                new Query( "select id,name from mailboxes where id in "
+                           "(select distinct mailbox from address_fields"
+                           " where number is null)", d );
+            d->query->execute();
+        }
+
+        if ( d->state == 1 ) {
+            if ( !d->query->done() )
+                return;
+
+            d->ids = new List<Id>;
+
+            Row * r;
+            while ( ( r = d->query->nextRow() ) != 0 ) {
+                Id * id = new Id( r->getInt( "id" ),
+                                  r->getString( "name" ) );
+                d->ids->append( id );
+            }
+
+            uint n = d->ids->count();
+            if ( n == 0 ) {
+                d->state = 666;
+            }
+            else {
+                printf( "  %d mailboxes to process:\n", n );
+                d->state = 2;
+            }
+        }
+
+        if ( d->state <= 4 && d->state >= 2 ) {
+            List<Id>::Iterator it( d->ids );
+            while ( it ) {
+                Id * m = it;
+
+                if ( d->state == 2 ) {
+                    printf( "  Processing %s\n", m->name.cstr() );
+                    d->state = 3;
+                    d->t = new Transaction( d );
+                    d->query = new Query( *fetchValues, d );
+                    d->query->bind( 1, m->id );
+                    d->query->execute();
+                }
+
+                if ( d->state == 3 ) {
+                    uint updates = 0;
+
+                    while ( d->query->hasResults() ) {
+                        Row * r = d->query->nextRow();
+
+                        uint mailbox( m->id );
+                        uint uid( r->getInt( "uid" ) );
+                        String part( r->getString( "part" ) );
+                        uint position = r->getInt( "position" );
+                        uint field( r->getInt( "field" ) );
+                        String value( r->getString( "value" ) );
+
+                        Query * q = new Query( "select 6*4", d );
+                        d->t->enqueue( q );
+                        updates++;
+
+                        printf( "%d.%d: \"%s\".%d/%d\n",
+                                mailbox, uid, part.cstr(), position, field );
+                    }
+
+                    if ( updates )
+                        d->t->execute();
+
+                    if ( !d->query->done() )
+                        return;
+
+                    d->state = 4;
+                    d->t->commit();
+                }
+
+                if ( d->state == 4 ) {
+                    if ( !d->t->done() )
+                        return;
+
+                    if ( d->t->failed() ) {
+                        fprintf( stderr, "Database error: %s\n",
+                                 d->t->error().cstr() );
+                        exit( -1 );
+                    }
+
+                    d->state = 2;
+                    d->ids->take( it );
+                }
+            }
+
+            if ( it )
+                return;
+
+            d->state = 666;
+        }
+    }
+
+    printf( "Done.\n" );
 }
 
 
