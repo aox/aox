@@ -885,13 +885,12 @@ uint String::number( bool * ok, uint base ) const
     9.
 */
 
-String String::fromNumber( uint n, uint base )
+String String::fromNumber( int64 n, uint base )
 {
     if ( !n )
         return "0";
 
     String s;
-    uint i = 0;
     while ( n ) {
         uint d = n%base;
         char  c = '0' + d;
@@ -903,7 +902,7 @@ String String::fromNumber( uint n, uint base )
     String result;
     result.reserve( s.length() );
     result.d->len = s.d->len;
-    i = 0;
+    uint i = 0;
     while ( i < s.length() ) {
         result.d->str[s.length()-i-1] = s[i];
         i++;
@@ -1475,7 +1474,7 @@ void String::print() const
 
 
 /*! Returns \a n as a string representing that number in a
-    human-readable fashion optionally suffixed by K, M og G.
+    human-readable fashion optionally suffixed by K, M, G or T.
 
     The number is rounded more or less correctly.
 */
@@ -1485,7 +1484,7 @@ String String::humanNumber( int64 n )
     if ( n < 1024 )
         return fromNumber( n );
 
-    uint f = 1024;
+    int64 f = 1024;
     char s = 'K';
     if ( n < 1024 * 1024 ) {
         // ok
@@ -1494,16 +1493,22 @@ String String::humanNumber( int64 n )
         f = 1024 * 1024;
         s = 'M';
     }
-    else {
-        f = 1024 * 1024 * 1024;
+    else if ( n < 1024LL * 1024 * 1024 * 1024 ) {
+        f = 1024 * 1024 * 1024;        
         s = 'G';
+    }
+    else {
+        // terabytes. we don't use petabytes or exabytes since people
+        // don't know their abbreviations by heart.
+        f = 1024LL * 1024 * 1024 * 1024;
+        s = 'T';
     }
 
     String r;
-    // if it's single-digit, we add a decimal point. to avoid
-    // wraparound and wrongness for 32-bit cpus and gigabyte sizes, we
-    // check a little harder.
-    if ( n < f * 10 || f > UINT_MAX/10 ) {
+    // if it's single-digit, we add a decimal point. since we only go
+    // to TB, not petabyte or exabyte, we don't need to check for
+    // INT64_MAX/10. (actually we'd only need that check for exabytes.)
+    if ( n < f * 10 ) {
         n += f/20-1;
         r = fromNumber( n/f );
         uint m = (n%f)/(f/10);

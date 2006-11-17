@@ -79,7 +79,7 @@ public:
     bool endsWith( const String & ) const;
     bool endsWith( const char * ) const;
     uint number( bool *, uint = 10 ) const;
-    static String fromNumber( uint, uint = 10 );
+    static String fromNumber( int64, uint = 10 );
     static String humanNumber( int64 );
 
     int find( char, int=0 ) const;
@@ -205,7 +205,7 @@ extern const String operator+( const String & a, const String & b );
 extern const String operator+=( const String & a, const String & b );
 
 
-inline String fn( uint n, uint b = 10 )
+inline String fn( int64 n, uint b = 10 )
 {
     return String::fromNumber( n, b );
 }
