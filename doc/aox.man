@@ -65,9 +65,20 @@ it, by default, you get quick estimates (more accurate after VACUUM
 ANALYSE).
 .IP "aox show schema"
 Displays the revision of the existing database schema.
-.IP "aox upgrade schema"
-Checks that the database schema is one that this version of Archiveopteryx is
-compatible with, and updates it if needed.
+.IP "aox upgrade schema [-n]"
+Checks that the database schema is one that this version of
+Archiveopteryx is compatible with, and updates it if needed.
+.IP
+The -n flag causes aox to perform the SQL statements for the schema
+upgrade and report on their status without COMMITing the transaction
+(i.e. see what the upgrade would do, without doing anything).
+.IP "aox update database"
+Performs any updates to the database contents which are too slow for
+inclusion in
+.IR "aox upgrade schema" .
+This command is meant to be used while the server is running. It does
+its work in small chunks, so it can be restarted at any time, and is
+tolerant of interruptions.
 .IP "aox list mailboxes [-d] [-o username] [pattern]"
 Displays a list of mailboxes matching the specified shell glob pattern.
 Without a pattern, all mailboxes are listed.

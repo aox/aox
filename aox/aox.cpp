@@ -69,6 +69,7 @@ void showConfiguration();
 void showSchema();
 void showCounts();
 void upgradeSchema();
+void updateDatabase();
 void listMailboxes();
 void listUsers();
 void listAliases();
@@ -167,6 +168,13 @@ int main( int ac, char *av[] )
             upgradeSchema();
         else
             bad( verb, noun, "schema" );
+    }
+    else if ( verb == "update" ) {
+        String noun = next().lower();
+        if ( noun == "database" )
+            updateDatabase();
+        else
+            bad( verb, noun, "database" );
     }
     else if ( verb == "list" || verb == "ls" ) {
         String noun = next().lower();
@@ -301,10 +309,11 @@ class Dispatcher
 {
 public:
     enum Command {
-        Start, ShowCounts, ShowSchema, UpgradeSchema, ListMailboxes,
-        ListUsers, ListAliases, CreateUser, DeleteUser, ChangePassword,
-        ChangeUsername, ChangeAddress, CreateMailbox, DeleteMailbox,
-        CreateAlias, DeleteAlias, Vacuum, CheckConfigConsistency
+        Start, ShowCounts, ShowSchema, UpgradeSchema, UpdateDatabase,
+        ListMailboxes, ListUsers, ListAliases, CreateUser, DeleteUser,
+        ChangePassword, ChangeUsername, ChangeAddress, CreateMailbox,
+        DeleteMailbox, CreateAlias, DeleteAlias, Vacuum,
+        CheckConfigConsistency
     };
 
     List< Query > * chores;
@@ -375,6 +384,10 @@ public:
 
         case UpgradeSchema:
             upgradeSchema();
+            break;
+
+        case UpdateDatabase:
+            updateDatabase();
             break;
 
         case ListMailboxes:
@@ -987,6 +1000,11 @@ void upgradeSchema()
                  "Archiveopteryx will require PostgreSQL 8.1.0 or\nhigher. "
                  "Please upgrade the running server (%s) at your "
                  "convenience.\n", v.cstr() );
+}
+
+
+void updateDatabase()
+{
 }
 
 
@@ -1858,6 +1876,18 @@ void help()
             "    schema upgrade and report on their status without COMMITting\n"
             "    the transaction (i.e. see what the upgrade would do, without\n"
             "    changing anything).\n"
+        );
+    }
+    else if ( a == "update" && b == "database" ) {
+        fprintf(
+            stderr,
+            "  update database -- Update the database contents.\n\n"
+            "    Synopsis: aox update database\n\n"
+            "    Performs any updates to the database contents which are too\n"
+            "    slow for inclusion in \"aox upgrade schema\". This command is\n"
+            "    meant to be used while the server is running. It does its\n"
+            "    work in small chunks, so it can be restarted at any time,\n"
+            "    and is tolerant of interruptions.\n"
         );
     }
     else if ( a == "list" && b == "mailboxes" ) {
