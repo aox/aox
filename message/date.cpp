@@ -131,7 +131,11 @@ uint Date::unixTime()
     t.tm_min = d->minute;
     t.tm_sec = d->second;
     t.tm_isdst = 0;
-    return mktime( &t ) - d->tz * 60 + t.tm_gmtoff;
+    // this uses the nonstandard timegm() instead of wrapping mktime
+    // in in logic. I think timegm() is better because it works on the
+    // platforms we support, and it actually works. we've had to many
+    // timezone-dependent bugs now.
+    return timegm( &t ) - d->tz * 60;
 }
 
 
