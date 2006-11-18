@@ -38,6 +38,7 @@ char * aox;
 StringList * args;
 int options[256];
 int status;
+class LwAddressCache;
 class Dispatcher * d;
 
 
@@ -338,12 +339,13 @@ public:
     Schema * schema;
     int state;
     List< Id > * ids;
+    LwAddressCache * addressCache;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
           command( cmd ), query( 0 ),
           user( 0 ), t( 0 ), address( 0 ), m( 0 ),
-          schema( 0 ), state( 0 ), ids( 0 )
+          schema( 0 ), state( 0 ), ids( 0 ), addressCache( 0 )
     {
         Allocator::addEternal( this, "an aox dispatcher" );
     }
@@ -1015,9 +1017,54 @@ void upgradeSchema()
 }
 
 
+class LwAddressCache
+    : public EventHandler
+{
+public:
+    Query * q;
+    Dict<uint> * names;
+    EventHandler * owner;
+
+    LwAddressCache( EventHandler * ev )
+        : q( 0 ), names( new Dict<uint>( 16384 ) ), owner( ev )
+    {}
+
+    void execute()
+    {
+        while ( q->hasResults() ) {
+            Row * r = q->nextRow();
+
+            uint * id = (uint *)Allocator::alloc( sizeof(uint), 0 );
+            *id = r->getInt( "id" );
+            Address * a =
+                new Address( r->getString( "name" ),
+                             r->getString( "localpart" ),
+                             r->getString( "domain" ) );
+
+            names->insert( a->toString(), id );
+        }
+
+        if ( q->done() ) {
+            printf( "  (Loaded %d addresses into cache.)\n", q->rows() );
+            owner->execute();
+        }
+    }
+
+    uint lookup( const String &n, const String &l, const String &d )
+    {
+        Address * a = new Address( n, l, d );
+        uint * id = names->find( a->toString() );
+        if ( id )
+            return *id;
+        return 0;
+    }
+};
+
+
 void updateDatabase()
 {
     static PreparedStatement * fetchValues;
+    static PreparedStatement * fetchAddresses;
 
     if ( !d ) {
         end();
@@ -1032,6 +1079,15 @@ void updateDatabase()
                 " having count(number)=0))"
             );
         Allocator::addEternal( fetchValues, "fetch af values from hf" );
+
+        fetchAddresses =
+            new PreparedStatement(
+                "select id,name,localpart,domain from address_fields af "
+                "join addresses a on (af.address=a.id) where mailbox=$1 "
+                "and uid in (select uid from address_fields where "
+                "mailbox=$1 group by uid having count(*)<>count(number))"
+            );
+        Allocator::addEternal( fetchAddresses, "fetch addresses from af" );
 
         Database::setup( 1, Configuration::DbOwner );
         d = new Dispatcher( Dispatcher::UpdateDatabase );
@@ -1073,7 +1129,7 @@ void updateDatabase()
             }
         }
 
-        if ( d->state <= 4 && d->state >= 2 ) {
+        if ( d->state <= 5 && d->state >= 2 ) {
             List<Id>::Iterator it( d->ids );
             while ( it ) {
                 Id * m = it;
@@ -1082,12 +1138,24 @@ void updateDatabase()
                     printf( "  Processing %s\n", m->name.cstr() );
                     d->state = 3;
                     d->t = new Transaction( d );
-                    d->query = new Query( *fetchValues, d );
+                    d->addressCache = new LwAddressCache( d );
+                    d->query = new Query( *fetchAddresses, d->addressCache );
+                    d->addressCache->q = d->query;
                     d->query->bind( 1, m->id );
                     d->query->execute();
                 }
 
                 if ( d->state == 3 ) {
+                    if ( !d->query->done() )
+                        return;
+
+                    d->state = 4;
+                    d->query = new Query( *fetchValues, d );
+                    d->query->bind( 1, m->id );
+                    d->query->execute();
+                }
+
+                if ( d->state == 4 ) {
                     uint updates = 0;
 
                     while ( d->query->hasResults() ) {
@@ -1114,11 +1182,11 @@ void updateDatabase()
                     if ( !d->query->done() )
                         return;
 
-                    d->state = 4;
+                    d->state = 5;
                     d->t->commit();
                 }
 
-                if ( d->state == 4 ) {
+                if ( d->state == 5 ) {
                     if ( !d->t->done() )
                         return;
 
