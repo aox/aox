@@ -1,6 +1,7 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
 #include "scope.h"
+#include "cache.h"
 #include "string.h"
 #include "allocator.h"
 #include "stringlist.h"
@@ -39,8 +40,14 @@ StringList * args;
 int options[256];
 int status;
 class LwAddressCache;
+class HeaderFieldRow;
 class Dispatcher * d;
 
+static PreparedStatement * fetchValues;
+static PreparedStatement * fetchAddresses;
+static PreparedStatement * updateAddressField;
+static PreparedStatement * insertAddressField;
+static PreparedStatement * deleteHeaderField;
 
 char * servers[] = {
     "logd", "ocd", "tlsproxy", "archiveopteryx"
@@ -340,12 +347,19 @@ public:
     int state;
     List< Id > * ids;
     LwAddressCache * addressCache;
+    Dict<AddressParser> * parsers;
+    List<Address> * unknownAddresses;
+    List<HeaderFieldRow> * headerFieldRows;
+    CacheLookup * cacheLookup;
+    Dict<void> * uniq;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
           command( cmd ), query( 0 ),
           user( 0 ), t( 0 ), address( 0 ), m( 0 ),
-          schema( 0 ), state( 0 ), ids( 0 ), addressCache( 0 )
+          schema( 0 ), state( 0 ), ids( 0 ), addressCache( 0 ),
+          parsers( 0 ), unknownAddresses( 0 ), headerFieldRows( 0 ),
+          cacheLookup( 0 ), uniq( new Dict<void>( 1000 ) )
     {
         Allocator::addEternal( this, "an aox dispatcher" );
     }
@@ -1017,6 +1031,23 @@ void upgradeSchema()
 }
 
 
+class HeaderFieldRow
+    : public Garbage
+{
+public:
+    HeaderFieldRow()
+        : mailbox( 0 ), uid( 0 ), position( 0 ), field( 0 )
+    {}
+
+    uint mailbox;
+    uint uid;
+    String part;
+    uint position;
+    uint field;
+    String value;
+};
+
+
 class LwAddressCache
     : public EventHandler
 {
@@ -1050,9 +1081,8 @@ public:
         }
     }
 
-    uint lookup( const String &n, const String &l, const String &d )
+    uint lookup( const Address * a )
     {
-        Address * a = new Address( n, l, d );
         uint * id = names->find( a->toString() );
         if ( id )
             return *id;
@@ -1061,11 +1091,74 @@ public:
 };
 
 
+bool convertField( uint mailbox, uint uid, const String &part,
+                   uint position, uint field, const String & value )
+{
+    Query * q;
+    AddressParser * p;
+    p = d->parsers->find( value );
+    if ( !p ) {
+        p = new AddressParser( value );
+        d->parsers->insert( value, p );
+    }
+
+    bool unknown = false;
+    List<Address>::Iterator it( p->addresses() );
+    while ( it ) {
+        Address * a = it;
+        uint address = d->addressCache->lookup( a );
+        if ( address == 0 ) {
+            if ( !d->uniq->contains( a->toString() ) ) {
+                d->unknownAddresses->append( a );
+                d->uniq->insert( a->toString(), (void *)1 );
+            }
+            unknown = true;
+        }
+        a->setId( address );
+        ++it;
+    }
+
+    if ( unknown )
+        return false;
+
+    uint number = 0;
+    it = p->addresses();
+    while ( it ) {
+        Address * a = it;
+
+        if ( part.isEmpty() )
+            q = new Query( *updateAddressField, d );
+        else
+            q = new Query( *insertAddressField, d );
+
+        q->bind( 1, mailbox );
+        q->bind( 2, uid );
+        q->bind( 3, part );
+        q->bind( 4, position );
+        q->bind( 5, field );
+        q->bind( 6, a->id() );
+        q->bind( 7, number );
+
+        d->t->enqueue( q );
+
+        number++;
+        ++it;
+    }
+
+    q = new Query( *deleteHeaderField, d );
+    q->bind( 1, mailbox );
+    q->bind( 2, uid );
+    q->bind( 3, part );
+    q->bind( 4, position );
+    q->bind( 5, field );
+    d->t->enqueue( q );
+
+    return true;
+}
+
+
 void updateDatabase()
 {
-    static PreparedStatement * fetchValues;
-    static PreparedStatement * fetchAddresses;
-
     if ( !d ) {
         end();
 
@@ -1078,7 +1171,7 @@ void updateDatabase()
                 " where mailbox=$1 group by mailbox,uid,part,position,field"
                 " having count(number)=0))"
             );
-        Allocator::addEternal( fetchValues, "fetch af values from hf" );
+        Allocator::addEternal( fetchValues, "fetchValues" );
 
         fetchAddresses =
             new PreparedStatement(
@@ -1087,8 +1180,32 @@ void updateDatabase()
                 "and uid in (select uid from address_fields where "
                 "mailbox=$1 group by uid having count(*)<>count(number))"
             );
-        Allocator::addEternal( fetchAddresses, "fetch addresses from af" );
+        Allocator::addEternal( fetchAddresses, "fetchAddresses" );
 
+        updateAddressField =
+            new PreparedStatement(
+                "update address_fields set number=$7 where mailbox=$1 and "
+                "uid=$2 and part=$3 and position=$4 and field=$5 and "
+                "address=$6"
+            );
+        Allocator::addEternal( updateAddressField, "updateAddressField" );
+
+        insertAddressField =
+            new PreparedStatement(
+                "insert into address_fields "
+                "(mailbox,uid,part,position,field,address,number) values "
+                "($1,$2,$3,$4,$5,$6,$7)"
+            );
+        Allocator::addEternal( insertAddressField, "insertAddressField" );
+
+        deleteHeaderField =
+            new PreparedStatement(
+                "delete from header_fields where mailbox=$1 and uid=$2 and "
+                "part=$3 and position=$4 and field=$5"
+            );
+        Allocator::addEternal( deleteHeaderField, "deleteHeaderField" );
+
+        AddressCache::setup();
         Database::setup( 1, Configuration::DbOwner );
         d = new Dispatcher( Dispatcher::UpdateDatabase );
         d->state = 0;
@@ -1129,7 +1246,7 @@ void updateDatabase()
             }
         }
 
-        if ( d->state <= 5 && d->state >= 2 ) {
+        if ( d->state <= 6 && d->state >= 2 ) {
             List<Id>::Iterator it( d->ids );
             while ( it ) {
                 Id * m = it;
@@ -1138,6 +1255,9 @@ void updateDatabase()
                     printf( "  Processing %s\n", m->name.cstr() );
                     d->state = 3;
                     d->t = new Transaction( d );
+                    d->parsers = new Dict<AddressParser>( 1000 );
+                    d->unknownAddresses = new List<Address>;
+                    d->headerFieldRows = new List<HeaderFieldRow>;
                     d->addressCache = new LwAddressCache( d );
                     d->query = new Query( *fetchAddresses, d->addressCache );
                     d->addressCache->q = d->query;
@@ -1168,12 +1288,21 @@ void updateDatabase()
                         uint field( r->getInt( "field" ) );
                         String value( r->getString( "value" ) );
 
-                        Query * q = new Query( "select 6*4", d );
-                        d->t->enqueue( q );
-                        updates++;
-
-                        printf( "%d.%d: \"%s\".%d/%d\n",
-                                mailbox, uid, part.cstr(), position, field );
+                        bool p = convertField( mailbox, uid, part, position,
+                                               field, value );
+                        if ( p ) {
+                            updates++;
+                        }
+                        else {
+                            HeaderFieldRow * hf = new HeaderFieldRow;
+                            hf->mailbox = mailbox;
+                            hf->uid = uid;
+                            hf->part = part;
+                            hf->position = position;
+                            hf->field = field;
+                            hf->value = value;
+                            d->headerFieldRows->append( hf );
+                        }
                     }
 
                     if ( updates )
@@ -1182,11 +1311,44 @@ void updateDatabase()
                     if ( !d->query->done() )
                         return;
 
-                    d->state = 5;
-                    d->t->commit();
+                    if ( d->unknownAddresses->isEmpty() ) {
+                        d->state = 6;
+                        d->t->commit();
+                    }
+                    else {
+                        d->state = 5;
+                        d->cacheLookup =
+                            AddressCache::lookup( d->t, d->unknownAddresses,
+                                                  d );
+                    }
                 }
 
                 if ( d->state == 5 ) {
+                    if ( !d->cacheLookup->done() )
+                        return;
+
+                    List<Address>::Iterator ad( d->unknownAddresses );
+                    while ( ad ) {
+                        Address * a = ad;
+                        uint * n = (uint *)Allocator::alloc( sizeof(uint), 0 );
+                        *n = a->id();
+                        d->addressCache->names->insert( a->toString(), n );
+                        ++ad;
+                    }
+
+                    List<HeaderFieldRow>::Iterator it( d->headerFieldRows );
+                    while ( it ) {
+                        HeaderFieldRow * hf = it;
+                        convertField( hf->mailbox, hf->uid, hf->part,
+                                      hf->position, hf->field, hf->value );
+                        ++it;
+                    }
+
+                    d->state = 6;
+                    d->t->commit();
+                }
+
+                if ( d->state == 6 ) {
                     if ( !d->t->done() )
                         return;
 
@@ -2554,7 +2716,7 @@ void checkConfigConsistency()
                        "lower(login)='anonymous'", d );
         d->query->execute();
     }
-    
+
     if ( d && !d->query->done() )
         return;
 
