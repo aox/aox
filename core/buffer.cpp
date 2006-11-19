@@ -168,8 +168,9 @@ void Buffer::write( int fd )
         if ( written > 0 ) {
             remove( written );
         }
-        else if ( written < 0 && errno != EAGAIN ) {
-            err = errno;
+        else if ( written < 0 ) {
+            if ( errno != EAGAIN )
+                err = errno;
             written = 0;
         }
     }
