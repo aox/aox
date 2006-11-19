@@ -339,6 +339,7 @@ public:
     Command command;
     Query * query;
     User * user;
+    uint conversions;
     Transaction * t;
     Address * address;
     Mailbox * m;
@@ -356,7 +357,7 @@ public:
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
           command( cmd ), query( 0 ),
-          user( 0 ), t( 0 ), address( 0 ), m( 0 ),
+          user( 0 ), conversions( 0 ), t( 0 ), address( 0 ), m( 0 ),
           schema( 0 ), state( 0 ), ids( 0 ), addressCache( 0 ),
           parsers( 0 ), unknownAddresses( 0 ), headerFieldRows( 0 ),
           cacheLookup( 0 ), uniq( new Dict<void>( 1000 ) )
@@ -1145,6 +1146,7 @@ bool convertField( uint mailbox, uint uid, const String &part,
         ++it;
     }
 
+    d->conversions++;
     q = new Query( *deleteHeaderField, d );
     q->bind( 1, mailbox );
     q->bind( 2, uid );
@@ -1219,7 +1221,7 @@ void updateDatabase()
             d->query =
                 new Query( "select id,name from mailboxes where id in "
                            "(select distinct mailbox from address_fields"
-                           " where number is null)", d );
+                           " where number is null) order by name", d );
             d->query->execute();
         }
 
@@ -1317,6 +1319,13 @@ void updateDatabase()
                     }
                     else {
                         d->state = 5;
+                        if ( d->conversions )
+                            printf( "  Converted %d address fields.\n",
+                                    d->conversions );
+                        d->conversions = 0;
+                        if ( !d->unknownAddresses->isEmpty() )
+                            printf( "  Looking up %d addresses.\n",
+                                    d->unknownAddresses->count() );
                         d->cacheLookup =
                             AddressCache::lookup( d->t, d->unknownAddresses,
                                                   d );
@@ -1344,6 +1353,10 @@ void updateDatabase()
                         ++it;
                     }
 
+                    if ( d->conversions )
+                        printf( "  Converted %d address fields.\n",
+                                d->conversions );
+                    d->conversions = 0;
                     d->state = 6;
                     d->t->commit();
                 }
