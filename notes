@@ -1,11 +1,4 @@
-1.13: 2006-11-20
-
-  Sieve.
-
-  aox reinject
-
-  Basic administration using the httpd
-  Read-only archive pages
+1.13: 2006-11-27
 
   Eliminate the header_fields that also exist as address_fields or
   date_fields rows, add two new fetchers and clean up the db.
@@ -22,9 +15,20 @@ Arnt in Delhi
   lots of web pages.
 
 
-1.14: 2006-12-18
+1.14: 2007-01-15
 
   (This has to change - it's what we do while Arnt is in Delhi.)
+
+  (1.13 items we didn't do, or didn't finish.)
+
+  Sieve.
+
+  aox reinject
+
+  Basic administration using the httpd
+  Read-only archive pages
+
+  (1.14 items specified before.)
 
   Message retention policy
 
@@ -39,7 +43,7 @@ Arnt in Delhi
   LDAP authentication support (but how does this help us?)
 
 
-1.15: 2008-01-29
+1.15: 2007-02-19
 
   (I moved stuff here from earlier releases so this is now hopelessly
   ambitious --Arnt)
@@ -74,6 +78,24 @@ Things we didn't do in 1.10-1.15:
   Full-text search
 
   LDAP AB? Webmail?
+
+
+Release cycle
+
+  Five weeks, t-35 to t (a Monday).
+
+  t-38: we decide on a feature list for the release.
+
+  t-14: Whatever hasn't been started is dropped, whatever cannot be
+  completed before t-7 is laid aside for the next release.
+
+  t-7: Fork the release and remove any code that needs to be removed.
+
+  t-4: Roll the tarball and do the release chores.
+
+  t-3: See t-38 above.
+
+  t-0: A crontab does what it needs to do.
 
 
 The value of features
@@ -1057,18 +1079,6 @@ BURL
 
   If the message is multipart and the boundary occurs in a part, that
   part needs encoding. Or else switch to a different body.
-
-
-INTHREAD
-
-  A new search-key which takes another search-key. If the subsidiary
-  search-key returns true for a message, INTHREAD returns true for all
-  messages in that thread.
-
-  Problems: Which threading algorithm? More than one? How to advertise
-  which one(s) are possible?
-
-  Possibilities: Combined with THREAD, it allows neat things.
 
 
 URLAUTH (RFC 4467)
