@@ -32,7 +32,10 @@ class SearchData
 public:
     SearchData()
         : uid( false ), done( false ), codec( 0 ), root( 0 ),
-          query( 0 ), highestmodseq( 1 )
+          query( 0 ), highestmodseq( 1 ),
+          firstmodseq( 1 ), lastmodseq( 1 ),
+          returnAll( false ), returnCount( false ), 
+          returnMax( false ), returnMin( false )
     {}
 
     bool uid;
@@ -47,15 +50,22 @@ public:
     Query * query;
     MessageSet matches;
     uint highestmodseq;
+    uint firstmodseq;
+    uint lastmodseq;
+    
+    bool returnAll;
+    bool returnCount;
+    bool returnMax;
+    bool returnMin;
 };
 
 
 /*! \class Search search.h
     Finds messages matching some criteria (RFC 3501 section 6.4.4)
 
-    The entirety of the basic syntax is handled, as well as parts of
-    CONDSTORE (RFC 4551). SEARCHM probably will need to be implemented
-    as a subclass of Search. How about ESEARCH?
+    The entirety of the basic syntax is handled, as well as ESEARCH
+    (RFC 4731 and RFC 4466) and parts of CONDSTORE (RFC 4551). SEARCHM
+    probably will need to be implemented as a subclass of Search.
 
     Searches are first run against the RAM cache, rudimentarily. If
     the comparison is difficult, expensive or unsuccessful, it gives
@@ -84,6 +94,30 @@ Search::Search( bool u )
 void Search::parse()
 {
     space();
+    if ( present( "return" ) ) {
+        // RFC 4731 and RFC 4466 define ESEARCH together.
+        space();
+        require( "(" );
+        bool any = false;
+        while ( ok() && nextChar() >= 'A' && nextChar() <= 'z' ) {
+            String modifier = letters( 3, 5 ).lower();
+            any = true;
+            if ( modifier == "all" )
+                d->returnAll = true;
+            else if ( modifier == "min" )
+                d->returnMin = true;
+            else if ( modifier == "max" )
+                d->returnMax = true;
+            else if ( modifier == "count" )
+                d->returnCount = true;
+            else
+                error( Bad, "Unknown search modifier option: " + modifier );
+            space();
+        }
+        require( ")" );
+        if ( !any )
+            d->returnAll = true;
+    }
     parseKey( true );
     if ( !d->charset.isEmpty() ) {
         space();
@@ -414,18 +448,28 @@ void Search::execute()
         return;
     }
 
+    bool firstRow = true;
     Row * r;
-    String result( "SEARCH" );
     while ( (r=d->query->nextRow()) != 0 ) {
         d->matches.add( r->getInt( "uid" ) );
         if ( d->root->modseqReturned() ) {
             uint ms = r->getInt( "modseq" );
+            if ( firstRow )
+                d->firstmodseq = ms;
+            d->lastmodseq = ms;
+            firstRow = false;
             if ( ms > d->highestmodseq )
                 d->highestmodseq = ms;
         }
     }
 
-    sendSearchResponse();
+    if ( d->returnAll ||
+         d->returnMax ||
+         d->returnMin ||
+         d->returnCount )
+        sendEsearchResponse();
+    else
+        sendSearchResponse();
     finish();
 }
 
@@ -637,8 +681,7 @@ MessageSet Search::set( bool parseMsns )
 }
 
 
-/*! Sends the SEARCH response, or ESEARCH, or whatever is called
-    for.
+/*! Sends the SEARCH response.
 */
 
 void Search::sendSearchResponse()
@@ -661,6 +704,74 @@ void Search::sendSearchResponse()
         result.append( " (modseq " );
         result.append( fn( d->highestmodseq ) );
         result.append( ")" );
+    }
+    respond( result );
+}
+
+
+static uint max( uint a, uint b )
+{
+    if ( a > b )
+        return a;
+    return b;
+}
+
+
+/*! Sends the ESEARCH response. Do we need something that spans this
+    and sendSearchResponse() and chooses the right one? Not for the
+    moment?
+*/
+
+void Search::sendEsearchResponse()
+{
+    ImapSession * s = imap()->session();
+    String result = "ESEARCH (tag \"" + tag() + "\")";
+    if ( d->returnCount ) {
+        result.append( " count " );
+        result.append( fn( d->matches.count() ) );
+    }
+    if ( d->returnMin ) {
+        result.append( " min " );
+        uint uid = d->matches.value( 1 );
+        if ( !d->uid )
+            uid = s->msn( uid ); // ick
+        result.append( fn( uid ) );
+    }
+    if ( d->returnMax ) {
+        result.append( " max " );
+        uint uid = d->matches.value( d->matches.count() );
+        if ( !d->uid )
+            uid = s->msn( uid ); // ick
+        result.append( fn( uid ) );
+    }
+    if ( d->returnAll ) {
+        result.append( " all " );
+        if ( d->uid ) {
+            result.append( d->matches.set() );
+        }
+        else {
+            MessageSet msns;
+            uint i = 1;
+            uint max = d->matches.count();
+            while ( i <= max ) {
+                msns.add( s->msn( d->matches.value( i ) ) );
+                i++;
+            }
+            result.append( msns.set() );
+        }
+    }
+    if ( d->root->modseqReturned() ) {
+        result.append( " modseq " );
+        if ( d->returnAll || d->returnCount )
+            result.append( fn( d->highestmodseq ) );
+        else if ( d->returnMin && d->returnMax )
+            result.append( fn( max( d->firstmodseq, d->lastmodseq ) ) );
+        else if ( d->returnMin )
+            result.append( fn( d->firstmodseq ) );
+        else if ( d->returnMax )
+            result.append( fn( d->lastmodseq ) );
+        else
+            result.append( "1" ); // should not happen
     }
     respond( result );
 }

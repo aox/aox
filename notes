@@ -20,8 +20,7 @@ Arnt in Delhi
   Deliver submitted mail to a smarthost. We've done most of the hard
   work, we just need to complete it.
 
-  Implement ESEARCH (RFC 4731). I (Arnt) promised Alexey to do that
-  once the RFC was out. Should be a few hours' work.
+  Implement ESEARCH (RFC 4731). Done, but not tested.
 
   aox reinject and schema 34.
 

@@ -78,8 +78,10 @@ String Capability::capabilities( IMAP * i, bool all )
     }
     // should we advertise COMPRESS only if not compressed?
     c.append( "COMPRESS=DEFLATE" );
-    if ( all || login )
+    if ( all || login ) {
         c.append( "CONDSTORE" );
+        c.append( "ESEARCH" );
+    }
     c.append( "ID" );
     if ( all || login )
         c.append( "IDLE" );

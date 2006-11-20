@@ -28,6 +28,7 @@ protected:
     Selector * selector() const;
 
     void sendSearchResponse();
+    void sendEsearchResponse();
 
 private:
     void push( Selector::Action );
