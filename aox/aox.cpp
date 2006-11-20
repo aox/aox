@@ -47,7 +47,7 @@ static PreparedStatement * fetchValues;
 static PreparedStatement * fetchAddresses;
 static PreparedStatement * updateAddressField;
 static PreparedStatement * insertAddressField;
-static PreparedStatement * deleteHeaderField;
+static PreparedStatement * deleteHeaderFields;
 
 char * servers[] = {
     "logd", "ocd", "tlsproxy", "archiveopteryx"
@@ -1147,14 +1147,6 @@ bool convertField( uint mailbox, uint uid, const String &part,
     }
 
     d->conversions++;
-    q = new Query( *deleteHeaderField, d );
-    q->bind( 1, mailbox );
-    q->bind( 2, uid );
-    q->bind( 3, part );
-    q->bind( 4, position );
-    q->bind( 5, field );
-    d->t->enqueue( q );
-
     return true;
 }
 
@@ -1200,12 +1192,13 @@ void updateDatabase()
             );
         Allocator::addEternal( insertAddressField, "insertAddressField" );
 
-        deleteHeaderField =
+        deleteHeaderFields =
             new PreparedStatement(
-                "delete from header_fields where mailbox=$1 and uid=$2 and "
-                "part=$3 and position=$4 and field=$5"
+                "delete from header_fields where mailbox=$1 and field<=12 "
+                "and uid not in (select uid from address_fields where "
+                "mailbox=$1 group by uid having count(*)<>count(number))"
             );
-        Allocator::addEternal( deleteHeaderField, "deleteHeaderField" );
+        Allocator::addEternal( deleteHeaderFields, "deleteHeaderFields" );
 
         AddressCache::setup();
         Database::setup( 1, Configuration::DbOwner );
@@ -1248,7 +1241,7 @@ void updateDatabase()
             }
         }
 
-        if ( d->state <= 6 && d->state >= 2 ) {
+        if ( d->state <= 7 && d->state >= 2 ) {
             List<Id>::Iterator it( d->ids );
             while ( it ) {
                 Id * m = it;
@@ -1315,7 +1308,6 @@ void updateDatabase()
 
                     if ( d->unknownAddresses->isEmpty() ) {
                         d->state = 6;
-                        d->t->commit();
                     }
                     else {
                         d->state = 5;
@@ -1358,10 +1350,17 @@ void updateDatabase()
                                 d->conversions );
                     d->conversions = 0;
                     d->state = 6;
-                    d->t->commit();
                 }
 
                 if ( d->state == 6 ) {
+                    d->state = 7;
+                    d->query = new Query( *deleteHeaderFields, d );
+                    d->query->bind( 1, m->id );
+                    d->t->enqueue( d->query );
+                    d->t->commit();
+                }
+
+                if ( d->state == 7 ) {
                     if ( !d->t->done() )
                         return;
 
