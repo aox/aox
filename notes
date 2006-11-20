@@ -17,18 +17,22 @@ Arnt in Delhi
 
 1.14: 2007-01-15
 
-  (This has to change - it's what we do while Arnt is in Delhi.)
+  Deliver submitted mail to a smarthost. We've done most of the hard
+  work, we just need to complete it.
 
-  (1.13 items we didn't do, or didn't finish.)
+  Implement ESEARCH (RFC 4731). I (Arnt) promised Alexey to do that
+  once the RFC was out. Should be a few hours' work.
+
+  aox reinject and schema 34.
+
+  (Next: 1.13 items we didn't do, or didn't finish.)
 
   Sieve.
-
-  aox reinject
 
   Basic administration using the httpd
   Read-only archive pages
 
-  (1.14 items specified before.)
+  (Next: 1.14 items specified before.)
 
   Message retention policy
 
@@ -234,39 +238,6 @@ Memory use for common operations
   again... just a bunch of checks. Ignore output.
 
 
-Splitting large fetches
-
-  Fetch might split large fetches into sets of at most x messages,
-  e.g. 256 or 512, to limit the peak amount of memory used to cache
-  messages.
-
-  Fetch 512. Send responses. Drop the memory. Repeat.
-
-  When we start a fetcher, Mailbox would have to return all the
-  Messages. Each Fetcher would have to keep the Messages it's going to
-  write, the Mailbox would keep no pointers, and the Fetch would have
-  pointers to the objects it will need.
-
-  So: Fetch asks Mailbox for the headers of messages 1-300. Mailbox
-  looks around and asks its existing Fetchers whether any of those
-  have pointers to those Messages. It completes the set by creating
-  new Message objects, and tells the HeaderFetcher to fetch the
-  messages for that set.
-
-  When the HeaderFetcher has done so, it notifies the EventHandler,
-  ie. the Fetch, and the Fetch sends responses and may or may not ask
-  for more messages.
-
-  Both Fetch and Fetcher must be careful to drop Message pointers once
-  it has used the objects.
-
-  The GC logic will pick up on the memory use and collect the Message
-  objects speedily. No more 173MB fetches.
-
-  (Opera remains a problem. It sends 'FETCH 1:* FLAG' every minute or
-  so.)
-
-
 Deleting mailbox has unclear semantics now
 
   At present, we don't allow a mailbox to be deleted until all
@@ -401,25 +372,6 @@ Autoresponder
   The Google Team
 
 
-Search blocks too hard
-
-  From the log:
-
-    16:08:50.900 IMAP Command: 'gg uid search'
-    16:08:50.900 First line: gg uid search uid 33788:*
-    16:08:50.907 Search for uid>=33786 and uid<33789
-    16:08:50.907 Executing IMAP command 'gg uid search'
-    16:08:55.121 Search considered 4638 of 4638 messages using cache
-    16:08:55.123 Executed IMAP command 'gg uid search' in 4216ms
-    16:08:55.123 Result: OK done
-
-  The server was busy for a long time with that search. It's time to
-  optimise Selector::consider a little bit so it doesn't spend so much
-  time looking at messages that'll fail. Three steps: 1) propagate
-  possible uid ranges towards root. 2) if the range at root is too
-  big, skip the cache pass. 3) only consider messages in the range.
-
-
 Message arrival tag
 
   Once annotate is done, we want a tag, ie. a magic annotation which
@@ -494,41 +446,6 @@ Using rrdtool
   'aox show statistics'?
 
 
-Optimising common cases commonly helps
-
-  Now that the lmtp and pop/imap/webmail servers share address space,
-  an injected message can also be short-circuited into the Mailbox if
-  there are any Sessions on the Mailbox. Or perhaps if there are any
-  watched Sessions on the Mailbox.
-
-  When that's done, a message can be handed out to IMAP/POP/Webmail
-  clients without database activity. More speed, less DB work.
-
-  In order for this to work well, we must have better caching, so the
-  Mailbox doesn't fill up too much. Necessary for other reasons
-  too. See separate item.
-
-
-Caching Messages in Mailbox
-
-  Instead of storing Messages in Mailbox, we could cache them. The
-  Mailbox could throw them away regularly. When we want to fetch one,
-  we could call a Mailbox function to return a pointer to the object,
-  and the caller would be responsible for keeping the pointer around
-  until any DB activity is complete and the Message object can be
-  processed.
-
-  Messages could be discarded by Mailbox if they have all the
-  information for which the Mailbox is currently fetching
-  something. Ie. if the only Fetcher currently existing is a
-  FlagFetcher, then a Message can be discarded if it hasFlags().
-
-  The number of Messages in RAM may follow a Poisson
-  distribution. Sounds likely. If so, the cache-clearing algorithm
-  must work well both for the very small and very large parts of the
-  graph.
-
-
 SASL NTLM authentication
 
   It may be odd and undocumented, and it may not be as strong as
@@ -594,38 +511,6 @@ Split the folder view into pages.
 A failing parse message should invalidate the prepared statement cache.
 
 
-Look into supporting the MySQL protocol after 1.0
-
-
-Orphaned bodyparts should be cleaned up somehow.
-
-  We need a bool on bodyparts, saying whether it's okay to delete this
-  bodypart or not: "perhaps" and "no".
-
-  The injector sets it to "no way" when it does 'insert into
-  bodyparts'. vacuum -b works in 2-3 steps. First it deletes the
-  already-marked and unused bodyparts:
-
-    delete from bodyparts where id in (
-      select id from bodyparts b left join part_numbers p on (b.id=p.bodypart)
-        where bodypart is null and deletable='t');
-
-  If the delete fails, vacuum -b responds by cleaning up so it'll work
-  next time:
-
-    update bodyparts set deletable='f' where id in (
-      select id from bodyparts b join part_numbers p on (b.id=p.bodypart)
-        where deletable='t');
-
-  Finally it readies the database for the next crontab run:
-
-    update bodyparts set deletable='t' where id in (
-      select id from bodyparts b left join part_numbers p on (b.id=p.bodypart)
-        where bodypart is null and deletable='f');
-
-  No mailbox lock required.
-
-
 We need mUTF-7 support.
 
 
@@ -647,8 +532,9 @@ We should be able to use a read-only local database mirror.
 
 canonical and deliver need severe cleaning up.
 
-
-Write a valgrind skin that should help us to diagnose memory abuse.
+  In fact, maybe deliver needs to die. aoximport takes over most of
+  the job, and the rest is often best not done. We don't want to have
+  fetchmail-like bugs.
 
 
 Read the GiST papers and look at tsearch2 again.
@@ -728,15 +614,6 @@ The IMAP SORT extension seems really easy
   Interacts with ANNOTATE.
 
 
-String allocation is about half as fast as it could be
-
-  String and StringData are allocated independently. String could
-  override the allocation method and allocate sizeof( String ) +
-  sizeof( StringData ), and then forcibly set d.
-
-  The same applies to other classes which we instantiate very often.
-
-
 Something like soft-bounce might just be useful
 
   enabled: smtp/lmtp always give 4xx errors. disabled: either 4xx or
@@ -763,21 +640,6 @@ recognising spam
 
   We can connect to a local server to ask whether a message is spam.
   They seem to work that way, but with n different protocols.
-
-
-predictive db fetching
-
-  This change adds a hack to imapd/handlers/fetch.cpp, to defeat
-  pessimal clients like thunderbird.
-
-  It's inchoate.
-
-  It seems to me that the proper way would be to record something in
-  MessageFetcher and extend fetches there. For example, keep a cache
-  of (fetch type, mailbox, uid, uid range) tuples. Each fetch creates
-  one such tuple. If the fetch includes the uid, it's expanded by the
-  uid range. If the fetch is not predicted by any tuple, add a new
-  tuple for the n UIDs following the highest requested UID.
 
 
 Replace Mailbox::isHome with something correct.
@@ -878,9 +740,6 @@ Fix shutdown
   is another aspect of the problem above.
 
 
-Resource limits on memory allocation
-
-
 Logging to syslog
 
   logfile=syslog:local2 could mean "log to syslog with the local2
@@ -924,33 +783,6 @@ Rendering webmail HTML is presumably good, but...
 
   Two I saw today: http://www.sec-consult.com/232.html and
   http://www.sec-consult.com/233.html
-
-
-Making injection faster.
-
-  If we use a separate transaction to acquire the UID, then we hold
-  the mailbox lock for (how much?) less time.
-
-  We hold the lock MUCH shorter. Just enough to 'select x for update',
-  'update x' and commit, which is pretty close to the shortest possible
-  database transaction.
-
-  Pro: Injection can use 100% of the database server. It's no longer a
-  bottleneck. If the database server has 16 CPUs, then we can use 16 CPUs
-  for whatever load we have. No locks can cause CPUs to sit around
-  waiting (almost).
-
-  Contra: For a short while, uidnext has moved but the message has not
-  appeared in the database. In that time, the imapd can currently infer
-  that the message has existed and been expunged, which sits badly with
-  imap caching semantics. But I think we can deal with that, e.g. by
-  saying that ocd is updated last, and a lower value seen via ocd wins
-  over a higher value in the database. Something like that.
-
-  A note to the note: If we use full-text indexing and inject
-  bodyparts before the start of the transaction (ie. not using
-  savepoints), then we'll be able to load the db server nicely just by
-  injecting bodyparts.
 
 
 When TlsServer dies, imaps (993) must go away
