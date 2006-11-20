@@ -880,14 +880,14 @@ void Header::fix8BitFields( class Codec * c )
                 UString u = c->toUnicode( v );
                 if ( c->wellformed() ) {
                     String s( utf8.fromUnicode( u ) );
-                    f->setData( HeaderField::encodeText( s ) );
+                    f->parse( HeaderField::encodeText( s ) );
                 }
                 else if ( f->type() == HeaderField::Other ) {
                     d->fields.remove( f );
                 }
                 else if ( f->type() == HeaderField::Subject ) {
                     String s( utf8.fromUnicode( u ) );
-                    f->setData( HeaderField::encodeText( s ) );
+                    f->parse( HeaderField::encodeText( s ) );
                 }
                 else if ( d->error.isEmpty() ) {
                     d->error = "Cannot parse header field " + f->name() +
