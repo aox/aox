@@ -743,7 +743,7 @@ void Search::sendEsearchResponse()
             uid = s->msn( uid ); // ick
         result.append( fn( uid ) );
     }
-    if ( d->returnAll ) {
+    if ( d->returnAll && !d->matches.isEmpty() ) {
         result.append( " all " );
         if ( d->uid ) {
             result.append( d->matches.set() );
