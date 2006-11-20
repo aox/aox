@@ -29,6 +29,7 @@ protected:
 
     void sendSearchResponse();
     void sendEsearchResponse();
+    void sendResponse();
 
 private:
     void push( Selector::Action );

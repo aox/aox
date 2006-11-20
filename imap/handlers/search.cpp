@@ -70,6 +70,10 @@ public:
     Searches are first run against the RAM cache, rudimentarily. If
     the comparison is difficult, expensive or unsuccessful, it gives
     up and uses the database.
+
+    If ESEARCH with only MIN, only MAX or only COUNT is used, we could
+    generate better SQL than we do. Let's do that optimisation when a
+    client benefits from it.
 */
 
 
@@ -99,7 +103,8 @@ void Search::parse()
         space();
         require( "(" );
         bool any = false;
-        while ( ok() && nextChar() >= 'A' && nextChar() <= 'z' ) {
+        while ( ok() && nextChar() != ')' &&
+                nextChar() >= 'A' && nextChar() <= 'z' ) {
             String modifier = letters( 3, 5 ).lower();
             any = true;
             if ( modifier == "all" )
@@ -112,11 +117,13 @@ void Search::parse()
                 d->returnCount = true;
             else
                 error( Bad, "Unknown search modifier option: " + modifier );
-            space();
+            if ( nextChar() != ')' )
+                space();
         }
         require( ")" );
         if ( !any )
             d->returnAll = true;
+        space();
     }
     parseKey( true );
     if ( !d->charset.isEmpty() ) {
@@ -407,7 +414,7 @@ void Search::execute()
         }
         considerCache();
         if ( d->done ) {
-            sendSearchResponse();
+            sendResponse();
             finish();
             return;
         }
@@ -463,13 +470,7 @@ void Search::execute()
         }
     }
 
-    if ( d->returnAll ||
-         d->returnMax ||
-         d->returnMin ||
-         d->returnCount )
-        sendEsearchResponse();
-    else
-        sendSearchResponse();
+    sendResponse();
     finish();
 }
 
@@ -717,9 +718,7 @@ static uint max( uint a, uint b )
 }
 
 
-/*! Sends the ESEARCH response. Do we need something that spans this
-    and sendSearchResponse() and chooses the right one? Not for the
-    moment?
+/*! Sends the ESEARCH response.
 */
 
 void Search::sendEsearchResponse()
@@ -730,14 +729,14 @@ void Search::sendEsearchResponse()
         result.append( " count " );
         result.append( fn( d->matches.count() ) );
     }
-    if ( d->returnMin ) {
+    if ( d->returnMin && !d->matches.isEmpty() ) {
         result.append( " min " );
         uint uid = d->matches.value( 1 );
         if ( !d->uid )
             uid = s->msn( uid ); // ick
         result.append( fn( uid ) );
     }
-    if ( d->returnMax ) {
+    if ( d->returnMax && !d->matches.isEmpty() ) {
         result.append( " max " );
         uint uid = d->matches.value( d->matches.count() );
         if ( !d->uid )
@@ -760,7 +759,7 @@ void Search::sendEsearchResponse()
             result.append( msns.set() );
         }
     }
-    if ( d->root->modseqReturned() ) {
+    if ( d->root->modseqReturned() && !d->matches.isEmpty() ) {
         result.append( " modseq " );
         if ( d->returnAll || d->returnCount )
             result.append( fn( d->highestmodseq ) );
@@ -774,4 +773,20 @@ void Search::sendEsearchResponse()
             result.append( "1" ); // should not happen
     }
     respond( result );
+}
+
+
+/*! Calls either sendSearchResponse or sendEsearchResponse(),
+    whichever is appropriate.
+*/
+
+void Search::sendResponse()
+{
+    if ( d->returnAll ||
+         d->returnMax ||
+         d->returnMin ||
+         d->returnCount )
+        sendEsearchResponse();
+    else
+        sendSearchResponse();
 }
