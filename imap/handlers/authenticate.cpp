@@ -2,10 +2,11 @@
 
 #include "authenticate.h"
 
+#include "imap.h"
 #include "scope.h"
 #include "buffer.h"
-#include "imap.h"
 #include "mechanism.h"
+#include "capability.h"
 
 
 /*! \class Authenticate authenticate.h
@@ -131,6 +132,7 @@ void Authenticate::execute()
         error( No, "sorry" );
 
     imap()->reserve( 0 );
+    setRespTextCode( Capability::capabilities( imap() ) );
     finish();
 }
 

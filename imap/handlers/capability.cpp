@@ -12,7 +12,7 @@
 
 
 /*! \class Capability capability.h
-    Announces supported features (RFC 3501 section 6.1.1)
+    Announces supported features (RFC 3501 section 6.1.1).
 
     We announce the following standard capabilities:
 
@@ -41,52 +41,70 @@
 
 void Capability::execute()
 {
-    respond( "CAPABILITY " + capabilities( imap() ) );
+    respond( "CAPABILITY " + capabilities( imap(), true ) );
     finish();
 }
 
 
-/*! Returns all capabilities that are applicable to \a i.*/
+/*! Returns all capabilities that are applicable to \a i. If \a all is
+    specified and true, the list includes capabilities that are not
+    applicable to the current IMAP::state().
+*/
 
-String Capability::capabilities( IMAP * i )
+String Capability::capabilities( IMAP * i, bool all )
 {
     bool drafts = Configuration::toggle( Configuration::AnnounceDraftSupport );
     StringList c;
 
     c.append( "IMAP4rev1" );
 
+    bool login = true;
+    if ( i->state() == IMAP::NotAuthenticated )
+        login = false;
+
     // the remainder of the capabilities are kept sorted by name
 
     // ugly X-DRAFT prefixes are disregarded when sorting by name
 
-    c.append( SaslMechanism::allowedMechanisms( "AUTH=", i->hasTls() ) );
+    if ( all || !login )
+        c.append( SaslMechanism::allowedMechanisms( "AUTH=", i->hasTls() ) );
 
-    c.append( "ACL" );
-    c.append( "ANNOTATE" );
-    c.append( "BINARY" );
-    c.append( "CATENATE" );
-    c.append( "CHILDREN" );
+    if ( all || login ) {
+        c.append( "ACL" );
+        c.append( "ANNOTATE" );
+        c.append( "BINARY" );
+        c.append( "CATENATE" );
+        c.append( "CHILDREN" );
+    }
+    // should we advertise COMPRESS only if not compressed?
     c.append( "COMPRESS=DEFLATE" );
-    c.append( "CONDSTORE" );
+    if ( all || login )
+        c.append( "CONDSTORE" );
     c.append( "ID" );
-    c.append( "IDLE" );
-    if ( drafts )
+    if ( all || login )
+        c.append( "IDLE" );
+    if ( drafts && ( all || login ) )
         c.append( "X-DRAFT-W13-LISTEXT" );
     c.append( "LITERAL+" );
-    if ( !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )
+    if ( ( all || !login ) && 
+         !SaslMechanism::allowed( SaslMechanism::Plain, i->hasTls() ) )
         c.append( "LOGINDISABLED" );
-    c.append( "NAMESPACE" );
+    if ( all || login )
+        c.append( "NAMESPACE" );
     if ( drafts )
         c.append( "POSTADDRESS" );
-    c.append( "RIGHTS=ekntx" );
-    if ( drafts )
+    if ( all || login )
+        c.append( "RIGHTS=ekntx" );
+    if ( drafts && ( all || !login ) )
         c.append( "SASL-IR" );
     if ( TlsServer::available() && !i->hasTls() )
         c.append( "STARTTLS" );
-    c.append( "UIDPLUS" );
-    c.append( "UNSELECT" );
-    c.append( "URLAUTH" );
-    if ( drafts )
+    if ( all || login ) {
+        c.append( "UIDPLUS" );
+        c.append( "UNSELECT" );
+        c.append( "URLAUTH" );
+    }
+    if ( drafts && ( all || login ) )
         c.append( "VIEW" );
 
     return c.join( " " );

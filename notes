@@ -980,6 +980,8 @@ Todo list: AMS
     update on mailstore from aox.
   - Restart Postgres while we're running, and see what happens. We
     should be able to cope with that gracefully, but we don't.
+  - Add some test cases and so on so problems aren't only recorded in
+    an "owned by AMS" list.
   - We seem to be mangling Tom Simnett's PGP-signed email. Get him to
     send something to ams@toroid.org and make a canonical test case.
   - Use Ethereal to snoop on Thunderbird talking to OpenLDAP to query
@@ -988,6 +990,3 @@ Todo list: AMS
   - DIGEST-MD5 reauth doesn't work for Dave.
   - Alexey suggest that we resend CAPABILITY after LOGIN.
   - Date::valid doesn't reject February 29th 2007.
-
-
-

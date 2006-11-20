@@ -2,6 +2,7 @@
 
 #include "login.h"
 
+#include "capability.h"
 #include "imap.h"
 
 
@@ -60,6 +61,8 @@ void Login::execute()
         imap()->authenticated( m->user() );
     else
         error( No, "LOGIN failed for '" + n + "'" );
+
+    setRespTextCode( Capability::capabilities( imap() ) );
 
     finish();
 }

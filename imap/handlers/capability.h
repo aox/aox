@@ -12,7 +12,7 @@ class Capability
 public:
     void execute();
 
-    static String capabilities( IMAP * );
+    static String capabilities( IMAP *, bool = false );
 };
 
 
