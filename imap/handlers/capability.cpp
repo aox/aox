@@ -93,8 +93,6 @@ String Capability::capabilities( IMAP * i, bool all )
         c.append( "LOGINDISABLED" );
     if ( all || login )
         c.append( "NAMESPACE" );
-    if ( drafts )
-        c.append( "POSTADDRESS" );
     if ( all || login )
         c.append( "RIGHTS=ekntx" );
     if ( drafts && ( all || !login ) )

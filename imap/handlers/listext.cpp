@@ -18,20 +18,15 @@ public:
     ListextData():
         selectQuery( 0 ),
         subscribed( 0 ),
-        postAddressQuery( 0 ),
-        postAddresses( 0 ),
         reference( 0 ),
         extended( false ),
         returnSubscribed( false ), returnChildren( false ),
-        returnPostAddress( false ),
         selectSubscribed( false ), selectRemote( false ),
         selectRecursiveMatch( false )
     {}
 
     Query * selectQuery;
     List<Mailbox> * subscribed;
-    Query * postAddressQuery;
-    Map<Address> * postAddresses;
     Mailbox * reference;
     String referenceName;
     StringList patterns;
@@ -39,7 +34,6 @@ public:
     bool extended;
     bool returnSubscribed;
     bool returnChildren;
-    bool returnPostAddress;
     bool selectSubscribed;
     bool selectRemote;
     bool selectRecursiveMatch;
@@ -128,11 +122,8 @@ void Listext::parse()
 
     if ( d->returnSubscribed )
         d->subscribed = new List<Mailbox>;
-
-    if ( d->returnPostAddress )
-        d->postAddresses = new Map<Address>;
-
-    if ( ok() )
+ 
+   if ( ok() )
         log( "List " + d->reference->name() + " " + d->patterns.join( " " ) );
 }
 
@@ -150,23 +141,6 @@ void Listext::execute()
         while ( (r=d->selectQuery->nextRow()) != 0 )
             d->subscribed->append( Mailbox::find( r->getInt( "mailbox" ) ) );
     }
-    if ( d->returnPostAddress ) {
-        if ( !d->postAddressQuery ) {
-            d->postAddressQuery
-                = new Query( "select a.localpart, a.domain, al.mailbox "
-                             "from addresses a, aliases al "
-                             "where a.id = al.address",
-                             this );
-            d->postAddressQuery->execute();
-        }
-        Row * r = 0;
-        while ( (r=d->postAddressQuery->nextRow()) != 0 ) {
-            Address * a = new Address( "", r->getString( "localpart" ),
-                                       r->getString( "domain" ) );
-            uint mailbox = r->getInt( "mailbox" );
-            d->postAddresses->insert( mailbox, a );
-        }
-    }
 
     if ( d->selectQuery ) {
         if ( !d->selectQuery->done() )
@@ -174,13 +148,6 @@ void Listext::execute()
         if ( d->selectQuery->failed() )
             respond( "* NO Unable to get list of selected mailboxes: " +
                      d->selectQuery->error() );
-    }
-    if ( d->postAddressQuery ) {
-        if ( !d->postAddressQuery->done() )
-            return;
-        if ( d->postAddressQuery->failed() )
-            respond( "* NO Unable to get list of inboxes: " +
-                     d->postAddressQuery->error() );
     }
 
     StringList::Iterator it( d->patterns );
@@ -207,8 +174,6 @@ void Listext::addReturnOption( const String & option )
         d->returnSubscribed = true;
     else if ( option == "children" )
         d->returnChildren = true;
-    else if ( option == "postaddress" )
-        d->returnPostAddress = true;
     else
         error( Bad, "Unknown return option: " + option );
 }
@@ -404,11 +369,6 @@ void Listext::sendListResponse( Mailbox * mailbox )
         }
     }
 
-    // postaddress, on the other hand, is distinctly easy
-    Address * postAddress = 0;
-    if ( d->postAddresses )
-        postAddress = d->postAddresses->find( mailbox->id() );
-
     String name = mailbox->name();
     String refName = d->reference->name();
     if ( !refName.endsWith( "/" ) )
@@ -418,17 +378,10 @@ void Listext::sendListResponse( Mailbox * mailbox )
     name = imapQuoted( name, AString );
 
     String ext = "";
-    if ( childSubscribed || d->returnPostAddress ) {
+    if ( childSubscribed ) {
         ext = " (";
         if ( childSubscribed )
             ext.append( "(\"childinfo\" (\"subscribed\"))" );
-        if ( !d->returnPostAddress )
-            ; // don't return postaddress information
-        else if ( postAddress )
-            ext.append( "(\"postaddress\" " +
-                        imapQuoted( postAddress->toString(), NString ) + ")" );
-        else
-            ext.append( "(\"postaddress\" NIL)" );
         ext.append( ")" );
     }
 
