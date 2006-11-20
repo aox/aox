@@ -533,7 +533,8 @@ Bodypart * Bodypart::parseBodypart( uint start, uint end,
     ContentTransferEncoding * cte = h->contentTransferEncoding();
     if ( cte )
         e = cte->encoding();
-    body = body.crlf().decode( e );
+    if ( !body.isEmpty() )
+        body = body.crlf().decode( e );
 
     ContentType * ct = h->contentType();
     if ( !ct ) {
