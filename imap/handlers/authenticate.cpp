@@ -132,7 +132,7 @@ void Authenticate::execute()
         error( No, "sorry" );
 
     imap()->reserve( 0 );
-    setRespTextCode( Capability::capabilities( imap() ) );
+    setRespTextCode( "CAPABILITY " + Capability::capabilities( imap() ) );
     finish();
 }
 

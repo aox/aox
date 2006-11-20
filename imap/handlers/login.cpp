@@ -62,7 +62,7 @@ void Login::execute()
     else
         error( No, "LOGIN failed for '" + n + "'" );
 
-    setRespTextCode( Capability::capabilities( imap() ) );
+    setRespTextCode( "CAPABILITY " + Capability::capabilities( imap() ) );
 
     finish();
 }
