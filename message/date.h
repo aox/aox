@@ -30,6 +30,7 @@ public:
                   uint, int );
 
     bool valid() const;
+    void checkHarder();
 
 private:
     class DateData * d;

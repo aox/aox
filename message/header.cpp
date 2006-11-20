@@ -665,10 +665,13 @@ void Header::repair( Multipart * p )
         ++i;
     }
 
-    // If there is no Date field and this is an RFC822 header, we look
-    // for a sensible date.
+    // If there is no valid Date field and this is an RFC822 header,
+    // we look for a sensible date.
     
-    if ( occurrences[(int)HeaderField::Date] == 0 && mode() == Rfc2822 ) {
+    if ( mode() == Rfc2822 &&
+         ( occurrences[(int)HeaderField::Date] == 0 ||
+           !field( HeaderField::Date )->parsed() ||
+           !date()->valid() ) ) {
         List< HeaderField >::Iterator it( d->fields );
         Date date;
         while ( it ) {
@@ -697,12 +700,23 @@ void Header::repair( Multipart * p )
                 date = *parent->header()->date();
         }
 
-        if ( !date.valid() ) {
-            // As last resort, use the current date, time and timezone.
+        if ( !date.valid() &&
+             occurrences[(int)HeaderField::Date] == 0 ) {
+            // As last resort, use the current date, time and
+            // timezone.  Only do this if there isn't a date field. If
+            // there is one, we'll reject the message (at least for
+            // now) since this happens only for submission in
+            // practice.
             date.setCurrentTime();
         }
 
-        add( "Date", date.rfc822() );
+        if ( date.valid() ) {
+            HeaderField * df = field( HeaderField::Date );
+            if ( df )
+                df->parse( date.rfc822() );
+            else
+                add( "Date", date.rfc822() );
+        }
     }
 
     // If there is no From field, try to use either Return-Path or

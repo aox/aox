@@ -39,11 +39,12 @@ public:
 
 /*! \class Date date.h
 
-The Date class contains a date, with attendant time and timezeone.
+    The Date class contains a date, with attendant time and timezeone.
 
-It can parse RFC 822 format dates, as well as encode dates in rfc822,
-imap and ISO-8601 formats. It cannot change itself or interact with
-other dates: This is meant purely as decode-and-store class.
+    It can parse RFC 822 format dates, as well as encode dates in
+    rfc822, imap and ISO-8601 formats. It cannot change itself or
+    interact with other dates: This is meant purely as
+    parse-and-store class.
 */
 
 
@@ -530,6 +531,9 @@ void Date::setRfc822( const String & s )
     }
 
     d->valid = true;
+    checkHarder();
+    if ( !d->valid )
+        return;
 
     if ( d->tz < 14*60 && d->tz >-14*60 )
         return; // fine.
@@ -688,6 +692,7 @@ void Date::setDate( uint year, uint month, uint day,
          d->second <= 60 && d->minute <= 59 && d->hour <= 23 &&
          d->day <= 31 && d->hour >= 0 )
         d->valid = true;
+    checkHarder();
 }
 
 
@@ -784,4 +789,45 @@ String Date::isoDateTime() const
     r.append( ":" );
     r.append( zeroPrefixed( tz%60, 2 ) );
     return r;
+}
+
+
+/*! Checks that a presumably valid date really is. Flags November 31
+    as invalid, all dates before 1900 ditto, etc, etc.
+*/
+
+void Date::checkHarder()
+{
+    if ( !d->valid )
+        return;
+
+    // simple code for the simple cases
+    if ( d->year < 1600 )
+        d->valid = false;
+    else if ( d->day > 30 &&
+              ( d->month ==  4 || // april
+                d->month ==  6 || // june
+                d->month ==  9 || // september
+                d->month == 11 )) // november
+        d->valid = false;
+    else if ( d->month == 2 && d->day > 29 )
+        d->valid = false;
+
+    if ( d->month != 2 || d->day < 29 || !d->valid )
+        return;
+
+    // leap years, valid from 1900 to whenever
+    if ( ( d->year % 400 ) == 0 ) {
+        // ok, is a leap year
+    }
+    else if ( ( d->year % 100 ) == 0 ) {
+        // is not a leap year
+        d->valid = false;
+    }
+    else if ( ( d->year % 4 ) == 0 ) {
+        // ok, is a leap year
+    }
+    else {
+        d->valid = false;
+    }
 }
