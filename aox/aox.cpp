@@ -1077,7 +1077,7 @@ public:
         }
 
         if ( q->done() ) {
-            printf( "  (Loaded %d addresses into cache.)\n", q->rows() );
+            printf( "  Loaded %d addresses into cache.\n", q->rows() );
             owner->execute();
         }
     }
@@ -1247,7 +1247,7 @@ void updateDatabase()
                 Id * m = it;
 
                 if ( d->state == 2 ) {
-                    printf( "  Processing %s\n", m->name.cstr() );
+                    printf( "- Processing %s\n", m->name.cstr() );
                     d->state = 3;
                     d->t = new Transaction( d );
                     d->parsers = new Dict<AddressParser>( 1000 );
@@ -1316,7 +1316,7 @@ void updateDatabase()
                                     d->conversions );
                         d->conversions = 0;
                         if ( !d->unknownAddresses->isEmpty() )
-                            printf( "  Looking up %d addresses.\n",
+                            printf( "  Looking up %d more addresses.\n",
                                     d->unknownAddresses->count() );
                         d->cacheLookup =
                             AddressCache::lookup( d->t, d->unknownAddresses,
@@ -1346,8 +1346,8 @@ void updateDatabase()
                     }
 
                     if ( d->conversions )
-                        printf( "  Converted %d address fields.\n",
-                                d->conversions );
+                        printf( "  Converted %d address fields on the "
+                                "second attempt.\n", d->conversions );
                     d->conversions = 0;
                     d->state = 6;
                 }
