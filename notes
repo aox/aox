@@ -20,7 +20,7 @@ Arnt in Delhi
   Deliver submitted mail to a smarthost. We've done most of the hard
   work, we just need to complete it.
 
-  Implement ESEARCH (RFC 4731). Done, but not tested.
+  Implement ESEARCH (RFC 4731). Done.
 
   aox reinject and schema 34.
 
@@ -227,7 +227,9 @@ Bounces and DSNs
 Memory use for common operations
 
   Some use _vastly_ too much memory. I saw a single IMAP FETCH for a
-  mere 4200 messages use 173MB yesterday.
+  mere 4200 messages use 173MB yesterday. (Later note: This should be
+  gone, gone, gone, but it would still be good to check that these
+  problems don't reappear, reappear, reappear.)
 
   The most elegant way to solve that would be to supervise memory
   usage for a known sequence. Inject these ten thousand messages,
@@ -912,21 +914,6 @@ BURL
   part needs encoding. Or else switch to a different body.
 
 
-URLAUTH (RFC 4467)
-
-  - URLAUTH capability.
-  - Per-user and per-mailbox randomly-generated access keys stored
-    in a new table. (128 bits of entropy (?))
-  - Authorization token: 128+ bits (should identify token-selection
-    mechanism).
-  - We need SHA-1 code (cryptlib has some).
-  - How do we handle expiry dates? Another table?
-  - We need an IMAP URL parser.
-  - RESETKEY
-  - GENURLAUTH
-  - URLFETCH
-
-
 RFC 4616
 
   Does this need any changes to our code? No? -- Arnt
@@ -949,11 +936,23 @@ tlsproxy needs better diagnostics
   - We should regenerate the automatic-key.p15 if we find that the
     existing key's CN doesn't match our current hostname.
 
+  (Who is Primer?)
+
+
+NOTIFY implementation
+
+  Implement NOTIFY after revision -04 of the draft.
+
+  We can also autodetect client smarts: If we haven't sent any
+  unsolicited EXISTS, we just send one, and if the client reacts to
+  that, we can send more. Sounds difficult to explain but I suspect
+  the implementation will be less than five lines of code over and
+  above NOTIFY.
+
 
 Arnt's IETF action items:
 
   - publish imap-i18n
-  - implement esearch
   - notify-02
 
 
