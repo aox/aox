@@ -748,7 +748,8 @@ void Injector::buildLinksForHeader( Header *hdr, const String &part )
         if ( hf->type() >= HeaderField::Other )
             d->otherFields->append( new String ( hf->name() ) );
 
-        d->fieldLinks->append( link );
+        if ( t > HeaderField::LastAddressField )
+            d->fieldLinks->append( link );
 
         if ( part.isEmpty() && hf->type() == HeaderField::Date )
             d->dateLinks->append( link );
