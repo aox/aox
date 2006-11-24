@@ -1163,7 +1163,7 @@ void updateDatabase()
                 "(mailbox,uid,part,position,field) in "
                 "(select mailbox,uid,part,position,field from address_fields"
                 " where mailbox=$1 group by mailbox,uid,part,position,field"
-                " having count(number)=0))"
+                " having count(*)<>count(number)))"
             );
         Allocator::addEternal( fetchValues, "fetchValues" );
 
