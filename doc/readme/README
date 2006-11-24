@@ -73,6 +73,12 @@ Here's a brief overview:
    LMTP (or via bin/deliver, if your MTA doesn't speak LMTP). See, e.g.
    http://www.archiveopteryx.org/postfix.html and exim.html for details.
 
+7. Add an entry to root's crontab to run "aox vacuum" daily. Remember to
+   enable PostgreSQL's "autovacuum" feature too (strongly recommended),
+   or at least to run "vacuumdb -qaz" from the postgres user's crontab.
+   You'll also need to adjust the memory settings in postgresql.conf
+   (shared_buffers, effective_cache_size) for better performance.
+
 
 Mailing Lists
 -------------
