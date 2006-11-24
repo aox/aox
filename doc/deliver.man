@@ -9,7 +9,7 @@ deliver - deliver mail into Archiveopteryx.
 .PP
 The
 .B deliver
-program injects a single mail message in RFC-822 format into Oryx
+program injects a single mail message in RFC-822 format into
 Archiveopteryx.
 .PP
 It connects to Archiveopteryx's LMTP server and delivers the message

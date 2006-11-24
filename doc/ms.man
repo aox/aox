@@ -30,14 +30,14 @@ See the
 man page for more information.
 .SH COMMANDS
 .IP "aox start [-v]"
-Starts the Oryx servers in the correct order.
+Starts the Archiveopteryx servers in the correct order.
 .IP "aox stop [-v]"
-Stops the running Oryx servers in the correct order.
+Stops the running Archiveopteryx servers in the correct order.
 .IP "aox restart [-v]"
 Restarts the servers in the correct order (currently equivalent to start
 && stop).
 .IP "aox show status [-v]"
-Displays a summary of the running Oryx servers.
+Displays a summary of the running Archiveopteryx servers.
 .IP "aox show configuration [-p -v] [variable-name]"
 Displays variables configured in
 .IR archiveopteryx.conf .
