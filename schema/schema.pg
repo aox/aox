@@ -186,9 +186,9 @@ create table address_fields (
     field       integer not null,
     number      integer,
     address     integer not null references addresses(id),
-    foreign key (mailbox, uid, part, position, field)
-                references header_fields(mailbox, uid, part,
-                position, field) on delete cascade
+    foreign key (mailbox,uid,part)
+                references part_numbers (mailbox,uid,part)
+                on delete cascade
 );
 create index af_mu on address_fields (mailbox, uid);
 
