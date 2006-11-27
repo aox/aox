@@ -382,13 +382,6 @@ The default is
 .IR disabled 
 since version 1.0, since these drafts can change without notice, and 1.0
 cannot.
-.IP obliteration-password
-is empty by default and should remain so. Setting any other value
-enables the x-obliterate IMAP command, which is a really good way to
-delete all the mail. x-obliterate is very useful for testing and
-very, very dangerous in production.
-.B Do not enable it
-without discussing the issue with info@oryx.com.
 .SS POP
 .IP use-pop
 must be enabled for
