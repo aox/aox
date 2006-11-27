@@ -14,6 +14,10 @@ Arnt in Delhi
   Edit the 'aox operations guide' blah and make titles and names for
   lots of web pages.
 
+  The VoF list needs discussion. I'd like to have the next eight monts
+  fairly clear, so we'll move aox towards a clear, good, desirable
+  vision.
+
 
 1.14: 2007-01-15
 
@@ -948,12 +952,6 @@ NOTIFY implementation
   that, we can send more. Sounds difficult to explain but I suspect
   the implementation will be less than five lines of code over and
   above NOTIFY.
-
-
-Arnt's IETF action items:
-
-  - publish imap-i18n
-  - notify-02
 
 
 Todo list: AMS
