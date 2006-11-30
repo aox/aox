@@ -121,6 +121,12 @@ The value of features
   term we also need to help existing users).
 
 
+aoximport doesn't setInternalDate
+
+
+make clean doesn't work (falls over deleting doc/man)
+
+
 Undefined codepoints
 
   When a codec encounters an undefined codepoint, it should substitute
