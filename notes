@@ -87,6 +87,46 @@ Things we didn't do in 1.10-1.15:
   LDAP AB? Webmail?
 
 
+Webmail design
+
+  HTTP has a list of registered page handler functions. It uses a
+  somewhat complex parser to tie the URL to a handler. For example,
+  one handler class has registered (webmail prefix, mailbox name, uid,
+  part number) and is responsible for handling URLs that can be parsed
+  as such.
+
+  Each handler function instantiates a WebPage (not a subclass),
+  adds some PageComponents to it, and returns that WebPage.
+
+  A WebPage has a list of PageComponents, each of which must be able
+  to represent itself, and the WebPage glues them together. Each
+  PageComponent has a set of required PageFrontMatter objects, and the
+  WebPage makes a union set and adds the necessary front matter.
+
+  A PageComponent may also need to have some PageBlock, but I don't
+  know whether we need that.
+
+  So, to generate a web page, the HTTP class picks the URL apart (a
+  difficult job) and matches it to a handler. The handler creates a
+  WebPage and some objects of various PageComponent subclasses,
+  e.g. HtmlMessageRenderer, HtmlMailboxView, whatever. The WebPage
+  waits until each of the PageComponent (subclass) objects is ready to
+  render itself, then looks at each component's declared front matter,
+  then emits:
+
+    - <!doctype> etc
+    - front matter (e.g. code to pull in style sheets of javascripts)
+      in the head tag
+    - body tag and a little more to start
+    - each page component
+    - </body></html>
+
+  This is good.
+
+  PageBlock would be necessary in case some components cannot be
+  directly below <body>...</body>.
+
+
 Release cycle
 
   Five weeks, t-35 to t (a Monday).
