@@ -4,6 +4,7 @@
 
 #include "imapurlfetcher.h"
 #include "configuration.h"
+#include "addressfield.h"
 #include "transaction.h"
 #include "stringlist.h"
 #include "recipient.h"
@@ -962,6 +963,24 @@ void SMTP::inject()
 
     Message * m = new Message( rp + received + d->body );
     m->setInternalDate( now.unixTime() );
+    // if the sender is another dickhead specifying <> in From to
+    // evade replies, let's try harder.
+    if ( !m->error().isEmpty() && d->from->type() == Address::Normal ) {
+        List<Address> * from = m->header()->addresses( HeaderField::From );
+        if ( from->count() == 1 && from->first()->type() == Address::Bounce ) {
+            Header * h = m->header();
+            AddressField * old = h->addressField( HeaderField::From );
+            Address * a = new Address( from->first()->name(),
+                                       d->from->localpart(),
+                                       d->from->domain() );
+            HeaderField * hf = HeaderField::create( "From", a->toString() );
+            hf->setPosition( old->position() );
+            h->removeField( HeaderField::From );
+            h->add( hf );
+            h->repair( m );
+            m->recomputeError();
+        }
+    }
     // if we're delivering remotely, we'd better do some of the
     // chores from RFC 4409.
     if ( d->protocol != "lmtp" ) {
@@ -973,7 +992,7 @@ void SMTP::inject()
             MD5 x;
             x.add( d->body );
             h->add( "Message-Id",
-                    "<" + x.hash().e64().mid( 0, 21 ) + ".md5@" + 
+                    "<" + x.hash().e64().mid( 0, 21 ) + ".md5@" +
                     Configuration::hostname() + ">" );
         }
         // specify a sender if a) we know who the sender is, b) from

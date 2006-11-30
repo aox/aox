@@ -108,6 +108,21 @@ Message::Message( const String & rfc2822, Multipart * p )
 
     fix8BitHeaderFields();
 
+    String e = d->error;
+    recomputeError();
+    if ( d->error.isEmpty() )
+        d->error = e;
+}
+
+
+/*! Asks each Header and Bodypart for error information, and sets a
+    suitable error() message for the entire Message. Clears error() if
+    no Header or Bodypart has an error.
+*/
+
+void Message::recomputeError()
+{
+    d->error.truncate();
     if ( !header()->valid() ) {
         d->error = header()->error();
         return;
@@ -198,8 +213,8 @@ Header * Message::parseHeader( uint & i, uint end,
     while ( !done ) {
         if ( i >= end )
             done = true;
-        if ( rfc2822[i] == 0xEF && 
-             rfc2822[i+1] == 0xBB && 
+        if ( rfc2822[i] == 0xEF &&
+             rfc2822[i+1] == 0xBB &&
              rfc2822[i+2] == 0xBF )
             i += 3;
         uint j = i;
@@ -819,7 +834,7 @@ String Message::acceptableBoundary( const String & parts )
         r.append( boundaryChars[i] );
         return r;
     }
-    
+
     // in the all too likely case that some unfriendly soul tries
     // to attack us, we'd better have some alternative plan,
     // e.g. a string containing eight random base64 characters.
@@ -929,7 +944,7 @@ Message * Message::wrapUnparsableMessage( const String & message,
     addField( wrapper, "Cc", message );
     addField( wrapper, "References", message );
     addField( wrapper, "In-Reply-To", message );
-        
+
     wrapper.append( "MIME-Version: 1.0\r\n"
                     "Content-Type: multipart/mixed; boundary=\"" +
                     boundary + "\"\r\n"

@@ -24,6 +24,7 @@ public:
 
     bool valid() const;
     String error() const;
+    void recomputeError();
 
     String rfc822() const;
     String body() const;
