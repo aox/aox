@@ -2113,7 +2113,7 @@ void vacuum()
                          "where (mailbox,uid) in "
                          "(select mailbox,uid from deleted_messages "
                          "where deleted_at<current_timestamp-'" +
-                         to + " days'::interval)", 0 );
+                         to + " days'::interval)", d );
         d->query->execute();
     }
 
