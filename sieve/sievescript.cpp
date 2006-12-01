@@ -343,6 +343,17 @@ public:
 };
 
 
+template<class T>
+SieveScriptData::Production * parseIfPresent( SieveScriptData::Production *
+                                              mommy )
+{
+    SieveScriptData::Production * t = new T;
+    return t;
+}
+
+
+
+
 SieveScriptData::Production::Production( SieveScriptData * mothership,
                                          ::String name )
     : Garbage(), start( 0 ), mommy( 0 ), d( mothership ), n( name ),
