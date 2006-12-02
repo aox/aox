@@ -1,3 +1,32 @@
+The next eight months
+
+  - Message retention
+      User interface
+      Message identification
+      Logging changes to the message
+  - aoximport improvements
+  - Full text search
+  - More documentation
+      aox operations guide
+      best practice papers
+  - Better documentation
+  - VIEW improvements
+      INTHREAD
+      multi-mailbox searches
+      miscellaneous
+  - Account management
+      ACL management
+      VIEW management
+  - Recording the fate of outgoing mail
+  - Proper full-text searching
+  - Better exploratory search
+  - Useful webmail
+  - Address search
+      Web UI
+      IMAP X-extension
+      Exporting to addressbooks
+
+
 1.13: 2006-11-27
 
   Eliminate the header_fields that also exist as address_fields or
