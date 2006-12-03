@@ -188,6 +188,8 @@ static struct {
     { "tls-certificate", Configuration::TlsCertFile, "" },
     { "log-level", Configuration::LogLevel, "info" },
     { "logfile-mode", Configuration::LogfileMode, LOGFILEMODE },
+    { "archive-prefix", Configuration::ArchivePrefix, "" },
+    { "webmail-prefix", Configuration::WebmailPrefix, "/webmail" },
     { "favicon-url", Configuration::FaviconURL,
         "http://www.oryx.com/favicon.ico" },
     { "webmail-css-page", Configuration::WebmailCSS,

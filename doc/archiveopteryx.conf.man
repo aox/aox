@@ -422,6 +422,14 @@ accepts any hostname supplied by the server, and is
 .I enabled
 by default. Properly speaking, it would be better to disable this, but
 that would add complexity without giving anything in return.
+.IP archive-prefix
+is the common prefix for all URLs offering archive access to mailboxes
+via the web. These mailboxes must be readable by the anonymous user.
+The default value is empty.
+.IP webmail-prefix
+is the common prefix for all URLs offering authenticated webmail access
+to mailboxes via the web. The default value is
+.IR /webmail .
 .SS SIEVE
 .IP use-sieve
 controls whether or not the

@@ -87,6 +87,8 @@ public:
         TlsCertFile,
         LogLevel,
         LogfileMode,
+        ArchivePrefix,
+        WebmailPrefix,
         FaviconURL,
         WebmailCSS,
         WebmailJS,
