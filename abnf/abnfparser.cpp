@@ -3,6 +3,26 @@
 #include "abnfparser.h"
 
 
+class AbnfParserData
+    : public Garbage
+{
+public:
+    AbnfParserData( AbnfParserData * other = 0 )
+        : at( 0 ), next( 0 )
+    {
+        if ( other ) {
+            at = other->at;
+            next = other;
+        }
+    }
+
+    uint at;
+    String err;
+
+    AbnfParserData * next;
+};
+
+
 /*! \class AbnfParser abnfparser.h
     Provides simple functions to parse ABNF productions.
 
@@ -29,7 +49,7 @@
 /*! Constructs an AbnfParser for the String \a s. */
 
 AbnfParser::AbnfParser( const String & s )
-    : str( s ), at( 0 )
+    : str( s ), d( new AbnfParserData )
 {
 }
 
@@ -48,7 +68,7 @@ AbnfParser::~AbnfParser()
 
 bool AbnfParser::ok() const
 {
-    return err.isEmpty();
+    return d->err.isEmpty();
 }
 
 
@@ -59,7 +79,7 @@ bool AbnfParser::ok() const
 
 String AbnfParser::error() const
 {
-    return err;
+    return d->err;
 }
 
 
@@ -70,7 +90,7 @@ String AbnfParser::error() const
 
 void AbnfParser::setError( const String & s )
 {
-    err = s;
+    d->err = s;
 }
 
 
@@ -80,7 +100,7 @@ void AbnfParser::setError( const String & s )
 
 uint AbnfParser::pos() const
 {
-    return at;
+    return d->at;
 }
 
 
@@ -91,7 +111,7 @@ uint AbnfParser::pos() const
 
 char AbnfParser::nextChar() const
 {
-    return str[at];
+    return str[d->at];
 }
 
 
@@ -101,7 +121,7 @@ char AbnfParser::nextChar() const
 
 void AbnfParser::step( uint n )
 {
-    at += n;
+    d->at += n;
 }
 
 
@@ -116,7 +136,7 @@ bool AbnfParser::present( const String & s )
     if ( s.isEmpty() )
         return true;
 
-    String l = str.mid( at, s.length() ).lower();
+    String l = str.mid( d->at, s.length() ).lower();
     if ( l != s.lower() )
         return false;
 
@@ -234,7 +254,7 @@ void AbnfParser::end()
 
 const String AbnfParser::following() const
 {
-    return str.mid( at, 15 ).simplified();
+    return str.mid( d->at, 15 ).simplified();
 }
 
 
@@ -244,5 +264,26 @@ const String AbnfParser::following() const
 
 bool AbnfParser::atEnd() const
 {
-    return at >= str.length();
+    return d->at >= str.length();
+}
+
+
+/*! Saves the current cursor position and error state of the parser,
+    which can be restored by calling restore().
+*/
+
+void AbnfParser::mark()
+{
+    d = new AbnfParserData( d );
+}
+
+
+/*! Restores the last mark()ed cursor position and error state of this
+    parser object.
+*/
+
+void AbnfParser::restore()
+{
+    if ( d->next )
+        d = d->next;
 }

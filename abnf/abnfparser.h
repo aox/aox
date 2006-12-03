@@ -30,14 +30,16 @@ public:
 
     bool atEnd() const;
 
+    void mark();
+    void restore();
+
 protected:
     String str;
-    uint at;
 
     void setError( const String & );
 
 private:
-    String err;
+    class AbnfParserData * d;
 };
 
 

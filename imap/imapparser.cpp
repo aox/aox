@@ -242,7 +242,7 @@ String ImapParser::literal()
     if ( !ok() )
         return "";
 
-    String r( str.mid( at, len ) );
+    String r( str.mid( pos(), len ) );
     step( len );
     return r;
 }

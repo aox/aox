@@ -381,10 +381,10 @@ String ImapUrl::text() const
 
 bool ImapUrlParser::hasIuserauth()
 {
-    int slash = str.find( '/', at );
+    int slash = str.find( '/', pos() );
     if ( slash < 0 )
         return false;
-    return str.mid( at, slash-at ).contains( "@" );
+    return str.mid( pos(), slash-pos() ).contains( "@" );
 }
 
 
@@ -413,7 +413,7 @@ bool ImapUrlParser::escape( char * c )
 {
     if ( nextChar() == '%' ) {
         bool ok;
-        uint p = str.mid( at+1, 2 ).number( &ok, 16 );
+        uint p = str.mid( pos()+1, 2 ).number( &ok, 16 );
         if ( ok ) {
             step( 3 );
             *c = (char)p;
@@ -441,7 +441,7 @@ String ImapUrlParser::xchars( bool b )
              ( b && ( c == ':' || c == '@' || c == '/' ) ) )
         {
             // Nasty hack: we won't eat the beginning of "/;UID".
-            if ( b && c == '/' && str[at+1] == ';' )
+            if ( b && c == '/' && str[pos()+1] == ';' )
                 break;
 
             s.append( c );
@@ -519,7 +519,7 @@ bool ImapUrlParser::hostport( String & host, uint * port )
 
 bool ImapUrlParser::hasUid()
 {
-    return ( str.mid( at, at+6 ).lower() == "/;uid=" );
+    return ( str.mid( pos(), pos()+6 ).lower() == "/;uid=" );
 }
 
 
