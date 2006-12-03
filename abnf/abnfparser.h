@@ -28,6 +28,8 @@ public:
     void end();
     const String following() const;
 
+    bool atEnd() const;
+
 protected:
     String str;
     uint at;

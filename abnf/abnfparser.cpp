@@ -223,7 +223,7 @@ uint AbnfParser::number()
 
 void AbnfParser::end()
 {
-    if ( at < str.length() )
+    if ( !atEnd() )
         setError( String( "More text follows end of input: " ) + following() );
 }
 
@@ -235,4 +235,14 @@ void AbnfParser::end()
 const String AbnfParser::following() const
 {
     return str.mid( at, 15 ).simplified();
+}
+
+
+/*! Returns true if we have parsed the entire input string, and false
+    otherwise.
+*/
+
+bool AbnfParser::atEnd() const
+{
+    return at >= str.length();
 }
