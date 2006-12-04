@@ -259,7 +259,10 @@ String Address::toString() const
         break;
     case Normal:
         if ( d->name.isEmpty() ) {
-            r.append( d->localpart );
+            if ( localpartIsSensible() )
+                r.append( d->localpart );
+            else
+                r.append( d->localpart.quoted() );
             r.append( "@" );
             r.append( d->domain );
         }
