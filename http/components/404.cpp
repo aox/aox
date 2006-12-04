@@ -20,7 +20,7 @@ Error404::Error404( Link * link )
 {
     addFrontMatter( FrontMatter::title( "File Not Found" ) );
     setContents( "<h1>File Not Found</h1>"
-                 "<p>No such file: " + quoted( link->originalURL() ) +
+                 "<p>No such file: " + quoted( link->original() ) +
                  "<p>(Additionally, we couldn't find a haiku to process "
                  "the error.)" );
 }

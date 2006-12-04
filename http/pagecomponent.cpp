@@ -2,19 +2,21 @@
 
 #include "pagecomponent.h"
 
+#include "webpage.h"
 
 class PageComponentData
     : public Garbage
 {
 public:
     PageComponentData()
-        : status( 200 )
+        : status( 200 ), page( 0 )
     {}
 
     uint status;
     String divClass;
     String contents;
     List<FrontMatter> frontMatter;
+    WebPage * page;
 };
 
 
@@ -62,6 +64,14 @@ void PageComponent::setStatus( uint status )
 }
 
 
+/*! Informs this component that it is being used in \a page. */
+
+void PageComponent::setPage( WebPage * page )
+{
+    d->page = page;
+}
+
+
 /*! Returns the contents of this component as an HTML-quoted string. The
     return value is meaningful only if done() is true.
 */
@@ -72,7 +82,8 @@ String PageComponent::contents() const
 }
 
 
-/*! Sets the contents of this component to \a s. After this call, done()
+/*! Sets the contents of this component to \a s, and signal the WebPage
+    that owns this component of its completion. After this call, done()
     will return true, and contents() will return \a s. This function is
     meant for use by subclasses.
 */
@@ -80,6 +91,8 @@ String PageComponent::contents() const
 void PageComponent::setContents( const String & s )
 {
     d->contents = s;
+    if ( d->page )
+        d->page->execute();
 }
 
 

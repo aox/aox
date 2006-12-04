@@ -41,17 +41,24 @@ WebPage::WebPage( HTTP * owner )
 void WebPage::addComponent( PageComponent * pc )
 {
     d->components.append( pc );
+    pc->setPage( this );
 }
 
 
 void WebPage::execute()
 {
+    bool done = true;
     List<PageComponent>::Iterator it( d->components );
     while ( it ) {
-        if ( !it->done() )
-            return;
+        if ( !it->done() ) {
+            it->execute();
+            done = false;
+        }
         ++it;
     }
+
+    if ( !done )
+        return;
 
     List<FrontMatter> frontMatter;
 

@@ -26,7 +26,7 @@ class Link
     : public Garbage
 {
 public:
-    Link( HTTP * );
+    Link();
     Link( const String &, HTTP * );
 
     bool valid() const;
@@ -50,8 +50,8 @@ public:
     String part() const;
     void setPart( const String & );
 
-    String originalURL() const;
-    String canonicalURL() const;
+    String canonical() const;
+    String original() const;
 
     WebPage * webPage() const;
 

@@ -9,6 +9,7 @@
 
 
 class FrontMatter;
+class WebPage;
 
 
 class PageComponent
@@ -22,6 +23,8 @@ public:
 
     uint status() const;
     void setStatus( uint );
+
+    void setPage( WebPage * );
 
     String contents() const;
     void setContents( const String & );

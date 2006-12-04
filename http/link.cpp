@@ -9,6 +9,7 @@
 #include "webpage.h"
 
 #include "components/404.h"
+#include "components/archivemailboxes.h"
 
 
 class LinkData
@@ -43,10 +44,9 @@ public:
 
 /*! Constructs an empty Link. */
 
-Link::Link( HTTP * server )
+Link::Link()
     : d( new LinkData )
 {
-    d->server = server;
 }
 
 
@@ -137,7 +137,7 @@ void Link::setPart( const String & part )
 
 /*! Generates a path that represents this Link object. */
 
-String Link::canonicalURL() const
+String Link::canonical() const
 {
     return "";
 }
@@ -145,7 +145,7 @@ String Link::canonicalURL() const
 
 /*! Returns the URL passed to the constructor. */
 
-String Link::originalURL() const
+String Link::original() const
 {
     return d->original;
 }
@@ -161,7 +161,9 @@ WebPage * Link::webPage() const
 }
 
 
-/*! Returns this Link's server, specified during construction. */
+/*! Returns a pointer to this Link's server, if one was specified during
+    construction, and 0 otherwise.
+*/
 
 HTTP * Link::server() const
 {
@@ -173,6 +175,14 @@ static WebPage * errorPage( Link * link )
 {
     WebPage * p = new WebPage( link->server() );
     p->addComponent( new Error404( link ) );
+    return p;
+}
+
+
+static WebPage * archiveMailboxes( Link * link )
+{
+    WebPage * p = new WebPage( link->server() );
+    p->addComponent( new ArchiveMailboxes );
     return p;
 }
 
@@ -197,11 +207,12 @@ enum Component {
 
 
 static const struct Handler {
-    WebPage *(*handler)( Link * );
     Component components[5];
+    WebPage *(*handler)( Link * );
 } handlers[] = {
-    { &archiveMailbox, { ArchivePrefix, MailboxName, None, None, None } },
-    { &archiveMessage, { ArchivePrefix, MailboxName, Uid,  None, None } }
+    { { ArchivePrefix, None,        None, None, None }, &archiveMailboxes },
+    { { ArchivePrefix, MailboxName, None, None, None }, &archiveMailbox },
+    { { ArchivePrefix, MailboxName, Uid,  None, None }, &archiveMessage }
 };
 static uint numHandlers = sizeof( handlers ) / sizeof( handlers[0] );
 
