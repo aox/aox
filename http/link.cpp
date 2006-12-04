@@ -374,9 +374,15 @@ void Link::parse( const String & s )
                 ++it;
             }
         }
+        i++;
     }
 
-    d->webpage = errorPage( this );
+    if ( h.count() == 1 && i == 5 ) {
+        d->webpage = h.first()->handler( this );
+    }
+    else {
+        d->webpage = errorPage( this );
+    }
 }
 
 

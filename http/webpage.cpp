@@ -57,7 +57,7 @@ void WebPage::execute()
 
     frontMatter.append( FrontMatter::styleSheet() );
 
-    uint status;
+    uint status = 200;
     it = d->components;
     while ( it ) {
         List<FrontMatter>::Iterator f( it->frontMatter() );
