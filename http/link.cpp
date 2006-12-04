@@ -191,6 +191,12 @@ static WebPage * archiveMessage( Link * )
 }
 
 
+static WebPage * archivePart( Link * link )
+{
+    return new BodypartPage( link );
+}
+
+
 enum Component {
     ArchivePrefix, WebmailPrefix,
     MailboxName, Uid, Part, None,
@@ -204,7 +210,8 @@ static const struct Handler {
 } handlers[] = {
     { { ArchivePrefix, None,        None, None, None }, &archiveMailboxes },
     { { ArchivePrefix, MailboxName, None, None, None }, &archiveMailbox },
-    { { ArchivePrefix, MailboxName, Uid,  None, None }, &archiveMessage }
+    { { ArchivePrefix, MailboxName, Uid,  None, None }, &archiveMessage },
+    { { ArchivePrefix, MailboxName, Uid,  Part, None }, &archivePart }
 };
 static uint numHandlers = sizeof( handlers ) / sizeof( handlers[0] );
 
@@ -380,7 +387,9 @@ void Link::parse( const String & s )
         i++;
     }
 
-    if ( h.count() == 1 && i == 5 ) {
+    if ( h.count() == 1 &&
+         ( i == 5 || h.first()->components[i] == None ) )
+    {
         d->webpage = h.first()->handler( this );
     }
     else {

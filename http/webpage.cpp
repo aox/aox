@@ -2,9 +2,13 @@
 
 #include "webpage.h"
 
+#include "http.h"
+#include "field.h"
+#include "mailbox.h"
 #include "pagecomponent.h"
 #include "frontmatter.h"
-#include "http.h"
+#include "query.h"
+#include "link.h"
 
 
 class WebPageData
@@ -105,4 +109,76 @@ void WebPage::execute()
 
     d->owner->setStatus( status, "Ok" );
     d->owner->respond( "text/html", html );
+}
+
+
+class BodypartPageData
+    : public Garbage
+{
+public:
+    BodypartPageData()
+        : link( 0 ), b( 0 ), c( 0 )
+    {}
+
+    Link * link;
+    Query * b;
+    Query * c;
+};
+
+
+/*! \class BodypartPage webpage.h
+    ...
+*/
+
+/*! ... */
+
+BodypartPage::BodypartPage( Link * link )
+    : WebPage( link->server() ),
+      d( new BodypartPageData )
+{
+    d->link = link;
+}
+
+
+void BodypartPage::execute()
+{
+    if ( !d->b ) {
+        // XXX: Permissions
+        d->b = new Query( "select text, data from bodyparts b join "
+                          "part_numbers p on (p.bodypart=b.id) where "
+                          "mailbox=$1 and uid=$2 and part=$3", this );
+        d->b->bind( 1, d->link->mailbox()->id() );
+        d->b->bind( 2, d->link->uid() );
+        d->b->bind( 3, d->link->part() );
+        d->b->execute();
+        d->c = new Query( "select value from header_fields where "
+                          "mailbox=$1 and uid=$2 and part=$3 and "
+                          "field=$4", this );
+        d->c->bind( 1, d->link->mailbox()->id() );
+        d->c->bind( 2, d->link->uid() );
+        d->c->bind( 3, d->link->part() );
+        d->c->bind( 4, HeaderField::ContentType );
+        d->c->execute();
+    }
+
+    if ( !d->b->done() || !d->c->done() )
+        return;
+
+    Row * r;
+
+    String ct( "text/plain" );
+    r = d->c->nextRow();
+    if ( r )
+        ct = r->getString( "value" );
+
+    String b;
+    r = d->b->nextRow();
+    // XXX: Invalid part
+    if ( r->isNull( "data" ) )
+        // XXX: charset
+        b = r->getString( "text" );
+    else
+        b = r->getString( "data" );
+
+    d->link->server()->respond( ct, b );
 }

@@ -6,22 +6,31 @@
 #include "event.h"
 
 
-class HTTP;
-class PageComponent;
-
-
 class WebPage
     : public EventHandler
 {
 public:
-    WebPage( HTTP * );
+    WebPage( class HTTP * );
 
     void execute();
 
-    void addComponent( PageComponent * );
+    void addComponent( class PageComponent * );
 
 private:
     class WebPageData * d;
+};
+
+
+class BodypartPage
+    : public WebPage
+{
+public:
+    BodypartPage( class Link * );
+
+    void execute();
+
+private:
+    class BodypartPageData * d;
 };
 
 
