@@ -743,6 +743,19 @@ void Header::repair( Multipart * p )
             else
                 h = 0;
         }
+        if ( !a ) {
+            // if there is an X-From-Line, it could be old damaged
+            // gnus mail, fcc'd before a From line was added. Let's
+            // try.
+            List<HeaderField>::Iterator f( fields() );
+            while ( f && f->name() != "X-From-Line" )
+                ++f;
+            if ( f ) {
+                AddressParser ap( f->value().section( " ", 1 ) );
+                if ( ap.error().isEmpty() && ap.addresses().count() == 1 )
+                    a = ap.addresses();
+            }
+        }
         if ( a )
             add( "From", a->first()->toString() );
     }
