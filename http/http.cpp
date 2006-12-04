@@ -24,7 +24,7 @@ public:
           status( 200 ),
           use11( false ), sendContents( true ), acceptsHtml( true ),
           acceptsPng( true ), acceptsLatin1( true ), acceptsUtf8( true ),
-          acceptsIdentity( false ), connectionClose( false ),
+          acceptsIdentity( false ), connectionClose( true ),
           contentLength( 0 ),
           link( 0 ), session( 0 )
     {}
@@ -156,7 +156,7 @@ void HTTP::process()
     if ( d->link )
         d->link->webPage()->execute();
     else
-        respond( "text/plain", "Goodbye." );
+        respond( "text/plain", "Goodbye.\n" );
 }
 
 
@@ -391,15 +391,10 @@ void HTTP::parseRequest( String l )
        setStatus( 400, "Only HTTP/1.0 and 1.1 are supported" );
         return;
     }
-    if ( minor > 0 )
+    if ( minor > 0 ) {
         d->use11 = true;
-    else
-        d->connectionClose = true;
-
-    // XXX hack: we always use HTTP/1.0 to see whether that kills the
-    // slowness problem.
-    d->connectionClose = true;
-    d->use11 = false;
+        d->connectionClose = false;
+    }
 
     uint i = 0;
     d->path.truncate( 0 );
