@@ -165,7 +165,7 @@ HTTP * Link::server() const
 
 static WebPage * errorPage( Link * link )
 {
-    WebPage * p = new WebPage( link->server() );
+    WebPage * p = new WebPage( link );
     p->addComponent( new Error404( link ) );
     return p;
 }
@@ -173,7 +173,7 @@ static WebPage * errorPage( Link * link )
 
 static WebPage * archiveMailboxes( Link * link )
 {
-    WebPage * p = new WebPage( link->server() );
+    WebPage * p = new WebPage( link );
     p->addComponent( new ArchiveMailboxes );
     return p;
 }

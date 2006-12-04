@@ -4,15 +4,22 @@
 #define WEBPAGE_H
 
 #include "event.h"
+#include "permissions.h"
+
+
+class Mailbox;
 
 
 class WebPage
     : public EventHandler
 {
 public:
-    WebPage( class HTTP * );
+    WebPage( class Link * );
 
     void execute();
+
+    void requireRight( Mailbox *, Permissions::Right );
+    bool permitted();
 
     void addComponent( class PageComponent * );
 

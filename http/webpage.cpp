@@ -6,9 +6,11 @@
 #include "field.h"
 #include "mailbox.h"
 #include "pagecomponent.h"
+#include "httpsession.h"
 #include "frontmatter.h"
 #include "query.h"
 #include "link.h"
+#include "user.h"
 
 
 class WebPageData
@@ -16,11 +18,13 @@ class WebPageData
 {
 public:
     WebPageData()
-        : owner( 0 )
+        : link( 0 ), checker( 0 ), responded( false )
     {}
 
-    HTTP * owner;
+    Link * link;
     List<PageComponent> components;
+    PermissionsChecker * checker;
+    bool responded;
 };
 
 
@@ -31,12 +35,12 @@ public:
     their contents, and then composes the response.
 */
 
-/*! Creates a new WebPage owned by the HTTP server \a owner. */
+/*! Creates a new WebPage to serve \a link. */
 
-WebPage::WebPage( HTTP * owner )
+WebPage::WebPage( Link * link )
     : d( new WebPageData )
 {
-    d->owner = owner;
+    d->link = link;
 }
 
 
@@ -51,6 +55,9 @@ void WebPage::addComponent( PageComponent * pc )
 
 void WebPage::execute()
 {
+    if ( d->responded )
+        return;
+
     bool done = true;
     List<PageComponent>::Iterator it( d->components );
     while ( it ) {
@@ -107,8 +114,66 @@ void WebPage::execute()
 
     html.append( "</body>\n" );
 
-    d->owner->setStatus( status, "Ok" );
-    d->owner->respond( "text/html", html );
+    d->link->server()->setStatus( status, "Ok" );
+    d->link->server()->respond( "text/html", html );
+    d->responded = true;
+}
+
+
+
+/*! Notes that this WebPage requires \a r on \a m. execute() should
+    proceed only if and when permitted() is true.
+*/
+
+void WebPage::requireRight( Mailbox * m, Permissions::Right r )
+{
+    if ( !d->checker )
+        d->checker = new PermissionsChecker;
+
+    User * u;
+    if ( d->link->server()->session() )
+        u = d->link->server()->session()->user();
+    if ( d->link->type() == Link::Archive ) {
+        u = new User;
+        u->setLogin( "anonymous" );
+    }
+
+    // XXX: If we need a session, and don't have one, this is where we
+    // redirect to the login page.
+
+    Permissions * p = d->checker->permissions( m, u );
+    if ( !p )
+        p = new Permissions( m, u, this );
+
+    d->checker->require( p, r );
+}
+
+
+/*! Returns true if this WebPage has the rights demanded by
+    requireRight(), and is permitted to proceed, and false if
+    it either must abort due to lack of rights or wait until
+    Permissions has fetched more information.
+
+    If permitted() denies permission, it also sets a suitable error
+    message.
+*/
+
+bool WebPage::permitted()
+{
+    if ( d->responded )
+        return false;
+    if ( !d->checker )
+        return false;
+    if ( !d->checker->ready() )
+        return false;
+    if ( d->checker->allowed() )
+        return true;
+
+    d->responded = true;
+    d->link->server()->setStatus( 403, "Forbidden" );
+    d->link->server()->respond( "text/plain",
+                                d->checker->error().simplified() + "\n" );
+    return false;
 }
 
 
@@ -133,7 +198,7 @@ public:
 /*! ... */
 
 BodypartPage::BodypartPage( Link * link )
-    : WebPage( link->server() ),
+    : WebPage( link ),
       d( new BodypartPageData )
 {
     d->link = link;
@@ -143,7 +208,8 @@ BodypartPage::BodypartPage( Link * link )
 void BodypartPage::execute()
 {
     if ( !d->b ) {
-        // XXX: Permissions
+        requireRight( d->link->mailbox(), Permissions::Read );
+
         d->b = new Query( "select text, data from bodyparts b join "
                           "part_numbers p on (p.bodypart=b.id) where "
                           "mailbox=$1 and uid=$2 and part=$3", this );
@@ -160,6 +226,9 @@ void BodypartPage::execute()
         d->c->bind( 4, HeaderField::ContentType );
         d->c->execute();
     }
+
+    if ( !permitted() )
+        return;
 
     if ( !d->b->done() || !d->c->done() )
         return;
