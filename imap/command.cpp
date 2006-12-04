@@ -1049,8 +1049,8 @@ String Command::mailboxName( const String & name ) const
 }
 
 
-/*! Notes that this command requires \a r on \a m. execute() is not
-    called again until a Permissions object says OK.
+/*! Notes that this command requires \a r on \a m. execute() should
+    proceed only if and when permitted() is true.
 */
 
 void Command::requireRight( Mailbox * m, Permissions::Right r )
