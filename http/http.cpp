@@ -6,7 +6,6 @@
 #include "link.h"
 #include "httpsession.h"
 #include "eventloop.h"
-#include "page.h"
 #include "codec.h"
 #include "buffer.h"
 #include "configuration.h"
