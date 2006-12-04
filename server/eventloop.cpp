@@ -174,7 +174,9 @@ void EventLoop::start()
                     maxfd = fd;
                 if ( c->canRead() && c->state() != Connection::Closing )
                     FD_SET( fd, &r );
-                if ( c->canWrite() || c->state() == Connection::Connecting )
+                if ( c->canWrite() ||
+                     c->state() == Connection::Connecting ||
+                     c->state() == Connection::Closing )
                     FD_SET( fd, &w );
                 if ( c->timeout() > 0 && c->timeout() < timeout )
                     timeout = c->timeout();
