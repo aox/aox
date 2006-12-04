@@ -2,15 +2,19 @@
 
 #include "webpage.h"
 
+#include "link.h"
 #include "http.h"
+#include "query.h"
 #include "field.h"
 #include "mailbox.h"
 #include "pagecomponent.h"
 #include "httpsession.h"
 #include "frontmatter.h"
-#include "query.h"
-#include "link.h"
+#include "mimefields.h"
+#include "ustring.h"
+#include "codec.h"
 #include "user.h"
+#include "utf.h"
 
 
 class WebPageData
@@ -218,12 +222,21 @@ void BodypartPage::execute()
         d->b->bind( 3, d->link->part() );
         d->b->execute();
         d->c = new Query( "select value from header_fields where "
-                          "mailbox=$1 and uid=$2 and part=$3 and "
-                          "field=$4", this );
+                          "mailbox=$1 and uid=$2 and (part=$3 or part=$4) "
+                          "and field=$5 order by part<>$3", this );
         d->c->bind( 1, d->link->mailbox()->id() );
         d->c->bind( 2, d->link->uid() );
-        d->c->bind( 3, d->link->part() );
-        d->c->bind( 4, HeaderField::ContentType );
+
+        String part( d->link->part() );
+        d->c->bind( 3, part );
+        if ( part == "1" )
+            d->c->bind( 4, "" );
+        else if ( part.endsWith( ".1" ) )
+            d->c->bind( 4, part.mid( 0, part.length()-1 ) + "rfc822" );
+        else
+            d->c->bind( 4, part );
+
+        d->c->bind( 5, HeaderField::ContentType );
         d->c->execute();
     }
 
@@ -235,19 +248,32 @@ void BodypartPage::execute()
 
     Row * r;
 
-    String ct( "text/plain" );
+    String t( "TEXT/PLAIn" );
     r = d->c->nextRow();
     if ( r )
-        ct = r->getString( "value" );
+        t = r->getString( "value" );
 
     String b;
     r = d->b->nextRow();
     // XXX: Invalid part
-    if ( r->isNull( "data" ) )
-        // XXX: charset
+    if ( r->isNull( "data" ) ) {
         b = r->getString( "text" );
-    else
-        b = r->getString( "data" );
 
-    d->link->server()->respond( ct, b );
+        ContentType * ct = new ContentType;
+        ct->parse( t );
+
+        if ( !ct->parameter( "charset" ).isEmpty() ) {
+            Utf8Codec u;
+            Codec * c = Codec::byName( ct->parameter( "charset" ) );
+            if ( c )
+                b = c->fromUnicode( u.toUnicode( b ) );
+            else
+                ct->addParameter( "charset", "utf-8" );
+        }
+    }
+    else {
+        b = r->getString( "data" );
+    }
+
+    d->link->server()->respond( t, b );
 }
