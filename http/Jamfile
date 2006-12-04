@@ -1,8 +1,12 @@
 SubDir TOP http ;
+SubInclude TOP abnf ;
 SubInclude TOP server ;
 SubInclude TOP message ;
 SubInclude TOP encodings ;
 
 HDRS += [ FDirName $(TOP) http ] ;
 
-Build http : http.cpp page.cpp link.cpp httpsession.cpp mailboxview.cpp ;
+SubInclude TOP http components ;
+
+Build http : http.cpp link.cpp webpage.cpp pagecomponent.cpp
+    frontmatter.cpp httpsession.cpp ;

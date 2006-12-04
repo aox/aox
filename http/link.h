@@ -3,51 +3,63 @@
 #ifndef LINK_H
 #define LINK_H
 
+#include "abnfparser.h"
 #include "string.h"
+
+
+class HTTP;
+class WebPage;
+class Mailbox;
+
+
+class LinkParser
+    : public AbnfParser
+{
+public:
+    LinkParser( const String & );
+    String pathComponent();
+    char character();
+};
 
 
 class Link
     : public Garbage
 {
 public:
-    Link();
-    Link( const String & );
-    Link( Link *, class Mailbox * );
-    Link( Link *, class Mailbox *, uint );
-    Link( Link *, class Mailbox *, uint, const String & );
+    Link( HTTP * );
+    Link( const String &, HTTP * );
+
+    bool valid() const;
 
     enum Type {
-        ArchiveMailbox,
-        WebmailMailbox,
+        Archive,
         Webmail,
-        ArchiveMessage,
-        ArchivePart,
-        WebmailMessage,
-        WebmailPart,
-        WebmailSearch,
-        ArchiveSearch,
         Favicon,
-        Logout,
-        Compose,
-        Unknown
+        Error
     };
 
     Type type() const;
+    void setType( Type );
 
-    class Mailbox *mailbox() const;
+    Mailbox * mailbox() const;
+    void setMailbox( Mailbox * );
+
     uint uid() const;
+    void setUid( uint );
+
     String part() const;
+    void setPart( const String & );
 
-    String string() const;
+    String originalURL() const;
+    String canonicalURL() const;
+
+    WebPage * webPage() const;
+
+    HTTP * server() const;
 
 private:
+    class LinkData * d;
     void parse( const String & );
-    void parseMailbox( const String * );
-    void parseUid( const String * );
-    void parsePart( const String * );
-
-private:
-    class LinkData *d;
 };
 
 

@@ -40,6 +40,8 @@ public:
     void setStatus( uint, const String & );
     void addHeader( const String & );
 
+    void respond( const String &, const String & );
+
 private:
     void parseAccept( const String &, uint );
     void parseAcceptCharset( const String &, uint );

@@ -1,0 +1,5 @@
+SubDir TOP http components ;
+
+Build http :
+    404.cpp
+    ;

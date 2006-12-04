@@ -9,9 +9,10 @@
 #include "page.h"
 #include "codec.h"
 #include "buffer.h"
-#include "stringlist.h"
-#include "log.h"
 #include "configuration.h"
+#include "stringlist.h"
+#include "webpage.h"
+#include "log.h"
 
 
 class HTTPData
@@ -25,7 +26,7 @@ public:
           acceptsPng( true ), acceptsLatin1( true ), acceptsUtf8( true ),
           acceptsIdentity( false ), connectionClose( false ),
           contentLength( 0 ),
-          link( 0 ), page( 0 ), session( 0 )
+          link( 0 ), session( 0 )
     {}
 
     HTTP::State state;
@@ -55,7 +56,6 @@ public:
     uint codecQuality;
 
     Link *link;
-    Page *page;
     HttpSession *session;
 
     struct HeaderListItem
@@ -150,53 +150,56 @@ void HTTP::process()
         }
     }
 
-    if ( d->state == Parsed && !d->page ) {
-        log( "Creating Page for " + d->link->string() );
-        d->page = new Page( d->link, this );
-        d->page->execute();
+    if ( d->state != Parsed )
+        return;
+
+    if ( d->link )
+        d->link->webPage()->execute();
+    else
+        respond( "text/plain", "Goodbye." );
+}
+
+
+/*! Sends \a response as a response of type \a type. */
+
+void HTTP::respond( const String & type, const String & response )
+{
+    String srv( "Server: Archiveopteryx/" );
+    srv.append( Configuration::compiledIn( Configuration::Version ) );
+    srv.append( " (http://www.archiveopteryx.org)" );
+
+    addHeader( srv );
+    addHeader( "Content-Length: " + fn( response.length() ) );
+    addHeader( "Content-Type: " + type );
+
+    if ( d->session )
+        addHeader( "Set-Cookie: session=\"" + d->session->key() + "\";"
+                   "path=/" );
+
+    if ( d->connectionClose )
+        addHeader( "Connection: close" );
+
+    if ( d->use11 )
+        enqueue( "HTTP/1.1 " );
+    else
+        enqueue( "HTTP/1.0 " );
+
+    enqueue( fn( d->status ) + " " + d->message + "\r\n" );
+    enqueue( d->headers.join( "\r\n" ) );
+    enqueue( "\r\n\r\n" );
+
+    if ( d->sendContents ) {
+        enqueue( response );
+        write();
     }
 
-    if ( d->page && d->page->ready() ) {
-        String text = d->page->text();
+    log( "Sent '" + fn( d->status ) + "/" + d->message + "' response "
+         "of " + fn( response.length() ) + " bytes." );
 
-        String srv( "Server: Archiveopteryx/" );
-        srv.append( Configuration::compiledIn( Configuration::Version ) );
-        srv.append( " (http://www.archiveopteryx.org)" );
+    if ( d->connectionClose )
+        setState( Closing );
 
-        addHeader( srv );
-        addHeader( "Content-Length: " + fn( text.length() ) );
-        addHeader( "Content-Type: " + d->page->contentType() );
-
-        if ( d->session )
-            addHeader( "Set-Cookie: session=\"" + d->session->key() + "\";"
-                       "path=/" );
-
-        if ( d->connectionClose )
-            addHeader( "Connection: close" );
-
-
-        if ( d->use11 )
-            enqueue( "HTTP/1.1 " );
-        else
-            enqueue( "HTTP/1.0 " );
-
-        enqueue( fn( d->status ) + " " + d->message + "\r\n" );
-        enqueue( d->headers.join( "\r\n" ) );
-        enqueue( "\r\n\r\n" );
-
-        if ( d->sendContents ) {
-            enqueue( d->page->text() );
-            write();
-        }
-
-        log( "Sent '" + fn( d->status ) + "/" + d->message + "' response "
-             "of " + fn( text.length() ) + " bytes." );
-
-        if ( d->connectionClose )
-            setState( Closing );
-
-        clear();
-    }
+    clear();
 }
 
 
@@ -337,7 +340,7 @@ void HTTP::parseRequest( String l )
     l = l.mid( space+1 );
     space = l.find( ' ' );
     if ( space < 0 ) {
-       setStatus( 400, "Really total parse error" );
+        setStatus( 400, "Really total parse error" );
         return;
     }
     d->method = request;
@@ -417,7 +420,7 @@ void HTTP::parseRequest( String l )
         }
     }
 
-    d->link = new Link( d->path );
+    d->link = new Link( d->path, this );
     log( "Received: " + d->method + " " + d->path + " " + protocol );
 }
 
@@ -518,7 +521,6 @@ void HTTP::setStatus( uint status, const String &message )
 void HTTP::clear()
 {
     d->link = 0;
-    d->page = 0;
     d->body = 0;
     d->state = Request;
     d->contentLength = 0;
@@ -718,15 +720,6 @@ void HTTP::parseContentLength( const String &s )
 void HTTP::addHeader( const String & s )
 {
     d->headers.append( s );
-}
-
-
-/*! Returns the page indicated by the current request. */
-
-String HTTP::page()
-{
-    Page *page = new Page( d->link, this );
-    return page->text();
 }
 
 
