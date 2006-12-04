@@ -29,6 +29,21 @@ The next eight months
       Graphing
 
 
+Items for web site
+
+  In addition to stuff in the operations guide:
+
+  - List/description of IMAP/POP/SMTP extensions
+  - RFC pages
+  - man pages (old ones too)
+  - Source documentation
+  - Best practices
+  - FAQ
+  - Version-specific pages
+  - Download-specific pages
+  - Client-specific pages
+
+
 1.13: 2006-11-27
 
   Eliminate the header_fields that also exist as address_fields or
