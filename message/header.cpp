@@ -752,7 +752,7 @@ void Header::repair( Multipart * p )
                 ++f;
             if ( f ) {
                 AddressParser ap( f->value().section( " ", 1 ) );
-                if ( ap.error().isEmpty() && ap.addresses().count() == 1 )
+                if ( ap.error().isEmpty() && ap.addresses()->count() == 1 )
                     a = ap.addresses();
             }
         }
