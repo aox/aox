@@ -135,14 +135,6 @@ void Link::setPart( const String & part )
 }
 
 
-/*! Generates a path that represents this Link object. */
-
-String Link::canonical() const
-{
-    return "";
-}
-
-
 /*! Returns the URL passed to the constructor. */
 
 String Link::original() const
@@ -394,6 +386,106 @@ void Link::parse( const String & s )
     else {
         d->webpage = errorPage( this );
     }
+}
+
+
+static bool checkForComponent( uint i, Component c, bool wanted )
+{
+    uint j = 0;
+    while ( j < 5 ) {
+        if ( handlers[i].components[j] == c ) {
+            if ( wanted )
+                return true;
+            else
+                return false;
+        }
+        j++;
+    }
+
+    if ( wanted )
+        return false;
+    else
+        return true;
+}
+
+
+/*! Generates a path that represents this Link object. */
+
+String Link::canonical() const
+{
+    Component prefix;
+    switch ( d->type ) {
+    case Archive:
+        prefix = ArchivePrefix;
+        break;
+    case Webmail:
+        prefix = WebmailPrefix;
+        break;
+    case Favicon:
+        return "/favicon.ico";
+        break;
+    case Error:
+        return "";
+        break;
+    }
+
+    uint i = 0;
+    uint shortest = 6;
+    uint chosen = UINT_MAX;
+
+    while ( i < numHandlers ) {
+        bool good = true;
+
+        good = checkForComponent( i, MailboxName, d->mailbox ) &&
+               checkForComponent( i, Uid, d->uid != 0 ) &&
+               checkForComponent( i, Part, !d->part.isEmpty() );
+
+        if ( good && handlers[i].components[0] != prefix )
+            good = false;
+
+        uint c = 0;
+        while ( good && c < 5 && handlers[i].components[c] != None )
+            c++;
+
+        if ( good && c < shortest ) {
+            shortest = c;
+            chosen = i;
+        }
+
+        i++;
+    }
+
+    String r;
+
+    uint c = 0;
+    while ( c < 5 ) {
+        switch ( handlers[chosen].components[c] ) {
+        case ArchivePrefix:
+            r.append( Configuration::text( Configuration::ArchivePrefix ) );
+            break;
+        case WebmailPrefix:
+            r.append( Configuration::text( Configuration::WebmailPrefix ) );
+            break;
+        case MailboxName:
+            // XXX: We need to %-escape the mailbox name.
+            r.append( d->mailbox->name() );
+            break;
+        case Uid:
+            r.append( "/" );
+            r.append( fn( d->uid ) );
+            break;
+        case Part:
+            r.append( "/" );
+            r.append( d->part );
+            break;
+        case None:
+        case NumComponents:
+            break;
+        }
+        c++;
+    }
+
+    return r;
 }
 
 
