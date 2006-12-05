@@ -119,7 +119,7 @@ void WebPage::execute()
     html.append( "</body>\n" );
 
     d->link->server()->setStatus( status, "Ok" );
-    d->link->server()->respond( "text/html", html );
+    d->link->server()->respond( "text/html; charset=utf-8", html );
     d->responded = true;
 }
 
