@@ -6,4 +6,5 @@ Build http :
     archivemailbox.cpp
     archivemessage.cpp
     archivethread.cpp
+    loginform.cpp
     ;

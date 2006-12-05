@@ -18,19 +18,23 @@
 #include "user.h"
 #include "utf.h"
 
+#include "components/loginform.h"
+
 
 class WebPageData
     : public Garbage
 {
 public:
     WebPageData()
-        : link( 0 ), checker( 0 ), responded( false )
+        : link( 0 ), checker( 0 ), responded( false ),
+          user( 0 )
     {}
 
     Link * link;
     List<PageComponent> components;
     PermissionsChecker * checker;
     bool responded;
+    User * user;
 };
 
 
@@ -144,7 +148,7 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
     if ( !d->checker )
         d->checker = new PermissionsChecker;
 
-    User * u;
+    User * u = 0;
     if ( d->link->server()->session() )
         u = d->link->server()->session()->user();
     if ( d->link->type() == Link::Archive ) {
@@ -152,8 +156,8 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
         u->setLogin( "anonymous" );
     }
 
-    // XXX: If we need a session, and don't have one, this is where we
-    // redirect to the login page.
+    if ( !u )
+        return;
 
     Permissions * p = d->checker->permissions( m, u );
     if ( !p )
@@ -183,10 +187,49 @@ bool WebPage::permitted()
     if ( d->checker->allowed() )
         return true;
 
+    HTTP * server = d->link->server();
+
     d->responded = true;
-    d->link->server()->setStatus( 403, "Forbidden" );
-    d->link->server()->respond( "text/plain",
-                                d->checker->error().simplified() + "\n" );
+    if ( d->link->type() == Link::Archive ) {
+        server->setStatus( 403, "Forbidden" );
+        server->respond( "text/plain",
+                         d->checker->error().simplified() + "\n" );
+    }
+    else {
+        String *login = server->parameter( "login" );
+        String *passwd = server->parameter( "passwd" );
+        if ( !login || login->isEmpty() || !passwd ||
+             ( d->user && ( d->user->state() == User::Nonexistent ||
+                            d->user->secret() != *passwd ) ) )
+        {
+            // XXX: addComponent( WhatWentWrong );
+            WebPage * wp = new WebPage( d->link );
+            wp->addComponent( new LoginForm );
+            wp->execute();
+        }
+        else {
+            if ( !d->user ) {
+                d->user = new User;
+                d->user->setLogin( *login );
+                d->user->refresh( this );
+            }
+
+            if ( d->user->state() == User::Unverified )
+                return false;
+
+            HttpSession *s = server->session();
+            if ( !s || s->user()->login() != d->user->login() ) {
+                s = new HttpSession;
+                server->setSession( s );
+            }
+
+            s->setUser( d->user );
+            s->refresh();
+
+            return true;
+        }
+    }
+
     return false;
 }
 
