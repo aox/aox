@@ -8,7 +8,7 @@
 #include "stringlist.h"
 #include "webpage.h"
 
-#include "components/404.h"
+#include "components/error404.h"
 #include "components/archivemailboxes.h"
 
 

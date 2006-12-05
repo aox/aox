@@ -1,6 +1,6 @@
 SubDir TOP http components ;
 
 Build http :
-    404.cpp
+    error404.cpp
     archivemailboxes.cpp
     ;
