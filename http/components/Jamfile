@@ -5,4 +5,5 @@ Build http :
     archivemailboxes.cpp
     archivemailbox.cpp
     archivemessage.cpp
+    archivethread.cpp
     ;

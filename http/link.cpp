@@ -12,6 +12,7 @@
 #include "components/archivemailboxes.h"
 #include "components/archivemailbox.h"
 #include "components/archivemessage.h"
+#include "components/archivethread.h"
 
 
 class LinkData
@@ -212,7 +213,7 @@ static WebPage * archiveMailbox( Link * link )
 static WebPage * archiveThread( Link * link )
 {
     WebPage * p = new WebPage( link );
-    p->addComponent( new ArchiveMailbox( link ) );
+    p->addComponent( new ArchiveThread( link ) );
     return p;
 }
 
