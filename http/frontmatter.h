@@ -12,6 +12,7 @@ class FrontMatter
 public:
     static FrontMatter * styleSheet();
     static FrontMatter * title( const String & );
+    static FrontMatter * jsToggles();
 };
 
 
