@@ -19,8 +19,8 @@ class LinkData
 {
 public:
     LinkData()
-        : type( Link::Error ), mailbox( 0 ), uid( 0 ), webpage( 0 ),
-          server( 0 )
+        : type( Link::Error ), mailbox( 0 ), uid( 0 ), suffix( Link::None ),
+          webpage( 0 ), server( 0 )
     {}
 
     String original;
@@ -29,6 +29,7 @@ public:
     Mailbox * mailbox;
     uint uid;
     String part;
+    Link::Suffix suffix;
 
     WebPage * webpage;
 
@@ -138,6 +139,24 @@ void Link::setPart( const String & part )
 }
 
 
+/*! Returns this Link's suffix, which is None by default, but may be any
+    of the values in the enum Link::Suffix.
+*/
+
+Link::Suffix Link::suffix() const
+{
+    return d->suffix;
+}
+
+
+/*! Sets this Link's suffix to \a suffix. */
+
+void Link::setSuffix( Suffix suffix )
+{
+    d->suffix = suffix;
+}
+
+
 /*! Returns the URL passed to the constructor. */
 
 String Link::original() const
@@ -190,6 +209,14 @@ static WebPage * archiveMailbox( Link * link )
 }
 
 
+static WebPage * archiveThread( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new ArchiveMailbox( link ) );
+    return p;
+}
+
+
 static WebPage * archiveMessage( Link * link )
 {
     WebPage * p = new WebPage( link );
@@ -198,7 +225,13 @@ static WebPage * archiveMessage( Link * link )
 }
 
 
-static WebPage * archivePart( Link * link )
+static WebPage * rfc822Page( Link * link )
+{
+    return new Rfc822Page( link );
+}
+
+
+static WebPage * partPage( Link * link )
 {
     return new BodypartPage( link );
 }
@@ -206,7 +239,8 @@ static WebPage * archivePart( Link * link )
 
 enum Component {
     ArchivePrefix, WebmailPrefix,
-    MailboxName, Uid, Part, None,
+    MailboxName, Uid, Part, Suffix,
+    Void,
     NumComponents
 };
 
@@ -215,12 +249,24 @@ static const struct Handler {
     Component components[5];
     WebPage *(*handler)( Link * );
 } handlers[] = {
-    { { ArchivePrefix, None,        None, None, None }, &archiveMailboxes },
-    { { ArchivePrefix, MailboxName, None, None, None }, &archiveMailbox },
-    { { ArchivePrefix, MailboxName, Uid,  None, None }, &archiveMessage },
-    { { ArchivePrefix, MailboxName, Uid,  Part, None }, &archivePart }
+    { { ArchivePrefix, Void,        Void, Void,     Void }, &archiveMailboxes },
+    { { ArchivePrefix, MailboxName, Void, Void,     Void }, &archiveMailbox },
+    { { ArchivePrefix, MailboxName, Uid,  Suffix,   Void }, &archiveMessage },
+    { { ArchivePrefix, MailboxName, Uid,  Part,     Void }, &partPage }
 };
 static uint numHandlers = sizeof( handlers ) / sizeof( handlers[0] );
+
+
+static const struct {
+    const char * name;
+    Link::Suffix suffix;
+    WebPage *(*handler)( Link * );
+    WebPage *(*suffixHandler)( Link * );
+} suffixes[] = {
+    { "thread", Link::Thread, &archiveMessage, &archiveThread },
+    { "rfc822", Link::Rfc822, &archiveMessage, &rfc822Page }
+};
+static uint numSuffixes = sizeof( suffixes ) / sizeof( suffixes[0] );
 
 
 static bool checkPrefix( LinkParser * p, Component c, bool legal )
@@ -293,21 +339,21 @@ void Link::parse( const String & s )
             ++it;
         }
 
-        Component chosen = None;
+        Component chosen = Void;
 
         if ( checkPrefix( p, ArchivePrefix, legalComponents[ArchivePrefix] ) ) {
             chosen = ArchivePrefix;
             setType( Archive );
         }
 
-        if ( chosen == None &&
+        if ( chosen == Void &&
              checkPrefix( p, WebmailPrefix, legalComponents[WebmailPrefix] ) )
         {
             chosen = WebmailPrefix;
             setType( Webmail );
         }
 
-        if ( chosen == None && legalComponents[MailboxName] ) {
+        if ( chosen == Void && legalComponents[MailboxName] ) {
             Mailbox * m = Mailbox::root();
 
             p->mark();
@@ -341,7 +387,7 @@ void Link::parse( const String & s )
             }
         }
 
-        if ( chosen == None && legalComponents[Uid] ) {
+        if ( chosen == Void && legalComponents[Uid] ) {
             p->mark();
             p->require( "/" );
             uint uid = p->number();
@@ -354,7 +400,7 @@ void Link::parse( const String & s )
             }
         }
 
-        if ( chosen == None && legalComponents[Part] ) {
+        if ( chosen == Void && legalComponents[Part] ) {
             p->mark();
             p->require( "/" );
             String part( p->digits( 1, 10 ) );
@@ -371,12 +417,37 @@ void Link::parse( const String & s )
             }
         }
 
-        if ( chosen == None && legalComponents[None] ) {
+        if ( chosen == Void && legalComponents[::Suffix] ) {
+            p->mark();
+            if ( p->present( "/" ) ) {
+                List<const Handler>::Iterator it( h );
+                while ( chosen == Void && it ) {
+                    if ( it->components[i] == ::Suffix ) {
+                        uint j = 0;
+                        while ( chosen == Void && j < numSuffixes ) {
+                            if ( suffixes[j].handler == it->handler &&
+                                 p->present( suffixes[j].name ) )
+                            {
+                                chosen = ::Suffix;
+                                setSuffix( suffixes[j].suffix );
+                            }
+                            j++;
+                        }
+                    }
+                    ++it;
+                }
+            }
+
+            if ( chosen == Void )
+                p->restore();
+        }
+
+        if ( chosen == Void && legalComponents[Void] ) {
             if ( p->atEnd() ) {
-                chosen = None;
+                chosen = Void;
             }
             else {
-                chosen = None;
+                chosen = Void;
             }
         }
 
@@ -394,7 +465,7 @@ void Link::parse( const String & s )
     if ( p->atEnd() && i < 5 ) {
         List<const Handler>::Iterator it( h );
         while ( it ) {
-            if ( it->components[i] != None )
+            if ( it->components[i] != Void )
                 h.take( it );
             else
                 ++it;
@@ -402,9 +473,22 @@ void Link::parse( const String & s )
     }
 
     if ( h.count() == 1 &&
-         ( i == 5 || h.first()->components[i] == None ) )
+         ( i == 5 || h.first()->components[i] == Void ) )
     {
-        d->webpage = h.first()->handler( this );
+        WebPage *(*handler)( Link * ) = h.first()->handler;
+        if ( d->suffix != None ) {
+            uint j = 0;
+            while ( j < numSuffixes ) {
+                if ( suffixes[j].handler == handler &&
+                     suffixes[j].suffix == d->suffix )
+                {
+                    handler = suffixes[j].suffixHandler;
+                    break;
+                }
+                j++;
+            }
+        }
+        d->webpage = handler( this );
     }
     else {
         d->webpage = errorPage( this );
@@ -459,15 +543,16 @@ String Link::canonical() const
     while ( i < numHandlers ) {
         bool good = true;
 
-        good = checkForComponent( i, MailboxName, d->mailbox ) &&
-               checkForComponent( i, Uid, d->uid != 0 ) &&
-               checkForComponent( i, Part, !d->part.isEmpty() );
-
         if ( good && handlers[i].components[0] != prefix )
             good = false;
 
+        good = good &&
+               checkForComponent( i, MailboxName, d->mailbox ) &&
+               checkForComponent( i, Uid, d->uid != 0 ) &&
+               checkForComponent( i, Part, !d->part.isEmpty() );
+
         uint c = 0;
-        while ( good && c < 5 && handlers[i].components[c] != None )
+        while ( good && c < 5 && handlers[i].components[c] != Void )
             c++;
 
         if ( good && c < shortest ) {
@@ -501,7 +586,17 @@ String Link::canonical() const
             r.append( "/" );
             r.append( d->part );
             break;
-        case None:
+        case ::Suffix:
+            if ( d->suffix != None ) {
+                uint j = 0;
+                while ( j < numSuffixes &&
+                        suffixes[j].suffix != d->suffix )
+                    j++;
+                r.append( "/" );
+                r.append( suffixes[j].name );
+            }
+            break;
+        case Void:
         case NumComponents:
             break;
         }

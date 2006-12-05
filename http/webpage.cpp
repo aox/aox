@@ -6,7 +6,9 @@
 #include "http.h"
 #include "query.h"
 #include "field.h"
+#include "message.h"
 #include "mailbox.h"
+#include "fetcher.h"
 #include "pagecomponent.h"
 #include "httpsession.h"
 #include "frontmatter.h"
@@ -54,6 +56,14 @@ void WebPage::addComponent( PageComponent * pc )
 {
     d->components.append( pc );
     pc->setPage( this );
+}
+
+
+/*! Returns a non-zero pointer to this WebPage's Link object. */
+
+Link * WebPage::link() const
+{
+    return d->link;
 }
 
 
@@ -186,10 +196,9 @@ class BodypartPageData
 {
 public:
     BodypartPageData()
-        : link( 0 ), b( 0 ), c( 0 )
+        : b( 0 ), c( 0 )
     {}
 
-    Link * link;
     Query * b;
     Query * c;
 };
@@ -207,29 +216,28 @@ BodypartPage::BodypartPage( Link * link )
     : WebPage( link ),
       d( new BodypartPageData )
 {
-    d->link = link;
 }
 
 
 void BodypartPage::execute()
 {
     if ( !d->b ) {
-        requireRight( d->link->mailbox(), Permissions::Read );
+        requireRight( link()->mailbox(), Permissions::Read );
 
         d->b = new Query( "select text, data from bodyparts b join "
                           "part_numbers p on (p.bodypart=b.id) where "
                           "mailbox=$1 and uid=$2 and part=$3", this );
-        d->b->bind( 1, d->link->mailbox()->id() );
-        d->b->bind( 2, d->link->uid() );
-        d->b->bind( 3, d->link->part() );
+        d->b->bind( 1, link()->mailbox()->id() );
+        d->b->bind( 2, link()->uid() );
+        d->b->bind( 3, link()->part() );
         d->b->execute();
         d->c = new Query( "select value from header_fields where "
                           "mailbox=$1 and uid=$2 and (part=$3 or part=$4) "
                           "and field=$5 order by part<>$3", this );
-        d->c->bind( 1, d->link->mailbox()->id() );
-        d->c->bind( 2, d->link->uid() );
+        d->c->bind( 1, link()->mailbox()->id() );
+        d->c->bind( 2, link()->uid() );
 
-        String part( d->link->part() );
+        String part( link()->part() );
         d->c->bind( 3, part );
         if ( part == "1" )
             d->c->bind( 4, "" );
@@ -277,5 +285,65 @@ void BodypartPage::execute()
         b = r->getString( "data" );
     }
 
-    d->link->server()->respond( t, b );
+    link()->server()->respond( t, b );
+}
+
+
+class Rfc822PageData
+    : public Garbage
+{
+public:
+    Rfc822PageData()
+        : message( 0 )
+    {}
+
+    Message * message;
+};
+
+
+/*! \class Rfc822Page webpage.h
+    Renders a single RFC822 message.
+*/
+
+
+Rfc822Page::Rfc822Page( Link * link )
+    : WebPage( link ),
+      d( new Rfc822PageData )
+{
+}
+
+
+void Rfc822Page::execute()
+{
+    if ( !d->message ) {
+        Mailbox * m = link()->mailbox();
+
+        requireRight( m, Permissions::Read );
+
+        d->message = new Message;
+        d->message->setUid( link()->uid() );
+        List<Message> messages;
+        messages.append( d->message );
+
+        Fetcher * f;
+
+        f = new MessageHeaderFetcher( m, &messages, this );
+        f->execute();
+
+        f = new MessageBodyFetcher( m, &messages, this );
+        f->execute();
+
+        f = new MessageAddressFetcher( m, &messages, this );
+        f->execute();
+    }
+
+    if ( !permitted() )
+        return;
+
+    if ( !( d->message->hasHeaders() &&
+            d->message->hasAddresses() &&
+            d->message->hasBodies() ) )
+        return;
+
+    link()->server()->respond( "message/rfc822", d->message->rfc822() );
 }

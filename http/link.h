@@ -48,6 +48,15 @@ public:
     String part() const;
     void setPart( const String & );
 
+    enum Suffix {
+        Thread,
+        Rfc822,
+        None
+    };
+
+    Suffix suffix() const;
+    void setSuffix( Suffix );
+
     String canonical() const;
     String original() const;
 

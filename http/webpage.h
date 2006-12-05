@@ -18,6 +18,8 @@ public:
 
     void execute();
 
+    class Link * link() const;
+
     void requireRight( Mailbox *, Permissions::Right );
     bool permitted();
 
@@ -38,6 +40,19 @@ public:
 
 private:
     class BodypartPageData * d;
+};
+
+
+class Rfc822Page
+    : public WebPage
+{
+public:
+    Rfc822Page( class Link * );
+
+    void execute();
+
+private:
+    class Rfc822PageData * d;
 };
 
 
