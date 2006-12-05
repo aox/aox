@@ -6,7 +6,7 @@
 #include "link.h"
 
 
-/*! \class Error404 404.h
+/*! \class Error404 error404.h
     A component that represents a "File Not Found" error.
 */
 
