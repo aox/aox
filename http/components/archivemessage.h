@@ -23,7 +23,6 @@ private:
 
     static String textPlain( const String & );
     static String textHtml( const String & );
-    static String address( class Address * );
     static String addressField( Message *, HeaderField::Type );
     static String twoLines( Message * );
 

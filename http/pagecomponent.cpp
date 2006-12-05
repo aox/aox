@@ -3,6 +3,8 @@
 #include "pagecomponent.h"
 
 #include "webpage.h"
+#include "address.h"
+
 
 class PageComponentData
     : public Garbage
@@ -162,4 +164,20 @@ String PageComponent::quoted( const String & s )
         i++;
     }
     return r;
+}
+
+
+/*! Returns an HTML representation of \a a. */
+
+String PageComponent::address( Address * a )
+{
+    String s( "<span class=address>" );
+    s.append( quoted( a->uname() ) );
+    s.append( " &lt;" );
+    s.append( quoted( a->localpart() ) );
+    s.append( "@" );
+    s.append( quoted( a->domain() ) );
+    s.append( "&gt;</span>" );
+
+    return s;
 }

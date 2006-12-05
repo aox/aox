@@ -3,7 +3,6 @@
 #include "archivemessage.h"
 
 #include "link.h"
-#include "address.h"
 #include "webpage.h"
 #include "ustring.h"
 #include "stringlist.h"
@@ -388,7 +387,7 @@ String ArchiveMessage::textHtml( const String & s )
 
 
 /*! Returns an HTML representation of the Bodypart \a bp, which belongs
-    to the Message \a first. \a first is assumed to have UID \a uid.
+    to the Message \a first.
 */
 
 String ArchiveMessage::bodypart( Message *first, Bodypart *bp )
@@ -564,22 +563,6 @@ String ArchiveMessage::message( Message *first, Message *m )
         s.append( "</div>\n" ); // fullBody
 
     s.append( "</div>\n" ); // message
-
-    return s;
-}
-
-
-/*! Returns an HTML representation of \a a. */
-
-String ArchiveMessage::address( Address * a )
-{
-    String s( "<span class=address>" );
-    s.append( quoted( a->uname() ) );
-    s.append( " &lt;" );
-    s.append( quoted( a->localpart() ) );
-    s.append( "@" );
-    s.append( quoted( a->domain() ) );
-    s.append( "&gt;</span>" );
 
     return s;
 }

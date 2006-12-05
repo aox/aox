@@ -36,6 +36,7 @@ public:
     String divClass() const;
 
     static String quoted( const String & );
+    static String address( class Address * );
 
 private:
     class PageComponentData * d;
