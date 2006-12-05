@@ -226,6 +226,37 @@ static WebPage * archiveMessage( Link * link )
 }
 
 
+static WebPage * webmailMailboxes( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new ArchiveMailboxes );
+    return p;
+}
+
+static WebPage * webmailMailbox( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new ArchiveMailbox( link ) );
+    return p;
+}
+
+
+static WebPage * webmailThread( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new ArchiveThread( link ) );
+    return p;
+}
+
+
+static WebPage * webmailMessage( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new ArchiveMessage( link ) );
+    return p;
+}
+
+
 static WebPage * rfc822Page( Link * link )
 {
     return new Rfc822Page( link );
@@ -253,7 +284,11 @@ static const struct Handler {
     { { ArchivePrefix, Void,        Void, Void,     Void }, &archiveMailboxes },
     { { ArchivePrefix, MailboxName, Void, Void,     Void }, &archiveMailbox },
     { { ArchivePrefix, MailboxName, Uid,  Suffix,   Void }, &archiveMessage },
-    { { ArchivePrefix, MailboxName, Uid,  Part,     Void }, &partPage }
+    { { ArchivePrefix, MailboxName, Uid,  Part,     Void }, &partPage },
+    { { WebmailPrefix, Void,        Void, Void,     Void }, &webmailMailboxes },
+    { { WebmailPrefix, MailboxName, Void, Void,     Void }, &webmailMailbox },
+    { { WebmailPrefix, MailboxName, Uid,  Suffix,   Void }, &webmailMessage },
+    { { WebmailPrefix, MailboxName, Uid,  Part,     Void }, &partPage },
 };
 static uint numHandlers = sizeof( handlers ) / sizeof( handlers[0] );
 
@@ -265,32 +300,21 @@ static const struct {
     WebPage *(*suffixHandler)( Link * );
 } suffixes[] = {
     { "thread", Link::Thread, &archiveMessage, &archiveThread },
-    { "rfc822", Link::Rfc822, &archiveMessage, &rfc822Page }
+    { "rfc822", Link::Rfc822, &archiveMessage, &rfc822Page },
+    { "thread", Link::Thread, &webmailMessage, &webmailThread },
+    { "rfc822", Link::Rfc822, &webmailMessage, &rfc822Page }
 };
 static uint numSuffixes = sizeof( suffixes ) / sizeof( suffixes[0] );
 
 
-static bool checkPrefix( LinkParser * p, Component c, bool legal )
+static bool checkPrefix( LinkParser * p, const String & s, bool legal )
 {
     if ( !legal )
         return false;
 
     p->mark();
 
-    Configuration::Text var;
-    switch ( c ) {
-    case ArchivePrefix:
-        var = Configuration::ArchivePrefix;
-        break;
-    case WebmailPrefix:
-        var = Configuration::WebmailPrefix;
-        break;
-    default:
-        return false;
-        break;
-    }
-
-    StringList * want = StringList::split( '/', Configuration::text( var ) );
+    StringList * want = StringList::split( '/', s );
     StringList::Iterator it( want );
     if ( it && it->isEmpty() )
         ++it;
@@ -304,6 +328,37 @@ static bool checkPrefix( LinkParser * p, Component c, bool legal )
     }
 
     return true;
+}
+
+
+static Component checkPrefixes( LinkParser * p,
+                                bool legalComponents[NumComponents] )
+{
+    Component e = Void;
+    Component c = ArchivePrefix;
+    while ( c <= WebmailPrefix ) {
+        String s;
+        Configuration::Text var;
+        switch ( c ) {
+        case ArchivePrefix:
+            var = Configuration::ArchivePrefix;
+            break;
+        case WebmailPrefix:
+            var = Configuration::WebmailPrefix;
+            break;
+        default:
+            return Void;
+            break;
+        }
+        s = Configuration::text( var );
+        if ( s.isEmpty() && legalComponents[c] )
+            e = c;
+        else if ( checkPrefix( p, s, legalComponents[c] ) )
+            return c;
+        c = (Component)(c + 1);
+    }
+
+    return e;
 }
 
 
@@ -342,17 +397,11 @@ void Link::parse( const String & s )
 
         Component chosen = Void;
 
-        if ( checkPrefix( p, ArchivePrefix, legalComponents[ArchivePrefix] ) ) {
-            chosen = ArchivePrefix;
+        chosen = checkPrefixes( p, legalComponents );
+        if ( chosen == ArchivePrefix )
             setType( Archive );
-        }
-
-        if ( chosen == Void &&
-             checkPrefix( p, WebmailPrefix, legalComponents[WebmailPrefix] ) )
-        {
-            chosen = WebmailPrefix;
+        else if ( chosen == WebmailPrefix )
             setType( Webmail );
-        }
 
         if ( chosen == Void && legalComponents[MailboxName] ) {
             Mailbox * m = Mailbox::root();
