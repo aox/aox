@@ -467,7 +467,7 @@ void Link::parse( const String & s )
         i++;
     }
 
-    if ( h.count() == 1 &&
+    if ( h.count() == 1 && p->atEnd() &&
          ( i == 5 || h.first()->components[i] == Void ) )
     {
         WebPage *(*handler)( Link * ) = h.first()->handler;
