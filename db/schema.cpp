@@ -1734,6 +1734,8 @@ bool Schema::stepTo34()
             "insert into unparsed_messages(bodypart) "
             "select distinct pn2.bodypart"
             " from messages m"
+            " left join deleted_messages dm on (m.uid=dm.uid and"
+            " m.mailbox=dm.mailbox)"
             " join header_fields hf on (hf.uid=m.uid and m.mailbox=hf.mailbox)"
             " join address_fields af on (af.uid=m.uid and m.mailbox=af.mailbox)"
             " join addresses a on (af.address=a.id)"
