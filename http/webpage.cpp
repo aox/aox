@@ -196,10 +196,12 @@ public:
 
 
 /*! \class BodypartPage webpage.h
-    ...
+    A subclass of WebPage, meant to serve message unadorned bodyparts.
 */
 
-/*! ... */
+/*! Creates a BodypartPage object to serve \a link, which must refer to
+    a message, uid, and part number (which may or may not be valid).
+*/
 
 BodypartPage::BodypartPage( Link * link )
     : WebPage( link ),

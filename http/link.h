@@ -29,8 +29,6 @@ public:
     Link();
     Link( const String &, HTTP * );
 
-    bool valid() const;
-
     enum Type {
         Archive,
         Webmail,

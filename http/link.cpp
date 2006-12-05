@@ -50,7 +50,8 @@ Link::Link()
 }
 
 
-/*! Constructs and parses a link with path \a s.
+/*! Constructs and parses a link with path \a s for the HTTP server
+    \a server.
 */
 
 Link::Link( const String &s, HTTP * server )

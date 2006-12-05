@@ -69,8 +69,6 @@ private:
 
     void clear();
 
-    String page();
-
 private:
     class HTTPData * d;
 };

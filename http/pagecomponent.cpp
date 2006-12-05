@@ -26,7 +26,7 @@ public:
     and, once it's done(), contents() returns the text of the component.
 */
 
-/*! Creates a new PageComponent. */
+/*! Creates a new PageComponent with the div class name \a divClass. */
 
 PageComponent::PageComponent( const String & divClass )
     : d( new PageComponentData )
