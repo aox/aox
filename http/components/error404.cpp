@@ -1,6 +1,6 @@
 // Copyright Oryx Mail Systems GmbH. All enquiries to info@oryx.com, please.
 
-#include "404.h"
+#include "error404.h"
 
 #include "frontmatter.h"
 #include "link.h"
