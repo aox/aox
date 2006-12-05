@@ -76,6 +76,17 @@ void WebPage::execute()
     if ( d->responded )
         return;
 
+    HTTP * server = link()->server();
+    String * login = server->parameter( "login" );
+    if ( !d->user && !server->session() && login && !login->isEmpty() ) {
+        d->user = new User;
+        d->user->setLogin( *login );
+        d->user->refresh( this );
+    }
+
+    if ( d->user && d->user->state() == User::Unverified )
+        return;
+
     bool done = true;
     List<PageComponent>::Iterator it( d->components );
     while ( it ) {
@@ -148,20 +159,21 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
     if ( !d->checker )
         d->checker = new PermissionsChecker;
 
-    User * u = 0;
-    if ( d->link->server()->session() )
-        u = d->link->server()->session()->user();
+    HTTP * server = d->link->server();
+
+    if ( server->session() )
+        d->user = server->session()->user();
     if ( d->link->type() == Link::Archive ) {
-        u = new User;
-        u->setLogin( "anonymous" );
+        d->user = new User;
+        d->user->setLogin( "anonymous" );
     }
 
-    if ( !u )
+    if ( !d->user )
         return;
 
-    Permissions * p = d->checker->permissions( m, u );
+    Permissions * p = d->checker->permissions( m, d->user );
     if ( !p )
-        p = new Permissions( m, u, this );
+        p = new Permissions( m, d->user, this );
 
     d->checker->require( p, r );
 }
@@ -184,13 +196,13 @@ bool WebPage::permitted()
         return false;
     if ( !d->checker->ready() )
         return false;
-    if ( d->checker->allowed() )
-        return true;
 
     HTTP * server = d->link->server();
 
-    d->responded = true;
     if ( d->link->type() == Link::Archive ) {
+        if ( d->checker->allowed() )
+            return true;
+        d->responded = true;
         server->setStatus( 403, "Forbidden" );
         server->respond( "text/plain",
                          d->checker->error().simplified() + "\n" );
@@ -198,22 +210,17 @@ bool WebPage::permitted()
     else {
         String *login = server->parameter( "login" );
         String *passwd = server->parameter( "passwd" );
-        if ( !login || login->isEmpty() || !passwd ||
-             ( d->user && ( d->user->state() == User::Nonexistent ||
-                            d->user->secret() != *passwd ) ) )
+        if ( !d->user || !login || login->isEmpty() || !passwd ||
+             d->user->state() == User::Nonexistent ||
+             d->user->secret() != *passwd )
         {
             // XXX: addComponent( WhatWentWrong );
+            d->responded = true;
             WebPage * wp = new WebPage( d->link );
             wp->addComponent( new LoginForm );
             wp->execute();
         }
         else {
-            if ( !d->user ) {
-                d->user = new User;
-                d->user->setLogin( *login );
-                d->user->refresh( this );
-            }
-
             if ( d->user->state() == User::Unverified )
                 return false;
 
@@ -226,7 +233,8 @@ bool WebPage::permitted()
             s->setUser( d->user );
             s->refresh();
 
-            return true;
+            if ( d->checker->allowed() )
+                return true;
         }
     }
 
