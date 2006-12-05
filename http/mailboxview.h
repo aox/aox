@@ -15,6 +15,7 @@ public:
     MailboxView( Mailbox * );
 
     class Thread
+        : public Garbage
     {
     public:
         List<Message> m;
