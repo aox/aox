@@ -100,7 +100,6 @@ void HTTP::react( Event e )
 
     case Timeout:
         log( "Idle timeout" );
-        enqueue( "408 Timeout after 1800 seconds\r\n" );
         Connection::setState( Closing );
         break;
 
