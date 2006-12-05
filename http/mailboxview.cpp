@@ -4,10 +4,26 @@
 
 #include "allocator.h"
 #include "mailbox.h"
+#include "fetcher.h"
 #include "message.h"
 #include "event.h"
 #include "dict.h"
 #include "map.h"
+
+
+class MailboxViewBouncer: public EventHandler
+{
+public:
+    MailboxViewBouncer( MailboxView * view )
+        : v( view )
+    {}
+
+    void execute() {
+        v->refresh( 0 );
+    }
+
+    MailboxView * v;
+};
 
 
 class MailboxViewData
@@ -15,11 +31,16 @@ class MailboxViewData
 {
 public:
     MailboxViewData()
-        : unready( 0 ), working( false ) {}
-    uint unready;
-    bool working;
+        : uidnext( 0 ), bouncer( 0 )
+    {}
+
+    uint uidnext;
+    List<Message> messages;
+    List<EventHandler> owners;
     Dict<MailboxView::Thread> subjects;
     List<MailboxView::Thread> threads;
+    MailboxViewBouncer * bouncer;
+    List<Message>::Iterator firstUnthreaded;
 };
 
 
@@ -43,23 +64,6 @@ MailboxView::MailboxView( Mailbox * m )
 }
 
 
-class MailboxViewBouncer: public EventHandler
-{
-public:
-    MailboxViewBouncer( EventHandler * owner, MailboxView * view )
-        : EventHandler(), o( owner ), v( view ) {
-    }
-
-    void execute() {
-        if ( v->ready() )
-            o->execute();
-    }
-
-    EventHandler * o;
-    MailboxView * v;
-};
-
-
 /*! Refreshes this MailboxView and calls EventHandler::execute() on \a
     owner as soon as this object is ready().
 
@@ -71,18 +75,68 @@ public:
 
 void MailboxView::refresh( EventHandler * owner )
 {
-    if ( d->working || ready() )
+    if ( owner && !d->owners.find( owner ) )
+        d->owners.append( owner );
+
+    if ( !d->bouncer )
+        d->bouncer = new MailboxViewBouncer( this );
+
+    if ( ( initialised() && uidnext() < mailbox()->uidnext() ) ||
+         uidnext() == 0 )
+    {
+        Session::refresh( d->bouncer );
+        return;
+    }
+
+    List<Message> newMessages;
+
+    while ( d->uidnext < uidnext() ) {
+        uint n = msn( d->uidnext );
+        if ( n ) {
+            Message * msg = new Message;
+            msg->setUid( d->uidnext );
+            d->messages.append( msg );
+            newMessages.append( msg );
+
+            if ( !d->firstUnthreaded )
+                d->firstUnthreaded = d->messages.last();
+
+            n++;
+            if ( uid( n ) )
+                d->uidnext = uid( n );
+            else
+                d->uidnext = uidnext();
+        }
+        else {
+            d->uidnext++;
+        }
+    }
+
+    if ( !newMessages.isEmpty() ) {
+        Fetcher * f = new MessageHeaderFetcher( mailbox(), &newMessages,
+                                                d->bouncer );
+        f->execute();
+        f = new MessageAddressFetcher( mailbox(), &newMessages, d->bouncer );
+        f->execute();
+    }
+
+    while ( d->firstUnthreaded &&
+            d->firstUnthreaded->hasHeaders() &&
+            d->firstUnthreaded->hasAddresses() )
+    {
+        threadMessage( d->firstUnthreaded );
+        ++d->firstUnthreaded;
+    }
+
+    if ( !ready() )
         return;
 
-    d->working = true;
-
-    EventHandler * h = new MailboxViewBouncer( owner, this );
-
-    MessageSet s;
-    s.add( uidnext(), mailbox()->uidnext() - 1 );
-//    mailbox()->fetchHeaders( s, new MailboxViewBouncer( owner, this ) );
-
-    Session::refresh( h );
+    List<EventHandler>::Iterator it( d->owners );
+    while ( it ) {
+        EventHandler * ev = it;
+        d->owners.take( it );
+        ev->execute();
+    }
 }
 
 
@@ -97,33 +151,18 @@ bool MailboxView::ready()
 {
     if ( !initialised() )
         return false;
-    if ( !d->unready ) {
-        if ( count() )
-            d->unready = uid( 1 );
-        else
-            d->unready = uidnext();
-    }
-    while ( d->unready < uidnext() ) {
-        Message * m = 0;
-        // m = mailbox()->message( d->unready, false );
-        if ( !m || !m->hasHeaders() )
-            return false;
-        threadMessage( d->unready, m );
-        uint x = uid( msn( d->unready ) + 1 );
-        if ( x < d->unready )
-            x = uidnext();
-        d->unready = x;
-    }
-    d->working = false;
+
+    if ( d->firstUnthreaded )
+        return false;
+
     return true;
 }
 
 
-/*! This private helper adds message \a m, which is assumed to have
-     UID \a u to the thread datastructures.
+/*! This private helper adds message \a m to the thread datastructures.
 */
 
-void MailboxView::threadMessage( uint u, Message * m )
+void MailboxView::threadMessage( Message * m )
 {
     HeaderField * hf = m->header()->field( HeaderField::Subject );
     String subject;
@@ -135,7 +174,7 @@ void MailboxView::threadMessage( uint u, Message * m )
         d->subjects.insert( subject, t );
         d->threads.append( t );
     }
-    t->append( u, m );
+    t->m.append( m );
 }
 
 

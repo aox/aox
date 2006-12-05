@@ -6,6 +6,7 @@
 #include "session.h"
 
 #include "list.h"
+#include "message.h"
 
 
 class MailboxView: public Session
@@ -15,19 +16,13 @@ public:
 
     class Thread
     {
-    private:
-        struct M
-            : public Garbage
-        {
-            M( uint u, Message * m ): uid( u ), message( m ) {}
+    public:
+        List<Message> m;
 
-            uint uid;
-            Message * message;
-        };
-        List<M> m;
+        Thread() {}
 
-        M * member( uint n ) const {
-            List<M>::Iterator i( m );
+        Message * message( uint n ) const {
+            List<Message>::Iterator i( m );
             while ( i && n ) {
                 ++i;
                 --n;
@@ -35,24 +30,13 @@ public:
             return i;
         }
 
-    public:
-        Thread() {}
-
-        void append( uint uid, Message * msg ) {
-            m.append( new M( uid, msg ) );
-        }
-        Message * message( uint n ) const {
-            M * m = member( n );
-            if ( m )
-                return m->message;
-            return 0;
-        }
         uint uid( uint n ) const {
-            M * m = member( n );
+            Message * m = message( n );
             if ( m )
-                return m->uid;
+                return m->uid();
             return 0;
         }
+
         uint messages() const {
             return m.count();
         }
@@ -68,7 +52,7 @@ public:
     void refresh( EventHandler * owner );
     bool ready();
 
-    void threadMessage( uint, Message * );
+    void threadMessage( Message * );
 
 private:
     class MailboxViewData * d;

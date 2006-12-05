@@ -9,4 +9,4 @@ HDRS += [ FDirName $(TOP) http ] ;
 SubInclude TOP http components ;
 
 Build http : http.cpp link.cpp webpage.cpp pagecomponent.cpp
-    frontmatter.cpp httpsession.cpp ;
+    frontmatter.cpp httpsession.cpp mailboxview.cpp ;
