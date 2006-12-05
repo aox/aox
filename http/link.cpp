@@ -327,7 +327,7 @@ void Link::parse( const String & s )
     // All URLs are irretrievably hideous.
 
     i = 0;
-    while ( !p->atEnd() && i < 5 ) {
+    while ( i < 5 ) {
         bool legalComponents[NumComponents];
         uint n = 0;
         while ( n < NumComponents )
@@ -436,10 +436,13 @@ void Link::parse( const String & s )
                     }
                     ++it;
                 }
+                if ( chosen == Void )
+                    p->restore();
             }
-
-            if ( chosen == Void )
+            else {
+                chosen = ::Suffix;
                 p->restore();
+            }
         }
 
         if ( chosen == Void && legalComponents[Void] ) {
@@ -459,17 +462,8 @@ void Link::parse( const String & s )
             else
                 ++it;
         }
-        i++;
-    }
 
-    if ( p->atEnd() && i < 5 ) {
-        List<const Handler>::Iterator it( h );
-        while ( it ) {
-            if ( it->components[i] != Void )
-                h.take( it );
-            else
-                ++it;
-        }
+        i++;
     }
 
     if ( h.count() == 1 &&
