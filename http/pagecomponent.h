@@ -24,6 +24,7 @@ public:
     uint status() const;
     void setStatus( uint );
 
+    WebPage * page() const;
     void setPage( WebPage * );
 
     String contents() const;

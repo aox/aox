@@ -64,6 +64,16 @@ void PageComponent::setStatus( uint status )
 }
 
 
+/*! Returns a pointer to this component's WebPage, which will be 0 until
+    the component has been added to a WebPage.
+*/
+
+WebPage * PageComponent::page() const
+{
+    return d->page;
+}
+
+
 /*! Informs this component that it is being used in \a page. */
 
 void PageComponent::setPage( WebPage * page )
