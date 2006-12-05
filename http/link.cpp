@@ -10,6 +10,8 @@
 
 #include "components/error404.h"
 #include "components/archivemailboxes.h"
+#include "components/archivemailbox.h"
+#include "components/archivemessage.h"
 
 
 class LinkData
@@ -180,15 +182,19 @@ static WebPage * archiveMailboxes( Link * link )
 }
 
 
-static WebPage * archiveMailbox( Link * )
+static WebPage * archiveMailbox( Link * link )
 {
-    return 0;
+    WebPage * p = new WebPage( link );
+    p->addComponent( new ArchiveMailbox( link ) );
+    return p;
 }
 
 
-static WebPage * archiveMessage( Link * )
+static WebPage * archiveMessage( Link * link )
 {
-    return 0;
+    WebPage * p = new WebPage( link );
+    p->addComponent( new ArchiveMessage( link ) );
+    return p;
 }
 
 
@@ -378,14 +384,21 @@ void Link::parse( const String & s )
         while ( it ) {
             if ( legalComponents[it->components[i]] &&
                  it->components[i] != chosen )
-            {
                 h.take( it );
-            }
-            else {
+            else
                 ++it;
-            }
         }
         i++;
+    }
+
+    if ( p->atEnd() && i < 5 ) {
+        List<const Handler>::Iterator it( h );
+        while ( it ) {
+            if ( it->components[i] != None )
+                h.take( it );
+            else
+                ++it;
+        }
     }
 
     if ( h.count() == 1 &&
