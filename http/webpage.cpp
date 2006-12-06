@@ -27,7 +27,7 @@ class WebPageData
 public:
     WebPageData()
         : link( 0 ), checker( 0 ), responded( false ),
-          user( 0 )
+          user( 0 ), mailbox( 0 ), rights( Permissions::Read )
     {}
 
     Link * link;
@@ -35,6 +35,8 @@ public:
     PermissionsChecker * checker;
     bool responded;
     User * user;
+    Mailbox * mailbox;
+    Permissions::Right rights;
 };
 
 
@@ -74,17 +76,6 @@ Link * WebPage::link() const
 void WebPage::execute()
 {
     if ( d->responded )
-        return;
-
-    HTTP * server = link()->server();
-    String * login = server->parameter( "login" );
-    if ( !d->user && !server->session() && login && !login->isEmpty() ) {
-        d->user = new User;
-        d->user->setLogin( *login );
-        d->user->refresh( this );
-    }
-
-    if ( d->user && d->user->state() == User::Unverified )
         return;
 
     bool done = true;
@@ -156,26 +147,24 @@ void WebPage::execute()
 
 void WebPage::requireRight( Mailbox * m, Permissions::Right r )
 {
-    if ( !d->checker )
-        d->checker = new PermissionsChecker;
+    d->mailbox = m;
+    d->rights = r;
 
     HTTP * server = d->link->server();
+    String * login = server->parameter( "login" );
 
-    if ( server->session() )
-        d->user = server->session()->user();
     if ( d->link->type() == Link::Archive ) {
         d->user = new User;
         d->user->setLogin( "anonymous" );
+        d->user->refresh( this );
     }
-
-    if ( !d->user )
-        return;
-
-    Permissions * p = d->checker->permissions( m, d->user );
-    if ( !p )
-        p = new Permissions( m, d->user, this );
-
-    d->checker->require( p, r );
+    else if ( login && !login->isEmpty() ) {
+        d->user = new User;
+        d->user->setLogin( *login );
+        d->user->refresh( this );
+    }
+    else if ( server->session() )
+        d->user = server->session()->user();
 }
 
 
@@ -192,8 +181,28 @@ bool WebPage::permitted()
 {
     if ( d->responded )
         return false;
-    if ( !d->checker )
+
+    if ( !d->user ) {
+        d->responded = true;
+        WebPage * wp = new WebPage( d->link );
+        wp->addComponent( new LoginForm );
+        wp->execute();
         return false;
+    }
+
+    if ( d->user->state() == User::Unverified )
+        return false;
+
+    if ( !d->checker ) {
+        d->checker = new PermissionsChecker;
+
+        Permissions * p = d->checker->permissions( d->mailbox, d->user );
+        if ( !p )
+            p = new Permissions( d->mailbox, d->user, this );
+
+        d->checker->require( p, d->rights );
+    }
+
     if ( !d->checker->ready() )
         return false;
 
@@ -206,35 +215,30 @@ bool WebPage::permitted()
         server->setStatus( 403, "Forbidden" );
         server->respond( "text/plain",
                          d->checker->error().simplified() + "\n" );
+        return false;
     }
     else {
-        String *login = server->parameter( "login" );
         String *passwd = server->parameter( "passwd" );
-        if ( !d->user || !login || login->isEmpty() || !passwd ||
-             d->user->state() == User::Nonexistent ||
-             d->user->secret() != *passwd )
+        if ( d->user->state() == User::Nonexistent ||
+             !passwd || d->user->secret() != *passwd ||
+             !d->checker->allowed() )
         {
             // XXX: addComponent( WhatWentWrong );
             d->responded = true;
             WebPage * wp = new WebPage( d->link );
             wp->addComponent( new LoginForm );
             wp->execute();
+            return false;
         }
         else {
-            if ( d->user->state() == User::Unverified )
-                return false;
-
             HttpSession *s = server->session();
             if ( !s || s->user()->login() != d->user->login() ) {
                 s = new HttpSession;
                 server->setSession( s );
             }
-
             s->setUser( d->user );
             s->refresh();
-
-            if ( d->checker->allowed() )
-                return true;
+            return true;
         }
     }
 
