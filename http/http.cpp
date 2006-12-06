@@ -264,13 +264,17 @@ uint HTTP::status() const
 }
 
 
-/*! Returns a pointer to the String value of the parameter named \a s,
-    or 0 if the parameter was not specified in the request.
+/*! Returns the String value of the parameter named \a s,
+    or an empty string if the parameter was not specified in the
+    request.
 */
 
-String *HTTP::parameter( const String &s ) const
+String HTTP::parameter( const String &s ) const
 {
-    return d->parameters.find( s );
+    String * v = d->parameters.find( s );
+    if ( v )
+    	return *v;
+    return "";
 }
 
 

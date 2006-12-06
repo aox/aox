@@ -151,16 +151,16 @@ void WebPage::requireRight( Mailbox * m, Permissions::Right r )
     d->rights = r;
 
     HTTP * server = d->link->server();
-    String * login = server->parameter( "login" );
+    String login( server->parameter( "login" ) );
 
     if ( d->link->type() == Link::Archive ) {
         d->user = new User;
         d->user->setLogin( "anonymous" );
         d->user->refresh( this );
     }
-    else if ( login && !login->isEmpty() ) {
+    else if ( !login.isEmpty() ) {
         d->user = new User;
-        d->user->setLogin( *login );
+        d->user->setLogin( login );
         d->user->refresh( this );
     }
     else if ( server->session() )
@@ -218,9 +218,9 @@ bool WebPage::permitted()
         return false;
     }
     else {
-        String *passwd = server->parameter( "passwd" );
+        String passwd( server->parameter( "passwd" ) );
         if ( d->user->state() == User::Nonexistent ||
-             !passwd || d->user->secret() != *passwd ||
+             d->user->secret() != passwd ||
              !d->checker->allowed() )
         {
             // XXX: addComponent( WhatWentWrong );

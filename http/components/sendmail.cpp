@@ -5,12 +5,18 @@
 #include "link.h"
 #include "webpage.h"
 #include "frontmatter.h"
+#include "message.h"
 
 
 class SendmailData
     : public Garbage
 {
 public:
+	SendmailData()
+        : message( 0 )
+    {}
+
+    Message * message;
 };
 
 
