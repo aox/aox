@@ -3,6 +3,8 @@
 #include "formmail.h"
 
 #include "frontmatter.h"
+#include "link.h"
+
 
 /*! \class FormMail formmail.h
     This pagecomponent is an obligatory huge security hole. (Optionally,
@@ -20,7 +22,12 @@ FormMail::FormMail()
 
 void FormMail::execute()
 {
-    String s( "<form method=post action=\"something\">\n"
+    Link l;
+    l.setType( Link::Webmail );
+    l.setMagic( true );
+    l.setSuffix( Link::Send );
+
+    String s( "<form method=post action=\"" + l.canonical() + "\">\n"
               "<label for=from>From:</label>\n"
               "<input type=text name=from value=\"\"><br>\n"
               "<label for=to>To:</label>\n"

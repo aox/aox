@@ -8,4 +8,5 @@ Build http :
     archivethread.cpp
     loginform.cpp
     formmail.cpp
+    sendmail.cpp
     ;

@@ -14,6 +14,7 @@
 #include "components/archivemessage.h"
 #include "components/archivethread.h"
 #include "components/formmail.h"
+#include "components/sendmail.h"
 
 
 class LinkData
@@ -21,13 +22,15 @@ class LinkData
 {
 public:
     LinkData()
-        : type( Link::Error ), mailbox( 0 ), uid( 0 ), suffix( Link::None ),
+        : type( Link::Error ), magic( false ),
+          mailbox( 0 ), uid( 0 ), suffix( Link::None ),
           webpage( 0 ), server( 0 )
     {}
 
     String original;
 
     Link::Type type;
+    bool magic;
     Mailbox * mailbox;
     uint uid;
     String part;
@@ -83,6 +86,22 @@ Link::Type Link::type() const
 void Link::setType( Type p )
 {
     d->type = p;
+}
+
+
+/*! Returns true if this Link is magic, and false otherwise. */
+
+bool Link::magic() const
+{
+    return d->magic;
+}
+
+
+/*! Sets this Link's magicity to \a m. */
+
+void Link::setMagic( bool m )
+{
+    d->magic = m;
 }
 
 
@@ -271,9 +290,17 @@ static WebPage * partPage( Link * link )
 }
 
 
+static WebPage * sendmail( Link * link )
+{
+    WebPage * p = new WebPage( link );
+    p->addComponent( new Sendmail );
+    return p;
+}
+
+
 enum Component {
     ArchivePrefix, WebmailPrefix,
-    MailboxName, Uid, Part, Suffix,
+    Magic, MailboxName, Uid, Part, Suffix,
     Void,
     NumComponents
 };
@@ -291,6 +318,7 @@ static const struct Handler {
     { { WebmailPrefix, MailboxName, Void, Void,     Void }, &webmailMailbox },
     { { WebmailPrefix, MailboxName, Uid,  Suffix,   Void }, &webmailMessage },
     { { WebmailPrefix, MailboxName, Uid,  Part,     Void }, &partPage },
+    { { WebmailPrefix, Magic,       Suffix, Void,   Void }, &errorPage }
 };
 static uint numHandlers = sizeof( handlers ) / sizeof( handlers[0] );
 
@@ -304,7 +332,8 @@ static const struct {
     { "thread", Link::Thread, &archiveMessage, &archiveThread },
     { "rfc822", Link::Rfc822, &archiveMessage, &rfc822Page },
     { "thread", Link::Thread, &webmailMessage, &webmailThread },
-    { "rfc822", Link::Rfc822, &webmailMessage, &rfc822Page }
+    { "rfc822", Link::Rfc822, &webmailMessage, &rfc822Page },
+    { "send",   Link::Send,   &errorPage,      &sendmail }
 };
 static uint numSuffixes = sizeof( suffixes ) / sizeof( suffixes[0] );
 
@@ -382,8 +411,6 @@ void Link::parse( const String & s )
 
     LinkParser * p = new LinkParser( s );
 
-    // All URLs are irretrievably hideous.
-
     i = 0;
     while ( i < 5 ) {
         bool legalComponents[NumComponents];
@@ -404,6 +431,18 @@ void Link::parse( const String & s )
             setType( Archive );
         else if ( chosen == WebmailPrefix )
             setType( Webmail );
+
+        if ( chosen == Void && legalComponents[Magic] ) {
+            p->mark();
+            p->require( "/archiveopteryx" );
+            if ( p->ok() ) {
+                chosen = Magic;
+                setMagic( true );
+            }
+            else {
+                p->restore();
+            }
+        }
 
         if ( chosen == Void && legalComponents[MailboxName] ) {
             Mailbox * m = Mailbox::root();
@@ -593,6 +632,7 @@ String Link::canonical() const
             good = false;
 
         good = good &&
+               checkForComponent( i, Magic, d->magic ) &&
                checkForComponent( i, MailboxName, d->mailbox ) &&
                checkForComponent( i, Uid, d->uid != 0 ) &&
                checkForComponent( i, Part, !d->part.isEmpty() );
@@ -619,6 +659,9 @@ String Link::canonical() const
             break;
         case WebmailPrefix:
             r.append( Configuration::text( Configuration::WebmailPrefix ) );
+            break;
+        case Magic:
+            r.append( "/archiveopteryx" );
             break;
         case MailboxName:
             // XXX: We need to %-escape the mailbox name.

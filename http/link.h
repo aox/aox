@@ -39,6 +39,9 @@ public:
     Type type() const;
     void setType( Type );
 
+    bool magic() const;
+    void setMagic( bool );
+
     Mailbox * mailbox() const;
     void setMailbox( Mailbox * );
 
@@ -51,6 +54,7 @@ public:
     enum Suffix {
         Thread,
         Rfc822,
+        Send,
         None
     };
 
