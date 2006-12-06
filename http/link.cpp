@@ -13,6 +13,7 @@
 #include "components/archivemailbox.h"
 #include "components/archivemessage.h"
 #include "components/archivethread.h"
+#include "components/formmail.h"
 
 
 class LinkData
@@ -253,6 +254,7 @@ static WebPage * webmailMessage( Link * link )
 {
     WebPage * p = new WebPage( link );
     p->addComponent( new ArchiveMessage( link ) );
+    p->addComponent( new FormMail );
     return p;
 }
 

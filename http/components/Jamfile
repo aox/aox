@@ -7,4 +7,5 @@ Build http :
     archivemessage.cpp
     archivethread.cpp
     loginform.cpp
+    formmail.cpp
     ;
