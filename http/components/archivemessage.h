@@ -21,8 +21,11 @@ public:
 private:
     class ArchiveMessageData * d;
 
+public:
     static String textPlain( const String & );
     static String textHtml( const String & );
+
+private:
     static String addressField( Message *, HeaderField::Type );
     static String twoLines( Message * );
 
