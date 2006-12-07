@@ -323,6 +323,16 @@ struct Id
 };
 
 
+struct AddressMap
+    : public Garbage
+{
+    AddressMap() : bad( 0 ), good( 0 ) {}
+
+    Address * bad;
+    Address * good;
+};
+
+
 class Dispatcher
     : public EventHandler
 {
@@ -353,6 +363,7 @@ public:
     List<HeaderFieldRow> * headerFieldRows;
     CacheLookup * cacheLookup;
     Dict<void> * uniq;
+    List<AddressMap> * addressMap;
 
     Dispatcher( Command cmd )
         : chores( new List< Query > ),
@@ -360,7 +371,8 @@ public:
           user( 0 ), conversions( 0 ), t( 0 ), address( 0 ), m( 0 ),
           schema( 0 ), state( 0 ), ids( 0 ), addressCache( 0 ),
           parsers( 0 ), unknownAddresses( 0 ), headerFieldRows( 0 ),
-          cacheLookup( 0 ), uniq( new Dict<void>( 1000 ) )
+          cacheLookup( 0 ), uniq( new Dict<void>( 1000 ) ),
+          addressMap( new List<AddressMap> )
     {
         Allocator::addEternal( this, "an aox dispatcher" );
     }
@@ -1206,7 +1218,7 @@ void updateDatabase()
         d->state = 0;
     }
 
-    while ( d->state != 666 ) {
+    while ( d->state != 670 ) {
         if ( d->state == 0 ) {
             printf( "- Checking for unconverted address fields in "
                     "header_fields.\n" );
@@ -1339,10 +1351,14 @@ void updateDatabase()
 
                     List<HeaderFieldRow>::Iterator it( d->headerFieldRows );
                     while ( it ) {
+                        bool p;
                         HeaderFieldRow * hf = it;
-                        convertField( hf->mailbox, hf->uid, hf->part,
-                                      hf->position, hf->field, hf->value );
-                        ++it;
+                        p = convertField( hf->mailbox, hf->uid, hf->part,
+                                          hf->position, hf->field, hf->value );
+                        if ( p )
+                            d->headerFieldRows->take( it );
+                        else
+                            ++it;
                     }
 
                     if ( d->conversions )
@@ -1379,6 +1395,114 @@ void updateDatabase()
                 return;
 
             d->state = 666;
+        }
+
+        if ( d->state == 666 ) {
+            d->state = 667;
+            printf( "- Checking for misparsed addresses.\n" );
+            d->t = new Transaction( d );
+            d->query =
+                new Query( "select distinct id,name,localpart,domain "
+                           "from address_fields af join addresses a "
+                           "on (af.address=a.id) where number is null ", d );
+            d->t->enqueue( d->query );
+            d->t->execute();
+        }
+
+        if ( d->state == 667 ) {
+            if ( !d->query->done() )
+                return;
+
+            List<Address> * addresses = new List<Address>;
+            while ( d->query->hasResults() ) {
+                Row * r = d->query->nextRow();
+
+                AddressMap * m = new AddressMap;
+                m->bad = new Address( r->getString( "name" ),
+                                      r->getString( "localpart" ),
+                                      r->getString( "domain" ) );
+                m->bad->setId( r->getInt( "id" ) );
+
+                AddressParser ap( m->bad->toString() );
+                if ( ap.addresses() )
+                    m->good = ap.addresses()->first();
+
+                if ( m->good ) {
+                    d->addressMap->append( m );
+                    addresses->append( m->good );
+                }
+            }
+
+            printf( "  Reparsing %d addresses.\n", addresses->count() );
+
+            d->state = 668;
+            d->cacheLookup = AddressCache::lookup( d->t, addresses, d );
+        }
+
+        if ( d->state == 668 ) {
+            if ( !d->cacheLookup->done() )
+                return;
+
+            String s( "update address_fields set address=CASE address " );
+            String w( "" );
+
+            d->conversions = 0;
+            List<AddressMap>::Iterator it( d->addressMap );
+            while ( it ) {
+                if ( it->good->id() != 0 &&
+                     it->good->id() != it->bad->id() )
+                {
+                    s.append( "WHEN " );
+                    s.append( fn( it->bad->id() ) );
+                    s.append( " THEN " );
+                    s.append( fn( it->good->id() ) );
+                    s.append( " " );
+                    d->conversions++;
+                    if ( w.isEmpty() )
+                        w.append( "WHERE " );
+                    else
+                        w.append( "or " );
+                    w.append( "address=" );
+                    w.append( fn( it->bad->id() ) );
+                    w.append( " " );
+                }
+                ++it;
+            }
+
+            s.append( "END " );
+            s.append( w );
+
+            d->state = 669;
+
+            if ( d->conversions != 0 ) {
+                printf( "  Updating %d reparsed addresses.\n",
+                        d->conversions );
+                d->query = new Query( s, d );
+                d->t->enqueue( d->query );
+            }
+
+            d->t->commit();
+        }
+
+        if ( d->state == 669 ) {
+            if ( !d->t->done() )
+                return;
+
+            if ( d->t->failed() ) {
+                fprintf( stderr, "Database error: %s\n",
+                         d->t->error().cstr() );
+                exit( -1 );
+            }
+            else {
+                if ( d->conversions != 0 ) {
+                    printf( "- Rerunning update database.\n" );
+                    d->addressMap->clear();
+                    d->state = 0;
+                }
+                else {
+                    d->state = 670;
+                }
+            }
         }
     }
 
