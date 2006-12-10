@@ -624,15 +624,16 @@ void Header::repair( Multipart * p )
     }
 
     // We retain only the first valid Date field, Return-Path,
-    // Message-Id and References fields. If there is one or more valid
-    // such field, we delete all invalid fields and subsequent valid
-    // fields, otherwise we leave the fields as they are.
+    // Message-Id, References and Content-Type fields. If there is one
+    // or more valid such field, we delete all invalid fields and
+    // subsequent valid fields, otherwise we leave the fields as they
+    // are.
 
     // Several senders appear to send duplicate dates. qmail is
     // mentioned in the references chains of most examples we have.
 
-    // We don't know who adds duplicate message-id and return-path
-    // fields.
+    // We don't know who adds duplicate message-id, return-path and
+    // content-type fields.
 
     // The only case we've seen of duplicate references involved
     // Thunderbird 1.5.0.4 and Scalix. Uncertain whose
@@ -644,6 +645,7 @@ void Header::repair( Multipart * p )
              ( i == HeaderField::Date ||
                i == HeaderField::ReturnPath ||
                i == HeaderField::MessageId ||
+               i == HeaderField::ContentType ||
                i == HeaderField::References ) ) {
             List< HeaderField >::Iterator it( d->fields );
             HeaderField * firstValid = 0;
