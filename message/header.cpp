@@ -677,16 +677,31 @@ void Header::repair( Multipart * p )
         List< HeaderField >::Iterator it( d->fields );
         Date date;
         while ( it ) {
-            // First, we take the date from the oldest valid-looking
+            // First, we take the date from the oldest plausible
             // Received field.
             if ( it->type() == HeaderField::Received ) {
                 String v = it->value();
-                int i = v.find( ';' );
-                if ( i >= 0 && !v.mid( i+1 ).contains( ';' ) ) {
+                int i = 0;
+                while ( v.find( ';', i+1 ) > 0 )
+                    i = v.find( ';', i+1 );
+                if ( i >= 0 ) {
                     Date tmp;
                     tmp.setRfc822( v.mid( i+1 ) );
-                    if ( tmp.valid() )
-                        date = tmp;
+                    if ( tmp.valid() ) {
+                        if ( !date.valid() ) {
+                            // first plausible we've seen
+                            date = tmp;
+                        }
+                        else {
+                            uint ud = date.unixTime();
+                            uint td = tmp.unixTime();
+                            // if it took more than an hour to
+                            // deliver, or less than no time, we don't
+                            // trust this receied field at all.
+                            if ( td < ud && td + 3600 > td )
+                                date = tmp;
+                        }
+                    }
                 }
             }
             ++it;
@@ -713,11 +728,14 @@ void Header::repair( Multipart * p )
         }
 
         if ( date.valid() ) {
+            uint pos = UINT_MAX;
             HeaderField * df = field( HeaderField::Date );
             if ( df )
-                df->parse( date.rfc822() );
-            else
-                add( "Date", date.rfc822() );
+                pos = df->position();
+            removeField( HeaderField::Date );
+            df = HeaderField::create( "Date", date.rfc822() );
+            df->setPosition( pos );
+            add( df );
         }
     }
 
