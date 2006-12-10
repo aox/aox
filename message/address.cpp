@@ -960,28 +960,33 @@ String AddressParser::phrase( int & i )
 
 String AddressParser::localpart( int & i )
 {
-    // code copied from domain and calling phrase. separate this out
-    // for easier testing.
-    String lp;
-    if ( d->s[i] == '"' ) {
-        // phrase() tries to handle unlabelled 8-bit and decode
-        // 2047. this is inappropriate here, but what can we do?
-        lp = phrase( i );
-    }
-    else {
-        // atoms, separated by '.' and (obsoletely) spaces. the spaces
-        // are stripped.
-        StringList atoms;
-
-        atoms.append( atom( i ) );
-        comment( i );
-        while( i >= 0 && d->s[i] == '.' ) {
+    if ( i < 0 )
+        return "";
+    String r;
+    String s;
+    bool more = true;
+    while ( more ) {
+        String w;
+        if ( d->s[i] == '"' )
+            w = phrase( i );
+        else
+            w = atom( i );
+        String t = w;
+        t.append( s );
+        t.append( r );
+        r = t;
+        if ( i >= 0 && d->s[i] == '.' ) {
+            s = d->s.mid( i, 1 );
             i--;
-            atoms.prepend( new String( atom( i ) ) );
         }
-        lp = atoms.join( "." );
+        else if ( w.startsWith( "%" ) ) {
+            s.truncate();
+        }
+        else {
+            more = false;
+        }
     }
-    return lp;
+    return r;
 }
 
 
