@@ -34,6 +34,9 @@ ObjectDefines configuration.cpp :
 # make sure configuration.o is rebuilt when the settings change. a bit hacky.
 NoCare <>Jamsettings ;
 Depends [ FGristFiles configuration.o ] : <>Jamsettings ;
+# and the version
+NoCare <>Jamrules ;
+Depends [ FGristFiles configuration.o ] : <>Jamrules ;
 
 # assumedly, everything which includes this file wants to include the
 # headers in this directory.
