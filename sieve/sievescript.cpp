@@ -45,13 +45,18 @@ void SieveScript::parse( const String & script )
     d->source = script;
     SieveParser p( script );
     d->script = p.commands();
+
+    // if we're not yet at the end, treat whatever follows as another
+    // command, which will have a nice big error message.
+    p.whitespace();
+    if ( !p.atEnd() )
+        d->script->append( p.command() );
+    
     List<SieveCommand>::Iterator s( d->script );
     while ( s ) {
         s->parse();
         ++s;
     }
-    
-    p.end();
 }
 
 
