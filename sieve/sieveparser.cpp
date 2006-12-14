@@ -114,8 +114,7 @@ String SieveParser::identifier()
 String SieveParser::multiLine()
 {
     String r;
-    if ( !present( "text:" ) )
-        return r;
+    require( "text:" );
     while ( nextChar() == ' ' || nextChar() == '\t' )
         step();
     if ( !present( "\r\n" ) )
@@ -125,6 +124,7 @@ String SieveParser::multiLine()
             step();
         while ( !atEnd() && nextChar() != '\r' ) {
             r.append( nextChar() );
+            step();
         }
         require( "\r\n" );
     }
@@ -204,7 +204,7 @@ String SieveParser::tag()
 
 /*! Parses and skips whatever whitespace is at pos(). */
 
-void SieveParser::whiteSpace()
+void SieveParser::whitespace()
 {
     uint p;
     do {
@@ -294,7 +294,7 @@ class SieveArgumentList * SieveParser::arguments()
             sal->append( test() );
         require( ")" );
     }
-    else {
+    else if ( ok() ) {
         // it's either a test or nothing
         m = mark();
         SieveTest * st = test();
@@ -450,7 +450,8 @@ class SieveTest * SieveParser::test()
     SieveTest * t = new SieveTest;
     t->setStart( pos() );
     t->setIdentifier( identifier() );
-    t->setArguments( arguments() );
+    if ( ok() )
+        t->setArguments( arguments() );
     t->setError( error() );
     t->setEnd( pos() );
     return t;

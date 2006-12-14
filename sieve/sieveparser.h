@@ -13,7 +13,7 @@ class SieveParser
 {
 public:
     SieveParser( const String & );
-    
+
     // productions in RFC3028bis section 8.1
 
     void bracketComment();
@@ -30,7 +30,7 @@ public:
 
     String tag();
 
-    void whiteSpace();
+    void whitespace();
 
     // productions in RFC3028bis section 8.2
 
