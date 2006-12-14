@@ -1073,7 +1073,7 @@ void Command::requireRight( Mailbox * m, Permissions::Right r )
 /*! Returns true if this command is permitted to proceed, and false if
     it either must abort due to lack of rights or wait until
     Permissions has fetched more information.
-  
+
     If permitted() denies permission, it also sets a suitable error
     message.
 */
@@ -1112,3 +1112,82 @@ void Command::setRespTextCode( const String & s )
 {
     d->respTextCode = s;
 }
+
+
+#if 0
+/* By convention, international mailbox names in IMAP4rev1 are specified
+   using a modified version of the UTF-7 encoding described in [UTF-7].
+   Modified UTF-7 may also be usable in servers that implement an
+   earlier version of this protocol.
+
+   In modified UTF-7, printable US-ASCII characters, except for "&",
+   represent themselves; that is, characters with octet values 0x20-0x25
+   and 0x27-0x7e.  The character "&" (0x26) is represented by the
+   two-octet sequence "&-".
+
+   All other characters (octet values 0x00-0x1f and 0x7f-0xff) are
+   represented in modified BASE64, with a further modification from
+   [UTF-7] that "," is used instead of "/".  Modified BASE64 MUST NOT be
+   used to represent any printing US-ASCII character which can represent
+   itself.
+
+   "&" is used to shift to modified BASE64 and "-" to shift back to
+   US-ASCII.  There is no implicit shift from BASE64 to US-ASCII, and
+   null shifts ("-&" while in BASE64; note that "&-" while in US-ASCII
+   means "&") are not permitted.  However, all names start in US-ASCII,
+   and MUST end in US-ASCII; that is, a name that ends with a non-ASCII
+   ISO-10646 character MUST end with a "-").
+
+   Although modified UTF-7 is a convention, it establishes certain
+   requirements on server handling of any mailbox name with an
+   embedded "&" character.  In particular, server implementations MUST
+   preserve the exact form of the modified BASE64 portion of a
+   modified UTF-7 name and treat that text as case-sensitive, even if
+   names are otherwise case-insensitive or case-folded.
+
+   Server implementations SHOULD verify that any mailbox name with an
+   embedded "&" character, used as an argument to CREATE, is: in the
+   correctly modified UTF-7 syntax, has no superfluous shifts, and has
+   no encoding in modified BASE64 of any printing US-ASCII character
+   which can represent itself.  However, client implementations MUST
+   NOT depend upon the server doing this, and SHOULD NOT attempt to
+   create a mailbox name with an embedded "&" character unless it
+   complies with the modified UTF-7 syntax.
+
+   Server implementations which export a mail store that does not
+   follow the modified UTF-7 convention MUST convert to modified UTF-7
+   any mailbox name that contains either non-ASCII characters or the
+   "&" character.
+
+        For example, here is a mailbox name which mixes English,
+        Chinese, and Japanese text: ~peter/mail/&U,BTFw-/&ZeVnLIqe-
+
+        For example, the string "&Jjo!" is not a valid mailbox name
+        because it does not contain a shift to US-ASCII before the
+        "!".  The correct form is "&Jjo-!".  The string
+        "&U,BTFw-&ZeVnLIqe-" is not permitted because it contains a
+        superfluous shift.  The correct form is "&U,BTF2XlZyyKng-".
+*/
+
+/*! Returns a version of input where modified UTF-7 has been
+    undone.
+
+    The return value is in UTF-8. Wouldn't it be better to use
+    UString?
+*/
+
+String Command::deMUtf7( const String & )
+{
+
+}
+
+
+/*! Returns a version of input which has been converted from UTF-8
+    to mUTF-7.
+*/
+
+String Command::mUtf7( const String & )
+{
+
+}
+#endif
