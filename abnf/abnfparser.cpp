@@ -94,13 +94,21 @@ void AbnfParser::setError( const String & s )
 }
 
 
-/*! Returns the current (0-indexed) position of the cursor in the input
+/*! Returns the current (0-indexed) position of the cursor in the input()
     string without changing anything.
 */
 
 uint AbnfParser::pos() const
 {
     return d->at;
+}
+
+
+/*! Returns the input string. */
+
+String AbnfParser::input() const
+{
+    return str;
 }
 
 

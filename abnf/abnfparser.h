@@ -18,6 +18,8 @@ public:
     String error() const;
 
     uint pos() const;
+    String input() const;
+
     char nextChar() const;
     void step( uint = 1 );
     bool present( const String & );
