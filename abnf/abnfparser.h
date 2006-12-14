@@ -32,8 +32,9 @@ public:
 
     bool atEnd() const;
 
-    void mark();
+    uint mark();
     void restore();
+    void restore( uint );
 
 protected:
     String str;

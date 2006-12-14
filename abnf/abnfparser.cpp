@@ -8,11 +8,12 @@ class AbnfParserData
 {
 public:
     AbnfParserData( AbnfParserData * other = 0 )
-        : at( 0 ), next( 0 )
+        : at( 0 ), next( 0 ), mark( 1 )
     {
         if ( other ) {
             at = other->at;
             next = other;
+            mark = other->mark + 1;
         }
     }
 
@@ -20,6 +21,7 @@ public:
     String err;
 
     AbnfParserData * next;
+    uint mark;
 };
 
 
@@ -276,13 +278,16 @@ bool AbnfParser::atEnd() const
 }
 
 
-/*! Saves the current cursor position and error state of the parser,
-    which can be restored by calling restore().
+/*! Saves the current cursor position and error state of the parser
+    and returns an identifier of the current mark. The companion
+    function restore() restores the last or a specified mark. The
+    returned mark is never 0.
 */
 
-void AbnfParser::mark()
+uint AbnfParser::mark()
 {
     d = new AbnfParserData( d );
+    return d->next->mark;
 }
 
 
@@ -293,5 +298,16 @@ void AbnfParser::mark()
 void AbnfParser::restore()
 {
     if ( d->next )
+        d = d->next;
+}
+
+
+/*! Restores the cursor position and error state at the time when
+    mark() returned \a m. Does nothing if \a m is not a valid mark.
+*/
+
+void AbnfParser::restore( uint m )
+{
+    while ( m && d->next && d->mark > m )
         d = d->next;
 }

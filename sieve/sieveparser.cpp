@@ -72,12 +72,12 @@ void SieveParser::hashComment()
         setError( "Could not find CRLF in hash comment" );
     else
         step( i+2-pos() );
-    
+
 }
 
 
 /*! identifier = (ALPHA / "_") *(ALPHA / DIGIT / "_")
-  
+
     Records an error if no identifier is present.
 */
 
@@ -278,13 +278,14 @@ class SieveArgumentList * SieveParser::arguments()
     SieveArgumentList * sal = new SieveArgumentList;
     sal->setStart( pos() );
 
+    uint m = 0;
     while ( ok() ) {
-        mark();
+        m = mark();
         SieveArgument * sa = argument();
         if ( ok() )
             sal->append( sa );
     }
-    restore();
+    restore( m );
 
     if ( present( "(" ) ) {
         // it's a test-list
@@ -295,12 +296,12 @@ class SieveArgumentList * SieveParser::arguments()
     }
     else {
         // it's either a test or nothing
-        mark();
+        m = mark();
         SieveTest * st = test();
         if ( ok() )
             sal->append( st );
         else
-            restore();
+            restore( m );
     }
 
     sal->setError( error() );
@@ -318,13 +319,14 @@ class SieveBlock * SieveParser::block()
     sb->setStart( pos() );
     require( "{" );
 
+    uint m = 0;
     while ( ok() ) {
         mark();
         SieveCommand * c = command();
         if ( ok() )
             sb->append( c );
-    } 
-    restore();
+    }
+    restore( m );
 
     require( "}" );
     sb->setError( error() );
@@ -362,13 +364,14 @@ class SieveCommand * SieveParser::command()
 List<SieveCommand> * SieveParser::commands()
 {
     List<SieveCommand> * l = new List<SieveCommand>;
+    uint m = 0;
     while ( ok() ) {
-        mark();
+        m = mark();
         SieveCommand * c = command();
         if ( ok() )
             l->append( c );
-    } 
-    restore();
+    }
+    restore( m );
     return l;
 }
 
