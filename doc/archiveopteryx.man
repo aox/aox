@@ -228,8 +228,8 @@ contains a private key and self-signed certificate used by
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 1.14, released 2007-01-15,
-http://www.archiveopteryx.org/1.14.html.
+This man page covers Archiveopteryx version 1.15, released 2007-01-15,
+http://www.archiveopteryx.org/1.15.html.
 .SH SEE ALSO
 .BR archiveopteryx (8),
 .BR archiveopteryx.conf (5),

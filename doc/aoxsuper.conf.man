@@ -59,8 +59,8 @@ password and writes it to the configuration file during installation.
 .SH AUTHOR
 The Archiveopteryx developers, info@oryx.com.
 .SH VERSION
-This man page covers Archiveopteryx version 1.14, released 2007-01-15,
-http://www.archiveopteryx.org/1.14.html.
+This man page covers Archiveopteryx version 1.15, released 2007-01-15,
+http://www.archiveopteryx.org/1.15.html.
 .SH SEE ALSO
 .BR archiveopteryx.conf (5),
 .BR archiveopteryx (8),
