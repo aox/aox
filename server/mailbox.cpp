@@ -748,3 +748,24 @@ uint Mailbox::nextModSeq() const
 {
     return d->nextModSeq;
 }
+
+
+/*! Returns true if \a s is syntactically valid as a mailbox name, and
+    false if not. Empty names are invalid, ones that do not start with
+    '/' are too, etc, etc.
+
+    Notably, the root ("/") is not valid. This is a borderline case -
+    for exampel "/" is valid as parent for creating new mailboxes, but
+    not as name of a new mailbox.
+*/
+
+bool Mailbox::validName( const String & s )
+{
+    if ( !s.startsWith( "/" ) )
+        return false;
+    if ( s.endsWith( "/" ) )
+        return false;
+    if ( s.contains( "//" ) )
+        return false;
+    return true;
+}

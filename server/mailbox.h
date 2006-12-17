@@ -64,6 +64,8 @@ public:
     static Mailbox * root();
     static Mailbox * find( uint );
 
+    static bool validName( const String & );
+
     bool operator <=( const Mailbox &b ) {
         if ( id() && b.id() )
             return id() <= b.id();
