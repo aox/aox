@@ -34,7 +34,7 @@ public:
     SieveProduction does very little except remember where in the
     source it comes from, so errors can be reported well.
 */
-  
+
 
 /*! Constructs a SieveProduction for a production whose sieve name is
     \a name.
@@ -179,7 +179,7 @@ public:
 
 
 /*! \class SieveArgument sieveproduction.h
-  
+
     The SieveArgument class models the RFC 3028 "argument" production.
 
     Nothing prevents the user from setting both tag(), number() and
@@ -381,11 +381,12 @@ class SieveCommandData
     : public Garbage
 {
 public:
-    SieveCommandData(): arguments( 0 ), block( 0 ) {}
+    SieveCommandData(): arguments( 0 ), block( 0 ), require( false ) {}
 
     String identifier;
     SieveArgumentList * arguments;
     SieveBlock * block;
+    bool require;
 };
 
 
@@ -469,6 +470,16 @@ SieveBlock * SieveCommand::block() const
 }
 
 
+/*! Notifies this command that in this position, "require" is either
+    permitted or not, depending on \a p. The initial value is false.
+*/
+
+void SieveCommand::setRequirePermitted( bool p )
+{
+    d->require = p;
+}
+
+
 class SieveTestData
     : public Garbage
 {
@@ -520,7 +531,7 @@ void SieveTest::setArguments( SieveArgumentList * l )
 {
     if ( !l )
         return;
-    
+
     d->arguments = l;
     l->setParent( this );
 }
@@ -558,6 +569,8 @@ void SieveCommand::parse()
         maxargs = UINT_MAX;
     } else if ( i == "require" ) {
         extensions = true;
+        if ( !d->require )
+            setError( "require is only permitted as the first command." );
     } else if ( i == "stop" ) {
         // nothing needed
     } else if ( i == "reject" ) {
@@ -580,14 +593,14 @@ void SieveCommand::parse()
     // above
 
     if ( minargs &&
-         ( !arguments() || 
+         ( !arguments() ||
            arguments()->arguments()->count() < minargs ) )
         setError( "Too few arguments (" +
                   fn ( arguments()->arguments()->count() ) +
                   ", minimum required is " +
                   fn ( minargs ) + ")" );
 
-    if ( maxargs < UINT_MAX && 
+    if ( maxargs < UINT_MAX &&
          arguments() &&
          arguments()->arguments()->count() > maxargs )
         setError( "Too many arguments (" +
@@ -618,7 +631,7 @@ void SieveCommand::parse()
                                      "This one is not: " + *i );
                     else if ( ap.addresses()->count() != 1 )
                         a->setError( "Each string must be 1 email address. "
-                                     "This one represents " + 
+                                     "This one represents " +
                                      fn ( ap.addresses()->count() ) + ": " +
                                      *i );
                     else if ( ap.addresses()->first()->type() !=
@@ -626,7 +639,7 @@ void SieveCommand::parse()
                         a->setError( "Each string must be an ordinary "
                                      "email address (localpart@domain). "
                                      "This one is not: " + *i +
-                                     " (it represents " + 
+                                     " (it represents " +
                                      ap.addresses()->first()->toString() +
                                      ")" );
                     ++i;
@@ -673,7 +686,7 @@ void SieveCommand::parse()
                 ++i;
             }
         }
-        if ( !block() )
+        if ( block() )
             block()->setError( "Command " + identifier() +
                                " does not use a subsidiary command block" );
     }

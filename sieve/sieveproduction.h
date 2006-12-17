@@ -102,6 +102,8 @@ public:
 
     void setBlock( SieveBlock * );
     SieveBlock * block() const;
+
+    void setRequirePermitted( bool );
     
 private:
     class SieveCommandData * d;

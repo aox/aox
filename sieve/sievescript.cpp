@@ -50,26 +50,25 @@ void SieveScript::parse( const String & script )
     // if we're not yet at the end, treat whatever follows as another
     // command, which will have a nice big error message.
     p.whitespace();
-    if ( !p.atEnd() )
-        d->script->append( p.command() );
+    if ( !p.atEnd() ) {
+        SieveCommand * sc = p.command(); 
+        sc->setError( "Junk at end of script" );
+        d->script->append( sc );
+    }
 
-    // find all the productions which we ended up using, but which
-    // have parse errors.
+    if ( !d->script->isEmpty() )
+        d->script->first()->setRequirePermitted( true );
+
+    // do the semantic bits of parsing
     List<SieveCommand>::Iterator s( d->script );
     while ( s ) {
         s->setParent( this );
-        ++s;
-    }
-    d->errors = p.bad( this );
-    if ( d->errors->isEmpty() )
-        return;
-
-    // if there weren't any, ask each command whether it looks good.
-    s = d->script->first();
-    while ( s ) {
         s->parse();
         ++s;
     }
+
+    // and find all the errors
+    d->errors = p.bad( this );
 }
 
 

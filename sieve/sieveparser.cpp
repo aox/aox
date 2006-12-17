@@ -139,6 +139,7 @@ void SieveParser::hashComment()
 
 String SieveParser::identifier()
 {
+    whitespace();
     String r;
     char c = nextChar();
     while ( ( c == '_' ) ||
@@ -233,7 +234,7 @@ String SieveParser::quotedString()
 {
     String r;
     require( "\"" );
-    while ( ok() && !atEnd() && !nextChar() == '"' ) {
+    while ( ok() && !atEnd() && nextChar() != '"' ) {
         if ( present( "\r\n" ) ) {
             r.append( "\r\n" );
         }
@@ -253,6 +254,7 @@ String SieveParser::quotedString()
 
 String SieveParser::tag()
 {
+    whitespace();
     require( ":" );
     return ":" + identifier();
 }
@@ -285,6 +287,7 @@ void SieveParser::whitespace()
 
 String SieveParser::addressPart()
 {
+    whitespace();
     if ( present( ":localpart" ) )
         return ":localpart";
     else if ( present( ":domain" ) )
@@ -309,6 +312,7 @@ SieveArgument * SieveParser::argument()
     sa->setParser( this );
     sa->setStart( pos() );
 
+    whitespace();
     if ( nextChar() == ':' )
         sa->setTag( tag() );
     else if ( nextChar() >= '0' && nextChar() <= '9' )
@@ -345,11 +349,14 @@ class SieveArgumentList * SieveParser::arguments()
     }
     restore( m );
 
+    whitespace();
     if ( present( "(" ) ) {
         // it's a test-list
         sal->append( test() );
+        whitespace();
         while ( ok() && present( "," ) )
             sal->append( test() );
+        whitespace();
         require( ")" );
     }
     else if ( ok() ) {
@@ -376,6 +383,7 @@ class SieveBlock * SieveParser::block()
     SieveBlock * sb = new SieveBlock;
     sb->setParser( this );
     sb->setStart( pos() );
+    whitespace();
     require( "{" );
 
     uint m = 0;
@@ -387,6 +395,7 @@ class SieveBlock * SieveParser::block()
     }
     restore( m );
 
+    whitespace();
     require( "}" );
     sb->setError( error() );
     sb->setEnd( pos() );
@@ -405,6 +414,7 @@ class SieveCommand * SieveParser::command()
 
     sc->setIdentifier( identifier() );
     sc->setArguments( arguments() );
+    whitespace();
     if ( !present( ";" ) )
         sc->setBlock( block() );
 
@@ -443,6 +453,7 @@ List<SieveCommand> * SieveParser::commands()
 
 String SieveParser::comparator()
 {
+    whitespace();
     require( ":comparator" );
     return string();
 }
@@ -455,6 +466,7 @@ String SieveParser::comparator()
 
 String SieveParser::matchType()
 {
+    whitespace();
     if ( present( ":is" ) )
         return ":is";
     else if ( present( ":contains" ) )
@@ -472,6 +484,7 @@ String SieveParser::matchType()
 
 String SieveParser::string()
 {
+    whitespace();
     if ( nextChar() == '"' )
         return quotedString();
     return multiLine();
@@ -487,12 +500,15 @@ String SieveParser::string()
 
 StringList * SieveParser::stringList()
 {
+    whitespace();
     StringList * l = new StringList;
     if ( present( "[" ) ) {
         step();
         l->append( string() );
+        whitespace();
         while ( ok() && present( "," ) )
             l->append( string() );
+        whitespace();
         require( "]" );
     }
     else {
