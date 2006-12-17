@@ -2,20 +2,25 @@
 
 #include "sieveproduction.h"
 
+#include "sieveparser.h"
+#include "stringlist.h"
+#include "mailbox.h"
+#include "address.h"
+
 
 class SieveProductionData
     : public Garbage
 {
 public:
     SieveProductionData( const char * n )
-        : parent( 0 ), start( 0 ), end( 0 ), name( n ) {}
+        : parent( 0 ), parser( 0 ), start( 0 ), end( 0 ), name( n ) {}
 
     SieveProduction * parent;
+    SieveParser * parser;
     uint start;
     uint end;
     const char * name;
     String error;
-    List<SieveProduction> bad;
 };
 
 
@@ -23,7 +28,8 @@ public:
 
     The SieveProduction class is the common base class for
     SieveArgument, SieveCommand and the other classes that describe a
-    single production in the Sieve grammar (or lexer).
+    single production in the Sieve grammar (or lexer). The "start"
+    symbol is represented by SieveScript.
 
     SieveProduction does very little except remember where in the
     source it comes from, so errors can be reported well.
@@ -57,6 +63,21 @@ void SieveProduction::setParent( SieveProduction * parent )
 SieveProduction * SieveProduction::parent() const
 {
     return d->parent;
+}
+
+
+/*! This slightly hacky function records that the production was
+    parsed by \a p, and \a p should also be used to report any errors
+    this object might have. Could have been done as a constructor
+    argument, but I've already written the constructors and I don't
+    want to do all the editing.
+
+    The initial value is 0.
+*/
+
+void SieveProduction::setParser( class SieveParser * p )
+{
+    d->parser = p;
 }
 
 
@@ -108,11 +129,15 @@ uint SieveProduction::end() const
 }
 
 
-/*! Records that this production suffers from error \a e. */
+/*! Records that this production suffers from error \a e. Does nothing
+    if setError has been called already. */
 
 void SieveProduction::setError( const String & e )
 {
-    d->error = e;
+    if ( !d->error.isEmpty() && !e.isEmpty() )
+        d->error = e;
+    if ( !d->error.isEmpty() && d->parser )
+        d->parser->rememberBadProduction( this );
 }
 
 
@@ -126,14 +151,18 @@ String SieveProduction::error() const
 }
 
 
-/*! Returns a list of all SieveProduction objects whose ultimate
-    parent is this object and whose error() is nonempty. Never returns
-    a null pointer.
+/*! Returns true if \a s is the name of a supported sieve extension,
+    and false if it is not. \a s must be in lower case.
+
 */
 
-List<SieveProduction> * SieveProduction::bad() const
+bool SieveProduction::supportedExtension( const String & s )
 {
-    return &d->bad;
+    if ( s == "fileinto" )
+        return true;
+    if ( s == "reject" )
+        return true;
+    return false;
 }
 
 
@@ -513,5 +542,140 @@ SieveArgumentList * SieveTest::arguments() const
 
 void SieveCommand::parse()
 {
-    
+    if ( identifier().isEmpty() )
+        setError( "Command name is empty" );
+
+    uint maxargs = 0;
+    uint minargs = 0;
+    bool addrs = false;
+    bool mailboxes = false;
+    bool extensions = false;
+    bool test = false;
+
+    String i = identifier().lower();
+    if ( i == "if" ) {
+        test = true;
+        maxargs = UINT_MAX;
+    } else if ( i == "require" ) {
+        extensions = true;
+    } else if ( i == "stop" ) {
+        // nothing needed
+    } else if ( i == "reject" ) {
+        // nothing needed
+    } else if ( i == "fileinto" ) {
+        mailboxes = true;
+        maxargs = UINT_MAX;
+    } else if ( i == "redirect" ) {
+        addrs = true;
+        maxargs = UINT_MAX;
+    } else if ( i == "keep" ) {
+        // nothing needed
+    } else if ( i == "discard" ) {
+        // nothing needed
+    } else {
+        setError( "Command unknown: " + identifier() );
+    }
+
+    // test each condition in the same order as the variables declared
+    // above
+
+    if ( minargs &&
+         ( !arguments() || 
+           arguments()->arguments()->count() < minargs ) )
+        setError( "Too few arguments (" +
+                  fn ( arguments()->arguments()->count() ) +
+                  ", minimum required is " +
+                  fn ( minargs ) + ")" );
+
+    if ( maxargs < UINT_MAX && 
+         arguments() &&
+         arguments()->arguments()->count() > maxargs )
+        setError( "Too many arguments (" +
+                  fn ( arguments()->arguments()->count() ) +
+                  ", maximum allowed is " +
+                  fn ( maxargs ) + ")" );
+
+    if ( arguments() &&
+         ( addrs || mailboxes || extensions ) ) {
+        List<SieveArgument>::Iterator i( arguments()->arguments() );
+        while ( i ) {
+            SieveArgument * a = i;
+            ++i;
+            if ( a->number() ) {
+                a->setError( "Numeric not permitted as argument to command " +
+                             identifier() );
+            }
+            else if ( !a->tag().isEmpty() ) {
+                a->setError( "Tag not permitted as argument to command " +
+                             identifier() );
+            }
+            else if ( addrs ) {
+                StringList::Iterator i( a->stringList() );
+                while ( i ) {
+                    AddressParser ap( *i );
+                    if ( !ap.error().isEmpty() )
+                        a->setError( "Each string must be an email address. "
+                                     "This one is not: " + *i );
+                    else if ( ap.addresses()->count() != 1 )
+                        a->setError( "Each string must be 1 email address. "
+                                     "This one represents " + 
+                                     fn ( ap.addresses()->count() ) + ": " +
+                                     *i );
+                    else if ( ap.addresses()->first()->type() !=
+                              Address::Normal )
+                        a->setError( "Each string must be an ordinary "
+                                     "email address (localpart@domain). "
+                                     "This one is not: " + *i +
+                                     " (it represents " + 
+                                     ap.addresses()->first()->toString() +
+                                     ")" );
+                    ++i;
+                }
+            }
+            else if ( mailboxes ) {
+                StringList::Iterator i( a->stringList() );
+                while ( i ) {
+                    if ( !Mailbox::validName( *i ) )
+                        a->setError( "Each string must be an mailbox name. "
+                                     "This one is not: " + *i );
+                    ++i;
+                }
+            }
+            else if ( extensions ) {
+                StringList::Iterator i( a->stringList() );
+                while ( i ) {
+                    if ( !supportedExtension( i->lower() ) )
+                        a->setError( "Each string must be a supported "
+                                     "sieve extension. "
+                                     "This one is not: " + *i );
+                    ++i;
+                }
+            }
+        }
+    }
+
+    if ( test ) {
+        // we must have a test and a block
+        if ( !arguments() || arguments()->tests()->isEmpty() )
+            setError( "Command " + identifier() +
+                      " requires a test" );
+        if ( !block() )
+            setError( "Command " + identifier() +
+                      " requires a subsidiary {..} block" );
+    }
+    else {
+        // we cannot have a test or a block
+        if ( arguments() && arguments()->tests()->isEmpty() ) {
+            List<SieveTest>::Iterator i( arguments()->tests() );
+            while ( i ) {
+                i->setError( "Command " + identifier() +
+                             " does not use tests" );
+                ++i;
+            }
+        }
+        if ( !block() )
+            block()->setError( "Command " + identifier() +
+                               " does not use a subsidiary command block" );
+    }
+
 }

@@ -14,6 +14,11 @@ class SieveParser
 public:
     SieveParser( const String & );
 
+    // the unique functions in this class
+
+    List<class SieveProduction> * bad( class SieveProduction * );
+    void rememberBadProduction( class SieveProduction * );
+
     // productions in RFC3028bis section 8.1
 
     void bracketComment();
@@ -58,6 +63,9 @@ public:
     class SieveTest * test();
 
     class SieveTestList * testList();
+
+private:
+    class SieveParserData * d;
 };
 
 

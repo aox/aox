@@ -12,10 +12,11 @@ class SieveScriptData
     : public Garbage
 {
 public:
-    SieveScriptData(): Garbage(), script( 0 ) {}
+    SieveScriptData(): Garbage(), script( 0 ), errors( 0 ) {}
 
     String source;
     List<SieveCommand> * script;
+    List<SieveProduction> * errors;
 };
 
 
@@ -29,7 +30,7 @@ public:
 /*!  Constructs an empty sieve script. */
 
 SieveScript::SieveScript()
-    : Garbage(), d( new SieveScriptData )
+    : SieveProduction( "sieve script" ), d( new SieveScriptData )
 {
     // nothing needed
 }
@@ -51,8 +52,20 @@ void SieveScript::parse( const String & script )
     p.whitespace();
     if ( !p.atEnd() )
         d->script->append( p.command() );
-    
+
+    // find all the productions which we ended up using, but which
+    // have parse errors.
     List<SieveCommand>::Iterator s( d->script );
+    while ( s ) {
+        s->setParent( this );
+        ++s;
+    }
+    d->errors = p.bad( this );
+    if ( d->errors->isEmpty() )
+        return;
+
+    // if there weren't any, ask each command whether it looks good.
+    s = d->script->first();
     while ( s ) {
         s->parse();
         ++s;
@@ -69,27 +82,25 @@ void SieveScript::parse( const String & script )
 String SieveScript::parseErrors() const
 {
     String errors;
-    List<SieveCommand>::Iterator s( d->script );
-    while ( s ) {
-        List<SieveProduction>::Iterator i( s->bad() );
-        ++s;
-        while ( i ) {
-            SieveProduction * p = i;
-            ++i;
-            errors.append( location( p->start() ) );
-            errors.append( "In " );
-            errors.append( p->name() );
-            errors.append( ": " );
-            errors.append( p->error() );
-            errors.append( "\r\n" );
-            while ( p->parent() ) {
-                p = p->parent();
-                errors.append( location( p->start() ) );
-                errors.append( " (Error happened while parsing " );
-                errors.append( p->name() );
-                errors.append( ")\r\n" );
-            }
+    List<SieveProduction>::Iterator i( d->errors );
+    while ( i ) {
+        SieveProduction * p = i;
+        ++i;
+        String e = location( p->start() );
+        e.append( "In " );
+        e.append( p->name() );
+        e.append( ": " );
+        e.append( p->error() );
+        e.append( "\r\n" );
+        while ( p->parent() && p->parent() != this ) {
+            p = p->parent();
+            String l = location( p->start() );
+            l.append( "While parsing " );
+            l.append( p->name() );
+            l.append( ":\r\n" );
+            e = l + e;
         }
+        errors.append( e );
     }
     return errors;
 }

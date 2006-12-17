@@ -3,11 +3,13 @@
 #ifndef SIEVESCRIPT_H
 #define SIEVESCRIPT_H
 
+#include "sieveproduction.h"
+
 #include "string.h"
 
 
 class SieveScript
-    : public Garbage
+    : public SieveProduction
 {
 public:
     SieveScript();

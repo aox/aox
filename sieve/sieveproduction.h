@@ -16,6 +16,8 @@ public:
     void setParent( SieveProduction * );
     SieveProduction * parent() const;
 
+    void setParser( class SieveParser * );
+
     String name() const;
 
     void setStart( uint );
@@ -26,7 +28,7 @@ public:
     void setError( const String & );
     String error() const;
 
-    List<SieveProduction> * bad() const;
+    static bool supportedExtension( const String & );
 
 private:
     class SieveProductionData * d;
