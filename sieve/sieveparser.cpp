@@ -49,6 +49,8 @@ SieveParser::SieveParser( const String &s  )
 List<SieveProduction> * SieveParser::bad( class SieveProduction * toplevel )
 {
     List<SieveProduction> * r = new List<SieveProduction>;
+    if ( !d->bad )
+        return r;
     List<SieveProduction>::Iterator i( d->bad );
     while ( i ) {
         SieveProduction * p = i;
@@ -74,9 +76,11 @@ void SieveParser::rememberBadProduction( class SieveProduction * p )
 {
     if ( !p )
         return;
+    if ( !d->bad )
+        d->bad = new List<SieveProduction>;
     List<SieveProduction>::Iterator i( d->bad );
     while ( i && i != p && i->start() <= p->start() )
-        return;
+        ++i;
     if ( !i )
         d->bad->append( p );
     else if ( i != p )
@@ -421,8 +425,22 @@ class SieveCommand * SieveParser::command()
     sc->setIdentifier( identifier() );
     sc->setArguments( arguments() );
     whitespace();
-    if ( !present( ";" ) )
+    if ( nextChar() == '{' ) {
         sc->setBlock( block() );
+    }
+    else if ( present( ";" ) ) {
+        // fine
+    }
+    else {
+        setError( "Garbage after command: " + following() );
+        // if the line ends with ';', skip ahead to it
+        uint x = pos();
+        while ( x < input().length() &&
+                input()[x] != '\n' && input()[x] != '\r' )
+            x++;
+        if ( x > pos() && input()[x-1] == ';' )
+            step( x - pos() );
+    }
 
     sc->setError( error() );
     sc->setEnd( pos() );
@@ -509,7 +527,6 @@ StringList * SieveParser::stringList()
     whitespace();
     StringList * l = new StringList;
     if ( present( "[" ) ) {
-        step();
         l->append( string() );
         whitespace();
         while ( ok() && present( "," ) )
