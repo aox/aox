@@ -308,11 +308,12 @@ String SieveParser::addressPart()
 
 SieveArgument * SieveParser::argument()
 {
+    whitespace();
+
     SieveArgument * sa = new SieveArgument;
     sa->setParser( this );
     sa->setStart( pos() );
 
-    whitespace();
     if ( nextChar() == ':' )
         sa->setTag( tag() );
     else if ( nextChar() >= '0' && nextChar() <= '9' )
@@ -336,6 +337,8 @@ SieveArgument * SieveParser::argument()
 
 class SieveArgumentList * SieveParser::arguments()
 {
+    whitespace();
+
     SieveArgumentList * sal = new SieveArgumentList;
     sal->setParser( this );
     sal->setStart( pos() );
@@ -380,15 +383,16 @@ class SieveArgumentList * SieveParser::arguments()
 
 class SieveBlock * SieveParser::block()
 {
+    whitespace();
+
     SieveBlock * sb = new SieveBlock;
     sb->setParser( this );
     sb->setStart( pos() );
-    whitespace();
     require( "{" );
 
     uint m = 0;
     while ( ok() ) {
-        mark();
+        m = mark();
         SieveCommand * c = command();
         if ( ok() )
             sb->append( c );
@@ -408,6 +412,8 @@ class SieveBlock * SieveParser::block()
 
 class SieveCommand * SieveParser::command()
 {
+    whitespace();
+
     SieveCommand * sc = new SieveCommand;
     sc->setParser( this );
     sc->setStart( pos() );
@@ -523,12 +529,16 @@ StringList * SieveParser::stringList()
 
 class SieveTest * SieveParser::test()
 {
+    whitespace();
+
     SieveTest * t = new SieveTest;
     t->setParser( this );
     t->setStart( pos() );
+
     t->setIdentifier( identifier() );
     if ( ok() )
         t->setArguments( arguments() );
+
     t->setError( error() );
     t->setEnd( pos() );
     return t;
