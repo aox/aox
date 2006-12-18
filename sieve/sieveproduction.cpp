@@ -78,6 +78,8 @@ SieveProduction * SieveProduction::parent() const
 void SieveProduction::setParser( class SieveParser * p )
 {
     d->parser = p;
+    if ( d->parser && !d->error.isEmpty() )
+        d->parser->rememberBadProduction( this );
 }
 
 
@@ -134,7 +136,7 @@ uint SieveProduction::end() const
 
 void SieveProduction::setError( const String & e )
 {
-    if ( !d->error.isEmpty() && !e.isEmpty() )
+    if ( d->error.isEmpty() || e.isEmpty() )
         d->error = e;
     if ( !d->error.isEmpty() && d->parser )
         d->parser->rememberBadProduction( this );
@@ -407,7 +409,7 @@ SieveCommand::SieveCommand()
 
 void SieveCommand::setIdentifier( const String & i )
 {
-    d->identifier = i;
+    d->identifier = i.lower();
 }
 
 
@@ -509,7 +511,7 @@ SieveTest::SieveTest()
 
 void SieveTest::setIdentifier( const String & i )
 {
-    d->identifier = i;
+    d->identifier = i.lower();
 }
 
 
@@ -563,12 +565,13 @@ void SieveCommand::parse()
     bool extensions = false;
     bool test = false;
 
-    String i = identifier().lower();
+    String i = identifier();
     if ( i == "if" ) {
         test = true;
         maxargs = UINT_MAX;
     } else if ( i == "require" ) {
         extensions = true;
+        minargs = 1;
         if ( !d->require )
             setError( "require is only permitted as the first command." );
     } else if ( i == "stop" ) {
@@ -589,13 +592,16 @@ void SieveCommand::parse()
         setError( "Command unknown: " + identifier() );
     }
 
+    if ( maxargs < minargs )
+        maxargs = UINT_MAX;
+
     // test each condition in the same order as the variables declared
     // above
 
     if ( minargs &&
          ( !arguments() ||
            arguments()->arguments()->count() < minargs ) )
-        setError( "Too few arguments (" +
+        setError( i + ": Too few arguments (" +
                   fn ( arguments()->arguments()->count() ) +
                   ", minimum required is " +
                   fn ( minargs ) + ")" );
@@ -603,7 +609,7 @@ void SieveCommand::parse()
     if ( maxargs < UINT_MAX &&
          arguments() &&
          arguments()->arguments()->count() > maxargs )
-        setError( "Too many arguments (" +
+        setError( i + ": Too many arguments (" +
                   fn ( arguments()->arguments()->count() ) +
                   ", maximum allowed is " +
                   fn ( maxargs ) + ")" );
@@ -656,13 +662,17 @@ void SieveCommand::parse()
             }
             else if ( extensions ) {
                 StringList::Iterator i( a->stringList() );
+                StringList e;
                 while ( i ) {
                     if ( !supportedExtension( i->lower() ) )
-                        a->setError( "Each string must be a supported "
-                                     "sieve extension. "
-                                     "This one is not: " + *i );
+                        e.append( i->quoted() );
                     ++i;
+                    
                 }
+                if ( !e.isEmpty() )
+                    a->setError( "Each string must be a supported "
+                                 "sieve extension. "
+                                 "These are not: " + e.join( ", " ) );
             }
         }
     }
