@@ -85,14 +85,19 @@ String AbnfParser::error() const
 }
 
 
-/*! Sets the object's error() to \a s. ok() will return false after this
-    function has been called with a non-empty argument. This function is
-    intended for use by the individual parser functions.
+/*! Sets the object's error() to \a s, provided this is the first time
+    setError() is called with a nonempty argument. (error() returns
+    the argument to the first setError() call.)
+
+    ok() will return false after this function has been called with a
+    non-empty argument. This function is intended for use by the
+    individual parser functions.
 */
 
 void AbnfParser::setError( const String & s )
 {
-    d->err = s;
+    if ( d->err.isEmpty() || s.isEmpty() )
+        d->err = s;
 }
 
 
