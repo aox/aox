@@ -56,11 +56,15 @@ void SieveScript::parse( const String & script )
         d->script->append( sc );
     }
 
-    if ( !d->script->isEmpty() )
-        d->script->first()->setRequirePermitted( true );
+    // require is only permitted at the start
+    List<SieveCommand>::Iterator s( d->script );
+    while ( s && s->identifier() == "require" ) {
+        s->setRequirePermitted( true );
+        ++s;
+    }
 
     // do the semantic bits of parsing
-    List<SieveCommand>::Iterator s( d->script );
+    s = d->script->first();
     while ( s ) {
         s->setParent( this );
         s->parse();
@@ -75,7 +79,7 @@ void SieveScript::parse( const String & script )
 /*! Returns a (multi-line) string describing all the parse errors seen
     by the last call to parse(). If there are no errors, the returned
     string is empty. If there are any, it is a multiline string with
-    CRLF after each line (including the last).
+    CRLF after each line (except the last).
 */
 
 String SieveScript::parseErrors() const
@@ -101,6 +105,8 @@ String SieveScript::parseErrors() const
         }
         errors.append( e );
     }
+    if ( errors.endsWith( "\r\n" ) )
+        errors.truncate( errors.length()-2 );
     return errors;
 }
 
@@ -113,14 +119,17 @@ String SieveScript::location( uint position ) const
 {
     uint i = 0;
     uint l = 1;
+    uint s = 0;
     while ( i < position ) {
-        if ( d->source[i] == '\n' )
+        if ( d->source[i] == '\n' ) {
             l++;
+            s = i + 1;
+        }
         i++;
     }
     String r = fn( l );
     r.append( ":" );
-    r.append( fn( position - i + 1 ) );
+    r.append( fn( position - s + 1 ) );
     r.append( ": " );
     return r;
 }
