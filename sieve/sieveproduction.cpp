@@ -154,7 +154,7 @@ String SieveProduction::error() const
 
 
 /*! Returns true if \a s is the name of a supported sieve extension,
-    and false if it is not. \a s must be in lower case.
+    and false if it is not. \a s is case sensitive.
 
 */
 
@@ -486,11 +486,19 @@ class SieveTestData
     : public Garbage
 {
 public:
-    SieveTestData(): arguments( 0 ), block( 0 ) {}
+    SieveTestData()
+        : arguments( 0 ), block( 0 ),
+          matchType( SieveTest::NoMatchType ),
+          addressPart( SieveTest::NoAddressPart )
+    {}
 
     String identifier;
     SieveArgumentList * arguments;
     SieveBlock * block;
+
+    SieveTest::MatchType matchType;
+    SieveTest::AddressPart addressPart;
+    String comparator;
 };
 
 
@@ -580,10 +588,10 @@ void SieveCommand::parse()
         // nothing needed
     } else if ( i == "fileinto" ) {
         mailboxes = true;
-        maxargs = UINT_MAX;
+        minargs = 1;
     } else if ( i == "redirect" ) {
         addrs = true;
-        maxargs = UINT_MAX;
+        minargs = 1;
     } else if ( i == "keep" ) {
         // nothing needed
     } else if ( i == "discard" ) {
@@ -664,7 +672,7 @@ void SieveCommand::parse()
                 StringList::Iterator i( a->stringList() );
                 StringList e;
                 while ( i ) {
-                    if ( !supportedExtension( i->lower() ) )
+                    if ( !supportedExtension( *i ) )
                         e.append( i->quoted() );
                     ++i;
                     
@@ -679,12 +687,28 @@ void SieveCommand::parse()
 
     if ( test ) {
         // we must have a test and a block
-        if ( !arguments() || arguments()->tests()->isEmpty() )
+        if ( !arguments() || arguments()->tests()->isEmpty() ) {
             setError( "Command " + identifier() +
                       " requires a test" );
-        if ( !block() )
+        }
+        else {
+            List<SieveTest>::Iterator i( arguments()->tests() );
+            while ( i ) {
+                i->parse();
+                ++i;
+            }
+        }
+        if ( !block() ) {
             setError( "Command " + identifier() +
                       " requires a subsidiary {..} block" );
+        }
+        else {
+            List<SieveCommand>::Iterator i( block()->commands() );
+            while ( i ) {
+                i->parse();
+                ++i;
+            }
+        }
     }
     else {
         // we cannot have a test or a block
@@ -699,6 +723,180 @@ void SieveCommand::parse()
         if ( block() )
             block()->setError( "Command " + identifier() +
                                " does not use a subsidiary command block" );
+        // in this case we don't even bother syntax-checking the test
+        // or block
     }
 
+}
+
+
+/*! Does semantic analysis and second-level parsing of sieve
+    tests. Checks that the test is supported, etc.
+
+*/
+
+void SieveTest::parse()
+{
+    if ( identifier() == "address" ) {
+        List<SieveArgument>::Iterator i( arguments()->arguments() );
+        while ( i ) {
+            String t = i->tag();
+            if ( isComparator( t ) ) {
+                ++i;
+                setComparator ( i );
+            }
+            else if ( !t.isEmpty() &&
+                      !!isMatchType( t ) &&
+                      !isAddressPart( t ) ) {
+                setError( "don't understand tag " + t );
+            }
+            else if ( i->number() ) {
+                setError( "Don't expect a number here" );
+            }
+            else if ( i->stringList() ) {
+                // expect two lists: header-list and key-list
+            }
+            else {
+                setError( "what happened? I'm dazed and confused" );
+            }
+            ++i;
+        }
+    }
+    else if ( identifier() == "allof" ) {
+        // each of the other nine contain variations of the "address" code
+    }
+    else if ( identifier() == "anyof" ) {
+    }
+    else if ( identifier() == "envelope" ) {
+    }
+    else if ( identifier() == "exists" ) {
+    }
+    else if ( identifier() == "false" ) {
+    }
+    else if ( identifier() == "header" ) {
+    }
+    else if ( identifier() == "not" ) {
+    }
+    else if ( identifier() == "size" ) {
+    }
+    else if ( identifier() == "true" ) {
+    }
+    else {
+        setError( "Unknown test: " + identifier() );
+    }
+        
+}
+
+
+/*! Returns the match type specified, or NoMatchType if none has been
+    explicitly specified.
+*/
+
+SieveTest::MatchType SieveTest::matchType() const
+{
+    return d->matchType;
+}
+
+
+/*! Returns the address part specified, or NoAddressPart if none has
+    been expiclitly specified.
+
+*/
+
+SieveTest::AddressPart SieveTest::addressPart() const
+{
+    return d->addressPart;
+}
+
+
+/*! Returns the comparator specified, or an empty string if none has
+    been explicitly specified.
+*/
+
+String SieveTest::comparator() const
+{
+    return d->comparator;
+}
+
+
+/*! Checks whether \a s is ":comparator" and returns true if
+    so. Exists for similarity with isAddressPart() and
+    isMatchType().
+*/
+
+bool SieveTest::isComparator( const String & s )
+{
+    return s == "comparator"; // or ":comparator"? not sure any more.
+}
+
+
+/*! Checks that \a s is a valid comparator name, and either sets it or
+    flags an error.
+*/
+
+void SieveTest::setComparator( SieveArgument * s )
+{
+    if ( !s->stringList() ) {
+        setError( "Need a comparator name after :comparator" );
+    }
+    else if ( s->stringList()->count() != 1 ) {
+        setError( "Need exactly one comparator name, not " +
+                  fn( s->stringList()->count() ) );
+    }
+    else {
+        String c = *s->stringList()->first();
+        // XXX: check that c is okay. ick.
+        d->comparator = c;
+    }
+}
+
+
+/*! Checks that \a s is :is, :contains or :matches and either records
+    the setting so matchType() and returns true, or changes nothing
+    and returns false.
+*/
+
+bool SieveTest::isMatchType( const String & s )
+{
+    if ( s == "is" ) {
+        if ( d->matchType != NoMatchType )
+            setError( "Match-type specified twice." );
+        d->matchType = Is;
+    }
+    else if ( s == "contains" ) {
+        if ( d->matchType != NoMatchType )
+            setError( "Match-type specified twice." );
+        d->matchType = Contains;
+    }
+    else if ( s == "matches" ) {
+        if ( d->matchType != NoMatchType )
+            setError( "Match-type specified twice." );
+        d->matchType = Matches;
+    }
+    else
+        return false;
+    return true;
+}
+
+
+/*! Checks that \a s is :localpart, :domain or :all, and returns true
+    if it is and false if not. If it returns true, addressPart() will
+    return the appropriate value.
+
+*/
+
+bool SieveTest::isAddressPart( const String & s )
+{
+    if ( s != "localpart" && s != "domain" && s != "all" )
+        return false;
+    if ( d->addressPart != NoAddressPart )
+        setError( "Address-part specified twice" );
+    if ( s != "localpart" )
+        d->addressPart = Localpart;
+    else if ( s != "domain" )
+        d->addressPart = Domain;
+    else if ( s != "all" )
+        d->addressPart = All;
+    return true;
+    // looks better than isMatchType(), doesn't it?
 }

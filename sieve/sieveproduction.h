@@ -122,6 +122,21 @@ public:
     void setArguments( SieveArgumentList * );
     SieveArgumentList * arguments() const;
 
+    void parse();
+
+    enum MatchType { Is, Contains, Matches, NoMatchType };
+    enum AddressPart { Localpart, Domain, All, NoAddressPart };
+
+    MatchType matchType() const;
+    AddressPart addressPart() const;
+    String comparator() const;
+
+private:
+    bool isComparator( const String & );
+    void setComparator( SieveArgument * );
+    bool isMatchType( const String & );
+    bool isAddressPart( const String & );
+
 private:
     class SieveTestData * d;
 };
