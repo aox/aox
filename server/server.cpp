@@ -233,6 +233,7 @@ static Configuration::Text addresses[] = {
     Configuration::LmtpAddress,
     Configuration::HttpAddress,
     Configuration::ManageSieveAddress,
+    Configuration::SmartHostAddress,
 
     // DbAddress MUST be last
     Configuration::DbAddress 

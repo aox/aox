@@ -96,6 +96,7 @@ public:
         MessageCopyDir,
         EntropySource,
         ManageSieveAddress,
+        SmartHostAddress,
         // additional texts go ABOVE THIS LINE
         NumTexts
     };

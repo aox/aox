@@ -198,7 +198,8 @@ static struct {
     { "message-copy", Configuration::MessageCopy, "none" },
     { "message-copy-directory", Configuration::MessageCopyDir, MESSAGEDIR },
     { "entropy-source", Configuration::EntropySource, "/dev/urandom" },
-    { "managesieve-address", Configuration::ManageSieveAddress, "127.0.0.1" }
+    { "managesieve-address", Configuration::ManageSieveAddress, "127.0.0.1" },
+    { "smarthost-address", Configuration::SmartHostAddress, "127.0.0.1" }
 };
 
 
