@@ -50,6 +50,9 @@ public:
     void setStringList( class StringList * );
     class StringList * stringList() const;
 
+    void setParsed( bool );
+    bool parsed() const;
+
 private:
     class SieveArgumentData * d;
 };
@@ -132,10 +135,7 @@ public:
     String comparator() const;
 
 private:
-    bool isComparator( const String & );
-    void setComparator( SieveArgument * );
-    bool isMatchType( const String & );
-    bool isAddressPart( const String & );
+    StringList * takeStringList();
 
 private:
     class SieveTestData * d;

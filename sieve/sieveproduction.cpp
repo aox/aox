@@ -172,11 +172,12 @@ class SieveArgumentData
     : public Garbage
 {
 public:
-    SieveArgumentData(): number( 0 ), list( 0 ), calls( 0 ) {}
+    SieveArgumentData(): number( 0 ), list( 0 ), calls( 0 ), parsed( false ) {}
     String tag;
     uint number;
     StringList * list;
     uint calls;
+    bool parsed;
 };
 
 
@@ -263,6 +264,29 @@ void SieveArgument::setStringList( class StringList * s )
 class StringList * SieveArgument::stringList() const
 {
     return d->list;
+}
+
+
+/*! Notifies this argument that it has been parsed if \a p is true,
+    and that it hasn't if \a p is false. The initial value is
+    false. This is only used by SieveTest for the moment, to keep
+    track of which arguments have been parsed and which still need
+    parsing.
+*/
+
+void SieveArgument::setParsed( bool p )
+{
+    d->parsed = p;
+}
+
+
+/*! Returns what setParsed() set, and false if setParsed() has never
+    been called.
+*/
+
+bool SieveArgument::parsed() const
+{
+    return d->parsed;
 }
 
 
@@ -489,7 +513,9 @@ public:
     SieveTestData()
         : arguments( 0 ), block( 0 ),
           matchType( SieveTest::NoMatchType ),
-          addressPart( SieveTest::NoAddressPart )
+          addressPart( SieveTest::NoAddressPart ),
+          headers( 0 ), envelopeParts( 0 ), keys( 0 ),
+          sizeOver( false ), sizeLimit( 0 )
     {}
 
     String identifier;
@@ -499,6 +525,12 @@ public:
     SieveTest::MatchType matchType;
     SieveTest::AddressPart addressPart;
     String comparator;
+
+    StringList * headers;
+    StringList * envelopeParts;
+    StringList * keys;
+    bool sizeOver;
+    uint sizeLimit;
 };
 
 
@@ -737,54 +769,200 @@ void SieveCommand::parse()
 
 void SieveTest::parse()
 {
-    if ( identifier() == "address" ) {
+    SieveArgument * ca = 0;
+    SieveArgument * mta = 0;
+    SieveArgument * apa = 0;
+    bool cok = false;
+    bool mtok = false;
+    bool apok = false;
+    if ( arguments()->arguments() ) {
+        // first, if we can, look for :comparator, :is and others, and
+        // parse those. (if those aren't applicable we'll later
+        // discover it and flag them as errors.)
         List<SieveArgument>::Iterator i( arguments()->arguments() );
         while ( i ) {
             String t = i->tag();
-            if ( isComparator( t ) ) {
+            if ( t == ":comparator" ) {
+                if ( ca ) {
+                    ca->setError( ":comparator specified twice" );
+                    i->setError( ":comparator specified twice" );
+                }
+                ca = i;
+                i->setParsed( true );
                 ++i;
-                setComparator ( i );
+                if ( i )
+                    i->setParsed( true );
+
+                if ( !i ) {
+                    setError( ":comparator cannot be the least argument" );
+                }
+                else if ( !i->stringList() ) {
+                    i->setError( "Need a comparator name after :comparator" );
+                }
+                else if ( i->stringList()->count() != 1 ) {
+                    i->setError( "Need exactly one comparator name, not " +
+                                 fn( i->stringList()->count() ) );
+                }
+                else {
+                    String c = i->stringList()->first()->simplified();
+                    if ( c.isEmpty() )
+                        i->setError( "Comparator name is empty" );
+                    // XXX: check that c is okay. ick.
+                    d->comparator = c;
+                }
             }
-            else if ( !t.isEmpty() &&
-                      !!isMatchType( t ) &&
-                      !isAddressPart( t ) ) {
-                setError( "don't understand tag " + t );
+            else if ( t == "is" ||
+                      t == "contains" ||
+                      t == "matches" ) {
+                if ( mta ) {
+                    mta->setError( "Match type specified twice" );
+                    i->setError( "Match type specified twice" );
+                }
+                mta = i;
+                i->setParsed( true );
+                if ( t == "is" )
+                    d->matchType = Is;
+                if ( t == "contains" )
+                    d->matchType = Contains;
+                if ( t == "matches" )
+                    d->matchType = Matches;
             }
-            else if ( i->number() ) {
-                setError( "Don't expect a number here" );
-            }
-            else if ( i->stringList() ) {
-                // expect two lists: header-list and key-list
-            }
-            else {
-                setError( "what happened? I'm dazed and confused" );
+            else if ( t == "localpart" ||
+                      t == "domain" ||
+                      t == "all" ) {
+                if ( apa ) {
+                    apa->setError( "Address part specified twice" );
+                    i->setError( "Address part specified twice" );
+                }
+                apa = i;
+                i->setParsed( true );
+                if ( t == "localpart" )
+                    d->addressPart = Localpart;
+                else if ( t == "domain" )
+                    d->addressPart = Domain;
+                else if ( t == "all" )
+                    d->addressPart = All;
             }
             ++i;
         }
     }
-    else if ( identifier() == "allof" ) {
-        // each of the other nine contain variations of the "address" code
+        
+    if ( identifier() == "address" ) {
+        cok = true;
+        mtok = true;
+        apok = true;
+        d->headers = takeStringList();
+        d->keys = takeStringList();
     }
-    else if ( identifier() == "anyof" ) {
+    else if ( identifier() == "allof" ||
+              identifier() == "anyof" ) {
+        if ( arguments()->arguments() )
+            setError( "Test '" +
+                      identifier() + 
+                      "' does not accept arguments, only a list of tests" );
+        bool any = false;
+        List<SieveTest>::Iterator i( arguments()->tests() );
+        while ( i ) {
+            any = true;
+            i->parse();
+            ++i;
+        }
+        if ( !any )
+            setError( "Need at least one subsidiary test" );
     }
     else if ( identifier() == "envelope" ) {
+        cok = true;
+        mtok = true;
+        apok = true;
+        d->envelopeParts = takeStringList();
+        d->keys = takeStringList();
     }
     else if ( identifier() == "exists" ) {
+        d->headers = takeStringList();
     }
     else if ( identifier() == "false" ) {
+        // I wish all the tests were this easy
     }
     else if ( identifier() == "header" ) {
+        cok = true;
+        mtok = true;
+        d->headers = takeStringList();
     }
     else if ( identifier() == "not" ) {
+        if ( arguments()->arguments() )
+            setError( "Test 'not' does not accept arguments, only a test" );
+        if ( !arguments()->tests() ||
+             arguments()->tests()->count() != 1 )
+            setError( "Test 'not' needs exactly one subsidiary test" );
+        else
+            arguments()->tests()->first()->parse();
     }
     else if ( identifier() == "size" ) {
+        List<SieveArgument>::Iterator i( arguments()->arguments() );
+        while ( i && i->parsed() )
+            ++i;
+        if ( i ) {
+            String t = i->tag();
+            if ( t == ":over" )
+                d->sizeOver = true;
+            else if ( t != ":under" )
+                i->setError( "Expected tag :over/:under" );
+            i->setParsed( true );
+            ++i;
+            if ( !i ) {
+                setError( "Number not supplied" );
+            }
+            else if ( !i->tag().isEmpty() || i->stringList() ) {
+                i->setError( "Need a number" );
+            }
+            else {
+                d->sizeLimit = i->number();
+                i->setParsed( true );
+            }
+            ++i;
+        }
+        else {
+            setError( ":over/:under and number not supplied" );
+        }
     }
     else if ( identifier() == "true" ) {
+        // much like false.
     }
     else {
         setError( "Unknown test: " + identifier() );
     }
-        
+
+    // any tagged things out of place?
+    if ( ca && !cok )
+        ca->setError( "Comparator cannot be specified in test '" +
+                      identifier() + "'" );
+    if ( mta && !mtok )
+        mta->setError( "Match type cannot be specified in test '" +
+                       identifier() + "'" );
+    if ( apa && !apok )
+        apa->setError( "Address-part cannot be specified in test '" +
+                       identifier() + "'" );
+
+    // any arguments we didn't parse?
+    List<SieveArgument>::Iterator i( arguments()->arguments() );
+    while ( i ) {
+        if ( i->parsed() ) {
+            // it's okay
+        }
+        else if ( i->number() ) {
+            setError( "Why is this number here?" );
+        }
+        else if ( i->stringList() ) {
+            setError( "Why is this string/list here?" );
+        }
+        else if ( !i->tag().isEmpty() ) {
+            setError( "Unknown tag" );
+        }
+        else {
+            setError( "What happened? I'm dazed and confused" );
+        }
+        ++i;
+    }
 }
 
 
@@ -819,84 +997,21 @@ String SieveTest::comparator() const
 }
 
 
-/*! Checks whether \a s is ":comparator" and returns true if
-    so. Exists for similarity with isAddressPart() and
-    isMatchType().
+/*! Takes the first unparsed string list from the list of arguments,
+    calls SieveArgument::setParsed() on it and returns a pointer to
+    it. Calls setError() and returns a null pointer if no unparsed
+    string lists are available.
 */
 
-bool SieveTest::isComparator( const String & s )
+StringList * SieveTest::takeStringList()
 {
-    return s == "comparator"; // or ":comparator"? not sure any more.
-}
-
-
-/*! Checks that \a s is a valid comparator name, and either sets it or
-    flags an error.
-*/
-
-void SieveTest::setComparator( SieveArgument * s )
-{
-    if ( !s->stringList() ) {
-        setError( "Need a comparator name after :comparator" );
+    List<SieveArgument>::Iterator i( arguments()->arguments() );
+    while ( i && ( i->parsed() || !i->stringList() ) )
+        ++i;
+    if ( !i ) {
+        setError( "Wanted another string/list" );
+        return 0;
     }
-    else if ( s->stringList()->count() != 1 ) {
-        setError( "Need exactly one comparator name, not " +
-                  fn( s->stringList()->count() ) );
-    }
-    else {
-        String c = *s->stringList()->first();
-        // XXX: check that c is okay. ick.
-        d->comparator = c;
-    }
-}
-
-
-/*! Checks that \a s is :is, :contains or :matches and either records
-    the setting so matchType() and returns true, or changes nothing
-    and returns false.
-*/
-
-bool SieveTest::isMatchType( const String & s )
-{
-    if ( s == "is" ) {
-        if ( d->matchType != NoMatchType )
-            setError( "Match-type specified twice." );
-        d->matchType = Is;
-    }
-    else if ( s == "contains" ) {
-        if ( d->matchType != NoMatchType )
-            setError( "Match-type specified twice." );
-        d->matchType = Contains;
-    }
-    else if ( s == "matches" ) {
-        if ( d->matchType != NoMatchType )
-            setError( "Match-type specified twice." );
-        d->matchType = Matches;
-    }
-    else
-        return false;
-    return true;
-}
-
-
-/*! Checks that \a s is :localpart, :domain or :all, and returns true
-    if it is and false if not. If it returns true, addressPart() will
-    return the appropriate value.
-
-*/
-
-bool SieveTest::isAddressPart( const String & s )
-{
-    if ( s != "localpart" && s != "domain" && s != "all" )
-        return false;
-    if ( d->addressPart != NoAddressPart )
-        setError( "Address-part specified twice" );
-    if ( s != "localpart" )
-        d->addressPart = Localpart;
-    else if ( s != "domain" )
-        d->addressPart = Domain;
-    else if ( s != "all" )
-        d->addressPart = All;
-    return true;
-    // looks better than isMatchType(), doesn't it?
+    i->setParsed( true );
+    return i->stringList();
 }
