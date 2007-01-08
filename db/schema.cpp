@@ -1714,9 +1714,35 @@ bool Schema::stepTo33()
 }
 
 
-/*! Create and populate the unparsed_messages table. */
+/*! Add tried_at to delivieries. */
 
 bool Schema::stepTo34()
+{
+    if ( d->substate == 0 ) {
+        describeStep( "Adding deliveries.tried_at." );
+        d->q = new Query( "alter table deliveries add tried_at "
+                          "timestamp with time zone", this );
+        d->t->enqueue( d->q );
+        d->t->execute();
+        d->substate = 1;
+    }
+
+    if ( d->substate == 1 ) {
+        if ( !d->q->done() )
+            return false;
+        d->l->log( "Done.", Log::Debug );
+        d->substate = 0;
+    }
+
+    return true;
+}
+
+
+/*! Create and populate the unparsed_messages table.
+    XXX: The create will need to be made conditional.
+*/
+
+bool Schema::stepTo35()
 {
     if ( d->substate == 0 ) {
         describeStep( "Creating unparsed_messages table (slow)." );
